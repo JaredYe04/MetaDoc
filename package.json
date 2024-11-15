@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "element-plus": "^2.8.7",
+    "tdesign-vue-next": "^1.10.3",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "unplugin-auto-import": "^0.18.3",
+    "unplugin-vue-components": "^0.27.4",
+    "wait-on": "^8.0.1"
+  }
+}

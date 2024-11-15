@@ -1,0 +1,13 @@
+.bottom-menu {
+    margin-top: 20px;
+    width: fit-content;
+    margin: 50px;
+    padding: 30px;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+  }
+  
+  .bottom-menu .el-button {
+    margin: 0 10px;
+  }

@@ -1,0 +1,19 @@
+.aero-div {
+    background: rgba(173, 216, 230, 0.1); /* 半透明淡蓝色 */
+    backdrop-filter: blur(10px); /* 毛玻璃效果 */
+    -webkit-backdrop-filter: blur(10px); /* 兼容Safari */
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(173, 79, 79, 0.1); /* 微阴影增加立体感 */
+    transition: backdrop-filter 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; /* 过渡动画 */
+    padding: 20px;
+    color: #fff; /* 文字颜色 */
+  }
+  
+  /* 悬停效果 */
+  .aero-div:hover {
+    backdrop-filter: blur(15px) brightness(1.2); /* 增加模糊和亮度 */
+    -webkit-backdrop-filter: blur(15px) brightness(1.2);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); /* 增加阴影 */
+    transform: scale(1.01); /* 微缩放 */
+  }
+  

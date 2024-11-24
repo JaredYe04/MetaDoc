@@ -10,12 +10,20 @@ import 'tdesign-vue-next/es/style/index.css';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import VueTree from "@ssthouse/vue3-tree-chart";
 import "@ssthouse/vue3-tree-chart/dist/vue3-tree-chart.css";
+import './assets/interactive-text.css'
 const app = createApp(App);
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
   }
-  
+import LlmDialog from "./components/LlmDialog.vue";
+//import AiLogo from './assets/ai-logo.svg'
+app.component("LlmDialog", LlmDialog); // 全局注册
+//app.component("AiLogo", AiLogo); // 全局注册
+import TitleMenu from './components/TitleMenu.vue';
+app.component("TitleMenu", TitleMenu); // 全局注册
+import MarkdownItEditor from 'vue3-markdown-it';
+app.component('MarkdownItEditor', MarkdownItEditor)
 app.use(ElementPlus)
 app.component('VueTree', VueTree)
 app.use(router)

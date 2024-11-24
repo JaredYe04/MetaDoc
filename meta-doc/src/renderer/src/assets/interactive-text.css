@@ -1,0 +1,17 @@
+/* interactive-text.css */
+.interactive-text {
+    transition: transform 0.3s ease, color 0.3s ease; /* 过渡效果 */
+    color: #000; /* 默认文本颜色 */
+  }
+  
+  .interactive-text:hover {
+    transform: scale(1.002); /* 鼠标悬停时放大 */
+    color: #03182dd5; /* 鼠标悬停时的文本颜色 */
+    cursor: pointer;
+  }
+  
+  .interactive-text:active {
+    transform: scale(0.995); /* 点击时缩小 */
+    color: #0056b3; /* 点击时的文本颜色 */
+  }
+  

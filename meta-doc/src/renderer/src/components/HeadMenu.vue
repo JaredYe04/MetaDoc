@@ -12,7 +12,7 @@
    </el-menu-item>
    <el-menu-item index="/" >主界面</el-menu-item>
    <el-menu-item index="/outline" >文档大纲</el-menu-item>
-   <el-menu-item index="/body" >文档主体</el-menu-item>
+   <el-menu-item index="/article" >文档主体</el-menu-item>
    <el-menu-item index="/examine" >校对视图</el-menu-item>
    <el-menu-item index="/analyze" >深度分析</el-menu-item>
  </el-menu>

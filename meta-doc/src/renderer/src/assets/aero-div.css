@@ -11,9 +11,9 @@
   
   /* 悬停效果 */
   .aero-div:hover {
-    backdrop-filter: blur(15px) brightness(1.2); /* 增加模糊和亮度 */
-    -webkit-backdrop-filter: blur(15px) brightness(1.2);
+    backdrop-filter: blur(10px) brightness(1.01); /* 增加模糊和亮度 */
+    -webkit-backdrop-filter: blur(15px) brightness(1.01);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); /* 增加阴影 */
-    transform: scale(1.01); /* 微缩放 */
+    transform: scale(1.002); /* 微缩放 */
   }
   

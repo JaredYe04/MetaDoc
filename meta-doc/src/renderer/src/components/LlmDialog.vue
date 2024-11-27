@@ -1,31 +1,33 @@
 <template>
-    <div class="llm-dialog aero-div">
-      <!-- 顶部标题 -->
-      <div class="llm-dialog-header">
-        <span>{{props.title?props.title:"AI助手"}}</span>
-        <el-button circle size="mini" @click="closeDialog" class="aero-btn"><el-icon><Close /></el-icon></el-button>
-      </div>
-  
-      <!-- 文本框内容 -->
-      <el-input
-        type="textarea"
-        v-model="aiResponse"
-        rows="10"
-        placeholder="AI生成的内容会显示在这里"
-        readonly
-        class="llm-dialog-input aero-input"
-        :autosize="{ minRows: defaultInputSize, maxRows: 10 }"
-      ></el-input>
-  
-      <!-- 按钮组 -->
-      <div class="llm-dialog-footer">
-        <el-button type="info" @click="handleReset" :loading="loading" class="aero-btn" circle ><el-icon v-if="!loading"><Refresh /></el-icon></el-button>
-        <el-button type="success" @click="handleAccept" :disabled="loading" class="aero-btn" circle >
-          <el-icon><Check /></el-icon>
-        </el-button>
-      </div>
+  <div class="llm-dialog aero-div">
+    <!-- 顶部标题 -->
+    <div class="llm-dialog-header">
+      <span>{{ props.title ? props.title : "AI助手" }}</span>
+      <el-tooltip content="关闭菜单" placement="top">
+        <el-button circle size="mini" @click="closeDialog" class="aero-btn"><el-icon>
+            <Close />
+          </el-icon></el-button>
+      </el-tooltip>
+
     </div>
-  </template>
+
+    <!-- 文本框内容 -->
+    <el-input type="textarea" v-model="aiResponse" rows="10" placeholder="AI生成的内容会显示在这里" readonly
+      class="llm-dialog-input aero-input" :autosize="{ minRows: defaultInputSize, maxRows: 10 }"></el-input>
+
+    <!-- 按钮组 -->
+    <div class="llm-dialog-footer">
+      <el-button type="info" @click="handleReset" :loading="loading" class="aero-btn" circle><el-icon v-if="!loading">
+          <Refresh />
+        </el-icon></el-button>
+      <el-button type="success" @click="handleAccept" :disabled="loading" class="aero-btn" circle>
+        <el-icon>
+          <Check />
+        </el-icon>
+      </el-button>
+    </div>
+  </div>
+</template>
 
 <script setup>
 import { ref, watch, onMounted } from "vue";
@@ -121,7 +123,7 @@ onMounted(() => {
 </script>
 <style scoped>
 .llm-dialog {
-  position:fixed;
+  position: fixed;
   z-index: 9999;
   width: 200px;
   max-height: 400px;

@@ -1,0 +1,10 @@
+.wordcloud-text {
+    cursor: pointer;
+    transition: all 0.3s;
+    
+}
+.wordcloud-text:hover {
+    /*模糊*/
+    filter: brightness(1.2);
+    box-shadow: #000 0px 0px 10px;
+}

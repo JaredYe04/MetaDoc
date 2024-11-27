@@ -6,7 +6,6 @@
     box-shadow: 0 4px 8px rgba(173, 79, 79, 0.1); /* 微阴影增加立体感 */
     transition: backdrop-filter 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; /* 过渡动画 */
     padding: 20px;
-    color: #fff; /* 文字颜色 */
   }
   
   /* 悬停效果 */

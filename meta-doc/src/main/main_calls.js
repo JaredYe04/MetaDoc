@@ -14,6 +14,7 @@ const mammoth = require('mammoth');
 const markdownIt = require("markdown-it");
 const htmlDocx = require('html-docx-js');
 const os = require('os');
+
 import { mainWindow } from './index'
 import { dirname } from './index'
 
@@ -23,6 +24,10 @@ export function mainCalls() {
   ipcMain.on('quit', quit)
   ipcMain.on('save', async (event, data) => {
     await save(data, false)
+  })
+  ipcMain.on('save-and-quit', async (event, data) => {
+    await save(data, false)
+    quit()
   })
   ipcMain.on('save-as', async (event, data) => {
     
@@ -49,11 +54,33 @@ export function mainCalls() {
   ipcMain.handle('get-recent-docs', async (event, data) => {
     return await getRecentDocs()
   })
-
-
-
+  ipcMain.handle('cut-words', async (event, data) => {
+    return await cut_words(data.text)
+  })
+  ipcMain.handle('get-vditor', async (event, data) => {
+    return await getVditor(data)
+  })
 }
+const Vditor = require("vditor");
 
+const getVditor = (elementId) => {
+  return new Vditor(elementId, {
+    height: 300,
+    mode: 'sv', // 默认 Markdown 模式
+    value: '# 标题\n这是一个初始化内容',
+  });
+};
+
+
+var Segment = require('segment');
+var segment = new Segment();
+segment.useDefault();
+const cut_words = async (text) => {
+  //console.log(text);
+  return await segment.doSegment(text, {
+    simple: true
+  });
+}
 const updateRecentDocs = async (data) => {
   const json=store.get('recent-docs')
   //如果没有recent-docs，初始化一个空数组
@@ -142,7 +169,7 @@ const save = async (data, saveAs) => {
   //console.log(data);
   let json = data.json
   let path=data.path
-  console.log(path);
+  //console.log(path);
   const obj = JSON.parse(json)
   if (path === '' || saveAs) {
     //console.log("文件路径为空");

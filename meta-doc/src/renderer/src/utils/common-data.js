@@ -34,7 +34,7 @@ const default_artical_meta_data = {
 
 var current_file_path = ref('')
 var current_outline_tree = ref(JSON.parse(JSON.stringify(default_outline_tree)))
-var current_article = ref('')
+var current_article = ref(generateMarkdownFromOutlineTree(default_outline_tree))
 var current_article_meta_data = ref(default_artical_meta_data)
 var latest_view=ref('outline')
 export {

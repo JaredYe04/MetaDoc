@@ -1,30 +1,31 @@
 <template>
   <div class="aero-div" :style="menuStyles" @mousedown="onMouseDown">
-    <p style="font-weight: bold;"  @mousedown.stop> {{ props.title ? props.title : "标题" }}
 
-      <el-button circle size="mini" @click="$emit('close')" class="aero-btn" style="float: inline-end;" @mousedown.stop>
-        <el-icon>
-          <Close />
-        </el-icon>
+    <div style="width: 100% ;height: fit-content; align-items: end; padding-bottom: 10px;">
+      <el-button circle size="small" type="danger" @click="$emit('close')" class="aero-btn" style="float: inline-start;"
+        @mousedown.stop>
       </el-button>
-    </p>
-    <MarkdownItEditor :source="articleContent" v-if="!generated && !generating" class="md-container" @mousedown.stop/>
-    <MarkdownItEditor :source="generatedText" v-if="generated || generating" class="md-container" @mousedown.stop/>
+    </div>
+
+
+    <p style="font-weight: bold;" @mousedown.stop> {{ props.title ? props.title : "标题" }}</p>
+    <MarkdownItEditor :source="articleContent" v-if="!generated && !generating" class="md-container" @mousedown.stop />
+    <MarkdownItEditor :source="generatedText" v-if="generated || generating" class="md-container" @mousedown.stop />
     <!-- <p class="article-content">{{ articleContent }}</p> -->
     <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable class="inline-input"
-      style="color: black; opacity: 1;" placeholder="请输入需求" @mousedown.stop/>
+      style="color: black; opacity: 1;" placeholder="请输入需求" @mousedown.stop />
 
-      <div @mousedown.stop >
-        <el-button circle type="primary" @click="generate" :disabled="generating || userPrompt.length === 0" ><el-icon>
-        <Promotion />
-      </el-icon></el-button>
-    <el-button circle type="info" @click="reset" v-if="generated"><el-icon>
-        <RefreshLeft />
-      </el-icon></el-button>
-    <el-button circle type="success" @click="accept" v-if="generated"><el-icon>
-        <Check />
-      </el-icon></el-button>
-      </div>
+    <div @mousedown.stop>
+      <el-button circle type="primary" @click="generate" :disabled="generating || userPrompt.length === 0"><el-icon>
+          <Promotion />
+        </el-icon></el-button>
+      <el-button circle type="info" @click="reset" v-if="generated"><el-icon>
+          <RefreshLeft />
+        </el-icon></el-button>
+      <el-button circle type="success" @click="accept" v-if="generated"><el-icon>
+          <Check />
+        </el-icon></el-button>
+    </div>
 
   </div>
 </template>
@@ -39,6 +40,7 @@ import { ref, watch } from 'vue';
 import { max } from 'd3';
 import { sectionChangePrompt } from '../utils/prompts';
 import { answerQuestionStream } from '../utils/llm-api';
+import eventBus from '../utils/event-bus';
 const props = defineProps({
   title: {
     type: String,
@@ -79,6 +81,8 @@ const presetPrompts = ref([
     label: '校对修改'
   }
 ])
+
+
 const emit = defineEmits(["accept"]);
 
 const accept = () => {

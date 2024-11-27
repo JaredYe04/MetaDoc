@@ -5,6 +5,7 @@ import Outline from '../views/Outline.vue'
 import Article from '../views/Article.vue'
 import Setting from '../views/Setting.vue'
 import component from 'element-plus/es/components/tree-select/src/tree-select-option.mjs'
+import Visualize from '../views/Visualize.vue'
 const routes = [
   {
     path: '/',
@@ -30,6 +31,11 @@ const routes = [
     path:'/setting',
     name:'Setting',
     component: Setting
+  },
+  {
+    path:'/visualize',
+    name:'Visualize',
+    component: Visualize
   }
 ]
 

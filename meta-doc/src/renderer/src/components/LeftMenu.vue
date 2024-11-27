@@ -177,8 +177,7 @@ const openDoc = () => {
   })
 }
 const saveAndQuit = () => {
-  eventBus.emit('save')
-  eventBus.emit('quit')
+  eventBus.emit('save-and-quit')
 }
 const quitWithoutSave = () => {
   eventBus.emit('quit')

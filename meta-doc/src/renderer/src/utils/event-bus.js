@@ -33,6 +33,12 @@ eventBus.on('save', (msg) => {
   ipcRenderer.send('save', { json: dump2json(),path:current_file_path.value })
 })
 
+
+eventBus.on('save-and-quit', () => {
+  sync();
+  ipcRenderer.send('save-and-quit', { json: dump2json(),path:current_file_path.value })
+});
+
 eventBus.on('open-doc', async (path) => {
   await init()
   ipcRenderer.send('open-doc',path)

@@ -8,6 +8,9 @@ const http = require('http');
 const url = require('url');
 const cors = require('cors');
 const path = require('path');
+const os = require('os');
+const fs = require('fs');
+const multer = require('multer');
 let mainWindow;
 export var dirname;
 function createWindow() {
@@ -62,6 +65,79 @@ expressApp.use('/vditor', express.static(dir));
 expressApp.get('/vditor/*', (req, res) => {
   console.log('Request for Vditor file:', req.path); // 输出请求的文件路径
 });
+
+/////////////////////////////////////上传图片API/////////////////////////////////////
+// 设置上传目录
+// 获取系统图片目录路径
+const uploadDir = path.join(os.homedir(), 'Pictures', 'meta-doc-imgs');
+
+// 如果目录不存在，则创建
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true }); // 递归创建目录
+}
+
+// 配置 multer 存储
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir); // 图片保存到系统图片目录下的 meta-doc-imgs 文件夹
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now(); // 时间戳命名
+    cb(null, `${timestamp}_${file.originalname}`);
+  },
+});
+
+const upload = multer({ storage });
+// 配置静态文件服务
+expressApp.use('/images', express.static(uploadDir));
+// 创建上传接口
+expressApp.post('/upload', upload.array('file[]'), (req, res) => {
+  const errFiles = [];
+  const succMap = {};
+
+  // 处理上传的文件
+  if (req.files && req.files.length > 0) {
+    req.files.forEach((file) => {
+      const filePath = path.join('images', file.filename); // 相对路径
+      succMap[file.filename] = filePath; // 文件路径映射
+    });
+
+    // 如果没有任何上传成功的文件，返回错误
+    if (Object.keys(succMap).length === 0) {
+      errFiles.push('没有上传任何文件');
+    }
+  } else {
+    errFiles.push('上传失败');
+  }
+
+  // 返回 Vditor 需要的格式
+  res.json({
+    msg: '',
+    code: 0,
+    data: {
+      errFiles: errFiles, // 失败的文件
+      succMap: succMap, // 成功的文件路径映射
+    },
+  });
+});
+// // 通过 API 返回图片
+// expressApp.get('/show-image', (req, res) => {
+//   const { filename } = req.query;  // 从查询参数中获取文件名
+//   const imagePath = path.join(__dirname, 'images', filename);
+  
+//   // 检查图片是否存在
+//   fs.access(imagePath, fs.constants.F_OK, (err) => {
+//     if (err) {
+//       return res.status(404).json({ success: false, message: '图片未找到' });
+//     }
+    
+//     // 读取图片并返回
+//     res.sendFile(imagePath);
+//   });
+// });
+
+// expressApp.use('/images', express.static(path.join(__dirname, 'images')));
+
 const server = http.createServer(expressApp);
 
 // 在本地运行 HTTP 服务器

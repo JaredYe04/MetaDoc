@@ -184,8 +184,8 @@ export default {
             if (treeNodeQueue[0].path === 'dummy') {
                 treeNodeQueue.shift();
             }
-            console.log(treeNodeQueue);
-            console.log(sections);
+            //console.log(treeNodeQueue);
+            //console.log(sections);
             //console.log(treeNodeQueue);
             for (let i = 0; i < sections.length; i++) {
                 const section = sections[i];
@@ -214,9 +214,29 @@ export default {
                 height: "100%",
                 mode: "ir", // 即时渲染模式
                 toolbarConfig: { pin: true },
+                upload: {
+                    url: 'http://localhost:3000/upload',  // 替换为你的图片上传接口
+                    linkToImgUrl: true,    // 启用将 Base64 转换为图片 URL
+                    success: (editor, msg) => {
+                        const data = JSON.parse(msg);
+                        //console.log(data);
+                        const filePaths = data.data.succMap;
+                        //console.log(filePaths);
+                        //filePaths是一个对象，key是文件名，value是文件路径
+                        for (const key in filePaths) {
+                            const filePath = filePaths[key].substring(7);//去掉images\前缀,
+                            //console.log(filePath);
+                            const imageUrl = `http://localhost:3000/images/${filePath}`;
+                            vditor.value.insertValue(`![](${imageUrl})`);  // 插入图片链接
+                        }
+                    },
+                    error: (msg) => {
+                        console.error('上传失败:', msg);
+                    },
+                },
                 toolbar: [
-                'undo',     // 撤销
-                'redo',     // 重做
+                    'undo',     // 撤销
+                    'redo',     // 重做
                     'emoji',    // 表情
                     'headings', // 标题
                     'bold',     // 加粗
@@ -327,7 +347,7 @@ export default {
     flex: 1;
     /*占满整个父容器 */
     height: 85vh;
-    overflow-y: auto;
+    overflow: scroll;
     /* 唯一允许滚动的区域 */
 
 }
@@ -348,6 +368,7 @@ export default {
     background-color: #f9f9f9;
     overflow: auto;
     box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+    padding-left: 5px;
 }
 
 /* 底部菜单样式 */

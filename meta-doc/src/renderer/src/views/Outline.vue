@@ -1,7 +1,10 @@
 <template>
   <div class="container">
-    <vue-tree ref="tree" style="width: 100%; height: 600px; border: 1px solid gray" :dataset="treeData"
-      :config="treeConfig" :direction="direction" @node-click="handleNodeClick" @node-drag="handleNodeDrag">
+    <vue-tree ref="treeRef" style="width: 100%; height: 600px; border: 1px solid gray" :dataset="treeData"
+      :config="treeConfig" :direction="direction" @node-click="handleNodeClick" @node-drag="handleNodeDrag"
+      linkStyle="straight">
+
+
       <template #node="{ node, collapsed }">
         <div class="tree-node">
           {{ node.title }}
@@ -13,37 +16,44 @@
           </el-icon>
         </el-button>
 
-        <div v-if="dialogVisible[node.path]" class="aero-div node-edit-box">
-          <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-            @click.stop="move2Left">
-            <el-icon style="font-size: 14px">
-              <ArrowLeftBold />
-            </el-icon>
-          </el-button>
-          <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-            @click.stop="addChildNode">
-            <el-icon style="font-size: 14px">
-              <Plus />
-            </el-icon>
-          </el-button>
-          <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-            @click.stop="editNode">
-            <el-icon style="font-size: 14px">
-              <Edit />
-            </el-icon>
-          </el-button>
-          <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-            @click.stop="deleteNode">
-            <el-icon style="font-size: 14px">
-              <Delete />
-            </el-icon>
-          </el-button>
-          <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-            @click.stop="move2Right">
-            <el-icon style="font-size: 14px">
-              <ArrowRightBold />
-            </el-icon>
-          </el-button>
+        <div v-if="dialogVisible[node.path]" class="aero-div node-edit-box" @click.stop @mousemove.stop @mousedown.stop
+          @mouseup.stop>
+          <div>
+            <!-- 菜单按钮 -->
+            <div class="button-group">
+              <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                @click.stop="move2Left">
+                <el-icon style="font-size: 14px">
+                  <ArrowLeftBold />
+                </el-icon>
+              </el-button>
+              <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                @click.stop="addChildNode">
+                <el-icon style="font-size: 14px">
+                  <Plus />
+                </el-icon>
+              </el-button>
+              <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                @click.stop="editNode">
+                <el-icon style="font-size: 14px">
+                  <Edit />
+                </el-icon>
+              </el-button>
+              <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                @click.stop="deleteNode">
+                <el-icon style="font-size: 14px">
+                  <Delete />
+                </el-icon>
+              </el-button>
+              <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                @click.stop="move2Right">
+                <el-icon style="font-size: 14px">
+                  <ArrowRightBold />
+                </el-icon>
+              </el-button>
+            </div>
+
+          </div>
         </div>
       </template>
     </vue-tree>
@@ -65,6 +75,8 @@
       <el-button type="info" circle @click="resetScale"><el-icon>
           <Refresh />
         </el-icon></el-button>
+
+
     </div>
   </div>
 </template>
@@ -88,7 +100,10 @@ import { ElMessageBox } from 'element-plus'
 import { ElNotification } from 'element-plus'
 import '../assets/bottom-menu.css'
 import { current_outline_tree, default_outline_tree, latest_view, sync } from '../utils/common-data'
-import { searchNode,searchParentNode } from '../utils/common-data';
+import { searchNode, searchParentNode } from '../utils/common-data';
+import { removeTextFromOutline } from '../utils/md-utils.js';
+import { outlineChangePrompt } from '../utils/prompts.js';
+import { answerQuestionStream } from '../utils/llm-api.js';
 export default {
   name: 'Outline',
   components: {
@@ -100,15 +115,33 @@ export default {
       treeData: current_outline_tree,
       direction: 'vertical',
       treeConfig: {
-        nodeWidth: 250,
-        nodeHeight: 100,
-        levelHeight: 120
+        nodeWidth: 200,
+        nodeHeight: 50,
+        levelHeight: 200
       },
       currentChapterValue: '',
       editValueDialogVisible: false,
       dialogVisible: {},
-      selectedNode: null // 当前选中的节点
+      llmDialogVisible: {},
+      selectedNode: null, // 当前选中的节点
+      generated: false,
+      generating: false,
+      userPrompt: '',
+      presetPrompts: [
+        {
+          value: '把这个章节分成几个扩展小节',
+        },
+        {
+          value: '精简本章节的子节数，浓缩成几个小节',
+        },
+        {
+          value: '根据上下文大意，生成合适的文章结构',
+        }
+      ],
+      generatedText: '',
+      menuToggle: false
     }
+
   },
   mounted() {
     sync();
@@ -129,6 +162,52 @@ export default {
     }
   },
   methods: {
+    async generate() {
+      this.generating = true;
+      const treeWithoutText = removeTextFromOutline(this.treeData);
+      const prompt = outlineChangePrompt(JSON.stringify(treeWithoutText), JSON.stringify(this.selectedNode), this.userPrompt);
+      await answerQuestionStream(prompt, this.generatedText);
+      console.log(this.generatedText);
+      this.generating = false;
+
+      this.generated = true;
+    },
+    accept() {
+      // //searchNode(props.path, current_outline_tree.value).text=generatedText.value;
+      // // latest_view.value='outline';
+      // // sync();
+      // //如果最后一位不是换行符，加上换行符
+      // if (generatedText.value[generatedText.value.length - 1] !== '\n') {
+      //   generatedText.value += '\n';
+      // }
+
+      // //如果第一行是标题，去掉标题
+      // if (generatedText.value.startsWith('#')) {
+      //   generatedText.value = generatedText.value.split('\n').slice(1).join('\n');
+      // }
+      // articleContent.value = generatedText.value;
+      // emit('accept', generatedText.value);
+      // reset();
+
+    },
+    reset() {
+      this.generated = false;
+      this.generatedText = '';
+    },
+    querySearch(queryString, cb) {
+      const createFilter = (queryString) => {
+        return (preset) => {
+          //模糊匹配，只要包含就行
+          return preset.value.toLowerCase().includes(queryString.toLowerCase())
+        }
+      }
+      //console.log(queryString)
+      const results = queryString
+        ? this.presetPrompts.filter(createFilter(queryString))
+        : this.presetPrompts
+      // call callback function to return suggestions
+      cb(results)
+    },
     move2Left() {
       const cur_node = searchNode(this.selectedNode.path, this.treeData)
       const parent = searchParentNode(this.selectedNode.path, this.treeData)
@@ -296,19 +375,43 @@ export default {
 <style scoped lang="less">
 .node-edit-box {
   display: flex;
-  justify-content: space-around;
+  flex-direction: column;
+  /* 垂直布局 */
   align-items: center;
   position: fixed;
-  margin-top: 50%;
+  margin-top: 100%;
   z-index: 10;
-  /* 使其显示在其他元素之上 */
+  /* 确保覆盖其他元素 */
+}
+
+.button-group {
+  display: flex;
+  /* 水平布局 */
+  justify-content: space-around;
+  /* 按钮间隔均匀 */
+  width: 100%;
+  /* 满宽布局 */
+}
+
+.action-buttons {
+  display: flex;
+  /* 水平布局 */
+  // justify-content: space-around; /* 按钮间隔均匀 */
+  align-items: start;
+  width: 100%;
+  /* 满宽布局 */
+}
+
+.inline-input {
+  width: 500px;
+  /* 限制最大宽度 */
 }
 
 .container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
+  padding: 5px;
   justify-content: center;
   /* 居中 */
 }

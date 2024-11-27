@@ -5,25 +5,25 @@ import eventBus from "./event-bus"
 
 // 1. 从Markdown文本中提取所有标题，生成大纲树
 
-export function extractOutlineTreeFromMarkdown(md,bypassText=false) {
+export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
     //console.log(md);
     const lines = md.split('\n')
     //console.log(lines);
     const outline_tree = {
-        title:'',//当前标题
-        path:'dummy', //当前标题的路径,编号规则：根节点无编号，第一级标题编号为1，第二级标题编号为1.1，第三级标题编号为1.1.1，以此类推
-        text:'',//当前标题的内容，不包括子标题以及内容
+        title: '',//当前标题
+        path: 'dummy', //当前标题的路径,编号规则：根节点无编号，第一级标题编号为1，第二级标题编号为1.1，第三级标题编号为1.1.1，以此类推
+        text: '',//当前标题的内容，不包括子标题以及内容
         children: []
     }
 
     let current_node = outline_tree
     let stack = [outline_tree]
-    for(let i = 0; i < lines.length; i++) {
+    for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
         //console.log(line);
         const match = line.match(/^#+\s+(.*)/)
         //console.log(match);
-        if(match) {
+        if (match) {
             const title = match[1]
             //console.log(title);
             const level = match[0].match(/#/g).length
@@ -35,7 +35,7 @@ export function extractOutlineTreeFromMarkdown(md,bypassText=false) {
                 children: []
             }
             //console.log(new_node);
-            if(level > stack.length) {
+            if (level > stack.length) {
                 stack[stack.length - 1].children.push(new_node)
                 stack.push(new_node)
             } else {
@@ -44,7 +44,7 @@ export function extractOutlineTreeFromMarkdown(md,bypassText=false) {
             }
             current_node = new_node
         } else {
-            if(!bypassText){
+            if (!bypassText) {
                 current_node.text += line + '\n'
             }
         }
@@ -56,19 +56,19 @@ export function extractOutlineTreeFromMarkdown(md,bypassText=false) {
     let path_index = 1
     let root = outline_tree
     //root节点通常是dummy,path为dummy,不需要编号，而它的子节点按照顺序依次为1,2,3,4...，子节点的子节点按照1.1,1.2,1.3,1.4...编号
-    for(let i = 0; i < root.children.length; i++) {
+    for (let i = 0; i < root.children.length; i++) {
         root.children[i].path = path + (i + 1)
         path_stack.push(root.children[i])
     }
-    while(path_stack.length > 0) {
+    while (path_stack.length > 0) {
         let node = path_stack.pop()
         path = node.path + '.'
-        for(let i = 0; i < node.children.length; i++) {
+        for (let i = 0; i < node.children.length; i++) {
             node.children[i].path = path + (i + 1)
             path_stack.push(node.children[i])
         }
     }
-    
+
     //console.log(outline_tree);
     return outline_tree//最外层节点是dummy节点
 }
@@ -77,7 +77,7 @@ export function extractOutlineTreeFromMarkdown(md,bypassText=false) {
 // 2. 从大纲树生成Markdown文本
 
 export function generateMarkdownFromOutlineTree(outline_tree) {
-    console.log(outline_tree);
+    //console.log(outline_tree);
     let md = ''
     function dfs(node, level) {
         md += '#'.repeat(level) + ' ' + node.title + '\n'
@@ -89,18 +89,371 @@ export function generateMarkdownFromOutlineTree(outline_tree) {
         // if(!node.text || node.text.trim()==''){
         //     node.text='\r\n'
         // }
-        if(node.text[node.text.length-1]!=='\n'){
-            md+='\n'
+        if (node.text[node.text.length - 1] !== '\n') {
+            md += '\n'
         }
-        for(let i = 0; i < node.children.length; i++) {
+        for (let i = 0; i < node.children.length; i++) {
             dfs(node.children[i], level + 1)
         }
     }
-    if(outline_tree.path==='dummy'){//如果是根节点
-        for(let i=0;i<outline_tree.children.length;i++){
-            dfs(outline_tree.children[i],1)
+    if (outline_tree.path === 'dummy') {//如果是根节点
+        for (let i = 0; i < outline_tree.children.length; i++) {
+            dfs(outline_tree.children[i], 1)
         }
     }
     console.log(md);
     return md
+}
+
+export function removeTextFromOutline(outline_tree) {
+    let new_outline_tree = JSON.parse(JSON.stringify(outline_tree))
+    function dfs(node) {
+        node.text = ''
+        for (let i = 0; i < node.children.length; i++) {
+            dfs(node.children[i])
+        }
+    }
+    dfs(new_outline_tree)
+    return new_outline_tree
+}
+
+
+export function generatePieFromData(data, title) {//饼图
+    // 检查数据格式是否正确
+    if (!Array.isArray(data)) {
+        throw new Error("Input data must be an array.");
+    }
+
+    data.forEach(item => {
+        if (typeof item.label !== 'string' || typeof item.value !== 'number') {
+            throw new Error("Each data item must have a 'label' (string) and 'value' (number).");
+        }
+    });
+
+    // ECharts 配置模板
+    const maxLength=5;
+    const echartConfig = {
+        tooltip: {
+            trigger: 'item',
+            formatter: '{a} <br/>{b}: {c} ({d}%)',
+        },
+        legend: {
+            top: '0',
+            left: 'center',
+            orient: 'horizontal',
+            formatter: (name) => {
+                return name.length > maxLength ? `${name.slice(0, maxLength)}...` : name;
+            },
+            textStyle: {
+                color: '#333', // 可选：图例文字颜色
+            },
+        },
+        series: [
+            {
+                name: title,
+                type: 'pie',
+                radius: '50%',
+                data: data.map(item => ({ name: item.label, value: item.value })),
+                emphasis: {
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowOffsetX: 0,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)',
+                    },
+                },
+                label: {
+                    formatter: (params) => {
+                        const label = params.name;
+                        return label.length > maxLength ? `${label.slice(0, maxLength)}...` : label;
+                    },
+                    color: '#000', // 可选：标签文字颜色
+                },
+            },
+        ],
+    };
+
+//     // 转换为 Markdown 所需的 JSON 字符串
+//     const echartMarkdown = `
+// \`\`\`echarts
+// ${JSON.stringify(echartConfig, null, 2)}
+// \`\`\`
+//     `.trim();
+
+    return echartConfig;
+}
+
+
+export function generateMarkdownHistogramWithStaticColors(data) {//频度直方图
+    // 检查数据格式是否正确
+    if (!Array.isArray(data)) {
+        throw new Error("Input data must be an array.");
+    }
+
+    data.forEach(item => {
+        if (typeof item.word !== 'string' || typeof item.size !== 'number') {
+            throw new Error("Each data item must have a 'word' (string) and 'size' (number).");
+        }
+    });
+
+    // 提取词语和频度
+    const words = data.map(item => item.word);
+    const sizes = data.map(item => item.size);
+
+    // 生成颜色从深到浅的渐变效果（基于 HSL 色调）
+    const baseColor = { h: 120, s: 60, l: 20 }; // 基准颜色（绿色系）
+    const gradientColors = Array.from({ length: data.length }, (_, i) => {
+        const lightness = baseColor.l + (50 / data.length) * i; // 随数据索引渐变亮度
+        return `hsl(${baseColor.h}, ${baseColor.s}%, ${lightness}%)`;
+    });
+
+    // 将颜色与数据绑定
+    const dataWithColors = data.map((item, index) => ({
+        name: item.word,
+        value: item.size,
+        itemStyle: {
+            color: gradientColors[index],
+        },
+    }));
+
+    // ECharts 配置模板
+    const echartConfig = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow',
+            },
+        },
+        xAxis: {
+            type: 'category',
+            data: words,
+            axisLabel: {
+                rotate: 45, // 旋转以避免文字重叠
+                interval: 0, // 显示所有标签
+            },
+        },
+        yAxis: {
+            type: 'value',
+            name: '词频',
+        },
+        series: [
+            {
+                name: '词频',
+                type: 'bar',
+                data: dataWithColors.map(item => ({
+                    value: item.value,
+                    itemStyle: item.itemStyle,
+                })),
+            },
+        ],
+    };
+
+    // 转换为 Markdown 所需的 JSON 字符串
+    const echartMarkdown = `
+\`\`\`echarts
+${JSON.stringify(echartConfig, null, 2)}
+\`\`\`
+    `.trim();
+
+    return echartMarkdown;
+}
+export function generateWordCountBarChart(text) {
+    // 计算输入文本的字数
+    const articleWordCount = text.length;
+
+    // 标准文本与字数对比数据
+    const comparisonData = [
+        { name: '学术报告', wordCount: 10000 },
+        { name: '长篇小说章节', wordCount: 8000 },
+        { name: '研究论文', wordCount: 5000 },
+        { name: '小说中篇', wordCount: 15000 },
+        { name: '短篇小说', wordCount: 3000 },
+        { name: '新闻报道', wordCount: 1000 },
+        { name: '新闻社论', wordCount: 1200 },
+        { name: '短篇文章', wordCount: 1500 },
+        { name: '诗歌', wordCount: 300 },
+        { name: '技术博客', wordCount: 2000 },
+        { name: '商业计划书', wordCount: 7000 },
+        { name: '市场分析报告', wordCount: 4000 },
+        { name: '用户手册', wordCount: 8000 },
+        { name: '产品说明书', wordCount: 3000 },
+        { name: '会议纪要', wordCount: 1200 },
+        { name: '求职信', wordCount: 500 },
+        { name: '电子邮件', wordCount: 200 },
+        { name: '广告文案', wordCount: 300 },
+        { name: '网页文章', wordCount: 1500 },
+        { name: '小说序章', wordCount: 2500 },
+    ];
+
+
+    // 组合输入文本和标准文本数据
+    // 计算与每个文体字数的差异，并排序
+    const sortedComparisonData = comparisonData
+        .map(item => ({
+            ...item,
+            difference: Math.abs(item.wordCount - articleWordCount), // 计算字数差异
+        }))
+        .sort((a, b) => a.difference - b.difference); // 按差异排序，从小到大
+
+    // 选择字数最接近的 5 个文体
+    const closestComparisonData = sortedComparisonData.slice(0, 5);
+
+    // 组合输入文本和最接近的 5 个标准文本数据
+    const data = [
+        { name: '我的文章', wordCount: articleWordCount, isHighlighted: true }, // 输入文本高亮
+        ...closestComparisonData.map(item => ({ ...item, isHighlighted: false })),
+    ].sort((a, b) => a.wordCount - b.wordCount); // 按字数排序，从小到大
+
+    // 配置条形图
+    const echartConfig = {
+        tooltip: {},
+        xAxis: {
+            type: 'category',
+            data: data.map(item => item.name), // X 轴显示文本名称
+            axisLabel: {
+                interval: 0, // 显示所有标签
+                formatter: (value, index) => {
+                    return data[index].isHighlighted ? `{a|${value}}` : value; // 高亮显示输入文本
+                },
+                rich: {
+                    a: {
+                        color: '#4caf50', // 高亮颜色为绿色
+                        fontweight: 'bold', // 加粗
+                    },
+                },
+              
+              align: 'center', // 标签居中对齐
+            },
+          },
+        yAxis: {
+            type: 'value',
+        },
+        series: [
+            {
+                data: data.map(item => item.wordCount),
+                type: 'bar',
+                itemStyle: {
+                    // 条形图颜色设置：高亮的颜色与普通颜色
+                    color: (params) => {
+                        const isHighlighted = data[params.dataIndex].isHighlighted;
+                        return isHighlighted ? '#4caf50' : '#42a5f5'; // 高亮条形图为绿色，普通为蓝色
+                    },
+                },
+                label: {
+                    show: true, // 显示标签
+                    position: 'top', // 标签显示在条形图的顶部
+                    color: '#000', // 标签的字体颜色
+                    fontWeight: 'bold', // 标签字体加粗
+                    fontSize: 14, // 标签字体大小
+                },
+            },
+        ],
+    };
+
+    return echartConfig;
+}
+
+
+export function outlineToMindMap(outline) {
+    // 递归函数，将大纲树节点转换为MindMap格式
+    function convertNode(node, indentLevel = 0) {
+        // 基本的MindMap节点格式，动态缩进
+        let result = `${'  '.repeat(indentLevel)}- ${node.title}`;
+
+        // 如果节点有子节点，递归调用convertNode
+        if (node.children && node.children.length > 0) {
+            node.children.forEach(child => {
+                // 为每个子节点递归调用，增加缩进级别
+                result += `\n${convertNode(child, indentLevel + 1)}`;
+            });
+        }
+
+        return result;
+    }
+
+    // 启动递归并返回完整的MindMap Markdown
+    //     return `
+    // \`\`\`mindmap
+    // ${convertNode(outline)}
+    // \`\`\`
+    //     `.trim(); // 移除前后多余的换行
+    return convertNode(outline);
+}
+
+
+export function generateWordFrequencyTrendChart(text, topWords) {
+    const windowCount = 16;  // 定义窗口的数量，可以根据需要调整
+    const windowSize = Math.ceil(text.length / windowCount);
+
+    // 词频统计函数
+    function countWordFrequencyInWindow(windowStart, windowEnd, word) {
+        let cnt = 0;
+        for (let i = windowStart; i < windowEnd - word.length + 1; i++) {
+            if (text.substring(i, i + word.length) === word) {
+                cnt++;
+            }
+        }
+        return cnt;
+    }
+
+    // 生成 X 轴数据（文章进度的百分比）
+    const xAxisData = Array.from({ length: windowCount }, (_, i) => {
+        return (((i + 1) * windowSize) / text.length * text.length).toFixed(0) + '字';  // 计算进度百分比
+    });
+
+    // 生成每个词的 Y 轴数据
+    const seriesData = topWords.map((word, index) => {
+        const wordFrequencies = [];
+
+        for (let i = 0; i < windowCount; i++) {
+            const windowStart = i * windowSize;
+            const windowEnd = Math.min((i + 1) * windowSize, text.length);
+
+            // 统计滑动窗口内的词频
+            const frequency = countWordFrequencyInWindow(windowStart, windowEnd, word);
+            wordFrequencies.push(frequency);
+        }
+
+        return {
+            name: word,
+            type: 'line',
+            smooth: true,
+            itemStyle: {
+                color: `hsl(${index * 60}, 70%, 50%)`, // 每个词的颜色不同
+            },
+            areaStyle: {
+                normal: {},
+            },
+            z: index + 1,
+            data: wordFrequencies,
+        };
+    });
+
+    // ECharts 配置
+    const echartConfig = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'cross',
+            },
+        },
+        legend: {
+            data: topWords,
+        },
+        xAxis: [
+            {
+                type: 'category',
+                boundaryGap: false,
+                data: xAxisData,
+                axisTick: { show: false },
+                axisLine: { show: false },
+            },
+        ],
+        yAxis: {
+            type: 'value',
+        },
+        series: seriesData,
+    };
+
+    // 返回 ECharts 配置
+    return echartConfig;
 }

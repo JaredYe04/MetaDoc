@@ -37,6 +37,7 @@ var current_outline_tree = ref(JSON.parse(JSON.stringify(default_outline_tree)))
 var current_article = ref(generateMarkdownFromOutlineTree(default_outline_tree))
 var current_article_meta_data = ref(default_artical_meta_data)
 var latest_view=ref('outline')
+var renderedHtml = ref('')
 export {
   current_file_path,
   current_outline_tree,
@@ -44,7 +45,8 @@ export {
   current_article_meta_data,
   default_outline_tree,
   default_artical_meta_data,
-  latest_view
+  latest_view,
+  renderedHtml
 }
 
 export function dump2json() {
@@ -83,7 +85,7 @@ export async function init() {
   current_outline_tree.value = JSON.parse(JSON.stringify(default_outline_tree)) //深拷贝
   current_article.value = generateMarkdownFromOutlineTree(current_outline_tree.value)
   current_article_meta_data.value = JSON.parse(JSON.stringify(default_artical_meta_data))
-  //eventBus.emit('refresh')
+  eventBus.emit('refresh')
 }
 
 export function searchNode(path, node) {

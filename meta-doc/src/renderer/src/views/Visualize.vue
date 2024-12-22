@@ -51,27 +51,31 @@ import { current_article, current_article_meta_data, current_outline_tree } from
 
 import cloud from 'd3-cloud';
 import * as d3 from 'd3';
-import { generatePieFromData, generateWordCountBarChart, generateWordFrequencyTrendChart, outlineToMindMap } from '../utils/md-utils';
+import { generatePieFromData, generateWordCountBarChart, generateWordFrequencyTrendChart, md2html, outlineToMindMap } from '../utils/md-utils';
 onMounted(async () => {
     //await initVditor();
+    await refreshAll();
+    eventBus.on('refresh',refreshAll);
+});
+
+import Vditor from 'vditor';
+import { List } from 'tdesign-vue-next';
+import * as echarts from 'echarts';
+import eventBus from '../utils/event-bus';
+const ipcRenderer = window.electron.ipcRenderer
+const words = ref([]);
+const wordCount = ref({});
+// const initVditor = async () => {
+//     Vditor = await ipcRenderer.invoke('get-vditor');
+// };
+const refreshAll=async()=>{
     await processWords();
     await generateWordCloud();
     await generateOutlineGraph();
     await generateWordFrequencyDiagram();
     await generateWordCountDiagram();
     await generatePie();
-});
-
-import Vditor from 'vditor';
-import { List } from 'tdesign-vue-next';
-import * as echarts from 'echarts';
-const ipcRenderer = window.electron.ipcRenderer
-const words = ref([]);
-const wordCount = ref({});
-const initVditor = async () => {
-    Vditor = await ipcRenderer.invoke('get-vditor');
 };
-
 const generatePie=async()=>{
     const node=document.getElementById('pie');
     let data=[];
@@ -93,7 +97,7 @@ const generatePie=async()=>{
     for(let i=0;i<outline.children.length;i++){
         find(outline.children[i]);
     }
-    console.log(data);
+    //console.log(data);
     const config=generatePieFromData(data,current_article_meta_data.value.title);
     let chart=echarts.init(node);
     chart.setOption(config);
@@ -122,7 +126,7 @@ const generateOutlineGraph = async () => {
     const md=outlineToMindMap(tree);
     //console.log(Vditor)
     //console.log(md);
-    const html=await Vditor.md2html(md,{cdn: 'http://localhost:3000/vditor'});
+    const html=await md2html(md);
     node.innerHTML=html;
     const lis=node.getElementsByTagName('li');
     for(let i=0;i<lis.length;i++){

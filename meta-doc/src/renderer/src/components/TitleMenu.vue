@@ -12,7 +12,7 @@
     <MarkdownItEditor :source="articleContent" v-if="!generated && !generating" class="md-container" @mousedown.stop />
     <MarkdownItEditor :source="generatedText" v-if="generated || generating" class="md-container" @mousedown.stop />
     <!-- <p class="article-content">{{ articleContent }}</p> -->
-    <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable class="inline-input"
+    <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable class="inline-input" resize='none'
       style="color: black; opacity: 1;" placeholder="请输入需求" @mousedown.stop />
 
     <div @mousedown.stop>
@@ -41,6 +41,7 @@ import { max } from 'd3';
 import { sectionChangePrompt } from '../utils/prompts';
 import { answerQuestionStream } from '../utils/llm-api';
 import eventBus from '../utils/event-bus';
+import { generateMarkdownFromOutlineTree } from '../utils/md-utils';
 const props = defineProps({
   title: {
     type: String,
@@ -54,22 +55,22 @@ const props = defineProps({
     type: String,
     required: true
   },
-  treeJson: {
-    type: String,
+  tree: {
+    type: Object,
     required: true
   }
 })
 const presetPrompts = ref([
   {
-    value: '扩写这段文字，使得字数变得更多，内容更丰富翔实',
+    value: '扩写这段文字',
     label: '扩写这段文字'
   },
   {
-    value: '精简这段文字，使得这段文字更加精炼简介',
+    value: '精简这段文字',
     label: '精简这段文字'
   },
   {
-    value: '优化文笔，使得这段文字更加优美，可以使用各种修辞手法',
+    value: '优化文笔，使得这段文字更加优美',
     label: '优化一下文笔'
   },
   {
@@ -79,6 +80,12 @@ const presetPrompts = ref([
   {
     value: '修改文本中所有的语病、错别字、不妥当之处，保留原意',
     label: '校对修改'
+  },
+  {
+    value:'根据本段内容，生成一张mermaid流程图，使用代码框包裹'
+  },
+  {
+    value:'根据文章结构，生成一张mermaid思维导图，使用代码框包裹'
   }
 ])
 
@@ -105,8 +112,8 @@ const accept = () => {
 }
 const generate = async () => {
   generating.value = true;
-
-  const prompt = sectionChangePrompt(props.treeJson, articleContent.value, props.title, userPrompt.value);
+  const outline=generateMarkdownFromOutlineTree(props.tree);
+  const prompt = sectionChangePrompt(outline, articleContent.value, props.title, userPrompt.value);
   await answerQuestionStream(prompt, generatedText);
   generating.value = false;
 
@@ -145,7 +152,8 @@ const menuStyles = computed(() => ({
   boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',
   maxWidth: '600px',
   zIndex: 1000, // 保证层级
-  color: 'black'
+  color: 'black',
+  backdropFilter: 'blur(40px)'
 }));
 const refreshContent = () => {
   articleContent.value = searchNode(props.path, current_outline_tree.value).text;

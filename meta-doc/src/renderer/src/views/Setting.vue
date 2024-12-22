@@ -45,6 +45,11 @@
                 <el-radio label="dark">暗色</el-radio>
               </el-radio-group>
             </el-form-item>
+            <el-form-item label="语音测试">
+              <div>
+                <MicrophoneTest />
+                </div>  
+            </el-form-item>
           </template>
 
           <!-- <template v-if="activeMenu === 'llm'">
@@ -182,7 +187,7 @@ import { answerQuestion, answerQuestionStream } from "../utils/llm-api.js";
 import "../assets/aero-btn.css";
 import "../assets/aero-div.css";
 import { ref, reactive, onMounted } from "vue";
-
+import MicrophoneTest from "../components/MicrophoneTest.vue";
 export default {
   name: "Setting",
   setup() {

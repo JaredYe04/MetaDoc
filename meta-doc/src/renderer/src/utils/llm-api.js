@@ -1,6 +1,7 @@
 import axios from "axios";
 import { getSetting } from "../utils/settings.js";
 import { ca } from "element-plus/es/locales.mjs";
+import eventBus from "./event-bus.js";
 
 /**
  * Helper to determine the current LLM settings (selected model and API details).
@@ -105,8 +106,24 @@ async function answerQuestion(prompt,meta={temperature:0}) {
  * @param {string} prompt - The prompt to ask.
  * @param {object} ref - A reactive reference to store the result incrementally.
  */
+async function validateApi(){
+  const enabled=await getSetting('llmEnabled')
+  let flag=true;
+  if(!enabled)flag=false;
+  else{
+    const { type, apiUrl, apiKey, selectedModel } = await getLlmConfig();
+    if(!apiUrl)flag=false;
+    
+  }
+
+  if(!flag){
+    eventBus.emit('show-error','LLM API未启用，或配置不正确！')
+  }
+  return flag;
+}
 
 async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
+  if(!(await validateApi())){return}
   const { type, apiUrl, apiKey, selectedModel } = await getLlmConfig();
 
   async function handleStreamingRequest(url, payload, ref) {

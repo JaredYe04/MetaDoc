@@ -82,10 +82,21 @@ eventBus.on('open-doc-success', () => {
   })
 })
 eventBus.on('export-success', (outputPath) => {
-  ElNotification({
+  // ElNotification({
+  //   title: '导出成功',
+  //   message: outputPath+'导出成功',
+  //   type: 'success',
+  // })
+  eventBus.emit('system-notification', {
     title: '导出成功',
-    message: '导出成功',
-    type: 'success',
+    body: outputPath+' 导出成功',
+  })
+})
+eventBus.on('show-error', (message) => {
+  ElNotification({
+    title: '错误',
+    message: message,
+    type: 'error',
   })
 })
 

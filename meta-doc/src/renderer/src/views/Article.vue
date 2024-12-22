@@ -3,10 +3,11 @@
     <div class="content-container">
         <!-- 左边：Vditor Markdown 编辑器 -->
         <!-- 菜单组件 -->
-        <TitleMenu v-if="showTitleMenu" :title="currentTitle" :position="menuPosition" @close="handleTitleMenuClose"
-            :path="currentTitlePath" :treeJson="JSON.stringify(extractOutlineTreeFromMarkdown(article, true))" @accept="async (content) => {
+        <TitleMenu v-if="showTitleMenu" :title="currentTitle.replaceAll('#', '').trim()" :position="menuPosition"
+            @close="handleTitleMenuClose" :path="currentTitlePath"
+            :tree="extractOutlineTreeFromMarkdown(article, true)" @accept="async (content) => {
                 await acceptGeneratedText(content);
-            }" />
+            }" style="max-width: 500px;" />
 
         <div id="vditor" class="editor" v-loading="loading" @keydown="handleTab">
 
@@ -16,11 +17,17 @@
         <div class="meta-info">
 
             <div style="text-align: center; font-size: large;">
-                <h1 class="interactive-text" @click="showMetaDialog">文档元信息</h1>
+                <el-tooltip content="编辑文档元信息" placement="left">
+                    <h1 class="interactive-text" @click="showMetaDialog">文档元信息</h1>
+                </el-tooltip>
+
             </div>
-            <h1 @click="genTitleDialogVisible = !genTitleDialogVisible" class="interactive-text">标题：{{ meta.title ||
-                '无标题' }}
-            </h1>
+            <el-tooltip content="单击修改标题" placement="left">
+                <h1 @click="genTitleDialogVisible = !genTitleDialogVisible" class="interactive-text">标题：{{ meta.title ||
+                    '无标题' }}
+                </h1>
+            </el-tooltip>
+
             <LlmDialog v-if="genTitleDialogVisible"
                 :prompt="generateTitlePrompt(JSON.stringify(extractOutlineTreeFromMarkdown(article, true)))"
                 title="生成标题" :llmConfig="{ max_tokens: 15, temperature: 0.0 }" @llm-content-accept="(content) => {
@@ -29,17 +36,33 @@
                 }" @update:visible="genTitleDialogVisible = $event; genTitleDialogVisible = false"
                 :defaultText="meta.title" :defaultInputSize="1"></LlmDialog>
 
-            <p><strong>作者：</strong>{{ meta.author || '未填写' }}</p>
-            <p @click="genDescriptionDialogVisible = !genDescriptionDialogVisible" class="interactive-text">
-                <strong>描述：</strong>{{ meta.description || '暂无描述' }}
-            </p>
+            <el-tooltip content="单击修改作者" placement="left">
+                <p @click="modifyAuthorDialogVisible = !modifyAuthorDialogVisible" class="interactive-text">
+                    <strong>作者：</strong>{{ meta.author || '未填写' }}
+                </p>
+            </el-tooltip>
+
+            <LlmDialog v-if="modifyAuthorDialogVisible" :prompt="''" title="修改作者" :llmConfig="{}" @llm-content-accept="(content) => {
+                meta.author = content;
+                modifyAuthorDialogVisible = false;
+            }" @update:visible="modifyAuthorDialogVisible = $event; modifyAuthorDialogVisible = false"
+                :defaultText="meta.author" :defaultInputSize="1"></LlmDialog>
+
+
+
+            <el-tooltip content="单击修改文章摘要" placement="left">
+                <p @click="genDescriptionDialogVisible = !genDescriptionDialogVisible" class="interactive-text">
+                    <strong>摘要：</strong>{{ meta.description || '暂无摘要' }}
+                </p>
+            </el-tooltip>
+
             <LlmDialog v-if="genDescriptionDialogVisible"
                 :prompt="generateDescriptionPrompt(JSON.stringify(extractOutlineTreeFromMarkdown(article, true)))"
-                title="生成描述" :llmConfig="{ max_tokens: 100, temperature: 0.0 }" @llm-content-accept="(content) => {
+                title="生成摘要" :llmConfig="{ max_tokens: 100, temperature: 0.0 }" @llm-content-accept="(content) => {
                     meta.description = content;
                     genDescriptionDialogVisible = false;
                 }" @update:visible="genDescriptionDialogVisible = $event; genDescriptionDialogVisible = false"
-                :defaultText="meta.description" :defaultInputSize="5"></LlmDialog>
+                :defaultText="meta.description" :defaultInputSize="10"></LlmDialog>
 
         </div>
 
@@ -51,8 +74,9 @@
                 <el-form-item label="作者">
                     <el-input v-model="meta.author" autocomplete="off" class="aero-input" />
                 </el-form-item>
-                <el-form-item label="描述">
-                    <el-input type="textarea" placeholder="请输入文章描述" v-model="meta.description" autocomplete="off"
+                <el-form-item label="摘要">
+                    <el-input type="textarea" placeholder="请输入文章摘要" v-model="meta.description" autocomplete="off" resize='none' 
+                        :autoSize="{ minRows: 3, maxRows: 5 }"
                         class="aero-input" />
                 </el-form-item>
             </el-form>
@@ -77,7 +101,7 @@ import "../assets/aero-div.css";
 import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
 import { ElLoading } from 'element-plus'
-import { countNodes, current_article, current_article_meta_data, latest_view, searchNode, sync } from "../utils/common-data";
+import { countNodes, current_article, current_article_meta_data, latest_view, renderedHtml, searchNode, sync } from "../utils/common-data";
 import eventBus from '../utils/event-bus';
 import LlmDialog from "../components/LlmDialog.vue";
 import AiLogo from "../assets/ai-logo.svg"
@@ -93,6 +117,7 @@ export default {
         const genDescriptionDialogVisible = ref(false);
         const modifyContentDialogVisible = ref(false);
         const continueContentDialogVisible = ref(false);
+        const modifyAuthorDialogVisible = ref(false);
         const vditor = ref(""); // Vditor 实例
         const editMetaDialogVisible = ref(false); // 编辑元信息对话框是否可见
         // 文章元信息
@@ -131,7 +156,8 @@ export default {
             //     bindTitleMenu();
             // }
             // //vditor.value.setValue(current_article.value);
-
+            article.value = current_article.value;
+            vditor.value.setValue(article.value);
             meta = reactive(current_article_meta_data);
         });
         const acceptGeneratedText = async (content) => {
@@ -162,6 +188,8 @@ export default {
 
             for (let i = 0; i < sections.length; i++) {
                 const section = sections[i];
+                //绑定一个鼠标移动的提示，tooltip
+                section.title = '点击以打开AI菜单';
                 section.removeEventListener('click', handleClick);
                 //section.classList.remove('interactive-text');
             }//先移除原本的事件
@@ -187,7 +215,8 @@ export default {
             //console.log(treeNodeQueue);
             //console.log(sections);
             //console.log(treeNodeQueue);
-            for (let i = 0; i < sections.length; i++) {
+            try{
+                for (let i = 0; i < sections.length; i++) {
                 const section = sections[i];
                 section.classList.add('interactive-text');
                 const node = treeNodeQueue[i];
@@ -202,6 +231,10 @@ export default {
                 });
 
             }
+            }
+            catch(e){
+                console.error(e);
+            }
 
         }
         onMounted(() => {
@@ -215,17 +248,17 @@ export default {
                 mode: "ir", // 即时渲染模式
                 toolbarConfig: { pin: true },
                 upload: {
-                    url: 'http://localhost:3000/upload',  // 替换为你的图片上传接口
-                    linkToImgUrl: true,    // 启用将 Base64 转换为图片 URL
+                    url: 'http://localhost:3000/upload', 
+                    linkToImgUrl: true,   
                     success: (editor, msg) => {
                         const data = JSON.parse(msg);
-                        //console.log(data);
                         const filePaths = data.data.succMap;
-                        //console.log(filePaths);
-                        //filePaths是一个对象，key是文件名，value是文件路径
                         for (const key in filePaths) {
                             const filePath = filePaths[key].substring(7);//去掉images\前缀,
                             //console.log(filePath);
+                            
+                            //const filePath = filePaths[key];
+                            //const imageUrl=filePath;
                             const imageUrl = `http://localhost:3000/images/${filePath}`;
                             vditor.value.insertValue(`![](${imageUrl})`);  // 插入图片链接
                         }
@@ -251,7 +284,7 @@ export default {
                     'quote',    // 引用
                     'code-theme', // 代码主题
                     'content-theme', // 编辑区主题
-
+                    'export',   // 导出
 
 
 
@@ -260,18 +293,19 @@ export default {
                 cache: { enable: false },
                 placeholder: "在此编辑 Markdown 内容...",
                 value: article.value,
-                input: (value) => {
-                    //console.log(value)
+                input: async (value) => {
                     article.value = value; // 监听输入事件，更新绑定的内容
                     current_article.value = value;
                     latest_view.value = 'article';
                     sync();
-                    bindTitleMenu();
+                    await bindTitleMenu();
+                    await updateRenderedHtml();
 
                 },
                 after: async () => {
                     sync();
                     await bindTitleMenu();
+                    await updateRenderedHtml();
                     loadingInstance.close();
 
                 },
@@ -305,6 +339,12 @@ export default {
                 selection.addRange(range);
             }
         };
+        const updateRenderedHtml = async () => {
+            // let node=document.getElementsByClassName('vditor-ir')[0];
+            // renderedHtml.value = node.innerHTML;
+            // console.log(renderedHtml.value);
+            // //ditor.value.preview()
+        }
 
         return {
             article,
@@ -313,6 +353,7 @@ export default {
             showMetaDialog,
             genTitleDialogVisible,
             genDescriptionDialogVisible,
+            modifyAuthorDialogVisible,
             modifyContentDialogVisible,
             continueContentDialogVisible,
             generateTitlePrompt,
@@ -326,7 +367,8 @@ export default {
             currentTitlePath,
             acceptGeneratedText,
             searchNode,
-            handleTab
+            handleTab,
+            vditor
         };
     },
 };
@@ -347,7 +389,7 @@ export default {
     flex: 1;
     /*占满整个父容器 */
     height: 85vh;
-    overflow: scroll;
+    overflow: hidden;
     /* 唯一允许滚动的区域 */
 
 }
@@ -366,9 +408,9 @@ export default {
     flex: 1;
     /* 占20% */
     background-color: #f9f9f9;
-    overflow: auto;
+    overflow: hidden;
     box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
-    padding-left: 5px;
+    padding: 5px;
 }
 
 /* 底部菜单样式 */

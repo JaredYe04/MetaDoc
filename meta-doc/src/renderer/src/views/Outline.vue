@@ -1,56 +1,70 @@
 <template>
   <div class="container">
-    <vue-tree ref="treeRef" style="width: 100%; height: 600px; border: 1px solid gray" :dataset="treeData"
-      :config="treeConfig" :direction="direction" @node-click="handleNodeClick" @node-drag="handleNodeDrag"
-      linkStyle="straight">
+    <vue-tree ref="tree" style="width: 100%; height: 600px; border: 1px solid gray; background-color:#EAEFF1" 
+  :dataset="treeData" :config="treeConfig" :direction="direction" @node-click="handleNodeClick" 
+  @node-drag="handleNodeDrag" linkStyle="straight">
 
 
       <template #node="{ node, collapsed }">
         <div class="tree-node">
           {{ node.title }}
         </div>
-        <el-button size="small" type="text" class="aero-btn" style="background-color: aliceblue" circle
-          @click.stop="handleNodeButtonClick(node)" v-if="node.path !== 'dummy'">
-          <el-icon>
-            <More />
-          </el-icon>
-        </el-button>
+        <el-tooltip content="编辑节点" placement="top">
+          <el-button size="small" type="text" class="aero-btn" style="background-color: aliceblue" circle
+            @click.stop="handleNodeButtonClick(node)" v-if="node.path !== 'dummy'">
+            <el-icon>
+              <More />
+            </el-icon>
+          </el-button>
+        </el-tooltip>
 
         <div v-if="dialogVisible[node.path]" class="aero-div node-edit-box" @click.stop @mousemove.stop @mousedown.stop
           @mouseup.stop>
           <div>
             <!-- 菜单按钮 -->
             <div class="button-group">
-              <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-                @click.stop="move2Left">
-                <el-icon style="font-size: 14px">
-                  <ArrowLeftBold />
-                </el-icon>
-              </el-button>
-              <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-                @click.stop="addChildNode">
-                <el-icon style="font-size: 14px">
-                  <Plus />
-                </el-icon>
-              </el-button>
-              <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-                @click.stop="editNode">
-                <el-icon style="font-size: 14px">
-                  <Edit />
-                </el-icon>
-              </el-button>
-              <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-                @click.stop="deleteNode">
-                <el-icon style="font-size: 14px">
-                  <Delete />
-                </el-icon>
-              </el-button>
-              <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-                @click.stop="move2Right">
-                <el-icon style="font-size: 14px">
-                  <ArrowRightBold />
-                </el-icon>
-              </el-button>
+              <el-tooltip content="左移" placement="top">
+                <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="move2Left">
+                  <el-icon style="font-size: 14px">
+                    <ArrowLeftBold />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="添加子节点" placement="top">
+                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="addChildNode">
+                  <el-icon style="font-size: 14px">
+                    <Plus />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="编辑内容" placement="top">
+                <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="editNode">
+                  <el-icon style="font-size: 14px">
+                    <Edit />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="删除" placement="top">
+                <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="deleteNode">
+                  <el-icon style="font-size: 14px">
+                    <Delete />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+
+              <el-tooltip content="右移" placement="top">
+                <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="move2Right">
+                  <el-icon style="font-size: 14px">
+                    <ArrowRightBold />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+
             </div>
 
           </div>
@@ -66,15 +80,30 @@
       <el-button type="primary" @click="changeNodeValue"> 确定 </el-button>
     </el-dialog>
     <div class="bottom-menu aero-div">
-      <el-button type="success" circle @click="zoomIn"><el-icon>
-          <Plus />
-        </el-icon></el-button>
-      <el-button type="warning" circle @click="zoomOut"><el-icon>
-          <Minus />
-        </el-icon></el-button>
-      <el-button type="info" circle @click="resetScale"><el-icon>
-          <Refresh />
-        </el-icon></el-button>
+      <el-tooltip content="放大" placement="top">
+
+        <el-button type="success" circle @click="zoomIn">
+          <el-icon>
+            <Plus />
+          </el-icon>
+        </el-button>
+      </el-tooltip>
+
+      <el-tooltip content="缩小" placement="top">
+        <el-button type="warning" circle @click="zoomOut">
+          <el-icon>
+            <Minus />
+          </el-icon>
+        </el-button>
+
+      </el-tooltip>
+      <el-tooltip content="重置" placement="top">
+        <el-button type="info" circle @click="resetScale">
+          <el-icon>
+            <Refresh />
+          </el-icon>
+        </el-button>
+      </el-tooltip>
 
 
     </div>
@@ -115,7 +144,7 @@ export default {
       treeData: current_outline_tree,
       direction: 'vertical',
       treeConfig: {
-        nodeWidth: 200,
+        nodeWidth: 180,
         nodeHeight: 50,
         levelHeight: 200
       },
@@ -419,20 +448,27 @@ export default {
 .controls {
   margin-bottom: 20px;
 }
-
 .tree-node {
-  margin-bottom: 10px;
-  size: 150%;
+  margin-bottom: 12px;  /* 增加底部间距 */
   display: inline-block;
-  border-radius: 8px;
-  background-color: #f3f3f3;
-  padding: 5px 10px;
+  border-radius: 12px;  /* 增加圆角 */
+  background-color: #A3C8FF;  /* 更柔和的蓝色背景 */
+  padding: 8px 16px;  /* 增加内边距，使节点更大，更易点击 */
+  margin: 10px;
   cursor: pointer;
+  transition: background-color 0.3s, transform 0.3s;  /* 添加过渡效果 */
+}
+
+.tree-node:hover {
+  background-color: #80B4FF;  /* 悬停时的颜色变化 */
+  transform: scale(1.02);  /* 节点放大效果 */
 }
 
 .tree-node span {
   display: flex;
   align-items: center;
+  font-size: 14px;  /* 设置默认字体大小 */
+  color: #333;  /* 设置文本颜色 */
 }
 
 .dialog-buttons {

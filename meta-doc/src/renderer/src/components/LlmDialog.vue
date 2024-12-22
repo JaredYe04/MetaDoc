@@ -12,19 +12,28 @@
     </div>
 
     <!-- 文本框内容 -->
-    <el-input type="textarea" v-model="aiResponse" rows="10" placeholder="AI生成的内容会显示在这里" readonly
-      class="llm-dialog-input aero-input" :autosize="{ minRows: defaultInputSize, maxRows: 10 }"></el-input>
+    <el-input type="textarea" v-model="aiResponse" rows="10" placeholder="请输入内容" class="llm-dialog-input aero-input"
+      :autosize="{ minRows: defaultInputSize, maxRows: 10 }"></el-input>
 
     <!-- 按钮组 -->
     <div class="llm-dialog-footer">
-      <el-button type="info" @click="handleReset" :loading="loading" class="aero-btn" circle><el-icon v-if="!loading">
-          <Refresh />
-        </el-icon></el-button>
-      <el-button type="success" @click="handleAccept" :disabled="loading" class="aero-btn" circle>
+      <el-tooltip content="AI生成" placement="left" style="z-index: 1001;">
+        <el-button type="info" @click="handleReset" :loading="loading" class="aero-btn" circle
+          v-if="props.prompt"><el-icon v-if="!loading">
+            <Refresh />
+          </el-icon></el-button>
+
+
+      </el-tooltip>
+
+      <el-tooltip content="接受" placement="left" style="z-index: 1001;">
+        <el-button type="success" @click="handleAccept" :disabled="loading" class="aero-btn" circle>
         <el-icon>
           <Check />
         </el-icon>
       </el-button>
+      </el-tooltip>
+
     </div>
   </div>
 </template>
@@ -124,7 +133,7 @@ onMounted(() => {
 <style scoped>
 .llm-dialog {
   position: fixed;
-  z-index: 9999;
+  z-index: 1000;
   width: 200px;
   max-height: 400px;
   border: 1px solid #dcdfe6;

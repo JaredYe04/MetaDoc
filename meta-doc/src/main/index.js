@@ -27,6 +27,7 @@ function createWindow() {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       nodeIntegration: true,
+      webSecurity: false,
     }
   })
   
@@ -47,9 +48,8 @@ function createWindow() {
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     console.log('loadURL1:', process.env['ELECTRON_RENDERER_URL'])
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']+'/#/home')
   } else {
-    console.log('loadURL2:', join(__dirname, '../renderer/index.html'))
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
@@ -98,7 +98,12 @@ expressApp.post('/upload', upload.array('file[]'), (req, res) => {
   // 处理上传的文件
   if (req.files && req.files.length > 0) {
     req.files.forEach((file) => {
+
+
+
       const filePath = path.join('images', file.filename); // 相对路径
+      //返回绝对路径
+      //const filePath = path.join(uploadDir, file.filename);
       succMap[file.filename] = filePath; // 文件路径映射
     });
 
@@ -120,21 +125,7 @@ expressApp.post('/upload', upload.array('file[]'), (req, res) => {
     },
   });
 });
-// // 通过 API 返回图片
-// expressApp.get('/show-image', (req, res) => {
-//   const { filename } = req.query;  // 从查询参数中获取文件名
-//   const imagePath = path.join(__dirname, 'images', filename);
-  
-//   // 检查图片是否存在
-//   fs.access(imagePath, fs.constants.F_OK, (err) => {
-//     if (err) {
-//       return res.status(404).json({ success: false, message: '图片未找到' });
-//     }
-    
-//     // 读取图片并返回
-//     res.sendFile(imagePath);
-//   });
-// });
+
 
 // expressApp.use('/images', express.static(path.join(__dirname, 'images')));
 
@@ -153,7 +144,7 @@ server.listen(3000, () => {
 
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('com.jaredye.meta-doc')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -213,8 +204,6 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
-
-
 
 
 

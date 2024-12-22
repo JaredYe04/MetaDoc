@@ -14,12 +14,12 @@
 
 
       </div>
-      <div v-else style="height: 100vh;">
+      <div v-if="current_file_path !== ''" style="height: 100vh;" class="md-preview">
         <MarkdownItEditor :source="current_article" class="md-container"
           style="width: 60vw; border: 1px #ccc solid;border-radius: 10px;" />
       </div>
     </div>
-    <div class="center-content" v-else>
+    <div class="center-content" v-if="quickStartDialogVisible">
       <h2 class="main-letter" @mouseover="highlightM" @mouseleave="resetM" style="font-size: 50px;">快速开始你的文档</h2>
 
 
@@ -45,7 +45,7 @@
         <div style="display: flex; flex: 1; border-top: 1px dashed #ccc; padding-top: 10px;">
           <!-- Markdown 编辑器 -->
           <div
-            style="width: 70%; padding-right: 10px; max-height: 75%; min-height: 200px; overflow:hidden; flex-grow: 1;">
+            style="width: 70%; padding-right: 10px; max-height: 75%; min-height: 200px; overflow:hidden; flex-grow: 1;" >
             <MarkdownItEditor :source="generatedText" class="md-container" @mousedown.stop
               style="width: 100%; box-shadow: none; height: 80%; overflow: auto;" />
           </div>
@@ -62,7 +62,7 @@
               <el-segmented v-model="tab" :options="['AI助手', '文档信息']" />
             </div>
             <div
-              style="color: black; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;"
+              style="color: black; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;height: 47vh;"
               class="aero-div" v-if="tab === '文档信息'">
               <label
                 style="width: 100%; text-align: center; align-self: center; font-weight: bold; margin-bottom: 10px;"
@@ -78,9 +78,9 @@
                   placeholder="请输入作者" />
               </div>
               <div style="display: flex; align-items: center; margin-bottom: 16px">
-                <label style="width: 60px; text-align: left; margin-right: 8px">描述</label>
+                <label style="width: 60px; text-align: left; margin-right: 8px">摘要</label>
                 <el-input v-model="current_article_meta_data.description" type="textarea" style="width: 200px;"
-                  placeholder="请输入文章描述" :autosize="{ minRows: 2, maxRows: 3 }" />
+                  placeholder="请输入文章摘要" :autosize="{ minRows: 2, maxRows: 3 }" />
 
               </div>
               <div style="display: flex; align-items: center; margin-bottom: 16px">
@@ -92,7 +92,7 @@
 
               </div>
               <!-- <div style="display: flex; align-items: flex-start; margin-bottom: 16px">
-                <label style="width: 60px; text-align: left; margin-right: 8px; ">描述</label>
+                <label style="width: 60px; text-align: left; margin-right: 8px; ">摘要</label>
                 <div style="flex: 1">
                   <div style="display: flex; align-items: center; margin-bottom: 8px">
                     <el-switch v-model="autoDescription" class="ml-2"
@@ -104,51 +104,111 @@
               </div> -->
             </div>
             <div class="aero-div"
-              style="color: black; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;"
+              style="color: black; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; height: 47vh;"
               v-if="tab === 'AI助手'">
               <label
                 style="width: 100%; text-align: center; align-self: center; font-weight: bold; margin-bottom: 10px;"
                 class="interactive-text">AI助手</label>
+              <el-tooltip content="选择AI温度" placement="left">
+                <el-slider v-model="temperature" :marks="marks" :min="0" :max="100"
+                  style="margin-bottom: 20px; width: 80%; " :disabled="generated || generating" />
+              </el-tooltip>
 
-              <el-slider v-model="temperature" :marks="marks" :min="0" :max="100"
-                style="margin-bottom: 20px; width: 80%; " :disabled="generated || generating" />
 
-              <el-segmented v-model="mood" style="margin-bottom: 20px; background: rgba(255, 255, 255, 0.3)"
-                :options="moodOptions" :disabled="generated || generating">
-                <template #default="{ item }">
-                  <div class="flex flex-col items-center gap-2 p-2">
-                    <el-icon size="20">
-                      <component :is="item.icon" />
-                    </el-icon>
-                    <div>{{ item.label }}</div>
+              <el-tooltip content="选择文章情感" placement="left">
+                <el-segmented v-model="mood" style="margin-bottom: 20px; background: rgba(255, 255, 255, 0.3)"
+                  :options="moodOptions" :disabled="generated || generating">
+                  <template #default="{ item }">
+                    <div class="flex flex-col items-center gap-2 p-2">
+                      <el-icon size="20">
+                        <component :is="item.icon" />
+                      </el-icon>
+                      <div>{{ item.label }}</div>
+                    </div>
+                  </template>
+                </el-segmented>
+              </el-tooltip>
+              <el-tooltip content="输入提示词" placement="left">
+                <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable
+                  class="inline-input aero-input" style="color: black; opacity: 0.8;" placeholder="在此处输入文章要求"
+                  @mousedown.stop type="textarea" :autosize="{ minRows: 3, maxRows: 3 }"
+                  resize='none'
+                  :disabled="generated || generating" >
+                
+                </el-autocomplete>
+                  
+
+              </el-tooltip>
+
+              <VoiceInput @onSpeechRecognized="onSpeechRecognized" />
+              <div class="aero-div" style="
+      height: 100px;
+      width: 80%;
+      margin: 10px auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      background-color: rgba(255, 255, 255, 0.3);
+      box-shadow: none;
+    ">
+                <!-- 顶部建议标签 -->
+                <label class="interactive-text" style="
+        text-align: center;
+        font-weight: bold;
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+      ">
+                  建议
+                </label>
+                <div style="position: relative; height: 60px; width: 100%;" id="suggestion-buttons">
+                  <div style="
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* 每行2个按钮 */
+        gap: 10px; /* 按钮之间的间距 */
+        justify-items: center; /* 水平居中 */
+        align-items: center; /* 垂直居中 */
+        height: 100%;
+      ">
+                    <el-button v-for="(button, index) in buttons" :key="index" size="small"
+                      @click="handleAcceptSuggestion(button.prompt)" class="aero-btn" :disabled="generating||generated">
+                      {{ button.label }}
+                    </el-button>
                   </div>
-                </template>
-              </el-segmented>
-              <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable
-                class="inline-input aero-input" style="color: black; opacity: 1;" placeholder="在此处输入文章要求"
-                @mousedown.stop type="textarea" :autosize="{ minRows: 3, maxRows: 5 }"
-                :disabled="generated || generating" />
+                </div>
 
+                <!-- 底部刷新按钮 -->
+                <el-button size="small" type="primary" :disabled="generating||generated"
+                  style="position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);opacity: 0.8;" @click="refreshButtons"
+                  class="aero-btn">
+                  <el-icon>
+                    <Refresh />
+                  </el-icon>
+                  刷新
+                </el-button>
+              </div>
               <div @mousedown.stop>
                 <el-tooltip content="生成文章" placement="top">
                   <el-button circle type="primary" @click="generate"
-                  :disabled="generated || generating || userPrompt.length === 0"><el-icon>
-                    <Promotion />
-                  </el-icon></el-button>
+                    :disabled="generated || generating || userPrompt.length === 0"><el-icon>
+                      <Promotion />
+                    </el-icon></el-button>
                 </el-tooltip>
                 <el-tooltip content="重置" placement="top">
                   <el-button circle type="info" @click="reset" v-if="generated"><el-icon>
-                    <RefreshLeft />
-                  </el-icon></el-button>
+                      <RefreshLeft />
+                    </el-icon></el-button>
                 </el-tooltip>
                 <el-tooltip content="接受" placement="top">
                   <el-button circle type="success" @click="accept" v-if="generated"><el-icon>
-                    <Check />
-                  </el-icon></el-button>
+                      <Check />
+                    </el-icon></el-button>
                 </el-tooltip>
 
               </div>
-
             </div>
           </div>
 
@@ -160,6 +220,7 @@
 </template>
 
 <script setup>
+import VoiceInput from '../components/VoiceInput.vue';
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { ElButton } from 'element-plus';
 import * as THREE from 'three';
@@ -177,11 +238,48 @@ import {
   MoonNight,
   Mug,
   Sugar,
+  SuitcaseLine,
   Warning
 } from "@element-plus/icons-vue";
 import { generateArticlePrompt } from '../utils/prompts';
 import { answerQuestionStream } from '../utils/llm-api';
 import router from "../router/router";
+import { suggestionPresets } from '../utils/prompts';
+// 随机生成的按钮文本数组
+const buttons = ref({});
+
+const onSpeechRecognized = (text) => {
+  userPrompt.value = text;
+}
+function generateRandomButtons() {
+  const randomCount = 6;
+  const randomButtons = [];
+  const usedIndices = new Set();
+
+  while (randomButtons.length < randomCount) {
+    const randomIndex = Math.floor(Math.random() * suggestionPresets.length);
+    if (!usedIndices.has(randomIndex)) {
+      randomButtons.push({
+        ...suggestionPresets[randomIndex]
+      });
+      usedIndices.add(randomIndex);
+    }
+  }
+  return randomButtons;
+}
+onMounted(() => {
+  refreshButtons();
+});
+// 刷新按钮内容
+function refreshButtons() {
+  buttons.value = generateRandomButtons();
+}
+
+// 按钮点击事件
+function handleAcceptSuggestion(prompt) {
+  userPrompt.value = prompt;
+}
+
 const mood = ref('平和');
 const moodOptions = [
   {
@@ -205,9 +303,9 @@ const moodOptions = [
     icon: DataAnalysis
   },
   {
-    label: '愤怒',
-    value: '愤怒',
-    icon: Lightning
+    label: '商业',
+    value: '商业',
+    icon: SuitcaseLine
   },
   {
     label: '悲伤',
@@ -259,7 +357,7 @@ const generate = async () => {
   generating.value = true;
 
   const prompt = generateArticlePrompt(mood.value, userPrompt.value);
-  console.log(prompt)
+  //console.log(prompt)
   await answerQuestionStream(prompt, generatedText, { temperature: temperature.value / 100.0 });
   generating.value = false;
 
@@ -281,12 +379,12 @@ const querySearch = (queryString, cb) => {
 }
 const reset = () => {
   generated.value = false;
-  generatedText.value = current_article.value?current_article.value:defaultText;
+  generatedText.value = current_article.value ? current_article.value : defaultText;
 }
 const generating = ref(false);
 const userPrompt = ref('');
 const defaultText = '# 欢迎使用MetaDoc\n\n这是一个基于人工智能的文档编辑器，可以帮助您快速生成文档内容。';
-const generatedText = ref(current_article.value?current_article.value:defaultText);
+const generatedText = ref(current_article.value ? current_article.value : defaultText);
 const generated = ref(false);
 const presets = [
   { "value": "我想生成一篇学术报告" },
@@ -467,6 +565,7 @@ const quickStartDialogVisible = ref(false);
 const quickStart = () => {
   // 快速开始逻辑
   quickStartDialogVisible.value = true;
+  refreshButtons();
 };
 
 // 打开文件按钮逻辑
@@ -484,14 +583,45 @@ const resetM = () => {
   document.querySelector('.main-letter').style.color = 'rgb(65,105,225)';
 };
 
+import Vditor from 'vditor';
+import { md2html } from '../utils/md-utils';
 // 生命周期钩子
-onMounted(() => {
+onMounted(async () => {
   initThreeJS();
   animate(); // 开始动画循环
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('resize', onWindowResize); // 添加窗口大小变化事件
-});
 
+
+
+});
+// const renderMarkdown = async () => {
+//   let node = document.getElementsByClassName('md-preview')[0];
+//   console.log(node);
+//   generatedText.value = current_article.value ? current_article.value : defaultText;
+//   let html=md2html(generatedText.value);
+//   node.innerHTML = html;
+  
+//   const previewElement = node;
+//     Vditor.setContentTheme('light', 'http://localhost:3000/vditor/dist/css/content-theme');
+//     Vditor.codeRender(previewElement);
+//     Vditor.highlightRender({"enable":true,"lineNumber":false,"defaultLang":"","style":"github"}, previewElement, 'http://localhost:3000/vditor');
+//     Vditor.mathRender(previewElement, {
+//         cdn: 'http://localhost:3000/vditor',
+//         math: {"engine":"KaTeX","inlineDigit":false,"macros":{}},
+//     });
+//     Vditor.mermaidRender(previewElement, 'http://localhost:3000/vditor', 'classic');
+//     Vditor.SMILESRender(previewElement, 'http://localhost:3000/vditor', 'classic');
+//     Vditor.markmapRender(previewElement, 'http://localhost:3000/vditor');
+//     Vditor.flowchartRender(previewElement, 'http://localhost:3000/vditor');
+//     Vditor.graphvizRender(previewElement, 'http://localhost:3000/vditor');
+//     Vditor.chartRender(previewElement, 'http://localhost:3000/vditor', 'classic');
+//     Vditor.mindmapRender(previewElement, 'http://localhost:3000/vditor', 'classic');
+//     Vditor.abcRender(previewElement, 'http://localhost:3000/vditor');
+//     Vditor.mediaRender(previewElement);
+//     Vditor.speechRender(previewElement);
+
+// };
 onBeforeUnmount(() => {
   window.removeEventListener('mousemove', onMouseMove);
   window.removeEventListener('resize', onWindowResize);

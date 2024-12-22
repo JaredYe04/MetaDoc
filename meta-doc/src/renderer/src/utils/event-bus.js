@@ -16,13 +16,15 @@ import {
 } from './common-data.js'
 import { updateRecentDocs } from './settings.js'
 import { path } from 'd3'
+import { da } from 'element-plus/es/locales.mjs'
+import { md2html } from './md-utils.js'
 const ipcRenderer = window.electron.ipcRenderer
 const eventBus = mitt()
 
 export default eventBus
 
 //监听save事件
-eventBus.on('save', (msg) => {
+eventBus.on('save', async (msg) => {
   //console.log(window.electron)
   if(msg==='auto-save'){
     if(current_file_path.value===''){
@@ -30,13 +32,13 @@ eventBus.on('save', (msg) => {
     }
   }
   sync();
-  ipcRenderer.send('save', { json: dump2json(),path:current_file_path.value })
+  ipcRenderer.send('save', { json: dump2json(),path:current_file_path.value ,html:await md2html(current_article.value)})
 })
 
 
-eventBus.on('save-and-quit', () => {
+eventBus.on('save-and-quit', async () => {
   sync();
-  ipcRenderer.send('save-and-quit', { json: dump2json(),path:current_file_path.value })
+  ipcRenderer.send('save-and-quit', { json: dump2json(),path:current_file_path.value ,html:await md2html(current_article.value)})
 });
 
 eventBus.on('open-doc', async (path) => {
@@ -48,22 +50,34 @@ eventBus.on('quit', () => {
   ipcRenderer.send('quit')
 })
 
-eventBus.on('save-as', () => {
+eventBus.on('save-as', async () => {
   sync();
-  ipcRenderer.send('save-as', { json: dump2json() ,path:''})
+  eventBus.emit('nav-to', '/article');
+  ipcRenderer.send('save-as', { json: dump2json() ,path:'',html:await md2html(current_article.value)}) 
 })
 
 eventBus.on('new-doc', async () => {
   await init()
 })
 
-eventBus.on('export', () => {
+eventBus.on('close-doc',async ()=>{
+  await init()
+})
+
+eventBus.on('export', async () => {
   sync();
-  ipcRenderer.send('export', { json: dump2json() })
+  //eventBus.emit('nav-to', '/article');
+  ipcRenderer.send('export', { json: dump2json() ,html:await md2html(current_article.value)})
 })
 
 eventBus.on('setting',()=>{
   ipcRenderer.send('setting')
+
+})
+
+eventBus.on('system-notification',(data)=>{
+  //console.log(data)
+  ipcRenderer.send('system-notification',data)
 
 })
 

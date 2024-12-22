@@ -1,6 +1,6 @@
 //所有主进程的事件处理函数
 
-const { app, BrowserWindow, dialog, ipcMain, shell} = require('electron')
+const { app, BrowserWindow, dialog, ipcMain, shell, Notification} = require('electron')
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 
@@ -14,6 +14,7 @@ const mammoth = require('mammoth');
 const markdownIt = require("markdown-it");
 const htmlDocx = require('html-docx-js');
 const os = require('os');
+
 
 import { mainWindow } from './index'
 import { dirname } from './index'
@@ -42,6 +43,10 @@ export function mainCalls() {
   ipcMain.on('setting', () => {
     openSettingDialog();
   })
+  ipcMain.on('system-notification',(event,data)=>{
+    //console.log(data)
+    systemNotification(data.title,data.body);
+  })
   ipcMain.handle('get-setting', async (event, data) => {
     return await getSetting(data.key)
   })
@@ -57,24 +62,36 @@ export function mainCalls() {
   ipcMain.handle('cut-words', async (event, data) => {
     return await cut_words(data.text)
   })
-  ipcMain.handle('get-vditor', async (event, data) => {
-    return await getVditor(data)
-  })
+  // ipcMain.handle('get-vditor', async (event, data) => {
+  //   return await getVditor(data)
+  // })
 }
-const Vditor = require("vditor");
+// const Vditor = require("vditor");
 
-const getVditor = (elementId) => {
-  return new Vditor(elementId, {
-    height: 300,
-    mode: 'sv', // 默认 Markdown 模式
-    value: '# 标题\n这是一个初始化内容',
-  });
-};
+// const getVditor = (elementId) => {
+//   return new Vditor(elementId, {
+//     height: 300,
+//     mode: 'sv', // 默认 Markdown 模式
+//     value: '# 标题\n这是一个初始化内容',
+//   });
+// };
 
 
 var Segment = require('segment');
 var segment = new Segment();
 segment.useDefault();
+
+
+const systemNotification=(title,body)=>{
+  const notification = new Notification({
+    title: title,
+    body: body
+  });
+  // 显示通知
+  notification.show();
+}
+
+
 const cut_words = async (text) => {
   //console.log(text);
   return await segment.doSegment(text, {
@@ -140,9 +157,15 @@ const openSettingDialog = async () => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
+  if(is.dev){
 
+    
   console.log(process.env['ELECTRON_RENDERER_URL'] + '/setting');
-  settingWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/setting')
+  settingWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] +'/setting')
+  }
+  else{
+    settingWindow.loadFile(join(dirname, '../renderer/index.html'+ '/setting'))
+  }
   // console.log(path.join(dirname, '../renderer/setting.html'));
   // settingWindow.loadURL(path.join(dirname, '../renderer/setting.html'))
 }
@@ -237,7 +260,7 @@ const chooseSaveFile = async (data) => {
 }
 
 const exportFile = async (event, data) => {
-  data = JSON.parse(data.json)
+  data = {...JSON.parse(data.json),html: data.html}
   //console.log(win)
   const dateyyyyMMddhhmmss = new Date()
     .toISOString()
@@ -253,6 +276,7 @@ const exportFile = async (event, data) => {
       { name: 'PDF Files', extensions: ['pdf'] },
       { name: 'DOCX Files', extensions: ['docx'] },
       { name: 'Markdown Files', extensions: ['md'] },
+      { name: 'HTML Files', extensions: ['html'] },
     ]
   })
   //console.log(result); // 可以检查返回的 result 对象
@@ -264,10 +288,13 @@ const exportFile = async (event, data) => {
         convertMarkdownTextToPDF(data.current_article, result.filePath)
         break
       case '.docx':
-        convertMarkdownToDocx(data.current_article, result.filePath)
+        convertMarkdownToDocx(data.html, result.filePath)
         break
       case '.md':
         directFileOutput(data.current_article, result.filePath)
+        break
+      case '.html':
+        convertMarkdownToHTML(data.current_article_meta_data.title,data.html, result.filePath)
         break
     }
   }
@@ -284,14 +311,24 @@ async function convertMarkdownTextToPDF(markdownText, outputPath) {
   mainWindow.webContents.send('export-success', outputPath)
 }
 
-async function convertMarkdownToDocx(markdownText, outputPath) {
+async function convertMarkdownToHTML(title,htmlContent,path) {
+  try {
+    // 使用 marked 将 Markdown 转换为 HTML
+    htmlContent = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>${title}</title></head><body>${htmlContent}</body></html>`;
+    directFileOutput(htmlContent, path)
+  } catch (error) {
+    console.error('Error while converting markdown to HTML:', error);
+  }
+}
+async function convertMarkdownToDocx(htmlContent, outputPath) {
   try {
     // 将 Markdown 转换为 HTML
-    let htmlContent = marked(markdownText);
-
+    //let htmlContent = marked(markdownText);
+    //console.log(markdownText);
+    // let htmlContent=await md2html(markdownText);
     // 插入 UTF-8 编码声明，确保中文正确显示
     htmlContent = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>Document</title></head><body>${htmlContent}</body></html>`;
-
+    //console.log(htmlContent);
     // 使用 html-docx-js 将 HTML 转换为 DOCX，得到一个 Blob 对象
     const docxBlob = htmlDocx.asBlob(htmlContent);
 

@@ -1,5 +1,6 @@
 //这个文件需要实现一系列Markdown相关的功能函数
 
+import { renderedHtml } from "./common-data"
 import eventBus from "./event-bus"
 
 
@@ -12,7 +13,7 @@ export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
     const outline_tree = {
         title: '',//当前标题
         path: 'dummy', //当前标题的路径,编号规则：根节点无编号，第一级标题编号为1，第二级标题编号为1.1，第三级标题编号为1.1.1，以此类推
-        text: '',//当前标题的内容，不包括子标题以及内容
+        text: '',//当前内容，不包括子标题以及内容
         children: []
     }
 
@@ -97,11 +98,14 @@ export function generateMarkdownFromOutlineTree(outline_tree) {
         }
     }
     if (outline_tree.path === 'dummy') {//如果是根节点
+        if(outline_tree.text.trim()!==''){//如果node.text不是空，那么加一个换行符
+            md += outline_tree.text + '\n'//根节点的text
+        }
         for (let i = 0; i < outline_tree.children.length; i++) {
             dfs(outline_tree.children[i], 1)
         }
     }
-    console.log(md);
+    //console.log(md);
     return md
 }
 
@@ -136,6 +140,8 @@ export function generatePieFromData(data, title) {//饼图
         tooltip: {
             trigger: 'item',
             formatter: '{a} <br/>{b}: {c} ({d}%)',
+            /**靠右 显示 */
+            position: 'top',
         },
         legend: {
             top: '0',
@@ -268,8 +274,8 @@ export function generateWordCountBarChart(text) {
         { name: '小说中篇', wordCount: 15000 },
         { name: '短篇小说', wordCount: 3000 },
         { name: '新闻报道', wordCount: 1000 },
-        { name: '新闻社论', wordCount: 1200 },
-        { name: '短篇文章', wordCount: 1500 },
+        { name: '新闻社论', wordCount: 1100 },
+        { name: '短篇文章', wordCount: 1300 },
         { name: '诗歌', wordCount: 300 },
         { name: '技术博客', wordCount: 2000 },
         { name: '商业计划书', wordCount: 7000 },
@@ -279,6 +285,10 @@ export function generateWordCountBarChart(text) {
         { name: '会议纪要', wordCount: 1200 },
         { name: '求职信', wordCount: 500 },
         { name: '电子邮件', wordCount: 200 },
+        { name: '朋友圈', wordCount: 100 },
+        { name: '短信', wordCount: 50 },
+        { name: '五言绝句', wordCount: 20 },
+        { name: '七言律诗', wordCount: 56 },
         { name: '广告文案', wordCount: 300 },
         { name: '网页文章', wordCount: 1500 },
         { name: '小说序章', wordCount: 2500 },
@@ -456,4 +466,25 @@ export function generateWordFrequencyTrendChart(text, topWords) {
 
     // 返回 ECharts 配置
     return echartConfig;
+}
+
+import Vditor from "vditor"
+export async function md2html(md) {
+    //return renderedHtml.value;
+    return await Vditor.md2html(md,{cdn: 'http://localhost:3000/vditor'})
+
+}
+
+export async function md2htmlRendered(md) {
+    let node=document.createElement('div');
+    node.style.display='none';//不显示
+    const vditor = new Vditor(node, {
+        value: md,
+        mode: 'sv',
+        cdn: 'http://localhost:3000/vditor',
+        after() {
+            //console.log(vditor.getValue());
+        }
+    });
+    return vditor.getHTML();
 }

@@ -227,7 +227,7 @@ import * as THREE from 'three';
 import "../assets/aero-div.css";
 import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
-import { current_article, current_article_meta_data, current_file_path, latest_view, sync } from '../utils/common-data';
+import { current_article, current_article_meta_data, current_file_path, firstLoad, latest_view, sync } from '../utils/common-data';
 import eventBus from '../utils/event-bus';
 import MarkdownItEditor from 'vue3-markdown-it';
 
@@ -269,7 +269,25 @@ function generateRandomButtons() {
 }
 onMounted(() => {
   refreshButtons();
+  openRecentDoc()
 });
+
+const openRecentDoc = async () => {
+
+    const enabled = (await getSetting('startupOption')) === 'lastFile'
+    if (enabled) {
+      const recentDocs = await getRecentDocs()
+
+      if (recentDocs.length > 0 
+      && firstLoad.value
+
+      ) {
+        eventBus.emit('open-doc', recentDocs[0])
+        firstLoad.value = false
+      }
+    }
+  }
+  
 // 刷新按钮内容
 function refreshButtons() {
   buttons.value = generateRandomButtons();
@@ -585,6 +603,7 @@ const resetM = () => {
 
 import Vditor from 'vditor';
 import { md2html } from '../utils/md-utils';
+import { getRecentDocs, getSetting } from '../utils/settings';
 // 生命周期钩子
 onMounted(async () => {
   initThreeJS();

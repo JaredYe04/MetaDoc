@@ -11,32 +11,38 @@ const routes = [
     path: '/',
     name: 'Home',
     alias:'/home',
-    component: Home
+    component: Home,
+    meta: { requiresLayout: true } 
   },
   {
     path: '/outline',
     name: 'Outline',
-    component: Outline
+    component: Outline,
+    meta: { requiresLayout: true } 
   },
   {
     path: '/about',
     name: 'About',
-    component: About
+    component: About,
+    meta: { requiresLayout: true } 
   },
   {
     path:'/article',
     name:'Article',
-    component: Article
+    component: Article,
+    meta: { requiresLayout: true } 
   },
   {
     path:'/setting',
     name:'Setting',
-    component: Setting
+    component: Setting,
+    meta: { requiresLayout: false } 
   },
   {
     path:'/visualize',
     name:'Visualize',
-    component: Visualize
+    component: Visualize,
+    meta: { requiresLayout: true } 
   }
 ]
 

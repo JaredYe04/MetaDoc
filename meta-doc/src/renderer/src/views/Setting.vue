@@ -3,7 +3,7 @@
     <el-container>
       <!-- 左侧菜单 -->
       <el-aside width="200px">
-        <el-menu default-active="basic" @select="handleMenuSelect" router>
+        <el-menu default-active="basic" @select="handleMenuSelect">
           <el-menu-item index="basic">基本设置</el-menu-item>
           <el-menu-item index="llm">LLM设置</el-menu-item>
         </el-menu>

@@ -23,6 +23,9 @@ const eventBus = mitt()
 
 export default eventBus
 
+
+
+
 //监听save事件
 eventBus.on('save', async (msg) => {
   //console.log(window.electron)

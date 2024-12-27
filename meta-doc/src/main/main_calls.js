@@ -1,6 +1,7 @@
 //所有主进程的事件处理函数
 
-const { app, BrowserWindow, dialog, ipcMain, shell, Notification} = require('electron')
+const { dialog, Notification} = require('electron')
+import { app, shell, BrowserWindow, ipcMain, globalShortcut  } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 
@@ -16,7 +17,7 @@ const htmlDocx = require('html-docx-js');
 const os = require('os');
 
 
-import { mainWindow, uploadDir } from './index'
+import { mainWindow, openSettingDialog, uploadDir } from './index'
 import { dirname } from './index'
 
 
@@ -65,10 +66,12 @@ export function mainCalls() {
   ipcMain.handle('get-image-path', async (event, data) => {
     return await getImagePath()
   })
+
   // ipcMain.handle('get-vditor', async (event, data) => {
   //   return await getVditor(data)
   // })
 }
+
 // const Vditor = require("vditor");
 
 // const getVditor = (elementId) => {
@@ -131,49 +134,6 @@ const getRecentDocs = async () => {
   return result;
 }
 
-let settingWindow;//设置窗口
-const openSettingDialog = async () => {
-  settingWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
-    parent: mainWindow, // 将子窗口与主窗口关联
-    modal: false, // 是否为模态窗口
-    autoHideMenuBar: true,
-    webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
-      contextIsolation: false,
-      nodeIntegration: true,
-    },
-  });
-
-  // if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-  //   // console.log('loadURL1:', process.env['ELECTRON_RENDERER_URL'])
-  //   childWindow.loadURL(process.env['ELECTRON_RENDERER_URL']+'/#/setting')
-  //  } else {
-  //    //console.log('loadURL2:', join(__dirname, '../renderer/index.html'))
-  //    childWindow.loadFile(join(dirname, '../renderer/index.html/#/setting'))
-  //  }
-  settingWindow.on('ready-to-show', () => {
-    settingWindow.show()
-  })
-
-
-  settingWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
-    return { action: 'deny' }
-  })
-  if(is.dev){
-
-    
-  console.log(process.env['ELECTRON_RENDERER_URL'] + '/setting');
-  settingWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] +'/setting')
-  }
-  else{
-    settingWindow.loadFile(join(dirname, '../renderer/index.html'+ '/setting'))
-  }
-  // console.log(path.join(dirname, '../renderer/setting.html'));
-  // settingWindow.loadURL(path.join(dirname, '../renderer/setting.html'))
-}
 
 const Store = require('electron-store');
 const store = new Store();

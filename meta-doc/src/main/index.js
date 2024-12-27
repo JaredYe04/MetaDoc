@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, globalShortcut  } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, globalShortcut } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -30,14 +30,14 @@ function createWindow() {
       webSecurity: false,
     }
   })
-  
+
 
   mainWindow.on('ready-to-show', () => {
     bindShortcuts();//绑定快捷键
     mainWindow.show()
-    
+
   })
- 
+
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -49,9 +49,10 @@ function createWindow() {
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     console.log('loadURL1:', process.env['ELECTRON_RENDERER_URL'])
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']+'/#/home')
+    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/home')
+    //mainWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/setting`);
   } else {
-    mainWindow.webContents.openDevTools()
+
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
@@ -59,8 +60,8 @@ function createWindow() {
 }
 
 const expressApp = express();
-const projectRoot = path.resolve(path.resolve(__dirname, '../'),'../');  // 根据 out/main 路径上一级即为根目录
-const dir=path.join(projectRoot, 'node_modules/vditor')
+const projectRoot = path.resolve(path.resolve(__dirname, '../'), '../');  // 根据 out/main 路径上一级即为根目录
+const dir = path.join(projectRoot, 'node_modules/vditor')
 // 将 node_modules/vditor 作为静态资源暴露
 expressApp.use(cors());
 expressApp.use('/vditor', express.static(dir));
@@ -155,7 +156,7 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
   mainCalls();//绑定主进程的事件处理函数
-  
+
 
 
 
@@ -206,10 +207,56 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
+let settingWindow;//设置窗口
 
 
-
-export { mainWindow }
+export { mainWindow, settingWindow }
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
+
+
+
+
+
+export const openSettingDialog = async () => {
+  settingWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    parent: mainWindow, // 将子窗口与主窗口关联
+    modal: false, // 是否为模态窗口
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: false,
+      nodeIntegration: true,
+    },
+  });
+
+  settingWindow.on('ready-to-show', () => {
+    settingWindow.show()
+  })
+
+
+  settingWindow.webContents.setWindowOpenHandler((details) => {
+    shell.openExternal(details.url)
+    return { action: 'deny' }
+  })
+
+
+
+  if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
+    console.log(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/setting`);
+    await settingWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/setting`)
+
+  }
+  else {
+
+    //settingWindow.loadFile(path.join(__dirname, '../renderer/index.html/#/setting'))
+    await settingWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/setting`);
+    
+  }
+  settingWindow.setTitle('设置面板')
+  // console.log(path.join(dirname, '../renderer/setting.html'));
+  // settingWindow.loadURL(path.join(dirname, '../renderer/setting.html'))
+}

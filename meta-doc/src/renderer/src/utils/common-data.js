@@ -26,6 +26,9 @@ const default_outline_tree = {
 }
 //编号规则：根节点无编号，第一级标题编号为1，第二级标题编号为1.1，第三级标题编号为1.1.1，以此类推
 
+
+export const firstLoad = ref(true)
+
 const default_artical_meta_data = {
   title: '新文档',
   author: '',

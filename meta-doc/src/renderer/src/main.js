@@ -27,7 +27,10 @@ import TitleMenu from './components/TitleMenu.vue';
 app.component("TitleMenu", TitleMenu); // 全局注册
 import ContextMenu from './components/ContextMenu.vue';
 app.component("ContextMenu", ContextMenu); // 全局注册
-
+import MicrophoneTest from './components/MicrophoneTest.vue';
+app.component("MicrophoneTest", MicrophoneTest); // 全局注册
+import VoiceInput from './components/VoiceInput.vue';
+app.component("VoiceInput", VoiceInput); // 全局注册
 
 import MarkdownItEditor from 'vue3-markdown-it';
 app.component('MarkdownItEditor', MarkdownItEditor)

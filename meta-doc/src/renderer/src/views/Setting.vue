@@ -50,6 +50,24 @@
                 <MicrophoneTest />
                 </div>  
             </el-form-item>
+
+            <el-form-item label="导出图片选项">
+              <el-select v-model="settings.exportImageMode" @change="saveSetting('exportImageMode', settings.exportImageMode)">
+
+                <el-tooltip content="简便快捷，但只有在MetaDoc打开时才能正确预览文件" placement="left">
+                  <el-option label="MetaDoc内置服务器" value="none"></el-option>
+                </el-tooltip>
+                <el-tooltip content="将文件存入md中，可直接拷贝到别处，但文件体积较大，加载较慢" placement="left">
+                  <el-option label="Base64编码" value="base64"></el-option>
+                </el-tooltip>
+                <el-tooltip content="将图片链接到本地图片目录" placement="left">
+                  <el-option label="本地链接" value="local"></el-option>
+                </el-tooltip>
+              </el-select>
+            </el-form-item>
+
+
+
           </template>
 
           <!-- <template v-if="activeMenu === 'llm'">
@@ -201,6 +219,7 @@ export default {
       selectedLlm: "", // 选择的大模型类型
       llmApiUrl: "", // LLM API URL
       llmApiKey: "", // LLM API 秘钥（根据不同模型可能使用）
+      exportImageMode: "none", // 导出图片选项
       ollama: {
         apiUrl: "http://localhost:11434/api", // Ollama 默认 API URL
         selectedModel: "",
@@ -282,6 +301,7 @@ export default {
           console.warn("未能获取 Ollama 模型列表，响应数据为空。");
         }
       } catch (error) {
+
         console.error("无法获取 Ollama 模型列表:", error);
       }
     };

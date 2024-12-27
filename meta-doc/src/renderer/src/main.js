@@ -21,8 +21,14 @@ import LlmDialog from "./components/LlmDialog.vue";
 //import AiLogo from './assets/ai-logo.svg'
 app.component("LlmDialog", LlmDialog); // 全局注册
 //app.component("AiLogo", AiLogo); // 全局注册
+
+
 import TitleMenu from './components/TitleMenu.vue';
 app.component("TitleMenu", TitleMenu); // 全局注册
+import ContextMenu from './components/ContextMenu.vue';
+app.component("ContextMenu", ContextMenu); // 全局注册
+
+
 import MarkdownItEditor from 'vue3-markdown-it';
 app.component('MarkdownItEditor', MarkdownItEditor)
 app.use(ElementPlus)

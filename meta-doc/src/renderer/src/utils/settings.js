@@ -20,3 +20,7 @@ export async function updateRecentDocs(filePath){
 export async function getRecentDocs(){
     return await ipcRenderer.invoke('get-recent-docs');
 } 
+
+export async function getImagePath(){
+    return await ipcRenderer.invoke('get-image-path');
+}

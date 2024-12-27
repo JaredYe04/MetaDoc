@@ -3,7 +3,7 @@
       :type="isRecording ? 'danger' : 'primary'"
       @click="toggleRecording"
       circle
-      class="voice-input"
+      :size="props.size?props.size:'medium'"
     >
       <el-icon v-if="!isRecording"><Microphone /></el-icon>
       <el-icon v-if="isRecording"><Select /></el-icon>
@@ -21,8 +21,13 @@ import { convertWebMToWav } from '../utils/audio-convert';
   let mediaRecorder = null
   let audioChunks = []
   
+
+const props=defineProps({
+  size:String
+})
+
   // 定义 emit 事件
-const emit = defineEmits(["onSpeechRecognized"])
+const emit = defineEmits(["onSpeechRecognized","onStateUpdated"])
   const toggleRecording = async () => {
     if (isRecording.value) {
       // 停止录音
@@ -33,9 +38,11 @@ const emit = defineEmits(["onSpeechRecognized"])
     }
   }
   const stopRecording = async () => {
+    emit('onStateUpdated', 'idle')
     mediaRecorder.stop()
   }
   const startRecording = async () => {
+    emit('onStateUpdated', 'recording')
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     console.log('Microphone access granted')
@@ -67,6 +74,7 @@ const emit = defineEmits(["onSpeechRecognized"])
     mediaRecorder.start()
     isRecording.value = true
   } catch (err) {
+    eventBus.emit('show-error', '无法访问麦克风，请检查权限设置')
     console.error('Error accessing microphone:', err)
   }
 }
@@ -99,9 +107,11 @@ const sendAudioToBaidu = async (base64Audio,originalSize) => {
         console.log(result)
         emit('onSpeechRecognized', recognizedText);  // 通过事件发送识别结果给父组件
       } else {
+        eventBus.emit('show-error', '识别失败：' + result.err_msg);
         console.error('Recognition failed:', result.err_msg);
       }
     } catch (err) {
+      eventBus.emit('show-error', '发送音频到百度时出错');
       console.error('Error sending audio to Baidu:', err);
     } finally {
       isRecording.value = false;
@@ -119,6 +129,7 @@ const sendAudioToBaidu = async (base64Audio,originalSize) => {
       console.log('Baidu token:', response.data.access_token)
       return response.data.access_token
     } catch (err) {
+      eventBus.emit('show-error', '获取百度 token 时出错')
       console.error('Error fetching Baidu token:', err)
       stopRecording()
     }
@@ -126,8 +137,5 @@ const sendAudioToBaidu = async (base64Audio,originalSize) => {
   </script>
   
   <style scoped>
-  .voice-input {
-    position: fixed;
-    z-index: 1000;
-  }
+
   </style>

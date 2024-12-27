@@ -1,18 +1,19 @@
 //这个文件需要实现一系列Markdown相关的功能函数
 
+import Vditor from "vditor"
 import { renderedHtml } from "./common-data"
 import eventBus from "./event-bus"
+import { getImagePath } from "./settings"
 
 
 // 1. 从Markdown文本中提取所有标题，生成大纲树
 
 export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
-    //console.log(md);
     const lines = md.split('\n')
     //console.log(lines);
     const outline_tree = {
         title: '',//当前标题
-        path: 'dummy', //当前标题的路径,编号规则：根节点无编号，第一级标题编号为1，第二级标题编号为1.1，第三级标题编号为1.1.1，以此类推
+        path: 'dummy', //当前标题的路径
         text: '',//当前内容，不包括子标题以及内容
         children: []
     }
@@ -56,7 +57,7 @@ export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
     let path_stack = []
     let path_index = 1
     let root = outline_tree
-    //root节点通常是dummy,path为dummy,不需要编号，而它的子节点按照顺序依次为1,2,3,4...，子节点的子节点按照1.1,1.2,1.3,1.4...编号
+    //root节点通常是dummy节点
     for (let i = 0; i < root.children.length; i++) {
         root.children[i].path = path + (i + 1)
         path_stack.push(root.children[i])
@@ -98,7 +99,7 @@ export function generateMarkdownFromOutlineTree(outline_tree) {
         }
     }
     if (outline_tree.path === 'dummy') {//如果是根节点
-        if(outline_tree.text.trim()!==''){//如果node.text不是空，那么加一个换行符
+        if (outline_tree.text.trim() !== '') {//如果node.text不是空，那么加一个换行符
             md += outline_tree.text + '\n'//根节点的text
         }
         for (let i = 0; i < outline_tree.children.length; i++) {
@@ -135,7 +136,7 @@ export function generatePieFromData(data, title) {//饼图
     });
 
     // ECharts 配置模板
-    const maxLength=5;
+    const maxLength = 5;
     const echartConfig = {
         tooltip: {
             trigger: 'item',
@@ -178,12 +179,12 @@ export function generatePieFromData(data, title) {//饼图
         ],
     };
 
-//     // 转换为 Markdown 所需的 JSON 字符串
-//     const echartMarkdown = `
-// \`\`\`echarts
-// ${JSON.stringify(echartConfig, null, 2)}
-// \`\`\`
-//     `.trim();
+    //     // 转换为 Markdown 所需的 JSON 字符串
+    //     const echartMarkdown = `
+    // \`\`\`echarts
+    // ${JSON.stringify(echartConfig, null, 2)}
+    // \`\`\`
+    //     `.trim();
 
     return echartConfig;
 }
@@ -330,10 +331,10 @@ export function generateWordCountBarChart(text) {
                         fontweight: 'bold', // 加粗
                     },
                 },
-              
-              align: 'center', // 标签居中对齐
+
+                align: 'center', // 标签居中对齐
             },
-          },
+        },
         yAxis: {
             type: 'value',
         },
@@ -468,23 +469,186 @@ export function generateWordFrequencyTrendChart(text, topWords) {
     return echartConfig;
 }
 
-import Vditor from "vditor"
-export async function md2html(md) {
+// export function md2html(md) {
+//     const content = md;
+//     // const cdn = 'http://localhost:3000/vditor'
+//     const cdn='https://unpkg.com/vditor'//导出的时候就不需要本地服务器了
+//     const html = `<html><head><link rel="stylesheet" type="text/css" href="${cdn}/dist/index.css"/>
+// <script src="${cdn}/dist/method.min.js"></script></head>
+// <body><div class="vditor-reset" id="preview">${content}</div>
+// <script>
+//     const previewElement = document.getElementById('preview')
+//     Vditor.codeRender(previewElement);
+//     Vditor.mathRender(previewElement, {
+//         cdn: '${cdn}',
+//     });
+//     Vditor.mermaidRender(previewElement, '${cdn}'cdn);
+//     Vditor.SMILESRender(previewElement, '${cdn}'cdn);
+//     Vditor.markmapRender(previewElement, '${cdn}');
+//     Vditor.flowchartRender(previewElement, '${cdn}');
+//     Vditor.graphvizRender(previewElement, '${cdn}');
+//     Vditor.chartRender(previewElement, '${cdn}'cdn);
+//     Vditor.mindmapRender(previewElement, '${cdn}'cdn);
+//     Vditor.abcRender(previewElement, '${cdn}');
+//     Vditor.mediaRender(previewElement);
+//     Vditor.speechRender(previewElement);
+// </script></body></html>`;
+// return html
+// }
+
+
+export async function image2base64(md){
+    //查找markdown里面所有的图片链接，读取图片，转换为base64，返回经过替换后的markdown
+
+    const lines = md.split('\n')
+    let new_md = ''
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        const match = line.match(/!\[.*?\]\((.*?)\)/)
+        if (match) {
+            const image_path = match[1]
+            let base64 = ''
+            try {
+                const response = await fetch(image_path)
+                const blob = await response.blob()
+                const reader = new FileReader()
+                reader.readAsDataURL(blob)
+                base64 = await new Promise((resolve, reject) => {
+                    reader.onload = () => resolve(reader.result)
+                    reader.onerror = reject
+                })
+            } catch (error) {
+                eventBus.emit('show-error', '图片转换失败'+error)
+                console.error(error)
+            }
+            new_md += line.replace(image_path, base64) + '\n'
+        } else {
+            new_md += line + '\n'
+        }
+    }
+    return new_md
+}
+export async function image2local(md){
+    //查找markdown里面所有的图片链接，读取图片，将路径替换为本地路径，返回经过替换后的markdown
+    const local_path = await getImagePath()
+    const lines = md.split('\n')
+    let new_md = ''
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        //把'http://localhost:3000/images/'替换成local_path
+        const match = line.match(/!\[.*?\]\((.*?)\)/)
+        if (match) {
+            const image_path = match[1]
+            const prefix_len='http://localhost:3000/images/'.length
+            const image_name=image_path.slice(prefix_len)
+            new_md += line.replace(image_path, local_path +'\\'+image_name) + '\n'
+        } else {
+            new_md += line + '\n'
+        }
+    }
+    return new_md
+
+}
+
+
+
+
+export async function md2htmlRaw(md) {
     //return renderedHtml.value;
     return await Vditor.md2html(md,{cdn: 'http://localhost:3000/vditor'})
 
 }
-
-export async function md2htmlRendered(md) {
-    let node=document.createElement('div');
-    node.style.display='none';//不显示
-    const vditor = new Vditor(node, {
-        value: md,
-        mode: 'sv',
-        cdn: 'http://localhost:3000/vditor',
-        after() {
-            //console.log(vditor.getValue());
-        }
-    });
-    return vditor.getHTML();
+export function md2html(md, style = 'github') {
+    // const cdn = 'http://localhost:3000/vditor'
+    const cdn='https://unpkg.com/vditor'//导出的时候就不需要本地服务器了
+    const safeMarkdown = JSON.stringify(md);
+    const html = `<html><link rel="stylesheet" href="${cdn}/dist/index.css"/>
+        <script src="${cdn}/dist/method.min.js"></script>
+        <body><div id="preview" style="width: 800px;"></div></body>
+        <script>
+            // 等待 iframe 完全加载后，渲染 markdown 内容
+            window.onload = function() {
+            //鼠标设置为等待状态
+                // 使用转义后的 md 内容
+                const previewElement = document.getElementById('preview');
+                Vditor.preview(previewElement, ${safeMarkdown}, {
+                    cdn: "${cdn}",
+                    markdown: {
+                        theme: "{ current: 'light' }"
+                    },
+                    hljs: {
+                        style: "${style}"
+                    }
+                });
+                Vditor.codeRender(previewElement);
+                Vditor.mathRender(previewElement, {
+                    cdn: '${cdn}',
+                });
+                Vditor.mermaidRender(previewElement, '${cdn}');
+                Vditor.SMILESRender(previewElement, '${cdn}');
+                Vditor.markmapRender(previewElement, '${cdn}');
+                Vditor.flowchartRender(previewElement, '${cdn}');
+                Vditor.graphvizRender(previewElement, '${cdn}');
+                Vditor.chartRender(previewElement, '${cdn}');
+                Vditor.mindmapRender(previewElement, '${cdn}');
+                Vditor.abcRender(previewElement, '${cdn}');
+            };
+        </script></html>`;
+return html
 }
+
+export const exportPDF = (md, style = 'github') => {
+    // 创建一个 iframe 并设置内容
+    const iframe = document.createElement('iframe');
+    //iframe.style.display = 'none'; // 不显示 iframe
+    document.body.appendChild(iframe); // 将 iframe 添加到页面上
+
+    const iframeDocument = iframe.contentDocument;
+    iframeDocument.open();
+
+    // 使用 JSON.stringify 对 md 进行转义
+    const safeMarkdown = JSON.stringify(md);
+    const cdn = 'http://localhost:3000/vditor'
+    iframeDocument.write(`
+        <link rel="stylesheet" href="${cdn}/dist/index.css"/>
+        <script src="${cdn}/dist/method.min.js"></script>
+        <div id="preview" style="width: 800px;"></div>
+        <script>
+            // 等待 iframe 完全加载后，渲染 markdown 内容
+            window.onload = function() {
+            //鼠标设置为等待状态
+                // 使用转义后的 md 内容
+                const previewElement = document.getElementById('preview');
+                Vditor.preview(previewElement, ${safeMarkdown}, {
+                    cdn: "${cdn}",
+                    markdown: {
+                        theme: "{ current: 'light' }"
+                    },
+                    hljs: {
+                        style: "${style}"
+                    }
+                });
+                Vditor.codeRender(previewElement);
+                Vditor.mathRender(previewElement, {
+                    cdn: '${cdn}',
+                });
+                Vditor.mermaidRender(previewElement, '${cdn}');
+                Vditor.SMILESRender(previewElement, '${cdn}');
+                Vditor.markmapRender(previewElement, '${cdn}');
+                Vditor.flowchartRender(previewElement, '${cdn}');
+                Vditor.graphvizRender(previewElement, '${cdn}');
+                Vditor.chartRender(previewElement, '${cdn}');
+                Vditor.mindmapRender(previewElement, '${cdn}');
+                Vditor.abcRender(previewElement, '${cdn}');
+                // 渲染完成后，触发打印
+                setTimeout(() => {
+                    //鼠标设置为默认状态
+                    window.print();
+                }, ${md.length});
+            };
+        </script>
+    `);
+    iframeDocument.close();
+    
+}
+

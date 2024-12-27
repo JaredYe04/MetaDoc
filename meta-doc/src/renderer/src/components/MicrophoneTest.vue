@@ -56,6 +56,7 @@ import { convertWebMToWav } from '../utils/audio-convert';
   
       mediaRecorder.start()
     } catch (err) {
+      eventBus.emit('show-error', '无法访问麦克风，请检查权限设置')
       console.error('Error accessing microphone:', err)
     }
   }

@@ -49,11 +49,11 @@ export {
   renderedHtml
 }
 
-export function dump2json() {
+export function dump2json(mdreplace='') {
   return JSON.stringify({
     //current_file_path: current_file_path.value,
     current_outline_tree: current_outline_tree.value,
-    current_article: current_article.value,
+    current_article: mdreplace===''?current_article.value:mdreplace,
     current_article_meta_data: current_article_meta_data.value
   })
 }

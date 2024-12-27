@@ -35,6 +35,7 @@ function createWindow() {
   mainWindow.on('ready-to-show', () => {
     bindShortcuts();//绑定快捷键
     mainWindow.show()
+    
   })
  
 
@@ -50,6 +51,7 @@ function createWindow() {
     console.log('loadURL1:', process.env['ELECTRON_RENDERER_URL'])
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']+'/#/home')
   } else {
+    mainWindow.webContents.openDevTools()
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
@@ -69,7 +71,7 @@ expressApp.get('/vditor/*', (req, res) => {
 /////////////////////////////////////上传图片API/////////////////////////////////////
 // 设置上传目录
 // 获取系统图片目录路径
-const uploadDir = path.join(os.homedir(), 'Pictures', 'meta-doc-imgs');
+export const uploadDir = path.join(os.homedir(), 'Pictures', 'meta-doc-imgs');
 
 // 如果目录不存在，则创建
 if (!fs.existsSync(uploadDir)) {

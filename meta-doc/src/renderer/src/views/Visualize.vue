@@ -5,19 +5,19 @@
         <div class="left-section">
             <div class="outline-section aero-div">
                 <h3>文章大纲</h3>
-                <div id="outline-graph" style="height:300px;overflow: auto;"></div>
+                <div id="outline-graph" style="max-height:300px;overflow: auto;"></div>
             </div>
 
             <div class="word-count-section aero-div">
                 <h3>字数统计</h3>
                 <div class="word-count-placeholder">
-                    <div id="word-count-diagram" style="width: 400px; height: 300px;"></div>
+                    <div id="word-count-diagram" style="width: 100%; height: 300%;overflow: auto;"></div>
                 </div>
             </div>
         </div>
 
         <!-- 中间：词云图 -->
-        <div class="wordcloud-section aero-div" style="padding: 0;">
+        <div class="wordcloud-section aero-div" style="padding: 0;overflow: auto;">
             <h1 class="big-title interactive-text" @click="generateWordCloud">词云图</h1>
             <div id="wordcloud-3d" class="wordcloud-canvas">
             </div>
@@ -27,7 +27,7 @@
         <div class="right-section">
             <div class="pie-analysis aero-div">
                 <h3>段落分布</h3>
-                <div id="pie" class="chart-placeholder"  style="width: 350px; height: 300px;">
+                <div id="pie" class="chart-placeholder"  style="max-height:300px; width: 100%; height: 90%;overflow: auto;">
                     
                 </div>
             </div>
@@ -35,7 +35,7 @@
             <div class="word-frequency-section aero-div">
                 <h3>词频统计</h3>
                 <div class="word-frequency">
-                    <div id="word-frequency-diagram" style="width: 350px; height: 300px;"></div>
+                    <div id="word-frequency-diagram" style="width: 100%; height: 300%;overflow: auto;"></div>
                 </div>
             </div>
         </div>
@@ -51,7 +51,7 @@ import { current_article, current_article_meta_data, current_outline_tree } from
 
 import cloud from 'd3-cloud';
 import * as d3 from 'd3';
-import { generatePieFromData, generateWordCountBarChart, generateWordFrequencyTrendChart, md2html, outlineToMindMap } from '../utils/md-utils';
+import { generatePieFromData, generateWordCountBarChart, generateWordFrequencyTrendChart, md2html, md2htmlRaw, outlineToMindMap } from '../utils/md-utils';
 onMounted(async () => {
     //await initVditor();
     await refreshAll();
@@ -121,12 +121,13 @@ const generateWordFrequencyDiagram=async()=>{
 const generateOutlineGraph = async () => {
     const node=document.getElementById('outline-graph');
     let tree=current_outline_tree.value;
+    console.log(tree);
     if(tree.path==='dummy')tree=tree.children[0];
     //console.log(tree);
     const md=outlineToMindMap(tree);
     //console.log(Vditor)
     //console.log(md);
-    const html=await md2html(md);
+    const html=await md2htmlRaw(md);
     node.innerHTML=html;
     const lis=node.getElementsByTagName('li');
     for(let i=0;i<lis.length;i++){
@@ -190,7 +191,7 @@ const generateWordCloud = async () => {
     const max_freq=wordCount.value.reduce((prev,cur)=>prev.size>cur.size?prev:cur).size;
     console.log(max_freq);
     const layout = cloud()
-        .size([700, 700]) // 词云图的宽高
+        .size([600, 600]) // 词云图的宽高
         .words(
             wordCount.value.map(d => ({
                 text: d.text,
@@ -235,132 +236,81 @@ const generateWordCloud = async () => {
             .text(d => d.text);
     }
 };
-// 示例大纲数据
-const outlineData = reactive([
-    {
-        label: "文章标题",
-        children: [
-            { label: "第一章 - 引言" },
-            {
-                label: "第二章 - 主体",
-                children: [
-                    { label: "2.1 小节一" },
-                    { label: "2.2 小节二" },
-                ],
-            },
-            { label: "第三章 - 结论" },
-        ],
-    },
-]);
 
-const treeProps = reactive({
-    label: "label",
-    children: "children",
-});
-
-// 示例关键句
-const keySentences = reactive([
-    "这是一句关键句。",
-    "另一句重要的关键句。",
-    "更多的关键句可以放在这里。",
-]);
 </script>
 
 <style scoped>
 .visualize-container {
-    display: grid;
-    grid-template-columns: 1fr 2fr 1fr;
-    /* 左中右三列布局 */
-    gap: 16px;
-    max-height: 80vh;
-    height: 80vh;
-    overflow: hidden;
+  display: grid;
+  grid-template-columns: 30% 40% 30%; /* 左中右三列，宽度分别为30%, 40%, 30% */
+  gap: 4px;
+  height: 85vh;
+  max-height: 85vh;
+  padding: 10px;
+
 }
 
-/* 左侧区域：文章大纲和字数统计各占50% */
+/* 左侧区域：文章大纲和字数统计 */
 .left-section {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    height: 80vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
 }
 
 .outline-section,
 .word-count-section {
-    flex: 1;
-    padding: 16px;
-    border: 1px dashed #ccc;
-    overflow-y: hidden;
+  flex: 1;
+  border: 1px dashed #ccc;
 }
 
-/* 中间区域：词云图占整列 */
+/* 中间区域：词云图 */
 .wordcloud-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border: 1px dashed #ccc;
-    height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px dashed #ccc;
 }
 
-.wordcloud-canvas {
 
-    display: flex;
-    position: relative;
-    align-items: center;
-    justify-content: center;
-
-}
-
-/* 右侧区域：段落分布和词频统计各占50% */
+/* 右侧区域：段落分布和词频统计 */
 .right-section {
-    display: flex;
-    flex-direction: column;
-    gap: 16px; /* 间距 */
-    height: 80vh; /* 总高度 */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
 }
 
 /* 段落分布部分 */
-.pie-analysis {
-    flex: 1; /* 占用父容器 50% 高度 */
-    padding: 16px;
-    border: 1px dashed #ccc;
-    overflow-y: hidden;
-    display: flex;
-    flex-direction: column;
-}
-
-/* 词频统计部分 */
+.pie-analysis,
 .word-frequency-section {
-    flex: 1; /* 占用父容器 50% 高度 */
-    padding: 16px;
-    border: 1px dashed #ccc;
-    overflow-y: hidden;
-    display: flex;
-    flex-direction: column;
+  flex: 1; /* 让两部分平分右侧区域的高度 */
+  border: 1px dashed #ccc;
 }
 
 /* 图表容器：宽度和高度自动填充父容器 */
 .chart-placeholder {
-    flex: 1; /* 让图表充满父容器 */
+  width: 100%;
+  height: 100%;
 }
 
-
 h3 {
-    margin-bottom: 16px;
-    font-size: 18px;
-    font-weight: bold;
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: bold;
 }
 
 .big-title {
-    font-size: 36px;
-    cursor: pointer;
-    margin-bottom: 0;
-    padding: 0;
+  font-size: 36px;
+  cursor: pointer;
+  margin-bottom: 0;
+  padding: 0;
 }
 
 .aero-div {
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 </style>

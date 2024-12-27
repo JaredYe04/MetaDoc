@@ -14,10 +14,10 @@ import {
   init,
   sync
 } from './common-data.js'
-import { updateRecentDocs } from './settings.js'
+import { getSetting, updateRecentDocs } from './settings.js'
 import { path } from 'd3'
 import { da } from 'element-plus/es/locales.mjs'
-import { md2html } from './md-utils.js'
+import { exportPDF, image2base64, image2local, md2html, md2htmlRaw } from './md-utils.js'
 const ipcRenderer = window.electron.ipcRenderer
 const eventBus = mitt()
 
@@ -64,15 +64,43 @@ eventBus.on('close-doc',async ()=>{
   await init()
 })
 
-eventBus.on('export', async () => {
+eventBus.on('export', async (format) => {
   sync();
   //eventBus.emit('nav-to', '/article');
-  ipcRenderer.send('export', { json: dump2json() ,html:await md2html(current_article.value)})
+  //如果是pdf则直接导出，否则需要系统调用
+  const exportImageMode=await getSetting('exportImageMode')
+  let md=current_article.value
+  switch(exportImageMode){
+    case 'base64':
+      md=await image2base64(md)
+    break;
+    case 'local':
+      md=await image2local(md)
+    break;
+
+  }
+  
+
+  if(format==='pdf'){
+    exportPDF(md);
+    document.body.style.cursor = 'wait';
+    setTimeout(() => {
+      document.body.style.cursor = 'auto';
+    }, md.length);
+  }else{
+      let html;
+      if(format==='html'){
+        html = await md2html(md)
+      }
+      else{
+        html = await md2htmlRaw(md)
+      }
+      ipcRenderer.send('export', { json: dump2json(md) ,html:html,format:format})
+  }
 })
 
 eventBus.on('setting',()=>{
   ipcRenderer.send('setting')
-
 })
 
 eventBus.on('system-notification',(data)=>{

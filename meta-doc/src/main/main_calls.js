@@ -16,7 +16,7 @@ const htmlDocx = require('html-docx-js');
 const os = require('os');
 
 
-import { mainWindow } from './index'
+import { mainWindow, uploadDir } from './index'
 import { dirname } from './index'
 
 
@@ -62,6 +62,9 @@ export function mainCalls() {
   ipcMain.handle('cut-words', async (event, data) => {
     return await cut_words(data.text)
   })
+  ipcMain.handle('get-image-path', async (event, data) => {
+    return await getImagePath()
+  })
   // ipcMain.handle('get-vditor', async (event, data) => {
   //   return await getVditor(data)
   // })
@@ -81,7 +84,9 @@ var Segment = require('segment');
 var segment = new Segment();
 segment.useDefault();
 
-
+const getImagePath = async ()=>{
+  return uploadDir;
+}
 const systemNotification=(title,body)=>{
   const notification = new Notification({
     title: title,
@@ -260,7 +265,7 @@ const chooseSaveFile = async (data) => {
 }
 
 const exportFile = async (event, data) => {
-  data = {...JSON.parse(data.json),html: data.html}
+  data = {...JSON.parse(data.json),html: data.html,format: data.format}
   //console.log(win)
   const dateyyyyMMddhhmmss = new Date()
     .toISOString()
@@ -269,14 +274,24 @@ const exportFile = async (event, data) => {
     .split('.')[0]
   const title = data.current_article_meta_data.title
   const filename = title ? title : dateyyyyMMddhhmmss
+  const format=data.format
+  let filter={}
+  switch(format){
+    case 'docx':
+      filter={ name: 'DOCX 文件', extensions: ['docx'] }
+      break
+    case 'md':
+      filter={ name: 'Markdown 文件', extensions: ['md'] }
+      break
+    case 'html':
+      filter={ name: 'HTML 文件', extensions: ['html'] }
+      break
+  }
   const result = await dialog.showSaveDialog(mainWindow, {
     title: '导出文档',
-    defaultPath: filename + '.pdf',
+    defaultPath: filename + '.'+format,
     filters: [
-      { name: 'PDF Files', extensions: ['pdf'] },
-      { name: 'DOCX Files', extensions: ['docx'] },
-      { name: 'Markdown Files', extensions: ['md'] },
-      { name: 'HTML Files', extensions: ['html'] },
+      filter
     ]
   })
   //console.log(result); // 可以检查返回的 result 对象
@@ -284,9 +299,9 @@ const exportFile = async (event, data) => {
     //后缀名
     const ext = path.extname(result.filePath).toLowerCase()
     switch (ext) {
-      case '.pdf':
-        convertMarkdownTextToPDF(data.current_article, result.filePath)
-        break
+      // case '.pdf':
+      //   convertMarkdownTextToPDF(data.current_article, result.filePath)
+      //   break
       case '.docx':
         convertMarkdownToDocx(data.html, result.filePath)
         break
@@ -311,12 +326,17 @@ async function convertMarkdownTextToPDF(markdownText, outputPath) {
   mainWindow.webContents.send('export-success', outputPath)
 }
 
+
+
+
+
 async function convertMarkdownToHTML(title,htmlContent,path) {
   try {
     // 使用 marked 将 Markdown 转换为 HTML
     htmlContent = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>${title}</title></head><body>${htmlContent}</body></html>`;
     directFileOutput(htmlContent, path)
   } catch (error) {
+    eventBus.emit('show-error','转换Markdown到HTML失败'+error)
     console.error('Error while converting markdown to HTML:', error);
   }
 }
@@ -349,6 +369,7 @@ async function convertMarkdownToDocx(htmlContent, outputPath) {
     mainWindow.webContents.send('export-success', outputPath)
     console.log(`DOCX file successfully created at ${outputPath}`);
   } catch (error) {
+    eventBus.emit('show-error','转换Markdown到DOCX失败'+error)
     console.error('Error while converting markdown to DOCX:', error);
   }
 }

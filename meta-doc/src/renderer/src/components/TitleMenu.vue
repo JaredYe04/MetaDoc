@@ -1,5 +1,5 @@
 <template>
-  <div class="aero-div" :style="menuStyles" @mousedown="onMouseDown">
+  <div class="aero-div" :style="menuStyles" @mousedown.stop="onMouseDown">
 
     <div style="width: 100% ;height: fit-content; align-items: end; padding-bottom: 10px;">
       <el-button circle size="small" type="danger" @click="$emit('close')" class="aero-btn" style="float: inline-start;"
@@ -153,7 +153,8 @@ const menuStyles = computed(() => ({
   maxWidth: '600px',
   zIndex: 1000, // 保证层级
   color: 'black',
-  backdropFilter: 'blur(40px)'
+  backdropFilter: 'blur(5px)',
+  background:  '#E6E6FABB',
 }));
 const refreshContent = () => {
   articleContent.value = searchNode(props.path, current_outline_tree.value).text;

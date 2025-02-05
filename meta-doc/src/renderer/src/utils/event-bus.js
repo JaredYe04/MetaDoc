@@ -112,7 +112,23 @@ eventBus.on('system-notification',(data)=>{
 
 })
 
+eventBus.on('theme-changed',()=>{
+  ipcRenderer.send('request-sync-theme')
+})
 
+
+import { lightTheme, darkTheme, themeState } from './themes.js'
+
+
+ipcRenderer.on('os-theme-changed', (event) => {
+  eventBus.emit('theme-changed')
+  eventBus.emit('sync-theme')
+
+})
+
+ipcRenderer.on('sync-theme', (event) => {
+  eventBus.emit('sync-theme')//同步主题
+})
 
 //监听主进程的事件，转发给事件总线，从而可以在Vue组件中使用
 ipcRenderer.on('update-current-path', (event, path) => {
@@ -153,6 +169,7 @@ ipcRenderer.on('open-doc-success', (event, data) => {
   current_article_meta_data.value = JSON.parse(JSON.stringify(obj.current_article_meta_data))
   //console.log(current_article_meta_data)
   
+  eventBus.emit('refresh')//加载完之后进行刷新
   eventBus.emit('open-doc-success', data)
   //eventBus.emit('refresh')
 })

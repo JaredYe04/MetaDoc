@@ -97,3 +97,7 @@ export const suggestionPresets = [
     { label: '调查问卷', prompt: '帮我设计一份用户调查问卷，目标是了解用户对新功能的需求' }
   ];
   
+
+export const explainWordPrompt=(word)=>{
+    return "请解释一下\"" + word + "\"这个词的意思。仅输出释义，不需要例句或其他内容。";
+}  

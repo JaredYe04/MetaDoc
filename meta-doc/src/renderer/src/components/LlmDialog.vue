@@ -2,7 +2,7 @@
   <div class="llm-dialog aero-div">
     <!-- 顶部标题 -->
     <div class="llm-dialog-header">
-      <span>{{ props.title ? props.title : "AI助手" }}</span>
+      <span :style="{color:themeState.currentTheme.textColor}">{{ props.title ? props.title : "AI助手" }}</span>
       <el-tooltip content="关闭菜单" placement="top">
         <el-button circle size="mini" @click="closeDialog" class="aero-btn"><el-icon>
             <Close />
@@ -12,8 +12,10 @@
     </div>
 
     <!-- 文本框内容 -->
-    <el-input type="textarea" v-model="aiResponse" rows="10" placeholder="请输入内容" class="llm-dialog-input aero-input"
-      :autosize="{ minRows: defaultInputSize, maxRows: 10 }"></el-input>
+    <el-input type="textarea" v-model="aiResponse" rows="10" placeholder="请输入内容" class="llm-dialog-input"
+      :autosize="{ minRows: defaultInputSize, maxRows: 10 }"
+      :style="{ color: themeState.currentTheme.textColor }"
+      ></el-input>
 
     <!-- 按钮组 -->
     <div class="llm-dialog-footer">
@@ -46,6 +48,8 @@ import "../assets/aero-div.css";
 import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
 import { Close } from "@element-plus/icons-vue";
+import { themeState } from "../utils/themes";
+import { color } from "d3";
 // 定义 Props 和 Emits
 const props = defineProps({
   title: {
@@ -138,8 +142,7 @@ onMounted(() => {
   max-height: 400px;
   border: 1px solid #dcdfe6;
   border-radius: 8px;
-  color: black;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
   padding: 15px;
   display: flex;
   flex-direction: column;

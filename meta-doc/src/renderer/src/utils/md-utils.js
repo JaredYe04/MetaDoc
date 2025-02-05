@@ -152,7 +152,7 @@ export function generatePieFromData(data, title) {//饼图
                 return name.length > maxLength ? `${name.slice(0, maxLength)}...` : name;
             },
             textStyle: {
-                color: '#333', // 可选：图例文字颜色
+                color: '#999999', // 可选：图例文字颜色
             },
         },
         series: [
@@ -173,7 +173,7 @@ export function generatePieFromData(data, title) {//饼图
                         const label = params.name;
                         return label.length > maxLength ? `${label.slice(0, maxLength)}...` : label;
                     },
-                    color: '#000', // 可选：标签文字颜色
+                    color: '#999999', // 可选：标签文字颜色
                 },
             },
         ],
@@ -352,7 +352,7 @@ export function generateWordCountBarChart(text) {
                 label: {
                     show: true, // 显示标签
                     position: 'top', // 标签显示在条形图的顶部
-                    color: '#000', // 标签的字体颜色
+                    // color: '#000', // 标签的字体颜色
                     fontWeight: 'bold', // 标签字体加粗
                     fontSize: 14, // 标签字体大小
                 },
@@ -449,6 +449,9 @@ export function generateWordFrequencyTrendChart(text, topWords) {
         },
         legend: {
             data: topWords,
+            textStyle: {
+                color: '#999999', // 可选：图例文字颜色
+            },
         },
         xAxis: [
             {

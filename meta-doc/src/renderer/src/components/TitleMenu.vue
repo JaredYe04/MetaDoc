@@ -8,9 +8,16 @@
     </div>
 
 
-    <p style="font-weight: bold;" @mousedown.stop> {{ props.title ? props.title : "标题" }}</p>
-    <MarkdownItEditor :source="articleContent" v-if="!generated && !generating" class="md-container" @mousedown.stop />
-    <MarkdownItEditor :source="generatedText" v-if="generated || generating" class="md-container" @mousedown.stop />
+    <p style="font-weight: bold;" @mousedown.stop  > {{ props.title ? props.title : "标题" }}</p>
+
+    <el-scrollbar class="md-container" v-if="!generated && !generating" @mousedown.stop style="  max-height: 35vh;">
+      <MarkdownItEditor :source="articleContent"/>
+    </el-scrollbar>
+    
+    <el-scrollbar class="md-container"  v-if="generated || generating" @mousedown.stop style="  max-height: 35vh;">
+      <MarkdownItEditor :source="generatedText" />
+    </el-scrollbar>
+
     <!-- <p class="article-content">{{ articleContent }}</p> -->
     <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable class="inline-input" resize='none'
       style="color: black; opacity: 1;" placeholder="请输入需求" @mousedown.stop />
@@ -42,6 +49,8 @@ import { sectionChangePrompt } from '../utils/prompts';
 import { answerQuestionStream } from '../utils/llm-api';
 import eventBus from '../utils/event-bus';
 import { generateMarkdownFromOutlineTree } from '../utils/md-utils';
+import {  defineProps, defineEmits } from 'vue';
+import { themeState } from '../utils/themes';
 const props = defineProps({
   title: {
     type: String,
@@ -88,7 +97,6 @@ const presetPrompts = ref([
     value:'根据文章结构，生成一张mermaid思维导图，使用代码框包裹'
   }
 ])
-
 
 const emit = defineEmits(["accept"]);
 
@@ -152,9 +160,9 @@ const menuStyles = computed(() => ({
   boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',
   maxWidth: '600px',
   zIndex: 1000, // 保证层级
-  color: 'black',
+  color: themeState.currentTheme.textColor2,
   backdropFilter: 'blur(5px)',
-  background:  '#E6E6FABB',
+  background:  themeState.currentTheme.titleMenuBackground,
 }));
 const refreshContent = () => {
   articleContent.value = searchNode(props.path, current_outline_tree.value).text;

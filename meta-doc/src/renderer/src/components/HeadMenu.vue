@@ -4,10 +4,11 @@
      mode="horizontal"
      menu-trigger="hover"
      @select="handleSelect"
-     style="   margin: 0;
-               padding: 0;"
+     style="position: absolute; top: 0; left: 0; right: 0;"
     :default-active="activeMenuIndex"
-      
+    :background-color="themeState.currentTheme.background"
+    :text-color="themeState.currentTheme.textColor"
+    :active-text-color="themeState.currentTheme.textColor2"
      >
    <el-menu-item  >
      <h1>MetaDoc</h1>
@@ -19,42 +20,48 @@
  </el-menu>
 </template>
 
-<script>
-import { defineComponent, h } from 'vue'
-import eventBus from '../utils/event-bus';
+<script setup>
+import { defineComponent, ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import eventBus from '../utils/event-bus'
+import { themeState } from '../utils/themes'
 
-export default {
- methods: {
-   goHome() {
-     this.$router.push('/'); // 跳转到首页
-   },
-   handleSelect(key, keyPath) {
-      this.$router.push(keyPath[0]);
-      //console.log(key, keyPath);
-    },
- },
- created() {
-  //console.log('HeadMenu created');
-  eventBus.on('nav-to',path => {
-      //console.log('nav-to',path);
-      //导航栏选择相应的菜单
-      this.activeMenuIndex = path;
-      this.$router.push(path);
-   });
- },
- data(){
-   return {
-     menuOptions:[
-   {
-     label: '主界面',
-     key: 'home',
-   }
+// 获取路由实例
+const router = useRouter()
+const route = useRoute()
 
-     ],
-     activeMenuIndex: this.$route.path,
-   }
- }
-};
+
+// 响应式数据
+const menuOptions = ref([
+  {
+    label: '主界面',
+    key: 'home',
+  }
+])
+
+const activeMenuIndex = ref(route.path)
+
+// 方法
+const goHome = () => {
+  router.push('/')
+}
+
+const handleSelect = (key) => {
+  router.push(key)
+}
+
+// 生命周期钩子
+onMounted(() => {
+  eventBus.on('nav-to', path => {
+    activeMenuIndex.value = path
+    router.push(path)
+  })
+})
+
+// 组件卸载前清除事件监听
+onBeforeUnmount(() => {
+  eventBus.off('nav-to')
+})
 </script>
 
 <style scoped>

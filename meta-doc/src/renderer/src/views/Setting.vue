@@ -1,16 +1,22 @@
 <template>
-  <div class="settings-container">
+  <div class="settings-container" :style="{ backgroundColor: themeState.currentTheme.backgroundColor, color: themeState.currentTheme.textColor}">
     <el-container>
       <!-- 左侧菜单 -->
-      <el-aside width="200px">
-        <el-menu default-active="basic" @select="handleMenuSelect">
+      <el-aside width="200px" 
+      >
+        <el-menu default-active="basic" @select="handleMenuSelect"
+        :background-color="themeState.currentTheme.sidebarBackground2"
+    :text-color="themeState.currentTheme.SideTextColor"
+    :active-text-color="themeState.currentTheme.SideActiveTextColor"
+   style="height: 100vh;"
+    >
           <el-menu-item index="basic">基本设置</el-menu-item>
           <el-menu-item index="llm">LLM设置</el-menu-item>
         </el-menu>
       </el-aside>
 
       <!-- 右侧设置内容 -->
-      <el-main>
+      <el-main :style="{textColor: themeState.currentTheme.textColor}" > 
         <el-form label-width="120px" class="settings-form">
           <template v-if="activeMenu === 'basic'">
             <el-form-item label="启动选项">
@@ -40,7 +46,9 @@
             </el-form-item>
 
             <el-form-item label="主题">
-              <el-radio-group v-model="settings.theme" @change="saveSetting('theme', settings.theme)">
+              
+              <el-radio-group v-model="settings.theme" @change="saveSetting('theme', settings.theme);eventBus.emit('sync-theme');eventBus.emit('theme-changed')">
+                <el-radio label="sync">跟随系统</el-radio>
                 <el-radio label="light">亮色</el-radio>
                 <el-radio label="dark">暗色</el-radio>
               </el-radio-group>
@@ -196,186 +204,166 @@
 </template>
 
 
-<script>
-import { update } from "three/examples/jsm/libs/tween.module.js";
+<script setup>
+import { ref, reactive, onMounted } from "vue";
 import eventBus from "../utils/event-bus.js";
 import { getSetting, setSetting } from "../utils/settings.js";
 import axios from "axios";
-import { answerQuestion, answerQuestionStream } from "../utils/llm-api.js";
+import { answerQuestionStream } from "../utils/llm-api.js";
+import MicrophoneTest from "../components/MicrophoneTest.vue";
 import "../assets/aero-btn.css";
 import "../assets/aero-div.css";
-import { ref, reactive, onMounted } from "vue";
-import MicrophoneTest from "../components/MicrophoneTest.vue";
-export default {
-  name: "Setting",
-  setup() {
-    // 定义响应式状态
-    const activeMenu = ref("basic"); // 当前菜单
-    const settings = reactive({
-      startupOption: "newFile", // 启动选项
-      autoSave: "never", // 自动保存
-      theme: "light", // 主题
-      llmEnabled: false, // 是否启用 LLM
-      selectedLlm: "", // 选择的大模型类型
-      llmApiUrl: "", // LLM API URL
-      llmApiKey: "", // LLM API 秘钥（根据不同模型可能使用）
-      exportImageMode: "none", // 导出图片选项
-      ollama: {
-        apiUrl: "http://localhost:11434/api", // Ollama 默认 API URL
-        selectedModel: "",
-      },
-      openai: {
-        apiUrl: "https://api.openai.com/v1", // OpenAI 默认 API URL
-        apiKey: "",
-      },
-      wenxin: {
-        apiUrl: "https://wenxin.baidu.com/api", // 文心一言默认 API URL
-        apiKey: "",
-      },
-      tongyi: {
-        apiUrl: "https://api.aliyun.com/tongyi", // 通义千问默认 API URL
-        apiKey: "",
-      },
-      gemini: {
-        apiUrl: "https://gemini.googleapis.com", // Google Gemini 默认 API URL
-        apiKey: "",
-      },
-      claude: {
-        apiUrl: "https://api.anthropic.com/v1", // Claude 默认 API URL
-        apiKey: "",
-      },
-      alwaysAskSave: true, // 是否总是询问保存
-    });
-    const ollamaModels = ref([]); // Ollama 模型列表
-    const testResult = ref(""); // 测试结果
-
-    // 方法定义
-    const fetchSettings = async () => {
-      const keys = Object.keys(settings);
-      for (const key of keys) {
-        const value = await getSetting(key);
-        if (value !== undefined) {
-          settings[key] = value;
-        }
-      }
-
-      if (settings.llmEnabled) {
-        fetchLlmSettings();
-      }
-    };
-
-    const fetchLlmSettings = async () => {
-      if (settings.selectedLlm === "ollama") {
-        settings.ollama.apiUrl = await getSetting("ollamaApiUrl");
-        const model = await getSetting("ollamaSelectedModel");
-        ollamaModels.value.push({ model: model, name: model });
-        settings.ollama.selectedModel = model;
-      } else if (settings.selectedLlm === "openai") {
-        settings.openai.apiUrl = await getSetting("openaiApiUrl");
-        settings.openai.apiKey = await getSetting("openaiApiKey");
-      } else if (settings.selectedLlm === "wenxin") {
-        settings.wenxin.apiUrl = await getSetting("wenxinApiUrl");
-        settings.wenxin.apiKey = await getSetting("wenxinApiKey");
-      } else if (settings.selectedLlm === "tongyi") {
-        settings.tongyi.apiUrl = await getSetting("tongyiApiUrl");
-        settings.tongyi.apiKey = await getSetting("tongyiApiKey");
-      } else if (settings.selectedLlm === "gemini") {
-        settings.gemini.apiUrl = await getSetting("geminiApiUrl");
-        settings.gemini.apiKey = await getSetting("geminiApiKey");
-      } else if (settings.selectedLlm === "claude") {
-        settings.claude.apiUrl = await getSetting("claudeApiUrl");
-        settings.claude.apiKey = await getSetting("claudeApiKey");
-      }
-    };
-
-    const fetchOllamaModels = async () => {
-      const apiUrl = settings.ollama.apiUrl;
-      if (!apiUrl) return;
-
-      try {
-        const response = await axios.get(`${apiUrl}/tags`);
-        if (response.data && response.data.models) {
-          ollamaModels.value = response.data.models;
-        } else {
-          ollamaModels.value = [];
-          console.warn("未能获取 Ollama 模型列表，响应数据为空。");
-        }
-      } catch (error) {
-
-        console.error("无法获取 Ollama 模型列表:", error);
-      }
-    };
-
-    const updateLlmInfo = () => {
-      const { selectedLlm } = settings;
-
-      if (selectedLlm === "ollama") {
-        setSetting("ollamaApiUrl", settings.ollama.apiUrl);
-        setSetting("ollamaSelectedModel", settings.ollama.selectedModel);
-      } else if (selectedLlm === "openai") {
-        setSetting("openaiApiUrl", settings.openai.apiUrl);
-        setSetting("openaiApiKey", settings.openai.apiKey);
-      } else if (selectedLlm === "wenxin") {
-        setSetting("wenxinApiUrl", settings.wenxin.apiUrl);
-        setSetting("wenxinApiKey", settings.wenxin.apiKey);
-      } else if (selectedLlm === "tongyi") {
-        setSetting("tongyiApiUrl", settings.tongyi.apiUrl);
-        setSetting("tongyiApiKey", settings.tongyi.apiKey);
-      } else if (selectedLlm === "gemini") {
-        setSetting("geminiApiUrl", settings.gemini.apiUrl);
-        setSetting("geminiApiKey", settings.gemini.apiKey);
-      } else if (selectedLlm === "claude") {
-        setSetting("claudeApiUrl", settings.claude.apiUrl);
-        setSetting("claudeApiKey", settings.claude.apiKey);
-      }
-      eventBus.emit("llm-api-updated");
-      setSetting("llmApiUrl", settings.llmApiUrl);
-    };
-
-    const saveSetting = (key, value) => {
-      setSetting(key, value);
-    };
-
-    const handleMenuSelect = (index) => {
-      activeMenu.value = index;
-    };
-
-    const handleLlmToggle = (enabled) => {
-      if (!enabled) {
-        settings.selectedLlm = "";
-      }
-      setSetting("llmEnabled", enabled);
-    };
-
-    const testLlmApi = async () => {
-      try {
-        const prompt = "这是一段测试文本。";
-        await answerQuestionStream(prompt, testResult); // 流式回答
-      } catch (error) {
-        console.error("测试失败：", error);
-        testResult.value = `测试失败：${error.message}`;
-      }
-    };
-
-    // 挂载时加载设置
-    onMounted(fetchSettings);
-
-    return {
-      activeMenu,
-      settings,
-      ollamaModels,
-      testResult,
-      fetchSettings,
-      fetchLlmSettings,
-      fetchOllamaModels,
-      updateLlmInfo,
-      saveSetting,
-      handleMenuSelect,
-      handleLlmToggle,
-      testLlmApi,
-    };
+import { themeState } from "../utils/themes.js";
+const ipcRenderer = window.electron.ipcRenderer
+// 定义响应式状态
+const activeMenu = ref("basic"); // 当前菜单
+const settings = reactive({
+  startupOption: "newFile", // 启动选项
+  autoSave: "never", // 自动保存
+  theme: "light", // 主题
+  llmEnabled: false, // 是否启用 LLM
+  selectedLlm: "", // 选择的大模型类型
+  llmApiUrl: "", // LLM API URL
+  llmApiKey: "", // LLM API 秘钥（根据不同模型可能使用）
+  exportImageMode: "none", // 导出图片选项
+  ollama: {
+    apiUrl: "http://localhost:11434/api", // Ollama 默认 API URL
+    selectedModel: "",
   },
+  openai: {
+    apiUrl: "https://api.openai.com/v1", // OpenAI 默认 API URL
+    apiKey: "",
+  },
+  wenxin: {
+    apiUrl: "https://wenxin.baidu.com/api", // 文心一言默认 API URL
+    apiKey: "",
+  },
+  tongyi: {
+    apiUrl: "https://api.aliyun.com/tongyi", // 通义千问默认 API URL
+    apiKey: "",
+  },
+  gemini: {
+    apiUrl: "https://gemini.googleapis.com", // Google Gemini 默认 API URL
+    apiKey: "",
+  },
+  claude: {
+    apiUrl: "https://api.anthropic.com/v1", // Claude 默认 API URL
+    apiKey: "",
+  },
+  alwaysAskSave: true, // 是否总是询问保存
+});
+const ollamaModels = ref([]); // Ollama 模型列表
+const testResult = ref(""); // 测试结果
+
+// 方法定义
+const fetchSettings = async () => {
+  const keys = Object.keys(settings);
+  for (const key of keys) {
+    const value = await getSetting(key);
+    if (value !== undefined) {
+      settings[key] = value;
+    }
+  }
+
+  if (settings.llmEnabled) {
+    fetchLlmSettings();
+  }
 };
+
+const fetchLlmSettings = async () => {
+  if (settings.selectedLlm === "ollama") {
+    settings.ollama.apiUrl = await getSetting("ollamaApiUrl");
+    const model = await getSetting("ollamaSelectedModel");
+    ollamaModels.value.push({ model: model, name: model });
+    settings.ollama.selectedModel = model;
+  } else if (settings.selectedLlm === "openai") {
+    settings.openai.apiUrl = await getSetting("openaiApiUrl");
+    settings.openai.apiKey = await getSetting("openaiApiKey");
+  } else if (settings.selectedLlm === "wenxin") {
+    settings.wenxin.apiUrl = await getSetting("wenxinApiUrl");
+    settings.wenxin.apiKey = await getSetting("wenxinApiKey");
+  } else if (settings.selectedLlm === "tongyi") {
+    settings.tongyi.apiUrl = await getSetting("tongyiApiUrl");
+    settings.tongyi.apiKey = await getSetting("tongyiApiKey");
+  } else if (settings.selectedLlm === "gemini") {
+    settings.gemini.apiUrl = await getSetting("geminiApiUrl");
+    settings.gemini.apiKey = await getSetting("geminiApiKey");
+  } else if (settings.selectedLlm === "claude") {
+    settings.claude.apiUrl = await getSetting("claudeApiUrl");
+    settings.claude.apiKey = await getSetting("claudeApiKey");
+  }
+};
+
+const fetchOllamaModels = async () => {
+  const apiUrl = settings.ollama.apiUrl;
+  if (!apiUrl) return;
+
+  try {
+    const response = await axios.get(`${apiUrl}/tags`);
+    if (response.data && response.data.models) {
+      ollamaModels.value = response.data.models;
+    } else {
+      ollamaModels.value = [];
+      console.warn("未能获取 Ollama 模型列表，响应数据为空。");
+    }
+  } catch (error) {
+    console.error("无法获取 Ollama 模型列表:", error);
+  }
+};
+
+const updateLlmInfo = () => {
+  const { selectedLlm } = settings;
+
+  if (selectedLlm === "ollama") {
+    setSetting("ollamaApiUrl", settings.ollama.apiUrl);
+    setSetting("ollamaSelectedModel", settings.ollama.selectedModel);
+  } else if (selectedLlm === "openai") {
+    setSetting("openaiApiUrl", settings.openai.apiUrl);
+    setSetting("openaiApiKey", settings.openai.apiKey);
+  } else if (selectedLlm === "wenxin") {
+    setSetting("wenxinApiUrl", settings.wenxin.apiUrl);
+    setSetting("wenxinApiKey", settings.wenxin.apiKey);
+  } else if (selectedLlm === "tongyi") {
+    setSetting("tongyiApiUrl", settings.tongyi.apiUrl);
+    setSetting("tongyiApiKey", settings.tongyi.apiKey);
+  } else if (selectedLlm === "gemini") {
+    setSetting("geminiApiUrl", settings.gemini.apiUrl);
+    setSetting("geminiApiKey", settings.gemini.apiKey);
+  } else if (selectedLlm === "claude") {
+    setSetting("claudeApiUrl", settings.claude.apiUrl);
+    setSetting("claudeApiKey", settings.claude.apiKey);
+  }
+  eventBus.emit("llm-api-updated");
+  setSetting("llmApiUrl", settings.llmApiUrl);
+};
+
+const saveSetting = (key, value) => {
+  setSetting(key, value);
+};
+
+const handleMenuSelect = (index) => {
+  activeMenu.value = index;
+};
+
+const handleLlmToggle = (enabled) => {
+  if (!enabled) {
+    settings.selectedLlm = "";
+  }
+  setSetting("llmEnabled", enabled);
+};
+
+const testLlmApi = async () => {
+  try {
+    const prompt = "这是一段测试文本。";
+    await answerQuestionStream(prompt, testResult); // 流式回答
+  } catch (error) {
+    console.error("测试失败：", error);
+    testResult.value = `测试失败：${error.message}`;
+  }
+};
+
+// 挂载时加载设置
+onMounted(fetchSettings);
 
 </script>
 

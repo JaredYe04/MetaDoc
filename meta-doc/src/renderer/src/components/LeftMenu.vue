@@ -1,7 +1,22 @@
 <template>
 
-  <el-menu class="el-menu-vertical-demo" :collapse="isCollapse" @open="handleOpen" @close="handleClose">
+  <el-menu class="el-menu-vertical-demo" :collapse="isCollapse" @open="handleOpen" @close="handleClose"
+    style="height: 100vh;" :background-color="themeState.currentTheme.SideBackgroundColor"
+    :text-color="themeState.currentTheme.SideTextColor"
+    :active-text-color="themeState.currentTheme.SideActiveTextColor">
+    <el-tooltip effect="light" content="MetaDoc ;-)" placement="right">
+      <el-sub-menu index="0">
+        <template #title>
+          <el-icon>
+            <Document />
+          </el-icon>
+          <span></span>
+        </template>
+      </el-sub-menu>
+    </el-tooltip>
+
     <el-tooltip effect="light" content="文件" placement="right">
+
       <el-sub-menu index="1">
         <template #title>
           <el-icon>
@@ -34,28 +49,28 @@
           </el-icon>
           <span>另存为</span>
         </el-menu-item>
-        <el-sub-menu index="1-5" >
-           <template #title>
-          <el-icon>
-            <FirstAidKit />
-          </el-icon>
-          <span>导出</span>
-        </template>
+        <el-sub-menu index="1-5">
+          <template #title>
+            <el-icon>
+              <FirstAidKit />
+            </el-icon>
+            <span>导出</span>
+          </template>
 
-          <el-menu-item index="1-5-1" @click="eventBus.emit('export','pdf');">
-          <span>导出PDF</span>
-        </el-menu-item>
-         <el-menu-item index="1-5-2" @click="eventBus.emit('export','md');">
-          <span>导出Markdown</span>
-        </el-menu-item>
-        <el-menu-item index="1-5-3" @click="eventBus.emit('export','docx');">
-          <span>导出DOCX</span>
-        </el-menu-item>
-        <el-menu-item index="1-5-4" @click="eventBus.emit('export','html');">
-          <span>导出HTML</span>
-        </el-menu-item>
-        
-        
+          <el-menu-item index="1-5-1" @click="eventBus.emit('export', 'pdf');">
+            <span>导出PDF</span>
+          </el-menu-item>
+          <el-menu-item index="1-5-2" @click="eventBus.emit('export', 'md');">
+            <span>导出Markdown</span>
+          </el-menu-item>
+          <el-menu-item index="1-5-3" @click="eventBus.emit('export', 'docx');">
+            <span>导出DOCX</span>
+          </el-menu-item>
+          <el-menu-item index="1-5-4" @click="eventBus.emit('export', 'html');">
+            <span>导出HTML</span>
+          </el-menu-item>
+
+
         </el-sub-menu>
 
         <el-menu-item index="1-6" @click="eventBus.emit('close-doc');">
@@ -164,6 +179,7 @@ import {
 import eventBus from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { exportPDF } from '../utils/md-utils';
+import { themeState } from '../utils/themes';
 const recentDocs = ref([])
 const isCollapse = ref(true)
 const handleOpen = (_key: string, _keyPath: string[]) => {

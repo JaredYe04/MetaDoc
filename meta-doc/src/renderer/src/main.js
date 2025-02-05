@@ -12,11 +12,27 @@ import VueTree from "@ssthouse/vue3-tree-chart";
 import "@ssthouse/vue3-tree-chart/dist/vue3-tree-chart.css";
 import './assets/interactive-text.css'
 import './assets/wordcloud-text.css'
+import { lightTheme,darkTheme } from './utils/themes.js';
+import { reactive } from 'vue';
+
+import 'element-plus/theme-chalk/dark/css-vars.css'
+
+
 const app = createApp(App);
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
   }
+
+const themeState = reactive({
+    currentTheme: darkTheme,  // 默认是浅色模式
+  });
+  
+app.provide('themeState', themeState);  // 全局提供 themeState 主题状态
+  
+
+
+
 import LlmDialog from "./components/LlmDialog.vue";
 //import AiLogo from './assets/ai-logo.svg'
 app.component("LlmDialog", LlmDialog); // 全局注册
@@ -34,6 +50,8 @@ app.component("VoiceInput", VoiceInput); // 全局注册
 
 import MarkdownItEditor from 'vue3-markdown-it';
 app.component('MarkdownItEditor', MarkdownItEditor)
+
+
 app.use(ElementPlus)
 app.component('VueTree', VueTree)
 app.use(router)

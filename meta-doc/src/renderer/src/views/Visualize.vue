@@ -1,24 +1,32 @@
 <template>
-    <div class="visualize-container">
+    <WordCloudDetail v-if="showTitleMenu" :word="current_word" :frequency="current_frequency" :position="menuPosition" 
+            @close="handleTitleMenuClose" style="max-width: 300px;" />
+    <el-scrollbar>
+        <div class="visualize-container">
         <!-- 左侧：文章大纲和字数统计 -->
 
         <div class="left-section">
             <div class="outline-section aero-div">
                 <h3>文章大纲</h3>
-                <div id="outline-graph" style="max-height:300px;overflow: auto;"></div>
+                <div id="outline-graph" style="max-height:300px;overflow: auto;"
+                :style="{textColor: themeState.currentTheme.textColor,
+                color: themeState.currentTheme.textColor}"></div>
             </div>
 
             <div class="word-count-section aero-div">
                 <h3>字数统计</h3>
                 <div class="word-count-placeholder">
-                    <div id="word-count-diagram" style="width: 100%; height: 300%;overflow: auto;"></div>
+                    <div id="word-count-diagram" style="width: 100%; height: 300%;overflow: auto;"
+                    :style="{textColor: themeState.currentTheme.textColor,
+                color: themeState.currentTheme.textColor}"  ></div>
                 </div>
             </div>
         </div>
 
         <!-- 中间：词云图 -->
         <div class="wordcloud-section aero-div" style="padding: 0;overflow: auto;">
-            <h1 class="big-title interactive-text" @click="generateWordCloud">词云图</h1>
+            <h1 class="big-title interactive-text" @click="generateWordCloud":style="{textColor: themeState.currentTheme.textColor,
+                color: themeState.currentTheme.textColor}">词云图</h1>
             <div id="wordcloud-3d" class="wordcloud-canvas">
             </div>
         </div>
@@ -40,6 +48,8 @@
             </div>
         </div>
     </div>
+    </el-scrollbar>
+
     <!-- <div id="vditor" style="visibility: hidden; height: 0; width: 0;">
 
        </div> -->
@@ -54,17 +64,29 @@ import * as d3 from 'd3';
 import { generatePieFromData, generateWordCountBarChart, generateWordFrequencyTrendChart, md2html, md2htmlRaw, outlineToMindMap } from '../utils/md-utils';
 onMounted(async () => {
     //await initVditor();
+    //await refreshAll();
     await refreshAll();
-    eventBus.on('refresh',refreshAll);
 });
+
 
 import Vditor from 'vditor';
 import { List } from 'tdesign-vue-next';
 import * as echarts from 'echarts';
 import eventBus from '../utils/event-bus';
+import { themeState } from '../utils/themes';
+import WordCloudDetail from '../components/WordCloudDetail.vue';
+
 const ipcRenderer = window.electron.ipcRenderer
 const words = ref([]);
 const wordCount = ref({});
+const showTitleMenu = ref(false);
+// 关闭标题菜单
+const handleTitleMenuClose = () => {
+    showTitleMenu.value = false;
+};
+const menuPosition = ref({ top: 0, left: 0 });
+const current_word=ref('');
+const current_frequency=ref(0);
 // const initVditor = async () => {
 //     Vditor = await ipcRenderer.invoke('get-vditor');
 // };
@@ -76,6 +98,7 @@ const refreshAll=async()=>{
     await generateWordCountDiagram();
     await generatePie();
 };
+eventBus.on('refresh',refreshAll);
 const generatePie=async()=>{
     const node=document.getElementById('pie');
     let data=[];
@@ -234,6 +257,22 @@ const generateWordCloud = async () => {
             .duration(1000) // 动画持续时间
             .style('opacity', 1) // 最终透明度为 1
             .text(d => d.text);
+
+            //给每个词添加鼠标点击事件，参数为点击的词
+
+            d3.selectAll('.wordcloud-text').on('click', (event, d) => {
+                //alert(d.text);
+                //todo
+                current_word.value=d.text;
+                current_frequency.value=d.size;
+                showTitleMenu.value = false;
+                menuPosition.value = {
+                    top:event.clientY,
+                    left: event.clientX,
+                };
+                //console.log(d.text);
+                showTitleMenu.value = true;
+            });
     }
 };
 

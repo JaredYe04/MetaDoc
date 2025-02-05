@@ -1,11 +1,9 @@
 //所有主进程的事件处理函数
 
 const { dialog, Notification} = require('electron')
-import { app, shell, BrowserWindow, ipcMain, globalShortcut  } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, globalShortcut,nativeTheme  } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-
-
 
 const path = require('path')
 const fs = require('fs')
@@ -48,6 +46,9 @@ export function mainCalls() {
     //console.log(data)
     systemNotification(data.title,data.body);
   })
+  ipcMain.on('request-sync-theme',()=>{
+    mainWindow.webContents.send('sync-theme')
+  })
   ipcMain.handle('get-setting', async (event, data) => {
     return await getSetting(data.key)
   })
@@ -66,6 +67,14 @@ export function mainCalls() {
   ipcMain.handle('get-image-path', async (event, data) => {
     return await getImagePath()
   })
+
+  ipcMain.handle('get-os-theme', async (event, data) => {
+    return nativeTheme.shouldUseDarkColors?'dark':'light'
+  })
+  nativeTheme.on('updated', () => {
+    mainWindow.webContents.send('os-theme-changed')
+    //如果系统主题发生变化，需要通知渲染进程
+  });
 
   // ipcMain.handle('get-vditor', async (event, data) => {
   //   return await getVditor(data)

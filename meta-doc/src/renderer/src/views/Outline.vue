@@ -1,16 +1,17 @@
 <template>
   <div class="container">
-    <vue-tree ref="tree" style="width: 100%; height: 600px; border: 1px solid gray; background-color:#EAEFF1" 
+    <vue-tree ref="tree" style="width: 100%; height: 600px; border: 1px solid gray; "
+    :style="{ backgroundColor: themeState.currentTheme.outlineBackground }"
   :dataset="treeData" :config="treeConfig" :direction="direction" @node-click="handleNodeClick" 
   @node-drag="handleNodeDrag" linkStyle="straight">
 
 
-      <template #node="{ node, collapsed }">
-        <div class="tree-node">
+      <template #node="{ node, collapsed }"  :style="{backgroundColor: themeState.currentTheme.outlineNode }">
+        <div class="tree-node"  :style="{backgroundColor: themeState.currentTheme.outlineNode }">
           {{ node.title }}
         </div>
         <el-tooltip content="编辑节点" placement="top">
-          <el-button size="small" type="text" class="aero-btn" style="background-color: aliceblue" circle
+          <el-button size="small" type="text" class="aero-btn"  circle
             @click.stop="handleNodeButtonClick(node)" v-if="node.path !== 'dummy'">
             <el-icon>
               <More />
@@ -109,297 +110,220 @@
     </div>
   </div>
 </template>
-
-<script>
-import { ElButton, ElDialog } from 'element-plus' // 引入 Element Plus 按钮和弹框组件
-import eventBus from '../utils/event-bus.js'
-import '../assets/aero-div.css'
-import '../assets/aero-btn.css'
+<script setup>
+import { ref, reactive, watch, onMounted } from 'vue';
+import { ElButton, ElDialog, ElMessageBox, ElNotification } from 'element-plus'; // 引入 Element Plus 组件
+import eventBus from '../utils/event-bus.js';
+import '../assets/aero-div.css';
+import '../assets/aero-btn.css';
 import "../assets/aero-input.css";
-import {
-  Plus,
-  Edit,
-  Delete,
-  More,
-  Minus,
-  ArrowLeftBold,
-  ArrowRightBold
-} from '@element-plus/icons-vue'
-import { ElMessageBox } from 'element-plus'
-import { ElNotification } from 'element-plus'
-import '../assets/bottom-menu.css'
-import { current_outline_tree, default_outline_tree, latest_view, sync } from '../utils/common-data'
+import { Plus, Edit, Delete, More, Minus, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue';
+import { current_outline_tree, default_outline_tree, latest_view, sync } from '../utils/common-data';
 import { searchNode, searchParentNode } from '../utils/common-data';
 import { removeTextFromOutline } from '../utils/md-utils.js';
 import { outlineChangePrompt } from '../utils/prompts.js';
 import { answerQuestionStream } from '../utils/llm-api.js';
-export default {
-  name: 'Outline',
-  components: {
-    ElButton,
-    ElDialog
-  },
-  data() {
-    return {
-      treeData: current_outline_tree,
-      direction: 'vertical',
-      treeConfig: {
-        nodeWidth: 180,
-        nodeHeight: 50,
-        levelHeight: 200
-      },
-      currentChapterValue: '',
-      editValueDialogVisible: false,
-      dialogVisible: {},
-      llmDialogVisible: {},
-      selectedNode: null, // 当前选中的节点
-      generated: false,
-      generating: false,
-      userPrompt: '',
-      presetPrompts: [
-        {
-          value: '把这个章节分成几个扩展小节',
-        },
-        {
-          value: '精简本章节的子节数，浓缩成几个小节',
-        },
-        {
-          value: '根据上下文大意，生成合适的文章结构',
-        }
-      ],
-      generatedText: '',
-      menuToggle: false
-    }
+import { themeState } from '../utils/themes.js';
 
-  },
-  mounted() {
-    sync();
-    eventBus.on('refresh', () => {
-      this.treeData = current_outline_tree
-    });
-  },
-  created() { },
-  watch: {
-    treeData: {
-      handler: function (val) {
-        current_outline_tree.value = val;
-        latest_view.value = 'outline';//说明最后一次操作是在大纲视图
-        sync();
-        //console.log('大纲数据已更新')
-      },
-      deep: true
-    }
-  },
-  methods: {
-    async generate() {
-      this.generating = true;
-      const treeWithoutText = removeTextFromOutline(this.treeData);
-      const prompt = outlineChangePrompt(JSON.stringify(treeWithoutText), JSON.stringify(this.selectedNode), this.userPrompt);
-      await answerQuestionStream(prompt, this.generatedText);
-      console.log(this.generatedText);
-      this.generating = false;
 
-      this.generated = true;
-    },
-    accept() {
-      // //searchNode(props.path, current_outline_tree.value).text=generatedText.value;
-      // // latest_view.value='outline';
-      // // sync();
-      // //如果最后一位不是换行符，加上换行符
-      // if (generatedText.value[generatedText.value.length - 1] !== '\n') {
-      //   generatedText.value += '\n';
-      // }
+const treeData = ref(current_outline_tree);
+const direction = ref('vertical');
+const treeConfig = reactive({
+  nodeWidth: 180,
+  nodeHeight: 50,
+  levelHeight: 200
+});
+const currentChapterValue = ref('');
+const editValueDialogVisible = ref(false);
+const dialogVisible = ref({});
+const llmDialogVisible = ref({});
+const selectedNode = ref(null); // 当前选中的节点
+const generated = ref(false);
+const generating = ref(false);
+const userPrompt = ref('');
+const presetPrompts = ref([
+  { value: '把这个章节分成几个扩展小节' },
+  { value: '精简本章节的子节数，浓缩成几个小节' },
+  { value: '根据上下文大意，生成合适的文章结构' }
+]);
+const generatedText = ref('');
+const menuToggle = ref(false);
 
-      // //如果第一行是标题，去掉标题
-      // if (generatedText.value.startsWith('#')) {
-      //   generatedText.value = generatedText.value.split('\n').slice(1).join('\n');
-      // }
-      // articleContent.value = generatedText.value;
-      // emit('accept', generatedText.value);
-      // reset();
+// 生命周期钩子
+onMounted(() => {
+  sync();
+  eventBus.on('refresh', () => {
+    treeData.value = current_outline_tree;
+  });
+});
 
-    },
-    reset() {
-      this.generated = false;
-      this.generatedText = '';
-    },
-    querySearch(queryString, cb) {
-      const createFilter = (queryString) => {
-        return (preset) => {
-          //模糊匹配，只要包含就行
-          return preset.value.toLowerCase().includes(queryString.toLowerCase())
-        }
-      }
-      //console.log(queryString)
-      const results = queryString
-        ? this.presetPrompts.filter(createFilter(queryString))
-        : this.presetPrompts
-      // call callback function to return suggestions
-      cb(results)
-    },
-    move2Left() {
-      const cur_node = searchNode(this.selectedNode.path, this.treeData)
-      const parent = searchParentNode(this.selectedNode.path, this.treeData)
-      const index = parent.children.indexOf(cur_node)
-      if (index > 0) {
-        parent.children.splice(index, 1)
-        parent.children.splice(index - 1, 0, cur_node)
-        //两个节点的Path交换
-        const temp = parent.children[index].path
-        parent.children[index].path = parent.children[index - 1].path
-        parent.children[index - 1].path = temp
-      }
-    },
-    move2Right() {
-      const cur_node = searchNode(this.selectedNode.path, this.treeData)
-      const parent = searchParentNode(this.selectedNode.path, this.treeData)
-      const index = parent.children.indexOf(cur_node)
-      if (index < parent.children.length - 1) {
-        parent.children.splice(index, 1)
-        parent.children.splice(index + 1, 0, cur_node)
-        //两个节点的Path交换
-        const temp = parent.children[index].path
-        parent.children[index].path = parent.children[index - 1].path
-        parent.children[index - 1].path = temp
-      }
-    },
-    changeNodeValue() {
-      const cur_node = searchNode(this.selectedNode.path, this.treeData)
-      cur_node.title = this.currentChapterValue
-      this.editValueDialogVisible = false
-    },
-    resetScale() {
-      this.$refs.tree.restoreScale()
-    },
-    zoomIn() {
-      this.$refs.tree.zoomIn()
-    },
-    zoomOut() {
-      this.$refs.tree.zoomOut()
-    },
-    toggleLayout() {
-      // 切换树形图布局方向
-      this.treeConfig.layout = this.treeConfig.layout === 'vertical' ? 'horizontal' : 'vertical'
-    },
+// 监听 treeData 变化
+watch(treeData, (val) => {
+  current_outline_tree.value = val;
+  latest_view.value = 'outline'; // 说明最后一次操作是在大纲视图
+  sync();
+}, { deep: true });
 
-    handleNodeButtonClick(node) {
-      //console.log(current_outline_tree);
-      // 点击节点时，弹出操作框
-      this.selectedNode = node
-      if (this.dialogVisible[node.path] != null)
-        this.dialogVisible[node.path] = !this.dialogVisible[node.path]
-      else this.dialogVisible[node.path] = true
-      //一次只能打开一个操作框，所以关闭其他操作框
-      for (let key in this.dialogVisible) {
-        if (key !== node.path) {
-          this.dialogVisible[key] = false
-        }
-      }
-      //console.log(this.dialogVisible)
-    },
-    // searchNode(path, node = this.treeData) {
-    //   //console.log(value,node)
-    //   if (node.path === path) {
-    //     return node
-    //   }
-    //   if (node.children) {
-    //     for (let child of node.children) {
-    //       const result = this.searchNode(path, child)
-    //       if (result) {
-    //         return result
-    //       }
-    //     }
-    //   }
-    //   return null
-    // },
-    // searchParentNode(path, node = this.treeData) {
-    //   if (node.children) {
-    //     for (let child of node.children) {
-    //       if (child.path === path) {
-    //         return node
-    //       }
-    //       const result = this.searchParentNode(path, child)
-    //       if (result) {
-    //         return result
-    //       }
-    //     }
-    //   }
-    //   return null
-    // },
-    addChildNode() {
-      const node = this.selectedNode
-      //需要注意的是，这里传的node只是拷贝，而不是真正的树节点，所以不能直接操作
-      const cur_node = searchNode(node.path, this.treeData)
-      const newNode = {
-        title: '新子节点',
-        text: '',
-        path:
-          cur_node.path +
-          (cur_node.path !== '' ? '.' : '') +
-          (cur_node.children && cur_node.children.length > 0 ? cur_node.children.length + 1 : 1),
-        children: []
-      }
-      //console.log(newNode.path);
-      cur_node.children.push(newNode)
+// 方法
+const generate = async () => {
+  generating.value = true;
+  const treeWithoutText = removeTextFromOutline(treeData.value);
+  const prompt = outlineChangePrompt(JSON.stringify(treeWithoutText), JSON.stringify(selectedNode.value), userPrompt.value);
+  await answerQuestionStream(prompt, generatedText.value);
+  generating.value = false;
+  generated.value = true;
+};
 
-      this.dialogVisible[cur_node.path] = false
-    },
+const reset = () => {
+  generated.value = false;
+  generatedText.value = '';
+};
 
-    editNode() {
-      const node = this.selectedNode
-      const cur_node = searchNode(node.path, this.treeData)
-      this.editValueDialogVisible = true
-      this.currentChapterValue = cur_node.title
-    },
+const querySearch = (queryString, cb) => {
+  const createFilter = (queryString) => {
+    return (preset) => {
+      return preset.value.toLowerCase().includes(queryString.toLowerCase());
+    };
+  };
+  const results = queryString ? presetPrompts.value.filter(createFilter(queryString)) : presetPrompts.value;
+  cb(results);
+};
 
-    deleteNode() {
-      ElMessageBox.confirm('是否要删除章节?', '警告', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      })
-        .then(() => {
-          const node = this.selectedNode
-          const parent = searchParentNode(node.path, this.treeData)
-          const cur_node = searchNode(node.path, this.treeData)
-          if (parent === null) {
-            ElNotification({
-              title: '错误',
-              message: '不能删除根章节',
-              type: 'error'
-            })
+const move2Left = () => {
+  const cur_node = searchNode(selectedNode.value.path, treeData.value);
+  const parent = searchParentNode(selectedNode.value.path, treeData.value);
+  const index = parent.children.indexOf(cur_node);
+  if (index > 0) {
+    parent.children.splice(index, 1);
+    parent.children.splice(index - 1, 0, cur_node);
+    // 两个节点的 Path 交换
+    const temp = parent.children[index].path;
+    parent.children[index].path = parent.children[index - 1].path;
+    parent.children[index - 1].path = temp;
+  }
+};
 
-            return
-          }
-          this.removeNode(parent, cur_node)
-          this.dialogVisible[node.path] = false
-          ElNotification({
-            title: '消息',
-            message: '删除章节成功!',
-            type: 'info'
-          })
-        })
-        .catch(() => { })
-    },
+const move2Right = () => {
+  const cur_node = searchNode(selectedNode.value.path, treeData.value);
+  const parent = searchParentNode(selectedNode.value.path, treeData.value);
+  const index = parent.children.indexOf(cur_node);
+  if (index < parent.children.length - 1) {
+    parent.children.splice(index, 1);
+    parent.children.splice(index + 1, 0, cur_node);
+    // 两个节点的 Path 交换
+    const temp = parent.children[index].path;
+    parent.children[index].path = parent.children[index - 1].path;
+    parent.children[index - 1].path = temp;
+  }
+};
 
-    closeDialog() {
-      const node = this.selectedNode
-      // 关闭操作框
-      this.dialogVisible[node.path] = false
-    },
+const changeNodeValue = () => {
+  const cur_node = searchNode(selectedNode.value.path, treeData.value);
+  cur_node.title = currentChapterValue.value;
+  editValueDialogVisible.value = false;
+};
 
-    removeNode(parent, node) {
-      // 递归删除节点
-      const index = parent.children ? parent.children.indexOf(node) : -1
-      if (index !== -1) {
-        parent.children.splice(index, 1)
-      } else {
-        parent.children.forEach((child) => this.removeNode(child, node))
-      }
+const resetScale = () => {
+  refs.tree.restoreScale();
+};
+
+const zoomIn = () => {
+  refs.tree.zoomIn();
+};
+
+const zoomOut = () => {
+  refs.tree.zoomOut();
+};
+
+const toggleLayout = () => {
+  treeConfig.layout = treeConfig.layout === 'vertical' ? 'horizontal' : 'vertical';
+};
+
+const handleNodeButtonClick = (node) => {
+  selectedNode.value = node;
+  if (dialogVisible.value[node.path] != null) {
+    dialogVisible.value[node.path] = !dialogVisible.value[node.path];
+  } else {
+    dialogVisible.value[node.path] = true;
+  }
+
+  // 一次只能打开一个操作框，所以关闭其他操作框
+  for (let key in dialogVisible.value) {
+    if (key !== node.path) {
+      dialogVisible.value[key] = false;
     }
   }
-}
+};
+
+const addChildNode = () => {
+  const node = selectedNode.value;
+  const cur_node = searchNode(node.path, treeData.value);
+  const newNode = {
+    title: '新子节点',
+    text: '',
+    path:
+      cur_node.path +
+      (cur_node.path !== '' ? '.' : '') +
+      (cur_node.children && cur_node.children.length > 0 ? cur_node.children.length + 1 : 1),
+    children: []
+  };
+  cur_node.children.push(newNode);
+  dialogVisible.value[cur_node.path] = false;
+};
+
+const editNode = () => {
+  const node = selectedNode.value;
+  const cur_node = searchNode(node.path, treeData.value);
+  editValueDialogVisible.value = true;
+  currentChapterValue.value = cur_node.title;
+};
+
+const deleteNode = () => {
+  ElMessageBox.confirm('是否要删除章节?', '警告', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+    .then(() => {
+      const node = selectedNode.value;
+      const parent = searchParentNode(node.path, treeData.value);
+      const cur_node = searchNode(node.path, treeData.value);
+      if (parent === null) {
+        ElNotification({
+          title: '错误',
+          message: '不能删除根章节',
+          type: 'error'
+        });
+        return;
+      }
+      removeNode(parent, cur_node);
+      dialogVisible.value[node.path] = false;
+      ElNotification({
+        title: '消息',
+        message: '删除章节成功!',
+        type: 'info'
+      });
+    })
+    .catch(() => {});
+
+};
+
+const closeDialog = () => {
+  const node = selectedNode.value;
+  dialogVisible.value[node.path] = false;
+};
+
+const removeNode = (parent, node) => {
+  const index = parent.children ? parent.children.indexOf(node) : -1;
+  if (index !== -1) {
+    parent.children.splice(index, 1);
+  } else {
+    parent.children.forEach((child) => removeNode(child, node));
+  }
+};
+
 </script>
+
 
 <style scoped lang="less">
 .node-edit-box {
@@ -452,7 +376,6 @@ export default {
   margin-bottom: 12px;  /* 增加底部间距 */
   display: inline-block;
   border-radius: 12px;  /* 增加圆角 */
-  background-color: #A3C8FF;  /* 更柔和的蓝色背景 */
   padding: 8px 16px;  /* 增加内边距，使节点更大，更易点击 */
   margin: 10px;
   cursor: pointer;
@@ -460,7 +383,6 @@ export default {
 }
 
 .tree-node:hover {
-  background-color: #80B4FF;  /* 悬停时的颜色变化 */
   transform: scale(1.02);  /* 节点放大效果 */
 }
 

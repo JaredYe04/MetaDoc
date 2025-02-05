@@ -15,8 +15,10 @@
 
       </div>
       <div v-if="current_file_path !== ''" style="height: 100vh;" class="md-preview">
-        <MarkdownItEditor :source="current_article" class="md-container"
-          style="width: 60vw; border: 1px #ccc solid;border-radius: 10px;" />
+        <el-scrollbar class="md-container"  style="width: 60vw; border: 1px #ccc solid;border-radius: 10px;"  >
+          <MarkdownItEditor :source="current_article" />
+        </el-scrollbar>
+
       </div>
     </div>
     <div class="center-content" v-if="quickStartDialogVisible">
@@ -45,7 +47,7 @@
         <div style="display: flex; flex: 1; border-top: 1px dashed #ccc; padding-top: 10px;">
           <!-- Markdown 编辑器 -->
           <div
-            style="width: 70%; padding-right: 10px; max-height: 75%; min-height: 200px; overflow:hidden; flex-grow: 1;" >
+            style="width: 70%; padding-right: 10px; max-height: 75%; min-height: 200px; overflow:hidden; flex-grow: 1;">
             <MarkdownItEditor :source="generatedText" class="md-container" @mousedown.stop
               style="width: 100%; box-shadow: none; height: 80%; overflow: auto;" />
           </div>
@@ -131,12 +133,11 @@
               <el-tooltip content="输入提示词" placement="left">
                 <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable
                   class="inline-input aero-input" style="color: black; opacity: 0.8;" placeholder="在此处输入文章要求"
-                  @mousedown.stop type="textarea" :autosize="{ minRows: 3, maxRows: 3 }"
-                  resize='none'
-                  :disabled="generated || generating" >
-                
+                  @mousedown.stop type="textarea" :autosize="{ minRows: 3, maxRows: 3 }" resize='none'
+                  :disabled="generated || generating">
+
                 </el-autocomplete>
-                  
+
 
               </el-tooltip>
 
@@ -174,16 +175,16 @@
         height: 100%;
       ">
                     <el-button v-for="(button, index) in buttons" :key="index" size="small"
-                      @click="handleAcceptSuggestion(button.prompt)" class="aero-btn" :disabled="generating||generated">
+                      @click="handleAcceptSuggestion(button.prompt)" class="aero-btn" :disabled="generating || generated">
                       {{ button.label }}
                     </el-button>
                   </div>
                 </div>
 
                 <!-- 底部刷新按钮 -->
-                <el-button size="small" type="primary" :disabled="generating||generated"
-                  style="position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);opacity: 0.8;" @click="refreshButtons"
-                  class="aero-btn">
+                <el-button size="small" type="primary" :disabled="generating || generated"
+                  style="position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);opacity: 0.8;"
+                  @click="refreshButtons" class="aero-btn">
                   <el-icon>
                     <Refresh />
                   </el-icon>
@@ -230,7 +231,6 @@ import "../assets/aero-input.css";
 import { current_article, current_article_meta_data, current_file_path, firstLoad, latest_view, sync } from '../utils/common-data';
 import eventBus from '../utils/event-bus';
 import MarkdownItEditor from 'vue3-markdown-it';
-
 import {
   DataAnalysis,
   Drizzling,
@@ -267,27 +267,31 @@ function generateRandomButtons() {
   }
   return randomButtons;
 }
+const applyTheme=async ()=> {
+  eventBus.emit('theme-changed')
+}
 onMounted(() => {
   refreshButtons();
-  openRecentDoc()
+  openRecentDoc();
+  applyTheme();
 });
 
 const openRecentDoc = async () => {
 
-    const enabled = (await getSetting('startupOption')) === 'lastFile'
-    if (enabled) {
-      const recentDocs = await getRecentDocs()
+  const enabled = (await getSetting('startupOption')) === 'lastFile'
+  if (enabled) {
+    const recentDocs = await getRecentDocs()
 
-      if (recentDocs.length > 0 
+    if (recentDocs.length > 0
       && firstLoad.value
 
-      ) {
-        eventBus.emit('open-doc', recentDocs[0])
-        firstLoad.value = false
-      }
+    ) {
+      eventBus.emit('open-doc', recentDocs[0])
+      firstLoad.value = false
     }
   }
-  
+}
+
 // 刷新按钮内容
 function refreshButtons() {
   buttons.value = generateRandomButtons();
@@ -603,7 +607,9 @@ const resetM = () => {
 
 import Vditor from 'vditor';
 import { md2html } from '../utils/md-utils';
-import { getRecentDocs, getSetting } from '../utils/settings';
+import { getRecentDocs, getSetting, setSetting } from '../utils/settings';
+import { lightTheme, themeState } from '../utils/themes';
+const ipcRenderer = window.electron.ipcRenderer
 // 生命周期钩子
 onMounted(async () => {
   initThreeJS();
@@ -620,7 +626,7 @@ onMounted(async () => {
 //   generatedText.value = current_article.value ? current_article.value : defaultText;
 //   let html=md2html(generatedText.value);
 //   node.innerHTML = html;
-  
+
 //   const previewElement = node;
 //     Vditor.setContentTheme('light', 'http://localhost:3000/vditor/dist/css/content-theme');
 //     Vditor.codeRender(previewElement);
@@ -658,6 +664,7 @@ onBeforeUnmount(() => {
 .homepage {
   width: 100vw;
   height: 100vh;
+  z-index: 1;
   overflow: hidden;
   position: relative;
 

@@ -67,6 +67,8 @@ export function load_from_json(json) {
   current_outline_tree.value = data.current_outline_tree
   current_article.value = data.current_article
   current_article_meta_data.value = data.current_article_meta_data
+  //console.log(current_article.value)
+  //eventBus.emit('refresh')//加载完之后进行刷新
 }
 export function sync() {
   if(latest_view.value==='outline') {

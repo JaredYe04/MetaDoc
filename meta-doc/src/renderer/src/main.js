@@ -50,7 +50,8 @@ app.component("VoiceInput", VoiceInput); // 全局注册
 
 import MarkdownItEditor from 'vue3-markdown-it';
 app.component('MarkdownItEditor', MarkdownItEditor)
-
+import SearchReplaceMenu from './components/SearchReplaceMenu.vue';
+app.component('SearchReplaceMenu', SearchReplaceMenu)
 
 app.use(ElementPlus)
 app.component('VueTree', VueTree)

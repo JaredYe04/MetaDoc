@@ -75,7 +75,7 @@ const menuStyles = computed(() => ({
   border: '1px solid #ccc',
   padding: '10px',
   boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',
-  maxWidth: '600px',
+  maxWidth: '1000px',
   zIndex: 1000, // 保证层级
   color: themeState.currentTheme.textColor2,
   backdropFilter: 'blur(5px)',

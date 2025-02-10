@@ -157,6 +157,10 @@ ipcRenderer.on('save-triggered',()=>{
 ipcRenderer.on('save-as-triggered',()=>{
   eventBus.emit('save-as')
 })
+ipcRenderer.on('search-replace-triggered',()=>{
+
+  eventBus.emit('search-replace')
+})
 
 ipcRenderer.on('open-doc-success', (event, data) => {
   const obj = JSON.parse(data)

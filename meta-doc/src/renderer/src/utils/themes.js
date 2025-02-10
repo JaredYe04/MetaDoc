@@ -14,6 +14,7 @@ export const lightTheme = {
     SideTextColor2:'#000000',
     SideActiveTextColor:'#000000',
     vditorTheme: 'classic',
+    codeTheme: 'github',
     titleMenuBackground:'#E6E6FABB',
     outlineBackground:'#4c78a8',
     outlineNode : '#9ecae9'
@@ -32,6 +33,7 @@ export const darkTheme = {
     SideActiveTextColor:"#ffd04b",
     SideTextColor2:"#ffd0ee",
     vditorTheme: 'dark',
+    codeTheme: 'a11y-dark',
     titleMenuBackground:'#111111AA',
     outlineBackground:'#bab0ac',
     outlineNode : '#79706e'

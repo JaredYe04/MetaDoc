@@ -138,7 +138,7 @@ onMounted(() => {
 .llm-dialog {
   position: fixed;
   z-index: 1000;
-  width: 200px;
+  width: 15%;
   max-height: 400px;
   border: 1px solid #dcdfe6;
   border-radius: 8px;

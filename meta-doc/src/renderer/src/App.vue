@@ -49,6 +49,7 @@ onMounted(async () => {
       document.documentElement.classList.add('dark')
       document.documentElement.classList.remove('light')
     }
+    eventBus.emit('sync-vditor-theme')//触发vditor主题同步事件
   })
   // 触发一次主题同步事件
   eventBus.emit('sync-theme')

@@ -190,6 +190,20 @@ function bindShortcuts() {
         setTimeout(() => (isShortcutPressed = false), 500); // 短时间后释放锁
       }
     });
+    globalShortcut.register('CommandOrControl+F', () => {
+      if (!isShortcutPressed) {
+        isShortcutPressed = true; // 设置锁
+        mainWindow.webContents.send('search-replace-triggered');
+        setTimeout(() => (isShortcutPressed = false), 500); // 短时间后释放锁
+      }
+    });
+    globalShortcut.register('CommandOrControl+H', () => {
+      if (!isShortcutPressed) {
+        isShortcutPressed = true; // 设置锁
+        mainWindow.webContents.send('search-replace-triggered');
+        setTimeout(() => (isShortcutPressed = false), 500); // 短时间后释放锁
+      }
+    });
   });
 
   // 监听窗口失去焦点
@@ -197,6 +211,8 @@ function bindShortcuts() {
     // 注销快捷键
     globalShortcut.unregister('CommandOrControl+S');
     globalShortcut.unregister('CommandOrControl+Shift+S');
+    globalShortcut.unregister('CommandOrControl+F');
+    globalShortcut.unregister('CommandOrControl+H');
   });
 }
 // Quit when all windows are closed, except on macOS. There, it's common

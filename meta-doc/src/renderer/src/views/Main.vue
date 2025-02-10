@@ -81,7 +81,22 @@ eventBus.on('show-error', (message) => {
   })
 })
 
-
+eventBus.on('show-info', (message) => {
+  ElNotification({
+    title: '消息',
+    message: message,
+    type: 'info',
+   
+  })
+})
+eventBus.on('show-success', (message) => {
+  ElNotification({
+    title: '消息',
+    message: message,
+    type: 'success',
+   
+  })
+})
 
 
 </script>

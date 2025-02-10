@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <vue-tree ref="tree" style="width: 100%; height: 600px; border: 1px solid gray; "
+    <vue-tree ref="tree" style="width: 100%; height: 80vh; border: 1px solid gray; "
     :style="{ backgroundColor: themeState.currentTheme.outlineBackground }"
   :dataset="treeData" :config="treeConfig" :direction="direction" @node-click="handleNodeClick" 
   @node-drag="handleNodeDrag" linkStyle="straight">
@@ -133,6 +133,7 @@ const treeConfig = reactive({
   nodeHeight: 50,
   levelHeight: 200
 });
+const tree = ref(null);
 const currentChapterValue = ref('');
 const editValueDialogVisible = ref(false);
 const dialogVisible = ref({});
@@ -224,15 +225,15 @@ const changeNodeValue = () => {
 };
 
 const resetScale = () => {
-  refs.tree.restoreScale();
+  tree.value.restoreScale();
 };
 
 const zoomIn = () => {
-  refs.tree.zoomIn();
+  tree.value.zoomIn();
 };
 
 const zoomOut = () => {
-  refs.tree.zoomOut();
+  tree.value.zoomOut();
 };
 
 const toggleLayout = () => {

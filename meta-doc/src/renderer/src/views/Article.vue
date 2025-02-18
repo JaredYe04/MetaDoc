@@ -218,6 +218,13 @@ eventBus.on('search-replace', () => {
     console.log('search-replace');
     searchReplaceDialogVisible.value = true;
 });
+eventBus.on('vditor-sync-with-html',() => {
+    const html=vditor.value.getHTML();
+    //console.log(html);
+    vditor.value.setValue(vditor.value.html2md(html), true);
+    current_article.value=vditor.value.getValue();
+});
+
 
 // 接受生成的文本
 const acceptGeneratedText = async (content) => {
@@ -425,7 +432,7 @@ eventBus.on('sync-vditor-theme', async () => {
     display: flex;
     flex: 1;
     /*占满整个父容器 */
-    height: 85vh;
+    height: 90vh;
     overflow: hidden;
 
     /* 唯一允许滚动的区域 */
@@ -435,7 +442,7 @@ eventBus.on('sync-vditor-theme', async () => {
 /* 左边的编辑器样式 */
 .editor {
     flex: 4;
-    /* 占 80% 空间 */
+
     border-right: 1px solid #ddd;
 }
 

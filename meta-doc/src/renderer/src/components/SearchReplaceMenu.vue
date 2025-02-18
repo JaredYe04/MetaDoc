@@ -38,6 +38,7 @@ import { ElForm, ElFormItem, ElInput, ElButton, ElCheckbox } from 'element-plus'
 import { themeState } from '../utils/themes';
 import eventBus from '../utils/event-bus';
 import Vditor from 'vditor';
+import { af } from 'element-plus/es/locales.mjs';
 const emit = defineEmits(['close']);
 const props = defineProps({
   position: {
@@ -93,16 +94,27 @@ const onMouseUp = () => {
   document.removeEventListener('mouseup', onMouseUp);
 };
 const replace = () => {
-  const editor = document.querySelector('.vditor-ir');
-  if (!editor) return;
-  const content = editor.innerText;
-  const regex = useRegex.value ? new RegExp(form.value.find, 'g') : null;
-  const newContent = content.replace(regex || form.value.find, form.value.replace);
-  editor.innerText = newContent;
+  const highlight = document.getElementById('cur_highlight');
+  //如果没有highlight的元素，就先findNext，然后再替换
+  if(!highlight || highlight.innerText !== form.value.find ||  highlight.innerText === form.value.replace){
+    findNext();
+    highlight = document.getElementById('cur_highlight');
+    if(!highlight){
+      return;
+    }
+  }
+  //如果有highlight的元素，直接替换highlight的元素的innerText
+  //highlight.innerText = form.value.replace;
+  //要把highlight替换成新的文本节点
+  const text = document.createTextNode(form.value.replace);
+  highlight.replaceWith(text);
+  clearSelection();
+  eventBus.emit('vditor-sync-with-html');//同步html到vditor
+  findNext();
 };
 
 const replaceAll = () => {
-clearSelection();
+  clearSelection();
   const editor = document.querySelector('.vditor-ir');
   if (!editor) return;
   //console.log(editor);
@@ -151,9 +163,21 @@ clearSelection();
     }
   };
   editor.childNodes.forEach(findAndHighlight);
-  
+
   clearSelection();
+  eventBus.emit('vditor-sync-with-html');//同步html到vditor
   eventBus.emit('show-success', `共把${count}处"${form.value.find}"匹配替换为"${form.value.replace}"`);
+};
+const mergeTextNodes = (element) => {
+  if (element.nodeType === Node.TEXT_NODE) {
+    let current_element = element;
+    while (current_element.nextSibling && current_element.nextSibling.nodeType === Node.TEXT_NODE) {
+      current_element.textContent += current_element.nextSibling.textContent;
+      current_element.parentNode.removeChild(current_element.nextSibling);
+    }
+  } else {
+    element.childNodes.forEach(mergeTextNodes);
+  }
 };
 const clearSelection = () => {
   //把所有的class叫做highlight的元素的class清除掉，替换为里面的innerText
@@ -171,17 +195,7 @@ const clearSelection = () => {
   };
   editor.childNodes.forEach(clearHighlight);
   //为了保持文本的连贯性，把所有相邻的文本节点合并为一个文本节点
-  const mergeTextNodes = (element) => {
-    if (element.nodeType === Node.TEXT_NODE) {
-      let current_element = element;
-      while (current_element.nextSibling && current_element.nextSibling.nodeType === Node.TEXT_NODE) {
-        current_element.textContent += current_element.nextSibling.textContent;
-        current_element.parentNode.removeChild(current_element.nextSibling);
-      }
-    } else {
-      element.childNodes.forEach(mergeTextNodes);
-    }
-  };
+
   editor.childNodes.forEach(mergeTextNodes);
 };//清除所有高亮显示
 
@@ -217,6 +231,7 @@ const findAll = () => {
           const newElement = document.createElement('span');
           newElement.style.backgroundColor = 'yellow';
           newElement.class = 'highlight';
+          newElement.setAttribute('class', 'highlight');
           newElement.innerText = match[0];
           newElement.style.color = 'black';
           //console.log(newElement);
@@ -238,7 +253,7 @@ const findAll = () => {
   eventBus.emit('show-info', `"${form.value.find}"共找到${count}处匹配`);
 }
 const findNext = () => {
-  clearSelection();
+  
   const editor = document.querySelector('.vditor-ir');
   if (!editor) return;
   //console.log(editor);
@@ -252,45 +267,151 @@ const findNext = () => {
   if (true) {
     //递归地查找editor的子元素，找到匹配的文本，然后高亮显示
     let flag = false;//标记是否找到匹配的文本
-    const findAndHighlight = (element,startOffset=0) => {
-      if (flag) return;//找到匹配的文本，后续不再查找
-      if (element.nodeType === Node.TEXT_NODE) {
-        //要加上startOffset，因为可能是从中间开始查找
-        const original_text = element.textContent;
-        const text = element.textContent.substring(startOffset);
-        const match = text.match(regex);
-        if (!match) return;
-        const index = text.indexOf(match[0])+startOffset;//找到匹配的文本的位置
-        if (index !== -1) {
-          flag = true;//找到匹配的文本，后续不再查找
-          //注意，标黄仅对文本本身进行标黄，不会对文本节点的父元素进行标黄
-          const before = document.createTextNode(original_text.substring(0, index));
-          const after = document.createTextNode(original_text.substring(index + match[0].length));
-          //使用一个span元素包裹匹配的文本，然后替换原来的文本节点，并且class叫做highlight,这样就可以通过css来设置高亮的样式
-          const newElement = document.createElement('span');
-          newElement.style.backgroundColor = 'yellow';
-          newElement.class = 'highlight';
-          newElement.innerText = match[0];
-          newElement.style.color = 'black';
-          //console.log(newElement);
-          element.replaceWith(before, newElement, after);
-          //文字聚焦到匹配的文本之后
-          newElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-        }
-      } else {
-        element.childNodes.forEach(findAndHighlight);
+    //首先检查一下是否有highlight的元素，如果有，就从highlight的元素之后开始查找
+    //如果没有，就从头开始查找
+    //如果highlight的元素，和regex不匹配，就执行clearSelection
+    //注意，是attribute里面的class，而不是property里面的class
+    let highlights = document.getElementsByClassName('highlight');
+    if (highlights.length > 1) {
+      //console.log('hello')
+      clearSelection();
+    }
+    {
+      //console.log(highlights)
+      let match = null;
+      //选中id为cur_highlight的元素
+      const highlight = document.getElementById('cur_highlight');
+      //首先判断一下highlight的元素是否和regex匹配
+      if (highlight) {
+        match = highlight.innerText.match(regex);
       }
-    };
-    //查找的范围，从当前的光标位置开始查找，位置要精确到最小的文本节点
-    const selection = window.getSelection();
-    const startContainer = selection.anchorNode;
-    const startOffset = selection.anchorOffset;
-    console.log(startContainer);
-    findAndHighlight(startContainer,startOffset);
-    if (!flag) {
-      //如果没有找到，从头开始查找
+      //console.log(match);
+      //如果不匹配，就执行clearSelection
+      //查询的范围，应当是highlight的元素之后的所有文本。如果没有highlight的元素，就是整个editor的文本
+
+      // console.log( highlight);
+      if (!match) {
+        clearSelection();
+      }
+      //查找下一个匹配的文本，打上highlight的标签
+      let flag = false;
+      const findAndHighlight = (element) => {
+        if (flag) {
+          return;
+        }
+        if (element.nodeType === Node.TEXT_NODE) {
+          //使用正则表达式，找到匹配文本,
+          let current_element = element;
+          //对current_element的第一个进行高亮，然后把after设为current_element的第一个，然后继续循环
+          while (current_element) {
+            if (flag) {
+              return;
+            }
+            const text = current_element.textContent;
+            const match = text.match(regex);
+            if (match) {
+              let is_after = false;
+              if (!highlight) {
+                is_after = true;
+              }
+              else {
+
+                let temp = highlight.nextSibling;
+                while (temp && !is_after) {
+                  if (temp === current_element) {
+                    is_after = true;
+                    break;
+                  }
+                  if (!temp.nextSibling) {
+                    //选择下一段落，也就是父节点的下一个节点
+                    temp = temp.parentNode;
+                    //console.log(temp);
+                  }
+                  else {
+                    temp = temp.nextSibling;
+                  }
+                }//本段搜索
+
+                if (!is_after) {//如果这段没有找到，就搜索父节点的所有兄弟节点
+
+                  temp = highlight.parentNode;
+                  //console.log(temp);
+                  let parent_siblings = [];//存放highlight的父节点的所有兄弟节点
+                  while (temp.nextSibling) {
+                    parent_siblings.push(temp.nextSibling);
+                    temp = temp.nextSibling;
+                  }
+                  //console.log(parent_siblings);
+                  for (let i = 0; i < parent_siblings.length; i++) {
+                    temp = parent_siblings[i].childNodes[0];
+                    while (temp && !is_after) {
+                      if (temp === current_element) {
+                        is_after = true;
+                        break;
+                      }
+                      if (!temp.nextSibling) {
+                        //选择下一段落，也就是父节点的下一个节点
+                        temp = temp.parentNode;
+                        //console.log(temp);
+                      }
+                      else {
+                        temp = temp.nextSibling;
+                      }
+
+                    }//父节点搜索
+                  }
+
+                }
+              }
+              const index = text.indexOf(match[0]);
+              //注意，标黄仅对文本本身进行标黄，不会对文本节点的父元素进行标黄
+              const before = document.createTextNode(text.substring(0, index));
+              const after = document.createTextNode(text.substring(index + match[0].length));
+              if (is_after) {//只有在上一个highlight之后的节点才会被highlight
+
+                //如果找到了匹配的文本，需要把原先的highlight的元素清除掉
+                //使用replaceWith方法，替换highlight的元素
+                //console.log(current_element);
+                if (highlight) {
+                  const text = document.createTextNode(highlight.innerText);
+                  highlight.replaceWith(text);
+                  //使用mergeTextNodes，把所有相邻的文本节点合并为一个文本节点
+                  mergeTextNodes(highlight);//todo
+                }
+
+                flag = true;
+                //使用一个span元素包裹匹配的文本，然后替换原来的文本节点，并且class叫做highlight,这样就可以通过css来设置高亮的样式
+                const newElement = document.createElement('span');
+                newElement.style.backgroundColor = 'yellow';
+                newElement.class = 'highlight';
+                newElement.setAttribute('class', 'highlight');
+                newElement.setAttribute('id', 'cur_highlight');
+                newElement.innerText = match[0];
+                newElement.style.color = 'black';
+                //console.log(newElement);
+                current_element.replaceWith(before, newElement, after);
+                //文字聚焦到匹配的文本之后
+                newElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+
+              current_element = after;
+            } else {
+              //console.log(current_element);
+              current_element = null;
+            }
+          }
+
+        } else {
+          element.childNodes.forEach(findAndHighlight);
+        }
+      };
+      //findAndHighlight(editor);
       editor.childNodes.forEach(findAndHighlight);
+      if (!flag) {
+        clearSelection();
+        eventBus.emit('show-info', `没有找到更多匹配`);
+      }
+
     }
 
   }

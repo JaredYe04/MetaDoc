@@ -1,22 +1,20 @@
 <template>
-  <div class="settings-container" :style="{ backgroundColor: themeState.currentTheme.backgroundColor, color: themeState.currentTheme.textColor}">
+  <div class="settings-container"
+    :style="{ backgroundColor: themeState.currentTheme.backgroundColor, color: themeState.currentTheme.textColor }">
     <el-container>
       <!-- 左侧菜单 -->
-      <el-aside width="200px" 
-      >
+      <el-aside width="200px">
         <el-menu default-active="basic" @select="handleMenuSelect"
-        :background-color="themeState.currentTheme.sidebarBackground2"
-    :text-color="themeState.currentTheme.SideTextColor"
-    :active-text-color="themeState.currentTheme.SideActiveTextColor"
-   style="height: 100vh;"
-    >
+          :background-color="themeState.currentTheme.sidebarBackground2"
+          :text-color="themeState.currentTheme.SideTextColor"
+          :active-text-color="themeState.currentTheme.SideActiveTextColor" style="height: 100vh;">
           <el-menu-item index="basic">基本设置</el-menu-item>
           <el-menu-item index="llm">LLM设置</el-menu-item>
         </el-menu>
       </el-aside>
 
       <!-- 右侧设置内容 -->
-      <el-main :style="{textColor: themeState.currentTheme.textColor}" > 
+      <el-main :style="{ textColor: themeState.currentTheme.textColor }">
         <el-form label-width="120px" class="settings-form">
           <template v-if="activeMenu === 'basic'">
             <el-form-item label="启动选项">
@@ -46,8 +44,9 @@
             </el-form-item>
 
             <el-form-item label="主题">
-              
-              <el-radio-group v-model="settings.theme" @change="saveSetting('theme', settings.theme);eventBus.emit('sync-theme');eventBus.emit('theme-changed')">
+
+              <el-radio-group v-model="settings.theme"
+                @change="saveSetting('theme', settings.theme); eventBus.emit('sync-theme'); eventBus.emit('theme-changed')">
                 <el-radio label="sync">跟随系统</el-radio>
                 <el-radio label="light">亮色</el-radio>
                 <el-radio label="dark">暗色</el-radio>
@@ -56,11 +55,12 @@
             <el-form-item label="语音测试">
               <div>
                 <MicrophoneTest />
-                </div>  
+              </div>
             </el-form-item>
 
             <el-form-item label="导出图片选项">
-              <el-select v-model="settings.exportImageMode" @change="saveSetting('exportImageMode', settings.exportImageMode)">
+              <el-select v-model="settings.exportImageMode"
+                @change="saveSetting('exportImageMode', settings.exportImageMode)">
 
                 <el-tooltip content="简便快捷，但只有在MetaDoc打开时才能正确预览文件" placement="left">
                   <el-option label="MetaDoc内置服务器" value="none"></el-option>
@@ -100,6 +100,7 @@
                 inactive-text="关闭" @change="handleLlmToggle" />
               <!-- 配置界面 -->
               <div v-if="settings.llmEnabled">
+
                 <!-- 模型选择 -->
                 <el-form-item label="选择大模型类型">
                   <el-select v-model="settings.selectedLlm" placeholder="选择大模型"
@@ -112,7 +113,6 @@
                     <el-option label="Claude" value="claude"></el-option>
                   </el-select>
                 </el-form-item>
-
                 <!-- 根据选择的模型显示不同的配置项 -->
                 <div v-if="settings.selectedLlm === 'ollama'">
                   <!-- Ollama 配置 -->
@@ -121,10 +121,16 @@
                       @change="updateLlmInfo" />
                   </el-form-item>
                   <el-form-item label="选择模型">
-                    <el-select v-model="settings.ollama.selectedModel" placeholder="选择模型" @click="fetchOllamaModels"  @change=" updateLlmInfo ">
+                    <el-select v-model="settings.ollama.selectedModel" placeholder="选择模型" @click="fetchOllamaModels"
+                      @change="updateLlmInfo">
                       <el-option v-for="model in ollamaModels" :key="model" :label="model.name" :value="model.model">
                       </el-option>
                     </el-select>
+                  </el-form-item>
+                  <el-form-item label="去除think标签">
+                    <el-switch v-model="settings.autoRemoveThinkTag" class="mb-2"
+                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" active-text="启用"
+                      inactive-text="关闭" @change="saveSetting('autoRemoveThinkTag', settings.autoRemoveThinkTag)" />
                   </el-form-item>
                 </div>
 
@@ -135,7 +141,8 @@
                       @change="updateLlmInfo" />
                   </el-form-item>
                   <el-form-item label="API 秘钥">
-                    <el-input v-model="settings.openai.apiKey" type="password" placeholder="输入 OpenAI 的 API 秘钥" @change="updateLlmInfo"/>
+                    <el-input v-model="settings.openai.apiKey" type="password" placeholder="输入 OpenAI 的 API 秘钥"
+                      @change="updateLlmInfo" />
                   </el-form-item>
                 </div>
 
@@ -145,7 +152,8 @@
                     <el-input v-model="settings.wenxin.apiUrl" placeholder="输入文心一言的 API 地址" @change="updateLlmInfo" />
                   </el-form-item>
                   <el-form-item label="API 秘钥">
-                    <el-input v-model="settings.wenxin.apiKey" type="password" placeholder="输入文心一言的 API 秘钥" @change="updateLlmInfo"/>
+                    <el-input v-model="settings.wenxin.apiKey" type="password" placeholder="输入文心一言的 API 秘钥"
+                      @change="updateLlmInfo" />
                   </el-form-item>
                 </div>
 
@@ -155,7 +163,8 @@
                     <el-input v-model="settings.tongyi.apiUrl" placeholder="输入通义千问的 API 地址" @change="updateLlmInfo" />
                   </el-form-item>
                   <el-form-item label="API 秘钥">
-                    <el-input v-model="settings.tongyi.apiKey" type="password" placeholder="输入通义千问的 API 秘钥" @change="updateLlmInfo"/>
+                    <el-input v-model="settings.tongyi.apiKey" type="password" placeholder="输入通义千问的 API 秘钥"
+                      @change="updateLlmInfo" />
                   </el-form-item>
                 </div>
 
@@ -166,8 +175,8 @@
                       @change="updateLlmInfo" />
                   </el-form-item>
                   <el-form-item label="API 秘钥">
-                    <el-input v-model="settings.gemini.apiKey" type="password"
-                      placeholder="输入 Google Gemini 的 API 秘钥" @change="updateLlmInfo"/>
+                    <el-input v-model="settings.gemini.apiKey" type="password" placeholder="输入 Google Gemini 的 API 秘钥"
+                      @change="updateLlmInfo" />
                   </el-form-item>
                 </div>
 
@@ -178,17 +187,18 @@
                       @change="updateLlmInfo" />
                   </el-form-item>
                   <el-form-item label="API 秘钥">
-                    <el-input v-model="settings.claude.apiKey" type="password" placeholder="输入 Claude 的 API 秘钥" @change="updateLlmInfo"/>
+                    <el-input v-model="settings.claude.apiKey" type="password" placeholder="输入 Claude 的 API 秘钥"
+                      @change="updateLlmInfo" />
                   </el-form-item>
                 </div>
 
                 <div class="aero-divider">
                   <el-form-item>
-                  <el-button type="primary" @click="testLlmApi" class="aero-btn">测试大模型</el-button>
-                </el-form-item>
-                <el-form-item label="测试结果">
-                  <el-input v-model="testResult" type="textarea" readonly placeholder="测试结果将显示在此处" />
-                </el-form-item>
+                    <el-button type="primary" @click="testLlmApi" class="aero-btn">测试大模型</el-button>
+                  </el-form-item>
+                  <el-form-item label="测试结果">
+                    <el-input v-model="testResult" type="textarea" readonly placeholder="测试结果将显示在此处" :autosize="{ minRows: 5, maxRows: 7 }"/>
+                  </el-form-item>
 
 
                 </div>
@@ -226,6 +236,7 @@ const settings = reactive({
   llmApiUrl: "", // LLM API URL
   llmApiKey: "", // LLM API 秘钥（根据不同模型可能使用）
   exportImageMode: "none", // 导出图片选项
+  autoRemoveThinkTag: true,//自动去除推理过程
   ollama: {
     apiUrl: "http://localhost:11434/api", // Ollama 默认 API URL
     selectedModel: "",

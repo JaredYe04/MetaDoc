@@ -384,12 +384,12 @@ onMounted(() => {
         },
         value: current_article.value,
         input: async (value) => {
-            console.log('input');
+            //console.log('input');
             //article.value = value; // 监听输入事件，更新绑定的内容
             current_article.value = value;
             //console.log(current_article.value)
             latest_view.value = 'article';
-            //sync();
+            sync();
             await bindTitleMenu();
 
         },

@@ -21,7 +21,7 @@ import { computed, onMounted } from 'vue';
 import { latest_view, searchNode } from '../utils/common-data';
 import { sync, current_outline_tree } from '../utils/common-data';
 import { ref, watch } from 'vue';
-import { max } from 'd3';
+import { max, min } from 'd3';
 import { explainWordPrompt, sectionChangePrompt } from '../utils/prompts';
 import { answerQuestionStream } from '../utils/llm-api';
 import eventBus from '../utils/event-bus';
@@ -76,6 +76,7 @@ const menuStyles = computed(() => ({
   padding: '10px',
   boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',
   maxWidth: '1000px',
+  minWidth: '300px',
   zIndex: 1000, // 保证层级
   color: themeState.currentTheme.textColor2,
   backdropFilter: 'blur(5px)',

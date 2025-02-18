@@ -142,6 +142,8 @@ async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
       let ndjson = ""; // 用于拼接未完成的 NDJSON 行
       ref.value = ""; // 清空内容
 
+      const autoRemoveThinkTag=await getSetting('autoRemoveThinkTag')
+
       while (true) {
         const { done, value } = await reader.read(); // 从流中读取数据
         if (done) {
@@ -160,6 +162,14 @@ async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
             try {
               const parsed = JSON.parse(line); // 解析 JSON 行
               ref.value += parsed.response || parsed.choices?.[0]?.text || ""; // 更新响应值
+              if(autoRemoveThinkTag){
+                if(ref.value.trim().endsWith('</think>')){
+                  ref.value='';//清空
+                }
+              }
+              if(ref.value.trim()===''){
+                ref.value='';//清空
+              }
             } catch (err) {
               console.error("JSON 解析错误:", err);
             }

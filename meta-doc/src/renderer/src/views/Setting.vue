@@ -224,6 +224,7 @@ import MicrophoneTest from "../components/MicrophoneTest.vue";
 import "../assets/aero-btn.css";
 import "../assets/aero-div.css";
 import { themeState } from "../utils/themes.js";
+
 const ipcRenderer = window.electron.ipcRenderer
 // 定义响应式状态
 const activeMenu = ref("basic"); // 当前菜单
@@ -374,7 +375,11 @@ const testLlmApi = async () => {
 };
 
 // 挂载时加载设置
-onMounted(fetchSettings);
+onMounted(() => {
+  fetchSettings();
+
+});
+
 
 </script>
 

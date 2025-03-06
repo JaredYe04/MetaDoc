@@ -8,7 +8,7 @@
         <el-header>
           <HeadMenu />
         </el-header>
-        <el-main><router-view></router-view></el-main>
+        <el-main style="padding:0; margin: 0;"><router-view></router-view></el-main>
       </el-container>
     </el-container>
   </div>
@@ -22,7 +22,7 @@ import { getRecentDocs, getSetting } from '../utils/settings.js'
 import eventBus from '../utils/event-bus.js'
 import { ElNotification } from 'element-plus'
 import { lightTheme, darkTheme } from '../utils/themes.js'
-import { current_file_path } from '../utils/common-data.js'
+import { current_ai_dialogs, current_file_path} from '../utils/common-data.js'
 
 const autoSaveEnabled = ref(false)
 const autoSaveInterval = ref(2147483647)
@@ -46,6 +46,7 @@ onMounted(async () => {
 
 
   eventBus.emit('llm-api-updated')
+
   await autoSave()
 })
 
@@ -55,6 +56,7 @@ eventBus.on('save-success', () => {
     message: '保存成功',
     type: 'success',
   })
+  eventBus.emit('is-need-save',false)
 })
 
 eventBus.on('open-doc-success', () => {
@@ -63,6 +65,7 @@ eventBus.on('open-doc-success', () => {
     message: '打开成功',
     type: 'success',
   })
+  eventBus.emit('is-need-save',false)
 })
 
 eventBus.on('export-success', (outputPath) => {
@@ -97,6 +100,9 @@ eventBus.on('show-success', (message) => {
    
   })
 })
-
+eventBus.on('sync-ai-dialogs', (dialogs) => {
+  //console.log('主界面收到了AI对话更新请求')
+  current_ai_dialogs.value=dialogs//当AI对话变动时，主界面的AI对话也要变动
+})
 
 </script>

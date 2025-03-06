@@ -1,0 +1,23 @@
+.title {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    font-size: xx-large;
+    margin-left: 20px;
+    margin-bottom: 0;
+}
+
+.title::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 0;
+    height: 2px;
+    background-color: #777777f0;
+    transition: width 0.5s ease;
+}
+
+.title:hover::after {
+    width: 100%;
+}

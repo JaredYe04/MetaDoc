@@ -4,6 +4,7 @@
       @click="toggleRecording"
       circle
       :size="props.size?props.size:'medium'"
+      :disabled="props.disabled"
     >
       <el-icon v-if="!isRecording"><Microphone /></el-icon>
       <el-icon v-if="isRecording"><Select /></el-icon>
@@ -23,7 +24,8 @@ import { convertWebMToWav } from '../utils/audio-convert';
   
 
 const props=defineProps({
-  size:String
+  size:String,
+  disabled:Boolean
 })
 
   // 定义 emit 事件
@@ -45,7 +47,7 @@ const emit = defineEmits(["onSpeechRecognized","onStateUpdated"])
     emit('onStateUpdated', 'recording')
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    console.log('Microphone access granted')
+    //console.log('Microphone access granted')
     var options = {
       mimeType: 'audio/webm',
       audioBitsPerSecond : 16000
@@ -104,7 +106,7 @@ const sendAudioToBaidu = async (base64Audio,originalSize) => {
 
       if (result.err_no === 0) {
         const recognizedText = result.result[0];  // 获取识别结果
-        console.log(result)
+        //console.log(result)
         emit('onSpeechRecognized', recognizedText);  // 通过事件发送识别结果给父组件
       } else {
         eventBus.emit('show-error', '识别失败：' + result.err_msg);
@@ -126,7 +128,7 @@ const sendAudioToBaidu = async (base64Audio,originalSize) => {
     const tokenUrl = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${apiKey}&client_secret=${secretKey}`
     try {
       const response = await axios.post(tokenUrl)
-      console.log('Baidu token:', response.data.access_token)
+      //console.log('Baidu token:', response.data.access_token)
       return response.data.access_token
     } catch (err) {
       eventBus.emit('show-error', '获取百度 token 时出错')

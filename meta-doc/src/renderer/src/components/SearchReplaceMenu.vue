@@ -94,7 +94,7 @@ const onMouseUp = () => {
   document.removeEventListener('mouseup', onMouseUp);
 };
 const replace = () => {
-  const highlight = document.getElementById('cur_highlight');
+  let highlight = document.getElementById('cur_highlight');
   //如果没有highlight的元素，就先findNext，然后再替换
   if(!highlight || highlight.innerText !== form.value.find ||  highlight.innerText === form.value.replace){
     findNext();

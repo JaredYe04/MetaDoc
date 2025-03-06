@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, globalShortcut } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, globalShortcut, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -13,6 +13,14 @@ const fs = require('fs');
 const multer = require('multer');
 let mainWindow;
 export var dirname;
+
+
+let is_need_save = false;
+  ipcMain.on('is-need-save', (event, arg) => {
+    //console.log('is-need-save:', arg)
+    is_need_save = arg;
+  });
+
 function createWindow() {
   dirname = __dirname;
   // Create the browser window.
@@ -30,15 +38,25 @@ function createWindow() {
       webSecurity: false,
     }
   })
-
+  const args = process.argv.slice(2); // 获取命令行参数
 
   mainWindow.on('ready-to-show', () => {
     bindShortcuts();//绑定快捷键
     mainWindow.show()
-
+    if(args[0]){
+      mainWindow.webContents.send('open-doc',args[0]);
+    }
   })
 
 
+  
+  mainWindow.on('close', (e) => {
+    //console.log('close event:', is_need_save)
+    if(is_need_save){
+      e.preventDefault();
+      mainWindow.webContents.send('close-triggered');
+    }
+  });
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -48,7 +66,7 @@ function createWindow() {
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    console.log('loadURL1:', process.env['ELECTRON_RENDERER_URL'])
+    //console.log('loadURL1:', process.env['ELECTRON_RENDERER_URL'])
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/home')
     //mainWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/setting`);
   } else {
@@ -171,6 +189,11 @@ app.whenReady().then(() => {
 })
 let isShortcutPressed = false; // 锁变量，防止重复触发
 
+// 监听before-quit事件
+
+
+
+
 function bindShortcuts() {
   // 监听窗口焦点
   mainWindow.on('focus', () => {
@@ -224,16 +247,56 @@ app.on('window-all-closed', () => {
   }
 })
 let settingWindow;//设置窗口
+let aichatWindow;//AI对话窗口
 
-
-export { mainWindow, settingWindow }
+export { mainWindow, settingWindow,aichatWindow,is_need_save }
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
 
 
 
+export const openAiChatDialog= async () => {
+  aichatWindow = new BrowserWindow({
+    width: 1280,
+    height: 720,
+    parent: mainWindow, // 将子窗口与主窗口关联
+    modal: false, // 是否为模态窗口
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: false,
+      nodeIntegration: true,
+    },
+  });
 
+  aichatWindow.on('ready-to-show', () => {
+    aichatWindow.show()
+  })
+
+
+  aichatWindow.webContents.setWindowOpenHandler((details) => {
+    shell.openExternal(details.url)
+    return { action: 'deny' }
+  })
+
+
+
+  if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
+    //console.log(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-chat`);
+    await aichatWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-chat`)
+
+  }
+  else {
+
+    //settingWindow.loadFile(path.join(__dirname, '../renderer/index.html/#/setting'))
+    await aichatWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/ai-chat`);
+
+  }
+  aichatWindow.setTitle('AI助手')
+  // console.log(path.join(dirname, '../renderer/setting.html'));
+  // settingWindow.loadURL(path.join(dirname, '../renderer/setting.html'))
+}
 
 export const openSettingDialog = async () => {
   settingWindow = new BrowserWindow({
@@ -262,7 +325,7 @@ export const openSettingDialog = async () => {
 
 
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
-    console.log(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/setting`);
+    //console.log(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/setting`);
     await settingWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/setting`)
 
   }
@@ -270,7 +333,7 @@ export const openSettingDialog = async () => {
 
     //settingWindow.loadFile(path.join(__dirname, '../renderer/index.html/#/setting'))
     await settingWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/setting`);
-    
+
   }
   settingWindow.setTitle('设置面板')
   // console.log(path.join(dirname, '../renderer/setting.html'));

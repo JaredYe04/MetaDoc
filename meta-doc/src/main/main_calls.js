@@ -15,32 +15,38 @@ const htmlDocx = require('html-docx-js');
 const os = require('os');
 
 
-import { mainWindow, openSettingDialog, uploadDir } from './index'
+import { mainWindow, openSettingDialog,openAiChatDialog, uploadDir,settingWindow,aichatWindow} from './index'
 import { dirname } from './index'
-
 
 
 export function mainCalls() {
   ipcMain.on('quit', quit)
   ipcMain.on('save', async (event, data) => {
     await save(data, false)
+    is_need_save = false;
   })
   ipcMain.on('save-and-quit', async (event, data) => {
     await save(data, false)
+    //is_need_save = false;
     quit()
   })
   ipcMain.on('save-as', async (event, data) => {
     
     await save(data, true)
+    //is_need_save = false;
   })
   ipcMain.on('open-doc', async (event,path) => {
     await openDoc(path)
+    //is_need_save = false;
   })
   ipcMain.on('export', async (event, data) => {
     await exportFile(event, data)
   })
   ipcMain.on('setting', () => {
     openSettingDialog();
+  })
+  ipcMain.on('ai-chat', () => {
+    openAiChatDialog();
   })
   ipcMain.on('system-notification',(event,data)=>{
     //console.log(data)
@@ -71,6 +77,18 @@ export function mainCalls() {
   ipcMain.handle('get-os-theme', async (event, data) => {
     return nativeTheme.shouldUseDarkColors?'dark':'light'
   })
+  ipcMain.on('sync-ai-dialogs', async (event, data) => {
+    mainWindow.webContents.send('sync-ai-dialogs', data)//告诉主进程要更新了
+    is_need_save = true;
+  })
+  ipcMain.on('fetch-ai-dialogs', async (event, data) => {
+    mainWindow.webContents.send('request-ai-dialogs', data)//告诉主界面，请求对话数据，发送给主进程
+  })
+  ipcMain.on('response-ai-dialogs', async (event, data) => {
+    //console.log(data)
+    aichatWindow.webContents.send('response-ai-dialogs', data)//告诉AI对话框，对话数据已经准备好了
+  })
+
   nativeTheme.on('updated', () => {
     mainWindow.webContents.send('os-theme-changed')
     //如果系统主题发生变化，需要通知渲染进程
@@ -320,6 +338,7 @@ async function convertMarkdownToDocx(htmlContent, outputPath) {
     //console.log(htmlContent);
     // 使用 html-docx-js 将 HTML 转换为 DOCX，得到一个 Blob 对象
     const docxBlob = htmlDocx.asBlob(htmlContent);
+    
 
     // 将 Blob 转换为 ArrayBuffer
     const arrayBuffer = await docxBlob.arrayBuffer();
@@ -336,7 +355,7 @@ async function convertMarkdownToDocx(htmlContent, outputPath) {
     // 将生成的 DOCX 内容写入文件
     fs.writeFileSync(outputPath, docxBuffer);
     mainWindow.webContents.send('export-success', outputPath)
-    console.log(`DOCX file successfully created at ${outputPath}`);
+    //console.log(`DOCX file successfully created at ${outputPath}`);
   } catch (error) {
     eventBus.emit('show-error','转换Markdown到DOCX失败'+error)
     console.error('Error while converting markdown to DOCX:', error);

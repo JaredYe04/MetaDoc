@@ -162,6 +162,7 @@ onMounted(() => {
 watch(treeData, (val) => {
   current_outline_tree.value = val;
   latest_view.value = 'outline'; // 说明最后一次操作是在大纲视图
+  eventBus.emit('is-need-save',true)
   sync();
 }, { deep: true });
 

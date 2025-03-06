@@ -84,8 +84,26 @@
       </el-sub-menu>
     </el-tooltip>
 
-    <el-tooltip effect="light" content="设置" placement="right">
+    <el-tooltip effect="light" content="与AI对话" placement="right">
       <el-sub-menu index="2">
+        <template #title>
+          <el-icon>
+            <ChatDotRound/>
+          </el-icon>
+          <span>与AI对话</span>
+        </template>
+
+        <el-menu-item index="2-1" @click="eventBus.emit('ai-chat')">
+          <el-icon>
+            <ChatDotRound/>
+          </el-icon>
+          <span>AI助手</span>
+        </el-menu-item>
+      </el-sub-menu>
+
+    </el-tooltip>
+    <el-tooltip effect="light" content="设置" placement="right">
+      <el-sub-menu index="3">
         <template #title>
           <el-icon>
             <Setting />
@@ -93,7 +111,7 @@
           <span>设置</span>
         </template>
 
-        <el-menu-item index="2-1" @click="eventBus.emit('setting')">
+        <el-menu-item index="3-1" @click="eventBus.emit('setting')">
           <el-icon>
             <Setting />
           </el-icon>
@@ -103,7 +121,7 @@
 
     </el-tooltip>
     <el-tooltip effect="light" content="最近文件" placement="right">
-      <el-sub-menu index="3" @click="refreshRecentDocs">
+      <el-sub-menu index="4" @click="refreshRecentDocs">
         <template #title>
           <el-icon>
             <Clock />
@@ -112,7 +130,7 @@
         </template>
 
         <div v-for="item in recentDocs" :key="item">
-          <el-menu-item :index="`3-${item}`" @click="
+          <el-menu-item :index="`4-${item}`" @click="
             askSave(() => {
               eventBus.emit('open-doc', item)
             })
@@ -130,7 +148,7 @@
     </el-tooltip>
 
     <el-tooltip effect="light" content="退出" placement="right">
-      <el-sub-menu index="4">
+      <el-sub-menu index="5">
         <template #title>
           <el-icon>
             <SwitchButton />
@@ -138,14 +156,14 @@
           <span>退出</span>
         </template>
 
-        <el-menu-item index="4-1" @click="saveAndQuit">
+        <el-menu-item index="5-1" @click="saveAndQuit">
           <el-icon>
             <CircleCheck />
           </el-icon>
           <span>保存并退出</span>
         </el-menu-item>
 
-        <el-menu-item index="4-2" @click="quitWithoutSave">
+        <el-menu-item index="5-2" @click="quitWithoutSave">
           <el-icon>
             <Warning />
           </el-icon>
@@ -175,6 +193,7 @@ import {
   Menu as IconMenu,
   Location,
   Setting,
+  ChatDotRound
 } from '@element-plus/icons-vue'
 import eventBus from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'

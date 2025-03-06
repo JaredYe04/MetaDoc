@@ -7,42 +7,75 @@ export function generateDescriptionPrompt(treeJson) {
     return "你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请自动判断文章在讲什么，并生成一篇文章摘要,200字以内，注意不要有任何其他内容:" + treeJson;
 }
 
-export function sectionChangePrompt(tree, section, title, userPrompt,article='') {
-    const prompt = "你是一个文笔出色的编辑，现在用户有一篇文章，其中有一段需要你修改；；；" +
-        "以下是文章的大纲结构：" + tree +
-        "；；；当前章节标题是：\"" +
-        title + "\"，" +
+export function sectionChangePrompt(tree, section, title, userPrompt, context_mode, article) {
+    let prompt = "你是一个文笔出色的AI文本编辑助手，";
+    //console.log(context_mode)
+    switch (context_mode) {
+        case 0:
+            prompt += "现在用户有生成内容的需求，请根据用户的提示词进行文字编写。"+ "\"。当前需要处理的章节标题是：\"" + title + "\"，" +"用户提示词如下：\"" + userPrompt + "\"。";
+            break;
+        case 1:
+            prompt += "现在用户有一篇文章，其中有一个章节需要你修改或生成。" +"以下是文章的大纲结构：\"" + tree
+                + "\"。当前需要处理的章节标题是：\"" + title + "\"，" ;
+            prompt += (section == ''
+                    || !section
+                    || section == NaN
+                ) ? ('章节内容为空，需要你根据用户提示词来生成这一节。') :
+                ("需要修改的原本章节内容是：\"" +
+                    section + "\"，");
+            prompt += "用户提示词如下：\"" + userPrompt + "\"。";
+            break;
+        case 2:
+            prompt += "现在用户有一篇文章，其中有一个章节需要你修改或生成。" +
+                "以下是原本的全部文章内容：\"" + article
+                + "\"。当前需要处理的章节标题是：\"" + title + "\"，" ;
+            prompt += 
+                (section == ''
+                    || !section
+                    || section == NaN
+                ) ? ('章节内容为空，需要你来生成这一节。') :
+                ("需要修改的原本章节内容是：\"" +
+                    section + "\"，");
+            prompt += "用户提示词如下：\"" + userPrompt + "\"。";
+            break;
 
-        (
-            (section == '' 
-                || !section
-                || section==NaN
-            ) ? ('章节内容为空，需要你来生成这一节') :
-                ("需要修改的章节是：\"" +
-                    section + "\"，")
-                +
-                +"以下是用户的需求：\"" +
-                userPrompt + "\"，请根据用户需求修改或生成本节，注意不要有任何多余废话，只有修改后的章节内容。"
-        );
+    }
+    // "现在用户有一篇文章，其中有一段需要你修改；；；" +
+    //     "以下是文章的大纲结构：" + tree +
+    //     "；；；当前章节标题是：\"" +
+    //     title + "\"，" +
+    //     (
+    //         (section == '' 
+    //             || !section
+    //             || section==NaN
+    //         ) ? ('章节内容为空，需要你来生成这一节') :
+    //             ("需要修改的章节是：\"" +
+    //                 section + "\"，")
+    //             +
+    //             +"以下是用户的需求：\"" +
+    //             userPrompt + "\"，请根据用户需求修改或生成本节，注意不要有任何多余废话，只有修改后的章节内容。"
+    //     );
+
+    prompt+="请根据用户需求修改或生成本节，注意不要有任何多余废话，只有修改后的章节内容。";
     //console.log(prompt);
     return prompt;
 }
 
-export function outlineChangePrompt(fullTreeJson,nodeTreeJson,userPrompt){
+export function outlineChangePrompt(fullTreeJson, nodeTreeJson, userPrompt) {
     const prompt = "你是一个文笔出色的编辑，现在有一个JSON类型的文章大纲树，全文大纲如下:\""
         + fullTreeJson + "\"，" +
         "当前章节是：\"" +
         nodeTreeJson + "\"，" +
         "以下是用户的需求：\"" +
-        userPrompt + "\"，请根据用户需求，结合本章节在全文的上下文结构，尝试生成本章节的大纲（Markdown格式）一个标题占一行，如果有多层结构，使用分级标题"+
+        userPrompt + "\"，请根据用户需求，结合本章节在全文的上下文结构，尝试生成本章节的大纲（Markdown格式）一个标题占一行，如果有多层结构，使用分级标题" +
         +"，注意不要输出任何任何多余废话，输出结果只有本章节的子大纲，而不是全文大纲。";
     //console.log(prompt);
     return prompt;
 }
 
-export function generateArticlePrompt(mood,userPrompt){
+export function generateArticlePrompt(mood, userPrompt) {
     const prompt = "你是一个文笔出色的编辑，现在用户需要你为他写一篇文章，以下是用户的需求：\"" +
-        userPrompt + "\"，除此之外，你应当使用"+mood+"的情绪与口吻来撰写文章。请根据用户需求，以及情绪要求，输出Markdown格式的文章。注意不要输出任何任何多余废话，只输出文章内容。";
+        userPrompt + "\"，除此之外，你应当使用" + mood + "的情绪与口吻来撰写文章。请根据用户需求，以及情绪要求，输出Markdown格式的文章。注意不要输出任何任何多余废话，只输出文章内容。";
     return prompt;
 }
 
@@ -95,9 +128,9 @@ export const suggestionPresets = [
     { label: '母亲节祝福', prompt: '帮我写一段母亲节祝福，表达对母亲的感激之情' },
     { label: '新闻标题', prompt: '帮我起一个关于科技新品发布的新闻标题，简洁有力' },
     { label: '调查问卷', prompt: '帮我设计一份用户调查问卷，目标是了解用户对新功能的需求' }
-  ];
-  
+];
 
-export const explainWordPrompt=(word)=>{
+
+export const explainWordPrompt = (word) => {
     return "请解释一下\"" + word + "\"这个词的意思。仅输出释义，不需要例句或其他内容。";
 }  

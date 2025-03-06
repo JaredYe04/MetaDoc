@@ -34,7 +34,7 @@ import { convertWebMToWav } from '../utils/audio-convert';
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true ,video:false})
-      console.log('Microphone access granted')
+      //console.log('Microphone access granted')
     // 创建一个新的 MediaRecorder 实例
     mediaRecorder = new MediaRecorder(stream,{
       mimeType: 'audio/webm',

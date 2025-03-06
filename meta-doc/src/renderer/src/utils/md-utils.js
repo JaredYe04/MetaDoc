@@ -71,7 +71,7 @@ export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
         }
     }
 
-    console.log(outline_tree);
+    //console.log(outline_tree);
     return outline_tree//最外层节点是dummy节点
 }
 
@@ -106,7 +106,7 @@ export function generateMarkdownFromOutlineTree(outline_tree) {
             dfs(outline_tree.children[i], 1)
         }
     }
-    console.log(md);
+    //console.log(md);
     return md
 }
 
@@ -647,7 +647,7 @@ export const exportPDF = (md, style = 'github') => {
                 setTimeout(() => {
                     //鼠标设置为默认状态
                     window.print();
-                }, ${md.length});
+                }, ${md.length/2});
             };
         </script>
     `);

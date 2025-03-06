@@ -52,6 +52,8 @@ import MarkdownItEditor from 'vue3-markdown-it';
 app.component('MarkdownItEditor', MarkdownItEditor)
 import SearchReplaceMenu from './components/SearchReplaceMenu.vue';
 app.component('SearchReplaceMenu', SearchReplaceMenu)
+import MessageBubble from './components/MessageBubble.vue'
+app.component('MessageBubble',MessageBubble)
 
 app.use(ElementPlus)
 app.component('VueTree', VueTree)

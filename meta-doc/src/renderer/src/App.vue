@@ -1,11 +1,10 @@
 <!-- App.vue -->
-<template >
-  <div :style="{ 
+<template>
+  <div :style="{
     backgroundColor: themeState.currentTheme.background,
-     color: themeState.currentTheme.textColor,
-     textColor: themeState.currentTheme.textColor,
-     }"
-    >
+    color: themeState.currentTheme.textColor,
+    textColor: themeState.currentTheme.textColor,
+  }">
     <!-- 布局仅在需要时显示 -->
     <Main v-if="requiresLayout" />
     <!-- 如果不需要布局，则直接渲染路由页面 -->
@@ -22,6 +21,7 @@ import Main from './views/Main.vue'
 import eventBus from './utils/event-bus';
 import { getSetting } from './utils/settings';
 import { lightTheme, darkTheme, themeState } from './utils/themes';
+import { current_ai_dialogs } from './utils/common-data';
 const ipcRenderer = window.electron.ipcRenderer
 
 // 获取当前路由信息
@@ -51,6 +51,8 @@ onMounted(async () => {
     }
     eventBus.emit('sync-vditor-theme')//触发vditor主题同步事件
   })
+
+
   // 触发一次主题同步事件
   eventBus.emit('sync-theme')
 })

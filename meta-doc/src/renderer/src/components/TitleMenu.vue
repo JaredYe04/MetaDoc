@@ -22,6 +22,25 @@
     <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable class="inline-input" resize='none'
       style="color: black; opacity: 1;" placeholder="请输入需求" @mousedown.stop />
 
+      <div @mousedown.stop  style="align-items: center; margin-top: 20px;">
+        <!-- <span>AI参考上下文范围</span> -->
+        <el-slider v-model="context_mode" :step="1" :min="0" :max="2" style="width: 60%; display: inline-block; align-self: center; margin-left: 20%; margin-right: 20%;" show-stops
+        :marks="{0:'不参考',1:'参考本章',2:'参考全文'}" 
+        :format-tooltip="
+        (val) => {
+          if(val===0){
+            return '不参考上下文'
+          }
+          if(val===1){
+            return 'AI将会参考本章节内容'
+          }
+          if(val===2){
+            return 'AI将会参考全文内容'
+          }
+        }
+        "
+        />
+      </div>
     <div @mousedown.stop>
       <el-button circle type="primary" @click="generate" :disabled="generating || userPrompt.length === 0"><el-icon>
           <Promotion />
@@ -32,6 +51,7 @@
       <el-button circle type="success" @click="accept" v-if="generated"><el-icon>
           <Check />
         </el-icon></el-button>
+        
     </div>
 
   </div>
@@ -51,6 +71,7 @@ import eventBus from '../utils/event-bus';
 import { generateMarkdownFromOutlineTree } from '../utils/md-utils';
 import {  defineProps, defineEmits } from 'vue';
 import { themeState } from '../utils/themes';
+import { current_article } from '../utils/common-data';
 const props = defineProps({
   title: {
     type: String,
@@ -69,6 +90,7 @@ const props = defineProps({
     required: true
   }
 })
+const context_mode=ref(1);
 const presetPrompts = ref([
   {
     value: '扩写这段文字',
@@ -121,7 +143,15 @@ const accept = () => {
 const generate = async () => {
   generating.value = true;
   const outline=generateMarkdownFromOutlineTree(props.tree);
-  const prompt = sectionChangePrompt(outline, articleContent.value, props.title, userPrompt.value);
+  // console.log(outline);
+  // console.log(articleContent.value);
+  // console.log(props.title);
+  // console.log(userPrompt.value);
+  // console.log(context_mode.value);
+  // console.log(current_article.value);
+
+  const prompt = sectionChangePrompt(outline, articleContent.value, props.title, userPrompt.value,context_mode.value,current_article.value);
+  //console.log(prompt);
   await answerQuestionStream(prompt, generatedText);
   generating.value = false;
 
@@ -158,7 +188,8 @@ const menuStyles = computed(() => ({
   border: '1px solid #ccc',
   padding: '10px',
   boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',
-  maxWidth: '600px',
+  minWidth: '500px',
+  maxWidth: '800px',
   zIndex: 1000, // 保证层级
   color: themeState.currentTheme.textColor2,
   backdropFilter: 'blur(5px)',

@@ -26,12 +26,13 @@
 
 
       <div class="aero-div quick-start-container" :style="{
-        color: 'black',
+        color: themeState.currentTheme.textColor,
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
         width: '70vw',
-        background: tab === '文档信息' ? '#ADD8E61A' : '#E6E6FABB',
+        background: tab === '文档信息' ? themeState.currentTheme.quickStartBackground1 : themeState.currentTheme.quickStartBackground2,
+        
         transition: 'background 0.5s ease'
       }">
         <!-- 顶部关闭按钮 -->
@@ -48,8 +49,11 @@
           <!-- Markdown 编辑器 -->
           <div
             style="width: 70%; padding-right: 10px; max-height: 75%; min-height: 200px; overflow:hidden; flex-grow: 1;">
-            <MarkdownItEditor :source="generatedText" class="md-container" @mousedown.stop
+            <el-scrollbar >
+              <MarkdownItEditor :source="generatedText" class="md-container" @mousedown.stop
               style="width: 100%; box-shadow: none; height: 80%; overflow: auto;" />
+            </el-scrollbar>
+
           </div>
 
           <!-- 分割线 -->
@@ -64,10 +68,11 @@
               <el-segmented v-model="tab" :options="['AI助手', '文档信息']" />
             </div>
             <div
-              style="color: black; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;height: 47vh;"
+              style=" display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;height: 47vh;"
               class="aero-div" v-if="tab === '文档信息'">
               <label
                 style="width: 100%; text-align: center; align-self: center; font-weight: bold; margin-bottom: 10px;"
+                :style="{color: themeState.currentTheme.textColor}"
                 class="interactive-text">文档信息</label>
               <div style="display: flex; align-items: center; margin-bottom: 16px">
                 <label style="width: 60px; text-align: left; margin-right: 8px">标题</label>
@@ -106,24 +111,26 @@
               </div> -->
             </div>
             <div class="aero-div"
-              style="color: black; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; height: 47vh;"
+              style=" display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; height: 47vh;"
               v-if="tab === 'AI助手'">
               <label
                 style="width: 100%; text-align: center; align-self: center; font-weight: bold; margin-bottom: 10px;"
+                :style="{color: themeState.currentTheme.textColor}"
                 class="interactive-text">AI助手</label>
               <el-tooltip content="选择AI温度" placement="left">
                 <el-slider v-model="temperature" :marks="marks" :min="0" :max="100"
-                  style="margin-bottom: 20px; width: 80%; " :disabled="generated || generating" />
+                  style="margin-bottom: 20px; width: 80%; " :disabled="generated || generating"
+                  />
               </el-tooltip>
 
 
               <el-tooltip content="选择文章情感" placement="left">
-                <el-segmented v-model="mood" style="margin-bottom: 20px; background: rgba(255, 255, 255, 0.3)"
+                <el-segmented v-model="mood" style="margin-bottom: 25px; background: rgba(255, 255, 255, 0.3)"
                   :options="moodOptions" :disabled="generated || generating">
                   <template #default="{ item }">
-                    <div class="flex flex-col items-center gap-2 p-2">
-                      <el-icon size="20">
-                        <component :is="item.icon" />
+                    <div class="flex flex-col items-center gap-2 p-2" style="height: 60px; margin-top: 20px;">
+                      <el-icon :size="12">
+                        <component :is="item.icon"/>
                       </el-icon>
                       <div>{{ item.label }}</div>
                     </div>
@@ -132,7 +139,7 @@
               </el-tooltip>
               <el-tooltip content="输入提示词" placement="left">
                 <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable
-                  class="inline-input aero-input" style="color: black; opacity: 0.8;" placeholder="在此处输入文章要求"
+                  class="inline-input aero-input" style=" opacity: 0.8;" placeholder="在此处输入文章要求"
                   @mousedown.stop type="textarea" :autosize="{ minRows: 3, maxRows: 3 }" resize='none'
                   :disabled="generated || generating">
 
@@ -141,9 +148,9 @@
 
               </el-tooltip>
 
-              <VoiceInput @onSpeechRecognized="onSpeechRecognized" />
+              <VoiceInput @onSpeechRecognized="onSpeechRecognized" :disabled="generated||generating"/>
               <div class="aero-div" style="
-      height: 100px;
+      height: 150px;
       width: 80%;
       margin: 10px auto;
       display: flex;
@@ -162,7 +169,9 @@
         top: 0;
         left: 50%;
         transform: translateX(-50%);
-      ">
+      "
+      :style="{color: themeState.currentTheme.textColor}"
+      >
                   建议
                 </label>
                 <div style="position: relative; height: 60px; width: 100%;" id="suggestion-buttons">
@@ -276,6 +285,9 @@ onMounted(() => {
   applyTheme();
 });
 
+eventBus.on('reset-quickstart', () => {
+  reset();
+});
 const openRecentDoc = async () => {
 
   const enabled = (await getSetting('startupOption')) === 'lastFile'

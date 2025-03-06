@@ -6,6 +6,7 @@ import Article from '../views/Article.vue'
 import Setting from '../views/Setting.vue'
 import component from 'element-plus/es/components/tree-select/src/tree-select-option.mjs'
 import Visualize from '../views/Visualize.vue'
+import AIChat from '../views/AIChat.vue'
 const routes = [
   {
     path: '/',
@@ -36,6 +37,12 @@ const routes = [
     path:'/setting',
     name:'Setting',
     component: Setting,
+    meta: { requiresLayout: false } 
+  },
+  {
+    path:'/ai-chat',
+    name:'AIChat',
+    component: AIChat,
     meta: { requiresLayout: false } 
   },
   {

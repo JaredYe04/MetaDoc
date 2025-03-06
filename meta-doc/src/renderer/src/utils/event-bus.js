@@ -4,7 +4,6 @@
 // 使用 Vue 实例作为事件总线
 
 import mitt from 'mitt'
-import './common-data.js'
 import {
   current_file_path,
   current_outline_tree,
@@ -12,7 +11,9 @@ import {
   current_article_meta_data,
   dump2json,
   init,
-  sync
+  sync,
+  current_ai_dialogs,
+  load_from_json
 } from './common-data.js'
 import { getSetting, updateRecentDocs } from './settings.js'
 import { path } from 'd3'
@@ -35,17 +36,24 @@ eventBus.on('save', async (msg) => {
     }
   }
   sync();
-  ipcRenderer.send('save', { json: dump2json(),path:current_file_path.value ,html:await md2html(current_article.value)})
+  await ipcRenderer.send('save', { json: dump2json(),path:current_file_path.value ,html:await md2html(current_article.value)})
+  eventBus.emit('is-need-save',false)
 })
 
+eventBus.on('is-need-save', (msg) => {
+  //console.log('is-need-save',msg)
+  ipcRenderer.send('is-need-save', msg)
+})
 
 eventBus.on('save-and-quit', async () => {
   sync();
+  eventBus.emit('is-need-save',false)
   ipcRenderer.send('save-and-quit', { json: dump2json(),path:current_file_path.value ,html:await md2html(current_article.value)})
 });
 
 eventBus.on('open-doc', async (path) => {
   await init()
+  eventBus.emit('is-need-save',false)
   ipcRenderer.send('open-doc',path)
 })
 
@@ -56,6 +64,7 @@ eventBus.on('quit', () => {
 eventBus.on('save-as', async () => {
   sync();
   eventBus.emit('nav-to', '/article');
+  eventBus.emit('is-need-save',false)
   ipcRenderer.send('save-as', { json: dump2json() ,path:'',html:await md2html(current_article.value)}) 
 })
 
@@ -105,7 +114,9 @@ eventBus.on('export', async (format) => {
 eventBus.on('setting',()=>{
   ipcRenderer.send('setting')
 })
-
+eventBus.on('ai-chat',()=>{
+  ipcRenderer.send('ai-chat')
+})
 eventBus.on('system-notification',(data)=>{
   //console.log(data)
   ipcRenderer.send('system-notification',data)
@@ -116,14 +127,71 @@ eventBus.on('theme-changed',()=>{
   ipcRenderer.send('request-sync-theme')
 })
 
+eventBus.on('sync-ai-dialogs', (dialogs) => {//只能由AICHAT组件触发
+  ipcRenderer.send('sync-ai-dialogs',dialogs)
+})
+ipcRenderer.on('sync-ai-dialogs', (event,dialogs) => {//只能由主进程发送给主渲染进程
+  current_ai_dialogs.value=dialogs
+})
+
+
+eventBus.on('fetch-ai-dialogs',()=>{//(这个事件只会被AICHAT组件触发)
+  //console.log('fetch-ai-dialogs')
+  ipcRenderer.send('fetch-ai-dialogs')//请求主进程获取对话数据
+})
+ipcRenderer.on('request-ai-dialogs',(event)=>{//主渲染进程接收到请求，返回对话数据给主进程，再由主进程转发给AICHAT组件
+  //console.log('我把对话数据返回给主进程了')
+  //console.log(JSON.parse(JSON.stringify(current_ai_dialogs.value)))
+  ipcRenderer.send('response-ai-dialogs',JSON.parse(JSON.stringify(current_ai_dialogs.value)))
+})
+ipcRenderer.on('response-ai-dialogs',(event,dialogs)=>{//主进程发送给AICHAT组件对话数据
+  //console.log('我收到了对话数据',dialogs)
+  current_ai_dialogs.value=dialogs
+})
+
+
+ipcRenderer.on('fetch-ai-dialogs',(event,dialogs)=>{
+  //todo
+})
 
 import { lightTheme, darkTheme, themeState } from './themes.js'
 
+import { ElMessage } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 
 ipcRenderer.on('os-theme-changed', (event) => {
   eventBus.emit('theme-changed')
   eventBus.emit('sync-theme')
 
+})
+ipcRenderer.on('close-triggered', () => {
+    //询问是否保存，有保存，放弃三个按钮
+    ElMessageBox.confirm(
+      '是否要保存当前文档？',
+      '提示',
+      {
+        confirmButtonText: '保存',
+        cancelButtonText: '放弃',
+        showCancelButton: true,
+        distinguishCancelAndClose: true,
+        type: 'info',
+      }
+    )
+      .then(() => {
+        eventBus.emit('is-need-save',false)
+        eventBus.emit('save-and-quit')
+      })
+      .catch((action) => {
+        // eventBus.emit('is-need-save',false)
+        // eventBus.emit('quit')
+        if(action==='cancel'){
+        eventBus.emit('is-need-save',false)
+        eventBus.emit('quit')
+        }
+        else{
+          eventBus.emit('is-need-save',true)
+        }
+      })
 })
 
 ipcRenderer.on('sync-theme', (event) => {
@@ -163,16 +231,8 @@ ipcRenderer.on('search-replace-triggered',()=>{
 })
 
 ipcRenderer.on('open-doc-success', (event, data) => {
-  const obj = JSON.parse(data)
-  //console.log(obj)
-  //console.log(current_file_path)
-  current_outline_tree.value = JSON.parse(JSON.stringify(obj.current_outline_tree))
-  //console.log(current_outline_tree)
-  current_article.value = obj.current_article
-  //console.log(current_article)
-  current_article_meta_data.value = JSON.parse(JSON.stringify(obj.current_article_meta_data))
-  //console.log(current_article_meta_data)
-  
+
+  load_from_json(data)
   eventBus.emit('refresh')//加载完之后进行刷新
   eventBus.emit('open-doc-success', data)
   //eventBus.emit('refresh')

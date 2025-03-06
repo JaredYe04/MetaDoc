@@ -121,6 +121,10 @@ const generatePie = async () => {
     let outline = current_outline_tree.value;
     // if(outline.path==='dummy')
     //     outline=outline.children[0];
+    //如果只有一个子节点，那么就直接用这个子节点
+    if (outline.children.length === 1) {
+        outline = outline.children[0];
+    }
     const dfs = (node) => {
         let cnt = node.title.length + node.text.length;
         for (let i = 0; i < node.children.length; i++) {
@@ -227,7 +231,7 @@ const generateWordCloud = async () => {
         // .style('opacity', 0) // 逐渐将透明度设置为 0
         .remove(); // 动画完成后移除元素
     const max_freq = wordCount.value.reduce((prev, cur) => prev.size > cur.size ? prev : cur).size;
-    console.log(max_freq);
+    //console.log(max_freq);
     const layout = cloud()
         .size([600, 600]) // 词云图的宽高
         .words(

@@ -17,7 +17,10 @@ export const lightTheme = {
     codeTheme: 'github',
     titleMenuBackground:'#E6E6FABB',
     outlineBackground:'#4c78a8',
-    outlineNode : '#9ecae9'
+    outlineNode : '#9ecae9',
+    quickStartBackground1:'#ADD8E61A',
+    quickStartBackground2:'#E6E6FABB',
+    mdeditorClass:'md-editor',
   };
   
 export const darkTheme = {
@@ -36,7 +39,10 @@ export const darkTheme = {
     codeTheme: 'a11y-dark',
     titleMenuBackground:'#111111AA',
     outlineBackground:'#bab0ac',
-    outlineNode : '#79706e'
+    outlineNode : '#79706e',
+    quickStartBackground1:'#66333311',
+    quickStartBackground2:'#33336611',
+    mdeditorClass:'md-editor-dark',
   };
   
 

@@ -1,99 +1,115 @@
 <template>
 
-    <div class="content-container">
-        <!-- 左边：Vditor Markdown 编辑器 -->
-        <!-- 菜单组件 -->
-        <TitleMenu v-if="showTitleMenu" :title="currentTitle.replaceAll('#', '').trim()" :position="menuPosition"
-            @close="handleTitleMenuClose" :path="currentTitlePath"
-            :tree="extractOutlineTreeFromMarkdown(current_article, true)" @accept="async (content) => {
-                await acceptGeneratedText(content);
-            }" style="max-width: 500px;" />
-        <SearchReplaceMenu v-if="searchReplaceDialogVisible" @close="searchReplaceDialogVisible = false"
-            :position="SRMenuPosition" />
+    <div class="main-container">
+        <div class="content-container">
+            <!-- 左边：Vditor Markdown 编辑器 -->
+            <!-- 菜单组件 -->
+            <TitleMenu v-if="showTitleMenu" :title="currentTitle.replaceAll('#', '').trim()" :position="menuPosition"
+                @close="handleTitleMenuClose" :path="currentTitlePath"
+                :tree="extractOutlineTreeFromMarkdown(current_article, true)" @accept="async (content) => {
+                    await acceptGeneratedText(content);
+                }" style="max-width: 500px;" />
+            <SearchReplaceMenu v-if="searchReplaceDialogVisible" @close="searchReplaceDialogVisible = false"
+                :position="SRMenuPosition" />
 
-        <!-- 右键菜单组件 -->
-        <ContextMenu :x="menuX" :y="menuY" :selection="getSelection()" v-if="contextMenuVisible"
-            @trigger="handleMenuClick" class="context-menu" @close="contextMenuVisible = false;" @insert="insertText" />
+            <!-- 右键菜单组件 -->
+            <ContextMenu :x="menuX" :y="menuY" :selection="getSelection()" v-if="contextMenuVisible"
+                @trigger="handleMenuClick" class="context-menu" @close="contextMenuVisible = false;"
+                @insert="insertText" />
 
 
 
-        <div id="vditor" class="editor" v-loading="loading" @keydown="handleTab"
-            @contextmenu.prevent="openContextMenu($event)">
-        </div>
+            <div id="vditor" class="editor" v-loading="loading" @keydown="handleTab"
+                @contextmenu.prevent="openContextMenu($event)">
+            </div>
 
-        <!-- 右边：元信息显示 -->
-        <div class="meta-info" :style="{ backgroundColor: themeState.currentTheme.background2nd }">
+            <!-- 右边：元信息显示 -->
+            <div class="meta-info" :style="{ backgroundColor: themeState.currentTheme.background2nd }">
 
-            <div style="text-align: center; font-size: large;">
-                <el-tooltip content="编辑文档元信息" placement="left">
-                    <h1 class="interactive-text" @click="showMetaDialog"
-                        :style="{ color: themeState.currentTheme.textColor }">文档元信息</h1>
+                <div style="text-align: center; font-size: large;">
+                    <el-tooltip content="编辑文档元信息" placement="left">
+                        <h1 class="interactive-text" @click="showMetaDialog"
+                            :style="{ color: themeState.currentTheme.textColor }">文档元信息</h1>
+                    </el-tooltip>
+
+                </div>
+                <el-tooltip content="单击修改标题" placement="left">
+                    <h1 @click="genTitleDialogVisible = !genTitleDialogVisible" class="interactive-text"
+                        :style="{ color: themeState.currentTheme.textColor }">标题：{{ meta.title ||
+                            '无标题' }}
+                    </h1>
                 </el-tooltip>
 
+                <LlmDialog v-if="genTitleDialogVisible"
+                    :prompt="generateTitlePrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
+                    title="生成标题" :llmConfig="{ max_tokens: 15, temperature: 0.0 }" @llm-content-accept="(content) => {
+                        meta.title = content;
+                        genTitleDialogVisible = false;
+                    }" @update:visible="genTitleDialogVisible = $event; genTitleDialogVisible = false"
+                    :defaultText="meta.title" :defaultInputSize="1"></LlmDialog>
+
+                <el-tooltip content="单击修改作者" placement="left">
+                    <p @click="modifyAuthorDialogVisible = !modifyAuthorDialogVisible" class="interactive-text"
+                        :style="{ color: themeState.currentTheme.textColor }">
+                        <strong>作者：</strong>{{ meta.author || '未填写' }}
+                    </p>
+                </el-tooltip>
+
+                <LlmDialog v-if="modifyAuthorDialogVisible" :prompt="''" title="修改作者" :llmConfig="{}"
+                    @llm-content-accept="(content) => {
+                        meta.author = content;
+                        modifyAuthorDialogVisible = false;
+                    }" @update:visible="modifyAuthorDialogVisible = $event; modifyAuthorDialogVisible = false"
+                    :defaultText="meta.author" :defaultInputSize="1"></LlmDialog>
+
+
+
+                <el-tooltip content="单击修改文章摘要" placement="left">
+                    <p @click="genDescriptionDialogVisible = !genDescriptionDialogVisible" class="interactive-text"
+                        :style="{ color: themeState.currentTheme.textColor }">
+                        <strong>摘要：</strong>{{ meta.description || '暂无摘要' }}
+                    </p>
+                </el-tooltip>
+
+                <LlmDialog v-if="genDescriptionDialogVisible"
+                    :prompt="generateDescriptionPrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
+                    title="生成摘要" :llmConfig="{ max_tokens: 100, temperature: 0.0 }" @llm-content-accept="(content) => {
+                        meta.description = content;
+                        genDescriptionDialogVisible = false;
+                    }" @update:visible="genDescriptionDialogVisible = $event; genDescriptionDialogVisible = false"
+                    :defaultText="meta.description" :defaultInputSize="10"></LlmDialog>
+
             </div>
-            <el-tooltip content="单击修改标题" placement="left">
-                <h1 @click="genTitleDialogVisible = !genTitleDialogVisible" class="interactive-text"
-                    :style="{ color: themeState.currentTheme.textColor }">标题：{{ meta.title ||
-                        '无标题' }}
-                </h1>
-            </el-tooltip>
 
-            <LlmDialog v-if="genTitleDialogVisible"
-                :prompt="generateTitlePrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
-                title="生成标题" :llmConfig="{ max_tokens: 15, temperature: 0.0 }" @llm-content-accept="(content) => {
-                    meta.title = content;
-                    genTitleDialogVisible = false;
-                }" @update:visible="genTitleDialogVisible = $event; genTitleDialogVisible = false"
-                :defaultText="meta.title" :defaultInputSize="1"></LlmDialog>
+            <el-dialog v-model="editMetaDialogVisible" title="修改文章元信息" width="30%">
+                <el-form>
+                    <el-form-item label="标题">
+                        <el-input v-model="meta.title" autocomplete="off" class="aero-input" />
+                    </el-form-item>
+                    <el-form-item label="作者">
+                        <el-input v-model="meta.author" autocomplete="off" class="aero-input" />
+                    </el-form-item>
+                    <el-form-item label="摘要">
+                        <el-input type="textarea" placeholder="请输入文章摘要" v-model="meta.description" autocomplete="off"
+                            resize='none' :autoSize="{ minRows: 3, maxRows: 5 }" class="aero-input" />
+                    </el-form-item>
+                </el-form>
+            </el-dialog>
 
-            <el-tooltip content="单击修改作者" placement="left">
-                <p @click="modifyAuthorDialogVisible = !modifyAuthorDialogVisible" class="interactive-text"
-                    :style="{ color: themeState.currentTheme.textColor }">
-                    <strong>作者：</strong>{{ meta.author || '未填写' }}
-                </p>
-            </el-tooltip>
-
-            <LlmDialog v-if="modifyAuthorDialogVisible" :prompt="''" title="修改作者" :llmConfig="{}" @llm-content-accept="(content) => {
-                meta.author = content;
-                modifyAuthorDialogVisible = false;
-            }" @update:visible="modifyAuthorDialogVisible = $event; modifyAuthorDialogVisible = false"
-                :defaultText="meta.author" :defaultInputSize="1"></LlmDialog>
+            <!-- 添加一个底部菜单，width占满整个父容器，显示编辑器的一些元信息，例如总字数，鼠标位置 -->
 
 
 
-            <el-tooltip content="单击修改文章摘要" placement="left">
-                <p @click="genDescriptionDialogVisible = !genDescriptionDialogVisible" class="interactive-text"
-                    :style="{ color: themeState.currentTheme.textColor }">
-                    <strong>摘要：</strong>{{ meta.description || '暂无摘要' }}
-                </p>
-            </el-tooltip>
-
-            <LlmDialog v-if="genDescriptionDialogVisible"
-                :prompt="generateDescriptionPrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
-                title="生成摘要" :llmConfig="{ max_tokens: 100, temperature: 0.0 }" @llm-content-accept="(content) => {
-                    meta.description = content;
-                    genDescriptionDialogVisible = false;
-                }" @update:visible="genDescriptionDialogVisible = $event; genDescriptionDialogVisible = false"
-                :defaultText="meta.description" :defaultInputSize="10"></LlmDialog>
 
         </div>
-
-        <el-dialog v-model="editMetaDialogVisible" title="修改文章元信息" width="30%">
-            <el-form>
-                <el-form-item label="标题">
-                    <el-input v-model="meta.title" autocomplete="off" class="aero-input" />
-                </el-form-item>
-                <el-form-item label="作者">
-                    <el-input v-model="meta.author" autocomplete="off" class="aero-input" />
-                </el-form-item>
-                <el-form-item label="摘要">
-                    <el-input type="textarea" placeholder="请输入文章摘要" v-model="meta.description" autocomplete="off"
-                        resize='none' :autoSize="{ minRows: 3, maxRows: 5 }" class="aero-input" />
-                </el-form-item>
-            </el-form>
-        </el-dialog>
-
+        <!-- <div class="footer-menu" :style="{ backgroundColor: themeState.currentTheme.background2nd }">
+            <div class="meta-info-menu" :style="{ color: themeState.currentTheme.textColor }">
+                <span>字数：{{ countNodes(current_article) }}</span>
+                <span>鼠标位置：{{ menuPosition.left }}, {{ menuPosition.top }}</span>
+            </div>
+        </div> -->
     </div>
+
 
 </template>
 
@@ -215,14 +231,15 @@ eventBus.on('refresh', () => {
 
 
 eventBus.on('search-replace', () => {
-    console.log('search-replace');
+    //console.log('search-replace');
     searchReplaceDialogVisible.value = true;
 });
-eventBus.on('vditor-sync-with-html',() => {
-    const html=vditor.value.getHTML();
+eventBus.on('vditor-sync-with-html', () => {
+    const html = vditor.value.getHTML();
     //console.log(html);
+    //console.log(vditor.value.html2md(html))
     vditor.value.setValue(vditor.value.html2md(html), true);
-    current_article.value=vditor.value.getValue();
+    current_article.value = vditor.value.getValue();
 });
 
 
@@ -234,6 +251,7 @@ const acceptGeneratedText = async (content) => {
     node.text = content;
     current_outline_tree.value = outlineTree;
     latest_view.value = 'outline';
+    eventBus.emit('is-need-save',true)
     sync();
     vditor.value.setValue(current_article.value);
 };
@@ -389,6 +407,7 @@ onMounted(() => {
             current_article.value = value;
             //console.log(current_article.value)
             latest_view.value = 'article';
+            eventBus.emit('is-need-save',true)
             sync();
             await bindTitleMenu();
 
@@ -408,6 +427,7 @@ onMounted(() => {
 
 // 清理资源
 onBeforeUnmount(() => {
+    eventBus.emit('is-need-save',true)
     sync();
     vditor.value.destroy();
 });
@@ -419,22 +439,29 @@ eventBus.on('sync-vditor-theme', async () => {
 </script>
 
 <style scoped>
+
 .meta-info-menu {
     display: flex;
     justify-content: center;
     align-items: center;
     align-self: center;
 }
-
+.footer-menu{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-top: 1px solid #ddd;
+    background-color: #fff;
+}
 
 /* 上下两部分 */
 .content-container {
     display: flex;
     flex: 1;
     /*占满整个父容器 */
-    height: 90vh;
-    overflow: hidden;
-
+    max-height: 92vh;
+    height: 92vh;
+    
     /* 唯一允许滚动的区域 */
 
 }
@@ -442,7 +469,6 @@ eventBus.on('sync-vditor-theme', async () => {
 /* 左边的编辑器样式 */
 .editor {
     flex: 4;
-
     border-right: 1px solid #ddd;
 }
 

@@ -1,0 +1,33 @@
+
+.input-box {
+    font-family: "Microsoft YaHei", system-ui;
+  width: 100%;
+
+  max-width: 600px;
+  padding: 10px 20px;
+  border: 2px solid #ccc;
+  border-radius: 50px; /* Բ�������� */
+  font-size: 16px;
+  overflow: auto;
+  outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s; /* �ӳ�Ч�� */
+  box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); /* ��ʼ����Ӱ */
+}
+
+/* �����ͣʱ��Ч�� */
+.input-box:hover {
+  border-color: rgba(83, 109, 254, 0.34); /* �ı�߿���ɫ */
+  box-shadow: 0 0 8px rgba(83, 109, 254, 0.26); /* ������Ӱ */
+}
+
+/* ���ʱ��Ч�� */
+.input-box:focus {
+  border-color: #380faf; /* �ı�߿���ɫ */
+  box-shadow: 0 0 12px rgba(67, 10, 241, 0.5); /* ������ӰЧ�� */
+}
+
+el-input{
+  border-radius: 30px;
+  font-family: "Microsoft YaHei", system-ui;
+  transition: border-color 0.3s, box-shadow 0.3s, color 0.3s;
+}

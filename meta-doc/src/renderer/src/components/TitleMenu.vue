@@ -8,13 +8,13 @@
     </div>
 
 
-    <p style="font-weight: bold;" @mousedown.stop  > {{ props.title ? props.title : "标题" }}</p>
+    <p style="font-weight: bold;" @mousedown.stop> {{ props.title ? props.title : "标题" }}</p>
 
     <el-scrollbar class="md-container" v-if="!generated && !generating" @mousedown.stop style="  max-height: 35vh;">
-      <MarkdownItEditor :source="articleContent"/>
+      <MarkdownItEditor :source="articleContent" />
     </el-scrollbar>
-    
-    <el-scrollbar class="md-container"  v-if="generated || generating" @mousedown.stop style="  max-height: 35vh;">
+
+    <el-scrollbar class="md-container" v-if="generated || generating" @mousedown.stop style="  max-height: 35vh;">
       <MarkdownItEditor :source="generatedText" />
     </el-scrollbar>
 
@@ -22,36 +22,47 @@
     <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable class="inline-input" resize='none'
       style="color: black; opacity: 1;" placeholder="请输入需求" @mousedown.stop />
 
-      <div @mousedown.stop  style="align-items: center; margin-top: 20px;">
-        <!-- <span>AI参考上下文范围</span> -->
-        <el-slider v-model="context_mode" :step="1" :min="0" :max="2" style="width: 60%; display: inline-block; align-self: center; margin-left: 20%; margin-right: 20%;" show-stops
-        :marks="{0:'不参考',1:'参考本章',2:'参考全文'}" 
-        :format-tooltip="
-        (val) => {
-          if(val===0){
-            return '不参考上下文'
+    <div @mousedown.stop style="align-items: center; margin-top: 20px;">
+      <!-- <span>AI参考上下文范围</span> -->
+      <el-slider v-model="context_mode" :step="1" :min="0" :max="2"
+        style="width: 60%; display: inline-block; align-self: center; margin-left: 20%; margin-right: 20%;" show-stops
+        :marks="{ 0: '不参考', 1: '参考本章', 2: '参考全文' }" :format-tooltip="(val) => {
+            if (val === 0) {
+              return '不参考上下文'
+            }
+            if (val === 1) {
+              return 'AI将会参考本章节内容'
+            }
+            if (val === 2) {
+              return 'AI将会参考全文内容'
+            }
           }
-          if(val===1){
-            return 'AI将会参考本章节内容'
-          }
-          if(val===2){
-            return 'AI将会参考全文内容'
-          }
-        }
-        "
-        />
-      </div>
+          " />
+    </div>
     <div @mousedown.stop>
-      <el-button circle type="primary" @click="generate" :disabled="generating || userPrompt.length === 0"><el-icon>
-          <Promotion />
-        </el-icon></el-button>
-      <el-button circle type="info" @click="reset" v-if="generated"><el-icon>
-          <RefreshLeft />
-        </el-icon></el-button>
-      <el-button circle type="success" @click="accept" v-if="generated"><el-icon>
-          <Check />
-        </el-icon></el-button>
-        
+
+      <el-tooltip content="生成" placement="top">
+        <el-button circle type="primary" @click="generate" :disabled="generating || userPrompt.length === 0"><el-icon>
+            <Promotion />
+          </el-icon></el-button>
+      </el-tooltip>
+      <el-tooltip content="重置" placement="top">
+        <el-button circle type="info" @click="reset" v-if="generated"><el-icon>
+            <RefreshLeft />
+          </el-icon></el-button>
+      </el-tooltip>
+      <el-tooltip content="转换成长对话" placement="top">
+        <el-button circle type="info" @click="chat" v-if="generated"><el-icon>
+            <ChatLineRound />
+          </el-icon></el-button>
+      </el-tooltip>
+
+      <el-tooltip content="接受" placement="top">
+        <el-button circle type="success" @click="accept" v-if="generated"><el-icon>
+            <Check />
+          </el-icon></el-button>
+      </el-tooltip>
+
     </div>
 
   </div>
@@ -61,7 +72,7 @@
 import { ElButton, ElDialog } from 'element-plus' // 引入 Element Plus 按钮和弹框组件
 import MarkdownItEditor from 'vue3-markdown-it';
 import { computed, onMounted } from 'vue';
-import { latest_view, searchNode } from '../utils/common-data';
+import { defaultAiChatMessages, latest_view, searchNode } from '../utils/common-data';
 import { sync, current_outline_tree } from '../utils/common-data';
 import { ref, watch } from 'vue';
 import { max } from 'd3';
@@ -69,7 +80,7 @@ import { sectionChangePrompt } from '../utils/prompts';
 import { answerQuestionStream } from '../utils/llm-api';
 import eventBus from '../utils/event-bus';
 import { generateMarkdownFromOutlineTree } from '../utils/md-utils';
-import {  defineProps, defineEmits } from 'vue';
+import { defineProps, defineEmits } from 'vue';
 import { themeState } from '../utils/themes';
 import { current_article } from '../utils/common-data';
 const props = defineProps({
@@ -90,7 +101,7 @@ const props = defineProps({
     required: true
   }
 })
-const context_mode=ref(1);
+const context_mode = ref(1);
 const presetPrompts = ref([
   {
     value: '扩写这段文字',
@@ -113,10 +124,10 @@ const presetPrompts = ref([
     label: '校对修改'
   },
   {
-    value:'根据本段内容，生成一张mermaid流程图，使用代码框包裹'
+    value: '根据本段内容，生成一张mermaid流程图，使用代码框包裹'
   },
   {
-    value:'根据文章结构，生成一张mermaid思维导图，使用代码框包裹'
+    value: '根据文章结构，生成一张mermaid思维导图，使用代码框包裹'
   }
 ])
 
@@ -142,7 +153,7 @@ const accept = () => {
 }
 const generate = async () => {
   generating.value = true;
-  const outline=generateMarkdownFromOutlineTree(props.tree);
+  const outline = generateMarkdownFromOutlineTree(props.tree);
   // console.log(outline);
   // console.log(articleContent.value);
   // console.log(props.title);
@@ -150,13 +161,34 @@ const generate = async () => {
   // console.log(context_mode.value);
   // console.log(current_article.value);
 
-  const prompt = sectionChangePrompt(outline, articleContent.value, props.title, userPrompt.value,context_mode.value,current_article.value);
+  const prompt = sectionChangePrompt(outline, articleContent.value, props.title, userPrompt.value, context_mode.value, current_article.value);
   //console.log(prompt);
   await answerQuestionStream(prompt, generatedText);
   generating.value = false;
 
   generated.value = true;
 }
+const chat = async () => {
+  const outline = generateMarkdownFromOutlineTree(props.tree);
+  const prompt = sectionChangePrompt(outline, articleContent.value, props.title, userPrompt.value, context_mode.value, current_article.value);
+  let messages = [...defaultAiChatMessages]
+  messages.push({
+    role: 'user',
+    content: prompt
+  })
+  messages.push({
+    role: 'assistant',
+    content: generatedText.value
+  })
+  const newDialog = {
+    title: title,
+    messages: messages
+  };
+  addDialog(newDialog,true)
+  eventBus.emit('ai-chat');//触发开始长对话事件
+
+}
+
 const querySearch = (queryString, cb) => {
   const createFilter = (queryString) => {
     return (preset) => {
@@ -193,7 +225,7 @@ const menuStyles = computed(() => ({
   zIndex: 1000, // 保证层级
   color: themeState.currentTheme.textColor2,
   backdropFilter: 'blur(5px)',
-  background:  themeState.currentTheme.titleMenuBackground,
+  background: themeState.currentTheme.titleMenuBackground,
 }));
 const refreshContent = () => {
   articleContent.value = searchNode(props.path, current_outline_tree.value).text;

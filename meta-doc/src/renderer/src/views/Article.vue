@@ -123,8 +123,8 @@ import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
 import "../assets/title-menu.css";
 import eventBus from '../utils/event-bus';
-import { generateDescriptionPrompt, generateTitlePrompt } from '../utils/prompts';
-import { countNodes, current_article, current_article_meta_data, latest_view, renderedHtml, searchNode, sync } from "../utils/common-data";
+import { generateDescriptionPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
+import { addDialog, countNodes, current_article, current_article_meta_data, defaultAiChatMessages, latest_view, renderedHtml, searchNode, sync } from "../utils/common-data";
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
 import { current_outline_tree } from '../utils/common-data';
 import LlmDialog from "../components/LlmDialog.vue";
@@ -187,7 +187,21 @@ const updateValue = (value) => {
 const handleMenuClick = async (item) => {
     switch (item) {
         case 'ai-assistant':
-            insertText('询问AI');
+            let messages = []
+            messages.push({
+                role: 'system',
+                content: wholeArticleContextPrompt(current_article.value)
+            })
+            messages.push({
+                role: 'assistant',
+                content: "我已经了解了整篇文章的内容，有什么可以帮助您的吗？"
+            })
+            const newDialog = {
+                title: "AI分析整篇文章",
+                messages: messages
+            };
+            addDialog(newDialog,true)
+            eventBus.emit('ai-chat')
             break;
         case 'cut':
             insertText("a");
@@ -251,7 +265,7 @@ const acceptGeneratedText = async (content) => {
     node.text = content;
     current_outline_tree.value = outlineTree;
     latest_view.value = 'outline';
-    eventBus.emit('is-need-save',true)
+    eventBus.emit('is-need-save', true)
     sync();
     vditor.value.setValue(current_article.value);
 };
@@ -407,7 +421,7 @@ onMounted(() => {
             current_article.value = value;
             //console.log(current_article.value)
             latest_view.value = 'article';
-            eventBus.emit('is-need-save',true)
+            eventBus.emit('is-need-save', true)
             sync();
             await bindTitleMenu();
 
@@ -427,7 +441,7 @@ onMounted(() => {
 
 // 清理资源
 onBeforeUnmount(() => {
-    eventBus.emit('is-need-save',true)
+    eventBus.emit('is-need-save', true)
     sync();
     vditor.value.destroy();
 });
@@ -439,14 +453,14 @@ eventBus.on('sync-vditor-theme', async () => {
 </script>
 
 <style scoped>
-
 .meta-info-menu {
     display: flex;
     justify-content: center;
     align-items: center;
     align-self: center;
 }
-.footer-menu{
+
+.footer-menu {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -461,7 +475,7 @@ eventBus.on('sync-vditor-theme', async () => {
     /*占满整个父容器 */
     max-height: 92vh;
     height: 92vh;
-    
+
     /* 唯一允许滚动的区域 */
 
 }

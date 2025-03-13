@@ -4,11 +4,75 @@ import Vditor from "vditor"
 import { renderedHtml } from "./common-data"
 import eventBus from "./event-bus"
 import { getImagePath } from "./settings"
+// 1. 从 Markdown 文本中提取所有标题，生成大纲树，同时记录 title_level
+
+export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
+    const lines = md.split('\n');
+    // 虚拟根节点，title_level 为 0，表示最低级别
+    const root = {
+        title: '',
+        title_level: 0,
+        path: 'dummy',
+        text: '',
+        children: []
+    };
+
+    // 栈初始化，起始只有根节点
+    let stack = [root];
+
+    // 遍历每一行
+    for (let line of lines) {
+        // 匹配标题行：匹配1个或多个 '#' 后跟空格，再匹配标题文本
+        const match = line.match(/^(#+)\s+(.*)/);
+        if (match) {
+            const hashes = match[1];
+            const title = match[2];
+            const level = hashes.length;  // 标题等级
+
+            const new_node = {
+                title: title,
+                title_level: level,
+                path: '',
+                text: '',
+                children: []
+            };
+
+            // 如果当前栈顶节点的 title_level >= 当前标题等级，则不断弹出，直到找到父节点
+            while (stack.length > 0 && stack[stack.length - 1].title_level >= level) {
+                stack.pop();
+            }
+            // 此时栈顶的节点即为新节点的父节点
+            stack[stack.length - 1].children.push(new_node);
+            // 将新节点入栈
+            stack.push(new_node);
+        } else {
+            // 非标题行，追加到当前节点的 text 中
+            if (!bypassText) {
+                stack[stack.length - 1].text += line + '\n';
+            }
+        }
+    }
+
+    // 根据大纲树生成路径（采用简单的广度优先遍历）
+    for (let i = 0; i < root.children.length; i++) {
+        root.children[i].path = `${i + 1}`;
+    }
+    let queue = [...root.children];
+    while (queue.length > 0) {
+        const node = queue.shift();
+        for (let i = 0; i < node.children.length; i++) {
+            node.children[i].path = node.path + '.' + (i + 1);
+            queue.push(node.children[i]);
+        }
+    }
+
+    return root;
+}
 
 
 // 1. 从Markdown文本中提取所有标题，生成大纲树
 
-export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
+export function extractOutlineTreeFromMarkdownLegacy(md, bypassText = false) {
     const lines = md.split('\n')
     //console.log(lines);
     const outline_tree = {
@@ -75,10 +139,49 @@ export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
     return outline_tree//最外层节点是dummy节点
 }
 
+// 2. 从大纲树生成 Markdown 文本
+
+export function generateMarkdownFromOutlineTree(outline_tree) {
+    let md = '';
+    // 深度优先遍历生成 Markdown
+    function dfs(node) {
+        // 如果是非虚拟根节点，则生成标题行
+        
+        //如果老文档，node.title_level不存在，则根据path里面出现的"."的个数来判断
+        if(node.title_level==undefined||node.title_level==null){
+            //如果是无.，则是1级标题，如果类似于"1.1"，则是2级标题
+            node.title_level=node.path.split('.').length
+        }
+
+        if (node.title && node.title_level > 0) {
+            md += '#'.repeat(node.title_level) + ' ' + node.title + '\n';
+            md += node.text;
+            // 保证末尾有换行符
+            if (node.text === '' || node.text[node.text.length - 1] !== '\n') {
+                md += '\n';
+            }
+        } else {
+            // 如果是虚拟根节点，也可以输出其 text（如果有的话）
+            if (node.text) {
+                md += node.text + '\n';
+            }
+        }
+        // 遍历子节点
+        if (node.children && Array.isArray(node.children)){
+            for (let child of node.children) {
+                dfs(child);
+            }
+        }
+
+    }
+    
+    dfs(outline_tree);
+    return md;
+}
 
 // 2. 从大纲树生成Markdown文本
 
-export function generateMarkdownFromOutlineTree(outline_tree) {
+export function generateMarkdownFromOutlineTreeLegacy(outline_tree) {
     //console.log(outline_tree);
     let md = ''
     function dfs(node, level) {

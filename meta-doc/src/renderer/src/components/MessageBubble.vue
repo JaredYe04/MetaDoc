@@ -93,7 +93,7 @@ const saveEdit=()=>{
             }"
             :class="themeState.currentTheme.mdeditorClass"
             :codeFold="false"
-            autoFoldThreshold=300
+            :autoFoldThreshold="300"
         />
 <!--      <markdown-it :source="content" />-->
     </div>
@@ -112,6 +112,7 @@ const saveEdit=()=>{
       codeStyleReverse
       style="text-align: left"
       :autoFoldThreshold="300"
+      :theme="themeState.currentTheme.vditorTheme"
     />
 
     <template #footer>
@@ -134,11 +135,12 @@ const saveEdit=()=>{
   display: flex;
   align-items: flex-start;
   position: relative;
+  margin-left: 30px;
+  margin-right: 30px;
 }
 .bubble-content:hover{
-    transform: scale(1.003);
     border-color: rgba(48, 162, 255, 0.42); /* 改变边框颜色 */
-    box-shadow: 0 0 8px rgba(83, 109, 254, 0.26); /* 加入阴影 */
+    box-shadow: 0 0 8px rgba(83, 109, 254, 0.46); /* 加入阴影 */
 }
 .bubble-content {
 

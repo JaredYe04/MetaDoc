@@ -24,16 +24,9 @@
       :class="{ disabled: isRecording }"
       :style="{ cursor: isRecording ? 'not-allowed' : 'pointer', color: isRecording ? '#ccc' : 'black' }"
     >
-      询问AI
+      AI全文分析
     </div>
-    <!-- <div 
-      class="menu-item" 
-      @mousedown="onMenuItemClick('cut')" 
-      :class="{ disabled: isRecording }"
-      :style="{ cursor: isRecording ? 'not-allowed' : 'pointer', color: isRecording ? '#ccc' : 'black' }"
-    >
-      剪切
-    </div> -->
+
     <div 
       class="menu-item" 
       @mousedown="onMenuItemClick('copy')" 
@@ -129,32 +122,6 @@ const menuStyles = computed(() => ({
   backdropFilter: 'blur(40px)'
 }));
 
-// const menuPosition = ref({ top: props.position.top, left: props.position.left });
-// const isDragging = ref(false);
-// const dragStart = ref({ x: 0, y: 0 });
-// const onMouseDown = (event) => {
-//   isDragging.value = true;
-//   dragStart.value = {
-//     x: event.clientX - menuPosition.value.left,
-//     y: event.clientY - menuPosition.value.top,
-//   };
-//   document.addEventListener("mousemove", onMouseMove);
-//   document.addEventListener("mouseup", onMouseUp);
-// };
-
-// const onMouseMove = (event) => {
-//   if (!isDragging.value) return;
-//   menuPosition.value = {
-//     top: event.clientY - dragStart.value.y,
-//     left: event.clientX - dragStart.value.x,
-//   };
-// };
-
-// const onMouseUp = () => {
-//   isDragging.value = false;
-//   document.removeEventListener("mousemove", onMouseMove);
-//   document.removeEventListener("mouseup", onMouseUp);
-// };
 
 const emit = defineEmits(["trigger", "close","insert"]);
 

@@ -5,25 +5,40 @@ const default_outline_tree = {
   path: 'dummy',
   title: '',
   text: '',
+  title_level: 0,
   children: [{
     path: '1',
     title: '新文档',
     text: '',
+    title_level: 1,
     children: [
-      { title: '引言', path: '1.1',text:'', children: [] },
-      { title: '第一章：概述', path: '1.2',text:'', children: [] },
+      { title: '引言', path: '1.1',text:'', children: [] ,title_level: 2,},
+      { title: '第一章：概述', path: '1.2',text:'', children: [] ,title_level: 2},
       {
         title: '第二章：实现',
         path: '1.3',
         text:'',
+        title_level: 2,
         children: [
-          { title: '2.1 实现细节', path: '1.3.1',text:'', children: [] },
-          { title: '2.2 实现步骤', path: '1.3.2',text:'', children: [] }
+          { title: '2.1 实现细节', path: '1.3.1',text:'', children: [] ,title_level: 3},
+          { title: '2.2 实现步骤', path: '1.3.2',text:'', children: [] ,title_level: 3}
         ]
       }
     ]
   }]
 }
+export const default_resp='### 你好！我是你的AI文档助手！\n告诉我你的任何需求，我会尝试解决。\n';
+export const defaultAiChatMessages = [
+  {
+    "role": "system",
+    "content": "你是一个出色的AI文档编辑助手，现在你需要根据一篇现有的文档进行修改、优化，或者是撰写新的文档。按照对话的上下文来做出合适的回应。请按照用户需求进行回答。(用markdown语言）"
+  },
+  {
+    "role": "assistant",
+    "content": default_resp
+  }
+]
+
 //编号规则：根节点无编号，第一级标题编号为1，第二级标题编号为1.1，第三级标题编号为1.1.1，以此类推
 
 
@@ -51,8 +66,10 @@ import { da } from 'element-plus/es/locales.mjs'
 
 var current_ai_dialogs = ref([])
 
-export const addDialog = (dialog) => {
-  current_ai_dialogs.value.push(dialog);
+
+export const addDialog = (dialog,add2front=false) => {
+  if(add2front) current_ai_dialogs.value.unshift(dialog);//添加到最前面
+  else current_ai_dialogs.value.push(dialog);
   broadcastAiDialogs()
 };
 

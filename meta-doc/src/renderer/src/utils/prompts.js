@@ -75,9 +75,16 @@ export function outlineChangePrompt(fullTreeJson, nodeTreeJson, userPrompt) {
 
 export function generateArticlePrompt(mood, userPrompt) {
     const prompt = "你是一个文笔出色的编辑，现在用户需要你为他写一篇文章，以下是用户的需求：\"" +
-        userPrompt + "\"，除此之外，你应当使用" + mood + "的情绪与口吻来撰写文章。请根据用户需求，以及情绪要求，输出Markdown格式的文章。注意不要输出任何任何多余废话，只输出文章内容。";
+        userPrompt + "\"，除此之外，你应当使用" + mood + "的情绪与口吻来撰写文章。请根据用户需求，以及情绪要求，输出文章。注意不要输出任何任何多余废话，只输出文章内容。";
     return prompt;
 }
+
+export function wholeArticleContextPrompt(content){
+    const prompt = "你是一个文笔出色的编辑，现在用户手上有一篇文档，内容如下：\"" +
+        content+"\",后续用户需要你根据用户的提示词来修改或生成文章内容。";
+    return prompt;
+}
+
 
 export const suggestionPresets = [
     { label: '菜谱', prompt: '帮我生成一份适合两人晚餐的菜谱，包含前菜、主菜和甜点' },

@@ -246,8 +246,8 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
-let settingWindow;//设置窗口
-let aichatWindow;//AI对话窗口
+let settingWindow=null;//设置窗口
+let aichatWindow=null;//AI对话窗口
 
 export { mainWindow, settingWindow,aichatWindow,is_need_save }
 
@@ -256,7 +256,16 @@ export { mainWindow, settingWindow,aichatWindow,is_need_save }
 
 
 
-export const openAiChatDialog= async () => {
+let aiChatWindowOpened = false;
+let settingWindowOpened = false;
+
+
+
+export const openAiChatDialog= async (payload=null) => {
+  if(aiChatWindowOpened){
+    aichatWindow.focus();
+    return;
+  }
   aichatWindow = new BrowserWindow({
     width: 1280,
     height: 720,
@@ -272,7 +281,13 @@ export const openAiChatDialog= async () => {
 
   aichatWindow.on('ready-to-show', () => {
     aichatWindow.show()
+    aiChatWindowOpened = true;
   })
+  aichatWindow.on('close', () => {
+    aiChatWindowOpened = false;
+    aichatWindow = null;
+  }
+  )
 
 
   aichatWindow.webContents.setWindowOpenHandler((details) => {
@@ -299,6 +314,10 @@ export const openAiChatDialog= async () => {
 }
 
 export const openSettingDialog = async () => {
+  if(settingWindowOpened){
+    settingWindow.focus();
+    return
+  }
   settingWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -314,7 +333,13 @@ export const openSettingDialog = async () => {
 
   settingWindow.on('ready-to-show', () => {
     settingWindow.show()
+    settingWindowOpened = true;
   })
+  settingWindow.on('close', () => {
+    settingWindowOpened = false;
+    settingWindow = null;
+  }
+  )
 
 
   settingWindow.webContents.setWindowOpenHandler((details) => {

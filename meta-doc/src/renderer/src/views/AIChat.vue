@@ -1,15 +1,37 @@
 <template>
   <el-scrollbar>
+    <el-dialog v-model="renameDialogVisible" title="重命名" width="500">
+      <el-input v-model="editingTitle" style="width: 100%" placeholder="请输入新标题" />
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="renameDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="finishRename">
+            确定
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
     <div class="main-container">
       <!-- 左侧菜单 -->
       <el-menu class="side-menu" :default-active="activeDialogIndex.toString()">
         <div class="menu-header">
-          <el-button type="primary" @click="addNewDialog">新建对话</el-button>
-          <el-button type="danger" @click="deleteCurrentDialog">删除当前</el-button>
+
+          <el-tooltip content="新建对话">
+            <el-button type="primary" :icon="AddIcon" circle @click="addNewDialog"></el-button>
+          </el-tooltip>
+          <el-tooltip content="删除当前对话">
+            <el-button type="danger" :icon="Delete" circle @click="deleteCurrentDialog"></el-button>
+          </el-tooltip>
+
         </div>
         <el-menu-item v-for="(dialog, index) in current_ai_dialogs" :key="index" :index="index.toString()"
           @click="loadDialog(index)">
-          {{ dialog.title }}
+          <div class="menu-item-wrapper">
+            <span class="dialog-title">{{ dialog.title }}</span>
+            <el-button circle :icon="Edit" @click.stop="renameDialog(index)" class="rename-button" type="default">
+              
+            </el-button>
+          </div>
         </el-menu-item>
       </el-menu>
 
@@ -23,13 +45,18 @@
           </el-scrollbar>
 
         </div>
+
         <div class="input-box input-area" :style="{
           backgroundColor: themeState.currentTheme.background,
           color: themeState.currentTheme.textColor
 
-        }">
-          <el-input v-model="promptInput" placeholder="在此处输入消息。" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }"
-            class="input-with-select" :disabled="responding" />
+        }" style="height:120px;">
+          <el-scrollbar style="height: 70px;">
+            <el-input v-model="promptInput" placeholder="在此处输入消息。" type="textarea"
+              :autosize="{ minRows: 2, maxRows: 4 }" class="input-with-select" :disabled="responding" />
+          </el-scrollbar>
+
+
           <el-button id="sendMsg" @click="onMsgSend" type="primary" round size="large" text bg
             :disabled="responding || promptInput.length === 0">
             发送
@@ -38,6 +65,7 @@
             重置
           </el-button>
         </div>
+
       </div>
     </div>
   </el-scrollbar>
@@ -47,16 +75,18 @@
 <script setup>
 import { defineProps, ref, onMounted, watch, reactive } from 'vue';
 import MessageBubble from "../components/MessageBubble.vue";
-import { bindCode, default_resp, generateDialogId, quickGenerate } from "../assets/aichat_legacy/utils";
-import { ChatSquare } from "@element-plus/icons-vue/global";
+//import { bindCode } from "../assets/aichat_legacy/utils";
+import { ChatSquare, Delete, Edit } from "@element-plus/icons-vue/global";
 import "../assets/input-box.css"
 import "../assets/title.css"
-import { model } from "../assets/aichat_legacy/consts.js";
+
 import { ElMessage } from "element-plus";
 import { useRoute } from 'vue-router';
-import { current_ai_dialogs, addDialog, updateDialog, deleteDialog } from '../utils/common-data.js';
+import { current_ai_dialogs, addDialog, updateDialog, deleteDialog, defaultAiChatMessages } from '../utils/common-data.js';
 import eventBus from '../utils/event-bus.js';
 import { themeState } from "../utils/themes.js";
+import { AddIcon } from 'tdesign-icons-vue-next';
+import { answerQuestion, continueConversationStream } from '../utils/llm-api.js';
 
 const route = useRoute();
 const responding = ref(false);
@@ -66,38 +96,35 @@ const props = defineProps({
   id: String
 })
 
-const defaultMessages = [
-  {
-    "role": "system",
-    "content": "你是一个出色的AI文档编辑助手，现在你需要根据一篇现有的文档进行修改、优化，或者是撰写新的文档。按照对话的上下文来做出合适的回应。请按照用户需求进行回答。(用markdown语言）"
-  },
-  {
-    "role": "assistant",
-    "content": default_resp
-  }
-]
-
-const messages = ref([...defaultMessages]);
+const messages = ref([...defaultAiChatMessages]);
 const cur_resp = ref('')
 const promptInput = ref('');
 const temp_message = ref({
   "role": "assistant",
   "content": cur_resp
 });
-
+const defaultTitle = '与AI助手对话';
 // 初始化当前对话
 const initCurrentDialog = () => {
-  addNewDialog();
+  //console.log(current_ai_dialogs.value);
+  if (current_ai_dialogs.value.length > 0) {
+    loadDialog(0);
+  } else {
+    addNewDialog();
+    loadDialog(0);
+  }
 };
 
 const addNewDialog = () => {
   const newDialog = {
     title: '与AI助手对话',
-    messages: [...defaultMessages]
+    messages: [...defaultAiChatMessages]
   };
   addDialog(newDialog);
   activeDialogIndex.value = current_ai_dialogs.value.length - 1;
   messages.value = newDialog.messages;
+  title.value = newDialog.title;
+  updateCurrentDialog();
 };
 
 const updateCurrentDialog = () => {
@@ -122,6 +149,25 @@ const deleteCurrentDialog = () => {
     addNewDialog();
   }
 };
+const renameDialog = (index) => {
+  editingIndex.value = index;
+  renameDialogVisible.value = true;
+  editingTitle.value = current_ai_dialogs.value[index].title;
+};
+const renameDialogVisible = ref(false);
+const editingTitle = ref('');
+const editingIndex = ref(0);
+const finishRename = () => {
+  const dialog = {
+    title: editingTitle.value,
+    messages: messages.value
+  };
+  updateDialog(editingIndex.value, dialog);
+  if (activeDialogIndex.value === editingIndex.value) {
+    title.value = editingTitle.value;
+  }
+  renameDialogVisible.value = false;
+};
 
 const title = ref('与AI助手对话');
 
@@ -132,52 +178,7 @@ const reset = () => {
 async function generateNextResponse(beforeGeneration, callbackRef, afterGeneration) {
   responding.value = true;
   beforeGeneration();
-
-  const apiUrl = "http://localhost:11434/api/chat";  // 替换为你的 API 地址
-  const payload = {
-    model: model,  // 模型类型
-    messages: messages.value,
-  };
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const reader = response.body.getReader();  // 获取可读流
-    const decoder = new TextDecoder('utf-8');  // UTF-8 解码器
-    let ndjson = '';  // 保存流式数据的变量
-
-    while (true) {
-      const { done, value } = await reader.read();  // 从流中读取数据
-      if (done) {
-        break;  // 数据读取完成
-      }
-      // 解码字节流
-      ndjson += decoder.decode(value, { stream: true });
-      // 逐行解析 NDJSON
-      let lines = ndjson.split('\n');  // 按换行符分割
-      ndjson = lines.pop();  // 最后一个可能是未完整的 JSON 行，保留供下次读取
-      for (const line of lines) {
-        if (line.trim()) {  // 过滤空行
-          try {
-            const parsed = JSON.parse(line);  // 解析 JSON 行
-            //console.log(parsed);
-            callbackRef.value += parsed.message.content;
-            //console.log(parsed.response);  // 输出响应内容
-            // 可以在这里更新前端显示的内容
-          } catch (err) {
-            console.error('JSON 解析错误:', err);
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.error('请求出错:', error);
-  }
+  await continueConversationStream(messages.value, cur_resp)
   afterGeneration();
   responding.value = false;
 }
@@ -201,38 +202,51 @@ const onMsgSend = async () => {
         "role": "assistant",
         "content": cur_resp.value
       });
-      updateTitle();
-      bindCode(false);
+
+      //bindCode(false);
       updateCurrentDialog();
+      //console.log(messages.value);
     }
   );
+  await updateTitle();
+
 };
 
 // 其余方法保持原有实现，只需将localStorage操作替换为updateCurrentDialog()
 
 const updateTitle = async () => {
-  const newTitle = await quickGenerate('快速根据对话内容想一个对话标题，请直接输出标题，不超过10个字，不要包含其他多余内容：' + JSON.stringify(messages.value));
-  title.value = newTitle.substring(0, Math.min(15, newTitle.length));
+  const prompt = '快速根据对话内容想一个对话标题，请直接输出标题，不超过10个字，不要包含其他多余内容：' + JSON.stringify(messages.value);
+  let newTitle = await answerQuestion(prompt)
+  newTitle = newTitle.trim();
+  //如果开头是##，则去掉
+  while (newTitle.startsWith('#')) {
+    newTitle = newTitle.substring(1);
+    newTitle = newTitle.trim();
+  }
+  //newTitle=newTitle.substring(0, Math.min(20, newTitle.length));
+  title.value = newTitle;
   updateCurrentDialog();
 };
 
 onMounted(async () => {
   eventBus.emit('fetch-ai-dialogs');//获取AI对话，因为对话保存在主渲染进程，所以需要主渲染进程发送给渲染进程
   initCurrentDialog();
+  eventBus.on('ai-dialogs-loaded', initCurrentDialog);
 })
 
 watch([messages], () => {
-  bindCode(false);
+  //bindCode(false);
   updateCurrentDialog();
 });
 
 watch([title], () => {
   updateCurrentDialog();
 });
+
 const onMsgDelete = async (index) => {
   index++;//有偏移量
   await messages.value.splice(index, 1);
-  bindCode(false);
+  //bindCode(false);
   ElMessage({
     type: 'success',
     message: '删除成功！',
@@ -253,11 +267,12 @@ const regenerate = async (index) => {
         "role": "assistant",
         "content": cur_resp.value
       });
-      updateTitle();
-      bindCode(false);
+
+      //bindCode(false);
       updateCurrentDialog();
     }
   );
+  await updateTitle();
 
 }
 const onMsgEdit = async (data) => {
@@ -297,10 +312,12 @@ const onMsgEdit = async (data) => {
 }
 
 .menu-header {
+  align-self: center;
   padding: 10px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex-direction: row;
+
+
 }
 
 .content-area {
@@ -322,7 +339,33 @@ const onMsgEdit = async (data) => {
 }
 
 .input-area {
-  padding: 20px;
+
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.menu-item-wrapper {
+  position: relative; /* 让子元素绝对定位时以该元素为参考 */
+  width: 100%; /* 占满整个菜单项 */
+  padding-right: 40px; /* 给按钮留出空间，防止文字覆盖按钮 */
+  box-sizing: border-box; /* 防止padding撑开宽度 */
+  overflow: hidden; /* 超出部分隐藏 */
+  white-space: nowrap; /* 禁止文字换行 */
+  text-overflow: ellipsis; /* 超出部分显示省略号 */
+}
+
+.dialog-title {
+  display: inline-block;
+  max-width: calc(95%); /* 避免文字覆盖按钮 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rename-button{
+  position: absolute; /* 绝对定位 */
+  right: 0px; /* 始终固定在右侧 */
+  top: 50%; 
+  transform: translateY(-50%); /* 垂直居中 */
+
 }
 </style>

@@ -48,12 +48,19 @@ export function mainCalls() {
   ipcMain.on('ai-chat', () => {
     openAiChatDialog();
   })
+
   ipcMain.on('system-notification',(event,data)=>{
     //console.log(data)
     systemNotification(data.title,data.body);
   })
-  ipcMain.on('request-sync-theme',()=>{
+  ipcMain.on('request-sync-theme',()=>{//渲染进程请求同步主题，主进程需要通知所有窗口
     mainWindow.webContents.send('sync-theme')
+    if(settingWindow){
+      settingWindow.webContents.send('sync-theme')
+    }
+    if(aichatWindow){
+      aichatWindow.webContents.send('sync-theme')
+    }
   })
   ipcMain.handle('get-setting', async (event, data) => {
     return await getSetting(data.key)

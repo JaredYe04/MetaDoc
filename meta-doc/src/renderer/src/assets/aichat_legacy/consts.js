@@ -1,1 +1,0 @@
-export const model='llama3.1'

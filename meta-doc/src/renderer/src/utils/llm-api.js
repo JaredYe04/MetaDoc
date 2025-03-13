@@ -53,7 +53,7 @@ async function getLlmConfig() {
  */
 async function answerQuestion(prompt,meta={temperature:0}) {
   const { type, apiUrl, apiKey, selectedModel } = await getLlmConfig();
-
+  const autoRemoveThinkTag=await getSetting('autoRemoveThinkTag')
   switch (type) {
     case "openai":
       return axios
@@ -78,8 +78,19 @@ async function answerQuestion(prompt,meta={temperature:0}) {
       //console.log({ model: selectedModel, prompt })
       const result=await axios
       .post(`${apiUrl}/generate`, { model: selectedModel, prompt, stream:false})
-      .then((res) => res.data.response);
-      //console.log(result)
+      .then((res) => {
+        let result=res.data.response;
+        //console.log(result)
+        if(autoRemoveThinkTag){
+          //查找</think>标签，删除标签以及之前的内容
+          const index=result.indexOf('</think>');
+          if(index>=0){
+            result=result.substring(index+8).trim();
+          }
+        }
+        return result;
+        
+      })
       return result;
 
     case "claude":
@@ -323,41 +334,109 @@ async function continueConversation(conversation) {
  * @param {object} ref - A reactive reference to store the result incrementally.
  */
 async function continueConversationStream(conversation, ref) {
+  if (!(await validateApi())) {
+    return;
+  }
+  
   const { type, apiUrl, apiKey, selectedModel } = await getLlmConfig();
+  //console.log({ type, apiUrl, apiKey, selectedModel });
+  
+  const autoRemoveThinkTag = await getSetting('autoRemoveThinkTag');
 
   switch (type) {
-    case "openai":
-      const source = new EventSource(`${apiUrl}/chat/completions?stream=true`);
-      source.addEventListener("message", (event) => {
-        const data = JSON.parse(event.data);
-        if (data.choices && data.choices[0]) {
-          ref.value += data.choices[0].delta?.content || "";
-        }
-      });
-      source.addEventListener("error", () => source.close());
-      break;
-
-    case "ollama":
-      const conversationPrompt = conversation
-        .map((msg) => `${msg.role}: ${msg.content}`)
-        .join("\n");
-      const res = await axios.post(`${apiUrl}/stream`, {
+    case "openai": {
+      const payload = {
         model: selectedModel,
-        prompt: conversationPrompt,
+        messages: conversation,
+        stream: true,
+      };
+      
+      const response = await fetch(`${apiUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(payload),
       });
-      ref.value = "";
-      res.data.on("data", (chunk) => {
-        ref.value += chunk.toString();
-      });
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const data = JSON.parse(line);
+            if (data.choices && data.choices[0]) {
+              ref.value += data.choices[0].delta?.content || "";
+            }
+          } catch (err) {
+            console.error('JSON 解析错误:', err);
+          }
+        }
+      }
       break;
-
+    }
+    
+    case "ollama": {
+      const payload = {
+        model: selectedModel,
+        messages: conversation,
+      };
+      
+      const response = await fetch(`${apiUrl}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const data = JSON.parse(line);
+            if (data.message?.content) {
+              ref.value += data.message.content;
+              if (autoRemoveThinkTag && ref.value.trim().endsWith('</think>')) {
+                ref.value = '';
+              }
+            }
+          } catch (err) {
+            console.error('JSON 解析错误:', err);
+          }
+        }
+      }
+      break;
+    }
+    
     case "claude":
-      // Replace with Claude's streaming endpoint if available.
       throw new Error("Streaming is not supported for Claude yet.");
+    
     default:
       throw new Error(`Unsupported LLM type: ${type}`);
   }
 }
+
 
 export {
   answerQuestion,

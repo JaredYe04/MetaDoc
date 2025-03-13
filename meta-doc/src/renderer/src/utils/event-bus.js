@@ -26,7 +26,6 @@ export default eventBus
 
 
 
-
 //监听save事件
 eventBus.on('save', async (msg) => {
   //console.log(window.electron)
@@ -147,6 +146,8 @@ ipcRenderer.on('request-ai-dialogs',(event)=>{//主渲染进程接收到请求�
 ipcRenderer.on('response-ai-dialogs',(event,dialogs)=>{//主进程发送给AICHAT组件对话数据
   //console.log('我收到了对话数据',dialogs)
   current_ai_dialogs.value=dialogs
+  //console.log(dialogs)
+  eventBus.emit('ai-dialogs-loaded')
 })
 
 

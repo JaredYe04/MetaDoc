@@ -1,18 +1,17 @@
 <template>
   <div class="container">
     <vue-tree ref="tree" style="width: 100%; height: 80vh; border: 1px solid gray; "
-    :style="{ backgroundColor: themeState.currentTheme.outlineBackground }"
-  :dataset="treeData" :config="treeConfig" :direction="direction" @node-click="handleNodeClick" 
-  @node-drag="handleNodeDrag" linkStyle="straight">
+      :style="{ backgroundColor: themeState.currentTheme.outlineBackground }" :dataset="treeData" :config="treeConfig"
+      :direction="direction" @node-click="handleNodeClick" @node-drag="handleNodeDrag" linkStyle="straight">
 
 
-      <template #node="{ node, collapsed }"  :style="{backgroundColor: themeState.currentTheme.outlineNode }">
-        <div class="tree-node"  :style="{backgroundColor: themeState.currentTheme.outlineNode }">
+      <template #node="{ node, collapsed }" :style="{ backgroundColor: themeState.currentTheme.outlineNode }">
+        <div class="tree-node" :style="{ backgroundColor: themeState.currentTheme.outlineNode }">
           {{ node.title }}
         </div>
         <el-tooltip content="编辑节点" placement="top">
-          <el-button size="small" type="text" class="aero-btn"  circle
-            @click.stop="handleNodeButtonClick(node)" v-if="node.path !== 'dummy'">
+          <el-button size="small" type="text" class="aero-btn" circle @click.stop="handleNodeButtonClick(node)"
+            v-if="node.path !== 'dummy'">
             <el-icon>
               <More />
             </el-icon>
@@ -72,10 +71,15 @@
         </div>
       </template>
     </vue-tree>
-    <el-dialog v-model="editValueDialogVisible" title="修改章节名" width="30%">
+    <el-dialog v-model="editValueDialogVisible" title="修改章节名" width="70%">
       <el-form>
         <el-form-item label="章节名称">
           <el-input v-model="currentChapterValue" autocomplete="off" class="aero-input" />
+        </el-form-item>
+        <el-form-item label="章节内容">
+          <md-editor v-model="currentChapterContent" showCodeRowNumber previewTheme="github" codeStyleReverse
+            style="text-align: left" :autoFoldThreshold="300" :theme="themeState.currentTheme.vditorTheme" />
+
         </el-form-item>
       </el-form>
       <el-button type="primary" @click="changeNodeValue"> 确定 </el-button>
@@ -117,6 +121,7 @@ import eventBus from '../utils/event-bus.js';
 import '../assets/aero-div.css';
 import '../assets/aero-btn.css';
 import "../assets/aero-input.css";
+import {MdEditor,MdPreview, MdCatalog}from 'md-editor-v3';
 import { Plus, Edit, Delete, More, Minus, ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue';
 import { current_outline_tree, default_outline_tree, latest_view, sync } from '../utils/common-data';
 import { searchNode, searchParentNode } from '../utils/common-data';
@@ -135,6 +140,7 @@ const treeConfig = reactive({
 });
 const tree = ref(null);
 const currentChapterValue = ref('');
+const currentChapterContent = ref('');
 const editValueDialogVisible = ref(false);
 const dialogVisible = ref({});
 const llmDialogVisible = ref({});
@@ -162,7 +168,7 @@ onMounted(() => {
 watch(treeData, (val) => {
   current_outline_tree.value = val;
   latest_view.value = 'outline'; // 说明最后一次操作是在大纲视图
-  eventBus.emit('is-need-save',true)
+  eventBus.emit('is-need-save', true)
   sync();
 }, { deep: true });
 
@@ -222,6 +228,7 @@ const move2Right = () => {
 const changeNodeValue = () => {
   const cur_node = searchNode(selectedNode.value.path, treeData.value);
   cur_node.title = currentChapterValue.value;
+  cur_node.text = currentChapterContent.value;
   editValueDialogVisible.value = false;
 };
 
@@ -278,6 +285,7 @@ const editNode = () => {
   const cur_node = searchNode(node.path, treeData.value);
   editValueDialogVisible.value = true;
   currentChapterValue.value = cur_node.title;
+  currentChapterContent.value = cur_node.text;
 };
 
 const deleteNode = () => {
@@ -306,7 +314,7 @@ const deleteNode = () => {
         type: 'info'
       });
     })
-    .catch(() => {});
+    .catch(() => { });
 
 };
 
@@ -374,25 +382,33 @@ const removeNode = (parent, node) => {
 .controls {
   margin-bottom: 20px;
 }
+
 .tree-node {
-  margin-bottom: 12px;  /* 增加底部间距 */
+  margin-bottom: 12px;
+  /* 增加底部间距 */
   display: inline-block;
-  border-radius: 12px;  /* 增加圆角 */
-  padding: 8px 16px;  /* 增加内边距，使节点更大，更易点击 */
+  border-radius: 12px;
+  /* 增加圆角 */
+  padding: 8px 16px;
+  /* 增加内边距，使节点更大，更易点击 */
   margin: 10px;
   cursor: pointer;
-  transition: background-color 0.3s, transform 0.3s;  /* 添加过渡效果 */
+  transition: background-color 0.3s, transform 0.3s;
+  /* 添加过渡效果 */
 }
 
 .tree-node:hover {
-  transform: scale(1.02);  /* 节点放大效果 */
+  transform: scale(1.02);
+  /* 节点放大效果 */
 }
 
 .tree-node span {
   display: flex;
   align-items: center;
-  font-size: 14px;  /* 设置默认字体大小 */
-  color: #333;  /* 设置文本颜色 */
+  font-size: 14px;
+  /* 设置默认字体大小 */
+  color: #333;
+  /* 设置文本颜色 */
 }
 
 .dialog-buttons {

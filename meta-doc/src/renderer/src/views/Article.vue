@@ -427,6 +427,7 @@ onMounted(() => {
 
         },
         after: async () => {
+            
             //console.log(themeState);
             try {
                 sync();

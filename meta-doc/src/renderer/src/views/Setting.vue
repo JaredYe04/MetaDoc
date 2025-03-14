@@ -15,7 +15,7 @@
 
       <!-- 右侧设置内容 -->
       <el-main :style="{ textColor: themeState.currentTheme.textColor }">
-        <el-form label-width="120px" class="settings-form">
+        <el-form label-width="160px" class="settings-form">
           <template v-if="activeMenu === 'basic'">
             <el-form-item label="启动选项">
               <el-select v-model="settings.startupOption"
@@ -54,7 +54,10 @@
             </el-form-item>
             <el-form-item label="语音测试">
               <div>
-                <MicrophoneTest />
+                <el-tooltip content="检测麦克风是否能正常录音。" placement="bottom">
+                  <MicrophoneTest />
+                </el-tooltip>
+                
               </div>
             </el-form-item>
 
@@ -72,6 +75,14 @@
                   <el-option label="本地链接" value="local"></el-option>
                 </el-tooltip>
               </el-select>
+            </el-form-item>
+
+            <el-form-item label="统计文本时排除代码块">
+              <el-tooltip content="代码的内容会影响词频统计的准确性，因此可选择是否排除。" placement="bottom">
+                <el-switch v-model="settings.bypassCodeBlock" class="mb-2"
+                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" active-text="启用"
+                inactive-text="关闭" @change="saveSetting('bypassCodeBlock', settings.bypassCodeBlock);" />
+              </el-tooltip>
             </el-form-item>
 
 
@@ -238,6 +249,7 @@ const settings = reactive({
   llmApiKey: "", // LLM API 秘钥（根据不同模型可能使用）
   exportImageMode: "none", // 导出图片选项
   autoRemoveThinkTag: true,//自动去除推理过程
+  bypassCodeBlock: true, // 统计文字信息时排除代码块
   ollama: {
     apiUrl: "http://localhost:11434/api", // Ollama 默认 API URL
     selectedModel: "",

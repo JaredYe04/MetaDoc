@@ -10,11 +10,11 @@
 
     <p style="font-weight: bold;" @mousedown.stop> {{ props.title ? props.title : "标题" }}</p>
 
-    <el-scrollbar class="md-container" v-if="!generated && !generating" @mousedown.stop style="  max-height: 35vh;">
+    <el-scrollbar class="md-container" v-if="!generated && !generating" @mousedown.stop style="  max-height: 35vh; min-height: 10vh;">
       <MarkdownItEditor :source="articleContent" />
     </el-scrollbar>
 
-    <el-scrollbar class="md-container" v-if="generated || generating" @mousedown.stop style="  max-height: 35vh;">
+    <el-scrollbar class="md-container" v-if="generated || generating" @mousedown.stop style="  max-height: 35vh;  min-height: 10vh;">
       <MarkdownItEditor :source="generatedText" />
     </el-scrollbar>
 
@@ -72,7 +72,7 @@
 import { ElButton, ElDialog } from 'element-plus' // 引入 Element Plus 按钮和弹框组件
 import MarkdownItEditor from 'vue3-markdown-it';
 import { computed, onMounted } from 'vue';
-import { defaultAiChatMessages, latest_view, searchNode } from '../utils/common-data';
+import { addDialog, defaultAiChatMessages, latest_view, searchNode } from '../utils/common-data';
 import { sync, current_outline_tree } from '../utils/common-data';
 import { ref, watch } from 'vue';
 import { max } from 'd3';
@@ -181,7 +181,7 @@ const chat = async () => {
     content: generatedText.value
   })
   const newDialog = {
-    title: title,
+    title: props.title,
     messages: messages
   };
   addDialog(newDialog,true)

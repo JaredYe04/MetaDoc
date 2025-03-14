@@ -15,7 +15,7 @@ export const lightTheme = {
     SideActiveTextColor:'#000000',
     vditorTheme: 'classic',
     codeTheme: 'github',
-    titleMenuBackground:'#E6E6FABB',
+    titleMenuBackground:'#0066FF44',
     outlineBackground:'#4c78a8',
     outlineNode : '#9ecae9',
     quickStartBackground1:'#ADD8E61A',

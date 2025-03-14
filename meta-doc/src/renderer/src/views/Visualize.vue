@@ -76,7 +76,7 @@ import { current_article, current_article_meta_data, current_outline_tree } from
 
 import cloud from 'd3-cloud';
 import * as d3 from 'd3';
-import { generatePieFromData, generateWordCountBarChart, generateWordFrequencyTrendChart, md2html, md2htmlRaw, outlineToMindMap } from '../utils/md-utils';
+import { extractOutlineTreeFromMarkdown, generatePieFromData, generateWordCountBarChart, generateWordFrequencyTrendChart, md2html, md2htmlRaw, outlineToMindMap } from '../utils/md-utils';
 onMounted(async () => {
     //await initVditor();
     //await refreshAll();
@@ -90,6 +90,8 @@ import * as echarts from 'echarts';
 import eventBus from '../utils/event-bus';
 import { themeState } from '../utils/themes';
 import WordCloudDetail from '../components/WordCloudDetail.vue';
+import { getSetting } from '../utils/settings';
+import { ar } from 'element-plus/es/locales.mjs';
 
 const ipcRenderer = window.electron.ipcRenderer
 const words = ref([]);
@@ -118,7 +120,7 @@ const generatePie = async () => {
     const node = document.getElementById('pie');
     let data = [];
     //统计每一段字数
-    let outline = current_outline_tree.value;
+    let outline = extractOutlineTreeFromMarkdown(article_text.value);
     // if(outline.path==='dummy')
     //     outline=outline.children[0];
     //如果只有一个子节点，那么就直接用这个子节点
@@ -147,14 +149,14 @@ const generatePie = async () => {
 };
 const generateWordCountDiagram = async () => {
     const node = document.getElementById('word-count-diagram');
-    const config = generateWordCountBarChart(current_article.value);
+    const config = generateWordCountBarChart(article_text.value);
     let chart = echarts.init(node);
     chart.setOption(config);
 }
 const generateWordFrequencyDiagram = async () => {
     const node = document.getElementById('word-frequency-diagram');
     const top5words = wordCount.value.slice(0, 5).map((item) => item.text);
-    const config = generateWordFrequencyTrendChart(current_article.value, top5words);
+    const config = generateWordFrequencyTrendChart(article_text.value, top5words);
     let chart = echarts.init(node);
     chart.setOption(config);
 
@@ -190,8 +192,18 @@ const generateOutlineGraph = async () => {
     //Vditor.mindmapRender(node,'http://localhost:3000/vditor');
 
 };
+const article_text = ref('');
 const processWords = async () => {
-    words.value = await ipcRenderer.invoke('cut-words', { text: current_article.value });
+    const bypassCodeBlock=await getSetting('bypassCodeBlock');//是否跳过代码块
+    let text=current_article.value;
+    if(bypassCodeBlock){
+        console.log(text)
+        text = text.replace(/```[\s\S]*?```/g, '');//去掉代码块
+        console.log(text)
+    }
+    article_text.value = text;
+
+    words.value = await ipcRenderer.invoke('cut-words', { text: text });
     words.value.forEach((word) => {
         if (wordCount.value[word]) {
             wordCount.value[word] += 1;

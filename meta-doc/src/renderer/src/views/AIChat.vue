@@ -127,12 +127,17 @@ const addNewDialog = () => {
   updateCurrentDialog();
 };
 
-const updateCurrentDialog = () => {
+const updateCurrentDialog = (index=null) => {
   const dialog = {
     title: title.value,
     messages: messages.value
   };
-  updateDialog(activeDialogIndex.value, dialog);
+  if(index==null){
+    updateDialog(activeDialogIndex.value, dialog);
+  }
+  else{
+    updateDialog(index, dialog);
+  }
 };
 
 const loadDialog = (index) => {
@@ -216,6 +221,8 @@ const onMsgSend = async () => {
 
 const updateTitle = async () => {
   const prompt = '快速根据对话内容想一个对话标题，请直接输出标题，不超过10个字，不要包含其他多余内容：' + JSON.stringify(messages.value);
+  //备注：因为标题撰写需要一定时间，而用户可能在这个时间切换到其他对话，因此首先要保存索引
+  const index=activeDialogIndex.value;//当前对话索引
   let newTitle = await answerQuestion(prompt)
   newTitle = newTitle.trim();
   //如果开头是##，则去掉
@@ -223,9 +230,12 @@ const updateTitle = async () => {
     newTitle = newTitle.substring(1);
     newTitle = newTitle.trim();
   }
-  //newTitle=newTitle.substring(0, Math.min(20, newTitle.length));
-  title.value = newTitle;
-  updateCurrentDialog();
+  
+  if(current_ai_dialogs.value[index].title===title.value){
+    title.value = newTitle;
+  }
+  current_ai_dialogs.value[index].title = newTitle;
+  updateCurrentDialog(index);
 };
 
 onMounted(async () => {
@@ -272,7 +282,7 @@ const regenerate = async (index) => {
       updateCurrentDialog();
     }
   );
-  await updateTitle();
+  //await updateTitle();
 
 }
 const onMsgEdit = async (data) => {

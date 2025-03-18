@@ -144,6 +144,7 @@ const loadDialog = (index) => {
   activeDialogIndex.value = index;
   messages.value = current_ai_dialogs.value[index].messages;
   title.value = current_ai_dialogs.value[index].title;
+  //console.log(current_ai_dialogs.value[index])
 };
 
 const deleteCurrentDialog = () => {
@@ -182,9 +183,10 @@ const reset = () => {
 
 async function generateNextResponse(beforeGeneration, callbackRef, afterGeneration) {
   responding.value = true;
-  beforeGeneration();
+  await beforeGeneration();
+  console.log(messages.value)
   await continueConversationStream(messages.value, cur_resp)
-  afterGeneration();
+  await afterGeneration();
   responding.value = false;
 }
 
@@ -193,6 +195,7 @@ const onMsgSend = async () => {
     "role": "user",
     "content": promptInput.value
   })
+  console.log(messages.value);
   promptInput.value = '';
   cur_resp.value = '';
 
@@ -201,7 +204,7 @@ const onMsgSend = async () => {
       messages.value.push(temp_message.value);
     },
     cur_resp,
-    () => {
+    async () => {
       messages.value.pop();
       messages.value.push({
         "role": "assistant",
@@ -209,18 +212,20 @@ const onMsgSend = async () => {
       });
 
       //bindCode(false);
+      console.log(messages.value);
       updateCurrentDialog();
-      //console.log(messages.value);
+      updateTitle();
+      
     }
   );
-  await updateTitle();
+  
 
 };
 
 // 其余方法保持原有实现，只需将localStorage操作替换为updateCurrentDialog()
 
 const updateTitle = async () => {
-  const prompt = '快速根据对话内容想一个对话标题，请直接输出标题，不超过10个字，不要包含其他多余内容：' + JSON.stringify(messages.value);
+  const prompt = '快速根据对话内容想一个对话标题，请直接输出标题，不超过10个字，不要包含其他多余内容：' + JSON.stringify(messages.value[messages.value.length - 1].content);
   //备注：因为标题撰写需要一定时间，而用户可能在这个时间切换到其他对话，因此首先要保存索引
   const index=activeDialogIndex.value;//当前对话索引
   let newTitle = await answerQuestion(prompt)
@@ -230,7 +235,8 @@ const updateTitle = async () => {
     newTitle = newTitle.substring(1);
     newTitle = newTitle.trim();
   }
-  
+  if(newTitle.length>10)
+    newTitle = newTitle.substring(0, 10);
   if(current_ai_dialogs.value[index].title===title.value){
     title.value = newTitle;
   }

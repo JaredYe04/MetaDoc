@@ -19,7 +19,7 @@ export const lightTheme = {
     outlineBackground:'#4c78a8',
     outlineNode : '#9ecae9',
     quickStartBackground1:'#ADD8E61A',
-    quickStartBackground2:'#E6E6FABB',
+    quickStartBackground2:'#D6D6FF44',
     mdeditorClass:'md-editor',
   };
   

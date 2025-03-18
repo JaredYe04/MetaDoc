@@ -18,6 +18,15 @@ var electron_vite_config_default = defineConfig({
     plugins: [
       vue()
     ]
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://server.simpletex.cn',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/api/, '')
+      }
+    }
   }
 });
 export {

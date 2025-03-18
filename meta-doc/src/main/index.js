@@ -248,8 +248,8 @@ app.on('window-all-closed', () => {
 })
 let settingWindow=null;//设置窗口
 let aichatWindow=null;//AI对话窗口
-
-export { mainWindow, settingWindow,aichatWindow,is_need_save }
+let fomulaRecognitionWindow=null;//公式识别窗口
+export { mainWindow, settingWindow,aichatWindow,is_need_save,fomulaRecognitionWindow }//添加完窗口应该暴露
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
@@ -258,8 +258,56 @@ export { mainWindow, settingWindow,aichatWindow,is_need_save }
 
 let aiChatWindowOpened = false;
 let settingWindowOpened = false;
+let fomulaRecognitionWindowOpened = false;
+export const openFomulaRecognitionDialog= async ()=>{
+  if(fomulaRecognitionWindowOpened){
+    fomulaRecognition.focus();
+    return;
+  }
+  fomulaRecognitionWindow = new BrowserWindow({
+    width: 1280,
+    height: 720,
+    parent: mainWindow, // 将子窗口与主窗口关联
+    modal: false, // 是否为模态窗口
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: false,
+      nodeIntegration: true,
+    },
+  });
+
+  fomulaRecognitionWindow.on('ready-to-show', () => {
+    fomulaRecognitionWindow.show()
+    fomulaRecognitionWindowOpened = true;
+  })
+  fomulaRecognitionWindow.on('close', () => {
+    fomulaRecognitionWindowOpened = false;
+    fomulaRecognitionWindow = null;
+  }
+  )
 
 
+  fomulaRecognitionWindow.webContents.setWindowOpenHandler((details) => {
+    shell.openExternal(details.url)
+    return { action: 'deny' }
+  })
+
+
+
+  if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
+    //console.log(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-chat`);
+    await fomulaRecognitionWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/fomula-recognition`)
+
+  }
+  else {
+
+    //settingWindow.loadFile(path.join(__dirname, '../renderer/index.html/#/setting'))
+    await fomulaRecognitionWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/fomula-recognition`);
+
+  }
+  fomulaRecognitionWindow.setTitle('手写公式识别助手')
+}
 
 export const openAiChatDialog= async (payload=null) => {
   if(aiChatWindowOpened){
@@ -308,7 +356,7 @@ export const openAiChatDialog= async (payload=null) => {
     await aichatWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/ai-chat`);
 
   }
-  aichatWindow.setTitle('AI助手')
+  aichatWindow.setTitle('与AI对话')
   // console.log(path.join(dirname, '../renderer/setting.html'));
   // settingWindow.loadURL(path.join(dirname, '../renderer/setting.html'))
 }

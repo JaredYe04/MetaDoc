@@ -116,6 +116,14 @@ eventBus.on('setting',()=>{
 eventBus.on('ai-chat',()=>{
   ipcRenderer.send('ai-chat')
 })
+eventBus.on('fomula-recognition',()=>{
+  ipcRenderer.send('fomula-recognition')
+})
+
+
+
+
+
 eventBus.on('system-notification',(data)=>{
   //console.log(data)
   ipcRenderer.send('system-notification',data)

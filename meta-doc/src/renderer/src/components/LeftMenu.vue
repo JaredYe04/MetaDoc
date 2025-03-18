@@ -84,20 +84,26 @@
       </el-sub-menu>
     </el-tooltip>
 
-    <el-tooltip effect="light" content="与AI对话" placement="right">
+    <el-tooltip effect="light" content="AI工具" placement="right">
       <el-sub-menu index="2">
         <template #title>
           <el-icon>
             <ChatDotRound/>
           </el-icon>
-          <span>与AI对话</span>
+          <span>AI助手</span>
         </template>
 
         <el-menu-item index="2-1" @click="eventBus.emit('ai-chat')">
           <el-icon>
             <ChatDotRound/>
           </el-icon>
-          <span>AI助手</span>
+          <span>与AI对话</span>
+        </el-menu-item>
+        <el-menu-item index="2-2" @click="eventBus.emit('fomula-recognition')">
+          <el-icon>
+            <EditPen />
+          </el-icon>
+          <span>手写公式识别</span>
         </el-menu-item>
       </el-sub-menu>
 
@@ -193,7 +199,8 @@ import {
   Menu as IconMenu,
   Location,
   Setting,
-  ChatDotRound
+  ChatDotRound,
+  EditPen
 } from '@element-plus/icons-vue'
 import eventBus from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'

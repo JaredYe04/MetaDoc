@@ -270,6 +270,7 @@ const addChildNode = () => {
   const newNode = {
     title: '新子节点',
     text: '',
+    title_level: cur_node.title_level + 1,
     path:
       cur_node.path +
       (cur_node.path !== '' ? '.' : '') +

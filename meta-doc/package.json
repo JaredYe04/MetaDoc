@@ -1,7 +1,7 @@
 {
   "name": "meta-doc",
   "version": "1.0.0",
-  "description": "一款集成了LLM的智能文档编辑器",
+  "description": "基于LLM Agent的智能文字处理软件",
   "main": "./out/main/index.js",
   "author": "jaredye.com",
   "homepage": "https://electron-vite.org",

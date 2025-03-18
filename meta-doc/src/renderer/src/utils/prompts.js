@@ -80,8 +80,8 @@ export function generateArticlePrompt(mood, userPrompt) {
 }
 
 export function wholeArticleContextPrompt(content){
-    const prompt = "你是一个文笔出色的编辑，现在用户手上有一篇文档，内容如下：\"" +
-        content+"\",后续用户需要你根据用户的提示词来修改或生成文章内容。";
+    const prompt = "你是一个文笔出色的编辑，现在我手上有一篇文档，内容如下：：：【文章开始】\"" +
+        content+"\"【文章结束】；；；你需要理解文档意思，并根据我的提示词来进一步生成内容。";
     return prompt;
 }
 

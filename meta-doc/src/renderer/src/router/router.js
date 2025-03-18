@@ -7,6 +7,7 @@ import Setting from '../views/Setting.vue'
 import component from 'element-plus/es/components/tree-select/src/tree-select-option.mjs'
 import Visualize from '../views/Visualize.vue'
 import AIChat from '../views/AIChat.vue'
+import FomulaRecognition from '../views/FomulaRecognition.vue'
 const routes = [
   {
     path: '/',
@@ -43,6 +44,12 @@ const routes = [
     path:'/ai-chat',
     name:'AIChat',
     component: AIChat,
+    meta: { requiresLayout: false } 
+  },
+  {
+    path:'/fomula-recognition',
+    name:'FomulaRecognition',
+    component: FomulaRecognition,
     meta: { requiresLayout: false } 
   },
   {

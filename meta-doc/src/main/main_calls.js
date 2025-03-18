@@ -1,7 +1,7 @@
 //所有主进程的事件处理函数
 
-const { dialog, Notification} = require('electron')
-import { app, shell, BrowserWindow, ipcMain, globalShortcut,nativeTheme  } from 'electron'
+const { dialog, Notification } = require('electron')
+import { app, shell, BrowserWindow, ipcMain, globalShortcut, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 
@@ -15,7 +15,7 @@ const htmlDocx = require('html-docx-js');
 const os = require('os');
 
 
-import { mainWindow, openSettingDialog,openAiChatDialog, uploadDir,settingWindow,aichatWindow} from './index'
+import { mainWindow, openSettingDialog, openAiChatDialog, uploadDir, settingWindow, aichatWindow, openFomulaRecognitionDialog,fomulaRecognitionWindow } from './index'
 import { dirname } from './index'
 
 
@@ -31,11 +31,11 @@ export function mainCalls() {
     quit()
   })
   ipcMain.on('save-as', async (event, data) => {
-    
+
     await save(data, true)
     //is_need_save = false;
   })
-  ipcMain.on('open-doc', async (event,path) => {
+  ipcMain.on('open-doc', async (event, path) => {
     await openDoc(path)
     //is_need_save = false;
   })
@@ -48,18 +48,25 @@ export function mainCalls() {
   ipcMain.on('ai-chat', () => {
     openAiChatDialog();
   })
-
-  ipcMain.on('system-notification',(event,data)=>{
-    //console.log(data)
-    systemNotification(data.title,data.body);
+  ipcMain.on('fomula-recognition', () => {
+    openFomulaRecognitionDialog();
   })
-  ipcMain.on('request-sync-theme',()=>{//渲染进程请求同步主题，主进程需要通知所有窗口
+
+
+  ipcMain.on('system-notification', (event, data) => {
+    //console.log(data)
+    systemNotification(data.title, data.body);
+  })
+  ipcMain.on('request-sync-theme', () => {//渲染进程请求同步主题，主进程需要通知所有窗口
     mainWindow.webContents.send('sync-theme')
-    if(settingWindow){
+    if (settingWindow) {
       settingWindow.webContents.send('sync-theme')
     }
-    if(aichatWindow){
+    if (aichatWindow) {
       aichatWindow.webContents.send('sync-theme')
+    }
+    if(fomulaRecognitionWindow){
+      fomulaRecognitionWindow.webContents.send('sync-theme')
     }
   })
   ipcMain.handle('get-setting', async (event, data) => {
@@ -82,8 +89,42 @@ export function mainCalls() {
   })
 
   ipcMain.handle('get-os-theme', async (event, data) => {
-    return nativeTheme.shouldUseDarkColors?'dark':'light'
+    return nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
   })
+  ipcMain.handle('simpletex-ocr', async (event, { fileName, fileType, fileBuffer, reqData, header }) => {
+    // 重新构造 FormData
+    // 重新构造 Buffer
+    const buffer = Buffer.from(fileBuffer);
+
+    // 创建 Blob 对象（适用于 FormData）
+    const blob = new Blob([buffer], { type: fileType });
+
+    const formData = new FormData();
+    formData.append("file", blob, fileName); // 这里用 Blob
+
+    // 将 reqData 里的参数也加进去
+    for (const key in reqData) {
+      formData.append(key, reqData[key]);
+    }
+
+    return await fetch("https://server.simpletex.cn/api/simpletex_ocr", {
+      method: "POST",
+      headers: header,
+      body: formData
+    })
+      .then(res => res.json())
+      .then(json => {
+        return json;
+      })
+      .catch(err => {
+        console.error(err);
+        return 'error:' + err;
+      });
+  });
+  const crypto = require('crypto');
+  ipcMain.handle('compute-md5', async (event, data) => {
+    return crypto.createHash('md5').update(data).digest('hex');
+  });
   ipcMain.on('sync-ai-dialogs', async (event, data) => {
     mainWindow.webContents.send('sync-ai-dialogs', data)//告诉主进程要更新了
     is_need_save = true;
@@ -121,10 +162,10 @@ var Segment = require('segment');
 var segment = new Segment();
 segment.useDefault();
 
-const getImagePath = async ()=>{
+const getImagePath = async () => {
   return uploadDir;
 }
-const systemNotification=(title,body)=>{
+const systemNotification = (title, body) => {
   const notification = new Notification({
     title: title,
     body: body
@@ -141,27 +182,27 @@ const cut_words = async (text) => {
   });
 }
 const updateRecentDocs = async (data) => {
-  const json=store.get('recent-docs')
+  const json = store.get('recent-docs')
   //如果没有recent-docs，初始化一个空数组
-  let recentDocs=json?JSON.parse(json):[]
+  let recentDocs = json ? JSON.parse(json) : []
   //模拟双向栈，最新打开的文档在最前面，如果超过5个，删除最后一个；最新的文档可能已经在最前面，需要删除后再插入
-  recentDocs=recentDocs.filter((item)=>item!=data.path)
+  recentDocs = recentDocs.filter((item) => item != data.path)
   recentDocs.unshift(data.path)
-  if(recentDocs.length>5){
+  if (recentDocs.length > 5) {
     recentDocs.pop()
   }
-  
-  store.set('recent-docs',JSON.stringify(recentDocs))
+
+  store.set('recent-docs', JSON.stringify(recentDocs))
 }
 
 const getRecentDocs = async () => {
-  const json=store.get('recent-docs')
+  const json = store.get('recent-docs')
   //要判断原有的文件路径是否存在，如果不存在，需要删除
-  let recentDocs=json?JSON.parse(json):[]
-  let result=[]
+  let recentDocs = json ? JSON.parse(json) : []
+  let result = []
   for (let i = 0; i < recentDocs.length; i++) {
     const filePath = recentDocs[i]
-    if(fs.existsSync(filePath)){
+    if (fs.existsSync(filePath)) {
       result.push(filePath)
     }
   }
@@ -190,7 +231,7 @@ const save = async (data, saveAs) => {
   //console.log(data);
   //console.log(data);
   let json = data.json
-  let path=data.path
+  let path = data.path
   //console.log(path);
   const obj = JSON.parse(json)
   if (path === '' || saveAs) {
@@ -207,12 +248,12 @@ const save = async (data, saveAs) => {
 }
 
 const openDoc = async (path) => {
-  
-  if(path){
+
+  if (path) {
     const json = fs.readFileSync(path, 'utf-8')
     mainWindow.webContents.send('open-doc-success', json)
     mainWindow.webContents.send('update-current-path', path)
-    return ;
+    return;
   }
 
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -259,7 +300,7 @@ const chooseSaveFile = async (data) => {
 }
 
 const exportFile = async (event, data) => {
-  data = {...JSON.parse(data.json),html: data.html,format: data.format}
+  data = { ...JSON.parse(data.json), html: data.html, format: data.format }
   //console.log(win)
   const dateyyyyMMddhhmmss = new Date()
     .toISOString()
@@ -268,22 +309,22 @@ const exportFile = async (event, data) => {
     .split('.')[0]
   const title = data.current_article_meta_data.title
   const filename = title ? title : dateyyyyMMddhhmmss
-  const format=data.format
-  let filter={}
-  switch(format){
+  const format = data.format
+  let filter = {}
+  switch (format) {
     case 'docx':
-      filter={ name: 'DOCX 文件', extensions: ['docx'] }
+      filter = { name: 'DOCX 文件', extensions: ['docx'] }
       break
     case 'md':
-      filter={ name: 'Markdown 文件', extensions: ['md'] }
+      filter = { name: 'Markdown 文件', extensions: ['md'] }
       break
     case 'html':
-      filter={ name: 'HTML 文件', extensions: ['html'] }
+      filter = { name: 'HTML 文件', extensions: ['html'] }
       break
   }
   const result = await dialog.showSaveDialog(mainWindow, {
     title: '导出文档',
-    defaultPath: filename + '.'+format,
+    defaultPath: filename + '.' + format,
     filters: [
       filter
     ]
@@ -303,7 +344,7 @@ const exportFile = async (event, data) => {
         directFileOutput(data.current_article, result.filePath)
         break
       case '.html':
-        convertMarkdownToHTML(data.current_article_meta_data.title,data.html, result.filePath)
+        convertMarkdownToHTML(data.current_article_meta_data.title, data.html, result.filePath)
         break
     }
   }
@@ -324,13 +365,13 @@ async function convertMarkdownTextToPDF(markdownText, outputPath) {
 
 
 
-async function convertMarkdownToHTML(title,htmlContent,path) {
+async function convertMarkdownToHTML(title, htmlContent, path) {
   try {
     // 使用 marked 将 Markdown 转换为 HTML
     htmlContent = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>${title}</title></head><body>${htmlContent}</body></html>`;
     directFileOutput(htmlContent, path)
   } catch (error) {
-    eventBus.emit('show-error','转换Markdown到HTML失败'+error)
+    eventBus.emit('show-error', '转换Markdown到HTML失败' + error)
     console.error('Error while converting markdown to HTML:', error);
   }
 }
@@ -345,7 +386,7 @@ async function convertMarkdownToDocx(htmlContent, outputPath) {
     //console.log(htmlContent);
     // 使用 html-docx-js 将 HTML 转换为 DOCX，得到一个 Blob 对象
     const docxBlob = htmlDocx.asBlob(htmlContent);
-    
+
 
     // 将 Blob 转换为 ArrayBuffer
     const arrayBuffer = await docxBlob.arrayBuffer();
@@ -364,7 +405,7 @@ async function convertMarkdownToDocx(htmlContent, outputPath) {
     mainWindow.webContents.send('export-success', outputPath)
     //console.log(`DOCX file successfully created at ${outputPath}`);
   } catch (error) {
-    eventBus.emit('show-error','转换Markdown到DOCX失败'+error)
+    eventBus.emit('show-error', '转换Markdown到DOCX失败' + error)
     console.error('Error while converting markdown to DOCX:', error);
   }
 }

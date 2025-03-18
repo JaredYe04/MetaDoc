@@ -133,6 +133,7 @@ import SearchReplaceMenu from "../components/SearchReplaceMenu.vue";
 import AiLogo from "../assets/ai-logo.svg";
 
 import { themeState } from "../utils/themes";
+import { getSetting } from "../utils/settings";
 
 // 状态变量
 const genTitleDialogVisible = ref(false);
@@ -187,10 +188,15 @@ const updateValue = (value) => {
 const handleMenuClick = async (item) => {
     switch (item) {
         case 'ai-assistant':
+            let text=current_article.value;
+            const bypassCodeBlock=await getSetting('bypassCodeBlock');
+            if(bypassCodeBlock){
+                text=text.replace(/```[\s\S]*?```/g,'');
+            }
             let messages = []
             messages.push({
                 role: 'system',
-                content: wholeArticleContextPrompt(current_article.value)
+                content: wholeArticleContextPrompt(text)
             })
             messages.push({
                 role: 'assistant',
@@ -200,6 +206,7 @@ const handleMenuClick = async (item) => {
                 title: "AI分析整篇文章",
                 messages: messages
             };
+            //console.log(newDialog)
             addDialog(newDialog,true)
             eventBus.emit('ai-chat')
             break;

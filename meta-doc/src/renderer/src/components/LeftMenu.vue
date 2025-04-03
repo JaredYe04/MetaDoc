@@ -14,6 +14,13 @@
         </template>
       </el-sub-menu>
     </el-tooltip>
+    <el-tooltip effect="light" content="用户资料" placement="right">
+      <el-menu-item @click="toggleUserProfile">
+      <el-icon>
+        <UserFilled />
+      </el-icon>
+    </el-menu-item>
+    </el-tooltip>
 
     <el-tooltip effect="light" content="文件" placement="right">
 
@@ -88,14 +95,14 @@
       <el-sub-menu index="2">
         <template #title>
           <el-icon>
-            <ChatDotRound/>
+            <ChatDotRound />
           </el-icon>
           <span>AI助手</span>
         </template>
 
         <el-menu-item index="2-1" @click="eventBus.emit('ai-chat')">
           <el-icon>
-            <ChatDotRound/>
+            <ChatDotRound />
           </el-icon>
           <span>与AI对话</span>
         </el-menu-item>
@@ -180,6 +187,7 @@
     </el-tooltip>
 
 
+
   </el-menu>
   <!-- <el-radio-group v-model="isCollapse">
     <el-radio-button :value="false">展开</el-radio-button>
@@ -190,7 +198,7 @@
 <script lang="ts" setup>
 
 
-
+import UserProfileCard from './UserProfileCard.vue'
 import { updateRecentDocs, getRecentDocs, getSetting } from '../utils/settings';
 import { onMounted, ref } from 'vue'
 import {
@@ -200,7 +208,8 @@ import {
   Location,
   Setting,
   ChatDotRound,
-  EditPen
+  EditPen,
+  UserFilled
 } from '@element-plus/icons-vue'
 import eventBus from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -208,6 +217,12 @@ import { exportPDF } from '../utils/md-utils';
 import { themeState } from '../utils/themes';
 const recentDocs = ref([])
 const isCollapse = ref(true)
+const showUserProfile=ref(false)
+
+const toggleUserProfile=()=>{
+  eventBus.emit('toggle-user-profile')
+}
+
 const handleOpen = (_key: string, _keyPath: string[]) => {
   //console.log(key, keyPath)
 }

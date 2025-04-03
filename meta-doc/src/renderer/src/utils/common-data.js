@@ -1,6 +1,17 @@
 import { ref } from 'vue'
 import eventBus from '../utils/event-bus'
 import { generateMarkdownFromOutlineTree,extractOutlineTreeFromMarkdown } from './md-utils'
+export const loggedIn = ref(false)
+export const user=ref({
+  username: '',
+  email: '',
+  phone: '',
+  avatar: '',
+  createdAt: '',
+  tokenBalance: 0
+})
+
+
 const default_outline_tree = {
   path: 'dummy',
   title: '',

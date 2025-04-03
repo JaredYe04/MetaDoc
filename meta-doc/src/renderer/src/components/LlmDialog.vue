@@ -4,7 +4,7 @@
     <div class="llm-dialog-header">
       <span :style="{color:themeState.currentTheme.textColor}">{{ props.title ? props.title : "AI助手" }}</span>
       <el-tooltip content="关闭菜单" placement="top">
-        <el-button circle size="mini" @click="closeDialog" class="aero-btn"><el-icon>
+        <el-button circle size="small" @click="closeDialog" class="aero-btn"  type="danger"><el-icon>
             <Close />
           </el-icon></el-button>
       </el-tooltip>

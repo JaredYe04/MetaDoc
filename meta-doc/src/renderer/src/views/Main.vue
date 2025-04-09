@@ -29,7 +29,7 @@ import { ElNotification } from 'element-plus'
 import { lightTheme, darkTheme } from '../utils/themes.js'
 import { current_ai_dialogs, current_file_path} from '../utils/common-data.js'
 import UserProfileCard from '../components/UserProfileCard.vue'
-import { verifyToken } from '../utils/user-utils.js'
+import { verifyToken } from '../utils/web-utils.ts'
 const showUserProfileCard = ref(false)
 const autoSaveEnabled = ref(false)
 const autoSaveInterval = ref(2147483647)
@@ -55,6 +55,7 @@ onMounted(async () => {
   eventBus.emit('llm-api-updated')
   const token=localStorage.getItem('loginToken')
   if(token){
+    sessionStorage.setItem('loginToken',token)//将token存入sessionStorage中
     verifyToken(token)//自动登录
   }
   await autoSave()

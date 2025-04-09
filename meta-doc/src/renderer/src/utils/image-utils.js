@@ -38,14 +38,28 @@ export function convertBase64ToBlob(base64, type) {
     }
     // 生成Blob对象（文件对象）
     return new Blob([bytesCode], { type: type || imgtype });
-        // //console.log(base64);
-        // var bytes = window.atob(base64);
-        // var ab = new ArrayBuffer(bytes.length);
-        // var ia = new Uint8Array(ab);
-        // for (var i = 0; i < bytes.length; i++) {
-        //   ia[i] = bytes.charCodeAt(i);
-        // }
-        // return new Blob([ab], {
-        //   type: type,
-        // });
+  }
+
+  // 图片类型推断函数
+export function getMimeType(bytes) {
+    // 检查文件头部字节，推断图片格式
+    const header = bytes.slice(0, 4); // 获取文件前4个字节
+    
+    // JPEG (开始为 FF D8 FF)
+    if (header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF) {
+      return 'image/jpeg';
+    }
+    
+    // PNG (开始为 89 50 4E 47)
+    if (header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47) {
+      return 'image/png';
+    }
+    
+    // GIF (开始为 47 49 46 38)
+    if (header[0] === 0x47 && header[1] === 0x49 && header[2] === 0x46) {
+      return 'image/gif';
+    }
+    
+    // 其他类型可以继续增加
+    return 'application/octet-stream';  // 如果无法确定格式，则返回默认类型
   }

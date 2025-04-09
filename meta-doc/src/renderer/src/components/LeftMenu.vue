@@ -94,9 +94,7 @@
     <el-tooltip effect="light" content="AI工具" placement="right">
       <el-sub-menu index="2">
         <template #title>
-          <el-icon>
-            <ChatDotRound />
-          </el-icon>
+          <img .src="themeState.currentTheme.AiLogo" alt="AI" style="width: 18px; height: 18px; margin-left: 3px;" />
           <span>AI助手</span>
         </template>
 
@@ -104,6 +102,7 @@
           <el-icon>
             <ChatDotRound />
           </el-icon>
+          
           <span>与AI对话</span>
         </el-menu-item>
         <el-menu-item index="2-2" @click="eventBus.emit('fomula-recognition')">
@@ -199,6 +198,7 @@
 
 
 import UserProfileCard from './UserProfileCard.vue'
+
 import { updateRecentDocs, getRecentDocs, getSetting } from '../utils/settings';
 import { onMounted, ref } from 'vue'
 import {

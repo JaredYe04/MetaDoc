@@ -14,9 +14,21 @@
 
 
       </div>
-      <div v-if="current_file_path !== ''" style="height: 100vh;" class="md-preview">
-        <el-scrollbar class="md-container"  style="width: 60vw; border: 1px #ccc solid;border-radius: 10px;"  >
-          <MarkdownItEditor :source="current_article" />
+      <div v-if="current_file_path !== ''" style="height: 100vh;">
+
+        <el-scrollbar class="md-metainfo" min-size="10" >
+          <h1 class="md-title" :style="{ color: themeState.currentTheme.textColor }">{{ current_article_meta_data.title }}
+          </h1>
+          <div class="md-author" :style="{ color: themeState.currentTheme.textColor }">
+            <h3>作者：{{ current_article_meta_data.author }}</h3>
+          </div>
+          <div class="md-description" :style="{ color: themeState.currentTheme.textColor }">
+            <h3>摘要</h3>{{ current_article_meta_data.description }}
+          </div>
+        </el-scrollbar>
+
+        <el-scrollbar  class="md-container" >
+          <MarkdownItEditor :source="current_article" style="margin: 0; padding: 0;"/>
         </el-scrollbar>
 
       </div>
@@ -32,7 +44,7 @@
         height: '100%',
         width: '70vw',
         background: tab === '文档信息' ? themeState.currentTheme.quickStartBackground1 : themeState.currentTheme.quickStartBackground2,
-        
+
         transition: 'background 0.5s ease'
       }">
         <!-- 顶部关闭按钮 -->
@@ -49,9 +61,9 @@
           <!-- Markdown 编辑器 -->
           <div
             style="width: 70%; padding-right: 10px; max-height: 75%; min-height: 200px; overflow:hidden; flex-grow: 1;">
-            <el-scrollbar >
+            <el-scrollbar>
               <MarkdownItEditor :source="generatedText" class="md-container" @mousedown.stop
-              style="width: 100%; box-shadow: none; height: 80%; overflow: auto;" />
+                style="width: 100%; box-shadow: none; height: 80%; overflow: auto;" />
             </el-scrollbar>
 
           </div>
@@ -72,8 +84,7 @@
               class="aero-div" v-if="tab === '文档信息'">
               <label
                 style="width: 100%; text-align: center; align-self: center; font-weight: bold; margin-bottom: 10px;"
-                :style="{color: themeState.currentTheme.textColor}"
-                class="interactive-text">文档信息</label>
+                :style="{ color: themeState.currentTheme.textColor }" class="interactive-text">文档信息</label>
               <div style="display: flex; align-items: center; margin-bottom: 16px">
                 <label style="width: 60px; text-align: left; margin-right: 8px">标题</label>
                 <el-input v-model="current_article_meta_data.title" style="flex: 1;width: 200px;"
@@ -115,12 +126,10 @@
               v-if="tab === 'AI助手'">
               <label
                 style="width: 100%; text-align: center; align-self: center; font-weight: bold; margin-bottom: 10px;"
-                :style="{color: themeState.currentTheme.textColor}"
-                class="interactive-text">AI助手</label>
+                :style="{ color: themeState.currentTheme.textColor }" class="interactive-text">AI助手</label>
               <el-tooltip content="选择AI温度" placement="left">
                 <el-slider v-model="temperature" :marks="marks" :min="0" :max="100"
-                  style="margin-bottom: 20px; width: 80%; " :disabled="generated || generating"
-                  />
+                  style="margin-bottom: 20px; width: 80%; " :disabled="generated || generating" />
               </el-tooltip>
 
 
@@ -130,7 +139,7 @@
                   <template #default="{ item }">
                     <div class="flex flex-col items-center gap-2 p-2" style="height: 60px; margin-top: 20px;">
                       <el-icon :size="12">
-                        <component :is="item.icon"/>
+                        <component :is="item.icon" />
                       </el-icon>
                       <div>{{ item.label }}</div>
                     </div>
@@ -139,8 +148,8 @@
               </el-tooltip>
               <el-tooltip content="输入提示词" placement="left">
                 <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable
-                  class="inline-input aero-input" style=" opacity: 0.8;" placeholder="在此处输入文章要求"
-                  @mousedown.stop type="textarea" :autosize="{ minRows: 3, maxRows: 3 }" resize='none'
+                  class="inline-input aero-input" style=" opacity: 0.8;" placeholder="在此处输入文章要求" @mousedown.stop
+                  type="textarea" :autosize="{ minRows: 3, maxRows: 3 }" resize='none'
                   :disabled="generated || generating">
 
                 </el-autocomplete>
@@ -148,7 +157,7 @@
 
               </el-tooltip>
 
-              <VoiceInput @onSpeechRecognized="onSpeechRecognized" :disabled="generated||generating"/>
+              <VoiceInput @onSpeechRecognized="onSpeechRecognized" :disabled="generated || generating" />
               <div class="aero-div" style="
       height: 150px;
       width: 80%;
@@ -169,9 +178,7 @@
         top: 0;
         left: 50%;
         transform: translateX(-50%);
-      "
-      :style="{color: themeState.currentTheme.textColor}"
-      >
+      " :style="{ color: themeState.currentTheme.textColor }">
                   建议
                 </label>
                 <div style="position: relative; height: 60px; width: 100%;" id="suggestion-buttons">
@@ -184,7 +191,8 @@
         height: 100%;
       ">
                     <el-button v-for="(button, index) in buttons" :key="index" size="small"
-                      @click="handleAcceptSuggestion(button.prompt)" class="aero-btn" :disabled="generating || generated">
+                      @click="handleAcceptSuggestion(button.prompt)" class="aero-btn"
+                      :disabled="generating || generated">
                       {{ button.label }}
                     </el-button>
                   </div>
@@ -276,7 +284,7 @@ function generateRandomButtons() {
   }
   return randomButtons;
 }
-const applyTheme=async ()=> {
+const applyTheme = async () => {
   eventBus.emit('theme-changed')
 }
 onMounted(() => {
@@ -667,10 +675,24 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.md-container {
-  max-height: 85vh;
-  width: 60vw;
+.md-metainfo {
+  width: 80vw;
+  max-height: 25vh;
+  height: fit-content;
   overflow: auto;
+  margin-bottom: 20px;
+}
+
+.md-container {
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  
+  max-height: 63vh;
+  overflow: auto;
+  width: 80vw;
+  border: 1px #cccccc44 solid;
+  border-radius: 10px;
 }
 
 .homepage {

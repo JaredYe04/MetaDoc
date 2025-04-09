@@ -1,7 +1,10 @@
 import { reactive } from "vue";
-
+import AiLogo from "../assets/ai-logo.svg";
+import AiLogoWhite from "../assets/ai-logo-white.svg";
 // theme.js
 export const lightTheme = {
+  name: 'light',
+  AiLogo: AiLogo,
     background: '#ffffff',
     background2nd: '#f5f5f5',
     textColor: '#000000',
@@ -24,6 +27,8 @@ export const lightTheme = {
   };
   
 export const darkTheme = {
+  name: 'dark',
+  AiLogo: AiLogoWhite,
     background: '#2c2c2c',
     background2nd: '#3a3a3a',
     textColor: '#ffffff',

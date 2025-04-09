@@ -18,8 +18,7 @@
                 @insert="insertText" />
 
 
-
-            <div id="vditor" class="editor" v-loading="loading" @keydown="handleTab"
+                <div id="vditor" class="editor" v-loading="loading" @keydown="handleTab"
                 @contextmenu.prevent="openContextMenu($event)">
             </div>
 
@@ -131,7 +130,7 @@ import LlmDialog from "../components/LlmDialog.vue";
 import TitleMenu from '../components/TitleMenu.vue';
 import SearchReplaceMenu from "../components/SearchReplaceMenu.vue";
 import AiLogo from "../assets/ai-logo.svg";
-
+import AiLogoWhite from "../assets/ai-logo-white.svg";
 import { themeState } from "../utils/themes";
 import { getSetting } from "../utils/settings";
 
@@ -144,7 +143,9 @@ const modifyAuthorDialogVisible = ref(false);
 const searchReplaceDialogVisible = ref(false);
 const vditor = ref(null); // Vditor 实例
 const editMetaDialogVisible = ref(false); // 编辑元信息对话框
+
 const meta = reactive(current_article_meta_data);
+
 const loadingInstance = ElLoading.service({ fullscreen: false });
 const showTitleMenu = ref(false);
 const currentTitle = ref("");
@@ -188,10 +189,10 @@ const updateValue = (value) => {
 const handleMenuClick = async (item) => {
     switch (item) {
         case 'ai-assistant':
-            let text=current_article.value;
-            const bypassCodeBlock=await getSetting('bypassCodeBlock');
-            if(bypassCodeBlock){
-                text=text.replace(/```[\s\S]*?```/g,'');
+            let text = current_article.value;
+            const bypassCodeBlock = await getSetting('bypassCodeBlock');
+            if (bypassCodeBlock) {
+                text = text.replace(/```[\s\S]*?```/g, '');
             }
             let messages = []
             messages.push({
@@ -207,7 +208,7 @@ const handleMenuClick = async (item) => {
                 messages: messages
             };
             //console.log(newDialog)
-            addDialog(newDialog,true)
+            addDialog(newDialog, true)
             eventBus.emit('ai-chat')
             break;
         case 'cut':
@@ -390,19 +391,72 @@ onMounted(() => {
             },
         },
         toolbar: [
-            'undo',     // 撤销
-            'redo',     // 重做
-            'headings', // 标题
-            'bold',     // 加粗
-            'italic',   // 斜体
-            'strike',   // 删除线
-            'link',     // 超链接
-            'list',     // 列表
-            'table',    // 表格
-            'code',     // 代码块
-            'preview',  // 预览
-            'fullscreen', // 全屏
-            'quote',    // 引用
+            {
+                name: 'undo',
+                tip: '撤销',
+                tipPosition: 's',
+
+            },
+            {
+                name: 'redo',
+                tip: '重做',
+                tipPosition: 's',
+            },
+            {
+                name: 'headings',
+                tipPosition: 's',
+                tip: '标题',
+            },
+            {
+                name: 'bold',
+                tipPosition: 's',
+                tip: '加粗',
+            },
+            {
+                name: 'italic',
+                tipPosition: 's',
+                tip: '斜体',
+            },
+            {
+                name: 'strike',
+                tipPosition: 's',
+                tip: '删除线',
+            },
+            {
+                name: 'link',
+                tipPosition: 's',
+                tip: '超链接',
+            },
+            {
+                name: 'list',
+                tipPosition: 's',
+                tip: '列表',
+            },
+            {
+                name: 'table',
+                tipPosition: 's',
+                tip: '表格',
+            },
+            {
+                name: 'code',
+                tipPosition: 's',
+                tip: '代码块',
+            },
+            {
+                name: 'preview',
+                tipPosition: 's',
+                tip: '预览',
+            },
+            {
+                name: 'fullscreen',
+                tipPosition: 's',
+                tip: '全屏编辑器',
+            },
+            {
+                name: "quote",
+                tipPosition: "s",
+                tip: "引用",
+            },
             {
                 name: 'search-replace',
                 tipPosition: 's',
@@ -410,8 +464,15 @@ onMounted(() => {
                 className: 'right',
                 icon: '<svg><use xlink:href="#vditor-icon-info"></use></svg>',
                 click() { eventBus.emit('search-replace') },
-            }
-
+            },
+            {
+                name: 'ai-assistant',
+                tipPosition: 's',
+                tip: 'AI助手',
+                className: 'right',
+                icon: `<img src="${themeState.currentTheme.AiLogo}" style="width: 20px; height: 20px; " />`,
+                click() { handleMenuClick('ai-assistant') },
+            },
 
         ],
         cdn: 'http://localhost:3000/vditor',
@@ -434,7 +495,7 @@ onMounted(() => {
 
         },
         after: async () => {
-            
+
             //console.log(themeState);
             try {
                 sync();
@@ -492,6 +553,9 @@ eventBus.on('sync-vditor-theme', async () => {
 .editor {
     flex: 4;
     border-right: 1px solid #ddd;
+    max-width: 85vw;
+    width: 85vw;
+    overflow: auto;
 }
 
 /* 右边的元信息样式 */
@@ -517,5 +581,6 @@ eventBus.on('sync-vditor-theme', async () => {
 .context-menu {
     position: absolute;
     z-index: 1000;
+    
 }
 </style>

@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, globalShortcut, dialog } from 'elec
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { mainCalls } from './main_calls'
+import { mainCalls, openDoc } from './main_calls'
 const express = require('express');
 const http = require('http');
 const url = require('url');
@@ -40,11 +40,12 @@ function createWindow() {
   })
   const args = process.argv.slice(2); // 获取命令行参数
 
-  mainWindow.on('ready-to-show', () => {
+  mainWindow.on('ready-to-show', async () => {
     bindShortcuts();//绑定快捷键
     mainWindow.show()
     if(args[0]){
-      mainWindow.webContents.send('open-doc',args[0]);
+      await openDoc(args[0]);
+      //mainWindow.webContents.send('open-doc',args[0]);
     }
   })
 
@@ -198,33 +199,33 @@ function bindShortcuts() {
   // 监听窗口焦点
   mainWindow.on('focus', () => {
     // 注册快捷键
-    globalShortcut.register('CommandOrControl+S', () => {
+    globalShortcut.register('CommandOrControl+S', async () => {
       if (!isShortcutPressed) {
         isShortcutPressed = true; // 设置锁
         mainWindow.webContents.send('save-triggered');
-        setTimeout(() => (isShortcutPressed = false), 500); // 短时间后释放锁
+        setTimeout(() => (isShortcutPressed = false), 1000); // 短时间后释放锁
       }
     });
 
-    globalShortcut.register('CommandOrControl+Shift+S', () => {
+    globalShortcut.register('CommandOrControl+Shift+S', async () => {
       if (!isShortcutPressed) {
         isShortcutPressed = true; // 设置锁
         mainWindow.webContents.send('save-as-triggered');
-        setTimeout(() => (isShortcutPressed = false), 500); // 短时间后释放锁
+        setTimeout(() => (isShortcutPressed = false), 1000); // 短时间后释放锁
       }
     });
-    globalShortcut.register('CommandOrControl+F', () => {
+    globalShortcut.register('CommandOrControl+F', async () => {
       if (!isShortcutPressed) {
         isShortcutPressed = true; // 设置锁
         mainWindow.webContents.send('search-replace-triggered');
-        setTimeout(() => (isShortcutPressed = false), 500); // 短时间后释放锁
+        setTimeout(() => (isShortcutPressed = false), 1000); // 短时间后释放锁
       }
     });
-    globalShortcut.register('CommandOrControl+H', () => {
+    globalShortcut.register('CommandOrControl+H', async () => {
       if (!isShortcutPressed) {
         isShortcutPressed = true; // 设置锁
         mainWindow.webContents.send('search-replace-triggered');
-        setTimeout(() => (isShortcutPressed = false), 500); // 短时间后释放锁
+        setTimeout(() => (isShortcutPressed = false), 1000); // 短时间后释放锁
       }
     });
   });

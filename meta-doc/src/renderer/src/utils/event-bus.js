@@ -31,7 +31,7 @@ eventBus.on('save', async (msg) => {
   //console.log(window.electron)
   if(msg==='auto-save'){
     if(current_file_path.value===''){
-      return//如果没有文件路径，不进行自动保存
+      return//如果尝试自动保存时，没有文件路径，则不进行自动保存
     }
   }
   sync();
@@ -54,6 +54,7 @@ eventBus.on('open-doc', async (path) => {
   await init()
   eventBus.emit('is-need-save',false)
   ipcRenderer.send('open-doc',path)
+  updateRecentDocs(path)
 })
 
 eventBus.on('quit', () => {

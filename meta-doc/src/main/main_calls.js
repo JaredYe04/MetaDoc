@@ -247,9 +247,9 @@ const save = async (data, saveAs) => {
   }
 }
 
-const openDoc = async (path) => {
+export const openDoc = async (path) => {
 
-  if (path) {
+  if (path) {//如果传入了路径，则直接打开，否则弹出对话框
     const json = fs.readFileSync(path, 'utf-8')
     mainWindow.webContents.send('open-doc-success', json)
     mainWindow.webContents.send('update-current-path', path)

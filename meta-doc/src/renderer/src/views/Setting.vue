@@ -57,7 +57,7 @@
                 <el-tooltip content="检测麦克风是否能正常录音。" placement="bottom">
                   <MicrophoneTest />
                 </el-tooltip>
-                
+
               </div>
             </el-form-item>
 
@@ -80,8 +80,8 @@
             <el-form-item label="统计文本时排除代码块">
               <el-tooltip content="代码的内容会影响词频统计的准确性，因此可选择是否排除。" placement="bottom">
                 <el-switch v-model="settings.bypassCodeBlock" class="mb-2"
-                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" active-text="启用"
-                inactive-text="关闭" @change="saveSetting('bypassCodeBlock', settings.bypassCodeBlock);" />
+                  style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" active-text="启用"
+                  inactive-text="关闭" @change="saveSetting('bypassCodeBlock', settings.bypassCodeBlock);" />
               </el-tooltip>
             </el-form-item>
 
@@ -116,18 +116,22 @@
                 <el-form-item label="选择大模型类型">
                   <el-select v-model="settings.selectedLlm" placeholder="选择大模型"
                     @change="saveSetting('selectedLlm', settings.selectedLlm)">
-                    <el-option label="Ollama" value="ollama"></el-option>
-                    <el-option label="OpenAI API" value="openai"></el-option>
-                    <el-option label="文心一言" value="wenxin"></el-option>
-                    <el-option label="通义千问" value="tongyi"></el-option>
-                    <el-option label="Google Gemini" value="gemini"></el-option>
-                    <el-option label="Claude" value="claude"></el-option>
+                    <el-tooltip content="MetaDoc官方提供的AI大模型，支持多种模型" placement="left">
+                      <el-option label="MetaDoc" value="metadoc"></el-option>
+                    </el-tooltip>
+                    <el-tooltip content="本地部署的大模型平台，支持多种模型" placement="left">
+                      <el-option label="Ollama" value="ollama"></el-option>
+                    </el-tooltip>
+                    <el-tooltip content="任何兼容OpenAI API标准的外部大模型，均可兼容" placement="left">
+                      <el-option label="OpenAI兼容 API" value="openai"></el-option>
+                    </el-tooltip>
+
                   </el-select>
                 </el-form-item>
                 <!-- 根据选择的模型显示不同的配置项 -->
                 <div v-if="settings.selectedLlm === 'ollama'">
                   <!-- Ollama 配置 -->
-                  <el-form-item label="API 域名">
+                  <el-form-item label="API BaseURL">
                     <el-input v-model="settings.ollama.apiUrl" placeholder="输入 Ollama 的 API 地址"
                       @change="updateLlmInfo" />
                   </el-form-item>
@@ -138,77 +142,58 @@
                       </el-option>
                     </el-select>
                   </el-form-item>
-                  <el-form-item label="去除think标签">
-                    <el-switch v-model="settings.autoRemoveThinkTag" class="mb-2"
-                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" active-text="启用"
-                      inactive-text="关闭" @change="saveSetting('autoRemoveThinkTag', settings.autoRemoveThinkTag)" />
-                  </el-form-item>
                 </div>
 
                 <div v-else-if="settings.selectedLlm === 'openai'">
                   <!-- OpenAI 配置 -->
-                  <el-form-item label="API 域名">
-                    <el-input v-model="settings.openai.apiUrl" placeholder="输入 OpenAI 的 API 地址"
+                  <el-form-item label="API BaseURL">
+                    <el-input v-model="settings.openai.apiUrl" placeholder="输入兼容OpenAI规范的 API 地址"
                       @change="updateLlmInfo" />
                   </el-form-item>
                   <el-form-item label="API 秘钥">
-                    <el-input v-model="settings.openai.apiKey" type="password" placeholder="输入 OpenAI 的 API 秘钥"
+                    <el-input v-model="settings.openai.apiKey" type="password" placeholder="输入兼容OpenAI规范的 API 秘钥"
                       @change="updateLlmInfo" />
                   </el-form-item>
+                  <el-form-item label="选择模型">
+                    <el-select v-model="settings.openai.selectedModel" placeholder="选择模型" @click="fetchOpenAIModels"
+                      @change="updateLlmInfo">
+                      <el-option v-for="model in openaiModels" :key="model" :label="model.id" :value="model.id">
+                      </el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="API URL后缀">
+                    <el-input v-model="settings.openai.completionSuffix" placeholder="问答补全功能(Completions)的URL后缀（可选）"
+                      @change="updateLlmInfo" />
+                    <div style="height:40px;"></div>
+                    <el-input v-model="settings.openai.chatSuffix" placeholder="对话补全功能(Chat)的URL后缀（可选）"
+                      @change="updateLlmInfo" />
+                  </el-form-item>
+
+                </div>
+                <div v-else-if="settings.selectedLlm === 'metadoc'">
+                  <el-form-item label="选择模型">
+                    <el-select v-model="settings.metadoc.selectedModel" placeholder="选择模型" @click="fetchMetaDocModels"
+                      @change="updateLlmInfo">
+                      <el-option v-for="model in metadocModels" :key="model" :label="model.label" :value="model.label">
+                      </el-option>
+                    </el-select>
+                  </el-form-item>
+
                 </div>
 
-                <div v-else-if="settings.selectedLlm === 'wenxin'">
-                  <!-- 文心一言配置 -->
-                  <el-form-item label="API 地址">
-                    <el-input v-model="settings.wenxin.apiUrl" placeholder="输入文心一言的 API 地址" @change="updateLlmInfo" />
-                  </el-form-item>
-                  <el-form-item label="API 秘钥">
-                    <el-input v-model="settings.wenxin.apiKey" type="password" placeholder="输入文心一言的 API 秘钥"
-                      @change="updateLlmInfo" />
-                  </el-form-item>
-                </div>
 
-                <div v-else-if="settings.selectedLlm === 'tongyi'">
-                  <!-- 通义千问配置 -->
-                  <el-form-item label="API 地址">
-                    <el-input v-model="settings.tongyi.apiUrl" placeholder="输入通义千问的 API 地址" @change="updateLlmInfo" />
-                  </el-form-item>
-                  <el-form-item label="API 秘钥">
-                    <el-input v-model="settings.tongyi.apiKey" type="password" placeholder="输入通义千问的 API 秘钥"
-                      @change="updateLlmInfo" />
-                  </el-form-item>
-                </div>
-
-                <div v-else-if="settings.selectedLlm === 'gemini'">
-                  <!-- Google Gemini 配置 -->
-                  <el-form-item label="API 地址">
-                    <el-input v-model="settings.gemini.apiUrl" placeholder="输入 Google Gemini 的 API 地址"
-                      @change="updateLlmInfo" />
-                  </el-form-item>
-                  <el-form-item label="API 秘钥">
-                    <el-input v-model="settings.gemini.apiKey" type="password" placeholder="输入 Google Gemini 的 API 秘钥"
-                      @change="updateLlmInfo" />
-                  </el-form-item>
-                </div>
-
-                <div v-else-if="settings.selectedLlm === 'claude'">
-                  <!-- Claude 配置 -->
-                  <el-form-item label="API 地址">
-                    <el-input v-model="settings.claude.apiUrl" placeholder="输入 Claude 的 API 地址"
-                      @change="updateLlmInfo" />
-                  </el-form-item>
-                  <el-form-item label="API 秘钥">
-                    <el-input v-model="settings.claude.apiKey" type="password" placeholder="输入 Claude 的 API 秘钥"
-                      @change="updateLlmInfo" />
-                  </el-form-item>
-                </div>
-
+                <el-form-item label="去除think标签">
+                  <el-switch v-model="settings.autoRemoveThinkTag" class="mb-2"
+                    style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" active-text="启用"
+                    inactive-text="关闭" @change="saveSetting('autoRemoveThinkTag', settings.autoRemoveThinkTag)" />
+                </el-form-item>
                 <div class="aero-divider">
                   <el-form-item>
                     <el-button type="primary" @click="testLlmApi" class="aero-btn">测试大模型</el-button>
                   </el-form-item>
                   <el-form-item label="测试结果">
-                    <el-input v-model="testResult" type="textarea" readonly placeholder="测试结果将显示在此处" :autosize="{ minRows: 5, maxRows: 7 }"/>
+                    <el-input v-model="testResult" type="textarea" readonly placeholder="测试结果将显示在此处"
+                      :autosize="{ minRows: 5, maxRows: 7 }" />
                   </el-form-item>
 
 
@@ -236,6 +221,10 @@ import "../assets/aero-btn.css";
 import "../assets/aero-div.css";
 import { themeState } from "../utils/themes.js";
 
+//computed
+import { computed } from "vue";
+import { getMetaDocLlmModels } from "../utils/web-utils.ts";
+
 const ipcRenderer = window.electron.ipcRenderer
 // 定义响应式状态
 const activeMenu = ref("basic"); // 当前菜单
@@ -245,8 +234,6 @@ const settings = reactive({
   theme: "light", // 主题
   llmEnabled: false, // 是否启用 LLM
   selectedLlm: "", // 选择的大模型类型
-  llmApiUrl: "", // LLM API URL
-  llmApiKey: "", // LLM API 秘钥（根据不同模型可能使用）
   exportImageMode: "none", // 导出图片选项
   autoRemoveThinkTag: true,//自动去除推理过程
   bypassCodeBlock: true, // 统计文字信息时排除代码块
@@ -255,28 +242,20 @@ const settings = reactive({
     selectedModel: "",
   },
   openai: {
-    apiUrl: "https://api.openai.com/v1", // OpenAI 默认 API URL
-    apiKey: "",
+    apiUrl: "https://api.openai.com/v1", // BaseURL
+    apiKey: "",//API Key
+    selectedModel: "",//模型名称
+    completionSuffix: "", // 补全模式url后缀
+    chatSuffix: "", // 聊天模式url后缀
   },
-  wenxin: {
-    apiUrl: "https://wenxin.baidu.com/api", // 文心一言默认 API URL
-    apiKey: "",
-  },
-  tongyi: {
-    apiUrl: "https://api.aliyun.com/tongyi", // 通义千问默认 API URL
-    apiKey: "",
-  },
-  gemini: {
-    apiUrl: "https://gemini.googleapis.com", // Google Gemini 默认 API URL
-    apiKey: "",
-  },
-  claude: {
-    apiUrl: "https://api.anthropic.com/v1", // Claude 默认 API URL
-    apiKey: "",
+  metadoc:{
+    selectedModel: "",//模型名称
   },
   alwaysAskSave: true, // 是否总是询问保存
 });
 const ollamaModels = ref([]); // Ollama 模型列表
+const openaiModels = ref([]); // OpenAI 模型列表
+const metadocModels = ref([]); // MetaDoc 模型列表
 const testResult = ref(""); // 测试结果
 
 // 方法定义
@@ -295,29 +274,36 @@ const fetchSettings = async () => {
 };
 
 const fetchLlmSettings = async () => {
-  if (settings.selectedLlm === "ollama") {
-    settings.ollama.apiUrl = await getSetting("ollamaApiUrl");
-    const model = await getSetting("ollamaSelectedModel");
-    ollamaModels.value.push({ model: model, name: model });
-    settings.ollama.selectedModel = model;
-  } else if (settings.selectedLlm === "openai") {
-    settings.openai.apiUrl = await getSetting("openaiApiUrl");
-    settings.openai.apiKey = await getSetting("openaiApiKey");
-  } else if (settings.selectedLlm === "wenxin") {
-    settings.wenxin.apiUrl = await getSetting("wenxinApiUrl");
-    settings.wenxin.apiKey = await getSetting("wenxinApiKey");
-  } else if (settings.selectedLlm === "tongyi") {
-    settings.tongyi.apiUrl = await getSetting("tongyiApiUrl");
-    settings.tongyi.apiKey = await getSetting("tongyiApiKey");
-  } else if (settings.selectedLlm === "gemini") {
-    settings.gemini.apiUrl = await getSetting("geminiApiUrl");
-    settings.gemini.apiKey = await getSetting("geminiApiKey");
-  } else if (settings.selectedLlm === "claude") {
-    settings.claude.apiUrl = await getSetting("claudeApiUrl");
-    settings.claude.apiKey = await getSetting("claudeApiKey");
-  }
+  settings.metadoc.selectedModel = await getSetting("metadocSelectedModel");
+//
+  settings.ollama.apiUrl = await getSetting("ollamaApiUrl");
+  settings.ollama.selectedModel = await getSetting("ollamaSelectedModel");
+//
+  settings.openai.apiUrl = await getSetting("openaiApiUrl");
+  settings.openai.apiKey = await getSetting("openaiApiKey");
+  settings.openai.selectedModel = await getSetting("openaiSelectedModel");
+  settings.openai.completionSuffix = await getSetting("openaiCompletionSuffix");
+  settings.openai.chatSuffix = await getSetting("openaiChatSuffix");
 };
-
+const updateLlmInfo = () => {
+  const { selectedLlm } = settings;
+    setSetting("metadocSelectedModel", settings.metadoc.selectedModel);
+//
+    setSetting("ollamaApiUrl", settings.ollama.apiUrl);
+    setSetting("ollamaSelectedModel", settings.ollama.selectedModel);
+//
+    setSetting("openaiApiUrl", settings.openai.apiUrl);
+    setSetting("openaiApiKey", settings.openai.apiKey);
+    setSetting("openaiSelectedModel", settings.openai.selectedModel);
+    setSetting("openaiCompletionSuffix", settings.openai.completionSuffix);
+    setSetting("openaiChatSuffix", settings.openai.chatSuffix);
+  eventBus.emit("llm-api-updated");
+};
+const fetchMetaDocModels=async()=>{
+  const models=await getMetaDocLlmModels();
+  console.log("MetaDoc模型列表：", models);
+  metadocModels.value=models; 
+}
 const fetchOllamaModels = async () => {
   const apiUrl = settings.ollama.apiUrl;
   if (!apiUrl) return;
@@ -334,32 +320,33 @@ const fetchOllamaModels = async () => {
     console.error("无法获取 Ollama 模型列表:", error);
   }
 };
+const fetchOpenAIModels = async () => {
+  const apiUrl = settings.openai.apiUrl;
+  if (!apiUrl) return;
+  try {
+    let config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${apiUrl}/models`,
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${settings.openai.apiKey}`,
+      }
+    };
 
-const updateLlmInfo = () => {
-  const { selectedLlm } = settings;
-
-  if (selectedLlm === "ollama") {
-    setSetting("ollamaApiUrl", settings.ollama.apiUrl);
-    setSetting("ollamaSelectedModel", settings.ollama.selectedModel);
-  } else if (selectedLlm === "openai") {
-    setSetting("openaiApiUrl", settings.openai.apiUrl);
-    setSetting("openaiApiKey", settings.openai.apiKey);
-  } else if (selectedLlm === "wenxin") {
-    setSetting("wenxinApiUrl", settings.wenxin.apiUrl);
-    setSetting("wenxinApiKey", settings.wenxin.apiKey);
-  } else if (selectedLlm === "tongyi") {
-    setSetting("tongyiApiUrl", settings.tongyi.apiUrl);
-    setSetting("tongyiApiKey", settings.tongyi.apiKey);
-  } else if (selectedLlm === "gemini") {
-    setSetting("geminiApiUrl", settings.gemini.apiUrl);
-    setSetting("geminiApiKey", settings.gemini.apiKey);
-  } else if (selectedLlm === "claude") {
-    setSetting("claudeApiUrl", settings.claude.apiUrl);
-    setSetting("claudeApiKey", settings.claude.apiKey);
+    const response = await axios(config)
+    //console.log("OpenAI模型列表：", response);
+    if (response.data) {
+      openaiModels.value = response.data.data;
+    } else {
+      openaiModels.value = [];
+      console.warn("未能获取模型列表，响应数据为空。");
+    }
+  } catch (error) {
+    console.error("无法获取模型列表:", error);
   }
-  eventBus.emit("llm-api-updated");
-  setSetting("llmApiUrl", settings.llmApiUrl);
-};
+}
+
 
 const saveSetting = (key, value) => {
   setSetting(key, value);
@@ -378,7 +365,7 @@ const handleLlmToggle = (enabled) => {
 
 const testLlmApi = async () => {
   try {
-    const prompt = "这是一段测试文本。";
+    const prompt = "你好！请介绍一下你自己。";
     await answerQuestionStream(prompt, testResult); // 流式回答
   } catch (error) {
     console.error("测试失败：", error);

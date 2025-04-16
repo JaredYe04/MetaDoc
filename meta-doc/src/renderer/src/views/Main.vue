@@ -55,8 +55,8 @@ onMounted(async () => {
   eventBus.emit('llm-api-updated')
   const token=localStorage.getItem('loginToken')
   if(token){
-    sessionStorage.setItem('loginToken',token)//将token存入sessionStorage中
-    verifyToken(token)//自动登录
+    localStorage.setItem('loginToken',token)
+    await verifyToken(token)//自动登录
   }
   await autoSave()
 })

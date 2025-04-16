@@ -2,44 +2,41 @@ import axios from "axios";
 import { getSetting } from "../utils/settings.js";
 import { ca } from "element-plus/es/locales.mjs";
 import eventBus from "./event-bus.js";
+import { max } from "d3";
+import { getMetaDocLlmConfig, verifyToken } from "./web-utils.ts";
 
 /**
  * Helper to determine the current LLM settings (selected model and API details).
  */
 async function getLlmConfig() {
   const selectedLlm = await getSetting("selectedLlm");
-  const config = {};
+  let config = {};
   switch (selectedLlm) {
+    case "metadoc":
+      //const token = sessionStorage.getItem('loginToken')
+      const token = localStorage.getItem('loginToken')
+      const modelName = await getSetting('metadocSelectedModel')
+
+      const isLoggedIn=verifyToken(token);
+      if(!isLoggedIn){
+        eventBus.emit('show-error','请先登录！')
+        eventBus.emit('toggle-user-profile')
+        return {};
+      }
+      config=await getMetaDocLlmConfig(token,modelName);
+      //console.log(config)
+      break;
     case "openai":
       config.apiKey = await getSetting("openaiApiKey");
       config.apiUrl = await getSetting("openaiApiUrl");
+      config.selectedModel = await getSetting("openaiSelectedModel");
+      config.completionSuffix = await getSetting("openaiCompletionSuffix");
+      config.chatSuffix = await getSetting("openaiChatSuffix");
       break;
 
     case "ollama":
       config.selectedModel = await getSetting("ollamaSelectedModel");
       config.apiUrl = await getSetting("ollamaApiUrl");
-      break;
-
-    case "claude":
-      config.apiKey = await getSetting("claudeApiKey");
-      config.apiUrl = await getSetting("claudeApiUrl");
-      break;
-
-    //文心一言，通义千问
-    case "wenxin":
-      config.apiUrl = await getSetting("wenxinApiUrl");
-      config.apiKey = await getSetting("wenxinApiKey");
-      break;
-
-    case "tongyi":
-      config.apiUrl = await getSetting("tongyiApiUrl");
-      config.apiKey = await getSetting("tongyiApiKey");
-      break;
-
-    //gemini
-    case "gemini":
-      config.apiUrl = await getSetting("geminiApiUrl");
-      config.apiKey = await getSetting("geminiApiKey");
       break;
   }
   //console.log({ type: selectedLlm, ...config })
@@ -52,13 +49,14 @@ async function getLlmConfig() {
  * @returns {Promise<string>} - The response from the model.
  */
 async function answerQuestion(prompt,meta={temperature:0}) {
-  const { type, apiUrl, apiKey, selectedModel } = await getLlmConfig();
+  const { type, apiUrl, apiKey, selectedModel,completionSuffix='' } = await getLlmConfig();
   const autoRemoveThinkTag=await getSetting('autoRemoveThinkTag')
   switch (type) {
     case "openai":
+    case "metadoc":
       return axios
         .post(
-          `${apiUrl}/completions`,
+          `${apiUrl}${completionSuffix}/completions`,
           {
             model: selectedModel || "gpt-4",
             prompt,
@@ -92,21 +90,6 @@ async function answerQuestion(prompt,meta={temperature:0}) {
         
       })
       return result;
-
-    case "claude":
-      return axios
-        .post(
-          `${apiUrl}/chat`,
-          {
-            model: selectedModel || "claude-2",
-            messages: [{ role: "user", content: prompt }],
-          },
-          {
-            headers: { Authorization: `Bearer ${apiKey}` },
-          }
-        )
-        .then((res) => res.data.completion);
-
     default:
       throw new Error(`Unsupported LLM type: ${type}`);
   }
@@ -135,9 +118,11 @@ async function validateApi(){
 
 async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
   if(!(await validateApi())){return}
-  const { type, apiUrl, apiKey, selectedModel } = await getLlmConfig();
+  
+  const { type, apiUrl, apiKey, selectedModel,completionSuffix='' } = await getLlmConfig();
 
   async function handleStreamingRequest(url, payload, ref) {
+    //console.log(payload)
     try {
       const response = await fetch(url, {
         method: "POST",
@@ -147,7 +132,7 @@ async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
         },
         body: JSON.stringify(payload),
       });
-
+     
       const reader = response.body.getReader(); // 获取流
       const decoder = new TextDecoder("utf-8"); // 解码器
       let ndjson = ""; // 用于拼接未完成的 NDJSON 行
@@ -171,7 +156,12 @@ async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
         for (const line of lines) {
           if (line.trim()) {
             try {
-              const parsed = JSON.parse(line); // 解析 JSON 行
+              let json='';
+              if(line.startsWith('data: ')) {
+                json = line.replace(/^data: /, ""); // 解析 OpenAI 的 NDJSON 行，去掉前缀
+              }
+              else json = line; // 直接使用其他类型的 NDJSON 行
+              const parsed = JSON.parse(json); // 解析 JSON 行
               ref.value += parsed.response || parsed.choices?.[0]?.text || ""; // 更新响应值
               if(autoRemoveThinkTag){
                 if(ref.value.trim().endsWith('</think>')){
@@ -191,20 +181,16 @@ async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
       console.error("请求出错:", error);
     }
   }
-
+  //console.log(completionSuffix)
   switch (type) {
+    case "metadoc":
     case "openai":
       await handleStreamingRequest(
-        `${apiUrl}/completions`,
+        `${apiUrl}${completionSuffix}/completions`,
         {
           model: selectedModel || "text-davinci-003", // 默认模型
           prompt,
           stream: true,
-          max_tokens: 1024, // 根据需求设置参数
-          temperature: meta.temperature,
-          options:{
-            ...meta
-          }
         },
         ref
       );
@@ -221,55 +207,6 @@ async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
         ref
       );
       break;
-
-    case "wenxin":
-      await handleStreamingRequest(
-        `${apiUrl}/generate`,
-        {
-          model: selectedModel || "ERNIE-Bot", // 默认模型
-          prompt,
-          stream: true,
-        },
-        ref
-      );
-      break;
-
-    case "tongyi":
-      await handleStreamingRequest(
-        `${apiUrl}/v1/generate`,
-        {
-          model: selectedModel || "tongyi-gpt", // 默认模型
-          prompt,
-          stream: true,
-        },
-        ref
-      );
-      break;
-
-    case "gemini":
-      await handleStreamingRequest(
-        `${apiUrl}/v1/chat/completions`,
-        {
-          model: selectedModel || "gemini-1", // 默认模型
-          prompt,
-          stream: true,
-        },
-        ref
-      );
-      break;
-
-    case "claude":
-      await handleStreamingRequest(
-        `${apiUrl}/v1/complete`,
-        {
-          model: selectedModel || "claude-2", // 默认模型
-          prompt,
-          stream: true,
-        },
-        ref
-      );
-      break;
-
     default:
       throw new Error(`Unsupported LLM type: ${type}`);
   }
@@ -283,16 +220,19 @@ async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
  * @returns {Promise<string>} - The response from the model.
  */
 async function continueConversation(conversation) {
-  const { type, apiUrl, apiKey, selectedModel } = await getLlmConfig();
+  const { type, apiUrl, apiKey, selectedModel,chatSuffix='' } = await getLlmConfig();
 
   switch (type) {
     case "openai":
+    case "metadoc":
       return axios
         .post(
-          `${apiUrl}/chat/completions`,
+          `${apiUrl}${chatSuffix}/chat/completions`,
           {
             model: selectedModel || "gpt-4",
             messages: conversation,
+            max_tokens: 1024,
+            temperature: 0.7,
           },
           {
             headers: { Authorization: `Bearer ${apiKey}` },
@@ -309,20 +249,6 @@ async function continueConversation(conversation) {
         .post(`${apiUrl}/generate`, { model: selectedModel, prompt: userMessages })
         .then((res) => res.data.response);
 
-    case "claude":
-      return axios
-        .post(
-          `${apiUrl}/chat`,
-          {
-            model: selectedModel || "claude-2",
-            messages: conversation,
-          },
-          {
-            headers: { Authorization: `Bearer ${apiKey}` },
-          }
-        )
-        .then((res) => res.data.completion);
-
     default:
       throw new Error(`Unsupported LLM type: ${type}`);
   }
@@ -338,20 +264,22 @@ async function continueConversationStream(conversation, ref) {
     return;
   }
   
-  const { type, apiUrl, apiKey, selectedModel } = await getLlmConfig();
+  const { type, apiUrl, apiKey, selectedModel,chatSuffix='' } = await getLlmConfig();
   //console.log({ type, apiUrl, apiKey, selectedModel });
   
   const autoRemoveThinkTag = await getSetting('autoRemoveThinkTag');
 
   switch (type) {
-    case "openai": {
+    case "openai":
+    case "metadoc":
+      {
       const payload = {
         model: selectedModel,
         messages: conversation,
         stream: true,
       };
       
-      const response = await fetch(`${apiUrl}/chat/completions`, {
+      const response = await fetch(`${apiUrl}${chatSuffix}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -372,12 +300,21 @@ async function continueConversationStream(conversation, ref) {
         buffer = lines.pop();
         
         for (const line of lines) {
+          let json='';
           if (!line.trim()) continue;
           try {
-            const data = JSON.parse(line);
+            if(line.startsWith('data: ')) {
+              json = line.replace(/^data: /, ""); // 解析 OpenAI 的 NDJSON 行，去掉前缀
+            }
+            else json = line; // 直接使用其他类型的 NDJSON 行
+            const data = JSON.parse(json);
             if (data.choices && data.choices[0]) {
               ref.value += data.choices[0].delta?.content || "";
+              if (autoRemoveThinkTag && ref.value.trim().endsWith('</think>')) {
+                ref.value = '';
+              }
             }
+            
           } catch (err) {
             console.error('JSON 解析错误:', err);
           }
@@ -428,9 +365,6 @@ async function continueConversationStream(conversation, ref) {
       }
       break;
     }
-    
-    case "claude":
-      throw new Error("Streaming is not supported for Claude yet.");
     
     default:
       throw new Error(`Unsupported LLM type: ${type}`);

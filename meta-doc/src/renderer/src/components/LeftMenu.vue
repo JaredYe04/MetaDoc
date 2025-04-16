@@ -16,7 +16,12 @@
     </el-tooltip>
     <el-tooltip effect="light" content="用户资料" placement="right">
       <el-menu-item @click="toggleUserProfile">
-      <el-icon>
+        <img v-if="avatar" :src="avatar" width="25" height="25" style="border-radius: 50%; display: flex; align-items: center; align-self: center;" />
+      <!-- <el-avatar v-if="avatar" :src="avatar" :size="16"
+            style="width: 16px; height: 16px; padding: 0; cursor: pointer; object-fit: cover; z-index: 10000;">
+      </el-avatar> -->
+
+      <el-icon v-else>
         <UserFilled />
       </el-icon>
     </el-menu-item>
@@ -209,12 +214,14 @@ import {
   Setting,
   ChatDotRound,
   EditPen,
-  UserFilled
+  UserFilled,
+  User
 } from '@element-plus/icons-vue'
 import eventBus from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { exportPDF } from '../utils/md-utils';
 import { themeState } from '../utils/themes';
+import { avatar } from '../utils/common-data';
 const recentDocs = ref([])
 const isCollapse = ref(true)
 const showUserProfile=ref(false)

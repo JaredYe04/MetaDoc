@@ -22,9 +22,6 @@
             <el-input v-model="loginForm.password" :show-password="true" placeholder="请输入密码" suffix-icon="el-icon-view"
               @click-suffix="togglePasswordVisibility"></el-input>
           </el-form-item>
-          <el-form-item>
-            <el-checkbox v-model="loginForm.rememberMe">7天免登录</el-checkbox>
-          </el-form-item>
           <div slot="footer" class="dialog-footer">
             <el-button type="primary" @click="submitLogin">登录</el-button>
           </div>
@@ -171,7 +168,7 @@ const toggleEditPwd = async () => {
         eventBus.emit('show-error', '密码不合法！')
         return
       }
-      if (editPwdForm.value.newPwd === editPwdForm.value.oldPwd) {
+      else if (editPwdForm.value.newPwd === editPwdForm.value.oldPwd) {
         eventBus.emit('show-error', '新密码不能与原密码相同！')
         return
       }
@@ -231,7 +228,7 @@ const cancelEdit = () => {
 
 const activeName = ref('Login')
 const logout = () => {
-  sessionStorage.removeItem('loginToken')
+  //sessionStorage.removeItem('loginToken')
   localStorage.removeItem('loginToken')
   loggedIn.value = false
   user.value = null
@@ -350,7 +347,7 @@ function closeDialog() {
 const loginForm = ref({
   username: '',
   password: '',
-  rememberMe: false
+
 })
 
 // 注册表单数据
@@ -416,14 +413,15 @@ async function submitRegister() {
     }
     // 发送注册请求到后端
     axios.post(SERVER_URL + '/user/register', registerForm.value)
-      .then(response => {
+      .then(async response => {
         //console.log(response)
         if (response.data.messageType == 'SUCCESS') {
           const token = response.data.data
           // 保存token到本次会话
-          sessionStorage.setItem('loginToken', token)
+          //sessionStorage.setItem('loginToken', token)
+          localStorage.setItem('loginToken', token)
           eventBus.emit('show-success', '注册成功')
-          verifyToken(token)
+          await verifyToken(token)
 
         } else {
           eventBus.emit('show-error', response.data.message)

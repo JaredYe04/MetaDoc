@@ -8,6 +8,7 @@ import component from 'element-plus/es/components/tree-select/src/tree-select-op
 import Visualize from '../views/Visualize.vue'
 import AIChat from '../views/AIChat.vue'
 import FomulaRecognition from '../views/FomulaRecognition.vue'
+import AIGraph from '../views/AIGraph.vue'
 const routes = [
   {
     path: '/',
@@ -51,6 +52,12 @@ const routes = [
     name:'FomulaRecognition',
     component: FomulaRecognition,
     meta: { requiresLayout: false } 
+  },
+  {
+    path:'/ai-graph',
+    name:'AIGraph',
+    component:AIGraph,
+    meta: { requiresLayout: false }
   },
   {
     path:'/visualize',

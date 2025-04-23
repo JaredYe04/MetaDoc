@@ -24,6 +24,7 @@ export const lightTheme = {
     quickStartBackground1:'#ADD8E61A',
     quickStartBackground2:'#D6D6FF44',
     mdeditorClass:'md-editor',
+    mdeditorTheme:'light',
   };
   
 export const darkTheme = {
@@ -48,6 +49,7 @@ export const darkTheme = {
     quickStartBackground1:'#66333311',
     quickStartBackground2:'#33336611',
     mdeditorClass:'md-editor-dark',
+    mdeditorTheme:'dark',
   };
   
 

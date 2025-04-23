@@ -1,0 +1,8 @@
+.tool-group {
+    display: flex;
+    height: 50px;
+    align-items: center;
+    border: 1px solid #888;
+    padding: 5px;
+    border-radius: 10px;
+}

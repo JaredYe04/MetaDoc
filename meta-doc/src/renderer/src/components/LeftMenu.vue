@@ -116,6 +116,12 @@
           </el-icon>
           <span>手写公式识别</span>
         </el-menu-item>
+        <el-menu-item index="2-3" @click="eventBus.emit('ai-graph')">
+          <el-icon>
+            <DataAnalysis />
+          </el-icon>
+          <span>智能绘图助手</span>
+        </el-menu-item>
       </el-sub-menu>
 
     </el-tooltip>
@@ -215,7 +221,8 @@ import {
   ChatDotRound,
   EditPen,
   UserFilled,
-  User
+  User,
+  DataAnalysis
 } from '@element-plus/icons-vue'
 import eventBus from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'

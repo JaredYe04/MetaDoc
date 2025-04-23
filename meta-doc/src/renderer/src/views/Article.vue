@@ -517,6 +517,7 @@ onBeforeUnmount(() => {
 
 eventBus.on('sync-vditor-theme', async () => {
     vditor.value.setTheme(themeState.currentTheme.vditorTheme, themeState.currentTheme.vditorTheme, themeState.currentTheme.codeTheme);
+    vditor.value.setValue(current_article.value);
 });
 
 </script>

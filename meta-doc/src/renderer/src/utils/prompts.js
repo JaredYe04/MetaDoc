@@ -141,3 +141,14 @@ export const suggestionPresets = [
 export const explainWordPrompt = (word) => {
     return "请解释一下\"" + word + "\"这个词的意思。仅输出释义，不需要例句或其他内容。";
 }  
+
+
+export const generateGraphPrompt = (engine,type,prompt,special_prompt) => {
+    return "你现在需要使用代码来画出一个图表，" +
+        "你需要使用" + engine + "的图形语言，" +
+        "图表类型是：" + type + "，" +
+        "用户的提示词是：" + prompt + "，" +
+        "请根据用户的提示词来生成图表，注意不要有任何多余废话，只有代码。代码要用代码框```xxx```包裹，并且代码框要包含图形语言的名称" +
+        (special_prompt ? ("另外，需要注意：" + special_prompt) : "") +
+        "；请确保代码的正确性和可读性。" ;
+}

@@ -15,7 +15,7 @@ const htmlDocx = require('html-docx-js');
 const os = require('os');
 
 
-import { mainWindow, openSettingDialog, openAiChatDialog, uploadDir, settingWindow, aichatWindow, openFomulaRecognitionDialog,fomulaRecognitionWindow } from './index'
+import { mainWindow, openSettingDialog, openAiChatDialog, uploadDir, settingWindow, aichatWindow, openFomulaRecognitionDialog,fomulaRecognitionWindow, openAiGraphDialog, aiGraphWindow } from './index'
 import { dirname } from './index'
 
 
@@ -42,16 +42,29 @@ export function mainCalls() {
   ipcMain.on('export', async (event, data) => {
     await exportFile(event, data)
   })
+
+
+
   ipcMain.on('setting', () => {
     openSettingDialog();
   })
   ipcMain.on('ai-chat', () => {
     openAiChatDialog();
   })
+  ipcMain.on('ai-graph',() => {
+    openAiGraphDialog();
+  })
   ipcMain.on('fomula-recognition', () => {
     openFomulaRecognitionDialog();
   })
 
+
+
+  
+  ipcMain.on('open-link', (event, url) => {
+    //console.log(url)
+    shell.openExternal(url)
+  })
 
   ipcMain.on('system-notification', (event, data) => {
     //console.log(data)
@@ -67,6 +80,9 @@ export function mainCalls() {
     }
     if(fomulaRecognitionWindow){
       fomulaRecognitionWindow.webContents.send('sync-theme')
+    }
+    if(aiGraphWindow){
+      aiGraphWindow.webContents.send('sync-theme')
     }
   })
   ipcMain.handle('get-setting', async (event, data) => {

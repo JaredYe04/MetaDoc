@@ -56,7 +56,9 @@ eventBus.on('open-doc', async (path) => {
   ipcRenderer.send('open-doc',path)
   updateRecentDocs(path)
 })
-
+eventBus.on('open-link',async(url)=>{
+  ipcRenderer.send('open-link',url)
+})
 eventBus.on('quit', () => {
   ipcRenderer.send('quit')
 })
@@ -116,6 +118,9 @@ eventBus.on('setting',()=>{
 })
 eventBus.on('ai-chat',()=>{
   ipcRenderer.send('ai-chat')
+})
+eventBus.on('ai-graph',()=>{
+  ipcRenderer.send('ai-graph')
 })
 eventBus.on('fomula-recognition',()=>{
   ipcRenderer.send('fomula-recognition')

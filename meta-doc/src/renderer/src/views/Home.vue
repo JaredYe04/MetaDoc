@@ -28,7 +28,20 @@
         </el-scrollbar>
 
         <el-scrollbar  class="md-container" >
-          <MarkdownItEditor :source="current_article" style="margin: 0; padding: 0;"/>
+          <MdPreview :modelValue="current_article"
+            previewTheme="github"
+            codeStyleReverse
+            style="text-align: left;margin-top:20px"
+            :style="{
+              textColor: themeState.currentTheme.textColor,
+            }"
+            :class="themeState.currentTheme.mdeditorClass"
+            :theme="themeState.currentTheme.mdeditorTheme"
+            :codeFold="false"
+            :autoFoldThreshold="300"
+        />
+        
+          
         </el-scrollbar>
 
       </div>
@@ -523,6 +536,7 @@ const presets = [
 ];
 // const autoDescription = ref(true);
 // 初始化Three.js场景
+
 const initThreeJS = () => {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000);
@@ -629,14 +643,29 @@ import Vditor from 'vditor';
 import { md2html } from '../utils/md-utils';
 import { getRecentDocs, getSetting, setSetting } from '../utils/settings';
 import { lightTheme, themeState } from '../utils/themes';
+import { MdPreview } from 'md-editor-v3';
 const ipcRenderer = window.electron.ipcRenderer
 // 生命周期钩子
+const preventNavigate = (event) => {
+  document.addEventListener('click', (event) => {
+  const target = event.target.closest('a');
+  if (target && target.href && target.target !== '_blank') {
+    event.preventDefault(); // 阻止默认跳转行为
+
+    // 判断是否是 http(s) 链接
+    const url = target.href;
+    if (url.startsWith('http')) {
+      eventBus.emit('open-link', url); // 发送事件，打开链接
+    }
+  }
+});
+};
 onMounted(async () => {
   initThreeJS();
   animate(); // 开始动画循环
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('resize', onWindowResize); // 添加窗口大小变化事件
-
+  preventNavigate(); // 添加链接点击事件
 
 
 });

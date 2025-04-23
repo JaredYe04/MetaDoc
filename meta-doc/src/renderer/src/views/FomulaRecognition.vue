@@ -138,6 +138,7 @@ import { simpletexOcr } from '../utils/simpletex-utils'
 import { md2html } from '../utils/md-utils'
 import { themeState } from '../utils/themes'
 import { MdPreview } from 'md-editor-v3'
+import '../assets/tool-group.css'
 
 // 当前工具：'pen'、'eraser' 或 'pointer'
 const tool = ref('pen')
@@ -424,6 +425,7 @@ function copyResult() {
 <style scoped>
 .main-container {
     padding: 20px;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -520,12 +522,5 @@ function copyResult() {
 
 }
 
-.tool-group {
-    display: flex;
-    height: 50px;
-    align-items: center;
-    border: 1px solid #ccc;
-    padding: 5px;
-    border-radius: 10px;
-}
+
 </style>

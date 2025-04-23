@@ -48,7 +48,10 @@ function createWindow() {
       //mainWindow.webContents.send('open-doc',args[0]);
     }
   })
-
+  // mainWindow.webContents.on('will-navigate', (event, url) => {
+  //   event.preventDefault(); // 阻止导航
+  //   // 可以在这里根据 url 决定是否打开，或用 shell.openExternal(url)
+  // });
 
   
   mainWindow.on('close', (e) => {
@@ -250,7 +253,8 @@ app.on('window-all-closed', () => {
 let settingWindow=null;//设置窗口
 let aichatWindow=null;//AI对话窗口
 let fomulaRecognitionWindow=null;//公式识别窗口
-export { mainWindow, settingWindow,aichatWindow,is_need_save,fomulaRecognitionWindow }//添加完窗口应该暴露
+let aiGraphWindow=null;//AI图形窗口
+export { mainWindow, settingWindow,aichatWindow,is_need_save,fomulaRecognitionWindow,aiGraphWindow }//添加完窗口应该暴露
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
@@ -260,6 +264,7 @@ export { mainWindow, settingWindow,aichatWindow,is_need_save,fomulaRecognitionWi
 let aiChatWindowOpened = false;
 let settingWindowOpened = false;
 let fomulaRecognitionWindowOpened = false;
+let aiGraphWindowOpened = false;
 export const openFomulaRecognitionDialog= async ()=>{
   if(fomulaRecognitionWindowOpened){
     fomulaRecognition.focus();
@@ -267,7 +272,7 @@ export const openFomulaRecognitionDialog= async ()=>{
   }
   fomulaRecognitionWindow = new BrowserWindow({
     width: 1280,
-    height: 720,
+    height: 550,
     parent: mainWindow, // 将子窗口与主窗口关联
     modal: false, // 是否为模态窗口
     autoHideMenuBar: true,
@@ -309,7 +314,51 @@ export const openFomulaRecognitionDialog= async ()=>{
   }
   fomulaRecognitionWindow.setTitle('手写公式识别助手')
 }
+export const openAiGraphDialog= async ()=>{
+  if(aiGraphWindowOpened){
+    aiGraphWindow.focus();
+    return;
+  }
+  aiGraphWindow = new BrowserWindow({
+    width: 1280,
+    height: 720,
+    parent: mainWindow, // 将子窗口与主窗口关联
+    modal: false, // 是否为模态窗口
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: false,
+      nodeIntegration: true,
+    },
+  });
+  aiGraphWindow.on('ready-to-show', () => {
+    aiGraphWindow.show()
+    aiGraphWindowOpened = true;
+  }
+  )
+  aiGraphWindow.on('close', () => {
+    aiGraphWindowOpened = false;
+    aiGraphWindow = null;
+  }
+  )
+  aiGraphWindow.webContents.setWindowOpenHandler((details) => {
+    shell.openExternal(details.url)
+    return { action: 'deny' }
+  }
+  )
+  if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
+    //console.log(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-chat`);
+    await aiGraphWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-graph`)
 
+  }
+  else {
+    //settingWindow.loadFile(path.join(__dirname, '../renderer/index.html/#/setting'))
+    await aiGraphWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/ai-graph`);
+  }
+  aiGraphWindow.setTitle('智能绘图助手')
+  // console.log(path.join(dirname, '../renderer/setting.html'));
+  // settingWindow.loadURL(path.join(dirname, '../renderer/setting.html'))  
+}
 export const openAiChatDialog= async (payload=null) => {
   if(aiChatWindowOpened){
     aichatWindow.focus();
@@ -336,6 +385,7 @@ export const openAiChatDialog= async (payload=null) => {
     aiChatWindowOpened = false;
     aichatWindow = null;
   }
+
   )
 
 
@@ -389,7 +439,6 @@ export const openSettingDialog = async () => {
     settingWindow = null;
   }
   )
-
 
   settingWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)

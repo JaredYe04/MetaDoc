@@ -87,7 +87,7 @@ import eventBus from '../utils/event-bus.js';
 import { themeState } from "../utils/themes.js";
 import { AddIcon } from 'tdesign-icons-vue-next';
 import { answerQuestion, continueConversationStream } from '../utils/llm-api.js';
-
+import '../assets/tool-group.css'
 const route = useRoute();
 const responding = ref(false);
 const activeDialogIndex = ref(0);
@@ -324,7 +324,7 @@ const onMsgEdit = async (data) => {
 .side-menu {
   width: 250px;
   height: 100%;
-  border-right: 1px solid #e6e6e6;
+
 }
 
 .menu-header {

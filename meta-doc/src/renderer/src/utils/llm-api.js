@@ -161,6 +161,7 @@ async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
                 json = line.replace(/^data: /, ""); // 解析 OpenAI 的 NDJSON 行，去掉前缀
               }
               else json = line; // 直接使用其他类型的 NDJSON 行
+              if(json==='[DONE]') continue; // 处理 OpenAI 的结束标志
               const parsed = JSON.parse(json); // 解析 JSON 行
               ref.value += parsed.response || parsed.choices?.[0]?.text || ""; // 更新响应值
               if(autoRemoveThinkTag){
@@ -307,6 +308,7 @@ async function continueConversationStream(conversation, ref) {
               json = line.replace(/^data: /, ""); // 解析 OpenAI 的 NDJSON 行，去掉前缀
             }
             else json = line; // 直接使用其他类型的 NDJSON 行
+            if(json==='[DONE]') continue; // 处理 OpenAI 的结束标志
             const data = JSON.parse(json);
             if (data.choices && data.choices[0]) {
               ref.value += data.choices[0].delta?.content || "";

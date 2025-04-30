@@ -42,7 +42,7 @@
     <div @mousedown.stop>
 
       <el-tooltip content="生成" placement="top">
-        <el-button circle type="primary" @click="generate" :disabled="generating || userPrompt.length === 0"><el-icon>
+        <el-button circle type="primary" @click="generate" :disabled="generating ||generated|| userPrompt.length === 0"><el-icon>
             <Promotion />
           </el-icon></el-button>
       </el-tooltip>
@@ -57,12 +57,16 @@
           </el-icon></el-button>
       </el-tooltip>
 
-      <el-tooltip content="接受" placement="top">
-        <el-button circle type="success" @click="accept" v-if="generated"><el-icon>
+      <el-tooltip content="接受并替换" placement="top">
+        <el-button circle type="success" @click="accept(false)" v-if="generated"><el-icon>
             <Check />
           </el-icon></el-button>
       </el-tooltip>
-
+      <el-tooltip content="接受并追加" placement="top">
+        <el-button circle type="success" @click="accept(true)" v-if="generated"><el-icon>
+            <Plus />
+          </el-icon></el-button>
+      </el-tooltip>
     </div>
 
   </div>
@@ -83,6 +87,7 @@ import { generateMarkdownFromOutlineTree } from '../utils/md-utils';
 import { defineProps, defineEmits } from 'vue';
 import { themeState } from '../utils/themes';
 import { current_article } from '../utils/common-data';
+import { Plus } from '@element-plus/icons-vue';
 const props = defineProps({
   title: {
     type: String,
@@ -133,7 +138,7 @@ const presetPrompts = ref([
 
 const emit = defineEmits(["accept"]);
 
-const accept = () => {
+const accept = (append=false) => {
   //searchNode(props.path, current_outline_tree.value).text=generatedText.value;
   // latest_view.value='outline';
   // sync();
@@ -147,10 +152,14 @@ const accept = () => {
     generatedText.value = generatedText.value.split('\n').slice(1).join('\n');
   }
   articleContent.value = generatedText.value;
-  emit('accept', generatedText.value);
+  emit('accept',{
+    append: append,
+    content: generatedText.value,
+  });
   reset();
 
 }
+
 const generate = async () => {
   generating.value = true;
   const outline = generateMarkdownFromOutlineTree(props.tree);

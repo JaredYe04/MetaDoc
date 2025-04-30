@@ -5,33 +5,46 @@ export const loggedIn = ref(false)
 export const user=ref({
 })
 export const avatar=ref('')
-
-const default_outline_tree = {
-  path: 'dummy',
-  title: '',
-  text: '',
-  title_level: 0,
-  children: [{
-    path: '1',
-    title: '新文档',
-    text: '',
-    title_level: 1,
-    children: [
-      { title: '引言', path: '1.1',text:'', children: [] ,title_level: 2,},
-      { title: '第一章：概述', path: '1.2',text:'', children: [] ,title_level: 2},
-      {
-        title: '第二章：实现',
-        path: '1.3',
-        text:'',
-        title_level: 2,
-        children: [
-          { title: '2.1 实现细节', path: '1.3.1',text:'', children: [] ,title_level: 3},
-          { title: '2.2 实现步骤', path: '1.3.2',text:'', children: [] ,title_level: 3}
-        ]
+export const tree_node_schema={
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DocumentOutlineNode",
+  "type": "object",
+  "required": ["path", "title", "text", "title_level", "children"],
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "节点的编号路径，根节点为 'dummy'。例如：'1' 表示根节点dummy的第一个子节点，'1.1' 表示1的第一个子节点，'1.1.1' 表示1.1的第一个子节点，以此类推"
+    },
+    "title": {
+      "type": "string",
+      "description": "节点对应的标题文字。"
+    },
+    "text": {
+      "type": "string",
+      "description": "该节点正文的文本内容，可为空字符串。"
+    },
+    "title_level": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "标题的层级，0 表示根节点，1 表示一级标题，2 表示二级标题，依此类推。一般来说当前标题层级是上一层+1，但是可能不止+1，例如从一级跳到三级。"
+    },
+    "children": {
+      "type": "array",
+      "description": "子节点列表，结构与当前节点相同。",
+      "items": {
+        "$ref": "#"
       }
-    ]
-  }]
+    }
+  }
 }
+const default_outline_tree = {
+  path: 'dummy',//编号规则：根节点无编号，为dummy，第一级标题编号为1，第二级标题编号为1.1，第三级标题编号为1.1.1，以此类推
+  title: '',//当前节点的标题
+  text: '',//当前节点的文本内容
+  title_level: 0,//当前节点标题的层级，一级标题为1,二级为2，一般来说是上一层+1，但是可能不止+1，例如从一级跳到三级
+  children: []//子节点列表，子节点结构和当前相同
+}
+
 export const default_resp='### 你好！我是你的AI文档助手！\n告诉我你的任何需求，我会尝试解决。\n';
 export const defaultAiChatMessages = [
   {
@@ -44,7 +57,6 @@ export const defaultAiChatMessages = [
   }
 ]
 
-//编号规则：根节点无编号，第一级标题编号为1，第二级标题编号为1.1，第三级标题编号为1.1.1，以此类推
 
 
 export const firstLoad = ref(true)

@@ -101,7 +101,9 @@
                     <el-tooltip content="复制代码" placement="top">
                         <el-button type="primary" :icon="DocumentCopy" circle @click="copyCode" />
                     </el-tooltip>
-
+                    <el-tooltip content="导出图片" placement="top">
+                        <el-button type="primary" :icon="Picture" circle @click="exportImage" />
+                    </el-tooltip>
                 </div>
             </div>
 
@@ -268,9 +270,9 @@
 }
 </style>
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch,onBeforeMount } from 'vue'
 import { AddIcon } from 'tdesign-icons-vue-next'
-import { CopyDocument, Delete, DocumentCopy, Edit } from '@element-plus/icons-vue'
+import { CopyDocument, Delete, DocumentCopy, Edit, Picture } from '@element-plus/icons-vue'
 import '../assets/tool-group.css'
 import { graphEngineConfig } from '../config/graph-engine-config.js'
 import Vditor from 'vditor'
@@ -280,6 +282,7 @@ import { MdEditor } from 'md-editor-v3'
 import { answerQuestionStream } from '../utils/llm-api.js'
 import { generateGraphPrompt } from '../utils/prompts.js'
 import domtoimage from 'dom-to-image-more';
+import { exportPng } from '../utils/image-utils.js'
 
 const STORAGE_KEY = 'aiGraph_schemes'
 const engines = graphEngineConfig.map(e => e.name)
@@ -318,12 +321,14 @@ const editingTitle = ref('');
 const editingIndex = ref(0);
 //import { toPng } from 'html-to-image';
 const exportImage = () => {
-    // var node = document.getElementById('graph');
-    // //选择svg元素
-    // node=node.querySelector('svg')
-    // if(!node){
-    //     node = document.getElementById('graph');
-    // }
+    var node = document.getElementById('graph');
+    //选择svg元素
+    node=node.querySelector('svg')
+    if(!node){
+        console.error('没有找到svg元素')
+        node = document.getElementById('graph');
+    }
+    exportPng(node,activeScheme.value.name)
     // toPng(node, {
     //     cacheBust: true,
     //     // skipFonts: true, // 避免跨域字体错误
@@ -414,7 +419,13 @@ const configDialogVisible = ref(false);
 function loadSchemes() {
     const data = localStorage.getItem(STORAGE_KEY)
     schemes.value = data ? JSON.parse(data) : []
-    if (schemes.value.length > 0) activeSchemeId.value = schemes.value[0].id
+    if (schemes.value.length > 0){
+        activeSchemeId.value = schemes.value[0].id
+    }
+    else{
+        
+    }
+    setActive(activeSchemeId.value)
 }
 
 function saveSchemes() {
@@ -440,33 +451,53 @@ async function setActive(id) {
     activeSchemeId.value = id
     selectedEngine.value = activeScheme.value.engine
     selectedType.value = activeScheme.value.type
+    eventBus.emit('sync-vditor-theme')
+    //initVditor()
     //console.log(activeScheme.value)
     await refreshVditor();
 }
 const graphRef = ref(null)
-
-onMounted(async () => {
-    eventBus.emit('sync-theme')
+let isInit = false
+async function initVditor() {
     graphRef.value = new Vditor('graph', {
         mode: 'wysiwyg',
         theme: themeState.currentTheme.vditorTheme,
         cdn: 'http://localhost:3000/vditor',
         toolbar: [],
-
         value: activeScheme.value.code,
         input: async (value) => {
             activeScheme.value.code = value;
-
-
         },
     })
-    eventBus.on('sync-vditor-theme', async () => {
-        graphRef.value.setTheme(themeState.currentTheme.vditorTheme, themeState.currentTheme.vditorTheme, themeState.currentTheme.codeTheme);
-        graphRef.value.setValue(activeScheme.value.code)
-    });
+}
 
+onMounted(async () => {
+    
+    //eventBus.emit('sync-theme')
+    //加一个锁，当sync-vditor-theme事件触发完成后，才进行loadSchemes
+    
+    eventBus.on('sync-vditor-theme', async () => {
+        await new Promise(
+            (resolve) => {
+                //一直等待，直到vditor实例化完成
+                const interval = setInterval(() => {
+                    if (graphRef.value) {
+                        clearInterval(interval)
+                        resolve()
+                    }
+                }, 100)
+            }
+        ).then(() => {
+            graphRef.value.setTheme(themeState.currentTheme.vditorTheme, themeState.currentTheme.vditorTheme, themeState.currentTheme.codeTheme);
+            graphRef.value.setValue(activeScheme.value.code)
+        })
+
+    });
+    initVditor()
+    loadSchemes()
     //graphRef.value.setValue(activeScheme.value.code)
 })
+
 async function refreshVditor() {
     if (graphRef.value)
         graphRef.value.setValue(activeScheme.value.code)
@@ -539,8 +570,4 @@ watch(
     { deep: true }
 )
 
-onMounted(() => {
-    loadSchemes()
-    // 初始化 Vditor 可选
-})
 </script>

@@ -152,3 +152,17 @@ export const generateGraphPrompt = (engine,type,prompt,special_prompt) => {
         (special_prompt ? ("另外，需要注意：" + special_prompt) : "") +
         "；请确保代码的正确性和可读性。" ;
 }
+
+
+export const expandTreeNodePrompt = (treeJson, nodeJson,schema) => {
+    return "你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请判断文章的大致大纲结构:" + treeJson +
+    "接下来，你要扩展其中的一个节点，为节点添加若干个子章节节点，需要扩展的节点如下：" +nodeJson
+    + "，请根据节点的标题和文本内容，自动生成若干个子章节节点，以JSON列表的方式返回,类似于[{...},{...}]" +
+    "节点的格式与原节点相同，需要遵循如下规范:" +schema+"。请不要输出任何多余的内容，只返回JSON格式的节点列表。"; 
+}
+
+export const generateContentPrompt = (treeJson, nodeJson) => {
+    return "你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请判断文章的大致大纲结构:" + treeJson +
+    "接下来，你要根据全文的结构，为以下的章节撰写内容，注意不要泛泛而谈，内容要丰富翔实：" +nodeJson
+    + "，请直接输出该章节的内容，不要添加其他无关信息，例如标题、代码框等。";
+}

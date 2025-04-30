@@ -197,9 +197,9 @@ const processWords = async () => {
     const bypassCodeBlock=await getSetting('bypassCodeBlock');//是否跳过代码块
     let text=current_article.value;
     if(bypassCodeBlock){
-        console.log(text)
+        //console.log(text)
         text = text.replace(/```[\s\S]*?```/g, '');//去掉代码块
-        console.log(text)
+        //console.log(text)
     }
     article_text.value = text;
 

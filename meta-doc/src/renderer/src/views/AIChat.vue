@@ -184,7 +184,7 @@ const reset = () => {
 async function generateNextResponse(beforeGeneration, callbackRef, afterGeneration) {
   responding.value = true;
   await beforeGeneration();
-  console.log(messages.value)
+  //console.log(messages.value)
   await continueConversationStream(messages.value, cur_resp)
   await afterGeneration();
   responding.value = false;
@@ -195,7 +195,7 @@ const onMsgSend = async () => {
     "role": "user",
     "content": promptInput.value
   })
-  console.log(messages.value);
+  //console.log(messages.value);
   promptInput.value = '';
   cur_resp.value = '';
 
@@ -212,7 +212,7 @@ const onMsgSend = async () => {
       });
 
       //bindCode(false);
-      console.log(messages.value);
+      //console.log(messages.value);
       updateCurrentDialog();
       updateTitle();
       

@@ -64,3 +64,71 @@ export function getMimeType(bytes) {
   return 'application/octet-stream';  // 如果无法确定格式，则返回默认类型
 }
 
+
+//导出svg
+export const exportSvg = async (svgElement) => {
+  const serializer = new XMLSerializer();
+  const svgContent = serializer.serializeToString(svgElement);
+
+  const blob = new Blob([svgContent], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "diagram.svg";
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// 导出为 PNG 文件
+export const exportPng = async (svgElement,filename='diagram') => {
+
+
+  const serializer = new XMLSerializer();
+  const svgContent = serializer.serializeToString(svgElement);
+
+  // 创建一个隐藏的 Canvas 元素
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+
+  // 设置 Canvas 尺寸与 SVG 相同
+  const svgBounds = svgElement.getBBox();
+  canvas.width = svgBounds.width + 20; // 为了增加一点空间可以考虑调整
+  canvas.height = svgBounds.height + 20;
+
+  // 设置背景颜色为透明
+  context.fillStyle = "transparent";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 将 SVG 转换为 PNG
+  const img = new Image();
+  const svgBlob = new Blob([svgContent], {
+    type: "image/svg+xml;charset=utf-8",
+  });
+
+  let reader = new FileReader();
+  reader.readAsDataURL(svgBlob);
+  reader.onload = function () {
+    const value = reader.result;
+    img.src = value;
+
+    img.onload = function () {
+      // 将 SVG 图像绘制到 Canvas 上的正中心
+      context.drawImage(img, 0, 0);
+
+      // 导出 PNG 数据
+      const pngData = canvas.toDataURL("image/png");
+
+      // 创建一个下载链接并触发下载
+      const link = document.createElement("a");
+      link.href = pngData;
+      link.download = filename+".png"; // 下载的文件名
+      link.click();
+    };
+  };
+
+  img.onerror = () => {
+    console.error("无法加载 SVG 图像");
+    URL.revokeObjectURL(url);
+  };
+};

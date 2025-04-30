@@ -1,0 +1,5 @@
+.noselect-display {
+    user-select: none;         /* 禁止文字选中 */
+
+  }
+  

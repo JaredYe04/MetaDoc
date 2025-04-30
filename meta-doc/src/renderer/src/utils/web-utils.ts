@@ -97,7 +97,7 @@ export const changeAvatar = () => {
             //console.log('avatar:', avatar.value)
             // 更新用户信息
           } else {
-            console.log(response)
+            //console.log(response)
             eventBus.emit('show-error', response.data.message)
           }
         })

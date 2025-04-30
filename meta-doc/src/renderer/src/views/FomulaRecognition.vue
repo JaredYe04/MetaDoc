@@ -363,7 +363,7 @@ function handlePaste(e, items_ = null) {
     let items;
     if (items_) {
         items = items_
-        console.log(items)
+        //console.log(items)
     } else {
         items = (e.clipboardData || e.originalEvent.clipboardData).items
     }

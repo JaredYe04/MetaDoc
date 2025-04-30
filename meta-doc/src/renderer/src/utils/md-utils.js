@@ -4,6 +4,8 @@ import Vditor from "vditor"
 import { renderedHtml } from "./common-data"
 import eventBus from "./event-bus"
 import { getImagePath } from "./settings"
+import { el } from "element-plus/es/locales.mjs";
+import { convertNumberToChinese, removeTitleIndex } from "./regex-utils";
 // 1. 从 Markdown 文本中提取所有标题，生成大纲树，同时记录 title_level
 
 export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
@@ -224,8 +226,59 @@ export function removeTextFromOutline(outline_tree) {
     dfs(new_outline_tree)
     return new_outline_tree
 }
-
-
+export function adjustTitleLevel(outline_tree,first_level){
+    //深度搜索遍历大纲树，调整标题级别，如果是dummy则从children开始调整，等级为first_level，从子节点依次+1
+    function dfs(node, level) {
+        node.title_level = level
+        for (let i = 0; i < node.children.length; i++) {
+            dfs(node.children[i], level + 1)
+        }
+    }
+    let node=JSON.parse(JSON.stringify(outline_tree))//深拷贝一份大纲树
+    if(node.path=='dummy'){
+        for (let i = 0; i < node.children.length; i++) {
+            dfs(node.children[i], first_level)
+        }
+    }
+    else{
+        dfs(node, first_level)
+    }
+    return node
+}
+export function adjustTitleIndex(outline_tree, cover, level1TitleChinese){
+    let node=JSON.parse(JSON.stringify(outline_tree))//深拷贝一份大纲树
+    //深度搜索遍历大纲树，调整标题编号，如果是dummy则从children开始调整，编号为1 2 3 4...如果用户要求level1TitleChinese，则第一级标题用中文数字表示
+    function dfs(node,index,parentIndex) {
+        let title=node.title;
+        if(cover)title=removeTitleIndex(title)//去除标题开头的数字和点号
+        let index_string=''
+        if(parentIndex==''){
+            index_string=index;
+        }
+        else{
+            index_string=parentIndex+"."+index;
+        }
+        if(level1TitleChinese && parentIndex==''){
+            node.title=convertNumberToChinese(index)+" "+title//加上标题编号
+        }
+        else{
+            node.title=index_string+" "+title//加上标题编号
+        }
+        
+        for (let i = 0; i < node.children.length; i++) {
+            dfs(node.children[i],i+1,index_string)
+        }
+    }
+    if(node.path=='dummy'){
+        for (let i = 0; i < node.children.length; i++) {
+            dfs(node.children[i],i+1, '')
+        }
+    }
+    else{
+        dfs(node,1, '')
+    }
+    return node
+}
 export function generatePieFromData(data, title) {//饼图
     // 检查数据格式是否正确
     if (!Array.isArray(data)) {

@@ -72,11 +72,11 @@
         <!-- 主内容区 -->
         <div style="display: flex; flex: 1; border-top: 1px dashed #ccc; padding-top: 10px;">
           <!-- Markdown 编辑器 -->
-          <div
-            style="width: 70%; padding-right: 10px; max-height: 75%; min-height: 200px; overflow:hidden; flex-grow: 1;">
-            <el-scrollbar>
-              <MarkdownItEditor :source="generatedText" class="md-container" @mousedown.stop
-                style="width: 100%; box-shadow: none; height: 80%; overflow: auto;" />
+          <div style=" flex-grow: 1;"
+           >
+            <el-scrollbar  style="width: 100%; padding-right: 10px;" class="generated-md-container">
+              <MarkdownItEditor :source="generatedText" @mousedown.stop
+                style=" box-shadow: none;"  />
             </el-scrollbar>
 
           </div>
@@ -718,6 +718,7 @@ onBeforeUnmount(() => {
   align-self: center;
   
   max-height: 63vh;
+  height: 63vh;
   overflow: auto;
   width: 80vw;
   border: 1px #cccccc44 solid;
@@ -737,7 +738,7 @@ onBeforeUnmount(() => {
   width: 60vw;
   height: 60vh;
   max-height: 60vh;
-  overflow: hidden;
+  height: 60vh;
   border: 1px solid #393939;
   /*竖排排列 */
   flex-direction: column;
@@ -745,7 +746,11 @@ onBeforeUnmount(() => {
   /*圆角边框 */
   border-radius: 10px;
 }
-
+.generated-md-container{
+  max-height: 55vh;
+  height: 55vh;
+  overflow: auto;
+}
 .center-content {
   display: flex;
   flex-direction: column;

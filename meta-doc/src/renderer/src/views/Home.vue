@@ -644,7 +644,20 @@ import { md2html } from '../utils/md-utils';
 import { getRecentDocs, getSetting, setSetting } from '../utils/settings';
 import { lightTheme, themeState } from '../utils/themes';
 import { MdPreview } from 'md-editor-v3';
-const ipcRenderer = window.electron.ipcRenderer
+import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer';
+import { webMainCalls } from '../utils/web-adapter/web-main-calls';
+
+let ipcRenderer = null
+if (window && window.electron) {
+  ipcRenderer = window.electron.ipcRenderer
+} else {
+  webMainCalls();
+  ipcRenderer=localIpcRenderer
+  //todo 说明当前环境不是electron环境，需要另外适配
+}
+
+
+
 // 生命周期钩子
 const preventNavigate = (event) => {
   document.addEventListener('click', (event) => {
@@ -669,33 +682,7 @@ onMounted(async () => {
 
 
 });
-// const renderMarkdown = async () => {
-//   let node = document.getElementsByClassName('md-preview')[0];
-//   console.log(node);
-//   generatedText.value = current_article.value ? current_article.value : defaultText;
-//   let html=md2html(generatedText.value);
-//   node.innerHTML = html;
 
-//   const previewElement = node;
-//     Vditor.setContentTheme('light', 'http://localhost:3000/vditor/dist/css/content-theme');
-//     Vditor.codeRender(previewElement);
-//     Vditor.highlightRender({"enable":true,"lineNumber":false,"defaultLang":"","style":"github"}, previewElement, 'http://localhost:3000/vditor');
-//     Vditor.mathRender(previewElement, {
-//         cdn: 'http://localhost:3000/vditor',
-//         math: {"engine":"KaTeX","inlineDigit":false,"macros":{}},
-//     });
-//     Vditor.mermaidRender(previewElement, 'http://localhost:3000/vditor', 'classic');
-//     Vditor.SMILESRender(previewElement, 'http://localhost:3000/vditor', 'classic');
-//     Vditor.markmapRender(previewElement, 'http://localhost:3000/vditor');
-//     Vditor.flowchartRender(previewElement, 'http://localhost:3000/vditor');
-//     Vditor.graphvizRender(previewElement, 'http://localhost:3000/vditor');
-//     Vditor.chartRender(previewElement, 'http://localhost:3000/vditor', 'classic');
-//     Vditor.mindmapRender(previewElement, 'http://localhost:3000/vditor', 'classic');
-//     Vditor.abcRender(previewElement, 'http://localhost:3000/vditor');
-//     Vditor.mediaRender(previewElement);
-//     Vditor.speechRender(previewElement);
-
-// };
 onBeforeUnmount(() => {
   window.removeEventListener('mousemove', onMouseMove);
   window.removeEventListener('resize', onWindowResize);

@@ -22,8 +22,16 @@ import eventBus from './utils/event-bus';
 import { getSetting } from './utils/settings';
 import { lightTheme, darkTheme, themeState } from './utils/themes';
 import { current_ai_dialogs } from './utils/common-data';
-const ipcRenderer = window.electron.ipcRenderer
-
+import localIpcRenderer from './utils/web-adapter/local-ipc-renderer';
+import { webMainCalls } from './utils/web-adapter/web-main-calls';
+let ipcRenderer = null
+if (window && window.electron) {
+  ipcRenderer = window.electron.ipcRenderer
+} else {
+  webMainCalls();
+  ipcRenderer=localIpcRenderer
+  //todo 说明当前环境不是electron环境，需要另外适配
+}
 // 获取当前路由信息
 const route = useRoute()
 

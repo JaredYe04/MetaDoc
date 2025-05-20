@@ -9,6 +9,15 @@ import Visualize from '../views/Visualize.vue'
 import AIChat from '../views/AIChat.vue'
 import FomulaRecognition from '../views/FomulaRecognition.vue'
 import AIGraph from '../views/AIGraph.vue'
+
+// 所有页面组件集中管理
+const pages = {
+  setting: Setting,
+  'ai-chat': AIChat,
+  'fomula-recognition': FomulaRecognition,
+  'ai-graph': AIGraph
+}
+
 const routes = [
   {
     path: '/',
@@ -36,35 +45,27 @@ const routes = [
     meta: { requiresLayout: true } 
   },
   {
-    path:'/setting',
-    name:'Setting',
-    component: Setting,
-    meta: { requiresLayout: false } 
-  },
-  {
-    path:'/ai-chat',
-    name:'AIChat',
-    component: AIChat,
-    meta: { requiresLayout: false } 
-  },
-  {
-    path:'/fomula-recognition',
-    name:'FomulaRecognition',
-    component: FomulaRecognition,
-    meta: { requiresLayout: false } 
-  },
-  {
-    path:'/ai-graph',
-    name:'AIGraph',
-    component:AIGraph,
-    meta: { requiresLayout: false }
-  },
-  {
     path:'/visualize',
     name:'Visualize',
     component: Visualize,
     meta: { requiresLayout: true } 
-  }
+  },
+    // 动态生成特殊页面的两种访问路径
+  ...Object.entries(pages).flatMap(([name, component]) => [
+    {
+      path: `/${name}`,
+      name: `${name}-raw`,
+      component,
+      meta: { requiresLayout: false }
+    },
+    {
+      path: `/single-page/${name}`,
+      name: `${name}-with-layout`,
+      component,
+      meta: { requiresLayout: true }
+    }
+  ])
+
 ]
 
 const router = createRouter({

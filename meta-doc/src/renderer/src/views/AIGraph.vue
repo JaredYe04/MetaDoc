@@ -110,7 +110,7 @@
             <el-scrollbar class="prompt-section">
 
                 <el-input type="textarea" v-model="activeScheme.prompt" placeholder="请输入你的绘图需求" :rows="2"
-                    :autosize="{ minRows: 2, maxRows: 3 }" :disabled="generating"/>
+                    :autosize="{ minRows: 2, maxRows: 3 }" :disabled="generating" />
                 <div style="width: 100%; align-items: center; align-self: center;">
                     <el-button id="sendMsg" @click="generateCode" type="primary" round size="large" text bg
                         :disabled="activeScheme.prompt && activeScheme.prompt.length === 0" :loading="generating">
@@ -194,7 +194,7 @@
     padding: 10px;
     display: flex;
     gap: 10px;
-    justify-content:center;
+    justify-content: center;
 
     align-self: center;
     align-items: center;
@@ -270,19 +270,20 @@
 }
 </style>
 <script setup>
-import { ref, computed, onMounted, watch,onBeforeMount } from 'vue'
+import { ref, computed, onMounted, watch, onBeforeMount } from 'vue'
 import { AddIcon } from 'tdesign-icons-vue-next'
 import { CopyDocument, Delete, DocumentCopy, Edit, Picture } from '@element-plus/icons-vue'
 import '../assets/tool-group.css'
 import { graphEngineConfig } from '../config/graph-engine-config.js'
 import Vditor from 'vditor'
 import { themeState } from "../utils/themes";
-import eventBus from '../utils/event-bus.js'
+import eventBus, { isElectronEnv } from '../utils/event-bus.js'
 import { MdEditor } from 'md-editor-v3'
 import { answerQuestionStream } from '../utils/llm-api.js'
 import { generateGraphPrompt } from '../utils/prompts.js'
 import domtoimage from 'dom-to-image-more';
 import { exportPng } from '../utils/image-utils.js'
+import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn.js'
 
 const STORAGE_KEY = 'aiGraph_schemes'
 const engines = graphEngineConfig.map(e => e.name)
@@ -323,12 +324,12 @@ const editingIndex = ref(0);
 const exportImage = () => {
     var node = document.getElementById('graph');
     //选择svg元素
-    node=node.querySelector('svg')
-    if(!node){
+    node = node.querySelector('svg')
+    if (!node) {
         console.error('没有找到svg元素')
         node = document.getElementById('graph');
     }
-    exportPng(node,activeScheme.value.name)
+    exportPng(node, activeScheme.value.name)
     // toPng(node, {
     //     cacheBust: true,
     //     // skipFonts: true, // 避免跨域字体错误
@@ -419,11 +420,11 @@ const configDialogVisible = ref(false);
 function loadSchemes() {
     const data = localStorage.getItem(STORAGE_KEY)
     schemes.value = data ? JSON.parse(data) : []
-    if (schemes.value.length > 0){
+    if (schemes.value.length > 0) {
         activeSchemeId.value = schemes.value[0].id
     }
-    else{
-        
+    else {
+
     }
     setActive(activeSchemeId.value)
 }
@@ -459,10 +460,17 @@ async function setActive(id) {
 const graphRef = ref(null)
 let isInit = false
 async function initVditor() {
+    let cdn = '';
+    if (isElectronEnv()) {
+        cdn = localVditorCDN;
+    }
+    else {
+        cdn = vditorCDN;
+    }
     graphRef.value = new Vditor('graph', {
         mode: 'wysiwyg',
         theme: themeState.currentTheme.vditorTheme,
-        cdn: 'http://localhost:3000/vditor',
+        cdn: cdn,
         toolbar: [],
         value: activeScheme.value.code,
         input: async (value) => {
@@ -472,10 +480,10 @@ async function initVditor() {
 }
 
 onMounted(async () => {
-    
+
     //eventBus.emit('sync-theme')
     //加一个锁，当sync-vditor-theme事件触发完成后，才进行loadSchemes
-    
+
     eventBus.on('sync-vditor-theme', async () => {
         await new Promise(
             (resolve) => {
@@ -501,12 +509,6 @@ onMounted(async () => {
 async function refreshVditor() {
     if (graphRef.value)
         graphRef.value.setValue(activeScheme.value.code)
-    // const graph= document.getElementById('graph')
-
-    // await Vditor.preview(graph, activeScheme.value.code, {
-    //     theme: themeState.currentTheme.vditorTheme,
-    //     cdn: 'http://localhost:3000/vditor',
-    // })
 }
 function onEngineChange(engine) {
     selectedEngine.value = engine

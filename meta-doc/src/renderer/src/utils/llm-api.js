@@ -17,13 +17,13 @@ async function getLlmConfig() {
       const token = localStorage.getItem('loginToken')
       const modelName = await getSetting('metadocSelectedModel')
 
-      const isLoggedIn=verifyToken(token);
-      if(!isLoggedIn){
-        eventBus.emit('show-error','请先登录！')
+      const isLoggedIn = verifyToken(token);
+      if (!isLoggedIn) {
+        eventBus.emit('show-error', '请先登录！')
         eventBus.emit('toggle-user-profile')
         return {};
       }
-      config=await getMetaDocLlmConfig(token,modelName);
+      config = await getMetaDocLlmConfig(token, modelName);
       //console.log(config)
       break;
     case "openai":
@@ -48,9 +48,9 @@ async function getLlmConfig() {
  * @param {string} prompt - The prompt to ask.
  * @returns {Promise<string>} - The response from the model.
  */
-async function answerQuestion(prompt,meta={temperature:0}) {
-  const { type, apiUrl, apiKey, selectedModel,completionSuffix='' } = await getLlmConfig();
-  const autoRemoveThinkTag=await getSetting('autoRemoveThinkTag')
+async function answerQuestion(prompt, meta = { temperature: 0 }) {
+  const { type, apiUrl, apiKey, selectedModel, completionSuffix = '' } = await getLlmConfig();
+  const autoRemoveThinkTag = await getSetting('autoRemoveThinkTag')
   switch (type) {
     case "openai":
     case "metadoc":
@@ -61,7 +61,7 @@ async function answerQuestion(prompt,meta={temperature:0}) {
             model: selectedModel || "gpt-4",
             prompt,
             max_tokens: 500,
-            options:{
+            options: {
               ...meta
             }
           },
@@ -74,21 +74,21 @@ async function answerQuestion(prompt,meta={temperature:0}) {
     case "ollama":
       //console.log(`${apiUrl}/generate`)
       //console.log({ model: selectedModel, prompt })
-      const result=await axios
-      .post(`${apiUrl}/generate`, { model: selectedModel, prompt, stream:false})
-      .then((res) => {
-        let result=res.data.response;
-        //console.log(result)
-        if(autoRemoveThinkTag){
-          //查找</think>标签，删除标签以及之前的内容
-          const index=result.indexOf('</think>');
-          if(index>=0){
-            result=result.substring(index+8).trim();
+      const result = await axios
+        .post(`${apiUrl}/generate`, { model: selectedModel, prompt, stream: false })
+        .then((res) => {
+          let result = res.data.response;
+          //console.log(result)
+          if (autoRemoveThinkTag) {
+            //查找</think>标签，删除标签以及之前的内容
+            const index = result.indexOf('</think>');
+            if (index >= 0) {
+              result = result.substring(index + 8).trim();
+            }
           }
-        }
-        return result;
-        
-      })
+          return result;
+
+        })
       return result;
     default:
       throw new Error(`Unsupported LLM type: ${type}`);
@@ -100,26 +100,26 @@ async function answerQuestion(prompt,meta={temperature:0}) {
  * @param {string} prompt - The prompt to ask.
  * @param {object} ref - A reactive reference to store the result incrementally.
  */
-async function validateApi(){
-  const enabled=await getSetting('llmEnabled')
-  let flag=true;
-  if(!enabled)flag=false;
-  else{
+async function validateApi() {
+  const enabled = await getSetting('llmEnabled')
+  let flag = true;
+  if (!enabled) flag = false;
+  else {
     const { type, apiUrl, apiKey, selectedModel } = await getLlmConfig();
-    if(!apiUrl)flag=false;
-    
+    if (!apiUrl) flag = false;
+
   }
 
-  if(!flag){
-    eventBus.emit('show-error','LLM API未启用，或配置不正确！')
+  if (!flag) {
+    eventBus.emit('show-error', 'LLM API未启用，或配置不正确！')
   }
   return flag;
 }
 
-async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
-  if(!(await validateApi())){return}
-  
-  const { type, apiUrl, apiKey, selectedModel,completionSuffix='' } = await getLlmConfig();
+async function answerQuestionStream(prompt, ref, meta = { temperature: 0 }) {
+  if (!(await validateApi())) { return }
+
+  const { type, apiUrl, apiKey, selectedModel, completionSuffix = '' } = await getLlmConfig();
 
   async function handleStreamingRequest(url, payload, ref) {
     //console.log(payload)
@@ -132,13 +132,13 @@ async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
         },
         body: JSON.stringify(payload),
       });
-     
+
       const reader = response.body.getReader(); // 获取流
       const decoder = new TextDecoder("utf-8"); // 解码器
       let ndjson = ""; // 用于拼接未完成的 NDJSON 行
       ref.value = ""; // 清空内容
 
-      const autoRemoveThinkTag=await getSetting('autoRemoveThinkTag')
+      const autoRemoveThinkTag = await getSetting('autoRemoveThinkTag')
 
       while (true) {
         const { done, value } = await reader.read(); // 从流中读取数据
@@ -156,21 +156,29 @@ async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
         for (const line of lines) {
           if (line.trim()) {
             try {
-              let json='';
-              if(line.startsWith('data: ')) {
+              let json = '';
+              if (line.startsWith('data: ')) {
                 json = line.replace(/^data: /, ""); // 解析 OpenAI 的 NDJSON 行，去掉前缀
               }
               else json = line; // 直接使用其他类型的 NDJSON 行
-              if(json==='[DONE]') continue; // 处理 OpenAI 的结束标志
+              if (json === '[DONE]') continue; // 处理 OpenAI 的结束标志
               const parsed = JSON.parse(json); // 解析 JSON 行
-              ref.value += parsed.response || parsed.choices?.[0]?.text || ""; // 更新响应值
-              if(autoRemoveThinkTag){
-                if(ref.value.trim().endsWith('</think>')){
-                  ref.value='';//清空
+              //ref.value += parsed.response || parsed.choices?.[0]?.text || "";
+              let text = "";
+              if (parsed.response !== undefined) {
+                text = parsed.response;
+              } else if (parsed.choices && parsed.choices[0] && parsed.choices[0].text) {
+                text = parsed.choices[0].text;
+              }
+              ref.value += text;
+
+              if (autoRemoveThinkTag) {
+                if (ref.value.trim().endsWith('</think>')) {
+                  ref.value = '';//清空
                 }
               }
-              if(ref.value.trim()===''){
-                ref.value='';//清空
+              if (ref.value.trim() === '') {
+                ref.value = '';//清空
               }
             } catch (err) {
               console.error("JSON 解析错误:", err);
@@ -221,7 +229,7 @@ async function answerQuestionStream(prompt, ref,meta={temperature:0}) {
  * @returns {Promise<string>} - The response from the model.
  */
 async function continueConversation(conversation) {
-  const { type, apiUrl, apiKey, selectedModel,chatSuffix='' } = await getLlmConfig();
+  const { type, apiUrl, apiKey, selectedModel, chatSuffix = '' } = await getLlmConfig();
 
   switch (type) {
     case "openai":
@@ -264,73 +272,78 @@ async function continueConversationStream(conversation, ref) {
   if (!(await validateApi())) {
     return;
   }
-  
-  const { type, apiUrl, apiKey, selectedModel,chatSuffix='' } = await getLlmConfig();
+
+  const { type, apiUrl, apiKey, selectedModel, chatSuffix = '' } = await getLlmConfig();
   //console.log({ type, apiUrl, apiKey, selectedModel });
-  
+
   const autoRemoveThinkTag = await getSetting('autoRemoveThinkTag');
 
   switch (type) {
     case "openai":
     case "metadoc":
       {
-      const payload = {
-        model: selectedModel,
-        messages: conversation,
-        stream: true,
-      };
-      
-      const response = await fetch(`${apiUrl}${chatSuffix}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let buffer = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop();
-        
-        for (const line of lines) {
-          let json='';
-          if (!line.trim()) continue;
-          try {
-            if(line.startsWith('data: ')) {
-              json = line.replace(/^data: /, ""); // 解析 OpenAI 的 NDJSON 行，去掉前缀
-            }
-            else json = line; // 直接使用其他类型的 NDJSON 行
-            if(json==='[DONE]') continue; // 处理 OpenAI 的结束标志
-            const data = JSON.parse(json);
-            if (data.choices && data.choices[0]) {
-              ref.value += data.choices[0].delta?.content || "";
-              if (autoRemoveThinkTag && ref.value.trim().endsWith('</think>')) {
-                ref.value = '';
+        const payload = {
+          model: selectedModel,
+          messages: conversation,
+          stream: true,
+        };
+
+        const response = await fetch(`${apiUrl}${chatSuffix}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            let json = '';
+            if (!line.trim()) continue;
+            try {
+              if (line.startsWith('data: ')) {
+                json = line.replace(/^data: /, ""); // 解析 OpenAI 的 NDJSON 行，去掉前缀
               }
+              else json = line; // 直接使用其他类型的 NDJSON 行
+              if (json === '[DONE]') continue; // 处理 OpenAI 的结束标志
+              const data = JSON.parse(json);
+              if (data.choices && data.choices[0]) {
+                if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
+                  ref.value += data.choices[0].delta.content;
+                } else {
+                  ref.value += "";
+                }
+                //ref.value += data.choices[0].delta?.content || "";
+                if (autoRemoveThinkTag && ref.value.trim().endsWith('</think>')) {
+                  ref.value = '';
+                }
+              }
+
+            } catch (err) {
+              console.error('JSON 解析错误:', err);
             }
-            
-          } catch (err) {
-            console.error('JSON 解析错误:', err);
           }
         }
+        break;
       }
-      break;
-    }
-    
+
     case "ollama": {
       const payload = {
         model: selectedModel,
         messages: conversation,
       };
-      
+
       const response = await fetch(`${apiUrl}/chat`, {
         method: 'POST',
         headers: {
@@ -338,23 +351,23 @@ async function continueConversationStream(conversation, ref) {
         },
         body: JSON.stringify(payload),
       });
-      
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
       let buffer = '';
-      
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop();
-        
+
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
             const data = JSON.parse(line);
-            if (data.message?.content) {
+            if (data.message&&data.message.content) {
               ref.value += data.message.content;
               if (autoRemoveThinkTag && ref.value.trim().endsWith('</think>')) {
                 ref.value = '';
@@ -367,7 +380,7 @@ async function continueConversationStream(conversation, ref) {
       }
       break;
     }
-    
+
     default:
       throw new Error(`Unsupported LLM type: ${type}`);
   }

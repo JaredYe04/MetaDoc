@@ -11,10 +11,13 @@
     :active-text-color="themeState.currentTheme.textColor2"
      >
    <el-menu-item  >
-     <h1>MetaDoc</h1>
+    <el-tooltip content="一款基于AI Agent的智能文字处理软件" placement="right" >
+      <h1>MetaDoc</h1>
+    </el-tooltip>
+     
    </el-menu-item>
    <el-menu-item index="/" >主页</el-menu-item>
-   <el-menu-item index="/outline" >大纲</el-menu-item>
+   <el-menu-item index="/outline" >大纲树</el-menu-item>
    <el-menu-item index="/article" >编辑器</el-menu-item>
    <el-menu-item index="/visualize" >可视化</el-menu-item>
  </el-menu>

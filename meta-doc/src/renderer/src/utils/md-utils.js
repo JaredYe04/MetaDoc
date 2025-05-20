@@ -2,10 +2,11 @@
 
 import Vditor from "vditor"
 import { renderedHtml } from "./common-data"
-import eventBus from "./event-bus"
+import eventBus, { isElectronEnv } from "./event-bus"
 import { getImagePath } from "./settings"
 import { el } from "element-plus/es/locales.mjs";
 import { convertNumberToChinese, removeTitleIndex } from "./regex-utils";
+import {localVditorCDN, vditorCDN } from "./vditor-cdn";
 // 1. 从 Markdown 文本中提取所有标题，生成大纲树，同时记录 title_level
 
 export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
@@ -628,32 +629,6 @@ export function generateWordFrequencyTrendChart(text, topWords) {
     return echartConfig;
 }
 
-// export function md2html(md) {
-//     const content = md;
-//     // const cdn = 'http://localhost:3000/vditor'
-//     const cdn='https://unpkg.com/vditor'//导出的时候就不需要本地服务器了
-//     const html = `<html><head><link rel="stylesheet" type="text/css" href="${cdn}/dist/index.css"/>
-// <script src="${cdn}/dist/method.min.js"></script></head>
-// <body><div class="vditor-reset" id="preview">${content}</div>
-// <script>
-//     const previewElement = document.getElementById('preview')
-//     Vditor.codeRender(previewElement);
-//     Vditor.mathRender(previewElement, {
-//         cdn: '${cdn}',
-//     });
-//     Vditor.mermaidRender(previewElement, '${cdn}'cdn);
-//     Vditor.SMILESRender(previewElement, '${cdn}'cdn);
-//     Vditor.markmapRender(previewElement, '${cdn}');
-//     Vditor.flowchartRender(previewElement, '${cdn}');
-//     Vditor.graphvizRender(previewElement, '${cdn}');
-//     Vditor.chartRender(previewElement, '${cdn}'cdn);
-//     Vditor.mindmapRender(previewElement, '${cdn}'cdn);
-//     Vditor.abcRender(previewElement, '${cdn}');
-//     Vditor.mediaRender(previewElement);
-//     Vditor.speechRender(previewElement);
-// </script></body></html>`;
-// return html
-// }
 
 
 export async function image2base64(md){
@@ -714,11 +689,18 @@ export async function image2local(md){
 
 export async function md2htmlRaw(md) {
     //return renderedHtml.value;
-    return await Vditor.md2html(md,{cdn: 'http://localhost:3000/vditor'})
+    let cdn = '';
+    if(isElectronEnv()){
+        cdn=localVditorCDN;
+    }
+    else{
+        cdn=vditorCDN;
+    }
+    return await Vditor.md2html(md,{cdn: cdn})
 
 }
 export function md2html(md, style = 'github') {
-    // const cdn = 'http://localhost:3000/vditor'
+
     const cdn='https://unpkg.com/vditor'//导出的时候就不需要本地服务器了
     const safeMarkdown = JSON.stringify(md);
     const html = `<html><link rel="stylesheet" href="${cdn}/dist/index.css"/>
@@ -767,7 +749,13 @@ export const exportPDF = (md, style = 'github') => {
 
     // 使用 JSON.stringify 对 md 进行转义
     const safeMarkdown = JSON.stringify(md);
-    const cdn = 'http://localhost:3000/vditor'
+    let cdn = '';
+    if(isElectronEnv()){
+        cdn=localVditorCDN;
+    }
+    else{
+        cdn=vditorCDN;
+    }
     iframeDocument.write(`
         <link rel="stylesheet" href="${cdn}/dist/index.css"/>
         <script src="${cdn}/dist/method.min.js"></script>

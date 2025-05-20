@@ -17,14 +17,14 @@
                 @trigger="handleMenuClick" class="context-menu" @close="contextMenuVisible = false;"
                 @insert="insertText" />
 
-                <div id="vditor" class="editor" v-loading="loading" @keydown="handleTab"
+            <div id="vditor" class="editor" v-loading="loading" @keydown="handleTab"
                 @contextmenu.prevent="openContextMenu($event)">
             </div>
             <div class="resizable-container">
                 <el-tooltip content="拖动以改变宽度">
                     <div class="resizer" @mousedown="startResize"></div>
                 </el-tooltip>
-                
+
                 <!-- 右边：元信息显示 -->
                 <div class="meta-info"
                     :style="{ width: metaInfoWidth + 'px', backgroundColor: themeState.currentTheme.background2nd }">
@@ -84,7 +84,7 @@
 
                 </div>
 
-                
+
             </div>
 
             <el-dialog v-model="editMetaDialogVisible" title="修改文章元信息" width="30%">
@@ -128,7 +128,7 @@ import "../assets/aero-div.css";
 import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
 import "../assets/title-menu.css";
-import eventBus from '../utils/event-bus';
+import eventBus, { isElectronEnv } from '../utils/event-bus';
 import { generateDescriptionPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
 import { addDialog, countNodes, current_article, current_article_meta_data, defaultAiChatMessages, latest_view, renderedHtml, searchNode, sync } from "../utils/common-data";
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
@@ -141,6 +141,7 @@ import AiLogoWhite from "../assets/ai-logo-white.svg";
 import { themeState } from "../utils/themes";
 import { getSetting } from "../utils/settings";
 import { bin } from "d3";
+import { localVditorCDN, vditorCDN } from "../utils/vditor-cdn";
 
 // 状态变量
 const genTitleDialogVisible = ref(false);
@@ -325,13 +326,13 @@ const bindTitleMenu = async () => {
         section.setAttribute('title', '长按可用AI助手优化该段落');
     });
 
-    const outlineNode=document.getElementsByClassName('vditor-outline__content')[0];
+    const outlineNode = document.getElementsByClassName('vditor-outline__content')[0];
     //获取所有的span子标签，并且这些标签没有data-target-id属性
     const outlineSections = Array.from(outlineNode.getElementsByTagName('span'))
-    .filter(node => !node.hasAttribute('data-target-id'));
+        .filter(node => !node.hasAttribute('data-target-id'));
     outlineSections.forEach((section, i) => {
         const node = treeNodeQueue[i];
-        const target=section;
+        const target = section;
         target.setAttribute('path', node.path);
         target.addEventListener('mousedown', (event) => outlineMouseDownEvent(event, section));
         target.addEventListener('mouseup', (event) => mouseUpEvent(event, section));
@@ -349,12 +350,12 @@ let isLongPress = false;
 
 
 const outlineMouseDownEvent = (event, section) => {
-    const titles=document.getElementsByClassName('vditor-ir__node');
-    const path=section.getAttribute('path');
+    const titles = document.getElementsByClassName('vditor-ir__node');
+    const path = section.getAttribute('path');
     //找到titles里面的第一个包含path的元素
-    const title=Array.from(titles).find(title=>title.getAttribute('path')===path);
+    const title = Array.from(titles).find(title => title.getAttribute('path') === path);
     //聚焦到这个元素
-    title.scrollIntoView({ behavior:'instant', block: 'start' });
+    title.scrollIntoView({ behavior: 'instant', block: 'start' });
     mouseDownEvent(event, section);
 };
 const mouseDownEvent = (event, section) => {
@@ -407,179 +408,196 @@ let isResizing = ref(false)     // 是否正在调整宽度
 
 // 开始拖动
 function startResize(e) {
-  isResizing.value = true
-  // 添加鼠标移动和释放事件监听
-  document.addEventListener('mousemove', onResizing)
-  document.addEventListener('mouseup', stopResize)
+    isResizing.value = true
+    // 添加鼠标移动和释放事件监听
+    document.addEventListener('mousemove', onResizing)
+    document.addEventListener('mouseup', stopResize)
 }
 
 // 拖动时更新宽度
 function onResizing(e) {
-  if (isResizing.value) {
-    const containerLeft = document.querySelector('.resizable-container').getBoundingClientRect().left
-    const newWidth = metaInfoWidth.value + (containerLeft - e.clientX)  // 反向计算宽度
-    metaInfoWidth.value = Math.min(Math.max(newWidth, 200), 600)
-  }
+    if (isResizing.value) {
+        const containerLeft = document.querySelector('.resizable-container').getBoundingClientRect().left
+        const newWidth = metaInfoWidth.value + (containerLeft - e.clientX)  // 反向计算宽度
+        metaInfoWidth.value = Math.min(Math.max(newWidth, 200), 600)
+    }
 }
 
 // 停止拖动
 function stopResize() {
-  isResizing.value = false
-  document.removeEventListener('mousemove', onResizing)
-  document.removeEventListener('mouseup', stopResize)
+    isResizing.value = false
+    document.removeEventListener('mousemove', onResizing)
+    document.removeEventListener('mouseup', stopResize)
 }
 
 
 // 编辑器初始化
 onMounted(() => {
-    vditor.value = new Vditor('vditor', {
-        toolbarConfig: { pin: true },
-        theme: themeState.currentTheme.vditorTheme,
-        preview: {
-            theme: {
-                current: themeState.currentTheme.vditorTheme,
+    try {
+        let cdn = '';
+        if (isElectronEnv()) {
+            cdn = localVditorCDN;
+        }
+        else {
+            cdn = vditorCDN;
+        }
+        vditor.value = new Vditor('vditor', {
+            toolbarConfig: { pin: true },
+            theme: themeState.currentTheme.vditorTheme,
+            preview: {
+                theme: {
+                    current: themeState.currentTheme.vditorTheme,
+                },
+                hljs: {
+                    style: themeState.currentTheme.codeTheme,
+                    lineNumber: true,
+                },
             },
-            hljs: {
-                style: themeState.currentTheme.codeTheme,
-                lineNumber: true,
-            },
-        },
-        upload: {
-            url: 'http://localhost:3000/upload',
-            linkToImgUrl: true,
-            success: (editor, msg) => {
-                const data = JSON.parse(msg);
-                const filePaths = data.data.succMap;
-                for (const key in filePaths) {
-                    const filePath = filePaths[key].substring(7);//去掉images\前缀,
-                    //console.log(filePath);
+            upload: {
+                url: 'http://localhost:3000/upload',
+                linkToImgUrl: true,
+                success: (editor, msg) => {
+                    const data = JSON.parse(msg);
+                    const filePaths = data.data.succMap;
+                    for (const key in filePaths) {
+                        const filePath = filePaths[key].substring(7);//去掉images\前缀,
+                        //console.log(filePath);
 
-                    //const filePath = filePaths[key];
-                    //const imageUrl=filePath;
-                    const imageUrl = `http://localhost:3000/images/${filePath}`;
-                    vditor.value.insertValue(`![](${imageUrl})`);  // 插入图片链接
-                }
+                        //const filePath = filePaths[key];
+                        //const imageUrl=filePath;
+                        const imageUrl = `http://localhost:3000/images/${filePath}`;
+                        vditor.value.insertValue(`![](${imageUrl})`);  // 插入图片链接
+                    }
+                },
+                error: (msg) => {
+                    console.error('上传失败:', msg);
+                },
             },
-            error: (msg) => {
-                console.error('上传失败:', msg);
-            },
-        },
-        toolbar: [
-            {
-                name: 'undo',
-                tip: '撤销',
-                tipPosition: 's',
+            toolbar: [
+                {
+                    name: 'undo',
+                    tip: '撤销',
+                    tipPosition: 's',
 
-            },
-            {
-                name: 'redo',
-                tip: '重做',
-                tipPosition: 's',
-            },
-            {
-                name: 'headings',
-                tipPosition: 's',
-                tip: '标题',
-            },
-            {
-                name: 'bold',
-                tipPosition: 's',
-                tip: '加粗',
-            },
-            {
-                name: 'italic',
-                tipPosition: 's',
-                tip: '斜体',
-            },
-            {
-                name: 'strike',
-                tipPosition: 's',
-                tip: '删除线',
-            },
-            {
-                name: 'link',
-                tipPosition: 's',
-                tip: '超链接',
-            },
-            {
-                name: 'list',
-                tipPosition: 's',
-                tip: '列表',
-            },
-            {
-                name: 'table',
-                tipPosition: 's',
-                tip: '表格',
-            },
-            {
-                name: 'code',
-                tipPosition: 's',
-                tip: '代码块',
-            },
-            {
-                name: 'preview',
-                tipPosition: 's',
-                tip: '预览',
-            },
-            {
-                name: 'fullscreen',
-                tipPosition: 's',
-                tip: '全屏编辑器',
-            },
-            {
-                name: "quote",
-                tipPosition: "s",
-                tip: "引用",
-            },
-            {
-                name: 'search-replace',
-                tipPosition: 's',
-                tip: '查找与替换',
-                className: 'right',
-                icon: '<svg><use xlink:href="#vditor-icon-info"></use></svg>',
-                click() { eventBus.emit('search-replace') },
-            },
-            {
-                name: 'ai-assistant',
-                tipPosition: 's',
-                tip: 'AI助手',
-                className: 'right',
-                icon: `<img src="${themeState.currentTheme.AiLogo}" style="width: 20px; height: 20px; " />`,
-                click() { handleMenuClick('ai-assistant') },
-            },
+                },
+                {
+                    name: 'redo',
+                    tip: '重做',
+                    tipPosition: 's',
+                },
+                {
+                    name: 'headings',
+                    tipPosition: 's',
+                    tip: '标题',
+                },
+                {
+                    name: 'bold',
+                    tipPosition: 's',
+                    tip: '加粗',
+                },
+                {
+                    name: 'italic',
+                    tipPosition: 's',
+                    tip: '斜体',
+                },
+                {
+                    name: 'strike',
+                    tipPosition: 's',
+                    tip: '删除线',
+                },
+                {
+                    name: 'link',
+                    tipPosition: 's',
+                    tip: '超链接',
+                },
+                {
+                    name: 'list',
+                    tipPosition: 's',
+                    tip: '列表',
+                },
+                {
+                    name: 'table',
+                    tipPosition: 's',
+                    tip: '表格',
+                },
+                {
+                    name: 'code',
+                    tipPosition: 's',
+                    tip: '代码块',
+                },
+                {
+                    name: 'preview',
+                    tipPosition: 's',
+                    tip: '预览',
+                },
+                {
+                    name: 'fullscreen',
+                    tipPosition: 's',
+                    tip: '全屏编辑器',
+                },
+                {
+                    name: "quote",
+                    tipPosition: "s",
+                    tip: "引用",
+                },
+                {
+                    name: 'search-replace',
+                    tipPosition: 's',
+                    tip: '查找与替换',
+                    className: 'right',
+                    icon: '<svg><use xlink:href="#vditor-icon-info"></use></svg>',
+                    click() { eventBus.emit('search-replace') },
+                },
+                {
+                    name: 'ai-assistant',
+                    tipPosition: 's',
+                    tip: 'AI助手',
+                    className: 'right',
+                    icon: `<img src="${themeState.currentTheme.AiLogo}" style="width: 20px; height: 20px; " />`,
+                    click() { handleMenuClick('ai-assistant') },
+                },
 
-        ],
-        cdn: 'http://localhost:3000/vditor',
-        cache: { enable: false },
-        placeholder: "在此编辑 Markdown 内容...",
-        outline: {
-            enable: true,
-            position: "left",
-        },
-        value: current_article.value,
-        input: async (value) => {
-            //console.log('input');
-            //article.value = value; // 监听输入事件，更新绑定的内容
-            current_article.value = value;
-            //console.log(current_article.value)
-            latest_view.value = 'article';
-            eventBus.emit('is-need-save', true)
-            sync();
-            await bindTitleMenu();
-
-        },
-        after: async () => {
-
-            //console.log(themeState);
-            try {
+            ],
+            cdn: cdn,
+            cache: { enable: false },
+            placeholder: "在此编辑 Markdown 内容...",
+            outline: {
+                enable: true,
+                position: "left",
+            },
+            value: current_article.value,
+            input: async (value) => {
+                //console.log('input');
+                //article.value = value; // 监听输入事件，更新绑定的内容
+                current_article.value = value;
+                //console.log(current_article.value)
+                latest_view.value = 'article';
+                eventBus.emit('is-need-save', true)
                 sync();
                 await bindTitleMenu();
-            } catch (e) {
-                console.error(e);
-            }
-            loadingInstance.close();
-        },
-    });
+
+            },
+            after: async () => {
+
+                //console.log(themeState);
+                try {
+                    sync();
+                    await bindTitleMenu();
+                } catch (e) {
+                    console.error(e);
+                }
+                loadingInstance.close();
+            },
+        });
+    }
+    catch (e) {
+        console.error(e);
+        eventBus.emit('show-error',
+            'Vditor 初始化失败:' + e,
+        );
+        loadingInstance.close();
+
+    }
 });
 
 // 清理资源
@@ -633,7 +651,7 @@ eventBus.on('sync-vditor-theme', async () => {
     overflow: auto;
     /*滚动条样式修改 */
     scrollbar-color: #888 #63636300;
-    scrollbar-width:thin;
+    scrollbar-width: thin;
 }
 
 
@@ -647,6 +665,7 @@ eventBus.on('sync-vditor-theme', async () => {
     box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
     padding: 5px;
 }
+
 .resizable-container {
     display: flex;
     height: 100%;

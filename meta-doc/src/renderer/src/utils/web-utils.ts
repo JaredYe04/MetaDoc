@@ -75,7 +75,11 @@ export const changeAvatar = () => {
   fileInput.type = 'file'
   fileInput.accept = 'image/*'
   fileInput.onchange = (event) => {
-    const file = (event.target as HTMLInputElement).files?.[0]
+    //const file = event.target.files?.[0];
+    let file = null;
+    if (event.target.files && event.target.files.length > 0) {
+      file = event.target.files[0];
+    }
     if (file) {
       formData.append('file', file)
       formData.append('userId', user.value.id)

@@ -224,8 +224,19 @@ import { themeState } from "../utils/themes.js";
 //computed
 import { computed } from "vue";
 import { getMetaDocLlmModels } from "../utils/web-utils.ts";
+import localIpcRenderer from "../utils/web-adapter/local-ipc-renderer.ts";
+import { webMainCalls } from "../utils/web-adapter/web-main-calls.js";
 
-const ipcRenderer = window.electron.ipcRenderer
+let ipcRenderer = null
+if (window && window.electron) {
+  ipcRenderer = window.electron.ipcRenderer
+} else {
+  webMainCalls();
+  ipcRenderer=localIpcRenderer
+  //todo 说明当前环境不是electron环境，需要另外适配
+}
+
+
 // 定义响应式状态
 const activeMenu = ref("basic"); // 当前菜单
 const settings = reactive({

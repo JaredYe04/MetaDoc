@@ -14,18 +14,6 @@
         </template>
       </el-sub-menu>
     </el-tooltip>
-    <el-tooltip effect="light" content="用户资料" placement="right">
-      <el-menu-item @click="toggleUserProfile">
-        <img v-if="avatar" :src="avatar" width="25" height="25" style="border-radius: 50%; display: flex; align-items: center; align-self: center;" />
-      <!-- <el-avatar v-if="avatar" :src="avatar" :size="16"
-            style="width: 16px; height: 16px; padding: 0; cursor: pointer; object-fit: cover; z-index: 10000;">
-      </el-avatar> -->
-
-      <el-icon v-else>
-        <UserFilled />
-      </el-icon>
-    </el-menu-item>
-    </el-tooltip>
 
     <el-tooltip effect="light" content="文件" placement="right">
 
@@ -196,13 +184,20 @@
 
     </el-tooltip>
 
+    <el-tooltip effect="light" content="用户资料" placement="right">
+      <el-menu-item @click="toggleUserProfile">
+        <img v-if="avatar" :src="avatar" width="25" height="25" style="border-radius: 50%; display: flex; align-items: center; align-self: center;" />
+
+
+      <el-icon v-else>
+        <UserFilled />
+      </el-icon>
+    </el-menu-item>
+    </el-tooltip>
 
 
   </el-menu>
-  <!-- <el-radio-group v-model="isCollapse">
-    <el-radio-button :value="false">展开</el-radio-button>
-    <el-radio-button :value="true">折叠</el-radio-button>
-  </el-radio-group> -->
+
 </template>
 
 <script lang="ts" setup>

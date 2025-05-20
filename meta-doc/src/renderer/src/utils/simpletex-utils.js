@@ -1,6 +1,15 @@
 import eventBus from "./event-bus";
+import localIpcRenderer from "./web-adapter/local-ipc-renderer";
+import { webMainCalls } from "./web-adapter/web-main-calls";
 
-const ipcRenderer = window.electron.ipcRenderer
+let ipcRenderer = null
+if (window && window.electron) {
+  ipcRenderer = window.electron.ipcRenderer
+} else {
+  webMainCalls();
+  ipcRenderer=localIpcRenderer
+  //todo 说明当前环境不是electron环境，需要另外适配
+}
 
 // 配置 App 信息
 const SIMPLETEX_APP_ID = "c0eEgzdZWYa6as0cP5QEVOGC";

@@ -92,8 +92,20 @@ import { themeState } from '../utils/themes';
 import WordCloudDetail from '../components/WordCloudDetail.vue';
 import { getSetting } from '../utils/settings';
 import { ar } from 'element-plus/es/locales.mjs';
+import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer';
+import { webMainCalls } from '../utils/web-adapter/web-main-calls';
 
-const ipcRenderer = window.electron.ipcRenderer
+let ipcRenderer = null
+if (window && window.electron) {
+  ipcRenderer = window.electron.ipcRenderer
+} else {
+  webMainCalls();
+  ipcRenderer=localIpcRenderer
+  //todo 说明当前环境不是electron环境，需要另外适配
+}
+
+
+
 const words = ref([]);
 const wordCount = ref({});
 const showTitleMenu = ref(false);
@@ -189,7 +201,7 @@ const generateOutlineGraph = async () => {
 
         });
     }
-    //Vditor.mindmapRender(node,'http://localhost:3000/vditor');
+
 
 };
 const article_text = ref('');

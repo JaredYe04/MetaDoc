@@ -19,160 +19,42 @@ import { getSetting, updateRecentDocs } from './settings.js'
 import { path } from 'd3'
 import { da } from 'element-plus/es/locales.mjs'
 import { exportPDF, image2base64, image2local, md2html, md2htmlRaw } from './md-utils.js'
-const ipcRenderer = window.electron.ipcRenderer
-const eventBus = mitt()
+import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
 
-export default eventBus
+let ipcRenderer = null
+if (window && window.electron) {
+  ipcRenderer = window.electron.ipcRenderer
+
+} else {
+  webMainCalls();
+  ipcRenderer = localIpcRenderer
+  //todo 说明当前环境不是electron环境，需要另外适配
+}
 
 
+export const isElectronEnv = () => {//判断是否在electron环境中
+  return navigator.userAgent.toLowerCase().includes('electron');
+}
 
-//监听save事件
-eventBus.on('save', async (msg) => {
-  //console.log(window.electron)
-  if(msg==='auto-save'){
-    if(current_file_path.value===''){
-      return//如果尝试自动保存时，没有文件路径，则不进行自动保存
-    }
-  }
-  sync();
-  await ipcRenderer.send('save', { json: dump2json(),path:current_file_path.value ,html:await md2html(current_article.value)})
-  eventBus.emit('is-need-save',false)
+ipcRenderer.on('sync-ai-dialogs', (event, dialogs) => {//只能由主进程发送给主渲染进程
+  current_ai_dialogs.value = dialogs
 })
 
-eventBus.on('is-need-save', (msg) => {
-  //console.log('is-need-save',msg)
-  ipcRenderer.send('is-need-save', msg)
-})
-
-eventBus.on('save-and-quit', async () => {
-  sync();
-  eventBus.emit('is-need-save',false)
-  ipcRenderer.send('save-and-quit', { json: dump2json(),path:current_file_path.value ,html:await md2html(current_article.value)})
-});
-
-eventBus.on('open-doc', async (path) => {
-  await init()
-  eventBus.emit('is-need-save',false)
-  ipcRenderer.send('open-doc',path)
-  updateRecentDocs(path)
-})
-eventBus.on('open-link',async(url)=>{
-  ipcRenderer.send('open-link',url)
-})
-eventBus.on('quit', () => {
-  ipcRenderer.send('quit')
-})
-
-eventBus.on('save-as', async () => {
-  sync();
-  eventBus.emit('nav-to', '/article');
-  eventBus.emit('is-need-save',false)
-  ipcRenderer.send('save-as', { json: dump2json() ,path:'',html:await md2html(current_article.value)}) 
-})
-
-eventBus.on('new-doc', async () => {
-  await init()
-})
-
-eventBus.on('close-doc',async ()=>{
-  await init()
-})
-
-eventBus.on('export', async (format) => {
-  sync();
-  //eventBus.emit('nav-to', '/article');
-  //如果是pdf则直接导出，否则需要系统调用
-  const exportImageMode=await getSetting('exportImageMode')
-  let md=current_article.value
-  switch(exportImageMode){
-    case 'base64':
-      md=await image2base64(md)
-    break;
-    case 'local':
-      md=await image2local(md)
-    break;
-
-  }
-  
-
-  if(format==='pdf'){
-    exportPDF(md);
-    document.body.style.cursor = 'wait';
-    setTimeout(() => {
-      document.body.style.cursor = 'auto';
-    }, md.length);
-  }else{
-      let html;
-      if(format==='html'){
-        html = await md2html(md)
-      }
-      else{
-        html = await md2htmlRaw(md)
-      }
-      ipcRenderer.send('export', { json: dump2json(md) ,html:html,format:format})
-  }
-})
-
-eventBus.on('setting',()=>{
-  ipcRenderer.send('setting')
-})
-eventBus.on('ai-chat',()=>{
-  ipcRenderer.send('ai-chat')
-})
-eventBus.on('ai-graph',()=>{
-  ipcRenderer.send('ai-graph')
-})
-eventBus.on('fomula-recognition',()=>{
-  ipcRenderer.send('fomula-recognition')
-})
-
-
-
-
-
-eventBus.on('system-notification',(data)=>{
-  //console.log(data)
-  ipcRenderer.send('system-notification',data)
-
-})
-
-eventBus.on('theme-changed',()=>{
-  ipcRenderer.send('request-sync-theme')
-})
-
-eventBus.on('sync-ai-dialogs', (dialogs) => {//只能由AICHAT组件触发
-  ipcRenderer.send('sync-ai-dialogs',dialogs)
-})
-ipcRenderer.on('sync-ai-dialogs', (event,dialogs) => {//只能由主进程发送给主渲染进程
-  current_ai_dialogs.value=dialogs
-})
-
-
-eventBus.on('fetch-ai-dialogs',()=>{//(这个事件只会被AICHAT组件触发)
-  //console.log('fetch-ai-dialogs')
-  ipcRenderer.send('fetch-ai-dialogs')//请求主进程获取对话数据
-})
-ipcRenderer.on('request-ai-dialogs',(event)=>{//主渲染进程接收到请求，返回对话数据给主进程，再由主进程转发给AICHAT组件
+ipcRenderer.on('request-ai-dialogs', (event) => {//主渲染进程接收到请求，返回对话数据给主进程，再由主进程转发给AICHAT组件
   //console.log('我把对话数据返回给主进程了')
   //console.log(JSON.parse(JSON.stringify(current_ai_dialogs.value)))
-  ipcRenderer.send('response-ai-dialogs',JSON.parse(JSON.stringify(current_ai_dialogs.value)))
+  ipcRenderer.send('response-ai-dialogs', JSON.parse(JSON.stringify(current_ai_dialogs.value)))
 })
-ipcRenderer.on('response-ai-dialogs',(event,dialogs)=>{//主进程发送给AICHAT组件对话数据
+ipcRenderer.on('response-ai-dialogs', (event, dialogs) => {//主进程发送给AICHAT组件对话数据
   //console.log('我收到了对话数据',dialogs)
-  current_ai_dialogs.value=dialogs
+  current_ai_dialogs.value = dialogs
   //console.log(dialogs)
   eventBus.emit('ai-dialogs-loaded')
 })
 
-
-ipcRenderer.on('fetch-ai-dialogs',(event,dialogs)=>{
+ipcRenderer.on('fetch-ai-dialogs', (event, dialogs) => {
   //todo
 })
-
-import { lightTheme, darkTheme, themeState } from './themes.js'
-
-import { ElMessage } from 'element-plus'
-import { ElMessageBox } from 'element-plus'
 
 ipcRenderer.on('os-theme-changed', (event) => {
   eventBus.emit('theme-changed')
@@ -180,33 +62,33 @@ ipcRenderer.on('os-theme-changed', (event) => {
 
 })
 ipcRenderer.on('close-triggered', () => {
-    //询问是否保存，有保存，放弃三个按钮
-    ElMessageBox.confirm(
-      '是否要保存当前文档？',
-      '提示',
-      {
-        confirmButtonText: '保存',
-        cancelButtonText: '放弃',
-        showCancelButton: true,
-        distinguishCancelAndClose: true,
-        type: 'info',
-      }
-    )
-      .then(() => {
-        eventBus.emit('is-need-save',false)
-        eventBus.emit('save-and-quit')
-      })
-      .catch((action) => {
-        // eventBus.emit('is-need-save',false)
-        // eventBus.emit('quit')
-        if(action==='cancel'){
-        eventBus.emit('is-need-save',false)
+  //询问是否保存，有保存，放弃三个按钮
+  ElMessageBox.confirm(
+    '是否要保存当前文档？',
+    '提示',
+    {
+      confirmButtonText: '保存',
+      cancelButtonText: '放弃',
+      showCancelButton: true,
+      distinguishCancelAndClose: true,
+      type: 'info',
+    }
+  )
+    .then(() => {
+      eventBus.emit('is-need-save', false)
+      eventBus.emit('save-and-quit')
+    })
+    .catch((action) => {
+      // eventBus.emit('is-need-save',false)
+      // eventBus.emit('quit')
+      if (action === 'cancel') {
+        eventBus.emit('is-need-save', false)
         eventBus.emit('quit')
-        }
-        else{
-          eventBus.emit('is-need-save',true)
-        }
-      })
+      }
+      else {
+        eventBus.emit('is-need-save', true)
+      }
+    })
 })
 
 ipcRenderer.on('sync-theme', (event) => {
@@ -234,13 +116,13 @@ ipcRenderer.on('export-success', (event, data) => {
   eventBus.emit('export-success', data)
 })
 
-ipcRenderer.on('save-triggered',()=>{
+ipcRenderer.on('save-triggered', () => {
   eventBus.emit('save')
 })
-ipcRenderer.on('save-as-triggered',()=>{
+ipcRenderer.on('save-as-triggered', () => {
   eventBus.emit('save-as')
 })
-ipcRenderer.on('search-replace-triggered',()=>{
+ipcRenderer.on('search-replace-triggered', () => {
 
   eventBus.emit('search-replace')
 })
@@ -252,6 +134,148 @@ ipcRenderer.on('open-doc-success', (event, data) => {
   eventBus.emit('open-doc-success', data)
   //eventBus.emit('refresh')
 })
+
+
+
+
+const eventBus = mitt()
+
+export default eventBus
+
+
+
+//监听save事件
+eventBus.on('save', async (msg) => {
+  //console.log(window.electron)
+  if (msg === 'auto-save') {
+    if (current_file_path.value === '') {
+      return//如果尝试自动保存时，没有文件路径，则不进行自动保存
+    }
+  }
+  sync();
+  await ipcRenderer.send('save', { json: dump2json(), path: current_file_path.value, html: await md2html(current_article.value) })
+  eventBus.emit('is-need-save', false)
+})
+
+eventBus.on('is-need-save', (msg) => {
+  //console.log('is-need-save',msg)
+  ipcRenderer.send('is-need-save', msg)
+})
+
+eventBus.on('save-and-quit', async () => {
+  sync();
+  eventBus.emit('is-need-save', false)
+  ipcRenderer.send('save-and-quit', { json: dump2json(), path: current_file_path.value, html: await md2html(current_article.value) })
+});
+
+eventBus.on('open-doc', async (path) => {
+  await init()
+  eventBus.emit('is-need-save', false)
+  ipcRenderer.send('open-doc', path)
+  updateRecentDocs(path)
+})
+eventBus.on('open-link', async (url) => {
+  ipcRenderer.send('open-link', url)
+})
+eventBus.on('quit', () => {
+  ipcRenderer.send('quit')
+})
+
+eventBus.on('save-as', async () => {
+  sync();
+  eventBus.emit('nav-to', '/article');
+  eventBus.emit('is-need-save', false)
+  ipcRenderer.send('save-as', { json: dump2json(), path: '', html: await md2html(current_article.value) })
+})
+
+eventBus.on('new-doc', async () => {
+  await init()
+})
+
+eventBus.on('close-doc', async () => {
+  await init()
+})
+
+eventBus.on('export', async (format) => {
+  sync();
+  //eventBus.emit('nav-to', '/article');
+  //如果是pdf则直接导出，否则需要系统调用
+  const exportImageMode = await getSetting('exportImageMode')
+  let md = current_article.value
+  switch (exportImageMode) {
+    case 'base64':
+      md = await image2base64(md)
+      break;
+    case 'local':
+      md = await image2local(md)
+      break;
+
+  }
+
+
+  if (format === 'pdf') {
+    exportPDF(md);
+    document.body.style.cursor = 'wait';
+    setTimeout(() => {
+      document.body.style.cursor = 'auto';
+    }, md.length);
+  } else {
+    let html;
+    if (format === 'html') {
+      html = await md2html(md)
+    }
+    else {
+      html = await md2htmlRaw(md)
+    }
+    ipcRenderer.send('export', { json: dump2json(md), html: html, format: format })
+  }
+})
+
+eventBus.on('setting', () => {
+  ipcRenderer.send('setting')
+})
+eventBus.on('ai-chat', () => {
+  ipcRenderer.send('ai-chat')
+})
+eventBus.on('ai-graph', () => {
+  ipcRenderer.send('ai-graph')
+})
+eventBus.on('fomula-recognition', () => {
+  ipcRenderer.send('fomula-recognition')
+})
+
+
+
+
+
+eventBus.on('system-notification', (data) => {
+  //console.log(data)
+  ipcRenderer.send('system-notification', data)
+
+})
+
+eventBus.on('theme-changed', () => {
+  ipcRenderer.send('request-sync-theme')
+})
+
+eventBus.on('sync-ai-dialogs', (dialogs) => {//只能由AICHAT组件触发
+  ipcRenderer.send('sync-ai-dialogs', dialogs)
+})
+
+
+eventBus.on('fetch-ai-dialogs', () => {//(这个事件只会被AICHAT组件触发)
+  //console.log('fetch-ai-dialogs')
+  ipcRenderer.send('fetch-ai-dialogs')//请求主进程获取对话数据
+})
+
+
+
+import { lightTheme, darkTheme, themeState } from './themes.js'
+
+import { ElMessage } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { webMainCalls } from './web-adapter/web-main-calls.js'
+
 
 // window.electron.onMessageFromMain((event, message) => {
 //     console.log('收到来自主进程的消息:', message);

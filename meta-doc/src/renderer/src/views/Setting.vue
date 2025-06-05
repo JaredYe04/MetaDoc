@@ -60,7 +60,7 @@
 
               </div>
             </el-form-item>
-
+<!-- 
             <el-form-item label="导出图片选项">
               <el-select v-model="settings.exportImageMode"
                 @change="saveSetting('exportImageMode', settings.exportImageMode)">
@@ -75,7 +75,7 @@
                   <el-option label="本地链接" value="local"></el-option>
                 </el-tooltip>
               </el-select>
-            </el-form-item>
+            </el-form-item> -->
 
             <el-form-item label="统计文本时排除代码块">
               <el-tooltip content="代码的内容会影响词频统计的准确性，因此可选择是否排除。" placement="bottom">
@@ -84,7 +84,13 @@
                   inactive-text="关闭" @change="saveSetting('bypassCodeBlock', settings.bypassCodeBlock);" />
               </el-tooltip>
             </el-form-item>
-
+            <el-form-item label="自动下载外部图片">
+              <el-tooltip content="若开启，在导入外部图片时，会自动保存到本地，否则离线时外部图片无法显示。需重新打开编辑器界面生效。" placement="bottom">
+                <el-switch v-model="settings.autoSaveExternalImage" class="mb-2"
+                  style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" active-text="启用"
+                  inactive-text="关闭" @change="saveSetting('autoSaveExternalImage', settings.autoSaveExternalImage);" />
+              </el-tooltip>
+            </el-form-item>
 
 
           </template>
@@ -220,7 +226,7 @@ import MicrophoneTest from "../components/MicrophoneTest.vue";
 import "../assets/aero-btn.css";
 import "../assets/aero-div.css";
 import { themeState } from "../utils/themes.js";
-
+import { settings } from "../utils/settings.js";
 //computed
 import { computed } from "vue";
 import { getMetaDocLlmModels } from "../utils/web-utils.ts";
@@ -239,31 +245,7 @@ if (window && window.electron) {
 
 // 定义响应式状态
 const activeMenu = ref("basic"); // 当前菜单
-const settings = reactive({
-  startupOption: "newFile", // 启动选项
-  autoSave: "never", // 自动保存
-  theme: "light", // 主题
-  llmEnabled: false, // 是否启用 LLM
-  selectedLlm: "", // 选择的大模型类型
-  exportImageMode: "none", // 导出图片选项
-  autoRemoveThinkTag: true,//自动去除推理过程
-  bypassCodeBlock: true, // 统计文字信息时排除代码块
-  ollama: {
-    apiUrl: "http://localhost:11434/api", // Ollama 默认 API URL
-    selectedModel: "",
-  },
-  openai: {
-    apiUrl: "https://api.openai.com/v1", // BaseURL
-    apiKey: "",//API Key
-    selectedModel: "",//模型名称
-    completionSuffix: "", // 补全模式url后缀
-    chatSuffix: "", // 聊天模式url后缀
-  },
-  metadoc:{
-    selectedModel: "",//模型名称
-  },
-  alwaysAskSave: true, // 是否总是询问保存
-});
+
 const ollamaModels = ref([]); // Ollama 模型列表
 const openaiModels = ref([]); // OpenAI 模型列表
 const metadocModels = ref([]); // MetaDoc 模型列表

@@ -302,28 +302,12 @@ const applyTheme = async () => {
 }
 onMounted(() => {
   refreshButtons();
-  openRecentDoc();
   applyTheme();
 });
 
 eventBus.on('reset-quickstart', () => {
   reset();
 });
-const openRecentDoc = async () => {
-
-  const enabled = (await getSetting('startupOption')) === 'lastFile'
-  if (enabled) {
-    const recentDocs = await getRecentDocs()
-
-    if (recentDocs.length > 0
-      && firstLoad.value
-
-    ) {
-      eventBus.emit('open-doc', recentDocs[0])
-      firstLoad.value = false
-    }
-  }
-}
 
 // 刷新按钮内容
 function refreshButtons() {

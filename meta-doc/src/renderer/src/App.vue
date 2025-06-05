@@ -17,11 +17,10 @@ import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import Main from './views/Main.vue'
 
-
 import eventBus from './utils/event-bus';
-import { getSetting } from './utils/settings';
+import { getRecentDocs, getSetting, initSettings } from './utils/settings';
 import { lightTheme, darkTheme, themeState } from './utils/themes';
-import { current_ai_dialogs } from './utils/common-data';
+import { current_ai_dialogs, firstLoad } from './utils/common-data';
 import localIpcRenderer from './utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from './utils/web-adapter/web-main-calls';
 let ipcRenderer = null
@@ -29,7 +28,7 @@ if (window && window.electron) {
   ipcRenderer = window.electron.ipcRenderer
 } else {
   webMainCalls();
-  ipcRenderer=localIpcRenderer
+  ipcRenderer = localIpcRenderer
   //todo 说明当前环境不是electron环境，需要另外适配
 }
 // 获取当前路由信息
@@ -37,8 +36,36 @@ const route = useRoute()
 
 // 根据路由的 meta 信息判断是否需要顶部菜单和侧边菜单
 const requiresLayout = computed(() => route.meta.requiresLayout !== false)
+const autoOpenDoc = async () => {
+  const hash = window.location.hash; // e.g. "#/home?file=xxx.md"
+  const [path, query] = hash.split('?');
+  const queryParams = query ? Object.fromEntries(new URLSearchParams(query)) : {};
+  const file = queryParams.file || '';
+  // const params = new URLSearchParams(window.location.search);
+  // console.log('当前查询参数:', params.toString());
+  // const file = params.get('file');
+  if (file) {
+    // 如果有文件参数，直接打开该文件
+    eventBus.emit('open-doc', file);
+    return;
+  }
+
+  const enabled = (await getSetting('startupOption')) === 'lastFile'
+  if (enabled) {
+    const recentDocs = await getRecentDocs()
+
+    if (recentDocs.length > 0
+      && firstLoad.value
+
+    ) {
+      eventBus.emit('open-doc', recentDocs[0])
+      firstLoad.value = false
+    }
+  }
+}
 
 onMounted(async () => {
+  await initSettings() // 初始化设置
   // 监听主题同步事件
   eventBus.on('sync-theme', async () => {
     let theme = await getSetting('theme')
@@ -58,6 +85,7 @@ onMounted(async () => {
       document.documentElement.classList.remove('light')
     }
     eventBus.emit('sync-vditor-theme')//触发vditor主题同步事件
+    autoOpenDoc() // 自动打开文档
   })
 
 

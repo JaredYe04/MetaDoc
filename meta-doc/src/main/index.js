@@ -16,10 +16,10 @@ export var dirname;
 
 
 let is_need_save = false;
-  ipcMain.on('is-need-save', (event, arg) => {
-    //console.log('is-need-save:', arg)
-    is_need_save = arg;
-  });
+ipcMain.on('is-need-save', (event, arg) => {
+  //console.log('is-need-save:', arg)
+  is_need_save = arg;
+});
 
 function createWindow() {
   dirname = __dirname;
@@ -38,25 +38,21 @@ function createWindow() {
       webSecurity: false,
     }
   })
-  const args = process.argv.slice(2); // 获取命令行参数
 
   mainWindow.on('ready-to-show', async () => {
     bindShortcuts();//绑定快捷键
     mainWindow.show()
-    if(args[0]){
-      await openDoc(args[0]);
-      //mainWindow.webContents.send('open-doc',args[0]);
-    }
+
   })
   // mainWindow.webContents.on('will-navigate', (event, url) => {
   //   event.preventDefault(); // 阻止导航
   //   // 可以在这里根据 url 决定是否打开，或用 shell.openExternal(url)
   // });
 
-  
+
   mainWindow.on('close', (e) => {
     //console.log('close event:', is_need_save)
-    if(is_need_save){
+    if (is_need_save) {
       e.preventDefault();
       mainWindow.webContents.send('close-triggered');
     }
@@ -67,17 +63,32 @@ function createWindow() {
   })
 
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    //console.log('loadURL1:', process.env['ELECTRON_RENDERER_URL'])
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/home')
-    //mainWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/setting`);
-  } else {
-
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  const args = process.argv;
+  //console.log('args:', args);
+  //获取第一个参数作为文件路径，如果没有就不打开文件
+  let filePath = '';
+  const supportedExtensions = ['.md', '.json', '.txt'];
+  console.log(args)
+  if (args.length > 1) {
+    //弹窗
+    filePath = args.find(arg => {
+      const ext = path.extname(arg).toLowerCase();
+      return supportedExtensions.includes(ext);
+    });
+    console.log('filePath:', filePath);
   }
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/home' + (filePath ? `?file=${encodeURIComponent(filePath)}` : ''))
+  } else {
+    // 生产环境：用 file:// 协议 + loadURL + query
+    const indexPath = path.join(__dirname, '../renderer/index.html');
+    const fileURL = url.pathToFileURL(indexPath).toString(); // 转为 file:// 协议
 
+    mainWindow.loadURL(
+      `${fileURL}#/home${filePath ? `?file=${encodeURIComponent(filePath)}` : ''}`
+    );
+    // mainWindow.loadFile(join(__dirname, '../renderer/index.html'+ (filePath ? `?file=${encodeURIComponent(filePath)}` : '')))
+  }
   global.mainWindow = mainWindow;
 }
 
@@ -117,6 +128,7 @@ const upload = multer({ storage });
 expressApp.use('/images', express.static(uploadDir));
 // 创建上传接口
 expressApp.post('/upload', upload.array('file[]'), (req, res) => {
+  //console.log(req)
   const errFiles = [];
   const succMap = {};
 
@@ -126,9 +138,10 @@ expressApp.post('/upload', upload.array('file[]'), (req, res) => {
 
 
 
-      const filePath = path.join('images', file.filename); // 相对路径
+      //const filePath = path.join('images', file.filename); // 相对路径
+
       //返回绝对路径
-      //const filePath = path.join(uploadDir, file.filename);
+      const filePath = path.join(uploadDir, file.filename);
       succMap[file.filename] = filePath; // 文件路径映射
     });
 
@@ -151,6 +164,62 @@ expressApp.post('/upload', upload.array('file[]'), (req, res) => {
   });
 });
 
+// 为了防止站外图片失效，linkToImgUrl 可将剪贴板中的站外图片地址传到服务器端进行保存处理，其数据结构如下：
+// // POST data
+// xhr.send(JSON.stringify({url: src})); // src 为站外图片地址
+// // return data
+// {
+//  msg: '',
+//  code: 0,
+//  data : {
+//    originalURL: '',
+//    url: ''
+//  }
+// }
+const bodyParser = require('body-parser');
+expressApp.use(bodyParser.json()); // 解析 JSON 格式的请求体
+expressApp.use(bodyParser.urlencoded({ extended: true })); // 解析 URL 编码的请求体
+expressApp.post('/url-upload', (req, res) => {
+  //   // POST data
+  // xhr.send(JSON.stringify({url: src})); // src 为站外图片地址
+  //req中没有body，需要使用body-parser中间件来解析请求体
+  //console.log(req)
+
+  const { url } = req.body; // 从请求体中获取 URL
+  if (!url) {
+    return res.status(400).json({ error: 'No URL provided' });
+  }
+  //下载到本地，与/upload接口一致，然后返回本地的图片链接
+  const fileName = `${Date.now()}_${path.basename(url)}`; // 使用时间戳和原始文件名
+  const filePath = path.join(uploadDir, fileName); // 保存路径
+  const fileStream = fs.createWriteStream(filePath);
+  const https = require('https');
+  const http = require('http');
+  const protocol = url.startsWith('https') ? https : http;
+  protocol.get(url, (response) => {
+    if (response.statusCode === 200) {
+      response.pipe(fileStream);
+      fileStream.on('finish', () => {
+        fileStream.close(() => {
+          // 返回成功的图片链接，此处为文件的绝对路径
+          res.json({
+            msg: '',
+            code: 0,
+            data: {
+              originalURL: url,
+              url: `${filePath}`, // 返回本地文件的绝对路径
+            },
+          });
+        });
+      });
+    } else {
+      res.status(500).json({ error: 'Failed to download image' });
+    }
+  }).on('error', (err) => {
+    console.error('Error downloading image:', err);
+    res.status(500).json({ error: 'Failed to download image' });
+  });
+});
 
 // expressApp.use('/images', express.static(path.join(__dirname, 'images')));
 
@@ -178,8 +247,6 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
   mainCalls();//绑定主进程的事件处理函数
-
-
 
 
 
@@ -250,11 +317,11 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
-let settingWindow=null;//设置窗口
-let aichatWindow=null;//AI对话窗口
-let fomulaRecognitionWindow=null;//公式识别窗口
-let aiGraphWindow=null;//AI图形窗口
-export { mainWindow, settingWindow,aichatWindow,is_need_save,fomulaRecognitionWindow,aiGraphWindow }//添加完窗口应该暴露
+let settingWindow = null;//设置窗口
+let aichatWindow = null;//AI对话窗口
+let fomulaRecognitionWindow = null;//公式识别窗口
+let aiGraphWindow = null;//AI图形窗口
+export { mainWindow, settingWindow, aichatWindow, is_need_save, fomulaRecognitionWindow, aiGraphWindow }//添加完窗口应该暴露
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
@@ -265,8 +332,8 @@ let aiChatWindowOpened = false;
 let settingWindowOpened = false;
 let fomulaRecognitionWindowOpened = false;
 let aiGraphWindowOpened = false;
-export const openFomulaRecognitionDialog= async ()=>{
-  if(fomulaRecognitionWindowOpened){
+export const openFomulaRecognitionDialog = async () => {
+  if (fomulaRecognitionWindowOpened) {
     fomulaRecognition.focus();
     return;
   }
@@ -314,8 +381,8 @@ export const openFomulaRecognitionDialog= async ()=>{
   }
   fomulaRecognitionWindow.setTitle('手写公式识别助手')
 }
-export const openAiGraphDialog= async ()=>{
-  if(aiGraphWindowOpened){
+export const openAiGraphDialog = async () => {
+  if (aiGraphWindowOpened) {
     aiGraphWindow.focus();
     return;
   }
@@ -359,8 +426,8 @@ export const openAiGraphDialog= async ()=>{
   // console.log(path.join(dirname, '../renderer/setting.html'));
   // settingWindow.loadURL(path.join(dirname, '../renderer/setting.html'))  
 }
-export const openAiChatDialog= async (payload=null) => {
-  if(aiChatWindowOpened){
+export const openAiChatDialog = async (payload = null) => {
+  if (aiChatWindowOpened) {
     aichatWindow.focus();
     return;
   }
@@ -413,7 +480,7 @@ export const openAiChatDialog= async (payload=null) => {
 }
 
 export const openSettingDialog = async () => {
-  if(settingWindowOpened){
+  if (settingWindowOpened) {
     settingWindow.focus();
     return
   }

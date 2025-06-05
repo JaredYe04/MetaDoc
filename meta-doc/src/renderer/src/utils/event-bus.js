@@ -13,11 +13,13 @@ import {
   init,
   sync,
   current_ai_dialogs,
-  load_from_json
+  load_from_json,
+  load_from_md,
+  dump2md
 } from './common-data.js'
 import { getSetting, updateRecentDocs } from './settings.js'
 import { path } from 'd3'
-import { da } from 'element-plus/es/locales.mjs'
+import { da, de } from 'element-plus/es/locales.mjs'
 import { exportPDF, image2base64, image2local, md2html, md2htmlRaw } from './md-utils.js'
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
 
@@ -127,11 +129,23 @@ ipcRenderer.on('search-replace-triggered', () => {
   eventBus.emit('search-replace')
 })
 
-ipcRenderer.on('open-doc-success', (event, data) => {
+ipcRenderer.on('open-doc-success', (event, payload) => {
+  //console.log(payload)
+  switch (payload.format) {
+    case 'json':
+      load_from_json(payload.content)
+        eventBus.emit('refresh')//加载完之后进行刷新
+        eventBus.emit('open-doc-success')
+        break;
+    case 'md':
+      load_from_md(payload.content)
+        eventBus.emit('refresh')//加载完之后进行刷新
+        eventBus.emit('open-doc-success')
+        break;
+    default:
+      eventBus.emit('show-error', '不支持的文件格式: ' + payload.format)
+  }
 
-  load_from_json(data)
-  eventBus.emit('refresh')//加载完之后进行刷新
-  eventBus.emit('open-doc-success', data)
   //eventBus.emit('refresh')
 })
 
@@ -153,7 +167,7 @@ eventBus.on('save', async (msg) => {
     }
   }
   sync();
-  await ipcRenderer.send('save', { json: dump2json(), path: current_file_path.value, html: await md2html(current_article.value) })
+  await ipcRenderer.send('save', { json: dump2json(),md:dump2md(), path: current_file_path.value, html: await md2html(current_article.value) })
   eventBus.emit('is-need-save', false)
 })
 
@@ -185,7 +199,7 @@ eventBus.on('save-as', async () => {
   sync();
   eventBus.emit('nav-to', '/article');
   eventBus.emit('is-need-save', false)
-  ipcRenderer.send('save-as', { json: dump2json(), path: '', html: await md2html(current_article.value) })
+  ipcRenderer.send('save-as', { json: dump2json(),md:dump2md(), path: '', html: await md2html(current_article.value) })
 })
 
 eventBus.on('new-doc', async () => {
@@ -200,18 +214,19 @@ eventBus.on('export', async (format) => {
   sync();
   //eventBus.emit('nav-to', '/article');
   //如果是pdf则直接导出，否则需要系统调用
-  const exportImageMode = await getSetting('exportImageMode')
-  let md = current_article.value
-  switch (exportImageMode) {
-    case 'base64':
-      md = await image2base64(md)
-      break;
-    case 'local':
-      md = await image2local(md)
-      break;
+  //const exportImageMode = await getSetting('exportImageMode')
+  
+  // switch (exportImageMode) {
+  //   case 'base64':
+  //     md = await image2base64(md)
+  //     break;
+  //   case 'local':
+  //     md = await image2local(md)
+  //     break;
 
-  }
-
+  // }
+  let md = current_article.value//不区分格式
+  
 
   if (format === 'pdf') {
     exportPDF(md);

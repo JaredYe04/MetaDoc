@@ -70,7 +70,7 @@ const default_artical_meta_data = {
 var current_file_path = ref('')
 var current_outline_tree = ref(JSON.parse(JSON.stringify(default_outline_tree)))
 var current_article = ref(generateMarkdownFromOutlineTree(default_outline_tree))
-var current_article_meta_data = ref(default_artical_meta_data)
+const current_article_meta_data = ref({ ...default_artical_meta_data })//拷贝了默认值，避免引用问题
 var latest_view=ref('outline')
 var renderedHtml = ref('')
 
@@ -121,6 +121,7 @@ export {
 }
 //因为ai助手属于不同的渲染进程，因此另一个进程需要先告诉主进程，主进程再广播给所有的渲染进程
 import { toRaw } from 'vue';
+import { decodeBase64ToJson, encodeJsonToBase64 } from './base64-utils'
 export function broadcastAiDialogs() {
   //console.log(JSON.parse(JSON.stringify(current_ai_dialogs.value)))
   eventBus.emit('is-need-save',true)
@@ -146,13 +147,49 @@ export function load_from_json(json) {
   //console.log(current_outline_tree)
   current_article.value = data.current_article
   //console.log(current_article)
-  current_article_meta_data.value = JSON.parse(JSON.stringify(data.current_article_meta_data))
-
+  current_article_meta_data.value={...data.current_article_meta_data}
   current_ai_dialogs.value=data.current_ai_dialogs
   //console.log(current_ai_dialogs.value)
   //console.log(current_article.value)
   //eventBus.emit('refresh')//加载完之后进行刷新
 }
+
+export function dump2md(mdreplace='') {
+  //我们要把一些元数据也放到md中去，通过注释的方式来存储，为了防止json里面的转义字符和换行符，我们把元信息的json字符串进行base64编码
+  const pure_md= mdreplace===''?current_article.value:mdreplace;//不包含元信息的md内容
+  const metaData = {
+    current_outline_tree: current_outline_tree.value,
+    current_article_meta_data: current_article_meta_data.value,
+    current_ai_dialogs: current_ai_dialogs.value
+  }
+  const metaDataBase64 = encodeJsonToBase64(metaData);
+  //在md的结尾插入元信息
+  //console.log(metaDataBase64)
+  return pure_md + '\n<!--meta-info: ' + metaDataBase64 + ' -->';
+}
+export function load_from_md(md) {
+  //读取的时候先用正则表达式提取元信息
+  const metaInfoMatch = md.match(/<!--meta-info:\s*([^-\s]+?)\s*-->/);
+  //console.log(metaInfoMatch)
+  if (metaInfoMatch && metaInfoMatch[1]) {
+    const metaDataBase64 = metaInfoMatch[1];
+    const metaData = decodeBase64ToJson(metaDataBase64);
+    //console.log(metaData)
+    current_outline_tree.value = JSON.parse(JSON.stringify(metaData.current_outline_tree))
+    current_article_meta_data.value = { ...metaData.current_article_meta_data }
+    current_ai_dialogs.value=metaData.current_ai_dialogs
+  } else {
+    //如果没有元信息，则使用默认值
+    current_outline_tree.value = JSON.parse(JSON.stringify(default_outline_tree))
+    current_article_meta_data.value = { ...default_artical_meta_data }
+    current_ai_dialogs.value=[]
+  }
+  //console.log(current_article_meta_data.value)
+  //把md内容中的元信息部分去掉
+  const pureMd = md.replace(/<!--meta-info:\s*[^-]+?\s*-->/, '').trim();
+  current_article.value = pureMd;
+}
+
 export function sync() {
   if(latest_view.value==='outline') {
     current_article.value=generateMarkdownFromOutlineTree(current_outline_tree.value)
@@ -173,7 +210,7 @@ export async function init() {
   current_file_path.value = ''
   current_outline_tree.value = JSON.parse(JSON.stringify(default_outline_tree)) //深拷贝
   current_article.value = generateMarkdownFromOutlineTree(current_outline_tree.value)
-  current_article_meta_data.value = JSON.parse(JSON.stringify(default_artical_meta_data))
+  current_article_meta_data.value = { ...default_artical_meta_data } //拷贝默认值，避免引用问题
   current_ai_dialogs.value = []
   eventBus.emit('refresh')
   eventBus.emit('reset-quickstart')

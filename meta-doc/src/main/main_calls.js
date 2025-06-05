@@ -18,6 +18,8 @@ const os = require('os');
 import { mainWindow, openSettingDialog, openAiChatDialog, uploadDir, settingWindow, aichatWindow, openFomulaRecognitionDialog,fomulaRecognitionWindow, openAiGraphDialog, aiGraphWindow } from './index'
 import { dirname } from './index'
 
+//import eventBus from '../renderer/src/utils/event-bus'
+
 
 export function mainCalls() {
   ipcMain.on('quit', quit)
@@ -246,18 +248,32 @@ const quit = () => {
 const save = async (data, saveAs) => {
   //console.log(data);
   //console.log(data);
-  let json = data.json
+  
   let path = data.path
   //console.log(path);
-  const obj = JSON.parse(json)
+
+  let content='';
+
+
   if (path === '' || saveAs) {
     //console.log("文件路径为空");
     path = await chooseSaveFile(data)
-    //console.log(obj.current_file_path);
   }
-  json = JSON.stringify(obj)
+
+  const format=path.split('.').pop().toLowerCase()
+  switch (format) {
+    case 'md':
+        content = data.md
+    break;
+    case 'json':
+        content = data.json
+        break;
+    default:
+        //eventBus.emit('show-error', '不支持的文件格式: ' + format)
+        return;
+  }
   if (path) {
-    fs.writeFileSync(path, json)
+    fs.writeFileSync(path, content)
     //console.log("保存成功");
     mainWindow.webContents.send('save-success', path)
   }
@@ -266,8 +282,13 @@ const save = async (data, saveAs) => {
 export const openDoc = async (path) => {
 
   if (path) {//如果传入了路径，则直接打开，否则弹出对话框
-    const json = fs.readFileSync(path, 'utf-8')
-    mainWindow.webContents.send('open-doc-success', json)
+    const content = fs.readFileSync(path, 'utf-8')
+    const format= path.split('.').pop().toLowerCase()
+    const payload = {
+      content: content,
+      format: format,
+    }
+    mainWindow.webContents.send('open-doc-success', payload)
     mainWindow.webContents.send('update-current-path', path)
     return;
   }
@@ -275,6 +296,7 @@ export const openDoc = async (path) => {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: '打开文件',
     filters: [
+      { name: 'Markdown Files', extensions: ['md'] },
       { name: 'JSON Files', extensions: ['json'] },
       { name: 'All Files', extensions: ['*'] }
     ]
@@ -282,8 +304,13 @@ export const openDoc = async (path) => {
   if (!result.canceled && result.filePaths.length > 0) {
     const filePath = result.filePaths[0]
     //console.log(filePath);
-    const json = fs.readFileSync(filePath, 'utf-8')
-    mainWindow.webContents.send('open-doc-success', json)
+    const content = fs.readFileSync(filePath, 'utf-8')
+    const format= filePath.split('.').pop().toLowerCase()
+    const payload = {
+      content: content,
+      format: format,
+    }
+    mainWindow.webContents.send('open-doc-success', payload)
     mainWindow.webContents.send('update-current-path', result.filePaths[0])
 
   }
@@ -299,8 +326,9 @@ const chooseSaveFile = async (data) => {
   const filename = title ? title : dateyyyyMMddhhmmss
   const result = await dialog.showSaveDialog(mainWindow, {
     title: '保存文件',
-    defaultPath: filename + '.json',
+    defaultPath: filename ,
     filters: [
+      { name: 'Markdown Files', extensions: ['md'] },
       { name: 'JSON Files', extensions: ['json'] },
       // { name: 'All Files', extensions: ['*'] }
     ]
@@ -387,7 +415,7 @@ async function convertMarkdownToHTML(title, htmlContent, path) {
     htmlContent = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>${title}</title></head><body>${htmlContent}</body></html>`;
     directFileOutput(htmlContent, path)
   } catch (error) {
-    eventBus.emit('show-error', '转换Markdown到HTML失败' + error)
+    //eventBus.emit('show-error', '转换Markdown到HTML失败' + error)
     console.error('Error while converting markdown to HTML:', error);
   }
 }
@@ -421,7 +449,7 @@ async function convertMarkdownToDocx(htmlContent, outputPath) {
     mainWindow.webContents.send('export-success', outputPath)
     //console.log(`DOCX file successfully created at ${outputPath}`);
   } catch (error) {
-    eventBus.emit('show-error', '转换Markdown到DOCX失败' + error)
+    //eventBus.emit('show-error', '转换Markdown到DOCX失败' + error)
     console.error('Error while converting markdown to DOCX:', error);
   }
 }

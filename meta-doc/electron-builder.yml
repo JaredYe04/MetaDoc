@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: meta-doc
+productName: MetaDoc
 directories:
   buildResources: build
 files:

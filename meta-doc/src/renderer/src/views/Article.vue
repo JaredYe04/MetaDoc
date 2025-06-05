@@ -38,7 +38,7 @@
                     </div>
                     <el-tooltip content="单击修改标题" placement="left">
                         <h1 @click="genTitleDialogVisible = !genTitleDialogVisible" class="interactive-text"
-                            :style="{ color: themeState.currentTheme.textColor }">标题：{{ meta.title ||
+                            :style="{ color: themeState.currentTheme.textColor }">标题：{{ current_article_meta_data.title ||
                                 '无标题' }}
                         </h1>
                     </el-tooltip>
@@ -46,41 +46,41 @@
                     <LlmDialog v-if="genTitleDialogVisible"
                         :prompt="generateTitlePrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
                         title="生成标题" :llmConfig="{ max_tokens: 15, temperature: 0.0 }" @llm-content-accept="(content) => {
-                            meta.title = content;
+                            current_article_meta_data.title = content;
                             genTitleDialogVisible = false;
                         }" @update:visible="genTitleDialogVisible = $event; genTitleDialogVisible = false"
-                        :defaultText="meta.title" :defaultInputSize="1"></LlmDialog>
+                        :defaultText="current_article_meta_data.title" :defaultInputSize="1"></LlmDialog>
 
                     <el-tooltip content="单击修改作者" placement="left">
                         <p @click="modifyAuthorDialogVisible = !modifyAuthorDialogVisible" class="interactive-text"
                             :style="{ color: themeState.currentTheme.textColor }">
-                            <strong>作者：</strong>{{ meta.author || '未填写' }}
+                            <strong>作者：</strong>{{current_article_meta_data.author || '未填写' }}
                         </p>
                     </el-tooltip>
 
                     <LlmDialog v-if="modifyAuthorDialogVisible" :prompt="''" title="修改作者" :llmConfig="{}"
                         @llm-content-accept="(content) => {
-                            meta.author = content;
+                            current_article_meta_data.author = content;
                             modifyAuthorDialogVisible = false;
                         }" @update:visible="modifyAuthorDialogVisible = $event; modifyAuthorDialogVisible = false"
-                        :defaultText="meta.author" :defaultInputSize="1"></LlmDialog>
+                        :defaultText="current_article_meta_data.author" :defaultInputSize="1"></LlmDialog>
 
 
 
                     <el-tooltip content="单击修改文章摘要" placement="left">
                         <p @click="genDescriptionDialogVisible = !genDescriptionDialogVisible" class="interactive-text"
                             :style="{ color: themeState.currentTheme.textColor }">
-                            <strong>摘要：</strong>{{ meta.description || '暂无摘要' }}
+                            <strong>摘要：</strong>{{ current_article_meta_data.description || '暂无摘要' }}
                         </p>
                     </el-tooltip>
 
                     <LlmDialog v-if="genDescriptionDialogVisible"
                         :prompt="generateDescriptionPrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
                         title="生成摘要" :llmConfig="{ max_tokens: 100, temperature: 0.0 }" @llm-content-accept="(content) => {
-                            meta.description = content;
+                            current_article_meta_data.description = content;
                             genDescriptionDialogVisible = false;
                         }" @update:visible="genDescriptionDialogVisible = $event; genDescriptionDialogVisible = false"
-                        :defaultText="meta.description" :defaultInputSize="10"></LlmDialog>
+                        :defaultText="current_article_meta_data.description" :defaultInputSize="10"></LlmDialog>
 
                 </div>
 
@@ -90,13 +90,13 @@
             <el-dialog v-model="editMetaDialogVisible" title="修改文章元信息" width="30%">
                 <el-form>
                     <el-form-item label="标题">
-                        <el-input v-model="meta.title" autocomplete="off" class="aero-input" />
+                        <el-input v-model="current_article_meta_data.title" autocomplete="off" class="aero-input" />
                     </el-form-item>
                     <el-form-item label="作者">
-                        <el-input v-model="meta.author" autocomplete="off" class="aero-input" />
+                        <el-input v-model="current_article_meta_data.author" autocomplete="off" class="aero-input" />
                     </el-form-item>
                     <el-form-item label="摘要">
-                        <el-input type="textarea" placeholder="请输入文章摘要" v-model="meta.description" autocomplete="off"
+                        <el-input type="textarea" placeholder="请输入文章摘要" v-model="current_article_meta_data.description" autocomplete="off"
                             resize='none' :autoSize="{ minRows: 3, maxRows: 5 }" class="aero-input" />
                     </el-form-item>
                 </el-form>
@@ -120,7 +120,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed } from "vue";
 import { ElButton, ElDialog, ElLoading } from 'element-plus';
 import Vditor from "vditor";
 import "vditor/dist/index.css";
@@ -153,7 +153,6 @@ const searchReplaceDialogVisible = ref(false);
 const vditor = ref(null); // Vditor 实例
 const editMetaDialogVisible = ref(false); // 编辑元信息对话框
 
-const meta = reactive(current_article_meta_data);
 
 const loadingInstance = ElLoading.service({ fullscreen: false });
 const showTitleMenu = ref(false);
@@ -257,7 +256,6 @@ const handleClick = (event, title, path) => {
 // 刷新文章内容
 eventBus.on('refresh', () => {
     vditor.value.setValue(current_article.value, true);
-    Object.assign(meta, current_article_meta_data); // 更新文章元数据
 });
 
 
@@ -431,8 +429,10 @@ function stopResize() {
 }
 
 
+
+
 // 编辑器初始化
-onMounted(() => {
+onMounted(async () => {
     try {
         let cdn = '';
         if (isElectronEnv()) {
@@ -441,6 +441,7 @@ onMounted(() => {
         else {
             cdn = vditorCDN;
         }
+        const autoSaveExternalImage = await getSetting('autoSaveExternalImage');
         vditor.value = new Vditor('vditor', {
             toolbarConfig: { pin: true },
             theme: themeState.currentTheme.vditorTheme,
@@ -455,17 +456,12 @@ onMounted(() => {
             },
             upload: {
                 url: 'http://localhost:3000/upload',
-                linkToImgUrl: true,
+                linkToImgUrl: autoSaveExternalImage ? 'http://localhost:3000/url-upload' : false,
                 success: (editor, msg) => {
                     const data = JSON.parse(msg);
                     const filePaths = data.data.succMap;
                     for (const key in filePaths) {
-                        const filePath = filePaths[key].substring(7);//去掉images\前缀,
-                        //console.log(filePath);
-
-                        //const filePath = filePaths[key];
-                        //const imageUrl=filePath;
-                        const imageUrl = `http://localhost:3000/images/${filePath}`;
+                        const imageUrl = filePaths[key]; // 直接使用返回的路径
                         vditor.value.insertValue(`![](${imageUrl})`);  // 插入图片链接
                     }
                 },

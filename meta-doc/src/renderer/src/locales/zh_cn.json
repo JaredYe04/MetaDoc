@@ -1,0 +1,468 @@
+{
+    "lang": "zh_CN",
+    "contextMenu": {
+        "aiAnalysis": "AI全文分析",
+        "copy": "复制",
+        "paste": "粘贴"
+    },
+    "headMenu": {
+        "tooltip": "一款基于AI Agent的智能文字处理软件",
+        "title": "MetaDoc",
+        "home": "主页",
+        "outline": "大纲树",
+        "editor": "编辑器",
+        "visualize": "可视化"
+    },
+    "leftMenu": {
+        "metaDocTooltip": "MetaDoc ;-)",
+        "fileTooltip": "文件",
+        "file": "文件",
+        "new": "新建",
+        "open": "打开",
+        "save": "保存",
+        "saveAs": "另存为",
+        "export": "导出",
+        "exportPdf": "导出PDF",
+        "exportMarkdown": "导出Markdown",
+        "exportDocx": "导出DOCX",
+        "exportHtml": "导出HTML",
+        "closeFile": "关闭文件",
+        "aiToolTooltip": "AI工具",
+        "aiAssistant": "AI助手",
+        "chatWithAI": "与AI对话",
+        "handwritingFormulaRecognition": "手写公式识别",
+        "smartDrawingAssistant": "智能绘图助手",
+        "settingsTooltip": "设置",
+        "settings": "设置",
+        "settingsPanel": "设置面板",
+        "recentFilesTooltip": "最近文件",
+        "recentFiles": "最近文件",
+        "exitTooltip": "退出",
+        "exit": "退出",
+        "saveAndExit": "保存并退出",
+        "exitWithoutSaving": "退出但不保存",
+        "userProfileTooltip": "用户资料"
+    },
+    "llmDialog": {
+        "aiAssistant": "AI助手",
+        "closeMenuTooltip": "关闭菜单",
+        "inputPlaceholder": "请输入内容",
+        "generateAITooltip": "AI生成",
+        "acceptTooltip": "接受",
+        "promptEmptyWarning": "提示词为空，无法生成内容！",
+        "generateFailedError": "生成内容失败，请重试！"
+    },
+    "messageBubble": {
+        "editTitle": "编辑文字",
+        "deleteConfirmMessage": "确认要删除吗？",
+        "deleteConfirmTitle": "警告"
+    },
+    "microphoneTest": {
+        "cannotAccessMic": "无法访问麦克风，请检查权限设置"
+    },
+    "common": {
+        "confirm": "确认",
+        "cancel": "取消",
+        "save": "保存",
+        "deleteSuccess": "删除成功",
+        "deleteFailed": "删除失败"
+    },
+    "searchReplace": {
+        "title": "查找与替换",
+        "find": "查找",
+        "replace": "替换",
+        "findPlaceholder": "请输入查找内容",
+        "replacePlaceholder": "请输入替换内容",
+        "useRegex": "使用正则表达式",
+        "replaceBtn": "替换",
+        "replaceAllBtn": "全部替换",
+        "findNextBtn": "查找下一处",
+        "findAllBtn": "查找全部",
+        "resetBtn": "重置",
+        "aiRegexSuggestion": "AI建议的正则表达式：",
+        "replaceCount": "共把{count}处“{find}”匹配替换为“{replace}”",
+        "foundCount": "“{find}”共找到{count}处匹配",
+        "notFoundMore": "没有找到更多匹配"
+    },
+    "titleMenu": {
+        "defaultTitle": "标题",
+        "inputPlaceholder": "请输入需求",
+        "contextMarks": {
+            "none": "不参考",
+            "chapter": "参考本章",
+            "full": "参考全文"
+        },
+        "contextTooltips": {
+            "none": "不参考上下文",
+            "chapter": "AI将会参考本章节内容",
+            "full": "AI将会参考全文内容"
+        },
+        "tooltips": {
+            "generate": "生成",
+            "reset": "重置",
+            "chat": "转换成长对话",
+            "acceptReplace": "接受并替换",
+            "acceptAppend": "接受并追加"
+        }
+    },
+    "userProfile": {
+        "title": "资料卡",
+        "closeMenu": "关闭菜单",
+        "loginTab": "登录",
+        "registerTab": "注册",
+        "account": "账号",
+        "accountPlaceholder": "请输入用户名/邮箱/手机号",
+        "password": "密码",
+        "passwordPlaceholder": "请输入密码",
+        "loginBtn": "登录",
+        "username": "用户名",
+        "usernamePlaceholder": "请输入用户名",
+        "phone": "手机号",
+        "phonePlaceholder": "请输入手机号",
+        "email": "邮箱",
+        "emailPlaceholder": "请输入邮箱",
+        "registerBtn": "注册",
+        "changeAvatar": "点击更换头像",
+        "editProfileTitle": "资料编辑",
+        "changePasswordTitle": "密码修改",
+        "oldPassword": "原密码",
+        "oldPasswordPlaceholder": "请输入原有密码",
+        "newPassword": "新密码",
+        "newPasswordPlaceholder": "请输入新密码",
+        "createdAt": "创建时间",
+        "tokenBalance": "余额",
+        "logout": "注销登录",
+        "cancel": "取消",
+        "saveEdit": "保存编辑",
+        "editProfile": "编辑资料",
+        "savePwd": "保存密码",
+        "changePwd": "修改密码",
+        "messages": {
+            "invalidPassword": "密码不合法！",
+            "samePassword": "新密码不能与原密码相同！",
+            "invalidInfo": "修改信息不合法！",
+            "modifySuccess": "修改成功！",
+            "logoutSuccess": "登出成功",
+            "loginIncomplete": "登录信息不完整",
+            "registerIncomplete": "注册信息不完整",
+            "registerSuccess": "注册成功",
+            "registerFailed": "注册失败：{error}"
+        },
+        "rules": {
+            "usernameRequired": "请输入用户名/邮箱/手机号",
+            "usernamePattern": "用户名只能包含字母、数字、下划线，且至少6位",
+            "passwordRequired": "请输入密码",
+            "passwordPattern": "密码必须包含大小写字母和数字，至少6位",
+            "phoneRequired": "请输入手机号",
+            "phonePattern": "请输入有效的手机号",
+            "emailRequired": "请输入邮箱",
+            "emailPattern": "请输入有效的邮箱",
+            "newPasswordRequired": "请输入新密码"
+        }
+    },
+    "voiceInput": {
+        "messages": {
+            "microphoneDenied": "无法访问麦克风，请检查权限设置",
+            "recognitionFailed": "识别失败：{error}",
+            "sendAudioError": "发送音频到百度时出错",
+            "tokenError": "获取百度 token 时出错"
+        }
+    },
+    "wordCloudDetail": {
+        "defaultWord": "词语",
+        "frequency": "词频"
+    },
+    "aiChat": {
+        "renameTitle": "重命名",
+        "renamePlaceholder": "请输入新标题",
+        "newDialog": "新建对话",
+        "deleteCurrent": "删除当前对话",
+        "inputPlaceholder": "在此处输入消息。",
+        "send": "发送",
+        "reset": "重置",
+        "defaultTitle": "与AI助手对话"
+    },
+    "aigraph": {
+        "renameTitle": "重命名",
+        "renamePlaceholder": "请输入新标题",
+        "newChartTitle": "新建图表",
+        "chartName": "图表名称",
+        "newChartPlaceholder": "请输入新标题",
+        "engine": "绘图引擎",
+        "selectEngine": "选择绘图引擎",
+        "chartType": "图表类型",
+        "selectChartType": "选择图表类型",
+        "newChartBtn": "新建图表",
+        "currentChartInfo": "当前的图表信息",
+        "addScheme": "新增绘图方案",
+        "duplicateScheme": "复制当前方案",
+        "deleteScheme": "删除当前方案",
+        "copyCode": "复制代码",
+        "exportImage": "导出图片",
+        "promptPlaceholder": "请输入你的绘图需求",
+        "send": "发送",
+        "reset": "重置",
+        "error": {
+            "no_svg_found": "没有找到svg元素",
+            "copy_failed": "复制失败",
+            "no_code_to_copy": "没有代码可复制"
+        },
+        "success": {
+            "copy_succeeded": "复制成功"
+        },
+        "graph": {
+            "chart": "图表"
+        }
+    },
+    "article": {
+        "drag_to_resize": "拖动以改变宽度",
+        "edit_meta_info": "编辑文档元信息",
+        "meta_info": "文档元信息",
+        "click_to_edit_title": "单击修改标题",
+        "title": "标题",
+        "no_title": "无标题",
+        "generate_title": "生成标题",
+        "click_to_edit_author": "单击修改作者",
+        "author": "作者",
+        "no_author": "未填写",
+        "modify_author": "修改作者",
+        "click_to_edit_description": "单击修改文章摘要",
+        "description": "摘要",
+        "no_description": "暂无摘要",
+        "generate_description": "生成摘要",
+        "description_placeholder": "请输入文章摘要",
+        "ai_understood": "我已经了解了整篇文章的内容，有什么可以帮助您的吗？",
+        "ai_analyze_title": "AI分析整篇文章",
+        "long_press_optimize": "长按可用AI助手优化该段落",
+        "click_jump_long_press_optimize": "单击以跳转，长按可用AI助手优化该段落",
+        "vditor_init_failed": "Vditor 初始化失败:",
+        "input_placeholder": "在此编辑 Markdown 内容...",
+        "toolbar": {
+            "undo": "撤销",
+            "redo": "重做",
+            "headings": "标题",
+            "bold": "加粗",
+            "italic": "斜体",
+            "strike": "删除线",
+            "link": "超链接",
+            "list": "列表",
+            "table": "表格",
+            "code": "代码块",
+            "preview": "预览",
+            "fullscreen": "全屏编辑器",
+            "quote": "引用",
+            "search_replace": "查找与替换",
+            "ai_assistant": "AI助手"
+        }
+    },
+    "formulaRecognition": {
+        "undo": "撤销",
+        "redo": "重做",
+        "reset": "重置",
+        "import_image": "导入图片",
+        "copy_image": "复制图片",
+        "brush_size": "笔刷粗细：",
+        "recognize_formula": "公式识别",
+        "edit_formula": "编辑公式",
+        "copy_formula": "复制公式",
+        "edit_formula_dialog_title": "编辑公式",
+        "cancel": "取消",
+        "confirm": "确定",
+        "notification": {
+            "title_info": "提示",
+            "title_success": "成功",
+            "title_error": "错误",
+            "undo_fail": "无法撤销",
+            "redo_fail": "无法重做",
+            "copy_image_success": "复制成功，请使用 Ctrl+V 粘贴图片",
+            "copy_formula_success": "复制成功",
+            "copy_formula_fail": "复制失败"
+        },
+        "options": {
+            "pen": "画笔",
+            "eraser": "橡皮擦",
+            "pointer": "箭头"
+        }
+    },
+    "home": {
+        "metaDoc": "MetaDoc智能文字处理软件",
+        "tooltip": {
+            "quickStart": "快速开始：快速生成一篇文档",
+            "openFile": "打开已有文档",
+            "close": "关闭快速开始",
+            "ready": "准备就绪",
+            "selectTemperature": "选择生成温度，影响内容多样性",
+            "selectMood": "选择文档风格",
+            "inputPrompt": "输入您的提示词",
+            "generateArticle": "生成文章",
+            "reset": "重置生成内容",
+            "accept": "接受生成内容"
+        },
+        "button": {
+            "quickStart": "快速开始",
+            "openFile": "打开文档",
+            "refresh": "刷新"
+        },
+        "authorLabel": "作者",
+        "abstractLabel": "摘要",
+        "quickStartTitle": "快速开始",
+        "tab": {
+            "aiAssistant": "AI 助手",
+            "documentInfo": "文档信息"
+        },
+        "documentInfoLabel": "文档信息填写",
+        "label": {
+            "title": "标题",
+            "author": "作者",
+            "abstract": "摘要"
+        },
+        "placeholder": {
+            "title": "请输入文档标题",
+            "author": "请输入作者名",
+            "abstract": "请输入摘要"
+        },
+        "aiAssistantLabel": "AI 助手参数设置",
+        "suggestionLabel": "建议标签",
+        "mood": {
+            "happy": "高兴",
+            "lyrical": "抒情",
+            "peaceful": "平和",
+            "academic": "学术",
+            "business": "商业",
+            "sad": "悲伤"
+        },
+        "temperatureMarks": {
+            "rigorous": "严谨",
+            "balanced": "平衡",
+            "creative": "创意"
+        },
+        "defaultText": "# 欢迎使用MetaDoc\n\n这是一款AI驱动的文字处理软件，可以帮助您快速生成文档内容。"
+    },
+    "main": {
+        "notification": {
+            "save": {
+                "title": "保存成功",
+                "message": "保存成功"
+            },
+            "open": {
+                "title": "打开成功",
+                "message": "打开成功"
+            },
+            "export": {
+                "title": "导出成功",
+                "message": "{path} 导出成功"
+            },
+            "error": {
+                "title": "错误"
+            },
+            "info": {
+                "title": "消息"
+            },
+            "success": {
+                "title": "消息"
+            }
+        }
+    },
+    "outline": {
+        "generating": "AI正在工作中...",
+        "generatingFor": "正在生成",
+        "generationDone": "生成已完成，选择是否接受更改",
+        "editNode": "编辑节点",
+        "moveLeft": "左移",
+        "addChild": "添加子节点",
+        "editContent": "编辑内容",
+        "delete": "删除",
+        "moveRight": "右移",
+        "generateContent": "AI生成本章节内容",
+        "generateChildChapter": "AI生成子章节",
+        "generateChildrenContent": "AI为所有子章节生成内容",
+        "generateChildrenChildren": "AI为所有章节生成子章节",
+        "accept": "接受",
+        "reject": "拒绝",
+        "formatTitleWizard": "格式化标题向导",
+        "adjustMarkdown": "自动调整标题层级",
+        "adjustMarkdownTip": "如果开启，将自动调整Markdown标题层级，不会出现跳级情况，例如从一级到三级",
+        "firstMarkdownTitleLevel": "Markdown第一级标题级别",
+        "adjustTitle": "是否调整章节编号",
+        "adjustTitleTip": "如果开启，会对每个章节重新编号",
+        "coverOriginalNumber": "智能覆盖原有编号",
+        "coverTip": "原有的编号 例如'1.1 1.2 一、'会被覆盖",
+        "level1Chinese": "第一级标题是否为中文",
+        "level1ChineseTip": "如果开启，第一级标题会以中文给出",
+        "cancel": "取消",
+        "confirm": "确定",
+        "editChapterTitle": "修改章节名",
+        "chapterName": "章节名称",
+        "chapterContent": "章节内容",
+        "zoomIn": "放大",
+        "zoomOut": "缩小",
+        "reset": "重置",
+        "formatTitle": "格式化标题",
+        "openAiAssistant": "打开AI辅助",
+        "generateChildSuccessWithTitle": "AI为节点 {title} 生成子章节成功！",
+        "generateChildSuccess": "AI生成子章节成功！",
+        "generateChildFail": "AI生成子章节失败: {error}",
+        "generateChildRetryFail": "AI生成子章节失败，请重试: {error}",
+        "generateContentSuccessWithTitle": "AI为节点 {title} 生成内容成功！",
+        "generateContentSuccess": "AI生成内容成功！",
+        "generateContentFail": "AI生成内容失败: {error}",
+        "generateChapterSuccess": "AI生成章节成功！",
+        "formatSuccess": "标题格式化成功！",
+        "confirmDeleteChapter": "是否要删除章节？",
+        "warning": "警告",
+        "error": "错误",
+        "message": "消息",
+        "cannotDeleteRoot": "不能删除根章节",
+        "deleteSuccess": "删除章节成功！"
+    },
+      "setting": {
+    "basic": "基本设置",
+    "llm": "LLM设置",
+    "startupOption": "启动选项",
+    "openNewFile": "打开新文件",
+    "openLastFile": "打开上次编辑的文件",
+    "askBeforeSave": "总是询问保存",
+    "autoSave": "自动保存",
+    "off": "关闭",
+    "minute1": "1分钟",
+    "minute5": "5分钟",
+    "minute10": "10分钟",
+    "minute30": "30分钟",
+    "minute60": "1小时",
+    "theme": "主题",
+    "themeSync": "跟随系统",
+    "themeLight": "亮色",
+    "themeDark": "暗色",
+    "enabled": "启用",
+    "disabled": "关闭",
+    "microphoneTest": "语音测试",
+    "microphoneHint": "检测麦克风是否能正常录音。",
+    "excludeCodeBlocks": "统计文本时排除代码块",
+    "excludeCodeHint": "代码的内容会影响词频统计的准确性，因此可选择是否排除。",
+    "autoDownloadImage": "自动下载外部图片",
+    "autoDownloadHint": "若开启，在导入外部图片时，会自动保存到本地，否则离线时外部图片无法显示。需重新打开编辑器界面生效。",
+    "llmType": "选择大模型类型",
+    "chooseLlm": "选择大模型",
+    "metadoc": "MetaDoc",
+    "ollama": "Ollama",
+    "openai": "OpenAI兼容 API",
+    "metadocHint": "MetaDoc官方提供的AI大模型，支持多种模型",
+    "ollamaHint": "本地部署的大模型平台，支持多种模型",
+    "openaiHint": "任何兼容OpenAI API标准的外部大模型，均可兼容",
+    "apiBaseUrl": "API BaseURL",
+    "ollamaApiUrl": "输入 Ollama 的 API 地址",
+    "openaiApiUrl": "输入兼容OpenAI规范的 API 地址",
+    "apiKey": "API 秘钥",
+    "apiKeyPlaceholder": "输入兼容OpenAI规范的 API 秘钥",
+    "chooseModel": "选择模型",
+    "apiSuffix": "API URL后缀",
+    "completionSuffix": "问答补全功能(Completions)的URL后缀（可选）",
+    "chatSuffix": "对话补全功能(Chat)的URL后缀（可选）",
+    "removeThinkTag": "去除think标签",
+    "testLlm": "测试大模型",
+    "testResult": "测试结果",
+    "resultPlaceholder": "测试结果将显示在此处",
+        "testPrompt": "你好！请介绍一下你自己。",
+    "testFailed": "测试失败："
+  }
+}

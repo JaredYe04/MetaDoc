@@ -1,66 +1,99 @@
 <template>
   <div class="aero-div" :style="menuStyles" @mousedown.stop="onMouseDown">
 
-    <div style="width: 100% ;height: fit-content; align-items: end; padding-bottom: 10px;">
-      <el-button circle size="small" type="danger" @click="$emit('close')" class="aero-btn" style="float: inline-start;"
-        @mousedown.stop>
+    <div style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px;">
+      <el-button
+        circle
+        size="small"
+        type="danger"
+        @click="$emit('close')"
+        class="aero-btn"
+        style="float: inline-start;"
+        @mousedown.stop
+      >
       </el-button>
     </div>
 
+    <p style="font-weight: bold;" @mousedown.stop>
+      {{ props.title ? props.title : t('titleMenu.defaultTitle') }}
+    </p>
 
-    <p style="font-weight: bold;" @mousedown.stop> {{ props.title ? props.title : "标题" }}</p>
+    <MarkdownItEditor
+      class="md-container"
+      v-if="!generated && !generating"
+      @mousedown.stop
+      :source="articleContent"
+    />
 
-    <MarkdownItEditor  class="md-container" v-if="!generated && !generating" @mousedown.stop :source="articleContent" />
+    <MarkdownItEditor
+      class="md-container"
+      v-if="generated || generating"
+      @mousedown.stop
+      :source="generatedText"
+    />
 
-     <MarkdownItEditor class="md-container" v-if="generated || generating" @mousedown.stop  :source="generatedText" />
-    <!-- <p class="article-content">{{ articleContent }}</p> -->
-    <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable class="inline-input" resize='none'
-      style="color: black; opacity: 1;" placeholder="请输入需求" @mousedown.stop />
+    <el-autocomplete
+      v-model="userPrompt"
+      :fetch-suggestions="querySearch"
+      clearable
+      class="inline-input"
+      resize="none"
+      style="color: black; opacity: 1;"
+      :placeholder="t('titleMenu.inputPlaceholder')"
+      @mousedown.stop
+    />
 
     <div @mousedown.stop style="align-items: center; margin-top: 20px;">
-      <!-- <span>AI参考上下文范围</span> -->
-      <el-slider v-model="context_mode" :step="1" :min="0" :max="2"
-        style="width: 60%; display: inline-block; align-self: center; margin-left: 20%; margin-right: 20%;" show-stops
-        :marks="{ 0: '不参考', 1: '参考本章', 2: '参考全文' }" :format-tooltip="(val) => {
-            if (val === 0) {
-              return '不参考上下文'
-            }
-            if (val === 1) {
-              return 'AI将会参考本章节内容'
-            }
-            if (val === 2) {
-              return 'AI将会参考全文内容'
-            }
-          }
-          " />
+      <el-slider
+        v-model="context_mode"
+        :step="1"
+        :min="0"
+        :max="2"
+        style="width: 60%; display: inline-block; align-self: center; margin-left: 20%; margin-right: 20%;"
+        show-stops
+        :marks="{
+          0: t('titleMenu.contextMarks.none'),
+          1: t('titleMenu.contextMarks.chapter'),
+          2: t('titleMenu.contextMarks.full')
+        }"
+        :format-tooltip="formatTooltip"
+      />
     </div>
+
     <div @mousedown.stop>
-
-      <el-tooltip content="生成" placement="top">
-        <el-button circle type="primary" @click="generate" :disabled="generating ||generated|| userPrompt.length === 0"><el-icon>
-            <Promotion />
-          </el-icon></el-button>
-      </el-tooltip>
-      <el-tooltip content="重置" placement="top">
-        <el-button circle type="info" @click="reset" v-if="generated"><el-icon>
-            <RefreshLeft />
-          </el-icon></el-button>
-      </el-tooltip>
-      <el-tooltip content="转换成长对话" placement="top">
-        <el-button circle type="info" @click="chat" v-if="generated"><el-icon>
-            <ChatLineRound />
-          </el-icon></el-button>
+      <el-tooltip :content="t('titleMenu.tooltips.generate')" placement="top">
+        <el-button
+          circle
+          type="primary"
+          @click="generate"
+          :disabled="generating || generated || userPrompt.length === 0"
+        >
+          <el-icon><Promotion /></el-icon>
+        </el-button>
       </el-tooltip>
 
-      <el-tooltip content="接受并替换" placement="top">
-        <el-button circle type="success" @click="accept(false)" v-if="generated"><el-icon>
-            <Check />
-          </el-icon></el-button>
+      <el-tooltip :content="t('titleMenu.tooltips.reset')" placement="top" v-if="generated">
+        <el-button circle type="info" @click="reset">
+          <el-icon><RefreshLeft /></el-icon>
+        </el-button>
       </el-tooltip>
-      <el-tooltip content="接受并追加" placement="top">
-        <el-button circle type="success" @click="accept(true)" v-if="generated"><el-icon>
-            <Plus />
-          </el-icon></el-button>
+
+      <el-tooltip :content="t('titleMenu.tooltips.chat')" placement="top" v-if="generated">
+        <el-button circle type="info" @click="chat">
+          <el-icon><ChatLineRound /></el-icon>
+        </el-button>
+      </el-tooltip>
+
+      <el-tooltip :content="t('titleMenu.tooltips.acceptReplace')" placement="top" v-if="generated">
+        <el-button circle type="success" @click="accept(false)">
+          <el-icon><Check /></el-icon>
+        </el-button>
+      </el-tooltip>
+
+      <el-tooltip :content="t('titleMenu.tooltips.acceptAppend')" placement="top" v-if="generated">
+        <el-button circle type="success" @click="accept(true)">
+          <el-icon><Plus /></el-icon>
+        </el-button>
       </el-tooltip>
     </div>
 
@@ -83,6 +116,21 @@ import { defineProps, defineEmits } from 'vue';
 import { themeState } from '../utils/themes';
 import { current_article } from '../utils/common-data';
 import { Plus } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
+function formatTooltip(val) {
+  if (val === 0) {
+    return t('titleMenu.contextTooltips.none')
+  }
+  if (val === 1) {
+    return t('titleMenu.contextTooltips.chapter')
+  }
+  if (val === 2) {
+    return t('titleMenu.contextTooltips.full')
+  }
+}
 const props = defineProps({
   title: {
     type: String,

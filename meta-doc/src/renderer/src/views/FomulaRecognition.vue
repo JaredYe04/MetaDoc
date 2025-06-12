@@ -1,132 +1,129 @@
-<template>
-    <div class="main-container">
-        <!-- 顶部工具栏：工具选择、撤销/重做、重置、图片导入与粘贴、笔刷粗细调节 -->
-        <div class="toolbar-group">
-            <div class="flex flex-col items-start tool-group">
-                <el-segmented v-model="tool" :options="options" size="default">
-
-                    <template #default="scope">
-                        <div :class="[
-                            'flex',
-                            'items-center',
-                            'gap-2',
-                            'flex-col',
-                            direction === 'horizontal' && 'p-2',
-                        ]">
-                            <el-icon size="20">
-                                <component :is="scope.item.icon" />
-                            </el-icon>
-                            <div>{{ scope.item.label }}</div>
-                        </div>
-                    </template>
-                </el-segmented>
+<template> 
+  <div class="main-container">
+    <!-- 顶部工具栏：工具选择、撤销/重做、重置、图片导入与粘贴、笔刷粗细调节 -->
+    <div class="toolbar-group">
+      <div class="flex flex-col items-start tool-group">
+        <el-segmented v-model="tool" :options="options" size="default">
+          <template #default="scope">
+            <div :class="[
+              'flex',
+              'items-center',
+              'gap-2',
+              'flex-col',
+              direction === 'horizontal' && 'p-2',
+            ]">
+              <el-icon size="20">
+                <component :is="scope.item.icon" />
+              </el-icon>
+              <div>{{ $t(scope.item.label) }}</div>
             </div>
-            <div class="undo-redo-group tool-group">
-                <el-tooltip content="撤销" placement="top">
-                    <el-button size="large" @click="undo" circle><el-icon>
-                            <RefreshLeft />
-                        </el-icon></el-button>
-                </el-tooltip>
-                <el-tooltip content="重做" placement="top">
-                    <el-button size="large" circle @click="redo"><el-icon>
-                            <RefreshRight />
-                        </el-icon></el-button>
-                </el-tooltip>
-                <el-tooltip content="重置" placement="top">
-                    <el-button size="large" circle @click="resetCanvas"><el-icon>
-                            <Refresh />
-                        </el-icon></el-button>
-                </el-tooltip>
-            </div>
+          </template>
+        </el-segmented>
+      </div>
 
+      <div class="undo-redo-group tool-group">
+        <el-tooltip :content="$t('formulaRecognition.undo')" placement="top">
+          <el-button size="large" @click="undo" circle>
+            <el-icon><RefreshLeft /></el-icon>
+          </el-button>
+        </el-tooltip>
+        <el-tooltip :content="$t('formulaRecognition.redo')" placement="top">
+          <el-button size="large" circle @click="redo">
+            <el-icon><RefreshRight /></el-icon>
+          </el-button>
+        </el-tooltip>
+        <el-tooltip :content="$t('formulaRecognition.reset')" placement="top">
+          <el-button size="large" circle @click="resetCanvas">
+            <el-icon><Refresh /></el-icon>
+          </el-button>
+        </el-tooltip>
+      </div>
 
-            <div class="tool-group">
-                <el-tooltip content="导入图片" placement="top">
-                    <el-button @click="triggerImport"><el-icon>
-                            <Upload />
-                        </el-icon></el-button>
-                </el-tooltip>
-                <el-icon size="large" style="padding: 10px;">
-                    <Picture />
-                </el-icon>
-                <el-tooltip content="复制图片" placement="top">
-                    <el-button @click="copyImage"><el-icon>
-                            <CopyDocument />
-                        </el-icon></el-button>
-                </el-tooltip>
+      <div class="tool-group">
+        <el-tooltip :content="$t('formulaRecognition.import_image')" placement="top">
+          <el-button @click="triggerImport">
+            <el-icon><Upload /></el-icon>
+          </el-button>
+        </el-tooltip>
+        <el-icon size="large" style="padding: 10px;">
+          <Picture />
+        </el-icon>
+        <el-tooltip :content="$t('formulaRecognition.copy_image')" placement="top">
+          <el-button @click="copyImage">
+            <el-icon><CopyDocument /></el-icon>
+          </el-button>
+        </el-tooltip>
+      </div>
 
-            </div>
-
-
-
-
-            <!-- 隐藏的文件上传 -->
-            <input type="file" ref="fileInput" style="display: none" @change="handleFileChange" accept="image/*" />
-            <!-- 笔刷粗细调节 -->
-            <div class="brush-size tool-group" style="width: 240px;">
-                <span>笔刷粗细：</span>
-                <el-slider v-model="brushSize" :min="1" :max="20" :step="1" show-tooltip style="width: 120px" />
-                <!-- 根据 canvas 缩放比例显示预览的笔刷粗细 -->
-                <div class="brush-preview" :style="{
-                    marginLeft: '10px',
-                    width: brushPreviewSize + 'px',
-                    height: brushPreviewSize + 'px',
-                    borderRadius: '50%',
-                    backgroundColor: tool === 'eraser' ? '#fff' : '#000',
-                    border: tool === 'eraser' ? '1px solid #ccc' : 'none'
-                }"></div>
-            </div>
-
-        </div>
-
-        <!-- 中间内容区域 -->
-        <div class="content">
-            <!-- 左侧：画板 -->
-            <div class="left-panel display-panel" id="canvasContainer">
-                <canvas ref="drawingCanvas" class="drawing-canvas"></canvas>
-            </div>
-            <!-- 中间：箭头和公式识别按钮 -->
-            <div class="middle-panel">
-                <div class="arrow">→</div>
-                <el-button type="primary" @click="recognizeFormula">
-                    公式识别
-                </el-button>
-            </div>
-            <!-- 右侧：公式显示 -->
-            <div class="right-panel display-panel">
-                <MdPreview :modelValue="latexResult" class="latex-container" previewTheme="github" codeStyleReverse
-                    :style="{
-                        textColor: themeState.currentTheme.textColor,
-                    }" :class="themeState.currentTheme.mdeditorClass" :codeFold="false" :autoFoldThreshold="300" />
-                <div class="fomula-toolbar">
-                    <div class="tool-group" >
-                        <el-tooltip content="编辑公式" placement="top">
-                            <el-button type="primary" :icon="Edit" circle @click="openEditDialog" />
-                        </el-tooltip>
-                        <el-tooltip content="复制公式" placement="top">
-                            <el-button type="primary" :icon="DocumentCopy" circle @click="copyResult" />
-                        </el-tooltip>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- 底部工具栏：编辑和复制 -->
-
-
-        <!-- 编辑公式对话框 -->
-        <el-dialog title="编辑公式" v-model="editDialogVisible">
-            <el-input type="textarea" v-model="latexResult" rows="4"></el-input>
-            <template #footer>
-                <el-button @click="editDialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="editDialogVisible = false">
-                    确定
-                </el-button>
-            </template>
-        </el-dialog>
+      <!-- 隐藏的文件上传 -->
+      <input type="file" ref="fileInput" style="display: none" @change="handleFileChange" accept="image/*" />
+      
+      <!-- 笔刷粗细调节 -->
+      <div class="brush-size tool-group" style="width: 240px;">
+        <span>{{ $t('formulaRecognition.brush_size') }}</span>
+        <el-slider v-model="brushSize" :min="1" :max="20" :step="1" show-tooltip style="width: 120px" />
+        <div class="brush-preview" :style="{
+          marginLeft: '10px',
+          width: brushPreviewSize + 'px',
+          height: brushPreviewSize + 'px',
+          borderRadius: '50%',
+          backgroundColor: tool === 'eraser' ? '#fff' : '#000',
+          border: tool === 'eraser' ? '1px solid #ccc' : 'none'
+        }"></div>
+      </div>
     </div>
+
+    <!-- 中间内容区域 -->
+    <div class="content">
+      <!-- 左侧：画板 -->
+      <div class="left-panel display-panel" id="canvasContainer">
+        <canvas ref="drawingCanvas" class="drawing-canvas"></canvas>
+      </div>
+
+      <!-- 中间：箭头和公式识别按钮 -->
+      <div class="middle-panel">
+        <div class="arrow">→</div>
+        <el-button type="primary" @click="recognizeFormula">
+          {{ $t('formulaRecognition.recognize_formula') }}
+        </el-button>
+      </div>
+
+      <!-- 右侧：公式显示 -->
+      <div class="right-panel display-panel">
+        <MdPreview
+          :modelValue="latexResult"
+          class="latex-container"
+          previewTheme="github"
+          codeStyleReverse
+          :style="{ textColor: themeState.currentTheme.textColor }"
+          :class="themeState.currentTheme.mdeditorClass"
+          :codeFold="false"
+          :autoFoldThreshold="300"
+        />
+        <div class="fomula-toolbar">
+          <div class="tool-group">
+            <el-tooltip :content="$t('formulaRecognition.edit_formula')" placement="top">
+              <el-button type="primary" :icon="Edit" circle @click="openEditDialog" />
+            </el-tooltip>
+            <el-tooltip :content="$t('formulaRecognition.copy_formula')" placement="top">
+              <el-button type="primary" :icon="DocumentCopy" circle @click="copyResult" />
+            </el-tooltip>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 编辑公式对话框 -->
+    <el-dialog :title="$t('formulaRecognition.edit_formula_dialog_title')" v-model="editDialogVisible">
+      <el-input type="textarea" v-model="latexResult" rows="4" />
+      <template #footer>
+        <el-button @click="editDialogVisible = false">{{ $t('formulaRecognition.cancel') }}</el-button>
+        <el-button type="primary" @click="editDialogVisible = false">{{ $t('formulaRecognition.confirm') }}</el-button>
+      </template>
+    </el-dialog>
+  </div>
 </template>
+
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
@@ -139,13 +136,15 @@ import { md2html } from '../utils/md-utils'
 import { themeState } from '../utils/themes'
 import { MdPreview } from 'md-editor-v3'
 import '../assets/tool-group.css'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 // 当前工具：'pen'、'eraser' 或 'pointer'
 const tool = ref('pen')
 const options = [
-    { label: '画笔', value: 'pen', icon: EditPen },
-    { label: '橡皮擦', value: 'eraser', icon: CircleClose },
-    { label: '箭头', value: 'pointer', icon: Pointer }
+    { label: t('formulaRecognition.options.pen'), value: 'pen', icon: EditPen },
+    { label: t('formulaRecognition.options.eraser'), value: 'eraser', icon: CircleClose },
+    { label: t('formulaRecognition.options.pointer'), value: 'pointer', icon: Pointer }
 ]
 // 编辑对话框显示状态
 const editDialogVisible = ref(false)
@@ -275,11 +274,11 @@ function undo() {
         const previousState = undoStack[undoStack.length - 1]
         canvasContext.putImageData(previousState, 0, 0)
     } else {
-        ElNotification({
-            title: '提示',
-            message: '无法撤销',
-            type: 'warning'
-        })
+ElNotification({
+  title: t('formulaRecognition.notification.title_info'),
+  message: t('formulaRecognition.notification.undo_fail'),
+  type: 'warning'
+})
     }
 }
 
@@ -290,11 +289,11 @@ function redo() {
         undoStack.push(state)
         canvasContext.putImageData(state, 0, 0)
     } else {
-        ElNotification({
-            title: '提示',
-            message: '无法重做',
-            type: 'warning'
-        })
+ElNotification({
+  title: t('formulaRecognition.notification.title_info'),
+  message: t('formulaRecognition.notification.redo_fail'),
+  type: 'warning'
+})
     }
 }
 
@@ -351,11 +350,11 @@ async function copyImage() {
     if (navigator.clipboard) {
         navigator.clipboard.write([clipboardItemInput]);
     }
-    ElNotification({
-        title: '提示',
-        message: '复制成功，请使用 Ctrl+V 粘贴图片',
-        type: 'success'
-    })
+ElNotification({
+  title: t('formulaRecognition.notification.title_success'),
+  message: t('formulaRecognition.notification.copy_image_success'),
+  type: 'success'
+})
 
 }
 // 处理剪切板粘贴的图片
@@ -407,17 +406,17 @@ function openEditDialog() {
 // 复制公式到剪切板
 function copyResult() {
     navigator.clipboard.writeText(latexResult.value).then(() => {
-        ElNotification({
-            title: '成功',
-            message: '复制成功',
-            type: 'success'
-        })
+  ElNotification({
+    title: t('formulaRecognition.notification.title_success'),
+    message: t('formulaRecognition.notification.copy_formula_success'),
+    type: 'success'
+  })
     }).catch(() => {
-        ElNotification({
-            title: '错误',
-            message: '复制失败',
-            type: 'error'
-        })
+  ElNotification({
+    title: t('formulaRecognition.notification.title_error'),
+    message: t('formulaRecognition.notification.copy_formula_fail'),
+    type: 'error'
+  })
     })
 }
 </script>

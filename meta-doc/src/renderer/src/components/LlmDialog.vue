@@ -2,40 +2,47 @@
   <div class="llm-dialog aero-div">
     <!-- 顶部标题 -->
     <div class="llm-dialog-header">
-      <span :style="{color:themeState.currentTheme.textColor}">{{ props.title ? props.title : "AI助手" }}</span>
-      <el-tooltip content="关闭菜单" placement="top">
-        <el-button circle size="small" @click="closeDialog" class="aero-btn"  type="danger"><el-icon>
-            <Close />
-          </el-icon></el-button>
+      <span :style="{color:themeState.currentTheme.textColor}">
+        {{ props.title ? props.title : $t('llmDialog.aiAssistant') }}
+      </span>
+      <el-tooltip :content="$t('llmDialog.closeMenuTooltip')" placement="top">
+        <el-button circle size="small" @click="closeDialog" class="aero-btn" type="danger">
+          <el-icon><Close /></el-icon>
+        </el-button>
       </el-tooltip>
-
     </div>
 
     <!-- 文本框内容 -->
-    <el-input type="textarea" v-model="aiResponse" rows="10" placeholder="请输入内容" class="llm-dialog-input"
+    <el-input
+      type="textarea"
+      v-model="aiResponse"
+      rows="10"
+      :placeholder="$t('llmDialog.inputPlaceholder')"
+      class="llm-dialog-input"
       :autosize="{ minRows: defaultInputSize, maxRows: 10 }"
       :style="{ color: themeState.currentTheme.textColor }"
-      ></el-input>
+    ></el-input>
 
     <!-- 按钮组 -->
     <div class="llm-dialog-footer">
-      <el-tooltip content="AI生成" placement="left" style="z-index: 1001;">
-        <el-button type="info" @click="handleReset" :loading="loading" class="aero-btn" circle
-          v-if="props.prompt"><el-icon v-if="!loading">
-            <Refresh />
-          </el-icon></el-button>
-
-
+      <el-tooltip :content="$t('llmDialog.generateAITooltip')" placement="left" style="z-index: 1001;">
+        <el-button
+          type="info"
+          @click="handleReset"
+          :loading="loading"
+          class="aero-btn"
+          circle
+          v-if="props.prompt"
+        >
+          <el-icon v-if="!loading"><Refresh /></el-icon>
+        </el-button>
       </el-tooltip>
 
-      <el-tooltip content="接受" placement="left" style="z-index: 1001;">
+      <el-tooltip :content="$t('llmDialog.acceptTooltip')" placement="left" style="z-index: 1001;">
         <el-button type="success" @click="handleAccept" :disabled="loading" class="aero-btn" circle>
-        <el-icon>
-          <Check />
-        </el-icon>
-      </el-button>
+          <el-icon><Check /></el-icon>
+        </el-button>
       </el-tooltip>
-
     </div>
   </div>
 </template>
@@ -83,24 +90,25 @@ const emit = defineEmits(["update:visible", "llm-content-accept"]);
 const aiResponse = ref(props.defaultText); // LLM生成的内容
 const loading = ref(false);
 
-// 调用 LLM 生成内容
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 async function generateContent() {
-  //console.log(props.prompt)
   if (!props.prompt) {
-    ElMessage.warning("提示词为空，无法生成内容！");
-    return;
+    ElMessage.warning(t('llmDialog.promptEmptyWarning'))
+    return
   }
-  loading.value = true;
+  loading.value = true
   try {
-    await answerQuestionStream(props.prompt, aiResponse, props.llmConfig);
+    await answerQuestionStream(props.prompt, aiResponse, props.llmConfig)
   } catch (error) {
-    ElMessage.error("生成内容失败，请重试！");
-    console.error(error);
+    ElMessage.error(t('llmDialog.generateFailedError'))
+    console.error(error)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
-
 // 重置生成内容
 function handleReset() {
   generateContent();

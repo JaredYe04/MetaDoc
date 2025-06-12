@@ -5,10 +5,15 @@
       <el-button circle size="small" type="danger" @click="$emit('close')" class="aero-btn" style="float: inline-start;"
         @mousedown.stop>
       </el-button>
-      <p style="font-weight: bold;" @mousedown.stop  > {{ props.word ? props.word : "词语" }}</p>
-      <p style="font-size: 12px; color: #666666;" @mousedown.stop>词频: {{ props.frequency }}</p>
+      <p style="font-weight: bold;" @mousedown.stop>
+        {{ props.word ? props.word : t('wordCloudDetail.defaultWord') }}
+      </p>
+      <p style="font-size: 12px; color: #666666;" @mousedown.stop>
+        {{ t('wordCloudDetail.frequency') }}: {{ props.frequency }}
+      </p>
     </div>
-    <el-scrollbar class="md-container"  v-if="generated || generating" @mousedown.stop style="  max-height: 20vh; padding: 5px; margin: 0;">
+    <el-scrollbar class="md-container" v-if="generated || generating" @mousedown.stop
+      style="  max-height: 20vh; padding: 5px; margin: 0;">
       <MarkdownItEditor :source="generatedText" />
     </el-scrollbar>
   </div>
@@ -26,7 +31,7 @@ import { explainWordPrompt, sectionChangePrompt } from '../utils/prompts';
 import { answerQuestionStream } from '../utils/llm-api';
 import eventBus from '../utils/event-bus';
 import { generateMarkdownFromOutlineTree } from '../utils/md-utils';
-import {  defineProps, defineEmits } from 'vue';
+import { defineProps, defineEmits } from 'vue';
 import { themeState } from '../utils/themes';
 const props = defineProps({
   word: {
@@ -34,7 +39,7 @@ const props = defineProps({
     required: true
   },
   frequency: {
-    type:Number,
+    type: Number,
     required: true,
   },
   position: {
@@ -47,7 +52,7 @@ const props = defineProps({
 //   reset();
 //   generate();
 // })
-const emit = defineEmits(["accept",'close']);
+const emit = defineEmits(["accept", 'close']);
 
 
 const generate = async () => {
@@ -80,10 +85,10 @@ const menuStyles = computed(() => ({
   zIndex: 1000, // 保证层级
   color: themeState.currentTheme.textColor2,
   backdropFilter: 'blur(5px)',
-  background:  themeState.currentTheme.titleMenuBackground,
+  background: themeState.currentTheme.titleMenuBackground,
 }));
 const refreshContent = () => {
-  menuPosition.value={
+  menuPosition.value = {
     top: props.position.top,
     left: props.position.left,
   }

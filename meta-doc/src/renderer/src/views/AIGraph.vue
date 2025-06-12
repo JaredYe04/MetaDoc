@@ -1,138 +1,127 @@
 <template>
     <el-container style="height: 100vh">
-        <el-dialog v-model="renameDialogVisible" title="重命名" width="500">
-            <el-input v-model="editingTitle" style="width: 100%" placeholder="请输入新标题" />
+        <el-dialog v-model="renameDialogVisible" :title="$t('aigraph.renameTitle')" width="500">
+            <el-input v-model="editingTitle" style="width: 100%" :placeholder="$t('aigraph.renamePlaceholder')" />
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button @click="renameDialogVisible = false">取消</el-button>
-                    <el-button type="primary" @click="finishRename">
-                        确定
-                    </el-button>
+                    <el-button @click="renameDialogVisible = false">{{ $t('common.cancel') }}</el-button>
+                    <el-button type="primary" @click="finishRename">{{ $t('common.confirm') }}</el-button>
                 </div>
             </template>
         </el-dialog>
-        <el-dialog v-model="configDialogVisible" title="新建图表" width="500">
+
+        <el-dialog v-model="configDialogVisible" :title="$t('aigraph.newChartTitle')" width="500">
             <div>
                 <el-form label-width="80px">
-                    <el-form-item label="图表名称" prop="name">
-                        <el-input v-model="newGraphName" placeholder="请输入新标题" />
+                    <el-form-item :label="$t('aigraph.chartName')" prop="name">
+                        <el-input v-model="newGraphName" :placeholder="$t('aigraph.newChartPlaceholder')" />
                     </el-form-item>
 
-                    <el-form-item label="绘图引擎" prop="engine">
-                        <el-select v-model="newSelectedEngine" placeholder="选择绘图引擎" @change="onNewEngineChange">
+                    <el-form-item :label="$t('aigraph.engine')" prop="engine">
+                        <el-select v-model="newSelectedEngine" :placeholder="$t('aigraph.selectEngine')"
+                            @change="onNewEngineChange">
                             <el-option v-for="engine in engines" :key="engine" :label="engine" :value="engine" />
                         </el-select>
                     </el-form-item>
-                    <el-form-item label="图表类型" prop="type">
-                        <el-select v-model="newSelectedType" placeholder="选择图表类型">
+
+                    <el-form-item :label="$t('aigraph.chartType')" prop="type">
+                        <el-select v-model="newSelectedType" :placeholder="$t('aigraph.selectChartType')">
                             <el-option v-for="type in newAvailableTypes" :key="type" :label="type" :value="type" />
                         </el-select>
                     </el-form-item>
                 </el-form>
-
             </div>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button type="primary" @click="addScheme">
-                        新建图表
-                    </el-button>
+                    <el-button type="primary" @click="addScheme">{{ $t('aigraph.newChartBtn') }}</el-button>
                 </div>
             </template>
         </el-dialog>
 
         <el-aside width="300px" style="overflow: hidden;">
-
             <el-menu class="side-menu" :default-active="activeIndex">
-
-
                 <el-scrollbar class="menu-scrollbar">
                     <el-menu-item v-for="(item, index) in schemes" :key="item.id" :index="index" :loading="generating"
                         @click="setActive(item.id)">
                         <div class="menu-item-wrapper">
                             <span class="dialog-title">{{ item.name }}</span>
                             <el-button circle :icon="Edit" @click.stop="renameScheme(index)" class="rename-button"
-                                type="default" />
+                                type="default" :title="$t('aigraph.renameTitle')" />
                         </div>
                     </el-menu-item>
                 </el-scrollbar>
 
                 <div class="selectors ">
-                    <el-tooltip content="当前的图表信息" placement="right">
+                    <el-tooltip :content="$t('aigraph.currentChartInfo')" placement="right">
                         <el-form label-width="80px">
-                            <el-form-item label="图表名称" prop="engine">
+                            <el-form-item :label="$t('aigraph.chartName')" prop="engine">
                                 <div style="font-weight: bold;">{{ activeScheme.name }}</div>
                             </el-form-item>
-                            <el-form-item label="绘图引擎" prop="engine">
-                                <el-select v-model="selectedEngine" placeholder="选择绘图引擎" @change="onEngineChange"
-                                    style="width: 150px">
+
+                            <el-form-item :label="$t('aigraph.engine')" prop="engine">
+                                <el-select v-model="selectedEngine" :placeholder="$t('aigraph.selectEngine')"
+                                    @change="onEngineChange" style="width: 150px">
                                     <el-option v-for="engine in engines" :key="engine" :label="engine"
                                         :value="engine" />
                                 </el-select>
                             </el-form-item>
-                            <el-form-item label="图表类型" prop="type">
-                                <el-select v-model="selectedType" placeholder="选择图表类型" @change="onTypeChange"
-                                    style="width: 150px">
+
+                            <el-form-item :label="$t('aigraph.chartType')" prop="type">
+                                <el-select v-model="selectedType" :placeholder="$t('aigraph.selectChartType')"
+                                    @change="onTypeChange" style="width: 150px">
                                     <el-option v-for="type in availableTypes" :key="type" :label="type" :value="type" />
                                 </el-select>
                             </el-form-item>
                         </el-form>
                     </el-tooltip>
-
                 </div>
+
                 <div class="menu-header">
-                    <el-tooltip content="新增绘图方案">
+                    <el-tooltip :content="$t('aigraph.addScheme')">
                         <el-button type="primary" :icon="AddIcon" circle @click="initScheme" />
                     </el-tooltip>
-                    <el-tooltip content="复制当前方案">
+                    <el-tooltip :content="$t('aigraph.duplicateScheme')">
                         <el-button type="info" :icon="CopyDocument" circle @click="duplicateScheme(activeSchemeId)" />
                     </el-tooltip>
-                    <el-tooltip content="删除当前方案">
+                    <el-tooltip :content="$t('aigraph.deleteScheme')">
                         <el-button type="danger" :icon="Delete" circle @click="deleteScheme(activeSchemeId)" />
                     </el-tooltip>
                 </div>
             </el-menu>
-
         </el-aside>
 
         <el-main class="main-content">
             <div class="content">
                 <div id="graph" ref="graphRef" class="graph" />
                 <div class="toolbar">
-                    <el-tooltip content="复制代码" placement="top">
+                    <el-tooltip :content="$t('aigraph.copyCode')" placement="top">
                         <el-button type="primary" :icon="DocumentCopy" circle @click="copyCode" />
                     </el-tooltip>
-                    <el-tooltip content="导出图片" placement="top">
+                    <el-tooltip :content="$t('aigraph.exportImage')" placement="top">
                         <el-button type="primary" :icon="Picture" circle @click="exportImage" />
                     </el-tooltip>
                 </div>
             </div>
 
             <el-scrollbar class="prompt-section">
-
-                <el-input type="textarea" v-model="activeScheme.prompt" placeholder="请输入你的绘图需求" :rows="2"
-                    :autosize="{ minRows: 2, maxRows: 3 }" :disabled="generating" />
+                <el-input type="textarea" v-model="activeScheme.prompt" :placeholder="$t('aigraph.promptPlaceholder')"
+                    :rows="2" :autosize="{ minRows: 2, maxRows: 3 }" :disabled="generating" />
                 <div style="width: 100%; align-items: center; align-self: center;">
                     <el-button id="sendMsg" @click="generateCode" type="primary" round size="large" text bg
-                        :disabled="activeScheme.prompt && activeScheme.prompt.length === 0" :loading="generating">
-                        发送
+                        :disabled="!activeScheme.prompt || activeScheme.prompt.length === 0" :loading="generating">
+                        {{ $t('aigraph.send') }}
                     </el-button>
                     <el-button id="reset" @click="activeScheme.prompt = ''" round type="info" size="large"
-                        :disabled="activeScheme.prompt && activeScheme.prompt.length === 0" :loading="generating" text
+                        :disabled="!activeScheme.prompt || activeScheme.prompt.length === 0" :loading="generating" text
                         bg>
-                        重置
+                        {{ $t('aigraph.reset') }}
                     </el-button>
-                    <!-- <el-button id="export-image" @click="exportImage" round type="info" size="large"
-                        :loading="generating" text bg>
-                        导出图片
-                    </el-button> -->
                 </div>
-
             </el-scrollbar>
-
-
         </el-main>
     </el-container>
 </template>
+
 
 <style scoped>
 .toolbar {
@@ -284,6 +273,8 @@ import { generateGraphPrompt } from '../utils/prompts.js'
 import domtoimage from 'dom-to-image-more';
 import { exportPng } from '../utils/image-utils.js'
 import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn.js'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 const STORAGE_KEY = 'aiGraph_schemes'
 const engines = graphEngineConfig.map(e => e.name)
@@ -322,41 +313,17 @@ const editingTitle = ref('');
 const editingIndex = ref(0);
 //import { toPng } from 'html-to-image';
 const exportImage = () => {
-    var node = document.getElementById('graph');
-    //选择svg元素
+    let node = document.getElementById('graph');
     node = node.querySelector('svg')
     if (!node) {
-        console.error('没有找到svg元素')
+        console.error(t('aigraph.error.no_svg_found'))
         node = document.getElementById('graph');
     }
     exportPng(node, activeScheme.value.name)
-    // toPng(node, {
-    //     cacheBust: true,
-    //     // skipFonts: true, // 避免跨域字体错误
-    //     style: {
-
-    //     }
-    // }).then(function (dataUrl) {
-    //     const filename = activeScheme.value.name + '.png'
-    //     // 创建一个 a 标签下载 base64 图像
-    //     const link = document.createElement('a');
-    //     link.href = dataUrl;
-    //     link.download = filename;
-    //     document.body.appendChild(link);
-    //     link.click();
-    //     document.body.removeChild(link);
-
-    // }).then(function () {
-    //     eventBus.emit('show-success', '导出图片成功')
-    // })
-    //     .catch(function (error) {
-    //         eventBus.emit('show-error', '导出图片失败:' + error)
-    //         //console.error('oops, something went wrong!', error);
-    //     });
 }
 const initScheme = () => {
     configDialogVisible.value = true;
-    newGraphName.value = `图表 ${schemes.value.length + 1}`
+    newGraphName.value = `${t('aigraph.graph.chart')} ${schemes.value.length + 1}`
     newSelectedEngine.value = engines[0]
     newSelectedType.value = graphEngineConfig.find(e => e.name === engines[0])['graph-supported'][0]
     newSpecialPrompt.value = graphEngineConfig.find(e => e.name === engines[0])['special-prompt'] || ''
@@ -383,12 +350,12 @@ const copyCode = () => {
     const code = activeScheme.value.code
     if (code) {
         navigator.clipboard.writeText(code).then(() => {
-            eventBus.emit('show-success', '复制成功')
+            eventBus.emit('show-success', t('aigraph.success.copy_succeeded'))
         }).catch(err => {
-            eventBus.emit('show-error', '复制失败')
+            eventBus.emit('show-error', t('aigraph.error.copy_failed'))
         })
     } else {
-        eventBus.emit('show-error', '没有代码可复制')
+        eventBus.emit('show-error', t('aigraph.error.no_code_to_copy'))
     }
 }
 const renameScheme = (index) => {

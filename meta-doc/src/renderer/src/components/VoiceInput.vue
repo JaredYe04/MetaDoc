@@ -17,6 +17,9 @@
   import { ElButton, ElIcon } from 'element-plus'
   import axios from 'axios'
 import { convertWebMToWav } from '../utils/audio-convert';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
+
   const audioUrl = ref('')
   const isRecording = ref(false)
   let mediaRecorder = null
@@ -76,7 +79,7 @@ const emit = defineEmits(["onSpeechRecognized","onStateUpdated"])
     mediaRecorder.start()
     isRecording.value = true
   } catch (err) {
-    eventBus.emit('show-error', '无法访问麦克风，请检查权限设置')
+    eventBus.emit('show-error', t('voiceInput.messages.microphoneDenied'))
     console.error('Error accessing microphone:', err)
   }
 }
@@ -109,11 +112,11 @@ const sendAudioToBaidu = async (base64Audio,originalSize) => {
         //console.log(result)
         emit('onSpeechRecognized', recognizedText);  // 通过事件发送识别结果给父组件
       } else {
-        eventBus.emit('show-error', '识别失败：' + result.err_msg);
+        eventBus.emit('show-error', t('voiceInput.messages.recognitionFailed', { error: result.err_msg }))
         console.error('Recognition failed:', result.err_msg);
       }
     } catch (err) {
-      eventBus.emit('show-error', '发送音频到百度时出错');
+      eventBus.emit('show-error', t('voiceInput.messages.sendAudioError'))
       console.error('Error sending audio to Baidu:', err);
     } finally {
       isRecording.value = false;
@@ -131,7 +134,7 @@ const sendAudioToBaidu = async (base64Audio,originalSize) => {
       //console.log('Baidu token:', response.data.access_token)
       return response.data.access_token
     } catch (err) {
-      eventBus.emit('show-error', '获取百度 token 时出错')
+      eventBus.emit('show-error', t('voiceInput.messages.tokenError'))
       console.error('Error fetching Baidu token:', err)
       stopRecording()
     }

@@ -1,13 +1,13 @@
-<template>
+<template> 
   <div class="container">
     <el-scrollbar class="aero-div generate-preview" v-if="generating || pendingAccept" :style="{
       backgroundColor: themeState.currentTheme.background, top: position.top + 'px',
       left: position.left + 'px',
     }" @mousedown.stop="startDrag">
       <div class="noselect-display">
-        <h2 v-if="generating">AI正在工作中...</h2>
-        <h3 v-if="generateChildrenContentLoading">正在生成:{{ nodeBeingProcessed }}</h3>
-        <h2 v-if="pendingAccept">生成已完成，选择是否接受更改
+        <h2 v-if="generating">{{ $t('outline.generating') }}</h2>
+        <h3 v-if="generateChildrenContentLoading">{{ $t('outline.generatingFor') }}:{{ nodeBeingProcessed }}</h3>
+        <h2 v-if="pendingAccept">{{ $t('outline.generationDone') }}
           <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
             @click.stop="acceptChange">
             <el-icon style="font-size: 14px">
@@ -37,7 +37,7 @@
         <div class="tree-node" :style="{ backgroundColor: themeState.currentTheme.outlineNode }">
           {{ node.title }}
         </div>
-        <el-tooltip content="编辑节点" placement="top">
+         <el-tooltip :content="$t('outline.editNode')" placement="top">
           <el-button size="small" type="text" class="aero-btn" circle @click.stop="handleNodeButtonClick(node)"
             v-if="node.path !== 'dummy'" :disabled="pendingAccept || generating">
             <el-icon>
@@ -49,7 +49,7 @@
           @mouseup.stop>
           <div>
             <div class="button-group" v-if="!nodeMenuToggle">
-              <el-tooltip content="左移" placement="top">
+              <el-tooltip :content="$t('outline.moveLeft')" placement="top">
                 <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="move2Left">
                   <el-icon style="font-size: 14px">
@@ -57,7 +57,7 @@
                   </el-icon>
                 </el-button>
               </el-tooltip>
-              <el-tooltip content="添加子节点" placement="top">
+               <el-tooltip :content="$t('outline.addChild')" placement="top">
                 <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="addChildNode">
                   <el-icon style="font-size: 14px">
@@ -65,7 +65,7 @@
                   </el-icon>
                 </el-button>
               </el-tooltip>
-              <el-tooltip content="编辑内容" placement="top">
+              <el-tooltip :content="$t('outline.editContent')" placement="top">
                 <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="editNode">
                   <el-icon style="font-size: 14px">
@@ -73,7 +73,7 @@
                   </el-icon>
                 </el-button>
               </el-tooltip>
-              <el-tooltip content="删除" placement="top">
+               <el-tooltip :content="$t('outline.delete')" placement="top">
                 <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="deleteNode">
                   <el-icon style="font-size: 14px">
@@ -82,7 +82,7 @@
                 </el-button>
               </el-tooltip>
 
-              <el-tooltip content="右移" placement="top">
+              <el-tooltip :content="$t('outline.moveRight')" placement="top">
                 <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="move2Right">
                   <el-icon style="font-size: 14px">
@@ -93,7 +93,7 @@
 
             </div>
             <div class="button-group" v-if="nodeMenuToggle && !pendingAccept">
-              <el-tooltip content="AI生成本章节内容" placement="top">
+              <el-tooltip :content="$t('outline.generateContent')" placement="top">
                 <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   :loading="generateContentLoading" @click.stop="generateContent" :disabled="generating">
                   <el-icon style="font-size: 14px" v-if="!generateContentLoading">
@@ -101,7 +101,7 @@
                   </el-icon>
                 </el-button>
               </el-tooltip>
-              <el-tooltip content="AI生成子章节" placement="top">
+               <el-tooltip :content="$t('outline.generateChildChapter')" placement="top">
                 <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="generateChildChapter" :loading="generateChildChapterLoading" :disabled="generating">
                   <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
@@ -109,7 +109,7 @@
                   </el-icon>
                 </el-button>
               </el-tooltip>
-              <el-tooltip content="AI为所有子章节生成内容" placement="top">
+              <el-tooltip :content="$t('outline.generateChildrenContent')" placement="top">
                 <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="generateChildrenContent" :loading="generateChildrenContentLoading"
                   :disabled="generating">
@@ -118,7 +118,7 @@
                   </el-icon>
                 </el-button>
               </el-tooltip>
-              <el-tooltip content="AI为所有章节生成子章节" placement="top">
+              <el-tooltip :content="$t('outline.generateChildrenChildren')" placement="top">
                 <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="generateChildrenChildren" :loading="generateChildrenChildrenLoading"
                   :disabled="generating">
@@ -129,7 +129,7 @@
               </el-tooltip>
             </div>
             <div class="button-group" v-if="pendingAccept">
-              <el-tooltip content="接受" placement="top">
+              <el-tooltip :content="$t('outline.accept')" placement="top">
                 <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="acceptChange">
                   <el-icon style="font-size: 14px">
@@ -137,7 +137,7 @@
                   </el-icon>
                 </el-button>
               </el-tooltip>
-              <el-tooltip content="拒绝" placement="top">
+               <el-tooltip :content="$t('outline.reject')" placement="top">
                 <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="discardChange" :loading="generateChildChapterLoading">
                   <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
@@ -154,85 +154,79 @@
       </template>
 
     </vue-tree>
-    <el-dialog v-model="formatTitleDialogVisible" title="格式化标题向导" width="30%">
-
+    <el-dialog v-model="formatTitleDialogVisible" :title="$t('outline.formatTitleWizard')" width="30%">
       <el-form label-width="200px" class="demo-ruleForm">
-        <el-form-item label="自动调整标题层级" prop="adjustMarkdown">
-          <el-tooltip content="如果开启，将自动调整Markdown标题层级，不会出现跳级情况，例如从一级到三级" placement="right">
+        <el-form-item :label="$t('outline.adjustMarkdown')" prop="adjustMarkdown">
+          <el-tooltip :content="$t('outline.adjustMarkdownTip')" placement="right">
             <el-switch v-model="formatTitleConfig.adjustMarkdown" active-color="#13ce66" inactive-color="#ff4949" />
           </el-tooltip>
         </el-form-item>
-        <el-form-item v-if='formatTitleConfig.adjustMarkdown' label="Markdown第一级标题级别" prop="firstMarkdownTitleLevel">
+        <el-form-item v-if='formatTitleConfig.adjustMarkdown' :label="$t('outline.firstMarkdownTitleLevel')" prop="firstMarkdownTitleLevel">
           <el-input-number v-model="formatTitleConfig.firstMarkdownTitleLevel" :min="1" :max="6" :step="1"
             class="inline-input" />
         </el-form-item>
-        <el-form-item label="是否调整章节编号" prop="adjustTitle">
-          <el-tooltip content="如果开启，会对每个章节重新编号" placement="right">
+        <el-form-item :label="$t('outline.adjustTitle')" prop="adjustTitle">
+          <el-tooltip :content="$t('outline.adjustTitleTip')" placement="right">
             <el-switch v-model="formatTitleConfig.adjustTitle" active-color="#13ce66" inactive-color="#ff4949" />
           </el-tooltip>
         </el-form-item>
-        <el-form-item label="智能覆盖原有编号" prop="append" v-if="formatTitleConfig.adjustTitle">
-          <el-tooltip content="原有的编号 例如'1.1 1.2 一、'会被覆盖" placement="right">
+        <el-form-item v-if="formatTitleConfig.adjustTitle" :label="$t('outline.coverOriginalNumber')" prop="append">
+          <el-tooltip :content="$t('outline.coverTip')" placement="right">
             <el-switch v-model="formatTitleConfig.cover" active-color="#13ce66" inactive-color="#ff4949" />
           </el-tooltip>
         </el-form-item>
-        <el-form-item label="第一级标题是否为中文" prop="level1TitleChinese" v-if="formatTitleConfig.adjustTitle">
-          <el-tooltip content="如果开启，第一级标题会以中文给出" placement="right">
+        <el-form-item v-if="formatTitleConfig.adjustTitle" :label="$t('outline.level1Chinese')" prop="level1TitleChinese">
+          <el-tooltip :content="$t('outline.level1ChineseTip')" placement="right">
             <el-switch v-model="formatTitleConfig.level1TitleChinese" active-color="#13ce66" inactive-color="#ff4949" />
           </el-tooltip>
-
         </el-form-item>
-        <el-button type="info" @click="formatTitleDialogVisible = false"> 取消 </el-button>
-        <el-button type="success" @click="executeFormatTitle"> 确定 </el-button>
+        <el-button type="info" @click="formatTitleDialogVisible = false">{{ $t('outline.cancel') }}</el-button>
+        <el-button type="success" @click="executeFormatTitle">{{ $t('outline.confirm') }}</el-button>
       </el-form>
-
-
-
-
     </el-dialog>
-    <el-dialog v-model="editValueDialogVisible" title="修改章节名" width="40%">
+    <el-dialog v-model="editValueDialogVisible" :title="$t('outline.editChapterTitle')" width="40%">
       <el-form>
-        <el-form-item label="章节名称">
+        <el-form-item :label="$t('outline.chapterName')">
           <el-input v-model="currentChapterValue" autocomplete="off" class="aero-input" />
         </el-form-item>
-        <el-form-item label="章节内容">
+        <el-form-item :label="$t('outline.chapterContent')">
           <md-editor v-model="currentChapterContent" showCodeRowNumber previewTheme="github" codeStyleReverse
             style="text-align: left" :autoFoldThreshold="300" :theme="themeState.currentTheme.vditorTheme" />
 
         </el-form-item>
       </el-form>
-      <el-button type="primary" @click="changeNodeValue"> 确定 </el-button>
+      <el-button type="primary" @click="changeNodeValue">{{ $t('outline.confirm') }}</el-button>
     </el-dialog>
     <div class="bottom-menu aero-div">
-      <el-tooltip content="放大" placement="top">
+      <el-tooltip :content="$t('outline.zoomIn')" placement="top">
         <el-button type="success" circle @click="zoomIn">
           <el-icon>
             <Plus />
           </el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip content="缩小" placement="top">
+      <el-tooltip :content="$t('outline.zoomOut')" placement="top">
         <el-button type="warning" circle @click="zoomOut">
           <el-icon>
             <Minus />
           </el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip content="重置" placement="top">
+      <el-tooltip :content="$t('outline.reset')" placement="top">
         <el-button type="info" circle @click="resetScale">
           <el-icon>
             <Refresh />
           </el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip content="格式化标题" placement="top">
+      <el-tooltip :content="$t('outline.formatTitle')" placement="top">
         <el-button type="warning" circle @click="formatTitle">
           <el-icon style="width: 1em; height: 1em;">
             T
           </el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip content="打开AI辅助" placement="top">
+      <el-tooltip :content="$t('outline.openAiAssistant')" placement="top">
         <el-button :type="nodeMenuToggle ? 'primary' : 'danger'" circle @click="nodeMenuToggle = !nodeMenuToggle"
           :disabled="generating || pendingAccept">
           <el-icon style="width: 1em; height: 1em;">
@@ -262,6 +256,8 @@ import { answerQuestionStream } from '../utils/llm-api.js';
 import { themeState } from '../utils/themes.js';
 import { extractOuterJsonString } from '../utils/regex-utils.js';
 import '../assets/noselect-display.css';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const formatTitleDialogVisible = ref(false);
 const formatTitle = () => {
   formatTitleDialogVisible.value = true;
@@ -294,14 +290,14 @@ const generateChildrenChildren = async () => {
         await traverseAndGenerate(child);
       }
     }
-    if( curNode.children.length > 0) {
+    if (curNode.children.length > 0) {
       return; // 如果本来就有子节点，则不再处理
     }
     let prompt = expandTreeNodePrompt(
-        JSON.stringify(removeTextFromOutline(treeData.value)),
-        JSON.stringify(curNode),
-        JSON.stringify(tree_node_schema));
-    
+      JSON.stringify(removeTextFromOutline(treeData.value)),
+      JSON.stringify(curNode),
+      JSON.stringify(tree_node_schema));
+
     rawstring.value = '';
     nodeBeingProcessed.value = curNode.title; // 更新正在处理的节点名称
     await answerQuestionStream(prompt, rawstring);
@@ -309,15 +305,16 @@ const generateChildrenChildren = async () => {
     //console.log('json', json);
     const newChildren = JSON.parse(json);
     curNode.children.push(...newChildren);
-    eventBus.emit('show-success', `AI为节点 ${curNode.title} 生成子章节成功！`);
+    eventBus.emit('show-success', t('outline.generateChildSuccessWithTitle', { title: curNode.title }));
   };
 
   try {
 
     await traverseAndGenerate(cur_node);
-    eventBus.emit('show-success', 'AI生成子章节成功！');
+    eventBus.emit('show-success', t('outline.generateChildSuccess'));
   } catch (e) {
-    eventBus.emit('show-error', 'AI生成子章节失败: ' + e.message);
+    eventBus.emit('show-error', t('outline.generateChildFail', { error: e.message }));
+
   }
 
   generateChildrenChildrenLoading.value = false;
@@ -349,7 +346,7 @@ const generateChildrenContent = async () => {
         JSON.stringify(curNode)
       );
     }
-    else{
+    else {
       prompt = generateParentNodeContentPrompt(
         JSON.stringify(removeTextFromOutline(treeData.value)),
         JSON.stringify(curNode)
@@ -359,16 +356,18 @@ const generateChildrenContent = async () => {
     nodeBeingProcessed.value = curNode.title; // 更新正在处理的节点名称
     await answerQuestionStream(prompt, rawstring);
     curNode.text = rawstring.value;
-    eventBus.emit('show-success', `AI为节点 ${curNode.title} 生成内容成功！`);
+    eventBus.emit('show-success', t('outline.generateContentSuccessWithTitle', { title: curNode.title }));
+
 
   };
 
   try {
 
     await traverseAndGenerate(cur_node);
-    eventBus.emit('show-success', 'AI生成内容成功！');
+    eventBus.emit('show-success', t('outline.generateContentSuccess'));
+
   } catch (e) {
-    eventBus.emit('show-error', 'AI生成内容失败: ' + e.message);
+    eventBus.emit('show-error', t('outline.generateContentFail', { error: e.message }));
   }
 
   generateChildrenContentLoading.value = false;
@@ -390,7 +389,8 @@ const generateContent = async () => {
   pendingAccept.value = true;
   generateContentLoading.value = false;
   generating.value = false;
-  eventBus.emit('show-success', 'AI生成章节成功!');
+  eventBus.emit('show-success', t('outline.generateChapterSuccess'));
+
 };
 
 
@@ -434,7 +434,8 @@ const executeFormatTitle = () => {
   }
   //console.log('current_outline_tree', current_outline_tree.value);
   formatTitleDialogVisible.value = false;
-  eventBus.emit('show-success', '标题格式化成功!');
+  eventBus.emit('show-success', t('outline.formatSuccess'));
+
 }
 
 const handleNodeDrag = (dragNode, targetNode) => {
@@ -577,31 +578,34 @@ const editNode = () => {
 };
 
 const deleteNode = () => {
-  ElMessageBox.confirm('是否要删除章节?', '警告', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  })
-    .then(() => {
-      const node = selectedNode.value;
-      const parent = searchParentNode(node.path, treeData.value);
-      const cur_node = searchNode(node.path, treeData.value);
-      if (parent === null) {
-        ElNotification({
-          title: '错误',
-          message: '不能删除根章节',
-          type: 'error'
-        });
-        return;
-      }
-      removeNode(parent, cur_node);
-      dialogVisible.value[node.path] = false;
+  ElMessageBox.confirm(
+    t('outline.confirmDeleteChapter'),
+    t('outline.warning'),
+    {
+      confirmButtonText: t('outline.confirm'),
+      cancelButtonText: t('outline.cancel'),
+      type: 'warning'
+    }
+  ).then(() => {
+    const node = selectedNode.value;
+    const parent = searchParentNode(node.path, treeData.value);
+    const cur_node = searchNode(node.path, treeData.value);
+    if (parent === null) {
       ElNotification({
-        title: '消息',
-        message: '删除章节成功!',
-        type: 'info'
+        title: t('outline.error'),
+        message: t('outline.cannotDeleteRoot'),
+        type: 'error'
       });
-    })
+      return;
+    }
+    removeNode(parent, cur_node);
+    dialogVisible.value[node.path] = false;
+    ElNotification({
+      title: t('outline.message'),
+      message: t('outline.deleteSuccess'),
+      type: 'info'
+    });
+  })
     .catch(() => { });
 
 };
@@ -633,7 +637,8 @@ const generateChildChapter = async () => {
   }
   catch (e) {
     console.log('json parse error', e);
-    eventBus.emit('show-error', 'AI生成子章节失败，请重试:', e.message);
+    eventBus.emit('show-error', t('outline.generateChildRetryFail', { error: e.message }));
+
   }
   generateChildChapterLoading.value = false;
   generating.value = false;

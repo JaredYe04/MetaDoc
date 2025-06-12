@@ -20,16 +20,16 @@
     "build:android": "npm run build && npx cap copy && npx cap sync android && npx cap open android",
     "android": "npx cap open android"
   },
-      "fileAssociations": [
-      {
-        "ext": "md",
-        "name": "Markdown Document",
-        "description": "Markdown 文件",
-        "role": "Editor",
-        "mimeType": "text/markdown",
-        "icon": "build/icon.png"    
-      }
-    ],
+  "fileAssociations": [
+    {
+      "ext": "md",
+      "name": "Markdown Document",
+      "description": "Markdown 文件",
+      "role": "Editor",
+      "mimeType": "text/markdown",
+      "icon": "build/icon.png"
+    }
+  ],
   "dependencies": {
     "@babel/core": "^7.27.1",
     "@babel/plugin-transform-nullish-coalescing-operator": "^7.27.1",
@@ -86,6 +86,7 @@
     "vditor": "^3.10.8",
     "vicons": "^0.0.1",
     "vue-echarts": "^7.0.3",
+    "vue-i18n": "^11.1.5",
     "vue-router": "^4.4.5",
     "vue3-markdown-it": "^1.0.10",
     "vue3-particles": "^2.12.0",

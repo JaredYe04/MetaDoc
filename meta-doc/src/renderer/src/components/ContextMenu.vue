@@ -1,7 +1,11 @@
 <template>
-  <div :style="menuStyle" class="context-menu aero-div" @click="handleClick" style="  background: #E6E6FABB;opacity: 0.95;"
-  
-  @mousedown.stop="onMouseDown">
+  <div
+    :style="menuStyle"
+    class="context-menu aero-div"
+    @click="handleClick"
+    style="background: #E6E6FABB; opacity: 0.95;"
+    @mousedown.stop="onMouseDown"
+  >
     <div style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px; padding-left: 10px;">
       <el-button 
         circle 
@@ -12,39 +16,39 @@
         style="float: inline-start;" 
         @mousedown.stop
         :disabled="isRecording"
-      >
-      </el-button>
+      />
       <VoiceInput :size="'small'" @onSpeechRecognized="onSpeechRecognized" @onStateUpdated="onStateUpdated" />
     </div>
-    
-    <!-- 菜单项，依据 recording 或 idle 状态禁用点击 -->
+
     <div 
       class="menu-item" 
       @mousedown="onMenuItemClick('ai-assistant')" 
       :class="{ disabled: isRecording }"
       :style="{ cursor: isRecording ? 'not-allowed' : 'pointer', color: isRecording ? '#ccc' : 'black' }"
     >
-      AI全文分析
+      {{ $t('contextMenu.aiAnalysis') }}
     </div>
 
     <div 
       class="menu-item" 
       @mousedown="onMenuItemClick('copy')" 
       :class="{ disabled: isRecording }"
-      :style="{ cursor: isRecording? 'not-allowed' : 'pointer', color: isRecording? '#ccc' : 'black' }"
+      :style="{ cursor: isRecording ? 'not-allowed' : 'pointer', color: isRecording ? '#ccc' : 'black' }"
     >
-      复制
+      {{ $t('contextMenu.copy') }}
     </div>
+
     <div 
       class="menu-item" 
       @mousedown="onMenuItemClick('paste')" 
       :class="{ disabled: isRecording }"
       :style="{ cursor: isRecording ? 'not-allowed' : 'pointer', color: isRecording ? '#ccc' : 'black' }"
     >
-      粘贴
+      {{ $t('contextMenu.paste') }}
     </div>
   </div>
 </template>
+
 
 <script setup>
 import VoiceInput from './VoiceInput.vue';

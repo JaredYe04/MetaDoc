@@ -30,6 +30,9 @@ import { lightTheme, darkTheme } from '../utils/themes.js'
 import { current_ai_dialogs, current_file_path} from '../utils/common-data.js'
 import UserProfileCard from '../components/UserProfileCard.vue'
 import { verifyToken } from '../utils/web-utils.ts'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
+
 const showUserProfileCard = ref(false)
 const autoSaveEnabled = ref(false)
 const autoSaveInterval = ref(2147483647)
@@ -66,54 +69,52 @@ eventBus.on('toggle-user-profile', () => {
 })
 eventBus.on('save-success', () => {
   ElNotification({
-    title: '保存成功',
-    message: '保存成功',
+    title: t('main.notification.save.title'),
+    message: t('main.notification.save.message'),
     type: 'success',
-  })
-  eventBus.emit('is-need-save',false)
-})
+  });
+  eventBus.emit('is-need-save', false);
+});
 
 eventBus.on('open-doc-success', () => {
   ElNotification({
-    title: '打开成功',
-    message: '打开成功',
+    title: t('main.notification.open.title'),
+    message: t('main.notification.open.message'),
     type: 'success',
-  })
-  eventBus.emit('is-need-save',false)
-})
+  });
+  eventBus.emit('is-need-save', false);
+});
 
 eventBus.on('export-success', (outputPath) => {
   eventBus.emit('system-notification', {
-    title: '导出成功',
-    body: `${outputPath} 导出成功`,
-  })
-})
+    title: t('main.notification.export.title'),
+    body: t('main.notification.export.message', { path: outputPath }),
+  });
+});
 
 eventBus.on('show-error', (message) => {
   ElNotification({
-    title: '错误',
+    title: t('main.notification.error.title'),
     message: message,
     type: 'error',
-   
-  })
-})
+  });
+});
 
 eventBus.on('show-info', (message) => {
   ElNotification({
-    title: '消息',
+    title: t('main.notification.info.title'),
     message: message,
     type: 'info',
-   
-  })
-})
+  });
+});
+
 eventBus.on('show-success', (message) => {
   ElNotification({
-    title: '消息',
+    title: t('main.notification.success.title'),
     message: message,
     type: 'success',
-   
-  })
-})
+  });
+});
 eventBus.on('sync-ai-dialogs', (dialogs) => {
   //console.log('主界面收到了AI对话更新请求')
   current_ai_dialogs.value=dialogs//当AI对话变动时，主界面的AI对话也要变动

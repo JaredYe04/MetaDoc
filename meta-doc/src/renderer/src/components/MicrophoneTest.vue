@@ -30,36 +30,38 @@ import { convertWebMToWav } from '../utils/audio-convert';
       isRecording.value = true
     }
   }
-  
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true ,video:false})
-      //console.log('Microphone access granted')
-    // 创建一个新的 MediaRecorder 实例
-    mediaRecorder = new MediaRecorder(stream,{
+  import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
+const startRecording = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+    // console.log('Microphone access granted')
+    mediaRecorder = new MediaRecorder(stream, {
       mimeType: 'audio/webm',
-      audioBitsPerSecond : 16000
-    });
-    
-    let audioChunks = [];
+      audioBitsPerSecond: 16000,
+    })
+
+    let audioChunks = []
     mediaRecorder.ondataavailable = (event) => {
-      audioChunks.push(event.data);
-    };
-  
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type : 'audio/webm' })
-        audioChunks = []
-        const wavBlob = await convertWebMToWav(audioBlob)
-        const audioObjectUrl = URL.createObjectURL(wavBlob)
-        audioUrl.value = audioObjectUrl // 生成音频URL并绑定
-      }
-  
-      mediaRecorder.start()
-    } catch (err) {
-      eventBus.emit('show-error', '无法访问麦克风，请检查权限设置')
-      console.error('Error accessing microphone:', err)
+      audioChunks.push(event.data)
     }
+
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
+      audioChunks = []
+      const wavBlob = await convertWebMToWav(audioBlob)
+      const audioObjectUrl = URL.createObjectURL(wavBlob)
+      audioUrl.value = audioObjectUrl // 生成音频URL并绑定
+    }
+
+    mediaRecorder.start()
+  } catch (err) {
+    eventBus.emit('show-error', t('microphoneTest.cannotAccessMic'))
+    console.error('Error accessing microphone:', err)
   }
+}
   
   </script>
 <style scoped>

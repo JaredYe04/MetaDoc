@@ -1,36 +1,43 @@
 <template>
-
   <div class="search-replace-menu aero-div" :style="menuStyles" @mousedown.stop="onMouseDown">
-    <div style="width: 100% ;height: fit-content; align-items: end; ">
-      <el-button circle size="small" type="danger" @click="clearSelection(); $emit('close')" class="aero-btn"
-        style="float: inline-start; margin-right: 20px;" @mousedown.stop>
+    <div style="width: 100%; height: fit-content; align-items: end;">
+      <el-button
+        circle
+        size="small"
+        type="danger"
+        @click="clearSelection(); $emit('close')"
+        class="aero-btn"
+        style="float: inline-start; margin-right: 20px;"
+        @mousedown.stop
+      >
       </el-button>
-      <p style="left: 20px;">查找与替换</p>
+      <p style="left: 20px;">{{ t('searchReplace.title') }}</p>
     </div>
     <el-form :model="form" @mousedown.stop>
-      <el-form-item label="查找">
-        <el-input v-model="form.find" type="textarea" placeholder="请输入查找内容" />
+      <el-form-item :label="t('searchReplace.find')">
+        <el-input v-model="form.find" type="textarea" :placeholder="t('searchReplace.findPlaceholder')" />
       </el-form-item>
-      <el-form-item label="替换">
-        <el-input v-model="form.replace" type="textarea" placeholder="请输入替换内容" />
-      </el-form-item>
-      <el-form-item>
-        <el-checkbox v-model="useRegex">使用正则表达式</el-checkbox>
+      <el-form-item :label="t('searchReplace.replace')">
+        <el-input v-model="form.replace" type="textarea" :placeholder="t('searchReplace.replacePlaceholder')" />
       </el-form-item>
       <el-form-item>
-        <el-button @click="replace" :disabled="form.find.length === 0">替换</el-button>
-        <el-button @click="replaceAll" :disabled="form.find.length === 0">全部替换</el-button>
-        <el-button @click="findNext" :disabled="form.find.length === 0">查找下一处</el-button>
-        <el-button @click="findAll" :disabled="form.find.length === 0">查找全部</el-button>
-        <el-button @click="clearSelection">重置</el-button>
+        <el-checkbox v-model="useRegex">{{ t('searchReplace.useRegex') }}</el-checkbox>
+      </el-form-item>
+      <el-form-item>
+        <el-button @click="replace" :disabled="form.find.length === 0">{{ t('searchReplace.replaceBtn') }}</el-button>
+        <el-button @click="replaceAll" :disabled="form.find.length === 0">{{ t('searchReplace.replaceAllBtn') }}</el-button>
+        <el-button @click="findNext" :disabled="form.find.length === 0">{{ t('searchReplace.findNextBtn') }}</el-button>
+        <el-button @click="findAll" :disabled="form.find.length === 0">{{ t('searchReplace.findAllBtn') }}</el-button>
+        <el-button @click="clearSelection">{{ t('searchReplace.resetBtn') }}</el-button>
       </el-form-item>
     </el-form>
     <div v-if="aiResponse" class="ai-response">
-      <p>AI建议的正则表达式：</p>
+      <p>{{ t('searchReplace.aiRegexSuggestion') }}</p>
       <el-input v-model="aiResponse" readonly />
     </div>
   </div>
 </template>
+
 
 <script setup>
 import { ref, computed } from 'vue';
@@ -46,6 +53,8 @@ const props = defineProps({
     required: true,
   },
 })
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 const form = ref({ find: '', replace: '' });
 const useRegex = ref(false);
@@ -166,7 +175,7 @@ const replaceAll = () => {
 
   clearSelection();
   eventBus.emit('vditor-sync-with-html');//同步html到vditor
-  eventBus.emit('show-success', `共把${count}处"${form.value.find}"匹配替换为"${form.value.replace}"`);
+  eventBus.emit('show-success', t('searchReplace.replaceCount', { count, find: form.value.find, replace: form.value.replace }));
 };
 const mergeTextNodes = (element) => {
   if (element.nodeType === Node.TEXT_NODE) {
@@ -250,7 +259,7 @@ const findAll = () => {
     }
   };
   editor.childNodes.forEach(findAndHighlight);
-  eventBus.emit('show-info', `"${form.value.find}"共找到${count}处匹配`);
+  eventBus.emit('show-info', t('searchReplace.foundCount', { count, find: form.value.find }));
 }
 const findNext = () => {
   
@@ -409,29 +418,14 @@ const findNext = () => {
       editor.childNodes.forEach(findAndHighlight);
       if (!flag) {
         clearSelection();
-        eventBus.emit('show-info', `没有找到更多匹配`);
+        eventBus.emit('show-info', t('searchReplace.notFoundMore'));
       }
 
     }
 
   }
 };
-const askAIForRegex = async () => {
-  const response = await fetch('https://api.openai.com/v1/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer YOUR_OPENAI_API_KEY`,
-    },
-    body: JSON.stringify({
-      model: 'text-davinci-003',
-      prompt: `请为以下文本生成正则表达式：${form.value.find}`,
-      max_tokens: 100,
-    }),
-  });
-  const data = await response.json();
-  aiResponse.value = data.choices[0].text.trim();
-};
+
 </script>
 
 <style scoped>

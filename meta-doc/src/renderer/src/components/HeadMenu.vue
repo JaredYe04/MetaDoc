@@ -1,26 +1,26 @@
 <template>
   <el-menu
-     class="el-menu"
-     mode="horizontal"
-     menu-trigger="hover"
-     @select="handleSelect"
-     style="position: absolute; top: 0; left: 0; right: 0;"
+    class="el-menu"
+    mode="horizontal"
+    menu-trigger="hover"
+    @select="handleSelect"
+    style="position: absolute; top: 0; left: 0; right: 0;"
     :default-active="activeMenuIndex"
     :background-color="themeState.currentTheme.background"
     :text-color="themeState.currentTheme.textColor"
     :active-text-color="themeState.currentTheme.textColor2"
-     >
-   <el-menu-item  >
-    <el-tooltip content="一款基于AI Agent的智能文字处理软件" placement="right" >
-      <h1>MetaDoc</h1>
-    </el-tooltip>
-     
-   </el-menu-item>
-   <el-menu-item index="/" >主页</el-menu-item>
-   <el-menu-item index="/outline" >大纲树</el-menu-item>
-   <el-menu-item index="/article" >编辑器</el-menu-item>
-   <el-menu-item index="/visualize" >可视化</el-menu-item>
- </el-menu>
+  >
+    <el-menu-item>
+      <el-tooltip :content="$t('headMenu.tooltip')" placement="right">
+        <h1>{{ $t('headMenu.title') }}</h1>
+      </el-tooltip>
+    </el-menu-item>
+
+    <el-menu-item index="/">{{ $t('headMenu.home') }}</el-menu-item>
+    <el-menu-item index="/outline">{{ $t('headMenu.outline') }}</el-menu-item>
+    <el-menu-item index="/article">{{ $t('headMenu.editor') }}</el-menu-item>
+    <el-menu-item index="/visualize">{{ $t('headMenu.visualize') }}</el-menu-item>
+  </el-menu>
 </template>
 
 <script setup>
@@ -34,13 +34,7 @@ const router = useRouter()
 const route = useRoute()
 
 
-// 响应式数据
-const menuOptions = ref([
-  {
-    label: '主界面',
-    key: 'home',
-  }
-])
+
 
 const activeMenuIndex = ref(route.path)
 

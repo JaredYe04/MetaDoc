@@ -2,16 +2,15 @@
   <div id="particle-bg" class="homepage">
 
     <div class="center-content" v-if="!quickStartDialogVisible">
-      <h1 class="main-letter" @mouseover="highlightM" @mouseleave="resetM" v-if="current_file_path === ''">MetaDoc</h1>
+      <h1 class="main-letter" @mouseover="highlightM" @mouseleave="resetM" v-if="current_file_path === ''">{{ $t('home.metaDoc') }}</h1>
       <div class="buttons aero-div" v-if="current_file_path === ''">
 
-        <el-tooltip content="开始你的文档" placement="top">
-          <el-button type="primary" @click="quickStart" class="aero-btn">快速开始</el-button>
+        <el-tooltip :content="$t('home.tooltip.quickStart')" placement="top">
+          <el-button type="primary" @click="quickStart" class="aero-btn">{{ $t('home.button.quickStart') }}</el-button>
         </el-tooltip>
-        <el-tooltip content="打开文件" placement="top">
-          <el-button type="success" @click="openFile" class="aero-btn">打开文件</el-button>
+        <el-tooltip :content="$t('home.tooltip.openFile')" placement="top">
+          <el-button type="success" @click="openFile" class="aero-btn">{{ $t('home.button.openFile') }}</el-button>
         </el-tooltip>
-
 
       </div>
       <div v-if="current_file_path !== ''" style="height: 100vh;">
@@ -20,10 +19,10 @@
           <h1 class="md-title" :style="{ color: themeState.currentTheme.textColor }">{{ current_article_meta_data.title }}
           </h1>
           <div class="md-author" :style="{ color: themeState.currentTheme.textColor }">
-            <h3>作者：{{ current_article_meta_data.author }}</h3>
+            <h3>{{ $t('home.authorLabel') }}：{{ current_article_meta_data.author }}</h3>
           </div>
           <div class="md-description" :style="{ color: themeState.currentTheme.textColor }">
-            <h3>摘要</h3>{{ current_article_meta_data.description }}
+            <h3>{{ $t('home.abstractLabel') }}</h3>{{ current_article_meta_data.description }}
           </div>
         </el-scrollbar>
 
@@ -40,15 +39,12 @@
             :codeFold="false"
             :autoFoldThreshold="300"
         />
-        
-          
         </el-scrollbar>
 
       </div>
     </div>
     <div class="center-content" v-if="quickStartDialogVisible">
-      <h2 class="main-letter" @mouseover="highlightM" @mouseleave="resetM" style="font-size: 50px;">快速开始你的文档</h2>
-
+      <h2 class="main-letter" @mouseover="highlightM" @mouseleave="resetM" style="font-size: 50px;">{{ $t('home.quickStartTitle') }}</h2>
 
       <div class="aero-div quick-start-container" :style="{
         color: themeState.currentTheme.textColor,
@@ -56,29 +52,25 @@
         flexDirection: 'column',
         height: '100%',
         width: '70vw',
-        background: tab === '文档信息' ? themeState.currentTheme.quickStartBackground1 : themeState.currentTheme.quickStartBackground2,
-
+        background: tab === $t('home.tab.documentInfo') ? themeState.currentTheme.quickStartBackground1 : themeState.currentTheme.quickStartBackground2,
         transition: 'background 0.5s ease'
       }">
         <!-- 顶部关闭按钮 -->
         <div style="width: 100%; display: flex; justify-content: flex-start; margin-bottom: 10px;">
-          <el-tooltip content="关闭" placement="top">
+          <el-tooltip :content="$t('home.tooltip.close')" placement="top">
             <el-button @click="quickStartDialogVisible = false" class="aero-btn" round type="danger" size="small">
             </el-button>
           </el-tooltip>
-
         </div>
 
         <!-- 主内容区 -->
         <div style="display: flex; flex: 1; border-top: 1px dashed #ccc; padding-top: 10px;">
           <!-- Markdown 编辑器 -->
-          <div style=" flex-grow: 1;"
-           >
+          <div style=" flex-grow: 1;">
             <el-scrollbar  style="width: 100%; padding-right: 10px;" class="generated-md-container">
               <MarkdownItEditor :source="generatedText" @mousedown.stop
                 style=" box-shadow: none;"  />
             </el-scrollbar>
-
           </div>
 
           <!-- 分割线 -->
@@ -86,67 +78,50 @@
 
           <!-- 表单区域 -->
           <div style="width: 30%;height: 100%;">
-            <!-- <el-switch v-model="tab" class="ml-2"
-              style="--el-switch-on-color: #6A5ACD; --el-switch-off-color: #6495ED; align-self: center;width: 100%;"
-              active-text="AI助手" inactive-text="文档信息" /> -->
             <div class="tab-switch">
-              <el-segmented v-model="tab" :options="['AI助手', '文档信息']" />
+              <el-segmented v-model="tab" :options="[$t('home.tab.aiAssistant'), $t('home.tab.documentInfo')]" />
             </div>
             <div
               style=" display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;height: 47vh;"
-              class="aero-div" v-if="tab === '文档信息'">
+              class="aero-div" v-if="tab === $t('home.tab.documentInfo')">
               <label
                 style="width: 100%; text-align: center; align-self: center; font-weight: bold; margin-bottom: 10px;"
-                :style="{ color: themeState.currentTheme.textColor }" class="interactive-text">文档信息</label>
+                :style="{ color: themeState.currentTheme.textColor }" class="interactive-text">{{ $t('home.documentInfoLabel') }}</label>
               <div style="display: flex; align-items: center; margin-bottom: 16px">
-                <label style="width: 60px; text-align: left; margin-right: 8px">标题</label>
+                <label style="width: 60px; text-align: left; margin-right: 8px">{{ $t('home.label.title') }}</label>
                 <el-input v-model="current_article_meta_data.title" style="flex: 1;width: 200px;"
-                  placeholder="请输入文章标题" />
+                  :placeholder="$t('home.placeholder.title')" />
               </div>
               <div style="display: flex; align-items: center; margin-bottom: 16px">
-                <label style="width: 60px; text-align: left; margin-right: 8px">作者</label>
+                <label style="width: 60px; text-align: left; margin-right: 8px">{{ $t('home.label.author') }}</label>
                 <el-input v-model="current_article_meta_data.author" style="flex: 1;width: 200px;"
-                  placeholder="请输入作者" />
+                  :placeholder="$t('home.placeholder.author')" />
               </div>
               <div style="display: flex; align-items: center; margin-bottom: 16px">
-                <label style="width: 60px; text-align: left; margin-right: 8px">摘要</label>
+                <label style="width: 60px; text-align: left; margin-right: 8px">{{ $t('home.label.abstract') }}</label>
                 <el-input v-model="current_article_meta_data.description" type="textarea" style="width: 200px;"
-                  placeholder="请输入文章摘要" :autosize="{ minRows: 2, maxRows: 3 }" />
-
+                  :placeholder="$t('home.placeholder.abstract')" :autosize="{ minRows: 2, maxRows: 3 }" />
               </div>
               <div style="display: flex; align-items: center; margin-bottom: 16px">
-                <el-tooltip content="准备就绪！" placement="top">
+                <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
                   <el-button circle type="success" @click="allSet"><el-icon>
                       <Check />
                     </el-icon></el-button>
                 </el-tooltip>
-
               </div>
-              <!-- <div style="display: flex; align-items: flex-start; margin-bottom: 16px">
-                <label style="width: 60px; text-align: left; margin-right: 8px; ">摘要</label>
-                <div style="flex: 1">
-                  <div style="display: flex; align-items: center; margin-bottom: 8px">
-                    <el-switch v-model="autoDescription" class="ml-2"
-                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" active-text="自动"
-                      inactive-text="手动" />
-                  </div>
-
-                </div>
-              </div> -->
             </div>
             <div class="aero-div"
               style=" display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; height: 47vh;"
-              v-if="tab === 'AI助手'">
+              v-if="tab === $t('home.tab.aiAssistant')">
               <label
                 style="width: 100%; text-align: center; align-self: center; font-weight: bold; margin-bottom: 10px;"
-                :style="{ color: themeState.currentTheme.textColor }" class="interactive-text">AI助手</label>
-              <el-tooltip content="选择AI温度" placement="left">
+                :style="{ color: themeState.currentTheme.textColor }" class="interactive-text">{{ $t('home.aiAssistantLabel') }}</label>
+              <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left">
                 <el-slider v-model="temperature" :marks="marks" :min="0" :max="100"
                   style="margin-bottom: 20px; width: 80%; " :disabled="generated || generating" />
               </el-tooltip>
 
-
-              <el-tooltip content="选择文章情感" placement="left">
+              <el-tooltip :content="$t('home.tooltip.selectMood')" placement="left">
                 <el-segmented v-model="mood" style="margin-bottom: 25px; background: rgba(255, 255, 255, 0.3)"
                   :options="moodOptions" :disabled="generated || generating">
                   <template #default="{ item }">
@@ -159,15 +134,12 @@
                   </template>
                 </el-segmented>
               </el-tooltip>
-              <el-tooltip content="输入提示词" placement="left">
+              <el-tooltip :content="$t('home.tooltip.inputPrompt')" placement="left">
                 <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable
-                  class="inline-input aero-input" style=" opacity: 0.8;" placeholder="在此处输入文章要求" @mousedown.stop
+                  class="inline-input aero-input" style=" opacity: 0.8;" :placeholder="$t('home.tooltip.inputPrompt')" @mousedown.stop
                   type="textarea" :autosize="{ minRows: 3, maxRows: 3 }" resize='none'
                   :disabled="generated || generating">
-
                 </el-autocomplete>
-
-
               </el-tooltip>
 
               <VoiceInput @onSpeechRecognized="onSpeechRecognized" :disabled="generated || generating" />
@@ -192,7 +164,7 @@
         left: 50%;
         transform: translateX(-50%);
       " :style="{ color: themeState.currentTheme.textColor }">
-                  建议
+                  {{ $t('home.suggestionLabel') }}
                 </label>
                 <div style="position: relative; height: 60px; width: 100%;" id="suggestion-buttons">
                   <div style="
@@ -218,37 +190,35 @@
                   <el-icon>
                     <Refresh />
                   </el-icon>
-                  刷新
+                  {{ $t('home.button.refresh') }}
                 </el-button>
               </div>
               <div @mousedown.stop>
-                <el-tooltip content="生成文章" placement="top">
+                <el-tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
                   <el-button circle type="primary" @click="generate"
                     :disabled="generated || generating || userPrompt.length === 0"><el-icon>
                       <Promotion />
                     </el-icon></el-button>
                 </el-tooltip>
-                <el-tooltip content="重置" placement="top">
+                <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
                   <el-button circle type="info" @click="reset" v-if="generated"><el-icon>
                       <RefreshLeft />
                     </el-icon></el-button>
                 </el-tooltip>
-                <el-tooltip content="接受" placement="top">
+                <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
                   <el-button circle type="success" @click="accept" v-if="generated"><el-icon>
                       <Check />
                     </el-icon></el-button>
                 </el-tooltip>
-
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
-  </div>
-
+    </div>
 </template>
+
 
 <script setup>
 import VoiceInput from '../components/VoiceInput.vue';
@@ -271,10 +241,13 @@ import {
   SuitcaseLine,
   Warning
 } from "@element-plus/icons-vue";
-import { generateArticlePrompt } from '../utils/prompts';
+import { generateArticlePrompt, presets } from '../utils/prompts';
 import { answerQuestionStream } from '../utils/llm-api';
 import router from "../router/router";
 import { suggestionPresets } from '../utils/prompts';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
+
 // 随机生成的按钮文本数组
 const buttons = ref({});
 
@@ -319,40 +292,39 @@ function handleAcceptSuggestion(prompt) {
   userPrompt.value = prompt;
 }
 
-const mood = ref('平和');
+const mood = ref(t('home.mood.peaceful'));
 const moodOptions = [
   {
-    label: '高兴',
-    value: '高兴',
+    label: t('home.mood.happy'),
+    value: 'happy',
     icon: Sugar
   },
   {
-    label: '抒情',
-    value: '抒情',
+    label: t('home.mood.lyrical'),
+    value: 'lyrical',
     icon: MoonNight
   },
   {
-    label: '平和',
-    value: '平和',
+    label: t('home.mood.peaceful'),
+    value: 'peaceful',
     icon: Mug
   },
   {
-    label: '学术',
-    value: '学术',
+    label: t('home.mood.academic'),
+    value: 'academic',
     icon: DataAnalysis
   },
   {
-    label: '商业',
-    value: '商业',
+    label: t('home.mood.business'),
+    value: 'business',
     icon: SuitcaseLine
   },
   {
-    label: '悲伤',
-    value: '悲伤',
+    label: t('home.mood.sad'),
+    value: 'sad',
     icon: Drizzling
-  },
+  }
 ];
-
 
 // 定义响应式变量
 const mouseX = ref(0);
@@ -361,15 +333,16 @@ const mouseY = ref(0);
 // 定义Three.js对象
 let scene, camera, renderer, particles;
 const temperature = ref(50);
+const tab = ref(t('home.tab.aiAssistant'));
 const marks = ref({
-  0: '严谨',
-  100: '创意',
+  0: t('home.temperatureMarks.rigorous'),
+  100: t('home.temperatureMarks.creative'),
   50: {
     style: {
-      color: '#1989FA',
+      color: '#1989FA'
     },
-    label: '平衡',
-  },
+    label: t('home.temperatureMarks.balanced')
+  }
 });
 const accept = () => {
   //searchNode(props.path, current_outline_tree.value).text=generatedText.value;
@@ -385,13 +358,13 @@ const accept = () => {
   sync();
   //emit('accept', generatedText.value);
   //跳转到文章编辑界面
-  tab.value = '文档信息';
+  tab.value = t('home.tab.documentInfo');
 
 }
 const allSet = () => {
   eventBus.emit('nav-to', '/article');
 }
-const tab = ref('AI助手');
+
 const generate = async () => {
   generating.value = true;
 
@@ -412,7 +385,7 @@ const querySearch = (queryString, cb) => {
   //console.log(queryString)
   const results = queryString
     ? presets.filter(createFilter(queryString))
-    : presets
+    : presets;
   // call callback function to return suggestions
   cb(results)
 }
@@ -422,102 +395,10 @@ const reset = () => {
 }
 const generating = ref(false);
 const userPrompt = ref('');
-const defaultText = '# 欢迎使用MetaDoc\n\n这是一个基于人工智能的文档编辑器，可以帮助您快速生成文档内容。';
+const defaultText = t('home.defaultText');
 const generatedText = ref(current_article.value ? current_article.value : defaultText);
 const generated = ref(false);
-const presets = [
-  { "value": "我想生成一篇学术报告" },
-  { "value": "我想生成一篇议论文" },
-  { "value": "我想生成一篇菜谱" },
-  { "value": "我想生成一篇旅游攻略" },
-  { "value": "我想生成一篇关于人工智能的分析文章" },
-  { "value": "我想生成一篇读书笔记" },
-  { "value": "我想生成一篇商业计划书" },
-  { "value": "我想生成一篇求职信" },
-  { "value": "我想生成一篇科技新闻" },
-  { "value": "我想生成一篇个人成长故事" },
-  { "value": "我想生成一篇产品使用手册" },
-  { "value": "我想生成一篇历史人物传记" },
-  { "value": "我想生成一篇社会现象分析" },
-  { "value": "我想生成一篇关于健康饮食的文章" },
-  { "value": "我想生成一篇电影观后感" },
-  { "value": "我想生成一篇课堂演讲稿" },
-  { "value": "我想生成一篇创意短篇小说" },
-  { "value": "我想生成一篇科技项目可行性报告" },
-  { "value": "我想生成一篇电子产品评测文章" },
-  { "value": "我想生成一篇工作总结" },
-  { "value": "我想生成一篇科技博客文章" },
-  { "value": "我想生成一篇经济学研究报告" },
-  { "value": "我想生成一篇心理学分析文章" },
-  { "value": "我想生成一篇关于宇宙探索的科普文章" },
-  { "value": "我想生成一篇节日庆祝活动方案" },
-  { "value": "我想生成一篇关于环保的倡议书" },
-  { "value": "我想生成一篇团队建设活动策划书" },
-  { "value": "我想生成一篇编程语言学习指南" },
-  { "value": "我想生成一篇AI技术应用案例分析" },
-  { "value": "我想生成一篇时事评论文章" },
-  { "value": "我想生成一篇古诗词鉴赏" },
-  { "value": "我想生成一篇教育教学方法的探讨" },
-  { "value": "我想生成一篇运动健身计划" },
-  { "value": "我想生成一篇关于气候变化的研究报告" },
-  { "value": "我想生成一篇品牌营销策略" },
-  { "value": "我想生成一篇科技趋势预测" },
-  { "value": "我想生成一篇网络安全指南" },
-  { "value": "我想生成一篇摄影技巧教程" },
-  { "value": "我想生成一篇宠物护理指南" },
-  { "value": "我想生成一篇关于职场沟通的建议" },
-  { "value": "我想生成一篇书籍推荐列表" },
-  { "value": "我想生成一篇文化差异的探讨文章" },
-  { "value": "我想生成一篇关于区块链技术的入门教程" },
-  { "value": "我想生成一篇关于开源项目的介绍文章" },
-  { "value": "我想生成一篇社会公益活动方案" },
-  { "value": "我想生成一篇城市交通优化建议" },
-  { "value": "我想生成一篇关于未来职业发展的趋势分析" },
-  { "value": "我想生成一篇关于人类行为的哲学探讨" },
-  { "value": "我想生成一篇大数据技术白皮书" },
-  { "value": "我想生成一篇旅游城市的历史文化介绍" },
-  { "value": "我想生成一篇电影剧本大纲" },
-  { "value": "我想生成一篇短篇科幻小说" },
-  { "value": "我想生成一篇机器人设计的技术文档" },
-  { "value": "我想生成一篇关于心理健康的科普文章" },
-  { "value": "我想生成一篇投资理财建议" },
-  { "value": "我想生成一篇对传统工艺的传承与创新分析" },
-  { "value": "我想生成一篇关于网络舆论的深度分析" },
-  { "value": "我想生成一篇音乐艺术的赏析文章" },
-  { "value": "我想生成一篇关于未来科技发展的展望" },
-  { "value": "我想生成一篇职业生涯规划书" },
-  { "value": "我想生成一篇农业科技发展的调研报告" },
-  { "value": "我想生成一篇创业计划书" },
-  { "value": "我想生成一篇关于心理学实验的论文" },
-  { "value": "我想生成一篇节能减排的行动计划" },
-  { "value": "我想生成一篇高效学习方法的分享文章" },
-  { "value": "我想生成一篇生活小妙招合集" },
-  { "value": "我想生成一篇关于未来智能家居的畅想" },
-  { "value": "我想生成一篇关于区块链在金融行业应用的案例研究" },
-  { "value": "我想生成一篇关于元宇宙的科技文章" },
-  { "value": "我想生成一篇健康与运动的科学建议" },
-  { "value": "我想生成一篇关于人工智能伦理的讨论文章" },
-  { "value": "我想生成一篇关于未来城市规划的设想" },
-  { "value": "我想生成一篇关于人类历史的探讨文章" },
-  { "value": "我想生成一篇关于未来教育的设想" },
-  { "value": "我想生成一篇关于未来医疗技术的展望" },
-  { "value": "我想生成一篇关于未来交通的设想" },
-  { "value": "我想生成一篇关于未来食品科技的展望" },
-  { "value": "我想生成一篇关于未来能源的展望" },
-  { "value": "我想生成一篇关于未来环境保护的设想" },
-  { "value": "我想生成一篇关于未来社会治理的设想" },
-  { "value": "我想生成一篇关于未来国际关系的设想" },
-  { "value": "我想生成一篇关于未来军事技术的展望" },
-  { "value": "我想生成一篇关于未来航天科技的展望" },
-  { "value": "我想生成一篇关于未来生物科技的展望" },
-  { "value": "我想生成一篇关于未来人工智能的展望" },
-  { "value": "我想生成一篇关于未来机器人技术的展望" },
-  { "value": "我想生成一篇关于未来物联网技术的展望" },
-  { "value": "我想生成一篇关于未来大数据技术的展望" },
-  { "value": "我想生成一篇关于未来区块链技术的展望" },
-  { "value": "我想生成一篇关于未来虚拟现实技术的展望" },
 
-];
 // const autoDescription = ref(true);
 // 初始化Three.js场景
 

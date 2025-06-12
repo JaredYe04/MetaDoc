@@ -1,148 +1,138 @@
 <template>
-
   <div class="aero-div" :style="menuStyles" @mousedown.stop="onMouseDown">
     <div class="profile-header">
-      <span :style="{ color: themeState.currentTheme.textColor }">{{ "资料卡" }}</span>
-      <el-tooltip content="关闭菜单" placement="top">
-        <el-button circle size="small" @click="closeDialog" class="aero-btn" type="danger"><el-icon>
-            <Close />
-          </el-icon></el-button>
+      <span :style="{ color: themeState.currentTheme.textColor }">{{ t('userProfile.title') }}</span>
+      <el-tooltip :content="t('userProfile.closeMenu')" placement="top">
+        <el-button circle size="small" @click="closeDialog" class="aero-btn" type="danger">
+          <el-icon><Close /></el-icon>
+        </el-button>
       </el-tooltip>
-
     </div>
 
-
     <el-tabs v-model="activeName" class="tabs" v-if="!loggedIn" @mousedown.stop>
-      <el-tab-pane label="登录" name="Login">
+      <el-tab-pane :label="t('userProfile.loginTab')" name="Login">
         <el-form :model="loginForm" label-width="80px" ref="loginFormRef" :rules="loginRules">
-          <el-form-item label="账号" prop="username">
-            <el-input v-model="loginForm.username" placeholder="请输入用户名/邮箱/手机号"></el-input>
+          <el-form-item :label="t('userProfile.account')" prop="username">
+            <el-input v-model="loginForm.username" :placeholder="t('userProfile.accountPlaceholder')"></el-input>
           </el-form-item>
-          <el-form-item label="密码" prop="password">
-            <el-input v-model="loginForm.password" :show-password="true" placeholder="请输入密码" suffix-icon="el-icon-view"
-              @click-suffix="togglePasswordVisibility"></el-input>
+          <el-form-item :label="t('userProfile.password')" prop="password">
+            <el-input
+              v-model="loginForm.password"
+              :show-password="true"
+              :placeholder="t('userProfile.passwordPlaceholder')"
+              suffix-icon="el-icon-view"
+              @click-suffix="togglePasswordVisibility"
+            ></el-input>
           </el-form-item>
           <div slot="footer" class="dialog-footer">
-            <el-button type="primary" @click="submitLogin">登录</el-button>
+            <el-button type="primary" @click="submitLogin">{{ t('userProfile.loginBtn') }}</el-button>
           </div>
         </el-form>
       </el-tab-pane>
 
-
-      <el-tab-pane label="注册" name="Register">
+      <el-tab-pane :label="t('userProfile.registerTab')" name="Register">
         <el-form :model="registerForm" label-width="80px" ref="registerFormRef" :rules="registerRules">
-          <el-form-item label="用户名" prop="username">
-            <el-input v-model="registerForm.username" placeholder="请输入用户名"></el-input>
+          <el-form-item :label="t('userProfile.username')" prop="username">
+            <el-input v-model="registerForm.username" :placeholder="t('userProfile.usernamePlaceholder')"></el-input>
           </el-form-item>
-          <el-form-item label="手机号" prop="phone">
-            <el-input v-model="registerForm.phone" placeholder="请输入手机号"></el-input>
+          <el-form-item :label="t('userProfile.phone')" prop="phone">
+            <el-input v-model="registerForm.phone" :placeholder="t('userProfile.phonePlaceholder')"></el-input>
           </el-form-item>
-          <el-form-item label="邮箱" prop="email">
-            <el-input v-model="registerForm.email" placeholder="请输入邮箱"></el-input>
+          <el-form-item :label="t('userProfile.email')" prop="email">
+            <el-input v-model="registerForm.email" :placeholder="t('userProfile.emailPlaceholder')"></el-input>
           </el-form-item>
-          <el-form-item label="密码" prop="password">
-            <el-input v-model="registerForm.password" type="password" placeholder="请输入密码"
-              :show-password="true"></el-input>
+          <el-form-item :label="t('userProfile.password')" prop="password">
+            <el-input v-model="registerForm.password" type="password" :show-password="true" :placeholder="t('userProfile.passwordPlaceholder')"></el-input>
           </el-form-item>
           <div slot="footer" class="dialog-footer">
-            <el-button type="primary" @click="submitRegister">注册</el-button>
+            <el-button type="primary" @click="submitRegister">{{ t('userProfile.registerBtn') }}</el-button>
           </div>
         </el-form>
       </el-tab-pane>
     </el-tabs>
+
     <div v-else>
       <div style="display: flex; align-items: center;">
-        <el-tooltip content="点击更换头像" placement="top" effect="dark">
-          <el-avatar v-if="avatar" :src="avatar" :size="128"
-            style="width: 128px; height: 128px; padding: 0; cursor: pointer; object-fit: cover;" @click="changeAvatar">
+        <el-tooltip :content="t('userProfile.changeAvatar')" placement="top" effect="dark">
+          <el-avatar
+            v-if="avatar"
+            :src="avatar"
+            :size="128"
+            style="width: 128px; height: 128px; padding: 0; cursor: pointer; object-fit: cover;"
+            @click="changeAvatar"
+          >
             {{ avatar ? '' : user.username }}
           </el-avatar>
         </el-tooltip>
-        <!-- <el-button v-if="isEditing" @click="saveChanges" type="primary" circle icon="el-icon-check"></el-button>
-        <el-button v-else @click="toggleEdit" type="primary" circle icon="el-icon-edit"></el-button> -->
 
         <div style="margin-left: 40px;">
           <div style="height: 200px;">
-            <el-form v-if="editing" :model="user" label-width="80px" ref="userFormRef" :rules="registerRules"
-              style="height: 180px;">
-              <h3>资料编辑</h3>
-              <el-form-item label="用户名" prop="username">
-                <el-input v-model="user.username" placeholder="请输入用户名"></el-input>
+            <el-form v-if="editing" :model="user" label-width="80px" ref="userFormRef" :rules="registerRules" style="height: 180px;">
+              <h3>{{ t('userProfile.editProfileTitle') }}</h3>
+              <el-form-item :label="t('userProfile.username')" prop="username">
+                <el-input v-model="user.username" :placeholder="t('userProfile.usernamePlaceholder')"></el-input>
               </el-form-item>
-              <el-form-item label="手机号" prop="phone">
-                <el-input v-model="user.phone" placeholder="请输入手机号"></el-input>
+              <el-form-item :label="t('userProfile.phone')" prop="phone">
+                <el-input v-model="user.phone" :placeholder="t('userProfile.phonePlaceholder')"></el-input>
               </el-form-item>
-              <el-form-item label="邮箱" prop="email">
-                <el-input v-model="user.email" placeholder="请输入邮箱"></el-input>
-              </el-form-item>
-            </el-form>
-            <el-form v-if="editingPwd" :model="editPwdForm" label-width="80px" ref="pwdFormRef" :rules="editPwdRules"
-              style="height: 180px;">
-              <h3>密码修改</h3>
-              <el-form-item label="原密码" prop="username">
-                <el-input v-model="editPwdForm.oldPwd" placeholder="请输入原有密码" type="password"
-                  :show-password="true"></el-input>
-              </el-form-item>
-              <el-form-item label="新密码" prop="phone">
-                <el-input v-model="editPwdForm.newPwd" placeholder="请输入新密码" type="password"
-                  :show-password="true"></el-input>
+              <el-form-item :label="t('userProfile.email')" prop="email">
+                <el-input v-model="user.email" :placeholder="t('userProfile.emailPlaceholder')"></el-input>
               </el-form-item>
             </el-form>
+
+            <el-form v-if="editingPwd" :model="editPwdForm" label-width="80px" ref="pwdFormRef" :rules="editPwdRules" style="height: 180px;">
+              <h3>{{ t('userProfile.changePasswordTitle') }}</h3>
+              <el-form-item :label="t('userProfile.oldPassword')" prop="oldPwd">
+                <el-input v-model="editPwdForm.oldPwd" :placeholder="t('userProfile.oldPasswordPlaceholder')" type="password" :show-password="true"></el-input>
+              </el-form-item>
+              <el-form-item :label="t('userProfile.newPassword')" prop="newPwd">
+                <el-input v-model="editPwdForm.newPwd" :placeholder="t('userProfile.newPasswordPlaceholder')" type="password" :show-password="true"></el-input>
+              </el-form-item>
+            </el-form>
+
             <div v-if="!editing && !editingPwd" style="height: 180px;">
-              <el-tooltip content="用户名" placement="left">
+              <el-tooltip :content="t('userProfile.username')" placement="left">
                 <h3>{{ user.username }}</h3>
               </el-tooltip>
-              <el-tooltip content="邮箱" placement="left">
+              <el-tooltip :content="t('userProfile.email')" placement="left">
                 <p>{{ user.email }}</p>
               </el-tooltip>
-              <el-tooltip content="手机号" placement="left">
+              <el-tooltip :content="t('userProfile.phone')" placement="left">
                 <p>{{ user.phone }}</p>
               </el-tooltip>
-              <el-tooltip content="创建时间" placement="left">
-                <p>{{
-                  new Date(user.createdAt).toLocaleDateString('zh-CN', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                  }) }}</p>
+              <el-tooltip :content="t('userProfile.createdAt')" placement="left">
+                <p>{{ new Date(user.createdAt).toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }) }}</p>
               </el-tooltip>
-              <el-tooltip content="Token余额" placement="left">
+              <el-tooltip :content="t('userProfile.tokenBalance')" placement="left">
                 <p>Token: {{ user.tokens }} $</p>
               </el-tooltip>
             </div>
           </div>
 
           <div>
-            <el-tooltip v-if="!editing && !editingPwd" content="登出" placement="bottom">
-              <el-button @click="logout" type="danger" circle><el-icon>
-                  <SwitchButton />
-                </el-icon></el-button>
-            </el-tooltip>
-
-            <el-tooltip v-if="editing || editingPwd" content="取消" placement="bottom">
-              <el-button type="primary" circle @click="cancelEdit">
-                <el-icon>
-                  <RefreshLeft />
-                </el-icon>
+            <el-tooltip v-if="!editing && !editingPwd" :content="t('userProfile.logout')" placement="bottom">
+              <el-button @click="logout" type="danger" circle>
+                <el-icon><SwitchButton /></el-icon>
               </el-button>
             </el-tooltip>
-            <el-tooltip v-if="!editingPwd" :content="editing ? '保存编辑' : '编辑资料'" placement="bottom">
-              <el-button :type="editing ? 'success' : 'primary'" :icon="editing ? Check : Edit" circle
-                @click="toggleEdit" />
+
+            <el-tooltip v-if="editing || editingPwd" :content="t('userProfile.cancel')" placement="bottom">
+              <el-button type="primary" circle @click="cancelEdit">
+                <el-icon><RefreshLeft /></el-icon>
+              </el-button>
             </el-tooltip>
 
-            <el-tooltip v-if="!editing" :content="editing ? '保存修改' : '修改密码'" placement="bottom">
-              <el-button :type="editingPwd ? 'success' : 'primary'" :icon="editingPwd ? Check : Lock" circle
-                @click="toggleEditPwd" />
+            <el-tooltip v-if="!editingPwd" :content="editing ? t('userProfile.saveEdit') : t('userProfile.editProfile')" placement="bottom">
+              <el-button :type="editing ? 'success' : 'primary'" :icon="editing ? Check : Edit" circle @click="toggleEdit" />
+            </el-tooltip>
+
+            <el-tooltip v-if="!editing" :content="editingPwd ? t('userProfile.savePwd') : t('userProfile.changePwd')" placement="bottom">
+              <el-button :type="editingPwd ? 'success' : 'primary'" :icon="editingPwd ? Check : Lock" circle @click="toggleEditPwd" />
             </el-tooltip>
           </div>
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -154,6 +144,9 @@ import { themeState } from '../utils/themes'
 import eventBus from '../utils/event-bus.js'
 import axios from 'axios'
 import { SERVER_URL } from '../utils/consts.js'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 const editingPwd = ref(false)
 const editPwdForm = ref({
   oldPwd: '',
@@ -165,11 +158,11 @@ const toggleEditPwd = async () => {
   if (editingPwd.value) {
     await pwdFormRef.value.validate(async (valid) => {
       if (!valid) {
-        eventBus.emit('show-error', '密码不合法！')
+        eventBus.emit('show-error', t('userProfile.messages.invalidPassword'))
         return
       }
       else if (editPwdForm.value.newPwd === editPwdForm.value.oldPwd) {
-        eventBus.emit('show-error', '新密码不能与原密码相同！')
+        eventBus.emit('show-error', t('userProfile.messages.samePassword'))
         return
       }
       else {
@@ -196,14 +189,14 @@ async function toggleEdit() {
   if (editing.value) {
     await userFormRef.value.validate(async (valid) => {
       if (!valid) {
-        eventBus.emit('show-error', '修改信息不合法！')
+        eventBus.emit('show-error', t('userProfile.messages.invalidInfo'))
         return
       }
       else {
         const result = await updateUserInfo(user.value)
         if (result == 0) {
           editing.value = false
-          eventBus.emit('show-success', '修改成功！')
+          eventBus.emit('show-success', t('userProfile.messages.modifySuccess'))
           user_backup = null
         }
       }
@@ -233,22 +226,22 @@ const logout = () => {
   loggedIn.value = false
   user.value = null
   avatar.value = null
-  eventBus.emit('show-success', '登出成功')
+  eventBus.emit('show-success', t('userProfile.messages.logoutSuccess'))
 }
 const loginRules = {
   username: [
-    { required: true, message: '请输入用户名/邮箱/手机号', trigger: 'blur' },
+    { required: true, message: t('userProfile.rules.usernameRequired'), trigger: 'blur' },
     {
       pattern: /^[a-zA-Z0-9_-]{6,}$/,
-      message: '用户名只能包含字母、数字、下划线，且至少6位',
+      message: t('userProfile.rules.usernamePattern'),
       trigger: 'blur'
     },
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
+    { required: true, message: t('userProfile.rules.passwordRequired'), trigger: 'blur' },
     {
       pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/,
-      message: '密码必须包含大小写字母和数字，至少6位',
+      message: t('userProfile.rules.passwordPattern'),
       trigger: 'blur'
     },
   ],
@@ -256,34 +249,34 @@ const loginRules = {
 
 const registerRules = {
   username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { required: true, message: t('userProfile.rules.usernameRequired'), trigger: 'blur' },
     {
       pattern: /^[a-zA-Z0-9_-]{6,}$/,
-      message: '用户名只能包含字母、数字、下划线，且至少6位',
+      message: t('userProfile.rules.usernamePattern'),
       trigger: 'blur'
     },
   ],
   phone: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { required: true, message: t('userProfile.rules.phoneRequired'), trigger: 'blur' },
     {
       pattern: /^[1][3-9][0-9]{9}$/,
-      message: '请输入有效的手机号',
+      message: t('userProfile.rules.phonePattern'),
       trigger: 'blur'
     },
   ],
   email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { required: true, message: t('userProfile.rules.emailRequired'), trigger: 'blur' },
     {
       pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-      message: '请输入有效的邮箱',
+      message: t('userProfile.rules.emailPattern'),
       trigger: 'blur'
     },
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
+    { required: true, message: t('userProfile.rules.passwordRequired'), trigger: 'blur' },
     {
       pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/,
-      message: '密码必须包含大小写字母和数字，至少6位',
+      message: t('userProfile.rules.passwordPattern'),
       trigger: 'blur'
     },
   ],
@@ -291,22 +284,23 @@ const registerRules = {
 
 const editPwdRules = {
   oldPassword: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
+    { required: true, message: t('userProfile.rules.passwordRequired'), trigger: 'blur' },
     {
       pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/,
-      message: '密码必须包含大小写字母和数字，至少6位',
+      message: t('userProfile.rules.passwordPattern'),
       trigger: 'blur'
     },
   ],
   newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { required: true, message: t('userProfile.rules.newPasswordRequired'), trigger: 'blur' },
     {
       pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/,
-      message: '密码必须包含大小写字母和数字，至少6位',
+      message: t('userProfile.rules.passwordPattern'),
       trigger: 'blur'
     },
   ],
 }
+
 
 const props = defineProps({
   position: {
@@ -369,7 +363,7 @@ async function submitLogin() {
   // 验证表单
   loginFormRef.value.validate((valid) => {
     if (!valid) {
-      eventBus.emit('show-error', '登录信息不完整')
+      eventBus.emit('show-error', t('userProfile.messages.loginIncomplete'))
       return
     }
 
@@ -408,7 +402,7 @@ const onMouseUp = () => {
 async function submitRegister() {
   await registerFormRef.value.validate((valid) => {
     if (!valid) {
-      eventBus.emit('show-error', '注册信息不完整')
+      eventBus.emit('show-error', t('userProfile.messages.registerIncomplete'))
       return
     }
     // 发送注册请求到后端
@@ -420,7 +414,7 @@ async function submitRegister() {
           // 保存token到本次会话
           //sessionStorage.setItem('loginToken', token)
           localStorage.setItem('loginToken', token)
-          eventBus.emit('show-success', '注册成功')
+          eventBus.emit('show-success', t('userProfile.messages.registerSuccess'))
           await verifyToken(token)
 
         } else {
@@ -428,7 +422,7 @@ async function submitRegister() {
         }
       })
       .catch(error => {
-        eventBus.emit('show-error', '注册失败：' + error.message)
+        eventBus.emit('show-error', t('userProfile.messages.registerFailed', { error: error.message }))
       })
 
   })

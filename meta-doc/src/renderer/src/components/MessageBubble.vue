@@ -26,18 +26,6 @@ const content=computed(()=>{
 const roleClass=computed(()=>{
       return props.message.role === 'user' ? 'user-role' : 'ai-role';
 });
-const roleName=computed(()=>{
-  switch(role.value){
-    case 'user':
-        return '用户';
-    case 'assistant':
-        return 'AI助手';
-    case 'system':
-        return '系统';
-    default:
-        return '未知';
-  }
-})
 onBeforeMount(() => {
   //console.log(props.message)
 })
@@ -46,22 +34,25 @@ const emit=defineEmits(["delete","edit","regenerate"]);
 const regenerateMsg=()=>{
     emit("regenerate",props.index+1);
 }
+import { useI18n } from 'vue-i18n'
 
-const onMsgDelete=()=>{
-    ElMessageBox.confirm(
-    '确认要删除吗？',
-    'Warning',
+const { t } = useI18n()
+
+const onMsgDelete = () => {
+  ElMessageBox.confirm(
+    t('messageBubble.deleteConfirmMessage'),
+    t('messageBubble.deleteConfirmTitle'),
     {
-      confirmButtonText: '确认',
-      cancelButtonText: '取消',
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
       type: 'warning',
     }
   )
     .then(() => {
-      emit('delete',props.index)
-
+      emit('delete', props.index)
     })
     .catch(() => {
+      // 取消无操作
     })
 }
 const editDialogVisible=ref(false);
@@ -79,34 +70,35 @@ const saveEdit=()=>{
 
 <template>
   <div :class="['message-bubble', roleClass]">
-    <el-avatar class="avatar" v-if="role!=='user'" :icon="Avatar"></el-avatar>
-    <el-button type="primary" :icon="Edit" circle class="side-button" id="editSelfResponse" v-if="role==='user'" @click="onMsgEdit"/>
-    <el-button type="info" :icon="Refresh" circle class="side-button" id="regenerateMsg" v-if="role==='user'" @click="regenerateMsg"/>
-    <el-button type="danger" :icon="Delete" circle  class="side-button" id="deleteSelfResponse" v-if="role==='user'" @click="onMsgDelete"/>
+    <el-avatar class="avatar" v-if="role !== 'user'" :icon="Avatar"></el-avatar>
+    <el-button type="primary" :icon="Edit" circle class="side-button" id="editSelfResponse" v-if="role === 'user'" @click="onMsgEdit" />
+    <el-button type="info" :icon="Refresh" circle class="side-button" id="regenerateMsg" v-if="role === 'user'" @click="regenerateMsg" />
+    <el-button type="danger" :icon="Delete" circle class="side-button" id="deleteSelfResponse" v-if="role === 'user'" @click="onMsgDelete" />
     <div class="bubble-content response-container" style="max-height: none;">
-        <MdPreview :modelValue="content"
-            previewTheme="github"
-            codeStyleReverse
-            style="text-align: left;margin-top:20px"
-            :style="{
-              textColor: themeState.currentTheme.textColor,
-            }"
-            :class="themeState.currentTheme.mdeditorClass"
-            :codeFold="false"
-            :autoFoldThreshold="300"
-        />
-<!--      <markdown-it :source="content" />-->
+      <MdPreview
+        :modelValue="content"
+        previewTheme="github"
+        codeStyleReverse
+        style="text-align: left;margin-top:20px"
+        :style="{ textColor: themeState.currentTheme.textColor }"
+        :class="themeState.currentTheme.mdeditorClass"
+        :codeFold="false"
+        :autoFoldThreshold="300"
+      />
+      <!-- <markdown-it :source="content" /> -->
     </div>
-    <el-button type="primary" :icon="Edit" circle class="side-button" id="editAiResponse" v-if="role!=='user'" @click="onMsgEdit"/>
-    <el-button type="danger" :icon="Delete" circle  class="side-button" id="deleteAiResponse" v-if="role!=='user'" @click="onMsgDelete"/>
-     <el-avatar class="avatar" v-if="role==='user'" :icon="User"></el-avatar>
+    <el-button type="primary" :icon="Edit" circle class="side-button" id="editAiResponse" v-if="role !== 'user'" @click="onMsgEdit" />
+    <el-button type="danger" :icon="Delete" circle class="side-button" id="deleteAiResponse" v-if="role !== 'user'" @click="onMsgDelete" />
+    <el-avatar class="avatar" v-if="role === 'user'" :icon="User"></el-avatar>
+
   </div>
-    <el-dialog
+  <el-dialog
     v-model="editDialogVisible"
-    title="编辑文字"
+    :title="$t('messageBubble.editTitle')"
     width="80%"
   >
-    <md-editor v-model="editingText"
+    <md-editor
+      v-model="editingText"
       showCodeRowNumber
       previewTheme="github"
       codeStyleReverse
@@ -117,12 +109,11 @@ const saveEdit=()=>{
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="editDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveEdit">保存修改</el-button>
+        <el-button @click="editDialogVisible = false">{{ $t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="saveEdit">{{ $t('common.save') }}</el-button>
       </div>
     </template>
   </el-dialog>
-
 </template>
 
 <style scoped>

@@ -1,27 +1,29 @@
 <template>
   <el-scrollbar>
-    <el-dialog v-model="renameDialogVisible" title="重命名" width="500">
-      <el-input v-model="editingTitle" style="width: 100%" placeholder="请输入新标题" />
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="renameDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="finishRename">
-            确定
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
+<el-dialog v-model="renameDialogVisible" :title="t('aiChat.renameTitle')" width="500">
+  <el-input v-model="editingTitle" style="width: 100%" :placeholder="t('aiChat.renamePlaceholder')" />
+  <template #footer>
+    <div class="dialog-footer">
+      <el-button @click="renameDialogVisible = false">{{ t('common.cancel') }}</el-button>
+      <el-button type="primary" @click="finishRename">
+        {{ t('common.confirm') }}
+      </el-button>
+    </div>
+  </template>
+</el-dialog>
+
     <div class="main-container">
       <!-- 左侧菜单 -->
       <el-menu class="side-menu" :default-active="activeDialogIndex.toString()">
         <div class="menu-header">
 
-          <el-tooltip content="新建对话">
-            <el-button type="primary" :icon="AddIcon" circle @click="addNewDialog"></el-button>
-          </el-tooltip>
-          <el-tooltip content="删除当前对话">
-            <el-button type="danger" :icon="Delete" circle @click="deleteCurrentDialog"></el-button>
-          </el-tooltip>
+<el-tooltip :content="t('aiChat.newDialog')">
+  <el-button type="primary" :icon="AddIcon" circle @click="addNewDialog"></el-button>
+</el-tooltip>
+<el-tooltip :content="t('aiChat.deleteCurrent')">
+  <el-button type="danger" :icon="Delete" circle @click="deleteCurrentDialog"></el-button>
+</el-tooltip>
+
 
         </div>
         <el-menu-item v-for="(dialog, index) in current_ai_dialogs" :key="index" :index="index.toString()"
@@ -52,17 +54,17 @@
 
         }" style="height:120px;">
           <el-scrollbar style="height: 70px;">
-            <el-input v-model="promptInput" placeholder="在此处输入消息。" type="textarea"
+            <el-input v-model="promptInput" :placeholder="t('aiChat.inputPlaceholder')" type="textarea"
               :autosize="{ minRows: 2, maxRows: 4 }" class="input-with-select" :disabled="responding" />
           </el-scrollbar>
 
 
           <el-button id="sendMsg" @click="onMsgSend" type="primary" round size="large" text bg
             :disabled="responding || promptInput.length === 0">
-            发送
+            {{ t('aiChat.send') }}
           </el-button>
           <el-button id="reset" @click="reset" round type="info" size="large" :disabled="responding" text bg>
-            重置
+            {{ t('aiChat.reset') }}
           </el-button>
         </div>
 
@@ -88,6 +90,9 @@ import { themeState } from "../utils/themes.js";
 import { AddIcon } from 'tdesign-icons-vue-next';
 import { answerQuestion, continueConversationStream } from '../utils/llm-api.js';
 import '../assets/tool-group.css'
+import { updateTitlePrompt } from '../utils/prompts.js';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const route = useRoute();
 const responding = ref(false);
 const activeDialogIndex = ref(0);
@@ -103,7 +108,7 @@ const temp_message = ref({
   "role": "assistant",
   "content": cur_resp
 });
-const defaultTitle = '与AI助手对话';
+const defaultTitle = t('aiChat.defaultTitle');
 // 初始化当前对话
 const initCurrentDialog = () => {
   //console.log(current_ai_dialogs.value);
@@ -117,7 +122,7 @@ const initCurrentDialog = () => {
 
 const addNewDialog = () => {
   const newDialog = {
-    title: '与AI助手对话',
+    title: defaultTitle,
     messages: [...defaultAiChatMessages]
   };
   addDialog(newDialog);
@@ -175,7 +180,7 @@ const finishRename = () => {
   renameDialogVisible.value = false;
 };
 
-const title = ref('与AI助手对话');
+const title = ref(defaultTitle);
 
 const reset = () => {
   promptInput.value = '';
@@ -225,7 +230,7 @@ const onMsgSend = async () => {
 // 其余方法保持原有实现，只需将localStorage操作替换为updateCurrentDialog()
 
 const updateTitle = async () => {
-  const prompt = '快速根据对话内容想一个对话标题，请直接输出标题，不超过10个字，不要包含其他多余内容：' + JSON.stringify(messages.value[messages.value.length - 1].content);
+  const prompt=updateTitlePrompt(JSON.stringify(messages.value[messages.value.length - 1].content));
   //备注：因为标题撰写需要一定时间，而用户可能在这个时间切换到其他对话，因此首先要保存索引
   const index=activeDialogIndex.value;//当前对话索引
   let newTitle = await answerQuestion(prompt)
@@ -265,7 +270,7 @@ const onMsgDelete = async (index) => {
   //bindCode(false);
   ElMessage({
     type: 'success',
-    message: '删除成功！',
+    message: t('common.deleteSuccess'),
   })
   updateCurrentDialog();
 }

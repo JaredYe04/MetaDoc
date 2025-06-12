@@ -1,14 +1,12 @@
 <template>
-
     <div class="main-container">
         <div class="content-container">
             <!-- 左边：Vditor Markdown 编辑器 -->
             <!-- 菜单组件 -->
             <TitleMenu v-if="showTitleMenu" :title="currentTitle.replaceAll('#', '').trim()" :position="menuPosition"
                 @close="handleTitleMenuClose" :path="currentTitlePath"
-                :tree="extractOutlineTreeFromMarkdown(current_article, true)" @accept="async (payload) => {
-                    await acceptGeneratedText(payload);
-                }" style="max-width: 500px;" />
+                :tree="extractOutlineTreeFromMarkdown(current_article, true)"
+                @accept="async (payload) => { await acceptGeneratedText(payload); }" style="max-width: 500px;" />
             <SearchReplaceMenu v-if="searchReplaceDialogVisible" @close="searchReplaceDialogVisible = false"
                 :position="SRMenuPosition" />
 
@@ -18,106 +16,95 @@
                 @insert="insertText" />
 
             <div id="vditor" class="editor" v-loading="loading" @keydown="handleTab"
-                @contextmenu.prevent="openContextMenu($event)">
-            </div>
+                @contextmenu.prevent="openContextMenu($event)"></div>
+
             <div class="resizable-container">
-                <el-tooltip content="拖动以改变宽度">
+                <el-tooltip :content="$t('article.drag_to_resize')">
                     <div class="resizer" @mousedown="startResize"></div>
                 </el-tooltip>
 
                 <!-- 右边：元信息显示 -->
                 <div class="meta-info"
                     :style="{ width: metaInfoWidth + 'px', backgroundColor: themeState.currentTheme.background2nd }">
-
                     <div style="text-align: center; font-size: large;">
-                        <el-tooltip content="编辑文档元信息" placement="left">
+                        <el-tooltip :content="$t('article.edit_meta_info')" placement="left">
                             <h1 class="interactive-text" @click="showMetaDialog"
-                                :style="{ color: themeState.currentTheme.textColor }">文档元信息</h1>
+                                :style="{ color: themeState.currentTheme.textColor }">
+                                {{ $t('article.meta_info') }}
+                            </h1>
                         </el-tooltip>
-
                     </div>
-                    <el-tooltip content="单击修改标题" placement="left">
+
+                    <el-tooltip :content="$t('article.click_to_edit_title')" placement="left">
                         <h1 @click="genTitleDialogVisible = !genTitleDialogVisible" class="interactive-text"
-                            :style="{ color: themeState.currentTheme.textColor }">标题：{{ current_article_meta_data.title ||
-                                '无标题' }}
+                            :style="{ color: themeState.currentTheme.textColor }">
+                            {{ $t('article.title') }}：
+                            {{ current_article_meta_data.title || $t('article.no_title') }}
                         </h1>
                     </el-tooltip>
 
                     <LlmDialog v-if="genTitleDialogVisible"
                         :prompt="generateTitlePrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
-                        title="生成标题" :llmConfig="{ max_tokens: 15, temperature: 0.0 }" @llm-content-accept="(content) => {
+                        :title="$t('article.generate_title')" :llmConfig="{ max_tokens: 15, temperature: 0.0 }"
+                        @llm-content-accept="(content) => {
                             current_article_meta_data.title = content;
                             genTitleDialogVisible = false;
                         }" @update:visible="genTitleDialogVisible = $event; genTitleDialogVisible = false"
                         :defaultText="current_article_meta_data.title" :defaultInputSize="1"></LlmDialog>
 
-                    <el-tooltip content="单击修改作者" placement="left">
+                    <el-tooltip :content="$t('article.click_to_edit_author')" placement="left">
                         <p @click="modifyAuthorDialogVisible = !modifyAuthorDialogVisible" class="interactive-text"
                             :style="{ color: themeState.currentTheme.textColor }">
-                            <strong>作者：</strong>{{current_article_meta_data.author || '未填写' }}
+                            <strong>{{ $t('article.author') }}：</strong>
+                            {{ current_article_meta_data.author || $t('article.no_author') }}
                         </p>
                     </el-tooltip>
 
-                    <LlmDialog v-if="modifyAuthorDialogVisible" :prompt="''" title="修改作者" :llmConfig="{}"
-                        @llm-content-accept="(content) => {
+                    <LlmDialog v-if="modifyAuthorDialogVisible" :prompt="''" :title="$t('article.modify_author')"
+                        :llmConfig="{}" @llm-content-accept="(content) => {
                             current_article_meta_data.author = content;
                             modifyAuthorDialogVisible = false;
                         }" @update:visible="modifyAuthorDialogVisible = $event; modifyAuthorDialogVisible = false"
                         :defaultText="current_article_meta_data.author" :defaultInputSize="1"></LlmDialog>
 
-
-
-                    <el-tooltip content="单击修改文章摘要" placement="left">
+                    <el-tooltip :content="$t('article.click_to_edit_description')" placement="left">
                         <p @click="genDescriptionDialogVisible = !genDescriptionDialogVisible" class="interactive-text"
                             :style="{ color: themeState.currentTheme.textColor }">
-                            <strong>摘要：</strong>{{ current_article_meta_data.description || '暂无摘要' }}
+                            <strong>{{ $t('article.description') }}：</strong>
+                            {{ current_article_meta_data.description || $t('article.no_description') }}
                         </p>
                     </el-tooltip>
 
                     <LlmDialog v-if="genDescriptionDialogVisible"
                         :prompt="generateDescriptionPrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
-                        title="生成摘要" :llmConfig="{ max_tokens: 100, temperature: 0.0 }" @llm-content-accept="(content) => {
+                        :title="$t('article.generate_description')" :llmConfig="{ max_tokens: 100, temperature: 0.0 }"
+                        @llm-content-accept="(content) => {
                             current_article_meta_data.description = content;
                             genDescriptionDialogVisible = false;
                         }" @update:visible="genDescriptionDialogVisible = $event; genDescriptionDialogVisible = false"
                         :defaultText="current_article_meta_data.description" :defaultInputSize="10"></LlmDialog>
-
                 </div>
-
-
             </div>
 
-            <el-dialog v-model="editMetaDialogVisible" title="修改文章元信息" width="30%">
+            <el-dialog v-model="editMetaDialogVisible" :title="$t('article.edit_meta_info')" width="30%">
                 <el-form>
-                    <el-form-item label="标题">
+                    <el-form-item :label="$t('article.title')">
                         <el-input v-model="current_article_meta_data.title" autocomplete="off" class="aero-input" />
                     </el-form-item>
-                    <el-form-item label="作者">
+                    <el-form-item :label="$t('article.author')">
                         <el-input v-model="current_article_meta_data.author" autocomplete="off" class="aero-input" />
                     </el-form-item>
-                    <el-form-item label="摘要">
-                        <el-input type="textarea" placeholder="请输入文章摘要" v-model="current_article_meta_data.description" autocomplete="off"
-                            resize='none' :autoSize="{ minRows: 3, maxRows: 5 }" class="aero-input" />
+                    <el-form-item :label="$t('article.description')">
+                        <el-input type="textarea" :placeholder="$t('article.description_placeholder')"
+                            v-model="current_article_meta_data.description" autocomplete="off" resize="none"
+                            :autoSize="{ minRows: 3, maxRows: 5 }" class="aero-input" />
                     </el-form-item>
                 </el-form>
             </el-dialog>
-
-            <!-- 添加一个底部菜单，width占满整个父容器，显示编辑器的一些元信息，例如总字数，鼠标位置 -->
-
-
-
-
         </div>
-        <!-- <div class="footer-menu" :style="{ backgroundColor: themeState.currentTheme.background2nd }">
-            <div class="meta-info-menu" :style="{ color: themeState.currentTheme.textColor }">
-                <span>字数：{{ countNodes(current_article) }}</span>
-                <span>鼠标位置：{{ menuPosition.left }}, {{ menuPosition.top }}</span>
-            </div>
-        </div> -->
     </div>
-
-
 </template>
+
 
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed } from "vue";
@@ -142,6 +129,8 @@ import { themeState } from "../utils/themes";
 import { getSetting } from "../utils/settings";
 import { bin } from "d3";
 import { localVditorCDN, vditorCDN } from "../utils/vditor-cdn";
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 // 状态变量
 const genTitleDialogVisible = ref(false);
@@ -209,10 +198,10 @@ const handleMenuClick = async (item) => {
             })
             messages.push({
                 role: 'assistant',
-                content: "我已经了解了整篇文章的内容，有什么可以帮助您的吗？"
+                content: t('article.ai_understood')
             })
             const newDialog = {
-                title: "AI分析整篇文章",
+                title: t('article.ai_analyze_title'),
                 messages: messages
             };
             //console.log(newDialog)
@@ -321,7 +310,7 @@ const bindTitleMenu = async () => {
         section.addEventListener('mouseup', (event) => mouseUpEvent(event, section));
         section.addEventListener('mouseleave', (event) => mouseLeaveEvent(event, section));
         //添加tooltip
-        section.setAttribute('title', '长按可用AI助手优化该段落');
+        section.setAttribute('title', t('article.long_press_optimize'));
     });
 
     const outlineNode = document.getElementsByClassName('vditor-outline__content')[0];
@@ -338,7 +327,8 @@ const bindTitleMenu = async () => {
         //鼠标指针改成pointer
         target.style.cursor = 'pointer';
         //添加tooltip
-        target.setAttribute('title', '单击以跳转，长按可用AI助手优化该段落');
+        target.setAttribute('title', t('article.click_jump_long_press_optimize'));
+
     });
 };
 
@@ -443,6 +433,7 @@ onMounted(async () => {
         }
         const autoSaveExternalImage = await getSetting('autoSaveExternalImage');
         vditor.value = new Vditor('vditor', {
+            lang: t('lang'),
             toolbarConfig: { pin: true },
             theme: themeState.currentTheme.vditorTheme,
             preview: {
@@ -466,97 +457,96 @@ onMounted(async () => {
                     }
                 },
                 error: (msg) => {
-                    console.error('上传失败:', msg);
+                    console.error('Upload Error:', msg);
                 },
             },
             toolbar: [
                 {
                     name: 'undo',
-                    tip: '撤销',
+                    tip: t('article.toolbar.undo'),
                     tipPosition: 's',
-
                 },
                 {
                     name: 'redo',
-                    tip: '重做',
+                    tip: t('article.toolbar.redo'),
                     tipPosition: 's',
                 },
                 {
                     name: 'headings',
+                    tip: t('article.toolbar.headings'),
                     tipPosition: 's',
-                    tip: '标题',
                 },
                 {
                     name: 'bold',
+                    tip: t('article.toolbar.bold'),
                     tipPosition: 's',
-                    tip: '加粗',
                 },
                 {
                     name: 'italic',
+                    tip: t('article.toolbar.italic'),
                     tipPosition: 's',
-                    tip: '斜体',
                 },
                 {
                     name: 'strike',
+                    tip: t('article.toolbar.strike'),
                     tipPosition: 's',
-                    tip: '删除线',
                 },
                 {
                     name: 'link',
+                    tip: t('article.toolbar.link'),
                     tipPosition: 's',
-                    tip: '超链接',
                 },
                 {
                     name: 'list',
+                    tip: t('article.toolbar.list'),
                     tipPosition: 's',
-                    tip: '列表',
                 },
                 {
                     name: 'table',
+                    tip: t('article.toolbar.table'),
                     tipPosition: 's',
-                    tip: '表格',
                 },
                 {
                     name: 'code',
+                    tip: t('article.toolbar.code'),
                     tipPosition: 's',
-                    tip: '代码块',
                 },
                 {
                     name: 'preview',
+                    tip: t('article.toolbar.preview'),
                     tipPosition: 's',
-                    tip: '预览',
                 },
                 {
                     name: 'fullscreen',
+                    tip: t('article.toolbar.fullscreen'),
                     tipPosition: 's',
-                    tip: '全屏编辑器',
                 },
                 {
                     name: "quote",
+                    tip: t('article.toolbar.quote'),
                     tipPosition: "s",
-                    tip: "引用",
                 },
                 {
                     name: 'search-replace',
+                    tip: t('article.toolbar.search_replace'),
                     tipPosition: 's',
-                    tip: '查找与替换',
                     className: 'right',
                     icon: '<svg><use xlink:href="#vditor-icon-info"></use></svg>',
                     click() { eventBus.emit('search-replace') },
                 },
                 {
                     name: 'ai-assistant',
+                    tip: t('article.toolbar.ai_assistant'),
                     tipPosition: 's',
-                    tip: 'AI助手',
                     className: 'right',
                     icon: `<img src="${themeState.currentTheme.AiLogo}" style="width: 20px; height: 20px; " />`,
                     click() { handleMenuClick('ai-assistant') },
                 },
-
             ],
+
             cdn: cdn,
             cache: { enable: false },
-            placeholder: "在此编辑 Markdown 内容...",
+            placeholder: t('article.input_placeholder'),
             outline: {
                 enable: true,
                 position: "left",
@@ -589,7 +579,7 @@ onMounted(async () => {
     catch (e) {
         console.error(e);
         eventBus.emit('show-error',
-            'Vditor 初始化失败:' + e,
+            this.$t('article.vditor_init_failed') + e
         );
         loadingInstance.close();
 

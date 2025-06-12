@@ -1,3 +1,7 @@
+
+const local= 'http://localhost:8080';//本地服务器地址
+const aliyun= 'https://101.37.254.247:8080';//阿里云服务器地址
+
 export const SERVER_URL = 'http://localhost:8080';//Spring Boot后端服务器的地址，实际使用时需要替换为实际的服务器地址
 
 export const  outline_tree_example = {

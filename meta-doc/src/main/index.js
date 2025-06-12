@@ -225,11 +225,27 @@ expressApp.post('/url-upload', (req, res) => {
 
 const server = http.createServer(expressApp);
 
+
 // 在本地运行 HTTP 服务器
+//但是如果已经运行了，就不需要再运行了
 server.listen(3000, () => {
   console.log('Local CDN server running at http://localhost:3000');
   console.log(dir)
 });
+
+server.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    console.error('Address in use, retrying...');
+    setTimeout(() => {
+      server.close();
+      server.listen(3000, () => {
+        console.log('Local CDN server running at http://localhost:3000');
+        console.log(dir)
+      });
+
+    }, 1000 * 60);
+  }
+})
 
 
 // This method will be called when Electron has finished

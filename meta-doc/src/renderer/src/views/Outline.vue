@@ -1,13 +1,13 @@
 <template>
   <div class="container">
-    <el-scrollbar class="aero-div generate-preview"
-      v-if="generateChildChapterLoading || generateContentLoading || pendingAccept" :style="{
-        backgroundColor: themeState.currentTheme.background, top: position.top + 'px',
-        left: position.left + 'px',
-      }" @mousedown.stop="startDrag">
+    <el-scrollbar class="aero-div generate-preview" v-if="generating || pendingAccept" :style="{
+      backgroundColor: themeState.currentTheme.background, top: position.top + 'px',
+      left: position.left + 'px',
+    }" @mousedown.stop="startDrag">
       <div class="noselect-display">
-        <h2 v-if="generateChildChapterLoading || generateContentLoading">AI正在工作中...</h2>
-        <h2 v-if="pendingAccept">生成的内容
+        <h2 v-if="generating">AI正在工作中...</h2>
+        <h3 v-if="generateChildrenContentLoading">正在生成:{{ nodeBeingProcessed }}</h3>
+        <h2 v-if="pendingAccept">生成已完成，选择是否接受更改
           <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
             @click.stop="acceptChange">
             <el-icon style="font-size: 14px">
@@ -39,7 +39,7 @@
         </div>
         <el-tooltip content="编辑节点" placement="top">
           <el-button size="small" type="text" class="aero-btn" circle @click.stop="handleNodeButtonClick(node)"
-            v-if="node.path !== 'dummy'" :disabled="pendingAccept">
+            v-if="node.path !== 'dummy'" :disabled="pendingAccept || generating">
             <el-icon>
               <More />
             </el-icon>
@@ -93,7 +93,7 @@
 
             </div>
             <div class="button-group" v-if="nodeMenuToggle && !pendingAccept">
-              <el-tooltip content="AI生成本段内容" placement="top">
+              <el-tooltip content="AI生成本章节内容" placement="top">
                 <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   :loading="generateContentLoading" @click.stop="generateContent" :disabled="generating">
                   <el-icon style="font-size: 14px" v-if="!generateContentLoading">
@@ -106,6 +106,24 @@
                   @click.stop="generateChildChapter" :loading="generateChildChapterLoading" :disabled="generating">
                   <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
                     <Finished />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="AI为所有子章节生成内容" placement="top">
+                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="generateChildrenContent" :loading="generateChildrenContentLoading"
+                  :disabled="generating">
+                  <el-icon style="font-size: 14px" v-if="!generateChildrenContentLoading">
+                    <Download />
+                  </el-icon>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="AI为所有章节生成子章节" placement="top">
+                <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+                  @click.stop="generateChildrenChildren" :loading="generateChildrenChildrenLoading"
+                  :disabled="generating">
+                  <el-icon style="font-size: 14px" v-if="!generateChildrenChildrenLoading">
+                    <Rank />
                   </el-icon>
                 </el-button>
               </el-tooltip>
@@ -215,7 +233,8 @@
         </el-button>
       </el-tooltip>
       <el-tooltip content="打开AI辅助" placement="top">
-        <el-button :type="nodeMenuToggle ? 'primary' : 'danger'" circle @click="nodeMenuToggle = !nodeMenuToggle">
+        <el-button :type="nodeMenuToggle ? 'primary' : 'danger'" circle @click="nodeMenuToggle = !nodeMenuToggle"
+          :disabled="generating || pendingAccept">
           <el-icon style="width: 1em; height: 1em;">
             AI
           </el-icon>
@@ -234,11 +253,11 @@ import '../assets/aero-div.css';
 import '../assets/aero-btn.css';
 import "../assets/aero-input.css";
 import { MdEditor, MdPreview, MdCatalog } from 'md-editor-v3';
-import { Plus, Edit, Delete, More, Minus, ArrowLeftBold, ArrowRightBold, Finished, EditPen, Checked, Close, Check } from '@element-plus/icons-vue';
+import { Plus, Edit, Delete, More, Minus, ArrowLeftBold, ArrowRightBold, Finished, EditPen, Checked, Close, Check, Download, Rank } from '@element-plus/icons-vue';
 import { current_outline_tree, default_outline_tree, latest_view, sync, tree_node_schema } from '../utils/common-data';
 import { searchNode, searchParentNode } from '../utils/common-data';
 import { adjustTitleIndex, adjustTitleLevel, removeTextFromOutline } from '../utils/md-utils.js';
-import { expandTreeNodePrompt, generateContentPrompt, outlineChangePrompt } from '../utils/prompts.js';
+import { expandTreeNodePrompt, generateContentPrompt, generateParentNodeContentPrompt, outlineChangePrompt } from '../utils/prompts.js';
 import { answerQuestionStream } from '../utils/llm-api.js';
 import { themeState } from '../utils/themes.js';
 import { extractOuterJsonString } from '../utils/regex-utils.js';
@@ -257,6 +276,104 @@ const formatTitleConfig = reactive({
 
 const backupOutlineTree = ref(null);
 const generateContentLoading = ref(false);
+const generateChildrenContentLoading = ref(false);
+const generateChildrenChildrenLoading = ref(false);
+const nodeBeingProcessed = ref(''); // 用于显示正在处理的节点名称
+const generateChildrenChildren = async () => {
+  const node = selectedNode.value;
+  generating.value = true;
+  generateChildrenChildrenLoading.value = true;
+  const cur_node = searchNode(node.path, treeData.value);
+  // 递归遍历所有子孙节点并为每个节点生成内容
+  const traverseAndGenerate = async (curNode) => {
+    if (!curNode) return;
+    // 跳过没有children的叶子节点
+    if (curNode.children && curNode.children.length > 0) {
+      for (let child of curNode.children) {
+        // 递归先处理子节点
+        await traverseAndGenerate(child);
+      }
+    }
+    if( curNode.children.length > 0) {
+      return; // 如果本来就有子节点，则不再处理
+    }
+    let prompt = expandTreeNodePrompt(
+        JSON.stringify(removeTextFromOutline(treeData.value)),
+        JSON.stringify(curNode),
+        JSON.stringify(tree_node_schema));
+    
+    rawstring.value = '';
+    nodeBeingProcessed.value = curNode.title; // 更新正在处理的节点名称
+    await answerQuestionStream(prompt, rawstring);
+    const json = extractOuterJsonString(rawstring.value);
+    //console.log('json', json);
+    const newChildren = JSON.parse(json);
+    curNode.children.push(...newChildren);
+    eventBus.emit('show-success', `AI为节点 ${curNode.title} 生成子章节成功！`);
+  };
+
+  try {
+
+    await traverseAndGenerate(cur_node);
+    eventBus.emit('show-success', 'AI生成子章节成功！');
+  } catch (e) {
+    eventBus.emit('show-error', 'AI生成子章节失败: ' + e.message);
+  }
+
+  generateChildrenChildrenLoading.value = false;
+  generating.value = false;
+}
+const generateChildrenContent = async () => {
+  const node = selectedNode.value;
+  generating.value = true;
+  generateChildrenContentLoading.value = true;
+  const cur_node = searchNode(node.path, treeData.value);
+  // 递归遍历所有子孙节点并为每个节点生成内容
+  const traverseAndGenerate = async (curNode) => {
+    if (!curNode) return;
+    // 跳过没有children的叶子节点
+    if (curNode.children && curNode.children.length > 0) {
+      for (let child of curNode.children) {
+        // 递归先处理子节点
+        await traverseAndGenerate(child);
+      }
+    }
+    // // 跳过根节点本身
+    // if (curNode === cur_node) {
+    //   return;
+    // }
+    let prompt = '';
+    if (curNode.children.length == 0) {
+      prompt = generateContentPrompt(
+        JSON.stringify(removeTextFromOutline(treeData.value)),
+        JSON.stringify(curNode)
+      );
+    }
+    else{
+      prompt = generateParentNodeContentPrompt(
+        JSON.stringify(removeTextFromOutline(treeData.value)),
+        JSON.stringify(curNode)
+      );
+    }
+    rawstring.value = '';
+    nodeBeingProcessed.value = curNode.title; // 更新正在处理的节点名称
+    await answerQuestionStream(prompt, rawstring);
+    curNode.text = rawstring.value;
+    eventBus.emit('show-success', `AI为节点 ${curNode.title} 生成内容成功！`);
+
+  };
+
+  try {
+
+    await traverseAndGenerate(cur_node);
+    eventBus.emit('show-success', 'AI生成内容成功！');
+  } catch (e) {
+    eventBus.emit('show-error', 'AI生成内容失败: ' + e.message);
+  }
+
+  generateChildrenContentLoading.value = false;
+  generating.value = false;
+}
 const generateContent = async () => {
   const node = selectedNode.value;
   generating.value = true;
@@ -518,7 +635,7 @@ const generateChildChapter = async () => {
     console.log('json parse error', e);
     eventBus.emit('show-error', 'AI生成子章节失败，请重试:', e.message);
   }
-    generateChildChapterLoading.value = false;
+  generateChildChapterLoading.value = false;
   generating.value = false;
 }
 

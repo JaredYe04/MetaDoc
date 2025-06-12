@@ -10,14 +10,9 @@
 
     <p style="font-weight: bold;" @mousedown.stop> {{ props.title ? props.title : "标题" }}</p>
 
-    <el-scrollbar class="md-container" v-if="!generated && !generating" @mousedown.stop style="  max-height: 35vh; min-height: 10vh;">
-      <MarkdownItEditor :source="articleContent" />
-    </el-scrollbar>
+    <MarkdownItEditor  class="md-container" v-if="!generated && !generating" @mousedown.stop :source="articleContent" />
 
-    <el-scrollbar class="md-container" v-if="generated || generating" @mousedown.stop style="  max-height: 35vh;  min-height: 10vh;">
-      <MarkdownItEditor :source="generatedText" />
-    </el-scrollbar>
-
+     <MarkdownItEditor class="md-container" v-if="generated || generating" @mousedown.stop  :source="generatedText" />
     <!-- <p class="article-content">{{ articleContent }}</p> -->
     <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable class="inline-input" resize='none'
       style="color: black; opacity: 1;" placeholder="请输入需求" @mousedown.stop />

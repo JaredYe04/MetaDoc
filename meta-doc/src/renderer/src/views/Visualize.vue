@@ -1,73 +1,79 @@
 <template>
-    <WordCloudDetail v-if="showTitleMenu" :word="current_word" :frequency="current_frequency" :position="menuPosition"
-        @close="handleTitleMenuClose" style="max-width: 300px;" />
-    <el-scrollbar>
-        <div class="visualize-container">
-            <!-- 左侧：文章大纲和字数统计 -->
-
-            <div class="left-section">
-                <div class="outline-section aero-div">
-                    <h3>文章大纲</h3>
-                    <el-scrollbar style="max-height:300px;overflow: auto;">
-                        <div id="outline-graph" :style="{
-                            textColor: themeState.currentTheme.textColor,
-                            color: themeState.currentTheme.textColor
-                        }"></div>
-                    </el-scrollbar>
-
-                </div>
-
-                <div class="word-count-section aero-div">
-                    <h3>字数统计</h3>
-                    <el-scrollbar>
-                        <div class="word-count-placeholder">
-                            <div id="word-count-diagram" style="width: 100%; height: 300%;overflow: auto;" :style="{
-                                textColor: themeState.currentTheme.textColor,
-                                color: themeState.currentTheme.textColor
-                            }"></div>
-                        </div>
-                    </el-scrollbar>
-
-                </div>
-            </div>
-
-            <!-- 中间：词云图 -->
-            <div class="wordcloud-section aero-div" style="padding: 0;overflow: auto;">
-                <h1 class="big-title interactive-text" @click="generateWordCloud" :style="{
-                    textColor: themeState.currentTheme.textColor,
-                    color: themeState.currentTheme.textColor
-                }">词云图</h1>
-                <div id="wordcloud-3d" class="wordcloud-canvas">
-                </div>
-            </div>
-
-            <!-- 右侧：段落分布和词频统计 -->
-            <div class="right-section">
-
-                <div class="pie-analysis aero-div" style="height: 400px;">
-                    <h3>段落分布</h3>
-                    <el-scrollbar style="overflow: auto;">
-                        <div id="pie" class="chart-placeholder" style="width: 100%; height: 400px;">
-                        </div>
-                    </el-scrollbar>
-
-                </div>
-
-
-
-                <div class="word-frequency-section aero-div">
-                    <h3>词频统计</h3>
-                    <div class="word-frequency">
-                        <div id="word-frequency-diagram" style="width: 100%; height: 300%;overflow: auto;"></div>
-                    </div>
-                </div>
-            </div>
+  <WordCloudDetail
+    v-if="showTitleMenu"
+    :word="current_word"
+    :frequency="current_frequency"
+    :position="menuPosition"
+    @close="handleTitleMenuClose"
+    style="max-width: 300px;"
+  />
+  <el-scrollbar>
+    <div class="visualize-container">
+      <!-- 左侧：文章大纲和字数统计 -->
+      <div class="left-section">
+        <div class="outline-section aero-div">
+          <h3>{{ $t('visualize.articleOutline') }}</h3>
+          <el-scrollbar style="max-height:300px;overflow: auto;">
+            <div
+              id="outline-graph"
+              :style="{
+                textColor: themeState.currentTheme.textColor,
+                color: themeState.currentTheme.textColor
+              }"
+            ></div>
+          </el-scrollbar>
         </div>
-    </el-scrollbar>
 
-    <!-- <div id="vditor" style="visibility: hidden; height: 0; width: 0;">
+        <div class="word-count-section aero-div">
+          <h3>{{ $t('visualize.wordCount') }}</h3>
+          <el-scrollbar>
+            <div class="word-count-placeholder">
+              <div
+                id="word-count-diagram"
+                style="width: 100%; height: 300%;overflow: auto;"
+                :style="{
+                  textColor: themeState.currentTheme.textColor,
+                  color: themeState.currentTheme.textColor
+                }"
+              ></div>
+            </div>
+          </el-scrollbar>
+        </div>
+      </div>
 
-       </div> -->
+      <!-- 中间：词云图 -->
+      <div class="wordcloud-section aero-div" style="padding: 0;overflow: auto;">
+        <h1
+          class="big-title interactive-text"
+          @click="generateWordCloud"
+          :style="{
+            textColor: themeState.currentTheme.textColor,
+            color: themeState.currentTheme.textColor
+          }"
+        >
+          {{ $t('visualize.wordCloud') }}
+        </h1>
+        <div id="wordcloud-3d" class="wordcloud-canvas"></div>
+      </div>
+
+      <!-- 右侧：段落分布和词频统计 -->
+      <div class="right-section">
+        <div class="pie-analysis aero-div" style="height: 400px;">
+          <h3>{{ $t('visualize.paragraphDistribution') }}</h3>
+          <el-scrollbar style="overflow: auto;">
+            <div id="pie" class="chart-placeholder" style="width: 100%; height: 400px;"></div>
+          </el-scrollbar>
+        </div>
+
+        <div class="word-frequency-section aero-div">
+          <h3>{{ $t('visualize.wordFrequency') }}</h3>
+          <div class="word-frequency">
+            <div id="word-frequency-diagram" style="width: 100%; height: 300%;overflow: auto;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </el-scrollbar>
 </template>
 
 <script setup>
@@ -208,9 +214,12 @@ const article_text = ref('');
 const processWords = async () => {
     const bypassCodeBlock=await getSetting('bypassCodeBlock');//是否跳过代码块
     let text=current_article.value;
+    //去掉所有链接
+    text = text.replace(/!?\[.*?\]\(.*?\)/g, ''); //
     if(bypassCodeBlock){
         //console.log(text)
         text = text.replace(/```[\s\S]*?```/g, '');//去掉代码块
+        
         //console.log(text)
     }
     article_text.value = text;
@@ -245,6 +254,7 @@ const processWords = async () => {
 
     //筛选出前20个词
     wordCount.value = wordCount.value.sort((a, b) => b.size - a.size).slice(0, Math.min(30, wordCount.value.length));
+    //console.log(wordCount.value);
 };
 const generateWordCloud = async () => {
 

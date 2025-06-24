@@ -2,7 +2,8 @@
   <div id="particle-bg" class="homepage">
 
     <div class="center-content" v-if="!quickStartDialogVisible">
-      <h1 class="main-letter" @mouseover="highlightM" @mouseleave="resetM" v-if="current_file_path === ''">{{ $t('home.metaDoc') }}</h1>
+      <h1 class="main-letter" @mouseover="highlightM" @mouseleave="resetM" v-if="current_file_path === ''">{{
+        $t('home.metaDoc') }}</h1>
       <div class="buttons aero-div" v-if="current_file_path === ''">
 
         <el-tooltip :content="$t('home.tooltip.quickStart')" placement="top">
@@ -15,8 +16,9 @@
       </div>
       <div v-if="current_file_path !== ''" style="height: 100vh;">
 
-        <el-scrollbar class="md-metainfo" min-size="10" >
-          <h1 class="md-title" :style="{ color: themeState.currentTheme.textColor }">{{ current_article_meta_data.title }}
+        <el-scrollbar class="md-metainfo" min-size="10">
+          <h1 class="md-title" :style="{ color: themeState.currentTheme.textColor }">{{ current_article_meta_data.title
+          }}
           </h1>
           <div class="md-author" :style="{ color: themeState.currentTheme.textColor }">
             <h3>{{ $t('home.authorLabel') }}：{{ current_article_meta_data.author }}</h3>
@@ -26,25 +28,19 @@
           </div>
         </el-scrollbar>
 
-        <el-scrollbar  class="md-container" >
-          <MdPreview :modelValue="current_article"
-            previewTheme="github"
-            codeStyleReverse
-            style="text-align: left;margin-top:20px"
-            :style="{
+        <el-scrollbar class="md-container">
+          <MdPreview :modelValue="current_article" previewTheme="github" codeStyleReverse
+            style="text-align: left;margin-top:20px" :style="{
               textColor: themeState.currentTheme.textColor,
-            }"
-            :class="themeState.currentTheme.mdeditorClass"
-            :theme="themeState.currentTheme.mdeditorTheme"
-            :codeFold="false"
-            :autoFoldThreshold="300"
-        />
+            }" :class="themeState.currentTheme.mdeditorClass" :theme="themeState.currentTheme.mdeditorTheme"
+            :codeFold="false" :autoFoldThreshold="300" />
         </el-scrollbar>
 
       </div>
     </div>
     <div class="center-content" v-if="quickStartDialogVisible">
-      <h2 class="main-letter" @mouseover="highlightM" @mouseleave="resetM" style="font-size: 50px;">{{ $t('home.quickStartTitle') }}</h2>
+      <h2 class="main-letter" @mouseover="highlightM" @mouseleave="resetM" style="font-size: 50px;">{{
+        $t('home.quickStartTitle') }}</h2>
 
       <div class="aero-div quick-start-container" :style="{
         color: themeState.currentTheme.textColor,
@@ -67,9 +63,8 @@
         <div style="display: flex; flex: 1; border-top: 1px dashed #ccc; padding-top: 10px;">
           <!-- Markdown 编辑器 -->
           <div style=" flex-grow: 1;">
-            <el-scrollbar  style="width: 100%; padding-right: 10px;" class="generated-md-container">
-              <MarkdownItEditor :source="generatedText" @mousedown.stop
-                style=" box-shadow: none;"  />
+            <el-scrollbar style="width: 100%; padding-right: 10px;" class="generated-md-container">
+              <MarkdownItEditor :source="generatedText" @mousedown.stop style=" box-shadow: none;" />
             </el-scrollbar>
           </div>
 
@@ -86,7 +81,8 @@
               class="aero-div" v-if="tab === $t('home.tab.documentInfo')">
               <label
                 style="width: 100%; text-align: center; align-self: center; font-weight: bold; margin-bottom: 10px;"
-                :style="{ color: themeState.currentTheme.textColor }" class="interactive-text">{{ $t('home.documentInfoLabel') }}</label>
+                :style="{ color: themeState.currentTheme.textColor }" class="interactive-text">{{
+                  $t('home.documentInfoLabel') }}</label>
               <div style="display: flex; align-items: center; margin-bottom: 16px">
                 <label style="width: 60px; text-align: left; margin-right: 8px">{{ $t('home.label.title') }}</label>
                 <el-input v-model="current_article_meta_data.title" style="flex: 1;width: 200px;"
@@ -115,29 +111,34 @@
               v-if="tab === $t('home.tab.aiAssistant')">
               <label
                 style="width: 100%; text-align: center; align-self: center; font-weight: bold; margin-bottom: 10px;"
-                :style="{ color: themeState.currentTheme.textColor }" class="interactive-text">{{ $t('home.aiAssistantLabel') }}</label>
+                :style="{ color: themeState.currentTheme.textColor }" class="interactive-text">{{
+                  $t('home.aiAssistantLabel') }}</label>
               <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left">
                 <el-slider v-model="temperature" :marks="marks" :min="0" :max="100"
                   style="margin-bottom: 20px; width: 80%; " :disabled="generated || generating" />
               </el-tooltip>
 
               <el-tooltip :content="$t('home.tooltip.selectMood')" placement="left">
-                <el-segmented v-model="mood" style="margin-bottom: 25px; background: rgba(255, 255, 255, 0.3)"
-                  :options="moodOptions" :disabled="generated || generating">
-                  <template #default="{ item }">
-                    <div class="flex flex-col items-center gap-2 p-2" style="height: 60px; margin-top: 20px;">
+
+                <el-select v-model="mood" :placeholder="$t('home.tooltip.selectMood')" multiple filterable
+                  allow-create style=" margin-bottom: 5px; margin-top: 5px;" :disabled="generated || generating"
+                  size="small">
+                  <el-option v-for="option in moodOptions" :key="option.value" :label="option.label"
+                    :value="option.value">
+                    <template #prefix>
                       <el-icon :size="12">
-                        <component :is="item.icon" />
+                        <component :is="option.icon" />
                       </el-icon>
-                      <div>{{ item.label }}</div>
-                    </div>
-                  </template>
-                </el-segmented>
+                    </template>
+                  </el-option>
+                </el-select>
+
+
               </el-tooltip>
               <el-tooltip :content="$t('home.tooltip.inputPrompt')" placement="left">
                 <el-autocomplete v-model="userPrompt" :fetch-suggestions="querySearch" clearable
-                  class="inline-input aero-input" style=" opacity: 0.8;" :placeholder="$t('home.tooltip.inputPrompt')" @mousedown.stop
-                  type="textarea" :autosize="{ minRows: 3, maxRows: 3 }" resize='none'
+                  class="inline-input aero-input" style=" opacity: 0.8;" :placeholder="$t('home.tooltip.inputPrompt')"
+                  @mousedown.stop type="textarea" :autosize="{ minRows: 3, maxRows: 3 }" resize='none'
                   :disabled="generated || generating">
                 </el-autocomplete>
               </el-tooltip>
@@ -216,7 +217,7 @@
         </div>
       </div>
     </div>
-    </div>
+  </div>
 </template>
 
 
@@ -292,7 +293,7 @@ function handleAcceptSuggestion(prompt) {
   userPrompt.value = prompt;
 }
 
-const mood = ref(t('home.mood.peaceful'));
+const mood = ref([t('home.mood.peaceful')]);
 const moodOptions = [
   {
     label: t('home.mood.happy'),
@@ -323,6 +324,36 @@ const moodOptions = [
     label: t('home.mood.sad'),
     value: 'sad',
     icon: Drizzling
+  },
+  {
+    label: t('home.mood.warning'),
+    value: 'warning',
+    icon: Warning
+  },
+  {
+    label: t('home.mood.exciting'),
+    value: 'exciting',
+    icon: Lightning
+  },
+  {
+    label: t('home.mood.angry'),
+    value: 'angry',
+    icon: Lightning
+  },
+  {
+    label: t('home.mood.surprised'),
+    value: 'surprised',
+    icon: Lightning
+  },
+  {
+    label: t('home.mood.fearful'),
+    value: 'fearful',
+    icon: Lightning
+  },
+  {
+    label: t('home.mood.disgusted'),
+    value: 'disgusted',
+    icon: Lightning
   }
 ];
 
@@ -517,7 +548,7 @@ if (window && window.electron) {
   ipcRenderer = window.electron.ipcRenderer
 } else {
   webMainCalls();
-  ipcRenderer=localIpcRenderer
+  ipcRenderer = localIpcRenderer
   //todo 说明当前环境不是electron环境，需要另外适配
 }
 
@@ -526,17 +557,17 @@ if (window && window.electron) {
 // 生命周期钩子
 const preventNavigate = (event) => {
   document.addEventListener('click', (event) => {
-  const target = event.target.closest('a');
-  if (target && target.href && target.target !== '_blank') {
-    event.preventDefault(); // 阻止默认跳转行为
+    const target = event.target.closest('a');
+    if (target && target.href && target.target !== '_blank') {
+      event.preventDefault(); // 阻止默认跳转行为
 
-    // 判断是否是 http(s) 链接
-    const url = target.href;
-    if (url.startsWith('http')) {
-      eventBus.emit('open-link', url); // 发送事件，打开链接
+      // 判断是否是 http(s) 链接
+      const url = target.href;
+      if (url.startsWith('http')) {
+        eventBus.emit('open-link', url); // 发送事件，打开链接
+      }
     }
-  }
-});
+  });
 };
 onMounted(async () => {
   initThreeJS();
@@ -568,7 +599,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   align-self: center;
-  
+
   max-height: 63vh;
   height: 63vh;
   overflow: auto;
@@ -598,11 +629,13 @@ onBeforeUnmount(() => {
   /*圆角边框 */
   border-radius: 10px;
 }
-.generated-md-container{
+
+.generated-md-container {
   max-height: 55vh;
   height: 55vh;
   overflow: auto;
 }
+
 .center-content {
   display: flex;
   flex-direction: column;

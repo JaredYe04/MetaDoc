@@ -212,19 +212,7 @@ eventBus.on('close-doc', async () => {
 
 eventBus.on('export', async (format) => {
   sync();
-  //eventBus.emit('nav-to', '/article');
-  //如果是pdf则直接导出，否则需要系统调用
-  //const exportImageMode = await getSetting('exportImageMode')
-  
-  // switch (exportImageMode) {
-  //   case 'base64':
-  //     md = await image2base64(md)
-  //     break;
-  //   case 'local':
-  //     md = await image2local(md)
-  //     break;
 
-  // }
   let md = current_article.value//不区分格式
   
 

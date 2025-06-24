@@ -91,7 +91,7 @@ const aiResponse = ref(props.defaultText); // LLM生成的内容
 const loading = ref(false);
 
 import { useI18n } from 'vue-i18n'
-
+const { locale } = useI18n()
 const { t } = useI18n()
 
 async function generateContent() {

@@ -1,5 +1,5 @@
 <template>
-  <div class="aero-div" :style="menuStyles" @mousedown.stop="onMouseDown">
+  <div class="aero-div" :style="menuStyles" @mousedown.prevent="onMouseDown">
 
     <div style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px;">
       <el-button
@@ -9,7 +9,7 @@
         @click="$emit('close')"
         class="aero-btn"
         style="float: inline-start;"
-        @mousedown.stop
+        @mousedown.prevent
       >
       </el-button>
     </div>

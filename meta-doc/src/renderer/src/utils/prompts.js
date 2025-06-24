@@ -40,24 +40,8 @@ export function sectionChangePrompt(tree, section, title, userPrompt, context_mo
             break;
 
     }
-    // "现在用户有一篇文章，其中有一段需要你修改；；；" +
-    //     "以下是文章的大纲结构：" + tree +
-    //     "；；；当前章节标题是：\"" +
-    //     title + "\"，" +
-    //     (
-    //         (section == '' 
-    //             || !section
-    //             || section==NaN
-    //         ) ? ('章节内容为空，需要你来生成这一节') :
-    //             ("需要修改的章节是：\"" +
-    //                 section + "\"，")
-    //             +
-    //             +"以下是用户的需求：\"" +
-    //             userPrompt + "\"，请根据用户需求修改或生成本节，注意不要有任何多余废话，只有修改后的章节内容。"
-    //     );
 
     prompt+="请根据用户需求修改或生成本节，注意不要有任何多余废话，只有修改后的章节内容。";
-    //console.log(prompt);
     return prompt;
 }
 
@@ -74,8 +58,9 @@ export function outlineChangePrompt(fullTreeJson, nodeTreeJson, userPrompt) {
 }
 
 export function generateArticlePrompt(mood, userPrompt) {
+    if(mood.toString().trim()=='')mood = ['平和'];
     const prompt = "你是一个文笔出色的编辑，现在用户需要你为他写一篇文章，以下是用户的需求：\"" +
-        userPrompt + "\"，除此之外，你应当使用" + mood + "的情绪与口吻来撰写文章。请根据用户需求，以及情绪要求，输出文章。注意不要输出任何任何多余废话，只输出文章内容。";
+        userPrompt + "\"，除此之外，你应当使用" + mood.toString() + "的情绪与口吻来撰写文章。请根据用户需求，以及情绪要求，输出文章。注意不要输出任何任何多余废话，只输出文章内容。";
     return prompt;
 }
 

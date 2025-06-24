@@ -1,14 +1,8 @@
 <template>
-  <el-menu
-    class="el-menu-vertical-demo"
-    :collapse="isCollapse"
-    @open="handleOpen"
-    @close="handleClose"
-    style="height: 100vh;"
-    :background-color="themeState.currentTheme.SideBackgroundColor"
+  <el-menu class="el-menu-vertical-demo" :collapse="isCollapse" @open="handleOpen" @close="handleClose"
+    style="height: 100vh;" :background-color="themeState.currentTheme.SideBackgroundColor"
     :text-color="themeState.currentTheme.SideTextColor"
-    :active-text-color="themeState.currentTheme.SideActiveTextColor"
-  >
+    :active-text-color="themeState.currentTheme.SideActiveTextColor">
     <el-tooltip :content="$t('leftMenu.metaDocTooltip')" placement="right">
       <el-sub-menu index="0">
         <template #title>
@@ -91,11 +85,7 @@
     <el-tooltip :content="$t('leftMenu.aiToolTooltip')" placement="right">
       <el-sub-menu index="2">
         <template #title>
-          <img
-            :src="themeState.currentTheme.AiLogo"
-            alt="AI"
-            style="width: 18px; height: 18px; margin-left: 3px;"
-          />
+          <img :src="themeState.currentTheme.AiLogo" alt="AI" style="width: 18px; height: 18px; margin-left: 3px;" />
           <span>{{ $t('leftMenu.aiAssistant') }}</span>
         </template>
 
@@ -152,7 +142,7 @@
             askSave(() => {
               eventBus.emit('open-doc', item)
             })
-          ">
+            ">
             <el-icon>
               <Document />
             </el-icon>
@@ -186,16 +176,50 @@
         </el-menu-item>
       </el-sub-menu>
     </el-tooltip>
+    <el-tooltip :content="$t('leftMenu.langTooltip')" placement="right">
+      <el-sub-menu index="6">
+        <template #title>
+          <el-icon>
+            <EarthIcon />
+          </el-icon>
+          <span>{{ $t('leftMenu.langTooltip') }}</span>
+        </template>
+
+        <el-menu-item index="6-1" @click="changeLang('zh_CN')">
+          <!-- <el-icon>
+            <CircleCheck />
+          </el-icon> -->
+          <span>中文（简体）</span>
+        </el-menu-item>
+
+        <el-menu-item index="6-2" @click="changeLang('en_US')">
+          <!-- <el-icon>
+            <Warning />
+          </el-icon> -->
+          <span>English (US)</span>
+        </el-menu-item>
+        <el-menu-item index="6-3" @click="changeLang('jp_JP')">
+          <!-- <el-icon>
+            <Warning />
+          </el-icon> -->
+          <span>日本語</span>
+        </el-menu-item>
+
+        <el-menu-item index="6-4" @click="changeLang('ko_KR')">
+          <!-- <el-icon>
+            <Warning />
+          </el-icon> -->
+          <span>한국어</span>
+        </el-menu-item>
+      </el-sub-menu>
+
+
+    </el-tooltip>
 
     <el-tooltip :content="$t('leftMenu.userProfileTooltip')" placement="right">
       <el-menu-item @click="toggleUserProfile">
-        <img
-          v-if="avatar"
-          :src="avatar"
-          width="25"
-          height="25"
-          style="border-radius: 50%; display: flex; align-items: center; align-self: center;"
-        />
+        <img v-if="avatar" :src="avatar" width="25" height="25"
+          style="border-radius: 50%; display: flex; align-items: center; align-self: center;" />
         <el-icon v-else>
           <UserFilled />
         </el-icon>
@@ -229,10 +253,16 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { exportPDF } from '../utils/md-utils';
 import { themeState } from '../utils/themes';
 import { avatar } from '../utils/common-data';
+import { EarthIcon } from 'tdesign-icons-vue-next';
 const recentDocs = ref([])
 const isCollapse = ref(true)
 const showUserProfile = ref(false)
-
+import { useI18n } from 'vue-i18n'
+const { locale } = useI18n()
+const changeLang = (lang) => {
+  locale.value = lang
+  localStorage.setItem('lang', lang)
+}
 const toggleUserProfile = () => {
   eventBus.emit('toggle-user-profile')
 }

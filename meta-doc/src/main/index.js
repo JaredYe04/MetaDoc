@@ -78,14 +78,14 @@ function createWindow() {
     console.log('filePath:', filePath);
   }
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/home' + (filePath ? `?file=${encodeURIComponent(filePath)}` : ''))
+    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/home?windowType=home' + (filePath ? `&file=${encodeURIComponent(filePath)}` : ''))
   } else {
     // 生产环境：用 file:// 协议 + loadURL + query
     const indexPath = path.join(__dirname, '../renderer/index.html');
     const fileURL = url.pathToFileURL(indexPath).toString(); // 转为 file:// 协议
 
     mainWindow.loadURL(
-      `${fileURL}#/home${filePath ? `?file=${encodeURIComponent(filePath)}` : ''}`
+      `${fileURL}#/home?windowType=home${filePath ? `&file=${encodeURIComponent(filePath)}` : ''}`
     );
     // mainWindow.loadFile(join(__dirname, '../renderer/index.html'+ (filePath ? `?file=${encodeURIComponent(filePath)}` : '')))
   }
@@ -386,13 +386,13 @@ export const openFomulaRecognitionDialog = async () => {
 
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     //console.log(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-chat`);
-    await fomulaRecognitionWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/fomula-recognition`)
+    await fomulaRecognitionWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/fomula-recognition?windowType=fomula-recognition`)
 
   }
   else {
 
     //settingWindow.loadFile(path.join(__dirname, '../renderer/index.html/#/setting'))
-    await fomulaRecognitionWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/fomula-recognition`);
+    await fomulaRecognitionWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/fomula-recognition?windowType=fomula-recognition`);
 
   }
   fomulaRecognitionWindow.setTitle('手写公式识别助手')
@@ -431,12 +431,12 @@ export const openAiGraphDialog = async () => {
   )
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     //console.log(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-chat`);
-    await aiGraphWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-graph`)
+    await aiGraphWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-graph?windowType=ai-graph`)
 
   }
   else {
     //settingWindow.loadFile(path.join(__dirname, '../renderer/index.html/#/setting'))
-    await aiGraphWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/ai-graph`);
+    await aiGraphWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/ai-graph?windowType=ai-graph`);
   }
   aiGraphWindow.setTitle('智能绘图助手')
   // console.log(path.join(dirname, '../renderer/setting.html'));
@@ -481,13 +481,13 @@ export const openAiChatDialog = async (payload = null) => {
 
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     //console.log(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-chat`);
-    await aichatWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-chat`)
+    await aichatWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-chat?windowType=ai-chat`)
 
   }
   else {
 
     //settingWindow.loadFile(path.join(__dirname, '../renderer/index.html/#/setting'))
-    await aichatWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/ai-chat`);
+    await aichatWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/ai-chat?windowType=ai-chat`);
 
   }
   aichatWindow.setTitle('与AI对话')
@@ -532,13 +532,13 @@ export const openSettingDialog = async () => {
 
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     //console.log(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/setting`);
-    await settingWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/setting`)
+    await settingWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/setting?windowType=setting`)
 
   }
   else {
 
     //settingWindow.loadFile(path.join(__dirname, '../renderer/index.html/#/setting'))
-    await settingWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/setting`);
+    await settingWindow.loadURL(`file://${path.join(__dirname, '../renderer/index.html')}#/setting?windowType=setting`);
 
   }
   settingWindow.setTitle('设置面板')

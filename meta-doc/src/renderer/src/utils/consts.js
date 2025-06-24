@@ -12,7 +12,7 @@ export const  outline_tree_example = {
   children: [//子节点列表，子节点结构和当前相同
     {
     path: '1',
-    title: '新文档',
+    title: '',
     text: '',
     title_level: 1,
     children: [

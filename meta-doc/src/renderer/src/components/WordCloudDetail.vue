@@ -53,8 +53,8 @@ const props = defineProps({
 //   generate();
 // })
 const emit = defineEmits(["accept", 'close']);
-
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const generate = async () => {
   generating.value = true;
   const prompt = explainWordPrompt(props.word);

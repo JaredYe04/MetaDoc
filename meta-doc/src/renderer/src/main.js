@@ -59,13 +59,16 @@ app.use(ElementPlus)
 app.component('VueTree', VueTree)
 app.use(router)
 
-import en_us from './locales/en_us.json'
-import zh_cn from './locales/zh_cn.json'
+import en_US from './locales/en_US.json'
+import zh_CN from './locales/zh_CN.json'
+import jp_JP from './locales/jp_JP.json'
+import ko_KR from './locales/ko_KR.json'
 import { createI18n } from 'vue-i18n'
+const savedLang = localStorage.getItem('lang') || 'zh_CN'
 const i18n = createI18n({
-  locale: 'en_us', // 默认语言，可根据用户设置动态改
-  fallbackLocale: 'zh_cn', // 回退语言
-  messages: { en_us, zh_cn }
+  locale: savedLang, // 设置默认语言
+  fallbackLocale: 'zh_CN', // 回退语言
+  messages: { en_US, zh_CN, jp_JP, ko_KR }, // 语言包
 })
 
 app.use(i18n).mount('#app')

@@ -62,7 +62,7 @@ export const defaultAiChatMessages = [
 export const firstLoad = ref(true)
 
 const default_artical_meta_data = {
-  title: '新文档',
+  title: '',
   author: '',
   description: ''
 }
@@ -71,6 +71,16 @@ var current_file_path = ref('')
 var current_outline_tree = ref(JSON.parse(JSON.stringify(default_outline_tree)))
 var current_article = ref(generateMarkdownFromOutlineTree(default_outline_tree))
 const current_article_meta_data = ref({ ...default_artical_meta_data })//拷贝了默认值，避免引用问题
+//监听current_article_meta_data.value的变化，如果有变化，则发送is-need-save事件
+import { watch } from 'vue'
+watch(
+  current_article_meta_data,
+  (newVal, oldVal) => {
+    //console.log('current_article_meta_data changed', newVal, oldVal)
+    eventBus.emit('is-need-save', true)
+  },
+  { deep: true }
+)
 var latest_view=ref('outline')
 var renderedHtml = ref('')
 
@@ -139,6 +149,23 @@ export function dump2json(mdreplace='') {
     current_ai_dialogs: current_ai_dialogs.value
   })
 }
+export function autoGenerateTitle(){
+  //如果没有标题就尝试从文章内容中自动生成标题
+  if(current_article_meta_data.value.title==='') {
+    //从文章内容中提取第一个标题（一级、二级、三级等标题都可以）
+    const firstTitleMatch = current_article.value.match(/^(#+)\s+(.*)$/m);
+    if (firstTitleMatch) {
+      const title = firstTitleMatch[2].trim();
+      current_article_meta_data.value.title = title;
+    }
+    else{
+      //否则尝试截取文章内容的前50个字符（如果文章内容少于50个字符，则截取全部）
+      const content = current_article.value.trim().substring(0, 50);
+      current_article_meta_data.value.title = content.length > 0 ? content : '无标题文档';
+    }
+  }
+
+}
 
 export function load_from_json(json) {
   var data = JSON.parse(json)
@@ -149,9 +176,7 @@ export function load_from_json(json) {
   //console.log(current_article)
   current_article_meta_data.value={...data.current_article_meta_data}
   current_ai_dialogs.value=data.current_ai_dialogs
-  //console.log(current_ai_dialogs.value)
-  //console.log(current_article.value)
-  //eventBus.emit('refresh')//加载完之后进行刷新
+  autoGenerateTitle();
 }
 
 export function dump2md(mdreplace='') {
@@ -170,6 +195,8 @@ export function dump2md(mdreplace='') {
 export function load_from_md(md) {
   //读取的时候先用正则表达式提取元信息
   const metaInfoMatch = md.match(/<!--meta-info:\s*([^-\s]+?)\s*-->/);
+  const pureMd = md.replace(/<!--meta-info:\s*[^-]+?\s*-->/, '').trim();
+  current_article.value = pureMd;
   //console.log(metaInfoMatch)
   if (metaInfoMatch && metaInfoMatch[1]) {
     const metaDataBase64 = metaInfoMatch[1];
@@ -179,15 +206,15 @@ export function load_from_md(md) {
     current_article_meta_data.value = { ...metaData.current_article_meta_data }
     current_ai_dialogs.value=metaData.current_ai_dialogs
   } else {
-    //如果没有元信息，则使用默认值
-    current_outline_tree.value = JSON.parse(JSON.stringify(default_outline_tree))
+    //如果没有元信息，则创建元信息
+    current_outline_tree.value = extractOutlineTreeFromMarkdown(pureMd);
     current_article_meta_data.value = { ...default_artical_meta_data }
     current_ai_dialogs.value=[]
   }
+  autoGenerateTitle();
   //console.log(current_article_meta_data.value)
   //把md内容中的元信息部分去掉
-  const pureMd = md.replace(/<!--meta-info:\s*[^-]+?\s*-->/, '').trim();
-  current_article.value = pureMd;
+  
 }
 
 export function sync() {

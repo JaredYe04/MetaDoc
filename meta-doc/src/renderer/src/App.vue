@@ -37,6 +37,13 @@ const route = useRoute()
 // 根据路由的 meta 信息判断是否需要顶部菜单和侧边菜单
 const requiresLayout = computed(() => route.meta.requiresLayout !== false)
 const autoOpenDoc = async () => {
+  //首先要判断一下自己是哪个窗口，只有主窗口才需要自动打开文档
+  const windowType = route.query.windowType;
+  //console.log("当前窗口类型是：", windowType);
+  if(windowType!=='home')return; // 如果不是主窗口，则不执行自动打开文档
+
+
+
   const hash = window.location.hash; // e.g. "#/home?file=xxx.md"
   const [path, query] = hash.split('?');
   const queryParams = query ? Object.fromEntries(new URLSearchParams(query)) : {};

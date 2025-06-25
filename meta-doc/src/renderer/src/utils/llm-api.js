@@ -116,7 +116,7 @@ async function validateApi() {
   return flag;
 }
 
-async function answerQuestionStream(prompt, ref, meta = { temperature: 0 }) {
+async function answerQuestionStream(prompt, ref, meta = { temperature: 0 }, signal = {}) {
   if (!(await validateApi())) { return }
 
   const { type, apiUrl, apiKey, selectedModel, completionSuffix = '' } = await getLlmConfig();
@@ -136,6 +136,7 @@ async function answerQuestionStream(prompt, ref, meta = { temperature: 0 }) {
       const reader = response.body.getReader(); // 获取流
       const decoder = new TextDecoder("utf-8"); // 解码器
       let ndjson = ""; // 用于拼接未完成的 NDJSON 行
+      //console.log("开始处理流数据...");
       ref.value = ""; // 清空内容
 
       const autoRemoveThinkTag = await getSetting('autoRemoveThinkTag')
@@ -154,6 +155,9 @@ async function answerQuestionStream(prompt, ref, meta = { temperature: 0 }) {
         ndjson = lines.pop(); // 保留未完成的行供下次解析
 
         for (const line of lines) {
+          if (signal.aborted) {
+            throw new DOMException('Aborted', 'AbortError')
+          }
           if (line.trim()) {
             try {
               let json = '';
@@ -188,6 +192,10 @@ async function answerQuestionStream(prompt, ref, meta = { temperature: 0 }) {
       }
     } catch (error) {
       console.error("请求出错:", error);
+      //如果是取消请求的错误，则抛出中止异常
+      if (error.name === 'AbortError') {
+        throw error; // 重新抛出中止异常
+      }
     }
   }
   //console.log(completionSuffix)
@@ -268,7 +276,7 @@ async function continueConversation(conversation) {
  * @param {object[]} conversation - The conversation history.
  * @param {object} ref - A reactive reference to store the result incrementally.
  */
-async function continueConversationStream(conversation, ref) {
+async function continueConversationStream(conversation, ref, signal = {}) {
   if (!(await validateApi())) {
     return;
   }
@@ -317,6 +325,9 @@ async function continueConversationStream(conversation, ref) {
               }
               else json = line; // 直接使用其他类型的 NDJSON 行
               if (json === '[DONE]') continue; // 处理 OpenAI 的结束标志
+              if (signal.aborted) {
+                throw new DOMException('Aborted', 'AbortError')
+              }
               const data = JSON.parse(json);
               if (data.choices && data.choices[0]) {
                 if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
@@ -330,8 +341,12 @@ async function continueConversationStream(conversation, ref) {
                 }
               }
 
-            } catch (err) {
-              console.error('JSON 解析错误:', err);
+            } catch (error) {
+              console.error('JSON 解析错误:', error);
+              //如果是取消请求的错误，则抛出中止异常
+              if (error.name === 'AbortError') {
+                throw error; // 重新抛出中止异常
+              }
             }
           }
         }
@@ -367,7 +382,7 @@ async function continueConversationStream(conversation, ref) {
           if (!line.trim()) continue;
           try {
             const data = JSON.parse(line);
-            if (data.message&&data.message.content) {
+            if (data.message && data.message.content) {
               ref.value += data.message.content;
               if (autoRemoveThinkTag && ref.value.trim().endsWith('</think>')) {
                 ref.value = '';

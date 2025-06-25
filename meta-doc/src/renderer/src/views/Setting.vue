@@ -179,7 +179,6 @@ import { ref, reactive, onMounted } from "vue";
 import eventBus from "../utils/event-bus.js";
 import { getSetting, setSetting } from "../utils/settings.js";
 import axios from "axios";
-import { answerQuestionStream } from "../utils/llm-api.js";
 import MicrophoneTest from "../components/MicrophoneTest.vue";
 import "../assets/aero-btn.css";
 import "../assets/aero-div.css";
@@ -191,6 +190,7 @@ import { getMetaDocLlmModels } from "../utils/web-utils.ts";
 import localIpcRenderer from "../utils/web-adapter/local-ipc-renderer.ts";
 import { webMainCalls } from "../utils/web-adapter/web-main-calls.js";
 import { useI18n } from 'vue-i18n'
+import { ai_types, createAiTask } from "../utils/ai_tasks.js";
 const { t } = useI18n()
 let ipcRenderer = null
 if (window && window.electron) {
@@ -324,7 +324,7 @@ const handleLlmToggle = (enabled) => {
 const testLlmApi = async () => {
   try {
     const prompt = t('setting.testPrompt');
-    await answerQuestionStream(prompt, testResult);
+    createAiTask('AI Test', prompt,  testResult, ai_types.answer, 'setting-test');
   } catch (error) {
     console.error(t('setting.testFailed'), error);
 

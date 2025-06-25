@@ -50,7 +50,7 @@
 <script setup>
 import { ref, watch, onMounted } from "vue";
 import { ElMessage } from "element-plus";
-import { answerQuestionStream } from "../utils/llm-api";
+
 import "../assets/aero-div.css";
 import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
@@ -91,6 +91,7 @@ const aiResponse = ref(props.defaultText); // LLM生成的内容
 const loading = ref(false);
 
 import { useI18n } from 'vue-i18n'
+import { ai_types, createAiTask } from "../utils/ai_tasks";
 const { locale } = useI18n()
 const { t } = useI18n()
 
@@ -101,7 +102,8 @@ async function generateContent() {
   }
   loading.value = true
   try {
-    await answerQuestionStream(props.prompt, aiResponse, props.llmConfig)
+    createAiTask(props.title, props.prompt, aiResponse,ai_types.answer,props.title);
+
   } catch (error) {
     ElMessage.error(t('llmDialog.generateFailedError'))
     console.error(error)

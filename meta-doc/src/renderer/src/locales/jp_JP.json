@@ -367,6 +367,9 @@
             },
             "success": {
                 "title": "メッセージ"
+            },
+            "warning": {
+                "title": "警告"
             }
         }
     },

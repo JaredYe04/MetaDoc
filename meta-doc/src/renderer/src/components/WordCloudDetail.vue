@@ -28,7 +28,7 @@ import { sync, current_outline_tree } from '../utils/common-data';
 import { ref, watch } from 'vue';
 import { max, min } from 'd3';
 import { explainWordPrompt, sectionChangePrompt } from '../utils/prompts';
-import { answerQuestionStream } from '../utils/llm-api';
+
 import eventBus from '../utils/event-bus';
 import { generateMarkdownFromOutlineTree } from '../utils/md-utils';
 import { defineProps, defineEmits } from 'vue';
@@ -54,13 +54,21 @@ const props = defineProps({
 // })
 const emit = defineEmits(["accept", 'close']);
 import { useI18n } from 'vue-i18n'
+import { ai_types, createAiTask } from '../utils/ai_tasks';
 const { t } = useI18n()
 const generate = async () => {
   generating.value = true;
   const prompt = explainWordPrompt(props.word);
-  await answerQuestionStream(prompt, generatedText);
-  generating.value = false;
-  generated.value = true;
+  const { handle, done } = createAiTask(props.word, prompt, generatedText, ai_types.answer, 'word-cloud-detail');
+
+  try {
+    await done;
+  } catch (err) {
+    console.warn('任务失败或取消：', err);
+  } finally {
+    generated.value = true;
+    generating.value = false;
+  }
 }
 
 const reset = () => {

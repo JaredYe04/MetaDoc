@@ -367,6 +367,9 @@
             },
             "success": {
                 "title": "消息"
+            },
+            "warning": {
+                "title": "警告"
             }
         }
     },
@@ -478,5 +481,13 @@
         "wordCloud": "词云图",
         "paragraphDistribution": "段落分布",
         "wordFrequency": "词频统计"
+    },
+    "bottomMenu":{
+        "wordCount": "字符总数：",
+        "currentFile": "当前文件：",
+        "newFile": "新文件",
+        "aiTaskQueueTooltip": "AI任务队列"
+
+
     }
 }

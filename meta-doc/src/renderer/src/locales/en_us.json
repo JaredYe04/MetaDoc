@@ -367,6 +367,9 @@
             },
             "success": {
                 "title": "Success"
+            },
+            "warning": {
+                "title": "Warning"
             }
         }
     },

@@ -109,7 +109,7 @@ import { sync, current_outline_tree } from '../utils/common-data';
 import { ref, watch } from 'vue';
 import { max } from 'd3';
 import { sectionChangePrompt } from '../utils/prompts';
-import { answerQuestionStream } from '../utils/llm-api';
+
 import eventBus from '../utils/event-bus';
 import { generateMarkdownFromOutlineTree } from '../utils/md-utils';
 import { defineProps, defineEmits } from 'vue';
@@ -117,6 +117,7 @@ import { themeState } from '../utils/themes';
 import { current_article } from '../utils/common-data';
 import { Plus } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n'
+import { ai_types, createAiTask } from '../utils/ai_tasks';
 
 const { t } = useI18n()
 
@@ -206,19 +207,25 @@ const accept = (append=false) => {
 const generate = async () => {
   generating.value = true;
   const outline = generateMarkdownFromOutlineTree(props.tree);
-  // console.log(outline);
-  // console.log(articleContent.value);
-  // console.log(props.title);
-  // console.log(userPrompt.value);
-  // console.log(context_mode.value);
-  // console.log(current_article.value);
 
   const prompt = sectionChangePrompt(outline, articleContent.value, props.title, userPrompt.value, context_mode.value, current_article.value);
   //console.log(prompt);
-  await answerQuestionStream(prompt, generatedText);
-  generating.value = false;
+  const { handle, done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'title-menu');
+  generating.value = true;
+  generated.value = false;
 
-  generated.value = true;
+  try {
+    await done;
+  } catch (err) {
+    console.warn('任务失败或取消：', err);
+  } finally {
+    generated.value = true;
+    generating.value = false;
+  }
+
+  // generating.value = false;
+
+  // generated.value = true;
 }
 const chat = async () => {
   const outline = generateMarkdownFromOutlineTree(props.tree);

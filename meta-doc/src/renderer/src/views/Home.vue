@@ -77,7 +77,7 @@
               <el-segmented v-model="tab" :options="[$t('home.tab.aiAssistant'), $t('home.tab.documentInfo')]" />
             </div>
             <div
-              style=" display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;height: 47vh;"
+              style=" display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;height: 47vh;width: 18vw;"
               class="aero-div" v-if="tab === $t('home.tab.documentInfo')">
               <label
                 style="width: 100%; text-align: center; align-self: center; font-weight: bold; margin-bottom: 10px;"
@@ -107,7 +107,7 @@
               </div>
             </div>
             <div class="aero-div"
-              style=" display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; height: 47vh;"
+              style=" display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; height: 47vh;width: 18vw;"
               v-if="tab === $t('home.tab.aiAssistant')">
               <label
                 style="width: 100%; text-align: center; align-self: center; font-weight: bold; margin-bottom: 10px;"
@@ -243,7 +243,7 @@ import {
   Warning
 } from "@element-plus/icons-vue";
 import { generateArticlePrompt, presets } from '../utils/prompts';
-import { answerQuestionStream } from '../utils/llm-api';
+
 import router from "../router/router";
 import { suggestionPresets } from '../utils/prompts';
 import { useI18n } from 'vue-i18n'
@@ -401,10 +401,22 @@ const generate = async () => {
 
   const prompt = generateArticlePrompt(mood.value, userPrompt.value);
   //console.log(prompt)
-  await answerQuestionStream(prompt, generatedText, { temperature: temperature.value / 100.0 });
-  generating.value = false;
+    const { handle, done } = createAiTask(userPrompt.value, prompt, generatedText, ai_types.answer, 'quick-start', { temperature: temperature.value / 100.0 });
+  generating.value = true;
+  generated.value = false;
 
-  generated.value = true;
+  try {
+    await done;
+  } catch (err) {
+    console.warn('任务失败或取消：', err);
+  } finally {
+    generated.value = true;
+    generating.value = false;
+  }
+
+  // generating.value = false;
+
+  // generated.value = true;
 }
 const querySearch = (queryString, cb) => {
   const createFilter = (queryString) => {
@@ -542,6 +554,7 @@ import { lightTheme, themeState } from '../utils/themes';
 import { MdPreview } from 'md-editor-v3';
 import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from '../utils/web-adapter/web-main-calls';
+import { ai_types, createAiTask } from '../utils/ai_tasks';
 
 let ipcRenderer = null
 if (window && window.electron) {

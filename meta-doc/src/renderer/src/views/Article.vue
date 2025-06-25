@@ -622,8 +622,8 @@ eventBus.on('sync-vditor-theme', async () => {
     display: flex;
     flex: 1;
     /*占满整个父容器 */
-    max-height: 92vh;
-    height: 92vh;
+    max-height: 90vh;
+    height: 90vh;
 
     /* 唯一允许滚动的区域 */
 

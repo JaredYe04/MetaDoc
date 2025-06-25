@@ -268,12 +268,13 @@ import Vditor from 'vditor'
 import { themeState } from "../utils/themes";
 import eventBus, { isElectronEnv } from '../utils/event-bus.js'
 import { MdEditor } from 'md-editor-v3'
-import { answerQuestionStream } from '../utils/llm-api.js'
+
 import { generateGraphPrompt } from '../utils/prompts.js'
 import domtoimage from 'dom-to-image-more';
 import { exportPng } from '../utils/image-utils.js'
 import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn.js'
 import { useI18n } from 'vue-i18n'
+import { ai_types, createAiTask } from '../utils/ai_tasks.js'
 const { t } = useI18n()
 
 const STORAGE_KEY = 'aiGraph_schemes'
@@ -524,8 +525,19 @@ async function generateCode() {
         },
         { immediate: true }
     )
-    await answerQuestionStream(prompt, codeRef)
-    generating.value = false
+    const { handle, done } = createAiTask(activeScheme.value.prompt, prompt, codeRef, ai_types.answer, 'ai-graph');
+    generating.value = true;
+
+    try {
+        await done;
+    } catch (err) {
+        console.warn('任务失败或取消：', err);
+    } finally {
+
+        generating.value = false;
+    }
+
+
 }
 
 

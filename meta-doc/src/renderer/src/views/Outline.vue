@@ -1,4 +1,4 @@
-<template> 
+<template>
   <div class="container">
     <el-scrollbar class="aero-div generate-preview" v-if="generating || pendingAccept" :style="{
       backgroundColor: themeState.currentTheme.background, top: position.top + 'px',
@@ -6,7 +6,22 @@
     }" @mousedown.stop="startDrag">
       <div class="noselect-display">
         <h2 v-if="generating">{{ $t('outline.generating') }}</h2>
-        <h3 v-if="generateChildrenContentLoading">{{ $t('outline.generatingFor') }}:{{ nodeBeingProcessed }}</h3>
+        <!-- <h3 v-if="generateChildrenContentLoading">{{ $t('outline.generatingFor') }}:{{ nodeBeingProcessed }}</h3> -->
+        <div v-if="generateChildrenContentLoading">
+          <div v-for="(item, index) in parallelChildren" :key="index">
+            <!-- <h3>{{ $t('outline.generatingFor') }}:{{ item.title }}</h3> -->
+            <div v-if="item.value" 
+
+            >{{ item.value }}</div>
+          </div>
+        </div>
+        <div v-if="generateChildrenChildrenLoading">
+          <div v-for="(item, index) in parallelChildren" :key="index">
+            <!-- <h3>{{ $t('outline.generatingFor') }}:{{ item.title }}</h3> -->
+            <div v-if="item.value" 
+            >{{ item.value }}</div>
+          </div>
+        </div>
         <h2 v-if="pendingAccept">{{ $t('outline.generationDone') }}
           <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
             @click.stop="acceptChange">
@@ -37,7 +52,7 @@
         <div class="tree-node" :style="{ backgroundColor: themeState.currentTheme.outlineNode }">
           {{ node.title }}
         </div>
-         <el-tooltip :content="$t('outline.editNode')" placement="top">
+        <el-tooltip :content="$t('outline.editNode')" placement="top">
           <el-button size="small" type="text" class="aero-btn" circle @click.stop="handleNodeButtonClick(node)"
             v-if="node.path !== 'dummy'" :disabled="pendingAccept || generating">
             <el-icon>
@@ -57,7 +72,7 @@
                   </el-icon>
                 </el-button>
               </el-tooltip>
-               <el-tooltip :content="$t('outline.addChild')" placement="top">
+              <el-tooltip :content="$t('outline.addChild')" placement="top">
                 <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="addChildNode">
                   <el-icon style="font-size: 14px">
@@ -73,7 +88,7 @@
                   </el-icon>
                 </el-button>
               </el-tooltip>
-               <el-tooltip :content="$t('outline.delete')" placement="top">
+              <el-tooltip :content="$t('outline.delete')" placement="top">
                 <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="deleteNode">
                   <el-icon style="font-size: 14px">
@@ -101,7 +116,7 @@
                   </el-icon>
                 </el-button>
               </el-tooltip>
-               <el-tooltip :content="$t('outline.generateChildChapter')" placement="top">
+              <el-tooltip :content="$t('outline.generateChildChapter')" placement="top">
                 <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="generateChildChapter" :loading="generateChildChapterLoading" :disabled="generating">
                   <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
@@ -137,7 +152,7 @@
                   </el-icon>
                 </el-button>
               </el-tooltip>
-               <el-tooltip :content="$t('outline.reject')" placement="top">
+              <el-tooltip :content="$t('outline.reject')" placement="top">
                 <el-button type="danger" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="discardChange" :loading="generateChildChapterLoading">
                   <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
@@ -161,7 +176,8 @@
             <el-switch v-model="formatTitleConfig.adjustMarkdown" active-color="#13ce66" inactive-color="#ff4949" />
           </el-tooltip>
         </el-form-item>
-        <el-form-item v-if='formatTitleConfig.adjustMarkdown' :label="$t('outline.firstMarkdownTitleLevel')" prop="firstMarkdownTitleLevel">
+        <el-form-item v-if='formatTitleConfig.adjustMarkdown' :label="$t('outline.firstMarkdownTitleLevel')"
+          prop="firstMarkdownTitleLevel">
           <el-input-number v-model="formatTitleConfig.firstMarkdownTitleLevel" :min="1" :max="6" :step="1"
             class="inline-input" />
         </el-form-item>
@@ -175,7 +191,8 @@
             <el-switch v-model="formatTitleConfig.cover" active-color="#13ce66" inactive-color="#ff4949" />
           </el-tooltip>
         </el-form-item>
-        <el-form-item v-if="formatTitleConfig.adjustTitle" :label="$t('outline.level1Chinese')" prop="level1TitleChinese">
+        <el-form-item v-if="formatTitleConfig.adjustTitle" :label="$t('outline.level1Chinese')"
+          prop="level1TitleChinese">
           <el-tooltip :content="$t('outline.level1ChineseTip')" placement="right">
             <el-switch v-model="formatTitleConfig.level1TitleChinese" active-color="#13ce66" inactive-color="#ff4949" />
           </el-tooltip>
@@ -257,6 +274,8 @@ import { themeState } from '../utils/themes.js';
 import { extractOuterJsonString } from '../utils/regex-utils.js';
 import '../assets/noselect-display.css';
 import { useI18n } from 'vue-i18n'
+import { ai_types, createAiTask } from '../utils/ai_tasks.js';
+
 const { t } = useI18n()
 const formatTitleDialogVisible = ref(false);
 const formatTitle = () => {
@@ -274,105 +293,144 @@ const backupOutlineTree = ref(null);
 const generateContentLoading = ref(false);
 const generateChildrenContentLoading = ref(false);
 const generateChildrenChildrenLoading = ref(false);
-const nodeBeingProcessed = ref(''); // 用于显示正在处理的节点名称
+const parallelChildren = ref([]); // 用于存储并行生成的子节点
+//const nodeBeingProcessed = ref(''); // 用于显示正在处理的节点名称
 const generateChildrenChildren = async () => {
   const node = selectedNode.value;
   generating.value = true;
   generateChildrenChildrenLoading.value = true;
+
   const cur_node = searchNode(node.path, treeData.value);
-  // 递归遍历所有子孙节点并为每个节点生成内容
+  parallelChildren.value = [];
+  const taskPromises = [];
+
   const traverseAndGenerate = async (curNode) => {
     if (!curNode) return;
-    // 跳过没有children的叶子节点
+
     if (curNode.children && curNode.children.length > 0) {
       for (let child of curNode.children) {
-        // 递归先处理子节点
-        await traverseAndGenerate(child);
+        traverseAndGenerate(child); // 不 await，保留并发
       }
+      return; //  不是叶子节点，跳过创建
     }
-    if (curNode.children.length > 0) {
-      return; // 如果本来就有子节点，则不再处理
-    }
-    let prompt = expandTreeNodePrompt(
+
+    // 是叶子节点，生成子节点
+    const prompt = expandTreeNodePrompt(
       JSON.stringify(removeTextFromOutline(treeData.value)),
       JSON.stringify(curNode),
-      JSON.stringify(tree_node_schema));
+      JSON.stringify(tree_node_schema)
+    );
 
-    rawstring.value = '';
-    nodeBeingProcessed.value = curNode.title; // 更新正在处理的节点名称
-    await answerQuestionStream(prompt, rawstring);
-    const json = extractOuterJsonString(rawstring.value);
-    //console.log('json', json);
-    const newChildren = JSON.parse(json);
-    curNode.children.push(...newChildren);
-    eventBus.emit('show-success', t('outline.generateChildSuccessWithTitle', { title: curNode.title }));
+    const myRawString = ref('');
+    parallelChildren.value.push(myRawString);
+
+    const { handle, done } = createAiTask(
+      curNode.title,
+      prompt,
+      myRawString,
+      ai_types.answer,
+      'outline-children-' + curNode.title
+    );
+
+    const taskPromise = done
+      .then(() => {
+        const json = extractOuterJsonString(myRawString.value);
+        const newChildren = JSON.parse(json);
+        curNode.children.push(...newChildren);
+        eventBus.emit(
+          'show-success',
+          t('outline.generateChildSuccessWithTitle', { title: curNode.title })
+        );
+      })
+      .catch((err) => {
+        //console.warn('任务失败或取消：', err);
+        // 可选 emit
+      });
+
+    taskPromises.push(taskPromise);
   };
 
   try {
-
-    await traverseAndGenerate(cur_node);
+    await traverseAndGenerate(cur_node);      // 启动所有任务
+    await Promise.all(taskPromises);          // 等待所有生成完成
     eventBus.emit('show-success', t('outline.generateChildSuccess'));
   } catch (e) {
     eventBus.emit('show-error', t('outline.generateChildFail', { error: e.message }));
-
+  } finally {
+    generateChildrenChildrenLoading.value = false;
+    generating.value = false;
   }
+};
 
-  generateChildrenChildrenLoading.value = false;
-  generating.value = false;
-}
 const generateChildrenContent = async () => {
   const node = selectedNode.value;
   generating.value = true;
   generateChildrenContentLoading.value = true;
+
   const cur_node = searchNode(node.path, treeData.value);
-  // 递归遍历所有子孙节点并为每个节点生成内容
+  parallelChildren.value = []; // 清空并行生成列表
+  const taskPromises = []; //  用于收集所有任务的done promise
+
   const traverseAndGenerate = async (curNode) => {
     if (!curNode) return;
-    // 跳过没有children的叶子节点
+
     if (curNode.children && curNode.children.length > 0) {
       for (let child of curNode.children) {
-        // 递归先处理子节点
-        await traverseAndGenerate(child);
+        // 递归处理子节点（并发触发）
+        traverseAndGenerate(child); // ❗不要 await，保留并发
       }
     }
-    // // 跳过根节点本身
-    // if (curNode === cur_node) {
-    //   return;
-    // }
+
     let prompt = '';
-    if (curNode.children.length == 0) {
+    if (curNode.children.length === 0) {
       prompt = generateContentPrompt(
         JSON.stringify(removeTextFromOutline(treeData.value)),
         JSON.stringify(curNode)
       );
-    }
-    else {
+    } else {
       prompt = generateParentNodeContentPrompt(
         JSON.stringify(removeTextFromOutline(treeData.value)),
         JSON.stringify(curNode)
       );
     }
-    rawstring.value = '';
-    nodeBeingProcessed.value = curNode.title; // 更新正在处理的节点名称
-    await answerQuestionStream(prompt, rawstring);
-    curNode.text = rawstring.value;
-    eventBus.emit('show-success', t('outline.generateContentSuccessWithTitle', { title: curNode.title }));
 
+    const myRawString = ref('');
+    parallelChildren.value.push(myRawString);
 
+    const { handle, done } = createAiTask(
+      curNode.title,
+      prompt,
+      myRawString,
+      ai_types.answer,
+      'outline-content-' + curNode.title
+    );
+
+    const taskPromise = done
+      .then(() => {
+        eventBus.emit(
+          'show-success',
+          t('outline.generateContentSuccessWithTitle', { title: curNode.title })
+        );
+      })
+      .catch((err) => {
+        console.warn('任务失败或取消：', err);
+      })
+      .finally(() => {
+        curNode.text = myRawString.value;
+      });
+
+    taskPromises.push(taskPromise); //  收集这个 promise
   };
 
-  try {
+  await traverseAndGenerate(cur_node);  // 启动任务遍历（递归中是并发）
 
-    await traverseAndGenerate(cur_node);
-    eventBus.emit('show-success', t('outline.generateContentSuccess'));
+  await Promise.all(taskPromises);      //  等待所有任务完成
 
-  } catch (e) {
-    eventBus.emit('show-error', t('outline.generateContentFail', { error: e.message }));
-  }
-
-  generateChildrenContentLoading.value = false;
   generating.value = false;
-}
+  generateChildrenContentLoading.value = false;
+  generated.value = true;
+};
+
 const generateContent = async () => {
   const node = selectedNode.value;
   generating.value = true;
@@ -382,13 +440,18 @@ const generateContent = async () => {
   const prompt = generateContentPrompt(
     JSON.stringify(removeTextFromOutline(treeData.value)),
     JSON.stringify(cur_node));
-  await answerQuestionStream(prompt, rawstring);
-  //console.log('json', json);
-  cur_node.text = rawstring.value;
-  //
-  pendingAccept.value = true;
-  generateContentLoading.value = false;
-  generating.value = false;
+
+  const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-content-' + cur_node.title);
+  try {
+    await done;
+  } catch (err) {
+    console.warn('任务失败或取消：', err);
+  } finally {
+    cur_node.text = rawstring.value;
+    pendingAccept.value = true;
+    generateContentLoading.value = false;
+    generating.value = false;
+  }
   eventBus.emit('show-success', t('outline.generateChapterSuccess'));
 
 };
@@ -625,14 +688,29 @@ const generateChildChapter = async () => {
       JSON.stringify(removeTextFromOutline(treeData.value)),
       JSON.stringify(cur_node),
       JSON.stringify(tree_node_schema));
-    await answerQuestionStream(prompt, rawstring);
-    const json = extractOuterJsonString(rawstring.value);
-    //console.log('json', json);
-    const newChildren = JSON.parse(json);
-    backupChildren.value = cur_node.children;
-    cur_node.children = [...cur_node.children, ...newChildren];
-    //rawstring.value = '';
-    pendingAccept.value = true;
+
+
+    //await answerQuestionStream(prompt, rawstring);
+    const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-children-' + cur_node.title);
+    try {
+      await done;
+      const json = extractOuterJsonString(rawstring.value);
+      //console.log('json', json);
+      const newChildren = JSON.parse(json);
+      backupChildren.value = cur_node.children;
+      cur_node.children = [...cur_node.children, ...newChildren];
+      //rawstring.value = '';
+      pendingAccept.value = true;
+    } catch (err) {
+      console.warn('任务失败或取消：', err);
+    } finally {
+
+      //generating.value = false;
+    }
+
+
+
+
 
   }
   catch (e) {

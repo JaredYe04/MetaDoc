@@ -367,6 +367,9 @@
             },
             "success": {
                 "title": "성공"
+            },
+            "warning": {
+                "title": "경고"
             }
         }
     },

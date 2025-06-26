@@ -1,37 +1,37 @@
 <template>
   <el-scrollbar>
-<el-dialog v-model="renameDialogVisible" :title="t('aiChat.renameTitle')" width="500">
-  <el-input v-model="editingTitle" style="width: 100%" :placeholder="t('aiChat.renamePlaceholder')" />
-  <template #footer>
-    <div class="dialog-footer">
-      <el-button @click="renameDialogVisible = false">{{ t('common.cancel') }}</el-button>
-      <el-button type="primary" @click="finishRename">
-        {{ t('common.confirm') }}
-      </el-button>
-    </div>
-  </template>
-</el-dialog>
+    <el-dialog v-model="renameDialogVisible" :title="t('aiChat.renameTitle')" width="500">
+      <el-input v-model="editingTitle" style="width: 100%" :placeholder="t('aiChat.renamePlaceholder')" />
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="renameDialogVisible = false">{{ t('common.cancel') }}</el-button>
+          <el-button type="primary" @click="finishRename">
+            {{ t('common.confirm') }}
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
 
     <div class="main-container">
       <!-- 左侧菜单 -->
       <el-menu class="side-menu" :default-active="activeDialogIndex.toString()">
         <div class="menu-header">
 
-<el-tooltip :content="t('aiChat.newDialog')">
-  <el-button type="primary" :icon="AddIcon" circle @click="addNewDialog"></el-button>
-</el-tooltip>
-<el-tooltip :content="t('aiChat.deleteCurrent')">
-  <el-button type="danger" :icon="Delete" circle @click="deleteCurrentDialog"></el-button>
-</el-tooltip>
+          <el-tooltip :content="t('aiChat.newDialog')">
+            <el-button type="primary" :icon="AddIcon" circle @click="addNewDialog" :disabled="responding"></el-button>
+          </el-tooltip>
+          <el-tooltip :content="t('aiChat.deleteCurrent')">
+            <el-button type="danger" :icon="Delete" circle @click="deleteCurrentDialog" :disabled="responding"></el-button>
+          </el-tooltip>
 
 
         </div>
         <el-menu-item v-for="(dialog, index) in current_ai_dialogs" :key="index" :index="index.toString()"
-          @click="loadDialog(index)">
+          @click="loadDialog(index)" :disabled="responding">
           <div class="menu-item-wrapper">
             <span class="dialog-title">{{ dialog.title }}</span>
             <el-button circle :icon="Edit" @click.stop="renameDialog(index)" class="rename-button" type="default">
-              
+
             </el-button>
           </div>
         </el-menu-item>
@@ -92,6 +92,7 @@ import { answerQuestion, continueConversationStream } from '../utils/llm-api.js'
 import '../assets/tool-group.css'
 import { updateTitlePrompt } from '../utils/prompts.js';
 import { useI18n } from 'vue-i18n'
+import { ai_types, createAiTask } from '../utils/ai_tasks.js';
 const { t } = useI18n()
 const route = useRoute();
 const responding = ref(false);
@@ -132,15 +133,15 @@ const addNewDialog = () => {
   updateCurrentDialog();
 };
 
-const updateCurrentDialog = (index=null) => {
+const updateCurrentDialog = (index = null) => {
   const dialog = {
     title: title.value,
     messages: messages.value
   };
-  if(index==null){
+  if (index == null) {
     updateDialog(activeDialogIndex.value, dialog);
   }
-  else{
+  else {
     updateDialog(index, dialog);
   }
 };
@@ -190,9 +191,22 @@ async function generateNextResponse(beforeGeneration, callbackRef, afterGenerati
   responding.value = true;
   await beforeGeneration();
   //console.log(messages.value)
-  await continueConversationStream(messages.value, cur_resp)
-  await afterGeneration();
-  responding.value = false;
+  const messageCopy = JSON.parse(JSON.stringify(messages.value));// 深拷贝消息列表，因为Proxy不能直接拷贝
+  console.log(messageCopy)
+  const { handle, done } = createAiTask(
+    messageCopy[messageCopy.length - 2].content, messageCopy, cur_resp, ai_types.chat, 'ai-chat');
+  try {
+    await done;
+  } catch (err) {
+    console.warn('任务失败或取消：', err);
+  } finally {
+    await afterGeneration();
+    responding.value = false;
+  }
+  //await continueConversationStream(messages.value, cur_resp)
+
+
+
 }
 
 const onMsgSend = async () => {
@@ -220,19 +234,19 @@ const onMsgSend = async () => {
       //console.log(messages.value);
       updateCurrentDialog();
       updateTitle();
-      
+
     }
   );
-  
+
 
 };
 
 // 其余方法保持原有实现，只需将localStorage操作替换为updateCurrentDialog()
 
 const updateTitle = async () => {
-  const prompt=updateTitlePrompt(JSON.stringify(messages.value[messages.value.length - 1].content));
+  const prompt = updateTitlePrompt(JSON.stringify(messages.value[messages.value.length - 1].content));
   //备注：因为标题撰写需要一定时间，而用户可能在这个时间切换到其他对话，因此首先要保存索引
-  const index=activeDialogIndex.value;//当前对话索引
+  const index = activeDialogIndex.value;//当前对话索引
   let newTitle = await answerQuestion(prompt)
   newTitle = newTitle.trim();
   //如果开头是##，则去掉
@@ -240,9 +254,9 @@ const updateTitle = async () => {
     newTitle = newTitle.substring(1);
     newTitle = newTitle.trim();
   }
-  if(newTitle.length>10)
+  if (newTitle.length > 10)
     newTitle = newTitle.substring(0, 10);
-  if(current_ai_dialogs.value[index].title===title.value){
+  if (current_ai_dialogs.value[index].title === title.value) {
     title.value = newTitle;
   }
   current_ai_dialogs.value[index].title = newTitle;
@@ -365,28 +379,39 @@ const onMsgEdit = async (data) => {
 }
 
 .menu-item-wrapper {
-  position: relative; /* 让子元素绝对定位时以该元素为参考 */
-  width: 100%; /* 占满整个菜单项 */
-  padding-right: 40px; /* 给按钮留出空间，防止文字覆盖按钮 */
-  box-sizing: border-box; /* 防止padding撑开宽度 */
-  overflow: hidden; /* 超出部分隐藏 */
-  white-space: nowrap; /* 禁止文字换行 */
-  text-overflow: ellipsis; /* 超出部分显示省略号 */
+  position: relative;
+  /* 让子元素绝对定位时以该元素为参考 */
+  width: 100%;
+  /* 占满整个菜单项 */
+  padding-right: 40px;
+  /* 给按钮留出空间，防止文字覆盖按钮 */
+  box-sizing: border-box;
+  /* 防止padding撑开宽度 */
+  overflow: hidden;
+  /* 超出部分隐藏 */
+  white-space: nowrap;
+  /* 禁止文字换行 */
+  text-overflow: ellipsis;
+  /* 超出部分显示省略号 */
 }
 
 .dialog-title {
   display: inline-block;
-  max-width: calc(95%); /* 避免文字覆盖按钮 */
+  max-width: calc(95%);
+  /* 避免文字覆盖按钮 */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.rename-button{
-  position: absolute; /* 绝对定位 */
-  right: 0px; /* 始终固定在右侧 */
-  top: 50%; 
-  transform: translateY(-50%); /* 垂直居中 */
+.rename-button {
+  position: absolute;
+  /* 绝对定位 */
+  right: 0px;
+  /* 始终固定在右侧 */
+  top: 50%;
+  transform: translateY(-50%);
+  /* 垂直居中 */
 
 }
 </style>

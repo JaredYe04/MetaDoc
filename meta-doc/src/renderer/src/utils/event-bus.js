@@ -134,19 +134,18 @@ ipcRenderer.on('open-doc-success', (event, payload) => {
   switch (payload.format) {
     case 'json':
       load_from_json(payload.content)
-        eventBus.emit('refresh')//加载完之后进行刷新
-        eventBus.emit('open-doc-success')
-        break;
+      eventBus.emit('refresh')//加载完之后进行刷新
+      eventBus.emit('open-doc-success')
+      break;
     case 'md':
       load_from_md(payload.content)
-        eventBus.emit('refresh')//加载完之后进行刷新
-        eventBus.emit('open-doc-success')
-        break;
+      eventBus.emit('refresh')//加载完之后进行刷新
+      eventBus.emit('open-doc-success')
+      break;
     default:
       eventBus.emit('show-error', '不支持的文件格式: ' + payload.format)
   }
 
-  //eventBus.emit('refresh')
 })
 
 
@@ -167,7 +166,7 @@ eventBus.on('save', async (msg) => {
     }
   }
   sync();
-  await ipcRenderer.send('save', { json: dump2json(),md:dump2md(), path: current_file_path.value, html: await md2html(current_article.value) })
+  await ipcRenderer.send('save', { json: dump2json(), md: dump2md(), path: current_file_path.value, html: await md2html(current_article.value) })
   eventBus.emit('is-need-save', false)
 })
 
@@ -199,7 +198,7 @@ eventBus.on('save-as', async () => {
   sync();
   eventBus.emit('nav-to', '/article');
   eventBus.emit('is-need-save', false)
-  ipcRenderer.send('save-as', { json: dump2json(),md:dump2md(), path: '', html: await md2html(current_article.value) })
+  ipcRenderer.send('save-as', { json: dump2json(), md: dump2md(), path: '', html: await md2html(current_article.value) })
 })
 
 eventBus.on('new-doc', async () => {
@@ -214,7 +213,7 @@ eventBus.on('export', async (format) => {
   sync();
 
   let md = current_article.value//不区分格式
-  
+
 
   if (format === 'pdf') {
     exportPDF(md);
@@ -271,7 +270,18 @@ eventBus.on('fetch-ai-dialogs', () => {//(这个事件只会被AICHAT组件触�
   ipcRenderer.send('fetch-ai-dialogs')//请求主进程获取对话数据
 })
 
+let cachedWindowType = 'home'
 
+export function initWindowType(type) {
+  //console.log('initWindowType', type)
+  cachedWindowType = type
+}
+export function getWindowType() {
+  return cachedWindowType
+}
+export function isMainWindow() {
+  return cachedWindowType === 'home'
+}
 
 import { lightTheme, darkTheme, themeState } from './themes.js'
 

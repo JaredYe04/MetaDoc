@@ -15,7 +15,7 @@ const htmlDocx = require('html-docx-js');
 const os = require('os');
 
 
-import { mainWindow, openSettingDialog, openAiChatDialog, uploadDir, settingWindow, aichatWindow, openFomulaRecognitionDialog,fomulaRecognitionWindow, openAiGraphDialog, aiGraphWindow } from './index'
+import { mainWindow, openSettingDialog, openAiChatDialog, uploadDir, settingWindow, aichatWindow, openFomulaRecognitionDialog, fomulaRecognitionWindow, openAiGraphDialog, aiGraphWindow } from './index'
 import { dirname } from './index'
 
 //import eventBus from '../renderer/src/utils/event-bus'
@@ -53,7 +53,7 @@ export function mainCalls() {
   ipcMain.on('ai-chat', () => {
     openAiChatDialog();
   })
-  ipcMain.on('ai-graph',() => {
+  ipcMain.on('ai-graph', () => {
     openAiGraphDialog();
   })
   ipcMain.on('fomula-recognition', () => {
@@ -62,7 +62,7 @@ export function mainCalls() {
 
 
 
-  
+
   ipcMain.on('open-link', (event, url) => {
     //console.log(url)
     shell.openExternal(url)
@@ -80,10 +80,10 @@ export function mainCalls() {
     if (aichatWindow) {
       aichatWindow.webContents.send('sync-theme')
     }
-    if(fomulaRecognitionWindow){
+    if (fomulaRecognitionWindow) {
       fomulaRecognitionWindow.webContents.send('sync-theme')
     }
-    if(aiGraphWindow){
+    if (aiGraphWindow) {
       aiGraphWindow.webContents.send('sync-theme')
     }
   })
@@ -154,6 +154,35 @@ export function mainCalls() {
     //console.log(data)
     aichatWindow.webContents.send('response-ai-dialogs', data)//告诉AI对话框，对话数据已经准备好了
   })
+  //////////////AI任务调度
+  ipcMain.on('register-ai-task', (event, taskInfo) => {
+    const mainWindow = BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes('#/home'))
+    if (mainWindow) {
+      mainWindow.webContents.send('register-ai-task', taskInfo)
+    }
+  })
+
+  ipcMain.on('ai-task-done', (event, handle) => {
+    const mainWindow = BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes('#/home'))
+    if (mainWindow) {
+      mainWindow.webContents.send('ai-task-done', handle)
+    }
+  })
+
+  ipcMain.on('broadcast-cancel-ai-task', (event, handle) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('cancel-task', handle)
+    })
+  })
+
+  ipcMain.on('start-task', (event, handle) => {
+    // 启动命令 → 所有窗口广播（每个窗口自己判断是否执行）
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('start-task', handle)
+    })
+  })
+  //////////////AI任务调度
+
 
   nativeTheme.on('updated', () => {
     mainWindow.webContents.send('os-theme-changed')
@@ -248,11 +277,11 @@ const quit = () => {
 const save = async (data, saveAs) => {
   //console.log(data);
   //console.log(data);
-  
+
   let path = data.path
   //console.log(path);
 
-  let content='';
+  let content = '';
 
 
   if (path === '' || saveAs) {
@@ -260,17 +289,17 @@ const save = async (data, saveAs) => {
     path = await chooseSaveFile(data)
   }
 
-  const format=path.split('.').pop().toLowerCase()
+  const format = path.split('.').pop().toLowerCase()
   switch (format) {
     case 'md':
-        content = data.md
-    break;
+      content = data.md
+      break;
     case 'json':
-        content = data.json
-        break;
+      content = data.json
+      break;
     default:
-        //eventBus.emit('show-error', '不支持的文件格式: ' + format)
-        return;
+      //eventBus.emit('show-error', '不支持的文件格式: ' + format)
+      return;
   }
   if (path) {
     fs.writeFileSync(path, content)
@@ -283,7 +312,7 @@ export const openDoc = async (path) => {
 
   if (path) {//如果传入了路径，则直接打开，否则弹出对话框
     const content = fs.readFileSync(path, 'utf-8')
-    const format= path.split('.').pop().toLowerCase()
+    const format = path.split('.').pop().toLowerCase()
     const payload = {
       content: content,
       format: format,
@@ -305,7 +334,7 @@ export const openDoc = async (path) => {
     const filePath = result.filePaths[0]
     //console.log(filePath);
     const content = fs.readFileSync(filePath, 'utf-8')
-    const format= filePath.split('.').pop().toLowerCase()
+    const format = filePath.split('.').pop().toLowerCase()
     const payload = {
       content: content,
       format: format,
@@ -326,7 +355,7 @@ const chooseSaveFile = async (data) => {
   const filename = title ? title : dateyyyyMMddhhmmss
   const result = await dialog.showSaveDialog(mainWindow, {
     title: '保存文件',
-    defaultPath: filename ,
+    defaultPath: filename,
     filters: [
       { name: 'Markdown Files', extensions: ['md'] },
       { name: 'JSON Files', extensions: ['json'] },

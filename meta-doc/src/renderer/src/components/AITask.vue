@@ -2,7 +2,7 @@
     <el-card :body-style="{ padding: '10px' }" style="margin-bottom: 10px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <strong>{{ task.name }}</strong><br />
+                <strong>{{ task.name.length>20?task.name.substring(0,20)+'...':task.name }}</strong><br />
                 状态：{{ task.status }}
             </div>
             <div style="display: flex; gap: 6px;">

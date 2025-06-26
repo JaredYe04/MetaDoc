@@ -13,17 +13,19 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import Main from './views/Main.vue'
 
-import eventBus from './utils/event-bus';
+import eventBus, { initWindowType } from './utils/event-bus';
 import { getRecentDocs, getSetting, initSettings } from './utils/settings';
 import { lightTheme, darkTheme, themeState } from './utils/themes';
 import { current_ai_dialogs, firstLoad } from './utils/common-data';
 import localIpcRenderer from './utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from './utils/web-adapter/web-main-calls';
+import { clearAiTasks } from './utils/ai_tasks';
 let ipcRenderer = null
+const route = useRoute()
 if (window && window.electron) {
   ipcRenderer = window.electron.ipcRenderer
 } else {
@@ -32,15 +34,15 @@ if (window && window.electron) {
   //todo 说明当前环境不是electron环境，需要另外适配
 }
 // 获取当前路由信息
-const route = useRoute()
 
 // 根据路由的 meta 信息判断是否需要顶部菜单和侧边菜单
 const requiresLayout = computed(() => route.meta.requiresLayout !== false)
 const autoOpenDoc = async () => {
   //首先要判断一下自己是哪个窗口，只有主窗口才需要自动打开文档
   const windowType = route.query.windowType;
+  initWindowType(windowType);
   //console.log("当前窗口类型是：", windowType);
-  if(windowType!=='home')return; // 如果不是主窗口，则不执行自动打开文档
+  if (windowType !== 'home') return; // 如果不是主窗口，则不执行自动打开文档
 
 
 
@@ -72,6 +74,11 @@ const autoOpenDoc = async () => {
 }
 
 onMounted(async () => {
+  window.addEventListener('beforeunload', () => {
+    clearAiTasks()
+  })
+  // const windowType=route.query.windowType
+  // initWindowType(windowType);
   await initSettings() // 初始化设置
   // 监听主题同步事件
   eventBus.on('sync-theme', async () => {
@@ -99,7 +106,6 @@ onMounted(async () => {
   // 触发一次主题同步事件
   eventBus.emit('sync-theme')
 })
-
 
 </script>
 

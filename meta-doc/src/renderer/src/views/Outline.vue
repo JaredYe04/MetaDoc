@@ -269,7 +269,7 @@ import { current_outline_tree, default_outline_tree, latest_view, sync, tree_nod
 import { searchNode, searchParentNode } from '../utils/common-data';
 import { adjustTitleIndex, adjustTitleLevel, removeTextFromOutline } from '../utils/md-utils.js';
 import { expandTreeNodePrompt, generateContentPrompt, generateParentNodeContentPrompt, outlineChangePrompt } from '../utils/prompts.js';
-import { answerQuestionStream } from '../utils/llm-api.js';
+
 import { themeState } from '../utils/themes.js';
 import { extractOuterJsonString } from '../utils/regex-utils.js';
 import '../assets/noselect-display.css';
@@ -525,6 +525,7 @@ const generatedText = ref('');
 
 // 生命周期钩子
 onMounted(() => {
+  
   sync();
   // eventBus.on('refresh', () => {
   //   treeData.value = current_outline_tree;
@@ -690,7 +691,7 @@ const generateChildChapter = async () => {
       JSON.stringify(tree_node_schema));
 
 
-    //await answerQuestionStream(prompt, rawstring);
+
     const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-children-' + cur_node.title);
     try {
       await done;

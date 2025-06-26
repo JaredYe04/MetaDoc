@@ -583,6 +583,7 @@ const preventNavigate = (event) => {
   });
 };
 onMounted(async () => {
+  
   initThreeJS();
   animate(); // 开始动画循环
   window.addEventListener('mousemove', onMouseMove);

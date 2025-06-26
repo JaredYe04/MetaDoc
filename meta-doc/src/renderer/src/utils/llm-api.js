@@ -185,7 +185,10 @@ async function answerQuestionStream(prompt, ref, meta = { temperature: 0 }, sign
                 ref.value = '';//清空
               }
             } catch (err) {
-              console.error("JSON 解析错误:", err);
+              if (error.name === 'AbortError') {
+                throw error; // 重新抛出中止异常
+              }
+              console.error("JSON 解析错误:", error);
             }
           }
         }
@@ -342,11 +345,12 @@ async function continueConversationStream(conversation, ref, signal = {}) {
               }
 
             } catch (error) {
-              console.error('JSON 解析错误:', error);
-              //如果是取消请求的错误，则抛出中止异常
               if (error.name === 'AbortError') {
                 throw error; // 重新抛出中止异常
               }
+              console.error('JSON 解析错误:', error);
+              //如果是取消请求的错误，则抛出中止异常
+
             }
           }
         }
@@ -388,8 +392,11 @@ async function continueConversationStream(conversation, ref, signal = {}) {
                 ref.value = '';
               }
             }
-          } catch (err) {
-            console.error('JSON 解析错误:', err);
+          } catch (error) {
+            if (error.name === 'AbortError') {
+              throw error; // 重新抛出中止异常
+            }
+            console.error('JSON 解析错误:', error);
           }
         }
       }

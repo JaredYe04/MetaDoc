@@ -51,7 +51,7 @@ const tasks = useAiTasks()
     cursor: pointer;
     color: #000000;
     height: 100%;
-    width: 30px;
+    width: 40px;
     margin-right: 5%;
     /*内容在中间对齐 */
     align-items: center;

@@ -113,7 +113,7 @@ const defaultTitle = t('aiChat.defaultTitle');
 // 初始化当前对话
 const initCurrentDialog = () => {
   //console.log(current_ai_dialogs.value);
-  if (current_ai_dialogs.value.length > 0) {
+  if (current_ai_dialogs.value && current_ai_dialogs.value.length > 0) {
     loadDialog(0);
   } else {
     addNewDialog();
@@ -264,7 +264,13 @@ const updateTitle = async () => {
 };
 
 onMounted(async () => {
-  eventBus.emit('fetch-ai-dialogs');//获取AI对话，因为对话保存在主渲染进程，所以需要主渲染进程发送给渲染进程
+  eventBus.emit('send-broadcast', {
+    to:'home',
+    eventName:'request-ai-dialogs',
+    data: {}
+  });
+  
+  //获取AI对话，因为对话保存在主渲染进程，所以需要主渲染进程发送给渲染进程
   initCurrentDialog();
   eventBus.on('ai-dialogs-loaded', initCurrentDialog);
 })

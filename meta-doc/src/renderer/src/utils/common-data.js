@@ -135,7 +135,12 @@ import { decodeBase64ToJson, encodeJsonToBase64 } from './base64-utils'
 export function broadcastAiDialogs() {
   //console.log(JSON.parse(JSON.stringify(current_ai_dialogs.value)))
   eventBus.emit('is-need-save',true)
-  eventBus.emit('sync-ai-dialogs', JSON.parse(JSON.stringify(current_ai_dialogs.value)));
+  eventBus.emit('send-broadcast', {
+    to: 'home',
+    eventName: 'sync-ai-dialogs',
+    data: JSON.parse(JSON.stringify(current_ai_dialogs.value))
+  });
+
 }
 
 

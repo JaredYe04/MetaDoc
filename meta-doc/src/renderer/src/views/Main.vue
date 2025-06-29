@@ -141,10 +141,7 @@ eventBus.on('show-success', (message) => {
     type: 'success',
   });
 });
-eventBus.on('sync-ai-dialogs', (dialogs) => {
-  //console.log('主界面收到了AI对话更新请求')
-  current_ai_dialogs.value = dialogs//当AI对话变动时，主界面的AI对话也要变动
-})
+
 
 </script>
 

@@ -15,7 +15,7 @@ const htmlDocx = require('html-docx-js');
 const os = require('os');
 
 
-import { mainWindow, openSettingDialog, openAiChatDialog, uploadDir, settingWindow, aichatWindow, openFomulaRecognitionDialog, fomulaRecognitionWindow, openAiGraphDialog, aiGraphWindow } from './index'
+import { mainWindow, openSettingDialog, openAiChatDialog, uploadDir, settingWindow, aichatWindow, openFomulaRecognitionDialog, fomulaRecognitionWindow, openAiGraphDialog, aiGraphWindow, initBroadcastChannel } from './index'
 import { dirname } from './index'
 
 //import eventBus from '../renderer/src/utils/event-bus'
@@ -45,8 +45,6 @@ export function mainCalls() {
     await exportFile(event, data)
   })
 
-
-
   ipcMain.on('setting', () => {
     openSettingDialog();
   })
@@ -60,33 +58,14 @@ export function mainCalls() {
     openFomulaRecognitionDialog();
   })
 
-
-
-
   ipcMain.on('open-link', (event, url) => {
-    //console.log(url)
     shell.openExternal(url)
   })
 
   ipcMain.on('system-notification', (event, data) => {
-    //console.log(data)
     systemNotification(data.title, data.body);
   })
-  ipcMain.on('request-sync-theme', () => {//渲染进程请求同步主题，主进程需要通知所有窗口
-    mainWindow.webContents.send('sync-theme')
-    if (settingWindow) {
-      settingWindow.webContents.send('sync-theme')
-    }
-    if (aichatWindow) {
-      aichatWindow.webContents.send('sync-theme')
-    }
-    if (fomulaRecognitionWindow) {
-      fomulaRecognitionWindow.webContents.send('sync-theme')
-    }
-    if (aiGraphWindow) {
-      aiGraphWindow.webContents.send('sync-theme')
-    }
-  })
+
   ipcMain.handle('get-setting', async (event, data) => {
     return await getSetting(data.key)
   })
@@ -143,17 +122,7 @@ export function mainCalls() {
   ipcMain.handle('compute-md5', async (event, data) => {
     return crypto.createHash('md5').update(data).digest('hex');
   });
-  ipcMain.on('sync-ai-dialogs', async (event, data) => {
-    mainWindow.webContents.send('sync-ai-dialogs', data)//告诉主进程要更新了
-    is_need_save = true;
-  })
-  ipcMain.on('fetch-ai-dialogs', async (event, data) => {
-    mainWindow.webContents.send('request-ai-dialogs', data)//告诉主界面，请求对话数据，发送给主进程
-  })
-  ipcMain.on('response-ai-dialogs', async (event, data) => {
-    //console.log(data)
-    aichatWindow.webContents.send('response-ai-dialogs', data)//告诉AI对话框，对话数据已经准备好了
-  })
+
   //////////////AI任务调度
   ipcMain.on('register-ai-task', (event, taskInfo) => {
     const mainWindow = BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes('#/home'))
@@ -188,21 +157,12 @@ export function mainCalls() {
     mainWindow.webContents.send('os-theme-changed')
     //如果系统主题发生变化，需要通知渲染进程
   });
-
+  initBroadcastChannel() //重新初始化广播频道
   // ipcMain.handle('get-vditor', async (event, data) => {
   //   return await getVditor(data)
   // })
 }
 
-// const Vditor = require("vditor");
-
-// const getVditor = (elementId) => {
-//   return new Vditor(elementId, {
-//     height: 300,
-//     mode: 'sv', // 默认 Markdown 模式
-//     value: '# 标题\n这是一个初始化内容',
-//   });
-// };
 
 
 var Segment = require('segment');

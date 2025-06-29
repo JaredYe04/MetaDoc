@@ -449,8 +449,6 @@ async function initVditor() {
 
 onMounted(async () => {
 
-    //eventBus.emit('sync-theme')
-    //加一个锁，当sync-vditor-theme事件触发完成后，才进行loadSchemes
 
     eventBus.on('sync-vditor-theme', async () => {
         await new Promise(

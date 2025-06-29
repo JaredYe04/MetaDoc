@@ -23,6 +23,12 @@ import { da, de } from 'element-plus/es/locales.mjs'
 import { exportPDF, image2base64, image2local, md2html, md2htmlRaw } from './md-utils.js'
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
 
+
+const eventBus = mitt()
+
+export default eventBus
+
+
 let ipcRenderer = null
 if (window && window.electron) {
   ipcRenderer = window.electron.ipcRenderer
@@ -38,25 +44,28 @@ export const isElectronEnv = () => {//判断是否在electron环境中
   return navigator.userAgent.toLowerCase().includes('electron');
 }
 
-ipcRenderer.on('sync-ai-dialogs', (event, dialogs) => {//只能由主进程发送给主渲染进程
+eventBus.on('sync-ai-dialogs', (dialogs) => {//ai-chat -> home，一般来说只有home窗口会监听这个事件
+  //console.log('主界面收到了AI对话更新请求')
   current_ai_dialogs.value = dialogs
 })
 
-ipcRenderer.on('request-ai-dialogs', (event) => {//主渲染进程接收到请求，返回对话数据给主进程，再由主进程转发给AICHAT组件
-  //console.log('我把对话数据返回给主进程了')
-  //console.log(JSON.parse(JSON.stringify(current_ai_dialogs.value)))
-  ipcRenderer.send('response-ai-dialogs', JSON.parse(JSON.stringify(current_ai_dialogs.value)))
+eventBus.on('request-ai-dialogs', (event) => {//home -> ai-chat，主窗口请求AICHAT组件获取对话数据
+  //console.log('我是' + getWindowType() + '窗口，我向AICHAT组件发送对话数据')
+  eventBus.emit('send-broadcast', {
+    to: 'ai-chat',
+    eventName: 'response-ai-dialogs',
+    data: JSON.parse(JSON.stringify(current_ai_dialogs.value))
+  })
+
 })
-ipcRenderer.on('response-ai-dialogs', (event, dialogs) => {//主进程发送给AICHAT组件对话数据
-  //console.log('我收到了对话数据',dialogs)
+
+eventBus.on('response-ai-dialogs', (dialogs) => {//主进程发送给AICHAT组件对话数据
+  //console.log('我收到了对话数据', dialogs)
   current_ai_dialogs.value = dialogs
   //console.log(dialogs)
   eventBus.emit('ai-dialogs-loaded')
 })
 
-ipcRenderer.on('fetch-ai-dialogs', (event, dialogs) => {
-  //todo
-})
 
 ipcRenderer.on('os-theme-changed', (event) => {
   eventBus.emit('theme-changed')
@@ -151,12 +160,6 @@ ipcRenderer.on('open-doc-success', (event, payload) => {
 
 
 
-const eventBus = mitt()
-
-export default eventBus
-
-
-
 //监听save事件
 eventBus.on('save', async (msg) => {
   //console.log(window.electron)
@@ -246,10 +249,6 @@ eventBus.on('fomula-recognition', () => {
   ipcRenderer.send('fomula-recognition')
 })
 
-
-
-
-
 eventBus.on('system-notification', (data) => {
   //console.log(data)
   ipcRenderer.send('system-notification', data)
@@ -257,18 +256,34 @@ eventBus.on('system-notification', (data) => {
 })
 
 eventBus.on('theme-changed', () => {
-  ipcRenderer.send('request-sync-theme')
+  eventBus.emit('send-broadcast', {
+    to: 'all',
+    eventName: 'sync-theme',
+    data: {}
+  })
+  //ipcRenderer.send('request-sync-theme')
 })
 
-eventBus.on('sync-ai-dialogs', (dialogs) => {//只能由AICHAT组件触发
-  ipcRenderer.send('sync-ai-dialogs', dialogs)
+eventBus.on('send-broadcast', (message) => {
+  //console.log('发送广播消息:', message)
+  ipcRenderer.send('send-broadcast', message)//公共的广播信道
+})
+ipcRenderer.on('receive-broadcast', (event, message) => {
+  //console.log('接收到广播消息:', message)
+  eventBus.emit('receive-broadcast', message)//接收到广播消息
+})
+
+//处理广播逻辑
+eventBus.on('receive-broadcast', (message) => {
+  const windowType = getWindowType()
+  if (message.to === 'all' || message.to === windowType) {
+    //console.log('触发事件:', message.eventName, '数据:', message.data)
+    eventBus.emit(message.eventName, message.data)//如果是给所有窗口的广播，或者是给当前窗口类型的广播，就触发对应的事件
+  }
 })
 
 
-eventBus.on('fetch-ai-dialogs', () => {//(这个事件只会被AICHAT组件触发)
-  //console.log('fetch-ai-dialogs')
-  ipcRenderer.send('fetch-ai-dialogs')//请求主进程获取对话数据
-})
+
 
 let cachedWindowType = 'home'
 

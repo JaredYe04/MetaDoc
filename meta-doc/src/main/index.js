@@ -337,6 +337,7 @@ let settingWindow = null;//设置窗口
 let aichatWindow = null;//AI对话窗口
 let fomulaRecognitionWindow = null;//公式识别窗口
 let aiGraphWindow = null;//AI图形窗口
+
 export { mainWindow, settingWindow, aichatWindow, is_need_save, fomulaRecognitionWindow, aiGraphWindow }//添加完窗口应该暴露
 
 // In this file you can include the rest of your app"s specific main process
@@ -348,6 +349,27 @@ let aiChatWindowOpened = false;
 let settingWindowOpened = false;
 let fomulaRecognitionWindowOpened = false;
 let aiGraphWindowOpened = false;
+export const initBroadcastChannel=()=>{
+  //console.log('initBroadcastChannel')
+  ipcMain.on('send-broadcast', (event, message) => {
+    //console.log('Received broadcast message:', message);
+    mainWindow.webContents.send('receive-broadcast', message);
+    if(aichatWindow){
+      aichatWindow.webContents.send('receive-broadcast', message);
+    }
+    if(settingWindow){
+      settingWindow.webContents.send('receive-broadcast', message);
+    }
+    if(fomulaRecognitionWindow){
+      fomulaRecognitionWindow.webContents.send('receive-broadcast', message);
+    }
+    if(aiGraphWindow){
+      aiGraphWindow.webContents.send('receive-broadcast', message);
+    }
+  });
+}
+
+
 export const openFomulaRecognitionDialog = async () => {
   if (fomulaRecognitionWindowOpened) {
     fomulaRecognition.focus();
@@ -381,8 +403,6 @@ export const openFomulaRecognitionDialog = async () => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
-
-
 
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     //console.log(`${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-chat`);

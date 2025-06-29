@@ -180,9 +180,9 @@ export function webMainCalls() {
     //console.log(data)
     systemNotification(data.title, data.body);
   })
-  localIpcMain.on('request-sync-theme', () => {//渲染进程请求同步主题，主进程需要通知所有窗口
-    eventBus.emit('sync-theme')
-  })
+  // localIpcMain.on('request-sync-theme', () => {//渲染进程请求同步主题，主进程需要通知所有窗口
+  //   eventBus.emit('sync-theme')
+  // })
   localIpcMain.handle('get-setting', async (event, data) => {
     return await getSetting(data.key)
   })
@@ -239,26 +239,7 @@ export function webMainCalls() {
   localIpcMain.handle('compute-md5', async (event, data) => {
     return calc_md5(data)
   });
-  localIpcMain.on('sync-ai-dialogs', async (event, data) => {
-    eventBus.emit('sync-ai-dialogs', data)//通知渲染进程，AI对话数据已经更新
-    is_need_save = true;
-  })
-  localIpcMain.on('fetch-ai-dialogs', async (event, data) => {
-    eventBus.emit('request-ai-dialogs', data)//通知渲染进程，AI对话数据已经更新
-  })
-  localIpcMain.on('response-ai-dialogs', async (event, data) => {
-    
-    eventBus.emit('response-ai-dialogs', data)//通知渲染进程，AI对话数据已经更新
-  })
 
-//   nativeTheme.on('updated', () => {
-//       eventBus.emit('theme-changed')
-//         eventBus.emit('sync-theme')
-    
-//     //如果系统主题发生变化，需要通知渲染进程
-//   });
 
-  // localIpcMain.handle('get-vditor', async (event, data) => {
-  //   return await getVditor(data)
-  // })
+
 }

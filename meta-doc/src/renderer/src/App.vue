@@ -101,8 +101,6 @@ onMounted(async () => {
     eventBus.emit('sync-vditor-theme')//触发vditor主题同步事件
     autoOpenDoc() // 自动打开文档
   })
-
-
   // 触发一次主题同步事件
   eventBus.emit('sync-theme')
 })

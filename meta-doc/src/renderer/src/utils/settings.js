@@ -45,6 +45,7 @@ export const settings = reactive({
   startupOption: "newFile", // 启动选项
   autoSave: "never", // 自动保存
   theme: "light", // 主题
+  customThemeColor: "#ffffff", // 自定义主题颜色
   llmEnabled: false, // 是否启用 LLM
   selectedLlm: "", // 选择的大模型类型
   //exportImageMode: "none", // 导出图片选项

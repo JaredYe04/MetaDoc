@@ -48,6 +48,11 @@
                 <el-radio label="sync">{{ $t('setting.themeSync') }}</el-radio>
                 <el-radio label="light">{{ $t('setting.themeLight') }}</el-radio>
                 <el-radio label="dark">{{ $t('setting.themeDark') }}</el-radio>
+                <el-radio label="custom">{{ $t('setting.themeCustom') }}</el-radio>
+                <el-color-picker v-if="settings.theme === 'custom'" v-model="settings.customThemeColor" :predefine="predefineColors"
+                @change="saveSetting('customThemeColor', settings.customThemeColor); eventBus.emit('sync-theme'); eventBus.emit('theme-changed')"
+                />
+
               </el-radio-group>
             </el-form-item>
 
@@ -182,7 +187,7 @@ import axios from "axios";
 import MicrophoneTest from "../components/MicrophoneTest.vue";
 import "../assets/aero-btn.css";
 import "../assets/aero-div.css";
-import { themeState } from "../utils/themes.js";
+import { predefineColors, themeState } from "../utils/themes.js";
 import { settings } from "../utils/settings.js";
 //computed
 import { computed } from "vue";

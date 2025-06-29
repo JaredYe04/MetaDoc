@@ -19,7 +19,7 @@ import Main from './views/Main.vue'
 
 import eventBus, { initWindowType } from './utils/event-bus';
 import { getRecentDocs, getSetting, initSettings } from './utils/settings';
-import { lightTheme, darkTheme, themeState } from './utils/themes';
+import { lightTheme, darkTheme, themeState, customTheme } from './utils/themes';
 import { current_ai_dialogs, firstLoad } from './utils/common-data';
 import localIpcRenderer from './utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from './utils/web-adapter/web-main-calls';
@@ -97,6 +97,18 @@ onMounted(async () => {
       themeState.currentTheme = darkTheme
       document.documentElement.classList.add('dark')
       document.documentElement.classList.remove('light')
+    }
+    if (theme === 'custom'){
+      //自定义主题
+      const customThemeColor=await getSetting('customThemeColor')
+      themeState.currentTheme=customTheme(customThemeColor)
+      if(themeState.currentTheme.type==='light'){
+        document.documentElement.classList.add('light')
+        document.documentElement.classList.remove('dark')
+      }else{
+        document.documentElement.classList.add('dark')
+        document.documentElement.classList.remove('light')
+      }
     }
     eventBus.emit('sync-vditor-theme')//触发vditor主题同步事件
     autoOpenDoc() // 自动打开文档

@@ -443,6 +443,8 @@
         "themeSync": "システムに同期",
         "themeLight": "ライト",
         "themeDark": "ダーク",
+        "themeCustom": "カスタム",
+        "customThemeColor": "カスタムテーマカラー",
         "enabled": "有効",
         "disabled": "無効",
         "microphoneTest": "マイクテスト",

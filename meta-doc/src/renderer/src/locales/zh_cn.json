@@ -443,6 +443,8 @@
         "themeSync": "跟随系统",
         "themeLight": "亮色",
         "themeDark": "暗色",
+        "themeCustom": "自定义",
+        "customThemeColor": "自定义主题颜色",
         "enabled": "启用",
         "disabled": "关闭",
         "microphoneTest": "语音测试",

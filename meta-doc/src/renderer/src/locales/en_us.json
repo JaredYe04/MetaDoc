@@ -443,6 +443,8 @@
         "themeSync": "Follow System",
         "themeLight": "Light",
         "themeDark": "Dark",
+        "themeCustom": "Custom",
+        "customThemeColor": "Custom Theme Color",
         "enabled": "Enabled",
         "disabled": "Disabled",
         "microphoneTest": "Microphone Test",

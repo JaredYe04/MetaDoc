@@ -443,6 +443,8 @@
         "themeSync": "시스템과 동기화",
         "themeLight": "라이트",
         "themeDark": "다크",
+        "themeCustom": "커스텀",
+        "customThemeColor": "커스텀 테마 색상",
         "enabled": "활성화",
         "disabled": "비활성화",
         "microphoneTest": "마이크 테스트",

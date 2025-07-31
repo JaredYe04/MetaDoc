@@ -20,7 +20,7 @@ import {
 import { getSetting, updateRecentDocs } from './settings.js'
 import { path } from 'd3'
 import { da, de } from 'element-plus/es/locales.mjs'
-import { exportPDF, image2base64, image2local, md2html, md2htmlRaw } from './md-utils.js'
+import { exportPDF, image2base64, image2local, local2image, md2html, md2htmlRaw } from './md-utils.js'
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
 
 
@@ -212,20 +212,20 @@ eventBus.on('close-doc', async () => {
   await init()
 })
 
-eventBus.on('export', async (format) => {
+eventBus.on('export', async (args) => {
+  const { format, filename } = args;
   sync();
 
   let md = current_article.value//不区分格式
-
-
+  //todo:这里代码比较乱，本来exportPDF和其他导出逻辑应该分开处理的，但是现在合并了，需要修改代码
   if (format === 'pdf') {
-    exportPDF(md);
-    document.body.style.cursor = 'wait';
-    setTimeout(() => {
-      document.body.style.cursor = 'auto';
-    }, md.length);
+    md = await local2image(md)//将本地图片转换为服务器图片，以防止导出时图片丢失
+    exportPDF(md, filename);
   } else {
     let html;
+    md = await local2image(md)//将本地图片转换为服务器图片，以防止导出时图片丢失
+    md = await image2base64(md)//将图片转换为base64
+    
     if (format === 'html') {
       html = await md2html(md)
     }
@@ -235,7 +235,13 @@ eventBus.on('export', async (format) => {
     ipcRenderer.send('export', { json: dump2json(md), html: html, format: format })
   }
 })
-
+eventBus.on('export-to-pdf', async (args) => {
+  //console.log('export-to-pdf', htmlContent)
+  const saveResult = await ipcRenderer.invoke('export-to-pdf', args)
+  if (saveResult !== '') {
+    eventBus.emit('export-success', saveResult)
+  }
+})
 eventBus.on('setting', () => {
   ipcRenderer.send('setting')
 })

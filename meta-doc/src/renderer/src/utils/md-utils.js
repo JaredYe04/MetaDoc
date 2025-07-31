@@ -681,14 +681,31 @@ export async function image2local(md){
         }
     }
     return new_md
-
+}
+export async function local2image(md){
+    //把local_path替换成'http://localhost:3000/images/'
+    
+    const local_path = await getImagePath()
+    const lines = md.split('\n')
+    let new_md = ''
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        //把local_path替换成'http://localhost:3000/images/'
+        const match = line.match(/!\[.*?\]\((.*?)\)/)
+        if (match) {
+            const image_path = match[1]
+            const prefix_len=local_path.length+1//加上一个斜杠
+            const image_name=image_path.slice(prefix_len)
+            new_md += line.replace(image_path, 'http://localhost:3000/images/' + image_name) + '\n'
+        } else {
+            new_md += line + '\n'
+        }
+    }
+    //console.log(new_md);
+    return new_md
 }
 
-
-
-
 export async function md2htmlRaw(md) {
-    //return renderedHtml.value;
     let cdn = '';
     if(isElectronEnv()){
         cdn=localVditorCDN;
@@ -738,14 +755,14 @@ export function md2html(md, style = 'github') {
 return html
 }
 
-export const exportPDF = (md, style = 'github') => {
+export const exportPDF = (md,filename, style = 'github') => {
     // 创建一个 iframe 并设置内容
     const iframe = document.createElement('iframe');
     //iframe.style.display = 'none'; // 不显示 iframe
     document.body.appendChild(iframe); // 将 iframe 添加到页面上
 
-    const iframeDocument = iframe.contentDocument;
-    iframeDocument.open();
+    //const iframeDocument = iframe.contentDocument;
+    //iframeDocument.open();
 
     // 使用 JSON.stringify 对 md 进行转义
     const safeMarkdown = JSON.stringify(md);
@@ -756,7 +773,7 @@ export const exportPDF = (md, style = 'github') => {
     else{
         cdn=vditorCDN;
     }
-    iframeDocument.write(`
+    const html=`
         <link rel="stylesheet" href="${cdn}/dist/index.css"/>
         <script src="${cdn}/dist/method.min.js"></script>
         <div id="preview" style="width: 800px;"></div>
@@ -788,14 +805,16 @@ export const exportPDF = (md, style = 'github') => {
                 Vditor.mindmapRender(previewElement, '${cdn}');
                 Vditor.abcRender(previewElement, '${cdn}');
                 // 渲染完成后，触发打印
-                setTimeout(() => {
+                //setTimeout(() => {
                     //鼠标设置为默认状态
-                    window.print();
-                }, ${md.length/2});
+                    //window.print();
+                //}, ${md.length/2});
             };
         </script>
-    `);
-    iframeDocument.close();
+    `;
+    eventBus.emit('export-to-pdf',{html:html,filename:filename}); // 发送事件到主进程处理打印
+    //iframeDocument.write(html);
+    //iframeDocument.close();
     
 }
 

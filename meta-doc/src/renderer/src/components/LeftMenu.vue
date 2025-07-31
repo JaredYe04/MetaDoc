@@ -59,16 +59,20 @@
             <span>{{ $t('leftMenu.export') }}</span>
           </template>
 
-          <el-menu-item index="1-5-1" @click="eventBus.emit('export', 'pdf')">
+          <el-menu-item index="1-5-1"
+            @click="eventBus.emit('export', { format: 'pdf', filename: current_article_meta_data.title })">
             <span>{{ $t('leftMenu.exportPdf') }}</span>
           </el-menu-item>
-          <el-menu-item index="1-5-2" @click="eventBus.emit('export', 'md')">
+          <el-menu-item index="1-5-2"
+            @click="eventBus.emit('export', { format: 'md', filename: current_article_meta_data.title })">
             <span>{{ $t('leftMenu.exportMarkdown') }}</span>
           </el-menu-item>
-          <el-menu-item index="1-5-3" @click="eventBus.emit('export', 'docx')">
+          <el-menu-item index="1-5-3"
+            @click="eventBus.emit('export', { format: 'docx', filename: current_article_meta_data.title })">
             <span>{{ $t('leftMenu.exportDocx') }}</span>
           </el-menu-item>
-          <el-menu-item index="1-5-4" @click="eventBus.emit('export', 'html')">
+          <el-menu-item index="1-5-4"
+            @click="eventBus.emit('export', { format: 'html', filename: current_article_meta_data.title })">
             <span>{{ $t('leftMenu.exportHtml') }}</span>
           </el-menu-item>
         </el-sub-menu>
@@ -252,7 +256,7 @@ import eventBus from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { exportPDF } from '../utils/md-utils';
 import { themeState } from '../utils/themes';
-import { avatar } from '../utils/common-data';
+import { avatar, current_article_meta_data } from '../utils/common-data';
 import { EarthIcon } from 'tdesign-icons-vue-next';
 const recentDocs = ref([])
 const isCollapse = ref(true)

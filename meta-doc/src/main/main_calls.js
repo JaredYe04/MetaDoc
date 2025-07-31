@@ -123,6 +123,10 @@ export function mainCalls() {
     return crypto.createHash('md5').update(data).digest('hex');
   });
 
+  ipcMain.handle('export-to-pdf', async (event, args) => {
+    return await exportPDF(args);
+  });
+
   //////////////AI任务调度
   ipcMain.on('register-ai-task', (event, taskInfo) => {
     const mainWindow = BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes('#/home'))
@@ -163,7 +167,72 @@ export function mainCalls() {
   // })
 }
 
+const exportPDF = async (args) => {
+  const waitForRenderComplete = async (
+    win,
+    timeout = 10000,
+    interval = 500
+  ) => {
+    const maxTries = Math.ceil(timeout / interval);
+    let lastHTML = '';
+    let stableCount = 0;
+    const requiredStableCount = 2; // 连续2次相同视为稳定
+    for (let i = 0; i < maxTries; i++) {
+      try {
+        const currentHTML = await win.webContents.executeJavaScript(
+          'document.documentElement.innerHTML',
+          true
+        );
 
+        if (currentHTML === lastHTML) {
+          stableCount++;
+          if (stableCount >= requiredStableCount) {
+            return;
+          }
+        } else {
+          stableCount = 0;
+          lastHTML = currentHTML;
+        }
+      } catch (err) {
+        // 忽略临时性错误
+      }
+      await new Promise((resolve) => setTimeout(resolve, interval));
+    }
+    throw new Error('渲染超时：页面内容持续变动，未能稳定');
+  };
+
+  const { html, filename } = args;
+  const win = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      sandbox: false,
+    }
+  });
+
+  await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+
+  // 等待页面完全加载并执行所有图表渲染
+  //await new Promise(resolve => setTimeout(resolve, 2000)); // 可根据需要延长时间
+
+  await waitForRenderComplete(win);
+  const pdfBuffer = await win.webContents.printToPDF({});
+  //弹出保存对话框
+  const savePath = await dialog.showSaveDialog(mainWindow, {
+    title: 'PDF',
+    defaultPath: filename || 'document.pdf',
+    filters: [
+      { name: 'PDF File', extensions: ['pdf'] }
+    ]
+  });
+  if (savePath.canceled) {
+    return "";
+  }
+  //console.log('savePath', savePath.filePath);
+  fs.writeFileSync(savePath.filePath, pdfBuffer);
+  //console.log('PDF saved to:', savePath.filePath);
+  win.close();
+  return savePath.filePath;
+}
 
 var Segment = require('segment');
 var segment = new Segment();

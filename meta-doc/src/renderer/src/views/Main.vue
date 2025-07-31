@@ -109,6 +109,7 @@ eventBus.on('export-success', (outputPath) => {
     title: t('main.notification.export.title'),
     body: t('main.notification.export.message', { path: outputPath }),
   });
+
 });
 
 eventBus.on('show-error', (message) => {

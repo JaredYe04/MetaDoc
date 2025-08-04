@@ -5,52 +5,58 @@ import AiLogoWhite from "../assets/ai-logo-white.svg";
 export const lightTheme = {
   type: 'light',
   AiLogo: AiLogo,
-    background: '#ffffff',
-    background2nd: '#f5f5f5',
-    textColor: '#000000',
-    textColor2: '#000000',
-    headerBackground: '#f5f5f5',
-    sidebarBackground: '#f0f0f0',
-    sidebarBackground2: '#f0f0f0',
-    SideBackgroundColor:"#FEFEFE",
-    SideTextColor:'#000000',
-    SideTextColor2:'#000000',
-    SideActiveTextColor:'#000000',
-    vditorTheme: 'classic',
-    codeTheme: 'github',
-    titleMenuBackground:'#0066FF44',
-    outlineBackground:'#4c78a8',
-    outlineNode : '#9ecae9',
-    quickStartBackground1:'#ADD8E61A',
-    quickStartBackground2:'#D6D6FF44',
-    mdeditorClass:'md-editor',
-    mdeditorTheme:'light',
-  };
-  
+  background: '#ffffff',
+  background2nd: '#f5f5f5',
+  textColor: '#000000',
+  textColor2: '#000000',
+  headerBackground: '#f5f5f5',
+  sidebarBackground: '#f0f0f0',
+  sidebarBackground2: '#f0f0f0',
+  SideBackgroundColor: "#FEFEFE",
+  SideTextColor: '#000000',
+  SideTextColor2: '#000000',
+  SideActiveTextColor: '#000000',
+  editorPanelBackgroundColor: '#fff',
+  editorToolbarBackgroundColor: '#f6f8fa',
+  editorTextareaBackgroundColor: '#fafbfc',
+  vditorTheme: 'classic',
+  codeTheme: 'github',
+  titleMenuBackground: '#0066FF44',
+  outlineBackground: '#4c78a8',
+  outlineNode: '#9ecae9',
+  quickStartBackground1: '#ADD8E61A',
+  quickStartBackground2: '#D6D6FF44',
+  mdeditorClass: 'md-editor',
+  mdeditorTheme: 'light',
+};
+
 export const darkTheme = {
   type: 'dark',
   AiLogo: AiLogoWhite,
-    background: '#2c2c2c',//背景色1，需要体现主题色，但不能过于突出，应当还是以偏黑或偏白为主
-    background2nd: '#3a3a3a',//背景色2，次要背景色，可以是背景色1的变体或浅色调
-    textColor: '#ffffff',//文字颜色1，主要文字颜色，应当与背景色形成对比
-    textColor2: '#dddddd',//文字颜色2，次要文字颜色，可以是文字颜色1的变体或浅色调
-    headerBackground: '#3a3a3a',//顶部栏背景色，与背景色2一致
-    sidebarBackground: '#1e1e1e',//设置界面侧边栏背景色，比背景色1更深，形成层次感
-    sidebarBackground2: '#2e2e2e',//设置界面侧边栏次要背景色，可以是侧边栏背景色的变体或浅色调
-    SideBackgroundColor:"#545c64",//主界面侧边栏背景色，应当是主题色的变体或深色调
-    SideTextColor:"#fff",//侧边栏文字颜色，与文字颜色1一致
-    SideActiveTextColor:"#ffd04b",//侧边栏激活状态文字颜色，应当和背景色形成对比，突出显示，可以是主题色的亮色调
-    SideTextColor2:"#ffd0ee",//侧边栏次要文字颜色，可以是侧边栏文字颜色的变体或浅色调
-    vditorTheme: 'dark',//亮色版为'classic'，固定
-    codeTheme: 'a11y-dark',//亮色版为'github'，固定
-    titleMenuBackground:'#111111AA',//AI章节标题菜单背景色，直接使用主题色，透明度固定为AA
-    outlineBackground:'#bab0ac',//大纲背景色，应当与背景色形成对比，但是不能过于突出，建议使用主题色的变体或浅色调
-    outlineNode : '#79706e',//大纲节点颜色，要和背景色形成对比，建议使用主题色的变体或深色调
-    quickStartBackground1:'#66333311',//快速开始背景色1，建议使用主题色的变体或浅色调
-    quickStartBackground2:'#33336611',//快速开始背景色2，在背景色1的基础上进行色彩偏移，与背景色1形成对比
-    mdeditorClass:'md-editor-dark',//暗色为'mc-editor-dark'，浅色版为'md-editor'
-    mdeditorTheme:'dark',//暗色版为'dark'，浅色版为'light'
-  };
+  background: '#2c2c2c',//背景色1，需要体现主题色，但不能过于突出，应当还是以偏黑或偏白为主
+  background2nd: '#3a3a3a',//背景色2，次要背景色，可以是背景色1的变体或浅色调
+  textColor: '#ffffff',//文字颜色1，主要文字颜色，应当与背景色形成对比
+  textColor2: '#dddddd',//文字颜色2，次要文字颜色，可以是文字颜色1的变体或浅色调
+  headerBackground: '#3a3a3a',//顶部栏背景色，与背景色2一致
+  sidebarBackground: '#1e1e1e',//设置界面侧边栏背景色，比背景色1更深，形成层次感
+  sidebarBackground2: '#2e2e2e',//设置界面侧边栏次要背景色，可以是侧边栏背景色的变体或浅色调
+  SideBackgroundColor: "#545c64",//主界面侧边栏背景色，应当是主题色的变体或深色调
+  SideTextColor: "#fff",//侧边栏文字颜色，与文字颜色1一致
+  SideActiveTextColor: "#ffd04b",//侧边栏激活状态文字颜色，应当和背景色形成对比，突出显示，可以是主题色的亮色调
+  SideTextColor2: "#ffd0ee",//侧边栏次要文字颜色，可以是侧边栏文字颜色的变体或浅色调,
+  editorPanelBackgroundColor: '#24292e',//编辑器面板背景色，应当是主题色的变体或深色调
+  editorToolbarBackgroundColor: '#1d2125',//编辑器工具栏背景色，应当是主题色的变体或浅色调
+  editorTextareaBackgroundColor: '#2f363d',//编辑器文本区域背景色，应当是主题色的变体或浅色调
+  vditorTheme: 'dark',//亮色版为'classic'，固定
+  codeTheme: 'a11y-dark',//亮色版为'github'，固定
+  titleMenuBackground: '#111111AA',//AI章节标题菜单背景色，直接使用主题色，透明度固定为AA
+  outlineBackground: '#bab0ac',//大纲背景色，应当与背景色形成对比，但是不能过于突出，建议使用主题色的变体或浅色调
+  outlineNode: '#79706e',//大纲节点颜色，要和背景色形成对比，建议使用主题色的变体或深色调
+  quickStartBackground1: '#66333311',//快速开始背景色1，建议使用主题色的变体或浅色调
+  quickStartBackground2: '#33336611',//快速开始背景色2，在背景色1的基础上进行色彩偏移，与背景色1形成对比
+  mdeditorClass: 'md-editor-dark',//暗色为'mc-editor-dark'，浅色版为'md-editor'
+  mdeditorTheme: 'dark',//暗色版为'dark'，浅色版为'light'
+};
 import tinycolor from 'tinycolor2';
 // 辅助函数：HEX转RGB
 const hexToRgb = (hex) => {
@@ -76,11 +82,11 @@ const rgbToHex = (r, g, b) => {
 const mixColors = (color1, color2, weight) => {
   const c1 = hexToRgb(color1);
   const c2 = hexToRgb(color2);
-  
+
   const r = Math.round(c1.r * (1 - weight) + c2.r * weight);
   const g = Math.round(c1.g * (1 - weight) + c2.g * weight);
   const b = Math.round(c1.b * (1 - weight) + c2.b * weight);
-  
+
   return rgbToHex(r, g, b);
 };
 
@@ -94,12 +100,12 @@ const getLuminance = (hex) => {
 const adjustSaturation = (hex, factor) => {
   const { r, g, b } = hexToRgb(hex);
   const avg = (r + g + b) / 3;
-  
+
   const adjust = (c) => {
     const diff = c - avg;
     return Math.round(avg + diff * factor);
   };
-  
+
   return rgbToHex(
     Math.min(255, Math.max(0, adjust(r))),
     Math.min(255, Math.max(0, adjust(g))),
@@ -112,7 +118,7 @@ export const customTheme = (themeColor = '#000000') => {
   // 确定主题模式（基于主题色亮度）
   const baseLuminance = getLuminance(themeColor);
   const isDarkMode = baseLuminance < 160;
-  
+
   // 核心颜色生成算法
   const generateColorSet = () => {
     if (isDarkMode) {
@@ -127,8 +133,11 @@ export const customTheme = (themeColor = '#000000') => {
         sidebarBackground2: mixColors(themeColor, '#1e1e1e', 0.25),
         SideBackgroundColor: adjustSaturation(mixColors(themeColor, '#2a2a2a', 0.6), 0.8),
         SideTextColor: mixColors(themeColor, '#ffffff', 0.9),
-        SideActiveTextColor:  mixColors(themeColor, '#ffffff', 0.95),
+        SideActiveTextColor: mixColors(themeColor, '#ffffff', 0.95),
         SideTextColor2: mixColors(themeColor, '#dddddd', 0.8),
+        editorPanelBackgroundColor: mixColors(themeColor,'#24292e', 0.7),
+        editorToolbarBackgroundColor: mixColors(themeColor, '#1d2125', 0.7),
+        editorTextareaBackgroundColor: mixColors(themeColor, '#2f363d', 0.7),
         vditorTheme: 'dark',
         codeTheme: 'a11y-dark',
         titleMenuBackground: mixColors(themeColor, '#000000', 0.15) + 'AA',
@@ -153,6 +162,10 @@ export const customTheme = (themeColor = '#000000') => {
         SideTextColor: mixColors(themeColor, '#333333', 0.9),
         SideActiveTextColor: mixColors(themeColor, '#333333', 0.95),
         SideTextColor2: mixColors(themeColor, '#555555', 0.8),
+        editorPanelBackgroundColor: mixColors(themeColor, '#ffffff', 0.7),
+        editorToolbarBackgroundColor: mixColors(themeColor, '#f6f8fa', 0.7),
+        editorTextareaBackgroundColor: mixColors(themeColor, '#fafbfc', 0.7),
+
         vditorTheme: 'classic',
         codeTheme: 'github',
         titleMenuBackground: mixColors(themeColor, '#ffffff', 0.2) + '44',
@@ -191,6 +204,6 @@ export const predefineColors = [
 ]
 
 
-export const themeState=reactive({
-    currentTheme:darkTheme
+export const themeState = reactive({
+  currentTheme: darkTheme
 })

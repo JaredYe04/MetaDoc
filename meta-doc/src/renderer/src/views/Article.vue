@@ -16,7 +16,13 @@
                 @insert="insertText" />
 
             <div id="vditor" class="editor" v-loading="loading" @keydown="handleTab"
-                @contextmenu.prevent="openContextMenu($event)"></div>
+                @contextmenu.prevent="openContextMenu($event)" 
+                :style="{
+                        '--panel-background-color': themeState.currentTheme.editorPanelBackgroundColor,
+                        '--toolbar-background-color': themeState.currentTheme.editorToolbarBackgroundColor,
+                        '--textarea-background-color': themeState.currentTheme.editorTextareaBackgroundColor,
+                }"
+                ></div>
 
             <div class="resizable-container">
                 <el-tooltip :content="$t('article.drag_to_resize')">
@@ -540,7 +546,7 @@ onMounted(async () => {
                     tip: t('article.toolbar.ai_assistant'),
                     tipPosition: 's',
                     className: 'right',
-                    icon: `<img src="${themeState.currentTheme.AiLogo}" style="width: 20px; height: 20px; " />`,
+                    icon: `<img src="${currentAiLogo.value}" style="width: 20px; height: 20px; " />`,
                     click() { handleMenuClick('ai-assistant') },
                 },
             ],
@@ -586,7 +592,10 @@ onMounted(async () => {
 
     }
 });
+const currentAiLogo = computed(() => {
 
+    return themeState.currentTheme.type === 'dark' ? AiLogoWhite : AiLogo;
+});
 // 清理资源
 onBeforeUnmount(() => {
     eventBus.emit('is-need-save', true)

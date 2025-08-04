@@ -222,7 +222,7 @@
 
 <script setup>
 import VoiceInput from '../components/VoiceInput.vue';
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { ElButton } from 'element-plus';
 import * as THREE from 'three';
 import "../assets/aero-div.css";
@@ -445,14 +445,6 @@ const generated = ref(false);
 // 初始化Three.js场景
 
 const initThreeJS = async () => {
-  let wordList=[];
-  const words= await ipcRenderer.invoke('cut-words', { text: current_article.value });
-  //console.log('切词结果:', words);
-  //使用集合去重
-  wordList = Array.from(new Set(words));
-  const symbols = '~!@#$%^&*()_+`-={}|[]\\:";\'<>?,./。、，；：‘’“”【】《》？！￥…（）—0123456789';
-  wordList = wordList.filter(word => !symbols.includes(word) && word.length > 1); //过滤掉单个字符和标点符号
-  //console.log('词语数量:', wordList);
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000);
   camera.position.z = 800;
@@ -466,12 +458,21 @@ const initThreeJS = async () => {
   renderer.domElement.style.zIndex = '-1';
   renderer.domElement.style.transition = 'filter 1.5s ease';
   document.getElementById('particle-bg')?.appendChild(renderer.domElement);
+  createParticles();
 
+};
+const createParticles = async () => {
+  scene = new THREE.Scene();
   const areaSize = 1500;
-
-  // 如果词语数量 < 50，用原始粒子效果
-  if (wordList.length < 50) {
-    const particleCount = 100;
+  let wordList = [];
+  const words = await ipcRenderer.invoke('cut-words', { text: current_article.value });
+  //使用集合去重
+  wordList = Array.from(new Set(words));
+  const symbols = '~!@#$%^&*()_+`-={}|[]\\:";\'<>?,./。、，；：‘’“”【】《》？！￥…（）—0123456789';
+  wordList = wordList.filter(word => !symbols.includes(word) && word.length > 1); //过滤掉单个字符和标点符号
+  // 如果词语数量 < 20，用原始粒子效果
+  const particleCount = 100;
+  if (wordList.length < 20) {
     const particlesGeometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
@@ -500,19 +501,23 @@ const initThreeJS = async () => {
   } else {
     // 否则：使用词语 sprite 粒子
     particles = new THREE.Group();
-
+    //随机选取particleCount个词语，如果词语数量小于particleCount，则取全部词语
+    wordList = wordList.sort(() => 0.5 - Math.random()).slice(0, Math.min(wordList.length, particleCount));
     wordList.forEach((word) => {
       const canvas = document.createElement('canvas');
-      const size = 256;
+      const size = 512;
       canvas.width = canvas.height = size;
       const ctx = canvas.getContext('2d');
-      
+
       ctx.clearRect(0, 0, size, size);
-      ctx.font = 'bold 60px sans-serif';
+      ctx.font = 'bold 60px sans-serif';//字体是 sans-serif，支持语言包含
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},0.9)`;
+      ctx.fillStyle = `rgba(${Math.floor(Math.random() * 255)},${Math.floor(Math.random() * 255)},${Math.floor(Math.random() * 255)},0.9)`;
       ctx.fillText(word, size / 2, size / 2);
+      //有描边效果
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.lineWidth = 2;
 
       const texture = new THREE.CanvasTexture(canvas);
       const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
@@ -524,16 +529,14 @@ const initThreeJS = async () => {
         (Math.random() - 0.5) * areaSize
       );
 
-      const scale = 40 + Math.random() * 40;
+      const scale = 120 + Math.random() * 160;
       sprite.scale.set(scale, scale, 1);
 
       particles.add(sprite);
     });
   }
-
   scene.add(particles);
-};
-
+}
 let animationFrameId = null;
 let isAnimating = false;
 const startAnimation = () => {
@@ -572,8 +575,8 @@ const animate = () => {
   particles.rotation.x += (mouseY.value / window.innerHeight) * 0.05;
   particles.rotation.y += (mouseX.value / window.innerWidth) * 0.05;
 
-  // 模糊处理
-  renderer.domElement.style.filter = `blur(${(quickStartDialogVisible.value || current_file_path.value !== '') ? 10 : 0}px)`;
+  // // 模糊处理
+  // renderer.domElement.style.filter = `blur(${(quickStartDialogVisible.value || current_file_path.value !== '') ? 3 : 0}px)`;
 
   renderer.render(scene, camera);
 };
@@ -590,8 +593,6 @@ const onWindowResize = () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 };
-
-
 
 const quickStartDialogVisible = ref(false);
 // 快速开始按钮逻辑
@@ -652,26 +653,31 @@ const preventNavigate = (event) => {
   });
 };
 const particleEffectEnabled = ref(false);
-const particleEffect=async ()=>{
-    
-    eventBus.on('toggle-particle-effect', async () => {
+const particleEffect = async () => {
+  initThreeJS();
+  eventBus.on('toggle-particle-effect', async () => {
     //console.log('toggle-particle-effect');
     const enabled = await getSetting('particleEffect');
     if (enabled) {
-      initThreeJS();
       particleEffectEnabled.value = true;
       startAnimation();
     } else {
       particleEffectEnabled.value = false;
       stopAnimation();
-      if (particles) {
-        scene.remove(particles);
-        particles.geometry.dispose();
-        particles.material.dispose();
-        particles = null;
-      }
+      // if (particles) {
+      //   scene.remove(particles);
+      //   particles.geometry.dispose();
+      //   particles.material.dispose();
+      //   particles = null;
+      // }
     }
 
+  });
+  //监听current_article变化，如果变化了就重新创建粒子效果
+  watch(current_article, async (newValue, oldValue) => {
+    if (newValue !== oldValue) {
+      createParticles();
+    }
   });
   eventBus.emit('toggle-particle-effect', {});
 }

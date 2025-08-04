@@ -44,7 +44,7 @@ import { getRecentDocs, getSetting } from '../utils/settings.js'
 import eventBus from '../utils/event-bus.js'
 import { ElNotification } from 'element-plus'
 import { lightTheme, darkTheme } from '../utils/themes.js'
-import { current_ai_dialogs, current_file_path } from '../utils/common-data.js'
+import { current_ai_dialogs, current_article_meta_data, current_file_path } from '../utils/common-data.js'
 import UserProfileCard from '../components/UserProfileCard.vue'
 import { verifyToken } from '../utils/web-utils.ts'
 import { useI18n } from 'vue-i18n'
@@ -72,7 +72,9 @@ async function autoSave() {
 }
 
 onMounted(async () => {
-
+  eventBus.on('refresh', () => {
+      eventBus.emit('update-window-title', current_article_meta_data.value.title)
+    })
 
   eventBus.emit('llm-api-updated')
   const token = localStorage.getItem('loginToken')
@@ -81,6 +83,8 @@ onMounted(async () => {
     await verifyToken(token)//自动登录
   }
   await autoSave()
+
+
 })
 
 eventBus.on('toggle-user-profile', () => {

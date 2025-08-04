@@ -225,7 +225,7 @@ eventBus.on('export', async (args) => {
     let html;
     md = await local2image(md)//将本地图片转换为服务器图片，以防止导出时图片丢失
     md = await image2base64(md)//将图片转换为base64
-    
+
     if (format === 'html') {
       html = await md2html(md)
     }
@@ -273,11 +273,24 @@ eventBus.on('theme-changed', () => {
 eventBus.on('send-broadcast', (message) => {
   //console.log('发送广播消息:', message)
   ipcRenderer.send('send-broadcast', message)//公共的广播信道
+
+  //示例：
+  //   eventBus.emit('send-broadcast', {
+  //   to: 'all', // 或者指定窗口类型，如 'home' 或 'ai-chat'
+  //   eventName: 'xxx', // 事件名称
+  //   data: { key: 'value' } // 传递的数据
+  // });
 })
 ipcRenderer.on('receive-broadcast', (event, message) => {
   //console.log('接收到广播消息:', message)
   eventBus.emit('receive-broadcast', message)//接收到广播消息
 })
+
+eventBus.on('update-window-title', (title) => {
+  ipcRenderer.send('update-window-title', title)
+})
+
+
 
 //处理广播逻辑
 eventBus.on('receive-broadcast', (message) => {

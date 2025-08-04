@@ -475,7 +475,9 @@
         "testResult": "测试结果",
         "resultPlaceholder": "测试结果将显示在此处",
         "testPrompt": "你好！请介绍一下你自己。",
-        "testFailed": "测试失败："
+        "testFailed": "测试失败：",
+        "particleEffect": "粒子效果",
+        "particleEffectHint": "启用粒子效果，提升画面美观度。若开启，可能会影响性能。"
     },
     "visualize": {
         "articleOutline": "文章大纲",

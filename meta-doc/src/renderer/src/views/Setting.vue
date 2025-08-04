@@ -1,4 +1,4 @@
-<template> 
+<template>
   <div class="settings-container"
     :style="{ backgroundColor: themeState.currentTheme.backgroundColor, color: themeState.currentTheme.textColor }">
     <el-container>
@@ -26,10 +26,24 @@
             </el-form-item>
             <el-form-item :label="$t('setting.askBeforeSave')">
               <el-switch v-model="settings.alwaysAskSave" class="mb-2"
-                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" 
+                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
                 :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
                 @change="saveSetting('alwaysAskSave', settings.alwaysAskSave)" />
             </el-form-item>
+            <el-tooltip :content="$t('setting.particleEffectHint')" placement="bottom">
+              <el-form-item :label="$t('setting.particleEffect')">
+                <el-switch v-model="settings.particleEffect" class="mb-2"
+                  style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                  :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')" @change="saveSetting('particleEffect', settings.particleEffect);
+                  eventBus.emit('send-broadcast', {
+                    to: 'home',
+                    eventName: 'toggle-particle-effect',
+                    data: {}
+                  });
+                  " />
+              </el-form-item>
+            </el-tooltip>
+
 
             <el-form-item :label="$t('setting.autoSave')">
               <el-select v-model="settings.autoSave" @change="saveSetting('autoSave', settings.autoSave)">
@@ -49,9 +63,13 @@
                 <el-radio label="light">{{ $t('setting.themeLight') }}</el-radio>
                 <el-radio label="dark">{{ $t('setting.themeDark') }}</el-radio>
                 <el-radio label="custom">{{ $t('setting.themeCustom') }}</el-radio>
-                <el-color-picker v-if="settings.theme === 'custom'" v-model="settings.customThemeColor" :predefine="predefineColors"
-                @change="saveSetting('customThemeColor', settings.customThemeColor); eventBus.emit('sync-theme'); eventBus.emit('theme-changed')"
-                />
+                <el-color-picker v-if="settings.theme === 'custom'" v-model="settings.customThemeColor"
+                  :predefine="predefineColors" @change="
+                    changeCustomTheme(settings.customThemeColor);
+                  " @active-change="
+                    settings.customThemeColor = $event;
+                  changeCustomTheme(settings.customThemeColor);
+                  " />
 
               </el-radio-group>
             </el-form-item>
@@ -67,7 +85,7 @@
             <el-form-item :label="$t('setting.excludeCodeBlocks')">
               <el-tooltip :content="$t('setting.excludeCodeHint')" placement="bottom">
                 <el-switch v-model="settings.bypassCodeBlock" class="mb-2"
-                  style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" 
+                  style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
                   :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
                   @change="saveSetting('bypassCodeBlock', settings.bypassCodeBlock);" />
               </el-tooltip>
@@ -76,7 +94,7 @@
             <el-form-item :label="$t('setting.autoDownloadImage')">
               <el-tooltip :content="$t('setting.autoDownloadHint')" placement="bottom">
                 <el-switch v-model="settings.autoSaveExternalImage" class="mb-2"
-                  style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" 
+                  style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
                   :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
                   @change="saveSetting('autoSaveExternalImage', settings.autoSaveExternalImage);" />
               </el-tooltip>
@@ -87,7 +105,7 @@
             <div>
               <!-- 启用/禁用 LLM -->
               <el-switch v-model="settings.llmEnabled" class="mb-2"
-                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" 
+                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
                 :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
                 @change="handleLlmToggle" />
 
@@ -111,11 +129,12 @@
                 <!-- Ollama 配置 -->
                 <div v-if="settings.selectedLlm === 'ollama'">
                   <el-form-item :label="$t('setting.apiBaseUrl')">
-                    <el-input v-model="settings.ollama.apiUrl" :placeholder="$t('setting.ollamaApiUrl')" @change="updateLlmInfo" />
+                    <el-input v-model="settings.ollama.apiUrl" :placeholder="$t('setting.ollamaApiUrl')"
+                      @change="updateLlmInfo" />
                   </el-form-item>
                   <el-form-item :label="$t('setting.chooseModel')">
-                    <el-select v-model="settings.ollama.selectedModel" :placeholder="$t('setting.chooseModel')" @click="fetchOllamaModels"
-                      @change="updateLlmInfo">
+                    <el-select v-model="settings.ollama.selectedModel" :placeholder="$t('setting.chooseModel')"
+                      @click="fetchOllamaModels" @change="updateLlmInfo">
                       <el-option v-for="model in ollamaModels" :key="model" :label="model.name" :value="model.model" />
                     </el-select>
                   </el-form-item>
@@ -124,30 +143,35 @@
                 <!-- OpenAI 配置 -->
                 <div v-else-if="settings.selectedLlm === 'openai'">
                   <el-form-item :label="$t('setting.apiBaseUrl')">
-                    <el-input v-model="settings.openai.apiUrl" :placeholder="$t('setting.openaiApiUrl')" @change="updateLlmInfo" />
+                    <el-input v-model="settings.openai.apiUrl" :placeholder="$t('setting.openaiApiUrl')"
+                      @change="updateLlmInfo" />
                   </el-form-item>
                   <el-form-item :label="$t('setting.apiKey')">
-                    <el-input v-model="settings.openai.apiKey" type="password" :placeholder="$t('setting.apiKeyPlaceholder')" @change="updateLlmInfo" />
+                    <el-input v-model="settings.openai.apiKey" type="password"
+                      :placeholder="$t('setting.apiKeyPlaceholder')" @change="updateLlmInfo" />
                   </el-form-item>
                   <el-form-item :label="$t('setting.chooseModel')">
-                    <el-select v-model="settings.openai.selectedModel" :placeholder="$t('setting.chooseModel')" @click="fetchOpenAIModels"
-                      @change="updateLlmInfo">
+                    <el-select v-model="settings.openai.selectedModel" :placeholder="$t('setting.chooseModel')"
+                      @click="fetchOpenAIModels" @change="updateLlmInfo">
                       <el-option v-for="model in openaiModels" :key="model" :label="model.id" :value="model.id" />
                     </el-select>
                   </el-form-item>
                   <el-form-item :label="$t('setting.apiSuffix')">
-                    <el-input v-model="settings.openai.completionSuffix" :placeholder="$t('setting.completionSuffix')" @change="updateLlmInfo" />
+                    <el-input v-model="settings.openai.completionSuffix" :placeholder="$t('setting.completionSuffix')"
+                      @change="updateLlmInfo" />
                     <div style="height:40px;"></div>
-                    <el-input v-model="settings.openai.chatSuffix" :placeholder="$t('setting.chatSuffix')" @change="updateLlmInfo" />
+                    <el-input v-model="settings.openai.chatSuffix" :placeholder="$t('setting.chatSuffix')"
+                      @change="updateLlmInfo" />
                   </el-form-item>
                 </div>
 
                 <!-- MetaDoc 配置 -->
                 <div v-else-if="settings.selectedLlm === 'metadoc'">
                   <el-form-item :label="$t('setting.chooseModel')">
-                    <el-select v-model="settings.metadoc.selectedModel" :placeholder="$t('setting.chooseModel')" @click="fetchMetaDocModels"
-                      @change="updateLlmInfo">
-                      <el-option v-for="model in metadocModels" :key="model" :label="model.label" :value="model.label" />
+                    <el-select v-model="settings.metadoc.selectedModel" :placeholder="$t('setting.chooseModel')"
+                      @click="fetchMetaDocModels" @change="updateLlmInfo">
+                      <el-option v-for="model in metadocModels" :key="model" :label="model.label"
+                        :value="model.label" />
                     </el-select>
                   </el-form-item>
                 </div>
@@ -161,11 +185,12 @@
 
                 <div class="aero-divider">
                   <el-form-item>
-                    <el-button type="primary" @click="testLlmApi" class="aero-btn">{{ $t('setting.testLlm') }}</el-button>
+                    <el-button type="primary" @click="testLlmApi" class="aero-btn">{{ $t('setting.testLlm')
+                    }}</el-button>
                   </el-form-item>
                   <el-form-item :label="$t('setting.testResult')">
-                    <el-input v-model="testResult" type="textarea" readonly :placeholder="$t('setting.resultPlaceholder')"
-                      :autosize="{ minRows: 5, maxRows: 7 }" />
+                    <el-input v-model="testResult" type="textarea" readonly
+                      :placeholder="$t('setting.resultPlaceholder')" :autosize="{ minRows: 5, maxRows: 7 }" />
                   </el-form-item>
                 </div>
               </div>
@@ -202,7 +227,7 @@ if (window && window.electron) {
   ipcRenderer = window.electron.ipcRenderer
 } else {
   webMainCalls();
-  ipcRenderer=localIpcRenderer
+  ipcRenderer = localIpcRenderer
   //todo 说明当前环境不是electron环境，需要另外适配
 }
 
@@ -222,7 +247,7 @@ const fetchSettings = async () => {
   // console.log("正在加载设置：", keys);
   for (const key of keys) {
     //如果settings的某个key含有子属性，则跳过
-    if(settings[key] && typeof settings[key] === 'object' && !Array.isArray(settings[key])) {
+    if (settings[key] && typeof settings[key] === 'object' && !Array.isArray(settings[key])) {
       continue;
     }
     const value = await getSetting(key);
@@ -235,13 +260,18 @@ const fetchSettings = async () => {
     fetchLlmSettings();
   }
 };
+const changeCustomTheme = (color) => {
+  saveSetting('customThemeColor', color);
+  eventBus.emit('sync-theme');
+  eventBus.emit('theme-changed')
+}
 
 const fetchLlmSettings = async () => {
   settings.metadoc.selectedModel = await getSetting("metadocSelectedModel");
-//
+  //
   settings.ollama.apiUrl = await getSetting("ollamaApiUrl");
   settings.ollama.selectedModel = await getSetting("ollamaSelectedModel");
-//
+  //
   settings.openai.apiUrl = await getSetting("openaiApiUrl");
   settings.openai.apiKey = await getSetting("openaiApiKey");
   settings.openai.selectedModel = await getSetting("openaiSelectedModel");
@@ -250,22 +280,22 @@ const fetchLlmSettings = async () => {
 };
 const updateLlmInfo = () => {
   const { selectedLlm } = settings;
-    setSetting("metadocSelectedModel", settings.metadoc.selectedModel);
-//
-    setSetting("ollamaApiUrl", settings.ollama.apiUrl);
-    setSetting("ollamaSelectedModel", settings.ollama.selectedModel);
-//
-    setSetting("openaiApiUrl", settings.openai.apiUrl);
-    setSetting("openaiApiKey", settings.openai.apiKey);
-    setSetting("openaiSelectedModel", settings.openai.selectedModel);
-    setSetting("openaiCompletionSuffix", settings.openai.completionSuffix);
-    setSetting("openaiChatSuffix", settings.openai.chatSuffix);
+  setSetting("metadocSelectedModel", settings.metadoc.selectedModel);
+  //
+  setSetting("ollamaApiUrl", settings.ollama.apiUrl);
+  setSetting("ollamaSelectedModel", settings.ollama.selectedModel);
+  //
+  setSetting("openaiApiUrl", settings.openai.apiUrl);
+  setSetting("openaiApiKey", settings.openai.apiKey);
+  setSetting("openaiSelectedModel", settings.openai.selectedModel);
+  setSetting("openaiCompletionSuffix", settings.openai.completionSuffix);
+  setSetting("openaiChatSuffix", settings.openai.chatSuffix);
   eventBus.emit("llm-api-updated");
 };
-const fetchMetaDocModels=async()=>{
-  const models=await getMetaDocLlmModels();
+const fetchMetaDocModels = async () => {
+  const models = await getMetaDocLlmModels();
   console.log("MetaDoc模型列表：", models);
-  metadocModels.value=models; 
+  metadocModels.value = models;
 }
 const fetchOllamaModels = async () => {
   const apiUrl = settings.ollama.apiUrl;
@@ -329,7 +359,7 @@ const handleLlmToggle = (enabled) => {
 const testLlmApi = async () => {
   try {
     const prompt = t('setting.testPrompt');
-    createAiTask('AI Test', prompt,  testResult, ai_types.answer, 'setting-test');
+    createAiTask('AI Test', prompt, testResult, ai_types.answer, 'setting-test');
   } catch (error) {
     console.error(t('setting.testFailed'), error);
 

@@ -475,7 +475,9 @@
         "testResult": "テスト結果",
         "resultPlaceholder": "テスト結果はここに表示されます",
         "testPrompt": "こんにちは！自己紹介をお願いします。",
-        "testFailed": "テストに失敗しました："
+        "testFailed": "テストに失敗しました：",
+        "particleEffect": "粒子効果",
+        "particleEffectHint": "粒子効果を有効にして、視覚的な美しさを向上させます。これを有効にすると、パフォーマンスに影響を与える可能性があります。"
     },
     "visualize": {
         "articleOutline": "記事のアウトライン",

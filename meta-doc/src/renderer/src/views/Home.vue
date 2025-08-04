@@ -120,9 +120,8 @@
 
               <el-tooltip :content="$t('home.tooltip.selectMood')" placement="left">
 
-                <el-select v-model="mood" :placeholder="$t('home.tooltip.selectMood')" multiple filterable
-                  allow-create style=" margin-bottom: 5px; margin-top: 5px;" :disabled="generated || generating"
-                  size="small">
+                <el-select v-model="mood" :placeholder="$t('home.tooltip.selectMood')" multiple filterable allow-create
+                  style=" margin-bottom: 5px; margin-top: 5px;" :disabled="generated || generating" size="small">
                   <el-option v-for="option in moodOptions" :key="option.value" :label="option.label"
                     :value="option.value">
                     <template #prefix>
@@ -401,7 +400,7 @@ const generate = async () => {
 
   const prompt = generateArticlePrompt(mood.value, userPrompt.value);
   //console.log(prompt)
-    const { handle, done } = createAiTask(userPrompt.value, prompt, generatedText, ai_types.answer, 'quick-start', { temperature: temperature.value / 100.0 });
+  const { handle, done } = createAiTask(userPrompt.value, prompt, generatedText, ai_types.answer, 'quick-start', { temperature: temperature.value / 100.0 });
   generating.value = true;
   generated.value = false;
 
@@ -445,67 +444,137 @@ const generated = ref(false);
 // const autoDescription = ref(true);
 // 初始化Three.js场景
 
-const initThreeJS = () => {
+const initThreeJS = async () => {
+  let wordList=[];
+  const words= await ipcRenderer.invoke('cut-words', { text: current_article.value });
+  //console.log('切词结果:', words);
+  //使用集合去重
+  wordList = Array.from(new Set(words));
+  const symbols = '~!@#$%^&*()_+`-={}|[]\\:";\'<>?,./。、，；：‘’“”【】《》？！￥…（）—0123456789';
+  wordList = wordList.filter(word => !symbols.includes(word) && word.length > 1); //过滤掉单个字符和标点符号
+  //console.log('词语数量:', wordList);
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000);
   camera.position.z = 800;
 
-  // 设置渲染器
+  // 渲染器
   renderer = new THREE.WebGLRenderer({ alpha: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.domElement.style.position = 'absolute';
   renderer.domElement.style.top = '0';
   renderer.domElement.style.left = '0';
-  renderer.domElement.style.zIndex = '-1'; // 置于底层
-  //渐变transition
+  renderer.domElement.style.zIndex = '-1';
   renderer.domElement.style.transition = 'filter 1.5s ease';
-  document.getElementById('particle-bg').appendChild(renderer.domElement);
+  document.getElementById('particle-bg')?.appendChild(renderer.domElement);
 
+  const areaSize = 1500;
 
+  // 如果词语数量 < 50，用原始粒子效果
+  if (wordList.length < 50) {
+    const particleCount = 100;
+    const particlesGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
 
-  const particleCount = 100;
-  const particlesGeometry = new THREE.BufferGeometry();
-  const positions = new Float32Array(particleCount * 3);
-  const colors = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * areaSize;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * areaSize;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * areaSize;
 
-  for (let i = 0; i < particleCount; i++) {
-    positions[i * 3] = (Math.random() - 0.5) * 1500;
-    positions[i * 3 + 1] = (Math.random() - 0.5) * 1500;
-    positions[i * 3 + 2] = (Math.random() - 0.5) * 1500;
+      colors[i * 3] = Math.random();
+      colors[i * 3 + 1] = Math.random();
+      colors[i * 3 + 2] = Math.random();
+    }
 
-    colors[i * 3] = Math.random();
-    colors[i * 3 + 1] = Math.random();
-    colors[i * 3 + 2] = Math.random();
+    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const material = new THREE.PointsMaterial({
+      size: 50 + Math.random() * 20,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.7,
+    });
+
+    particles = new THREE.Points(particlesGeometry, material);
+  } else {
+    // 否则：使用词语 sprite 粒子
+    particles = new THREE.Group();
+
+    wordList.forEach((word) => {
+      const canvas = document.createElement('canvas');
+      const size = 256;
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      
+      ctx.clearRect(0, 0, size, size);
+      ctx.font = 'bold 60px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},0.9)`;
+      ctx.fillText(word, size / 2, size / 2);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const sprite = new THREE.Sprite(material);
+
+      sprite.position.set(
+        (Math.random() - 0.5) * areaSize,
+        (Math.random() - 0.5) * areaSize,
+        (Math.random() - 0.5) * areaSize
+      );
+
+      const scale = 40 + Math.random() * 40;
+      sprite.scale.set(scale, scale, 1);
+
+      particles.add(sprite);
+    });
   }
 
-  particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-  const material = new THREE.PointsMaterial({
-    size: 50 + Math.random() * 20,
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.7,
-  });
-
-  particles = new THREE.Points(particlesGeometry, material);
   scene.add(particles);
 };
 
-// 动画循环
-const animate = () => {
-  requestAnimationFrame(animate);
+let animationFrameId = null;
+let isAnimating = false;
+const startAnimation = () => {
+  if (isAnimating) return;
+  isAnimating = true;
+  animate();
+};
 
-  // 让粒子微微旋转，制造动态效果
+const stopAnimation = () => {
+  if (animationFrameId !== null) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  isAnimating = false;
+  renderer.clear();
+};
+const animate = () => {
+  if (!isAnimating) return; // 如果当前设置为不需要动画，直接退出
+
+  // 动画帧请求
+  animationFrameId = requestAnimationFrame(animate);
+
+  if (!particleEffectEnabled.value || !particles) {
+    // 清空画布但不继续动画循环
+    renderer.clear();
+    isAnimating = false;
+    animationFrameId = null;
+    return;
+  }
+
+  // 让粒子微微旋转
   particles.rotation.x += 0.0005;
   particles.rotation.y += 0.0005;
 
-  // 根据鼠标位置调整粒子旋转
+  // 根据鼠标位置调整旋转
   particles.rotation.x += (mouseY.value / window.innerHeight) * 0.05;
   particles.rotation.y += (mouseX.value / window.innerWidth) * 0.05;
 
-  //模糊度
-  renderer.domElement.style.filter = `blur(${(quickStartDialogVisible.value == true || current_file_path.value !== '') ? 10 : 0}px)`;
+  // 模糊处理
+  renderer.domElement.style.filter = `blur(${(quickStartDialogVisible.value || current_file_path.value !== '') ? 10 : 0}px)`;
+
   renderer.render(scene, camera);
 };
 
@@ -582,10 +651,32 @@ const preventNavigate = (event) => {
     }
   });
 };
+const particleEffectEnabled = ref(false);
+const particleEffect=async ()=>{
+    
+    eventBus.on('toggle-particle-effect', async () => {
+    //console.log('toggle-particle-effect');
+    const enabled = await getSetting('particleEffect');
+    if (enabled) {
+      initThreeJS();
+      particleEffectEnabled.value = true;
+      startAnimation();
+    } else {
+      particleEffectEnabled.value = false;
+      stopAnimation();
+      if (particles) {
+        scene.remove(particles);
+        particles.geometry.dispose();
+        particles.material.dispose();
+        particles = null;
+      }
+    }
+
+  });
+  eventBus.emit('toggle-particle-effect', {});
+}
 onMounted(async () => {
-  
-  initThreeJS();
-  animate(); // 开始动画循环
+  particleEffect();
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('resize', onWindowResize); // 添加窗口大小变化事件
   preventNavigate(); // 添加链接点击事件

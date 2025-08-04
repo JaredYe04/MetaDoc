@@ -475,7 +475,9 @@
         "testResult": "Test Result",
         "resultPlaceholder": "Test results will appear here",
         "testPrompt": "Hello! Please introduce yourself.",
-        "testFailed": "Test failed: "
+        "testFailed": "Test failed: ",
+        "particleEffect": "Particle Effect",
+        "particleEffectHint": "Enable particle effects to enhance visual aesthetics. This may impact performance."
     },
     "visualize": {
         "articleOutline": "Article Outline",

@@ -66,7 +66,8 @@ export const settings = reactive({
   metadoc: {
     selectedModel: "",//模型名称
   },
-  alwaysAskSave: true, // 是否总是询问保存
+  alwaysAskSave: true, // 是否总是询问保存,
+  particleEffect: true, // 是否启用粒子效果
 });
 
 export async function initSettings() {

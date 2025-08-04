@@ -1,5 +1,8 @@
 //创建一个方法，用于提取字符串中的json字符串，如果json嵌套json，则提取最外层的json字符串
 // 例如："{a:{b:{c:1}}}"，提取出"{a:{b:{c:1}}}"，而不是"{b:{c:1}}"
+
+import { getSetting } from "./settings";
+
 // 该方法用于提取json字符串，避免json字符串中包含其他字符导致解析错误，此外需要考虑最外层可能是数组或对象
 export function extractOuterJsonString(str) {
     const startIdx = str.search(/[\[{]/); // 查找第一个 { 或 [

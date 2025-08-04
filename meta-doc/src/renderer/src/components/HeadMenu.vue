@@ -6,7 +6,7 @@
     @select="handleSelect"
     style="position: absolute; top: 0; left: 0; right: 0;"
     :default-active="activeMenuIndex"
-    :background-color="themeState.currentTheme.background"
+    :background-color="themeState.currentTheme.headerBackground"
     :text-color="themeState.currentTheme.textColor"
     :active-text-color="themeState.currentTheme.textColor2"
   >

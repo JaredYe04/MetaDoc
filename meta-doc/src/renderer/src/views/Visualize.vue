@@ -232,8 +232,6 @@ const processWords = async () => {
             wordCount.value[word] = 1;
         }
     });
-    //console.log(wordCount);
-    //去掉一些标点符号
     const symbols = '~!@#$%^&*()_+`-={}|[]\\:";\'<>?,./。、，；：‘’“”【】《》？！￥…（）—0123456789';
     Object.keys(wordCount.value).forEach((key) => {
         if (symbols.includes(key)) {
@@ -252,9 +250,8 @@ const processWords = async () => {
         size: wordCount.value[key],
     }));
 
-    //筛选出前20个词
     wordCount.value = wordCount.value.sort((a, b) => b.size - a.size).slice(0, Math.min(30, wordCount.value.length));
-    //console.log(wordCount.value);
+
 };
 const generateWordCloud = async () => {
 

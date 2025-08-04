@@ -65,7 +65,9 @@ export function mainCalls() {
   ipcMain.on('system-notification', (event, data) => {
     systemNotification(data.title, data.body);
   })
-
+  ipcMain.on('update-window-title', (event, title) => {
+    updateWindowTitle(title)
+  })
   ipcMain.handle('get-setting', async (event, data) => {
     return await getSetting(data.key)
   })
@@ -249,7 +251,21 @@ const systemNotification = (title, body) => {
   // 显示通知
   notification.show();
 }
+const updateWindowTitle = (title) => {
+  //console.log('updateWindowTitle', title)
+  if (mainWindow) {
+    if (title.length > 30) {
+      title = title.substring(0, 30) + '...';
+    }
+    if (title.length === 0) {
+      mainWindow.setTitle("MetaDoc");
+    }
+    else {
+      mainWindow.setTitle(title + " - MetaDoc");
+    }
 
+  }
+}
 
 const cut_words = async (text) => {
   //console.log(text);

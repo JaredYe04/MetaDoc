@@ -40,16 +40,13 @@ function createWindow() {
   })
 
   mainWindow.on('ready-to-show', async () => {
-    bindShortcuts();//绑定快捷键
     mainWindow.show()
-
+    bindShortcuts();//绑定快捷键
   })
   // mainWindow.webContents.on('will-navigate', (event, url) => {
   //   event.preventDefault(); // 阻止导航
   //   // 可以在这里根据 url 决定是否打开，或用 shell.openExternal(url)
   // });
-
-
   mainWindow.on('close', (e) => {
     //console.log('close event:', is_need_save)
     if (is_need_save) {
@@ -61,14 +58,13 @@ function createWindow() {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
-
-
+ 
   const args = process.argv;
   //console.log('args:', args);
   //获取第一个参数作为文件路径，如果没有就不打开文件
   let filePath = '';
   const supportedExtensions = ['.md', '.json', '.txt'];
-  console.log(args)
+  //console.log(args)
   if (args.length > 1) {
     //弹窗
     filePath = args.find(arg => {
@@ -90,163 +86,149 @@ function createWindow() {
     // mainWindow.loadFile(join(__dirname, '../renderer/index.html'+ (filePath ? `?file=${encodeURIComponent(filePath)}` : '')))
   }
   global.mainWindow = mainWindow;
+  runExpressServer(); // 启动本地CDN服务器
+
 }
 
-const expressApp = express();
-const projectRoot = path.resolve(path.resolve(__dirname, '../'), '../');  // 根据 out/main 路径上一级即为根目录
-const dir = path.join(projectRoot, 'node_modules/vditor')
-// 将 node_modules/vditor 作为静态资源暴露
-expressApp.use(cors());
-expressApp.use('/vditor', express.static(dir));
-expressApp.get('/vditor/*', (req, res) => {
-  console.log('Request for Vditor file:', req.path); // 输出请求的文件路径
-});
-
-/////////////////////////////////////上传图片API/////////////////////////////////////
-// 设置上传目录
-// 获取系统图片目录路径
 export const uploadDir = path.join(os.homedir(), 'Pictures', 'meta-doc-imgs');
 
-// 如果目录不存在，则创建
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true }); // 递归创建目录
-}
+const runExpressServer = () => {
+  const expressApp = express();
+  const projectRoot = path.resolve(path.resolve(__dirname, '../'), '../');  // 根据 out/main 路径上一级即为根目录
+  const dir = path.join(projectRoot, 'node_modules/vditor')
+  // 将 node_modules/vditor 作为静态资源暴露
+  expressApp.use(cors());
+  expressApp.use('/vditor', express.static(dir));
+  expressApp.get('/vditor/*', (req, res) => {
+    console.log('Request for Vditor file:', req.path); // 输出请求的文件路径
+  });
 
-// 配置 multer 存储
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir); // 图片保存到系统图片目录下的 meta-doc-imgs 文件夹
-  },
-  filename: (req, file, cb) => {
-    const timestamp = Date.now(); // 时间戳命名
-    cb(null, `${timestamp}_${file.originalname}`);
-  },
-});
+  /////////////////////////////////////上传图片API/////////////////////////////////////
+  // 设置上传目录
+  // 获取系统图片目录路径
+  
 
-const upload = multer({ storage });
-// 配置静态文件服务
-expressApp.use('/images', express.static(uploadDir));
-// 创建上传接口
-expressApp.post('/upload', upload.array('file[]'), (req, res) => {
-  //console.log(req)
-  const errFiles = [];
-  const succMap = {};
-
-  // 处理上传的文件
-  if (req.files && req.files.length > 0) {
-    req.files.forEach((file) => {
-
-
-
-      //const filePath = path.join('images', file.filename); // 相对路径
-
-      //返回绝对路径
-      const filePath = path.join(uploadDir, file.filename);
-      succMap[file.filename] = filePath; // 文件路径映射
-    });
-
-    // 如果没有任何上传成功的文件，返回错误
-    if (Object.keys(succMap).length === 0) {
-      errFiles.push('没有上传任何文件');
-    }
-  } else {
-    errFiles.push('上传失败');
+  // 如果目录不存在，则创建
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true }); // 递归创建目录
   }
 
-  // 返回 Vditor 需要的格式
-  res.json({
-    msg: '',
-    code: 0,
-    data: {
-      errFiles: errFiles, // 失败的文件
-      succMap: succMap, // 成功的文件路径映射
+  // 配置 multer 存储
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadDir); // 图片保存到系统图片目录下的 meta-doc-imgs 文件夹
+    },
+    filename: (req, file, cb) => {
+      const timestamp = Date.now(); // 时间戳命名
+      cb(null, `${timestamp}_${file.originalname}`);
     },
   });
-});
 
-// 为了防止站外图片失效，linkToImgUrl 可将剪贴板中的站外图片地址传到服务器端进行保存处理，其数据结构如下：
-// // POST data
-// xhr.send(JSON.stringify({url: src})); // src 为站外图片地址
-// // return data
-// {
-//  msg: '',
-//  code: 0,
-//  data : {
-//    originalURL: '',
-//    url: ''
-//  }
-// }
-const bodyParser = require('body-parser');
-expressApp.use(bodyParser.json()); // 解析 JSON 格式的请求体
-expressApp.use(bodyParser.urlencoded({ extended: true })); // 解析 URL 编码的请求体
-expressApp.post('/url-upload', (req, res) => {
-  //   // POST data
-  // xhr.send(JSON.stringify({url: src})); // src 为站外图片地址
-  //req中没有body，需要使用body-parser中间件来解析请求体
-  //console.log(req)
+  const upload = multer({ storage });
+  // 配置静态文件服务
+  expressApp.use('/images', express.static(uploadDir));
+  // 创建上传接口
+  expressApp.post('/upload', upload.array('file[]'), (req, res) => {
+    //console.log(req)
+    const errFiles = [];
+    const succMap = {};
 
-  const { url } = req.body; // 从请求体中获取 URL
-  if (!url) {
-    return res.status(400).json({ error: 'No URL provided' });
-  }
-  //下载到本地，与/upload接口一致，然后返回本地的图片链接
-  const fileName = `${Date.now()}_${path.basename(url)}`; // 使用时间戳和原始文件名
-  const filePath = path.join(uploadDir, fileName); // 保存路径
-  const fileStream = fs.createWriteStream(filePath);
-  const https = require('https');
-  const http = require('http');
-  const protocol = url.startsWith('https') ? https : http;
-  protocol.get(url, (response) => {
-    if (response.statusCode === 200) {
-      response.pipe(fileStream);
-      fileStream.on('finish', () => {
-        fileStream.close(() => {
-          // 返回成功的图片链接，此处为文件的绝对路径
-          res.json({
-            msg: '',
-            code: 0,
-            data: {
-              originalURL: url,
-              url: `${filePath}`, // 返回本地文件的绝对路径
-            },
+    // 处理上传的文件
+    if (req.files && req.files.length > 0) {
+      req.files.forEach((file) => {
+
+
+
+        //const filePath = path.join('images', file.filename); // 相对路径
+
+        //返回绝对路径
+        const filePath = path.join(uploadDir, file.filename);
+        succMap[file.filename] = filePath; // 文件路径映射
+      });
+
+      // 如果没有任何上传成功的文件，返回错误
+      if (Object.keys(succMap).length === 0) {
+        errFiles.push('没有上传任何文件');
+      }
+    } else {
+      errFiles.push('上传失败');
+    }
+
+    // 返回 Vditor 需要的格式
+    res.json({
+      msg: '',
+      code: 0,
+      data: {
+        errFiles: errFiles, // 失败的文件
+        succMap: succMap, // 成功的文件路径映射
+      },
+    });
+  });
+
+
+  const bodyParser = require('body-parser');
+  expressApp.use(bodyParser.json()); // 解析 JSON 格式的请求体
+  expressApp.use(bodyParser.urlencoded({ extended: true })); // 解析 URL 编码的请求体
+  expressApp.post('/url-upload', (req, res) => {
+    //   // POST data
+    // xhr.send(JSON.stringify({url: src})); // src 为站外图片地址
+    //req中没有body，需要使用body-parser中间件来解析请求体
+    //console.log(req)
+
+    const { url } = req.body; // 从请求体中获取 URL
+    if (!url) {
+      return res.status(400).json({ error: 'No URL provided' });
+    }
+    //下载到本地，与/upload接口一致，然后返回本地的图片链接
+    const fileName = `${Date.now()}_${path.basename(url)}`; // 使用时间戳和原始文件名
+    const filePath = path.join(uploadDir, fileName); // 保存路径
+    const fileStream = fs.createWriteStream(filePath);
+    const https = require('https');
+    const http = require('http');
+    const protocol = url.startsWith('https') ? https : http;
+    protocol.get(url, (response) => {
+      if (response.statusCode === 200) {
+        response.pipe(fileStream);
+        fileStream.on('finish', () => {
+          fileStream.close(() => {
+            // 返回成功的图片链接，此处为文件的绝对路径
+            res.json({
+              msg: '',
+              code: 0,
+              data: {
+                originalURL: url,
+                url: `${filePath}`, // 返回本地文件的绝对路径
+              },
+            });
           });
         });
-      });
-    } else {
+      } else {
+        res.status(500).json({ error: 'Failed to download image' });
+      }
+    }).on('error', (err) => {
+      console.error('Error downloading image:', err);
       res.status(500).json({ error: 'Failed to download image' });
-    }
-  }).on('error', (err) => {
-    console.error('Error downloading image:', err);
-    res.status(500).json({ error: 'Failed to download image' });
+    });
   });
-});
+  // expressApp.use('/images', express.static(path.join(__dirname, 'images')));
+  const server = http.createServer(expressApp);
+  // 在本地运行 HTTP 服务器
+  server.listen(3000, () => {
+    console.log('Local CDN server running at http://localhost:3000');
+    //console.log(dir)
+  });
+  //但是如果已经运行了，就每隔10秒重试一次
+  server.on('error', (e) => {
+    if (e.code === 'EADDRINUSE') {
+      console.error('Port 3000 is already in use. Retrying...');
+      setTimeout(() => {
+        server.close();
+        server.listen(3000);
+      }, 10000); // 每隔10秒重试一次，如果连接成功就不会触发error事件
+    }
+  })
 
-// expressApp.use('/images', express.static(path.join(__dirname, 'images')));
-
-const server = http.createServer(expressApp);
-
-
-// 在本地运行 HTTP 服务器
-//但是如果已经运行了，就不需要再运行了
-server.listen(3000, () => {
-  console.log('Local CDN server running at http://localhost:3000');
-  console.log(dir)
-});
-
-server.on('error', (e) => {
-  if (e.code === 'EADDRINUSE') {
-    console.error('Address in use, retrying...');
-    setTimeout(() => {
-      server.close();
-      server.listen(3000, () => {
-        console.log('Local CDN server running at http://localhost:3000');
-        console.log(dir)
-      });
-
-    }, 1000 * 60);
-  }
-})
-
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -262,11 +244,8 @@ app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
+  createWindow();
   mainCalls();//绑定主进程的事件处理函数
-
-
-
-  createWindow()
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
@@ -349,21 +328,21 @@ let aiChatWindowOpened = false;
 let settingWindowOpened = false;
 let fomulaRecognitionWindowOpened = false;
 let aiGraphWindowOpened = false;
-export const initBroadcastChannel=()=>{
+export const initBroadcastChannel = () => {
   //console.log('initBroadcastChannel')
   ipcMain.on('send-broadcast', (event, message) => {
     //console.log('Received broadcast message:', message);
     mainWindow.webContents.send('receive-broadcast', message);
-    if(aichatWindow){
+    if (aichatWindow) {
       aichatWindow.webContents.send('receive-broadcast', message);
     }
-    if(settingWindow){
+    if (settingWindow) {
       settingWindow.webContents.send('receive-broadcast', message);
     }
-    if(fomulaRecognitionWindow){
+    if (fomulaRecognitionWindow) {
       fomulaRecognitionWindow.webContents.send('receive-broadcast', message);
     }
-    if(aiGraphWindow){
+    if (aiGraphWindow) {
       aiGraphWindow.webContents.send('receive-broadcast', message);
     }
   });

@@ -26,6 +26,7 @@
         "exportMarkdown": "Markdown으로 내보내기",
         "exportDocx": "DOCX로 내보내기",
         "exportHtml": "HTML로 내보내기",
+        "exportLatex": "LaTeX로 내보내기",
         "closeFile": "파일 닫기",
         "aiToolTooltip": "AI 도구",
         "aiAssistant": "AI 어시스턴트",

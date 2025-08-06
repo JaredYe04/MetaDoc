@@ -26,6 +26,7 @@
         "exportMarkdown": "Markdownにエクスポート",
         "exportDocx": "DOCXにエクスポート",
         "exportHtml": "HTMLにエクスポート",
+        "exportLatex": "LaTeXにエクスポート",
         "closeFile": "ファイルを閉じる",
         "aiToolTooltip": "AIツール",
         "aiAssistant": "AIアシスタント",

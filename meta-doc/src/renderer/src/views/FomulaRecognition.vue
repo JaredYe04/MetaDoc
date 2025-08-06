@@ -132,7 +132,7 @@ import { CircleClose, CopyDocument, DocumentCopy, Edit, EditPen, Picture, Pointe
 import { getElement } from 'element-plus/es/utils/index.mjs'
 import { convertBase64ToBlob, toBase64 } from '../utils/image-utils'
 import { simpletexOcr } from '../utils/simpletex-utils'
-import { md2html } from '../utils/md-utils'
+import { ConvertMarkdownToHtmlManually } from '../utils/md-utils'
 import { themeState } from '../utils/themes'
 import { MdPreview } from 'md-editor-v3'
 import '../assets/tool-group.css'

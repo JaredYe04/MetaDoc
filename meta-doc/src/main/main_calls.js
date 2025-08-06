@@ -125,9 +125,7 @@ export function mainCalls() {
     return crypto.createHash('md5').update(data).digest('hex');
   });
 
-  ipcMain.handle('export-to-pdf', async (event, args) => {
-    return await exportPDF(args);
-  });
+
 
   //////////////AI任务调度
   ipcMain.on('register-ai-task', (event, taskInfo) => {
@@ -167,73 +165,6 @@ export function mainCalls() {
   // ipcMain.handle('get-vditor', async (event, data) => {
   //   return await getVditor(data)
   // })
-}
-
-const exportPDF = async (args) => {
-  const waitForRenderComplete = async (
-    win,
-    timeout = 10000,
-    interval = 500
-  ) => {
-    const maxTries = Math.ceil(timeout / interval);
-    let lastHTML = '';
-    let stableCount = 0;
-    const requiredStableCount = 2; // 连续2次相同视为稳定
-    for (let i = 0; i < maxTries; i++) {
-      try {
-        const currentHTML = await win.webContents.executeJavaScript(
-          'document.documentElement.innerHTML',
-          true
-        );
-
-        if (currentHTML === lastHTML) {
-          stableCount++;
-          if (stableCount >= requiredStableCount) {
-            return;
-          }
-        } else {
-          stableCount = 0;
-          lastHTML = currentHTML;
-        }
-      } catch (err) {
-        // 忽略临时性错误
-      }
-      await new Promise((resolve) => setTimeout(resolve, interval));
-    }
-    throw new Error('渲染超时：页面内容持续变动，未能稳定');
-  };
-
-  const { html, filename } = args;
-  const win = new BrowserWindow({
-    show: false,
-    webPreferences: {
-      sandbox: false,
-    }
-  });
-
-  await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
-
-  // 等待页面完全加载并执行所有图表渲染
-  //await new Promise(resolve => setTimeout(resolve, 2000)); // 可根据需要延长时间
-
-  await waitForRenderComplete(win);
-  const pdfBuffer = await win.webContents.printToPDF({});
-  //弹出保存对话框
-  const savePath = await dialog.showSaveDialog(mainWindow, {
-    title: 'PDF',
-    defaultPath: filename || 'document.pdf',
-    filters: [
-      { name: 'PDF File', extensions: ['pdf'] }
-    ]
-  });
-  if (savePath.canceled) {
-    return "";
-  }
-  //console.log('savePath', savePath.filePath);
-  fs.writeFileSync(savePath.filePath, pdfBuffer);
-  //console.log('PDF saved to:', savePath.filePath);
-  win.close();
-  return savePath.filePath;
 }
 
 var Segment = require('segment');
@@ -416,119 +347,135 @@ const chooseSaveFile = async (data) => {
     return result.filePath
   }
 }
-
 const exportFile = async (event, data) => {
-  data = { ...JSON.parse(data.json), html: data.html, format: data.format }
-  //console.log(win)
+  data = { ...JSON.parse(data.json), html: data.html, format: data.format, tex: data.tex };
+
   const dateyyyyMMddhhmmss = new Date()
     .toISOString()
     .replace(/:/g, '-')
     .replace('T', '_')
-    .split('.')[0]
-  const title = data.current_article_meta_data.title
-  const filename = title ? title : dateyyyyMMddhhmmss
-  const format = data.format
-  let filter = {}
+    .split('.')[0];
+  const title = data.current_article_meta_data.title;
+  const filename = title ? title : dateyyyyMMddhhmmss;
+  const format = data.format;
+
+  let filter = {};
   switch (format) {
     case 'docx':
-      filter = { name: 'DOCX 文件', extensions: ['docx'] }
-      break
+      filter = { name: 'DOCX File', extensions: ['docx'] };
+      break;
     case 'md':
-      filter = { name: 'Markdown 文件', extensions: ['md'] }
-      break
+      filter = { name: 'Markdown File', extensions: ['md'] };
+      break;
     case 'html':
-      filter = { name: 'HTML 文件', extensions: ['html'] }
-      break
+      filter = { name: 'HTML File', extensions: ['html'] };
+      break;
+    case 'tex':
+      filter = { name: 'LaTeX File', extensions: ['tex'] };
+      break;
   }
+
   const result = await dialog.showSaveDialog(mainWindow, {
     title: '导出文档',
     defaultPath: filename + '.' + format,
-    filters: [
-      filter
-    ]
-  })
-  //console.log(result); // 可以检查返回的 result 对象
+    filters: [filter],
+  });
+
   if (!result.canceled && result.filePath) {
-    //后缀名
-    const ext = path.extname(result.filePath).toLowerCase()
-    switch (ext) {
-      // case '.pdf':
-      //   convertMarkdownTextToPDF(data.current_article, result.filePath)
-      //   break
-      case '.docx':
-        convertMarkdownToDocx(data.html, result.filePath)
-        break
-      case '.md':
-        directFileOutput(data.current_article, result.filePath)
-        break
-      case '.html':
-        convertMarkdownToHTML(data.current_article_meta_data.title, data.html, result.filePath)
-        break
+    const ext = path.extname(result.filePath).toLowerCase();
+    let buffer = null;
+
+    try {
+      switch (ext) {
+        case '.pdf':
+          buffer = await convertHtmlToPdfBuffer(data.html);
+          break;
+        case '.docx':
+          buffer = await convertMarkdownToDocxBuffer(data.html);
+          break;
+        case '.md':
+          buffer = Buffer.from(data.current_article, 'utf-8');
+          break;
+        case '.html':
+          buffer = Buffer.from(
+            wrapHtmlWithTemplate(data.current_article_meta_data.title, data.html),
+            'utf-8'
+          );
+          break;
+        case '.tex':
+          const latex = data.tex;
+          console.log('导出 LaTeX:', latex);
+          buffer = Buffer.from(latex, 'utf-8');
+          break;
+      }
+
+      if (buffer) {
+        await fs.promises.writeFile(result.filePath, buffer);
+        mainWindow.webContents.send('export-success', result.filePath);
+      }
+    } catch (error) {
+      console.error('导出失败:', error);
     }
   }
-}
+};
 
 
-const { mdToPdf } = require("md-to-pdf");
-async function convertMarkdownTextToPDF(markdownText, outputPath) {
-  // 直接传入 Markdown 文本
-  const result = await mdToPdf({ content: markdownText });
+const convertHtmlToPdfBuffer = async (html) => {
+  const waitForRenderComplete = async (
+    win,
+    timeout = 10000,
+    interval = 500
+  ) => {
+    const maxTries = Math.ceil(timeout / interval);
+    let lastHTML = '';
+    let stableCount = 0;
+    const requiredStableCount = 2;
+    for (let i = 0; i < maxTries; i++) {
+      try {
+        const currentHTML = await win.webContents.executeJavaScript(
+          'document.documentElement.innerHTML',
+          true
+        );
 
-  // 将生成的 PDF 写入文件
-  fs.writeFileSync(outputPath, result.content);
-  mainWindow.webContents.send('export-success', outputPath)
-}
-
-
-
-
-
-async function convertMarkdownToHTML(title, htmlContent, path) {
-  try {
-    // 使用 marked 将 Markdown 转换为 HTML
-    htmlContent = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>${title}</title></head><body>${htmlContent}</body></html>`;
-    directFileOutput(htmlContent, path)
-  } catch (error) {
-    //eventBus.emit('show-error', '转换Markdown到HTML失败' + error)
-    console.error('Error while converting markdown to HTML:', error);
-  }
-}
-async function convertMarkdownToDocx(htmlContent, outputPath) {
-  try {
-    // 将 Markdown 转换为 HTML
-    //let htmlContent = marked(markdownText);
-    //console.log(markdownText);
-    // let htmlContent=await md2html(markdownText);
-    // 插入 UTF-8 编码声明，确保中文正确显示
-    htmlContent = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>Document</title></head><body>${htmlContent}</body></html>`;
-    //console.log(htmlContent);
-    // 使用 html-docx-js 将 HTML 转换为 DOCX，得到一个 Blob 对象
-    const docxBlob = htmlDocx.asBlob(htmlContent);
-
-
-    // 将 Blob 转换为 ArrayBuffer
-    const arrayBuffer = await docxBlob.arrayBuffer();
-
-    // 将 ArrayBuffer 转换为 Node.js Buffer
-    const docxBuffer = Buffer.from(arrayBuffer);
-
-    // 确保输出路径的文件夹存在
-    const dir = path.dirname(outputPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+        if (currentHTML === lastHTML) {
+          stableCount++;
+          if (stableCount >= requiredStableCount) {
+            return;
+          }
+        } else {
+          stableCount = 0;
+          lastHTML = currentHTML;
+        }
+      } catch (err) {
+        // 忽略错误
+      }
+      await new Promise((resolve) => setTimeout(resolve, interval));
     }
+    throw new Error('渲染超时：页面内容持续变动，未能稳定');
+  };
 
-    // 将生成的 DOCX 内容写入文件
-    fs.writeFileSync(outputPath, docxBuffer);
-    mainWindow.webContents.send('export-success', outputPath)
-    //console.log(`DOCX file successfully created at ${outputPath}`);
-  } catch (error) {
-    //eventBus.emit('show-error', '转换Markdown到DOCX失败' + error)
-    console.error('Error while converting markdown to DOCX:', error);
+  const win = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      sandbox: false,
+    }
+  });
+
+  try {
+    await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+    await waitForRenderComplete(win);
+    const pdfBuffer = await win.webContents.printToPDF({});
+    return pdfBuffer;
+  } finally {
+    win.close();
   }
+};
+async function convertMarkdownToDocxBuffer(htmlContent) {
+  const htmlWrapped = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>Document</title></head><body>${htmlContent}</body></html>`;
+  const docxBlob = htmlDocx.asBlob(htmlWrapped);
+  const arrayBuffer = await docxBlob.arrayBuffer();
+  return Buffer.from(arrayBuffer);
 }
-
-function directFileOutput(content, outputPath) {
-  fs.writeFileSync(outputPath, content);
-  mainWindow.webContents.send('export-success', outputPath)
+function wrapHtmlWithTemplate(title, bodyContent) {
+  return `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>${title}</title></head><body>${bodyContent}</body></html>`;
 }

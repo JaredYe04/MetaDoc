@@ -618,7 +618,7 @@ const resetM = () => {
 };
 
 import Vditor from 'vditor';
-import { md2html } from '../utils/md-utils';
+import { ConvertMarkdownToHtmlManually } from '../utils/md-utils';
 import { getRecentDocs, getSetting, setSetting } from '../utils/settings';
 import { lightTheme, themeState } from '../utils/themes';
 import { MdPreview } from 'md-editor-v3';

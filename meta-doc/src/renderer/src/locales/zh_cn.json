@@ -26,6 +26,7 @@
         "exportMarkdown": "导出Markdown",
         "exportDocx": "导出DOCX",
         "exportHtml": "导出HTML",
+        "exportLatex": "导出LaTeX",
         "closeFile": "关闭文件",
         "aiToolTooltip": "AI工具",
         "aiAssistant": "AI助手",

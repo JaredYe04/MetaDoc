@@ -20,7 +20,7 @@ import {
 import { getSetting, updateRecentDocs } from './settings.js'
 import { path } from 'd3'
 import { da, de } from 'element-plus/es/locales.mjs'
-import { exportPDF, image2base64, image2local, local2image, md2html, md2htmlRaw } from './md-utils.js'
+import { ConvertHtmlForPdf, image2base64, image2local, local2image, ConvertMarkdownToHtmlManually, ConvertMarkdownToHtmlVditor } from './md-utils.js'
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
 
 
@@ -169,7 +169,7 @@ eventBus.on('save', async (msg) => {
     }
   }
   sync();
-  await ipcRenderer.send('save', { json: dump2json(), md: dump2md(), path: current_file_path.value, html: await md2html(current_article.value) })
+  await ipcRenderer.send('save', { json: dump2json(), md: dump2md(), path: current_file_path.value, html: await ConvertMarkdownToHtmlManually(current_article.value) })
   eventBus.emit('is-need-save', false)
 })
 
@@ -181,7 +181,7 @@ eventBus.on('is-need-save', (msg) => {
 eventBus.on('save-and-quit', async () => {
   sync();
   eventBus.emit('is-need-save', false)
-  ipcRenderer.send('save-and-quit', { json: dump2json(), path: current_file_path.value, html: await md2html(current_article.value) })
+  ipcRenderer.send('save-and-quit', { json: dump2json(), path: current_file_path.value, html: await ConvertMarkdownToHtmlManually(current_article.value) })
 });
 
 eventBus.on('open-doc', async (path) => {
@@ -201,7 +201,7 @@ eventBus.on('save-as', async () => {
   sync();
   eventBus.emit('nav-to', '/article');
   eventBus.emit('is-need-save', false)
-  ipcRenderer.send('save-as', { json: dump2json(), md: dump2md(), path: '', html: await md2html(current_article.value) })
+  ipcRenderer.send('save-as', { json: dump2json(), md: dump2md(), path: '', html: await ConvertMarkdownToHtmlManually(current_article.value) })
 })
 
 eventBus.on('new-doc', async () => {
@@ -215,33 +215,44 @@ eventBus.on('close-doc', async () => {
 eventBus.on('export', async (args) => {
   const { format, filename } = args;
   sync();
-
-  let md = current_article.value//不区分格式
-  //todo:这里代码比较乱，本来exportPDF和其他导出逻辑应该分开处理的，但是现在合并了，需要修改代码
-  if (format === 'pdf') {
-    md = await local2image(md)//将本地图片转换为服务器图片，以防止导出时图片丢失
-    exportPDF(md, filename);
-  } else {
-    let html;
-    md = await local2image(md)//将本地图片转换为服务器图片，以防止导出时图片丢失
-    md = await image2base64(md)//将图片转换为base64
-
-    if (format === 'html') {
-      html = await md2html(md)
-    }
-    else {
-      html = await md2htmlRaw(md)
-    }
-    ipcRenderer.send('export', { json: dump2json(md), html: html, format: format })
+  //鼠标指针变为等待状态
+  args = {};
+  args.md = current_article.value;
+  console.log(args.md)
+  if (format === 'html' || format === 'docx' || format === 'pdf' || format === 'md' ) {
+    args.md = await local2image(args.md)//将本地图片转换为服务器图片，以防止导出时图片丢失
   }
-})
-eventBus.on('export-to-pdf', async (args) => {
-  //console.log('export-to-pdf', htmlContent)
-  const saveResult = await ipcRenderer.invoke('export-to-pdf', args)
-  if (saveResult !== '') {
-    eventBus.emit('export-success', saveResult)
+
+  if (format === 'html' || format === 'docx') {
+    args.md = await image2base64(args.md)//将图片进一步从本地链接，转换为base64
   }
+
+  if (format === 'docx') {
+    args.html = await ConvertMarkdownToHtmlVditor(args.md)
+  } else if (format === 'pdf') {
+    args.html = await ConvertHtmlForPdf(args.md);
+    //转换为pdf需要的html
+  }
+  else {
+    args.html = await ConvertMarkdownToHtmlManually(args.md);
+  }
+
+
+  if (format === 'tex') {
+    args.tex = convertMarkdownToLatex(args.md,current_article_meta_data.value.title)
+  }
+  args.json = dump2json(args.md)
+  args.format = format;
+  ipcRenderer.send('export', args)
+
 })
+// eventBus.on('export-to-pdf', async (args) => {
+//   //console.log('export-to-pdf', htmlContent)
+//   const saveResult = await ipcRenderer.invoke('export-to-pdf', args)
+//   if (saveResult !== '') {
+//     eventBus.emit('export-success', saveResult)
+//   }
+// })
 eventBus.on('setting', () => {
   ipcRenderer.send('setting')
 })
@@ -322,6 +333,7 @@ import { lightTheme, darkTheme, themeState } from './themes.js'
 import { ElMessage } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
 import { webMainCalls } from './web-adapter/web-main-calls.js'
+import { convertMarkdownToLatex } from './latex-utils.js'
 
 
 // window.electron.onMessageFromMain((event, message) => {

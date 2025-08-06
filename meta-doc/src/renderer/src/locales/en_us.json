@@ -26,6 +26,7 @@
         "exportMarkdown": "Export Markdown",
         "exportDocx": "Export DOCX",
         "exportHtml": "Export HTML",
+        "exportLatex": "Export LaTeX",
         "closeFile": "Close File",
         "aiToolTooltip": "AI Tools",
         "aiAssistant": "AI Assistant",

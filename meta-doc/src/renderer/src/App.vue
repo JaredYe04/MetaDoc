@@ -117,6 +117,7 @@ onMounted(async () => {
   eventBus.emit('sync-theme')
 })
 
+
 </script>
 
 <style scoped>

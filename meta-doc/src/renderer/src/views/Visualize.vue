@@ -82,7 +82,7 @@ import { current_article, current_article_meta_data, current_outline_tree } from
 
 import cloud from 'd3-cloud';
 import * as d3 from 'd3';
-import { extractOutlineTreeFromMarkdown, generatePieFromData, generateWordCountBarChart, generateWordFrequencyTrendChart, md2html, md2htmlRaw, outlineToMindMap } from '../utils/md-utils';
+import { extractOutlineTreeFromMarkdown, generatePieFromData, generateWordCountBarChart, generateWordFrequencyTrendChart, ConvertMarkdownToHtmlManually, ConvertMarkdownToHtmlVditor, outlineToMindMap } from '../utils/md-utils';
 onMounted(async () => {
     //await initVditor();
     //await refreshAll();
@@ -189,7 +189,7 @@ const generateOutlineGraph = async () => {
     const md = outlineToMindMap(tree);
     //console.log(Vditor)
     //console.log(md);
-    const html = await md2htmlRaw(md);
+    const html = await ConvertMarkdownToHtmlVditor(md);
     node.innerHTML = html;
     const lis = node.getElementsByTagName('li');
     for (let i = 0; i < lis.length; i++) {

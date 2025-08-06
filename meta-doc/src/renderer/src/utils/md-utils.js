@@ -705,7 +705,7 @@ export async function local2image(md){
     return new_md
 }
 
-export async function md2htmlRaw(md) {
+export async function ConvertMarkdownToHtmlVditor(md) {
     let cdn = '';
     if(isElectronEnv()){
         cdn=localVditorCDN;
@@ -716,7 +716,7 @@ export async function md2htmlRaw(md) {
     return await Vditor.md2html(md,{cdn: cdn})
 
 }
-export function md2html(md, style = 'github') {
+export function ConvertMarkdownToHtmlManually(md, style = 'github') {
 
     const cdn='https://unpkg.com/vditor'//导出的时候就不需要本地服务器了
     const safeMarkdown = JSON.stringify(md);
@@ -755,15 +755,10 @@ export function md2html(md, style = 'github') {
 return html
 }
 
-export const exportPDF = (md,filename, style = 'github') => {
+export const ConvertHtmlForPdf = (md, style = 'github') => {
     // 创建一个 iframe 并设置内容
     const iframe = document.createElement('iframe');
-    //iframe.style.display = 'none'; // 不显示 iframe
     document.body.appendChild(iframe); // 将 iframe 添加到页面上
-
-    //const iframeDocument = iframe.contentDocument;
-    //iframeDocument.open();
-
     // 使用 JSON.stringify 对 md 进行转义
     const safeMarkdown = JSON.stringify(md);
     let cdn = '';
@@ -812,9 +807,8 @@ export const exportPDF = (md,filename, style = 'github') => {
             };
         </script>
     `;
-    eventBus.emit('export-to-pdf',{html:html,filename:filename}); // 发送事件到主进程处理打印
-    //iframeDocument.write(html);
-    //iframeDocument.close();
+    return html;
+
     
 }
 

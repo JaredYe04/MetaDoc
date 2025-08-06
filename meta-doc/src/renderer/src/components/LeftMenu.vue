@@ -75,6 +75,10 @@
             @click="eventBus.emit('export', { format: 'html', filename: current_article_meta_data.title })">
             <span>{{ $t('leftMenu.exportHtml') }}</span>
           </el-menu-item>
+          <el-menu-item index="1-5-4"
+            @click="eventBus.emit('export', { format: 'tex',filename: current_article_meta_data.title})">
+            <span>{{ $t('leftMenu.exportLatex') }}</span>
+          </el-menu-item>
         </el-sub-menu>
 
         <el-menu-item index="1-6" @click="eventBus.emit('close-doc')">
@@ -254,14 +258,14 @@ import {
 } from '@element-plus/icons-vue'
 import eventBus from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { exportPDF } from '../utils/md-utils';
 import { themeState } from '../utils/themes';
-import { avatar, current_article_meta_data } from '../utils/common-data';
+import { avatar, current_article, current_article_meta_data } from '../utils/common-data';
 import { EarthIcon } from 'tdesign-icons-vue-next';
 const recentDocs = ref([])
 const isCollapse = ref(true)
 const showUserProfile = ref(false)
 import { useI18n } from 'vue-i18n'
+import { convertMarkdownToLatex } from '../utils/latex-utils';
 const { locale } = useI18n()
 const changeLang = (lang) => {
   locale.value = lang

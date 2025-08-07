@@ -9,7 +9,7 @@ const md = new MarkdownIt({
 })
     .use(footnote)
     .use(taskLists, { enabled: true });
-export function convertMarkdownToLatex(markdown,title = 'Generated Document') {
+export function convertMarkdownToLatex(markdown, title = 'Generated Document') {
     const body = convertTokensToLatex(md.parse(markdown, {}));
     const latex = `
 \\documentclass{article}
@@ -49,11 +49,83 @@ ${body}
 
     return latex;
 }
+
+
+// 主处理函数
+function convertMarkdownTableTokensToLatex(tokens, startIndex) {
+    let latex = '';
+    let i = startIndex;
+
+    let rows = [];
+    let alignSpec = [];
+    let currentRow = [];
+    let collectingRow = false;
+    let inHeader = false;
+
+    while (i < tokens.length) {
+        const token = tokens[i];
+
+        switch (token.type) {
+            case 'thead_open':
+                inHeader = true;
+                break;
+
+            case 'thead_close':
+                inHeader = false;
+                break;
+
+            case 'tr_open':
+                currentRow = [];
+                collectingRow = true;
+                break;
+
+            case 'tr_close':
+                if (collectingRow) {
+                    rows.push({ cells: currentRow, isHeader: inHeader });
+                    currentRow = [];
+                    collectingRow = false;
+                }
+                break;
+
+            case 'th_open':
+            case 'td_open': {
+                const nextToken = tokens[i + 1];
+                let content = '';
+
+                if (nextToken?.type === 'inline') {
+                    content = escapeLatex(nextToken.content || '');
+                }
+
+                currentRow.push(content);
+                break;
+            }
+
+            case 'table_close':
+                // 渲染表格
+                const columnCount = Math.max(...rows.map(r => r.cells.length));
+                if (columnCount === 0) return { latex: '', offset: i };
+
+                const defaultAlign = '|c'.repeat(columnCount) + '|';
+                latex += `\\begin{tabular}{${defaultAlign}}\n\\hline\n`;
+
+                for (let row of rows) {
+                    latex += row.cells.join(' & ') + ' \\\\ \\hline\n';
+                }
+
+                latex += '\\end{tabular}\n\n';
+                return { latex, offset: i };
+        }
+
+        i++;
+    }
+
+    return { latex: '', offset: i };
+}
 function convertTokensToLatex(tokens) {
     let latex = '';
     const stack = [];
-
-    for (const token of tokens) {
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
         switch (token.type) {
             case 'heading_open': {
                 const level = parseInt(token.tag.slice(1));
@@ -145,28 +217,19 @@ function convertTokensToLatex(tokens) {
             }
 
             case 'footnote_close': if (stack.pop() === 'footnote') latex += '}\n'; break;
-
-            case 'emoji':
-                latex += convertEmojiToLatex(token.markup);
-                break;
-
             case 'inline':
                 latex += convertTokensToLatex(token.children || []);
                 break;
 
-            case 'table_open': latex += '\\begin{tabular}{|c|c|c|}\\hline\n'; break;
-            case 'table_close': latex += '\\end{tabular}\n'; break;
-
-            case 'thead_open':
-            case 'tbody_open': break;
-
-            case 'tr_open': latex += ''; break;
-            case 'tr_close': latex += ' \\\\ \\hline\n'; break;
-
-            case 'th':
-            case 'td':
-                latex += escapeLatex(token.content) + ' & ';
+            case 'emoji':
+                latex += convertEmojiToLatex(token.markup);
                 break;
+            case 'table_open': {
+                const { latex: tableLatex, offset } = convertMarkdownTableTokensToLatex(tokens, i);
+                latex += tableLatex;
+                i = offset;
+                break;
+            }
 
             default:
                 break;
@@ -198,4 +261,20 @@ function convertEmojiToLatex(emojiName) {
 function normalizePathForLatex(path) {
     // 将 Windows 路径转换为 Unix 兼容路径，并避免特殊字符
     return path.replace(/\\/g, '/').replace(/([#%&{}_])/g, '\\$1');
+}
+
+function getColumnCount(tokens, startIndex) {
+    for (let i = startIndex; i < tokens.length; i++) {
+        if (tokens[i].type === 'tr_open') {
+            let count = 0;
+            for (let j = i + 1; j < tokens.length; j++) {
+                if (tokens[j].type === 'th_open' || tokens[j].type === 'td_open') {
+                    count++;
+                } else if (tokens[j].type === 'tr_close') {
+                    return count;
+                }
+            }
+        }
+    }
+    return 1; // fallback
 }

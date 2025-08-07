@@ -12,16 +12,16 @@
       style="width: 6px; height: 100%; cursor: ew-resize; position: absolute; left: 0; top: 0;"></div>
     <!-- 内容部分 -->
     <div style="flex: 1; overflow: hidden;">
-      <h3 style="margin: 8px ;user-select: none;">AI任务队列</h3>
+      <h3 style="margin: 8px ;user-select: none;">{{ t('aiTaskQueue.title') }}</h3>
       <span style="text-align: center; display: block; user-select: none; opacity: 0.3;">
-        AI工作时切换界面可能导致任务丢失。
+        {{ t('aiTaskQueue.switchWarning') }}
       </span>
       <el-scrollbar height="100%" style="max-width: 100%; max-height: calc(100% - 60px);">
         <AITask v-for="task in tasks" :key="task.handle" :task="task" @start="() => startAiTask(task.handle)"
           @cancel="() => cancelAiTask(task.handle)" />
         <span v-if="tasks.length === 0"
           style="text-align: center; display: block; padding: 10px; user-select: none; opacity: 0.3;">
-          暂无任务
+          {{ t('aiTaskQueue.empty') }}
         </span>
       </el-scrollbar>
     </div>
@@ -34,6 +34,8 @@ import { useAiTasks, startAiTask, cancelAiTask } from '../utils/ai_tasks'
 import AITask from './AITask.vue'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n();
 
 const visible = ref(false)
 const tasks = useAiTasks()

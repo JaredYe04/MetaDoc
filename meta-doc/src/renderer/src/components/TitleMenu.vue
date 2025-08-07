@@ -217,7 +217,7 @@ const generate = async () => {
   try {
     await done;
   } catch (err) {
-    console.warn('任务失败或取消：', err);
+    //console.warn('任务失败或取消：', err);
   } finally {
     generated.value = true;
     generating.value = false;

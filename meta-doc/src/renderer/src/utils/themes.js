@@ -2,6 +2,20 @@ import { reactive } from "vue";
 import AiLogo from "../assets/ai-logo.svg";
 import AiLogoWhite from "../assets/ai-logo-white.svg";
 // theme.js
+export const contentThemes = [
+  { label: 'Ant Design', value: 'ant-design' },
+  { label: 'Light', value: 'light' },
+  { label: 'Dark', value: 'dark' },
+  { label: 'WeChat', value: 'wechat' }
+];
+
+export const codeThemes = [
+  'abap', 'algol', 'algol_nu', 'arduino', 'autumn', 'borland', 'bw', 'colorful',
+  'dracula', 'emacs', 'friendly', 'fruity', 'github', 'igor', 'lovelace', 'manni',
+  'monokai', 'monokailight', 'murphy', 'native', 'paraiso-dark', 'paraiso-light',
+  'pastie', 'perldoc', 'pygments', 'rainbow_dash', 'rrt', 'solarized-dark',
+  'solarized-dark256', 'solarized-light', 'swapoff', 'tango', 'trac', 'vim', 'vs', 'xcode'
+];
 export const lightTheme = {
   type: 'light',
   AiLogo: AiLogo,

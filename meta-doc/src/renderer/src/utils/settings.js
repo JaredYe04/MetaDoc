@@ -44,7 +44,10 @@ export async function getImagePath() {
 export const settings = reactive({
   startupOption: "newFile", // 启动选项
   autoSave: "never", // 自动保存
-  theme: "light", // 主题
+  globalTheme: "light", // 主题
+  contentTheme: "auto", // 内容主题
+  codeTheme: "auto", // 代码主题
+  lineNumber: true, // 是否显示行号
   customThemeColor: "#ffffff", // 自定义主题颜色
   llmEnabled: false, // 是否启用 LLM
   selectedLlm: "", // 选择的大模型类型

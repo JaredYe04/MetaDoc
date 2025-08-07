@@ -10,6 +10,7 @@
           :active-text-color="themeState.currentTheme.SideActiveTextColor" style="height: 100vh;">
           <el-menu-item index="basic">{{ $t('setting.basic') }}</el-menu-item>
           <el-menu-item index="llm">{{ $t('setting.llm') }}</el-menu-item>
+          <el-menu-item index="themes">{{ $t('setting.themes') }}</el-menu-item>
         </el-menu>
       </el-aside>
 
@@ -56,23 +57,6 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item :label="$t('setting.theme')">
-              <el-radio-group v-model="settings.theme"
-                @change="saveSetting('theme', settings.theme); eventBus.emit('sync-theme'); eventBus.emit('theme-changed')">
-                <el-radio label="sync">{{ $t('setting.themeSync') }}</el-radio>
-                <el-radio label="light">{{ $t('setting.themeLight') }}</el-radio>
-                <el-radio label="dark">{{ $t('setting.themeDark') }}</el-radio>
-                <el-radio label="custom">{{ $t('setting.themeCustom') }}</el-radio>
-                <el-color-picker v-if="settings.theme === 'custom'" v-model="settings.customThemeColor"
-                  :predefine="predefineColors" @change="
-                    changeCustomTheme(settings.customThemeColor);
-                  " @active-change="
-                    settings.customThemeColor = $event;
-                  changeCustomTheme(settings.customThemeColor);
-                  " />
-
-              </el-radio-group>
-            </el-form-item>
 
             <el-form-item :label="$t('setting.microphoneTest')">
               <div>
@@ -196,6 +180,49 @@
               </div>
             </div>
           </template>
+          <template v-if="activeMenu === 'themes'">
+            <el-form-item :label="$t('setting.globalTheme')">
+              <el-radio-group v-model="settings.globalTheme"
+                @change="saveSetting('globalTheme', settings.globalTheme); eventBus.emit('sync-theme'); eventBus.emit('theme-changed')">
+                <el-radio label="sync">{{ $t('setting.themeSync') }}</el-radio>
+                <el-radio label="light">{{ $t('setting.themeLight') }}</el-radio>
+                <el-radio label="dark">{{ $t('setting.themeDark') }}</el-radio>
+                <el-radio label="custom">{{ $t('setting.themeCustom') }}</el-radio>
+                <el-color-picker v-if="settings.globalTheme === 'custom'" v-model="settings.customThemeColor"
+                  :predefine="predefineColors" @change="
+                    changeCustomTheme(settings.customThemeColor);
+                  " @active-change="
+                    settings.customThemeColor = $event;
+                  changeCustomTheme(settings.customThemeColor);
+                  " />
+              </el-radio-group>
+            </el-form-item>
+            <!-- 文档内容主题设置 -->
+            <el-form-item :label="$t('setting.contentTheme')">
+              <el-select v-model="settings.contentTheme" placeholder="Select Content Theme" @change="saveSetting('contentTheme', settings.contentTheme)
+              eventBus.emit('send-broadcast', { to: 'all', eventName: 'sync-vditor-theme', data: {} });
+              ">
+              <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
+              <el-option v-for="item in contentThemes" :key="item.value" :label="t(item.label)" :value="item.value" />
+              </el-select>
+            </el-form-item>
+
+            <!-- 代码主题设置 -->
+            <el-form-item :label="$t('setting.codeTheme')">
+              <el-select v-model="settings.codeTheme" filterable placeholder="Select Code Theme" @change="saveSetting('codeTheme', settings.codeTheme)
+              eventBus.emit('send-broadcast', { to: 'all', eventName: 'sync-vditor-theme', data: {} });
+              ">
+              <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
+                <el-option v-for="item in codeThemes" :key="item" :label="item" :value="item" />
+              </el-select>
+            </el-form-item>
+            <el-form-item :label="$t('setting.lineNumber')">
+              <el-switch v-model="settings.lineNumber" class="mb-2"
+                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
+                @change="saveSetting('lineNumber', settings.lineNumber);"/>
+            </el-form-item>
+          </template>
         </el-form>
       </el-main>
     </el-container>
@@ -212,7 +239,7 @@ import axios from "axios";
 import MicrophoneTest from "../components/MicrophoneTest.vue";
 import "../assets/aero-btn.css";
 import "../assets/aero-div.css";
-import { predefineColors, themeState } from "../utils/themes.js";
+import { codeThemes, contentThemes, predefineColors, themeState } from "../utils/themes.js";
 import { settings } from "../utils/settings.js";
 //computed
 import { computed } from "vue";

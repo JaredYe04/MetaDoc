@@ -3,7 +3,7 @@
 import Vditor from "vditor"
 import { renderedHtml } from "./common-data"
 import eventBus, { isElectronEnv } from "./event-bus"
-import { getImagePath } from "./settings"
+import { getImagePath, getSetting } from "./settings"
 import { el } from "element-plus/es/locales.mjs";
 import { convertNumberToChinese, removeTitleIndex } from "./regex-utils";
 import {localVditorCDN, vditorCDN } from "./vditor-cdn";
@@ -716,9 +716,11 @@ export async function ConvertMarkdownToHtmlVditor(md) {
     return await Vditor.md2html(md,{cdn: cdn})
 
 }
-export function ConvertMarkdownToHtmlManually(md, style = 'github') {
-
-    const cdn='https://unpkg.com/vditor'//导出的时候就不需要本地服务器了
+export async function ConvertMarkdownToHtmlManually(md) {
+    const contentTheme = await getSetting('contentTheme')
+    const codeTheme = await getSetting('codeTheme')
+    const lineNumber = await getSetting('lineNumber')
+    const cdn = 'https://unpkg.com/vditor'//导出的时候就不需要本地服务器了
     const safeMarkdown = JSON.stringify(md);
     const html = `<html><link rel="stylesheet" href="${cdn}/dist/index.css"/>
         <script src="${cdn}/dist/method.min.js"></script>
@@ -732,10 +734,11 @@ export function ConvertMarkdownToHtmlManually(md, style = 'github') {
                 Vditor.preview(previewElement, ${safeMarkdown}, {
                     cdn: "${cdn}",
                     markdown: {
-                        theme: "{ current: 'light' }"
+                        theme: "{ current: '${contentTheme}' }",
                     },
                     hljs: {
-                        style: "${style}"
+                        style: "${codeTheme}",
+                        lineNumber: ${lineNumber}
                     }
                 });
                 Vditor.codeRender(previewElement);
@@ -755,7 +758,7 @@ export function ConvertMarkdownToHtmlManually(md, style = 'github') {
 return html
 }
 
-export const ConvertHtmlForPdf = (md, style = 'github') => {
+export const ConvertHtmlForPdf = async (md) => {
     // 创建一个 iframe 并设置内容
     const iframe = document.createElement('iframe');
     document.body.appendChild(iframe); // 将 iframe 添加到页面上
@@ -768,6 +771,9 @@ export const ConvertHtmlForPdf = (md, style = 'github') => {
     else{
         cdn=vditorCDN;
     }
+    const contentTheme = await getSetting('contentTheme');
+    const codeTheme = await getSetting('codeTheme');
+    const lineNumber = await getSetting('lineNumber');
     const html=`
         <link rel="stylesheet" href="${cdn}/dist/index.css"/>
         <script src="${cdn}/dist/method.min.js"></script>
@@ -781,10 +787,11 @@ export const ConvertHtmlForPdf = (md, style = 'github') => {
                 Vditor.preview(previewElement, ${safeMarkdown}, {
                     cdn: "${cdn}",
                     markdown: {
-                        theme: "{ current: 'light' }"
+                        theme: "{ current: '${contentTheme}' }"
                     },
                     hljs: {
-                        style: "${style}"
+                        style: "${codeTheme}",
+                        lineNumber: ${lineNumber}
                     }
                 });
                 Vditor.codeRender(previewElement);
@@ -799,11 +806,6 @@ export const ConvertHtmlForPdf = (md, style = 'github') => {
                 Vditor.chartRender(previewElement, '${cdn}');
                 Vditor.mindmapRender(previewElement, '${cdn}');
                 Vditor.abcRender(previewElement, '${cdn}');
-                // 渲染完成后，触发打印
-                //setTimeout(() => {
-                    //鼠标设置为默认状态
-                    //window.print();
-                //}, ${md.length/2});
             };
         </script>
     `;

@@ -17,9 +17,12 @@
         "metaDocTooltip": "MetaDoc ;-)",
         "fileTooltip": "文件",
         "file": "文件",
+        "tip": "提示",
+        "askSave": "是否要保存当前文档？",
         "new": "新建",
         "open": "打开",
         "save": "保存",
+        "discard": "放弃",
         "saveAs": "另存为",
         "export": "导出",
         "exportPdf": "导出PDF",
@@ -427,8 +430,10 @@
         "deleteSuccess": "删除章节成功！"
     },
     "setting": {
+        "auto": "自动",
         "basic": "基本设置",
         "llm": "LLM设置",
+        "themes": "主题设置",
         "startupOption": "启动选项",
         "openNewFile": "打开新文件",
         "openLastFile": "打开上次编辑的文件",
@@ -440,11 +445,14 @@
         "minute10": "10分钟",
         "minute30": "30分钟",
         "minute60": "1小时",
-        "theme": "主题",
+        "globalTheme": "全局主题",
         "themeSync": "跟随系统",
         "themeLight": "亮色",
         "themeDark": "暗色",
         "themeCustom": "自定义",
+        "contentTheme": "内容主题",
+        "codeTheme": "代码主题",
+        "lineNumber": "代码框显示行号",
         "customThemeColor": "自定义主题颜色",
         "enabled": "启用",
         "disabled": "关闭",
@@ -492,7 +500,21 @@
         "currentFile": "当前文件：",
         "newFile": "新文件",
         "aiTaskQueueTooltip": "AI任务队列"
-
-
+    },
+    "aiTask":{
+        "status":"状态",
+        "ready": "就绪",
+        "running": "运行中",
+        "failed": "失败",
+        "cancel": "取消",
+        "taskCancelled":"任务 {task} 已取消",
+        "taskCancelled2":"任务已取消"
+    },
+    "aiTaskQueue":{
+        "title": "AI任务队列",
+        "empty": "暂无任务",
+        "loading": "加载中...",
+        "error": "加载失败",
+        "switchWarning":"AI工作时切换界面可能导致任务丢失。"
     }
 }

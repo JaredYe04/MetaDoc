@@ -334,6 +334,7 @@ import { ElMessage } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
 import { webMainCalls } from './web-adapter/web-main-calls.js'
 import { convertMarkdownToLatex } from './latex-utils.js'
+import { useI18n } from 'vue-i18n'
 
 
 // window.electron.onMessageFromMain((event, message) => {

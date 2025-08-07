@@ -24,8 +24,10 @@ import { current_ai_dialogs, firstLoad } from './utils/common-data';
 import localIpcRenderer from './utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from './utils/web-adapter/web-main-calls';
 import { clearAiTasks } from './utils/ai_tasks';
+import { useI18n } from 'vue-i18n';
 let ipcRenderer = null
 const route = useRoute()
+const { locale } = useI18n()
 if (window && window.electron) {
   ipcRenderer = window.electron.ipcRenderer
 } else {
@@ -80,9 +82,13 @@ onMounted(async () => {
   // const windowType=route.query.windowType
   // initWindowType(windowType);
   await initSettings() // 初始化设置
+  //监听语言切换事件
+  eventBus.on('lang-changed', (lang) => {
+    locale.value = lang
+  })
   // 监听主题同步事件
   eventBus.on('sync-theme', async () => {
-    let theme = await getSetting('theme')
+    let theme = await getSetting('globalTheme')
     if (theme === 'sync') {
       theme = await ipcRenderer.invoke('get-os-theme')
     }
@@ -98,14 +104,14 @@ onMounted(async () => {
       document.documentElement.classList.add('dark')
       document.documentElement.classList.remove('light')
     }
-    if (theme === 'custom'){
+    if (theme === 'custom') {
       //自定义主题
-      const customThemeColor=await getSetting('customThemeColor')
-      themeState.currentTheme=customTheme(customThemeColor)
-      if(themeState.currentTheme.type==='light'){
+      const customThemeColor = await getSetting('customThemeColor')
+      themeState.currentTheme = customTheme(customThemeColor)
+      if (themeState.currentTheme.type === 'light') {
         document.documentElement.classList.add('light')
         document.documentElement.classList.remove('dark')
-      }else{
+      } else {
         document.documentElement.classList.add('dark')
         document.documentElement.classList.remove('light')
       }

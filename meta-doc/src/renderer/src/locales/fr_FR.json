@@ -1,0 +1,520 @@
+{
+  "aiChat": {
+    "defaultTitle": "Parlez à l'assistant de l'IA",
+    "deleteCurrent": "Supprimer le dialogue actuel",
+    "inputPlaceholder": "Entrez le message ici.",
+    "newDialog": "Nouveau dialogue",
+    "renamePlaceholder": "Veuillez saisir un nouveau titre",
+    "renameTitle": "Renommer",
+    "reset": "Réinitialiser",
+    "send": "Envoyer"
+  },
+  "aiTask": {
+    "cancel": "Annuler",
+    "failed": "Échec",
+    "ready": "Prêt",
+    "running": "Courir",
+    "status": "État",
+    "taskCancelled": "{tâche} Annulé",
+    "taskCancelled2": "Tâche annulée"
+  },
+  "aiTaskQueue": {
+    "empty": "Pas de mission.",
+    "error": "Le chargement a échoué",
+    "loading": "Chargement...",
+    "switchWarning": "Commute l'interface pendant que l'IA fonctionne peut entraîner la perte de la tâche.",
+    "title": "Question de la tâche AI"
+  },
+  "aigraph": {
+    "addScheme": "Nouveau schéma de dessin",
+    "chartName": "Nom du graphique",
+    "chartType": "Type de graphique",
+    "copyCode": "Copier le code",
+    "currentChartInfo": "Renseignements actuels sur le graphique",
+    "deleteScheme": "Supprimer le schéma actuel",
+    "duplicateScheme": "Copier le schéma actuel",
+    "engine": "Moteur de dessin",
+    "error": {
+      "copy_failed": "La copie a échoué",
+      "no_code_to_copy": "Pas de code à copier.",
+      "no_svg_found": "Aucun élément svg trouvé"
+    },
+    "exportImage": "Photo d'exportation",
+    "graph": {
+      "chart": "Graphique"
+    },
+    "newChartBtn": "Nouveau graphique",
+    "newChartPlaceholder": "Veuillez saisir un nouveau titre",
+    "newChartTitle": "Nouveau graphique",
+    "promptPlaceholder": "Veuillez saisir vos besoins de dessin.",
+    "renamePlaceholder": "Veuillez saisir un nouveau titre",
+    "renameTitle": "Renommer",
+    "reset": "Réinitialiser",
+    "selectChartType": "Sélectionner le type de graphique",
+    "selectEngine": "Sélectionnez le moteur de dessin",
+    "send": "Envoyer",
+    "success": {
+      "copy_succeeded": "Copie réussie"
+    }
+  },
+  "article": {
+    "ai_analyze_title": "L'IA analyse tout l'article.",
+    "ai_understood": "J'ai lu tout l'article. Je peux vous aider ?",
+    "author": "Auteur",
+    "click_jump_long_press_optimize": "Cliquez pour sauter et appuyez sur le paragraphe pour optimiser avec les assistants AI disponibles",
+    "click_to_edit_author": "Cliquez pour modifier l'auteur",
+    "click_to_edit_description": "Cliquez pour modifier le résumé de l'article",
+    "click_to_edit_title": "Cliquez pour modifier le titre",
+    "description": "Résumé",
+    "description_placeholder": "Veuillez saisir un résumé de l'article",
+    "drag_to_resize": "Faites glisser pour changer de largeur",
+    "edit_meta_info": "Modifier la métainfo du document",
+    "generate_description": "Générer un résumé",
+    "generate_title": "Générer le titre",
+    "input_placeholder": "Modifier le contenu de Markdown ici...",
+    "long_press_optimize": "Optimiser ce paragraphe avec l'aide de l'IA",
+    "meta_info": "Document MétaInfo",
+    "modify_author": "Modifier l'auteur",
+    "no_author": "Non rempli",
+    "no_description": "Aucun résumé disponible",
+    "no_title": "Sans titre",
+    "title": "Titre",
+    "toolbar": {
+      "ai_assistant": "Assistant AI",
+      "bold": "Plus forte",
+      "code": "Bloc de code",
+      "fullscreen": "Éditeur d'écran complet",
+      "headings": "Titre",
+      "italic": "italique",
+      "link": "Hyperlien",
+      "list": "Liste",
+      "preview": "Aperçu",
+      "quote": "Références",
+      "redo": "Refaire",
+      "search_replace": "Rechercher et remplacer",
+      "strike": "Grève",
+      "table": "Tableau",
+      "undo": "Annuler"
+    },
+    "vditor_init_failed": "L'initialisation a échoué :"
+  },
+  "bottomMenu": {
+    "aiTaskQueueTooltip": "Question de la tâche AI",
+    "currentFile": "Document actuel:",
+    "newFile": "Nouveau document",
+    "wordCount": "Nombre de caractères :"
+  },
+  "common": {
+    "cancel": "Annuler",
+    "confirm": "Confirmez.",
+    "deleteFailed": "Impossible de supprimer",
+    "deleteSuccess": "Supprimer le succès",
+    "save": "Enregistrer"
+  },
+  "contextMenu": {
+    "aiAnalysis": "Analyse du texte intégral",
+    "copy": "Copier",
+    "paste": "Pâte"
+  },
+  "formulaRecognition": {
+    "brush_size": "Brosse & #160;:",
+    "cancel": "Annuler",
+    "confirm": "Bien sûr.",
+    "copy_formula": "Copier la formule",
+    "copy_image": "Copier les images",
+    "edit_formula": "Modifier la formule",
+    "edit_formula_dialog_title": "Modifier la formule",
+    "import_image": "Importer l'image",
+    "notification": {
+      "copy_formula_fail": "La copie a échoué",
+      "copy_formula_success": "Copie réussie",
+      "copy_image_success": "Copiez avec succès, utilisez Ctrl+V pour coller les images",
+      "redo_fail": "Impossible de refaire",
+      "title_error": "Erreur",
+      "title_info": "Conseil",
+      "title_success": "Succès",
+      "undo_fail": "Impossible d'annuler"
+    },
+    "options": {
+      "eraser": "Essuie-glace en caoutchouc.",
+      "pen": "Brosse",
+      "pointer": "Flèche"
+    },
+    "recognize_formula": "Reconnaissance de la formule",
+    "redo": "Refaire",
+    "reset": "Réinitialiser",
+    "undo": "Annuler"
+  },
+  "headMenu": {
+    "editor": "Éditeur",
+    "home": "Sommaire",
+    "outline": "Arbre schématique",
+    "title": "MétaDoc",
+    "tooltip": "Un logiciel intelligent de traitement de texte basé sur AI Agent",
+    "visualize": "Visualiser"
+  },
+  "home": {
+    "abstractLabel": "Résumé",
+    "aiAssistantLabel": "Paramètres des paramètres de l'assistant AI",
+    "authorLabel": "Auteur",
+    "button": {
+      "openFile": "Document ouvert",
+      "quickStart": "Début rapide.",
+      "refresh": "Actualiser"
+    },
+    "defaultText": "Bienvenue sur MetaDoc\n\nIl s'agit d'un logiciel de traitement de texte piloté par l'IA qui vous aide à générer rapidement du contenu de document.",
+    "documentInfoLabel": "Remplissage des renseignements",
+    "label": {
+      "abstract": "Résumé",
+      "author": "Auteur",
+      "title": "Titre"
+    },
+    "metaDoc": "Logiciel de traitement de texte intelligent MetaDoc",
+    "mood": {
+      "academic": "Études",
+      "angry": "La colère.",
+      "business": "Commerce",
+      "disgusted": "C'est dégoûtant.",
+      "exciting": "Excité.",
+      "fearful": "La peur.",
+      "happy": "Heureux.",
+      "lyrical": "Mon amour.",
+      "peaceful": "Paix",
+      "sad": "C'est triste.",
+      "surprised": "Surprise.",
+      "warning": "Avertissement"
+    },
+    "placeholder": {
+      "abstract": "Veuillez entrer un résumé.",
+      "author": "Veuillez indiquer le nom de l ' auteur",
+      "title": "Veuillez saisir le titre du document"
+    },
+    "quickStartTitle": "Début rapide.",
+    "suggestionLabel": "Étiquettes suggérées",
+    "tab": {
+      "aiAssistant": "Assistant AI",
+      "documentInfo": "Renseignements"
+    },
+    "temperatureMarks": {
+      "balanced": "Solde",
+      "creative": "Créatif",
+      "rigorous": "Strict"
+    },
+    "tooltip": {
+      "accept": "Accepter la production",
+      "close": "Fermer le démarrage rapide",
+      "generateArticle": "Générer des articles",
+      "inputPrompt": "Saisissez votre indice",
+      "openFile": "Ouvrir un document existant",
+      "quickStart": "Début rapide : Générer rapidement un document",
+      "ready": "Prêt.",
+      "reset": "Réinitialiser le contenu de génération",
+      "selectMood": "Sélectionner un document Style",
+      "selectTemperature": "Sélectionnez la température pour générer et influencer la diversité du contenu"
+    }
+  },
+  "lang": "_NJ",
+  "leftMenu": {
+    "aiAssistant": "Assistant AI",
+    "aiToolTooltip": "Outils d'IA",
+    "askSave": "Voulez-vous enregistrer le document actuel ?",
+    "chatWithAI": "Dialogue avec l'IA",
+    "closeFile": "Fermer le fichier",
+    "discard": "Abandon",
+    "exit": "Sortie",
+    "exitTooltip": "Sortie",
+    "exitWithoutSaving": "Sortie sans enregistrement",
+    "export": "Exportations",
+    "exportDocx": "Exportation DOCX",
+    "exportHtml": "Exporter HTML",
+    "exportLatex": "Exporter LaTeX",
+    "exportMarkdown": "Marquage à l'exportation",
+    "exportPdf": "Exporter PDF",
+    "file": "Documentation",
+    "fileTooltip": "Documentation",
+    "handwritingFormulaRecognition": "Formule manuscrite de reconnaissance",
+    "langTooltip": "Langues",
+    "metaDocTooltip": "MétaDoc;-)",
+    "new": "Nouveau",
+    "open": "Ouvrir",
+    "recentFiles": "Documents récents",
+    "recentFilesTooltip": "Documents récents",
+    "save": "Enregistrer",
+    "saveAndExit": "Enregistrer et sortir",
+    "saveAs": "Enregistrer sous",
+    "settings": "Paramètres",
+    "settingsPanel": "Définir le panneau",
+    "settingsTooltip": "Paramètres",
+    "smartDrawingAssistant": "Assistant de dessin intelligent",
+    "tip": "Conseil",
+    "userProfileTooltip": "Informations sur l'utilisateur"
+  },
+  "llmDialog": {
+    "acceptTooltip": "Accepter",
+    "aiAssistant": "Assistant AI",
+    "closeMenuTooltip": "Fermer le menu",
+    "generateAITooltip": "Génération d'IA",
+    "generateFailedError": "Impossible de générer du contenu, essayez encore !",
+    "inputPlaceholder": "Veuillez saisir le contenu.",
+    "promptEmptyWarning": "L'indice est vide et ne peut pas générer de contenu !"
+  },
+  "main": {
+    "notification": {
+      "error": {
+        "title": "Erreur"
+      },
+      "export": {
+        "message": "L'exportation a réussi",
+        "title": "L'exportation a réussi"
+      },
+      "info": {
+        "title": "Message"
+      },
+      "open": {
+        "message": "Ouvert avec succès",
+        "title": "Ouvert avec succès"
+      },
+      "save": {
+        "message": "Enregistrer avec succès",
+        "title": "Enregistrer avec succès"
+      },
+      "success": {
+        "title": "Message"
+      },
+      "warning": {
+        "title": "Avertissement"
+      }
+    }
+  },
+  "messageBubble": {
+    "deleteConfirmMessage": "Confirmer de supprimer?",
+    "deleteConfirmTitle": "Avertissement",
+    "editTitle": "Modifier le texte"
+  },
+  "microphoneTest": {
+    "cannotAccessMic": "Impossible d'accéder au microphone, veuillez vérifier les paramètres d'autorisation"
+  },
+  "outline": {
+    "accept": "Accepter",
+    "addChild": "Ajouter un sous-point",
+    "adjustMarkdown": "Régler automatiquement le niveau de titre",
+    "adjustMarkdownTip": "Si ouvert, le niveau de titre Markdown sera automatiquement ajusté et il n'y aura pas de sauts, par exemple, du niveau I au niveau III",
+    "adjustTitle": "Indique s'il faut renuméroter le chapitre",
+    "adjustTitleTip": "Si ouvert, renuméroter chaque chapitre",
+    "cancel": "Annuler",
+    "cannotDeleteRoot": "Impossible de supprimer le chapitre racine",
+    "chapterContent": "Chapitre",
+    "chapterName": "Nom du chapitre",
+    "confirm": "Bien sûr.",
+    "confirmDeleteChapter": "Le chapitre devrait-il être supprimé?",
+    "coverOriginalNumber": "Smart écraser le numéro original",
+    "coverTip": "Le numéro d'origine, comme '1.1 1.2. Un, sera couvert.",
+    "delete": "Supprimer",
+    "deleteSuccess": "Supprimer le chapitre avec succès!",
+    "editChapterTitle": "Modifier le nom du chapitre",
+    "editContent": "Modifier le contenu",
+    "editNode": "Modifier le nœud",
+    "error": "Erreur",
+    "firstMarkdownTitleLevel": "Niveau de titre de premier niveau",
+    "formatSuccess": "Titre formaté avec succès!",
+    "formatTitle": "Titre du format",
+    "formatTitleWizard": "Format Titre Assistant",
+    "generateChapterSuccess": "L'IA a généré le chapitre avec succès!",
+    "generateChildChapter": "Sous-chapitre sur la génération d'IA",
+    "generateChildFail": "Impossible de fermer le dossier temporaire : %s",
+    "generateChildRetryFail": "Impossible de fermer le dossier temporaire : %s",
+    "generateChildSuccess": "A. Générer avec succès un sous-chapitre!",
+    "generateChildSuccessWithTitle": "AI pour noeud {titre} Génére avec succès des sous-chapitres!",
+    "generateChildrenChildren": "L'IA génère des sous-chapitres pour toutes les sections",
+    "generateChildrenContent": "L'IA génère du contenu pour tous les sous-chapitres",
+    "generateContent": "Chapitre sur les coûts",
+    "generateContentFail": "Impossible de fermer le dossier temporaire : %s",
+    "generateContentSuccess": "AI a généré du contenu avec succès!",
+    "generateContentSuccessWithTitle": "AI au noeud {titre} Générer du contenu avec succès!",
+    "generating": "L'IA travaille...",
+    "generatingFor": "Génération",
+    "generationDone": "Générer complété, choisir s'il faut accepter les changements",
+    "level1Chinese": "Indique si le premier titre est chinois",
+    "level1ChineseTip": "Si vous ouvrez, la première rubrique sera donnée en chinois.",
+    "message": "Message",
+    "moveLeft": "Position gauche",
+    "moveRight": "Tour à droite",
+    "openAiAssistant": "Soutien AI ouvert",
+    "reject": "Rejet",
+    "reset": "Réinitialiser",
+    "warning": "Avertissement",
+    "zoomIn": "Zoomer",
+    "zoomOut": "Zoom arrière"
+  },
+  "searchReplace": {
+    "aiRegexSuggestion": "L'expression régulière proposée par AI:",
+    "find": "Rechercher",
+    "findAllBtn": "Tout trouver",
+    "findNextBtn": "Trouver le suivant",
+    "findPlaceholder": "Veuillez entrer une recherche",
+    "foundCount": "Impossible de supprimer le dossier & #160;: %s & #160;: Aucun dossier de ce genre",
+    "notFoundMore": "Plus de correspondances trouvées.",
+    "replace": "Remplacer",
+    "replaceAllBtn": "Tout remplacer",
+    "replaceBtn": "Remplacer",
+    "replaceCount": "Remplacer \"{find}\" par \"{remplace}\"",
+    "replacePlaceholder": "Veuillez entrer le remplacement",
+    "resetBtn": "Réinitialiser",
+    "title": "Rechercher et remplacer",
+    "useRegex": "Utiliser une expression régulière"
+  },
+  "setting": {
+    "apiBaseUrl": "API BaseURL",
+    "apiKey": "API Clé",
+    "apiKeyPlaceholder": "Saisissez une clé API compatible avec les normes OpenAI",
+    "apiSuffix": "suffixe d'URL de l'API",
+    "askBeforeSave": "Toujours demander d'enregistrer",
+    "auto": "Automatique",
+    "autoDownloadHint": "Si vous ouvrez une image externe, elle est automatiquement enregistrée localement lorsque vous l'importez, sinon l'image externe ne peut pas être affichée hors ligne. L'interface de l'éditeur doit être rouverte.",
+    "autoDownloadImage": "Télécharger automatiquement des images externes",
+    "autoSave": "Enregistrer automatiquement",
+    "basic": "Paramètres de base",
+    "chatSuffix": "suffixe URL pour l'achèvement du dialogue (hat) (facultatif)",
+    "chooseLlm": "Sélectionner un modèle grand",
+    "chooseModel": "Sélectionner un modèle",
+    "codeTheme": "Code Thème",
+    "completionSuffix": "suffixe URL pour les questions et réponses",
+    "contentTheme": "Thème du contenu",
+    "customThemeColor": "Couleur du thème personnalisé",
+    "disabled": "Fermer",
+    "enabled": "Activer",
+    "excludeCodeBlocks": "Blocs de code exclus du texte statistique",
+    "excludeCodeHint": "Le contenu du code affecte l'exactitude des statistiques de fréquence de mots, il est donc facultatif d'exclure.",
+    "globalTheme": "Thème mondial",
+    "lineNumber": "Boîte de code Afficher les numéros de ligne",
+    "llm": "LLM Paramètres",
+    "llmType": "Sélectionner un modèle grand Type",
+    "metadoc": "MétaDoc",
+    "metadocHint": "Méga Doc fournit officiellement un modèle basé sur l'IA qui supporte plusieurs modèles.",
+    "microphoneHint": "Vérifiez si le microphone est correctement enregistré.",
+    "microphoneTest": "Test de la voix",
+    "minute1": "Une minute.",
+    "minute10": "Dix minutes.",
+    "minute30": "Trente minutes.",
+    "minute5": "Cinq minutes.",
+    "minute60": "1 heure",
+    "off": "Fermer",
+    "ollama": "Olama.",
+    "ollamaApiUrl": "Saisissez l'adresse API pour Ollama",
+    "ollamaHint": "Grande plate-forme de modèle déployée localement prenant en charge plusieurs modèles",
+    "openLastFile": "Ouvrir le dernier fichier édité",
+    "openNewFile": "Ouvrir un nouveau fichier",
+    "openai": "API de compatibilité OpenAI",
+    "openaiApiUrl": "Saisissez une adresse API compatible avec les normes OpenAI",
+    "openaiHint": "Tout grand modèle externe compatible avec les standards OpenAI API est compatible",
+    "particleEffect": "Effets des particules",
+    "particleEffectHint": "Activer les effets de particules pour améliorer la beauté de l'image. Si elle est ouverte, elle pourrait affecter la performance.",
+    "removeThinkTag": "Supprimer cette étiquette d'ink",
+    "resultPlaceholder": "Les résultats des essais seront affichés ici.",
+    "startupOption": "Options de démarrage",
+    "testFailed": "L'essai a échoué:",
+    "testLlm": "Essais de grands modèles",
+    "testPrompt": "Bonjour ! Veuillez vous présenter.",
+    "testResult": "Résultats des essais",
+    "themeCustom": "Personnalisé",
+    "themeDark": "Noir",
+    "themeLight": "Couleur lumineuse",
+    "themeSync": "Suivre le système",
+    "themes": "Paramètres du thème"
+  },
+  "titleMenu": {
+    "contextMarks": {
+      "chapter": "Références au présent chapitre",
+      "full": "Références",
+      "none": "Pas de référence"
+    },
+    "contextTooltips": {
+      "chapter": "AI se référera à ce chapitre.",
+      "full": "AI se référera au texte intégral",
+      "none": "Aucune référence au contexte"
+    },
+    "defaultTitle": "Titre",
+    "inputPlaceholder": "Veuillez saisir les exigences",
+    "tooltips": {
+      "acceptAppend": "Accepter et ajouter",
+      "acceptReplace": "Accepter et remplacer",
+      "chat": "Transformer le dialogue sur la croissance",
+      "generate": "Générer",
+      "reset": "Réinitialiser"
+    }
+  },
+  "userProfile": {
+    "account": "Compte",
+    "accountPlaceholder": "Veuillez saisir un nom d'utilisateur/mail/numéro de cellule",
+    "cancel": "Annuler",
+    "changeAvatar": "Cliquez pour changer le visage",
+    "changePasswordTitle": "Changement de mot de passe",
+    "changePwd": "Modifier le mot de passe",
+    "closeMenu": "Fermer le menu",
+    "createdAt": "Créé",
+    "editProfile": "Modifier l'information",
+    "editProfileTitle": "Modifier les informations",
+    "email": "Boîte aux lettres",
+    "emailPlaceholder": "Veuillez entrer la boîte aux lettres.",
+    "loginBtn": "Connexion",
+    "loginTab": "Connexion",
+    "logout": "Déconnexion",
+    "messages": {
+      "invalidInfo": "Impossible d'obtenir le message : %s %s",
+      "invalidPassword": "Le mot de passe est illégal !",
+      "loginIncomplete": "Informations de connexion incomplètes",
+      "logoutSuccess": "Connexion Succès",
+      "modifySuccess": "Modifié !",
+      "registerFailed": "Impossible de fermer le dossier temporaire : %s",
+      "registerIncomplete": "Informations incomplètes sur l'enregistrement",
+      "registerSuccess": "Enregistré avec succès",
+      "samePassword": "Le nouveau mot de passe ne peut pas être le même que l'original !"
+    },
+    "newPassword": "Nouveau mot de passe",
+    "newPasswordPlaceholder": "Veuillez saisir un nouveau mot de passe",
+    "oldPassword": "Mot de passe",
+    "oldPasswordPlaceholder": "Impossible de fermer le dossier temporaire : %s",
+    "password": "Mot de passe",
+    "passwordPlaceholder": "Veuillez saisir le mot de passe.",
+    "phone": "Numéro de téléphone cellulaire",
+    "phonePlaceholder": "Veuillez entrer votre numéro de téléphone.",
+    "registerBtn": "Enregistrement",
+    "registerTab": "Enregistrement",
+    "rules": {
+      "emailPattern": "Veuillez saisir une boîte aux lettres valide.",
+      "emailRequired": "Veuillez entrer la boîte aux lettres.",
+      "newPasswordRequired": "Veuillez saisir un nouveau mot de passe",
+      "passwordPattern": "Le mot de passe doit contenir au moins six lettres et numéros de cas.",
+      "passwordRequired": "Veuillez saisir le mot de passe.",
+      "phonePattern": "Veuillez saisir un numéro de cellule valide.",
+      "phoneRequired": "Veuillez entrer votre numéro de téléphone.",
+      "usernamePattern": "Le nom d'utilisateur ne peut contenir que des lettres, des chiffres, des soulignés et au moins 6 places",
+      "usernameRequired": "Veuillez saisir un nom d'utilisateur/mail/numéro de cellule"
+    },
+    "saveEdit": "Enregistrer l'édition",
+    "savePwd": "Enregistrer le mot de passe",
+    "title": "Carte d'information",
+    "tokenBalance": "Solde",
+    "username": "Nom d'utilisateur",
+    "usernamePlaceholder": "Veuillez saisir un nom d'utilisateur"
+  },
+  "visualize": {
+    "articleOutline": "Aperçu des articles",
+    "paragraphDistribution": "Répartition par paragraphe",
+    "wordCloud": "Nuage de mots",
+    "wordCount": "Statistiques des mots",
+    "wordFrequency": "Statistiques de fréquence des mots"
+  },
+  "voiceInput": {
+    "messages": {
+      "microphoneDenied": "Impossible d'accéder au microphone, veuillez vérifier les paramètres d'autorisation",
+      "recognitionFailed": "Impossible d'ouvrir le message",
+      "sendAudioError": "Erreur d'envoi de l'audio à 100 degrés",
+      "tokenError": "Erreur lors de la récupération du jeton de 100 degrés"
+    }
+  },
+  "wordCloudDetail": {
+    "defaultWord": "Termes",
+    "frequency": "Fréquence des mots"
+  }
+}

@@ -5,6 +5,9 @@ import eventBus, { isMainWindow } from './event-bus'
 import { useRoute } from 'vue-router'
 
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
+import { ai_task_status } from './consts.js'
+import { i18n } from '../main.js'
+
 
 let ipcRenderer = null
 if (window && window.electron) {
@@ -47,7 +50,7 @@ export function createAiTask(name, prompt, target, type, origin_key, meta = {}) 
     type,
     origin_key,
     meta,
-    status: ref('就绪'),
+    status: ref(ai_task_status.READY), // 初始状态为就绪
     controller: null,
     resolveDone,
     rejectDone
@@ -64,7 +67,7 @@ export function createAiTask(name, prompt, target, type, origin_key, meta = {}) 
 
   // 非主窗口注册任务到主窗口显示
   if (!isMainWindow()) {
-    console.log('注册任务到主窗口', { handle, name, prompt, type, origin_key })
+    //console.log('注册任务到主窗口', { handle, name, prompt, type, origin_key })
     ipcRenderer.send('register-ai-task', {
       handle, name, prompt, type, origin_key
     })
@@ -85,9 +88,9 @@ export function createAiTask(name, prompt, target, type, origin_key, meta = {}) 
 // 启动任务（只负责本窗口任务）
 export async function startAiTask(handle) {
   const task = taskMap.get(handle)
-  if (!task || task.status.value !== '就绪') return
+  if (!task || task.status.value !== ai_task_status.READY) return
 
-  task.status.value = '工作中'
+  task.status.value = ai_task_status.RUNNING  
   const controller = new AbortController()
   task.controller = controller
 
@@ -98,7 +101,7 @@ export async function startAiTask(handle) {
       await continueConversationStream(task.prompt, task.target, controller.signal)
     }
 
-    task.status.value = '已完成'
+    task.status.value = ai_task_status.FINISHED
     task.resolveDone?.()
     deleteTask(handle)
 
@@ -107,10 +110,11 @@ export async function startAiTask(handle) {
     }
   } catch (e) {
     if (e.name === 'AbortError') {
-      task.status.value = '已取消'
-      task.rejectDone?.(new Error('任务被取消'))
+      task.status.value = ai_task_status.CANCELLED
+      const t=i18n.global.t
+      task.rejectDone?.(new Error(t('aiTask.taskCancelled2')))
     } else {
-      task.status.value = '失败'
+      task.status.value = ai_task_status.FAILED
       task.rejectDone?.(e)
     }
   }
@@ -126,8 +130,10 @@ export function cancelAiTask(handle) {
   const task = taskMap.get(handle)
   if (!task) return
   task.controller?.abort()
-  if (task.status.value !== '已完成' && isMainWindow()) {
-    eventBus.emit('show-warning', `任务 ${task.name} 已取消`)
+  if (task.status.value !== ai_task_status.FINISHED && isMainWindow()) {
+    const t=i18n.global.t
+    eventBus.emit('show-warning', t('aiTask.taskCancelled', { task:task.name }))
+    
   }
   deleteTask(task.handle)
   ipcRenderer.send('broadcast-cancel-ai-task', task.handle)
@@ -146,7 +152,7 @@ ipcRenderer.on('register-ai-task', (_, taskInfo) => {
     target: ref(''), // 主窗口只是调度，不处理结果
     type,
     origin_key,
-    status: ref('就绪'),
+    status: ref(ai_task_status.READY),
     controller: null,
     resolveDone: null,
     rejectDone: null
@@ -159,7 +165,7 @@ ipcRenderer.on('register-ai-task', (_, taskInfo) => {
 ipcRenderer.on('ai-task-done', (_, handle) => {
   const task = taskMap.get(handle)
   if (task) {
-    task.status.value = '已完成'
+    task.status.value = ai_task_status.FINISHED
     deleteTask(handle)
   }
 })

@@ -194,30 +194,26 @@
         </template>
 
         <el-menu-item index="6-1" @click="changeLang('zh_CN')">
-          <!-- <el-icon>
-            <CircleCheck />
-          </el-icon> -->
           <span>中文（简体）</span>
         </el-menu-item>
 
         <el-menu-item index="6-2" @click="changeLang('en_US')">
-          <!-- <el-icon>
-            <Warning />
-          </el-icon> -->
           <span>English (US)</span>
         </el-menu-item>
-        <el-menu-item index="6-3" @click="changeLang('jp_JP')">
-          <!-- <el-icon>
-            <Warning />
-          </el-icon> -->
+        <el-menu-item index="6-3" @click="changeLang('ja_JP')">
           <span>日本語</span>
         </el-menu-item>
 
         <el-menu-item index="6-4" @click="changeLang('ko_KR')">
-          <!-- <el-icon>
-            <Warning />
-          </el-icon> -->
           <span>한국어</span>
+        </el-menu-item>
+        
+        <el-menu-item index="6-5" @click="changeLang('fr_FR')">
+          <span>Français</span>
+        </el-menu-item>
+        
+        <el-menu-item index="6-6" @click="changeLang('de_DE')">
+          <span>Deutsch</span>
         </el-menu-item>
       </el-sub-menu>
 
@@ -242,6 +238,7 @@
 
 import UserProfileCard from './UserProfileCard.vue'
 
+
 import { updateRecentDocs, getRecentDocs, getSetting } from '../utils/settings';
 import { onMounted, ref } from 'vue'
 import {
@@ -265,11 +262,17 @@ const recentDocs = ref([])
 const isCollapse = ref(true)
 const showUserProfile = ref(false)
 import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 import { convertMarkdownToLatex } from '../utils/latex-utils';
 const { locale } = useI18n()
 const changeLang = (lang) => {
   locale.value = lang
   localStorage.setItem('lang', lang)
+  eventBus.emit('send-broadcast', {
+    to: 'all',
+    eventName: 'lang-changed',
+    data: lang
+  })
 }
 const toggleUserProfile = () => {
   eventBus.emit('toggle-user-profile')
@@ -296,11 +299,11 @@ const askSave = async (callBack) => {
     return
   }
   ElMessageBox.confirm(
-    '是否要保存当前文档？',
-    '提示',
+    t('leftMenu.askSave'),
+    t('leftMenu.tip'),
     {
-      confirmButtonText: '保存',
-      cancelButtonText: '放弃',
+      confirmButtonText: t('leftMenu.save'),
+      cancelButtonText: t('leftMenu.discard'),
       type: 'info',
     }
   )

@@ -1,490 +1,520 @@
 {
-    "lang": "ko_KR",
-    "contextMenu": {
-        "aiAnalysis": "AI 전체 분석",
-        "copy": "복사",
-        "paste": "붙여넣기"
+  "lang": "ko_KR",
+  "contextMenu": {
+    "aiAnalysis": "AI 전체 분석",
+    "copy": "복사",
+    "paste": "붙여넣기"
+  },
+  "headMenu": {
+    "tooltip": "AI 에이전트 기반의 스마트 문서 처리 소프트웨어",
+    "title": "MetaDoc",
+    "home": "홈",
+    "outline": "아웃라인",
+    "editor": "에디터",
+    "visualize": "시각화"
+  },
+  "leftMenu": {
+    "metaDocTooltip": "MetaDoc ;-)",
+    "fileTooltip": "파일",
+    "file": "파일",
+    "new": "새로 만들기",
+    "open": "열기",
+    "save": "저장",
+    "saveAs": "다른 이름으로 저장",
+    "export": "내보내기",
+    "exportPdf": "PDF로 내보내기",
+    "exportMarkdown": "Markdown으로 내보내기",
+    "exportDocx": "DOCX로 내보내기",
+    "exportHtml": "HTML로 내보내기",
+    "exportLatex": "LaTeX로 내보내기",
+    "closeFile": "파일 닫기",
+    "aiToolTooltip": "AI 도구",
+    "aiAssistant": "AI 어시스턴트",
+    "chatWithAI": "AI와 채팅",
+    "handwritingFormulaRecognition": "손글씨 수식 인식",
+    "smartDrawingAssistant": "스마트 드로잉 어시스턴트",
+    "settingsTooltip": "설정",
+    "settings": "설정",
+    "settingsPanel": "설정 패널",
+    "recentFilesTooltip": "최근 파일",
+    "recentFiles": "최근 파일",
+    "exitTooltip": "종료",
+    "exit": "종료",
+    "saveAndExit": "저장 후 종료",
+    "exitWithoutSaving": "저장하지 않고 종료",
+    "userProfileTooltip": "사용자 프로필",
+    "langTooltip": "언어",
+    "askSave": "",
+    "discard": "",
+    "tip": ""
+  },
+  "llmDialog": {
+    "aiAssistant": "AI 어시스턴트",
+    "closeMenuTooltip": "메뉴 닫기",
+    "inputPlaceholder": "내용을 입력하세요",
+    "generateAITooltip": "AI 생성",
+    "acceptTooltip": "수락",
+    "promptEmptyWarning": "프롬프트가 비어 있습니다. 내용을 생성할 수 없습니다!",
+    "generateFailedError": "내용 생성에 실패했습니다. 다시 시도해 주세요!"
+  },
+  "messageBubble": {
+    "editTitle": "텍스트 편집",
+    "deleteConfirmMessage": "삭제하시겠습니까?",
+    "deleteConfirmTitle": "경고"
+  },
+  "microphoneTest": {
+    "cannotAccessMic": "마이크에 접근할 수 없습니다. 권한 설정을 확인해 주세요"
+  },
+  "common": {
+    "confirm": "확인",
+    "cancel": "취소",
+    "save": "저장",
+    "deleteSuccess": "삭제 성공",
+    "deleteFailed": "삭제 실패"
+  },
+  "searchReplace": {
+    "title": "찾기 및 바꾸기",
+    "find": "찾기",
+    "replace": "바꾸기",
+    "findPlaceholder": "찾을 내용을 입력하세요",
+    "replacePlaceholder": "바꿀 내용을 입력하세요",
+    "useRegex": "정규 표현식 사용",
+    "replaceBtn": "바꾸기",
+    "replaceAllBtn": "모두 바꾸기",
+    "findNextBtn": "다음 찾기",
+    "findAllBtn": "모두 찾기",
+    "resetBtn": "초기화",
+    "aiRegexSuggestion": "AI가 제안하는 정규 표현식:",
+    "replaceCount": "총 {count}개의 \"{find}\"을(를) \"{replace}\"(으)로 바꿨습니다",
+    "foundCount": "\"{find}\"을(를) 총 {count}개 찾았습니다",
+    "notFoundMore": "더 이상 일치하는 항목이 없습니다"
+  },
+  "titleMenu": {
+    "defaultTitle": "제목",
+    "inputPlaceholder": "요구사항을 입력하세요",
+    "contextMarks": {
+      "none": "참조 안함",
+      "chapter": "현재 챕터 참조",
+      "full": "전체 문서 참조"
     },
-    "headMenu": {
-        "tooltip": "AI 에이전트 기반의 스마트 문서 처리 소프트웨어",
-        "title": "MetaDoc",
-        "home": "홈",
-        "outline": "아웃라인",
-        "editor": "에디터",
-        "visualize": "시각화"
+    "contextTooltips": {
+      "none": "컨텍스트를 참조하지 않음",
+      "chapter": "AI가 현재 챕터 내용을 참조합니다",
+      "full": "AI가 전체 문서 내용을 참조합니다"
     },
-    "leftMenu": {
-        "metaDocTooltip": "MetaDoc ;-)",
-        "fileTooltip": "파일",
-        "file": "파일",
-        "new": "새로 만들기",
-        "open": "열기",
-        "save": "저장",
-        "saveAs": "다른 이름으로 저장",
-        "export": "내보내기",
-        "exportPdf": "PDF로 내보내기",
-        "exportMarkdown": "Markdown으로 내보내기",
-        "exportDocx": "DOCX로 내보내기",
-        "exportHtml": "HTML로 내보내기",
-        "exportLatex": "LaTeX로 내보내기",
-        "closeFile": "파일 닫기",
-        "aiToolTooltip": "AI 도구",
-        "aiAssistant": "AI 어시스턴트",
-        "chatWithAI": "AI와 채팅",
-        "handwritingFormulaRecognition": "손글씨 수식 인식",
-        "smartDrawingAssistant": "스마트 드로잉 어시스턴트",
-        "settingsTooltip": "설정",
-        "settings": "설정",
-        "settingsPanel": "설정 패널",
-        "recentFilesTooltip": "최근 파일",
-        "recentFiles": "최근 파일",
-        "exitTooltip": "종료",
-        "exit": "종료",
-        "saveAndExit": "저장 후 종료",
-        "exitWithoutSaving": "저장하지 않고 종료",
-        "userProfileTooltip": "사용자 프로필",
-        "langTooltip": "언어"
-    },
-    "llmDialog": {
-        "aiAssistant": "AI 어시스턴트",
-        "closeMenuTooltip": "메뉴 닫기",
-        "inputPlaceholder": "내용을 입력하세요",
-        "generateAITooltip": "AI 생성",
-        "acceptTooltip": "수락",
-        "promptEmptyWarning": "프롬프트가 비어 있습니다. 내용을 생성할 수 없습니다!",
-        "generateFailedError": "내용 생성에 실패했습니다. 다시 시도해 주세요!"
-    },
-    "messageBubble": {
-        "editTitle": "텍스트 편집",
-        "deleteConfirmMessage": "삭제하시겠습니까?",
-        "deleteConfirmTitle": "경고"
-    },
-    "microphoneTest": {
-        "cannotAccessMic": "마이크에 접근할 수 없습니다. 권한 설정을 확인해 주세요"
-    },
-    "common": {
-        "confirm": "확인",
-        "cancel": "취소",
-        "save": "저장",
-        "deleteSuccess": "삭제 성공",
-        "deleteFailed": "삭제 실패"
-    },
-    "searchReplace": {
-        "title": "찾기 및 바꾸기",
-        "find": "찾기",
-        "replace": "바꾸기",
-        "findPlaceholder": "찾을 내용을 입력하세요",
-        "replacePlaceholder": "바꿀 내용을 입력하세요",
-        "useRegex": "정규 표현식 사용",
-        "replaceBtn": "바꾸기",
-        "replaceAllBtn": "모두 바꾸기",
-        "findNextBtn": "다음 찾기",
-        "findAllBtn": "모두 찾기",
-        "resetBtn": "초기화",
-        "aiRegexSuggestion": "AI가 제안하는 정규 표현식:",
-        "replaceCount": "총 {count}개의 \"{find}\"을(를) \"{replace}\"(으)로 바꿨습니다",
-        "foundCount": "\"{find}\"을(를) 총 {count}개 찾았습니다",
-        "notFoundMore": "더 이상 일치하는 항목이 없습니다"
-    },
-    "titleMenu": {
-        "defaultTitle": "제목",
-        "inputPlaceholder": "요구사항을 입력하세요",
-        "contextMarks": {
-            "none": "참조 안함",
-            "chapter": "현재 챕터 참조",
-            "full": "전체 문서 참조"
-        },
-        "contextTooltips": {
-            "none": "컨텍스트를 참조하지 않음",
-            "chapter": "AI가 현재 챕터 내용을 참조합니다",
-            "full": "AI가 전체 문서 내용을 참조합니다"
-        },
-        "tooltips": {
-            "generate": "생성",
-            "reset": "초기화",
-            "chat": "긴 대화로 전환",
-            "acceptReplace": "수락하고 바꾸기",
-            "acceptAppend": "수락하고 추가"
-        }
-    },
-    "userProfile": {
-        "title": "프로필 카드",
-        "closeMenu": "메뉴 닫기",
-        "loginTab": "로그인",
-        "registerTab": "회원가입",
-        "account": "계정",
-        "accountPlaceholder": "사용자명/이메일/휴대폰 번호를 입력하세요",
-        "password": "비밀번호",
-        "passwordPlaceholder": "비밀번호를 입력하세요",
-        "loginBtn": "로그인",
-        "username": "사용자명",
-        "usernamePlaceholder": "사용자명을 입력하세요",
-        "phone": "휴대폰 번호",
-        "phonePlaceholder": "휴대폰 번호를 입력하세요",
-        "email": "이메일",
-        "emailPlaceholder": "이메일을 입력하세요",
-        "registerBtn": "회원가입",
-        "changeAvatar": "아바타 변경",
-        "editProfileTitle": "프로필 편집",
-        "changePasswordTitle": "비밀번호 변경",
-        "oldPassword": "기존 비밀번호",
-        "oldPasswordPlaceholder": "기존 비밀번호를 입력하세요",
-        "newPassword": "새 비밀번호",
-        "newPasswordPlaceholder": "새 비밀번호를 입력하세요",
-        "createdAt": "생성일",
-        "tokenBalance": "잔액",
-        "logout": "로그아웃",
-        "cancel": "취소",
-        "saveEdit": "편집 저장",
-        "editProfile": "프로필 편집",
-        "savePwd": "비밀번호 저장",
-        "changePwd": "비밀번호 변경",
-        "messages": {
-            "invalidPassword": "비밀번호가 유효하지 않습니다!",
-            "samePassword": "새 비밀번호는 기존 비밀번호와 같을 수 없습니다!",
-            "invalidInfo": "변경 정보가 유효하지 않습니다!",
-            "modifySuccess": "변경 성공!",
-            "logoutSuccess": "로그아웃 성공",
-            "loginIncomplete": "로그인 정보가 불완전합니다",
-            "registerIncomplete": "회원가입 정보가 불완전합니다",
-            "registerSuccess": "회원가입 성공",
-            "registerFailed": "회원가입 실패: {error}"
-        },
-        "rules": {
-            "usernameRequired": "사용자명/이메일/휴대폰 번호를 입력하세요",
-            "usernamePattern": "사용자명은 영문, 숫자, 밑줄만 포함 가능하며 최소 6자 이상이어야 합니다",
-            "passwordRequired": "비밀번호를 입력하세요",
-            "passwordPattern": "비밀번호는 대소문자와 숫자를 포함해야 하며 최소 6자 이상이어야 합니다",
-            "phoneRequired": "휴대폰 번호를 입력하세요",
-            "phonePattern": "유효한 휴대폰 번호를 입력하세요",
-            "emailRequired": "이메일을 입력하세요",
-            "emailPattern": "유효한 이메일을 입력하세요",
-            "newPasswordRequired": "새 비밀번호를 입력하세요"
-        }
-    },
-    "voiceInput": {
-        "messages": {
-            "microphoneDenied": "마이크 접근이 거부되었습니다. 권한 설정을 확인해 주세요",
-            "recognitionFailed": "인식 실패: {error}",
-            "sendAudioError": "오디오를 Baidu로 전송 중 오류 발생",
-            "tokenError": "Baidu 토큰 가져오기 오류"
-        }
-    },
-    "wordCloudDetail": {
-        "defaultWord": "단어",
-        "frequency": "빈도"
-    },
-    "aiChat": {
-        "renameTitle": "이름 변경",
-        "renamePlaceholder": "새 제목을 입력하세요",
-        "newDialog": "새 대화",
-        "deleteCurrent": "현재 대화 삭제",
-        "inputPlaceholder": "여기에 메시지를 입력하세요.",
-        "send": "보내기",
-        "reset": "초기화",
-        "defaultTitle": "AI 어시스턴트와 대화"
-    },
-    "aigraph": {
-        "renameTitle": "이름 변경",
-        "renamePlaceholder": "새 제목을 입력하세요",
-        "newChartTitle": "새 차트",
-        "chartName": "차트 이름",
-        "newChartPlaceholder": "새 제목을 입력하세요",
-        "engine": "그래픽 엔진",
-        "selectEngine": "그래픽 엔진 선택",
-        "chartType": "차트 유형",
-        "selectChartType": "차트 유형 선택",
-        "newChartBtn": "새 차트 만들기",
-        "currentChartInfo": "현재 차트 정보",
-        "addScheme": "새 그래픽 스키마 추가",
-        "duplicateScheme": "현재 스키마 복제",
-        "deleteScheme": "현재 스키마 삭제",
-        "copyCode": "코드 복사",
-        "exportImage": "이미지 내보내기",
-        "promptPlaceholder": "그래픽 요구사항을 입력하세요",
-        "send": "보내기",
-        "reset": "초기화",
-        "error": {
-            "no_svg_found": "SVG 요소를 찾을 수 없음",
-            "copy_failed": "복사 실패",
-            "no_code_to_copy": "복사할 코드 없음"
-        },
-        "success": {
-            "copy_succeeded": "복사 성공"
-        },
-        "graph": {
-            "chart": "차트"
-        }
-    },
-    "article": {
-        "drag_to_resize": "너비 변경을 위해 드래그",
-        "edit_meta_info": "문서 메타 정보 편집",
-        "meta_info": "문서 메타 정보",
-        "click_to_edit_title": "제목 수정을 위해 클릭",
-        "title": "제목",
-        "no_title": "제목 없음",
-        "generate_title": "제목 생성",
-        "click_to_edit_author": "작성자 수정을 위해 클릭",
-        "author": "작성자",
-        "no_author": "작성자 없음",
-        "modify_author": "작성자 변경",
-        "click_to_edit_description": "요약 수정을 위해 클릭",
-        "description": "요약",
-        "no_description": "요약 없음",
-        "generate_description": "요약 생성",
-        "description_placeholder": "문서 요약을 입력하세요",
-        "ai_understood": "문서 전체 내용을 이해했습니다. 무엇을 도와드릴까요?",
-        "ai_analyze_title": "AI 문서 분석",
-        "long_press_optimize": "길게 눌러 AI 어시스턴트로 이 단락 최적화",
-        "click_jump_long_press_optimize": "클릭하여 이동, 길게 눌러 AI 어시스턴트로 이 단락 최적화",
-        "vditor_init_failed": "Vditor 초기화 실패:",
-        "input_placeholder": "여기서 Markdown 내용 편집...",
-        "toolbar": {
-            "undo": "실행 취소",
-            "redo": "다시 실행",
-            "headings": "제목",
-            "bold": "굵게",
-            "italic": "기울임",
-            "strike": "취소선",
-            "link": "링크",
-            "list": "목록",
-            "table": "표",
-            "code": "코드 블록",
-            "preview": "미리보기",
-            "fullscreen": "전체 화면 편집기",
-            "quote": "인용",
-            "search_replace": "찾기 및 바꾸기",
-            "ai_assistant": "AI 어시스턴트"
-        }
-    },
-    "formulaRecognition": {
-        "undo": "실행 취소",
-        "redo": "다시 실행",
-        "reset": "초기화",
-        "import_image": "이미지 가져오기",
-        "copy_image": "이미지 복사",
-        "brush_size": "브러시 크기:",
-        "recognize_formula": "수식 인식",
-        "edit_formula": "수식 편집",
-        "copy_formula": "수식 복사",
-        "edit_formula_dialog_title": "수식 편집",
-        "cancel": "취소",
-        "confirm": "확인",
-        "notification": {
-            "title_info": "알림",
-            "title_success": "성공",
-            "title_error": "오류",
-            "undo_fail": "실행 취소 실패",
-            "redo_fail": "다시 실행 실패",
-            "copy_image_success": "복사 성공, Ctrl+V로 이미지 붙여넣기",
-            "copy_formula_success": "수식 복사 성공",
-            "copy_formula_fail": "수식 복사 실패"
-        },
-        "options": {
-            "pen": "펜",
-            "eraser": "지우개",
-            "pointer": "포인터"
-        }
-    },
-    "home": {
-        "metaDoc": "MetaDoc 스마트 문서 처리 소프트웨어",
-        "tooltip": {
-            "quickStart": "빠른 시작: 빠르게 문서 생성",
-            "openFile": "기존 문서 열기",
-            "close": "빠른 시작 닫기",
-            "ready": "준비 완료",
-            "selectTemperature": "생성 온도 선택(내용 다양성에 영향)",
-            "selectMood": "문서 스타일 선택",
-            "inputPrompt": "프롬프트 입력",
-            "generateArticle": "문서 생성",
-            "reset": "생성 내용 초기화",
-            "accept": "생성 내용 수락"
-        },
-        "button": {
-            "quickStart": "빠른 시작",
-            "openFile": "문서 열기",
-            "refresh": "새로 고침"
-        },
-        "authorLabel": "작성자",
-        "abstractLabel": "요약",
-        "quickStartTitle": "빠른 시작",
-        "tab": {
-            "aiAssistant": "AI 어시스턴트",
-            "documentInfo": "문서 정보"
-        },
-        "documentInfoLabel": "문서 정보 입력",
-        "label": {
-            "title": "제목",
-            "author": "작성자",
-            "abstract": "요약"
-        },
-        "placeholder": {
-            "title": "문서 제목 입력",
-            "author": "작성자 이름 입력",
-            "abstract": "요약 입력"
-        },
-        "aiAssistantLabel": "AI 어시스턴트 매개변수 설정",
-        "suggestionLabel": "추천 태그",
-        "mood": {
-            "happy": "행복",
-            "lyrical": "서정적",
-            "peaceful": "평화로운",
-            "academic": "학술적",
-            "business": "비즈니스",
-            "sad": "슬픔",
-            "warning": "경고",
-            "exciting": "흥미로운",
-            "angry": "화남",
-            "surprised": "놀람",
-            "fearful": "두려움",
-            "disgusted": "혐오"
-        },
-        "temperatureMarks": {
-            "rigorous": "엄격",
-            "balanced": "균형",
-            "creative": "창의적"
-        },
-        "defaultText": "# MetaDoc에 오신 것을 환영합니다\n\n이것은 AI 기반 문서 처리 소프트웨어로, 빠르게 문서 내용을 생성할 수 있습니다."
-    },
-    "main": {
-        "notification": {
-            "save": {
-                "title": "저장 성공",
-                "message": "저장 성공"
-            },
-            "open": {
-                "title": "열기 성공",
-                "message": "열기 성공"
-            },
-            "export": {
-                "title": "내보내기 성공",
-                "message": "{path} 내보내기 성공"
-            },
-            "error": {
-                "title": "오류"
-            },
-            "info": {
-                "title": "정보"
-            },
-            "success": {
-                "title": "성공"
-            },
-            "warning": {
-                "title": "경고"
-            }
-        }
-    },
-    "outline": {
-        "generating": "AI 작업 중...",
-        "generatingFor": "생성 중",
-        "generationDone": "생성 완료, 변경 사항을 수락하시겠습니까?",
-        "editNode": "노드 편집",
-        "moveLeft": "왼쪽으로 이동",
-        "addChild": "자식 노드 추가",
-        "editContent": "내용 편집",
-        "delete": "삭제",
-        "moveRight": "오른쪽으로 이동",
-        "generateContent": "AI로 이 챕터 내용 생성",
-        "generateChildChapter": "AI로 자식 챕터 생성",
-        "generateChildrenContent": "AI로 모든 자식 챕터 내용 생성",
-        "generateChildrenChildren": "AI로 모든 챕터의 자식 챕터 생성",
-        "accept": "수락",
-        "reject": "거절",
-        "formatTitleWizard": "제목 포맷 마법사",
-        "adjustMarkdown": "Markdown 제목 레벨 자동 조정",
-        "adjustMarkdownTip": "활성화하면 Markdown 제목 레벨이 자동 조정되며, 1레벨에서 3레벨로 건너뛰는 경우가 없습니다",
-        "firstMarkdownTitleLevel": "Markdown 첫 번째 제목 레벨",
-        "adjustTitle": "챕터 번호 조정 여부",
-        "adjustTitleTip": "활성화하면 각 챕터가 다시 번호가 매겨집니다",
-        "coverOriginalNumber": "기존 번호 지능형 덮어쓰기",
-        "coverTip": "기존 번호(예: '1.1 1.2 一、')가 덮어쓰기 됩니다",
-        "level1Chinese": "첫 번째 제목이 중국어인지 여부",
-        "level1ChineseTip": "활성화하면 첫 번째 제목이 중국어로 표시됩니다",
-        "cancel": "취소",
-        "confirm": "확인",
-        "editChapterTitle": "챕터 제목 수정",
-        "chapterName": "챕터 이름",
-        "chapterContent": "챕터 내용",
-        "zoomIn": "확대",
-        "zoomOut": "축소",
-        "reset": "초기화",
-        "formatTitle": "제목 포맷",
-        "openAiAssistant": "AI 어시스턴트 열기",
-        "generateChildSuccessWithTitle": "AI가 노드 {title}의 자식 챕터를 생성했습니다!",
-        "generateChildSuccess": "AI가 자식 챕터를 생성했습니다!",
-        "generateChildFail": "자식 챕터 생성 실패: {error}",
-        "generateChildRetryFail": "자식 챕터 생성 실패, 다시 시도해 주세요: {error}",
-        "generateContentSuccessWithTitle": "AI가 노드 {title}의 내용을 생성했습니다!",
-        "generateContentSuccess": "AI가 내용을 생성했습니다!",
-        "generateContentFail": "내용 생성 실패: {error}",
-        "generateChapterSuccess": "AI가 챕터를 생성했습니다!",
-        "formatSuccess": "제목 포맷 성공!",
-        "confirmDeleteChapter": "챕터를 삭제하시겠습니까?",
-        "warning": "경고",
-        "error": "오류",
-        "message": "메시지",
-        "cannotDeleteRoot": "루트 챕터는 삭제할 수 없습니다",
-        "deleteSuccess": "챕터 삭제 성공!"
-    },
-    "setting": {
-        "basic": "기본 설정",
-        "llm": "LLM 설정",
-        "startupOption": "시작 옵션",
-        "openNewFile": "새 파일 열기",
-        "openLastFile": "마지막으로 편집한 파일 열기",
-        "askBeforeSave": "항상 저장 확인",
-        "autoSave": "자동 저장",
-        "off": "끄기",
-        "minute1": "1분",
-        "minute5": "5분",
-        "minute10": "10분",
-        "minute30": "30분",
-        "minute60": "1시간",
-        "theme": "테마",
-        "themeSync": "시스템과 동기화",
-        "themeLight": "라이트",
-        "themeDark": "다크",
-        "themeCustom": "커스텀",
-        "customThemeColor": "커스텀 테마 색상",
-        "enabled": "활성화",
-        "disabled": "비활성화",
-        "microphoneTest": "마이크 테스트",
-        "microphoneHint": "마이크가 정상적으로 녹음되는지 확인합니다.",
-        "excludeCodeBlocks": "텍스트 통계 시 코드 블록 제외",
-        "excludeCodeHint": "코드 내용이 단어 빈도 통계의 정확성에 영향을 줄 수 있으므로 제외할 수 있습니다.",
-        "autoDownloadImage": "외부 이미지 자동 다운로드",
-        "autoDownloadHint": "활성화하면 외부 이미지를 가져올 때 자동으로 로컬에 저장합니다. 비활성화 시 오프라인 상태에서 외부 이미지가 표시되지 않습니다. 편집기 인터페이스를 다시 열어야 합니다.",
-        "llmType": "대형 언어 모델 유형 선택",
-        "chooseLlm": "대형 언어 모델 선택",
-        "metadoc": "MetaDoc",
-        "ollama": "Ollama",
-        "openai": "OpenAI 호환 API",
-        "metadocHint": "MetaDoc에서 제공하는 공식 AI 대형 언어 모델로, 여러 모델을 지원합니다",
-        "ollamaHint": "로컬에 배포 가능한 대형 언어 모델 플랫폼으로, 여러 모델을 지원합니다",
-        "openaiHint": "OpenAI API 표준과 호환되는 모든 외부 대형 언어 모델과 호환됩니다",
-        "apiBaseUrl": "API 기본 URL",
-        "ollamaApiUrl": "Ollama API 주소 입력",
-        "openaiApiUrl": "OpenAI 호환 API 주소 입력",
-        "apiKey": "API 키",
-        "apiKeyPlaceholder": "OpenAI 호환 API 키 입력",
-        "chooseModel": "모델 선택",
-        "apiSuffix": "API URL 접미사",
-        "completionSuffix": "질문 답변 완성 기능(Completions) URL 접미사 (선택 사항)",
-        "chatSuffix": "채팅 완성 기능(Chat) URL 접미사 (선택 사항)",
-        "removeThinkTag": "think 태그 제거",
-        "testLlm": "대형 언어 모델 테스트",
-        "testResult": "테스트 결과",
-        "resultPlaceholder": "테스트 결과가 여기에 표시됩니다",
-        "testPrompt": "안녕하세요! 자기소개를 부탁드립니다.",
-        "testFailed": "테스트 실패:",
-        "particleEffect": "입자 효과",
-        "particleEffectHint": "입자 효과를 활성화하여 화면 미적 감각을 향상시킵니다. 활성화하면 성능에 영향을 줄 수 있습니다."
-    },
-    "visualize": {
-        "articleOutline": "문서 아웃라인",
-        "wordCount": "단어 수 통계",
-        "wordCloud": "워드 클라우드",
-        "paragraphDistribution": "단락 분포",
-        "wordFrequency": "단어 빈도 통계"
+    "tooltips": {
+      "generate": "생성",
+      "reset": "초기화",
+      "chat": "긴 대화로 전환",
+      "acceptReplace": "수락하고 바꾸기",
+      "acceptAppend": "수락하고 추가"
     }
+  },
+  "userProfile": {
+    "title": "프로필 카드",
+    "closeMenu": "메뉴 닫기",
+    "loginTab": "로그인",
+    "registerTab": "회원가입",
+    "account": "계정",
+    "accountPlaceholder": "사용자명/이메일/휴대폰 번호를 입력하세요",
+    "password": "비밀번호",
+    "passwordPlaceholder": "비밀번호를 입력하세요",
+    "loginBtn": "로그인",
+    "username": "사용자명",
+    "usernamePlaceholder": "사용자명을 입력하세요",
+    "phone": "휴대폰 번호",
+    "phonePlaceholder": "휴대폰 번호를 입력하세요",
+    "email": "이메일",
+    "emailPlaceholder": "이메일을 입력하세요",
+    "registerBtn": "회원가입",
+    "changeAvatar": "아바타 변경",
+    "editProfileTitle": "프로필 편집",
+    "changePasswordTitle": "비밀번호 변경",
+    "oldPassword": "기존 비밀번호",
+    "oldPasswordPlaceholder": "기존 비밀번호를 입력하세요",
+    "newPassword": "새 비밀번호",
+    "newPasswordPlaceholder": "새 비밀번호를 입력하세요",
+    "createdAt": "생성일",
+    "tokenBalance": "잔액",
+    "logout": "로그아웃",
+    "cancel": "취소",
+    "saveEdit": "편집 저장",
+    "editProfile": "프로필 편집",
+    "savePwd": "비밀번호 저장",
+    "changePwd": "비밀번호 변경",
+    "messages": {
+      "invalidPassword": "비밀번호가 유효하지 않습니다!",
+      "samePassword": "새 비밀번호는 기존 비밀번호와 같을 수 없습니다!",
+      "invalidInfo": "변경 정보가 유효하지 않습니다!",
+      "modifySuccess": "변경 성공!",
+      "logoutSuccess": "로그아웃 성공",
+      "loginIncomplete": "로그인 정보가 불완전합니다",
+      "registerIncomplete": "회원가입 정보가 불완전합니다",
+      "registerSuccess": "회원가입 성공",
+      "registerFailed": "회원가입 실패: {error}"
+    },
+    "rules": {
+      "usernameRequired": "사용자명/이메일/휴대폰 번호를 입력하세요",
+      "usernamePattern": "사용자명은 영문, 숫자, 밑줄만 포함 가능하며 최소 6자 이상이어야 합니다",
+      "passwordRequired": "비밀번호를 입력하세요",
+      "passwordPattern": "비밀번호는 대소문자와 숫자를 포함해야 하며 최소 6자 이상이어야 합니다",
+      "phoneRequired": "휴대폰 번호를 입력하세요",
+      "phonePattern": "유효한 휴대폰 번호를 입력하세요",
+      "emailRequired": "이메일을 입력하세요",
+      "emailPattern": "유효한 이메일을 입력하세요",
+      "newPasswordRequired": "새 비밀번호를 입력하세요"
+    }
+  },
+  "voiceInput": {
+    "messages": {
+      "microphoneDenied": "마이크 접근이 거부되었습니다. 권한 설정을 확인해 주세요",
+      "recognitionFailed": "인식 실패: {error}",
+      "sendAudioError": "오디오를 Baidu로 전송 중 오류 발생",
+      "tokenError": "Baidu 토큰 가져오기 오류"
+    }
+  },
+  "wordCloudDetail": {
+    "defaultWord": "단어",
+    "frequency": "빈도"
+  },
+  "aiChat": {
+    "renameTitle": "이름 변경",
+    "renamePlaceholder": "새 제목을 입력하세요",
+    "newDialog": "새 대화",
+    "deleteCurrent": "현재 대화 삭제",
+    "inputPlaceholder": "여기에 메시지를 입력하세요.",
+    "send": "보내기",
+    "reset": "초기화",
+    "defaultTitle": "AI 어시스턴트와 대화"
+  },
+  "aigraph": {
+    "renameTitle": "이름 변경",
+    "renamePlaceholder": "새 제목을 입력하세요",
+    "newChartTitle": "새 차트",
+    "chartName": "차트 이름",
+    "newChartPlaceholder": "새 제목을 입력하세요",
+    "engine": "그래픽 엔진",
+    "selectEngine": "그래픽 엔진 선택",
+    "chartType": "차트 유형",
+    "selectChartType": "차트 유형 선택",
+    "newChartBtn": "새 차트 만들기",
+    "currentChartInfo": "현재 차트 정보",
+    "addScheme": "새 그래픽 스키마 추가",
+    "duplicateScheme": "현재 스키마 복제",
+    "deleteScheme": "현재 스키마 삭제",
+    "copyCode": "코드 복사",
+    "exportImage": "이미지 내보내기",
+    "promptPlaceholder": "그래픽 요구사항을 입력하세요",
+    "send": "보내기",
+    "reset": "초기화",
+    "error": {
+      "no_svg_found": "SVG 요소를 찾을 수 없음",
+      "copy_failed": "복사 실패",
+      "no_code_to_copy": "복사할 코드 없음"
+    },
+    "success": {
+      "copy_succeeded": "복사 성공"
+    },
+    "graph": {
+      "chart": "차트"
+    }
+  },
+  "article": {
+    "drag_to_resize": "너비 변경을 위해 드래그",
+    "edit_meta_info": "문서 메타 정보 편집",
+    "meta_info": "문서 메타 정보",
+    "click_to_edit_title": "제목 수정을 위해 클릭",
+    "title": "제목",
+    "no_title": "제목 없음",
+    "generate_title": "제목 생성",
+    "click_to_edit_author": "작성자 수정을 위해 클릭",
+    "author": "작성자",
+    "no_author": "작성자 없음",
+    "modify_author": "작성자 변경",
+    "click_to_edit_description": "요약 수정을 위해 클릭",
+    "description": "요약",
+    "no_description": "요약 없음",
+    "generate_description": "요약 생성",
+    "description_placeholder": "문서 요약을 입력하세요",
+    "ai_understood": "문서 전체 내용을 이해했습니다. 무엇을 도와드릴까요?",
+    "ai_analyze_title": "AI 문서 분석",
+    "long_press_optimize": "길게 눌러 AI 어시스턴트로 이 단락 최적화",
+    "click_jump_long_press_optimize": "클릭하여 이동, 길게 눌러 AI 어시스턴트로 이 단락 최적화",
+    "vditor_init_failed": "Vditor 초기화 실패:",
+    "input_placeholder": "여기서 Markdown 내용 편집...",
+    "toolbar": {
+      "undo": "실행 취소",
+      "redo": "다시 실행",
+      "headings": "제목",
+      "bold": "굵게",
+      "italic": "기울임",
+      "strike": "취소선",
+      "link": "링크",
+      "list": "목록",
+      "table": "표",
+      "code": "코드 블록",
+      "preview": "미리보기",
+      "fullscreen": "전체 화면 편집기",
+      "quote": "인용",
+      "search_replace": "찾기 및 바꾸기",
+      "ai_assistant": "AI 어시스턴트"
+    }
+  },
+  "formulaRecognition": {
+    "undo": "실행 취소",
+    "redo": "다시 실행",
+    "reset": "초기화",
+    "import_image": "이미지 가져오기",
+    "copy_image": "이미지 복사",
+    "brush_size": "브러시 크기:",
+    "recognize_formula": "수식 인식",
+    "edit_formula": "수식 편집",
+    "copy_formula": "수식 복사",
+    "edit_formula_dialog_title": "수식 편집",
+    "cancel": "취소",
+    "confirm": "확인",
+    "notification": {
+      "title_info": "알림",
+      "title_success": "성공",
+      "title_error": "오류",
+      "undo_fail": "실행 취소 실패",
+      "redo_fail": "다시 실행 실패",
+      "copy_image_success": "복사 성공, Ctrl+V로 이미지 붙여넣기",
+      "copy_formula_success": "수식 복사 성공",
+      "copy_formula_fail": "수식 복사 실패"
+    },
+    "options": {
+      "pen": "펜",
+      "eraser": "지우개",
+      "pointer": "포인터"
+    }
+  },
+  "home": {
+    "metaDoc": "MetaDoc 스마트 문서 처리 소프트웨어",
+    "tooltip": {
+      "quickStart": "빠른 시작: 빠르게 문서 생성",
+      "openFile": "기존 문서 열기",
+      "close": "빠른 시작 닫기",
+      "ready": "준비 완료",
+      "selectTemperature": "생성 온도 선택(내용 다양성에 영향)",
+      "selectMood": "문서 스타일 선택",
+      "inputPrompt": "프롬프트 입력",
+      "generateArticle": "문서 생성",
+      "reset": "생성 내용 초기화",
+      "accept": "생성 내용 수락"
+    },
+    "button": {
+      "quickStart": "빠른 시작",
+      "openFile": "문서 열기",
+      "refresh": "새로 고침"
+    },
+    "authorLabel": "작성자",
+    "abstractLabel": "요약",
+    "quickStartTitle": "빠른 시작",
+    "tab": {
+      "aiAssistant": "AI 어시스턴트",
+      "documentInfo": "문서 정보"
+    },
+    "documentInfoLabel": "문서 정보 입력",
+    "label": {
+      "title": "제목",
+      "author": "작성자",
+      "abstract": "요약"
+    },
+    "placeholder": {
+      "title": "문서 제목 입력",
+      "author": "작성자 이름 입력",
+      "abstract": "요약 입력"
+    },
+    "aiAssistantLabel": "AI 어시스턴트 매개변수 설정",
+    "suggestionLabel": "추천 태그",
+    "mood": {
+      "happy": "행복",
+      "lyrical": "서정적",
+      "peaceful": "평화로운",
+      "academic": "학술적",
+      "business": "비즈니스",
+      "sad": "슬픔",
+      "warning": "경고",
+      "exciting": "흥미로운",
+      "angry": "화남",
+      "surprised": "놀람",
+      "fearful": "두려움",
+      "disgusted": "혐오"
+    },
+    "temperatureMarks": {
+      "rigorous": "엄격",
+      "balanced": "균형",
+      "creative": "창의적"
+    },
+    "defaultText": "# MetaDoc에 오신 것을 환영합니다\n\n이것은 AI 기반 문서 처리 소프트웨어로, 빠르게 문서 내용을 생성할 수 있습니다."
+  },
+  "main": {
+    "notification": {
+      "save": {
+        "title": "저장 성공",
+        "message": "저장 성공"
+      },
+      "open": {
+        "title": "열기 성공",
+        "message": "열기 성공"
+      },
+      "export": {
+        "title": "내보내기 성공",
+        "message": "{path} 내보내기 성공"
+      },
+      "error": {
+        "title": "오류"
+      },
+      "info": {
+        "title": "정보"
+      },
+      "success": {
+        "title": "성공"
+      },
+      "warning": {
+        "title": "경고"
+      }
+    }
+  },
+  "outline": {
+    "generating": "AI 작업 중...",
+    "generatingFor": "생성 중",
+    "generationDone": "생성 완료, 변경 사항을 수락하시겠습니까?",
+    "editNode": "노드 편집",
+    "moveLeft": "왼쪽으로 이동",
+    "addChild": "자식 노드 추가",
+    "editContent": "내용 편집",
+    "delete": "삭제",
+    "moveRight": "오른쪽으로 이동",
+    "generateContent": "AI로 이 챕터 내용 생성",
+    "generateChildChapter": "AI로 자식 챕터 생성",
+    "generateChildrenContent": "AI로 모든 자식 챕터 내용 생성",
+    "generateChildrenChildren": "AI로 모든 챕터의 자식 챕터 생성",
+    "accept": "수락",
+    "reject": "거절",
+    "formatTitleWizard": "제목 포맷 마법사",
+    "adjustMarkdown": "Markdown 제목 레벨 자동 조정",
+    "adjustMarkdownTip": "활성화하면 Markdown 제목 레벨이 자동 조정되며, 1레벨에서 3레벨로 건너뛰는 경우가 없습니다",
+    "firstMarkdownTitleLevel": "Markdown 첫 번째 제목 레벨",
+    "adjustTitle": "챕터 번호 조정 여부",
+    "adjustTitleTip": "활성화하면 각 챕터가 다시 번호가 매겨집니다",
+    "coverOriginalNumber": "기존 번호 지능형 덮어쓰기",
+    "coverTip": "기존 번호(예: '1.1 1.2 一、')가 덮어쓰기 됩니다",
+    "level1Chinese": "첫 번째 제목이 중국어인지 여부",
+    "level1ChineseTip": "활성화하면 첫 번째 제목이 중국어로 표시됩니다",
+    "cancel": "취소",
+    "confirm": "확인",
+    "editChapterTitle": "챕터 제목 수정",
+    "chapterName": "챕터 이름",
+    "chapterContent": "챕터 내용",
+    "zoomIn": "확대",
+    "zoomOut": "축소",
+    "reset": "초기화",
+    "formatTitle": "제목 포맷",
+    "openAiAssistant": "AI 어시스턴트 열기",
+    "generateChildSuccessWithTitle": "AI가 노드 {title}의 자식 챕터를 생성했습니다!",
+    "generateChildSuccess": "AI가 자식 챕터를 생성했습니다!",
+    "generateChildFail": "자식 챕터 생성 실패: {error}",
+    "generateChildRetryFail": "자식 챕터 생성 실패, 다시 시도해 주세요: {error}",
+    "generateContentSuccessWithTitle": "AI가 노드 {title}의 내용을 생성했습니다!",
+    "generateContentSuccess": "AI가 내용을 생성했습니다!",
+    "generateContentFail": "내용 생성 실패: {error}",
+    "generateChapterSuccess": "AI가 챕터를 생성했습니다!",
+    "formatSuccess": "제목 포맷 성공!",
+    "confirmDeleteChapter": "챕터를 삭제하시겠습니까?",
+    "warning": "경고",
+    "error": "오류",
+    "message": "메시지",
+    "cannotDeleteRoot": "루트 챕터는 삭제할 수 없습니다",
+    "deleteSuccess": "챕터 삭제 성공!"
+  },
+  "setting": {
+    "auto": "자동",
+    "basic": "기본 설정",
+    "llm": "LLM 설정",
+    "themes": "테마 설정",
+    "startupOption": "시작 옵션",
+    "openNewFile": "새 파일 열기",
+    "openLastFile": "마지막으로 편집한 파일 열기",
+    "askBeforeSave": "항상 저장 확인",
+    "autoSave": "자동 저장",
+    "off": "끄기",
+    "minute1": "1분",
+    "minute5": "5분",
+    "minute10": "10분",
+    "minute30": "30분",
+    "minute60": "1시간",
+    "globalTheme": "글로벌 테마",
+    "themeSync": "시스템과 동기화",
+    "themeLight": "라이트",
+    "themeDark": "다크",
+    "themeCustom": "커스텀",
+    "contentTheme": "내용 테마",
+    "codeTheme": "코드 테마",
+    "lineNumber": "코드 블록에 행 번호 표시",
+    "customThemeColor": "커스텀 테마 색상",
+    "enabled": "활성화",
+    "disabled": "비활성화",
+    "microphoneTest": "마이크 테스트",
+    "microphoneHint": "마이크가 정상적으로 녹음되는지 확인합니다.",
+    "excludeCodeBlocks": "텍스트 통계 시 코드 블록 제외",
+    "excludeCodeHint": "코드 내용이 단어 빈도 통계의 정확성에 영향을 줄 수 있으므로 제외할 수 있습니다.",
+    "autoDownloadImage": "외부 이미지 자동 다운로드",
+    "autoDownloadHint": "활성화하면 외부 이미지를 가져올 때 자동으로 로컬에 저장합니다. 비활성화 시 오프라인 상태에서 외부 이미지가 표시되지 않습니다. 편집기 인터페이스를 다시 열어야 합니다.",
+    "llmType": "대형 언어 모델 유형 선택",
+    "chooseLlm": "대형 언어 모델 선택",
+    "metadoc": "MetaDoc",
+    "ollama": "Ollama",
+    "openai": "OpenAI 호환 API",
+    "metadocHint": "MetaDoc에서 제공하는 공식 AI 대형 언어 모델로, 여러 모델을 지원합니다",
+    "ollamaHint": "로컬에 배포 가능한 대형 언어 모델 플랫폼으로, 여러 모델을 지원합니다",
+    "openaiHint": "OpenAI API 표준과 호환되는 모든 외부 대형 언어 모델과 호환됩니다",
+    "apiBaseUrl": "API 기본 URL",
+    "ollamaApiUrl": "Ollama API 주소 입력",
+    "openaiApiUrl": "OpenAI 호환 API 주소 입력",
+    "apiKey": "API 키",
+    "apiKeyPlaceholder": "OpenAI 호환 API 키 입력",
+    "chooseModel": "모델 선택",
+    "apiSuffix": "API URL 접미사",
+    "completionSuffix": "질문 답변 완성 기능(Completions) URL 접미사 (선택 사항)",
+    "chatSuffix": "채팅 완성 기능(Chat) URL 접미사 (선택 사항)",
+    "removeThinkTag": "think 태그 제거",
+    "testLlm": "대형 언어 모델 테스트",
+    "testResult": "테스트 결과",
+    "resultPlaceholder": "테스트 결과가 여기에 표시됩니다",
+    "testPrompt": "안녕하세요! 자기소개를 부탁드립니다.",
+    "testFailed": "테스트 실패:",
+    "particleEffect": "입자 효과",
+    "particleEffectHint": "입자 효과를 활성화하여 화면 미적 감각을 향상시킵니다. 활성화하면 성능에 영향을 줄 수 있습니다."
+  },
+  "visualize": {
+    "articleOutline": "문서 아웃라인",
+    "wordCount": "단어 수 통계",
+    "wordCloud": "워드 클라우드",
+    "paragraphDistribution": "단락 분포",
+    "wordFrequency": "단어 빈도 통계"
+  },
+  "bottomMenu": {
+    "wordCount": "총 문자 수：",
+    "currentFile": "현재 파일：",
+    "newFile": "새 파일",
+    "aiTaskQueueTooltip": "AI 작업 대기열"
+  },
+  "aiTask": {
+    "cancel": "이름 *",
+    "failed": "뚱 베어",
+    "ready": "지원하다",
+    "running": "지원하다",
+    "status": "주요연혁",
+    "taskCancelled": "{task} 취소",
+    "taskCancelled2": "업무 취소"
+  },
+  "aiTaskQueue": {
+    "empty": "할당 없음.",
+    "error": "적재 실패",
+    "loading": "로드 중 ...",
+    "switchWarning": "AI가 잃을 때 인터페이스를 전환합니다.",
+    "title": "AI 작업 큐"
+  }
 }

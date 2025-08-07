@@ -61,14 +61,16 @@ app.use(router)
 
 import en_US from './locales/en_US.json'
 import zh_CN from './locales/zh_CN.json'
-import jp_JP from './locales/jp_JP.json'
+import ja_JP from './locales/ja_JP.json'
 import ko_KR from './locales/ko_KR.json'
+import de_DE from './locales/de_DE.json'
+import fr_FR from './locales/fr_FR.json'
 import { createI18n } from 'vue-i18n'
 const savedLang = localStorage.getItem('lang') || 'zh_CN'
-const i18n = createI18n({
+export const i18n = createI18n({
   locale: savedLang, // 设置默认语言
   fallbackLocale: 'zh_CN', // 回退语言
-  messages: { en_US, zh_CN, jp_JP, ko_KR }, // 语言包
+  messages: { en_US, zh_CN, ja_JP, ko_KR }, // 语言包
 })
 
 app.use(i18n).mount('#app')

@@ -1,490 +1,520 @@
 {
-    "lang": "en_US",
-    "contextMenu": {
-        "aiAnalysis": "AI Full Analysis",
-        "copy": "Copy",
-        "paste": "Paste"
+  "lang": "en_US",
+  "contextMenu": {
+    "aiAnalysis": "AI Full Analysis",
+    "copy": "Copy",
+    "paste": "Paste"
+  },
+  "headMenu": {
+    "tooltip": "An intelligent document processor based on AI Agent",
+    "title": "MetaDoc",
+    "home": "Home",
+    "outline": "Outline Tree",
+    "editor": "Editor",
+    "visualize": "Visualization"
+  },
+  "leftMenu": {
+    "metaDocTooltip": "MetaDoc ;-)",
+    "fileTooltip": "File",
+    "file": "File",
+    "new": "New",
+    "open": "Open",
+    "save": "Save",
+    "saveAs": "Save As",
+    "export": "Export",
+    "exportPdf": "Export PDF",
+    "exportMarkdown": "Export Markdown",
+    "exportDocx": "Export DOCX",
+    "exportHtml": "Export HTML",
+    "exportLatex": "Export LaTeX",
+    "closeFile": "Close File",
+    "aiToolTooltip": "AI Tools",
+    "aiAssistant": "AI Assistant",
+    "chatWithAI": "Chat with AI",
+    "handwritingFormulaRecognition": "Handwriting Formula Recognition",
+    "smartDrawingAssistant": "Smart Drawing Assistant",
+    "settingsTooltip": "Settings",
+    "settings": "Settings",
+    "settingsPanel": "Settings Panel",
+    "recentFilesTooltip": "Recent Files",
+    "recentFiles": "Recent Files",
+    "exitTooltip": "Exit",
+    "exit": "Exit",
+    "saveAndExit": "Save and Exit",
+    "exitWithoutSaving": "Exit Without Saving",
+    "userProfileTooltip": "User Profile",
+    "langTooltip": "Language",
+    "askSave": "Do you want to save the current document",
+    "discard": "Abandon",
+    "tip": "Hint"
+  },
+  "llmDialog": {
+    "aiAssistant": "AI Assistant",
+    "closeMenuTooltip": "Close menu",
+    "inputPlaceholder": "Please enter content",
+    "generateAITooltip": "Generate AI",
+    "acceptTooltip": "Accept",
+    "promptEmptyWarning": "Prompt is empty, unable to generate content!",
+    "generateFailedError": "Failed to generate content, please try again!"
+  },
+  "messageBubble": {
+    "editTitle": "Edit Text",
+    "deleteConfirmMessage": "Are you sure you want to delete?",
+    "deleteConfirmTitle": "Warning"
+  },
+  "microphoneTest": {
+    "cannotAccessMic": "Cannot access microphone, please check permission settings"
+  },
+  "common": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "deleteSuccess": "Deleted successfully",
+    "deleteFailed": "Failed to delete"
+  },
+  "searchReplace": {
+    "title": "Search and Replace",
+    "find": "Find",
+    "replace": "Replace",
+    "findPlaceholder": "Please enter text to find",
+    "replacePlaceholder": "Please enter replacement text",
+    "useRegex": "Use Regular Expression",
+    "replaceBtn": "Replace",
+    "replaceAllBtn": "Replace All",
+    "findNextBtn": "Find Next",
+    "findAllBtn": "Find All",
+    "resetBtn": "Reset",
+    "aiRegexSuggestion": "AI suggested regex:",
+    "replaceCount": "Replaced {count} occurrences of \"{find}\" with \"{replace}\"",
+    "foundCount": "Found {count} occurrences of \"{find}\"",
+    "notFoundMore": "No more matches found"
+  },
+  "titleMenu": {
+    "defaultTitle": "Title",
+    "inputPlaceholder": "Please enter your request",
+    "contextMarks": {
+      "none": "No context",
+      "chapter": "Context: This chapter",
+      "full": "Context: Whole document"
     },
-    "headMenu": {
-        "tooltip": "An intelligent document processor based on AI Agent",
-        "title": "MetaDoc",
-        "home": "Home",
-        "outline": "Outline Tree",
-        "editor": "Editor",
-        "visualize": "Visualization"
+    "contextTooltips": {
+      "none": "Do not reference context",
+      "chapter": "AI will reference this chapter's content",
+      "full": "AI will reference the full document"
     },
-    "leftMenu": {
-        "metaDocTooltip": "MetaDoc ;-)",
-        "fileTooltip": "File",
-        "file": "File",
-        "new": "New",
-        "open": "Open",
-        "save": "Save",
-        "saveAs": "Save As",
-        "export": "Export",
-        "exportPdf": "Export PDF",
-        "exportMarkdown": "Export Markdown",
-        "exportDocx": "Export DOCX",
-        "exportHtml": "Export HTML",
-        "exportLatex": "Export LaTeX",
-        "closeFile": "Close File",
-        "aiToolTooltip": "AI Tools",
-        "aiAssistant": "AI Assistant",
-        "chatWithAI": "Chat with AI",
-        "handwritingFormulaRecognition": "Handwriting Formula Recognition",
-        "smartDrawingAssistant": "Smart Drawing Assistant",
-        "settingsTooltip": "Settings",
-        "settings": "Settings",
-        "settingsPanel": "Settings Panel",
-        "recentFilesTooltip": "Recent Files",
-        "recentFiles": "Recent Files",
-        "exitTooltip": "Exit",
-        "exit": "Exit",
-        "saveAndExit": "Save and Exit",
-        "exitWithoutSaving": "Exit Without Saving",
-        "userProfileTooltip": "User Profile",
-        "langTooltip": "Language"
-    },
-    "llmDialog": {
-        "aiAssistant": "AI Assistant",
-        "closeMenuTooltip": "Close menu",
-        "inputPlaceholder": "Please enter content",
-        "generateAITooltip": "Generate AI",
-        "acceptTooltip": "Accept",
-        "promptEmptyWarning": "Prompt is empty, unable to generate content!",
-        "generateFailedError": "Failed to generate content, please try again!"
-    },
-    "messageBubble": {
-        "editTitle": "Edit Text",
-        "deleteConfirmMessage": "Are you sure you want to delete?",
-        "deleteConfirmTitle": "Warning"
-    },
-    "microphoneTest": {
-        "cannotAccessMic": "Cannot access microphone, please check permission settings"
-    },
-    "common": {
-        "confirm": "Confirm",
-        "cancel": "Cancel",
-        "save": "Save",
-        "deleteSuccess": "Deleted successfully",
-        "deleteFailed": "Failed to delete"
-    },
-    "searchReplace": {
-        "title": "Search and Replace",
-        "find": "Find",
-        "replace": "Replace",
-        "findPlaceholder": "Please enter text to find",
-        "replacePlaceholder": "Please enter replacement text",
-        "useRegex": "Use Regular Expression",
-        "replaceBtn": "Replace",
-        "replaceAllBtn": "Replace All",
-        "findNextBtn": "Find Next",
-        "findAllBtn": "Find All",
-        "resetBtn": "Reset",
-        "aiRegexSuggestion": "AI suggested regex:",
-        "replaceCount": "Replaced {count} occurrences of \"{find}\" with \"{replace}\"",
-        "foundCount": "Found {count} occurrences of \"{find}\"",
-        "notFoundMore": "No more matches found"
-    },
-    "titleMenu": {
-        "defaultTitle": "Title",
-        "inputPlaceholder": "Please enter your request",
-        "contextMarks": {
-            "none": "No context",
-            "chapter": "Context: This chapter",
-            "full": "Context: Whole document"
-        },
-        "contextTooltips": {
-            "none": "Do not reference context",
-            "chapter": "AI will reference this chapter's content",
-            "full": "AI will reference the full document"
-        },
-        "tooltips": {
-            "generate": "Generate",
-            "reset": "Reset",
-            "chat": "Convert to chat",
-            "acceptReplace": "Accept and replace",
-            "acceptAppend": "Accept and append"
-        }
-    },
-    "userProfile": {
-        "title": "Profile Card",
-        "closeMenu": "Close Menu",
-        "loginTab": "Login",
-        "registerTab": "Register",
-        "account": "Account",
-        "accountPlaceholder": "Please enter username/email/phone",
-        "password": "Password",
-        "passwordPlaceholder": "Please enter password",
-        "loginBtn": "Login",
-        "username": "Username",
-        "usernamePlaceholder": "Please enter username",
-        "phone": "Phone Number",
-        "phonePlaceholder": "Please enter phone number",
-        "email": "Email",
-        "emailPlaceholder": "Please enter email",
-        "registerBtn": "Register",
-        "changeAvatar": "Click to change avatar",
-        "editProfileTitle": "Edit Profile",
-        "changePasswordTitle": "Change Password",
-        "oldPassword": "Old Password",
-        "oldPasswordPlaceholder": "Please enter old password",
-        "newPassword": "New Password",
-        "newPasswordPlaceholder": "Please enter new password",
-        "createdAt": "Created At",
-        "tokenBalance": "Balance",
-        "logout": "Logout",
-        "cancel": "Cancel",
-        "saveEdit": "Save Edit",
-        "editProfile": "Edit Profile",
-        "savePwd": "Save Password",
-        "changePwd": "Change Password",
-        "messages": {
-            "invalidPassword": "Invalid password!",
-            "samePassword": "New password cannot be the same as the old one!",
-            "invalidInfo": "Invalid profile information!",
-            "modifySuccess": "Profile updated successfully!",
-            "logoutSuccess": "Logged out successfully",
-            "loginIncomplete": "Login information is incomplete",
-            "registerIncomplete": "Registration information is incomplete",
-            "registerSuccess": "Registration successful",
-            "registerFailed": "Registration failed: {error}"
-        },
-        "rules": {
-            "usernameRequired": "Please enter username/email/phone",
-            "usernamePattern": "Username must be at least 6 characters and can only contain letters, numbers, and underscores",
-            "passwordRequired": "Please enter password",
-            "passwordPattern": "Password must include uppercase, lowercase letters, and numbers, at least 6 characters",
-            "phoneRequired": "Please enter phone number",
-            "phonePattern": "Please enter a valid phone number",
-            "emailRequired": "Please enter email",
-            "emailPattern": "Please enter a valid email",
-            "newPasswordRequired": "Please enter new password"
-        }
-    },
-    "voiceInput": {
-        "messages": {
-            "microphoneDenied": "Unable to access microphone. Please check permission settings.",
-            "recognitionFailed": "Recognition failed: {error}",
-            "sendAudioError": "Error occurred while sending audio to Baidu",
-            "tokenError": "Error occurred while fetching Baidu token"
-        }
-    },
-    "wordCloudDetail": {
-        "defaultWord": "Word",
-        "frequency": "Frequency"
-    },
-    "aiChat": {
-        "renameTitle": "Rename",
-        "renamePlaceholder": "Please enter new title",
-        "newDialog": "New Dialog",
-        "deleteCurrent": "Delete Current Dialog",
-        "inputPlaceholder": "Enter your message here.",
-        "send": "Send",
-        "reset": "Reset",
-        "defaultTitle": "Chat with AI Assistant"
-    },
-    "aigraph": {
-        "renameTitle": "Rename",
-        "renamePlaceholder": "Please enter a new title",
-        "newChartTitle": "New Chart",
-        "chartName": "Chart Name",
-        "newChartPlaceholder": "Please enter a new title",
-        "engine": "Drawing Engine",
-        "selectEngine": "Select Drawing Engine",
-        "chartType": "Chart Type",
-        "selectChartType": "Select Chart Type",
-        "newChartBtn": "Create Chart",
-        "currentChartInfo": "Current Chart Information",
-        "addScheme": "Add Drawing Scheme",
-        "duplicateScheme": "Duplicate Current Scheme",
-        "deleteScheme": "Delete Current Scheme",
-        "copyCode": "Copy Code",
-        "exportImage": "Export Image",
-        "promptPlaceholder": "Please enter your drawing requirements",
-        "send": "Send",
-        "reset": "Reset",
-        "error": {
-            "no_svg_found": "SVG element not found",
-            "copy_failed": "Copy failed",
-            "no_code_to_copy": "No code to copy"
-        },
-        "success": {
-            "copy_succeeded": "Copy succeeded"
-        },
-        "graph": {
-            "chart": "Chart"
-        }
-    },
-    "article": {
-        "drag_to_resize": "Drag to resize width",
-        "edit_meta_info": "Edit document meta info",
-        "meta_info": "Document Meta Info",
-        "click_to_edit_title": "Click to edit title",
-        "title": "Title",
-        "no_title": "Untitled",
-        "generate_title": "Generate Title",
-        "click_to_edit_author": "Click to edit author",
-        "author": "Author",
-        "no_author": "Not filled",
-        "modify_author": "Modify Author",
-        "click_to_edit_description": "Click to edit article description",
-        "description": "Description",
-        "no_description": "No description",
-        "generate_description": "Generate Description",
-        "description_placeholder": "Please enter article description",
-        "ai_understood": "I have understood the entire article content. How can I assist you?",
-        "ai_analyze_title": "AI Analyze Entire Article",
-        "long_press_optimize": "Long press to optimize this paragraph with AI assistant",
-        "click_jump_long_press_optimize": "Click to jump, long press to optimize this paragraph with AI assistant",
-        "vditor_init_failed": "Vditor initialization failed: ",
-        "input_placeholder": "Edit Markdown content here...",
-        "toolbar": {
-            "undo": "Undo",
-            "redo": "Redo",
-            "headings": "Headings",
-            "bold": "Bold",
-            "italic": "Italic",
-            "strike": "Strikethrough",
-            "link": "Link",
-            "list": "List",
-            "table": "Table",
-            "code": "Code Block",
-            "preview": "Preview",
-            "fullscreen": "Fullscreen Editor",
-            "quote": "Quote",
-            "search_replace": "Search & Replace",
-            "ai_assistant": "AI Assistant"
-        }
-    },
-    "formulaRecognition": {
-        "undo": "Undo",
-        "redo": "Redo",
-        "reset": "Reset",
-        "import_image": "Import Image",
-        "copy_image": "Copy Image",
-        "brush_size": "Brush Size:",
-        "recognize_formula": "Recognize Formula",
-        "edit_formula": "Edit Formula",
-        "copy_formula": "Copy Formula",
-        "edit_formula_dialog_title": "Edit Formula",
-        "cancel": "Cancel",
-        "confirm": "Confirm",
-        "notification": {
-            "title_info": "Info",
-            "title_success": "Success",
-            "title_error": "Error",
-            "undo_fail": "Cannot undo",
-            "redo_fail": "Cannot redo",
-            "copy_image_success": "Copied successfully, please use Ctrl+V to paste the image",
-            "copy_formula_success": "Copied successfully",
-            "copy_formula_fail": "Copy failed"
-        },
-        "options": {
-            "pen": "Pen",
-            "eraser": "Eraser",
-            "pointer": "Pointer"
-        }
-    },
-    "home": {
-        "metaDoc": "MetaDoc - AI Document Editor",
-        "tooltip": {
-            "quickStart": "Quick Start: Generate a document fast",
-            "openFile": "Open an existing document",
-            "close": "Close Quick Start",
-            "ready": "Ready",
-            "selectTemperature": "Select generation temperature, affects content diversity",
-            "selectMood": "Select document style",
-            "inputPrompt": "Enter your prompt",
-            "generateArticle": "Generate Article",
-            "reset": "Reset content",
-            "accept": "Accept generated content"
-        },
-        "button": {
-            "quickStart": "Quick Start",
-            "openFile": "Open Document",
-            "refresh": "Refresh"
-        },
-        "authorLabel": "Author",
-        "abstractLabel": "Abstract",
-        "quickStartTitle": "Quick Start",
-        "tab": {
-            "aiAssistant": "AI Assistant",
-            "documentInfo": "Document Info"
-        },
-        "documentInfoLabel": "Fill Document Info",
-        "label": {
-            "title": "Title",
-            "author": "Author",
-            "abstract": "Abstract"
-        },
-        "placeholder": {
-            "title": "Please enter document title",
-            "author": "Please enter author name",
-            "abstract": "Please enter abstract"
-        },
-        "aiAssistantLabel": "AI Assistant Settings",
-        "suggestionLabel": "Suggestion Tags",
-        "mood": {
-            "happy": "Happy",
-            "lyrical": "Lyrical",
-            "peaceful": "Peaceful",
-            "academic": "Academic",
-            "business": "Business",
-            "sad": "Sad",
-            "warning": "Warning",
-            "exciting": "Exciting",
-            "angry": "Angry",
-            "surprised": "Surprised",
-            "fearful": "Fearful",
-            "disgusted": "Disgusted"
-        },
-        "temperatureMarks": {
-            "rigorous": "Rigorous",
-            "balanced": "Balanced",
-            "creative": "Creative"
-        },
-        "defaultText": "# Welcome to MetaDoc\n\nThis is an AI-powered word processing software that helps you quickly generate content."
-    },
-    "main": {
-        "notification": {
-            "save": {
-                "title": "Saved",
-                "message": "Document saved successfully"
-            },
-            "open": {
-                "title": "Opened",
-                "message": "Document opened successfully"
-            },
-            "export": {
-                "title": "Exported",
-                "message": "{path} exported successfully"
-            },
-            "error": {
-                "title": "Error"
-            },
-            "info": {
-                "title": "Info"
-            },
-            "success": {
-                "title": "Success"
-            },
-            "warning": {
-                "title": "Warning"
-            }
-        }
-    },
-    "outline": {
-        "generating": "AI is working...",
-        "generatingFor": "Generating",
-        "generationDone": "Generation completed, accept changes?",
-        "editNode": "Edit node",
-        "moveLeft": "Move left",
-        "addChild": "Add child",
-        "editContent": "Edit content",
-        "delete": "Delete",
-        "moveRight": "Move right",
-        "generateContent": "AI generate content for this chapter",
-        "generateChildChapter": "AI generate sub-chapters",
-        "generateChildrenContent": "AI generate content for all sub-chapters",
-        "generateChildrenChildren": "AI generate sub-chapters for all chapters",
-        "accept": "Accept",
-        "reject": "Reject",
-        "formatTitleWizard": "Format Title Wizard",
-        "adjustMarkdown": "Auto adjust heading levels",
-        "adjustMarkdownTip": "If enabled, Markdown heading levels will be auto-adjusted without skipping levels (e.g., H1 to H3)",
-        "firstMarkdownTitleLevel": "First level heading for Markdown",
-        "adjustTitle": "Auto adjust chapter numbers",
-        "adjustTitleTip": "If enabled, chapter numbers will be reassigned",
-        "coverOriginalNumber": "Overwrite original numbers",
-        "coverTip": "Original numbers such as '1.1 1.2 I.' will be replaced",
-        "level1Chinese": "First level title in Chinese",
-        "level1ChineseTip": "If enabled, level one titles will be shown in Chinese",
-        "cancel": "Cancel",
-        "confirm": "Confirm",
-        "editChapterTitle": "Edit chapter title",
-        "chapterName": "Chapter name",
-        "chapterContent": "Chapter content",
-        "zoomIn": "Zoom in",
-        "zoomOut": "Zoom out",
-        "reset": "Reset zoom",
-        "formatTitle": "Format Title",
-        "openAiAssistant": "Open AI Assistant",
-        "generateChildSuccessWithTitle": "AI successfully generated sub-chapters for node {title}!",
-        "generateChildSuccess": "AI generated sub-chapters successfully!",
-        "generateChildFail": "Failed to generate sub-chapters: {error}",
-        "generateChildRetryFail": "Failed to generate sub-chapters, please try again: {error}",
-        "generateContentSuccessWithTitle": "AI successfully generated content for node {title}!",
-        "generateContentSuccess": "AI generated content successfully!",
-        "generateContentFail": "Failed to generate content: {error}",
-        "generateChapterSuccess": "AI generated chapters successfully!",
-        "formatSuccess": "Title formatting successful!",
-        "confirmDeleteChapter": "Do you want to delete this chapter?",
-        "warning": "Warning",
-        "error": "Error",
-        "message": "Message",
-        "cannotDeleteRoot": "Cannot delete root chapter",
-        "deleteSuccess": "Chapter deleted successfully!"
-    },
-    "setting": {
-        "basic": "Basic Settings",
-        "llm": "LLM Settings",
-        "startupOption": "Startup Option",
-        "openNewFile": "Open New File",
-        "openLastFile": "Open Last Edited File",
-        "askBeforeSave": "Always Ask to Save",
-        "autoSave": "Auto Save",
-        "off": "Off",
-        "minute1": "1 minute",
-        "minute5": "5 minutes",
-        "minute10": "10 minutes",
-        "minute30": "30 minutes",
-        "minute60": "1 hour",
-        "theme": "Theme",
-        "themeSync": "Follow System",
-        "themeLight": "Light",
-        "themeDark": "Dark",
-        "themeCustom": "Custom",
-        "customThemeColor": "Custom Theme Color",
-        "enabled": "Enabled",
-        "disabled": "Disabled",
-        "microphoneTest": "Microphone Test",
-        "microphoneHint": "Check if microphone is working.",
-        "excludeCodeBlocks": "Exclude Code Blocks When Counting Text",
-        "excludeCodeHint": "Code may affect word frequency statistics. You can choose to exclude it.",
-        "autoDownloadImage": "Auto Download External Images",
-        "autoDownloadHint": "If enabled, external images will be saved locally on import. Otherwise, they won't display offline. Requires restart.",
-        "llmType": "Select LLM Type",
-        "chooseLlm": "Select a Model",
-        "metadoc": "MetaDoc",
-        "ollama": "Ollama",
-        "openai": "OpenAI Compatible API",
-        "metadocHint": "MetaDoc’s official LLM, supporting various models.",
-        "ollamaHint": "Locally hosted LLM platform supporting multiple models.",
-        "openaiHint": "Any LLM compatible with the OpenAI API standard.",
-        "apiBaseUrl": "API BaseURL",
-        "ollamaApiUrl": "Enter Ollama API URL",
-        "openaiApiUrl": "Enter OpenAI-Compatible API URL",
-        "apiKey": "API Key",
-        "apiKeyPlaceholder": "Enter OpenAI-Compatible API Key",
-        "chooseModel": "Select Model",
-        "apiSuffix": "API URL Suffix",
-        "completionSuffix": "Completion URL Suffix (Optional)",
-        "chatSuffix": "Chat URL Suffix (Optional)",
-        "removeThinkTag": "Remove Think Tags",
-        "testLlm": "Test LLM",
-        "testResult": "Test Result",
-        "resultPlaceholder": "Test results will appear here",
-        "testPrompt": "Hello! Please introduce yourself.",
-        "testFailed": "Test failed: ",
-        "particleEffect": "Particle Effect",
-        "particleEffectHint": "Enable particle effects to enhance visual aesthetics. This may impact performance."
-    },
-    "visualize": {
-        "articleOutline": "Article Outline",
-        "wordCount": "Word Count",
-        "wordCloud": "Word Cloud",
-        "paragraphDistribution": "Paragraph Distribution",
-        "wordFrequency": "Word Frequency"
+    "tooltips": {
+      "generate": "Generate",
+      "reset": "Reset",
+      "chat": "Convert to chat",
+      "acceptReplace": "Accept and replace",
+      "acceptAppend": "Accept and append"
     }
+  },
+  "userProfile": {
+    "title": "Profile Card",
+    "closeMenu": "Close Menu",
+    "loginTab": "Login",
+    "registerTab": "Register",
+    "account": "Account",
+    "accountPlaceholder": "Please enter username/email/phone",
+    "password": "Password",
+    "passwordPlaceholder": "Please enter password",
+    "loginBtn": "Login",
+    "username": "Username",
+    "usernamePlaceholder": "Please enter username",
+    "phone": "Phone Number",
+    "phonePlaceholder": "Please enter phone number",
+    "email": "Email",
+    "emailPlaceholder": "Please enter email",
+    "registerBtn": "Register",
+    "changeAvatar": "Click to change avatar",
+    "editProfileTitle": "Edit Profile",
+    "changePasswordTitle": "Change Password",
+    "oldPassword": "Old Password",
+    "oldPasswordPlaceholder": "Please enter old password",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Please enter new password",
+    "createdAt": "Created At",
+    "tokenBalance": "Balance",
+    "logout": "Logout",
+    "cancel": "Cancel",
+    "saveEdit": "Save Edit",
+    "editProfile": "Edit Profile",
+    "savePwd": "Save Password",
+    "changePwd": "Change Password",
+    "messages": {
+      "invalidPassword": "Invalid password!",
+      "samePassword": "New password cannot be the same as the old one!",
+      "invalidInfo": "Invalid profile information!",
+      "modifySuccess": "Profile updated successfully!",
+      "logoutSuccess": "Logged out successfully",
+      "loginIncomplete": "Login information is incomplete",
+      "registerIncomplete": "Registration information is incomplete",
+      "registerSuccess": "Registration successful",
+      "registerFailed": "Registration failed: {error}"
+    },
+    "rules": {
+      "usernameRequired": "Please enter username/email/phone",
+      "usernamePattern": "Username must be at least 6 characters and can only contain letters, numbers, and underscores",
+      "passwordRequired": "Please enter password",
+      "passwordPattern": "Password must include uppercase, lowercase letters, and numbers, at least 6 characters",
+      "phoneRequired": "Please enter phone number",
+      "phonePattern": "Please enter a valid phone number",
+      "emailRequired": "Please enter email",
+      "emailPattern": "Please enter a valid email",
+      "newPasswordRequired": "Please enter new password"
+    }
+  },
+  "voiceInput": {
+    "messages": {
+      "microphoneDenied": "Unable to access microphone. Please check permission settings.",
+      "recognitionFailed": "Recognition failed: {error}",
+      "sendAudioError": "Error occurred while sending audio to Baidu",
+      "tokenError": "Error occurred while fetching Baidu token"
+    }
+  },
+  "wordCloudDetail": {
+    "defaultWord": "Word",
+    "frequency": "Frequency"
+  },
+  "aiChat": {
+    "renameTitle": "Rename",
+    "renamePlaceholder": "Please enter new title",
+    "newDialog": "New Dialog",
+    "deleteCurrent": "Delete Current Dialog",
+    "inputPlaceholder": "Enter your message here.",
+    "send": "Send",
+    "reset": "Reset",
+    "defaultTitle": "Chat with AI Assistant"
+  },
+  "aigraph": {
+    "renameTitle": "Rename",
+    "renamePlaceholder": "Please enter a new title",
+    "newChartTitle": "New Chart",
+    "chartName": "Chart Name",
+    "newChartPlaceholder": "Please enter a new title",
+    "engine": "Drawing Engine",
+    "selectEngine": "Select Drawing Engine",
+    "chartType": "Chart Type",
+    "selectChartType": "Select Chart Type",
+    "newChartBtn": "Create Chart",
+    "currentChartInfo": "Current Chart Information",
+    "addScheme": "Add Drawing Scheme",
+    "duplicateScheme": "Duplicate Current Scheme",
+    "deleteScheme": "Delete Current Scheme",
+    "copyCode": "Copy Code",
+    "exportImage": "Export Image",
+    "promptPlaceholder": "Please enter your drawing requirements",
+    "send": "Send",
+    "reset": "Reset",
+    "error": {
+      "no_svg_found": "SVG element not found",
+      "copy_failed": "Copy failed",
+      "no_code_to_copy": "No code to copy"
+    },
+    "success": {
+      "copy_succeeded": "Copy succeeded"
+    },
+    "graph": {
+      "chart": "Chart"
+    }
+  },
+  "article": {
+    "drag_to_resize": "Drag to resize width",
+    "edit_meta_info": "Edit document meta info",
+    "meta_info": "Document Meta Info",
+    "click_to_edit_title": "Click to edit title",
+    "title": "Title",
+    "no_title": "Untitled",
+    "generate_title": "Generate Title",
+    "click_to_edit_author": "Click to edit author",
+    "author": "Author",
+    "no_author": "Not filled",
+    "modify_author": "Modify Author",
+    "click_to_edit_description": "Click to edit article description",
+    "description": "Description",
+    "no_description": "No description",
+    "generate_description": "Generate Description",
+    "description_placeholder": "Please enter article description",
+    "ai_understood": "I have understood the entire article content. How can I assist you?",
+    "ai_analyze_title": "AI Analyze Entire Article",
+    "long_press_optimize": "Long press to optimize this paragraph with AI assistant",
+    "click_jump_long_press_optimize": "Click to jump, long press to optimize this paragraph with AI assistant",
+    "vditor_init_failed": "Vditor initialization failed: ",
+    "input_placeholder": "Edit Markdown content here...",
+    "toolbar": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "headings": "Headings",
+      "bold": "Bold",
+      "italic": "Italic",
+      "strike": "Strikethrough",
+      "link": "Link",
+      "list": "List",
+      "table": "Table",
+      "code": "Code Block",
+      "preview": "Preview",
+      "fullscreen": "Fullscreen Editor",
+      "quote": "Quote",
+      "search_replace": "Search & Replace",
+      "ai_assistant": "AI Assistant"
+    }
+  },
+  "formulaRecognition": {
+    "undo": "Undo",
+    "redo": "Redo",
+    "reset": "Reset",
+    "import_image": "Import Image",
+    "copy_image": "Copy Image",
+    "brush_size": "Brush Size:",
+    "recognize_formula": "Recognize Formula",
+    "edit_formula": "Edit Formula",
+    "copy_formula": "Copy Formula",
+    "edit_formula_dialog_title": "Edit Formula",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "notification": {
+      "title_info": "Info",
+      "title_success": "Success",
+      "title_error": "Error",
+      "undo_fail": "Cannot undo",
+      "redo_fail": "Cannot redo",
+      "copy_image_success": "Copied successfully, please use Ctrl+V to paste the image",
+      "copy_formula_success": "Copied successfully",
+      "copy_formula_fail": "Copy failed"
+    },
+    "options": {
+      "pen": "Pen",
+      "eraser": "Eraser",
+      "pointer": "Pointer"
+    }
+  },
+  "home": {
+    "metaDoc": "MetaDoc - AI Document Editor",
+    "tooltip": {
+      "quickStart": "Quick Start: Generate a document fast",
+      "openFile": "Open an existing document",
+      "close": "Close Quick Start",
+      "ready": "Ready",
+      "selectTemperature": "Select generation temperature, affects content diversity",
+      "selectMood": "Select document style",
+      "inputPrompt": "Enter your prompt",
+      "generateArticle": "Generate Article",
+      "reset": "Reset content",
+      "accept": "Accept generated content"
+    },
+    "button": {
+      "quickStart": "Quick Start",
+      "openFile": "Open Document",
+      "refresh": "Refresh"
+    },
+    "authorLabel": "Author",
+    "abstractLabel": "Abstract",
+    "quickStartTitle": "Quick Start",
+    "tab": {
+      "aiAssistant": "AI Assistant",
+      "documentInfo": "Document Info"
+    },
+    "documentInfoLabel": "Fill Document Info",
+    "label": {
+      "title": "Title",
+      "author": "Author",
+      "abstract": "Abstract"
+    },
+    "placeholder": {
+      "title": "Please enter document title",
+      "author": "Please enter author name",
+      "abstract": "Please enter abstract"
+    },
+    "aiAssistantLabel": "AI Assistant Settings",
+    "suggestionLabel": "Suggestion Tags",
+    "mood": {
+      "happy": "Happy",
+      "lyrical": "Lyrical",
+      "peaceful": "Peaceful",
+      "academic": "Academic",
+      "business": "Business",
+      "sad": "Sad",
+      "warning": "Warning",
+      "exciting": "Exciting",
+      "angry": "Angry",
+      "surprised": "Surprised",
+      "fearful": "Fearful",
+      "disgusted": "Disgusted"
+    },
+    "temperatureMarks": {
+      "rigorous": "Rigorous",
+      "balanced": "Balanced",
+      "creative": "Creative"
+    },
+    "defaultText": "# Welcome to MetaDoc\n\nThis is an AI-powered word processing software that helps you quickly generate content."
+  },
+  "main": {
+    "notification": {
+      "save": {
+        "title": "Saved",
+        "message": "Document saved successfully"
+      },
+      "open": {
+        "title": "Opened",
+        "message": "Document opened successfully"
+      },
+      "export": {
+        "title": "Exported",
+        "message": "{path} exported successfully"
+      },
+      "error": {
+        "title": "Error"
+      },
+      "info": {
+        "title": "Info"
+      },
+      "success": {
+        "title": "Success"
+      },
+      "warning": {
+        "title": "Warning"
+      }
+    }
+  },
+  "outline": {
+    "generating": "AI is working...",
+    "generatingFor": "Generating",
+    "generationDone": "Generation completed, accept changes?",
+    "editNode": "Edit node",
+    "moveLeft": "Move left",
+    "addChild": "Add child",
+    "editContent": "Edit content",
+    "delete": "Delete",
+    "moveRight": "Move right",
+    "generateContent": "AI generate content for this chapter",
+    "generateChildChapter": "AI generate sub-chapters",
+    "generateChildrenContent": "AI generate content for all sub-chapters",
+    "generateChildrenChildren": "AI generate sub-chapters for all chapters",
+    "accept": "Accept",
+    "reject": "Reject",
+    "formatTitleWizard": "Format Title Wizard",
+    "adjustMarkdown": "Auto adjust heading levels",
+    "adjustMarkdownTip": "If enabled, Markdown heading levels will be auto-adjusted without skipping levels (e.g., H1 to H3)",
+    "firstMarkdownTitleLevel": "First level heading for Markdown",
+    "adjustTitle": "Auto adjust chapter numbers",
+    "adjustTitleTip": "If enabled, chapter numbers will be reassigned",
+    "coverOriginalNumber": "Overwrite original numbers",
+    "coverTip": "Original numbers such as '1.1 1.2 I.' will be replaced",
+    "level1Chinese": "First level title in Chinese",
+    "level1ChineseTip": "If enabled, level one titles will be shown in Chinese",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "editChapterTitle": "Edit chapter title",
+    "chapterName": "Chapter name",
+    "chapterContent": "Chapter content",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "reset": "Reset zoom",
+    "formatTitle": "Format Title",
+    "openAiAssistant": "Open AI Assistant",
+    "generateChildSuccessWithTitle": "AI successfully generated sub-chapters for node {title}!",
+    "generateChildSuccess": "AI generated sub-chapters successfully!",
+    "generateChildFail": "Failed to generate sub-chapters: {error}",
+    "generateChildRetryFail": "Failed to generate sub-chapters, please try again: {error}",
+    "generateContentSuccessWithTitle": "AI successfully generated content for node {title}!",
+    "generateContentSuccess": "AI generated content successfully!",
+    "generateContentFail": "Failed to generate content: {error}",
+    "generateChapterSuccess": "AI generated chapters successfully!",
+    "formatSuccess": "Title formatting successful!",
+    "confirmDeleteChapter": "Do you want to delete this chapter?",
+    "warning": "Warning",
+    "error": "Error",
+    "message": "Message",
+    "cannotDeleteRoot": "Cannot delete root chapter",
+    "deleteSuccess": "Chapter deleted successfully!"
+  },
+  "setting": {
+    "auto": "Auto",
+    "basic": "Basic Settings",
+    "llm": "LLM Settings",
+    "themes": "Theme Settings",
+    "startupOption": "Startup Option",
+    "openNewFile": "Open New File",
+    "openLastFile": "Open Last Edited File",
+    "askBeforeSave": "Always Ask to Save",
+    "autoSave": "Auto Save",
+    "off": "Off",
+    "minute1": "1 minute",
+    "minute5": "5 minutes",
+    "minute10": "10 minutes",
+    "minute30": "30 minutes",
+    "minute60": "1 hour",
+    "globalTheme": "Global Theme",
+    "themeSync": "Follow System",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeCustom": "Custom",
+    "contentTheme": "Content Theme",
+    "codeTheme": "Code Theme",
+    "lineNumber": "Display Line Numbers in Code Blocks",
+    "customThemeColor": "Custom Theme Color",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "microphoneTest": "Microphone Test",
+    "microphoneHint": "Check if microphone is working.",
+    "excludeCodeBlocks": "Exclude Code Blocks When Counting Text",
+    "excludeCodeHint": "Code may affect word frequency statistics. You can choose to exclude it.",
+    "autoDownloadImage": "Auto Download External Images",
+    "autoDownloadHint": "If enabled, external images will be saved locally on import. Otherwise, they won't display offline. Requires restart.",
+    "llmType": "Select LLM Type",
+    "chooseLlm": "Select a Model",
+    "metadoc": "MetaDoc",
+    "ollama": "Ollama",
+    "openai": "OpenAI Compatible API",
+    "metadocHint": "MetaDoc’s official LLM, supporting various models.",
+    "ollamaHint": "Locally hosted LLM platform supporting multiple models.",
+    "openaiHint": "Any LLM compatible with the OpenAI API standard.",
+    "apiBaseUrl": "API BaseURL",
+    "ollamaApiUrl": "Enter Ollama API URL",
+    "openaiApiUrl": "Enter OpenAI-Compatible API URL",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter OpenAI-Compatible API Key",
+    "chooseModel": "Select Model",
+    "apiSuffix": "API URL Suffix",
+    "completionSuffix": "Completion URL Suffix (Optional)",
+    "chatSuffix": "Chat URL Suffix (Optional)",
+    "removeThinkTag": "Remove Think Tags",
+    "testLlm": "Test LLM",
+    "testResult": "Test Result",
+    "resultPlaceholder": "Test results will appear here",
+    "testPrompt": "Hello! Please introduce yourself.",
+    "testFailed": "Test failed: ",
+    "particleEffect": "Particle Effect",
+    "particleEffectHint": "Enable particle effects to enhance visual aesthetics. This may impact performance."
+  },
+  "visualize": {
+    "articleOutline": "Article Outline",
+    "wordCount": "Word Count",
+    "wordCloud": "Word Cloud",
+    "paragraphDistribution": "Paragraph Distribution",
+    "wordFrequency": "Word Frequency"
+  },
+  "bottomMenu": {
+    "wordCount": "Total Characters:",
+    "currentFile": "Current File:",
+    "newFile": "New File",
+    "aiTaskQueueTooltip": "AI Task Queue"
+  },
+  "aiTask": {
+    "cancel": "Cancel",
+    "failed": "Failed",
+    "ready": "Ready",
+    "running": "Running",
+    "status": "Status",
+    "taskCancelled": "{task} Canceled",
+    "taskCancelled2": "Task cancelled"
+  },
+  "aiTaskQueue": {
+    "empty": "No assignment.",
+    "error": "Loading failed",
+    "loading": "Loading...",
+    "switchWarning": "Switches the interface while AI works may result in the task being lost.",
+    "title": "AI Task Queue"
+  }
 }

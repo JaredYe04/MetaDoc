@@ -31,3 +31,11 @@ export const  outline_tree_example = {
     ]
   }]
 }
+
+export const ai_task_status={
+  READY: '就绪',
+  RUNNING: '运行中',
+  FINISHED: '已完成',
+  FAILED: '失败',
+  CANCELLED: '取消'
+}

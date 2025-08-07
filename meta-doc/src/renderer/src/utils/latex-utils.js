@@ -13,10 +13,8 @@ export function convertMarkdownToLatex(markdown, title = 'Generated Document') {
     const body = convertTokensToLatex(md.parse(markdown, {}));
     const latex = `
 \\documentclass{article}
-
 \\usepackage{fontspec}
 \\usepackage{xeCJK}
-
 \\usepackage{graphicx}
 \\usepackage{hyperref}
 \\usepackage{amsmath}
@@ -26,102 +24,33 @@ export function convertMarkdownToLatex(markdown, title = 'Generated Document') {
 \\usepackage{color}
 \\usepackage{fancyhdr}
 \\usepackage{lastpage}
-
 \\geometry{margin=1in}
-
-
 \\pagestyle{fancy}
 \\fancyhf{}
 \\lhead{${title}}
 \\rhead{Page \\thepage\\,of\\,\\pageref{LastPage}}
 \\cfoot{\\thepage}
-
 \\setmainfont{Times New Roman}
-
 \\begin{document}
-
 ${body}
-
 \\label{LastPage}
-
 \\end{document}
   `.trim();
-
     return latex;
 }
 
-
-// 主处理函数
-function convertMarkdownTableTokensToLatex(tokens, startIndex) {
+function convertTokensToLatex(tokens) {
+    const blocks = splitTokensIntoBlocks(tokens);
     let latex = '';
-    let i = startIndex;
 
-    let rows = [];
-    let alignSpec = [];
-    let currentRow = [];
-    let collectingRow = false;
-    let inHeader = false;
-
-    while (i < tokens.length) {
-        const token = tokens[i];
-
-        switch (token.type) {
-            case 'thead_open':
-                inHeader = true;
-                break;
-
-            case 'thead_close':
-                inHeader = false;
-                break;
-
-            case 'tr_open':
-                currentRow = [];
-                collectingRow = true;
-                break;
-
-            case 'tr_close':
-                if (collectingRow) {
-                    rows.push({ cells: currentRow, isHeader: inHeader });
-                    currentRow = [];
-                    collectingRow = false;
-                }
-                break;
-
-            case 'th_open':
-            case 'td_open': {
-                const nextToken = tokens[i + 1];
-                let content = '';
-
-                if (nextToken?.type === 'inline') {
-                    content = escapeLatex(nextToken.content || '');
-                }
-
-                currentRow.push(content);
-                break;
-            }
-
-            case 'table_close':
-                // 渲染表格
-                const columnCount = Math.max(...rows.map(r => r.cells.length));
-                if (columnCount === 0) return { latex: '', offset: i };
-
-                const defaultAlign = '|c'.repeat(columnCount) + '|';
-                latex += `\\begin{tabular}{${defaultAlign}}\n\\hline\n`;
-
-                for (let row of rows) {
-                    latex += row.cells.join(' & ') + ' \\\\ \\hline\n';
-                }
-
-                latex += '\\end{tabular}\n\n';
-                return { latex, offset: i };
-        }
-
-        i++;
+    for (const block of blocks) {
+        latex += convertBlockToLatex(block) + '\n\n';
     }
 
-    return { latex: '', offset: i };
+    return latex.trim();
 }
-function convertTokensToLatex(tokens) {
+
+function convertBlockToLatex(tokens) {
     let latex = '';
     const stack = [];
     for (let i = 0; i < tokens.length; i++) {
@@ -238,6 +167,28 @@ function convertTokensToLatex(tokens) {
 
     return latex;
 }
+function splitTokensIntoBlocks(tokens) {
+    const blocks = [];
+    let currentBlock = [];
+
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+
+        // 如果是 heading_open，则从这里开始新的一段
+        if (token.type === 'heading_open' && currentBlock.length > 0) {
+            blocks.push(currentBlock);
+            currentBlock = [];
+        }
+
+        currentBlock.push(token);
+    }
+
+    if (currentBlock.length > 0) {
+        blocks.push(currentBlock);
+    }
+
+    return blocks;
+}
 // LaTeX 特殊字符转义
 function escapeLatex(str) {
     return str
@@ -258,23 +209,74 @@ function convertEmojiToLatex(emojiName) {
     return emojiMap[emojiName] || '';
 }
 
-function normalizePathForLatex(path) {
-    // 将 Windows 路径转换为 Unix 兼容路径，并避免特殊字符
-    return path.replace(/\\/g, '/').replace(/([#%&{}_])/g, '\\$1');
-}
 
-function getColumnCount(tokens, startIndex) {
-    for (let i = startIndex; i < tokens.length; i++) {
-        if (tokens[i].type === 'tr_open') {
-            let count = 0;
-            for (let j = i + 1; j < tokens.length; j++) {
-                if (tokens[j].type === 'th_open' || tokens[j].type === 'td_open') {
-                    count++;
-                } else if (tokens[j].type === 'tr_close') {
-                    return count;
+// 主处理函数
+function convertMarkdownTableTokensToLatex(tokens, startIndex) {
+    let latex = '';
+    let i = startIndex;
+
+    let rows = [];
+    let alignSpec = [];
+    let currentRow = [];
+    let collectingRow = false;
+    let inHeader = false;
+
+    while (i < tokens.length) {
+        const token = tokens[i];
+
+        switch (token.type) {
+            case 'thead_open':
+                inHeader = true;
+                break;
+
+            case 'thead_close':
+                inHeader = false;
+                break;
+
+            case 'tr_open':
+                currentRow = [];
+                collectingRow = true;
+                break;
+
+            case 'tr_close':
+                if (collectingRow) {
+                    rows.push({ cells: currentRow, isHeader: inHeader });
+                    currentRow = [];
+                    collectingRow = false;
                 }
+                break;
+
+            case 'th_open':
+            case 'td_open': {
+                const nextToken = tokens[i + 1];
+                let content = '';
+
+                if (nextToken?.type === 'inline') {
+                    content = escapeLatex(nextToken.content || '');
+                }
+
+                currentRow.push(content);
+                break;
             }
+
+            case 'table_close':
+                // 渲染表格
+                const columnCount = Math.max(...rows.map(r => r.cells.length));
+                if (columnCount === 0) return { latex: '', offset: i };
+
+                const defaultAlign = '|c'.repeat(columnCount) + '|';
+                latex += `\\begin{tabular}{${defaultAlign}}\n\\hline\n`;
+
+                for (let row of rows) {
+                    latex += row.cells.join(' & ') + ' \\\\ \\hline\n';
+                }
+
+                latex += '\\end{tabular}\n\n';
+                return { latex, offset: i };
         }
+
+        i++;
     }
-    return 1; // fallback
+
+    return { latex: '', offset: i };
 }

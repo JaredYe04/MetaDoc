@@ -449,7 +449,7 @@ onMounted(async () => {
                 },
                 hljs: {
                     style: themeState.currentTheme.codeTheme,
-                    lineNumber: true,
+                    lineNumber: await getSetting('lineNumber'),
                 },
             },
             upload: {
@@ -604,7 +604,16 @@ onBeforeUnmount(() => {
 });
 
 eventBus.on('sync-vditor-theme', async () => {
-    vditor.value.setTheme(themeState.currentTheme.vditorTheme, themeState.currentTheme.vditorTheme, themeState.currentTheme.codeTheme);
+    let contentTheme = await getSetting('contentTheme');
+    if (contentTheme === 'auto') {
+        contentTheme = themeState.currentTheme.vditorTheme;
+    }
+    let codeTheme = await getSetting('codeTheme');
+    if (codeTheme === 'auto') {
+        codeTheme = themeState.currentTheme.vditorTheme;
+    }
+
+    vditor.value.setTheme(themeState.currentTheme.vditorTheme, contentTheme, codeTheme);
     vditor.value.setValue(current_article.value);
 });
 

@@ -70,7 +70,7 @@ const savedLang = localStorage.getItem('lang') || 'zh_CN'
 export const i18n = createI18n({
   locale: savedLang, // 设置默认语言
   fallbackLocale: 'zh_CN', // 回退语言
-  messages: { en_US, zh_CN, ja_JP, ko_KR }, // 语言包
+  messages: { en_US, zh_CN, ja_JP, ko_KR, de_DE, fr_FR }, // 语言包
 })
 
 app.use(i18n).mount('#app')

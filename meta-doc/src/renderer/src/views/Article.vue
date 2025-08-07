@@ -439,8 +439,9 @@ onMounted(async () => {
             cdn = vditorCDN;
         }
         const autoSaveExternalImage = await getSetting('autoSaveExternalImage');
+        const supportedLang=["en_US", "fr_FR", "pt_BR", "ja_JP", "ko_KR", "ru_RU", "sv_SE", "zh_CN", "zh_TW"]
         vditor.value = new Vditor('vditor', {
-            lang: t('lang'),
+            lang: supportedLang.includes(t('lang')) ? t('lang') : 'en_US',
             toolbarConfig: { pin: true },
             theme: themeState.currentTheme.vditorTheme,
             preview: {

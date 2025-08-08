@@ -427,7 +427,8 @@
     "error": "エラー",
     "message": "メッセージ",
     "cannotDeleteRoot": "ルート章は削除できません",
-    "deleteSuccess": "章の削除に成功しました！"
+    "deleteSuccess": "章の削除に成功しました！",
+    "userPromptPlaceholder": "ヒントを入力してください。"
   },
   "setting": {
     "auto": "自動",

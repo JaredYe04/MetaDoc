@@ -391,6 +391,7 @@
         "generateChildChapter": "AI生成子章节",
         "generateChildrenContent": "AI为所有子章节生成内容",
         "generateChildrenChildren": "AI为所有章节生成子章节",
+        "userPromptPlaceholder": "请输入您的提示词",
         "accept": "接受",
         "reject": "拒绝",
         "formatTitleWizard": "格式化标题向导",

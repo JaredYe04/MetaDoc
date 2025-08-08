@@ -1,8 +1,6 @@
 /* 自定义 el-input 的毛玻璃效果 */
 .aero-input {
 
-    backdrop-filter: blur(10px); /* 毛玻璃效果 */
-    -webkit-backdrop-filter: blur(10px); /* 兼容Safari */
     border-radius: 8px; /* 圆角 */
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05); /* 阴影 */
     border: 1px solid rgba(255, 255, 255, 0.5); /* 淡白色边框 */
@@ -12,11 +10,10 @@
 /* 悬停和聚焦效果 */
 .aero-input:hover,
 .aero-input:focus-within {
-    backdrop-filter: blur(15px) brightness(1.2); /* 增加模糊和亮度 */
-    -webkit-backdrop-filter: blur(15px) brightness(1.2);
+    backdrop-filter: brightness(1.2); /* 增加模糊和亮度 */
+    -webkit-backdrop-filter:brightness(1.2);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* 增加阴影 */
     border-color: rgba(255, 255, 255, 0.8); /* 提升边框亮度 */
-    transform: scale(1.0001); /* 微缩放 */
 }
 
 /* 输入框内部文字的样式 */

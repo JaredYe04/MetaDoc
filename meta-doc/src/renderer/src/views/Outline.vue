@@ -10,16 +10,13 @@
         <div v-if="generateChildrenContentLoading">
           <div v-for="(item, index) in parallelChildren" :key="index">
             <!-- <h3>{{ $t('outline.generatingFor') }}:{{ item.title }}</h3> -->
-            <div v-if="item.value" 
-
-            >{{ item.value }}</div>
+            <div v-if="item.value">{{ item.value }}</div>
           </div>
         </div>
         <div v-if="generateChildrenChildrenLoading">
           <div v-for="(item, index) in parallelChildren" :key="index">
             <!-- <h3>{{ $t('outline.generatingFor') }}:{{ item.title }}</h3> -->
-            <div v-if="item.value" 
-            >{{ item.value }}</div>
+            <div v-if="item.value">{{ item.value }}</div>
           </div>
         </div>
         <h2 v-if="pendingAccept">{{ $t('outline.generationDone') }}
@@ -143,6 +140,13 @@
                 </el-button>
               </el-tooltip>
             </div>
+            <el-scrollbar v-if="nodeMenuToggle &&
+              !pendingAccept" class="aero-input"
+              style="max-height: 10vh;  height: 8vh; overflow: auto; margin-top: 10px; padding:5px; border-radius: 8px;">
+              <el-input :autosize="{ minRows: 5 }" v-model="userPrompt" style="height: 8vh" type="textarea"
+                :disabled="generating" :placeholder="t('outline.userPromptPlaceholder')" clearable />
+            </el-scrollbar>
+
             <div class="button-group" v-if="pendingAccept">
               <el-tooltip :content="$t('outline.accept')" placement="top">
                 <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
@@ -294,6 +298,7 @@ const generateContentLoading = ref(false);
 const generateChildrenContentLoading = ref(false);
 const generateChildrenChildrenLoading = ref(false);
 const parallelChildren = ref([]); // 用于存储并行生成的子节点
+const userPrompt = ref(''); // 用户输入的提示词
 //const nodeBeingProcessed = ref(''); // 用于显示正在处理的节点名称
 const generateChildrenChildren = async () => {
   const node = selectedNode.value;
@@ -318,7 +323,8 @@ const generateChildrenChildren = async () => {
     const prompt = expandTreeNodePrompt(
       JSON.stringify(removeTextFromOutline(treeData.value)),
       JSON.stringify(curNode),
-      JSON.stringify(tree_node_schema)
+      JSON.stringify(tree_node_schema),
+      userPrompt.value
     );
 
     const myRawString = ref('');
@@ -385,12 +391,14 @@ const generateChildrenContent = async () => {
     if (curNode.children.length === 0) {
       prompt = generateContentPrompt(
         JSON.stringify(removeTextFromOutline(treeData.value)),
-        JSON.stringify(curNode)
+        JSON.stringify(curNode),
+        userPrompt.value
       );
     } else {
       prompt = generateParentNodeContentPrompt(
         JSON.stringify(removeTextFromOutline(treeData.value)),
-        JSON.stringify(curNode)
+        JSON.stringify(curNode),
+        userPrompt.value
       );
     }
 
@@ -439,7 +447,9 @@ const generateContent = async () => {
   const cur_node = searchNode(node.path, treeData.value);
   const prompt = generateContentPrompt(
     JSON.stringify(removeTextFromOutline(treeData.value)),
-    JSON.stringify(cur_node));
+    JSON.stringify(cur_node),
+    userPrompt.value
+  );
 
   const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-content-' + cur_node.title);
   try {
@@ -525,7 +535,7 @@ const generatedText = ref('');
 
 // 生命周期钩子
 onMounted(() => {
-  
+
   sync();
   // eventBus.on('refresh', () => {
   //   treeData.value = current_outline_tree;
@@ -688,7 +698,9 @@ const generateChildChapter = async () => {
     const prompt = expandTreeNodePrompt(
       JSON.stringify(removeTextFromOutline(treeData.value)),
       JSON.stringify(cur_node),
-      JSON.stringify(tree_node_schema));
+      JSON.stringify(tree_node_schema),
+      userPrompt.value
+    );
 
 
 
@@ -762,6 +774,10 @@ const discardChange = () => {
 
 
 <style scoped lang="less">
+.el-scrollbar__wrap {
+  overflow-x: hidden;
+}
+
 .generate-preview {
   position: absolute;
   max-width: 500px;

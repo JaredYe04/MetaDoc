@@ -4,7 +4,6 @@ import re
 import argostranslate.package
 import argostranslate.translate
 
-# 初始化语言环境（仅需执行一次，之后会自动识别已安装语言）
 installed_languages = argostranslate.translate.get_installed_languages()
 print("已安装的语言：", [lang.code for lang in installed_languages])
 def translate_text(text, source_lang='zh', target_lang='ja'):

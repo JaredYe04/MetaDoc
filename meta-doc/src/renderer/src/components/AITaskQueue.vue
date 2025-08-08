@@ -16,7 +16,12 @@
       <span style="text-align: center; display: block; user-select: none; opacity: 0.3;">
         {{ t('aiTaskQueue.switchWarning') }}
       </span>
-      <el-scrollbar height="100%" style="max-width: 100%; max-height: calc(100% - 60px);">
+      <el-scrollbar :style="{
+        maxWidth: '100%',
+        maxHeight: (height - 60) + 'px',
+        height: (height - 60) + 'px',
+        overflow: 'auto'
+      }" min-size="5">
         <AITask v-for="task in tasks" :key="task.handle" :task="task" @start="() => startAiTask(task.handle)"
           @cancel="() => cancelAiTask(task.handle)" />
         <span v-if="tasks.length === 0"
@@ -104,11 +109,11 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 2000;
   padding: 10px;
-    min-width: 250px;
-    min-height: 200px;
-    max-width: 30vw;
-    max-height: 70vh;
-    /*
+  min-width: 250px;
+  min-height: 200px;
+  max-width: 30vw;
+  max-height: 70vh;
+  /*
     display: 'flex',
     flexDirection: 'column' */
 }

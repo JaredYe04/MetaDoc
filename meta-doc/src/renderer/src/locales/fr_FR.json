@@ -344,7 +344,8 @@
     "reset": "Réinitialiser",
     "warning": "Avertissement",
     "zoomIn": "Zoomer",
-    "zoomOut": "Zoom arrière"
+    "zoomOut": "Zoom arrière",
+    "userPromptPlaceholder": "Veuillez entrer votre indice."
   },
   "searchReplace": {
     "aiRegexSuggestion": "L'expression régulière proposée par AI:",

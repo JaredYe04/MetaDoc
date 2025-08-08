@@ -139,21 +139,25 @@ export const generateGraphPrompt = (engine,type,prompt,special_prompt) => {
 }
 
 
-export const expandTreeNodePrompt = (treeJson, nodeJson,schema) => {
+export const expandTreeNodePrompt = (treeJson, nodeJson,schema,userPrompt="") => {
     return "你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请判断文章的大致大纲结构:" + treeJson +
     "接下来，你要扩展其中的一个节点，为节点添加若干个子章节节点，需要扩展的节点如下：" +nodeJson
     + "，请根据节点的标题和文本内容，自动生成若干个子章节节点，以JSON列表的方式返回,类似于[{...},{...}]" +
-    "节点的格式与原节点相同，需要遵循如下规范:" +schema+"。请不要输出任何多余的内容，只返回JSON格式的节点列表。"; 
+    "节点的格式与原节点相同，需要遵循如下规范:" +schema+"。"+
+    (userPrompt ? ("除此之外，用户提示词如下，可供部分参考：" + userPrompt + "。") : "")
+    +"请不要输出任何多余的内容，只返回JSON格式的节点列表。"; 
 }
 
-export const generateContentPrompt = (treeJson, nodeJson) => {
+export const generateContentPrompt = (treeJson, nodeJson,userPrompt='') => {
     return "你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请判断文章的大致大纲结构:" + treeJson +
-    "接下来，你要根据全文的结构，为以下的章节撰写内容，注意不要泛泛而谈，内容要丰富翔实：" +nodeJson
+    (userPrompt ? ("除此之外，用户提示词如下，可供部分参考：" + userPrompt + "。") : "")
+    +"接下来，你要根据全文的结构，为以下的章节撰写内容，注意不要泛泛而谈，内容要丰富翔实：" +nodeJson
     + "，请直接输出该章节的内容，不要添加其他无关信息，例如标题、代码框等。";
 }
-export const generateParentNodeContentPrompt = (treeJson, nodeJson) => {
+export const generateParentNodeContentPrompt = (treeJson, nodeJson,userPrompt='') => {
     return "你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请判断文章的大致大纲结构:" + treeJson +
-    "接下来，你要根据全文的结构，为以下的章节撰写内容。由于这个章节已经有子章节介绍详细内容，因此你只需要写一些总体性、引导性的文字即可，不需要太多：" +nodeJson
+    "接下来，你要根据全文的结构，为以下的章节撰写内容。由于这个章节已经有子章节介绍详细内容，因此你只需要写一些总体性、引导性的文字即可，不需要太多：" +nodeJson+
+    (userPrompt ? ("除此之外，用户提示词如下，可供部分参考：" + userPrompt + "。") : "")
     + "，请直接输出该章节的内容，不要添加其他无关信息，例如标题、代码框等。";
 }
 export const updateTitlePrompt = (jsonString) => {

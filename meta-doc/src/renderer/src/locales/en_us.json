@@ -427,7 +427,8 @@
     "error": "Error",
     "message": "Message",
     "cannotDeleteRoot": "Cannot delete root chapter",
-    "deleteSuccess": "Chapter deleted successfully!"
+    "deleteSuccess": "Chapter deleted successfully!",
+    "userPromptPlaceholder": "Please enter your hint."
   },
   "setting": {
     "auto": "Auto",

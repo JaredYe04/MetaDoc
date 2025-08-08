@@ -344,7 +344,8 @@
     "reset": "Zurück zur Übersicht",
     "warning": "Warnung",
     "zoomIn": "In den Warenkorb",
-    "zoomOut": "Ausverkauft"
+    "zoomOut": "Ausverkauft",
+    "userPromptPlaceholder": "Bitte geben Sie Ihren Hinweis ein."
   },
   "searchReplace": {
     "aiRegexSuggestion": "Der regelmäßige Ausdruck von AI:",

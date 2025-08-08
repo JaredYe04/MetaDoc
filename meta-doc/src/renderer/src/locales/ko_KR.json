@@ -427,7 +427,8 @@
     "error": "오류",
     "message": "메시지",
     "cannotDeleteRoot": "루트 챕터는 삭제할 수 없습니다",
-    "deleteSuccess": "챕터 삭제 성공!"
+    "deleteSuccess": "챕터 삭제 성공!",
+    "userPromptPlaceholder": "당신의 힌트를 입력하십시오."
   },
   "setting": {
     "auto": "자동",

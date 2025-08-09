@@ -4,56 +4,83 @@
             <div class="kb-container">
 
                 <!-- Left: list -->
-                <div class="kb-left" :style="{ background: themeState.currentTheme.background }">
-                    <el-card class="kb-panel" shadow="hover"
-                        :style="{ background: themeState.currentTheme.background2nd }">
-                        <div class="kb-panel-header">
-                            <h2 class="kb-panel-title">{{ t('knowledgeBase.title') }}</h2>
-                            <div class="kb-panel-actions">
-                                <el-button type="primary" size="small" @click="triggerUpload">{{ t('knowledgeBase.add')
-                                    }}</el-button>
-                                <el-button type="danger" size="small" :disabled="!selectedItem"
-                                    @click="confirmDelete">{{
-                                        t('knowledgeBase.delete') }}</el-button>
-                                <input ref="fileInput" type="file" style="display:none" @change="onFileSelected" />
+                <div class="kb-left"
+                    :style="{ background: themeState.currentTheme.background, display: 'flex', flexDirection: 'column', height: '100%' }">
+                    <!-- 上半部分: 知识库列表，占60%高度 -->
+                    <div class="kb-list-wrapper" style="flex: 0 0 60%; overflow: hidden;">
+                        <el-card class="kb-panel" shadow="hover"
+                            :style="{ background: themeState.currentTheme.background2nd, height: '100%' }">
+                            <div class="kb-panel-header">
+                                <h2 class="kb-panel-title">{{ t('knowledgeBase.title') }}</h2>
+                                <div class="kb-panel-actions">
+                                    <el-button type="primary" size="small" @click="triggerUpload">{{
+                                        t('knowledgeBase.add') }}</el-button>
+                                    <el-button type="danger" size="small" :disabled="!selectedItem"
+                                        @click="confirmDelete">{{ t('knowledgeBase.delete') }}</el-button>
+                                    <input ref="fileInput" type="file" style="display:none" @change="onFileSelected"
+                                    accept=".txt,.md,.pdf,.docx"
+                                    />
+                                </div>
                             </div>
-                        </div>
+                            <el-scrollbar class="kb-list-scroll" style="height: calc(100% - 50px);">
+                                <el-table :data="items" stripe row-key="id" :highlight-current-row="true"
+                                    @current-change="onSelect" :current-row-key="selectedId" style="width:100%"
+                                    size="small">
+                                    <el-table-column prop="name" :label="t('knowledgeBase.name')" min-width="200">
+                                        <template #default="{ row }">
+                                            <div class="list-item" @click="selectRow(row)">
+                                                <span class="status-dot" :class="row.enabled ? 'on' : 'off'"></span>
+                                                <span class="item-name">{{ row.name }}</span>
+                                            </div>
+                                        </template>
+                                    </el-table-column>
 
-                        <el-scrollbar class="kb-list-scroll">
-                            <el-table :data="items" stripe row-key="id" :highlight-current-row="true"
-                                @current-change="onSelect" :current-row-key="selectedId" style="width:100%"
-                                size="small">
-                                <el-table-column prop="name" :label="t('knowledgeBase.name')" min-width="200">
-                                    <template #default="{ row }">
-                                        <div class="list-item" @click="selectRow(row)">
-                                            <span class="status-dot" :class="row.enabled ? 'on' : 'off'"></span>
-                                            <span class="item-name">{{ row.name }}</span>
-                                        </div>
-                                    </template>
-                                </el-table-column>
+                                    <el-table-column :label="t('knowledgeBase.size_chunks')" width="140">
+                                        <template #default="{ row }">
+                                            <div>
+                                                <div v-if="row.info">{{ row.info.sizeText || '-' }} / {{ row.info.chunks
+                                                    || '-' }} {{ t('knowledgeBase.chunks_unit') }}</div>
+                                                <div v-else>-</div>
+                                            </div>
+                                        </template>
+                                    </el-table-column>
 
-                                <el-table-column :label="t('knowledgeBase.size_chunks')" width="140">
-                                    <template #default="{ row }">
-                                        <div>
-                                            <div v-if="row.info">{{ row.info.sizeText || '-' }} / {{ row.info.chunks ||
-                                                '-'
-                                                }}
-                                                {{ t('knowledgeBase.chunks_unit') }}</div>
-                                            <div v-else>-</div>
-                                        </div>
-                                    </template>
-                                </el-table-column>
+                                    <el-table-column :label="t('knowledgeBase.enabled')" width="90">
+                                        <template #default="{ row }">
+                                            <el-switch v-model="row.enabledLocal"
+                                                @change="(val) => toggleEnable(row, val)" />
+                                        </template>
+                                    </el-table-column>
+                                </el-table>
+                            </el-scrollbar>
+                        </el-card>
+                    </div>
 
-                                <el-table-column :label="t('knowledgeBase.enabled')" width="90">
-                                    <template #default="{ row }">
-                                        <el-switch v-model="row.enabledLocal"
-                                            @change="(val) => toggleEnable(row, val)" />
-                                    </template>
-                                </el-table-column>
+                    <!-- 下半部分: 检索测试，占40%高度 -->
+                    <el-scrollbar lass="kb-search-wrapper" style="flex: 0 0 40%; margin-top: 10px;">
+                        <el-card class="kb-panel" shadow="hover"
+                            :style="{ background: themeState.currentTheme.background2nd, height: '100%', display: 'flex', flexDirection: 'column' }">
+                            <h3>{{ t('knowledgeBase.searchTest.title') }}</h3>
+                            <el-input v-model="searchQuery" :placeholder="t('knowledgeBase.searchTest.placeholder')"
+                                size="small" clearable @keyup.enter.native="doSearch" style="margin-bottom: 10px;" />
+                            <el-button type="primary" size="small" @click="doSearch" :loading="searching">{{
+                                t('knowledgeBase.searchTest.searchBtn') }}</el-button>
 
-                            </el-table>
-                        </el-scrollbar>
-                    </el-card>
+                            <el-scrollbar style="flex-grow: 1; margin-top: 10px;">
+                                <ul class="search-results">
+                                    <li v-for="(result, index) in searchResults" :key="index"
+                                        style="margin-bottom: 6px; white-space: pre-wrap;">
+                                        <el-card class="kb-panel" shadow="hover" style="overflow: auto; word-break: break-word;">
+                                            <pre>{{ result }}</pre>
+                                        </el-card>
+                                    </li>
+                                    <li v-if="searchResults.length === 0 && !searching" style="color: #999;">{{
+                                        t('knowledgeBase.searchTest.noResult') }}</li>
+                                </ul>
+                            </el-scrollbar>
+                        </el-card>
+                    </el-scrollbar>
+
                 </div>
 
                 <!-- 右边 -->
@@ -162,6 +189,8 @@ import { useI18n } from 'vue-i18n';
 import eventBus from '../utils/event-bus';
 import { themeState } from '../utils/themes';
 import { Check, Close, Edit } from '@element-plus/icons-vue';
+import { queryKnowledgeBase } from '../utils/rag_utils';
+
 
 const { t } = useI18n();
 
@@ -175,6 +204,10 @@ const isUploading = ref(false);
 const isRebuilding = ref(false);
 const fileInput = ref(null);
 const baseUrl = 'http://localhost:3000/api/knowledge'
+
+const searchQuery = ref('');
+const searchResults = ref([]);
+const searching = ref(false);
 //kb-panel的背景设置为themeState中的background
 // helper: format size
 function humanSize(bytes) {
@@ -199,6 +232,26 @@ async function fetchList() {
         console.error(e);
     }
 }
+
+
+// 这里调用你的检索接口，示例是异步请求
+async function doSearch() {
+    if (!searchQuery.value.trim()) {
+        searchResults.value = [];
+        return;
+    }
+    searching.value = true;
+    try {
+        await queryKnowledgeBase(searchQuery.value).then(res => {
+            searchResults.value = res
+        });
+    } catch (err) {
+        searchResults.value = ['检索失败: ' + err.message];
+    } finally {
+        searching.value = false;
+    }
+}
+
 
 // select row
 function selectRow(row) {

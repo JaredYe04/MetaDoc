@@ -2,13 +2,13 @@
 import fs from 'fs';
 import path from 'path';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import {  knowledgeUploadDir } from '../express_server';
+import { knowledgeUploadDir } from '../express_server';
 
 // ==== 配置 ====
 const VECTOR_LEN = 768; // 嵌入维度
 const INDEX_PATH = path.resolve('./data/vector_index.json'); // 存向量
 const DOCS_PATH = path.resolve('./data/vector_docs.json');   // 存文本
-const VECTOR_INFO_PATH = path.resolve('./data/vector_info.json'); // 新增：存文档元信息
+const VECTOR_INFO_PATH = path.resolve('./data/vector_info.json'); // 存文档元信息
 
 // 内存索引
 let vectorIndex = []; // [{id, vector}]
@@ -91,11 +91,11 @@ export async function chunkText(text, chunkSize = 500, overlap = 50) {
 // ==== Step 2: 嵌入模型 ====
 let embeddingContext = null;
 
-export async function initEmbedder(modelFilePath = './models/nomic-embed-text-v1.5.Q8_0.gguf') {
+export async function initEmbedder(modelFilePath = './models/nomic-embed-text-v1.5.Q5_K_M.gguf') {
   const { getLlama } = await import('node-llama-cpp');
   const llama = await getLlama();
   const model = await llama.loadModel({
-    modelPath: "D:\\MetaDoc\\MetaDoc\\meta-doc\\src\\main\\models\\nomic-embed-text-v1.5.Q8_0.gguf"
+    modelPath: "D:\\MetaDoc\\MetaDoc\\meta-doc\\src\\main\\models\\nomic-embed-text-v1.5.Q5_K_M.gguf"
   });
   embeddingContext = await model.createEmbeddingContext();
   console.log('Embedding context initialized');
@@ -114,7 +114,7 @@ export async function embedText(text) {
 export async function addFileToKnowledgeBase(filePath) {
   initAnnoy();
 
-  const text = fs.readFileSync(filePath, 'utf-8');
+  const text = await tryConvertFileToText(filePath);
   const chunks = await chunkText(text);
 
   for (let i = 0; i < chunks.length; i++) {
@@ -211,53 +211,104 @@ export async function renameKnowledgeFile(oldName, newName) {
   }
 }
 // ==== Step 4: 查询知识库 ====
-function cosineSimilarity(vecA, vecB) {
-  let dot = 0, normA = 0, normB = 0;
-  for (let i = 0; i < vecA.length; i++) {
-    dot += vecA[i] * vecB[i];
-    normA += vecA[i] ** 2;
-    normB += vecB[i] ** 2;
+import crypto from 'crypto';
+import { annoySearch, cosineSimilarity } from './ann_utils';
+import { tryConvertFileToText } from './convert_utils';
+
+const cacheDir = path.join(process.cwd(), 'data', 'embedding_cache');
+const cacheFile = path.join(cacheDir, 'cache.json');
+
+// 内存缓存
+let embedCache = {};
+
+// 初始化缓存
+function loadCache() {
+  if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir, { recursive: true });
   }
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  if (fs.existsSync(cacheFile)) {
+    try {
+      embedCache = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+    } catch (err) {
+      console.error('❌ 读取 embedding 缓存失败:', err);
+      embedCache = {};
+    }
+  }
 }
 
-export async function queryKnowledgeBase(question, k = 3) {
-  initAnnoy();
-  const questionEmbedding = await embedText(question);
+// 保存缓存到文件
+function saveCache() {
+  fs.writeFileSync(cacheFile, JSON.stringify(embedCache), 'utf8');
+}
 
-  return vectorIndex
-    .map(({ id, vector }) => ({
-      id,
-      score: cosineSimilarity(questionEmbedding, vector)
+// 生成哈希键（避免长字符串直接当 key）
+function hashKey(text) {
+  return crypto.createHash('sha1').update(text).digest('hex');
+}
+export async function embedTextCached(text) {
+  loadCache(); // 确保缓存已加载
+
+  const key = hashKey(text);
+  if (embedCache[key]) {
+    return embedCache[key]; // 命中缓存
+  }
+
+  // 生成向量（这里调用你现有的 embedText）
+  const vector = await embedText(text);
+
+  // 存入缓存
+  embedCache[key] = vector;
+  saveCache();
+
+  return vector;
+}
+
+function keywordScore(query, text) {
+  const keywords = query.toLowerCase().split(/\s+/);
+  let score = 0;
+  for (const word of keywords) {
+    if (text.toLowerCase().includes(word)) score += 1;
+  }
+  return score / keywords.length;
+}
+function hybridScore(cosSim, keywordSim, wVec = 0.7, wKey = 0.3) {
+  return cosSim * wVec + keywordSim * wKey;
+}
+function rerankResults(queryEmbedding, candidates) {
+  return candidates
+    .map(r => ({
+      ...r,
+      rerankScore: cosineSimilarity(queryEmbedding, embedTextCached(r.text)) // 需要同步 embedding
     }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, k)
-    .map(r => docIdToText.get(r.id))
-    .filter(Boolean);
+    .sort((a, b) => b.rerankScore - a.rerankScore);
+}
+export async function queryKnowledgeBase(question, k = 3) {
+  await initAnnoy(); // 确保 Annoy 已加载
+  const queryEmbedding = await embedText(question);
+
+  // Step 1: Annoy 召回 topN
+  let candidates = annoySearch(queryEmbedding, vectorIndex, docIdToText, 10);
+
+  // Step 2: Hybrid Score（向量 + 关键词）
+  candidates.forEach(r => {
+    r.keywordSim = keywordScore(question, r.text);
+    r.hybridScore = hybridScore(r.cosSim, r.keywordSim);
+  });
+
+  // 先按 hybridScore 排序，截断到更小集合
+  candidates = candidates.sort((a, b) => b.hybridScore - a.hybridScore).slice(0, 10);
+
+  // Step 3: Rerank（高精度重排）
+  candidates = rerankResults(queryEmbedding, candidates);
+
+  // 取前 k 个返回文本
+  return candidates.slice(0, k).map(r => r.text);
 }
 
-// ==== Step 5: RAG 查询 ====
-export async function ragQuery(question, llmCallFunc) {
-  const contextDocs = await queryKnowledgeBase(question);
-  const context = contextDocs.join('\n');
-
-  const prompt = `
-你是一个知识问答助手，请根据以下已知信息回答问题。
-已知信息：
-${context}
-
-问题：${question}
-
-回答：
-  `;
-
-  return await llmCallFunc(prompt);
-}
-
-// ==== Step 6: 清空知识库 ====
+// ==== Step 5: 清空知识库 ====
 export async function clearKnowledgeBase() {
   vectorIndex = [];
   docIdToText.clear();
   saveIndex();
-  console.log('知识库已清空');
+
 }

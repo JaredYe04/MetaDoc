@@ -160,7 +160,7 @@ const imageApi = () => {
 }
 
 const knowledgeApi = async () => {
-  await initAnnoy();
+  await initAnnoy(); // 初始化 Annoy 实例
   let timestamp = Date.now();//在正常情况下，不需要用timestamp，如果检查到有重复文件，就需要用这个时间戳来重命名文件
   knowledgeUploadDir = path.join(os.homedir(), 'Documents', 'meta-doc-kb');
   fs.mkdirSync(knowledgeUploadDir, { recursive: true });

@@ -8,5 +8,35 @@
     "chunks": 55,
     "vector_dim": 768,
     "vector_count": 55
+  },
+  "ICPC算法竞赛指南.md": {
+    "chunks": 356,
+    "vector_dim": 768,
+    "vector_count": 356
+  },
+  "月亮与六便士读书笔记.pdf": {
+    "chunks": 3,
+    "vector_dim": 768,
+    "vector_count": 3
+  },
+  "实习日志111.docx": {
+    "chunks": 6,
+    "vector_dim": 768,
+    "vector_count": 6
+  },
+  "计算机程序设计员_三级_理论题.docx": {
+    "chunks": 297,
+    "vector_dim": 768,
+    "vector_count": 297
+  },
+  "人工智能训练师简答题合集.docx": {
+    "chunks": 58,
+    "vector_dim": 768,
+    "vector_count": 58
+  },
+  "人工智能训练师三级理论（带答案）.docx": {
+    "chunks": 175,
+    "vector_dim": 768,
+    "vector_count": 175
   }
 }

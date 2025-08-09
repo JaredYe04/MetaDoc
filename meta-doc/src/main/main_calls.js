@@ -18,6 +18,7 @@ const os = require('os');
 import { mainWindow, openSettingDialog, openAiChatDialog, settingWindow, aichatWindow, openFomulaRecognitionDialog, fomulaRecognitionWindow, openAiGraphDialog, aiGraphWindow, initBroadcastChannel } from './index'
 import { dirname } from './index'
 import { imageUploadDir } from './express_server'
+import { queryKnowledgeBase } from './utils/rag_utils'
 
 //import eventBus from '../renderer/src/utils/event-bus'
 
@@ -130,8 +131,10 @@ export function mainCalls() {
   ipcMain.handle('compute-md5', async (event, data) => {
     return crypto.createHash('md5').update(data).digest('hex');
   });
-
-
+  //////////////RAG请求查询
+  ipcMain.handle('query-knowledge-base', async (event, { question, k }) => {
+    return await queryKnowledgeBase(question, k);
+  });
 
   //////////////AI任务调度
   ipcMain.on('register-ai-task', (event, taskInfo) => {

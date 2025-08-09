@@ -9,6 +9,7 @@ import Visualize from '../views/Visualize.vue'
 import AIChat from '../views/AIChat.vue'
 import FomulaRecognition from '../views/FomulaRecognition.vue'
 import AIGraph from '../views/AIGraph.vue'
+import KnowledgeBase from '../views/KnowledgeBase.vue'
 
 // 所有页面组件集中管理
 const pages = {
@@ -49,6 +50,12 @@ const routes = [
     name:'Visualize',
     component: Visualize,
     meta: { requiresLayout: true } 
+  },
+  {
+    path:'/knowledgeBase',
+    name:'KnowledgeBase',
+    component: KnowledgeBase,
+    meta: { requiresLayout: true }
   },
     // 动态生成特殊页面的两种访问路径
   ...Object.entries(pages).flatMap(([name, component]) => [

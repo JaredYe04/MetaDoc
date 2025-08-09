@@ -3,14 +3,10 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { mainCalls, openDoc } from './main_calls'
-const express = require('express');
-const http = require('http');
+import { runExpressServer } from './express_server'
 const url = require('url');
-const cors = require('cors');
 const path = require('path');
-const os = require('os');
-const fs = require('fs');
-const multer = require('multer');
+
 let mainWindow;
 export var dirname;
 
@@ -28,6 +24,8 @@ function createWindow() {
     //默认最大化展示
     width: 1600,
     height: 900,
+    minWidth: 800,
+    minHeight: 600,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -89,147 +87,6 @@ function createWindow() {
   runExpressServer(); // 启动本地CDN服务器
 
 }
-
-export const uploadDir = path.join(os.homedir(), 'Pictures', 'meta-doc-imgs');
-
-const runExpressServer = () => {
-  const expressApp = express();
-  const projectRoot = path.resolve(path.resolve(__dirname, '../'), '../');  // 根据 out/main 路径上一级即为根目录
-  const dir = path.join(projectRoot, 'node_modules/vditor')
-  // 将 node_modules/vditor 作为静态资源暴露
-  expressApp.use(cors());
-  expressApp.use('/vditor', express.static(dir));
-  expressApp.get('/vditor/*', (req, res) => {
-    console.log('Request for Vditor file:', req.path); // 输出请求的文件路径
-  });
-
-  /////////////////////////////////////上传图片API/////////////////////////////////////
-  // 设置上传目录
-  // 获取系统图片目录路径
-  
-
-  // 如果目录不存在，则创建
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true }); // 递归创建目录
-  }
-
-  // 配置 multer 存储
-  const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, uploadDir); // 图片保存到系统图片目录下的 meta-doc-imgs 文件夹
-    },
-    filename: (req, file, cb) => {
-      const timestamp = Date.now(); // 时间戳命名
-      cb(null, `${timestamp}_${file.originalname}`);
-    },
-  });
-
-  const upload = multer({ storage });
-  // 配置静态文件服务
-  expressApp.use('/images', express.static(uploadDir));
-  // 创建上传接口
-  expressApp.post('/upload', upload.array('file[]'), (req, res) => {
-    //console.log(req)
-    const errFiles = [];
-    const succMap = {};
-
-    // 处理上传的文件
-    if (req.files && req.files.length > 0) {
-      req.files.forEach((file) => {
-
-
-
-        //const filePath = path.join('images', file.filename); // 相对路径
-
-        //返回绝对路径
-        const filePath = path.join(uploadDir, file.filename);
-        succMap[file.filename] = filePath; // 文件路径映射
-      });
-
-      // 如果没有任何上传成功的文件，返回错误
-      if (Object.keys(succMap).length === 0) {
-        errFiles.push('没有上传任何文件');
-      }
-    } else {
-      errFiles.push('上传失败');
-    }
-
-    // 返回 Vditor 需要的格式
-    res.json({
-      msg: '',
-      code: 0,
-      data: {
-        errFiles: errFiles, // 失败的文件
-        succMap: succMap, // 成功的文件路径映射
-      },
-    });
-  });
-
-
-  const bodyParser = require('body-parser');
-  expressApp.use(bodyParser.json()); // 解析 JSON 格式的请求体
-  expressApp.use(bodyParser.urlencoded({ extended: true })); // 解析 URL 编码的请求体
-  expressApp.post('/url-upload', (req, res) => {
-    //   // POST data
-    // xhr.send(JSON.stringify({url: src})); // src 为站外图片地址
-    //req中没有body，需要使用body-parser中间件来解析请求体
-    //console.log(req)
-
-    const { url } = req.body; // 从请求体中获取 URL
-    if (!url) {
-      return res.status(400).json({ error: 'No URL provided' });
-    }
-    //下载到本地，与/upload接口一致，然后返回本地的图片链接
-    const fileName = `${Date.now()}_${path.basename(url)}`; // 使用时间戳和原始文件名
-    const filePath = path.join(uploadDir, fileName); // 保存路径
-    const fileStream = fs.createWriteStream(filePath);
-    const https = require('https');
-    const http = require('http');
-    const protocol = url.startsWith('https') ? https : http;
-    protocol.get(url, (response) => {
-      if (response.statusCode === 200) {
-        response.pipe(fileStream);
-        fileStream.on('finish', () => {
-          fileStream.close(() => {
-            // 返回成功的图片链接，此处为文件的绝对路径
-            res.json({
-              msg: '',
-              code: 0,
-              data: {
-                originalURL: url,
-                url: `${filePath}`, // 返回本地文件的绝对路径
-              },
-            });
-          });
-        });
-      } else {
-        res.status(500).json({ error: 'Failed to download image' });
-      }
-    }).on('error', (err) => {
-      console.error('Error downloading image:', err);
-      res.status(500).json({ error: 'Failed to download image' });
-    });
-  });
-  // expressApp.use('/images', express.static(path.join(__dirname, 'images')));
-  const server = http.createServer(expressApp);
-  // 在本地运行 HTTP 服务器
-  server.listen(3000, () => {
-    console.log('Local CDN server running at http://localhost:3000');
-    //console.log(dir)
-  });
-  //但是如果已经运行了，就每隔10秒重试一次
-  server.on('error', (e) => {
-    if (e.code === 'EADDRINUSE') {
-      console.error('Port 3000 is already in use. Retrying...');
-      setTimeout(() => {
-        server.close();
-        server.listen(3000);
-      }, 10000); // 每隔10秒重试一次，如果连接成功就不会触发error事件
-    }
-  })
-
-}
-
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -252,6 +109,10 @@ app.whenReady().then(() => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+//当electron出error时要用console.log
+  app.on('error', (error) => {
+    console.log('Electron error:', error);
+  });
 })
 let isShortcutPressed = false; // 锁变量，防止重复触发
 
@@ -404,6 +265,8 @@ export const openAiGraphDialog = async () => {
   aiGraphWindow = new BrowserWindow({
     width: 1280,
     height: 720,
+        minWidth: 800,
+    minHeight: 600,
     parent: mainWindow, // 将子窗口与主窗口关联
     modal: false, // 是否为模态窗口
     autoHideMenuBar: true,
@@ -449,6 +312,8 @@ export const openAiChatDialog = async (payload = null) => {
   aichatWindow = new BrowserWindow({
     width: 1280,
     height: 720,
+        minWidth: 800,
+    minHeight: 600,
     parent: mainWindow, // 将子窗口与主窗口关联
     modal: false, // 是否为模态窗口
     autoHideMenuBar: true,
@@ -502,6 +367,8 @@ export const openSettingDialog = async () => {
   settingWindow = new BrowserWindow({
     width: 800,
     height: 600,
+        minWidth: 800,
+    minHeight: 600,
     parent: mainWindow, // 将子窗口与主窗口关联
     modal: false, // 是否为模态窗口
     autoHideMenuBar: true,

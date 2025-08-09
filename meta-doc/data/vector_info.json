@@ -1,0 +1,12 @@
+{
+  "逻辑学入门.md": {
+    "chunks": 37,
+    "vector_dim": 768,
+    "vector_count": 37
+  },
+  "软件工程概述.md": {
+    "chunks": 55,
+    "vector_dim": 768,
+    "vector_count": 55
+  }
+}

@@ -312,7 +312,9 @@ const bindTitleMenu = async () => {
 
     sections.forEach((section, i) => {
         const node = treeNodeQueue[i];
-        section.setAttribute('path', node.path);
+        if(node.path) {
+            section.setAttribute('path', node.path);
+        }
         section.addEventListener('mousedown', (event) => mouseDownEvent(event, section));
         section.addEventListener('mouseup', (event) => mouseUpEvent(event, section));
         section.addEventListener('mouseleave', (event) => mouseLeaveEvent(event, section));
@@ -454,8 +456,8 @@ onMounted(async () => {
                 },
             },
             upload: {
-                url: 'http://localhost:3000/upload',
-                linkToImgUrl: autoSaveExternalImage ? 'http://localhost:3000/url-upload' : false,
+                url: 'http://localhost:3000/api/image/upload',
+                linkToImgUrl: autoSaveExternalImage ? 'http://localhost:3000/api/image/url-upload' : false,
                 success: (editor, msg) => {
                     const data = JSON.parse(msg);
                     const filePaths = data.data.succMap;

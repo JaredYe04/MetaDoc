@@ -66,6 +66,9 @@ eventBus.on('response-ai-dialogs', (dialogs) => {//主进程发送给AICHAT组�
   eventBus.emit('ai-dialogs-loaded')
 })
 
+eventBus.on('shell-open', (filePath) => {
+  ipcRenderer.send('shell-open', filePath)
+})
 
 ipcRenderer.on('os-theme-changed', (event) => {
   eventBus.emit('theme-changed')

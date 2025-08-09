@@ -11,7 +11,8 @@
         "home": "主页",
         "outline": "大纲树",
         "editor": "编辑器",
-        "visualize": "可视化"
+        "visualize": "可视化",
+        "knowledgeBase": "知识库"
     },
     "leftMenu": {
         "metaDocTooltip": "MetaDoc ;-)",
@@ -496,26 +497,65 @@
         "paragraphDistribution": "段落分布",
         "wordFrequency": "词频统计"
     },
-    "bottomMenu":{
+    "bottomMenu": {
         "wordCount": "字符总数：",
         "currentFile": "当前文件：",
         "newFile": "新文件",
         "aiTaskQueueTooltip": "AI任务队列"
     },
-    "aiTask":{
-        "status":"状态",
+    "aiTask": {
+        "status": "状态",
         "ready": "就绪",
         "running": "运行中",
         "failed": "失败",
         "cancel": "取消",
-        "taskCancelled":"任务 {task} 已取消",
-        "taskCancelled2":"任务已取消"
+        "taskCancelled": "任务 {task} 已取消",
+        "taskCancelled2": "任务已取消"
     },
-    "aiTaskQueue":{
+    "aiTaskQueue": {
         "title": "AI任务队列",
         "empty": "暂无任务",
         "loading": "加载中...",
         "error": "加载失败",
-        "switchWarning":"AI工作时切换界面可能导致任务丢失。"
+        "switchWarning": "AI工作时切换界面可能导致任务丢失。"
+    },
+    "knowledgeBase": {
+        "title": "知识库",
+        "add": "新增",
+        "delete": "删除",
+        "name": "名称",
+        "size_chunks": "大小/段数",
+        "chunks_unit": "段",
+        "enabled": "启用",
+        "preview": "预览",
+        "expand": "展开",
+        "collapse": "收起",
+        "open_in_editor": "在编辑器中打开",
+        "config": "配置信息",
+        "filename": "文件名",
+        "path": "路径",
+        "chunks": "段落数",
+        "vector_dim": "向量维度",
+        "vector_count": "向量数量",
+        "size": "大小",
+        "enabled_state": "启用状态",
+        "rebuild": "重新构建向量",
+        "download": "下载文件",
+        "select_placeholder": "请选择左侧知识库条目以查看预览",
+        "choose_one": "请选择一个知识库查看并修改配置",
+        "delete_confirm_title": "删除确认",
+        "delete_confirm": "确认删除知识库：{name}？",
+        "cancel": "取消",
+        "upload_started": "文件已上传并开始构建知识库",
+        "upload_failed": "上传失败",
+        "upload_error": "上传出错",
+        "deleted": "已删除",
+        "delete_failed": "删除失败",
+        "delete_error": "删除出错",
+        "set_failed": "设置失败",
+        "set_error": "设置出错",
+        "rebuild_submitted": "重建向量任务已提交",
+        "rebuild_failed": "重建失败",
+        "rebuild_error": "重建出错"
     }
 }

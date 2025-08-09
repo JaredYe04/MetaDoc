@@ -151,7 +151,8 @@
     "outline": "Arbre schématique",
     "title": "MétaDoc",
     "tooltip": "Un logiciel intelligent de traitement de texte basé sur AI Agent",
-    "visualize": "Visualiser"
+    "visualize": "Visualiser",
+    "knowledgeBase": "Base de connaissances"
   },
   "home": {
     "abstractLabel": "Résumé",
@@ -517,5 +518,44 @@
   "wordCloudDetail": {
     "defaultWord": "Termes",
     "frequency": "Fréquence des mots"
+  },
+  "knowledgeBase": {
+    "add": "Ajouter",
+    "cancel": "Annuler",
+    "choose_one": "Veuillez sélectionner une base de connaissances pour visualiser et modifier la configuration",
+    "chunks": "Nombre de paragraphes",
+    "chunks_unit": "Paragraphe",
+    "collapse": "Range ça.",
+    "config": "Configuration de l'information",
+    "delete": "Supprimer",
+    "delete_confirm": "Confirmer supprimer la base de connaissances : {nom} ?",
+    "delete_confirm_title": "Supprimer la confirmation",
+    "delete_error": "Erreur de suppression",
+    "delete_failed": "Impossible de supprimer",
+    "deleted": "Supprimé",
+    "download": "Télécharger le fichier",
+    "enabled": "Activer",
+    "enabled_state": "Activer l'état",
+    "expand": "Élargir",
+    "filename": "Nom du fichier",
+    "name": "Dénomination",
+    "open_in_editor": "Ouvrir dans l'éditeur",
+    "path": "Voie",
+    "preview": "Aperçu",
+    "rebuild": "Reconstruction du vecteur",
+    "rebuild_error": "Dossier de synchronisation",
+    "rebuild_failed": "Défaut de reconstruction",
+    "rebuild_submitted": "La tâche de vecteur de reconstruction a été soumise",
+    "select_placeholder": "Sélectionnez l'entrée de gauche de la bibliothèque de connaissances pour afficher l'aperçu",
+    "set_error": "Configuration de l'erreur",
+    "set_failed": "La configuration a échoué",
+    "size": "Taille",
+    "size_chunks": "Taille/Section",
+    "title": "Base de connaissances",
+    "upload_error": "Erreur de chargement",
+    "upload_failed": "Le chargement a échoué",
+    "upload_started": "Fichier téléchargé et commencé à construire la base de connaissances",
+    "vector_count": "Numéro du vecteur",
+    "vector_dim": "Dimension vecteur"
   }
 }

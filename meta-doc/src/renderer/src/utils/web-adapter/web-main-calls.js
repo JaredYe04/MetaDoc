@@ -4,7 +4,7 @@
 // import { app, shell, BrowserWindow, globalShortcut, nativeTheme } from 'electron'
 
 
-//import { mainWindow, openSettingDialog, openAiChatDialog, uploadDir, settingWindow, aichatWindow, openFomulaRecognitionDialog,fomulaRecognitionWindow, openAiGraphDialog, aiGraphWindow } from './index'
+//import { mainWindow, openSettingDialog, openAiChatDialog, imageUploadDir, settingWindow, aichatWindow, openFomulaRecognitionDialog,fomulaRecognitionWindow, openAiGraphDialog, aiGraphWindow } from './index'
 
 import eventBus from '../event-bus';
 import {  useRouter } from 'vue-router'

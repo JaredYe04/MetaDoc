@@ -151,7 +151,8 @@
     "outline": "Ausgewählter Baum",
     "title": "MetaDoc",
     "tooltip": "Eine intelligente Textverarbeitungssoftware auf Basis von AI Agent",
-    "visualize": "Visualisierung"
+    "visualize": "Visualisierung",
+    "knowledgeBase": "Wissensbasis"
   },
   "home": {
     "abstractLabel": "Zusammenfassung",
@@ -517,5 +518,44 @@
   "wordCloudDetail": {
     "defaultWord": "Bezeichnung",
     "frequency": "Wortfrequenz"
+  },
+  "knowledgeBase": {
+    "add": "Hinzufügen",
+    "cancel": "Abbrechen",
+    "choose_one": "Bitte wählen Sie eine Wissensbasis, um die Konfiguration anzuzeigen und zu ändern",
+    "chunks": "Anzahl der Absätze",
+    "chunks_unit": "Absatz",
+    "collapse": "Leg es weg.",
+    "config": "Informationen konfigurieren",
+    "delete": "Löschen",
+    "delete_confirm": "Bestätigen Sie die Wissensbasis löschen: {name}?",
+    "delete_confirm_title": "Bestätigung löschen",
+    "delete_error": "Fehler löschen",
+    "delete_failed": "Nicht zu löschen",
+    "deleted": "Gelöscht",
+    "download": "Datei herunterladen",
+    "enabled": "Ermöglichen",
+    "enabled_state": "Status aktivieren",
+    "expand": "Ausbau",
+    "filename": "Dateiname",
+    "name": "Name",
+    "open_in_editor": "Open in Editor",
+    "path": "Pfad",
+    "preview": "Voransicht",
+    "rebuild": "Rebuild Vector",
+    "rebuild_error": "Ordner synchronisieren",
+    "rebuild_failed": "Rekonstruktionsausfall",
+    "rebuild_submitted": "Die Rekonstruktionsvektoraufgabe wurde eingereicht",
+    "select_placeholder": "Wählen Sie den linken Eintrag zur Wissensbibliothek aus, um die Vorschau anzuzeigen",
+    "set_error": "Fehlereinstellung",
+    "set_failed": "Setup versagt",
+    "size": "Größe",
+    "size_chunks": "Größe/Section",
+    "title": "Wissensbasis",
+    "upload_error": "Ladefehler",
+    "upload_failed": "Hochladen fehlgeschlagen",
+    "upload_started": "Datei hochgeladen und begann die Erstellung der Wissensbasis",
+    "vector_count": "Vector Nummer",
+    "vector_dim": "Vector Dimension"
   }
 }

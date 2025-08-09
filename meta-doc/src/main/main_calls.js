@@ -15,8 +15,9 @@ const htmlDocx = require('html-docx-js');
 const os = require('os');
 
 
-import { mainWindow, openSettingDialog, openAiChatDialog, uploadDir, settingWindow, aichatWindow, openFomulaRecognitionDialog, fomulaRecognitionWindow, openAiGraphDialog, aiGraphWindow, initBroadcastChannel } from './index'
+import { mainWindow, openSettingDialog, openAiChatDialog, settingWindow, aichatWindow, openFomulaRecognitionDialog, fomulaRecognitionWindow, openAiGraphDialog, aiGraphWindow, initBroadcastChannel } from './index'
 import { dirname } from './index'
+import { imageUploadDir } from './express_server'
 
 //import eventBus from '../renderer/src/utils/event-bus'
 
@@ -61,7 +62,12 @@ export function mainCalls() {
   ipcMain.on('open-link', (event, url) => {
     shell.openExternal(url)
   })
-
+  ipcMain.on('shell-open', async (event, filePath) => {
+    //console.log('打开文件:', filePath);
+    await shell.openPath(filePath).catch((errMsg) => {
+      console.error('打开文件失败:', errMsg);
+    });
+  })
   ipcMain.on('system-notification', (event, data) => {
     systemNotification(data.title, data.body);
   })
@@ -172,7 +178,7 @@ var segment = new Segment();
 segment.useDefault();
 
 const getImagePath = async () => {
-  return uploadDir;
+  return imageUploadDir;
 }
 const systemNotification = (title, body) => {
   const notification = new Notification({

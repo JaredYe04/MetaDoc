@@ -5,9 +5,9 @@
 
                 <!-- Left: list -->
                 <div class="kb-left"
-                    :style="{ background: themeState.currentTheme.background, display: 'flex', flexDirection: 'column', height: '100%' }">
+                    :style="{ background: themeState.currentTheme.background }">
                     <!-- 上半部分: 知识库列表，占60%高度 -->
-                    <div class="kb-list-wrapper" style="flex: 0 0 60%; overflow: hidden;">
+                    <div class="kb-list-wrapper" style="flex: 0 0 60%;">
                         <el-card class="kb-panel" shadow="hover"
                             :style="{ background: themeState.currentTheme.background2nd, height: '100%' }">
                             <div class="kb-panel-header">
@@ -18,13 +18,12 @@
                                     <el-button type="danger" size="small" :disabled="!selectedItem"
                                         @click="confirmDelete">{{ t('knowledgeBase.delete') }}</el-button>
                                     <input ref="fileInput" type="file" style="display:none" @change="onFileSelected"
-                                    accept=".txt,.md,.pdf,.docx"
-                                    />
+                                        accept=".txt,.md,.pdf,.docx" />
                                 </div>
                             </div>
-                            <el-scrollbar class="kb-list-scroll" style="height: calc(100% - 50px);">
+                            <el-scrollbar class="kb-list-scroll">
                                 <el-table :data="items" stripe row-key="id" :highlight-current-row="true"
-                                    @current-change="onSelect" :current-row-key="selectedId" style="width:100%"
+                                    @current-change="onSelect" :current-row-key="selectedId" style="width:100%;"
                                     size="small">
                                     <el-table-column prop="name" :label="t('knowledgeBase.name')" min-width="200">
                                         <template #default="{ row }">
@@ -47,7 +46,7 @@
 
                                     <el-table-column :label="t('knowledgeBase.enabled')" width="90">
                                         <template #default="{ row }">
-                                            <el-switch v-model="row.enabledLocal"
+                                            <el-switch v-model="row.info.enabled"
                                                 @change="(val) => toggleEnable(row, val)" />
                                         </template>
                                     </el-table-column>
@@ -57,7 +56,7 @@
                     </div>
 
                     <!-- 下半部分: 检索测试，占40%高度 -->
-                    <el-scrollbar lass="kb-search-wrapper" style="flex: 0 0 40%; margin-top: 10px;">
+                    <el-scrollbar lass="kb-search-wrapper" style="flex: 0 0 40%;">
                         <el-card class="kb-panel" shadow="hover"
                             :style="{ background: themeState.currentTheme.background2nd, height: '100%', display: 'flex', flexDirection: 'column' }">
                             <h3>{{ t('knowledgeBase.searchTest.title') }}</h3>
@@ -67,16 +66,16 @@
                                 t('knowledgeBase.searchTest.searchBtn') }}</el-button>
 
                             <el-scrollbar style="flex-grow: 1; margin-top: 10px;">
-                                <ul class="search-results">
-                                    <li v-for="(result, index) in searchResults" :key="index"
-                                        style="margin-bottom: 6px; white-space: pre-wrap;">
-                                        <el-card class="kb-panel" shadow="hover" style="overflow: auto; word-break: break-word;">
-                                            <pre>{{ result }}</pre>
-                                        </el-card>
-                                    </li>
-                                    <li v-if="searchResults.length === 0 && !searching" style="color: #999;">{{
-                                        t('knowledgeBase.searchTest.noResult') }}</li>
-                                </ul>
+                                <el-card class="kb-panel" shadow="hover" v-for="(result, index) in searchResults"
+                                    :key="index"
+                                    style="overflow: auto; word-break: break-word;margin-bottom: 6px; white-space: pre-wrap;"
+                                    :style="{ background: themeState.currentTheme.SideBackgroundColor }">
+                                    <pre>{{ result }}</pre>
+                                </el-card>
+                                <div v-if="searchResults.length === 0 && !searching" style="color: #999;" class="placeholder">
+                                    {{ t('knowledgeBase.searchTest.noResult') }}
+                                </div>
+
                             </el-scrollbar>
                         </el-card>
                     </el-scrollbar>
@@ -87,7 +86,7 @@
                 <div class="kb-right" :style="{ background: themeState.currentTheme.background }">
                     <!-- 上：preview -->
                     <el-card class="kb-panel kb-preview" shadow="hover"
-                        :style="{ background: themeState.currentTheme.background2nd }">
+                        :style="{ background: themeState.currentTheme.background2nd }" style="flex: 0 0 50%;">
                         <div class="kb-panel-header">
                             <h2 class="kb-panel-title">{{ t('knowledgeBase.preview') }}</h2>
                             <div v-if="selectedItem" class="kb-panel-actions">
@@ -97,7 +96,7 @@
                             </div>
                         </div>
 
-                        <el-scrollbar class="preview-scroll kb-scroll-wrapper">
+                        <el-scrollbar class="preview-scroll">
                             <div class="preview-content" v-if="previewText">
                                 <pre>{{ displayText }}</pre>
                             </div>
@@ -107,7 +106,7 @@
 
                     <!-- 下：config -->
                     <el-card class="kb-panel kb-config" shadow="hover"
-                        :style="{ background: themeState.currentTheme.background2nd }">
+                        :style="{ background: themeState.currentTheme.background2nd }" style="flex: 0 0 50%;">
                         <div class="kb-panel-header">
                             <h2 class="kb-panel-title">{{ t('knowledgeBase.config') }}</h2>
                         </div>
@@ -155,7 +154,7 @@
                                         {{ info.sizeText || '-' }}
                                     </el-descriptions-item>
                                     <el-descriptions-item :label="t('knowledgeBase.enabled_state')">
-                                        <el-switch v-model="selectedItem.enabledLocal"
+                                        <el-switch v-model="selectedItem.info.enabled"
                                             @change="(val) => toggleEnable(selectedItem, val)" />
                                     </el-descriptions-item>
                                 </el-descriptions>
@@ -190,6 +189,7 @@ import eventBus from '../utils/event-bus';
 import { themeState } from '../utils/themes';
 import { Check, Close, Edit } from '@element-plus/icons-vue';
 import { queryKnowledgeBase } from '../utils/rag_utils';
+import { interpolateObject } from 'd3';
 
 
 const { t } = useI18n();
@@ -225,9 +225,8 @@ async function fetchList() {
         const r = await fetch(`${baseUrl}/list`);
 
         const j = await r.json();
-
-        // expected j.items = [{id,name,enabled, info?}]
-        items.value = (j.items || []).map(it => ({ ...it, enabledLocal: !!it.enabled, info: it.info || {} }));
+        console.log(j)
+        items.value = (j.items || []).map(it => ({ ...it, info: it.info || {} }));
     } catch (e) {
         console.error(e);
     }
@@ -345,16 +344,18 @@ async function fetchPreview(id) {
 async function fetchInfo(id) {
     try {
         const r = await fetch(`${baseUrl}/${id}/info`);
+        
         const j = await r.json();
         if (j.success) {
-            info.path = j.path;
-            info.chunks = j.chunks;
-            info.vector_dim = j.vector_dim;
-            info.vector_count = j.vector_count;
-            info.sizeText = j.sizeText || (j.size ? humanSize(j.size) : '-');
+            delete j['success']
+            console.log(j)
             // also attach to items list if present
             const it = items.value.find(x => x.id === id);
-            if (it) it.info = { chunks: j.chunks, sizeText: info.sizeText };
+            if (it) it.info = { ...j };
+            Object.assign(info, j);
+            // console.log(items.value)
+            // console.log(it)
+
         }
     } catch (e) {
         console.error(e);
@@ -371,18 +372,18 @@ async function toggleEnable(row, val) {
         });
         const j = await r.json();
         if (j.success) {
-            row.enabledLocal = !!j.enabled;
+            row.info.enabled = !!j.enabled;
             // reflect to items list
             const it = items.value.find(x => x.id === row.id);
-            if (it) it.enabled = row.enabledLocal;
+            if (it) it.info.enabled = row.info.enabled;
         } else {
             eventBus.emit('show-error', j.message || t('knowledgeBase.set_failed'));
-            row.enabledLocal = !val; // rollback
+            row.info.enabled = !val; // rollback
         }
     } catch (e) {
         console.error(e);
         eventBus.emit('show-error', t('knowledgeBase.set_error'));
-        row.enabledLocal = !val; // rollback
+        row.info.enabled = !val; // rollback
     }
 }
 
@@ -485,18 +486,10 @@ async function onConfirm() {
 
 <style scoped>
 .kb-scroll-wrapper {
-    height: 100%;
+    min-height: 90vh;
+    max-height: 90vh;
 }
-
-.kb-preview,
-.kb-config {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.kb-preview .el-scrollbar,
-.kb-config .el-scrollbar {
+.el-scrollbar {
     flex: 1;
     /* 关键：让滚动条填满剩余空间 */
 }
@@ -504,6 +497,8 @@ async function onConfirm() {
 .preview-scroll pre {
     white-space: pre-wrap;
     word-break: break-word;
+    padding-top: 10px;
+    max-height: 25vh;
 }
 
 .kb-scroll-wrapper {
@@ -520,18 +515,12 @@ async function onConfirm() {
     box-sizing: border-box;
 }
 
-.kb-left {
-    width: 50%;
-    height: 100%;
-    padding: 10px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-}
 
+.kb-left,
 .kb-right {
     width: 50%;
-    height: 100%;
+    min-height: 85vh;
+    max-height: 85vh;
     padding: 10px;
     box-sizing: border-box;
     display: flex;
@@ -546,7 +535,9 @@ async function onConfirm() {
 }
 
 .kb-list-scroll {
-    flex: 1;
+    overflow: auto;
+    max-height: 35vh;
+    min-height: 20vh;
 }
 
 .kb-preview {

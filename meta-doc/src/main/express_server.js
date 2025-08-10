@@ -1,5 +1,6 @@
 
-import { addFileToKnowledgeBase, clearKnowledgeBase, initAnnoy, removeFromIndex, renameKnowledgeFile, vectorInfo } from './utils/rag_utils.js';
+import { tryConvertFileToText } from './utils/convert_utils.js';
+import { addFileToKnowledgeBase, clearKnowledgeBase, DOCS_PATH, INDEX_PATH, initAnnoy, removeFromIndex, renameKnowledgeFile, saveDocs, saveVectorInfo, VECTOR_INFO_PATH, vectorIndex, vectorInfo } from './utils/rag_utils.js';
 
 const path = require('path');
 const express = require('express');
@@ -160,7 +161,7 @@ const imageApi = () => {
 }
 
 const knowledgeApi = async () => {
-  await initAnnoy(); // 初始化 Annoy 实例
+  await initAnnoy();
   let timestamp = Date.now();//在正常情况下，不需要用timestamp，如果检查到有重复文件，就需要用这个时间戳来重命名文件
   knowledgeUploadDir = path.join(os.homedir(), 'Documents', 'meta-doc-kb');
   fs.mkdirSync(knowledgeUploadDir, { recursive: true });
@@ -168,7 +169,7 @@ const knowledgeApi = async () => {
   const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, knowledgeUploadDir),
     filename: (req, file, cb) => {
-      
+
       const utf8Name = Buffer.from(file.originalname, 'latin1').toString('utf8');//utf8格式的原始文件名
       //检查重复文件
       const existingFiles = fs.readdirSync(knowledgeUploadDir);
@@ -178,7 +179,7 @@ const knowledgeApi = async () => {
         timestamp = Date.now();
         fileName = `${timestamp}_${utf8Name}`;
       }
-      else{
+      else {
         timestamp = -1;
         fileName = `${utf8Name}`;
       }
@@ -197,7 +198,8 @@ const knowledgeApi = async () => {
     return `${n.toFixed(1)} ${units[u]}`;
   }
 
-  function scanFiles() {
+  function refreshKnowledgeItems() {
+
     //console.log('Scanning knowledge base directory:', knowledgeUploadDir);
     const files = fs.readdirSync(knowledgeUploadDir)
       .filter(f => fs.statSync(path.join(knowledgeUploadDir, f)).isFile());
@@ -210,11 +212,11 @@ const knowledgeApi = async () => {
       return {
         id: f,
         name,
-        enabled: true,
         info: {
           path: fullPath,
           size: stats.size,
           sizeText: humanSize(stats.size),
+          enabled: info.enabled,
           chunks: info.chunks,
           vector_dim: info.vector_dim,
           vector_count: info.vector_count
@@ -222,7 +224,7 @@ const knowledgeApi = async () => {
       };
     });
   }
-  scanFiles();
+  refreshKnowledgeItems();
 
   expressApp.get('/api/knowledge/list', (req, res) => {
     res.json({ items: knowledgeItems });
@@ -233,7 +235,7 @@ const knowledgeApi = async () => {
       return res.json({ success: false, message: '没有上传任何文件' });
     }
     const utf8Name = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
-    const fileName = timestamp===-1 ? `${utf8Name}` : `${timestamp}_${utf8Name}`;
+    const fileName = timestamp === -1 ? `${utf8Name}` : `${timestamp}_${utf8Name}`;
     const fullPath = path.join(knowledgeUploadDir, fileName);
 
     //console.log('Received file:', fullPath);
@@ -308,14 +310,14 @@ const knowledgeApi = async () => {
     }
   });
 
-  expressApp.get('/api/knowledge/:id/preview', (req, res) => {
+  expressApp.get('/api/knowledge/:id/preview', async (req, res) => {
     const id = req.params.id;
     const filePath = path.join(knowledgeUploadDir, id);
     if (!fs.existsSync(filePath)) {
       return res.json({ preview: '', truncated: false });
     }
     try {
-      const content = fs.readFileSync(filePath, 'utf-8');
+      const content = await tryConvertFileToText(filePath);
       const limit = 8000;
       const truncated = content.length > limit;
       res.json({ preview: truncated ? content.slice(0, limit) : content, truncated });
@@ -328,16 +330,27 @@ const knowledgeApi = async () => {
   expressApp.get('/api/knowledge/:id/info', (req, res) => {
     const id = req.params.id;
     const item = knowledgeItems.find(i => i.id === id);
-    if (!item) return res.json({ success: false, message: '找不到文件信息' });
-    res.json({ success: true, ...item.info, path: item.info.path });
+    if (!item) {
+      return res.json({ success: false, message: '找不到文件信息' });
+    }
+    res.json({
+      success: true,
+      ...item.info,
+    });
   });
 
-  expressApp.post('/api/knowledge/:id/toggle', express.json(), (req, res) => {
+  // 切换启用/禁用状态（并持久化）
+  expressApp.post('/api/knowledge/:id/toggle', (req, res) => {
     const id = req.params.id;
-    const item = knowledgeItems.find(i => i.id === id);
-    if (!item) return res.json({ success: false, message: '找不到文件' });
-    item.enabled = !!req.body.enabled;
-    res.json({ success: true, enabled: item.enabled });
+
+    if (!vectorInfo[id]) {
+      return res.json({ success: false, message: '找不到文件' });
+    }
+    vectorInfo[id].enabled = !!req.body.enabled;
+    saveDocs();
+    saveVectorInfo();
+    refreshKnowledgeItems();
+    res.json({ success: true, enabled: vectorInfo[id].enabled });
   });
 
   expressApp.post('/api/knowledge/:id/rebuild', async (req, res) => {

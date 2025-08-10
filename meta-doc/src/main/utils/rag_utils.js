@@ -6,18 +6,18 @@ import { knowledgeUploadDir } from '../express_server';
 
 // ==== 配置 ====
 const VECTOR_LEN = 768; // 嵌入维度
-const INDEX_PATH = path.resolve('./data/vector_index.json'); // 存向量
-const DOCS_PATH = path.resolve('./data/vector_docs.json');   // 存文本
-const VECTOR_INFO_PATH = path.resolve('./data/vector_info.json'); // 存文档元信息
+export const INDEX_PATH = path.resolve('./data/vector_index.json'); // 存向量
+export const DOCS_PATH = path.resolve('./data/vector_docs.json');   // 存文本
+export const VECTOR_INFO_PATH = path.resolve('./data/vector_info.json'); // 存文档元信息
 
 // 内存索引
-let vectorIndex = []; // [{id, vector}]
-let docIdToText = new Map();
+export let vectorIndex = []; // [{id, vector}]
+export let docIdToText = new Map();
 export let vectorInfo = {};// { [fileBaseName]: { chunks, vector_dim, vector_count } }
 // ==== Step 0: 初始化索引 ====
 
 // ==== Step 0: 初始化索引 ====
-export function initAnnoy() {
+export async function initAnnoy() {
   if (fs.existsSync(INDEX_PATH) && fs.existsSync(DOCS_PATH)) {
     //console.log('Loading vector index from disk...');
     vectorIndex = JSON.parse(fs.readFileSync(INDEX_PATH, 'utf-8'));
@@ -36,22 +36,23 @@ export function initAnnoy() {
     vectorInfo = {};
   }
 }
-
-
-// 保存索引
-function saveIndex() {
-  fs.mkdirSync(path.dirname(INDEX_PATH), { recursive: true });
-  // 先删除旧文件
+export function saveIndex() {
   if (fs.existsSync(INDEX_PATH)) fs.unlinkSync(INDEX_PATH);
-  if (fs.existsSync(DOCS_PATH)) fs.unlinkSync(DOCS_PATH);
-  if (fs.existsSync(VECTOR_INFO_PATH)) fs.unlinkSync(VECTOR_INFO_PATH);
-
-  // 写入新文件
   fs.writeFileSync(INDEX_PATH, JSON.stringify(vectorIndex));
+}
+export function saveDocs() {
+  if (fs.existsSync(DOCS_PATH)) fs.unlinkSync(DOCS_PATH);
   fs.writeFileSync(DOCS_PATH, JSON.stringify(Object.fromEntries(docIdToText)));
-  fs.writeFileSync(VECTOR_INFO_PATH, JSON.stringify(vectorInfo, null, 2));
-
-  console.log('Vector index and info saved.');
+}
+export function saveVectorInfo() {
+  if (fs.existsSync(VECTOR_INFO_PATH)) fs.unlinkSync(VECTOR_INFO_PATH);
+  fs.writeFileSync(VECTOR_INFO_PATH, JSON.stringify(vectorInfo, null, 2), 'utf-8');
+}
+// 保存索引
+function save() {
+  saveIndex();
+  saveDocs();
+  saveVectorInfo();
 }
 
 
@@ -73,19 +74,68 @@ export function removeFromIndex(fileBaseName) {
   }
 
   // 保存更新后的索引
-  saveIndex();
+  save();
 
   console.log(`文档 ${fileBaseName} 及其所有片段已从向量索引中删除，元信息也已清理`);
 }
 
 
 // ==== Step 1: 文本分段 ====
-export async function chunkText(text, chunkSize = 500, overlap = 50) {
-  const splitter = new RecursiveCharacterTextSplitter({
-    chunkSize,
-    chunkOverlap: overlap,
-  });
-  return await splitter.splitText(text);
+// 高精度文本分段（按语义切分 + overlap）
+// 特点：
+// 1. 优先按中文/英文的自然句子边界切
+// 2. 支持 chunk overlap，减少信息断裂
+// 3. 合并过短的片段，提高语义完整度
+export function chunkText(text, chunkSize = 500, overlap = 50) {
+  if (!text || typeof text !== 'string') return [];
+
+  // 1. 标准化空白符
+  text = text.replace(/\r\n/g, '\n').replace(/\t/g, ' ').replace(/ +/g, ' ');
+
+  // 2. 按句子切分（支持中英文）
+  const sentences = text
+    .split(/(?<=[。！？.!?])\s+|\n+/) // 句子边界 或 段落换行
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const chunks = [];
+  let currentChunk = '';
+
+  for (let i = 0; i < sentences.length; i++) {
+    const sentence = sentences[i];
+    // 如果加上这个句子不会超过 chunkSize，就加进去
+    if ((currentChunk + sentence).length <= chunkSize) {
+      currentChunk += sentence + ' ';
+    } else {
+      // 推入已有 chunk
+      chunks.push(currentChunk.trim());
+
+      // Overlap: 保留上一段的尾部
+      const overlapText = currentChunk.slice(-overlap);
+      currentChunk = overlapText + sentence + ' ';
+    }
+  }
+
+  if (currentChunk.trim()) {
+    chunks.push(currentChunk.trim());
+  }
+
+  // 3. 合并过短 chunk，避免碎片化
+  const minLen = Math.floor(chunkSize * 0.4); // 小于40%就合并
+  const mergedChunks = [];
+  for (let i = 0; i < chunks.length; i++) {
+    if (
+      mergedChunks.length > 0 &&
+      chunks[i].length < minLen &&
+      (mergedChunks[mergedChunks.length - 1].length + chunks[i].length) <= chunkSize
+    ) {
+      mergedChunks[mergedChunks.length - 1] += ' ' + chunks[i];
+    } else {
+      mergedChunks.push(chunks[i]);
+    }
+  }
+
+  return mergedChunks;
 }
 
 // ==== Step 2: 嵌入模型 ====
@@ -138,7 +188,7 @@ export async function addFileToKnowledgeBase(filePath) {
     vector_count: vectorIndex.filter(v => v.id.startsWith(fileBaseName + '_')).length
   };
 
-  saveIndex();
+  save();
 
   return {
     chunks: chunks.length,
@@ -201,7 +251,7 @@ export async function renameKnowledgeFile(oldName, newName) {
       delete vectorInfo[oldName];
     }
 
-    saveIndex();
+    save();
 
     console.log(`重命名成功: ${oldName} -> ${newName}`);
     return { success: true };
@@ -286,8 +336,16 @@ export async function queryKnowledgeBase(question, k = 3) {
   await initAnnoy(); // 确保 Annoy 已加载
   const queryEmbedding = await embedText(question);
 
+  const filteredVectorIndex = vectorIndex.filter(vec => {
+    // 找到最后一个下划线的位置
+    const lastUnderscoreIndex = vec.id.lastIndexOf('_');
+    const baseName = lastUnderscoreIndex !== -1
+      ? vec.id.slice(0, lastUnderscoreIndex)
+      : vec.id; // 如果没有下划线，就直接用整个
+    return vectorInfo[baseName]?.enabled !== false;
+  });
   // Step 1: Annoy 召回 topN
-  let candidates = annoySearch(queryEmbedding, vectorIndex, docIdToText, 10);
+  let candidates = annoySearch(queryEmbedding, filteredVectorIndex, docIdToText, 10);
 
   // Step 2: Hybrid Score（向量 + 关键词）
   candidates.forEach(r => {
@@ -309,6 +367,6 @@ export async function queryKnowledgeBase(question, k = 3) {
 export async function clearKnowledgeBase() {
   vectorIndex = [];
   docIdToText.clear();
-  saveIndex();
+  save();
 
 }

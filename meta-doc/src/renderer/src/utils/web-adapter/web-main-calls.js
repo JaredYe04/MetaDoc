@@ -31,12 +31,12 @@ const getImagePath = async () => {
   return './';
   //todo
 }
-const systemNotification = (title, body) => {
-eventBus.emit('show-success',title+' '+body)
-//   const notification = new Notification({
-//     title: title,
-//     body: body
-//   });
+const systemNotification = (title, body, path = '') => {
+  eventBus.emit('show-success', title + ' ' + body)
+  //   const notification = new Notification({
+  //     title: title,
+  //     body: body
+  //   });
 //   // 显示通知
 //   notification.show();
 }
@@ -178,7 +178,7 @@ export function webMainCalls() {
 
   localIpcMain.on('system-notification', (event, data) => {
     //console.log(data)
-    systemNotification(data.title, data.body);
+    systemNotification(data.title, data.body, data.path);
   })
   // localIpcMain.on('request-sync-theme', () => {//渲染进程请求同步主题，主进程需要通知所有窗口
   //   eventBus.emit('sync-theme')

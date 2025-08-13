@@ -29,11 +29,11 @@
         </el-scrollbar>
 
         <el-scrollbar class="md-container">
-          <MdPreview :modelValue="current_article" previewTheme="github" codeStyleReverse
-            style="text-align: left;margin-top:20px" :style="{
+          <MdPreview class="md-preview-fixed" :modelValue="current_article" previewTheme="github" codeStyleReverse
+            :style="{
               textColor: themeState.currentTheme.textColor,
-            }" :class="themeState.currentTheme.mdeditorClass" :theme="themeState.currentTheme.mdeditorTheme"
-            :codeFold="false" :autoFoldThreshold="300" />
+            }" :class="themeState.currentTheme.mdeditorClass" :theme="themeState.currentTheme.mdeditorTheme" :codeFold="false"
+            :autoFoldThreshold="300" />
         </el-scrollbar>
 
       </div>
@@ -698,6 +698,13 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.md-preview-fixed {
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap; /* 自动换行 */
+  box-sizing: border-box; /* 避免padding撑破宽度 */
+}
 .md-metainfo {
   width: 80vw;
   max-height: 25vh;

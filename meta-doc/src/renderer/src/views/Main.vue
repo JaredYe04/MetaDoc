@@ -112,6 +112,7 @@ eventBus.on('export-success', (outputPath) => {
   eventBus.emit('system-notification', {
     title: t('main.notification.export.title'),
     body: t('main.notification.export.message', { path: outputPath }),
+    path: outputPath
   });
 
 });

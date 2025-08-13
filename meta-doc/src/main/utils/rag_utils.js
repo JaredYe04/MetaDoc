@@ -1,7 +1,6 @@
 // rag_utils.js
 import fs from 'fs';
 import path from 'path';
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { knowledgeUploadDir } from '../express_server';
 
 // ==== 配置 ====
@@ -96,32 +95,32 @@ export function chunkText(text, chunkSize = 500, overlap = 50) {
   const sentences = text
     .split(/(?<=[。！？.!?])\s+|\n+/) // 句子边界 或 段落换行
     .map(s => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter(s => !isMeaningless(s)); // 过滤掉无意义内容
 
   const chunks = [];
   let currentChunk = '';
 
   for (let i = 0; i < sentences.length; i++) {
     const sentence = sentences[i];
-    // 如果加上这个句子不会超过 chunkSize，就加进去
     if ((currentChunk + sentence).length <= chunkSize) {
       currentChunk += sentence + ' ';
     } else {
-      // 推入已有 chunk
-      chunks.push(currentChunk.trim());
-
+      if (currentChunk.length <= chunkSize) {
+        chunks.push(currentChunk.trim());
+      }
       // Overlap: 保留上一段的尾部
       const overlapText = currentChunk.slice(-overlap);
       currentChunk = overlapText + sentence + ' ';
     }
   }
 
-  if (currentChunk.trim()) {
+  if (currentChunk.trim() && currentChunk.trim().length <= chunkSize) {
     chunks.push(currentChunk.trim());
   }
 
-  // 3. 合并过短 chunk，避免碎片化
-  const minLen = Math.floor(chunkSize * 0.4); // 小于40%就合并
+  // 3. 合并过短 chunk
+  const minLen = Math.floor(chunkSize * 0.4);
   const mergedChunks = [];
   for (let i = 0; i < chunks.length; i++) {
     if (
@@ -138,17 +137,45 @@ export function chunkText(text, chunkSize = 500, overlap = 50) {
   return mergedChunks;
 }
 
+/**
+ * 检测是否为无意义字符串
+ * 规则：
+ * 1. 纯字母数字且长度 >= 20（疑似Base64/Hash）
+ * 2. 非字母数字字符比例 > 0.6
+ * 3. 数字比例 > 0.8
+ * 4. 长度 < 5 且无中文（太短无信息）
+ */
+function isMeaningless(str) {
+  if (!str) return true;
+  const clean = str.replace(/\s+/g, '');
+  if (/^[A-Za-z0-9+/=]{20,}$/.test(clean)) return true; // Base64 / 长hash
+  const nonAlphaNumRatio = (clean.match(/[^A-Za-z0-9\u4e00-\u9fa5]/g)?.length || 0) / clean.length;
+  if (nonAlphaNumRatio > 0.6) return true;
+  const digitRatio = (clean.match(/\d/g)?.length || 0) / clean.length;
+  if (digitRatio > 0.8) return true;
+  if (clean.length < 5 && !/[\u4e00-\u9fa5]/.test(clean)) return true;
+  return false;
+}
+
 // ==== Step 2: 嵌入模型 ====
 let embeddingContext = null;
+export async function initEmbedder(modelFileName = "bce-embedding-base_v1-Q8_0.gguf") {
+  const { getLlama } = await import("node-llama-cpp");
 
-export async function initEmbedder(modelFilePath = './models/nomic-embed-text-v1.5.Q5_K_M.gguf') {
-  const { getLlama } = await import('node-llama-cpp');
+  // 1. 合并分卷到临时文件
+  console.log(`🔄 正在合并模型 ${modelFileName} ...`);
+  const mergedPath = await mergeModel(modelFileName);
+
+  // 2. 加载 LLaMA
+  console.log(`📂 从 ${mergedPath} 加载模型 ...`);
   const llama = await getLlama();
   const model = await llama.loadModel({
-    modelPath: "D:\\MetaDoc\\MetaDoc\\meta-doc\\src\\main\\models\\nomic-embed-text-v1.5.Q5_K_M.gguf"
+    modelPath: mergedPath
   });
+
+  // 3. 创建嵌入上下文
   embeddingContext = await model.createEmbeddingContext();
-  console.log('Embedding context initialized');
+  console.log("✅ Embedding context initialized");
 }
 
 export async function embedText(text) {
@@ -169,6 +196,7 @@ export async function addFileToKnowledgeBase(filePath) {
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
+    //console.log(chunk.length)
     const vector = await embedText(chunk);
 
     if (vector.length !== VECTOR_LEN) {
@@ -264,6 +292,7 @@ export async function renameKnowledgeFile(oldName, newName) {
 import crypto from 'crypto';
 import { annoySearch, cosineSimilarity } from './ann_utils';
 import { tryConvertFileToText } from './convert_utils';
+import { mergeModel } from './merge_model_utils';
 
 const cacheDir = path.join(process.cwd(), 'data', 'embedding_cache');
 const cacheFile = path.join(cacheDir, 'cache.json');

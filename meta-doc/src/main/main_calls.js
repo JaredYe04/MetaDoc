@@ -70,7 +70,7 @@ export function mainCalls() {
     });
   })
   ipcMain.on('system-notification', (event, data) => {
-    systemNotification(data.title, data.body);
+    systemNotification(data.title, data.body,data.path);
   })
   ipcMain.on('update-window-title', (event, title) => {
     updateWindowTitle(title)
@@ -183,11 +183,22 @@ segment.useDefault();
 const getImagePath = async () => {
   return imageUploadDir;
 }
-const systemNotification = (title, body) => {
+const systemNotification = (title, body, path = '') => {
+  //
   const notification = new Notification({
     title: title,
     body: body
   });
+  notification.on('click', () => {
+    if (path) {
+      shell.openPath(path).then(() => {
+        console.log(`已尝试打开: ${path}`)
+      }).catch(err => {
+        console.error(`打开文件失败: ${err}`)
+      })
+    }
+  })
+
   // 显示通知
   notification.show();
 }

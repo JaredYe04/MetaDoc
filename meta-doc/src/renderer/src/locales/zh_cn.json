@@ -217,7 +217,8 @@
             "copy_succeeded": "复制成功"
         },
         "graph": {
-            "chart": "图表"
+            "chart": "图表",
+            "default_chart": "默认图表"
         }
     },
     "article": {

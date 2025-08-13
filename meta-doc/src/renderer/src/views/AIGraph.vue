@@ -104,15 +104,15 @@
             </div>
 
             <el-scrollbar class="prompt-section">
-                <el-input type="textarea" v-model="activeScheme.prompt" :placeholder="$t('aigraph.promptPlaceholder')"
-                    :rows="2" :autosize="{ minRows: 2, maxRows: 3 }" :disabled="generating" />
+                <el-input  type="textarea" v-model="activeScheme.prompt" :placeholder="$t('aigraph.promptPlaceholder')"
+                    :rows="2" :autosize="{ minRows: 2, maxRows: 3 }" :disabled="generating ||!activeScheme" />
                 <div style="width: 100%; align-items: center; align-self: center;">
                     <el-button id="sendMsg" @click="generateCode" type="primary" round size="large" text bg
-                        :disabled="!activeScheme.prompt || activeScheme.prompt.length === 0" :loading="generating">
+                        :disabled="!activeScheme.prompt || activeScheme.prompt.length === 0 ||!activeScheme" :loading="generating">
                         {{ $t('aigraph.send') }}
                     </el-button>
                     <el-button id="reset" @click="activeScheme.prompt = ''" round type="info" size="large"
-                        :disabled="!activeScheme.prompt || activeScheme.prompt.length === 0" :loading="generating" text
+                        :disabled="!activeScheme.prompt || activeScheme.prompt.length === 0 || !activeScheme" :loading="generating" text
                         bg>
                         {{ $t('aigraph.reset') }}
                     </el-button>
@@ -388,13 +388,13 @@ const configDialogVisible = ref(false);
 function loadSchemes() {
     const data = localStorage.getItem(STORAGE_KEY)
     schemes.value = data ? JSON.parse(data) : []
-    if (schemes.value.length > 0) {
-        activeSchemeId.value = schemes.value[0].id
-    }
-    else {
 
+    if (schemes.value.length === 0) {
+        createDefaultScheme()
+    } else {
+        activeSchemeId.value = schemes.value[0].id
+        setActive(activeSchemeId.value)
     }
-    setActive(activeSchemeId.value)
 }
 
 function saveSchemes() {
@@ -403,8 +403,35 @@ function saveSchemes() {
 
 function deleteScheme(id) {
     schemes.value = schemes.value.filter(s => s.id !== id)
-    activeSchemeId.value = schemes.value.length ? schemes.value[0].id : null
-    setActive(activeSchemeId.value)
+
+    if (schemes.value.length === 0) {
+        createDefaultScheme()
+    } else {
+        activeSchemeId.value = schemes.value[0].id
+        setActive(activeSchemeId.value)
+    }
+    saveSchemes()
+}
+// 新增：创建默认图表
+function createDefaultScheme() {
+    const defaultId = Date.now().toString()
+    const defaultEngine = engines[0]
+    const defaultType = graphEngineConfig.find(e => e.name === defaultEngine)['graph-supported'][0]
+    const defaultSpecialPrompt = graphEngineConfig.find(e => e.name === defaultEngine)['special-prompt'] || ''
+
+    const defaultScheme = {
+        id: defaultId,
+        name: t('aigraph.graph.default_chart'), // 可以换成你想要的默认名称
+        engine: defaultEngine,
+        type: defaultType,
+        specialPrompt: defaultSpecialPrompt,
+        prompt: '',
+        code: ''
+    }
+
+    schemes.value.push(defaultScheme)
+    activeSchemeId.value = defaultId
+    setActive(defaultId)
     saveSchemes()
 }
 function duplicateScheme(id) {

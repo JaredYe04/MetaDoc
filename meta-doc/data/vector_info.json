@@ -1,8 +1,14 @@
 {
-  "merge.pdf": {
-    "chunks": 140,
+  "逻辑学入门.md": {
+    "chunks": 8,
     "vector_dim": 768,
-    "vector_count": 140,
+    "vector_count": 8,
+    "enabled": false
+  },
+  "计算机程序设计员_三级_理论题.docx": {
+    "chunks": 205,
+    "vector_dim": 768,
+    "vector_count": 205,
     "enabled": true
   }
 }

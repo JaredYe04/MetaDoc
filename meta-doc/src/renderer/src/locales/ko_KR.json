@@ -217,7 +217,8 @@
       "copy_succeeded": "복사 성공"
     },
     "graph": {
-      "chart": "차트"
+      "chart": "차트",
+      "default_chart": "기본 차트"
     }
   },
   "article": {
@@ -556,6 +557,13 @@
     "upload_failed": "업로드 실패",
     "upload_started": "파일 업로드 및 지식 기반 구축 시작",
     "vector_count": "벡터 번호",
-    "vector_dim": "벡터 차원"
+    "vector_dim": "벡터 차원",
+    "searchTest": {
+      "noResult": "결과 없음.",
+      "placeholder": "자주 묻는 질문",
+      "searchBtn": "제품정보",
+      "title": "검색 시험"
+    },
+    "upload_complete": "지식 베이스 구축 완료"
   }
 }

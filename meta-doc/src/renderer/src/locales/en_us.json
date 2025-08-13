@@ -217,7 +217,8 @@
       "copy_succeeded": "Copy succeeded"
     },
     "graph": {
-      "chart": "Chart"
+      "chart": "Chart",
+      "default_chart": "Default Chart"
     }
   },
   "article": {
@@ -556,6 +557,13 @@
     "upload_failed": "Upload failed",
     "upload_started": "File uploaded and started building the knowledge base",
     "vector_count": "Vector Number",
-    "vector_dim": "Vector Dimension"
+    "vector_dim": "Vector Dimension",
+    "searchTest": {
+      "noResult": "No results.",
+      "placeholder": "Please enter the search question.",
+      "searchBtn": "Search",
+      "title": "Search Test"
+    },
+    "upload_complete": "Knowledge base construction completed"
   }
 }

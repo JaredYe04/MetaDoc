@@ -1,21 +1,7 @@
 import fs from "fs";
 import path from "path";
-import { app } from 'electron';
-export function getResourcesPath() {
+import { getResourcesPath } from "./resources_path_utils";
 
-  let p='';
-  if (!app.isPackaged) {
-      // 开发环境：Electron 启动目录
-    p=path.resolve(__dirname, '../../resources');
-  }
-  else{
-      // 打包环境：app.asar.unpacked/resources
-  p=path.join(process.resourcesPath, 'resources');
-  }
-
-  console.log('Resources path:', p);
-  return p;
-}
 //resources的路径和models相同
 const RESOURCES_PATH = getResourcesPath();
 const MODELS_JSON = path.join(RESOURCES_PATH, "models.json");

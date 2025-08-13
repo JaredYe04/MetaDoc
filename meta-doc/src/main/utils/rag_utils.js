@@ -5,9 +5,10 @@ import { knowledgeUploadDir } from '../express_server';
 
 // ==== 配置 ====
 const VECTOR_LEN = 768; // 嵌入维度
-export const INDEX_PATH = path.resolve('./data/vector_index.json'); // 存向量
-export const DOCS_PATH = path.resolve('./data/vector_docs.json');   // 存文本
-export const VECTOR_INFO_PATH = path.resolve('./data/vector_info.json'); // 存文档元信息
+const VECTOR_DATABASE_PATH = getVectorDatabasePath(); // 向量数据库路径
+export const INDEX_PATH = path.join(VECTOR_DATABASE_PATH,'./vector_index.json'); // 存向量
+export const DOCS_PATH = path.join(VECTOR_DATABASE_PATH,'./vector_docs.json');   // 存文本
+export const VECTOR_INFO_PATH = path.join(VECTOR_DATABASE_PATH,'./vector_info.json'); // 存文档元信息
 
 // 内存索引
 export let vectorIndex = []; // [{id, vector}]
@@ -293,8 +294,9 @@ import crypto from 'crypto';
 import { annoySearch, cosineSimilarity } from './ann_utils';
 import { tryConvertFileToText } from './convert_utils';
 import { mergeModel } from './merge_model_utils';
+import { getVectorDatabasePath } from './resources_path_utils';
 
-const cacheDir = path.join(process.cwd(), 'data', 'embedding_cache');
+const cacheDir = path.join(VECTOR_DATABASE_PATH, 'embedding_cache');
 const cacheFile = path.join(cacheDir, 'cache.json');
 
 // 内存缓存

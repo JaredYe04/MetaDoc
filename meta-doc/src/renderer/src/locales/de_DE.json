@@ -41,7 +41,8 @@
     },
     "exportImage": "Bild vergrößern",
     "graph": {
-      "chart": "Diagramm"
+      "chart": "Diagramm",
+      "default_chart": "Default Chart"
     },
     "newChartBtn": "Neues Diagramm",
     "newChartPlaceholder": "Bitte geben Sie einen neuen Titel ein",
@@ -556,6 +557,13 @@
     "upload_failed": "Hochladen fehlgeschlagen",
     "upload_started": "Datei hochgeladen und begann die Erstellung der Wissensbasis",
     "vector_count": "Vector Nummer",
-    "vector_dim": "Vector Dimension"
+    "vector_dim": "Vector Dimension",
+    "searchTest": {
+      "noResult": "Keine Ergebnisse.",
+      "placeholder": "Bitte geben Sie die Suchanfrage ein.",
+      "searchBtn": "Suche",
+      "title": "Suchtest"
+    },
+    "upload_complete": "Wissensbasisbau abgeschlossen"
   }
 }

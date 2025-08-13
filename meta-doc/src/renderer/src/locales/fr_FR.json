@@ -41,7 +41,8 @@
     },
     "exportImage": "Photo d'exportation",
     "graph": {
-      "chart": "Graphique"
+      "chart": "Graphique",
+      "default_chart": "Graphique par défaut"
     },
     "newChartBtn": "Nouveau graphique",
     "newChartPlaceholder": "Veuillez saisir un nouveau titre",
@@ -556,6 +557,13 @@
     "upload_failed": "Le chargement a échoué",
     "upload_started": "Fichier téléchargé et commencé à construire la base de connaissances",
     "vector_count": "Numéro du vecteur",
-    "vector_dim": "Dimension vecteur"
+    "vector_dim": "Dimension vecteur",
+    "searchTest": {
+      "noResult": "Aucun résultat.",
+      "placeholder": "Veuillez saisir la question de recherche.",
+      "searchBtn": "Recherche",
+      "title": "Essai de recherche"
+    },
+    "upload_complete": "Construction de la base de connaissances achevée"
   }
 }

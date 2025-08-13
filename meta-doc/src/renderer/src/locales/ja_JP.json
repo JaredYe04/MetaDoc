@@ -217,7 +217,8 @@
       "copy_succeeded": "コピーに成功しました"
     },
     "graph": {
-      "chart": "グラフ"
+      "chart": "グラフ",
+      "default_chart": "デフォルトチャート"
     }
   },
   "article": {
@@ -556,6 +557,13 @@
     "upload_failed": "アップロード失敗",
     "upload_started": "アップロードされたファイルとナレッジベースの構築を開始",
     "vector_count": "ベクトル番号",
-    "vector_dim": "ベクトル次元"
+    "vector_dim": "ベクトル次元",
+    "searchTest": {
+      "noResult": "結果はありません。",
+      "placeholder": "ご質問・お問い合わせ",
+      "searchBtn": "インフォメーション",
+      "title": "検索テスト"
+    },
+    "upload_complete": "ナレッジベース工事完了"
   }
 }

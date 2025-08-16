@@ -1,7 +1,7 @@
 // rag_utils.js
 import fs from 'fs';
 import path from 'path';
-import { knowledgeUploadDir } from '../express_server';
+import { knowledgeItems, knowledgeUploadDir } from '../express_server';
 
 // ==== 配置 ====
 const VECTOR_LEN = 768; // 嵌入维度
@@ -17,7 +17,7 @@ export let vectorInfo = {};// { [fileBaseName]: { chunks, vector_dim, vector_cou
 // ==== Step 0: 初始化索引 ====
 
 // ==== Step 0: 初始化索引 ====
-export async function initAnnoy() {
+export async function initVectorDatabase() {
   if (fs.existsSync(INDEX_PATH) && fs.existsSync(DOCS_PATH)) {
     //console.log('Loading vector index from disk...');
     vectorIndex = JSON.parse(fs.readFileSync(INDEX_PATH, 'utf-8'));
@@ -203,7 +203,7 @@ export async function embedText(text) {
 
 // ==== Step 3: 添加文件到知识库 ====
 export async function addFileToKnowledgeBase(filePath) {
-  initAnnoy();
+  initVectorDatabase();
 
   const text = await tryConvertFileToText(filePath);
   const chunks = await chunkText(text);
@@ -310,7 +310,7 @@ export async function renameKnowledgeFile(oldName, newName) {
 }
 // ==== Step 4: 查询知识库 ====
 import crypto from 'crypto';
-import { annoySearch, cosineSimilarity } from './ann_utils';
+import { annSearch, cosineSimilarity } from './ann_utils';
 import { tryConvertFileToText } from './convert_utils';
 import { mergeModel } from './merge_model_utils';
 import { getVectorDatabasePath } from './resources_path_utils';
@@ -383,7 +383,7 @@ function rerankResults(queryEmbedding, candidates) {
     .sort((a, b) => b.rerankScore - a.rerankScore);
 }
 export async function queryKnowledgeBase(question, k = 3) {
-  await initAnnoy(); // 确保 Annoy 已加载
+  await initVectorDatabase();
   const queryEmbedding = await embedText(question);
 
   const filteredVectorIndex = vectorIndex.filter(vec => {
@@ -395,7 +395,7 @@ export async function queryKnowledgeBase(question, k = 3) {
     return vectorInfo[baseName]?.enabled !== false;
   });
   // Step 1: Annoy 召回 topN
-  let candidates = annoySearch(queryEmbedding, filteredVectorIndex, docIdToText, 10);
+  let candidates = annSearch(queryEmbedding, filteredVectorIndex, docIdToText, 10);
 
   // Step 2: Hybrid Score（向量 + 关键词）
   candidates.forEach(r => {
@@ -415,7 +415,15 @@ export async function queryKnowledgeBase(question, k = 3) {
 
 // ==== Step 5: 清空知识库 ====
 export async function clearKnowledgeBase() {
+  knowledgeItems.forEach(item => {
+    const filePath = item.info.path;
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  });
+  Object.assign(knowledgeItems, {});
   vectorIndex = [];
+  vectorInfo = {};
   docIdToText.clear();
   save();
 

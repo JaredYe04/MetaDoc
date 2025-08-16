@@ -59,7 +59,7 @@ function buildInvertedIndex(vectorIndex) {
  * @param {number} topN 返回最相关的数量，默认30
  * @returns {Array<{id:string, cosSim:number, text:string}>}
  */
-function annoySearch(queryEmbedding, vectorIndex, docIdToText, topN = 30) {
+function annSearch(queryEmbedding, vectorIndex, docIdToText, topN = 30) {
   // 构建倒排索引
   const invertedIndex = buildInvertedIndex(vectorIndex);
 
@@ -99,5 +99,5 @@ function annoySearch(queryEmbedding, vectorIndex, docIdToText, topN = 30) {
 export {
   cosineSimilarity,
   buildInvertedIndex,
-  annoySearch,
+  annSearch,
 };

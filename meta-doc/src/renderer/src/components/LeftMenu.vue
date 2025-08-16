@@ -253,7 +253,7 @@ import {
   User,
   DataAnalysis
 } from '@element-plus/icons-vue'
-import eventBus from '../utils/event-bus';
+import eventBus, { sendBroadcast } from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { themeState } from '../utils/themes';
 import { avatar, current_article, current_article_meta_data } from '../utils/common-data';
@@ -268,11 +268,7 @@ const { locale } = useI18n()
 const changeLang = (lang) => {
   locale.value = lang
   localStorage.setItem('lang', lang)
-  eventBus.emit('send-broadcast', {
-    to: 'all',
-    eventName: 'lang-changed',
-    data: lang
-  })
+  sendBroadcast('all', 'lang-changed', lang)
 }
 const toggleUserProfile = () => {
   eventBus.emit('toggle-user-profile')

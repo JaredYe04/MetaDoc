@@ -489,7 +489,9 @@
     "testPrompt": "こんにちは！自己紹介をお願いします。",
     "testFailed": "テストに失敗しました：",
     "particleEffect": "粒子効果",
-    "particleEffectHint": "粒子効果を有効にして、視覚的な美しさを向上させます。これを有効にすると、パフォーマンスに影響を与える可能性があります。"
+    "particleEffectHint": "粒子効果を有効にして、視覚的な美しさを向上させます。これを有効にすると、パフォーマンスに影響を与える可能性があります。",
+    "enableKnowledgeBase": "ナレッジベースを有効にする",
+    "knowledgeBaseTooltip": "有効にすると、ローカルナレッジベースから情報によってAIのコンテンツがサポートされています。"
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",

@@ -423,7 +423,9 @@
     "themeDark": "Dunkel",
     "themeLight": "Lichtfarbe",
     "themeSync": "Folgen Sie dem System",
-    "themes": "Themeneinstellungen"
+    "themes": "Themeneinstellungen",
+    "enableKnowledgeBase": "Wissensbasis aktivieren",
+    "knowledgeBaseTooltip": "Wenn aktiviert, wird der Inhalt von KI durch Informationen aus der lokalen Wissensbasis unterstützt."
   },
   "titleMenu": {
     "contextMarks": {

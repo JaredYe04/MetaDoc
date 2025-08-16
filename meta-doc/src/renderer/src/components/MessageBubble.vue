@@ -3,7 +3,7 @@
 <script setup>
 
 import "../assets/response-container.css"
-import {ref, defineProps, computed,onMounted,onBeforeMount } from 'vue';
+import {ref, computed,onMounted,onBeforeMount } from 'vue';
 import {Avatar, Delete, Edit, Refresh, User} from "@element-plus/icons-vue";
 import {ElMessageBox} from "element-plus";
 import {MdEditor,MdPreview, MdCatalog}from 'md-editor-v3';

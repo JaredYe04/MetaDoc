@@ -4,6 +4,8 @@ import { ca } from "element-plus/es/locales.mjs";
 import eventBus from "./event-bus.js";
 import { max } from "d3";
 import { getMetaDocLlmConfig, verifyToken } from "./web-utils.ts";
+import { queryKnowledgeBase } from "./rag_utils.js";
+import { ragQueryReferencePrompt } from "./prompts.js";
 
 /**
  * Helper to determine the current LLM settings (selected model and API details).
@@ -49,6 +51,7 @@ async function getLlmConfig() {
  * @returns {Promise<string>} - The response from the model.
  */
 async function answerQuestion(prompt, meta = { temperature: 0 }) {
+  prompt = await ragQueryInjection(prompt);
   const { type, apiUrl, apiKey, selectedModel, completionSuffix = '' } = await getLlmConfig();
   const autoRemoveThinkTag = await getSetting('autoRemoveThinkTag')
   switch (type) {
@@ -117,8 +120,8 @@ async function validateApi() {
 }
 
 async function answerQuestionStream(prompt, ref, meta = { temperature: 0 }, signal = {}) {
+  prompt = await ragQueryInjection(prompt);
   if (!(await validateApi())) { return }
-
   const { type, apiUrl, apiKey, selectedModel, completionSuffix = '' } = await getLlmConfig();
 
   async function handleStreamingRequest(url, payload, ref) {
@@ -240,8 +243,11 @@ async function answerQuestionStream(prompt, ref, meta = { temperature: 0 }, sign
  * @returns {Promise<string>} - The response from the model.
  */
 async function continueConversation(conversation) {
+  if (!(await validateApi())) {
+    return;
+  }
+  conversation = await ragQueryInjectionConversation(conversation);
   const { type, apiUrl, apiKey, selectedModel, chatSuffix = '' } = await getLlmConfig();
-
   switch (type) {
     case "openai":
     case "metadoc":
@@ -283,7 +289,7 @@ async function continueConversationStream(conversation, ref, signal = {}) {
   if (!(await validateApi())) {
     return;
   }
-
+  conversation = await ragQueryInjectionConversation(conversation);
   const { type, apiUrl, apiKey, selectedModel, chatSuffix = '' } = await getLlmConfig();
   //console.log({ type, apiUrl, apiKey, selectedModel });
 
@@ -408,6 +414,43 @@ async function continueConversationStream(conversation, ref, signal = {}) {
   }
 }
 
+
+
+async function ragQueryInjection(originalPrompt) {
+  const enabledRag = await getSetting('enableKnowledgeBase')
+  if (!enabledRag) {
+    return originalPrompt;
+  }
+
+  const response = await queryKnowledgeBase(originalPrompt);
+  if (response.length === 0) {
+    return originalPrompt;
+  }
+  return originalPrompt + ragQueryReferencePrompt(response);
+}
+
+async function ragQueryInjectionConversation(originalConversation) {
+  if (typeof originalConversation !== "object" || !Array.isArray(originalConversation)) {
+    throw new Error("Invalid conversation format");
+  }
+  const enabledRag = await getSetting('enableKnowledgeBase')
+  if (!enabledRag) {
+    return originalConversation;
+  }
+  const response = await queryKnowledgeBase(originalConversation[originalConversation.length - 2].content);
+  if (response.length === 0) {
+    return originalConversation;
+  }
+  //把rag插入到倒数第二个中
+  const top=originalConversation[originalConversation.length - 1];
+  originalConversation.pop();
+  originalConversation.push({
+    "role": "user",
+    "content": ragQueryReferencePrompt(response)
+  });
+  originalConversation.push(top);
+  return originalConversation;
+}
 
 export {
   answerQuestion,

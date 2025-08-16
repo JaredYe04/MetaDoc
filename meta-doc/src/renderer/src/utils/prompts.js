@@ -164,6 +164,13 @@ export const updateTitlePrompt = (jsonString) => {
     return '快速根据对话内容想一个对话标题，请直接输出标题，不超过10个字，不要包含其他多余内容：' + jsonString;
 }
 
+export const ragQueryReferencePrompt = (queryResults)=>{
+    return "本系统接入了RAG检索系统，以下是知识库的检索结果，由于内容可能与用户需求有偏差，所以请自行仔细甄别是否采纳：[检索内容开始]" 
+    + JSON.stringify(queryResults)
+    + "[检索内容结束]";
+}
+
+
 export const presets=[
   { "value": "我想生成一篇学术报告" },
   { "value": "我想生成一篇议论文" },
@@ -257,3 +264,5 @@ export const presets=[
   { "value": "我想生成一篇关于未来虚拟现实技术的展望" },
 
 ];
+
+

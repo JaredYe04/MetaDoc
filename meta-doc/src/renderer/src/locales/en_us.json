@@ -489,7 +489,9 @@
     "testPrompt": "Hello! Please introduce yourself.",
     "testFailed": "Test failed: ",
     "particleEffect": "Particle Effect",
-    "particleEffectHint": "Enable particle effects to enhance visual aesthetics. This may impact performance."
+    "particleEffectHint": "Enable particle effects to enhance visual aesthetics. This may impact performance.",
+    "enableKnowledgeBase": "Enable knowledge base",
+    "knowledgeBaseTooltip": "When enabled, the content of AI will be supported by information from the local knowledge base."
   },
   "visualize": {
     "articleOutline": "Article Outline",

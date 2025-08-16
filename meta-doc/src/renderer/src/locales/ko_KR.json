@@ -489,7 +489,9 @@
     "testPrompt": "안녕하세요! 자기소개를 부탁드립니다.",
     "testFailed": "테스트 실패:",
     "particleEffect": "입자 효과",
-    "particleEffectHint": "입자 효과를 활성화하여 화면 미적 감각을 향상시킵니다. 활성화하면 성능에 영향을 줄 수 있습니다."
+    "particleEffectHint": "입자 효과를 활성화하여 화면 미적 감각을 향상시킵니다. 활성화하면 성능에 영향을 줄 수 있습니다.",
+    "enableKnowledgeBase": "지식 기반",
+    "knowledgeBaseTooltip": "AI의 콘텐츠는 현지 지식 베이스의 정보로 지원됩니다."
   },
   "visualize": {
     "articleOutline": "문서 아웃라인",

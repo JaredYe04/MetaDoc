@@ -6,9 +6,9 @@ import { knowledgeUploadDir } from '../express_server';
 // ==== 配置 ====
 const VECTOR_LEN = 768; // 嵌入维度
 const VECTOR_DATABASE_PATH = getVectorDatabasePath(); // 向量数据库路径
-export const INDEX_PATH = path.join(VECTOR_DATABASE_PATH,'./vector_index.json'); // 存向量
-export const DOCS_PATH = path.join(VECTOR_DATABASE_PATH,'./vector_docs.json');   // 存文本
-export const VECTOR_INFO_PATH = path.join(VECTOR_DATABASE_PATH,'./vector_info.json'); // 存文档元信息
+export const INDEX_PATH = path.join(VECTOR_DATABASE_PATH, './vector_index.json'); // 存向量
+export const DOCS_PATH = path.join(VECTOR_DATABASE_PATH, './vector_docs.json');   // 存文本
+export const VECTOR_INFO_PATH = path.join(VECTOR_DATABASE_PATH, './vector_info.json'); // 存文档元信息
 
 // 内存索引
 export let vectorIndex = []; // [{id, vector}]
@@ -81,6 +81,10 @@ export function removeFromIndex(fileBaseName) {
 
 
 // ==== Step 1: 文本分段 ====
+
+import natural from "natural";
+
+
 // 高精度文本分段（按语义切分 + overlap）
 // 特点：
 // 1. 优先按中文/英文的自然句子边界切
@@ -88,56 +92,65 @@ export function removeFromIndex(fileBaseName) {
 // 3. 合并过短的片段，提高语义完整度
 export function chunkText(text, chunkSize = 500, overlap = 50) {
   if (!text || typeof text !== 'string') return [];
-
   // 1. 标准化空白符
-  text = text.replace(/\r\n/g, '\n').replace(/\t/g, ' ').replace(/ +/g, ' ');
-
-  // 2. 按句子切分（支持中英文）
-  const sentences = text
-    .split(/(?<=[。！？.!?])\s+|\n+/) // 句子边界 或 段落换行
-    .map(s => s.trim())
-    .filter(Boolean)
-    .filter(s => !isMeaningless(s)); // 过滤掉无意义内容
-
+  text = text
+    .replace(/\r\n/g, '\n')
+    .replace(/\t/g, ' ')
+    .replace(/ +/g, ' ')
+    .split(/(?<=[。！？.!?])\s+|\n+/)
+    .join(''); // 按句子分割
+  const tokenizer = new natural.SentenceTokenizer();
+  let sentences = tokenizer.tokenize(text);
   const chunks = [];
   let currentChunk = '';
 
   for (let i = 0; i < sentences.length; i++) {
+    if (isMeaningless(sentences[i])) continue;//除去无意义句子
     const sentence = sentences[i];
+    // Overlap: 保留上一段的尾部
+    const overlapText = currentChunk.slice(-overlap);
     if ((currentChunk + sentence).length <= chunkSize) {
-      currentChunk += sentence + ' ';
+      currentChunk += sentence;
     } else {
-      if (currentChunk.length <= chunkSize) {
+      if(currentChunk.trim().length<=chunkSize){
         chunks.push(currentChunk.trim());
       }
-      // Overlap: 保留上一段的尾部
-      const overlapText = currentChunk.slice(-overlap);
-      currentChunk = overlapText + sentence + ' ';
+      else{
+        // 如果当前 chunk 超过了 chunkSize，则进行切分
+        const splitChunks = splitLongChunk(currentChunk, chunkSize);
+        chunks.push(...splitChunks);
+      }
+      currentChunk = overlapText + sentence;
     }
   }
-
   if (currentChunk.trim() && currentChunk.trim().length <= chunkSize) {
     chunks.push(currentChunk.trim());
   }
-
   // 3. 合并过短 chunk
   const minLen = Math.floor(chunkSize * 0.4);
-  const mergedChunks = [];
+  let mergedChunks = [];
   for (let i = 0; i < chunks.length; i++) {
     if (
       mergedChunks.length > 0 &&
       chunks[i].length < minLen &&
       (mergedChunks[mergedChunks.length - 1].length + chunks[i].length) <= chunkSize
     ) {
-      mergedChunks[mergedChunks.length - 1] += ' ' + chunks[i];
+      mergedChunks[mergedChunks.length - 1] += + chunks[i];
     } else {
       mergedChunks.push(chunks[i]);
     }
   }
-
+  //去除所有空的chunk
+  mergedChunks = mergedChunks.filter(chunk => chunk.trim().length > 0);
   return mergedChunks;
 }
-
+function splitLongChunk(chunk, chunkSize) {
+  const splitChunks = [];
+  for (let i = 0; i < chunk.length; i += chunkSize) {
+    splitChunks.push(chunk.slice(i, i + chunkSize));
+  }
+  return splitChunks;
+}
 /**
  * 检测是否为无意义字符串
  * 规则：
@@ -201,12 +214,18 @@ export async function addFileToKnowledgeBase(filePath) {
     const vector = await embedText(chunk);
 
     if (vector.length !== VECTOR_LEN) {
-      throw new Error(`Embedding dimension mismatch: expected ${VECTOR_LEN}, got ${vector.length}`);
+      // console.log(chunk)
+      // console.log(chunk.length)
+      // console.log(chunks)
+      console.warn(`Embedding dimension mismatch: expected ${VECTOR_LEN}, got ${vector.length}`);
+    }
+    else{
+      const id = `${path.basename(filePath)}_${i}`;
+      vectorIndex.push({ id, vector });
+      docIdToText.set(id, chunk);
     }
 
-    const id = `${path.basename(filePath)}_${i}`;
-    vectorIndex.push({ id, vector });
-    docIdToText.set(id, chunk);
+
   }
 
   // 更新元信息

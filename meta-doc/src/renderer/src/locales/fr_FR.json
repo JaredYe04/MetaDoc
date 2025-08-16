@@ -423,7 +423,9 @@
     "themeDark": "Noir",
     "themeLight": "Couleur lumineuse",
     "themeSync": "Suivre le système",
-    "themes": "Paramètres du thème"
+    "themes": "Paramètres du thème",
+    "enableKnowledgeBase": "Activer la base de connaissances",
+    "knowledgeBaseTooltip": "Une fois activé, le contenu de l'IA sera étayé par des informations provenant de la base de connaissances locale."
   },
   "titleMenu": {
     "contextMarks": {

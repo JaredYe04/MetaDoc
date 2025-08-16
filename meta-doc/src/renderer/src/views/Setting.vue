@@ -36,11 +36,7 @@
                 <el-switch v-model="settings.particleEffect" class="mb-2"
                   style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
                   :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')" @change="saveSetting('particleEffect', settings.particleEffect);
-                  eventBus.emit('send-broadcast', {
-                    to: 'home',
-                    eventName: 'toggle-particle-effect',
-                    data: {}
-                  });
+                  sendBroadcast('home', 'toggle-particle-effect', {});
                   " />
               </el-form-item>
             </el-tooltip>
@@ -166,7 +162,16 @@
                     :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
                     @change="saveSetting('autoRemoveThinkTag', settings.autoRemoveThinkTag)" />
                 </el-form-item>
+                <el-form-item :label="$t('setting.enableKnowledgeBase')">
+                  <el-tooltip :content="$t('setting.knowledgeBaseTooltip')" placement="bottom">
+                    <el-switch v-model="settings.enableKnowledgeBase" class="mb-2"
+                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                      :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')" @change="saveSetting('enableKnowledgeBase', settings.enableKnowledgeBase);
+                      sendBroadcast('home', 'knowledge-base-toggle', { enabled: settings.enableKnowledgeBase });
+                      " />
+                  </el-tooltip>
 
+                </el-form-item>
                 <div class="aero-divider">
                   <el-form-item>
                     <el-button type="primary" @click="testLlmApi" class="aero-btn">{{ $t('setting.testLlm')
@@ -200,19 +205,19 @@
             <!-- 文档内容主题设置 -->
             <el-form-item :label="$t('setting.contentTheme')">
               <el-select v-model="settings.contentTheme" placeholder="Select Content Theme" @change="saveSetting('contentTheme', settings.contentTheme)
-              eventBus.emit('send-broadcast', { to: 'all', eventName: 'sync-vditor-theme', data: {} });
+              sendBroadcast('all', 'sync-vditor-theme', {});
               ">
-              <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
-              <el-option v-for="item in contentThemes" :key="item.value" :label="t(item.label)" :value="item.value" />
+                <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
+                <el-option v-for="item in contentThemes" :key="item.value" :label="t(item.label)" :value="item.value" />
               </el-select>
             </el-form-item>
 
             <!-- 代码主题设置 -->
             <el-form-item :label="$t('setting.codeTheme')">
               <el-select v-model="settings.codeTheme" filterable placeholder="Select Code Theme" @change="saveSetting('codeTheme', settings.codeTheme)
-              eventBus.emit('send-broadcast', { to: 'all', eventName: 'sync-vditor-theme', data: {} });
+              sendBroadcast('all', 'sync-vditor-theme', {});
               ">
-              <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
+                <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
                 <el-option v-for="item in codeThemes" :key="item" :label="item" :value="item" />
               </el-select>
             </el-form-item>
@@ -220,7 +225,7 @@
               <el-switch v-model="settings.lineNumber" class="mb-2"
                 style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
                 :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
-                @change="saveSetting('lineNumber', settings.lineNumber);"/>
+                @change="saveSetting('lineNumber', settings.lineNumber);" />
             </el-form-item>
           </template>
         </el-form>
@@ -233,7 +238,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from "vue";
-import eventBus from "../utils/event-bus.js";
+import eventBus, { sendBroadcast } from "../utils/event-bus.js";
 import { getSetting, setSetting } from "../utils/settings.js";
 import axios from "axios";
 import MicrophoneTest from "../components/MicrophoneTest.vue";

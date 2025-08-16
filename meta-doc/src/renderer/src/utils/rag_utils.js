@@ -11,6 +11,5 @@ if (window && window.electron) {
 
 export async function queryKnowledgeBase(question,k=3){
     const response = await ipcRenderer.invoke('query-knowledge-base', { question, k });
-    //console.log(`Knowledge base query response: ${JSON.stringify(response)}`);
     return response;
 }

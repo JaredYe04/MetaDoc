@@ -1,6 +1,4 @@
 [
-    "nomic-embed-text-v1.5.Q5_K_M.gguf",
-    "nomic-embed-text-v1.5.Q8_0.gguf",
     "bce-embedding-base_v1-Q6_K.gguf",
     "bce-embedding-base_v1-Q8_0.gguf"
 ]

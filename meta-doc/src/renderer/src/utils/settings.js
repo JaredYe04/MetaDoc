@@ -51,6 +51,7 @@ export const settings = reactive({
   customThemeColor: "#ffffff", // 自定义主题颜色
   llmEnabled: false, // 是否启用 LLM
   selectedLlm: "", // 选择的大模型类型
+  enableKnowledgeBase: true, // 是否启用知识库
   //exportImageMode: "none", // 导出图片选项
   autoRemoveThinkTag: true,//自动去除推理过程
   bypassCodeBlock: true, // 统计文字信息时排除代码块

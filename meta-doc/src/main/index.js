@@ -69,7 +69,7 @@ function createWindow() {
       const ext = path.extname(arg).toLowerCase();
       return supportedExtensions.includes(ext);
     });
-    console.log('filePath:', filePath);
+    //console.log('filePath:', filePath);
   }
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + '/#/home?windowType=home' + (filePath ? `&file=${encodeURIComponent(filePath)}` : ''))

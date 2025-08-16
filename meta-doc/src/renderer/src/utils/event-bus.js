@@ -51,12 +51,7 @@ eventBus.on('sync-ai-dialogs', (dialogs) => {//ai-chat -> home，一般来说只
 
 eventBus.on('request-ai-dialogs', (event) => {//home -> ai-chat，主窗口请求AICHAT组件获取对话数据
   //console.log('我是' + getWindowType() + '窗口，我向AICHAT组件发送对话数据')
-  eventBus.emit('send-broadcast', {
-    to: 'ai-chat',
-    eventName: 'response-ai-dialogs',
-    data: JSON.parse(JSON.stringify(current_ai_dialogs.value))
-  })
-
+  sendBroadcast('ai-chat', 'response-ai-dialogs', JSON.parse(JSON.stringify(current_ai_dialogs.value)))
 })
 
 eventBus.on('response-ai-dialogs', (dialogs) => {//主进程发送给AICHAT组件对话数据
@@ -276,18 +271,11 @@ eventBus.on('system-notification', (data) => {
 })
 
 eventBus.on('theme-changed', () => {
-  eventBus.emit('send-broadcast', {
-    to: 'all',
-    eventName: 'sync-theme',
-    data: {}
-  })
-  //ipcRenderer.send('request-sync-theme')
+  sendBroadcast('all', 'sync-theme', {});
 })
-
 eventBus.on('send-broadcast', (message) => {
   //console.log('发送广播消息:', message)
   ipcRenderer.send('send-broadcast', message)//公共的广播信道
-
   //示例：
   //   eventBus.emit('send-broadcast', {
   //   to: 'all', // 或者指定窗口类型，如 'home' 或 'ai-chat'
@@ -295,6 +283,11 @@ eventBus.on('send-broadcast', (message) => {
   //   data: { key: 'value' } // 传递的数据
   // });
 })
+export function sendBroadcast(to, eventName, data) {
+  eventBus.emit('send-broadcast', { to, eventName, data });
+}
+
+
 ipcRenderer.on('receive-broadcast', (event, message) => {
   //console.log('接收到广播消息:', message)
   eventBus.emit('receive-broadcast', message)//接收到广播消息

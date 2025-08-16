@@ -582,7 +582,10 @@ onMounted(async () => {
                 } catch (e) {
                     console.error(e);
                 }
-                loadingInstance.close();
+                finally{
+                    loadingInstance.close();
+                }
+                
             },
         });
     }
@@ -591,8 +594,9 @@ onMounted(async () => {
         eventBus.emit('show-error',
             this.$t('article.vditor_init_failed') + e
         );
+    }
+    finally {
         loadingInstance.close();
-
     }
 });
 const currentAiLogo = computed(() => {

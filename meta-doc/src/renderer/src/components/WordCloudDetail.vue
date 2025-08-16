@@ -31,7 +31,6 @@ import { explainWordPrompt, sectionChangePrompt } from '../utils/prompts';
 
 import eventBus from '../utils/event-bus';
 import { generateMarkdownFromOutlineTree } from '../utils/md-utils';
-import { defineProps, defineEmits } from 'vue';
 import { themeState } from '../utils/themes';
 const props = defineProps({
   word: {

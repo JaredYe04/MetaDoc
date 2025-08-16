@@ -441,6 +441,8 @@
         "openNewFile": "打开新文件",
         "openLastFile": "打开上次编辑的文件",
         "askBeforeSave": "总是询问保存",
+        "enableKnowledgeBase": "启用知识库",
+        "knowledgeBaseTooltip":"启用后，将使用本地知识库中的信息来辅助AI生成内容。",
         "autoSave": "自动保存",
         "off": "关闭",
         "minute1": "1分钟",

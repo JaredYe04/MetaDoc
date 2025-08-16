@@ -78,6 +78,7 @@
     "mitt": "^3.0.1",
     "mock-aws-s3": "^4.0.2",
     "multer": "^1.4.5-lts.1",
+    "natural": "^8.1.0",
     "nock": "^13.5.6",
     "node-llama-cpp": "^3.11.0",
     "openai": "^4.94.0",

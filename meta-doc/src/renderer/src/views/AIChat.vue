@@ -75,7 +75,7 @@
 </template>
 
 <script setup>
-import { defineProps, ref, onMounted, watch, reactive } from 'vue';
+import { ref, onMounted, watch, reactive } from 'vue';
 import MessageBubble from "../components/MessageBubble.vue";
 //import { bindCode } from "../assets/aichat_legacy/utils";
 import { ChatSquare, Delete, Edit } from "@element-plus/icons-vue/global";
@@ -85,7 +85,7 @@ import "../assets/title.css"
 import { ElMessage } from "element-plus";
 import { useRoute } from 'vue-router';
 import { current_ai_dialogs, addDialog, updateDialog, deleteDialog, defaultAiChatMessages } from '../utils/common-data.js';
-import eventBus from '../utils/event-bus.js';
+import eventBus, { sendBroadcast } from '../utils/event-bus.js';
 import { themeState } from "../utils/themes.js";
 import { AddIcon } from 'tdesign-icons-vue-next';
 import { answerQuestion, continueConversationStream } from '../utils/llm-api.js';
@@ -264,11 +264,7 @@ const updateTitle = async () => {
 };
 
 onMounted(async () => {
-  eventBus.emit('send-broadcast', {
-    to:'home',
-    eventName:'request-ai-dialogs',
-    data: {}
-  });
+  sendBroadcast('home', 'request-ai-dialogs', {}); // 请求主渲染进程发送对话数据给渲染进程
   
   //获取AI对话，因为对话保存在主渲染进程，所以需要主渲染进程发送给渲染进程
   initCurrentDialog();

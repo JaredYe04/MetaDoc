@@ -4,8 +4,7 @@
             <div class="kb-container">
 
                 <!-- Left: list -->
-                <div class="kb-left"
-                    :style="{ background: themeState.currentTheme.background }">
+                <div class="kb-left" :style="{ background: themeState.currentTheme.background }">
                     <!-- 上半部分: 知识库列表，占60%高度 -->
                     <div class="kb-list-wrapper" style="flex: 0 0 60%;">
                         <el-card class="kb-panel" shadow="hover"
@@ -68,14 +67,19 @@
                             <el-scrollbar style="flex-grow: 1; margin-top: 10px;">
                                 <el-card class="kb-panel" shadow="hover" v-for="(result, index) in searchResults"
                                     :key="index"
-                                    style="overflow: auto; word-break: break-word;margin-bottom: 6px; white-space: pre-wrap;"
-                                    :style="{ background: themeState.currentTheme.SideBackgroundColor }">
-                                    <pre>{{ result }}</pre>
+                                    :style="{ background: themeState.currentTheme.SideBackgroundColor, marginBottom: '6px' }">
+                                    <pre style="
+                                        white-space: pre-wrap;   /* 保留换行符，同时允许换行 */
+                                        word-break: break-word;   /* 中英文长单词自动换行 */
+                                        overflow-wrap: anywhere;  /* 处理超长连续字符 */
+                                        margin: 0;                /* 去掉默认 pre 边距 */
+                                    ">{{ result }}</pre>
                                 </el-card>
-                                <div v-if="searchResults.length === 0 && !searching" style="color: #999;" class="placeholder">
+
+                                <div v-if="searchResults.length === 0 && !searching" style="color: #999;"
+                                    class="placeholder">
                                     {{ t('knowledgeBase.searchTest.noResult') }}
                                 </div>
-
                             </el-scrollbar>
                         </el-card>
                     </el-scrollbar>
@@ -86,6 +90,7 @@
                 <div class="kb-right" :style="{ background: themeState.currentTheme.background }">
                     <!-- 上：preview -->
                     <el-card class="kb-panel kb-preview" shadow="hover"
+                        :loading="previewLoaded"
                         :style="{ background: themeState.currentTheme.background2nd }" style="flex: 0 0 50%;">
                         <div class="kb-panel-header">
                             <h2 class="kb-panel-title">{{ t('knowledgeBase.preview') }}</h2>
@@ -115,14 +120,17 @@
                             <div v-if="selectedItem">
                                 <el-descriptions column="1" size="small" border
                                     :style="{ background: themeState.currentTheme.background2nd }">
+
                                     <el-descriptions-item :label="t('knowledgeBase.filename')">
                                         <template v-if="isEditing">
                                             <el-input v-model="editFilename" size="small" class="edit-filename-input"
                                                 @keyup.enter.native="onConfirm" />
                                             <el-button size="small" @click="onConfirm" class="aero-btn" circle
-                                                :loading="renaming"> <el-icon v-if="!renaming" style="font-size: 14px">
+                                                :loading="renaming">
+                                                <el-icon v-if="!renaming" style="font-size: 14px">
                                                     <Check />
-                                                </el-icon></el-button>
+                                                </el-icon>
+                                            </el-button>
                                             <el-button size="small" @click="onCancel" :disabled="renaming"
                                                 class="aero-btn" circle>
                                                 <el-icon style="font-size: 14px">
@@ -131,32 +139,40 @@
                                             </el-button>
                                         </template>
                                         <template v-else>
-                                            {{ selectedItem.name }}
+                                            <span class="text-ellipsis">{{ selectedItem.name }}</span>
                                             <el-button icon="el-icon-edit" @click="startEditing" circle class="aero-btn"
-                                                size="small"><el-icon style="font-size: 14px">
+                                                size="small">
+                                                <el-icon style="font-size: 14px">
                                                     <Edit />
-                                                </el-icon></el-button>
+                                                </el-icon>
+                                            </el-button>
                                         </template>
                                     </el-descriptions-item>
                                     <el-descriptions-item :label="t('knowledgeBase.path')">
-                                        {{ info.path || '-' }}
+                                        {{ truncateEnd(info.path, 50) }}
                                     </el-descriptions-item>
+
                                     <el-descriptions-item :label="t('knowledgeBase.chunks')">
-                                        {{ info.chunks ?? '-' }}
+                                        {{ truncateEnd(info.chunks, 50) }}
                                     </el-descriptions-item>
+
                                     <el-descriptions-item :label="t('knowledgeBase.vector_dim')">
-                                        {{ info.vector_dim ?? '-' }}
+                                        {{ truncateEnd(info.vector_dim, 50) }}
                                     </el-descriptions-item>
+
                                     <el-descriptions-item :label="t('knowledgeBase.vector_count')">
-                                        {{ info.vector_count ?? '-' }}
+                                        {{ truncateEnd(info.vector_count, 50) }}
                                     </el-descriptions-item>
+
                                     <el-descriptions-item :label="t('knowledgeBase.size')">
-                                        {{ info.sizeText || '-' }}
+                                        {{ truncateEnd(info.sizeText || '-', 50) }}
                                     </el-descriptions-item>
+
                                     <el-descriptions-item :label="t('knowledgeBase.enabled_state')">
                                         <el-switch v-model="selectedItem.info.enabled"
                                             @change="(val) => toggleEnable(selectedItem, val)" />
                                     </el-descriptions-item>
+
                                 </el-descriptions>
 
                                 <div class="config-actions">
@@ -170,6 +186,7 @@
                             </div>
                             <div v-else class="placeholder">{{ t('knowledgeBase.choose_one') }}</div>
                         </el-scrollbar>
+
                     </el-card>
                 </div>
 
@@ -194,6 +211,7 @@ import { interpolateObject } from 'd3';
 
 const { t } = useI18n();
 
+const previewLoaded = ref(true);
 const items = ref([]);
 const selectedId = ref(null);
 const selectedItem = computed(() => items.value.find(i => i.id === selectedId.value) || null);
@@ -208,6 +226,11 @@ const baseUrl = 'http://localhost:3000/api/knowledge'
 const searchQuery = ref('');
 const searchResults = ref([]);
 const searching = ref(false);
+const truncateEnd = (value, maxLength = 50) => {
+    if (!value) return '-';
+    const str = String(value);
+    return str.length > maxLength ? "..."+str.slice(-maxLength) : str;
+}
 //kb-panel的背景设置为themeState中的background
 // helper: format size
 function humanSize(bytes) {
@@ -255,8 +278,8 @@ async function doSearch() {
 // select row
 function selectRow(row) {
     selectedId.value = row.id;
-    fetchPreview(row.id);
     fetchInfo(row.id);
+    fetchPreview(row.id);
 }
 
 function onSelect(row) {
@@ -273,7 +296,7 @@ async function onFileSelected(e) {
     if (!f) return;
     await uploadFile(f);
     // reset input
-    e.target.value = ''; knowledgeItems.push
+    e.target.value = '';
 }
 
 async function uploadFile(file) {
@@ -328,6 +351,7 @@ async function deleteItem(id) {
 
 // fetch preview
 async function fetchPreview(id) {
+    previewLoaded.value = false;
     previewText.value = '';
     isTruncated.value = false;
     try {
@@ -338,13 +362,16 @@ async function fetchPreview(id) {
     } catch (e) {
         console.error(e);
     }
+    finally {
+        previewLoaded.value = true;
+    }
 }
 
 // fetch info
 async function fetchInfo(id) {
     try {
         const r = await fetch(`${baseUrl}/${id}/info`);
-        
+
         const j = await r.json();
         if (j.success) {
             delete j['success']
@@ -489,6 +516,7 @@ async function onConfirm() {
     min-height: 90vh;
     max-height: 90vh;
 }
+
 .el-scrollbar {
     flex: 1;
     /* 关键：让滚动条填满剩余空间 */

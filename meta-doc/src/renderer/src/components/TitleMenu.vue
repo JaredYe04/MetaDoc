@@ -112,7 +112,6 @@ import { sectionChangePrompt } from '../utils/prompts';
 
 import eventBus from '../utils/event-bus';
 import { generateMarkdownFromOutlineTree } from '../utils/md-utils';
-import { defineProps, defineEmits } from 'vue';
 import { themeState } from '../utils/themes';
 import { current_article } from '../utils/common-data';
 import { Plus } from '@element-plus/icons-vue';

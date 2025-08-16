@@ -8,6 +8,7 @@
                     <!-- 上半部分: 知识库列表，占60%高度 -->
                     <div class="kb-list-wrapper" style="flex: 0 0 60%;">
                         <el-card class="kb-panel" shadow="hover"
+                        v-loading="isUploading"
                             :style="{ background: themeState.currentTheme.background2nd, height: '100%' }">
                             <div class="kb-panel-header">
                                 <h2 class="kb-panel-title">{{ t('knowledgeBase.title') }}</h2>
@@ -16,6 +17,8 @@
                                         t('knowledgeBase.add') }}</el-button>
                                     <el-button type="danger" size="small" :disabled="!selectedItem"
                                         @click="confirmDelete">{{ t('knowledgeBase.delete') }}</el-button>
+                                    <el-button size="small" :disabled="!selectedItem"
+                                        @click="confirmClearAll">{{ t('knowledgeBase.clear_all') }}</el-button>
                                     <input ref="fileInput" type="file" style="display:none" @change="onFileSelected"
                                         accept=".txt,.md,.pdf,.docx" />
                                 </div>
@@ -89,8 +92,7 @@
                 <!-- 右边 -->
                 <div class="kb-right" :style="{ background: themeState.currentTheme.background }">
                     <!-- 上：preview -->
-                    <el-card class="kb-panel kb-preview" shadow="hover"
-                        :loading="previewLoaded"
+                    <el-card class="kb-panel kb-preview" shadow="hover" v-loading="!previewLoaded"
                         :style="{ background: themeState.currentTheme.background2nd }" style="flex: 0 0 50%;">
                         <div class="kb-panel-header">
                             <h2 class="kb-panel-title">{{ t('knowledgeBase.preview') }}</h2>
@@ -229,7 +231,7 @@ const searching = ref(false);
 const truncateEnd = (value, maxLength = 50) => {
     if (!value) return '-';
     const str = String(value);
-    return str.length > maxLength ? "..."+str.slice(-maxLength) : str;
+    return str.length > maxLength ? "..." + str.slice(-maxLength) : str;
 }
 //kb-panel的背景设置为themeState中的background
 // helper: format size
@@ -277,6 +279,8 @@ async function doSearch() {
 
 // select row
 function selectRow(row) {
+    if(row.id==selectedId.value)
+        return;
     selectedId.value = row.id;
     fetchInfo(row.id);
     fetchPreview(row.id);
@@ -310,7 +314,7 @@ async function uploadFile(file) {
             eventBus.emit('show-success', t('knowledgeBase.upload_complete'));
             await fetchList();
         } else {
-            eventBus.emit('show-error', j.message || t('knowledgeBase.upload_failed'));
+            eventBus.emit('show-error', ('knowledgeBase.upload_failed') + j.message);
         }
     } catch (e) {
         console.error(e);
@@ -328,6 +332,32 @@ function confirmDelete() {
         cancelButtonText: t('knowledgeBase.cancel'),
         type: 'warning'
     }).then(() => deleteItem(selectedItem.value.id))
+}
+function confirmClearAll() {
+    ElMessageBox.confirm(t('knowledgeBase.clear_all_confirm'), t('knowledgeBase.clear_all_confirm_title'), {
+        confirmButtonText: t('knowledgeBase.clear_all'),
+        cancelButtonText: t('knowledgeBase.cancel'),
+        type: 'warning'
+    }).then(() => clearAllItems())
+}
+
+async function clearAllItems() {
+    try {
+        const r = await fetch(`${baseUrl}/clear`, { method: 'POST' });
+        const j = await r.json();
+        if (j.success) {
+            eventBus.emit('show-success', t('knowledgeBase.clear_all_success'));
+            selectedId.value = null;
+            items.value = [];
+            previewText.value = '';
+            Object.keys(info).forEach(k => delete info[k]);
+        } else {
+            eventBus.emit('show-error', t('knowledgeBase.clear_all_failed') + j.message);
+        }
+    } catch (e) {
+        console.error(e);
+        eventBus.emit('show-error', t('knowledgeBase.clear_all_error') + e.message);
+    }
 }
 
 async function deleteItem(id) {

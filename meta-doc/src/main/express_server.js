@@ -1,6 +1,6 @@
 
 import { tryConvertFileToText } from './utils/convert_utils.js';
-import { addFileToKnowledgeBase, clearKnowledgeBase, DOCS_PATH, INDEX_PATH, initAnnoy, removeFromIndex, renameKnowledgeFile, saveDocs, saveVectorInfo, VECTOR_INFO_PATH, vectorIndex, vectorInfo } from './utils/rag_utils.js';
+import { addFileToKnowledgeBase, clearKnowledgeBase, DOCS_PATH, INDEX_PATH, initVectorDatabase, removeFromIndex, renameKnowledgeFile, saveDocs, saveVectorInfo, VECTOR_INFO_PATH, vectorIndex, vectorInfo } from './utils/rag_utils.js';
 
 const path = require('path');
 const express = require('express');
@@ -161,7 +161,7 @@ const imageApi = () => {
 }
 
 const knowledgeApi = async () => {
-  await initAnnoy();
+  await initVectorDatabase();
   let timestamp = Date.now();//在正常情况下，不需要用timestamp，如果检查到有重复文件，就需要用这个时间戳来重命名文件
   knowledgeUploadDir = path.join(os.homedir(), 'Documents', 'meta-doc-kb');
   fs.mkdirSync(knowledgeUploadDir, { recursive: true });
@@ -237,7 +237,6 @@ const knowledgeApi = async () => {
     const utf8Name = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
     const fileName = timestamp === -1 ? `${utf8Name}` : `${timestamp}_${utf8Name}`;
     const fullPath = path.join(knowledgeUploadDir, fileName);
-
     //console.log('Received file:', fullPath);
     try {
       const {
@@ -248,9 +247,9 @@ const knowledgeApi = async () => {
       knowledgeItems.push({
         id: fileName,
         name: fileName,
-        enabled: true,
         info: {
           path: fullPath,
+          enabled: true,
           size: req.file.size,
           sizeText: humanSize(req.file.size),
           chunks,
@@ -258,10 +257,11 @@ const knowledgeApi = async () => {
           vector_count
         }
       });
-      res.json({ success: true, message: '上传并添加到知识库成功' });
+      res.json({ success: true });
     } catch (err) {
       console.error('addFileToKnowledgeBase error:', err);
-      res.json({ success: false, message: '上传成功，但添加知识库失败: ' + err.message });
+
+      res.json({ success: false, message: err.message });
     }
   });
 
@@ -310,6 +310,17 @@ const knowledgeApi = async () => {
     }
   });
 
+    expressApp.post('/api/knowledge/clear', async (req, res) => {
+      try {
+        // 清空知识库
+        await clearKnowledgeBase();
+        knowledgeItems = [];
+        res.json({ success: true });
+      } catch (err) {
+        console.error('清空知识库失败', err);
+        res.json({ success: false, message: err.message });
+      }
+    });
   expressApp.get('/api/knowledge/:id/preview', async (req, res) => {
     const id = req.params.id;
     const filePath = path.join(knowledgeUploadDir, id);

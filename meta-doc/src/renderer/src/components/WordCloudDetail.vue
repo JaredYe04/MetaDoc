@@ -58,7 +58,7 @@ const { t } = useI18n()
 const generate = async () => {
   generating.value = true;
   const prompt = explainWordPrompt(props.word);
-  const { handle, done } = createAiTask(props.word, prompt, generatedText, ai_types.answer, 'word-cloud-detail');
+  const { handle, done } = createAiTask(props.word, prompt, generatedText, ai_types.answer, 'word-cloud-detail',false);
 
   try {
     await done;

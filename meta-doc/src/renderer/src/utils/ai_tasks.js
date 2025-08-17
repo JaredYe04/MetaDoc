@@ -32,7 +32,7 @@ export const ai_types={
 }
 
 // 创建任务（主窗口和子窗口通用）
-export function createAiTask(name, prompt, target, type, origin_key, meta = {}) {
+export function createAiTask(name, prompt, target, type, origin_key, try_rag, meta = {}) {
   const autoStart = true
   const handle = generateHandle()
 
@@ -49,6 +49,7 @@ export function createAiTask(name, prompt, target, type, origin_key, meta = {}) 
     target,
     type,
     origin_key,
+    try_rag,
     meta,
     status: ref(ai_task_status.READY), // 初始状态为就绪
     controller: null,
@@ -96,9 +97,9 @@ export async function startAiTask(handle) {
 
   try {
     if (task.type === ai_types.answer) {
-      await answerQuestionStream(task.prompt, task.target, task.meta, controller.signal)
+      await answerQuestionStream(task.prompt, task.target, task.meta, controller.signal, task.try_rag)
     } else if (task.type === ai_types.chat) {
-      await continueConversationStream(task.prompt, task.target, controller.signal)
+      await continueConversationStream(task.prompt, task.target, controller.signal, task.try_rag)
     }
 
     task.status.value = ai_task_status.FINISHED

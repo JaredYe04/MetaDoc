@@ -391,7 +391,7 @@ const handleLlmToggle = (enabled) => {
 const testLlmApi = async () => {
   try {
     const prompt = t('setting.testPrompt');
-    createAiTask('AI Test', prompt, testResult, ai_types.answer, 'setting-test');
+    createAiTask('AI Test', prompt, testResult, ai_types.answer, 'setting-test',false);
   } catch (error) {
     console.error(t('setting.testFailed'), error);
 

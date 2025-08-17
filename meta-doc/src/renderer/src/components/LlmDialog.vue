@@ -102,7 +102,7 @@ async function generateContent() {
   }
   loading.value = true
   try {
-    createAiTask(props.title, props.prompt, aiResponse,ai_types.answer,props.title);
+    createAiTask(props.title, props.prompt, aiResponse,ai_types.answer,props.title,false);
 
   } catch (error) {
     ElMessage.error(t('llmDialog.generateFailedError'))

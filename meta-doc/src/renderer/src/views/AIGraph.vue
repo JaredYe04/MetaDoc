@@ -550,7 +550,7 @@ async function generateCode() {
         },
         { immediate: true }
     )
-    const { handle, done } = createAiTask(activeScheme.value.prompt, prompt, codeRef, ai_types.answer, 'ai-graph');
+    const { handle, done } = createAiTask(activeScheme.value.prompt, prompt, codeRef, ai_types.answer, 'ai-graph', false);
     generating.value = true;
 
     try {

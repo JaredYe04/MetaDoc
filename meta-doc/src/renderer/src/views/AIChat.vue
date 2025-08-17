@@ -194,7 +194,7 @@ async function generateNextResponse(beforeGeneration, callbackRef, afterGenerati
   const messageCopy = JSON.parse(JSON.stringify(messages.value));// 深拷贝消息列表，因为Proxy不能直接拷贝
   console.log(messageCopy)
   const { handle, done } = createAiTask(
-    messageCopy[messageCopy.length - 2].content, messageCopy, cur_resp, ai_types.chat, 'ai-chat');
+    messageCopy[messageCopy.length - 2].content, messageCopy, cur_resp, ai_types.chat, 'ai-chat',true);
   try {
     await done;
   } catch (err) {

@@ -209,7 +209,7 @@ const generate = async () => {
 
   const prompt = sectionChangePrompt(outline, articleContent.value, props.title, userPrompt.value, context_mode.value, current_article.value);
   //console.log(prompt);
-  const { handle, done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'title-menu');
+  const { handle, done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'title-menu',false);
   generating.value = true;
   generated.value = false;
 

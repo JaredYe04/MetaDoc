@@ -50,8 +50,10 @@ async function getLlmConfig() {
  * @param {string} prompt - The prompt to ask.
  * @returns {Promise<string>} - The response from the model.
  */
-async function answerQuestion(prompt, meta = { temperature: 0 }) {
-  prompt = await ragQueryInjection(prompt);
+async function answerQuestion(prompt, meta = { temperature: 0 }, try_rag = false) {
+  if (try_rag) {
+    prompt = await ragQueryInjection(prompt);
+  }
   const { type, apiUrl, apiKey, selectedModel, completionSuffix = '' } = await getLlmConfig();
   const autoRemoveThinkTag = await getSetting('autoRemoveThinkTag')
   switch (type) {
@@ -119,8 +121,10 @@ async function validateApi() {
   return flag;
 }
 
-async function answerQuestionStream(prompt, ref, meta = { temperature: 0 }, signal = {}) {
-  prompt = await ragQueryInjection(prompt);
+async function answerQuestionStream(prompt, ref, meta = { temperature: 0 }, signal = {}, try_rag = false) {
+  if (try_rag) {
+    prompt = await ragQueryInjection(prompt);
+  }
   if (!(await validateApi())) { return }
   const { type, apiUrl, apiKey, selectedModel, completionSuffix = '' } = await getLlmConfig();
 
@@ -285,11 +289,13 @@ async function continueConversation(conversation) {
  * @param {object[]} conversation - The conversation history.
  * @param {object} ref - A reactive reference to store the result incrementally.
  */
-async function continueConversationStream(conversation, ref, signal = {}) {
+async function continueConversationStream(conversation, ref, signal = {}, try_rag = false) {
   if (!(await validateApi())) {
     return;
   }
-  conversation = await ragQueryInjectionConversation(conversation);
+  if (try_rag) {
+    conversation = await ragQueryInjectionConversation(conversation);
+  }
   const { type, apiUrl, apiKey, selectedModel, chatSuffix = '' } = await getLlmConfig();
   //console.log({ type, apiUrl, apiKey, selectedModel });
 
@@ -442,7 +448,7 @@ async function ragQueryInjectionConversation(originalConversation) {
     return originalConversation;
   }
   //把rag插入到倒数第二个中
-  const top=originalConversation[originalConversation.length - 1];
+  const top = originalConversation[originalConversation.length - 1];
   originalConversation.pop();
   originalConversation.push({
     "role": "user",

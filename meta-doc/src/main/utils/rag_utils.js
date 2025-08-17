@@ -9,7 +9,7 @@ const VECTOR_DATABASE_PATH = getVectorDatabasePath(); // 向量数据库路径
 export const INDEX_PATH = path.join(VECTOR_DATABASE_PATH, './vector_index.json'); // 存向量
 export const DOCS_PATH = path.join(VECTOR_DATABASE_PATH, './vector_docs.json');   // 存文本
 export const VECTOR_INFO_PATH = path.join(VECTOR_DATABASE_PATH, './vector_info.json'); // 存文档元信息
-
+const CHUNK_SIZE=500;
 // 内存索引
 export let vectorIndex = []; // [{id, vector}]
 export let docIdToText = new Map();
@@ -90,7 +90,7 @@ import natural from "natural";
 // 1. 优先按中文/英文的自然句子边界切
 // 2. 支持 chunk overlap，减少信息断裂
 // 3. 合并过短的片段，提高语义完整度
-export function chunkText(text, chunkSize = 500, overlap = 50) {
+export function chunkText(text, chunkSize = CHUNK_SIZE, overlap = 50) {
   if (!text || typeof text !== 'string') return [];
   // 1. 标准化空白符
   text = text
@@ -197,6 +197,7 @@ export async function embedText(text) {
     await initEmbedder();
     //throw new Error('Embedding context not initialized. Please call initEmbedder() first.');
   }
+  //console.log(text)
   const embedding = await embeddingContext.getEmbeddingFor(text);
   return embedding.vector;
 }
@@ -384,33 +385,58 @@ function rerankResults(queryEmbedding, candidates) {
 }
 export async function queryKnowledgeBase(question, k = 3) {
   await initVectorDatabase();
-  const queryEmbedding = await embedText(question);
 
-  const filteredVectorIndex = vectorIndex.filter(vec => {
-    // 找到最后一个下划线的位置
-    const lastUnderscoreIndex = vec.id.lastIndexOf('_');
-    const baseName = lastUnderscoreIndex !== -1
-      ? vec.id.slice(0, lastUnderscoreIndex)
-      : vec.id; // 如果没有下划线，就直接用整个
-    return vectorInfo[baseName]?.enabled !== false;
-  });
-  // Step 1: Annoy 召回 topN
-  let candidates = annSearch(queryEmbedding, filteredVectorIndex, docIdToText, 10);
+  // 判断是否需要切分
+  const chunks = question.length > CHUNK_SIZE 
+    ? chunkText(question, CHUNK_SIZE, 50) 
+    : [question];
+  //console.log(chunks.length)
+  let allCandidates = [];
 
-  // Step 2: Hybrid Score（向量 + 关键词）
-  candidates.forEach(r => {
-    r.keywordSim = keywordScore(question, r.text);
-    r.hybridScore = hybridScore(r.cosSim, r.keywordSim);
-  });
+  for (const chunk of chunks) {
+    const queryEmbedding = await embedText(chunk);
 
-  // 先按 hybridScore 排序，截断到更小集合
-  candidates = candidates.sort((a, b) => b.hybridScore - a.hybridScore).slice(0, 10);
+    const filteredVectorIndex = vectorIndex.filter(vec => {
+      const lastUnderscoreIndex = vec.id.lastIndexOf('_');
+      const baseName = lastUnderscoreIndex !== -1
+        ? vec.id.slice(0, lastUnderscoreIndex)
+        : vec.id;
+      return vectorInfo[baseName]?.enabled !== false;
+    });
 
-  // Step 3: Rerank（高精度重排）
-  candidates = rerankResults(queryEmbedding, candidates);
+    // Step 1: Annoy 召回 topN
+    let candidates = annSearch(queryEmbedding, filteredVectorIndex, docIdToText, 10);
 
-  // 取前 k 个返回文本
-  return candidates.slice(0, k).map(r => r.text);
+    // Step 2: Hybrid Score（向量 + 关键词）
+    candidates.forEach(r => {
+      r.keywordSim = keywordScore(chunk, r.text);
+      r.hybridScore = hybridScore(r.cosSim, r.keywordSim);
+    });
+
+    // 先按 hybridScore 排序，截断
+    candidates = candidates.sort((a, b) => b.hybridScore - a.hybridScore).slice(0, 10);
+
+    // Step 3: Rerank
+    candidates = rerankResults(queryEmbedding, candidates);
+
+    allCandidates.push(...candidates);
+  }
+
+  // 合并去重（按文本内容去重）
+  const seen = new Set();
+  let merged = [];
+  for (const c of allCandidates) {
+    if (!seen.has(c.text)) {
+      seen.add(c.text);
+      merged.push(c);
+    }
+  }
+
+  // 按 hybridScore 排序
+  merged = merged.sort((a, b) => b.hybridScore - a.hybridScore);
+  //console.log(merged.slice(0, Math.max(k, chunks.length)).map(r => r.text))
+  // 返回前 max(k, chunks数) 个结果
+  return merged.slice(0, Math.max(k, chunks.length)).map(r => r.text);
 }
 
 // ==== Step 5: 清空知识库 ====

@@ -1,1 +1,26 @@
-{}
+{
+  "计算机程序设计员_三级_理论题.docx": {
+    "chunks": 275,
+    "vector_dim": 768,
+    "vector_count": 275,
+    "enabled": true
+  },
+  "计算机组成与结构.pdf": {
+    "chunks": 11,
+    "vector_dim": 768,
+    "vector_count": 11,
+    "enabled": true
+  },
+  "第四次作业.docx": {
+    "chunks": 2,
+    "vector_dim": 768,
+    "vector_count": 2,
+    "enabled": true
+  },
+  "西游记.txt": {
+    "chunks": 1166,
+    "vector_dim": 768,
+    "vector_count": 1166,
+    "enabled": true
+  }
+}

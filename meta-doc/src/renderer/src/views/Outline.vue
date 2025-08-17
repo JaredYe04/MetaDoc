@@ -335,7 +335,8 @@ const generateChildrenChildren = async () => {
       prompt,
       myRawString,
       ai_types.answer,
-      'outline-children-' + curNode.title
+      'outline-children-' + curNode.title,
+      false
     );
 
     const taskPromise = done
@@ -410,7 +411,8 @@ const generateChildrenContent = async () => {
       prompt,
       myRawString,
       ai_types.answer,
-      'outline-content-' + curNode.title
+      'outline-content-' + curNode.title,
+      false
     );
 
     const taskPromise = done
@@ -451,7 +453,7 @@ const generateContent = async () => {
     userPrompt.value
   );
 
-  const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-content-' + cur_node.title);
+  const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-content-' + cur_node.title,false);
   try {
     await done;
   } catch (err) {
@@ -704,7 +706,7 @@ const generateChildChapter = async () => {
 
 
 
-    const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-children-' + cur_node.title);
+    const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-children-' + cur_node.title,false);
     try {
       await done;
       const json = extractOuterJsonString(rawstring.value);

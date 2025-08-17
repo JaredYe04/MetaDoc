@@ -17,7 +17,7 @@
                                         t('knowledgeBase.add') }}</el-button>
                                     <el-button type="danger" size="small" :disabled="!selectedItem"
                                         @click="confirmDelete">{{ t('knowledgeBase.delete') }}</el-button>
-                                    <el-button size="small" :disabled="!selectedItem"
+                                    <el-button size="small"
                                         @click="confirmClearAll">{{ t('knowledgeBase.clear_all') }}</el-button>
                                     <input ref="fileInput" type="file" style="display:none" @change="onFileSelected"
                                         accept=".txt,.md,.pdf,.docx" />

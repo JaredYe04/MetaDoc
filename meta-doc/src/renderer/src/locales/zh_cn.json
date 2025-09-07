@@ -574,5 +574,12 @@
             "searchBtn": "搜索",
             "noResult": "暂无结果"
         }
+    },
+    "aiSuggestion": {
+        "tooltip": "AI建议",
+        "accept": "接受建议",
+        "reject": "拒绝建议",
+        "generating": "AI正在生成建议...",
+        "generatingTooltip": "按 Tab 接受，按 Esc 取消"
     }
 }

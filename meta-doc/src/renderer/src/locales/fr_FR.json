@@ -566,6 +566,19 @@
       "searchBtn": "Recherche",
       "title": "Essai de recherche"
     },
-    "upload_complete": "Construction de la base de connaissances achevée"
+    "upload_complete": "Construction de la base de connaissances achevée",
+    "clear_all": "Effacer la base de connaissances",
+    "clear_all_confirm": "Confirmer de vider la base de connaissances ? Tout dans la base de données sera supprimé !",
+    "clear_all_confirm_title": "Effacer la confirmation",
+    "clear_all_error": "Erreur lors du nettoyage de la base de connaissances :",
+    "clear_all_failed": "Effacer la base de connaissances a échoué!",
+    "clear_all_success": "Dégagez la base de connaissances !"
+  },
+  "aiSuggestion": {
+    "accept": "Acceptation des recommandations",
+    "generating": "L'IA produit des recommandations...",
+    "generatingTooltip": "Appuyez sur Tab pour accepter, appuyez sur Esc pour annuler",
+    "reject": "Rejet",
+    "tooltip": "Recommandation AI"
   }
 }

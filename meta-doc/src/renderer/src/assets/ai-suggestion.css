@@ -1,0 +1,18 @@
+.ai-suggestion {
+    background: rgba(128, 128, 128, 0.3);
+    user-select: none;
+    pointer-events: none;
+    color: rgb(41, 41, 41);
+    opacity: 0.8;
+    user-select: none;
+    pointer-events: none;
+}
+.ai-suggestion-dark {
+    background: rgba(128, 128, 128, 0.3);
+    user-select: none;
+    pointer-events: none;
+    color: rgb(252, 252, 252);
+    opacity: 0.8;
+    user-select: none;
+    pointer-events: none;
+}

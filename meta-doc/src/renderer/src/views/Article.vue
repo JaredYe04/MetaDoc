@@ -14,15 +14,14 @@
             <ContextMenu :x="menuX" :y="menuY" :selection="getSelection()" v-if="contextMenuVisible"
                 @trigger="handleMenuClick" class="context-menu" @close="contextMenuVisible = false;"
                 @insert="insertText" />
-
-            <div id="vditor" class="editor" v-loading="loading" @keydown="handleTab"
-                @contextmenu.prevent="openContextMenu($event)" 
-                :style="{
-                        '--panel-background-color': themeState.currentTheme.editorPanelBackgroundColor,
-                        '--toolbar-background-color': themeState.currentTheme.editorToolbarBackgroundColor,
-                        '--textarea-background-color': themeState.currentTheme.editorTextareaBackgroundColor,
-                }"
-                ></div>
+            <AISuggestion :targetEl="vditorEl" :trigger="triggerSuggestion" :rootNodeClass="'vditor-reset'"
+                @accepted="onAcceptSuggestion" @cancelled="onCancelSuggestion" @reset="onResetSuggestion" />
+            <div id="vditor" ref="vditorEl" class="editor" v-loading="loading" @keydown="handleTab"
+                @contextmenu.prevent="openContextMenu($event)" :style="{
+                    '--panel-background-color': themeState.currentTheme.editorPanelBackgroundColor,
+                    '--toolbar-background-color': themeState.currentTheme.editorToolbarBackgroundColor,
+                    '--textarea-background-color': themeState.currentTheme.editorTextareaBackgroundColor,
+                }"></div>
 
             <div class="resizable-container">
                 <el-tooltip :content="$t('article.drag_to_resize')">
@@ -136,6 +135,8 @@ import { getSetting } from "../utils/settings";
 import { bin } from "d3";
 import { localVditorCDN, vditorCDN } from "../utils/vditor-cdn";
 import { useI18n } from 'vue-i18n'
+import AISuggestion from "../components/AISuggestion.vue";
+import "../assets/ai-suggestion.css";
 const { t } = useI18n()
 
 // 状态变量
@@ -160,6 +161,35 @@ const contextMenuVisible = ref(false); // 右键菜单可见性
 const menuX = ref(0); // 菜单 X 坐标
 const menuY = ref(0); // 菜单 Y 坐标
 const cur_selection = ref(''); // 当前选中的文本
+
+const vditorEl = ref(null);
+const triggerSuggestion = ref(false);
+
+function onAcceptSuggestion(text) {
+    //console.log("补全已接受:", text);
+    insertText(text);
+    triggerSuggestion.value = false;
+}
+function onCancelSuggestion() {
+    //console.log("补全已取消");
+    triggerSuggestion.value = false;
+    //状态不切换回false,保持为true
+}
+function onResetSuggestion() {
+    //console.log("补全已重置");
+    //triggerSuggestion.value = false;
+}
+
+// 监听输入 -> 1秒后触发
+let debounceTimer = null;
+function trytriggerSuggestion() {
+    triggerSuggestion.value = false;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        triggerSuggestion.value = true;
+    }, 500);
+
+}
 
 
 // 打开右键菜单
@@ -312,7 +342,7 @@ const bindTitleMenu = async () => {
 
     sections.forEach((section, i) => {
         const node = treeNodeQueue[i];
-        if(node.path) {
+        if (node.path) {
             section.setAttribute('path', node.path);
         }
         section.addEventListener('mousedown', (event) => mouseDownEvent(event, section));
@@ -385,6 +415,15 @@ const mouseLeaveEvent = (event, section) => {
 // 监听 Tab 键，插入制表符
 const handleTab = (event) => {
     if (event.key === "Tab") {
+        //如果AISuggestion在工作，不插入制表符
+        if (triggerSuggestion.value) {
+            //console.log('AI Suggestion is active, tab key pressed');
+            return;
+        }
+        else {
+            //console.log('AI Suggestion is not active, tab key pressed');
+        }
+
         event.preventDefault();
         const selection = window.getSelection();
         const range = selection.getRangeAt(0);
@@ -441,7 +480,7 @@ onMounted(async () => {
             cdn = vditorCDN;
         }
         const autoSaveExternalImage = await getSetting('autoSaveExternalImage');
-        const supportedLang=["en_US", "fr_FR", "pt_BR", "ja_JP", "ko_KR", "ru_RU", "sv_SE", "zh_CN", "zh_TW"]
+        const supportedLang = ["en_US", "fr_FR", "pt_BR", "ja_JP", "ko_KR", "ru_RU", "sv_SE", "zh_CN", "zh_TW"]
         vditor.value = new Vditor('vditor', {
             lang: supportedLang.includes(t('lang')) ? t('lang') : 'en_US',
             toolbarConfig: { pin: true },
@@ -563,11 +602,11 @@ onMounted(async () => {
             },
             value: current_article.value,
             input: async (value) => {
-                //console.log('input');
-                //article.value = value; // 监听输入事件，更新绑定的内容
+
                 current_article.value = value;
-                //console.log(current_article.value)
                 latest_view.value = 'article';
+                trytriggerSuggestion();
+
                 eventBus.emit('is-need-save', true)
                 sync();
                 await bindTitleMenu();
@@ -582,10 +621,10 @@ onMounted(async () => {
                 } catch (e) {
                     console.error(e);
                 }
-                finally{
+                finally {
                     loadingInstance.close();
                 }
-                
+
             },
         });
     }

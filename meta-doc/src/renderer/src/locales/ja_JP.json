@@ -566,6 +566,19 @@
       "searchBtn": "インフォメーション",
       "title": "検索テスト"
     },
-    "upload_complete": "ナレッジベース工事完了"
+    "upload_complete": "ナレッジベース工事完了",
+    "clear_all": "知識ベースをクリア",
+    "clear_all_confirm": "知識ベースを空にすることの確認? データベース内のすべてが削除されます!",
+    "clear_all_confirm_title": "明確な確認",
+    "clear_all_error": "知識ベースを清掃するエラー:",
+    "clear_all_failed": "知識ベースをクリアしても失敗!",
+    "clear_all_success": "知識ベースをクリア!"
+  },
+  "aiSuggestion": {
+    "accept": "推奨事項の承諾",
+    "generating": "AIが提案を生む...",
+    "generatingTooltip": "タブを押せば、Escをキャンセルして下さい",
+    "reject": "リジェクション",
+    "tooltip": "AIの提言"
   }
 }

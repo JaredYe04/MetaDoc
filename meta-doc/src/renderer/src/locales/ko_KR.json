@@ -566,6 +566,19 @@
       "searchBtn": "제품정보",
       "title": "검색 시험"
     },
-    "upload_complete": "지식 베이스 구축 완료"
+    "upload_complete": "지식 베이스 구축 완료",
+    "clear_all": "지식의 기초를 지우십시오",
+    "clear_all_confirm": "지식베이스를 비우기 위해? 데이터베이스의 모든 것은 삭제됩니다!",
+    "clear_all_confirm_title": "자주 묻는 질문",
+    "clear_all_error": "지식베이스를 청소하는 오류 :",
+    "clear_all_failed": "지식 베이스가 실패했습니다!",
+    "clear_all_success": "지식 기반을 지우십시오!"
+  },
+  "aiSuggestion": {
+    "accept": "자주 묻는 질문",
+    "generating": "AI는 권장 사항을 생성 ...",
+    "generatingTooltip": "프레스 탭을 받아 들일 수 있습니다.",
+    "reject": "관련 상품",
+    "tooltip": "AI 추천"
   }
 }

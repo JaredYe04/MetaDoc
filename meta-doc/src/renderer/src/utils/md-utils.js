@@ -19,10 +19,8 @@ export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
         text: '',
         children: []
     };
-
     // 栈初始化，起始只有根节点
     let stack = [root];
-
     // 遍历每一行
     for (let line of lines) {
         // 匹配标题行：匹配1个或多个 '#' 后跟空格，再匹配标题文本
@@ -39,7 +37,6 @@ export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
                 text: '',
                 children: []
             };
-
             // 如果当前栈顶节点的 title_level >= 当前标题等级，则不断弹出，直到找到父节点
             while (stack.length > 0 && stack[stack.length - 1].title_level >= level) {
                 stack.pop();
@@ -55,7 +52,6 @@ export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
             }
         }
     }
-
     // 根据大纲树生成路径（采用简单的广度优先遍历）
     for (let i = 0; i < root.children.length; i++) {
         root.children[i].path = `${i + 1}`;
@@ -75,72 +71,72 @@ export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
 
 // 1. 从Markdown文本中提取所有标题，生成大纲树
 
-export function extractOutlineTreeFromMarkdownLegacy(md, bypassText = false) {
-    const lines = md.split('\n')
-    //console.log(lines);
-    const outline_tree = {
-        title: '',//当前标题
-        path: 'dummy', //当前标题的路径
-        text: '',//当前内容，不包括子标题以及内容
-        children: []
-    }
+// export function extractOutlineTreeFromMarkdownLegacy(md, bypassText = false) {
+//     const lines = md.split('\n')
+//     //console.log(lines);
+//     const outline_tree = {
+//         title: '',//当前标题
+//         path: 'dummy', //当前标题的路径
+//         text: '',//当前内容，不包括子标题以及内容
+//         children: []
+//     }
 
-    let current_node = outline_tree
-    let stack = [outline_tree]
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]
-        //console.log(line);
-        const match = line.match(/^#+\s+(.*)/)
-        //console.log(match);
-        if (match) {
-            const title = match[1]
-            //console.log(title);
-            const level = match[0].match(/#/g).length
-            //console.log(level);
-            const new_node = {
-                title: title,
-                path: '',
-                text: '',
-                children: []
-            }
-            //console.log(new_node);
-            if (level > stack.length) {
-                stack[stack.length - 1].children.push(new_node)
-                stack.push(new_node)
-            } else {
-                stack[level - 1].children.push(new_node)
-                stack[level] = new_node
-            }
-            current_node = new_node
-        } else {
-            if (!bypassText) {
-                current_node.text += line + '\n'
-            }
-        }
-    }
-    //console.log(outline_tree);
-    //根据大纲树生成路径
-    let path = ''
-    let path_stack = []
-    let path_index = 1
-    let root = outline_tree
-    //root节点通常是dummy节点
-    for (let i = 0; i < root.children.length; i++) {
-        root.children[i].path = path + (i + 1)
-        path_stack.push(root.children[i])
-    }
-    while (path_stack.length > 0) {
-        let node = path_stack.pop()
-        path = node.path + '.'
-        for (let i = 0; i < node.children.length; i++) {
-            node.children[i].path = path + (i + 1)
-            path_stack.push(node.children[i])
-        }
-    }
+//     let current_node = outline_tree
+//     let stack = [outline_tree]
+//     for (let i = 0; i < lines.length; i++) {
+//         const line = lines[i]
+//         //console.log(line);
+//         const match = line.match(/^#+\s+(.*)/)
+//         //console.log(match);
+//         if (match) {
+//             const title = match[1]
+//             //console.log(title);
+//             const level = match[0].match(/#/g).length
+//             //console.log(level);
+//             const new_node = {
+//                 title: title,
+//                 path: '',
+//                 text: '',
+//                 children: []
+//             }
+//             //console.log(new_node);
+//             if (level > stack.length) {
+//                 stack[stack.length - 1].children.push(new_node)
+//                 stack.push(new_node)
+//             } else {
+//                 stack[level - 1].children.push(new_node)
+//                 stack[level] = new_node
+//             }
+//             current_node = new_node
+//         } else {
+//             if (!bypassText) {
+//                 current_node.text += line + '\n'
+//             }
+//         }
+//     }
+//     //console.log(outline_tree);
+//     //根据大纲树生成路径
+//     let path = ''
+//     let path_stack = []
+//     let path_index = 1
+//     let root = outline_tree
+//     //root节点通常是dummy节点
+//     for (let i = 0; i < root.children.length; i++) {
+//         root.children[i].path = path + (i + 1)
+//         path_stack.push(root.children[i])
+//     }
+//     while (path_stack.length > 0) {
+//         let node = path_stack.pop()
+//         path = node.path + '.'
+//         for (let i = 0; i < node.children.length; i++) {
+//             node.children[i].path = path + (i + 1)
+//             path_stack.push(node.children[i])
+//         }
+//     }
 
-    //console.log(outline_tree);
-    return outline_tree//最外层节点是dummy节点
-}
+//     //console.log(outline_tree);
+//     return outline_tree//最外层节点是dummy节点
+// }
 
 // 2. 从大纲树生成 Markdown 文本
 
@@ -182,39 +178,33 @@ export function generateMarkdownFromOutlineTree(outline_tree) {
     return md;
 }
 
-// 2. 从大纲树生成Markdown文本
+// // 2. 从大纲树生成Markdown文本
 
-export function generateMarkdownFromOutlineTreeLegacy(outline_tree) {
-    //console.log(outline_tree);
-    let md = ''
-    function dfs(node, level) {
-        md += '#'.repeat(level) + ' ' + node.title + '\n'
-        // if(node.text.trim()==''){//如果node.text不是空，那么加一个换行符
-        //     node.text+='\n'
-        // }
-        md += node.text;
-        //如果node.text最后一个字符不是换行符，那么加一个换行符
-        // if(!node.text || node.text.trim()==''){
-        //     node.text='\r\n'
-        // }
-        if (node.text[node.text.length - 1] !== '\n') {
-            md += '\n'
-        }
-        for (let i = 0; i < node.children.length; i++) {
-            dfs(node.children[i], level + 1)
-        }
-    }
-    if (outline_tree.path === 'dummy') {//如果是根节点
-        if (outline_tree.text.trim() !== '') {//如果node.text不是空，那么加一个换行符
-            md += outline_tree.text + '\n'//根节点的text
-        }
-        for (let i = 0; i < outline_tree.children.length; i++) {
-            dfs(outline_tree.children[i], 1)
-        }
-    }
-    //console.log(md);
-    return md
-}
+// export function generateMarkdownFromOutlineTreeLegacy(outline_tree) {
+//     //console.log(outline_tree);
+//     let md = ''
+//     function dfs(node, level) {
+//         md += '#'.repeat(level) + ' ' + node.title + '\n'
+//         md += node.text;
+
+//         if (node.text[node.text.length - 1] !== '\n') {
+//             md += '\n'
+//         }
+//         for (let i = 0; i < node.children.length; i++) {
+//             dfs(node.children[i], level + 1)
+//         }
+//     }
+//     if (outline_tree.path === 'dummy') {//如果是根节点
+//         if (outline_tree.text.trim() !== '') {//如果node.text不是空，那么加一个换行符
+//             md += outline_tree.text + '\n'//根节点的text
+//         }
+//         for (let i = 0; i < outline_tree.children.length; i++) {
+//             dfs(outline_tree.children[i], 1)
+//         }
+//     }
+//     //console.log(md);
+//     return md
+// }
 
 export function removeTextFromOutline(outline_tree) {
     let new_outline_tree = JSON.parse(JSON.stringify(outline_tree))

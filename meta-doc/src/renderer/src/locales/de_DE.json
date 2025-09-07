@@ -566,6 +566,19 @@
       "searchBtn": "Suche",
       "title": "Suchtest"
     },
-    "upload_complete": "Wissensbasisbau abgeschlossen"
+    "upload_complete": "Wissensbasisbau abgeschlossen",
+    "clear_all": "Wissensbasis löschen",
+    "clear_all_confirm": "Bestätigung, die Wissensbasis zu leeren? Alles in der Datenbank wird gelöscht!",
+    "clear_all_confirm_title": "Klare Bestätigung",
+    "clear_all_error": "Fehlerreinigung der Wissensbasis:",
+    "clear_all_failed": "Die Wissensbasis zu löschen ist gescheitert!",
+    "clear_all_success": "Löschen Sie die Wissensbasis!"
+  },
+  "aiSuggestion": {
+    "accept": "Annahme von Empfehlungen",
+    "generating": "AI generiert Empfehlungen...",
+    "generatingTooltip": "Drücken Sie Tab zu akzeptieren, drücken Sie Esc, um zu stornieren",
+    "reject": "Auswurf",
+    "tooltip": "AI Empfehlung"
   }
 }

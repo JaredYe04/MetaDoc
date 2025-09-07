@@ -1,6 +1,7 @@
 import MarkdownIt from 'markdown-it';
 import footnote from 'markdown-it-footnote';
 import taskLists from 'markdown-it-task-lists';
+import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree } from './md-utils';
 
 const md = new MarkdownIt({
     html: false,
@@ -280,3 +281,197 @@ function convertMarkdownTableTokensToLatex(tokens, startIndex) {
 
     return { latex: '', offset: i };
 }
+
+export function convertLatexToMarkdown(latex) {
+    const lines = latex.split('\n');
+    let md = '';
+    let inItemize = false;
+    let inEnumerate = false;
+    let inQuote = false;
+    let inVerbatim = false;
+    let inTable = false;
+    let tableRows = [];
+
+    const headingMap = {
+        'section': '#',
+        'subsection': '##',
+        'subsubsection': '###',
+        'paragraph': '####',
+        'subparagraph': '#####'
+    };
+
+    for (let line of lines) {
+        line = line.trim();
+
+        // --- verbatim (代码块) ---
+        if (line.startsWith('\\begin{verbatim}')) {
+            inVerbatim = true;
+            md += '```\n';
+            continue;
+        }
+        if (line.startsWith('\\end{verbatim}')) {
+            inVerbatim = false;
+            md += '```\n\n';
+            continue;
+        }
+        if (inVerbatim) {
+            md += line + '\n';
+            continue;
+        }
+
+        // --- itemize 列表 ---
+        if (line.startsWith('\\begin{itemize}')) {
+            inItemize = true;
+            continue;
+        }
+        if (line.startsWith('\\end{itemize}')) {
+            inItemize = false;
+            md += '\n';
+            continue;
+        }
+
+        // --- enumerate 列表 ---
+        if (line.startsWith('\\begin{enumerate}')) {
+            inEnumerate = true;
+            continue;
+        }
+        if (line.startsWith('\\end{enumerate}')) {
+            inEnumerate = false;
+            md += '\n';
+            continue;
+        }
+
+        if (line.startsWith('\\item ')) {
+            if (inItemize) {
+                md += `- ${line.replace(/^\\item\s*/, '')}\n`;
+            } else if (inEnumerate) {
+                md += `1. ${line.replace(/^\\item\s*/, '')}\n`;
+            }
+            continue;
+        }
+
+        // --- blockquote ---
+        if (line.startsWith('\\begin{quote}')) {
+            inQuote = true;
+            continue;
+        }
+        if (line.startsWith('\\end{quote}')) {
+            inQuote = false;
+            md += '\n';
+            continue;
+        }
+        if (inQuote) {
+            md += `> ${line}\n`;
+            continue;
+        }
+
+        // --- hr ---
+        if (line === '\\hrulefill') {
+            md += '\n---\n\n';
+            continue;
+        }
+
+        // --- headings ---
+        const headingMatch = line.match(/^\\(section|subsection|subsubsection|paragraph|subparagraph)\{(.+)\}/);
+        if (headingMatch) {
+            const cmd = headingMatch[1];
+            const title = headingMatch[2];
+            const prefix = headingMap[cmd] || '#';
+            md += `${prefix} ${title}\n\n`;
+            continue;
+        }
+
+        // --- 图片 ---
+        if (line.startsWith('\\includegraphics')) {
+            const match = line.match(/\\includegraphics\[.*\]\{(.+)\}/);
+            if (match) {
+                const path = match[1];
+                // caption 要在 figure 里
+                md += `![](${decodeLatexPath(path)})\n\n`;
+            }
+            continue;
+        }
+        if (line.startsWith('\\caption{')) {
+            const caption = line.replace(/\\caption\{(.+)\}/, '$1');
+            md = md.replace(/!\[\]\((.+?)\)/, `![$1]($1 "${caption}")`);
+            continue;
+        }
+
+        // --- 链接 ---
+        const linkMatch = line.match(/\\href\{(.+?)\}\{(.+?)\}/);
+        if (linkMatch) {
+            md += `[${linkMatch[2]}](${linkMatch[1]})\n\n`;
+            continue;
+        }
+
+        // --- 表格 ---
+        if (line.startsWith('\\begin{tabular}')) {
+            inTable = true;
+            tableRows = [];
+            continue;
+        }
+        if (line.startsWith('\\end{tabular}')) {
+            inTable = false;
+            // 渲染 markdown 表格
+            if (tableRows.length > 0) {
+                const colCount = tableRows[0].length;
+                md += '\n' + tableRows.map(r => '| ' + r.join(' | ') + ' |').join('\n') + '\n';
+                md += '| ' + Array(colCount).fill('---').join(' | ') + ' |\n\n';
+            }
+            continue;
+        }
+        if (inTable && line.includes('&')) {
+            const row = line.replace(/\\\\.*/, '').split('&').map(cell => cell.trim());
+            tableRows.push(row);
+            continue;
+        }
+
+        // --- 脚注 ---
+        const footnoteMatch = line.match(/\\footnote\{(.+)\}/);
+        if (footnoteMatch) {
+            md += `[^1]: ${footnoteMatch[1]}\n`;
+            continue;
+        }
+
+        // --- 内联格式 ---
+        let text = line;
+        text = text
+            .replace(/\\textbf\{(.+?)\}/g, '**$1**')   // 粗体
+            .replace(/\\emph\{(.+?)\}/g, '*$1*')       // 斜体
+            .replace(/\\sout\{(.+?)\}/g, '~~$1~~')     // 删除线
+            .replace(/\\texttt\{(.+?)\}/g, '`$1`');    // 行内代码
+
+        // emoji （你原来是 smile/heart/check/x）
+        text = text
+            .replace(/\\smiley\{\}/g, ':smile:')
+            .replace(/\\heartsuit\{\}/g, ':heart:')
+            .replace(/\\checkmark\{\}/g, ':check:')
+            .replace(/\$\\times\$/g, ':x:');
+
+        if (text.trim()) {
+            md += text + '\n';
+        }
+    }
+
+    return md.trim();
+}
+
+// 路径反转义
+function decodeLatexPath(path) {
+    return path
+        .replace(/\\([#%&{}_])/g, '$1')
+        .replace(/\\/g, '/');
+}
+
+
+export function extractOutlineTreeFromLatex(latex, bypassText = false) {
+    const md = convertLatexToMarkdown(latex); // 需要写/引入一个 LaTeX→Markdown 转换器
+    return extractOutlineTreeFromMarkdown(md, bypassText);
+}
+export function generateLatexFromOutlineTree(outline_tree, title = 'Generated Document') {
+    // 先生成 Markdown
+    const md = generateMarkdownFromOutlineTree(outline_tree);
+    // 再用你现有的转换方法转 LaTeX
+    return convertMarkdownToLatex(md, title);
+}
+

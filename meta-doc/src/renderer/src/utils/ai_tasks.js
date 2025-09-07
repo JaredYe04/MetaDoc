@@ -59,7 +59,7 @@ export function createAiTask(name, prompt, target, type, origin_key, try_rag, me
 
   const existingTask = tasks.value.find(t => t.origin_key === origin_key)
   if (existingTask) {
-    cancelAiTask(existingTask.handle)// 不能直接abort，因为可能是主窗口的任务，也可能是子窗口的任务
+    cancelAiTask(existingTask.handle,false)// 不能直接abort，因为可能是主窗口的任务，也可能是子窗口的任务
     //deleteTask(existingTask.handle)
   }
 
@@ -127,13 +127,14 @@ function deleteTask(handle) {
 }
 
 // 取消任务
-export function cancelAiTask(handle) {
+export function cancelAiTask(handle,showWarning=true) {
   const task = taskMap.get(handle)
   if (!task) return
   task.controller?.abort()
   if (task.status.value !== ai_task_status.FINISHED && isMainWindow()) {
     const t=i18n.global.t
-    eventBus.emit('show-warning', t('aiTask.taskCancelled', { task:task.name }))
+    if(showWarning)
+      eventBus.emit('show-warning', t('aiTask.taskCancelled', { task:task.name }))
     
   }
   deleteTask(task.handle)

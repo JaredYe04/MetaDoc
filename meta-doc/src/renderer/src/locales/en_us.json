@@ -566,6 +566,19 @@
       "searchBtn": "Search",
       "title": "Search Test"
     },
-    "upload_complete": "Knowledge base construction completed"
+    "upload_complete": "Knowledge base construction completed",
+    "clear_all": "Clear the knowledge base",
+    "clear_all_confirm": "Confirming to empty the knowledge base? Everything in the database will be deleted!",
+    "clear_all_confirm_title": "Clear confirmation",
+    "clear_all_error": "Error cleaning the knowledge base:",
+    "clear_all_failed": "Clearing the knowledge base failed!",
+    "clear_all_success": "Clear the knowledge base!"
+  },
+  "aiSuggestion": {
+    "accept": "Acceptance of recommendations",
+    "generating": "AI is generating recommendations...",
+    "generatingTooltip": "Press Tab to accept, press Esc to cancel",
+    "reject": "Rejection",
+    "tooltip": "AI Recommendation"
   }
 }

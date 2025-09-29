@@ -11,7 +11,7 @@
                 :position="SRMenuPosition" />
 
             <!-- 右键菜单组件 -->
-            <ContextMenu :x="menuX" :y="menuY" :selection="getSelection()" v-if="contextMenuVisible"
+            <ContextMenu :x="menuX" :y="menuY" :items="articleContextMenuItems":selection="getSelection()" v-if="contextMenuVisible"
                 @trigger="handleMenuClick" class="context-menu" @close="contextMenuVisible = false;"
                 @insert="insertText" />
             <AISuggestion :targetEl="vditorEl" :trigger="triggerSuggestion" :rootNodeClass="'vditor-reset'"
@@ -137,6 +137,8 @@ import { localVditorCDN, vditorCDN } from "../utils/vditor-cdn";
 import { useI18n } from 'vue-i18n'
 import AISuggestion from "../components/AISuggestion.vue";
 import "../assets/ai-suggestion.css";
+import ArticleContextMenu, { articleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
+import ContextMenu from "../components/ContextMenu.vue";
 const { t } = useI18n()
 
 // 状态变量
@@ -194,9 +196,10 @@ function trytriggerSuggestion() {
 
 // 打开右键菜单
 const openContextMenu = (event) => {
+
     event.preventDefault();
     menuX.value = event.clientX;
-    menuY.value = event.clientY + 20;
+    menuY.value = event.clientY;
     contextMenuVisible.value = true;
     cur_selection.value = getSelection();
 };
@@ -211,12 +214,6 @@ const getSelection = () => {
 const insertText = (text) => {
     const editor = vditor.value;
     editor.insertValue(text);
-};
-
-// 更新编辑器内容
-const updateValue = (value) => {
-    const editor = vditor.value;
-    editor.updateValue(value);
 };
 
 // 菜单项点击事件处理
@@ -296,6 +293,7 @@ eventBus.on('vditor-sync-with-html', () => {
     vditor.value.setValue(vditor.value.html2md(html), true);
     current_article.value = vditor.value.getValue();
 });
+
 
 
 // 接受生成的文本
@@ -748,8 +746,7 @@ eventBus.on('sync-vditor-theme', async () => {
 }
 
 .context-menu {
-    position: absolute;
+    position: fixed;
     z-index: 1000;
-
 }
 </style>

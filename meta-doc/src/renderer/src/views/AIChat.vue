@@ -196,7 +196,7 @@ async function generateNextResponse(beforeGeneration, callbackRef, afterGenerati
   //console.log(messageCopy)
   const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
   const { handle, done } = createAiTask(
-    messageCopy[messageCopy.length - 2].content, messageCopy, cur_resp, ai_types.chat, 'ai-chat',enableKnowledgeBase);
+    messageCopy[messageCopy.length - 2].content ?? "AI Chat", messageCopy, cur_resp, ai_types.chat, 'ai-chat',enableKnowledgeBase);
   try {
     await done;
   } catch (err) {

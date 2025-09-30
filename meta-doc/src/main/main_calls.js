@@ -138,6 +138,7 @@ export function mainCalls() {
 
   //////////////AI任务调度
   ipcMain.on('register-ai-task', (event, taskInfo) => {
+    //console.log("注册任务到主窗口",taskInfo)
     const mainWindow = BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes('#/home'))
     if (mainWindow) {
       mainWindow.webContents.send('register-ai-task', taskInfo)

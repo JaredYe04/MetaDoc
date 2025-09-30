@@ -69,13 +69,14 @@ export function createAiTask(name, prompt, target, type, origin_key, try_rag, me
   // 非主窗口注册任务到主窗口显示
   if (!isMainWindow()) {
     //console.log('注册任务到主窗口', { handle, name, prompt, type, origin_key })
-    ipcRenderer.send('register-ai-task', {
+    ipcRenderer.send('register-ai-task', JSON.parse(JSON.stringify({
       handle, name, prompt, type, origin_key
-    })
+    })));
   }
 
   if (autoStart) {
     // 如果是主窗口，直接启动任务，如果不是的话，让主窗口来启动
+    //console.log("是否为主窗口："+isMainWindow())
     if (!isMainWindow()) {
       ipcRenderer.send('start-task', handle)
     } else {
@@ -145,7 +146,7 @@ export function cancelAiTask(handle,showWarning=true) {
 
 // 在主窗口中：接收任务注册
 ipcRenderer.on('register-ai-task', (_, taskInfo) => {
-  //console.log('新任务注册', taskInfo)
+  console.log('主界面任务注册', taskInfo)
   const { handle, name, prompt, type, origin_key } = taskInfo
   if (taskMap.has(handle)) return // 防止重复添加
   const task = {

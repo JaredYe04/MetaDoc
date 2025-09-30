@@ -115,7 +115,11 @@
   "contextMenu": {
     "aiAnalysis": "Analyse du texte intégral",
     "copy": "Copier",
-    "paste": "Pâte"
+    "paste": "Pâte",
+    "closeAutoCompletion": "Désactiver la réalisation de l'IA",
+    "closeKnowledgeBase": "Désactiver la connaissance Bibliothèque de récupération",
+    "openAutoCompletion": "Activer l'achèvement de l'intelligence artificielle",
+    "openKnowledgeBase": "Activer la connaissance Bibliothèque de récupération"
   },
   "formulaRecognition": {
     "brush_size": "Brosse & #160;:",
@@ -425,7 +429,19 @@
     "themeSync": "Suivre le système",
     "themes": "Paramètres du thème",
     "enableKnowledgeBase": "Activer la base de connaissances",
-    "knowledgeBaseTooltip": "Une fois activé, le contenu de l'IA sera étayé par des informations provenant de la base de connaissances locale."
+    "knowledgeBaseTooltip": "Une fois activé, le contenu de l'IA sera étayé par des informations provenant de la base de connaissances locale.",
+    "autoCompletion": "Réalisation automatique d'IA",
+    "autoCompletionFullMode": "Mode complet",
+    "autoCompletionFullModeHint": "L'IA sortira après la génération de contenu complet (recommandé)",
+    "autoCompletionMode": "Mode d'achèvement automatique AI",
+    "autoCompletionStreamMode": "Mode fluide",
+    "autoCompletionStreamModeHint": "L'IA produira du contenu en temps réel.",
+    "chooseAutoCompletionMode": "Sélectionnez le mode d'achèvement automatique AI",
+    "highPrecision": "Haute précision",
+    "knowledgeBaseScoreThreshold": "Seuil de similitude du texte de base des connaissances",
+    "knowledgeBaseScoreThresholdTooltip": "Seuls les résultats d'une requête présentant une similitude supérieure à cette valeur seront acceptés par AI, recommandation 0.5.",
+    "lowPrecision": "Faible précision",
+    "recommended": "Recommandations"
   },
   "titleMenu": {
     "contextMarks": {

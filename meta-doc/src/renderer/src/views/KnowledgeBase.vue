@@ -7,8 +7,7 @@
                 <div class="kb-left" :style="{ background: themeState.currentTheme.background }">
                     <!-- 上半部分: 知识库列表，占60%高度 -->
                     <div class="kb-list-wrapper" style="flex: 0 0 60%;">
-                        <el-card class="kb-panel" shadow="hover"
-                        v-loading="isUploading"
+                        <el-card class="kb-panel" shadow="hover" v-loading="isUploading"
                             :style="{ background: themeState.currentTheme.background2nd, height: '100%' }">
                             <div class="kb-panel-header">
                                 <h2 class="kb-panel-title">{{ t('knowledgeBase.title') }}</h2>
@@ -17,8 +16,8 @@
                                         t('knowledgeBase.add') }}</el-button>
                                     <el-button type="danger" size="small" :disabled="!selectedItem"
                                         @click="confirmDelete">{{ t('knowledgeBase.delete') }}</el-button>
-                                    <el-button size="small"
-                                        @click="confirmClearAll">{{ t('knowledgeBase.clear_all') }}</el-button>
+                                    <el-button size="small" @click="confirmClearAll">{{ t('knowledgeBase.clear_all')
+                                    }}</el-button>
                                     <input ref="fileInput" type="file" style="display:none" @change="onFileSelected"
                                         accept=".txt,.md,.pdf,.docx" />
                                 </div>
@@ -62,6 +61,31 @@
                         <el-card class="kb-panel" shadow="hover"
                             :style="{ background: themeState.currentTheme.background2nd, height: '100%', display: 'flex', flexDirection: 'column' }">
                             <h3>{{ t('knowledgeBase.searchTest.title') }}</h3>
+                            <el-form-item :label="$t('setting.knowledgeBaseScoreThreshold')">
+                                <el-slider v-model="settings.knowledgeBaseScoreThreshold" show-input :min="0.01"
+                                    :max="0.99" :step="0.01"
+                                    @change="setSetting('knowledgeBaseScoreThreshold', settings.knowledgeBaseScoreThreshold)"
+                                    :marks="{
+                                        0.3: {
+                                            style: {
+                                                color: '#1989FA',
+                                            },
+                                            label: $t('setting.lowPrecision'),
+                                        },
+                                        0.5: {
+                                            style: {
+                                                color: '#1989FA',
+                                            },
+                                            label: $t('setting.recommended'),
+                                        },
+                                        0.8: {
+                                            style: {
+                                                color: '#1989FA',
+                                            },
+                                            label: $t('setting.highPrecision'),
+                                        },
+                                    }" style="margin-bottom: 5px;" />
+                            </el-form-item>
                             <el-input v-model="searchQuery" :placeholder="t('knowledgeBase.searchTest.placeholder')"
                                 size="small" clearable @keyup.enter.native="doSearch" style="margin-bottom: 10px;" />
                             <el-button type="primary" size="small" @click="doSearch" :loading="searching">{{
@@ -209,6 +233,7 @@ import { themeState } from '../utils/themes';
 import { Check, Close, Edit } from '@element-plus/icons-vue';
 import { queryKnowledgeBase } from '../utils/rag_utils';
 import { interpolateObject } from 'd3';
+import { setSetting, settings } from '../utils/settings';
 
 
 const { t } = useI18n();
@@ -279,7 +304,7 @@ async function doSearch() {
 
 // select row
 function selectRow(row) {
-    if(row.id==selectedId.value)
+    if (row.id == selectedId.value)
         return;
     selectedId.value = row.id;
     fetchInfo(row.id);

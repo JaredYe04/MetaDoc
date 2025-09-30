@@ -400,7 +400,8 @@ const generate = async () => {
 
   const prompt = generateArticlePrompt(mood.value, userPrompt.value);
   //console.log(prompt)
-  const { handle, done } = createAiTask(userPrompt.value, prompt, generatedText, ai_types.answer, 'quick-start',true, { temperature: temperature.value / 100.0 });
+  const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
+  const { handle, done } = createAiTask(userPrompt.value, prompt, generatedText, ai_types.answer, 'quick-start',enableKnowledgeBase, { temperature: temperature.value / 100.0 });
   generating.value = true;
   generated.value = false;
 

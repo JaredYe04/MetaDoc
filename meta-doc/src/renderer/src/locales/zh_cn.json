@@ -3,7 +3,11 @@
     "contextMenu": {
         "aiAnalysis": "AI全文分析",
         "copy": "复制",
-        "paste": "粘贴"
+        "paste": "粘贴",
+        "closeAutoCompletion":"禁用AI补全",
+        "openAutoCompletion":"启用AI补全",
+        "closeKnowledgeBase":"禁用知识检索库",
+        "openKnowledgeBase":"启用知识检索库"
     },
     "headMenu": {
         "tooltip": "一款基于AI Agent的智能文字处理软件",
@@ -442,6 +446,18 @@
         "openLastFile": "打开上次编辑的文件",
         "askBeforeSave": "总是询问保存",
         "enableKnowledgeBase": "启用知识库",
+        "knowledgeBaseScoreThreshold":"知识库文本相似度阈值",
+        "knowledgeBaseScoreThresholdTooltip":"只有相似度高于该值的查询结果才会被AI采纳，推荐0.5",
+        "recommended":"推荐",
+        "highPrecision":"高精度",
+        "lowPrecision":"低精度",
+        "autoCompletion": "AI自动补全",
+        "autoCompletionMode": "AI自动补全模式",
+        "chooseAutoCompletionMode":"选择AI自动补全模式",
+        "autoCompletionFullMode": "完整模式",
+        "autoCompletionStreamMode": "流式模式",
+        "autoCompletionFullModeHint": "AI会在完整生成内容后输出（推荐）",
+        "autoCompletionStreamModeHint": "AI会实时输出生成的内容",
         "knowledgeBaseTooltip":"启用后，将使用本地知识库中的信息来辅助AI生成内容。",
         "autoSave": "自动保存",
         "off": "关闭",

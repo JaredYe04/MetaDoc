@@ -3,7 +3,11 @@
   "contextMenu": {
     "aiAnalysis": "AI全文分析",
     "copy": "コピー",
-    "paste": "貼り付け"
+    "paste": "貼り付け",
+    "closeAutoCompletion": "障がいのあるAI完成",
+    "closeKnowledgeBase": "障害のある知識 立派な図書館",
+    "openAutoCompletion": "AI完了を有効にする",
+    "openKnowledgeBase": "知識の有効化 立派な図書館"
   },
   "headMenu": {
     "tooltip": "AI Agentベースのスマート文書処理ソフトウェア",
@@ -491,7 +495,19 @@
     "particleEffect": "粒子効果",
     "particleEffectHint": "粒子効果を有効にして、視覚的な美しさを向上させます。これを有効にすると、パフォーマンスに影響を与える可能性があります。",
     "enableKnowledgeBase": "ナレッジベースを有効にする",
-    "knowledgeBaseTooltip": "有効にすると、ローカルナレッジベースから情報によってAIのコンテンツがサポートされています。"
+    "knowledgeBaseTooltip": "有効にすると、ローカルナレッジベースから情報によってAIのコンテンツがサポートされています。",
+    "autoCompletion": "AIの自動完了",
+    "autoCompletionFullMode": "フルモード",
+    "autoCompletionFullModeHint": "全コンテンツ生成後にAIが出力されます(推奨)",
+    "autoCompletionMode": "AIの自動完了モード",
+    "autoCompletionStreamMode": "流体モード",
+    "autoCompletionStreamModeHint": "AIはリアルタイムでコンテンツを制作します。",
+    "chooseAutoCompletionMode": "AIの自動完了モードの選択",
+    "highPrecision": "高精度",
+    "knowledgeBaseScoreThreshold": "知識ベーステキスト類似性しきい値",
+    "knowledgeBaseScoreThresholdTooltip": "上記と同様のクエリ結果は、AI、推奨0.5でのみ受け付けます。",
+    "lowPrecision": "低い精密",
+    "recommended": "推奨事項"
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",

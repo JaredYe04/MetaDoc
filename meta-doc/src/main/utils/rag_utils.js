@@ -383,14 +383,13 @@ function rerankResults(queryEmbedding, candidates) {
     }))
     .sort((a, b) => b.rerankScore - a.rerankScore);
 }
-export async function queryKnowledgeBase(question, k = 3) {
+export async function queryKnowledgeBase(question, scoreThreshold = 0.5) {
   await initVectorDatabase();
 
-  // 判断是否需要切分
   const chunks = question.length > CHUNK_SIZE 
     ? chunkText(question, CHUNK_SIZE, 50) 
     : [question];
-  //console.log(chunks.length)
+
   let allCandidates = [];
 
   for (const chunk of chunks) {
@@ -404,25 +403,21 @@ export async function queryKnowledgeBase(question, k = 3) {
       return vectorInfo[baseName]?.enabled !== false;
     });
 
-    // Step 1: Annoy 召回 topN
     let candidates = annSearch(queryEmbedding, filteredVectorIndex, docIdToText, 10);
 
-    // Step 2: Hybrid Score（向量 + 关键词）
     candidates.forEach(r => {
       r.keywordSim = keywordScore(chunk, r.text);
       r.hybridScore = hybridScore(r.cosSim, r.keywordSim);
     });
 
-    // 先按 hybridScore 排序，截断
     candidates = candidates.sort((a, b) => b.hybridScore - a.hybridScore).slice(0, 10);
 
-    // Step 3: Rerank
     candidates = rerankResults(queryEmbedding, candidates);
 
     allCandidates.push(...candidates);
   }
 
-  // 合并去重（按文本内容去重）
+  // 合并去重
   const seen = new Set();
   let merged = [];
   for (const c of allCandidates) {
@@ -434,9 +429,25 @@ export async function queryKnowledgeBase(question, k = 3) {
 
   // 按 hybridScore 排序
   merged = merged.sort((a, b) => b.hybridScore - a.hybridScore);
-  //console.log(merged.slice(0, Math.max(k, chunks.length)).map(r => r.text))
-  // 返回前 max(k, chunks数) 个结果
-  return merged.slice(0, Math.max(k, chunks.length)).map(r => r.text);
+
+  // 过滤低于阈值
+  const filtered = merged.filter(r => r.hybridScore >= scoreThreshold);
+
+  if (filtered.length === 0) {
+    console.warn('KnowledgeBase query returned no high-similarity results.', {
+      question,
+      candidates: merged.map(r => ({ text: r.text, hybridScore: r.hybridScore }))
+    });
+    return [];
+  }
+  else{
+    //     console.log('KnowledgeBase query returned results:', {
+    //   question,
+    //   candidates: merged.map(r => ({ text: r.text, hybridScore: r.hybridScore }))
+    // });
+  }
+
+  return filtered.map(r => r.text);
 }
 
 // ==== Step 5: 清空知识库 ====

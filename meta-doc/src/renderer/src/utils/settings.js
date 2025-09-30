@@ -52,6 +52,9 @@ export const settings = reactive({
   llmEnabled: false, // 是否启用 LLM
   selectedLlm: "", // 选择的大模型类型
   enableKnowledgeBase: true, // 是否启用知识库
+  knowledgeBaseScoreThreshold:0.5,//RAG置信度阈值
+  autoCompletion: true, // 是否启用AI自动补全
+  autoCompletionMode: "full", // 完全生成后再补全
   //exportImageMode: "none", // 导出图片选项
   autoRemoveThinkTag: true,//自动去除推理过程
   bypassCodeBlock: true, // 统计文字信息时排除代码块

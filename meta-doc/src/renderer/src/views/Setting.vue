@@ -16,219 +16,269 @@
 
       <!-- 右侧设置内容 -->
       <el-main :style="{ textColor: themeState.currentTheme.textColor }">
-        <el-form label-width="160px" class="settings-form">
-          <template v-if="activeMenu === 'basic'">
-            <el-form-item :label="$t('setting.startupOption')">
-              <el-select v-model="settings.startupOption"
-                @change="saveSetting('startupOption', settings.startupOption)">
-                <el-option :label="$t('setting.openNewFile')" value="newFile"></el-option>
-                <el-option :label="$t('setting.openLastFile')" value="lastFile"></el-option>
-              </el-select>
-            </el-form-item>
-            <el-form-item :label="$t('setting.askBeforeSave')">
-              <el-switch v-model="settings.alwaysAskSave" class="mb-2"
-                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
-                @change="saveSetting('alwaysAskSave', settings.alwaysAskSave)" />
-            </el-form-item>
-            <el-tooltip :content="$t('setting.particleEffectHint')" placement="bottom">
-              <el-form-item :label="$t('setting.particleEffect')">
-                <el-switch v-model="settings.particleEffect" class="mb-2"
-                  style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                  :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')" @change="saveSetting('particleEffect', settings.particleEffect);
-                  sendBroadcast('home', 'toggle-particle-effect', {});
-                  " />
+        <el-scrollbar>
+          <el-form label-width="160px" class="settings-form">
+            <template v-if="activeMenu === 'basic'">
+              <el-form-item :label="$t('setting.startupOption')">
+                <el-select v-model="settings.startupOption"
+                  @change="saveSetting('startupOption', settings.startupOption)">
+                  <el-option :label="$t('setting.openNewFile')" value="newFile"></el-option>
+                  <el-option :label="$t('setting.openLastFile')" value="lastFile"></el-option>
+                </el-select>
               </el-form-item>
-            </el-tooltip>
-
-
-            <el-form-item :label="$t('setting.autoSave')">
-              <el-select v-model="settings.autoSave" @change="saveSetting('autoSave', settings.autoSave)">
-                <el-option :label="$t('setting.off')" value="never"></el-option>
-                <el-option :label="$t('setting.minute1')" value="1"></el-option>
-                <el-option :label="$t('setting.minute5')" value="5"></el-option>
-                <el-option :label="$t('setting.minute10')" value="10"></el-option>
-                <el-option :label="$t('setting.minute30')" value="30"></el-option>
-                <el-option :label="$t('setting.minute60')" value="60"></el-option>
-              </el-select>
-            </el-form-item>
-
-
-            <el-form-item :label="$t('setting.microphoneTest')">
-              <div>
-                <el-tooltip :content="$t('setting.microphoneHint')" placement="bottom">
-                  <MicrophoneTest />
-                </el-tooltip>
-              </div>
-            </el-form-item>
-
-            <el-form-item :label="$t('setting.excludeCodeBlocks')">
-              <el-tooltip :content="$t('setting.excludeCodeHint')" placement="bottom">
-                <el-switch v-model="settings.bypassCodeBlock" class="mb-2"
+              <el-form-item :label="$t('setting.askBeforeSave')">
+                <el-switch v-model="settings.alwaysAskSave" class="mb-2"
                   style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
                   :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
-                  @change="saveSetting('bypassCodeBlock', settings.bypassCodeBlock);" />
-              </el-tooltip>
-            </el-form-item>
-
-            <el-form-item :label="$t('setting.autoDownloadImage')">
-              <el-tooltip :content="$t('setting.autoDownloadHint')" placement="bottom">
-                <el-switch v-model="settings.autoSaveExternalImage" class="mb-2"
-                  style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                  :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
-                  @change="saveSetting('autoSaveExternalImage', settings.autoSaveExternalImage);" />
-              </el-tooltip>
-            </el-form-item>
-          </template>
-
-          <template v-if="activeMenu === 'llm'">
-            <div>
-              <!-- 启用/禁用 LLM -->
-              <el-switch v-model="settings.llmEnabled" class="mb-2"
-                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
-                @change="handleLlmToggle" />
-
-              <!-- 配置界面 -->
-              <div v-if="settings.llmEnabled">
-                <el-form-item :label="$t('setting.llmType')">
-                  <el-select v-model="settings.selectedLlm" :placeholder="$t('setting.chooseLlm')"
-                    @change="saveSetting('selectedLlm', settings.selectedLlm)">
-                    <el-tooltip :content="$t('setting.metadocHint')" placement="left">
-                      <el-option :label="$t('setting.metadoc')" value="metadoc"></el-option>
-                    </el-tooltip>
-                    <el-tooltip :content="$t('setting.ollamaHint')" placement="left">
-                      <el-option :label="$t('setting.ollama')" value="ollama"></el-option>
-                    </el-tooltip>
-                    <el-tooltip :content="$t('setting.openaiHint')" placement="left">
-                      <el-option :label="$t('setting.openai')" value="openai"></el-option>
-                    </el-tooltip>
-                  </el-select>
+                  @change="saveSetting('alwaysAskSave', settings.alwaysAskSave)" />
+              </el-form-item>
+              <el-tooltip :content="$t('setting.particleEffectHint')" placement="bottom">
+                <el-form-item :label="$t('setting.particleEffect')">
+                  <el-switch v-model="settings.particleEffect" class="mb-2"
+                    style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                    :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')" @change="saveSetting('particleEffect', settings.particleEffect);
+                    sendBroadcast('home', 'toggle-particle-effect', {});
+                    " />
                 </el-form-item>
+              </el-tooltip>
 
-                <!-- Ollama 配置 -->
-                <div v-if="settings.selectedLlm === 'ollama'">
-                  <el-form-item :label="$t('setting.apiBaseUrl')">
-                    <el-input v-model="settings.ollama.apiUrl" :placeholder="$t('setting.ollamaApiUrl')"
-                      @change="updateLlmInfo" />
-                  </el-form-item>
-                  <el-form-item :label="$t('setting.chooseModel')">
-                    <el-select v-model="settings.ollama.selectedModel" :placeholder="$t('setting.chooseModel')"
-                      @click="fetchOllamaModels" @change="updateLlmInfo">
-                      <el-option v-for="model in ollamaModels" :key="model" :label="model.name" :value="model.model" />
-                    </el-select>
-                  </el-form-item>
+
+              <el-form-item :label="$t('setting.autoSave')">
+                <el-select v-model="settings.autoSave" @change="saveSetting('autoSave', settings.autoSave)">
+                  <el-option :label="$t('setting.off')" value="never"></el-option>
+                  <el-option :label="$t('setting.minute1')" value="1"></el-option>
+                  <el-option :label="$t('setting.minute5')" value="5"></el-option>
+                  <el-option :label="$t('setting.minute10')" value="10"></el-option>
+                  <el-option :label="$t('setting.minute30')" value="30"></el-option>
+                  <el-option :label="$t('setting.minute60')" value="60"></el-option>
+                </el-select>
+              </el-form-item>
+
+
+              <el-form-item :label="$t('setting.microphoneTest')">
+                <div>
+                  <el-tooltip :content="$t('setting.microphoneHint')" placement="bottom">
+                    <MicrophoneTest />
+                  </el-tooltip>
                 </div>
+              </el-form-item>
 
-                <!-- OpenAI 配置 -->
-                <div v-else-if="settings.selectedLlm === 'openai'">
-                  <el-form-item :label="$t('setting.apiBaseUrl')">
-                    <el-input v-model="settings.openai.apiUrl" :placeholder="$t('setting.openaiApiUrl')"
-                      @change="updateLlmInfo" />
-                  </el-form-item>
-                  <el-form-item :label="$t('setting.apiKey')">
-                    <el-input v-model="settings.openai.apiKey" type="password"
-                      :placeholder="$t('setting.apiKeyPlaceholder')" @change="updateLlmInfo" />
-                  </el-form-item>
-                  <el-form-item :label="$t('setting.chooseModel')">
-                    <el-select v-model="settings.openai.selectedModel" :placeholder="$t('setting.chooseModel')"
-                      @click="fetchOpenAIModels" @change="updateLlmInfo">
-                      <el-option v-for="model in openaiModels" :key="model" :label="model.id" :value="model.id" />
-                    </el-select>
-                  </el-form-item>
-                  <el-form-item :label="$t('setting.apiSuffix')">
-                    <el-input v-model="settings.openai.completionSuffix" :placeholder="$t('setting.completionSuffix')"
-                      @change="updateLlmInfo" />
-                    <div style="height:40px;"></div>
-                    <el-input v-model="settings.openai.chatSuffix" :placeholder="$t('setting.chatSuffix')"
-                      @change="updateLlmInfo" />
-                  </el-form-item>
-                </div>
-
-                <!-- MetaDoc 配置 -->
-                <div v-else-if="settings.selectedLlm === 'metadoc'">
-                  <el-form-item :label="$t('setting.chooseModel')">
-                    <el-select v-model="settings.metadoc.selectedModel" :placeholder="$t('setting.chooseModel')"
-                      @click="fetchMetaDocModels" @change="updateLlmInfo">
-                      <el-option v-for="model in metadocModels" :key="model" :label="model.label"
-                        :value="model.label" />
-                    </el-select>
-                  </el-form-item>
-                </div>
-
-                <el-form-item :label="$t('setting.removeThinkTag')">
-                  <el-switch v-model="settings.autoRemoveThinkTag" class="mb-2"
+              <el-form-item :label="$t('setting.excludeCodeBlocks')">
+                <el-tooltip :content="$t('setting.excludeCodeHint')" placement="bottom">
+                  <el-switch v-model="settings.bypassCodeBlock" class="mb-2"
                     style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
                     :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
-                    @change="saveSetting('autoRemoveThinkTag', settings.autoRemoveThinkTag)" />
-                </el-form-item>
-                <el-form-item :label="$t('setting.enableKnowledgeBase')">
-                  <el-tooltip :content="$t('setting.knowledgeBaseTooltip')" placement="bottom">
-                    <el-switch v-model="settings.enableKnowledgeBase" class="mb-2"
-                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                      :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')" @change="saveSetting('enableKnowledgeBase', settings.enableKnowledgeBase);
-                      sendBroadcast('home', 'knowledge-base-toggle', { enabled: settings.enableKnowledgeBase });
-                      " />
-                  </el-tooltip>
+                    @change="saveSetting('bypassCodeBlock', settings.bypassCodeBlock);" />
+                </el-tooltip>
+              </el-form-item>
 
-                </el-form-item>
-                <div class="aero-divider">
-                  <el-form-item>
-                    <el-button type="primary" @click="testLlmApi" class="aero-btn">{{ $t('setting.testLlm')
-                    }}</el-button>
+              <el-form-item :label="$t('setting.autoDownloadImage')">
+                <el-tooltip :content="$t('setting.autoDownloadHint')" placement="bottom">
+                  <el-switch v-model="settings.autoSaveExternalImage" class="mb-2"
+                    style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                    :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
+                    @change="saveSetting('autoSaveExternalImage', settings.autoSaveExternalImage);" />
+                </el-tooltip>
+              </el-form-item>
+            </template>
+
+            <template v-if="activeMenu === 'llm'">
+              <div>
+                <!-- 启用/禁用 LLM -->
+                <el-switch v-model="settings.llmEnabled" class="mb-2"
+                  style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                  :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
+                  @change="handleLlmToggle" />
+
+                <!-- 配置界面 -->
+                <div v-if="settings.llmEnabled">
+                  <el-form-item :label="$t('setting.llmType')">
+                    <el-select v-model="settings.selectedLlm" :placeholder="$t('setting.chooseLlm')"
+                      @change="saveSetting('selectedLlm', settings.selectedLlm)">
+                      <el-tooltip :content="$t('setting.metadocHint')" placement="left">
+                        <el-option :label="$t('setting.metadoc')" value="metadoc"></el-option>
+                      </el-tooltip>
+                      <el-tooltip :content="$t('setting.ollamaHint')" placement="left">
+                        <el-option :label="$t('setting.ollama')" value="ollama"></el-option>
+                      </el-tooltip>
+                      <el-tooltip :content="$t('setting.openaiHint')" placement="left">
+                        <el-option :label="$t('setting.openai')" value="openai"></el-option>
+                      </el-tooltip>
+                    </el-select>
                   </el-form-item>
-                  <el-form-item :label="$t('setting.testResult')">
-                    <el-input v-model="testResult" type="textarea" readonly
-                      :placeholder="$t('setting.resultPlaceholder')" :autosize="{ minRows: 5, maxRows: 7 }" />
+
+                  <!-- Ollama 配置 -->
+                  <div v-if="settings.selectedLlm === 'ollama'">
+                    <el-form-item :label="$t('setting.apiBaseUrl')">
+                      <el-input v-model="settings.ollama.apiUrl" :placeholder="$t('setting.ollamaApiUrl')"
+                        @change="updateLlmInfo" />
+                    </el-form-item>
+                    <el-form-item :label="$t('setting.chooseModel')">
+                      <el-select v-model="settings.ollama.selectedModel" :placeholder="$t('setting.chooseModel')"
+                        @click="fetchOllamaModels" @change="updateLlmInfo">
+                        <el-option v-for="model in ollamaModels" :key="model" :label="model.name"
+                          :value="model.model" />
+                      </el-select>
+                    </el-form-item>
+                  </div>
+
+                  <!-- OpenAI 配置 -->
+                  <div v-else-if="settings.selectedLlm === 'openai'">
+                    <el-form-item :label="$t('setting.apiBaseUrl')">
+                      <el-input v-model="settings.openai.apiUrl" :placeholder="$t('setting.openaiApiUrl')"
+                        @change="updateLlmInfo" />
+                    </el-form-item>
+                    <el-form-item :label="$t('setting.apiKey')">
+                      <el-input v-model="settings.openai.apiKey" type="password"
+                        :placeholder="$t('setting.apiKeyPlaceholder')" @change="updateLlmInfo" />
+                    </el-form-item>
+                    <el-form-item :label="$t('setting.chooseModel')">
+                      <el-select v-model="settings.openai.selectedModel" :placeholder="$t('setting.chooseModel')"
+                        @click="fetchOpenAIModels" @change="updateLlmInfo">
+                        <el-option v-for="model in openaiModels" :key="model" :label="model.id" :value="model.id" />
+                      </el-select>
+                    </el-form-item>
+                    <el-form-item :label="$t('setting.apiSuffix')">
+                      <el-input v-model="settings.openai.completionSuffix" :placeholder="$t('setting.completionSuffix')"
+                        @change="updateLlmInfo" />
+                      <div style="height:40px;"></div>
+                      <el-input v-model="settings.openai.chatSuffix" :placeholder="$t('setting.chatSuffix')"
+                        @change="updateLlmInfo" />
+                    </el-form-item>
+                  </div>
+
+                  <!-- MetaDoc 配置 -->
+                  <div v-else-if="settings.selectedLlm === 'metadoc'">
+                    <el-form-item :label="$t('setting.chooseModel')">
+                      <el-select v-model="settings.metadoc.selectedModel" :placeholder="$t('setting.chooseModel')"
+                        @click="fetchMetaDocModels" @change="updateLlmInfo">
+                        <el-option v-for="model in metadocModels" :key="model" :label="model.label"
+                          :value="model.label" />
+                      </el-select>
+                    </el-form-item>
+                  </div>
+
+                  <el-form-item :label="$t('setting.removeThinkTag')">
+                    <el-switch v-model="settings.autoRemoveThinkTag" class="mb-2"
+                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                      :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
+                      @change="saveSetting('autoRemoveThinkTag', settings.autoRemoveThinkTag)" />
                   </el-form-item>
+                  <el-form-item :label="$t('setting.autoCompletion')">
+                    <el-switch v-model="settings.autoCompletion" class="mb-2"
+                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                      :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
+                      @change="saveSetting('autoCompletion', settings.autoCompletion)" />
+                  </el-form-item>
+                  <el-form-item :label="$t('setting.autoCompletionMode')" v-if="settings.autoCompletion">
+                    <el-select v-model="settings.autoCompletionMode"
+                      :placeholder="$t('setting.chooseAutoCompletionMode')"
+                      @change="saveSetting('autoCompletionMode', settings.autoCompletionMode)">
+                      <el-tooltip :content="$t('setting.autoCompletionFullModeHint')" placement="left">
+                        <el-option :label="$t('setting.autoCompletionFullMode')" value="full"></el-option>
+                      </el-tooltip>
+                      <el-tooltip :content="$t('setting.autoCompletionStreamModeHint')" placement="left">
+                        <el-option :label="$t('setting.autoCompletionStreamMode')" value="stream"></el-option>
+                      </el-tooltip>
+                    </el-select>
+
+                  </el-form-item>
+                  <el-form-item :label="$t('setting.enableKnowledgeBase')">
+                    <el-tooltip :content="$t('setting.knowledgeBaseTooltip')" placement="bottom">
+                      <el-switch v-model="settings.enableKnowledgeBase" class="mb-2"
+                        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                        :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')" @change="saveSetting('enableKnowledgeBase', settings.enableKnowledgeBase);
+                        sendBroadcast('home', 'knowledge-base-toggle', { enabled: settings.enableKnowledgeBase });
+                        " />
+                    </el-tooltip>
+                  </el-form-item>
+                  <el-form-item :label="$t('setting.knowledgeBaseScoreThreshold')" v-if="settings.enableKnowledgeBase">
+                    <el-tooltip :content="$t('setting.knowledgeBaseScoreThresholdTooltip')" placement="top">
+                      <el-slider v-model="settings.knowledgeBaseScoreThreshold" show-input :min="0.01" :max="0.99"
+                        :step="0.01"
+                        @change="saveSetting('knowledgeBaseScoreThreshold', settings.knowledgeBaseScoreThreshold)"
+                        :marks="{
+                          0.3: {
+                            style: {
+                              color: '#1989FA',
+                            },
+                            label: $t('setting.lowPrecision'),
+                          },
+                          0.5: {
+                            style: {
+                              color: '#1989FA',
+                            },
+                            label: $t('setting.recommended'),
+                          },
+                          0.8: {
+                            style: {
+                              color: '#1989FA',
+                            },
+                            label: $t('setting.highPrecision'),
+                          },
+                        }" style="margin-bottom: 10px;"/>
+                    </el-tooltip>
+                  </el-form-item>
+                  <div class="aero-divider">
+                    <el-form-item>
+                      <el-button type="primary" @click="testLlmApi" class="aero-btn">{{ $t('setting.testLlm')
+                        }}</el-button>
+                    </el-form-item>
+                    <el-form-item :label="$t('setting.testResult')">
+                      <el-input v-model="testResult" type="textarea" readonly
+                        :placeholder="$t('setting.resultPlaceholder')" :autosize="{ minRows: 5, maxRows: 7 }" />
+                    </el-form-item>
+                  </div>
                 </div>
               </div>
-            </div>
-          </template>
-          <template v-if="activeMenu === 'themes'">
-            <el-form-item :label="$t('setting.globalTheme')">
-              <el-radio-group v-model="settings.globalTheme"
-                @change="saveSetting('globalTheme', settings.globalTheme); eventBus.emit('sync-theme'); eventBus.emit('theme-changed')">
-                <el-radio label="sync">{{ $t('setting.themeSync') }}</el-radio>
-                <el-radio label="light">{{ $t('setting.themeLight') }}</el-radio>
-                <el-radio label="dark">{{ $t('setting.themeDark') }}</el-radio>
-                <el-radio label="custom">{{ $t('setting.themeCustom') }}</el-radio>
-                <el-color-picker v-if="settings.globalTheme === 'custom'" v-model="settings.customThemeColor"
-                  :predefine="predefineColors" @change="
+            </template>
+            <template v-if="activeMenu === 'themes'">
+              <el-form-item :label="$t('setting.globalTheme')">
+                <el-radio-group v-model="settings.globalTheme"
+                  @change="saveSetting('globalTheme', settings.globalTheme); eventBus.emit('sync-theme'); eventBus.emit('theme-changed')">
+                  <el-radio label="sync">{{ $t('setting.themeSync') }}</el-radio>
+                  <el-radio label="light">{{ $t('setting.themeLight') }}</el-radio>
+                  <el-radio label="dark">{{ $t('setting.themeDark') }}</el-radio>
+                  <el-radio label="custom">{{ $t('setting.themeCustom') }}</el-radio>
+                  <el-color-picker v-if="settings.globalTheme === 'custom'" v-model="settings.customThemeColor"
+                    :predefine="predefineColors" @change="
+                      changeCustomTheme(settings.customThemeColor);
+                    " @active-change="
+                      settings.customThemeColor = $event;
                     changeCustomTheme(settings.customThemeColor);
-                  " @active-change="
-                    settings.customThemeColor = $event;
-                  changeCustomTheme(settings.customThemeColor);
-                  " />
-              </el-radio-group>
-            </el-form-item>
-            <!-- 文档内容主题设置 -->
-            <el-form-item :label="$t('setting.contentTheme')">
-              <el-select v-model="settings.contentTheme" placeholder="Select Content Theme" @change="saveSetting('contentTheme', settings.contentTheme)
-              sendBroadcast('all', 'sync-vditor-theme', {});
-              ">
-                <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
-                <el-option v-for="item in contentThemes" :key="item.value" :label="t(item.label)" :value="item.value" />
-              </el-select>
-            </el-form-item>
+                    " />
+                </el-radio-group>
+              </el-form-item>
+              <!-- 文档内容主题设置 -->
+              <el-form-item :label="$t('setting.contentTheme')">
+                <el-select v-model="settings.contentTheme" placeholder="Select Content Theme" @change="saveSetting('contentTheme', settings.contentTheme)
+                sendBroadcast('all', 'sync-vditor-theme', {});
+                ">
+                  <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
+                  <el-option v-for="item in contentThemes" :key="item.value" :label="t(item.label)"
+                    :value="item.value" />
+                </el-select>
+              </el-form-item>
 
-            <!-- 代码主题设置 -->
-            <el-form-item :label="$t('setting.codeTheme')">
-              <el-select v-model="settings.codeTheme" filterable placeholder="Select Code Theme" @change="saveSetting('codeTheme', settings.codeTheme)
-              sendBroadcast('all', 'sync-vditor-theme', {});
-              ">
-                <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
-                <el-option v-for="item in codeThemes" :key="item" :label="item" :value="item" />
-              </el-select>
-            </el-form-item>
-            <el-form-item :label="$t('setting.lineNumber')">
-              <el-switch v-model="settings.lineNumber" class="mb-2"
-                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
-                @change="saveSetting('lineNumber', settings.lineNumber);" />
-            </el-form-item>
-          </template>
-        </el-form>
+              <!-- 代码主题设置 -->
+              <el-form-item :label="$t('setting.codeTheme')">
+                <el-select v-model="settings.codeTheme" filterable placeholder="Select Code Theme" @change="saveSetting('codeTheme', settings.codeTheme)
+                sendBroadcast('all', 'sync-vditor-theme', {});
+                ">
+                  <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
+                  <el-option v-for="item in codeThemes" :key="item" :label="item" :value="item" />
+                </el-select>
+              </el-form-item>
+              <el-form-item :label="$t('setting.lineNumber')">
+                <el-switch v-model="settings.lineNumber" class="mb-2"
+                  style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                  :active-text="$t('setting.enabled')" :inactive-text="$t('setting.disabled')"
+                  @change="saveSetting('lineNumber', settings.lineNumber);" />
+              </el-form-item>
+            </template>
+          </el-form>
+        </el-scrollbar>
+
       </el-main>
     </el-container>
   </div>
@@ -391,7 +441,8 @@ const handleLlmToggle = (enabled) => {
 const testLlmApi = async () => {
   try {
     const prompt = t('setting.testPrompt');
-    createAiTask('AI Test', prompt, testResult, ai_types.answer, 'setting-test',false);
+    const enableKnowledgeBase = await getSetting("enableKnowledgeBase");
+    createAiTask('AI Test', prompt, testResult, ai_types.answer, 'setting-test', enableKnowledgeBase);
   } catch (error) {
     console.error(t('setting.testFailed'), error);
 
@@ -413,6 +464,7 @@ onMounted(() => {
 }
 
 .settings-form {
+  max-height: 80vh;
   width: 100%;
   padding-top: 10%;
 }

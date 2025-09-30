@@ -275,6 +275,7 @@ import { exportPng } from '../utils/image-utils.js'
 import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn.js'
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks.js'
+import { getSetting } from '../utils/settings.js'
 const { t } = useI18n()
 
 const STORAGE_KEY = 'aiGraph_schemes'
@@ -550,7 +551,8 @@ async function generateCode() {
         },
         { immediate: true }
     )
-    const { handle, done } = createAiTask(activeScheme.value.prompt, prompt, codeRef, ai_types.answer, 'ai-graph', false);
+    const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
+    const { handle, done } = createAiTask(activeScheme.value.prompt, prompt, codeRef, ai_types.answer, 'ai-graph', enableKnowledgeBase);
     generating.value = true;
 
     try {

@@ -50,51 +50,82 @@ async function getLlmConfig() {
  * @param {string} prompt - The prompt to ask.
  * @returns {Promise<string>} - The response from the model.
  */
-async function answerQuestion(prompt, meta = { temperature: 0 }, try_rag = false) {
+async function answerQuestionNonStream(prompt, ref, meta = { temperature: 0 }, signal = {}, try_rag = false) {
   if (try_rag) {
     prompt = await ragQueryInjection(prompt);
   }
+  if (!(await validateApi())) { return }
+
   const { type, apiUrl, apiKey, selectedModel, completionSuffix = '' } = await getLlmConfig();
-  const autoRemoveThinkTag = await getSetting('autoRemoveThinkTag')
+
+  async function handleRequest(url, payload, ref) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        },
+        body: JSON.stringify(payload),
+        signal, // ✅ 支持中止
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json(); // 一次性读取 JSON
+
+      let text = "";
+      if (result.response !== undefined) {
+        text = result.response;
+      } else if (result.choices && result.choices[0]) {
+        text = result.choices[0].text || result.choices[0].message?.content || "";
+      }
+
+      const autoRemoveThinkTag = await getSetting('autoRemoveThinkTag');
+      if (autoRemoveThinkTag && text.trim().endsWith('</think>')) {
+        text = "";
+      }
+      ref.value = text;
+
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('请求已中止');
+        throw error; // 重新抛出中止异常，供上层处理
+      }
+      console.error("非流式请求出错:", error);
+    }
+  }
+
   switch (type) {
-    case "openai":
     case "metadoc":
-      return axios
-        .post(
-          `${apiUrl}${completionSuffix}/completions`,
-          {
-            model: selectedModel || "gpt-4",
-            prompt,
-            max_tokens: 500,
-            options: {
-              ...meta
-            }
-          },
-          {
-            headers: { Authorization: `Bearer ${apiKey}` },
-          }
-        )
-        .then((res) => res.data.choices[0].text);
+    case "openai":
+      await handleRequest(
+        `${apiUrl}${completionSuffix}/completions`,
+        {
+          model: selectedModel || "text-davinci-003",
+          prompt,
+          stream: false,
+          ...(meta || {}),
+        },
+        ref
+      );
+      break;
 
     case "ollama":
-      //console.log(`${apiUrl}/generate`)
-      //console.log({ model: selectedModel, prompt })
-      const result = await axios
-        .post(`${apiUrl}/generate`, { model: selectedModel, prompt, stream: false })
-        .then((res) => {
-          let result = res.data.response;
-          //console.log(result)
-          if (autoRemoveThinkTag) {
-            //查找</think>标签，删除标签以及之前的内容
-            const index = result.indexOf('</think>');
-            if (index >= 0) {
-              result = result.substring(index + 8).trim();
-            }
-          }
-          return result;
+      await handleRequest(
+        `${apiUrl}/generate`,
+        {
+          model: selectedModel,
+          prompt,
+          stream: false,
+          ...(meta || {}),
+        },
+        ref
+      );
+      break;
 
-        })
-      return result;
     default:
       throw new Error(`Unsupported LLM type: ${type}`);
   }
@@ -121,7 +152,7 @@ async function validateApi() {
   return flag;
 }
 
-async function answerQuestionStream(prompt, ref, meta = { temperature: 0 }, signal = {}, try_rag = false) {
+async function answerQuestionStream(prompt, ref, meta = {}, signal = {}, try_rag = false) {
   if (try_rag) {
     prompt = await ragQueryInjection(prompt);
   }
@@ -239,148 +270,183 @@ async function answerQuestionStream(prompt, ref, meta = { temperature: 0 }, sign
   }
 }
 
-
-
 /**
- * Continue a conversation (non-streaming).
- * @param {object[]} conversation - The conversation history.
- * @returns {Promise<string>} - The response from the model.
+ * 统一对话补全接口
+ * @param {string} prompt - 用户输入的 prompt
+ * @param {Ref<string>} ref - Vue ref，用于存放返回结果
+ * @param {Object} meta - 可选参数，如 temperature 等
+ * @param {boolean} streaming - 是否使用流式返回
+ * @param {Object} signal - 可选的中断信号
+ * @param {boolean} try_rag - 是否使用 RAG 注入
  */
-async function continueConversation(conversation) {
-  if (!(await validateApi())) {
-    return;
+async function answerQuestion(prompt, ref, meta = { temperature: 0 }, signal = {}, try_rag = false) {
+  if (meta.stream) {
+    // 调用流式版本
+    await answerQuestionStream(prompt, ref, meta, signal, try_rag);
+  } else {
+    // 调用非流式版本
+    await answerQuestionNonStream(prompt, ref, meta, signal, try_rag);
   }
-  conversation = await ragQueryInjectionConversation(conversation);
+}
+
+// 公共方法：请求并返回 response
+async function requestLlm(conversation, signal, try_rag) {
+  if (!(await validateApi())) return null;
+  if (try_rag) {
+    conversation = await ragQueryInjectionConversation(conversation);
+  }
+
   const { type, apiUrl, apiKey, selectedModel, chatSuffix = '' } = await getLlmConfig();
+
+  return { type, apiUrl, apiKey, selectedModel, chatSuffix, conversation };
+}
+async function continueConversation(conversation, ref, meta = { temperature: 0 }, signal, try_rag = false) {
+  if (meta.stream) {
+    // 调用流式版本
+    await continueConversationStream(conversation, ref, meta, signal, try_rag);
+  } else {
+    // 调用非流式版本
+    await continueConversationNonStream(conversation, ref, meta, signal, try_rag);
+  }
+}
+// 非流式版本
+async function continueConversationNonStream(conversation, ref, meta, signal, try_rag = false) {
+  const config = await requestLlm(conversation, signal, try_rag);
+  if (!config) return;
+
+  const { type, apiUrl, apiKey, selectedModel, chatSuffix } = config;
+  const autoRemoveThinkTag = await getSetting('autoRemoveThinkTag');
+
   switch (type) {
     case "openai":
-    case "metadoc":
-      return axios
-        .post(
-          `${apiUrl}${chatSuffix}/chat/completions`,
-          {
-            model: selectedModel || "gpt-4",
-            messages: conversation,
-            max_tokens: 1024,
-            temperature: 0.7,
-          },
-          {
-            headers: { Authorization: `Bearer ${apiKey}` },
-          }
-        )
-        .then((res) => res.data.choices[0].message.content);
+    case "metadoc": {
+      const payload = {
+        model: selectedModel,
+        messages: conversation,
+        stream: false,
+      };
 
-    case "ollama":
-      const userMessages = conversation
-        .filter((msg) => msg.role === "user")
-        .map((msg) => msg.content)
-        .join("\n");
-      return axios
-        .post(`${apiUrl}/generate`, { model: selectedModel, prompt: userMessages })
-        .then((res) => res.data.response);
+      const response = await fetch(`${apiUrl}${chatSuffix}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(payload),
+        signal,
+      });
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || "";
+      ref.value = autoRemoveThinkTag && content.trim().endsWith('</think>')
+        ? ""
+        : content;
+      break;
+    }
+
+    case "ollama": {
+      const payload = {
+        model: selectedModel,
+        messages: conversation,
+        stream: false,
+      };
+
+      const response = await fetch(`${apiUrl}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal,
+      });
+
+      const data = await response.json();
+      const content = data.message?.content || "";
+      ref.value = autoRemoveThinkTag && content.trim().endsWith('</think>')
+        ? ""
+        : content;
+      break;
+    }
 
     default:
       throw new Error(`Unsupported LLM type: ${type}`);
   }
 }
 
-/**
- * Continue a conversation (streaming).
- * @param {object[]} conversation - The conversation history.
- * @param {object} ref - A reactive reference to store the result incrementally.
- */
-async function continueConversationStream(conversation, ref, signal = {}, try_rag = false) {
-  if (!(await validateApi())) {
-    return;
-  }
-  if (try_rag) {
-    conversation = await ragQueryInjectionConversation(conversation);
-  }
-  const { type, apiUrl, apiKey, selectedModel, chatSuffix = '' } = await getLlmConfig();
-  //console.log({ type, apiUrl, apiKey, selectedModel });
+// 流式版本
+async function continueConversationStream(conversation, ref, meta, signal = {}, try_rag = false) {
+  const config = await requestLlm(conversation, signal, try_rag);
+  if (!config) return;
 
+  const { type, apiUrl, apiKey, selectedModel, chatSuffix } = config;
   const autoRemoveThinkTag = await getSetting('autoRemoveThinkTag');
 
   switch (type) {
     case "openai":
-    case "metadoc":
-      {
-        const payload = {
-          model: selectedModel,
-          messages: conversation,
-          stream: true,
-        };
+    case "metadoc": {
+      const payload = {
+        model: selectedModel,
+        messages: conversation,
+        stream: true,
+      };
 
-        const response = await fetch(`${apiUrl}${chatSuffix}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify(payload),
-        });
+      const response = await fetch(`${apiUrl}${chatSuffix}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(payload),
+        signal,
+      });
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let buffer = '';
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
 
-          for (const line of lines) {
-            let json = '';
-            if (!line.trim()) continue;
-            try {
-              if (line.startsWith('data: ')) {
-                json = line.replace(/^data: /, ""); // 解析 OpenAI 的 NDJSON 行，去掉前缀
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            let json = line.startsWith('data: ')
+              ? line.replace(/^data: /, "")
+              : line;
+            if (json === '[DONE]') continue;
+
+            if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+            const data = JSON.parse(json);
+            const delta = data.choices?.[0]?.delta?.content;
+            if (delta) {
+              ref.value += delta;
+              if (autoRemoveThinkTag && ref.value.trim().endsWith('</think>')) {
+                ref.value = '';
               }
-              else json = line; // 直接使用其他类型的 NDJSON 行
-              if (json === '[DONE]') continue; // 处理 OpenAI 的结束标志
-              if (signal.aborted) {
-                throw new DOMException('Aborted', 'AbortError')
-              }
-              const data = JSON.parse(json);
-              if (data.choices && data.choices[0]) {
-                if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
-                  ref.value += data.choices[0].delta.content;
-                } else {
-                  ref.value += "";
-                }
-                //ref.value += data.choices[0].delta?.content || "";
-                if (autoRemoveThinkTag && ref.value.trim().endsWith('</think>')) {
-                  ref.value = '';
-                }
-              }
-
-            } catch (error) {
-              if (error.name === 'AbortError') {
-                throw error; // 重新抛出中止异常
-              }
-              console.error('JSON 解析错误:', error);
-              //如果是取消请求的错误，则抛出中止异常
-
             }
+          } catch (error) {
+            if (error.name === 'AbortError') throw error;
+            console.error('JSON 解析错误:', error);
           }
         }
-        break;
       }
+      break;
+    }
 
     case "ollama": {
       const payload = {
         model: selectedModel,
         messages: conversation,
+        stream: true,
       };
 
       const response = await fetch(`${apiUrl}/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal,
       });
 
       const reader = response.body.getReader();
@@ -398,16 +464,15 @@ async function continueConversationStream(conversation, ref, signal = {}, try_ra
           if (!line.trim()) continue;
           try {
             const data = JSON.parse(line);
-            if (data.message && data.message.content) {
-              ref.value += data.message.content;
+            const content = data.message?.content;
+            if (content) {
+              ref.value += content;
               if (autoRemoveThinkTag && ref.value.trim().endsWith('</think>')) {
                 ref.value = '';
               }
             }
           } catch (error) {
-            if (error.name === 'AbortError') {
-              throw error; // 重新抛出中止异常
-            }
+            if (error.name === 'AbortError') throw error;
             console.error('JSON 解析错误:', error);
           }
         }
@@ -419,8 +484,6 @@ async function continueConversationStream(conversation, ref, signal = {}, try_ra
       throw new Error(`Unsupported LLM type: ${type}`);
   }
 }
-
-
 
 async function ragQueryInjection(originalPrompt) {
   const enabledRag = await getSetting('enableKnowledgeBase')
@@ -455,12 +518,11 @@ async function ragQueryInjectionConversation(originalConversation) {
     "content": ragQueryReferencePrompt(response)
   });
   originalConversation.push(top);
+  //console.log(top)
   return originalConversation;
 }
 
 export {
   answerQuestion,
-  answerQuestionStream,
   continueConversation,
-  continueConversationStream,
 };

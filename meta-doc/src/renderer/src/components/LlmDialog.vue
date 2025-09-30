@@ -92,6 +92,7 @@ const loading = ref(false);
 
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from "../utils/ai_tasks";
+import { getSetting } from "../utils/settings";
 const { locale } = useI18n()
 const { t } = useI18n()
 
@@ -102,7 +103,8 @@ async function generateContent() {
   }
   loading.value = true
   try {
-    createAiTask(props.title, props.prompt, aiResponse,ai_types.answer,props.title,false);
+    const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
+    createAiTask(props.title, props.prompt, aiResponse,ai_types.answer,props.title,enableKnowledgeBase);
 
   } catch (error) {
     ElMessage.error(t('llmDialog.generateFailedError'))

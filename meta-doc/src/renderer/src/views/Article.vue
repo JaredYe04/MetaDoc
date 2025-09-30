@@ -131,13 +131,12 @@ import SearchReplaceMenu from "../components/SearchReplaceMenu.vue";
 import AiLogo from "../assets/ai-logo.svg";
 import AiLogoWhite from "../assets/ai-logo-white.svg";
 import { themeState } from "../utils/themes";
-import { getSetting } from "../utils/settings";
-import { bin } from "d3";
+import { getSetting, setSetting } from "../utils/settings";
 import { localVditorCDN, vditorCDN } from "../utils/vditor-cdn";
 import { useI18n } from 'vue-i18n'
 import AISuggestion from "../components/AISuggestion.vue";
 import "../assets/ai-suggestion.css";
-import ArticleContextMenu, { articleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
+import { getArticleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
 import ContextMenu from "../components/ContextMenu.vue";
 const { t } = useI18n()
 
@@ -150,7 +149,7 @@ const modifyAuthorDialogVisible = ref(false);
 const searchReplaceDialogVisible = ref(false);
 const vditor = ref(null); // Vditor 实例
 const editMetaDialogVisible = ref(false); // 编辑元信息对话框
-
+const articleContextMenuItems = ref([]);//右键菜单项
 
 const loadingInstance = ElLoading.service({ fullscreen: false });
 const showTitleMenu = ref(false);
@@ -196,7 +195,7 @@ function trytriggerSuggestion() {
 
 // 打开右键菜单
 const openContextMenu = (event) => {
-
+    
     event.preventDefault();
     menuX.value = event.clientX;
     menuY.value = event.clientY;
@@ -253,7 +252,21 @@ const handleMenuClick = async (item) => {
             const txt2paste = await navigator.clipboard.readText();
             insertText(txt2paste);
             break;
+        case 'openAutoCompletion':
+            await setSetting("autoCompletion",true);
+             break;
+        case 'closeAutoCompletion':
+            await setSetting("autoCompletion",false);
+             break;
+        case 'openKnowledgeBase':
+            await setSetting("enableKnowledgeBase",true);
+             break;
+        case 'closeKnowledgeBase':
+            await setSetting("enableKnowledgeBase",false);
+             break;
+        
     }
+    await refreshContextMenu();
     contextMenuVisible.value = false;
 };
 
@@ -465,11 +478,14 @@ function stopResize() {
 }
 
 
-
+const refreshContextMenu=async ()=>{
+    articleContextMenuItems.value = await getArticleContextMenuItems();
+}
 
 // 编辑器初始化
 onMounted(async () => {
     try {
+        await refreshContextMenu();
         let cdn = '';
         if (isElectronEnv()) {
             cdn = localVditorCDN;

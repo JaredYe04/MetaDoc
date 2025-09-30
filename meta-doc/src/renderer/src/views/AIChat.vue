@@ -88,11 +88,12 @@ import { current_ai_dialogs, addDialog, updateDialog, deleteDialog, defaultAiCha
 import eventBus, { sendBroadcast } from '../utils/event-bus.js';
 import { themeState } from "../utils/themes.js";
 import { AddIcon } from 'tdesign-icons-vue-next';
-import { answerQuestion, continueConversationStream } from '../utils/llm-api.js';
+import { answerQuestion } from '../utils/llm-api.js';
 import '../assets/tool-group.css'
 import { updateTitlePrompt } from '../utils/prompts.js';
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks.js';
+import { getSetting } from '../utils/settings.js';
 const { t } = useI18n()
 const route = useRoute();
 const responding = ref(false);
@@ -192,9 +193,10 @@ async function generateNextResponse(beforeGeneration, callbackRef, afterGenerati
   await beforeGeneration();
   //console.log(messages.value)
   const messageCopy = JSON.parse(JSON.stringify(messages.value));// 深拷贝消息列表，因为Proxy不能直接拷贝
-  console.log(messageCopy)
+  //console.log(messageCopy)
+  const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
   const { handle, done } = createAiTask(
-    messageCopy[messageCopy.length - 2].content, messageCopy, cur_resp, ai_types.chat, 'ai-chat',true);
+    messageCopy[messageCopy.length - 2].content, messageCopy, cur_resp, ai_types.chat, 'ai-chat',enableKnowledgeBase);
   try {
     await done;
   } catch (err) {
@@ -203,7 +205,6 @@ async function generateNextResponse(beforeGeneration, callbackRef, afterGenerati
     await afterGeneration();
     responding.value = false;
   }
-  //await continueConversationStream(messages.value, cur_resp)
 
 
 
@@ -247,7 +248,16 @@ const updateTitle = async () => {
   const prompt = updateTitlePrompt(JSON.stringify(messages.value[messages.value.length - 1].content));
   //备注：因为标题撰写需要一定时间，而用户可能在这个时间切换到其他对话，因此首先要保存索引
   const index = activeDialogIndex.value;//当前对话索引
-  let newTitle = await answerQuestion(prompt)
+
+  const generatedText=ref("");
+  const enableKnowledgeBase=await getSetting("enableKnowledgeBase")
+  const { handle, done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'ai-chat-generate-title',enableKnowledgeBase);
+  try {
+    await done;
+  } catch (err) {
+    console.error(err);
+  }
+  let newTitle = generatedText.value;
   newTitle = newTitle.trim();
   //如果开头是##，则去掉
   while (newTitle.startsWith('#')) {

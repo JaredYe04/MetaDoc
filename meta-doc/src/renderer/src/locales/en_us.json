@@ -3,7 +3,11 @@
   "contextMenu": {
     "aiAnalysis": "AI Full Analysis",
     "copy": "Copy",
-    "paste": "Paste"
+    "paste": "Paste",
+    "closeAutoCompletion": "Disable AI Completion",
+    "closeKnowledgeBase": "Disable Knowledge Retrieval Library",
+    "openAutoCompletion": "Enable AI Completion",
+    "openKnowledgeBase": "Enable Knowledge Retrieval Library"
   },
   "headMenu": {
     "tooltip": "An intelligent document processor based on AI Agent",
@@ -491,7 +495,19 @@
     "particleEffect": "Particle Effect",
     "particleEffectHint": "Enable particle effects to enhance visual aesthetics. This may impact performance.",
     "enableKnowledgeBase": "Enable knowledge base",
-    "knowledgeBaseTooltip": "When enabled, the content of AI will be supported by information from the local knowledge base."
+    "knowledgeBaseTooltip": "When enabled, the content of AI will be supported by information from the local knowledge base.",
+    "autoCompletion": "AI Auto Completion",
+    "autoCompletionFullMode": "Full Mode",
+    "autoCompletionFullModeHint": "AI will output after full content generation (recommended)",
+    "autoCompletionMode": "AI Auto Completion Mode",
+    "autoCompletionStreamMode": "Fluid Mode",
+    "autoCompletionStreamModeHint": "AI will produce content in real time.",
+    "chooseAutoCompletionMode": "Select AI Auto Completion Mode",
+    "highPrecision": "High Precision",
+    "knowledgeBaseScoreThreshold": "Knowledge base text similarity threshold",
+    "knowledgeBaseScoreThresholdTooltip": "Only query results with a similarity above that value will be accepted by AI, recommendation 0.5.",
+    "lowPrecision": "Low precision",
+    "recommended": "Recommendations"
   },
   "visualize": {
     "articleOutline": "Article Outline",

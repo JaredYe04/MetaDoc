@@ -132,8 +132,8 @@ export function mainCalls() {
     return crypto.createHash('md5').update(data).digest('hex');
   });
   //////////////RAG请求查询
-  ipcMain.handle('query-knowledge-base', async (event, { question, k }) => {
-    return await queryKnowledgeBase(question, k);
+  ipcMain.handle('query-knowledge-base', async (event, { question, scoreThreshold }) => {
+    return await queryKnowledgeBase(question, scoreThreshold);
   });
 
   //////////////AI任务调度

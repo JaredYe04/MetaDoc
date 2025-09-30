@@ -115,7 +115,11 @@
   "contextMenu": {
     "aiAnalysis": "KI Volltextanalyse",
     "copy": "Kopie",
-    "paste": "Paste"
+    "paste": "Paste",
+    "closeAutoCompletion": "KI-Ausrüstung deaktivieren",
+    "closeKnowledgeBase": "Unmögliches Wissen Retrieval Bibliothek",
+    "openAutoCompletion": "KI-Vervollständigung aktivieren",
+    "openKnowledgeBase": "Wissen aktivieren Retrieval Bibliothek"
   },
   "formulaRecognition": {
     "brush_size": "Bürste:",
@@ -425,7 +429,19 @@
     "themeSync": "Folgen Sie dem System",
     "themes": "Themeneinstellungen",
     "enableKnowledgeBase": "Wissensbasis aktivieren",
-    "knowledgeBaseTooltip": "Wenn aktiviert, wird der Inhalt von KI durch Informationen aus der lokalen Wissensbasis unterstützt."
+    "knowledgeBaseTooltip": "Wenn aktiviert, wird der Inhalt von KI durch Informationen aus der lokalen Wissensbasis unterstützt.",
+    "autoCompletion": "AI Auto Fertigstellung",
+    "autoCompletionFullMode": "Vollständiger Modus",
+    "autoCompletionFullModeHint": "KI wird nach vollständiger Content-Generierung ausgegeben (empfohlen)",
+    "autoCompletionMode": "AI Auto-Kompensationsmodus",
+    "autoCompletionStreamMode": "Flüssigkeitsbetrieb",
+    "autoCompletionStreamModeHint": "KI wird in Echtzeit Inhalte produzieren.",
+    "chooseAutoCompletionMode": "Wählen Sie KI-Auto-Komplettmodus",
+    "highPrecision": "Hohe Präzision",
+    "knowledgeBaseScoreThreshold": "Wissensbasis Text Ähnlichkeitsschwelle",
+    "knowledgeBaseScoreThresholdTooltip": "Nur Abfrageergebnisse mit einer Ähnlichkeit über diesem Wert werden von AI, Empfehlung 0.5 akzeptiert.",
+    "lowPrecision": "Niedrige Präzision",
+    "recommended": "Empfehlungen"
   },
   "titleMenu": {
     "contextMarks": {

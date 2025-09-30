@@ -3,7 +3,11 @@
   "contextMenu": {
     "aiAnalysis": "AI 전체 분석",
     "copy": "복사",
-    "paste": "붙여넣기"
+    "paste": "붙여넣기",
+    "closeAutoCompletion": "Disable AI 완료",
+    "closeKnowledgeBase": "법적 고지 Retrieval 도서관",
+    "openAutoCompletion": "Enable AI 완료",
+    "openKnowledgeBase": "자주 묻는 질문 Retrieval 도서관"
   },
   "headMenu": {
     "tooltip": "AI 에이전트 기반의 스마트 문서 처리 소프트웨어",
@@ -491,7 +495,19 @@
     "particleEffect": "입자 효과",
     "particleEffectHint": "입자 효과를 활성화하여 화면 미적 감각을 향상시킵니다. 활성화하면 성능에 영향을 줄 수 있습니다.",
     "enableKnowledgeBase": "지식 기반",
-    "knowledgeBaseTooltip": "AI의 콘텐츠는 현지 지식 베이스의 정보로 지원됩니다."
+    "knowledgeBaseTooltip": "AI의 콘텐츠는 현지 지식 베이스의 정보로 지원됩니다.",
+    "autoCompletion": "AI 자동 완료",
+    "autoCompletionFullMode": "풀 모드",
+    "autoCompletionFullModeHint": "AI는 전체 콘텐츠 생성 후 출력됩니다 (추천)",
+    "autoCompletionMode": "AI 자동 완료 모드",
+    "autoCompletionStreamMode": "유체 모드",
+    "autoCompletionStreamModeHint": "AI는 순간에 있는 내용을 생성할 것입니다.",
+    "chooseAutoCompletionMode": "AI Auto Completion 모드 선택",
+    "highPrecision": "높은 정밀도",
+    "knowledgeBaseScoreThreshold": "지식 베이스 텍스트 유사성 문턱",
+    "knowledgeBaseScoreThresholdTooltip": "그 값이 AI, 권고 0.5에 의해 허용 될 위의 유사성 만 쿼리 결과.",
+    "lowPrecision": "낮은 정밀도",
+    "recommended": " Recommend"
   },
   "visualize": {
     "articleOutline": "문서 아웃라인",

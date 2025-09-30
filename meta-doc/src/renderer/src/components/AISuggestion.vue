@@ -12,6 +12,7 @@ import { h, render } from "vue";
 import { useI18n } from 'vue-i18n'
 import { suggestionCompletionPrompt } from "../utils/prompts";
 import { ai_types, createAiTask } from "../utils/ai_tasks";
+import { getSetting } from "../utils/settings";
 const { t } = useI18n()
 const props = defineProps({
     targetEl: { type: Object, required: true }, // 宿主元素 (contenteditable 或 textarea overlay)
@@ -148,8 +149,8 @@ function showTooltip() {
 
   // 定位到 suggestionEl 上方
   const rect = suggestionEl.getBoundingClientRect();
-  tooltipEl.style.left = rect.left + "px";
-  tooltipEl.style.top = rect.top - rect.height - 4 + "px";
+  tooltipEl.style.left = rect.left - 10 + "px";
+  tooltipEl.style.top = rect.top - rect.height - 20 + "px";
 }
 
 function hideTooltip() {
@@ -169,34 +170,31 @@ function setElTheme(suggestionEl){
   suggestionEl.contentEditable = "false";
   suggestionEl.textContent = "";
 }
-function startSuggestion() {
+async function startSuggestion() {
+  const autoCompletionEnabled=await getSetting('autoCompletion');
+  if(!autoCompletionEnabled)return;
   resetSuggestion();
 
   const range = getCurrentRange();
   if (!range) return;
+
   const { preContext, postContext } = getContextFromCursor(range, props.rootNodeClass, 1000);
 
   suggestionEl = document.createElement("span");
   setElTheme(suggestionEl);
-  // 插入 span
+
+  const sel = window.getSelection();
+  const currentRange = sel.getRangeAt(0).cloneRange();
+
   range.insertNode(suggestionEl);
 
-  // 零宽空格
-  zwsp = document.createTextNode("");
-  suggestionEl.after(zwsp);
-  //showTooltip();
-  // 光标移动到零宽空格
-  const sel = window.getSelection();
   sel.removeAllRanges();
-  const afterRange = document.createRange();
-  afterRange.setStart(zwsp, 0);
-  afterRange.collapse(true);
-  sel.addRange(afterRange);
+  sel.addRange(currentRange);
 
   // 生成 AI 文本
   generateAIText(preContext, postContext);
-
 }
+
 
 // 监听 themeState 变化，实时更新 class
 watch(
@@ -211,11 +209,14 @@ watch(
   }
 );
 
-function generateAIText(preContext, postContext) {
+async function generateAIText(preContext, postContext) {
   
   let prompt=suggestionCompletionPrompt(preContext, postContext);
-  console.log("AI Suggestion Prompt:", prompt);
-  createAiTask(t(`aiSuggestion.tooltip`), prompt, aiText,ai_types.chat,t(`aiSuggestion.tooltip`),false);
+  const autoCompletionMode=await getSetting("autoCompletionMode");
+  const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
+  createAiTask(t(`aiSuggestion.tooltip`), prompt, aiText,ai_types.chat,t(`aiSuggestion.tooltip`),enableKnowledgeBase,{
+    stream:!(autoCompletionMode==='full')
+  });
 
 }
 

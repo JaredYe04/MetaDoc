@@ -279,6 +279,7 @@ import { extractOuterJsonString } from '../utils/regex-utils.js';
 import '../assets/noselect-display.css';
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks.js';
+import { getSetting } from '../utils/settings.js';
 
 const { t } = useI18n()
 const formatTitleDialogVisible = ref(false);
@@ -329,14 +330,14 @@ const generateChildrenChildren = async () => {
 
     const myRawString = ref('');
     parallelChildren.value.push(myRawString);
-
+    const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
     const { handle, done } = createAiTask(
       curNode.title,
       prompt,
       myRawString,
       ai_types.answer,
       'outline-children-' + curNode.title,
-      false
+      enableKnowledgeBase
     );
 
     const taskPromise = done
@@ -405,14 +406,14 @@ const generateChildrenContent = async () => {
 
     const myRawString = ref('');
     parallelChildren.value.push(myRawString);
-
+    const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
     const { handle, done } = createAiTask(
       curNode.title,
       prompt,
       myRawString,
       ai_types.answer,
       'outline-content-' + curNode.title,
-      false
+      enableKnowledgeBase
     );
 
     const taskPromise = done
@@ -452,8 +453,8 @@ const generateContent = async () => {
     JSON.stringify(cur_node),
     userPrompt.value
   );
-
-  const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-content-' + cur_node.title,false);
+  const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
+  const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-content-' + cur_node.title,enableKnowledgeBase);
   try {
     await done;
   } catch (err) {
@@ -705,8 +706,8 @@ const generateChildChapter = async () => {
     );
 
 
-
-    const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-children-' + cur_node.title,false);
+    const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
+    const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-children-' + cur_node.title,enableKnowledgeBase);
     try {
       await done;
       const json = extractOuterJsonString(rawstring.value);

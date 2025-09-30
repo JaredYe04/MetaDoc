@@ -1,6 +1,6 @@
 // utils/ai_tasks.js
 import { ref } from 'vue'
-import { answerQuestionStream, continueConversationStream } from './llm-api'
+import { answerQuestion,continueConversation, } from './llm-api'
 import eventBus, { isMainWindow } from './event-bus'
 import { useRoute } from 'vue-router'
 
@@ -32,7 +32,7 @@ export const ai_types={
 }
 
 // 创建任务（主窗口和子窗口通用）
-export function createAiTask(name, prompt, target, type, origin_key, try_rag, meta = {}) {
+export function createAiTask(name, prompt, target, type, origin_key, try_rag, meta = {stream:true}) {
   const autoStart = true
   const handle = generateHandle()
 
@@ -96,10 +96,11 @@ export async function startAiTask(handle) {
   task.controller = controller
 
   try {
+
     if (task.type === ai_types.answer) {
-      await answerQuestionStream(task.prompt, task.target, task.meta, controller.signal, task.try_rag)
+      await answerQuestion(task.prompt, task.target, task.meta, controller.signal, task.try_rag)
     } else if (task.type === ai_types.chat) {
-      await continueConversationStream(task.prompt, task.target, controller.signal, task.try_rag)
+      await continueConversation(task.prompt, task.target,task.meta, controller.signal, task.try_rag)
     }
 
     task.status.value = ai_task_status.FINISHED

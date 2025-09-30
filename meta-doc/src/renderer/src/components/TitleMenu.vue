@@ -117,6 +117,7 @@ import { current_article } from '../utils/common-data';
 import { Plus } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks';
+import { getSetting } from '../utils/settings';
 
 const { t } = useI18n()
 
@@ -209,7 +210,8 @@ const generate = async () => {
 
   const prompt = sectionChangePrompt(outline, articleContent.value, props.title, userPrompt.value, context_mode.value, current_article.value);
   //console.log(prompt);
-  const { handle, done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'title-menu',false);
+  const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
+  const { handle, done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'title-menu',enableKnowledgeBase);
   generating.value = true;
   generated.value = false;
 

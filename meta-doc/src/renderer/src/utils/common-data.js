@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import eventBus, { sendBroadcast } from '../utils/event-bus'
-import { generateMarkdownFromOutlineTree,extractOutlineTreeFromMarkdown } from './md-utils'
+import { generateMarkdownFromOutlineTree,extractOutlineTreeFromMarkdown, filterMetaDataFromMd } from './md-utils'
 export const loggedIn = ref(false)
 export const user=ref({
 })
@@ -64,12 +64,13 @@ export const firstLoad = ref(true)
 const default_artical_meta_data = {
   title: '',
   author: '',
-  description: ''
+  description: '',
 }
 
 var current_file_path = ref('')
 var current_outline_tree = ref(JSON.parse(JSON.stringify(default_outline_tree)))
 var current_article = ref(generateMarkdownFromOutlineTree(default_outline_tree))
+var current_tex_article=ref('')
 const current_article_meta_data = ref({ ...default_artical_meta_data })//拷贝了默认值，避免引用问题
 //监听current_article_meta_data.value的变化，如果有变化，则发送is-need-save事件
 import { watch } from 'vue'
@@ -120,6 +121,7 @@ export {
   current_file_path,
   current_outline_tree,
   current_article,
+  current_tex_article,
   current_article_meta_data,
   default_outline_tree,
   default_artical_meta_data,
@@ -132,6 +134,7 @@ export {
 //因为ai助手属于不同的渲染进程，因此另一个进程需要先告诉主进程，主进程再广播给所有的渲染进程
 import { toRaw } from 'vue';
 import { decodeBase64ToJson, encodeJsonToBase64 } from './base64-utils'
+import { convertLatexToMarkdown } from './latex-utils'
 export function broadcastAiDialogs() {
   //console.log(JSON.parse(JSON.stringify(current_ai_dialogs.value)))
   eventBus.emit('is-need-save',true)
@@ -167,8 +170,11 @@ export function autoGenerateTitle(){
 
 }
 
+export let current_format=ref('md');
+
 export function load_from_json(json) {
   var data = JSON.parse(json)
+  current_format.value='md';
   //current_file_path.value = data.current_file_path
   current_outline_tree.value = JSON.parse(JSON.stringify(data.current_outline_tree))
   //console.log(current_outline_tree)
@@ -192,12 +198,15 @@ export function dump2md(mdreplace='') {
   //console.log(metaDataBase64)
   return pure_md + '\n<!--meta-info: ' + metaDataBase64 + ' -->';
 }
+
+
 export function load_from_md(md) {
   //读取的时候先用正则表达式提取元信息
   const metaInfoMatch = md.match(/<!--meta-info:\s*([^-\s]+?)\s*-->/);
-  const pureMd = md.replace(/<!--meta-info:\s*[^-]+?\s*-->/, '').trim();
+  const pureMd = filterMetaDataFromMd(md);
   current_article.value = pureMd;
   //console.log(metaInfoMatch)
+  current_format.value='md';
   if (metaInfoMatch && metaInfoMatch[1]) {
     const metaDataBase64 = metaInfoMatch[1];
     const metaData = decodeBase64ToJson(metaDataBase64);
@@ -214,10 +223,19 @@ export function load_from_md(md) {
   autoGenerateTitle();
   //console.log(current_article_meta_data.value)
   //把md内容中的元信息部分去掉
-  
+}
+
+export function load_from_tex(tex){
+  current_format.value='tex';
+  current_tex_article.value=tex;
+  current_article.value=convertLatexToMarkdown(current_tex_article.value);
 }
 
 export function sync() {
+
+  if(current_format.value=='tex'){
+    current_article.value=convertLatexToMarkdown(current_tex_article.value);
+  }
   if(latest_view.value==='outline') {
     current_article.value=generateMarkdownFromOutlineTree(current_outline_tree.value)
     latest_view.value='article';
@@ -229,12 +247,11 @@ export function sync() {
     latest_view.value='outline';
   }
   //eventBus.emit('is-need-save',true)
-  
-
 }
 export async function init() {
   //console.log("init");
   current_file_path.value = ''
+  current_format.value='md';
   current_outline_tree.value = JSON.parse(JSON.stringify(default_outline_tree)) //深拷贝
   current_article.value = generateMarkdownFromOutlineTree(current_outline_tree.value)
   current_article_meta_data.value = { ...default_artical_meta_data } //拷贝默认值，避免引用问题

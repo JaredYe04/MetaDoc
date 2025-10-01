@@ -15,12 +15,13 @@ import {
   current_ai_dialogs,
   load_from_json,
   load_from_md,
-  dump2md
+  dump2md,
+  current_format,
+  current_tex_article,
+  load_from_tex
 } from './common-data.js'
 import { getSetting, updateRecentDocs } from './settings.js'
-import { path } from 'd3'
-import { da, de } from 'element-plus/es/locales.mjs'
-import { ConvertHtmlForPdf, image2base64, image2local, local2image, ConvertMarkdownToHtmlManually, ConvertMarkdownToHtmlVditor } from './md-utils.js'
+import { ConvertHtmlForPdf, image2base64, image2local, local2image, ConvertMarkdownToHtmlManually, ConvertMarkdownToHtmlVditor, filterMetaDataFromMd } from './md-utils.js'
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
 
 
@@ -111,8 +112,12 @@ ipcRenderer.on('update-current-path', (event, path) => {
 })
 
 ipcRenderer.on('save-success', (event, data) => {
-  updateRecentDocs(data)
+  updateRecentDocs(data.path)
+
   eventBus.emit('save-success')
+  if(data.saveAs){
+    eventBus.emit('open-doc',data.path);//对于另存为的文件，需要重新打开
+  }
 })
 
 ipcRenderer.on('save-file-path', (event, path) => {
@@ -149,6 +154,11 @@ ipcRenderer.on('open-doc-success', (event, payload) => {
       eventBus.emit('refresh')//加载完之后进行刷新
       eventBus.emit('open-doc-success')
       break;
+    case 'tex':
+      load_from_tex(payload.content)
+      eventBus.emit('refresh')//加载完之后进行刷新
+      eventBus.emit('open-doc-success')
+      break;
     default:
       eventBus.emit('show-error', '不支持的文件格式: ' + payload.format)
   }
@@ -158,8 +168,20 @@ ipcRenderer.on('open-doc-success', (event, payload) => {
 
 
 
+
+const save = async (mode = 'save',args) => await ipcRenderer.send(mode,
+  {
+    json: dump2json(),
+    md: dump2md(),
+    path: current_file_path.value,
+    html: await ConvertMarkdownToHtmlManually(current_article.value),
+    tex: (current_format.value == "tex" ?
+      current_tex_article.value :
+      convertMarkdownToLatex(filterMetaDataFromMd(dump2md()), current_article_meta_data.value.title)),
+    args
+  });
 //监听save事件
-eventBus.on('save', async (msg) => {
+eventBus.on('save', async (msg,args) => {
   //console.log(window.electron)
   if (msg === 'auto-save') {
     if (current_file_path.value === '') {
@@ -167,7 +189,7 @@ eventBus.on('save', async (msg) => {
     }
   }
   sync();
-  await ipcRenderer.send('save', { json: dump2json(), md: dump2md(), path: current_file_path.value, html: await ConvertMarkdownToHtmlManually(current_article.value) })
+  await save('save',args);
   eventBus.emit('is-need-save', false)
 })
 
@@ -179,11 +201,12 @@ eventBus.on('is-need-save', (msg) => {
 eventBus.on('save-and-quit', async () => {
   sync();
   eventBus.emit('is-need-save', false)
-  ipcRenderer.send('save-and-quit', { json: dump2json(), path: current_file_path.value, html: await ConvertMarkdownToHtmlManually(current_article.value) })
+  await save('save');
+  ipcRenderer.send('quit')
 });
 
 eventBus.on('open-doc', async (path) => {
-  await init()
+  //await init()
   eventBus.emit('is-need-save', false)
   ipcRenderer.send('open-doc', path)
   updateRecentDocs(path)
@@ -195,11 +218,12 @@ eventBus.on('quit', () => {
   ipcRenderer.send('quit')
 })
 
-eventBus.on('save-as', async () => {
+eventBus.on('save-as', async (args) => {
   sync();
-  eventBus.emit('nav-to', '/article');
+  //eventBus.emit('nav-to', '/article');
   eventBus.emit('is-need-save', false)
-  ipcRenderer.send('save-as', { json: dump2json(), md: dump2md(), path: '', html: await ConvertMarkdownToHtmlManually(current_article.value) })
+  await save('save-as',args);
+  //
 })
 
 eventBus.on('new-doc', async () => {
@@ -217,32 +241,37 @@ eventBus.on('export', async (args) => {
   args = {};
   args.md = current_article.value;
   console.log(args.md)
-  if (format === 'html' || format === 'docx' || format === 'pdf' || format === 'md' ) {
-    args.md = await local2image(args.md)//将本地图片转换为服务器图片，以防止导出时图片丢失
-  }
+  switch (current_format.value) {
+    case "md":
+      if (format === 'html' || format === 'docx' || format === 'pdf' || format === 'md') {
+        args.md = await local2image(args.md)//将本地图片转换为服务器图片，以防止导出时图片丢失
+      }
 
-  if (format === 'html' || format === 'docx') {
-    args.md = await image2base64(args.md)//将图片进一步从本地链接，转换为base64
-  }
+      if (format === 'html' || format === 'docx') {
+        args.md = await image2base64(args.md)//将图片进一步从本地链接，转换为base64
+      }
 
-  if (format === 'docx') {
-    args.html = await ConvertMarkdownToHtmlVditor(args.md)
-  } else if (format === 'pdf') {
-    args.html = await ConvertHtmlForPdf(args.md);
-    //转换为pdf需要的html
-  }
-  else {
-    args.html = await ConvertMarkdownToHtmlManually(args.md);
-  }
+      if (format === 'docx') {
+        args.html = await ConvertMarkdownToHtmlVditor(args.md)
+      } else if (format === 'pdf') {
+        args.html = await ConvertHtmlForPdf(args.md);
+        //转换为pdf需要的html
+      }
+      else {
+        args.html = await ConvertMarkdownToHtmlManually(args.md);
+      }
 
-
-  if (format === 'tex') {
-    args.tex = convertMarkdownToLatex(args.md,current_article_meta_data.value.title)
+      if (format === 'tex') {
+        args.tex = convertMarkdownToLatex(args.md, current_article_meta_data.value.title)
+      }
+      args.json = dump2json(args.md)
+      break;
+    case "tex":
+      args.tex = current_tex_article.value
+      break;
   }
-  args.json = dump2json(args.md)
   args.format = format;
   ipcRenderer.send('export', args)
-
 })
 // eventBus.on('export-to-pdf', async (args) => {
 //   //console.log('export-to-pdf', htmlContent)

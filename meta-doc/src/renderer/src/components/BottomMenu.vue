@@ -19,16 +19,22 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { current_article, current_file_path } from '../utils/common-data'
+import { current_article, current_file_path, current_format, current_tex_article } from '../utils/common-data'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 
 
 //wordCount计算当前文章的字数，通过监听current_article.value的变化来实现
 const wordCount = computed(() => {
-    if (current_article.value) {
-        return current_article.value ? current_article.value.trim().length : 0
+    if(current_format.value=='md'){
+        if (current_article.value) {
+            return current_article.value ? current_article.value.trim().length : 0
+        }
     }
+    else if(current_format.value=='tex'){
+        return current_tex_article.value.trim().length
+    }
+
     return 0
 })
 

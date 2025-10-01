@@ -2,7 +2,7 @@ import { createRouter, createWebHistory,createWebHashHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import About from '../views/About.vue'
 import Outline from '../views/Outline.vue'
-import Article from '../views/Article.vue'
+import MarkdownEditor from '../views/MarkdownEditor.vue'
 import Setting from '../views/Setting.vue'
 import component from 'element-plus/es/components/tree-select/src/tree-select-option.mjs'
 import Visualize from '../views/Visualize.vue'
@@ -10,6 +10,7 @@ import AIChat from '../views/AIChat.vue'
 import FomulaRecognition from '../views/FomulaRecognition.vue'
 import AIGraph from '../views/AIGraph.vue'
 import KnowledgeBase from '../views/KnowledgeBase.vue'
+import Editor from '../views/Editor.vue'
 
 // 所有页面组件集中管理
 const pages = {
@@ -40,9 +41,15 @@ const routes = [
     meta: { requiresLayout: true } 
   },
   {
-    path:'/article',
-    name:'Article',
-    component: Article,
+    path:'/markdown-editor',
+    name:'MarkdownEditor',
+    component: MarkdownEditor,
+    meta: { requiresLayout: true } 
+  },
+  {
+    path:'/editor',
+    name:'Editor',
+    component: Editor,
     meta: { requiresLayout: true } 
   },
   {
@@ -52,7 +59,7 @@ const routes = [
     meta: { requiresLayout: true } 
   },
   {
-    path:'/knowledgeBase',
+    path:'/knowledge-base',
     name:'KnowledgeBase',
     component: KnowledgeBase,
     meta: { requiresLayout: true }

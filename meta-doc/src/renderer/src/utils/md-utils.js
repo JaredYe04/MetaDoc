@@ -804,3 +804,7 @@ export const ConvertHtmlForPdf = async (md) => {
     
 }
 
+export function filterMetaDataFromMd(md){
+    const pureMd = md.replace(/<!--meta-info:\s*[^-]+?\s*-->/, '').trim();
+    return pureMd;
+}

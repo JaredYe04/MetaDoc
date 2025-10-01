@@ -17,10 +17,10 @@
     </el-menu-item>
 
     <el-menu-item index="/">{{ $t('headMenu.home') }}</el-menu-item>
-    <el-menu-item index="/outline">{{ $t('headMenu.outline') }}</el-menu-item>
-    <el-menu-item index="/article">{{ $t('headMenu.editor') }}</el-menu-item>
+    <el-menu-item index="/outline" :disabled="current_format=='tex'">{{ $t('headMenu.outline') }}</el-menu-item>
+    <el-menu-item index="/editor">{{ $t('headMenu.editor') }}</el-menu-item>
     <el-menu-item index="/visualize">{{ $t('headMenu.visualize') }}</el-menu-item>
-    <el-menu-item index="/knowledgeBase">{{ $t('headMenu.knowledgeBase') }}</el-menu-item>
+    <el-menu-item index="/knowledge-base">{{ $t('headMenu.knowledgeBase') }}</el-menu-item>
   </el-menu>
 </template>
 
@@ -29,6 +29,7 @@ import { defineComponent, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
+import { current_format } from '../utils/common-data'
 
 // 获取路由实例
 const router = useRouter()

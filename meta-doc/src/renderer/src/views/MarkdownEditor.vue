@@ -11,12 +11,12 @@
                 :position="SRMenuPosition" />
 
             <!-- 右键菜单组件 -->
-            <ContextMenu :x="menuX" :y="menuY" :items="articleContextMenuItems":selection="getSelection()" v-if="contextMenuVisible"
-                @trigger="handleMenuClick" class="context-menu" @close="contextMenuVisible = false;"
-                @insert="insertText" />
+            <ContextMenu :x="menuX" :y="menuY" :items="articleContextMenuItems" :selection="getSelection()"
+                v-if="contextMenuVisible" @trigger="handleMenuClick" class="context-menu"
+                @close="contextMenuVisible = false;" @insert="insertText" />
             <AISuggestion :targetEl="vditorEl" :trigger="triggerSuggestion" :rootNodeClass="'vditor-reset'"
                 @accepted="onAcceptSuggestion" @cancelled="onCancelSuggestion" @reset="onResetSuggestion" />
-            <div id="vditor" ref="vditorEl" class="editor" v-loading="loading" @keydown="handleTab"
+            <div id="vditor" ref="vditorEl" class="editor" @keydown="handleTab"
                 @contextmenu.prevent="openContextMenu($event)" :style="{
                     '--panel-background-color': themeState.currentTheme.editorPanelBackgroundColor,
                     '--toolbar-background-color': themeState.currentTheme.editorToolbarBackgroundColor,
@@ -39,7 +39,10 @@
                             </h1>
                         </el-tooltip>
                     </div>
-
+                    <el-button type="primary" text bg @click="convertToLatex" style="
+                    width:100%">
+                        {{ $t('article.convert_to_latex')  }}
+                    </el-button>
                     <el-tooltip :content="$t('article.click_to_edit_title')" placement="left">
                         <h1 @click="genTitleDialogVisible = !genTitleDialogVisible" class="interactive-text"
                             :style="{ color: themeState.currentTheme.textColor }">
@@ -113,7 +116,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed } from "vue";
-import { ElButton, ElDialog, ElLoading } from 'element-plus';
+import { ElButton, ElDialog, ElLoading, ElMessageBox } from 'element-plus';
 import Vditor from "vditor";
 import "vditor/dist/index.css";
 import "../assets/aero-div.css";
@@ -274,6 +277,15 @@ const handleMenuClick = async (item) => {
 const showMetaDialog = () => {
     editMetaDialogVisible.value = true;
 };
+const convertToLatex=()=>{
+    ElMessageBox.confirm(t('article.convert_to_latex_confirm'), t('knowledgeBase.delete_confirm_title'), {
+        confirmButtonText: t('article.msgbox.confirm'),
+        cancelButtonText: t('article.msgbox.cancel'),
+        type: 'warning'
+    }).then(() => {
+        eventBus.emit('save-as',{format:"tex"});
+    });
+}
 // 单击事件处理
 const handleClick = (event, title, path) => {
     currentTitle.value = title;

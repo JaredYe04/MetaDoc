@@ -213,7 +213,9 @@ const generateOutlineGraph = async () => {
 const article_text = ref('');
 const processWords = async () => {
     const bypassCodeBlock=await getSetting('bypassCodeBlock');//是否跳过代码块
+    
     let text=current_article.value;
+    //console.log("可视化加载："+text)
     //去掉所有链接
     text = text.replace(/!?\[.*?\]\(.*?\)/g, ''); //
     if(bypassCodeBlock){

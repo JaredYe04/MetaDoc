@@ -110,7 +110,7 @@ const save = async (data, saveAs) => {
   if (path) {
     //fs.writeFileSync(path, json)
     //console.log("保存成功");
-    updateRecentDocs(path)
+    updateRecentDocs({path})
     eventBus.emit('save-success')
     //mainWindow.webContents.send('save-success', path)
   }
@@ -129,11 +129,6 @@ export function webMainCalls() {
   localIpcMain.on('save', async (event, data) => {
     await save(data, false)
     is_need_save = false;
-  })
-  localIpcMain.on('save-and-quit', async (event, data) => {
-    await save(data, false)
-    //is_need_save = false;
-    quit()
   })
   localIpcMain.on('save-as', async (event, data) => {
 

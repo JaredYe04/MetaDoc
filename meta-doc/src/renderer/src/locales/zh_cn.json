@@ -247,6 +247,7 @@
         "long_press_optimize": "长按可用AI助手优化该段落",
         "click_jump_long_press_optimize": "单击以跳转，长按可用AI助手优化该段落",
         "vditor_init_failed": "Vditor 初始化失败:",
+        "latex_init_failed": "LaTeX 初始化失败:",
         "input_placeholder": "在此编辑 Markdown 内容...",
         "toolbar": {
             "undo": "撤销",
@@ -264,6 +265,13 @@
             "quote": "引用",
             "search_replace": "查找与替换",
             "ai_assistant": "AI助手"
+        },
+        "convert_to_latex":"将文档转换为LaTeX",
+        "convert_to_latex_confirm":"转换后会生成tex文件，与现有的Markdown文件不同步，是否继续？",
+        "msgbox":{
+            "tip":"提示",
+            "confirm":"确定",
+            "cancel":"取消"
         }
     },
     "formulaRecognition": {
@@ -597,5 +605,18 @@
         "reject": "拒绝建议",
         "generating": "AI正在生成建议...",
         "generatingTooltip": "按 Tab 接受，按 Esc 取消"
-    }
+    },
+    "latexEditor": {
+        "toolbar": {
+        "undo": "撤销 (Ctrl+Z)",
+        "redo": "重做 (Ctrl+Y)",
+        "zoomIn": "放大 (Ctrl +)",
+        "zoomOut": "缩小 (Ctrl -)",
+        "toggleLineNumbers": "行数显示",
+        "togglePreview": "预览显示",
+        "compile": "编译 LaTeX",
+        "showPdf": "显示 PDF",
+        "compileAndShow": "编译并显示"
+        }
+  }
 }

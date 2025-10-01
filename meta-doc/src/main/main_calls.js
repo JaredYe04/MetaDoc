@@ -29,11 +29,6 @@ export function mainCalls() {
     await save(data, false)
     is_need_save = false;
   })
-  ipcMain.on('save-and-quit', async (event, data) => {
-    await save(data, false)
-    //is_need_save = false;
-    quit()
-  })
   ipcMain.on('save-as', async (event, data) => {
 
     await save(data, true)
@@ -282,7 +277,6 @@ const save = async (data, saveAs) => {
 
 
   if (path === '' || saveAs) {
-    //console.log("文件路径为空");
     path = await chooseSaveFile(data)
   }
 
@@ -294,6 +288,9 @@ const save = async (data, saveAs) => {
     case 'json':
       content = data.json
       break;
+    case 'tex':
+      content = data.tex
+      break;
     default:
       //eventBus.emit('show-error', '不支持的文件格式: ' + format)
       return;
@@ -301,7 +298,11 @@ const save = async (data, saveAs) => {
   if (path) {
     fs.writeFileSync(path, content)
     //console.log("保存成功");
-    mainWindow.webContents.send('save-success', path)
+    mainWindow.webContents.send('save-success', {
+      path,
+      saveAs,
+      format:format
+    })
   }
 }
 
@@ -323,6 +324,7 @@ export const openDoc = async (path) => {
     title: '打开文件',
     filters: [
       { name: 'Markdown Files', extensions: ['md'] },
+      { name: 'LaTeX Files', extensions: ['tex'] },
       { name: 'JSON Files', extensions: ['json'] },
       { name: 'All Files', extensions: ['*'] }
     ]
@@ -350,16 +352,46 @@ const chooseSaveFile = async (data) => {
     .split('.')[0]
   const title = JSON.parse(data.json).current_article_meta_data.title
   const filename = title ? title : dateyyyyMMddhhmmss
-  const result = await dialog.showSaveDialog(mainWindow, {
-    title: '保存文件',
-    defaultPath: filename,
-    filters: [
-      { name: 'Markdown Files', extensions: ['md'] },
-      { name: 'JSON Files', extensions: ['json'] },
-      // { name: 'All Files', extensions: ['*'] }
-    ]
-  })
 
+  let result="";
+  const args=data.args;
+  
+  if(args &&args.format!=""){
+    // 根据指定的格式设置 filters
+    let filters = [];
+    switch (args.format.toLowerCase()) {
+        case 'md':
+        case 'markdown':
+            filters = [{ name: 'Markdown Files', extensions: ['md'] }];
+            break;
+        case 'tex':
+        case 'latex':
+            filters = [{ name: 'LaTeX Files', extensions: ['tex'] }];
+            break;
+        case 'json':
+            filters = [{ name: 'JSON Files', extensions: ['json'] }];
+            break;
+        default:
+            filters = [{ name: 'All Files', extensions: ['*'] }];
+    }
+
+    result = await dialog.showSaveDialog(mainWindow, {
+        title: 'Save File',
+        defaultPath: filename,
+        filters
+    });
+  }else{
+    result = await dialog.showSaveDialog(mainWindow, {
+      title: 'Save File',
+      defaultPath: filename,
+      filters: [
+        { name: 'Markdown Files', extensions: ['md'] },
+        { name: 'LaTeX Files', extensions: ['tex'] },
+        { name: 'JSON Files', extensions: ['json'] },
+        // { name: 'All Files', extensions: ['*'] }
+      ]
+    })
+  }
   //console.log(result); // 可以检查返回的 result 对象
   if (!result.canceled && result.filePath) {
     // 文件保存成功，发送文件路径给渲染进程
@@ -425,7 +457,7 @@ const exportFile = async (event, data) => {
           break;
         case '.tex':
           const latex = data.tex;
-          console.log('导出 LaTeX:', latex);
+          //console.log('导出 LaTeX:', latex);
           buffer = Buffer.from(latex, 'utf-8');
           break;
       }

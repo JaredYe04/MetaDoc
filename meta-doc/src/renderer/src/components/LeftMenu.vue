@@ -160,30 +160,7 @@
       </el-sub-menu>
     </el-tooltip>
 
-    <el-tooltip :content="$t('leftMenu.exitTooltip')" placement="right">
-      <el-sub-menu index="5">
-        <template #title>
-          <el-icon>
-            <SwitchButton />
-          </el-icon>
-          <span>{{ $t('leftMenu.exit') }}</span>
-        </template>
 
-        <el-menu-item index="5-1" @click="saveAndQuit">
-          <el-icon>
-            <CircleCheck />
-          </el-icon>
-          <span>{{ $t('leftMenu.saveAndExit') }}</span>
-        </el-menu-item>
-
-        <el-menu-item index="5-2" @click="quitWithoutSave">
-          <el-icon>
-            <Warning />
-          </el-icon>
-          <span>{{ $t('leftMenu.exitWithoutSaving') }}</span>
-        </el-menu-item>
-      </el-sub-menu>
-    </el-tooltip>
     <el-tooltip :content="$t('leftMenu.langTooltip')" placement="right">
       <el-sub-menu index="6">
         <template #title>
@@ -220,7 +197,8 @@
 
     </el-tooltip>
 
-    <el-tooltip :content="$t('leftMenu.userProfileTooltip')" placement="right">
+
+    <el-tooltip :content="$t('leftMenu.userProfileTooltip')" placement="right" class="bottom-menu">
       <el-menu-item @click="toggleUserProfile">
         <img v-if="avatar" :src="avatar" width="25" height="25"
           style="border-radius: 50%; display: flex; align-items: center; align-self: center;" />
@@ -228,6 +206,30 @@
           <UserFilled />
         </el-icon>
       </el-menu-item>
+    </el-tooltip>
+    <el-tooltip :content="$t('leftMenu.exitTooltip')" placement="right" class="bottom-menu">
+      <el-sub-menu index="5">
+        <template #title>
+          <el-icon>
+            <SwitchButton />
+          </el-icon>
+          <span>{{ $t('leftMenu.exit') }}</span>
+        </template>
+
+        <el-menu-item index="5-1" @click="saveAndQuit">
+          <el-icon>
+            <SwitchButton />
+          </el-icon>
+          <span>{{ $t('leftMenu.saveAndExit') }}</span>
+        </el-menu-item>
+
+        <el-menu-item index="5-2" @click="quitWithoutSave">
+          <el-icon>
+            <SwitchButton />
+          </el-icon>
+          <span>{{ $t('leftMenu.exitWithoutSaving') }}</span>
+        </el-menu-item>
+      </el-sub-menu>
     </el-tooltip>
   </el-menu>
 </template>
@@ -335,5 +337,8 @@ const quitWithoutSave = () => {
 .el-menu-vertical-demo:not(.el-menu--collapse) {
   width: 200px;
   min-height: 400px;
+}
+.bottom-menu{
+  margin-top: auto;
 }
 </style>

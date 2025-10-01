@@ -683,6 +683,7 @@ const particleEffect = async () => {
   eventBus.emit('toggle-particle-effect', {});
 }
 onMounted(async () => {
+  //console.log("主页加载")
   particleEffect();
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('resize', onWindowResize); // 添加窗口大小变化事件

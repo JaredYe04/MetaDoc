@@ -596,5 +596,18 @@
     "generatingTooltip": "Press Tab to accept, press Esc to cancel",
     "reject": "Rejection",
     "tooltip": "AI Recommendation"
+  },
+  "latexEditor": {
+        "toolbar": {
+        "undo": "Undo (Ctrl+Z)",
+        "redo": "Redo (Ctrl+Y)",
+        "zoomIn": "Zoom In (Ctrl +)",
+        "zoomOut": "Zoom Out (Ctrl -)",
+        "toggleLineNumbers": "Show Line Numbers",
+        "togglePreview": "Toggle Preview",
+        "compile": "Compile LaTeX",
+        "showPdf": "Show PDF",
+        "compileAndShow": "Compile & Show"
+        }
   }
 }

@@ -73,7 +73,9 @@ async function autoSave() {
 
 onMounted(async () => {
   eventBus.on('refresh', () => {
-      eventBus.emit('update-window-title', current_article_meta_data.value.title)
+      let title=current_article_meta_data.value.title;
+      //console.log(title)
+      eventBus.emit('update-window-title', title)
     })
 
   eventBus.emit('llm-api-updated')
@@ -105,6 +107,7 @@ eventBus.on('open-doc-success', () => {
     message: t('main.notification.open.message'),
     type: 'success',
   });
+  eventBus.emit('refresh');
   eventBus.emit('is-need-save', false);
 });
 

@@ -252,7 +252,7 @@
               <!-- 文档内容主题设置 -->
               <el-form-item :label="$t('setting.contentTheme')">
                 <el-select v-model="settings.contentTheme" placeholder="Select Content Theme" @change="saveSetting('contentTheme', settings.contentTheme)
-                sendBroadcast('all', 'sync-vditor-theme', {});
+                sendBroadcast('all', 'sync-editor-theme', {});
                 ">
                   <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
                   <el-option v-for="item in contentThemes" :key="item.value" :label="t(item.label)"
@@ -263,7 +263,7 @@
               <!-- 代码主题设置 -->
               <el-form-item :label="$t('setting.codeTheme')">
                 <el-select v-model="settings.codeTheme" filterable placeholder="Select Code Theme" @change="saveSetting('codeTheme', settings.codeTheme)
-                sendBroadcast('all', 'sync-vditor-theme', {});
+                sendBroadcast('all', 'sync-editor-theme', {});
                 ">
                   <el-option key="auto" :label="t('setting.auto')" :value="'auto'" />
                   <el-option v-for="item in codeThemes" :key="item" :label="item" :value="item" />

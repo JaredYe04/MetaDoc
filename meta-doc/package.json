@@ -86,6 +86,7 @@
     "openai": "^4.94.0",
     "pandoc-wasm": "^0.0.2",
     "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.4.149",
     "postprocessing": "^6.36.4",
     "regenerator-runtime": "^0.14.1",
     "segment": "^0.1.3",

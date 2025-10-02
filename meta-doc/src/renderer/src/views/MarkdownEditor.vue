@@ -24,9 +24,7 @@
                 }"></div>
 
             <div class="resizable-container">
-                <el-tooltip :content="$t('article.drag_to_resize')">
-                    <div class="resizer" @mousedown="startResize"></div>
-                </el-tooltip>
+                <div class="resizer" @mousedown="startResize"></div>
 
                 <!-- 右边：元信息显示 -->
                 <div class="meta-info"
@@ -675,7 +673,7 @@ onBeforeUnmount(() => {
     vditor.value.destroy();
 });
 
-eventBus.on('sync-vditor-theme', async () => {
+eventBus.on('sync-editor-theme', async () => {
     let contentTheme = await getSetting('contentTheme');
     if (contentTheme === 'auto') {
         contentTheme = themeState.currentTheme.vditorTheme;

@@ -78,7 +78,7 @@
                     </el-tooltip>
 
                     <el-tooltip :content="$t('latexEditor.toolbar.showPdf')" placement="bottom">
-                        <div class="toolbar-icon" @click="showPdf">
+                        <div class="toolbar-icon" @click="togglePdf">
                             <icon name="terminal" />
                         </div>
                     </el-tooltip>
@@ -89,14 +89,73 @@
                         </div>
                     </el-tooltip>
                 </div>
+                <div class="editor-pdf-container">
+                    <!-- Monaco 编辑器 -->
+                    <div class="editor" :key="editorKey" ref="editorEl"></div>
+                    <!-- 可调整宽度的 PDF 预览面板 -->
+                    <div class="resizable-pdf-container" v-if="showPdfPanel">
+                        <div class="resizer" @mousedown="startResizePdf"></div>
+                        <div class="pdf-preview-container"
+                            :style="{ width: pdfWidth + 'px', background: themeState.currentTheme.background }">
+                            <!-- <iframe v-if="pdfUrl" :src="pdfUrl" frameborder="0"
+                                style="width:100%; height:100%;"></iframe> -->
+                            <!-- PDF 页码控制条 -->
+                            <div class="pdf-toolbar" v-if="pdfUrl"
+                                style="display:flex; align-items:center; justify-content:flex-start; padding:4px 8px; background-color: rgba(0,0,0,0.85);">
+                                <el-button size="small" @click="goPrevPage" :disabled="currentPdfPage <= 1">
+                                    {{ $t('latexEditor.prevPage') }}
+                                </el-button>
 
-                <!-- Monaco 编辑器 -->
-                <div class="editor" ref="editorEl"></div>
+                                <el-button size="small" @click="goNextPage" :disabled="currentPdfPage >= totalPdfPages">
+                                    {{ $t('latexEditor.nextPage') }}
+                                </el-button>
+
+                                <span style="margin-left:8px; display:flex; align-items:center;">
+                                    <input type="number" v-model.number="inputPdfPage" @change="jumpToPage" :min="1"
+                                        :max="totalPdfPages" style="width:50px; text-align:center; margin-right:4px;" />
+                                    / {{ totalPdfPages }} {{ $t('latexEditor.pages') }}
+                                </span>
+                                <el-tooltip :content="$t('latexEditor.toolbar.zoomIn')" placement="bottom">
+                                    <div class="pdf-toolbar-icon" @click="pdfZoomIn">
+                                        <el-icon>
+                                            <ZoomIn />
+                                        </el-icon>
+                                    </div>
+                                </el-tooltip>
+
+                                <el-tooltip :content="$t('latexEditor.toolbar.zoomOut')" placement="bottom">
+                                    <div class="pdf-toolbar-icon" @click="pdfZoomOut">
+                                        <el-icon>
+                                            <ZoomOut />
+                                        </el-icon>
+                                    </div>
+                                </el-tooltip>
+                                <el-tooltip :content="$t('latexEditor.toolbar.zoomReset')" placement="bottom">
+                                    <div class="pdf-toolbar-icon" @click="pdfZoomReset">
+                                        <el-icon>
+                                            <Refresh/>
+                                        </el-icon>
+                                    </div>
+                                </el-tooltip>
+                            </div>
+
+                            <!-- PDF 渲染容器 -->
+                            <div ref="pdfContainer" id="pdfContainer" v-if="pdfUrl" class="pdf-container">
+                                <div class="canvas-wrapper" ref="canvasWrapper">
+                                    <!-- canvas 渲染在这里 -->
+                                </div>
+                            </div>
+                            <h3 v-else class="pdf-empty-text">
+                                {{ $t('latexEditor.pdfEmpty') }}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+
+
             </div>
             <div class="resizable-container">
-                <el-tooltip :content="$t('article.drag_to_resize')">
-                    <div class="resizer" @mousedown="startResize"></div>
-                </el-tooltip>
+                <div class="resizer" @mousedown="startResize"></div>
                 <!-- 右边：元信息显示 -->
                 <div class="meta-info"
                     :style="{ width: metaInfoWidth + 'px', backgroundColor: themeState.currentTheme.background2nd }">
@@ -201,7 +260,7 @@ import TitleMenu from '../components/TitleMenu.vue';
 import SearchReplaceMenu from "../components/SearchReplaceMenu.vue";
 import AiLogo from "../assets/ai-logo.svg";
 import AiLogoWhite from "../assets/ai-logo-white.svg";
-import { themeState } from "../utils/themes";
+import { mixColors, themeState } from "../utils/themes";
 import { getSetting, setSetting } from "../utils/settings";
 import { useI18n } from 'vue-i18n'
 import AISuggestion from "../components/AISuggestion.vue";
@@ -211,7 +270,7 @@ import ContextMenu from "../components/ContextMenu.vue";
 const { t } = useI18n();
 import * as monaco from "monaco-editor";
 import 'monaco-latex';
-import { ArrowLeft, ArrowRight, Document, ZoomIn, ZoomOut } from "@element-plus/icons-vue";
+import { ArrowLeft, ArrowRight, Document, Refresh, ZoomIn, ZoomOut } from "@element-plus/icons-vue";
 import { debounce } from 'lodash';
 // 状态变量
 const genTitleDialogVisible = ref(false);
@@ -238,9 +297,13 @@ const cur_selection = ref(''); // 当前选中的文本
 
 const editorEl = ref(null);
 const triggerSuggestion = ref(false);
+const editorKey = ref(Date.now());
 
 // 增量同步缓存
 let textBuffer = current_tex_article.value;
+
+
+
 
 
 const undo = () => editor.value.trigger("keyboard", "undo", null);
@@ -267,12 +330,164 @@ const toggleRowNumber = () => {
         lineNumbers: enableRowNumber ? 'on' : 'off'
     });
 }
+
+const showPdfPanel = ref(true)
+const pdfUrl = ref('file:///C:/Users/tange/Documents/如何为你的程序接入大模型.pdf')
+const pdfWidth = ref(650)       // PDF 面板默认宽度
+let isResizingPdf = ref(false)
+const pdfContainer = ref(null);
+const canvasWrapper = ref(null);
+let isDragging = false;
+let startX, startY, offsetX = 0, offsetY = 0;
+
+import * as pdfjsLib from "pdfjs-dist";
+let ipcRenderer = null
+if (window && window.electron) {
+  ipcRenderer = window.electron.ipcRenderer
+
+} else {
+  webMainCalls();
+  ipcRenderer = localIpcRenderer
+  //todo 说明当前环境不是electron环境，需要另外适配
+}
+let currentScale = 1;
+async function initPdfJs() {
+    const resourcePath = await ipcRenderer.invoke('resources-path')
+    pdfjsLib.GlobalWorkerOptions.workerSrc = resourcePath + "/pdf.worker.min.mjs";
+    const container = document.querySelector("#pdfContainer");
+    
+    container.addEventListener("wheel", async (e) => {
+        if (!e.ctrlKey) return;
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1; // 上滚放大，下滚缩小
+        currentScale = Math.min(Math.max(currentScale + delta, 0.2), 5); // 限制缩放范围
+        await renderPage(currentPdfPage.value,currentScale);
+    });
+      container.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    startX = e.clientX - offsetX;
+    startY = e.clientY - offsetY;
+    container.classList.add("dragging");
+  });
+
+  container.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+    offsetX = e.clientX - startX;
+    offsetY = e.clientY - startY;
+    canvasWrapper.value.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+  });
+
+  container.addEventListener("mouseup", () => {
+    isDragging = false;
+    container.classList.remove("dragging");
+  });
+    loadPdf(pdfUrl.value);
+
+}
+const pdfZoomIn=async ()=>{
+        currentScale = Math.min(Math.max(currentScale + 0.1, 0.2), 5); // 限制缩放范围
+        await renderPage(currentPdfPage.value,currentScale);
+}
+const pdfZoomOut=async ()=>{
+        currentScale = Math.min(Math.max(currentScale - 0.1, 0.2), 5); // 限制缩放范围
+        await renderPage(currentPdfPage.value,currentScale);
+}
+const pdfZoomReset=async ()=>{
+        currentScale = 1
+        await renderPage(currentPdfPage.value,currentScale);
+}
+let pdfDoc;        // pdfjs document
+const currentPdfPage = ref(1);
+const totalPdfPages = ref(0);
+const inputPdfPage = ref(1);
+
+function goPrevPage() {
+  if (currentPdfPage.value > 1) {
+    currentPdfPage.value--;
+    inputPdfPage.value = currentPdfPage.value;
+    renderPage(currentPdfPage.value,currentScale);
+  }
+}
+
+function goNextPage() {
+  if (currentPdfPage.value < totalPdfPages.value) {
+    currentPdfPage.value++;
+    inputPdfPage.value = currentPdfPage.value;
+    renderPage(currentPdfPage.value,currentScale);
+  }
+}
+
+function jumpToPage() {
+  let page = Math.min(Math.max(inputPdfPage.value, 1), totalPdfPages.value);
+  currentPdfPage.value = page;
+  renderPage(page,currentScale);
+}
+
+// 渲染 PDF 页面
+async function renderPage(pageNumber,scale) {
+    if (!pdfDoc) return;
+    const page = await pdfDoc.getPage(pageNumber);
+    const viewport = page.getViewport({ scale: scale });
+    currentScale = scale;
+
+    
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    // 支持高清显示
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = viewport.width * ratio;
+    canvas.height = viewport.height * ratio;
+    canvas.style.width = viewport.width + "px";
+    canvas.style.height = viewport.height + "px";
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+    canvasWrapper.value.innerHTML = ""; // 清空旧的
+    canvasWrapper.value.appendChild(canvas);
+
+    await page.render({ canvasContext: context, viewport: viewport }).promise;
+}
+
+// 在加载 PDF 后初始化
+async function loadPdf(url) {
+  const loadingTask = pdfjsLib.getDocument(url);
+  pdfDoc = await loadingTask.promise;
+  //console.log(pdfDoc.value)
+  totalPdfPages.value = pdfDoc.numPages;
+  currentPdfPage.value = 1;
+  inputPdfPage.value = 1;
+  renderPage(1,currentScale);
+}
+// 切换 PDF 显示
+function togglePdf() {
+  showPdfPanel.value = !showPdfPanel.value
+}
+
+// PDF 拖拽
+function startResizePdf(e) {
+  isResizingPdf.value = true
+  document.addEventListener('mousemove', onResizingPdf)
+  document.addEventListener('mouseup', stopResizePdf)
+}
+
+function onResizingPdf(e) {
+  if (!isResizingPdf.value) return
+    const containerLeft = document.querySelector('.resizable-pdf-container').getBoundingClientRect().left
+    const newWidth = pdfWidth.value + (containerLeft - e.clientX)  // 反向计算宽度
+    pdfWidth.value = Math.min(Math.max(newWidth, 400), 1000)
+
+}
+
+function stopResizePdf() {
+  isResizingPdf.value = false
+  document.removeEventListener('mousemove', onResizingPdf)
+  document.removeEventListener('mouseup', stopResizePdf)
+}
+
 const compile = () => {
     console.log("编译 LaTeX");
 };
-const showPdf = () => {
-    console.log("显示 PDF");
-};
+
 const compileAndShow = () => {
     console.log("编译并显示");
 };
@@ -392,9 +607,25 @@ const showMetaDialog = () => {
 
 // 刷新文章内容
 eventBus.on('refresh', () => {
-    editor.value.setValue(current_tex_article.value, true);
-});
+    // 1. 先清理旧的
+    // if (editor.value) {           // editor.value 是 Monaco 实例
+    //     try {
+    //         const oldModel = editor.value.getModel(); // 获取模型
+    //         editor.value.dispose();                  // 销毁 Monaco 实例
+    //         if (oldModel) oldModel.dispose();       // 销毁模型
+    //     } catch (e) {
+    //         console.warn("释放 Monaco 实例失败：", e);
+    //     }
+    //     editor.value = null;
+    // }
+    resetEditor();
 
+});
+const resetEditor = () => {
+    disposeEditor();
+    editorKey.value = Date.now(); // Vue 会销毁原 DOM，创建新 DOM
+    nextTick(() => initEditor());
+};
 
 eventBus.on('search-replace', () => {
     //console.log('search-replace');
@@ -454,46 +685,100 @@ monaco.languages.setMonarchTokensProvider('latex', {
         ]
     }
 });
+
+let contentChangeListener = null;
+const disposeEditor = () => {
+    if (editor.value) {
+        try {
+            // 1. 移除监听
+            if (contentChangeListener) {
+                contentChangeListener.dispose();
+                contentChangeListener = null;
+                //console.log("移除监听成功")
+            }
+
+            // 2. 保存引用的 model
+            const oldModel = editor.value.getModel();
+
+            // 3. 释放 Monaco 实例
+            // editor.value.dispose();
+            // editor.value = null;
+            // console.log("释放Monaco成功")
+            // 4. 释放模型
+            if (oldModel) oldModel.dispose();
+            console.log("释放模型成功")
+            // 5. 清空 textBuffer
+            textBuffer = "";
+        } catch (e) {
+            console.warn("安全释放 Monaco 实例失败:", e);
+        }
+    }
+};
+
+const initEditor = () => {
+    editor.value = monaco.editor.create(editorEl.value, {
+        value: current_tex_article.value,
+        language: "latex", // 语言模式
+        theme: themeState.currentTheme.type === 'dark' ? "vs-dark" : "vs",  // 主题 (vs, vs-dark, hc-black)
+        mouseWheelZoom: true,
+        automaticLayout: true, // 自动适应容器大小
+        fontSize: 14,
+        lineNumbers: enableRowNumber ? 'on' : 'off',
+        minimap: { enabled: enableMinimap }
+    })
+    // 增量监听
+    contentChangeListener = editor.value.onDidChangeModelContent((event) => {
+        event.changes.forEach((change) => {
+            // change.rangeOffset: 变化起始位置
+            // change.rangeLength: 被替换的长度
+            // change.text: 新插入的文本
+            textBuffer =
+                textBuffer.slice(0, change.rangeOffset) +
+                change.text +
+                textBuffer.slice(change.rangeOffset + change.rangeLength);
+        });
+
+        // 按需同步到 Vue 响应式变量，比如防抖或定时同步
+        debounceSync();
+    });
+    const debounceSync = debounce(() => {
+        //console.log("已同步")
+        current_tex_article.value = textBuffer;
+        sync();
+    }, 100);
+
+}
 onMounted(async () => {
     try {
         await refreshContextMenu();
-        editor.value = monaco.editor.create(editorEl.value, {
-            value: current_tex_article.value,
-            language: "latex", // 语言模式
-            theme: themeState.currentTheme.type === 'dark' ? "vs-dark" : "vs",  // 主题 (vs, vs-dark, hc-black)
-            mouseWheelZoom: true,
-            automaticLayout: true, // 自动适应容器大小
-            fontSize: 14,
-            lineNumbers: enableRowNumber ? 'on' : 'off',
-            minimap: { enabled: enableMinimap }
-        })
-        // 增量监听
-        editor.value.onDidChangeModelContent((event) => {
-            event.changes.forEach((change) => {
-                // change.rangeOffset: 变化起始位置
-                // change.rangeLength: 被替换的长度
-                // change.text: 新插入的文本
-                textBuffer =
-                    textBuffer.slice(0, change.rangeOffset) +
-                    change.text +
-                    textBuffer.slice(change.rangeOffset + change.rangeLength);
-            });
-
-            // 按需同步到 Vue 响应式变量，比如防抖或定时同步
-            debounceSync();
-        });
-        const debounceSync = debounce(() => {
-            //console.log("已同步")
-            current_tex_article.value = textBuffer;
-            sync();
-        }, 100);
-
-        eventBus.on('sync-theme', () => {
+        initEditor();
+        eventBus.on('sync-editor-theme', () => {
             const isDark = themeState.currentTheme.type === 'dark';
             const themeName = isDark ? 'vs-dark' : 'vs';
-            monaco.editor.setTheme(themeName);
+            //monaco.editor.setTheme(themeName);
+            const toMonacoColor = (color) => color.replace('#', '') || 'FFFFFF';
+            const deeperColor=(color)=>{
+                if(isDark)return mixColors(color,'#000000',0.3)
+                else return mixColors(color,'#FFFFFF',0.3)
+            }
+            monaco.editor.defineTheme('myCustomTheme', {
+                base: themeName,
+                inherit: true, // 继承基础主题
+                rules: [
+                    {
+                        token: '',
+                        background: toMonacoColor(deeperColor(themeState.currentTheme.background)),
+                        fontStyle: ''
+                    }
+                ],
+                colors: {
+                    'editor.background': deeperColor(themeState.currentTheme.background),
+                }
+            });
+            monaco.editor.setTheme('myCustomTheme');
         })
-
+        eventBus.emit('sync-editor-theme')
+        initPdfJs();
     }
     catch (e) {
         console.error(e);
@@ -509,13 +794,13 @@ onMounted(async () => {
 // 清理资源
 onBeforeUnmount(() => {
     eventBus.emit('is-need-save', true)
-    try{
+    try {
         // if(editor.value){
         //     editor.value.dispose();
         //     editor.value=null;
         // }
     }
-    catch(e){
+    catch (e) {
         console.log(e)
     }
 });
@@ -524,6 +809,64 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.pdf-container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;   /* 防止 canvas 溢出 */
+  position: relative;
+  cursor: grab;
+}
+
+.pdf-container.dragging {
+  cursor: grabbing;
+}
+
+.canvas-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0; /* 缩放从左上角开始 */
+}
+.pdf-toolbar {
+  z-index: 10;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.pdf-preview-container {
+  position: relative;
+  height: 100%;
+}
+
+.pdf-empty-text {
+  color: #999;
+  font-weight: normal;
+}
+.pdf-empty-text {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;  /* 水平居中 */
+    align-items: center;      /* 垂直居中 */
+    user-select: none;        /* 禁止选中 */
+    pointer-events: none;     /* 防止交互（可选） */
+    margin: 0;                /* 移除默认 margin */
+    font-size: 1.1rem;        /* 可根据需要调整字体大小 */
+    color: var(--text-color, #999); /* 可设置默认灰色 */
+    text-align: center;
+}
+.editor-pdf-wrapper {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+}
+.pdf-preview-container {
+  border-left: 1px solid #bbb;
+  height: 100%;
+}
 /* 顶部菜单栏 */
 
 .meta-info-menu {
@@ -537,8 +880,7 @@ onBeforeUnmount(() => {
     display: flex;
     justify-content: center;
     align-items: center;
-    border-top: 1px solid #ddd;
-    background-color: #fff;
+    border-top: 1px solid #bbb;
 }
 
 .content-container {
@@ -547,7 +889,11 @@ onBeforeUnmount(() => {
     max-height: 90vh;
     height: 90vh;
 }
-
+.editor-pdf-container{
+    display: flex;
+    flex-direction: row;
+    height:100%;
+}
 .latex-editor-container {
     flex: 1;
     /* 占满剩余空间 */
@@ -561,7 +907,7 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     padding: 4px 8px;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #bbb;
     gap: 8px;
     flex-shrink: 0;
 }
@@ -577,6 +923,17 @@ onBeforeUnmount(() => {
     border-radius: 4px;
     transition: background-color 0.2s;
 }
+.pdf-toolbar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
 
 .toolbar-icon:hover {
     background-color: rgba(0, 0, 0, 0.05);
@@ -585,6 +942,7 @@ onBeforeUnmount(() => {
 .editor {
     flex: 1;
     overflow: hidden;
+    min-width: 200px;
 }
 
 /* 左边的编辑器样式 */
@@ -594,7 +952,6 @@ onBeforeUnmount(() => {
     color: black;
     flex: 1;
     /* 占20% */
-    background-color: #f9f9f9;
     overflow: hidden;
     box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
     padding: 5px;
@@ -605,7 +962,11 @@ onBeforeUnmount(() => {
     height: 100%;
     position: relative;
 }
-
+.resizable-pdf-container {
+    display: flex;
+    height: 100%;
+    position: relative;
+}
 .meta-info {
     min-width: 200px;
     max-width: 600px;
@@ -626,8 +987,7 @@ onBeforeUnmount(() => {
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    border-top: 1px solid #ddd;
-    background-color: #fff;
+    border-top: 1px solid #bbb;
 }
 
 .context-menu {

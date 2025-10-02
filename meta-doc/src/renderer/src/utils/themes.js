@@ -93,7 +93,7 @@ const rgbToHex = (r, g, b) => {
 };
 
 // 辅助函数：混合两种颜色
-const mixColors = (color1, color2, weight) => {
+export const mixColors = (color1, color2, weight) => {
   const c1 = hexToRgb(color1);
   const c2 = hexToRgb(color2);
 

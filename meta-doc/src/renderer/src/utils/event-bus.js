@@ -18,7 +18,8 @@ import {
   dump2md,
   current_format,
   current_tex_article,
-  load_from_tex
+  load_from_tex,
+  dump2tex
 } from './common-data.js'
 import { getSetting, updateRecentDocs } from './settings.js'
 import { ConvertHtmlForPdf, image2base64, image2local, local2image, ConvertMarkdownToHtmlManually, ConvertMarkdownToHtmlVditor, filterMetaDataFromMd } from './md-utils.js'
@@ -146,17 +147,14 @@ ipcRenderer.on('open-doc-success', (event, payload) => {
   switch (payload.format) {
     case 'json':
       load_from_json(payload.content)
-      eventBus.emit('refresh')//加载完之后进行刷新
       eventBus.emit('open-doc-success')
       break;
     case 'md':
       load_from_md(payload.content)
-      eventBus.emit('refresh')//加载完之后进行刷新
       eventBus.emit('open-doc-success')
       break;
     case 'tex':
       load_from_tex(payload.content)
-      eventBus.emit('refresh')//加载完之后进行刷新
       eventBus.emit('open-doc-success')
       break;
     default:
@@ -176,8 +174,8 @@ const save = async (mode = 'save',args) => await ipcRenderer.send(mode,
     path: current_file_path.value,
     html: await ConvertMarkdownToHtmlManually(current_article.value),
     tex: (current_format.value == "tex" ?
-      current_tex_article.value :
-      convertMarkdownToLatex(filterMetaDataFromMd(dump2md()), current_article_meta_data.value.title)),
+      dump2tex() :
+      dump2tex(convertMarkdownToLatex(filterMetaDataFromMd(dump2md()), current_article_meta_data.value.title))),
     args
   });
 //监听save事件

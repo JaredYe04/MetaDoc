@@ -3,3 +3,14 @@ dist
 out
 .DS_Store
 *.log*
+src/main/models/nomic-embed-text-v1.5.Q8_0.gguf
+resources/bce-embedding-base_v1-Q8_0.gguf.part03
+resources/bce-embedding-base_v1-Q8_0.gguf.part02
+resources/bce-embedding-base_v1-Q8_0.gguf.part01
+resources/bce-embedding-base_v1-Q8_0.gguf
+resources/bce-embedding-base_v1-Q8_0.gguf.part01
+resources/bce-embedding-base_v1-Q8_0.gguf.part03
+resources/bce-embedding-base_v1-Q8_0.gguf.part02
+resources/bce-embedding-base_v1-Q8_0.gguf.part01
+resources/bce-embedding-base_v1-Q8_0.gguf.part02
+resources/bce-embedding-base_v1-Q8_0.gguf.part03

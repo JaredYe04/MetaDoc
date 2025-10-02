@@ -448,7 +448,7 @@ async function setActive(id) {
     activeSchemeId.value = id
     selectedEngine.value = activeScheme.value.engine
     selectedType.value = activeScheme.value.type
-    eventBus.emit('sync-vditor-theme')
+    eventBus.emit('sync-editor-theme')
     //initVditor()
     //console.log(activeScheme.value)
     await refreshVditor();
@@ -478,7 +478,7 @@ async function initVditor() {
 onMounted(async () => {
 
 
-    eventBus.on('sync-vditor-theme', async () => {
+    eventBus.on('sync-editor-theme', async () => {
         await new Promise(
             (resolve) => {
                 //一直等待，直到vditor实例化完成

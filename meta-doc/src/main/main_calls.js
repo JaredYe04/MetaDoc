@@ -19,6 +19,7 @@ import { mainWindow, openSettingDialog, openAiChatDialog, settingWindow, aichatW
 import { dirname } from './index'
 import { imageUploadDir } from './express_server'
 import { queryKnowledgeBase } from './utils/rag_utils'
+import { getResourcesPath } from './utils/resources_path_utils'
 
 //import eventBus from '../renderer/src/utils/event-bus'
 
@@ -130,7 +131,8 @@ export function mainCalls() {
   ipcMain.handle('query-knowledge-base', async (event, { question, scoreThreshold }) => {
     return await queryKnowledgeBase(question, scoreThreshold);
   });
-
+  //////////////获取资源路径
+  ipcMain.handle('resources-path',(event,data)=>getResourcesPath())
   //////////////AI任务调度
   ipcMain.on('register-ai-task', (event, taskInfo) => {
     //console.log("注册任务到主窗口",taskInfo)

@@ -116,7 +116,7 @@ onMounted(async () => {
         document.documentElement.classList.remove('light')
       }
     }
-    eventBus.emit('sync-vditor-theme')//触发vditor主题同步事件
+    eventBus.emit('sync-editor-theme')//触发vditor主题同步事件
     autoOpenDoc() // 自动打开文档
   })
   // 触发一次主题同步事件

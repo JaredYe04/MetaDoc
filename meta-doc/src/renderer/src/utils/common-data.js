@@ -152,19 +152,44 @@ export function dump2json(mdreplace='') {
     current_ai_dialogs: current_ai_dialogs.value
   })
 }
-export function autoGenerateTitle(){
+export function autoGenerateTitle() {
+
   //如果没有标题就尝试从文章内容中自动生成标题
-  if(current_article_meta_data.value.title==='') {
-    //从文章内容中提取第一个标题（一级、二级、三级等标题都可以）
-    const firstTitleMatch = current_article.value.match(/^(#+)\s+(.*)$/m);
-    if (firstTitleMatch) {
-      const title = firstTitleMatch[2].trim();
-      current_article_meta_data.value.title = title;
+  if (current_article_meta_data.value.title === '') {
+    if (current_format.value == 'md') {
+      //从文章内容中提取第一个标题（一级、二级、三级等标题都可以）
+      const firstTitleMatch = current_article.value.match(/^(#+)\s+(.*)$/m);
+      if (firstTitleMatch) {
+        const title = firstTitleMatch[2].trim();
+        current_article_meta_data.value.title = title;
+      }
+      else {
+        //否则尝试截取文章内容的前50个字符（如果文章内容少于50个字符，则截取全部）
+        const content = current_article.value.trim().substring(0, 50);
+        current_article_meta_data.value.title = content.length > 0 ? content : '';
+      }
     }
-    else{
-      //否则尝试截取文章内容的前50个字符（如果文章内容少于50个字符，则截取全部）
-      const content = current_article.value.trim().substring(0, 50);
-      current_article_meta_data.value.title = content.length > 0 ? content : '无标题文档';
+    else if (current_format.value === 'tex') {
+
+      const texContent = current_tex_article.value || '';
+      let title = '';
+
+      // 正则匹配 \section, \subsection, \subsubsection
+      const sectionMatch = texContent.match(/\\section\{([^}]*)\}/);
+      const subsectionMatch = texContent.match(/\\subsection\{([^}]*)\}/);
+      const subsubsectionMatch = texContent.match(/\\subsubsection\{([^}]*)\}/);
+
+      // 优先级：section > subsection > subsubsection
+      if (sectionMatch) title = sectionMatch[1].trim();
+      else if (subsectionMatch) title = subsectionMatch[1].trim();
+      else if (subsubsectionMatch) title = subsubsectionMatch[1].trim();
+      else title = texContent.trim().substring(0, 50);
+
+      // 截取最多50个字符
+      if (title.length > 50) title = title.substring(0, 50);
+
+      current_article_meta_data.value.title = title;
+
     }
   }
 
@@ -184,7 +209,11 @@ export function load_from_json(json) {
   current_ai_dialogs.value=data.current_ai_dialogs
   autoGenerateTitle();
 }
-
+/**
+ * 导出 Markdown 文本并嵌入元信息
+ * @param {string} mdreplace 可选的替换内容
+ * @returns {string} 含元信息的 Markdown 文本
+ */
 export function dump2md(mdreplace='') {
   //我们要把一些元数据也放到md中去，通过注释的方式来存储，为了防止json里面的转义字符和换行符，我们把元信息的json字符串进行base64编码
   const pure_md= mdreplace===''?current_article.value:mdreplace;//不包含元信息的md内容
@@ -198,8 +227,33 @@ export function dump2md(mdreplace='') {
   //console.log(metaDataBase64)
   return pure_md + '\n<!--meta-info: ' + metaDataBase64 + ' -->';
 }
+/**
+ * 导出 LaTeX 文本并嵌入元信息
+ * @param {string} texreplace 可选的替换内容
+ * @returns {string} 含元信息的 LaTeX 文本
+ */
+export function dump2tex(texreplace = '') {
+  const tex = texreplace === '' ? current_tex_article.value : texreplace;
+  let pure_tex = tex.replace(/(% 请勿手动修改此行及下面的 META-INFO.*\n)/, '');
+  pure_tex = pure_tex.replace(/(%META-INFO:.*\n)/, '');
+  const metaData = {
+    //current_outline_tree: current_outline_tree.value,
+    current_article_meta_data: current_article_meta_data.value,
+    current_ai_dialogs: current_ai_dialogs.value
+  };
+  
+  const metaDataBase64 = encodeJsonToBase64(metaData);
 
+  // 在开头插入提示信息和元信息
+  const warning = `% 请勿手动修改此行及下面的 META-INFO，否则可能导致 MetaDoc 无法识别元信息。Please do not manually modify this line and the META-INFO below, as it may cause MetaDoc to not recognize the metadata.\n`;
+  const metaInfoLine = `%META-INFO: ${metaDataBase64}\n`;
 
+  return warning + metaInfoLine + pure_tex;
+}
+/**
+ * 从 Markdown 文本中加载内容及元信息
+ * @param {string} md Markdown 文本
+ */
 export function load_from_md(md) {
   //读取的时候先用正则表达式提取元信息
   const metaInfoMatch = md.match(/<!--meta-info:\s*([^-\s]+?)\s*-->/);
@@ -225,10 +279,40 @@ export function load_from_md(md) {
   //把md内容中的元信息部分去掉
 }
 
-export function load_from_tex(tex){
-  current_format.value='tex';
-  current_tex_article.value=tex;
-  current_article.value=convertLatexToMarkdown(current_tex_article.value);
+/**
+ * 从 LaTeX 文本中加载内容及元信息
+ * @param {string} tex LaTeX 文本
+ */
+export function load_from_tex(tex) {
+  // 匹配元信息
+  const metaInfoMatch = tex.match(/%META-INFO:\s*([^\n]+)/);
+  
+  // 移除元信息占位符
+  //console.log(tex)
+  let pureTex = tex.replace(/%META-INFO:\s*[^\n]+/, '');
+  //console.log(pureTex)
+  pureTex = pureTex.replace(/(% 请勿手动修改此行及下面的 META-INFO.*\n)/, '');
+  //console.log(pureTex)
+  
+  current_tex_article.value = pureTex;
+  current_format.value = 'tex';
+
+  if (metaInfoMatch && metaInfoMatch[1]) {
+    const metaDataBase64 = metaInfoMatch[1];
+    const metaData = decodeBase64ToJson(metaDataBase64);
+
+    //current_outline_tree.value = JSON.parse(JSON.stringify(metaData.current_outline_tree));
+    //todo:现在还不支持和大纲树之间的映射
+    current_article_meta_data.value = { ...metaData.current_article_meta_data };
+    current_ai_dialogs.value = metaData.current_ai_dialogs;
+  } else {
+    // 如果没有元信息，则生成默认元信息
+    //current_outline_tree.value = extractOutlineTreeFromLaTeX(pureTex);
+    current_article_meta_data.value = { ...default_artical_meta_data };
+    current_ai_dialogs.value = [];
+  }
+
+  autoGenerateTitle(); // 自动生成标题
 }
 
 export function sync() {

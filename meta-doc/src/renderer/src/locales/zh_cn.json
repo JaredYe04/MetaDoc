@@ -612,11 +612,16 @@
         "redo": "重做 (Ctrl+Y)",
         "zoomIn": "放大 (Ctrl +)",
         "zoomOut": "缩小 (Ctrl -)",
+        "zoomReset": "重置",
         "toggleLineNumbers": "行数显示",
         "togglePreview": "预览显示",
         "compile": "编译 LaTeX",
         "showPdf": "显示 PDF",
         "compileAndShow": "编译并显示"
-        }
+        },
+        "pdfEmpty":"请先正确编译LaTeX代码，PDF会在此处显示",
+        "prevPage":"上一页",
+        "nextPage":"下一页",
+        "pages":"页"
   }
 }

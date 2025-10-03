@@ -117,6 +117,9 @@ export const deleteDialog = (index) => {
   }
   
 };
+
+export const console_out=ref('')
+export const consolr_err=ref('')
 export {
   current_file_path,
   current_outline_tree,

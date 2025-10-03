@@ -607,7 +607,7 @@
         "togglePreview": "Toggle Preview",
         "compile": "Compile LaTeX",
         "showPdf": "Show PDF",
-        "compileAndShow": "Compile & Show"
+        "showConsole": "Show Console"
         }
   }
 }

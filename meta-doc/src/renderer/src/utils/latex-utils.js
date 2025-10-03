@@ -26,10 +26,15 @@ export function convertMarkdownToLatex(markdown, title = 'Generated Document') {
 \\usepackage{fancyhdr}
 \\usepackage{lastpage}
 
-\\setmainfont{SimSun} % Windows宋体
-\\setsansfont{Microsoft YaHei}
-\\setCJKmainfont{SimSun} % 中文字体
-\\setmonofont{Consolas}
+% 英文正文字体
+\\setmainfont{Times New Roman} % 英文正文
+\\setsansfont{Arial}           % 英文无衬线体
+\\setmonofont{Consolas}        % 英文等宽字体
+
+% 中文字体
+\\setCJKmainfont{SimSun}       % 中文正文
+\\setCJKsansfont{Microsoft YaHei} % 中文无衬线体
+\\setCJKmonofont{FangSong}     % 中文等宽字体（可选）
 
 \\geometry{margin=1in}
 \\pagestyle{fancy}

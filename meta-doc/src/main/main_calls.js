@@ -20,6 +20,7 @@ import { dirname } from './index'
 import { imageUploadDir } from './express_server'
 import { queryKnowledgeBase } from './utils/rag_utils'
 import { getResourcesPath } from './utils/resources_path_utils'
+import { compileLatexToPDF } from './utils/latex_compiler'
 
 //import eventBus from '../renderer/src/utils/event-bus'
 
@@ -127,12 +128,28 @@ export function mainCalls() {
   ipcMain.handle('compute-md5', async (event, data) => {
     return crypto.createHash('md5').update(data).digest('hex');
   });
+  //////////////编译tex文件
+  ipcMain.handle('compile-tex', async (event, data) => {
+    return compileLatexToPDF(data.texPath, data.outputDir, mainWindow)
+      .then((data) => {
+        mainWindow.webContents.send('compile-latex-success', data);
+        //console.log('PDF 生成成功:', data);
+        return data;
+        // 可以把 pdfPath 发送给渲染进程，让 vue-pdf 加载
+      })
+      .catch((err) => {
+        mainWindow.webContents.send('compile-latex-fail', err.message);
+        console.error('PDF 编译失败:', err.message);
+        return err;
+      });
+  })
   //////////////RAG请求查询
   ipcMain.handle('query-knowledge-base', async (event, { question, scoreThreshold }) => {
     return await queryKnowledgeBase(question, scoreThreshold);
   });
   //////////////获取资源路径
   ipcMain.handle('resources-path',(event,data)=>getResourcesPath())
+
   //////////////AI任务调度
   ipcMain.on('register-ai-task', (event, taskInfo) => {
     //console.log("注册任务到主窗口",taskInfo)
@@ -519,7 +536,9 @@ const convertHtmlToPdfBuffer = async (html) => {
   try {
     await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
     await waitForRenderComplete(win);
-    const pdfBuffer = await win.webContents.printToPDF({});
+    const pdfBuffer = await win.webContents.printToPDF({
+      embedFonts: true,
+    });
     return pdfBuffer;
   } finally {
     win.close();

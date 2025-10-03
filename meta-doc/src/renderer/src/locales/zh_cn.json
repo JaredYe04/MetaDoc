@@ -617,7 +617,12 @@
         "togglePreview": "预览显示",
         "compile": "编译 LaTeX",
         "showPdf": "显示 PDF",
-        "compileAndShow": "编译并显示"
+        "showConsole": "显示终端"
+        },
+        "notification":{
+            "pleaseSaveFirst":"请先保存文件",
+            "compileSuccess":"编译成功",
+            "compileFailed":"编译失败，错误码：{code}"
         },
         "pdfEmpty":"请先正确编译LaTeX代码，PDF会在此处显示",
         "prevPage":"上一页",

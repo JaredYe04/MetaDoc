@@ -706,6 +706,16 @@ export async function ConvertMarkdownToHtmlVditor(md) {
     return await Vditor.md2html(md,{cdn: cdn})
 
 }
+let ipcRenderer = null
+if (window && window.electron) {
+  ipcRenderer = window.electron.ipcRenderer
+
+} else {
+  webMainCalls();
+  ipcRenderer = localIpcRenderer
+  //todo 说明当前环境不是electron环境，需要另外适配
+}
+
 export async function ConvertMarkdownToHtmlManually(md) {
     const contentTheme = await getSetting('contentTheme')
     const codeTheme = await getSetting('codeTheme')
@@ -764,6 +774,7 @@ export const ConvertHtmlForPdf = async (md) => {
     const contentTheme = await getSetting('contentTheme');
     const codeTheme = await getSetting('codeTheme');
     const lineNumber = await getSetting('lineNumber');
+
     const html=`
         <link rel="stylesheet" href="${cdn}/dist/index.css"/>
         <script src="${cdn}/dist/method.min.js"></script>
@@ -798,7 +809,24 @@ export const ConvertHtmlForPdf = async (md) => {
                 Vditor.abcRender(previewElement, '${cdn}');
             };
         </script>
+        <style>
+            body {
+                font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+            }
+        </style>
     `;
+        //     <style>
+        //     @font-face {
+        //     font-family: "NotoSansSC";
+        //     src: url("data:font/ttf;base64,${fontBase64}") format("truetype");
+        //     font-weight: normal;
+        //     font-style: normal;
+        //     }
+
+        //     body {
+        //     font-family: "NotoSansSC", "SimSun", sans-serif;
+        //     }
+        // </style>
     return html;
 
     

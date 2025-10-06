@@ -79,6 +79,12 @@ onMounted(async () => {
   window.addEventListener('beforeunload', () => {
     clearAiTasks()
   })
+  window.addEventListener('error', e => {
+    console.error('Global error', e);
+  });
+  window.addEventListener('unhandledrejection', e => {
+      console.error('Unhandled rejection', e.reason);
+  });
   // const windowType=route.query.windowType
   // initWindowType(windowType);
   await initSettings() // 初始化设置

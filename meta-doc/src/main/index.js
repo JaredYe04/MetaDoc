@@ -19,6 +19,8 @@ ipcMain.on('is-need-save', (event, arg) => {
 
 function createWindow() {
   dirname = __dirname;
+  app.commandLine.appendSwitch('enable-logging'); // 输出 Chromium 日志
+  app.commandLine.appendSwitch('v', '1');         // verbose
   // Create the browser window.
   mainWindow = new BrowserWindow({
     //默认最大化展示

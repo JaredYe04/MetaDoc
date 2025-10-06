@@ -1,6 +1,8 @@
 <template>
   <div class="console-container" :style="consoleStyle">
-    <div class="console-header">
+    <div class="console-header" :style="{
+      backgroundColor:themeState.currentTheme.editorToolbarBackgroundColor
+    }">
       <span>终端输出</span>
       <div class="console-actions">
         <el-button size="small" @click="clearConsole">清屏</el-button>
@@ -85,6 +87,7 @@ const onConsoleOut = (event, data) => addLine(data, 'out');
 const onConsoleErr = (event, data) => addLine(data, 'err');
 
 onMounted(() => {
+  eventBus.on('clear-console',()=>clearConsole())
   ipcRenderer.on('console-out', onConsoleOut);
   ipcRenderer.on('console-err', onConsoleErr);
 });
@@ -110,8 +113,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   padding: 5px;
-  background-color: #2d2d2d;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid #9a9a9a41;
 }
 
 .console-actions button {

@@ -173,6 +173,10 @@ export const suggestionCompletionPrompt = (preContext, postContext) => {
     let messages=[]
     messages.push({ role: "system", content: "你是一个AI智能写作助手，请根据上下文补全用户输入，不要有多余提示。[CURRENT_POS]表示当前的光标位置，也就是插入文本的地方。如果有需要插入空格或换行也请补全。如果当前上下文无需补全，或难以补全，请直接输出空字符串。" })
     messages.push({ role: "user", content: `请根据上下文补全文字：\n${preContext}[CURRENT_POS]${postContext}` })
+    // console.log("提示词：")
+    // console.log(messages)
+    // console.log(preContext)
+    // console.log(postContext)
     return messages;
 }
 

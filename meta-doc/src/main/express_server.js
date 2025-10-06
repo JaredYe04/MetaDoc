@@ -17,12 +17,18 @@ const expressApp = express();
 export const runExpressServer = () => {
 
   const projectRoot = path.resolve(path.resolve(__dirname, '../'), '../');  // 根据 out/main 路径上一级即为根目录
-  const dir = path.join(projectRoot, 'node_modules/vditor')
+  const vditorDir = path.join(projectRoot, 'node_modules/vditor')
   // 将 node_modules/vditor 作为静态资源暴露
   expressApp.use(cors());
-  expressApp.use('/vditor', express.static(dir));
+  expressApp.use('/vditor', express.static(vditorDir));
   expressApp.get('/vditor/*', (req, res) => {
     console.log('Request for Vditor file:', req.path); // 输出请求的文件路径
+  });
+  
+  const monacoDir = path.join(projectRoot, 'node_modules/monaco-editor/esm/vs');
+  expressApp.use('/monaco', express.static(monacoDir));
+  expressApp.get('/monaco/*', (req, res) => {
+    console.log('Request for Monaco file:', req.path);
   });
   imageApi();
   knowledgeApi();
@@ -50,7 +56,6 @@ export const runExpressServer = () => {
   })
 
 }
-
 const imageApi = () => {
   /////////////////////////////////////上传图片API/////////////////////////////////////
   // 设置上传目录

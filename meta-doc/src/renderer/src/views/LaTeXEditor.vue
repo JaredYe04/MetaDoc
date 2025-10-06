@@ -14,8 +14,10 @@
             <ContextMenu :x="menuX" :y="menuY" :items="articleContextMenuItems" :selection="getSelection()"
                 v-if="contextMenuVisible" @trigger="handleMenuClick" class="context-menu"
                 @close="contextMenuVisible = false;" @insert="insertText" />
-            <AISuggestion :targetEl="editorEl" :trigger="triggerSuggestion" :rootNodeClass="'vditor-reset'"
-                @accepted="onAcceptSuggestion" @cancelled="onCancelSuggestion" @reset="onResetSuggestion" />
+            <AISuggestion :targetEl="editorEl" :trigger="triggerSuggestion" :rootNodeClass="'view-lines'"
+                :context="suggestionContext" 
+                @accepted="onAcceptSuggestion" @cancelled="onCancelSuggestion" @reset="onResetSuggestion" 
+                @triggerSuggestion="trytriggerSuggestion"/>
 
             <!-- 左边：编辑器区域 -->
             <div class="latex-editor-container">
@@ -114,7 +116,9 @@
                                 style="width:100%; height:100%;"></iframe> -->
                                 <!-- PDF 页码控制条 -->
                                 <div class="pdf-toolbar" v-if="pdfUrl"
-                                    style="display:flex; align-items:center; justify-content:flex-start; padding:4px 8px; background-color: rgba(0,0,0,0.85);">
+                                    style="display:flex; align-items:center; justify-content:flex-start; padding:4px 8px; " :style="{
+                                        backgroundColor:themeState.currentTheme.editorToolbarBackgroundColor
+                                    }">
                                     <el-button size="small" @click="goPrevPage" :disabled="currentPdfPage <= 1">
                                         {{ $t('latexEditor.prevPage') }}
                                     </el-button>
@@ -259,7 +263,7 @@
 
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed, watch } from "vue";
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed, watch, onUnmounted } from "vue";
 import { ElButton, ElDialog, ElLoading } from 'element-plus';
 import { Icon } from 'tdesign-icons-vue-next';
 
@@ -286,6 +290,8 @@ import { getArticleContextMenuItems } from "../components/contextMenus/ArticleCo
 import ContextMenu from "../components/ContextMenu.vue";
 const { t } = useI18n();
 import * as monaco from "monaco-editor";
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+
 import 'monaco-latex';
 import { ArrowLeft, ArrowRight, Document, Refresh, ZoomIn, ZoomOut } from "@element-plus/icons-vue";
 import { debounce } from 'lodash';
@@ -313,14 +319,10 @@ const menuY = ref(0); // 菜单 Y 坐标
 const cur_selection = ref(''); // 当前选中的文本
 
 const editorEl = ref(null);
-const triggerSuggestion = ref(false);
 const editorKey = ref(Date.now());
 
 // 增量同步缓存
 let textBuffer = current_tex_article.value;
-
-
-
 
 
 const undo = () => editor.value.trigger("keyboard", "undo", null);
@@ -517,15 +519,24 @@ function stopResizePdf() {
 }
 
 const compile = async () => {
+    eventBus.emit('clear-console')
+
     if(current_file_path.value==null||!current_file_path.value.toLowerCase().endsWith(".tex")){
         eventBus.emit("show-info",t("latexEditor.notification.pleaseSaveFirst"));
         return;
     }
+    triggerSuggestion.value = false;//开始编译的时候就不能修改了
+    editor.value.updateOptions({
+        readOnly: true
+    });
     const compileResult = await ipcRenderer.invoke("compile-tex",{
         texPath:current_file_path.value,
         outputDir:""//todo:用户后续可以设置保存在哪
     })
-    console.log(compileResult)
+    editor.value.updateOptions({
+        readOnly: false
+    });
+    //console.log(compileResult)
     if(compileResult.status==='success'){
         eventBus.emit("show-success",t("latexEditor.notification.compileSuccess"));
         pdfUrl.value=(`file:///${compileResult.pdfPath}`);
@@ -535,37 +546,14 @@ const compile = async () => {
     else{
         eventBus.emit("show-error",t("latexEditor.notification.compileFailed",{ code:compileResult.code }));
     }
-    console.log("编译 LaTeX");
+    //console.log("编译 LaTeX");
 };
 
 const toggleConsole = async () => {
     showConsole.value=!showConsole.value;
 };
-function onAcceptSuggestion(text) {
-    //console.log("补全已接受:", text);
-    insertText(text);
-    triggerSuggestion.value = false;
-}
-function onCancelSuggestion() {
-    //console.log("补全已取消");
-    triggerSuggestion.value = false;
-    //状态不切换回false,保持为true
-}
-function onResetSuggestion() {
-    //console.log("补全已重置");
-    //triggerSuggestion.value = false;
-}
 
-// 监听输入 -> 1秒后触发
-let debounceTimer = null;
-function trytriggerSuggestion() {
-    triggerSuggestion.value = false;
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        triggerSuggestion.value = true;
-    }, 500);
 
-}
 
 
 // 打开右键菜单
@@ -583,17 +571,50 @@ const getSelection = () => {
     return editor.value.getModel().getValueInRange(selection); // 返回选中的字符串
 };
 
-// 插入文本到编辑器
+// 插入文本到当前光标位置（支持多行）
 const insertText = (text) => {
-    const selection = editor.value.getSelection();
-    const id = { major: 1, minor: 1 }; // 编辑器操作 ID，可任意
-    const op = {
-        range: selection,
-        text: text,
-        forceMoveMarkers: true
-    };
-    editor.value.executeEdits('insert-text', [op], [selection]); // 插入文本
+  const editorInstance = monaco.editor.getEditors()[0];
+  if (!editorInstance) return;
+
+  const position = editorInstance.getPosition();
+  if (!position) return;
+
+  // 构造插入范围
+  const range = new monaco.Range(
+    position.lineNumber,
+    position.column,
+    position.lineNumber,
+    position.column
+  );
+
+  // 执行插入
+  editorInstance.executeEdits("ai-insert", [
+    {
+      range,
+      text,
+      forceMoveMarkers: true
+    }
+  ]);
+
+  // 计算新光标位置（考虑多行情况）
+  const lines = text.split("\n");
+  const lastLine = lines[lines.length - 1];
+  const newPosition =
+    lines.length === 1
+      ? {
+          lineNumber: position.lineNumber,
+          column: position.column + lastLine.length
+        }
+      : {
+          lineNumber: position.lineNumber + lines.length - 1,
+          column: lastLine.length + 1
+        };
+
+  // 设置光标位置并滚动到可见区域
+  editorInstance.setPosition(newPosition);
+  editorInstance.revealPositionInCenter(newPosition);
 };
+
 
 // 菜单项点击事件处理
 const handleMenuClick = async (item) => {
@@ -783,7 +804,7 @@ const disposeEditor = () => {
             // console.log("释放Monaco成功")
             // 4. 释放模型
             if (oldModel) oldModel.dispose();
-            console.log("释放模型成功")
+            //console.log("释放模型成功")
             // 5. 清空 textBuffer
             textBuffer = "";
         } catch (e) {
@@ -793,6 +814,42 @@ const disposeEditor = () => {
 };
 
 const initEditor = () => {
+    window.MonacoEnvironment = {
+        getWorker: function (moduleId, label) {
+            let workerPath = '';
+
+            switch (label) {
+                case 'json':
+                    workerPath = 'http://localhost:3000/monaco/language/json/json.worker.js';
+                    break;
+                case 'css':
+                case 'scss':
+                case 'less':
+                    workerPath = 'http://localhost:3000/monaco/language/css/css.worker.js';
+                    break;
+                case 'html':
+                case 'handlebars':
+                case 'razor':
+                    workerPath = 'http://localhost:3000/monaco/language/html/html.worker.js';
+                    break;
+                case 'typescript':
+                case 'javascript':
+                    workerPath = 'http://localhost:3000/monaco/language/typescript/ts.worker.js';
+                    break;
+                default:
+                    workerPath = 'http://localhost:3000/monaco/editor/editor.worker.js';
+            }
+
+            // ESM worker: 用 import() 动态导入
+            const blob = new Blob(
+                [`import("${workerPath}");`],
+                { type: 'application/javascript' }
+            );
+
+            return new Worker(URL.createObjectURL(blob), { type: 'module' });
+        }
+    };
+
     editor.value = monaco.editor.create(editorEl.value, {
         value: current_tex_article.value,
         language: "latex", // 语言模式
@@ -800,36 +857,52 @@ const initEditor = () => {
         mouseWheelZoom: true,
         automaticLayout: true, // 自动适应容器大小
         fontSize: 14,
+        wordWrap: "on",  // 自动换行
+        wordWrapMinified: true, // 对于 minified 文件也自动换行
+        wrappingIndent: "same", // 缩进方式，"none" | "same" | "indent" | "deepIndent"
         lineNumbers: enableRowNumber ? 'on' : 'off',
         minimap: { enabled: enableMinimap }
     })
+    //editor.value.onKeyDown((e)=>console.log(e));
     // 增量监听
     contentChangeListener = editor.value.onDidChangeModelContent((event) => {
-    // 先保存原始文本
-    let oldText = textBuffer;
+        // 先保存原始文本
+        let oldText = textBuffer;
 
-    // Monaco 的 changes 数组是按顺序排列的，rangeOffset 是变化前的偏移
-    // 我们可以用 reduce 来一次性更新 textBuffer
-    textBuffer = event.changes.reduce((acc, change) => {
-        const start = change.rangeOffset;
-        const end = start + change.rangeLength;
-        return acc.slice(0, start) + change.text + acc.slice(end);
-    }, oldText);
-
-    // 按需同步到 Vue 响应式变量，比如防抖或定时同步
-    debounceSync();
+        // Monaco 的 changes 数组是按顺序排列的，rangeOffset 是变化前的偏移
+        // 我们可以用 reduce 来一次性更新 textBuffer
+        textBuffer = event.changes.reduce((acc, change) => {
+            const start = change.rangeOffset;
+            const end = start + change.rangeLength;
+            return acc.slice(0, start) + change.text + acc.slice(end);
+        }, oldText);
+        
+        // 按需同步到 Vue 响应式变量，比如防抖或定时同步
+        debounceSync();
+        
     });
     const debounceSync = debounce(() => {
-        //console.log("已同步")
-        current_tex_article.value = textBuffer;
+        triggerSuggestion.value = false;
+        if(current_tex_article.value!==textBuffer){
+            current_tex_article.value = textBuffer;
+            //initiativeSuggestion.value=true;
+            //trytriggerSuggestion();//等文章内容更新之后再尝试补全
+            //console.log("建议已刷新")
+        }
+        else{
+            //console.log(textBuffer)
+        }
+        
         sync();
     }, 100);
-
+    eventBus.emit("monaco-ready")
 }
+
 onMounted(async () => {
     try {
         await refreshContextMenu();
         initEditor();
+
         eventBus.on('sync-editor-theme', () => {
             const isDark = themeState.currentTheme.type === 'dark';
             const themeName = isDark ? 'vs-dark' : 'vs';
@@ -870,19 +943,89 @@ onMounted(async () => {
 });
 
 // 清理资源
-onBeforeUnmount(() => {
+onUnmounted(() => {
     eventBus.emit('is-need-save', true)
     try {
-        // if(editor.value){
-        //     editor.value.dispose();
-        //     editor.value=null;
-        // }
+        const editors = monaco.editor.getEditors();
+
+        // 遍历销毁
+        editors.forEach(editor => {
+            editor.dispose(); // 释放 editor 的所有资源，包括模型、事件监听等
+        });
     }
     catch (e) {
         console.log(e)
     }
 });
 
+const triggerSuggestion = ref(false);
+
+function onAcceptSuggestion(text) {
+    //console.log("补全已接受:", text);
+    //insertText(text);
+    //AISuggestion已经帮忙插入了
+    triggerSuggestion.value = false;
+}
+function onCancelSuggestion() {
+    //console.log("补全已取消");
+    triggerSuggestion.value = false;
+    //initiativeSuggestion.value=false;
+    //状态不切换回false,保持为true
+}
+function onResetSuggestion() {
+    //console.log("补全已重置");
+    triggerSuggestion.value = false;
+}
+
+// 监听输入 -> 1秒后触发
+const suggestionContext=ref({
+    preContext:"",
+    postContext:""
+})
+// 控制是否主动触发补全
+//const initiativeSuggestion = ref(true);
+let suggestionTimer = null; // AI suggestion 专用防抖
+function getSuggestionContext(contextSize=1000){
+    const model = editor.value.getModel();
+    //console.log(selection)
+
+    const sel = editor.value.getSelection();
+    // 选择 caret 位置：若是折叠（无选区）用 start，若有选区，默认用 end（caret 通常在 end）
+    const isCollapsed = (sel.startLineNumber === sel.endLineNumber && sel.startColumn === sel.endColumn);
+    const caretLine = isCollapsed ? sel.startLineNumber : sel.endLineNumber;
+    const caretColumn = isCollapsed ? sel.startColumn : sel.endColumn;
+    //console.log("caretColumn")
+        // 把位置转为 offset（字符索引）
+    const caretPos = { lineNumber: caretLine, column: caretColumn };
+    const caretOffset = model.getOffsetAt(caretPos);
+    //console.log("caretOffset")
+    const fullLength = model.getOffsetAt(model.getFullModelRange().getEndPosition());;
+    //console.log("fullLength",fullLength)
+    const startOffset = Math.max(0, caretOffset - contextSize);
+    const endOffset = Math.min(fullLength, caretOffset + contextSize);
+    // console.log(startOffset)
+    // console.log(endOffset)
+    const fullText = current_tex_article.value || "";
+    suggestionContext.value.preContext = fullText.slice(startOffset, caretOffset);
+    suggestionContext.value.postContext = fullText.slice(caretOffset, endOffset);
+}
+function trytriggerSuggestion() {
+    //console.log("尝试触发Suggestion")
+    // AI suggestion 防抖逻辑
+    
+    //if (initiativeSuggestion.value ==false) return;//只生成一次，不是这里的问题
+    triggerSuggestion.value = false;
+    if (suggestionTimer) clearTimeout(suggestionTimer);
+    suggestionTimer = setTimeout(() => {
+        triggerSuggestion.value = false;
+        getSuggestionContext();
+        //console.log("触发Suggestion")
+        triggerSuggestion.value = true;
+    }, 1500); // 1.5 秒防抖
+
+
+}
+// 监听输入 -> 1秒后触发
 
 </script>
 

@@ -115,10 +115,10 @@ export async function startAiTask(handle) {
     if (e.name === 'AbortError') {
       task.status.value = ai_task_status.CANCELLED
       const t=i18n.global.t
-      task.rejectDone?.(new Error(t('aiTask.taskCancelled2')))
+      task.resolveDone?.(new Error(t('aiTask.taskCancelled2')))
     } else {
       task.status.value = ai_task_status.FAILED
-      task.rejectDone?.(e)
+      task.resolveDone?.(e)
     }
   }
 }

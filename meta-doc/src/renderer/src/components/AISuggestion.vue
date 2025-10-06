@@ -263,7 +263,6 @@ function showTooltip() {
   // 定位
   let rect;
   if (current_format.value === 'md') {
-    if (!suggestionEl || tooltipEl) return;
     rect = suggestionEl.getBoundingClientRect();
   }
   else {
@@ -408,7 +407,7 @@ function resetSuggestion() {
       generating = false;
     }
     hideTooltip();
-    if (current_format.value === 'md' && suggestionEl instanceof HTMLElement) {
+  if (current_format.value === 'md' && suggestionEl instanceof HTMLElement) {
       if(suggestionEl){
         suggestionEl.remove();
     }
@@ -463,23 +462,35 @@ function cancelSuggestion() {
 
 
 
+
+
 /** 键盘事件处理 */
-function handleKeydown(e) {
-  //if (!suggestionEl) return;
-  //console.log(e)
-  //Monaco的该部分由Command处理
+function handleVditorKeydown(e) {
   if (e.key === "Tab") {
     acceptSuggestion();
     e.preventDefault();
+    return;
 
   } else if (e.key === "Escape") {
     cancelSuggestion();
-  } else if (
-    ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key) ||
-    e.key.length === 1
-  ) {
-    resetSuggestion();
+    return;
   }
+  const cancel_keys = ["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End","PageUp","PageDown","Delete"];
+  if (cancel_keys.includes(e.key)) {
+    cancelSuggestion();
+    return;
+  }
+  // 定义需要忽略的控制键
+  const ignoredKeys = new Set([
+    "Control", "Shift", "Alt", "Meta", "CapsLock", "Insert", "Delete"
+  ]);
+  if (ignoredKeys.has(e.code)) {
+    return;//如果是一些特殊的键，则不管
+  }
+  //对于没有列出的普通键，例如字母和数字、符号，则先取消，然后重新触发
+  cancelSuggestion();
+  emits("triggerSuggestion");
+
 }
 
 
@@ -495,7 +506,7 @@ function handleMonacoKeydown(e) {
     "Escape", "Tab"
   ]);
     if (suggestionControlKeys.has(e.code)) {
-    //handleKeydown({ key: e.code });
+    //handleVditorKeydown({ key: e.code });
     return;
   }
   // 定义需要忽略的控制键
@@ -513,6 +524,9 @@ function handleMonacoKeydown(e) {
   emits("triggerSuggestion");
 }
 
+function handleVditorMousedown(){
+  cancelSuggestion();
+}
 onMounted(() => {
   if (current_format.value === 'tex') {
     eventBus.on('monaco-ready',()=>{
@@ -547,14 +561,22 @@ onMounted(() => {
       
     })
   }
-  else{
-    window.addEventListener("keydown", handleKeydown);
+  else if (current_format.value === 'md'){
+    window.addEventListener("keydown", handleVditorKeydown);
+    const vditorEl = document.getElementById("vditor");
+    if (vditorEl) {
+      vditorEl.addEventListener("mousedown", handleVditorMousedown);
+    }
   }
 });
 
 onBeforeUnmount(() => {
-  if(current_format.value!=='tex'){
-      window.removeEventListener("keydown", handleKeydown);
+  if(current_format.value==='md'){
+      window.removeEventListener("keydown", handleVditorKeydown);
+      const vditorEl = document.getElementById("vditor");
+      if (vditorEl) {
+        vditorEl.removeEventListener("mousedown", handleVditorMousedown);
+      }
   }
 
   hideTooltip();

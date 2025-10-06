@@ -15,7 +15,8 @@
                 v-if="contextMenuVisible" @trigger="handleMenuClick" class="context-menu"
                 @close="contextMenuVisible = false;" @insert="insertText" />
             <AISuggestion :targetEl="vditorEl" :trigger="triggerSuggestion" :rootNodeClass="'vditor-reset'"
-                @accepted="onAcceptSuggestion" @cancelled="onCancelSuggestion" @reset="onResetSuggestion" />
+                @accepted="onAcceptSuggestion" @cancelled="onCancelSuggestion" @reset="onResetSuggestion"
+                @triggerSuggestion="trytriggerSuggestion" />
             <div id="vditor" ref="vditorEl" class="editor" @keydown="handleTab"
                 @contextmenu.prevent="openContextMenu($event)" :style="{
                     '--panel-background-color': themeState.currentTheme.editorPanelBackgroundColor,
@@ -629,7 +630,7 @@ onMounted(async () => {
 
                 current_article.value = value;
                 latest_view.value = 'article';
-                trytriggerSuggestion();
+                //trytriggerSuggestion();
 
                 eventBus.emit('is-need-save', true)
                 sync();

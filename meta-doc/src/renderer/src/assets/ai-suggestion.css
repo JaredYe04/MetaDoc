@@ -1,11 +1,10 @@
 .ai-suggestion {
-    background: rgba(128, 128, 128, 0.5);
     user-select: none;
     pointer-events: none;
     color: rgb(0, 0, 0);
 }
 .ai-suggestion-dark {
-    background: rgba(128, 128, 128, 0.5);
+    
     user-select: none;
     pointer-events: none;
     color: rgb(255, 255, 255);
@@ -13,12 +12,9 @@
 }
 
 .ai-suggestion, .ai-suggestion-dark {
+  background: rgba(128, 128, 128, 0.3);
   opacity: 0.8;
-  white-space: pre;            /* 保留空格和换行符 */
-  overflow: hidden;            /* 超出部分隐藏 */
-  max-width: 100%;             /* 防止超出编辑区 */
   display: inline-block;
   vertical-align: middle;
-  background: none;            /* 不用背景，否则可能影响布局 */
   user-select: none;        /* 禁止鼠标选中 */
 }

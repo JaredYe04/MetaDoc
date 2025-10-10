@@ -869,13 +869,20 @@ const initEditor = () => {
         // 先保存原始文本
         let oldText = textBuffer;
 
-        // Monaco 的 changes 数组是按顺序排列的，rangeOffset 是变化前的偏移
-        // 我们可以用 reduce 来一次性更新 textBuffer
-        textBuffer = event.changes.reduce((acc, change) => {
-            const start = change.rangeOffset;
-            const end = start + change.rangeLength;
-            return acc.slice(0, start) + change.text + acc.slice(end);
-        }, oldText);
+    // 使用原始旧文本作为基底
+    let newText = textBuffer;
+
+    // 按 **从后到前** 的顺序应用 changes，避免偏移被修改
+    for (let i = event.changes.length - 1; i >= 0; i--) {
+      const change = event.changes[i];
+      const start = change.rangeOffset;
+      const end = start + change.rangeLength;
+      newText = newText.slice(0, start) + change.text + newText.slice(end);
+    }
+
+    // 更新缓存（完整文本）
+    textBuffer = newText;
+
         
         // 按需同步到 Vue 响应式变量，比如防抖或定时同步
         debounceSync();

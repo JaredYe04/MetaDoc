@@ -310,64 +310,67 @@ const generateChildrenChildren = async () => {
   parallelChildren.value = [];
   const taskPromises = [];
 
-  const traverseAndGenerate = async (curNode) => {
-    if (!curNode) return;
+const traverseAndGenerate = async (curNode) => {
+  if (!curNode) return [];
 
-    if (curNode.children && curNode.children.length > 0) {
-      for (let child of curNode.children) {
-        traverseAndGenerate(child); // 不 await，保留并发
-      }
-      return; //  不是叶子节点，跳过创建
+  const promises = [];
+
+  if (curNode.children && curNode.children.length > 0) {
+    // 等待所有子节点递归的任务
+    for (let child of curNode.children) {
+      const childPromises = await traverseAndGenerate(child);
+      promises.push(...childPromises);
     }
-
-    // 是叶子节点，生成子节点
-    const prompt = expandTreeNodePrompt(
-      JSON.stringify(removeTextFromOutline(treeData.value)),
-      JSON.stringify(curNode),
-      JSON.stringify(tree_node_schema),
-      userPrompt.value
-    );
-
-    const myRawString = ref('');
-    parallelChildren.value.push(myRawString);
-    const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
-    const { handle, done } = createAiTask(
-      curNode.title,
-      prompt,
-      myRawString,
-      ai_types.answer,
-      'outline-children-' + curNode.title,
-      enableKnowledgeBase
-    );
-
-    const taskPromise = done
-      .then(() => {
-        const json = extractOuterJsonString(myRawString.value);
-        const newChildren = JSON.parse(json);
-        curNode.children.push(...newChildren);
-        eventBus.emit(
-          'show-success',
-          t('outline.generateChildSuccessWithTitle', { title: curNode.title })
-        );
-      })
-      .catch((err) => {
-        //console.warn('任务失败或取消：', err);
-        // 可选 emit
-      });
-
-    taskPromises.push(taskPromise);
-  };
-
-  try {
-    await traverseAndGenerate(cur_node);      // 启动所有任务
-    await Promise.all(taskPromises);          // 等待所有生成完成
-    eventBus.emit('show-success', t('outline.generateChildSuccess'));
-  } catch (e) {
-    eventBus.emit('show-error', t('outline.generateChildFail', { error: e.message }));
-  } finally {
-    generateChildrenChildrenLoading.value = false;
-    generating.value = false;
+    return promises; // 返回所有子节点的任务
   }
+
+  // 是叶子节点，生成子节点
+  const prompt = expandTreeNodePrompt(
+    JSON.stringify(removeTextFromOutline(treeData.value)),
+    JSON.stringify(curNode),
+    JSON.stringify(tree_node_schema),
+    userPrompt.value
+  );
+
+  const myRawString = ref('');
+  parallelChildren.value.push(myRawString);
+  const enableKnowledgeBase = await getSetting('enableKnowledgeBase');
+  const { handle, done } = createAiTask(
+    curNode.title,
+    prompt,
+    myRawString,
+    ai_types.answer,
+    'outline-children-' + curNode.title,
+    enableKnowledgeBase
+  );
+
+  const taskPromise = done
+    .then(() => {
+      const json = extractOuterJsonString(myRawString.value);
+      const newChildren = JSON.parse(json);
+      curNode.children.push(...newChildren);
+      eventBus.emit(
+        'show-success',
+        t('outline.generateChildSuccessWithTitle', { title: curNode.title })
+      );
+    })
+    .catch(() => {});
+
+  promises.push(taskPromise);
+  return promises;
+};
+
+
+try {
+  const allPromises = await traverseAndGenerate(cur_node);
+  await Promise.all(allPromises);
+  eventBus.emit('show-success', t('outline.generateChildSuccess'));
+} catch (e) {
+  eventBus.emit('show-error', t('outline.generateChildFail', { error: e.message }));
+} finally {
+  generateChildrenChildrenLoading.value = false;
+  generating.value = false;
+}
 };
 
 const generateChildrenContent = async () => {

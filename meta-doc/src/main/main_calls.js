@@ -130,7 +130,7 @@ export function mainCalls() {
   });
   //////////////编译tex文件
   ipcMain.handle('compile-tex', async (event, data) => {
-    return compileLatexToPDF(data.texPath, data.outputDir, mainWindow)
+    return compileLatexToPDF(data.texPath,data.tex, data.outputDir, mainWindow,data.customPdfFileName)
       .then((data) => {
         mainWindow.webContents.send('compile-latex-success', data);
         //console.log('PDF 生成成功:', data);

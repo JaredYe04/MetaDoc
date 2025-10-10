@@ -475,11 +475,6 @@ function handleVditorKeydown(e) {
     cancelSuggestion();
     return;
   }
-  const cancel_keys = ["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End","PageUp","PageDown","Delete"];
-  if (cancel_keys.includes(e.key)) {
-    cancelSuggestion();
-    return;
-  }
   // 定义需要忽略的控制键
   const ignoredKeys = new Set([
     "Control", "Shift", "Alt", "Meta", "CapsLock", "Insert", "Delete"
@@ -489,6 +484,10 @@ function handleVditorKeydown(e) {
   }
   //对于没有列出的普通键，例如字母和数字、符号，则先取消，然后重新触发
   cancelSuggestion();
+  const cancel_keys = ["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End","PageUp","PageDown","Delete"];
+  if (cancel_keys.includes(e.key)) {
+    return;
+  }
   emits("triggerSuggestion");
 
 }
@@ -528,6 +527,7 @@ function handleVditorMousedown(){
   cancelSuggestion();
 }
 onMounted(() => {
+  eventBus.on("cancel-suggestion",()=>cancelSuggestion());
   if (current_format.value === 'tex') {
     eventBus.on('monaco-ready',()=>{
         const editor = monaco.editor.getEditors()[0];

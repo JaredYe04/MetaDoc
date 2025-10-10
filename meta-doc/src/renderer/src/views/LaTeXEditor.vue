@@ -520,7 +520,7 @@ function stopResizePdf() {
 
 const compile = async () => {
     eventBus.emit('clear-console')
-
+    eventBus.emit('cancel-suggestion')
     if(current_file_path.value==null||!current_file_path.value.toLowerCase().endsWith(".tex")){
         eventBus.emit("show-info",t("latexEditor.notification.pleaseSaveFirst"));
         return;
@@ -530,8 +530,10 @@ const compile = async () => {
         readOnly: true
     });
     const compileResult = await ipcRenderer.invoke("compile-tex",{
+        tex:current_tex_article.value,
         texPath:current_file_path.value,
-        outputDir:""//todo:用户后续可以设置保存在哪
+        outputDir:"",//todo:用户后续可以设置保存在哪
+        customPdfFileName:"",//todo
     })
     editor.value.updateOptions({
         readOnly: false
@@ -1023,6 +1025,7 @@ function trytriggerSuggestion() {
     //if (initiativeSuggestion.value ==false) return;//只生成一次，不是这里的问题
     triggerSuggestion.value = false;
     if (suggestionTimer) clearTimeout(suggestionTimer);
+    eventBus.on('cancel-suggestion',()=>{clearTimeout(suggestionTimer);})
     suggestionTimer = setTimeout(() => {
         triggerSuggestion.value = false;
         getSuggestionContext();

@@ -188,9 +188,10 @@ let debounceTimer = null;
 function trytriggerSuggestion() {
     triggerSuggestion.value = false;
     clearTimeout(debounceTimer);
+    eventBus.on('cancel-suggestion',()=>{clearTimeout(debounceTimer);})
     debounceTimer = setTimeout(() => {
         triggerSuggestion.value = true;
-    }, 500);
+    }, 1500);
 
 }
 

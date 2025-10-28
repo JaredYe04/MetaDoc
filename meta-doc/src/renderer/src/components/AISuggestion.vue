@@ -20,9 +20,9 @@ import eventBus from "../utils/event-bus";
 const { t } = useI18n()
 const props = defineProps({
   targetEl: { type: Object, required: true }, // 宿主元素 (contenteditable 或 textarea overlay)
-  trigger: { type: Object }, // 是否触发补全
+  trigger: { type: Boolean }, // 是否触发补全
   rootNodeClass: { type: String, required: true }, // 根节点
-  context: { type: Object, default: {} },
+  context: { type: Object, default: () => ({}) },
 
 });
 

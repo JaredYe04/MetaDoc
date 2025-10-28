@@ -1,104 +1,94 @@
 <template>
-  <div v-if="visible" ref="taskQueueRef" class="ai-task-queue" :style="{
-    background: themeState.currentTheme.background,
-    width: width + 'px',
-    height: height + 'px',
-  }">
-    <!-- 顶部拖拽条 -->
-    <div class="resize-handle-top" @mousedown.prevent="startResizingTop"
-      style="height: 6px; cursor: ns-resize; opacity: 0.6;"></div>
-    <!-- 左侧拖拽条 -->
-    <div class="resize-handle-left" @mousedown.prevent="startResizingLeft"
-      style="width: 6px; height: 100%; cursor: ew-resize; position: absolute; left: 0; top: 0;"></div>
-    <!-- 内容部分 -->
-    <div style="flex: 1; overflow: hidden;">
-      <el-tooltip :content="t('aiTaskQueue.switchWarning')"  placement="right">
-              <h3 style="margin: 8px ;user-select: none;">{{ t('aiTaskQueue.title') }}</h3>
-      </el-tooltip>
+  <ResizablePanel
+    :visible="visible"
+    :initial-width="350"
+    :initial-height="300"
+    :min-width="250"
+    :min-height="200"
+    :max-width="maxWidth"
+    :max-height="maxHeight"
+    :background-color="themeState.currentTheme.background"
+    position="fixed"
+    :bottom="30"
+    :right="20"
+    :enable-top-resize="true"
+    :enable-left-resize="true"
+    :content-padding="10"
+    @resize="onResize"
+  >
+    <!-- 标题栏 -->
+    <el-tooltip :content="t('aiTaskQueue.switchWarning')" placement="right">
+      <h3 style="margin: 8px; user-select: none;">{{ t('aiTaskQueue.title') }}</h3>
+    </el-tooltip>
 
-      <!-- <span style="text-align: center; display: block; user-select: none; opacity: 0.3;">
-        {{ t('aiTaskQueue.switchWarning') }}
-      </span> -->
-      <el-switch v-model="settings.autoCompletion" class="mb-2"
-        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949;text-align: center;"
-        :active-text="$t('setting.autoCompletion')"
-        @change="setSetting('autoCompletion', settings.autoCompletion)" />
-      <el-scrollbar :style="{
+    <!-- 自动补全开关 -->
+    <el-switch 
+      v-model="settings.autoCompletion" 
+      class="mb-2"
+      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949; text-align: center;"
+      :active-text="$t('setting.autoCompletion')"
+      @change="setSetting('autoCompletion', settings.autoCompletion)" 
+    />
+
+    <!-- 任务列表滚动区域 -->
+    <el-scrollbar 
+      :style="{
         maxWidth: '100%',
-        maxHeight: (height - 60) + 'px',
-        height: (height - 60) + 'px',
+        flex: 1,
         overflow: 'auto'
-      }" min-size="5">
-        <AITask v-for="task in tasks" :key="task.handle" :task="task" @start="() => startAiTask(task.handle)"
-          @cancel="() => cancelAiTask(task.handle)" />
-        <span v-if="tasks.length === 0"
-          style="text-align: center; display: block; padding: 10px; user-select: none; opacity: 0.3;">
-          {{ t('aiTaskQueue.empty') }}
-        </span>
-      </el-scrollbar>
-    </div>
-  </div>
+      }" 
+      min-size="5"
+    >
+      <AITask 
+        v-for="task in tasks" 
+        :key="task.handle" 
+        :task="task" 
+        @start="() => startAiTask(task.handle)"
+        @cancel="() => cancelAiTask(task.handle)" 
+      />
+      
+      <!-- 空状态 -->
+      <div 
+        v-if="tasks.length === 0"
+        class="empty-state"
+      >
+        {{ t('aiTaskQueue.empty') }}
+      </div>
+    </el-scrollbar>
+  </ResizablePanel>
 </template>
 
-<script setup>
-import { onMounted, ref } from 'vue'
-import { useAiTasks, startAiTask, cancelAiTask } from '../utils/ai_tasks'
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useAiTasks, startAiTask, cancelAiTask } from '../utils/ai_tasks.ts'
 import AITask from './AITask.vue'
+import ResizablePanel from './base/ResizablePanel.vue'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { useI18n } from 'vue-i18n'
 import { setSetting, settings } from '../utils/settings'
-const { t } = useI18n();
 
+const { t } = useI18n()
+
+// 组件状态
 const visible = ref(false)
 const tasks = useAiTasks()
 
-const width = ref(350)
-const height = ref(300)
+// 类型断言以解决类型问题
+type TaskType = typeof tasks.value[0]
 
-const resizing = ref(false)
-let startY = 0
-let startHeight = 0
+// 面板尺寸限制
+const maxWidth = computed(() => Math.floor(window.innerWidth * 0.3))
+const maxHeight = computed(() => Math.floor(window.innerHeight * 0.7))
 
-function startResizingTop(e) {
-  resizing.value = true
-  startY = e.clientY
-  startHeight = height.value
-  document.addEventListener('mousemove', resizeTop)
-  document.addEventListener('mouseup', stopResizing)
+// 面板尺寸变化处理
+function onResize(width: number, height: number) {
+  // 可以在这里处理尺寸变化的逻辑
+  // 例如保存到本地存储等
+  console.log(`AI任务队列面板尺寸调整为: ${width}x${height}`)
 }
 
-function resizeTop(e) {
-  if (!resizing.value) return
-  const dy = e.clientY - startY
-  height.value = Math.max(200, startHeight - dy)
-}
-
-function stopResizing() {
-  resizing.value = false
-  document.removeEventListener('mousemove', resizeTop)
-  document.removeEventListener('mouseup', stopResizing)
-}
-
-let startX = 0
-let startWidth = 0
-
-function startResizingLeft(e) {
-  resizing.value = true
-  startX = e.clientX
-  startWidth = width.value
-  document.addEventListener('mousemove', resizeLeft)
-  document.addEventListener('mouseup', stopResizing)
-}
-
-function resizeLeft(e) {
-  if (!resizing.value) return
-  const dx = e.clientX - startX
-  width.value = Math.max(250, startWidth - dx)
-}
-
-
-
+// 组件挂载后设置事件监听
 onMounted(() => {
   eventBus.on('toggle-ai-task-queue', () => {
     visible.value = !visible.value
@@ -107,22 +97,15 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.ai-task-queue {
-  width: 300px;
-  position: fixed;
-  bottom: 30px;
-  right: 20px;
-  border: 1px solid #cccccc44;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 2000;
+.empty-state {
+  text-align: center;
+  display: block;
   padding: 10px;
-  min-width: 250px;
-  min-height: 200px;
-  max-width: 30vw;
-  max-height: 70vh;
-  /*
-    display: 'flex',
-    flexDirection: 'column' */
+  user-select: none;
+  opacity: 0.3;
+}
+
+.mb-2 {
+  margin-bottom: 8px;
 }
 </style>

@@ -84,7 +84,7 @@ import "../assets/title.css"
 
 import { ElMessage } from "element-plus";
 import { useRoute } from 'vue-router';
-import { current_ai_dialogs, addDialog, updateDialog, deleteDialog, defaultAiChatMessages } from '../utils/common-data.js';
+import { current_ai_dialogs, addDialog, updateDialog, deleteDialog, defaultAiChatMessages } from '../utils/common-data.ts';
 import eventBus, { sendBroadcast } from '../utils/event-bus.js';
 import { themeState } from "../utils/themes.js";
 import { AddIcon } from 'tdesign-icons-vue-next';

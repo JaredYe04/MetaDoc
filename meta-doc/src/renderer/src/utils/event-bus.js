@@ -20,7 +20,7 @@ import {
   current_tex_article,
   load_from_tex,
   dump2tex
-} from './common-data.js'
+} from './common-data.ts'
 import { getSetting, updateRecentDocs } from './settings.js'
 import { ConvertHtmlForPdf, image2base64, image2local, local2image, ConvertMarkdownToHtmlManually, ConvertMarkdownToHtmlVditor, filterMetaDataFromMd } from './md-utils.js'
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'

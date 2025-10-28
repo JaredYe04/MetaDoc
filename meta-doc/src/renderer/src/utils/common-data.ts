@@ -1,10 +1,11 @@
-import { ref } from 'vue'
+import { ref, type Ref, watch } from 'vue'
 import eventBus, { sendBroadcast } from '../utils/event-bus'
 import { generateMarkdownFromOutlineTree,extractOutlineTreeFromMarkdown, filterMetaDataFromMd } from './md-utils'
+import type { DocumentOutlineNode, ArticleMetaData, AIDialogMessage } from '../../../types'
+
 export const loggedIn = ref(false)
-export const user=ref({
-})
-export const avatar=ref('')
+export const user = ref<Record<string, any>>({})
+export const avatar = ref('')
 export const tree_node_schema={
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "DocumentOutlineNode",
@@ -37,7 +38,7 @@ export const tree_node_schema={
     }
   }
 }
-const default_outline_tree = {
+const default_outline_tree: DocumentOutlineNode = {
   path: 'dummy',//编号规则：根节点无编号，为dummy，第一级标题编号为1，第二级标题编号为1.1，第三级标题编号为1.1.1，以此类推
   title: '',//当前节点的标题
   text: '',//当前节点的文本内容
@@ -46,7 +47,7 @@ const default_outline_tree = {
 }
 
 export const default_resp='### 你好！我是你的AI文档助手！\n告诉我你的任何需求，我会尝试解决。\n';
-export const defaultAiChatMessages = [
+export const defaultAiChatMessages: AIDialogMessage[] = [
   {
     "role": "system",
     "content": "你是一个出色的AI文档编辑助手，现在你需要根据一篇现有的文档进行修改、优化，或者是撰写新的文档。按照对话的上下文来做出合适的回应。请按照用户需求进行回答。(用markdown语言）"
@@ -61,19 +62,18 @@ export const defaultAiChatMessages = [
 
 export const firstLoad = ref(true)
 
-const default_artical_meta_data = {
+const default_artical_meta_data: ArticleMetaData = {
   title: '',
   author: '',
   description: '',
 }
 
 var current_file_path = ref('')
-var current_outline_tree = ref(JSON.parse(JSON.stringify(default_outline_tree)))
+var current_outline_tree: Ref<DocumentOutlineNode> = ref(JSON.parse(JSON.stringify(default_outline_tree)))
 var current_article = ref(generateMarkdownFromOutlineTree(default_outline_tree))
-var current_tex_article=ref('')
-const current_article_meta_data = ref({ ...default_artical_meta_data })//拷贝了默认值，避免引用问题
+var current_tex_article = ref('')
+const current_article_meta_data: Ref<ArticleMetaData> = ref({ ...default_artical_meta_data })//拷贝了默认值，避免引用问题
 //监听current_article_meta_data.value的变化，如果有变化，则发送is-need-save事件
-import { watch } from 'vue'
 watch(
   current_article_meta_data,
   (newVal, oldVal) => {
@@ -92,16 +92,16 @@ var renderedHtml = ref('')
 import { reactive } from 'vue';
 import { da } from 'element-plus/es/locales.mjs'
 
-var current_ai_dialogs = ref([])
+var current_ai_dialogs: Ref<any[]> = ref([])
 
 
-export const addDialog = (dialog,add2front=false) => {
+export const addDialog = (dialog: any, add2front: boolean = false): void => {
   if(add2front) current_ai_dialogs.value.unshift(dialog);//添加到最前面
   else current_ai_dialogs.value.push(dialog);
   broadcastAiDialogs()
 };
 
-export const updateDialog = (index, newData) => {
+export const updateDialog = (index: number, newData: any): void => {
   if (index >= 0 && index < current_ai_dialogs.value.length) {
     current_ai_dialogs.value[index] = { ...current_ai_dialogs.value[index], ...newData };
     broadcastAiDialogs()
@@ -110,7 +110,7 @@ export const updateDialog = (index, newData) => {
   
 };
 
-export const deleteDialog = (index) => {
+export const deleteDialog = (index: number): void => {
   if (index >= 0 && index < current_ai_dialogs.value.length) {
     current_ai_dialogs.value.splice(index, 1);
     broadcastAiDialogs()
@@ -138,14 +138,14 @@ export {
 import { toRaw } from 'vue';
 import { decodeBase64ToJson, encodeJsonToBase64 } from './base64-utils'
 import { convertLatexToMarkdown } from './latex-utils'
-export function broadcastAiDialogs() {
+export function broadcastAiDialogs(): void {
   //console.log(JSON.parse(JSON.stringify(current_ai_dialogs.value)))
   eventBus.emit('is-need-save',true)
   sendBroadcast('home', 'sync-ai-dialogs', JSON.parse(JSON.stringify(current_ai_dialogs.value)));
 }
 
 
-export function dump2json(mdreplace='') {
+export function dump2json(mdreplace: string = ''): string {
 
   return JSON.stringify({
     //current_file_path: current_file_path.value,
@@ -155,7 +155,7 @@ export function dump2json(mdreplace='') {
     current_ai_dialogs: current_ai_dialogs.value
   })
 }
-export function autoGenerateTitle() {
+export function autoGenerateTitle(): void {
 
   //如果没有标题就尝试从文章内容中自动生成标题
   if (current_article_meta_data.value.title === '') {
@@ -198,9 +198,9 @@ export function autoGenerateTitle() {
 
 }
 
-export let current_format=ref('md');
+export let current_format = ref('md');
 
-export function load_from_json(json) {
+export function load_from_json(json: string): void {
   var data = JSON.parse(json)
   current_format.value='md';
   //current_file_path.value = data.current_file_path
@@ -217,7 +217,7 @@ export function load_from_json(json) {
  * @param {string} mdreplace 可选的替换内容
  * @returns {string} 含元信息的 Markdown 文本
  */
-export function dump2md(mdreplace='') {
+export function dump2md(mdreplace: string = ''): string {
   //我们要把一些元数据也放到md中去，通过注释的方式来存储，为了防止json里面的转义字符和换行符，我们把元信息的json字符串进行base64编码
   const pure_md= mdreplace===''?current_article.value:mdreplace;//不包含元信息的md内容
   const metaData = {
@@ -235,7 +235,7 @@ export function dump2md(mdreplace='') {
  * @param {string} texreplace 可选的替换内容
  * @returns {string} 含元信息的 LaTeX 文本
  */
-export function dump2tex(texreplace = '') {
+export function dump2tex(texreplace: string = ''): string {
   const tex = texreplace === '' ? current_tex_article.value : texreplace;
   let pure_tex = tex.replace(/(% 请勿手动修改此行及下面的 META-INFO.*\n)/, '');
   pure_tex = pure_tex.replace(/(%META-INFO:.*\n)/, '');
@@ -257,7 +257,7 @@ export function dump2tex(texreplace = '') {
  * 从 Markdown 文本中加载内容及元信息
  * @param {string} md Markdown 文本
  */
-export function load_from_md(md) {
+export function load_from_md(md: string): void {
   //读取的时候先用正则表达式提取元信息
   const metaInfoMatch = md.match(/<!--meta-info:\s*([^-\s]+?)\s*-->/);
   const pureMd = filterMetaDataFromMd(md);
@@ -286,7 +286,7 @@ export function load_from_md(md) {
  * 从 LaTeX 文本中加载内容及元信息
  * @param {string} tex LaTeX 文本
  */
-export function load_from_tex(tex) {
+export function load_from_tex(tex: string): void {
   // 匹配元信息
   const metaInfoMatch = tex.match(/%META-INFO:\s*([^\n]+)/);
   
@@ -318,7 +318,7 @@ export function load_from_tex(tex) {
   autoGenerateTitle(); // 自动生成标题
 }
 
-export function sync() {
+export function sync(): void {
 
   if(current_format.value=='tex'){
     current_article.value=convertLatexToMarkdown(current_tex_article.value);
@@ -335,7 +335,7 @@ export function sync() {
   }
   //eventBus.emit('is-need-save',true)
 }
-export async function init() {
+export async function init(): Promise<void> {
   //console.log("init");
   current_file_path.value = ''
   current_format.value='md';
@@ -347,7 +347,7 @@ export async function init() {
   eventBus.emit('reset-quickstart')
 }
 
-export function searchNode(path, node) {
+export function searchNode(path: string, node: DocumentOutlineNode): DocumentOutlineNode | null {
 
   if (node.path === path) {
     return node
@@ -362,7 +362,7 @@ export function searchNode(path, node) {
   }
   return null
 }
-export function searchParentNode(path, node) {
+export function searchParentNode(path: string, node: DocumentOutlineNode): DocumentOutlineNode | null {
   if (node.children) {
     for (let child of node.children) {
       if (child.path === path) {
@@ -377,7 +377,7 @@ export function searchParentNode(path, node) {
   return null
 }
 
-export function countNodes(node) {
+export function countNodes(node: DocumentOutlineNode): number {
   let count = 1
   if (node.children) {
     for (let child of node.children) {

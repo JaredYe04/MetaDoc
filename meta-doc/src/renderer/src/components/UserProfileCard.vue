@@ -310,8 +310,8 @@ const props = defineProps({
 
 })
 // 用户登录信息
-import { avatar, loggedIn } from '../utils/common-data.js'
-import { user } from '../utils/common-data.js'
+import { avatar, loggedIn } from '../utils/common-data.ts'
+import { user } from '../utils/common-data.ts'
 import { changeAvatar, changePassword, login, updateUserInfo, verifyToken } from '../utils/web-utils.ts'
 import { el } from 'element-plus/es/locales.mjs'
 import { Check, Edit, Lock, RefreshLeft, SwitchButton } from '@element-plus/icons-vue'

@@ -12,10 +12,17 @@
       style="width: 6px; height: 100%; cursor: ew-resize; position: absolute; left: 0; top: 0;"></div>
     <!-- 内容部分 -->
     <div style="flex: 1; overflow: hidden;">
-      <h3 style="margin: 8px ;user-select: none;">{{ t('aiTaskQueue.title') }}</h3>
-      <span style="text-align: center; display: block; user-select: none; opacity: 0.3;">
+      <el-tooltip :content="t('aiTaskQueue.switchWarning')"  placement="right">
+              <h3 style="margin: 8px ;user-select: none;">{{ t('aiTaskQueue.title') }}</h3>
+      </el-tooltip>
+
+      <!-- <span style="text-align: center; display: block; user-select: none; opacity: 0.3;">
         {{ t('aiTaskQueue.switchWarning') }}
-      </span>
+      </span> -->
+      <el-switch v-model="settings.autoCompletion" class="mb-2"
+        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949;text-align: center;"
+        :active-text="$t('setting.autoCompletion')"
+        @change="setSetting('autoCompletion', settings.autoCompletion)" />
       <el-scrollbar :style="{
         maxWidth: '100%',
         maxHeight: (height - 60) + 'px',
@@ -40,6 +47,7 @@ import AITask from './AITask.vue'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { useI18n } from 'vue-i18n'
+import { setSetting, settings } from '../utils/settings'
 const { t } = useI18n();
 
 const visible = ref(false)

@@ -248,7 +248,7 @@ const info = reactive({});
 const isUploading = ref(false);
 const isRebuilding = ref(false);
 const fileInput = ref(null);
-const baseUrl = 'http://localhost:3000/api/knowledge'
+const baseUrl = 'http://localhost:3579/api/knowledge'
 
 const searchQuery = ref('');
 const searchResults = ref([]);

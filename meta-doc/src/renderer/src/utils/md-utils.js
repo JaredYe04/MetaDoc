@@ -659,11 +659,11 @@ export async function image2local(md){
     let new_md = ''
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        //把'http://localhost:3000/images/'替换成local_path
+        //把'http://localhost:3579/images/'替换成local_path
         const match = line.match(/!\[.*?\]\((.*?)\)/)
         if (match) {
             const image_path = match[1]
-            const prefix_len='http://localhost:3000/images/'.length
+            const prefix_len='http://localhost:3579/images/'.length
             const image_name=image_path.slice(prefix_len)
             new_md += line.replace(image_path, local_path +'\\'+image_name) + '\n'
         } else {
@@ -673,20 +673,20 @@ export async function image2local(md){
     return new_md
 }
 export async function local2image(md){
-    //把local_path替换成'http://localhost:3000/images/'
+    //把local_path替换成'http://localhost:3579/images/'
     
     const local_path = await getImagePath()
     const lines = md.split('\n')
     let new_md = ''
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        //把local_path替换成'http://localhost:3000/images/'
+        //把local_path替换成'http://localhost:3579/images/'
         const match = line.match(/!\[.*?\]\((.*?)\)/)
         if (match) {
             const image_path = match[1]
             const prefix_len=local_path.length+1//加上一个斜杠
             const image_name=image_path.slice(prefix_len)
-            new_md += line.replace(image_path, 'http://localhost:3000/images/' + image_name) + '\n'
+            new_md += line.replace(image_path, 'http://localhost:3579/images/' + image_name) + '\n'
         } else {
             new_md += line + '\n'
         }

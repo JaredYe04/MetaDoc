@@ -8,7 +8,7 @@ import { isElectronEnv } from "./event-bus"
 //         // console.log(window.electron)
 //         //console.log(window.electron.ipcRenderer)
 //         //return "https://unpkg.com/vditor@latest";
-//         return "http://localhost:3000/vditor";
+//         return "http://localhost:3579/vditor";
 //     }
 //     else{
 //         console.log('当前环境不是electron环境')
@@ -17,5 +17,5 @@ import { isElectronEnv } from "./event-bus"
 //     }
 // }
 
-export const localVditorCDN= "http://localhost:3000/vditor";
+export const localVditorCDN= "http://localhost:3579/vditor";
 export const vditorCDN="https://unpkg.com/vditor@latest";

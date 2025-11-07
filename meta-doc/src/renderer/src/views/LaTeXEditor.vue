@@ -822,24 +822,24 @@ const initEditor = () => {
 
             switch (label) {
                 case 'json':
-                    workerPath = 'http://localhost:3000/monaco/language/json/json.worker.js';
+                    workerPath = 'http://localhost:3579/monaco/language/json/json.worker.js';
                     break;
                 case 'css':
                 case 'scss':
                 case 'less':
-                    workerPath = 'http://localhost:3000/monaco/language/css/css.worker.js';
+                    workerPath = 'http://localhost:3579/monaco/language/css/css.worker.js';
                     break;
                 case 'html':
                 case 'handlebars':
                 case 'razor':
-                    workerPath = 'http://localhost:3000/monaco/language/html/html.worker.js';
+                    workerPath = 'http://localhost:3579/monaco/language/html/html.worker.js';
                     break;
                 case 'typescript':
                 case 'javascript':
-                    workerPath = 'http://localhost:3000/monaco/language/typescript/ts.worker.js';
+                    workerPath = 'http://localhost:3579/monaco/language/typescript/ts.worker.js';
                     break;
                 default:
-                    workerPath = 'http://localhost:3000/monaco/editor/editor.worker.js';
+                    workerPath = 'http://localhost:3579/monaco/editor/editor.worker.js';
             }
 
             // ESM worker: 用 import() 动态导入

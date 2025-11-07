@@ -130,16 +130,16 @@ function setupBodyParser(): void {
 function startServer(): void {
   const server: Server = require('http').createServer(expressApp);
   
-  server.listen(3000, () => {
-    console.log('Local CDN server running at http://localhost:3000');
+  server.listen(3579, () => {
+    console.log('Local CDN server running at http://localhost:3579');
   });
 
   server.on('error', (error: NodeJS.ErrnoException) => {
     if (error.code === 'EADDRINUSE') {
-      console.error('Port 3000 is already in use. Retrying...');
+      console.error('Port 3579 is already in use. Retrying...');
       setTimeout(() => {
         server.close();
-        server.listen(3000);
+        server.listen(3579);
       }, 10000);
     }
   });

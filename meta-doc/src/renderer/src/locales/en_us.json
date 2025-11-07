@@ -264,6 +264,14 @@
       "quote": "Quote",
       "search_replace": "Search & Replace",
       "ai_assistant": "AI Assistant"
+    },
+    "convert_to_latex": "Convert Document to LaTeX",
+    "convert_to_latex_confirm": "The conversion will generate the text file, which is not synchronized with the existing Markdown file, and will continue?",
+    "latex_init_failed": "Initialization of LaTeX failed:",
+    "msgbox": {
+      "cancel": "Cancel",
+      "confirm": "Sure.",
+      "tip": "Hint"
     }
   },
   "formulaRecognition": {
@@ -520,7 +528,10 @@
     "wordCount": "Total Characters:",
     "currentFile": "Current File:",
     "newFile": "New File",
-    "aiTaskQueueTooltip": "AI Task Queue"
+    "aiTaskQueueTooltip": "AI Task Queue",
+    "aiTaskQueueLabel": "AI Task Queue",
+    "notificationEmpty": "No notice",
+    "notificationTooltip": "Call the queue."
   },
   "aiTask": {
     "cancel": "Cancel",
@@ -598,16 +609,40 @@
     "tooltip": "AI Recommendation"
   },
   "latexEditor": {
-        "toolbar": {
-        "undo": "Undo (Ctrl+Z)",
-        "redo": "Redo (Ctrl+Y)",
-        "zoomIn": "Zoom In (Ctrl +)",
-        "zoomOut": "Zoom Out (Ctrl -)",
-        "toggleLineNumbers": "Show Line Numbers",
-        "togglePreview": "Toggle Preview",
-        "compile": "Compile LaTeX",
-        "showPdf": "Show PDF",
-        "showConsole": "Show Console"
-        }
+    "toolbar": {
+      "undo": "Undo (Ctrl+Z)",
+      "redo": "Redo (Ctrl+Y)",
+      "zoomIn": "Zoom In (Ctrl +)",
+      "zoomOut": "Zoom Out (Ctrl -)",
+      "toggleLineNumbers": "Show Line Numbers",
+      "togglePreview": "Toggle Preview",
+      "compile": "Compile LaTeX",
+      "showPdf": "Show PDF",
+      "showConsole": "Show Console",
+      "zoomReset": "Reset"
+    },
+    "nextPage": "Next Page",
+    "notification": {
+      "compileFailed": "Compiled failed, error code: {code}",
+      "compileSuccess": "Compiled successfully",
+      "pleaseSaveFirst": "Save files first"
+    },
+    "pages": "Page",
+    "pdfEmpty": "Please compile the LaTeX code correctly. The PDF will be shown here.",
+    "prevPage": "Previous Page"
+  },
+  "notificationQueue": {
+    "clear": "Empty All",
+    "empty": "No notice",
+    "markAllRead": "Mark All as Read",
+    "markRead": "Mark as read",
+    "remove": "Remove",
+    "title": "Call the queue.",
+    "type": {
+      "error": "Error Notification",
+      "info": "Information circular",
+      "success": "Successful notification",
+      "warning": "Warning Notification"
+    }
   }
 }

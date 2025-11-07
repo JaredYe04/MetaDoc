@@ -264,6 +264,14 @@
       "quote": "引用",
       "search_replace": "検索と置換",
       "ai_assistant": "AIアシスタント"
+    },
+    "convert_to_latex": "ドキュメントをLaTeXに変換する",
+    "convert_to_latex_confirm": "変換は、既存のMarkdownファイルと同期されていないテキストファイルを生成し、続行しますか?",
+    "latex_init_failed": "LaTeX の初期化が失敗しました:",
+    "msgbox": {
+      "cancel": "キャンセル",
+      "confirm": "お問い合わせ",
+      "tip": "ログイン"
     }
   },
   "formulaRecognition": {
@@ -520,7 +528,10 @@
     "wordCount": "文字数：",
     "currentFile": "現在のファイル：",
     "newFile": "新しいファイル",
-    "aiTaskQueueTooltip": "AIタスクキュー"
+    "aiTaskQueueTooltip": "AIタスクキュー",
+    "aiTaskQueueLabel": "AIタスクキュー",
+    "notificationEmpty": "お知らせ",
+    "notificationTooltip": "キューを呼び出す。"
   },
   "aiTask": {
     "cancel": "キャンセル",
@@ -596,5 +607,42 @@
     "generatingTooltip": "タブを押せば、Escをキャンセルして下さい",
     "reject": "リジェクション",
     "tooltip": "AIの提言"
+  },
+  "latexEditor": {
+    "nextPage": "次のページ",
+    "notification": {
+      "compileFailed": "コンパイル失敗、エラーコード: お問い合わせ",
+      "compileSuccess": "成功したコンパイル",
+      "pleaseSaveFirst": "ファイルを最初に保存する"
+    },
+    "pages": "サイトマップ",
+    "pdfEmpty": "LaTeXコードを正しくコンパイルしてください。 PDFをご覧いただけます。",
+    "prevPage": "前のページ",
+    "toolbar": {
+      "compile": "コンパイル LaTeX",
+      "redo": "Redo (Ctrl+Y)",
+      "showConsole": "ターミナルを表示",
+      "showPdf": "PDFを表示",
+      "toggleLineNumbers": "行を表示する",
+      "togglePreview": "プレビュー表示",
+      "undo": "Undo (Ctrl+Z)",
+      "zoomIn": "ズームイン(Ctrl+)",
+      "zoomOut": "ズームアウト (Ctrl-)",
+      "zoomReset": "リセット"
+    }
+  },
+  "notificationQueue": {
+    "clear": "空のすべて",
+    "empty": "お知らせ",
+    "markAllRead": "マーク すべて として 読む",
+    "markRead": "マーク 読み込み",
+    "remove": "削除",
+    "title": "キューを呼び出す。",
+    "type": {
+      "error": "エラー通知",
+      "info": "情報円",
+      "success": "成功した通知",
+      "warning": "警告通知"
+    }
   }
 }

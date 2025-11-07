@@ -12,6 +12,7 @@ import type {
   AITaskStatusValue,
   AIDialogMessage
 } from '../../../types'
+import { useI18n } from 'vue-i18n'
 
 // IPC渲染器适配
 let ipcRenderer: any = null
@@ -156,7 +157,7 @@ export async function startAiTask(handle: string): Promise<void> {
   } catch (e: any) {
     if (e.name === 'AbortError') {
       task.status.value = ai_task_status.CANCELLED as AITaskStatusValue
-      const t = i18n.global.t
+      const { t } = useI18n()
       task.resolveDone?.(new Error(t('aiTask.taskCancelled2')))
     } else {
       task.status.value = ai_task_status.FAILED as AITaskStatusValue
@@ -182,7 +183,7 @@ export function cancelAiTask(handle: string, showWarning: boolean = true): void 
   
   task.controller?.abort()
   if (task.status.value !== ai_task_status.FINISHED && isMainWindow()) {
-    const t = i18n.global.t
+    const { t } = useI18n()
     if (showWarning) {
       eventBus.emit('show-warning', t('aiTask.taskCancelled', { task: task.name }))
     }

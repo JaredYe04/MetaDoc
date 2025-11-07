@@ -522,8 +522,8 @@ onMounted(async () => {
                 },
             },
             upload: {
-                url: 'http://localhost:3000/api/image/upload',
-                linkToImgUrl: autoSaveExternalImage ? 'http://localhost:3000/api/image/url-upload' : undefined,
+                url: 'http://localhost:3579/api/image/upload',
+                linkToImgUrl: autoSaveExternalImage ? 'http://localhost:3579/api/image/url-upload' : undefined,
                 success: (editor, msg) => {
                     const data = JSON.parse(msg);
                     const filePaths = data.data.succMap;

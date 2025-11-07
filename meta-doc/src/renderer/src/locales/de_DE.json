@@ -97,13 +97,24 @@
       "table": "Tabelle",
       "undo": "Und"
     },
-    "vditor_init_failed": "Initialisierung fehlgeschlagen:"
+    "vditor_init_failed": "Initialisierung fehlgeschlagen:",
+    "convert_to_latex": "Dokument nach LaTeX umrechnen",
+    "convert_to_latex_confirm": "Die Konvertierung erzeugt die Textdatei, die nicht mit der vorhandenen Markdown-Datei synchronisiert ist, und wird weitergehen?",
+    "latex_init_failed": "Initialisierung von LaTeX scheiterte:",
+    "msgbox": {
+      "cancel": "Abbrechen",
+      "confirm": "Sicher.",
+      "tip": "Hinweis"
+    }
   },
   "bottomMenu": {
     "aiTaskQueueTooltip": "KI Aufgabensuche",
     "currentFile": "Aktuelles Dokument:",
     "newFile": "Neues Dokument",
-    "wordCount": "Anzahl der Zeichen:"
+    "wordCount": "Anzahl der Zeichen:",
+    "aiTaskQueueLabel": "KI Aufgabensuche",
+    "notificationEmpty": "Keine Mitteilung",
+    "notificationTooltip": "Ruf die Warteschlange an."
   },
   "common": {
     "cancel": "Abbrechen",
@@ -596,5 +607,42 @@
     "generatingTooltip": "Drücken Sie Tab zu akzeptieren, drücken Sie Esc, um zu stornieren",
     "reject": "Auswurf",
     "tooltip": "AI Empfehlung"
+  },
+  "latexEditor": {
+    "nextPage": "Nächste Seite",
+    "notification": {
+      "compileFailed": "Fehler kompiliert, Fehlercode: {code}",
+      "compileSuccess": "erfolgreich kompiliert",
+      "pleaseSaveFirst": "Dateien zuerst speichern"
+    },
+    "pages": "Seite",
+    "pdfEmpty": "Bitte erstellen Sie den LaTeX-Code korrekt. Das PDF wird hier angezeigt.",
+    "prevPage": "Vorherige Seite",
+    "toolbar": {
+      "compile": "Komponieren Sie LaTeX",
+      "redo": "Redo (Ctrl+Y)",
+      "showConsole": "Terminals anzeigen",
+      "showPdf": "PDF anzeigen",
+      "toggleLineNumbers": "Zeilen anzeigen",
+      "togglePreview": "Vorschau anzeigen",
+      "undo": "Undo (Ctrl+Z)",
+      "zoomIn": "Zoom in (Ctrl+)",
+      "zoomOut": "Zoom Out (Ctrl-)",
+      "zoomReset": "Zurück zur Übersicht"
+    }
+  },
+  "notificationQueue": {
+    "clear": "Alles leer",
+    "empty": "Keine Mitteilung",
+    "markAllRead": "Mark Alles lesen",
+    "markRead": "Mark als gelesen",
+    "remove": "Entfernen",
+    "title": "Ruf die Warteschlange an.",
+    "type": {
+      "error": "Fehlerbenachrichtigung",
+      "info": "Informationen rund",
+      "success": "Erfolgreiche Meldung",
+      "warning": "Warnmeldung"
+    }
   }
 }

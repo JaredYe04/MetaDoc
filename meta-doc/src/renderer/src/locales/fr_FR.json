@@ -97,13 +97,24 @@
       "table": "Tableau",
       "undo": "Annuler"
     },
-    "vditor_init_failed": "L'initialisation a échoué :"
+    "vditor_init_failed": "L'initialisation a échoué :",
+    "convert_to_latex": "Convertir le document en LaTeX",
+    "convert_to_latex_confirm": "La conversion générera le fichier texte, qui n'est pas synchronisé avec le fichier Markdown existant, et continuera ?",
+    "latex_init_failed": "L'initialisation de LaTeX a échoué :",
+    "msgbox": {
+      "cancel": "Annuler",
+      "confirm": "Bien sûr.",
+      "tip": "Conseil"
+    }
   },
   "bottomMenu": {
     "aiTaskQueueTooltip": "Question de la tâche AI",
     "currentFile": "Document actuel:",
     "newFile": "Nouveau document",
-    "wordCount": "Nombre de caractères :"
+    "wordCount": "Nombre de caractères :",
+    "aiTaskQueueLabel": "Question de la tâche AI",
+    "notificationEmpty": "Sans préavis",
+    "notificationTooltip": "Appelez la file d'attente."
   },
   "common": {
     "cancel": "Annuler",
@@ -596,5 +607,42 @@
     "generatingTooltip": "Appuyez sur Tab pour accepter, appuyez sur Esc pour annuler",
     "reject": "Rejet",
     "tooltip": "Recommandation AI"
+  },
+  "latexEditor": {
+    "nextPage": "Page suivante",
+    "notification": {
+      "compileFailed": "Compilé a échoué, code d'erreur : {code}",
+      "compileSuccess": "Compilé avec succès",
+      "pleaseSaveFirst": "Enregistrer les fichiers d'abord"
+    },
+    "pages": "Page",
+    "pdfEmpty": "Veuillez compiler le code LaTeX correctement. Le PDF sera affiché ici.",
+    "prevPage": "Page précédente",
+    "toolbar": {
+      "compile": "Compiler LaTeX",
+      "redo": "Refaire (Ctrl+Y)",
+      "showConsole": "Afficher les terminaux",
+      "showPdf": "Afficher le PDF",
+      "toggleLineNumbers": "Afficher les lignes",
+      "togglePreview": "Aperçu de l'affichage",
+      "undo": "Annuler (Ctrl+Z)",
+      "zoomIn": "Zoom dans (Ctrl+)",
+      "zoomOut": "Zoom arrière (Ctrl-)",
+      "zoomReset": "Réinitialiser"
+    }
+  },
+  "notificationQueue": {
+    "clear": "Tout vide",
+    "empty": "Sans préavis",
+    "markAllRead": "Marquez tout comme lu",
+    "markRead": "Marquer comme suit:",
+    "remove": "Supprimer",
+    "title": "Appelez la file d'attente.",
+    "type": {
+      "error": "Notification d'erreur",
+      "info": "Circulaire",
+      "success": "Notification réussie",
+      "warning": "Avertissement"
+    }
   }
 }

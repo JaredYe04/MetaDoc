@@ -528,7 +528,10 @@
         "wordCount": "字符总数：",
         "currentFile": "当前文件：",
         "newFile": "新文件",
-        "aiTaskQueueTooltip": "AI任务队列"
+        "aiTaskQueueTooltip": "AI任务队列",
+        "aiTaskQueueLabel": "AI任务队列",
+        "notificationTooltip": "通知队列",
+        "notificationEmpty": "暂无通知"
     },
     "aiTask": {
         "status": "状态",
@@ -545,6 +548,20 @@
         "loading": "加载中...",
         "error": "加载失败",
         "switchWarning": "AI工作时切换界面可能导致任务丢失。"
+    },
+    "notificationQueue": {
+        "title": "通知队列",
+        "empty": "暂无通知",
+        "markAllRead": "全部标记为已读",
+        "clear": "清空全部",
+        "markRead": "标记为已读",
+        "remove": "移除",
+        "type": {
+            "success": "成功通知",
+            "info": "信息通知",
+            "warning": "警告通知",
+            "error": "错误通知"
+        }
     },
     "knowledgeBase": {
         "title": "知识库",

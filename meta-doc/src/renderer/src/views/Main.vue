@@ -32,6 +32,7 @@
     <!-- 固定底部菜单 -->
     <!-- 固定的底部状态栏 -->
 
+    <NotificationQueue />
     <AITaskQueue />
   </div>
 </template>
@@ -50,6 +51,7 @@ import { verifyToken } from '../utils/web-utils.ts'
 import { useI18n } from 'vue-i18n'
 import BottomMenu from '../components/BottomMenu.vue'
 import AITaskQueue from '../components/AITaskQueue.vue'
+import NotificationQueue from '../components/NotificationQueue.vue'
 const { t } = useI18n()
 
 const showUserProfileCard = ref(false)
@@ -93,31 +95,12 @@ eventBus.on('toggle-user-profile', () => {
   showUserProfileCard.value = !showUserProfileCard.value
 })
 eventBus.on('save-success', () => {
-  ElNotification({
-    title: t('main.notification.save.title'),
-    message: t('main.notification.save.message'),
-    type: 'success',
-  });
   eventBus.emit('is-need-save', false);
 });
 
 eventBus.on('open-doc-success', () => {
-  ElNotification({
-    title: t('main.notification.open.title'),
-    message: t('main.notification.open.message'),
-    type: 'success',
-  });
   eventBus.emit('refresh');
   eventBus.emit('is-need-save', false);
-});
-
-eventBus.on('export-success', (outputPath) => {
-  eventBus.emit('system-notification', {
-    title: t('main.notification.export.title'),
-    body: t('main.notification.export.message', { path: outputPath }),
-    path: outputPath
-  });
-
 });
 
 eventBus.on('show-error', (message) => {
@@ -135,21 +118,6 @@ eventBus.on('show-warning', (message) => {
   });
 });
 
-eventBus.on('show-info', (message) => {
-  ElNotification({
-    title: t('main.notification.info.title'),
-    message: message,
-    type: 'info',
-  });
-});
-
-eventBus.on('show-success', (message) => {
-  ElNotification({
-    title: t('main.notification.success.title'),
-    message: message,
-    type: 'success',
-  });
-});
 
 
 </script>

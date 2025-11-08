@@ -44,6 +44,16 @@ let fomulaRecognitionWindowOpened: boolean = false;
 let aiGraphWindowOpened: boolean = false;
 let isShortcutPressed: boolean = false;
 
+let settingWindowReady = false;
+let settingWindowPendingShow = false;
+let aiChatWindowReady = false;
+let aiChatWindowPendingShow = false;
+let fomulaRecognitionWindowReady = false;
+let fomulaRecognitionWindowPendingShow = false;
+let aiGraphWindowReady = false;
+let aiGraphWindowPendingShow = false;
+let isAppQuitting = false;
+
 // ============ 主窗口创建和管理 ============
 
 /**
@@ -89,6 +99,7 @@ function createWindow(): void {
         logger.error('❌ 工具服务初始化失败:', error);
       }
     })();
+    setTimeout(preloadAuxWindows, 0);
   });
 
   // 处理窗口关闭
@@ -96,6 +107,13 @@ function createWindow(): void {
     if (is_need_save) {
       e.preventDefault();
       mainWindow?.webContents.send('close-triggered');
+    }
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+    if (!isAppQuitting) {
+      app.quit();
     }
   });
 
@@ -182,6 +200,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  isAppQuitting = true;
   shutdownLogger();
 });
 
@@ -254,9 +273,14 @@ function unregisterShortcuts(): void {
 /**
  * 打开设置对话框
  */
-export const openSettingDialog = async (): Promise<void> => {
-  if (settingWindowOpened) {
-    settingWindow?.focus();
+const createSettingWindow = (showOnReady: boolean): void => {
+  if (settingWindow && !settingWindow.isDestroyed()) {
+    settingWindowPendingShow = showOnReady;
+    if (showOnReady && settingWindowReady) {
+      settingWindow.show();
+      settingWindow.focus();
+      settingWindowOpened = true;
+    }
     return;
   }
 
@@ -268,6 +292,7 @@ export const openSettingDialog = async (): Promise<void> => {
     parent: mainWindow || undefined,
     modal: false,
     autoHideMenuBar: true,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: false,
@@ -275,14 +300,38 @@ export const openSettingDialog = async (): Promise<void> => {
     },
   });
 
+  settingWindowReady = false;
+  settingWindowPendingShow = showOnReady;
+
   settingWindow.on('ready-to-show', () => {
-    settingWindow?.show();
-    settingWindowOpened = true;
+    settingWindowReady = true;
+    if (settingWindowPendingShow) {
+      settingWindow?.show();
+      settingWindow?.focus();
+      settingWindowOpened = true;
+    }
   });
 
-  settingWindow.on('close', () => {
+  settingWindow.webContents.on('page-title-updated', (event) => {
+    event.preventDefault();
+    settingWindow?.setTitle('设置面板');
+  });
+
+  settingWindow.on('close', (event) => {
+    if (isAppQuitting) {
+      return;
+    }
+    event.preventDefault();
+    settingWindowPendingShow = false;
     settingWindowOpened = false;
+    settingWindow?.hide();
+  });
+
+  settingWindow.on('closed', () => {
     settingWindow = null;
+    settingWindowReady = false;
+    settingWindowPendingShow = false;
+    settingWindowOpened = false;
   });
 
   settingWindow.webContents.setWindowOpenHandler((details) => {
@@ -294,16 +343,32 @@ export const openSettingDialog = async (): Promise<void> => {
     ? `${process.env['ELECTRON_RENDERER_URL']}/index.html#/setting?windowType=setting`
     : `file://${path.join(__dirname, '../renderer/index.html')}#/setting?windowType=setting`;
 
-  await settingWindow.loadURL(settingUrl);
+  settingWindow.loadURL(settingUrl);
   settingWindow.setTitle('设置面板');
+};
+
+export const openSettingDialog = async (): Promise<void> => {
+  createSettingWindow(true);
+};
+
+const preloadAuxWindows = () => {
+  createSettingWindow(false);
+  createAiChatWindow(false);
+  createFomulaRecognitionWindow(false);
+  createAiGraphWindow(false);
 };
 
 /**
  * 打开AI对话框
  */
-export const openAiChatDialog = async (payload: any = null): Promise<void> => {
-  if (aiChatWindowOpened) {
-    aichatWindow?.focus();
+const createAiChatWindow = (showOnReady: boolean): void => {
+  if (aichatWindow && !aichatWindow.isDestroyed()) {
+    aiChatWindowPendingShow = showOnReady;
+    if (showOnReady && aiChatWindowReady) {
+      aichatWindow.show();
+      aichatWindow.focus();
+      aiChatWindowOpened = true;
+    }
     return;
   }
 
@@ -315,6 +380,7 @@ export const openAiChatDialog = async (payload: any = null): Promise<void> => {
     parent: mainWindow || undefined,
     modal: false,
     autoHideMenuBar: true,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: false,
@@ -322,14 +388,38 @@ export const openAiChatDialog = async (payload: any = null): Promise<void> => {
     },
   });
 
+  aiChatWindowReady = false;
+  aiChatWindowPendingShow = showOnReady;
+
   aichatWindow.on('ready-to-show', () => {
-    aichatWindow?.show();
-    aiChatWindowOpened = true;
+    aiChatWindowReady = true;
+    if (aiChatWindowPendingShow) {
+      aichatWindow?.show();
+      aichatWindow?.focus();
+      aiChatWindowOpened = true;
+    }
   });
 
-  aichatWindow.on('close', () => {
+  aichatWindow.webContents.on('page-title-updated', (event) => {
+    event.preventDefault();
+    aichatWindow?.setTitle('与AI对话');
+  });
+
+  aichatWindow.on('close', (event) => {
+    if (isAppQuitting) {
+      return;
+    }
+    event.preventDefault();
+    aiChatWindowPendingShow = false;
     aiChatWindowOpened = false;
+    aichatWindow?.hide();
+  });
+
+  aichatWindow.on('closed', () => {
     aichatWindow = null;
+    aiChatWindowReady = false;
+    aiChatWindowPendingShow = false;
+    aiChatWindowOpened = false;
   });
 
   aichatWindow.webContents.setWindowOpenHandler((details) => {
@@ -341,16 +431,25 @@ export const openAiChatDialog = async (payload: any = null): Promise<void> => {
     ? `${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-chat?windowType=ai-chat`
     : `file://${path.join(__dirname, '../renderer/index.html')}#/ai-chat?windowType=ai-chat`;
 
-  await aichatWindow.loadURL(chatUrl);
+  aichatWindow.loadURL(chatUrl);
   aichatWindow.setTitle('与AI对话');
+};
+
+export const openAiChatDialog = async (): Promise<void> => {
+  createAiChatWindow(true);
 };
 
 /**
  * 打开公式识别对话框
  */
-export const openFomulaRecognitionDialog = async (): Promise<void> => {
-  if (fomulaRecognitionWindowOpened) {
-    fomulaRecognitionWindow?.focus();
+const createFomulaRecognitionWindow = (showOnReady: boolean): void => {
+  if (fomulaRecognitionWindow && !fomulaRecognitionWindow.isDestroyed()) {
+    fomulaRecognitionWindowPendingShow = showOnReady;
+    if (showOnReady && fomulaRecognitionWindowReady) {
+      fomulaRecognitionWindow.show();
+      fomulaRecognitionWindow.focus();
+      fomulaRecognitionWindowOpened = true;
+    }
     return;
   }
 
@@ -360,6 +459,7 @@ export const openFomulaRecognitionDialog = async (): Promise<void> => {
     parent: mainWindow || undefined,
     modal: false,
     autoHideMenuBar: true,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: false,
@@ -367,14 +467,38 @@ export const openFomulaRecognitionDialog = async (): Promise<void> => {
     },
   });
 
+  fomulaRecognitionWindowReady = false;
+  fomulaRecognitionWindowPendingShow = showOnReady;
+
   fomulaRecognitionWindow.on('ready-to-show', () => {
-    fomulaRecognitionWindow?.show();
-    fomulaRecognitionWindowOpened = true;
+    fomulaRecognitionWindowReady = true;
+    if (fomulaRecognitionWindowPendingShow) {
+      fomulaRecognitionWindow?.show();
+      fomulaRecognitionWindow?.focus();
+      fomulaRecognitionWindowOpened = true;
+    }
   });
 
-  fomulaRecognitionWindow.on('close', () => {
+  fomulaRecognitionWindow.webContents.on('page-title-updated', (event) => {
+    event.preventDefault();
+    fomulaRecognitionWindow?.setTitle('手写公式识别助手');
+  });
+
+  fomulaRecognitionWindow.on('close', (event) => {
+    if (isAppQuitting) {
+      return;
+    }
+    event.preventDefault();
+    fomulaRecognitionWindowPendingShow = false;
     fomulaRecognitionWindowOpened = false;
+    fomulaRecognitionWindow?.hide();
+  });
+
+  fomulaRecognitionWindow.on('closed', () => {
     fomulaRecognitionWindow = null;
+    fomulaRecognitionWindowReady = false;
+    fomulaRecognitionWindowPendingShow = false;
+    fomulaRecognitionWindowOpened = false;
   });
 
   fomulaRecognitionWindow.webContents.setWindowOpenHandler((details) => {
@@ -386,16 +510,25 @@ export const openFomulaRecognitionDialog = async (): Promise<void> => {
     ? `${process.env['ELECTRON_RENDERER_URL']}/index.html#/fomula-recognition?windowType=fomula-recognition`
     : `file://${path.join(__dirname, '../renderer/index.html')}#/fomula-recognition?windowType=fomula-recognition`;
 
-  await fomulaRecognitionWindow.loadURL(formulaUrl);
+  fomulaRecognitionWindow.loadURL(formulaUrl);
   fomulaRecognitionWindow.setTitle('手写公式识别助手');
+};
+
+export const openFomulaRecognitionDialog = async (): Promise<void> => {
+  createFomulaRecognitionWindow(true);
 };
 
 /**
  * 打开AI绘图对话框
  */
-export const openAiGraphDialog = async (): Promise<void> => {
-  if (aiGraphWindowOpened) {
-    aiGraphWindow?.focus();
+const createAiGraphWindow = (showOnReady: boolean): void => {
+  if (aiGraphWindow && !aiGraphWindow.isDestroyed()) {
+    aiGraphWindowPendingShow = showOnReady;
+    if (showOnReady && aiGraphWindowReady) {
+      aiGraphWindow.show();
+      aiGraphWindow.focus();
+      aiGraphWindowOpened = true;
+    }
     return;
   }
 
@@ -407,6 +540,7 @@ export const openAiGraphDialog = async (): Promise<void> => {
     parent: mainWindow || undefined,
     modal: false,
     autoHideMenuBar: true,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: false,
@@ -414,14 +548,38 @@ export const openAiGraphDialog = async (): Promise<void> => {
     },
   });
 
+  aiGraphWindowReady = false;
+  aiGraphWindowPendingShow = showOnReady;
+
   aiGraphWindow.on('ready-to-show', () => {
-    aiGraphWindow?.show();
-    aiGraphWindowOpened = true;
+    aiGraphWindowReady = true;
+    if (aiGraphWindowPendingShow) {
+      aiGraphWindow?.show();
+      aiGraphWindow?.focus();
+      aiGraphWindowOpened = true;
+    }
   });
 
-  aiGraphWindow.on('close', () => {
+  aiGraphWindow.webContents.on('page-title-updated', (event) => {
+    event.preventDefault();
+    aiGraphWindow?.setTitle('智能绘图助手');
+  });
+
+  aiGraphWindow.on('close', (event) => {
+    if (isAppQuitting) {
+      return;
+    }
+    event.preventDefault();
+    aiGraphWindowPendingShow = false;
     aiGraphWindowOpened = false;
+    aiGraphWindow?.hide();
+  });
+
+  aiGraphWindow.on('closed', () => {
     aiGraphWindow = null;
+    aiGraphWindowReady = false;
+    aiGraphWindowPendingShow = false;
+    aiGraphWindowOpened = false;
   });
 
   aiGraphWindow.webContents.setWindowOpenHandler((details) => {
@@ -433,8 +591,12 @@ export const openAiGraphDialog = async (): Promise<void> => {
     ? `${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-graph?windowType=ai-graph`
     : `file://${path.join(__dirname, '../renderer/index.html')}#/ai-graph?windowType=ai-graph`;
 
-  await aiGraphWindow.loadURL(graphUrl);
+  aiGraphWindow.loadURL(graphUrl);
   aiGraphWindow.setTitle('智能绘图助手');
+};
+
+export const openAiGraphDialog = async (): Promise<void> => {
+  createAiGraphWindow(true);
 };
 
 // ============ 广播频道管理 ============

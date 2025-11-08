@@ -21,6 +21,7 @@ import { initializeUtils } from './utils';
 import { initLogger, shutdownLogger, createMainLogger } from './logger';
 import { broadcastServiceStatus } from './service-status';
 import { initI18n, t, dispatchLanguageToWindow, setLocale, broadcastLanguage } from './i18n';
+import { initWindowManager, preloadAuxiliaryWindows, openAuxiliaryWindow, refreshAuxiliaryWindowTitles, dispatchLanguageToAuxWindows } from './window-manager';
 
 const url = require('url');
 const path = require('path');
@@ -32,28 +33,10 @@ const logger = createMainLogger('MainProcess');
 // ============ 全局变量 ============
 
 export let mainWindow: BrowserWindow | null = null;
-export let settingWindow: BrowserWindow | null = null;
-export let aichatWindow: BrowserWindow | null = null;
-export let fomulaRecognitionWindow: BrowserWindow | null = null;
-export let aiGraphWindow: BrowserWindow | null = null;
 export let dirname: string;
 export let is_need_save: boolean = false;
 
-// 窗口状态管理
-let aiChatWindowOpened: boolean = false;
-let settingWindowOpened: boolean = false;
-let fomulaRecognitionWindowOpened: boolean = false;
-let aiGraphWindowOpened: boolean = false;
 let isShortcutPressed: boolean = false;
-
-let settingWindowReady = false;
-let settingWindowPendingShow = false;
-let aiChatWindowReady = false;
-let aiChatWindowPendingShow = false;
-let fomulaRecognitionWindowReady = false;
-let fomulaRecognitionWindowPendingShow = false;
-let aiGraphWindowReady = false;
-let aiGraphWindowPendingShow = false;
 let isAppQuitting = false;
 
 // ============ 主窗口创建和管理 ============
@@ -85,6 +68,8 @@ function createWindow(): void {
     }
   });
 
+  initWindowManager(() => mainWindow);
+
   mainWindow.webContents.on('did-finish-load', () => {
     dispatchLanguageToWindow(mainWindow);
   });
@@ -105,7 +90,7 @@ function createWindow(): void {
         logger.error('❌ 工具服务初始化失败:', error);
       }
     })();
-    setTimeout(preloadAuxWindows, 0);
+    setTimeout(() => preloadAuxiliaryWindows(), 0);
   });
 
   // 处理窗口关闭
@@ -276,349 +261,27 @@ function unregisterShortcuts(): void {
 
 // ============ 子窗口管理 ============
 
-/**
- * 打开设置对话框
- */
-const createSettingWindow = (showOnReady: boolean): void => {
-  if (settingWindow && !settingWindow.isDestroyed()) {
-    settingWindowPendingShow = showOnReady;
-    if (showOnReady && settingWindowReady) {
-      settingWindow.show();
-      settingWindow.focus();
-      settingWindowOpened = true;
-    }
-    return;
-  }
-
-  settingWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
-    minWidth: 800,
-    minHeight: 600,
-    parent: mainWindow || undefined,
-    modal: false,
-    autoHideMenuBar: true,
-    show: false,
-    webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
-      contextIsolation: false,
-      nodeIntegration: true,
-    },
-  });
-
-  settingWindowReady = false;
-  settingWindowPendingShow = showOnReady;
-
-  settingWindow.on('ready-to-show', () => {
-    settingWindowReady = true;
-    if (settingWindowPendingShow) {
-      settingWindow?.show();
-      settingWindow?.focus();
-      settingWindowOpened = true;
-    }
-  });
-
-  settingWindow.webContents.on('did-finish-load', () => {
-    dispatchLanguageToWindow(settingWindow);
-  });
-
-  settingWindow.webContents.on('page-title-updated', (event) => {
-    event.preventDefault();
-    settingWindow?.setTitle(t('main.windows.settingTitle'));
-  });
-
-  settingWindow.on('close', (event) => {
-    if (isAppQuitting) {
-      return;
-    }
-    event.preventDefault();
-    settingWindowPendingShow = false;
-    settingWindowOpened = false;
-    settingWindow?.hide();
-  });
-
-  settingWindow.on('closed', () => {
-    settingWindow = null;
-    settingWindowReady = false;
-    settingWindowPendingShow = false;
-    settingWindowOpened = false;
-  });
-
-  settingWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url);
-    return { action: 'deny' };
-  });
-
-  const settingUrl = is.dev && process.env['ELECTRON_RENDERER_URL']
-    ? `${process.env['ELECTRON_RENDERER_URL']}/index.html#/setting?windowType=setting`
-    : `file://${path.join(__dirname, '../renderer/index.html')}#/setting?windowType=setting`;
-
-  settingWindow.loadURL(settingUrl);
-  settingWindow.setTitle(t('main.windows.settingTitle'));
-};
+const WINDOW_IDS = {
+  setting: 'setting',
+  aiChat: 'aiChat',
+  formulaRecognition: 'formulaRecognition',
+  aiGraph: 'aiGraph'
+} as const;
 
 export const openSettingDialog = async (): Promise<void> => {
-  createSettingWindow(true);
-};
-
-const preloadAuxWindows = () => {
-  createSettingWindow(false);
-  createAiChatWindow(false);
-  createFomulaRecognitionWindow(false);
-  createAiGraphWindow(false);
-};
-
-/**
- * 打开AI对话框
- */
-const createAiChatWindow = (showOnReady: boolean): void => {
-  if (aichatWindow && !aichatWindow.isDestroyed()) {
-    aiChatWindowPendingShow = showOnReady;
-    if (showOnReady && aiChatWindowReady) {
-      aichatWindow.show();
-      aichatWindow.focus();
-      aiChatWindowOpened = true;
-    }
-    return;
-  }
-
-  aichatWindow = new BrowserWindow({
-    width: 1280,
-    height: 720,
-    minWidth: 800,
-    minHeight: 600,
-    parent: mainWindow || undefined,
-    modal: false,
-    autoHideMenuBar: true,
-    show: false,
-    webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
-      contextIsolation: false,
-      nodeIntegration: true,
-    },
-  });
-
-  aiChatWindowReady = false;
-  aiChatWindowPendingShow = showOnReady;
-
-  aichatWindow.on('ready-to-show', () => {
-    aiChatWindowReady = true;
-    if (aiChatWindowPendingShow) {
-      aichatWindow?.show();
-      aichatWindow?.focus();
-      aiChatWindowOpened = true;
-    }
-  });
-
-  aichatWindow.webContents.on('did-finish-load', () => {
-    dispatchLanguageToWindow(aichatWindow);
-  });
-
-  aichatWindow.webContents.on('page-title-updated', (event) => {
-    event.preventDefault();
-    aichatWindow?.setTitle(t('main.windows.aiChatTitle'));
-  });
-
-  aichatWindow.on('close', (event) => {
-    if (isAppQuitting) {
-      return;
-    }
-    event.preventDefault();
-    aiChatWindowPendingShow = false;
-    aiChatWindowOpened = false;
-    aichatWindow?.hide();
-  });
-
-  aichatWindow.on('closed', () => {
-    aichatWindow = null;
-    aiChatWindowReady = false;
-    aiChatWindowPendingShow = false;
-    aiChatWindowOpened = false;
-  });
-
-  aichatWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url);
-    return { action: 'deny' };
-  });
-
-  const chatUrl = is.dev && process.env['ELECTRON_RENDERER_URL']
-    ? `${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-chat?windowType=ai-chat`
-    : `file://${path.join(__dirname, '../renderer/index.html')}#/ai-chat?windowType=ai-chat`;
-
-  aichatWindow.loadURL(chatUrl);
-  aichatWindow.setTitle(t('main.windows.aiChatTitle'));
+  openAuxiliaryWindow(WINDOW_IDS.setting);
 };
 
 export const openAiChatDialog = async (): Promise<void> => {
-  createAiChatWindow(true);
-};
-
-/**
- * 打开公式识别对话框
- */
-const createFomulaRecognitionWindow = (showOnReady: boolean): void => {
-  if (fomulaRecognitionWindow && !fomulaRecognitionWindow.isDestroyed()) {
-    fomulaRecognitionWindowPendingShow = showOnReady;
-    if (showOnReady && fomulaRecognitionWindowReady) {
-      fomulaRecognitionWindow.show();
-      fomulaRecognitionWindow.focus();
-      fomulaRecognitionWindowOpened = true;
-    }
-    return;
-  }
-
-  fomulaRecognitionWindow = new BrowserWindow({
-    width: 1280,
-    height: 550,
-    parent: mainWindow || undefined,
-    modal: false,
-    autoHideMenuBar: true,
-    show: false,
-    webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
-      contextIsolation: false,
-      nodeIntegration: true,
-    },
-  });
-
-  fomulaRecognitionWindowReady = false;
-  fomulaRecognitionWindowPendingShow = showOnReady;
-
-  fomulaRecognitionWindow.on('ready-to-show', () => {
-    fomulaRecognitionWindowReady = true;
-    if (fomulaRecognitionWindowPendingShow) {
-      fomulaRecognitionWindow?.show();
-      fomulaRecognitionWindow?.focus();
-      fomulaRecognitionWindowOpened = true;
-    }
-  });
-
-  fomulaRecognitionWindow.webContents.on('did-finish-load', () => {
-    dispatchLanguageToWindow(fomulaRecognitionWindow);
-  });
-
-  fomulaRecognitionWindow.webContents.on('page-title-updated', (event) => {
-    event.preventDefault();
-    fomulaRecognitionWindow?.setTitle(t('main.windows.formulaRecognitionTitle'));
-  });
-
-  fomulaRecognitionWindow.on('close', (event) => {
-    if (isAppQuitting) {
-      return;
-    }
-    event.preventDefault();
-    fomulaRecognitionWindowPendingShow = false;
-    fomulaRecognitionWindowOpened = false;
-    fomulaRecognitionWindow?.hide();
-  });
-
-  fomulaRecognitionWindow.on('closed', () => {
-    fomulaRecognitionWindow = null;
-    fomulaRecognitionWindowReady = false;
-    fomulaRecognitionWindowPendingShow = false;
-    fomulaRecognitionWindowOpened = false;
-  });
-
-  fomulaRecognitionWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url);
-    return { action: 'deny' };
-  });
-
-  const formulaUrl = is.dev && process.env['ELECTRON_RENDERER_URL']
-    ? `${process.env['ELECTRON_RENDERER_URL']}/index.html#/fomula-recognition?windowType=fomula-recognition`
-    : `file://${path.join(__dirname, '../renderer/index.html')}#/fomula-recognition?windowType=fomula-recognition`;
-
-  fomulaRecognitionWindow.loadURL(formulaUrl);
-  fomulaRecognitionWindow.setTitle(t('main.windows.formulaRecognitionTitle'));
+  openAuxiliaryWindow(WINDOW_IDS.aiChat);
 };
 
 export const openFomulaRecognitionDialog = async (): Promise<void> => {
-  createFomulaRecognitionWindow(true);
-};
-
-/**
- * 打开AI绘图对话框
- */
-const createAiGraphWindow = (showOnReady: boolean): void => {
-  if (aiGraphWindow && !aiGraphWindow.isDestroyed()) {
-    aiGraphWindowPendingShow = showOnReady;
-    if (showOnReady && aiGraphWindowReady) {
-      aiGraphWindow.show();
-      aiGraphWindow.focus();
-      aiGraphWindowOpened = true;
-    }
-    return;
-  }
-
-  aiGraphWindow = new BrowserWindow({
-    width: 1280,
-    height: 720,
-    minWidth: 800,
-    minHeight: 600,
-    parent: mainWindow || undefined,
-    modal: false,
-    autoHideMenuBar: true,
-    show: false,
-    webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
-      contextIsolation: false,
-      nodeIntegration: true,
-    },
-  });
-
-  aiGraphWindowReady = false;
-  aiGraphWindowPendingShow = showOnReady;
-
-  aiGraphWindow.on('ready-to-show', () => {
-    aiGraphWindowReady = true;
-    if (aiGraphWindowPendingShow) {
-      aiGraphWindow?.show();
-      aiGraphWindow?.focus();
-      aiGraphWindowOpened = true;
-    }
-  });
-
-  aiGraphWindow.webContents.on('did-finish-load', () => {
-    dispatchLanguageToWindow(aiGraphWindow);
-  });
-
-  aiGraphWindow.webContents.on('page-title-updated', (event) => {
-    event.preventDefault();
-    aiGraphWindow?.setTitle(t('main.windows.aiGraphTitle'));
-  });
-
-  aiGraphWindow.on('close', (event) => {
-    if (isAppQuitting) {
-      return;
-    }
-    event.preventDefault();
-    aiGraphWindowPendingShow = false;
-    aiGraphWindowOpened = false;
-    aiGraphWindow?.hide();
-  });
-
-  aiGraphWindow.on('closed', () => {
-    aiGraphWindow = null;
-    aiGraphWindowReady = false;
-    aiGraphWindowPendingShow = false;
-    aiGraphWindowOpened = false;
-  });
-
-  aiGraphWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url);
-    return { action: 'deny' };
-  });
-
-  const graphUrl = is.dev && process.env['ELECTRON_RENDERER_URL']
-    ? `${process.env['ELECTRON_RENDERER_URL']}/index.html#/ai-graph?windowType=ai-graph`
-    : `file://${path.join(__dirname, '../renderer/index.html')}#/ai-graph?windowType=ai-graph`;
-
-  aiGraphWindow.loadURL(graphUrl);
-  aiGraphWindow.setTitle(t('main.windows.aiGraphTitle'));
+  openAuxiliaryWindow(WINDOW_IDS.formulaRecognition);
 };
 
 export const openAiGraphDialog = async (): Promise<void> => {
-  createAiGraphWindow(true);
+  openAuxiliaryWindow(WINDOW_IDS.aiGraph);
 };
 
 // ============ 广播频道管理 ============
@@ -632,25 +295,14 @@ export const initBroadcastChannel = (): void => {
       setLocale(message.data, { notifyRenderer: false });
 
       refreshMainWindowTitle();
-      settingWindow?.setTitle(t('main.windows.settingTitle'));
-      aichatWindow?.setTitle(t('main.windows.aiChatTitle'));
-      fomulaRecognitionWindow?.setTitle(t('main.windows.formulaRecognitionTitle'));
-      aiGraphWindow?.setTitle(t('main.windows.aiGraphTitle'));
-
+      refreshAuxiliaryWindowTitles();
+      dispatchLanguageToAuxWindows();
       broadcastLanguage();
     }
 
     // 向所有窗口广播消息
-    const windows = [
-      mainWindow,
-      aichatWindow,
-      settingWindow,
-      fomulaRecognitionWindow,
-      aiGraphWindow
-    ].filter(win => win !== null);
-
-    windows.forEach(win => {
-      win?.webContents.send('receive-broadcast', message);
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('receive-broadcast', message);
     });
   });
 };

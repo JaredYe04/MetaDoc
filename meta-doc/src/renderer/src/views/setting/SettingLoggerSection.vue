@@ -1,5 +1,5 @@
 <template>
-  <el-form label-width="200px" class="settings-form">
+  <el-form label-width="160px" class="settings-form">
     <el-form-item :label="t('setting.loggingEnabled')">
       <el-switch v-model="settings.loggingEnabled" class="mb-2"
         style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
@@ -146,8 +146,6 @@ onBeforeUnmount(() => {
 
   if (typeof ipcRenderer.removeListener === 'function') {
     ipcRenderer.removeListener('logger-config-updated', configListener as any);
-  } else if (typeof ipcRenderer.off === 'function') {
-    ipcRenderer.off('logger-config-updated', configListener as any);
   }
 });
 </script>

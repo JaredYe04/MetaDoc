@@ -44,6 +44,7 @@ import { imageUploadDir } from './express-server';
 import { queryKnowledgeBase, getResourcesPath, compileLatexToPDF } from './utils';
 import type { LaTeXCompileResult } from '../types/utils';
 import { createMainLogger, handleRendererLog, getLoggerConfig, getLoggerHistory, openCurrentLogFile, openLogDirectory, updateLoggerConfig } from './logger';
+import { getServiceStatus } from './service-status';
 import type { LogPayload, LogLevel } from '../common/logger-constants';
 
 // ============ 接口定义 ============
@@ -214,6 +215,10 @@ function bindLoggerHandlers(): void {
 
   ipcMain.handle('get-logger-history', async () => {
     return getLoggerHistory();
+  });
+
+  ipcMain.handle('get-service-status', async () => {
+    return getServiceStatus();
   });
 }
 

@@ -34,7 +34,7 @@
           <span
             v-if="unreadCount > 0"
             class="status-badge"
-            :style="{ backgroundColor: themeState.currentTheme.accentColor || '#f56c6c' }"
+            :style="{ backgroundColor:`#909399` }"
           >
             {{ unreadCount }}
           </span>

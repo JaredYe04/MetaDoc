@@ -6,7 +6,7 @@
       @change="handleLlmToggle" />
 
     <div v-if="settings.llmEnabled" class="llm-settings__content">
-      <el-form label-width="200px" class="settings-form">
+      <el-form label-width="160px" class="settings-form">
         <el-form-item :label="t('setting.llmType')">
           <el-select v-model="settings.selectedLlm" :placeholder="t('setting.chooseLlm')"
             @change="saveSetting('selectedLlm', settings.selectedLlm)">

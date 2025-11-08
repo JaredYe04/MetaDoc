@@ -19,6 +19,7 @@ import { mainCalls } from './main-calls';
 import { runExpressServer } from './express-server';
 import { initializeUtils } from './utils';
 import { initLogger, shutdownLogger, createMainLogger } from './logger';
+import { broadcastServiceStatus } from './service-status';
 
 const url = require('url');
 const path = require('path');
@@ -73,18 +74,21 @@ function createWindow(): void {
   });
 
   // 窗口准备好显示时
-  mainWindow.on('ready-to-show', async () => {
+  mainWindow.on('ready-to-show', () => {
     mainWindow?.show();
     bindShortcuts();
+    broadcastServiceStatus();
     
     // 初始化工具服务
-    try {
-      logger.info('🚀 正在初始化重构后的工具服务...');
-      await initializeUtils();
-      logger.info('✅ 工具服务初始化完成');
-    } catch (error) {
-      logger.error('❌ 工具服务初始化失败:', error);
-    }
+    (async () => {
+      try {
+        logger.info('🚀 正在后台初始化工具服务...');
+        await initializeUtils();
+        logger.info('✅ 工具服务初始化完成');
+      } catch (error) {
+        logger.error('❌ 工具服务初始化失败:', error);
+      }
+    })();
   });
 
   // 处理窗口关闭

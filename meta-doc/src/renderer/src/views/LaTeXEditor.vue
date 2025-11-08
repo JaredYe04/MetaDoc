@@ -288,7 +288,10 @@ import AISuggestion from "../components/AISuggestion.vue";
 import "../assets/ai-suggestion.css";
 import { getArticleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
 import ContextMenu from "../components/ContextMenu.vue";
-const { t } = useI18n();
+import Console from "../components/Console.vue";
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
+import { createRendererLogger } from '../utils/logger.ts'
+import { waitForService } from "../utils/service-status.ts";
 import * as monaco from "monaco-editor";
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 
@@ -361,9 +364,7 @@ let isDragging = false;
 let startX, startY, offsetX = 0, offsetY = 0;
 
 import * as pdfjsLib from "pdfjs-dist";
-import Console from "../components/Console.vue";
-import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
-import { createRendererLogger } from '../utils/logger.ts'
+
 let ipcRenderer = null
 if (window && window.electron) {
     ipcRenderer = window.electron.ipcRenderer
@@ -911,6 +912,7 @@ const initEditor = () => {
 
 onMounted(async () => {
     try {
+        await waitForService('express');
         await refreshContextMenu();
         initEditor();
 

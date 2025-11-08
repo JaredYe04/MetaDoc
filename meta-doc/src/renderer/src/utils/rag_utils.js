@@ -1,4 +1,6 @@
 import { getSetting } from './settings.js';
+import { waitForService } from './service-status.ts';
+import { webMainCalls } from './web-adapter/web-main-calls.js';
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
 let ipcRenderer = null
 if (window && window.electron) {
@@ -11,7 +13,7 @@ if (window && window.electron) {
 }
 
 export async function queryKnowledgeBase(question,){
-
+    await waitForService('rag');
     const scoreThreshold=await getSetting("knowledgeBaseScoreThreshold");
     const response = await ipcRenderer.invoke('query-knowledge-base', { question, scoreThreshold });
     return response;

@@ -20,7 +20,7 @@
       <div class="queue-header">
       <h3>{{ t('notificationQueue.title') }}</h3>
       <div class="header-actions">
-        <el-button
+        <!-- <el-button
           size="small"
           type="primary" 
           text
@@ -28,16 +28,18 @@
           :disabled="unreadCount === 0"
         >
           {{ t('notificationQueue.markAllRead') }}
-        </el-button>
-        <el-button
-          size="small"
-          type="danger" 
-          text
-          @click="handleClear"
-          :disabled="notifications.length === 0"
-        >
-          {{ t('notificationQueue.clear') }}
-        </el-button>
+        </el-button> -->
+        <el-tooltip :content="t('notificationQueue.clear')" placement="right">
+          <el-button
+            size="small"
+            type="danger"
+            circle plain
+            @click="handleClear"
+          >
+            <el-icon><Minus /></el-icon>
+          </el-button>
+        </el-tooltip>
+
       </div>
     </div>
 
@@ -66,12 +68,14 @@
           {{ item.message }}
         </div>
         <div class="item-actions">
-          <el-button size="small" text type="primary"  @click="handleRead(item.id)" :disabled="item.read">
+          <!-- <el-button size="small" text type="primary"  @click="handleRead(item.id)" :disabled="item.read">
             {{ t('notificationQueue.markRead') }}
-          </el-button>
-          <el-button size="small" text type="danger"  @click="handleRemove(item.id)">
-            {{ t('notificationQueue.remove') }}
-          </el-button>
+          </el-button> -->
+          <el-tooltip :content="t('notificationQueue.remove')" placement="right">
+            <el-button size="small" circle plain type="danger"  @click="handleRemove(item.id)">
+              <el-icon><Minus /></el-icon>
+            </el-button>
+          </el-tooltip>
         </div>
       </div>
     </el-scrollbar>

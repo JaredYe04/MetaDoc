@@ -1,5 +1,5 @@
 <template>
-  <el-form label-width="200px" class="settings-form">
+  <el-form label-width="160px" class="settings-form">
     <el-form-item :label="t('setting.globalTheme')">
       <el-radio-group v-model="settings.globalTheme" @change="handleGlobalThemeChange">
         <el-radio label="sync">{{ t('setting.themeSync') }}</el-radio>

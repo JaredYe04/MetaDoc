@@ -408,7 +408,7 @@ const generate = async () => {
   try {
     await done;
   } catch (err) {
-    console.warn('任务失败或取消：', err);
+    logger.warn('任务失败或取消：', err);
   } finally {
     generated.value = true;
     generating.value = false;
@@ -626,6 +626,7 @@ import { MdPreview } from 'md-editor-v3';
 import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from '../utils/web-adapter/web-main-calls';
 import { ai_types, createAiTask } from '../utils/ai_tasks';
+import { createRendererLogger } from '../utils/logger';
 
 let ipcRenderer = null
 if (window && window.electron) {
@@ -635,7 +636,9 @@ if (window && window.electron) {
   ipcRenderer = localIpcRenderer
   //todo 说明当前环境不是electron环境，需要另外适配
 }
-
+const logger = createRendererLogger('Home', {
+  windowTypeProvider: () => getWindowType()
+});
 
 
 // 生命周期钩子
@@ -681,10 +684,21 @@ const particleEffect = async () => {
     }
   });
   eventBus.emit('toggle-particle-effect', {});
-}
+};
+const scheduleParticleEffect = () => {
+  const runner = () => {
+    particleEffect().catch(err => logger.warn('粒子效果初始化失败', err));
+  };
+
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    window.requestIdleCallback(() => runner());
+  } else {
+    setTimeout(runner, 0);
+  }
+};
 onMounted(async () => {
   //console.log("主页加载")
-  particleEffect();
+  scheduleParticleEffect();
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('resize', onWindowResize); // 添加窗口大小变化事件
   preventNavigate(); // 添加链接点击事件

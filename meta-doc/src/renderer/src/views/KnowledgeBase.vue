@@ -234,6 +234,7 @@ import { Check, Close, Edit } from '@element-plus/icons-vue';
 import { queryKnowledgeBase } from '../utils/rag_utils';
 import { interpolateObject } from 'd3';
 import { setSetting, settings } from '../utils/settings';
+import { waitForService } from '../utils/service-status.ts';
 import { createRendererLogger } from '../utils/logger.ts';
 
 
@@ -253,6 +254,10 @@ const isUploading = ref(false);
 const isRebuilding = ref(false);
 const fileInput = ref(null);
 const baseUrl = 'http://localhost:52521/api/knowledge'
+
+const ensureExpressReady = async () => {
+    await waitForService('express');
+};
 
 const searchQuery = ref('');
 const searchResults = ref([]);
@@ -275,6 +280,7 @@ function humanSize(bytes) {
 // fetch list from backend
 async function fetchList() {
     try {
+        await ensureExpressReady();
         logger.info('开始获取知识库列表');
         const r = await fetch(`${baseUrl}/list`);
 
@@ -337,6 +343,7 @@ async function uploadFile(file) {
     const fd = new FormData();
     fd.append('file', file);
     try {
+        await ensureExpressReady();
         const r = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd });
         const j = await r.json();
         if (j.success) {
@@ -372,6 +379,7 @@ function confirmClearAll() {
 
 async function clearAllItems() {
     try {
+        await ensureExpressReady();
         const r = await fetch(`${baseUrl}/clear`, { method: 'POST' });
         const j = await r.json();
         if (j.success) {
@@ -391,6 +399,7 @@ async function clearAllItems() {
 
 async function deleteItem(id) {
     try {
+        await ensureExpressReady();
         const r = await fetch(`${baseUrl}/${id}`, { method: 'DELETE' });
         const j = await r.json();
         if (j.success) {
@@ -414,6 +423,7 @@ async function fetchPreview(id) {
     previewText.value = '';
     isTruncated.value = false;
     try {
+        await ensureExpressReady();
         const r = await fetch(`${baseUrl}/${id}/preview`);
         const j = await r.json();
         previewText.value = j.preview || '';
@@ -429,6 +439,7 @@ async function fetchPreview(id) {
 // fetch info
 async function fetchInfo(id) {
     try {
+        await ensureExpressReady();
         const r = await fetch(`${baseUrl}/${id}/info`);
 
         const j = await r.json();
@@ -451,6 +462,7 @@ async function fetchInfo(id) {
 // toggle enable
 async function toggleEnable(row, val) {
     try {
+        await ensureExpressReady();
         const r = await fetch(`${baseUrl}/${row.id}/toggle`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -478,6 +490,7 @@ async function rebuildVectors() {
     if (!selectedItem.value) return;
     isRebuilding.value = true;
     try {
+        await ensureExpressReady();
         const r = await fetch(`${baseUrl}/${selectedItem.value.id}/rebuild`, { method: 'POST' });
         const j = await r.json();
         if (j.success) {
@@ -544,6 +557,7 @@ async function onConfirm() {
     }
     renaming.value = true;
     try {
+        await ensureExpressReady();
         // 这里调用你的重命名接口，传入旧名和新名
         // 假设接口是 /api/knowledge/rename，POST请求
         const res = await fetch(`${baseUrl}/rename`, {

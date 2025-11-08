@@ -15,12 +15,15 @@ import './assets/interactive-text.css'
 import './assets/wordcloud-text.css'
 import { lightTheme,darkTheme } from './utils/themes.js';
 import { reactive } from 'vue';
+import { initServiceStatusWatcher } from './utils/service-status';
 
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
 
 const app = createApp(App);
 const pinia = createPinia();
+
+initServiceStatusWatcher();
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)

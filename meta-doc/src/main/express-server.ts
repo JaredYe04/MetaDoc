@@ -31,6 +31,7 @@ import type {
   KnowledgeItem 
 } from '../types/utils';
 import { createMainLogger } from './logger';
+import { updateServiceStatus } from './service-status';
 
 // ============ 接口定义 ============
 
@@ -86,10 +87,12 @@ const isServerRunning = (): boolean => {
  */
 export const runExpressServer = (): void => {
   if (isServerRunning()) {
+    updateServiceStatus('express', 'ready');
     logger.debug('Express 服务已在运行');
     return;
   }
 
+  updateServiceStatus('express', 'loading');
   const projectRoot = path.resolve(path.resolve(__dirname, '../'), '../');
   
   setupStaticFiles(projectRoot);
@@ -144,10 +147,12 @@ function startServer(): void {
   try {
     server = expressApp.listen(52521, () => {
       logger.info('本地 CDN 服务已启动 http://localhost:52521');
+      updateServiceStatus('express', 'ready');
     });
 
     server!.on('error', (error: NodeJS.ErrnoException) => {
       logger.error('Express 服务启动失败', error);
+      updateServiceStatus('express', 'error', error.message);
 
       if (error.code === 'EADDRINUSE') {
         logger.warn('端口 52521 已被占用，10 秒后重试');
@@ -160,6 +165,7 @@ function startServer(): void {
             logger.error('关闭已有 Express 服务失败', closeError as Error);
           } finally {
             server = null;
+            updateServiceStatus('express', 'loading');
             startServer();
           }
         }, 10000);
@@ -170,6 +176,7 @@ function startServer(): void {
   } catch (error) {
     logger.error('创建 Express 服务失败', error as Error);
     server = null;
+    updateServiceStatus('express', 'error', (error as Error).message);
   }
 }
 

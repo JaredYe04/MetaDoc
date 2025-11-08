@@ -6,6 +6,7 @@
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { join } from 'path';
 import { createMainLogger } from '../logger';
+import { updateServiceStatus } from '../service-status';
 
 const logger = createMainLogger('UtilsManager');
 
@@ -119,10 +120,14 @@ export class UtilsManager {
    * 初始化所有服务
    */
   async initialize(): Promise<void> {
-    if (this.initialized) return;
+    if (this.initialized) {
+      updateServiceStatus('rag', 'ready');
+      return;
+    }
 
     try {
       logger.info('正在初始化工具服务');
+      updateServiceStatus('rag', 'loading');
 
       // 初始化RAG服务（最重要的）
       logger.info('初始化 RAG 服务');
@@ -131,9 +136,11 @@ export class UtilsManager {
 
       this.initialized = true;
       logger.info('工具服务初始化完成');
+      updateServiceStatus('rag', 'ready');
 
     } catch (error) {
       logger.error('工具服务初始化失败', error);
+      updateServiceStatus('rag', 'error', error instanceof Error ? error.message : String(error));
       throw error;
     }
   }

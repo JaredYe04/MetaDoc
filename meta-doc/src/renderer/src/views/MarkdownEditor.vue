@@ -149,6 +149,7 @@ import AiLogoWhite from "../assets/ai-logo-white.svg";
 import { themeState } from "../utils/themes";
 import { getSetting, setSetting } from "../utils/settings";
 import { localVditorCDN, vditorCDN } from "../utils/vditor-cdn";
+import { waitForService } from "../utils/service-status.ts";
 import { useI18n } from 'vue-i18n'
 import AISuggestion from "../components/AISuggestion.vue";
 import "../assets/ai-suggestion.css";
@@ -502,6 +503,7 @@ const refreshContextMenu = async () => {
 // 编辑器初始化
 onMounted(async () => {
     try {
+        await waitForService('express');
         await refreshContextMenu();
         let cdn = '';
         if (isElectronEnv()) {

@@ -114,14 +114,17 @@
     "wordCount": "Nombre de caractères :",
     "aiTaskQueueLabel": "Question de la tâche AI",
     "notificationEmpty": "Sans préavis",
-    "notificationTooltip": "Appelez la file d'attente."
+    "notificationTooltip": "Appelez la file d'attente.",
+    "logConsoleLabel": "Journal",
+    "logConsoleTooltip": "Ouvrir la console de journal"
   },
   "common": {
     "cancel": "Annuler",
     "confirm": "Confirmez.",
     "deleteFailed": "Impossible de supprimer",
     "deleteSuccess": "Supprimer le succès",
-    "save": "Enregistrer"
+    "save": "Enregistrer",
+    "close": "Fermer"
   },
   "contextMenu": {
     "aiAnalysis": "Analyse du texte intégral",
@@ -301,6 +304,31 @@
       "warning": {
         "title": "Avertissement"
       }
+    },
+    "dialogs": {
+      "exportDocumentTitle": "Document d'exportation",
+      "filters": {
+        "all": "Tous les fichiers",
+        "docx": "DOCX Fichier",
+        "html": "Fichier HTML",
+        "json": "JSON Fichier",
+        "latex": "Fichier LaTeX",
+        "markdown": "Documentation de marquage",
+        "pdf": "Fichiers PDF"
+      },
+      "openFileTitle": "Ouvrir un fichier",
+      "saveFileTitle": "Enregistrer un fichier"
+    },
+    "latex": {
+      "compileFailed": "Compilé, code de sortie: {code}"
+    },
+    "windows": {
+      "aiChatTitle": "Dialogue avec l'IA",
+      "aiGraphTitle": "Assistant de dessin intelligent",
+      "appTitle": "MétaDoc",
+      "documentTitlePattern": "{nom} - {app}",
+      "formulaRecognitionTitle": "Assistant de reconnaissance de la formule écrite",
+      "settingTitle": "Définir le panneau"
     }
   },
   "messageBubble": {
@@ -452,7 +480,22 @@
     "knowledgeBaseScoreThreshold": "Seuil de similitude du texte de base des connaissances",
     "knowledgeBaseScoreThresholdTooltip": "Seuls les résultats d'une requête présentant une similitude supérieure à cette valeur seront acceptés par AI, recommandation 0.5.",
     "lowPrecision": "Faible précision",
-    "recommended": "Recommandations"
+    "recommended": "Recommandations",
+    "logDirectory": "Répertoire des journaux",
+    "logFilePath": "Fichier journal actuel",
+    "logFileUnavailable": "Fichier journal non généré",
+    "loggerConsoleTitle": "Log Sortie en temps réel",
+    "loggingEnabled": "Activer les registres",
+    "loggingLevel": "Niveau du journal",
+    "loggingLevels": {
+      "debug": "Débogues",
+      "error": "Erreur",
+      "info": "Informations",
+      "warn": "Avertissement"
+    },
+    "logs": "Paramètres du journal",
+    "openLogDirectory": "Ouvrir le dossier du journal",
+    "openLogFile": "Ouvrir un fichier journal"
   },
   "titleMenu": {
     "contextMarks": {

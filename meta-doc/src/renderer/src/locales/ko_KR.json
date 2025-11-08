@@ -75,7 +75,8 @@
     "cancel": "취소",
     "save": "저장",
     "deleteSuccess": "삭제 성공",
-    "deleteFailed": "삭제 실패"
+    "deleteFailed": "삭제 실패",
+    "close": "이름 *"
   },
   "searchReplace": {
     "title": "찾기 및 바꾸기",
@@ -389,6 +390,31 @@
       "warning": {
         "title": "경고"
       }
+    },
+    "dialogs": {
+      "exportDocumentTitle": "수출 문서",
+      "filters": {
+        "all": "모든 파일",
+        "docx": "· DOCX 파일 형식",
+        "html": "HTML 파일",
+        "json": "구글 맵 파일 형식",
+        "latex": "LaTeX 파일",
+        "markdown": "Markdown 문서",
+        "pdf": "PDF 파일"
+      },
+      "openFileTitle": "파일 열기",
+      "saveFileTitle": "파일 저장"
+    },
+    "latex": {
+      "compileFailed": "컴파일 실패, 종료 코드: 이름 *"
+    },
+    "windows": {
+      "aiChatTitle": "AI와 대화",
+      "aiGraphTitle": "스마트 드로잉 보조",
+      "appTitle": "메타딕",
+      "documentTitlePattern": "{이름} - {app}",
+      "formulaRecognitionTitle": "Handwritten 공식 인식 보조",
+      "settingTitle": "연락처"
     }
   },
   "outline": {
@@ -515,7 +541,22 @@
     "knowledgeBaseScoreThreshold": "지식 베이스 텍스트 유사성 문턱",
     "knowledgeBaseScoreThresholdTooltip": "그 값이 AI, 권고 0.5에 의해 허용 될 위의 유사성 만 쿼리 결과.",
     "lowPrecision": "낮은 정밀도",
-    "recommended": " Recommend"
+    "recommended": " Recommend",
+    "logDirectory": "비밀번호",
+    "logFilePath": "현재 로그 파일",
+    "logFileUnavailable": "로그 파일 생성되지 않음",
+    "loggerConsoleTitle": "실시간 로그인",
+    "loggingEnabled": "Enable log 레코드",
+    "loggingLevel": "로그 레벨",
+    "loggingLevels": {
+      "debug": "디버그",
+      "error": "계정 정보",
+      "info": "- 기타",
+      "warn": "제품정보"
+    },
+    "logs": "로그 설정",
+    "openLogDirectory": "로그 폴더 열기",
+    "openLogFile": "비밀번호"
   },
   "visualize": {
     "articleOutline": "문서 아웃라인",
@@ -531,7 +572,9 @@
     "aiTaskQueueTooltip": "AI 작업 대기열",
     "aiTaskQueueLabel": "AI 작업 큐",
     "notificationEmpty": "공지사항",
-    "notificationTooltip": "자주 묻는 질문"
+    "notificationTooltip": "자주 묻는 질문",
+    "logConsoleLabel": "로그인",
+    "logConsoleTooltip": "로그 콘솔"
   },
   "aiTask": {
     "cancel": "이름 *",

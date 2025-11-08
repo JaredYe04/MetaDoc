@@ -15,16 +15,18 @@ import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 // import icon from '../../resources/icon.png?asset';
 const icon = undefined; // 暂时禁用icon导入
-import { mainCalls } from './main-calls';
+import { mainCalls, refreshMainWindowTitle } from './main-calls';
 import { runExpressServer } from './express-server';
 import { initializeUtils } from './utils';
 import { initLogger, shutdownLogger, createMainLogger } from './logger';
 import { broadcastServiceStatus } from './service-status';
+import { initI18n, t, dispatchLanguageToWindow, setLocale, broadcastLanguage } from './i18n';
 
 const url = require('url');
 const path = require('path');
 
 initLogger();
+initI18n();
 const logger = createMainLogger('MainProcess');
 
 // ============ 全局变量 ============
@@ -81,6 +83,10 @@ function createWindow(): void {
       nodeIntegration: true,
       webSecurity: false,
     }
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    dispatchLanguageToWindow(mainWindow);
   });
 
   // 窗口准备好显示时
@@ -312,9 +318,13 @@ const createSettingWindow = (showOnReady: boolean): void => {
     }
   });
 
+  settingWindow.webContents.on('did-finish-load', () => {
+    dispatchLanguageToWindow(settingWindow);
+  });
+
   settingWindow.webContents.on('page-title-updated', (event) => {
     event.preventDefault();
-    settingWindow?.setTitle('设置面板');
+    settingWindow?.setTitle(t('main.windows.settingTitle'));
   });
 
   settingWindow.on('close', (event) => {
@@ -344,7 +354,7 @@ const createSettingWindow = (showOnReady: boolean): void => {
     : `file://${path.join(__dirname, '../renderer/index.html')}#/setting?windowType=setting`;
 
   settingWindow.loadURL(settingUrl);
-  settingWindow.setTitle('设置面板');
+  settingWindow.setTitle(t('main.windows.settingTitle'));
 };
 
 export const openSettingDialog = async (): Promise<void> => {
@@ -400,9 +410,13 @@ const createAiChatWindow = (showOnReady: boolean): void => {
     }
   });
 
+  aichatWindow.webContents.on('did-finish-load', () => {
+    dispatchLanguageToWindow(aichatWindow);
+  });
+
   aichatWindow.webContents.on('page-title-updated', (event) => {
     event.preventDefault();
-    aichatWindow?.setTitle('与AI对话');
+    aichatWindow?.setTitle(t('main.windows.aiChatTitle'));
   });
 
   aichatWindow.on('close', (event) => {
@@ -432,7 +446,7 @@ const createAiChatWindow = (showOnReady: boolean): void => {
     : `file://${path.join(__dirname, '../renderer/index.html')}#/ai-chat?windowType=ai-chat`;
 
   aichatWindow.loadURL(chatUrl);
-  aichatWindow.setTitle('与AI对话');
+  aichatWindow.setTitle(t('main.windows.aiChatTitle'));
 };
 
 export const openAiChatDialog = async (): Promise<void> => {
@@ -479,9 +493,13 @@ const createFomulaRecognitionWindow = (showOnReady: boolean): void => {
     }
   });
 
+  fomulaRecognitionWindow.webContents.on('did-finish-load', () => {
+    dispatchLanguageToWindow(fomulaRecognitionWindow);
+  });
+
   fomulaRecognitionWindow.webContents.on('page-title-updated', (event) => {
     event.preventDefault();
-    fomulaRecognitionWindow?.setTitle('手写公式识别助手');
+    fomulaRecognitionWindow?.setTitle(t('main.windows.formulaRecognitionTitle'));
   });
 
   fomulaRecognitionWindow.on('close', (event) => {
@@ -511,7 +529,7 @@ const createFomulaRecognitionWindow = (showOnReady: boolean): void => {
     : `file://${path.join(__dirname, '../renderer/index.html')}#/fomula-recognition?windowType=fomula-recognition`;
 
   fomulaRecognitionWindow.loadURL(formulaUrl);
-  fomulaRecognitionWindow.setTitle('手写公式识别助手');
+  fomulaRecognitionWindow.setTitle(t('main.windows.formulaRecognitionTitle'));
 };
 
 export const openFomulaRecognitionDialog = async (): Promise<void> => {
@@ -560,9 +578,13 @@ const createAiGraphWindow = (showOnReady: boolean): void => {
     }
   });
 
+  aiGraphWindow.webContents.on('did-finish-load', () => {
+    dispatchLanguageToWindow(aiGraphWindow);
+  });
+
   aiGraphWindow.webContents.on('page-title-updated', (event) => {
     event.preventDefault();
-    aiGraphWindow?.setTitle('智能绘图助手');
+    aiGraphWindow?.setTitle(t('main.windows.aiGraphTitle'));
   });
 
   aiGraphWindow.on('close', (event) => {
@@ -592,7 +614,7 @@ const createAiGraphWindow = (showOnReady: boolean): void => {
     : `file://${path.join(__dirname, '../renderer/index.html')}#/ai-graph?windowType=ai-graph`;
 
   aiGraphWindow.loadURL(graphUrl);
-  aiGraphWindow.setTitle('智能绘图助手');
+  aiGraphWindow.setTitle(t('main.windows.aiGraphTitle'));
 };
 
 export const openAiGraphDialog = async (): Promise<void> => {
@@ -606,6 +628,18 @@ export const openAiGraphDialog = async (): Promise<void> => {
  */
 export const initBroadcastChannel = (): void => {
   ipcMain.on('send-broadcast', (event: IpcMainEvent, message: any) => {
+    if (message && typeof message === 'object' && message.eventName === 'lang-changed' && typeof message.data === 'string') {
+      setLocale(message.data, { notifyRenderer: false });
+
+      refreshMainWindowTitle();
+      settingWindow?.setTitle(t('main.windows.settingTitle'));
+      aichatWindow?.setTitle(t('main.windows.aiChatTitle'));
+      fomulaRecognitionWindow?.setTitle(t('main.windows.formulaRecognitionTitle'));
+      aiGraphWindow?.setTitle(t('main.windows.aiGraphTitle'));
+
+      broadcastLanguage();
+    }
+
     // 向所有窗口广播消息
     const windows = [
       mainWindow,

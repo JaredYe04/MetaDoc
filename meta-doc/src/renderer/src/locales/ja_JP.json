@@ -75,7 +75,8 @@
     "cancel": "キャンセル",
     "save": "保存",
     "deleteSuccess": "削除に成功しました",
-    "deleteFailed": "削除に失敗しました"
+    "deleteFailed": "削除に失敗しました",
+    "close": "ふりがな"
   },
   "searchReplace": {
     "title": "検索と置換",
@@ -389,6 +390,31 @@
       "warning": {
         "title": "警告"
       }
+    },
+    "dialogs": {
+      "exportDocumentTitle": "輸出文書",
+      "filters": {
+        "all": "すべてのファイル",
+        "docx": "ドックス ファイル",
+        "html": "HTMLファイル",
+        "json": "ジェイソン ファイル",
+        "latex": "LaTeXファイル",
+        "markdown": "Markdown ドキュメント",
+        "pdf": "PDFファイル"
+      },
+      "openFileTitle": "ファイルを開く",
+      "saveFileTitle": "ファイルを保存する"
+    },
+    "latex": {
+      "compileFailed": "コンパイル失敗、終了コード: お問い合わせ"
+    },
+    "windows": {
+      "aiChatTitle": "AIとの対話",
+      "aiGraphTitle": "スマートドローイングアシスタント",
+      "appTitle": "メタドック",
+      "documentTitlePattern": "お問い合わせ",
+      "formulaRecognitionTitle": "手書き式認識アシスタント",
+      "settingTitle": "セットパネル"
     }
   },
   "outline": {
@@ -515,7 +541,22 @@
     "knowledgeBaseScoreThreshold": "知識ベーステキスト類似性しきい値",
     "knowledgeBaseScoreThresholdTooltip": "上記と同様のクエリ結果は、AI、推奨0.5でのみ受け付けます。",
     "lowPrecision": "低い精密",
-    "recommended": "推奨事項"
+    "recommended": "推奨事項",
+    "logDirectory": "ログディレクトリ",
+    "logFilePath": "現在のログファイル",
+    "logFileUnavailable": "生成されないログファイル",
+    "loggerConsoleTitle": "リアルタイムでのログ出力",
+    "loggingEnabled": "ログレコードを有効にする",
+    "loggingLevel": "ログレベル",
+    "loggingLevels": {
+      "debug": "デブグ",
+      "error": "エラー",
+      "info": "インフォメーション",
+      "warn": "インフォメーション"
+    },
+    "logs": "ログ設定",
+    "openLogDirectory": "ログフォルダを開く",
+    "openLogFile": "ログファイルを開く"
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",
@@ -531,7 +572,9 @@
     "aiTaskQueueTooltip": "AIタスクキュー",
     "aiTaskQueueLabel": "AIタスクキュー",
     "notificationEmpty": "お知らせ",
-    "notificationTooltip": "キューを呼び出す。"
+    "notificationTooltip": "キューを呼び出す。",
+    "logConsoleLabel": "ログイン",
+    "logConsoleTooltip": "ログコンソールを開く"
   },
   "aiTask": {
     "cancel": "キャンセル",

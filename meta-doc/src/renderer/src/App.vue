@@ -91,6 +91,7 @@ onMounted(async () => {
   //监听语言切换事件
   eventBus.on('lang-changed', (lang) => {
     locale.value = lang
+    localStorage.setItem('lang', lang)
   })
   // 监听主题同步事件
   eventBus.on('sync-theme', async () => {

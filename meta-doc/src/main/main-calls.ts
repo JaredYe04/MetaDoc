@@ -46,6 +46,7 @@ import type { LaTeXCompileResult } from '../types/utils';
 import { createMainLogger, handleRendererLog, getLoggerConfig, getLoggerHistory, openCurrentLogFile, openLogDirectory, updateLoggerConfig } from './logger';
 import { getServiceStatus } from './service-status';
 import type { LogPayload, LogLevel } from '../common/logger-constants';
+import { t } from './i18n';
 
 // ============ 接口定义 ============
 
@@ -290,13 +291,19 @@ function bindKnowledgeHandlers(): void {
       if (result.status === 'success') {
         mainWindow?.webContents.send('compile-latex-success', result);
       } else {
-        mainWindow?.webContents.send('compile-latex-fail', `编译失败，退出码: ${result.exitCode}`);
+        mainWindow?.webContents.send(
+          'compile-latex-fail',
+          t('main.latex.compileFailed', `Compilation failed, exit code: ${result.exitCode}`, { code: String(result.exitCode ?? '') })
+        );
       }
       
       return result;
     } catch (error) {
       const errorMessage = (error as Error).message;
-      mainWindow?.webContents.send('compile-latex-fail', errorMessage);
+      mainWindow?.webContents.send(
+        'compile-latex-fail',
+        errorMessage || t('main.latex.compileFailed', 'Compilation failed, exit code: -1', { code: '-1' })
+      );
       console.error('PDF 编译失败:', errorMessage);
       return { status: 'failed', exitCode: -1 };
     }
@@ -408,18 +415,32 @@ const systemNotification = (title: string, body: string, path: string = ''): voi
 /**
  * 更新窗口标题
  */
+let lastDocumentTitle = '';
+
 const updateWindowTitle = (title: string): void => {
+  lastDocumentTitle = title;
+
   if (mainWindow) {
     if (title.length > 30) {
       title = title.substring(0, 30) + '...';
     }
     
     if (title.length === 0) {
-      mainWindow.setTitle("MetaDoc");
+      mainWindow.setTitle(t('main.windows.appTitle', 'MetaDoc'));
     } else {
-      mainWindow.setTitle(title + " - MetaDoc");
+      const truncated = title;
+      mainWindow.setTitle(
+        t('main.windows.documentTitlePattern', '{name} - {app}', {
+          name: truncated,
+          app: t('main.windows.appTitle', 'MetaDoc')
+        })
+      );
     }
   }
+};
+
+export const refreshMainWindowTitle = (): void => {
+  updateWindowTitle(lastDocumentTitle);
 };
 
 /**
@@ -544,12 +565,12 @@ export const openDoc = async (filePath?: string): Promise<void> => {
   }
 
   const result: OpenDialogReturnValue = await dialog.showOpenDialog(mainWindow!, {
-    title: '打开文件',
+    title: t('main.dialogs.openFileTitle'),
     filters: [
-      { name: 'Markdown Files', extensions: ['md'] },
-      { name: 'LaTeX Files', extensions: ['tex'] },
-      { name: 'JSON Files', extensions: ['json'] },
-      { name: 'All Files', extensions: ['*'] }
+      { name: t('main.dialogs.filters.markdown'), extensions: ['md'] },
+      { name: t('main.dialogs.filters.latex'), extensions: ['tex'] },
+      { name: t('main.dialogs.filters.json'), extensions: ['json'] },
+      { name: t('main.dialogs.filters.all'), extensions: ['*'] }
     ]
   });
 
@@ -588,28 +609,28 @@ const chooseSaveFile = async (data: SaveData): Promise<string> => {
     switch (data.args.format.toLowerCase()) {
       case 'md':
       case 'markdown':
-        filters = [{ name: 'Markdown Files', extensions: ['md'] }];
+        filters = [{ name: t('main.dialogs.filters.markdown'), extensions: ['md'] }];
         break;
       case 'tex':
       case 'latex':
-        filters = [{ name: 'LaTeX Files', extensions: ['tex'] }];
+        filters = [{ name: t('main.dialogs.filters.latex'), extensions: ['tex'] }];
         break;
       case 'json':
-        filters = [{ name: 'JSON Files', extensions: ['json'] }];
+        filters = [{ name: t('main.dialogs.filters.json'), extensions: ['json'] }];
         break;
       default:
-        filters = [{ name: 'All Files', extensions: ['*'] }];
+        filters = [{ name: t('main.dialogs.filters.all'), extensions: ['*'] }];
     }
   } else {
     filters = [
-      { name: 'Markdown Files', extensions: ['md'] },
-      { name: 'LaTeX Files', extensions: ['tex'] },
-      { name: 'JSON Files', extensions: ['json'] },
+      { name: t('main.dialogs.filters.markdown'), extensions: ['md'] },
+      { name: t('main.dialogs.filters.latex'), extensions: ['tex'] },
+      { name: t('main.dialogs.filters.json'), extensions: ['json'] },
     ];
   }
 
   const result: SaveDialogReturnValue = await dialog.showSaveDialog(mainWindow!, {
-    title: 'Save File',
+    title: t('main.dialogs.saveFileTitle'),
     defaultPath: filename,
     filters
   });
@@ -642,23 +663,26 @@ const exportFile = async (event: IpcMainEvent, data: ExportData): Promise<void> 
   
   switch (format) {
     case 'docx':
-      filter = { name: 'DOCX File', extensions: ['docx'] };
+      filter = { name: t('main.dialogs.filters.docx'), extensions: ['docx'] };
       break;
     case 'md':
-      filter = { name: 'Markdown File', extensions: ['md'] };
+      filter = { name: t('main.dialogs.filters.markdown'), extensions: ['md'] };
       break;
     case 'html':
-      filter = { name: 'HTML File', extensions: ['html'] };
+      filter = { name: t('main.dialogs.filters.html'), extensions: ['html'] };
       break;
     case 'tex':
-      filter = { name: 'LaTeX File', extensions: ['tex'] };
+      filter = { name: t('main.dialogs.filters.latex'), extensions: ['tex'] };
+      break;
+    case 'pdf':
+      filter = { name: t('main.dialogs.filters.pdf'), extensions: ['pdf'] };
       break;
     default:
-      filter = { name: 'All Files', extensions: ['*'] };
+      filter = { name: t('main.dialogs.filters.all'), extensions: ['*'] };
   }
 
   const result: SaveDialogReturnValue = await dialog.showSaveDialog(mainWindow!, {
-    title: '导出文档',
+    title: t('main.dialogs.exportDocumentTitle'),
     defaultPath: filename + '.' + format,
     filters: [filter],
   });

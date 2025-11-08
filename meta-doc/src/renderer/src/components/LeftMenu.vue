@@ -266,10 +266,14 @@ const showUserProfile = ref(false)
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 import { convertMarkdownToLatex } from '../utils/latex-utils';
+import { createRendererLogger } from '../utils/logger';
 const { locale } = useI18n()
-const changeLang = (lang) => {
+const logger = createRendererLogger('LeftMenu')
+const changeLang = (lang: string) => {
+
   locale.value = lang
   localStorage.setItem('lang', lang)
+  logger.info(`Language changed to ${lang}`)
   sendBroadcast('all', 'lang-changed', lang)
 }
 const toggleUserProfile = () => {

@@ -75,7 +75,8 @@
     "cancel": "Cancel",
     "save": "Save",
     "deleteSuccess": "Deleted successfully",
-    "deleteFailed": "Failed to delete"
+    "deleteFailed": "Failed to delete",
+    "close": "Close"
   },
   "searchReplace": {
     "title": "Search and Replace",
@@ -389,6 +390,31 @@
       "warning": {
         "title": "Warning"
       }
+    },
+    "windows": {
+      "appTitle": "MetaDoc",
+      "documentTitlePattern": "{name} - {app}",
+      "settingTitle": "Settings",
+      "aiChatTitle": "AI Chat",
+      "formulaRecognitionTitle": "Handwritten Formula Recognition",
+      "aiGraphTitle": "AI Chart Assistant"
+    },
+    "dialogs": {
+      "openFileTitle": "Open File",
+      "saveFileTitle": "Save File",
+      "exportDocumentTitle": "Export Document",
+      "filters": {
+        "markdown": "Markdown Files",
+        "latex": "LaTeX Files",
+        "json": "JSON Files",
+        "all": "All Files",
+        "docx": "DOCX Files",
+        "html": "HTML Files",
+        "pdf": "PDF Files"
+      }
+    },
+    "latex": {
+      "compileFailed": "Compilation failed, exit code: {code}"
     }
   },
   "outline": {
@@ -515,7 +541,22 @@
     "knowledgeBaseScoreThreshold": "Knowledge base text similarity threshold",
     "knowledgeBaseScoreThresholdTooltip": "Only query results with a similarity above that value will be accepted by AI, recommendation 0.5.",
     "lowPrecision": "Low precision",
-    "recommended": "Recommendations"
+    "recommended": "Recommendations",
+    "logDirectory": "Log Directory",
+    "logFilePath": "Current Log File",
+    "logFileUnavailable": "Log file not generated",
+    "loggerConsoleTitle": "Log Output in Real Time",
+    "loggingEnabled": "Enable log records",
+    "loggingLevel": "Log Level",
+    "loggingLevels": {
+      "debug": "Debug",
+      "error": "Error",
+      "info": "Information",
+      "warn": "Warning"
+    },
+    "logs": "Log Settings",
+    "openLogDirectory": "Open Log Folder",
+    "openLogFile": "Open Log File"
   },
   "visualize": {
     "articleOutline": "Article Outline",
@@ -531,7 +572,9 @@
     "aiTaskQueueTooltip": "AI Task Queue",
     "aiTaskQueueLabel": "AI Task Queue",
     "notificationEmpty": "No notice",
-    "notificationTooltip": "Notification Queue"
+    "notificationTooltip": "Notification Queue",
+    "logConsoleLabel": "Log",
+    "logConsoleTooltip": "Open log console"
   },
   "aiTask": {
     "cancel": "Cancel",

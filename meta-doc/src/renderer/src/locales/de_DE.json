@@ -114,14 +114,17 @@
     "wordCount": "Anzahl der Zeichen:",
     "aiTaskQueueLabel": "KI Aufgabensuche",
     "notificationEmpty": "Keine Mitteilung",
-    "notificationTooltip": "Ruf die Warteschlange an."
+    "notificationTooltip": "Ruf die Warteschlange an.",
+    "logConsoleLabel": "Protokoll",
+    "logConsoleTooltip": "Protokollkonsole öffnen"
   },
   "common": {
     "cancel": "Abbrechen",
     "confirm": "Bestätigen Sie.",
     "deleteFailed": "Nicht zu löschen",
     "deleteSuccess": "Löschen erfolgreich",
-    "save": "Speichern"
+    "save": "Speichern",
+    "close": "Schließen"
   },
   "contextMenu": {
     "aiAnalysis": "KI Volltextanalyse",
@@ -301,6 +304,31 @@
       "warning": {
         "title": "Warnung"
       }
+    },
+    "dialogs": {
+      "exportDocumentTitle": "Ausfuhrdokument",
+      "filters": {
+        "all": "Alle Dateien",
+        "docx": "DOCX Datei",
+        "html": "HTML Datei",
+        "json": "JSON Datei",
+        "latex": "LaTeX Datei",
+        "markdown": "Markdown Dokumentation",
+        "pdf": "PDF Dateien"
+      },
+      "openFileTitle": "Datei öffnen",
+      "saveFileTitle": "Datei speichern"
+    },
+    "latex": {
+      "compileFailed": "Kompiliert fehlgeschlagen, Ausgangscode: {code}"
+    },
+    "windows": {
+      "aiChatTitle": "Dialog mit KI",
+      "aiGraphTitle": "Smart Drawing Assistant",
+      "appTitle": "MetaDoc",
+      "documentTitlePattern": "{name} - {app}",
+      "formulaRecognitionTitle": "Handgeschriebener Formelerkennungsassistent",
+      "settingTitle": "Set Panel"
     }
   },
   "messageBubble": {
@@ -452,7 +480,22 @@
     "knowledgeBaseScoreThreshold": "Wissensbasis Text Ähnlichkeitsschwelle",
     "knowledgeBaseScoreThresholdTooltip": "Nur Abfrageergebnisse mit einer Ähnlichkeit über diesem Wert werden von AI, Empfehlung 0.5 akzeptiert.",
     "lowPrecision": "Niedrige Präzision",
-    "recommended": "Empfehlungen"
+    "recommended": "Empfehlungen",
+    "logDirectory": "Logbuch",
+    "logFilePath": "Aktuelle Logdatei",
+    "logFileUnavailable": "Logfile nicht generiert",
+    "loggerConsoleTitle": "Log Output in Echtzeit",
+    "loggingEnabled": "Protokolle aktivieren",
+    "loggingLevel": "Datenblatt",
+    "loggingLevels": {
+      "debug": "Debug",
+      "error": "Fehler",
+      "info": "Informationen",
+      "warn": "Warnung"
+    },
+    "logs": "Log-Einstellungen",
+    "openLogDirectory": "Log Ordner öffnen",
+    "openLogFile": "Datei öffnen"
   },
   "titleMenu": {
     "contextMarks": {

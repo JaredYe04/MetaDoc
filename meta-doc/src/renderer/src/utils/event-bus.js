@@ -80,11 +80,11 @@ ipcRenderer.on('os-theme-changed', (event) => {
 ipcRenderer.on('close-triggered', () => {
   //询问是否保存，有保存，放弃三个按钮
   ElMessageBox.confirm(
-    '是否要保存当前文档？',
-    '提示',
+    i18n.global.t('leftMenu.askSave'),
+    i18n.global.t('leftMenu.tip'),
     {
-      confirmButtonText: '保存',
-      cancelButtonText: '放弃',
+      confirmButtonText: i18n.global.t('leftMenu.save'),
+      cancelButtonText: i18n.global.t('leftMenu.discard'),
       showCancelButton: true,
       distinguishCancelAndClose: true,
       type: 'info',
@@ -370,8 +370,8 @@ import { ElMessage } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
 import { webMainCalls } from './web-adapter/web-main-calls.js'
 import { convertMarkdownToLatex } from './latex-utils.js'
-import { useI18n } from 'vue-i18n'
 import { createRendererLogger } from './logger.ts'
+import { i18n } from '../main.js'
 
 
 // window.electron.onMessageFromMain((event, message) => {

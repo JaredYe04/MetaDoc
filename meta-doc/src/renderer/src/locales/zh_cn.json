@@ -390,6 +390,31 @@
             "warning": {
                 "title": "警告"
             }
+        },
+        "windows": {
+            "appTitle": "MetaDoc",
+            "documentTitlePattern": "{name} - {app}",
+            "settingTitle": "设置面板",
+            "aiChatTitle": "与AI对话",
+            "formulaRecognitionTitle": "手写公式识别助手",
+            "aiGraphTitle": "智能绘图助手"
+        },
+        "dialogs": {
+            "openFileTitle": "打开文件",
+            "saveFileTitle": "保存文件",
+            "exportDocumentTitle": "导出文档",
+            "filters": {
+                "markdown": "Markdown 文件",
+                "latex": "LaTeX 文件",
+                "json": "JSON 文件",
+                "all": "所有文件",
+                "docx": "DOCX 文件",
+                "html": "HTML 文件",
+                "pdf": "PDF 文件"
+            }
+        },
+        "latex": {
+            "compileFailed": "编译失败，退出码: {code}"
         }
     },
     "outline": {

@@ -3,6 +3,12 @@
  * 整合所有重构后的服务，提供统一的API接口
  */
 
+import { electronApp, optimizer, is } from '@electron-toolkit/utils';
+import { join } from 'path';
+import { createMainLogger } from '../logger';
+
+const logger = createMainLogger('UtilsManager');
+
 // ============ 服务实例导出 ============
 export { default as pathService } from './path-service';
 export { default as fileConversionService } from './file-conversion-service';
@@ -116,18 +122,18 @@ export class UtilsManager {
     if (this.initialized) return;
 
     try {
-      console.log('🚀 正在初始化工具服务...');
+      logger.info('正在初始化工具服务');
 
       // 初始化RAG服务（最重要的）
-      console.log('📚 初始化RAG服务...');
+      logger.info('初始化 RAG 服务');
       const ragServiceModule = await import('./rag-service');
       await ragServiceModule.default.initVectorDatabase();
 
       this.initialized = true;
-      console.log('✅ 工具服务初始化完成');
+      logger.info('工具服务初始化完成');
 
     } catch (error) {
-      console.error('❌ 工具服务初始化失败:', error);
+      logger.error('工具服务初始化失败', error);
       throw error;
     }
   }

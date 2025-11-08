@@ -121,7 +121,7 @@ export const openDoc = async (path) => {
 
 
 export function webMainCalls() {
-  console.log('webMainCalls')
+  const emitter = rendererEmitter
   localIpcMain.on('quit', async (event, data)=>{
     //关闭网页
     quit();

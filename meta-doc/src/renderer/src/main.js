@@ -1,6 +1,7 @@
 // import './assets/main.css'
 
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import App from './App.vue'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
@@ -19,6 +20,7 @@ import 'element-plus/theme-chalk/dark/css-vars.css'
 
 
 const app = createApp(App);
+const pinia = createPinia();
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
@@ -57,6 +59,7 @@ app.component('MessageBubble',MessageBubble)
 
 app.use(ElementPlus)
 app.component('VueTree', VueTree)
+app.use(pinia)
 app.use(router)
 
 import en_US from './locales/en_US.json'

@@ -1,12 +1,13 @@
 // utils/ai_tasks.js
 import { ref } from 'vue'
 import { answerQuestion,continueConversation, } from './llm-api'
-import eventBus, { isMainWindow } from './event-bus'
+import eventBus, { isMainWindow, getWindowType } from './event-bus'
 import { useRoute } from 'vue-router'
 
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
 import { ai_task_status } from './consts.js'
 import { i18n } from '../main.js'
+import { createRendererLogger } from './logger.ts'
 
 
 let ipcRenderer = null
@@ -23,6 +24,9 @@ if (window && window.electron) {
 
 const tasks = ref([])
 let taskMap = new Map()
+const logger = createRendererLogger('AiTasks', {
+  windowTypeProvider: () => getWindowType()
+})
 function generateHandle() {
   return 'task-' + Math.random().toString(36).substr(2, 9)
 }
@@ -146,7 +150,7 @@ export function cancelAiTask(handle,showWarning=true) {
 
 // 在主窗口中：接收任务注册
 ipcRenderer.on('register-ai-task', (_, taskInfo) => {
-  console.log('主界面任务注册', taskInfo)
+  logger.debug('主界面任务注册', taskInfo)
   const { handle, name, prompt, type, origin_key } = taskInfo
   if (taskMap.has(handle)) return // 防止重复添加
   const task = {

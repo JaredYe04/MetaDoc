@@ -135,7 +135,8 @@ import "../assets/aero-div.css";
 import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
 import "../assets/title-menu.css";
-import eventBus, { isElectronEnv } from '../utils/event-bus';
+import eventBus, { isElectronEnv, getWindowType } from '../utils/event-bus';
+import { createRendererLogger } from '../utils/logger.ts'
 import { generateDescriptionPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
 import { addDialog, countNodes, current_article, current_article_meta_data, defaultAiChatMessages, latest_view, renderedHtml, searchNode, sync } from "../utils/common-data.ts";
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
@@ -154,6 +155,9 @@ import "../assets/ai-suggestion.css";
 import { getArticleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
 import ContextMenu from "../components/ContextMenu.vue";
 const { t } = useI18n()
+const logger = createRendererLogger('MarkdownEditor', {
+  windowTypeProvider: () => getWindowType()
+})
 
 // 状态变量
 const genTitleDialogVisible = ref(false);
@@ -487,7 +491,7 @@ const handleTab = (event: KeyboardEvent) => {
 // 元信息面板尺寸调整处理
 function onMetaInfoResize(size: number, event: MouseEvent) {
     // 这里可以处理尺寸变化的逻辑，比如保存到本地存储
-    console.log(`元信息面板宽度调整为: ${size}px`)
+    logger.debug('元信息面板宽度调整', { size })
 }
 
 
@@ -522,8 +526,8 @@ onMounted(async () => {
                 },
             },
             upload: {
-                url: 'http://localhost:3579/api/image/upload',
-                linkToImgUrl: autoSaveExternalImage ? 'http://localhost:3579/api/image/url-upload' : undefined,
+                url: 'http://localhost:52521/api/image/upload',
+                linkToImgUrl: autoSaveExternalImage ? 'http://localhost:52521/api/image/url-upload' : undefined,
                 success: (editor, msg) => {
                     const data = JSON.parse(msg);
                     const filePaths = data.data.succMap;

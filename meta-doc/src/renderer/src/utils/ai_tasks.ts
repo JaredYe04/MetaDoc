@@ -1,7 +1,7 @@
 // utils/ai_tasks.ts
 import { ref, type Ref } from 'vue'
 import { answerQuestion, continueConversation } from './llm-api'
-import eventBus, { isMainWindow } from './event-bus'
+import eventBus, { isMainWindow, getWindowType } from './event-bus'
 import localIpcRenderer from './web-adapter/local-ipc-renderer'
 import { ai_task_status } from './consts'
 import { i18n } from '../main'
@@ -13,6 +13,7 @@ import type {
   AIDialogMessage
 } from '../../../types'
 import { useI18n } from 'vue-i18n'
+import { createRendererLogger } from './logger.ts'
 
 // IPC渲染器适配
 let ipcRenderer: any = null
@@ -26,6 +27,9 @@ if (window && (window as any).electron) {
 // 任务存储
 const tasks: Ref<AITaskInfo[]> = ref([])
 const taskMap = new Map<string, AITaskInfo>()
+const logger = createRendererLogger('AiTasks', {
+  windowTypeProvider: () => getWindowType()
+})
 
 /** 生成任务句柄 */
 function generateHandle(): string {
@@ -214,7 +218,7 @@ export function useAiTasks(): Ref<AITaskInfo[]> {
 
 // 在主窗口中：接收任务注册
 ipcRenderer.on('register-ai-task', (_: any, taskInfo: any) => {
-  console.log('主界面任务注册', taskInfo)
+  logger.debug('主界面任务注册', taskInfo)
   const { handle, name, prompt, type, origin_key } = taskInfo
   if (taskMap.has(handle)) return // 防止重复添加
   

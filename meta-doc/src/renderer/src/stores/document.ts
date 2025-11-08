@@ -272,4 +272,4 @@ export const useDocumentStore = defineStore('document', () => {
 })
 
 // 兼容性导出（为了保持与现有代码的兼容性）
-export const documentStore = useDocumentStore()
+// 请在组件或 setup 中直接调用 useDocumentStore()

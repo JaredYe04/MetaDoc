@@ -83,15 +83,19 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useNotificationStack, markAllNotificationsRead, markNotificationRead, removeNotification, clearNotifications, initializeNotificationListeners } from '../utils/notifications'
 import ResizablePanel from './base/ResizablePanel.vue'
-import eventBus from '../utils/event-bus'
+import eventBus, { getWindowType } from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { useI18n } from 'vue-i18n'
+import { createRendererLogger } from '../utils/logger.ts'
 
 const { t } = useI18n()
 initializeNotificationListeners(t)
 
 const visible = ref(false)
 const { notifications, unreadCount } = useNotificationStack()
+const logger = createRendererLogger('NotificationQueue', {
+  windowTypeProvider: () => getWindowType()
+})
 
 const maxWidth = computed(() => Math.floor(window.innerWidth * 0.3))
 const maxHeight = computed(() => Math.floor(window.innerHeight * 0.7))
@@ -109,12 +113,13 @@ const wrapperStyle = computed(() => {
 })
 
 function onResize(width: number, height: number) {
-  console.log(`通知队列面板尺寸调整为: ${width}x${height}`)
+  logger.debug('通知队列尺寸调整', { width, height })
 }
 
 function ensureExclusiveOpen(targetVisible: boolean) {
   if (targetVisible) {
     eventBus.emit('close-ai-task-queue')
+    eventBus.emit('close-logger-console')
   }
 }
 

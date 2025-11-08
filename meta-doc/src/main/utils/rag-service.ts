@@ -10,6 +10,7 @@ import natural from 'natural';
 import pathService from './path-service';
 import fileConversionService from './file-conversion-service';
 import modelMergeService from './model-merge-service';
+import { createMainLogger } from '../logger';
 import type {
   FilePath,
   VectorDimension,
@@ -55,6 +56,7 @@ class RAGServiceImpl implements RAGService {
   private vectorInfo: VectorInfoMap = {};
   private embeddingContext: EmbeddingContext | null = null;
   private embedCache: Record<string, number[]> = {};
+  private readonly logger = createMainLogger('RagService');
 
   // 缓存配置
   private readonly cacheDir: FilePath;
@@ -101,9 +103,9 @@ class RAGServiceImpl implements RAGService {
       // 加载嵌入缓存
       this.loadEmbeddingCache();
 
-      console.log(`向量数据库初始化完成: ${this.docIdToText.size} 个文档`);
+      this.logger.info(`向量数据库初始化完成: ${this.docIdToText.size} 个文档`);
     } catch (error) {
-      console.error('向量数据库初始化失败:', error);
+      this.logger.error('向量数据库初始化失败', error as Error);
       // 重置状态
       this.vectorIndex = [];
       this.docIdToText = new Map();
@@ -260,7 +262,7 @@ class RAGServiceImpl implements RAGService {
     // 保存更新
     this.saveAll();
 
-    console.log(`文档 ${fileBaseName} 已从向量索引中删除`);
+    this.logger.info(`文档 ${fileBaseName} 已从向量索引中删除`);
   }
 
   /**
@@ -444,10 +446,10 @@ class RAGServiceImpl implements RAGService {
   private async initEmbedder(modelFileName = "bce-embedding-base_v1-Q8_0.gguf"): Promise<void> {
     const { getLlama } = await import("node-llama-cpp");
 
-    console.log(`🔄 正在合并模型 ${modelFileName}...`);
+    this.logger.info(`正在合并模型 ${modelFileName}...`);
     const mergedPath = await modelMergeService.mergeModel(modelFileName);
 
-    console.log(`📂 从 ${mergedPath} 加载模型...`);
+    this.logger.info(`从 ${mergedPath} 加载模型...`);
     const llama = await getLlama({});
     const model = await llama.loadModel({ modelPath: mergedPath });
 
@@ -459,7 +461,7 @@ class RAGServiceImpl implements RAGService {
         return { vector: [...result.vector] }; // 转换为可变数组
       }
     };
-    console.log("✅ 嵌入上下文初始化完成");
+    this.logger.info('嵌入上下文初始化完成');
   }
 
   /**

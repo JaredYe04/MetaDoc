@@ -16,6 +16,15 @@
 
     </div>
     <div class="actions-group">
+        <el-tooltip :content="$t('bottomMenu.logConsoleTooltip')" placement="top">
+        <span class="status-item status-logger" @click.prevent="toggleLoggerConsole">
+          <el-icon class="status-icon" size="14">
+            <Document />
+          </el-icon>
+          <span class="status-text">{{ $t('bottomMenu.logConsoleLabel') }}</span>
+        </span>
+      </el-tooltip>
+      <span class="status-divider">|</span>
         <el-tooltip :content="notificationTooltip" placement="top">
         <span class="status-item status-notification" @click.prevent="toggleNotificationQueue">
           <el-icon class="status-icon" size="14">
@@ -66,7 +75,7 @@ const wordCount = computed(() => {
 })
 
 import { useI18n } from 'vue-i18n'
-import { BellFilled } from '@element-plus/icons-vue'
+import { BellFilled, Document } from '@element-plus/icons-vue'
 import { useAiTasks } from '../utils/ai_tasks'
 const { t } = useI18n()
 initializeNotificationListeners(t)
@@ -90,6 +99,10 @@ const notificationTooltip = computed(() => {
 
 function toggleNotificationQueue() {
     eventBus.emit('toggle-notification-queue')
+}
+
+function toggleLoggerConsole() {
+    eventBus.emit('toggle-logger-console')
 }
 </script>
 <style scoped>
@@ -142,6 +155,17 @@ function toggleNotificationQueue() {
 }
 
 .status-notification:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.status-logger {
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.status-logger:hover {
     background-color: rgba(0, 0, 0, 0.08);
 }
 

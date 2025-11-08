@@ -109,7 +109,11 @@ class LaTeXServiceImpl implements LaTeXService {
     if (child.stdout) {
       child.stdout.on('data', (data: Buffer) => {
         if (mainWindow) {
-          mainWindow.webContents.send('console-out', data.toString());
+          mainWindow.webContents.send('console-out', {
+            key: 'latex',
+            content: data.toString(),
+            type: 'out'
+          });
         }
       });
     }
@@ -118,7 +122,11 @@ class LaTeXServiceImpl implements LaTeXService {
     if (child.stderr) {
       child.stderr.on('data', (data: Buffer) => {
         if (mainWindow) {
-          mainWindow.webContents.send('console-err', data.toString());
+          mainWindow.webContents.send('console-err', {
+            key: 'latex',
+            content: data.toString(),
+            type: 'err'
+          });
         }
       });
     }
@@ -138,6 +146,13 @@ class LaTeXServiceImpl implements LaTeXService {
     child.on('error', (error) => {
       console.error('LaTeX compilation process error:', error);
       this.cleanupTempFile(tempTexPath);
+      if (mainWindow) {
+        mainWindow.webContents.send('console-err', {
+          key: 'latex',
+          content: String(error),
+          type: 'err'
+        });
+      }
       resolve({ status: 'failed', exitCode: -1 });
     });
   }

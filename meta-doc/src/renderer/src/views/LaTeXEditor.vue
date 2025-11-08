@@ -101,7 +101,7 @@
                         <div class="console-panel" :style="{
                             background:themeState.currentTheme.background
                         }">
-                        <Console />
+                        <Console console-key="latex" />
                         </div>
                     </div>
 
@@ -271,7 +271,7 @@ import "../assets/aero-div.css";
 import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
 import "../assets/title-menu.css";
-import eventBus, { isElectronEnv } from '../utils/event-bus';
+import eventBus, { getWindowType } from '../utils/event-bus';
 import { generateDescriptionPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
 import { addDialog, countNodes, current_article, current_article_meta_data, current_file_path, current_tex_article, defaultAiChatMessages, latest_view, renderedHtml, searchNode, sync } from "../utils/common-data";
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
@@ -362,6 +362,8 @@ let startX, startY, offsetX = 0, offsetY = 0;
 
 import * as pdfjsLib from "pdfjs-dist";
 import Console from "../components/Console.vue";
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
+import { createRendererLogger } from '../utils/logger.ts'
 let ipcRenderer = null
 if (window && window.electron) {
     ipcRenderer = window.electron.ipcRenderer
@@ -519,7 +521,7 @@ function stopResizePdf() {
 }
 
 const compile = async () => {
-    eventBus.emit('clear-console')
+    eventBus.emit('clear-console', { key: 'latex' })
     eventBus.emit('cancel-suggestion')
     if(current_file_path.value==null||!current_file_path.value.toLowerCase().endsWith(".tex")){
         eventBus.emit("show-info",t("latexEditor.notification.pleaseSaveFirst"));
@@ -822,24 +824,24 @@ const initEditor = () => {
 
             switch (label) {
                 case 'json':
-                    workerPath = 'http://localhost:3579/monaco/language/json/json.worker.js';
+                    workerPath = 'http://localhost:52521/monaco/language/json/json.worker.js';
                     break;
                 case 'css':
                 case 'scss':
                 case 'less':
-                    workerPath = 'http://localhost:3579/monaco/language/css/css.worker.js';
+                    workerPath = 'http://localhost:52521/monaco/language/css/css.worker.js';
                     break;
                 case 'html':
                 case 'handlebars':
                 case 'razor':
-                    workerPath = 'http://localhost:3579/monaco/language/html/html.worker.js';
+                    workerPath = 'http://localhost:52521/monaco/language/html/html.worker.js';
                     break;
                 case 'typescript':
                 case 'javascript':
-                    workerPath = 'http://localhost:3579/monaco/language/typescript/ts.worker.js';
+                    workerPath = 'http://localhost:52521/monaco/language/typescript/ts.worker.js';
                     break;
                 default:
-                    workerPath = 'http://localhost:3579/monaco/editor/editor.worker.js';
+                    workerPath = 'http://localhost:52521/monaco/editor/editor.worker.js';
             }
 
             // ESM worker: 用 import() 动态导入
@@ -963,7 +965,7 @@ onUnmounted(() => {
         });
     }
     catch (e) {
-        console.log(e)
+        logger.error('LaTeX 编辑器错误', e)
     }
 });
 

@@ -60,12 +60,16 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useAiTasks, startAiTask, cancelAiTask } from '../utils/ai_tasks.ts'
 import AITask from './AITask.vue'
 import ResizablePanel from './base/ResizablePanel.vue'
-import eventBus from '../utils/event-bus'
+import eventBus, { getWindowType } from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { useI18n } from 'vue-i18n'
 import { setSetting, settings } from '../utils/settings'
+import { createRendererLogger } from '../utils/logger.ts'
 
 const { t } = useI18n()
+const logger = createRendererLogger('AITaskQueue', {
+  windowTypeProvider: () => getWindowType()
+})
 
 // 组件状态
 const visible = ref(false)
@@ -94,7 +98,7 @@ const wrapperStyle = computed(() => {
 function onResize(width: number, height: number) {
   // 可以在这里处理尺寸变化的逻辑
   // 例如保存到本地存储等
-  console.log(`AI任务队列面板尺寸调整为: ${width}x${height}`)
+  logger.debug('AI 任务队列尺寸调整', { width, height })
 }
 
 function toggleVisibility() {
@@ -102,6 +106,7 @@ function toggleVisibility() {
   visible.value = next
   if (next) {
     eventBus.emit('close-notification-queue')
+    eventBus.emit('close-logger-console')
   }
 }
 

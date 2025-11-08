@@ -263,7 +263,7 @@
 <script setup>
 import { ref, reactive, watch, onMounted, computed } from 'vue';
 import { ElButton, ElDialog, ElMessageBox, ElNotification } from 'element-plus'; // 引入 Element Plus 组件
-import eventBus from '../utils/event-bus.js';
+import eventBus, { getWindowType } from '../utils/event-bus.js';
 import '../assets/aero-div.css';
 import '../assets/aero-btn.css';
 import "../assets/aero-input.css";
@@ -280,8 +280,12 @@ import '../assets/noselect-display.css';
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks.js';
 import { getSetting } from '../utils/settings.js';
+import { createRendererLogger } from '../utils/logger.ts';
 
 const { t } = useI18n()
+const logger = createRendererLogger('Outline', {
+  windowTypeProvider: () => getWindowType()
+})
 const formatTitleDialogVisible = ref(false);
 const formatTitle = () => {
   formatTitleDialogVisible.value = true;
@@ -518,8 +522,7 @@ const executeFormatTitle = () => {
 }
 
 const handleNodeDrag = (dragNode, targetNode) => {
-  console.log('dragNode', dragNode);
-  console.log('targetNode', targetNode);
+  logger.debug('节点拖拽', { dragNode, targetNode })
 }
 const treeData = ref(current_outline_tree);
 const direction = ref('vertical');
@@ -733,7 +736,7 @@ const generateChildChapter = async () => {
 
   }
   catch (e) {
-    console.log('json parse error', e);
+    logger.error('大纲 JSON 解析失败', e);
     eventBus.emit('show-error', t('outline.generateChildRetryFail', { error: e.message }));
 
   }

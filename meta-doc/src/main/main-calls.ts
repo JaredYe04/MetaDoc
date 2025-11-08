@@ -43,6 +43,8 @@ import { dirname } from './index';
 import { imageUploadDir } from './express-server';
 import { queryKnowledgeBase, getResourcesPath, compileLatexToPDF } from './utils';
 import type { LaTeXCompileResult } from '../types/utils';
+import { createMainLogger, handleRendererLog, getLoggerConfig, getLoggerHistory, openCurrentLogFile, openLogDirectory, updateLoggerConfig } from './logger';
+import type { LogPayload, LogLevel } from '../common/logger-constants';
 
 // ============ 接口定义 ============
 
@@ -111,6 +113,8 @@ interface TaskInfo {
 
 let is_need_save: boolean = false;
 
+const logger = createMainLogger('MainCalls');
+
 // ============ 主要功能 ============
 
 /**
@@ -125,6 +129,7 @@ export function mainCalls(): void {
   bindKnowledgeHandlers();
   bindAITaskHandlers();
   bindSystemHandlers();
+  bindLoggerHandlers();
   
   initBroadcastChannel();
 }
@@ -185,8 +190,30 @@ function bindFileHandlers(): void {
     try {
       await shell.openPath(filePath);
     } catch (error) {
-      console.error('打开文件失败:', error);
+      logger.error('打开文件失败:', error);
     }
+  });
+}
+
+function bindLoggerHandlers(): void {
+  ipcMain.on('logger-log', (_event: IpcMainEvent, payload: LogPayload) => {
+    handleRendererLog(payload);
+  });
+
+  ipcMain.handle('get-logger-config', async () => {
+    return getLoggerConfig();
+  });
+
+  ipcMain.on('open-log-file', async () => {
+    await openCurrentLogFile();
+  });
+
+  ipcMain.on('open-log-directory', async () => {
+    await openLogDirectory();
+  });
+
+  ipcMain.handle('get-logger-history', async () => {
+    return getLoggerHistory();
   });
 }
 
@@ -363,7 +390,7 @@ const systemNotification = (title: string, body: string, path: string = ''): voi
   notification.on('click', () => {
     if (path) {
       shell.openPath(path).then(() => {
-        console.log(`已尝试打开: ${path}`);
+        logger.info('已尝试打开文件', path);
       }).catch(err => {
         console.error(`打开文件失败: ${err}`);
       });
@@ -435,7 +462,16 @@ function getSetting(key: string): any {
 }
 
 function setSetting(key: string, value: any): void {
-  return store.set(key, value);
+  store.set(key, value);
+
+  if (key === 'loggingEnabled') {
+    updateLoggerConfig({ enabled: Boolean(value) });
+  }
+
+  if (key === 'loggingLevel') {
+    const normalized = typeof value === 'string' ? value.toLowerCase() : value;
+    updateLoggerConfig({ level: normalized as LogLevel });
+  }
 }
 
 // ============ 应用控制 ============

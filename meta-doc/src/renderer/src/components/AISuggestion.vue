@@ -14,10 +14,16 @@ import { getSetting } from "../utils/settings";
 import { current_format } from "../utils/common-data";
 import * as monaco from "monaco-editor";
 import 'monaco-latex';
-import eventBus from "../utils/event-bus";
+import eventBus, { getWindowType } from "../utils/event-bus";
+import { createRendererLogger } from '../utils/logger.ts'
+import { useDocumentStore } from "../stores/document.ts";
 
 
 const { t } = useI18n()
+const logger = createRendererLogger('AISuggestion', {
+  windowTypeProvider: () => getWindowType()
+})
+const store = useDocumentStore()
 const props = defineProps({
   targetEl: { type: Object, required: true }, // 宿主元素 (contenteditable 或 textarea overlay)
   trigger: { type: Boolean }, // 是否触发补全
@@ -554,9 +560,8 @@ onMounted(() => {
       );
       editor.onDidChangeCursorPosition((e) => {
         // e.position 是 monaco.Position 对象
-        const line = e.position.lineNumber;
-        const column = e.position.column;
-        console.log("光标位置:", line, column);
+        const { lineNumber, column } = editor.value.getPosition()
+        logger.debug('光标位置', { lineNumber, column })
       });
       
     })

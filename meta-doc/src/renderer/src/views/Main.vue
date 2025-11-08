@@ -34,6 +34,7 @@
 
     <NotificationQueue />
     <AITaskQueue />
+    <LoggerConsolePanel />
   </div>
 </template>
 
@@ -52,6 +53,7 @@ import { useI18n } from 'vue-i18n'
 import BottomMenu from '../components/BottomMenu.vue'
 import AITaskQueue from '../components/AITaskQueue.vue'
 import NotificationQueue from '../components/NotificationQueue.vue'
+import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
 const { t } = useI18n()
 
 const showUserProfileCard = ref(false)

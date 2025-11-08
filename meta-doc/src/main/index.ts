@@ -15,12 +15,16 @@ import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 // import icon from '../../resources/icon.png?asset';
 const icon = undefined; // 暂时禁用icon导入
-import { mainCalls, openDoc } from './main-calls';
+import { mainCalls } from './main-calls';
 import { runExpressServer } from './express-server';
 import { initializeUtils } from './utils';
+import { initLogger, shutdownLogger, createMainLogger } from './logger';
 
 const url = require('url');
 const path = require('path');
+
+initLogger();
+const logger = createMainLogger('MainProcess');
 
 // ============ 全局变量 ============
 
@@ -75,11 +79,11 @@ function createWindow(): void {
     
     // 初始化工具服务
     try {
-      console.log('🚀 正在初始化重构后的工具服务...');
+      logger.info('🚀 正在初始化重构后的工具服务...');
       await initializeUtils();
-      console.log('✅ 工具服务初始化完成');
+      logger.info('✅ 工具服务初始化完成');
     } catch (error) {
-      console.error('❌ 工具服务初始化失败:', error);
+      logger.error('❌ 工具服务初始化失败:', error);
     }
   });
 
@@ -153,7 +157,7 @@ app.whenReady().then(() => {
 
   // 错误处理（通过process监听）
   process.on('uncaughtException', (error: Error) => {
-    console.error('Uncaught Exception:', error);
+    logger.error('Uncaught Exception:', error);
   });
 });
 
@@ -171,6 +175,10 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  shutdownLogger();
 });
 
 // ============ 快捷键绑定 ============

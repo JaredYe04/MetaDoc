@@ -276,7 +276,13 @@ import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn.js'
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks.js'
 import { getSetting } from '../utils/settings.js'
+import { createRendererLogger } from '../utils/logger.ts'
 const { t } = useI18n()
+const logger = createRendererLogger('AIGraph', {
+  windowTypeProvider: () => getWindowType()
+})
+
+import { useRoute } from 'vue-router'
 
 const STORAGE_KEY = 'aiGraph_schemes'
 const engines = graphEngineConfig.map(e => e.name)
@@ -537,11 +543,11 @@ async function generateCode() {
     if (!activeScheme.value) return
     generating.value = true
     activeScheme.value.code = ''
-    const prompt = generateGraphPrompt(activeScheme.value.engine,
+    const prompt = JSON.stringify(generateGraphPrompt(activeScheme.value.engine,
         activeScheme.value.type,
         activeScheme.value.prompt,
-        activeScheme.value.specialPrompt);
-    console.log(prompt)
+        activeScheme.value.specialPrompt));
+    logger.debug('图形生成 Prompt', prompt)
     const codeRef = ref('')
     watch(
         () => codeRef.value,

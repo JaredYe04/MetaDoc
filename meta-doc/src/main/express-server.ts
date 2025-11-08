@@ -30,6 +30,7 @@ import type {
   OperationResult,
   KnowledgeItem 
 } from '../types/utils';
+import { createMainLogger } from './logger';
 
 // ============ 接口定义 ============
 
@@ -70,6 +71,13 @@ export let knowledgeUploadDir: FilePath = '';
 export let knowledgeItems: KnowledgeItem[] = [];
 
 const expressApp: Application = express();
+const logger = createMainLogger('ExpressServer');
+
+let server: Server | null = null;
+
+const isServerRunning = (): boolean => {
+  return server !== null;
+};
 
 // ============ 主要功能 ============
 
@@ -77,6 +85,11 @@ const expressApp: Application = express();
  * 启动Express服务器
  */
 export const runExpressServer = (): void => {
+  if (isServerRunning()) {
+    logger.debug('Express 服务已在运行');
+    return;
+  }
+
   const projectRoot = path.resolve(path.resolve(__dirname, '../'), '../');
   
   setupStaticFiles(projectRoot);
@@ -97,13 +110,13 @@ function setupStaticFiles(projectRoot: string): void {
   // Vditor 静态资源
   expressApp.use('/vditor', express.static(vditorDir));
   expressApp.get('/vditor/*', (req: Request, res: Response) => {
-    console.log('Request for Vditor file:', req.path);
+    logger.debug('Vditor 资源请求', req.path);
   });
   
   // Monaco Editor 静态资源
   expressApp.use('/monaco', express.static(monacoDir));
   expressApp.get('/monaco/*', (req: Request, res: Response) => {
-    console.log('Request for Monaco file:', req.path);
+    logger.debug('Monaco 资源请求', req.path);
   });
 }
 
@@ -128,21 +141,36 @@ function setupBodyParser(): void {
  * 启动HTTP服务器
  */
 function startServer(): void {
-  const server: Server = require('http').createServer(expressApp);
-  
-  server.listen(3579, () => {
-    console.log('Local CDN server running at http://localhost:3579');
-  });
+  try {
+    server = expressApp.listen(52521, () => {
+      logger.info('本地 CDN 服务已启动 http://localhost:52521');
+    });
 
-  server.on('error', (error: NodeJS.ErrnoException) => {
-    if (error.code === 'EADDRINUSE') {
-      console.error('Port 3579 is already in use. Retrying...');
-      setTimeout(() => {
-        server.close();
-        server.listen(3579);
-      }, 10000);
-    }
-  });
+    server!.on('error', (error: NodeJS.ErrnoException) => {
+      logger.error('Express 服务启动失败', error);
+
+      if (error.code === 'EADDRINUSE') {
+        logger.warn('端口 52521 已被占用，10 秒后重试');
+        setTimeout(() => {
+          try {
+            if (server) {
+              server.close();
+            }
+          } catch (closeError) {
+            logger.error('关闭已有 Express 服务失败', closeError as Error);
+          } finally {
+            server = null;
+            startServer();
+          }
+        }, 10000);
+      } else {
+        server = null;
+      }
+    });
+  } catch (error) {
+    logger.error('创建 Express 服务失败', error as Error);
+    server = null;
+  }
 }
 
 // ============ 图片API ============
@@ -259,7 +287,7 @@ function handleUrlUpload(req: UrlUploadRequest, res: Response): void {
       res.status(500).json({ error: 'Failed to download image' });
     }
   }).on('error', (err: Error) => {
-    console.error('Error downloading image:', err);
+    logger.error('下载图片失败', err);
     res.status(500).json({ error: 'Failed to download image' });
   });
 }
@@ -397,8 +425,8 @@ async function handleKnowledgeUpload(req: KnowledgeUploadRequest, res: Response)
     
     res.json({ success: result.success, message: result.message });
   } catch (err) {
-    console.error('addFileToKnowledgeBase error:', err);
-    res.json({ success: false, message: (err as Error).message });
+    logger.error('知识库添加文件失败', err);
+    return res.status(500).json({ success: false, error: '上传文件失败' });
   }
 }
 
@@ -455,8 +483,8 @@ async function handleKnowledgeClear(req: Request, res: Response): Promise<void> 
     knowledgeItems = [];
     res.json({ success: true });
   } catch (err) {
-    console.error('清空知识库失败', err);
-    res.json({ success: false, message: (err as Error).message });
+    logger.error('清空知识库失败', err);
+    return res.status(500).json({ success: false, error: '清空知识库失败' });
   }
 }
 
@@ -478,8 +506,8 @@ async function handleKnowledgePreview(req: Request, res: Response): Promise<void
       truncated 
     });
   } catch (err) {
-    console.error('预览失败', err);
-    res.json({ preview: '', truncated: false });
+    logger.error('知识库内容预览失败', err);
+    return res.status(500).json({ success: false, error: '预览失败' });
   }
 }
 
@@ -530,8 +558,8 @@ async function handleKnowledgeRebuild(req: Request, res: Response): Promise<void
     
     res.json({ success: true, message: '重建知识库成功' });
   } catch (err) {
-    console.error('重建知识库失败', err);
-    res.json({ success: false, message: '重建失败: ' + (err as Error).message });
+    logger.error('重建知识库失败', err);
+    return res.status(500).json({ success: false, error: '重建失败' });
   }
 }
 

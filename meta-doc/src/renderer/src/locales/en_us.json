@@ -531,7 +531,7 @@
     "aiTaskQueueTooltip": "AI Task Queue",
     "aiTaskQueueLabel": "AI Task Queue",
     "notificationEmpty": "No notice",
-    "notificationTooltip": "Call the queue."
+    "notificationTooltip": "Notification Queue"
   },
   "aiTask": {
     "cancel": "Cancel",
@@ -637,7 +637,7 @@
     "markAllRead": "Mark All as Read",
     "markRead": "Mark as read",
     "remove": "Remove",
-    "title": "Call the queue.",
+    "title": "Notification Queue",
     "type": {
       "error": "Error Notification",
       "info": "Information circular",

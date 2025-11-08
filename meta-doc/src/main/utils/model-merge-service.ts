@@ -7,6 +7,9 @@ import fs from 'fs';
 import path from 'path';
 import pathService from './path-service';
 import type { FilePath, ModelInfo, ModelMergeResult } from '../../types/utils';
+import { createMainLogger } from '../logger';
+
+const logger = createMainLogger('ModelMergeService');
 
 /**
  * 模型合并服务实现类
@@ -97,7 +100,7 @@ class ModelMergeService {
       );
       return modelsData.includes(modelFileName);
     } catch (error) {
-      console.error('Error reading models.json:', error);
+      logger.error('读取 models.json 失败', error);
       return false;
     }
   }
@@ -112,7 +115,7 @@ class ModelMergeService {
         .filter(file => file.startsWith(modelFileName + '.part'))
         .sort(); // 保证按序合并
     } catch (error) {
-      console.error('Error reading resources directory:', error);
+      logger.error('读取资源目录失败', error);
       return [];
     }
   }
@@ -125,7 +128,7 @@ class ModelMergeService {
     partFiles: string[],
     mergedPath: FilePath
   ): Promise<void> {
-    console.log(`🔗 合并 ${partFiles.length} 个分卷为完整模型...`);
+    logger.info('开始合并模型分卷', { model: modelFileName, parts: partFiles.length });
 
     const writeStream = fs.createWriteStream(mergedPath, { flags: 'w' });
 
@@ -142,7 +145,7 @@ class ModelMergeService {
       writeStream.close();
     }
 
-    console.log(`✅ 模型合并完成: ${mergedPath}`);
+    logger.info('模型合并完成', { path: mergedPath });
   }
 
   /**
@@ -155,7 +158,7 @@ class ModelMergeService {
       try {
         fs.unlinkSync(partPath);
       } catch (error) {
-        console.warn(`Failed to delete part file ${partFile}:`, error);
+        logger.warn(`删除模型分卷失败: ${partFile}`, error);
       }
     }
   }

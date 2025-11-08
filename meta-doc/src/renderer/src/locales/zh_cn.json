@@ -74,6 +74,7 @@
         "confirm": "确认",
         "cancel": "取消",
         "save": "保存",
+        "close": "关闭",
         "deleteSuccess": "删除成功",
         "deleteFailed": "删除失败"
     },
@@ -449,6 +450,7 @@
         "basic": "基本设置",
         "llm": "LLM设置",
         "themes": "主题设置",
+        "logs": "日志设置",
         "startupOption": "启动选项",
         "openNewFile": "打开新文件",
         "openLastFile": "打开上次编辑的文件",
@@ -515,7 +517,21 @@
         "testPrompt": "你好！请介绍一下你自己。",
         "testFailed": "测试失败：",
         "particleEffect": "粒子效果",
-        "particleEffectHint": "启用粒子效果，提升画面美观度。若开启，可能会影响性能。"
+        "particleEffectHint": "启用粒子效果，提升画面美观度。若开启，可能会影响性能。",
+        "loggingEnabled": "启用日志记录",
+        "loggingLevel": "日志等级",
+        "logFilePath": "当前日志文件",
+        "logDirectory": "日志目录",
+        "openLogFile": "打开日志文件",
+        "logFileUnavailable": "暂未生成日志文件",
+        "loggingLevels": {
+            "debug": "调试",
+            "info": "信息",
+            "warn": "警告",
+            "error": "错误"
+        },
+        "openLogDirectory": "打开日志文件夹",
+        "loggerConsoleTitle": "日志实时输出"
     },
     "visualize": {
         "articleOutline": "文章大纲",
@@ -531,7 +547,9 @@
         "aiTaskQueueTooltip": "AI任务队列",
         "aiTaskQueueLabel": "AI任务队列",
         "notificationTooltip": "通知队列",
-        "notificationEmpty": "暂无通知"
+        "notificationEmpty": "暂无通知",
+        "logConsoleLabel": "日志",
+        "logConsoleTooltip": "打开日志控制台"
     },
     "aiTask": {
         "status": "状态",

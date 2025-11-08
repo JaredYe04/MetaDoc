@@ -228,15 +228,19 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
-import eventBus from '../utils/event-bus';
+import eventBus, { getWindowType } from '../utils/event-bus';
 import { themeState } from '../utils/themes';
 import { Check, Close, Edit } from '@element-plus/icons-vue';
 import { queryKnowledgeBase } from '../utils/rag_utils';
 import { interpolateObject } from 'd3';
 import { setSetting, settings } from '../utils/settings';
+import { createRendererLogger } from '../utils/logger.ts';
 
 
 const { t } = useI18n();
+const logger = createRendererLogger('KnowledgeBase', {
+    windowTypeProvider: () => getWindowType()
+});
 
 const previewLoaded = ref(true);
 const items = ref([]);
@@ -248,7 +252,7 @@ const info = reactive({});
 const isUploading = ref(false);
 const isRebuilding = ref(false);
 const fileInput = ref(null);
-const baseUrl = 'http://localhost:3579/api/knowledge'
+const baseUrl = 'http://localhost:52521/api/knowledge'
 
 const searchQuery = ref('');
 const searchResults = ref([]);
@@ -271,11 +275,11 @@ function humanSize(bytes) {
 // fetch list from backend
 async function fetchList() {
     try {
-        console.log("Fetching knowledge base list...");
+        logger.info('开始获取知识库列表');
         const r = await fetch(`${baseUrl}/list`);
 
         const j = await r.json();
-        console.log(j)
+        logger.debug('知识库列表响应', j)
         items.value = (j.items || []).map(it => ({ ...it, info: it.info || {} }));
     } catch (e) {
         console.error(e);
@@ -430,7 +434,7 @@ async function fetchInfo(id) {
         const j = await r.json();
         if (j.success) {
             delete j['success']
-            console.log(j)
+            logger.debug('知识库详情', j)
             // also attach to items list if present
             const it = items.value.find(x => x.id === id);
             if (it) it.info = { ...j };

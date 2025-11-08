@@ -1,11 +1,15 @@
 import axios from "axios";
 import { getSetting } from "../utils/settings.js";
 import { ca } from "element-plus/es/locales.mjs";
-import eventBus from "./event-bus.js";
+import eventBus, { getWindowType } from "./event-bus.js";
 import { max } from "d3";
 import { getMetaDocLlmConfig, verifyToken } from "./web-utils.ts";
 import { queryKnowledgeBase } from "./rag_utils.js";
 import { ragQueryReferencePrompt } from "./prompts.js";
+import { createRendererLogger } from "./logger.ts";
+const logger = createRendererLogger('LlmApi', {
+  windowTypeProvider: () => getWindowType()
+});
 
 /**
  * Helper to determine the current LLM settings (selected model and API details).
@@ -91,7 +95,7 @@ async function answerQuestionNonStream(prompt, ref, meta = { temperature: 0 }, s
 
     } catch (error) {
       if (error.name === 'AbortError') {
-        console.log('请求已中止');
+        logger.debug('LLM 请求已中止');
         throw error; // 重新抛出中止异常，供上层处理
       }
       console.error("非流式请求出错:", error);

@@ -42,6 +42,11 @@ if (window && window.electron) {
 }
 
 
+const logger = createRendererLogger('EventBus', {
+  windowTypeProvider: () => getWindowType()
+});
+
+
 export const isElectronEnv = () => {//判断是否在electron环境中
   return navigator.userAgent.toLowerCase().includes('electron');
 }
@@ -238,7 +243,7 @@ eventBus.on('export', async (args) => {
   //鼠标指针变为等待状态
   args = {};
   args.md = current_article.value;
-  console.log(args.md)
+  logger.debug('导出操作: 当前 Markdown 长度', args.md ? args.md.length : 0)
   switch (current_format.value) {
     case "md":
       if (format === 'html' || format === 'docx' || format === 'pdf' || format === 'md') {
@@ -295,6 +300,14 @@ eventBus.on('system-notification', (data) => {
   //console.log(data)
   ipcRenderer.send('system-notification', data)
 
+})
+
+eventBus.on('open-log-file', () => {
+  ipcRenderer.send('open-log-file')
+})
+
+eventBus.on('open-log-directory', () => {
+  ipcRenderer.send('open-log-directory')
 })
 
 eventBus.on('theme-changed', () => {
@@ -358,6 +371,7 @@ import { ElMessageBox } from 'element-plus'
 import { webMainCalls } from './web-adapter/web-main-calls.js'
 import { convertMarkdownToLatex } from './latex-utils.js'
 import { useI18n } from 'vue-i18n'
+import { createRendererLogger } from './logger.ts'
 
 
 // window.electron.onMessageFromMain((event, message) => {

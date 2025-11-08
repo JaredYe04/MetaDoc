@@ -18,11 +18,13 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-let ipcRenderer = null
+<script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount, watch, PropType } from 'vue';
+import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer.ts';
+import { webMainCalls } from '../utils/web-adapter/web-main-calls.js';
+let ipcRenderer: typeof localIpcRenderer | null = null
 if (window && window.electron) {
-    ipcRenderer = window.electron.ipcRenderer
+    ipcRenderer = window.electron.ipcRenderer as typeof localIpcRenderer
 
 } else {
     webMainCalls();
@@ -32,24 +34,89 @@ if (window && window.electron) {
 import eventBus from '../utils/event-bus';
 import { themeState } from '../utils/themes';
 
-const consoleStyle = ref({
-      '--console-bg': themeState.currentTheme.editorPanelBackgroundColor,
-      '--console-text': themeState.currentTheme.textColor2,
-      '--console-err': '#fe8771'
-    });
-eventBus.on('sync-editor-theme', async () => {
-    consoleStyle.value={
-      '--console-bg': themeState.currentTheme.editorPanelBackgroundColor,
-      '--console-text': themeState.currentTheme.textColor2,
-      '--console-err': '#fe8771'
-    };
+type ConsoleLineType = 'out' | 'err' | 'warn' | 'debug';
+
+interface HistoryLine {
+  content: string;
+  type?: ConsoleLineType | string;
+}
+
+interface ConsolePayload {
+  key?: string;
+  console_key?: string;
+  consoleKey?: string;
+  content?: string;
+  message?: string;
+  text?: string;
+  type?: string;
+}
+
+interface ConsoleLine {
+  id: number;
+  content: string;
+  type: ConsoleLineType;
+}
+
+const props = defineProps({
+  consoleKey: {
+    type: String,
+    default: 'default'
+  },
+  history: {
+    type: Array as PropType<HistoryLine[]>,
+    default: () => []
+  }
 });
 
-const lines = ref([]);
-const consoleBody = ref(null);
+const consoleStyle = ref({
+  '--console-bg': themeState.currentTheme.editorPanelBackgroundColor,
+  '--console-text': themeState.currentTheme.textColor2,
+  '--console-err': '#fe8771',
+  '--console-warn': '#e6a23c',
+  '--console-debug': '#909399'
+});
+
+eventBus.on('sync-editor-theme', async () => {
+  consoleStyle.value = {
+    '--console-bg': themeState.currentTheme.editorPanelBackgroundColor,
+    '--console-text': themeState.currentTheme.textColor2,
+    '--console-err': '#fe8771',
+    '--console-warn': '#e6a23c',
+    '--console-debug': '#909399'
+  };
+});
+
+const lines = ref<ConsoleLine[]>([]);
+const consoleBody = ref<HTMLDivElement | null>(null);
 
 let lineId = 0;
-const addLine = (content, type = 'out') => {
+
+const normalizeType = (type?: string, fallback: ConsoleLineType = 'out'): ConsoleLineType => {
+  if (!type) return fallback;
+  const lower = type.toLowerCase();
+  if (lower === 'error' || lower === 'err') return 'err';
+  if (lower === 'warn' || lower === 'warning') return 'warn';
+  if (lower === 'debug') return 'debug';
+  return fallback;
+};
+
+const applyHistory = (history: HistoryLine[]) => {
+  const initialLines = history.map(historyLine => ({
+    id: lineId++,
+    content: historyLine.content,
+    type: normalizeType(historyLine.type, 'out')
+  }));
+  lines.value = initialLines;
+};
+
+applyHistory(props.history);
+
+watch(() => props.history, (newHistory) => {
+  lineId = 0;
+  applyHistory(newHistory);
+});
+
+const addLine = (content: string, type: ConsoleLineType = 'out') => {
   lines.value.push({ id: lineId++, content, type });
   requestAnimationFrame(() => {
     if (consoleBody.value) consoleBody.value.scrollTop = consoleBody.value.scrollHeight;
@@ -74,7 +141,7 @@ const saveConsole = () => {
 
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'console.log'; // 默认文件名
+  a.download = `console-${props.consoleKey}.log`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -82,19 +149,88 @@ const saveConsole = () => {
   eventBus.emit("show-success",'日志已保存')
 };
 
+const resolvePayload = (payload: unknown, fallbackType: ConsoleLineType, requireContent = true) => {
+  if (payload === null || payload === undefined) {
+    return null;
+  }
 
-const onConsoleOut = (event, data) => addLine(data, 'out');
-const onConsoleErr = (event, data) => addLine(data, 'err');
+  if (typeof payload === 'string') {
+    const keyMatch = props.consoleKey;
+    if (!requireContent || payload.length > 0) {
+      return {
+        key: keyMatch,
+        content: payload,
+        type: fallbackType
+      };
+    }
+    return null;
+  }
+
+  if (typeof payload === 'object') {
+    const obj = payload as ConsolePayload;
+    const key = obj.key ?? obj.console_key ?? obj.consoleKey ?? props.consoleKey;
+    if (key !== props.consoleKey) {
+      return null;
+    }
+
+    const content = obj.content ?? obj.message ?? obj.text ?? '';
+    if (requireContent && !content) {
+      return null;
+    }
+
+    return {
+      key,
+      content,
+      type: normalizeType(obj.type, fallbackType)
+    };
+  }
+
+  return null;
+};
+
+const handleOutPayload = (payload: unknown, fallbackType: ConsoleLineType) => {
+  const resolved = resolvePayload(payload, fallbackType);
+  if (!resolved) return;
+  addLine(resolved.content, normalizeType(resolved.type, fallbackType));
+};
+
+const handleClearPayload = (payload: unknown) => {
+  if (payload === undefined || payload === null) {
+    clearConsole();
+    return;
+  }
+  const resolved = resolvePayload(payload, 'out', false);
+  if (!resolved) {
+    // 如果 key 不匹配则忽略
+    return;
+  }
+  clearConsole();
+};
+
+const onConsoleOut = (_event: unknown, data: unknown) => handleOutPayload(data, 'out');
+const onConsoleErr = (_event: unknown, data: unknown) => handleOutPayload(data, 'err');
+const onEventBusConsoleOut = (data: unknown) => handleOutPayload(data, 'out');
+const onEventBusConsoleErr = (data: unknown) => handleOutPayload(data, 'err');
+const onEventBusClear = (data: unknown) => handleClearPayload(data);
 
 onMounted(() => {
-  eventBus.on('clear-console',()=>clearConsole())
-  ipcRenderer.on('console-out', onConsoleOut);
-  ipcRenderer.on('console-err', onConsoleErr);
+  eventBus.on('console-out', onEventBusConsoleOut);
+  eventBus.on('console-err', onEventBusConsoleErr);
+  eventBus.on('clear-console', onEventBusClear);
+  if (ipcRenderer) {
+    ipcRenderer.on('console-out', onConsoleOut);
+    ipcRenderer.on('console-err', onConsoleErr);
+  }
 });
 
 onBeforeUnmount(() => {
-  ipcRenderer.removeListener('console-out', onConsoleOut);
-  ipcRenderer.removeListener('console-err', onConsoleErr);
+  eventBus.off('console-out', onEventBusConsoleOut);
+  eventBus.off('console-err', onEventBusConsoleErr);
+  eventBus.off('clear-console', onEventBusClear);
+  if (ipcRenderer) {
+    ipcRenderer.removeListener('console-out', onConsoleOut);
+    ipcRenderer.removeListener('console-err', onConsoleErr);
+  }
 });
 </script>
 
@@ -134,5 +270,13 @@ onBeforeUnmount(() => {
 
 .err {
   color: var(--console-err);
+}
+
+.warn {
+  color: var(--console-warn);
+}
+
+.debug {
+  color: var(--console-debug);
 }
 </style>

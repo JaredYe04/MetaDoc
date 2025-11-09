@@ -1,4 +1,12 @@
 <template>
+  <div class="outline-page">
+    <WorkspaceTabs
+      :tabs="tabs"
+      :active-id="activeTabId"
+      closable
+      @update:activeId="handleTabChange"
+      @close="handleCloseTab"
+    />
   <div class="container">
     <el-scrollbar class="aero-div generate-preview" v-if="generating || pendingAccept" :style="{
       backgroundColor: themeState.currentTheme.background, top: position.top + 'px',
@@ -259,10 +267,13 @@
     </div>
 
   </div>
+</div>
 </template>
 <script setup>
 import { ref, reactive, watch, onMounted, computed } from 'vue';
 import { ElButton, ElDialog, ElMessageBox, ElNotification } from 'element-plus'; // 引入 Element Plus 组件
+import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
+import { useWorkspace } from '../stores/workspace';
 import eventBus, { getWindowType } from '../utils/event-bus.js';
 import '../assets/aero-div.css';
 import '../assets/aero-btn.css';
@@ -286,6 +297,39 @@ const { t } = useI18n()
 const logger = createRendererLogger('Outline', {
   windowTypeProvider: () => getWindowType()
 })
+const workspace = useWorkspace();
+const {
+  tabs,
+  activeTabId,
+  activateTab,
+  ensureDocument,
+  removeTab,
+} = workspace;
+
+const handleTabChange = (id) => {
+  activateTab(id);
+};
+
+const handleCloseTab = async (id) => {
+  if (tabs.length <= 1) return;
+  const doc = ensureDocument(id);
+  if (doc?.dirty) {
+    try {
+      await ElMessageBox.confirm(
+        t('main.dialogs.closeTabMessage'),
+        t('main.dialogs.closeTabTitle'),
+        {
+          type: 'warning',
+          confirmButtonText: t('main.dialogs.closeTabConfirm'),
+          cancelButtonText: t('main.dialogs.closeTabCancel'),
+        },
+      );
+    } catch {
+      return;
+    }
+  }
+  removeTab(id);
+};
 const formatTitleDialogVisible = ref(false);
 const formatTitle = () => {
   formatTitleDialogVisible.value = true;
@@ -431,7 +475,7 @@ const generateChildrenContent = async () => {
         );
       })
       .catch((err) => {
-        console.warn('任务失败或取消：', err);
+        logger.warn('任务失败或取消：', err);
       })
       .finally(() => {
         curNode.text = myRawString.value;
@@ -465,7 +509,7 @@ const generateContent = async () => {
   try {
     await done;
   } catch (err) {
-    console.warn('任务失败或取消：', err);
+    logger.warn('任务失败或取消：', err);
   } finally {
     cur_node.text = rawstring.value;
     pendingAccept.value = true;
@@ -508,14 +552,14 @@ const executeFormatTitle = () => {
     const firstLevel = formatTitleConfig.firstMarkdownTitleLevel;
     current_outline_tree.value = adjustTitleLevel(current_outline_tree.value, firstLevel);
   }
-  //console.log('current_outline_tree', current_outline_tree.value);
+  //logger.log('current_outline_tree', current_outline_tree.value);
   if (formatTitleConfig.adjustTitle) {
     // 调整章节编号
     const cover = formatTitleConfig.cover;
     const level1TitleChinese = formatTitleConfig.level1TitleChinese;
     current_outline_tree.value = adjustTitleIndex(current_outline_tree.value, cover, level1TitleChinese);
   }
-  //console.log('current_outline_tree', current_outline_tree.value);
+  //logger.log('current_outline_tree', current_outline_tree.value);
   formatTitleDialogVisible.value = false;
   eventBus.emit('show-success', t('outline.formatSuccess'));
 
@@ -541,6 +585,19 @@ const generated = ref(false);
 const generating = ref(false);
 const rawstring = ref('');//所有AI生成的文本
 const generatedText = ref('');
+
+watch(
+  () => activeTabId.value,
+  () => {
+    sync();
+    treeData.value = JSON.parse(JSON.stringify(current_outline_tree.value));
+    dialogVisible.value = {};
+    selectedNode.value = null;
+    generated.value = false;
+    generatedText.value = '';
+  },
+  { immediate: true },
+);
 
 // 生命周期钩子
 onMounted(() => {
@@ -717,14 +774,14 @@ const generateChildChapter = async () => {
     try {
       await done;
       const json = extractOuterJsonString(rawstring.value);
-      //console.log('json', json);
+      //logger.log('json', json);
       const newChildren = JSON.parse(json);
       backupChildren.value = cur_node.children;
       cur_node.children = [...cur_node.children, ...newChildren];
       //rawstring.value = '';
       pendingAccept.value = true;
     } catch (err) {
-      console.warn('任务失败或取消：', err);
+      logger.warn('任务失败或取消：', err);
     } finally {
 
       //generating.value = false;
@@ -783,6 +840,16 @@ const discardChange = () => {
 
 
 <style scoped lang="less">
+.outline-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.outline-page > .container {
+  flex: 1;
+}
+
 .el-scrollbar__wrap {
   overflow-x: hidden;
 }

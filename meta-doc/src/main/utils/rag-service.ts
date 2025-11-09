@@ -31,6 +31,7 @@ import type {
   ANNSearchConfig
 } from '../../types/utils';
 
+const logger = createMainLogger('RagService');
 /**
  * RAG 服务实现类
  */
@@ -145,7 +146,7 @@ class RAGServiceImpl implements RAGService {
           this.docIdToText.set(id, chunk);
           successCount++;
         } else {
-          console.warn(`向量维度不匹配: 期望 ${this.VECTOR_LEN}, 实际 ${vector.length}`);
+          logger.warn(`向量维度不匹配: 期望 ${this.VECTOR_LEN}, 实际 ${vector.length}`);
         }
       }
 
@@ -168,7 +169,7 @@ class RAGServiceImpl implements RAGService {
       };
 
     } catch (error) {
-      console.error('添加文件到知识库失败:', error);
+      logger.error('添加文件到知识库失败:', error);
       return {
         success: false,
         message: error instanceof Error ? error.message : '未知错误'
@@ -234,7 +235,7 @@ class RAGServiceImpl implements RAGService {
       .filter(r => r.hybridScore! >= scoreThreshold);
 
     if (merged.length === 0) {
-      console.warn('知识库查询未返回高相似度结果');
+      logger.warn('知识库查询未返回高相似度结果');
     }
 
     return merged.map(r => r.text);
@@ -319,7 +320,7 @@ class RAGServiceImpl implements RAGService {
       return { success: true };
 
     } catch (error) {
-      console.error('重命名失败:', error);
+      logger.error('重命名失败:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '重命名失败'
@@ -625,7 +626,7 @@ class RAGServiceImpl implements RAGService {
       try {
         this.embedCache = JSON.parse(fs.readFileSync(this.cacheFile, 'utf8'));
       } catch (error) {
-        console.error('读取嵌入缓存失败:', error);
+        logger.error('读取嵌入缓存失败:', error);
         this.embedCache = {};
       }
     }
@@ -638,7 +639,7 @@ class RAGServiceImpl implements RAGService {
     try {
       fs.writeFileSync(this.cacheFile, JSON.stringify(this.embedCache), 'utf8');
     } catch (error) {
-      console.error('保存嵌入缓存失败:', error);
+      logger.error('保存嵌入缓存失败:', error);
     }
   }
 
@@ -661,7 +662,7 @@ class RAGServiceImpl implements RAGService {
       }
       fs.writeFileSync(this.config.indexPath, JSON.stringify(this.vectorIndex));
     } catch (error) {
-      console.error('保存向量索引失败:', error);
+      logger.error('保存向量索引失败:', error);
     }
   }
 
@@ -675,7 +676,7 @@ class RAGServiceImpl implements RAGService {
       }
       fs.writeFileSync(this.config.docsPath, JSON.stringify(Object.fromEntries(this.docIdToText)));
     } catch (error) {
-      console.error('保存文档映射失败:', error);
+      logger.error('保存文档映射失败:', error);
     }
   }
 
@@ -689,7 +690,7 @@ class RAGServiceImpl implements RAGService {
       }
       fs.writeFileSync(this.config.vectorInfoPath, JSON.stringify(this.vectorInfo, null, 2), 'utf-8');
     } catch (error) {
-      console.error('保存向量信息失败:', error);
+      logger.error('保存向量信息失败:', error);
     }
   }
 
@@ -713,7 +714,7 @@ class RAGServiceImpl implements RAGService {
       }
       fs.writeFileSync(this.config.docsPath, JSON.stringify(Object.fromEntries(this.docIdToText)));
     } catch (error) {
-      console.error('保存文档映射失败:', error);
+      logger.error('保存文档映射失败:', error);
     }
   }
 
@@ -727,7 +728,7 @@ class RAGServiceImpl implements RAGService {
       }
       fs.writeFileSync(this.config.vectorInfoPath, JSON.stringify(this.vectorInfo, null, 2), 'utf-8');
     } catch (error) {
-      console.error('保存向量信息失败:', error);
+      logger.error('保存向量信息失败:', error);
     }
   }
 

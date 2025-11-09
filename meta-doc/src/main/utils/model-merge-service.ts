@@ -197,7 +197,7 @@ class ModelMergeService {
       
       return modelsData.map(modelName => this.getModelInfo(modelName));
     } catch (error) {
-      console.error('Error reading models configuration:', error);
+      logger.error('Error reading models configuration:', error);
       return [];
     }
   }

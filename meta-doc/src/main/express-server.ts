@@ -13,16 +13,16 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import { 
-  tryConvertFileToText, 
-  addFileToKnowledgeBase, 
-  clearKnowledgeBase, 
-  initVectorDatabase, 
-  removeFromIndex, 
-  renameKnowledgeFile, 
-  saveDocs, 
-  saveVectorInfo, 
-  vectorInfo 
+import {
+  tryConvertFileToText,
+  addFileToKnowledgeBase,
+  clearKnowledgeBase,
+  initVectorDatabase,
+  removeFromIndex,
+  renameKnowledgeFile,
+  saveDocs,
+  saveVectorInfo,
+  vectorInfo
 } from './utils';
 import type { 
   FilePath, 
@@ -75,9 +75,16 @@ const expressApp: Application = express();
 const logger = createMainLogger('ExpressServer');
 
 let server: Server | null = null;
+let externalOpenHandler: ((payload: { path: string }) => Promise<void> | void) | null = null;
 
 const isServerRunning = (): boolean => {
   return server !== null;
+};
+
+export const registerExternalOpenHandler = (
+  handler: (payload: { path: string }) => Promise<void> | void,
+): void => {
+  externalOpenHandler = handler;
 };
 
 // ============ 主要功能 ============
@@ -95,9 +102,9 @@ export const runExpressServer = (): void => {
   updateServiceStatus('express', 'loading');
   const projectRoot = path.resolve(path.resolve(__dirname, '../'), '../');
   
+  setupBodyParser();
   setupStaticFiles(projectRoot);
   setupAPIs();
-  setupBodyParser();
   startServer();
 };
 
@@ -127,6 +134,7 @@ function setupStaticFiles(projectRoot: string): void {
  * 设置API路由
  */
 function setupAPIs(): void {
+  setupRuntimeAPI();
   setupImageAPI();
   setupKnowledgeAPI();
 }
@@ -138,6 +146,38 @@ function setupBodyParser(): void {
   const bodyParser = require('body-parser');
   expressApp.use(bodyParser.json());
   expressApp.use(bodyParser.urlencoded({ extended: true }));
+}
+
+function setupRuntimeAPI(): void {
+  expressApp.get('/api/runtime/status', (req: Request, res: Response) => {
+    res.json({
+      status: 'ok',
+      pid: process.pid,
+      uptime: process.uptime(),
+    });
+  });
+
+  expressApp.post('/api/runtime/open-document', async (req: Request, res: Response) => {
+    const { path: filePath } = req.body ?? {};
+    if (!filePath || typeof filePath !== 'string') {
+      return res.status(400).json({ success: false, message: '缺少文件路径' });
+    }
+
+    if (!externalOpenHandler) {
+      return res.status(503).json({ success: false, message: '打开处理器未就绪' });
+    }
+
+    try {
+      await externalOpenHandler({ path: filePath });
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('处理外部打开请求失败', error as Error);
+      res.status(500).json({
+        success: false,
+        message: (error as Error).message ?? '打开文件失败',
+      });
+    }
+  });
 }
 
 /**

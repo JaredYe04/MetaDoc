@@ -3,6 +3,12 @@ import eventBus, { sendBroadcast } from '../utils/event-bus'
 import { generateMarkdownFromOutlineTree,extractOutlineTreeFromMarkdown, filterMetaDataFromMd } from './md-utils'
 import type { DocumentOutlineNode, ArticleMetaData, AIDialogMessage } from '../../../types'
 
+let suppressSaveNotification = false
+
+export function setSaveNotificationSuppressed(flag: boolean) {
+  suppressSaveNotification = flag
+}
+
 export const loggedIn = ref(false)
 export const user = ref<Record<string, any>>({})
 export const avatar = ref('')
@@ -78,7 +84,9 @@ watch(
   current_article_meta_data,
   (newVal, oldVal) => {
     //console.log('current_article_meta_data changed', newVal, oldVal)
+    if (!suppressSaveNotification) {
     eventBus.emit('is-need-save', true)
+    }
   },
   { deep: true }
 )
@@ -140,7 +148,9 @@ import { decodeBase64ToJson, encodeJsonToBase64 } from './base64-utils'
 import { convertLatexToMarkdown } from './latex-utils'
 export function broadcastAiDialogs(): void {
   //console.log(JSON.parse(JSON.stringify(current_ai_dialogs.value)))
+  if (!suppressSaveNotification) {
   eventBus.emit('is-need-save',true)
+  }
   sendBroadcast('home', 'sync-ai-dialogs', JSON.parse(JSON.stringify(current_ai_dialogs.value)));
 }
 

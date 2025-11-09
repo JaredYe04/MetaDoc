@@ -148,31 +148,30 @@ ipcRenderer.on('search-replace-triggered', () => {
 })
 
 ipcRenderer.on('open-doc-success', (event, payload) => {
-  //console.log(payload)
-  switch (payload.format) {
-    case 'json':
-      load_from_json(payload.content)
-      eventBus.emit('open-doc-success')
-      break;
-    case 'md':
-      load_from_md(payload.content)
-      eventBus.emit('open-doc-success')
-      break;
-    case 'tex':
-      load_from_tex(payload.content)
-      eventBus.emit('open-doc-success')
-      break;
-    default:
-      eventBus.emit('show-error', '不支持的文件格式: ' + payload.format)
-  }
-
+  eventBus.emit('workspace-open-document', payload)
 })
 
 
 
 
 
-const save = async (mode = 'save',args) => await ipcRenderer.send(mode,
+const normalizeSavePayload = (payload) => {
+  if (typeof payload === 'string') {
+    return { mode: payload, args: undefined }
+  }
+
+  if (payload && typeof payload === 'object') {
+    if ('mode' in payload || 'args' in payload) {
+      const { mode = 'manual', args } = payload
+      return { mode, args }
+    }
+    return { mode: 'manual', args: payload }
+  }
+
+  return { mode: 'manual', args: undefined }
+}
+
+const save = async (mode = 'save', args) => await ipcRenderer.send(mode,
   {
     json: dump2json(),
     md: dump2md(),
@@ -184,9 +183,10 @@ const save = async (mode = 'save',args) => await ipcRenderer.send(mode,
     args
   });
 //监听save事件
-eventBus.on('save', async (msg,args) => {
-  //console.log(window.electron)
-  if (msg === 'auto-save') {
+eventBus.on('save', async (payload) => {
+  const { mode, args } = normalizeSavePayload(payload)
+
+  if (mode === 'auto-save') {
     if (current_file_path.value === '') {
       return//如果尝试自动保存时，没有文件路径，则不进行自动保存
     }

@@ -76,6 +76,7 @@ const emit = defineEmits<{
 
 // 当前侧边栏尺寸
 const sidebarSize = ref(props.initialSidebarSize)
+const startSidebarSize = ref(props.initialSidebarSize)
 
 // 是否显示分割线
 const showDivider = computed(() => props.showSidebar)
@@ -130,23 +131,18 @@ const sidebarStyle = computed(() => {
 
 // 处理尺寸调整
 function handleResize(delta: number, event: MouseEvent) {
-  let newSize: number
-  
-  if (props.reverse) {
-    newSize = sidebarSize.value + delta
-  } else {
-    newSize = sidebarSize.value - delta
-  }
-  
-  // 应用尺寸限制
+  const directionSign = props.reverse ? 1 : -1
+  let newSize = startSidebarSize.value + directionSign * delta
+
   newSize = Math.max(props.minSize, Math.min(props.maxSize, newSize))
   sidebarSize.value = newSize
-  
+
   emit('resize', newSize, event)
 }
 
 // 处理调整开始
 function handleResizeStart(event: MouseEvent) {
+  startSidebarSize.value = sidebarSize.value
   emit('resizeStart', event)
 }
 
@@ -159,6 +155,7 @@ function handleResizeEnd(event: MouseEvent) {
 defineExpose({
   setSidebarSize: (size: number) => {
     sidebarSize.value = Math.max(props.minSize, Math.min(props.maxSize, size))
+    startSidebarSize.value = sidebarSize.value
   },
   getSidebarSize: () => sidebarSize.value
 })

@@ -411,7 +411,11 @@
                 "docx": "DOCX 文件",
                 "html": "HTML 文件",
                 "pdf": "PDF 文件"
-            }
+            },
+            "closeTabTitle": "未保存的更改",
+            "closeTabMessage": "当前文档尚未保存，是否继续关闭？",
+            "closeTabConfirm": "仍要关闭",
+            "closeTabCancel": "取消"
         },
         "latex": {
             "compileFailed": "编译失败，退出码: {code}"

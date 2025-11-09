@@ -13,7 +13,8 @@ import type {
   FileConversionResult, 
   FileConversionService 
 } from '../../types/utils';
-
+import { createMainLogger } from '../logger';
+const logger = createMainLogger('FileConversionService');
 /**
  * 文件转换服务实现类
  */
@@ -34,7 +35,7 @@ class FileConversionServiceImpl implements FileConversionService {
       const result = await this.tryConvertFileToText(filePath);
       return result.success ? result.text || null : null;
     } catch (error) {
-      console.error('File conversion error:', error);
+      logger.error('File conversion error:', error);
       return null;
     }
   }
@@ -118,7 +119,7 @@ class FileConversionServiceImpl implements FileConversionService {
       const data = await pdfParse(dataBuffer);
       return data.text;
     } catch (error) {
-      console.error('Error parsing PDF:', error);
+      logger.error('Error parsing PDF:', error);
       throw new Error('Failed to parse PDF file');
     }
   }
@@ -132,7 +133,7 @@ class FileConversionServiceImpl implements FileConversionService {
       const result = await mammoth.extractRawText({ buffer });
       return result.value;
     } catch (error) {
-      console.error('Error parsing DOCX:', error);
+      logger.error('Error parsing DOCX:', error);
       throw new Error('Failed to parse DOCX file');
     }
   }

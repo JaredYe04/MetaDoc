@@ -17,7 +17,7 @@ import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import Main from './views/Main.vue'
 
-import eventBus, { initWindowType } from './utils/event-bus';
+import eventBus, { getWindowType, initWindowType } from './utils/event-bus';
 import { getRecentDocs, getSetting, initSettings } from './utils/settings';
 import { lightTheme, darkTheme, themeState, customTheme } from './utils/themes';
 import { current_ai_dialogs, firstLoad } from './utils/common-data';
@@ -25,9 +25,13 @@ import localIpcRenderer from './utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from './utils/web-adapter/web-main-calls';
 import { clearAiTasks } from './utils/ai_tasks';
 import { useI18n } from 'vue-i18n';
+import { createRendererLogger } from './utils/logger';
 let ipcRenderer = null
 const route = useRoute()
 const { locale } = useI18n()
+const logger = createRendererLogger('App', {
+  windowTypeProvider: () => getWindowType()
+});
 if (window && window.electron) {
   ipcRenderer = window.electron.ipcRenderer
 } else {
@@ -80,10 +84,10 @@ onMounted(async () => {
     clearAiTasks()
   })
   window.addEventListener('error', e => {
-    console.error('Global error', e);
+    logger.error('Global error', e);
   });
   window.addEventListener('unhandledrejection', e => {
-      console.error('Unhandled rejection', e.reason);
+    logger.error('Unhandled rejection', e.reason);
   });
   // const windowType=route.query.windowType
   // initWindowType(windowType);

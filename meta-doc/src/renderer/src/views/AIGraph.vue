@@ -324,7 +324,7 @@ const exportImage = () => {
     let node = document.getElementById('graph');
     node = node.querySelector('svg')
     if (!node) {
-        console.error(t('aigraph.error.no_svg_found'))
+        logger.error(t('aigraph.error.no_svg_found'))
         node = document.getElementById('graph');
     }
     exportPng(node, activeScheme.value.name)
@@ -456,7 +456,7 @@ async function setActive(id) {
     selectedType.value = activeScheme.value.type
     eventBus.emit('sync-editor-theme')
     //initVditor()
-    //console.log(activeScheme.value)
+    //logger.log(activeScheme.value)
     await refreshVditor();
 }
 const graphRef = ref(null)
@@ -564,7 +564,7 @@ async function generateCode() {
     try {
         await done;
     } catch (err) {
-        console.warn('任务失败或取消：', err);
+        logger.warn('任务失败或取消：', err);
     } finally {
 
         generating.value = false;

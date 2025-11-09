@@ -99,6 +99,9 @@ const route = useRoute();
 const responding = ref(false);
 const activeDialogIndex = ref(0);
 
+import { createRendererLogger } from '../utils/logger.ts';
+const logger = createRendererLogger('AIChat');
+
 const props = defineProps({
   id: String
 })
@@ -113,7 +116,7 @@ const temp_message = ref({
 const defaultTitle = t('aiChat.defaultTitle');
 // 初始化当前对话
 const initCurrentDialog = () => {
-  //console.log(current_ai_dialogs.value);
+  //logger.log(current_ai_dialogs.value);
   if (current_ai_dialogs.value && current_ai_dialogs.value.length > 0) {
     loadDialog(0);
   } else {
@@ -151,7 +154,7 @@ const loadDialog = (index) => {
   activeDialogIndex.value = index;
   messages.value = current_ai_dialogs.value[index].messages;
   title.value = current_ai_dialogs.value[index].title;
-  //console.log(current_ai_dialogs.value[index])
+  //logger.log(current_ai_dialogs.value[index])
 };
 
 const deleteCurrentDialog = () => {
@@ -191,16 +194,16 @@ const reset = () => {
 async function generateNextResponse(beforeGeneration, callbackRef, afterGeneration) {
   responding.value = true;
   await beforeGeneration();
-  //console.log(messages.value)
+  //logger.log(messages.value)
   const messageCopy = JSON.parse(JSON.stringify(messages.value));// 深拷贝消息列表，因为Proxy不能直接拷贝
-  //console.log(messageCopy)
+  //logger.log(messageCopy)
   const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
   const { handle, done } = createAiTask(
     messageCopy[messageCopy.length - 2].content ?? "AI Chat", messageCopy, cur_resp, ai_types.chat, 'ai-chat',enableKnowledgeBase);
   try {
     await done;
   } catch (err) {
-    console.warn('任务失败或取消：', err);
+    logger.warn('任务失败或取消：', err);
   } finally {
     await afterGeneration();
     responding.value = false;
@@ -215,7 +218,7 @@ const onMsgSend = async () => {
     "role": "user",
     "content": promptInput.value
   })
-  //console.log(messages.value);
+  //logger.log(messages.value);
   promptInput.value = '';
   cur_resp.value = '';
 
@@ -232,7 +235,7 @@ const onMsgSend = async () => {
       });
 
       //bindCode(false);
-      //console.log(messages.value);
+      //logger.log(messages.value);
       updateCurrentDialog();
       updateTitle();
 
@@ -255,7 +258,7 @@ const updateTitle = async () => {
   try {
     await done;
   } catch (err) {
-    console.error(err);
+    logger.error(err);
   }
   let newTitle = generatedText.value;
   newTitle = newTitle.trim();
@@ -330,7 +333,7 @@ const onMsgEdit = async (data) => {
 
   const message = await messages.value[index]
   message.content = newText;
-  //console.log(message)
+  //logger.log(message)
 
 
   if (message.role === 'user') {

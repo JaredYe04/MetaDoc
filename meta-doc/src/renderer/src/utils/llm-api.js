@@ -30,7 +30,7 @@ async function getLlmConfig() {
         return {};
       }
       config = await getMetaDocLlmConfig(token, modelName);
-      //console.log(config)
+      //logger.log(config)
       break;
     case "openai":
       config.apiKey = await getSetting("openaiApiKey");
@@ -45,7 +45,7 @@ async function getLlmConfig() {
       config.apiUrl = await getSetting("ollamaApiUrl");
       break;
   }
-  //console.log({ type: selectedLlm, ...config })
+  //logger.log({ type: selectedLlm, ...config })
   return { type: selectedLlm, ...config };
 }
 
@@ -98,7 +98,7 @@ async function answerQuestionNonStream(prompt, ref, meta = { temperature: 0 }, s
         logger.debug('LLM 请求已中止');
         throw error; // 重新抛出中止异常，供上层处理
       }
-      console.error("非流式请求出错:", error);
+      logger.error("非流式请求出错:", error);
     }
   }
 
@@ -164,7 +164,7 @@ async function answerQuestionStream(prompt, ref, meta = {}, signal = {}, try_rag
   const { type, apiUrl, apiKey, selectedModel, completionSuffix = '' } = await getLlmConfig();
 
   async function handleStreamingRequest(url, payload, ref) {
-    //console.log(payload)
+    //logger.log(payload)
     try {
       const response = await fetch(url, {
         method: "POST",
@@ -178,7 +178,7 @@ async function answerQuestionStream(prompt, ref, meta = {}, signal = {}, try_rag
       const reader = response.body.getReader(); // 获取流
       const decoder = new TextDecoder("utf-8"); // 解码器
       let ndjson = ""; // 用于拼接未完成的 NDJSON 行
-      //console.log("开始处理流数据...");
+      //logger.log("开始处理流数据...");
       ref.value = ""; // 清空内容
 
       const autoRemoveThinkTag = await getSetting('autoRemoveThinkTag')
@@ -230,20 +230,20 @@ async function answerQuestionStream(prompt, ref, meta = {}, signal = {}, try_rag
               if (error.name === 'AbortError') {
                 throw error; // 重新抛出中止异常
               }
-              console.error("JSON 解析错误:", error);
+              logger.error("JSON 解析错误:", error);
             }
           }
         }
       }
     } catch (error) {
-      console.error("请求出错:", error);
+      logger.error("请求出错:", error);
       //如果是取消请求的错误，则抛出中止异常
       if (error.name === 'AbortError') {
         throw error; // 重新抛出中止异常
       }
     }
   }
-  //console.log(completionSuffix)
+  //logger.log(completionSuffix)
   switch (type) {
     case "metadoc":
     case "openai":
@@ -432,7 +432,7 @@ async function continueConversationStream(conversation, ref, meta, signal = {}, 
             }
           } catch (error) {
             if (error.name === 'AbortError') throw error;
-            console.error('JSON 解析错误:', error);
+            logger.error('JSON 解析错误:', error);
           }
         }
       }
@@ -477,7 +477,7 @@ async function continueConversationStream(conversation, ref, meta, signal = {}, 
             }
           } catch (error) {
             if (error.name === 'AbortError') throw error;
-            console.error('JSON 解析错误:', error);
+            logger.error('JSON 解析错误:', error);
           }
         }
       }
@@ -522,7 +522,7 @@ async function ragQueryInjectionConversation(originalConversation) {
     "content": ragQueryReferencePrompt(response)
   });
   originalConversation.push(top);
-  //console.log(top)
+  //logger.log(top)
   return originalConversation;
 }
 

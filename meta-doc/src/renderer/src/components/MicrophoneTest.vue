@@ -12,7 +12,8 @@
   import { ElButton, ElIcon } from 'element-plus'
   import { Microphone, Select } from '@element-plus/icons-vue'
 import { convertWebMToWav } from '../utils/audio-convert';
-
+import { createRendererLogger } from '../utils/logger';
+const logger = createRendererLogger('MicrophoneTest');
   const isRecording = ref(false)
   const audioPlayer = ref(null)
   let mediaRecorder = null
@@ -59,7 +60,7 @@ const startRecording = async () => {
     mediaRecorder.start()
   } catch (err) {
     eventBus.emit('show-error', t('microphoneTest.cannotAccessMic'))
-    console.error('Error accessing microphone:', err)
+    logger.error('Error accessing microphone:', err)
   }
 }
   

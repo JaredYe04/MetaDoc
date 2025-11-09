@@ -1,4 +1,12 @@
 <template>
+  <div class="visualize-page">
+    <WorkspaceTabs
+      :tabs="tabs"
+      :active-id="activeTabId"
+      closable
+      @update:activeId="handleTabChange"
+      @close="handleCloseTab"
+    />
   <WordCloudDetail
     v-if="showTitleMenu"
     :word="current_word"
@@ -74,10 +82,11 @@
       </div>
     </div>
   </el-scrollbar>
+</div>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { onMounted, reactive, ref, watch } from 'vue';
 import { current_article, current_article_meta_data, current_outline_tree } from '../utils/common-data';
 
 import cloud from 'd3-cloud';
@@ -100,6 +109,10 @@ import { getSetting } from '../utils/settings';
 import { ar } from 'element-plus/es/locales.mjs';
 import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from '../utils/web-adapter/web-main-calls';
+import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
+import { useWorkspace } from '../stores/workspace';
+import { ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 
 let ipcRenderer = null
 if (window && window.electron) {
@@ -122,6 +135,47 @@ const handleTitleMenuClose = () => {
 const menuPosition = ref({ top: 0, left: 0 });
 const current_word = ref('');
 const current_frequency = ref(0);
+const { t } = useI18n();
+const workspace = useWorkspace();
+const {
+  tabs,
+  activeTabId,
+  activateTab,
+  ensureDocument,
+  removeTab,
+} = workspace;
+
+const handleTabChange = (id) => {
+  activateTab(id);
+};
+
+const handleCloseTab = async (id) => {
+  if (tabs.length <= 1) return;
+  const doc = ensureDocument(id);
+  if (doc?.dirty) {
+    try {
+      await ElMessageBox.confirm(
+        t('main.dialogs.closeTabMessage'),
+        t('main.dialogs.closeTabTitle'),
+        {
+          type: 'warning',
+          confirmButtonText: t('main.dialogs.closeTabConfirm'),
+          cancelButtonText: t('main.dialogs.closeTabCancel'),
+        },
+      );
+    } catch {
+      return;
+    }
+  }
+  removeTab(id);
+};
+
+watch(
+  () => activeTabId.value,
+  () => {
+    refreshAll();
+  },
+);
 // const initVditor = async () => {
 //     Vditor = await ipcRenderer.invoke('get-vditor');
 // };
@@ -331,6 +385,22 @@ const generateWordCloud = async () => {
 </script>
 
 <style scoped>
+.visualize-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.visualize-page :deep(.el-scrollbar) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.visualize-page :deep(.el-scrollbar__wrap) {
+    flex: 1;
+}
+
 .visualize-container {
     display: grid;
     grid-template-columns: 30% 40% 30%;

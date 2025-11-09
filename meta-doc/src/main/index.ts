@@ -3,11 +3,11 @@
  * 负责应用初始化、窗口管理和生命周期控制
  */
 
-import { 
-  app, 
-  shell, 
-  BrowserWindow, 
-  ipcMain, 
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain,
   globalShortcut,
   IpcMainEvent
 } from 'electron';
@@ -15,8 +15,10 @@ import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 // import icon from '../../resources/icon.png?asset';
 const icon = undefined; // 暂时禁用icon导入
-import { mainCalls, refreshMainWindowTitle } from './main-calls';
-import { runExpressServer } from './express-server';
+import fs from 'fs';
+import http from 'http';
+import { mainCalls, refreshMainWindowTitle, openDoc } from './main-calls';
+import { registerExternalOpenHandler, runExpressServer } from './express-server';
 import { initializeUtils } from './utils';
 import { initLogger, shutdownLogger, createMainLogger } from './logger';
 import { broadcastServiceStatus } from './service-status';
@@ -29,6 +31,15 @@ const path = require('path');
 initLogger();
 initI18n();
 const logger = createMainLogger('MainProcess');
+
+const SUPPORTED_FILE_EXTENSIONS = new Set(['.md', '.json', '.txt', '.tex']);
+const RUNTIME_API_HOST = '127.0.0.1';
+const RUNTIME_API_PORT = 52521;
+
+const startupFileArgument = findSupportedFileArgument(process.argv);
+const prelaunchDelegationPromise = startupFileArgument
+  ? attemptDelegationToRunningInstance(startupFileArgument)
+  : Promise.resolve(false);
 
 // ============ 全局变量 ============
 
@@ -115,10 +126,27 @@ function createWindow(): void {
   });
 
   // 处理命令行参数
-  handleCommandLineArgs();
+  handleCommandLineArgs(startupFileArgument);
   
   // 设置为全局变量
   (global as any).mainWindow = mainWindow;
+
+  registerExternalOpenHandler(async ({ path }) => {
+    try {
+      if (!path) return;
+      if (mainWindow?.isDestroyed()) return;
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) {
+          mainWindow.restore();
+        }
+        mainWindow.show();
+        mainWindow.focus();
+      }
+      await openDoc(path);
+    } catch (error) {
+      logger.error('处理外部打开文件请求失败', error as Error);
+    }
+  });
   
   // 启动Express服务器
   runExpressServer();
@@ -127,15 +155,8 @@ function createWindow(): void {
 /**
  * 处理命令行参数
  */
-function handleCommandLineArgs(): void {
-  const args = process.argv;
-  const supportedExtensions = ['.md', '.json', '.txt'];
-  
-  const filePath = args.find(arg => {
-    const ext = path.extname(arg).toLowerCase();
-    return supportedExtensions.includes(ext);
-  });
-
+function handleCommandLineArgs(initialFilePath?: string | null): void {
+  const filePath = initialFilePath || findSupportedFileArgument(process.argv);
   const queryParams = filePath ? `&file=${encodeURIComponent(filePath)}` : '';
   
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -152,12 +173,18 @@ function handleCommandLineArgs(): void {
 /**
  * 应用准备就绪时
  */
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.jaredye.meta-doc');
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window);
   });
+
+  if (await prelaunchDelegationPromise) {
+    logger.info('检测到已有 MetaDoc 实例，已转发文件打开请求，本实例即将退出');
+    app.quit();
+    return;
+  }
 
   createWindow();
   mainCalls();
@@ -285,6 +312,111 @@ export const openAiGraphDialog = async (): Promise<void> => {
 };
 
 // ============ 广播频道管理 ============
+
+interface HttpRequestResult {
+  ok: boolean;
+  statusCode?: number;
+  body: string;
+}
+
+function findSupportedFileArgument(args: string[]): string | null {
+  for (const arg of args) {
+    if (!arg || arg.startsWith('--')) continue;
+    const ext = path.extname(arg).toLowerCase();
+    if (SUPPORTED_FILE_EXTENSIONS.has(ext) && fs.existsSync(arg)) {
+      return path.resolve(arg);
+    }
+  }
+  return null;
+}
+
+async function attemptDelegationToRunningInstance(filePath: string): Promise<boolean> {
+  try {
+    if (!fs.existsSync(filePath)) {
+      logger.warn(`启动参数指定的文件不存在: ${filePath}`);
+      return false;
+    }
+  } catch (error) {
+    logger.warn('检测启动文件是否存在时出错', error as Error);
+    return false;
+  }
+
+  const statusResponse = await performHttpRequest({
+    host: RUNTIME_API_HOST,
+    port: RUNTIME_API_PORT,
+    path: '/api/runtime/status',
+    method: 'GET',
+  });
+
+  if (!statusResponse.ok) {
+    return false;
+  }
+
+  const payload = JSON.stringify({ path: path.resolve(filePath) });
+  const openResponse = await performHttpRequest({
+    host: RUNTIME_API_HOST,
+    port: RUNTIME_API_PORT,
+    path: '/api/runtime/open-document',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(payload).toString(),
+    },
+  }, payload);
+
+  if (!openResponse.ok) {
+    logger.warn(`向已有实例发送打开文件请求失败，状态码: ${openResponse.statusCode}`);
+    return false;
+  }
+
+  return true;
+}
+
+function performHttpRequest(options: http.RequestOptions, body?: string): Promise<HttpRequestResult> {
+  return new Promise((resolve) => {
+    const req = http.request(
+      {
+        host: RUNTIME_API_HOST,
+        port: RUNTIME_API_PORT,
+        timeout: 500,
+        ...options,
+        headers: {
+          Connection: 'close',
+          ...(options.headers ?? {}),
+        },
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+        res.on('end', () => {
+          const bodyBuffer = Buffer.concat(chunks);
+          const text = bodyBuffer.toString('utf-8');
+          resolve({
+            ok: res.statusCode !== undefined && res.statusCode >= 200 && res.statusCode < 300,
+            statusCode: res.statusCode,
+            body: text,
+          });
+        });
+      },
+    );
+
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ ok: false, statusCode: 0, body: '' });
+    });
+
+    req.on('error', (error) => {
+      logger.debug('检测已有实例时请求失败', error);
+      resolve({ ok: false, statusCode: 0, body: '' });
+    });
+
+    if (body) {
+      req.write(body);
+    }
+
+    req.end();
+  });
+}
 
 /**
  * 初始化广播频道

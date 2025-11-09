@@ -288,7 +288,7 @@ async function fetchList() {
         logger.debug('知识库列表响应', j)
         items.value = (j.items || []).map(it => ({ ...it, info: it.info || {} }));
     } catch (e) {
-        console.error(e);
+        logger.error(e);
     }
 }
 
@@ -353,7 +353,7 @@ async function uploadFile(file) {
             eventBus.emit('show-error', ('knowledgeBase.upload_failed') + j.message);
         }
     } catch (e) {
-        console.error(e);
+        logger.error(e);
         eventBus.emit('show-error', t('knowledgeBase.upload_error') + e.message);
     } finally {
         isUploading.value = false;
@@ -392,7 +392,7 @@ async function clearAllItems() {
             eventBus.emit('show-error', t('knowledgeBase.clear_all_failed') + j.message);
         }
     } catch (e) {
-        console.error(e);
+        logger.error(e);
         eventBus.emit('show-error', t('knowledgeBase.clear_all_error') + e.message);
     }
 }
@@ -412,7 +412,7 @@ async function deleteItem(id) {
             eventBus.emit('show-error', j.message || t('knowledgeBase.delete_failed'));
         }
     } catch (e) {
-        console.error(e);
+        logger.error(e);
         eventBus.emit('show-error', t('knowledgeBase.delete_error') + e.message);
     }
 }
@@ -429,7 +429,7 @@ async function fetchPreview(id) {
         previewText.value = j.preview || '';
         isTruncated.value = !!j.truncated;
     } catch (e) {
-        console.error(e);
+        logger.error(e);
     }
     finally {
         previewLoaded.value = true;
@@ -450,12 +450,12 @@ async function fetchInfo(id) {
             const it = items.value.find(x => x.id === id);
             if (it) it.info = { ...j };
             Object.assign(info, j);
-            // console.log(items.value)
-            // console.log(it)
+            // logger.log(items.value)
+            // logger.log(it)
 
         }
     } catch (e) {
-        console.error(e);
+        logger.error(e);
     }
 }
 
@@ -479,7 +479,7 @@ async function toggleEnable(row, val) {
             row.info.enabled = !val; // rollback
         }
     } catch (e) {
-        console.error(e);
+        logger.error(e);
         eventBus.emit('show-error', t('knowledgeBase.set_error'));
         row.info.enabled = !val; // rollback
     }
@@ -499,7 +499,7 @@ async function rebuildVectors() {
             await fetchInfo(selectedItem.value.id);
         } else eventBus.emit('show-error', j.message || t('knowledgeBase.rebuild_failed'));
     } catch (e) {
-        console.error(e);
+        logger.error(e);
         eventBus.emit('show-error', t('knowledgeBase.rebuild_error'));
     } finally { isRebuilding.value = false; }
 }
@@ -513,7 +513,7 @@ function downloadFile() {
 function openInEditor() {
     if (!selectedItem.value) return;
     const filePath = info.path;
-    //console.log('Opening file in editor:', filePath);
+    //logger.log('Opening file in editor:', filePath);
     eventBus.emit('shell-open', filePath);
 
 }

@@ -293,7 +293,7 @@ const refreshRecentDocs = async () => {
   recentDocs.value = await getRecentDocs()
 }
 
-const askSave = async (callBack) => {
+const askSave = async (callBack:any) => {
   const alwaysAskSave = await getSetting('alwaysAskSave');
   //console.log(alwaysAskSave)
   if (alwaysAskSave === false) {

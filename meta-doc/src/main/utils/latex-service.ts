@@ -14,6 +14,9 @@ import type {
   LaTeXService 
 } from '../../types/utils';
 import type { BrowserWindow } from 'electron';
+import { createMainLogger } from '../logger';
+
+const logger=createMainLogger("latex-service");
 
 /**
  * LaTeX 编译服务实现类
@@ -68,7 +71,7 @@ class LaTeXServiceImpl implements LaTeXService {
         );
 
       } catch (error) {
-        console.error('LaTeX compilation setup error:', error);
+        logger.error('LaTeX compilation setup error:', error);
         resolve({ status: 'failed', exitCode: -1 });
       }
     });
@@ -144,7 +147,7 @@ class LaTeXServiceImpl implements LaTeXService {
 
     // 处理进程错误
     child.on('error', (error) => {
-      console.error('LaTeX compilation process error:', error);
+      logger.error('LaTeX compilation process error:', error);
       this.cleanupTempFile(tempTexPath);
       if (mainWindow) {
         mainWindow.webContents.send('console-err', {
@@ -187,7 +190,7 @@ class LaTeXServiceImpl implements LaTeXService {
       }
 
     } catch (error) {
-      console.warn('Error during compilation cleanup:', error);
+      logger.warn('Error during compilation cleanup:', error);
       resolve({ status: 'failed', exitCode: exitCode || -1 });
     }
   }
@@ -209,7 +212,7 @@ class LaTeXServiceImpl implements LaTeXService {
         fs.unlinkSync(tempTexPath);
       }
     } catch (error) {
-      console.warn('Failed to cleanup temp file:', tempTexPath, error);
+      logger.warn('Failed to cleanup temp file:', tempTexPath, error);
     }
   }
 

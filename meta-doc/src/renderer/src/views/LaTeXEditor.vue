@@ -5,7 +5,7 @@
             <!-- 菜单组件 -->
             <TitleMenu v-if="showTitleMenu" :title="currentTitle.replaceAll('#', '').trim()" :position="menuPosition"
                 @close="handleTitleMenuClose" :path="currentTitlePath"
-                :tree="extractOutlineTreeFromMarkdown(current_article, true)"
+                :tree="extractOutlineTreeFromMarkdown(currentMarkdown, true)"
                 @accept="async (payload) => { await acceptGeneratedText(payload); }" style="max-width: 500px;" />
             <SearchReplaceMenu v-if="searchReplaceDialogVisible" @close="searchReplaceDialogVisible = false"
                 :position="SRMenuPosition" />
@@ -19,123 +19,60 @@
                 @accepted="onAcceptSuggestion" @cancelled="onCancelSuggestion" @reset="onResetSuggestion" 
                 @triggerSuggestion="trytriggerSuggestion"/>
 
-            <!-- 左边：编辑器区域 -->
-            <div class="latex-editor-container">
-                <!-- 顶部菜单栏 -->
-                <div class="toolbar" :style="{
-                    backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor
-                }">
-                    <el-tooltip :content="$t('latexEditor.toolbar.undo')" placement="bottom">
-                        <div class="toolbar-icon" @click="undo">
-                            <el-icon>
-                                <ArrowLeft />
-                            </el-icon>
-                        </div>
-                    </el-tooltip>
+            <div class="latex-layout">
+                <ResizableContainer
+                    direction="vertical"
+                    :initial-sidebar-size="LATEX_LAYOUT.meta.initialWidth"
+                    :min-size="LATEX_LAYOUT.meta.minWidth"
+                    :max-size="LATEX_LAYOUT.meta.maxWidth"
+                    :reverse="true"
+                    sidebar-position="end"
+                >
+                    <template #main>
+                        <div class="latex-main" ref="mainContainerRef">
+                            <ResizableContainer
+                                ref="pdfResizableRef"
+                                direction="vertical"
+                                :initial-sidebar-size="LATEX_LAYOUT.pdf.minWidth"
+                                :min-size="LATEX_LAYOUT.pdf.minWidth"
+                                :max-size="
+                                    mainWidth > 0
+                                        ? Math.max(
+                                            LATEX_LAYOUT.pdf.minWidth,
+                                            Math.min(
+                                                mainWidth * LATEX_LAYOUT.pdf.maxRatio,
+                                                mainWidth - LATEX_LAYOUT.left.minWidth
+                                            )
+                                        )
+                                        : LATEX_LAYOUT.pdf.minWidth
+                                "
+                                sidebar-position="end"
+                                :show-sidebar="showPdfPanel"
+                                @resize="handlePdfResize"
+                            >
+                                <template #main>
+                                    <div class="latex-column left-column">
+                                <div class="toolbar" :style="{
+                                    backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor
+                                }">
+                                    <el-tooltip :content="$t('latexEditor.toolbar.undo')" placement="bottom">
+                                        <div class="toolbar-icon" @click="undo">
+                                            <el-icon>
+                                                <ArrowLeft />
+                                            </el-icon>
+                                        </div>
+                                    </el-tooltip>
 
-                    <el-tooltip :content="$t('latexEditor.toolbar.redo')" placement="bottom">
-                        <div class="toolbar-icon" @click="redo">
-                            <el-icon>
-                                <ArrowRight />
-                            </el-icon>
-                        </div>
-                    </el-tooltip>
+                                    <el-tooltip :content="$t('latexEditor.toolbar.redo')" placement="bottom">
+                                        <div class="toolbar-icon" @click="redo">
+                                            <el-icon>
+                                                <ArrowRight />
+                                            </el-icon>
+                                        </div>
+                                    </el-tooltip>
 
-                    <el-tooltip :content="$t('latexEditor.toolbar.zoomIn')" placement="bottom">
-                        <div class="toolbar-icon" @click="zoomIn">
-                            <el-icon>
-                                <ZoomIn />
-                            </el-icon>
-                        </div>
-                    </el-tooltip>
-
-                    <el-tooltip :content="$t('latexEditor.toolbar.zoomOut')" placement="bottom">
-                        <div class="toolbar-icon" @click="zoomOut">
-                            <el-icon>
-                                <ZoomOut />
-                            </el-icon>
-                        </div>
-                    </el-tooltip>
-
-                    <el-tooltip :content="$t('latexEditor.toolbar.toggleLineNumbers')" placement="bottom">
-                        <div class="toolbar-icon" @click="toggleRowNumber">
-                            <icon name="numbers-1" />
-                        </div>
-                    </el-tooltip>
-
-                    <el-tooltip :content="$t('latexEditor.toolbar.togglePreview')" placement="bottom">
-                        <div class="toolbar-icon" @click="toggleMinimap">
-                            <el-icon>
-                                <Memo />
-                            </el-icon>
-                        </div>
-                    </el-tooltip>
-
-                    <el-divider direction="vertical"></el-divider>
-
-                    <el-tooltip :content="$t('latexEditor.toolbar.showPdf')" placement="bottom">
-                        <div class="toolbar-icon" @click="togglePdf">
-                            <icon name="terminal" />
-                        </div>
-                    </el-tooltip>
-
-                    <el-tooltip :content="$t('latexEditor.toolbar.showConsole')" placement="bottom">
-                        <div class="toolbar-icon" @click="toggleConsole">
-                            <icon name="terminal-rectangle" />
-                        </div>
-                    </el-tooltip>
-                    <el-tooltip :content="$t('latexEditor.toolbar.compile')" placement="bottom">
-                        <div class="toolbar-icon" @click="compile">
-                            <icon name="code" />
-                        </div>
-                    </el-tooltip>
-                </div>
-                <div class="editor-pdf-container">
-                    <div class="editor-console-container">
-                        <!-- Monaco 编辑器 -->
-                        <div class="editor" :key="editorKey" ref="editorEl">
-                        </div>
-                          <!-- Console 面板，绝对定位叠加 -->
-                    <div v-show="showConsole" class="console-wrapper" :style="{ height: consoleHeight + 'px' }">
-                        <div class="editor-resizer" @mousedown="startResizeConsole"></div>
-                        <div class="console-panel" :style="{
-                            background:themeState.currentTheme.background
-                        }">
-                        <Console console-key="latex" />
-                        </div>
-                    </div>
-
-                    </div>
-                    <!-- 可调整宽度的 PDF 预览面板 -->
-                    <keep-alive>
-                        <div class="resizable-pdf-container" v-show="showPdfPanel">
-                            <div class="resizer" @mousedown="startResizePdf"></div>
-                            <div class="pdf-preview-container"
-                                :style="{ width: pdfWidth + 'px', background: themeState.currentTheme.background }">
-                                <!-- <iframe v-if="pdfUrl" :src="pdfUrl" frameborder="0"
-                                style="width:100%; height:100%;"></iframe> -->
-                                <!-- PDF 页码控制条 -->
-                                <div class="pdf-toolbar" v-if="pdfUrl"
-                                    style="display:flex; align-items:center; justify-content:flex-start; padding:4px 8px; " :style="{
-                                        backgroundColor:themeState.currentTheme.editorToolbarBackgroundColor
-                                    }">
-                                    <el-button size="small" @click="goPrevPage" :disabled="currentPdfPage <= 1">
-                                        {{ $t('latexEditor.prevPage') }}
-                                    </el-button>
-
-                                    <el-button size="small" @click="goNextPage"
-                                        :disabled="currentPdfPage >= totalPdfPages">
-                                        {{ $t('latexEditor.nextPage') }}
-                                    </el-button>
-
-                                    <span style="margin-left:8px; display:flex; align-items:center;">
-                                        <input type="number" v-model.number="inputPdfPage" @change="jumpToPage" :min="1"
-                                            :max="totalPdfPages"
-                                            style="width:50px; text-align:center; margin-right:4px;" />
-                                        / {{ totalPdfPages }} {{ $t('latexEditor.pages') }}
-                                    </span>
                                     <el-tooltip :content="$t('latexEditor.toolbar.zoomIn')" placement="bottom">
-                                        <div class="pdf-toolbar-icon" @click="pdfZoomIn">
+                                        <div class="toolbar-icon" @click="zoomIn">
                                             <el-icon>
                                                 <ZoomIn />
                                             </el-icon>
@@ -143,117 +80,218 @@
                                     </el-tooltip>
 
                                     <el-tooltip :content="$t('latexEditor.toolbar.zoomOut')" placement="bottom">
-                                        <div class="pdf-toolbar-icon" @click="pdfZoomOut">
+                                        <div class="toolbar-icon" @click="zoomOut">
                                             <el-icon>
                                                 <ZoomOut />
                                             </el-icon>
                                         </div>
                                     </el-tooltip>
-                                    <el-tooltip :content="$t('latexEditor.toolbar.zoomReset')" placement="bottom">
-                                        <div class="pdf-toolbar-icon" @click="pdfZoomReset">
+
+                                    <el-tooltip :content="$t('latexEditor.toolbar.toggleLineNumbers')" placement="bottom">
+                                        <div class="toolbar-icon" @click="toggleRowNumber">
+                                            <icon name="numbers-1" />
+                                        </div>
+                                    </el-tooltip>
+
+                                    <el-tooltip :content="$t('latexEditor.toolbar.togglePreview')" placement="bottom">
+                                        <div class="toolbar-icon" @click="toggleMinimap">
                                             <el-icon>
-                                                <Refresh />
+                                                <Memo />
                                             </el-icon>
                                         </div>
                                     </el-tooltip>
-                                </div>
 
-                                <!-- PDF 渲染容器 -->
-                                <div ref="pdfContainer" id="pdfContainer" v-if="pdfUrl" class="pdf-container">
-                                    <div class="canvas-wrapper" ref="canvasWrapper">
-                                        <!-- canvas 渲染在这里 -->
+                                    <el-divider direction="vertical"></el-divider>
+
+                                    <el-tooltip :content="$t('latexEditor.toolbar.showPdf')" placement="bottom">
+                                        <div class="toolbar-icon" @click="togglePdf">
+                                            <icon name="terminal" />
+                                        </div>
+                                    </el-tooltip>
+
+                                    <el-tooltip :content="$t('latexEditor.toolbar.showConsole')" placement="bottom">
+                                        <div class="toolbar-icon" @click="toggleConsole">
+                                            <icon name="terminal-rectangle" />
+                                        </div>
+                                    </el-tooltip>
+                                    <el-tooltip :content="$t('latexEditor.toolbar.compile')" placement="bottom">
+                                        <div class="toolbar-icon" @click="compile">
+                                            <icon name="code" />
+                                        </div>
+                                    </el-tooltip>
+                                </div>
+                                <div class="editor-console-container">
+                                    <div class="editor" :key="editorKey" :id="editorDomId" ref="editorEl"></div>
+                                    <div v-show="showConsole" class="console-wrapper" :style="{ height: consoleHeight + 'px' }">
+                                        <div class="editor-resizer" @mousedown="startResizeConsole"></div>
+                                        <div class="console-panel" :style="{
+                                            background: themeState.currentTheme.background
+                                        }">
+                                            <Console console-key="latex" />
+                                        </div>
                                     </div>
                                 </div>
-                                <h3 v-else class="pdf-empty-text">
-                                    {{ $t('latexEditor.pdfEmpty') }}
-                                </h3>
-                            </div>
+                                </div>
+                                </template>
+
+                                <template #sidebar>
+                                    <keep-alive>
+                                        <div class="latex-column pdf-column" v-show="showPdfPanel">
+                                            <div class="pdf-toolbar" v-if="pdfUrl"
+                                                :style="{
+                                                    backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor
+                                                }">
+                                                <el-button size="small" @click="goPrevPage" :disabled="currentPdfPage <= 1">
+                                                    {{ $t('latexEditor.prevPage') }}
+                                                </el-button>
+
+                                                <el-button size="small" @click="goNextPage"
+                                                    :disabled="currentPdfPage >= totalPdfPages">
+                                                    {{ $t('latexEditor.nextPage') }}
+                                                </el-button>
+
+                                                <span class="pdf-toolbar__page">
+                                                    <input type="number" v-model.number="inputPdfPage" @change="jumpToPage" :min="1"
+                                                        :max="totalPdfPages"
+                                                    />
+                                                    / {{ totalPdfPages }} {{ $t('latexEditor.pages') }}
+                                                </span>
+                                                <el-tooltip :content="$t('latexEditor.toolbar.zoomIn')" placement="bottom">
+                                                    <div class="pdf-toolbar-icon" @click="pdfZoomIn">
+                                                        <el-icon>
+                                                            <ZoomIn />
+                                                        </el-icon>
+                                                    </div>
+                                                </el-tooltip>
+
+                                                <el-tooltip :content="$t('latexEditor.toolbar.zoomOut')" placement="bottom">
+                                                    <div class="pdf-toolbar-icon" @click="pdfZoomOut">
+                                                        <el-icon>
+                                                            <ZoomOut />
+                                                        </el-icon>
+                                                    </div>
+                                                </el-tooltip>
+                                                <el-tooltip :content="$t('latexEditor.toolbar.zoomReset')" placement="bottom">
+                                                    <div class="pdf-toolbar-icon" @click="pdfZoomReset">
+                                                        <el-icon>
+                                                            <Refresh />
+                                                        </el-icon>
+                                                    </div>
+                                                </el-tooltip>
+                                            </div>
+
+                                            <div class="pdf-preview-container"
+                                                :style="{ background: themeState.currentTheme.background }">
+                                                <div ref="pdfContainer" id="pdfContainer" v-if="pdfUrl" class="pdf-container">
+                                                    <div class="canvas-wrapper" ref="canvasWrapper"></div>
+                                                </div>
+                                                <h3 v-else class="pdf-empty-text">
+                                                    {{ $t('latexEditor.pdfEmpty') }}
+                                                </h3>
+                                            </div>
+                                        </div>
+                                    </keep-alive>
+                                </template>
+                            </ResizableContainer>
                         </div>
-                    </keep-alive>
+                    </template>
 
-                </div>
+                    <template #sidebar>
+                        <div
+                            class="latex-column meta-column"
+                            :style="{ backgroundColor: themeState.currentTheme.background2nd }"
+                        >
+                            <div style="text-align: center; font-size: large;">
+                                <el-tooltip :content="$t('article.edit_meta_info')" placement="left">
+                                    <h1 class="interactive-text" @click="showMetaDialog"
+                                        :style="{ color: themeState.currentTheme.textColor }">
+                                        {{ $t('article.meta_info') }}
+                                    </h1>
+                                </el-tooltip>
+                            </div>
 
+                            <el-tooltip :content="$t('article.click_to_edit_title')" placement="left">
+                                <h1 @click="genTitleDialogVisible = !genTitleDialogVisible" class="interactive-text"
+                                    :style="{ color: themeState.currentTheme.textColor }">
+                                    {{ $t('article.title') }}：
+                                    {{ currentMeta.title || $t('article.no_title') }}
+                                </h1>
+                            </el-tooltip>
 
-            </div>
-            <div class="resizable-container">
-                <div class="resizer" @mousedown="startResize"></div>
-                <!-- 右边：元信息显示 -->
-                <div class="meta-info"
-                    :style="{ width: metaInfoWidth + 'px', backgroundColor: themeState.currentTheme.background2nd }">
-                    <div style="text-align: center; font-size: large;">
-                        <el-tooltip :content="$t('article.edit_meta_info')" placement="left">
-                            <h1 class="interactive-text" @click="showMetaDialog"
-                                :style="{ color: themeState.currentTheme.textColor }">
-                                {{ $t('article.meta_info') }}
-                            </h1>
-                        </el-tooltip>
-                    </div>
+                            <LlmDialog v-if="genTitleDialogVisible"
+                                :prompt="generateTitlePrompt(JSON.stringify(extractOutlineTreeFromMarkdown(currentMarkdown, true)))"
+                                :title="$t('article.generate_title')" :llmConfig="{ max_tokens: 15, temperature: 0.0 }"
+                                @llm-content-accept="(content) => {
+                                    updateMeta((meta) => { meta.title = content; });
+                                    genTitleDialogVisible = false;
+                                }" @update:visible="genTitleDialogVisible = $event; genTitleDialogVisible = false"
+                                :defaultText="currentMeta.title" :defaultInputSize="1"></LlmDialog>
 
-                    <el-tooltip :content="$t('article.click_to_edit_title')" placement="left">
-                        <h1 @click="genTitleDialogVisible = !genTitleDialogVisible" class="interactive-text"
-                            :style="{ color: themeState.currentTheme.textColor }">
-                            {{ $t('article.title') }}：
-                            {{ current_article_meta_data.title || $t('article.no_title') }}
-                        </h1>
-                    </el-tooltip>
+                            <el-tooltip :content="$t('article.click_to_edit_author')" placement="left">
+                                <p @click="modifyAuthorDialogVisible = !modifyAuthorDialogVisible" class="interactive-text"
+                                    :style="{ color: themeState.currentTheme.textColor }">
+                                    <strong>{{ $t('article.author') }}：</strong>
+                                    {{ currentMeta.author || $t('article.no_author') }}
+                                </p>
+                            </el-tooltip>
 
-                    <LlmDialog v-if="genTitleDialogVisible"
-                        :prompt="generateTitlePrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
-                        :title="$t('article.generate_title')" :llmConfig="{ max_tokens: 15, temperature: 0.0 }"
-                        @llm-content-accept="(content) => {
-                            current_article_meta_data.title = content;
-                            genTitleDialogVisible = false;
-                        }" @update:visible="genTitleDialogVisible = $event; genTitleDialogVisible = false"
-                        :defaultText="current_article_meta_data.title" :defaultInputSize="1"></LlmDialog>
+                            <LlmDialog v-if="modifyAuthorDialogVisible" :prompt="''" :title="$t('article.modify_author')"
+                                :llmConfig="{}" @llm-content-accept="(content) => {
+                                    updateMeta((meta) => { meta.author = content; });
+                                    modifyAuthorDialogVisible = false;
+                                }" @update:visible="modifyAuthorDialogVisible = $event; modifyAuthorDialogVisible = false"
+                                :defaultText="currentMeta.author" :defaultInputSize="1"></LlmDialog>
 
-                    <el-tooltip :content="$t('article.click_to_edit_author')" placement="left">
-                        <p @click="modifyAuthorDialogVisible = !modifyAuthorDialogVisible" class="interactive-text"
-                            :style="{ color: themeState.currentTheme.textColor }">
-                            <strong>{{ $t('article.author') }}：</strong>
-                            {{ current_article_meta_data.author || $t('article.no_author') }}
-                        </p>
-                    </el-tooltip>
+                            <el-tooltip :content="$t('article.click_to_edit_description')" placement="left">
+                                <p @click="genDescriptionDialogVisible = !genDescriptionDialogVisible" class="interactive-text"
+                                    :style="{ color: themeState.currentTheme.textColor }">
+                                    <strong>{{ $t('article.description') }}：</strong>
+                                    {{ currentMeta.description || $t('article.no_description') }}
+                                </p>
+                            </el-tooltip>
 
-                    <LlmDialog v-if="modifyAuthorDialogVisible" :prompt="''" :title="$t('article.modify_author')"
-                        :llmConfig="{}" @llm-content-accept="(content) => {
-                            current_article_meta_data.author = content;
-                            modifyAuthorDialogVisible = false;
-                        }" @update:visible="modifyAuthorDialogVisible = $event; modifyAuthorDialogVisible = false"
-                        :defaultText="current_article_meta_data.author" :defaultInputSize="1"></LlmDialog>
-
-                    <el-tooltip :content="$t('article.click_to_edit_description')" placement="left">
-                        <p @click="genDescriptionDialogVisible = !genDescriptionDialogVisible" class="interactive-text"
-                            :style="{ color: themeState.currentTheme.textColor }">
-                            <strong>{{ $t('article.description') }}：</strong>
-                            {{ current_article_meta_data.description || $t('article.no_description') }}
-                        </p>
-                    </el-tooltip>
-
-                    <LlmDialog v-if="genDescriptionDialogVisible"
-                        :prompt="generateDescriptionPrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
-                        :title="$t('article.generate_description')" :llmConfig="{ max_tokens: 100, temperature: 0.0 }"
-                        @llm-content-accept="(content) => {
-                            current_article_meta_data.description = content;
-                            genDescriptionDialogVisible = false;
-                        }" @update:visible="genDescriptionDialogVisible = $event; genDescriptionDialogVisible = false"
-                        :defaultText="current_article_meta_data.description" :defaultInputSize="10"></LlmDialog>
-                </div>
-
-
+                            <LlmDialog v-if="genDescriptionDialogVisible"
+                                :prompt="generateDescriptionPrompt(JSON.stringify(extractOutlineTreeFromMarkdown(currentMarkdown, true)))"
+                                :title="$t('article.generate_description')" :llmConfig="{ max_tokens: 100, temperature: 0.0 }"
+                                @llm-content-accept="(content) => {
+                                    updateMeta((meta) => { meta.description = content; });
+                                    genDescriptionDialogVisible = false;
+                                }" @update:visible="genDescriptionDialogVisible = $event; genDescriptionDialogVisible = false"
+                                :defaultText="currentMeta.description" :defaultInputSize="10"></LlmDialog>
+                        </div>
+                    </template>
+                </ResizableContainer>
             </div>
 
             <el-dialog v-model="editMetaDialogVisible" :title="$t('article.edit_meta_info')" width="30%">
                 <el-form>
                     <el-form-item :label="$t('article.title')">
-                        <el-input v-model="current_article_meta_data.title" autocomplete="off" class="aero-input" />
+                        <el-input
+                            :model-value="currentMeta.title"
+                            @update:model-value="(val) => updateMeta((meta) => { meta.title = val; })"
+                            autocomplete="off"
+                            class="aero-input"
+                        />
                     </el-form-item>
                     <el-form-item :label="$t('article.author')">
-                        <el-input v-model="current_article_meta_data.author" autocomplete="off" class="aero-input" />
+                        <el-input
+                            :model-value="currentMeta.author"
+                            @update:model-value="(val) => updateMeta((meta) => { meta.author = val; })"
+                            autocomplete="off"
+                            class="aero-input"
+                        />
                     </el-form-item>
                     <el-form-item :label="$t('article.description')">
-                        <el-input type="textarea" :placeholder="$t('article.description_placeholder')"
-                            v-model="current_article_meta_data.description" autocomplete="off" resize="none"
-                            :autoSize="{ minRows: 3, maxRows: 5 }" class="aero-input" />
+                        <el-input
+                            type="textarea"
+                            :placeholder="$t('article.description_placeholder')"
+                            :model-value="currentMeta.description"
+                            @update:model-value="(val) => updateMeta((meta) => { meta.description = val; })"
+                            autocomplete="off"
+                            resize="none"
+                            :autoSize="{ minRows: 3, maxRows: 5 }"
+                            class="aero-input"
+                        />
                     </el-form-item>
                 </el-form>
             </el-dialog>
@@ -273,9 +311,8 @@ import "../assets/aero-input.css";
 import "../assets/title-menu.css";
 import eventBus, { getWindowType } from '../utils/event-bus';
 import { generateDescriptionPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
-import { addDialog, countNodes, current_article, current_article_meta_data, current_file_path, current_tex_article, defaultAiChatMessages, latest_view, renderedHtml, searchNode, sync } from "../utils/common-data";
+import { searchNode } from "../utils/common-data";
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
-import { current_outline_tree } from '../utils/common-data';
 import LlmDialog from "../components/LlmDialog.vue";
 import TitleMenu from '../components/TitleMenu.vue';
 import SearchReplaceMenu from "../components/SearchReplaceMenu.vue";
@@ -286,6 +323,7 @@ import { getSetting, setSetting } from "../utils/settings";
 import { useI18n } from 'vue-i18n'
 import AISuggestion from "../components/AISuggestion.vue";
 import "../assets/ai-suggestion.css";
+import ResizableContainer from "../components/base/ResizableContainer.vue";
 import { getArticleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
 import ContextMenu from "../components/ContextMenu.vue";
 import Console from "../components/Console.vue";
@@ -294,10 +332,83 @@ import { createRendererLogger } from '../utils/logger.ts'
 import { waitForService } from "../utils/service-status.ts";
 import * as monaco from "monaco-editor";
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+import { useWorkspace } from '../stores/workspace';
 
 import 'monaco-latex';
 import { ArrowLeft, ArrowRight, Document, Refresh, ZoomIn, ZoomOut } from "@element-plus/icons-vue";
 import { debounce } from 'lodash';
+import localIpcRenderer from "../utils/web-adapter/local-ipc-renderer";
+import { webMainCalls } from "../utils/web-adapter/web-main-calls";
+
+const { t } = useI18n();
+const logger = createRendererLogger('LaTeXEditor', {
+    windowTypeProvider: () => getWindowType(),
+});
+
+const LATEX_LAYOUT = {
+    meta: {
+        minWidth: 260,
+        maxWidth: 520,
+        initialWidth: 320,
+    },
+    left: {
+        minWidth: 360,
+        maxRatio: 0.7,
+    },
+    pdf: {
+        minWidth: 360,
+        maxRatio: 0.55,
+    },
+};
+const props = defineProps({
+    tabId: {
+        type: String,
+        default: '',
+    },
+    active: {
+        type: Boolean,
+        default: true,
+    },
+    editorDomId: {
+        type: String,
+        default: 'latex-editor',
+    },
+});
+const isActive = computed(() => props.active);
+
+const workspace = useWorkspace();
+const documentRef = computed(() => workspace.ensureDocument(props.tabId));
+
+const currentTex = computed({
+    get: () => documentRef.value.tex ?? '',
+    set: (val) => {
+        if (val === documentRef.value.tex) return;
+        //logger.debug("LaTeXEditor currentTex set")//bugfix
+        workspace.updateDocumentTex(props.tabId, val);
+    },
+});
+
+const currentMeta = computed(() => documentRef.value.meta);
+
+const currentOutline = computed({
+    get: () => documentRef.value.outline,
+    set: (val) => workspace.updateDocumentOutline(props.tabId, val),
+});
+
+const currentDialogs = computed(() => documentRef.value.aiDialogs ?? []);
+
+const currentMarkdown = computed({
+    get: () => documentRef.value.markdown ?? '',
+    set: (val) => workspace.updateDocumentMarkdown(props.tabId, val),
+});
+
+const latestView = computed({
+    get: () => documentRef.value.lastView ?? 'article',
+    set: (val) => workspace.updateDocumentLastView(props.tabId, val),
+});
+
+const currentPath = computed(() => documentRef.value.path || '');
+
 // 状态变量
 const genTitleDialogVisible = ref(false);
 const genDescriptionDialogVisible = ref(false);
@@ -321,11 +432,93 @@ const menuX = ref(0); // 菜单 X 坐标
 const menuY = ref(0); // 菜单 Y 坐标
 const cur_selection = ref(''); // 当前选中的文本
 
+const handleTitleMenuClose = () => {
+    showTitleMenu.value = false;
+};
+
+const updateMeta = (updater) => {
+    if (typeof updater === 'function') {
+        workspace.updateDocumentMeta(props.tabId, updater);
+    }
+};
+
+const replaceDialogs = (builder) => {
+    const base = [...currentDialogs.value];
+    const next = builder(base);
+    workspace.updateDocumentAiDialogs(props.tabId, next);
+};
+
+const addDialogEntry = (dialog, addToFront = false) => {
+    replaceDialogs((dialogs) => {
+        if (addToFront) {
+            dialogs.unshift(dialog);
+        } else {
+            dialogs.push(dialog);
+        }
+        return dialogs;
+    });
+};
+
+const acceptGeneratedText = async (payload) => {
+    if (!payload) return;
+    const { append, content } = payload;
+    if (!currentTitlePath.value) return;
+    const clonedOutline = JSON.parse(JSON.stringify(currentOutline.value));
+    const node = searchNode(currentTitlePath.value, clonedOutline);
+    if (node) {
+        node.text = append ? `${node.text || ''}${content}` : content;
+        currentOutline.value = clonedOutline;
+        latestView.value = 'outline';
+    }
+    showTitleMenu.value = false;
+};
+
 const editorEl = ref(null);
 const editorKey = ref(Date.now());
+const mainContainerRef = ref(null);
+const pdfResizableRef = ref(null);
+const mainWidth = ref(0);
+let mainObserver = null;
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const clampPdfWidth = (size) => {
+    if (!showPdfPanel.value) return LATEX_LAYOUT.pdf.minWidth;
+    const width = mainWidth.value || size + LATEX_LAYOUT.left.minWidth;
+    const minAllowed = LATEX_LAYOUT.pdf.minWidth;
+    const maxByEditor = width - LATEX_LAYOUT.left.minWidth;
+    const maxByRatio = width * LATEX_LAYOUT.pdf.maxRatio;
+    const maxAllowed = Math.max(minAllowed, Math.min(maxByEditor, maxByRatio));
+    return clamp(size, minAllowed, maxAllowed);
+};
+
+const ensurePdfWithinBounds = () => {
+    if (!pdfResizableRef.value || !showPdfPanel.value) return;
+    const current = pdfResizableRef.value.getSidebarSize
+        ? pdfResizableRef.value.getSidebarSize()
+        : undefined;
+    if (typeof current === 'number') {
+        const clamped = clampPdfWidth(current);
+        if (clamped !== current) {
+            pdfResizableRef.value.setSidebarSize(clamped);
+        }
+    } else {
+        const fallback = clampPdfWidth(LATEX_LAYOUT.pdf.minWidth);
+        pdfResizableRef.value.setSidebarSize(fallback);
+    }
+};
+
+const handlePdfResize = (size) => {
+    const clamped = clampPdfWidth(size);
+    if (clamped !== size && pdfResizableRef.value?.setSidebarSize) {
+        pdfResizableRef.value.setSidebarSize(clamped);
+    }
+};
+
+const editorDomId = computed(() => props.editorDomId || 'latex-editor');
 
 // 增量同步缓存
-let textBuffer = current_tex_article.value;
+let textBuffer = currentTex.value;
 
 
 const undo = () => editor.value.trigger("keyboard", "undo", null);
@@ -356,14 +549,13 @@ const toggleRowNumber = () => {
 const showPdfPanel = ref(true)
 const showConsole = ref(true)
 const pdfUrl = ref('file:///')
-const pdfWidth = ref(650)       // PDF 面板默认宽度
-let isResizingPdf = ref(false)
 const pdfContainer = ref(null);
 const canvasWrapper = ref(null);
 let isDragging = false;
 let startX, startY, offsetX = 0, offsetY = 0;
 
 import * as pdfjsLib from "pdfjs-dist";
+let pdfInitialized = false;
 
 let ipcRenderer = null
 if (window && window.electron) {
@@ -405,13 +597,13 @@ async function initPdfJs() {
         isDragging = false;
         container.classList.remove("dragging");
     });
-    if(current_file_path.value &&current_file_path.value.toLowerCase().endsWith(".tex")){
-        pdfUrl.value=`file:///${current_file_path.value.toLowerCase().replace('.tex','.pdf')}`;
+    if(currentPath.value && currentPath.value.toLowerCase().endsWith(".tex")){
+        pdfUrl.value=`file:///${currentPath.value.toLowerCase().replace('.tex','.pdf')}`;
     }else{
         pdfUrl.value="";
     }
     loadPdf(pdfUrl.value);
-
+    pdfInitialized = true;
 }
 const pdfZoomIn = async () => {
     currentScale = Math.min(Math.max(currentScale + 0.1, 0.2), 5); // 限制缩放范围
@@ -429,6 +621,64 @@ let pdfDoc;        // pdfjs document
 const currentPdfPage = ref(1);
 const totalPdfPages = ref(0);
 const inputPdfPage = ref(1);
+
+watch(
+    () => currentTex.value,
+    (incoming) => {
+        //logger.debug("LaTeXEditor currentTex changed", { incoming })
+        const nextValue = incoming ?? '';
+        textBuffer = nextValue;
+        if (!isActive.value) return;
+        if (!editor.value) return;
+    },
+);
+
+watch(
+    () => props.active,
+    (active) => {
+        //logger.debug("LaTeXEditor props.active changed", { active })
+        if (!editor.value) return;
+        if (!active) {
+            textBuffer = currentTex.value ?? '';
+            return;
+        }
+        if (pdfUrl.value && pdfInitialized && pdfContainer.value) {
+            loadPdf(pdfUrl.value);
+        }
+    },
+    { immediate: true },
+);
+
+watch(
+    currentPath,
+    (path) => {
+        //logger.debug("LaTeXEditor currentPath changed", { path })
+        if (!path || !path.toLowerCase().endsWith('.tex')) {
+            pdfUrl.value = '';
+            return;
+        }
+        const nextUrl = `file:///${path.toLowerCase().replace('.tex', '.pdf')}`;
+        pdfUrl.value = nextUrl;
+        if (!isActive.value) return;
+        if (pdfInitialized && pdfContainer.value) {
+            loadPdf(nextUrl);
+        }
+    },
+);
+
+watch(
+    () => showPdfPanel.value,
+    (visible) => {
+        //logger.debug("LaTeXEditor showPdfPanel changed", { visible })
+        nextTick(() => {
+            if (visible) {
+                ensurePdfWithinBounds();
+            } else if (pdfResizableRef.value?.setSidebarSize) {
+                pdfResizableRef.value.setSidebarSize(LATEX_LAYOUT.pdf.minWidth);
+            }
+        });
+    },
+);
 
 function goPrevPage() {
     if (currentPdfPage.value > 1) {
@@ -489,7 +739,7 @@ async function renderPage(pageNumber, scale) {
 async function loadPdf(url) {
     const loadingTask = pdfjsLib.getDocument(url);
     pdfDoc = await loadingTask.promise;
-    //console.log(pdfDoc.value)
+    //logger.log(pdfDoc.value)
     totalPdfPages.value = pdfDoc.numPages;
     currentPdfPage.value = 1;
     inputPdfPage.value = 1;
@@ -500,31 +750,10 @@ function togglePdf() {
     showPdfPanel.value = !showPdfPanel.value
 }
 
-// PDF 拖拽
-function startResizePdf(e) {
-    isResizingPdf.value = true
-    document.addEventListener('mousemove', onResizingPdf)
-    document.addEventListener('mouseup', stopResizePdf)
-}
-
-function onResizingPdf(e) {
-    if (!isResizingPdf.value) return
-    const containerLeft = document.querySelector('.resizable-pdf-container').getBoundingClientRect().left
-    const newWidth = pdfWidth.value + (containerLeft - e.clientX)  // 反向计算宽度
-    pdfWidth.value = Math.min(Math.max(newWidth, 400), 1000)
-
-}
-
-function stopResizePdf() {
-    isResizingPdf.value = false
-    document.removeEventListener('mousemove', onResizingPdf)
-    document.removeEventListener('mouseup', stopResizePdf)
-}
-
 const compile = async () => {
     eventBus.emit('clear-console', { key: 'latex' })
     eventBus.emit('cancel-suggestion')
-    if(current_file_path.value==null||!current_file_path.value.toLowerCase().endsWith(".tex")){
+    if(!currentPath.value || !currentPath.value.toLowerCase().endsWith(".tex")){
         eventBus.emit("show-info",t("latexEditor.notification.pleaseSaveFirst"));
         return;
     }
@@ -533,15 +762,15 @@ const compile = async () => {
         readOnly: true
     });
     const compileResult = await ipcRenderer.invoke("compile-tex",{
-        tex:current_tex_article.value,
-        texPath:current_file_path.value,
+        tex:currentTex.value,
+        texPath:currentPath.value,
         outputDir:"",//todo:用户后续可以设置保存在哪
         customPdfFileName:"",//todo
     })
     editor.value.updateOptions({
         readOnly: false
     });
-    //console.log(compileResult)
+    //logger.log(compileResult)
     if(compileResult.status==='success'){
         eventBus.emit("show-success",t("latexEditor.notification.compileSuccess"));
         pdfUrl.value=(`file:///${compileResult.pdfPath}`);
@@ -551,11 +780,11 @@ const compile = async () => {
     else{
         eventBus.emit("show-error",t("latexEditor.notification.compileFailed",{ code:compileResult.code }));
     }
-    //console.log("编译 LaTeX");
+    //logger.log("编译 LaTeX");
 };
 
 const toggleConsole = async () => {
-    showConsole.value=!showConsole.value;
+    showConsole.value = !showConsole.value;
 };
 
 
@@ -578,44 +807,46 @@ const getSelection = () => {
 
 // 插入文本到当前光标位置（支持多行）
 const insertText = (text) => {
-  const editorInstance = monaco.editor.getEditors()[0];
+  const editorInstance = editor.value;
   if (!editorInstance) return;
+  const model = editorInstance.getModel?.();
+  if (!model) return;
 
-  const position = editorInstance.getPosition();
-  if (!position) return;
+  let position = editorInstance.getPosition();
+  if (!position) {
+    editorInstance.focus();
+    position = editorInstance.getPosition();
+    if (!position) return;
+  }
 
-  // 构造插入范围
   const range = new monaco.Range(
     position.lineNumber,
     position.column,
     position.lineNumber,
-    position.column
+    position.column,
   );
 
-  // 执行插入
-  editorInstance.executeEdits("ai-insert", [
+  editorInstance.executeEdits('ai-insert', [
     {
       range,
       text,
-      forceMoveMarkers: true
-    }
+      forceMoveMarkers: true,
+    },
   ]);
 
-  // 计算新光标位置（考虑多行情况）
-  const lines = text.split("\n");
+  const lines = text.split('\n');
   const lastLine = lines[lines.length - 1];
   const newPosition =
     lines.length === 1
       ? {
           lineNumber: position.lineNumber,
-          column: position.column + lastLine.length
+          column: position.column + lastLine.length,
         }
       : {
           lineNumber: position.lineNumber + lines.length - 1,
-          column: lastLine.length + 1
+          column: lastLine.length + 1,
         };
 
-  // 设置光标位置并滚动到可见区域
   editorInstance.setPosition(newPosition);
   editorInstance.revealPositionInCenter(newPosition);
 };
@@ -625,7 +856,7 @@ const insertText = (text) => {
 const handleMenuClick = async (item) => {
     switch (item) {
         case 'ai-assistant':
-            let text = current_article.value;
+            let text = currentMarkdown.value;
             const bypassCodeBlock = await getSetting('bypassCodeBlock');
             if (bypassCodeBlock) {
                 text = text.replace(/```[\s\S]*?```/g, '');
@@ -643,8 +874,7 @@ const handleMenuClick = async (item) => {
                 title: t('article.ai_analyze_title'),
                 messages: messages
             };
-            //console.log(newDialog)
-            addDialog(newDialog, true)
+            addDialogEntry(newDialog, true)
             eventBus.emit('ai-chat')
             break;
         case 'cut':
@@ -690,7 +920,7 @@ eventBus.on('refresh', () => {
     //         editor.value.dispose();                  // 销毁 Monaco 实例
     //         if (oldModel) oldModel.dispose();       // 销毁模型
     //     } catch (e) {
-    //         console.warn("释放 Monaco 实例失败：", e);
+    //         logger.warn("释放 Monaco 实例失败：", e);
     //     }
     //     editor.value = null;
     // }
@@ -704,7 +934,7 @@ const resetEditor = () => {
 };
 
 eventBus.on('search-replace', () => {
-    //console.log('search-replace');
+    //logger.log('search-replace');
     searchReplaceDialogVisible.value = true;
 });
 
@@ -724,6 +954,7 @@ function startResizeConsole(e) {
 function onResizingConsole(e) {
   if (!isResizingConsole) return;
   const container = document.querySelector('.editor-console-container');
+  if (!container) return;
   const containerRect = container.getBoundingClientRect();
 
   // 底部向上拖拽调整高度
@@ -736,35 +967,6 @@ function stopResizeConsole() {
   document.removeEventListener('mousemove', onResizingConsole);
   document.removeEventListener('mouseup', stopResizeConsole);
 }
-
-// 定义右侧元信息面板的宽度
-const metaInfoWidth = ref(300)  // 初始宽度为300px
-let isResizing = ref(false)     // 是否正在调整宽度
-
-// 开始拖动
-function startResize(e) {
-    isResizing.value = true
-    // 添加鼠标移动和释放事件监听
-    document.addEventListener('mousemove', onResizing)
-    document.addEventListener('mouseup', stopResize)
-}
-
-// 拖动时更新宽度
-function onResizing(e) {
-    if (isResizing.value) {
-        const containerLeft = document.querySelector('.resizable-container').getBoundingClientRect().left
-        const newWidth = metaInfoWidth.value + (containerLeft - e.clientX)  // 反向计算宽度
-        metaInfoWidth.value = Math.min(Math.max(newWidth, 200), 600)
-    }
-}
-
-// 停止拖动
-function stopResize() {
-    isResizing.value = false
-    document.removeEventListener('mousemove', onResizing)
-    document.removeEventListener('mouseup', stopResize)
-}
-
 
 const refreshContextMenu = async () => {
     articleContextMenuItems.value = await getArticleContextMenuItems();
@@ -792,12 +994,13 @@ monaco.languages.setMonarchTokensProvider('latex', {
 let contentChangeListener = null;
 const disposeEditor = () => {
     if (editor.value) {
+        //logger.debug("LaTeXEditor disposeEditor")
         try {
             // 1. 移除监听
             if (contentChangeListener) {
                 contentChangeListener.dispose();
                 contentChangeListener = null;
-                //console.log("移除监听成功")
+                //logger.log("移除监听成功")
             }
 
             // 2. 保存引用的 model
@@ -806,14 +1009,14 @@ const disposeEditor = () => {
             // 3. 释放 Monaco 实例
             // editor.value.dispose();
             // editor.value = null;
-            // console.log("释放Monaco成功")
+            // logger.log("释放Monaco成功")
             // 4. 释放模型
             if (oldModel) oldModel.dispose();
-            //console.log("释放模型成功")
+            //logger.log("释放模型成功")
             // 5. 清空 textBuffer
             textBuffer = "";
         } catch (e) {
-            console.warn("安全释放 Monaco 实例失败:", e);
+            logger.warn("安全释放 Monaco 实例失败:", e);
         }
     }
 };
@@ -855,8 +1058,9 @@ const initEditor = () => {
         }
     };
 
+    //logger.debug("LaTeXEditor initEditor")
     editor.value = monaco.editor.create(editorEl.value, {
-        value: current_tex_article.value,
+        value: currentTex.value,
         language: "latex", // 语言模式
         theme: themeState.currentTheme.type === 'dark' ? "vs-dark" : "vs",  // 主题 (vs, vs-dark, hc-black)
         mouseWheelZoom: true,
@@ -868,7 +1072,7 @@ const initEditor = () => {
         lineNumbers: enableRowNumber ? 'on' : 'off',
         minimap: { enabled: enableMinimap }
     })
-    //editor.value.onKeyDown((e)=>console.log(e));
+    //editor.value.onKeyDown((e)=>logger.log(e));
     // 增量监听
     contentChangeListener = editor.value.onDidChangeModelContent((event) => {
         // 先保存原始文本
@@ -890,28 +1094,23 @@ const initEditor = () => {
 
         
         // 按需同步到 Vue 响应式变量，比如防抖或定时同步
+
+        //BUG:这里同步会卡死
         debounceSync();
         
     });
     const debounceSync = debounce(() => {
         triggerSuggestion.value = false;
-        if(current_tex_article.value!==textBuffer){
-            current_tex_article.value = textBuffer;
-            //initiativeSuggestion.value=true;
-            //trytriggerSuggestion();//等文章内容更新之后再尝试补全
-            //console.log("建议已刷新")
+        if(currentTex.value!==textBuffer){
+            currentTex.value = textBuffer;
         }
-        else{
-            //console.log(textBuffer)
-        }
-        
-        sync();
     }, 100);
     eventBus.emit("monaco-ready")
 }
 
 onMounted(async () => {
     try {
+        //logger.debug("LaTeXEditor onMounted")
         await waitForService('express');
         await refreshContextMenu();
         initEditor();
@@ -919,7 +1118,6 @@ onMounted(async () => {
         eventBus.on('sync-editor-theme', () => {
             const isDark = themeState.currentTheme.type === 'dark';
             const themeName = isDark ? 'vs-dark' : 'vs';
-            //monaco.editor.setTheme(themeName);
             const toMonacoColor = (color) => color.replace('#', '') || 'FFFFFF';
             const deeperColor = (color) => {
                 if (isDark) return mixColors(color, '#000000', 0.3)
@@ -927,7 +1125,7 @@ onMounted(async () => {
             }
             monaco.editor.defineTheme('myCustomTheme', {
                 base: themeName,
-                inherit: true, // 继承基础主题
+                inherit: true,
                 rules: [
                     {
                         token: '',
@@ -943,9 +1141,27 @@ onMounted(async () => {
         })
         eventBus.emit('sync-editor-theme')
         initPdfJs();
+        await nextTick();
+
+        if (mainContainerRef.value) {
+            const initialWidth = mainContainerRef.value.clientWidth;
+            if (initialWidth) {
+                mainWidth.value = initialWidth;
+                ensurePdfWithinBounds();
+            }
+            mainObserver = new ResizeObserver((entries) => {
+                if (!entries.length) return;
+                const width = entries[0].contentRect.width;
+                if (width !== mainWidth.value) {
+                    mainWidth.value = width;
+                    ensurePdfWithinBounds();
+                }
+            });
+            mainObserver.observe(mainContainerRef.value);
+        }
     }
     catch (e) {
-        console.error(e);
+        logger.error(e);
         eventBus.emit('show-error',
             t('article.latex_init_failed') + e
         );
@@ -957,6 +1173,11 @@ onMounted(async () => {
 
 // 清理资源
 onUnmounted(() => {
+    //logger.debug("LaTeXEditor onUnmounted")
+    if (mainObserver) {
+        mainObserver.disconnect();
+        mainObserver = null;
+    }
     eventBus.emit('is-need-save', true)
     try {
         const editors = monaco.editor.getEditors();
@@ -974,19 +1195,19 @@ onUnmounted(() => {
 const triggerSuggestion = ref(false);
 
 function onAcceptSuggestion(text) {
-    //console.log("补全已接受:", text);
+    //logger.log("补全已接受:", text);
     //insertText(text);
     //AISuggestion已经帮忙插入了
     triggerSuggestion.value = false;
 }
 function onCancelSuggestion() {
-    //console.log("补全已取消");
+    //logger.log("补全已取消");
     triggerSuggestion.value = false;
     //initiativeSuggestion.value=false;
     //状态不切换回false,保持为true
 }
 function onResetSuggestion() {
-    //console.log("补全已重置");
+    //logger.log("补全已重置");
     triggerSuggestion.value = false;
 }
 
@@ -1000,30 +1221,30 @@ const suggestionContext=ref({
 let suggestionTimer = null; // AI suggestion 专用防抖
 function getSuggestionContext(contextSize=1000){
     const model = editor.value.getModel();
-    //console.log(selection)
+    //logger.log(selection)
 
     const sel = editor.value.getSelection();
     // 选择 caret 位置：若是折叠（无选区）用 start，若有选区，默认用 end（caret 通常在 end）
     const isCollapsed = (sel.startLineNumber === sel.endLineNumber && sel.startColumn === sel.endColumn);
     const caretLine = isCollapsed ? sel.startLineNumber : sel.endLineNumber;
     const caretColumn = isCollapsed ? sel.startColumn : sel.endColumn;
-    //console.log("caretColumn")
+    //logger.log("caretColumn")
         // 把位置转为 offset（字符索引）
     const caretPos = { lineNumber: caretLine, column: caretColumn };
     const caretOffset = model.getOffsetAt(caretPos);
-    //console.log("caretOffset")
+    //logger.log("caretOffset")
     const fullLength = model.getOffsetAt(model.getFullModelRange().getEndPosition());;
-    //console.log("fullLength",fullLength)
+    //logger.log("fullLength",fullLength)
     const startOffset = Math.max(0, caretOffset - contextSize);
     const endOffset = Math.min(fullLength, caretOffset + contextSize);
-    // console.log(startOffset)
-    // console.log(endOffset)
-    const fullText = current_tex_article.value || "";
+    // logger.log(startOffset)
+    // logger.log(endOffset)
+    const fullText = currentTex.value || "";
     suggestionContext.value.preContext = fullText.slice(startOffset, caretOffset);
     suggestionContext.value.postContext = fullText.slice(caretOffset, endOffset);
 }
 function trytriggerSuggestion() {
-    //console.log("尝试触发Suggestion")
+    //logger.log("尝试触发Suggestion")
     // AI suggestion 防抖逻辑
     
     //if (initiativeSuggestion.value ==false) return;//只生成一次，不是这里的问题
@@ -1033,7 +1254,7 @@ function trytriggerSuggestion() {
     suggestionTimer = setTimeout(() => {
         triggerSuggestion.value = false;
         getSuggestionContext();
-        //console.log("触发Suggestion")
+        //logger.log("触发Suggestion")
         triggerSuggestion.value = true;
     }, 1500); // 1.5 秒防抖
 
@@ -1044,19 +1265,112 @@ function trytriggerSuggestion() {
 </script>
 
 <style scoped>
-/* .editor {
+.content-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
     flex: 1;
-} */
+    min-height: 0;
+}
+
+.latex-layout {
+    display: flex;
+    height: 100%;
+    width: 100%;
+}
+
+.latex-main {
+    display: flex;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+}
+
+.latex-column {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.left-column {
+    min-width: 360px;
+    border-right: 1px solid var(--el-border-color-lighter);
+    flex: 1 1 auto;
+}
+
+.pdf-column {
+    min-width: 360px;
+    border-right: 1px solid var(--el-border-color-lighter);
+    background-color: var(--el-bg-color-page);
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.meta-column {
+    min-width: 260px;
+    max-width: 520px;
+    overflow-y: auto;
+    padding: 12px;
+    box-sizing: border-box;
+    color: var(--el-text-color-primary);
+    flex: 0 0 auto;
+}
+
+.resize-handle {
+    width: 6px;
+    cursor: col-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.resize-handle::after {
+    content: '';
+    width: 2px;
+    height: 60%;
+    background-color: var(--el-border-color);
+    border-radius: 1px;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-bottom: 1px solid #bbb;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.toolbar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.toolbar-icon:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
 .editor-console-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background: var(--editor-background);
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    background: var(--el-bg-color-page);
 }
 
 .editor {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 0;
 }
 
@@ -1082,163 +1396,26 @@ function trytriggerSuggestion() {
   height: 2px;
   cursor: row-resize;
 }
-/* .editor-console-container {
-flex: 1;
-overflow: hidden;
-min-width: 200px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  height: 100%;
-  width: 100%;
-} */
-
-
-
-/* 拖拽条 */
-/* .editor-resizer {
-  height: 5px;
-  cursor: row-resize;
-} */
-
-/* Console 区域 */
-/* .console-panel {
-  flex: 1;
-  min-height: 50px;
-  max-height:600px;
-  height: var(--console-height, 200px);
-  overflow: auto;
-  position: relative;
-} */
-.pdf-container {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    /* 防止 canvas 溢出 */
-    position: relative;
-    cursor: grab;
-}
-
-.pdf-container.dragging {
-    cursor: grabbing;
-}
-
-.canvas-wrapper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    transform-origin: 0 0;
-    /* 缩放从左上角开始 */
-}
 
 .pdf-toolbar {
-    z-index: 10;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-}
-
-.pdf-preview-container {
     position: relative;
-    height: 100%;
-}
-
-.pdf-empty-text {
-    color: #999;
-    font-weight: normal;
-}
-
-.pdf-empty-text {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    /* 水平居中 */
-    align-items: center;
-    /* 垂直居中 */
-    user-select: none;
-    /* 禁止选中 */
-    pointer-events: none;
-    /* 防止交互（可选） */
-    margin: 0;
-    /* 移除默认 margin */
-    font-size: 1.1rem;
-    /* 可根据需要调整字体大小 */
-    color: var(--text-color, #999);
-    /* 可设置默认灰色 */
-    text-align: center;
-}
-
-.editor-pdf-wrapper {
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    height: 100%;
-}
-
-.pdf-preview-container {
-    border-left: 1px solid #bbb;
-    height: 100%;
-}
-
-/* 顶部菜单栏 */
-
-.meta-info-menu {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    align-self: center;
-}
-
-.footer-menu {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-top: 1px solid #bbb;
-}
-
-.content-container {
-    display: flex;
-    flex-direction: row;
-    max-height: 90vh;
-    height: 90vh;
-}
-
-.editor-pdf-container {
-    display: flex;
-    flex-direction: row;
-    height: 100%;
-}
-
-.latex-editor-container {
-    flex: 1;
-    /* 占满剩余空间 */
-    display: flex;
-    flex-direction: column;
-    min-width: 200px;
-    /* 防止过窄 */
-}
-
-.toolbar {
+    z-index: 1;
     display: flex;
     align-items: center;
-    padding: 4px 8px;
-    border-bottom: 1px solid #bbb;
     gap: 8px;
-    flex-shrink: 0;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
-.toolbar-icon {
+.pdf-toolbar__page {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    cursor: pointer;
+    gap: 6px;
+}
 
-    border-radius: 4px;
-    transition: background-color 0.2s;
+.pdf-toolbar__page input {
+    width: 60px;
+    text-align: center;
 }
 
 .pdf-toolbar-icon {
@@ -1253,57 +1430,52 @@ min-width: 200px;
     transition: background-color 0.2s;
 }
 
-.toolbar-icon:hover {
+.pdf-toolbar-icon:hover {
     background-color: rgba(0, 0, 0, 0.05);
 }
 
-
-
-/* 左边的编辑器样式 */
-
-/* 右边的元信息样式 */
-.meta-info {
-    color: black;
+.pdf-preview-container {
+    position: relative;
     flex: 1;
-    /* 占20% */
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--el-border-color-lighter);
+}
+
+.pdf-container {
+    width: 100%;
+    height: 100%;
     overflow: hidden;
-    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
-    padding: 5px;
-}
-
-.resizable-container {
-    display: flex;
-    height: 100%;
     position: relative;
+    cursor: grab;
 }
 
-.resizable-pdf-container {
-    display: flex;
+.pdf-container.dragging {
+    cursor: grabbing;
+}
+
+.canvas-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+}
+
+.pdf-empty-text {
+    color: #999;
+    font-weight: normal;
+    width: 100%;
     height: 100%;
-    position: relative;
-}
-
-.meta-info {
-    min-width: 200px;
-    max-width: 600px;
-    overflow: auto;
-}
-
-.resizer {
-    width: 5px;
-    cursor: col-resize;
-    background-color: #55555555;
-    height: 100%;
-    position: relative;
-}
-
-
-/* 底部菜单样式 */
-.footer-menu {
     display: flex;
-    justify-content: flex-start;
+    justify-content: center;
     align-items: center;
-    border-top: 1px solid #bbb;
+    user-select: none;
+    pointer-events: none;
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-color, #999);
+    text-align: center;
 }
 
 .context-menu {

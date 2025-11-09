@@ -22,6 +22,8 @@ import {
 import { getSetting } from '../utils/settings'
 import eventBus from '../utils/event-bus'
 import type { Ref } from 'vue'
+import { createRendererLogger } from '../utils/logger';
+const logger = createRendererLogger('AIService');
 
 /** AI任务创建选项 */
 export interface CreateAITaskOptions {
@@ -53,7 +55,7 @@ export class AIService {
 
       return createAiTask(name, prompt, target, type, originKey, useRAG, meta)
     } catch (error) {
-      console.error('创建AI任务失败:', error)
+      logger.error('创建AI任务失败:', error)
       eventBus.emit('show-error', `创建AI任务失败: ${error instanceof Error ? error.message : String(error)}`)
       throw error
     }
@@ -66,7 +68,7 @@ export class AIService {
     try {
       await startAiTask(handle)
     } catch (error) {
-      console.error('启动AI任务失败:', error)
+      logger.error('启动AI任务失败:', error)
       eventBus.emit('show-error', `启动AI任务失败: ${error instanceof Error ? error.message : String(error)}`)
       throw error
     }
@@ -79,7 +81,7 @@ export class AIService {
     try {
       cancelAiTask(handle, showWarning)
     } catch (error) {
-      console.error('取消AI任务失败:', error)
+      logger.error('取消AI任务失败:', error)
       if (showWarning) {
         eventBus.emit('show-error', `取消AI任务失败: ${error instanceof Error ? error.message : String(error)}`)
       }
@@ -93,7 +95,7 @@ export class AIService {
     try {
       clearAiTasks()
     } catch (error) {
-      console.error('清空AI任务失败:', error)
+      logger.error('清空AI任务失败:', error)
       eventBus.emit('show-error', `清空AI任务失败: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -121,7 +123,7 @@ export class AIService {
       const { useRAG = false, meta = { temperature: 0 }, signal } = options
       await answerQuestion(prompt, target, meta, signal, useRAG)
     } catch (error) {
-      console.error('AI回答问题失败:', error)
+      logger.error('AI回答问题失败:', error)
       eventBus.emit('show-error', `AI回答问题失败: ${error instanceof Error ? error.message : String(error)}`)
       throw error
     }
@@ -141,9 +143,9 @@ export class AIService {
   ): Promise<void> {
     try {
       const { useRAG = false, meta = { temperature: 0 }, signal } = options
-      await continueConversation(conversation, target, meta, signal, useRAG)
+      await continueConversation(conversation, target, meta as any, signal, useRAG)
     } catch (error) {
-      console.error('AI对话失败:', error)
+      logger.error('AI对话失败:', error)
       eventBus.emit('show-error', `AI对话失败: ${error instanceof Error ? error.message : String(error)}`)
       throw error
     }
@@ -158,7 +160,7 @@ export class AIService {
       const selectedLlm = await getSetting('selectedLlm')
       return llmEnabled && selectedLlm
     } catch (error) {
-      console.error('检查LLM可用性失败:', error)
+      logger.error('检查LLM可用性失败:', error)
       return false
     }
   }
@@ -200,7 +202,7 @@ export class AIService {
           return null
       }
     } catch (error) {
-      console.error('获取LLM配置失败:', error)
+      logger.error('获取LLM配置失败:', error)
       return null
     }
   }

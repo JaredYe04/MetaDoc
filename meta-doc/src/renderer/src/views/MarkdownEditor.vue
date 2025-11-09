@@ -1,6 +1,6 @@
 <template>
     <div class="main-container">
-        <div class="content-container">
+        <div class="content-container" ref="containerRef">
             <!-- 左边：Vditor Markdown 编辑器 -->
             <!-- 菜单组件 -->
             <TitleMenu v-if="showTitleMenu" :title="currentTitle.replace(/#+/g, '').trim()" :position="menuPosition"
@@ -19,28 +19,34 @@
                 @triggerSuggestion="trytriggerSuggestion" />
 
             <ResizableContainer
+                ref="resizableRef"
                 direction="vertical"
-                :initial-sidebar-size="300"
-                :min-size="200"
-                :max-size="600"
+                :initial-sidebar-size="MARKDOWN_LAYOUT.initialSidebarWidth"
+                :min-size="MARKDOWN_LAYOUT.sidebarMinWidth"
+                :max-size="MARKDOWN_LAYOUT.sidebarMaxWidth"
                 :reverse="true"
                 sidebar-position="end"
                 @resize="onMetaInfoResize"
             >
                 <template #main>
                     <!-- 主编辑器区域 -->
-                    <div id="vditor" ref="vditorEl" class="editor" @keydown="handleTab"
+                    <div :id="props.editorDomId" ref="vditorEl" class="editor" @keydown="handleTab"
                         @contextmenu.prevent="openContextMenu($event)" :style="{
                             '--panel-background-color': themeState.currentTheme.editorPanelBackgroundColor,
                             '--toolbar-background-color': themeState.currentTheme.editorToolbarBackgroundColor,
                             '--textarea-background-color': themeState.currentTheme.editorTextareaBackgroundColor,
+                            '--editor-min-width': MARKDOWN_LAYOUT.editorMinWidth + 'px',
                         }"></div>
                 </template>
                 
                 <template #sidebar>
                     <!-- 右边：元信息显示 -->
                     <div class="meta-info"
-                        :style="{ backgroundColor: themeState.currentTheme.background2nd }">
+                        :style="{
+                            backgroundColor: themeState.currentTheme.background2nd,
+                            minWidth: MARKDOWN_LAYOUT.sidebarMinWidth + 'px',
+                            maxWidth: MARKDOWN_LAYOUT.sidebarMaxWidth + 'px'
+                        }">
                     <div style="text-align: center; font-size: large;">
                         <el-tooltip :content="$t('article.edit_meta_info')" placement="left">
                             <h1 class="interactive-text" @click="showMetaDialog"
@@ -50,7 +56,7 @@
                         </el-tooltip>
                     </div>
                     <el-button type="primary" text bg @click="convertToLatex" style="
-                    width:100%">
+                    width:fit-content">
                         {{ $t('article.convert_to_latex')  }}
                     </el-button>
                     <el-tooltip :content="$t('article.click_to_edit_title')" placement="left">
@@ -65,7 +71,7 @@
                         :prompt="generateTitlePrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
                         :title="$t('article.generate_title')" :llmConfig="{ max_tokens: 15, temperature: 0.0 }"
                         @llm-content-accept="(content: string) => {
-                            current_article_meta_data.title = content;
+                            updateMeta((meta) => { meta.title = content; });
                             genTitleDialogVisible = false;
                         }" @update:visible="genTitleDialogVisible = $event; genTitleDialogVisible = false"
                         :defaultText="current_article_meta_data.title" :defaultInputSize="1"></LlmDialog>
@@ -80,7 +86,7 @@
 
                     <LlmDialog v-if="modifyAuthorDialogVisible" :prompt="''" :title="$t('article.modify_author')"
                         :llmConfig="{}" @llm-content-accept="(content: string) => {
-                            current_article_meta_data.author = content;
+                            updateMeta((meta) => { meta.author = content; });
                             modifyAuthorDialogVisible = false;
                         }" @update:visible="modifyAuthorDialogVisible = $event; modifyAuthorDialogVisible = false"
                         :defaultText="current_article_meta_data.author" :defaultInputSize="1"></LlmDialog>
@@ -97,7 +103,7 @@
                         :prompt="generateDescriptionPrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
                         :title="$t('article.generate_description')" :llmConfig="{ max_tokens: 100, temperature: 0.0 }"
                         @llm-content-accept="(content: string) => {
-                            current_article_meta_data.description = content;
+                            updateMeta((meta) => { meta.description = content; });
                             genDescriptionDialogVisible = false;
                         }" @update:visible="genDescriptionDialogVisible = $event; genDescriptionDialogVisible = false"
                         :defaultText="current_article_meta_data.description" :defaultInputSize="10"></LlmDialog>
@@ -108,15 +114,32 @@
             <el-dialog v-model="editMetaDialogVisible" :title="$t('article.edit_meta_info')" width="30%">
                 <el-form>
                     <el-form-item :label="$t('article.title')">
-                        <el-input v-model="current_article_meta_data.title" autocomplete="off" class="aero-input" />
+                        <el-input
+                            :model-value="current_article_meta_data.title"
+                            @update:model-value="(val: string) => updateMeta((meta) => { meta.title = val; })"
+                            autocomplete="off"
+                            class="aero-input"
+                        />
                     </el-form-item>
                     <el-form-item :label="$t('article.author')">
-                        <el-input v-model="current_article_meta_data.author" autocomplete="off" class="aero-input" />
+                        <el-input
+                            :model-value="current_article_meta_data.author"
+                            @update:model-value="(val: string) => updateMeta((meta) => { meta.author = val; })"
+                            autocomplete="off"
+                            class="aero-input"
+                        />
                     </el-form-item>
                     <el-form-item :label="$t('article.description')">
-                        <el-input type="textarea" :placeholder="$t('article.description_placeholder')"
-                            v-model="current_article_meta_data.description" autocomplete="off" resize="none"
-                            :autoSize="{ minRows: 3, maxRows: 5 }" class="aero-input" />
+                        <el-input
+                            type="textarea"
+                            :placeholder="$t('article.description_placeholder')"
+                            :model-value="current_article_meta_data.description"
+                            @update:model-value="(val: string) => updateMeta((meta) => { meta.description = val; })"
+                            autocomplete="off"
+                            resize="none"
+                            :autoSize="{ minRows: 3, maxRows: 5 }"
+                            class="aero-input"
+                        />
                     </el-form-item>
                 </el-form>
             </el-dialog>
@@ -126,7 +149,7 @@
 
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed } from "vue";
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed, toRef, watch } from "vue";
 import ResizableContainer from '../components/base/ResizableContainer.vue';
 import { ElButton, ElDialog, ElLoading, ElMessageBox } from 'element-plus';
 import Vditor from "vditor";
@@ -138,9 +161,8 @@ import "../assets/title-menu.css";
 import eventBus, { isElectronEnv, getWindowType } from '../utils/event-bus';
 import { createRendererLogger } from '../utils/logger.ts'
 import { generateDescriptionPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
-import { addDialog, countNodes, current_article, current_article_meta_data, defaultAiChatMessages, latest_view, renderedHtml, searchNode, sync } from "../utils/common-data.ts";
-import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
-import { current_outline_tree } from '../utils/common-data.ts';
+import { searchNode } from "../utils/common-data.ts";
+import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree } from '../utils/md-utils';
 import LlmDialog from "../components/LlmDialog.vue";
 import TitleMenu from '../components/TitleMenu.vue';
 import SearchReplaceMenu from "../components/SearchReplaceMenu.vue";
@@ -155,10 +177,98 @@ import AISuggestion from "../components/AISuggestion.vue";
 import "../assets/ai-suggestion.css";
 import { getArticleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
 import ContextMenu from "../components/ContextMenu.vue";
+import { useWorkspace } from '../stores/workspace';
+import type { ArticleMetaData, DocumentOutlineNode } from '../../../types';
+import { debounce } from "lodash";
+
+const MARKDOWN_LAYOUT = {
+  editorMinWidth: 700,
+  sidebarMinWidth: 200,
+  sidebarMaxWidth: 600,
+  initialSidebarWidth: 300,
+};
+
 const { t } = useI18n()
 const logger = createRendererLogger('MarkdownEditor', {
   windowTypeProvider: () => getWindowType()
 })
+
+const workspace = useWorkspace()
+
+const props = withDefaults(defineProps<{
+  tabId: string
+  active: boolean
+  editorDomId?: string
+}>(), {
+  active: true,
+  editorDomId: 'vditor',
+})
+
+const isActive = toRef(props, 'active')
+
+const documentRef = computed(() => workspace.ensureDocument(props.tabId))
+
+const current_article = computed<string>({
+  get: () => documentRef.value.markdown ?? '',
+  set: (val) => workspace.updateDocumentMarkdown(props.tabId, val),
+})
+
+const current_article_meta_data = computed<ArticleMetaData>(() => documentRef.value.meta)
+
+const current_outline_tree = computed<DocumentOutlineNode>({
+  get: () => documentRef.value.outline,
+  set: (val) => workspace.updateDocumentOutline(props.tabId, val),
+})
+
+const current_ai_dialogs = computed<any[]>({
+  get: () => documentRef.value.aiDialogs,
+  set: (val) => workspace.updateDocumentAiDialogs(props.tabId, val),
+})
+
+const latest_view = computed<'outline' | 'article'>({
+  get: () => documentRef.value.lastView ?? 'outline',
+  set: (val) => workspace.updateDocumentLastView(props.tabId, val),
+})
+
+const renderedHtml = computed<string>({
+  get: () => documentRef.value.renderedHtml ?? '',
+  set: (val) => workspace.updateDocumentRenderedHtml(props.tabId, val),
+})
+
+function updateMeta(updater: (meta: ArticleMetaData) => void) {
+  workspace.updateDocumentMeta(props.tabId, updater)
+}
+
+function replaceDialogs(builder: (dialogs: any[]) => any[]) {
+  const next = builder([...current_ai_dialogs.value])
+  workspace.updateDocumentAiDialogs(props.tabId, next)
+}
+
+function addDialog(dialog: any, add2front = false) {
+  replaceDialogs((dialogs) => {
+    if (add2front) {
+      dialogs.unshift(dialog)
+    } else {
+      dialogs.push(dialog)
+    }
+    return dialogs
+  })
+}
+
+function syncDocument() {
+  if (latest_view.value === 'outline') {
+    current_article.value = generateMarkdownFromOutlineTree(current_outline_tree.value)
+    latest_view.value = 'article'
+  } else if (latest_view.value === 'article') {
+    const outline = extractOutlineTreeFromMarkdown(current_article.value)
+    current_outline_tree.value = outline
+    latest_view.value = 'outline'
+  }
+}
+ 
+function getEditorRoot(): HTMLElement | null {
+  return document.getElementById(props.editorDomId) as HTMLElement | null
+}
 
 // 状态变量
 const genTitleDialogVisible = ref(false);
@@ -170,6 +280,10 @@ const searchReplaceDialogVisible = ref(false);
 const vditor = ref<Vditor | null>(null); // Vditor 实例
 const editMetaDialogVisible = ref(false); // 编辑元信息对话框
 const articleContextMenuItems = ref<any[]>([]);//右键菜单项
+const resizableRef = ref<InstanceType<typeof ResizableContainer> | null>(null);
+const containerRef = ref<HTMLElement | null>(null);
+const containerWidth = ref(0);
+let layoutObserver: ResizeObserver | null = null;
 
 const loadingInstance = ElLoading.service({ fullscreen: false });
 const showTitleMenu = ref(false);
@@ -185,25 +299,27 @@ const cur_selection = ref(''); // 当前选中的文本
 
 const vditorEl = ref<HTMLElement | null>(null);
 const triggerSuggestion = ref(false);
+const lastAppliedContent = ref('');
 
 function onAcceptSuggestion(text: string) {
-    //console.log("补全已接受:", text);
+    //logger.log("补全已接受:", text);
     insertText(text);
     triggerSuggestion.value = false;
 }
 function onCancelSuggestion() {
-    //console.log("补全已取消");
+    //logger.log("补全已取消");
     triggerSuggestion.value = false;
     //状态不切换回false,保持为true
 }
 function onResetSuggestion() {
-    //console.log("补全已重置");
+    //logger.log("补全已重置");
     //triggerSuggestion.value = false;
 }
 
 // 监听输入 -> 1秒后触发
 let debounceTimer: NodeJS.Timeout | null = null;
 function trytriggerSuggestion() {
+    if (!isActive.value) return;
     triggerSuggestion.value = false;
     if (debounceTimer) clearTimeout(debounceTimer);
     eventBus.on('cancel-suggestion',()=>{if (debounceTimer) clearTimeout(debounceTimer);})
@@ -258,7 +374,7 @@ const handleMenuClick = async (item: string) => {
                 title: t('article.ai_analyze_title'),
                 messages: messages
             };
-            //console.log(newDialog)
+            //logger.log(newDialog)
             addDialog(newDialog, true)
             eventBus.emit('ai-chat')
             break;
@@ -319,25 +435,27 @@ const handleClick = (event: MouseEvent, title: string, path: string) => {
     showTitleMenu.value = true;
 };
 
-// 刷新文章内容
-eventBus.on('refresh', () => {
+const handleRefresh = () => {
+    if (!isActive.value) return;
     vditor.value?.setValue(current_article.value, true);
-});
+};
+eventBus.on('refresh', handleRefresh);
 
 
-eventBus.on('search-replace', () => {
-    //console.log('search-replace');
+const handleSearchReplace = () => {
+    if (!isActive.value) return;
     searchReplaceDialogVisible.value = true;
-});
-eventBus.on('vditor-sync-with-html', () => {
+};
+eventBus.on('search-replace', handleSearchReplace);
+
+const handleSyncWithHtml = () => {
+    if (!isActive.value) return;
     if (!vditor.value) return;
     const html = vditor.value.getHTML();
-    //console.log(html);
-    //console.log(vditor.value.html2md(html))
     vditor.value.setValue(vditor.value.html2md(html), true);
     current_article.value = vditor.value.getValue();
-});
-
+};
+eventBus.on('vditor-sync-with-html', handleSyncWithHtml);
 
 
 // 接受生成的文本
@@ -356,8 +474,7 @@ const acceptGeneratedText = async (payload: any) => {
     }
     current_outline_tree.value = outlineTree;
     latest_view.value = 'outline';
-    eventBus.emit('is-need-save', true)
-    sync();
+    syncDocument();
     vditor.value?.setValue(current_article.value);
     await bindTitleMenu();
 };
@@ -369,7 +486,10 @@ const handleTitleMenuClose = () => {
 
 // 更新大纲
 const bindTitleMenu = async () => {
-    let sections = Array.from(document.getElementsByClassName('vditor-ir__node')).filter(node =>
+    if (!isActive.value) return;
+    const editorRoot = getEditorRoot();
+    if (!editorRoot) return;
+    let sections = Array.from(editorRoot.querySelectorAll('.vditor-ir__node')).filter(node =>
         ['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes((node as Element).tagName));
 
     // 处理大纲树和标题绑定
@@ -396,10 +516,12 @@ const bindTitleMenu = async () => {
         (section as Element).setAttribute('title', t('article.long_press_optimize'));
     });
 
-    const outlineNode = document.getElementsByClassName('vditor-outline__content')[0];
+    const outlineNode = editorRoot.querySelector('.vditor-outline__content');
     //获取所有的span子标签，并且这些标签没有data-target-id属性
-    const outlineSections = Array.from(outlineNode.getElementsByTagName('span'))
-        .filter(node => !node.hasAttribute('data-target-id'));
+    const outlineSections = outlineNode
+        ? Array.from(outlineNode.getElementsByTagName('span'))
+            .filter(node => !node.hasAttribute('data-target-id'))
+        : [];
     outlineSections.forEach((section, i) => {
         const node = treeNodeQueue[i];
         const target = section;
@@ -423,7 +545,8 @@ let isLongPress = false;
 
 
 const outlineMouseDownEvent = (event: MouseEvent, section: HTMLElement) => {
-    const titles = document.getElementsByClassName('vditor-ir__node');
+    const editorRoot = getEditorRoot();
+    const titles = editorRoot ? editorRoot.getElementsByClassName('vditor-ir__node') : [];
     const path = section.getAttribute('path');
     //找到titles里面的第一个包含path的元素
     const title = Array.from(titles).find(title => title.getAttribute('path') === path);
@@ -466,11 +589,11 @@ const handleTab = (event: KeyboardEvent) => {
     if (event.key === "Tab") {
         //如果AISuggestion在工作，不插入制表符
         if (triggerSuggestion.value) {
-            //console.log('AI Suggestion is active, tab key pressed');
+            //logger.log('AI Suggestion is active, tab key pressed');
             return;
         }
         else {
-            //console.log('AI Suggestion is not active, tab key pressed');
+            //logger.log('AI Suggestion is not active, tab key pressed');
         }
 
         event.preventDefault();
@@ -489,12 +612,42 @@ const handleTab = (event: KeyboardEvent) => {
 
 
 
-// 元信息面板尺寸调整处理
+const logMetaResize = debounce((size: number) => {
+    logger.debug('元信息面板宽度调整', { size });
+}, 100);
+
+const clampSidebarSize = (size: number): number => {
+    const width = containerWidth.value;
+    const rawMin = MARKDOWN_LAYOUT.sidebarMinWidth;
+    const rawMax = MARKDOWN_LAYOUT.sidebarMaxWidth;
+    if (!width) {
+        return Math.min(Math.max(size, rawMin), rawMax);
+    }
+    const maxByMainMin = width - MARKDOWN_LAYOUT.editorMinWidth;
+    const maxAllowed = Math.min(rawMax, Math.max(rawMin, maxByMainMin));
+    return Math.min(Math.max(size, rawMin), maxAllowed);
+};
+
 function onMetaInfoResize(size: number, event: MouseEvent) {
-    // 这里可以处理尺寸变化的逻辑，比如保存到本地存储
-    logger.debug('元信息面板宽度调整', { size })
+    const clamped = clampSidebarSize(size);
+    if (clamped !== size) {
+        resizableRef.value?.setSidebarSize(clamped);
+    }
+    logMetaResize(clamped);
 }
 
+const ensureSidebarWithinBounds = () => {
+    const sidebarSize = resizableRef.value?.getSidebarSize?.();
+    if (typeof sidebarSize === 'number') {
+        const clamped = clampSidebarSize(sidebarSize);
+        if (clamped !== sidebarSize) {
+            resizableRef.value?.setSidebarSize(clamped);
+        }
+    } else {
+        const fallback = clampSidebarSize(MARKDOWN_LAYOUT.initialSidebarWidth);
+        resizableRef.value?.setSidebarSize(fallback);
+    }
+};
 
 const refreshContextMenu = async () => {
     articleContextMenuItems.value = await getArticleContextMenuItems();
@@ -502,6 +655,18 @@ const refreshContextMenu = async () => {
 
 // 编辑器初始化
 onMounted(async () => {
+    await nextTick();
+    if (containerRef.value) {
+        layoutObserver = new ResizeObserver((entries) => {
+            if (!entries.length) return;
+            const width = entries[0].contentRect.width;
+            containerWidth.value = width;
+            ensureSidebarWithinBounds();
+        });
+        layoutObserver.observe(containerRef.value);
+        containerWidth.value = containerRef.value.clientWidth;
+        ensureSidebarWithinBounds();
+    }
     try {
         await waitForService('express');
         await refreshContextMenu();
@@ -514,7 +679,7 @@ onMounted(async () => {
         }
         const autoSaveExternalImage = await getSetting('autoSaveExternalImage');
         const supportedLang = ["en_US", "fr_FR", "pt_BR", "ja_JP", "ko_KR", "ru_RU", "sv_SE", "zh_CN", "zh_TW"]
-        vditor.value = new Vditor('vditor', {
+        vditor.value = new Vditor(props.editorDomId, {
             lang: supportedLang.includes(t('lang') as string) ? (t('lang') as any) : 'en_US',
             toolbarConfig: { pin: true },
             theme: themeState.currentTheme.vditorTheme as any,
@@ -539,7 +704,7 @@ onMounted(async () => {
                     }
                 },
                 error: (msg) => {
-                    console.error('Upload Error:', msg);
+                    logger.error('Upload Error:', msg);
                 },
             },
             toolbar: [
@@ -638,21 +803,21 @@ onMounted(async () => {
 
                 current_article.value = value;
                 latest_view.value = 'article';
+                workspace.updateDocumentMarkdown(props.tabId, value);
                 //trytriggerSuggestion();
 
-                eventBus.emit('is-need-save', true)
-                sync();
+                syncDocument();
                 await bindTitleMenu();
 
             },
             after: async () => {
 
-                //console.log(themeState);
+                //logger.log(themeState);
                 try {
-                    sync();
+                    syncDocument();
                     await bindTitleMenu();
                 } catch (e) {
-                    console.error(e);
+                    logger.error(e);
                 }
                 finally {
                     loadingInstance.close();
@@ -662,7 +827,7 @@ onMounted(async () => {
         });
     }
     catch (e) {
-        console.error(e);
+        logger.error(e);
         eventBus.emit('show-error',
             t('article.vditor_init_failed') + e
         );
@@ -677,12 +842,20 @@ const currentAiLogo = computed(() => {
 });
 // 清理资源
 onBeforeUnmount(() => {
-    eventBus.emit('is-need-save', true)
-    sync();
+    syncDocument();
     vditor.value?.destroy();
+    eventBus.off('refresh', handleRefresh);
+    eventBus.off('search-replace', handleSearchReplace);
+    eventBus.off('vditor-sync-with-html', handleSyncWithHtml);
+    eventBus.off('sync-editor-theme', handleSyncEditorTheme);
+    if (layoutObserver) {
+        layoutObserver.disconnect();
+        layoutObserver = null;
+    }
 });
 
-eventBus.on('sync-editor-theme', async () => {
+const handleSyncEditorTheme = async () => {
+    if (!isActive.value) return;
     let contentTheme = await getSetting('contentTheme');
     if (contentTheme === 'auto') {
         contentTheme = themeState.currentTheme.vditorTheme;
@@ -694,7 +867,45 @@ eventBus.on('sync-editor-theme', async () => {
 
     vditor.value?.setTheme(themeState.currentTheme.vditorTheme as any, contentTheme as any, codeTheme as any);
     vditor.value?.setValue(current_article.value);
-});
+};
+eventBus.on('sync-editor-theme', handleSyncEditorTheme);
+
+watch(
+    () => current_article.value,
+    (content) => {
+        if (!isActive.value) return;
+        if (!vditor.value) return;
+        const incoming = content ?? '';
+        const currentValue = vditor.value.getValue();
+        if (incoming !== currentValue) {
+            nextTick(() => {
+                vditor.value?.setValue(incoming, true);
+                lastAppliedContent.value = incoming;
+                bindTitleMenu();
+            });
+        }
+    },
+);
+
+watch(
+    isActive,
+    (active) => {
+        if (!active) return;
+        if (!vditor.value) return;
+        const desired = current_article.value ?? '';
+        const currentValue = vditor.value.getValue();
+        if (desired !== currentValue) {
+            nextTick(() => {
+                vditor.value?.setValue(desired, true);
+                lastAppliedContent.value = desired;
+                bindTitleMenu();
+            });
+        } else {
+            bindTitleMenu();
+        }
+    },
+    { immediate: true },
+);
 
 </script>
 
@@ -717,23 +928,19 @@ eventBus.on('sync-editor-theme', async () => {
 /* 上下两部分 */
 .content-container {
     display: flex;
-    flex: 1;
-    /*占满整个父容器 */
-    max-height: 90vh;
-    height: 90vh;
-
-    /* 唯一允许滚动的区域 */
-
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
 }
 
 /* 左边的编辑器样式 */
 .editor {
-    flex: 4;
+    flex: 1 1 auto;
     border-right: 1px solid #ddd;
-    max-width: 85vw;
-    width: 85vw;
+    width: 100%;
+    min-width: var(--editor-min-width, 360px);
+    height: 100%;
     overflow: auto;
-    /*滚动条样式修改 */
     scrollbar-color: #888 #63636300;
     scrollbar-width: thin;
 }
@@ -742,12 +949,12 @@ eventBus.on('sync-editor-theme', async () => {
 /* 右边的元信息样式 */
 .meta-info {
     color: black;
-    flex: 1;
-    /* 占20% */
+    flex: 0 0 auto;
     background-color: #f9f9f9;
-    overflow: hidden;
+    overflow: auto;
     box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
     padding: 5px;
+    height: 100%;
 }
 
 

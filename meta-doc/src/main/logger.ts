@@ -58,7 +58,7 @@ const ensureInitialized = () => {
   }
 
   const basePath = process.cwd();
-  logDirectory = path.join(basePath, 'logger');
+  logDirectory = path.join(basePath, 'logs');
 
   try {
     if (!fs.existsSync(logDirectory)) {

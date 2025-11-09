@@ -304,7 +304,7 @@ function bindKnowledgeHandlers(): void {
         'compile-latex-fail',
         errorMessage || t('main.latex.compileFailed', 'Compilation failed, exit code: -1', { code: '-1' })
       );
-      console.error('PDF 编译失败:', errorMessage);
+      logger.error('PDF 编译失败:', errorMessage);
       return { status: 'failed', exitCode: -1 };
     }
   });
@@ -404,7 +404,7 @@ const systemNotification = (title: string, body: string, path: string = ''): voi
       shell.openPath(path).then(() => {
         logger.info('已尝试打开文件', path);
       }).catch(err => {
-        console.error(`打开文件失败: ${err}`);
+        logger.error(`打开文件失败: ${err}`);
       });
     }
   });
@@ -557,6 +557,7 @@ export const openDoc = async (filePath?: string): Promise<void> => {
     const payload = {
       content,
       format,
+      path: filePath,
     };
     
     mainWindow?.webContents.send('open-doc-success', payload);
@@ -582,6 +583,7 @@ export const openDoc = async (filePath?: string): Promise<void> => {
     const payload = {
       content,
       format,
+      path: selectedPath,
     };
     
     mainWindow?.webContents.send('open-doc-success', payload);
@@ -718,7 +720,7 @@ const exportFile = async (event: IpcMainEvent, data: ExportData): Promise<void> 
         mainWindow?.webContents.send('export-success', result.filePath);
       }
     } catch (error) {
-      console.error('导出失败:', error);
+      logger.error('导出失败:', error);
     }
   }
 };
@@ -780,7 +782,7 @@ const convertHtmlToPdfBuffer = async (html: string): Promise<Buffer> => {
     return pdfBuffer;
     win.close();
   } catch (error) {
-    console.error('转换PDF失败:', error);
+    logger.error('转换PDF失败:', error);
     throw error;
   }
 };
@@ -832,7 +834,7 @@ async function handleSimpleTexOCR(params: SimpleTexOCRData): Promise<any> {
     
     return await response.json();
   } catch (err) {
-    console.error(err);
+    logger.error('处理SimpleTeX OCR失败:', err);
     return 'error:' + err;
   }
 }

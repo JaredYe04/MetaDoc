@@ -25,7 +25,8 @@ const { t } = useI18n()
   let mediaRecorder = null
   let audioChunks = []
   
-
+import { createRendererLogger } from '../utils/logger';
+const logger = createRendererLogger('VoiceInput');
 const props=defineProps({
   size:String,
   disabled:Boolean
@@ -50,7 +51,7 @@ const emit = defineEmits(["onSpeechRecognized","onStateUpdated"])
     emit('onStateUpdated', 'recording')
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    //console.log('Microphone access granted')
+    //logger.log('Microphone access granted')
     var options = {
       mimeType: 'audio/webm',
       audioBitsPerSecond : 16000
@@ -80,7 +81,7 @@ const emit = defineEmits(["onSpeechRecognized","onStateUpdated"])
     isRecording.value = true
   } catch (err) {
     eventBus.emit('show-error', t('voiceInput.messages.microphoneDenied'))
-    console.error('Error accessing microphone:', err)
+    logger.error('Error accessing microphone:', err)
   }
 }
 
@@ -109,15 +110,15 @@ const sendAudioToBaidu = async (base64Audio,originalSize) => {
 
       if (result.err_no === 0) {
         const recognizedText = result.result[0];  // 获取识别结果
-        //console.log(result)
+        //logger.log(result)
         emit('onSpeechRecognized', recognizedText);  // 通过事件发送识别结果给父组件
       } else {
         eventBus.emit('show-error', t('voiceInput.messages.recognitionFailed', { error: result.err_msg }))
-        console.error('Recognition failed:', result.err_msg);
+        logger.error('Recognition failed:', result.err_msg);
       }
     } catch (err) {
       eventBus.emit('show-error', t('voiceInput.messages.sendAudioError'))
-      console.error('Error sending audio to Baidu:', err);
+      logger.error('Error sending audio to Baidu:', err);
     } finally {
       isRecording.value = false;
     }
@@ -131,11 +132,11 @@ const sendAudioToBaidu = async (base64Audio,originalSize) => {
     const tokenUrl = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${apiKey}&client_secret=${secretKey}`
     try {
       const response = await axios.post(tokenUrl)
-      //console.log('Baidu token:', response.data.access_token)
+      //logger.log('Baidu token:', response.data.access_token)
       return response.data.access_token
     } catch (err) {
       eventBus.emit('show-error', t('voiceInput.messages.tokenError'))
-      console.error('Error fetching Baidu token:', err)
+      logger.error('Error fetching Baidu token:', err)
       stopRecording()
     }
   }

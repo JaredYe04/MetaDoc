@@ -27,6 +27,7 @@
         "new": "新建",
         "open": "打开",
         "save": "保存",
+        "saveAll": "保存全部",
         "discard": "放弃",
         "saveAs": "另存为",
         "export": "导出",
@@ -49,6 +50,7 @@
         "exitTooltip": "退出",
         "exit": "退出",
         "saveAndExit": "保存并退出",
+        "saveAllAndExit": "保存全部并退出",
         "exitWithoutSaving": "退出但不保存",
         "userProfileTooltip": "用户资料",
         "langTooltip": "语言"
@@ -389,7 +391,10 @@
             },
             "warning": {
                 "title": "警告"
-            }
+            },
+            "saveAllSuccess": "全部文档已保存",
+            "saveAllPartial": "部分文档保存失败（{count}）",
+            "saveAllNone": "未保存任何文档"
         },
         "windows": {
             "appTitle": "MetaDoc",
@@ -419,6 +424,45 @@
         },
         "latex": {
             "compileFailed": "编译失败，退出码: {code}"
+        }
+    },
+    "newDocument": {
+        "title": "新建文档",
+        "subtitle": "请选择文档格式和模板开始创作。",
+        "formatTitle": "选择格式",
+        "templateTitle": "选择模板",
+        "useTemplate": "使用此模板",
+        "formats": {
+            "markdown": {
+                "label": "Markdown",
+                "description": "结构化的纯文本格式，适用于文章、笔记与博客。"
+            },
+            "latex": {
+                "label": "LaTeX",
+                "description": "专业排版格式，适用于学术论文、报告与技术文档。"
+            }
+        },
+        "templates": {
+            "markdown": {
+                "blank": {
+                    "label": "空白文档",
+                    "description": "从完全空白的页面开始创作。"
+                },
+                "article": {
+                    "label": "文章模板",
+                    "description": "包含摘要、正文、结论等章节结构。"
+                }
+            },
+            "latex": {
+                "article": {
+                    "label": "标准文章",
+                    "description": "常见的 LaTeX 文章结构，适合论文与文稿。"
+                },
+                "report": {
+                    "label": "报告模板",
+                    "description": "带章节结构的报告模板，适用于课程或项目报告。"
+                }
+            }
         }
     },
     "outline": {

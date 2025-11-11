@@ -27,17 +27,22 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import LeftMenu from '../components/LeftMenu.vue'
 import HeadMenu from '../components/HeadMenu.vue'
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { getRecentDocs, getSetting } from '../utils/settings.js'
-import eventBus from '../utils/event-bus.js'
+import eventBus, { getWindowType } from '../utils/event-bus.js'
 import { ElNotification } from 'element-plus'
 import { lightTheme, darkTheme } from '../utils/themes.js'
-import { current_ai_dialogs, current_article_meta_data, current_file_path } from '../utils/common-data.ts'
-import { load_from_json, load_from_md, load_from_tex } from '../utils/common-data.ts'
 import { useWorkspace } from '../stores/workspace'
+import {
+  loadDocumentFromJson,
+  loadDocumentFromMarkdown,
+  loadDocumentFromTex,
+  type LoadedDocumentData,
+} from '../services/document-loader'
+import type { WorkspaceDocument } from '../stores/workspace'
 import UserProfileCard from '../components/UserProfileCard.vue'
 import { verifyToken } from '../utils/web-utils.ts'
 import { useI18n } from 'vue-i18n'
@@ -45,6 +50,7 @@ import BottomMenu from '../components/BottomMenu.vue'
 import AITaskQueue from '../components/AITaskQueue.vue'
 import NotificationQueue from '../components/NotificationQueue.vue'
 import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
+import { useRouter, useRoute } from 'vue-router'
 const { t } = useI18n()
 
 import { createRendererLogger } from '../utils/logger.ts'
@@ -58,12 +64,40 @@ const {
   activeTabId,
   addDocumentTab,
   activateTab,
-  persistActiveDocument,
-  reloadActiveDocument,
-  captureCurrentDocumentSnapshot,
+  ensureDocument,
+  markDocumentSaved,
 } = workspace
 
-const handleWorkspaceOpenDocument = (payload) => {
+const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value))
+
+const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocument => ({
+  id: '',
+  tabId: '',
+  path: '',
+  format: data.format,
+  markdown: data.markdown,
+  tex: data.tex,
+  outline: cloneDeep(data.outline),
+  meta: { ...data.meta },
+  aiDialogs: cloneDeep(data.aiDialogs),
+  lastView: data.lastView,
+  renderedHtml: '',
+  dirty: false,
+  savedMarkdown: data.markdown,
+  savedTex: data.tex,
+  savedOutline: cloneDeep(data.outline),
+  savedMeta: { ...data.meta },
+  savedAiDialogs: cloneDeep(data.aiDialogs),
+})
+
+type OpenDocumentPayload = {
+  format?: string
+  content?: string
+  path?: string
+  tabId?: string
+}
+
+const handleWorkspaceOpenDocument = (payload: OpenDocumentPayload) => {
   if (!payload || typeof payload !== 'object') {
     eventBus.emit('show-error', t('main.notification.error.title'))
     return
@@ -83,33 +117,39 @@ const handleWorkspaceOpenDocument = (payload) => {
     }
   }
 
-  persistActiveDocument()
-
   let snapshot = null
   let activated = false
 
   try {
+    let loaded: LoadedDocumentData
     switch (format) {
       case 'json':
-        load_from_json(content)
+        loaded = loadDocumentFromJson(content)
         break
       case 'md':
-        load_from_md(content)
+        loaded = loadDocumentFromMarkdown(content)
         break
       case 'tex':
-        load_from_tex(content)
+        loaded = loadDocumentFromTex(content)
         break
       default:
         throw new Error(`Unsupported document format: ${format}`)
     }
 
-    snapshot = captureCurrentDocumentSnapshot('__incoming__')
+    snapshot = createSnapshotFromLoadedData(loaded)
     snapshot.path = resolvedPath
     snapshot.dirty = false
 
-    reloadActiveDocument()
-
-    const tab = addDocumentTab(snapshot, { kind: 'file', dirty: false })
+    const tab = addDocumentTab(snapshot, {
+      kind: 'file',
+      dirty: false,
+      path: resolvedPath,
+      format: loaded.format,
+    })
+    const doc = ensureDocument(tab.id)
+    doc.path = resolvedPath
+    doc.format = loaded.format
+    markDocumentSaved(tab.id, resolvedPath || undefined)
     activateTab(tab.id)
     activated = true
 
@@ -120,9 +160,6 @@ const handleWorkspaceOpenDocument = (payload) => {
     const message = error instanceof Error ? error.message : String(error)
     eventBus.emit('show-error', `${t('main.notification.error.title')}: ${message}`)
   } finally {
-    if (!activated) {
-      reloadActiveDocument()
-    }
   }
 }
 
@@ -147,8 +184,7 @@ async function autoSave() {
 
 onMounted(async () => {
   eventBus.on('refresh', () => {
-      let title=current_article_meta_data.value.title;
-      //logger.log(title)
+      const title = workspace.activeDocument.value?.meta?.title ?? ''
       eventBus.emit('update-window-title', title)
     })
 
@@ -163,7 +199,11 @@ onMounted(async () => {
 
 })
 
-eventBus.on('workspace-open-document', handleWorkspaceOpenDocument)
+const workspaceOpenDocumentHandler = (payload: unknown) => {
+  handleWorkspaceOpenDocument(payload as OpenDocumentPayload)
+}
+
+eventBus.on('workspace-open-document', workspaceOpenDocumentHandler)
 
 eventBus.on('toggle-user-profile', () => {
   showUserProfileCard.value = !showUserProfileCard.value
@@ -173,28 +213,39 @@ eventBus.on('save-success', () => {
   eventBus.emit('is-need-save', false);
 });
 
-eventBus.on('open-doc-success', () => {
-  eventBus.emit('refresh');
-  eventBus.emit('is-need-save', false);
+eventBus.on('open-doc-success', (payload) => {
+  let tabId
+  if (payload && typeof payload === 'object' && 'tabId' in payload) {
+    const value = payload.tabId
+    if (typeof value === 'string') {
+      tabId = value
+    }
+  }
 });
+const handleNewDocumentRequest = () => {
+  workspace.openNewDocumentTab()
+}
+
+eventBus.on('new-doc', handleNewDocumentRequest)
 
 eventBus.on('show-error', (message) => {
   ElNotification({
     title: t('main.notification.error.title'),
-    message: message,
+    message: message as string,
     type: 'error',
   });
 });
 eventBus.on('show-warning', (message) => {
   ElNotification({
     title: t('main.notification.warning.title'),
-    message: message,
+    message: message as string,
     type: 'warning',
   });
 });
 
 onBeforeUnmount(() => {
-  eventBus.off('workspace-open-document', handleWorkspaceOpenDocument)
+  eventBus.off('workspace-open-document', workspaceOpenDocumentHandler)
+  eventBus.off('new-doc', handleNewDocumentRequest)
 })
 
 </script>

@@ -1,8 +1,6 @@
 <template>
   <div class="visualize-page">
     <WorkspaceTabs
-      :tabs="tabs"
-      :active-id="activeTabId"
       closable
       @update:activeId="handleTabChange"
       @close="handleCloseTab"
@@ -86,12 +84,13 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue';
-import { current_article, current_article_meta_data, current_outline_tree } from '../utils/common-data';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import cloud from 'd3-cloud';
 import * as d3 from 'd3';
-import { extractOutlineTreeFromMarkdown, generatePieFromData, generateWordCountBarChart, generateWordFrequencyTrendChart, ConvertMarkdownToHtmlManually, ConvertMarkdownToHtmlVditor, outlineToMindMap } from '../utils/md-utils';
+import { extractOutlineTreeFromMarkdown, generatePieFromData, generateWordCountBarChart, generateWordFrequencyTrendChart, ConvertMarkdownToHtmlVditor, outlineToMindMap } from '../utils/md-utils';
+import { convertLatexToMarkdown } from '../utils/latex-utils';
+import debounce from 'lodash.debounce';
 onMounted(async () => {
     //await initVditor();
     //await refreshAll();
@@ -99,14 +98,11 @@ onMounted(async () => {
 });
 
 
-import Vditor from 'vditor';
-import { List } from 'tdesign-vue-next';
 import * as echarts from 'echarts';
 import eventBus from '../utils/event-bus';
 import { themeState } from '../utils/themes';
 import WordCloudDetail from '../components/WordCloudDetail.vue';
 import { getSetting } from '../utils/settings';
-import { ar } from 'element-plus/es/locales.mjs';
 import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from '../utils/web-adapter/web-main-calls';
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
@@ -126,7 +122,7 @@ if (window && window.electron) {
 
 
 const words = ref([]);
-const wordCount = ref({});
+const wordCount = ref([]);
 const showTitleMenu = ref(false);
 // 关闭标题菜单
 const handleTitleMenuClose = () => {
@@ -140,10 +136,34 @@ const workspace = useWorkspace();
 const {
   tabs,
   activeTabId,
+  activeDocument,
   activateTab,
   ensureDocument,
   removeTab,
 } = workspace;
+
+const normalizedArticleText = computed(() => {
+  const doc = activeDocument.value;
+  if (!doc) return '';
+  if (doc.format === 'tex') {
+    try {
+      return convertLatexToMarkdown(doc.tex ?? '');
+    } catch (error) {
+      console.error('[Visualize] convertLatexToMarkdown failed:', error);
+      return doc.tex ?? '';
+    }
+  }
+  return doc.markdown ?? '';
+});
+
+const documentTitle = computed(() => {
+  const doc = activeDocument.value;
+  if (!doc) return '未命名文档';
+  const metaTitle = doc.meta?.title?.trim();
+  if (metaTitle) return metaTitle;
+  const segments = (doc.path || '').split(/[/\\]+/).filter(Boolean);
+  return segments[segments.length - 1] || '未命名文档';
+});
 
 const handleTabChange = (id) => {
   activateTab(id);
@@ -170,216 +190,287 @@ const handleCloseTab = async (id) => {
   removeTab(id);
 };
 
-watch(
-  () => activeTabId.value,
-  () => {
-    refreshAll();
-  },
-);
 // const initVditor = async () => {
 //     Vditor = await ipcRenderer.invoke('get-vditor');
 // };
 const refreshAll = async () => {
-    await processWords();
-    await generateWordCloud();
-    await generateOutlineGraph();
-    await generateWordFrequencyDiagram();
-    await generateWordCountDiagram();
-    await generatePie();
+  if (!activeDocument.value) {
+    article_text.value = '';
+    wordCount.value = [];
+    words.value = [];
+    return;
+  }
+  await processWords();
+  await generateWordCloud();
+  await generateOutlineGraph();
+  await generateWordFrequencyDiagram();
+  await generateWordCountDiagram();
+  await generatePie();
 };
+
 eventBus.on('refresh', refreshAll);
+
+const scheduleRefresh = debounce(() => {
+  refreshAll();
+}, 300);
+
+watch(
+  () => activeTabId.value,
+  () => {
+    scheduleRefresh();
+  },
+);
+
+watch(
+  activeDocument,
+  (doc) => {
+    if (!doc) {
+      article_text.value = '';
+      wordCount.value = [];
+      words.value = [];
+      scheduleRefresh.cancel();
+      return;
+    }
+    scheduleRefresh();
+  },
+  { deep: true },
+);
+
+onBeforeUnmount(() => {
+  scheduleRefresh.cancel();
+  eventBus.off('refresh', refreshAll);
+});
 const generatePie = async () => {
-    const node = document.getElementById('pie');
-    let data = [];
-    //统计每一段字数
-    let outline = extractOutlineTreeFromMarkdown(article_text.value);
-    // if(outline.path==='dummy')
-    //     outline=outline.children[0];
-    //如果只有一个子节点，那么就直接用这个子节点
-    if (outline.children.length === 1) {
-        outline = outline.children[0];
-    }
-    const dfs = (node) => {
-        let cnt = node.title.length + node.text.length;
-        for (let i = 0; i < node.children.length; i++) {
-            cnt += dfs(node.children[i]);
-        }
-        return cnt;
-    };
-    const find = (node) => {
-        data.push({ value: node.text.length + node.title.length, label: node.title });
-        data[data.length - 1].value += dfs(node);
-    };
-    for (let i = 0; i < outline.children.length; i++) {
-        find(outline.children[i]);
-    }
-    //console.log(data);
-    const config = generatePieFromData(data, current_article_meta_data.value.title);
-    let chart = echarts.init(node);
-    chart.setOption(config);
+  const node = document.getElementById('pie');
+  if (!node) return;
 
+  if (!article_text.value?.trim()) {
+    return;
+  }
+
+  let outline = extractOutlineTreeFromMarkdown(article_text.value);
+  if (!outline || !outline.children?.length) {
+    return;
+  }
+
+  if (outline.children.length === 1) {
+    outline = outline.children[0];
+  }
+
+  const data = [];
+
+  const dfs = (treeNode) => {
+    let cnt = (treeNode.title?.length ?? 0) + (treeNode.text?.length ?? 0);
+    for (let i = 0; i < (treeNode.children?.length ?? 0); i++) {
+      cnt += dfs(treeNode.children[i]);
+    }
+    return cnt;
+  };
+
+  const collect = (treeNode) => {
+    const label = treeNode.title || '段落';
+    const baseValue = (treeNode.text?.length ?? 0) + (treeNode.title?.length ?? 0);
+    data.push({ value: baseValue + dfs(treeNode), label });
+  };
+
+  for (let i = 0; i < (outline.children?.length ?? 0); i++) {
+    collect(outline.children[i]);
+  }
+
+  if (!data.length) return;
+
+  const config = generatePieFromData(data, documentTitle.value);
+  const chart = echarts.init(node);
+  chart.setOption(config);
 };
-const generateWordCountDiagram = async () => {
-    const node = document.getElementById('word-count-diagram');
-    const config = generateWordCountBarChart(article_text.value);
-    let chart = echarts.init(node);
-    chart.setOption(config);
-}
-const generateWordFrequencyDiagram = async () => {
-    const node = document.getElementById('word-frequency-diagram');
-    const top5words = wordCount.value.slice(0, 5).map((item) => item.text);
-    const config = generateWordFrequencyTrendChart(article_text.value, top5words);
-    let chart = echarts.init(node);
-    chart.setOption(config);
 
-}
+const generateWordCountDiagram = async () => {
+  const node = document.getElementById('word-count-diagram');
+  if (!node) return;
+  if (!article_text.value?.trim()) {
+    return;
+  }
+  const config = generateWordCountBarChart(article_text.value);
+  const chart = echarts.init(node);
+  chart.setOption(config);
+};
+
+const generateWordFrequencyDiagram = async () => {
+  const node = document.getElementById('word-frequency-diagram');
+  if (!node) return;
+  if (!wordCount.value.length || !article_text.value?.trim()) {
+    return;
+  }
+  const top5words = wordCount.value.slice(0, 5).map((item) => item.text);
+  if (!top5words.length) return;
+  const config = generateWordFrequencyTrendChart(article_text.value, top5words);
+  const chart = echarts.init(node);
+  chart.setOption(config);
+};
 
 const generateOutlineGraph = async () => {
-    const node = document.getElementById('outline-graph');
-    let tree = current_outline_tree.value;
-    //console.log(tree);
-    //if(tree.path==='dummy')tree=tree.children[0];
-    //console.log(tree);
-    const md = outlineToMindMap(tree);
-    //console.log(Vditor)
-    //console.log(md);
-    const html = await ConvertMarkdownToHtmlVditor(md);
-    node.innerHTML = html;
-    const lis = node.getElementsByTagName('li');
-    for (let i = 0; i < lis.length; i++) {
-        //如果有子节点，跳过
-        if (lis[i].getElementsByTagName('ul').length > 0) continue;
-        lis[i].style.cursor = 'pointer';
-        //添加一个鼠标悬停事件
-        lis[i].addEventListener('mouseover', () => {
-            //放大
-            lis[i].style.scale = 1.05;
+  const node = document.getElementById('outline-graph');
+  if (!node) return;
 
-        });
-        lis[i].addEventListener('mouseout', () => {
-            lis[i].style.scale = 1;
+  const doc = activeDocument.value;
+  if (!doc) {
+    return;
+  }
 
-        });
-    }
+  let tree = doc.outline;
+  if (!tree || !tree.children?.length) {
+    tree = extractOutlineTreeFromMarkdown(article_text.value);
+  }
+  if (!tree) {
+    return;
+  }
 
-
+  const md = outlineToMindMap(tree);
+  const html = await ConvertMarkdownToHtmlVditor(md);
+  node.innerHTML = html;
+  const lis = node.getElementsByTagName('li');
+  for (let i = 0; i < lis.length; i++) {
+    if (lis[i].getElementsByTagName('ul').length > 0) continue;
+    lis[i].style.cursor = 'pointer';
+    lis[i].addEventListener('mouseover', () => {
+      lis[i].style.scale = 1.05;
+    });
+    lis[i].addEventListener('mouseout', () => {
+      lis[i].style.scale = 1;
+    });
+  }
 };
 const article_text = ref('');
 const processWords = async () => {
-    const bypassCodeBlock=await getSetting('bypassCodeBlock');//是否跳过代码块
-    
-    let text=current_article.value;
-    //console.log("可视化加载："+text)
-    //去掉所有链接
-    text = text.replace(/!?\[.*?\]\(.*?\)/g, ''); //
-    if(bypassCodeBlock){
-        //console.log(text)
-        text = text.replace(/```[\s\S]*?```/g, '');//去掉代码块
-        
-        //console.log(text)
+  const doc = activeDocument.value;
+  if (!doc) {
+    article_text.value = '';
+    wordCount.value = [];
+    words.value = [];
+    return;
+  }
+
+  const bypassCodeBlock = await getSetting('bypassCodeBlock');
+  let text = normalizedArticleText.value || '';
+
+  text = text.replace(/!?\[.*?\]\(.*?\)/g, '');
+  if (bypassCodeBlock) {
+    text = text.replace(/```[\s\S]*?```/g, '');
+  }
+
+  article_text.value = text;
+
+  if (!text.trim()) {
+    wordCount.value = [];
+    words.value = [];
+    return;
+  }
+
+  try {
+    if (!ipcRenderer || typeof ipcRenderer.invoke !== 'function') {
+      wordCount.value = [];
+      words.value = [];
+      return;
     }
-    article_text.value = text;
 
-    words.value = await ipcRenderer.invoke('cut-words', { text: text });
-    words.value.forEach((word) => {
-        if (wordCount.value[word]) {
-            wordCount.value[word] += 1;
-        } else {
-            wordCount.value[word] = 1;
-        }
+    const rawWords = (await ipcRenderer.invoke('cut-words', { text })) || [];
+    words.value = rawWords;
+
+    const counts = Object.create(null);
+    rawWords.forEach((word) => {
+      if (!word) return;
+      counts[word] = (counts[word] || 0) + 1;
     });
+
     const symbols = '~!@#$%^&*()_+`-={}|[]\\:";\'<>?,./。、，；：‘’“”【】《》？！￥…（）—0123456789';
-    Object.keys(wordCount.value).forEach((key) => {
-        if (symbols.includes(key)) {
-            delete wordCount.value[key];
-        }
-        if (wordCount.value[key] < 2) {
-            delete wordCount.value[key];
-        }
-        if (key.length < 2 || key.length > 10) {
-            delete wordCount.value[key];
-        }
-
+    const entries = Object.entries(counts).filter(([key, value]) => {
+      if (symbols.includes(key)) return false;
+      if (value < 2) return false;
+      if (key.length < 2 || key.length > 10) return false;
+      return true;
     });
-    wordCount.value = Object.keys(wordCount.value).map((key) => ({
-        text: key,
-        size: wordCount.value[key],
-    }));
 
-    wordCount.value = wordCount.value.sort((a, b) => b.size - a.size).slice(0, Math.min(30, wordCount.value.length));
+    const sorted = entries
+      .map(([key, size]) => ({ text: key, size }))
+      .sort((a, b) => b.size - a.size);
 
+    wordCount.value = sorted.slice(0, Math.min(30, sorted.length));
+  } catch (error) {
+    console.error('[Visualize] cut-words failed:', error);
+    wordCount.value = [];
+    words.value = [];
+  }
 };
 const generateWordCloud = async () => {
+  const container = d3.select('#wordcloud-3d');
+  container.selectAll('svg').remove();
 
-    d3.select('#wordcloud-3d')
-        .selectAll('svg')
-        // .transition() // 添加过渡动画
-        // .duration(1000) // 设置动画持续时间（单位：毫秒）
-        // .style('opacity', 0) // 逐渐将透明度设置为 0
-        .remove(); // 动画完成后移除元素
-    const max_freq = wordCount.value.reduce((prev, cur) => prev.size > cur.size ? prev : cur).size;
-    //console.log(max_freq);
-    const layout = cloud()
-        .size([600, 600]) // 词云图的宽高
-        .words(
-            wordCount.value.map(d => ({
-                text: d.text,
-                size: d.size,
-            }))
-        )
-        .font('Impact')
-        //.fontSize(d => d.size * 10 * (Math.random() > 0.5 ? 0.8 : 1.2)) 
-        .fontSize(d => Math.min(d.size * 120 / max_freq + 10, 100))
-        .rotate((d) => (
-            (Math.random() > 0.5 || d.text === wordCount.value[0].text) ? 0 : 90 * (Math.random() > 0.5 ? 1 : -1)
-        )) // 随机旋转
-        .on('end', draw);
+  if (!wordCount.value.length) {
+    return;
+  }
 
-    layout.start();
+  const maxFreq = wordCount.value.reduce((max, cur) => Math.max(max, cur.size), 0);
+  if (maxFreq <= 0) {
+    return;
+  }
 
-    function draw(wordCount) {
-        d3.select('#wordcloud-3d')
-            .append('svg')
-            .attr('width', layout.size()[0])
-            .attr('height', layout.size()[1])
-            .append('g')
-            .attr(
-                'transform',
-                `translate(${layout.size()[0] / 2}, ${layout.size()[1] / 2})`
-            )
-            .selectAll('text')
-            .data(wordCount)
-            .enter()
-            .append('text')
-            .style('font-family', 'Impact')
-            .style('font-size', d => `${d.size}px`)
-            .style('fill', () => d3.schemeCategory10[Math.floor(Math.random() * 10)])
-            .attr('class', 'wordcloud-text')
-            .attr('text-anchor', 'middle')
-            .style('padding', '10px')
-            .attr('transform', d => `translate(${d.x}, ${d.y}) rotate(${d.rotate})`)
-            .style('opacity', 0) // 初始透明度为 0
-            .transition() // 为每个文字添加动画
-            .duration(1000) // 动画持续时间
-            .style('opacity', 1) // 最终透明度为 1
-            .text(d => d.text);
+  const layout = cloud()
+    .size([600, 600])
+    .words(
+      wordCount.value.map((d) => ({
+        text: d.text,
+        size: d.size,
+      })),
+    )
+    .font('Impact')
+    .fontSize((d) => Math.min((d.size * 120) / maxFreq + 10, 100))
+    .rotate(
+      (d) =>
+        Math.random() > 0.5 || d.text === wordCount.value[0].text
+          ? 0
+          : 90 * (Math.random() > 0.5 ? 1 : -1),
+    )
+    .on('end', draw);
 
-        //给每个词添加鼠标点击事件，参数为点击的词
+  layout.start();
 
-        d3.selectAll('.wordcloud-text').on('click', (event, d) => {
-            //alert(d.text);
-            //todo
-            current_word.value = d.text;
-            current_frequency.value = d.size;
-            showTitleMenu.value = false;
-            menuPosition.value = {
-                top: event.clientY,
-                left: event.clientX,
-            };
-            //console.log(d.text);
-            showTitleMenu.value = true;
-        });
-    }
+  function draw(data) {
+    const svg = container
+      .append('svg')
+      .attr('width', layout.size()[0])
+      .attr('height', layout.size()[1])
+      .append('g')
+      .attr('transform', `translate(${layout.size()[0] / 2}, ${layout.size()[1] / 2})`);
+
+    svg
+      .selectAll('text')
+      .data(data)
+      .enter()
+      .append('text')
+      .style('font-family', 'Impact')
+      .style('font-size', (d) => `${d.size}px`)
+      .style('fill', () => d3.schemeCategory10[Math.floor(Math.random() * 10)])
+      .attr('class', 'wordcloud-text')
+      .attr('text-anchor', 'middle')
+      .style('padding', '10px')
+      .attr('transform', (d) => `translate(${d.x}, ${d.y}) rotate(${d.rotate})`)
+      .style('opacity', 0)
+      .transition()
+      .duration(1000)
+      .style('opacity', 1)
+      .text((d) => d.text);
+
+    d3.selectAll('.wordcloud-text').on('click', (event, d) => {
+      current_word.value = d.text;
+      current_frequency.value = d.size;
+      showTitleMenu.value = false;
+      menuPosition.value = {
+        top: event.clientY,
+        left: event.clientX,
+      };
+      showTitleMenu.value = true;
+    });
+  }
 };
 
 </script>

@@ -2,9 +2,9 @@
   <div id="particle-bg" class="homepage">
 
     <div class="center-content" v-if="!quickStartDialogVisible">
-      <h1 class="main-letter" @mouseover="highlightM" @mouseleave="resetM" v-if="current_file_path === ''">{{
+      <h1 class="main-letter" @mouseover="highlightM" @mouseleave="resetM" v-if="currentFilePath === ''">{{
         $t('home.metaDoc') }}</h1>
-      <div class="buttons aero-div" v-if="current_file_path === ''">
+      <div class="buttons aero-div" v-if="currentFilePath === ''">
 
         <el-tooltip :content="$t('home.tooltip.quickStart')" placement="top">
           <el-button type="primary" @click="quickStart" class="aero-btn">{{ $t('home.button.quickStart') }}</el-button>
@@ -14,22 +14,22 @@
         </el-tooltip>
 
       </div>
-      <div v-if="current_file_path !== ''" style="height: 100vh;">
+      <div v-if="currentFilePath !== ''" style="height: 100vh;">
 
         <el-scrollbar class="md-metainfo" min-size="10">
-          <h1 class="md-title" :style="{ color: themeState.currentTheme.textColor }">{{ current_article_meta_data.title
+          <h1 class="md-title" :style="{ color: themeState.currentTheme.textColor }">{{ metaTitle
           }}
           </h1>
           <div class="md-author" :style="{ color: themeState.currentTheme.textColor }">
-            <h3>{{ $t('home.authorLabel') }}：{{ current_article_meta_data.author }}</h3>
+            <h3>{{ $t('home.authorLabel') }}：{{ metaAuthor }}</h3>
           </div>
           <div class="md-description" :style="{ color: themeState.currentTheme.textColor }">
-            <h3>{{ $t('home.abstractLabel') }}</h3>{{ current_article_meta_data.description }}
+            <h3>{{ $t('home.abstractLabel') }}</h3>{{ metaDescription }}
           </div>
         </el-scrollbar>
 
         <el-scrollbar class="md-container">
-          <MdPreview class="md-preview-fixed" :modelValue="current_article" previewTheme="github" codeStyleReverse
+          <MdPreview class="md-preview-fixed" :modelValue="currentMarkdown" previewTheme="github" codeStyleReverse
             :style="{
               textColor: themeState.currentTheme.textColor,
             }" :class="themeState.currentTheme.mdeditorClass" :theme="themeState.currentTheme.mdeditorTheme" :codeFold="false"
@@ -85,17 +85,17 @@
                   $t('home.documentInfoLabel') }}</label>
               <div style="display: flex; align-items: center; margin-bottom: 16px">
                 <label style="width: 60px; text-align: left; margin-right: 8px">{{ $t('home.label.title') }}</label>
-                <el-input v-model="current_article_meta_data.title" style="flex: 1;width: 200px;"
+                <el-input v-model="metaTitle" style="flex: 1;width: 200px;"
                   :placeholder="$t('home.placeholder.title')" />
               </div>
               <div style="display: flex; align-items: center; margin-bottom: 16px">
                 <label style="width: 60px; text-align: left; margin-right: 8px">{{ $t('home.label.author') }}</label>
-                <el-input v-model="current_article_meta_data.author" style="flex: 1;width: 200px;"
+                <el-input v-model="metaAuthor" style="flex: 1;width: 200px;"
                   :placeholder="$t('home.placeholder.author')" />
               </div>
               <div style="display: flex; align-items: center; margin-bottom: 16px">
                 <label style="width: 60px; text-align: left; margin-right: 8px">{{ $t('home.label.abstract') }}</label>
-                <el-input v-model="current_article_meta_data.description" type="textarea" style="width: 200px;"
+                <el-input v-model="metaDescription" type="textarea" style="width: 200px;"
                   :placeholder="$t('home.placeholder.abstract')" :autosize="{ minRows: 2, maxRows: 3 }" />
               </div>
               <div style="display: flex; align-items: center; margin-bottom: 16px">
@@ -222,14 +222,13 @@
 
 <script setup>
 import VoiceInput from '../components/VoiceInput.vue';
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import { ElButton } from 'element-plus';
 import * as THREE from 'three';
 import "../assets/aero-div.css";
 import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
-import { current_article, current_article_meta_data, current_file_path, firstLoad, latest_view, sync } from '../utils/common-data';
-import eventBus from '../utils/event-bus';
+import eventBus, { getWindowType } from '../utils/event-bus';
 import MarkdownItEditor from 'vue3-markdown-it';
 import {
   DataAnalysis,
@@ -246,7 +245,59 @@ import { generateArticlePrompt, presets } from '../utils/prompts';
 import router from "../router/router";
 import { suggestionPresets } from '../utils/prompts';
 import { useI18n } from 'vue-i18n'
+import { useWorkspace } from '../stores/workspace';
+import { useActiveDocument } from '../composables/useActiveDocument';
+import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
+import { DEFAULT_OUTLINE_TREE } from '../constants/document';
 const { t } = useI18n()
+
+const workspace = useWorkspace()
+const {
+  activeTabId,
+  updateDocumentMarkdown,
+  updateDocumentMeta,
+  updateDocumentOutline,
+  updateDocumentLastView,
+} = workspace
+const { activeDocument } = useActiveDocument()
+
+const currentFilePath = computed(() => activeDocument.value?.path ?? '')
+
+const currentMarkdown = computed({
+  get: () => activeDocument.value?.markdown ?? '',
+  set: (val) => {
+    const tabId = activeTabId.value
+    if (!tabId) return
+    updateDocumentMarkdown(tabId, val)
+    const outline = extractOutlineTreeFromMarkdown(val) ?? DEFAULT_OUTLINE_TREE
+    updateDocumentOutline(tabId, outline)
+  },
+})
+
+const currentMeta = computed(() => activeDocument.value?.meta ?? { title: '', author: '', description: '' })
+
+const updateMetaField = (field, value) => {
+  const tabId = activeTabId.value
+  if (!tabId) return
+  updateDocumentMeta(tabId, (meta) => {
+    meta[field] = value
+  })
+}
+
+const metaTitle = computed({
+  get: () => currentMeta.value?.title ?? '',
+  set: (val) => updateMetaField('title', val),
+})
+
+const metaAuthor = computed({
+  get: () => currentMeta.value?.author ?? '',
+  set: (val) => updateMetaField('author', val),
+})
+
+const metaDescription = computed({
+  get: () => currentMeta.value?.description ?? '',
+  set: (val) => updateMetaField('description', val),
+})
 
 // 随机生成的按钮文本数组
 const buttons = ref({});
@@ -375,24 +426,18 @@ const marks = ref({
   }
 });
 const accept = () => {
-  //searchNode(props.path, current_outline_tree.value).text=generatedText.value;
-  // latest_view.value='outline';
-  // sync();
-  //如果最后一位不是换行符，加上换行符
-  if (generatedText.value[generatedText.value.length - 1] !== '\n') {
+  if (generatedText.value.length && !generatedText.value.endsWith('\n')) {
     generatedText.value += '\n';
   }
-
-  current_article.value = generatedText.value;
-  latest_view.value = 'article';
-  sync();
-  //emit('accept', generatedText.value);
-  //跳转到文章编辑界面
+  const tabId = activeTabId.value;
+  if (tabId) {
+    currentMarkdown.value = generatedText.value;
+    updateDocumentLastView(tabId, 'article');
+  }
   tab.value = t('home.tab.documentInfo');
-
 }
 const allSet = () => {
-  eventBus.emit('nav-to', '/article');
+  eventBus.emit('nav-to', '/editor');
 }
 
 const generate = async () => {
@@ -434,12 +479,12 @@ const querySearch = (queryString, cb) => {
 }
 const reset = () => {
   generated.value = false;
-  generatedText.value = current_article.value ? current_article.value : defaultText;
+  generatedText.value = currentMarkdown.value ? currentMarkdown.value : defaultText;
 }
 const generating = ref(false);
 const userPrompt = ref('');
 const defaultText = t('home.defaultText');
-const generatedText = ref(current_article.value ? current_article.value : defaultText);
+const generatedText = ref(currentMarkdown.value ? currentMarkdown.value : defaultText);
 const generated = ref(false);
 
 // const autoDescription = ref(true);
@@ -466,7 +511,7 @@ const createParticles = async () => {
   scene = new THREE.Scene();
   const areaSize = 1500;
   let wordList = [];
-  const words = await ipcRenderer.invoke('cut-words', { text: current_article.value });
+  const words = await ipcRenderer.invoke('cut-words', { text: currentMarkdown.value });
   //使用集合去重
   wordList = Array.from(new Set(words));
   const symbols = '~!@#$%^&*()_+`-={}|[]\\:";\'<>?,./。、，；：‘’“”【】《》？！￥…（）—0123456789';
@@ -577,7 +622,7 @@ const animate = () => {
   particles.rotation.y += (mouseX.value / window.innerWidth) * 0.05;
 
   // // 模糊处理
-  // renderer.domElement.style.filter = `blur(${(quickStartDialogVisible.value || current_file_path.value !== '') ? 3 : 0}px)`;
+  // renderer.domElement.style.filter = `blur(${(quickStartDialogVisible.value || currentFilePath.value !== '') ? 3 : 0}px)`;
 
   renderer.render(scene, camera);
 };
@@ -677,12 +722,15 @@ const particleEffect = async () => {
     }
 
   });
-  //监听current_article变化，如果变化了就重新创建粒子效果
-  watch(current_article, async (newValue, oldValue) => {
+  //监听当前文档内容变化，如果变化了就重新创建粒子效果
+  watch(
+    () => currentMarkdown.value,
+    async (newValue, oldValue) => {
     if (newValue !== oldValue) {
       createParticles();
     }
-  });
+    },
+  );
   eventBus.emit('toggle-particle-effect', {});
 };
 const scheduleParticleEffect = () => {

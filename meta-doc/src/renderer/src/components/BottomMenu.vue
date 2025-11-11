@@ -10,7 +10,7 @@
       <span class="status-item">{{ $t('bottomMenu.wordCount') }} {{ wordCount }}</span>
       <span class="status-divider">|</span>
       <span class="status-item status-file">
-        {{ $t('bottomMenu.currentFile') }}{{ current_file_path ? current_file_path : $t('bottomMenu.newFile') }}
+        {{ $t('bottomMenu.currentFile') }}{{ currentFilePath ? currentFilePath : $t('bottomMenu.newFile') }}
       </span>
       
 
@@ -26,7 +26,11 @@
       </el-tooltip>
       <span class="status-divider">|</span>
         <el-tooltip :content="notificationTooltip" placement="top">
-        <span class="status-item status-notification" @click.prevent="toggleNotificationQueue">
+        <span
+          class="status-item status-notification"
+          :class="{ 'is-shaking': isShaking }"
+          @click.prevent="toggleNotificationQueue"
+        >
           <el-icon class="status-icon" size="14">
             <BellFilled />
           </el-icon>
@@ -34,7 +38,7 @@
           <span
             v-if="unreadCount > 0"
             class="status-badge"
-            :style="{ backgroundColor:`#909399` }"
+            :style="{ backgroundColor: badgeColor }"
           >
             {{ unreadCount }}
           </span>
@@ -53,26 +57,27 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { current_article, current_file_path, current_format, current_tex_article } from '../utils/common-data'
+import { computed, ref, watch } from 'vue'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { useNotificationStack, initializeNotificationListeners } from '../utils/notifications'
+import { useWorkspace } from '../stores/workspace'
 
+const workspace = useWorkspace()
 
-//wordCount计算当前文章的字数，通过监听current_article.value的变化来实现
+const activeDocument = computed(() => workspace.activeDocument.value)
+const activeTab = computed(() => workspace.activeTab.value)
+
 const wordCount = computed(() => {
-    if(current_format.value=='md'){
-        if (current_article.value) {
-            return current_article.value ? current_article.value.trim().length : 0
-        }
+    const doc = activeDocument.value
+    if (!doc) return 0
+    if (doc.format === 'tex') {
+        return doc.tex?.trim().length ?? 0
     }
-    else if(current_format.value=='tex'){
-        return current_tex_article.value.trim().length
-    }
-
-    return 0
+    return doc.markdown?.trim().length ?? 0
 })
+
+const currentFilePath = computed(() => activeDocument.value?.path ?? '')
 
 import { useI18n } from 'vue-i18n'
 import { BellFilled, Document } from '@element-plus/icons-vue'
@@ -82,6 +87,35 @@ initializeNotificationListeners(t)
 const tasks = useAiTasks()
 
 const { latestNotification, unreadCount } = useNotificationStack()
+const notificationType = computed(() => latestNotification.value?.type ?? null)
+
+const badgeColor = computed(() => {
+    switch (notificationType.value) {
+        case 'success':
+            return '#67c23a'
+        case 'warning':
+            return '#e6a23c'
+        case 'error':
+            return '#f56c6c'
+        default:
+            return '#909399'
+    }
+})
+
+const isShaking = ref(false)
+let lastNotificationId = -1;
+
+watch(
+    () => latestNotification.value?.id,
+    (currentId) => {
+        if (!currentId || currentId === lastNotificationId) return
+        lastNotificationId = currentId
+        isShaking.value = true
+        setTimeout(() => {
+            isShaking.value = false
+        }, 800)
+    },
+)
 
 const notificationSummary = computed(() => {
     if (!latestNotification.value) {
@@ -169,6 +203,78 @@ function toggleLoggerConsole() {
     background-color: rgba(0, 0, 0, 0.08);
 }
 
+.status-notification.is-shaking {
+    animation: bottom-menu-shake 0.8s ease-in-out;
+}
+
+.status-icon {
+    display: flex;
+}
+
+.status-text {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.status-badge {
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    padding: 0 4px;
+}
+
+.actions-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 auto;
+    margin-left: 12px;
+    flex-shrink: 0;
+}
+
+.ai-task-menu {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.ai-task-menu:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.ai-task-menu img {
+    width: 18px;
+    height: 18px;
+}
+
+.ai-task-label {
+    font-weight: 500;
+}
+
+.ai-task-count {
+    font-weight: bold;
+}
+
+@keyframes bottom-menu-shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-2px); }
+  40% { transform: translateX(2px); }
+  60% { transform: translateX(-1px); }
+  80% { transform: translateX(1px); }
+  100% { transform: translateX(0); }
+}
 .status-icon {
     display: flex;
 }

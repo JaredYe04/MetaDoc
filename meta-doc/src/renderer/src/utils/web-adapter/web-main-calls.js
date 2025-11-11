@@ -184,6 +184,12 @@ export function webMainCalls() {
   localIpcMain.handle('set-setting', async (event, data) => {
     return await setSetting(data.key, data.value)
   })
+  localIpcMain.handle('workspace-save-document', async (event, payload) => {
+    if (payload?.data) {
+      await save(payload.data, payload.saveAs);
+    }
+    return null;
+  })
   localIpcMain.handle('update-recent-docs', async (event, data) => {
     return await updateRecentDocs(data)
   })

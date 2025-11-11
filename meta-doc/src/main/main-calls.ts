@@ -150,6 +150,14 @@ function bindBasicHandlers(): void {
     await save(data, true);
   });
   
+  ipcMain.handle('workspace-save-document', async (event, payload: { data: SaveData; saveAs?: boolean }) => {
+    if (!payload || !payload.data) {
+      return null;
+    }
+    const result = await saveInternal(payload.data, Boolean(payload.saveAs));
+    return result;
+  });
+  
   ipcMain.on('open-doc', async (event: IpcMainEvent, filePath: string) => {
     await openDoc(filePath);
   });
@@ -511,13 +519,16 @@ const quit = (): void => {
 /**
  * 保存文件
  */
-const save = async (data: SaveData, saveAs: boolean): Promise<void> => {
+const saveInternal = async (
+  data: SaveData,
+  saveAs: boolean,
+): Promise<{ path: string; format: string } | null> => {
   let filePath = data.path;
   let content = '';
 
   if (filePath === '' || saveAs) {
     filePath = await chooseSaveFile(data);
-    if (!filePath) return;
+    if (!filePath) return null;
   }
 
   const format = path.extname(filePath).slice(1).toLowerCase();
@@ -533,15 +544,26 @@ const save = async (data: SaveData, saveAs: boolean): Promise<void> => {
       content = data.tex;
       break;
     default:
-      return;
+      return null;
   }
 
   if (filePath) {
     fs.writeFileSync(filePath, content);
-    mainWindow?.webContents.send('save-success', {
+    return {
       path: filePath,
+      format,
+    };
+  }
+  return null;
+};
+
+const save = async (data: SaveData, saveAs: boolean): Promise<void> => {
+  const result = await saveInternal(data, saveAs);
+  if (result) {
+    mainWindow?.webContents.send('save-success', {
+      path: result.path,
       saveAs,
-      format
+      format: result.format,
     });
   }
 };

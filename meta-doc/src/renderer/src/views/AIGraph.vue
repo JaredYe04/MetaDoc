@@ -266,7 +266,7 @@ import '../assets/tool-group.css'
 import { graphEngineConfig } from '../config/graph-engine-config.js'
 import Vditor from 'vditor'
 import { themeState } from "../utils/themes";
-import eventBus, { isElectronEnv } from '../utils/event-bus.js'
+import eventBus, { getWindowType, isElectronEnv } from '../utils/event-bus.js'
 import { MdEditor } from 'md-editor-v3'
 
 import { generateGraphPrompt } from '../utils/prompts.js'

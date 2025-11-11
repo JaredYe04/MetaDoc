@@ -17,6 +17,11 @@
           class="workspace-tab-label"
           :title="tooltipLabel(tab)"
           @mousedown.stop
+          draggable="true"
+          @dragstart="handleDragStart(tab.id, $event)"
+          @dragover="handleDragOver"
+          @drop="handleDrop(tab.id)"
+          @dragend="handleDragEnd"
         >
           <span class="workspace-tab-label__primary">
             {{ primaryLabel(tab) }}
@@ -32,19 +37,10 @@
 </template>
 
 <script setup lang="ts">
-import type { PropType } from 'vue';
 import { computed } from 'vue';
-import type { WorkspaceTab } from '../../stores/workspace';
+import { useWorkspace, type WorkspaceTab } from '../../stores/workspace';
 
 const props = defineProps({
-  tabs: {
-    type: Array as PropType<WorkspaceTab[]>,
-    required: true,
-  },
-  activeId: {
-    type: String,
-    default: '',
-  },
   closable: {
     type: Boolean,
     default: false,
@@ -54,7 +50,11 @@ const props = defineProps({
 const emit = defineEmits<{
   (event: 'update:activeId', id: string): void;
   (event: 'close', id: string): void;
+  (event: 'reorder', payload: { fromId: string; toId: string }): void;
 }>();
+
+const workspace = useWorkspace();
+const tabs = computed(() => [...workspace.tabs]);
 
 const primaryLabel = (tab: WorkspaceTab) => {
   return tab.subtitle?.trim() || tab.title?.trim() || '未命名文档';
@@ -70,9 +70,10 @@ const tooltipLabel = (tab: WorkspaceTab) => {
 };
 
 const currentActiveId = computed({
-  get: () => props.activeId,
+  get: () => workspace.activeTabId.value,
   set: (value: string) => {
-    if (value !== props.activeId) {
+    if (value !== workspace.activeTabId.value) {
+      workspace.activateTab(value);
       emit('update:activeId', value);
     }
   },
@@ -80,6 +81,34 @@ const currentActiveId = computed({
 
 const handleRemove = (id: string | number) => {
   emit('close', String(id));
+};
+
+let draggingId: string | null = null;
+
+const handleDragStart = (id: string, event: DragEvent) => {
+  draggingId = id;
+  event.dataTransfer?.setData('text/plain', id);
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+  }
+};
+
+const handleDragOver = (event: DragEvent) => {
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move';
+  }
+};
+
+const handleDrop = (id: string) => {
+  if (draggingId && draggingId !== id) {
+    emit('reorder', { fromId: draggingId, toId: id });
+  }
+  draggingId = null;
+};
+
+const handleDragEnd = () => {
+  draggingId = null;
 };
 </script>
 
@@ -96,6 +125,8 @@ const handleRemove = (id: string | number) => {
   line-height: 1.2;
   max-width: 180px;
   white-space: nowrap;
+  user-select: none;
+  cursor: grab;
 }
 
 .workspace-tab-label__primary {

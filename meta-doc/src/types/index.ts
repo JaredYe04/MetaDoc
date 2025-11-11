@@ -47,6 +47,14 @@ export interface AIDialogMessage {
   timestamp?: number;
 }
 
+/** AI对话 */
+export interface AIDialog {
+  /** 对话标题 */
+  title: string;
+  /** 对话消息列表 */
+  messages: AIDialogMessage[];
+}
+
 /** LLM配置类型 */
 export type LLMType = 'openai' | 'ollama' | 'metadoc';
 

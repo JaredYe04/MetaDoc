@@ -311,7 +311,7 @@ import "../assets/aero-input.css";
 import "../assets/title-menu.css";
 import eventBus, { getWindowType } from '../utils/event-bus';
 import { generateDescriptionPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
-import { searchNode } from "../utils/common-data";
+import { searchNode } from "../utils/outline-helpers";
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
 import LlmDialog from "../components/LlmDialog.vue";
 import TitleMenu from '../components/TitleMenu.vue';
@@ -754,7 +754,8 @@ const compile = async () => {
     eventBus.emit('clear-console', { key: 'latex' })
     eventBus.emit('cancel-suggestion')
     if(!currentPath.value || !currentPath.value.toLowerCase().endsWith(".tex")){
-        eventBus.emit("show-info",t("latexEditor.notification.pleaseSaveFirst"));
+        eventBus.emit("show-warning",t("latexEditor.notification.pleaseSaveFirst"));
+        eventBus.emit('save');
         return;
     }
     triggerSuggestion.value = false;//开始编译的时候就不能修改了
@@ -763,7 +764,7 @@ const compile = async () => {
     });
     const compileResult = await ipcRenderer.invoke("compile-tex",{
         tex:currentTex.value,
-        texPath:currentPath.value,
+        texPath:currentPath.value??'',
         outputDir:"",//todo:用户后续可以设置保存在哪
         customPdfFileName:"",//todo
     })

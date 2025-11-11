@@ -6,10 +6,10 @@ import { max } from "d3";
 import { getMetaDocLlmConfig, verifyToken } from "./web-utils.ts";
 import { queryKnowledgeBase } from "./rag_utils.js";
 import { ragQueryReferencePrompt } from "./prompts.js";
-import { createRendererLogger } from "./logger.ts";
-const logger = createRendererLogger('LlmApi', {
-  windowTypeProvider: () => getWindowType()
-});
+// import { createRendererLogger } from "./logger.ts";
+// const logger = createRendererLogger('LlmApi', {
+//   windowTypeProvider: () => getWindowType()
+// });
 
 /**
  * Helper to determine the current LLM settings (selected model and API details).
@@ -95,10 +95,12 @@ async function answerQuestionNonStream(prompt, ref, meta = { temperature: 0 }, s
 
     } catch (error) {
       if (error.name === 'AbortError') {
-        logger.debug('LLM 请求已中止');
+        //logger.debug('LLM 请求已中止');
+        console.debug('LLM 请求已中止');
         throw error; // 重新抛出中止异常，供上层处理
       }
-      logger.error("非流式请求出错:", error);
+      //logger.error("非流式请求出错:", error);
+      console.error("非流式请求出错:", error);
     }
   }
 
@@ -230,13 +232,15 @@ async function answerQuestionStream(prompt, ref, meta = {}, signal = {}, try_rag
               if (error.name === 'AbortError') {
                 throw error; // 重新抛出中止异常
               }
-              logger.error("JSON 解析错误:", error);
+              console.error("JSON 解析错误:", error);
+              //logger.error("JSON 解析错误:", error);
             }
           }
         }
       }
     } catch (error) {
-      logger.error("请求出错:", error);
+      //logger.error("请求出错:", error);
+      console.error("请求出错:", error);
       //如果是取消请求的错误，则抛出中止异常
       if (error.name === 'AbortError') {
         throw error; // 重新抛出中止异常
@@ -432,7 +436,8 @@ async function continueConversationStream(conversation, ref, meta, signal = {}, 
             }
           } catch (error) {
             if (error.name === 'AbortError') throw error;
-            logger.error('JSON 解析错误:', error);
+            console.error("JSON 解析错误:", error);
+            //logger.error('JSON 解析错误:', error);
           }
         }
       }
@@ -477,7 +482,8 @@ async function continueConversationStream(conversation, ref, meta, signal = {}, 
             }
           } catch (error) {
             if (error.name === 'AbortError') throw error;
-            logger.error('JSON 解析错误:', error);
+            console.error("JSON 解析错误:", error);
+            //logger.error('JSON 解析错误:', error);
           }
         }
       }

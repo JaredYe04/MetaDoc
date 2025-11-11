@@ -1,10 +1,8 @@
 //这个文件需要实现一系列Markdown相关的功能函数
 
 import Vditor from "vditor"
-import { renderedHtml } from "./common-data"
 import eventBus, { isElectronEnv } from "./event-bus"
 import { getImagePath, getSetting } from "./settings"
-import { el } from "element-plus/es/locales.mjs";
 import { convertNumberToChinese, removeTitleIndex } from "./regex-utils";
 import {localVditorCDN, vditorCDN } from "./vditor-cdn";
 // 1. 从 Markdown 文本中提取所有标题，生成大纲树，同时记录 title_level

@@ -37,6 +37,13 @@
           <span>{{ $t('leftMenu.open') }}</span>
         </el-menu-item>
 
+        <el-menu-item index="1-2-1" @click="saveAll">
+          <el-icon>
+            <FolderChecked />
+          </el-icon>
+          <span>{{ $t('leftMenu.saveAll') }}</span>
+        </el-menu-item>
+
         <el-menu-item index="1-3" @click="eventBus.emit('save')">
           <el-icon>
             <FolderChecked />
@@ -60,28 +67,28 @@
           </template>
 
           <el-menu-item index="1-5-1"
-            @click="eventBus.emit('export', { format: 'pdf', filename: current_article_meta_data.title })">
+            @click="eventBus.emit('export', { format: 'pdf', filename: exportTitle })">
             <span>{{ $t('leftMenu.exportPdf') }}</span>
           </el-menu-item>
           <el-menu-item index="1-5-2"
-            @click="eventBus.emit('export', { format: 'md', filename: current_article_meta_data.title })">
+            @click="eventBus.emit('export', { format: 'md', filename: exportTitle })">
             <span>{{ $t('leftMenu.exportMarkdown') }}</span>
           </el-menu-item>
           <el-menu-item index="1-5-3"
-            @click="eventBus.emit('export', { format: 'docx', filename: current_article_meta_data.title })">
+            @click="eventBus.emit('export', { format: 'docx', filename: exportTitle })">
             <span>{{ $t('leftMenu.exportDocx') }}</span>
           </el-menu-item>
           <el-menu-item index="1-5-4"
-            @click="eventBus.emit('export', { format: 'html', filename: current_article_meta_data.title })">
+            @click="eventBus.emit('export', { format: 'html', filename: exportTitle })">
             <span>{{ $t('leftMenu.exportHtml') }}</span>
           </el-menu-item>
           <el-menu-item index="1-5-4"
-            @click="eventBus.emit('export', { format: 'tex',filename: current_article_meta_data.title})">
+            @click="eventBus.emit('export', { format: 'tex', filename: exportTitle })">
             <span>{{ $t('leftMenu.exportLatex') }}</span>
           </el-menu-item>
         </el-sub-menu>
 
-        <el-menu-item index="1-6" @click="eventBus.emit('close-doc')">
+        <el-menu-item index="1-6" @click="eventBus.emit('close-active-tab')">
           <el-icon>
             <CircleClose />
           </el-icon>
@@ -223,6 +230,13 @@
           <span>{{ $t('leftMenu.saveAndExit') }}</span>
         </el-menu-item>
 
+        <el-menu-item index="5-1-1" @click="saveAllAndQuit">
+          <el-icon>
+            <SwitchButton />
+          </el-icon>
+          <span>{{ $t('leftMenu.saveAllAndExit') }}</span>
+        </el-menu-item>
+
         <el-menu-item index="5-2" @click="quitWithoutSave">
           <el-icon>
             <SwitchButton />
@@ -242,7 +256,7 @@ import UserProfileCard from './UserProfileCard.vue'
 
 
 import { updateRecentDocs, getRecentDocs, getSetting } from '../utils/settings';
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
   Document,
   FirstAidKit,
@@ -258,7 +272,8 @@ import {
 import eventBus, { sendBroadcast } from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { themeState } from '../utils/themes';
-import { avatar, current_article, current_article_meta_data } from '../utils/common-data';
+import { avatar } from '../stores/user';
+import { useActiveDocument } from '../composables/useActiveDocument';
 import { EarthIcon } from 'tdesign-icons-vue-next';
 const recentDocs = ref([])
 const isCollapse = ref(true)
@@ -279,6 +294,20 @@ const changeLang = (lang: string) => {
 const toggleUserProfile = () => {
   eventBus.emit('toggle-user-profile')
 }
+
+const { activeDocument } = useActiveDocument()
+const exportTitle = computed(() => {
+  const title = activeDocument.value?.meta?.title?.trim()
+  if (title && title.length > 0) {
+    return title
+  }
+  const path = activeDocument.value?.path ?? ''
+  if (path) {
+    const segments = path.split(/[/\\]+/).filter(Boolean)
+    return segments[segments.length - 1] ?? ''
+  }
+  return 'Untitled'
+})
 
 const handleOpen = (_key: string, _keyPath: string[]) => {
   //console.log(key, keyPath)
@@ -329,8 +358,14 @@ const openDoc = () => {
     eventBus.emit('open-doc')
   })
 }
+const saveAll = () => {
+  eventBus.emit('save-all')
+}
 const saveAndQuit = () => {
   eventBus.emit('save-and-quit')
+}
+const saveAllAndQuit = () => {
+  eventBus.emit('save-all-and-quit')
 }
 const quitWithoutSave = () => {
   eventBus.emit('quit')

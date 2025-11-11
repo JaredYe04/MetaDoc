@@ -58,10 +58,16 @@
         v-for="item in notifications"
         :key="item.id"
         class="notification-item"
-        :class="['type-' + item.type, { unread: !item.read }]"
+        :class="['type-' + (item.type || 'info'), { unread: !item.read }]"
       >
         <div class="item-header">
-          <span class="item-title">{{ item.title }}</span>
+          <div class="item-header-left">
+            <span
+              class="status-dot"
+              :class="'type-' + (item.type || 'info')"
+            />
+            <span class="item-title">{{ item.title }}</span>
+          </div>
           <span class="item-time">{{ formatTimestamp(item.timestamp) }}</span>
         </div>
         <div class="item-message">
@@ -265,9 +271,40 @@ onBeforeUnmount(() => {
 .item-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 4px;
+}
+
+.item-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #909399;
+  flex: 0 0 auto;
+}
+
+.status-dot.type-success {
+  background-color: #67c23a;
+}
+
+.status-dot.type-warning {
+  background-color: #e6a23c;
+}
+
+.status-dot.type-error {
+  background-color: #f56c6c;
+}
+
+.status-dot.type-info {
+  background-color: #909399;
 }
 
 .item-time {

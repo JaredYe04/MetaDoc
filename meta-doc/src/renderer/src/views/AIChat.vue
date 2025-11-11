@@ -26,7 +26,7 @@
 
 
         </div>
-        <el-menu-item v-for="(dialog, index) in current_ai_dialogs" :key="index" :index="index.toString()"
+        <el-menu-item v-for="(dialog, index) in dialogs" :key="index" :index="index.toString()"
           @click="loadDialog(index)" :disabled="responding">
           <div class="menu-item-wrapper">
             <span class="dialog-title">{{ dialog.title }}</span>
@@ -74,8 +74,8 @@
 
 </template>
 
-<script setup>
-import { ref, onMounted, watch, reactive } from 'vue';
+<script setup lang="ts">
+import { computed, onMounted, onBeforeUnmount, reactive, ref, watch, type Ref } from 'vue';
 import MessageBubble from "../components/MessageBubble.vue";
 //import { bindCode } from "../assets/aichat_legacy/utils";
 import { ChatSquare, Delete, Edit } from "@element-plus/icons-vue/global";
@@ -83,9 +83,7 @@ import "../assets/input-box.css"
 import "../assets/title.css"
 
 import { ElMessage } from "element-plus";
-import { useRoute } from 'vue-router';
-import { current_ai_dialogs, addDialog, updateDialog, deleteDialog, defaultAiChatMessages } from '../utils/common-data.ts';
-import eventBus, { sendBroadcast } from '../utils/event-bus.js';
+import eventBus from '../utils/event-bus.js';
 import { themeState } from "../utils/themes.js";
 import { AddIcon } from 'tdesign-icons-vue-next';
 import { answerQuestion } from '../utils/llm-api.js';
@@ -94,10 +92,12 @@ import { updateTitlePrompt } from '../utils/prompts.js';
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks.js';
 import { getSetting } from '../utils/settings.js';
+import { useActiveDocument } from '../composables/useActiveDocument';
+import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document';
+import type { AIDialog, AIDialogMessage } from '../../../types';
 const { t } = useI18n()
-const route = useRoute();
 const responding = ref(false);
-const activeDialogIndex = ref(0);
+const activeDialogIndex = ref<number>(0);
 
 import { createRendererLogger } from '../utils/logger.ts';
 const logger = createRendererLogger('AIChat');
@@ -106,18 +106,65 @@ const props = defineProps({
   id: String
 })
 
-const messages = ref([...defaultAiChatMessages]);
+const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+
+const createDefaultMessages = (): AIDialogMessage[] =>
+  DEFAULT_AI_CHAT_MESSAGES.map((message) => ({ ...message }));
+
+const createDefaultDialog = (title: string): AIDialog => ({
+  title,
+  messages: createDefaultMessages(),
+});
+
+const messages = ref<AIDialogMessage[]>(createDefaultMessages());
 const cur_resp = ref('')
 const promptInput = ref('');
-const temp_message = ref({
-  "role": "assistant",
-  "content": cur_resp
+const createAssistantPlaceholder = (): AIDialogMessage => ({
+  role: 'assistant',
+  content: cur_resp.value,
 });
 const defaultTitle = t('aiChat.defaultTitle');
+
+const { workspace, activeDocument } = useActiveDocument();
+const targetTabId = computed(() => props.id || workspace.activeTabId.value);
+
+const dialogs = ref<AIDialog[]>([]);
+let isSyncingFromWorkspace = false;
+
+const syncDialogsFromWorkspace = () => {
+  isSyncingFromWorkspace = true;
+  const tabId = targetTabId.value;
+  if (!tabId) {
+    dialogs.value = [];
+    isSyncingFromWorkspace = false;
+    return;
+  }
+  try {
+    const doc = workspace.ensureDocument(tabId);
+    if (!doc.aiDialogs || doc.aiDialogs.length === 0) {
+      dialogs.value = [createDefaultDialog(defaultTitle)];
+      workspace.updateDocumentAiDialogs(tabId, cloneDeep(dialogs.value));
+    } else {
+      dialogs.value = cloneDeep(doc.aiDialogs);
+    }
+  } catch (error) {
+    logger.warn('Unable to sync AI dialogs from workspace', error);
+    dialogs.value = [createDefaultDialog(defaultTitle)];
+  }
+  isSyncingFromWorkspace = false;
+};
+
+const commitDialogsToWorkspace = () => {
+  if (isSyncingFromWorkspace) return;
+  const tabId = targetTabId.value;
+  if (!tabId) return;
+  workspace.updateDocumentAiDialogs(tabId, cloneDeep(dialogs.value));
+};
+
 // 初始化当前对话
 const initCurrentDialog = () => {
-  //logger.log(current_ai_dialogs.value);
-  if (current_ai_dialogs.value && current_ai_dialogs.value.length > 0) {
+  syncDialogsFromWorkspace();
+  if (dialogs.value && dialogs.value.length > 0) {
     loadDialog(0);
   } else {
     addNewDialog();
@@ -126,62 +173,73 @@ const initCurrentDialog = () => {
 };
 
 const addNewDialog = () => {
-  const newDialog = {
-    title: defaultTitle,
-    messages: [...defaultAiChatMessages]
-  };
-  addDialog(newDialog);
-  activeDialogIndex.value = current_ai_dialogs.value.length - 1;
-  messages.value = newDialog.messages;
+  const newDialog = createDefaultDialog(defaultTitle);
+  dialogs.value.push(newDialog);
+  activeDialogIndex.value = dialogs.value.length - 1;
+  messages.value = cloneDeep(newDialog.messages);
   title.value = newDialog.title;
   updateCurrentDialog();
 };
 
-const updateCurrentDialog = (index = null) => {
-  const dialog = {
+const updateCurrentDialog = (index: number | null = null) => {
+  if (dialogs.value.length === 0) {
+    dialogs.value.push(createDefaultDialog(defaultTitle));
+  }
+  const dialog: AIDialog = {
     title: title.value,
-    messages: messages.value
+    messages: cloneDeep(messages.value),
   };
   if (index == null) {
-    updateDialog(activeDialogIndex.value, dialog);
+    dialogs.value[activeDialogIndex.value] = dialog;
   }
   else {
-    updateDialog(index, dialog);
+    dialogs.value[index] = dialog;
   }
+  commitDialogsToWorkspace();
 };
 
-const loadDialog = (index) => {
+const loadDialog = (index: number) => {
   activeDialogIndex.value = index;
-  messages.value = current_ai_dialogs.value[index].messages;
-  title.value = current_ai_dialogs.value[index].title;
-  //logger.log(current_ai_dialogs.value[index])
+  const dialog = dialogs.value[index];
+  messages.value = cloneDeep(dialog.messages);
+  title.value = dialog.title;
+  //logger.log(dialogs.value[index])
 };
 
 const deleteCurrentDialog = () => {
-  deleteDialog(activeDialogIndex.value);
-  if (current_ai_dialogs.value.length > 0) {
-    loadDialog(0);
+  if (dialogs.value.length === 0) return;
+  dialogs.value.splice(activeDialogIndex.value, 1);
+  if (dialogs.value.length > 0) {
+    const nextIndex = Math.min(activeDialogIndex.value, dialogs.value.length - 1);
+    activeDialogIndex.value = Math.max(nextIndex, 0);
+    loadDialog(activeDialogIndex.value);
   } else {
     addNewDialog();
   }
+  commitDialogsToWorkspace();
 };
-const renameDialog = (index) => {
+const renameDialog = (index: number) => {
   editingIndex.value = index;
   renameDialogVisible.value = true;
-  editingTitle.value = current_ai_dialogs.value[index].title;
+  editingTitle.value = dialogs.value[index]?.title ?? '';
 };
 const renameDialogVisible = ref(false);
 const editingTitle = ref('');
-const editingIndex = ref(0);
+const editingIndex = ref<number>(0);
 const finishRename = () => {
-  const dialog = {
+  const index = editingIndex.value;
+  if (index < 0 || index >= dialogs.value.length) {
+    renameDialogVisible.value = false;
+    return;
+  }
+  dialogs.value[index] = {
     title: editingTitle.value,
-    messages: messages.value
+    messages: cloneDeep(messages.value),
   };
-  updateDialog(editingIndex.value, dialog);
   if (activeDialogIndex.value === editingIndex.value) {
     title.value = editingTitle.value;
   }
+  commitDialogsToWorkspace();
   renameDialogVisible.value = false;
 };
 
@@ -191,11 +249,15 @@ const reset = () => {
   promptInput.value = '';
 }
 
-async function generateNextResponse(beforeGeneration, callbackRef, afterGeneration) {
+async function generateNextResponse(
+  beforeGeneration: () => void | Promise<void>,
+  callbackRef: Ref<string>,
+  afterGeneration: () => void | Promise<void>,
+) {
   responding.value = true;
-  await beforeGeneration();
+  await Promise.resolve(beforeGeneration());
   //logger.log(messages.value)
-  const messageCopy = JSON.parse(JSON.stringify(messages.value));// 深拷贝消息列表，因为Proxy不能直接拷贝
+  const messageCopy: AIDialogMessage[] = JSON.parse(JSON.stringify(messages.value));// 深拷贝消息列表，因为Proxy不能直接拷贝
   //logger.log(messageCopy)
   const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
   const { handle, done } = createAiTask(
@@ -205,7 +267,7 @@ async function generateNextResponse(beforeGeneration, callbackRef, afterGenerati
   } catch (err) {
     logger.warn('任务失败或取消：', err);
   } finally {
-    await afterGeneration();
+    await Promise.resolve(afterGeneration());
     responding.value = false;
   }
 
@@ -214,25 +276,27 @@ async function generateNextResponse(beforeGeneration, callbackRef, afterGenerati
 }
 
 const onMsgSend = async () => {
-  messages.value.push({
-    "role": "user",
-    "content": promptInput.value
-  })
+  const userMessage: AIDialogMessage = {
+    role: 'user',
+    content: promptInput.value,
+  };
+  messages.value.push(userMessage);
   //logger.log(messages.value);
   promptInput.value = '';
   cur_resp.value = '';
 
   await generateNextResponse(
     () => {
-      messages.value.push(temp_message.value);
+      messages.value.push(createAssistantPlaceholder());
     },
     cur_resp,
     async () => {
       messages.value.pop();
-      messages.value.push({
-        "role": "assistant",
-        "content": cur_resp.value
-      });
+      const assistantMessage: AIDialogMessage = {
+        role: 'assistant',
+        content: cur_resp.value,
+      };
+      messages.value.push(assistantMessage);
 
       //bindCode(false);
       //logger.log(messages.value);
@@ -252,9 +316,9 @@ const updateTitle = async () => {
   //备注：因为标题撰写需要一定时间，而用户可能在这个时间切换到其他对话，因此首先要保存索引
   const index = activeDialogIndex.value;//当前对话索引
 
-  const generatedText=ref("");
+  const generatedText = ref('');
   const enableKnowledgeBase=await getSetting("enableKnowledgeBase")
-  const { handle, done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'ai-chat-generate-title',enableKnowledgeBase);
+  const { handle, done } = createAiTask(title.value || defaultTitle, prompt, generatedText, ai_types.answer, 'ai-chat-generate-title',enableKnowledgeBase);
   try {
     await done;
   } catch (err) {
@@ -269,20 +333,37 @@ const updateTitle = async () => {
   }
   if (newTitle.length > 10)
     newTitle = newTitle.substring(0, 10);
-  if (current_ai_dialogs.value[index].title === title.value) {
+  if (dialogs.value[index] && dialogs.value[index].title === title.value) {
     title.value = newTitle;
   }
-  current_ai_dialogs.value[index].title = newTitle;
+  if (dialogs.value[index]) {
+    dialogs.value[index].title = newTitle;
+  }
   updateCurrentDialog(index);
 };
 
-onMounted(async () => {
-  sendBroadcast('home', 'request-ai-dialogs', {}); // 请求主渲染进程发送对话数据给渲染进程
-  
-  //获取AI对话，因为对话保存在主渲染进程，所以需要主渲染进程发送给渲染进程
+onMounted(() => {
   initCurrentDialog();
   eventBus.on('ai-dialogs-loaded', initCurrentDialog);
-})
+});
+
+onBeforeUnmount(() => {
+  eventBus.off('ai-dialogs-loaded', initCurrentDialog);
+});
+
+watch(
+  () => [targetTabId.value, activeDocument.value?.aiDialogs],
+  () => {
+    isSyncingFromWorkspace = true;
+    syncDialogsFromWorkspace();
+    if (dialogs.value.length > 0) {
+      const nextIndex = Math.min(activeDialogIndex.value, dialogs.value.length - 1);
+      loadDialog(Math.max(nextIndex, 0));
+    }
+    isSyncingFromWorkspace = false;
+  },
+  { deep: true }
+);
 
 watch([messages], () => {
   //bindCode(false);
@@ -293,9 +374,10 @@ watch([title], () => {
   updateCurrentDialog();
 });
 
-const onMsgDelete = async (index) => {
-  index++;//有偏移量
-  await messages.value.splice(index, 1);
+const onMsgDelete = (index: number) => {
+  let targetIndex = index + 1;//有偏移量
+  if (targetIndex < 0 || targetIndex >= messages.value.length) return;
+  messages.value.splice(targetIndex, 1);
   //bindCode(false);
   ElMessage({
     type: 'success',
@@ -303,20 +385,21 @@ const onMsgDelete = async (index) => {
   })
   updateCurrentDialog();
 }
-const regenerate = async (index) => {
+const regenerate = async (index: number) => {
   messages.value.splice(index + 1);
   cur_resp.value = '';
   await generateNextResponse(
     () => {
-      messages.value.push(temp_message.value);
+      messages.value.push(createAssistantPlaceholder());
     },
     cur_resp,
     () => {
       messages.value.pop();
-      messages.value.push({
-        "role": "assistant",
-        "content": cur_resp.value
-      });
+      const assistantMessage: AIDialogMessage = {
+        role: 'assistant',
+        content: cur_resp.value,
+      };
+      messages.value.push(assistantMessage);
 
       //bindCode(false);
       updateCurrentDialog();
@@ -325,13 +408,16 @@ const regenerate = async (index) => {
   //await updateTitle();
 
 }
-const onMsgEdit = async (data) => {
-  let index = data.index;
-  let newText = data.message;
-  index++;//有偏移量
+type MessageEditPayload = {
+  index: number;
+  message: string;
+};
 
-
-  const message = await messages.value[index]
+const onMsgEdit = async (data: MessageEditPayload) => {
+  let index = data.index + 1;//有偏移量
+  const newText = data.message;
+  const message = messages.value[index];
+  if (!message) return;
   message.content = newText;
   //logger.log(message)
 

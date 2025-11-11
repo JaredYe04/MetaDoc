@@ -1,8 +1,8 @@
-import eventBus, { getWindowType } from './event-bus';
+import eventBus from './event-bus';
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts';
 import { webMainCalls } from './web-adapter/web-main-calls.js';
-import { createRendererLogger } from './logger.ts';
-const logger = createRendererLogger('ServiceStatus');
+// import { createRendererLogger } from './logger.ts';
+// const logger = createRendererLogger('ServiceStatus');
 type ServiceName = 'express' | 'rag';
 type ServiceState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -120,7 +120,8 @@ export const initServiceStatusWatcher = async (): Promise<void> => {
     const snapshot = await ipcRenderer.invoke('get-service-status');
     applyStatusSnapshot(snapshot);
   } catch (error) {
-    logger.warn('[ServiceStatus] 获取服务状态失败', error);
+    console.warn('[ServiceStatus] 获取服务状态失败', error);
+    //logger.warn('[ServiceStatus] 获取服务状态失败', error);
   }
 
   if (typeof ipcRenderer.on === 'function') {

@@ -27,9 +27,7 @@ if (window && (window as any).electron) {
 // 任务存储
 const tasks: Ref<AITaskInfo[]> = ref([])
 const taskMap = new Map<string, AITaskInfo>()
-const logger = createRendererLogger('AiTasks', {
-  windowTypeProvider: () => getWindowType()
-})
+const logger = createRendererLogger('AiTasks')
 
 /** 生成任务句柄 */
 function generateHandle(): string {

@@ -4,26 +4,12 @@
 // 使用 Vue 实例作为事件总线
 
 import mitt from 'mitt'
-import {
-  current_file_path,
-  current_outline_tree,
-  current_article,
-  current_article_meta_data,
-  dump2json,
-  init,
-  sync,
-  current_ai_dialogs,
-  load_from_json,
-  load_from_md,
-  dump2md,
-  current_format,
-  current_tex_article,
-  load_from_tex,
-  dump2tex
-} from './common-data.ts'
 import { getSetting, updateRecentDocs } from './settings.js'
 import { ConvertHtmlForPdf, image2base64, image2local, local2image, ConvertMarkdownToHtmlManually, ConvertMarkdownToHtmlVditor, filterMetaDataFromMd } from './md-utils.js'
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
+import { useWorkspace } from '../stores/workspace'
+import { serializeDocument } from '../services/document-serializer'
+import { convertLatexToMarkdown } from './latex-utils'
 
 
 const eventBus = mitt()
@@ -46,25 +32,59 @@ const logger = createRendererLogger('EventBus', {
   windowTypeProvider: () => getWindowType()
 });
 
+const workspace = useWorkspace();
+const { activeTabId, ensureDocument, markDocumentSaved, updateDocumentDirty } = workspace;
+
+const cloneDeep = (value) => JSON.parse(JSON.stringify(value));
+
+const getDocument = (tabId) => {
+  const targetId = typeof tabId === 'string' ? tabId : activeTabId.value;
+  if (!targetId) return null;
+  try {
+    return ensureDocument(targetId);
+  } catch (error) {
+    logger.warn('获取文档失败', error);
+    return null;
+  }
+};
+
+const buildSavePayload = async (doc) => {
+  const serialized = serializeDocument(doc);
+  const markdownSource =
+    doc.format === 'tex' ? convertLatexToMarkdown(doc.tex ?? '') : doc.markdown ?? '';
+  const html = await ConvertMarkdownToHtmlManually(markdownSource);
+  return {
+    json: serialized.json,
+    md: serialized.md,
+    path: doc.path,
+    html,
+    tex: serialized.tex,
+  };
+};
+
 
 export const isElectronEnv = () => {//判断是否在electron环境中
   return navigator.userAgent.toLowerCase().includes('electron');
 }
 
 eventBus.on('sync-ai-dialogs', (dialogs) => {//ai-chat -> home，一般来说只有home窗口会监听这个事件
-  //console.log('主界面收到了AI对话更新请求')
-  current_ai_dialogs.value = dialogs
+  const doc = getDocument()
+  if (!doc) return
+  doc.aiDialogs = cloneDeep(dialogs)
+  updateDocumentDirty(doc.tabId)
 })
 
-eventBus.on('request-ai-dialogs', (event) => {//home -> ai-chat，主窗口请求AICHAT组件获取对话数据
-  //console.log('我是' + getWindowType() + '窗口，我向AICHAT组件发送对话数据')
-  sendBroadcast('ai-chat', 'response-ai-dialogs', JSON.parse(JSON.stringify(current_ai_dialogs.value)))
+eventBus.on('request-ai-dialogs', () => {//home -> ai-chat，主窗口请求AICHAT组件获取对话数据
+  const doc = getDocument()
+  if (!doc) return
+  sendBroadcast('ai-chat', 'response-ai-dialogs', cloneDeep(doc.aiDialogs))
 })
 
 eventBus.on('response-ai-dialogs', (dialogs) => {//主进程发送给AICHAT组件对话数据
-  //console.log('我收到了对话数据', dialogs)
-  current_ai_dialogs.value = dialogs
-  //console.log(dialogs)
+  const doc = getDocument()
+  if (!doc) return
+  doc.aiDialogs = cloneDeep(dialogs)
+  updateDocumentDirty(doc.tabId)
   eventBus.emit('ai-dialogs-loaded')
 })
 
@@ -112,24 +132,35 @@ ipcRenderer.on('sync-theme', (event) => {
 })
 
 //监听主进程的事件，转发给事件总线，从而可以在Vue组件中使用
-ipcRenderer.on('update-current-path', (event, path) => {
-  //console.log('update-current-path', path)
-  current_file_path.value = path
+ipcRenderer.on('update-current-path', (_event, path) => {
+  const doc = getDocument()
+  if (!doc) return
+  doc.path = path || ''
+  markDocumentSaved(doc.tabId, doc.path)
 })
 
-ipcRenderer.on('save-success', (event, data) => {
-  updateRecentDocs(data.path)
+ipcRenderer.on('save-success', (_event, data = {}) => {
+  const doc = getDocument()
+  if (doc) {
+    markDocumentSaved(doc.tabId, data.path ?? doc.path)
+  }
+
+  if (data.path) {
+    updateRecentDocs(data.path)
+  }
 
   eventBus.emit('save-success')
-  if(data.saveAs){
-    eventBus.emit('open-doc',data.path);//对于另存为的文件，需要重新打开
+  if (data.saveAs && data.path) {
+    eventBus.emit('open-doc', data.path)//对于另存为的文件，需要重新打开
   }
 })
 
-ipcRenderer.on('save-file-path', (event, path) => {
+ipcRenderer.on('save-file-path', (_event, path) => {
   eventBus.emit('save-file-path', path)
-  current_file_path.value = path
-  //路径改变，需要重新保存
+  const doc = getDocument()
+  if (!doc) return
+  doc.path = path || ''
+  markDocumentSaved(doc.tabId, doc.path)
 })
 ipcRenderer.on('export-success', (event, data) => {
   //console.log(data)
@@ -171,29 +202,26 @@ const normalizeSavePayload = (payload) => {
   return { mode: 'manual', args: undefined }
 }
 
-const save = async (mode = 'save', args) => await ipcRenderer.send(mode,
-  {
-    json: dump2json(),
-    md: dump2md(),
-    path: current_file_path.value,
-    html: await ConvertMarkdownToHtmlManually(current_article.value),
-    tex: (current_format.value == "tex" ?
-      dump2tex() :
-      dump2tex(convertMarkdownToLatex(filterMetaDataFromMd(dump2md()), current_article_meta_data.value.title))),
-    args
-  });
+const save = async (mode = 'save', args, targetTabId) => {
+  const doc = getDocument(targetTabId)
+  if (!doc) return
+  const payload = await buildSavePayload(doc)
+  ipcRenderer.send(mode, {
+    ...payload,
+    args,
+  })
+}
 //监听save事件
 eventBus.on('save', async (payload) => {
   const { mode, args } = normalizeSavePayload(payload)
 
   if (mode === 'auto-save') {
-    if (current_file_path.value === '') {
+    const doc = getDocument()
+    if (!doc || !doc.path) {
       return//如果尝试自动保存时，没有文件路径，则不进行自动保存
     }
   }
-  sync();
-  await save('save',args);
-  eventBus.emit('is-need-save', false)
+  await save('save', args);
 })
 
 eventBus.on('is-need-save', (msg) => {
@@ -202,7 +230,6 @@ eventBus.on('is-need-save', (msg) => {
 })
 
 eventBus.on('save-and-quit', async () => {
-  sync();
   eventBus.emit('is-need-save', false)
   await save('save');
   ipcRenderer.send('quit')
@@ -222,59 +249,51 @@ eventBus.on('quit', () => {
 })
 
 eventBus.on('save-as', async (args) => {
-  sync();
   //eventBus.emit('nav-to', '/article');
   eventBus.emit('is-need-save', false)
-  await save('save-as',args);
+  await save('save-as', args);
   //
 })
 
-eventBus.on('new-doc', async () => {
-  await init()
-})
+eventBus.on('close-doc', () => {
+  eventBus.emit('close-active-tab');
+});
 
-eventBus.on('close-doc', async () => {
-  await init()
-})
+eventBus.on('export', async ({ format, filename }) => {
+  const doc = getDocument()
+  if (!doc) return
 
-eventBus.on('export', async (args) => {
-  const { format, filename } = args;
-  sync();
-  //鼠标指针变为等待状态
-  args = {};
-  args.md = current_article.value;
-  logger.debug('导出操作: 当前 Markdown 长度', args.md ? args.md.length : 0)
-  switch (current_format.value) {
-    case "md":
-      if (format === 'html' || format === 'docx' || format === 'pdf' || format === 'md') {
-        args.md = await local2image(args.md)//将本地图片转换为服务器图片，以防止导出时图片丢失
-      }
+  const serialized = serializeDocument(doc)
+  const exportArgs = { format, filename }
 
-      if (format === 'html' || format === 'docx') {
-        args.md = await image2base64(args.md)//将图片进一步从本地链接，转换为base64
-      }
+  let markdown =
+    doc.format === 'tex'
+      ? convertLatexToMarkdown(doc.tex ?? '')
+      : filterMetaDataFromMd(serialized.md)
 
-      if (format === 'docx') {
-        args.html = await ConvertMarkdownToHtmlVditor(args.md)
-      } else if (format === 'pdf') {
-        args.html = await ConvertHtmlForPdf(args.md);
-        //转换为pdf需要的html
-      }
-      else {
-        args.html = await ConvertMarkdownToHtmlManually(args.md);
-      }
-
-      if (format === 'tex') {
-        args.tex = convertMarkdownToLatex(args.md, current_article_meta_data.value.title)
-      }
-      args.json = dump2json(args.md)
-      break;
-    case "tex":
-      args.tex = current_tex_article.value
-      break;
+  if (['html', 'docx', 'pdf', 'md'].includes(format)) {
+    markdown = await local2image(markdown)
   }
-  args.format = format;
-  ipcRenderer.send('export', args)
+
+  if (['html', 'docx'].includes(format)) {
+    markdown = await image2base64(markdown)
+  }
+
+  if (format === 'docx') {
+    exportArgs.html = await ConvertMarkdownToHtmlVditor(markdown)
+  } else if (format === 'pdf') {
+    exportArgs.html = await ConvertHtmlForPdf(markdown)
+  } else if (format === 'html') {
+    exportArgs.html = await ConvertMarkdownToHtmlManually(markdown)
+  } else {
+    exportArgs.html = await ConvertMarkdownToHtmlManually(markdown)
+  }
+
+  exportArgs.md = serialized.md
+  exportArgs.json = serialized.json
+  exportArgs.tex = serialized.tex
+
+  ipcRenderer.send('export', exportArgs)
 })
 // eventBus.on('export-to-pdf', async (args) => {
 //   //console.log('export-to-pdf', htmlContent)

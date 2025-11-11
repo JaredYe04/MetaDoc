@@ -22,16 +22,11 @@
 <script setup>
 import { ElButton, ElDialog } from 'element-plus' // 引入 Element Plus 按钮和弹框组件
 import MarkdownItEditor from 'vue3-markdown-it';
-import { computed, onMounted } from 'vue';
-import { latest_view, searchNode } from '../utils/common-data';
-import { sync, current_outline_tree } from '../utils/common-data';
-import { ref, watch } from 'vue';
-import { max, min } from 'd3';
-import { explainWordPrompt, sectionChangePrompt } from '../utils/prompts';
-
-import eventBus from '../utils/event-bus';
-import { generateMarkdownFromOutlineTree } from '../utils/md-utils';
+import { computed, onMounted, ref, watch } from 'vue';
+import { explainWordPrompt } from '../utils/prompts';
 import { themeState } from '../utils/themes';
+import { useActiveDocument } from '../composables/useActiveDocument';
+import { searchNode } from '../utils/outline-helpers';
 const props = defineProps({
   word: {
     type: String,
@@ -44,6 +39,10 @@ const props = defineProps({
   position: {
     type: Object,
     required: true,
+  },
+  path: {
+    type: String,
+    required: false,
   },
 })
 
@@ -81,6 +80,8 @@ const userPrompt = ref('');
 const generatedText = ref('');
 const generated = ref(false);
 // 定义计算属性 menuStyles
+const { activeDocument } = useActiveDocument();
+const currentOutline = computed(() => activeDocument.value?.outline ?? null);
 const articleContent = ref(''); // 定义 articleContent 变量
 const menuStyles = computed(() => ({
   position: 'absolute',
@@ -103,7 +104,12 @@ const refreshContent = () => {
   }
   reset();
   generate();
-  //articleContent.value = searchNode(props.path, current_outline_tree.value).text;
+  if (props.path && currentOutline.value) {
+    const node = searchNode(props.path, currentOutline.value);
+    articleContent.value = node?.text ?? '';
+  } else {
+    articleContent.value = '';
+  }
 }
 //如果props的word变了，触发refreshContent
 watch(() => props.word, (newVal, oldVal) => {

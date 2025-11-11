@@ -13,14 +13,13 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import Main from './views/Main.vue'
 
 import eventBus, { getWindowType, initWindowType } from './utils/event-bus';
 import { getRecentDocs, getSetting, initSettings } from './utils/settings';
 import { lightTheme, darkTheme, themeState, customTheme } from './utils/themes';
-import { current_ai_dialogs, firstLoad } from './utils/common-data';
 import localIpcRenderer from './utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from './utils/web-adapter/web-main-calls';
 import { clearAiTasks } from './utils/ai_tasks';
@@ -43,6 +42,8 @@ if (window && window.electron) {
 
 // 根据路由的 meta 信息判断是否需要顶部菜单和侧边菜单
 const requiresLayout = computed(() => route.meta.requiresLayout !== false)
+const initialLoad = ref(true)
+
 const autoOpenDoc = async () => {
   //首先要判断一下自己是哪个窗口，只有主窗口才需要自动打开文档
   const windowType = route.query.windowType;
@@ -62,6 +63,7 @@ const autoOpenDoc = async () => {
   if (file) {
     // 如果有文件参数，直接打开该文件
     eventBus.emit('open-doc', file);
+    initialLoad.value = false;
     return;
   }
 
@@ -69,12 +71,9 @@ const autoOpenDoc = async () => {
   if (enabled) {
     const recentDocs = await getRecentDocs()
 
-    if (recentDocs.length > 0
-      && firstLoad.value
-
-    ) {
+    if (recentDocs.length > 0 && initialLoad.value) {
       eventBus.emit('open-doc', recentDocs[0])
-      firstLoad.value = false
+      initialLoad.value = false
     }
   }
 }

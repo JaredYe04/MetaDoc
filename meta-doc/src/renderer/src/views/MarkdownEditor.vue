@@ -5,7 +5,7 @@
             <!-- 菜单组件 -->
             <TitleMenu v-if="showTitleMenu" :title="currentTitle.replace(/#+/g, '').trim()" :position="menuPosition"
                 @close="handleTitleMenuClose" :path="currentTitlePath"
-                :tree="extractOutlineTreeFromMarkdown(current_article, true)"
+                :tree="extractOutlineTreeFromMarkdown(currentMarkdown, true)"
                         @accept="async (payload: any) => { await acceptGeneratedText(payload); }" style="max-width: 500px;" />
             <SearchReplaceMenu v-if="searchReplaceDialogVisible" @close="searchReplaceDialogVisible = false"
                 :position="SRMenuPosition" />
@@ -63,24 +63,24 @@
                         <h1 @click="genTitleDialogVisible = !genTitleDialogVisible" class="interactive-text"
                             :style="{ color: themeState.currentTheme.textColor }">
                             {{ $t('article.title') }}：
-                            {{ current_article_meta_data.title || $t('article.no_title') }}
+                            {{ currentMeta.title || $t('article.no_title') }}
                         </h1>
                     </el-tooltip>
 
                     <LlmDialog v-if="genTitleDialogVisible"
-                        :prompt="generateTitlePrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
+                        :prompt="generateTitlePrompt(JSON.stringify(extractOutlineTreeFromMarkdown(currentMarkdown, true)))"
                         :title="$t('article.generate_title')" :llmConfig="{ max_tokens: 15, temperature: 0.0 }"
                         @llm-content-accept="(content: string) => {
                             updateMeta((meta) => { meta.title = content; });
                             genTitleDialogVisible = false;
                         }" @update:visible="genTitleDialogVisible = $event; genTitleDialogVisible = false"
-                        :defaultText="current_article_meta_data.title" :defaultInputSize="1"></LlmDialog>
+                        :defaultText="currentMeta.title" :defaultInputSize="1"></LlmDialog>
 
                     <el-tooltip :content="$t('article.click_to_edit_author')" placement="left">
                         <p @click="modifyAuthorDialogVisible = !modifyAuthorDialogVisible" class="interactive-text"
                             :style="{ color: themeState.currentTheme.textColor }">
                             <strong>{{ $t('article.author') }}：</strong>
-                            {{ current_article_meta_data.author || $t('article.no_author') }}
+                            {{ currentMeta.author || $t('article.no_author') }}
                         </p>
                     </el-tooltip>
 
@@ -89,24 +89,24 @@
                             updateMeta((meta) => { meta.author = content; });
                             modifyAuthorDialogVisible = false;
                         }" @update:visible="modifyAuthorDialogVisible = $event; modifyAuthorDialogVisible = false"
-                        :defaultText="current_article_meta_data.author" :defaultInputSize="1"></LlmDialog>
+                        :defaultText="currentMeta.author" :defaultInputSize="1"></LlmDialog>
 
                     <el-tooltip :content="$t('article.click_to_edit_description')" placement="left">
                         <p @click="genDescriptionDialogVisible = !genDescriptionDialogVisible" class="interactive-text"
                             :style="{ color: themeState.currentTheme.textColor }">
                             <strong>{{ $t('article.description') }}：</strong>
-                            {{ current_article_meta_data.description || $t('article.no_description') }}
+                            {{ currentMeta.description || $t('article.no_description') }}
                         </p>
                     </el-tooltip>
 
                     <LlmDialog v-if="genDescriptionDialogVisible"
-                        :prompt="generateDescriptionPrompt(JSON.stringify(extractOutlineTreeFromMarkdown(current_article, true)))"
+                        :prompt="generateDescriptionPrompt(JSON.stringify(extractOutlineTreeFromMarkdown(currentMarkdown, true)))"
                         :title="$t('article.generate_description')" :llmConfig="{ max_tokens: 100, temperature: 0.0 }"
                         @llm-content-accept="(content: string) => {
                             updateMeta((meta) => { meta.description = content; });
                             genDescriptionDialogVisible = false;
                         }" @update:visible="genDescriptionDialogVisible = $event; genDescriptionDialogVisible = false"
-                        :defaultText="current_article_meta_data.description" :defaultInputSize="10"></LlmDialog>
+                        :defaultText="currentMeta.description" :defaultInputSize="10"></LlmDialog>
                     </div>
                 </template>
             </ResizableContainer>
@@ -115,7 +115,7 @@
                 <el-form>
                     <el-form-item :label="$t('article.title')">
                         <el-input
-                            :model-value="current_article_meta_data.title"
+                            :model-value="currentMeta.title"
                             @update:model-value="(val: string) => updateMeta((meta) => { meta.title = val; })"
                             autocomplete="off"
                             class="aero-input"
@@ -123,7 +123,7 @@
                     </el-form-item>
                     <el-form-item :label="$t('article.author')">
                         <el-input
-                            :model-value="current_article_meta_data.author"
+                            :model-value="currentMeta.author"
                             @update:model-value="(val: string) => updateMeta((meta) => { meta.author = val; })"
                             autocomplete="off"
                             class="aero-input"
@@ -133,7 +133,7 @@
                         <el-input
                             type="textarea"
                             :placeholder="$t('article.description_placeholder')"
-                            :model-value="current_article_meta_data.description"
+                            :model-value="currentMeta.description"
                             @update:model-value="(val: string) => updateMeta((meta) => { meta.description = val; })"
                             autocomplete="off"
                             resize="none"
@@ -161,7 +161,6 @@ import "../assets/title-menu.css";
 import eventBus, { isElectronEnv, getWindowType } from '../utils/event-bus';
 import { createRendererLogger } from '../utils/logger.ts'
 import { generateDescriptionPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
-import { searchNode } from "../utils/common-data.ts";
 import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree } from '../utils/md-utils';
 import LlmDialog from "../components/LlmDialog.vue";
 import TitleMenu from '../components/TitleMenu.vue';
@@ -208,39 +207,53 @@ const isActive = toRef(props, 'active')
 
 const documentRef = computed(() => workspace.ensureDocument(props.tabId))
 
-const current_article = computed<string>({
+const currentMarkdown = computed<string>({
   get: () => documentRef.value.markdown ?? '',
   set: (val) => workspace.updateDocumentMarkdown(props.tabId, val),
 })
 
-const current_article_meta_data = computed<ArticleMetaData>(() => documentRef.value.meta)
+const currentMeta = computed<ArticleMetaData>(() => documentRef.value.meta)
 
-const current_outline_tree = computed<DocumentOutlineNode>({
+const currentOutline = computed<DocumentOutlineNode>({
   get: () => documentRef.value.outline,
   set: (val) => workspace.updateDocumentOutline(props.tabId, val),
 })
 
-const current_ai_dialogs = computed<any[]>({
+const currentDialogs = computed<any[]>({
   get: () => documentRef.value.aiDialogs,
   set: (val) => workspace.updateDocumentAiDialogs(props.tabId, val),
 })
 
-const latest_view = computed<'outline' | 'article'>({
+const currentView = computed<'outline' | 'article'>({
   get: () => documentRef.value.lastView ?? 'outline',
   set: (val) => workspace.updateDocumentLastView(props.tabId, val),
 })
 
-const renderedHtml = computed<string>({
+const currentRenderedHtml = computed<string>({
   get: () => documentRef.value.renderedHtml ?? '',
   set: (val) => workspace.updateDocumentRenderedHtml(props.tabId, val),
 })
+
+function findNodeByPath(node: DocumentOutlineNode, targetPath: string): DocumentOutlineNode | null {
+  if (!node) return null;
+  if (node.path === targetPath) {
+    return node;
+  }
+  if (Array.isArray(node.children)) {
+    for (const child of node.children) {
+      const found = findNodeByPath(child, targetPath);
+      if (found) return found;
+    }
+  }
+  return null;
+}
 
 function updateMeta(updater: (meta: ArticleMetaData) => void) {
   workspace.updateDocumentMeta(props.tabId, updater)
 }
 
 function replaceDialogs(builder: (dialogs: any[]) => any[]) {
-  const next = builder([...current_ai_dialogs.value])
+  const next = builder([...currentDialogs.value])
   workspace.updateDocumentAiDialogs(props.tabId, next)
 }
 
@@ -256,13 +269,13 @@ function addDialog(dialog: any, add2front = false) {
 }
 
 function syncDocument() {
-  if (latest_view.value === 'outline') {
-    current_article.value = generateMarkdownFromOutlineTree(current_outline_tree.value)
-    latest_view.value = 'article'
-  } else if (latest_view.value === 'article') {
-    const outline = extractOutlineTreeFromMarkdown(current_article.value)
-    current_outline_tree.value = outline
-    latest_view.value = 'outline'
+  if (currentView.value === 'outline') {
+    currentMarkdown.value = generateMarkdownFromOutlineTree(currentOutline.value)
+    currentView.value = 'article'
+  } else if (currentView.value === 'article') {
+    const outline = extractOutlineTreeFromMarkdown(currentMarkdown.value)
+    currentOutline.value = outline
+    currentView.value = 'outline'
   }
 }
  
@@ -356,7 +369,7 @@ const insertText = (text: string) => {
 const handleMenuClick = async (item: string) => {
     switch (item) {
         case 'ai-assistant':
-            let text = current_article.value;
+            let text = currentMarkdown.value;
             const bypassCodeBlock = await getSetting('bypassCodeBlock');
             if (bypassCodeBlock) {
                 text = text.replace(/```[\s\S]*?```/g, '');
@@ -437,7 +450,7 @@ const handleClick = (event: MouseEvent, title: string, path: string) => {
 
 const handleRefresh = () => {
     if (!isActive.value) return;
-    vditor.value?.setValue(current_article.value, true);
+    vditor.value?.setValue(currentMarkdown.value, true);
 };
 eventBus.on('refresh', handleRefresh);
 
@@ -453,7 +466,7 @@ const handleSyncWithHtml = () => {
     if (!vditor.value) return;
     const html = vditor.value.getHTML();
     vditor.value.setValue(vditor.value.html2md(html), true);
-    current_article.value = vditor.value.getValue();
+    currentMarkdown.value = vditor.value.getValue();
 };
 eventBus.on('vditor-sync-with-html', handleSyncWithHtml);
 
@@ -461,9 +474,9 @@ eventBus.on('vditor-sync-with-html', handleSyncWithHtml);
 // 接受生成的文本
 const acceptGeneratedText = async (payload: any) => {
     const { append, content } = payload;
-    const outlineTree = extractOutlineTreeFromMarkdown(current_article.value, false);
+    const outlineTree = extractOutlineTreeFromMarkdown(currentMarkdown.value, false);
     const path = currentTitlePath.value;
-    const node = searchNode(path, outlineTree);
+    const node = findNodeByPath(outlineTree, path);
     if (node) {
         if (append) {
             node.text += content;
@@ -472,10 +485,10 @@ const acceptGeneratedText = async (payload: any) => {
             node.text = content;
         }
     }
-    current_outline_tree.value = outlineTree;
-    latest_view.value = 'outline';
+    currentOutline.value = outlineTree;
+    currentView.value = 'outline';
     syncDocument();
-    vditor.value?.setValue(current_article.value);
+    vditor.value?.setValue(currentMarkdown.value);
     await bindTitleMenu();
 };
 
@@ -493,7 +506,7 @@ const bindTitleMenu = async () => {
         ['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes((node as Element).tagName));
 
     // 处理大纲树和标题绑定
-    const outlineTree = current_outline_tree.value;
+    const outlineTree = currentOutline.value;
     const treeNodeQueue: any[] = [];
     const dfsOutlineTree = (node: any) => {
         treeNodeQueue.push(node);
@@ -798,11 +811,11 @@ onMounted(async () => {
                 enable: true,
                 position: "left",
             },
-            value: current_article.value,
+            value: currentMarkdown.value,
             input: async (value) => {
 
-                current_article.value = value;
-                latest_view.value = 'article';
+                // currentMarkdown.value = value;
+                currentView.value = 'article';
                 workspace.updateDocumentMarkdown(props.tabId, value);
                 //trytriggerSuggestion();
 
@@ -866,12 +879,12 @@ const handleSyncEditorTheme = async () => {
     }
 
     vditor.value?.setTheme(themeState.currentTheme.vditorTheme as any, contentTheme as any, codeTheme as any);
-    vditor.value?.setValue(current_article.value);
+    vditor.value?.setValue(currentMarkdown.value);
 };
 eventBus.on('sync-editor-theme', handleSyncEditorTheme);
 
 watch(
-    () => current_article.value,
+    () => currentMarkdown.value,
     (content) => {
         if (!isActive.value) return;
         if (!vditor.value) return;
@@ -892,7 +905,7 @@ watch(
     (active) => {
         if (!active) return;
         if (!vditor.value) return;
-        const desired = current_article.value ?? '';
+        const desired = currentMarkdown.value ?? '';
         const currentValue = vditor.value.getValue();
         if (desired !== currentValue) {
             nextTick(() => {

@@ -1,30 +1,34 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount } from 'vue';
+import { onMounted, onBeforeUnmount, ref } from 'vue';
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
-import { useWorkspace } from '../stores/workspace';
+import { activeTabId, tabs, useWorkspace } from '../stores/workspace';
 import eventBus from '../utils/event-bus';
 import WorkspaceTabPane from '../components/workspace/WorkspaceTabPane.vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 
 const {
-  tabs,
-  activeTabId,
   activateTab,
-  persistActiveDocument,
   ensureDocument,
   removeTab,
   updateDocumentDirty,
+  openNewDocumentTab,
+  moveTab,
+  saveAllDocuments,
 } = useWorkspace();
 
 const { t } = useI18n();
 
+const isSavingAll = ref(false);
 const handleTabChange = (id: string) => {
   activateTab(id);
 };
 
+const handleTabReorder = ({ fromId, toId }: { fromId: string; toId: string }) => {
+  moveTab(fromId, toId);
+};
+
 const handleCloseTab = async (id: string) => {
-  if (tabs.length <= 1) return;
   const doc = ensureDocument(id);
   if (doc?.dirty) {
     try {
@@ -44,28 +48,71 @@ const handleCloseTab = async (id: string) => {
   removeTab(id);
 };
 
-const handleDirtyFlag = () => {
-  updateDocumentDirty(activeTabId.value);
+const handleNewDocumentRequest = () => {
+  openNewDocumentTab();
 };
 
+const performSaveAll = async () => {
+  if (isSavingAll.value) {
+    return { saved: [] as string[], failed: [] as string[] };
+  }
+  isSavingAll.value = true;
+  try {
+    const result = await saveAllDocuments();
+    if (result.failed.length === 0) {
+      eventBus.emit('show-success', t('main.notification.saveAllSuccess'));
+    } else if (result.saved.length > 0) {
+      eventBus.emit(
+        'show-warning',
+        t('main.notification.saveAllPartial', { count: result.failed.length }),
+      );
+    } else {
+      eventBus.emit('show-warning', t('main.notification.saveAllNone'));
+    }
+    return result;
+  } finally {
+    isSavingAll.value = false;
+  }
+};
+
+const handleSaveAllRequest = async () => {
+  await performSaveAll();
+};
+
+const handleSaveAllAndQuit = async () => {
+  const result = await performSaveAll();
+  if (result.failed.length === 0) {
+    eventBus.emit('quit');
+  }
+};
+
+const handleCloseActiveTabRequest = () => {
+  handleCloseTab(activeTabId.value);
+};
+
+
 onMounted(() => {
-  eventBus.on('is-need-save', handleDirtyFlag);
+  eventBus.on('new-doc', handleNewDocumentRequest);
+  eventBus.on('save-all', handleSaveAllRequest);
+  eventBus.on('save-all-and-quit', handleSaveAllAndQuit);
+  eventBus.on('close-active-tab', handleCloseActiveTabRequest);
 });
 
 onBeforeUnmount(() => {
-  persistActiveDocument();
-  eventBus.off('is-need-save', handleDirtyFlag);
+  eventBus.off('new-doc', handleNewDocumentRequest);
+  eventBus.off('save-all', handleSaveAllRequest);
+  eventBus.off('save-all-and-quit', handleSaveAllAndQuit);
+  eventBus.off('close-active-tab', handleCloseActiveTabRequest);
 });
 </script>
 
 <template>
   <div class="workspace-editor-layout">
     <WorkspaceTabs
-      :tabs="tabs"
-      :active-id="activeTabId"
       closable
       @update:activeId="handleTabChange"
       @close="handleCloseTab"
+      @reorder="handleTabReorder"
     />
     <div class="workspace-editor-content">
       <KeepAlive>

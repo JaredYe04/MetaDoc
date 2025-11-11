@@ -1,12 +1,11 @@
 import axios from "axios"
 import { SERVER_URL } from "./consts"
-import { avatar, loggedIn, user } from "./common-data"
+import { avatar, loggedIn, user, resetUserState } from "../stores/user"
 import eventBus from "./event-bus"
 import { getMimeType } from "./image-utils"
-import { el } from "element-plus/es/locales.mjs"
 import Token from "markdown-it/lib/token.mjs"
-import { createRendererLogger } from "./logger.ts";
-const logger = createRendererLogger('WebUtils');
+//import { createRendererLogger } from "./logger.ts";
+//const logger = createRenderer//logger('WebUtils');
 
 
 export const getMetaDocLlmModels = async () => {
@@ -39,7 +38,7 @@ export const changePassword = async (uid,oldPassword,newPassword) => {
   } catch (error) {
     // 捕获错误并显示错误信息
     eventBus.emit('show-error', '请求失败，请稍后重试');
-    logger.error('Error:', error);
+    //logger.error('Error:', error);
     return -1;
   }
 };
@@ -47,7 +46,7 @@ export const changePassword = async (uid,oldPassword,newPassword) => {
 export const login = (loginData: { rememberMe: any }) => {
   axios.post(SERVER_URL + '/user/login', loginData)
     .then(async response => {
-      //logger.log(response)
+      ////logger.log(response)
       if (response.data.messageType == 'SUCCESS') {
         const token = response.data.data
         // 保存token到本次会话
@@ -95,16 +94,16 @@ export const changeAvatar = () => {
         }
       })
         .then(async (response) => {
-          //logger.log(response)
+          ////logger.log(response)
           if (response.data.messageType == 'SUCCESS') {
             eventBus.emit('show-success', '头像上传成功')
             user.value.avatarId = response.data.data
             updateUserInfo()
             avatar.value = await fetchImage(user.value.avatarId)
-            //logger.log('avatar:', avatar.value)
+            ////logger.log('avatar:', avatar.value)
             // 更新用户信息
           } else {
-            //logger.log(response)
+            ////logger.log(response)
             eventBus.emit('show-error', response.data.message)
           }
         })
@@ -123,11 +122,11 @@ export const fetchImage = async (imageId: number) => {
     return null
   })
   if (response) {
-    //logger.log('response:', response)
+    ////logger.log('response:', response)
     const b64String = response.data.data.b64String
-    //logger.log('bytes:', bytes)
+    ////logger.log('bytes:', bytes)
     const imageUrl = `data:image/jpeg;base64,${b64String}`;
-    //logger.log('imageUrl:', imageUrl)
+    ////logger.log('imageUrl:', imageUrl)
     return imageUrl;
 
   } else {
@@ -149,7 +148,7 @@ export async function getMetaDocLlmConfig(loginToken,model) {
       loginToken: loginToken
     }
   }).then((response) => {
-    //logger.log('getMetaDocLlmConfig:', response)
+    ////logger.log('getMetaDocLlmConfig:', response)
     if (response.data.messageType === 'SUCCESS') {
       return response.data.data
     } else {
@@ -159,7 +158,7 @@ export async function getMetaDocLlmConfig(loginToken,model) {
   }
   ).catch((error) => {
     eventBus.emit('show-error', '获取模型配置失败：' + error.message)
-    logger.error('获取模型配置请求失败:', error)
+    //logger.error('获取模型配置请求失败:', error)
     return null
   }
   )
@@ -172,34 +171,35 @@ export async function verifyToken(token) {
     },
   }).then(async (response) => {
     if (response.data.messageType === 'SUCCESS') {
-      user.value = response.data.data
-      avatar.value = await fetchImage(user.value.avatarId)
-      //logger.log('user:', user.value)
+      user.value = response.data.data ?? {}
+      if (user.value?.avatarId) {
+        avatar.value = await fetchImage(user.value.avatarId)
+      } else {
+        avatar.value = ''
+      }
       loggedIn.value = true
       eventBus.emit('user-info-updated')
     }
   }).catch((error) => {
-    logger.error('Token验证请求失败:', error)
+    //logger.error('Token验证请求失败:', error)
     //sessionStorage.removeItem('loginToken')
     localStorage.removeItem('loginToken')
-    loggedIn.value = false
-    user.value = null
-
+    resetUserState()
   })
   return loggedIn.value
 }
 export async function updateUserInfo() {
-  //logger.log('token:', token)
+  ////logger.log('token:', token)
   const response = await axios.post(SERVER_URL + '/user/update', user.value, {
     headers: {
       'Content-Type': 'application/json'
     },
   }).catch((error) => {
     eventBus.emit('show-error', '更新用户信息失败：' + error.message)
-    logger.error('更新用户信息请求失败:', error)
+    //logger.error('更新用户信息请求失败:', error)
     return -1;
   })
-  //logger.log('updateUserInfo:', response)
+  ////logger.log('updateUserInfo:', response)
   if (response.data.messageType === 'SUCCESS') {
     return 0;
     //user.value=response.data.data

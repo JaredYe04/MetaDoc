@@ -10,18 +10,13 @@ import type {
   SaveOptions,
   ExportOptions
 } from '../../../types'
-import { 
-  current_file_path,
-  current_article,
-  current_tex_article,
-  current_article_meta_data,
-  current_outline_tree,
-  current_format,
-  sync
-} from '../utils/common-data'
 import eventBus from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger';
+import { useWorkspace } from '../stores/workspace';
+import { DEFAULT_ARTICLE_META, DEFAULT_OUTLINE_TREE } from '../constants/document';
+
 const logger = createRendererLogger('DocumentService');
+const workspace = useWorkspace();
 
 /** 文档数据接口 */
 export interface DocumentData {
@@ -39,13 +34,28 @@ export class DocumentService {
    * 获取当前文档数据
    */
   static getCurrentDocument(): DocumentData {
+    const doc = workspace.activeDocument.value;
+    if (!doc) {
+      const meta = JSON.parse(JSON.stringify(DEFAULT_ARTICLE_META)) as ArticleMetaData;
+      const outline = JSON.parse(JSON.stringify(DEFAULT_OUTLINE_TREE)) as DocumentOutlineNode;
+      return {
+        filePath: '',
+        format: 'md',
+        article: '',
+        texArticle: '',
+        metaData: meta,
+        outlineTree: outline,
+      };
+    }
+    const meta = JSON.parse(JSON.stringify(doc.meta)) as ArticleMetaData;
+    const outline = JSON.parse(JSON.stringify(doc.outline)) as DocumentOutlineNode;
     return {
-      filePath: current_file_path.value,
-      format: current_format.value as DocumentFormat,
-      article: current_article.value,
-      texArticle: current_tex_article.value,
-      metaData: current_article_meta_data.value,
-      outlineTree: current_outline_tree.value
+      filePath: doc.path,
+      format: doc.format as DocumentFormat,
+      article: doc.markdown,
+      texArticle: doc.tex,
+      metaData: meta,
+      outlineTree: outline,
     }
   }
 
@@ -138,8 +148,8 @@ export class DocumentService {
    * 检查文档是否需要保存
    */
   static needsSaving(): boolean {
-    // 这里可以实现更复杂的逻辑来检查文档是否被修改
-    return current_file_path.value !== '' || current_article.value.trim() !== ''
+    const doc = workspace.activeDocument.value;
+    return Boolean(doc?.dirty);
   }
 
   /**
@@ -150,7 +160,7 @@ export class DocumentService {
     wordCount: number
     lineCount: number
   } {
-    const content = current_article.value
+    const content = workspace.activeDocument.value?.markdown ?? '';
     return {
       characterCount: content.length,
       wordCount: content.split(/\s+/).filter(word => word.length > 0).length,
@@ -162,7 +172,7 @@ export class DocumentService {
    * 同步文档数据
    */
   static syncDocument(): void {
-    sync()
+    logger.warn('DocumentService.syncDocument 已弃用；当前 workspace 会自动同步文档状态。')
   }
 
   /**

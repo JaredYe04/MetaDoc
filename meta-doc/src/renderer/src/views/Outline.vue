@@ -1,8 +1,6 @@
 <template>
   <div class="outline-page">
     <WorkspaceTabs
-      :tabs="tabs"
-      :active-id="activeTabId"
       closable
       @update:activeId="handleTabChange"
       @close="handleCloseTab"
@@ -48,9 +46,17 @@
       </div>
     </el-scrollbar>
 
-    <vue-tree ref="tree" style="width: 100%; height: 80vh; border: 1px solid gray; "
-      :style="{ backgroundColor: themeState.currentTheme.outlineBackground }" :dataset="treeData" :config="treeConfig"
-      :direction="direction" @node-click="handleNodeClick" linkStyle="straight" @drag-node-end="handleNodeDrag">
+    <vue-tree
+      ref="treeRef"
+      style="width: 100%; height: 80vh; border: 1px solid gray;"
+      :style="{ backgroundColor: themeState.currentTheme.outlineBackground }"
+      :dataset="treeData"
+      :config="treeConfig"
+      :direction="direction"
+      link-style="straight"
+      @node-click="handleNodeClick"
+      @drag-node-end="handleNodeDrag"
+    >
 
 
       <template #node="{ node, collapsed }" :style="{ backgroundColor: themeState.currentTheme.outlineNode }">
@@ -219,8 +225,15 @@
           <el-input v-model="currentChapterValue" autocomplete="off" class="aero-input" />
         </el-form-item>
         <el-form-item :label="$t('outline.chapterContent')">
-          <md-editor v-model="currentChapterContent" showCodeRowNumber previewTheme="github" codeStyleReverse
-            style="text-align: left" :autoFoldThreshold="300" :theme="themeState.currentTheme.vditorTheme" />
+          <md-editor
+            v-model="currentChapterContent"
+            show-code-row-number
+            preview-theme="github"
+            code-style-reverse
+            style="text-align: left"
+            :auto-fold-threshold="300"
+            :theme="editorTheme"
+          />
 
         </el-form-item>
       </el-form>
@@ -269,20 +282,21 @@
   </div>
 </div>
 </template>
-<script setup>
-import { ref, reactive, watch, onMounted, computed } from 'vue';
+<script setup lang="ts">
+import { ref, reactive, watch, computed, type Ref } from 'vue';
 import { ElButton, ElDialog, ElMessageBox, ElNotification } from 'element-plus'; // 引入 Element Plus 组件
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
-import { useWorkspace } from '../stores/workspace';
+import { tabs, useWorkspace } from '../stores/workspace';
 import eventBus, { getWindowType } from '../utils/event-bus.js';
 import '../assets/aero-div.css';
 import '../assets/aero-btn.css';
 import "../assets/aero-input.css";
-import { MdEditor, MdPreview, MdCatalog } from 'md-editor-v3';
+import { MdEditor, type Themes } from 'md-editor-v3';
 import { Plus, Edit, Delete, More, Minus, ArrowLeftBold, ArrowRightBold, Finished, EditPen, Checked, Close, Check, Download, Rank } from '@element-plus/icons-vue';
-import { current_outline_tree, default_outline_tree, latest_view, sync, tree_node_schema } from '../utils/common-data';
-import { searchNode, searchParentNode } from '../utils/common-data';
-import { adjustTitleIndex, adjustTitleLevel, removeTextFromOutline } from '../utils/md-utils.js';
+import type { DocumentOutlineNode } from '../../../types';
+import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document';
+import { searchNode, searchParentNode } from '../utils/outline-helpers';
+import { adjustTitleIndex, adjustTitleLevel, removeTextFromOutline, generateMarkdownFromOutlineTree } from '../utils/md-utils.js';
 import { expandTreeNodePrompt, generateContentPrompt, generateParentNodeContentPrompt, outlineChangePrompt } from '../utils/prompts.js';
 
 import { themeState } from '../utils/themes.js';
@@ -299,18 +313,58 @@ const logger = createRendererLogger('Outline', {
 })
 const workspace = useWorkspace();
 const {
-  tabs,
   activeTabId,
   activateTab,
   ensureDocument,
   removeTab,
+  updateDocumentOutline,
+  updateDocumentLastView,
+  updateDocumentMarkdown,
 } = workspace;
 
-const handleTabChange = (id) => {
+const cloneOutline = (outline?: DocumentOutlineNode): DocumentOutlineNode =>
+  JSON.parse(JSON.stringify(outline ?? DEFAULT_OUTLINE_TREE));
+
+const activeDocument = computed(() => {
+  if (!activeTabId.value) return null;
+  try {
+    return ensureDocument(activeTabId.value);
+  } catch (error) {
+    logger.warn('获取当前文档失败', error);
+    return null;
+  }
+});
+
+const treeData = ref<DocumentOutlineNode>(cloneOutline(activeDocument.value?.outline));
+const dialogVisible = ref<Record<string, boolean>>({});
+const editorTheme = computed<Themes | undefined>(() => themeState.currentTheme.vditorTheme as Themes | undefined);
+const selectedNode = ref<DocumentOutlineNode | null>(null);
+const generated = ref(false);
+const generating = ref(false);
+const rawstring = ref('');
+const generatedText = ref('');
+
+let suppressDocumentSync = false;
+
+const commitOutline = (outline?: DocumentOutlineNode) => {
+  const tabId = activeTabId.value;
+  if (!tabId) return;
+  const snapshot = cloneOutline(outline ?? treeData.value);
+  suppressDocumentSync = true;
+  try {
+    updateDocumentOutline(tabId, snapshot);
+    updateDocumentLastView(tabId, 'outline');
+    updateDocumentMarkdown(tabId, generateMarkdownFromOutlineTree(snapshot));
+  } finally {
+    suppressDocumentSync = false;
+  }
+};
+
+const handleTabChange = (id: string) => {
   activateTab(id);
 };
 
-const handleCloseTab = async (id) => {
+const handleCloseTab = async (id: string) => {
   if (tabs.length <= 1) return;
   const doc = ensureDocument(id);
   if (doc?.dirty) {
@@ -342,11 +396,11 @@ const formatTitleConfig = reactive({
   level1TitleChinese: true,//第一级标题使用中文，如一 二三四五六七八九十
 });
 
-const backupOutlineTree = ref(null);
+const backupOutlineTree = ref<DocumentOutlineNode | null>(null);
 const generateContentLoading = ref(false);
 const generateChildrenContentLoading = ref(false);
 const generateChildrenChildrenLoading = ref(false);
-const parallelChildren = ref([]); // 用于存储并行生成的子节点
+const parallelChildren = ref<Array<Ref<string>>>([]); // 用于存储并行生成的子节点
 const userPrompt = ref(''); // 用户输入的提示词
 //const nodeBeingProcessed = ref(''); // 用于显示正在处理的节点名称
 const generateChildrenChildren = async () => {
@@ -354,71 +408,70 @@ const generateChildrenChildren = async () => {
   generating.value = true;
   generateChildrenChildrenLoading.value = true;
 
-  const cur_node = searchNode(node.path, treeData.value);
-  parallelChildren.value = [];
-  const taskPromises = [];
-
-const traverseAndGenerate = async (curNode) => {
-  if (!curNode) return [];
-
-  const promises = [];
-
-  if (curNode.children && curNode.children.length > 0) {
-    // 等待所有子节点递归的任务
-    for (let child of curNode.children) {
-      const childPromises = await traverseAndGenerate(child);
-      promises.push(...childPromises);
-    }
-    return promises; // 返回所有子节点的任务
+  const rootNode = node ? searchNode(node.path, treeData.value) : null;
+  if (!rootNode) {
+    generateChildrenChildrenLoading.value = false;
+    generating.value = false;
+    return;
   }
+  parallelChildren.value = [];
+  const taskPromises: Promise<void>[] = [];
 
-  // 是叶子节点，生成子节点
-  const prompt = expandTreeNodePrompt(
-    JSON.stringify(removeTextFromOutline(treeData.value)),
-    JSON.stringify(curNode),
-    JSON.stringify(tree_node_schema),
-    userPrompt.value
-  );
+  const traverseAndGenerate = async (curNode: DocumentOutlineNode | null): Promise<void> => {
+    if (!curNode) return;
 
-  const myRawString = ref('');
-  parallelChildren.value.push(myRawString);
-  const enableKnowledgeBase = await getSetting('enableKnowledgeBase');
-  const { handle, done } = createAiTask(
-    curNode.title,
-    prompt,
-    myRawString,
-    ai_types.answer,
-    'outline-children-' + curNode.title,
-    enableKnowledgeBase
-  );
+    if (curNode.children && curNode.children.length > 0) {
+      await Promise.all(curNode.children.map(child => traverseAndGenerate(child)));
+      return;
+    }
 
-  const taskPromise = done
-    .then(() => {
-      const json = extractOuterJsonString(myRawString.value);
-      const newChildren = JSON.parse(json);
-      curNode.children.push(...newChildren);
-      eventBus.emit(
-        'show-success',
-        t('outline.generateChildSuccessWithTitle', { title: curNode.title })
-      );
-    })
-    .catch(() => {});
+    const prompt = expandTreeNodePrompt(
+      JSON.stringify(removeTextFromOutline(treeData.value)),
+      JSON.stringify(curNode),
+      JSON.stringify(TREE_NODE_SCHEMA),
+      userPrompt.value
+    );
 
-  promises.push(taskPromise);
-  return promises;
-};
+    const rawStringRef = ref('');
+    parallelChildren.value.push(rawStringRef);
+    const enableKnowledgeBase = await getSetting('enableKnowledgeBase');
+    const { done } = createAiTask(
+      curNode.title,
+      prompt,
+      rawStringRef,
+      ai_types.answer,
+      'outline-children-' + curNode.title,
+      enableKnowledgeBase
+    );
 
+    const task = done
+      .then(() => {
+        const json = extractOuterJsonString(rawStringRef.value);
+        const newChildren = JSON.parse(json) as DocumentOutlineNode[];
+        curNode.children.push(...newChildren);
+        eventBus.emit(
+          'show-success',
+          t('outline.generateChildSuccessWithTitle', { title: curNode.title })
+        );
+      })
+      .catch((err) => {
+        logger.warn('生成子节点失败', err);
+      });
 
-try {
-  const allPromises = await traverseAndGenerate(cur_node);
-  await Promise.all(allPromises);
-  eventBus.emit('show-success', t('outline.generateChildSuccess'));
-} catch (e) {
-  eventBus.emit('show-error', t('outline.generateChildFail', { error: e.message }));
-} finally {
-  generateChildrenChildrenLoading.value = false;
-  generating.value = false;
-}
+    taskPromises.push(task);
+  };
+
+  try {
+    await traverseAndGenerate(rootNode);
+    await Promise.all(taskPromises);
+    eventBus.emit('show-success', t('outline.generateChildSuccess'));
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    eventBus.emit('show-error', t('outline.generateChildFail', { error: message }));
+  } finally {
+    generateChildrenChildrenLoading.value = false;
+    generating.value = false;
+  }
 };
 
 const generateChildrenContent = async () => {
@@ -426,48 +479,47 @@ const generateChildrenContent = async () => {
   generating.value = true;
   generateChildrenContentLoading.value = true;
 
-  const cur_node = searchNode(node.path, treeData.value);
+  const rootNode = node ? searchNode(node.path, treeData.value) : null;
+  if (!rootNode) {
+    generateChildrenContentLoading.value = false;
+    generating.value = false;
+    return;
+  }
   parallelChildren.value = []; // 清空并行生成列表
-  const taskPromises = []; //  用于收集所有任务的done promise
+  const taskPromises: Promise<unknown>[] = []; // 用于收集所有任务的done promise
 
-  const traverseAndGenerate = async (curNode) => {
+  const traverseAndGenerate = async (curNode: DocumentOutlineNode | null): Promise<void> => {
     if (!curNode) return;
 
     if (curNode.children && curNode.children.length > 0) {
-      for (let child of curNode.children) {
-        // 递归处理子节点（并发触发）
-        traverseAndGenerate(child); // ❗不要 await，保留并发
-      }
+      await Promise.all(curNode.children.map(child => traverseAndGenerate(child)));
     }
 
-    let prompt = '';
-    if (curNode.children.length === 0) {
-      prompt = generateContentPrompt(
-        JSON.stringify(removeTextFromOutline(treeData.value)),
-        JSON.stringify(curNode),
-        userPrompt.value
-      );
-    } else {
-      prompt = generateParentNodeContentPrompt(
-        JSON.stringify(removeTextFromOutline(treeData.value)),
-        JSON.stringify(curNode),
-        userPrompt.value
-      );
-    }
+    const prompt = curNode.children.length === 0
+      ? generateContentPrompt(
+          JSON.stringify(removeTextFromOutline(treeData.value)),
+          JSON.stringify(curNode),
+          userPrompt.value
+        )
+      : generateParentNodeContentPrompt(
+          JSON.stringify(removeTextFromOutline(treeData.value)),
+          JSON.stringify(curNode),
+          userPrompt.value
+        );
 
-    const myRawString = ref('');
-    parallelChildren.value.push(myRawString);
-    const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
-    const { handle, done } = createAiTask(
+    const rawStringRef = ref('');
+    parallelChildren.value.push(rawStringRef);
+    const enableKnowledgeBase = await getSetting("enableKnowledgeBase");
+    const { done } = createAiTask(
       curNode.title,
       prompt,
-      myRawString,
+      rawStringRef,
       ai_types.answer,
       'outline-content-' + curNode.title,
       enableKnowledgeBase
     );
 
-    const taskPromise = done
+    const task = done
       .then(() => {
         eventBus.emit(
           'show-success',
@@ -478,15 +530,15 @@ const generateChildrenContent = async () => {
         logger.warn('任务失败或取消：', err);
       })
       .finally(() => {
-        curNode.text = myRawString.value;
+        curNode.text = rawStringRef.value;
       });
 
-    taskPromises.push(taskPromise); //  收集这个 promise
+    taskPromises.push(task);
   };
 
-  await traverseAndGenerate(cur_node);  // 启动任务遍历（递归中是并发）
+  await traverseAndGenerate(rootNode);  // 启动任务遍历
 
-  await Promise.all(taskPromises);      //  等待所有任务完成
+  await Promise.all(taskPromises);      // 等待所有任务完成
 
   generating.value = false;
   generateChildrenContentLoading.value = false;
@@ -496,22 +548,36 @@ const generateChildrenContent = async () => {
 const generateContent = async () => {
   const node = selectedNode.value;
   generating.value = true;
-  backupContent.value = node.text;
+  if (node) {
+    backupContent.value = node.text;
+  }
   generateContentLoading.value = true;
-  const cur_node = searchNode(node.path, treeData.value);
+  const curNode = node ? searchNode(node.path, treeData.value) : null;
+  if (!curNode) {
+    generateContentLoading.value = false;
+    generating.value = false;
+    return;
+  }
   const prompt = generateContentPrompt(
     JSON.stringify(removeTextFromOutline(treeData.value)),
-    JSON.stringify(cur_node),
+    JSON.stringify(curNode),
     userPrompt.value
   );
-  const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
-  const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-content-' + cur_node.title,enableKnowledgeBase);
+  const enableKnowledgeBase = await getSetting("enableKnowledgeBase");
+  const { done } = createAiTask(
+    curNode.title,
+    prompt,
+    rawstring,
+    ai_types.answer,
+    'outline-content-' + curNode.title,
+    enableKnowledgeBase
+  );
   try {
     await done;
   } catch (err) {
     logger.warn('任务失败或取消：', err);
   } finally {
-    cur_node.text = rawstring.value;
+    curNode.text = rawstring.value;
     pendingAccept.value = true;
     generateContentLoading.value = false;
     generating.value = false;
@@ -523,19 +589,18 @@ const generateContent = async () => {
 
 const position = ref({ top: 100, left: 100 });
 let isDragging = false;
-let offset = { x: 0, y: 0 };
-function startDrag(e) {
+let offset: { x: number; y: number } = { x: 0, y: 0 };
+function startDrag(e: MouseEvent) {
   isDragging = true;
   offset.x = e.clientX - position.value.left;
   offset.y = e.clientY - position.value.top;
   document.addEventListener('mousemove', onDrag);
   document.addEventListener('mouseup', stopDrag);
 }
-function onDrag(e) {
-  if (isDragging) {
-    position.value.left = e.clientX - offset.x;
-    position.value.top = e.clientY - offset.y;
-  }
+function onDrag(e: MouseEvent) {
+  if (!isDragging) return;
+  position.value.left = e.clientX - offset.x;
+  position.value.top = e.clientY - offset.y;
 }
 function stopDrag() {
   isDragging = false;
@@ -546,77 +611,72 @@ function stopDrag() {
 
 
 const executeFormatTitle = () => {
-  backupOutlineTree.value = current_outline_tree.value;
+  backupOutlineTree.value = cloneOutline(treeData.value);
   if (formatTitleConfig.adjustMarkdown) {
     // 调整Markdown标题层级
     const firstLevel = formatTitleConfig.firstMarkdownTitleLevel;
-    current_outline_tree.value = adjustTitleLevel(current_outline_tree.value, firstLevel);
+    treeData.value = cloneOutline(adjustTitleLevel(treeData.value, firstLevel));
   }
-  //logger.log('current_outline_tree', current_outline_tree.value);
   if (formatTitleConfig.adjustTitle) {
     // 调整章节编号
     const cover = formatTitleConfig.cover;
     const level1TitleChinese = formatTitleConfig.level1TitleChinese;
-    current_outline_tree.value = adjustTitleIndex(current_outline_tree.value, cover, level1TitleChinese);
+    treeData.value = cloneOutline(adjustTitleIndex(treeData.value, cover, level1TitleChinese));
   }
-  //logger.log('current_outline_tree', current_outline_tree.value);
   formatTitleDialogVisible.value = false;
   eventBus.emit('show-success', t('outline.formatSuccess'));
-
 }
 
-const handleNodeDrag = (dragNode, targetNode) => {
-  logger.debug('节点拖拽', { dragNode, targetNode })
-}
-const treeData = ref(current_outline_tree);
-const direction = ref('vertical');
+const handleNodeDrag = (_dragNode: unknown, _targetNode: unknown) => {
+  logger.debug('节点拖拽', { dragNode: _dragNode, targetNode: _targetNode });
+};
+const handleNodeClick = (node: DocumentOutlineNode) => {
+  selectedNode.value = node;
+};
+const direction = ref<'vertical' | 'horizontal'>('vertical');
 const treeConfig = reactive({
   nodeWidth: 180,
   nodeHeight: 50,
-  levelHeight: 200
+  levelHeight: 200,
+  layout: 'vertical' as 'vertical' | 'horizontal',
 });
-const tree = ref(null);
+type TreeInstance = {
+  restoreScale: () => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+};
+
+const treeRef = ref<TreeInstance | null>(null);
 const currentChapterValue = ref('');
 const currentChapterContent = ref('');
 const editValueDialogVisible = ref(false);
-const dialogVisible = ref({});
-const selectedNode = ref(null); // 当前选中的节点
-const generated = ref(false);
-const generating = ref(false);
-const rawstring = ref('');//所有AI生成的文本
-const generatedText = ref('');
 
 watch(
-  () => activeTabId.value,
-  () => {
-    sync();
-    treeData.value = JSON.parse(JSON.stringify(current_outline_tree.value));
-    dialogVisible.value = {};
-    selectedNode.value = null;
-    generated.value = false;
-    generatedText.value = '';
+  () => activeDocument.value?.outline,
+  (outline) => {
+    if (suppressDocumentSync) return;
+    suppressDocumentSync = true;
+    try {
+      treeData.value = cloneOutline(outline);
+      dialogVisible.value = {};
+      selectedNode.value = null;
+      generated.value = false;
+      generatedText.value = '';
+    } finally {
+      suppressDocumentSync = false;
+    }
   },
-  { immediate: true },
+  { deep: true, immediate: true },
 );
 
-// 生命周期钩子
-onMounted(() => {
-
-  sync();
-  // eventBus.on('refresh', () => {
-  //   treeData.value = current_outline_tree;
-  // });
-});
-
-// 监听 treeData 变化
-watch(treeData, (val) => {
-  current_outline_tree.value = val;
-  latest_view.value = 'outline'; // 说明最后一次操作是在大纲视图
-  eventBus.emit('is-need-save', true)
-  sync();
-}, { deep: true });
-
-
+watch(
+  treeData,
+  () => {
+    if (suppressDocumentSync) return;
+    commitOutline();
+  },
+  { deep: true },
+);
 
 const reset = () => {
   generated.value = false;
@@ -625,13 +685,15 @@ const reset = () => {
 
 
 const move2Left = () => {
-  const cur_node = searchNode(selectedNode.value.path, treeData.value);
-  const parent = searchParentNode(selectedNode.value.path, treeData.value);
-  const index = parent.children.indexOf(cur_node);
+  const selected = selectedNode.value;
+  if (!selected) return;
+  const parent = searchParentNode(selected.path, treeData.value);
+  const curNode = searchNode(selected.path, treeData.value);
+  if (!parent || !curNode || !parent.children) return;
+  const index = parent.children.indexOf(curNode);
   if (index > 0) {
     parent.children.splice(index, 1);
-    parent.children.splice(index - 1, 0, cur_node);
-    // 两个节点的 Path 交换
+    parent.children.splice(index - 1, 0, curNode);
     const temp = parent.children[index].path;
     parent.children[index].path = parent.children[index - 1].path;
     parent.children[index - 1].path = temp;
@@ -639,13 +701,15 @@ const move2Left = () => {
 };
 
 const move2Right = () => {
-  const cur_node = searchNode(selectedNode.value.path, treeData.value);
-  const parent = searchParentNode(selectedNode.value.path, treeData.value);
-  const index = parent.children.indexOf(cur_node);
+  const selected = selectedNode.value;
+  if (!selected) return;
+  const parent = searchParentNode(selected.path, treeData.value);
+  const curNode = searchNode(selected.path, treeData.value);
+  if (!parent || !curNode || !parent.children) return;
+  const index = parent.children.indexOf(curNode);
   if (index < parent.children.length - 1) {
     parent.children.splice(index, 1);
-    parent.children.splice(index + 1, 0, cur_node);
-    // 两个节点的 Path 交换
+    parent.children.splice(index + 1, 0, curNode);
     const temp = parent.children[index].path;
     parent.children[index].path = parent.children[index - 1].path;
     parent.children[index - 1].path = temp;
@@ -653,29 +717,35 @@ const move2Right = () => {
 };
 
 const changeNodeValue = () => {
-  const cur_node = searchNode(selectedNode.value.path, treeData.value);
-  cur_node.title = currentChapterValue.value;
-  cur_node.text = currentChapterContent.value;
+  const selected = selectedNode.value;
+  if (!selected) return;
+  const curNode = searchNode(selected.path, treeData.value);
+  if (!curNode) return;
+  curNode.title = currentChapterValue.value;
+  curNode.text = currentChapterContent.value;
   editValueDialogVisible.value = false;
 };
 
 const resetScale = () => {
-  tree.value.restoreScale();
+  treeRef.value?.restoreScale();
 };
 
 const zoomIn = () => {
-  tree.value.zoomIn();
+  treeRef.value?.zoomIn();
 };
 
 const zoomOut = () => {
-  tree.value.zoomOut();
+  treeRef.value?.zoomOut();
 };
 
 const toggleLayout = () => {
-  treeConfig.layout = treeConfig.layout === 'vertical' ? 'horizontal' : 'vertical';
+  if ((treeConfig as any).layout) {
+    (treeConfig as any).layout =
+      (treeConfig as any).layout === 'vertical' ? 'horizontal' : 'vertical';
+  }
 };
 const nodeMenuToggle = ref(false);//false为普通节点，true为AI辅助节点
-const handleNodeButtonClick = (node) => {
+const handleNodeButtonClick = (node: DocumentOutlineNode) => {
   selectedNode.value = node;
   if (dialogVisible.value[node.path] != null) {
     dialogVisible.value[node.path] = !dialogVisible.value[node.path];
@@ -694,7 +764,9 @@ const handleNodeButtonClick = (node) => {
 
 const addChildNode = () => {
   const node = selectedNode.value;
+  if (!node) return;
   const cur_node = searchNode(node.path, treeData.value);
+  if (!cur_node) return;
   const newNode = {
     title: '新子节点',
     text: '',
@@ -711,7 +783,9 @@ const addChildNode = () => {
 
 const editNode = () => {
   const node = selectedNode.value;
+  if (!node) return;
   const cur_node = searchNode(node.path, treeData.value);
+  if (!cur_node) return;
   editValueDialogVisible.value = true;
   currentChapterValue.value = cur_node.title;
   currentChapterContent.value = cur_node.text;
@@ -728,8 +802,10 @@ const deleteNode = () => {
     }
   ).then(() => {
     const node = selectedNode.value;
+    if (!node) return;
     const parent = searchParentNode(node.path, treeData.value);
     const cur_node = searchNode(node.path, treeData.value);
+    if (!cur_node) return;
     if (parent === null) {
       ElNotification({
         title: t('outline.error'),
@@ -738,7 +814,9 @@ const deleteNode = () => {
       });
       return;
     }
-    removeNode(parent, cur_node);
+    if (parent) {
+      removeNode(parent, cur_node);
+    }
     dialogVisible.value[node.path] = false;
     ElNotification({
       title: t('outline.message'),
@@ -751,63 +829,63 @@ const deleteNode = () => {
 };
 const generateChildChapterLoading = ref(false);
 const pendingAccept = ref(false);
-const backupChildren = ref([]);
-const backupContent = ref('');
+const backupChildren = ref<DocumentOutlineNode[] | null>(null);
+const backupContent = ref<string>('');
 const generateChildChapter = async () => {
   generateChildChapterLoading.value = true;
   generating.value = true;
   rawstring.value = '';
   try {
     const node = selectedNode.value;
-    const cur_node = searchNode(node.path, treeData.value);
+    if (!node) throw new Error('未选择节点');
+    const currentNode = searchNode(node.path, treeData.value);
+    if (!currentNode) throw new Error('节点不存在');
 
     const prompt = expandTreeNodePrompt(
       JSON.stringify(removeTextFromOutline(treeData.value)),
-      JSON.stringify(cur_node),
-      JSON.stringify(tree_node_schema),
+      JSON.stringify(currentNode),
+      JSON.stringify(TREE_NODE_SCHEMA),
       userPrompt.value
     );
 
-
-    const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
-    const { handle, done } = createAiTask(cur_node.title, prompt, rawstring, ai_types.answer, 'outline-children-' + cur_node.title,enableKnowledgeBase);
+    const enableKnowledgeBase = await getSetting("enableKnowledgeBase");
+    const { done } = createAiTask(
+      currentNode.title,
+      prompt,
+      rawstring,
+      ai_types.answer,
+      'outline-children-' + currentNode.title,
+      enableKnowledgeBase
+    );
     try {
       await done;
       const json = extractOuterJsonString(rawstring.value);
-      //logger.log('json', json);
-      const newChildren = JSON.parse(json);
-      backupChildren.value = cur_node.children;
-      cur_node.children = [...cur_node.children, ...newChildren];
-      //rawstring.value = '';
+      const newChildren = JSON.parse(json) as DocumentOutlineNode[];
+      backupChildren.value = currentNode.children ? [...currentNode.children] : [];
+      currentNode.children = [...currentNode.children, ...newChildren];
       pendingAccept.value = true;
     } catch (err) {
       logger.warn('任务失败或取消：', err);
-    } finally {
-
-      //generating.value = false;
     }
-
-
-
-
-
-  }
-  catch (e) {
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
     logger.error('大纲 JSON 解析失败', e);
-    eventBus.emit('show-error', t('outline.generateChildRetryFail', { error: e.message }));
-
+    eventBus.emit('show-error', t('outline.generateChildRetryFail', { error: message }));
+  } finally {
+    generateChildChapterLoading.value = false;
+    generating.value = false;
   }
-  generateChildChapterLoading.value = false;
-  generating.value = false;
 }
 
 const closeDialog = () => {
   const node = selectedNode.value;
+  if (!node) return;
   dialogVisible.value[node.path] = false;
 };
 
-const removeNode = (parent, node) => {
-  const index = parent.children ? parent.children.indexOf(node) : -1;
+const removeNode = (parent: DocumentOutlineNode, node: DocumentOutlineNode) => {
+  if (!parent.children) return;
+  const index = parent.children.indexOf(node);
   if (index !== -1) {
     parent.children.splice(index, 1);
   } else {
@@ -815,20 +893,22 @@ const removeNode = (parent, node) => {
   }
 };
 const acceptChange = () => {
-  backupChildren.value = [];
+  backupChildren.value = null;
   backupContent.value = '';
   rawstring.value = '';
   pendingAccept.value = false;
 };
 const discardChange = () => {
   const node = selectedNode.value;
-  const cur_node = searchNode(node.path, treeData.value);
-  if (backupChildren.value != []) {
-    cur_node.children = backupChildren.value;
-    backupChildren.value = [];
+  if (!node) return;
+  const curNode = searchNode(node.path, treeData.value);
+  if (!curNode) return;
+  if (Array.isArray(backupChildren.value)) {
+    curNode.children = [...backupChildren.value];
+    backupChildren.value = null;
   }
-  if (backupContent.value != '') {
-    cur_node.text = backupContent.value;
+  if (backupContent.value) {
+    curNode.text = backupContent.value;
     backupContent.value = '';
   }
   pendingAccept.value = false;

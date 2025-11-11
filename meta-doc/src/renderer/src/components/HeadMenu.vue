@@ -17,7 +17,7 @@
     </el-menu-item>
 
     <el-menu-item index="/">{{ $t('headMenu.home') }}</el-menu-item>
-    <el-menu-item index="/outline" :disabled="current_format=='tex'">{{ $t('headMenu.outline') }}</el-menu-item>
+    <el-menu-item index="/outline">{{ $t('headMenu.outline') }}</el-menu-item>
     <el-menu-item index="/editor">{{ $t('headMenu.editor') }}</el-menu-item>
     <el-menu-item index="/visualize">{{ $t('headMenu.visualize') }}</el-menu-item>
     <el-menu-item index="/knowledge-base">{{ $t('headMenu.knowledgeBase') }}</el-menu-item>
@@ -25,11 +25,11 @@
 </template>
 
 <script setup>
-import { defineComponent, ref, onMounted, onBeforeUnmount } from 'vue'
+import { defineComponent, ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
-import { current_format } from '../utils/common-data'
+import { useActiveDocument } from '../composables/useActiveDocument'
 
 // 获取路由实例
 const router = useRouter()
@@ -39,6 +39,8 @@ const route = useRoute()
 
 
 const activeMenuIndex = ref(route.path)
+const { activeDocument } = useActiveDocument()
+const currentFormat = computed(() => activeDocument.value?.format ?? 'md')
 
 // 方法
 const goHome = () => {

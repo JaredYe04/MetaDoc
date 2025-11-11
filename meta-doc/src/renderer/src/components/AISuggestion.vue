@@ -4,26 +4,26 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount, watchEffect } from "vue";
+import { ref, watch, onMounted, onBeforeUnmount, computed } from "vue";
 import "../assets/ai-suggestion.css";
 import { themeState } from "../utils/themes";
 import { useI18n } from 'vue-i18n'
 import { suggestionCompletionPrompt } from "../utils/prompts";
 import { ai_types, cancelAiTask, createAiTask } from "../utils/ai_tasks";
 import { getSetting } from "../utils/settings";
-import { current_format } from "../utils/common-data";
 import * as monaco from "monaco-editor";
 import 'monaco-latex';
 import eventBus, { getWindowType } from "../utils/event-bus";
 import { createRendererLogger } from '../utils/logger.ts'
-import { useDocumentStore } from "../stores/document.ts";
+import { useActiveDocument } from "../composables/useActiveDocument";
 
 
 const { t } = useI18n()
 const logger = createRendererLogger('AISuggestion', {
   windowTypeProvider: () => getWindowType()
 })
-const store = useDocumentStore()
+const { activeDocument } = useActiveDocument();
+const currentFormat = computed(() => activeDocument.value?.format ?? 'md');
 const props = defineProps({
   targetEl: { type: Object, required: true }, // 宿主元素 (contenteditable 或 textarea overlay)
   trigger: { type: Boolean }, // 是否触发补全
@@ -268,7 +268,7 @@ function showTooltip() {
 
   // 定位
   let rect;
-  if (current_format.value === 'md') {
+  if (currentFormat.value === 'md') {
     rect = suggestionEl.getBoundingClientRect();
   }
   else {
@@ -305,11 +305,13 @@ async function startSuggestion() {
   const range = getCurrentRange();
   if (!range) return;
 
-  const { preContext, postContext } = current_format.value === 'md' ? getContextFromCursor(range, props.rootNodeClass, 1000) : props.context;
+  const { preContext, postContext } = currentFormat.value === 'md'
+    ? getContextFromCursor(range, props.rootNodeClass, 1000)
+    : props.context;
   // console.log("上下文：")
   // console.log(preContext)
   // console.log(postContext)
-  if (current_format.value === 'md') {
+  if (currentFormat.value === 'md') {
     // --- Vditor 插入方式 ---
     const sel = window.getSelection();
     const currentRange = sel.getRangeAt(0).cloneRange();
@@ -319,7 +321,7 @@ async function startSuggestion() {
 
     sel.removeAllRanges();
     sel.addRange(currentRange);
-  }  else if (current_format.value === 'tex') {
+  }  else if (currentFormat.value === 'tex') {
     // --- Monaco Overlay Widget 初始化 ---
     const editor = monaco.editor.getEditors()[0];
     if (!editor) return;
@@ -354,10 +356,10 @@ watch(() => themeState?.currentTheme?.type, (val) => {
 
   const cls = val === "dark" ? "ai-suggestion-dark" : "ai-suggestion";
 
-  if (current_format.value === 'md') {
+  if (currentFormat.value === 'md') {
     suggestionEl.className = cls;
 
-  } else if (current_format.value === 'tex') {
+  } else if (currentFormat.value === 'tex') {
     suggestionEl.dom.className = cls;
   }
 });
@@ -390,11 +392,11 @@ watch(() => aiText.value, (newValue) => {
     showTooltip();
   }
 
-  if (current_format.value === 'md') {
+  if (currentFormat.value === 'md') {
     if (!suggestionEl) return;
     suggestionEl.textContent = newValue;
 
-  } else if (current_format.value === 'tex') {
+  } else if (currentFormat.value === 'tex') {
     const editor = monaco.editor.getEditors()[0];
     updateGhostText(editor,newValue);
     // // 更新 Overlay Widget 文本
@@ -413,11 +415,11 @@ function resetSuggestion() {
       generating = false;
     }
     hideTooltip();
-  if (current_format.value === 'md' && suggestionEl instanceof HTMLElement) {
+  if (currentFormat.value === 'md' && suggestionEl instanceof HTMLElement) {
       if(suggestionEl){
         suggestionEl.remove();
     }
-  } else if (current_format.value === 'tex') {
+  } else if (currentFormat.value === 'tex') {
     const editor = monaco.editor.getEditors()[0];
     cancelGhostText(editor)
     // suggestionEl.dom.remove();
@@ -447,7 +449,7 @@ function acceptSuggestion() {
   if (!suggestionEl) return;
   //const text = aiText.value;
   //删除suggestionEl元素
-  if (current_format.value === 'md' && suggestionEl instanceof HTMLElement) {
+  if (currentFormat.value === 'md' && suggestionEl instanceof HTMLElement) {
       suggestionEl.remove();
   }
   else{
@@ -534,7 +536,7 @@ function handleVditorMousedown(){
 }
 onMounted(() => {
   eventBus.on("cancel-suggestion",()=>cancelSuggestion());
-  if (current_format.value === 'tex') {
+  if (currentFormat.value === 'tex') {
     eventBus.on('monaco-ready',()=>{
         const editor = monaco.editor.getEditors()[0];
         editor.onMouseDown(() => cancelSuggestion());
@@ -566,7 +568,7 @@ onMounted(() => {
       
     })
   }
-  else if (current_format.value === 'md'){
+  else if (currentFormat.value === 'md'){
     window.addEventListener("keydown", handleVditorKeydown);
     const vditorEl = document.getElementById("vditor");
     if (vditorEl) {
@@ -576,7 +578,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  if(current_format.value==='md'){
+  if(currentFormat.value==='md'){
       window.removeEventListener("keydown", handleVditorKeydown);
       const vditorEl = document.getElementById("vditor");
       if (vditorEl) {

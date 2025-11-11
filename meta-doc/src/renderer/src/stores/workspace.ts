@@ -3,24 +3,22 @@ import type { ComputedRef } from 'vue';
 import type {
   ArticleMetaData,
   DocumentOutlineNode,
-  AIDialogMessage,
+  AIDialog,
 } from '../../../types';
 import eventBus from '../utils/event-bus';
-import {
-  current_article,
-  current_article_meta_data,
-  current_outline_tree,
-  current_tex_article,
-  current_ai_dialogs,
-  current_file_path,
-  current_format,
-  latest_view,
-  renderedHtml,
-  setSaveNotificationSuppressed,
-} from '../utils/common-data';
 import { createRendererLogger } from '../utils/logger';
+import { extractOutlineTreeFromMarkdown } from '../utils/md-utils.js';
+import { convertLatexToMarkdown } from '../utils/latex-utils.js';
+import { findFormatById, findFormatTemplate, getSupportedFormats } from '../constants/supported-formats';
+import type { SupportedFormat } from '../types/formats';
+import { saveWorkspaceDocument } from '../services/document-save';
+import {
+  DEFAULT_ARTICLE_META,
+  DEFAULT_AI_DIALOGS,
+  DEFAULT_OUTLINE_TREE,
+} from '../constants/document';
 
-export type WorkspaceTabKind = 'legacy' | 'file';
+export type WorkspaceTabKind = 'new' | 'file';
 export type WorkspaceTabFormat = 'md' | 'tex';
 
 export interface WorkspaceTab {
@@ -43,7 +41,7 @@ export interface WorkspaceDocument {
   tex: string;
   outline: DocumentOutlineNode;
   meta: ArticleMetaData;
-  aiDialogs: AIDialogMessage[];
+  aiDialogs: AIDialog[];
   lastView: 'outline' | 'article';
   renderedHtml: string;
   dirty: boolean;
@@ -51,27 +49,15 @@ export interface WorkspaceDocument {
   savedTex: string;
   savedOutline: DocumentOutlineNode;
   savedMeta: ArticleMetaData;
-  savedAiDialogs: AIDialogMessage[];
+  savedAiDialogs: AIDialog[];
 }
 
 const logger = createRendererLogger('Workspace');
 
 const UNTITLED_TITLE = '未命名文档';
-const LEGACY_TAB_ID = 'legacy-tab';
 
-const tabs = reactive<WorkspaceTab[]>([]);
-const activeTabId = ref<string>(LEGACY_TAB_ID);
-
-const legacyTab: WorkspaceTab = reactive({
-  id: LEGACY_TAB_ID,
-  kind: 'legacy',
-  title: UNTITLED_TITLE,
-  subtitle: '',
-  path: '',
-  format: 'md',
-  dirty: false,
-  readonly: true,
-});
+export const tabs = reactive<WorkspaceTab[]>([]);
+export const activeTabId = ref<string>('');
 
 const documents = reactive<Record<string, WorkspaceDocument>>({});
 
@@ -87,11 +73,7 @@ function withDirtyBroadcastSuppressed<T>(fn: () => T): T {
   }
 }
 
-if (!tabs.length) {
-  tabs.push(legacyTab);
-}
-
-documents[LEGACY_TAB_ID] = reactive(captureCurrentDocumentSnapshot(LEGACY_TAB_ID)) as WorkspaceDocument;
+ensureInitialTab();
 
 /**
  * 确保一个标签页的文档存在
@@ -101,7 +83,11 @@ documents[LEGACY_TAB_ID] = reactive(captureCurrentDocumentSnapshot(LEGACY_TAB_ID
 function ensureDocument(tabId: string): WorkspaceDocument {
   let doc = documents[tabId];
   if (!doc) {
-    const snapshot = captureCurrentDocumentSnapshot(tabId);
+    const tabInfo = tabs.find((tab) => tab.id === tabId);
+    const snapshot =
+      tabInfo?.kind === 'new'
+        ? createDocumentSnapshotFromTemplate('md', '')
+        : captureCurrentDocumentSnapshot(tabId);
     doc = reactive(snapshot) as WorkspaceDocument;
     doc.dirty = false;
     doc.markdown = snapshot.markdown;
@@ -162,55 +148,33 @@ function normalizeContent(value: string | null | undefined): string {
   return value.replace(/\r\n/g, '\n');
 }
 
+function ensureInitialTab(): void {
+  if (tabs.length === 0) {
+    const tab = createNewDocumentTabInternal();
+    activeTabId.value = tab.id;
+  } else if (!activeTabId.value) {
+    activeTabId.value = tabs[0].id;
+  }
+}
+
 /**
  * 捕获当前活动标签页的文档快照
  * @param tabId 标签页ID
  * @returns 文档快照
  */
 function captureCurrentDocumentSnapshot(tabId: string): WorkspaceDocument {
-  const currentTab = tabs.find((tab) => tab.id === tabId) ?? null;
-  const normalizedMarkdown = normalizeContent(current_article.value);
-  const normalizedTex = normalizeContent(current_tex_article.value);
-  return {
-    id: tabId,
-    tabId,
-    path: current_file_path.value || '',
-    format: current_format.value === 'tex' ? 'tex' : 'md',
-    markdown: normalizedMarkdown,
-    tex: normalizedTex,
-    outline: structuredCloneFallback(current_outline_tree.value),
-    meta: structuredCloneFallback(current_article_meta_data.value),
-    aiDialogs: structuredCloneFallback(current_ai_dialogs.value),
-    lastView: latest_view.value === 'outline' ? 'outline' : 'article',
-    renderedHtml: renderedHtml.value || '',
-    dirty: Boolean(currentTab?.dirty),
-    savedMarkdown: normalizedMarkdown,
-    savedTex: normalizedTex,
-    savedOutline: structuredCloneFallback(current_outline_tree.value),
-    savedMeta: structuredCloneFallback(current_article_meta_data.value),
-    savedAiDialogs: structuredCloneFallback(current_ai_dialogs.value),
-  };
-}
-
-/**
- * 将一个标签页的快照应用到当前活动标签页
- * @param snapshot 标签页快照
- */
-function applySnapshotToLegacyState(snapshot: WorkspaceDocument): void {
-  setSaveNotificationSuppressed(true);
-  try {
-    current_format.value = snapshot.format;
-    current_file_path.value = snapshot.path || '';
-    current_article.value = snapshot.markdown;
-    current_tex_article.value = snapshot.tex;
-    current_outline_tree.value = structuredCloneFallback(snapshot.outline);
-    current_article_meta_data.value = { ...snapshot.meta };
-    current_ai_dialogs.value = structuredCloneFallback(snapshot.aiDialogs);
-    latest_view.value = snapshot.lastView;
-    renderedHtml.value = snapshot.renderedHtml;
-  } finally {
-    setSaveNotificationSuppressed(false);
+  const existing = documents[tabId];
+  if (existing) {
+    const cloned = structuredCloneFallback(existing);
+    cloned.id = tabId;
+    cloned.tabId = tabId;
+    return cloned;
   }
+
+  const template = createDocumentSnapshotFromTemplate('md', '');
+  template.id = tabId;
+  template.tabId = tabId;
+  return template;
 }
 
 /**
@@ -218,106 +182,12 @@ function applySnapshotToLegacyState(snapshot: WorkspaceDocument): void {
  */
 function refreshActiveTabMetadata(): void {
   const tab = activeTab.value;
-  if (!tab) return;
-
-  const metaTitle = (current_article_meta_data.value.title || '').trim();
-  const fileName = extractFileName(current_file_path.value);
+  if (!tab || tab.kind !== 'file') return;
+  const doc = ensureDocument(tab.id);
+  const fileName = extractFileName(doc.path);
+  const metaTitle = (doc.meta?.title || '').trim();
   tab.subtitle = fileName;
   tab.title = metaTitle || fileName || UNTITLED_TITLE;
-  const doc = documents[tab.id];
-  if (doc) {
-    doc.meta = structuredCloneFallback(current_article_meta_data.value);
-  }
-}
-
-/**
- * 监听当前文档元数据变化
- */
-watch(
-  current_article_meta_data,
-  () => {
-    refreshActiveTabMetadata();
-  },
-  { deep: true, immediate: true },
-);
-
-/**
- * 监听当前文档路径变化
- * @param path 新的文档路径
- */
-watch(
-  current_file_path,
-  (path) => {
-    const tab = activeTab.value;
-    if (!tab) return;
-    tab.path = path || '';
-    refreshActiveTabMetadata();
-    const doc = documents[tab.id];
-    if (doc) {
-      doc.path = tab.path;
-    }
-  },
-  { immediate: true },
-);
-
-/**
- * 监听当前文档格式变化
- * @param fmt 新的文档格式
- */
-watch(
-  current_format,
-  (fmt) => {
-    const tab = activeTab.value;
-    if (!tab) return;
-    tab.format = fmt === 'tex' ? 'tex' : 'md';
-    const doc = documents[tab.id];
-    if (doc) {
-      doc.format = tab.format;
-    }
-  },
-  { immediate: true },
-);
-
-/**
- * 持久化当前活动标签页的文档状态
- */
-function persistActiveDocument(): void {
-  const tab = activeTab.value;
-  if (!tab) return;
-  const snapshot = captureCurrentDocumentSnapshot(tab.id);
-  const doc = ensureDocument(tab.id);
-  withDirtyBroadcastSuppressed(() => {
-    setSaveNotificationSuppressed(true);
-    try {
-      Object.assign(doc, snapshot);
-    } finally {
-      setSaveNotificationSuppressed(false);
-    }
-  });
-}
-
-/**
- * 重新加载当前活动标签页的文档状态
- */
-function reloadActiveDocument(): void {
-  const id = activeTabId.value;
-  if (!id) return;
-  applyDocumentForActiveTab(id);
-}
-
-/**
- * 
- * @param targetTabId 目标标签页ID
- * 将目标标签页的文档状态应用到当前标签页
- */
-function applyDocumentForActiveTab(targetTabId: string): void {
-  withDirtyBroadcastSuppressed(() => {
-    const snapshot = ensureDocument(targetTabId);
-    if (!snapshot) return;
-    applySnapshotToLegacyState(snapshot);
-    refreshActiveTabMetadata();
-    updateDocumentDirty(targetTabId);
-  });
 }
 
 
@@ -347,7 +217,7 @@ function addDocumentTab(
   clonedSnapshot.id = id;
   clonedSnapshot.tabId = id;
   clonedSnapshot.dirty = Boolean(clonedSnapshot.dirty);
-  documents[id] = clonedSnapshot;
+  documents[id] = reactive(clonedSnapshot) as WorkspaceDocument;
 
   const fallbackTitle =
     clonedSnapshot.meta.title ||
@@ -370,30 +240,33 @@ function addDocumentTab(
   return tab;
 }
 
+function createNewDocumentTabInternal(): WorkspaceTab {
+  const snapshot = createDocumentSnapshotFromTemplate('md', '');
+  return addDocumentTab(snapshot, {
+    kind: 'new',
+    title: '新建文档',
+    subtitle: '',
+    dirty: false,
+    readonly: false,
+  });
+}
+
 /**
  * 删除一个标签页
  * @param id 标签页ID
  */
 function removeTab(id: string): void {
-  if (id === LEGACY_TAB_ID) {
-    return;
-  }
   const index = tabs.findIndex((tab) => tab.id === id);
   if (index === -1) return;
 
   const wasActive = activeTabId.value === id;
-  if (wasActive) {
-    persistActiveDocument();
-  }
-
   tabs.splice(index, 1);
   delete documents[id];
 
   if (!tabs.length) {
-    tabs.push(legacyTab);
-    activeTabId.value = legacyTab.id;
-    applyDocumentForActiveTab(legacyTab.id);
-    updateDocumentDirty(legacyTab.id);
+    const tab = createNewDocumentTabInternal();
+    activeTabId.value = tab.id;
+    updateDocumentDirty(tab.id);
     return;
   }
 
@@ -412,12 +285,8 @@ function removeTab(id: string): void {
 function activateTab(id: string): void {
   if (activeTabId.value === id) return;
   if (!tabs.some((tab) => tab.id === id)) return;
-
-  withDirtyBroadcastSuppressed(() => persistActiveDocument());
-
   activeTabId.value = id;
-
-  applyDocumentForActiveTab(id);
+  refreshActiveTabMetadata();
 }
 
 /**
@@ -426,13 +295,11 @@ function activateTab(id: string): void {
  * @param markdown 新的Markdown内容
  */
 function updateDocumentMarkdown(tabId: string, markdown: string): void {
+  logger.debug('更新一个标签页的Markdown内容', { tabId, markdownPreview: markdown.substring(0, 100) });
   const doc = ensureDocument(tabId);
   const normalized = normalizeContent(markdown);
   if (doc.markdown !== normalized) {
     doc.markdown = normalized;
-    if (activeTabId.value === tabId) {
-      current_article.value = normalized;
-    }
     updateDocumentDirty(tabId);
   }
 }
@@ -447,9 +314,6 @@ function updateDocumentTex(tabId: string, tex: string): void {
   const normalized = normalizeContent(tex);
   if (doc.tex !== normalized) {
     doc.tex = normalized;
-    if (activeTabId.value === tabId) {
-      current_tex_article.value = normalized;
-    }
     updateDocumentDirty(tabId);
   }
 }
@@ -464,6 +328,7 @@ function updateDocumentMeta(tabId: string, updater: (meta: ArticleMetaData) => v
   const before = JSON.stringify(doc.meta);
   updater(doc.meta);
   if (JSON.stringify(doc.meta) !== before) {
+    syncTabMetadataFromDocument(tabId);
     updateDocumentDirty(tabId);
   }
 }
@@ -516,6 +381,9 @@ function updateDocumentDirty(tabId: string): void {
   const tab = tabs.find((item) => item.id === tabId);
   if (tab) {
     tab.dirty = dirty;
+    if (tab.id === activeTabId.value) {
+      eventBus.emit('is-need-save', dirty);
+    }
   }
 }
 
@@ -528,9 +396,6 @@ function updateDocumentLastView(tabId: string, view: 'outline' | 'article'): voi
   const doc = ensureDocument(tabId);
   if (doc.lastView !== view) {
     doc.lastView = view;
-    if (activeTabId.value === tabId) {
-      latest_view.value = view;
-    }
   }
 }
 
@@ -543,10 +408,187 @@ function updateDocumentRenderedHtml(tabId: string, html: string): void {
   const doc = ensureDocument(tabId);
   if (doc.renderedHtml !== html) {
     doc.renderedHtml = html;
-    if (activeTabId.value === tabId) {
-      renderedHtml.value = html;
+  }
+}
+
+function syncTabMetadataFromDocument(tabId: string): void {
+  const tab = tabs.find((item) => item.id === tabId);
+  const doc = documents[tabId];
+  if (!tab || !doc) return;
+
+  const fileName = extractFileName(doc.path);
+  const title = (doc.meta?.title || '').trim();
+
+  tab.path = doc.path;
+  tab.format = doc.format;
+  tab.subtitle = fileName;
+  tab.title = title || fileName || UNTITLED_TITLE;
+}
+
+function markDocumentSaved(tabId: string, newPath?: string): void {
+  const doc = ensureDocument(tabId);
+  if (typeof newPath === 'string') {
+    doc.path = newPath;
+  }
+
+  doc.savedMarkdown = doc.markdown;
+  doc.savedTex = doc.tex;
+  doc.savedOutline = structuredCloneFallback(doc.outline);
+  doc.savedMeta = structuredCloneFallback(doc.meta);
+  doc.savedAiDialogs = structuredCloneFallback(doc.aiDialogs);
+  doc.dirty = false;
+
+  const tab = tabs.find((item) => item.id === tabId);
+  if (tab) {
+    if (typeof newPath === 'string') {
+      tab.path = newPath;
+    }
+    tab.dirty = false;
+  }
+
+  syncTabMetadataFromDocument(tabId);
+
+  if (activeTabId.value === tabId) {
+    eventBus.emit('is-need-save', false);
+  }
+}
+
+function createDocumentSnapshotFromTemplate(
+  formatId: WorkspaceTabFormat,
+  templateContent: string,
+): WorkspaceDocument {
+  const normalizedContent = normalizeContent(templateContent ?? '');
+  const markdownContent =
+    formatId === 'md' ? normalizedContent : convertLatexToMarkdown(normalizedContent);
+  const texContent = formatId === 'tex' ? normalizedContent : '';
+
+  const outlineSource = markdownContent || '';
+  const outline =
+    extractOutlineTreeFromMarkdown(outlineSource) ??
+    structuredCloneFallback(DEFAULT_OUTLINE_TREE);
+
+  const meta = structuredCloneFallback(DEFAULT_ARTICLE_META);
+
+  return {
+    id: '',
+    tabId: '',
+    path: '',
+    format: formatId,
+    markdown: markdownContent,
+    tex: texContent,
+    outline: structuredCloneFallback(outline),
+    meta: structuredCloneFallback(meta),
+    aiDialogs: structuredCloneFallback(DEFAULT_AI_DIALOGS),
+    lastView: 'article',
+    renderedHtml: '',
+    dirty: false,
+    savedMarkdown: markdownContent,
+    savedTex: texContent,
+    savedOutline: structuredCloneFallback(outline),
+    savedMeta: structuredCloneFallback(meta),
+    savedAiDialogs: structuredCloneFallback(DEFAULT_AI_DIALOGS),
+  };
+}
+
+function initializeDocumentFromTemplate(
+  tabId: string,
+  formatId: WorkspaceTabFormat,
+  templateId?: string,
+): void {
+  const tab = tabs.find((item) => item.id === tabId);
+  if (!tab) return;
+  const format = findFormatById(formatId);
+  if (!format) {
+    throw new Error(`不支持的文档格式: ${formatId}`);
+  }
+  const template =
+    findFormatTemplate(formatId, templateId) ??
+    findFormatTemplate(formatId, format.defaultTemplateId) ??
+    format.templates[0];
+
+  const doc = ensureDocument(tabId);
+  const snapshot = createDocumentSnapshotFromTemplate(formatId, template?.content ?? '');
+  snapshot.id = tabId;
+  snapshot.tabId = tabId;
+
+  Object.assign(doc, snapshot);
+
+  tab.kind = 'file';
+  tab.format = formatId;
+  tab.path = '';
+  tab.dirty = false;
+  tab.readonly = false;
+  tab.subtitle = '';
+  tab.title = UNTITLED_TITLE;
+
+  markDocumentSaved(tabId);
+  refreshActiveTabMetadata();
+  updateDocumentDirty(tabId);
+}
+
+function openNewDocumentTab(): WorkspaceTab {
+  const tab = createNewDocumentTabInternal();
+  activateTab(tab.id);
+  return tab;
+}
+
+function moveTab(tabId: string, targetId: string): void {
+  if (tabId === targetId) return;
+  const fromIndex = tabs.findIndex((tab) => tab.id === tabId);
+  const toIndex = tabs.findIndex((tab) => tab.id === targetId);
+  if (fromIndex === -1 || toIndex === -1) return;
+  const [tab] = tabs.splice(fromIndex, 1);
+  tabs.splice(toIndex, 0, tab as WorkspaceTab);
+}
+
+async function saveDocument(tabId: string, options?: { saveAs?: boolean }): Promise<boolean> {
+  logger.debug('保存文档', { tabId, options });
+  const tab = tabs.find((item) => item.id === tabId);
+  if (!tab || tab.kind !== 'file') {
+    return false;
+  }
+  const doc = ensureDocument(tabId);
+  try {
+    const result = await saveWorkspaceDocument(doc, options);
+    if (result?.path) {
+      markDocumentSaved(tabId, result.path);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    logger.error('保存文档失败', error);
+    throw error;
+  }
+}
+
+async function saveAllDocuments(): Promise<{ saved: string[]; failed: string[] }> {
+  const saved: string[] = [];
+  const failed: string[] = [];
+
+  for (const tab of tabs) {
+    if (tab.kind !== 'file') continue;
+    const doc = ensureDocument(tab.id);
+    const requiresSave = doc.path === '' || doc.dirty;
+    if (!requiresSave) {
+      continue;
+    }
+
+    try {
+      const result = await saveWorkspaceDocument(doc, { saveAs: doc.path === '' });
+      if (result?.path) {
+        markDocumentSaved(tab.id, result.path);
+        saved.push(tab.id);
+      } else {
+        failed.push(tab.id);
+        break;
+      }
+    } catch (error) {
+      logger.error('保存文档失败', error);
+      failed.push(tab.id);
     }
   }
+
+  return { saved, failed };
 }
 
 export function useWorkspace() {
@@ -557,8 +599,6 @@ export function useWorkspace() {
     documents,
     activeDocument,
     activateTab,
-    persistActiveDocument,
-    reloadActiveDocument,
     captureCurrentDocumentSnapshot,
     addDocumentTab,
     removeTab,
@@ -571,6 +611,13 @@ export function useWorkspace() {
     updateDocumentDirty,
     updateDocumentLastView,
     updateDocumentRenderedHtml,
+    markDocumentSaved,
+    initializeDocumentFromTemplate,
+    openNewDocumentTab,
+    moveTab,
+    saveDocument,
+    saveAllDocuments,
+    supportedFormats: getSupportedFormats(),
   };
 }
 

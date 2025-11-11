@@ -103,23 +103,29 @@
 <script setup>
 import { ElButton, ElDialog } from 'element-plus' // 引入 Element Plus 按钮和弹框组件
 import MarkdownItEditor from 'vue3-markdown-it';
-import { computed, onMounted } from 'vue';
-import { addDialog, defaultAiChatMessages, latest_view, searchNode } from '../utils/common-data';
-import { sync, current_outline_tree } from '../utils/common-data';
-import { ref, watch } from 'vue';
-import { max } from 'd3';
+import { computed, onMounted, ref, watch } from 'vue';
 import { sectionChangePrompt } from '../utils/prompts';
 
 import eventBus from '../utils/event-bus';
 import { generateMarkdownFromOutlineTree } from '../utils/md-utils';
 import { themeState } from '../utils/themes';
-import { current_article } from '../utils/common-data';
 import { Plus } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks';
 import { getSetting } from '../utils/settings';
+import { useWorkspace } from '../stores/workspace';
+import { useActiveDocument } from '../composables/useActiveDocument';
+import { searchNode } from '../utils/outline-helpers';
+import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document';
 
 const { t } = useI18n()
+
+const workspace = useWorkspace();
+const { activeTabId, updateDocumentAiDialogs } = workspace;
+const { activeDocument } = useActiveDocument();
+
+const currentOutline = computed(() => props.tree ?? activeDocument.value?.outline ?? null);
+const currentMarkdown = computed(() => activeDocument.value?.markdown ?? '');
 
 function formatTooltip(val) {
   if (val === 0) {
@@ -182,6 +188,15 @@ const presetPrompts = ref([
 
 const emit = defineEmits(["accept"]);
 
+const pushDialogToDocument = (dialog) => {
+  const doc = activeDocument.value;
+  const tabId = activeTabId.value;
+  if (!doc || !tabId) return;
+  const existing = Array.isArray(doc.aiDialogs) ? doc.aiDialogs : [];
+  const nextDialogs = [dialog, ...existing];
+  updateDocumentAiDialogs(tabId, nextDialogs);
+};
+
 const accept = (append=false) => {
   //searchNode(props.path, current_outline_tree.value).text=generatedText.value;
   // latest_view.value='outline';
@@ -205,13 +220,21 @@ const accept = (append=false) => {
 }
 
 const generate = async () => {
+  const outlineNode = currentOutline.value;
+  if (!outlineNode) return;
   generating.value = true;
-  const outline = generateMarkdownFromOutlineTree(props.tree);
+  const outlineMarkdown = generateMarkdownFromOutlineTree(outlineNode);
 
-  const prompt = sectionChangePrompt(outline, articleContent.value, props.title, userPrompt.value, context_mode.value, current_article.value);
-  //console.log(prompt);
-  const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
-  const { handle, done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'title-menu',enableKnowledgeBase);
+  const prompt = sectionChangePrompt(
+    outlineMarkdown,
+    articleContent.value,
+    props.title,
+    userPrompt.value,
+    context_mode.value,
+    currentMarkdown.value,
+  );
+  const enableKnowledgeBase = await getSetting("enableKnowledgeBase");
+  const { done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'title-menu', enableKnowledgeBase);
   generating.value = true;
   generated.value = false;
 
@@ -223,15 +246,20 @@ const generate = async () => {
     generated.value = true;
     generating.value = false;
   }
-
-  // generating.value = false;
-
-  // generated.value = true;
 }
 const chat = async () => {
-  const outline = generateMarkdownFromOutlineTree(props.tree);
-  const prompt = sectionChangePrompt(outline, articleContent.value, props.title, userPrompt.value, context_mode.value, current_article.value);
-  let messages = [...defaultAiChatMessages]
+  const outlineNode = currentOutline.value;
+  if (!outlineNode) return;
+  const outlineMarkdown = generateMarkdownFromOutlineTree(outlineNode);
+  const prompt = sectionChangePrompt(
+    outlineMarkdown,
+    articleContent.value,
+    props.title,
+    userPrompt.value,
+    context_mode.value,
+    currentMarkdown.value,
+  );
+  const messages = JSON.parse(JSON.stringify(DEFAULT_AI_CHAT_MESSAGES));
   messages.push({
     role: 'user',
     content: prompt
@@ -242,11 +270,10 @@ const chat = async () => {
   })
   const newDialog = {
     title: props.title,
-    messages: messages
+    messages,
   };
-  addDialog(newDialog,true)
+  pushDialogToDocument(newDialog);
   eventBus.emit('ai-chat');//触发开始长对话事件
-
 }
 
 const querySearch = (queryString, cb) => {
@@ -288,7 +315,13 @@ const menuStyles = computed(() => ({
   background: themeState.currentTheme.titleMenuBackground,
 }));
 const refreshContent = () => {
-  articleContent.value = searchNode(props.path, current_outline_tree.value).text;
+  const outlineNode = currentOutline.value;
+  if (!outlineNode) {
+    articleContent.value = '';
+    return;
+  }
+  const node = searchNode(props.path, outlineNode);
+  articleContent.value = node?.text ?? '';
 }
 
 const menuPosition = ref({ top: props.position.top, left: props.position.left });
@@ -323,6 +356,14 @@ onMounted(() => {
 watch(() => props.path, (newVal, oldVal) => {
   refreshContent();
 })
+
+watch(
+  currentOutline,
+  () => {
+    refreshContent();
+  },
+  { deep: true },
+);
 
 </script>
 

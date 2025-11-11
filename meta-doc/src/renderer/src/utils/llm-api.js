@@ -158,7 +158,7 @@ async function validateApi() {
   return flag;
 }
 
-async function answerQuestionStream(prompt, ref, meta = {}, signal = {}, try_rag = false) {
+async function answerQuestionStream(prompt, ref, meta = {}, signal = undefined, try_rag = false) {
   if (try_rag) {
     prompt = await ragQueryInjection(prompt);
   }
@@ -175,6 +175,7 @@ async function answerQuestionStream(prompt, ref, meta = {}, signal = {}, try_rag
           ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}), // 如果需要 API 密钥
         },
         body: JSON.stringify(payload),
+        ...(signal ? { signal } : {}),
       });
 
       const reader = response.body.getReader(); // 获取流
@@ -199,7 +200,7 @@ async function answerQuestionStream(prompt, ref, meta = {}, signal = {}, try_rag
         ndjson = lines.pop(); // 保留未完成的行供下次解析
 
         for (const line of lines) {
-          if (signal.aborted) {
+          if (signal?.aborted) {
             throw new DOMException('Aborted', 'AbortError')
           }
           if (line.trim()) {
@@ -380,7 +381,7 @@ async function continueConversationNonStream(conversation, ref, meta, signal, tr
 }
 
 // 流式版本
-async function continueConversationStream(conversation, ref, meta, signal = {}, try_rag = false) {
+async function continueConversationStream(conversation, ref, meta, signal = undefined, try_rag = false) {
   const config = await requestLlm(conversation, signal, try_rag);
   if (!config) return;
 
@@ -403,7 +404,7 @@ async function continueConversationStream(conversation, ref, meta, signal = {}, 
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify(payload),
-        signal,
+        ...(signal ? { signal } : {}),
       });
 
       const reader = response.body.getReader();
@@ -425,7 +426,7 @@ async function continueConversationStream(conversation, ref, meta, signal = {}, 
               : line;
             if (json === '[DONE]') continue;
 
-            if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+            if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
             const data = JSON.parse(json);
             const delta = data.choices?.[0]?.delta?.content;
             if (delta) {
@@ -455,7 +456,7 @@ async function continueConversationStream(conversation, ref, meta, signal = {}, 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-        signal,
+        ...(signal ? { signal } : {}),
       });
 
       const reader = response.body.getReader();

@@ -1,7 +1,7 @@
 import { ref, type Ref, watch } from 'vue'
-import eventBus, { sendBroadcast } from '../utils/event-bus'
-import { generateMarkdownFromOutlineTree,extractOutlineTreeFromMarkdown, filterMetaDataFromMd } from './md-utils'
-import type { DocumentOutlineNode, ArticleMetaData, AIDialogMessage } from '../../../types'
+import eventBus, { sendBroadcast } from '../event-bus'
+import { generateMarkdownFromOutlineTree,extractOutlineTreeFromMarkdown, filterMetaDataFromMd } from '../md-utils'
+import type { DocumentOutlineNode, ArticleMetaData, AIDialogMessage } from '../../../../types'
 
 let suppressSaveNotification = false
 
@@ -144,8 +144,8 @@ export {
 }
 //因为ai助手属于不同的渲染进程，因此另一个进程需要先告诉主进程，主进程再广播给所有的渲染进程
 import { toRaw } from 'vue';
-import { decodeBase64ToJson, encodeJsonToBase64 } from './base64-utils'
-import { convertLatexToMarkdown } from './latex-utils'
+import { decodeBase64ToJson, encodeJsonToBase64 } from '../base64-utils'
+import { convertLatexToMarkdown } from '../latex-utils'
 export function broadcastAiDialogs(): void {
   //console.log(JSON.parse(JSON.stringify(current_ai_dialogs.value)))
   if (!suppressSaveNotification) {

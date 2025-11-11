@@ -12,7 +12,6 @@ import type {
   AITaskStatusValue,
   AIDialogMessage
 } from '../../../types'
-import { useI18n } from 'vue-i18n'
 import { createRendererLogger } from './logger.ts'
 
 // IPC渲染器适配
@@ -25,9 +24,10 @@ if (window && (window as any).electron) {
 }
 
 // 任务存储
-const tasks: Ref<AITaskInfo[]> = ref([])
-const taskMap = new Map<string, AITaskInfo>()
-const logger = createRendererLogger('AiTasks')
+type InternalAITaskInfo = AITaskInfo & { mirror?: boolean }
+
+const tasks: Ref<InternalAITaskInfo[]> = ref([])
+const taskMap = new Map<string, InternalAITaskInfo>()
 
 /** 生成任务句柄 */
 function generateHandle(): string {
@@ -76,7 +76,7 @@ export function createAiTask(
     rejectDone = reject
   })
 
-  const task: AITaskInfo = {
+  const task: InternalAITaskInfo = {
     handle,
     name,
     prompt,
@@ -102,9 +102,32 @@ export function createAiTask(
 
   // 非主窗口注册任务到主窗口显示
   if (!isMainWindow()) {
-    ipcRenderer.send('register-ai-task', JSON.parse(JSON.stringify({
-      handle, name, prompt, type, origin_key
-    })));
+    const payload: Record<string, unknown> = {
+      handle,
+      name,
+      type,
+      origin_key,
+      try_rag
+    }
+    if (meta) {
+      try {
+        payload.meta = JSON.parse(JSON.stringify(meta))
+      } catch (_error) {
+        payload.meta = {}
+      }
+    } else {
+      payload.meta = {}
+    }
+    if (typeof prompt === 'string') {
+      payload.prompt = prompt
+    } else {
+      try {
+        payload.prompt = JSON.parse(JSON.stringify(prompt))
+      } catch (_error) {
+        payload.prompt = []
+      }
+    }
+    ipcRenderer.send('register-ai-task', payload)
   }
 
   if (autoStart) {
@@ -127,6 +150,9 @@ export async function startAiTask(handle: string): Promise<void> {
   if (!task || task.status.value !== ai_task_status.READY) return
 
   task.status.value = ai_task_status.RUNNING as AITaskStatusValue
+  if (task.mirror) {
+    return
+  }
   const controller = new AbortController()
   task.controller = controller
 
@@ -159,8 +185,7 @@ export async function startAiTask(handle: string): Promise<void> {
   } catch (e: any) {
     if (e.name === 'AbortError') {
       task.status.value = ai_task_status.CANCELLED as AITaskStatusValue
-      const { t } = useI18n()
-      task.resolveDone?.(new Error(t('aiTask.taskCancelled2')))
+      task.resolveDone?.(new Error(i18n.global.t('aiTask.taskCancelled2')))
     } else {
       task.status.value = ai_task_status.FAILED as AITaskStatusValue
       task.resolveDone?.(e)
@@ -179,20 +204,21 @@ function deleteTask(handle: string): void {
 /**
  * 取消任务
  */
-export function cancelAiTask(handle: string, showWarning: boolean = true): void {
+export function cancelAiTask(handle: string, showWarning: boolean = true, propagate: boolean = true): void {
   const task = taskMap.get(handle)
   if (!task) return
   
   task.controller?.abort()
   if (task.status.value !== ai_task_status.FINISHED && isMainWindow()) {
-    const { t } = useI18n()
     if (showWarning) {
-      eventBus.emit('show-warning', t('aiTask.taskCancelled', { task: task.name }))
+      eventBus.emit('show-warning', i18n.global.t('aiTask.taskCancelled', { task: task.name }))
     }
   }
   
   deleteTask(task.handle)
-  ipcRenderer.send('broadcast-cancel-ai-task', task.handle)
+  if (propagate) {
+    ipcRenderer.send('broadcast-cancel-ai-task', task.handle)
+  }
 }
 
 /**
@@ -209,30 +235,32 @@ export function clearAiTasks(): void {
  * 导出任务响应式对象
  */
 export function useAiTasks(): Ref<AITaskInfo[]> {
-  return tasks
+  return tasks as Ref<AITaskInfo[]>
 }
 
 // ========== IPC事件监听器 ==========
 
 // 在主窗口中：接收任务注册
 ipcRenderer.on('register-ai-task', (_: any, taskInfo: any) => {
+  const logger = createRendererLogger('AiTasks')
   logger.debug('主界面任务注册', taskInfo)
-  const { handle, name, prompt, type, origin_key } = taskInfo
+  const { handle, name, prompt, type, origin_key, try_rag: incomingTryRag, meta: incomingMeta } = taskInfo
   if (taskMap.has(handle)) return // 防止重复添加
   
-  const task: AITaskInfo = {
+  const task: InternalAITaskInfo = {
     handle,
     name,
     prompt,
-    target: ref('') as Ref<string>, // 主窗口只是调度，不处理结果
+    target: undefined,
     type,
     origin_key,
     status: ref(ai_task_status.READY as AITaskStatusValue),
     controller: null,
     resolveDone: null,
     rejectDone: null,
-    try_rag: false,
-    meta: {}
+    try_rag: Boolean(incomingTryRag),
+    meta: incomingMeta ?? {},
+    mirror: true
   }
   tasks.value.push(task)
   taskMap.set(handle, task)
@@ -249,7 +277,7 @@ ipcRenderer.on('ai-task-done', (_: any, handle: string) => {
 
 // 所有窗口都监听取消命令
 ipcRenderer.on('cancel-task', (_: any, handle: string) => {
-  cancelAiTask(handle)
+  cancelAiTask(handle, false, false)
 })
 
 // 所有窗口监听启动命令（主窗口发起 → 主进程 → 渲染进程）

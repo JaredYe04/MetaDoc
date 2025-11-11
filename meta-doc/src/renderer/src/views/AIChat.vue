@@ -90,7 +90,7 @@ import { answerQuestion } from '../utils/llm-api.js';
 import '../assets/tool-group.css'
 import { updateTitlePrompt } from '../utils/prompts.js';
 import { useI18n } from 'vue-i18n'
-import { ai_types, createAiTask } from '../utils/ai_tasks.js';
+import { ai_types, createAiTask } from '../utils/ai_tasks.ts';
 import { getSetting } from '../utils/settings.js';
 import { useActiveDocument } from '../composables/useActiveDocument';
 import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document';

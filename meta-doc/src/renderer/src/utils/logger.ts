@@ -36,10 +36,10 @@ const consoleMethodMap: Record<LogLevel, ConsoleMethod> = {
   error: 'error'
 };
 
-let ipcRenderer: typeof window.electron['ipcRenderer'] | typeof localIpcRenderer | null = null;
+let ipcRenderer: typeof localIpcRenderer | null = null;
 
 if (typeof window !== 'undefined') {
-  if (window.electron && window.electron.ipcRenderer) {
+  if (window.electron?.ipcRenderer) {
     ipcRenderer = window.electron.ipcRenderer;
   } else {
     webMainCalls();
@@ -56,6 +56,7 @@ const state: {
 };
 
 const historyCache: LoggerHistoryEntry[] = [];
+const rendererLoggerCache = new Map<string, RendererLogger>();
 
 const normalizeArg = (arg: unknown): string => {
   if (typeof arg === 'string') {
@@ -150,6 +151,10 @@ const buildMessage = (level: LogLevel, scope: string | undefined, processType: '
 
 export const createRendererLogger = (scope?: string, options: RendererLoggerOptions = {}): RendererLogger => {
   const windowTypeProvider = options.windowTypeProvider;
+  const cacheKey = `${scope ?? 'default'}|${windowTypeProvider ? windowTypeProvider.toString() : 'no-window-provider'}`;
+  if (rendererLoggerCache.has(cacheKey)) {
+    return rendererLoggerCache.get(cacheKey)!;
+  }
 
   const log = (level: LogLevel, args: unknown[]) => {
     const windowType = windowTypeProvider ? windowTypeProvider() : undefined;
@@ -157,12 +162,14 @@ export const createRendererLogger = (scope?: string, options: RendererLoggerOpti
     void dispatch(payload, level, formatted);
   };
 
-  return {
+  const logger: RendererLogger = {
     debug: (...args: unknown[]) => log('debug', args),
     info: (...args: unknown[]) => log('info', args),
     warn: (...args: unknown[]) => log('warn', args),
     error: (...args: unknown[]) => log('error', args)
   };
+  rendererLoggerCache.set(cacheKey, logger);
+  return logger;
 };
 
 export const getRendererLoggerConfig = async (): Promise<LoggerConfig> => {

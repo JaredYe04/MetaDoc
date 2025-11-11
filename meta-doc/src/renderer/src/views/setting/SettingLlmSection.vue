@@ -132,7 +132,7 @@ import { useI18n } from 'vue-i18n';
 import { settings, setSetting, getSetting } from '../../utils/settings.js';
 import eventBus, { sendBroadcast } from '../../utils/event-bus.js';
 import { getMetaDocLlmModels } from '../../utils/web-utils.ts';
-import { ai_types, createAiTask } from '../../utils/ai_tasks.js';
+import { ai_types, createAiTask } from '../../utils/ai_tasks.ts';
 import { createRendererLogger } from '../../utils/logger.ts';
 
 interface OllamaModel {

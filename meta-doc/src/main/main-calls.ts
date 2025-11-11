@@ -326,24 +326,20 @@ function bindKnowledgeHandlers(): void {
  * 绑定AI任务处理器
  */
 function bindAITaskHandlers(): void {
-  ipcMain.on('register-ai-task', (event: IpcMainEvent, taskInfo: TaskInfo) => {
-    const mainWin = BrowserWindow.getAllWindows().find(w => 
-      w.webContents.getURL().includes('#/home')
-    );
-    
-    if (mainWin) {
-      mainWin.webContents.send('register-ai-task', taskInfo);
-    }
+  ipcMain.on('register-ai-task', (_event: IpcMainEvent, taskInfo: TaskInfo) => {
+    const targetWindow = (mainWindow && !mainWindow.isDestroyed())
+      ? mainWindow
+      : BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes('#/home'));
+
+    targetWindow?.webContents.send('register-ai-task', taskInfo);
   });
 
-  ipcMain.on('ai-task-done', (event: IpcMainEvent, handle: string) => {
-    const mainWin = BrowserWindow.getAllWindows().find(w => 
-      w.webContents.getURL().includes('#/home')
-    );
-    
-    if (mainWin) {
-      mainWin.webContents.send('ai-task-done', handle);
-    }
+  ipcMain.on('ai-task-done', (_event: IpcMainEvent, handle: string) => {
+    const targetWindow = (mainWindow && !mainWindow.isDestroyed())
+      ? mainWindow
+      : BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes('#/home'));
+
+    targetWindow?.webContents.send('ai-task-done', handle);
   });
 
   ipcMain.on('broadcast-cancel-ai-task', (event: IpcMainEvent, handle: string) => {

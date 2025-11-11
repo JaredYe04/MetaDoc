@@ -1,12 +1,12 @@
-// utils/ai_tasks.js
+// utils/ai_tasks.ts
 import { ref } from 'vue'
-import { answerQuestion,continueConversation, } from './llm-api'
-import eventBus, { isMainWindow, getWindowType } from './event-bus'
+import { answerQuestion,continueConversation, } from '../llm-api.js'
+import eventBus, { isMainWindow, getWindowType } from '../event-bus.js'
 import { useRoute } from 'vue-router'
 
-import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
-import { ai_task_status } from './consts.js'
-import { i18n } from '../main.js'
+import localIpcRenderer from '../web-adapter/local-ipc-renderer.ts'
+import { ai_task_status } from '../consts.js'
+import { i18n } from '../../main.js'
 //import { createRendererLogger } from './logger.ts'
 
 

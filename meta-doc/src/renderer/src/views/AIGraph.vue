@@ -274,7 +274,7 @@ import domtoimage from 'dom-to-image-more';
 import { exportPng } from '../utils/image-utils.js'
 import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn.js'
 import { useI18n } from 'vue-i18n'
-import { ai_types, createAiTask } from '../utils/ai_tasks.js'
+import { ai_types, createAiTask } from '../utils/ai_tasks.ts'
 import { getSetting } from '../utils/settings.js'
 import { createRendererLogger } from '../utils/logger.ts'
 const { t } = useI18n()

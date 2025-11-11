@@ -303,7 +303,7 @@ import { themeState } from '../utils/themes.js';
 import { extractOuterJsonString } from '../utils/regex-utils.js';
 import '../assets/noselect-display.css';
 import { useI18n } from 'vue-i18n'
-import { ai_types, createAiTask } from '../utils/ai_tasks.js';
+import { ai_types, createAiTask } from '../utils/ai_tasks.ts';
 import { getSetting } from '../utils/settings.js';
 import { createRendererLogger } from '../utils/logger.ts';
 

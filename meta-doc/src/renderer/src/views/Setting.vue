@@ -1,20 +1,31 @@
 <template>
-  <div class="settings-container"
-    :style="{ backgroundColor: themeState.currentTheme.backgroundColor, color: themeState.currentTheme.textColor }">
-    <el-container>
-      <el-aside width="200px">
-        <el-menu :default-active="activeMenu" @select="handleMenuSelect"
+  <div
+    class="settings-container"
+    :style="{ backgroundColor: themeState.currentTheme.backgroundColor, color: themeState.currentTheme.textColor }"
+  >
+    <el-container class="settings-layout">
+      <el-aside class="settings-aside" width="200px">
+        <el-menu
+          :default-active="activeMenu"
+          @select="handleMenuSelect"
           :background-color="themeState.currentTheme.sidebarBackground2"
           :text-color="themeState.currentTheme.SideTextColor"
-          :active-text-color="themeState.currentTheme.SideActiveTextColor" style="height: 100vh;">
-          <el-menu-item v-for="item in menuItems" :key="item.key" :index="item.key" :class="{ 'menu-logs-item': item.key === 'logs' }">
+          :active-text-color="themeState.currentTheme.SideActiveTextColor"
+          class="settings-menu"
+        >
+          <el-menu-item
+            v-for="item in menuItems"
+            :key="item.key"
+            :index="item.key"
+            :class="{ 'menu-logs-item': item.key === 'logs' }"
+          >
             {{ $t(item.label) }}
           </el-menu-item>
         </el-menu>
       </el-aside>
 
-      <el-main :style="{ color: themeState.currentTheme.textColor }">
-        <el-scrollbar>
+      <el-main class="settings-main" :style="{ color: themeState.currentTheme.textColor }">
+        <el-scrollbar class="settings-scroll">
           <component :is="currentComponent" class="setting-section" />
         </el-scrollbar>
       </el-main>
@@ -75,21 +86,45 @@ onMounted(() => {
 
 <style scoped>
 .settings-container {
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+.settings-layout {
+  height: 100%;
+  width: 100%;
+}
+
+.settings-aside {
+  height: 100%;
+}
+
+.settings-menu {
   height: 100%;
   display: flex;
+  flex-direction: column;
+  border-right: none;
+}
+
+.settings-main {
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+
+.settings-scroll {
+  height: 100%;
+  width: 100%;
 }
 
 .setting-section {
   display: block;
   padding: 32px 24px 64px;
+  box-sizing: border-box;
 }
 
-:deep(.el-menu) {
-  display: flex;
-  flex-direction: column;
-}
-
-:deep(.menu-logs-item) {
+::deep(.menu-logs-item) {
   margin-top: auto !important;
 }
 </style>

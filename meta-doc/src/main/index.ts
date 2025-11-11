@@ -49,6 +49,12 @@ export let is_need_save: boolean = false;
 
 let isShortcutPressed: boolean = false;
 let isAppQuitting = false;
+const SHORTCUT_CONFIG = [
+  { accelerator: 'CommandOrControl+S', channel: 'save-triggered' as const },
+  { accelerator: 'CommandOrControl+Shift+S', channel: 'save-as-triggered' as const },
+  { accelerator: 'CommandOrControl+F', channel: 'search-replace-triggered' as const },
+  { accelerator: 'CommandOrControl+H', channel: 'search-replace-triggered' as const },
+] as const;
 
 // ============ 主窗口创建和管理 ============
 
@@ -233,6 +239,10 @@ function bindShortcuts(): void {
     registerShortcuts();
   });
 
+  mainWindow?.on('show', () => {
+    registerShortcuts();
+  });
+
   // 监听窗口失去焦点
   mainWindow?.on('blur', () => {
     unregisterShortcuts();
@@ -243,35 +253,26 @@ function bindShortcuts(): void {
  * 注册快捷键
  */
 function registerShortcuts(): void {
-  globalShortcut.register('CommandOrControl+S', async () => {
-    if (!isShortcutPressed) {
-      isShortcutPressed = true;
-      mainWindow?.webContents.send('save-triggered');
-      setTimeout(() => (isShortcutPressed = false), 1000);
-    }
-  });
+  if (!mainWindow || !mainWindow.isVisible() || !mainWindow.isFocused()) {
+    return;
+  }
 
-  globalShortcut.register('CommandOrControl+Shift+S', async () => {
-    if (!isShortcutPressed) {
-      isShortcutPressed = true;
-      mainWindow?.webContents.send('save-as-triggered');
-      setTimeout(() => (isShortcutPressed = false), 1000);
+  SHORTCUT_CONFIG.forEach(({ accelerator, channel }) => {
+    if (globalShortcut.isRegistered(accelerator)) {
+      return;
     }
-  });
 
-  globalShortcut.register('CommandOrControl+F', async () => {
-    if (!isShortcutPressed) {
+    const success = globalShortcut.register(accelerator, () => {
+      if (isShortcutPressed) return;
       isShortcutPressed = true;
-      mainWindow?.webContents.send('search-replace-triggered');
-      setTimeout(() => (isShortcutPressed = false), 1000);
-    }
-  });
+      mainWindow?.webContents.send(channel);
+      setTimeout(() => {
+        isShortcutPressed = false;
+      }, 1000);
+    });
 
-  globalShortcut.register('CommandOrControl+H', async () => {
-    if (!isShortcutPressed) {
-      isShortcutPressed = true;
-      mainWindow?.webContents.send('search-replace-triggered');
-      setTimeout(() => (isShortcutPressed = false), 1000);
+    if (!success) {
+      logger.warn(`全局快捷键注册失败: ${accelerator}`);
     }
   });
 }
@@ -280,10 +281,11 @@ function registerShortcuts(): void {
  * 注销快捷键
  */
 function unregisterShortcuts(): void {
-  globalShortcut.unregister('CommandOrControl+S');
-  globalShortcut.unregister('CommandOrControl+Shift+S');
-  globalShortcut.unregister('CommandOrControl+F');
-  globalShortcut.unregister('CommandOrControl+H');
+  SHORTCUT_CONFIG.forEach(({ accelerator }) => {
+    if (globalShortcut.isRegistered(accelerator)) {
+      globalShortcut.unregister(accelerator);
+    }
+  });
 }
 
 // ============ 子窗口管理 ============

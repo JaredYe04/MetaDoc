@@ -210,6 +210,7 @@
       "title": "Veuillez saisir le titre du document"
     },
     "quickStartTitle": "Début rapide.",
+    "quickStartFormatTitle": "Choisir un format de démarrage rapide",
     "suggestionLabel": "Étiquettes suggérées",
     "tab": {
       "aiAssistant": "Assistant AI",
@@ -267,7 +268,9 @@
     "settingsTooltip": "Paramètres",
     "smartDrawingAssistant": "Assistant de dessin intelligent",
     "tip": "Conseil",
-    "userProfileTooltip": "Informations sur l'utilisateur"
+    "userProfileTooltip": "Informations sur l'utilisateur",
+    "saveAll": "Tout enregistrer",
+    "saveAllAndExit": "Enregistrer tout et quitter"
   },
   "llmDialog": {
     "acceptTooltip": "Accepter",
@@ -303,7 +306,10 @@
       },
       "warning": {
         "title": "Avertissement"
-      }
+      },
+      "saveAllNone": "Aucun document enregistré",
+      "saveAllPartial": "La sauvegarde partielle du document a échoué ({count})",
+      "saveAllSuccess": "Tous les documents enregistrés"
     },
     "dialogs": {
       "exportDocumentTitle": "Document d'exportation",
@@ -317,7 +323,11 @@
         "pdf": "Fichiers PDF"
       },
       "openFileTitle": "Ouvrir un fichier",
-      "saveFileTitle": "Enregistrer un fichier"
+      "saveFileTitle": "Enregistrer un fichier",
+      "closeTabCancel": "Annuler",
+      "closeTabConfirm": "Toujours proche",
+      "closeTabMessage": "Le document actuel n'a pas été enregistré. Voulez-vous continuer à fermer ?",
+      "closeTabTitle": "Changements non enregistrés"
     },
     "latex": {
       "compileFailed": "Compilé, code de sortie: {code}"
@@ -687,5 +697,44 @@
       "success": "Notification réussie",
       "warning": "Avertissement"
     }
+  },
+  "newDocument": {
+    "formatTitle": "Sélectionner le format",
+    "formats": {
+      "latex": {
+        "description": "Format de présentation spécialisé pour les documents universitaires, les rapports et les documents techniques.",
+        "label": "LaTeX"
+      },
+      "markdown": {
+        "description": "Format structuré en texte simple pour les articles, les notes et les blogs.",
+        "label": "Marquage"
+      }
+    },
+    "subtitle": "Sélectionnez le format et le modèle de document à créer.",
+    "templateTitle": "Sélectionner un modèle",
+    "templates": {
+      "latex": {
+        "article": {
+          "description": "Structure d'article LaTeX commune, adaptée aux papiers et aux scripts.",
+          "label": "Articles standard"
+        },
+        "report": {
+          "description": "Modèles de rapport avec structure de chapitre applicable aux cours ou aux rapports de projet.",
+          "label": "Modèle de rapport"
+        }
+      },
+      "markdown": {
+        "article": {
+          "description": "Contient la structure des chapitres, tels que résumés, corps, conclusions, etc.",
+          "label": "Modèle d'article"
+        },
+        "blank": {
+          "description": "Créer à partir d'une page complètement vierge.",
+          "label": "Document vide"
+        }
+      }
+    },
+    "title": "Nouveau document",
+    "useTemplate": "Utiliser ce modèle"
   }
 }

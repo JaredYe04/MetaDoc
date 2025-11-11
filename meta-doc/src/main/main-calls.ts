@@ -556,10 +556,12 @@ const saveInternal = async (
 const save = async (data: SaveData, saveAs: boolean): Promise<void> => {
   const result = await saveInternal(data, saveAs);
   if (result) {
+    const fileName = result.path ? path.basename(result.path) : '';
     mainWindow?.webContents.send('save-success', {
       path: result.path,
       saveAs,
       format: result.format,
+      fileName,
     });
   }
 };
@@ -576,6 +578,7 @@ export const openDoc = async (filePath?: string): Promise<void> => {
       content,
       format,
       path: filePath,
+      fileName: path.basename(filePath),
     };
     
     mainWindow?.webContents.send('open-doc-success', payload);
@@ -602,6 +605,7 @@ export const openDoc = async (filePath?: string): Promise<void> => {
       content,
       format,
       path: selectedPath,
+      fileName: path.basename(selectedPath),
     };
     
     mainWindow?.webContents.send('open-doc-success', payload);

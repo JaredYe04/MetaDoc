@@ -51,7 +51,9 @@
     "langTooltip": "言語",
     "askSave": "",
     "discard": "",
-    "tip": ""
+    "tip": "",
+    "saveAll": "すべて保存",
+    "saveAllAndExit": "すべて保存して終了"
   },
   "llmDialog": {
     "aiAssistant": "AIアシスタント",
@@ -326,6 +328,7 @@
     "authorLabel": "著者",
     "abstractLabel": "要約",
     "quickStartTitle": "クイックスタート",
+    "quickStartFormatTitle": "クイックスタート形式を選択",
     "tab": {
       "aiAssistant": "AIアシスタント",
       "documentInfo": "ドキュメント情報"
@@ -366,14 +369,6 @@
   },
   "main": {
     "notification": {
-      "save": {
-        "title": "保存に成功",
-        "message": "保存に成功しました"
-      },
-      "open": {
-        "title": "オープンに成功",
-        "message": "オープンに成功しました"
-      },
       "export": {
         "title": "エクスポートに成功",
         "message": "{path} のエクスポートに成功しました"
@@ -389,7 +384,18 @@
       },
       "warning": {
         "title": "警告"
-      }
+      },
+      "open": {
+        "message": "正常に開く",
+        "title": "正常に開く"
+      },
+      "save": {
+        "message": "お問い合わせ 正常に保存",
+        "title": "正常に保存"
+      },
+      "saveAllNone": "文書保存なし",
+      "saveAllPartial": "部分的な文書保存失敗({count})",
+      "saveAllSuccess": "保存されたすべての文書"
     },
     "dialogs": {
       "exportDocumentTitle": "輸出文書",
@@ -403,7 +409,11 @@
         "pdf": "PDFファイル"
       },
       "openFileTitle": "ファイルを開く",
-      "saveFileTitle": "ファイルを保存する"
+      "saveFileTitle": "ファイルを保存する",
+      "closeTabCancel": "キャンセル",
+      "closeTabConfirm": "閉じる",
+      "closeTabMessage": "現在のドキュメントは保存されていません。 これからも閉じたいですか?",
+      "closeTabTitle": "変更なし"
     },
     "latex": {
       "compileFailed": "コンパイル失敗、終了コード: お問い合わせ"
@@ -687,5 +697,44 @@
       "success": "成功した通知",
       "warning": "警告通知"
     }
+  },
+  "newDocument": {
+    "formatTitle": "フォーマットを選択",
+    "formats": {
+      "latex": {
+        "description": "学術論文、報告書、技術文書の特別レイアウトフォーマット",
+        "label": "ラテックス"
+      },
+      "markdown": {
+        "description": "記事、メモ、ブログのテキスト形式を構造化しました。",
+        "label": "マークダウン"
+      }
+    },
+    "subtitle": "ドキュメント形式とテンプレートを選択して作成を開始します。",
+    "templateTitle": "テンプレートを選択",
+    "templates": {
+      "latex": {
+        "article": {
+          "description": "紙やスクリプトに適した一般的なLaTeXの記事構造。",
+          "label": "標準的な記事"
+        },
+        "report": {
+          "description": "コースやプロジェクトレポートに適用できるチャプター構造でテンプレートをレポートします。",
+          "label": "テンプレートのレポート"
+        }
+      },
+      "markdown": {
+        "article": {
+          "description": "要約、身体、結論などの章の構造が含まれています。",
+          "label": "記事のテンプレート"
+        },
+        "blank": {
+          "description": "完全に空白のページから作成します。",
+          "label": "空の文書"
+        }
+      }
+    },
+    "title": "新しい文書",
+    "useTemplate": "このテンプレートを使用する"
   }
 }

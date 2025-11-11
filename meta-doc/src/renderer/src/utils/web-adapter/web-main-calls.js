@@ -111,7 +111,15 @@ const save = async (data, saveAs) => {
     //fs.writeFileSync(path, json)
     //console.log("保存成功");
     updateRecentDocs({path})
-    eventBus.emit('save-success')
+    const fileName = typeof path === 'string' && path.length > 0
+      ? path.split(/[\\/]/).pop() || path
+      : 'Untitled'
+    eventBus.emit('save-success', {
+      path,
+      fileName,
+      format: data?.format,
+      saveAs
+    })
     //mainWindow.webContents.send('save-success', path)
   }
 }

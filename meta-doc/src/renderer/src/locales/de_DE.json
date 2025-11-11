@@ -210,6 +210,7 @@
       "title": "Bitte geben Sie den Dokumenttitel ein"
     },
     "quickStartTitle": "Schneller Start.",
+    "quickStartFormatTitle": "Schnellstart-Format wählen",
     "suggestionLabel": "Empfohlene Tags",
     "tab": {
       "aiAssistant": "AI-Assistent",
@@ -267,7 +268,9 @@
     "settingsTooltip": "Einstellungen",
     "smartDrawingAssistant": "Smart Drawing Assistant",
     "tip": "Hinweis",
-    "userProfileTooltip": "Benutzerinformationen"
+    "userProfileTooltip": "Benutzerinformationen",
+    "saveAll": "Alle speichern",
+    "saveAllAndExit": "Alle speichern und ausfahren"
   },
   "llmDialog": {
     "acceptTooltip": "Annahme",
@@ -290,20 +293,23 @@
       "info": {
         "title": "Nachricht"
       },
-      "open": {
-        "message": "erfolgreich eröffnet",
-        "title": "erfolgreich eröffnet"
-      },
-      "save": {
-        "message": "Erfolgreich speichern",
-        "title": "Erfolgreich speichern"
-      },
       "success": {
         "title": "Nachricht"
       },
       "warning": {
         "title": "Warnung"
-      }
+      },
+      "open": {
+        "message": "Erfolgreich öffnen",
+        "title": "erfolgreich eröffnet"
+      },
+      "save": {
+        "message": "{name} Erfolgreich speichern",
+        "title": "Erfolgreich speichern"
+      },
+      "saveAllNone": "Kein Dokument gespeichert",
+      "saveAllPartial": "Teildokumentersparnis fehlgeschlagen ({count})",
+      "saveAllSuccess": "Alle Dokumente gespeichert"
     },
     "dialogs": {
       "exportDocumentTitle": "Ausfuhrdokument",
@@ -317,7 +323,11 @@
         "pdf": "PDF Dateien"
       },
       "openFileTitle": "Datei öffnen",
-      "saveFileTitle": "Datei speichern"
+      "saveFileTitle": "Datei speichern",
+      "closeTabCancel": "Abbrechen",
+      "closeTabConfirm": "Noch nicht geschlossen",
+      "closeTabMessage": "Das aktuelle Dokument wurde nicht gespeichert. Wollen Sie weiter schließen?",
+      "closeTabTitle": "Unerreichte Veränderungen"
     },
     "latex": {
       "compileFailed": "Kompiliert fehlgeschlagen, Ausgangscode: {code}"
@@ -687,5 +697,44 @@
       "success": "Erfolgreiche Meldung",
       "warning": "Warnmeldung"
     }
+  },
+  "newDocument": {
+    "formatTitle": "Wählen Sie Format",
+    "formats": {
+      "latex": {
+        "description": "Spezielles Layout-Format für akademische Papiere, Berichte und technische Dokumente.",
+        "label": "LaTeX"
+      },
+      "markdown": {
+        "description": "Strukturiertes Klartextformat für Artikel, Notizen und Blogs.",
+        "label": "Markiert"
+      }
+    },
+    "subtitle": "Wählen Sie das Dokumentformat und die Vorlage aus, um die Erstellung zu beginnen.",
+    "templateTitle": "Wählen Sie die Vorlage",
+    "templates": {
+      "latex": {
+        "article": {
+          "description": "Gemeinsame LaTeX Artikelstruktur, geeignet für Papiere und Skripte.",
+          "label": "Allgemeine Artikel"
+        },
+        "report": {
+          "description": "Vorlagen mit Kapitelstruktur für Kurse oder Projektberichte.",
+          "label": "Meldevorlage"
+        }
+      },
+      "markdown": {
+        "article": {
+          "description": "Enthält die Struktur der Kapitel, wie Zusammenfassungen, Körper, Schlussfolgerungen, etc.",
+          "label": "Artikel Muster"
+        },
+        "blank": {
+          "description": "Erstellen Sie aus einer komplett leeren Seite.",
+          "label": "leeres Dokument"
+        }
+      }
+    },
+    "title": "Neues Dokument",
+    "useTemplate": "Verwenden Sie diese Vorlage"
   }
 }

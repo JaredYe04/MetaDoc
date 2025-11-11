@@ -1,0 +1,596 @@
+<template>
+  <div class="quick-start-overlay" :style="overlayStyle">
+    <div class="quick-start-panel aero-div">
+      <div class="panel-header">
+        <el-tooltip :content="$t('home.tooltip.close')" placement="top">
+          <el-button @click="handleClose" class="aero-btn" round type="danger" size="small" />
+        </el-tooltip>
+      </div>
+
+      <div v-if="stage === 'select'" class="format-selector">
+        <h2 class="selector-title">{{ $t('home.quickStartFormatTitle') }}</h2>
+        <div class="format-grid">
+          <el-card
+            v-for="option in formatOptions"
+            :key="option.id"
+            class="format-card"
+            shadow="hover"
+            @click="selectFormat(option.id)"
+          >
+            <h3>{{ option.title }}</h3>
+            <p>{{ option.description }}</p>
+          </el-card>
+        </div>
+      </div>
+
+      <div v-else class="panel-body">
+        <div class="panel-body__left">
+          <el-scrollbar class="markdown-preview">
+            <MarkdownItEditor :source="generatedText" @mousedown.stop class="markdown-editor" />
+          </el-scrollbar>
+        </div>
+        <div class="panel-divider" />
+      <div class="panel-body__right">
+          <div class="tab-switch">
+            <el-segmented v-model="activeTab" :options="tabOptions" />
+          </div>
+          <div v-if="activeTab === documentTabLabel" class="document-info aero-div">
+            <label class="section-title interactive-text">{{ $t('home.documentInfoLabel') }}</label>
+            <div class="form-row">
+              <label>{{ $t('home.label.title') }}</label>
+              <el-input v-model="metaTitle" :placeholder="$t('home.placeholder.title')" />
+            </div>
+            <div class="form-row">
+              <label>{{ $t('home.label.author') }}</label>
+              <el-input v-model="metaAuthor" :placeholder="$t('home.placeholder.author')" />
+            </div>
+            <div class="form-row">
+              <label>{{ $t('home.label.abstract') }}</label>
+              <el-input
+                v-model="metaDescription"
+                type="textarea"
+                :autosize="{ minRows: 2, maxRows: 3 }"
+                :placeholder="$t('home.placeholder.abstract')"
+              />
+            </div>
+            <div class="form-actions">
+              <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
+                <el-button circle type="success" @click="confirmDocument"><el-icon><Check /></el-icon></el-button>
+              </el-tooltip>
+            </div>
+          </div>
+
+          <div v-else class="ai-assistant aero-div">
+            <label class="section-title interactive-text">{{ $t('home.aiAssistantLabel') }}</label>
+            <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left">
+              <el-slider
+                v-model="temperature"
+                :marks="marks"
+                :min="0"
+                :max="100"
+                :disabled="generated || generating"
+              />
+            </el-tooltip>
+            <el-tooltip :content="$t('home.tooltip.selectMood')" placement="left">
+              <el-select
+                v-model="mood"
+                multiple
+                filterable
+                allow-create
+                size="small"
+                :disabled="generated || generating"
+              >
+                <el-option v-for="option in moodOptions" :key="option.value" :label="option.label" :value="option.value">
+                  <template #prefix>
+                    <el-icon :size="12"><component :is="option.icon" /></el-icon>
+                  </template>
+                </el-option>
+              </el-select>
+            </el-tooltip>
+            <el-tooltip :content="$t('home.tooltip.inputPrompt')" placement="left">
+              <el-autocomplete
+                v-model="userPrompt"
+                :fetch-suggestions="querySearch"
+                clearable
+                class="inline-input aero-input"
+                :placeholder="$t('home.tooltip.inputPrompt')"
+                :disabled="generated || generating"
+                :autosize="{ minRows: 3, maxRows: 3 }"
+              />
+            </el-tooltip>
+            <VoiceInput @onSpeechRecognized="onSpeechRecognized" :disabled="generated || generating" />
+            <div class="suggestion-container aero-div">
+              <label class="section-title interactive-text">{{ $t('home.suggestionLabel') }}</label>
+              <div class="suggestion-grid">
+                <el-button
+                  v-for="(button, index) in buttons"
+                  :key="index"
+                  size="small"
+                  @click="handleAcceptSuggestion(button.prompt)"
+                  class="aero-btn"
+                  :disabled="generating || generated"
+                >
+                  {{ button.label }}
+                </el-button>
+              </div>
+              <el-button
+                size="small"
+                type="primary"
+                :disabled="generating || generated"
+                class="aero-btn refresh-btn"
+                @click="refreshButtons"
+              >
+                <el-icon><Refresh /></el-icon>
+                {{ $t('home.button.refresh') }}
+              </el-button>
+            </div>
+            <div class="action-buttons" @mousedown.stop>
+              <el-tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
+                <el-button circle type="primary" @click="generate" :disabled="disableGenerate"><el-icon><Promotion /></el-icon></el-button>
+              </el-tooltip>
+              <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
+                <el-button circle type="info" @click="reset" v-if="generated"><el-icon><RefreshLeft /></el-icon></el-button>
+              </el-tooltip>
+              <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
+                <el-button circle type="success" @click="accept" v-if="generated"><el-icon><Check /></el-icon></el-button>
+              </el-tooltip>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
+import VoiceInput from '../VoiceInput.vue'
+import MarkdownItEditor from 'vue3-markdown-it'
+import {
+  DataAnalysis,
+  Drizzling,
+  Lightning,
+  MoonNight,
+  Mug,
+  Sugar,
+  SuitcaseLine,
+  Warning,
+  Check,
+  Promotion,
+  Refresh,
+  RefreshLeft
+} from '@element-plus/icons-vue'
+import { generateArticlePrompt, presets, suggestionPresets } from '../../utils/prompts'
+import { useWorkspace } from '../../stores/workspace'
+import { useActiveDocument } from '../../composables/useActiveDocument'
+import { extractOutlineTreeFromMarkdown } from '../../utils/md-utils'
+import { DEFAULT_OUTLINE_TREE } from '../../constants/document'
+import { ai_types, createAiTask } from '../../utils/ai_tasks'
+import { createRendererLogger } from '../../utils/logger'
+import eventBus, { getWindowType } from '../../utils/event-bus'
+import { getSetting } from '../../utils/settings'
+import { themeState } from '../../utils/themes'
+import { convertMarkdownToLatex, convertLatexToMarkdown } from '../../utils/latex-utils'
+
+const emit = defineEmits<{ (e: 'close'): void }>()
+
+const stage = ref<'select' | 'editor'>('select')
+const selectedFormat = ref<'md' | 'tex' | null>(null)
+
+const { t } = useI18n()
+const workspace = useWorkspace()
+const {
+  activeTabId,
+  activeDocument,
+  updateDocumentMarkdown,
+  updateDocumentTex,
+  updateDocumentMeta,
+  updateDocumentOutline,
+  updateDocumentLastView,
+  initializeDocumentFromTemplate,
+  supportedFormats,
+  openNewDocumentTab,
+  activateTab
+} = workspace
+
+const formatOptions = computed(() => supportedFormats.map((format) => ({
+  id: format.id,
+  title: t(format.labelKey),
+  description: t(format.descriptionKey)
+})))
+
+const overlayStyle = computed(() => ({
+  color: themeState.currentTheme.textColor,
+  background: stage.value === 'editor'
+    ? themeState.currentTheme.quickStartBackground1
+    : themeState.currentTheme.quickStartBackground2
+}))
+
+const buttons = ref<{ label: string; prompt: string }[]>([])
+const temperature = ref(50)
+const tabOptions = computed(() => [t('home.tab.aiAssistant'), t('home.tab.documentInfo')])
+const aiTabLabel = computed(() => tabOptions.value[0] ?? '')
+const documentTabLabel = computed(() => tabOptions.value[1] ?? '')
+const activeTab = ref(aiTabLabel.value)
+const mood = ref<string[]>([t('home.mood.peaceful')])
+const userPrompt = ref('')
+const generated = ref(false)
+const generating = ref(false)
+const defaultText = ref('')
+const generatedText = ref('')
+
+const marks = computed(() => ({
+  0: t('home.temperatureMarks.rigorous'),
+  100: t('home.temperatureMarks.creative'),
+  50: {
+    style: {
+      color: '#1989FA'
+    },
+    label: t('home.temperatureMarks.balanced')
+  }
+}))
+
+const moodOptions = computed(() => [
+  { label: t('home.mood.happy'), value: 'happy', icon: Sugar },
+  { label: t('home.mood.lyrical'), value: 'lyrical', icon: MoonNight },
+  { label: t('home.mood.peaceful'), value: 'peaceful', icon: Mug },
+  { label: t('home.mood.academic'), value: 'academic', icon: DataAnalysis },
+  { label: t('home.mood.business'), value: 'business', icon: SuitcaseLine },
+  { label: t('home.mood.sad'), value: 'sad', icon: Drizzling },
+  { label: t('home.mood.warning'), value: 'warning', icon: Warning },
+  { label: t('home.mood.exciting'), value: 'exciting', icon: Lightning },
+  { label: t('home.mood.angry'), value: 'angry', icon: Lightning },
+  { label: t('home.mood.surprised'), value: 'surprised', icon: Lightning },
+  { label: t('home.mood.fearful'), value: 'fearful', icon: Lightning },
+  { label: t('home.mood.disgusted'), value: 'disgusted', icon: Lightning }
+])
+
+const logger = createRendererLogger('QuickStartPanel', {
+  windowTypeProvider: () => getWindowType()
+})
+
+const currentMeta = computed(() => activeDocument.value?.meta ?? { title: '', author: '', description: '' })
+
+const metaTitle = computed({
+  get: () => currentMeta.value?.title ?? '',
+  set: (val: string) => updateMetaField('title', val)
+})
+
+const metaAuthor = computed({
+  get: () => currentMeta.value?.author ?? '',
+  set: (val: string) => updateMetaField('author', val)
+})
+
+const metaDescription = computed({
+  get: () => currentMeta.value?.description ?? '',
+  set: (val: string) => updateMetaField('description', val)
+})
+
+const disableGenerate = computed(() => generating.value || generated.value || userPrompt.value.trim().length === 0)
+
+function updateMetaField(field: 'title' | 'author' | 'description', value: string) {
+  const tabId = activeTabId.value
+  if (!tabId) return
+  updateDocumentMeta(tabId, (meta) => {
+    meta[field] = value
+  })
+}
+
+function generateRandomButtons() {
+  const randomCount = 6
+  const randomButtons: { label: string; prompt: string }[] = []
+  const used = new Set<number>()
+
+  while (randomButtons.length < randomCount && used.size < suggestionPresets.length) {
+    const index = Math.floor(Math.random() * suggestionPresets.length)
+    if (used.has(index)) continue
+    used.add(index)
+    randomButtons.push({
+      label: suggestionPresets[index].label,
+      prompt: suggestionPresets[index].prompt
+    })
+  }
+  return randomButtons
+}
+
+function refreshButtons() {
+  buttons.value = generateRandomButtons()
+}
+
+function handleAcceptSuggestion(prompt: string) {
+  userPrompt.value = prompt
+}
+
+function onSpeechRecognized(text: string) {
+  userPrompt.value = text
+}
+
+function querySearch(queryString: string, cb: (results: Array<{ value: string }>) => void) {
+  const results = queryString
+    ? presets.filter((preset) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
+    : presets
+  cb(results)
+}
+
+function reset() {
+  generated.value = false
+  if (selectedFormat.value === 'tex') {
+    const tex = activeDocument.value?.tex ?? ''
+    generatedText.value = tex ? convertLatexToMarkdown(tex) : ''
+  } else {
+    generatedText.value = activeDocument.value?.markdown || defaultText.value
+  }
+}
+
+async function generate() {
+  generating.value = true
+  generated.value = false
+
+  try {
+    const prompt = generateArticlePrompt(mood.value, userPrompt.value)
+    const enableKnowledgeBase = await getSetting('enableKnowledgeBase')
+    const { done } = createAiTask(
+      userPrompt.value,
+      prompt,
+      generatedText,
+      ai_types.answer,
+      'quick-start',
+      enableKnowledgeBase,
+      { temperature: temperature.value / 100 }
+    )
+    await done
+  } catch (error) {
+    logger.warn('AI 生成失败或已取消', error)
+  } finally {
+    generated.value = true
+    generating.value = false
+  }
+}
+
+function accept() {
+  const tabId = activeTabId.value
+  if (!tabId) return
+
+  if (selectedFormat.value === 'tex') {
+    const texContent = convertMarkdownToLatex(generatedText.value || '')
+    updateDocumentTex(tabId, texContent)
+  } else {
+    const markdownContent = generatedText.value || ''
+    updateDocumentMarkdown(tabId, markdownContent)
+    const outline = extractOutlineTreeFromMarkdown(markdownContent) ?? DEFAULT_OUTLINE_TREE
+    updateDocumentOutline(tabId, outline)
+  }
+  updateDocumentLastView(tabId, 'article')
+  activeTab.value = tabOptions.value[1]
+}
+
+function confirmDocument() {
+  eventBus.emit('nav-to', '/editor')
+}
+
+function prepareDocument(format: 'md' | 'tex') {
+  if (!activeTabId.value) {
+    const tab = openNewDocumentTab()
+    activateTab(tab.id)
+  }
+
+  const tabId = activeTabId.value
+  if (!tabId) return
+
+  let doc = activeDocument.value
+  if (!doc || doc.format !== format || doc.path !== '') {
+    initializeDocumentFromTemplate(tabId, format)
+    doc = activeDocument.value
+  }
+
+  if (format === 'tex') {
+    const tex = doc?.tex ?? ''
+    defaultText.value = tex ? convertLatexToMarkdown(tex) : ''
+  } else {
+    defaultText.value = doc?.markdown ?? t('home.defaultText')
+  }
+  generatedText.value = defaultText.value
+  generated.value = false
+  generating.value = false
+  userPrompt.value = ''
+  refreshButtons()
+}
+
+function selectFormat(format: 'md' | 'tex') {
+  selectedFormat.value = format
+  stage.value = 'editor'
+  activeTab.value = aiTabLabel.value
+  prepareDocument(format)
+}
+
+function handleClose() {
+  stage.value = 'select'
+  selectedFormat.value = null
+  activeTab.value = aiTabLabel.value
+  emit('close')
+}
+
+onMounted(() => {
+  refreshButtons()
+  defaultText.value = t('home.defaultText')
+  eventBus.on('reset-quickstart', reset)
+})
+
+watch(tabOptions, (options) => {
+  if (!options.includes(activeTab.value)) {
+    activeTab.value = options[0]
+  }
+})
+
+onBeforeUnmount(() => {
+  eventBus.off('reset-quickstart', reset)
+})
+
+watch(
+  () => t('home.defaultText'),
+  (val) => {
+    if (selectedFormat.value !== 'tex') {
+      defaultText.value = val
+      if (!generated.value) {
+        generatedText.value = val
+      }
+    }
+  }
+)
+</script>
+
+<style scoped>
+.quick-start-overlay {
+  position: relative;
+  width: 70vw;
+  height: 90vh;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.5s ease;
+}
+
+.quick-start-panel {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(8px);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+.panel-body {
+  display: flex;
+  flex: 1;
+  border-top: 1px dashed var(--el-border-color);
+  padding-top: 12px;
+}
+
+.panel-body__left {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  padding-right: 12px;
+}
+
+.panel-body__right {
+  width: 30%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-divider {
+  width: 1px;
+  margin: 0 12px;
+  background: var(--el-border-color-light);
+}
+
+.tab-switch {
+  display: flex;
+  justify-content: center;
+}
+
+.document-info,
+.ai-assistant {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.section-title {
+  width: 100%;
+  text-align: center;
+  font-weight: bold;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-row label {
+  width: 60px;
+  text-align: left;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.markdown-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.markdown-editor {
+  box-shadow: none;
+}
+
+.suggestion-container {
+  position: relative;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.suggestion-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.refresh-btn {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.format-selector {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.selector-title {
+  font-size: 24px;
+  margin: 0;
+}
+
+.format-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.format-card {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  text-align: center;
+}
+
+.format-card:hover {
+  transform: translateY(-4px);
+}
+</style>

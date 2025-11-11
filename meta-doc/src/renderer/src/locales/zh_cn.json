@@ -328,6 +328,7 @@
         "authorLabel": "作者",
         "abstractLabel": "摘要",
         "quickStartTitle": "快速开始",
+        "quickStartFormatTitle": "选择快速开始格式",
         "tab": {
             "aiAssistant": "AI 助手",
             "documentInfo": "文档信息"
@@ -370,11 +371,11 @@
         "notification": {
             "save": {
                 "title": "保存成功",
-                "message": "保存成功"
+                "message": "{name} 保存成功"
             },
             "open": {
                 "title": "打开成功",
-                "message": "打开成功"
+                "message": "{name} 打开成功"
             },
             "export": {
                 "title": "导出成功",

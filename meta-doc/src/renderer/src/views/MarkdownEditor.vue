@@ -193,6 +193,7 @@ const logger = createRendererLogger('MarkdownEditor', {
 })
 
 const workspace = useWorkspace()
+const activeTabIdRef = workspace.activeTabId;
 
 const props = withDefaults(defineProps<{
   tabId: string
@@ -268,17 +269,31 @@ function addDialog(dialog: any, add2front = false) {
   })
 }
 
-function syncDocument() {
-  if (currentView.value === 'outline') {
-    currentMarkdown.value = generateMarkdownFromOutlineTree(currentOutline.value)
-    currentView.value = 'article'
-  } else if (currentView.value === 'article') {
-    const outline = extractOutlineTreeFromMarkdown(currentMarkdown.value)
-    currentOutline.value = outline
-    currentView.value = 'outline'
+let suppressOutlineSync = false;
+
+const syncOutlineFromMarkdown = debounce(() => {
+  if (suppressOutlineSync) return;
+  const outline = extractOutlineTreeFromMarkdown(currentMarkdown.value);
+  currentOutline.value = outline;
+}, 200);
+
+function flushOutlineSync() {
+  if ('flush' in syncOutlineFromMarkdown) {
+    syncOutlineFromMarkdown.flush();
   }
 }
- 
+
+function syncMarkdownFromOutline() {
+  suppressOutlineSync = true;
+  syncOutlineFromMarkdown.cancel();
+  try {
+    const markdown = generateMarkdownFromOutlineTree(currentOutline.value);
+    workspace.updateDocumentMarkdown(props.tabId, markdown);
+  } finally {
+    suppressOutlineSync = false;
+  }
+}
+
 function getEditorRoot(): HTMLElement | null {
   return document.getElementById(props.editorDomId) as HTMLElement | null
 }
@@ -454,6 +469,18 @@ const handleRefresh = () => {
 };
 eventBus.on('refresh', handleRefresh);
 
+const handleSyncActiveEditor = (payload?: { tabId?: string }) => {
+    const resolvedTabId = payload?.tabId ?? activeTabIdRef?.value;
+    if (resolvedTabId !== props.tabId) return;
+    if (!vditor.value) return;
+    const latest = vditor.value.getValue();
+    currentView.value = 'article';
+    workspace.updateDocumentMarkdown(props.tabId, latest);
+    syncOutlineFromMarkdown.cancel();
+    syncOutlineFromMarkdown();
+    flushOutlineSync();
+};
+eventBus.on('sync-active-editor', handleSyncActiveEditor as (payload?: unknown) => void);
 
 const handleSearchReplace = () => {
     if (!isActive.value) return;
@@ -486,9 +513,10 @@ const acceptGeneratedText = async (payload: any) => {
         }
     }
     currentOutline.value = outlineTree;
-    currentView.value = 'outline';
-    syncDocument();
+  syncMarkdownFromOutline();
+  currentView.value = 'article';
     vditor.value?.setValue(currentMarkdown.value);
+  flushOutlineSync();
     await bindTitleMenu();
 };
 
@@ -819,7 +847,7 @@ onMounted(async () => {
                 workspace.updateDocumentMarkdown(props.tabId, value);
                 //trytriggerSuggestion();
 
-                syncDocument();
+                syncOutlineFromMarkdown();
                 await bindTitleMenu();
 
             },
@@ -827,7 +855,7 @@ onMounted(async () => {
 
                 //logger.log(themeState);
                 try {
-                    syncDocument();
+                    flushOutlineSync();
                     await bindTitleMenu();
                 } catch (e) {
                     logger.error(e);
@@ -855,9 +883,17 @@ const currentAiLogo = computed(() => {
 });
 // 清理资源
 onBeforeUnmount(() => {
-    syncDocument();
-    vditor.value?.destroy();
+    flushOutlineSync();
+    const instance = vditor.value;
+    if (instance && (instance as any).element) {
+        try {
+            instance.destroy();
+        } catch (error) {
+            logger.warn('销毁 Vditor 失败，将忽略', error);
+        }
+    }
     eventBus.off('refresh', handleRefresh);
+    eventBus.off('sync-active-editor');
     eventBus.off('search-replace', handleSearchReplace);
     eventBus.off('vditor-sync-with-html', handleSyncWithHtml);
     eventBus.off('sync-editor-theme', handleSyncEditorTheme);

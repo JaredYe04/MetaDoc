@@ -51,7 +51,9 @@
     "langTooltip": "Language",
     "askSave": "Do you want to save the current document",
     "discard": "Abandon",
-    "tip": "Hint"
+    "tip": "Hint",
+    "saveAll": "Save All",
+    "saveAllAndExit": "Save All and Exit"
   },
   "llmDialog": {
     "aiAssistant": "AI Assistant",
@@ -326,6 +328,7 @@
     "authorLabel": "Author",
     "abstractLabel": "Abstract",
     "quickStartTitle": "Quick Start",
+    "quickStartFormatTitle": "Choose a quick start format",
     "tab": {
       "aiAssistant": "AI Assistant",
       "documentInfo": "Document Info"
@@ -368,11 +371,11 @@
     "notification": {
       "save": {
         "title": "Saved",
-        "message": "Document saved successfully"
+        "message": "\"{name}\" saved successfully"
       },
       "open": {
         "title": "Opened",
-        "message": "Document opened successfully"
+        "message": "\"{name}\" opened successfully"
       },
       "export": {
         "title": "Exported",
@@ -389,7 +392,10 @@
       },
       "warning": {
         "title": "Warning"
-      }
+      },
+      "saveAllNone": "No document saved",
+      "saveAllPartial": "Partial document saving failed ({count})",
+      "saveAllSuccess": "All documents saved"
     },
     "windows": {
       "appTitle": "MetaDoc",
@@ -411,7 +417,11 @@
         "docx": "DOCX Files",
         "html": "HTML Files",
         "pdf": "PDF Files"
-      }
+      },
+      "closeTabCancel": "Cancel",
+      "closeTabConfirm": "Still Close",
+      "closeTabMessage": "The current document has not been saved. Do you want to continue to close?",
+      "closeTabTitle": "Unsaved Changes"
     },
     "latex": {
       "compileFailed": "Compilation failed, exit code: {code}"
@@ -687,5 +697,44 @@
       "success": "Successful notification",
       "warning": "Warning Notification"
     }
+  },
+  "newDocument": {
+    "formatTitle": "Select Format",
+    "formats": {
+      "latex": {
+        "description": "Specialized layout format for academic papers, reports and technical documents.",
+        "label": "LaTeX"
+      },
+      "markdown": {
+        "description": "Structured plain text format for articles, notes and blogs.",
+        "label": "Markdown"
+      }
+    },
+    "subtitle": "Select the document format and template to start creating.",
+    "templateTitle": "Select Template",
+    "templates": {
+      "latex": {
+        "article": {
+          "description": "Common LaTeX article structure, suitable for papers and scripts.",
+          "label": "Standard Articles"
+        },
+        "report": {
+          "description": "Reporting templates with chapter structure applicable to courses or project reports.",
+          "label": "Reporting template"
+        }
+      },
+      "markdown": {
+        "article": {
+          "description": "Contains the structure of the chapters, such as summaries, body, conclusions, etc.",
+          "label": "Article Template"
+        },
+        "blank": {
+          "description": "Create from a completely blank page.",
+          "label": "Empty Document"
+        }
+      }
+    },
+    "title": "New Document",
+    "useTemplate": "Use this template"
   }
 }

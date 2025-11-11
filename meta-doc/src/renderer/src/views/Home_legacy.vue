@@ -1,10 +1,5 @@
 <template>
   <div id="particle-bg" class="homepage">
-    <WorkspaceTabs
-      closable
-      @update:activeId="handleTabChange"
-      @close="handleCloseTab"
-    />
 
     <div class="center-content" v-if="!quickStartDialogVisible">
       <h1 class="main-letter" @mouseover="highlightM" @mouseleave="resetM" v-if="currentFilePath === ''">{{
@@ -224,10 +219,11 @@
   </div>
 </template>
 
+
 <script setup>
 import VoiceInput from '../components/VoiceInput.vue';
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
-import { ElButton, ElMessageBox } from 'element-plus';
+import { ElButton } from 'element-plus';
 import * as THREE from 'three';
 import "../assets/aero-div.css";
 import "../assets/aero-btn.css";
@@ -257,15 +253,11 @@ const { t } = useI18n()
 
 const workspace = useWorkspace()
 const {
-  tabs,
   activeTabId,
   updateDocumentMarkdown,
   updateDocumentMeta,
   updateDocumentOutline,
   updateDocumentLastView,
-  activateTab,
-  ensureDocument,
-  removeTab,
 } = workspace
 const { activeDocument } = useActiveDocument()
 
@@ -680,7 +672,6 @@ import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from '../utils/web-adapter/web-main-calls';
 import { ai_types, createAiTask } from '../utils/ai_tasks';
 import { createRendererLogger } from '../utils/logger';
-import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
 
 let ipcRenderer = null
 if (window && window.electron) {
@@ -768,31 +759,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', onWindowResize);
   if (renderer) renderer.dispose();
 });
-
-const handleTabChange = (id) => {
-  activateTab(id)
-}
-
-const handleCloseTab = async (id) => {
-  if (tabs.length <= 1) return;
-  const doc = ensureDocument(id);
-  if (doc?.dirty) {
-    try {
-      await ElMessageBox.confirm(
-        t('main.dialogs.closeTabMessage'),
-        t('main.dialogs.closeTabTitle'),
-        {
-          type: 'warning',
-          confirmButtonText: t('main.dialogs.closeTabConfirm'),
-          cancelButtonText: t('main.dialogs.closeTabCancel'),
-        },
-      );
-    } catch {
-      return;
-    }
-  }
-  removeTab(id);
-};
 </script>
 
 <style scoped>

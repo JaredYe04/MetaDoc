@@ -28,6 +28,7 @@
 </template>
 
 <script setup lang="ts">
+import path from 'path'
 import LeftMenu from '../components/LeftMenu.vue'
 import HeadMenu from '../components/HeadMenu.vue'
 import { onMounted, onBeforeUnmount, ref } from 'vue'
@@ -107,11 +108,33 @@ const handleWorkspaceOpenDocument = (payload: OpenDocumentPayload) => {
   const content = payload.content ?? ''
   const resolvedPath = typeof payload.path === 'string' ? payload.path : ''
 
+  const getDisplayName = (doc: WorkspaceDocument | null | undefined, filePath: string): string => {
+    const title = doc?.meta?.title?.trim()
+    if (title) {
+      return title
+    }
+    if (filePath) {
+      try {
+        return path.basename(filePath)
+      } catch (error) {
+        logger.warn('解析文件名失败', error)
+        const segments = filePath.split(/[\\/]/)
+        return segments[segments.length - 1] || filePath
+      }
+    }
+    return t('workspace.untitledDocument')
+  }
+
   if (resolvedPath) {
     const existing = workspaceTabs.find((tab) => tab.path === resolvedPath)
     if (existing) {
       activateTab(existing.id)
-      eventBus.emit('open-doc-success', { tabId: existing.id, path: resolvedPath })
+      const existingDoc = ensureDocument(existing.id)
+      eventBus.emit('open-doc-success', {
+        tabId: existing.id,
+        path: resolvedPath,
+        fileName: getDisplayName(existingDoc, resolvedPath)
+      })
       eventBus.emit('is-need-save', false)
       return
     }
@@ -153,7 +176,11 @@ const handleWorkspaceOpenDocument = (payload: OpenDocumentPayload) => {
     activateTab(tab.id)
     activated = true
 
-    eventBus.emit('open-doc-success', { tabId: tab.id, path: resolvedPath })
+    eventBus.emit('open-doc-success', {
+      tabId: tab.id,
+      path: resolvedPath,
+      fileName: getDisplayName(doc, resolvedPath)
+    })
     eventBus.emit('is-need-save', false)
   } catch (error) {
     logger.error('Failed to open document:', error)
@@ -208,9 +235,15 @@ eventBus.on('workspace-open-document', workspaceOpenDocumentHandler)
 eventBus.on('toggle-user-profile', () => {
   showUserProfileCard.value = !showUserProfileCard.value
 })
-eventBus.on('save-success', () => {
-  workspace.updateDocumentDirty(activeTabId.value);
-  eventBus.emit('is-need-save', false);
+eventBus.on('save-success', (payload) => {
+  const maybeTabId =
+    payload && typeof payload === 'object' && 'tabId' in payload && typeof payload.tabId === 'string'
+      ? payload.tabId
+      : activeTabId.value
+  if (maybeTabId) {
+    workspace.updateDocumentDirty(maybeTabId)
+  }
+  eventBus.emit('is-need-save', false)
 });
 
 eventBus.on('open-doc-success', (payload) => {

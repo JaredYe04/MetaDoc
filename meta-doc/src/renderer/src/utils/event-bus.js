@@ -4,6 +4,7 @@
 // 使用 Vue 实例作为事件总线
 
 import mitt from 'mitt'
+import path from 'path'
 import { getSetting, updateRecentDocs } from './settings.js'
 import { ConvertHtmlForPdf, image2base64, image2local, local2image, ConvertMarkdownToHtmlManually, ConvertMarkdownToHtmlVditor, filterMetaDataFromMd } from './md-utils.js'
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
@@ -37,6 +38,22 @@ const { activeTabId, ensureDocument, markDocumentSaved, updateDocumentDirty } = 
 
 const cloneDeep = (value) => JSON.parse(JSON.stringify(value));
 
+const extractFileName = (filePath, fallbackTitle) => {
+  if (fallbackTitle && typeof fallbackTitle === 'string' && fallbackTitle.trim().length > 0) {
+    return fallbackTitle.trim();
+  }
+  if (typeof filePath === 'string' && filePath.length > 0) {
+    try {
+      return path.basename(filePath);
+    } catch (error) {
+      logger.warn('解析文件名失败', error);
+      const parts = filePath.split(/[\\/]/);
+      return parts[parts.length - 1] || filePath;
+    }
+  }
+  return i18n?.global?.t?.('workspace.untitledDocument') ?? 'Untitled';
+};
+
 const getDocument = (tabId) => {
   const targetId = typeof tabId === 'string' ? tabId : activeTabId.value;
   if (!targetId) return null;
@@ -47,6 +64,9 @@ const getDocument = (tabId) => {
     return null;
   }
 };
+
+const resolveTargetTabId = (tabId) =>
+  typeof tabId === 'string' ? tabId : activeTabId.value;
 
 const buildSavePayload = async (doc) => {
   const serialized = serializeDocument(doc);
@@ -149,7 +169,16 @@ ipcRenderer.on('save-success', (_event, data = {}) => {
     updateRecentDocs(data.path)
   }
 
-  eventBus.emit('save-success')
+  const effectivePath = data.path ?? doc?.path ?? ''
+  const payload = {
+    path: effectivePath,
+    fileName: extractFileName(effectivePath, doc?.meta?.title),
+    format: data.format ?? doc?.format,
+    tabId: doc?.tabId ?? resolveTargetTabId(data.tabId),
+    saveAs: Boolean(data.saveAs)
+  }
+
+  eventBus.emit('save-success', payload)
   if (data.saveAs && data.path) {
     eventBus.emit('open-doc', data.path)//对于另存为的文件，需要重新打开
   }
@@ -179,7 +208,11 @@ ipcRenderer.on('search-replace-triggered', () => {
 })
 
 ipcRenderer.on('open-doc-success', (event, payload) => {
-  eventBus.emit('workspace-open-document', payload)
+  const fileName = extractFileName(payload?.path, payload?.fileName)
+  eventBus.emit('workspace-open-document', {
+    ...payload,
+    fileName
+  })
 })
 
 
@@ -203,7 +236,11 @@ const normalizeSavePayload = (payload) => {
 }
 
 const save = async (mode = 'save', args, targetTabId) => {
-  const doc = getDocument(targetTabId)
+  const resolvedTabId = resolveTargetTabId(targetTabId);
+  if (resolvedTabId) {
+    eventBus.emit('sync-active-editor', { tabId: resolvedTabId });
+  }
+  const doc = getDocument(resolvedTabId)
   if (!doc) return
   const payload = await buildSavePayload(doc)
   ipcRenderer.send(mode, {

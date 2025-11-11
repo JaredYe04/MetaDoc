@@ -110,18 +110,36 @@ export function useNotificationStack() {
 
 let listenersRegistered = false
 
+const extractNameFromPayload = (payload: unknown): string => {
+  if (!payload) return ''
+  if (typeof payload === 'string') return payload
+  if (typeof payload === 'object') {
+    const maybe = payload as { fileName?: unknown; path?: unknown }
+    if (typeof maybe.fileName === 'string' && maybe.fileName.trim().length > 0) {
+      return maybe.fileName.trim()
+    }
+    if (typeof maybe.path === 'string' && maybe.path.length > 0) {
+      const parts = maybe.path.split(/[\\/]/)
+      return parts[parts.length - 1] || maybe.path
+    }
+  }
+  return ''
+}
+
 function registerEventListeners(): void {
   if (listenersRegistered) return
   listenersRegistered = true
 
-  eventBus.on('save-success', () => {
+  eventBus.on('save-success', (payload) => {
     const t = getTranslator()
-    pushNotification(t('main.notification.save.title'), t('main.notification.save.message'), 'success')
+    const name = extractNameFromPayload(payload) || t('workspace.untitledDocument')
+    pushNotification(t('main.notification.save.title'), t('main.notification.save.message', { name }), 'success')
   })
 
-  eventBus.on('open-doc-success', () => {
+  eventBus.on('open-doc-success', (payload) => {
     const t = getTranslator()
-    pushNotification(t('main.notification.open.title'), t('main.notification.open.message'), 'success')
+    const name = extractNameFromPayload(payload) || t('workspace.untitledDocument')
+    pushNotification(t('main.notification.open.title'), t('main.notification.open.message', { name }), 'success')
   })
 
   eventBus.on('export-success', (payload) => {

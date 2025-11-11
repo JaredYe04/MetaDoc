@@ -51,7 +51,9 @@
     "langTooltip": "언어",
     "askSave": "",
     "discard": "",
-    "tip": ""
+    "tip": "",
+    "saveAll": "모두 저장",
+    "saveAllAndExit": "모든 및 출구 저장"
   },
   "llmDialog": {
     "aiAssistant": "AI 어시스턴트",
@@ -326,6 +328,7 @@
     "authorLabel": "작성자",
     "abstractLabel": "요약",
     "quickStartTitle": "빠른 시작",
+    "quickStartFormatTitle": "빠른 시작 형식 선택",
     "tab": {
       "aiAssistant": "AI 어시스턴트",
       "documentInfo": "문서 정보"
@@ -366,14 +369,6 @@
   },
   "main": {
     "notification": {
-      "save": {
-        "title": "저장 성공",
-        "message": "저장 성공"
-      },
-      "open": {
-        "title": "열기 성공",
-        "message": "열기 성공"
-      },
       "export": {
         "title": "내보내기 성공",
         "message": "{path} 내보내기 성공"
@@ -389,7 +384,18 @@
       },
       "warning": {
         "title": "경고"
-      }
+      },
+      "open": {
+        "message": "자주 묻는 질문",
+        "title": "자주 묻는 질문"
+      },
+      "save": {
+        "message": "이름 * 자주 묻는 질문",
+        "title": "자주 묻는 질문"
+      },
+      "saveAllNone": "자주 묻는 질문",
+      "saveAllPartial": "Partial 문서 저장 실패 ({count})",
+      "saveAllSuccess": "모든 문서 저장"
     },
     "dialogs": {
       "exportDocumentTitle": "수출 문서",
@@ -403,7 +409,11 @@
         "pdf": "PDF 파일"
       },
       "openFileTitle": "파일 열기",
-      "saveFileTitle": "파일 저장"
+      "saveFileTitle": "파일 저장",
+      "closeTabCancel": "이름 *",
+      "closeTabConfirm": "아직 닫기",
+      "closeTabMessage": "현재 문서가 저장되지 않았습니다. 계속하려면?",
+      "closeTabTitle": "잘못된 변화"
     },
     "latex": {
       "compileFailed": "컴파일 실패, 종료 코드: 이름 *"
@@ -687,5 +697,44 @@
       "success": "성공적인 알림",
       "warning": "공지사항"
     }
+  },
+  "newDocument": {
+    "formatTitle": "형식 선택",
+    "formats": {
+      "latex": {
+        "description": "학술지, 보고서 및 기술 문서에 대한 특수 레이아웃 형식.",
+        "label": "프로젝트"
+      },
+      "markdown": {
+        "description": "기사, 메모 및 블로그에 대한 일반 텍스트 형식.",
+        "label": "연락처"
+      }
+    },
+    "subtitle": "문서 형식과 템플릿을 선택하여 생성을 시작합니다.",
+    "templateTitle": "템플릿 선택",
+    "templates": {
+      "latex": {
+        "article": {
+          "description": "일반적인 LaTeX 문서 구조, 종이 및 스크립트에 적합.",
+          "label": "표준 기사"
+        },
+        "report": {
+          "description": "챕터 구조와 템플릿을 보고하는 과정이나 프로젝트 보고서에 적용.",
+          "label": "템플릿 보기"
+        }
+      },
+      "markdown": {
+        "article": {
+          "description": "summaries, body, 결론 등과 같은 장의 구조를 포함합니다.",
+          "label": "문서 템플릿"
+        },
+        "blank": {
+          "description": "완전 빈 페이지에서 생성.",
+          "label": "빈 문서"
+        }
+      }
+    },
+    "title": "새 문서",
+    "useTemplate": "이 템플릿 사용"
   }
 }

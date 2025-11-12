@@ -30,6 +30,7 @@ let logFilePath = '';
 let initialized = false;
 
 let stream: fs.WriteStream | null = null;
+let waitingForReady = false;
 const logHistory: ConsoleHistoryEntry[] = [];
 const MAX_HISTORY = 500;
 
@@ -40,6 +41,17 @@ const config: InternalLoggerConfig = {
 
 const ensureInitialized = () => {
   if (initialized) {
+    return;
+  }
+
+  if (!app.isReady()) {
+    if (!waitingForReady) {
+      waitingForReady = true;
+      app.once('ready', () => {
+        waitingForReady = false;
+        ensureInitialized();
+      });
+    }
     return;
   }
 
@@ -57,8 +69,8 @@ const ensureInitialized = () => {
     store.set(CONFIG_LEVEL_KEY, config.level);
   }
 
-  const basePath = process.cwd();
-  logDirectory = path.join(basePath, 'logs');
+  const basePath = app.getPath('documents');
+  logDirectory = path.join(basePath, 'meta-doc', 'logs');
 
   try {
     if (!fs.existsSync(logDirectory)) {

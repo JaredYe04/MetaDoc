@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, reactive, ref, watch, type Ref } from 'vue';
+import { computed, onMounted, onBeforeUnmount, reactive, ref, watch, type Ref, type WatchStopHandle } from 'vue';
 import MessageBubble from "../components/MessageBubble.vue";
 //import { bindCode } from "../assets/aichat_legacy/utils";
 import { ChatSquare, Delete, Edit } from "@element-plus/icons-vue/global";
@@ -113,10 +113,11 @@ const createDefaultDialog = (title: string): AIDialog => ({
 const messages = ref<AIDialogMessage[]>(createDefaultMessages());
 const cur_resp = ref('')
 const promptInput = ref('');
-const createAssistantPlaceholder = (): AIDialogMessage => ({
-  role: 'assistant',
-  content: cur_resp.value,
-});
+const createAssistantPlaceholder = (): AIDialogMessage =>
+  reactive({
+    role: 'assistant',
+    content: '',
+  }) as AIDialogMessage;
 const defaultTitle = t('aiChat.defaultTitle');
 
 // const { workspace, activeDocument } = useActiveDocument();
@@ -286,13 +287,23 @@ const onMsgSend = async () => {
   promptInput.value = '';
   cur_resp.value = '';
 
+  let stopStream: WatchStopHandle | undefined;
   await generateNextResponse(
     () => {
-      messages.value.push(createAssistantPlaceholder());
+      const placeholder = createAssistantPlaceholder();
+      messages.value.push(placeholder);
+      stopStream = watch(
+        cur_resp,
+        (value) => {
+          placeholder.content = value;
+        },
+        { immediate: true },
+      );
     },
     cur_resp,
     async () => {
       messages.value.pop();
+      stopStream?.();
       const assistantMessage: AIDialogMessage = {
         role: 'assistant',
         content: cur_resp.value,
@@ -375,13 +386,23 @@ const onMsgDelete = (index: number) => {
 const regenerate = async (index: number) => {
   messages.value.splice(index + 1);
   cur_resp.value = '';
+  let stopStream: WatchStopHandle | undefined;
   await generateNextResponse(
     () => {
-      messages.value.push(createAssistantPlaceholder());
+      const placeholder = createAssistantPlaceholder();
+      messages.value.push(placeholder);
+      stopStream = watch(
+        cur_resp,
+        (value) => {
+          placeholder.content = value;
+        },
+        { immediate: true },
+      );
     },
     cur_resp,
     () => {
       messages.value.pop();
+      stopStream?.();
       const assistantMessage: AIDialogMessage = {
         role: 'assistant',
         content: cur_resp.value,

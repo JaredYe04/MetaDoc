@@ -48,24 +48,17 @@
 
         </div>
 
-        <div class="input-box input-area" :style="{
-          backgroundColor: themeState.currentTheme.background,
-          color: themeState.currentTheme.textColor
-
-        }" style="height:120px;">
-          <el-scrollbar style="height: 70px;">
-            <el-input v-model="promptInput" :placeholder="t('aiChat.inputPlaceholder')" type="textarea"
-              :autosize="{ minRows: 2, maxRows: 4 }" class="input-with-select" :disabled="responding" />
-          </el-scrollbar>
-
-
-          <el-button id="sendMsg" @click="onMsgSend" type="primary" round size="large" text bg
-            :disabled="responding || promptInput.length === 0">
-            {{ t('aiChat.send') }}
-          </el-button>
-          <el-button id="reset" @click="reset" round type="info" size="large" :disabled="responding" text bg>
-            {{ t('aiChat.reset') }}
-          </el-button>
+        <div class="composer-wrapper">
+          <ChatComposer
+            v-model="promptInput"
+            :loading="responding"
+            :disabled="responding"
+            :placeholder="t('aiChat.inputPlaceholder')"
+            :show-voice="false"
+            @submit="onMsgSend"
+            @reset="reset"
+            @attach="handleAttach"
+          />
         </div>
 
       </div>
@@ -92,9 +85,10 @@ import { updateTitlePrompt } from '../utils/prompts.js';
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks.ts';
 import { getSetting } from '../utils/settings.js';
-import { useActiveDocument } from '../composables/useActiveDocument';
+// import { useActiveDocument } from '../composables/useActiveDocument';
 import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document';
 import type { AIDialog, AIDialogMessage } from '../../../types';
+import ChatComposer from '../components/chat/ChatComposer.vue';
 const { t } = useI18n()
 const responding = ref(false);
 const activeDialogIndex = ref<number>(0);
@@ -125,45 +119,49 @@ const createAssistantPlaceholder = (): AIDialogMessage => ({
 });
 const defaultTitle = t('aiChat.defaultTitle');
 
-const { workspace, activeDocument } = useActiveDocument();
-const targetTabId = computed(() => props.id || workspace.activeTabId.value);
+// const { workspace, activeDocument } = useActiveDocument();
+// const targetTabId = computed(() => props.id || workspace.activeTabId.value);
+
+const LOCAL_STORAGE_KEY = 'meta-doc-ai-chat-dialogs';
 
 const dialogs = ref<AIDialog[]>([]);
-let isSyncingFromWorkspace = false;
 
-const syncDialogsFromWorkspace = () => {
-  isSyncingFromWorkspace = true;
-  const tabId = targetTabId.value;
-  if (!tabId) {
-    dialogs.value = [];
-    isSyncingFromWorkspace = false;
-    return;
-  }
+const loadDialogsFromStorage = () => {
   try {
-    const doc = workspace.ensureDocument(tabId);
-    if (!doc.aiDialogs || doc.aiDialogs.length === 0) {
+    if (typeof window === 'undefined') {
       dialogs.value = [createDefaultDialog(defaultTitle)];
-      workspace.updateDocumentAiDialogs(tabId, cloneDeep(dialogs.value));
+      return;
+    }
+    const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!stored) {
+      dialogs.value = [createDefaultDialog(defaultTitle)];
+      persistDialogsToStorage();
+      return;
+    }
+    const parsed = JSON.parse(stored);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      dialogs.value = parsed;
     } else {
-      dialogs.value = cloneDeep(doc.aiDialogs);
+      dialogs.value = [createDefaultDialog(defaultTitle)];
     }
   } catch (error) {
-    logger.warn('Unable to sync AI dialogs from workspace', error);
+    logger.warn('Failed to parse AI chat dialogs from storage', error);
     dialogs.value = [createDefaultDialog(defaultTitle)];
   }
-  isSyncingFromWorkspace = false;
 };
 
-const commitDialogsToWorkspace = () => {
-  if (isSyncingFromWorkspace) return;
-  const tabId = targetTabId.value;
-  if (!tabId) return;
-  workspace.updateDocumentAiDialogs(tabId, cloneDeep(dialogs.value));
+const persistDialogsToStorage = () => {
+  try {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dialogs.value));
+  } catch (error) {
+    logger.warn('Failed to persist AI chat dialogs', error);
+  }
 };
 
 // 初始化当前对话
 const initCurrentDialog = () => {
-  syncDialogsFromWorkspace();
+  loadDialogsFromStorage();
   if (dialogs.value && dialogs.value.length > 0) {
     loadDialog(0);
   } else {
@@ -195,7 +193,7 @@ const updateCurrentDialog = (index: number | null = null) => {
   else {
     dialogs.value[index] = dialog;
   }
-  commitDialogsToWorkspace();
+  persistDialogsToStorage();
 };
 
 const loadDialog = (index: number) => {
@@ -216,7 +214,7 @@ const deleteCurrentDialog = () => {
   } else {
     addNewDialog();
   }
-  commitDialogsToWorkspace();
+  persistDialogsToStorage();
 };
 const renameDialog = (index: number) => {
   editingIndex.value = index;
@@ -239,7 +237,6 @@ const finishRename = () => {
   if (activeDialogIndex.value === editingIndex.value) {
     title.value = editingTitle.value;
   }
-  commitDialogsToWorkspace();
   renameDialogVisible.value = false;
 };
 
@@ -248,6 +245,10 @@ const title = ref(defaultTitle);
 const reset = () => {
   promptInput.value = '';
 }
+
+const handleAttach = () => {
+  eventBus.emit('ai-chat-attach');
+};
 
 async function generateNextResponse(
   beforeGeneration: () => void | Promise<void>,
@@ -350,20 +351,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   eventBus.off('ai-dialogs-loaded', initCurrentDialog);
 });
-
-watch(
-  () => [targetTabId.value, activeDocument.value?.aiDialogs],
-  () => {
-    isSyncingFromWorkspace = true;
-    syncDialogsFromWorkspace();
-    if (dialogs.value.length > 0) {
-      const nextIndex = Math.min(activeDialogIndex.value, dialogs.value.length - 1);
-      loadDialog(Math.max(nextIndex, 0));
-    }
-    isSyncingFromWorkspace = false;
-  },
-  { deep: true }
-);
 
 watch([messages], () => {
   //bindCode(false);
@@ -474,9 +461,10 @@ const onMsgEdit = async (data: MessageEditPayload) => {
   overflow: auto;
 }
 
-.input-area {
-
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+.composer-wrapper {
+  padding: 12px 24px 32px;
+  display: flex;
+  justify-content: center;
 }
 
 .menu-item-wrapper {

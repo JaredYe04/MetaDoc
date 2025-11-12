@@ -20,7 +20,9 @@
     <el-menu-item index="/outline">{{ $t('headMenu.outline') }}</el-menu-item>
     <el-menu-item index="/editor">{{ $t('headMenu.editor') }}</el-menu-item>
     <el-menu-item index="/visualize">{{ $t('headMenu.visualize') }}</el-menu-item>
+    <el-menu-item index="/agent">{{ $t('headMenu.agent') }}</el-menu-item>
     <el-menu-item index="/knowledge-base">{{ $t('headMenu.knowledgeBase') }}</el-menu-item>
+    
   </el-menu>
 </template>
 

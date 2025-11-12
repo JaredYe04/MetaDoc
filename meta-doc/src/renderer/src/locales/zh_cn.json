@@ -16,7 +16,8 @@
         "outline": "大纲树",
         "editor": "编辑器",
         "visualize": "可视化",
-        "knowledgeBase": "知识库"
+        "knowledgeBase": "知识库",
+        "agent": "Agent"
     },
     "leftMenu": {
         "metaDocTooltip": "MetaDoc ;-)",
@@ -329,6 +330,8 @@
         "abstractLabel": "摘要",
         "quickStartTitle": "快速开始",
         "quickStartFormatTitle": "选择快速开始格式",
+        "quickStartFormatDescriptionMarkdown": "使用 Markdown 语法快速编写并即时预览内容。",
+        "quickStartFormatDescriptionLatex": "使用 LaTeX 创建包含结构与公式的专业排版文档。",
         "tab": {
             "aiAssistant": "AI 助手",
             "documentInfo": "文档信息"
@@ -365,7 +368,8 @@
             "balanced": "平衡",
             "creative": "创意"
         },
-        "defaultText": "# 欢迎使用MetaDoc\n\n这是一款AI驱动的文字处理软件，可以帮助您快速生成文档内容。"
+        "defaultText": "# 欢迎使用MetaDoc\n\n这是一款AI驱动的文字处理软件，可以帮助您快速生成文档内容。",
+        "defaultLatexText": "\\\\documentclass{article}\n\\\\begin{document}\n\\\\title{欢迎使用 MetaDoc}\n\\\\author{AI 助手}\n\\\\maketitle\n\n\\\\section{简介}\n这是由 MetaDoc 生成的 LaTeX 快速开始模板。\n\n\\\\end{document}"
     },
     "main": {
         "notification": {
@@ -737,5 +741,65 @@
         "prevPage":"上一页",
         "nextPage":"下一页",
         "pages":"页"
+  },
+  "agent": {
+    "roles": {
+      "user": "用户",
+      "assistant": "助手",
+      "system": "系统提示",
+      "tool": "工具"
+    },
+    "tool": {
+      "status": {
+        "pending": "待执行",
+        "running": "执行中",
+        "success": "已完成",
+        "failed": "执行失败"
+      }
+    },
+    "sessions": {
+      "title": "Agent 会话",
+      "new": "新建",
+      "delete": "删除",
+      "newTitle": "Agent 会话 {{index}}",
+      "defaultSystemPrompt": "你是一名主动型智能体，请先向用户问好并等待指令。",
+      "confirmDelete": "确定要删除「{{title}}」吗？",
+      "deleteSuccess": "会话已删除",
+      "rename": "重命名会话",
+      "renamePlaceholder": "请输入新的会话标题",
+      "renameRequired": "标题不能为空",
+      "renameSuccess": "重命名成功"
+    },
+    "conversation": {
+      "emptyTitle": "暂无会话",
+      "messages": "消息 {{count}} 条",
+      "tools": "启用工具 {{count}} 个",
+      "none": "请选择或新建一个会话开始对话。"
+    },
+    "tools": {
+      "title": "工具管理",
+      "toggleAll": "全选 / 全不选",
+      "legend": {
+        "available": "可选",
+        "running": "执行中"
+      },
+      "name": "工具",
+      "state": "状态",
+      "enabled": "已启用",
+      "disabled": "未启用",
+      "detail": {
+        "origin": "来源",
+        "status": "运行状态",
+        "idle": "空闲",
+        "never": "从未使用",
+        "tags": "标签",
+        "placeholder": "选择工具查看详细信息。"
+      },
+      "origins": {
+        "renderer": "渲染进程",
+        "main": "主进程",
+        "mcp": "MCP 应用"
+      }
+    }
   }
 }

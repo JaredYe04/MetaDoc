@@ -329,6 +329,8 @@
     "abstractLabel": "要約",
     "quickStartTitle": "クイックスタート",
     "quickStartFormatTitle": "クイックスタート形式を選択",
+    "quickStartFormatDescriptionMarkdown": "親しみやすい Markdown 構文で素早く執筆し、その場でプレビューできます。",
+    "quickStartFormatDescriptionLatex": "LaTeX を使って構造化された文書や数式を作成します。",
     "tab": {
       "aiAssistant": "AIアシスタント",
       "documentInfo": "ドキュメント情報"
@@ -365,7 +367,8 @@
       "balanced": "バランス",
       "creative": "創造的"
     },
-    "defaultText": "# MetaDocへようこそ\n\nこれはAI駆動の文書処理ソフトウェアで、ドキュメントコンテンツを迅速に生成できます。"
+    "defaultText": "# MetaDoc へようこそ\n\nこれは AI を活用した文書編集ソフトで、素早くコンテンツを生成できます。",
+    "defaultLatexText": "\\documentclass{article}\n\\begin{document}\n\\title{MetaDoc へようこそ}\n\\author{AI アシスタント}\n\\maketitle\n\n\\section{はじめに}\nこれは MetaDoc が生成した LaTeX クイックスタート用テンプレートです。\n\n\\end{document}"
   },
   "main": {
     "notification": {

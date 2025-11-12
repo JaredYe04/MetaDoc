@@ -4,7 +4,9 @@ import type {
   ArticleMetaData,
   DocumentOutlineNode,
   AIDialog,
+  AIDialogMessage,
 } from '../../../types';
+import type { AgentSession } from '../types/agent';
 import eventBus from '../utils/event-bus';
 import { createRendererLogger } from '../utils/logger';
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils.js';
@@ -16,6 +18,7 @@ import {
   DEFAULT_ARTICLE_META,
   DEFAULT_AI_DIALOGS,
   DEFAULT_OUTLINE_TREE,
+  DEFAULT_AGENT_SESSIONS,
 } from '../constants/document';
 
 export type WorkspaceTabKind = 'new' | 'file';
@@ -42,6 +45,7 @@ export interface WorkspaceDocument {
   outline: DocumentOutlineNode;
   meta: ArticleMetaData;
   aiDialogs: AIDialog[];
+  agentSessions: AgentSession[];
   lastView: 'outline' | 'article';
   renderedHtml: string;
   dirty: boolean;
@@ -50,6 +54,7 @@ export interface WorkspaceDocument {
   savedOutline: DocumentOutlineNode;
   savedMeta: ArticleMetaData;
   savedAiDialogs: AIDialog[];
+  savedAgentSessions: AgentSession[];
 }
 
 const logger = createRendererLogger('Workspace');
@@ -95,6 +100,7 @@ function ensureDocument(tabId: string): WorkspaceDocument {
     doc.meta = structuredCloneFallback(snapshot.meta);
     doc.outline = structuredCloneFallback(snapshot.outline);
     doc.aiDialogs = structuredCloneFallback(snapshot.aiDialogs);
+    doc.agentSessions = structuredCloneFallback(snapshot.agentSessions);
     doc.renderedHtml = snapshot.renderedHtml;
     doc.lastView = snapshot.lastView;
     doc.savedMarkdown = snapshot.markdown;
@@ -102,6 +108,7 @@ function ensureDocument(tabId: string): WorkspaceDocument {
     doc.savedMeta = structuredCloneFallback(snapshot.meta);
     doc.savedOutline = structuredCloneFallback(snapshot.outline);
     doc.savedAiDialogs = structuredCloneFallback(snapshot.aiDialogs);
+    doc.savedAgentSessions = structuredCloneFallback(snapshot.agentSessions);
     documents[tabId] = doc;
   }
   return doc;
@@ -361,6 +368,15 @@ function updateDocumentAiDialogs(tabId: string, dialogs: AIDialogMessage[]): voi
   }
 }
 
+function updateDocumentAgentSessions(tabId: string, sessions: AgentSession[]): void {
+  const doc = ensureDocument(tabId);
+  const serialized = JSON.stringify(sessions);
+  if (JSON.stringify(doc.agentSessions) !== serialized) {
+    doc.agentSessions = structuredCloneFallback(sessions);
+    updateDocumentDirty(tabId);
+  }
+}
+
 /**
  * 更新一个标签页的脏状态，根据文档内容计算脏状态
  * @param tabId 标签页ID
@@ -373,6 +389,7 @@ function updateDocumentDirty(tabId: string): void {
     if (JSON.stringify(doc.meta) !== JSON.stringify(doc.savedMeta)) return true;
     if (JSON.stringify(doc.outline) !== JSON.stringify(doc.savedOutline)) return true;
     if (JSON.stringify(doc.aiDialogs) !== JSON.stringify(doc.savedAiDialogs)) return true;
+    if (JSON.stringify(doc.agentSessions) !== JSON.stringify(doc.savedAgentSessions)) return true;
     return false;
   }
   const dirty = computeDocumentDirty();
@@ -436,6 +453,7 @@ function markDocumentSaved(tabId: string, newPath?: string): void {
   doc.savedOutline = structuredCloneFallback(doc.outline);
   doc.savedMeta = structuredCloneFallback(doc.meta);
   doc.savedAiDialogs = structuredCloneFallback(doc.aiDialogs);
+  doc.savedAgentSessions = structuredCloneFallback(doc.agentSessions);
   doc.dirty = false;
 
   const tab = tabs.find((item) => item.id === tabId);
@@ -479,6 +497,7 @@ function createDocumentSnapshotFromTemplate(
     outline: structuredCloneFallback(outline),
     meta: structuredCloneFallback(meta),
     aiDialogs: structuredCloneFallback(DEFAULT_AI_DIALOGS),
+    agentSessions: structuredCloneFallback(DEFAULT_AGENT_SESSIONS),
     lastView: 'article',
     renderedHtml: '',
     dirty: false,
@@ -487,6 +506,7 @@ function createDocumentSnapshotFromTemplate(
     savedOutline: structuredCloneFallback(outline),
     savedMeta: structuredCloneFallback(meta),
     savedAiDialogs: structuredCloneFallback(DEFAULT_AI_DIALOGS),
+    savedAgentSessions: structuredCloneFallback(DEFAULT_AGENT_SESSIONS),
   };
 }
 
@@ -608,6 +628,7 @@ export function useWorkspace() {
     updateDocumentMeta,
     updateDocumentOutline,
     updateDocumentAiDialogs,
+    updateDocumentAgentSessions,
     updateDocumentDirty,
     updateDocumentLastView,
     updateDocumentRenderedHtml,

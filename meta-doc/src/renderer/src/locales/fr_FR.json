@@ -183,6 +183,7 @@
       "refresh": "Actualiser"
     },
     "defaultText": "Bienvenue sur MetaDoc\n\nIl s'agit d'un logiciel de traitement de texte piloté par l'IA qui vous aide à générer rapidement du contenu de document.",
+    "defaultLatexText": "\\documentclass{article}\n\\begin{document}\n\\title{Bienvenue sur MetaDoc}\n\\author{Assistant IA}\n\\maketitle\n\n\\section{Introduction}\nCeci est un modèle de démarrage rapide LaTeX généré par MetaDoc.\n\n\\end{document}",
     "documentInfoLabel": "Remplissage des renseignements",
     "label": {
       "abstract": "Résumé",
@@ -211,6 +212,8 @@
     },
     "quickStartTitle": "Début rapide.",
     "quickStartFormatTitle": "Choisir un format de démarrage rapide",
+    "quickStartFormatDescriptionMarkdown": "Utilisez Markdown avec une syntaxe familière et un aperçu instantané.",
+    "quickStartFormatDescriptionLatex": "Utilisez LaTeX pour créer des documents structurés avec des équations.",
     "suggestionLabel": "Étiquettes suggérées",
     "tab": {
       "aiAssistant": "Assistant AI",

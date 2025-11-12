@@ -1,4 +1,5 @@
 import type { ArticleMetaData, AIDialogMessage, AIDialog, DocumentOutlineNode } from '../../../types';
+import type { AgentSession } from '../types/agent';
 
 export const TREE_NODE_SCHEMA = {
   $schema: 'http://json-schema.org/draft-07/schema#',
@@ -71,4 +72,6 @@ export const DEFAULT_AI_DIALOGS: AIDialog[] = [
 ];
 
 export const DEFAULT_FIRST_LOAD = true;
+
+export const DEFAULT_AGENT_SESSIONS: AgentSession[] = [];
 

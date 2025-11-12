@@ -26,11 +26,13 @@ const buildMarkdownMetadataPayload = (doc: WorkspaceDocument, markdown: string) 
   current_article: markdown,
   current_article_meta_data: doc.meta,
   current_ai_dialogs: doc.aiDialogs,
+  current_agent_sessions: doc.agentSessions,
 });
 
 const buildTexMetadataPayload = (doc: WorkspaceDocument) => ({
   current_article_meta_data: doc.meta,
   current_ai_dialogs: doc.aiDialogs,
+  current_agent_sessions: doc.agentSessions,
 });
 
 const composeMarkdownWithMeta = (doc: WorkspaceDocument, markdown: string): string => {
@@ -39,6 +41,7 @@ const composeMarkdownWithMeta = (doc: WorkspaceDocument, markdown: string): stri
     current_outline_tree: doc.outline,
     current_article_meta_data: doc.meta,
     current_ai_dialogs: doc.aiDialogs,
+    current_agent_sessions: doc.agentSessions,
   });
   return `${pureMarkdown}\n<!--meta-info: ${metaBase64} -->`;
 };

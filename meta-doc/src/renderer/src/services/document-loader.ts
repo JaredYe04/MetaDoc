@@ -2,10 +2,12 @@ import { extractOutlineTreeFromMarkdown, filterMetaDataFromMd } from '../utils/m
 import { decodeBase64ToJson } from '../utils/base64-utils';
 import { convertLatexToMarkdown } from '../utils/latex-utils';
 import type { ArticleMetaData, AIDialog, AIDialogMessage, DocumentOutlineNode } from '../../../types';
+import type { AgentSession } from '../types/agent';
 import {
   DEFAULT_ARTICLE_META,
   DEFAULT_AI_DIALOGS,
   DEFAULT_OUTLINE_TREE,
+  DEFAULT_AGENT_SESSIONS,
 } from '../constants/document';
 
 export type LoadedDocumentFormat = 'md' | 'tex';
@@ -17,6 +19,7 @@ export interface LoadedDocumentData {
   outline: DocumentOutlineNode;
   meta: ArticleMetaData;
   aiDialogs: AIDialog[];
+  agentSessions: AgentSession[];
   lastView: 'article' | 'outline';
 }
 
@@ -31,6 +34,9 @@ const cloneMeta = (meta: ArticleMetaData): ArticleMetaData => ({ ...meta });
 
 const cloneDialogs = (dialogs: AIDialog[]): AIDialog[] =>
   JSON.parse(JSON.stringify(dialogs));
+
+const cloneAgentSessions = (sessions: AgentSession[]): AgentSession[] =>
+  JSON.parse(JSON.stringify(sessions));
 
 const normalizeLineEndings = (value: string): string => value.replace(/\r\n/g, '\n');
 
@@ -63,6 +69,13 @@ const ensureArrayDialogs = (value: unknown): AIDialog[] => {
   return cloneDialogs(DEFAULT_AI_DIALOGS);
 };
 
+const ensureArrayAgentSessions = (value: unknown): AgentSession[] => {
+  if (Array.isArray(value)) {
+    return cloneAgentSessions(value as AgentSession[]);
+  }
+  return cloneAgentSessions(DEFAULT_AGENT_SESSIONS);
+};
+
 export const loadDocumentFromMarkdown = (content: string): LoadedDocumentData => {
   const normalized = normalizeLineEndings(content ?? '');
   const metaMatch = normalized.match(META_INFO_COMMENT_PATTERN);
@@ -71,6 +84,7 @@ export const loadDocumentFromMarkdown = (content: string): LoadedDocumentData =>
   let outline = deriveMarkdownOutline(pureMarkdown);
   let meta = cloneMeta(DEFAULT_ARTICLE_META);
   let dialogs = cloneDialogs(DEFAULT_AI_DIALOGS);
+  let sessions = cloneAgentSessions(DEFAULT_AGENT_SESSIONS);
 
   if (metaMatch && metaMatch[1]) {
     try {
@@ -86,6 +100,12 @@ export const loadDocumentFromMarkdown = (content: string): LoadedDocumentData =>
         }
         if (metadata.current_ai_dialogs) {
           dialogs = ensureArrayDialogs(metadata.current_ai_dialogs);
+        }
+        if (metadata.current_agent_sessions) {
+          sessions = ensureArrayAgentSessions(metadata.current_agent_sessions);
+        }
+        if (metadata.current_agent_sessions) {
+          sessions = ensureArrayAgentSessions(metadata.current_agent_sessions);
         }
       }
     } catch (error) {
@@ -105,6 +125,7 @@ export const loadDocumentFromMarkdown = (content: string): LoadedDocumentData =>
     outline,
     meta,
     aiDialogs: dialogs,
+    agentSessions: sessions,
     lastView: 'article',
   };
 };
@@ -114,7 +135,7 @@ export const loadDocumentFromTex = (content: string): LoadedDocumentData => {
   const metaMatch = normalized.match(META_INFO_TEX_PATTERN);
   let pureTex = normalized.replace(META_INFO_TEX_PATTERN, '');
   pureTex = pureTex.replace(WARNING_TEX_PATTERN, '');
-
+  let agentSessions = cloneAgentSessions(DEFAULT_AGENT_SESSIONS);
   let meta = cloneMeta(DEFAULT_ARTICLE_META);
   let dialogs = cloneDialogs(DEFAULT_AI_DIALOGS);
 
@@ -145,6 +166,7 @@ export const loadDocumentFromTex = (content: string): LoadedDocumentData => {
     outline,
     meta,
     aiDialogs: dialogs,
+    agentSessions: agentSessions,
     lastView: 'article',
   };
 };
@@ -160,6 +182,7 @@ export const loadDocumentFromJson = (content: string): LoadedDocumentData => {
       (data.current_article_meta_data as ArticleMetaData | undefined) ?? DEFAULT_ARTICLE_META,
     );
     const dialogs = ensureArrayDialogs(data.current_ai_dialogs);
+    const sessions = ensureArrayAgentSessions(data.current_agent_sessions);
 
     return {
       format: 'md',
@@ -168,6 +191,7 @@ export const loadDocumentFromJson = (content: string): LoadedDocumentData => {
       outline,
       meta: autoGenerateTitle(meta, markdown),
       aiDialogs: dialogs,
+      agentSessions: sessions,
       lastView: 'article',
     };
   } catch (error) {
@@ -179,6 +203,7 @@ export const loadDocumentFromJson = (content: string): LoadedDocumentData => {
       outline: cloneOutline(DEFAULT_OUTLINE_TREE),
       meta: cloneMeta(DEFAULT_ARTICLE_META),
       aiDialogs: cloneDialogs(DEFAULT_AI_DIALOGS),
+      agentSessions: cloneAgentSessions(DEFAULT_AGENT_SESSIONS),
       lastView: 'article',
     };
   }
@@ -191,6 +216,7 @@ export const createEmptyDocument = (): LoadedDocumentData => ({
   outline: cloneOutline(DEFAULT_OUTLINE_TREE),
   meta: cloneMeta(DEFAULT_ARTICLE_META),
   aiDialogs: cloneDialogs(DEFAULT_AI_DIALOGS),
+  agentSessions: cloneAgentSessions(DEFAULT_AGENT_SESSIONS),
   lastView: 'article',
 });
 

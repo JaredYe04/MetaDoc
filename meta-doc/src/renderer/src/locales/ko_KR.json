@@ -329,6 +329,8 @@
     "abstractLabel": "요약",
     "quickStartTitle": "빠른 시작",
     "quickStartFormatTitle": "빠른 시작 형식 선택",
+    "quickStartFormatDescriptionMarkdown": "익숙한 Markdown 문법으로 빠르게 작성하고 즉시 미리보기합니다.",
+    "quickStartFormatDescriptionLatex": "LaTeX로 구조화된 문서와 수식을 작성합니다.",
     "tab": {
       "aiAssistant": "AI 어시스턴트",
       "documentInfo": "문서 정보"
@@ -365,7 +367,8 @@
       "balanced": "균형",
       "creative": "창의적"
     },
-    "defaultText": "# MetaDoc에 오신 것을 환영합니다\n\n이것은 AI 기반 문서 처리 소프트웨어로, 빠르게 문서 내용을 생성할 수 있습니다."
+    "defaultText": "# MetaDoc에 오신 것을 환영합니다\n\n이것은 AI 기반 문서 처리 소프트웨어로, 빠르게 문서 내용을 생성할 수 있습니다.",
+    "defaultLatexText": "\\documentclass{article}\n\\begin{document}\n\\title{MetaDoc에 오신 것을 환영합니다}\n\\author{AI 어시스턴트}\n\\maketitle\n\n\\section{소개}\n이것은 MetaDoc이 생성한 LaTeX 빠른 시작 템플릿입니다.\n\n\\end{document}"
   },
   "main": {
     "notification": {

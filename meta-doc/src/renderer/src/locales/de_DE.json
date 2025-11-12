@@ -211,6 +211,8 @@
     },
     "quickStartTitle": "Schneller Start.",
     "quickStartFormatTitle": "Schnellstart-Format wählen",
+    "quickStartFormatDescriptionMarkdown": "Markdown mit vertrauter Syntax und Direktvorschau verwenden.",
+    "quickStartFormatDescriptionLatex": "LaTeX nutzen, um strukturierte Dokumente mit Formeln zu erstellen.",
     "suggestionLabel": "Empfohlene Tags",
     "tab": {
       "aiAssistant": "AI-Assistent",
@@ -232,7 +234,8 @@
       "reset": "Zurücksetzen Generative Inhalte",
       "selectMood": "Wählen Sie Dokument Stil",
       "selectTemperature": "Wählen Sie die Temperatur, um die Vielfalt der Inhalte zu erzeugen und zu beeinflussen"
-    }
+    },
+    "defaultLatexText": "\\\\documentclass{article}\n\\\\begin{document}\n\\\\title{Willkommen bei MetaDoc}\n\\\\author{AI-Assistent}\n\\\\maketitle\n\n\\\\section{Einleitung}\nDies ist eine LaTeX-Schnellstartvorlage, die von MetaDoc erzeugt wurde.\n\n\\\\end{document}"
   },
   "lang": "Zh_CN",
   "leftMenu": {

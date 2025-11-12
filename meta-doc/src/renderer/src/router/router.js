@@ -9,6 +9,7 @@ import Visualize from '../views/Visualize.vue'
 import AIChat from '../views/AIChat.vue'
 import FomulaRecognition from '../views/FomulaRecognition.vue'
 import AIGraph from '../views/AIGraph.vue'
+import AgentView from '../views/AgentView.vue'
 import KnowledgeBase from '../views/KnowledgeBase.vue'
 import Editor from '../views/Editor.vue'
 
@@ -62,6 +63,12 @@ const routes = [
     path:'/knowledge-base',
     name:'KnowledgeBase',
     component: KnowledgeBase,
+    meta: { requiresLayout: true }
+  },
+  {
+    path:'/agent',
+    name:'Agent',
+    component: AgentView,
     meta: { requiresLayout: true }
   },
     // 动态生成特殊页面的两种访问路径

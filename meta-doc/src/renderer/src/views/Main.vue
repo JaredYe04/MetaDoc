@@ -81,6 +81,7 @@ const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocume
   outline: cloneDeep(data.outline),
   meta: { ...data.meta },
   aiDialogs: cloneDeep(data.aiDialogs),
+  agentSessions: cloneDeep(data.agentSessions),
   lastView: data.lastView,
   renderedHtml: '',
   dirty: false,
@@ -89,6 +90,7 @@ const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocume
   savedOutline: cloneDeep(data.outline),
   savedMeta: { ...data.meta },
   savedAiDialogs: cloneDeep(data.aiDialogs),
+  savedAgentSessions: cloneDeep(data.agentSessions),
 })
 
 type OpenDocumentPayload = {

@@ -353,7 +353,7 @@ function trytriggerSuggestion() {
     eventBus.on('cancel-suggestion',()=>{if (debounceTimer) clearTimeout(debounceTimer);})
     debounceTimer = setTimeout(() => {
         triggerSuggestion.value = true;
-    }, 1500);
+    }, 5000);
 
 }
 

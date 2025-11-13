@@ -414,6 +414,7 @@
             "saveFileTitle": "保存文件",
             "exportDocumentTitle": "导出文档",
             "filters": {
+                "supportedDocuments":"支持的文件类型",
                 "markdown": "Markdown 文件",
                 "latex": "LaTeX 文件",
                 "json": "JSON 文件",

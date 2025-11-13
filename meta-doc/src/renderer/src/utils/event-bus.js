@@ -6,11 +6,12 @@
 import mitt from 'mitt'
 import path from 'path'
 import { getSetting, updateRecentDocs } from './settings.js'
-import { ConvertHtmlForPdf, image2base64, image2local, local2image, ConvertMarkdownToHtmlManually, ConvertMarkdownToHtmlVditor, filterMetaDataFromMd } from './md-utils.js'
+import { ConvertMarkdownToHtmlManually } from './md-utils.js'
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
 import { useWorkspace } from '../stores/workspace'
 import { serializeDocument } from '../services/document-serializer'
 import { convertLatexToMarkdown } from './latex-utils'
+import { NotImplementedExportError, prepareExportPayload } from '../services/export-manager.ts'
 
 
 const eventBus = mitt()
@@ -79,6 +80,7 @@ const buildSavePayload = async (doc) => {
     path: doc.path,
     html,
     tex: serialized.tex,
+    format: doc.format,
   };
 };
 
@@ -196,6 +198,14 @@ ipcRenderer.on('export-success', (event, data) => {
   eventBus.emit('export-success', data)
 })
 
+ipcRenderer.on('export-error', (event, data) => {
+  const message =
+    typeof data === 'string'
+      ? data
+      : data?.message || i18n?.global?.t?.('export.unknownError', '导出失败')
+  ElMessage.error(message)
+})
+
 ipcRenderer.on('save-triggered', () => {
   eventBus.emit('save')
 })
@@ -300,37 +310,23 @@ eventBus.on('export', async ({ format, filename }) => {
   const doc = getDocument()
   if (!doc) return
 
-  const serialized = serializeDocument(doc)
-  const exportArgs = { format, filename }
-
-  let markdown =
-    doc.format === 'tex'
-      ? convertLatexToMarkdown(doc.tex ?? '')
-      : filterMetaDataFromMd(serialized.md)
-
-  if (['html', 'docx', 'pdf', 'md'].includes(format)) {
-    markdown = await local2image(markdown)
+  try {
+    const payload = await prepareExportPayload(doc, format, filename)
+    await ipcRenderer.invoke('perform-export', payload)
+  } catch (error) {
+    if (error instanceof NotImplementedExportError) {
+      const message =
+        i18n?.global?.t?.('export.notImplemented', '该导出组合尚未实现') ??
+        '该导出功能尚未实现'
+      ElMessage.error(message)
+      logger.warn(error.message)
+    } else {
+      const message =
+        error instanceof Error ? error.message : i18n?.global?.t?.('export.unknownError', '导出失败')
+      ElMessage.error(message)
+      logger.error('导出失败', error)
+    }
   }
-
-  if (['html', 'docx'].includes(format)) {
-    markdown = await image2base64(markdown)
-  }
-
-  if (format === 'docx') {
-    exportArgs.html = await ConvertMarkdownToHtmlVditor(markdown)
-  } else if (format === 'pdf') {
-    exportArgs.html = await ConvertHtmlForPdf(markdown)
-  } else if (format === 'html') {
-    exportArgs.html = await ConvertMarkdownToHtmlManually(markdown)
-  } else {
-    exportArgs.html = await ConvertMarkdownToHtmlManually(markdown)
-  }
-
-  exportArgs.md = serialized.md
-  exportArgs.json = serialized.json
-  exportArgs.tex = serialized.tex
-
-  ipcRenderer.send('export', exportArgs)
 })
 // eventBus.on('export-to-pdf', async (args) => {
 //   //console.log('export-to-pdf', htmlContent)

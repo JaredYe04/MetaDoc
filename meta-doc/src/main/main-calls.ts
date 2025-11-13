@@ -23,11 +23,6 @@ import path from 'path';
 import fs from 'fs';
 
 // 第三方模块
-import { marked } from 'marked';
-import mammoth from 'mammoth';
-import markdownIt from 'markdown-it';
-// @ts-ignore
-import htmlDocx from 'html-docx-js';
 import os from 'os';
 
 // 内部模块导入
@@ -43,6 +38,8 @@ import { dirname } from './index';
 import { imageUploadDir } from './express-server';
 import { queryKnowledgeBase, getResourcesPath, compileLatexToPDF } from './utils';
 import type { LaTeXCompileResult } from '../types/utils';
+import type { DocumentFormat } from '../types';
+import { performExportRequest, type RendererExportPayload } from './export/export-manager';
 import { createMainLogger, handleRendererLog, getLoggerConfig, getLoggerHistory, openCurrentLogFile, openLogDirectory, updateLoggerConfig } from './logger';
 import { getServiceStatus } from './service-status';
 import type { LogPayload, LogLevel } from '../common/logger-constants';
@@ -55,16 +52,10 @@ interface SaveData {
   md: string;
   json: string;
   tex: string;
+  format: DocumentFormat;
   args?: {
     format: string;
   };
-}
-
-interface ExportData {
-  json: string;
-  html: string;
-  format: string;
-  tex: string;
 }
 
 interface CompileTexData {
@@ -132,6 +123,7 @@ export function mainCalls(): void {
   bindAITaskHandlers();
   bindSystemHandlers();
   bindLoggerHandlers();
+  bindExportHandlers();
   
   initBroadcastChannel();
 }
@@ -162,9 +154,6 @@ function bindBasicHandlers(): void {
     await openDoc(filePath);
   });
   
-  ipcMain.on('export', async (event: IpcMainEvent, data: ExportData) => {
-    await exportFile(event, data);
-  });
 }
 
 /**
@@ -228,6 +217,18 @@ function bindLoggerHandlers(): void {
 
   ipcMain.handle('get-service-status', async () => {
     return getServiceStatus();
+  });
+}
+
+function bindExportHandlers(): void {
+  ipcMain.handle('perform-export', async (event: IpcMainInvokeEvent, payload: RendererExportPayload) => {
+    const result = await performExportRequest(payload, mainWindow);
+    if (result.success && result.path) {
+      event.sender.send('export-success', result.path);
+    } else if (!result.success && result.error) {
+      event.sender.send('export-error', result.error);
+    }
+    return result;
   });
 }
 
@@ -527,8 +528,13 @@ const saveInternal = async (
     if (!filePath) return null;
   }
 
-  const format = path.extname(filePath).slice(1).toLowerCase();
-  
+  const format = data.format || (path.extname(filePath).slice(1).toLowerCase() as DocumentFormat);
+  if (!format) {
+    return null;
+  }
+
+  filePath = ensureFileNameExtension(filePath, format);
+
   switch (format) {
     case 'md':
       content = data.md;
@@ -543,14 +549,11 @@ const saveInternal = async (
       return null;
   }
 
-  if (filePath) {
-    fs.writeFileSync(filePath, content);
-    return {
-      path: filePath,
-      format,
-    };
-  }
-  return null;
+  fs.writeFileSync(filePath, content);
+  return {
+    path: filePath,
+    format,
+  };
 };
 
 const save = async (data: SaveData, saveAs: boolean): Promise<void> => {
@@ -586,14 +589,17 @@ export const openDoc = async (filePath?: string): Promise<void> => {
     return;
   }
 
+  const supportedFilterName = t('main.dialogs.filters.supportedDocuments', 'MetaDoc 文档');
+
   const result: OpenDialogReturnValue = await dialog.showOpenDialog(mainWindow!, {
     title: t('main.dialogs.openFileTitle'),
     filters: [
+      { name: supportedFilterName, extensions: ['md', 'tex', 'json'] },
       { name: t('main.dialogs.filters.markdown'), extensions: ['md'] },
       { name: t('main.dialogs.filters.latex'), extensions: ['tex'] },
       { name: t('main.dialogs.filters.json'), extensions: ['json'] },
-      { name: t('main.dialogs.filters.all'), extensions: ['*'] }
-    ]
+      { name: t('main.dialogs.filters.all'), extensions: ['*'] },
+    ],
   });
 
   if (!result.canceled && result.filePaths.length > 0) {
@@ -616,215 +622,69 @@ export const openDoc = async (filePath?: string): Promise<void> => {
 /**
  * 选择保存文件路径
  */
+const getSaveFilterByFormat = (format: DocumentFormat): Electron.FileFilter => {
+  switch (format) {
+    case 'md':
+      return { name: t('main.dialogs.filters.markdown'), extensions: ['md'] };
+    case 'tex':
+      return { name: t('main.dialogs.filters.latex'), extensions: ['tex'] };
+    case 'json':
+      return { name: t('main.dialogs.filters.json'), extensions: ['json'] };
+    default:
+      return { name: t('main.dialogs.filters.all'), extensions: ['*'] };
+  }
+};
+
+const ensureFileNameExtension = (input: string, format: DocumentFormat): string => {
+  const expectedExt = `.${format}`;
+
+  if (!input || input.trim().length === 0) {
+    return `Untitled${expectedExt}`;
+  }
+
+  const normalized = input.trim();
+  const existingExt = path.extname(normalized).toLowerCase();
+
+  if (existingExt === expectedExt) {
+    return normalized;
+  }
+
+  if (existingExt) {
+    return `${normalized.slice(0, -existingExt.length)}${expectedExt}`;
+  }
+
+  return `${normalized}${expectedExt}`;
+};
+
 const chooseSaveFile = async (data: SaveData): Promise<string> => {
   const dateString = new Date()
     .toISOString()
     .replace(/:/g, '-')
     .replace('T', '_')
     .split('.')[0];
-    
+
   const metadata = JSON.parse(data.json);
   const title = metadata.current_article_meta_data?.title;
-  const filename = title || dateString;
+  const baseName = title || dateString;
+  const format = data.format || (data.args?.format as DocumentFormat) || 'md';
 
-  let filters: Electron.FileFilter[] = [];
-  
-  if (data.args?.format) {
-    switch (data.args.format.toLowerCase()) {
-      case 'md':
-      case 'markdown':
-        filters = [{ name: t('main.dialogs.filters.markdown'), extensions: ['md'] }];
-        break;
-      case 'tex':
-      case 'latex':
-        filters = [{ name: t('main.dialogs.filters.latex'), extensions: ['tex'] }];
-        break;
-      case 'json':
-        filters = [{ name: t('main.dialogs.filters.json'), extensions: ['json'] }];
-        break;
-      default:
-        filters = [{ name: t('main.dialogs.filters.all'), extensions: ['*'] }];
-    }
-  } else {
-    filters = [
-      { name: t('main.dialogs.filters.markdown'), extensions: ['md'] },
-      { name: t('main.dialogs.filters.latex'), extensions: ['tex'] },
-      { name: t('main.dialogs.filters.json'), extensions: ['json'] },
-    ];
-  }
+  const filters: Electron.FileFilter[] = [getSaveFilterByFormat(format)];
+  const defaultPath = ensureFileNameExtension(baseName, format);
 
   const result: SaveDialogReturnValue = await dialog.showSaveDialog(mainWindow!, {
     title: t('main.dialogs.saveFileTitle'),
-    defaultPath: filename,
-    filters
+    defaultPath,
+    filters,
   });
 
   if (!result.canceled && result.filePath) {
-    mainWindow?.webContents.send('save-file-path', result.filePath);
-    return result.filePath;
+    const normalizedPath = ensureFileNameExtension(result.filePath, format);
+    mainWindow?.webContents.send('save-file-path', normalizedPath);
+    return normalizedPath;
   }
-  
+
   return '';
 };
-
-/**
- * 导出文件
- */
-const exportFile = async (event: IpcMainEvent, data: ExportData): Promise<void> => {
-  const parsedData = { ...JSON.parse(data.json), html: data.html, format: data.format, tex: data.tex };
-
-  const dateString = new Date()
-    .toISOString()
-    .replace(/:/g, '-')
-    .replace('T', '_')
-    .split('.')[0];
-    
-  const title = parsedData.current_article_meta_data?.title;
-  const filename = title || dateString;
-  const format = data.format;
-
-  let filter: Electron.FileFilter;
-  
-  switch (format) {
-    case 'docx':
-      filter = { name: t('main.dialogs.filters.docx'), extensions: ['docx'] };
-      break;
-    case 'md':
-      filter = { name: t('main.dialogs.filters.markdown'), extensions: ['md'] };
-      break;
-    case 'html':
-      filter = { name: t('main.dialogs.filters.html'), extensions: ['html'] };
-      break;
-    case 'tex':
-      filter = { name: t('main.dialogs.filters.latex'), extensions: ['tex'] };
-      break;
-    case 'pdf':
-      filter = { name: t('main.dialogs.filters.pdf'), extensions: ['pdf'] };
-      break;
-    default:
-      filter = { name: t('main.dialogs.filters.all'), extensions: ['*'] };
-  }
-
-  const result: SaveDialogReturnValue = await dialog.showSaveDialog(mainWindow!, {
-    title: t('main.dialogs.exportDocumentTitle'),
-    defaultPath: filename + '.' + format,
-    filters: [filter],
-  });
-
-  if (!result.canceled && result.filePath) {
-    const ext = path.extname(result.filePath).toLowerCase();
-    let buffer: Buffer | null = null;
-
-    try {
-      switch (ext) {
-        case '.pdf':
-          buffer = await convertHtmlToPdfBuffer(parsedData.html);
-          break;
-        case '.docx':
-          buffer = await convertMarkdownToDocxBuffer(parsedData.html);
-          break;
-        case '.md':
-          buffer = Buffer.from(parsedData.current_article, 'utf-8');
-          break;
-        case '.html':
-          buffer = Buffer.from(
-            wrapHtmlWithTemplate(parsedData.current_article_meta_data?.title, parsedData.html),
-            'utf-8'
-          );
-          break;
-        case '.tex':
-          buffer = Buffer.from(parsedData.tex, 'utf-8');
-          break;
-      }
-
-      if (buffer) {
-        await fs.promises.writeFile(result.filePath, buffer);
-        mainWindow?.webContents.send('export-success', result.filePath);
-      }
-    } catch (error) {
-      logger.error('导出失败:', error);
-    }
-  }
-};
-
-// ============ 文件转换工具 ============
-
-/**
- * 转换HTML为PDF
- */
-const convertHtmlToPdfBuffer = async (html: string): Promise<Buffer> => {
-  const waitForRenderComplete = async (
-    win: BrowserWindow,
-    timeout: number = 10000,
-    interval: number = 500
-  ): Promise<void> => {
-    const maxTries = Math.ceil(timeout / interval);
-    let lastHTML = '';
-    let stableCount = 0;
-    const requiredStableCount = 2;
-    
-    for (let i = 0; i < maxTries; i++) {
-      try {
-        const currentHTML = await win.webContents.executeJavaScript(
-          'document.documentElement.innerHTML',
-          true
-        );
-
-        if (currentHTML === lastHTML) {
-          stableCount++;
-          if (stableCount >= requiredStableCount) {
-            return;
-          }
-        } else {
-          stableCount = 0;
-          lastHTML = currentHTML;
-        }
-      } catch (err) {
-        // 忽略错误
-      }
-      await new Promise((resolve) => setTimeout(resolve, interval));
-    }
-    throw new Error('渲染超时：页面内容持续变动，未能稳定');
-  };
-
-  const win = new BrowserWindow({
-    show: false,
-    webPreferences: {
-      sandbox: false,
-    }
-  });
-
-  try {
-    await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
-    await waitForRenderComplete(win);
-    
-    const pdfBuffer = await win.webContents.printToPDF({
-      printBackground: true,
-    });
-    return pdfBuffer;
-    win.close();
-  } catch (error) {
-    logger.error('转换PDF失败:', error);
-    throw error;
-  }
-};
-
-/**
- * 转换Markdown为DOCX
- */
-async function convertMarkdownToDocxBuffer(htmlContent: string): Promise<Buffer> {
-  const htmlWrapped = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>Document</title></head><body>${htmlContent}</body></html>`;
-  const docxBlob = htmlDocx.asBlob(htmlWrapped);
-  const arrayBuffer = await docxBlob.arrayBuffer();
-  return Buffer.from(arrayBuffer);
-}
-
-/**
- * 包装HTML模板
- */
-function wrapHtmlWithTemplate(title: string, bodyContent: string): string {
-  return `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>${title}</title></head><body>${bodyContent}</body></html>`;
-}
 
 /**
  * 处理SimpleTeX OCR

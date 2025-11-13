@@ -294,7 +294,8 @@ function convertMarkdownTableTokensToLatex(tokens, startIndex) {
 }
 
 export function convertLatexToMarkdown(latex) {
-    const lines = latex.split('\n');
+    const sanitized = sanitizeLatexInput(latex);
+    const lines = sanitized.split('\n');
     let md = '';
     let inItemize = false;
     let inEnumerate = false;
@@ -302,20 +303,58 @@ export function convertLatexToMarkdown(latex) {
     let inVerbatim = false;
     let inTable = false;
     let tableRows = [];
+    let pendingListItem = null;
+    let enumerateIndex = 1;
 
     const headingMap = {
-        'section': '#',
-        'subsection': '##',
-        'subsubsection': '###',
-        'paragraph': '####',
-        'subparagraph': '#####'
+        section: '#',
+        subsection: '##',
+        subsubsection: '###',
     };
 
-    for (let line of lines) {
-        line = line.trim();
+    const flushListItem = () => {
+        if (pendingListItem === null) {
+            return;
+        }
+        const normalized = pendingListItem.trim();
+        pendingListItem = null;
+        if (!normalized) {
+            return;
+        }
+        if (inEnumerate) {
+            md += `${enumerateIndex}. ${normalized}\n`;
+            enumerateIndex += 1;
+        } else {
+            md += `- ${normalized}\n`;
+        }
+    };
+
+    const appendToPendingItem = (text) => {
+        const value = text.trim();
+        if (!value) return;
+        if (!pendingListItem || pendingListItem.trim().length === 0) {
+            pendingListItem = value;
+        } else {
+            pendingListItem += `\n  ${value}`;
+        }
+    };
+
+    for (let rawLine of lines) {
+        const line = rawLine.trim();
+
+        if (!line) {
+            if (pendingListItem !== null && (inItemize || inEnumerate)) {
+                pendingListItem += '\n';
+                continue;
+            }
+            flushListItem();
+            md += '\n';
+            continue;
+        }
 
         // --- verbatim (代码块) ---
         if (line.startsWith('\\begin{verbatim}')) {
+            flushListItem();
             inVerbatim = true;
             md += '```\n';
             continue;
@@ -326,16 +365,27 @@ export function convertLatexToMarkdown(latex) {
             continue;
         }
         if (inVerbatim) {
-            md += line + '\n';
+            md += rawLine + '\n';
             continue;
         }
 
         // --- itemize 列表 ---
+        if (line.startsWith('\\begin{figure')) {
+            flushListItem();
+            continue;
+        }
+        if (line.startsWith('\\end{figure}')) {
+            flushListItem();
+            continue;
+        }
+
         if (line.startsWith('\\begin{itemize}')) {
+            flushListItem();
             inItemize = true;
             continue;
         }
         if (line.startsWith('\\end{itemize}')) {
+            flushListItem();
             inItemize = false;
             md += '\n';
             continue;
@@ -343,30 +393,43 @@ export function convertLatexToMarkdown(latex) {
 
         // --- enumerate 列表 ---
         if (line.startsWith('\\begin{enumerate}')) {
+            flushListItem();
             inEnumerate = true;
+            enumerateIndex = 1;
             continue;
         }
         if (line.startsWith('\\end{enumerate}')) {
+            flushListItem();
             inEnumerate = false;
             md += '\n';
             continue;
         }
 
-        if (line.startsWith('\\item ')) {
-            if (inItemize) {
-                md += `- ${line.replace(/^\\item\s*/, '')}\n`;
-            } else if (inEnumerate) {
-                md += `1. ${line.replace(/^\\item\s*/, '')}\n`;
+        if (line.startsWith('\\item')) {
+            flushListItem();
+            const itemText = transformInlineLatex(line.replace(/^\\item(\[[^\]]*\])?\s*/, ''));
+            pendingListItem = itemText;
+            if (!inItemize && !inEnumerate) {
+                flushListItem();
             }
+            continue;
+        }
+
+        // 如果在列表环境中且当前行是纯文本，追加到当前列表项
+        if ((inItemize || inEnumerate) && !line.startsWith('\\')) {
+            const continuation = transformInlineLatex(line);
+            appendToPendingItem(continuation);
             continue;
         }
 
         // --- blockquote ---
         if (line.startsWith('\\begin{quote}')) {
+            flushListItem();
             inQuote = true;
             continue;
         }
         if (line.startsWith('\\end{quote}')) {
+            flushListItem();
             inQuote = false;
             md += '\n';
             continue;
@@ -378,13 +441,15 @@ export function convertLatexToMarkdown(latex) {
 
         // --- hr ---
         if (line === '\\hrulefill') {
+            flushListItem();
             md += '\n---\n\n';
             continue;
         }
 
         // --- headings ---
-        const headingMatch = line.match(/^\\(section|subsection|subsubsection|paragraph|subparagraph)\{(.+)\}/);
+        const headingMatch = line.match(/^\\(section|subsection|subsubsection)\*?\{(.+)\}/);
         if (headingMatch) {
+            flushListItem();
             const cmd = headingMatch[1];
             const title = headingMatch[2];
             const prefix = headingMap[cmd] || '#';
@@ -394,6 +459,7 @@ export function convertLatexToMarkdown(latex) {
 
         // --- 图片 ---
         if (line.startsWith('\\includegraphics')) {
+            flushListItem();
             const match = line.match(/\\includegraphics\[.*\]\{(.+)\}/);
             if (match) {
                 const path = match[1];
@@ -411,17 +477,20 @@ export function convertLatexToMarkdown(latex) {
         // --- 链接 ---
         const linkMatch = line.match(/\\href\{(.+?)\}\{(.+?)\}/);
         if (linkMatch) {
+            flushListItem();
             md += `[${linkMatch[2]}](${linkMatch[1]})\n\n`;
             continue;
         }
 
         // --- 表格 ---
         if (line.startsWith('\\begin{tabular}')) {
+            flushListItem();
             inTable = true;
             tableRows = [];
             continue;
         }
         if (line.startsWith('\\end{tabular}')) {
+            flushListItem();
             inTable = false;
             // 渲染 markdown 表格
             if (tableRows.length > 0) {
@@ -440,29 +509,30 @@ export function convertLatexToMarkdown(latex) {
         // --- 脚注 ---
         const footnoteMatch = line.match(/\\footnote\{(.+)\}/);
         if (footnoteMatch) {
+            flushListItem();
             md += `[^1]: ${footnoteMatch[1]}\n`;
             continue;
         }
 
         // --- 内联格式 ---
-        let text = line;
-        text = text
-            .replace(/\\textbf\{(.+?)\}/g, '**$1**')   // 粗体
-            .replace(/\\emph\{(.+?)\}/g, '*$1*')       // 斜体
-            .replace(/\\sout\{(.+?)\}/g, '~~$1~~')     // 删除线
-            .replace(/\\texttt\{(.+?)\}/g, '`$1`');    // 行内代码
+        if (line.startsWith('\\begin{center}') || line.startsWith('\\end{center}')) {
+            flushListItem();
+            continue;
+        }
 
-        // emoji （你原来是 smile/heart/check/x）
-        text = text
-            .replace(/\\smiley\{\}/g, ':smile:')
-            .replace(/\\heartsuit\{\}/g, ':heart:')
-            .replace(/\\checkmark\{\}/g, ':check:')
-            .replace(/\$\\times\$/g, ':x:');
+        if (IGNORED_INLINE_COMMAND_REGEX.test(line)) {
+            continue;
+        }
+
+        const text = transformInlineLatex(line);
+        flushListItem();
 
         if (text.trim()) {
             md += text + '\n';
         }
     }
+
+    flushListItem();
 
     return md.trim();
 }
@@ -484,5 +554,73 @@ export function generateLatexFromOutlineTree(outline_tree, title = 'Generated Do
     const md = generateMarkdownFromOutlineTree(outline_tree);
     // 再用你现有的转换方法转 LaTeX
     return convertMarkdownToLatex(md, title);
+}
+
+const PREAMBLE_COMMAND_REGEX = /^\\(documentclass|usepackage|set(?:main|sans|mono|CJK(?:main|sans|mono))font|geometry|pagestyle|fancyhf|lhead|rhead|cfoot|title|author|date|thanks|linespread|hypersetup|renewcommand|setcounter|addtolength|footnotesize|scriptsize|fontsize|clearpage|newpage|thispagestyle|maketitle)\b/i;
+const LABEL_COMMAND_REGEX = /^\\label\{.*\}$/;
+const BEGIN_DOC = '\\begin{document}';
+const END_DOC = '\\end{document}';
+const IGNORED_INLINE_COMMAND_REGEX = /^\\(setlength|noindent|centering|raggedright|raggedleft|hspace|vspace|newline|bigskip|smallskip)\b/i;
+
+function sanitizeLatexInput(latex) {
+    if (!latex) return '';
+    const normalized = latex.replace(/\r\n/g, '\n');
+    const startIdx = normalized.indexOf(BEGIN_DOC);
+    const endIdx = normalized.lastIndexOf(END_DOC);
+    let body = normalized;
+
+    if (startIdx !== -1) {
+        const contentStart = startIdx + BEGIN_DOC.length;
+        body = normalized.slice(contentStart, endIdx !== -1 ? endIdx : undefined);
+    }
+
+    const lines = body.split('\n');
+    const filtered = [];
+
+    for (let rawLine of lines) {
+        const trimmed = rawLine.trim();
+        if (!trimmed) {
+            filtered.push('');
+            continue;
+        }
+
+        if (PREAMBLE_COMMAND_REGEX.test(trimmed)) {
+            continue;
+        }
+        if (LABEL_COMMAND_REGEX.test(trimmed)) {
+            continue;
+        }
+        if (trimmed === BEGIN_DOC || trimmed === END_DOC) {
+            continue;
+        }
+
+        filtered.push(rawLine);
+    }
+
+    return filtered.join('\n');
+}
+
+function transformInlineLatex(line) {
+    if (!line) return '';
+    let text = line;
+    text = text
+        .replace(/\\textbf\{([^{}]*)\}/g, '**$1**')
+        .replace(/\\textit\{([^{}]*)\}/g, '*$1*')
+        .replace(/\\emph\{([^{}]*)\}/g, '*$1*')
+        .replace(/\\sout\{([^{}]*)\}/g, '~~$1~~')
+        .replace(/\\uline\{([^{}]*)\}/g, '<u>$1</u>')
+        .replace(/\\texttt\{([^{}]*)\}/g, '`$1`')
+        .replace(/\\begin\{center\}|\s*\\end\{center\}/g, '')
+        .replace(/\\%/g, '%');
+
+    text = text
+        .replace(/\\smiley\{\}/g, ':smile:')
+        .replace(/\\heartsuit\{\}/g, ':heart:')
+        .replace(/\\checkmark\{\}/g, ':check:')
+        .replace(/\$\\times\$/g, ':x:');
+
+    text = text.replace(/~+/g, ' ');
+
+    return text.trimEnd();
 }
 

@@ -8,6 +8,7 @@ export interface SaveDataPayload {
   md: string;
   json: string;
   tex: string;
+  format: string;
   args?: {
     format: string;
   };
@@ -75,6 +76,7 @@ export const serializeDocument = (doc: WorkspaceDocument): SaveDataPayload => {
     md: markdownWithMeta,
     json,
     tex,
+    format: doc.format,
     args: {
       format: doc.format,
     },

@@ -66,25 +66,13 @@
             <span>{{ $t('leftMenu.export') }}</span>
           </template>
 
-          <el-menu-item index="1-5-1"
-            @click="eventBus.emit('export', { format: 'pdf', filename: exportTitle })">
-            <span>{{ $t('leftMenu.exportPdf') }}</span>
-          </el-menu-item>
-          <el-menu-item index="1-5-2"
-            @click="eventBus.emit('export', { format: 'md', filename: exportTitle })">
-            <span>{{ $t('leftMenu.exportMarkdown') }}</span>
-          </el-menu-item>
-          <el-menu-item index="1-5-3"
-            @click="eventBus.emit('export', { format: 'docx', filename: exportTitle })">
-            <span>{{ $t('leftMenu.exportDocx') }}</span>
-          </el-menu-item>
-          <el-menu-item index="1-5-4"
-            @click="eventBus.emit('export', { format: 'html', filename: exportTitle })">
-            <span>{{ $t('leftMenu.exportHtml') }}</span>
-          </el-menu-item>
-          <el-menu-item index="1-5-4"
-            @click="eventBus.emit('export', { format: 'tex', filename: exportTitle })">
-            <span>{{ $t('leftMenu.exportLatex') }}</span>
+          <el-menu-item
+            v-for="option in exportOptions"
+            :key="option.format"
+            :index="`1-5-${option.format}`"
+            @click="eventBus.emit('export', { format: option.format, filename: exportTitle })"
+          >
+            <span>{{ exportOptionLabel(option) }}</span>
           </el-menu-item>
         </el-sub-menu>
 
@@ -275,6 +263,8 @@ import { themeState } from '../utils/themes';
 import { avatar } from '../stores/user';
 import { useActiveDocument } from '../composables/useActiveDocument';
 import { EarthIcon } from 'tdesign-icons-vue-next';
+import { getExportOptions } from '../services/export-manager.ts';
+import type { DocumentFormat } from '../../../types';
 const recentDocs = ref([])
 const isCollapse = ref(true)
 const showUserProfile = ref(false)
@@ -308,6 +298,19 @@ const exportTitle = computed(() => {
   }
   return 'Untitled'
 })
+const exportOptions = computed(() => {
+  const format = (activeDocument.value?.format ?? 'md') as DocumentFormat
+  return getExportOptions(format)
+})
+const exportOptionLabel = (option: { labelKey?: string; label?: string; format: string }) => {
+  if (option.labelKey) {
+    return t(option.labelKey)
+  }
+  if (option.label) {
+    return option.label
+  }
+  return option.format.toUpperCase()
+}
 
 const handleOpen = (_key: string, _keyPath: string[]) => {
   //console.log(key, keyPath)

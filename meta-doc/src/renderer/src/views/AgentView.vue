@@ -178,7 +178,14 @@
               </el-table>
             </el-scrollbar>
           </el-card>
-          <div v-if="activeTool" class="tool-detail" :style="detailStyle">
+          <el-card
+            class="tool-panel tool-detail-panel"
+            shadow="never"
+            :style="panelStyle"
+            :body-style="{ padding: '0', height: '100%', overflow: 'hidden' }"
+          >
+            <el-scrollbar class="tool-detail-scroll" :wrap-style="{ overflowX: 'hidden' }">
+              <div v-if="activeTool" class="tool-detail" :style="detailStyle">
                 <h3>{{ activeTool.name }}</h3>
                 <p>{{ activeTool.description }}</p>
                 <el-descriptions :column="1" size="small" border>
@@ -208,6 +215,8 @@
               <div v-else class="tool-detail placeholder" :style="detailStyle">
                 <el-empty :description="t('agent.tools.detail.placeholder')" />
               </div>
+            </el-scrollbar>
+          </el-card>
         </div>
       </section>
     </div>
@@ -1094,7 +1103,7 @@ onBeforeUnmount(() => {
 }
 
 .tool-detail {
-  width: 18vw;
+  width: 100%;
   border-radius: 12px;
   border: 1px solid;
   padding: 14px;

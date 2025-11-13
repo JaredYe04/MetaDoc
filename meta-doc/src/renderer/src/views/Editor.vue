@@ -4,14 +4,11 @@ import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
 import { activeTabId, tabs, useWorkspace } from '../stores/workspace';
 import eventBus from '../utils/event-bus';
 import WorkspaceTabPane from '../components/workspace/WorkspaceTabPane.vue';
-import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 
 const {
   activateTab,
-  ensureDocument,
   removeTab,
-  updateDocumentDirty,
   openNewDocumentTab,
   moveTab,
   saveAllDocuments,
@@ -28,23 +25,7 @@ const handleTabReorder = ({ fromId, toId }: { fromId: string; toId: string }) =>
   moveTab(fromId, toId);
 };
 
-const handleCloseTab = async (id: string) => {
-  const doc = ensureDocument(id);
-  if (doc?.dirty) {
-    try {
-      await ElMessageBox.confirm(
-        t('main.dialogs.closeTabMessage'),
-        t('main.dialogs.closeTabTitle'),
-        {
-          type: 'warning',
-          confirmButtonText: t('main.dialogs.closeTabConfirm'),
-          cancelButtonText: t('main.dialogs.closeTabCancel'),
-        },
-      );
-    } catch {
-      return;
-    }
-  }
+const handleCloseTab = (id: string) => {
   removeTab(id);
 };
 

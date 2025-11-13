@@ -364,24 +364,8 @@ const handleTabChange = (id: string) => {
   activateTab(id);
 };
 
-const handleCloseTab = async (id: string) => {
+const handleCloseTab = (id: string) => {
   if (tabs.length <= 1) return;
-  const doc = ensureDocument(id);
-  if (doc?.dirty) {
-    try {
-      await ElMessageBox.confirm(
-        t('main.dialogs.closeTabMessage'),
-        t('main.dialogs.closeTabTitle'),
-        {
-          type: 'warning',
-          confirmButtonText: t('main.dialogs.closeTabConfirm'),
-          cancelButtonText: t('main.dialogs.closeTabCancel'),
-        },
-      );
-    } catch {
-      return;
-    }
-  }
   removeTab(id);
 };
 const formatTitleDialogVisible = ref(false);

@@ -38,6 +38,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import { useWorkspace, type WorkspaceTab } from '../../stores/workspace';
 
 const props = defineProps({
@@ -55,6 +57,7 @@ const emit = defineEmits<{
 
 const workspace = useWorkspace();
 const tabs = computed(() => [...workspace.tabs]);
+const { t } = useI18n();
 
 const primaryLabel = (tab: WorkspaceTab) => {
   return tab.subtitle?.trim() || tab.title?.trim() || '未命名文档';
@@ -79,8 +82,27 @@ const currentActiveId = computed({
   },
 });
 
-const handleRemove = (id: string | number) => {
-  emit('close', String(id));
+const handleRemove = async (id: string | number) => {
+  const tabId = String(id);
+  const doc = workspace.ensureDocument?.(tabId);
+
+  if (doc?.dirty) {
+    try {
+      await ElMessageBox.confirm(
+        t('main.dialogs.closeTabMessage'),
+        t('main.dialogs.closeTabTitle'),
+        {
+          type: 'warning',
+          confirmButtonText: t('main.dialogs.closeTabConfirm'),
+          cancelButtonText: t('main.dialogs.closeTabCancel'),
+        },
+      );
+    } catch {
+      return;
+    }
+  }
+
+  emit('close', tabId);
 };
 
 let draggingId: string | null = null;

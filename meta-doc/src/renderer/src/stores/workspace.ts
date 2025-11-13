@@ -302,7 +302,7 @@ function activateTab(id: string): void {
  * @param markdown 新的Markdown内容
  */
 function updateDocumentMarkdown(tabId: string, markdown: string): void {
-  logger.debug('更新一个标签页的Markdown内容', { tabId, markdownPreview: markdown.substring(0, 100) });
+  //logger.debug('更新一个标签页的Markdown内容', { tabId, markdownPreview: markdown.substring(0, 100) });
   const doc = ensureDocument(tabId);
   const normalized = normalizeContent(markdown);
   if (doc.markdown !== normalized) {

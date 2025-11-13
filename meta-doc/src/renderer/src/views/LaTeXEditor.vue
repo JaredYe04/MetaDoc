@@ -1021,7 +1021,7 @@ const disposeEditor = () => {
         }
     }
 };
-
+let editorId = null;
 const initEditor = () => {
     window.MonacoEnvironment = {
         getWorker: function (moduleId, label) {
@@ -1073,6 +1073,7 @@ const initEditor = () => {
         lineNumbers: enableRowNumber ? 'on' : 'off',
         minimap: { enabled: enableMinimap }
     })
+    editorId = editor.value.getId();
     //editor.value.onKeyDown((e)=>logger.log(e));
     // 增量监听
     contentChangeListener = editor.value.onDidChangeModelContent((event) => {
@@ -1185,7 +1186,9 @@ onUnmounted(() => {
 
         // 遍历销毁
         editors.forEach(editor => {
-            editor.dispose(); // 释放 editor 的所有资源，包括模型、事件监听等
+            if (editor.getId() === editorId) {
+                editor.dispose(); // 释放 editor 的所有资源，包括模型、事件监听等
+            }
         });
     }
     catch (e) {

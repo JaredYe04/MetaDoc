@@ -13,6 +13,7 @@ import VueTree from "@ssthouse/vue3-tree-chart";
 import "@ssthouse/vue3-tree-chart/dist/vue3-tree-chart.css";
 import './assets/interactive-text.css'
 import './assets/wordcloud-text.css'
+import './assets/editor-search.css'
 import { lightTheme,darkTheme } from './utils/themes.js';
 import { reactive } from 'vue';
 import { initServiceStatusWatcher } from './utils/service-status';

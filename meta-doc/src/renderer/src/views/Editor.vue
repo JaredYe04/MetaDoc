@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue';
+import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
 import { activeTabId, tabs, useWorkspace } from '../stores/workspace';
 import eventBus from '../utils/event-bus';
@@ -70,6 +70,16 @@ const handleSaveAllAndQuit = async () => {
 const handleCloseActiveTabRequest = () => {
   handleCloseTab(activeTabId.value);
 };
+
+watch(
+  () => activeTabId.value,
+  (tabId) => {
+    if (tabId) {
+      eventBus.emit('active-tab-changed', { tabId });
+    }
+  },
+  { immediate: true },
+);
 
 
 onMounted(() => {

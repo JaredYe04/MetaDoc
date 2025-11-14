@@ -53,7 +53,7 @@ const SHORTCUT_CONFIG = [
   { accelerator: 'CommandOrControl+S', channel: 'save-triggered' as const },
   { accelerator: 'CommandOrControl+Shift+S', channel: 'save-as-triggered' as const },
   { accelerator: 'CommandOrControl+F', channel: 'search-replace-triggered' as const },
-  { accelerator: 'CommandOrControl+H', channel: 'search-replace-triggered' as const },
+  { accelerator: 'CommandOrControl+H', channel: 'search-replace-expand-triggered' as const },
 ] as const;
 
 // ============ 主窗口创建和管理 ============

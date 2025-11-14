@@ -16,7 +16,8 @@
     "outline": "Outline Tree",
     "editor": "Editor",
     "visualize": "Visualization",
-    "knowledgeBase": "Knowledge base"
+    "knowledgeBase": "Knowledge base",
+    "agent": "Agent."
   },
   "leftMenu": {
     "metaDocTooltip": "MetaDoc ;-)",
@@ -86,9 +87,14 @@
     "replace": "Replace",
     "findPlaceholder": "Please enter text to find",
     "replacePlaceholder": "Please enter replacement text",
+    "matchCase": "Match Case",
+    "matchWholeWord": "Match Whole Word",
     "useRegex": "Use Regular Expression",
+    "preserveCase": "Preserve Case",
     "replaceBtn": "Replace",
+    "replaceNextBtn": "Replace && Find Next",
     "replaceAllBtn": "Replace All",
+    "findPrevBtn": "Find Previous",
     "findNextBtn": "Find Next",
     "findAllBtn": "Find All",
     "resetBtn": "Reset",
@@ -419,7 +425,8 @@
         "all": "All Files",
         "docx": "DOCX Files",
         "html": "HTML Files",
-        "pdf": "PDF Files"
+        "pdf": "PDF Files",
+        "supportedDocuments": "Supported file type"
       },
       "closeTabCancel": "Cancel",
       "closeTabConfirm": "Still Close",

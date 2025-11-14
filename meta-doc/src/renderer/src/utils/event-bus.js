@@ -212,9 +212,44 @@ ipcRenderer.on('save-triggered', () => {
 ipcRenderer.on('save-as-triggered', () => {
   eventBus.emit('save-as')
 })
-ipcRenderer.on('search-replace-triggered', () => {
+const searchReplaceSharedState = {
+  isVisible: false,
+  expandReplace: false,
+};
 
+ipcRenderer.on('search-replace-triggered', () => {
+  searchReplaceSharedState.isVisible = true;
   eventBus.emit('search-replace')
+})
+
+ipcRenderer.on('search-replace-expand-triggered', () => {
+  searchReplaceSharedState.isVisible = true;
+  searchReplaceSharedState.expandReplace = true;
+  eventBus.emit('search-replace', { expandReplace: true })
+})
+
+eventBus.on('search-replace', (payload) => {
+  searchReplaceSharedState.isVisible = true;
+  if (payload?.expandReplace) {
+    searchReplaceSharedState.expandReplace = true;
+  }
+})
+
+eventBus.on('search-replace-expand', () => {
+  if (!searchReplaceSharedState.isVisible) return;
+  searchReplaceSharedState.expandReplace = true;
+})
+
+eventBus.on('search-replace-closed', () => {
+  searchReplaceSharedState.isVisible = false;
+  searchReplaceSharedState.expandReplace = false;
+})
+
+eventBus.on('active-tab-changed', () => {
+  if (!searchReplaceSharedState.isVisible) return;
+  eventBus.emit('search-replace', {
+    expandReplace: searchReplaceSharedState.expandReplace,
+  });
 })
 
 ipcRenderer.on('open-doc-success', (event, payload) => {

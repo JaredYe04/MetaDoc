@@ -171,7 +171,8 @@
     "title": "MétaDoc",
     "tooltip": "Un logiciel intelligent de traitement de texte basé sur AI Agent",
     "visualize": "Visualiser",
-    "knowledgeBase": "Base de connaissances"
+    "knowledgeBase": "Base de connaissances",
+    "agent": "Agent."
   },
   "home": {
     "abstractLabel": "Résumé",
@@ -323,7 +324,8 @@
         "json": "JSON Fichier",
         "latex": "Fichier LaTeX",
         "markdown": "Documentation de marquage",
-        "pdf": "Fichiers PDF"
+        "pdf": "Fichiers PDF",
+        "supportedDocuments": "Type de fichier supporté"
       },
       "openFileTitle": "Ouvrir un fichier",
       "saveFileTitle": "Enregistrer un fichier",
@@ -406,21 +408,26 @@
     "userPromptPlaceholder": "Veuillez entrer votre indice."
   },
   "searchReplace": {
-    "aiRegexSuggestion": "L'expression régulière proposée par AI:",
-    "find": "Rechercher",
-    "findAllBtn": "Tout trouver",
-    "findNextBtn": "Trouver le suivant",
-    "findPlaceholder": "Veuillez entrer une recherche",
-    "foundCount": "Impossible de supprimer le dossier & #160;: %s & #160;: Aucun dossier de ce genre",
-    "notFoundMore": "Plus de correspondances trouvées.",
-    "replace": "Remplacer",
-    "replaceAllBtn": "Tout remplacer",
-    "replaceBtn": "Remplacer",
-    "replaceCount": "Remplacer \"{find}\" par \"{remplace}\"",
-    "replacePlaceholder": "Veuillez entrer le remplacement",
-    "resetBtn": "Réinitialiser",
     "title": "Rechercher et remplacer",
-    "useRegex": "Utiliser une expression régulière"
+    "find": "Rechercher",
+    "replace": "Remplacer",
+    "findPlaceholder": "Saisir le texte à rechercher",
+    "replacePlaceholder": "Saisir le texte de remplacement",
+    "matchCase": "Respecter la casse",
+    "matchWholeWord": "Correspondance sur mot entier",
+    "useRegex": "Utiliser une expression régulière",
+    "preserveCase": "Conserver la casse",
+    "replaceBtn": "Remplacer",
+    "replaceNextBtn": "Remplacer et suivant",
+    "replaceAllBtn": "Tout remplacer",
+    "findPrevBtn": "Trouver le précédent",
+    "findNextBtn": "Trouver le suivant",
+    "findAllBtn": "Tout trouver",
+    "resetBtn": "Réinitialiser",
+    "aiRegexSuggestion": "Expression régulière suggérée par l'IA :",
+    "replaceCount": "\"{find}\" a été remplacé {count} fois par \"{replace}\"",
+    "foundCount": "\"{find}\" a été trouvé {count} fois",
+    "notFoundMore": "Plus aucune correspondance"
   },
   "setting": {
     "apiBaseUrl": "API BaseURL",
@@ -739,5 +746,65 @@
     },
     "title": "Nouveau document",
     "useTemplate": "Utiliser ce modèle"
+  },
+  "agent": {
+    "conversation": {
+      "emptyTitle": "Pas encore.",
+      "messages": "Message",
+      "none": "Veuillez sélectionner ou créer une nouvelle session pour lancer le dialogue.",
+      "tools": "Activer les outils {compte}"
+    },
+    "roles": {
+      "assistant": "Assistant",
+      "system": "Conseil du système",
+      "tool": "Outils",
+      "user": "Utilisateur"
+    },
+    "sessions": {
+      "confirmDelete": "Voulez-vous vraiment supprimer \"{title}\"?",
+      "defaultSystemPrompt": "Vous êtes un corps intelligent actif. Veuillez d'abord saluer l'utilisateur et attendre les instructions.",
+      "delete": "Supprimer",
+      "deleteSuccess": "Session supprimée",
+      "new": "Nouveau",
+      "newTitle": "Séance d'agent",
+      "rename": "Renommer la session",
+      "renamePlaceholder": "Veuillez saisir un nouveau titre de session",
+      "renameRequired": "Le titre ne peut pas être vide",
+      "renameSuccess": "Renommer avec succès",
+      "title": "Séance d'agent"
+    },
+    "tool": {
+      "status": {
+        "failed": "La mise en œuvre a échoué",
+        "pending": "En attente",
+        "running": "En cours d ' application",
+        "success": "Achevé"
+      }
+    },
+    "tools": {
+      "detail": {
+        "idle": "Gratuit",
+        "never": "Jamais utilisé",
+        "origin": "Source",
+        "placeholder": "Sélectionnez un outil pour afficher les détails.",
+        "status": "Exécution de l' état",
+        "tags": "Étiquette"
+      },
+      "disabled": "Non activé",
+      "enabled": "Activé",
+      "legend": {
+        "available": "Facultatif",
+        "running": "En cours d ' application"
+      },
+      "name": "Outils",
+      "origins": {
+        "main": "Processus principal",
+        "mcp": "Demande MCP",
+        "renderer": "Processus de soumission"
+      },
+      "state": "État",
+      "title": "Gestion des outils",
+      "toggleAll": "Tout sélectionner / Aucun"
+    }
   }
 }

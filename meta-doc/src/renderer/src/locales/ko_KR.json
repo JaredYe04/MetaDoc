@@ -16,7 +16,8 @@
     "outline": "아웃라인",
     "editor": "에디터",
     "visualize": "시각화",
-    "knowledgeBase": "지식 베이스"
+    "knowledgeBase": "지식 베이스",
+    "agent": "에이전트."
   },
   "leftMenu": {
     "metaDocTooltip": "MetaDoc ;-)",
@@ -86,9 +87,14 @@
     "replace": "바꾸기",
     "findPlaceholder": "찾을 내용을 입력하세요",
     "replacePlaceholder": "바꿀 내용을 입력하세요",
+    "matchCase": "대/소문자 구분",
+    "matchWholeWord": "단어 전체 일치",
     "useRegex": "정규 표현식 사용",
+    "preserveCase": "대/소문자 형태 유지",
     "replaceBtn": "바꾸기",
+    "replaceNextBtn": "바꾸고 다음 찾기",
     "replaceAllBtn": "모두 바꾸기",
+    "findPrevBtn": "이전 찾기",
     "findNextBtn": "다음 찾기",
     "findAllBtn": "모두 찾기",
     "resetBtn": "초기화",
@@ -409,7 +415,8 @@
         "json": "구글 맵 파일 형식",
         "latex": "LaTeX 파일",
         "markdown": "Markdown 문서",
-        "pdf": "PDF 파일"
+        "pdf": "PDF 파일",
+        "supportedDocuments": "지원된 파일 유형"
       },
       "openFileTitle": "파일 열기",
       "saveFileTitle": "파일 저장",
@@ -739,5 +746,65 @@
     },
     "title": "새 문서",
     "useTemplate": "이 템플릿 사용"
+  },
+  "agent": {
+    "conversation": {
+      "emptyTitle": "아직 없습니다.",
+      "messages": "이름 *",
+      "none": "대화를 시작하려면 새로운 세션을 선택하십시오.",
+      "tools": "사용 가능한 도구 {count}"
+    },
+    "roles": {
+      "assistant": "지원하다",
+      "system": "시스템 힌트",
+      "tool": "제품정보",
+      "user": "사용자 이름"
+    },
+    "sessions": {
+      "confirmDelete": "\"{title}\"을 삭제하시겠습니까?",
+      "defaultSystemPrompt": "활성 스마트 바디입니다. 사용자를 먼저 받아들이고 지침을 기다립니다.",
+      "delete": "이름 *",
+      "deleteSuccess": "세션 삭제",
+      "new": "(주)",
+      "newTitle": "에이전트 세션",
+      "rename": "세션 이름",
+      "renamePlaceholder": "새 세션 제목을 입력하십시오.",
+      "renameRequired": "제목은 비어있을 수 없습니다",
+      "renameSuccess": "성공적으로 이름",
+      "title": "에이전트 세션"
+    },
+    "tool": {
+      "status": {
+        "failed": "구현 실패",
+        "pending": "관련 기사",
+        "running": "구현하기",
+        "success": "한국어"
+      }
+    },
+    "tools": {
+      "detail": {
+        "idle": "무료 다운로드",
+        "never": "이용안내",
+        "origin": "이름 *",
+        "placeholder": "자세한 내용을 보려면 도구를 선택하십시오.",
+        "status": "실행 상태",
+        "tags": "이름 *"
+      },
+      "disabled": "지원하다",
+      "enabled": "이름 *",
+      "legend": {
+        "available": "옵션 정보",
+        "running": "구현하기"
+      },
+      "name": "제품정보",
+      "origins": {
+        "main": "주요공정",
+        "mcp": "MCP 신청",
+        "renderer": "회사연혁"
+      },
+      "state": "주요연혁",
+      "title": "Tool 관리",
+      "toggleAll": "모두 선택 / 없음"
+    }
   }
 }

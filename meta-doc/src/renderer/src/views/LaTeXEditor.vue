@@ -7,8 +7,12 @@
                 @close="handleTitleMenuClose" :path="currentTitlePath"
                 :tree="extractOutlineTreeFromMarkdown(currentMarkdown, true)"
                 @accept="async (payload) => { await acceptGeneratedText(payload); }" style="max-width: 500px;" />
-            <SearchReplaceMenu v-if="searchReplaceDialogVisible" @close="searchReplaceDialogVisible = false"
-                :position="SRMenuPosition" />
+            <SearchReplaceMenu
+                v-if="searchReplaceDialogVisible"
+                :adapter="textEditorAdapter"
+                :position="SRMenuPosition"
+                @close="handleSearchReplaceClose"
+            />
 
             <!-- 右键菜单组件 -->
             <ContextMenu :x="menuX" :y="menuY" :items="articleContextMenuItems" :selection="getSelection()"
@@ -301,7 +305,7 @@
 
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed, watch, onUnmounted } from "vue";
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed, watch, onUnmounted, shallowRef } from "vue";
 import { ElButton, ElDialog, ElLoading } from 'element-plus';
 import { Icon } from 'tdesign-icons-vue-next';
 
@@ -339,6 +343,7 @@ import { ArrowLeft, ArrowRight, Document, Refresh, ZoomIn, ZoomOut } from "@elem
 import { debounce } from 'lodash';
 import localIpcRenderer from "../utils/web-adapter/local-ipc-renderer";
 import { webMainCalls } from "../utils/web-adapter/web-main-calls";
+import { createMonacoAdapter } from "../editor/monaco-adapter";
 
 const { t } = useI18n();
 const logger = createRendererLogger('LaTeXEditor', {
@@ -419,21 +424,36 @@ const searchReplaceDialogVisible = ref(false);
 const editor = ref(null);
 const editMetaDialogVisible = ref(false); // 编辑元信息对话框
 const articleContextMenuItems = ref([]);//右键菜单项
+const textEditorAdapter = shallowRef(null);
 
 const loadingInstance = ElLoading.service({ fullscreen: false });
 const showTitleMenu = ref(false);
 const currentTitle = ref("");
 const menuPosition = ref({ top: 0, left: 0 });
-//屏幕中央显示
-const SRMenuPosition = ref({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
+const getDefaultSearchMenuPosition = () => {
+    if (typeof window === "undefined") {
+        return { top: 24, left: 24 };
+    }
+    const margin = 24;
+    return {
+        top: margin,
+        left: margin,
+    };
+};
+const SRMenuPosition = ref(getDefaultSearchMenuPosition());
+const updateSearchMenuPosition = () => {
+    SRMenuPosition.value = getDefaultSearchMenuPosition();
+};
 const currentTitlePath = ref('');
 const contextMenuVisible = ref(false); // 右键菜单可见性
 const menuX = ref(0); // 菜单 X 坐标
 const menuY = ref(0); // 菜单 Y 坐标
-const cur_selection = ref(''); // 当前选中的文本
 
 const handleTitleMenuClose = () => {
     showTitleMenu.value = false;
+};
+const handleSearchReplaceClose = () => {
+    searchReplaceDialogVisible.value = false;
 };
 
 const updateMeta = (updater) => {
@@ -797,59 +817,16 @@ const openContextMenu = (event) => {
     menuX.value = event.clientX;
     menuY.value = event.clientY;
     contextMenuVisible.value = true;
-    cur_selection.value = getSelection();
 };
 
 // 获取选中的文本
 const getSelection = () => {
-    const selection = editor.value.getSelection(); // Range 对象
-    return editor.value.getModel().getValueInRange(selection); // 返回选中的字符串
+    return textEditorAdapter.value?.getSelectionText() ?? '';
 };
 
 // 插入文本到当前光标位置（支持多行）
 const insertText = (text) => {
-  const editorInstance = editor.value;
-  if (!editorInstance) return;
-  const model = editorInstance.getModel?.();
-  if (!model) return;
-
-  let position = editorInstance.getPosition();
-  if (!position) {
-    editorInstance.focus();
-    position = editorInstance.getPosition();
-    if (!position) return;
-  }
-
-  const range = new monaco.Range(
-    position.lineNumber,
-    position.column,
-    position.lineNumber,
-    position.column,
-  );
-
-  editorInstance.executeEdits('ai-insert', [
-    {
-      range,
-      text,
-      forceMoveMarkers: true,
-    },
-  ]);
-
-  const lines = text.split('\n');
-  const lastLine = lines[lines.length - 1];
-  const newPosition =
-    lines.length === 1
-      ? {
-          lineNumber: position.lineNumber,
-          column: position.column + lastLine.length,
-        }
-      : {
-          lineNumber: position.lineNumber + lines.length - 1,
-          column: lastLine.length + 1,
-        };
-
-  editorInstance.setPosition(newPosition);
-  editorInstance.revealPositionInCenter(newPosition);
+  textEditorAdapter.value?.insertText(text);
 };
 
 
@@ -879,15 +856,13 @@ const handleMenuClick = async (item) => {
             eventBus.emit('ai-chat')
             break;
         case 'cut':
-            insertText("a");
-            await navigator.clipboard.writeText(cur_selection.value);
+            await textEditorAdapter.value?.cut();
             break;
         case 'copy':
-            await navigator.clipboard.writeText(cur_selection.value);
+            await textEditorAdapter.value?.copy();
             break;
         case 'paste':
-            const txt2paste = await navigator.clipboard.readText();
-            insertText(txt2paste);
+            await textEditorAdapter.value?.paste();
             break;
         case 'openAutoCompletion':
             await setSetting("autoCompletion", true);
@@ -934,9 +909,18 @@ const resetEditor = () => {
     nextTick(() => initEditor());
 };
 
-eventBus.on('search-replace', () => {
+eventBus.on('search-replace', (payload) => {
     //logger.log('search-replace');
     searchReplaceDialogVisible.value = true;
+    if (payload && payload.expandReplace) {
+        nextTick(() => eventBus.emit('search-replace-expand'));
+    }
+});
+
+watch(isActive, (active) => {
+    if (!active) {
+        searchReplaceDialogVisible.value = false;
+    }
 });
 
 
@@ -1020,6 +1004,7 @@ const disposeEditor = () => {
             logger.warn("安全释放 Monaco 实例失败:", e);
         }
     }
+    textEditorAdapter.value = null;
 };
 let editorId = null;
 const initEditor = () => {
@@ -1074,6 +1059,7 @@ const initEditor = () => {
         minimap: { enabled: enableMinimap }
     })
     editorId = editor.value.getId();
+    textEditorAdapter.value = createMonacoAdapter(editorId);
     //editor.value.onKeyDown((e)=>logger.log(e));
     // 增量监听
     contentChangeListener = editor.value.onDidChangeModelContent((event) => {
@@ -1112,6 +1098,9 @@ const initEditor = () => {
 
 onMounted(async () => {
     try {
+        if (typeof window !== 'undefined') {
+            window.addEventListener('resize', updateSearchMenuPosition);
+        }
         //logger.debug("LaTeXEditor onMounted")
         await waitForService('express');
         await refreshContextMenu();
@@ -1193,6 +1182,9 @@ onUnmounted(() => {
     }
     catch (e) {
         logger.error('LaTeX 编辑器错误', e)
+    }
+    if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', updateSearchMenuPosition);
     }
 });
 

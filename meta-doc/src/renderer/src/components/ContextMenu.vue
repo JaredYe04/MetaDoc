@@ -18,7 +18,7 @@
 import VoiceInput from './VoiceInput.vue';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import "../assets/aero-div.css";
-import { themeState } from '../utils/themes';
+import { themeState, mixColors } from '../utils/themes';
 
 const props = defineProps({
   x: Number,
@@ -94,23 +94,27 @@ const onSpeechRecognized = (text) => {
 const menuStyle = computed(() => ({
   top: `${menuPosition.value.top}px`,
   left: `${menuPosition.value.left}px`,
-  background: themeState.currentTheme.background,
+  background: themeState.currentTheme.background2nd,
   color: themeState.currentTheme.textColor,
-  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+  border: `1px solid ${mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.65)}`,
+  boxShadow: '0 16px 32px rgba(15, 23, 42, 0.18)',
   zIndex: 1000,
   padding: '2px 0',
-  backdropFilter: 'blur(40px)',
   borderRadius: '8px',
-  minWidth: '150px'
+  minWidth: '160px',
+  backdropFilter: 'blur(6px)'
 }));
 
 const menuItemStyle = computed(() => ({
   color: themeState.currentTheme.textColor,
   padding: "10px",
-  height: "15px",
+  height: "34px",
   cursor: 'pointer',
-  "--menu-hover-color": themeState.currentTheme.background2nd,
-  "--menu-disabled-color": themeState.currentTheme.background2nd,
+  fontSize: "13px",
+  display: "flex",
+  alignItems: "center",
+  "--menu-hover-color": mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, themeState.currentTheme.type === 'dark' ? 0.4 : 0.14),
+  "--menu-disabled-color": mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.08),
 }));
 
 // -------------------- 点击菜单项 --------------------
@@ -127,9 +131,14 @@ const onMenuItemClick = (item) => {
   min-width: 150px;
 }
 
+.menu-item {
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
 .menu-item:hover {
   background-color: var(--menu-hover-color);
-  opacity: 0.9;
+  opacity: 0.95;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
 .menu-item.disabled {

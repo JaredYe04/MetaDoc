@@ -1,0 +1,12 @@
+.md-editor-search-match {
+  background-color: var(--md-search-match-bg, rgba(250, 204, 21, 0.4));
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px var(--md-search-match-border, rgba(251, 191, 36, 0.5));
+  transition: background-color 0.15s ease;
+}
+
+.md-editor-search-active {
+  background-color: var(--md-search-active-bg, rgba(64, 158, 255, 0.45)) !important;
+  box-shadow: inset 0 0 0 1px rgba(64, 158, 255, 0.6);
+}
+

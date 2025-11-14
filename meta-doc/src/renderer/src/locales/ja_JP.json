@@ -16,7 +16,8 @@
     "outline": "アウトライン",
     "editor": "エディタ",
     "visualize": "可視化",
-    "knowledgeBase": "知識ベース"
+    "knowledgeBase": "知識ベース",
+    "agent": "エージェント"
   },
   "leftMenu": {
     "metaDocTooltip": "MetaDoc ;-)",
@@ -86,9 +87,14 @@
     "replace": "置換",
     "findPlaceholder": "検索する内容を入力してください",
     "replacePlaceholder": "置換する内容を入力してください",
+    "matchCase": "大文字と小文字を区別",
+    "matchWholeWord": "単語全体と一致",
     "useRegex": "正規表現を使用",
+    "preserveCase": "大文字小文字の形を保持",
     "replaceBtn": "置換",
+    "replaceNextBtn": "置換して次を検索",
     "replaceAllBtn": "すべて置換",
+    "findPrevBtn": "前を検索",
     "findNextBtn": "次を検索",
     "findAllBtn": "すべて検索",
     "resetBtn": "リセット",
@@ -409,7 +415,8 @@
         "json": "ジェイソン ファイル",
         "latex": "LaTeXファイル",
         "markdown": "Markdown ドキュメント",
-        "pdf": "PDFファイル"
+        "pdf": "PDFファイル",
+        "supportedDocuments": "サポートされているファイルタイプ"
       },
       "openFileTitle": "ファイルを開く",
       "saveFileTitle": "ファイルを保存する",
@@ -739,5 +746,65 @@
     },
     "title": "新しい文書",
     "useTemplate": "このテンプレートを使用する"
+  },
+  "agent": {
+    "conversation": {
+      "emptyTitle": "お問い合わせ",
+      "messages": "メッセージ",
+      "none": "対話を開始するには、新しいセッションを選択してください。",
+      "tools": "ツール {count} を有効にする"
+    },
+    "roles": {
+      "assistant": "アシスタント",
+      "system": "システムヒント",
+      "tool": "ツール",
+      "user": "ユーザー"
+    },
+    "sessions": {
+      "confirmDelete": "「{title}」を削除したいですか?",
+      "defaultSystemPrompt": "アクティブなスマートボディです。 まずはご予約をお待ちしております。",
+      "delete": "削除",
+      "deleteSuccess": "セッション削除",
+      "new": "ニュース",
+      "newTitle": "エージェントセッション",
+      "rename": "セッションの名前を変更",
+      "renamePlaceholder": "セッションのタイトルを入力してください。",
+      "renameRequired": "タイトルは空にすることはできません",
+      "renameSuccess": "正常に名前を変更",
+      "title": "エージェントセッション"
+    },
+    "tool": {
+      "status": {
+        "failed": "実装失敗",
+        "pending": "ペンディング",
+        "running": "導入事例",
+        "success": "完了しました"
+      }
+    },
+    "tools": {
+      "detail": {
+        "idle": "無料",
+        "never": "使用しない",
+        "origin": "ソース",
+        "placeholder": "ツールを選択して詳細を表示します。",
+        "status": "実行ステータス",
+        "tags": "ラベル"
+      },
+      "disabled": "機能しない",
+      "enabled": "有効化",
+      "legend": {
+        "available": "オプション",
+        "running": "導入事例"
+      },
+      "name": "ツール",
+      "origins": {
+        "main": "主な工程",
+        "mcp": "MCPアプリケーション",
+        "renderer": "レンダリングプロセス"
+      },
+      "state": "ステータス",
+      "title": "ツール管理",
+      "toggleAll": "すべてを選択 / なし"
+    }
   }
 }

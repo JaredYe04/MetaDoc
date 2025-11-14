@@ -171,7 +171,8 @@
     "title": "MetaDoc",
     "tooltip": "Eine intelligente Textverarbeitungssoftware auf Basis von AI Agent",
     "visualize": "Visualisierung",
-    "knowledgeBase": "Wissensbasis"
+    "knowledgeBase": "Wissensbasis",
+    "agent": "Agent."
   },
   "home": {
     "abstractLabel": "Zusammenfassung",
@@ -323,7 +324,8 @@
         "json": "JSON Datei",
         "latex": "LaTeX Datei",
         "markdown": "Markdown Dokumentation",
-        "pdf": "PDF Dateien"
+        "pdf": "PDF Dateien",
+        "supportedDocuments": "Unterstützter Dateityp"
       },
       "openFileTitle": "Datei öffnen",
       "saveFileTitle": "Datei speichern",
@@ -406,21 +408,26 @@
     "userPromptPlaceholder": "Bitte geben Sie Ihren Hinweis ein."
   },
   "searchReplace": {
-    "aiRegexSuggestion": "Der regelmäßige Ausdruck von AI:",
-    "find": "Finden",
-    "findAllBtn": "Alle suchen",
-    "findNextBtn": "Finden Sie den nächsten",
-    "findPlaceholder": "Bitte geben Sie eine Suche ein",
-    "foundCount": "Kann Ordner nicht löschen: %: Kein solcher Ordner",
-    "notFoundMore": "Keine Treffer mehr gefunden.",
-    "replace": "Ersatz",
+    "title": "Suchen und Ersetzen",
+    "find": "Suchen",
+    "replace": "Ersetzen",
+    "findPlaceholder": "Suchtext eingeben",
+    "replacePlaceholder": "Ersetzungstext eingeben",
+    "matchCase": "Groß-/Kleinschreibung beachten",
+    "matchWholeWord": "Ganzes Wort suchen",
+    "useRegex": "Regulären Ausdruck verwenden",
+    "preserveCase": "Schreibweise beibehalten",
+    "replaceBtn": "Ersetzen",
+    "replaceNextBtn": "Ersetzen & Weiter",
     "replaceAllBtn": "Alle ersetzen",
-    "replaceBtn": "Ersatz",
-    "replaceCount": "Ersatz \"{find}\" mit \"{replace}\"",
-    "replacePlaceholder": "Bitte geben Sie Ersatz ein",
-    "resetBtn": "Zurück zur Übersicht",
-    "title": "Finden und ersetzen",
-    "useRegex": "Regelmäßiger Ausdruck"
+    "findPrevBtn": "Vorheriges suchen",
+    "findNextBtn": "Nächstes suchen",
+    "findAllBtn": "Alle suchen",
+    "resetBtn": "Zurücksetzen",
+    "aiRegexSuggestion": "KI-Vorschlag für RegEx:",
+    "replaceCount": "\"{find}\" wurde {count}× durch \"{replace}\" ersetzt",
+    "foundCount": "\"{find}\" wurde {count}× gefunden",
+    "notFoundMore": "Keine weiteren Treffer gefunden"
   },
   "setting": {
     "apiBaseUrl": "API BaseURL",
@@ -739,5 +746,65 @@
     },
     "title": "Neues Dokument",
     "useTemplate": "Verwenden Sie diese Vorlage"
+  },
+  "agent": {
+    "conversation": {
+      "emptyTitle": "Noch nicht.",
+      "messages": "Nachricht",
+      "none": "Wählen Sie eine neue Sitzung aus, um den Dialog zu starten.",
+      "tools": "Werkzeuge aktivieren {count}"
+    },
+    "roles": {
+      "assistant": "Assistent",
+      "system": "Systemhinweise",
+      "tool": "Werkzeuge",
+      "user": "Benutzer"
+    },
+    "sessions": {
+      "confirmDelete": "Bist du sicher, dass du \"{title}\" löschen willst?",
+      "defaultSystemPrompt": "Du bist ein aktiver Körper. Bitte grüßen Sie den Benutzer zuerst und warten Sie auf Anweisungen.",
+      "delete": "Löschen",
+      "deleteSuccess": "Sitzung gelöscht",
+      "new": "Neu",
+      "newTitle": "Sitzung",
+      "rename": "Rename Session",
+      "renamePlaceholder": "Bitte geben Sie einen neuen Sitzungstitel ein",
+      "renameRequired": "Titel kann nicht leer sein",
+      "renameSuccess": "Umbenennung erfolgreich",
+      "title": "Sitzung"
+    },
+    "tool": {
+      "status": {
+        "failed": "Implementierung nicht verfügbar",
+        "pending": "Ausgaben",
+        "running": "Durchführung",
+        "success": "abgeschlossen"
+      }
+    },
+    "tools": {
+      "detail": {
+        "idle": "Kostenlos",
+        "never": "Nie verwendet",
+        "origin": "Quelle",
+        "placeholder": "Wählen Sie ein Tool, um Details anzuzeigen.",
+        "status": "Start-Status",
+        "tags": "Bezeichnung"
+      },
+      "disabled": "Nicht aktiviert",
+      "enabled": "Ermöglicht",
+      "legend": {
+        "available": "Optional",
+        "running": "Durchführung"
+      },
+      "name": "Werkzeuge",
+      "origins": {
+        "main": "Hauptprozess",
+        "mcp": "MCP-Anwendung",
+        "renderer": "Rendering Process"
+      },
+      "state": "Status",
+      "title": "Werkzeugverwaltung",
+      "toggleAll": "Alle auswählen / Keine"
+    }
   }
 }

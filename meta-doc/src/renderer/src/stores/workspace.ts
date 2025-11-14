@@ -1,4 +1,4 @@
-import { reactive, ref, computed, watch } from 'vue';
+import { reactive, ref, computed } from 'vue';
 import type { ComputedRef } from 'vue';
 import type {
   ArticleMetaData,

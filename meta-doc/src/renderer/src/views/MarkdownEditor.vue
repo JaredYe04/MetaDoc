@@ -7,8 +7,12 @@
                 @close="handleTitleMenuClose" :path="currentTitlePath"
                 :tree="extractOutlineTreeFromMarkdown(currentMarkdown, true)"
                         @accept="async (payload: any) => { await acceptGeneratedText(payload); }" style="max-width: 500px;" />
-            <SearchReplaceMenu v-if="searchReplaceDialogVisible" @close="searchReplaceDialogVisible = false"
-                :position="SRMenuPosition" />
+            <SearchReplaceMenu
+                v-if="searchReplaceDialogVisible"
+                :adapter="textEditorAdapter"
+                :position="SRMenuPosition"
+                @close="handleSearchReplaceClose"
+            />
 
             <!-- 右键菜单组件 -->
             <ContextMenu :x="menuX" :y="menuY" :items="articleContextMenuItems" :selection="getSelection()"
@@ -149,7 +153,7 @@
 
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed, toRef, watch } from "vue";
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed, toRef, watch, shallowRef } from "vue";
 import ResizableContainer from '../components/base/ResizableContainer.vue';
 import { ElButton, ElDialog, ElLoading, ElMessageBox } from 'element-plus';
 import Vditor from "vditor";
@@ -179,6 +183,8 @@ import ContextMenu from "../components/ContextMenu.vue";
 import { useWorkspace } from '../stores/workspace';
 import type { ArticleMetaData, DocumentOutlineNode } from '../../../types';
 import { debounce } from "lodash";
+import { createVditorAdapter } from "../editor/vditor-adapter";
+import type { TextEditorAdapter } from "../editor/text-editor-types";
 
 const MARKDOWN_LAYOUT = {
   editorMinWidth: 700,
@@ -308,6 +314,7 @@ const searchReplaceDialogVisible = ref(false);
 const vditor = ref<Vditor | null>(null); // Vditor 实例
 const editMetaDialogVisible = ref(false); // 编辑元信息对话框
 const articleContextMenuItems = ref<any[]>([]);//右键菜单项
+const textEditorAdapter = shallowRef<TextEditorAdapter | null>(null);
 const resizableRef = ref<InstanceType<typeof ResizableContainer> | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
 const containerWidth = ref(0);
@@ -317,13 +324,24 @@ const loadingInstance = ElLoading.service({ fullscreen: false });
 const showTitleMenu = ref(false);
 const currentTitle = ref("");
 const menuPosition = ref({ top: 0, left: 0 });
-//屏幕中央显示
-const SRMenuPosition = ref({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
+const getDefaultSearchMenuPosition = () => {
+    if (typeof window === "undefined") {
+        return { top: 24, left: 24 };
+    }
+    const margin = 24;
+    return {
+        top: margin,
+        left: margin,
+    };
+};
+const SRMenuPosition = ref(getDefaultSearchMenuPosition());
+const updateSearchMenuPosition = () => {
+    SRMenuPosition.value = getDefaultSearchMenuPosition();
+};
 const currentTitlePath = ref('');
 const contextMenuVisible = ref(false); // 右键菜单可见性
 const menuX = ref(0); // 菜单 X 坐标
 const menuY = ref(0); // 菜单 Y 坐标
-const cur_selection = ref(''); // 当前选中的文本
 
 const vditorEl = ref<HTMLElement | null>(null);
 const triggerSuggestion = ref(false);
@@ -365,19 +383,16 @@ const openContextMenu = (event: MouseEvent) => {
     menuX.value = event.clientX;
     menuY.value = event.clientY;
     contextMenuVisible.value = true;
-    cur_selection.value = getSelection();
 };
 
 // 获取选中的文本
 const getSelection = () => {
-    const editor = vditor.value;
-    return editor?.getSelection() || '';
+    return textEditorAdapter.value?.getSelectionText() ?? '';
 };
 
 // 插入文本到编辑器
 const insertText = (text: string) => {
-    const editor = vditor.value;
-    editor?.insertValue(text);
+    textEditorAdapter.value?.insertText(text);
 };
 
 // 菜单项点击事件处理
@@ -407,15 +422,13 @@ const handleMenuClick = async (item: string) => {
             eventBus.emit('ai-chat')
             break;
         case 'cut':
-            insertText("a");
-            await navigator.clipboard.writeText(cur_selection.value);
+            await textEditorAdapter.value?.cut();
             break;
         case 'copy':
-            await navigator.clipboard.writeText(cur_selection.value);
+            await textEditorAdapter.value?.copy();
             break;
         case 'paste':
-            const txt2paste = await navigator.clipboard.readText();
-            insertText(txt2paste);
+            await textEditorAdapter.value?.paste();
             break;
         case 'openAutoCompletion':
             await setSetting("autoCompletion",true);
@@ -482,11 +495,23 @@ const handleSyncActiveEditor = (payload?: { tabId?: string }) => {
 };
 eventBus.on('sync-active-editor', handleSyncActiveEditor as (payload?: unknown) => void);
 
-const handleSearchReplace = () => {
+const handleSearchReplace = (payload?: { expandReplace?: boolean }) => {
     if (!isActive.value) return;
     searchReplaceDialogVisible.value = true;
+    if (payload?.expandReplace) {
+        nextTick(() => eventBus.emit('search-replace-expand'));
+    }
+};
+const handleSearchReplaceClose = () => {
+    searchReplaceDialogVisible.value = false;
 };
 eventBus.on('search-replace', handleSearchReplace);
+
+watch(isActive, (active) => {
+    if (!active) {
+        searchReplaceDialogVisible.value = false;
+    }
+});
 
 const handleSyncWithHtml = () => {
     if (!isActive.value) return;
@@ -696,6 +721,9 @@ const refreshContextMenu = async () => {
 
 // 编辑器初始化
 onMounted(async () => {
+    if (typeof window !== "undefined") {
+        window.addEventListener('resize', updateSearchMenuPosition);
+    }
     await nextTick();
     if (containerRef.value) {
         layoutObserver = new ResizeObserver((entries) => {
@@ -866,6 +894,12 @@ onMounted(async () => {
 
             },
         });
+        textEditorAdapter.value = createVditorAdapter({
+            getInstance: () => vditor.value as unknown as Vditor | null,
+            syncMarkdown: (markdown: string) => {
+                workspace.updateDocumentMarkdown(props.tabId, markdown);
+            }
+        });
     }
     catch (e) {
         logger.error(e);
@@ -900,6 +934,10 @@ onBeforeUnmount(() => {
     if (layoutObserver) {
         layoutObserver.disconnect();
         layoutObserver = null;
+    }
+    textEditorAdapter.value = null;
+    if (typeof window !== "undefined") {
+        window.removeEventListener('resize', updateSearchMenuPosition);
     }
 });
 

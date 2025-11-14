@@ -76,6 +76,7 @@ const logger = createMainLogger('ExpressServer');
 
 let server: Server | null = null;
 let externalOpenHandler: ((payload: { path: string }) => Promise<void> | void) | null = null;
+let focusRequestHandler: (() => Promise<void> | void) | null = null;
 
 const isServerRunning = (): boolean => {
   return server !== null;
@@ -85,6 +86,12 @@ export const registerExternalOpenHandler = (
   handler: (payload: { path: string }) => Promise<void> | void,
 ): void => {
   externalOpenHandler = handler;
+};
+
+export const registerFocusRequestHandler = (
+  handler: () => Promise<void> | void,
+): void => {
+  focusRequestHandler = handler;
 };
 
 // ============ 主要功能 ============
@@ -175,6 +182,23 @@ function setupRuntimeAPI(): void {
       res.status(500).json({
         success: false,
         message: (error as Error).message ?? '打开文件失败',
+      });
+    }
+  });
+
+  expressApp.post('/api/runtime/focus-window', async (req: Request, res: Response) => {
+    if (!focusRequestHandler) {
+      return res.status(503).json({ success: false, message: '焦点处理器未就绪' });
+    }
+
+    try {
+      await focusRequestHandler();
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('处理聚焦请求失败', error as Error);
+      res.status(500).json({
+        success: false,
+        message: (error as Error).message ?? '聚焦窗口失败',
       });
     }
   });

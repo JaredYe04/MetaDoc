@@ -254,6 +254,9 @@ eventBus.on('active-tab-changed', () => {
 
 ipcRenderer.on('open-doc-success', (event, payload) => {
   const fileName = extractFileName(payload?.path, payload?.fileName)
+  if (payload?.path) {
+    updateRecentDocs(payload.path)
+  }
   eventBus.emit('workspace-open-document', {
     ...payload,
     fileName

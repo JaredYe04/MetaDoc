@@ -1,46 +1,108 @@
 <template>
-  <el-tabs
-    v-model="currentActiveId"
-    type="card"
-    class="workspace-tabs"
-    @tab-remove="handleRemove"
-    closable
-  >
-    <el-tab-pane
-      v-for="tab in tabs"
-      :key="tab.id"
-      :name="tab.id"
-      :closable="closable && !tab.readonly"
+  <div class="workspace-tabs-wrapper">
+    <el-tabs
+      v-model="currentActiveId"
+      type="card"
+      class="workspace-tabs"
+      @tab-remove="handleRemove"
+      :before-leave="handleBeforeLeave"
     >
-      <template #label>
-        <div
-          class="workspace-tab-label"
-          :title="tooltipLabel(tab)"
-          @mousedown.stop
-          draggable="true"
-          @dragstart="handleDragStart(tab.id, $event)"
-          @dragover="handleDragOver"
-          @drop="handleDrop(tab.id)"
-          @dragend="handleDragEnd"
-        >
-          <span class="workspace-tab-label__primary">
-            {{ primaryLabel(tab) }}
-          </span>
-          <span
-            v-if="tab.dirty"
-            class="workspace-tab-label__dot"
-          />
-        </div>
-      </template>
-    </el-tab-pane>
+      <el-tab-pane
+        v-for="tab in tabs"
+        :key="tab.id"
+        :name="tab.id"
+        :closable="closable && !tab.readonly"
+      >
+        <template #label>
+          <div
+            class="workspace-tab-label"
+            :title="tooltipLabel(tab)"
+            @mousedown.stop
+            draggable="true"
+            @dragstart="handleDragStart(tab.id, $event)"
+            @dragover="handleDragOver"
+            @drop="handleDrop(tab.id)"
+            @dragend="handleDragEnd"
+          >
+            <span class="workspace-tab-label__primary">
+              {{ primaryLabel(tab) }}
+            </span>
+            <span
+              v-if="tab.dirty"
+              class="workspace-tab-label__dot"
+            />
+          </div>
+        </template>
+      </el-tab-pane>
+      
+      <el-tab-pane
+        :key="ADD_TAB_ID"
+        :name="ADD_TAB_ID"
+        :closable="false"
+        class="workspace-tab-pane workspace-tab-pane--add"
+      >
+        <template #label>
+          <el-tooltip :content="t('home.tabActions.title')" placement="bottom">
+            <div class="workspace-tab-label workspace-tab-label--plus">
+              <Plus />
+            </div>
+          </el-tooltip>
+        </template>
+      </el-tab-pane>
+
+    </el-tabs>
+    <el-tabs
+      v-model="currentActiveId"
+      type="card"
+      class="workspace-tabs"
+      @tab-remove="handleRemove"
+      closable
+      :before-leave="handleBeforeLeave"
+    >
   </el-tabs>
+  </div>
+
+  <el-dialog
+    v-model="addDialogVisible"
+    :title="t('home.tabActions.title')"
+    width="360px"
+    append-to-body
+    :close-on-click-modal="false"
+  >
+    <div class="workspace-tabs__dialog-actions">
+      <el-tooltip :content="t('home.tabActions.new')" placement="bottom">
+        <el-button
+          circle
+          size="large"
+          @click="handleAddSelect('new')"
+        >
+          <el-icon>
+            <DocumentAdd />
+          </el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="t('home.tabActions.open')" placement="bottom">
+        <el-button
+          circle
+          size="large"
+          @click="handleAddSelect('open')"
+        >
+          <el-icon>
+            <FolderAdd />
+          </el-icon>
+        </el-button>
+      </el-tooltip>
+    </div>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { useWorkspace, type WorkspaceTab } from '../../stores/workspace';
+import eventBus from '../../utils/event-bus';
+import { Plus, DocumentAdd, FolderAdd } from '@element-plus/icons-vue';
 
 const props = defineProps({
   closable: {
@@ -56,8 +118,11 @@ const emit = defineEmits<{
 }>();
 
 const workspace = useWorkspace();
+const ADD_TAB_ID = '__workspace_add_tab__';
+
 const tabs = computed(() => [...workspace.tabs]);
 const { t } = useI18n();
+const addDialogVisible = ref(false);
 
 const primaryLabel = (tab: WorkspaceTab) => {
   return tab.subtitle?.trim() || tab.title?.trim() || '未命名文档';
@@ -132,11 +197,39 @@ const handleDrop = (id: string) => {
 const handleDragEnd = () => {
   draggingId = null;
 };
+
+const handleAddClick = () => {
+  addDialogVisible.value = true;
+};
+
+const handleBeforeLeave = (nextName?: string, _currentName?: string) => {
+  if (nextName === ADD_TAB_ID) {
+    handleAddClick();
+    return false;
+  }
+  return true;
+};
+
+const handleAddSelect = (action: 'new' | 'open') => {
+  addDialogVisible.value = false;
+  if (action === 'new') {
+    eventBus.emit('new-doc');
+  } else {
+    eventBus.emit('open-doc');
+  }
+};
 </script>
 
 <style scoped>
-.workspace-tabs {
+.workspace-tabs-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 0 8px;
+}
+
+.workspace-tabs {
+  flex: 1;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
@@ -191,6 +284,42 @@ const handleDragEnd = () => {
 .workspace-tabs :deep(.el-tabs__item:not(.is-active):hover) {
   background-color: var(--el-fill-color-light);
 }
+
+.workspace-tabs__add {
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.workspace-tabs__dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.workspace-tab-label--plus {
+  width: 13px;
+  height: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--el-text-color-primary);
+  gap: 0;
+}
+
+.workspace-tab-label--plus:hover {
+  color: var(--el-color-primary);
+}
+
+.workspace-tabs :deep(.workspace-tab-pane--add .el-tabs__item .el-icon-close),
+.workspace-tabs :deep(.workspace-tab-pane--add .el-icon-close) {
+  display: none !important;
+}
 </style>
+
 
 

@@ -331,6 +331,11 @@
       "openFile": "ドキュメントを開く",
       "refresh": "リフレッシュ"
     },
+    "tabActions": {
+      "title": "ドキュメントを追加",
+      "new": "新規ドキュメント",
+      "open": "ドキュメントを開く"
+    },
     "authorLabel": "著者",
     "abstractLabel": "要約",
     "quickStartTitle": "クイックスタート",

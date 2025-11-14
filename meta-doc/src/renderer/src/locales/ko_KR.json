@@ -331,6 +331,11 @@
       "openFile": "문서 열기",
       "refresh": "새로 고침"
     },
+    "tabActions": {
+      "title": "문서 추가",
+      "new": "새 문서",
+      "open": "문서 열기"
+    },
     "authorLabel": "작성자",
     "abstractLabel": "요약",
     "quickStartTitle": "빠른 시작",

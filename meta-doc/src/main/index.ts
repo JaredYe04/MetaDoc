@@ -18,7 +18,7 @@ const icon = undefined; // 暂时禁用icon导入
 import fs from 'fs';
 import http from 'http';
 import { mainCalls, refreshMainWindowTitle, openDoc } from './main-calls';
-import { registerExternalOpenHandler, runExpressServer } from './express-server';
+import { registerExternalOpenHandler, registerFocusRequestHandler, runExpressServer } from './express-server';
 import { initializeUtils } from './utils';
 import { initLogger, shutdownLogger, createMainLogger } from './logger';
 import { broadcastServiceStatus } from './service-status';
@@ -37,9 +37,7 @@ const RUNTIME_API_HOST = '127.0.0.1';
 const RUNTIME_API_PORT = 52521;
 
 const startupFileArgument = findSupportedFileArgument(process.argv);
-const prelaunchDelegationPromise = startupFileArgument
-  ? attemptDelegationToRunningInstance(startupFileArgument)
-  : Promise.resolve(false);
+const prelaunchDelegationPromise = attemptDelegationToRunningInstance(startupFileArgument);
 
 // ============ 全局变量 ============
 
@@ -55,6 +53,19 @@ const SHORTCUT_CONFIG = [
   { accelerator: 'CommandOrControl+F', channel: 'search-replace-triggered' as const },
   { accelerator: 'CommandOrControl+H', channel: 'search-replace-expand-triggered' as const },
 ] as const;
+
+function focusMainApplicationWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+
+  mainWindow.show();
+  mainWindow.focus();
+}
 
 // ============ 主窗口创建和管理 ============
 
@@ -140,18 +151,15 @@ function createWindow(): void {
   registerExternalOpenHandler(async ({ path }) => {
     try {
       if (!path) return;
-      if (mainWindow?.isDestroyed()) return;
-      if (mainWindow) {
-        if (mainWindow.isMinimized()) {
-          mainWindow.restore();
-        }
-        mainWindow.show();
-        mainWindow.focus();
-      }
+      focusMainApplicationWindow();
       await openDoc(path);
     } catch (error) {
       logger.error('处理外部打开文件请求失败', error as Error);
     }
+  });
+
+  registerFocusRequestHandler(async () => {
+    focusMainApplicationWindow();
   });
   
   // 启动Express服务器
@@ -187,7 +195,8 @@ app.whenReady().then(async () => {
   });
 
   if (await prelaunchDelegationPromise) {
-    logger.info('检测到已有 MetaDoc 实例，已转发文件打开请求，本实例即将退出');
+    const delegationAction = startupFileArgument ? '转发文件打开请求' : '发送聚焦请求';
+    logger.info(`检测到已有 MetaDoc 实例，已${delegationAction}，本实例即将退出`);
     app.quit();
     return;
   }
@@ -332,17 +341,7 @@ function findSupportedFileArgument(args: string[]): string | null {
   return null;
 }
 
-async function attemptDelegationToRunningInstance(filePath: string): Promise<boolean> {
-  try {
-    if (!fs.existsSync(filePath)) {
-      logger.warn(`启动参数指定的文件不存在: ${filePath}`);
-      return false;
-    }
-  } catch (error) {
-    logger.warn('检测启动文件是否存在时出错', error as Error);
-    return false;
-  }
-
+async function attemptDelegationToRunningInstance(filePath?: string | null): Promise<boolean> {
   const statusResponse = await performHttpRequest({
     host: RUNTIME_API_HOST,
     port: RUNTIME_API_PORT,
@@ -353,21 +352,50 @@ async function attemptDelegationToRunningInstance(filePath: string): Promise<boo
   if (!statusResponse.ok) {
     return false;
   }
+  
+  if (filePath) {
+    try {
+      if (!fs.existsSync(filePath)) {
+        logger.warn(`启动参数指定的文件不存在: ${filePath}`);
+        return false;
+      }
+    } catch (error) {
+      logger.warn('检测启动文件是否存在时出错', error as Error);
+      return false;
+    }
 
-  const payload = JSON.stringify({ path: path.resolve(filePath) });
-  const openResponse = await performHttpRequest({
+    const payload = JSON.stringify({ path: path.resolve(filePath) });
+    const openResponse = await performHttpRequest({
+      host: RUNTIME_API_HOST,
+      port: RUNTIME_API_PORT,
+      path: '/api/runtime/open-document',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload).toString(),
+      },
+    }, payload);
+  
+    if (!openResponse.ok) {
+      logger.warn(`向已有实例发送打开文件请求失败，状态码: ${openResponse.statusCode}`);
+      return false;
+    }
+  
+    return true;
+  }
+
+  const focusResponse = await performHttpRequest({
     host: RUNTIME_API_HOST,
     port: RUNTIME_API_PORT,
-    path: '/api/runtime/open-document',
+    path: '/api/runtime/focus-window',
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(payload).toString(),
+      'Content-Length': '0',
     },
-  }, payload);
+  });
 
-  if (!openResponse.ok) {
-    logger.warn(`向已有实例发送打开文件请求失败，状态码: ${openResponse.statusCode}`);
+  if (!focusResponse.ok) {
+    logger.warn(`向已有实例发送聚焦请求失败，状态码: ${focusResponse.statusCode}`);
     return false;
   }
 

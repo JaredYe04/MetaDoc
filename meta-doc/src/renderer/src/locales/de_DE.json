@@ -183,6 +183,11 @@
       "quickStart": "Schneller Start.",
       "refresh": "Refreshing"
     },
+    "tabActions": {
+      "title": "Dokument erstellen oder öffnen",
+      "new": "Neues Dokument",
+      "open": "Dokument öffnen"
+    },
     "defaultText": "# Welcome to MetaDoc\n\nDies ist eine AI-gesteuerte Textverarbeitungssoftware, die Ihnen hilft, Dokumentinhalte schnell zu generieren.",
     "documentInfoLabel": "Dokumenteninformation Füllung",
     "label": {

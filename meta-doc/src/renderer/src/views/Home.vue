@@ -250,10 +250,21 @@ const initThreeJS = () => {
   createParticles()
 }
 
+const disposeParticles = () => {
+  if (scene && particles) {
+    scene.remove(particles)
+  }
+  particles = null
+}
+
 const createParticles = async () => {
-  if (!scene) return
+  disposeParticles()
+  scene = new THREE.Scene()
+
   const areaSize = 1500
+  const particleCount = 100
   let wordList: string[] = []
+
   try {
     const words = await ipcRenderer?.invoke?.('cut-words', { text: particleMarkdown.value })
     wordList = Array.isArray(words) ? Array.from(new Set(words)) : []
@@ -264,12 +275,6 @@ const createParticles = async () => {
   const symbols = '~!@#$%^&*()_+`-={}|[]\\:";\'<>?,./。、，；：‘’“”【】《》？！￥…（）—0123456789'
   wordList = wordList.filter((word) => !symbols.includes(word) && word.length > 1)
 
-  if (scene && particles) {
-    scene.remove(particles)
-    particles = null
-  }
-
-  const particleCount = 100
   if (wordList.length < 20) {
     const geometry = new THREE.BufferGeometry()
     const positions = new Float32Array(particleCount * 3)
@@ -297,7 +302,7 @@ const createParticles = async () => {
 
     particles = new THREE.Points(geometry, material)
   } else {
-    particles = new THREE.Group()
+    const group = new THREE.Group()
     const sampled = wordList.sort(() => 0.5 - Math.random()).slice(0, Math.min(wordList.length, particleCount))
     sampled.forEach((word) => {
       const canvas = document.createElement('canvas')
@@ -330,8 +335,9 @@ const createParticles = async () => {
       const scale = 120 + Math.random() * 160
       sprite.scale.set(scale, scale, 1)
 
-      particles?.add(sprite)
+      group.add(sprite)
     })
+    particles = group
   }
 
   if (scene && particles) {
@@ -408,6 +414,11 @@ const particleEffect = async () => {
     const enabled = await getSetting('particleEffect')
     if (enabled) {
       particleEffectEnabled.value = true
+      try {
+        await createParticles()
+      } catch (error) {
+        logger.warn('粒子生成失败', error)
+      }
       startAnimation()
     } else {
       particleEffectEnabled.value = false
@@ -419,7 +430,7 @@ const particleEffect = async () => {
     () => particleMarkdown.value,
     (newValue, oldValue) => {
       if (newValue !== oldValue) {
-        createParticles()
+        createParticles().catch((err) => logger.warn('粒子重建失败', err))
       }
     }
   )
@@ -448,7 +459,11 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('mousemove', onMouseMove)
   window.removeEventListener('resize', onWindowResize)
+  disposeParticles()
+  scene = null
+  camera = null
   if (renderer) renderer.dispose()
+  renderer = null
 })
 
 const handleTabChange = (id: string) => {

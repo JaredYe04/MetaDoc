@@ -331,6 +331,11 @@
             "openFile": "打开文档",
             "refresh": "刷新"
         },
+      "tabActions": {
+        "title": "添加标签页",
+        "new": "新建文档",
+        "open": "打开文档"
+      },
         "authorLabel": "作者",
         "abstractLabel": "摘要",
         "quickStartTitle": "快速开始",

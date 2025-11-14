@@ -183,6 +183,11 @@
       "quickStart": "Début rapide.",
       "refresh": "Actualiser"
     },
+    "tabActions": {
+      "title": "Créer ou ouvrir un document",
+      "new": "Nouveau document",
+      "open": "Ouvrir un document"
+    },
     "defaultText": "Bienvenue sur MetaDoc\n\nIl s'agit d'un logiciel de traitement de texte piloté par l'IA qui vous aide à générer rapidement du contenu de document.",
     "defaultLatexText": "\\documentclass{article}\n\\begin{document}\n\\title{Bienvenue sur MetaDoc}\n\\author{Assistant IA}\n\\maketitle\n\n\\section{Introduction}\nCeci est un modèle de démarrage rapide LaTeX généré par MetaDoc.\n\n\\end{document}",
     "documentInfoLabel": "Remplissage des renseignements",

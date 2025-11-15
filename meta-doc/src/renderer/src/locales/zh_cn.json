@@ -2,8 +2,10 @@
     "lang": "zh_CN",
     "contextMenu": {
         "aiAnalysis": "AI全文分析",
+        "cut": "剪切",
         "copy": "复制",
         "paste": "粘贴",
+        "selectAll": "全选",
         "closeAutoCompletion":"禁用AI补全",
         "openAutoCompletion":"启用AI补全",
         "closeKnowledgeBase":"禁用知识检索库",
@@ -199,7 +201,10 @@
         "inputPlaceholder": "在此处输入消息。",
         "send": "发送",
         "reset": "重置",
-        "defaultTitle": "与AI助手对话"
+        "defaultTitle": "与AI助手对话",
+        "enterToSend": "按 Enter 发送",
+        "ctrlEnterToSend": "按 Ctrl+Enter 发送",
+        "changeSendMode": "点击切换发送快捷键"
     },
     "aigraph": {
         "renameTitle": "重命名",

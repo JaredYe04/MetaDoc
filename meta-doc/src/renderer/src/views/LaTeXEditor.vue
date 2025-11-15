@@ -15,9 +15,9 @@
             />
 
             <!-- 右键菜单组件 -->
-            <ContextMenu :x="menuX" :y="menuY" :items="articleContextMenuItems" :selection="getSelection()"
+            <ContextMenu :x="menuX" :y="menuY" :items="articleContextMenuItems"
                 v-if="contextMenuVisible" @trigger="handleMenuClick" class="context-menu"
-                @close="contextMenuVisible = false;" @insert="insertText" />
+                @close="contextMenuVisible = false;" />
             <AISuggestion :targetEl="editorEl" :trigger="triggerSuggestion" :rootNodeClass="'view-lines'"
                 :context="suggestionContext" 
                 @accepted="onAcceptSuggestion" @cancelled="onCancelSuggestion" @reset="onResetSuggestion" 
@@ -125,7 +125,8 @@
                                     </el-tooltip>
                                 </div>
                                 <div class="editor-console-container">
-                                    <div class="editor" :key="editorKey" :id="editorDomId" ref="editorEl"></div>
+                                    <div class="editor" :key="editorKey" :id="editorDomId" ref="editorEl"
+                                        @contextmenu.prevent="openContextMenu($event)"></div>
                                     <div v-show="showConsole" class="console-wrapper" :style="{ height: consoleHeight + 'px' }">
                                         <div class="editor-resizer" @mousedown="startResizeConsole"></div>
                                         <div class="console-panel" :style="{
@@ -313,7 +314,7 @@ import "../assets/aero-div.css";
 import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
 import "../assets/title-menu.css";
-import eventBus, { getWindowType } from '../utils/event-bus';
+import eventBus, { getWindowType, sendBroadcast } from '../utils/event-bus';
 import { generateDescriptionPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
 import { searchNode } from "../utils/outline-helpers";
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
@@ -344,6 +345,7 @@ import { debounce } from 'lodash';
 import localIpcRenderer from "../utils/web-adapter/local-ipc-renderer";
 import { webMainCalls } from "../utils/web-adapter/web-main-calls";
 import { createMonacoAdapter } from "../editor/monaco-adapter";
+import { prependAiChatDialog } from '../utils/ai-chat-storage';
 
 const { t } = useI18n();
 const logger = createRendererLogger('LaTeXEditor', {
@@ -819,11 +821,6 @@ const openContextMenu = (event) => {
     contextMenuVisible.value = true;
 };
 
-// 获取选中的文本
-const getSelection = () => {
-    return textEditorAdapter.value?.getSelectionText() ?? '';
-};
-
 // 插入文本到当前光标位置（支持多行）
 const insertText = (text) => {
   textEditorAdapter.value?.insertText(text);
@@ -853,6 +850,8 @@ const handleMenuClick = async (item) => {
                 messages: messages
             };
             addDialogEntry(newDialog, true)
+            prependAiChatDialog(newDialog);
+            sendBroadcast('ai-chat', 'ai-chat-dialogs-updated', null);
             eventBus.emit('ai-chat')
             break;
         case 'cut':
@@ -863,6 +862,9 @@ const handleMenuClick = async (item) => {
             break;
         case 'paste':
             await textEditorAdapter.value?.paste();
+            break;
+        case 'selectAll':
+            textEditorAdapter.value?.selectAll();
             break;
         case 'openAutoCompletion':
             await setSetting("autoCompletion", true);
@@ -1056,7 +1058,8 @@ const initEditor = () => {
         wordWrapMinified: true, // 对于 minified 文件也自动换行
         wrappingIndent: "same", // 缩进方式，"none" | "same" | "indent" | "deepIndent"
         lineNumbers: enableRowNumber ? 'on' : 'off',
-        minimap: { enabled: enableMinimap }
+        minimap: { enabled: enableMinimap },
+        contextmenu: false
     })
     editorId = editor.value.getId();
     textEditorAdapter.value = createMonacoAdapter(editorId);

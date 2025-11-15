@@ -276,6 +276,18 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
     this.syncAfterMutation();
   }
 
+  selectAll(): void {
+    const root = this.getEditableRoot();
+    if (!root) return;
+    const selection = window.getSelection();
+    if (!selection) return;
+    const range = document.createRange();
+    range.selectNodeContents(root);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    root.focus();
+  }
+
   goTo(position: TextPosition): void {
     const root = this.getEditableRoot();
     if (!root) return;

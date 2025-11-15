@@ -15,9 +15,9 @@
             />
 
             <!-- 右键菜单组件 -->
-            <ContextMenu :x="menuX" :y="menuY" :items="articleContextMenuItems" :selection="getSelection()"
+            <ContextMenu :x="menuX" :y="menuY" :items="articleContextMenuItems"
                 v-if="contextMenuVisible" @trigger="handleMenuClick" class="context-menu"
-                @close="contextMenuVisible = false;" @insert="insertText" />
+                @close="contextMenuVisible = false;" />
             <AISuggestion v-if="vditorEl" :targetEl="vditorEl" :trigger="triggerSuggestion" :rootNodeClass="'vditor-reset'"
                 @accepted="onAcceptSuggestion" @cancelled="onCancelSuggestion" @reset="onResetSuggestion"
                 @triggerSuggestion="trytriggerSuggestion" />
@@ -162,7 +162,7 @@ import "../assets/aero-div.css";
 import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
 import "../assets/title-menu.css";
-import eventBus, { isElectronEnv, getWindowType } from '../utils/event-bus';
+import eventBus, { isElectronEnv, getWindowType, sendBroadcast } from '../utils/event-bus';
 import { createRendererLogger } from '../utils/logger.ts'
 import { generateDescriptionPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
 import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree } from '../utils/md-utils';
@@ -185,6 +185,7 @@ import type { ArticleMetaData, DocumentOutlineNode } from '../../../types';
 import { debounce } from "lodash";
 import { createVditorAdapter } from "../editor/vditor-adapter";
 import type { TextEditorAdapter } from "../editor/text-editor-types";
+import { prependAiChatDialog } from '../utils/ai-chat-storage';
 
 const MARKDOWN_LAYOUT = {
   editorMinWidth: 700,
@@ -385,11 +386,6 @@ const openContextMenu = (event: MouseEvent) => {
     contextMenuVisible.value = true;
 };
 
-// 获取选中的文本
-const getSelection = () => {
-    return textEditorAdapter.value?.getSelectionText() ?? '';
-};
-
 // 插入文本到编辑器
 const insertText = (text: string) => {
     textEditorAdapter.value?.insertText(text);
@@ -419,6 +415,8 @@ const handleMenuClick = async (item: string) => {
             };
             //logger.log(newDialog)
             addDialog(newDialog, true)
+            prependAiChatDialog(newDialog);
+            sendBroadcast('ai-chat', 'ai-chat-dialogs-updated', null);
             eventBus.emit('ai-chat')
             break;
         case 'cut':
@@ -429,6 +427,9 @@ const handleMenuClick = async (item: string) => {
             break;
         case 'paste':
             await textEditorAdapter.value?.paste();
+            break;
+        case 'selectAll':
+            textEditorAdapter.value?.selectAll();
             break;
         case 'openAutoCompletion':
             await setSetting("autoCompletion",true);

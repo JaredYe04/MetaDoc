@@ -2,8 +2,10 @@
   "lang": "ko_KR",
   "contextMenu": {
     "aiAnalysis": "AI 전체 분석",
+    "cut": "잘라내기",
     "copy": "복사",
     "paste": "붙여넣기",
+    "selectAll": "모두 선택",
     "closeAutoCompletion": "Disable AI 완료",
     "closeKnowledgeBase": "법적 고지 Retrieval 도서관",
     "openAutoCompletion": "Enable AI 완료",
@@ -199,7 +201,10 @@
     "inputPlaceholder": "여기에 메시지를 입력하세요.",
     "send": "보내기",
     "reset": "초기화",
-    "defaultTitle": "AI 어시스턴트와 대화"
+    "defaultTitle": "AI 어시스턴트와 대화",
+    "enterToSend": "Enter로 전송",
+    "ctrlEnterToSend": "Ctrl+Enter로 전송",
+    "changeSendMode": "클릭하여 전송 단축키 전환"
   },
   "aigraph": {
     "renameTitle": "이름 변경",

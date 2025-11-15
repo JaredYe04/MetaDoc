@@ -81,7 +81,7 @@ import { themeState } from "../utils/themes.js";
 import { AddIcon } from 'tdesign-icons-vue-next';
 import { answerQuestion } from '../utils/llm-api.js';
 import '../assets/tool-group.css'
-import { updateTitlePrompt } from '../utils/prompts.js';
+import { updateTitlePrompt } from '../utils/prompts';
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks.ts';
 import { getSetting } from '../utils/settings.js';
@@ -89,6 +89,8 @@ import { getSetting } from '../utils/settings.js';
 import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document';
 import type { AIDialog, AIDialogMessage } from '../../../types';
 import ChatComposer from '../components/chat/ChatComposer.vue';
+import { readAiChatDialogs, writeAiChatDialogs } from '../utils/ai-chat-storage';
+import { parseSchemaJson, DOCUMENT_TITLE_SCHEMA, type DocumentTitleSchemaResult } from '../utils/schemas';
 const { t } = useI18n()
 const responding = ref(false);
 const activeDialogIndex = ref<number>(0);
@@ -123,41 +125,20 @@ const defaultTitle = t('aiChat.defaultTitle');
 // const { workspace, activeDocument } = useActiveDocument();
 // const targetTabId = computed(() => props.id || workspace.activeTabId.value);
 
-const LOCAL_STORAGE_KEY = 'meta-doc-ai-chat-dialogs';
-
 const dialogs = ref<AIDialog[]>([]);
 
 const loadDialogsFromStorage = () => {
-  try {
-    if (typeof window === 'undefined') {
-      dialogs.value = [createDefaultDialog(defaultTitle)];
-      return;
-    }
-    const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!stored) {
-      dialogs.value = [createDefaultDialog(defaultTitle)];
-      persistDialogsToStorage();
-      return;
-    }
-    const parsed = JSON.parse(stored);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      dialogs.value = parsed;
-    } else {
-      dialogs.value = [createDefaultDialog(defaultTitle)];
-    }
-  } catch (error) {
-    logger.warn('Failed to parse AI chat dialogs from storage', error);
+  const stored = readAiChatDialogs();
+  if (!stored.length) {
     dialogs.value = [createDefaultDialog(defaultTitle)];
+    persistDialogsToStorage();
+    return;
   }
+  dialogs.value = stored;
 };
 
 const persistDialogsToStorage = () => {
-  try {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dialogs.value));
-  } catch (error) {
-    logger.warn('Failed to persist AI chat dialogs', error);
-  }
+  writeAiChatDialogs(dialogs.value);
 };
 
 // 初始化当前对话
@@ -283,6 +264,9 @@ const onMsgSend = async () => {
     content: promptInput.value,
   };
   messages.value.push(userMessage);
+  updateTitle(userMessage.content).catch((error) => {
+    logger.debug('update title failed', error);
+  });
   //logger.log(messages.value);
   promptInput.value = '';
   cur_resp.value = '';
@@ -323,8 +307,39 @@ const onMsgSend = async () => {
 
 // 其余方法保持原有实现，只需将localStorage操作替换为updateCurrentDialog()
 
-const updateTitle = async () => {
-  const prompt = updateTitlePrompt(JSON.stringify(messages.value[messages.value.length - 1].content));
+const MAX_TITLE_LENGTH = 20;
+const TITLE_CONTEXT_LIMIT = 6;
+
+const buildTitleSource = (seedText?: string): string => {
+  if (seedText && seedText.trim()) {
+    return seedText.trim();
+  }
+  const recentMessages = messages.value
+    .filter((msg) => msg.role !== 'system')
+    .slice(-TITLE_CONTEXT_LIMIT);
+  return recentMessages
+    .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
+    .join('\n');
+};
+
+const sanitizeGeneratedTitle = (raw: string): string => {
+  let next = raw.trim();
+  while (next.startsWith('#')) {
+    next = next.slice(1).trim();
+  }
+  next = next.replace(/\s+/g, ' ');
+  if (next.length > MAX_TITLE_LENGTH) {
+    next = next.slice(0, MAX_TITLE_LENGTH).replace(/[，。,;:!?、．…-]+$/, '').trim();
+  }
+  if (!next) {
+    next = defaultTitle;
+  }
+  return next;
+};
+
+const updateTitle = async (seedText?: string) => {
+  const titleSource = buildTitleSource(seedText);
+  const prompt = updateTitlePrompt(JSON.stringify(titleSource));
   //备注：因为标题撰写需要一定时间，而用户可能在这个时间切换到其他对话，因此首先要保存索引
   const index = activeDialogIndex.value;//当前对话索引
 
@@ -336,15 +351,18 @@ const updateTitle = async () => {
   } catch (err) {
     logger.error(err);
   }
-  let newTitle = generatedText.value;
-  newTitle = newTitle.trim();
-  //如果开头是##，则去掉
-  while (newTitle.startsWith('#')) {
-    newTitle = newTitle.substring(1);
-    newTitle = newTitle.trim();
+  let schemaTitle: string | undefined;
+  try {
+    const parsed = parseSchemaJson<DocumentTitleSchemaResult>(
+      generatedText.value,
+      DOCUMENT_TITLE_SCHEMA,
+    );
+    schemaTitle = parsed.title;
+  } catch (error) {
+    logger.warn('解析标题JSON失败', error);
   }
-  if (newTitle.length > 10)
-    newTitle = newTitle.substring(0, 10);
+
+  let newTitle = sanitizeGeneratedTitle(schemaTitle ?? generatedText.value ?? titleSource);
   if (dialogs.value[index] && dialogs.value[index].title === title.value) {
     title.value = newTitle;
   }
@@ -354,13 +372,19 @@ const updateTitle = async () => {
   updateCurrentDialog(index);
 };
 
+const handleExternalDialogsUpdate = () => {
+  initCurrentDialog();
+};
+
 onMounted(() => {
   initCurrentDialog();
   eventBus.on('ai-dialogs-loaded', initCurrentDialog);
+  eventBus.on('ai-chat-dialogs-updated', handleExternalDialogsUpdate);
 });
 
 onBeforeUnmount(() => {
   eventBus.off('ai-dialogs-loaded', initCurrentDialog);
+  eventBus.off('ai-chat-dialogs-updated', handleExternalDialogsUpdate);
 });
 
 watch([messages], () => {

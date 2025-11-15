@@ -7,7 +7,10 @@
     "renamePlaceholder": "Bitte geben Sie einen neuen Titel ein",
     "renameTitle": "Name",
     "reset": "Zurück zur Übersicht",
-    "send": "Bitte"
+    "send": "Bitte",
+    "enterToSend": "Enter zum Senden",
+    "ctrlEnterToSend": "Strg+Enter zum Senden",
+    "changeSendMode": "Klicken, um die Sende-Tastenkombination zu wechseln"
   },
   "aiTask": {
     "cancel": "Abbrechen",
@@ -128,8 +131,10 @@
   },
   "contextMenu": {
     "aiAnalysis": "KI Volltextanalyse",
+    "cut": "Ausschneiden",
     "copy": "Kopie",
     "paste": "Paste",
+    "selectAll": "Alles auswählen",
     "closeAutoCompletion": "KI-Ausrüstung deaktivieren",
     "closeKnowledgeBase": "Unmögliches Wissen Retrieval Bibliothek",
     "openAutoCompletion": "KI-Vervollständigung aktivieren",

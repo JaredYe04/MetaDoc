@@ -7,7 +7,10 @@
     "renamePlaceholder": "Veuillez saisir un nouveau titre",
     "renameTitle": "Renommer",
     "reset": "Réinitialiser",
-    "send": "Envoyer"
+    "send": "Envoyer",
+    "enterToSend": "Entrée pour envoyer",
+    "ctrlEnterToSend": "Ctrl+Entrée pour envoyer",
+    "changeSendMode": "Cliquez pour changer le raccourci d’envoi"
   },
   "aiTask": {
     "cancel": "Annuler",
@@ -128,8 +131,10 @@
   },
   "contextMenu": {
     "aiAnalysis": "Analyse du texte intégral",
+    "cut": "Couper",
     "copy": "Copier",
     "paste": "Pâte",
+    "selectAll": "Tout sélectionner",
     "closeAutoCompletion": "Désactiver la réalisation de l'IA",
     "closeKnowledgeBase": "Désactiver la connaissance Bibliothèque de récupération",
     "openAutoCompletion": "Activer l'achèvement de l'intelligence artificielle",

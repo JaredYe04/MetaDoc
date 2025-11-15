@@ -2,8 +2,10 @@
   "lang": "ja_JP",
   "contextMenu": {
     "aiAnalysis": "AI全文分析",
+    "cut": "切り取り",
     "copy": "コピー",
     "paste": "貼り付け",
+    "selectAll": "すべて選択",
     "closeAutoCompletion": "障がいのあるAI完成",
     "closeKnowledgeBase": "障害のある知識 立派な図書館",
     "openAutoCompletion": "AI完了を有効にする",
@@ -199,7 +201,10 @@
     "inputPlaceholder": "ここにメッセージを入力してください。",
     "send": "送信",
     "reset": "リセット",
-    "defaultTitle": "AIアシスタントとの会話"
+    "defaultTitle": "AIアシスタントとの会話",
+    "enterToSend": "Enterで送信",
+    "ctrlEnterToSend": "Ctrl+Enterで送信",
+    "changeSendMode": "クリックして送信ショートカットを切り替え"
   },
   "aigraph": {
     "renameTitle": "名前を変更",

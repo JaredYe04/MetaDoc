@@ -269,7 +269,7 @@ import { themeState } from "../utils/themes";
 import eventBus, { getWindowType, isElectronEnv } from '../utils/event-bus.js'
 import { MdEditor } from 'md-editor-v3'
 
-import { generateGraphPrompt } from '../utils/prompts.js'
+import { generateGraphPrompt } from '../utils/prompts'
 import domtoimage from 'dom-to-image-more';
 import { exportPng } from '../utils/image-utils.js'
 import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn.js'

@@ -36,10 +36,24 @@
           :disabled="disabled"
           rows="1"
           @input="handleInput"
+          @keydown="handleKeydown"
         />
       </el-scrollbar>
 
       <div class="composer-actions">
+        <div class="composer-send-switch">
+          <el-tooltip :content="t('aiChat.changeSendMode')" placement="top">
+            <el-button
+              class="composer-send-toggle"
+              size="small"
+              text
+              @click.prevent="toggleSendMode"
+            >
+              {{ sendModeLabel }}
+            </el-button>
+          </el-tooltip>
+        </div>
+
         <el-tooltip v-if="showVoice" :content="t('aiChat.voiceTooltip')" placement="top">
           <el-button
             circle
@@ -112,6 +126,8 @@ const scrollbarRef = ref<ScrollbarInstance | null>(null)
 const maxScrollHeight = ref(0)
 const singleLineHeight = ref<number | null>(null)
 const isMultiline = ref(false)
+const SEND_PREF_KEY = 'meta-doc-chat-send-on-enter'
+const sendOnEnter = ref(true)
 
 const updateMaxScrollHeight = () => {
   maxScrollHeight.value = Math.max(180, Math.floor(window.innerHeight * 0.4))
@@ -162,14 +178,50 @@ const handleSubmit = () => {
   emit('submit')
 }
 
+const handleKeydown = (event: KeyboardEvent) => {
+  if (props.disabled) return
+  if (event.key !== 'Enter') return
+  const isModifierPressed = event.altKey || event.shiftKey
+  if (sendOnEnter.value) {
+    if (!isModifierPressed && !event.ctrlKey && !event.metaKey) {
+      event.preventDefault()
+      handleSubmit()
+    }
+  } else {
+    if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
+      event.preventDefault()
+      handleSubmit()
+    }
+  }
+}
+
+const sendModeLabel = computed(() =>
+  sendOnEnter.value ? t('aiChat.enterToSend') : t('aiChat.ctrlEnterToSend'),
+)
+
+const toggleSendMode = () => {
+  sendOnEnter.value = !sendOnEnter.value
+}
+
 watch(() => props.modelValue, () => {
   nextTick(autoResize)
+})
+
+watch(sendOnEnter, (value) => {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(SEND_PREF_KEY, String(value))
 })
 
 onMounted(() => {
   updateMaxScrollHeight()
   window.addEventListener('resize', updateMaxScrollHeight)
   nextTick(autoResize)
+  if (typeof window !== 'undefined') {
+    const stored = window.localStorage.getItem(SEND_PREF_KEY)
+    if (stored !== null) {
+      sendOnEnter.value = stored === 'true'
+    }
+  }
 })
 
 onBeforeUnmount(() => {
@@ -262,6 +314,18 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.composer-send-switch {
+  display: flex;
+  align-items: center;
+}
+
+.composer-send-toggle {
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .composer-shell.is-multiline .composer-actions {

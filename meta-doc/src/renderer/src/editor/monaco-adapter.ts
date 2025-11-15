@@ -296,6 +296,16 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     this.insertText(text, { replaceSelection: true });
   }
 
+  selectAll(): void {
+    const editor = this.getEditor();
+    if (!editor) return;
+    const model = editor.getModel();
+    if (!model) return;
+    const fullRange = model.getFullModelRange();
+    editor.setSelection(fullRange);
+    editor.focus();
+  }
+
   goTo(position: TextPosition): void {
     const editor = this.getEditor();
     if (!editor) return;

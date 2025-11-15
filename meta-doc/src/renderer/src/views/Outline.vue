@@ -297,7 +297,7 @@ import type { DocumentOutlineNode } from '../../../types';
 import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document';
 import { searchNode, searchParentNode } from '../utils/outline-helpers';
 import { adjustTitleIndex, adjustTitleLevel, removeTextFromOutline, generateMarkdownFromOutlineTree } from '../utils/md-utils.js';
-import { expandTreeNodePrompt, generateContentPrompt, generateParentNodeContentPrompt, outlineChangePrompt } from '../utils/prompts.js';
+import { expandTreeNodePrompt, generateContentPrompt, generateParentNodeContentPrompt, outlineChangePrompt } from '../utils/prompts';
 
 import { themeState } from '../utils/themes.js';
 import { extractOuterJsonString } from '../utils/regex-utils.js';

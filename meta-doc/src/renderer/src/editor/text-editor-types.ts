@@ -59,6 +59,7 @@ export interface TextEditorAdapter {
   copy(): Promise<void>;
   cut(): Promise<void>;
   paste(): Promise<void>;
+  selectAll(): void;
 
   goTo(position: TextPosition): void;
   goToRanges(ranges: TextRange[]): void;

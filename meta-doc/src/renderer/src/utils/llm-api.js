@@ -5,7 +5,7 @@ import eventBus, { getWindowType } from "./event-bus.js";
 import { max } from "d3";
 import { getMetaDocLlmConfig, verifyToken } from "./web-utils.ts";
 import { queryKnowledgeBase } from "./rag_utils.js";
-import { ragQueryReferencePrompt } from "./prompts.js";
+import { ragQueryReferencePrompt } from "./prompts";
 // import { createRendererLogger } from "./logger.ts";
 // const logger = createRendererLogger('LlmApi', {
 //   windowTypeProvider: () => getWindowType()

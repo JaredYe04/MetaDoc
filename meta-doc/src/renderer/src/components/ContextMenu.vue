@@ -1,149 +1,213 @@
 <template>
-  <div ref="menuRef" :style="menuStyle" class="context-menu aero-div" @click="handleClick" style=" opacity: 0.95;"
-    @mousedown.stop="onMouseDown">
-    <div style="width: 100%; height: 15px; align-items: end; padding-bottom: 10px; padding-left: 10px;">
-      <VoiceInput v-if="showVoiceInput" :size="'small'" @onSpeechRecognized="onSpeechRecognized"
-        @onStateUpdated="onStateUpdated" />
-    </div>
-    <!-- 菜单项循环渲染 -->
-    <div v-for="(item, index) in items" :key="index" class="menu-item"
-      :class="{ disabled: isRecording && item.disabledWhileRecording }" :style="menuItemStyle"
-      @mousedown="onMenuItemClick(item)">
-      {{ $t(item.label) }}
-    </div>
+  <div
+    ref="menuRef"
+    class="context-menu"
+    :style="menuStyle"
+    @contextmenu.prevent
+    @mousedown.stop
+  >
+    <template v-for="(item, index) in items" :key="item.value ?? `divider-${index}`">
+      <div v-if="item.type === 'divider'" class="context-menu__divider" />
+      <div
+        v-else
+        class="context-menu__item"
+        :style="menuItemStyle"
+        :class="{
+          'is-danger': item.danger,
+          'is-disabled': item.disabled,
+        }"
+        @mousedown.prevent="onMenuItemMouseDown(item)"
+      >
+        <span class="context-menu__label">{{ item.label ? $t(item.label) : '' }}</span>
+      </div>
+    </template>
   </div>
 </template>
 
-<script setup>
-import VoiceInput from './VoiceInput.vue';
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import "../assets/aero-div.css";
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, withDefaults, type CSSProperties } from 'vue';
+import type { ContextMenuItem } from './contextMenus/types';
 import { themeState, mixColors } from '../utils/themes';
 
-const props = defineProps({
-  x: Number,
-  y: Number,
-  items: { type: Array, default: () => [] }, // [{ label: 'AI分析', value: 'ai-assistant', disabledWhileRecording: true }]
-  showVoiceInput: { type: Boolean, default: true },
+const props = withDefaults(defineProps<{
+  x: number;
+  y: number;
+  items?: ContextMenuItem[];
+}>(), {
+  items: () => [],
 });
 
-const emit = defineEmits(['trigger', 'close', 'insert']);
+const emit = defineEmits<{
+  (e: 'trigger', value: string): void;
+  (e: 'close'): void;
+}>();
 
-const menuRef = ref(null);
-const menuPosition = ref({ top: props.y, left: props.x });
-const isDragging = ref(false);
-const dragStart = ref({ x: 0, y: 0 });
-const isRecording = ref(false);
+const menuRef = ref<HTMLElement | null>(null);
+const menuPosition = ref({ top: props.y ?? 0, left: props.x ?? 0 });
 
-// -------------------- 拖拽逻辑 --------------------
-const onMouseDown = (event) => {
-  isDragging.value = true;
-  dragStart.value = {
-    x: event.clientX - menuPosition.value.left,
-    y: event.clientY - menuPosition.value.top
-  };
-  document.addEventListener("mousemove", onMouseMove);
-  document.addEventListener("mouseup", onMouseUp);
-};
-
-const onMouseMove = (event) => {
-  if (!isDragging.value) return;
-  menuPosition.value = {
-    top: event.clientY - dragStart.value.y,
-    left: event.clientX - dragStart.value.x
-  };
-};
-
-const onMouseUp = () => {
-  isDragging.value = false;
-  document.removeEventListener("mousemove", onMouseMove);
-  document.removeEventListener("mouseup", onMouseUp);
-};
-
-// -------------------- 点击外部关闭 --------------------
-function handleClickOutside(e) {
-  
-  if (menuRef.value && !menuRef.value.contains(e.target)) {
-    if (!isRecording.value) emit("close");
+const adjustWithinViewport = () => {
+  const el = menuRef.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const padding = 8;
+  const maxLeft = Math.max(padding, window.innerWidth - rect.width - padding);
+  const maxTop = Math.max(padding, window.innerHeight - rect.height - padding);
+  const nextLeft = Math.min(Math.max(padding, menuPosition.value.left), maxLeft);
+  const nextTop = Math.min(Math.max(padding, menuPosition.value.top), maxTop);
+  if (nextLeft !== menuPosition.value.left || nextTop !== menuPosition.value.top) {
+    menuPosition.value = { top: nextTop, left: nextLeft };
   }
-}
-function handleRepeatRightClick(e){
-  //console.log("trigger",e)
-  if(e.button!="2")return;
-  if (!isRecording.value) emit("close");
-}
+};
+
+const updatePosition = (x: number, y: number) => {
+  menuPosition.value = { top: y, left: x };
+  nextTick(adjustWithinViewport);
+};
+
+watch(
+  () => [props.x, props.y],
+  ([x, y]) => updatePosition(x ?? 0, y ?? 0),
+  { immediate: true },
+);
+
+const closeMenu = () => emit('close');
+const handleDocumentPointer = (event: Event) => {
+  const target = event.target as Node | null;
+  if (!target || !menuRef.value || menuRef.value.contains(target)) {
+    return;
+  }
+  closeMenu();
+};
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    closeMenu();
+  }
+};
+
 onMounted(() => {
-  document.addEventListener("click", handleClickOutside);
-  document.onmousedown=(event)=>handleRepeatRightClick(event);
+  document.addEventListener('mousedown', handleDocumentPointer);
+  window.addEventListener('scroll', closeMenu, true);
+  window.addEventListener('resize', closeMenu);
+  window.addEventListener('keydown', handleKeydown);
+  nextTick(adjustWithinViewport);
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener("click", handleClickOutside);
+  document.removeEventListener('mousedown', handleDocumentPointer);
+  window.removeEventListener('scroll', closeMenu, true);
+  window.removeEventListener('resize', closeMenu);
+  window.removeEventListener('keydown', handleKeydown);
 });
 
-// -------------------- 语音输入 --------------------
-const onStateUpdated = (state) => {
-  isRecording.value = state === 'recording';
-};
+const menuStyle = computed(() => {
+  const background = themeState.currentTheme.background2nd;
+  const textColor = themeState.currentTheme.textColor;
+  const borderColor = mixColors(background, textColor, themeState.currentTheme.type === 'dark' ? 0.5 : 0.35);
+  const dividerColor = mixColors(background, textColor, themeState.currentTheme.type === 'dark' ? 0.6 : 0.25);
+  const style: CSSProperties & Record<string, string | number> = {
+    top: `${menuPosition.value.top}px`,
+    left: `${menuPosition.value.left}px`,
+    position: 'fixed',
+    background,
+    color: textColor,
+    border: `1px solid ${borderColor}`,
+    boxShadow:
+      themeState.currentTheme.type === 'dark'
+        ? '0 12px 28px rgba(0, 0, 0, 0.45)'
+        : '0 12px 28px rgba(15, 23, 42, 0.16)',
+    borderRadius: '10px',
+    padding: '4px 0',
+    minWidth: '184px',
+    zIndex: 2000,
+  };
+  style['--menu-divider-color'] = dividerColor;
+  return style;
+});
 
-const onSpeechRecognized = (text) => {
-  emit('insert', text);
-};
+const menuItemStyle = computed(() => {
+  const baseBg = themeState.currentTheme.background2nd;
+  const baseText = themeState.currentTheme.textColor;
+  const hoverColor =
+    themeState.currentTheme.type === 'dark'
+      ? mixColors(baseBg, '#ffffff', 0.18)
+      : mixColors(baseBg, '#000000', 0.08);
+  const activeColor =
+    themeState.currentTheme.type === 'dark'
+      ? mixColors(baseBg, '#ffffff', 0.06)
+      : mixColors(baseBg, '#000000', 0.15);
+  const disabledColor = mixColors(baseBg, baseText, 0.08);
+  const dangerColor =
+    themeState.currentTheme.type === 'dark'
+      ? mixColors('#ff4d4f', '#ffffff', 0.3)
+      : '#d93026';
+  return {
+    color: baseText,
+    height: '30px',
+    fontSize: '13px',
+    lineHeight: '1.4',
+    cursor: 'pointer',
+    width: '100%',
+    border: 'none',
+    textAlign: 'left',
+    padding: '0 12px',
+    boxSizing: 'border-box',
+    '--menu-hover-color': hoverColor,
+    '--menu-active-color': activeColor,
+    '--menu-disabled-color': disabledColor,
+    '--menu-danger-color': dangerColor,
+  } as CSSProperties & Record<string, string | number>;
+});
 
-// -------------------- 样式 --------------------
-const menuStyle = computed(() => ({
-  top: `${menuPosition.value.top}px`,
-  left: `${menuPosition.value.left}px`,
-  background: themeState.currentTheme.background2nd,
-  color: themeState.currentTheme.textColor,
-  border: `1px solid ${mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.65)}`,
-  boxShadow: '0 16px 32px rgba(15, 23, 42, 0.18)',
-  zIndex: 1000,
-  padding: '2px 0',
-  borderRadius: '8px',
-  minWidth: '160px',
-  backdropFilter: 'blur(6px)'
-}));
-
-const menuItemStyle = computed(() => ({
-  color: themeState.currentTheme.textColor,
-  padding: "10px",
-  height: "34px",
-  cursor: 'pointer',
-  fontSize: "13px",
-  display: "flex",
-  alignItems: "center",
-  "--menu-hover-color": mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, themeState.currentTheme.type === 'dark' ? 0.4 : 0.14),
-  "--menu-disabled-color": mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.08),
-}));
-
-// -------------------- 点击菜单项 --------------------
-const onMenuItemClick = (item) => {
-  if (isRecording.value && item.disabledWhileRecording) return;
+const onMenuItemMouseDown = (item: ContextMenuItem) => {
+  if (!item.value || item.disabled) return;
   emit('trigger', item.value);
+  closeMenu();
 };
 </script>
 
 <style scoped>
 .context-menu {
-  display: block;
-  border-radius: 8px;
-  min-width: 150px;
+  font-size: 13px;
+  line-height: 1.4;
+  pointer-events: auto;
 }
 
-.menu-item {
-  transition: background-color 0.15s ease, opacity 0.15s ease;
+.context-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color ease, color ease;
+  border-radius: 0;
 }
 
-.menu-item:hover {
+.context-menu__item:not(.is-disabled):hover {
   background-color: var(--menu-hover-color);
-  opacity: 0.95;
-  transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
-.menu-item.disabled {
-  background-color: var(--menu-disabled-color);
+.context-menu__item:not(.is-disabled):active {
+  background-color: var(--menu-active-color);
+}
+
+.context-menu__item.is-disabled {
+  background-color: transparent;
   cursor: not-allowed;
+  color: var(--menu-disabled-color);
   pointer-events: none;
+}
+
+.context-menu__item.is-danger {
+  color: var(--menu-danger-color);
+}
+
+.context-menu__divider {
+  height: 1px;
+  background-color: var(--menu-divider-color);
+  margin: 4px 8px;
+}
+
+.context-menu__label {
+  flex: 1;
+  white-space: nowrap;
 }
 </style>

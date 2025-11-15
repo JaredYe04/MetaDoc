@@ -30,7 +30,10 @@ const WARNING_TEX_PATTERN = /% 请勿手动修改此行及下面的 META-INFO.*\
 const cloneOutline = (node: DocumentOutlineNode): DocumentOutlineNode =>
   JSON.parse(JSON.stringify(node));
 
-const cloneMeta = (meta: ArticleMetaData): ArticleMetaData => ({ ...meta });
+const cloneMeta = (meta: ArticleMetaData): ArticleMetaData => ({
+  ...meta,
+  keywords: Array.isArray(meta.keywords) ? [...meta.keywords] : [],
+});
 
 const cloneDialogs = (dialogs: AIDialog[]): AIDialog[] =>
   JSON.parse(JSON.stringify(dialogs));

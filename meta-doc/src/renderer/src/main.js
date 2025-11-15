@@ -17,6 +17,7 @@ import './assets/editor-search.css'
 import { lightTheme,darkTheme } from './utils/themes.js';
 import { reactive } from 'vue';
 import { initServiceStatusWatcher } from './utils/service-status';
+import { i18n } from './i18n.js';
 
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
@@ -39,11 +40,12 @@ app.provide('themeState', themeState);  // 全局提供 themeState 主题状态
 
 
 
-import LlmDialog from "./components/LlmDialog.vue";
-//import AiLogo from './assets/ai-logo.svg'
-app.component("LlmDialog", LlmDialog); // 全局注册
-//app.component("AiLogo", AiLogo); // 全局注册
-
+import MetaFieldAssistant from "./components/MetaFieldAssistant.vue";
+app.component("MetaFieldAssistant", MetaFieldAssistant);
+import KeywordInput from "./components/KeywordInput.vue";
+app.component("KeywordInput", KeywordInput);
+import MetaInfoPanel from "./components/MetaInfoPanel.vue";
+app.component("MetaInfoPanel", MetaInfoPanel);
 
 import TitleMenu from './components/TitleMenu.vue';
 app.component("TitleMenu", TitleMenu); // 全局注册
@@ -65,19 +67,5 @@ app.use(ElementPlus)
 app.component('VueTree', VueTree)
 app.use(pinia)
 app.use(router)
-
-import en_US from './locales/en_US.json'
-import zh_CN from './locales/zh_CN.json'
-import ja_JP from './locales/ja_JP.json'
-import ko_KR from './locales/ko_KR.json'
-import de_DE from './locales/de_DE.json'
-import fr_FR from './locales/fr_FR.json'
-import { createI18n } from 'vue-i18n'
-const savedLang = localStorage.getItem('lang') || 'zh_CN'
-export const i18n = createI18n({
-  locale: savedLang, // 设置默认语言
-  fallbackLocale: 'zh_CN', // 回退语言
-  messages: { en_US, zh_CN, ja_JP, ko_KR, de_DE, fr_FR }, // 语言包
-})
 
 app.use(i18n).mount('#app')

@@ -27,6 +27,8 @@ export interface ArticleMetaData {
   author: string;
   /** 文档描述 */
   description: string;
+  /** 文档关键词 */
+  keywords: string[];
 }
 
 /** 文档格式类型 */

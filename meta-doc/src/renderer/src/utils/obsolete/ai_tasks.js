@@ -6,7 +6,7 @@ import { useRoute } from 'vue-router'
 
 import localIpcRenderer from '../web-adapter/local-ipc-renderer.ts'
 import { ai_task_status } from '../consts.js'
-import { i18n } from '../../main.js'
+import { i18n } from '../../i18n.js'
 //import { createRendererLogger } from './logger.ts'
 
 

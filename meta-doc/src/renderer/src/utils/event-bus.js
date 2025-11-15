@@ -461,7 +461,7 @@ import { ElMessageBox } from 'element-plus'
 import { webMainCalls } from './web-adapter/web-main-calls.js'
 import { convertMarkdownToLatex } from './latex-utils.js'
 import { createRendererLogger } from './logger.ts'
-import { i18n } from '../main.js'
+import { i18n } from '../i18n.js'
 
 
 // window.electron.onMessageFromMain((event, message) => {

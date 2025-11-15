@@ -8,6 +8,10 @@ export const generateDescriptionPrompt = (treeJson: string): string => {
   return `你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请自动判断文章在讲什么，并生成一篇文章摘要,200字以内，注意不要有任何其他内容:${treeJson}`;
 };
 
+export const generateKeywordsPrompt = (treeJson: string): string => {
+  return `你是一个专业的文档编辑助手，以下是一篇文档的大纲结构(JSON)：${treeJson}。请根据全文内容生成 5-8 个高质量的关键词，只输出一个 JSON 数组，例如 ["人工智能","文字处理"]，不要包含额外说明。`;
+};
+
 export const sectionChangePrompt = (
   tree: string,
   section: string,

@@ -4,7 +4,7 @@ import { answerQuestion, continueConversation } from './llm-api'
 import eventBus, { isMainWindow, getWindowType } from './event-bus'
 import localIpcRenderer from './web-adapter/local-ipc-renderer'
 import { ai_task_status } from './consts'
-import { i18n } from '../main'
+import { i18n } from '../i18n.js'
 import { webMainCalls } from './web-adapter/web-main-calls'
 import type { 
   AITaskInfo, 

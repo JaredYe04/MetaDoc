@@ -206,100 +206,16 @@
                             class="latex-column meta-column"
                             :style="{ backgroundColor: themeState.currentTheme.background2nd }"
                         >
-                            <div style="text-align: center; font-size: large;">
-                                <el-tooltip :content="$t('article.edit_meta_info')" placement="left">
-                                    <h1 class="interactive-text" @click="showMetaDialog"
-                                        :style="{ color: themeState.currentTheme.textColor }">
-                                        {{ $t('article.meta_info') }}
-                                    </h1>
-                                </el-tooltip>
-                            </div>
-
-                            <el-tooltip :content="$t('article.click_to_edit_title')" placement="left">
-                                <h1 @click="genTitleDialogVisible = !genTitleDialogVisible" class="interactive-text"
-                                    :style="{ color: themeState.currentTheme.textColor }">
-                                    {{ $t('article.title') }}：
-                                    {{ currentMeta.title || $t('article.no_title') }}
-                                </h1>
-                            </el-tooltip>
-
-                            <LlmDialog v-if="genTitleDialogVisible"
-                                :prompt="generateTitlePrompt(JSON.stringify(extractOutlineTreeFromMarkdown(currentMarkdown, true)))"
-                                :title="$t('article.generate_title')" :llmConfig="{ max_tokens: 15, temperature: 0.0 }"
-                                @llm-content-accept="(content) => {
-                                    updateMeta((meta) => { meta.title = content; });
-                                    genTitleDialogVisible = false;
-                                }" @update:visible="genTitleDialogVisible = $event; genTitleDialogVisible = false"
-                                :defaultText="currentMeta.title" :defaultInputSize="1"></LlmDialog>
-
-                            <el-tooltip :content="$t('article.click_to_edit_author')" placement="left">
-                                <p @click="modifyAuthorDialogVisible = !modifyAuthorDialogVisible" class="interactive-text"
-                                    :style="{ color: themeState.currentTheme.textColor }">
-                                    <strong>{{ $t('article.author') }}：</strong>
-                                    {{ currentMeta.author || $t('article.no_author') }}
-                                </p>
-                            </el-tooltip>
-
-                            <LlmDialog v-if="modifyAuthorDialogVisible" :prompt="''" :title="$t('article.modify_author')"
-                                :llmConfig="{}" @llm-content-accept="(content) => {
-                                    updateMeta((meta) => { meta.author = content; });
-                                    modifyAuthorDialogVisible = false;
-                                }" @update:visible="modifyAuthorDialogVisible = $event; modifyAuthorDialogVisible = false"
-                                :defaultText="currentMeta.author" :defaultInputSize="1"></LlmDialog>
-
-                            <el-tooltip :content="$t('article.click_to_edit_description')" placement="left">
-                                <p @click="genDescriptionDialogVisible = !genDescriptionDialogVisible" class="interactive-text"
-                                    :style="{ color: themeState.currentTheme.textColor }">
-                                    <strong>{{ $t('article.description') }}：</strong>
-                                    {{ currentMeta.description || $t('article.no_description') }}
-                                </p>
-                            </el-tooltip>
-
-                            <LlmDialog v-if="genDescriptionDialogVisible"
-                                :prompt="generateDescriptionPrompt(JSON.stringify(extractOutlineTreeFromMarkdown(currentMarkdown, true)))"
-                                :title="$t('article.generate_description')" :llmConfig="{ max_tokens: 100, temperature: 0.0 }"
-                                @llm-content-accept="(content) => {
-                                    updateMeta((meta) => { meta.description = content; });
-                                    genDescriptionDialogVisible = false;
-                                }" @update:visible="genDescriptionDialogVisible = $event; genDescriptionDialogVisible = false"
-                                :defaultText="currentMeta.description" :defaultInputSize="10"></LlmDialog>
+                            <MetaInfoPanel
+                                :meta="currentMeta"
+                                :markdown="currentMarkdown"
+                                :outline-json="currentOutlineJson"
+                                @update-meta="handleMetaPatch"
+                            />
                         </div>
                     </template>
                 </ResizableContainer>
             </div>
-
-            <el-dialog v-model="editMetaDialogVisible" :title="$t('article.edit_meta_info')" width="30%">
-                <el-form>
-                    <el-form-item :label="$t('article.title')">
-                        <el-input
-                            :model-value="currentMeta.title"
-                            @update:model-value="(val) => updateMeta((meta) => { meta.title = val; })"
-                            autocomplete="off"
-                            class="aero-input"
-                        />
-                    </el-form-item>
-                    <el-form-item :label="$t('article.author')">
-                        <el-input
-                            :model-value="currentMeta.author"
-                            @update:model-value="(val) => updateMeta((meta) => { meta.author = val; })"
-                            autocomplete="off"
-                            class="aero-input"
-                        />
-                    </el-form-item>
-                    <el-form-item :label="$t('article.description')">
-                        <el-input
-                            type="textarea"
-                            :placeholder="$t('article.description_placeholder')"
-                            :model-value="currentMeta.description"
-                            @update:model-value="(val) => updateMeta((meta) => { meta.description = val; })"
-                            autocomplete="off"
-                            resize="none"
-                            :autoSize="{ minRows: 3, maxRows: 5 }"
-                            class="aero-input"
-                        />
-                    </el-form-item>
-                </el-form>
-            </el-dialog>
         </div>
     </div>
 </template>
@@ -315,10 +231,8 @@ import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
 import "../assets/title-menu.css";
 import eventBus, { getWindowType, sendBroadcast } from '../utils/event-bus';
-import { generateDescriptionPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
 import { searchNode } from "../utils/outline-helpers";
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
-import LlmDialog from "../components/LlmDialog.vue";
 import TitleMenu from '../components/TitleMenu.vue';
 import SearchReplaceMenu from "../components/SearchReplaceMenu.vue";
 import AiLogo from "../assets/ai-logo.svg";
@@ -331,6 +245,7 @@ import "../assets/ai-suggestion.css";
 import ResizableContainer from "../components/base/ResizableContainer.vue";
 import { getArticleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
 import ContextMenu from "../components/ContextMenu.vue";
+import MetaInfoPanel from "../components/MetaInfoPanel.vue";
 import Console from "../components/Console.vue";
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import { createRendererLogger } from '../utils/logger.ts'
@@ -402,6 +317,15 @@ const currentOutline = computed({
     set: (val) => workspace.updateDocumentOutline(props.tabId, val),
 });
 
+const currentOutlineJson = computed(() => {
+    try {
+        return JSON.stringify(extractOutlineTreeFromMarkdown(currentMarkdown.value, true));
+    } catch (error) {
+        logger.warn('构建 LaTeX 大纲 JSON 失败', error);
+        return '[]';
+    }
+});
+
 const currentDialogs = computed(() => documentRef.value.aiDialogs ?? []);
 
 const currentMarkdown = computed({
@@ -417,14 +341,10 @@ const latestView = computed({
 const currentPath = computed(() => documentRef.value.path || '');
 
 // 状态变量
-const genTitleDialogVisible = ref(false);
-const genDescriptionDialogVisible = ref(false);
 const modifyContentDialogVisible = ref(false);
 const continueContentDialogVisible = ref(false);
-const modifyAuthorDialogVisible = ref(false);
 const searchReplaceDialogVisible = ref(false);
 const editor = ref(null);
-const editMetaDialogVisible = ref(false); // 编辑元信息对话框
 const articleContextMenuItems = ref([]);//右键菜单项
 const textEditorAdapter = shallowRef(null);
 
@@ -462,6 +382,10 @@ const updateMeta = (updater) => {
     if (typeof updater === 'function') {
         workspace.updateDocumentMeta(props.tabId, updater);
     }
+};
+
+const handleMetaPatch = (patch) => {
+    updateMeta((meta) => Object.assign(meta, patch));
 };
 
 const replaceDialogs = (builder) => {
@@ -577,6 +501,7 @@ let isDragging = false;
 let startX, startY, offsetX = 0, offsetY = 0;
 
 import * as pdfjsLib from "pdfjs-dist";
+import { wholeArticleContextPrompt } from "../utils/prompts.ts";
 let pdfInitialized = false;
 
 let ipcRenderer = null
@@ -885,9 +810,6 @@ const handleMenuClick = async (item) => {
 };
 
 // 更新编辑器内容
-const showMetaDialog = () => {
-    editMetaDialogVisible.value = true;
-};
 
 // 刷新文章内容
 eventBus.on('refresh', () => {

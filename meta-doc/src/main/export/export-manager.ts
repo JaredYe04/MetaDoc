@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 // @ts-ignore
 import htmlDocx from 'html-docx-js';
+import JSZip from 'jszip';
+import { PDFDocument } from 'pdf-lib';
 import type { DocumentFormat, ExportFormat } from '../../types';
 import type { LaTeXCompileResult } from '../../types/utils';
 import { getExportTargets } from '../../common/export-rules';
@@ -113,17 +115,181 @@ const convertMarkdownToDocxBuffer = async (htmlContent: string): Promise<Buffer>
   return Buffer.from(arrayBuffer);
 };
 
-const wrapHtmlWithTemplate = (title: string, bodyContent: string): string => {
-  return `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>${title}</title></head><body>${bodyContent}</body></html>`;
-};
+interface DocumentMetaInfo {
+  title: string;
+  author: string;
+  description: string;
+  keywords: string[];
+}
 
-const extractDocumentTitle = (payload: RendererExportPayload): string => {
+const DEFAULT_AUTHOR = 'MetaDoc';
+const DEFAULT_APPLICATION = 'MetaDoc';
+
+const sanitizeMetaField = (value: unknown): string =>
+  typeof value === 'string' ? value.trim() : '';
+
+const extractDocumentMeta = (payload: RendererExportPayload): DocumentMetaInfo => {
   try {
     const parsed = JSON.parse(payload.data.json || '{}');
-    return parsed?.current_article_meta_data?.title || payload.suggestedName || 'Untitled';
+    const meta = parsed?.current_article_meta_data ?? {};
+    const keywordsSource = meta?.keywords;
+    const keywords = Array.isArray(keywordsSource)
+      ? keywordsSource.map((item: any) => sanitizeMetaField(item)).filter(Boolean)
+      : [];
+    const title = sanitizeMetaField(meta?.title) || payload.suggestedName || 'Untitled';
+    const author = sanitizeMetaField(meta?.author) || DEFAULT_AUTHOR;
+    const description = sanitizeMetaField(meta?.description);
+    return { title, author, description, keywords };
   } catch {
-    return payload.suggestedName || 'Untitled';
+    return {
+      title: payload.suggestedName || 'Untitled',
+      author: DEFAULT_AUTHOR,
+      description: '',
+      keywords: [],
+    };
   }
+};
+
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const escapeXml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
+const wrapHtmlWithTemplate = (meta: DocumentMetaInfo, bodyContent: string): string => {
+  const title = escapeHtml(meta.title || 'Document');
+  const authorMeta = meta.author
+    ? `<meta name="author" content="${escapeHtml(meta.author)}">`
+    : '';
+  const descriptionMeta = meta.description
+    ? `<meta name="description" content="${escapeHtml(meta.description)}">`
+    : '';
+  const keywordsMeta =
+    meta.keywords.length > 0
+      ? `<meta name="keywords" content="${escapeHtml(meta.keywords.join(', '))}">`
+      : '';
+  return `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>${title}</title>${authorMeta}${descriptionMeta}${keywordsMeta}</head><body>${bodyContent}</body></html>`;
+};
+
+const buildCorePropertiesXml = (meta: DocumentMetaInfo): string => {
+  const now = new Date().toISOString();
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>${escapeXml(meta.title)}</dc:title>
+  <dc:subject>${escapeXml(meta.description)}</dc:subject>
+  <dc:creator>${escapeXml(meta.author)}</dc:creator>
+  <cp:lastModifiedBy>${escapeXml(DEFAULT_APPLICATION)}</cp:lastModifiedBy>
+  <cp:keywords>${escapeXml(meta.keywords.join(', '))}</cp:keywords>
+  <dc:description>${escapeXml(meta.description)}</dc:description>
+  <dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified>
+</cp:coreProperties>`;
+};
+
+const CORE_PROPERTIES_PART = '/docProps/core.xml';
+const CORE_PROPERTIES_CONTENT_TYPE = 'application/vnd.openxmlformats-package.core-properties+xml';
+const CORE_PROPERTIES_REL_TYPE =
+  'http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties';
+
+const applyDocxMetadata = async (buffer: Buffer, meta: DocumentMetaInfo): Promise<Buffer> => {
+  const zip = await JSZip.loadAsync(buffer);
+  zip.file('docProps/core.xml', buildCorePropertiesXml(meta));
+  await ensureCorePropsRegistered(zip);
+  const updated = await zip.generateAsync({ type: 'nodebuffer' });
+  return Buffer.from(updated);
+};
+
+const applyPdfMetadata = async (buffer: Buffer, meta: DocumentMetaInfo): Promise<Buffer> => {
+  const pdfDoc = await PDFDocument.load(buffer);
+  if (meta.title) {
+    pdfDoc.setTitle(meta.title, { showInWindowTitleBar: true });
+  }
+  if (meta.author) {
+    pdfDoc.setAuthor(meta.author);
+  }
+  if (meta.description) {
+    pdfDoc.setSubject(meta.description);
+  }
+  if (meta.keywords.length > 0) {
+    pdfDoc.setKeywords(meta.keywords);
+  }
+  pdfDoc.setProducer(DEFAULT_APPLICATION);
+  pdfDoc.setCreator(DEFAULT_APPLICATION);
+  const now = new Date();
+  pdfDoc.setCreationDate(now);
+  pdfDoc.setModificationDate(now);
+  const updated = await pdfDoc.save();
+  return Buffer.from(updated);
+};
+
+const ensureCorePropsRegistered = async (zip: JSZip): Promise<void> => {
+  const contentTypesFile = zip.file('[Content_Types].xml');
+  if (contentTypesFile) {
+    const xml = await contentTypesFile.async('string');
+    const nextXml = ensureContentTypesHasCoreProps(xml);
+    zip.file('[Content_Types].xml', nextXml);
+  }
+
+  const relsFile = zip.file('_rels/.rels');
+  if (relsFile) {
+    const xml = await relsFile.async('string');
+    const nextXml = ensureRelsHasCoreProps(xml);
+    zip.file('_rels/.rels', nextXml);
+  }
+};
+
+const ensureContentTypesHasCoreProps = (xml: string): string => {
+  if (xml.includes(CORE_PROPERTIES_PART)) {
+    return xml;
+  }
+  const insertion = `  <Override PartName="${CORE_PROPERTIES_PART}" ContentType="${CORE_PROPERTIES_CONTENT_TYPE}"/>\n`;
+  if (xml.includes('</Types>')) {
+    return xml.replace('</Types>', `${insertion}</Types>`);
+  }
+  return `${xml}\n${insertion}`;
+};
+
+const ensureRelsHasCoreProps = (xml: string): string => {
+  if (xml.includes('Target="docProps/core.xml"')) {
+    return xml;
+  }
+  const nextRelationshipId = getNextRelationshipId(xml);
+  const insertion = `  <Relationship Id="${nextRelationshipId}" Type="${CORE_PROPERTIES_REL_TYPE}" Target="docProps/core.xml"/>\n`;
+  if (xml.includes('</Relationships>')) {
+    return xml.replace('</Relationships>', `${insertion}</Relationships>`);
+  }
+  return `${xml}\n${insertion}`;
+};
+
+const getNextRelationshipId = (xml: string): string => {
+  const matches = Array.from(xml.matchAll(/Id="rId(\d+)"/g));
+  const max = matches.reduce((acc, match) => {
+    const num = Number(match[1]);
+    if (!Number.isNaN(num) && num > acc) {
+      return num;
+    }
+    return acc;
+  }, 0);
+  return `rId${max + 1 || 1}`;
+};
+
+const writePdfMetadataToFile = async (
+  filePath: string,
+  meta: DocumentMetaInfo,
+): Promise<void> => {
+  const buffer = await fs.promises.readFile(filePath);
+  const updated = await applyPdfMetadata(buffer, meta);
+  await writeBinaryFile(filePath, updated);
 };
 
 const enforceExtension = (fileName: string, targetFormat: ExportFormat): string => {
@@ -147,23 +313,28 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
     if (!payload.html) {
       throw new Error('缺少 HTML 数据，无法导出为 HTML');
     }
-    const title = extractDocumentTitle(payload);
-    const wrapped = wrapHtmlWithTemplate(title, payload.html);
+    const meta = extractDocumentMeta(payload);
+    const wrapped = wrapHtmlWithTemplate(meta, payload.html);
     await writeTextFile(targetPath, wrapped);
   },
   docx: async ({ payload, targetPath }) => {
     if (!payload.html) {
       throw new Error('缺少 HTML 数据，无法导出为 DOCX');
     }
+    const meta = extractDocumentMeta(payload);
     const buffer = await convertMarkdownToDocxBuffer(payload.html);
-    await writeBinaryFile(targetPath, buffer);
+    const bufferWithMeta = await applyDocxMetadata(buffer, meta);
+    await writeBinaryFile(targetPath, bufferWithMeta);
   },
   pdf: async ({ payload, targetPath }) => {
     if (!payload.html) {
       throw new Error('缺少 HTML 数据，无法导出为 PDF');
     }
-    const buffer = await convertHtmlToPdfBuffer(payload.html);
-    await writeBinaryFile(targetPath, buffer);
+    const meta = extractDocumentMeta(payload);
+    const htmlDocument = wrapHtmlWithTemplate(meta, payload.html);
+    const buffer = await convertHtmlToPdfBuffer(htmlDocument);
+    const updated = await applyPdfMetadata(buffer, meta);
+    await writeBinaryFile(targetPath, updated);
   },
   tex: async ({ payload, targetPath }) => {
     await writeTextFile(targetPath, payload.data.tex);
@@ -178,6 +349,7 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
     await writeTextFile(targetPath, payload.data.tex);
   },
   pdf: async ({ payload, targetPath, mainWindow }) => {
+    const meta = extractDocumentMeta(payload);
     await ensureParentDirectory(targetPath);
     const compileResult: LaTeXCompileResult = await compileLatexToPDF(
       payload.sourcePath || targetPath,
@@ -202,6 +374,8 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
     if (compileResult.pdfPath !== targetPath) {
       await fs.promises.copyFile(compileResult.pdfPath, targetPath);
     }
+
+    await writePdfMetadataToFile(targetPath, meta);
   },
   md: async ({ payload, targetPath }) => {
     await writeTextFile(targetPath, payload.data.md);
@@ -210,16 +384,18 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
     if (!payload.html) {
       throw new Error('缺少 HTML 数据，无法导出为 HTML');
     }
-    const title = extractDocumentTitle(payload);
-    const wrapped = wrapHtmlWithTemplate(title, payload.html);
+    const meta = extractDocumentMeta(payload);
+    const wrapped = wrapHtmlWithTemplate(meta, payload.html);
     await writeTextFile(targetPath, wrapped);
   },
   docx: async ({ payload, targetPath }) => {
     if (!payload.html) {
       throw new Error('缺少 HTML 数据，无法导出为 DOCX');
     }
+    const meta = extractDocumentMeta(payload);
     const buffer = await convertMarkdownToDocxBuffer(payload.html);
-    await writeBinaryFile(targetPath, buffer);
+    const bufferWithMeta = await applyDocxMetadata(buffer, meta);
+    await writeBinaryFile(targetPath, bufferWithMeta);
   },
   json: async () => {
     throw new Error('LaTeX 文档不支持导出为 JSON');

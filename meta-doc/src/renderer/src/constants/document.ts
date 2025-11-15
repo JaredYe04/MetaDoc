@@ -47,6 +47,7 @@ export const DEFAULT_ARTICLE_META: ArticleMetaData = {
   title: '',
   author: '',
   description: '',
+  keywords: [],
 };
 
 export const DEFAULT_AI_ASSISTANT_GREETING =

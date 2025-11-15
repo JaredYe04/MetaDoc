@@ -51,102 +51,16 @@
                             minWidth: MARKDOWN_LAYOUT.sidebarMinWidth + 'px',
                             maxWidth: MARKDOWN_LAYOUT.sidebarMaxWidth + 'px'
                         }">
-                    <div style="text-align: center; font-size: large;">
-                        <el-tooltip :content="$t('article.edit_meta_info')" placement="left">
-                            <h1 class="interactive-text" @click="showMetaDialog"
-                                :style="{ color: themeState.currentTheme.textColor }">
-                                {{ $t('article.meta_info') }}
-                            </h1>
-                        </el-tooltip>
-                    </div>
-                    <el-button type="primary" text bg @click="convertToLatex" style="
-                    width:fit-content">
-                        {{ $t('article.convert_to_latex')  }}
-                    </el-button>
-                    <el-tooltip :content="$t('article.click_to_edit_title')" placement="left">
-                        <h1 @click="genTitleDialogVisible = !genTitleDialogVisible" class="interactive-text"
-                            :style="{ color: themeState.currentTheme.textColor }">
-                            {{ $t('article.title') }}：
-                            {{ currentMeta.title || $t('article.no_title') }}
-                        </h1>
-                    </el-tooltip>
-
-                    <LlmDialog v-if="genTitleDialogVisible"
-                        :prompt="generateTitlePrompt(JSON.stringify(extractOutlineTreeFromMarkdown(currentMarkdown, true)))"
-                        :title="$t('article.generate_title')" :llmConfig="{ max_tokens: 15, temperature: 0.0 }"
-                        @llm-content-accept="(content: string) => {
-                            updateMeta((meta) => { meta.title = content; });
-                            genTitleDialogVisible = false;
-                        }" @update:visible="genTitleDialogVisible = $event; genTitleDialogVisible = false"
-                        :defaultText="currentMeta.title" :defaultInputSize="1"></LlmDialog>
-
-                    <el-tooltip :content="$t('article.click_to_edit_author')" placement="left">
-                        <p @click="modifyAuthorDialogVisible = !modifyAuthorDialogVisible" class="interactive-text"
-                            :style="{ color: themeState.currentTheme.textColor }">
-                            <strong>{{ $t('article.author') }}：</strong>
-                            {{ currentMeta.author || $t('article.no_author') }}
-                        </p>
-                    </el-tooltip>
-
-                    <LlmDialog v-if="modifyAuthorDialogVisible" :prompt="''" :title="$t('article.modify_author')"
-                        :llmConfig="{}" @llm-content-accept="(content: string) => {
-                            updateMeta((meta) => { meta.author = content; });
-                            modifyAuthorDialogVisible = false;
-                        }" @update:visible="modifyAuthorDialogVisible = $event; modifyAuthorDialogVisible = false"
-                        :defaultText="currentMeta.author" :defaultInputSize="1"></LlmDialog>
-
-                    <el-tooltip :content="$t('article.click_to_edit_description')" placement="left">
-                        <p @click="genDescriptionDialogVisible = !genDescriptionDialogVisible" class="interactive-text"
-                            :style="{ color: themeState.currentTheme.textColor }">
-                            <strong>{{ $t('article.description') }}：</strong>
-                            {{ currentMeta.description || $t('article.no_description') }}
-                        </p>
-                    </el-tooltip>
-
-                    <LlmDialog v-if="genDescriptionDialogVisible"
-                        :prompt="generateDescriptionPrompt(JSON.stringify(extractOutlineTreeFromMarkdown(currentMarkdown, true)))"
-                        :title="$t('article.generate_description')" :llmConfig="{ max_tokens: 100, temperature: 0.0 }"
-                        @llm-content-accept="(content: string) => {
-                            updateMeta((meta) => { meta.description = content; });
-                            genDescriptionDialogVisible = false;
-                        }" @update:visible="genDescriptionDialogVisible = $event; genDescriptionDialogVisible = false"
-                        :defaultText="currentMeta.description" :defaultInputSize="10"></LlmDialog>
+                    <MetaInfoPanel
+                        :meta="currentMeta"
+                        :markdown="currentMarkdown"
+                        :outline-json="currentOutlineJson"
+                        @update-meta="handleMetaPatch"
+                    />
                     </div>
                 </template>
             </ResizableContainer>
 
-            <el-dialog v-model="editMetaDialogVisible" :title="$t('article.edit_meta_info')" width="30%">
-                <el-form>
-                    <el-form-item :label="$t('article.title')">
-                        <el-input
-                            :model-value="currentMeta.title"
-                            @update:model-value="(val: string) => updateMeta((meta) => { meta.title = val; })"
-                            autocomplete="off"
-                            class="aero-input"
-                        />
-                    </el-form-item>
-                    <el-form-item :label="$t('article.author')">
-                        <el-input
-                            :model-value="currentMeta.author"
-                            @update:model-value="(val: string) => updateMeta((meta) => { meta.author = val; })"
-                            autocomplete="off"
-                            class="aero-input"
-                        />
-                    </el-form-item>
-                    <el-form-item :label="$t('article.description')">
-                        <el-input
-                            type="textarea"
-                            :placeholder="$t('article.description_placeholder')"
-                            :model-value="currentMeta.description"
-                            @update:model-value="(val: string) => updateMeta((meta) => { meta.description = val; })"
-                            autocomplete="off"
-                            resize="none"
-                            :autoSize="{ minRows: 3, maxRows: 5 }"
-                            class="aero-input"
-                        />
-                    </el-form-item>
-                </el-form>
-            </el-dialog>
         </div>
     </div>
 </template>
@@ -155,7 +69,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed, toRef, watch, shallowRef } from "vue";
 import ResizableContainer from '../components/base/ResizableContainer.vue';
-import { ElButton, ElDialog, ElLoading, ElMessageBox } from 'element-plus';
+import { ElButton, ElDialog, ElLoading } from 'element-plus';
 import Vditor from "vditor";
 import "vditor/dist/index.css";
 import "../assets/aero-div.css";
@@ -164,9 +78,8 @@ import "../assets/aero-input.css";
 import "../assets/title-menu.css";
 import eventBus, { isElectronEnv, getWindowType, sendBroadcast } from '../utils/event-bus';
 import { createRendererLogger } from '../utils/logger.ts'
-import { generateDescriptionPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
 import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree } from '../utils/md-utils';
-import LlmDialog from "../components/LlmDialog.vue";
+import { wholeArticleContextPrompt } from '../utils/prompts.ts';
 import TitleMenu from '../components/TitleMenu.vue';
 import SearchReplaceMenu from "../components/SearchReplaceMenu.vue";
 import AiLogo from "../assets/ai-logo.svg";
@@ -180,6 +93,7 @@ import AISuggestion from "../components/AISuggestion.vue";
 import "../assets/ai-suggestion.css";
 import { getArticleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
 import ContextMenu from "../components/ContextMenu.vue";
+import MetaInfoPanel from "../components/MetaInfoPanel.vue";
 import { useWorkspace } from '../stores/workspace';
 import type { ArticleMetaData, DocumentOutlineNode } from '../../../types';
 import { debounce } from "lodash";
@@ -227,6 +141,15 @@ const currentOutline = computed<DocumentOutlineNode>({
   set: (val) => workspace.updateDocumentOutline(props.tabId, val),
 })
 
+const currentOutlineJson = computed(() => {
+  try {
+    return JSON.stringify(extractOutlineTreeFromMarkdown(currentMarkdown.value, true));
+  } catch (error) {
+    logger.warn('构建大纲 JSON 失败', error);
+    return '[]';
+  }
+});
+
 const currentDialogs = computed<any[]>({
   get: () => documentRef.value.aiDialogs,
   set: (val) => workspace.updateDocumentAiDialogs(props.tabId, val),
@@ -259,6 +182,10 @@ function findNodeByPath(node: DocumentOutlineNode, targetPath: string): Document
 function updateMeta(updater: (meta: ArticleMetaData) => void) {
   workspace.updateDocumentMeta(props.tabId, updater)
 }
+
+const handleMetaPatch = (patch: Partial<ArticleMetaData>) => {
+  updateMeta((meta) => Object.assign(meta, patch));
+};
 
 function replaceDialogs(builder: (dialogs: any[]) => any[]) {
   const next = builder([...currentDialogs.value])
@@ -306,14 +233,10 @@ function getEditorRoot(): HTMLElement | null {
 }
 
 // 状态变量
-const genTitleDialogVisible = ref(false);
-const genDescriptionDialogVisible = ref(false);
 const modifyContentDialogVisible = ref(false);
 const continueContentDialogVisible = ref(false);
-const modifyAuthorDialogVisible = ref(false);
 const searchReplaceDialogVisible = ref(false);
 const vditor = ref<Vditor | null>(null); // Vditor 实例
-const editMetaDialogVisible = ref(false); // 编辑元信息对话框
 const articleContextMenuItems = ref<any[]>([]);//右键菜单项
 const textEditorAdapter = shallowRef<TextEditorAdapter | null>(null);
 const resizableRef = ref<InstanceType<typeof ResizableContainer> | null>(null);
@@ -449,19 +372,6 @@ const handleMenuClick = async (item: string) => {
     contextMenuVisible.value = false;
 };
 
-// 更新编辑器内容
-const showMetaDialog = () => {
-    editMetaDialogVisible.value = true;
-};
-const convertToLatex=()=>{
-    ElMessageBox.confirm(t('article.convert_to_latex_confirm'), t('knowledgeBase.delete_confirm_title'), {
-        confirmButtonText: t('article.msgbox.confirm'),
-        cancelButtonText: t('article.msgbox.cancel'),
-        type: 'warning'
-    }).then(() => {
-        eventBus.emit('save-as',{format:"tex"});
-    });
-}
 // 单击事件处理
 const handleClick = (event: MouseEvent, title: string, path: string) => {
     currentTitle.value = title;

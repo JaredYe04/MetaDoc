@@ -5,6 +5,7 @@ import Vditor from 'vditor';
 import { createRendererLogger } from './logger.ts';
 import { isElectronEnv } from './event-bus';
 import { localVditorCDN, vditorCDN } from './vditor-cdn';
+// 移除 dom-to-image 依赖，避免通过 DOM 截图导出路径
 
 // 导出图表类型配置供外部使用
 export const CHART_TYPES = {
@@ -242,13 +243,33 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
                         document.body.removeChild(container);
                         
                         if (targetFormat === 'png') {
-                            // 需要转换为 PNG
-                            convertSvgToPng(svgContent)
-                                .then((pngBlob) => {
-                                    return uploadImageToLocal(pngBlob, `${hashBase}_${chartType}.png`);
-                                })
-                                .then(resolve)
-                                .catch(reject);
+                            // 需要转换为 PNG：为避免渲染进程 canvas 污染，Mermaid 走主进程 resvg
+                            if (chartType === 'mermaid') {
+                                (async () => {
+                                    try {
+                                        let ipcRenderer = null;
+                                        if (window && window.electron) {
+                                            ipcRenderer = window.electron.ipcRenderer;
+                                        } else {
+                                            const localIpcRenderer = (await import('./web-adapter/local-ipc-renderer.ts')).default;
+                                            ipcRenderer = localIpcRenderer;
+                                        }
+                                        if (!ipcRenderer) throw new Error('无法获取 IPC 渲染器');
+                                        const ret = await ipcRenderer.invoke('convert-svg-string-to-png', svgContent);
+                                        if (!ret?.success || !ret.url) throw new Error(ret?.error || '主进程 SVG→PNG 失败');
+                                        resolve(ret.url);
+                                    } catch (err) {
+                                        reject(err);
+                                    }
+                                })();
+                            } else {
+                                convertSvgToPng(svgContent)
+                                    .then((pngBlob) => {
+                                        return uploadImageToLocal(pngBlob, `${hashBase}_${chartType}.png`);
+                                    })
+                                    .then(resolve)
+                                    .catch(reject);
+                            }
                         } else {
                             // 使用 SVG 矢量图
                             const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
@@ -397,12 +418,26 @@ function cleanSvgForExport(svgContent) {
     // 移除 style 中的动画相关属性
     allElements.forEach(el => {
         if (el.hasAttribute('style')) {
-            let style = el.getAttribute('style');
+            let style = el.getAttribute('style') || '';
             // 移除 animation 和 transition 相关属性
             style = style.replace(/animation[^;]*;?/gi, '');
             style = style.replace(/transition[^;]*;?/gi, '');
             el.setAttribute('style', style);
         }
+    });
+    // 处理 <style> 标签中的动画：移除 @keyframes 与 animation/transition 规则
+    const styleTags = svgElement.querySelectorAll('style');
+    styleTags.forEach(tag => {
+        try {
+            let css = tag.textContent || '';
+            // 删除 @keyframes 定义块（含前缀）
+            css = css.replace(/@(-webkit-|-moz-|-o-)?keyframes[\s\S]*?\}\s*\}/gi, '');
+            css = css.replace(/@keyframes[\s\S]*?\}\s*\}/gi, '');
+            // 移除 animation 与 transition 声明
+            css = css.replace(/animation\s*:[^;]+;?/gi, '');
+            css = css.replace(/transition\s*:[^;]+;?/gi, '');
+            tag.textContent = css;
+        } catch (_) {}
     });
 
     // 覆盖样式层面的动画与过渡（ECharts 常通过 @keyframes + class 触发）
@@ -474,8 +509,25 @@ function ensureSvgFormat(svgContent) {
 
     const parseDim = (val) => {
         if (!val) return null;
-        const num = parseFloat(String(val));
-        return isNaN(num) ? null : num;
+        const s = String(val).trim();
+        // 避免把百分比等同于像素（如 "100%" -> 100），百分比在导出中会导致尺寸偏小
+        if (/%$/.test(s)) return null;
+        // 常见单位处理：px（默认）、pt、pc、in、cm、mm
+        const unitMatch = s.match(/^([\d.]+)\s*(px|pt|pc|in|cm|mm)?$/i);
+        if (!unitMatch) return null;
+        const n = parseFloat(unitMatch[1]);
+        if (isNaN(n)) return null;
+        const unit = (unitMatch[2] || 'px').toLowerCase();
+        const unitToPx = {
+            px: 1,
+            pt: 96 / 72,
+            pc: 16,       // 1pc = 16px
+            in: 96,       // 1in = 96px
+            cm: 96 / 2.54,
+            mm: 96 / 25.4,
+        };
+        const factor = unitToPx[unit] || 1;
+        return n * factor;
     };
     if (widthPx == null && widthAttr) widthPx = parseDim(widthAttr[1]);
     if (heightPx == null && heightAttr) heightPx = parseDim(heightAttr[1]);
@@ -512,6 +564,8 @@ export async function convertSvgToPng(svgContent) {
             const svgBlob = new Blob([normalizedSvg], { type: 'image/svg+xml;charset=utf-8' });
             const objectUrl = URL.createObjectURL(svgBlob);
             const img = new Image();
+            // 避免跨域资源污染画布
+            try { img.crossOrigin = 'anonymous'; } catch (_) {}
 
             const timeout = setTimeout(() => {
                 URL.revokeObjectURL(objectUrl);
@@ -556,9 +610,13 @@ export async function convertSvgToPng(svgContent) {
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
                     URL.revokeObjectURL(objectUrl);
-                    canvas.toBlob((blob) => {
-                        if (blob) resolve(blob);
-                        else {
+                    try {
+                        canvas.toBlob(async (blob) => {
+                            if (blob) {
+                                resolve(blob);
+                                return;
+                            }
+                            // 回退一：使用 toDataURL
                             try {
                                 const dataURL = canvas.toDataURL('image/png');
                                 const base64Data = dataURL.split(',')[1];
@@ -568,11 +626,14 @@ export async function convertSvgToPng(svgContent) {
                                     byteNumbers[i] = byteCharacters.charCodeAt(i);
                                 }
                                 resolve(new Blob([new Uint8Array(byteNumbers)], { type: 'image/png' }));
-                            } catch (e) {
-                                reject(new Error('Canvas 转 PNG 失败: ' + (e.message || String(e))));
+                                return;
+                            } catch (e1) {
+                                reject(new Error('Canvas 转 PNG 失败: ' + (e1.message || String(e1))));
                             }
-                        }
-                    }, 'image/png');
+                        }, 'image/png');
+                    } catch (e0) {
+                        reject(new Error('Canvas 转 PNG 失败: ' + (e0.message || String(e0))));
+                    }
                 } catch (err) {
                     URL.revokeObjectURL(objectUrl);
                     reject(new Error('Canvas 操作失败: ' + (err.message || String(err))));
@@ -679,7 +740,7 @@ async function uploadImageToLocal(imageBlob, fileName) {
 export async function preRenderAllCharts(md, cdn, format = '') {
     const logger = createRendererLogger('ChartPreRenderer');
     logger.debug('开始预渲染所有图表代码块');
-    
+
     if (!cdn) {
         if (isElectronEnv()) {
             cdn = localVditorCDN;
@@ -724,7 +785,7 @@ export async function preRenderAllCharts(md, cdn, format = '') {
             return { fullMatch, replacement: null, chartType };
         }
         try {
-            logger.info(`开始渲染 ${chartType} 图表，代码长度: ${code.length}`);
+            logger.debug(`开始渲染 ${chartType} 图表，代码长度: ${code.length}`);
             let imageUrl;
             if (config.useIpc) {
                 if (chartType === 'echarts') {
@@ -742,9 +803,10 @@ export async function preRenderAllCharts(md, cdn, format = '') {
                 }
             } else {
                 const chartConfig = CHART_TYPES[chartType];
+                logger.debug(`renderChartViaVditor chartType: ${chartType}, code: ${code}, cdn: ${cdn}, chartConfig: ${chartConfig}, targetFormat: ${targetFormat}`);
                 imageUrl = await renderChartViaVditor(chartType, code, cdn, chartConfig, targetFormat);
             }
-            logger.info(`${chartType} 图表渲染完成，URL: ${imageUrl}`);
+            logger.debug(`${chartType} 图表渲染完成，URL: ${imageUrl}`);
             return { fullMatch, replacement: `![${chartType} Diagram](${imageUrl})`, chartType };
         } catch (error) {
             logger.error(`${chartType} 图表渲染失败:`, error);
@@ -762,7 +824,7 @@ export async function preRenderAllCharts(md, cdn, format = '') {
         }
     }
     
-    logger.info('所有图表预渲染完成');
+    logger.debug('所有图表预渲染完成');
     return processedMd;
 }
 

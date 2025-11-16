@@ -308,6 +308,22 @@ function bindUtilityHandlers(): void {
     }
   });
 
+  // SVG 字符串 → PNG 文件（resvg）
+  ipcMain.handle('convert-svg-string-to-png', async (event: IpcMainInvokeEvent, svgContent: string): Promise<{ success: boolean; url?: string; error?: string }> => {
+    const logger = createMainLogger('SvgToPng');
+    try {
+      const { convertSvgStringToPngFile } = await import('./utils/svg-to-pdf');
+      const url = await convertSvgStringToPngFile(svgContent);
+      return { success: true, url };
+    } catch (error) {
+      logger.error('SVG 字符串转 PNG 失败:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
   // 保存图片文件
   ipcMain.handle('save-image-file', async (event: IpcMainInvokeEvent, imageUrl: string, suggestedName: string): Promise<{ success: boolean; path?: string; error?: string }> => {
     const logger = createMainLogger('SaveImage');

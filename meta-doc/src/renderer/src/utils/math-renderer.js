@@ -365,7 +365,7 @@ export async function renderMarkdownMathToImages(markdown, output = 'png') {
       // 失败则保留原文，不替换
     }
   }
-  logger.debug(`renderMarkdownMathToImages result: ${result}`);
+  //logger.debug(`renderMarkdownMathToImages result: ${result}`);
   return result;
 }
 

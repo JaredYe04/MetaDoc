@@ -10,6 +10,50 @@ import type { LaTeXCompileResult } from '../../types/utils';
 import { getExportTargets } from '../../common/export-rules';
 import { t } from '../i18n';
 import { compileLatexToPDF } from '../utils';
+import { createMainLogger } from '../logger';
+import { imageUploadDir } from '../express-server';
+
+const logger = createMainLogger('PDFExport');
+
+/**
+ * 清理中间图片文件
+ * @param imageUrls - 图片 URL 数组
+ */
+const cleanupIntermediateImages = async (imageUrls: string[]): Promise<void> => {
+  try {
+    logger.info(`开始清理 ${imageUrls.length} 个中间图片文件`);
+    let deletedCount = 0;
+    let errorCount = 0;
+
+    for (const url of imageUrls) {
+      try {
+        // 从 URL 中提取文件名
+        // URL 格式: http://localhost:52521/images/filename
+        if (url.startsWith('http://localhost:52521/images/')) {
+          const fileName = url.replace('http://localhost:52521/images/', '');
+          const filePath = path.join(imageUploadDir, fileName);
+
+          // 检查文件是否存在
+          if (fs.existsSync(filePath)) {
+            await fs.promises.unlink(filePath);
+            deletedCount++;
+            logger.debug(`已删除中间文件: ${fileName}`);
+          } else {
+            logger.warn(`文件不存在，跳过: ${fileName}`);
+          }
+        }
+      } catch (error) {
+        errorCount++;
+        logger.warn(`删除文件失败: ${url}`, error);
+      }
+    }
+
+    logger.info(`清理完成: 成功删除 ${deletedCount} 个文件，失败 ${errorCount} 个`);
+  } catch (error) {
+    logger.error('清理中间图片文件时出错:', error);
+    // 不抛出错误，清理失败不应该影响导出结果
+  }
+};
 
 export interface RendererExportPayload {
   sourceFormat: DocumentFormat;
@@ -22,6 +66,7 @@ export interface RendererExportPayload {
     tex: string;
   };
   html?: string;
+  imageUrls?: string[]; // 预渲染生成的图片 URL，用于清理
 }
 
 export interface ExportResponse {
@@ -53,40 +98,7 @@ const writeBinaryFile = async (filePath: string, buffer: Buffer): Promise<void> 
 };
 
 const convertHtmlToPdfBuffer = async (html: string): Promise<Buffer> => {
-  const waitForRenderComplete = async (
-    win: BrowserWindow,
-    timeout = 10000,
-    interval = 500,
-  ): Promise<void> => {
-    const maxTries = Math.ceil(timeout / interval);
-    let lastHTML = '';
-    let stableCount = 0;
-    const requiredStableCount = 2;
-
-    for (let i = 0; i < maxTries; i++) {
-      try {
-        const currentHTML = await win.webContents.executeJavaScript(
-          'document.documentElement.innerHTML',
-          true,
-        );
-
-        if (currentHTML === lastHTML) {
-          stableCount++;
-          if (stableCount >= requiredStableCount) {
-            return;
-          }
-        } else {
-          stableCount = 0;
-          lastHTML = currentHTML;
-        }
-      } catch (error) {
-        // ignore transient errors
-      }
-      await new Promise((resolve) => setTimeout(resolve, interval));
-    }
-    throw new Error('渲染超时：页面内容持续变动，未能稳定');
-  };
-
+  logger.info(`开始转换 HTML 到 PDF，HTML 长度: ${html.length}`);
   const win = new BrowserWindow({
     show: false,
     webPreferences: {
@@ -95,12 +107,80 @@ const convertHtmlToPdfBuffer = async (html: string): Promise<Buffer> => {
   });
 
   try {
+    logger.info('加载 HTML 到 BrowserWindow');
+    
+    // 设置超时机制
+    const loadTimeout = 30000; // 30秒超时
+    const loadPromise = new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('页面加载超时'));
+      }, loadTimeout);
+      
+      win.webContents.once('did-finish-load', () => {
+        clearTimeout(timeout);
+        logger.info('页面加载完成');
+        resolve();
+      });
+      
+      win.webContents.once('did-fail-load', (event, errorCode, errorDescription) => {
+        clearTimeout(timeout);
+        logger.error(`页面加载失败: ${errorCode} - ${errorDescription}`);
+        reject(new Error(`页面加载失败: ${errorCode} - ${errorDescription}`));
+      });
+    });
+    
     await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
-    await waitForRenderComplete(win);
+    await loadPromise;
+    
+    // 等待一小段时间确保资源完全加载
+    logger.info('等待资源加载...');
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    
+    // 检查图片是否加载完成
+    const imagesLoaded = await win.webContents.executeJavaScript(`
+      new Promise((resolve) => {
+        const images = document.querySelectorAll('img');
+        if (images.length === 0) {
+          resolve(true);
+          return;
+        }
+        let loadedCount = 0;
+        const totalImages = images.length;
+        
+        const checkComplete = () => {
+          loadedCount++;
+          if (loadedCount >= totalImages) {
+            resolve(true);
+          }
+        };
+        
+        images.forEach((img) => {
+          if (img.complete && img.naturalWidth > 0) {
+            checkComplete();
+          } else {
+            img.onload = checkComplete;
+            img.onerror = checkComplete;
+          }
+        });
+        
+        // 超时保护
+        setTimeout(() => {
+          resolve(true);
+        }, 5000);
+      })
+    `);
+    
+    logger.info(`图片加载完成: ${imagesLoaded}`);
+    
+    logger.info('开始生成 PDF');
     const pdfBuffer = await win.webContents.printToPDF({
       printBackground: true,
     });
+    logger.info(`PDF 生成完成，大小: ${pdfBuffer.length} bytes`);
     return pdfBuffer;
+  } catch (error) {
+    logger.error('转换过程中出错:', error);
+    throw error;
   } finally {
     if (!win.isDestroyed()) {
       win.close();
@@ -327,14 +407,43 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
     await writeBinaryFile(targetPath, bufferWithMeta);
   },
   pdf: async ({ payload, targetPath }) => {
+    logger.info('Markdown -> PDF 导出开始');
     if (!payload.html) {
+      logger.error('缺少 HTML 数据');
       throw new Error('缺少 HTML 数据，无法导出为 PDF');
     }
+    logger.info(`HTML 数据长度: ${payload.html.length}`);
     const meta = extractDocumentMeta(payload);
-    const htmlDocument = wrapHtmlWithTemplate(meta, payload.html);
-    const buffer = await convertHtmlToPdfBuffer(htmlDocument);
-    const updated = await applyPdfMetadata(buffer, meta);
-    await writeBinaryFile(targetPath, updated);
+    // ConvertHtmlForPdf 已经返回完整的 HTML 文档，不需要再次包装
+    // 但我们需要注入元数据到 head 中
+    let htmlDocument = payload.html;
+    if (!htmlDocument.includes('<!DOCTYPE html>')) {
+      // 如果不是完整文档，则包装
+      htmlDocument = wrapHtmlWithTemplate(meta, payload.html);
+    } else {
+      // 如果是完整文档，注入元数据到 head
+      const metaTags = [
+        meta.title ? `<title>${escapeHtml(meta.title)}</title>` : '',
+        meta.author ? `<meta name="author" content="${escapeHtml(meta.author)}">` : '',
+        meta.description ? `<meta name="description" content="${escapeHtml(meta.description)}">` : '',
+        meta.keywords.length > 0 ? `<meta name="keywords" content="${escapeHtml(meta.keywords.join(', '))}">` : '',
+      ].filter(Boolean).join('');
+      if (metaTags) {
+        htmlDocument = htmlDocument.replace('</head>', `${metaTags}</head>`);
+      }
+    }
+    logger.info(`处理后的 HTML 长度: ${htmlDocument.length}`);
+    try {
+      const buffer = await convertHtmlToPdfBuffer(htmlDocument);
+      logger.info(`PDF Buffer 生成完成，大小: ${buffer.length}`);
+      const updated = await applyPdfMetadata(buffer, meta);
+      logger.info('元数据应用完成');
+      await writeBinaryFile(targetPath, updated);
+      logger.info(`PDF 文件写入完成: ${targetPath}`);
+    } catch (error) {
+      logger.error('PDF 导出过程中出错:', error);
+      throw error;
+    }
   },
   tex: async ({ payload, targetPath }) => {
     await writeTextFile(targetPath, payload.data.tex);
@@ -458,7 +567,12 @@ export const performExportRequest = async (
       ? [FILTER_MAP[payload.targetFormat]]
       : [{ name: payload.targetFormat.toUpperCase(), extensions: [payload.targetFormat] }];
 
-    const dialogResult = await dialog.showSaveDialog(mainWindow ?? undefined, {
+    // 在弹出对话框之前，通知渲染进程恢复鼠标状态
+    if (mainWindow) {
+      mainWindow.webContents.send('export-dialog-opening');
+    }
+    
+    const dialogResult = await dialog.showSaveDialog(mainWindow || undefined, {
       title: t('main.dialogs.exportDocumentTitle'),
       defaultPath: defaultFileName,
       filters,
@@ -482,6 +596,14 @@ export const performExportRequest = async (
       targetPath,
       mainWindow,
     });
+
+    // 导出完成后，清理中间图片文件（仅对 PDF 和 DOCX）
+    // HTML 和 TEX 需要保留图片文件，因为它们会引用图片地址
+    if (payload.imageUrls && payload.imageUrls.length > 0) {
+      if (payload.targetFormat === 'pdf' || payload.targetFormat === 'docx') {
+        await cleanupIntermediateImages(payload.imageUrls);
+      }
+    }
 
     return {
       success: true,

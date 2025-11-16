@@ -257,15 +257,34 @@ function setupImageAPI(): void {
       cb(null, imageUploadDir);
     },
     filename: (req: any, file: any, cb: any) => {
+      // 允许通过查询参数 keepName=1 强制使用原始文件名（用于图表哈希命名的去重）
+      const keepName = req?.query?.keepName === '1' || req?.query?.keepName === 'true';
+      // 处理可能的编码问题
+      const utf8Name = Buffer.from(file.originalname, 'latin1').toString('utf8');
+
+      if (keepName) {
+        // 如果启用保持原名，直接使用原名；若重名则覆盖（图表哈希命名场景可接受）
+        cb(null, utf8Name);
+        return;
+      }
+
       const timestamp = Date.now();
-      cb(null, `${timestamp}_${file.originalname}`);
+      cb(null, `${timestamp}_${utf8Name}`);
     },
   });
 
   const upload = multer({ storage });
   
   // 静态文件服务
-  expressApp.use('/images', express.static(imageUploadDir));
+  // Express 的 static 中间件会根据文件扩展名自动设置正确的 MIME 类型（包括 SVG）
+  expressApp.use('/images', express.static(imageUploadDir, {
+    setHeaders: (res: Response, filePath: string) => {
+      // 显式设置 SVG 文件的 Content-Type，确保浏览器正确识别
+      if (filePath.endsWith('.svg')) {
+        res.setHeader('Content-Type', 'image/svg+xml');
+      }
+    },
+  }));
   
   // 文件上传接口
   expressApp.post('/api/image/upload', upload.array('file[]'), handleImageUpload);

@@ -212,6 +212,10 @@
         "newChartTitle": "新建图表",
         "chartName": "图表名称",
         "newChartPlaceholder": "请输入新标题",
+        "pdfDocument": "PDF 文档",
+        "exportFormat": "导出格式",
+        "vectorImage": "矢量图 (SVG)",
+        "bitmapImage": "位图 (PNG)",
         "engine": "绘图引擎",
         "selectEngine": "选择绘图引擎",
         "chartType": "图表类型",
@@ -228,11 +232,14 @@
         "reset": "重置",
         "error": {
             "no_svg_found": "没有找到svg元素",
+            "no_graph_container": "没有找到图表容器",
             "copy_failed": "复制失败",
-            "no_code_to_copy": "没有代码可复制"
+            "no_code_to_copy": "没有代码可复制",
+            "export_failed": "导出失败"
         },
         "success": {
-            "copy_succeeded": "复制成功"
+            "copy_succeeded": "复制成功",
+            "export_succeeded": "导出成功"
         },
         "graph": {
             "chart": "图表",

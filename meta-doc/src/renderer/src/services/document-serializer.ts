@@ -57,7 +57,7 @@ const composeTexWithMeta = (doc: WorkspaceDocument, texContent: string): string 
   return `${WARNING_HEADER}%META-INFO: ${metaBase64}\n${pureTex}`.trimStart();
 };
 
-export const serializeDocument = (doc: WorkspaceDocument): SaveDataPayload => {
+export const serializeDocument = async (doc: WorkspaceDocument): Promise<SaveDataPayload> => {
   const isTex = doc.format === 'tex';
   const markdownSource = isTex ? convertLatexToMarkdown(doc.tex ?? '') : doc.markdown ?? '';
   const normalizedMarkdown = normalizeLineEndings(markdownSource);
@@ -68,7 +68,7 @@ export const serializeDocument = (doc: WorkspaceDocument): SaveDataPayload => {
 
   const texSource = isTex
     ? doc.tex ?? ''
-    : convertMarkdownToLatex(normalizedMarkdown, doc.meta?.title || 'Generated Document');
+    : await convertMarkdownToLatex(normalizedMarkdown, doc.meta?.title || 'Generated Document');
   const tex = composeTexWithMeta(doc, texSource);
 
   return {

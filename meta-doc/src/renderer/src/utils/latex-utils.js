@@ -10,8 +10,52 @@ const md = new MarkdownIt({
 })
     .use(footnote)
     .use(taskLists, { enabled: true });
-export function convertMarkdownToLatex(markdown, title = 'Generated Document') {
-    const body = convertTokensToLatex(md.parse(markdown, {}));
+
+// 数学公式占位处理：将 $...$ 与 $$...$$ 暂存，避免在后续转义中被破坏
+// 占位符仅使用不会被 escapeLatex 处理的字符：字母与 @ : 数字，避免下划线等
+function extractMathPlaceholders(source) {
+    const placeholders = [];
+    let text = source;
+
+    // 先处理块级 $$...$$（可跨行）
+    text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_, content) => {
+        const index = placeholders.length;
+        placeholders.push('$$' + content + '$$');
+        return `@@MATHBLOCK:${index}@@`;
+    });
+
+    // 再处理内联 $...$（避免和 $$...$$ 冲突，且不跨行）
+    text = text.replace(/(^|[^\$])\$(?!\$)([^ \n][\s\S]*?[^ \n])\$(?!\$)/g, (m, prefix, content) => {
+        const index = placeholders.length;
+        placeholders.push('$' + content + '$');
+        return `${prefix}@@MATHINLINE:${index}@@`;
+    });
+
+    return { text, placeholders };
+}
+
+function restoreMathPlaceholders(text, placeholders) {
+    if (!placeholders || placeholders.length === 0) return text;
+    let result = text;
+    // 恢复块级
+    result = result.replace(/@@MATHBLOCK:(\d+)@@/g, (_, idx) => {
+        const i = parseInt(idx, 10);
+        return placeholders[i] ?? '';
+    });
+    // 恢复内联
+    result = result.replace(/@@MATHINLINE:(\d+)@@/g, (_, idx) => {
+        const i = parseInt(idx, 10);
+        return placeholders[i] ?? '';
+    });
+    return result;
+}
+
+export async function convertMarkdownToLatex(markdown, title = 'Generated Document') {
+    // 提前抽取数学公式，避免后续字符转义破坏 TeX 语法
+    const { text: markdownWithoutMath, placeholders } = extractMathPlaceholders(markdown);
+    let body = await convertTokensToLatex(md.parse(markdownWithoutMath, {}));
+    // 转换完成后再恢复数学公式原文
+    body = restoreMathPlaceholders(body, placeholders);
     const latex = `
 \\documentclass{article}
 \\usepackage{fontspec}
@@ -51,18 +95,18 @@ ${body}
     return latex;
 }
 
-function convertTokensToLatex(tokens) {
+async function convertTokensToLatex(tokens) {
     const blocks = splitTokensIntoBlocks(tokens);
     let latex = '';
 
     for (const block of blocks) {
-        latex += convertBlockToLatex(block) + '\n\n';
+        latex += await convertBlockToLatex(block) + '\n\n';
     }
 
     return latex.trim();
 }
 
-function convertBlockToLatex(tokens) {
+async function convertBlockToLatex(tokens) {
     let latex = '';
     const stack = [];
     for (let i = 0; i < tokens.length; i++) {
@@ -130,15 +174,63 @@ function convertBlockToLatex(tokens) {
                     // 如果 decode 失败，保持原样
                 }
 
-                src = src.replace(/\\/g, '/').replace(/([#%&{}_])/g, '\\$1');
-
-                latex += `
+                // 检测是否为 SVG 文件
+                const isSvg = src.toLowerCase().endsWith('.svg');
+                
+                // 路径处理：统一转换为正斜杠
+                let normalizedPath = src.replace(/\\/g, '/');
+                
+                if (isSvg) {
+                    // SVG 文件需要转换为 PDF
+                    try {
+                        // 获取 IPC 渲染器
+                        let ipcRenderer = null;
+                        if (window && window.electron) {
+                            ipcRenderer = window.electron.ipcRenderer;
+                        } else {
+                            const localIpcRenderer = (await import('./web-adapter/local-ipc-renderer.ts')).default;
+                            ipcRenderer = localIpcRenderer;
+                        }
+                        
+                        if (ipcRenderer) {
+                            // 调用主进程转换 SVG 为 PDF
+                            const result = await ipcRenderer.invoke('convert-svg-to-pdf', normalizedPath);
+                            if (result.success && result.pdfPath) {
+                                // 使用转换后的 PDF 路径
+                                normalizedPath = result.pdfPath.replace(/\\/g, '/');
+                            } else {
+                                // 转换失败，使用原始 SVG 路径（可能会失败，但至少可以尝试）
+                                console.warn('SVG 转 PDF 失败，使用原始路径:', result.error);
+                            }
+                        }
+                    } catch (error) {
+                        // IPC 调用失败，使用原始 SVG 路径
+                        console.warn('SVG 转 PDF IPC 调用失败:', error);
+                    }
+                    
+                    // 路径处理：使用 \detokenize 避免转义问题，保留下划线等字符
+                    normalizedPath = normalizedPath.replace(/\\/g, '/').replace(/([{}])/g, '\\$1');
+                    
+                    // 对于 PDF（转换后的 SVG），使用标准的 includegraphics
+                    latex += `
 \\begin{figure}[h]
   \\centering
-  \\includegraphics[width=0.8\\textwidth]{${src}}
+  \\includegraphics[width=0.8\\textwidth]{\\detokenize{${normalizedPath}}}
   \\caption{${alt}}
 \\end{figure}
 `;
+                } else {
+                    // 其他图片格式：需要转义所有特殊字符（包括下划线）
+                    normalizedPath = normalizedPath.replace(/([#%&{}_])/g, '\\$1');
+                    
+                    latex += `
+\\begin{figure}[h]
+  \\centering
+  \\includegraphics[width=0.8\\textwidth]{${normalizedPath}}
+  \\caption{${alt}}
+\\end{figure}
+`;
+                }
                 break;
             }
 
@@ -159,7 +251,7 @@ function convertBlockToLatex(tokens) {
 
             case 'footnote_close': if (stack.pop() === 'footnote') latex += '}\n'; break;
             case 'inline':
-                latex += convertTokensToLatex(token.children || []);
+                latex += await convertTokensToLatex(token.children || []);
                 break;
 
             case 'emoji':

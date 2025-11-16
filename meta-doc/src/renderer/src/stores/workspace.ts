@@ -57,7 +57,7 @@ export interface WorkspaceDocument {
   savedAgentSessions: AgentSession[];
 }
 
-const logger = createRendererLogger('Workspace');
+
 
 const UNTITLED_TITLE = '未命名文档';
 
@@ -562,6 +562,7 @@ function moveTab(tabId: string, targetId: string): void {
 }
 
 async function saveDocument(tabId: string, options?: { saveAs?: boolean }): Promise<boolean> {
+  const logger = createRendererLogger('Workspace');
   logger.debug('保存文档', { tabId, options });
   const tab = tabs.find((item) => item.id === tabId);
   if (!tab || tab.kind !== 'file') {
@@ -584,7 +585,7 @@ async function saveDocument(tabId: string, options?: { saveAs?: boolean }): Prom
 async function saveAllDocuments(): Promise<{ saved: string[]; failed: string[] }> {
   const saved: string[] = [];
   const failed: string[] = [];
-
+  const logger = createRendererLogger('Workspace');
   for (const tab of tabs) {
     if (tab.kind !== 'file') continue;
     const doc = ensureDocument(tab.id);

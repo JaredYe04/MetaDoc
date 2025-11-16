@@ -38,6 +38,26 @@
             </template>
         </el-dialog>
 
+        <el-dialog v-model="exportFormatDialogVisible" :title="$t('aigraph.exportImage')" width="400">
+            <div>
+                <el-form label-width="100px">
+                    <el-form-item :label="$t('aigraph.exportFormat')">
+                        <el-radio-group v-model="exportFormat">
+                            <el-radio label="svg">{{ $t('aigraph.vectorImage') }}</el-radio>
+                            <el-radio label="png">{{ $t('aigraph.bitmapImage') }}</el-radio>
+                            <el-radio label="pdf">{{ $t('aigraph.pdfDocument') }}</el-radio>
+                        </el-radio-group>
+                    </el-form-item>
+                </el-form>
+            </div>
+            <template #footer>
+                <div class="dialog-footer">
+                    <el-button @click="exportFormatDialogVisible = false">{{ $t('common.cancel') }}</el-button>
+                    <el-button type="primary" @click="confirmExportImage">{{ $t('common.confirm') }}</el-button>
+                </div>
+            </template>
+        </el-dialog>
+
         <el-aside width="300px" style="overflow: hidden;">
             <el-menu class="side-menu" :default-active="activeIndex">
                 <el-scrollbar class="menu-scrollbar">
@@ -271,7 +291,8 @@ import { MdEditor } from 'md-editor-v3'
 
 import { generateGraphPrompt } from '../utils/prompts'
 import domtoimage from 'dom-to-image-more';
-import { exportPng } from '../utils/image-utils.js'
+import { exportPng, exportSvg } from '../utils/image-utils.js'
+import { preRenderAllCharts } from '../utils/chart-pre-renderer.js'
 import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn.js'
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks.ts'
@@ -319,15 +340,140 @@ const activeScheme = computed(() => schemes.value.find(s => s.id === activeSchem
 const renameDialogVisible = ref(false);
 const editingTitle = ref('');
 const editingIndex = ref(0);
-//import { toPng } from 'html-to-image';
+const exportFormatDialogVisible = ref(false);
+const exportFormat = ref('svg'); // 'svg' 或 'png'
+
+// 打开导出格式选择对话框
 const exportImage = () => {
-    let node = document.getElementById('graph');
-    node = node.querySelector('svg')
-    if (!node) {
-        logger.error(t('aigraph.error.no_svg_found'))
-        node = document.getElementById('graph');
+    exportFormatDialogVisible.value = true;
+}
+
+// 确认导出图片
+const confirmExportImage = async () => {
+    exportFormatDialogVisible.value = false;
+    
+    try {
+        const code = activeScheme.value.code;
+        if (!code || !code.trim()) {
+            eventBus.emit('show-error', t('aigraph.error.no_code_to_export'));
+            return;
+        }
+        
+        // 从代码中提取图表类型（解析代码块的语言标识符）
+        // 格式：```plantuml ... ``` 或 ```mermaid ... ```
+        let chartType = null;
+        const codeBlockMatch = code.match(/^```(\w+)\s*\n/);
+        if (codeBlockMatch) {
+            chartType = codeBlockMatch[1].toLowerCase();
+        } else {
+            // 如果没有代码块标记，尝试从代码内容推断
+            // 例如：ECharts 通常是 JSON 格式
+            try {
+                JSON.parse(code);
+                chartType = 'echarts';
+            } catch (e) {
+                // 无法推断，使用默认类型
+                chartType = activeScheme.value.type.toLowerCase();
+            }
+        }
+        
+        if (!chartType) {
+            throw new Error('无法确定图表类型，请确保代码包含代码块标记（如 ```plantuml）');
+        }
+        
+        let cdn = '';
+        if (isElectronEnv()) {
+            cdn = localVditorCDN;
+        } else {
+            cdn = vditorCDN;
+        }
+        
+        // 根据选择的格式确定目标格式
+        const targetFormat = exportFormat.value === 'svg' ? 'svg' : (exportFormat.value === 'pdf' ? 'svg' : 'png');
+        
+        // 使用 chart-pre-renderer 的渲染逻辑
+        let imageUrl;
+        const { renderEChartsViaIpc, renderPlantUMLViaIpc, renderChartViaVditor, CHART_TYPES } = await import('../utils/chart-pre-renderer.js');
+        
+        // 提取代码内容（去除代码块标记）
+        let codeContent = code;
+        if (codeBlockMatch) {
+            // 移除开头的 ```chartType 和结尾的 ```
+            codeContent = code.replace(/^```\w+\s*\n/, '').replace(/\n```\s*$/, '').trim();
+        }
+        
+        if (chartType === 'echarts') {
+            // ECharts 使用 IPC 渲染
+            let optionJson;
+            try {
+                optionJson = JSON.parse(codeContent);
+            } catch (e) {
+                optionJson = codeContent;
+            }
+            imageUrl = await renderEChartsViaIpc(JSON.stringify(optionJson), targetFormat);
+        } else if (chartType === 'plantuml') {
+            // PlantUML 使用 IPC 渲染
+            imageUrl = await renderPlantUMLViaIpc(codeContent, targetFormat);
+        } else {
+            // 其他图表使用 Vditor 渲染
+            const chartConfig = CHART_TYPES[chartType];
+            if (!chartConfig) {
+                throw new Error(`不支持的图表类型: ${chartType}`);
+            }
+            imageUrl = await renderChartViaVditor(chartType, codeContent, cdn, chartConfig, targetFormat);
+        }
+        
+        // 获取 IPC 渲染器（统一获取，避免重复）
+        let ipcRenderer = null;
+        if (window && window.electron) {
+            ipcRenderer = window.electron.ipcRenderer;
+        } else {
+            const localIpcRenderer = (await import('../utils/web-adapter/local-ipc-renderer.ts')).default;
+            ipcRenderer = localIpcRenderer;
+        }
+        
+        if (!ipcRenderer) {
+            throw new Error('无法获取 IPC 渲染器');
+        }
+        
+        // 如果是 PDF 导出，需要先将 SVG 转换为 PDF
+        if (exportFormat.value === 'pdf') {
+            // 从图片 URL 中提取本地路径
+            let svgPath = imageUrl;
+            if (imageUrl.startsWith('http://localhost:52521/images/')) {
+                // 如果是 HTTP URL，需要转换为本地路径
+                const { image2local } = await import('../utils/md-utils.js');
+                const markdownWithImage = `![chart](${imageUrl})`;
+                const convertedMarkdown = await image2local(markdownWithImage);
+                const imageMatch = convertedMarkdown.match(/!\[.*?\]\((.+?)\)/);
+                if (imageMatch) {
+                    svgPath = imageMatch[1];
+                }
+            }
+            
+            // 调用主进程转换 SVG 为 PDF
+            const convertResult = await ipcRenderer.invoke('convert-svg-to-pdf', svgPath);
+            if (!convertResult.success || !convertResult.pdfPath) {
+                throw new Error(convertResult.error || 'SVG 转 PDF 失败');
+            }
+            
+            // 使用转换后的 PDF 路径
+            imageUrl = convertResult.pdfPath;
+        }
+        
+        const fileExtension = exportFormat.value === 'pdf' ? 'pdf' : (exportFormat.value === 'svg' ? 'svg' : 'png');
+        const fileName = `${activeScheme.value.name}.${fileExtension}`;
+        const result = await ipcRenderer.invoke('save-image-file', imageUrl, fileName);
+        
+        if (result.success) {
+            eventBus.emit('show-success', t('aigraph.success.export_succeeded'));
+        } else {
+            throw new Error(result.error || '保存失败');
+        }
+    } catch (error) {
+        logger.error('导出图片失败:', error);
+        eventBus.emit('show-error', t('aigraph.error.export_failed') + ': ' + (error.message || String(error)));
     }
-    exportPng(node, activeScheme.value.name)
 }
 const initScheme = () => {
     configDialogVisible.value = true;

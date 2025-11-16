@@ -70,7 +70,7 @@ const resolveTargetTabId = (tabId) =>
   typeof tabId === 'string' ? tabId : activeTabId.value;
 
 const buildSavePayload = async (doc) => {
-  const serialized = serializeDocument(doc);
+  const serialized = await serializeDocument(doc);
   const markdownSource =
     doc.format === 'tex' ? convertLatexToMarkdown(doc.tex ?? '') : doc.markdown ?? '';
   const html = await ConvertMarkdownToHtmlManually(markdownSource);
@@ -348,10 +348,36 @@ eventBus.on('export', async ({ format, filename }) => {
   const doc = getDocument()
   if (!doc) return
 
+  // 设置鼠标等待状态
+  const setCursorWaiting = () => {
+    document.body.style.cursor = 'wait';
+    if (document.documentElement) {
+      document.documentElement.style.cursor = 'wait';
+    }
+  };
+  
+  const restoreCursor = () => {
+    document.body.style.cursor = '';
+    if (document.documentElement) {
+      document.documentElement.style.cursor = '';
+    }
+  };
+
+  setCursorWaiting();
+
+  // 监听主进程发送的对话框打开事件，恢复鼠标状态
+  const handleDialogOpening = () => {
+    restoreCursor();
+  };
+  ipcRenderer.on('export-dialog-opening', handleDialogOpening);
+
   try {
     const payload = await prepareExportPayload(doc, format, filename)
     await ipcRenderer.invoke('perform-export', payload)
+    // 确保在完成后恢复鼠标状态（防止事件未触发）
+    restoreCursor();
   } catch (error) {
+    restoreCursor();
     if (error instanceof NotImplementedExportError) {
       const message =
         i18n?.global?.t?.('export.notImplemented', '该导出组合尚未实现') ??
@@ -364,6 +390,9 @@ eventBus.on('export', async ({ format, filename }) => {
       ElMessage.error(message)
       logger.error('导出失败', error)
     }
+  } finally {
+    // 清理事件监听器
+    ipcRenderer.removeListener('export-dialog-opening', handleDialogOpening);
   }
 })
 // eventBus.on('export-to-pdf', async (args) => {

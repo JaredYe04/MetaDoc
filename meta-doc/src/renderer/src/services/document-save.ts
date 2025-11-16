@@ -33,7 +33,7 @@ export const saveWorkspaceDocument = async (
     return null;
   }
 
-  const payload = serializeDocument(doc);
+  const payload = await serializeDocument(doc);
   const result = await ipcRenderer.invoke('workspace-save-document', {
     data: payload,
     saveAs: options?.saveAs ?? doc.path === '',

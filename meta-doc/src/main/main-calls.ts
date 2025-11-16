@@ -281,6 +281,110 @@ function bindUtilityHandlers(): void {
   ipcMain.handle('simpletex-ocr', async (event: IpcMainInvokeEvent, params: SimpleTexOCRData): Promise<any> => {
     return await handleSimpleTexOCR(params);
   });
+
+  // PlantUML 渲染处理器
+  ipcMain.handle('render-plantuml', async (event: IpcMainInvokeEvent, plantumlCode: string, format: string = 'svg'): Promise<string> => {
+    return await renderPlantUMLToLocalImage(plantumlCode, format);
+  });
+  
+  ipcMain.handle('render-echarts', async (event: IpcMainInvokeEvent, optionJson: string): Promise<string> => {
+    // 主进程只返回 SVG 字符串，PNG 转换在渲染进程中完成
+    return await renderEChartsToLocalImage(optionJson);
+  });
+  
+  // SVG 转 PDF 处理器
+  ipcMain.handle('convert-svg-to-pdf', async (event: IpcMainInvokeEvent, svgPath: string): Promise<{ success: boolean; pdfPath?: string; error?: string }> => {
+    const logger = createMainLogger('SvgToPdf');
+    try {
+      const { convertSvgToPdf } = await import('./utils/svg-to-pdf');
+      const pdfPath = await convertSvgToPdf(svgPath);
+      return { success: true, pdfPath };
+    } catch (error) {
+      logger.error('SVG 转 PDF 失败:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
+  // 保存图片文件
+  ipcMain.handle('save-image-file', async (event: IpcMainInvokeEvent, imageUrl: string, suggestedName: string): Promise<{ success: boolean; path?: string; error?: string }> => {
+    const logger = createMainLogger('SaveImage');
+    try {
+      // 显示保存对话框
+      const suggestedExt = (() => {
+        const m = suggestedName && suggestedName.match(/\.([a-z0-9]+)$/i);
+        return m ? m[1].toLowerCase() : '';
+      })();
+      let ext = suggestedExt || (imageUrl.endsWith('.svg') ? 'svg' : 'png');
+      if (!suggestedExt && imageUrl.startsWith('data:')) {
+        if (imageUrl.startsWith('data:image/svg+xml')) ext = 'svg';
+        else if (imageUrl.startsWith('data:image/png')) ext = 'png';
+        else if (imageUrl.startsWith('data:application/pdf')) ext = 'pdf';
+      }
+      const filters: Electron.FileFilter[] = [
+        { name: ext.toUpperCase(), extensions: [ext] },
+        { name: 'All Files', extensions: ['*'] },
+      ];
+      
+      const result: SaveDialogReturnValue = await dialog.showSaveDialog(mainWindow!, {
+        title: t('main.dialogs.saveFileTitle', '保存文件'),
+        defaultPath: suggestedName.endsWith(`.${ext}`) ? suggestedName : `${suggestedName}.${ext}`,
+        filters,
+      });
+      
+      if (result.canceled || !result.filePath) {
+        return { success: false };
+      }
+      
+      const targetPath = result.filePath;
+      
+      // 下载图片
+      logger.debug(`开始下载图片: ${imageUrl}`);
+      let fileBuffer: Buffer;
+      if (imageUrl.startsWith('data:')) {
+        // 处理 data URL
+        const commaIdx = imageUrl.indexOf(',');
+        const meta = imageUrl.substring(5, commaIdx); // e.g. image/png;base64
+        const base64 = imageUrl.substring(commaIdx + 1);
+        const binary = Buffer.from(base64, 'base64');
+        fileBuffer = binary;
+      } else if (fs.existsSync(imageUrl)) {
+        // 本地文件路径
+        fileBuffer = fs.readFileSync(imageUrl);
+      } else {
+        // HTTP(S) 下载
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+          throw new Error(`下载图片失败: ${response.status} ${response.statusText}`);
+        }
+        const buffer = await response.arrayBuffer();
+        fileBuffer = Buffer.from(buffer);
+      }
+      
+      // 确保父目录存在
+      const parentDir = path.dirname(targetPath);
+      if (!fs.existsSync(parentDir)) {
+        fs.mkdirSync(parentDir, { recursive: true });
+      }
+      
+      // 保存文件
+      fs.writeFileSync(targetPath, fileBuffer);
+      logger.info(`图片已保存到: ${targetPath}`);
+      
+      return {
+        success: true,
+        path: targetPath,
+      };
+    } catch (error) {
+      logger.error('保存图片失败:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
 }
 
 /**
@@ -718,5 +822,127 @@ async function handleSimpleTexOCR(params: SimpleTexOCRData): Promise<any> {
   } catch (err) {
     logger.error('处理SimpleTeX OCR失败:', err);
     return 'error:' + err;
+  }
+}
+
+/**
+ * 使用 node-plantuml 渲染 PlantUML 代码为本地 SVG
+ * @param plantumlCode PlantUML 源代码
+ * @returns 本地 SVG 的 HTTP URL
+ */
+async function renderPlantUMLToLocalImage(plantumlCode: string, format: string = 'svg'): Promise<string> {
+  // @ts-ignore
+  const plantuml = require('node-plantuml');
+  const logger = createMainLogger('PlantUML');
+  const crypto = require('crypto');
+  
+  try {
+    logger.info('开始渲染 PlantUML，代码长度:', plantumlCode.length, '格式:', format);
+    
+    // 根据格式选择输出类型
+    const outputFormat = format === 'png' ? 'png' : 'svg';
+    const gen = plantuml.generate({
+      format: outputFormat,
+    });
+    
+    // 将 PlantUML 代码写入生成器
+    gen.in.write(plantumlCode);
+    gen.in.end();
+    
+    // 收集生成的 SVG 数据
+    const chunks: Buffer[] = [];
+    gen.out.on('data', (chunk: Buffer) => {
+      chunks.push(chunk);
+    });
+    
+    // 等待生成完成
+    await new Promise<void>((resolve, reject) => {
+      gen.out.on('end', () => {
+        resolve();
+      });
+      gen.out.on('error', (err: Error) => {
+        reject(err);
+      });
+    });
+    
+    const imageBuffer = Buffer.concat(chunks);
+    logger.info('PlantUML 渲染完成，大小:', imageBuffer.length, 'bytes');
+    
+    if (imageBuffer.length === 0) {
+      throw new Error(`生成的 ${outputFormat.toUpperCase()} 为空`);
+    }
+    
+    // 保存到本地图片目录（使用基于源码+格式的稳定哈希文件名，避免重复生成）
+    const { imageUploadDir } = await import('./express-server');
+    const fileExt = outputFormat === 'png' ? 'png' : 'svg';
+    const hash = crypto.createHash('sha256').update(String(plantumlCode) + ':' + outputFormat).digest('hex').slice(0, 16);
+    const fileName = `${hash}_plantuml.${fileExt}`;
+    const filePath = path.join(imageUploadDir, fileName);
+
+    // 如已存在，直接返回 URL（复用）
+    try {
+      await fs.promises.access(filePath, fs.constants.F_OK);
+      const existsUrl = `http://localhost:52521/images/${fileName}`;
+      logger.info('PlantUML 已存在，复用文件:', existsUrl);
+      return existsUrl;
+    } catch {
+      // not exists, continue to write
+    }
+    
+    await fs.promises.writeFile(filePath, imageBuffer);
+    logger.info(`${outputFormat.toUpperCase()} 已保存到:`, filePath);
+    
+    // 返回本地 HTTP URL
+    const localUrl = `http://localhost:52521/images/${fileName}`;
+    logger.info('返回本地 URL:', localUrl);
+    
+    return localUrl;
+  } catch (error) {
+    logger.error('PlantUML 渲染失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 使用 ECharts SSR 渲染图表为 SVG
+ * 注意：主进程只负责生成 SVG，PNG 转换在渲染进程中完成
+ * @param optionJson ECharts option 的 JSON 字符串
+ * @returns SVG 字符串内容
+ */
+async function renderEChartsToLocalImage(optionJson: string): Promise<string> {
+  // @ts-ignore
+  const echarts = require('echarts');
+  const logger = createMainLogger('ECharts');
+  
+  try {
+    logger.info('开始渲染 ECharts 为 SVG');
+    
+    let option;
+    try {
+      option = JSON.parse(optionJson);
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      throw new Error('ECharts option 不是有效的 JSON: ' + errorMessage);
+    }
+    
+    // 使用 SSR SVG 渲染（零依赖）
+    const chart = echarts.init(null, null, {
+      renderer: 'svg',
+      ssr: true,
+      width: 800,
+      height: 600,
+    });
+    
+    chart.setOption(option);
+    const svgStr = chart.renderToSVGString();
+    chart.dispose();
+    
+    logger.info('ECharts SVG 渲染完成，大小:', svgStr.length, 'bytes');
+    
+    // 返回 SVG 字符串内容（不保存文件，由渲染进程决定如何处理）
+    return svgStr;
+  } catch (error) {
+    logger.error('ECharts 渲染失败:', error);
+    throw error;
   }
 }

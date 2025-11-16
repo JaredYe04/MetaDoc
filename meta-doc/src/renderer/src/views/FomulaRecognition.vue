@@ -108,6 +108,9 @@
             <el-tooltip :content="$t('formulaRecognition.copy_formula')" placement="top">
               <el-button type="primary" :icon="DocumentCopy" circle @click="copyResult" />
             </el-tooltip>
+            <el-tooltip :content="$t('aigraph.exportImage')" placement="top">
+              <el-button type="primary" :icon="Picture" circle @click="openExportDialog" />
+            </el-tooltip>
           </div>
         </div>
       </div>
@@ -119,6 +122,27 @@
       <template #footer>
         <el-button @click="editDialogVisible = false">{{ $t('formulaRecognition.cancel') }}</el-button>
         <el-button type="primary" @click="editDialogVisible = false">{{ $t('formulaRecognition.confirm') }}</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 导出格式对话框 -->
+    <el-dialog v-model="exportDialogVisible" :title="$t('aigraph.exportImage')" width="400">
+      <div>
+        <el-form label-width="100px">
+          <el-form-item :label="$t('aigraph.exportFormat')">
+            <el-radio-group v-model="exportFormat">
+              <el-radio label="svg">{{ $t('aigraph.vectorImage') }}</el-radio>
+              <el-radio label="png">{{ $t('aigraph.bitmapImage') }}</el-radio>
+              <el-radio label="pdf">{{ $t('aigraph.pdfDocument') }}</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-form>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="exportDialogVisible = false">{{ $t('common.cancel') }}</el-button>
+          <el-button type="primary" @click="confirmExport">{{ $t('common.confirm') }}</el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -138,6 +162,9 @@ import { MdPreview } from 'md-editor-v3'
 import '../assets/tool-group.css'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
+import { createRendererLogger } from '../utils/logger.ts'
+const logger = createRendererLogger('FormulaRecognition')
+import { exportSingleFormula } from '../utils/math-renderer.js'
 
 // 当前工具：'pen'、'eraser' 或 'pointer'
 const tool = ref('pen')
@@ -157,6 +184,9 @@ let canvasContext = null
 let isDrawing = false
 // 笔刷粗细（画笔模式下有效），范围1~20，默认2
 const brushSize = ref(2)
+// 导出
+const exportDialogVisible = ref(false)
+const exportFormat = ref('svg')
 
 // 根据 canvas 缩放比例动态计算预览笔刷的显示尺寸
 const brushPreviewSize = computed(() => {
@@ -418,6 +448,122 @@ function copyResult() {
     type: 'error'
   })
     })
+}
+
+function openExportDialog() {
+    exportDialogVisible.value = true
+}
+
+function normalizeTex(src) {
+    // 去掉外围 ```latex 或者 $$ 包裹
+    let s = (src || '').trim()
+    // 去除 markdown 代码围栏
+    s = s.replace(/^```(?:latex|tex)\s*\n/, '').replace(/\n```\s*$/, '').trim()
+    // 去除块公式 $$...$$ 或 \[...\]
+    if (/^\$\$[\s\S]*\$\$$/m.test(s)) {
+        s = s.replace(/^\$\$\s*/, '').replace(/\s*\$\$$/, '')
+    } else if (/^\\\[[\s\S]*\\\]$/.test(s)) {
+        s = s.replace(/^\\\[\s*/, '').replace(/\s*\\\]$/, '')
+    } else if (/^\$[\s\S]*\$$/.test(s)) {
+        // 去除行内公式 $...$
+        s = s.replace(/^\$\s*/, '').replace(/\s*\$$/, '')
+    } else if (/^\\\([\s\S]*\\\)$/.test(s)) {
+        // 行内 \(...\)
+        s = s.replace(/^\\\(\s*/, '').replace(/\s*\\\)$/, '')
+    }
+    return s
+}
+
+async function confirmExport() {
+    exportDialogVisible.value = false
+    const tex = normalizeTex(latexResult.value)
+    if (!tex) {
+        ElNotification({ title: t('formulaRecognition.notification.title_error'), message: t('aigraph.error.no_code_to_export') || '无可导出的公式', type: 'error' })
+        return
+    }
+    try {
+        // 获取 IPC 渲染器
+        let ipcRenderer = null
+        if (window && window.electron) {
+            ipcRenderer = window.electron.ipcRenderer
+        } else {
+            const localIpcRenderer = (await import('../utils/web-adapter/local-ipc-renderer.ts')).default
+            ipcRenderer = localIpcRenderer
+        }
+        if (!ipcRenderer) {
+            throw new Error('无法获取 IPC 渲染器')
+        }
+
+        if (exportFormat.value === 'svg') {
+            // 按照 PDF 的前半段链路：生成 SVG -> 上传 -> 保存
+            const svgDataUrl = await exportSingleFormula(tex, 'svg')
+            // Data URL -> Blob
+            const res = await fetch(svgDataUrl)
+            const blob = await res.blob()
+            const fileName = `formula_${Date.now()}.svg`
+            const formData = new FormData()
+            const file = new File([blob], fileName, { type: 'image/svg+xml' })
+            formData.append('file[]', file, fileName)
+            const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', { method: 'POST', body: formData })
+            if (!resp.ok) throw new Error('上传 SVG 失败')
+            const json = await resp.json()
+            const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
+            const imageUrl = `http://localhost:52521/images/${uploaded}`
+
+            const saveResult = await ipcRenderer.invoke('save-image-file', imageUrl, 'formula.svg')
+            if (!saveResult.success) throw new Error(saveResult.error || '保存失败')
+        } else if (exportFormat.value === 'png') {
+            // 矢量生成后再转位图
+            const svgDataUrl = await exportSingleFormula(tex, 'svg')
+            const svgBlob = await (await fetch(svgDataUrl)).blob()
+            const svgText = await svgBlob.text()
+            const { convertSvgToPng } = await import('../utils/chart-pre-renderer.js')
+            const pngBlob = await convertSvgToPng(svgText)
+            // Blob -> data URL
+            const dataUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onload = () => resolve(String(reader.result || ''))
+                reader.onerror = reject
+                reader.readAsDataURL(pngBlob)
+            })
+            
+            const result = await ipcRenderer.invoke('save-image-file', dataUrl, 'formula.png')
+            if (!result.success) throw new Error(result.error || '保存失败')
+        } else if (exportFormat.value === 'pdf') {
+            // 先拿到 SVG data URL，再转 PDF（上传到本地再转换）
+            const svgDataUrl = await exportSingleFormula(tex, 'svg')
+            // Data URL -> Blob
+            const res = await fetch(svgDataUrl)
+            const blob = await res.blob()
+            const fileName = `formula_${Date.now()}.svg`
+            const formData = new FormData()
+            const file = new File([blob], fileName, { type: 'image/svg+xml' })
+            formData.append('file[]', file, fileName)
+            const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', { method: 'POST', body: formData })
+            if (!resp.ok) throw new Error('上传 SVG 失败')
+            const json = await resp.json()
+            const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
+            const imageUrl = `http://localhost:52521/images/${uploaded}`
+
+            // 转本地路径
+            const { image2local } = await import('../utils/md-utils.js')
+            const mdTmp = `![x](${imageUrl})`
+            const converted = await image2local(mdTmp)
+            const m = converted.match(/!\[.*?\]\((.+?)\)/)
+            const svgPath = m ? m[1] : imageUrl
+
+            const convertResult = await ipcRenderer.invoke('convert-svg-to-pdf', svgPath)
+            if (!convertResult.success || !convertResult.pdfPath) {
+                throw new Error(convertResult.error || 'SVG 转 PDF 失败')
+            }
+            const saveResult = await ipcRenderer.invoke('save-image-file', convertResult.pdfPath, 'formula.pdf')
+            if (!saveResult.success) throw new Error(saveResult.error || '保存失败')
+        }
+        ElNotification({ title: t('aigraph.success.export_succeeded'), message: '', type: 'success' })
+    } catch (error) {
+        logger.error('导出公式失败:', error)
+        ElNotification({ title: t('aigraph.error.export_failed'), message: String(error?.message || error), type: 'error' })
+    }
 }
 </script>
 

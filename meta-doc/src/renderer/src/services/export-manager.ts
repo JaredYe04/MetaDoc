@@ -9,9 +9,13 @@ import {
   ConvertMarkdownToHtmlVditor,
   filterMetaDataFromMd,
   image2base64,
+  image2local,
   local2image,
 } from '../utils/md-utils';
+import { preRenderAllCharts } from '../utils/chart-pre-renderer';
 import type { WorkspaceDocument } from '../stores/workspace';
+import { createRendererLogger } from '../utils/logger.js';
+import { renderMarkdownMathToImages } from '../utils/math-renderer.js';
 
 export interface BaseExportPayload {
   sourceFormat: DocumentFormat;
@@ -24,6 +28,7 @@ export interface BaseExportPayload {
     tex: string;
   };
   html?: string;
+  imageUrls?: string[]; // 预渲染生成的图片 URL，用于清理
 }
 
 export class NotImplementedExportError extends Error {
@@ -49,7 +54,7 @@ export const prepareExportPayload = async (
     throw new Error(`不支持 ${sourceFormat} 导出为 ${targetFormat}`);
   }
 
-  const serialized = serializeDocument(doc);
+  const serialized = await serializeDocument(doc);
   const suggestedName = explicitName && explicitName.trim().length > 0
     ? explicitName.trim()
     : inferDocumentName(doc);
@@ -88,16 +93,49 @@ const prepareMarkdownExports = async (
   targetFormat: ExportFormat,
 ): Promise<BaseExportPayload> => {
   let markdown = filterMetaDataFromMd(base.data.md);
-
-  if (['html', 'docx', 'pdf', 'md'].includes(targetFormat)) {
+  const logger = createRendererLogger('ExportManager');
+  //logger.debug(`targetFormat: ${targetFormat}`);
+  // 对于所有需要生成 HTML 的格式，先预渲染所有图表
+  if (['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
+    // 先预渲染图表（统一处理，不依赖 Vditor）
+    // 图表会被转换为本地图片 URL，这样在导出时就不需要依赖 Vditor 的渲染
+    // Word 导出使用位图，其他格式使用矢量图
+    const chartFormat = (targetFormat === 'docx') ? 'bitmap' : 'svg';
+    try {
+      logger.debug(`preRenderAllCharts start`);
+      markdown = await preRenderAllCharts(markdown, '', chartFormat);
+      logger.debug(`preRenderAllCharts end`);
+    } catch (error) {
+      console.warn('图表预渲染失败，继续使用原始 Markdown:', error);
+    }
+    
+    // 根据导出格式处理图片路径
+    if (targetFormat === 'tex') {
+      // LaTeX 导出需要本地文件路径
+      markdown = await image2local(markdown);
+    } else {
+      // 其他格式（html, docx, pdf）需要 HTTP URL
     markdown = await local2image(markdown);
+    }
   }
-
   if (['html', 'docx'].includes(targetFormat)) {
+    // 对 DOCX：将数学公式渲染为位图图片（仅 DOCX 需要）
+    if (targetFormat === 'docx') {
+      try {
+        //logger.debug(`renderMarkdownMathToImages start`);
+        markdown = await renderMarkdownMathToImages(markdown, 'png');
+        //logger.debug(`renderMarkdownMathToImages end`);
+      } catch (e) {
+        logger.error('数学公式转图片失败，保留原文:', e);
+      }
+      // DOCX 需要将图片转换为 base64
     markdown = await image2base64(markdown);
+    }
+    // HTML 格式保持 HTTP URL，不需要转换为 base64
   }
 
   let html = '';
+  let tex = '';
   if (targetFormat === 'docx') {
     html = await ConvertMarkdownToHtmlVditor(markdown);
   } else if (targetFormat === 'pdf') {
@@ -107,12 +145,33 @@ const prepareMarkdownExports = async (
   } else if (targetFormat === 'md') {
     html = await ConvertMarkdownToHtmlManually(markdown);
   } else if (targetFormat === 'tex') {
-    html = ''; // 不需要
+            // Markdown 转 LaTeX，图表已经预渲染为图片 URL
+            const { convertMarkdownToLatex } = await import('../utils/latex-utils');
+            const title = doc.meta?.title || 'Generated Document';
+            tex = await convertMarkdownToLatex(markdown, title);
+          }
+
+  // 收集预渲染生成的图片 URL（用于后续清理）
+  const imageUrls: string[] = [];
+  if (['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
+    // 从 markdown 中提取所有图片 URL
+    const imageRegex = /!\[.*?\]\((http:\/\/localhost:52521\/images\/[^)]+)\)/g;
+    let match;
+    while ((match = imageRegex.exec(markdown)) !== null) {
+      imageUrls.push(match[1]);
+    }
   }
 
   return {
     ...base,
     html,
+    data: {
+      ...base.data,
+      md: markdown,
+      tex: tex || base.data.tex,
+    },
+    // 保存图片 URL 用于清理
+    imageUrls,
   };
 };
 

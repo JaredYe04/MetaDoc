@@ -5,6 +5,10 @@ import eventBus, { isElectronEnv } from "./event-bus"
 import { getImagePath, getSetting } from "./settings"
 import { convertNumberToChinese, removeTitleIndex } from "./regex-utils";
 import {localVditorCDN, vditorCDN } from "./vditor-cdn";
+import { createRendererLogger } from "./logger.ts";
+import { preRenderAllCharts } from './chart-pre-renderer.js';
+
+const logger = createRendererLogger('MDUtils');
 // 1. 从 Markdown 文本中提取所有标题，生成大纲树，同时记录 title_level
 
 export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
@@ -661,9 +665,27 @@ export async function image2local(md){
         const match = line.match(/!\[.*?\]\((.*?)\)/)
         if (match) {
             const image_path = match[1]
-            const prefix_len='http://localhost:52521/images/'.length
-            const image_name=image_path.slice(prefix_len)
-            new_md += line.replace(image_path, local_path +'\\'+image_name) + '\n'
+            
+            let image_name = '';
+            
+            if (image_path.startsWith('http://localhost:52521/images/')) {
+                // HTTP URL，提取文件名
+                const prefix_len = 'http://localhost:52521/images/'.length;
+                image_name = image_path.slice(prefix_len);
+            } else if (image_path.startsWith('data:image/')) {
+                // Base64 图片，跳过（不需要转换为本地路径）
+                new_md += line + '\n';
+                continue;
+            } else {
+                // 其他格式，尝试提取文件名
+                image_name = image_path.split(/[/\\]/).pop() || image_path;
+            }
+            
+            // 使用 path.join 确保路径正确（跨平台兼容）
+            
+            const local_image_path = await getImagePath()
+            const local_image_url = local_image_path +'/'+ image_name
+            new_md += line.replace(image_path, local_image_url) + '\n'
         } else {
             new_md += line + '\n'
         }
@@ -682,8 +704,35 @@ export async function local2image(md){
         const match = line.match(/!\[.*?\]\((.*?)\)/)
         if (match) {
             const image_path = match[1]
-            const prefix_len=local_path.length+1//加上一个斜杠
-            const image_name=image_path.slice(prefix_len)
+            
+            // 处理不同的路径格式：
+            // 1. 本地路径：C:\Users\...\Pictures\meta-doc-imgs\filename
+            // 2. HTTP URL：http://localhost:52521/images/filename（已经是正确的，不需要转换）
+            // 3. 相对路径：filename（直接使用）
+            
+            let image_name = '';
+            
+            if (image_path.startsWith('http://localhost:52521/images/')) {
+                // 已经是 HTTP URL，直接使用
+                new_md += line + '\n';
+                continue;
+            } else if (image_path.startsWith(local_path)) {
+                // 本地绝对路径，提取文件名
+                // 支持 Windows 路径（\）和 Unix 路径（/）
+                const normalizedLocalPath = local_path.replace(/\\/g, '/');
+                const normalizedImagePath = image_path.replace(/\\/g, '/');
+                
+                if (normalizedImagePath.startsWith(normalizedLocalPath + '/')) {
+                    image_name = normalizedImagePath.slice(normalizedLocalPath.length + 1);
+                } else {
+                    // 如果路径不匹配，尝试直接提取文件名
+                    image_name = image_path.split(/[/\\]/).pop();
+                }
+            } else {
+                // 相对路径或其他格式，直接使用
+                image_name = image_path.split(/[/\\]/).pop() || image_path;
+            }
+            
             new_md += line.replace(image_path, 'http://localhost:52521/images/' + image_name) + '\n'
         } else {
             new_md += line + '\n'
@@ -701,9 +750,17 @@ export async function ConvertMarkdownToHtmlVditor(md) {
     else{
         cdn=vditorCDN;
     }
+    //logger.debug(`ConvertMarkdownToHtmlVditor: ${await Vditor.md2html(md,{cdn: cdn})}`);
     return await Vditor.md2html(md,{cdn: cdn})
 
 }
+
+/**
+ * 将 Vditor.md2html 生成的 HTML 中 class="language-math" 的行内/块级公式渲染为 PNG 图片
+ * - span.language-math 视为行内
+ * - div.language-math 视为块级
+ */
+// 移至 chart-pre-renderer.js 中，避免 md-utils 过载
 let ipcRenderer = null
 if (window && window.electron) {
   ipcRenderer = window.electron.ipcRenderer
@@ -743,25 +800,15 @@ export async function ConvertMarkdownToHtmlManually(md) {
                 Vditor.mathRender(previewElement, {
                     cdn: '${cdn}',
                 });
-                Vditor.mermaidRender(previewElement, '${cdn}');
-                Vditor.SMILESRender(previewElement, '${cdn}');
-                Vditor.markmapRender(previewElement, '${cdn}');
-                Vditor.flowchartRender(previewElement, '${cdn}');
-                Vditor.graphvizRender(previewElement, '${cdn}');
-                Vditor.chartRender(previewElement, '${cdn}');
-                Vditor.mindmapRender(previewElement, '${cdn}');
-                Vditor.abcRender(previewElement, '${cdn}');
+                // 图表已经预渲染为图片，不需要再次渲染
             };
         </script></html>`;
 return html
 }
 
 export const ConvertHtmlForPdf = async (md) => {
-    // 创建一个 iframe 并设置内容
-    const iframe = document.createElement('iframe');
-    document.body.appendChild(iframe); // 将 iframe 添加到页面上
-    // 使用 JSON.stringify 对 md 进行转义
-    const safeMarkdown = JSON.stringify(md);
+    logger.info(`ConvertHtmlForPdf 开始，Markdown 长度: ${md.length}`);
+    
     let cdn = '';
     if(isElectronEnv()){
         cdn=localVditorCDN;
@@ -769,18 +816,41 @@ export const ConvertHtmlForPdf = async (md) => {
     else{
         cdn=vditorCDN;
     }
+    logger.info(`使用 CDN: ${cdn}`);
+    
+    // 预渲染所有图表为图片（统一处理）
+    // 统一使用 SVG 矢量图
+    let processedMd = md;
+    try {
+        processedMd = await preRenderAllCharts(md, cdn);
+        if (processedMd !== md) {
+            logger.info('图表代码块已预渲染为图片');
+        }
+    } catch (error) {
+        logger.warn('图表预渲染失败，使用原始 Markdown:', error);
+        processedMd = md;
+    }
+    
+    // 使用 JSON.stringify 对处理后的 md 进行转义
+    const safeMarkdown = JSON.stringify(processedMd);
+    
     const contentTheme = await getSetting('contentTheme');
     const codeTheme = await getSetting('codeTheme');
     const lineNumber = await getSetting('lineNumber');
+    logger.info(`主题设置: contentTheme=${contentTheme}, codeTheme=${codeTheme}, lineNumber=${lineNumber}`);
 
-    const html=`
-        <link rel="stylesheet" href="${cdn}/dist/index.css"/>
-        <script src="${cdn}/dist/method.min.js"></script>
-        <div id="preview" style="width: 800px;"></div>
-        <script>
-            // 等待 iframe 完全加载后，渲染 markdown 内容
+    const html=`<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="${cdn}/dist/index.css"/>
+    <script src="${cdn}/dist/method.min.js"></script>
+</head>
+<body>
+    <div id="preview" style="width: 800px;"></div>
+    <script>
+            // 等待页面加载后，渲染 markdown 内容
             window.onload = function() {
-            //鼠标设置为等待状态
                 // 使用转义后的 md 内容
                 const previewElement = document.getElementById('preview');
                 Vditor.preview(previewElement, ${safeMarkdown}, {
@@ -797,22 +867,16 @@ export const ConvertHtmlForPdf = async (md) => {
                 Vditor.mathRender(previewElement, {
                     cdn: '${cdn}',
                 });
-                Vditor.mermaidRender(previewElement, '${cdn}');
-                Vditor.SMILESRender(previewElement, '${cdn}');
-                Vditor.markmapRender(previewElement, '${cdn}');
-                Vditor.flowchartRender(previewElement, '${cdn}');
-                Vditor.graphvizRender(previewElement, '${cdn}');
-                Vditor.chartRender(previewElement, '${cdn}');
-                Vditor.mindmapRender(previewElement, '${cdn}');
-                Vditor.abcRender(previewElement, '${cdn}');
+                // 图表已经预渲染为图片，不需要再次渲染
             };
-        </script>
-        <style>
-            body {
-                font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
-            }
-        </style>
-    `;
+    </script>
+    <style>
+        body {
+            font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+        }
+    </style>
+</body>
+</html>`;
         //     <style>
         //     @font-face {
         //     font-family: "NotoSansSC";
@@ -825,9 +889,8 @@ export const ConvertHtmlForPdf = async (md) => {
         //     font-family: "NotoSansSC", "SimSun", sans-serif;
         //     }
         // </style>
+    logger.info(`HTML 生成完成，长度: ${html.length}`);
     return html;
-
-    
 }
 
 export function filterMetaDataFromMd(md){

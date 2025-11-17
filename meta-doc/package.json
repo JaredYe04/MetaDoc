@@ -18,7 +18,8 @@
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux",
     "build:android": "npm run build && npx cap copy && npx cap sync android && npx cap open android",
-    "android": "npx cap open android"
+    "android": "npx cap open android",
+    "kill": "taskkill /IM electron.exe /F"
   },
   "fileAssociations": [
     {

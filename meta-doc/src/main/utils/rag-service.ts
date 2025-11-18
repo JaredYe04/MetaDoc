@@ -235,7 +235,7 @@ class RAGServiceImpl implements RAGService {
       .filter(r => r.hybridScore! >= scoreThreshold);
 
     if (merged.length === 0) {
-      logger.warn('知识库查询未返回高相似度结果');
+      logger.debug('知识库查询未返回高相似度结果');
     }
 
     return merged.map(r => r.text);

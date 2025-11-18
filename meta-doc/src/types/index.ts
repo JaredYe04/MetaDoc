@@ -17,6 +17,8 @@ export interface DocumentOutlineNode {
   title_level: number;
   /** 子节点列表 */
   children: DocumentOutlineNode[];
+  /** 可选扩展信息（用于存储与渲染无关但需保留的控制信息，如 LaTeX preamble/注释等） */
+  extras?: Record<string, any>;
 }
 
 /** 文档元信息 */

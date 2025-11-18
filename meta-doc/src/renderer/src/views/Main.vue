@@ -257,11 +257,12 @@ eventBus.on('open-doc-success', (payload) => {
     }
   }
 });
-const handleNewDocumentRequest = () => {
-  workspace.openNewDocumentTab()
-}
+// 注意：new-doc 事件已在 Editor.vue 中处理，这里不需要重复监听
+// const handleNewDocumentRequest = () => {
+//   workspace.openNewDocumentTab()
+// }
 
-eventBus.on('new-doc', handleNewDocumentRequest)
+// eventBus.on('new-doc', handleNewDocumentRequest)
 
 eventBus.on('show-error', (message) => {
   ElNotification({
@@ -280,7 +281,7 @@ eventBus.on('show-warning', (message) => {
 
 onBeforeUnmount(() => {
   eventBus.off('workspace-open-document', workspaceOpenDocumentHandler)
-  eventBus.off('new-doc', handleNewDocumentRequest)
+  // eventBus.off('new-doc', handleNewDocumentRequest)
 })
 
 </script>

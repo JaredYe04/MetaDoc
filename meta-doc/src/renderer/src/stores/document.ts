@@ -134,40 +134,56 @@ export const useDocumentStore = defineStore('document', () => {
 
   /**
    * 自动生成标题
+   * 如果元信息中没有标题，尝试从文档内容中提取
    */
   function autoGenerateTitle(): void {
-    if (articleMetaData.value.title === '') {
-      if (currentFormat.value === 'md') {
-        // 从文章内容中提取第一个标题
-        const firstTitleMatch = articleContent.value.match(/^(#+)\s+(.*)$/m)
-        if (firstTitleMatch) {
-          const title = firstTitleMatch[2].trim()
-          articleMetaData.value.title = title
-        } else {
-          // 截取文章内容的前50个字符
-          const content = articleContent.value.trim().substring(0, 50)
-          articleMetaData.value.title = content.length > 0 ? content : ''
-        }
-      } else if (currentFormat.value === 'tex') {
-        const texContent = texArticleContent.value || ''
-        let title = ''
+    // 如果已经有标题，不需要重新生成
+    if (articleMetaData.value.title && articleMetaData.value.title.trim().length > 0) {
+      return;
+    }
 
-        // 正则匹配 LaTeX 标题
-        const sectionMatch = texContent.match(/\\section\{([^}]*)\}/)
-        const subsectionMatch = texContent.match(/\\subsection\{([^}]*)\}/)
-        const subsubsectionMatch = texContent.match(/\\subsubsection\{([^}]*)\}/)
+    let extractedTitle: string | null = null;
 
-        // 优先级：section > subsection > subsubsection
-        if (sectionMatch) title = sectionMatch[1].trim()
-        else if (subsectionMatch) title = subsectionMatch[1].trim()
-        else if (subsubsectionMatch) title = subsubsectionMatch[1].trim()
-        else title = texContent.trim().substring(0, 50)
-
-        // 截取最多50个字符
-        if (title.length > 50) title = title.substring(0, 50)
-
-        articleMetaData.value.title = title
+    if (currentFormat.value === 'md') {
+      // 从 Markdown 内容中提取第一个标题
+      const firstTitleMatch = articleContent.value.match(/^(#+)\s+(.+)$/m);
+      if (firstTitleMatch) {
+        const title = firstTitleMatch[2].trim();
+        // 移除可能的 Markdown 格式标记
+        extractedTitle = title.replace(/\*\*|__|\*|_|`/g, '').trim();
       }
+    } else if (currentFormat.value === 'tex') {
+      const texContent = texArticleContent.value || '';
+
+      // 优先级：\title{} > \section{} > \subsection{} > \subsubsection{}
+      const titleMatch = texContent.match(/\\title\{([^}]+)\}/);
+      if (titleMatch) {
+        extractedTitle = titleMatch[1].trim();
+      } else {
+        const sectionMatch = texContent.match(/\\section\{([^}]+)\}/);
+        if (sectionMatch) {
+          extractedTitle = sectionMatch[1].trim();
+        } else {
+          const subsectionMatch = texContent.match(/\\subsection\{([^}]+)\}/);
+          if (subsectionMatch) {
+            extractedTitle = subsectionMatch[1].trim();
+          } else {
+            const subsubsectionMatch = texContent.match(/\\subsubsection\{([^}]+)\}/);
+            if (subsubsectionMatch) {
+              extractedTitle = subsubsectionMatch[1].trim();
+            }
+          }
+        }
+      }
+    }
+
+    // 如果提取到了标题，更新元信息
+    if (extractedTitle && extractedTitle.length > 0) {
+      // 限制标题长度
+      const maxLength = 100;
+      articleMetaData.value.title = extractedTitle.length > maxLength
+        ? extractedTitle.substring(0, maxLength).trim()
+        : extractedTitle;
     }
   }
 

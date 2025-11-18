@@ -776,6 +776,83 @@ const ensureFileNameExtension = (input: string, format: DocumentFormat): string 
   return `${normalized}${expectedExt}`;
 };
 
+/**
+ * 从文档内容中提取标题（用于文件名）
+ */
+function extractTitleFromSaveData(data: SaveData): string | null {
+  try {
+    const metadata = JSON.parse(data.json);
+    const metaTitle = metadata.current_article_meta_data?.title;
+    
+    // 如果元信息中有标题，直接使用
+    if (metaTitle && typeof metaTitle === 'string' && metaTitle.trim().length > 0) {
+      return metaTitle.trim();
+    }
+    
+    // 如果元信息没有标题，尝试从内容中提取
+    const format = data.format || 'md';
+    let content = '';
+    
+    if (format === 'md') {
+      content = data.md || '';
+    } else if (format === 'tex') {
+      content = data.tex || '';
+    }
+    
+    if (!content) {
+      return null;
+    }
+    
+    // 简单的标题提取逻辑（与渲染进程保持一致）
+    if (format === 'md') {
+      // 移除 Markdown 中的元信息标记（<!--meta-info: ... -->）
+      const contentWithoutMeta = content.replace(/<!--meta-info:[^>]*-->/g, '').trim();
+      const firstTitleMatch = contentWithoutMeta.match(/^(#+)\s+(.+)$/m);
+      if (firstTitleMatch) {
+        const title = firstTitleMatch[2].trim();
+        return title.replace(/\*\*|__|\*|_|`/g, '').trim();
+      }
+    } else if (format === 'tex') {
+      // 移除 LaTeX 中的元信息标记（%META-INFO: ... 和警告行）
+      const contentWithoutMeta = content
+        .replace(/% 请勿手动修改此行及下面的 META-INFO.*\n?/g, '')
+        .replace(/%META-INFO:[^\n]*\n?/g, '')
+        .trim();
+      // 尝试匹配 \title{}
+      const titleMatch = contentWithoutMeta.match(/\\title\{([^}]+)\}/);
+      if (titleMatch) {
+        return titleMatch[1].trim();
+      }
+      // 尝试匹配 \section{}
+      const sectionMatch = contentWithoutMeta.match(/\\section\{([^}]+)\}/);
+      if (sectionMatch) {
+        return sectionMatch[1].trim();
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    logger.warn('提取标题失败', error);
+    return null;
+  }
+}
+
+/**
+ * 清理标题，使其适合作为文件名
+ */
+function sanitizeTitleForFilename(title: string): string {
+  if (!title || typeof title !== 'string') {
+    return '';
+  }
+  
+  return title
+    .trim()
+    .replace(/[<>:"/\\|?*]/g, '') // 移除 Windows 不允许的字符
+    .replace(/\s+/g, ' ') // 合并多个空格
+    .replace(/^\s+|\s+$/g, '') // 移除首尾空格
+    .substring(0, 100); // 限制长度
+}
+
 const chooseSaveFile = async (data: SaveData): Promise<string> => {
   const dateString = new Date()
     .toISOString()
@@ -783,9 +860,12 @@ const chooseSaveFile = async (data: SaveData): Promise<string> => {
     .replace('T', '_')
     .split('.')[0];
 
-  const metadata = JSON.parse(data.json);
-  const title = metadata.current_article_meta_data?.title;
-  const baseName = title || dateString;
+  // 尝试从元信息或内容中提取标题
+  const extractedTitle = extractTitleFromSaveData(data);
+  const sanitizedTitle = extractedTitle ? sanitizeTitleForFilename(extractedTitle) : null;
+  
+  // 优先使用提取的标题，否则使用时间戳
+  const baseName = sanitizedTitle || dateString;
   const format = data.format || (data.args?.format as DocumentFormat) || 'md';
 
   const filters: Electron.FileFilter[] = [getSaveFilterByFormat(format)];

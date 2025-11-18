@@ -108,7 +108,7 @@ const props = withDefaults(defineProps<{
   loading: false,
   disabled: false,
   placeholder: '',
-  showAttach: true,
+  showAttach: false,
   showVoice: false
 })
 

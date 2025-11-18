@@ -70,6 +70,29 @@ const resolveTargetTabId = (tabId) =>
   typeof tabId === 'string' ? tabId : activeTabId.value;
 
 const buildSavePayload = async (doc) => {
+  // 在保存前，如果元信息标题为空，尝试从内容中提取标题
+  // 这对于第一次保存（没有路径）特别重要，但即使有路径，如果标题为空也应该提取
+  if (!doc.meta?.title || doc.meta.title.trim().length === 0) {
+    const { extractTitleFromContent, sanitizeTitleForFilename } = await import('./title-extractor.ts');
+    const content = doc.format === 'tex' ? doc.tex ?? '' : doc.markdown ?? '';
+    const extractedTitle = extractTitleFromContent(content, doc.format);
+    
+    if (extractedTitle) {
+      const sanitizedTitle = sanitizeTitleForFilename(extractedTitle);
+      if (sanitizedTitle) {
+        // 更新文档的元信息标题
+        doc.meta = { ...doc.meta, title: sanitizedTitle };
+        // 如果是第一次保存（没有路径），也更新标签页标题
+        if (!doc.path) {
+          const tab = workspace.tabs.find(t => t.id === doc.tabId);
+          if (tab) {
+            tab.subtitle = sanitizedTitle;
+          }
+        }
+      }
+    }
+  }
+  
   const serialized = await serializeDocument(doc);
   const markdownSource =
     doc.format === 'tex' ? convertLatexToMarkdown(doc.tex ?? '') : doc.markdown ?? '';

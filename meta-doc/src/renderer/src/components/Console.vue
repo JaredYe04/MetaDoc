@@ -239,9 +239,11 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   background-color: var(--console-bg);
   color: var(--console-text);
   font-size: 13px;
+  overflow: hidden;
 }
 
 .console-header {
@@ -250,6 +252,7 @@ onBeforeUnmount(() => {
   align-items: center;
   padding: 5px;
   border-bottom: 1px solid #9a9a9a41;
+  flex-shrink: 0;
 }
 
 .console-actions button {
@@ -258,7 +261,9 @@ onBeforeUnmount(() => {
 
 .console-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 5px;
   white-space: pre-wrap;
   word-break: break-word;

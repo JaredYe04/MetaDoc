@@ -81,7 +81,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   gap: 12px;
+  overflow: hidden;
 }
 
 .logger-console-header {
@@ -90,11 +92,28 @@ onBeforeUnmount(() => {
   align-items: center;
   border-bottom: 1px solid var(--queue-border-color, rgba(0, 0, 0, 0.08));
   padding-bottom: 6px;
+  flex-shrink: 0;
 }
 
 .logger-console-header h3 {
   margin: 0;
   font-size: 16px;
+}
+
+/* 确保 Console 组件不会超出容器 */
+.logger-console-wrapper :deep(.console-container) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.logger-console-wrapper :deep(.console-body) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 </style>
 

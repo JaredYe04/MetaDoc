@@ -403,6 +403,219 @@ function convertMarkdownTableTokensToLatex(tokens, startIndex) {
     return { latex: '', offset: i };
 }
 
+/**
+ * 从 LaTeX 中提取纯文本内容（用于分词等用途）
+ * 移除所有 LaTeX 命令、环境，只保留实际文本内容
+ */
+export function extractPlainTextFromLatex(latex) {
+    if (!latex) return '';
+    
+    const sanitized = sanitizeLatexInput(latex);
+    let lines = sanitized.split('\n');
+    let text = '';
+    
+    let inVerbatim = false;
+    let inItemize = false;
+    let inEnumerate = false;
+    let inQuote = false;
+    let inTable = false;
+    
+    // 辅助函数：提取大括号中的内容（处理嵌套）
+    const extractBraceContent = (str, startIdx = 0) => {
+        if (str[startIdx] !== '{') return '';
+        let depth = 0;
+        let i = startIdx;
+        while (i < str.length) {
+            if (str[i] === '{') depth++;
+            else if (str[i] === '}') {
+                depth--;
+                if (depth === 0) {
+                    return str.substring(startIdx + 1, i);
+                }
+            }
+            i++;
+        }
+        return '';
+    };
+    
+    // 辅助函数：移除 LaTeX 命令，保留文本内容
+    const removeLatexCommands = (str) => {
+        let result = str;
+        // 移除命令及其参数：\command{content} -> content
+        result = result.replace(/\\[a-zA-Z@]+\*?(\[[^\]]*\])?\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g, '$2');
+        // 移除简单命令：\command -> ''
+        result = result.replace(/\\[a-zA-Z@]+\*?(\[[^\]]*\])?/g, '');
+        // 移除单独的 { }（但保留内容）
+        result = result.replace(/\{([^{}]*)\}/g, '$1');
+        return result.trim();
+    };
+    
+    for (let rawLine of lines) {
+        const line = rawLine.trim();
+        
+        if (!line) {
+            text += '\n';
+            continue;
+        }
+        
+        // 跳过 verbatim 环境（代码块）
+        if (line.startsWith('\\begin{verbatim}')) {
+            inVerbatim = true;
+            continue;
+        }
+        if (line.startsWith('\\end{verbatim}')) {
+            inVerbatim = false;
+            continue;
+        }
+        if (inVerbatim) {
+            continue;
+        }
+        
+        // 跳过 figure 环境
+        if (line.startsWith('\\begin{figure') || line.startsWith('\\end{figure}')) {
+            continue;
+        }
+        if (line.startsWith('\\caption{')) {
+            // 提取 caption 中的文本
+            const captionMatch = line.match(/\\caption\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/);
+            if (captionMatch) {
+                text += removeLatexCommands(captionMatch[1]) + '\n';
+            }
+            continue;
+        }
+        if (line.startsWith('\\includegraphics')) {
+            continue;
+        }
+        
+        // 处理列表环境
+        if (line.startsWith('\\begin{itemize}')) {
+            inItemize = true;
+            continue;
+        }
+        if (line.startsWith('\\end{itemize}')) {
+            inItemize = false;
+            text += '\n';
+            continue;
+        }
+        if (line.startsWith('\\begin{enumerate}')) {
+            inEnumerate = true;
+            continue;
+        }
+        if (line.startsWith('\\end{enumerate}')) {
+            inEnumerate = false;
+            text += '\n';
+            continue;
+        }
+        
+        // 处理 blockquote
+        if (line.startsWith('\\begin{quote}')) {
+            inQuote = true;
+            continue;
+        }
+        if (line.startsWith('\\end{quote}')) {
+            inQuote = false;
+            text += '\n';
+            continue;
+        }
+        if (inQuote) {
+            // quote 环境中的文本直接提取
+            const quoteText = removeLatexCommands(line);
+            if (quoteText) {
+                text += quoteText + '\n';
+            }
+            continue;
+        }
+        
+        // 处理表格
+        if (line.startsWith('\\begin{tabular}')) {
+            inTable = true;
+            continue;
+        }
+        if (line.startsWith('\\end{tabular}')) {
+            inTable = false;
+            text += '\n';
+            continue;
+        }
+        if (inTable) {
+            // 从表格行中提取文本
+            const cells = line.replace(/\\\\.*/, '').split('&').map(cell => cell.trim());
+            const cellTexts = cells
+                .map(cell => removeLatexCommands(cell))
+                .filter(c => c);
+            if (cellTexts.length > 0) {
+                text += cellTexts.join(' ') + '\n';
+            }
+            continue;
+        }
+        
+        // 提取标题文本（section, subsection 等）
+        const headingMatch = line.match(/^\\(section|subsection|subsubsection|paragraph|subparagraph)\*?\{(.+)\}/);
+        if (headingMatch) {
+            const title = removeLatexCommands(headingMatch[2]);
+            if (title) {
+                text += title + '\n';
+            }
+            continue;
+        }
+        
+        // 提取 item 文本
+        if (line.startsWith('\\item')) {
+            const itemText = line.replace(/^\\item(\[[^\]]*\])?\s*/, '');
+            const cleanedText = removeLatexCommands(itemText);
+            if (cleanedText) {
+                text += cleanedText + '\n';
+            }
+            continue;
+        }
+        
+        // 提取链接文本
+        const linkMatch = line.match(/\\href\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/);
+        if (linkMatch) {
+            const linkText = removeLatexCommands(linkMatch[2]);
+            if (linkText) {
+                text += linkText + '\n';
+            }
+            continue;
+        }
+        
+        // 跳过纯命令行（如 \centering, \newline 等）
+        if (line.startsWith('\\') && IGNORED_INLINE_COMMAND_REGEX.test(line)) {
+            continue;
+        }
+        
+        // 处理普通文本行（可能包含 LaTeX 命令的文本）
+        // 先尝试移除 LaTeX 命令，保留文本内容
+        let plainText = removeLatexCommands(line);
+        
+        // 如果移除命令后还有内容，添加
+        if (plainText) {
+            // 进一步清理：移除多余的空白字符
+            plainText = plainText.replace(/\s+/g, ' ').trim();
+            if (plainText && plainText.length > 0) {
+                text += plainText + '\n';
+            }
+        } else if (!line.startsWith('\\')) {
+            // 如果整行都不是命令开头，说明是纯文本，直接用 transformInlineLatex 处理
+            const transformedText = transformInlineLatex(line);
+            if (transformedText && transformedText.trim()) {
+                text += transformedText.trim() + '\n';
+            }
+        }
+    }
+    
+    // 最终清理：移除多余的换行，保留合理的段落分隔
+    // 先按行处理，移除每行内的多余空格，然后处理换行
+    lines = text.split('\n');
+    const cleanedLines = lines
+        .map(line => line.replace(/\s+/g, ' ').trim()) // 合并每行内的多余空格
+        .filter(line => line.length > 0); // 移除空行
+    
+    return cleanedLines
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n') // 合并多个换行（但不应有这种情况，因为已经移除了空行）
+        .trim();
+}
+
 export function convertLatexToMarkdown(latex) {
     const sanitized = sanitizeLatexInput(latex);
     const lines = sanitized.split('\n');

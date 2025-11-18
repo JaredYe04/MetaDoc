@@ -184,6 +184,7 @@ import {
 } from "vue";
 import { ElButton, ElInput, ElTooltip } from "element-plus";
 import { useI18n } from "vue-i18n";
+import { useRoute } from "vue-router";
 import { themeState, mixColors } from "../utils/themes";
 import eventBus from "../utils/event-bus";
 import type { TextEditorAdapter, EditorSearchState } from "../editor/text-editor-types";
@@ -210,6 +211,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const route = useRoute();
 
 const menuPosition = ref({
   top: props.position.top,
@@ -460,8 +462,24 @@ watch(
   },
 );
 
+// 处理 Tab 切换和视图切换时关闭菜单
+const handleTabOrViewChange = () => {
+  logger.debug("Tab 或视图切换，关闭查找替换菜单");
+  handleClose();
+};
+
+// 监听路由变化（视图切换）
+watch(
+  () => route.path,
+  () => {
+    handleTabOrViewChange();
+  },
+);
+
 onMounted(() => {
   eventBus.on('search-replace-expand', handleForceExpand);
+  // 监听 Tab 切换事件
+  eventBus.on('active-tab-changed', handleTabOrViewChange);
   nextTick(() => {
     const selectionText = props.adapter?.getSelectionText();
     if (selectionText && selectionText.length < 200) {
@@ -476,6 +494,7 @@ onBeforeUnmount(() => {
   document.removeEventListener("mousemove", onMouseMove);
   document.removeEventListener("mouseup", onMouseUp);
   eventBus.off('search-replace-expand', handleForceExpand);
+  eventBus.off('active-tab-changed', handleTabOrViewChange);
 });
 </script>
 

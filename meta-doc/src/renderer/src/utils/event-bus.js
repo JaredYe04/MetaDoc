@@ -245,12 +245,14 @@ eventBus.on('search-replace-closed', () => {
   searchReplaceSharedState.expandReplace = false;
 })
 
-eventBus.on('active-tab-changed', () => {
-  if (!searchReplaceSharedState.isVisible) return;
-  eventBus.emit('search-replace', {
-    expandReplace: searchReplaceSharedState.expandReplace,
-  });
-})
+// 移除 Tab 切换时重新打开菜单的逻辑
+// 现在由 SearchReplaceMenu 组件自己处理：Tab 切换时关闭菜单
+// eventBus.on('active-tab-changed', () => {
+//   if (!searchReplaceSharedState.isVisible) return;
+//   eventBus.emit('search-replace', {
+//     expandReplace: searchReplaceSharedState.expandReplace,
+//   });
+// })
 
 ipcRenderer.on('open-doc-success', (event, payload) => {
   const fileName = extractFileName(payload?.path, payload?.fileName)

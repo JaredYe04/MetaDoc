@@ -159,8 +159,12 @@ export const generateParentNodeContentPrompt = (
 };
 
 export const updateTitlePrompt = (conversationSummary: string): string => {
-  const instruction = `请根据以下对话内容，总结一个简洁且信息量充足的标题。对话内容如下：
-${conversationSummary}`;
+  const instruction = `请根据以下对话内容，总结一个简洁且信息量充足的标题。标题应该准确反映对话的核心主题，长度控制在4-20个字符之间。
+
+对话内容如下：
+${conversationSummary}
+
+重要提示：请严格按照 JSON Schema 格式输出，只输出 JSON 对象，不要添加任何解释、说明或其他文本。`;
   return buildSchemaPrompt(DOCUMENT_TITLE_SCHEMA, instruction);
 };
 

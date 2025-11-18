@@ -72,6 +72,14 @@ export const settings = reactive({
     completionSuffix: "", // 补全模式url后缀
     chatSuffix: "", // 聊天模式url后缀
   },
+  "openai-official": {
+    apiKey: "", // 只需要 API Key，base_url 固定为 https://api.openai.com/v1
+    selectedModel: "", // 模型名称
+  },
+  deepseek: {
+    apiKey: "", // 只需要 API Key，base_url 固定为 https://api.deepseek.com
+    selectedModel: "", // 模型名称，默认为 deepseek-chat
+  },
   metadoc: {
     selectedModel: "",//模型名称
   },

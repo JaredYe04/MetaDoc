@@ -349,9 +349,14 @@ const updateTitle = async (seedText?: string) => {
   try {
     await done;
   } catch (err) {
-    logger.error(err);
+    logger.error('生成标题失败', err);
+    // 如果生成失败，使用默认标题或保留原标题
+    return;
   }
+
   let schemaTitle: string | undefined;
+  let fallbackTitle: string | undefined;
+
   try {
     const parsed = parseSchemaJson<DocumentTitleSchemaResult>(
       generatedText.value,
@@ -359,10 +364,47 @@ const updateTitle = async (seedText?: string) => {
     );
     schemaTitle = parsed.title;
   } catch (error) {
-    logger.warn('解析标题JSON失败', error);
+    logger.warn('解析标题JSON失败，尝试从文本中提取', error, generatedText.value);
+    
+    // 尝试从生成的文本中提取标题
+    // 1. 尝试提取 JSON 中的 title 字段（即使整体解析失败）
+    const titleMatch = generatedText.value.match(/"title"\s*:\s*"([^"]+)"/);
+    if (titleMatch) {
+      fallbackTitle = titleMatch[1];
+    } else {
+      // 2. 尝试提取引号中的文本（可能是标题）
+      const quotedMatch = generatedText.value.match(/"([^"]{4,40})"/);
+      if (quotedMatch) {
+        fallbackTitle = quotedMatch[1];
+      } else {
+        // 3. 尝试提取第一行非空文本
+        const lines = generatedText.value.split('\n').map(l => l.trim()).filter(l => l);
+        if (lines.length > 0) {
+          // 移除可能的 JSON 标记和多余字符
+          const firstLine = lines[0]
+            .replace(/^[{\[]/, '')
+            .replace(/[}\]]$/, '')
+            .replace(/^"title"\s*:\s*"?/, '')
+            .replace(/^"|"$/g, '')
+            .trim();
+          if (firstLine.length >= 2 && firstLine.length <= 40) {
+            fallbackTitle = firstLine;
+          }
+        }
+      }
+    }
   }
 
-  let newTitle = sanitizeGeneratedTitle(schemaTitle ?? generatedText.value ?? titleSource);
+  // 优先使用 schema 解析的标题，其次使用回退标题，最后使用原始文本或种子文本
+  let newTitle = sanitizeGeneratedTitle(
+    schemaTitle ?? fallbackTitle ?? generatedText.value ?? titleSource
+  );
+  
+  // 确保标题不为空
+  if (!newTitle || newTitle.trim() === '') {
+    newTitle = defaultTitle;
+  }
+
   if (dialogs.value[index] && dialogs.value[index].title === title.value) {
     title.value = newTitle;
   }

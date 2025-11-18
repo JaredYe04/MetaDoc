@@ -19,6 +19,12 @@
             <el-tooltip :content="t('setting.openaiHint')" placement="left">
               <el-option :label="t('setting.openai')" value="openai" />
             </el-tooltip>
+            <el-tooltip :content="t('setting.openaiOfficialHint')" placement="left">
+              <el-option :label="t('setting.openaiOfficial')" value="openai-official" />
+            </el-tooltip>
+            <el-tooltip :content="t('setting.deepseekHint')" placement="left">
+              <el-option :label="t('setting.deepseek')" value="deepseek" />
+            </el-tooltip>
           </el-select>
         </el-form-item>
 
@@ -56,6 +62,33 @@
             <div style="height:40px;"></div>
             <el-input v-model="settings.openai.chatSuffix" :placeholder="t('setting.chatSuffix')"
               @change="updateLlmInfo" />
+          </el-form-item>
+        </template>
+
+        <template v-else-if="settings.selectedLlm === 'openai-official'">
+          <el-form-item :label="t('setting.apiKey')">
+            <el-input v-model="settings['openai-official'].apiKey" type="password"
+              :placeholder="t('setting.apiKeyPlaceholder')" @change="updateLlmInfo" />
+          </el-form-item>
+          <el-form-item :label="t('setting.chooseModel')">
+            <el-select v-model="settings['openai-official'].selectedModel" :placeholder="t('setting.chooseModel')"
+              @click="fetchOpenAIOfficialModels" @change="updateLlmInfo">
+              <el-option v-for="model in openaiOfficialModels" :key="model.id" :label="model.id" :value="model.id" />
+            </el-select>
+          </el-form-item>
+        </template>
+
+        <template v-else-if="settings.selectedLlm === 'deepseek'">
+          <el-form-item :label="t('setting.apiKey')">
+            <el-input v-model="settings.deepseek.apiKey" type="password"
+              :placeholder="t('setting.apiKeyPlaceholder')" @change="updateLlmInfo" />
+          </el-form-item>
+          <el-form-item :label="t('setting.chooseModel')">
+            <el-select v-model="settings.deepseek.selectedModel" :placeholder="t('setting.chooseModel')"
+              @change="updateLlmInfo">
+              <el-option label="deepseek-chat" value="deepseek-chat" />
+              <el-option label="deepseek-reasoner" value="deepseek-reasoner" />
+            </el-select>
           </el-form-item>
         </template>
 
@@ -153,6 +186,7 @@ const logger = createRendererLogger('SettingLlm');
 
 const ollamaModels = ref<OllamaModel[]>([]);
 const openaiModels = ref<OpenAIModel[]>([]);
+const openaiOfficialModels = ref<OpenAIModel[]>([]);
 const metadocModels = ref<MetaDocModel[]>([]);
 const testResult = ref('');
 
@@ -190,6 +224,10 @@ const fetchLlmSettings = async () => {
   settings.openai.selectedModel = await getSetting('openaiSelectedModel');
   settings.openai.completionSuffix = await getSetting('openaiCompletionSuffix');
   settings.openai.chatSuffix = await getSetting('openaiChatSuffix');
+  settings['openai-official'].apiKey = await getSetting('openaiOfficialApiKey');
+  settings['openai-official'].selectedModel = await getSetting('openaiOfficialSelectedModel');
+  settings.deepseek.apiKey = await getSetting('deepseekApiKey');
+  settings.deepseek.selectedModel = await getSetting('deepseekSelectedModel');
 };
 
 const updateLlmInfo = () => {
@@ -201,6 +239,10 @@ const updateLlmInfo = () => {
   setSetting('openaiSelectedModel', settings.openai.selectedModel);
   setSetting('openaiCompletionSuffix', settings.openai.completionSuffix);
   setSetting('openaiChatSuffix', settings.openai.chatSuffix);
+  setSetting('openaiOfficialApiKey', settings['openai-official'].apiKey);
+  setSetting('openaiOfficialSelectedModel', settings['openai-official'].selectedModel);
+  setSetting('deepseekApiKey', settings.deepseek.apiKey);
+  setSetting('deepseekSelectedModel', settings.deepseek.selectedModel);
   eventBus.emit('llm-api-updated');
 };
 
@@ -255,6 +297,31 @@ const fetchOpenAIModels = async () => {
     }
   } catch (error) {
     logger.error('无法获取 OpenAI 模型列表', error);
+  }
+};
+
+const fetchOpenAIOfficialModels = async () => {
+  const apiKey = settings['openai-official'].apiKey;
+  if (!apiKey) {
+    return;
+  }
+
+  try {
+    const response = await axios.get('https://api.openai.com/v1/models', {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${apiKey}`
+      }
+    });
+
+    if (response.data?.data) {
+      openaiOfficialModels.value = response.data.data;
+    } else {
+      openaiOfficialModels.value = [];
+      logger.warn('未能获取 OpenAI 官方模型列表，响应数据为空');
+    }
+  } catch (error) {
+    logger.error('无法获取 OpenAI 官方模型列表', error);
   }
 };
 

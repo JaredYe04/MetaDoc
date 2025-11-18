@@ -1,8 +1,8 @@
 <template>
   <el-menu
-    class="el-menu"
+    :class="['el-menu', { 'is-locked': isLocked }]"
     mode="horizontal"
-    menu-trigger="hover"
+    :menu-trigger="isLocked ? 'manual' : 'hover'"
     @select="handleSelect"
     style="position: absolute; top: 0; left: 0; right: 0;"
     :default-active="activeMenuIndex"
@@ -32,6 +32,7 @@ import { useRoute, useRouter } from 'vue-router'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { useActiveDocument } from '../composables/useActiveDocument'
+import { useWorkspace } from '../stores/workspace'
 
 // 获取路由实例
 const router = useRouter()
@@ -43,6 +44,8 @@ const route = useRoute()
 const activeMenuIndex = ref(route.path)
 const { activeDocument } = useActiveDocument()
 const currentFormat = computed(() => activeDocument.value?.format ?? 'md')
+const workspace = useWorkspace()
+const isLocked = computed(() => workspace.uiLocked?.value === true)
 
 // 方法
 const goHome = () => {
@@ -50,6 +53,7 @@ const goHome = () => {
 }
 
 const handleSelect = (key) => {
+  if (isLocked.value) return
   router.push(key)
 }
 
@@ -69,4 +73,18 @@ onBeforeUnmount(() => {
 
 <style scoped>
 /* 自定义样式 */
+.is-locked {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+.is-locked :deep(.el-menu-item) {
+  pointer-events: none;
+  cursor: not-allowed !important;
+  opacity: 0.6;
+}
+.is-locked :deep(.el-sub-menu__title) {
+  pointer-events: none;
+  cursor: not-allowed !important;
+  opacity: 0.6;
+}
 </style>

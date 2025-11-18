@@ -78,6 +78,16 @@ function withDirtyBroadcastSuppressed<T>(fn: () => T): T {
   }
 }
 
+// ===== 全局UI锁：用于在执行关键任务时禁用导航、切换等交互 =====
+const uiLockCount = ref(0);
+const uiLocked = computed(() => uiLockCount.value > 0);
+function lockUI(): void {
+  uiLockCount.value += 1;
+}
+function unlockUI(): void {
+  uiLockCount.value = Math.max(0, uiLockCount.value - 1);
+}
+
 ensureInitialTab();
 
 /**
@@ -619,6 +629,9 @@ export function useWorkspace() {
     activeTab,
     documents,
     activeDocument,
+    uiLocked,
+    lockUI,
+    unlockUI,
     activateTab,
     captureCurrentDocumentSnapshot,
     addDocumentTab,

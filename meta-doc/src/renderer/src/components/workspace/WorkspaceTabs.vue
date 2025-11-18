@@ -1,5 +1,5 @@
 <template>
-  <div class="workspace-tabs-wrapper">
+  <div class="workspace-tabs-wrapper" :class="{ 'is-locked': isLocked }">
     <el-tabs
       v-model="currentActiveId"
       type="card"
@@ -123,6 +123,7 @@ const ADD_TAB_ID = '__workspace_add_tab__';
 const tabs = computed(() => [...workspace.tabs]);
 const { t } = useI18n();
 const addDialogVisible = ref(false);
+const isLocked = computed(() => workspace.uiLocked?.value === true);
 
 const primaryLabel = (tab: WorkspaceTab) => {
   return tab.subtitle?.trim() || tab.title?.trim() || '未命名文档';
@@ -140,6 +141,7 @@ const tooltipLabel = (tab: WorkspaceTab) => {
 const currentActiveId = computed({
   get: () => workspace.activeTabId.value,
   set: (value: string) => {
+    if (isLocked.value) return;
     if (value !== workspace.activeTabId.value) {
       workspace.activateTab(value);
       emit('update:activeId', value);
@@ -148,6 +150,7 @@ const currentActiveId = computed({
 });
 
 const handleRemove = async (id: string | number) => {
+  if (isLocked.value) return;
   const tabId = String(id);
   const doc = workspace.ensureDocument?.(tabId);
 
@@ -173,6 +176,10 @@ const handleRemove = async (id: string | number) => {
 let draggingId: string | null = null;
 
 const handleDragStart = (id: string, event: DragEvent) => {
+  if (isLocked.value) {
+    event.preventDefault();
+    return;
+  }
   draggingId = id;
   event.dataTransfer?.setData('text/plain', id);
   if (event.dataTransfer) {
@@ -181,6 +188,7 @@ const handleDragStart = (id: string, event: DragEvent) => {
 };
 
 const handleDragOver = (event: DragEvent) => {
+  if (isLocked.value) return;
   event.preventDefault();
   if (event.dataTransfer) {
     event.dataTransfer.dropEffect = 'move';
@@ -188,6 +196,7 @@ const handleDragOver = (event: DragEvent) => {
 };
 
 const handleDrop = (id: string) => {
+  if (isLocked.value) return;
   if (draggingId && draggingId !== id) {
     emit('reorder', { fromId: draggingId, toId: id });
   }
@@ -199,10 +208,12 @@ const handleDragEnd = () => {
 };
 
 const handleAddClick = () => {
+  if (isLocked.value) return;
   addDialogVisible.value = true;
 };
 
 const handleBeforeLeave = (nextName?: string, _currentName?: string) => {
+  if (isLocked.value) return false;
   if (nextName === ADD_TAB_ID) {
     handleAddClick();
     return false;
@@ -231,6 +242,23 @@ const handleAddSelect = (action: 'new' | 'open') => {
 .workspace-tabs {
   flex: 1;
   border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.workspace-tabs-wrapper.is-locked {
+  cursor: not-allowed;
+  opacity: 0.9;
+}
+.workspace-tabs-wrapper.is-locked :deep(.el-tabs__item) {
+  pointer-events: none;
+  cursor: not-allowed !important;
+  opacity: 0.6;
+}
+.workspace-tabs-wrapper.is-locked :deep(.el-tabs__nav-wrap .el-icon-close) {
+  pointer-events: none;
+  opacity: 0.4;
+}
+.workspace-tabs-wrapper.is-locked :deep(.workspace-tab-label) {
+  cursor: not-allowed;
 }
 
 .workspace-tab-label {

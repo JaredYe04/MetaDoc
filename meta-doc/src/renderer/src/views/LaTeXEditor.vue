@@ -684,6 +684,10 @@ async function renderPage(pageNumber, scale) {
 
 // 在加载 PDF 后初始化
 async function loadPdf(url) {
+    if (!url || url.trim() === '') {
+        // 如果 URL 为空，不加载 PDF
+        return;
+    }
     const loadingTask = pdfjsLib.getDocument(url);
     pdfDoc = await loadingTask.promise;
     //logger.log(pdfDoc.value)
@@ -901,35 +905,42 @@ monaco.languages.setMonarchTokensProvider('latex', {
 });
 
 let contentChangeListener = null;
-const disposeEditor = () => {
-    if (editor.value) {
-        //logger.debug("LaTeXEditor disposeEditor")
-        try {
-            // 1. 移除监听
-            if (contentChangeListener) {
-                contentChangeListener.dispose();
-                contentChangeListener = null;
-                //logger.log("移除监听成功")
-            }
+//     if (editor.value) {
+//         //logger.debug("LaTeXEditor disposeEditor")
+//         try {
+//             // 1. 移除监听
+//             if (contentChangeListener) {
+//                 contentChangeListener.dispose();
+//                 contentChangeListener = null;
+//                 //logger.log("移除监听成功")
+//             }
 
-            // 2. 保存引用的 model
-            const oldModel = editor.value.getModel();
+//             // 2. 保存引用的 model
+//             const oldModel = editor.value.getModel();
 
-            // 3. 释放 Monaco 实例
-            // editor.value.dispose();
-            // editor.value = null;
-            // logger.log("释放Monaco成功")
-            // 4. 释放模型
-            if (oldModel) oldModel.dispose();
-            //logger.log("释放模型成功")
-            // 5. 清空 textBuffer
-            textBuffer = "";
-        } catch (e) {
-            logger.warn("安全释放 Monaco 实例失败:", e);
-        }
-    }
-    textEditorAdapter.value = null;
-};
+//             // 3. 释放 Monaco 实例（必须先释放编辑器，再释放模型）
+//             editor.value.dispose();
+//             editor.value = null;
+//             //logger.log("释放Monaco成功")
+            
+//             // 4. 释放模型（如果编辑器已经释放，模型可能已经被自动释放，但为了安全还是手动释放）
+//             if (oldModel) {
+//                 try {
+//                     oldModel.dispose();
+//                 } catch (e) {
+//                     // 模型可能已经被自动释放，忽略错误
+//                 }
+//             }
+//             //logger.log("释放模型成功")
+            
+//             // 5. 清空 textBuffer
+//             textBuffer = "";
+//         } catch (e) {
+//             logger.warn("安全释放 Monaco 实例失败:", e);
+//         }
+//     }
+//     textEditorAdapter.value = null;
+// };
 let editorId = null;
 const initEditor = () => {
     window.MonacoEnvironment = {
@@ -1095,19 +1106,24 @@ onUnmounted(() => {
         mainObserver = null;
     }
     eventBus.emit('is-need-save', true)
-    try {
-        const editors = monaco.editor.getEditors();
-
-        // 遍历销毁
-        editors.forEach(editor => {
-            if (editor.getId() === editorId) {
-                editor.dispose(); // 释放 editor 的所有资源，包括模型、事件监听等
-            }
-        });
+    
+    if (editorId) {
+        try {
+            const editors = monaco.editor.getEditors();
+            editors.forEach(editor => {
+                if (editor.getId() === editorId) {
+                    try {
+                        editor.dispose(); // 释放 editor 的所有资源，包括模型、事件监听等
+                    } catch (e) {
+                        // 编辑器可能已经被销毁，忽略错误
+                    }
+                }
+            });
+        } catch (e) {
+            logger.warn('清理 Monaco 编辑器时出错', e);
+        }
     }
-    catch (e) {
-        logger.error('LaTeX 编辑器错误', e)
-    }
+    
     if (typeof window !== 'undefined') {
         window.removeEventListener('resize', updateSearchMenuPosition);
     }

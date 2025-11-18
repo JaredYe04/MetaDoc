@@ -4,7 +4,7 @@
     :style="panelStyles"
     @mousedown.stop="handlePanelMouseDown"
   >
-    <header class="panel-header" @mousedown.stop>
+    <header class="panel-header " >
       <h3>{{ t('searchReplace.title') }}</h3>
       <el-button
         circle
@@ -120,39 +120,6 @@
           />
         </span>
       </el-tooltip>
-      <el-tooltip :content="t('searchReplace.replaceBtn')" placement="top">
-        <span>
-          <el-button
-            size="small"
-            circle
-            :icon="EditPen"
-            :disabled="!canReplace"
-            @click="handleReplace"
-          />
-        </span>
-      </el-tooltip>
-      <el-tooltip :content="t('searchReplace.replaceNextBtn')" placement="top">
-        <span>
-          <el-button
-            size="small"
-            circle
-            :icon="ArrowRightBold"
-            :disabled="!canReplace"
-            @click="handleReplaceNext"
-          />
-        </span>
-      </el-tooltip>
-      <el-tooltip :content="t('searchReplace.replaceAllBtn')" placement="top">
-        <span>
-          <el-button
-            size="small"
-            circle
-            :icon="RefreshRight"
-            :disabled="!canReplace"
-            @click="handleReplaceAll"
-          />
-        </span>
-      </el-tooltip>
       <el-tooltip :content="t('searchReplace.findAllBtn')" placement="top">
         <span>
           <el-button
@@ -164,6 +131,32 @@
           />
         </span>
       </el-tooltip>
+      <template v-if="!collapsed">
+        <el-divider direction="vertical" border-style="dashed"></el-divider>
+        <el-tooltip :content="t('searchReplace.replaceBtn')" placement="top">
+          <span>
+            <el-button
+              size="small"
+              circle
+              :icon="EditPen"
+              :disabled="!canReplace"
+              @click="handleReplace"
+            />
+          </span>
+        </el-tooltip>
+        <el-tooltip :content="t('searchReplace.replaceAllBtn')" placement="top">
+          <span>
+            <el-button
+              size="small"
+              circle
+              :icon="RefreshRight"
+              :disabled="!canReplace"
+              @click="handleReplaceAll"
+            />
+          </span>
+        </el-tooltip>
+      </template>
+
       <el-button
         size="small"
         class="collapse-btn"
@@ -202,7 +195,6 @@ import {
   Bottom,
   EditPen,
   RefreshRight,
-  ArrowRightBold,
   View,
 } from "@element-plus/icons-vue";
 
@@ -276,7 +268,10 @@ const matchSummary = computed(() => {
 });
 
 const canSearch = computed(() => !!form.findText && !regexError.value);
-const canReplace = computed(() => canSearch.value && (searchState.value?.matches.length ?? 0) > 0);
+const canReplace = computed(() => {
+  if (!canSearch.value) return false;
+  return (searchState.value?.matches.length ?? 0) > 0;
+});
 
 const applySearch = () => {
   if (!props.adapter) return;
@@ -299,6 +294,25 @@ const applySearch = () => {
     );
     searchState.value = state;
     regexError.value = null;
+    
+    // 异步搜索完成后，需要更新 searchState.value 以触发 UI 更新
+    // 使用简单的轮询，最多检查 30 次（约 1.5 秒）
+    let checkCount = 0;
+    const checkInterval = setInterval(() => {
+      const currentState = props.adapter?.getSearchState();
+      if (currentState) {
+        // 每次检查都更新状态，确保 UI 响应
+        searchState.value = currentState;
+        // 如果找到匹配，可以提前结束
+        if (currentState.matches.length > 0) {
+          clearInterval(checkInterval);
+        }
+      }
+      checkCount++;
+      if (checkCount >= 30) {
+        clearInterval(checkInterval);
+      }
+    }, 50);
   } catch (error) {
     regexError.value = (error as Error)?.message ?? String(error);
   }
@@ -307,7 +321,6 @@ const applySearch = () => {
 watch(
   () => ({
     find: form.findText,
-    replace: form.replaceText,
     matchCase: form.matchCase,
     wholeWord: form.wholeWord,
     useRegex: form.useRegex,
@@ -330,13 +343,25 @@ const handleReplace = () => {
   if (!props.adapter || !canReplace.value) return;
   const state = props.adapter.replaceCurrent(form.replaceText);
   searchState.value = state;
+  
+  // replaceCurrent 会重新调用 configureSearch（异步），需要等待搜索完成
+  let checkCount = 0;
+  const checkInterval = setInterval(() => {
+    const currentState = props.adapter?.getSearchState();
+    if (currentState) {
+      searchState.value = currentState;
+      // 如果找到匹配，可以提前结束
+      if (currentState.matches.length > 0 || checkCount >= 30) {
+        clearInterval(checkInterval);
+      }
+    }
+    checkCount++;
+    if (checkCount >= 30) {
+      clearInterval(checkInterval);
+    }
+  }, 50);
 };
 
-const handleReplaceNext = () => {
-  if (!props.adapter || !canReplace.value) return;
-  const state = props.adapter.replaceNext(form.replaceText);
-  searchState.value = state;
-};
 
 const handleReplaceAll = () => {
   if (!props.adapter || !canReplace.value) return;
@@ -360,15 +385,14 @@ const handleFindAll = () => {
 };
 
 const handleReset = () => {
-  form.findText = "";
-  form.replaceText = "";
-  form.matchCase = false;
-  form.wholeWord = false;
-  form.useRegex = false;
-  form.preserveCase = false;
+  // 只重置搜索结果，不清除搜索和替换文本
   regexError.value = null;
   props.adapter?.clearSearch();
   searchState.value = null;
+  // 如果有搜索文本，重新执行搜索
+  if (form.findText) {
+    applySearch();
+  }
 };
 
 const handleClose = () => {

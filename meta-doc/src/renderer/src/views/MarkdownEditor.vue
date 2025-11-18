@@ -416,13 +416,14 @@ const handleSearchReplace = (payload?: { expandReplace?: boolean }) => {
 const handleSearchReplaceClose = () => {
     searchReplaceDialogVisible.value = false;
 };
-eventBus.on('search-replace', handleSearchReplace);
+eventBus.on('search-replace', handleSearchReplace as (payload?: unknown) => void);
 
 watch(isActive, (active) => {
     if (!active) {
         searchReplaceDialogVisible.value = false;
     }
 });
+
 
 const handleSyncWithHtml = () => {
     if (!isActive.value) return;
@@ -839,7 +840,7 @@ onBeforeUnmount(() => {
     }
     eventBus.off('refresh', handleRefresh);
     eventBus.off('sync-active-editor');
-    eventBus.off('search-replace', handleSearchReplace);
+    eventBus.off('search-replace');
     eventBus.off('vditor-sync-with-html', handleSyncWithHtml);
     eventBus.off('sync-editor-theme', handleSyncEditorTheme);
     if (layoutObserver) {

@@ -85,6 +85,7 @@ export const settings = reactive({
   },
   alwaysAskSave: true, // 是否总是询问保存,
   particleEffect: true, // 是否启用粒子效果
+  outlineLayoutDirection: 'vertical', // 大纲树布局方向：'vertical' 或 'horizontal'
 });
 
 export async function initSettings() {

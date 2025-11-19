@@ -40,7 +40,9 @@
     "error": {
       "copy_failed": "La copie a échoué",
       "no_code_to_copy": "Pas de code à copier.",
-      "no_svg_found": "Aucun élément svg trouvé"
+      "no_svg_found": "Aucun élément svg trouvé",
+      "export_failed": "L'exportation a échoué",
+      "no_graph_container": "Aucun conteneur de carte trouvé"
     },
     "exportImage": "Photo d'exportation",
     "graph": {
@@ -58,8 +60,13 @@
     "selectEngine": "Sélectionnez le moteur de dessin",
     "send": "Envoyer",
     "success": {
-      "copy_succeeded": "Copie réussie"
-    }
+      "copy_succeeded": "Copie réussie",
+      "export_succeeded": "L'exportation a réussi"
+    },
+    "bitmapImage": "Bitmap (PNG)",
+    "exportFormat": "Format d'exportation",
+    "pdfDocument": "PDF Numéro",
+    "vectorImage": "Graphique vectoriel (SVG)"
   },
   "article": {
     "ai_analyze_title": "L'IA analyse tout l'article.",
@@ -425,7 +432,13 @@
     "warning": "Avertissement",
     "zoomIn": "Zoomer",
     "zoomOut": "Zoom arrière",
-    "userPromptPlaceholder": "Veuillez entrer votre indice."
+    "userPromptPlaceholder": "Veuillez entrer votre indice.",
+    "cancelTasks": "Annuler la tâche",
+    "moveDown": "Déplacer vers le bas",
+    "moveUp": "Déplacer vers le haut",
+    "switchToHorizontal": "Passer à la mise en page horizontale",
+    "switchToVertical": "Passez à la mise en page verticale",
+    "toggleLayout": "Basculer l'orientation de la disposition"
   },
   "searchReplace": {
     "title": "Rechercher et remplacer",
@@ -535,7 +548,11 @@
     },
     "logs": "Paramètres du journal",
     "openLogDirectory": "Ouvrir le dossier du journal",
-    "openLogFile": "Ouvrir un fichier journal"
+    "openLogFile": "Ouvrir un fichier journal",
+    "deepseek": "Recherche profonde",
+    "deepseekHint": "Le principal modèle d'IA fourni par DeepSeek prend en charge plusieurs modèles",
+    "openaiOfficial": "API officielle OpenAI",
+    "openaiOfficialHint": "API de OpenAI, qui prend en charge les modèles"
   },
   "titleMenu": {
     "contextMarks": {

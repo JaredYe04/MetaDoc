@@ -44,15 +44,12 @@
         </el-scrollbar>
 
         <el-scrollbar class="md-container">
-          <MdPreview
-            class="md-preview-fixed"
-            :modelValue="previewMarkdown"
-            previewTheme="github"
-            :theme="previewTheme"
-            :codeFold="false"
-            :autoFoldThreshold="300"
+          <div
+            ref="previewContainerRef"
+            class="md-preview-container"
             :class="themeState.currentTheme.mdeditorClass"
-          />
+            :style="{ color: themeState.currentTheme.textColor }"
+          ></div>
         </el-scrollbar>
       </div>
     </div>
@@ -98,16 +95,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { MdPreview, type Themes } from 'md-editor-v3'
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue'
 import QuickStartMarkdown from '../components/home/QuickStartMarkdown.vue'
 import QuickStartLatex from '../components/home/QuickStartLatex.vue'
 import '../assets/aero-div.css'
 import '../assets/aero-btn.css'
 import '../assets/aero-input.css'
-import eventBus, { getWindowType } from '../utils/event-bus'
+import eventBus, { getWindowType, isElectronEnv } from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
 import { getSetting } from '../utils/settings'
 import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer'
@@ -118,6 +114,9 @@ import { useActiveDocument } from '../composables/useActiveDocument'
 import { convertLatexToMarkdown, extractPlainTextFromLatex } from '../utils/latex-utils'
 import { ParticleEffect } from '../utils/particle-effect'
 import type { IpcRendererLike } from '../utils/particle-effect'
+import Vditor from 'vditor'
+import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn'
+import { preRenderAllCharts } from '../utils/chart-pre-renderer'
 
 const { t } = useI18n()
 
@@ -153,7 +152,7 @@ const previewMarkdown = computed(() => {
   return doc.markdown ?? ''
 })
 
-const previewTheme = computed<Themes>(() => themeState.currentTheme.mdeditorTheme as Themes)
+const previewContainerRef = ref<HTMLElement | null>(null)
 
 // 粒子效果使用的文本：根据文档格式选择对应的文本源
 const particleMarkdown = computed(() => {
@@ -269,11 +268,84 @@ const scheduleParticleEffect = () => {
   }
 }
 
+// 渲染预览内容
+const renderPreview = async () => {
+  if (!previewContainerRef.value) return
+  
+  const container = previewContainerRef.value as HTMLDivElement
+  const markdown = previewMarkdown.value
+  
+  if (!markdown) {
+    container.innerHTML = ''
+    return
+  }
+  
+  try {
+    // 获取 CDN 和主题设置
+    const cdn = isElectronEnv() ? localVditorCDN : vditorCDN
+    const contentTheme = await getSetting('contentTheme') || 'light'
+    const codeTheme = await getSetting('codeTheme') || 'github'
+    const lineNumber = await getSetting('lineNumber') ?? true
+    
+    // 清空容器
+    container.innerHTML = ''
+    
+    // 使用 Vditor.preview 渲染
+    // Vditor 类型定义可能不完整，但实际支持这些配置
+    const previewOptions: any = {
+      cdn,
+      mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
+      markdown: {
+        theme: { current: contentTheme }
+      },
+      hljs: {
+        style: codeTheme,
+        lineNumber: lineNumber
+      }
+    }
+    Vditor.preview(container, markdown, previewOptions)
+    
+    // 等待 preview 完成后再调用其他渲染方法
+    await nextTick()
+    
+    // 渲染代码块
+    if (typeof Vditor.codeRender === 'function') {
+      Vditor.codeRender(container)
+    }
+    
+    // 渲染数学公式
+    if (typeof Vditor.mathRender === 'function') {
+      Vditor.mathRender(container, {
+        cdn
+      })
+    }
+    
+    // 预渲染所有图表（Mermaid, ECharts 等）
+    await preRenderAllCharts(markdown, cdn)
+    
+  } catch (error) {
+    logger.error('渲染预览失败', error)
+    container.innerHTML = `<p style="color: var(--console-err, #fe8771);">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`
+  }
+}
+
+// 监听预览内容变化
+watch([previewMarkdown, () => themeState.currentTheme.type], () => {
+  nextTick(() => {
+    renderPreview()
+  })
+}, { immediate: false })
+
 onMounted(() => {
   scheduleParticleEffect()
   window.addEventListener('mousemove', (e) => particleEffectInstance.handleMouseMove(e))
   window.addEventListener('resize', () => particleEffectInstance.handleWindowResize())
   preventNavigate()
+  
+  // 初始渲染
+  nextTick(() => {
+    renderPreview()
+  })
 })
 
 onBeforeUnmount(() => {
@@ -380,7 +452,8 @@ const handleCloseTab = (id: string) => {
 
 .md-metainfo {
   width: 100%;
-  max-height: 25vh;
+  height: 15vh;
+  max-height: 15vh;
   overflow: auto;
   border-radius: 12px;
 }
@@ -395,20 +468,20 @@ const handleCloseTab = (id: string) => {
 }
 
 .md-container {
-  max-height: 63vh;
-  height: 63vh;
-  overflow: auto;
+  height: 60vh;
+  max-height: 60vh;
   width: 100%;
   border: 1px #cccccc44 solid;
   border-radius: 10px;
 }
 
-.md-preview-fixed {
-  max-width: 100%;
+.md-preview-container {
+  width: 100%;
+  padding: 16px;
+  overflow:visible;
+  box-sizing: border-box;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  white-space: pre-wrap;
-  box-sizing: border-box;
 }
 
 .quick-start-format-wrapper {
@@ -457,7 +530,9 @@ const handleCloseTab = (id: string) => {
   justify-content: flex-end;
 }
 
-.homepage :deep(.el-scrollbar__wrap) {
+/* 摘要栏的滚动条样式 */
+.md-metainfo :deep(.el-scrollbar__wrap) {
   overflow-x: hidden;
+  overflow-y: auto;
 }
 </style>

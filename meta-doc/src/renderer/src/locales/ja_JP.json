@@ -229,15 +229,22 @@
     "error": {
       "no_svg_found": "SVG要素が見つかりませんでした",
       "copy_failed": "コピーに失敗しました",
-      "no_code_to_copy": "コピーするコードがありません"
+      "no_code_to_copy": "コピーするコードがありません",
+      "export_failed": "輸出失敗",
+      "no_graph_container": "チャートコンテナが見つかりません"
     },
     "success": {
-      "copy_succeeded": "コピーに成功しました"
+      "copy_succeeded": "コピーに成功しました",
+      "export_succeeded": "輸出成功"
     },
     "graph": {
       "chart": "グラフ",
       "default_chart": "デフォルトチャート"
-    }
+    },
+    "bitmapImage": "ビットマップ(PNG)",
+    "exportFormat": "エクスポート形式",
+    "pdfDocument": "サイトマップ ドキュメント",
+    "vectorImage": "ベクトルチャート(SVG)"
   },
   "article": {
     "drag_to_resize": "幅を変更するにはドラッグしてください",
@@ -508,7 +515,13 @@
     "message": "メッセージ",
     "cannotDeleteRoot": "ルート章は削除できません",
     "deleteSuccess": "章の削除に成功しました！",
-    "userPromptPlaceholder": "ヒントを入力してください。"
+    "userPromptPlaceholder": "ヒントを入力してください。",
+    "cancelTasks": "タスクをキャンセル",
+    "moveDown": "移動ダウン",
+    "moveUp": "移動する",
+    "switchToHorizontal": "水平レイアウトへの切り替え",
+    "switchToVertical": "垂直レイアウトへの切り替え",
+    "toggleLayout": "トグルレイアウトオリエンテーション"
   },
   "setting": {
     "auto": "自動",
@@ -596,7 +609,11 @@
     },
     "logs": "ログ設定",
     "openLogDirectory": "ログフォルダを開く",
-    "openLogFile": "ログファイルを開く"
+    "openLogFile": "ログファイルを開く",
+    "deepseek": "イマラチオ",
+    "deepseekHint": "DeepSeekが提供する主要なAIモデルは複数のモデルをサポートしています",
+    "openaiOfficial": "公式OpenAI API",
+    "openaiOfficialHint": "モデルをサポートするOpenAIのAPI"
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",

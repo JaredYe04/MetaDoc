@@ -233,6 +233,7 @@ import "../assets/title-menu.css";
 import eventBus, { getWindowType, sendBroadcast } from '../utils/event-bus';
 import { searchNode } from "../utils/outline-helpers";
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
+import { getOutlineAdapter } from '../utils/outline-adapters';
 import TitleMenu from '../components/TitleMenu.vue';
 import SearchReplaceMenu from "../components/SearchReplaceMenu.vue";
 import AiLogo from "../assets/ai-logo.svg";
@@ -466,6 +467,19 @@ const editorDomId = computed(() => props.editorDomId || 'latex-editor');
 // 增量同步缓存
 let textBuffer = currentTex.value;
 
+// 文本到大纲的同步（类似 MarkdownEditor）
+let suppressOutlineSync = false;
+const syncOutlineFromTex = debounce(() => {
+    if (suppressOutlineSync) return;
+    if (!isActive.value) return;
+    try {
+        const adapter = getOutlineAdapter('tex');
+        const extractedOutline = adapter.fromText(currentTex.value);
+        currentOutline.value = extractedOutline;
+    } catch (error) {
+        logger.warn('从 LaTeX 同步大纲树失败', error);
+    }
+}, 200);
 
 const undo = () => editor.value.trigger("keyboard", "undo", null);
 const redo = () => editor.value.trigger("keyboard", "redo", null);
@@ -1027,6 +1041,8 @@ const initEditor = () => {
         triggerSuggestion.value = false;
         if(currentTex.value!==textBuffer){
             currentTex.value = textBuffer;
+            // 同步大纲树
+            syncOutlineFromTex();
         }
     }, 100);
     eventBus.emit("monaco-ready")

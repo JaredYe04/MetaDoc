@@ -19,7 +19,8 @@
     "build:linux": "npm run build && electron-builder --linux",
     "build:android": "npm run build && npx cap copy && npx cap sync android && npx cap open android",
     "android": "npx cap open android",
-    "kill": "taskkill /IM electron.exe /F"
+    "kill": "taskkill /IM electron.exe /F",
+    "i18n":"python .\\src\\renderer\\src\\locales\\i18n_check.py"
   },
   "fileAssociations": [
     {

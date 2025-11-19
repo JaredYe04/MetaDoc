@@ -40,7 +40,9 @@
     "error": {
       "copy_failed": "Kopie verfehlt",
       "no_code_to_copy": "Kein Code zum Kopieren.",
-      "no_svg_found": "Kein svg Element gefunden"
+      "no_svg_found": "Kein svg Element gefunden",
+      "export_failed": "Ausfuhr fehlgeschlagen",
+      "no_graph_container": "Keine Karte gefunden"
     },
     "exportImage": "Bild vergrößern",
     "graph": {
@@ -58,8 +60,13 @@
     "selectEngine": "Wählen Sie Zeichnungsmaschine",
     "send": "Bitte",
     "success": {
-      "copy_succeeded": "Kopie erfolgreich"
-    }
+      "copy_succeeded": "Kopie erfolgreich",
+      "export_succeeded": "Ausfuhr erfolgreich"
+    },
+    "bitmapImage": "Bitmap (PNG)",
+    "exportFormat": "Ausfuhrformat",
+    "pdfDocument": "PDF Dokument",
+    "vectorImage": "Vector Chart (SVG)"
   },
   "article": {
     "ai_analyze_title": "AI analysiert den ganzen Artikel.",
@@ -425,7 +432,13 @@
     "warning": "Warnung",
     "zoomIn": "In den Warenkorb",
     "zoomOut": "Ausverkauft",
-    "userPromptPlaceholder": "Bitte geben Sie Ihren Hinweis ein."
+    "userPromptPlaceholder": "Bitte geben Sie Ihren Hinweis ein.",
+    "cancelTasks": "Zurück zur Übersicht",
+    "moveDown": "Los!",
+    "moveUp": "Nach oben",
+    "switchToHorizontal": "Umschalten auf horizontales Layout",
+    "switchToVertical": "Umschalten auf Vertikales Layout",
+    "toggleLayout": "Toggle Layout Ausrichtung"
   },
   "searchReplace": {
     "title": "Suchen und Ersetzen",
@@ -535,7 +548,11 @@
     },
     "logs": "Log-Einstellungen",
     "openLogDirectory": "Log Ordner öffnen",
-    "openLogFile": "Datei öffnen"
+    "openLogFile": "Datei öffnen",
+    "deepseek": "Tiefsee",
+    "deepseekHint": "Das große AI-Modell des offiziellen DeepSeek unterstützt mehrere Modelle",
+    "openaiOfficial": "Offizielle OpenAI API",
+    "openaiOfficialHint": "API von OpenAI, die Modelle unterstützt"
   },
   "titleMenu": {
     "contextMarks": {

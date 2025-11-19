@@ -257,12 +257,13 @@ eventBus.on('open-doc-success', (payload) => {
     }
   }
 });
-// 注意：new-doc 事件已在 Editor.vue 中处理，这里不需要重复监听
-// const handleNewDocumentRequest = () => {
-//   workspace.openNewDocumentTab()
-// }
+// 处理新建文档请求 - 在 Main.vue 中监听，因为 Main.vue 总是被挂载
+// 而 Editor.vue 只在 /editor 路由下才挂载，在其他页面（如 Home）时无法响应事件
+const handleNewDocumentRequest = () => {
+  workspace.openNewDocumentTab()
+}
 
-// eventBus.on('new-doc', handleNewDocumentRequest)
+eventBus.on('new-doc', handleNewDocumentRequest)
 
 eventBus.on('show-error', (message) => {
   ElNotification({
@@ -281,7 +282,7 @@ eventBus.on('show-warning', (message) => {
 
 onBeforeUnmount(() => {
   eventBus.off('workspace-open-document', workspaceOpenDocumentHandler)
-  // eventBus.off('new-doc', handleNewDocumentRequest)
+  eventBus.off('new-doc', handleNewDocumentRequest)
 })
 
 </script>

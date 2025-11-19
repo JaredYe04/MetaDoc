@@ -2,8 +2,10 @@
   "lang": "en_US",
   "contextMenu": {
     "aiAnalysis": "AI Full Analysis",
+    "cut": "Cut",
     "copy": "Copy",
     "paste": "Paste",
+    "selectAll": "Select All",
     "closeAutoCompletion": "Disable AI Completion",
     "closeKnowledgeBase": "Disable Knowledge Retrieval Library",
     "openAutoCompletion": "Enable AI Completion",
@@ -199,7 +201,10 @@
     "inputPlaceholder": "Enter your message here.",
     "send": "Send",
     "reset": "Reset",
-    "defaultTitle": "Chat with AI Assistant"
+    "defaultTitle": "Chat with AI Assistant",
+    "enterToSend": "Enter to send",
+    "ctrlEnterToSend": "Ctrl+Enter to send",
+    "changeSendMode": "Click to toggle send hotkey"
   },
   "aigraph": {
     "renameTitle": "Rename",
@@ -224,15 +229,22 @@
     "error": {
       "no_svg_found": "SVG element not found",
       "copy_failed": "Copy failed",
-      "no_code_to_copy": "No code to copy"
+      "no_code_to_copy": "No code to copy",
+      "export_failed": "Export failed",
+      "no_graph_container": "No chart container found"
     },
     "success": {
-      "copy_succeeded": "Copy succeeded"
+      "copy_succeeded": "Copy succeeded",
+      "export_succeeded": "Export succeeded"
     },
     "graph": {
       "chart": "Chart",
       "default_chart": "Default Chart"
-    }
+    },
+    "bitmapImage": "Bitmap (PNG)",
+    "exportFormat": "Export Format",
+    "pdfDocument": "PDF Document",
+    "vectorImage": "Vector Chart (SVG)"
   },
   "article": {
     "drag_to_resize": "Drag to resize width",
@@ -250,6 +262,16 @@
     "description": "Description",
     "no_description": "No description",
     "generate_description": "Generate Description",
+    "keywords": "Keywords",
+    "generate_keywords": "Generate Keywords",
+    "generating_keywords": "Generating...",
+    "keywords_placeholder": "Enter a keyword and press Enter",
+    "no_keywords": "No keywords yet",
+    "generate_keywords_parse_error": "Failed to parse generated keywords. Please try again.",
+    "generate_keywords_failed": "Keyword generation failed. Please try again.",
+    "apply_keywords_confirm": "Generated keywords: {keywords}. Apply them?",
+    "apply_keywords_success": "Keywords updated successfully",
+    "apply_keywords_cancelled": "Original keywords restored",
     "description_placeholder": "Please enter article description",
     "ai_understood": "I have understood the entire article content. How can I assist you?",
     "ai_analyze_title": "AI Analyze Entire Article",
@@ -330,6 +352,11 @@
       "quickStart": "Quick Start",
       "openFile": "Open Document",
       "refresh": "Refresh"
+    },
+    "tabActions": {
+      "title": "Create or open document",
+      "new": "New Document",
+      "open": "Open Document"
     },
     "authorLabel": "Author",
     "abstractLabel": "Abstract",
@@ -443,10 +470,12 @@
     "generationDone": "Generation completed, accept changes?",
     "editNode": "Edit node",
     "moveLeft": "Move left",
+    "moveRight": "Move right",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
     "addChild": "Add child",
     "editContent": "Edit content",
     "delete": "Delete",
-    "moveRight": "Move right",
     "generateContent": "AI generate content for this chapter",
     "generateChildChapter": "AI generate sub-chapters",
     "generateChildrenContent": "AI generate content for all sub-chapters",
@@ -472,6 +501,9 @@
     "zoomOut": "Zoom out",
     "reset": "Reset zoom",
     "formatTitle": "Format Title",
+    "toggleLayout": "Toggle layout direction",
+    "switchToVertical": "Switch to vertical layout",
+    "switchToHorizontal": "Switch to horizontal layout",
     "openAiAssistant": "Open AI Assistant",
     "generateChildSuccessWithTitle": "AI successfully generated sub-chapters for node {title}!",
     "generateChildSuccess": "AI generated sub-chapters successfully!",
@@ -488,7 +520,8 @@
     "message": "Message",
     "cannotDeleteRoot": "Cannot delete root chapter",
     "deleteSuccess": "Chapter deleted successfully!",
-    "userPromptPlaceholder": "Please enter your hint."
+    "userPromptPlaceholder": "Please enter your hint.",
+    "cancelTasks": "Cancel Task"
   },
   "setting": {
     "auto": "Auto",
@@ -576,7 +609,11 @@
     },
     "logs": "Log Settings",
     "openLogDirectory": "Open Log Folder",
-    "openLogFile": "Open Log File"
+    "openLogFile": "Open Log File",
+    "deepseek": "DeepSeek",
+    "deepseekHint": "The major AI model provided by the official DeepSeek supports multiple models",
+    "openaiOfficial": "Official OpenAI API",
+    "openaiOfficialHint": "API from OpenAI, which supports models"
   },
   "visualize": {
     "articleOutline": "Article Outline",

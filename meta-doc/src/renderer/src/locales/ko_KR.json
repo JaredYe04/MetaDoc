@@ -229,15 +229,22 @@
     "error": {
       "no_svg_found": "SVG 요소를 찾을 수 없음",
       "copy_failed": "복사 실패",
-      "no_code_to_copy": "복사할 코드 없음"
+      "no_code_to_copy": "복사할 코드 없음",
+      "export_failed": "수출 실패",
+      "no_graph_container": "발견되는 도표 콘테이너 없음"
     },
     "success": {
-      "copy_succeeded": "복사 성공"
+      "copy_succeeded": "복사 성공",
+      "export_succeeded": "수출 성공"
     },
     "graph": {
       "chart": "차트",
       "default_chart": "기본 차트"
-    }
+    },
+    "bitmapImage": "비트맵 (PNG)",
+    "exportFormat": "수출 체재",
+    "pdfDocument": "PDF 파일 회사연혁",
+    "vectorImage": "벡터 차트 (SVG)"
   },
   "article": {
     "drag_to_resize": "너비 변경을 위해 드래그",
@@ -508,7 +515,13 @@
     "message": "메시지",
     "cannotDeleteRoot": "루트 챕터는 삭제할 수 없습니다",
     "deleteSuccess": "챕터 삭제 성공!",
-    "userPromptPlaceholder": "당신의 힌트를 입력하십시오."
+    "userPromptPlaceholder": "당신의 힌트를 입력하십시오.",
+    "cancelTasks": "자주 묻는 질문",
+    "moveDown": "맨 위로",
+    "moveUp": "맨 위로",
+    "switchToHorizontal": "수평 배치로 전환",
+    "switchToVertical": "수직 배치로 전환",
+    "toggleLayout": "사이트 맵"
   },
   "setting": {
     "auto": "자동",
@@ -596,7 +609,11 @@
     },
     "logs": "로그 설정",
     "openLogDirectory": "로그 폴더 열기",
-    "openLogFile": "비밀번호"
+    "openLogFile": "비밀번호",
+    "deepseek": "딥스카이",
+    "deepseekHint": "공식 DeepSeek가 제공하는 주요 AI 모델은 여러 모델을 지원합니다.",
+    "openaiOfficial": "공식 OpenAI API",
+    "openaiOfficialHint": "OpenAI의 API, 모델 지원"
   },
   "visualize": {
     "articleOutline": "문서 아웃라인",

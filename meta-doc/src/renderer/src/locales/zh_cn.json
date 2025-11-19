@@ -9,7 +9,8 @@
         "closeAutoCompletion":"禁用AI补全",
         "openAutoCompletion":"启用AI补全",
         "closeKnowledgeBase":"禁用知识检索库",
-        "openKnowledgeBase":"启用知识检索库"
+        "openKnowledgeBase":"启用知识检索库",
+        "locateToPdf": "定位到PDF位置"
     },
     "headMenu": {
         "tooltip": "一款基于AI Agent的智能文字处理软件",
@@ -778,7 +779,32 @@
         "notification":{
             "pleaseSaveFirst":"请先保存文件",
             "compileSuccess":"编译成功",
-            "compileFailed":"编译失败，错误码：{code}"
+            "compileFailed":"编译失败，错误码：{code}",
+            "textNotFound":"未找到文本：{text}",
+            "clickToLocate":"请点击PDF中的文字以定位到源码",
+            "pdfNotAvailable":"PDF不可用",
+            "noCursorPosition":"无法获取光标位置",
+            "noPdfMapping":"未找到对应的PDF映射",
+            "locateToPdfFailed":"定位到PDF位置失败",
+            "editorNotAvailable":"编辑器不可用",
+            "noCodeMapping":"未找到对应的代码映射",
+            "locateToCodeFailed":"定位到代码位置失败",
+            "directoryOpened":"目录已打开",
+            "openDirectoryFailed":"打开目录失败",
+            "pdfFileNotFound":"PDF文件不存在",
+            "pdfSaved":"PDF已保存到：{path}",
+            "savePdfFailed":"保存PDF失败",
+            "refreshSuccess":"PDF已刷新"
+        },
+        "pdfMenu":{
+            "refresh":"刷新",
+            "locateToCode":"定位到代码位置",
+            "zoomIn":"放大",
+            "zoomOut":"缩小",
+            "zoomReset":"重置缩放",
+            "openDirectory":"打开所在目录",
+            "save":"保存PDF",
+            "saveDialogTitle":"保存PDF文件"
         },
         "pdfEmpty":"请先正确编译LaTeX代码，PDF会在此处显示",
         "prevPage":"上一页",

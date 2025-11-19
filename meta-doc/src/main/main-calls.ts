@@ -192,6 +192,50 @@ function bindFileHandlers(): void {
       logger.error('打开文件失败:', error);
     }
   });
+  
+  // 保存PDF对话框
+  ipcMain.handle('save-pdf-dialog', async (event: IpcMainInvokeEvent, options: { sourcePath: string; defaultName: string }) => {
+    try {
+      if (!fs.existsSync(options.sourcePath)) {
+        return { success: false, error: 'PDF file not found' };
+      }
+      
+      // 读取PDF文件
+      const pdfBuffer = fs.readFileSync(options.sourcePath);
+      
+      // 打开保存对话框
+      const result = await dialog.showSaveDialog(mainWindow!, {
+        title: t('latexEditor.pdfMenu.saveDialogTitle', 'Save PDF File'),
+        defaultPath: options.defaultName,
+        filters: [
+          { name: 'PDF Files', extensions: ['pdf'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      });
+      
+      if (result.canceled || !result.filePath) {
+        return { success: false, canceled: true };
+      }
+      
+      // 保存文件
+      fs.writeFileSync(result.filePath, pdfBuffer);
+      
+      return { success: true, filePath: result.filePath };
+    } catch (error) {
+      logger.error('保存PDF失败:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+  
+  // 获取文件所在目录路径
+  ipcMain.handle('get-directory-path', async (event: IpcMainInvokeEvent, filePath: string) => {
+    try {
+      return path.dirname(filePath);
+    } catch (error) {
+      logger.error('获取目录路径失败:', error);
+      return null;
+    }
+  });
 }
 
 function bindLoggerHandlers(): void {

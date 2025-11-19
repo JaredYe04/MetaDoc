@@ -186,7 +186,8 @@
                                             </div>
 
                                             <div class="pdf-preview-container"
-                                                :style="{ background: themeState.currentTheme.background }">
+                                                :style="{ background: themeState.currentTheme.background }"
+                                                @contextmenu.prevent="openPdfContextMenu($event)">
                                                 <div ref="pdfContainer" id="pdfContainer" v-if="pdfUrl" class="pdf-container">
                                                     <div class="canvas-wrapper" ref="canvasWrapper"></div>
                                                 </div>
@@ -194,6 +195,14 @@
                                                     {{ $t('latexEditor.pdfEmpty') }}
                                                 </h3>
                                             </div>
+                                            <ContextMenu 
+                                                :x="pdfMenuX" 
+                                                :y="pdfMenuY" 
+                                                :items="pdfContextMenuItems"
+                                                v-if="pdfContextMenuVisible" 
+                                                @trigger="handlePdfMenuClick" 
+                                                class="context-menu"
+                                                @close="pdfContextMenuVisible = false" />
                                         </div>
                                     </keep-alive>
                                 </template>
@@ -372,6 +381,22 @@ const contextMenuVisible = ref(false); // 右键菜单可见性
 const menuX = ref(0); // 菜单 X 坐标
 const menuY = ref(0); // 菜单 Y 坐标
 
+// PDF右键菜单
+const pdfContextMenuVisible = ref(false);
+const pdfMenuX = ref(0);
+const pdfMenuY = ref(0);
+const pdfContextMenuItems = ref([
+    { label: "latexEditor.pdfMenu.refresh", value: "refresh" },
+    { label: "latexEditor.pdfMenu.locateToCode", value: "locate-to-code" },
+    { type: "divider" },
+    { label: "latexEditor.pdfMenu.zoomIn", value: "zoom-in" },
+    { label: "latexEditor.pdfMenu.zoomOut", value: "zoom-out" },
+    { label: "latexEditor.pdfMenu.zoomReset", value: "zoom-reset" },
+    { type: "divider" },
+    { label: "latexEditor.pdfMenu.openDirectory", value: "open-directory" },
+    { label: "latexEditor.pdfMenu.save", value: "save" },
+]);
+
 const handleTitleMenuClose = () => {
     showTitleMenu.value = false;
 };
@@ -534,13 +559,45 @@ async function initPdfJs() {
     const container = document.querySelector("#pdfContainer");
 
     container.addEventListener("wheel", async (e) => {
-        if (!e.ctrlKey) return;
+        if (e.ctrlKey || e.metaKey) {
+            // Ctrl/Cmd + 滚轮：缩放
         e.preventDefault();
         const delta = e.deltaY > 0 ? -0.1 : 0.1; // 上滚放大，下滚缩小
         currentScale = Math.min(Math.max(currentScale + delta, 0.2), 5); // 限制缩放范围
         await renderPage(currentPdfPage.value, currentScale);
+        } else {
+            // 普通滚轮：翻页
+            e.preventDefault();
+            if (e.deltaY > 0) {
+                // 下滚：下一页
+                goNextPage();
+            } else {
+                // 上滚：上一页
+                goPrevPage();
+            }
+        }
     });
+    // 双击定位到源码
+    let isDoubleClick = false;
+    
+    container.addEventListener("dblclick", async (e) => {
+        // 双击事件
+        e.preventDefault();
+        e.stopPropagation();
+        isDoubleClick = true;
+        // 取消拖拽
+        isDragging = false;
+        container.classList.remove("dragging");
+        await handlePdfTextClick(e);
+    });
+    
     container.addEventListener("mousedown", (e) => {
+        // 如果是双击，不启动拖拽
+        if (isDoubleClick) {
+            isDoubleClick = false;
+            return;
+        }
+        // 普通点击：拖拽
         isDragging = true;
         startX = e.clientX - offsetX;
         startY = e.clientY - offsetY;
@@ -583,6 +640,22 @@ const currentPdfPage = ref(1);
 const totalPdfPages = ref(0);
 const inputPdfPage = ref(1);
 
+// PDF文本到Monaco源码的映射系统
+// 结构：Map<pageNumber, Array<{pdfRange: {x, y, width, height}, monacoPosition: {line, column}}>>
+const pdfToSourceMap = new Map();
+// 反向映射：Monaco位置到PDF位置
+// 结构：Map<`${line}-${column}`, {pageNumber, pdfRange}>
+const sourceToPdfMap = new Map();
+let isMappingInProgress = false;
+
+// 文字更新时自动重新建立映射（debounce 3秒）
+const rebuildMappingDebounced = debounce(() => {
+    if (!isActive.value) return;
+    if (!pdfDoc) return;
+    logger.debug('文字更新，准备重新建立PDF映射');
+    buildPdfToSourceMapping();
+}, 3000);
+
 watch(
     () => currentTex.value,
     (incoming) => {
@@ -591,6 +664,9 @@ watch(
         textBuffer = nextValue;
         if (!isActive.value) return;
         if (!editor.value) return;
+        
+        // 触发重新建立映射
+        rebuildMappingDebounced();
     },
 );
 
@@ -673,10 +749,13 @@ async function renderPage(pageNumber, scale) {
   currentScale = scale;
 
   const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
+  const context = canvas.getContext("2d", {
+    alpha: false, // 禁用透明度以提高性能
+    desynchronized: true, // 允许异步渲染
+  });
 
-  // 高清渲染：乘以设备像素比
-  const ratio = window.devicePixelRatio || 1;
+  // 高清渲染：使用更高的DPI倍数以提高清晰度
+  const ratio = (window.devicePixelRatio || 1) * 2; // 使用2倍DPI以提高清晰度
   canvas.width = Math.floor(viewport.width * ratio);
   canvas.height = Math.floor(viewport.height * ratio);
 
@@ -684,31 +763,411 @@ async function renderPage(pageNumber, scale) {
   canvas.style.width = Math.floor(viewport.width) + "px";
   canvas.style.height = Math.floor(viewport.height) + "px";
 
+  // 设置高质量图像渲染
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = 'high';
+
   // 缩放 context，使得 1 CSS 像素 = ratio 个物理像素
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-  // 清空旧 canvas
-  canvasWrapper.value.innerHTML = "";
+  // 创建白色背景canvas（用于避免闪屏）
+  let backgroundCanvas = canvasWrapper.value.querySelector('.pdf-background-canvas');
+  if (!backgroundCanvas) {
+    backgroundCanvas = document.createElement("canvas");
+    backgroundCanvas.className = 'pdf-background-canvas';
+    backgroundCanvas.style.position = 'absolute';
+    backgroundCanvas.style.top = '0';
+    backgroundCanvas.style.left = '0';
+    backgroundCanvas.style.zIndex = '0';
+    backgroundCanvas.style.backgroundColor = '#ffffff';
+    canvasWrapper.value.appendChild(backgroundCanvas);
+  }
+  
+  // 更新背景canvas尺寸和位置（与PDF canvas保持一致）
+  backgroundCanvas.width = Math.floor(viewport.width * ratio);
+  backgroundCanvas.height = Math.floor(viewport.height * ratio);
+  backgroundCanvas.style.width = Math.floor(viewport.width) + "px";
+  backgroundCanvas.style.height = Math.floor(viewport.height) + "px";
+  
+  // 填充白色背景
+  const bgContext = backgroundCanvas.getContext("2d");
+  bgContext.fillStyle = '#ffffff';
+  bgContext.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+  
+  // 清空旧 canvas（保留背景canvas）
+  const existingCanvas = canvasWrapper.value.querySelector('canvas:not(.pdf-background-canvas)');
+  if (existingCanvas) {
+    existingCanvas.remove();
+  }
+  
+  // 设置PDF canvas的z-index，确保在背景之上
+  canvas.style.position = 'absolute';
+  canvas.style.top = '0';
+  canvas.style.left = '0';
+  canvas.style.zIndex = '1';
+  canvas.style.backgroundColor = '#ffffff';
   canvasWrapper.value.appendChild(canvas);
 
-  // 渲染 PDF
-  await page.render({ canvasContext: context, viewport }).promise;
+  // 渲染 PDF，使用高质量渲染选项
+  const renderContext = {
+    canvasContext: context,
+    viewport: viewport,
+    // 启用文本层渲染以提高文本清晰度
+    enableWebGL: false, // 使用2D渲染以确保兼容性
+  };
+  await page.render(renderContext).promise;
 }
 
 
+// 处理PDF文本双击定位
+async function handlePdfTextClick(event) {
+    // 从Monaco全局获取编辑器实例
+    const editors = monaco.editor.getEditors();
+    const monacoEditor = editors.find(e => e.getId?.() === editorId) || editors[0];
+    
+    if (!pdfDoc || !monacoEditor) {
+        logger.warn('PDF双击定位失败: pdfDoc或editor不存在');
+        return;
+    }
+    
+    try {
+        const page = await pdfDoc.getPage(currentPdfPage.value);
+        const viewport = page.getViewport({ scale: currentScale });
+        
+        // 获取点击位置相对于canvas的坐标
+        const canvas = canvasWrapper.value?.querySelector('canvas:not(.pdf-background-canvas)');
+        if (!canvas) {
+            logger.warn('PDF双击定位失败: canvas不存在');
+            return;
+        }
+        
+        const containerRect = pdfContainer.value?.getBoundingClientRect();
+        if (!containerRect) {
+            logger.warn('PDF双击定位失败: containerRect不存在');
+            return;
+        }
+        
+        // 获取canvas的样式尺寸（逻辑像素）
+        const canvasStyleWidth = parseFloat(canvas.style.width) || viewport.width;
+        const canvasStyleHeight = parseFloat(canvas.style.height) || viewport.height;
+        
+        // 获取canvas在容器中的位置（考虑偏移）
+        const canvasWrapperRect = canvasWrapper.value?.getBoundingClientRect();
+        if (!canvasWrapperRect) return;
+        
+        // 计算点击位置相对于canvas wrapper的坐标
+        const wrapperX = event.clientX - canvasWrapperRect.left;
+        const wrapperY = event.clientY - canvasWrapperRect.top;
+        
+        // 考虑canvas的transform偏移（拖拽产生的偏移）
+        const canvasOffsetX = offsetX || 0;
+        const canvasOffsetY = offsetY || 0;
+        
+        // 计算在canvas逻辑坐标中的位置（考虑偏移）
+        const canvasX = wrapperX - canvasOffsetX;
+        const canvasY = wrapperY - canvasOffsetY;
+        
+        // 转换为PDF相对坐标（相对于页面尺寸的比例，0-1之间）
+        // 这样不受缩放影响
+        // PDF坐标系统：左下角为原点，Y轴向上
+        // Canvas坐标系统：左上角为原点，Y轴向下
+        const relativeX = canvasX / canvasStyleWidth;
+        const relativeY = 1 - (canvasY / canvasStyleHeight); // 转换为从下往上的相对坐标
+        
+        // 优先使用映射系统定位
+        const pageMappings = pdfToSourceMap.get(currentPdfPage.value);
+        
+        if (pageMappings && pageMappings.length > 0) {
+            // 找到点击位置最近的映射项
+            let closestMapping = null;
+            let minDistance = Infinity;
+            
+            for (const mapping of pageMappings) {
+                const range = mapping.pdfRange; // range是相对坐标 {x, y, width, height} 都是0-1之间的比例
+                // 检查点击是否在范围内（使用相对坐标，容差也是相对的）
+                const tolerance = 0.01; // 1%的容差
+                const inXRange = relativeX >= range.x - tolerance && relativeX <= range.x + range.width + tolerance;
+                const inYRange = relativeY >= range.y - tolerance && relativeY <= range.y + range.height + tolerance;
+                
+                if (inXRange && inYRange) {
+                    // 计算到文本中心的距离（使用相对坐标）
+                    const centerX = range.x + range.width / 2;
+                    const centerY = range.y + range.height / 2;
+                    const distance = Math.sqrt(
+                        Math.pow(relativeX - centerX, 2) + Math.pow(relativeY - centerY, 2)
+                    );
+                    
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestMapping = mapping;
+                    }
+                }
+            }
+            
+            if (closestMapping) {
+                // 使用映射直接定位
+                const position = closestMapping.monacoPosition;
+                
+                try {
+                    const monacoPosition = new monaco.Position(position.line, position.column);
+                    monacoEditor.setPosition(monacoPosition);
+                    monacoEditor.revealLineInCenter(position.line);
+                    return;
+                } catch (error) {
+                    logger.error('设置Monaco位置失败', error);
+                    throw error;
+                }
+            }
+        }
+        
+        // 如果映射系统不可用，回退到文本搜索方式
+        const textContent = await page.getTextContent();
+        const textItems = textContent.items;
+        
+        // 找到点击位置附近的文本
+        let closestItem = null;
+        let minDistance = Infinity;
+        
+        // 获取标准viewport（scale=1）用于坐标转换
+        const standardViewport = page.getViewport({ scale: 1 });
+        
+        for (const item of textItems) {
+            if (!item.transform || !item.str || !item.str.trim()) continue;
+            
+            // 获取文本项的绝对坐标
+            const itemX = item.transform[4];
+            const itemY = item.transform[5];
+            const itemHeight = item.height || 12;
+            const itemWidth = item.width || 0;
+            
+            // 转换为相对坐标（相对于标准页面尺寸）
+            const itemRelativeX = itemX / standardViewport.width;
+            const itemRelativeY = itemY / standardViewport.height;
+            const itemRelativeWidth = itemWidth / standardViewport.width;
+            const itemRelativeHeight = itemHeight / standardViewport.height;
+            
+            // 使用相对坐标进行比较（容差也是相对的）
+            const tolerance = 0.01; // 1%的容差
+            const inXRange = relativeX >= itemRelativeX - tolerance && relativeX <= itemRelativeX + itemRelativeWidth + tolerance;
+            const inYRange = relativeY >= itemRelativeY - tolerance && relativeY <= itemRelativeY + itemRelativeHeight + tolerance;
+            
+            if (inXRange && inYRange) {
+                const centerX = itemRelativeX + itemRelativeWidth / 2;
+                const centerY = itemRelativeY + itemRelativeHeight / 2;
+                const distance = Math.sqrt(
+                    Math.pow(relativeX - centerX, 2) + Math.pow(relativeY - centerY, 2)
+                );
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestItem = item;
+                }
+            }
+        }
+        
+        if (closestItem && closestItem.str && textEditorAdapter.value) {
+            // 使用textEditorAdapter的locateText方法
+            const searchText = closestItem.str.trim();
+            
+            try {
+                const range = textEditorAdapter.value.locateText(searchText, {
+                    matchCase: false,
+                    wholeWord: false,
+                    useRegex: false,
+                });
+                
+                if (range) {
+                    const monacoPosition = new monaco.Position(range.start.line, range.start.column);
+                    monacoEditor.setPosition(monacoPosition);
+                    monacoEditor.revealLineInCenter(range.start.line);
+                } else {
+                    eventBus.emit("show-info", t("latexEditor.notification.textNotFound", { text: searchText.substring(0, 20) }));
+                }
+            } catch (error) {
+                logger.error('locateText调用失败', error);
+                throw error;
+            }
+        } else {
+            eventBus.emit("show-info", t("latexEditor.notification.clickToLocate"));
+        }
+    } catch (error) {
+        logger.error('PDF文本定位失败', error);
+    }
+}
+
+// 建立PDF文本到源码的映射（异步）
+async function buildPdfToSourceMapping() {
+    logger.debug('=== 开始建立PDF到源码映射 ===');
+    
+    // 从Monaco全局获取编辑器实例
+    const editors = monaco.editor.getEditors();
+    const monacoEditor = editors.find(e => e.getId?.() === editorId) || editors[0];
+    
+    if (!pdfDoc) {
+        logger.warn('建立映射失败: pdfDoc不存在');
+        return;
+    }
+    if (!monacoEditor) {
+        logger.warn('建立映射失败: editor不存在', { 
+            editorId,
+            totalEditors: editors.length
+        });
+        return;
+    }
+    if (!textEditorAdapter.value) {
+        logger.warn('建立映射失败: textEditorAdapter不存在');
+        return;
+    }
+    if (isMappingInProgress) {
+        logger.debug('映射正在进行中，跳过');
+        return;
+    }
+    
+    isMappingInProgress = true;
+    pdfToSourceMap.clear();
+    sourceToPdfMap.clear();
+    logger.debug('清空旧映射');
+    
+    try {
+        const totalPages = pdfDoc.numPages;
+        logger.debug('开始建立PDF到源码映射', { totalPages });
+        
+        let totalMapped = 0;
+        let totalFailed = 0;
+        
+        // 异步处理每一页，避免阻塞
+        for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+            try {
+                logger.debug(`处理页面 ${pageNum}/${totalPages}`);
+                const page = await pdfDoc.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                const textItems = textContent.items;
+                logger.debug(`页面 ${pageNum} 文本项数量`, { textItemsCount: textItems.length });
+                
+                // 获取标准viewport（scale=1）用于坐标转换
+                const standardViewport = page.getViewport({ scale: 1 });
+                
+                const pageMappings = [];
+                let pageMapped = 0;
+                let pageFailed = 0;
+                
+                // 批量处理文本项，避免一次性处理太多
+                const BATCH_SIZE = 50;
+                for (let i = 0; i < textItems.length; i += BATCH_SIZE) {
+                    const batch = textItems.slice(i, i + BATCH_SIZE);
+                    
+                    for (const item of batch) {
+                        if (!item.transform || !item.str || !item.str.trim()) continue;
+                        
+                        // 获取文本项的绝对坐标
+                        const itemX = item.transform[4];
+                        const itemY = item.transform[5];
+                        const itemHeight = item.height || 12;
+                        const itemWidth = item.width || 0;
+                        
+                        // 转换为相对坐标（相对于标准页面尺寸，0-1之间）
+                        // 这样不受缩放影响
+                        const relativeX = itemX / standardViewport.width;
+                        const relativeY = itemY / standardViewport.height;
+                        const relativeWidth = itemWidth / standardViewport.width;
+                        const relativeHeight = itemHeight / standardViewport.height;
+                        
+                        // 清理文本，用于查找
+                        const cleanText = item.str.trim();
+                        if (cleanText.length < 2) continue;
+                        
+                        // 使用textEditorAdapter的locateText方法查找位置
+                        try {
+                            const range = textEditorAdapter.value.locateText(cleanText, {
+                                matchCase: false,
+                                wholeWord: false,
+                                useRegex: false,
+                            });
+                            
+                            if (range) {
+                                const mapping = {
+                                    pdfRange: {
+                                        x: relativeX,
+                                        y: relativeY,
+                                        width: relativeWidth,
+                                        height: relativeHeight,
+                                    },
+                                    monacoPosition: {
+                                        line: range.start.line,
+                                        column: range.start.column,
+                                    },
+                                    text: cleanText,
+                                };
+                                pageMappings.push(mapping);
+                                
+                                // 建立反向映射
+                                const key = `${range.start.line}-${range.start.column}`;
+                                sourceToPdfMap.set(key, {
+                                    pageNumber: pageNum,
+                                    pdfRange: mapping.pdfRange,
+                                });
+                                
+                                pageMapped++;
+                                totalMapped++;
+                            } else {
+                                pageFailed++;
+                                totalFailed++;
+                            }
+                        } catch (error) {
+                            // 单个文本项映射失败，跳过继续
+                            pageFailed++;
+                            totalFailed++;
+                            continue;
+                        }
+                    }
+                    
+                    // 每处理一批后，让出控制权
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+                
+                pdfToSourceMap.set(pageNum, pageMappings);
+            } catch (error) {
+                logger.warn(`页面 ${pageNum} 映射失败`, error);
+                // 继续处理下一页
+                continue;
+            }
+        }
+        
+        logger.debug('PDF到源码映射建立完成', { 
+            totalPages: pdfToSourceMap.size,
+            totalMapped,
+            totalFailed
+        });
+    } catch (error) {
+        logger.error('建立PDF到源码映射失败', error);
+    } finally {
+        isMappingInProgress = false;
+    }
+}
+
 // 在加载 PDF 后初始化
-async function loadPdf(url) {
+async function loadPdf(url, preservePage = false) {
     if (!url || url.trim() === '') {
         // 如果 URL 为空，不加载 PDF
         return;
     }
+    
+    // 保存当前页码（如果要求保留）
+    const savedPage = preservePage ? currentPdfPage.value : 1;
+    
     const loadingTask = pdfjsLib.getDocument(url);
     pdfDoc = await loadingTask.promise;
     //logger.log(pdfDoc.value)
     totalPdfPages.value = pdfDoc.numPages;
-    currentPdfPage.value = 1;
-    inputPdfPage.value = 1;
-    renderPage(1, currentScale);
+    
+    // 恢复或设置页码
+    const targetPage = preservePage ? Math.min(Math.max(savedPage, 1), pdfDoc.numPages) : 1;
+    currentPdfPage.value = targetPage;
+    inputPdfPage.value = targetPage;
+    renderPage(targetPage, currentScale);
+    
+    // 异步建立映射关系
+    buildPdfToSourceMapping();
 }
 // 切换 PDF 显示
 function togglePdf() {
@@ -741,7 +1200,8 @@ const compile = async () => {
         eventBus.emit("show-success",t("latexEditor.notification.compileSuccess"));
         pdfUrl.value=(`file:///${compileResult.pdfPath}`);
         
-        loadPdf(pdfUrl.value)
+        // 重新加载PDF并建立映射
+        await loadPdf(pdfUrl.value);
     }
     else{
         eventBus.emit("show-error",t("latexEditor.notification.compileFailed",{ code:compileResult.code }));
@@ -763,6 +1223,187 @@ const openContextMenu = (event) => {
     menuY.value = event.clientY;
     contextMenuVisible.value = true;
 };
+
+// 打开PDF右键菜单
+const openPdfContextMenu = (event) => {
+    event.preventDefault();
+    pdfMenuX.value = event.clientX;
+    pdfMenuY.value = event.clientY;
+    pdfContextMenuVisible.value = true;
+};
+
+// PDF右键菜单点击处理
+const handlePdfMenuClick = async (item) => {
+    switch (item) {
+        case 'refresh':
+            if (pdfUrl.value) {
+                // 刷新时保留当前页码
+                await loadPdf(pdfUrl.value, true);
+                eventBus.emit("show-success", t("latexEditor.notification.refreshSuccess"));
+            }
+            break;
+        case 'locate-to-code':
+            await locateToCodeFromPdf();
+            break;
+        case 'zoom-in':
+            await pdfZoomIn();
+            break;
+        case 'zoom-out':
+            await pdfZoomOut();
+            break;
+        case 'zoom-reset':
+            await pdfZoomReset();
+            break;
+        case 'open-directory':
+            await openPdfDirectory();
+            break;
+        case 'save':
+            await savePdf();
+            break;
+    }
+    pdfContextMenuVisible.value = false;
+};
+
+// 从PDF定位到代码（双击的另一种方式）
+async function locateToCodeFromPdf() {
+    // 从Monaco全局获取编辑器实例
+    const editors = monaco.editor.getEditors();
+    const monacoEditor = editors.find(e => e.getId?.() === editorId) || editors[0];
+    
+    // 获取PDF中心位置或当前视图中心位置
+    if (!pdfDoc || !monacoEditor) {
+        eventBus.emit("show-info", t("latexEditor.notification.editorNotAvailable"));
+        return;
+    }
+    
+    try {
+        const page = await pdfDoc.getPage(currentPdfPage.value);
+        const viewport = page.getViewport({ scale: currentScale });
+        
+        // 获取PDF容器中心位置
+        const containerRect = pdfContainer.value?.getBoundingClientRect();
+        if (!containerRect) return;
+        
+        const centerX = containerRect.width / 2;
+        const centerY = containerRect.height / 2;
+        
+        // 转换为PDF相对坐标
+        const canvas = canvasWrapper.value?.querySelector('canvas');
+        if (!canvas) return;
+        
+        const canvasStyleWidth = parseFloat(canvas.style.width) || viewport.width;
+        const canvasStyleHeight = parseFloat(canvas.style.height) || viewport.height;
+        
+        const canvasWrapperRect = canvasWrapper.value?.getBoundingClientRect();
+        if (!canvasWrapperRect) return;
+        
+        const wrapperX = centerX;
+        const wrapperY = centerY;
+        const canvasX = wrapperX - (offsetX || 0);
+        const canvasY = wrapperY - (offsetY || 0);
+        
+        const relativeX = canvasX / canvasStyleWidth;
+        const relativeY = 1 - (canvasY / canvasStyleHeight);
+        
+        // 查找映射
+        const pageMappings = pdfToSourceMap.get(currentPdfPage.value);
+        if (pageMappings && pageMappings.length > 0) {
+            let closestMapping = null;
+            let minDistance = Infinity;
+            
+            for (const mapping of pageMappings) {
+                const range = mapping.pdfRange;
+                const tolerance = 0.05;
+                const inXRange = relativeX >= range.x - tolerance && relativeX <= range.x + range.width + tolerance;
+                const inYRange = relativeY >= range.y - tolerance && relativeY <= range.y + range.height + tolerance;
+                
+                if (inXRange && inYRange) {
+                    const centerX = range.x + range.width / 2;
+                    const centerY = range.y + range.height / 2;
+                    const distance = Math.sqrt(
+                        Math.pow(relativeX - centerX, 2) + Math.pow(relativeY - centerY, 2)
+                    );
+                    
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestMapping = mapping;
+                    }
+                }
+            }
+            
+            if (closestMapping) {
+                const position = closestMapping.monacoPosition;
+                const monacoPosition = new monaco.Position(position.line, position.column);
+                monacoEditor.setPosition(monacoPosition);
+                monacoEditor.revealLineInCenter(position.line);
+            } else {
+                eventBus.emit("show-info", t("latexEditor.notification.noCodeMapping"));
+            }
+        } else {
+            eventBus.emit("show-info", t("latexEditor.notification.noCodeMapping"));
+        }
+    } catch (error) {
+        logger.error('从PDF定位到代码失败', error);
+        eventBus.emit("show-error", t("latexEditor.notification.locateToCodeFailed"));
+    }
+}
+
+// 打开PDF所在目录
+async function openPdfDirectory() {
+    if (!pdfUrl.value || pdfUrl.value === 'file:///') {
+        eventBus.emit("show-warning", t("latexEditor.notification.pdfNotAvailable"));
+        return;
+    }
+    
+    try {
+        // 从file:///路径提取实际路径
+        const pdfPath = pdfUrl.value.replace('file:///', '');
+        
+        // 使用IPC调用主进程获取目录路径
+        const dirPath = await ipcRenderer.invoke('get-directory-path', pdfPath);
+        
+        if (dirPath) {
+            // 使用shell-open事件打开目录
+            ipcRenderer.send('shell-open', dirPath);
+            eventBus.emit("show-success", t("latexEditor.notification.directoryOpened"));
+        } else {
+            eventBus.emit("show-error", t("latexEditor.notification.openDirectoryFailed"));
+        }
+    } catch (error) {
+        logger.error('打开PDF目录失败', error);
+        eventBus.emit("show-error", t("latexEditor.notification.openDirectoryFailed"));
+    }
+}
+
+// 保存PDF（复制并保存对话框）
+async function savePdf() {
+    if (!pdfUrl.value || pdfUrl.value === 'file:///') {
+        eventBus.emit("show-warning", t("latexEditor.notification.pdfNotAvailable"));
+        return;
+    }
+    
+    try {
+        // 从file:///路径提取实际路径
+        const pdfPath = pdfUrl.value.replace('file:///', '');
+        
+        // 使用IPC调用主进程保存PDF
+        const result = await ipcRenderer.invoke('save-pdf-dialog', {
+            sourcePath: pdfPath,
+            defaultName: pdfPath.split(/[\\/]/).pop() || 'document.pdf'
+        });
+        
+        if (result && result.success && result.filePath) {
+            eventBus.emit("show-success", t("latexEditor.notification.pdfSaved", { path: result.filePath }));
+        } else if (result && result.canceled) {
+            // 用户取消了保存对话框，不需要提示
+        } else {
+            eventBus.emit("show-error", t("latexEditor.notification.savePdfFailed"));
+        }
+    } catch (error) {
+        logger.error('保存PDF失败', error);
+        eventBus.emit("show-error", t("latexEditor.notification.savePdfFailed"));
+    }
+}
 
 // 插入文本到当前光标位置（支持多行）
 const insertText = (text) => {
@@ -821,11 +1462,96 @@ const handleMenuClick = async (item) => {
         case 'closeKnowledgeBase':
             await setSetting("enableKnowledgeBase", false);
             break;
+        case 'locate-to-pdf':
+            await locateToPdf();
+            break;
 
     }
     await refreshContextMenu();
     contextMenuVisible.value = false;
 };
+
+// 定位到PDF位置（从代码行定位到PDF）
+async function locateToPdf() {
+    // 从Monaco全局获取编辑器实例
+    const editors = monaco.editor.getEditors();
+    const monacoEditor = editors.find(e => e.getId?.() === editorId) || editors[0];
+    
+    if (!pdfDoc || !monacoEditor) {
+        eventBus.emit("show-info", t("latexEditor.notification.pdfNotAvailable"));
+        return;
+    }
+    
+    try {
+        // 获取当前光标位置
+        const position = monacoEditor.getPosition();
+        if (!position) {
+            eventBus.emit("show-info", t("latexEditor.notification.noCursorPosition"));
+            return;
+        }
+        
+        const key = `${position.lineNumber}-${position.column}`;
+        let pdfLocation = sourceToPdfMap.get(key);
+        
+        // 如果精确匹配不存在，尝试查找同一行的映射
+        if (!pdfLocation) {
+            // 查找同一行的第一个映射
+            for (const [mapKey, mapValue] of sourceToPdfMap.entries()) {
+                const [line] = mapKey.split('-').map(Number);
+                if (line === position.lineNumber) {
+                    pdfLocation = mapValue;
+                    break;
+                }
+            }
+        }
+        
+        if (pdfLocation) {
+            // 跳转到对应页面
+            currentPdfPage.value = pdfLocation.pageNumber;
+            inputPdfPage.value = pdfLocation.pageNumber;
+            await renderPage(pdfLocation.pageNumber, currentScale);
+            
+            // 滚动到对应位置（需要将相对坐标转换为实际坐标）
+            const page = await pdfDoc.getPage(pdfLocation.pageNumber);
+            const viewport = page.getViewport({ scale: currentScale });
+            
+            // 计算目标位置（相对坐标转换为实际坐标）
+            const targetX = pdfLocation.pdfRange.x * viewport.width;
+            const targetY = pdfLocation.pdfRange.y * viewport.height;
+            
+            // 调整canvas偏移，使目标位置居中或可见
+            const canvas = canvasWrapper.value?.querySelector('canvas');
+            if (canvas) {
+                const canvasStyleWidth = parseFloat(canvas.style.width) || viewport.width;
+                const canvasStyleHeight = parseFloat(canvas.style.height) || viewport.height;
+                
+                // 计算需要偏移的距离（使目标位置在视口中心）
+                const containerRect = pdfContainer.value?.getBoundingClientRect();
+                if (containerRect) {
+                    const centerX = containerRect.width / 2;
+                    const centerY = containerRect.height / 2;
+                    
+                    // 计算目标位置在canvas中的坐标
+                    const targetCanvasX = (targetX / viewport.width) * canvasStyleWidth;
+                    const targetCanvasY = (targetY / viewport.height) * canvasStyleHeight;
+                    
+                    // 计算偏移量
+                    offsetX = centerX - targetCanvasX;
+                    offsetY = centerY - targetCanvasY;
+                    
+                    // 应用偏移
+                    canvasWrapper.value.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+                }
+            }
+            
+        } else {
+            eventBus.emit("show-info", t("latexEditor.notification.noPdfMapping"));
+        }
+    } catch (error) {
+        logger.error('定位到PDF位置失败', error);
+        eventBus.emit("show-error", t("latexEditor.notification.locateToPdfFailed"));
+    }
+}
 
 // 更新编辑器内容
 
@@ -896,7 +1622,7 @@ function stopResizeConsole() {
 }
 
 const refreshContextMenu = async () => {
-    articleContextMenuItems.value = await getArticleContextMenuItems();
+    articleContextMenuItems.value = await getArticleContextMenuItems({ isLatexEditor: true });
 }
 
 // 注册 LaTeX
@@ -1121,6 +1847,7 @@ onUnmounted(() => {
         mainObserver.disconnect();
         mainObserver = null;
     }
+    
     eventBus.emit('is-need-save', true)
     
     if (editorId) {

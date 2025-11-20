@@ -769,7 +769,9 @@
       "pdfSaved": "PDF gespeichert in: {path}",
       "refreshSuccess": "PDF erfrischt",
       "savePdfFailed": "PDF fehlschlagen",
-      "textNotFound": "Text nicht gefunden: {text}"
+      "textNotFound": "Text nicht gefunden: {text}",
+      "pdfFileNotFoundOrInaccessible": "PDF-Dateien existieren nicht oder können nicht aufgerufen werden",
+      "pdfLoadFailed": "Konnte den temporären Ordner nicht schließen: %"
     },
     "pages": "Seite",
     "pdfEmpty": "Bitte erstellen Sie den LaTeX-Code korrekt. Das PDF wird hier angezeigt.",

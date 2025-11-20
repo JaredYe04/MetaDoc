@@ -2,7 +2,7 @@ import { BrowserWindow } from 'electron';
 import Store from 'electron-store';
 
 import enUS from '../renderer/src/locales/en_US.json';
-import zhCN from '../renderer/src/locales/zh_cn.json';
+import zhCN from '../renderer/src/locales/zh_CN.json';
 import jaJP from '../renderer/src/locales/ja_JP.json';
 import koKR from '../renderer/src/locales/ko_KR.json';
 import deDE from '../renderer/src/locales/de_DE.json';

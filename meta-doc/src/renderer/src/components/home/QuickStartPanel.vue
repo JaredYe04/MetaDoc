@@ -1,5 +1,44 @@
 <template>
-  <div class="quick-start-overlay" :style="overlayStyle">
+  <div v-if="stage === 'format'" class="center-content quick-start-format-wrapper">
+    <div class="aero-div quick-start-format" :style="formatContainerStyle">
+      <h2 class="main-letter">{{ $t('home.quickStartFormatTitle') }}</h2>
+      <div class="quick-start-format__options">
+        <div
+          class="quick-start-format__option"
+          :style="formatOptionStyle"
+          @click="selectQuickStartFormat('md')"
+        >
+          <h3>Markdown</h3>
+          <p>{{ $t('home.quickStartFormatDescriptionMarkdown') }}</p>
+        </div>
+        <div
+          class="quick-start-format__option"
+          :style="formatOptionStyle"
+          @click="selectQuickStartFormat('tex')"
+        >
+          <h3>LaTeX</h3>
+          <p>{{ $t('home.quickStartFormatDescriptionLatex') }}</p>
+        </div>
+      </div>
+      <div class="quick-start-format__actions">
+        <el-button class="aero-btn" @click="closeQuickStart">
+          {{ $t('home.tooltip.close') }}
+        </el-button>
+      </div>
+    </div>
+  </div>
+
+  <QuickStartMarkdown
+    v-else-if="stage === 'markdown'"
+    @close="handleQuickStartClose"
+  />
+  <QuickStartLatex
+    v-else-if="stage === 'latex'"
+    @close="handleQuickStartClose"
+  />
+
+  <!-- 原有的 QuickStartPanel 编辑器界面（保留作为备用） -->
+  <div v-else class="quick-start-overlay" :style="overlayStyle">
     <div class="quick-start-panel aero-div">
       <div class="panel-header">
         <el-button @click="handleClose" class="aero-btn" plain round type="danger" size="small" />
@@ -143,6 +182,8 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
+import QuickStartMarkdown from './QuickStartMarkdown.vue'
+import QuickStartLatex from './QuickStartLatex.vue'
 import VoiceInput from '../VoiceInput.vue'
 // @ts-expect-error: Missing types for vue3-markdown-it
 import MarkdownItEditor from 'vue3-markdown-it'
@@ -174,7 +215,7 @@ import { convertMarkdownToLatex, convertLatexToMarkdown } from '../../utils/late
 
 const emit = defineEmits<{ (e: 'close'): void }>()
 
-const stage = ref<'select' | 'editor'>('select')
+const stage = ref<'format' | 'select' | 'editor' | 'markdown' | 'latex'>('format')
 const selectedFormat = ref<'md' | 'tex' | null>(null)
 
 const { t } = useI18n()
@@ -204,6 +245,15 @@ const overlayStyle = computed(() => ({
   background: stage.value === 'editor'
     ? themeState.currentTheme.quickStartBackground1
     : themeState.currentTheme.quickStartBackground2
+}))
+
+const formatContainerStyle = computed(() => ({
+  color: themeState.currentTheme.textColor,
+  background: themeState.currentTheme.quickStartBackground1
+}))
+
+const formatOptionStyle = computed(() => ({
+  background: themeState.currentTheme.quickStartBackground2
 }))
 
 const buttons = ref<{ label: string; prompt: string }[]>([])
@@ -416,10 +466,36 @@ function handleClose() {
   emit('close')
 }
 
+const closeQuickStart = () => {
+  stage.value = 'format'
+  eventBus.emit('reset-quickstart')
+  emit('close')
+}
+
+const handleQuickStartClose = () => {
+  closeQuickStart()
+}
+
+const selectQuickStartFormat = (format: 'md' | 'tex') => {
+  const tabId = activeTabId.value
+  if (!tabId) return
+  try {
+    initializeDocumentFromTemplate(tabId, format)
+  } catch (error) {
+    logger.warn('初始化文档模板失败', error)
+  }
+  eventBus.emit('reset-quickstart')
+  stage.value = format === 'md' ? 'markdown' : 'latex'
+}
+
 onMounted(() => {
   refreshButtons()
   defaultText.value = t('home.defaultText')
   eventBus.on('reset-quickstart', reset)
+  // 监听 openQuickStart 事件
+  eventBus.on('open-quickstart', () => {
+    stage.value = 'format'
+  })
 })
 
 watch(tabOptions, (options) => {
@@ -430,6 +506,7 @@ watch(tabOptions, (options) => {
 
 onBeforeUnmount(() => {
   eventBus.off('reset-quickstart', reset)
+  eventBus.off('open-quickstart')
 })
 
 watch(
@@ -446,6 +523,82 @@ watch(
 </script>
 
 <style scoped>
+.center-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+  padding: 16px 24px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+  overflow: auto;
+}
+
+.main-letter {
+  font-size: 48px;
+  font-weight: 700;
+  color: rgb(65, 105, 225);
+  margin: 0;
+  padding: 8px 0;
+  transition: color 0.3s ease;
+}
+
+.main-letter:hover {
+  color: rgb(50, 150, 250);
+}
+
+.quick-start-format-wrapper {
+  height: 100%;
+  width: 100%;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.quick-start-format {
+  width: 60vw;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-radius: 4px;
+  backdrop-filter: blur(20px) brightness(1.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.quick-start-format__options {
+  width: 100%;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.quick-start-format__option {
+  flex: 1 1 240px;
+  padding: 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: none;
+  transition: transform 0.2s ease;
+}
+
+.quick-start-format__option:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.15);
+  transform: scale(1.01);
+}
+
+.quick-start-format__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .quick-start-overlay {
   position: relative;
   width: 70vw;
@@ -606,5 +759,7 @@ watch(
 
 .format-card:hover {
   transform: translateY(-4px);
+  
+  
 }
 </style>

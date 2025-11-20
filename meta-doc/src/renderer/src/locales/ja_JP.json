@@ -769,7 +769,9 @@
       "pdfSaved": "保存したPDF:{path}",
       "refreshSuccess": "PDF 更新済み",
       "savePdfFailed": "PDFの保存が失敗しました",
-      "textNotFound": "テキストが見つかりません: {text}"
+      "textNotFound": "テキストが見つかりません: {text}",
+      "pdfFileNotFoundOrInaccessible": "PDFファイルが存在しない、アクセスできない",
+      "pdfLoadFailed": "一時的なフォルダを閉じることができません。 ログイン"
     },
     "pages": "サイトマップ",
     "pdfEmpty": "LaTeXコードを正しくコンパイルしてください。 PDFをご覧いただけます。",

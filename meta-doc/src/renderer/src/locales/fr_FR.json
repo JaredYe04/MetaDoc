@@ -769,7 +769,9 @@
       "pdfSaved": "PDF enregistré sur : {path}",
       "refreshSuccess": "PDF actualisé",
       "savePdfFailed": "L'enregistrement du PDF a échoué",
-      "textNotFound": "Texte introuvable : {text}"
+      "textNotFound": "Texte introuvable : {text}",
+      "pdfFileNotFoundOrInaccessible": "Les fichiers PDF n'existent pas ou ne peuvent pas être consultés",
+      "pdfLoadFailed": "Impossible de fermer le dossier temporaire : %s"
     },
     "pages": "Page",
     "pdfEmpty": "Veuillez compiler le code LaTeX correctement. Le PDF sera affiché ici.",

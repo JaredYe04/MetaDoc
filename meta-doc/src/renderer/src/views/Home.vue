@@ -54,40 +54,7 @@
       </div>
     </div>
 
-    <div v-else-if="quickStartStage === 'format'" class="center-content quick-start-format-wrapper">
-      <div class="aero-div quick-start-format" :style="formatContainerStyle">
-        <h2 class="main-letter">{{ $t('home.quickStartFormatTitle') }}</h2>
-        <div class="quick-start-format__options">
-          <div
-            class="quick-start-format__option"
-            :style="formatOptionStyle"
-            @click="selectQuickStartFormat('md')"
-          >
-            <h3>Markdown</h3>
-            <p>{{ $t('home.quickStartFormatDescriptionMarkdown') }}</p>
-          </div>
-          <div
-            class="quick-start-format__option"
-            :style="formatOptionStyle"
-            @click="selectQuickStartFormat('tex')"
-          >
-            <h3>LaTeX</h3>
-            <p>{{ $t('home.quickStartFormatDescriptionLatex') }}</p>
-          </div>
-        </div>
-        <div class="quick-start-format__actions">
-          <el-button class="aero-btn" @click="closeQuickStart">
-            {{ $t('home.tooltip.close') }}
-          </el-button>
-        </div>
-      </div>
-    </div>
-
-    <QuickStartMarkdown
-      v-else-if="quickStartStage === 'markdown'"
-      @close="handleQuickStartClose"
-    />
-    <QuickStartLatex
+    <QuickStartPanel
       v-else
       @close="handleQuickStartClose"
     />
@@ -98,8 +65,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue'
-import QuickStartMarkdown from '../components/home/QuickStartMarkdown.vue'
-import QuickStartLatex from '../components/home/QuickStartLatex.vue'
+import QuickStartPanel from '../components/home/QuickStartPanel.vue'
 import '../assets/aero-div.css'
 import '../assets/aero-btn.css'
 import '../assets/aero-input.css'
@@ -171,39 +137,15 @@ const particleMarkdown = computed(() => {
 
 const showWelcome = computed(() => quickStartStage.value === 'inactive' && currentFilePath.value === '')
 
-const formatContainerStyle = computed(() => ({
-  color: themeState.currentTheme.textColor,
-  background: themeState.currentTheme.quickStartBackground1
-}))
-
-const formatOptionStyle = computed(() => ({
-  background: themeState.currentTheme.quickStartBackground2
-}))
-
 const openQuickStart = () => {
   eventBus.emit('reset-quickstart')
+  eventBus.emit('open-quickstart')
   quickStartStage.value = 'format'
 }
 
-const closeQuickStart = () => {
+const handleQuickStartClose = () => {
   quickStartStage.value = 'inactive'
   eventBus.emit('reset-quickstart')
-}
-
-const handleQuickStartClose = () => {
-  closeQuickStart()
-}
-
-const selectQuickStartFormat = (format: 'md' | 'tex') => {
-  const tabId = activeTabId.value
-  if (!tabId) return
-  try {
-    initializeDocumentFromTemplate(tabId, format)
-  } catch (error) {
-    logger.warn('初始化文档模板失败', error)
-  }
-  eventBus.emit('reset-quickstart')
-  quickStartStage.value = format === 'md' ? 'markdown' : 'latex'
 }
 
 const highlightM = () => {
@@ -342,6 +284,11 @@ onMounted(() => {
   window.addEventListener('resize', () => particleEffectInstance.handleWindowResize())
   preventNavigate()
   
+  // 监听 quickStartPanel 的状态变化
+  eventBus.on('open-quickstart', () => {
+    quickStartStage.value = 'format'
+  })
+  
   // 初始渲染
   nextTick(() => {
     renderPreview()
@@ -352,6 +299,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('mousemove', (e) => particleEffectInstance.handleMouseMove(e))
   window.removeEventListener('resize', () => particleEffectInstance.handleWindowResize())
   particleEffectInstance.dispose()
+  eventBus.off('open-quickstart')
 })
 
 const handleTabChange = (id: string) => {
@@ -389,7 +337,8 @@ const handleCloseTab = (id: string) => {
   z-index: 1;
 }
 
-/* 确保 QuickStartMarkdown 和 QuickStartLatex 在 canvas 之上 */
+/* 确保 QuickStartPanel 在 canvas 之上 */
+.homepage :deep(.quick-start-panel),
 .homepage :deep(.quick-start-markdown),
 .homepage :deep(.quick-start-latex) {
   position: relative;
@@ -486,53 +435,7 @@ const handleCloseTab = (id: string) => {
   overflow-wrap: break-word;
 }
 
-.quick-start-format-wrapper {
-  height: 100%;
-  width: 100%;
-  justify-content: center;
-  /* 确保内容在 canvas 之上 */
-  position: relative;
-  z-index: 1;
-}
-
-.quick-start-format {
-  width: 60vw;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  border-radius: 4px;
-  backdrop-filter: blur(20px) brightness(1.05);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.quick-start-format__options {
-  width: 100%;
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.quick-start-format__option {
-  flex: 1 1 240px;
-  padding: 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: none;
-}
-
-.quick-start-format__option:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  border-color: rgba(0, 0, 0, 0.15);
-}
-
-.quick-start-format__actions {
-  display: flex;
-  justify-content: flex-end;
-}
+/* QuickStartPanel 样式已迁移到组件内部 */
 
 /* 摘要栏的滚动条样式 */
 .md-metainfo :deep(.el-scrollbar__wrap) {

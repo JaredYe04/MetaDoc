@@ -781,7 +781,9 @@
       "pdfFileNotFound": "PDF file not found",
       "pdfSaved": "PDF saved to: {path}",
       "savePdfFailed": "Failed to save PDF",
-      "refreshSuccess": "PDF refreshed"
+      "refreshSuccess": "PDF refreshed",
+      "pdfFileNotFoundOrInaccessible": "PDF files do not exist or cannot be accessed",
+      "pdfLoadFailed": "Could not close temporary folder: %s"
     },
     "pdfMenu": {
       "refresh": "Refresh",

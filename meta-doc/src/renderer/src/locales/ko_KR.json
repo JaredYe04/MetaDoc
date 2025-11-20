@@ -769,7 +769,9 @@
       "pdfSaved": "PDF 파일 : {path}",
       "refreshSuccess": "PDF 새로 고침",
       "savePdfFailed": "PDF 저장 실패",
-      "textNotFound": "텍스트가 없습니다 : {text}"
+      "textNotFound": "텍스트가 없습니다 : {text}",
+      "pdfFileNotFoundOrInaccessible": "PDF 파일은 존재하지 않거나 접근할 수 없습니다.",
+      "pdfLoadFailed": "임시 폴더를 닫지 않을 수 있었습니다: 100%년"
     },
     "pages": "(주)",
     "pdfEmpty": "LaTeX 코드를 올바르게 컴파일하십시오. PDF는 여기에 표시됩니다.",

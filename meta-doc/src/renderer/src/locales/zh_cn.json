@@ -869,6 +869,8 @@
             "directoryOpened":"目录已打开",
             "openDirectoryFailed":"打开目录失败",
             "pdfFileNotFound":"PDF文件不存在",
+            "pdfFileNotFoundOrInaccessible":"PDF文件不存在或无法访问",
+            "pdfLoadFailed":"PDF加载失败：{reason}",
             "pdfSaved":"PDF已保存到：{path}",
             "savePdfFailed":"保存PDF失败",
             "refreshSuccess":"PDF已刷新"

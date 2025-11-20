@@ -14,7 +14,7 @@ async function loadPromptsMap(): Promise<Record<string, any>> {
 
   try {
     const [
-      zh_cn_prompts,
+      zh_CN_prompts,
       en_US_prompts,
       ja_JP_prompts,
       ko_KR_prompts,
@@ -30,7 +30,7 @@ async function loadPromptsMap(): Promise<Record<string, any>> {
     ]);
 
     promptsMapCache = {
-      'zh_CN': zh_cn_prompts.default || zh_cn_prompts,
+      'zh_CN': zh_CN_prompts.default || zh_CN_prompts,
       'en_US': en_US_prompts.default || en_US_prompts,
       'ja_JP': ja_JP_prompts.default || ja_JP_prompts,
       'ko_KR': ko_KR_prompts.default || ko_KR_prompts,

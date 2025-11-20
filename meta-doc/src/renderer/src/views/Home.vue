@@ -411,21 +411,23 @@ const handleCloseTab = (id: string) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
   width: 100%;
   height: 100%;
-  padding: 32px 24px;
+  padding: 16px 24px;
   box-sizing: border-box;
   /* 确保内容在 canvas 之上 */
   position: relative;
   z-index: 1;
+  overflow: auto;
 }
 
 .main-letter {
-  font-size: 80px;
+  font-size: 48px;
   font-weight: 700;
   color: rgb(65, 105, 225);
   margin: 0;
+  padding: 8px 0;
   transition: color 0.3s ease;
 }
 
@@ -437,7 +439,7 @@ const handleCloseTab = (id: string) => {
   display: flex;
   gap: 16px;
   padding: 20px 32px;
-  border-radius: 16px;
+  border-radius: 4px;
 }
 
 .document-preview {
@@ -455,7 +457,7 @@ const handleCloseTab = (id: string) => {
   height: 15vh;
   max-height: 15vh;
   overflow: auto;
-  border-radius: 12px;
+  border-radius: 4px;
 }
 
 .md-title {
@@ -471,8 +473,8 @@ const handleCloseTab = (id: string) => {
   height: 60vh;
   max-height: 60vh;
   width: 100%;
-  border: 1px #cccccc44 solid;
-  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
 }
 
 .md-preview-container {
@@ -495,12 +497,13 @@ const handleCloseTab = (id: string) => {
 
 .quick-start-format {
   width: 60vw;
-  padding: 32px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  border-radius: 16px;
+  gap: 16px;
+  border-radius: 4px;
   backdrop-filter: blur(20px) brightness(1.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .quick-start-format__options {
@@ -514,15 +517,16 @@ const handleCloseTab = (id: string) => {
 .quick-start-format__option {
   flex: 1 1 240px;
   padding: 20px;
-  border-radius: 16px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: none;
 }
 
 .quick-start-format__option:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.15);
 }
 
 .quick-start-format__actions {

@@ -279,7 +279,7 @@
 }
 </style>
 <script setup>
-import { ref, computed, onMounted, watch, onBeforeMount } from 'vue'
+import { ref, computed, onMounted, watch, onBeforeMount, onActivated, nextTick } from 'vue'
 import { AddIcon } from 'tdesign-icons-vue-next'
 import { CopyDocument, Delete, DocumentCopy, Edit, Picture } from '@element-plus/icons-vue'
 import '../assets/tool-group.css'
@@ -597,64 +597,210 @@ function duplicateScheme(id) {
     }
 }
 async function setActive(id) {
-    activeSchemeId.value = id
-    selectedEngine.value = activeScheme.value.engine
-    selectedType.value = activeScheme.value.type
-    eventBus.emit('sync-editor-theme')
-    //initVditor()
-    //logger.log(activeScheme.value)
-    await refreshVditor();
+    try {
+        activeSchemeId.value = id
+        selectedEngine.value = activeScheme.value.engine
+        selectedType.value = activeScheme.value.type
+        eventBus.emit('sync-editor-theme')
+        
+        // 只有在 Vditor 已初始化时才刷新
+        if (vditorInitialized) {
+            await refreshVditor();
+        } else {
+            // 如果 Vditor 未初始化，尝试初始化
+            const initSuccess = await initVditor();
+            if (initSuccess) {
+                await refreshVditor();
+            }
+        }
+    } catch (error) {
+        logger.warn('设置活动方案失败', error);
+    }
 }
 const graphRef = ref(null)
 let isInit = false
+let vditorInitialized = false
+
+// 检查 Vditor 是否完全初始化
+function isVditorReady() {
+    if (!graphRef.value) return false;
+    try {
+        // 检查 Vditor 实例的关键属性是否存在
+        // Vditor 初始化后会有 currentMode 和 options 等属性
+        const vditor = graphRef.value;
+        return vditor && 
+               typeof vditor.setValue === 'function' && 
+               typeof vditor.setTheme === 'function' &&
+               (vditor.currentMode !== undefined || vditor.options !== undefined);
+    } catch (e) {
+        logger.debug('检查 Vditor 状态时出错', e);
+        return false;
+    }
+}
+
+// 等待 Vditor 完全初始化
+async function waitForVditorReady(maxWait = 5000) {
+    const startTime = Date.now();
+    while (!isVditorReady() && (Date.now() - startTime) < maxWait) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return isVditorReady();
+}
+
 async function initVditor() {
-    let cdn = '';
-    if (isElectronEnv()) {
-        cdn = localVditorCDN;
+    try {
+        // 检查 DOM 元素是否存在
+        const graphElement = document.getElementById('graph');
+        if (!graphElement) {
+            logger.warn('graph DOM 元素不存在，延迟初始化 Vditor');
+            return false;
+        }
+        
+        // 检查元素是否可见（如果组件在后台预加载，可能不可见）
+        const isVisible = graphElement.offsetWidth > 0 && graphElement.offsetHeight > 0;
+        if (!isVisible) {
+            logger.debug('graph DOM 元素不可见，可能组件在后台预加载，延迟初始化 Vditor');
+            return false;
+        }
+
+        let cdn = '';
+        if (isElectronEnv()) {
+            cdn = localVditorCDN;
+        }
+        else {
+            cdn = vditorCDN;
+        }
+        
+        graphRef.value = new Vditor('graph', {
+            mode: 'wysiwyg',
+            theme: themeState.currentTheme.vditorTheme,
+            cdn: cdn,
+            toolbar: [],
+            value: activeScheme.value?.code || '',
+            input: async (value) => {
+                if (activeScheme.value) {
+                    activeScheme.value.code = value;
+                }
+            },
+        });
+        
+        // 等待 Vditor 完全初始化
+        await waitForVditorReady();
+        vditorInitialized = isVditorReady();
+        
+        if (vditorInitialized) {
+            logger.debug('Vditor 初始化成功');
+        } else {
+            logger.warn('Vditor 初始化超时或失败');
+        }
+        
+        return vditorInitialized;
+    } catch (error) {
+        logger.error('初始化 Vditor 失败', error);
+        vditorInitialized = false;
+        return false;
     }
-    else {
-        cdn = vditorCDN;
+}
+
+// 初始化 Vditor 和加载 schemes 的通用函数
+async function initializeComponent() {
+    // 先初始化 Vditor，等待完成后再加载 schemes
+    const initSuccess = await initVditor();
+    
+    if (initSuccess) {
+        // 只有在 Vditor 初始化成功后才加载 schemes
+        loadSchemes();
+    } else {
+        // 如果初始化失败，仍然加载 schemes，但不调用 refreshVditor
+        const data = localStorage.getItem(STORAGE_KEY);
+        schemes.value = data ? JSON.parse(data) : [];
+        if (schemes.value.length === 0) {
+            createDefaultSchemeWithoutVditor();
+        } else {
+            activeSchemeId.value = schemes.value[0].id;
+        }
     }
-    graphRef.value = new Vditor('graph', {
-        mode: 'wysiwyg',
-        theme: themeState.currentTheme.vditorTheme,
-        cdn: cdn,
-        toolbar: [],
-        value: activeScheme.value.code,
-        input: async (value) => {
-            activeScheme.value.code = value;
-        },
-    })
 }
 
 onMounted(async () => {
-
+    await initializeComponent();
 
     eventBus.on('sync-editor-theme', async () => {
-        await new Promise(
-            (resolve) => {
-                //一直等待，直到vditor实例化完成
-                const interval = setInterval(() => {
-                    if (graphRef.value) {
-                        clearInterval(interval)
-                        resolve()
-                    }
-                }, 100)
+        try {
+            // 等待 Vditor 完全初始化
+            const isReady = await waitForVditorReady();
+            if (!isReady) {
+                logger.debug('Vditor 未就绪，跳过主题同步');
+                return;
             }
-        ).then(() => {
-            graphRef.value.setTheme(themeState.currentTheme.vditorTheme, themeState.currentTheme.vditorTheme, themeState.currentTheme.codeTheme);
-            graphRef.value.setValue(activeScheme.value.code)
-        })
-
+            
+            if (graphRef.value && isVditorReady()) {
+                graphRef.value.setTheme(
+                    themeState.currentTheme.vditorTheme, 
+                    themeState.currentTheme.vditorTheme, 
+                    themeState.currentTheme.codeTheme
+                );
+                if (activeScheme.value?.code) {
+                    graphRef.value.setValue(activeScheme.value.code);
+                }
+            }
+        } catch (error) {
+            logger.warn('同步编辑器主题失败', error);
+        }
     });
-    initVditor()
-    loadSchemes()
-    //graphRef.value.setValue(activeScheme.value.code)
 })
 
+// 如果组件使用了 keep-alive，在激活时重新初始化（如果之前失败）
+onActivated(async () => {
+    if (!vditorInitialized) {
+        await nextTick();
+        // 如果 Vditor 未初始化，尝试重新初始化
+        const initSuccess = await initVditor();
+        if (initSuccess && activeScheme.value) {
+            await refreshVditor();
+        }
+    }
+})
+
+// 创建默认方案但不调用 setActive（避免触发 refreshVditor）
+function createDefaultSchemeWithoutVditor() {
+    const defaultId = Date.now().toString();
+    const defaultEngine = engines[0];
+    const defaultType = graphEngineConfig.find(e => e.name === defaultEngine)['graph-supported'][0];
+    const defaultSpecialPrompt = graphEngineConfig.find(e => e.name === defaultEngine)['special-prompt'] || '';
+
+    const defaultScheme = {
+        id: defaultId,
+        name: t('aigraph.graph.default_chart'),
+        engine: defaultEngine,
+        type: defaultType,
+        specialPrompt: defaultSpecialPrompt,
+        prompt: '',
+        code: ''
+    };
+
+    schemes.value.push(defaultScheme);
+    activeSchemeId.value = defaultId;
+    saveSchemes();
+}
+
 async function refreshVditor() {
-    if (graphRef.value)
-        graphRef.value.setValue(activeScheme.value.code)
+    try {
+        if (!graphRef.value) {
+            return;
+        }
+        
+        // 检查 Vditor 是否完全初始化
+        if (!isVditorReady()) {
+            logger.debug('Vditor 未就绪，跳过 refreshVditor');
+            return;
+        }
+        
+        const code = activeScheme.value?.code || '';
+        graphRef.value.setValue(code);
+    } catch (error) {
+        logger.warn('刷新 Vditor 失败', error);
+    }
 }
 function onEngineChange(engine) {
     selectedEngine.value = engine
@@ -698,8 +844,13 @@ async function generateCode() {
     watch(
         () => codeRef.value,
         (newCode) => {
-            activeScheme.value.code = newCode
-            refreshVditor()
+            if (activeScheme.value) {
+                activeScheme.value.code = newCode
+                // 只有在 Vditor 已初始化时才刷新
+                if (vditorInitialized) {
+                    refreshVditor()
+                }
+            }
         },
         { immediate: true }
     )
@@ -725,7 +876,10 @@ watch(
     () => activeScheme.value && activeScheme.value.code,
     () => {
         saveSchemes()
-        refreshVditor()
+        // 只有在 Vditor 已初始化时才刷新
+        if (vditorInitialized) {
+            refreshVditor()
+        }
     },
     { deep: true }
 )

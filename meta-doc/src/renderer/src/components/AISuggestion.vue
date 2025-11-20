@@ -22,15 +22,48 @@ const { t } = useI18n()
 const logger = createRendererLogger('AISuggestion', {
   windowTypeProvider: () => getWindowType()
 })
-const { activeDocument } = useActiveDocument();
+const { activeDocument, activeTab } = useActiveDocument();
 const currentFormat = computed(() => activeDocument.value?.format ?? 'md');
 const props = defineProps({
   targetEl: { type: Object, required: true }, // 宿主元素 (contenteditable 或 textarea overlay)
   trigger: { type: Boolean }, // 是否触发补全
   rootNodeClass: { type: String, required: true }, // 根节点
   context: { type: Object, default: () => ({}) },
+  editorId: { type: String, default: null }, // 可选的编辑器 ID
 
 });
+
+// 辅助函数：根据 editorId 获取编辑器（参考 monaco-adapter.ts）
+function getEditorById(editorId) {
+  if (!editorId) return null;
+  const getEditors = monaco.editor.getEditors || (() => []);
+  const registry = getEditors();
+  const found = registry.find((instance) => instance.getId?.() === editorId);
+  return found ?? null;
+}
+
+// 获取当前活动的编辑器
+function getCurrentEditor() {
+  // 如果提供了 editorId，优先使用
+  if (props.editorId) {
+    const editor = getEditorById(props.editorId);
+    if (editor) return editor;
+  }
+  
+  // 否则尝试获取当前聚焦的编辑器
+  const getEditors = monaco.editor.getEditors || (() => []);
+  const registry = getEditors();
+  
+  // 查找当前聚焦的编辑器
+  for (const editor of registry) {
+    if (editor.hasTextFocus && editor.hasTextFocus()) {
+      return editor;
+    }
+  }
+  
+  // 如果找不到聚焦的编辑器，返回第一个（向后兼容）
+  return registry.length > 0 ? registry[0] : null;
+}
 
 const emits = defineEmits(["accepted", "cancelled", "reset","triggerSuggestion"]);
 
@@ -323,7 +356,7 @@ async function startSuggestion() {
     sel.addRange(currentRange);
   }  else if (currentFormat.value === 'tex') {
     // --- Monaco Overlay Widget 初始化 ---
-    const editor = monaco.editor.getEditors()[0];
+    const editor = getCurrentEditor();
     if (!editor) return;
     updateGhostText(editor,"");
     const widgetDom = document.createElement("span");
@@ -397,8 +430,10 @@ watch(() => aiText.value, (newValue) => {
     suggestionEl.textContent = newValue;
 
   } else if (currentFormat.value === 'tex') {
-    const editor = monaco.editor.getEditors()[0];
-    updateGhostText(editor,newValue);
+    const editor = getCurrentEditor();
+    if (editor) {
+      updateGhostText(editor,newValue);
+    }
     // // 更新 Overlay Widget 文本
     // suggestionEl.dom.textContent = newValue;
 
@@ -420,8 +455,10 @@ function resetSuggestion() {
         suggestionEl.remove();
     }
   } else if (currentFormat.value === 'tex') {
-    const editor = monaco.editor.getEditors()[0];
-    cancelGhostText(editor)
+    const editor = getCurrentEditor();
+    if (editor) {
+      cancelGhostText(editor);
+    }
     // suggestionEl.dom.remove();
     // suggestionEl.dom=null;
     // suggestionEl.editor.removeContentWidget(suggestionEl.widget);
@@ -453,8 +490,10 @@ function acceptSuggestion() {
       suggestionEl.remove();
   }
   else{
-      const editor = monaco.editor.getEditors()[0];
-      acceptGhostText(editor)
+      const editor = getCurrentEditor();
+      if (editor) {
+        acceptGhostText(editor);
+      }
   }
   emits("accepted", aiText.value);
   resetSuggestion();
@@ -538,7 +577,8 @@ onMounted(() => {
   eventBus.on("cancel-suggestion",()=>cancelSuggestion());
   if (currentFormat.value === 'tex') {
     eventBus.on('monaco-ready',()=>{
-        const editor = monaco.editor.getEditors()[0];
+        const editor = getCurrentEditor();
+        if (!editor) return;
         editor.onMouseDown(() => cancelSuggestion());
         editor.onKeyDown((e) =>handleMonacoKeydown(e));
       editor.addCommand(
@@ -562,8 +602,16 @@ onMounted(() => {
       );
       editor.onDidChangeCursorPosition((e) => {
         // e.position 是 monaco.Position 对象
-        const { lineNumber, column } = editor.value.getPosition()
-        logger.debug('光标位置', { lineNumber, column })
+        if (e.position) {
+          const { lineNumber, column } = e.position;
+          logger.debug('光标位置', { lineNumber, column });
+        } else {
+          // 如果事件中没有 position，尝试从编辑器获取
+          const position = editor.getPosition();
+          if (position) {
+            logger.debug('光标位置', { lineNumber: position.lineNumber, column: position.column });
+          }
+        }
       });
       
     })

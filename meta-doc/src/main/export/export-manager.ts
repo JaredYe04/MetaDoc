@@ -172,6 +172,41 @@ const convertHtmlToPdfBuffer = async (html: string): Promise<Buffer> => {
     
     logger.info(`图片加载完成: ${imagesLoaded}`);
     
+    // 在生成 PDF 之前，确保代码块完全展开，移除滚动限制
+    await win.webContents.executeJavaScript(`
+      (function() {
+        // 移除所有代码块的滚动限制
+        const codeBlocks = document.querySelectorAll('.md-editor-code pre code, pre code, .hljs');
+        codeBlocks.forEach(block => {
+          block.style.overflow = 'visible';
+          block.style.overflowX = 'visible';
+          block.style.overflowY = 'visible';
+          block.style.maxHeight = 'none';
+          block.style.height = 'auto';
+          
+          // 处理父级 pre 元素
+          const parentPre = block.closest('pre');
+          if (parentPre) {
+            parentPre.style.overflow = 'visible';
+            parentPre.style.maxHeight = 'none';
+            parentPre.style.height = 'auto';
+          }
+          
+          // 处理父级 .md-editor-code 容器
+          const parentCode = block.closest('.md-editor-code');
+          if (parentCode) {
+            parentCode.style.overflow = 'visible';
+            parentCode.style.maxHeight = 'none';
+          }
+        });
+        
+        // 额外等待一小段时间，确保样式已应用
+        return new Promise(resolve => setTimeout(resolve, 100));
+      })();
+    `);
+    
+    logger.info('代码块滚动限制已移除');
+    
     logger.info('开始生成 PDF');
     const pdfBuffer = await win.webContents.printToPDF({
       printBackground: true,

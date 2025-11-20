@@ -34,7 +34,7 @@ import HeadMenu from '../components/HeadMenu.vue'
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { getRecentDocs, getSetting } from '../utils/settings.js'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
-import { ElNotification } from 'element-plus'
+import { ElNotification, ElMessageBox } from 'element-plus'
 import { lightTheme, darkTheme } from '../utils/themes.js'
 import { useWorkspace } from '../stores/workspace'
 import {
@@ -67,6 +67,7 @@ const {
   activateTab,
   ensureDocument,
   markDocumentSaved,
+  removeTab,
 } = workspace
 
 const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value))
@@ -265,6 +266,36 @@ const handleNewDocumentRequest = () => {
 
 eventBus.on('new-doc', handleNewDocumentRequest)
 
+// 处理关闭当前活跃 Tab 的请求 - 在 Main.vue 中统一处理，逻辑与 WorkspaceTabs.vue 的 handleRemove 相同
+// 包括检查文档是否 dirty 和显示确认对话框
+const handleCloseActiveTabRequest = async () => {
+  if (workspace.uiLocked?.value === true) return;
+  const tabId = activeTabId.value;
+  if (!tabId) return;
+  
+  const doc = ensureDocument(tabId);
+  
+  if (doc?.dirty) {
+    try {
+      await ElMessageBox.confirm(
+        t('main.dialogs.closeTabMessage'),
+        t('main.dialogs.closeTabTitle'),
+        {
+          type: 'warning',
+          confirmButtonText: t('main.dialogs.closeTabConfirm'),
+          cancelButtonText: t('main.dialogs.closeTabCancel'),
+        },
+      );
+    } catch {
+      return; // 用户取消，不关闭
+    }
+  }
+  
+  removeTab(tabId);
+}
+
+eventBus.on('close-active-tab', handleCloseActiveTabRequest)
+
 eventBus.on('show-error', (message) => {
   ElNotification({
     title: t('main.notification.error.title'),
@@ -283,6 +314,7 @@ eventBus.on('show-warning', (message) => {
 onBeforeUnmount(() => {
   eventBus.off('workspace-open-document', workspaceOpenDocumentHandler)
   eventBus.off('new-doc', handleNewDocumentRequest)
+  eventBus.off('close-active-tab', handleCloseActiveTabRequest)
 })
 
 </script>

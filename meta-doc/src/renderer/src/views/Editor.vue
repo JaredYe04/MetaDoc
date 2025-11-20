@@ -68,9 +68,10 @@ const handleSaveAllAndQuit = async () => {
   }
 };
 
-const handleCloseActiveTabRequest = () => {
-  handleCloseTab(activeTabId.value);
-};
+// close-active-tab 事件已在 Main.vue 中统一处理，这里不再需要
+// const handleCloseActiveTabRequest = () => {
+//   handleCloseTab(activeTabId.value);
+// };
 
 watch(
   () => activeTabId.value,
@@ -84,18 +85,18 @@ watch(
 
 
 onMounted(() => {
-  // new-doc 事件已在 Main.vue 中统一处理，避免重复监听
+  // new-doc 和 close-active-tab 事件已在 Main.vue 中统一处理，避免重复监听
   // eventBus.on('new-doc', handleNewDocumentRequest);
+  // eventBus.on('close-active-tab', handleCloseActiveTabRequest);
   eventBus.on('save-all', handleSaveAllRequest);
   eventBus.on('save-all-and-quit', handleSaveAllAndQuit);
-  eventBus.on('close-active-tab', handleCloseActiveTabRequest);
 });
 
 onBeforeUnmount(() => {
   // eventBus.off('new-doc', handleNewDocumentRequest);
+  // eventBus.off('close-active-tab', handleCloseActiveTabRequest);
   eventBus.off('save-all', handleSaveAllRequest);
   eventBus.off('save-all-and-quit', handleSaveAllAndQuit);
-  eventBus.off('close-active-tab', handleCloseActiveTabRequest);
 });
 </script>
 

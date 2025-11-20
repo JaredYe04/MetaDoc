@@ -868,11 +868,58 @@ export const ConvertHtmlForPdf = async (md) => {
                     cdn: '${cdn}',
                 });
                 // 图表已经预渲染为图片，不需要再次渲染
+                
+                // 导出 PDF 时，移除代码块的滚动限制，让代码完全展开
+                // 等待渲染完成后执行
+                setTimeout(() => {
+                    const codeBlocks = previewElement.querySelectorAll('.md-editor-code pre code, pre code, .hljs');
+                    codeBlocks.forEach(block => {
+                        // 移除 overflow 限制，让代码完全展开
+                        block.style.overflow = 'visible';
+                        block.style.overflowX = 'visible';
+                        block.style.overflowY = 'visible';
+                        // 移除最大高度限制
+                        block.style.maxHeight = 'none';
+                        // 移除高度限制
+                        const parentPre = block.closest('pre');
+                        if (parentPre) {
+                            parentPre.style.overflow = 'visible';
+                            parentPre.style.maxHeight = 'none';
+                            parentPre.style.height = 'auto';
+                        }
+                        // 处理父级容器
+                        const parentCode = block.closest('.md-editor-code');
+                        if (parentCode) {
+                            parentCode.style.overflow = 'visible';
+                            parentCode.style.maxHeight = 'none';
+                        }
+                    });
+                }, 100);
             };
     </script>
     <style>
         body {
             font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+        }
+        /* 导出 PDF 时，确保代码块完全展开，无滚动条 */
+        .md-editor-code pre code,
+        pre code,
+        .hljs {
+            overflow: visible !important;
+            overflow-x: visible !important;
+            overflow-y: visible !important;
+            max-height: none !important;
+            height: auto !important;
+        }
+        .md-editor-code pre,
+        pre {
+            overflow: visible !important;
+            max-height: none !important;
+            height: auto !important;
+        }
+        .md-editor-code {
+            overflow: visible !important;
+            max-height: none !important;
         }
     </style>
 </body>

@@ -82,11 +82,63 @@ onMounted(async () => {
   window.addEventListener('beforeunload', () => {
     clearAiTasks()
   })
-  window.addEventListener('error', e => {
-    logger.error('Global error', e);
+  window.addEventListener('error', (e) => {
+    // 提取详细的错误信息
+    const errorInfo = {
+      message: e.message,
+      filename: e.filename,
+      lineno: e.lineno,
+      colno: e.colno,
+      error: e.error,
+      isTrusted: e.isTrusted,
+      // 尝试从 error 对象中提取更多信息
+      errorMessage: e.error?.message,
+      errorStack: e.error?.stack,
+      errorName: e.error?.name,
+    };
+    
+    // 过滤掉一些无害的错误
+    // 1. 资源加载失败（图片、字体等）
+    if (e.message?.includes('Failed to load resource') || 
+        e.message?.includes('net::ERR_')) {
+      return; // 静默忽略资源加载错误
+    }
+    
+    // 2. 跨域错误
+    if (e.message?.includes('CORS') || 
+        e.message?.includes('Cross-Origin')) {
+      return; // 静默忽略跨域错误
+    }
+    
+    // 3. 脚本加载错误（可能是外部资源）
+    if (e.filename && !e.filename.includes(window.location.origin) && 
+        !e.filename.startsWith('/') && !e.filename.startsWith('./')) {
+      logger.debug('External script error (ignored)', errorInfo);
+      return;
+    }
+    
+    // 记录其他错误
+    logger.error('Global error', errorInfo);
   });
-  window.addEventListener('unhandledrejection', e => {
-    logger.error('Unhandled rejection', e.reason);
+  window.addEventListener('unhandledrejection', (e) => {
+    const errorInfo = {
+      reason: e.reason,
+      // 尝试提取更多信息
+      errorMessage: e.reason?.message,
+      errorStack: e.reason?.stack,
+      errorName: e.reason?.name,
+      toString: String(e.reason),
+    };
+    
+    // 过滤 PDF.js 相关的错误（这些错误已经在组件中处理）
+    if (e.reason?.name === 'ResponseException' || 
+        e.reason?.name === 'MissingPDFException' ||
+        (e.reason?.message && e.reason.message.includes('retrieving PDF'))) {
+      logger.debug('PDF 加载错误（已在组件中处理）', errorInfo);
+      return;
+    }
+    
+    logger.error('Unhandled rejection', errorInfo);
   });
   // const windowType=route.query.windowType
   // initWindowType(windowType);

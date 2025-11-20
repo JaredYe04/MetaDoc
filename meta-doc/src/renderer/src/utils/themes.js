@@ -64,7 +64,7 @@ export const darkTheme = {
   vditorTheme: 'dark',//亮色版为'classic'，固定
   codeTheme: 'a11y-dark',//亮色版为'github'，固定
   titleMenuBackground: '#111111AA',//AI章节标题菜单背景色，直接使用主题色，透明度固定为AA
-  outlineBackground: '#bab0ac',//大纲背景色，应当与背景色形成对比，但是不能过于突出，建议使用主题色的变体或浅色调
+  outlineBackground: '#978882',//大纲背景色，应当与背景色形成对比，但是不能过于突出，建议使用主题色的变体或浅色调
   outlineNode: '#79706e',//大纲节点颜色，要和背景色形成对比，建议使用主题色的变体或深色调
   quickStartBackground1: '#66333311',//快速开始背景色1，建议使用主题色的变体或浅色调
   quickStartBackground2: '#33336611',//快速开始背景色2，在背景色1的基础上进行色彩偏移，与背景色1形成对比
@@ -125,6 +125,35 @@ const adjustSaturation = (hex, factor) => {
     Math.min(255, Math.max(0, adjust(g))),
     Math.min(255, Math.max(0, adjust(b)))
   );
+};
+
+// 辅助函数：将颜色转换为带透明度的版本
+export const colorWithOpacity = (color, opacity) => {
+  // 如果是 hex 颜色（如 #ffffff 或 #fff）
+  if (color.startsWith('#')) {
+    let hex = color.slice(1);
+    // 处理 3 位 hex（如 #fff）
+    if (hex.length === 3) {
+      hex = hex.split('').map(c => c + c).join('');
+    }
+    // 确保是 6 位 hex
+    if (hex.length === 6) {
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+  }
+  // 如果是 rgb 或 rgba 颜色
+  if (color.startsWith('rgb')) {
+    const match = color.match(/(\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+      const [, r, g, b] = match;
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+  }
+  // 其他情况直接返回原颜色
+  return color;
 };
 
 // 主函数：生成自定义主题

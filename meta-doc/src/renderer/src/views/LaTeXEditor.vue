@@ -542,6 +542,7 @@ let startX, startY, offsetX = 0, offsetY = 0;
 import * as pdfjsLib from "pdfjs-dist";
 import { wholeArticleContextPrompt } from "../utils/prompts.ts";
 let pdfInitialized = false;
+let pdfEventListenersAttached = false; // 标记事件监听器是否已绑定
 
 let ipcRenderer = null
 if (window && window.electron) {
@@ -553,18 +554,56 @@ if (window && window.electron) {
     //todo 说明当前环境不是electron环境，需要另外适配
 }
 let currentScale = 1;
-async function initPdfJs() {
-    const resourcePath = await ipcRenderer.invoke('resources-path')
-    pdfjsLib.GlobalWorkerOptions.workerSrc = resourcePath + "/pdf.worker.min.mjs";
-    const container = document.querySelector("#pdfContainer");
 
+// 将文件路径编码为 file:// URL
+// 注意：file:// URL 需要正确编码路径中的特殊字符（如 #、空格、中文字符等）
+function encodeFilePathToUrl(filePath) {
+    if (!filePath) return '';
+    
+    // 移除 file:/// 前缀（如果存在）
+    let path = filePath.replace(/^file:\/\/\//, '');
+    
+    // Windows 路径处理：将反斜杠转换为正斜杠
+    path = path.replace(/\\/g, '/');
+    
+    // 分割路径为各个部分，对每个部分进行编码
+    // 但保留路径分隔符和驱动器号（如 C:）
+    const parts = path.split('/');
+    const encodedParts = parts.map((part, index) => {
+        if (index === 0 && part.endsWith(':')) {
+            // Windows 驱动器号（如 C:）不需要编码
+            return part;
+        }
+        // 对路径的每一部分进行编码
+        // 使用 encodeURIComponent 编码，但需要处理一些特殊情况
+        return encodeURIComponent(part).replace(/%2F/g, '/');
+    });
+    
+    return `file:///${encodedParts.join('/')}`;
+}
+
+// 绑定 PDF 容器事件监听器
+function attachPdfEventListeners() {
+    // 如果已经绑定过，先移除旧的监听器（避免重复绑定）
+    if (pdfEventListenersAttached) {
+        return;
+    }
+    
+    const container = pdfContainer.value;
+    if (!container) {
+        logger.debug('PDF容器尚未准备好，延迟绑定事件');
+        return;
+    }
+    
+    logger.debug('绑定PDF容器事件监听器');
+    
     container.addEventListener("wheel", async (e) => {
         if (e.ctrlKey || e.metaKey) {
             // Ctrl/Cmd + 滚轮：缩放
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.1 : 0.1; // 上滚放大，下滚缩小
-        currentScale = Math.min(Math.max(currentScale + delta, 0.2), 5); // 限制缩放范围
-        await renderPage(currentPdfPage.value, currentScale);
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1; // 上滚放大，下滚缩小
+            currentScale = Math.min(Math.max(currentScale + delta, 0.2), 5); // 限制缩放范围
+            await renderPage(currentPdfPage.value, currentScale);
         } else {
             // 普通滚轮：翻页
             e.preventDefault();
@@ -615,13 +654,30 @@ async function initPdfJs() {
         isDragging = false;
         container.classList.remove("dragging");
     });
+    
+    pdfEventListenersAttached = true;
+    logger.debug('PDF事件监听器绑定完成');
+}
+
+async function initPdfJs() {
+    const resourcePath = await ipcRenderer.invoke('resources-path')
+    pdfjsLib.GlobalWorkerOptions.workerSrc = resourcePath + "/pdf.worker.min.mjs";
+    
     if(currentPath.value && currentPath.value.toLowerCase().endsWith(".tex")){
-        pdfUrl.value=`file:///${currentPath.value.toLowerCase().replace('.tex','.pdf')}`;
+        const pdfPath = currentPath.value.toLowerCase().replace('.tex','.pdf');
+        pdfUrl.value = encodeFilePathToUrl(pdfPath);
     }else{
         pdfUrl.value="";
     }
-    loadPdf(pdfUrl.value);
+    
     pdfInitialized = true;
+    
+    // 等待容器准备好后再绑定事件和加载PDF
+    await nextTick();
+    attachPdfEventListeners();
+    if (pdfUrl.value) {
+        loadPdf(pdfUrl.value);
+    }
 }
 const pdfZoomIn = async () => {
     currentScale = Math.min(Math.max(currentScale + 0.1, 0.2), 5); // 限制缩放范围
@@ -679,8 +735,28 @@ watch(
             textBuffer = currentTex.value ?? '';
             return;
         }
-        if (pdfUrl.value && pdfInitialized && pdfContainer.value) {
-            loadPdf(pdfUrl.value);
+        if (pdfUrl.value && pdfInitialized) {
+            // 确保事件监听器已绑定
+            nextTick(() => {
+                attachPdfEventListeners();
+                if (pdfContainer.value) {
+                    loadPdf(pdfUrl.value);
+                }
+            });
+        }
+    },
+    { immediate: true },
+);
+
+// 监听 PDF 容器和 URL 的变化，确保事件监听器在容器准备好时绑定
+watch(
+    [() => pdfContainer.value, () => pdfUrl.value],
+    ([container, url]) => {
+        if (container && url && pdfInitialized && !pdfEventListenersAttached) {
+            // 容器已准备好，URL 存在，且事件监听器未绑定
+            nextTick(() => {
+                attachPdfEventListeners();
+            });
         }
     },
     { immediate: true },
@@ -694,7 +770,8 @@ watch(
             pdfUrl.value = '';
             return;
         }
-        const nextUrl = `file:///${path.toLowerCase().replace('.tex', '.pdf')}`;
+        const pdfPath = path.toLowerCase().replace('.tex', '.pdf');
+        const nextUrl = encodeFilePathToUrl(pdfPath);
         pdfUrl.value = nextUrl;
         if (!isActive.value) return;
         if (pdfInitialized && pdfContainer.value) {
@@ -709,6 +786,8 @@ watch(
         //logger.debug("LaTeXEditor showPdfPanel changed", { visible })
         nextTick(() => {
             if (visible) {
+                // 当PDF面板显示时，确保事件监听器已绑定
+                attachPdfEventListeners();
                 ensurePdfWithinBounds();
             } else if (pdfResizableRef.value?.setSidebarSize) {
                 pdfResizableRef.value.setSidebarSize(LATEX_LAYOUT.pdf.minWidth);
@@ -1152,22 +1231,54 @@ async function loadPdf(url, preservePage = false) {
         return;
     }
     
+    // 确保事件监听器已绑定
+    await nextTick();
+    attachPdfEventListeners();
+    
     // 保存当前页码（如果要求保留）
     const savedPage = preservePage ? currentPdfPage.value : 1;
     
-    const loadingTask = pdfjsLib.getDocument(url);
-    pdfDoc = await loadingTask.promise;
-    //logger.log(pdfDoc.value)
-    totalPdfPages.value = pdfDoc.numPages;
-    
-    // 恢复或设置页码
-    const targetPage = preservePage ? Math.min(Math.max(savedPage, 1), pdfDoc.numPages) : 1;
-    currentPdfPage.value = targetPage;
-    inputPdfPage.value = targetPage;
-    renderPage(targetPage, currentScale);
-    
-    // 异步建立映射关系
-    buildPdfToSourceMapping();
+    try {
+        const loadingTask = pdfjsLib.getDocument(url);
+        pdfDoc = await loadingTask.promise;
+        //logger.log(pdfDoc.value)
+        totalPdfPages.value = pdfDoc.numPages;
+        
+        // 恢复或设置页码
+        const targetPage = preservePage ? Math.min(Math.max(savedPage, 1), pdfDoc.numPages) : 1;
+        currentPdfPage.value = targetPage;
+        inputPdfPage.value = targetPage;
+        renderPage(targetPage, currentScale);
+        
+        // 异步建立映射关系
+        buildPdfToSourceMapping();
+    } catch (error) {
+        // 捕获 PDF 加载错误，避免未处理的 rejection
+        logger.warn('加载 PDF 失败', { 
+            url, 
+            error: error.message || error,
+            errorName: error.name,
+            status: error.status
+        });
+        
+        // 如果是文件不存在或无法访问的错误，显示友好的提示
+        if (error.name === 'ResponseException' || error.status === 0) {
+            eventBus.emit('show-warning', 
+                t('latexEditor.notification.pdfLoadFailed', { 
+                    reason: t('latexEditor.notification.pdfFileNotFoundOrInaccessible')
+                })
+            );
+        } else {
+            eventBus.emit('show-error', 
+                t('latexEditor.notification.pdfLoadFailed', { 
+                    reason: error.message || String(error)
+                })
+            );
+        }
+        
+        // 清空 PDF URL，避免重复尝试加载
+        pdfUrl.value = '';
+    }
 }
 // 切换 PDF 显示
 function togglePdf() {
@@ -1198,7 +1309,7 @@ const compile = async () => {
     //logger.log(compileResult)
     if(compileResult.status==='success'){
         eventBus.emit("show-success",t("latexEditor.notification.compileSuccess"));
-        pdfUrl.value=(`file:///${compileResult.pdfPath}`);
+        pdfUrl.value = encodeFilePathToUrl(compileResult.pdfPath);
         
         // 重新加载PDF并建立映射
         await loadPdf(pdfUrl.value);

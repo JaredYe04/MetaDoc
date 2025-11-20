@@ -843,6 +843,12 @@ export function convertLatexToMarkdown(latex) {
             continue;
         }
 
+        // 跳过控制命令（不产生可见内容的命令）
+        if (CONTROL_COMMAND_REGEX.test(line)) {
+            flushListItem();
+            continue;
+        }
+
         if (IGNORED_INLINE_COMMAND_REGEX.test(line)) {
             continue;
         }
@@ -884,6 +890,8 @@ const LABEL_COMMAND_REGEX = /^\\label\{.*\}$/;
 const BEGIN_DOC = '\\begin{document}';
 const END_DOC = '\\end{document}';
 const IGNORED_INLINE_COMMAND_REGEX = /^\\(setlength|noindent|centering|raggedright|raggedleft|hspace|vspace|newline|bigskip|smallskip)\b/i;
+// 控制命令：这些命令不产生可见内容，应该被忽略
+const CONTROL_COMMAND_REGEX = /^\\(tableofcontents|listoffigures|listoftables|cleardoublepage|clearpage|newpage|thispagestyle|pagestyle|pagenumbering|setcounter|addtocounter|markboth|markright|phantomsection)\b/i;
 
 function sanitizeLatexInput(latex) {
     if (!latex) return '';
@@ -913,6 +921,10 @@ function sanitizeLatexInput(latex) {
         if (LABEL_COMMAND_REGEX.test(trimmed)) {
             continue;
         }
+        // 过滤控制命令（不产生可见内容的命令）
+        if (CONTROL_COMMAND_REGEX.test(trimmed)) {
+            continue;
+        }
         if (trimmed === BEGIN_DOC || trimmed === END_DOC) {
             continue;
         }
@@ -926,6 +938,23 @@ function sanitizeLatexInput(latex) {
 function transformInlineLatex(line) {
     if (!line) return '';
     let text = line;
+    
+    // 先移除控制命令（不产生可见内容的命令）
+    text = text.replace(/\\tableofcontents\b/g, '')
+        .replace(/\\listoffigures\b/g, '')
+        .replace(/\\listoftables\b/g, '')
+        .replace(/\\cleardoublepage\b/g, '')
+        .replace(/\\clearpage\b/g, '')
+        .replace(/\\newpage\b/g, '')
+        .replace(/\\thispagestyle\{[^}]*\}\b/g, '')
+        .replace(/\\pagestyle\{[^}]*\}\b/g, '')
+        .replace(/\\pagenumbering\{[^}]*\}\b/g, '')
+        .replace(/\\setcounter\{[^}]*\}\{[^}]*\}\b/g, '')
+        .replace(/\\addtocounter\{[^}]*\}\{[^}]*\}\b/g, '')
+        .replace(/\\markboth\{[^}]*\}\{[^}]*\}\b/g, '')
+        .replace(/\\markright\{[^}]*\}\b/g, '')
+        .replace(/\\phantomsection\b/g, '');
+    
     text = text
         .replace(/\\textbf\{([^{}]*)\}/g, '**$1**')
         .replace(/\\textit\{([^{}]*)\}/g, '*$1*')

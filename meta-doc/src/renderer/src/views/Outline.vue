@@ -178,12 +178,15 @@
                 </el-button>
               </el-tooltip>
             </div>
-            <el-scrollbar v-if="nodeMenuToggle &&
-              !pendingAccept" class=""
-              style="max-height: 10vh;  height: 8vh; overflow: auto; margin-top: 10px; padding:5px; border-radius: 8px;">
-              <el-input :autosize="{ minRows: 5 }" v-model="userPrompt" style="height: 8vh" type="textarea"
-                :disabled="generating" :placeholder="t('outline.userPromptPlaceholder')" clearable />
-            </el-scrollbar>
+            <PromptTextarea 
+              v-if="nodeMenuToggle && !pendingAccept"
+              v-model="userPrompt"
+              :disabled="generating"
+              :placeholder="t('outline.userPromptPlaceholder')"
+              :autosize="{ minRows: 3 }"
+              max-height="10vh"
+              height="8vh"
+            />
 
             <div class="button-group" v-if="pendingAccept">
               <el-tooltip :content="$t('outline.accept')" placement="top">
@@ -317,6 +320,7 @@
 import { ref, reactive, watch, computed, onMounted, type Ref } from 'vue';
 import { ElButton, ElDialog, ElMessageBox, ElNotification } from 'element-plus'; // 引入 Element Plus 组件
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
+import PromptTextarea from '../components/base/PromptTextarea.vue';
 import { tabs, useWorkspace } from '../stores/workspace';
 import eventBus, { getWindowType } from '../utils/event-bus.js';
 import '../assets/aero-div.css';

@@ -18,7 +18,7 @@
     backdrop-filter: blur(15px) brightness(1.05); /* 增加模糊和亮度 */
     -webkit-backdrop-filter: blur(15px) brightness(1.05);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* 增加阴影 */
-    transform: scale(1.005); /* 微缩放 */
+
     color: black;
   }
   

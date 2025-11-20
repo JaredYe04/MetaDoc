@@ -188,6 +188,7 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
       options: { ...this.state.options },
       matches: this.state.matches.map((match) => ({
         range: { ...match.range },
+        anchor: match.anchor,
         matchText: match.matchText,
         groups: match.groups ? [...match.groups] : undefined,
       })),
@@ -1024,10 +1025,10 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
         range: this.offsetsToRange(start, end, lineStarts),
         matchText: value,
         groups: options.useRegex ? [...match] : undefined,
+        anchor: null as unknown as TextAnchor
       });
-      
+
       processedCount++;
-      // 每处理一批，检查是否需要让出控制权（在实际异步搜索中，这会通过 requestIdleCallback 处理）
       // 这里保持同步，但通过分批处理来减少单次阻塞时间
     }
     

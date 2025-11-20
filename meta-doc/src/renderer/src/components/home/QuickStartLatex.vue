@@ -9,17 +9,12 @@
       :style="containerStyle"
     >
       <div class="quick-start__header">
-        <el-tooltip :content="$t('home.tooltip.close')" placement="top">
-          <el-button @click="emitClose" class="aero-btn" round type="danger" size="small">
-          </el-button>
-        </el-tooltip>
+        <el-button @click="emitClose" class="aero-btn" plain round type="danger" size="small"/>
       </div>
 
       <div class="quick-start__content">
         <div class="quick-start__editor">
-          <el-scrollbar class="generated-md-container">
-            <MarkdownItEditor :source="generatedText" @mousedown.stop style="box-shadow: none;" />
-          </el-scrollbar>
+          <div class="generated-latex-container" ref="editorContainerRef"></div>
         </div>
 
         <div class="quick-start__divider"></div>
@@ -63,13 +58,14 @@
             <label class="interactive-text quick-start__label" :style="labelStyle">
               {{ $t('home.aiAssistantLabel') }}
             </label>
-            <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left">
+            <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left" >
               <el-slider
                 v-model="temperature"
                 :marks="marks"
                 :min="0"
                 :max="100"
                 :disabled="generating || generated"
+                class="temperature-slider-wrapper"
               />
             </el-tooltip>
 
@@ -113,7 +109,6 @@
               />
             </el-tooltip>
 
-            <VoiceInput @onSpeechRecognized="onSpeechRecognized" :disabled="generating || generated" />
 
             <div class="aero-div quick-start__suggestions">
               <label class="interactive-text quick-start__suggestion-label" :style="labelStyle">
@@ -173,10 +168,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import VoiceInput from '../VoiceInput.vue'
-import MarkdownItEditor from 'vue3-markdown-it'
+import * as monaco from 'monaco-editor'
 import { Check, Promotion, Refresh, RefreshLeft } from '@element-plus/icons-vue'
 import {
   DataAnalysis,
@@ -193,9 +188,9 @@ import { useActiveDocument } from '../../composables/useActiveDocument'
 import { extractOutlineTreeFromMarkdown } from '../../utils/md-utils'
 import { DEFAULT_OUTLINE_TREE } from '../../constants/document'
 import { convertLatexToMarkdown } from '../../utils/latex-utils'
-import { themeState } from '../../utils/themes'
+import { themeState, mixColors } from '../../utils/themes'
 import eventBus, { getWindowType } from '../../utils/event-bus'
-import { generateArticlePrompt, suggestionPresets, presets } from '../../utils/prompts'
+import { generateLatexPrompt, getSuggestionPresets, getPresets } from '../../utils/prompts'
 import { getSetting } from '../../utils/settings'
 import { ai_types, createAiTask } from '../../utils/ai_tasks'
 import { createRendererLogger } from '../../utils/logger'
@@ -287,6 +282,8 @@ const defaultText = t('home.defaultLatexText')
 const generatedText = ref(currentTex.value || defaultText)
 const generated = ref(false)
 const generating = ref(false)
+const editorContainerRef = ref<HTMLElement | null>(null)
+let editorId: string | null = null
 
 const segmentOptions = computed(() => [t('home.tab.aiAssistant'), t('home.tab.documentInfo')])
 
@@ -294,10 +291,11 @@ function generateRandomButtons(): { label: string; prompt: string }[] {
   const randomCount = 6
   const randomButtons: { label: string; prompt: string }[] = []
   const used = new Set<number>()
-  while (randomButtons.length < randomCount && used.size < suggestionPresets.length) {
-    const index = Math.floor(Math.random() * suggestionPresets.length)
+  const presets = getSuggestionPresets()
+  while (randomButtons.length < randomCount && used.size < presets.length) {
+    const index = Math.floor(Math.random() * presets.length)
     if (!used.has(index)) {
-      randomButtons.push(suggestionPresets[index])
+      randomButtons.push(presets[index])
       used.add(index)
     }
   }
@@ -316,24 +314,31 @@ const onSpeechRecognized = (text: string) => {
   userPrompt.value = text
 }
 
-const querySearch = (queryString: string, cb: (results: { value: string }[]) => void) => {
-  const results = queryString
-    ? presets.filter((preset) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
-    : presets
-  cb(results)
-}
+  const querySearch = (queryString: string, cb: (results: { value: string }[]) => void) => {
+    const presetList = getPresets()
+    const results = queryString
+      ? presetList.filter((preset) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
+      : presetList
+    cb(results)
+  }
 
 const buildLatexPrompt = () => {
-  const base = generateArticlePrompt(mood.value, userPrompt.value)
-  return `${base}\n请使用规范的 LaTeX 语法输出完整文档，包括必要的章节结构，禁止输出额外解释。`
+  return generateLatexPrompt(mood.value, userPrompt.value)
 }
 
 const generate = async () => {
+  workspace.lockUI?.()
   generating.value = true
   generated.value = false
 
   const prompt = buildLatexPrompt()
   const enableKnowledgeBase = await getSetting('enableKnowledgeBase')
+  // 清空内容，准备接收流式数据
+  generatedText.value = ''
+  const editor = getEditor()
+  if (editor) {
+    editor.setValue('')
+  }
   const { done } = createAiTask(
     userPrompt.value,
     prompt,
@@ -341,7 +346,7 @@ const generate = async () => {
     ai_types.answer,
     'quick-start-latex',
     enableKnowledgeBase,
-    { temperature: temperature.value / 100 }
+    { stream: true, temperature: temperature.value / 100 }
   )
 
   try {
@@ -351,6 +356,7 @@ const generate = async () => {
     logger.warn('LaTeX 任务失败或取消', error)
   } finally {
     generating.value = false
+    workspace.unlockUI?.()
   }
 }
 
@@ -359,15 +365,43 @@ const reset = () => {
   generatedText.value = currentTex.value || defaultText
   userPrompt.value = ''
   tab.value = segmentOptions.value[0]
+  const editor = getEditor()
+  if (editor) {
+    editor.setValue(generatedText.value)
+  }
 }
 
-const accept = () => {
+// 清理编辑器实例
+const cleanupEditor = () => {
+  if (editorId) {
+    try {
+      const editors = (monaco.editor as any).getEditors?.() ?? []
+      const editor = editors.find((e: monaco.editor.IStandaloneCodeEditor) => e.getId?.() === editorId)
+      if (editor) {
+        editor.dispose()
+      }
+    } catch (error) {
+      logger.warn('清理快速开始编辑器失败', error)
+    }
+    editorId = null
+  }
+}
+
+const accept = async () => {
   const tabId = activeTabId.value
   if (tabId) {
     const latexContent = generatedText.value
+    // 先更新文档内容
     currentTex.value = latexContent
     updateDocumentLastView(tabId, 'article')
   }
+  
+  // 在导航前清理快速开始的编辑器，避免引用问题
+  // 快速开始的编辑器是临时的，应该被销毁
+  cleanupEditor()
+  
+  // 使用 nextTick 确保清理完成后再导航
+  await nextTick()
   eventBus.emit('nav-to', '/editor')
   emitClose()
 }
@@ -403,25 +437,174 @@ const labelStyle = computed(() => ({
   color: themeState.currentTheme.textColor
 }))
 
-onMounted(() => {
+const initMonacoEditor = async () => {
+  if (!editorContainerRef.value) return
+
+  // 设置 Monaco 环境
+  ;(window as any).MonacoEnvironment = {
+    getWorker: function (moduleId: string, label: string) {
+      let workerPath = ''
+      switch (label) {
+        case 'json':
+          workerPath = 'http://localhost:52521/monaco/language/json/json.worker.js'
+          break
+        case 'css':
+        case 'scss':
+        case 'less':
+          workerPath = 'http://localhost:52521/monaco/language/css/css.worker.js'
+          break
+        case 'html':
+        case 'handlebars':
+        case 'razor':
+          workerPath = 'http://localhost:52521/monaco/language/html/html.worker.js'
+          break
+        case 'typescript':
+        case 'javascript':
+          workerPath = 'http://localhost:52521/monaco/language/typescript/ts.worker.js'
+          break
+        default:
+          workerPath = 'http://localhost:52521/monaco/editor/editor.worker.js'
+      }
+      const blob = new Blob([`import("${workerPath}");`], { type: 'application/javascript' })
+      return new Worker(URL.createObjectURL(blob), { type: 'module' })
+    }
+  }
+
+  // 注册 LaTeX 语言
+  if (!monaco.languages.getLanguages().find(l => l.id === 'latex')) {
+    monaco.languages.register({ id: 'latex' })
+    monaco.languages.setMonarchTokensProvider('latex', {
+      defaultToken: '',
+      tokenPostfix: '.tex',
+      tokenizer: {
+        root: [
+          [/\\[a-zA-Z]+/, 'keyword'],
+          [/%.*$/, 'comment'],
+          [/\$[^$]*\$/, 'string'],
+          [/{|}/, 'delimiter'],
+          [/\[|\]/, 'delimiter'],
+          [/[^\s]+/, '']
+        ]
+      }
+    })
+  }
+
+  // 创建编辑器
+  const isDark = themeState.currentTheme.type === 'dark'
+  const editor = monaco.editor.create(editorContainerRef.value, {
+    value: generatedText.value,
+    language: 'latex',
+    theme: isDark ? 'vs-dark' : 'vs',
+    readOnly: true,
+    automaticLayout: true,
+    fontSize: 14,
+    wordWrap: 'on',
+    lineNumbers: 'on',
+    minimap: { enabled: false },
+    contextmenu: false,
+    scrollBeyondLastLine: false
+  })
+  
+  // 保存 editorId，不使用 ref
+  editorId = editor.getId()
+
+  // 同步主题
+  syncEditorTheme()
+}
+
+// 通过 editorId 获取编辑器实例，而不是使用 ref
+const getEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
+  if (!editorId) return null
+  const editors = (monaco.editor as any).getEditors?.() ?? []
+  const found = editors.find((e: monaco.editor.IStandaloneCodeEditor) => e.getId?.() === editorId)
+  return found ?? null
+}
+
+const syncEditorTheme = () => {
+  const editor = getEditor()
+  if (!editor) return
+  const isDark = themeState.currentTheme.type === 'dark'
+  const themeName = isDark ? 'vs-dark' : 'vs'
+  
+  // 定义自定义主题
+  const toMonacoColor = (color: string) => color.replace('#', '') || 'FFFFFF'
+  const deeperColor = (color: string) => {
+    if (isDark) {
+      return mixColors(color, '#000000', 0.3)
+    } else {
+      return mixColors(color, '#FFFFFF', 0.3)
+    }
+  }
+
+  monaco.editor.defineTheme('quickStartLatexTheme', {
+    base: themeName,
+    inherit: true,
+    rules: [
+      {
+        token: '',
+        background: toMonacoColor(deeperColor(themeState.currentTheme.background)),
+        fontStyle: ''
+      }
+    ],
+    colors: {
+      'editor.background': deeperColor(themeState.currentTheme.background),
+      'editor.foreground': themeState.currentTheme.textColor
+    }
+  })
+  monaco.editor.setTheme('quickStartLatexTheme')
+}
+
+onMounted(async () => {
   refreshButtons()
   tab.value = segmentOptions.value[0]
   eventBus.emit('theme-changed')
+  
+  await nextTick()
+  initMonacoEditor()
+  
+  // 监听主题变化
+  eventBus.on('sync-editor-theme', syncEditorTheme)
 })
 
-eventBus.on('reset-quickstart', reset)
+watch(
+  () => generatedText.value,
+  (value) => {
+    const editor = getEditor()
+    if (editor) {
+      // 实时更新编辑器内容（流式传输时）
+      editor.setValue(value)
+      // 滚动到底部以显示最新内容
+      const model = editor.getModel()
+      if (model) {
+        editor.revealLine(model.getLineCount())
+      }
+    }
+  },
+  { immediate: true }
+)
 
 watch(
   () => currentTex.value,
   (value) => {
     if (!generated.value) {
-      generatedText.value = value || defaultText
+      const editor = getEditor()
+      if (editor) {
+        const newValue = value || defaultText
+        generatedText.value = newValue
+        editor.setValue(newValue)
+      }
     }
   }
 )
 
+eventBus.on('reset-quickstart', reset)
+
 onBeforeUnmount(() => {
   eventBus.off('reset-quickstart', reset)
+  eventBus.off('sync-editor-theme', syncEditorTheme)
+  
+  // 清理编辑器
+  cleanupEditor()
 })
 </script>
 
@@ -431,15 +614,20 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   height: 100vh;
+  overflow: auto;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .main-letter {
-  font-size: 50px;
+  font-size: 36px;
   font-weight: bold;
   color: rgb(65, 105, 225);
   transition: color 0.3s ease;
   background-color: transparent;
   cursor: pointer;
+  margin: 0;
+  padding: 8px 0;
 }
 
 .quick-start-container {
@@ -447,8 +635,8 @@ onBeforeUnmount(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  border: 1px solid #393939;
-  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
   backdrop-filter: blur(20px) brightness(1.05);
 }
 
@@ -462,7 +650,7 @@ onBeforeUnmount(() => {
 .quick-start__content {
   display: flex;
   flex: 1;
-  border-top: 1px dashed #ccc;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
   padding-top: 10px;
 }
 
@@ -471,16 +659,17 @@ onBeforeUnmount(() => {
   padding-right: 10px;
 }
 
-.generated-md-container {
-  max-height: 55vh;
+.generated-latex-container {
+  width: 100%;
   height: 55vh;
-  overflow: auto;
+  min-height: 400px;
 }
 
 .quick-start__divider {
   width: 1px;
   margin: 0 10px;
   align-self: stretch;
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .quick-start__form {
@@ -492,9 +681,9 @@ onBeforeUnmount(() => {
 
 .tab-switch {
   --el-segmented-item-selected-color: var(--el-text-color-primary);
-  --el-segmented-item-selected-bg-color: #2243fd;
-  --el-border-radius-base: 16px;
-  opacity: 0.8;
+  --el-segmented-item-selected-bg-color: var(--el-color-primary);
+  --el-border-radius-base: 4px;
+  opacity: 0.9;
 }
 
 .quick-start__panel {
@@ -504,7 +693,15 @@ onBeforeUnmount(() => {
   padding: 10px;
   height: 47vh;
   width: 18vw;
+  border-radius: 4px;
 }
+
+.temperature-slider-wrapper {
+  margin-bottom: 20px;
+  width: 80%;
+  align-self: center;
+}
+
 
 .quick-start__label {
   width: 100%;
@@ -539,8 +736,10 @@ onBeforeUnmount(() => {
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.05);
   box-shadow: none;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .quick-start__suggestion-label {
@@ -576,5 +775,31 @@ onBeforeUnmount(() => {
   gap: 12px;
   justify-content: center;
   align-items: center;
+}
+
+/* 修复输入框border颜色，使其不固定 */
+.aero-input :deep(.el-input__wrapper) {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.aero-input :deep(.el-input__wrapper:hover) {
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+.aero-input :deep(.el-input__wrapper.is-focus) {
+  border-color: var(--el-color-primary) !important;
+}
+
+/* 修复textarea的border */
+.aero-input :deep(.el-textarea__inner) {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.aero-input :deep(.el-textarea__inner:hover) {
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+.aero-input :deep(.el-textarea__inner:focus) {
+  border-color: var(--el-color-primary) !important;
 }
 </style>

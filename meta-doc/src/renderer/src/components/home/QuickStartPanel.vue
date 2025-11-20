@@ -2,9 +2,7 @@
   <div class="quick-start-overlay" :style="overlayStyle">
     <div class="quick-start-panel aero-div">
       <div class="panel-header">
-        <el-tooltip :content="$t('home.tooltip.close')" placement="top">
-          <el-button @click="handleClose" class="aero-btn" round type="danger" size="small" />
-        </el-tooltip>
+        <el-button @click="handleClose" class="aero-btn" plain round type="danger" size="small" />
       </div>
 
       <div v-if="stage === 'select'" class="format-selector">
@@ -15,7 +13,7 @@
             :key="option.id"
             class="format-card"
             shadow="hover"
-            @click="selectFormat(option.id)"
+            @click="selectFormat(option.id as 'md' | 'tex')"
           >
             <h3>{{ option.title }}</h3>
             <p>{{ option.description }}</p>
@@ -62,13 +60,14 @@
 
           <div v-else class="ai-assistant aero-div">
             <label class="section-title interactive-text">{{ $t('home.aiAssistantLabel') }}</label>
-            <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left">
+            <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left" >
               <el-slider
                 v-model="temperature"
                 :marks="marks"
                 :min="0"
                 :max="100"
                 :disabled="generated || generating"
+                class="temperature-slider-wrapper"
               />
             </el-tooltip>
             <el-tooltip :content="$t('home.tooltip.selectMood')" placement="left">
@@ -98,7 +97,6 @@
                 :autosize="{ minRows: 3, maxRows: 3 }"
               />
             </el-tooltip>
-            <VoiceInput @onSpeechRecognized="onSpeechRecognized" :disabled="generated || generating" />
             <div class="suggestion-container aero-div">
               <label class="section-title interactive-text">{{ $t('home.suggestionLabel') }}</label>
               <div class="suggestion-grid">
@@ -146,6 +144,7 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import VoiceInput from '../VoiceInput.vue'
+// @ts-expect-error: Missing types for vue3-markdown-it
 import MarkdownItEditor from 'vue3-markdown-it'
 import {
   DataAnalysis,
@@ -161,7 +160,7 @@ import {
   Refresh,
   RefreshLeft
 } from '@element-plus/icons-vue'
-import { generateArticlePrompt, presets, suggestionPresets } from '../../utils/prompts'
+import { generateArticlePrompt, getPresets, getSuggestionPresets } from '../../utils/prompts'
 import { useWorkspace } from '../../stores/workspace'
 import { useActiveDocument } from '../../composables/useActiveDocument'
 import { extractOutlineTreeFromMarkdown } from '../../utils/md-utils'
@@ -196,8 +195,8 @@ const {
 
 const formatOptions = computed(() => supportedFormats.map((format) => ({
   id: format.id,
-  title: t(format.labelKey),
-  description: t(format.descriptionKey)
+  title: t(format.labelKey ?? ''),
+  description: t(format.descriptionKey ?? '')
 })))
 
 const overlayStyle = computed(() => ({
@@ -282,13 +281,14 @@ function generateRandomButtons() {
   const randomButtons: { label: string; prompt: string }[] = []
   const used = new Set<number>()
 
-  while (randomButtons.length < randomCount && used.size < suggestionPresets.length) {
-    const index = Math.floor(Math.random() * suggestionPresets.length)
+  const presets = getSuggestionPresets()
+  while (randomButtons.length < randomCount && used.size < presets.length) {
+    const index = Math.floor(Math.random() * presets.length)
     if (used.has(index)) continue
     used.add(index)
     randomButtons.push({
-      label: suggestionPresets[index].label,
-      prompt: suggestionPresets[index].prompt
+      label: presets[index].label,
+      prompt: presets[index].prompt
     })
   }
   return randomButtons
@@ -306,12 +306,13 @@ function onSpeechRecognized(text: string) {
   userPrompt.value = text
 }
 
-function querySearch(queryString: string, cb: (results: Array<{ value: string }>) => void) {
-  const results = queryString
-    ? presets.filter((preset) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
-    : presets
-  cb(results)
-}
+  function querySearch(queryString: string, cb: (results: Array<{ value: string }>) => void) {
+    const presetList = getPresets()
+    const results = queryString
+      ? presetList.filter((preset) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
+      : presetList
+    cb(results)
+  }
 
 function reset() {
   generated.value = false
@@ -324,12 +325,15 @@ function reset() {
 }
 
 async function generate() {
+  workspace.lockUI?.()
   generating.value = true
   generated.value = false
 
   try {
     const prompt = generateArticlePrompt(mood.value, userPrompt.value)
     const enableKnowledgeBase = await getSetting('enableKnowledgeBase')
+    // 清空内容，准备接收流式数据
+    generatedText.value = ''
     const { done } = createAiTask(
       userPrompt.value,
       prompt,
@@ -337,7 +341,7 @@ async function generate() {
       ai_types.answer,
       'quick-start',
       enableKnowledgeBase,
-      { temperature: temperature.value / 100 }
+      { stream: true, temperature: temperature.value / 100 }
     )
     await done
   } catch (error) {
@@ -345,15 +349,16 @@ async function generate() {
   } finally {
     generated.value = true
     generating.value = false
+    workspace.unlockUI?.()
   }
 }
 
-function accept() {
+async function accept() {
   const tabId = activeTabId.value
   if (!tabId) return
 
   if (selectedFormat.value === 'tex') {
-    const texContent = convertMarkdownToLatex(generatedText.value || '')
+    const texContent = await convertMarkdownToLatex(generatedText.value || '')
     updateDocumentTex(tabId, texContent)
   } else {
     const markdownContent = generatedText.value || ''
@@ -450,6 +455,7 @@ watch(
   align-items: center;
   justify-content: center;
   transition: background 0.5s ease;
+  overflow: auto;
 }
 
 .quick-start-panel {
@@ -503,7 +509,14 @@ watch(
   display: flex;
   flex-direction: column;
   align-items: stretch;
+
   gap: 12px;
+}
+
+.temperature-slider-wrapper {
+  margin-bottom: 20px;
+  width: 80%;
+  align-self: center;
 }
 
 .section-title {
@@ -574,8 +587,9 @@ watch(
 }
 
 .selector-title {
-  font-size: 24px;
+  font-size: 28px;
   margin: 0;
+  padding: 8px 0;
 }
 
 .format-grid {

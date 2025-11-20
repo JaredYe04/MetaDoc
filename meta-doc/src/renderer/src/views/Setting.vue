@@ -1,7 +1,7 @@
 <template>
   <div
     class="settings-container"
-    :style="{ backgroundColor: themeState.currentTheme.backgroundColor, color: themeState.currentTheme.textColor }"
+    :style="{ backgroundColor: themeState.currentTheme.background, color: themeState.currentTheme.textColor }"
   >
     <el-container class="settings-layout">
       <el-aside class="settings-aside" width="200px">
@@ -80,13 +80,14 @@ const handleMenuSelect = (index: string) => {
 };
 
 const fetchSettings = async () => {
-  const keys = Object.keys(settings);
+  const keys = Object.keys(settings) as (keyof typeof settings)[];
   for (const key of keys) {
-    if (settings[key] && typeof settings[key] === 'object' && !Array.isArray(settings[key])) {
+    if (typeof settings[key] === 'object' && settings[key] !== null && !Array.isArray(settings[key])) {
       continue;
     }
-    const value = await getSetting(key);
+    const value: (typeof settings)[typeof key] | undefined = await getSetting(key as string);
     if (value !== undefined) {
+      // @ts-expect-error: value type from storage may not match static type, but is safe here
       settings[key] = value;
     }
   }

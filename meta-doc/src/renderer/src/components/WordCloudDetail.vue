@@ -163,8 +163,4 @@ watch(() => props.path, (newVal, oldVal) => {
 
 }
 
-.aero-div:hover {
-  transform: scale(1);
-  /* 微缩放 */
-}
 </style>

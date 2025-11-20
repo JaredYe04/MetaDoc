@@ -9,10 +9,7 @@
       :style="containerStyle"
     >
       <div class="quick-start__header">
-        <el-tooltip :content="$t('home.tooltip.close')" placement="top">
-          <el-button @click="emitClose" class="aero-btn" round type="danger" size="small">
-          </el-button>
-        </el-tooltip>
+          <el-button @click="emitClose" class="aero-btn" plain round type="danger" size="small"/>
       </div>
 
       <div class="quick-start__content">
@@ -63,13 +60,14 @@
             <label class="interactive-text quick-start__label" :style="labelStyle">
               {{ $t('home.aiAssistantLabel') }}
             </label>
-            <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left">
+            <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left" >
               <el-slider
                 v-model="temperature"
                 :marks="marks"
                 :min="0"
                 :max="100"
                 :disabled="generating || generated"
+                class="temperature-slider-wrapper"
               />
             </el-tooltip>
 
@@ -113,7 +111,6 @@
               />
             </el-tooltip>
 
-            <VoiceInput @onSpeechRecognized="onSpeechRecognized" :disabled="generating || generated" />
 
             <div class="aero-div quick-start__suggestions">
               <label class="interactive-text quick-start__suggestion-label" :style="labelStyle">
@@ -176,6 +173,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import VoiceInput from '../VoiceInput.vue'
+// @ts-expect-error: No type definitions for vue3-markdown-it
 import MarkdownItEditor from 'vue3-markdown-it'
 import { Check, Promotion, Refresh, RefreshLeft } from '@element-plus/icons-vue'
 import {
@@ -194,7 +192,7 @@ import { extractOutlineTreeFromMarkdown } from '../../utils/md-utils'
 import { DEFAULT_OUTLINE_TREE } from '../../constants/document'
 import { themeState } from '../../utils/themes'
 import eventBus, { getWindowType } from '../../utils/event-bus'
-import { generateArticlePrompt, suggestionPresets, presets } from '../../utils/prompts'
+import { generateMarkdownPrompt, getSuggestionPresets, getPresets } from '../../utils/prompts'
 import { getSetting } from '../../utils/settings'
 import { ai_types, createAiTask } from '../../utils/ai_tasks'
 import { createRendererLogger } from '../../utils/logger'
@@ -290,10 +288,11 @@ function generateRandomButtons(): { label: string; prompt: string }[] {
   const randomCount = 6
   const randomButtons: { label: string; prompt: string }[] = []
   const used = new Set<number>()
-  while (randomButtons.length < randomCount && used.size < suggestionPresets.length) {
-    const index = Math.floor(Math.random() * suggestionPresets.length)
+  const presets = getSuggestionPresets()
+  while (randomButtons.length < randomCount && used.size < presets.length) {
+    const index = Math.floor(Math.random() * presets.length)
     if (!used.has(index)) {
-      randomButtons.push(suggestionPresets[index])
+      randomButtons.push(presets[index])
       used.add(index)
     }
   }
@@ -312,19 +311,23 @@ const onSpeechRecognized = (text: string) => {
   userPrompt.value = text
 }
 
-const querySearch = (queryString: string, cb: (results: { value: string }[]) => void) => {
-  const results = queryString
-    ? presets.filter((preset) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
-    : presets
-  cb(results)
-}
+  const querySearch = (queryString: string, cb: (results: { value: string }[]) => void) => {
+    const presetList = getPresets()
+    const results = queryString
+      ? presetList.filter((preset) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
+      : presetList
+    cb(results)
+  }
 
 const generate = async () => {
+  workspace.lockUI?.()
   generating.value = true
   generated.value = false
 
-  const prompt = generateArticlePrompt(mood.value, userPrompt.value)
+  const prompt = generateMarkdownPrompt(mood.value, userPrompt.value)
   const enableKnowledgeBase = await getSetting('enableKnowledgeBase')
+  // 清空内容，准备接收流式数据
+  generatedText.value = ''
   const { done } = createAiTask(
     userPrompt.value,
     prompt,
@@ -332,7 +335,7 @@ const generate = async () => {
     ai_types.answer,
     'quick-start-markdown',
     enableKnowledgeBase,
-    { temperature: temperature.value / 100 }
+    { stream: true, temperature: temperature.value / 100 }
   )
 
   try {
@@ -342,6 +345,7 @@ const generate = async () => {
     logger.warn('任务失败或取消', error)
   } finally {
     generating.value = false
+    workspace.unlockUI?.()
   }
 }
 
@@ -425,15 +429,20 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   height: 100vh;
+  overflow: auto;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .main-letter {
-  font-size: 50px;
+  font-size: 36px;
   font-weight: bold;
   color: rgb(65, 105, 225);
   transition: color 0.3s ease;
   background-color: transparent;
   cursor: pointer;
+  margin: 0;
+  padding: 8px 0;
 }
 
 .quick-start-container {
@@ -499,6 +508,14 @@ onBeforeUnmount(() => {
   height: 47vh;
   width: 18vw;
 }
+
+.temperature-slider-wrapper {
+  margin-bottom: 20px;
+  width: 80%;
+  align-self: center;
+
+}
+
 
 .quick-start__label {
   width: 100%;

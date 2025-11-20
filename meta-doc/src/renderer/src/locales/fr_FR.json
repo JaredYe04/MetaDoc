@@ -155,7 +155,8 @@
     "closeAutoCompletion": "Désactiver la réalisation de l'IA",
     "closeKnowledgeBase": "Désactiver la connaissance Bibliothèque de récupération",
     "openAutoCompletion": "Activer l'achèvement de l'intelligence artificielle",
-    "openKnowledgeBase": "Activer la connaissance Bibliothèque de récupération"
+    "openKnowledgeBase": "Activer la connaissance Bibliothèque de récupération",
+    "locateToPdf": "Position au format PDF."
   },
   "formulaRecognition": {
     "brush_size": "Brosse & #160;:",
@@ -552,7 +553,47 @@
     "deepseek": "Recherche profonde",
     "deepseekHint": "Le principal modèle d'IA fourni par DeepSeek prend en charge plusieurs modèles",
     "openaiOfficial": "API officielle OpenAI",
-    "openaiOfficialHint": "API de OpenAI, qui prend en charge les modèles"
+    "openaiOfficialHint": "API de OpenAI, qui prend en charge les modèles",
+    "debug": {
+      "broadcast": "Incidents de radiodiffusion",
+      "broadcastSent": "Radio envoyée",
+      "clearHistory": "Effacer l' historique",
+      "error": "Erreur",
+      "eventBus": "ÉvénementBus",
+      "eventData": "Données de l'événement",
+      "eventDataPlaceholder": "Saisissez les données au format JSON (facultatif)",
+      "eventName": "Nom de l'événement",
+      "eventNamePlaceholder": "Veuillez saisir un nom d'événement",
+      "eventNameRequired": "Veuillez saisir un nom d'événement",
+      "eventSent": "Organisation",
+      "executeTest": "Effectuer des essais",
+      "invalidJson": "Erreur de format JSON",
+      "jsonPlaceholder": "Veuillez saisir les données au format JSON",
+      "module": "Module",
+      "noHistory": "Pas d'historique.",
+      "parameters": "Paramètres",
+      "result": "Résultat",
+      "selectModule": "Sélectionnez le module",
+      "selectTestFunction": "Sélectionner les fonctions d'essai",
+      "selectTestFunctionFirst": "Veuillez d'abord sélectionner la fonction de test",
+      "sendBroadcast": "Envoyer la diffusion",
+      "sendEvent": "Envoyer l'événement",
+      "targetAiChat": "Fenêtre de dialogue AI",
+      "targetAiGraph": "Fenêtre graphique AI",
+      "targetAll": "Toutes les fenêtres",
+      "targetFormulaRecognition": "Fenêtre de reconnaissance des formules",
+      "targetHome": "Fenêtre principale",
+      "targetSetting": "Définir la fenêtre",
+      "targetWindow": "Fenêtre cible",
+      "testExecuted": "Mise en œuvre réussie",
+      "testFailed": "L'exécution du test a échoué",
+      "testFunction": "Fonctions d'essai",
+      "testNotFound": "La fonction d'essai n'existe pas",
+      "testResult": "Résultats des essais",
+      "title": "Outil de débogage",
+      "undefined": "Je suis désolé.",
+      "unitTest": "Essai unitaire"
+    }
   },
   "titleMenu": {
     "contextMarks": {
@@ -713,7 +754,22 @@
     "notification": {
       "compileFailed": "Compilé a échoué, code d'erreur : {code}",
       "compileSuccess": "Compilé avec succès",
-      "pleaseSaveFirst": "Enregistrer les fichiers d'abord"
+      "pleaseSaveFirst": "Enregistrer les fichiers d'abord",
+      "clickToLocate": "Cliquez sur le texte du PDF pour localiser le code source",
+      "directoryOpened": "Répertoire ouvert",
+      "editorNotAvailable": "Éditeur non disponible",
+      "locateToCodeFailed": "Impossible de localiser la position du code",
+      "locateToPdfFailed": "Impossible de localiser la position PDF",
+      "noCodeMapping": "Aucune carte de code correspondante trouvée",
+      "noCursorPosition": "Impossible d'initialiser Bonobo",
+      "noPdfMapping": "Aucune carte PDF correspondante trouvée",
+      "openDirectoryFailed": "Impossible d'ouvrir le répertoire",
+      "pdfFileNotFound": "Le fichier PDF n'existe pas",
+      "pdfNotAvailable": "PDF non disponible",
+      "pdfSaved": "PDF enregistré sur : {path}",
+      "refreshSuccess": "PDF actualisé",
+      "savePdfFailed": "L'enregistrement du PDF a échoué",
+      "textNotFound": "Texte introuvable : {text}"
     },
     "pages": "Page",
     "pdfEmpty": "Veuillez compiler le code LaTeX correctement. Le PDF sera affiché ici.",
@@ -729,6 +785,16 @@
       "zoomIn": "Zoom dans (Ctrl+)",
       "zoomOut": "Zoom arrière (Ctrl-)",
       "zoomReset": "Réinitialiser"
+    },
+    "pdfMenu": {
+      "locateToCode": "Position à coder",
+      "openDirectory": "Ouvrir le répertoire où il se trouve",
+      "refresh": "Actualiser",
+      "save": "Enregistrer le PDF",
+      "saveDialogTitle": "Enregistrer le PDF Fichiers",
+      "zoomIn": "Zoomer",
+      "zoomOut": "Zoom arrière",
+      "zoomReset": "Réinitialiser l'échelle"
     }
   },
   "notificationQueue": {

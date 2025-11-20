@@ -313,6 +313,31 @@ function bindUtilityHandlers(): void {
     return nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
   });
   
+  ipcMain.handle('get-is-packaged', async (event: IpcMainInvokeEvent): Promise<boolean> => {
+    return app.isPackaged;
+  });
+  
+  ipcMain.handle('get-all-window-types', async (event: IpcMainInvokeEvent): Promise<string[]> => {
+    const windows = BrowserWindow.getAllWindows();
+    const windowTypes = new Set<string>();
+    
+    // 主窗口总是存在
+    windowTypes.add('home');
+    
+    // 从所有窗口的 URL 中提取 windowType
+    windows.forEach((win: BrowserWindow) => {
+      if (win && !win.isDestroyed()) {
+        const url = win.webContents.getURL();
+        const match = url.match(/[?&]windowType=([^&]+)/);
+        if (match) {
+          windowTypes.add(match[1]);
+        }
+      }
+    });
+    
+    return Array.from(windowTypes).sort();
+  });
+  
   ipcMain.handle('compute-md5', async (event: IpcMainInvokeEvent, data: string): Promise<string> => {
     const crypto = require('crypto');
     return crypto.createHash('md5').update(data).digest('hex');

@@ -41,24 +41,37 @@ import SettingBasicSection from './setting/SettingBasicSection.vue';
 import SettingLlmSection from './setting/SettingLlmSection.vue';
 import SettingThemeSection from './setting/SettingThemeSection.vue';
 import SettingLoggerSection from './setting/SettingLoggerSection.vue';
+import SettingDebugSection from './setting/SettingDebugSection.vue';
+import { isDevEnvironment } from '../utils/dev-env';
 import '../assets/aero-btn.css';
 import '../assets/aero-div.css';
 
 const activeMenu = ref('basic');
+const isDev = ref(false);
 
 const componentMap: Record<string, any> = {
   basic: SettingBasicSection,
   llm: SettingLlmSection,
   themes: SettingThemeSection,
-  logs: SettingLoggerSection
+  logs: SettingLoggerSection,
+  debug: SettingDebugSection
 };
 
-const menuItems = [
-  { key: 'basic', label: 'setting.basic' },
-  { key: 'llm', label: 'setting.llm' },
-  { key: 'themes', label: 'setting.themes' },
-  { key: 'logs', label: 'setting.logs' }
-];
+const menuItems = computed(() => {
+  const items = [
+    { key: 'basic', label: 'setting.basic' },
+    { key: 'llm', label: 'setting.llm' },
+    { key: 'themes', label: 'setting.themes' },
+    { key: 'logs', label: 'setting.logs' }
+  ];
+  
+  // 仅在开发环境显示调试菜单
+  if (isDev.value) {
+    items.push({ key: 'debug', label: 'setting.debug.title' });
+  }
+  
+  return items;
+});
 
 const currentComponent = computed(() => componentMap[activeMenu.value] ?? SettingBasicSection);
 
@@ -79,8 +92,10 @@ const fetchSettings = async () => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   fetchSettings();
+  // 检查是否为开发环境
+  isDev.value = await isDevEnvironment();
 });
 </script>
 

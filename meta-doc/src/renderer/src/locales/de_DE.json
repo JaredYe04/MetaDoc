@@ -155,7 +155,8 @@
     "closeAutoCompletion": "KI-Ausrüstung deaktivieren",
     "closeKnowledgeBase": "Unmögliches Wissen Retrieval Bibliothek",
     "openAutoCompletion": "KI-Vervollständigung aktivieren",
-    "openKnowledgeBase": "Wissen aktivieren Retrieval Bibliothek"
+    "openKnowledgeBase": "Wissen aktivieren Retrieval Bibliothek",
+    "locateToPdf": "Position zu PDF."
   },
   "formulaRecognition": {
     "brush_size": "Bürste:",
@@ -552,7 +553,47 @@
     "deepseek": "Tiefsee",
     "deepseekHint": "Das große AI-Modell des offiziellen DeepSeek unterstützt mehrere Modelle",
     "openaiOfficial": "Offizielle OpenAI API",
-    "openaiOfficialHint": "API von OpenAI, die Modelle unterstützt"
+    "openaiOfficialHint": "API von OpenAI, die Modelle unterstützt",
+    "debug": {
+      "broadcast": "Rundfunkvorfälle",
+      "broadcastSent": "Radio gesendet",
+      "clearHistory": "Die Geschichte",
+      "error": "Fehler",
+      "eventBus": "Veranstaltung",
+      "eventData": "Veranstaltungsdaten",
+      "eventDataPlaceholder": "Daten im JSON-Format eingeben (optional)",
+      "eventName": "Name der Veranstaltung",
+      "eventNamePlaceholder": "Bitte geben Sie einen Eventnamen ein",
+      "eventNameRequired": "Bitte geben Sie einen Eventnamen ein",
+      "eventSent": "Organisation",
+      "executeTest": "Prüfung durchführen",
+      "invalidJson": "JSON Format Fehler",
+      "jsonPlaceholder": "Bitte geben Sie Daten im JSON-Format ein",
+      "module": "Modul",
+      "noHistory": "Keine Testgeschichte.",
+      "parameters": "Parameter",
+      "result": "Ergebnis",
+      "selectModule": "Modul auswählen",
+      "selectTestFunction": "Testfunktionen auswählen",
+      "selectTestFunctionFirst": "Bitte wählen Sie zuerst die Testfunktion aus",
+      "sendBroadcast": "Sendung senden",
+      "sendEvent": "Veranstaltungen",
+      "targetAiChat": "KI Dialogfenster",
+      "targetAiGraph": "KI Diagrammfenster",
+      "targetAll": "Alle Windows",
+      "targetFormulaRecognition": "Formel Recognition Window",
+      "targetHome": "Hauptfenster",
+      "targetSetting": "Set Window",
+      "targetWindow": "Zielfenster",
+      "testExecuted": "Testdurchführung erfolgreich",
+      "testFailed": "Testausführung versagt",
+      "testFunction": "Prüffunktionen",
+      "testNotFound": "Testfunktion existiert nicht",
+      "testResult": "Prüfergebnisse",
+      "title": "Debug Tool",
+      "undefined": "Es tut mir leid.",
+      "unitTest": "Prüfverfahren"
+    }
   },
   "titleMenu": {
     "contextMarks": {
@@ -713,7 +754,22 @@
     "notification": {
       "compileFailed": "Fehler kompiliert, Fehlercode: {code}",
       "compileSuccess": "erfolgreich kompiliert",
-      "pleaseSaveFirst": "Dateien zuerst speichern"
+      "pleaseSaveFirst": "Dateien zuerst speichern",
+      "clickToLocate": "Klicken Sie auf den Text im PDF, um den Quellcode zu finden",
+      "directoryOpened": "Verzeichnis geöffnet",
+      "editorNotAvailable": "nicht verfügbar",
+      "locateToCodeFailed": "Nicht zu finden, um Position zu kodieren",
+      "locateToPdfFailed": "Nicht auf PDF-Position zu finden",
+      "noCodeMapping": "Keine entsprechende Codekarte gefunden",
+      "noCursorPosition": "Nicht initialisieren Knochen",
+      "noPdfMapping": "Keine entsprechende PDF-Karte gefunden",
+      "openDirectoryFailed": "Nicht zu öffnen Verzeichnis",
+      "pdfFileNotFound": "PDF Datei existiert nicht",
+      "pdfNotAvailable": "PDF nicht verfügbar",
+      "pdfSaved": "PDF gespeichert in: {path}",
+      "refreshSuccess": "PDF erfrischt",
+      "savePdfFailed": "PDF fehlschlagen",
+      "textNotFound": "Text nicht gefunden: {text}"
     },
     "pages": "Seite",
     "pdfEmpty": "Bitte erstellen Sie den LaTeX-Code korrekt. Das PDF wird hier angezeigt.",
@@ -728,6 +784,16 @@
       "undo": "Undo (Ctrl+Z)",
       "zoomIn": "Zoom in (Ctrl+)",
       "zoomOut": "Zoom Out (Ctrl-)",
+      "zoomReset": "Zurück zur Übersicht"
+    },
+    "pdfMenu": {
+      "locateToCode": "Position zur Codeposition",
+      "openDirectory": "Öffnen Sie das Verzeichnis, in dem es",
+      "refresh": "Refreshing",
+      "save": "PDF speichern",
+      "saveDialogTitle": "PDF speichern Dateien",
+      "zoomIn": "In den Warenkorb",
+      "zoomOut": "Ausverkauft",
       "zoomReset": "Zurück zur Übersicht"
     }
   },

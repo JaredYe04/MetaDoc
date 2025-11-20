@@ -9,7 +9,8 @@
     "closeAutoCompletion": "障がいのあるAI完成",
     "closeKnowledgeBase": "障害のある知識 立派な図書館",
     "openAutoCompletion": "AI完了を有効にする",
-    "openKnowledgeBase": "知識の有効化 立派な図書館"
+    "openKnowledgeBase": "知識の有効化 立派な図書館",
+    "locateToPdf": "PDFへの投稿"
   },
   "headMenu": {
     "tooltip": "AI Agentベースのスマート文書処理ソフトウェア",
@@ -613,7 +614,47 @@
     "deepseek": "イマラチオ",
     "deepseekHint": "DeepSeekが提供する主要なAIモデルは複数のモデルをサポートしています",
     "openaiOfficial": "公式OpenAI API",
-    "openaiOfficialHint": "モデルをサポートするOpenAIのAPI"
+    "openaiOfficialHint": "モデルをサポートするOpenAIのAPI",
+    "debug": {
+      "broadcast": "放送事件",
+      "broadcastSent": "ラジオ送信",
+      "clearHistory": "明確な歴史",
+      "error": "エラー",
+      "eventBus": "イベントバスイベント",
+      "eventData": "イベントデータ",
+      "eventDataPlaceholder": "JSON 形式のデータ入力(オプション)",
+      "eventName": "イベント名",
+      "eventNamePlaceholder": "イベント名を入力してください",
+      "eventNameRequired": "イベント名を入力してください",
+      "eventSent": "組織体制",
+      "executeTest": "試験の実行",
+      "invalidJson": "JSON 形式のエラー",
+      "jsonPlaceholder": "JSON 形式のデータを入力してください。",
+      "module": "モジュール",
+      "noHistory": "テスト履歴はありません。",
+      "parameters": "パラメーター",
+      "result": "結果発表",
+      "selectModule": "モジュールの選択",
+      "selectTestFunction": "テスト機能の選択",
+      "selectTestFunctionFirst": "まずはテスト機能を選択してください。",
+      "sendBroadcast": "放送を送信",
+      "sendEvent": "イベント送信",
+      "targetAiChat": "AIダイアログ",
+      "targetAiGraph": "AIチャートウィンドウ",
+      "targetAll": "すべてのWindows",
+      "targetFormulaRecognition": "方式の認識の窓",
+      "targetHome": "メインウィンドウ",
+      "targetSetting": "セットウィンドウ",
+      "targetWindow": "ターゲットウィンドウ",
+      "testExecuted": "導入の成功をテストして下さい",
+      "testFailed": "テスト実行失敗",
+      "testFunction": "テスト機能",
+      "testNotFound": "テスト機能が存在しない",
+      "testResult": "試験結果",
+      "title": "デバッグツール",
+      "undefined": "申し訳ございません。",
+      "unitTest": "ユニットテスト"
+    }
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",
@@ -713,7 +754,22 @@
     "notification": {
       "compileFailed": "コンパイル失敗、エラーコード: お問い合わせ",
       "compileSuccess": "成功したコンパイル",
-      "pleaseSaveFirst": "ファイルを最初に保存する"
+      "pleaseSaveFirst": "ファイルを最初に保存する",
+      "clickToLocate": "PDFのテキストをクリックしてソースコードを検索します",
+      "directoryOpened": "ディレクトリが開いた",
+      "editorNotAvailable": "エディタは使用できません",
+      "locateToCodeFailed": "コードの位置を見つける失敗",
+      "locateToPdfFailed": "PDF の位置を見つける失敗",
+      "noCodeMapping": "対応するコードマップが見つかりません",
+      "noCursorPosition": "初期化できない ボノボ",
+      "noPdfMapping": "対応するPDFマップが見つかりません",
+      "openDirectoryFailed": "ディレクトリを開くことができません",
+      "pdfFileNotFound": "PDFファイルが存在しません",
+      "pdfNotAvailable": "PDFは利用できません",
+      "pdfSaved": "保存したPDF:{path}",
+      "refreshSuccess": "PDF 更新済み",
+      "savePdfFailed": "PDFの保存が失敗しました",
+      "textNotFound": "テキストが見つかりません: {text}"
     },
     "pages": "サイトマップ",
     "pdfEmpty": "LaTeXコードを正しくコンパイルしてください。 PDFをご覧いただけます。",
@@ -729,6 +785,16 @@
       "zoomIn": "ズームイン(Ctrl+)",
       "zoomOut": "ズームアウト (Ctrl-)",
       "zoomReset": "リセット"
+    },
+    "pdfMenu": {
+      "locateToCode": "コードの位置",
+      "openDirectory": "ディレクトリを開く",
+      "refresh": "リフレッシュ",
+      "save": "PDFを保存",
+      "saveDialogTitle": "PDFを保存 ファイル",
+      "zoomIn": "ズームイン",
+      "zoomOut": "ズームアウト",
+      "zoomReset": "リセットスケール"
     }
   },
   "notificationQueue": {

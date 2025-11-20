@@ -9,7 +9,8 @@
     "closeAutoCompletion": "Disable AI 완료",
     "closeKnowledgeBase": "법적 고지 Retrieval 도서관",
     "openAutoCompletion": "Enable AI 완료",
-    "openKnowledgeBase": "자주 묻는 질문 Retrieval 도서관"
+    "openKnowledgeBase": "자주 묻는 질문 Retrieval 도서관",
+    "locateToPdf": "PDF의 위치."
   },
   "headMenu": {
     "tooltip": "AI 에이전트 기반의 스마트 문서 처리 소프트웨어",
@@ -613,7 +614,47 @@
     "deepseek": "딥스카이",
     "deepseekHint": "공식 DeepSeek가 제공하는 주요 AI 모델은 여러 모델을 지원합니다.",
     "openaiOfficial": "공식 OpenAI API",
-    "openaiOfficialHint": "OpenAI의 API, 모델 지원"
+    "openaiOfficialHint": "OpenAI의 API, 모델 지원",
+    "debug": {
+      "broadcast": "방송 사고",
+      "broadcastSent": "라디오 전송",
+      "clearHistory": "명확한 역사",
+      "error": "계정 정보",
+      "eventBus": "EventBus 이벤트",
+      "eventData": "이벤트 데이터",
+      "eventDataPlaceholder": "JSON 형식의 데이터를 입력 (옵션)",
+      "eventName": "이벤트 이름",
+      "eventNamePlaceholder": "자주 묻는 질문",
+      "eventNameRequired": "자주 묻는 질문",
+      "eventSent": "회사연혁",
+      "executeTest": "시험 수행",
+      "invalidJson": "JSON 형식 오류",
+      "jsonPlaceholder": "JSON 형식으로 데이터 입력",
+      "module": "모듈",
+      "noHistory": "시험 역사 없음.",
+      "parameters": "이름 *",
+      "result": "제품정보",
+      "selectModule": "모듈 선택",
+      "selectTestFunction": "시험 기능 선택",
+      "selectTestFunctionFirst": "테스트 함수를 먼저 선택해주세요.",
+      "sendBroadcast": "연락처",
+      "sendEvent": "자주 묻는 질문",
+      "targetAiChat": "AI 대화 창",
+      "targetAiGraph": "AI 차트 창",
+      "targetAll": "모든 Windows",
+      "targetFormulaRecognition": "공식 인식 창",
+      "targetHome": "주요 창",
+      "targetSetting": "창 설정",
+      "targetWindow": "대상 창",
+      "testExecuted": "Test 구현 성공",
+      "testFailed": "테스트 실행 실패",
+      "testFunction": "시험 기능",
+      "testNotFound": "시험 기능은 존재하지 않습니다",
+      "testResult": "시험 결과",
+      "title": "Debug 도구",
+      "undefined": "미안 해요.",
+      "unitTest": "단위 시험"
+    }
   },
   "visualize": {
     "articleOutline": "문서 아웃라인",
@@ -713,7 +754,22 @@
     "notification": {
       "compileFailed": "컴파일 실패, 오류 코드: 이름 *",
       "compileSuccess": "성공적으로 컴파일",
-      "pleaseSaveFirst": "파일 저장"
+      "pleaseSaveFirst": "파일 저장",
+      "clickToLocate": "PDF의 텍스트를 클릭하여 소스 코드를 찾습니다.",
+      "directoryOpened": "연락처",
+      "editorNotAvailable": "에디터는 없습니다.",
+      "locateToCodeFailed": "코드 위치에 배치",
+      "locateToPdfFailed": "PDF 위치로 찾기",
+      "noCodeMapping": "해당 코드 맵이 없습니다.",
+      "noCursorPosition": "초기화 할 수 없습니다. 스낵 바",
+      "noPdfMapping": "해당 PDF 지도가 없습니다.",
+      "openDirectoryFailed": "열린 디렉토리에 실패",
+      "pdfFileNotFound": "PDF 파일은 존재하지 않습니다.",
+      "pdfNotAvailable": "PDF는 유효하지 않습니다",
+      "pdfSaved": "PDF 파일 : {path}",
+      "refreshSuccess": "PDF 새로 고침",
+      "savePdfFailed": "PDF 저장 실패",
+      "textNotFound": "텍스트가 없습니다 : {text}"
     },
     "pages": "(주)",
     "pdfEmpty": "LaTeX 코드를 올바르게 컴파일하십시오. PDF는 여기에 표시됩니다.",
@@ -729,6 +785,16 @@
       "zoomIn": "줌 (Ctrl +)",
       "zoomOut": "줌 아웃 (Ctrl-)",
       "zoomReset": "지원하다"
+    },
+    "pdfMenu": {
+      "locateToCode": "코드 위치",
+      "openDirectory": "디렉토리를 엽니다.",
+      "refresh": "지원하다",
+      "save": "PDF 저장",
+      "saveDialogTitle": "PDF 저장 파일 형식",
+      "zoomIn": "줌 에",
+      "zoomOut": "줌 아웃",
+      "zoomReset": "재설정 스케일"
     }
   },
   "notificationQueue": {

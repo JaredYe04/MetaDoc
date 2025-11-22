@@ -3,6 +3,20 @@
         <div class="content-container" ref="containerRef">
             <!-- 左边：Vditor Markdown 编辑器 -->
             <!-- 菜单组件 -->
+                <SectionOptimizer
+                    v-if="showSectionOptimizer" 
+                :title="currentSectionTitle" 
+                :position="sectionOptimizerPosition"
+                :path="currentTitlePath"
+                :tree="extractOutlineTreeFromMarkdown(currentMarkdown, true)"
+                :adapter="sectionOptimizerAdapter"
+                :sectionInfo="currentSectionInfo"
+                language="markdown"
+                @close="handleSectionOptimizerClose" 
+                @accept="async (payload: any) => { await acceptGeneratedText(payload); }" 
+                style="max-width: 500px;" 
+            />
+            <!-- 保留TitleMenu以兼容旧代码 -->
             <TitleMenu v-if="showTitleMenu" :title="currentTitle.replace(/#+/g, '').trim()" :position="menuPosition"
                 @close="handleTitleMenuClose" :path="currentTitlePath"
                 :tree="extractOutlineTreeFromMarkdown(currentMarkdown, true)"
@@ -81,6 +95,8 @@ import { createRendererLogger } from '../utils/logger.ts'
 import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree } from '../utils/md-utils';
 import { wholeArticleContextPrompt } from '../utils/prompts.ts';
 import TitleMenu from '../components/TitleMenu.vue';
+import SectionOptimizer from '../components/SectionOptimizer.vue';
+import { MarkdownSectionAdapter } from '../components/section-optimizer/adapters/markdown-adapter';
 import SearchReplaceMenu from "../components/SearchReplaceMenu.vue";
 import AiLogo from "../assets/ai-logo.svg";
 import AiLogoWhite from "../assets/ai-logo-white.svg";
@@ -246,8 +262,13 @@ let layoutObserver: ResizeObserver | null = null;
 
 const loadingInstance = ElLoading.service({ fullscreen: false });
 const showTitleMenu = ref(false);
+const showSectionOptimizer = ref(false);
 const currentTitle = ref("");
+const currentSectionTitle = ref("");
 const menuPosition = ref({ top: 0, left: 0 });
+const sectionOptimizerPosition = ref({ top: 0, left: 0 });
+const sectionOptimizerAdapter = shallowRef<MarkdownSectionAdapter | null>(null);
+const currentSectionInfo = ref<any>(null);
 const getDefaultSearchMenuPosition = () => {
     if (typeof window === "undefined") {
         return { top: 24, left: 24 };
@@ -342,6 +363,9 @@ const handleMenuClick = async (item: string) => {
             sendBroadcast('ai-chat', 'ai-chat-dialogs-updated', null);
             eventBus.emit('ai-chat')
             break;
+        case 'section-optimizer':
+            await openSectionOptimizerFromContext();
+            break;
         case 'cut':
             await textEditorAdapter.value?.cut();
             break;
@@ -373,18 +397,106 @@ const handleMenuClick = async (item: string) => {
 };
 
 // 单击事件处理
-const handleClick = (event: MouseEvent, title: string, path: string) => {
-    currentTitle.value = title;
-    let top = event.clientY * 0.9;
-    if (top > document.body.clientHeight * 0.6) {
-        top = document.body.clientHeight * 0.6;
+const handleClick = async (event: MouseEvent, title: string, path: string) => {
+    // 使用新的 SectionOptimizer 而不是旧的 TitleMenu
+    if (!props.tabId) return
+    
+    // 创建适配器
+    const adapter = new MarkdownSectionAdapter(props.tabId)
+    sectionOptimizerAdapter.value = adapter
+    
+    // 从大纲树中获取节点信息
+    const outline = extractOutlineTreeFromMarkdown(currentMarkdown.value, true)
+    let sectionInfo: any = null
+    
+    if (outline && path) {
+        const { searchNode } = await import('../utils/outline-helpers')
+        const node = searchNode(path, outline)
+        if (node) {
+            // 获取标题在文档中的位置
+            const lines = currentMarkdown.value.split('\n')
+            let titleLine = -1
+            let titleLevel = 6
+            let endLine = lines.length - 1
+            
+            // 查找标题行
+            for (let i = 0; i < lines.length; i++) {
+                const match = lines[i].match(/^(#{1,6})\s+(.+)$/)
+                if (match && match[2].trim() === title) {
+                    titleLine = i
+                    titleLevel = match[1].length
+                    break
+                }
+            }
+            
+            // 查找章节结束位置
+            if (titleLine >= 0) {
+                for (let i = titleLine + 1; i < lines.length; i++) {
+                    const line = lines[i]
+                    const match = line.match(/^(#{1,6})\s+/)
+                    if (match) {
+                        const level = match[1].length
+                        if (level <= titleLevel) {
+                            endLine = i - 1
+                            break
+                        }
+                    }
+                }
+            }
+            
+            // 获取节点内容（去掉标题部分）
+            let content = node.text || ''
+            const nodeLines = content.split('\n')
+            let titleIndex = -1
+            for (let i = 0; i < nodeLines.length; i++) {
+                const match = nodeLines[i].match(/^(#{1,6})\s+(.+)$/)
+                if (match && match[2].trim() === title) {
+                    titleIndex = i
+                    break
+                }
+            }
+            if (titleIndex >= 0) {
+                content = nodeLines.slice(titleIndex + 1).join('\n').trim()
+            } else if (nodeLines.length > 0 && nodeLines[0].match(/^(#{1,6})\s+/)) {
+                content = nodeLines.slice(1).join('\n').trim()
+            } else {
+                content = content.trim()
+            }
+            
+            // 如果内容为空，从源码提取
+            if (!content && titleLine >= 0) {
+                const contentLines = lines.slice(titleLine + 1, endLine + 1)
+                content = contentLines.join('\n').trim()
+            }
+            
+            sectionInfo = {
+                title: title,
+                path: path,
+                content: content,
+                range: titleLine >= 0 ? {
+                    start: { line: titleLine, column: 0 },
+                    end: { line: endLine, column: lines[endLine]?.length || 0 }
+                } : undefined
+            }
+        }
     }
-    menuPosition.value = {
+    
+    // 设置标题和路径
+    currentSectionTitle.value = title
+    currentTitlePath.value = path
+    currentSectionInfo.value = sectionInfo
+    
+    // 设置菜单位置
+    let top = event.clientY * 0.9
+    if (top > document.body.clientHeight * 0.6) {
+        top = document.body.clientHeight * 0.6
+    }
+    sectionOptimizerPosition.value = {
         top,
         left: event.clientX * 1.2,
-    };
-    currentTitlePath.value = path;
-    showTitleMenu.value = true;
+    }
+    
+    showSectionOptimizer.value = true
 };
 
 const handleRefresh = () => {
@@ -437,7 +549,21 @@ eventBus.on('vditor-sync-with-html', handleSyncWithHtml);
 
 // 接受生成的文本
 const acceptGeneratedText = async (payload: any) => {
-    const { append, content } = payload;
+    const { append, content, sectionInfo } = payload;
+    
+    // 如果有sectionInfo，使用适配器来应用内容
+    if (sectionInfo && sectionOptimizerAdapter.value) {
+        try {
+            await sectionOptimizerAdapter.value.applyContent(sectionInfo, content, append)
+            showSectionOptimizer.value = false
+            sectionOptimizerAdapter.value = null
+            return
+        } catch (e) {
+            console.warn('Failed to apply content via adapter:', e)
+        }
+    }
+    
+    // 回退到旧的方式（用于TitleMenu兼容）
     const outlineTree = extractOutlineTreeFromMarkdown(currentMarkdown.value, false);
     const path = currentTitlePath.value;
     const node = findNodeByPath(outlineTree, path);
@@ -455,12 +581,198 @@ const acceptGeneratedText = async (payload: any) => {
     vditor.value?.setValue(currentMarkdown.value);
   flushOutlineSync();
     await bindTitleMenu();
+    showSectionOptimizer.value = false;
 };
 
 // 关闭标题菜单
 const handleTitleMenuClose = () => {
     showTitleMenu.value = false;
 };
+
+// 从右键菜单打开段落优化工具
+const openSectionOptimizerFromContext = async () => {
+    logger.debug('[MarkdownEditor] ========== openSectionOptimizerFromContext 开始 ==========')
+    
+    if (!vditor.value || !props.tabId) {
+        logger.debug('[MarkdownEditor] ✗ vditor 或 tabId 不存在')
+        return
+    }
+    
+    // 获取当前光标在文本中的位置
+    // vditor 的 getCursorPosition() 返回的是像素坐标，我们需要通过 DOM 获取文本位置
+    let cursorLine = 0
+    let cursorColumn = 0
+    
+    try {
+        const markdown = vditor.value.getValue()
+        const vditorInstance = vditor.value.vditor
+        const lines = markdown.split('\n')
+        
+        // 通过 vditor IR 模式的 DOM 元素获取光标位置
+        if (vditorInstance?.ir?.element) {
+            const editorElement = vditorInstance.ir.element
+            const selection = window.getSelection()
+            
+            if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0)
+                let node = range.startContainer
+                
+                // 向上查找包含 path 属性的元素（这是 vditor 标记的标题元素）
+                while (node && node !== editorElement) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const element = node as HTMLElement
+                        const path = element.getAttribute('path')
+                        
+                        // 如果找到了 path 属性，说明这是一个标题元素
+                        // 通过 path 在大纲树中找到对应的节点，然后找到对应的行号
+                        if (path) {
+                            const outline = extractOutlineTreeFromMarkdown(markdown, true)
+                            if (outline) {
+                                const { searchNode } = await import('../utils/outline-helpers')
+                                const outlineNode = searchNode(path, outline)
+                                if (outlineNode) {
+                                    // 在 markdown 中查找这个标题
+                                    const nodeTitle = outlineNode.title || outlineNode.text?.split('\n')[0]?.replace(/^#+\s*/, '') || ''
+                                    for (let i = 0; i < lines.length; i++) {
+                                        const match = lines[i].match(/^(#{1,6})\s+(.+)$/)
+                                        if (match && match[2].trim() === nodeTitle) {
+                                            cursorLine = i
+                                            // 尝试计算列号：获取光标在元素内的位置
+                                            const elementText = element.textContent || ''
+                                            const textOffset = range.startOffset
+                                            cursorColumn = Math.min(textOffset, elementText.length)
+                                            logger.debug('[MarkdownEditor] 通过 path 属性找到光标位置:', { 
+                                                line: cursorLine, 
+                                                column: cursorColumn,
+                                                path,
+                                                title: nodeTitle
+                                            })
+                                            break
+                                        }
+                                    }
+                                    if (cursorLine > 0) break
+                                }
+                            }
+                        }
+                    }
+                    node = node.parentNode
+                }
+                
+                // 如果通过 path 没找到，尝试通过文本内容匹配
+                if (cursorLine === 0) {
+                    // 获取光标所在元素的文本内容
+                    let currentNode = range.startContainer
+                    while (currentNode && currentNode !== editorElement) {
+                        if (currentNode.nodeType === Node.TEXT_NODE || currentNode.nodeType === Node.ELEMENT_NODE) {
+                            const textContent = currentNode.textContent || ''
+                            if (textContent.trim().length > 0) {
+                                // 在 markdown 中查找包含这个文本的行
+                                for (let i = 0; i < lines.length; i++) {
+                                    if (lines[i].includes(textContent.substring(0, Math.min(50, textContent.length)))) {
+                                        cursorLine = i
+                                        cursorColumn = 0
+                                        logger.debug('[MarkdownEditor] 通过文本内容匹配找到光标位置:', { 
+                                            line: cursorLine, 
+                                            column: cursorColumn,
+                                            matchedText: textContent.substring(0, 30)
+                                        })
+                                        break
+                                    }
+                                }
+                                if (cursorLine > 0) break
+                            }
+                        }
+                        currentNode = currentNode.parentNode
+                    }
+                }
+            }
+        }
+        
+        // 如果还是 0，使用文档中间位置作为默认值
+        if (cursorLine === 0) {
+            cursorLine = Math.floor(lines.length / 2)
+            cursorColumn = 0
+            logger.debug('[MarkdownEditor] 使用默认光标位置（文档中间）:', { line: cursorLine, column: cursorColumn })
+        }
+    } catch (e) {
+        logger.warn('[MarkdownEditor] 获取光标位置失败:', e)
+        // 如果出错，使用文档中间位置
+        const markdown = vditor.value.getValue()
+        const lines = markdown.split('\n')
+        cursorLine = Math.floor(lines.length / 2)
+        cursorColumn = 0
+    }
+    
+    logger.debug('[MarkdownEditor] 最终光标位置:', { line: cursorLine, column: cursorColumn })
+
+    // 创建适配器
+    const adapter = new MarkdownSectionAdapter(props.tabId)
+    sectionOptimizerAdapter.value = adapter
+
+    logger.debug('[MarkdownEditor] 调用 adapter.getSectionAtCursor，参数:', { line: cursorLine, column: cursorColumn })
+    
+    // 获取当前章节信息
+    const sectionInfo = await adapter.getSectionAtCursor({ line: cursorLine, column: cursorColumn })
+    
+    logger.debug('[MarkdownEditor] 获取到的 sectionInfo:', sectionInfo ? {
+        title: sectionInfo.title,
+        path: sectionInfo.path,
+        contentLength: sectionInfo.content?.length || 0,
+        range: sectionInfo.range
+    } : null)
+    if (!sectionInfo) {
+        // 如果没有找到章节，尝试使用第一个章节
+        const outline = extractOutlineTreeFromMarkdown(currentMarkdown.value, true)
+        if (outline && outline.children && outline.children.length > 0) {
+            const firstSection = outline.children[0]
+            const { searchNode } = await import('../utils/outline-helpers')
+            const node = searchNode(firstSection.path, outline)
+            
+            // 获取内容
+            let content = node?.text || ''
+            const nodeLines = content.split('\n')
+            if (nodeLines.length > 0 && nodeLines[0].match(/^(#{1,6})\s+/)) {
+                content = nodeLines.slice(1).join('\n').trim()
+            } else {
+                content = content.trim()
+            }
+            
+            currentSectionTitle.value = firstSection.title || firstSection.text?.split('\n')[0]?.replace(/^#+\s*/, '') || '段落优化'
+            currentTitlePath.value = firstSection.path || ''
+            currentSectionInfo.value = {
+                title: currentSectionTitle.value,
+                path: currentTitlePath.value,
+                content: content
+            }
+        } else {
+            // 没有章节，使用全文
+            currentSectionTitle.value = '全文'
+            currentTitlePath.value = 'full-document'
+            currentSectionInfo.value = {
+                title: '全文',
+                path: 'full-document',
+                content: currentMarkdown.value
+            }
+        }
+    } else {
+        currentSectionTitle.value = sectionInfo.title
+        currentTitlePath.value = sectionInfo.path
+        currentSectionInfo.value = sectionInfo
+    }
+
+    // 设置菜单位置
+    sectionOptimizerPosition.value = {
+        top: menuY.value,
+        left: menuX.value
+    }
+
+    showSectionOptimizer.value = true
+}
+
+const handleSectionOptimizerClose = () => {
+    showSectionOptimizer.value = false
+    sectionOptimizerAdapter.value = null
+}
 
 // 更新大纲
 const bindTitleMenu = async () => {

@@ -3,7 +3,7 @@
     <div class="profile-header">
       <span :style="{ color: themeState.currentTheme.textColor }">{{ t('userProfile.title') }}</span>
       <el-tooltip :content="t('userProfile.closeMenu')" placement="top">
-        <el-button circle size="small" @click="closeDialog" class="aero-btn" type="danger">
+        <el-button circle plain size="small" @click="closeDialog" class="aero-btn" type="danger">
           <el-icon><Close /></el-icon>
         </el-button>
       </el-tooltip>

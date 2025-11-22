@@ -171,7 +171,8 @@
     "closeKnowledgeBase": "Désactiver la connaissance Bibliothèque de récupération",
     "openAutoCompletion": "Activer l'achèvement de l'intelligence artificielle",
     "openKnowledgeBase": "Activer la connaissance Bibliothèque de récupération",
-    "locateToPdf": "Position au format PDF."
+    "locateToPdf": "Position au format PDF.",
+    "sectionOptimizer": "Optimisation du paragraphe AI"
   },
   "formulaRecognition": {
     "brush_size": "Brosse & #160;:",
@@ -925,6 +926,81 @@
       "state": "État",
       "title": "Gestion des outils",
       "toggleAll": "Tout sélectionner / Aucun"
+    }
+  },
+  "sectionOptimizer": {
+    "clear": "Effacer",
+    "contextMarks": {
+      "chapter": "Références au présent chapitre",
+      "full": "Références",
+      "none": "Pas de référence"
+    },
+    "contextTooltips": {
+      "chapter": "AI se référera à ce chapitre.",
+      "full": "AI se référera au texte intégral",
+      "none": "Aucune référence au contexte"
+    },
+    "defaultTitle": "Optimisation des paragraphes",
+    "inputPlaceholder": "Veuillez saisir une demande optimisée",
+    "presetPrompts": {
+      "latex": [
+        {
+          "value": "Agrandir ce texte en utilisant la syntaxe LaTeX standard",
+          "label": "Agrandir ce texte"
+        },
+        {
+          "value": "Rationaliser le texte en utilisant la syntaxe LaTeX standard",
+          "label": "Rationaliser ce texte"
+        },
+        {
+          "value": "Optimiser l'écriture, la rendre plus élégante, en utilisant la syntaxe LaTeX standard",
+          "label": "Optimiser l'écriture."
+        },
+        {
+          "value": "Selon le contenu de l'article dans son ensemble, le texte du chapitre coût de la vie nécessite un enrichissement, en utilisant la syntaxe LaTeX standard, et la prudence de ne pas sortir des ordres tels que \\documentclass",
+          "label": "Chapitres des coûts"
+        },
+        {
+          "value": "Modifier tous les troubles linguistiques, les fausses paroles, l'inadéquation du texte, conserver l'intention originale et utiliser la syntaxe LaTeX normative",
+          "label": "Changements apportés à la lecture des preuves"
+        }
+      ],
+      "markdown": [
+        {
+          "value": "Agrandir ce texte",
+          "label": "Agrandir ce texte"
+        },
+        {
+          "value": "Rationaliser ce texte",
+          "label": "Rationaliser ce texte"
+        },
+        {
+          "value": "Optimiser l'écriture, la rendre plus belle.",
+          "label": "Optimiser l'écriture."
+        },
+        {
+          "value": "Sur la base du contenu de l'article entier, le texte du chapitre sur le coût de la vie exige beaucoup de détails.",
+          "label": "Chapitres des coûts"
+        },
+        {
+          "value": "Modifier toutes les maladies de la parole, les mauvaises paroles, l'inadéquation et conserver l'intention originale",
+          "label": "Changements apportés à la lecture des preuves"
+        },
+        {
+          "value": "Générer un diagramme de flux de sirène basé sur ce paragraphe, en utilisant des cadres de code"
+        },
+        {
+          "value": "Basé sur la structure de l'article, créer une carte mentale sirène, en utilisant des cadres de code"
+        }
+      ]
+    },
+    "showPresets": "Afficher les conseils prédéfinis",
+    "tooltips": {
+      "acceptAppend": "Accepter et ajouter",
+      "acceptReplace": "Accepter et remplacer",
+      "chat": "Transformer le dialogue sur la croissance",
+      "generate": "Générer",
+      "reset": "Réinitialiser"
     }
   }
 }

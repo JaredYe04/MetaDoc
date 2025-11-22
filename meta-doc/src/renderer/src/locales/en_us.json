@@ -10,7 +10,8 @@
     "closeKnowledgeBase": "Disable Knowledge Retrieval Library",
     "openAutoCompletion": "Enable AI Completion",
     "openKnowledgeBase": "Enable Knowledge Retrieval Library",
-    "locateToPdf": "Locate to PDF Position"
+    "locateToPdf": "Locate to PDF Position",
+    "sectionOptimizer": "AI Paragraph Optimization"
   },
   "headMenu": {
     "tooltip": "An intelligent document processor based on AI Agent",
@@ -911,5 +912,95 @@
         "mcp": "MCP Application"
       }
     }
+  },
+  "sectionOptimizer": {
+    "clear": "Clear",
+    "contextMarks": {
+      "chapter": "References to this chapter",
+      "full": "References",
+      "none": "No reference"
+    },
+    "contextTooltips": {
+      "chapter": "AI will refer to this chapter.",
+      "full": "AI will refer to the full text",
+      "none": "No context reference"
+    },
+    "defaultTitle": "Paragraph optimization",
+    "inputPlaceholder": "Please enter an optimised demand",
+    "presetPrompts": {
+      "latex": [
+        {
+          "value": "Enlarge this text using the standard LaTeX syntax",
+          "label": "Enlarge this text"
+        },
+        {
+          "value": "Streamline the text using the standard LaTeX syntax",
+          "label": "Streamline this text"
+        },
+        {
+          "value": "Optimizing the writing, making it more elegant, using the standard LaTeX syntax",
+          "label": "Optimizing the writing."
+        },
+        {
+          "value": "Depending on the content of the article as a whole, the text of the cost-of-living chapter requires an enrichment, using the standard LaTeX syntax, and caution not to output orders such as \\documentclass",
+          "label": "Cost sections"
+        },
+        {
+          "value": "Modify all linguistic disorders, miswords, inappropriateness in the text, retain the original intent and use the normative LaTeX syntax",
+          "label": "Proofread Changes"
+        }
+      ],
+      "markdown": [
+        {
+          "value": "Enlarge this text",
+          "label": "Enlarge this text"
+        },
+        {
+          "value": "Streamline this text",
+          "label": "Streamline this text"
+        },
+        {
+          "value": "Optimizing the writing, making it more beautiful.",
+          "label": "Optimizing the writing."
+        },
+        {
+          "value": "Based on the content of the entire article, the text of the cost-of-living chapter requires a great deal of detail.",
+          "label": "Cost sections"
+        },
+        {
+          "value": "Modify all speech diseases, miswords, inappropriateness, and retain the original intent",
+          "label": "Proofread Changes"
+        },
+        {
+          "value": "Generate a mermaid flowchart based on this paragraph, using code frames"
+        },
+        {
+          "value": "Based on the structure of the article, create a mermaid mind map, using code frames"
+        }
+      ]
+    },
+    "showPresets": "Show preset hints",
+    "tooltips": {
+      "acceptAppend": "Accept and Add",
+      "acceptReplace": "Accept & Replace",
+      "chat": "Transforming growth dialogue",
+      "generate": "Generate",
+      "reset": "Reset"
+    }
+  },
+  "wordCountDialog": {
+    "charactersNoSpaces": "Number of characters (no spaces counted)",
+    "charactersWithSpaces": "Characters (spaces)",
+    "chineseAndKoreanChars": "Chinese characters and Korean words",
+    "close": "Close",
+    "includeTextBoxesFootnotesEndnotes": "Includes text boxes, footnotes and endnotes (F)",
+    "lines": "Okay.",
+    "nonChineseWords": "Non-Chinese Words",
+    "pages": "Pages",
+    "paragraphs": "Number of paragraphs",
+    "statistics": "Statistical information:",
+    "title": "Word Statistics",
+    "tooltip": "Click to see detailed word count",
+    "words": "Number of words"
   }
 }

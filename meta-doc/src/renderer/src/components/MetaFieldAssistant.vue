@@ -11,7 +11,7 @@
         {{ title || $t('llmDialog.aiAssistant') }}
       </span>
       <el-tooltip :content="$t('llmDialog.closeMenuTooltip')" placement="top">
-        <el-button circle size="small" @click="closeDialog" type="danger">
+        <el-button circle plain size="small" @click="closeDialog" type="danger">
           <el-icon><Close /></el-icon>
         </el-button>
       </el-tooltip>

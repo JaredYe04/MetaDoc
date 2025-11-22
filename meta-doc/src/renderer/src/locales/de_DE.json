@@ -171,7 +171,8 @@
     "closeKnowledgeBase": "Unmögliches Wissen Retrieval Bibliothek",
     "openAutoCompletion": "KI-Vervollständigung aktivieren",
     "openKnowledgeBase": "Wissen aktivieren Retrieval Bibliothek",
-    "locateToPdf": "Position zu PDF."
+    "locateToPdf": "Position zu PDF.",
+    "sectionOptimizer": "KI Absatzoptimierung"
   },
   "formulaRecognition": {
     "brush_size": "Bürste:",
@@ -925,6 +926,81 @@
       "state": "Status",
       "title": "Werkzeugverwaltung",
       "toggleAll": "Alle auswählen / Keine"
+    }
+  },
+  "sectionOptimizer": {
+    "clear": "Klar.",
+    "contextMarks": {
+      "chapter": "Bezugnahmen auf dieses Kapitel",
+      "full": "Referenzen",
+      "none": "Keine Referenz"
+    },
+    "contextTooltips": {
+      "chapter": "KI wird sich auf dieses Kapitel beziehen.",
+      "full": "KI wird sich auf den vollständigen Text beziehen",
+      "none": "Keine Kontextreferenz"
+    },
+    "defaultTitle": "Absatzoptimierung",
+    "inputPlaceholder": "Bitte geben Sie eine optimierte Nachfrage ein",
+    "presetPrompts": {
+      "latex": [
+        {
+          "value": "Vergrößern Sie diesen Text mit der Standard-LaTeX-Syntax",
+          "label": "Vergrößern Sie diesen Text"
+        },
+        {
+          "value": "Den Text mit der Standard-Syntax LaTeX optimieren",
+          "label": "Diesen Text optimieren"
+        },
+        {
+          "value": "Optimieren des Schreibens, so dass es eleganter, mit der Standard LaTeX Syntax",
+          "label": "Optimierung des Schreibens."
+        },
+        {
+          "value": "Abhängig vom Inhalt des Artikels als Ganzes erfordert der Text des Kosten-Nutzen-Kapitels eine Anreicherung unter Verwendung der Standard-LaTeX-Syntax und Vorsicht, Bestellungen wie \\documentclass nicht auszugeben",
+          "label": "Kostenabschnitte"
+        },
+        {
+          "value": "Ändern Sie alle sprachlichen Störungen, Fehlwörter, Unangemessenheit im Text, behalten Sie die ursprüngliche Absicht und verwenden Sie die normative LaTeX Syntax",
+          "label": "Proofread Änderungen"
+        }
+      ],
+      "markdown": [
+        {
+          "value": "Vergrößern Sie diesen Text",
+          "label": "Vergrößern Sie diesen Text"
+        },
+        {
+          "value": "Diesen Text optimieren",
+          "label": "Diesen Text optimieren"
+        },
+        {
+          "value": "Optimieren des Schreibens, so dass es schöner.",
+          "label": "Optimierung des Schreibens."
+        },
+        {
+          "value": "Basierend auf dem Inhalt des gesamten Artikels, erfordert der Text des Kosten-Nutzen-Kapitels viel Detail.",
+          "label": "Kostenabschnitte"
+        },
+        {
+          "value": "Ändern Sie alle Spracherkrankungen, Fehlwörter, Unangemessenheit und behalten Sie die ursprüngliche Absicht",
+          "label": "Proofread Änderungen"
+        },
+        {
+          "value": "Generieren Sie ein Meerjungfrau-Durchflussdiagramm basierend auf diesem Absatz, mit Coderahmen"
+        },
+        {
+          "value": "Basierend auf der Struktur des Artikels, erstellen Sie eine Meerjungfrau Mind Map, mit Code Frames"
+        }
+      ]
+    },
+    "showPresets": "Voreingestellte Hinweise anzeigen",
+    "tooltips": {
+      "acceptAppend": "Akzeptieren und hinzufügen",
+      "acceptReplace": "Akzeptieren und ersetzen",
+      "chat": "Transformation des Wachstumsdialogs",
+      "generate": "Generieren",
+      "reset": "Zurück zur Übersicht"
     }
   }
 }

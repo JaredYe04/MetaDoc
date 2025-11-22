@@ -3,7 +3,7 @@
 
     <div style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px;">
       <el-button
-        circle
+        circle plain
         size="small"
         type="danger"
         @click="$emit('close')"

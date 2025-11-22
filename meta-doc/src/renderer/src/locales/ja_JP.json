@@ -10,7 +10,8 @@
     "closeKnowledgeBase": "障害のある知識 立派な図書館",
     "openAutoCompletion": "AI完了を有効にする",
     "openKnowledgeBase": "知識の有効化 立派な図書館",
-    "locateToPdf": "PDFへの投稿"
+    "locateToPdf": "PDFへの投稿",
+    "sectionOptimizer": "AIパラグラフの最適化"
   },
   "headMenu": {
     "tooltip": "AI Agentベースのスマート文書処理ソフトウェア",
@@ -925,6 +926,81 @@
       "state": "ステータス",
       "title": "ツール管理",
       "toggleAll": "すべてを選択 / なし"
+    }
+  },
+  "sectionOptimizer": {
+    "clear": "クリア",
+    "contextMarks": {
+      "chapter": "この章への参照",
+      "full": "参考文献",
+      "none": "参照なし"
+    },
+    "contextTooltips": {
+      "chapter": "AIは、この章を参照します。",
+      "full": "AIは全文を参照します",
+      "none": "コンテキスト参照なし"
+    },
+    "defaultTitle": "パラグラフの最適化",
+    "inputPlaceholder": "最適化された需要を入力してください",
+    "presetPrompts": {
+      "latex": [
+        {
+          "value": "標準の LaTeX 構文を使用してこのテキストを拡張します。",
+          "label": "このテキストの拡大"
+        },
+        {
+          "value": "標準の LaTeX 構文を使用してテキストを合理化",
+          "label": "このテキストを合理化"
+        },
+        {
+          "value": "筆記を最適化し、標準的なLaTeX構文を使用してよりエレガントにします。",
+          "label": "ライティングの最適化"
+        },
+        {
+          "value": "記事のコンテンツ全体に応じて、費用対効果の章のテキストは、標準のLaTeX構文を使用して、濃縮を必要とし、\\documentclassなどの注文を出力しない注意",
+          "label": "コストセクション"
+        },
+        {
+          "value": "テキスト内のすべての言語障害、誤字、不適切性を修正し、元の意図を保持し、規範的なLaTeXの構文を使用する",
+          "label": "校正変更"
+        }
+      ],
+      "markdown": [
+        {
+          "value": "このテキストの拡大",
+          "label": "このテキストの拡大"
+        },
+        {
+          "value": "このテキストを合理化",
+          "label": "このテキストを合理化"
+        },
+        {
+          "value": "ライティングの最適化、より美しくします。",
+          "label": "ライティングの最適化"
+        },
+        {
+          "value": "記事全体のコンテンツに基づいて、費用対効果の章のテキストは、詳細の大きな取引が必要です。",
+          "label": "コストセクション"
+        },
+        {
+          "value": "すべてのスピーチ疾患、誤り、不適切性を修正し、元の意図を保持します",
+          "label": "校正変更"
+        },
+        {
+          "value": "コードフレームを使用して、この段落に基づいて人魚フローチャートを生成します"
+        },
+        {
+          "value": "記事の構造に基づいて、コードフレームを使用して、人魚のマインドマップを作成します"
+        }
+      ]
+    },
+    "showPresets": "プリセットヒントを表示する",
+    "tooltips": {
+      "acceptAppend": "受け入れ、追加",
+      "acceptReplace": "受け入れ及び取り替えて下さい",
+      "chat": "成長対話の変革",
+      "generate": "生成する",
+      "reset": "リセット"
     }
   }
 }

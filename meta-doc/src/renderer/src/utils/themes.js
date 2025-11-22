@@ -35,7 +35,7 @@ export const lightTheme = {
   editorTextareaBackgroundColor: '#fafbfc',
   vditorTheme: 'classic',
   codeTheme: 'github',
-  titleMenuBackground: '#0066FF44',
+  titleMenuBackground: 'rgba(255, 255, 255, 0.85)',
   outlineBackground: '#4c78a8',
   outlineNode: '#9ecae9',
   quickStartBackground1: '#ADD8E61A',
@@ -211,7 +211,7 @@ export const customTheme = (themeColor = '#000000') => {
 
         vditorTheme: 'classic',
         codeTheme: 'github',
-        titleMenuBackground: mixColors(themeColor, '#ffffff', 0.2) + '44',
+        titleMenuBackground: 'rgba(255, 255, 255, 0.85)',
         outlineBackground: mixColors(themeColor, '#d0d0d0', 0.3),
         outlineNode: mixColors(themeColor, '#e8e8e8', 0.4),
         quickStartBackground1: mixColors(themeColor, '#e6f7ff', 0.4) + '33',

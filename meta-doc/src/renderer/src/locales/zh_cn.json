@@ -10,7 +10,8 @@
         "openAutoCompletion":"启用AI补全",
         "closeKnowledgeBase":"禁用知识检索库",
         "openKnowledgeBase":"启用知识检索库",
-        "locateToPdf": "定位到PDF位置"
+        "locateToPdf": "定位到PDF位置",
+        "sectionOptimizer": "AI段落优化"
     },
     "headMenu": {
         "tooltip": "一款基于AI Agent的智能文字处理软件",
@@ -125,6 +126,81 @@
             "chat": "转换成长对话",
             "acceptReplace": "接受并替换",
             "acceptAppend": "接受并追加"
+        }
+    },
+    "sectionOptimizer": {
+        "defaultTitle": "段落优化",
+        "inputPlaceholder": "请输入优化需求",
+        "showPresets": "显示预设提示词",
+        "clear": "清空",
+        "contextMarks": {
+            "none": "不参考",
+            "chapter": "参考本章",
+            "full": "参考全文"
+        },
+        "contextTooltips": {
+            "none": "不参考上下文",
+            "chapter": "AI将会参考本章节内容",
+            "full": "AI将会参考全文内容"
+        },
+        "tooltips": {
+            "generate": "生成",
+            "reset": "重置",
+            "chat": "转换成长对话",
+            "acceptReplace": "接受并替换",
+            "acceptAppend": "接受并追加"
+        },
+        "presetPrompts": {
+            "markdown": [
+                {
+                    "value": "扩写这段文字",
+                    "label": "扩写这段文字"
+                },
+                {
+                    "value": "精简这段文字",
+                    "label": "精简这段文字"
+                },
+                {
+                    "value": "优化文笔，使得这段文字更加优美",
+                    "label": "优化一下文笔"
+                },
+                {
+                    "value": "根据整篇文章的大意内容，生成本章节的文字内容，要求丰富翔实",
+                    "label": "生成本节内容"
+                },
+                {
+                    "value": "修改文本中所有的语病、错别字、不妥当之处，保留原意",
+                    "label": "校对修改"
+                },
+                {
+                    "value": "根据本段内容，生成一张mermaid流程图，使用代码框包裹"
+                },
+                {
+                    "value": "根据文章结构，生成一张mermaid思维导图，使用代码框包裹"
+                }
+            ],
+            "latex": [
+                {
+                    "value": "扩写这段文字，使用规范的LaTeX语法",
+                    "label": "扩写这段文字"
+                },
+                {
+                    "value": "精简这段文字，使用规范的LaTeX语法",
+                    "label": "精简这段文字"
+                },
+                {
+                    "value": "优化文笔，使得这段文字更加优美，使用规范的LaTeX语法",
+                    "label": "优化一下文笔"
+                },
+                {
+                    "value": "根据整篇文章的大意内容，生成本章节的文字内容，要求丰富翔实，使用规范的LaTeX语法，注意不要输出\\documentclass等命令",
+                    "label": "生成本节内容"
+                },
+                {
+                    "value": "修改文本中所有的语病、错别字、不妥当之处，保留原意，使用规范的LaTeX语法",
+                    "label": "校对修改"
+                }
+            ]
         }
     },
     "userProfile": {
@@ -749,6 +825,21 @@
         "notificationEmpty": "暂无通知",
         "logConsoleLabel": "日志",
         "logConsoleTooltip": "打开日志控制台"
+    },
+    "wordCountDialog": {
+        "title": "字数统计",
+        "tooltip": "点击查看详细字数统计",
+        "statistics": "统计信息：",
+        "pages": "页数",
+        "words": "字数",
+        "charactersNoSpaces": "字符数(不计空格)",
+        "charactersWithSpaces": "字符数(计空格)",
+        "paragraphs": "段落数",
+        "lines": "行",
+        "nonChineseWords": "非中文单词",
+        "chineseAndKoreanChars": "中文字符和朝鲜语单词",
+        "includeTextBoxesFootnotesEndnotes": "包括文本框、脚注和尾注(F)",
+        "close": "关闭"
     },
     "aiTask": {
         "status": "状态",

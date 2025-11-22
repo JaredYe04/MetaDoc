@@ -3,6 +3,20 @@
         <div class="content-container">
 
             <!-- 菜单组件 -->
+                <SectionOptimizer
+                    v-if="showSectionOptimizer" 
+                :title="currentSectionTitle" 
+                :position="sectionOptimizerPosition"
+                :path="currentTitlePath"
+                :tree="extractOutlineTreeFromMarkdown(currentMarkdown, true)"
+                :adapter="sectionOptimizerAdapter"
+                :sectionInfo="currentSectionInfo"
+                language="latex"
+                @close="handleSectionOptimizerClose" 
+                @accept="async (payload) => { await acceptGeneratedText(payload); }" 
+                style="max-width: 500px;" 
+            />
+            <!-- 保留TitleMenu以兼容旧代码 -->
             <TitleMenu v-if="showTitleMenu" :title="currentTitle.replaceAll('#', '').trim()" :position="menuPosition"
                 @close="handleTitleMenuClose" :path="currentTitlePath"
                 :tree="extractOutlineTreeFromMarkdown(currentMarkdown, true)"
@@ -244,6 +258,8 @@ import { searchNode } from "../utils/outline-helpers";
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
 import { getOutlineAdapter } from '../utils/outline-adapters';
 import TitleMenu from '../components/TitleMenu.vue';
+import SectionOptimizer from '../components/SectionOptimizer.vue';
+import { LaTeXSectionAdapter } from '../components/section-optimizer/adapters/latex-adapter';
 import SearchReplaceMenu from "../components/SearchReplaceMenu.vue";
 import AiLogo from "../assets/ai-logo.svg";
 import AiLogoWhite from "../assets/ai-logo-white.svg";
@@ -360,8 +376,13 @@ const textEditorAdapter = shallowRef(null);
 
 const loadingInstance = ElLoading.service({ fullscreen: false });
 const showTitleMenu = ref(false);
+const showSectionOptimizer = ref(false);
 const currentTitle = ref("");
+const currentSectionTitle = ref("");
 const menuPosition = ref({ top: 0, left: 0 });
+const sectionOptimizerPosition = ref({ top: 0, left: 0 });
+const sectionOptimizerAdapter = shallowRef(null);
+const currentSectionInfo = ref(null);
 const getDefaultSearchMenuPosition = () => {
     if (typeof window === "undefined") {
         return { top: 24, left: 24 };
@@ -400,6 +421,54 @@ const pdfContextMenuItems = ref([
 const handleTitleMenuClose = () => {
     showTitleMenu.value = false;
 };
+
+// 从右键菜单打开段落优化工具
+const openSectionOptimizerFromContext = async () => {
+    if (!editor.value || !props.tabId) return
+    
+    // 从Monaco全局获取编辑器实例
+    const editors = monaco.editor.getEditors();
+    const monacoEditor = editors.find(e => e.getId?.() === editorId) || editor.value;
+    if (!monacoEditor) return
+
+    // 获取当前光标位置
+    const position = monacoEditor.getPosition()
+    if (!position) return
+
+    // 创建适配器
+    const adapter = new LaTeXSectionAdapter(props.tabId, editorId)
+    adapter.setEditorId(editorId)
+    sectionOptimizerAdapter.value = adapter
+
+    // 获取当前章节信息
+    const sectionInfo = await adapter.getSectionAtCursor({ 
+        lineNumber: position.lineNumber, 
+        column: position.column 
+    })
+    if (!sectionInfo) {
+        // 如果没有找到章节，使用默认值
+        currentSectionTitle.value = '段落优化'
+        currentTitlePath.value = ''
+        currentSectionInfo.value = null
+    } else {
+        currentSectionTitle.value = sectionInfo.title
+        currentTitlePath.value = sectionInfo.path
+        currentSectionInfo.value = sectionInfo
+    }
+
+    // 设置菜单位置
+    sectionOptimizerPosition.value = {
+        top: menuY.value,
+        left: menuX.value
+    }
+
+    showSectionOptimizer.value = true
+}
+
+const handleSectionOptimizerClose = () => {
+    showSectionOptimizer.value = false
+    sectionOptimizerAdapter.value = null
+}
 const handleSearchReplaceClose = () => {
     searchReplaceDialogVisible.value = false;
 };
@@ -433,7 +502,21 @@ const addDialogEntry = (dialog, addToFront = false) => {
 
 const acceptGeneratedText = async (payload) => {
     if (!payload) return;
-    const { append, content } = payload;
+    const { append, content, sectionInfo } = payload;
+    
+    // 如果有sectionInfo，使用它来应用内容
+    if (sectionInfo && sectionOptimizerAdapter.value) {
+        try {
+            await sectionOptimizerAdapter.value.applyContent(sectionInfo, content, append)
+            showSectionOptimizer.value = false
+            sectionOptimizerAdapter.value = null
+            return
+        } catch (e) {
+            console.warn('Failed to apply content via adapter:', e)
+        }
+    }
+    
+    // 回退到旧的方式（用于TitleMenu兼容）
     if (!currentTitlePath.value) return;
     const clonedOutline = JSON.parse(JSON.stringify(currentOutline.value));
     const node = searchNode(currentTitlePath.value, clonedOutline);
@@ -443,6 +526,7 @@ const acceptGeneratedText = async (payload) => {
         latestView.value = 'outline';
     }
     showTitleMenu.value = false;
+    showSectionOptimizer.value = false;
 };
 
 const editorEl = ref(null);
@@ -1575,6 +1659,9 @@ const handleMenuClick = async (item) => {
             break;
         case 'locate-to-pdf':
             await locateToPdf();
+            break;
+        case 'section-optimizer':
+            await openSectionOptimizerFromContext();
             break;
 
     }

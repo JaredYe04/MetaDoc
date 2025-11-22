@@ -10,7 +10,8 @@
     "closeKnowledgeBase": "법적 고지 Retrieval 도서관",
     "openAutoCompletion": "Enable AI 완료",
     "openKnowledgeBase": "자주 묻는 질문 Retrieval 도서관",
-    "locateToPdf": "PDF의 위치."
+    "locateToPdf": "PDF의 위치.",
+    "sectionOptimizer": "AI Paragraph 최적화"
   },
   "headMenu": {
     "tooltip": "AI 에이전트 기반의 스마트 문서 처리 소프트웨어",
@@ -925,6 +926,81 @@
       "state": "주요연혁",
       "title": "Tool 관리",
       "toggleAll": "모두 선택 / 없음"
+    }
+  },
+  "sectionOptimizer": {
+    "clear": "이름 *",
+    "contextMarks": {
+      "chapter": "이 장에 대한 참조",
+      "full": "이름 *",
+      "none": "참고 사항"
+    },
+    "contextTooltips": {
+      "chapter": "AI는이 챕터를 참조합니다.",
+      "full": "AI는 전체 텍스트를 참조",
+      "none": "문헌 없음"
+    },
+    "defaultTitle": "Paragraph 최적화",
+    "inputPlaceholder": "최적화된 수요를 입력하세요",
+    "presetPrompts": {
+      "latex": [
+        {
+          "value": "표준 LaTeX 구문을 사용하여이 텍스트를 확대",
+          "label": "이 텍스트를 확대"
+        },
+        {
+          "value": "표준 LaTeX 문법을 사용하여 텍스트를 스트리밍",
+          "label": "Streamline 이 텍스트"
+        },
+        {
+          "value": "쓰기 최적화, 더 우아한 만들기, 표준 LaTeX 문법 사용",
+          "label": "쓰기 최적화."
+        },
+        {
+          "value": "문서의 내용에 따라 전체로, 비용의 서빙 챕터의 텍스트는 표준 LaTeX 구문을 사용하여 풍성한 관계를 필요로하며, \\documentclass와 같은 명령을 출력하지 않습니다.",
+          "label": "가격표"
+        },
+        {
+          "value": "모든 언어 장애를 수정, miswords, 텍스트의 부적절한, 원래 의도를 유지 하 고 규범 LaTeX 구문을 사용",
+          "label": "Proofread 변화"
+        }
+      ],
+      "markdown": [
+        {
+          "value": "이 텍스트를 확대",
+          "label": "이 텍스트를 확대"
+        },
+        {
+          "value": "Streamline 이 텍스트",
+          "label": "Streamline 이 텍스트"
+        },
+        {
+          "value": "쓰기 최적화, 더 아름다운 만들기.",
+          "label": "쓰기 최적화."
+        },
+        {
+          "value": "전체 기사의 내용에 근거하여, 비용의 기사의 텍스트는 훌륭한 세부 사항이 필요합니다.",
+          "label": "가격표"
+        },
+        {
+          "value": "모든 연설병, miswords, 부적절한, 그리고 원래 의도를 유지",
+          "label": "Proofread 변화"
+        },
+        {
+          "value": "이 단락을 기반으로 한 mermaid flowchart 생성, 코드 프레임 사용"
+        },
+        {
+          "value": "기사의 구조에 따라 코드 프레임을 사용하여 mermaid mind map을 만듭니다."
+        }
+      ]
+    },
+    "showPresets": "쇼 preset hints",
+    "tooltips": {
+      "acceptAppend": "자주 묻는 질문",
+      "acceptReplace": "수락 & 교체",
+      "chat": "성장의 전환",
+      "generate": "제품 정보",
+      "reset": "지원하다"
     }
   }
 }

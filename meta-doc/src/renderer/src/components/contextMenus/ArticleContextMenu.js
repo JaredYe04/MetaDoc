@@ -29,6 +29,7 @@ export async function getArticleContextMenuItems(options = {}) {
     knowledgeBaseToggle,
     { type: "divider" },
     { label: "contextMenu.aiAnalysis", value: "ai-assistant" },
+    { label: "contextMenu.sectionOptimizer", value: "section-optimizer" },
   ];
 
   // LaTeX编辑器特有：定位到PDF位置

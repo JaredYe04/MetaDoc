@@ -138,6 +138,21 @@
     "logConsoleLabel": "Protokoll",
     "logConsoleTooltip": "Protokollkonsole öffnen"
   },
+  "wordCountDialog": {
+    "title": "Wortanzahl",
+    "tooltip": "Klicken Sie, um detaillierte Wortanzahlstatistiken anzuzeigen",
+    "statistics": "Statistiken:",
+    "pages": "Seiten",
+    "words": "Wörter",
+    "charactersNoSpaces": "Zeichen (ohne Leerzeichen)",
+    "charactersWithSpaces": "Zeichen (mit Leerzeichen)",
+    "paragraphs": "Absätze",
+    "lines": "Zeilen",
+    "nonChineseWords": "Nicht-chinesische Wörter",
+    "chineseAndKoreanChars": "Chinesische Zeichen und koreanische Wörter",
+    "includeTextBoxesFootnotesEndnotes": "Textfelder, Fußnoten und Endnoten einschließen (F)",
+    "close": "Schließen"
+  },
   "common": {
     "cancel": "Abbrechen",
     "confirm": "Bestätigen Sie.",

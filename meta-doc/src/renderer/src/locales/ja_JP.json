@@ -674,6 +674,21 @@
     "logConsoleLabel": "ログイン",
     "logConsoleTooltip": "ログコンソールを開く"
   },
+  "wordCountDialog": {
+    "title": "文字数統計",
+    "tooltip": "クリックして詳細な文字数統計を表示",
+    "statistics": "統計情報：",
+    "pages": "ページ数",
+    "words": "文字数",
+    "charactersNoSpaces": "文字数（スペースなし）",
+    "charactersWithSpaces": "文字数（スペース含む）",
+    "paragraphs": "段落数",
+    "lines": "行数",
+    "nonChineseWords": "非中国語単語",
+    "chineseAndKoreanChars": "中国文字と朝鮮語単語",
+    "includeTextBoxesFootnotesEndnotes": "テキストボックス、脚注、尾注を含む（F）",
+    "close": "閉じる"
+  },
   "aiTask": {
     "cancel": "キャンセル",
     "failed": "失敗した",

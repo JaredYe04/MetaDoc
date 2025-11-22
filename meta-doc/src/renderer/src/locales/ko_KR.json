@@ -674,6 +674,21 @@
     "logConsoleLabel": "로그인",
     "logConsoleTooltip": "로그 콘솔"
   },
+  "wordCountDialog": {
+    "title": "단어 수 통계",
+    "tooltip": "클릭하여 자세한 단어 수 통계 보기",
+    "statistics": "통계 정보：",
+    "pages": "페이지 수",
+    "words": "단어 수",
+    "charactersNoSpaces": "문자 수（공백 제외）",
+    "charactersWithSpaces": "문자 수（공백 포함）",
+    "paragraphs": "단락 수",
+    "lines": "줄 수",
+    "nonChineseWords": "비중국어 단어",
+    "chineseAndKoreanChars": "중국어 문자 및 한국어 단어",
+    "includeTextBoxesFootnotesEndnotes": "텍스트 상자, 각주 및 미주 포함（F）",
+    "close": "닫기"
+  },
   "aiTask": {
     "cancel": "이름 *",
     "failed": "뚱 베어",

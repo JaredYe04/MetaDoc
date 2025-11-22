@@ -138,6 +138,21 @@
     "logConsoleLabel": "Journal",
     "logConsoleTooltip": "Ouvrir la console de journal"
   },
+  "wordCountDialog": {
+    "title": "Nombre de mots",
+    "tooltip": "Cliquez pour voir les statistiques détaillées du nombre de mots",
+    "statistics": "Statistiques :",
+    "pages": "Pages",
+    "words": "Mots",
+    "charactersNoSpaces": "Caractères (sans espaces)",
+    "charactersWithSpaces": "Caractères (avec espaces)",
+    "paragraphs": "Paragraphes",
+    "lines": "Lignes",
+    "nonChineseWords": "Mots non chinois",
+    "chineseAndKoreanChars": "Caractères chinois et mots coréens",
+    "includeTextBoxesFootnotesEndnotes": "Inclure les zones de texte, notes de bas de page et notes de fin (F)",
+    "close": "Fermer"
+  },
   "common": {
     "cancel": "Annuler",
     "confirm": "Confirmez.",

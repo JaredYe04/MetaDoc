@@ -7,7 +7,14 @@
     }"
   >
     <div class="status-group">
-      <span class="status-item">{{ $t('bottomMenu.wordCount') }} {{ wordCount }}</span>
+      <el-tooltip :content="$t('wordCountDialog.tooltip')" placement="top">
+        <span
+          class="status-item status-word-count"
+          @click="showWordCountDialog = true"
+        >
+          {{ $t('bottomMenu.wordCount') }} {{ wordCount }}
+        </span>
+      </el-tooltip>
       <span class="status-divider">|</span>
       <span class="status-item status-file">
         {{ $t('bottomMenu.currentFile') }}{{ currentFilePath ? currentFilePath : $t('bottomMenu.newFile') }}
@@ -15,6 +22,11 @@
       
 
     </div>
+    <WordCountDialog
+      v-model="showWordCountDialog"
+      :content="documentContent"
+      :format="documentFormat"
+    />
     <div class="actions-group">
         <el-tooltip :content="$t('bottomMenu.logConsoleTooltip')" placement="top">
         <span class="status-item status-logger" @click.prevent="toggleLoggerConsole">
@@ -62,6 +74,7 @@ import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { useNotificationStack, initializeNotificationListeners } from '../utils/notifications'
 import { useWorkspace } from '../stores/workspace'
+import WordCountDialog from './WordCountDialog.vue'
 
 const workspace = useWorkspace()
 
@@ -78,6 +91,23 @@ const wordCount = computed(() => {
 })
 
 const currentFilePath = computed(() => activeDocument.value?.path ?? '')
+
+const showWordCountDialog = ref(false)
+
+const documentContent = computed(() => {
+    const doc = activeDocument.value
+    if (!doc) return ''
+    if (doc.format === 'tex') {
+        return doc.tex ?? ''
+    }
+    return doc.markdown ?? ''
+})
+
+const documentFormat = computed(() => {
+    const doc = activeDocument.value
+    if (!doc) return 'md'
+    return doc.format
+})
 
 import { useI18n } from 'vue-i18n'
 import { BellFilled, Document } from '@element-plus/icons-vue'
@@ -200,6 +230,17 @@ function toggleLoggerConsole() {
 }
 
 .status-logger:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.status-word-count {
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.status-word-count:hover {
     background-color: rgba(0, 0, 0, 0.08);
 }
 

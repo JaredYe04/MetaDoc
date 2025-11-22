@@ -10,6 +10,8 @@
     :word="current_word"
     :frequency="current_frequency"
     :position="menuPosition"
+    :document-content="rawDocumentContent"
+    :adapter="currentAdapter || undefined"
     @close="handleTitleMenuClose"
     style="max-width: 300px;"
   />
@@ -23,7 +25,6 @@
             <div
               id="outline-graph"
               :style="{
-                textColor: themeState.currentTheme.textColor,
                 color: themeState.currentTheme.textColor
               }"
             ></div>
@@ -38,7 +39,6 @@
                 id="word-count-diagram"
                 style="width: 100%; height: 300%;overflow: auto;"
                 :style="{
-                  textColor: themeState.currentTheme.textColor,
                   color: themeState.currentTheme.textColor
                 }"
               ></div>
@@ -53,7 +53,6 @@
           class="big-title interactive-text"
           @click="generateWordCloud"
           :style="{
-            textColor: themeState.currentTheme.textColor,
             color: themeState.currentTheme.textColor
           }"
         >
@@ -83,14 +82,18 @@
 </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+// @ts-ignore - d3-cloud没有类型定义
 import cloud from 'd3-cloud';
+// @ts-ignore - d3类型定义可能不完整
 import * as d3 from 'd3';
-import { extractOutlineTreeFromMarkdown, generatePieFromData, generateWordCountBarChart, generateWordFrequencyTrendChart, ConvertMarkdownToHtmlVditor, outlineToMindMap } from '../utils/md-utils';
-import { convertLatexToMarkdown } from '../utils/latex-utils';
+import { generatePieFromData, generateWordCountBarChart, generateWordFrequencyTrendChart, ConvertMarkdownToHtmlVditor, outlineToMindMap } from '../utils/md-utils';
+import { createVisualizeAdapter, type VisualizeAdapter } from '../utils/visualize-adapters';
+// @ts-ignore - lodash.debounce没有类型定义
 import debounce from 'lodash.debounce';
+import type { DocumentOutlineNode } from '../../../types';
 onMounted(async () => {
     //await initVditor();
     //await refreshAll();
@@ -110,19 +113,24 @@ import { useWorkspace } from '../stores/workspace';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 
-let ipcRenderer = null
-if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer
+let ipcRenderer: any = null;
+if (window && (window as any).electron) {
+  ipcRenderer = (window as any).electron.ipcRenderer;
 } else {
   webMainCalls();
-  ipcRenderer=localIpcRenderer
+  ipcRenderer = localIpcRenderer;
   //todo 说明当前环境不是electron环境，需要另外适配
 }
 
 
 
-const words = ref([]);
-const wordCount = ref([]);
+interface WordCountItem {
+  text: string;
+  size: number;
+}
+
+const words = ref<string[]>([]);
+const wordCount = ref<WordCountItem[]>([]);
 const showTitleMenu = ref(false);
 // 关闭标题菜单
 const handleTitleMenuClose = () => {
@@ -141,16 +149,20 @@ const {
   removeTab,
 } = workspace;
 
-const normalizedArticleText = computed(() => {
+// 获取当前文档的适配器
+const currentAdapter = computed<VisualizeAdapter | null>(() => {
+  const doc = activeDocument.value;
+  if (!doc) return null;
+  const format = doc.format === 'tex' ? 'latex' : 'markdown';
+  return createVisualizeAdapter(format);
+});
+
+// 获取原始文档内容
+const rawDocumentContent = computed(() => {
   const doc = activeDocument.value;
   if (!doc) return '';
   if (doc.format === 'tex') {
-    try {
-      return convertLatexToMarkdown(doc.tex ?? '');
-    } catch (error) {
-      console.error('[Visualize] convertLatexToMarkdown failed:', error);
-      return doc.tex ?? '';
-    }
+    return doc.tex ?? '';
   }
   return doc.markdown ?? '';
 });
@@ -164,11 +176,11 @@ const documentTitle = computed(() => {
   return segments[segments.length - 1] || '未命名文档';
 });
 
-const handleTabChange = (id) => {
+const handleTabChange = (id: string) => {
   activateTab(id);
 };
 
-const handleCloseTab = (id) => {
+const handleCloseTab = (id: string) => {
   if (tabs.length <= 1) return;
   removeTab(id);
 };
@@ -227,11 +239,12 @@ const generatePie = async () => {
   const node = document.getElementById('pie');
   if (!node) return;
 
-  if (!article_text.value?.trim()) {
+  const adapter = currentAdapter.value;
+  if (!adapter || !rawDocumentContent.value?.trim()) {
     return;
   }
 
-  let outline = extractOutlineTreeFromMarkdown(article_text.value);
+  let outline = adapter.extractOutline(rawDocumentContent.value);
   if (!outline || !outline.children?.length) {
     return;
   }
@@ -240,9 +253,14 @@ const generatePie = async () => {
     outline = outline.children[0];
   }
 
-  const data = [];
+  interface PieDataItem {
+    value: number;
+    label: string;
+  }
 
-  const dfs = (treeNode) => {
+  const data: PieDataItem[] = [];
+
+  const dfs = (treeNode: DocumentOutlineNode): number => {
     let cnt = (treeNode.title?.length ?? 0) + (treeNode.text?.length ?? 0);
     for (let i = 0; i < (treeNode.children?.length ?? 0); i++) {
       cnt += dfs(treeNode.children[i]);
@@ -250,7 +268,7 @@ const generatePie = async () => {
     return cnt;
   };
 
-  const collect = (treeNode) => {
+  const collect = (treeNode: DocumentOutlineNode) => {
     const label = treeNode.title || '段落';
     const baseValue = (treeNode.text?.length ?? 0) + (treeNode.title?.length ?? 0);
     data.push({ value: baseValue + dfs(treeNode), label });
@@ -263,6 +281,11 @@ const generatePie = async () => {
   if (!data.length) return;
 
   const config = generatePieFromData(data, documentTitle.value);
+  // 先销毁已存在的图表实例
+  const existingChart = echarts.getInstanceByDom(node);
+  if (existingChart) {
+    existingChart.dispose();
+  }
   const chart = echarts.init(node);
   chart.setOption(config);
 };
@@ -296,13 +319,14 @@ const generateOutlineGraph = async () => {
   if (!node) return;
 
   const doc = activeDocument.value;
-  if (!doc) {
+  const adapter = currentAdapter.value;
+  if (!doc || !adapter) {
     return;
   }
 
-  let tree = doc.outline;
+  let tree: DocumentOutlineNode | null = doc.outline || null;
   if (!tree || !tree.children?.length) {
-    tree = extractOutlineTreeFromMarkdown(article_text.value);
+    tree = adapter.extractOutline(rawDocumentContent.value);
   }
   if (!tree) {
     return;
@@ -316,17 +340,18 @@ const generateOutlineGraph = async () => {
     if (lis[i].getElementsByTagName('ul').length > 0) continue;
     lis[i].style.cursor = 'pointer';
     lis[i].addEventListener('mouseover', () => {
-      lis[i].style.scale = 1.05;
+      (lis[i].style as any).scale = '1.05';
     });
     lis[i].addEventListener('mouseout', () => {
-      lis[i].style.scale = 1;
+      (lis[i].style as any).scale = '1';
     });
   }
 };
 const article_text = ref('');
 const processWords = async () => {
   const doc = activeDocument.value;
-  if (!doc) {
+  const adapter = currentAdapter.value;
+  if (!doc || !adapter) {
     article_text.value = '';
     wordCount.value = [];
     words.value = [];
@@ -334,13 +359,8 @@ const processWords = async () => {
   }
 
   const bypassCodeBlock = await getSetting('bypassCodeBlock');
-  let text = normalizedArticleText.value || '';
-
-  text = text.replace(/!?\[.*?\]\(.*?\)/g, '');
-  if (bypassCodeBlock) {
-    text = text.replace(/```[\s\S]*?```/g, '');
-  }
-
+  // 使用适配器提取纯文本
+  const text = adapter.extractPlainText(rawDocumentContent.value, bypassCodeBlock);
   article_text.value = text;
 
   if (!text.trim()) {
@@ -356,26 +376,26 @@ const processWords = async () => {
       return;
     }
 
-    const rawWords = (await ipcRenderer.invoke('cut-words', { text })) || [];
+    const rawWords: string[] = (await ipcRenderer.invoke('cut-words', { text })) || [];
     words.value = rawWords;
 
-    const counts = Object.create(null);
-    rawWords.forEach((word) => {
+    const counts: Record<string, number> = Object.create(null);
+    rawWords.forEach((word: string) => {
       if (!word) return;
       counts[word] = (counts[word] || 0) + 1;
     });
 
-    const symbols = '~!@#$%^&*()_+`-={}|[]\\:";\'<>?,./。、，；：‘’“”【】《》？！￥…（）—0123456789';
-    const entries = Object.entries(counts).filter(([key, value]) => {
+    const symbols = "~!@#$%^&*()_+`-={}|[]\\:\";'<>?,./。、，；：''\"\"【】《》？！￥…（）—0123456789";
+    const entries = Object.entries(counts).filter(([key, value]: [string, number]) => {
       if (symbols.includes(key)) return false;
       if (value < 2) return false;
       if (key.length < 2 || key.length > 10) return false;
       return true;
     });
 
-    const sorted = entries
-      .map(([key, size]) => ({ text: key, size }))
-      .sort((a, b) => b.size - a.size);
+    const sorted: WordCountItem[] = entries
+      .map(([key, size]: [string, number]) => ({ text: key, size }))
+      .sort((a: WordCountItem, b: WordCountItem) => b.size - a.size);
 
     wordCount.value = sorted.slice(0, Math.min(30, sorted.length));
   } catch (error) {
@@ -392,7 +412,7 @@ const generateWordCloud = async () => {
     return;
   }
 
-  const maxFreq = wordCount.value.reduce((max, cur) => Math.max(max, cur.size), 0);
+  const maxFreq = wordCount.value.reduce((max: number, cur: WordCountItem) => Math.max(max, cur.size), 0);
   if (maxFreq <= 0) {
     return;
   }
@@ -406,10 +426,10 @@ const generateWordCloud = async () => {
       })),
     )
     .font('Impact')
-    .fontSize((d) => Math.min((d.size * 120) / maxFreq + 10, 100))
+    .fontSize((d: any) => Math.min((d.size * 120) / maxFreq + 10, 100))
     .rotate(
-      (d) =>
-        Math.random() > 0.5 || d.text === wordCount.value[0].text
+      (d: any) =>
+        Math.random() > 0.5 || d.text === wordCount.value[0]?.text
           ? 0
           : 90 * (Math.random() > 0.5 ? 1 : -1),
     )
@@ -417,7 +437,7 @@ const generateWordCloud = async () => {
 
   layout.start();
 
-  function draw(data) {
+  function draw(data: any[]) {
     const svg = container
       .append('svg')
       .attr('width', layout.size()[0])
@@ -431,19 +451,19 @@ const generateWordCloud = async () => {
       .enter()
       .append('text')
       .style('font-family', 'Impact')
-      .style('font-size', (d) => `${d.size}px`)
-      .style('fill', () => d3.schemeCategory10[Math.floor(Math.random() * 10)])
+      .style('font-size', (d: any) => `${d.size}px`)
+      .style('fill', () => d3.schemeCategory10[Math.floor(Math.random() * 10)] as string)
       .attr('class', 'wordcloud-text')
       .attr('text-anchor', 'middle')
       .style('padding', '10px')
-      .attr('transform', (d) => `translate(${d.x}, ${d.y}) rotate(${d.rotate})`)
+      .attr('transform', (d: any) => `translate(${d.x}, ${d.y}) rotate(${d.rotate})`)
       .style('opacity', 0)
       .transition()
       .duration(1000)
       .style('opacity', 1)
-      .text((d) => d.text);
+      .text((d: any) => d.text);
 
-    d3.selectAll('.wordcloud-text').on('click', (event, d) => {
+    d3.selectAll('.wordcloud-text').on('click', (event: MouseEvent, d: any) => {
       current_word.value = d.text;
       current_frequency.value = d.size;
       showTitleMenu.value = false;

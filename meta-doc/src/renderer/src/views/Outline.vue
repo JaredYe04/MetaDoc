@@ -483,15 +483,30 @@ const generateChildrenChildren = async () => {
     const task = done
       .then(() => {
         const json = extractOuterJsonString(rawStringRef.value);
-        const newChildren = JSON.parse(json) as DocumentOutlineNode[];
-        curNode.children.push(...newChildren);
-        eventBus.emit(
-          'show-success',
-          t('outline.generateChildSuccessWithTitle', { title: curNode.title })
-        );
+        if (!json) {
+          logger.warn(`节点 ${curNode.title} 未能提取 JSON，无法生成子节点`);
+          return;
+        }
+        try {
+          const newChildren = JSON.parse(json) as DocumentOutlineNode[];
+          if (Array.isArray(newChildren) && newChildren.length > 0) {
+            if (!curNode.children) {
+              curNode.children = [];
+            }
+            curNode.children.push(...newChildren);
+            eventBus.emit(
+              'show-success',
+              t('outline.generateChildSuccessWithTitle', { title: curNode.title })
+            );
+          } else {
+            logger.warn(`节点 ${curNode.title} 解析出的子节点列表为空或格式不正确`);
+          }
+        } catch (parseErr) {
+          logger.warn(`节点 ${curNode.title} JSON 解析失败`, parseErr);
+        }
       })
       .catch((err) => {
-        logger.warn('生成子节点失败', err);
+        logger.warn(`节点 ${curNode.title} 生成子节点失败`, err);
       });
 
     taskPromises.push(task);
@@ -567,16 +582,50 @@ const generateChildrenContent = async () => {
 
     const task = done
       .then(() => {
+        // 提取 JSON 并解析
+        const rawContent = rawStringRef.value?.trim() || '';
+        if (!rawContent) {
+          logger.warn(`节点 ${curNode.title} AI 返回内容为空`);
+          curNode.text = '';
+        } else {
+          const json = extractOuterJsonString(rawContent);
+          if (json) {
+            try {
+              const result = JSON.parse(json) as { content: string };
+              if (result.content) {
+                curNode.text = result.content;
+              } else {
+                logger.warn(`节点 ${curNode.title} JSON 中 content 字段为空，使用原始内容`);
+                const cleaned = cleanRawContent(rawContent);
+                curNode.text = cleaned || rawContent;
+              }
+            } catch (parseErr) {
+              logger.warn(`节点 ${curNode.title} JSON 解析失败，尝试使用原始内容`, parseErr);
+              const cleaned = cleanRawContent(rawContent);
+              curNode.text = cleaned || rawContent;
+            }
+          } else {
+            // 如果提取失败，尝试清理原始内容
+            logger.warn(`节点 ${curNode.title} 未能提取 JSON，尝试清理原始内容。原始内容前100字符：`, rawContent.substring(0, 100));
+            const cleaned = cleanRawContent(rawContent);
+            curNode.text = cleaned || rawContent;
+          }
+        }
         eventBus.emit(
           'show-success',
           t('outline.generateContentSuccessWithTitle', { title: curNode.title })
         );
       })
       .catch((err) => {
-        logger.warn('任务失败或取消：', err);
-      })
-      .finally(() => {
-        curNode.text = rawStringRef.value;
+        logger.warn(`节点 ${curNode.title} 任务失败或取消：`, err);
+        // 如果任务失败，尝试使用原始内容
+        const rawContent = rawStringRef.value?.trim() || '';
+        if (rawContent) {
+          const cleaned = cleanRawContent(rawContent);
+          curNode.text = cleaned || rawContent;
+        } else {
+          curNode.text = '';
+        }
       });
 
     taskPromises.push(task);
@@ -626,10 +675,47 @@ const generateContent = async () => {
   );
   try {
     await done;
+    // 提取 JSON 并解析
+    const rawContent = rawstring.value?.trim() || '';
+    if (!rawContent) {
+      logger.warn('AI 返回内容为空');
+      curNode.text = '';
+    } else {
+      const json = extractOuterJsonString(rawContent);
+      if (json) {
+        try {
+          const result = JSON.parse(json) as { content: string };
+          if (result.content) {
+            curNode.text = result.content;
+          } else {
+            logger.warn('JSON 中 content 字段为空，尝试清理原始内容');
+            const cleaned = cleanRawContent(rawContent);
+            curNode.text = cleaned || rawContent;
+          }
+        } catch (parseErr) {
+          logger.warn('JSON 解析失败，尝试使用原始内容', parseErr);
+          // 尝试清理原始内容（去除可能的说明文字）
+          const cleaned = cleanRawContent(rawContent);
+          curNode.text = cleaned || rawContent;
+        }
+      } else {
+        // 如果提取失败，尝试清理原始内容
+        logger.warn('未能提取 JSON，尝试清理原始内容。原始内容前100字符：', rawContent.substring(0, 100));
+        const cleaned = cleanRawContent(rawContent);
+        curNode.text = cleaned || rawContent;
+      }
+    }
   } catch (err) {
     logger.warn('任务失败或取消：', err);
+    // 如果任务失败，尝试使用原始内容
+    const rawContent = rawstring.value?.trim() || '';
+    if (rawContent) {
+      const cleaned = cleanRawContent(rawContent);
+      curNode.text = cleaned || rawContent;
+    } else {
+      curNode.text = '';
+    }
   } finally {
-    curNode.text = rawstring.value;
     pendingAccept.value = true;
     generateContentLoading.value = false;
     generating.value = false;
@@ -1229,6 +1315,97 @@ const removeNode = (parent: DocumentOutlineNode, node: DocumentOutlineNode) => {
     parent.children.forEach((child) => removeNode(child, node));
   }
 };
+
+/**
+ * 清理原始内容，去除可能的说明文字和格式标记
+ */
+function cleanRawContent(raw: string): string {
+  if (!raw) return '';
+  
+  let cleaned = raw.trim();
+  
+  // 首先尝试提取 JSON（如果内容被包裹在说明文字中）
+  const jsonMatch = cleaned.match(/\{[\s\S]*"content"[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const result = JSON.parse(jsonMatch[0]) as { content?: string };
+      if (result.content) {
+        return result.content.trim();
+      }
+    } catch {
+      // 解析失败，继续清理
+    }
+  }
+  
+  // 去除代码块标记（如果 AI 错误地使用了代码块）
+  cleaned = cleaned.replace(/^```(?:json|markdown)?\s*\n?/i, '');
+  cleaned = cleaned.replace(/\n?```\s*$/i, '');
+  
+  // 去除常见的说明文字段落（这些通常出现在内容开头，后面跟着换行和实际内容）
+  const instructionPatterns = [
+    // 匹配完整的说明文字段落（包括换行）
+    /^请严格按照示例格式输出[，,，。.]?\s*不要添加任何其他内容[。.]?\s*[\n\r]+/i,
+    /^现在[，,，]?\s*请直接输出\s*JSON\s*结果[，,，。.]?\s*不要添加任何其他内容[。.]?\s*[\n\r]+/i,
+    /^请严格按照\s*JSON\s*格式输出[，,，。.]?\s*不要添加任何解释或多余文本[。.]?\s*[\n\r]+/i,
+    /^请严格按照\s*JSON\s*格式输出[，,，。.]?\s*不要添加任何其他内容[。.]?\s*[\n\r]+/i,
+    /^请严格按照\s*JSON\s*Schema\s*格式输出[，,，。.]?\s*不要添加任何解释或多余文本[。.]?\s*[\n\r]+/i,
+    /^输出必须从第一行开始就是\s*JSON\s*对象[，,，。.]?\s*没有任何其他文字[。.]?\s*[\n\r]+/i,
+    // 匹配单独的说明文字（没有换行，直接跟内容）
+    /^请严格按照示例格式输出[，,，。.]?\s*不要添加任何其他内容[。.]?\s*/i,
+    /^现在[，,，]?\s*请直接输出\s*JSON\s*结果[，,，。.]?\s*不要添加任何其他内容[。.]?\s*/i,
+    /^请严格按照\s*JSON\s*格式输出[，,，。.]?\s*不要添加任何解释或多余文本[。.]?\s*/i,
+    /^请严格按照\s*JSON\s*格式输出[，,，。.]?\s*不要添加任何其他内容[。.]?\s*/i,
+    /^请严格按照\s*JSON\s*Schema\s*格式输出[，,，。.]?\s*不要添加任何解释或多余文本[。.]?\s*/i,
+    /^输出必须从第一行开始就是\s*JSON\s*对象[，,，。.]?\s*没有任何其他文字[。.]?\s*/i,
+    // 其他常见前缀
+    /^根据您的要求[，,]\s*/i,
+    /^我将为您[，,]\s*/i,
+    /^好的[，,]\s*/i,
+    /^明白了[，,]\s*/i,
+    /^以下是[：:]\s*/i,
+    /^内容如下[：:]\s*/i,
+    /^生成的内容[：:]\s*/i,
+  ];
+  
+  for (const pattern of instructionPatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+  
+  // 去除开头的空行和空白
+  cleaned = cleaned.replace(/^[\s\n\r]+/, '');
+  
+  // 如果清理后内容为空，尝试从原始内容中提取（可能是说明文字在中间）
+  if (!cleaned.trim()) {
+    // 尝试找到第一个看起来像实际内容的段落（不是说明文字）
+    const lines = raw.split('\n');
+    const contentLines: string[] = [];
+    let foundContent = false;
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      // 跳过空行和明显的说明文字
+      if (!trimmedLine) continue;
+      if (/^(请|现在|输出|根据|我将|好的|明白了)/i.test(trimmedLine) && 
+          /(格式|输出|JSON|示例|不要|添加)/i.test(trimmedLine)) {
+        continue;
+      }
+      // 找到第一个看起来像实际内容的行
+      if (trimmedLine.length > 10 || foundContent) {
+        foundContent = true;
+        contentLines.push(line);
+      }
+    }
+    
+    if (contentLines.length > 0) {
+      cleaned = contentLines.join('\n').trim();
+    }
+  }
+  
+  // 去除首尾的多余空白
+  cleaned = cleaned.trim();
+  
+  return cleaned;
+}
 function reindexChildrenPaths(parent: DocumentOutlineNode) {
   if (!parent.children) return;
   for (let i = 0; i < parent.children.length; i++) {

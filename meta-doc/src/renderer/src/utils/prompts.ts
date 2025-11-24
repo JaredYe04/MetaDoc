@@ -1,4 +1,5 @@
 import { buildSchemaPrompt, DOCUMENT_TITLE_SCHEMA } from './schemas';
+import { CONTENT_SCHEMA } from '../constants/document';
 import { i18n } from '../i18n.js';
 
 // 语言到提示词配置的映射（使用动态导入）
@@ -350,13 +351,17 @@ export const generateContentPrompt = (
 ): string => {
   const userPromptText = userPrompt ? `除此之外，用户提示词如下，可供部分参考：${userPrompt}。` : '';
   const template = getPromptTemplate('generateContentPrompt', { treeJson, nodeJson, userPrompt: userPromptText });
-  return template || `你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请判断文章的大致大纲结构:${treeJson}${userPromptText}接下来，你要根据全文的结构，为以下的章节撰写内容，注意不要泛泛而谈，内容要丰富翔实：${nodeJson}。
+  const baseInstruction = template || `你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请判断文章的大致大纲结构:${treeJson}${userPromptText}接下来，你要根据全文的结构，为以下的章节撰写内容，注意不要泛泛而谈，内容要丰富翔实：${nodeJson}。
+
+**重要：你必须严格按照 JSON 格式输出，格式如下：**
+{"content":"你的章节内容"}
 
 **绝对禁止：**
 - 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
 - 禁止添加任何解释、说明、前缀或后缀
-- 只输出该章节的内容本身，不要添加标题、代码框等无关信息
-- 输出必须从第一行开始就是正文，没有任何其他文字`;
+- 禁止在 JSON 前后添加任何文字
+- 输出必须从第一行开始就是 JSON 对象，格式为 {"content":"..."}，没有任何其他文字`;
+  return buildSchemaPrompt(CONTENT_SCHEMA, baseInstruction);
 };
 
 export const generateParentNodeContentPrompt = (
@@ -366,13 +371,17 @@ export const generateParentNodeContentPrompt = (
 ): string => {
   const userPromptText = userPrompt ? `除此之外，用户提示词如下，可供部分参考：${userPrompt}。` : '';
   const template = getPromptTemplate('generateParentNodeContentPrompt', { treeJson, nodeJson, userPrompt: userPromptText });
-  return template || `你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请判断文章的大致大纲结构:${treeJson}接下来，你要根据全文的结构，为以下的章节撰写内容。由于这个章节已经有子章节介绍详细内容，因此你只需要写一些总体性、引导性的文字即可，不需要太多：${nodeJson}${userPromptText}。
+  const baseInstruction = template || `你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请判断文章的大致大纲结构:${treeJson}接下来，你要根据全文的结构，为以下的章节撰写内容。由于这个章节已经有子章节介绍详细内容，因此你只需要写一些总体性、引导性的文字即可，不需要太多：${nodeJson}${userPromptText}。
+
+**重要：你必须严格按照 JSON 格式输出，格式如下：**
+{"content":"你的章节内容"}
 
 **绝对禁止：**
 - 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
 - 禁止添加任何解释、说明、前缀或后缀
-- 只输出该章节的内容本身，不要添加标题、代码框等无关信息
-- 输出必须从第一行开始就是正文，没有任何其他文字`;
+- 禁止在 JSON 前后添加任何文字
+- 输出必须从第一行开始就是 JSON 对象，格式为 {"content":"..."}，没有任何其他文字`;
+  return buildSchemaPrompt(CONTENT_SCHEMA, baseInstruction);
 };
 
 export const updateTitlePrompt = (conversationSummary: string): string => {
@@ -406,34 +415,75 @@ export const ragQueryReferencePrompt = (queryResults: unknown): string => {
 
 export const suggestionCompletionPrompt = (
   preContext: string,
-  postContext: string,
+  postContext: string, // 保留参数以保持兼容性，但不再使用
+  currentLine: string = '',
+  documentType: string = 'Markdown'
 ) => {
   const prompts = getCurrentLocalePrompts();
   const suggestionPrompt = prompts.prompts?.suggestionCompletionPrompt;
   
+  // 构建优化的system提示（包含文档类型和当前行信息）
+  const systemContent = 
+    `你是一个AI智能写作助手，专门用于${documentType}文档的自动补全。\n\n**补全功能的目的：**\n- 你的任务是像Transformer模型预测下一个词一样，推断在[CURRENT_POS]位置（即当前光标位置）之后最适合接续的文本内容\n- [CURRENT_POS]就是当前光标的位置，你需要预测光标之后应该出现什么内容\n- 补全的内容应该与光标之前的上下文自然连贯，就像用户继续输入一样\n- 补全内容应该保持与当前行的风格、格式和语境一致\n\n**绝对禁止：**\n- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等\n- 禁止添加任何解释、说明、前缀或后缀\n- 如果当前上下文无需补全，或难以补全，请直接输出空字符串\n- 只输出需要补全的文字本身，不要任何其他内容\n- 如果有需要插入空格或换行也请补全`;
+  // 构建优化的user提示（只使用preContext，不使用postContext，避免大模型幻觉）
+  // 强调[CURRENT_POS]是光标位置，需要预测光标之后的内容
+  const userContent = currentLine 
+    ? `请根据光标之前的上下文，预测在光标位置[CURRENT_POS]之后最适合接续的文本内容。\n\n当前行内容：${currentLine}\n\n光标之前的上下文：\n${preContext}[CURRENT_POS]`
+    : `请根据光标之前的上下文，预测在光标位置[CURRENT_POS]之后最适合接续的文本内容。\n\n光标之前的上下文：\n${preContext}[CURRENT_POS]`;
+  
   if (suggestionPrompt && typeof suggestionPrompt === 'object') {
+    // 使用locale_prompts中的模板
+    let systemPrompt = suggestionPrompt.system || systemContent
+    let userPrompt = suggestionPrompt.user || userContent
+    
+    // 替换占位符：确保postContext被替换为空字符串（即使模板中没有{postContext}）
+    systemPrompt = systemPrompt.replace(/{preContext}/g, preContext).replace(/{postContext}/g, '')
+    userPrompt = userPrompt.replace(/{preContext}/g, preContext).replace(/{postContext}/g, '')
+    
+    // 如果模板中没有currentLine占位符，但提供了currentLine，需要特殊处理
+    // 注意：locale_prompts模板可能不包含currentLine，所以需要手动添加
+    if (currentLine && !userPrompt.includes('{currentLine}')) {
+      // 如果模板中没有currentLine占位符，在提示中添加当前行信息
+      // 尝试在"光标之前的上下文"之前插入当前行信息（支持中英文）
+      const beforeContextPattern = /(\n\n(?:光标之前的上下文|Context before the cursor|Kontext vor dem Cursor|Contexte avant le curseur|カーソルの前のコンテキスト|커서 이전의 컨텍스트)：\n)/
+      if (beforeContextPattern.test(userPrompt)) {
+        userPrompt = userPrompt.replace(
+          beforeContextPattern,
+          `\n\n当前行内容：${currentLine}$1`
+        )
+      } else {
+        // 如果找不到标准模式，在[CURRENT_POS]之前插入
+        userPrompt = userPrompt.replace(
+          /(\[CURRENT_POS\])/,
+          `\n\n当前行内容：${currentLine}\n\n光标之前的上下文：\n$1`
+        )
+      }
+    } else if (userPrompt.includes('{currentLine}')) {
+      // 如果模板中有currentLine占位符，替换它
+      userPrompt = userPrompt.replace(/{currentLine}/g, currentLine || '')
+    }
+    
     return [
       {
         role: 'system',
-        content: suggestionPrompt.system?.replace('{preContext}', preContext).replace('{postContext}', postContext) || '你是一个AI智能写作助手，请根据上下文补全用户输入，不要有多余提示。[CURRENT_POS]表示当前的光标位置，也就是插入文本的地方。如果有需要插入空格或换行也请补全。如果当前上下文无需补全，或难以补全，请直接输出空字符串。',
+        content: systemPrompt,
       },
       {
         role: 'user',
-        content: suggestionPrompt.user?.replace('{preContext}', preContext).replace('{postContext}', postContext) || `请根据上下文补全文字：\n${preContext}[CURRENT_POS]${postContext}`,
+        content: userPrompt,
       },
     ];
   }
   
-  // 回退到原始实现
+  // 回退到原始实现（使用优化的内容）
   return [
       {
         role: 'system',
-        content:
-          '你是一个AI智能写作助手，请根据上下文补全用户输入。\n\n**绝对禁止：**\n- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等\n- 禁止添加任何解释、说明、前缀或后缀\n- [CURRENT_POS]表示当前的光标位置，也就是插入文本的地方\n- 如果有需要插入空格或换行也请补全\n- 如果当前上下文无需补全，或难以补全，请直接输出空字符串\n- 只输出需要补全的文字本身，不要任何其他内容',
+        content: systemContent,
       },
     {
       role: 'user',
-      content: `请根据上下文补全文字：\n${preContext}[CURRENT_POS]${postContext}`,
+      content: userContent,
     },
   ];
 };

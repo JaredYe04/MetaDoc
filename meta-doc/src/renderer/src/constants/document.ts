@@ -1,5 +1,6 @@
 import type { ArticleMetaData, AIDialogMessage, AIDialog, DocumentOutlineNode } from '../../../types';
 import type { AgentSession } from '../types/agent';
+import type { SchemaDefinition } from '../utils/schemas';
 
 export const TREE_NODE_SCHEMA = {
   $schema: 'http://json-schema.org/draft-07/schema#',
@@ -35,18 +36,27 @@ export const TREE_NODE_SCHEMA = {
   },
 } as const;
 
-export const CONTENT_SCHEMA = {
-  $schema: 'http://json-schema.org/draft-07/schema#',
-  title: 'Content',
-  type: 'object',
-  required: ['content'],
-  properties: {
-    content: {
-      type: 'string',
-      description: '章节的正文内容，使用 Markdown 格式。',
+export interface ContentSchemaResult {
+  content: string;
+}
+
+export const CONTENT_SCHEMA: SchemaDefinition<ContentSchemaResult> = {
+  name: 'content_schema_v1',
+  description: '生成章节的正文内容',
+  schema: {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    title: 'Content',
+    type: 'object',
+    required: ['content'],
+    properties: {
+      content: {
+        type: 'string',
+        description: '章节的正文内容，使用 Markdown 格式。',
+      },
     },
   },
-} as const;
+  example: '{"content":"这是章节的正文内容..."}',
+};
 
 export const DEFAULT_OUTLINE_TREE: DocumentOutlineNode = {
   path: 'dummy',

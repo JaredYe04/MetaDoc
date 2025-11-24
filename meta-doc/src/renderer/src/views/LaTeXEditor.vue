@@ -630,12 +630,21 @@ const pdfUrl = ref('file:///')
 const pdfContainer = ref<HTMLElement | null>(null);
 const canvasWrapper = ref<HTMLElement | null>(null);
 let isDragging = false;
+let isDoubleClick = false; // 双击标志，需要在外部作用域以便事件处理函数访问
 let startX: number, startY: number, offsetX = 0, offsetY = 0;
 
 import * as pdfjsLib from "pdfjs-dist";
 import { wholeArticleContextPrompt } from "../utils/prompts.ts";
 let pdfInitialized = false;
 let pdfEventListenersAttached = false; // 标记事件监听器是否已绑定
+// 存储事件处理函数引用，以便可以移除
+let pdfEventHandlers: {
+    wheel?: (e: WheelEvent) => void;
+    dblclick?: (e: MouseEvent) => void;
+    mousedown?: (e: MouseEvent) => void;
+    mousemove?: (e: MouseEvent) => void;
+    mouseup?: () => void;
+} = {};
 
 let ipcRenderer: any = null
 if (window && (window as any).electron) {
@@ -675,22 +684,58 @@ function encodeFilePathToUrl(filePath: string): string {
     return `file:///${encodedParts.join('/')}`;
 }
 
-// 绑定 PDF 容器事件监听器
-function attachPdfEventListeners() {
-    // 如果已经绑定过，先移除旧的监听器（避免重复绑定）
-    if (pdfEventListenersAttached) {
+// 移除 PDF 容器事件监听器
+function removePdfEventListeners() {
+    const container = pdfContainer.value;
+    if (!container || !pdfEventListenersAttached) {
         return;
     }
     
+    logger.debug('移除PDF容器事件监听器');
+    
+    // 移除所有已绑定的事件监听器
+    if (pdfEventHandlers.wheel) {
+        container.removeEventListener("wheel", pdfEventHandlers.wheel);
+    }
+    if (pdfEventHandlers.dblclick) {
+        container.removeEventListener("dblclick", pdfEventHandlers.dblclick);
+    }
+    if (pdfEventHandlers.mousedown) {
+        container.removeEventListener("mousedown", pdfEventHandlers.mousedown);
+    }
+    if (pdfEventHandlers.mousemove) {
+        container.removeEventListener("mousemove", pdfEventHandlers.mousemove);
+    }
+    if (pdfEventHandlers.mouseup) {
+        container.removeEventListener("mouseup", pdfEventHandlers.mouseup);
+    }
+    
+    // 清空事件处理函数引用
+    pdfEventHandlers = {};
+    pdfEventListenersAttached = false;
+    
+    // 重置状态变量
+    isDragging = false;
+    isDoubleClick = false;
+}
+
+// 绑定 PDF 容器事件监听器
+function attachPdfEventListeners() {
     const container = pdfContainer.value;
     if (!container) {
         logger.debug('PDF容器尚未准备好，延迟绑定事件');
         return;
     }
     
+    // 如果已经绑定过，先移除旧的监听器（避免重复绑定）
+    if (pdfEventListenersAttached) {
+        removePdfEventListeners();
+    }
+    
     logger.debug('绑定PDF容器事件监听器');
     
-    container.addEventListener("wheel", async (e: WheelEvent) => {
+    // 创建事件处理函数并保存引用
+    pdfEventHandlers.wheel = async (e: WheelEvent) => {
         if (e.ctrlKey || e.metaKey) {
             // Ctrl/Cmd + 滚轮：缩放
             e.preventDefault();
@@ -708,11 +753,9 @@ function attachPdfEventListeners() {
                 goPrevPage();
             }
         }
-    });
-    // 双击定位到源码
-    let isDoubleClick = false;
+    };
     
-    container.addEventListener("dblclick", async (e: MouseEvent) => {
+    pdfEventHandlers.dblclick = async (e: MouseEvent) => {
         // 双击事件
         e.preventDefault();
         e.stopPropagation();
@@ -721,9 +764,9 @@ function attachPdfEventListeners() {
         isDragging = false;
         container.classList.remove("dragging");
         await handlePdfTextClick(e);
-    });
+    };
     
-    container.addEventListener("mousedown", (e: MouseEvent) => {
+    pdfEventHandlers.mousedown = (e: MouseEvent) => {
         // 如果是双击，不启动拖拽
         if (isDoubleClick) {
             isDoubleClick = false;
@@ -734,19 +777,26 @@ function attachPdfEventListeners() {
         startX = e.clientX - offsetX;
         startY = e.clientY - offsetY;
         container.classList.add("dragging");
-    });
+    };
 
-    container.addEventListener("mousemove", (e: MouseEvent) => {
+    pdfEventHandlers.mousemove = (e: MouseEvent) => {
         if (!isDragging || !canvasWrapper.value) return;
         offsetX = e.clientX - startX;
         offsetY = e.clientY - startY;
         canvasWrapper.value.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-    });
+    };
 
-    container.addEventListener("mouseup", () => {
+    pdfEventHandlers.mouseup = () => {
         isDragging = false;
         container.classList.remove("dragging");
-    });
+    };
+    
+    // 绑定事件监听器
+    container.addEventListener("wheel", pdfEventHandlers.wheel);
+    container.addEventListener("dblclick", pdfEventHandlers.dblclick);
+    container.addEventListener("mousedown", pdfEventHandlers.mousedown);
+    container.addEventListener("mousemove", pdfEventHandlers.mousemove);
+    container.addEventListener("mouseup", pdfEventHandlers.mouseup);
     
     pdfEventListenersAttached = true;
     logger.debug('PDF事件监听器绑定完成');
@@ -882,8 +932,20 @@ watch(
                 // 当PDF面板显示时，确保事件监听器已绑定
                 attachPdfEventListeners();
                 ensurePdfWithinBounds();
-            } else if (pdfResizableRef.value?.setSidebarSize) {
-                pdfResizableRef.value.setSidebarSize(LATEX_LAYOUT.pdf.minWidth);
+                // 如果PDF URL存在且已初始化，重新加载PDF
+                if (pdfUrl.value && pdfInitialized && pdfDoc) {
+                    // PDF文档已存在，只需重新渲染当前页
+                    renderPage(currentPdfPage.value, currentScale);
+                } else if (pdfUrl.value && pdfInitialized) {
+                    // PDF文档不存在，需要重新加载
+                    loadPdf(pdfUrl.value, true); // 保留当前页码
+                }
+            } else {
+                // 当PDF面板隐藏时，移除事件监听器
+                removePdfEventListeners();
+                if (pdfResizableRef.value?.setSidebarSize) {
+                    pdfResizableRef.value.setSidebarSize(LATEX_LAYOUT.pdf.minWidth);
+                }
             }
         });
     },
@@ -2142,6 +2204,9 @@ onUnmounted(() => {
         mainObserver.disconnect();
         mainObserver = null;
     }
+    
+    // 移除PDF事件监听器
+    removePdfEventListeners();
     
     // 移除编辑器适配器
     aiCompletionService.removeAdapter();

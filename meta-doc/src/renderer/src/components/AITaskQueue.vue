@@ -30,6 +30,37 @@
           />
         </div>
       </div>
+      
+      <!-- 延迟控制区域 -->
+      <div v-if="settings.autoCompletion" class="delay-control">
+        <div class="delay-info">
+          <span v-if="remainingDelay > 0" class="delay-text">
+            {{ t('aiTaskQueue.delayRemaining', { time: formatDelayTime(remainingDelay) }) }}
+          </span>
+          <span v-else class="delay-text delay-active">
+            {{ t('aiTaskQueue.delayActive') }}
+          </span>
+        </div>
+        <div class="delay-actions">
+          <el-button
+            v-if="remainingDelay > 0"
+            size="small"
+            type="danger"
+            @click="cancelDelay"
+            class="delay-button"
+          >
+            {{ t('aiTaskQueue.cancelDelay') }}
+          </el-button>
+          <el-button
+            size="small"
+            type="primary"
+            @click="delayCompletion(5)"
+            class="delay-button"
+          >
+            {{ t('aiTaskQueue.delayButton', { minutes: 5 }) }}
+          </el-button>
+        </div>
+      </div>
 
       <el-scrollbar
         :style="{
@@ -65,6 +96,7 @@ import { themeState } from '../utils/themes'
 import { useI18n } from 'vue-i18n'
 import { setSetting, settings } from '../utils/settings'
 import { createRendererLogger } from '../utils/logger.ts'
+import { aiCompletionService } from '../utils/ai-completion-service'
 
 const { t } = useI18n()
 const logger = createRendererLogger('AITaskQueue', {
@@ -74,6 +106,61 @@ const logger = createRendererLogger('AITaskQueue', {
 // 组件状态
 const visible = ref(false)
 const tasks = useAiTasks()
+
+// 延迟相关状态
+const remainingDelay = ref(0)
+let delayCheckInterval: NodeJS.Timeout | null = null
+
+/**
+ * 格式化延迟时间
+ */
+function formatDelayTime(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds}${t('aiTaskQueue.seconds')}`
+  }
+  const minutes = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  if (secs === 0) {
+    return `${minutes}${t('aiTaskQueue.minutes')}`
+  }
+  return `${minutes}${t('aiTaskQueue.minutes')}${secs}${t('aiTaskQueue.seconds')}`
+}
+
+/**
+ * 延迟补全
+ */
+function delayCompletion(minutes: number) {
+  eventBus.emit('ai-completion-delay', minutes)
+  updateRemainingDelay()
+}
+
+/**
+ * 取消延迟
+ */
+function cancelDelay() {
+  eventBus.emit('ai-completion-cancel-delay')
+  updateRemainingDelay()
+}
+
+/**
+ * 更新剩余延迟时间
+ */
+function updateRemainingDelay() {
+  remainingDelay.value = aiCompletionService.getRemainingDelay()
+}
+
+/**
+ * 开始检查延迟时间
+ */
+function startDelayCheck() {
+  if (delayCheckInterval) {
+    clearInterval(delayCheckInterval)
+  }
+  delayCheckInterval = setInterval(() => {
+    updateRemainingDelay()
+  }, 1000) // 每秒更新一次
+  updateRemainingDelay()
+}
 
 // 类型断言以解决类型问题
 type TaskType = typeof tasks.value[0]
@@ -118,11 +205,28 @@ function closePanel() {
 onMounted(() => {
   eventBus.on('toggle-ai-task-queue', toggleVisibility)
   eventBus.on('close-ai-task-queue', closePanel)
+  eventBus.on('ai-completion-delay-updated', () => {
+    updateRemainingDelay()
+  })
+  eventBus.on('ai-completion-cancel-delay', () => {
+    aiCompletionService.cancelDelay()
+    updateRemainingDelay()
+  })
+  
+  // 开始检查延迟时间
+  startDelayCheck()
 })
 
 onBeforeUnmount(() => {
   eventBus.off('toggle-ai-task-queue', toggleVisibility)
   eventBus.off('close-ai-task-queue', closePanel)
+  eventBus.off('ai-completion-delay-updated')
+  eventBus.off('ai-completion-cancel-delay')
+  
+  if (delayCheckInterval) {
+    clearInterval(delayCheckInterval)
+    delayCheckInterval = null
+  }
 })
 </script>
 
@@ -166,10 +270,37 @@ onBeforeUnmount(() => {
   color: inherit;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 16px 8px;
-  opacity: var(--queue-empty-opacity);
+.delay-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--queue-border-color);
+}
+
+.delay-info {
+  flex: 1;
+}
+
+.delay-text {
+  font-size: 12px;
+  opacity: var(--queue-time-opacity);
   color: inherit;
+}
+
+.delay-text.delay-active {
+  opacity: 1;
+  color: var(--el-color-success);
+}
+
+.delay-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.delay-button {
+  flex-shrink: 0;
 }
 </style>

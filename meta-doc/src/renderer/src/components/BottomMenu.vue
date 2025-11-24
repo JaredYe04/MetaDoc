@@ -59,7 +59,11 @@
       <span class="status-divider">|</span>
       <el-tooltip :content="$t('bottomMenu.aiTaskQueueTooltip')" placement="top">
         <span class="ai-task-menu" @click.prevent="eventBus.emit('toggle-ai-task-queue')">
-          <img :src="themeState.currentTheme.AiLogo" alt="AI" />
+          <img 
+            :src="themeState.currentTheme.AiLogo" 
+            alt="AI" 
+            :class="{ 'ai-logo-rotating': hasRunningCompletionTask }"
+          />
           <span class="ai-task-label">{{ $t('bottomMenu.aiTaskQueueLabel') }}</span>
           <span v-if="tasks.length > 0" class="ai-task-count">{{ tasks.length }}</span>
         </span>
@@ -112,12 +116,18 @@ const documentFormat = computed(() => {
 import { useI18n } from 'vue-i18n'
 import { BellFilled, Document } from '@element-plus/icons-vue'
 import { useAiTasks } from '../utils/ai_tasks'
+
 const { t } = useI18n()
 initializeNotificationListeners(t)
 const tasks = useAiTasks()
 
 const { latestNotification, unreadCount } = useNotificationStack()
 const notificationType = computed(() => latestNotification.value?.type ?? null)
+
+// 检查是否有AI任务（简化：只要任务队列里有任务就旋转）
+const hasRunningCompletionTask = computed(() => {
+  return tasks.value.length > 0
+})
 
 const badgeColor = computed(() => {
     switch (notificationType.value) {
@@ -298,6 +308,19 @@ function toggleLoggerConsole() {
 .ai-task-menu img {
     width: 18px;
     height: 18px;
+}
+
+.ai-logo-rotating {
+    animation: ai-logo-rotate 2s linear infinite !important;
+}
+
+@keyframes ai-logo-rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .ai-task-label {

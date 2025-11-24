@@ -1,7 +1,5 @@
 import { getSetting } from "./settings.js";
 import { getMetaDocLlmConfig, verifyToken } from "./web-utils.ts";
-import { queryKnowledgeBase } from "./rag_utils.js";
-import { ragQueryReferencePrompt } from "./prompts";
 import {
   handleLlmError,
   validateLlmConfig,
@@ -129,13 +127,8 @@ async function answerQuestionNonStream(
   prompt,
   ref,
   meta = { temperature: 0 },
-  signal = null,
-  try_rag = false
+  signal = null
 ) {
-  if (try_rag) {
-    prompt = await ragQueryInjection(prompt);
-  }
-
   if (!(await validateApi())) {
     return;
   }
@@ -227,13 +220,8 @@ async function answerQuestionStream(
   prompt,
   ref,
   meta = {},
-  signal = undefined,
-  try_rag = false
+  signal = undefined
 ) {
-  if (try_rag) {
-    prompt = await ragQueryInjection(prompt);
-  }
-
   if (!(await validateApi())) {
     return;
   }
@@ -341,14 +329,13 @@ async function answerQuestion(
   prompt,
   ref,
   meta = { temperature: 0 },
-  signal = {},
-  try_rag = false
+  signal = {}
 ) {
   try {
     if (meta.stream) {
-      await answerQuestionStream(prompt, ref, meta, signal, try_rag);
+      await answerQuestionStream(prompt, ref, meta, signal);
     } else {
-      await answerQuestionNonStream(prompt, ref, meta, signal, try_rag);
+      await answerQuestionNonStream(prompt, ref, meta, signal);
     }
   } catch (error) {
     // 如果是需要显示登录对话框的错误
@@ -364,13 +351,9 @@ async function answerQuestion(
 /**
  * 准备对话请求配置
  */
-async function requestLlm(conversation, signal, try_rag) {
+async function requestLlm(conversation, signal) {
   if (!(await validateApi())) {
     return null;
-  }
-
-  if (try_rag) {
-    conversation = await ragQueryInjectionConversation(conversation);
   }
 
   const config = await getLlmConfig();
@@ -386,10 +369,9 @@ async function continueConversationNonStream(
   conversation,
   ref,
   meta,
-  signal,
-  try_rag = false
+  signal
 ) {
-  const config = await requestLlm(conversation, signal, try_rag);
+  const config = await requestLlm(conversation, signal);
   if (!config) {
     return;
   }
@@ -450,10 +432,9 @@ async function continueConversationStream(
   conversation,
   ref,
   meta,
-  signal = undefined,
-  try_rag = false
+  signal = undefined
 ) {
-  const config = await requestLlm(conversation, signal, try_rag);
+  const config = await requestLlm(conversation, signal);
   if (!config) {
     return;
   }
@@ -530,19 +511,17 @@ async function continueConversation(
   conversation,
   ref,
   meta = { temperature: 0 },
-  signal,
-  try_rag = false
+  signal
 ) {
   try {
     if (meta.stream) {
-      await continueConversationStream(conversation, ref, meta, signal, try_rag);
+      await continueConversationStream(conversation, ref, meta, signal);
     } else {
       await continueConversationNonStream(
         conversation,
         ref,
         meta,
-        signal,
-        try_rag
+        signal
       );
     }
   } catch (error) {
@@ -556,55 +535,6 @@ async function continueConversation(
   }
 }
 
-/**
- * RAG 查询注入（补全模式）
- */
-async function ragQueryInjection(originalPrompt) {
-  const enabledRag = await getSetting("enableKnowledgeBase");
-  if (!enabledRag) {
-    return originalPrompt;
-  }
-
-  const response = await queryKnowledgeBase(originalPrompt);
-  if (response.length === 0) {
-    return originalPrompt;
-  }
-  return originalPrompt + ragQueryReferencePrompt(response);
-}
-
-/**
- * RAG 查询注入（对话模式）
- */
-async function ragQueryInjectionConversation(originalConversation) {
-  if (
-    typeof originalConversation !== "object" ||
-    !Array.isArray(originalConversation)
-  ) {
-    throw new Error("Invalid conversation format");
-  }
-
-  const enabledRag = await getSetting("enableKnowledgeBase");
-  if (!enabledRag) {
-    return originalConversation;
-  }
-
-  const response = await queryKnowledgeBase(
-    originalConversation[originalConversation.length - 1].content
-  );
-  if (response.length === 0) {
-    return originalConversation;
-  }
-
-  // 把 RAG 插入到倒数第二个位置
-  const lastMessage = originalConversation[originalConversation.length - 1];
-  originalConversation.pop();
-  originalConversation.push({
-    role: "user",
-    content: ragQueryReferencePrompt(response),
-  });
-  originalConversation.push(lastMessage);
-
-  return originalConversation;
-}
+// RAG查询注入功能已移除，现在通过Agent Tool系统调用
 
 export { answerQuestion, continueConversation };

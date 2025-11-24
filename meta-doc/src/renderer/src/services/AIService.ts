@@ -32,7 +32,6 @@ export interface CreateAITaskOptions {
   target: Ref<string>
   type: AITaskType
   originKey: string
-  useRAG?: boolean
   meta?: Record<string, any>
 }
 
@@ -49,11 +48,10 @@ export class AIService {
         target,
         type,
         originKey,
-        useRAG = false,
         meta = { stream: true }
       } = options
 
-      return createAiTask(name, prompt, target, type, originKey, useRAG, meta)
+      return createAiTask(name, prompt, target, type, originKey, meta)
     } catch (error) {
       logger.error('创建AI任务失败:', error)
       eventBus.emit('show-error', `创建AI任务失败: ${error instanceof Error ? error.message : String(error)}`)
@@ -114,14 +112,13 @@ export class AIService {
     prompt: string,
     target: Ref<string>,
     options: {
-      useRAG?: boolean
       meta?: Record<string, any>
       signal?: AbortSignal
     } = {}
   ): Promise<void> {
     try {
-      const { useRAG = false, meta = { temperature: 0 }, signal } = options
-      await answerQuestion(prompt, target, meta, signal, useRAG)
+      const { meta = { temperature: 0 }, signal } = options
+      await answerQuestion(prompt, target, meta, signal)
     } catch (error) {
       logger.error('AI回答问题失败:', error)
       eventBus.emit('show-error', `AI回答问题失败: ${error instanceof Error ? error.message : String(error)}`)
@@ -136,14 +133,13 @@ export class AIService {
     conversation: AIDialogMessage[],
     target: Ref<string>,
     options: {
-      useRAG?: boolean
       meta?: Record<string, any>
       signal?: AbortSignal
     } = {}
   ): Promise<void> {
     try {
-      const { useRAG = false, meta = { temperature: 0 }, signal } = options
-      await continueConversation(conversation, target, meta as any, signal, useRAG)
+      const { meta = { temperature: 0 }, signal } = options
+      await continueConversation(conversation, target, meta as any, signal)
     } catch (error) {
       logger.error('AI对话失败:', error)
       eventBus.emit('show-error', `AI对话失败: ${error instanceof Error ? error.message : String(error)}`)
@@ -239,19 +235,17 @@ export class AIService {
     target: Ref<string>,
     options: {
       name?: string
-      useRAG?: boolean
       originKey?: string
     } = {}
   ): Promise<{ handle: string; done: Promise<any> }> {
-    const { name = '多轮对话', useRAG = false, originKey = `chat_${Date.now()}` } = options
+    const { name = '多轮对话', originKey = `chat_${Date.now()}` } = options
     
     return this.createTask({
       name,
       prompt: conversation,
       target,
       type: 'chat',
-      originKey,
-      useRAG
+      originKey
     })
   }
 }

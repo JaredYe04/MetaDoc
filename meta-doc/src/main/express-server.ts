@@ -22,8 +22,9 @@ import {
   renameKnowledgeFile,
   saveDocs,
   saveVectorInfo,
-  vectorInfo
+  VECTOR_INFO_PATH
 } from './utils';
+import ragService from './utils/rag-service';
 import type { 
   FilePath, 
   FileUploadResult, 
@@ -71,6 +72,12 @@ export let imageUploadDir: FilePath = '';
 export let knowledgeUploadDir: FilePath = '';
 export let knowledgeItems: KnowledgeItem[] = [];
 
+// 知识库索引文件路径
+let knowledgeIndexPath: FilePath = '';
+
+// 配置文件和向量数据库文件列表（不应出现在知识库列表中）
+const CONFIG_FILES = ['knowledge_index.json', 'vector_index.json', 'vector_docs.json', 'vector_info.json'];
+
 const expressApp: Application = express();
 const logger = createMainLogger('ExpressServer');
 
@@ -111,7 +118,11 @@ export const runExpressServer = (): void => {
   
   setupBodyParser();
   setupStaticFiles(projectRoot);
-  setupAPIs();
+  // 异步设置API，但不阻塞服务器启动
+  setupAPIs().catch((err) => {
+    logger.error('设置API路由失败', err);
+    updateServiceStatus('express', 'error', err.message);
+  });
   startServer();
 };
 
@@ -140,10 +151,14 @@ function setupStaticFiles(projectRoot: string): void {
 /**
  * 设置API路由
  */
-function setupAPIs(): void {
+async function setupAPIs(): Promise<void> {
+  logger.debug('开始设置API路由');
   setupRuntimeAPI();
   setupImageAPI();
-  setupKnowledgeAPI();
+  // 确保知识库路由注册完成（路由注册是同步的，但初始化是异步的）
+  await setupKnowledgeAPI();
+  setupErrorHandlers();
+  logger.debug('API路由设置完成');
 }
 
 /**
@@ -388,8 +403,7 @@ function handleUrlUpload(req: UrlUploadRequest, res: Response): void {
  * 设置知识库API
  */
 async function setupKnowledgeAPI(): Promise<void> {
-  await initVectorDatabase();
-  
+  // 先设置上传目录和路由（同步操作）
   setupKnowledgeUploadDir();
   
   const storage = multer.diskStorage({
@@ -399,11 +413,35 @@ async function setupKnowledgeAPI(): Promise<void> {
   
   const upload = multer({ storage });
   
-  refreshKnowledgeItems();
-  
-  // API 路由
+  // 先注册路由，确保API可用
+  logger.debug('注册知识库API路由');
   expressApp.get('/api/knowledge/list', handleKnowledgeList);
-  expressApp.post('/api/knowledge/upload', upload.single('file'), handleKnowledgeUpload);
+  expressApp.post('/api/knowledge/upload', 
+    upload.single('file'),
+    (err: any, req: Request, res: Response, next: any) => {
+      // Multer错误处理
+      if (err instanceof multer.MulterError) {
+        logger.error('知识库上传Multer错误', err);
+        return res.status(400).json({
+          success: false,
+          error: '文件上传失败',
+          message: err.code === 'LIMIT_FILE_SIZE' 
+            ? '文件大小超过限制' 
+            : err.message || '文件上传错误'
+        });
+      }
+      if (err) {
+        logger.error('知识库上传错误', err);
+        return res.status(500).json({
+          success: false,
+          error: '文件上传失败',
+          message: err.message || '未知错误'
+        });
+      }
+      next();
+    },
+    handleKnowledgeUpload
+  );
   expressApp.post('/api/knowledge/rename', handleKnowledgeRename);
   expressApp.delete('/api/knowledge/:id', handleKnowledgeDelete);
   expressApp.post('/api/knowledge/clear', handleKnowledgeClear);
@@ -412,6 +450,18 @@ async function setupKnowledgeAPI(): Promise<void> {
   expressApp.post('/api/knowledge/:id/toggle', handleKnowledgeToggle);
   expressApp.post('/api/knowledge/:id/rebuild', handleKnowledgeRebuild);
   expressApp.get('/api/knowledge/:id/download', handleKnowledgeDownload);
+  logger.debug('知识库API路由注册完成');
+  
+  // 然后异步初始化数据库和刷新列表（不阻塞路由注册）
+  try {
+    await initVectorDatabase();
+    refreshKnowledgeItems();
+    logger.info('知识库API设置完成');
+  } catch (err) {
+    logger.error('知识库初始化失败，但路由已注册', err);
+    // 即使初始化失败，也刷新列表（可能为空）
+    refreshKnowledgeItems();
+  }
 }
 
 /**
@@ -420,6 +470,9 @@ async function setupKnowledgeAPI(): Promise<void> {
 function setupKnowledgeUploadDir(): void {
   knowledgeUploadDir = path.join(os.homedir(), 'Documents', 'meta-doc-kb');
   fs.mkdirSync(knowledgeUploadDir, { recursive: true });
+  
+  // 设置索引文件路径
+  knowledgeIndexPath = path.join(knowledgeUploadDir, 'knowledge_index.json');
 }
 
 /**
@@ -452,38 +505,129 @@ function humanSize(bytes: number): string {
 }
 
 /**
+ * 加载知识库索引文件
+ */
+function loadKnowledgeIndex(): Record<string, KnowledgeItem> {
+  if (!fs.existsSync(knowledgeIndexPath)) {
+    return {};
+  }
+  
+  try {
+    const content = fs.readFileSync(knowledgeIndexPath, 'utf-8');
+    const index: Record<string, KnowledgeItem> = JSON.parse(content);
+    return index;
+  } catch (err) {
+    logger.error('加载知识库索引失败', err);
+    return {};
+  }
+}
+
+/**
+ * 保存知识库索引文件
+ */
+function saveKnowledgeIndex(index: Record<string, KnowledgeItem>): void {
+  try {
+    fs.writeFileSync(knowledgeIndexPath, JSON.stringify(index, null, 2), 'utf-8');
+  } catch (err) {
+    logger.error('保存知识库索引失败', err);
+  }
+}
+
+/**
  * 刷新知识库项目列表
+ * 现在直接从索引文件读取，不再需要"注入"vectorInfo
  */
 function refreshKnowledgeItems(): void {
-  const files = fs.readdirSync(knowledgeUploadDir)
-    .filter(f => fs.statSync(path.join(knowledgeUploadDir, f)).isFile());
-    
-  knowledgeItems = files.map(f => {
-    const fullPath = path.join(knowledgeUploadDir, f);
-    const stats = fs.statSync(fullPath);
-    const name = path.basename(f);
-    const info = vectorInfo[name] || { chunks: 0, vector_dim: 0, vector_count: 0 };
-    
-    return {
-      id: f,
-      name,
-      info: {
-        path: fullPath,
-        size: stats.size,
-        sizeText: humanSize(stats.size),
-        enabled: info.enabled,
-        chunks: info.chunks,
-        vector_dim: info.vector_dim,
-        vector_count: info.vector_count
+  // 从索引文件加载所有信息
+  const index = loadKnowledgeIndex();
+  
+  // 验证文件是否仍然存在，清理已删除的文件
+  // 过滤掉配置文件和向量数据库文件
+  const existingFiles = new Set(
+    fs.readdirSync(knowledgeUploadDir)
+      .filter(f => {
+        const fullPath = path.join(knowledgeUploadDir, f);
+        return fs.statSync(fullPath).isFile() && !CONFIG_FILES.includes(f);
+      })
+  );
+  
+  // 过滤出仍然存在的文件，并更新文件大小（如果文件被修改）
+  const validItems: KnowledgeItem[] = [];
+  const updatedIndex: Record<string, KnowledgeItem> = {};
+  
+  for (const [id, item] of Object.entries(index)) {
+    if (existingFiles.has(id) && fs.existsSync(item.info.path)) {
+      // 文件存在，检查大小是否需要更新
+      const stats = fs.statSync(item.info.path);
+      if (stats.size !== item.info.size) {
+        // 文件大小变化，更新索引
+        item.info.size = stats.size;
+        item.info.sizeText = humanSize(stats.size);
       }
-    };
-  });
+      validItems.push(item);
+      updatedIndex[id] = item;
+    }
+    // 文件不存在，从索引中移除（不添加到validItems和updatedIndex）
+  }
+  
+  // 检查是否有新文件（在文件系统中但不在索引中）
+  // 排除配置文件和向量数据库文件
+  for (const file of existingFiles) {
+    if (CONFIG_FILES.includes(file)) {
+      continue; // 跳过配置文件和向量数据库文件
+    }
+    
+    if (!index[file]) {
+      // 新文件，添加到索引
+      const fullPath = path.join(knowledgeUploadDir, file);
+      const stats = fs.statSync(fullPath);
+      const name = path.basename(file);
+      
+      const newItem: KnowledgeItem = {
+        id: file,
+        name,
+        info: {
+          path: fullPath,
+          size: stats.size,
+          sizeText: humanSize(stats.size),
+          enabled: true,
+          chunks: 0,
+          vector_dim: 0,
+          vector_count: 0
+        }
+      };
+      
+      validItems.push(newItem);
+      updatedIndex[file] = newItem;
+    }
+  }
+  
+  // 保存更新后的索引
+  if (Object.keys(updatedIndex).length !== Object.keys(index).length) {
+    saveKnowledgeIndex(updatedIndex);
+  }
+  
+  // 最后过滤掉配置文件和向量数据库文件，确保不会出现在列表中
+  knowledgeItems = validItems.filter(item => !CONFIG_FILES.includes(item.id));
 }
 
 // ============ 知识库API处理器 ============
 
 function handleKnowledgeList(req: Request, res: Response): void {
   res.json({ items: knowledgeItems });
+}
+
+/**
+ * 更新索引文件中的向量信息（当文件被向量化后调用）
+ */
+function updateIndexVectorInfo(fileName: string, vectorInfo: { chunks: number; vector_dim: number; vector_count: number }): void {
+  const index = loadKnowledgeIndex();
+  if (index[fileName]) {
+    index[fileName].info.chunks = vectorInfo.chunks;
+    index[fileName].info.vector_dim = vectorInfo.vector_dim;
+    index[fileName].info.vector_count = vectorInfo.vector_count;
+    saveKnowledgeIndex(index);
+  }
 }
 
 async function handleKnowledgeUpload(req: KnowledgeUploadRequest, res: Response): Promise<void> {
@@ -497,8 +641,11 @@ async function handleKnowledgeUpload(req: KnowledgeUploadRequest, res: Response)
   try {
     const result: FileUploadResult = await addFileToKnowledgeBase(fullPath);
     
+    // 只有在成功时才更新索引文件
     if (result.success) {
-      knowledgeItems.push({
+      // 更新索引文件
+      const index = loadKnowledgeIndex();
+      index[fileName] = {
         id: fileName,
         name: fileName,
         info: {
@@ -510,7 +657,33 @@ async function handleKnowledgeUpload(req: KnowledgeUploadRequest, res: Response)
           vector_dim: result.vector_dim || 0,
           vector_count: result.vector_count || 0
         }
-      });
+      };
+      saveKnowledgeIndex(index);
+      
+      // 刷新列表
+      refreshKnowledgeItems();
+      
+      logger.debug('文件向量化成功', { fileName, chunks: result.chunks, vector_dim: result.vector_dim, vector_count: result.vector_count });
+    } else {
+      // 即使向量化失败，也创建索引条目（但chunks等为0），这样用户可以看到文件
+      const index = loadKnowledgeIndex();
+      index[fileName] = {
+        id: fileName,
+        name: fileName,
+        info: {
+          path: fullPath,
+          enabled: true,
+          size: req.file.size,
+          sizeText: humanSize(req.file.size),
+          chunks: 0,
+          vector_dim: 0,
+          vector_count: 0
+        }
+      };
+      saveKnowledgeIndex(index);
+      refreshKnowledgeItems();
+      
+      logger.warn('文件向量化失败', { fileName, message: result.message });
     }
     
     res.json({ success: result.success, message: result.message });
@@ -530,37 +703,58 @@ async function handleKnowledgeRename(req: KnowledgeRenameRequest, res: Response)
   const result: OperationResult = await renameKnowledgeFile(oldName, newName);
   
   if (result.success) {
-    // 更新知识项映射
-    knowledgeItems = knowledgeItems.map(item => {
-      if (item.id === oldName) {
-        item.id = newName;
-        item.name = newName;
-        
-        if (item.info.path.includes(oldName)) {
-          item.info.path = item.info.path.replace(oldName, newName);
+    // 更新索引文件
+    const index = loadKnowledgeIndex();
+    if (index[oldName]) {
+      const item = index[oldName];
+      const newPath = path.join(knowledgeUploadDir, newName);
+      
+      // 更新索引中的条目
+      index[newName] = {
+        id: newName,
+        name: newName,
+        info: {
+          ...item.info,
+          path: newPath
         }
-      }
-      return item;
-    });
+      };
+      delete index[oldName];
+      saveKnowledgeIndex(index);
+    }
+    
+    // 刷新列表
+    refreshKnowledgeItems();
   }
   
   res.json(result);
 }
 
 async function handleKnowledgeDelete(req: Request, res: Response): Promise<void> {
-  const fileBaseName = req.params.id;
-  const index = knowledgeItems.findIndex(i => i.id === fileBaseName);
-
-  if (index === -1) {
-    return res.json({ success: false, message: '文件不存在' });
-  }
-
+  // 解码URL参数，处理特殊字符
+  const fileBaseName = decodeURIComponent(req.params.id);
   const filePath = path.join(knowledgeUploadDir, fileBaseName);
   
+  if (!fs.existsSync(filePath)) {
+    return res.json({ success: false, message: '文件不存在' });
+  }
+  
   try {
+    // 删除文件
     fs.unlinkSync(filePath);
-    knowledgeItems.splice(index, 1);
+    
+    // 从索引中删除
+    const index = loadKnowledgeIndex();
+    if (index[fileBaseName]) {
+      delete index[fileBaseName];
+      saveKnowledgeIndex(index);
+    }
+    
+    // 从向量索引中删除
     removeFromIndex(fileBaseName);
+    
+    // 刷新列表
+    refreshKnowledgeItems();
+    
     res.json({ success: true });
   } catch (err) {
     res.json({ success: false, message: '删除失败: ' + (err as Error).message });
@@ -570,7 +764,11 @@ async function handleKnowledgeDelete(req: Request, res: Response): Promise<void>
 async function handleKnowledgeClear(req: Request, res: Response): Promise<void> {
   try {
     await clearKnowledgeBase();
+    
+    // 清空索引文件
+    saveKnowledgeIndex({});
     knowledgeItems = [];
+    
     res.json({ success: true });
   } catch (err) {
     logger.error('清空知识库失败', err);
@@ -579,7 +777,8 @@ async function handleKnowledgeClear(req: Request, res: Response): Promise<void> 
 }
 
 async function handleKnowledgePreview(req: Request, res: Response): Promise<void> {
-  const id = req.params.id;
+  // 解码URL参数，处理特殊字符
+  const id = decodeURIComponent(req.params.id);
   const filePath = path.join(knowledgeUploadDir, id);
   
   if (!fs.existsSync(filePath)) {
@@ -602,8 +801,12 @@ async function handleKnowledgePreview(req: Request, res: Response): Promise<void
 }
 
 function handleKnowledgeInfo(req: Request, res: Response): void {
-  const id = req.params.id;
-  const item = knowledgeItems.find(i => i.id === id);
+  // 解码URL参数，处理特殊字符
+  const id = decodeURIComponent(req.params.id);
+  
+  // 直接从索引文件读取，确保数据是最新的
+  const index = loadKnowledgeIndex();
+  const item = index[id];
   
   if (!item) {
     return res.json({ success: false, message: '找不到文件信息' });
@@ -616,22 +819,48 @@ function handleKnowledgeInfo(req: Request, res: Response): void {
 }
 
 function handleKnowledgeToggle(req: KnowledgeToggleRequest, res: Response): void {
-  const id = req.params.id;
-
-  if (!vectorInfo[id]) {
+  // 解码URL参数，处理特殊字符
+  const id = decodeURIComponent(req.params.id);
+  
+  // 更新索引文件
+  const index = loadKnowledgeIndex();
+  const item = index[id];
+  
+  if (!item) {
     return res.json({ success: false, message: '找不到文件' });
   }
   
-  vectorInfo[id].enabled = !!req.body.enabled;
-  saveDocs();
-  saveVectorInfo();
+  // 更新enabled状态
+  item.info.enabled = !!req.body.enabled;
+  saveKnowledgeIndex(index);
+  
+  // 同时更新vectorInfo（如果文件已处理）
+  const name = path.basename(id);
+  const currentVectorInfo = ragService.getVectorInfo();
+  if (currentVectorInfo[name]) {
+    // 文件已处理，同步更新vectorInfo
+    try {
+      if (fs.existsSync(VECTOR_INFO_PATH)) {
+        const vectorInfoData = JSON.parse(fs.readFileSync(VECTOR_INFO_PATH, 'utf-8'));
+        if (vectorInfoData[name]) {
+          vectorInfoData[name].enabled = !!req.body.enabled;
+          fs.writeFileSync(VECTOR_INFO_PATH, JSON.stringify(vectorInfoData, null, 2), 'utf-8');
+        }
+      }
+    } catch (err) {
+      logger.error('同步更新vectorInfo失败', err);
+    }
+  }
+  
+  // 刷新列表
   refreshKnowledgeItems();
   
-  res.json({ success: true, enabled: vectorInfo[id].enabled });
+  res.json({ success: true, enabled: !!req.body.enabled });
 }
 
 async function handleKnowledgeRebuild(req: Request, res: Response): Promise<void> {
-  const id = req.params.id;
+  // 解码URL参数，处理特殊字符
+  const id = decodeURIComponent(req.params.id);
   const item = knowledgeItems.find(i => i.id === id);
   
   if (!item) {
@@ -639,14 +868,22 @@ async function handleKnowledgeRebuild(req: Request, res: Response): Promise<void
   }
 
   try {
-    await clearKnowledgeBase();
+    // 重建单个文件
+    const result = await addFileToKnowledgeBase(item.info.path);
     
-    const enabledItems = knowledgeItems.filter(i => i.info.enabled);
-    for (const kitem of enabledItems) {
-      await addFileToKnowledgeBase(kitem.info.path);
+    if (result.success) {
+      // 更新索引文件中的向量信息
+      updateIndexVectorInfo(id, {
+        chunks: result.chunks || 0,
+        vector_dim: result.vector_dim || 0,
+        vector_count: result.vector_count || 0
+      });
+      
+      // 刷新列表
+      refreshKnowledgeItems();
     }
     
-    res.json({ success: true, message: '重建知识库成功' });
+    res.json({ success: result.success, message: result.success ? '重建知识库成功' : '重建失败' });
   } catch (err) {
     logger.error('重建知识库失败', err);
     return res.status(500).json({ success: false, error: '重建失败' });
@@ -654,7 +891,8 @@ async function handleKnowledgeRebuild(req: Request, res: Response): Promise<void
 }
 
 function handleKnowledgeDownload(req: Request, res: Response): void {
-  const id = req.params.id;
+  // 解码URL参数，处理特殊字符
+  const id = decodeURIComponent(req.params.id);
   const item = knowledgeItems.find(i => i.id === id);
   
   if (!item) {
@@ -662,4 +900,47 @@ function handleKnowledgeDownload(req: Request, res: Response): void {
   }
   
   res.download(item.info.path, item.name);
+}
+
+// ============ 错误处理 ============
+
+/**
+ * 设置错误处理中间件
+ */
+function setupErrorHandlers(): void {
+  // Multer错误处理中间件 - 必须在路由之后
+  expressApp.use((err: any, req: Request, res: Response, next: any) => {
+    // 处理multer错误
+    if (err instanceof multer.MulterError) {
+      logger.error('Multer错误', err);
+      return res.status(400).json({
+        success: false,
+        error: '文件上传失败',
+        message: err.code === 'LIMIT_FILE_SIZE' 
+          ? '文件大小超过限制' 
+          : err.message || '文件上传错误'
+      });
+    }
+    
+    // 处理其他错误
+    if (err) {
+      logger.error('Express错误', err);
+      return res.status(500).json({
+        success: false,
+        error: '服务器错误',
+        message: err.message || '未知错误'
+      });
+    }
+    
+    next();
+  });
+  
+  // 404处理 - 必须在所有路由之后
+  expressApp.use((req: Request, res: Response) => {
+    res.status(404).json({
+      success: false,
+      error: '未找到',
+      message: `路径 ${req.path} 不存在`
+    });
+  });
 }

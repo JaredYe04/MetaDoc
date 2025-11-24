@@ -345,16 +345,32 @@ async function uploadFile(file) {
     try {
         await ensureExpressReady();
         const r = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd });
+        
+        // 检查响应类型
+        const contentType = r.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await r.text();
+            logger.error('服务器返回非JSON响应', { status: r.status, contentType, text: text.substring(0, 200) });
+            eventBus.emit('show-error', t('knowledgeBase.upload_error') + '服务器返回了非JSON响应，请检查服务器日志');
+            return;
+        }
+        
         const j = await r.json();
         if (j.success) {
             eventBus.emit('show-success', t('knowledgeBase.upload_complete'));
             await fetchList();
         } else {
-            eventBus.emit('show-error', ('knowledgeBase.upload_failed') + j.message);
+            eventBus.emit('show-error', t('knowledgeBase.upload_failed') + ': ' + (j.message || j.error || '未知错误'));
         }
     } catch (e) {
         logger.error(e);
-        eventBus.emit('show-error', t('knowledgeBase.upload_error') + e.message);
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        // 检查是否是JSON解析错误
+        if (errorMessage.includes('JSON') || errorMessage.includes('<!DOCTYPE')) {
+            eventBus.emit('show-error', t('knowledgeBase.upload_error') + '服务器响应格式错误，请检查服务器是否正常运行');
+        } else {
+            eventBus.emit('show-error', t('knowledgeBase.upload_error') + errorMessage);
+        }
     } finally {
         isUploading.value = false;
     }
@@ -400,7 +416,9 @@ async function clearAllItems() {
 async function deleteItem(id) {
     try {
         await ensureExpressReady();
-        const r = await fetch(`${baseUrl}/${id}`, { method: 'DELETE' });
+        // 对文件名进行URL编码，处理特殊字符
+        const encodedId = encodeURIComponent(id);
+        const r = await fetch(`${baseUrl}/${encodedId}`, { method: 'DELETE' });
         const j = await r.json();
         if (j.success) {
             eventBus.emit('show-success', t('knowledgeBase.deleted'));
@@ -424,7 +442,9 @@ async function fetchPreview(id) {
     isTruncated.value = false;
     try {
         await ensureExpressReady();
-        const r = await fetch(`${baseUrl}/${id}/preview`);
+        // 对文件名进行URL编码，处理特殊字符（如 #、空格等）
+        const encodedId = encodeURIComponent(id);
+        const r = await fetch(`${baseUrl}/${encodedId}/preview`);
         const j = await r.json();
         previewText.value = j.preview || '';
         isTruncated.value = !!j.truncated;
@@ -440,7 +460,9 @@ async function fetchPreview(id) {
 async function fetchInfo(id) {
     try {
         await ensureExpressReady();
-        const r = await fetch(`${baseUrl}/${id}/info`);
+        // 对文件名进行URL编码，处理特殊字符（如 #、空格等）
+        const encodedId = encodeURIComponent(id);
+        const r = await fetch(`${baseUrl}/${encodedId}/info`);
 
         const j = await r.json();
         if (j.success) {
@@ -448,14 +470,19 @@ async function fetchInfo(id) {
             logger.debug('知识库详情', j)
             // also attach to items list if present
             const it = items.value.find(x => x.id === id);
-            if (it) it.info = { ...j };
+            if (it) {
+                // 更新列表中的info
+                it.info = { ...it.info, ...j };
+            }
+            // 更新配置面板的info对象（使用Object.assign确保响应式更新）
+            Object.keys(info).forEach(key => delete info[key]);
             Object.assign(info, j);
-            // logger.log(items.value)
-            // logger.log(it)
-
+            logger.debug('更新后的info对象', info);
+        } else {
+            logger.warn('获取知识库详情失败', j);
         }
     } catch (e) {
-        logger.error(e);
+        logger.error('获取知识库详情异常', e);
     }
 }
 
@@ -463,7 +490,9 @@ async function fetchInfo(id) {
 async function toggleEnable(row, val) {
     try {
         await ensureExpressReady();
-        const r = await fetch(`${baseUrl}/${row.id}/toggle`, {
+        // 对文件名进行URL编码，处理特殊字符（如 #、空格等）
+        const encodedId = encodeURIComponent(row.id);
+        const r = await fetch(`${baseUrl}/${encodedId}/toggle`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ enabled: !!val })
@@ -491,7 +520,9 @@ async function rebuildVectors() {
     isRebuilding.value = true;
     try {
         await ensureExpressReady();
-        const r = await fetch(`${baseUrl}/${selectedItem.value.id}/rebuild`, { method: 'POST' });
+        // 对文件名进行URL编码，处理特殊字符
+        const encodedId = encodeURIComponent(selectedItem.value.id);
+        const r = await fetch(`${baseUrl}/${encodedId}/rebuild`, { method: 'POST' });
         const j = await r.json();
         if (j.success) {
             eventBus.emit('show-success', t('knowledgeBase.rebuild_submitted'));
@@ -507,7 +538,9 @@ async function rebuildVectors() {
 // download
 function downloadFile() {
     if (!selectedItem.value) return;
-    window.open(`${baseUrl}/${selectedItem.value.id}/download`, '_blank');
+    // 对文件名进行URL编码，处理特殊字符
+    const encodedId = encodeURIComponent(selectedItem.value.id);
+    window.open(`${baseUrl}/${encodedId}/download`, '_blank');
 }
 
 function openInEditor() {

@@ -64,7 +64,14 @@ class RAGServiceImpl implements RAGService {
   private readonly cacheFile: FilePath;
 
   constructor() {
-    const vectorDatabasePath = pathService.getVectorDatabasePath();
+    // 使用 meta-doc-kb 文件夹作为向量数据库路径（与知识库文件在同一目录）
+    const os = require('os');
+    const vectorDatabasePath = path.join(os.homedir(), 'Documents', 'meta-doc-kb');
+    
+    // 确保目录存在
+    if (!fs.existsSync(vectorDatabasePath)) {
+      fs.mkdirSync(vectorDatabasePath, { recursive: true });
+    }
     
     this.config = {
       vectorLength: this.VECTOR_LEN,
@@ -165,7 +172,7 @@ class RAGServiceImpl implements RAGService {
         success: true,
         chunks: chunks.length,
         vector_dim: this.VECTOR_LEN,
-        vector_count: this.vectorIndex.length
+        vector_count: successCount  // 返回当前文件成功生成的向量数，而不是所有向量的总数
       };
 
     } catch (error) {
@@ -789,7 +796,9 @@ export const clearKnowledgeBase = () => ragService.clearKnowledgeBase();
 export const vectorIndex = ragService.getVectorIndex();
 export const vectorInfo = ragService.getVectorInfo();
 
-// 导出路径常量
-export const INDEX_PATH = pathService.getVectorDatabaseFile('vector_index.json');
-export const DOCS_PATH = pathService.getVectorDatabaseFile('vector_docs.json');  
-export const VECTOR_INFO_PATH = pathService.getVectorDatabaseFile('vector_info.json');
+// 导出路径常量（使用 meta-doc-kb 文件夹）
+const os = require('os');
+const metaDocKbPath = path.join(os.homedir(), 'Documents', 'meta-doc-kb');
+export const INDEX_PATH = path.join(metaDocKbPath, 'vector_index.json');
+export const DOCS_PATH = path.join(metaDocKbPath, 'vector_docs.json');  
+export const VECTOR_INFO_PATH = path.join(metaDocKbPath, 'vector_info.json');

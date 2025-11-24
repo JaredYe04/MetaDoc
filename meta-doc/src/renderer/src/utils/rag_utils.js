@@ -12,9 +12,12 @@ if (window && window.electron) {
   //todo 说明当前环境不是electron环境，需要另外适配
 }
 
-export async function queryKnowledgeBase(question,){
+export async function queryKnowledgeBase(question, scoreThreshold){
     await waitForService('rag');
-    const scoreThreshold=await getSetting("knowledgeBaseScoreThreshold");
+    // 如果未提供scoreThreshold，从设置中获取
+    if (scoreThreshold === undefined) {
+        scoreThreshold = await getSetting("knowledgeBaseScoreThreshold");
+    }
     const response = await ipcRenderer.invoke('query-knowledge-base', { question, scoreThreshold });
     return response;
 }

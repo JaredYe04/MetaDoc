@@ -32,9 +32,13 @@ class PathServiceImpl implements PathService {
       resourcesPath = path.join(process.resourcesPath, '/app.asar.unpacked/resources');
     }
 
+    // 向量数据库路径迁移到 meta-doc-kb 文件夹（与知识库文件在同一目录）
+    const os = require('os');
+    const vectorDatabasePath = path.join(os.homedir(), 'Documents', 'meta-doc-kb');
+
     return {
       resourcesPath,
-      vectorDatabasePath: path.join(resourcesPath, 'vector_database'),
+      vectorDatabasePath,
       isPackaged,
     };
   }

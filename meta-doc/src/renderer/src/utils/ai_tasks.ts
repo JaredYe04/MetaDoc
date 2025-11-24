@@ -63,7 +63,6 @@ export function createAiTask(
   target: Ref<string>,
   type: AITaskType,
   origin_key: string,
-  try_rag: boolean,
   meta: LLMApiMeta = { stream: true }
 ): CreateTaskResult {
   const autoStart = true
@@ -83,7 +82,6 @@ export function createAiTask(
     target,
     type,
     origin_key,
-    try_rag,
     meta,
     status: ref(ai_task_status.READY as AITaskStatusValue),
     controller: null,
@@ -106,8 +104,7 @@ export function createAiTask(
       handle,
       name,
       type,
-      origin_key,
-      try_rag
+      origin_key
     }
     if (meta) {
       try {
@@ -162,16 +159,14 @@ export async function startAiTask(handle: string): Promise<void> {
         task.prompt as string, 
         task.target, 
         task.meta as any, 
-        controller.signal, 
-        task.try_rag
+        controller.signal
       )
     } else if (task.type === ai_types.chat && task.target) {
       await continueConversation(
         task.prompt as AIDialogMessage[], 
         task.target, 
         task.meta as any, 
-        controller.signal, 
-        task.try_rag
+        controller.signal
       )
     }
 
@@ -244,7 +239,7 @@ export function useAiTasks(): Ref<AITaskInfo[]> {
 ipcRenderer.on('register-ai-task', (_: any, taskInfo: any) => {
   const logger = createRendererLogger('AiTasks')
   logger.debug('主界面任务注册', taskInfo)
-  const { handle, name, prompt, type, origin_key, try_rag: incomingTryRag, meta: incomingMeta } = taskInfo
+  const { handle, name, prompt, type, origin_key, meta: incomingMeta } = taskInfo
   if (taskMap.has(handle)) return // 防止重复添加
   
   const task: InternalAITaskInfo = {
@@ -258,7 +253,6 @@ ipcRenderer.on('register-ai-task', (_: any, taskInfo: any) => {
     controller: null,
     resolveDone: null,
     rejectDone: null,
-    try_rag: Boolean(incomingTryRag),
     meta: incomingMeta ?? {},
     mirror: true
   }

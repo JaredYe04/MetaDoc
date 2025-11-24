@@ -100,8 +100,6 @@ export interface AITaskInfo {
   origin_key: string;
   /** 任务状态 */
   status: Ref<AITaskStatusValue>;
-  /** 是否使用RAG */
-  try_rag: boolean;
   /** 任务元数据 */
   meta?: Record<string, any>;
   /** 中止控制器 */

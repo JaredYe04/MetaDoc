@@ -3,11 +3,11 @@
     <div class="console-header" :style="{
       backgroundColor:themeState.currentTheme.editorToolbarBackgroundColor
     }">
-      <span>终端输出</span>
+      <span class="console-title">{{ $t('console.title') }}</span>
       <div class="console-actions">
-        <el-button size="small" @click="clearConsole">清屏</el-button>
-        <el-button size="small" @click="copyConsole">复制</el-button>
-        <el-button size="small" @click="saveConsole">保存日志</el-button>
+        <el-button size="small" @click="clearConsole">{{ $t('console.clear') }}</el-button>
+        <el-button size="small" @click="copyConsole">{{ $t('console.copy') }}</el-button>
+        <el-button size="small" @click="saveConsole">{{ $t('console.saveLog') }}</el-button>
       </div>
     </div>
     <div class="console-body" ref="consoleBody">
@@ -20,6 +20,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, PropType } from 'vue';
+import { useI18n } from 'vue-i18n';
 import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer.ts';
 import { webMainCalls } from '../utils/web-adapter/web-main-calls.js';
 let ipcRenderer: typeof localIpcRenderer | null = null
@@ -33,6 +34,8 @@ if (window && window.electron) {
 }
 import eventBus from '../utils/event-bus';
 import { themeState } from '../utils/themes';
+
+const { t } = useI18n();
 
 type ConsoleLineType = 'out' | 'err' | 'warn' | 'debug';
 
@@ -130,7 +133,7 @@ const clearConsole = () => {
 const copyConsole = () => {
   const text = lines.value.map(l => l.content).join('\n');
   navigator.clipboard.writeText(text).then(() => {
-    eventBus.emit("show-success",'已复制到剪贴板')
+    eventBus.emit("show-success", t('console.copiedToClipboard'))
   });
 };
 
@@ -146,7 +149,7 @@ const saveConsole = () => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  eventBus.emit("show-success",'日志已保存')
+  eventBus.emit("show-success", t('console.logSaved'))
 };
 
 const resolvePayload = (payload: unknown, fallbackType: ConsoleLineType, requireContent = true) => {
@@ -253,6 +256,10 @@ onBeforeUnmount(() => {
   padding: 5px;
   border-bottom: 1px solid #9a9a9a41;
   flex-shrink: 0;
+}
+
+.console-title {
+  user-select: none;
 }
 
 .console-actions button {

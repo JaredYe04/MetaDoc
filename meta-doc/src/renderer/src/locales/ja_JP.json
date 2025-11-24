@@ -85,6 +85,14 @@
     "deleteFailed": "削除に失敗しました",
     "close": "ふりがな"
   },
+  "console": {
+    "title": "コンソール出力",
+    "clear": "クリア",
+    "copy": "コピー",
+    "saveLog": "ログを保存",
+    "copiedToClipboard": "クリップボードにコピーしました",
+    "logSaved": "ログを保存しました"
+  },
   "searchReplace": {
     "title": "検索と置換",
     "find": "検索",
@@ -704,7 +712,13 @@
     "error": "ロード失敗",
     "loading": "ローディング...",
     "switchWarning": "インターフェイスを切り替えながら、AI はタスクが失われる可能性があります。",
-    "title": "AIタスクキュー"
+    "title": "AIタスクキュー",
+    "delayRemaining": "残り遅延: {time}",
+    "delayActive": "補完が有効",
+    "delayButton": "{minutes}分遅延",
+    "cancelDelay": "遅延をキャンセル",
+    "minutes": "分",
+    "seconds": "秒"
   },
   "knowledgeBase": {
     "add": "追加する",

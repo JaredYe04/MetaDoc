@@ -35,6 +35,19 @@ export const TREE_NODE_SCHEMA = {
   },
 } as const;
 
+export const CONTENT_SCHEMA = {
+  $schema: 'http://json-schema.org/draft-07/schema#',
+  title: 'Content',
+  type: 'object',
+  required: ['content'],
+  properties: {
+    content: {
+      type: 'string',
+      description: '章节的正文内容，使用 Markdown 格式。',
+    },
+  },
+} as const;
+
 export const DEFAULT_OUTLINE_TREE: DocumentOutlineNode = {
   path: 'dummy',
   title: '',

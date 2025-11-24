@@ -85,6 +85,14 @@
     "deleteFailed": "삭제 실패",
     "close": "이름 *"
   },
+  "console": {
+    "title": "콘솔 출력",
+    "clear": "지우기",
+    "copy": "복사",
+    "saveLog": "로그 저장",
+    "copiedToClipboard": "클립보드에 복사됨",
+    "logSaved": "로그가 저장되었습니다"
+  },
   "searchReplace": {
     "title": "찾기 및 바꾸기",
     "find": "찾기",
@@ -704,7 +712,13 @@
     "error": "적재 실패",
     "loading": "로드 중 ...",
     "switchWarning": "AI가 잃을 때 인터페이스를 전환합니다.",
-    "title": "AI 작업 큐"
+    "title": "AI 작업 큐",
+    "delayRemaining": "남은 지연: {time}",
+    "delayActive": "완료 활성화됨",
+    "delayButton": "{minutes}분 지연",
+    "cancelDelay": "지연 취소",
+    "minutes": "분",
+    "seconds": "초"
   },
   "knowledgeBase": {
     "add": "기타 제품",

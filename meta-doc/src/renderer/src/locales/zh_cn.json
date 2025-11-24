@@ -11,7 +11,8 @@
         "closeKnowledgeBase":"禁用知识检索库",
         "openKnowledgeBase":"启用知识检索库",
         "locateToPdf": "定位到PDF位置",
-        "sectionOptimizer": "AI段落优化"
+        "sectionOptimizer": "AI段落优化",
+        "triggerAutoCompletion": "手动触发AI补全"
     },
     "headMenu": {
         "tooltip": "一款基于AI Agent的智能文字处理软件",
@@ -84,6 +85,14 @@
         "close": "关闭",
         "deleteSuccess": "删除成功",
         "deleteFailed": "删除失败"
+    },
+    "console": {
+        "title": "终端输出",
+        "clear": "清屏",
+        "copy": "复制",
+        "saveLog": "保存日志",
+        "copiedToClipboard": "已复制到剪贴板",
+        "logSaved": "日志已保存"
     },
     "searchReplace": {
         "title": "查找与替换",
@@ -662,6 +671,10 @@
         "autoCompletionStreamMode": "流式模式",
         "autoCompletionFullModeHint": "AI会在完整生成内容后输出（推荐）",
         "autoCompletionStreamModeHint": "AI会实时输出生成的内容",
+        "autoCompletionMaxTokens": "自动补全最大Token数",
+        "autoCompletionMaxTokensHint": "限制AI自动补全输出的最大token数，最小20，0表示无限制",
+        "tokens": "个token",
+        "unlimited": "无限制",
         "knowledgeBaseTooltip":"启用后，将使用本地知识库中的信息来辅助AI生成内容。",
         "autoSave": "自动保存",
         "off": "关闭",
@@ -851,6 +864,12 @@
         "taskCancelled2": "任务已取消"
     },
     "aiTaskQueue": {
+        "delayRemaining": "剩余延迟：{time}",
+        "delayActive": "补全已启用",
+        "delayButton": "延迟{minutes}分钟",
+        "cancelDelay": "取消延迟",
+        "minutes": "分钟",
+        "seconds": "秒",
         "title": "AI任务队列",
         "empty": "暂无任务",
         "loading": "加载中...",

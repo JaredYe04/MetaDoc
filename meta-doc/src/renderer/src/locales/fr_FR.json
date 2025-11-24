@@ -161,6 +161,14 @@
     "save": "Enregistrer",
     "close": "Fermer"
   },
+  "console": {
+    "title": "Sortie de console",
+    "clear": "Effacer",
+    "copy": "Copier",
+    "saveLog": "Enregistrer le journal",
+    "copiedToClipboard": "Copié dans le presse-papiers",
+    "logSaved": "Journal enregistré"
+  },
   "contextMenu": {
     "aiAnalysis": "Analyse du texte intégral",
     "cut": "Couper",

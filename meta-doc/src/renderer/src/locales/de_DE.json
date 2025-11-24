@@ -161,6 +161,14 @@
     "save": "Speichern",
     "close": "Schließen"
   },
+  "console": {
+    "title": "Konsolenausgabe",
+    "clear": "Löschen",
+    "copy": "Kopieren",
+    "saveLog": "Protokoll speichern",
+    "copiedToClipboard": "In die Zwischenablage kopiert",
+    "logSaved": "Protokoll gespeichert"
+  },
   "contextMenu": {
     "aiAnalysis": "KI Volltextanalyse",
     "cut": "Ausschneiden",

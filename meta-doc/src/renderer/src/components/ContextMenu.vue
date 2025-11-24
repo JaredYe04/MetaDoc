@@ -19,6 +19,7 @@
         @mousedown.prevent="onMenuItemMouseDown(item)"
       >
         <span class="context-menu__label">{{ item.label ? $t(item.label) : '' }}</span>
+        <span v-if="item.shortcut" class="context-menu__shortcut">{{ item.shortcut }}</span>
       </div>
     </template>
   </div>
@@ -208,6 +209,13 @@ const onMenuItemMouseDown = (item: ContextMenuItem) => {
 
 .context-menu__label {
   flex: 1;
+  white-space: nowrap;
+}
+
+.context-menu__shortcut {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-left: 16px;
   white-space: nowrap;
 }
 </style>

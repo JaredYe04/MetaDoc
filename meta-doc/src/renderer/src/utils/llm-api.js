@@ -146,6 +146,9 @@ async function answerQuestionNonStream(
   try {
     let url, payload, responseType;
 
+    // 如果meta中有max_tokens，则使用它（用于自动补全限制）
+    const maxTokens = meta.max_tokens;
+
     switch (type) {
       case "metadoc":
       case "openai":
@@ -157,6 +160,10 @@ async function answerQuestionNonStream(
           stream: false,
           ...(meta || {}),
         };
+        // 如果指定了max_tokens，添加到payload中
+        if (maxTokens !== undefined && maxTokens > 0) {
+          payload.max_tokens = maxTokens;
+        }
         responseType = "completion";
         break;
       }
@@ -171,6 +178,10 @@ async function answerQuestionNonStream(
           stream: false,
           ...(meta || {}),
         };
+        // 如果指定了max_tokens，添加到payload中
+        if (maxTokens !== undefined && maxTokens > 0) {
+          payload.max_tokens = maxTokens;
+        }
         responseType = "completion";
         break;
       }
@@ -183,6 +194,10 @@ async function answerQuestionNonStream(
           stream: false,
           ...(meta || {}),
         };
+        // Ollama使用num_predict参数
+        if (maxTokens !== undefined && maxTokens > 0) {
+          payload.num_predict = maxTokens;
+        }
         responseType = "completion";
         break;
       }
@@ -229,6 +244,9 @@ async function answerQuestionStream(
   try {
     let url, payload, responseType;
 
+    // 如果meta中有max_tokens，则使用它（用于自动补全限制）
+    const maxTokens = meta.max_tokens;
+
     switch (type) {
       case "metadoc":
       case "openai":
@@ -240,6 +258,10 @@ async function answerQuestionStream(
           stream: true,
           ...(meta || {}),
         };
+        // 如果指定了max_tokens，添加到payload中
+        if (maxTokens !== undefined && maxTokens > 0) {
+          payload.max_tokens = maxTokens;
+        }
         responseType = "completion";
         break;
       }
@@ -254,6 +276,10 @@ async function answerQuestionStream(
           stream: true,
           ...(meta || {}),
         };
+        // 如果指定了max_tokens，添加到payload中
+        if (maxTokens !== undefined && maxTokens > 0) {
+          payload.max_tokens = maxTokens;
+        }
         responseType = "completion";
         break;
       }
@@ -266,6 +292,10 @@ async function answerQuestionStream(
           stream: true,
           ...(meta || {}),
         };
+        // Ollama使用num_predict参数
+        if (maxTokens !== undefined && maxTokens > 0) {
+          payload.num_predict = maxTokens;
+        }
         responseType = "completion";
         break;
       }

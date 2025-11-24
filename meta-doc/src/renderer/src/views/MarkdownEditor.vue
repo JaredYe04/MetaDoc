@@ -32,9 +32,14 @@
             <ContextMenu :x="menuX" :y="menuY" :items="articleContextMenuItems"
                 v-if="contextMenuVisible" @trigger="handleMenuClick" class="context-menu"
                 @close="contextMenuVisible = false;" />
-            <AISuggestion v-if="vditorEl" :targetEl="vditorEl" :trigger="triggerSuggestion" :rootNodeClass="'vditor-reset'"
-                @accepted="onAcceptSuggestion" @cancelled="onCancelSuggestion" @reset="onResetSuggestion"
-                @triggerSuggestion="trytriggerSuggestion" />
+            <AISuggestionGhost 
+                v-if="vditor"
+                format="md"
+                :targetEl="vditorEl"
+                rootNodeClass="vditor-reset"
+                @accepted="onAcceptSuggestion"
+                @cancelled="onCancelSuggestion"
+            />
 
             <ResizableContainer
                 ref="resizableRef"
@@ -105,8 +110,9 @@ import { getSetting, setSetting } from "../utils/settings";
 import { localVditorCDN, vditorCDN } from "../utils/vditor-cdn";
 import { waitForService } from "../utils/service-status.ts";
 import { useI18n } from 'vue-i18n'
-import AISuggestion from "../components/AISuggestion.vue";
-import "../assets/ai-suggestion.css";
+import AISuggestionGhost from "../components/AISuggestionGhost.vue";
+import { aiCompletionService } from "../utils/ai-completion-service";
+import { VditorEditorAdapter } from "../utils/editor-adapters";
 import { getArticleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
 import ContextMenu from "../components/ContextMenu.vue";
 import MetaInfoPanel from "../components/MetaInfoPanel.vue";
@@ -289,35 +295,18 @@ const menuX = ref(0); // 菜单 X 坐标
 const menuY = ref(0); // 菜单 Y 坐标
 
 const vditorEl = ref<HTMLElement | null>(null);
-const triggerSuggestion = ref(false);
 const lastAppliedContent = ref('');
 
 function onAcceptSuggestion(text: string) {
     //logger.log("补全已接受:", text);
-    insertText(text);
-    triggerSuggestion.value = false;
+    // 注意：对于Vditor，文本已经在acceptVditorGhostText中插入到DOM了
+    // 所以这里不需要再次插入，否则会导致重复
+    // 但对于Monaco，可能需要这里插入，所以保留这个函数但暂时不调用insertText
+    // insertText(text);
 }
+
 function onCancelSuggestion() {
     //logger.log("补全已取消");
-    triggerSuggestion.value = false;
-    //状态不切换回false,保持为true
-}
-function onResetSuggestion() {
-    //logger.log("补全已重置");
-    //triggerSuggestion.value = false;
-}
-
-// 监听输入 -> 1秒后触发
-let debounceTimer: NodeJS.Timeout | null = null;
-function trytriggerSuggestion() {
-    if (!isActive.value) return;
-    triggerSuggestion.value = false;
-    if (debounceTimer) clearTimeout(debounceTimer);
-    eventBus.on('cancel-suggestion',()=>{if (debounceTimer) clearTimeout(debounceTimer);})
-    debounceTimer = setTimeout(() => {
-        triggerSuggestion.value = true;
-    }, 5000);
-
 }
 
 
@@ -390,6 +379,17 @@ const handleMenuClick = async (item: string) => {
         case 'closeKnowledgeBase':
             await setSetting("enableKnowledgeBase",false);
              break;
+        case 'trigger-auto-completion':
+            // 手动触发AI补全
+            if (aiCompletionService.getAdapter()) {
+                aiCompletionService.triggerCompletion('manual');
+            } else {
+                // 如果适配器不存在，先创建
+                const adapter = new VditorEditorAdapter(vditor.value, props.editorDomId);
+                aiCompletionService.setAdapter(adapter);
+                aiCompletionService.triggerCompletion('manual');
+            }
+            break;
         
     }
     await refreshContextMenu();
@@ -876,7 +876,23 @@ const mouseLeaveEvent = (event: MouseEvent, section: HTMLElement) => {
 
 // 监听 Tab 键，插入制表符
 const handleTab = (event: KeyboardEvent) => {
+    // 如果按下了 Ctrl+Tab 或 Command+Tab，不处理（由 handleKeyDown 处理）
+    const isMac = /Mac|iPhone|iPod|iPad/i.test(navigator.platform);
+    const modifierKey = isMac ? event.metaKey : event.ctrlKey;
+    if (modifierKey && event.key === 'Tab') {
+        return;
+    }
+    
     if (event.key === "Tab") {
+        // 检查是否有AI补全的ghost text（通过检查DOM中是否存在ai-suggestion元素）
+        // 包括新的绿色背景样式类
+        const hasAISuggestion = document.querySelector('.ai-suggestion, .ai-suggestion-dark, .ai-suggestion-insert, .ai-suggestion-insert-dark')
+        if (hasAISuggestion) {
+            // 如果有AI补全，让AISuggestionGhost组件处理，不插入制表符
+            // 但不要阻止事件，让AISuggestionGhost在capture阶段处理
+            return;
+        }
+        
         //如果AISuggestion在工作，不插入制表符
         if (triggerSuggestion.value) {
             //logger.log('AI Suggestion is active, tab key pressed');
@@ -886,7 +902,9 @@ const handleTab = (event: KeyboardEvent) => {
             //logger.log('AI Suggestion is not active, tab key pressed');
         }
 
+        // 没有AI补全时，正常插入制表符
         event.preventDefault();
+        event.stopPropagation();
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
@@ -1097,7 +1115,22 @@ onMounted(async () => {
                 // currentMarkdown.value = value;
                 currentView.value = 'article';
                 workspace.updateDocumentMarkdown(props.tabId, value);
-                //trytriggerSuggestion();
+                
+                // 确保适配器已设置（如果还没有设置）
+                if (!aiCompletionService.getAdapter() && vditor.value) {
+                    const adapter = new VditorEditorAdapter(
+                        vditor.value,
+                        'vditor-reset',
+                        () => isActive.value
+                    );
+                    aiCompletionService.setAdapter(adapter);
+                }
+                
+                // 用户继续打字时，立即取消当前补全
+                aiCompletionService.cancelCurrentCompletion();
+                
+                // 触发AI补全（使用双层防抖，自动检测关键字符）
+                aiCompletionService.triggerCompletion('input');
 
                 syncOutlineFromMarkdown();
                 await bindTitleMenu();
@@ -1114,6 +1147,79 @@ onMounted(async () => {
                 }
                 finally {
                     loadingInstance.close();
+                }
+                
+                // 设置编辑器适配器（确保在after回调中也设置，以防input事件还没触发）
+                if (vditor.value) {
+                    const adapter = new VditorEditorAdapter(
+                        vditor.value,
+                        'vditor-reset',
+                        () => isActive.value
+                    );
+                    aiCompletionService.setAdapter(adapter);
+                    
+                        // 监听键盘事件，检测Enter、Space等触发按键和手动触发（Ctrl+Space）
+                        const editorElement = vditor.value?.vditor?.element;
+                        if (editorElement) {
+                            // 监听鼠标点击事件，切换光标位置时取消补全并切换到被动状态
+                            // 注意：只处理左键点击，右键点击用于打开上下文菜单，不应该拦截
+                            const handleMouseDown = (e: MouseEvent) => {
+                                // 只处理左键点击（button === 0），右键点击（button === 2）不处理
+                                if (e.button === 0) {
+                                    // 检查是否点击在编辑器内容区域（不是工具栏等）
+                                    const target = e.target as HTMLElement;
+                                    if (target && (target.closest('.vditor-content') || target.closest('.vditor-ir'))) {
+                                        aiCompletionService.handleMouseClick();
+                                    }
+                                }
+                            };
+                            
+                            editorElement.addEventListener('mousedown', handleMouseDown);
+                            
+                            // 监听键盘事件
+                            const handleKeyDown = (e: KeyboardEvent) => {
+                                // 手动触发（Ctrl+Tab 或 Mac 上的 Command+Tab）
+                                const isMac = /Mac|iPhone|iPod|iPad/i.test(navigator.platform);
+                                const modifierKey = isMac ? e.metaKey : e.ctrlKey;
+                                if (modifierKey && e.key === 'Tab') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    aiCompletionService.triggerCompletion('manual');
+                                    return;
+                                }
+                                
+                                // 检测触发按键（Enter、Space、;、,）
+                                const key = e.key === 'Enter' ? 'Enter' :
+                                           e.key === ' ' ? 'Space' :
+                                           e.key === ';' ? ';' :
+                                           e.key === ',' ? ',' : null;
+                                
+                                if (key) {
+                                    // 用户继续打字时，立即取消当前补全
+                                    aiCompletionService.cancelCurrentCompletion();
+                                    // 触发补全（按键触发）
+                                    aiCompletionService.triggerCompletion('key', key);
+                                } else {
+                                    // 其他按键：用户继续打字，立即取消补全
+                                    aiCompletionService.cancelCurrentCompletion();
+                                }
+                            };
+                            
+                            editorElement.addEventListener('keydown', handleKeyDown);
+                        
+                        // 保存清理函数
+                        const originalCleanup = (vditor.value as any)._aiCompletionCleanup || [];
+                        (vditor.value as any)._aiCompletionCleanup = [
+                            ...originalCleanup,
+                            () => {
+                                clearInterval(checkCursorInterval);
+                                if (editorElement) {
+                                    editorElement.removeEventListener('mousedown', handleMouseDown);
+                                    editorElement.removeEventListener('keydown', handleKeyDown);
+                                }
+                            }
+                        ];
+                    }
                 }
 
             },
@@ -1142,6 +1248,10 @@ const currentAiLogo = computed(() => {
 // 清理资源
 onBeforeUnmount(() => {
     flushOutlineSync();
+    
+    // 移除编辑器适配器
+    aiCompletionService.removeAdapter();
+    
     const instance = vditor.value;
     if (instance && (instance as any).element) {
         try {

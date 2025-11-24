@@ -127,6 +127,22 @@
           </el-select>
         </el-form-item>
 
+        <el-form-item v-if="settings.autoCompletion" :label="t('setting.autoCompletionMaxTokens')">
+          <el-tooltip :content="t('setting.autoCompletionMaxTokensHint')" placement="bottom">
+            <el-input-number
+              v-model="settings.autoCompletionMaxTokens"
+              :min="20"
+              :step="10"
+              :precision="0"
+              @change="saveSetting('autoCompletionMaxTokens', settings.autoCompletionMaxTokens)"
+              style="width: 200px"
+            />
+            <span style="margin-left: 8px; color: #909399; font-size: 12px;">
+              {{ settings.autoCompletionMaxTokens === 0 ? t('setting.unlimited') : t('setting.tokens') }}
+            </span>
+          </el-tooltip>
+        </el-form-item>
+
         <el-form-item :label="t('setting.enableKnowledgeBase')">
           <el-tooltip :content="t('setting.knowledgeBaseTooltip')" placement="bottom">
             <el-switch v-model="settings.enableKnowledgeBase" class="mb-2"

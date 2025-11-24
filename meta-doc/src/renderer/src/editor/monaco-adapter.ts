@@ -403,13 +403,14 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
       range.startColumn,
     );
     const startOffset = model.getOffsetAt(startPosition);
+    // executeEdits的第三个参数应该是undefined，而不是空数组
     editor.executeEdits("insert-text", [
       {
         range,
         text,
         forceMoveMarkers: true,
       },
-    ]);
+    ], undefined);
     editor.pushUndoStop();
     const endOffset = startOffset + text.length;
     const endPosition = model.getPositionAt(endOffset);
@@ -641,13 +642,14 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
           
           const currentRange = decoration.range;
           editor.pushUndoStop();
+          // executeEdits的第三个参数应该是undefined，避免Monaco内部错误
           editor.executeEdits("anchor-replace", [
             {
               range: currentRange,
               text: replacement,
               forceMoveMarkers: true,
             },
-          ]);
+          ], undefined);
           editor.pushUndoStop();
           
           // 更新锚点位置
@@ -732,13 +734,14 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     if (!editor) return;
     const monacoRange = this.toMonacoRange(range);
     editor.pushUndoStop();
+    // executeEdits的第三个参数应该是undefined，避免Monaco内部错误
     editor.executeEdits("replace-range", [
       {
         range: monacoRange,
         text,
         forceMoveMarkers: true,
       },
-    ]);
+    ], undefined);
     editor.pushUndoStop();
   }
 
@@ -758,13 +761,14 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     );
     const pos = new monaco.Position(safeLine, safeColumn);
     editor.pushUndoStop();
+    // executeEdits的第三个参数应该是undefined，避免Monaco内部错误
     editor.executeEdits("insert-at", [
       {
         range: new monaco.Range(safeLine, safeColumn, safeLine, safeColumn),
         text,
         forceMoveMarkers: true,
       },
-    ]);
+    ], undefined);
     editor.pushUndoStop();
     editor.setPosition(new monaco.Position(safeLine, safeColumn + text.length));
     editor.revealPositionInCenter(editor.getPosition()!);
@@ -782,7 +786,8 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
       }))
       .reverse();
     editor.pushUndoStop();
-    editor.executeEdits("apply-edits", monacoEdits);
+    // executeEdits的第三个参数应该是undefined，避免Monaco内部错误
+    editor.executeEdits("apply-edits", monacoEdits, undefined);
     editor.pushUndoStop();
   }
 
@@ -843,13 +848,14 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     const replacementText = this.computeReplacementText(match, replacement);
     const range = this.toMonacoRange(match.range);
     editor.pushUndoStop();
+    // executeEdits的第三个参数应该是undefined，避免Monaco内部错误
     editor.executeEdits("search-replace", [
       {
         range,
         text: replacementText,
         forceMoveMarkers: true,
       },
-    ]);
+    ], undefined);
     editor.pushUndoStop();
     const selection = new monaco.Selection(
       range.startLineNumber,

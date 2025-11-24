@@ -20,7 +20,7 @@
             <TitleMenu v-if="showTitleMenu" :title="currentTitle.replaceAll('#', '').trim()" :position="menuPosition"
                 @close="handleTitleMenuClose" :path="currentTitlePath"
                 :tree="extractOutlineTreeFromMarkdown(currentMarkdown, true)"
-                @accept="async (payload) => { await acceptGeneratedText(payload); }" style="max-width: 500px;" />
+                @accept="async (payload: any) => { await acceptGeneratedText(payload); }" style="max-width: 500px;" />
             <SearchReplaceMenu
                 v-if="searchReplaceDialogVisible"
                 :adapter="textEditorAdapter"
@@ -32,10 +32,13 @@
             <ContextMenu :x="menuX" :y="menuY" :items="articleContextMenuItems"
                 v-if="contextMenuVisible" @trigger="handleMenuClick" class="context-menu"
                 @close="contextMenuVisible = false;" />
-            <AISuggestion :targetEl="editorEl" :trigger="triggerSuggestion" :rootNodeClass="'view-lines'"
-                :context="suggestionContext" 
-                @accepted="onAcceptSuggestion" @cancelled="onCancelSuggestion" @reset="onResetSuggestion" 
-                @triggerSuggestion="trytriggerSuggestion"/>
+            <AISuggestionGhost 
+                :key="editorKey"
+                :editorId="editorId"
+                format="tex"
+                @accepted="onAcceptSuggestion"
+                @cancelled="onCancelSuggestion"
+            />
 
             <div class="latex-layout">
                 <ResizableContainer
@@ -244,7 +247,7 @@
 </template>
 
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed, watch, onUnmounted, shallowRef } from "vue";
 import { ElButton, ElDialog, ElLoading } from 'element-plus';
 import { Icon } from 'tdesign-icons-vue-next';
@@ -266,7 +269,9 @@ import AiLogoWhite from "../assets/ai-logo-white.svg";
 import { mixColors, themeState } from "../utils/themes";
 import { getSetting, setSetting } from "../utils/settings";
 import { useI18n } from 'vue-i18n'
-import AISuggestion from "../components/AISuggestion.vue";
+import AISuggestionGhost from "../components/AISuggestionGhost.vue";
+import { aiCompletionService } from "../utils/ai-completion-service";
+import { MonacoEditorAdapter } from "../utils/editor-adapters";
 import "../assets/ai-suggestion.css";
 import ResizableContainer from "../components/base/ResizableContainer.vue";
 import { getArticleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
@@ -370,9 +375,9 @@ const currentPath = computed(() => documentRef.value.path || '');
 const modifyContentDialogVisible = ref(false);
 const continueContentDialogVisible = ref(false);
 const searchReplaceDialogVisible = ref(false);
-const editor = ref(null);
-const articleContextMenuItems = ref([]);//右键菜单项
-const textEditorAdapter = shallowRef(null);
+const editor = ref<monaco.editor.IStandaloneCodeEditor | null>(null);
+const articleContextMenuItems = ref<any[]>([]);//右键菜单项
+const textEditorAdapter = shallowRef<any>(null);
 
 const loadingInstance = ElLoading.service({ fullscreen: false });
 const showTitleMenu = ref(false);
@@ -381,8 +386,8 @@ const currentTitle = ref("");
 const currentSectionTitle = ref("");
 const menuPosition = ref({ top: 0, left: 0 });
 const sectionOptimizerPosition = ref({ top: 0, left: 0 });
-const sectionOptimizerAdapter = shallowRef(null);
-const currentSectionInfo = ref(null);
+const sectionOptimizerAdapter = shallowRef<any>(null);
+const currentSectionInfo = ref<any>(null);
 const getDefaultSearchMenuPosition = () => {
     if (typeof window === "undefined") {
         return { top: 24, left: 24 };
@@ -406,7 +411,7 @@ const menuY = ref(0); // 菜单 Y 坐标
 const pdfContextMenuVisible = ref(false);
 const pdfMenuX = ref(0);
 const pdfMenuY = ref(0);
-const pdfContextMenuItems = ref([
+const pdfContextMenuItems = ref<any[]>([
     { label: "latexEditor.pdfMenu.refresh", value: "refresh" },
     { label: "latexEditor.pdfMenu.locateToCode", value: "locate-to-code" },
     { type: "divider" },
@@ -424,11 +429,11 @@ const handleTitleMenuClose = () => {
 
 // 从右键菜单打开段落优化工具
 const openSectionOptimizerFromContext = async () => {
-    if (!editor.value || !props.tabId) return
+    if (!editor.value || !props.tabId || !editorId.value) return
     
     // 从Monaco全局获取编辑器实例
     const editors = monaco.editor.getEditors();
-    const monacoEditor = editors.find(e => e.getId?.() === editorId) || editor.value;
+    const monacoEditor = editors.find(e => e.getId?.() === editorId.value) || editor.value;
     if (!monacoEditor) return
 
     // 获取当前光标位置
@@ -436,8 +441,8 @@ const openSectionOptimizerFromContext = async () => {
     if (!position) return
 
     // 创建适配器
-    const adapter = new LaTeXSectionAdapter(props.tabId, editorId)
-    adapter.setEditorId(editorId)
+    const adapter = new LaTeXSectionAdapter(props.tabId, editorId.value)
+    adapter.setEditorId(editorId.value)
     sectionOptimizerAdapter.value = adapter
 
     // 获取当前章节信息
@@ -473,23 +478,23 @@ const handleSearchReplaceClose = () => {
     searchReplaceDialogVisible.value = false;
 };
 
-const updateMeta = (updater) => {
+const updateMeta = (updater: (meta: any) => void) => {
     if (typeof updater === 'function') {
         workspace.updateDocumentMeta(props.tabId, updater);
     }
 };
 
-const handleMetaPatch = (patch) => {
+const handleMetaPatch = (patch: any) => {
     updateMeta((meta) => Object.assign(meta, patch));
 };
 
-const replaceDialogs = (builder) => {
+const replaceDialogs = (builder: (dialogs: any[]) => any[]) => {
     const base = [...currentDialogs.value];
     const next = builder(base);
     workspace.updateDocumentAiDialogs(props.tabId, next);
 };
 
-const addDialogEntry = (dialog, addToFront = false) => {
+const addDialogEntry = (dialog: any, addToFront = false) => {
     replaceDialogs((dialogs) => {
         if (addToFront) {
             dialogs.unshift(dialog);
@@ -500,7 +505,7 @@ const addDialogEntry = (dialog, addToFront = false) => {
     });
 };
 
-const acceptGeneratedText = async (payload) => {
+const acceptGeneratedText = async (payload: any) => {
     if (!payload) return;
     const { append, content, sectionInfo } = payload;
     
@@ -529,16 +534,16 @@ const acceptGeneratedText = async (payload) => {
     showSectionOptimizer.value = false;
 };
 
-const editorEl = ref(null);
+const editorEl = ref<HTMLElement | null>(null);
 const editorKey = ref(Date.now());
-const mainContainerRef = ref(null);
-const pdfResizableRef = ref(null);
+const mainContainerRef = ref<HTMLElement | null>(null);
+const pdfResizableRef = ref<any>(null);
 const mainWidth = ref(0);
-let mainObserver = null;
+let mainObserver: ResizeObserver | null = null;
 
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-const clampPdfWidth = (size) => {
+const clampPdfWidth = (size: number) => {
     if (!showPdfPanel.value) return LATEX_LAYOUT.pdf.minWidth;
     const width = mainWidth.value || size + LATEX_LAYOUT.left.minWidth;
     const minAllowed = LATEX_LAYOUT.pdf.minWidth;
@@ -564,7 +569,7 @@ const ensurePdfWithinBounds = () => {
     }
 };
 
-const handlePdfResize = (size) => {
+const handlePdfResize = (size: number) => {
     const clamped = clampPdfWidth(size);
     if (clamped !== size && pdfResizableRef.value?.setSidebarSize) {
         pdfResizableRef.value.setSidebarSize(clamped);
@@ -590,25 +595,29 @@ const syncOutlineFromTex = debounce(() => {
     }
 }, 200);
 
-const undo = () => editor.value.trigger("keyboard", "undo", null);
-const redo = () => editor.value.trigger("keyboard", "redo", null);
+const undo = () => editor.value?.trigger("keyboard", "undo", null);
+const redo = () => editor.value?.trigger("keyboard", "redo", null);
 const zoomIn = () => {
+    if (!editor.value) return;
     const currentFontSize = editor.value.getOption(monaco.editor.EditorOption.fontSize);
     editor.value.updateOptions({ fontSize: currentFontSize + 1 });
 }
 const zoomOut = () => {
+    if (!editor.value) return;
     const currentFontSize = editor.value.getOption(monaco.editor.EditorOption.fontSize);
-    editor.value.updateOptions({ fontSize: currentFontSize + 1 });
+    editor.value.updateOptions({ fontSize: currentFontSize - 1 });
 }
 let enableMinimap = true;
 let enableRowNumber = true;
 const toggleMinimap = () => {
+    if (!editor.value) return;
     enableMinimap = !enableMinimap;
     editor.value.updateOptions({
         minimap: { enabled: enableMinimap }
     });
 }
 const toggleRowNumber = () => {
+    if (!editor.value) return;
     enableRowNumber = !enableRowNumber;
     editor.value.updateOptions({
         lineNumbers: enableRowNumber ? 'on' : 'off'
@@ -618,19 +627,19 @@ const toggleRowNumber = () => {
 const showPdfPanel = ref(true)
 const showConsole = ref(true)
 const pdfUrl = ref('file:///')
-const pdfContainer = ref(null);
-const canvasWrapper = ref(null);
+const pdfContainer = ref<HTMLElement | null>(null);
+const canvasWrapper = ref<HTMLElement | null>(null);
 let isDragging = false;
-let startX, startY, offsetX = 0, offsetY = 0;
+let startX: number, startY: number, offsetX = 0, offsetY = 0;
 
 import * as pdfjsLib from "pdfjs-dist";
 import { wholeArticleContextPrompt } from "../utils/prompts.ts";
 let pdfInitialized = false;
 let pdfEventListenersAttached = false; // 标记事件监听器是否已绑定
 
-let ipcRenderer = null
-if (window && window.electron) {
-    ipcRenderer = window.electron.ipcRenderer
+let ipcRenderer: any = null
+if (window && (window as any).electron) {
+    ipcRenderer = (window as any).electron.ipcRenderer
 
 } else {
     webMainCalls();
@@ -641,7 +650,7 @@ let currentScale = 1;
 
 // 将文件路径编码为 file:// URL
 // 注意：file:// URL 需要正确编码路径中的特殊字符（如 #、空格、中文字符等）
-function encodeFilePathToUrl(filePath) {
+function encodeFilePathToUrl(filePath: string): string {
     if (!filePath) return '';
     
     // 移除 file:/// 前缀（如果存在）
@@ -653,7 +662,7 @@ function encodeFilePathToUrl(filePath) {
     // 分割路径为各个部分，对每个部分进行编码
     // 但保留路径分隔符和驱动器号（如 C:）
     const parts = path.split('/');
-    const encodedParts = parts.map((part, index) => {
+    const encodedParts = parts.map((part: string, index: number) => {
         if (index === 0 && part.endsWith(':')) {
             // Windows 驱动器号（如 C:）不需要编码
             return part;
@@ -681,7 +690,7 @@ function attachPdfEventListeners() {
     
     logger.debug('绑定PDF容器事件监听器');
     
-    container.addEventListener("wheel", async (e) => {
+    container.addEventListener("wheel", async (e: WheelEvent) => {
         if (e.ctrlKey || e.metaKey) {
             // Ctrl/Cmd + 滚轮：缩放
             e.preventDefault();
@@ -703,7 +712,7 @@ function attachPdfEventListeners() {
     // 双击定位到源码
     let isDoubleClick = false;
     
-    container.addEventListener("dblclick", async (e) => {
+    container.addEventListener("dblclick", async (e: MouseEvent) => {
         // 双击事件
         e.preventDefault();
         e.stopPropagation();
@@ -714,7 +723,7 @@ function attachPdfEventListeners() {
         await handlePdfTextClick(e);
     });
     
-    container.addEventListener("mousedown", (e) => {
+    container.addEventListener("mousedown", (e: MouseEvent) => {
         // 如果是双击，不启动拖拽
         if (isDoubleClick) {
             isDoubleClick = false;
@@ -727,8 +736,8 @@ function attachPdfEventListeners() {
         container.classList.add("dragging");
     });
 
-    container.addEventListener("mousemove", (e) => {
-        if (!isDragging) return;
+    container.addEventListener("mousemove", (e: MouseEvent) => {
+        if (!isDragging || !canvasWrapper.value) return;
         offsetX = e.clientX - startX;
         offsetY = e.clientY - startY;
         canvasWrapper.value.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
@@ -775,7 +784,7 @@ const pdfZoomReset = async () => {
     currentScale = 1
     await renderPage(currentPdfPage.value, currentScale);
 }
-let pdfDoc;        // pdfjs document
+let pdfDoc: any = null;        // pdfjs document
 const currentPdfPage = ref(1);
 const totalPdfPages = ref(0);
 const inputPdfPage = ref(1);
@@ -903,7 +912,7 @@ function jumpToPage() {
 }
 
 // 渲染 PDF 页面
-async function renderPage(pageNumber, scale) {
+async function renderPage(pageNumber: number, scale: number) {
   if (!pdfDoc) return;
   const page = await pdfDoc.getPage(pageNumber);
 
@@ -916,6 +925,7 @@ async function renderPage(pageNumber, scale) {
     alpha: false, // 禁用透明度以提高性能
     desynchronized: true, // 允许异步渲染
   });
+  if (!context) return;
 
   // 高清渲染：使用更高的DPI倍数以提高清晰度
   const ratio = (window.devicePixelRatio || 1) * 2; // 使用2倍DPI以提高清晰度
@@ -934,7 +944,8 @@ async function renderPage(pageNumber, scale) {
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
 
   // 创建白色背景canvas（用于避免闪屏）
-  let backgroundCanvas = canvasWrapper.value.querySelector('.pdf-background-canvas');
+  if (!canvasWrapper.value) return;
+  let backgroundCanvas = canvasWrapper.value.querySelector('.pdf-background-canvas') as HTMLCanvasElement | null;
   if (!backgroundCanvas) {
     backgroundCanvas = document.createElement("canvas");
     backgroundCanvas.className = 'pdf-background-canvas';
@@ -954,8 +965,10 @@ async function renderPage(pageNumber, scale) {
   
   // 填充白色背景
   const bgContext = backgroundCanvas.getContext("2d");
+  if (bgContext) {
   bgContext.fillStyle = '#ffffff';
   bgContext.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+  }
   
   // 清空旧 canvas（保留背景canvas）
   const existingCanvas = canvasWrapper.value.querySelector('canvas:not(.pdf-background-canvas)');
@@ -969,7 +982,9 @@ async function renderPage(pageNumber, scale) {
   canvas.style.left = '0';
   canvas.style.zIndex = '1';
   canvas.style.backgroundColor = '#ffffff';
+  if (canvasWrapper.value) {
   canvasWrapper.value.appendChild(canvas);
+  }
 
   // 渲染 PDF，使用高质量渲染选项
   const renderContext = {
@@ -983,10 +998,11 @@ async function renderPage(pageNumber, scale) {
 
 
 // 处理PDF文本双击定位
-async function handlePdfTextClick(event) {
+async function handlePdfTextClick(event: MouseEvent) {
     // 从Monaco全局获取编辑器实例
+    if (!editorId.value) return;
     const editors = monaco.editor.getEditors();
-    const monacoEditor = editors.find(e => e.getId?.() === editorId) || editors[0];
+    const monacoEditor = editors.find(e => e.getId?.() === editorId.value) || editors[0];
     
     if (!pdfDoc || !monacoEditor) {
         logger.warn('PDF双击定位失败: pdfDoc或editor不存在');
@@ -998,24 +1014,24 @@ async function handlePdfTextClick(event) {
         const viewport = page.getViewport({ scale: currentScale });
         
         // 获取点击位置相对于canvas的坐标
-        const canvas = canvasWrapper.value?.querySelector('canvas:not(.pdf-background-canvas)');
+        if (!canvasWrapper.value || !pdfContainer.value) {
+            logger.warn('PDF双击定位失败: 容器不存在');
+            return;
+        }
+        const canvas = canvasWrapper.value.querySelector('canvas:not(.pdf-background-canvas)') as HTMLCanvasElement | null;
         if (!canvas) {
             logger.warn('PDF双击定位失败: canvas不存在');
             return;
         }
         
-        const containerRect = pdfContainer.value?.getBoundingClientRect();
-        if (!containerRect) {
-            logger.warn('PDF双击定位失败: containerRect不存在');
-            return;
-        }
+        const containerRect = pdfContainer.value.getBoundingClientRect();
         
         // 获取canvas的样式尺寸（逻辑像素）
         const canvasStyleWidth = parseFloat(canvas.style.width) || viewport.width;
         const canvasStyleHeight = parseFloat(canvas.style.height) || viewport.height;
         
         // 获取canvas在容器中的位置（考虑偏移）
-        const canvasWrapperRect = canvasWrapper.value?.getBoundingClientRect();
+        const canvasWrapperRect = canvasWrapper.value.getBoundingClientRect();
         if (!canvasWrapperRect) return;
         
         // 计算点击位置相对于canvas wrapper的坐标
@@ -1128,12 +1144,12 @@ async function handlePdfTextClick(event) {
             }
         }
         
-        if (closestItem && closestItem.str && textEditorAdapter.value) {
+        if (closestItem && closestItem.str && textEditorAdapter.value && typeof textEditorAdapter.value.locateText === 'function') {
             // 使用textEditorAdapter的locateText方法
             const searchText = closestItem.str.trim();
             
             try {
-                const range = textEditorAdapter.value.locateText(searchText, {
+                const range = (textEditorAdapter.value as any).locateText(searchText, {
                     matchCase: false,
                     wholeWord: false,
                     useRegex: false,
@@ -1162,6 +1178,7 @@ async function handlePdfTextClick(event) {
 async function buildPdfToSourceMapping() {
     logger.debug('=== 开始建立PDF到源码映射 ===');
     
+    if (!editorId) return;
     // 从Monaco全局获取编辑器实例
     const editors = monaco.editor.getEditors();
     const monacoEditor = editors.find(e => e.getId?.() === editorId) || editors[0];
@@ -1172,7 +1189,7 @@ async function buildPdfToSourceMapping() {
     }
     if (!monacoEditor) {
         logger.warn('建立映射失败: editor不存在', { 
-            editorId,
+            editorId: editorId.value,
             totalEditors: editors.length
         });
         return;
@@ -1241,7 +1258,8 @@ async function buildPdfToSourceMapping() {
                         
                         // 使用textEditorAdapter的locateText方法查找位置
                         try {
-                            const range = textEditorAdapter.value.locateText(cleanText, {
+                            if (!textEditorAdapter.value || typeof textEditorAdapter.value.locateText !== 'function') continue;
+                            const range = (textEditorAdapter.value as any).locateText(cleanText, {
                                 matchCase: false,
                                 wholeWord: false,
                                 useRegex: false,
@@ -1309,7 +1327,7 @@ async function buildPdfToSourceMapping() {
 }
 
 // 在加载 PDF 后初始化
-async function loadPdf(url, preservePage = false) {
+async function loadPdf(url: string, preservePage = false) {
     if (!url || url.trim() === '') {
         // 如果 URL 为空，不加载 PDF
         return;
@@ -1336,17 +1354,17 @@ async function loadPdf(url, preservePage = false) {
         
         // 异步建立映射关系
         buildPdfToSourceMapping();
-    } catch (error) {
+    } catch (error: any) {
         // 捕获 PDF 加载错误，避免未处理的 rejection
         logger.warn('加载 PDF 失败', { 
             url, 
-            error: error.message || error,
-            errorName: error.name,
-            status: error.status
+            error: error?.message || error,
+            errorName: error?.name,
+            status: error?.status
         });
         
         // 如果是文件不存在或无法访问的错误，显示友好的提示
-        if (error.name === 'ResponseException' || error.status === 0) {
+        if (error?.name === 'ResponseException' || error?.status === 0) {
             eventBus.emit('show-warning', 
                 t('latexEditor.notification.pdfLoadFailed', { 
                     reason: t('latexEditor.notification.pdfFileNotFoundOrInaccessible')
@@ -1355,7 +1373,7 @@ async function loadPdf(url, preservePage = false) {
         } else {
             eventBus.emit('show-error', 
                 t('latexEditor.notification.pdfLoadFailed', { 
-                    reason: error.message || String(error)
+                    reason: error?.message || String(error)
                 })
             );
         }
@@ -1370,6 +1388,7 @@ function togglePdf() {
 }
 
 const compile = async () => {
+    if (!editor.value || !ipcRenderer) return;
     eventBus.emit('clear-console', { key: 'latex' })
     eventBus.emit('cancel-suggestion')
     if(!currentPath.value || !currentPath.value.toLowerCase().endsWith(".tex")){
@@ -1377,11 +1396,10 @@ const compile = async () => {
         eventBus.emit('save');
         return;
     }
-    triggerSuggestion.value = false;//开始编译的时候就不能修改了
     editor.value.updateOptions({
         readOnly: true
     });
-    const compileResult = await ipcRenderer.invoke("compile-tex",{
+    const compileResult: any = await ipcRenderer.invoke("compile-tex",{
         tex:currentTex.value,
         texPath:currentPath.value??'',
         outputDir:"",//todo:用户后续可以设置保存在哪
@@ -1391,7 +1409,7 @@ const compile = async () => {
         readOnly: false
     });
     //logger.log(compileResult)
-    if(compileResult.status==='success'){
+    if(compileResult?.status==='success'){
         eventBus.emit("show-success",t("latexEditor.notification.compileSuccess"));
         pdfUrl.value = encodeFilePathToUrl(compileResult.pdfPath);
         
@@ -1399,7 +1417,7 @@ const compile = async () => {
         await loadPdf(pdfUrl.value);
     }
     else{
-        eventBus.emit("show-error",t("latexEditor.notification.compileFailed",{ code:compileResult.code }));
+        eventBus.emit("show-error",t("latexEditor.notification.compileFailed",{ code:compileResult?.code }));
     }
     //logger.log("编译 LaTeX");
 };
@@ -1412,7 +1430,7 @@ const toggleConsole = async () => {
 
 
 // 打开右键菜单
-const openContextMenu = (event) => {
+const openContextMenu = (event: MouseEvent) => {
     event.preventDefault();
     menuX.value = event.clientX;
     menuY.value = event.clientY;
@@ -1420,7 +1438,7 @@ const openContextMenu = (event) => {
 };
 
 // 打开PDF右键菜单
-const openPdfContextMenu = (event) => {
+const openPdfContextMenu = (event: MouseEvent) => {
     event.preventDefault();
     pdfMenuX.value = event.clientX;
     pdfMenuY.value = event.clientY;
@@ -1428,7 +1446,7 @@ const openPdfContextMenu = (event) => {
 };
 
 // PDF右键菜单点击处理
-const handlePdfMenuClick = async (item) => {
+const handlePdfMenuClick = async (item: string) => {
     switch (item) {
         case 'refresh':
             if (pdfUrl.value) {
@@ -1461,6 +1479,7 @@ const handlePdfMenuClick = async (item) => {
 
 // 从PDF定位到代码（双击的另一种方式）
 async function locateToCodeFromPdf() {
+    if (!editorId) return;
     // 从Monaco全局获取编辑器实例
     const editors = monaco.editor.getEditors();
     const monacoEditor = editors.find(e => e.getId?.() === editorId) || editors[0];
@@ -1476,20 +1495,20 @@ async function locateToCodeFromPdf() {
         const viewport = page.getViewport({ scale: currentScale });
         
         // 获取PDF容器中心位置
-        const containerRect = pdfContainer.value?.getBoundingClientRect();
-        if (!containerRect) return;
+        if (!pdfContainer.value || !canvasWrapper.value) return;
+        const containerRect = pdfContainer.value.getBoundingClientRect();
         
         const centerX = containerRect.width / 2;
         const centerY = containerRect.height / 2;
         
         // 转换为PDF相对坐标
-        const canvas = canvasWrapper.value?.querySelector('canvas');
+        const canvas = canvasWrapper.value.querySelector('canvas') as HTMLCanvasElement | null;
         if (!canvas) return;
         
         const canvasStyleWidth = parseFloat(canvas.style.width) || viewport.width;
         const canvasStyleHeight = parseFloat(canvas.style.height) || viewport.height;
         
-        const canvasWrapperRect = canvasWrapper.value?.getBoundingClientRect();
+        const canvasWrapperRect = canvasWrapper.value.getBoundingClientRect();
         if (!canvasWrapperRect) return;
         
         const wrapperX = centerX;
@@ -1554,6 +1573,7 @@ async function openPdfDirectory() {
         // 从file:///路径提取实际路径
         const pdfPath = pdfUrl.value.replace('file:///', '');
         
+        if (!ipcRenderer) return;
         // 使用IPC调用主进程获取目录路径
         const dirPath = await ipcRenderer.invoke('get-directory-path', pdfPath);
         
@@ -1581,6 +1601,7 @@ async function savePdf() {
         // 从file:///路径提取实际路径
         const pdfPath = pdfUrl.value.replace('file:///', '');
         
+        if (!ipcRenderer) return;
         // 使用IPC调用主进程保存PDF
         const result = await ipcRenderer.invoke('save-pdf-dialog', {
             sourcePath: pdfPath,
@@ -1601,13 +1622,15 @@ async function savePdf() {
 }
 
 // 插入文本到当前光标位置（支持多行）
-const insertText = (text) => {
-  textEditorAdapter.value?.insertText(text);
+const insertText = (text: string) => {
+  if (textEditorAdapter.value && typeof textEditorAdapter.value.insertText === 'function') {
+    (textEditorAdapter.value as any).insertText(text);
+  }
 };
 
 
 // 菜单项点击事件处理
-const handleMenuClick = async (item) => {
+const handleMenuClick = async (item: string) => {
     switch (item) {
         case 'ai-assistant':
             let text = currentMarkdown.value;
@@ -1615,13 +1638,13 @@ const handleMenuClick = async (item) => {
             if (bypassCodeBlock) {
                 text = text.replace(/```[\s\S]*?```/g, '');
             }
-            let messages = []
+            let messages: any[] = []
             messages.push({
-                role: 'system',
+                role: 'system' as const,
                 content: wholeArticleContextPrompt(text)
             })
             messages.push({
-                role: 'assistant',
+                role: 'assistant' as const,
                 content: t('article.ai_understood')
             })
             const newDialog = {
@@ -1634,16 +1657,24 @@ const handleMenuClick = async (item) => {
             eventBus.emit('ai-chat')
             break;
         case 'cut':
-            await textEditorAdapter.value?.cut();
+            if (textEditorAdapter.value && typeof textEditorAdapter.value.cut === 'function') {
+                await (textEditorAdapter.value as any).cut();
+            }
             break;
         case 'copy':
-            await textEditorAdapter.value?.copy();
+            if (textEditorAdapter.value && typeof textEditorAdapter.value.copy === 'function') {
+                await (textEditorAdapter.value as any).copy();
+            }
             break;
         case 'paste':
-            await textEditorAdapter.value?.paste();
+            if (textEditorAdapter.value && typeof textEditorAdapter.value.paste === 'function') {
+                await (textEditorAdapter.value as any).paste();
+            }
             break;
         case 'selectAll':
-            textEditorAdapter.value?.selectAll();
+            if (textEditorAdapter.value && typeof textEditorAdapter.value.selectAll === 'function') {
+                (textEditorAdapter.value as any).selectAll();
+            }
             break;
         case 'openAutoCompletion':
             await setSetting("autoCompletion", true);
@@ -1663,6 +1694,19 @@ const handleMenuClick = async (item) => {
         case 'section-optimizer':
             await openSectionOptimizerFromContext();
             break;
+        case 'trigger-auto-completion':
+            // 手动触发AI补全
+            if (aiCompletionService.getAdapter()) {
+                aiCompletionService.triggerCompletion('manual');
+            } else {
+                // 如果适配器不存在，先创建
+                if (editorId.value) {
+                    const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value);
+                    aiCompletionService.setAdapter(adapter);
+                    aiCompletionService.triggerCompletion('manual');
+                }
+            }
+            break;
 
     }
     await refreshContextMenu();
@@ -1671,6 +1715,7 @@ const handleMenuClick = async (item) => {
 
 // 定位到PDF位置（从代码行定位到PDF）
 async function locateToPdf() {
+    if (!editorId) return;
     // 从Monaco全局获取编辑器实例
     const editors = monaco.editor.getEditors();
     const monacoEditor = editors.find(e => e.getId?.() === editorId) || editors[0];
@@ -1718,14 +1763,14 @@ async function locateToPdf() {
             const targetY = pdfLocation.pdfRange.y * viewport.height;
             
             // 调整canvas偏移，使目标位置居中或可见
-            const canvas = canvasWrapper.value?.querySelector('canvas');
+            if (!canvasWrapper.value || !pdfContainer.value) return;
+            const canvas = canvasWrapper.value.querySelector('canvas') as HTMLCanvasElement | null;
             if (canvas) {
                 const canvasStyleWidth = parseFloat(canvas.style.width) || viewport.width;
                 const canvasStyleHeight = parseFloat(canvas.style.height) || viewport.height;
                 
                 // 计算需要偏移的距离（使目标位置在视口中心）
-                const containerRect = pdfContainer.value?.getBoundingClientRect();
-                if (containerRect) {
+                const containerRect = pdfContainer.value.getBoundingClientRect();
                     const centerX = containerRect.width / 2;
                     const centerY = containerRect.height / 2;
                     
@@ -1739,7 +1784,6 @@ async function locateToPdf() {
                     
                     // 应用偏移
                     canvasWrapper.value.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-                }
             }
             
         } else {
@@ -1770,12 +1814,12 @@ eventBus.on('refresh', () => {
 
 });
 const resetEditor = () => {
-    disposeEditor();
+    // disposeEditor 函数已移除，直接重置
     editorKey.value = Date.now(); // Vue 会销毁原 DOM，创建新 DOM
     nextTick(() => initEditor());
 };
 
-eventBus.on('search-replace', (payload) => {
+eventBus.on('search-replace', (payload?: any) => {
     //logger.log('search-replace');
     searchReplaceDialogVisible.value = true;
     if (payload && payload.expandReplace) {
@@ -1795,14 +1839,14 @@ watch(isActive, (active) => {
 const consoleHeight = ref(200);
 let isResizingConsole = false;
 
-function startResizeConsole(e) {
+function startResizeConsole(e: MouseEvent) {
   if (!showConsole.value) return;
   isResizingConsole = true;
   document.addEventListener('mousemove', onResizingConsole);
   document.addEventListener('mouseup', stopResizeConsole);
 }
 
-function onResizingConsole(e) {
+function onResizingConsole(e: MouseEvent) {
   if (!isResizingConsole) return;
   const container = document.querySelector('.editor-console-container');
   if (!container) return;
@@ -1820,7 +1864,7 @@ function stopResizeConsole() {
 }
 
 const refreshContextMenu = async () => {
-    articleContextMenuItems.value = await getArticleContextMenuItems({ isLatexEditor: true });
+    articleContextMenuItems.value = await getArticleContextMenuItems({ isLatexEditor: true }) as any[];
 }
 
 // 注册 LaTeX
@@ -1842,47 +1886,11 @@ monaco.languages.setMonarchTokensProvider('latex', {
     }
 });
 
-let contentChangeListener = null;
-//     if (editor.value) {
-//         //logger.debug("LaTeXEditor disposeEditor")
-//         try {
-//             // 1. 移除监听
-//             if (contentChangeListener) {
-//                 contentChangeListener.dispose();
-//                 contentChangeListener = null;
-//                 //logger.log("移除监听成功")
-//             }
-
-//             // 2. 保存引用的 model
-//             const oldModel = editor.value.getModel();
-
-//             // 3. 释放 Monaco 实例（必须先释放编辑器，再释放模型）
-//             editor.value.dispose();
-//             editor.value = null;
-//             //logger.log("释放Monaco成功")
-            
-//             // 4. 释放模型（如果编辑器已经释放，模型可能已经被自动释放，但为了安全还是手动释放）
-//             if (oldModel) {
-//                 try {
-//                     oldModel.dispose();
-//                 } catch (e) {
-//                     // 模型可能已经被自动释放，忽略错误
-//                 }
-//             }
-//             //logger.log("释放模型成功")
-            
-//             // 5. 清空 textBuffer
-//             textBuffer = "";
-//         } catch (e) {
-//             logger.warn("安全释放 Monaco 实例失败:", e);
-//         }
-//     }
-//     textEditorAdapter.value = null;
-// };
-let editorId = null;
+let contentChangeListener: monaco.IDisposable | null = null;
+const editorId = ref<string | null>(null);
 const initEditor = () => {
-    window.MonacoEnvironment = {
-        getWorker: function (moduleId, label) {
+    (window as any).MonacoEnvironment = {
+        getWorker: function (moduleId: string, label: string) {
             let workerPath = '';
 
             switch (label) {
@@ -1918,6 +1926,7 @@ const initEditor = () => {
     };
 
     //logger.debug("LaTeXEditor initEditor")
+    if (!editorEl.value) return;
     editor.value = monaco.editor.create(editorEl.value, {
         value: currentTex.value,
         language: "latex", // 语言模式
@@ -1926,17 +1935,29 @@ const initEditor = () => {
         automaticLayout: true, // 自动适应容器大小
         fontSize: 14,
         wordWrap: "on",  // 自动换行
-        wordWrapMinified: true, // 对于 minified 文件也自动换行
         wrappingIndent: "same", // 缩进方式，"none" | "same" | "indent" | "deepIndent"
         lineNumbers: enableRowNumber ? 'on' : 'off',
         minimap: { enabled: enableMinimap },
         contextmenu: false
     })
-    editorId = editor.value.getId();
-    textEditorAdapter.value = createMonacoAdapter(editorId);
+    editorId.value = editor.value.getId();
+    textEditorAdapter.value = createMonacoAdapter(editorId.value);
+    
+    // 设置编辑器适配器（必须在内容变化监听之前设置）
+    const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value);
+    aiCompletionService.setAdapter(adapter);
+    
     //editor.value.onKeyDown((e)=>logger.log(e));
     // 增量监听
-    contentChangeListener = editor.value.onDidChangeModelContent((event) => {
+    // 标志：是否正在更新ghost text（防止递归触发）
+    let isUpdatingGhostText = false
+    
+    // 监听ghost text更新事件
+    eventBus.on('ai-ghost-text-updating', (updating: unknown) => {
+        isUpdatingGhostText = updating === true
+    })
+    
+    contentChangeListener = editor.value.onDidChangeModelContent((event: monaco.editor.IModelContentChangedEvent) => {
         // 先保存原始文本
         let oldText = textBuffer;
 
@@ -1954,21 +1975,97 @@ const initEditor = () => {
     // 更新缓存（完整文本）
     textBuffer = newText;
 
+        // 如果正在更新ghost text，只同步文本，不触发新的补全
+        if (isUpdatingGhostText) {
+            // 重要：即使正在更新ghost text，也要同步文本到文件，否则文本会丢失
+            debounceSync();
+            return
+        }
         
         // 按需同步到 Vue 响应式变量，比如防抖或定时同步
-
-        //BUG:这里同步会卡死
         debounceSync();
+        
+        // 检测是否是粘贴操作（粘贴通常涉及大量文本变化或多个changes）
+        // 如果是粘贴，跳过AI补全触发，避免卡死
+        const isPasteOperation = event.changes.length > 1 || 
+            event.changes.some(change => change.text.length > 100);
+        
+        if (isPasteOperation) {
+            // 粘贴操作，不触发AI补全
+            return;
+        }
+        
+        // 确保适配器已设置（双重保险）
+        if (!aiCompletionService.getAdapter()) {
+            const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value);
+            aiCompletionService.setAdapter(adapter);
+        }
+        
+        // 用户继续打字时，立即取消当前补全
+        aiCompletionService.cancelCurrentCompletion();
+        
+        // 触发AI补全（使用双层防抖，自动检测关键字符）
+        aiCompletionService.triggerCompletion('input');
         
     });
     const debounceSync = debounce(() => {
-        triggerSuggestion.value = false;
         if(currentTex.value!==textBuffer){
             currentTex.value = textBuffer;
             // 同步大纲树
             syncOutlineFromTex();
         }
     }, 100);
+    
+    // 监听光标位置变化（光标切换时不触发补全，只在用户停止输入后触发）
+    // 注意：光标变化本身不触发补全，只有输入停止后才会触发
+    // editor.value.onDidChangeCursorPosition(() => {
+    //     // 光标变化时不触发补全（避免频繁触发）
+    // });
+    
+    // 监听鼠标点击事件，切换光标位置时取消补全并切换到被动状态
+    // 注意：只处理左键点击，右键点击用于打开上下文菜单，不应该拦截
+    editor.value.onMouseDown((e: monaco.editor.IEditorMouseEvent) => {
+        // 只处理左键点击（button === 0），右键点击（button === 2）不处理
+        if (e.event.browserEvent.button === 0) {
+            aiCompletionService.handleMouseClick();
+        }
+    });
+    
+    // 监听键盘事件，检测Enter、Space等触发按键
+    editor.value.onKeyDown((e: monaco.IKeyboardEvent) => {
+        // 手动触发（Ctrl+Tab 或 Mac 上的 Command+Tab）
+        const isMac = /Mac|iPhone|iPod|iPad/i.test(navigator.platform);
+        const modifierKey = isMac ? e.metaKey : e.ctrlKey;
+        if (modifierKey && e.keyCode === monaco.KeyCode.Tab) {
+            e.preventDefault();
+            e.stopPropagation();
+            aiCompletionService.triggerCompletion('manual');
+            return;
+        }
+        
+        // 重要：Tab键用于接受补全，不应该触发取消
+        // Tab键的处理由AISuggestionGhost组件的命令处理
+        if (e.keyCode === monaco.KeyCode.Tab) {
+            return;
+        }
+        
+        // 检测触发按键（Enter、Space、;、,）
+        const key = e.keyCode === monaco.KeyCode.Enter ? 'Enter' :
+                   e.keyCode === monaco.KeyCode.Space ? 'Space' :
+                   e.keyCode === monaco.KeyCode.Semicolon ? ';' :
+                   e.keyCode === monaco.KeyCode.Comma ? ',' : null;
+        
+        if (key) {
+            // 用户继续打字时，立即取消当前补全
+            aiCompletionService.cancelCurrentCompletion();
+            // 触发补全（按键触发）
+            aiCompletionService.triggerCompletion('key', key);
+        } else {
+            // 其他按键：用户继续打字，立即取消补全
+            aiCompletionService.cancelCurrentCompletion();
+        }
+    });
+    
     eventBus.emit("monaco-ready")
 }
 
@@ -1985,8 +2082,8 @@ onMounted(async () => {
         eventBus.on('sync-editor-theme', () => {
             const isDark = themeState.currentTheme.type === 'dark';
             const themeName = isDark ? 'vs-dark' : 'vs';
-            const toMonacoColor = (color) => color.replace('#', '') || 'FFFFFF';
-            const deeperColor = (color) => {
+            const toMonacoColor = (color: string) => color.replace('#', '') || 'FFFFFF';
+            const deeperColor = (color: string) => {
                 if (isDark) return mixColors(color, '#000000', 0.3)
                 else return mixColors(color, '#FFFFFF', 0.3)
             }
@@ -2011,7 +2108,7 @@ onMounted(async () => {
         await nextTick();
 
         if (mainContainerRef.value) {
-            const initialWidth = mainContainerRef.value.clientWidth;
+            const initialWidth = (mainContainerRef.value as HTMLElement).clientWidth;
             if (initialWidth) {
                 mainWidth.value = initialWidth;
                 ensurePdfWithinBounds();
@@ -2046,15 +2143,24 @@ onUnmounted(() => {
         mainObserver = null;
     }
     
+    // 移除编辑器适配器
+    aiCompletionService.removeAdapter();
+    
+    // 清理内容变化监听器
+    if (contentChangeListener) {
+        contentChangeListener.dispose();
+        contentChangeListener = null;
+    }
+    
     eventBus.emit('is-need-save', true)
     
-    if (editorId) {
+    if (editorId.value) {
         try {
             const editors = monaco.editor.getEditors();
-            editors.forEach(editor => {
-                if (editor.getId() === editorId) {
+            editors.forEach(ed => {
+                if (ed.getId() === editorId.value) {
                     try {
-                        editor.dispose(); // 释放 editor 的所有资源，包括模型、事件监听等
+                        ed.dispose(); // 释放 editor 的所有资源，包括模型、事件监听等
                     } catch (e) {
                         // 编辑器可能已经被销毁，忽略错误
                     }
@@ -2070,75 +2176,14 @@ onUnmounted(() => {
     }
 });
 
-const triggerSuggestion = ref(false);
-
-function onAcceptSuggestion(text) {
+function onAcceptSuggestion(text: string) {
     //logger.log("补全已接受:", text);
-    //insertText(text);
-    //AISuggestion已经帮忙插入了
-    triggerSuggestion.value = false;
+    // AISuggestionGhost已经帮忙插入了
 }
+
 function onCancelSuggestion() {
     //logger.log("补全已取消");
-    triggerSuggestion.value = false;
-    //initiativeSuggestion.value=false;
-    //状态不切换回false,保持为true
 }
-function onResetSuggestion() {
-    //logger.log("补全已重置");
-    triggerSuggestion.value = false;
-}
-
-// 监听输入 -> 1秒后触发
-const suggestionContext=ref({
-    preContext:"",
-    postContext:""
-})
-// 控制是否主动触发补全
-//const initiativeSuggestion = ref(true);
-let suggestionTimer = null; // AI suggestion 专用防抖
-function getSuggestionContext(contextSize=1000){
-    const model = editor.value.getModel();
-    //logger.log(selection)
-
-    const sel = editor.value.getSelection();
-    // 选择 caret 位置：若是折叠（无选区）用 start，若有选区，默认用 end（caret 通常在 end）
-    const isCollapsed = (sel.startLineNumber === sel.endLineNumber && sel.startColumn === sel.endColumn);
-    const caretLine = isCollapsed ? sel.startLineNumber : sel.endLineNumber;
-    const caretColumn = isCollapsed ? sel.startColumn : sel.endColumn;
-    //logger.log("caretColumn")
-        // 把位置转为 offset（字符索引）
-    const caretPos = { lineNumber: caretLine, column: caretColumn };
-    const caretOffset = model.getOffsetAt(caretPos);
-    //logger.log("caretOffset")
-    const fullLength = model.getOffsetAt(model.getFullModelRange().getEndPosition());;
-    //logger.log("fullLength",fullLength)
-    const startOffset = Math.max(0, caretOffset - contextSize);
-    const endOffset = Math.min(fullLength, caretOffset + contextSize);
-    // logger.log(startOffset)
-    // logger.log(endOffset)
-    const fullText = currentTex.value || "";
-    suggestionContext.value.preContext = fullText.slice(startOffset, caretOffset);
-    suggestionContext.value.postContext = fullText.slice(caretOffset, endOffset);
-}
-function trytriggerSuggestion() {
-    //logger.log("尝试触发Suggestion")
-    // AI suggestion 防抖逻辑
-    
-    //if (initiativeSuggestion.value ==false) return;//只生成一次，不是这里的问题
-    triggerSuggestion.value = false;
-    if (suggestionTimer) clearTimeout(suggestionTimer);
-    eventBus.on('cancel-suggestion',()=>{clearTimeout(suggestionTimer);})
-    suggestionTimer = setTimeout(() => {
-        triggerSuggestion.value = false;
-        getSuggestionContext();
-        //logger.log("触发Suggestion")
-        triggerSuggestion.value = true;
-    }, 1500); // 1.5 秒防抖
-
-
-}
-// 监听输入 -> 1秒后触发
 
 </script>
 

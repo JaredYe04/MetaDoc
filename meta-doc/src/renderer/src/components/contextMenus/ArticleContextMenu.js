@@ -2,6 +2,20 @@
 import { getSetting } from "../../utils/settings";
 
 /**
+ * 检测是否为 Mac 系统
+ */
+function isMac() {
+  return typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/i.test(navigator.platform);
+}
+
+/**
+ * 获取快捷键显示文本
+ */
+function getShortcutText() {
+  return isMac() ? '⌘Tab' : 'Ctrl+Tab';
+}
+
+/**
  * @param {Object} options
  * @param {boolean} [options.isLatexEditor] - 是否为LaTeX编辑器
  * @returns {Promise<import("./types").ContextMenuItem[]>}
@@ -27,6 +41,8 @@ export async function getArticleContextMenuItems(options = {}) {
     { type: "divider" },
     autoCompletionToggle,
     knowledgeBaseToggle,
+    { type: "divider" },
+    { label: "contextMenu.triggerAutoCompletion", value: "trigger-auto-completion", shortcut: getShortcutText() },
     { type: "divider" },
     { label: "contextMenu.aiAnalysis", value: "ai-assistant" },
     { label: "contextMenu.sectionOptimizer", value: "section-optimizer" },

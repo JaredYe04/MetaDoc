@@ -6,5 +6,6 @@ export interface ContextMenuItem {
   value?: string;
   disabled?: boolean;
   danger?: boolean;
+  shortcut?: string; // 快捷键显示文本，如 "Ctrl+Tab" 或 "⌘Tab"
 }
 

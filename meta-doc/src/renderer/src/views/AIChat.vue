@@ -244,7 +244,13 @@ async function generateNextResponse(
   //logger.log(messageCopy)
   const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
   const { handle, done } = createAiTask(
-    messageCopy[messageCopy.length - 2].content ?? "AI Chat", messageCopy, cur_resp, ai_types.chat, 'ai-chat',enableKnowledgeBase);
+    messageCopy[messageCopy.length - 2].content ?? "AI Chat", 
+    messageCopy, 
+    cur_resp, 
+    ai_types.chat, 
+    'ai-chat',
+    { stream: true, enableKnowledgeBase: Boolean(enableKnowledgeBase) }
+  );
   try {
     await done;
   } catch (err) {
@@ -345,7 +351,14 @@ const updateTitle = async (seedText?: string) => {
 
   const generatedText = ref('');
   const enableKnowledgeBase=await getSetting("enableKnowledgeBase")
-  const { handle, done } = createAiTask(title.value || defaultTitle, prompt, generatedText, ai_types.answer, 'ai-chat-generate-title',enableKnowledgeBase);
+  const { handle, done } = createAiTask(
+    title.value || defaultTitle, 
+    prompt, 
+    generatedText, 
+    ai_types.answer, 
+    'ai-chat-generate-title',
+    { stream: false, enableKnowledgeBase: Boolean(enableKnowledgeBase) }
+  );
   try {
     await done;
   } catch (err) {

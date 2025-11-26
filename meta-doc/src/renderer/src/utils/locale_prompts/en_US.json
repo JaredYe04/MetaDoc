@@ -2,8 +2,8 @@
   "suggestionPresets": [],
   "presets": [],
   "prompts": {
-    "generateTitlePrompt": "You are an excellent editor. The following is a tree JSON structure of an article outline. Please automatically determine what the article is about and generate a title. Do not include any other content, only the title. The output must be within 15 words: {treeJson}",
-    "generateDescriptionPrompt": "You are an excellent editor. The following is a tree JSON structure of an article outline. Please automatically determine what the article is about and generate an article summary within 200 words. Do not include any other content: {treeJson}",
+    "generateTitlePrompt": "You are an excellent editor. The following is a tree JSON structure of an article outline. Please automatically determine what the article is about and generate a title.\n\nPlease output the title directly without any explanations, descriptions, or other unnecessary content. The title should be within 15 words.\n\nArticle outline: {treeJson}",
+    "generateDescriptionPrompt": "You are an excellent editor. The following is a tree JSON structure of an article outline. Please automatically determine what the article is about and generate an article summary.\n\nPlease output the summary directly without any explanations, descriptions, or other unnecessary content. The summary should be within 200 words.\n\nArticle outline: {treeJson}",
     "generateKeywordsPrompt": "You are a professional document editing assistant. The following is the outline structure of a document (JSON): {treeJson}. Please generate 5-8 high-quality keywords based on the full text content, and output only one JSON array, such as [\"Artificial Intelligence\", \"Text Processing\"], without additional instructions.",
     "sectionChangePrompt": {
       "base": "You are an excellent AI text editing assistant.",

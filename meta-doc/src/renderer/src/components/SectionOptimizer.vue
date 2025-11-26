@@ -357,8 +357,7 @@ const generate = async () => {
     fullText,
     props.language
   )
-  const enableKnowledgeBase = await getSetting("enableKnowledgeBase")
-  const { done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'section-optimizer', enableKnowledgeBase)
+  const { done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'section-optimizer')
   generating.value = true
   generated.value = false
 

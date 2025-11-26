@@ -237,10 +237,10 @@ export class VditorEditorAdapter implements EditorAdapter {
   private rootNodeClass: string
   private isActiveRef: () => boolean
   
-  constructor(vditorInstance: any, rootNodeClass: string, isActiveRef: () => boolean) {
+  constructor(vditorInstance: any, rootNodeClass: string, isActiveRef?: () => boolean) {
     this.vditorInstance = vditorInstance
     this.rootNodeClass = rootNodeClass
-    this.isActiveRef = isActiveRef
+    this.isActiveRef = isActiveRef || (() => false)
   }
   
   getEditorId(): string | null {

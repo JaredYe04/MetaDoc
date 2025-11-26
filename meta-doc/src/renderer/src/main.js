@@ -18,6 +18,8 @@ import { lightTheme,darkTheme } from './utils/themes.js';
 import { reactive } from 'vue';
 import { initServiceStatusWatcher } from './utils/service-status';
 import { i18n } from './i18n.js';
+import { initializeAgentTools } from './utils/agent-tools';
+import { initializeWorkspaceBroadcastListeners } from './stores/workspace';
 
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
@@ -26,6 +28,12 @@ const app = createApp(App);
 const pinia = createPinia();
 
 initServiceStatusWatcher();
+
+// 初始化Agent Tools
+initializeAgentTools();
+
+// 初始化Workspace的跨窗口事件监听器
+initializeWorkspaceBroadcastListeners();
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
@@ -62,6 +70,10 @@ import SearchReplaceMenu from './components/SearchReplaceMenu.vue';
 app.component('SearchReplaceMenu', SearchReplaceMenu)
 import MessageBubble from './components/MessageBubble.vue'
 app.component('MessageBubble',MessageBubble)
+
+// 注册Agent Tool显示组件
+import TodoListDisplay from './utils/agent-tools/components/TodoListDisplay.vue'
+app.component('TodoListDisplay', TodoListDisplay)
 
 app.use(ElementPlus)
 app.component('VueTree', VueTree)

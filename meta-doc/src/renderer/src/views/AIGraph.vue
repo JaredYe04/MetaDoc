@@ -854,8 +854,7 @@ async function generateCode() {
         },
         { immediate: true }
     )
-    const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
-    const { handle, done } = createAiTask(activeScheme.value.prompt, prompt, codeRef, ai_types.answer, 'ai-graph', enableKnowledgeBase);
+    const { handle, done } = createAiTask(activeScheme.value.prompt, prompt, codeRef, ai_types.answer, 'ai-graph');
     generating.value = true;
 
     try {

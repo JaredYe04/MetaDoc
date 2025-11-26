@@ -116,8 +116,7 @@ const generate = async () => {
   const prompt = explainWordPrompt(props.word, contexts);
   console.log('[WordCloudDetail] 生成的提示词:', prompt);
   
-  const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
-  const { handle, done } = createAiTask(props.word, prompt, generatedText, ai_types.answer, 'word-cloud-detail',enableKnowledgeBase);
+  const { handle, done } = createAiTask(props.word, prompt, generatedText, ai_types.answer, 'word-cloud-detail');
 
   try {
     await done;

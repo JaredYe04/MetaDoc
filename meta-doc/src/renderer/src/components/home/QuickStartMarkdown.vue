@@ -325,7 +325,6 @@ const generate = async () => {
   generated.value = false
 
   const prompt = generateMarkdownPrompt(mood.value, userPrompt.value)
-  const enableKnowledgeBase = await getSetting('enableKnowledgeBase')
   // 清空内容，准备接收流式数据
   generatedText.value = ''
   const { done } = createAiTask(
@@ -334,7 +333,6 @@ const generate = async () => {
     generatedText,
     ai_types.answer,
     'quick-start-markdown',
-    enableKnowledgeBase,
     { stream: true, temperature: temperature.value / 100 }
   )
 

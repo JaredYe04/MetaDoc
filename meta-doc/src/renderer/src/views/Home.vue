@@ -243,7 +243,8 @@ const renderPreview = async () => {
       hljs: {
         style: codeTheme,
         lineNumber: lineNumber
-      }
+      },
+      theme: themeState.currentTheme.vditorTheme
     }
     Vditor.preview(container, markdown, previewOptions)
     

@@ -332,7 +332,7 @@ const generate = async () => {
   generated.value = false
 
   const prompt = buildLatexPrompt()
-  const enableKnowledgeBase = await getSetting('enableKnowledgeBase')
+
   // 清空内容，准备接收流式数据
   generatedText.value = ''
   const editor = getEditor()
@@ -345,7 +345,6 @@ const generate = async () => {
     generatedText,
     ai_types.answer,
     'quick-start-latex',
-    enableKnowledgeBase,
     { stream: true, temperature: temperature.value / 100 }
   )
 

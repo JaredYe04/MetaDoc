@@ -24,6 +24,9 @@ import fs from 'fs';
 
 // 第三方模块
 import os from 'os';
+import { exec, spawn } from 'child_process';
+import https from 'https';
+import http from 'http';
 
 // 内部模块导入
 import { 
@@ -124,6 +127,7 @@ export function mainCalls(): void {
   bindSystemHandlers();
   bindLoggerHandlers();
   bindExportHandlers();
+  bindTerminalHandlers();
   
   initBroadcastChannel();
 }
@@ -236,6 +240,20 @@ function bindFileHandlers(): void {
       return null;
     }
   });
+  
+  // 读取文件内容
+  ipcMain.handle('read-file-content', async (event: IpcMainInvokeEvent, filePath: string): Promise<string> => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`文件不存在: ${filePath}`);
+      }
+      const content = fs.readFileSync(filePath, 'utf-8');
+      return content;
+    } catch (error) {
+      logger.error('读取文件失败:', error);
+      throw error;
+    }
+  });
 }
 
 function bindLoggerHandlers(): void {
@@ -345,6 +363,175 @@ function bindUtilityHandlers(): void {
   
   ipcMain.handle('resources-path', (event: IpcMainInvokeEvent): string => {
     return getResourcesPath();
+  });
+  
+  // HTTP请求代理处理器（通过主进程绕过CORS限制）
+  ipcMain.handle('execute-http-request', async (
+    event: IpcMainInvokeEvent,
+    options: {
+      url: string;
+      method?: string;
+      headers?: Record<string, string>;
+      body?: string;
+      timeout?: number;
+      maxRedirects?: number;
+    }
+  ): Promise<{
+    status: number;
+    statusText: string;
+    headers: Record<string, string>;
+    content: string;
+    contentType: string;
+  }> => {
+    const logger = createMainLogger('HttpRequest');
+    const { url, method = 'GET', headers = {}, body, timeout = 30000, maxRedirects = 64 } = options;
+    
+    // 内部函数：执行单个HTTP请求
+    const makeRequest = (
+      requestUrl: string,
+      requestMethod: string,
+      requestHeaders: Record<string, string>,
+      requestBody: string | undefined,
+      redirectCount: number = 0
+    ): Promise<{
+      status: number;
+      statusText: string;
+      headers: Record<string, string>;
+      content: string;
+      contentType: string;
+    }> => {
+      return new Promise((resolve, reject) => {
+        try {
+          // 检查重定向次数
+          if (redirectCount > maxRedirects) {
+            reject(new Error(`重定向次数超过限制 (${maxRedirects})`));
+            return;
+          }
+
+          const urlObj = new URL(requestUrl);
+          const isHttps = urlObj.protocol === 'https:';
+          const httpModule = isHttps ? https : http;
+          
+          const requestOptions: http.RequestOptions = {
+            hostname: urlObj.hostname,
+            port: urlObj.port || (isHttps ? 443 : 80),
+            path: urlObj.pathname + urlObj.search,
+            method: requestMethod,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              ...requestHeaders
+            },
+            timeout: timeout
+          };
+          
+          let timeoutId: NodeJS.Timeout | null = null;
+          
+          const req = httpModule.request(requestOptions, (res) => {
+            let responseData = '';
+            
+            res.on('data', (chunk: Buffer) => {
+              responseData += chunk.toString();
+            });
+            
+            res.on('end', () => {
+              if (timeoutId) {
+                clearTimeout(timeoutId);
+              }
+              
+              const responseHeaders: Record<string, string> = {};
+              Object.keys(res.headers).forEach(key => {
+                const value = res.headers[key];
+                if (value) {
+                  responseHeaders[key.toLowerCase()] = Array.isArray(value) ? value.join(', ') : value;
+                }
+              });
+              
+              const statusCode = res.statusCode || 200;
+              
+              // 检查是否是重定向状态码
+              if ((statusCode === 301 || statusCode === 302 || statusCode === 307 || statusCode === 308) && responseHeaders['location']) {
+                const location = responseHeaders['location'];
+                let redirectUrl: string;
+                
+                // 处理相对路径和绝对路径
+                try {
+                  redirectUrl = new URL(location, requestUrl).href;
+                } catch {
+                  redirectUrl = location;
+                }
+                
+                logger.info(`跟随重定向: ${requestUrl} -> ${redirectUrl} (${statusCode})`);
+                
+                // 对于GET和HEAD请求，自动跟随重定向
+                // 对于POST/PUT等，只有307/308才跟随，且不改变方法
+                if (requestMethod === 'GET' || requestMethod === 'HEAD') {
+                  // GET/HEAD请求，所有重定向都跟随，且改为GET
+                  makeRequest(redirectUrl, 'GET', requestHeaders, undefined, redirectCount + 1)
+                    .then(resolve)
+                    .catch(reject);
+                  return;
+                } else if ((statusCode === 307 || statusCode === 308) && requestBody) {
+                  // POST/PUT等请求，只有307/308才跟随，且保持原方法
+                  makeRequest(redirectUrl, requestMethod, requestHeaders, requestBody, redirectCount + 1)
+                    .then(resolve)
+                    .catch(reject);
+                  return;
+                }
+              }
+              
+              // 非重定向或无法跟随的重定向，返回响应
+              resolve({
+                status: statusCode,
+                statusText: res.statusMessage || 'OK',
+                headers: responseHeaders,
+                content: responseData,
+                contentType: responseHeaders['content-type'] || 'text/plain'
+              });
+            });
+          });
+          
+          req.on('error', (error: Error) => {
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+            logger.error('HTTP请求失败:', error);
+            reject(new Error(`HTTP请求失败: ${error.message}`));
+          });
+          
+          req.on('timeout', () => {
+            req.destroy();
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+            reject(new Error('请求超时'));
+          });
+          
+          // 设置超时
+          timeoutId = setTimeout(() => {
+            req.destroy();
+            reject(new Error('请求超时'));
+          }, timeout);
+          
+          // 发送请求体
+          if (requestBody && (requestMethod === 'POST' || requestMethod === 'PUT' || requestMethod === 'PATCH')) {
+            req.write(requestBody);
+          }
+          
+          req.end();
+        } catch (error) {
+          logger.error('HTTP请求配置失败:', error);
+          reject(new Error(`HTTP请求配置失败: ${error instanceof Error ? error.message : String(error)}`));
+        }
+      });
+    };
+    
+    // 准备请求体
+    let bodyString: string | undefined = undefined;
+    if (body) {
+      bodyString = body;
+    }
+    
+    return makeRequest(url, method, headers, bodyString, 0);
   });
   
   ipcMain.handle('simpletex-ocr', async (event: IpcMainInvokeEvent, params: SimpleTexOCRData): Promise<any> => {
@@ -469,6 +656,95 @@ function bindUtilityHandlers(): void {
         error: error instanceof Error ? error.message : String(error),
       };
     }
+  });
+}
+
+/**
+ * 绑定终端命令执行处理器
+ */
+function bindTerminalHandlers(): void {
+  ipcMain.handle('execute-terminal-command', async (
+    event: IpcMainInvokeEvent,
+    options: { command: string; cwd?: string; timeout?: number }
+  ): Promise<{ exitCode: number; stdout: string; stderr: string }> => {
+    const logger = createMainLogger('TerminalCommand');
+    const { command, cwd, timeout = 30000 } = options;
+
+    return new Promise((resolve, reject) => {
+      logger.info(`执行命令: ${command} (cwd: ${cwd || process.cwd()}, timeout: ${timeout}ms)`);
+
+      // 根据平台选择shell
+      const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/sh';
+      const shellArgs = process.platform === 'win32' ? ['/c'] : ['-c'];
+
+      // 创建超时定时器
+      let timeoutId: NodeJS.Timeout | null = null;
+      let childProcess: ReturnType<typeof spawn> | null = null;
+
+      const cleanup = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        if (childProcess && !childProcess.killed) {
+          childProcess.kill('SIGTERM');
+          // 如果SIGTERM无效，强制kill
+          setTimeout(() => {
+            if (childProcess && !childProcess.killed) {
+              childProcess.kill('SIGKILL');
+            }
+          }, 1000);
+        }
+      };
+
+      try {
+        childProcess = spawn(shell, [...shellArgs, command], {
+          cwd: cwd || process.cwd(),
+          env: process.env,
+          stdio: ['pipe', 'pipe', 'pipe']
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        childProcess.stdout?.on('data', (data: Buffer) => {
+          stdout += data.toString();
+        });
+
+        childProcess.stderr?.on('data', (data: Buffer) => {
+          stderr += data.toString();
+        });
+
+        childProcess.on('close', (code: number | null) => {
+          cleanup();
+          const exitCode = code ?? 1;
+          logger.info(`命令执行完成: exitCode=${exitCode}`);
+          resolve({
+            exitCode,
+            stdout: stdout.trim(),
+            stderr: stderr.trim()
+          });
+        });
+
+        childProcess.on('error', (error: Error) => {
+          cleanup();
+          logger.error('命令执行错误:', error);
+          reject(error);
+        });
+
+        // 设置超时
+        timeoutId = setTimeout(() => {
+          logger.warn(`命令执行超时: ${command}`);
+          cleanup();
+          reject(new Error(`命令执行超时 (${timeout}ms)`));
+        }, timeout);
+
+      } catch (error) {
+        cleanup();
+        logger.error('启动命令失败:', error);
+        reject(error);
+      }
+    });
   });
 }
 
@@ -1079,15 +1355,58 @@ async function renderEChartsToLocalImage(optionJson: string): Promise<string> {
   const echarts = require('echarts');
   const logger = createMainLogger('ECharts');
   
+  // 递归恢复函数（将字符串形式的函数转换回函数对象）
+  function restoreFunctions(obj: any): any {
+    if (obj === null || typeof obj !== 'object') {
+      // 如果是字符串且看起来像函数，尝试转换
+      if (typeof obj === 'string' && obj.trim().startsWith('function')) {
+        try {
+          return new Function('return ' + obj)();
+        } catch {
+          return obj;
+        }
+      }
+      return obj;
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(restoreFunctions);
+    }
+    
+    const restored: any = {};
+    for (const key in obj) {
+      const value = obj[key];
+      if (typeof value === 'string' && value.trim().startsWith('function')) {
+        try {
+          restored[key] = new Function('return ' + value)();
+        } catch {
+          restored[key] = restoreFunctions(value);
+        }
+      } else {
+        restored[key] = restoreFunctions(value);
+      }
+    }
+    return restored;
+  }
+  
   try {
     logger.info('开始渲染 ECharts 为 SVG');
     
     let option;
     try {
       option = JSON.parse(optionJson);
+      // 检查是否有函数被序列化为字符串，需要恢复
+      option = restoreFunctions(option);
     } catch (e) {
+      // 如果JSON解析失败，可能是包含了函数，尝试使用Function解析
+      try {
+        // 使用Function构造器安全地解析（避免直接eval）
+        option = new Function('return ' + optionJson)();
+      } catch (evalError) {
       const errorMessage = e instanceof Error ? e.message : String(e);
-      throw new Error('ECharts option 不是有效的 JSON: ' + errorMessage);
+        const evalErrorMessage = evalError instanceof Error ? evalError.message : String(evalError);
+        throw new Error(`ECharts option 解析失败。JSON错误: ${errorMessage}，Eval错误: ${evalErrorMessage}`);
+      }
     }
     
     // 使用 SSR SVG 渲染（零依赖）

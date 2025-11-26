@@ -240,14 +240,12 @@ const handleKeywordsGenerate = async () => {
   const previousKeywords = [...(props.meta.keywords || [])];
   const rawResult = ref('');
   try {
-    const enableKnowledgeBase = await getSetting('enableKnowledgeBase');
     const { done } = createAiTask(
       t('article.generate_keywords'),
       generateKeywordsPrompt(props.outlineJson),
       rawResult,
       ai_types.answer,
       'meta-keywords',
-      Boolean(enableKnowledgeBase),
       { stream: false },
     );
     await done;

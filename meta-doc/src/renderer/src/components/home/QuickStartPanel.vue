@@ -381,7 +381,6 @@ async function generate() {
 
   try {
     const prompt = generateArticlePrompt(mood.value, userPrompt.value)
-    const enableKnowledgeBase = await getSetting('enableKnowledgeBase')
     // 清空内容，准备接收流式数据
     generatedText.value = ''
     const { done } = createAiTask(
@@ -390,7 +389,6 @@ async function generate() {
       generatedText,
       ai_types.answer,
       'quick-start',
-      enableKnowledgeBase,
       { stream: true, temperature: temperature.value / 100 }
     )
     await done

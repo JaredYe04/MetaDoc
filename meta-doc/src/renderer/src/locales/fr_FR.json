@@ -26,7 +26,13 @@
     "error": "Le chargement a échoué",
     "loading": "Chargement...",
     "switchWarning": "Commute l'interface pendant que l'IA fonctionne peut entraîner la perte de la tâche.",
-    "title": "Question de la tâche AI"
+    "title": "Question de la tâche AI",
+    "cancelDelay": "Annuler le retard",
+    "delayActive": "Achèvement activé",
+    "delayButton": "_PALACEHOLDER_000_minutes",
+    "delayRemaining": "Délai restant: __PACEHOLDER_00000_",
+    "minutes": "min",
+    "seconds": "sec"
   },
   "aigraph": {
     "addScheme": "Nouveau schéma de dessin",
@@ -180,7 +186,8 @@
     "openAutoCompletion": "Activer l'achèvement de l'intelligence artificielle",
     "openKnowledgeBase": "Activer la connaissance Bibliothèque de récupération",
     "locateToPdf": "Position au format PDF.",
-    "sectionOptimizer": "Optimisation du paragraphe AI"
+    "sectionOptimizer": "Optimisation du paragraphe AI",
+    "triggerAutoCompletion": "Déclencher manuellement l'achèvement de l'IA"
   },
   "formulaRecognition": {
     "brush_size": "Brosse & #160;:",
@@ -617,7 +624,11 @@
       "title": "Outil de débogage",
       "undefined": "Je suis désolé.",
       "unitTest": "Essai unitaire"
-    }
+    },
+    "autoCompletionMaxTokens": "Automatiquement complet maximum Jetons",
+    "autoCompletionMaxTokensHint": "Limiter le nombre maximal de jetons pour l'auto-achèvement de l'IA, avec un minimum de 20,0 étant illimité",
+    "tokens": "Un jeton.",
+    "unlimited": "Illimité"
   },
   "titleMenu": {
     "contextMarks": {
@@ -934,6 +945,106 @@
       "state": "État",
       "title": "Gestion des outils",
       "toggleAll": "Tout sélectionner / Aucun"
+    },
+    "display": {
+      "autoTest": {
+        "copyFailed": "La copie a échoué",
+        "copyMarkdown": "Copier le marquage Résumé",
+        "copySuccess": "Copie dans le presse-papiers",
+        "downloadFailed": "Le téléchargement a échoué",
+        "downloadMarkdown": "Télécharger Markdown Rapport annuel",
+        "downloadSuccess": "Télécharger réussi",
+        "duration": "Délai de mise en œuvre",
+        "error": "Message d'erreur",
+        "executionTime": "Délai de mise en œuvre",
+        "failed": "Échec",
+        "markdownSummary": "Résumé",
+        "params": "Paramètres",
+        "passed": "Passez.",
+        "result": "Résultats de l'exécution",
+        "testResults": "Résultats des essais",
+        "totalTests": "Total des essais"
+      },
+      "chartGeneration": {
+        "chartType": "Type de graphique",
+        "converting": "Conversion en PDF...",
+        "download": "Télécharger",
+        "downloadFailed": "Le téléchargement a échoué",
+        "downloadSuccess": "Télécharger réussi",
+        "generating": "Générer le code graphique...",
+        "generationFailed": "Impossible de générer",
+        "localPath": "Voie locale",
+        "noChart": "Aucun graphique téléchargeable",
+        "noPreview": "Impossible de charger l'aperçu du graphique",
+        "rendering": "Des cartes de rendu...",
+        "url": "URL",
+        "viewCode": "Affichage du code généré"
+      },
+      "dataAnalysis": {
+        "aggregating": "Analyse de convergence en cours...",
+        "aggregations": "Agrégation",
+        "analysisFailed": "L'analyse a échoué",
+        "calculating": "Calcul des statistiques de description...",
+        "extracting": "Extraire des informations sur le terrain...",
+        "fieldCount": "Champs",
+        "fields": "Informations sur le terrain",
+        "groupBy": "Appuyez sur _PLACEHOLDER_000} pour grouper",
+        "nullable": "Vide",
+        "parsing": "Analyse des données...",
+        "sampleValues": "Exemple de valeur",
+        "stats": "Description Statistiques",
+        "summarizing": "Générer un résumé analytique...",
+        "summary": "Résumé analytique",
+        "totalColumns": "Total des colonnes",
+        "totalRows": "Total des rubriques",
+        "uniqueValues": "Valeur unique"
+      },
+      "ragTool": {
+        "hint": "Conseil: essayer d'ajuster le seuil de similitude ou vérifier s'il y a des documents pertinents dans la base de connaissances",
+        "noResults": "Aucun résultat trouvé",
+        "results": "Résultat",
+        "searchFailed": "La recherche a échoué",
+        "searching": "Récupérer la base de connaissances..."
+      },
+      "terminalExecution": {
+        "aiSummary": "Résumé analytique de l'IA",
+        "analyzingOutput": "Analyse de la sortie...",
+        "approvalTitle": "Confirmation de l'exécution de la commande terminal",
+        "approve": "Approbation de la mise en œuvre",
+        "approveWithTrust": "Exécution (mode confiance activé)",
+        "commandToExecute": "Commande à exécuter :",
+        "executing": "En cours de mise en œuvre :",
+        "executingCommand": "Exécuter la commande...",
+        "executionFailed": "L'exécution du commandement a échoué",
+        "exitCode": "Code de sortie",
+        "outputPreview": "Aperçu des produits :",
+        "reject": "Refuser l'exécution",
+        "rejected": "Exécution du commandement refusée",
+        "resetTrust": "Réinitialiser à chaque demande",
+        "stderr": "Erreur type & #160;:",
+        "stdout": "Sortie standard :",
+        "trustMode": "Mode confiance : exécution automatique de toutes les commandes (pas de confirmation à chaque fois)"
+      },
+      "todoList": {
+        "analyzing": "L'intention de l'utilisateur analysé...",
+        "cancelled": "Annulé",
+        "completed": "Achevé",
+        "dependencies": "Tâches de fiabilité {CLACEHOLDER_000}",
+        "dueDate": "Délai",
+        "generating": "Générer _d'autres organisateurs",
+        "generationFailed": "Impossible de générer",
+        "high": "Élevé",
+        "inProgress": "En cours",
+        "low": "Faible",
+        "medium": "Moyenne",
+        "noDueDate": "Pas de délai",
+        "noTags": "Pas d'étiquette",
+        "pending": "En attente",
+        "priority": "Priorité",
+        "tags": "Étiquette",
+        "totalTasks": "Tâches générales",
+        "urgent": "Urgence"
+      }
     }
   },
   "sectionOptimizer": {

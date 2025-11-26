@@ -233,8 +233,7 @@ const generate = async () => {
     context_mode.value,
     currentMarkdown.value,
   );
-  const enableKnowledgeBase = await getSetting("enableKnowledgeBase");
-  const { done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'title-menu', enableKnowledgeBase);
+  const { done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'title-menu');
   generating.value = true;
   generated.value = false;
 

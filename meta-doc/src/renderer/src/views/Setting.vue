@@ -138,6 +138,12 @@ onMounted(async () => {
   display: block;
   padding: 32px 24px 64px;
   box-sizing: border-box;
+  height: 100%;
+  overflow: hidden;
+}
+
+.setting-section.debug-section {
+  padding: 0;
 }
 
 ::deep(.menu-logs-item) {

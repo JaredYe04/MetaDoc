@@ -557,7 +557,6 @@ class AICompletionService {
     
     // 创建AI任务
     const autoCompletionMode = await getSetting('autoCompletionMode')
-    const enableKnowledgeBase = await getSetting('enableKnowledgeBase')
     const autoCompletionMaxTokens = await getSetting('autoCompletionMaxTokens') || 50
     
     try {
@@ -619,7 +618,6 @@ class AICompletionService {
         generatedTextRef,
         ai_types.chat,
         'AI自动补全',
-        enableKnowledgeBase,
         meta
       )
       

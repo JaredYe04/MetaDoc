@@ -361,7 +361,11 @@ const testLlmApi = async () => {
   try {
     const prompt = t('setting.testPrompt');
     const enableKnowledgeBase = await getSetting('enableKnowledgeBase');
-    createAiTask('AI Test', prompt, testResult, ai_types.answer, 'setting-test', enableKnowledgeBase);
+    // 使用流式输出，让结果实时显示
+    createAiTask('AI Test', prompt, testResult, ai_types.answer, 'setting-test', {
+      stream: true,
+      enableKnowledgeBase: Boolean(enableKnowledgeBase)
+    });
   } catch (error) {
     logger.error(t('setting.testFailed'), error);
   }

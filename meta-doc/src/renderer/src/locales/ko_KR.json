@@ -11,7 +11,8 @@
     "openAutoCompletion": "Enable AI 완료",
     "openKnowledgeBase": "자주 묻는 질문 Retrieval 도서관",
     "locateToPdf": "PDF의 위치.",
-    "sectionOptimizer": "AI Paragraph 최적화"
+    "sectionOptimizer": "AI Paragraph 최적화",
+    "triggerAutoCompletion": "수동으로 트리거 AI 완료"
   },
   "headMenu": {
     "tooltip": "AI 에이전트 기반의 스마트 문서 처리 소프트웨어",
@@ -663,7 +664,11 @@
       "title": "Debug 도구",
       "undefined": "미안 해요.",
       "unitTest": "단위 시험"
-    }
+    },
+    "autoCompletionMaxTokens": "자동 완성 토큰",
+    "autoCompletionMaxTokensHint": "AI Auto-completion용 토큰의 최대 수를 제한하고 최소 20,0이 제한됩니다.",
+    "tokens": "토큰.",
+    "unlimited": "제한 없음"
   },
   "visualize": {
     "articleOutline": "문서 아웃라인",
@@ -940,6 +945,106 @@
       "state": "주요연혁",
       "title": "Tool 관리",
       "toggleAll": "모두 선택 / 없음"
+    },
+    "display": {
+      "autoTest": {
+        "copyFailed": "복사 실패",
+        "copyMarkdown": "복사 Markdown 제품정보",
+        "copySuccess": "클립보드에 복사",
+        "downloadFailed": "다운로드 실패",
+        "downloadMarkdown": "Markdown 다운로드 제품정보",
+        "downloadSuccess": "성공 사례",
+        "duration": "실시시간",
+        "error": "오류 메시지",
+        "executionTime": "실시시간",
+        "failed": "뚱 베어",
+        "markdownSummary": "Markdown 요약",
+        "params": "이름 *",
+        "passed": "패스워드",
+        "result": "구현 결과",
+        "testResults": "시험 결과",
+        "totalTests": "총 시험"
+      },
+      "chartGeneration": {
+        "chartType": "차트 유형",
+        "converting": "PDF로 변환 ...",
+        "download": "다운로드",
+        "downloadFailed": "다운로드 실패",
+        "downloadSuccess": "성공 사례",
+        "generating": "차트 코드를 생성 ...",
+        "generationFailed": "생성 실패",
+        "localPath": "지역 경로",
+        "noChart": "다운로드 할 수없는 차트",
+        "noPreview": "차트 미리보기를로드 할 수 없습니다",
+        "rendering": "렌더링 차트 ...",
+        "url": "사이트 맵",
+        "viewCode": "생성된 코드 보기"
+      },
+      "dataAnalysis": {
+        "aggregating": "방법의 밑에 Convergence 분석 ...",
+        "aggregations": "학회소개",
+        "analysisFailed": "분석 실패",
+        "calculating": "설명 통계를 계산 ...",
+        "extracting": "추출 현장 정보 ...",
+        "fieldCount": "제품정보",
+        "fields": "공지사항",
+        "groupBy": "프레스 _PLACEHOLDER_000} 그룹",
+        "nullable": "뚱 베어",
+        "parsing": "데이터 수집",
+        "sampleValues": "예제 값",
+        "stats": "Description 통계",
+        "summarizing": "분석 요약 생성 ...",
+        "summary": "분석 요약",
+        "totalColumns": "총 열",
+        "totalRows": "전체 라인",
+        "uniqueValues": "독특한 가치"
+      },
+      "ragTool": {
+        "hint": "Hint: 유사한 문턱을 조정하거나 지식 베이스에 관련된 문서가 있는지 확인하십시오.",
+        "noResults": "결과 없음",
+        "results": "회사 정보",
+        "searchFailed": "검색 실패",
+        "searching": "지식베이스를 검색 ..."
+      },
+      "terminalExecution": {
+        "aiSummary": "AI 분석 요약",
+        "analyzingOutput": "출력 분석 ...",
+        "approvalTitle": "터미널 명령 실행 확인",
+        "approve": "구현에 대한 승인",
+        "approveWithTrust": "실행 (신뢰 모드 활성화)",
+        "commandToExecute": "실행 명령:",
+        "executing": "구현 중:",
+        "executingCommand": "명령 실행 ...",
+        "executionFailed": "명령 실행 실패",
+        "exitCode": "출구 부호",
+        "outputPreview": "출력 미리보기:",
+        "reject": "Deny 실행",
+        "rejected": "명령 실행 거부",
+        "resetTrust": "자주 묻는 질문",
+        "stderr": "표준 오류:",
+        "stdout": "표준 산출:",
+        "trustMode": "신뢰 모드: 모든 명령의 자동 실행 (각 시간에 요구되는 확인 없음)"
+      },
+      "todoList": {
+        "analyzing": "분석된 사용자 intent ...",
+        "cancelled": "이름 *",
+        "completed": "한국어",
+        "dependencies": "신뢰 {CLACEHOLDER_000} 작업",
+        "dueDate": "이름 *",
+        "generating": "생성 _Other Organiser",
+        "generationFailed": "생성 실패",
+        "high": "주요 특징",
+        "inProgress": "이름 *",
+        "low": "이름 *",
+        "medium": "주요 특징",
+        "noDueDate": "영업시간",
+        "noTags": "상표 없음",
+        "pending": "관련 기사",
+        "priority": "회사연혁",
+        "tags": "이름 *",
+        "totalTasks": "전체 작업",
+        "urgent": "- 연혁"
+      }
     }
   },
   "sectionOptimizer": {

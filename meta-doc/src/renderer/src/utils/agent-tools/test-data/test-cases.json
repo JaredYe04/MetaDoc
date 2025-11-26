@@ -1,0 +1,1142 @@
+{
+  "todolist-planning": {
+    "description": "意图识别与任务划分工具测试用例",
+    "testCases": [
+      {
+        "id": "todolist-planning::basic-decomposition-001",
+        "name": "基础任务分解",
+        "params": {
+          "input": "我要开发一个待办事项管理系统，需要实现用户登录、任务创建、任务编辑、任务删除等功能"
+        }
+      },
+      {
+        "id": "todolist-planning::context-decomposition-001",
+        "name": "带上下文的任务分解",
+        "params": {
+          "input": "完成项目文档编写",
+          "context": "这是一个前端项目，使用Vue3和TypeScript，需要编写README、API文档和用户手册"
+        }
+      }
+    ]
+  },
+  "data-calculation": {
+    "description": "数据计算工具测试用例",
+    "testCases": [
+      {
+        "id": "data-calculation::basic-math-001",
+        "name": "基本数学运算",
+        "params": {
+          "expression": "2 + 3 * 4 - 1",
+          "precision": 2
+        }
+      },
+      {
+        "id": "data-calculation::trigonometry-001",
+        "name": "三角函数计算",
+        "params": {
+          "expression": "Math.sin(Math.PI / 2) + Math.cos(0)",
+          "precision": 10
+        }
+      },
+      {
+        "id": "data-calculation::variables-001",
+        "name": "带变量的计算",
+        "params": {
+          "expression": "x * y + z",
+          "variables": {
+            "x": 10,
+            "y": 20,
+            "z": 5
+          },
+          "precision": 2
+        }
+      },
+      {
+        "id": "data-calculation::vector-dot-001",
+        "name": "向量点积",
+        "params": {
+          "expression": "vector:dot|[1,2,3]|[4,5,6]"
+        }
+      },
+      {
+        "id": "data-calculation::vector-magnitude-001",
+        "name": "向量模长",
+        "params": {
+          "expression": "vector:magnitude|[3,4]"
+        }
+      }
+    ]
+  },
+  "color-processing": {
+    "description": "颜色处理工具测试用例",
+    "testCases": [
+      {
+        "id": "color-processing::mix-001",
+        "name": "颜色混合",
+        "params": {
+          "operation": "mix",
+          "color1": "#FF0000",
+          "color2": "#0000FF",
+          "weight": 0.5
+        }
+      },
+      {
+        "id": "color-processing::brightness-001",
+        "name": "提高亮度",
+        "params": {
+          "operation": "brightness",
+          "color1": "#333333",
+          "amount": 0.3
+        }
+      },
+      {
+        "id": "color-processing::contrast-001",
+        "name": "降低对比度",
+        "params": {
+          "operation": "contrast",
+          "color1": "#FF0000",
+          "amount": -0.2
+        }
+      },
+      {
+        "id": "color-processing::complementary-001",
+        "name": "获取互补色",
+        "params": {
+          "operation": "complementary",
+          "color1": "#FF0000"
+        }
+      },
+      {
+        "id": "color-processing::convert-001",
+        "name": "颜色格式转换",
+        "params": {
+          "operation": "convert",
+          "color1": "#FF0000",
+          "format": "rgb"
+        }
+      },
+      {
+        "id": "color-processing::analyze-001",
+        "name": "颜色分析",
+        "params": {
+          "operation": "analyze",
+          "color1": "#FF5733"
+        }
+      }
+    ]
+  },
+  "timestamp": {
+    "description": "时间戳工具测试用例",
+    "testCases": [
+      {
+        "id": "timestamp::all-001",
+        "name": "获取完整时间信息",
+        "params": {
+          "format": "all"
+        }
+      },
+      {
+        "id": "timestamp::timestamp-001",
+        "name": "仅获取时间戳",
+        "params": {
+          "format": "timestamp"
+        }
+      },
+      {
+        "id": "timestamp::iso-001",
+        "name": "获取ISO格式",
+        "params": {
+          "format": "iso"
+        }
+      },
+      {
+        "id": "timestamp::date-001",
+        "name": "获取日期",
+        "params": {
+          "format": "date"
+        }
+      }
+    ]
+  },
+  "web-crawler": {
+    "description": "网页访问工具测试用例",
+    "testCases": [
+      {
+        "id": "web-crawler::api-fetch-001",
+        "name": "访问公开API（使用fetch）",
+        "params": {
+          "url": "https://api.github.com",
+          "method": "GET",
+          "timeout": 10000,
+          "useCurl": false
+        }
+      },
+      {
+        "id": "web-crawler::webpage-curl-001",
+        "name": "访问网页（使用curl，避免CORS）",
+        "params": {
+          "url": "https://www.github.com",
+          "method": "GET",
+          "useCurl": true,
+          "headers": {
+            "Accept": "text/html"
+          }
+        }
+      },
+      {
+        "id": "web-crawler::webpage-auto-001",
+        "name": "访问网页（自动选择curl）",
+        "params": {
+          "url": "https://www.github.com",
+          "method": "GET"
+        }
+      },
+      {
+        "id": "web-crawler::post-fetch-001",
+        "name": "POST请求（使用fetch）",
+        "params": {
+          "url": "https://httpbin.org/post",
+          "method": "POST",
+          "body": {
+            "key": "value"
+          },
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "useCurl": false
+        }
+      },
+      {
+        "id": "web-crawler::post-curl-001",
+        "name": "POST请求（使用curl）",
+        "params": {
+          "url": "https://httpbin.org/post",
+          "method": "POST",
+          "body": {
+            "key": "value"
+          },
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "useCurl": true
+        }
+      }
+    ]
+  },
+  "terminal-execution": {
+    "description": "终端执行工具测试用例",
+    "testCases": [
+      {
+        "id": "terminal-execution::simple-command-001",
+        "name": "执行简单命令",
+        "params": {
+          "command": "echo Hello World",
+          "analyze": true
+        }
+      },
+      {
+        "id": "terminal-execution::list-files-001",
+        "name": "列出文件（Windows使用dir，Unix使用ls）",
+        "params": {
+          "command": "dir",
+          "cwd": ".",
+          "analyze": true
+        }
+      },
+      {
+        "id": "terminal-execution::system-info-001",
+        "name": "获取系统信息（Windows使用ver，Unix使用uname）",
+        "params": {
+          "command": "ver",
+          "analyze": true
+        }
+      }
+    ]
+  },
+  "data-analysis": {
+    "description": "数据分析工具测试用例",
+    "testCases": [
+      {
+        "id": "data-analysis::csv-text-001",
+        "name": "分析CSV数据（纯文本）",
+        "params": {
+          "data": "name,age,score\nAlice,25,85\nBob,30,90\nCharlie,28,88",
+          "format": "csv",
+          "autoGroupBy": true
+        }
+      },
+      {
+        "id": "data-analysis::json-data-001",
+        "name": "分析JSON数据",
+        "params": {
+          "data": [
+            {"product": "A", "price": 100, "quantity": 10},
+            {"product": "B", "price": 200, "quantity": 5},
+            {"product": "A", "price": 100, "quantity": 15}
+          ],
+          "format": "json",
+          "autoGroupBy": true,
+          "analysisRequest": "分析每个产品的总销售额和平均价格"
+        }
+      },
+      {
+        "id": "data-analysis::groupby-001",
+        "name": "指定groupby字段",
+        "params": {
+          "data": [
+            {"category": "A", "value": 10},
+            {"category": "B", "value": 20},
+            {"category": "A", "value": 15}
+          ],
+          "format": "json",
+          "groupByFields": ["category"],
+          "analysisRequest": "按类别分组统计"
+        }
+      },
+      {
+        "id": "data-analysis::csv-file-relative-001",
+        "name": "从本地文件读取CSV（相对路径）",
+        "params": {
+          "dataSource": "file",
+          "data": "./test-data/sales_data.csv",
+          "format": "csv",
+          "autoGroupBy": true,
+          "analysisRequest": "分析销售数据，包括各产品、类别、地区的销售情况"
+        }
+      },
+      {
+        "id": "data-analysis::csv-file-absolute-001",
+        "name": "从本地文件读取CSV（绝对路径）",
+        "params": {
+          "dataSource": "file",
+          "data": "__TEST_DATA_DIR__/sales_data.csv",
+          "format": "csv",
+          "autoGroupBy": true,
+          "groupByFields": ["category", "region"],
+          "analysisRequest": "按类别和地区分组，分析销售额和数量的统计信息"
+        }
+      },
+      {
+        "id": "data-analysis::csv-url-001",
+        "name": "从URL读取CSV数据",
+        "params": {
+          "dataSource": "url",
+          "data": "https://raw.githubusercontent.com/datasets/covid-19/main/data/countries-aggregated.csv",
+          "format": "csv",
+          "autoGroupBy": false,
+          "groupByFields": ["Country"],
+          "analysisRequest": "分析各国COVID-19数据趋势"
+        }
+      },
+      {
+        "id": "data-analysis::json-url-001",
+        "name": "从URL读取JSON数据",
+        "params": {
+          "dataSource": "url",
+          "data": "https://jsonplaceholder.typicode.com/users",
+          "format": "json",
+          "autoGroupBy": true,
+          "analysisRequest": "分析用户数据，包括地理位置分布等"
+        }
+      },
+      {
+        "id": "data-analysis::csv-complex-001",
+        "name": "复杂CSV数据分析（本地文件）",
+        "params": {
+          "dataSource": "file",
+          "data": "__TEST_DATA_DIR__/sales_data.csv",
+          "format": "csv",
+          "autoGroupBy": true,
+          "groupByFields": ["product", "category", "region"],
+          "analysisRequest": "进行多维度分析：1. 各产品的销售总额和平均价格 2. 各地区的销售分布 3. 各产品类别的销售趋势 4. 客户评分分析"
+        }
+      }
+    ]
+  },
+  "diff": {
+    "description": "文本比对工具测试用例",
+    "testCases": [
+      {
+        "id": "diff::text-comparison-001",
+        "name": "比对两段文本",
+        "params": {
+          "text1": "这是第一段文本。\n包含多行内容。",
+          "text2": "这是第二段文本。\n包含不同的内容。",
+          "source1": "text",
+          "source2": "text"
+        }
+      },
+      {
+        "id": "diff::file-comparison-001",
+        "name": "比对文件内容",
+        "params": {
+          "text1": "__TEST_DATA_DIR__/sample_document.md",
+          "text2": "__TEST_DATA_DIR__/sample_document.md",
+          "source1": "file",
+          "source2": "file"
+        }
+      },
+      {
+        "id": "diff::url-comparison-001",
+        "name": "比对URL内容",
+        "params": {
+          "text1": "https://www.example.com",
+          "text2": "https://www.example.org",
+          "source1": "url",
+          "source2": "url"
+        }
+      },
+      {
+        "id": "diff::mixed-comparison-001",
+        "name": "混合比对（文本和文件）",
+        "params": {
+          "text1": "这是原始文本",
+          "text2": "__TEST_DATA_DIR__/sample_document.md",
+          "source1": "text",
+          "source2": "file"
+        }
+      },
+      {
+        "id": "diff::long-text-files-001",
+        "name": "比对长文本（项目开发指南v1 vs v2）",
+        "params": {
+          "text1": "__TEST_DATA_DIR__/sample_text_v1.txt",
+          "text2": "__TEST_DATA_DIR__/sample_text_v2.txt",
+          "source1": "file",
+          "source2": "file"
+        },
+        "assertions": {
+          "summaryTotalChangesShouldBeGreaterThan": 0,
+          "summaryInsertionsShouldBeGreaterThan": 0,
+          "chunksShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "diff::long-text-inline-001",
+        "name": "比对长文本（内联方式）",
+        "params": {
+          "text1": "# 项目开发指南\n\n## 第一章：项目概述\n\n这是一个关于Web应用开发的完整指南。本指南将帮助你从零开始构建一个现代化的Web应用程序。\n\n### 1.1 技术栈选择\n\n在选择技术栈时，需要考虑以下几个因素：\n\n1. **项目规模**：小型项目可以使用简单的技术栈，大型项目需要更复杂的架构\n2. **团队技能**：选择团队熟悉的技术可以加快开发速度\n3. **性能要求**：高性能应用需要选择性能更好的技术\n4. **维护成本**：考虑长期维护的便利性\n\n### 1.2 开发环境搭建\n\n开发环境的搭建是项目的第一步。你需要安装以下工具：\n\n- Node.js 18.0 或更高版本\n- Git 版本控制工具\n- 代码编辑器（推荐使用VS Code）\n- 包管理器（npm或yarn）\n\n## 第二章：前端开发\n\n前端开发是Web应用的重要组成部分。现代前端开发主要使用以下技术：\n\n### 2.1 HTML基础\n\nHTML是网页的基础结构。你需要了解：\n\n- 标签的使用方法\n- 语义化标签的重要性\n- HTML5的新特性\n\n### 2.2 CSS样式\n\nCSS用于美化网页。关键概念包括：\n\n- 选择器的使用\n- 盒模型的理解\n- Flexbox和Grid布局\n- 响应式设计\n\n### 2.3 JavaScript编程\n\nJavaScript是前端开发的核心语言。你需要掌握：\n\n- 变量和数据类型\n- 函数和对象\n- 异步编程（Promise、async/await）\n- DOM操作\n\n## 第三章：后端开发\n\n后端开发负责处理业务逻辑和数据存储。\n\n### 3.1 服务器框架\n\n常用的服务器框架包括：\n\n- Express.js（Node.js）\n- Django（Python）\n- Spring Boot（Java）\n\n### 3.2 数据库设计\n\n数据库设计需要考虑：\n\n- 表结构设计\n- 索引优化\n- 数据关系（一对一、一对多、多对多）\n\n### 3.3 API设计\n\nRESTful API设计原则：\n\n- 使用HTTP方法（GET、POST、PUT、DELETE）\n- 资源命名规范\n- 状态码的正确使用\n\n## 第四章：部署和运维\n\n项目完成后需要部署到生产环境。\n\n### 4.1 部署流程\n\n部署流程包括：\n\n1. 代码构建\n2. 环境配置\n3. 服务器部署\n4. 域名配置\n\n### 4.2 监控和日志\n\n生产环境需要：\n\n- 性能监控\n- 错误日志收集\n- 用户行为分析\n\n## 总结\n\n本指南涵盖了Web应用开发的主要方面。通过系统学习，你可以构建出高质量的Web应用程序。",
+          "text2": "# 项目开发指南\n\n## 第一章：项目概述\n\n这是一个关于Web应用开发的完整指南。本指南将帮助你从零开始构建一个现代化的Web应用程序。\n\n### 1.1 技术栈选择\n\n在选择技术栈时，需要考虑以下几个因素：\n\n1. **项目规模**：小型项目可以使用简单的技术栈，大型项目需要更复杂的架构\n2. **团队技能**：选择团队熟悉的技术可以加快开发速度\n3. **性能要求**：高性能应用需要选择性能更好的技术\n4. **维护成本**：考虑长期维护的便利性\n5. **社区支持**：选择有活跃社区的技术栈可以获得更多帮助\n\n### 1.2 开发环境搭建\n\n开发环境的搭建是项目的第一步。你需要安装以下工具：\n\n- Node.js 20.0 或更高版本\n- Git 版本控制工具\n- 代码编辑器（推荐使用VS Code或WebStorm）\n- 包管理器（npm、yarn或pnpm）\n\n## 第二章：前端开发\n\n前端开发是Web应用的重要组成部分。现代前端开发主要使用以下技术：\n\n### 2.1 HTML基础\n\nHTML是网页的基础结构。你需要了解：\n\n- 标签的使用方法和最佳实践\n- 语义化标签的重要性\n- HTML5的新特性和API\n\n### 2.2 CSS样式\n\nCSS用于美化网页。关键概念包括：\n\n- 选择器的使用和优先级\n- 盒模型的理解和应用\n- Flexbox和Grid布局系统\n- 响应式设计和移动端适配\n\n### 2.3 JavaScript编程\n\nJavaScript是前端开发的核心语言。你需要掌握：\n\n- 变量和数据类型（包括ES6+新特性）\n- 函数和对象的高级用法\n- 异步编程（Promise、async/await、Generator）\n- DOM操作和事件处理\n- 模块化开发（ES6 Modules）\n\n## 第三章：后端开发\n\n后端开发负责处理业务逻辑和数据存储。\n\n### 3.1 服务器框架\n\n常用的服务器框架包括：\n\n- Express.js（Node.js生态系统）\n- Django（Python全栈框架）\n- Spring Boot（Java企业级框架）\n- FastAPI（Python高性能框架）\n\n### 3.2 数据库设计\n\n数据库设计需要考虑：\n\n- 表结构设计和规范化\n- 索引优化和查询性能\n- 数据关系（一对一、一对多、多对多）\n- 事务处理和并发控制\n\n### 3.3 API设计\n\nRESTful API设计原则：\n\n- 使用HTTP方法（GET、POST、PUT、PATCH、DELETE）\n- 资源命名规范和版本控制\n- 状态码的正确使用和错误处理\n- 认证和授权机制\n\n## 第四章：部署和运维\n\n项目完成后需要部署到生产环境。\n\n### 4.1 部署流程\n\n部署流程包括：\n\n1. 代码构建和打包\n2. 环境配置和变量管理\n3. 服务器部署和负载均衡\n4. 域名配置和SSL证书\n\n### 4.2 监控和日志\n\n生产环境需要：\n\n- 性能监控和告警\n- 错误日志收集和分析\n- 用户行为分析和数据统计\n- 自动化运维工具\n\n## 总结\n\n本指南涵盖了Web应用开发的主要方面。通过系统学习和实践，你可以构建出高质量、高性能的Web应用程序。记住，持续学习和实践是成为优秀开发者的关键。",
+          "source1": "text",
+          "source2": "text"
+        },
+        "assertions": {
+          "summaryTotalChangesShouldBeGreaterThan": 0,
+          "summaryInsertionsShouldBeGreaterThan": 0,
+          "chunksShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "diff::code-files-001",
+        "name": "比对代码文件（JavaScript类）",
+        "params": {
+          "text1": "__TEST_DATA_DIR__/sample_code_v1.js",
+          "text2": "__TEST_DATA_DIR__/sample_code_v2.js",
+          "source1": "file",
+          "source2": "file"
+        },
+        "assertions": {
+          "summaryTotalChangesShouldBeGreaterThan": 0,
+          "summaryReplacementsShouldBeGreaterThan": 0,
+          "chunksShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "diff::code-inline-001",
+        "name": "比对代码（内联方式）",
+        "params": {
+          "text1": "// 用户管理模块\nclass UserManager {\n  constructor() {\n    this.users = [];\n    this.currentUser = null;\n  }\n\n  // 添加用户\n  addUser(user) {\n    if (!user || !user.name) {\n      throw new Error('用户信息不完整');\n    }\n    this.users.push(user);\n    return user;\n  }\n\n  // 查找用户\n  findUser(id) {\n    return this.users.find(user => user.id === id);\n  }\n\n  // 更新用户信息\n  updateUser(id, updates) {\n    const user = this.findUser(id);\n    if (!user) {\n      throw new Error('用户不存在');\n    }\n    Object.assign(user, updates);\n    return user;\n  }\n\n  // 删除用户\n  deleteUser(id) {\n    const index = this.users.findIndex(user => user.id === id);\n    if (index === -1) {\n      throw new Error('用户不存在');\n    }\n    return this.users.splice(index, 1)[0];\n  }\n\n  // 获取所有用户\n  getAllUsers() {\n    return this.users;\n  }\n\n  // 设置当前用户\n  setCurrentUser(user) {\n    this.currentUser = user;\n  }\n\n  // 获取当前用户\n  getCurrentUser() {\n    return this.currentUser;\n  }\n}\n\n// 导出模块\nmodule.exports = UserManager;",
+          "text2": "// 用户管理模块\nclass UserManager {\n  constructor() {\n    this.users = [];\n    this.currentUser = null;\n    this.userCount = 0;\n  }\n\n  // 添加用户\n  addUser(user) {\n    if (!user || !user.name || !user.email) {\n      throw new Error('用户信息不完整，需要提供姓名和邮箱');\n    }\n    user.id = ++this.userCount;\n    user.createdAt = new Date();\n    this.users.push(user);\n    return user;\n  }\n\n  // 查找用户\n  findUser(id) {\n    return this.users.find(user => user.id === id);\n  }\n\n  // 根据邮箱查找用户\n  findUserByEmail(email) {\n    return this.users.find(user => user.email === email);\n  }\n\n  // 更新用户信息\n  updateUser(id, updates) {\n    const user = this.findUser(id);\n    if (!user) {\n      throw new Error('用户不存在');\n    }\n    user.updatedAt = new Date();\n    Object.assign(user, updates);\n    return user;\n  }\n\n  // 删除用户\n  deleteUser(id) {\n    const index = this.users.findIndex(user => user.id === id);\n    if (index === -1) {\n      throw new Error('用户不存在');\n    }\n    const deletedUser = this.users.splice(index, 1)[0];\n    if (this.currentUser && this.currentUser.id === id) {\n      this.currentUser = null;\n    }\n    return deletedUser;\n  }\n\n  // 获取所有用户\n  getAllUsers() {\n    return [...this.users]; // 返回副本，避免直接修改原数组\n  }\n\n  // 设置当前用户\n  setCurrentUser(user) {\n    if (user && !this.findUser(user.id)) {\n      throw new Error('用户不存在于用户列表中');\n    }\n    this.currentUser = user;\n  }\n\n  // 获取当前用户\n  getCurrentUser() {\n    return this.currentUser;\n  }\n\n  // 获取用户数量\n  getUserCount() {\n    return this.users.length;\n  }\n}\n\n// 导出模块\nexport default UserManager;",
+          "source1": "text",
+          "source2": "text"
+        },
+        "assertions": {
+          "summaryTotalChangesShouldBeGreaterThan": 0,
+          "summaryInsertionsShouldBeGreaterThan": 0,
+          "summaryReplacementsShouldBeGreaterThan": 0,
+          "chunksShouldNotBeEmpty": true
+        }
+      }
+    ]
+  },
+  "grep": {
+    "description": "文本搜索工具测试用例",
+    "testCases": [
+      {
+        "id": "grep::document-search-001",
+        "name": "搜索文档中的文本",
+        "params": {
+          "pattern": "示例",
+          "scope": ["document"]
+        }
+      },
+      {
+        "id": "grep::regex-search-001",
+        "name": "使用正则表达式搜索",
+        "params": {
+          "pattern": "第[一二三四五六七八九十]+章",
+          "isRegex": true,
+          "scope": ["document"]
+        }
+      },
+      {
+        "id": "grep::metadata-search-001",
+        "name": "搜索元数据",
+        "params": {
+          "pattern": "测试",
+          "scope": ["metadata"]
+        }
+      },
+      {
+        "id": "grep::combined-search-001",
+        "name": "同时搜索文档和元数据",
+        "params": {
+          "pattern": "文档",
+          "scope": ["document", "metadata"]
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 0,
+          "matchesShouldContainPattern": "文档"
+        }
+      },
+      {
+        "id": "grep::code-search-001",
+        "name": "搜索代码块",
+        "params": {
+          "pattern": "function",
+          "scope": ["document"],
+          "contextLines": 5
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 0,
+          "matchesShouldContainPattern": "function"
+        }
+      }
+    ]
+  },
+  "outline-tree": {
+    "description": "大纲树工具测试用例",
+    "testCases": [
+      {
+        "id": "outline-tree::without-text-001",
+        "name": "获取大纲树（不包含文本）",
+        "params": {
+          "includeText": false
+        }
+      },
+      {
+        "id": "outline-tree::with-text-001",
+        "name": "获取大纲树（包含文本）",
+        "params": {
+          "includeText": true
+        }
+      }
+    ]
+  },
+  "proofread": {
+    "description": "文本校对工具测试用例",
+    "testCases": [
+      {
+        "id": "proofread::text-errors-001",
+        "name": "校对纯文本（包含错误）",
+        "params": {
+          "text": "这是一个包含语法错误的文本。\n需要检查拼写和语法。\n这里有一个拼写错误：teh（应该是the）。\n这里有一个语法错误：The books is on the table.（应该是books are）",
+          "source": "text",
+          "format": "text"
+        },
+        "assertions": {
+          "totalErrorsShouldBeGreaterThan": 0,
+          "errorsShouldContainTypes": ["grammar", "spelling"]
+        }
+      },
+      {
+        "id": "proofread::markdown-errors-001",
+        "name": "校对Markdown文档（包含错误）",
+        "params": {
+          "text": "__TEST_DATA_DIR__/sample_document_with_errors.md",
+          "source": "file",
+          "format": "markdown"
+        },
+        "assertions": {
+          "totalErrorsShouldBeGreaterThan": 0
+        }
+      },
+      {
+        "id": "proofread::latex-errors-001",
+        "name": "校对LaTeX文档（包含错误）",
+        "params": {
+          "text": "__TEST_DATA_DIR__/sample_document_with_errors.tex",
+          "source": "file",
+          "format": "latex"
+        },
+        "assertions": {
+          "totalErrorsShouldBeGreaterThan": 0
+        }
+      },
+      {
+        "id": "proofread::url-001",
+        "name": "校对URL内容",
+        "params": {
+          "text": "https://www.example.com",
+          "source": "url",
+          "format": "text"
+        }
+      }
+    ]
+  },
+  "outline-optimize": {
+    "description": "大纲优化工具测试用例",
+    "testCases": [
+      {
+        "id": "outline-optimize::generate-children-001",
+        "name": "为节点生成子节点",
+        "params": {
+          "operation": "generateChildren",
+          "nodePath": "1",
+          "userPrompt": "生成3-5个子章节，涵盖主要技术点"
+        },
+        "assertions": {
+          "success": true,
+          "generatedChildrenShouldNotBeEmpty": true,
+          "childrenCountShouldBeGreaterThan": 0
+        }
+      },
+      {
+        "id": "outline-optimize::generate-content-001",
+        "name": "为节点生成内容",
+        "params": {
+          "operation": "generateContent",
+          "nodePath": "1",
+          "userPrompt": "生成详细的技术介绍内容"
+        }
+      },
+      {
+        "id": "outline-optimize::generate-children-children-001",
+        "name": "为所有子节点生成子节点",
+        "params": {
+          "operation": "generateChildrenChildren",
+          "nodePath": "1",
+          "userPrompt": "为每个子节点生成2-3个更细的子章节"
+        },
+        "assertions": {
+          "success": true,
+          "totalChildrenCountShouldBeGreaterThan": 0
+        }
+      },
+      {
+        "id": "outline-optimize::generate-children-content-001",
+        "name": "为所有子节点生成内容",
+        "params": {
+          "operation": "generateChildrenContent",
+          "nodePath": "1",
+          "userPrompt": "为每个子节点生成详细的内容"
+        },
+        "assertions": {
+          "success": true,
+          "totalContentCountShouldBeGreaterThan": 0,
+          "generatedContentShouldNotBeEmpty": true
+        }
+      }
+    ]
+  },
+  "edit": {
+    "description": "文档编辑工具测试用例",
+    "testCases": [
+      {
+        "id": "edit::insert-001",
+        "name": "插入文本",
+        "params": {
+          "operation": {
+            "type": "insert",
+            "range": {
+              "start": { "line": 1, "column": 1 },
+              "end": { "line": 1, "column": 1 }
+            },
+            "content": "# 新标题\n\n这是插入的内容。"
+          }
+        }
+      },
+      {
+        "id": "edit::replace-001",
+        "name": "替换文本",
+        "params": {
+          "operation": {
+            "type": "replace",
+            "range": {
+              "start": { "line": 1, "column": 1 },
+              "end": { "line": 1, "column": 10 }
+            },
+            "content": "修改后的标题"
+          }
+        }
+      },
+      {
+        "id": "edit::delete-001",
+        "name": "删除文本",
+        "params": {
+          "operation": {
+            "type": "delete",
+            "range": {
+              "start": { "line": 2, "column": 1 },
+              "end": { "line": 2, "column": 50 }
+            }
+          }
+        },
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0,
+          "newContentShouldNotContain": "这是一个用于测试Agent Tools的示例Markdown文档。"
+        }
+      },
+      {
+        "id": "edit::multiple-001",
+        "name": "多处编辑",
+        "params": {
+          "operations": [
+            {
+              "type": "insert",
+              "range": {
+                "start": { "line": 1, "column": 1 },
+                "end": { "line": 1, "column": 1 }
+              },
+              "content": "## 新增章节\n\n"
+            },
+            {
+              "type": "replace",
+              "range": {
+                "start": { "line": 3, "column": 1 },
+                "end": { "line": 3, "column": 10 }
+              },
+              "content": "修改后的"
+            }
+          ]
+        },
+        "assertions": {
+          "appliedEdits": 2,
+          "failedEdits": 0,
+          "newContentShouldContain": "## 新增章节",
+          "newContentShouldContain2": "修改后的"
+        }
+      }
+    ]
+  },
+  "metadata": {
+    "description": "元信息管理工具测试用例",
+    "testCases": [
+      {
+        "id": "metadata::get-001",
+        "name": "获取元信息",
+        "params": {
+          "operation": "get"
+        }
+      },
+      {
+        "id": "metadata::set-title-001",
+        "name": "设置标题",
+        "params": {
+          "operation": "set",
+          "field": "title",
+          "value": "新标题"
+        }
+      },
+      {
+        "id": "metadata::set-description-001",
+        "name": "设置描述",
+        "params": {
+          "operation": "set",
+          "field": "description",
+          "value": "这是一个测试文档的描述"
+        }
+      },
+      {
+        "id": "metadata::set-keywords-001",
+        "name": "设置关键词",
+        "params": {
+          "operation": "set",
+          "field": "keywords",
+          "value": ["测试", "文档", "示例"]
+        }
+      },
+      {
+        "id": "metadata::generate-title-001",
+        "name": "生成标题",
+        "params": {
+          "operation": "generate",
+          "field": "title"
+        },
+        "assertions": {
+          "generatedValueShouldNotBeEmpty": true,
+          "metadataTitleShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "metadata::generate-description-001",
+        "name": "生成描述",
+        "params": {
+          "operation": "generate",
+          "field": "description"
+        },
+        "assertions": {
+          "generatedValueShouldNotBeEmpty": true,
+          "metadataDescriptionShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "metadata::generate-keywords-001",
+        "name": "生成关键词",
+        "params": {
+          "operation": "generate",
+          "field": "keywords"
+        }
+      },
+      {
+        "id": "metadata::generate-all-001",
+        "name": "生成所有元信息",
+        "params": {
+          "operation": "generate",
+          "field": "all"
+        },
+        "assertions": {
+          "generatedValueTitleShouldNotBeEmpty": true,
+          "generatedValueDescriptionShouldNotBeEmpty": true,
+          "generatedValueKeywordsShouldNotBeEmpty": true,
+          "metadataTitleShouldNotBeEmpty": true,
+          "metadataDescriptionShouldNotBeEmpty": true,
+          "metadataKeywordsShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "metadata::set-all-001",
+        "name": "批量设置元信息",
+        "params": {
+          "operation": "set",
+          "field": "all",
+          "value": {
+            "title": "批量设置的标题",
+            "author": "测试作者",
+            "description": "批量设置的描述",
+            "keywords": ["批量", "设置", "测试"]
+          }
+        }
+      }
+    ]
+  },
+  "rag-retrieval": {
+    "description": "RAG知识库检索工具测试用例",
+    "testCases": [
+      {
+        "id": "rag-retrieval::csharp-basic-001",
+        "name": "检索C#基础问题",
+        "params": {
+          "question": "C#中的类和对象有什么区别？"
+        },
+        "assertions": {
+          "resultCountShouldBeGreaterThan": 0
+        }
+      },
+      {
+        "id": "rag-retrieval::csharp-advanced-001",
+        "name": "检索C#高级特性",
+        "params": {
+          "question": "C#中的async和await如何使用？"
+        },
+        "assertions": {
+          "resultCountShouldBeGreaterThan": 0
+        }
+      },
+      {
+        "id": "rag-retrieval::csharp-linq-001",
+        "name": "检索C# LINQ相关问题",
+        "params": {
+          "question": "LINQ查询语法和方法语法的区别"
+        },
+        "assertions": {
+          "resultCountShouldBeGreaterThan": 0
+        }
+      },
+      {
+        "id": "rag-retrieval::computer-basic-001",
+        "name": "检索计算机基础知识",
+        "params": {
+          "question": "什么是操作系统？"
+        },
+        "assertions": {
+          "resultCountShouldBeGreaterThan": 0
+        }
+      },
+      {
+        "id": "rag-retrieval::computer-network-001",
+        "name": "检索计算机网络问题",
+        "params": {
+          "question": "TCP和UDP协议的区别"
+        },
+        "assertions": {
+          "resultCountShouldBeGreaterThan": 0
+        }
+      },
+      {
+        "id": "rag-retrieval::high-threshold-001",
+        "name": "高相似度阈值检索",
+        "params": {
+          "question": "C#编程语言",
+          "scoreThreshold": 0.8
+        },
+        "assertions": {
+          "resultCountShouldBeGreaterThanOrEqual": 0
+        }
+      },
+      {
+        "id": "rag-retrieval::low-threshold-001",
+        "name": "低相似度阈值检索",
+        "params": {
+          "question": "编程",
+          "scoreThreshold": 0.3
+        },
+        "assertions": {
+          "resultCountShouldBeGreaterThanOrEqual": 0
+        }
+      }
+    ]
+  },
+  "chart-generation": {
+    "description": "图表生成工具测试用例",
+    "testCases": [
+      {
+        "id": "chart-generation::mermaid-flowchart-001",
+        "name": "生成Mermaid流程图",
+        "params": {
+          "prompt": "生成一个用户登录流程的流程图，包括输入用户名密码、验证、登录成功或失败的分支",
+          "chartType": "mermaid",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::mermaid-sequence-001",
+        "name": "生成Mermaid序列图",
+        "params": {
+          "prompt": "生成一个用户下单的序列图，包括用户、前端、后端、数据库之间的交互",
+          "chartType": "mermaid",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::mermaid-class-001",
+        "name": "生成Mermaid类图",
+        "params": {
+          "prompt": "生成一个电商系统的类图，包括User、Product、Order、Cart等类及其关系",
+          "chartType": "mermaid",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::mermaid-gantt-001",
+        "name": "生成Mermaid甘特图",
+        "params": {
+          "prompt": "生成一个项目开发的甘特图，包括需求分析、设计、开发、测试、部署等阶段",
+          "chartType": "mermaid",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::mermaid-pie-001",
+        "name": "生成Mermaid饼图",
+        "params": {
+          "prompt": "生成一个销售数据的饼图，显示不同产品类别的销售占比",
+          "chartType": "mermaid",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::echarts-line-001",
+        "name": "生成ECharts折线图",
+        "params": {
+          "prompt": "生成一个折线图，显示过去12个月的销售额趋势，包含两条线：实际销售额和预测销售额",
+          "chartType": "echarts",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::echarts-bar-001",
+        "name": "生成ECharts柱状图",
+        "params": {
+          "prompt": "生成一个柱状图，比较不同地区的销售额，使用不同颜色区分",
+          "chartType": "echarts",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::echarts-pie-001",
+        "name": "生成ECharts饼图",
+        "params": {
+          "prompt": "生成一个饼图，显示不同产品类别的销售占比，包含图例和百分比标签",
+          "chartType": "echarts",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::echarts-radar-001",
+        "name": "生成ECharts雷达图",
+        "params": {
+          "prompt": "生成一个雷达图，比较三个产品的性能指标：价格、质量、服务、创新、品牌",
+          "chartType": "echarts",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::echarts-png-001",
+        "name": "生成ECharts图表（PNG格式）",
+        "params": {
+          "prompt": "生成一个简单的折线图，显示温度变化",
+          "chartType": "echarts",
+          "format": "png"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::plantuml-class-001",
+        "name": "生成PlantUML类图",
+        "params": {
+          "prompt": "生成一个UML类图，包含Animal抽象类，以及Dog和Cat两个子类，展示继承关系",
+          "chartType": "plantuml",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::plantuml-sequence-001",
+        "name": "生成PlantUML序列图",
+        "params": {
+          "prompt": "生成一个UML序列图，展示用户注册流程，包括用户、前端、后端、数据库之间的消息交互",
+          "chartType": "plantuml",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::plantuml-activity-001",
+        "name": "生成PlantUML活动图",
+        "params": {
+          "prompt": "生成一个UML活动图，展示订单处理流程，包括订单创建、支付验证、库存检查、发货等步骤",
+          "chartType": "plantuml",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::plantuml-pdf-001",
+        "name": "生成PlantUML图表（PDF格式）",
+        "params": {
+          "prompt": "生成一个简单的UML类图，包含两个类：User和Order",
+          "chartType": "plantuml",
+          "format": "pdf"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::flowchart-001",
+        "name": "生成Flowchart流程图",
+        "params": {
+          "prompt": "生成一个决策树流程图，展示根据用户年龄和收入判断贷款审批的流程",
+          "chartType": "flowchart",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::mindmap-001",
+        "name": "生成思维导图",
+        "params": {
+          "prompt": "生成一个关于Web开发的思维导图，包括前端、后端、数据库、部署等主要分支",
+          "chartType": "mindmap",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::graphviz-001",
+        "name": "生成Graphviz流程图",
+        "params": {
+          "prompt": "生成一个系统架构图，展示前端、API网关、微服务、数据库之间的关系",
+          "chartType": "graphviz",
+          "format": "svg"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::mermaid-with-code-001",
+        "name": "使用提供的代码生成Mermaid图表",
+        "params": {
+          "prompt": "使用提供的代码生成图表",
+          "chartType": "mermaid",
+          "format": "svg",
+          "code": "graph TD\n    A[开始] --> B{判断条件}\n    B -->|是| C[执行操作1]\n    B -->|否| D[执行操作2]\n    C --> E[结束]\n    D --> E"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      }
+    ]
+  }
+}
+

@@ -1,0 +1,321 @@
+<template>
+  <div class="chart-generation-display" :style="containerStyle">
+    <div v-if="displayData.stage === 'generating'" class="generating-state" :style="statusMessageStyle">
+      <el-icon class="is-loading"><Loading /></el-icon>
+      <span>{{ $t('agent.display.chartGeneration.generating') }}</span>
+    </div>
+
+    <div v-else-if="displayData.stage === 'rendering'" class="rendering-state" :style="statusMessageStyle">
+      <el-icon class="is-loading"><Loading /></el-icon>
+      <span>{{ $t('agent.display.chartGeneration.rendering') }}</span>
+      <div v-if="displayData.chartCode" class="code-preview">
+        <el-collapse>
+          <el-collapse-item :title="$t('agent.display.chartGeneration.viewCode')" name="code">
+            <pre class="code-content" :style="codeContentStyle">{{ displayData.chartCode }}</pre>
+          </el-collapse-item>
+        </el-collapse>
+      </div>
+    </div>
+
+    <div v-else-if="displayData.stage === 'converting'" class="converting-state" :style="statusMessageStyle">
+      <el-icon class="is-loading"><Loading /></el-icon>
+      <span>{{ $t('agent.display.chartGeneration.converting') }}</span>
+    </div>
+
+    <div v-else-if="displayData.stage === 'completed'" class="completed-state" :style="completedStateStyle">
+      <div class="result-header" :style="headerStyle">
+        <div class="header-info">
+          <el-tag type="success" size="small">{{ displayData.chartType }}</el-tag>
+          <span class="chart-name" :style="chartNameStyle">{{ displayData.chartName }}</span>
+        </div>
+        <div class="header-actions">
+          <el-button
+            type="primary"
+            size="small"
+            :icon="Download"
+            @click="downloadChart"
+          >
+            {{ $t('agent.display.chartGeneration.download') }}
+          </el-button>
+        </div>
+      </div>
+
+      <!-- 图表预览 -->
+      <div class="chart-preview" :style="chartPreviewStyle">
+        <img
+          v-if="displayData.url"
+          :src="displayData.url"
+          :alt="displayData.chartName"
+          class="chart-image"
+          @error="handleImageError"
+        />
+        <div v-else class="no-preview">
+          <el-empty :description="$t('agent.display.chartGeneration.noPreview')" :image-size="80" />
+        </div>
+      </div>
+
+      <!-- 代码预览 -->
+      <div v-if="displayData.chartCode" class="code-section">
+        <el-collapse>
+          <el-collapse-item :title="$t('agent.display.chartGeneration.viewCode')" name="code">
+            <pre class="code-content" :style="codeContentStyle">{{ displayData.chartCode }}</pre>
+          </el-collapse-item>
+        </el-collapse>
+      </div>
+
+      <!-- 结果信息 -->
+      <div class="result-info">
+        <el-descriptions :column="1" size="small" border>
+          <el-descriptions-item :label="$t('agent.display.chartGeneration.chartType')">
+            {{ displayData.chartType }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('agent.display.chartGeneration.url')">
+            <el-link :href="displayData.url" target="_blank" type="primary">
+              {{ displayData.url }}
+            </el-link>
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('agent.display.chartGeneration.localPath')">
+            {{ displayData.localPath }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+    </div>
+
+    <div v-else-if="displayData.stage === 'error'" class="error-state">
+      <el-alert
+        :title="displayData.error || $t('agent.display.chartGeneration.generationFailed')"
+        type="error"
+        :closable="false"
+      />
+    </div>
+
+    <!-- 进度条 -->
+    <el-progress
+      v-if="effectiveProgress && effectiveProgress.percentage > 0"
+      :percentage="effectiveProgress.percentage"
+      :status="progressStatus"
+      :stroke-width="6"
+      style="margin-top: 12px;"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { Loading, Download } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
+import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
+import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
+import { themeState } from '../../themes'
+
+const { t } = useI18n()
+const props = defineProps<ToolDisplayComponentProps>()
+
+console.log(`[ChartGenerationDisplay] 组件初始化，invocationId: ${props.invocationId}, status: ${props.status}, data:`, props.data)
+console.log(`[ChartGenerationDisplay] props 完整内容:`, props)
+
+// 使用实时通信
+const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
+  props.invocationId,
+  props.data,
+  props.status,
+  props.progress
+)
+
+console.log(`[ChartGenerationDisplay] useToolDisplayRealtime 返回:`, { realtimeData: realtimeData.value, realtimeStatus: realtimeStatus.value, realtimeProgress: realtimeProgress.value })
+
+// 解析显示数据（优先使用实时数据）
+const displayData = computed(() => {
+  const data = realtimeData.value !== null ? realtimeData.value : props.data
+  const parsed = parseToolData(data)
+  
+  if (typeof parsed === 'object' && parsed !== null) {
+    return parsed as {
+      stage: 'generating' | 'rendering' | 'converting' | 'completed' | 'error'
+      prompt?: string
+      chartType?: string
+      format?: string
+      chartCode?: string
+      chartName?: string
+      url?: string
+      localPath?: string
+      error?: string
+    }
+  }
+  return { stage: 'generating' }
+})
+
+// 进度状态（优先使用实时状态）
+const effectiveStatus = computed(() => {
+  return realtimeStatus.value !== 'running' ? realtimeStatus.value : props.status
+})
+
+const effectiveProgress = computed(() => {
+  return realtimeProgress.value || props.progress
+})
+
+const progressStatus = computed(() => {
+  if (effectiveStatus.value === 'failed') return 'exception'
+  if (effectiveStatus.value === 'succeeded') return 'success'
+  return undefined
+})
+
+// 下载图表
+const downloadChart = async () => {
+  if (!displayData.value.url) {
+    ElMessage.warning(t('agent.display.chartGeneration.noChart'))
+    return
+  }
+
+  try {
+    const response = await fetch(displayData.value.url)
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${displayData.value.chartName || 'chart'}.${getFileExtension(displayData.value.url)}`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+    ElMessage.success(t('agent.display.chartGeneration.downloadSuccess'))
+  } catch (error) {
+    ElMessage.error(`${t('agent.display.chartGeneration.downloadFailed')}: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
+// 主题样式
+const containerStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  color: themeState.currentTheme.textColor
+}))
+
+const statusMessageStyle = computed(() => ({
+  color: themeState.currentTheme.textColor
+}))
+
+const completedStateStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  color: themeState.currentTheme.textColor
+}))
+
+const headerStyle = computed(() => ({
+  borderBottomColor: themeState.currentTheme.type === 'dark' 
+    ? 'rgba(255, 255, 255, 0.1)' 
+    : 'rgba(0, 0, 0, 0.08)'
+}))
+
+const chartNameStyle = computed(() => ({
+  color: themeState.currentTheme.textColor
+}))
+
+const chartPreviewStyle = computed(() => ({
+  borderColor: themeState.currentTheme.type === 'dark' 
+    ? 'rgba(255, 255, 255, 0.1)' 
+    : 'rgba(0, 0, 0, 0.08)',
+  backgroundColor: themeState.currentTheme.background2nd
+}))
+
+const codeContentStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd,
+  color: themeState.currentTheme.textColor
+}))
+
+// 获取文件扩展名
+const getFileExtension = (url: string): string => {
+  const match = url.match(/\.(\w+)(\?|$)/)
+  return match ? match[1] : 'png'
+}
+
+// 处理图片加载错误
+const handleImageError = () => {
+  console.error('图表图片加载失败')
+}
+</script>
+
+<style scoped>
+.chart-generation-display {
+  width: 100%;
+}
+
+.generating-state,
+.rendering-state,
+.converting-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+}
+
+.completed-state {
+  width: 100%;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid;
+}
+
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chart-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.chart-preview {
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.chart-image {
+  max-width: 100%;
+  max-height: 500px;
+  border-radius: 4px;
+}
+
+.no-preview {
+  padding: 40px 0;
+}
+
+.code-section {
+  margin: 12px 0;
+}
+
+.code-preview {
+  margin-top: 12px;
+}
+
+.code-content {
+  margin: 0;
+  padding: 12px;
+  border-radius: 4px;
+  font-family: var(--code-font-family, 'JetBrains Mono', monospace);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.result-info {
+  margin-top: 12px;
+}
+
+.error-state {
+  padding: 12px;
+}
+</style>
+

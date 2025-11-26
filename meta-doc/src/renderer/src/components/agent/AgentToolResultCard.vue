@@ -14,6 +14,23 @@
 
     <p v-if="message.summary" class="summary">{{ message.summary }}</p>
 
+    <!-- 进度条 -->
+    <div v-if="message.progress && message.progress.percentage > 0" class="progress-container">
+      <el-progress
+        :percentage="message.progress.percentage"
+        :status="progressStatus"
+        :stroke-width="6"
+        :show-text="true"
+      >
+        <template #default="{ percentage }">
+          <span class="progress-text">{{ percentage }}%</span>
+          <span v-if="message.progress?.message" class="progress-message">
+            {{ message.progress.message }}
+          </span>
+        </template>
+      </el-progress>
+    </div>
+
     <div class="outputs">
       <el-collapse v-model="activePanels" accordion>
         <el-collapse-item
@@ -28,11 +45,19 @@
             </div>
           </template>
           <div class="output-body" :style="outputBodyStyle">
+            <!-- 如果有显示组件，使用组件渲染 -->
             <component
               v-if="output.renderer"
               :is="output.renderer"
               :data="output.data"
+              :status="message.status"
+              :progress="message.progress"
+              :error="message.error"
+              :tool-config="toolConfig"
+              @update="handleComponentUpdate"
+              @cancel="handleComponentCancel"
             />
+            <!-- 否则使用纯文本渲染 -->
             <pre v-else class="raw-text">{{ formatOutput(output) }}</pre>
           </div>
         </el-collapse-item>
@@ -53,12 +78,33 @@ import type { ToolAgentMessage, ToolOutputDescriptor } from '../../types/agent'
 import { WarningFilled } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
+import { agentToolManager } from '../../utils/agent-tool-manager'
 
 const props = defineProps<{
   message: ToolAgentMessage
 }>()
 
 const { t } = useI18n()
+
+// 获取Tool配置
+const toolConfig = computed(() => {
+  const tool = agentToolManager.getTool(props.message.tool.id)
+  return tool?.config
+})
+
+// 处理组件更新（用于交互式组件）
+const handleComponentUpdate = (data: unknown) => {
+  // 这里可以触发Tool的更新回调
+  // 具体实现取决于交互需求
+  console.log('Component update:', data)
+}
+
+// 处理组件取消
+const handleComponentCancel = () => {
+  // 取消Tool执行
+  // 需要从message中获取invocationId
+  console.log('Component cancel')
+}
 
 const statusLabel = computed(() => {
   switch (props.message.status) {
@@ -133,6 +179,14 @@ const outputBodyStyle = computed(() => ({
   color: themeState.currentTheme.textColor,
   borderColor: contentBorderColor.value,
 }))
+
+// 进度条状态
+const progressStatus = computed(() => {
+  if (props.message.status === 'failed') return 'exception'
+  if (props.message.status === 'succeeded') return 'success'
+  if (props.message.status === 'running') return undefined
+  return undefined
+})
 </script>
 
 <style scoped>
@@ -220,6 +274,22 @@ const outputBodyStyle = computed(() => ({
 }
 .status-succeeded {
   border-color: rgba(103, 194, 58, 0.4);
+}
+
+.progress-container {
+  margin: 12px 0;
+  padding: 8px 0;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+
+.progress-message {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  margin-left: 8px;
 }
 </style>
 

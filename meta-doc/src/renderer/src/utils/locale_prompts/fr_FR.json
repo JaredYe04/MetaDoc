@@ -2,8 +2,8 @@
   "suggestionPresets": [],
   "presets": [],
   "prompts": {
-    "generateTitlePrompt": "Vous êtes un excellent éditeur. Ce qui suit est une structure JSON en arbre d'un aperçu d'article. Veuillez déterminer automatiquement de quoi parle l'article et générer un titre. N'incluez aucun autre contenu, uniquement le titre. La sortie doit être dans les 15 mots : {treeJson}",
-    "generateDescriptionPrompt": "Vous êtes un excellent éditeur. Ce qui suit est une structure JSON en arbre d'un aperçu d'article. Veuillez déterminer automatiquement de quoi parle l'article et générer un résumé d'article dans les 200 mots. N'incluez aucun autre contenu : {treeJson}",
+    "generateTitlePrompt": "Vous êtes un excellent éditeur. Ce qui suit est une structure JSON en arbre d'un aperçu d'article. Veuillez déterminer automatiquement de quoi parle l'article et générer un titre.\n\nVeuillez sortir le titre directement sans aucune explication, description ou autre contenu inutile. Le titre doit être dans les 15 mots.\n\nAperçu de l'article : {treeJson}",
+    "generateDescriptionPrompt": "Vous êtes un excellent éditeur. Ce qui suit est une structure JSON en arbre d'un aperçu d'article. Veuillez déterminer automatiquement de quoi parle l'article et générer un résumé d'article.\n\nVeuillez sortir le résumé directement sans aucune explication, description ou autre contenu inutile. Le résumé doit être dans les 200 mots.\n\nAperçu de l'article : {treeJson}",
     "generateKeywordsPrompt": "Vous êtes un assistant de rédaction de documents professionnel. Ce qui suit est la structure de contour d'un document (JSON) : {treeJson}. Veuillez générer 5-8 mots-clés de haute qualité basés sur le contenu du texte complet, et ne produire qu'un seul tableau JSON, tel que [\"Intelligence Artificielle\", \"Traitement de Texte\"], sans instructions supplémentaires.",
     "sectionChangePrompt": {
       "base": "Vous êtes un excellent assistant de rédaction de texte IA.",

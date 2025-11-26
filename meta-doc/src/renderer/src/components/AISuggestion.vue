@@ -402,10 +402,9 @@ async function generateAIText(preContext, postContext) {
   let prompt = suggestionCompletionPrompt(preContext, postContext);
   
   const autoCompletionMode = await getSetting("autoCompletionMode");
-  const enableKnowledgeBase = await getSetting("enableKnowledgeBase");
   try{
       generating = true;
-      const { handle, done } = createAiTask(t(`aiSuggestion.tooltip`), prompt, aiText, ai_types.chat, t(`aiSuggestion.tooltip`), enableKnowledgeBase, {
+      const { handle, done } = createAiTask(t(`aiSuggestion.tooltip`), prompt, aiText, ai_types.chat, t(`aiSuggestion.tooltip`),  {
       stream: !(autoCompletionMode === 'full')
   });
       currentAiHandle=handle;

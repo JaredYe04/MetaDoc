@@ -39,6 +39,10 @@ export interface ToolAgentMessage extends AgentMessageBase {
   summary?: string;
   outputs: ToolOutputDescriptor[];
   error?: string;
+  progress?: {
+    percentage: number;
+    message?: string;
+  };
 }
 
 export type AgentMessage = ChatAgentMessage | ThoughtAgentMessage | ToolAgentMessage;

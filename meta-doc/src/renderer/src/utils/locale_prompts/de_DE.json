@@ -2,8 +2,8 @@
   "suggestionPresets": [],
   "presets": [],
   "prompts": {
-    "generateTitlePrompt": "Sie sind ein ausgezeichneter Editor. Das Folgende ist eine Baum-JSON-Struktur eines Artikel-Umrisses. Bitte bestimmen Sie automatisch, worum es in dem Artikel geht, und generieren Sie einen Titel. Fügen Sie keinen anderen Inhalt hinzu, nur den Titel. Die Ausgabe muss innerhalb von 15 Wörtern liegen: {treeJson}",
-    "generateDescriptionPrompt": "Sie sind ein ausgezeichneter Editor. Das Folgende ist eine Baum-JSON-Struktur eines Artikel-Umrisses. Bitte bestimmen Sie automatisch, worum es in dem Artikel geht, und generieren Sie eine Artikelzusammenfassung innerhalb von 200 Wörtern. Fügen Sie keinen anderen Inhalt hinzu: {treeJson}",
+    "generateTitlePrompt": "Sie sind ein ausgezeichneter Editor. Das Folgende ist eine Baum-JSON-Struktur eines Artikel-Umrisses. Bitte bestimmen Sie automatisch, worum es in dem Artikel geht, und generieren Sie einen Titel.\n\nBitte geben Sie den Titel direkt aus, ohne Erklärungen, Beschreibungen oder andere unnötige Inhalte. Der Titel sollte innerhalb von 15 Wörtern liegen.\n\nArtikel-Umriss: {treeJson}",
+    "generateDescriptionPrompt": "Sie sind ein ausgezeichneter Editor. Das Folgende ist eine Baum-JSON-Struktur eines Artikel-Umrisses. Bitte bestimmen Sie automatisch, worum es in dem Artikel geht, und generieren Sie eine Artikelzusammenfassung.\n\nBitte geben Sie die Zusammenfassung direkt aus, ohne Erklärungen, Beschreibungen oder andere unnötige Inhalte. Die Zusammenfassung sollte innerhalb von 200 Wörtern liegen.\n\nArtikel-Umriss: {treeJson}",
     "generateKeywordsPrompt": "Sie sind ein professioneller Dokument-Editor-Assistent. Das Folgende ist die Umrissstruktur eines Dokuments (JSON): {treeJson}. Bitte generieren Sie 5-8 hochwertige Schlüsselwörter basierend auf dem vollständigen Textinhalt und geben Sie nur ein JSON-Array aus, wie [\"Künstliche Intelligenz\", \"Textverarbeitung\"], ohne zusätzliche Anweisungen.",
     "sectionChangePrompt": {
       "base": "Sie sind ein ausgezeichneter KI-Text-Editor-Assistent.",

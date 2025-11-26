@@ -470,14 +470,12 @@ const generateChildrenChildren = async () => {
 
     const rawStringRef = ref('');
     parallelChildren.value.push(rawStringRef);
-    const enableKnowledgeBase = await getSetting('enableKnowledgeBase');
     const { done } = createAiTask(
       curNode.title,
       prompt,
       rawStringRef,
       ai_types.answer,
       'outline-children-' + curNode.title,
-      enableKnowledgeBase
     );
 
     const task = done
@@ -570,14 +568,12 @@ const generateChildrenContent = async () => {
 
     const rawStringRef = ref('');
     parallelChildren.value.push(rawStringRef);
-    const enableKnowledgeBase = await getSetting("enableKnowledgeBase");
     const { done } = createAiTask(
       curNode.title,
       prompt,
       rawStringRef,
       ai_types.answer,
       'outline-content-' + curNode.title,
-      enableKnowledgeBase
     );
 
     const task = done
@@ -664,14 +660,12 @@ const generateContent = async () => {
     JSON.stringify(curNode),
     userPrompt.value
   );
-  const enableKnowledgeBase = await getSetting("enableKnowledgeBase");
   const { done } = createAiTask(
     curNode.title,
     prompt,
     rawstring,
     ai_types.answer,
     'outline-content-' + curNode.title,
-    enableKnowledgeBase
   );
   try {
     await done;
@@ -1270,14 +1264,12 @@ const generateChildChapter = async () => {
       userPrompt.value
     );
 
-    const enableKnowledgeBase = await getSetting("enableKnowledgeBase");
     const { done } = createAiTask(
       currentNode.title,
       prompt,
       rawstring,
       ai_types.answer,
       'outline-children-' + currentNode.title,
-      enableKnowledgeBase
     );
     try {
       await done;

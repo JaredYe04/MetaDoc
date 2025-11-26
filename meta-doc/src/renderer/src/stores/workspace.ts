@@ -622,6 +622,71 @@ async function saveAllDocuments(): Promise<{ saved: string[]; failed: string[] }
   return { saved, failed };
 }
 
+// ===== 跨窗口文档信息获取（用于设置窗口的Agent Tool测试） =====
+import { sendBroadcast } from '../utils/event-bus'
+
+/**
+ * 初始化workspace的跨窗口事件监听器
+ * 应该在应用启动时调用，而不是在模块加载时
+ */
+export function initializeWorkspaceBroadcastListeners(): void {
+  // 监听来自设置窗口的文档信息请求
+  eventBus.on('request-active-document-info', (requestId: string) => {
+    const doc = activeDocument.value
+    if (!doc) {
+      sendBroadcast('setting', 'response-active-document-info', {
+        requestId,
+        document: null,
+        error: '没有活动的文档'
+      })
+      return
+    }
+
+    // 根据文档格式获取对应的内容
+    // 对于 LaTeX 文档，优先使用 tex 内容；对于 Markdown 文档，使用 markdown 内容
+    const content = doc.format === 'tex' ? doc.tex : doc.markdown
+    const hasContent = Boolean(content && content.trim().length > 0)
+
+    // 发送文档信息（不包含完整内容，只包含必要信息）
+    sendBroadcast('setting', 'response-active-document-info', {
+      requestId,
+      document: {
+        id: doc.id,
+        tabId: doc.tabId,
+        path: doc.path,
+        format: doc.format,
+        meta: structuredCloneFallback(doc.meta),
+        outline: structuredCloneFallback(doc.outline),
+        markdown: doc.markdown,
+        tex: doc.tex,
+        hasContent: hasContent
+      }
+    })
+  })
+
+  // 监听来自设置窗口的文档内容请求
+  eventBus.on('request-document-content', (requestId: string) => {
+    const doc = activeDocument.value
+    if (!doc) {
+      sendBroadcast('setting', 'response-document-content', {
+        requestId,
+        content: null,
+        error: '没有活动的文档'
+      })
+      return
+    }
+
+    sendBroadcast('setting', 'response-document-content', {
+      requestId,
+      content: {
+        markdown: doc.markdown,
+        tex: doc.tex,
+        format: doc.format
+      }
+    })
+  })
+}
+
 export function useWorkspace() {
   return {
     tabs,

@@ -11,7 +11,8 @@
     "openAutoCompletion": "AI完了を有効にする",
     "openKnowledgeBase": "知識の有効化 立派な図書館",
     "locateToPdf": "PDFへの投稿",
-    "sectionOptimizer": "AIパラグラフの最適化"
+    "sectionOptimizer": "AIパラグラフの最適化",
+    "triggerAutoCompletion": "手動でAIの完了をトリガーする"
   },
   "headMenu": {
     "tooltip": "AI Agentベースのスマート文書処理ソフトウェア",
@@ -663,7 +664,11 @@
       "title": "デバッグツール",
       "undefined": "申し訳ございません。",
       "unitTest": "ユニットテスト"
-    }
+    },
+    "autoCompletionMaxTokens": "自動的に最高を完了して下さい トークン",
+    "autoCompletionMaxTokensHint": "AIの自動補完のためのトークンの最大数を制限します。, 最小で 20,0 無制限の",
+    "tokens": "トークン。",
+    "unlimited": "無制限"
   },
   "visualize": {
     "articleOutline": "記事のアウトライン",
@@ -940,6 +945,106 @@
       "state": "ステータス",
       "title": "ツール管理",
       "toggleAll": "すべてを選択 / なし"
+    },
+    "display": {
+      "autoTest": {
+        "copyFailed": "失敗したコピー",
+        "copyMarkdown": "マークダウンのコピー インフォメーション",
+        "copySuccess": "クリップボードにコピー",
+        "downloadFailed": "ダウンロード失敗",
+        "downloadMarkdown": "Markdownのダウンロード レポート",
+        "downloadSuccess": "ダウンロード成功",
+        "duration": "実施時間",
+        "error": "エラーメッセージ",
+        "executionTime": "実施時間",
+        "failed": "失敗した",
+        "markdownSummary": "マークダウンの概要",
+        "params": "パラメーター",
+        "passed": "パス。",
+        "result": "導入実績",
+        "testResults": "試験結果",
+        "totalTests": "トータルテスト"
+      },
+      "chartGeneration": {
+        "chartType": "チャートタイプ",
+        "converting": "PDFへの変換...",
+        "download": "ダウンロード",
+        "downloadFailed": "ダウンロード失敗",
+        "downloadSuccess": "ダウンロード成功",
+        "generating": "チャートコードを生成する...",
+        "generationFailed": "生成失敗",
+        "localPath": "ローカルパス",
+        "noChart": "ダウンロード可能チャートなし",
+        "noPreview": "チャートのプレビューをロードできません",
+        "rendering": "レンダリングチャート...",
+        "url": "サイトマップ",
+        "viewCode": "生成されたコードを表示"
+      },
+      "dataAnalysis": {
+        "aggregating": "方法に基づく収束解析...",
+        "aggregations": "集計",
+        "analysisFailed": "解析失敗",
+        "calculating": "説明の統計を計算する...",
+        "extracting": "フィールド情報抽出...",
+        "fieldCount": "フィールド",
+        "fields": "フィールド情報",
+        "groupBy": "プレス _PLACEHOLDER_000} をグループへ",
+        "nullable": "スタッフ",
+        "parsing": "データの解析",
+        "sampleValues": "サンプル値",
+        "stats": "説明 統計",
+        "summarizing": "分析要約を生成...",
+        "summary": "分析の概要",
+        "totalColumns": "総列",
+        "totalRows": "総行",
+        "uniqueValues": "ユニークな価値"
+      },
+      "ragTool": {
+        "hint": "ヒント: 類似性のしきい値を調整したり、知識ベースに関連文書がある場合に確認してみてください",
+        "noResults": "結果が見つかりません",
+        "results": "アウトカム",
+        "searchFailed": "失敗した検索",
+        "searching": "知識ベースを取得する..."
+      },
+      "terminalExecution": {
+        "aiSummary": "AI分析の概要",
+        "analyzingOutput": "出力分析...",
+        "approvalTitle": "ターミナルコマンド実行確認",
+        "approve": "導入承認",
+        "approveWithTrust": "実行 (trust モードを有効に)",
+        "commandToExecute": "コマンドを実行する:",
+        "executing": "実装中:",
+        "executingCommand": "コマンドを実行する...",
+        "executionFailed": "コマンド実行失敗",
+        "exitCode": "出口コード",
+        "outputPreview": "出力プレビュー:",
+        "reject": "Deny の実行",
+        "rejected": "コマンド実行拒否",
+        "resetTrust": "あらゆる質問へのリセット",
+        "stderr": "標準エラー:",
+        "stdout": "標準出力:",
+        "trustMode": "Trust モード: すべてのコマンドの自動実行(毎回確認なし)"
+      },
+      "todoList": {
+        "analyzing": "ユーザーの意図を分析...",
+        "cancelled": "キャンセル",
+        "completed": "完了しました",
+        "dependencies": "信頼性 {CLACEHOLDER_000} タスク",
+        "dueDate": "デッドライン",
+        "generating": "発生 _その他 組織",
+        "generationFailed": "生成失敗",
+        "high": "高い",
+        "inProgress": "オンゴーイング",
+        "low": "低い",
+        "medium": "メディア",
+        "noDueDate": "期限なし",
+        "noTags": "ラベルなし",
+        "pending": "ペンディング",
+        "priority": "優先順位",
+        "tags": "ラベル",
+        "totalTasks": "全体タスク",
+        "urgent": "緊急事態"
+      }
     }
   },
   "sectionOptimizer": {

@@ -133,14 +133,12 @@ const generateContent = async () => {
   }
   loading.value = true;
   try {
-    const enableKnowledgeBase = await getSetting('enableKnowledgeBase');
     await createAiTask(
       props.title,
       props.prompt,
       aiResponse,
       ai_types.answer,
       props.title,
-      enableKnowledgeBase,
     ).done;
   } catch (error) {
     ElMessage.error(t('llmDialog.generateFailedError'));

@@ -5,12 +5,81 @@
       <span>{{ getStageMessage(displayData.stage) }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed' && displayData.result" class="completed-state" :style="completedStateStyle">
-      <el-result icon="success" :title="$t('agent.display.edit.completed')" />
-      <div class="result-info" :style="resultInfoStyle">
-        <p><strong>{{ $t('agent.display.edit.appliedEdits') }}:</strong> {{ displayData.result.appliedEdits }}</p>
-        <p v-if="displayData.result.failedEdits > 0"><strong>{{ $t('agent.display.edit.failedEdits') }}:</strong> {{ displayData.result.failedEdits }}</p>
-        <p><strong>{{ $t('agent.display.edit.totalOperations') }}:</strong> {{ displayData.result.operations.length }}</p>
+    <div v-else-if="displayData.stage === 'completed' && resultData" class="completed-state" :style="completedStateStyle">
+      <div class="edit-header" :style="headerStyle">
+        <h3 class="edit-title" :style="titleStyle">{{ $t('agent.display.edit.title') }}</h3>
+        <div class="edit-stats" :style="statsStyle">
+          <el-tag type="success" size="small">{{ $t('agent.display.edit.appliedEdits') }}: {{ resultData.appliedEdits }}</el-tag>
+          <el-tag v-if="resultData.failedEdits > 0" type="danger" size="small">{{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}</el-tag>
+          <el-tag type="info" size="small">{{ $t('agent.display.edit.totalOperations') }}: {{ resultData.operations.length }}</el-tag>
+          <el-button-group class="mode-switch">
+            <el-button 
+              :type="viewMode === 'unified' ? 'primary' : 'default'" 
+              size="small"
+              @click="viewMode = 'unified'"
+            >
+              {{ $t('agent.display.edit.unifiedView') }}
+            </el-button>
+            <el-button 
+              :type="viewMode === 'split' ? 'primary' : 'default'" 
+              size="small"
+              @click="viewMode = 'split'"
+            >
+              {{ $t('agent.display.edit.splitView') }}
+            </el-button>
+          </el-button-group>
+        </div>
+      </div>
+
+      <!-- 统一视图（操作列表） -->
+      <div v-if="viewMode === 'unified'">
+        <el-scrollbar max-height="500px">
+          <div class="operations-list">
+            <div
+              v-for="(operation, index) in resultData.operations"
+              :key="index"
+              class="operation-item"
+              :style="operationItemStyle"
+            >
+              <div class="operation-header" :style="operationHeaderStyle">
+                <el-tag :type="getOperationTypeTag(operation.type)" size="small">
+                  {{ getOperationTypeLabel(operation.type) }}
+                </el-tag>
+                <span class="operation-range" :style="rangeStyle">
+                  {{ formatRange(operation.range) }}
+                </span>
+              </div>
+              <div class="operation-content" :style="contentStyle">
+                <div v-if="operation.type === 'insert' || operation.type === 'replace'" class="operation-new">
+                  <span class="content-label" :style="labelStyle">{{ $t('agent.display.edit.newContent') }}:</span>
+                  <pre class="content-text" :style="textStyle">{{ operation.content || '' }}</pre>
+                </div>
+                <div v-if="operation.type === 'delete' || operation.type === 'replace'" class="operation-old">
+                  <span class="content-label" :style="labelStyle">{{ $t('agent.display.edit.oldContent') }}:</span>
+                  <pre class="content-text deleted-text" :style="deletedTextStyle">{{ getOldContent(operation) }}</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-scrollbar>
+      </div>
+
+      <!-- 分列视图（Monaco 编辑器对比） -->
+      <div v-else class="split-view-container">
+        <div class="split-editors">
+          <div class="editor-panel old-panel">
+            <div class="editor-header" :style="editorHeaderStyle">
+              <span class="editor-label">{{ $t('agent.display.edit.oldContent') }}</span>
+            </div>
+            <div :id="oldEditorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
+          </div>
+          <div class="editor-panel new-panel">
+            <div class="editor-header" :style="editorHeaderStyle">
+              <span class="editor-label">{{ $t('agent.display.edit.newContent') }}</span>
+            </div>
+            <div :id="newEditorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -25,12 +94,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
+import * as monaco from 'monaco-editor'
+import type { EditResult, EditOperation } from '../edit-tool'
+import { useWorkspace } from '../../../stores/workspace'
 
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps>()
@@ -42,17 +114,23 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
   props.progress
 )
 
+const viewMode = ref<'unified' | 'split'>('unified')
+const oldEditorId = ref(`edit-old-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+const newEditorId = ref(`edit-new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+let oldMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
+let newMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
+
+const workspace = useWorkspace()
+
 const displayData = computed(() => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
   
   if (parsed && typeof parsed === 'object') {
-    // 根据status确定stage，优先使用数据中的stage，如果没有则根据status推断
     const getStage = (): 'loading' | 'applying' | 'updating' | 'completed' | 'error' => {
       if (parsed.stage) {
         return parsed.stage
       }
-      // 根据status推断stage
       if (props.status === 'succeeded') {
         return 'completed'
       }
@@ -68,7 +146,6 @@ const displayData = computed(() => {
     }
   }
   
-  // 如果没有数据，根据status设置默认stage
   const defaultStage = props.status === 'succeeded' ? 'completed' : (props.status === 'failed' ? 'error' : 'loading')
   return {
     stage: defaultStage,
@@ -77,12 +154,290 @@ const displayData = computed(() => {
   }
 })
 
+const resultData = computed((): EditResult | null => {
+  const data = displayData.value
+  if (data && typeof data === 'object') {
+    const result = data.result || data.content?.result || data
+    if (result && result.operations && Array.isArray(result.operations)) {
+      return result as EditResult
+    }
+  }
+  return null
+})
+
+// 获取原始文档内容（用于显示编辑前的状态）
+const originalContent = computed(() => {
+  // 从编辑操作中还原原始内容
+  if (!resultData.value || !resultData.value.newContent) return ''
+  
+  // 尝试从 workspace 获取当前文档
+  const activeTabId = workspace.activeTabId.value
+  if (activeTabId) {
+    const doc = workspace.ensureDocument(activeTabId)
+    if (doc) {
+      // 从新内容反向计算原始内容
+      // 这里简化处理：从 operations 中提取删除的内容
+      // 实际应该存储原始内容，这里先返回空字符串
+      return ''
+    }
+  }
+  return ''
+})
+
+const oldContent = computed(() => {
+  return resultData.value?.originalContent || ''
+})
+
+const newContent = computed(() => {
+  return resultData.value?.newContent || ''
+})
+
 const getStageMessage = (stage: string) => {
   if (stage === 'loading') return t('agent.display.edit.loading')
   if (stage === 'applying') return t('agent.display.edit.applying')
   if (stage === 'updating') return t('agent.display.edit.updating')
   return t('agent.display.edit.processing')
 }
+
+const formatRange = (range: { start: { line: number; column: number }; end: { line: number; column: number } }) => {
+  if (range.start.line === range.end.line && range.start.column === range.end.column) {
+    return `行 ${range.start.line}, 列 ${range.start.column}`
+  }
+  return `行 ${range.start.line}:${range.start.column} - ${range.end.line}:${range.end.column}`
+}
+
+const getOldContent = (operation: EditOperation) => {
+  if (!resultData.value?.originalContent) return ''
+  
+  if (operation.type === 'delete' || operation.type === 'replace') {
+    // 从原始内容中提取被删除/替换的部分
+    const lines = resultData.value.originalContent.split(/\r?\n/)
+    if (operation.range.start.line > 0 && operation.range.start.line <= lines.length) {
+      const lineIndex = operation.range.start.line - 1
+      const line = lines[lineIndex]
+      
+      if (operation.range.start.line === operation.range.end.line) {
+        // 同一行的内容
+        const startCol = operation.range.start.column - 1
+        const endCol = operation.range.end.column - 1
+        return line.substring(startCol, endCol)
+      } else {
+        // 跨行的内容
+        let content = line.substring(operation.range.start.column - 1) + '\n'
+        for (let i = operation.range.start.line; i < operation.range.end.line - 1; i++) {
+          content += lines[i] + '\n'
+        }
+        content += lines[operation.range.end.line - 1].substring(0, operation.range.end.column - 1)
+        return content
+      }
+    }
+  }
+  return ''
+}
+
+const getOperationTypeTag = (type: string) => {
+  const map: Record<string, string> = {
+    insert: 'success',
+    replace: 'warning',
+    delete: 'danger'
+  }
+  return map[type] || 'info'
+}
+
+const getOperationTypeLabel = (type: string) => {
+  const map: Record<string, string> = {
+    insert: t('agent.display.edit.type.insert'),
+    replace: t('agent.display.edit.type.replace'),
+    delete: t('agent.display.edit.type.delete')
+  }
+  return map[type] || type
+}
+
+// 初始化 Monaco 编辑器（分列视图）
+const initMonacoEditors = async () => {
+  if (viewMode.value !== 'split') return
+  
+  await nextTick()
+  
+  const oldContainer = document.getElementById(oldEditorId.value)
+  const newContainer = document.getElementById(newEditorId.value)
+  
+  if (!oldContainer || !newContainer) {
+    console.warn('Monaco编辑器容器未找到')
+    return
+  }
+
+  // 从全局获取编辑器实例
+  const editors = monaco.editor.getEditors()
+  const oldEditor = editors.find(e => e.getId?.() === oldEditorId.value)
+  const newEditor = editors.find(e => e.getId?.() === newEditorId.value)
+  
+  if (oldEditor) {
+    oldEditor.dispose()
+  }
+  if (newEditor) {
+    newEditor.dispose()
+  }
+
+  // 创建旧内容编辑器（使用空内容，因为无法完全重构）
+  oldMonacoEditor = monaco.editor.create(oldContainer, {
+    value: oldContent.value || '',
+    language: 'plaintext',
+    theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
+    readOnly: true,
+    lineNumbers: 'on',
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    wordWrap: 'on',
+    automaticLayout: true,
+    fontSize: 13,
+    fontFamily: 'JetBrains Mono, Consolas, monospace',
+    renderLineHighlight: 'all'
+  })
+
+  // 创建新内容编辑器
+  newMonacoEditor = monaco.editor.create(newContainer, {
+    value: newContent.value || '',
+    language: 'plaintext',
+    theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
+    readOnly: true,
+    lineNumbers: 'on',
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    wordWrap: 'on',
+    automaticLayout: true,
+    fontSize: 13,
+    fontFamily: 'JetBrains Mono, Consolas, monospace',
+    renderLineHighlight: 'all'
+  })
+
+  // 同步滚动
+  oldMonacoEditor.onDidScrollChange((e) => {
+    if (e.scrollTop !== undefined) {
+      newMonacoEditor?.setScrollTop(e.scrollTop)
+    }
+    if (e.scrollLeft !== undefined) {
+      newMonacoEditor?.setScrollLeft(e.scrollLeft)
+    }
+  })
+
+  newMonacoEditor.onDidScrollChange((e) => {
+    if (e.scrollTop !== undefined) {
+      oldMonacoEditor?.setScrollTop(e.scrollTop)
+    }
+    if (e.scrollLeft !== undefined) {
+      oldMonacoEditor?.setScrollLeft(e.scrollLeft)
+    }
+  })
+
+  // 高亮编辑区域（如果有 operations）
+  if (resultData.value && resultData.value.operations.length > 0) {
+    highlightEdits()
+  }
+}
+
+const highlightEdits = () => {
+  if (!oldMonacoEditor || !newMonacoEditor || !resultData.value) return
+  
+  const oldDecorations: monaco.editor.IModelDeltaDecoration[] = []
+  const newDecorations: monaco.editor.IModelDeltaDecoration[] = []
+  
+  for (const op of resultData.value.operations) {
+    if (op.type === 'delete' || op.type === 'replace') {
+      // 在旧编辑器中高亮删除的部分
+      const range = new monaco.Range(
+        op.range.start.line,
+        op.range.start.column,
+        op.range.end.line,
+        op.range.end.column
+      )
+      oldDecorations.push({
+        range,
+        options: {
+          isWholeLine: op.range.start.line === op.range.end.line,
+          className: 'edit-line-delete',
+          minimap: {
+            color: 'rgba(245, 108, 108, 0.3)',
+            position: monaco.editor.MinimapPosition.Inline
+          }
+        }
+      })
+    }
+    
+    if (op.type === 'insert' || op.type === 'replace') {
+      // 在新编辑器中高亮插入的部分
+      // 需要计算插入后的位置（简化处理）
+      const range = new monaco.Range(
+        op.range.start.line,
+        op.range.start.column,
+        op.range.start.line,
+        op.range.start.column + (op.content?.length || 0)
+      )
+      newDecorations.push({
+        range,
+        options: {
+          isWholeLine: false,
+          className: 'edit-line-insert',
+          minimap: {
+            color: 'rgba(103, 194, 58, 0.3)',
+            position: monaco.editor.MinimapPosition.Inline
+          }
+        }
+      })
+    }
+  }
+  
+  oldMonacoEditor.deltaDecorations([], oldDecorations)
+  newMonacoEditor.deltaDecorations([], newDecorations)
+}
+
+const disposeMonacoEditors = () => {
+  if (oldMonacoEditor) {
+    oldMonacoEditor.dispose()
+    oldMonacoEditor = null
+  }
+  if (newMonacoEditor) {
+    newMonacoEditor.dispose()
+    newMonacoEditor = null
+  }
+}
+
+// 监听视图模式变化
+watch(viewMode, async (newMode) => {
+  if (newMode === 'split') {
+    await nextTick()
+    initMonacoEditors()
+  } else {
+    disposeMonacoEditors()
+  }
+})
+
+// 监听内容变化
+watch([() => resultData.value, oldContent, newContent], async () => {
+  if (viewMode.value === 'split' && resultData.value) {
+    await nextTick()
+    initMonacoEditors()
+  }
+})
+
+// 监听主题变化
+watch(() => themeState.currentTheme.type, () => {
+  if (viewMode.value === 'split') {
+    const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
+    monaco.editor.setTheme(theme)
+  }
+})
+
+onMounted(async () => {
+  if (viewMode.value === 'split' && resultData.value) {
+    await nextTick()
+    initMonacoEditors()
+  }
+})
+
+onBeforeUnmount(() => {
+  disposeMonacoEditors()
+})
 
 const containerStyle = computed(() => ({
   padding: '16px',
@@ -105,18 +460,167 @@ const completedStateStyle = computed(() => ({
   color: themeState.currentTheme.textColor
 }))
 
-const resultInfoStyle = computed(() => ({
-  marginTop: '16px',
-  padding: '12px',
+const headerStyle = computed(() => ({
+  marginBottom: '16px',
+  paddingBottom: '12px',
+  borderBottom: `1px solid ${themeState.currentTheme.textColor2}20`,
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: '12px'
+}))
+
+const titleStyle = computed(() => ({
+  color: themeState.currentTheme.textColor,
+  margin: 0
+}))
+
+const statsStyle = computed(() => ({
+  display: 'flex',
+  gap: '8px',
+  flexWrap: 'wrap',
+  alignItems: 'center'
+}))
+
+const operationItemStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
+  border: `1px solid ${themeState.currentTheme.textColor2}20`,
   borderRadius: '6px',
-  color: themeState.currentTheme.textColor
+  padding: '12px',
+  marginBottom: '12px'
+}))
+
+const operationHeaderStyle = computed(() => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  marginBottom: '8px'
+}))
+
+const rangeStyle = computed(() => ({
+  color: themeState.currentTheme.textColor2,
+  fontSize: '12px',
+  fontFamily: 'monospace'
+}))
+
+const contentStyle = computed(() => ({
+  marginTop: '8px',
+  paddingTop: '8px',
+  borderTop: `1px solid ${themeState.currentTheme.textColor2}10`
+}))
+
+const labelStyle = computed(() => ({
+  color: themeState.currentTheme.textColor2,
+  fontSize: '12px',
+  fontWeight: '500',
+  marginBottom: '4px',
+  display: 'block'
+}))
+
+const textStyle = computed(() => ({
+  color: themeState.currentTheme.textColor,
+  fontFamily: 'JetBrains Mono, Consolas, monospace',
+  fontSize: '13px',
+  margin: 0,
+  padding: '8px',
+  backgroundColor: themeState.currentTheme.background2nd,
+  borderRadius: '4px',
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word'
+}))
+
+const deletedTextStyle = computed(() => ({
+  ...textStyle.value,
+  textDecoration: 'line-through',
+  color: themeState.currentTheme.textColor2
+}))
+
+const editorHeaderStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd,
+  color: themeState.currentTheme.textColor,
+  borderBottom: `1px solid ${themeState.currentTheme.textColor2}20`,
+  padding: '8px 12px',
+  fontSize: '13px',
+  fontWeight: '500'
+}))
+
+const editorContainerStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  height: '500px'
 }))
 </script>
 
 <style scoped>
 .edit-display {
   width: 100%;
+}
+
+.edit-header {
+  margin-bottom: 16px;
+}
+
+.mode-switch {
+  margin-left: auto;
+}
+
+.operations-list {
+  padding: 8px;
+}
+
+.operation-item {
+  transition: all 0.2s;
+}
+
+.operation-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.operation-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.content-text {
+  margin: 0;
+}
+
+.deleted-text {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.split-view-container {
+  width: 100%;
+  height: 500px;
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: v-bind('themeState.currentTheme.background');
+}
+
+.split-editors {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.editor-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid v-bind('themeState.currentTheme.borderColor');
+  overflow: hidden;
+}
+
+.editor-panel:last-child {
+  border-right: none;
+}
+
+.monaco-editor-container {
+  flex: 1;
+  min-height: 0;
 }
 
 .is-loading {
@@ -130,6 +634,17 @@ const resultInfoStyle = computed(() => ({
   to {
     transform: rotate(360deg);
   }
+}
+</style>
+
+<style>
+/* 全局样式：Monaco 编辑器的编辑高亮 */
+.edit-line-delete {
+  background-color: rgba(245, 108, 108, 0.1) !important;
+}
+
+.edit-line-insert {
+  background-color: rgba(103, 194, 58, 0.1) !important;
 }
 </style>
 

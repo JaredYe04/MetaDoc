@@ -40,6 +40,7 @@ export interface EditResult {
   failedEdits: number
   operations: EditOperation[]
   newContent: string
+  originalContent?: string  // 原始内容（用于显示对比）
 }
 
 /**
@@ -205,7 +206,8 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         stage: 'loading',
         editCount: edits.length
       },
-      format: 'json'
+      format: 'json',
+      componentName: 'EditDisplay'
     }, {
       percentage: 10,
       message: i18n.global.t('agent.tool.edit.progress.loading', '正在加载文档...')
@@ -237,7 +239,8 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         editCount: edits.length,
         currentEdit: 0
       },
-      format: 'json'
+      format: 'json',
+      componentName: 'EditDisplay'
     }, {
       percentage: 30,
       message: i18n.global.t('agent.tool.edit.progress.applying', '正在应用编辑...')
@@ -279,7 +282,8 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         appliedCount,
         failedCount
       },
-      format: 'json'
+      format: 'json',
+      componentName: 'EditDisplay'
     }, {
       percentage: 80,
       message: i18n.global.t('agent.tool.edit.progress.updating', '正在更新文档...')
@@ -295,7 +299,8 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       appliedEdits: appliedCount,
       failedEdits: failedCount,
       operations: edits,
-      newContent
+      newContent,
+      originalContent: currentContent  // 保存原始内容用于显示对比
     }
 
     onUpdate({
@@ -303,7 +308,8 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         stage: 'completed',
         result
       },
-      format: 'json'
+      format: 'json',
+      componentName: 'EditDisplay'
     }, {
       percentage: 100,
       message: i18n.global.t('agent.tool.edit.progress.completed', `编辑完成，成功应用 ${appliedCount} 个编辑`)
@@ -316,7 +322,8 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           stage: 'completed',
           result
         },
-        format: 'json'
+        format: 'json',
+        componentName: 'EditDisplay'
       },
       result
     }

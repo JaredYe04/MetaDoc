@@ -3,7 +3,7 @@
     <el-tabs v-model="activeTab" type="border-card" tab-position="top">
       <!-- EventBus 事件测试 -->
       <el-tab-pane :label="$t('setting.debug.eventBus')" name="eventbus">
-        <div class="test-panel">
+        <div class="test-panel" :style="testPanelStyle">
           <el-form :model="eventBusForm" label-width="140px">
             <el-form-item :label="$t('setting.debug.eventName')">
               <el-input
@@ -30,7 +30,7 @@
 
       <!-- 广播事件测试 -->
       <el-tab-pane :label="$t('setting.debug.broadcast')" name="broadcast">
-        <div class="test-panel">
+        <div class="test-panel" :style="testPanelStyle">
           <el-form :model="broadcastForm" label-width="140px">
             <el-form-item :label="$t('setting.debug.targetWindow')">
               <el-select v-model="broadcastForm.to" style="width: 100%">
@@ -68,7 +68,7 @@
 
       <!-- Agent Tool测试 -->
       <el-tab-pane label="Agent Tool测试" name="agenttool">
-        <div class="test-panel">
+        <div class="test-panel" :style="testPanelStyle">
           <el-form :model="toolTestForm" label-width="140px">
             <!-- 从test-cases.json选择测试用例 - 移到最顶部 -->
             <el-form-item label="测试用例">
@@ -216,14 +216,15 @@
           </el-form>
 
           <!-- 测试结果 -->
-          <div class="test-result" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; margin-top: 20px;">
+          <div class="test-result" :style="{ ...testResultStyle, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginTop: '20px' }">
             <el-divider style="margin-top: 0;">执行结果</el-divider>
             <el-scrollbar style="flex: 1; height: 0;">
-              <div
+                <div
                 v-for="(entry, index) in toolTestHistory"
                 :key="index"
                 class="test-history-item"
                 :class="{ 'test-error': entry.error }"
+                :style="entry.error ? testHistoryItemErrorStyle : testHistoryItemStyle"
               >
                 <div class="test-history-header">
                   <span class="test-name">{{ entry.toolName }}</span>
@@ -270,13 +271,13 @@
                   </el-progress>
                 </div>
                 
-                <div v-if="entry.params" class="test-params">
+                <div v-if="entry.params" class="test-params" :style="{ color: themeState.currentTheme.textColor }">
                   <strong>参数:</strong>
-                  <pre>{{ typeof entry.params === 'string' ? entry.params : JSON.stringify(entry.params, null, 2) }}</pre>
+                  <pre :style="codeBlockStyle">{{ typeof entry.params === 'string' ? entry.params : JSON.stringify(entry.params, null, 2) }}</pre>
                 </div>
-                <div v-if="entry.error" class="test-error-message">
+                <div v-if="entry.error" class="test-error-message" :style="{ color: themeState.currentTheme.textColor }">
                   <strong>错误:</strong>
-                  <pre>{{ entry.error }}</pre>
+                  <pre :style="{ ...codeBlockStyle, backgroundColor: themeState.currentTheme.type === 'dark' ? 'rgba(245, 108, 108, 0.15)' : '#fef0f0', color: '#f56c6c' }">{{ entry.error }}</pre>
                 </div>
                 
                 <!-- 如果有显示组件，展示渲染卡片 -->
@@ -297,8 +298,8 @@
                       <div class="output-body">
                         <!-- 如果有渲染组件，使用组件渲染 -->
                         <component
-                          v-if="output.renderer && getDisplayComponent(output.renderer)"
-                          :is="getDisplayComponent(output.renderer)"
+                          v-if="getDisplayComponent(output.renderer || entry.displayComponent)"
+                          :is="getDisplayComponent(output.renderer || entry.displayComponent)"
                           :data="output.data"
                           :status="entry.error ? 'failed' : (entry.status || 'succeeded')"
                           :progress="entry.progress"
@@ -307,19 +308,19 @@
                           :invocation-id="entry.invocationId"
                         />
                         <!-- 否则使用纯文本渲染 -->
-                        <pre v-else class="raw-text">{{ formatResult(output.data) }}</pre>
+                        <pre v-else class="raw-text" :style="codeBlockStyle">{{ formatResult(output.data) }}</pre>
                       </div>
                     </el-collapse-item>
                   </el-collapse>
                 </div>
                 
                 <!-- 原始结果数据 -->
-                <div v-if="entry.result !== undefined" class="test-result-data">
+                <div v-if="entry.result !== undefined" class="test-result-data" :style="{ color: themeState.currentTheme.textColor }">
                   <el-divider>原始结果</el-divider>
-                  <pre>{{ formatResult(entry.result) }}</pre>
+                  <pre :style="codeBlockStyle">{{ formatResult(entry.result) }}</pre>
                 </div>
               </div>
-              <div v-if="toolTestHistory.length === 0" class="test-empty">
+              <div v-if="toolTestHistory.length === 0" class="test-empty" :style="testEmptyStyle">
                 暂无测试历史
               </div>
             </el-scrollbar>
@@ -329,7 +330,7 @@
 
       <!-- Agent Tool自动测试 -->
       <el-tab-pane label="Tool自动测试" name="autotest">
-        <div class="test-panel">
+        <div class="test-panel" :style="testPanelStyle">
           <el-form :model="autoTestForm" label-width="140px">
             <el-form-item label="选择要测试的Tool">
               <el-select
@@ -392,7 +393,7 @@
 
       <!-- 单元测试 -->
       <el-tab-pane :label="$t('setting.debug.unitTest')" name="unittest">
-        <div class="test-panel">
+        <div class="test-panel" :style="testPanelStyle">
           <el-form :model="testForm" label-width="140px">
             <el-form-item :label="$t('setting.debug.module')">
               <el-select
@@ -478,6 +479,7 @@
                 :key="index"
                 class="test-history-item"
                 :class="{ 'test-error': entry.error }"
+                :style="entry.error ? testHistoryItemErrorStyle : testHistoryItemStyle"
               >
                 <div class="test-history-header">
                   <span class="test-name">{{ entry.name }}</span>
@@ -561,9 +563,19 @@ import RAGToolDisplay from '../../utils/agent-tools/components/RAGToolDisplay.vu
 import TodoListDisplay from '../../utils/agent-tools/components/TodoListDisplay.vue';
 import DataAnalysisDisplay from '../../utils/agent-tools/components/DataAnalysisDisplay.vue';
 import TerminalExecutionDisplay from '../../utils/agent-tools/components/TerminalExecutionDisplay.vue';
+import GrepDisplay from '../../utils/agent-tools/components/GrepDisplay.vue';
+import WebCrawlerDisplay from '../../utils/agent-tools/components/WebCrawlerDisplay.vue';
+import EditDisplay from '../../utils/agent-tools/components/EditDisplay.vue';
+import ProofreadDisplay from '../../utils/agent-tools/components/ProofreadDisplay.vue';
+import DiffDisplay from '../../utils/agent-tools/components/DiffDisplay.vue';
+import ColorDisplay from '../../utils/agent-tools/components/ColorDisplay.vue';
+import MetadataDisplay from '../../utils/agent-tools/components/MetadataDisplay.vue';
+import OutlineTreeDisplay from '../../utils/agent-tools/components/OutlineTreeDisplay.vue';
+import OutlineOptimizeDisplay from '../../utils/agent-tools/components/OutlineOptimizeDisplay.vue';
 import AutoTestResultDisplay, { type TestResult } from '../../utils/agent-tools/components/AutoTestResultDisplay.vue';
 import { onToolUpdate, onToolComplete, onToolFailed } from '../../utils/agent-tools/tool-display-communication';
 import testCasesData from '../../utils/agent-tools/test-data/test-cases.json';
+import { themeState } from '../../utils/themes';
 
 // 组件映射
 const componentMap: Record<string, any> = {
@@ -571,11 +583,53 @@ const componentMap: Record<string, any> = {
   'RAGToolDisplay': RAGToolDisplay,
   'TodoListDisplay': TodoListDisplay,
   'DataAnalysisDisplay': DataAnalysisDisplay,
-  'TerminalExecutionDisplay': TerminalExecutionDisplay
+  'TerminalExecutionDisplay': TerminalExecutionDisplay,
+  'GrepDisplay': GrepDisplay,
+  'WebCrawlerDisplay': WebCrawlerDisplay,
+  'EditDisplay': EditDisplay,
+  'ProofreadDisplay': ProofreadDisplay,
+  'DiffDisplay': DiffDisplay,
+  'ColorDisplay': ColorDisplay,
+  'MetadataDisplay': MetadataDisplay,
+  'OutlineTreeDisplay': OutlineTreeDisplay,
+  'OutlineOptimizeDisplay': OutlineOptimizeDisplay
+}
+
+// 从工具配置中提取组件名称
+const extractComponentName = (displayComponent: any): string | undefined => {
+  if (!displayComponent) return undefined
+  
+  // 如果是字符串，直接返回
+  if (typeof displayComponent === 'string') {
+    return displayComponent
+  }
+  
+  // 如果是组件对象，尝试提取名称
+  if (typeof displayComponent === 'object') {
+    // 方法1：从组件对象的name属性获取
+    const name = displayComponent.name || 
+                 displayComponent.__name || 
+                 displayComponent.displayName
+    
+    // 如果找到名称，检查它是否在componentMap中
+    if (name && typeof name === 'string' && componentMap[name]) {
+      return name
+    }
+    
+    // 方法2：通过对象引用在componentMap中查找
+    for (const [key, value] of Object.entries(componentMap)) {
+      if (value === displayComponent) {
+        return key
+      }
+    }
+  }
+  
+  return undefined
 }
 
 // 获取组件
-const getDisplayComponent = (componentName: string) => {
+const getDisplayComponent = (componentName: string | undefined) => {
+  if (!componentName || typeof componentName !== 'string') return null
   return componentMap[componentName] || null
 }
 
@@ -891,6 +945,40 @@ const getToolDisplayName = (config: any): string => {
 }
 
 // 获取当前选中工具的instruction
+// 测试界面主题样式
+const testResultStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd,
+  borderColor: themeState.currentTheme.borderColor,
+  color: themeState.currentTheme.textColor
+}))
+
+const testHistoryItemStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  borderColor: themeState.currentTheme.borderColor,
+  color: themeState.currentTheme.textColor
+}))
+
+const testHistoryItemErrorStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.type === 'dark' ? 'rgba(245, 108, 108, 0.15)' : '#fef0f0',
+  borderColor: '#f56c6c',
+  color: themeState.currentTheme.textColor
+}))
+
+const testPanelStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  color: themeState.currentTheme.textColor
+}))
+
+const codeBlockStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.codeBgColor || themeState.currentTheme.background2nd,
+  color: themeState.currentTheme.codeColor || themeState.currentTheme.textColor,
+  borderColor: themeState.currentTheme.borderColor
+}))
+
+const testEmptyStyle = computed(() => ({
+  color: themeState.currentTheme.textColor2
+}))
+
 const currentToolInstruction = computed(() => {
   if (!toolTestForm.toolId) {
     return '';
@@ -1227,9 +1315,7 @@ const executeToolTest = async () => {
       params: JSON.stringify(params, null, 2),
       outputs: [],
       progress: undefined,
-      displayComponent: typeof tool.config.displayComponent === 'string' 
-        ? tool.config.displayComponent 
-        : ((tool.config.displayComponent as any)?.name || (tool.config.displayComponent as any)?.__name),
+      displayComponent: extractComponentName(tool.config.displayComponent),
       error: undefined,
       invocationId: undefined,
       toolConfig: tool.config
@@ -2191,14 +2277,17 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background-color: v-bind('themeState.currentTheme.background');
+  color: v-bind('themeState.currentTheme.textColor');
 }
 
 .test-result {
   margin-top: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
   border-radius: 8px;
   padding: 16px;
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.textColor');
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -2218,14 +2307,15 @@ onMounted(async () => {
 .test-history-item {
   margin-bottom: 16px;
   padding: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
   border-radius: 6px;
-  background-color: #fff;
+  background-color: v-bind('themeState.currentTheme.background');
+  color: v-bind('themeState.currentTheme.textColor');
 }
 
 .test-history-item.test-error {
   border-color: #f56c6c;
-  background-color: #fef0f0;
+  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(245, 108, 108, 0.15)" : "#fef0f0"');
 }
 
 .test-history-header {
@@ -2233,6 +2323,12 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+  font-weight: 600;
+  color: v-bind('themeState.currentTheme.textColor');
+}
+
+.test-name {
+  color: v-bind('themeState.currentTheme.textColor');
   font-weight: 600;
 }
 
@@ -2259,7 +2355,7 @@ onMounted(async () => {
 
 .test-time {
   font-size: 12px;
-  color: #909399;
+  color: v-bind('themeState.currentTheme.textColor2');
   font-weight: normal;
 }
 
@@ -2268,6 +2364,7 @@ onMounted(async () => {
 .test-error-message {
   margin-top: 8px;
   font-size: 13px;
+  color: v-bind('themeState.currentTheme.textColor');
 }
 
 .test-params pre,
@@ -2275,7 +2372,9 @@ onMounted(async () => {
 .test-error-message pre {
   margin: 4px 0 0 0;
   padding: 8px;
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: v-bind('themeState.currentTheme.codeBgColor || themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.codeColor || themeState.currentTheme.textColor');
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
   border-radius: 4px;
   overflow-x: auto;
   font-size: 12px;
@@ -2283,14 +2382,34 @@ onMounted(async () => {
 }
 
 .test-error-message pre {
-  background-color: #fef0f0;
+  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(245, 108, 108, 0.15)" : "#fef0f0"');
   color: #f56c6c;
 }
 
 .test-empty {
   text-align: center;
-  color: #909399;
+  color: v-bind('themeState.currentTheme.textColor2');
   padding: 40px 0;
+}
+
+.raw-text {
+  background-color: v-bind('themeState.currentTheme.codeBgColor || themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.codeColor || themeState.currentTheme.textColor');
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
+  border-radius: 4px;
+  padding: 8px;
+  margin: 4px 0 0 0;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.test-params strong,
+.test-result-data strong,
+.test-error-message strong {
+  color: v-bind('themeState.currentTheme.textColor');
 }
 
 .auto-test-results {
@@ -2312,6 +2431,7 @@ onMounted(async () => {
 .test-progress-info {
   padding: 20px;
   text-align: center;
+  color: v-bind('themeState.currentTheme.textColor');
 }
 
 /* 确保 el-form 不会超出容器，并且根据内容自适应高度 */

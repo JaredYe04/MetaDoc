@@ -16,6 +16,7 @@ import { i18n } from '../../i18n'
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
 import localIpcRenderer from '../web-adapter/local-ipc-renderer'
 import { webMainCalls } from '../web-adapter/web-main-calls'
+import WebCrawlerDisplay from './components/WebCrawlerDisplay.vue'
 
 const logger = createRendererLogger('WebCrawlerTool')
 
@@ -163,13 +164,24 @@ async function executeAxios(
   signal?: AbortSignal
 ): Promise<{ status: number; statusText: string; headers: Record<string, string>; content: string; contentType: string }> {
   try {
+    // 过滤掉浏览器不允许设置的请求头（如 User-Agent, Referer, Host 等）
+    // 这些头由浏览器自动控制，无法手动设置
+    // 如果需要设置这些头，应该使用代理模式（useCurl=true）
+    const forbiddenHeaders = ['user-agent', 'referer', 'host', 'connection', 'upgrade', 'content-length']
+    const filteredHeaders: Record<string, string> = {}
+    for (const [key, value] of Object.entries(headers)) {
+      const lowerKey = key.toLowerCase()
+      if (!forbiddenHeaders.includes(lowerKey)) {
+        filteredHeaders[key] = value
+      } else {
+        logger.debug(`跳过不允许设置的请求头: ${key} (浏览器自动控制)`)
+      }
+    }
+
     const config: AxiosRequestConfig = {
       method: method as any,
       url,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        ...headers
-      },
+      headers: filteredHeaders,
       timeout,
       signal,
       // 对于HTML响应，不自动解析为JSON
@@ -248,8 +260,19 @@ async function executeAxios(
       }
       // CORS错误或其他网络错误
       const errorMessage = error.message || '未知网络错误'
-      if (errorMessage.includes('CORS') || errorMessage.includes('Network Error') || error.code === 'ERR_NETWORK') {
-        throw new Error(`网络错误: CORS限制或网络连接失败。某些网站可能不允许跨域访问，建议使用支持CORS的API或通过代理访问。原始错误: ${errorMessage}`)
+      const isCorsError = errorMessage.includes('CORS') || 
+                          errorMessage.includes('Access-Control-Allow-Origin') ||
+                          errorMessage.includes('Network Error') || 
+                          error.code === 'ERR_NETWORK' ||
+                          error.code === 'ERR_CORS' ||
+                          (!error.response && !error.request) // 如果没有响应也没有请求，可能是 CORS 阻止
+      
+      if (isCorsError) {
+        // 标记为 CORS 错误，让调用者知道需要切换到代理模式
+        const corsError = new Error(`CORS_ERROR: ${errorMessage}`) as any
+        corsError.isCorsError = true
+        corsError.originalError = error
+        throw corsError
       }
       throw new Error(`网络错误: ${errorMessage}`)
     }
@@ -295,7 +318,8 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
         method,
         useProxy: useCurl
       },
-      format: 'json'
+      format: 'json',
+      componentName: 'WebCrawlerDisplay'
     }, {
       percentage: 20,
       message: i18n.global.t('agent.tool.crawler.progress.fetching', useCurl ? '正在通过代理访问URL...' : '正在访问URL...')
@@ -314,10 +338,40 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
       } catch (axiosError: any) {
         // 如果是CORS错误，自动切换到代理模式
         const errorMessage = axiosError?.message || ''
-        if (errorMessage.includes('CORS') || errorMessage.includes('Network Error') || axiosError?.code === 'ERR_NETWORK') {
-          logger.debug('检测到CORS错误，自动切换到代理模式')
+        const isCorsError = axiosError?.isCorsError === true ||
+                          errorMessage.includes('CORS_ERROR') ||
+                          errorMessage.includes('CORS') ||
+                          errorMessage.includes('Access-Control-Allow-Origin') ||
+                          errorMessage.includes('Network Error') || 
+                          axiosError?.code === 'ERR_NETWORK' ||
+                          axiosError?.code === 'ERR_CORS'
+        
+        if (isCorsError) {
+          logger.debug('检测到CORS错误，自动切换到代理模式', { url, error: errorMessage })
           useProxy = true
-          result = await executeViaProxy(url, method, headers, body, timeout, signal)
+          
+          // 通知用户正在切换到代理模式
+          onUpdate({
+            content: {
+              stage: 'fetching',
+              url,
+              method,
+              useProxy: true,
+              message: '检测到CORS限制，自动切换到代理模式...'
+            },
+            format: 'json',
+            componentName: 'WebCrawlerDisplay'
+          }, {
+            percentage: 30,
+            message: i18n.global.t('agent.tool.crawler.progress.fetching', '检测到CORS限制，正在通过代理访问...')
+          })
+          
+          try {
+            result = await executeViaProxy(url, method, headers, body, timeout, signal)
+          } catch (proxyError: any) {
+            logger.error('代理请求也失败:', proxyError)
+            throw proxyError
+          }
         } else {
           throw axiosError
         }
@@ -330,7 +384,8 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
         url,
         status: result.status
       },
-      format: 'json'
+      format: 'json',
+      componentName: 'WebCrawlerDisplay'
     }, {
       percentage: 60,
       message: i18n.global.t('agent.tool.crawler.progress.processing', '正在处理响应...')
@@ -351,7 +406,8 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
         stage: 'completed',
         ...finalResult
       },
-      format: 'json'
+      format: 'json',
+      componentName: 'WebCrawlerDisplay'
     }, {
       percentage: 100,
       message: i18n.global.t('agent.tool.crawler.progress.completed', '网页访问完成')
@@ -364,7 +420,8 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
           stage: 'completed',
           ...finalResult
         },
-        format: 'json'
+        format: 'json',
+        componentName: 'WebCrawlerDisplay'
       },
       result: finalResult
     }
@@ -402,6 +459,7 @@ export const webCrawlerToolConfig: AgentToolConfig = {
   running: false,
   enabled: true,
   requiresLLM: false,
+  displayComponent: WebCrawlerDisplay,
   callback: webCrawlerToolCallback,
   inputSchema: {
     type: 'object',

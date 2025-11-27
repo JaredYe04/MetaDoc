@@ -177,32 +177,72 @@ async function requestApproval(command: string): Promise<boolean> {
 }
 
 /**
- * 执行终端命令（通过IPC）
+ * 执行终端命令（通过IPC，支持流式输出）
  */
 async function executeCommand(
   command: string,
   cwd?: string,
-  timeout?: number
+  timeout?: number,
+  invocationId?: string,
+  onStreamUpdate?: (type: 'stdout' | 'stderr', data: string) => void
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  // 这里需要通过IPC调用主进程执行命令
-  // 暂时返回模拟结果，实际需要实现IPC调用
   const ipcRenderer = (window as any).electron?.ipcRenderer || null
   
   if (!ipcRenderer) {
-    // Web环境，无法执行真实命令
     throw new Error('终端执行功能仅在Electron环境中可用')
   }
 
-  try {
-    const result = await ipcRenderer.invoke('execute-terminal-command', {
-      command,
-      cwd,
-      timeout
-    })
-    return result
-  } catch (error) {
-    logger.error('执行命令失败:', error)
-    throw error
+  // 设置流式输出监听器
+  if (invocationId && onStreamUpdate) {
+    const stdoutHandler = (_event: any, payload: { invocationId: string; data: string; command: string }) => {
+      if (payload.invocationId === invocationId && payload.command === command) {
+        onStreamUpdate('stdout', payload.data)
+      }
+    }
+    
+    const stderrHandler = (_event: any, payload: { invocationId: string; data: string; command: string }) => {
+      if (payload.invocationId === invocationId && payload.command === command) {
+        onStreamUpdate('stderr', payload.data)
+      }
+    }
+
+    ipcRenderer.on('terminal-stdout-stream', stdoutHandler)
+    ipcRenderer.on('terminal-stderr-stream', stderrHandler)
+
+    // 清理函数
+    const cleanup = () => {
+      ipcRenderer.removeListener('terminal-stdout-stream', stdoutHandler)
+      ipcRenderer.removeListener('terminal-stderr-stream', stderrHandler)
+    }
+
+    try {
+      const result = await ipcRenderer.invoke('execute-terminal-command', {
+        command,
+        cwd,
+        timeout,
+        invocationId
+      })
+      cleanup()
+      return result
+    } catch (error) {
+      cleanup()
+      logger.error('执行命令失败:', error)
+      throw error
+    }
+  } else {
+    // 不支持流式输出的旧方式
+    try {
+      const result = await ipcRenderer.invoke('execute-terminal-command', {
+        command,
+        cwd,
+        timeout,
+        invocationId: invocationId || `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      })
+      return result
+    } catch (error) {
+      logger.error('执行命令失败:', error)
+      throw error
+    }
   }
 }
 
@@ -299,11 +339,45 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       }
     }
 
+    // 生成 invocationId 用于流式输出
+    const invocationId = `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    
+    // 用于累积流式输出
+    let accumulatedStdout = ''
+    let accumulatedStderr = ''
+
+    // 流式输出更新回调
+    const handleStreamUpdate = (type: 'stdout' | 'stderr', data: string) => {
+      if (type === 'stdout') {
+        accumulatedStdout += data
+      } else {
+        accumulatedStderr += data
+      }
+
+      // 实时更新显示
+      onUpdate({
+        content: {
+          stage: 'executing',
+          command,
+          approved,
+          stdout: accumulatedStdout,
+          stderr: accumulatedStderr
+        },
+        format: 'json',
+        componentName: 'TerminalExecutionDisplay'
+      }, {
+        percentage: 20 + Math.min(50, (accumulatedStdout.length + accumulatedStderr.length) / 1000 * 30),
+        message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...')
+      })
+    }
+
     onUpdate({
       content: {
         stage: 'executing',
         command,
-        approved
+        approved,
+        stdout: '',
+        stderr: ''
       },
       format: 'json',
       componentName: 'TerminalExecutionDisplay'
@@ -312,16 +386,26 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       message: i18n.global.t('agent.tool.terminal.progress.executing', '正在执行命令...')
     })
 
-    // 执行命令
-    const { exitCode, stdout, stderr } = await executeCommand(command, cwd, timeout)
+    // 执行命令（支持流式输出）
+    const { exitCode, stdout, stderr } = await executeCommand(
+      command, 
+      cwd, 
+      timeout,
+      invocationId,
+      handleStreamUpdate
+    )
+
+    // 使用累积的输出（如果流式输出已更新）
+    const finalStdout = accumulatedStdout || stdout
+    const finalStderr = accumulatedStderr || stderr
 
     onUpdate({
       content: {
         stage: 'analyzing',
         command,
         exitCode,
-        stdout,
-        stderr
+        stdout: finalStdout,
+        stderr: finalStderr
       },
       format: 'json',
       componentName: 'TerminalExecutionDisplay'
@@ -343,8 +427,8 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     const result: TerminalExecutionResult = {
       command,
       exitCode,
-      stdout,
-      stderr,
+      stdout: finalStdout,
+      stderr: finalStderr,
       summary,
       approved: true
     }

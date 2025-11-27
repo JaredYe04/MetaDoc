@@ -117,7 +117,9 @@
       <el-tab-pane :label="$t('agent.display.autoTest.markdownSummary')" name="markdown">
         <el-scrollbar style="height: 100%;">
           <div class="markdown-content" :style="markdownContentStyle">
-            <div ref="markdownContainerRef" class="markdown-render-container"></div>
+            <div ref="markdownContainerRef" class="markdown-render-container" :style="{
+                color: themeState.currentTheme.textColor
+              }"></div>
           </div>
         </el-scrollbar>
       </el-tab-pane>

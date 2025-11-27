@@ -51,11 +51,44 @@
         <div class="command-label" :style="labelStyle">{{ $t('agent.display.terminalExecution.executing') }}</div>
         <code class="command-text" :style="commandTextStyle">{{ (effectiveData as any)?.command || '' }}</code>
       </div>
-      <div v-if="(effectiveData as any)?.stdout && (effectiveData as any).stage === 'analyzing'" class="output-preview">
-        <div class="output-label" :style="labelStyle">{{ $t('agent.display.terminalExecution.outputPreview') }}</div>
-        <el-scrollbar max-height="200px">
-          <pre class="output-text" :style="outputTextStyle">{{ ((effectiveData as any).stdout || '').substring(0, 1000) }}{{ ((effectiveData as any).stdout || '').length > 1000 ? '...' : '' }}</pre>
-        </el-scrollbar>
+      
+      <!-- 流式终端输出 -->
+      <div class="terminal-output" :style="terminalOutputStyle">
+        <div class="terminal-header" :style="terminalHeaderStyle">
+          <span>{{ $t('agent.display.terminalExecution.terminalOutput') }}</span>
+        </div>
+        <div class="terminal-body" ref="terminalBodyRef" :style="terminalBodyStyle">
+          <!-- 命令提示符 -->
+          <div class="terminal-line">
+            <span class="terminal-prompt" :style="promptStyle">$</span>
+            <span class="terminal-command" :style="commandStyle">{{ (effectiveData as any)?.command || '' }}</span>
+          </div>
+          
+          <!-- stdout 输出（流式显示） -->
+          <div
+            v-for="(line, index) in stdoutLines"
+            :key="`stdout-${index}`"
+            class="terminal-line terminal-out"
+            :style="outLineStyle"
+          >
+            {{ line }}
+          </div>
+          
+          <!-- stderr 输出（流式显示） -->
+          <div
+            v-for="(line, index) in stderrLines"
+            :key="`stderr-${index}`"
+            class="terminal-line terminal-err"
+            :style="errLineStyle"
+          >
+            {{ line }}
+          </div>
+          
+          <!-- 执行中提示 -->
+          <div v-if="effectiveData.stage === 'executing' && stdoutLines.length === 0 && stderrLines.length === 0" class="terminal-line terminal-info" :style="infoLineStyle">
+            {{ $t('agent.display.terminalExecution.executingCommand') }}...
+          </div>
+        </div>
       </div>
     </div>
 
@@ -123,7 +156,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Loading, WarningFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -137,6 +170,8 @@ const { t } = useI18n()
 const STORAGE_KEY = 'agent-tool-terminal-trust-mode'
 
 const props = defineProps<ToolDisplayComponentProps>()
+
+const terminalBodyRef = ref<HTMLDivElement | null>(null)
 
 console.log(`[TerminalExecutionDisplay] 组件初始化，invocationId: ${props.invocationId}, status: ${props.status}, data:`, props.data)
 console.log(`[TerminalExecutionDisplay] props 完整内容:`, props)
@@ -274,12 +309,66 @@ const outputTextStyle = computed(() => ({
 
 const errorTextStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
-  color: themeState.currentTheme.errorColor || '#f56c6c'
+  color: '#f56c6c'
 }))
 
 const summaryTextStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
   color: themeState.currentTheme.textColor
+}))
+
+const terminalOutputStyle = computed(() => ({
+  marginTop: '16px',
+  border: `1px solid ${themeState.currentTheme.background2nd}`,
+  borderRadius: '6px',
+  overflow: 'hidden',
+  backgroundColor: themeState.currentTheme.background2nd
+}))
+
+const terminalHeaderStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  color: themeState.currentTheme.textColor,
+  padding: '8px 12px',
+  borderBottom: `1px solid ${themeState.currentTheme.background2nd}`,
+  fontSize: '13px',
+  fontWeight: '500'
+}))
+
+const terminalBodyStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd,
+  color: themeState.currentTheme.textColor,
+  fontFamily: 'JetBrains Mono, Consolas, monospace',
+  fontSize: '13px',
+  lineHeight: '1.6',
+  padding: '12px',
+  maxHeight: '400px',
+  overflowY: 'auto',
+  overflowX: 'auto',
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word'
+}))
+
+const promptStyle = computed(() => ({
+  color: '#4ec9b0',
+  marginRight: '8px',
+  fontWeight: 'bold'
+}))
+
+const commandStyle = computed(() => ({
+  color: themeState.currentTheme.type === 'dark' ? '#d4d4d4' : '#000000'
+}))
+
+const outLineStyle = computed(() => ({
+  color: themeState.currentTheme.type === 'dark' ? '#d4d4d4' : '#000000'
+}))
+
+const errLineStyle = computed(() => ({
+  color: '#f48771'
+}))
+
+const infoLineStyle = computed(() => ({
+  color: themeState.currentTheme.textColor2,
+  fontStyle: 'italic'
 }))
 
 // 处理批准
@@ -326,6 +415,37 @@ const effectiveProgress = computed(() => {
   return realtimeProgress.value || props.progress
 })
 
+// 流式输出处理：将 stdout 和 stderr 分割成行
+const stdoutLines = computed(() => {
+  const data = effectiveData.value as any
+  const stdout = data?.stdout || ''
+  if (!stdout) return []
+  // 保留所有行，包括空行（流式输出可能包含）
+  return stdout.split(/\r?\n/)
+})
+
+const stderrLines = computed(() => {
+  const data = effectiveData.value as any
+  const stderr = data?.stderr || ''
+  if (!stderr) return []
+  // 保留所有行，包括空行（流式输出可能包含）
+  return stderr.split(/\r?\n/)
+})
+
+// 自动滚动到底部
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (terminalBodyRef.value) {
+      terminalBodyRef.value.scrollTop = terminalBodyRef.value.scrollHeight
+    }
+  })
+}
+
+// 监听输出变化，自动滚动
+watch([stdoutLines, stderrLines], () => {
+  scrollToBottom()
+}, { deep: true })
+
 // 监听stage变化，如果是waiting_approval且信任模式开启，自动批准
 watch(() => effectiveData.value.stage, (stage) => {
   if (stage === 'waiting_approval' && trustMode.value) {
@@ -333,6 +453,10 @@ watch(() => effectiveData.value.stage, (stage) => {
     setTimeout(() => {
       handleApprove()
     }, 100)
+  }
+  // 当输出更新时滚动到底部
+  if (stage === 'executing' || stage === 'analyzing') {
+    scrollToBottom()
   }
 }, { immediate: true })
 </script>
@@ -475,6 +599,38 @@ watch(() => effectiveData.value.stage, (stage) => {
 .output-label {
   font-size: 13px;
   margin-bottom: 8px;
+}
+
+.terminal-output {
+  margin-top: 16px;
+}
+
+.terminal-line {
+  margin: 2px 0;
+  word-break: break-all;
+}
+
+.terminal-out {
+  color: v-bind('themeState.currentTheme.type === "dark" ? "#d4d4d4" : "#000000"');
+}
+
+.terminal-err {
+  color: #f48771;
+}
+
+.terminal-info {
+  color: v-bind('themeState.currentTheme.textColor2');
+  font-style: italic;
+}
+
+.terminal-prompt {
+  color: #4ec9b0;
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.terminal-command {
+  color: v-bind('themeState.currentTheme.type === "dark" ? "#d4d4d4" : "#000000"');
 }
 </style>
 

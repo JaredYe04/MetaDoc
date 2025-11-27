@@ -284,7 +284,8 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
         source,
         format
       },
-      format: 'json'
+      format: 'json',
+      componentName: 'ProofreadDisplay'
     }, {
       percentage: 10,
       message: i18n.global.t('agent.tool.proofread.progress.loading', '正在加载文本...')
@@ -312,7 +313,8 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
         format,
         textLength: content.length
       },
-      format: 'json'
+      format: 'json',
+      componentName: 'ProofreadDisplay'
     }, {
       percentage: 30,
       message: i18n.global.t('agent.tool.proofread.progress.proofreading', '正在校对文本...')
@@ -353,7 +355,8 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
         stage: 'completed',
         result
       },
-      format: 'json'
+      format: 'json',
+      componentName: 'ProofreadDisplay'
     }, {
       percentage: 100,
       message: i18n.global.t('agent.tool.proofread.progress.completed', `校对完成，发现 ${errors.length} 个错误`)
@@ -366,7 +369,8 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
           stage: 'completed',
           result
         },
-        format: 'json'
+        format: 'json',
+        componentName: 'ProofreadDisplay'
       },
       result
     }

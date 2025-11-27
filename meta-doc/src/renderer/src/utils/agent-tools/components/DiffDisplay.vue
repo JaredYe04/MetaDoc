@@ -82,23 +82,23 @@
           </template>
           <!-- 如果diffResult是数组（旧格式兼容） -->
           <template v-else-if="Array.isArray(displayData.diffResult)">
-            <div
-              v-for="(item, index) in displayData.diffResult"
-              :key="index"
-              class="diff-item"
-              :class="{
-                'diff-insert': item.type === 'insert',
-                'diff-delete': item.type === 'delete',
-                'diff-equal': item.type === 'equal'
-              }"
-            >
-              <div class="diff-line-number">{{ index + 1 }}</div>
-              <div class="diff-type-badge" :class="`type-${item.type}`">
-                {{ getTypeLabel(item.type) }}
-              </div>
-              <div class="diff-text" :style="getDiffTextStyle(item.type)">
-                {{ item.value }}
-              </div>
+          <div
+            v-for="(item, index) in displayData.diffResult"
+            :key="index"
+            class="diff-item"
+            :class="{
+              'diff-insert': item.type === 'insert',
+              'diff-delete': item.type === 'delete',
+              'diff-equal': item.type === 'equal'
+            }"
+          >
+            <div class="diff-line-number">{{ index + 1 }}</div>
+            <div class="diff-type-badge" :class="`type-${item.type}`">
+              {{ getTypeLabel(item.type) }}
+            </div>
+            <div class="diff-text" :style="getDiffTextStyle(item.type)">
+              {{ item.value }}
+            </div>
             </div>
           </template>
           <!-- 如果没有差异数据 -->
@@ -268,7 +268,7 @@ const insertionsCount = computed(() => {
   }
   // 如果是数组，计算插入数量
   if (Array.isArray(displayData.value.diffResult)) {
-    return displayData.value.diffResult.filter((item: any) => item.type === 'insert').length
+  return displayData.value.diffResult.filter((item: any) => item.type === 'insert').length
   }
   // 如果是对象，从chunks计算
   if (displayData.value.diffResult.chunks && Array.isArray(displayData.value.diffResult.chunks)) {
@@ -288,7 +288,7 @@ const deletionsCount = computed(() => {
   }
   // 如果是数组，计算删除数量
   if (Array.isArray(displayData.value.diffResult)) {
-    return displayData.value.diffResult.filter((item: any) => item.type === 'delete').length
+  return displayData.value.diffResult.filter((item: any) => item.type === 'delete').length
   }
   // 如果是对象，从chunks计算
   if (displayData.value.diffResult.chunks && Array.isArray(displayData.value.diffResult.chunks)) {
@@ -303,7 +303,7 @@ const equalCount = computed(() => {
   if (!displayData.value.diffResult) return 0
   // 如果是数组，计算相同数量
   if (Array.isArray(displayData.value.diffResult)) {
-    return displayData.value.diffResult.filter((item: any) => item.type === 'equal').length
+  return displayData.value.diffResult.filter((item: any) => item.type === 'equal').length
   }
   // 如果是对象，从chunks计算
   if (displayData.value.diffResult.chunks && Array.isArray(displayData.value.diffResult.chunks)) {

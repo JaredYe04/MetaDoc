@@ -14,7 +14,7 @@ import type {
 import { useWorkspace } from '../../stores/workspace'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
-import type { ArticleMetaData } from '../../../types'
+import type { ArticleMetaData } from '../../../../types'
 import GrepDisplay from './components/GrepDisplay.vue'
 import { getActiveDocumentInfoViaBroadcast } from './document-broadcast-helper'
 import { getWindowType } from '../event-bus'
@@ -43,6 +43,8 @@ export interface GrepResult {
   searchPattern: string
   isRegex: boolean
   scope: string[]       // 搜索范围：['document', 'metadata']
+  originalContent?: string  // 原始文档内容（用于Display组件显示）
+  language?: string         // 文档语言类型（'markdown' | 'latex' | 'plaintext'）
 }
 
 /**
@@ -193,7 +195,8 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         isRegex,
         scope
       },
-      format: 'json'
+      format: 'json',
+      componentName: 'GrepDisplay'
     }, {
       percentage: 10,
       message: i18n.global.t('agent.tool.grep.progress.searching', '正在搜索...')
@@ -240,6 +243,8 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     }
 
     const allMatches: GrepMatch[] = []
+    let originalContent: string | undefined = undefined
+    let language: string = 'plaintext'
 
     // 在文档中搜索
     if (scope.includes('document')) {
@@ -251,13 +256,16 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           scope,
           currentScope: 'document'
         },
-        format: 'json'
+        format: 'json',
+        componentName: 'GrepDisplay'
       }, {
         percentage: 40,
         message: i18n.global.t('agent.tool.grep.progress.searchingDocument', '正在搜索文档内容...')
       })
 
       const documentText = doc.format === 'md' ? doc.markdown : doc.tex
+      originalContent = documentText
+      language = doc.format === 'md' ? 'markdown' : (doc.format === 'tex' ? 'latex' : 'plaintext')
       const docMatches = searchInText(documentText, pattern, isRegex, contextLines)
       allMatches.push(...docMatches)
     }
@@ -272,7 +280,8 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           scope,
           currentScope: 'metadata'
         },
-        format: 'json'
+        format: 'json',
+        componentName: 'GrepDisplay'
       }, {
         percentage: 70,
         message: i18n.global.t('agent.tool.grep.progress.searchingMetadata', '正在搜索元数据...')
@@ -293,7 +302,9 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       totalMatches: allMatches.length,
       searchPattern: pattern,
       isRegex,
-      scope
+      scope,
+      originalContent,
+      language
     }
 
     onUpdate({
@@ -301,7 +312,8 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         stage: 'completed',
         result
       },
-      format: 'json'
+      format: 'json',
+      componentName: 'GrepDisplay'
     }, {
       percentage: 100,
       message: i18n.global.t('agent.tool.grep.progress.completed', `搜索完成，找到 ${allMatches.length} 个匹配`)
@@ -314,7 +326,8 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           stage: 'completed',
           result
         },
-        format: 'json'
+        format: 'json',
+        componentName: 'GrepDisplay'
       },
       result
     }

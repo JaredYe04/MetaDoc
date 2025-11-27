@@ -665,7 +665,7 @@ function bindUtilityHandlers(): void {
 function bindTerminalHandlers(): void {
   ipcMain.handle('execute-terminal-command', async (
     event: IpcMainInvokeEvent,
-    options: { command: string; cwd?: string; timeout?: number }
+    options: { command: string; cwd?: string; timeout?: number; invocationId?: string }
   ): Promise<{ exitCode: number; stdout: string; stderr: string }> => {
     const logger = createMainLogger('TerminalCommand');
     const { command, cwd, timeout = 30000 } = options;
@@ -706,13 +706,28 @@ function bindTerminalHandlers(): void {
 
         let stdout = '';
         let stderr = '';
+        const invocationId = options.invocationId || `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
         childProcess.stdout?.on('data', (data: Buffer) => {
-          stdout += data.toString();
+          const text = data.toString()
+          stdout += text
+          // 实时发送 stdout 到渲染进程
+          event.sender.send('terminal-stdout-stream', {
+            invocationId,
+            data: text,
+            command
+          })
         });
 
         childProcess.stderr?.on('data', (data: Buffer) => {
-          stderr += data.toString();
+          const text = data.toString()
+          stderr += text
+          // 实时发送 stderr 到渲染进程
+          event.sender.send('terminal-stderr-stream', {
+            invocationId,
+            data: text,
+            command
+          })
         });
 
         childProcess.on('close', (code: number | null) => {

@@ -133,7 +133,9 @@
         <el-tab-pane v-if="displayData.result.summary" :label="$t('agent.display.dataAnalysis.summary')" name="summary">
           <el-scrollbar max-height="400px">
             <div class="summary-content">
-              <div ref="summaryContainerRef" class="summary-render-container"></div>
+              <div ref="summaryContainerRef" class="summary-render-container" :style="{
+                color: themeState.currentTheme.textColor
+              }"></div>
             </div>
           </el-scrollbar>
         </el-tab-pane>

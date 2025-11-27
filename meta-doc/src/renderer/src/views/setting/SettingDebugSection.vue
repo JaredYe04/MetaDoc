@@ -2233,7 +2233,11 @@ onMounted(async () => {
   flex-shrink: 0 !important;
   flex-grow: 0 !important;
   margin: 0 !important;
-  position: relative !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  background-color: v-bind('themeState.currentTheme.background') !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
 .debug-section :deep(.el-tabs__header.is-top) {

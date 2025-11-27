@@ -265,6 +265,97 @@ function normalizeSvgForResvg(input: string): string {
   return svg;
 }
 
+/**
+ * 使用 resvg 将 SVG 字符串渲染为 PDF 文件，并保存到本地图片目录
+ * 返回本地 HTTP URL（http://localhost:52521/images/xxx.pdf）
+ */
+export async function convertSvgStringToPdfFile(svgContent: string): Promise<string> {
+  try {
+    const crypto = require('crypto');
+    const hash = crypto.createHash('sha256').update(String(svgContent)).digest('hex').slice(0, 16);
+    const { imageUploadDir } = await import('../express-server');
+    const fileName = `${hash}_chart.pdf`;
+    const filePath = path.join(imageUploadDir, fileName);
+    if (fs.existsSync(filePath)) {
+      return `http://localhost:52521/images/${fileName}`;
+    }
+
+    // 规范化 SVG
+    const normalized = normalizeSvgForResvg(svgContent);
+
+    // 创建新的 PDF 文档
+    const pdfDoc = await PDFDocument.create();
+
+    // 动态导入 resvg
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Resvg } = require('@resvg/resvg-js');
+
+    // 推断尺寸
+    const widthHeight = (() => {
+      const viewBoxMatch = normalized.match(/viewBox="\s*[\d.\-]+\s+[\d.\-]+\s+([\d.\-]+)\s+([\d.\-]+)\s*"/i);
+      const widthMatch = normalized.match(/width="([\d.\-]+)"/i);
+      const heightMatch = normalized.match(/height="([\d.\-]+)"/i);
+      const width = widthMatch ? parseFloat(widthMatch[1]) : (viewBoxMatch ? parseFloat(viewBoxMatch[1]) : 1920);
+      const height = heightMatch ? parseFloat(heightMatch[1]) : (viewBoxMatch ? parseFloat(viewBoxMatch[2]) : 1080);
+      return { width: Math.max(1, width), height: Math.max(1, height) };
+    })();
+
+    // 收集可能存在的系统字体文件（Windows 常见字体，存在才加入）
+    const candidateFontFiles = [
+      'C:/Windows/Fonts/arial.ttf',
+      'C:/Windows/Fonts/arialuni.ttf',
+      'C:/Windows/Fonts/msyh.ttc',
+      'C:/Windows/Fonts/simhei.ttf',
+      'C:/Windows/Fonts/simsun.ttc',
+      'C:/Windows/Fonts/segoeui.ttf',
+      'C:/Windows/Fonts/calibri.ttf',
+      'C:/Windows/Fonts/trebuc.ttf',
+      'C:/Windows/Fonts/tahoma.ttf',
+      'C:/Windows/Fonts/verdana.ttf',
+    ].filter(p => {
+      try { return fs.existsSync(p); } catch { return false; }
+    });
+
+    const resvg = new Resvg(normalized, {
+      fitTo: {
+        mode: 'width',
+        value: Math.max(1400, Math.round(widthHeight.width)),
+      },
+      font: {
+        loadSystemFonts: true,
+        fontFiles: candidateFontFiles,
+        sansSerifFamily: 'Arial',
+        serifFamily: 'Times New Roman',
+        monospaceFamily: 'Consolas',
+        cursiveFamily: 'Arial',
+        fantasyFamily: 'Arial',
+        defaultFontFamily: 'Arial',
+      },
+      logLevel: 'off',
+    });
+
+    const pngData = resvg.render();
+    const renderedPngBuffer = Buffer.from(pngData.asPng());
+
+    const pngImage = await pdfDoc.embedPng(renderedPngBuffer);
+    const page = pdfDoc.addPage([pngImage.width, pngImage.height]);
+    page.drawImage(pngImage, {
+      x: 0,
+      y: 0,
+      width: pngImage.width,
+      height: pngImage.height,
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    fs.writeFileSync(filePath, pdfBytes);
+    logger.debug(`SVG 字符串已转换为 PDF: ${filePath}`);
+    return `http://localhost:52521/images/${fileName}`;
+  } catch (error) {
+    logger.error('SVG 字符串转 PDF 失败:', error);
+    throw error;
+  }
+}
+
 function escapeXml(s: string): string {
   return s
     .replace(/&/g, '&amp;')

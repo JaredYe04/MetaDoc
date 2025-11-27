@@ -183,29 +183,12 @@ async function convertBlockToLatex(tokens) {
                 if (isSvg) {
                     // SVG 文件需要转换为 PDF
                     try {
-                        // 获取 IPC 渲染器
-                        let ipcRenderer = null;
-                        if (window && window.electron) {
-                            ipcRenderer = window.electron.ipcRenderer;
-                        } else {
-                            const localIpcRenderer = (await import('./web-adapter/local-ipc-renderer.ts')).default;
-                            ipcRenderer = localIpcRenderer;
-                        }
-                        
-                        if (ipcRenderer) {
-                            // 调用主进程转换 SVG 为 PDF
-                            const result = await ipcRenderer.invoke('convert-svg-to-pdf', normalizedPath);
-                            if (result.success && result.pdfPath) {
-                                // 使用转换后的 PDF 路径
-                                normalizedPath = result.pdfPath.replace(/\\/g, '/');
-                            } else {
-                                // 转换失败，使用原始 SVG 路径（可能会失败，但至少可以尝试）
-                                console.warn('SVG 转 PDF 失败，使用原始路径:', result.error);
-                            }
-                        }
+                        const { convertSvgToPdf } = await import('./svg-to-pdf-utils.js');
+                        // 使用统一的 SVG 转 PDF 工具函数
+                        normalizedPath = await convertSvgToPdf(normalizedPath, { returnUrl: false });
                     } catch (error) {
-                        // IPC 调用失败，使用原始 SVG 路径
-                        console.warn('SVG 转 PDF IPC 调用失败:', error);
+                        // 转换失败，使用原始 SVG 路径（可能会失败，但至少可以尝试）
+                        console.warn('SVG 转 PDF 失败，使用原始路径:', error);
                     }
                     
                     // 路径处理：使用 \detokenize 避免转义问题，保留下划线等字符

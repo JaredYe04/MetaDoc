@@ -12,6 +12,7 @@ import type {
   ToolLocales
 } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
+import { extractOuterJsonString } from '../regex-utils'
 import { i18n } from '../../i18n'
 import { createAiTask } from '../ai_tasks'
 import { cancelAiTask } from '../ai_tasks'
@@ -682,7 +683,9 @@ const dataAnalysisToolCallback: ToolCallback = async (params, signal, onUpdate) 
       parsedData = parseCSV(rawData)
     } else {
       try {
-        parsedData = JSON.parse(rawData)
+        // 先提取JSON字符串（处理LLM返回的文本中包含其他文字的情况）
+        const jsonString = extractOuterJsonString(rawData) || rawData
+        parsedData = JSON.parse(jsonString)
         if (!Array.isArray(parsedData)) {
           parsedData = [parsedData]
         }

@@ -21,6 +21,7 @@ import { webMainCalls } from '../web-adapter/web-main-calls'
 import axios from 'axios'
 import ProofreadDisplay from './components/ProofreadDisplay.vue'
 import { cleanJsonString, parseJsonWithClean } from './tool-utils'
+import { extractOuterJsonString } from '../regex-utils'
 
 const logger = createRendererLogger('ProofreadTool')
 
@@ -78,7 +79,7 @@ async function loadTextFromFile(filePath: string, signal?: AbortSignal): Promise
   }
 
   try {
-    const content = await ipcRenderer.invoke('read-file-content', filePath)
+    const content = await ipcRenderer.invoke('read-file-content', filePath) as string
     return content
   } catch (error) {
     logger.error('读取文件失败:', error)
@@ -103,7 +104,7 @@ async function loadTextFromUrl(url: string, signal?: AbortSignal): Promise<strin
           method: 'GET',
           timeout: 30000,
           maxRedirects: 5
-        })
+        }) as { content: string }
         return response.content
       } catch (error) {
         logger.warn('主进程HTTP请求失败，尝试使用axios:', error)
@@ -136,6 +137,109 @@ async function loadTextFromUrl(url: string, signal?: AbortSignal): Promise<strin
 }
 
 /**
+ * 常见英文单词列表（用于本地拼写检查）
+ * 这是一个简化的列表，实际应用中可以使用更完整的字典
+ */
+const COMMON_ENGLISH_WORDS = new Set([
+  'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not', 'on', 'with',
+  'he', 'as', 'you', 'do', 'at', 'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she',
+  'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what', 'so', 'up', 'out', 'if',
+  'about', 'who', 'get', 'which', 'go', 'me', 'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him',
+  'know', 'take', 'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other', 'than',
+  'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also', 'back', 'after', 'use', 'two',
+  'how', 'our', 'work', 'first', 'well', 'way', 'even', 'new', 'want', 'because', 'any', 'these', 'give',
+  'day', 'most', 'us', 'is', 'are', 'was', 'were', 'been', 'being', 'have', 'has', 'had', 'having', 'do',
+  'does', 'did', 'doing', 'will', 'would', 'should', 'could', 'may', 'might', 'must', 'shall', 'can',
+  'cannot', 'text', 'document', 'file', 'data', 'information', 'system', 'application', 'software', 'code',
+  'function', 'method', 'class', 'object', 'variable', 'string', 'number', 'boolean', 'array', 'list',
+  'error', 'warning', 'message', 'result', 'value', 'type', 'format', 'content', 'source', 'target'
+])
+
+/**
+ * 常见拼写错误映射（明显的拼写错误）
+ */
+const COMMON_MISSPELLINGS: Record<string, string> = {
+  'teh': 'the',
+  'adn': 'and',
+  'taht': 'that',
+  'hte': 'the',
+  'nad': 'and',
+  'recieve': 'receive',
+  'seperate': 'separate',
+  'occured': 'occurred',
+  'definately': 'definitely',
+  'accomodate': 'accommodate',
+  'begining': 'beginning',
+  'enviroment': 'environment',
+  'existance': 'existence',
+  'goverment': 'government',
+  'independant': 'independent',
+  'neccessary': 'necessary',
+  'occassion': 'occasion',
+  'priviledge': 'privilege',
+  'publically': 'publicly',
+  'seige': 'siege',
+  'suprise': 'surprise',
+  'thier': 'their',
+  'untill': 'until',
+  'writting': 'writing'
+}
+
+/**
+ * 本地拼写检查（检查英文单词）
+ * 主要用于检测明显的拼写错误，复杂的检查交给LLM
+ */
+function checkSpellingLocally(text: string, format: 'text' | 'markdown' | 'latex'): ProofreadError[] {
+  const errors: ProofreadError[] = []
+  const lines = text.split('\n')
+  
+  // 提取英文单词的正则表达式（匹配连续的字母，忽略大小写）
+  const wordRegex = /\b[a-zA-Z]{2,}\b/g
+  
+  lines.forEach((line, lineIndex) => {
+    // 重置正则表达式的 lastIndex，避免跨行匹配问题
+    wordRegex.lastIndex = 0
+    let match: RegExpExecArray | null
+    while ((match = wordRegex.exec(line)) !== null) {
+      const word = match[0]
+      const wordLower = word.toLowerCase()
+      const startIndex = match.index
+      const column = startIndex + 1 // 列号从1开始
+      
+      // 跳过 LaTeX 命令和 Markdown 标记
+      if (format === 'latex' && line[startIndex - 1] === '\\') {
+        continue
+      }
+      if (format === 'markdown' && (line[startIndex - 1] === '#' || line[startIndex - 1] === '*' || line[startIndex - 1] === '_')) {
+        continue
+      }
+      
+      // 检查是否是已知的拼写错误
+      if (COMMON_MISSPELLINGS[wordLower]) {
+        errors.push({
+          type: 'spelling',
+          line: lineIndex + 1, // 行号从1开始
+          column,
+          length: word.length,
+          text: word,
+          suggestion: COMMON_MISSPELLINGS[wordLower],
+          message: `拼写错误：${word} 应该是 ${COMMON_MISSPELLINGS[wordLower]}`,
+          severity: 'error'
+        })
+        continue
+      }
+      
+      // 检查单词是否在常见单词列表中（如果不是，可能是拼写错误，但不确定，交给LLM处理）
+      // 这里只记录明显的错误，其他交给LLM
+    }
+  })
+  
+  // 本地检查主要用于快速检测明显的拼写错误
+  // 更复杂的检查交给LLM
+  return errors
+}
+
+/**
  * 使用LLM进行校对
  */
 async function proofreadWithLLM(
@@ -145,18 +249,26 @@ async function proofreadWithLLM(
 ): Promise<ProofreadError[]> {
   const formatName = format === 'latex' ? 'LaTeX' : format === 'markdown' ? 'Markdown' : '纯文本'
   
-  const prompt = `你是一个专业的文本校对助手。请仔细检查以下${formatName}文本中的语法错误、拼写错误${format === 'latex' ? '、LaTeX语法错误' : ''}等问题。
+  // 优化的 prompt，更简洁明确，强调直接输出JSON
+  const prompt = `请检查以下${formatName}文本中的语法错误、拼写错误${format === 'latex' ? '、LaTeX语法错误' : ''}等问题。
 
 文本内容：
 \`\`\`${format}
 ${text}
 \`\`\`
 
-请以JSON格式返回所有发现的错误，格式如下：
-\`\`\`json
+**重要要求**：
+1. 必须严格检查每个错误，包括拼写、语法${format === 'latex' ? '、LaTeX语法' : ''}等
+2. 对于英文文本，必须验证每个单词的拼写
+3. 提供准确的错误位置（行号、列号从1开始）
+4. 提供具体的修改建议
+
+**输出格式**（必须严格遵守）：
+直接输出JSON数组，不要包含任何说明文字、代码块标记或其他内容。
+- 如果有错误，输出格式：
 [
   {
-    "type": "grammar|spelling|latex|style|other",
+    "type": "spelling|grammar|latex|style|other",
     "line": 1,
     "column": 5,
     "length": 3,
@@ -166,16 +278,14 @@ ${text}
     "severity": "error|warning|info"
   }
 ]
-\`\`\`
+- 如果没有错误，输出：[]
 
-要求：
-1. 仔细检查语法、拼写${format === 'latex' ? '、LaTeX语法' : ''}等问题
-2. 提供准确的错误位置（行号、列号）
-3. 提供具体的修改建议
-4. 只返回JSON数组，不要包含其他文字
-5. 如果没有错误，返回空数组 []
+**示例**：
+输入："I have a eror in this text"
+输出（直接输出，不要任何说明）：
+[{"type":"spelling","line":1,"column":10,"length":4,"text":"eror","suggestion":"error","message":"拼写错误：eror 应该是 error","severity":"error"}]
 
-**重要**：输出必须直接以 \`[\` 开头，以 \`]\` 结尾，不要包含任何前缀或后缀文字。`
+现在请直接输出JSON数组，不要包含任何其他文字。`
 
   const target = ref('')
   const originKey = `proofread-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -210,19 +320,27 @@ ${text}
     return []
   }
 
-  // 使用工具函数清理和解析JSON
+  // 先提取JSON字符串（处理LLM返回的文本中包含其他文字的情况，如"现在请检查以下文本:"）
+  let jsonString = extractOuterJsonString(output)
+  if (!jsonString) {
+    // 如果提取失败，尝试清理后再提取
   const cleaned = cleanJsonString(output)
-  const parseResult = parseJsonWithClean<ProofreadError[]>(cleaned)
+    jsonString = extractOuterJsonString(cleaned) || cleaned
+  }
+
+  // 使用工具函数解析JSON
+  const parseResult = parseJsonWithClean<ProofreadError[]>(jsonString)
 
   if (!parseResult.success) {
-    logger.error('解析校对结果失败:', parseResult.error)
+    const errorMsg = parseResult.error || '未知错误'
+    logger.error('解析校对结果失败:', errorMsg)
     // 如果解析失败，尝试重试（最多2次）
-    if (parseResult.error.includes('Unexpected end of JSON') || parseResult.error.includes('JSON')) {
+    if (errorMsg.includes('Unexpected end of JSON') || errorMsg.includes('JSON')) {
       // 可能是LLM返回不完整，返回空数组而不是抛出错误
       logger.warn('JSON解析失败，返回空错误数组')
       return []
     }
-    throw new Error(`解析校对结果失败: ${parseResult.error}`)
+    throw new Error(`解析校对结果失败: ${errorMsg}`)
   }
 
   const errors = parseResult.data
@@ -320,8 +438,43 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
       message: i18n.global.t('agent.tool.proofread.progress.proofreading', '正在校对文本...')
     })
 
-    // 使用LLM进行校对
-    const errors = await proofreadWithLLM(content, format, signal)
+    // 先进行本地拼写检查（快速检查明显的拼写错误）
+    const localErrors = checkSpellingLocally(content, format)
+    logger.info(`本地拼写检查发现 ${localErrors.length} 个明显的拼写错误`)
+
+    // 使用LLM进行校对（主要检查，包括语法、复杂拼写等）
+    const llmErrors = await proofreadWithLLM(content, format, signal)
+    logger.info(`LLM检查发现 ${llmErrors.length} 个错误`)
+    
+    // 合并错误（去重：如果本地和LLM都发现了相同的错误，只保留LLM的结果）
+    const allErrors: ProofreadError[] = [...llmErrors]
+    
+    // 添加本地检查发现的错误（如果LLM没有发现相同的错误）
+    for (const localError of localErrors) {
+      // 检查LLM是否已经发现了相同的错误（通过位置和文本匹配）
+      const isDuplicate = llmErrors.some(llmError => 
+        llmError.line === localError.line &&
+        llmError.column === localError.column &&
+        llmError.text.toLowerCase() === localError.text.toLowerCase()
+      )
+      
+      if (!isDuplicate) {
+        allErrors.push(localError)
+        logger.debug(`添加本地检查发现的错误: ${localError.text} -> ${localError.suggestion}`)
+      }
+    }
+    
+    // 如果LLM没有发现错误，但本地检查发现了，记录警告
+    if (llmErrors.length === 0 && localErrors.length > 0) {
+      logger.warn('LLM未发现错误，但本地检查发现了明显的拼写错误，可能LLM检查不够严格')
+    }
+    
+    // 如果LLM返回空数组，但文本不为空，记录警告（可能是LLM没有严格检查）
+    if (llmErrors.length === 0 && localErrors.length === 0 && content.trim().length > 50) {
+      logger.warn('LLM和本地检查都未发现错误，但文本较长，可能存在问题')
+    }
+    
+    const errors = allErrors
 
     if (signal?.aborted) {
       return {

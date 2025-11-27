@@ -25,6 +25,7 @@ import { webMainCalls } from './utils/web-adapter/web-main-calls';
 import { clearAiTasks } from './utils/ai_tasks';
 import { useI18n } from 'vue-i18n';
 import { createRendererLogger } from './utils/logger';
+import { initMonacoEnvironment } from './utils/monaco-worker-config';
 let ipcRenderer = null
 const route = useRoute()
 const { locale } = useI18n()
@@ -79,6 +80,9 @@ const autoOpenDoc = async () => {
 }
 
 onMounted(async () => {
+  // 初始化 Monaco 环境（Worker 配置和 LaTeX 语言支持）
+  initMonacoEnvironment()
+  
   window.addEventListener('beforeunload', () => {
     clearAiTasks()
   })

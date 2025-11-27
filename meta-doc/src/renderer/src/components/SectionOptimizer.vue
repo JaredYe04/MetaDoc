@@ -183,6 +183,7 @@ import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document'
 // @ts-ignore - vue3-markdown-it 没有类型定义
 import MarkdownItEditor from 'vue3-markdown-it'
 import * as monaco from 'monaco-editor'
+import { setupMonacoWorker, registerLatexLanguage } from '../utils/monaco-worker-config'
 
 const { t } = useI18n()
 
@@ -595,6 +596,11 @@ const onMouseUp = () => {
 // 初始化Monaco预览编辑器（用于LaTeX）
 const initMonacoPreview = async () => {
   if (props.language !== 'latex') return
+
+  // 确保 Monaco Worker 已配置
+  setupMonacoWorker()
+  // 注册 LaTeX 语言支持
+  registerLatexLanguage()
 
   // 等待DOM更新和容器准备好
   await nextTick()

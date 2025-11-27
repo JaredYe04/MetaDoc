@@ -3,6 +3,8 @@
  * 提供JSON清理、解析、重试等通用功能
  */
 
+import { extractOuterJsonString } from '../regex-utils'
+
 /**
  * 清理JSON字符串，处理常见的格式问题
  * - 移除markdown代码块标记
@@ -78,17 +80,28 @@ export function cleanJsonString(jsonStr: string): string {
 
 /**
  * 尝试解析JSON，如果失败则尝试清理后解析
+ * 首先使用 extractOuterJsonString 提取JSON部分，避免LLM返回的文本中包含其他文字
  */
 export function parseJsonWithClean<T = any>(jsonStr: string): { success: boolean; data?: T; error?: string } {
-  // 首先尝试直接解析
+  // 首先尝试提取JSON字符串（处理LLM返回的文本中包含其他文字的情况）
+  let extractedJson = extractOuterJsonString(jsonStr)
+  
+  // 如果提取失败，使用原始字符串
+  if (!extractedJson) {
+    extractedJson = jsonStr
+  }
+  
+  // 首先尝试直接解析提取的JSON
   try {
-    const data = JSON.parse(jsonStr) as T
+    const data = JSON.parse(extractedJson) as T
     return { success: true, data }
   } catch (error) {
     // 如果失败，尝试清理后解析
     try {
-      const cleaned = cleanJsonString(jsonStr)
-      const data = JSON.parse(cleaned) as T
+      const cleaned = cleanJsonString(extractedJson)
+      // 清理后再次尝试提取（因为清理可能改变了结构）
+      const cleanedExtracted = extractOuterJsonString(cleaned) || cleaned
+      const data = JSON.parse(cleanedExtracted) as T
       return { success: true, data }
     } catch (cleanError) {
       const errorMessage = cleanError instanceof Error ? cleanError.message : String(cleanError)

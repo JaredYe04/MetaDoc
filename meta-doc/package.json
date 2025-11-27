@@ -20,7 +20,7 @@
     "build:android": "npm run build && npx cap copy && npx cap sync android && npx cap open android",
     "android": "npx cap open android",
     "kill": "taskkill /IM electron.exe /F",
-    "i18n":"python .\\src\\renderer\\src\\locales\\i18n_check.py"
+    "i18n": "python .\\src\\renderer\\src\\locales\\i18n_check.py"
   },
   "fileAssociations": [
     {
@@ -32,7 +32,7 @@
       "icon": "build/icon.png"
     },
     {
-      "ext":"tex",
+      "ext": "tex",
       "name": "LaTeX Document",
       "description": "LaTeX 文件",
       "role": "Editor",
@@ -89,6 +89,7 @@
     "marked": "^15.0.1",
     "md-editor-v3": "^5.3.2",
     "md-to-pdf": "^5.2.4",
+    "mermaid": "^11.12.1",
     "mitt": "^3.0.1",
     "mock-aws-s3": "^4.0.2",
     "monaco-editor": "^0.53.0",

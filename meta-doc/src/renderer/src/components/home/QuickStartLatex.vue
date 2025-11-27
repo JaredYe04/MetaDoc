@@ -194,6 +194,7 @@ import { generateLatexPrompt, getSuggestionPresets, getPresets } from '../../uti
 import { getSetting } from '../../utils/settings'
 import { ai_types, createAiTask } from '../../utils/ai_tasks'
 import { createRendererLogger } from '../../utils/logger'
+import { setupMonacoWorker, registerLatexLanguage } from '../../utils/monaco-worker-config'
 
 const emit = defineEmits(['close'])
 
@@ -439,54 +440,10 @@ const labelStyle = computed(() => ({
 const initMonacoEditor = async () => {
   if (!editorContainerRef.value) return
 
-  // 设置 Monaco 环境
-  ;(window as any).MonacoEnvironment = {
-    getWorker: function (moduleId: string, label: string) {
-      let workerPath = ''
-      switch (label) {
-        case 'json':
-          workerPath = 'http://localhost:52521/monaco/language/json/json.worker.js'
-          break
-        case 'css':
-        case 'scss':
-        case 'less':
-          workerPath = 'http://localhost:52521/monaco/language/css/css.worker.js'
-          break
-        case 'html':
-        case 'handlebars':
-        case 'razor':
-          workerPath = 'http://localhost:52521/monaco/language/html/html.worker.js'
-          break
-        case 'typescript':
-        case 'javascript':
-          workerPath = 'http://localhost:52521/monaco/language/typescript/ts.worker.js'
-          break
-        default:
-          workerPath = 'http://localhost:52521/monaco/editor/editor.worker.js'
-      }
-      const blob = new Blob([`import("${workerPath}");`], { type: 'application/javascript' })
-      return new Worker(URL.createObjectURL(blob), { type: 'module' })
-    }
-  }
-
-  // 注册 LaTeX 语言
-  if (!monaco.languages.getLanguages().find(l => l.id === 'latex')) {
-    monaco.languages.register({ id: 'latex' })
-    monaco.languages.setMonarchTokensProvider('latex', {
-      defaultToken: '',
-      tokenPostfix: '.tex',
-      tokenizer: {
-        root: [
-          [/\\[a-zA-Z]+/, 'keyword'],
-          [/%.*$/, 'comment'],
-          [/\$[^$]*\$/, 'string'],
-          [/{|}/, 'delimiter'],
-          [/\[|\]/, 'delimiter'],
-          [/[^\s]+/, '']
-        ]
-      }
-    })
-  }
+  // 使用统一的 Monaco Worker 配置
+  setupMonacoWorker()
+  // 注册 LaTeX 语言支持（内部会检查是否已注册）
+  registerLatexLanguage()
 
   // 创建编辑器
   const isDark = themeState.currentTheme.type === 'dark'

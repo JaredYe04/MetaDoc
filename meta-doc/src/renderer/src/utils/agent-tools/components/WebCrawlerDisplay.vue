@@ -115,6 +115,7 @@ import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
+import { setupMonacoWorker } from '../../monaco-worker-config'
 
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps>()
@@ -504,6 +505,9 @@ const monacoEditorStyle = computed(() => ({
 const initJsonMonacoEditor = async () => {
   if (!isJsonContent.value || !resultData.value || !formattedJsonContent.value) return
   
+  // 确保 Monaco Worker 已配置
+  setupMonacoWorker()
+  
   await nextTick()
   
   const container = document.getElementById(jsonEditorId.value)
@@ -547,6 +551,9 @@ const initJsonMonacoEditor = async () => {
 // 初始化 XML Monaco 编辑器
 const initXmlMonacoEditor = async () => {
   if (!isXmlContent.value || !resultData.value || !formattedXmlContent.value) return
+  
+  // 确保 Monaco Worker 已配置
+  setupMonacoWorker()
   
   await nextTick()
   

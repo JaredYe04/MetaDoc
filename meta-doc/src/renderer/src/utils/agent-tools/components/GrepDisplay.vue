@@ -77,6 +77,7 @@ import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDis
 import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
 import type { GrepResult, GrepMatch } from '../grep-tool'
+import { setupMonacoWorker } from '../../monaco-worker-config'
 
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps>()
@@ -179,14 +180,30 @@ const selectMatch = async (index: number) => {
 const getMonacoEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
   // 首先尝试使用缓存的编辑器实例
   if (monacoEditor) {
-    return monacoEditor
+    // 验证编辑器是否仍然有效
+    try {
+      const container = monacoEditor.getContainerDomNode()
+      if (container && container.id === editorId.value) {
+        return monacoEditor
+      }
+      // 容器 ID 不匹配，清除缓存
+      monacoEditor = null
+    } catch {
+      // 编辑器已被销毁，清除缓存
+      monacoEditor = null
+    }
   }
   
-  // 如果缓存为空，从全局获取编辑器实例（参考 LaTeXEditor.vue 的做法）
+  // 如果缓存为空，从全局获取编辑器实例（通过容器 ID 匹配）
   const editors = monaco.editor.getEditors()
   const foundEditor = editors.find(e => {
-    const container = e.getContainerDomNode()
-    return container && container.id === editorId.value
+    try {
+      const container = e.getContainerDomNode()
+      // 通过容器 ID 匹配（这是最可靠的方式）
+      return container && container.id === editorId.value
+    } catch {
+      return false
+    }
   })
   
   if (foundEditor) {
@@ -194,7 +211,18 @@ const getMonacoEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
     return foundEditor
   }
   
-  console.warn('[GrepDisplay] 编辑器实例未找到，editorId:', editorId.value)
+  console.warn('[GrepDisplay] 编辑器实例未找到，editorId:', editorId.value, '当前编辑器数量:', editors.length)
+  // 输出所有编辑器的容器 ID 用于调试
+  if (editors.length > 0) {
+    const containerIds = editors.map(e => {
+      try {
+        return e.getContainerDomNode()?.id || 'no-id'
+      } catch {
+        return 'error'
+      }
+    })
+    console.log('[GrepDisplay] 当前所有编辑器的容器 ID:', containerIds)
+  }
   return null
 }
 
@@ -300,55 +328,71 @@ const highlightMatchInEditor = async (index: number) => {
 const initMonacoEditor = async () => {
   if (!resultData.value || resultData.value.matches.length === 0 || !originalContent.value) return
   
+  // 确保 Monaco Worker 已配置
+  setupMonacoWorker()
+  
   await nextTick()
   
   const container = document.getElementById(editorId.value)
   if (!container) {
-    console.warn('Monaco编辑器容器未找到')
+    console.warn('[GrepDisplay] Monaco编辑器容器未找到，editorId:', editorId.value)
     return
   }
 
   // 从全局获取编辑器实例（如果已存在则先销毁）
   const editors = monaco.editor.getEditors()
-  const existingEditor = editors.find(e => e.getId?.() === editorId.value)
+  const existingEditor = editors.find(e => {
+    try {
+      const editorContainer = e.getContainerDomNode()
+      return editorContainer && editorContainer.id === editorId.value
+    } catch {
+      return false
+    }
+  })
   
   if (existingEditor) {
     existingEditor.dispose()
     currentDecorations = [] // 清除装饰
+    monacoEditor = null // 清除缓存
   }
+
+  // 确保容器有 ID（在创建编辑器之前设置，这是匹配的关键）
+  container.id = editorId.value
 
   // 使用原始文档内容
   const content = originalContent.value || ''
   const lang = documentLanguage.value
 
-  // 创建 Monaco 编辑器（参考 LaTeXEditor.vue 的做法，设置唯一 ID）
-  monacoEditor = monaco.editor.create(container, {
-    value: content,
-    language: lang,
-    theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
-    readOnly: true,
-    lineNumbers: 'on',
-    minimap: { enabled: false },
-    scrollBeyondLastLine: false,
-    wordWrap: 'on',
-    automaticLayout: true,
-    fontSize: 13,
-    fontFamily: 'JetBrains Mono, Consolas, monospace',
-    renderLineHighlight: 'all',
-    lineDecorationsWidth: 10,
-    glyphMargin: true
-  })
-  
-  // 确保容器有 ID，方便后续从全局获取编辑器
-  if (container) {
-    container.id = editorId.value
+  // 创建 Monaco 编辑器（参考 LaTeXEditor.vue 的做法）
+  try {
+    monacoEditor = monaco.editor.create(container, {
+      value: content,
+      language: lang,
+      theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
+      readOnly: true,
+      lineNumbers: 'on',
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      wordWrap: 'on',
+      automaticLayout: true,
+      fontSize: 13,
+      fontFamily: 'JetBrains Mono, Consolas, monospace',
+      renderLineHighlight: 'all',
+      lineDecorationsWidth: 10,
+      glyphMargin: true
+    })
+    
+    console.log('[GrepDisplay] 编辑器创建成功，ID:', monacoEditor.getId(), 'editorId:', editorId.value)
+  } catch (error) {
+    console.error('[GrepDisplay] 创建编辑器失败:', error)
+    return
   }
 
   // 默认选中并高亮第一个匹配
   if (resultData.value.matches.length > 0) {
     selectedMatchIndex.value = 0
     await nextTick()
-    highlightMatchInEditor(0)
+    await highlightMatchInEditor(0)
   }
 }
 
@@ -369,9 +413,10 @@ watch([() => resultData.value, () => originalContent.value], async () => {
 }, { immediate: true, deep: true })
 
 // 监听selectedMatchIndex变化，切换高亮
-watch(selectedMatchIndex, (newIndex) => {
-  if (newIndex !== null && monacoEditor) {
-    highlightMatchInEditor(newIndex)
+watch(selectedMatchIndex, async (newIndex) => {
+  if (newIndex !== null) {
+    await nextTick()
+    await highlightMatchInEditor(newIndex)
   }
 })
 

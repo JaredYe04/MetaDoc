@@ -110,6 +110,7 @@ import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDis
 import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
 import type { ProofreadResult, ProofreadError } from '../proofread-tool'
+import { setupMonacoWorker } from '../../monaco-worker-config'
 
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps>()
@@ -238,6 +239,9 @@ const getErrorTypeLabel = (type: string) => {
 // 初始化 Monaco 编辑器（分列视图）
 const initMonacoEditors = async () => {
   if (viewMode.value !== 'split') return
+  
+  // 确保 Monaco Worker 已配置
+  setupMonacoWorker()
   
   await nextTick()
   

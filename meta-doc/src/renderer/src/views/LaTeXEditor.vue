@@ -292,6 +292,7 @@ import localIpcRenderer from "../utils/web-adapter/local-ipc-renderer";
 import { webMainCalls } from "../utils/web-adapter/web-main-calls";
 import { createMonacoAdapter } from "../editor/monaco-adapter";
 import { prependAiChatDialog } from '../utils/ai-chat-storage';
+import { setupMonacoWorker, registerLatexLanguage } from '../utils/monaco-worker-config';
 
 const { t } = useI18n();
 const logger = createRendererLogger('LaTeXEditor', {
@@ -1929,63 +1930,15 @@ const refreshContextMenu = async () => {
     articleContextMenuItems.value = await getArticleContextMenuItems({ isLatexEditor: true }) as any[];
 }
 
-// 注册 LaTeX
-monaco.languages.register({ id: 'latex' });
-monaco.languages.setMonarchTokensProvider('latex', {
-    defaultToken: '',
-    tokenPostfix: '.tex',
-
-    // 这里是关键，必须有 tokenizer 对象
-    tokenizer: {
-        root: [
-            [/\\[a-zA-Z]+/, 'keyword'],      // LaTeX 命令
-            [/%.*$/, 'comment'],             // 注释
-            [/\$[^$]*\$/, 'string'],         // 行内公式
-            [/{|}/, 'delimiter'],            // 花括号
-            [/\[|\]/, 'delimiter'],          // 中括号
-            [/[^\s]+/, '']                   // 其他文本
-        ]
-    }
-});
+// LaTeX 语言注册已由 registerLatexLanguage() 处理
 
 let contentChangeListener: monaco.IDisposable | null = null;
 const editorId = ref<string | null>(null);
 const initEditor = () => {
-    (window as any).MonacoEnvironment = {
-        getWorker: function (moduleId: string, label: string) {
-            let workerPath = '';
-
-            switch (label) {
-                case 'json':
-                    workerPath = 'http://localhost:52521/monaco/language/json/json.worker.js';
-                    break;
-                case 'css':
-                case 'scss':
-                case 'less':
-                    workerPath = 'http://localhost:52521/monaco/language/css/css.worker.js';
-                    break;
-                case 'html':
-                case 'handlebars':
-                case 'razor':
-                    workerPath = 'http://localhost:52521/monaco/language/html/html.worker.js';
-                    break;
-                case 'typescript':
-                case 'javascript':
-                    workerPath = 'http://localhost:52521/monaco/language/typescript/ts.worker.js';
-                    break;
-                default:
-                    workerPath = 'http://localhost:52521/monaco/editor/editor.worker.js';
-            }
-
-            // ESM worker: 用 import() 动态导入
-            const blob = new Blob(
-                [`import("${workerPath}");`],
-                { type: 'application/javascript' }
-            );
-
-            return new Worker(URL.createObjectURL(blob), { type: 'module' });
-        }
-    };
+    // 使用统一的 Monaco Worker 配置
+    setupMonacoWorker();
+    // 注册 LaTeX 语言支持
+    registerLatexLanguage();
 
     //logger.debug("LaTeXEditor initEditor")
     if (!editorEl.value) return;

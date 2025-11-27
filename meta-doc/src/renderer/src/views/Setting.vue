@@ -26,7 +26,9 @@
 
       <el-main class="settings-main" :style="{ color: themeState.currentTheme.textColor }">
         <el-scrollbar class="settings-scroll">
-          <component :is="currentComponent" class="setting-section" />
+          <keep-alive>
+            <component :is="currentComponent" :key="activeMenu" class="setting-section" />
+          </keep-alive>
         </el-scrollbar>
       </el-main>
     </el-container>

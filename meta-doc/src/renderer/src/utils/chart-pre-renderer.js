@@ -5,6 +5,7 @@ import Vditor from 'vditor';
 import { createRendererLogger } from './logger.ts';
 import { isElectronEnv } from './event-bus';
 import { localVditorCDN, vditorCDN } from './vditor-cdn';
+import mermaid from 'mermaid';
 // 移除 dom-to-image 依赖，避免通过 DOM 截图导出路径
 
 // 导出图表类型配置供外部使用
@@ -17,8 +18,8 @@ export const CHART_TYPES = {
     },
     mermaid: {
         regex: /```mermaid\s*\n([\s\S]*?)```/g,
-        useIpc: false, // 使用 Vditor 渲染
-        vditorMethod: 'mermaidRender',
+        useIpc: false, // 使用 Mermaid 官方 API 渲染
+        useMermaidApi: true, // 使用 Mermaid 官方 API
         defaultFormat: 'svg', // 默认矢量图
         canConvert: true, // 可以转换为位图
     },
@@ -156,6 +157,83 @@ export async function renderEChartsViaIpc(optionJson, format = 'svg') {
 }
 
 /**
+ * 使用 Mermaid 官方 API 渲染图表
+ * @param {string} code - Mermaid 代码
+ * @param {'svg'|'png'} format - 格式：'svg' 或 'png'
+ * @returns {Promise<string>} 图片 URL
+ */
+export async function renderMermaidViaApi(code, format = 'svg') {
+    const logger = createRendererLogger('MermaidRenderer');
+    
+    try {
+        // 初始化 Mermaid（每次调用都初始化，确保配置正确）
+        mermaid.initialize({ 
+            startOnLoad: false,
+            securityLevel: 'loose' // 允许交互功能
+        });
+        
+        // 先验证语法
+        try {
+            const parseResult = await mermaid.parse(code, { suppressErrors: false });
+            if (!parseResult || !parseResult.diagramType) {
+                throw new Error('Mermaid 语法验证失败：无法识别图表类型');
+            }
+        } catch (parseError) {
+            const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
+            logger.error('Mermaid 语法验证失败:', errorMsg);
+            throw new Error(`Mermaid 语法错误: ${errorMsg}`);
+        }
+        
+        // 生成唯一的 ID
+        const id = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        
+        // 使用 mermaid.render 渲染
+        const { svg } = await mermaid.render(id, code);
+        
+        // 检查 SVG 中是否包含错误信息
+        if (svg.includes('syntax error') || svg.includes('Syntax error') || svg.includes('Error:')) {
+            // 尝试提取错误信息
+            const errorMatch = svg.match(/<text[^>]*>(.*?error.*?)<\/text>/i);
+            const errorMsg = errorMatch ? errorMatch[1] : 'Mermaid 渲染失败：检测到语法错误';
+            logger.error('Mermaid 渲染检测到错误:', errorMsg);
+            throw new Error(`Mermaid 语法错误: ${errorMsg}`);
+        }
+        
+        // 清理 SVG（移除动画等）
+        const cleanedSvg = cleanSvgForExport(svg);
+        
+        // 计算哈希
+        const ext = format === 'png' ? 'png' : 'svg';
+        const hashBase = await computeHash(String(code) + ':mermaid:' + ext);
+        
+        if (format === 'png') {
+            // 转换为 PNG（使用主进程 resvg）
+            let ipcRenderer = null;
+            if (window && window.electron) {
+                ipcRenderer = window.electron.ipcRenderer;
+            } else {
+                const localIpcRenderer = (await import('./web-adapter/local-ipc-renderer.ts')).default;
+                ipcRenderer = localIpcRenderer;
+            }
+            if (!ipcRenderer) throw new Error('无法获取 IPC 渲染器');
+            
+            const ret = await ipcRenderer.invoke('convert-svg-string-to-png', cleanedSvg);
+            if (!ret?.success || !ret.url) {
+                throw new Error(ret?.error || '主进程 SVG→PNG 失败');
+            }
+            return ret.url;
+        } else {
+            // 使用 SVG 矢量图
+            const svgBlob = new Blob([cleanedSvg], { type: 'image/svg+xml' });
+            return await uploadImageToLocal(svgBlob, `${hashBase}_mermaid.svg`);
+        }
+    } catch (error) {
+        logger.error('Mermaid 渲染失败:', error);
+        throw error;
+    }
+}
+
+/**
  * 使用 Vditor 渲染图表并提取 SVG 或 PNG
  * @param {string} chartType - 图表类型
  * @param {string} code - 图表代码
@@ -196,7 +274,7 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
             }
             
             // 开始检查渲染结果
-            const maxWait = 5000; // 最多等待 5 秒
+            const maxWait = 10000; // 最多等待 10 秒
             const checkInterval = 200;
             let waited = 0;
             
@@ -801,7 +879,12 @@ export async function preRenderAllCharts(md, cdn, format = '') {
                 } else {
                     throw new Error(`不支持的 IPC 渲染类型: ${chartType}`);
                 }
+            } else if (config.useMermaidApi && chartType === 'mermaid') {
+                // 使用 Mermaid 官方 API 渲染
+                logger.debug(`renderMermaidViaApi code: ${code}, targetFormat: ${targetFormat}`);
+                imageUrl = await renderMermaidViaApi(code, targetFormat);
             } else {
+                // 使用 Vditor 渲染（其他图表类型）
                 const chartConfig = CHART_TYPES[chartType];
                 logger.debug(`renderChartViaVditor chartType: ${chartType}, code: ${code}, cdn: ${cdn}, chartConfig: ${chartConfig}, targetFormat: ${targetFormat}`);
                 imageUrl = await renderChartViaVditor(chartType, code, cdn, chartConfig, targetFormat);

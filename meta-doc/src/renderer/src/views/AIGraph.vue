@@ -423,7 +423,15 @@ const confirmExportImage = async () => {
             imageUrl = await renderChartViaVditor(chartType, codeContent, cdn, chartConfig, targetFormat);
         }
         
-        // 获取 IPC 渲染器（统一获取，避免重复）
+        // 如果是 PDF 导出，需要先将 SVG 转换为 PDF
+        if (exportFormat.value === 'pdf') {
+            // 使用统一的 SVG 转 PDF 工具函数
+            const { convertSvgToPdf } = await import('../utils/svg-to-pdf-utils.js');
+            // 返回本地路径，用于保存文件
+            imageUrl = await convertSvgToPdf(imageUrl, { returnUrl: false });
+        }
+        
+        // 获取 IPC 渲染器用于保存文件
         let ipcRenderer = null;
         if (window && window.electron) {
             ipcRenderer = window.electron.ipcRenderer;
@@ -434,31 +442,6 @@ const confirmExportImage = async () => {
         
         if (!ipcRenderer) {
             throw new Error('无法获取 IPC 渲染器');
-        }
-        
-        // 如果是 PDF 导出，需要先将 SVG 转换为 PDF
-        if (exportFormat.value === 'pdf') {
-            // 从图片 URL 中提取本地路径
-            let svgPath = imageUrl;
-            if (imageUrl.startsWith('http://localhost:52521/images/')) {
-                // 如果是 HTTP URL，需要转换为本地路径
-                const { image2local } = await import('../utils/md-utils.js');
-                const markdownWithImage = `![chart](${imageUrl})`;
-                const convertedMarkdown = await image2local(markdownWithImage);
-                const imageMatch = convertedMarkdown.match(/!\[.*?\]\((.+?)\)/);
-                if (imageMatch) {
-                    svgPath = imageMatch[1];
-                }
-            }
-            
-            // 调用主进程转换 SVG 为 PDF
-            const convertResult = await ipcRenderer.invoke('convert-svg-to-pdf', svgPath);
-            if (!convertResult.success || !convertResult.pdfPath) {
-                throw new Error(convertResult.error || 'SVG 转 PDF 失败');
-            }
-            
-            // 使用转换后的 PDF 路径
-            imageUrl = convertResult.pdfPath;
         }
         
         const fileExtension = exportFormat.value === 'pdf' ? 'pdf' : (exportFormat.value === 'svg' ? 'svg' : 'png');

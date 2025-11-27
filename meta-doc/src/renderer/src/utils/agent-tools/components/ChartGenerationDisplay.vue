@@ -42,15 +42,22 @@
 
       <!-- 图表预览 -->
       <div class="chart-preview" :style="chartPreviewStyle">
+        <!-- 如果是 PDF 格式，显示对应的 SVG（因为 PDF 无法直接在浏览器中显示） -->
         <img
-          v-if="displayData.url"
-          :src="displayData.url"
+          v-if="displayData.svgUrl || displayData.url"
+          :src="displayData.svgUrl || displayData.url"
           :alt="displayData.chartName"
           class="chart-image"
           @error="handleImageError"
         />
         <div v-else class="no-preview">
           <el-empty :description="$t('agent.display.chartGeneration.noPreview')" :image-size="80" />
+        </div>
+        <!-- PDF 格式提示 -->
+        <div v-if="displayData.svgUrl" class="pdf-format-hint">
+          <el-tag type="info" size="small">
+            {{ $t('agent.display.chartGeneration.pdfFormatHint', 'PDF 格式，显示对应的 SVG 预览') }}
+          </el-tag>
         </div>
       </div>
 
@@ -140,6 +147,7 @@ const displayData = computed(() => {
       chartName?: string
       url?: string
       localPath?: string
+      svgUrl?: string  // PDF 格式时，用于显示对应的 SVG
       error?: string
     }
   }
@@ -163,18 +171,22 @@ const progressStatus = computed(() => {
 
 // 下载图表
 const downloadChart = async () => {
-  if (!displayData.value.url) {
+  // 优先使用 url（可能是 PDF），如果没有则使用 svgUrl
+  const downloadUrl = displayData.value.url || displayData.value.svgUrl
+  if (!downloadUrl) {
     ElMessage.warning(t('agent.display.chartGeneration.noChart'))
     return
   }
 
   try {
-    const response = await fetch(displayData.value.url)
+    const response = await fetch(downloadUrl)
     const blob = await response.blob()
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${displayData.value.chartName || 'chart'}.${getFileExtension(displayData.value.url)}`
+    // 根据 URL 确定文件扩展名
+    const fileExtension = getFileExtension(downloadUrl)
+    a.download = `${displayData.value.chartName || 'chart'}.${fileExtension}`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -288,6 +300,11 @@ const handleImageError = () => {
 
 .no-preview {
   padding: 40px 0;
+}
+
+.pdf-format-hint {
+  margin-top: 8px;
+  text-align: center;
 }
 
 .code-section {

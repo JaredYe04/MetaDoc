@@ -1135,6 +1135,97 @@
           "chartCodeShouldNotBeEmpty": true,
           "urlShouldNotBeEmpty": true
         }
+      },
+      {
+        "id": "chart-generation::mermaid-code-only-001",
+        "name": "仅使用代码渲染Mermaid流程图（无prompt）",
+        "params": {
+          "chartType": "mermaid",
+          "format": "svg",
+          "code": "flowchart TD\n    A[开始] --> B[输入用户名和密码]\n    B --> C{验证用户名和密码}\n    C -->|验证成功| D[登录成功]\n    C -->|验证失败| E[登录失败]\n    D --> F[跳转到主页]\n    E --> G[显示错误信息]\n    F --> H[结束]\n    G --> B"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::mermaid-code-only-002",
+        "name": "仅使用代码渲染Mermaid饼图（无prompt）",
+        "params": {
+          "chartType": "mermaid",
+          "format": "svg",
+          "code": "pie title 销售数据占比\n    \"电子产品\" : 35\n    \"服装\" : 25\n    \"家居用品\" : 20\n    \"食品\" : 20"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::mermaid-code-only-003",
+        "name": "仅使用代码渲染Mermaid序列图（无prompt）",
+        "params": {
+          "chartType": "mermaid",
+          "format": "svg",
+          "code": "sequenceDiagram\n    participant U as 用户\n    participant F as 前端\n    participant B as 后端\n    participant D as 数据库\n    U->>F: 提交订单\n    F->>B: 发送订单请求\n    B->>D: 查询库存\n    D-->>B: 返回库存信息\n    B->>B: 验证库存\n    B->>D: 创建订单\n    D-->>B: 订单创建成功\n    B-->>F: 返回订单信息\n    F-->>U: 显示订单确认"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::echarts-code-only-001",
+        "name": "仅使用代码渲染ECharts折线图（无prompt）",
+        "params": {
+          "chartType": "echarts",
+          "format": "svg",
+          "code": "{\n  \"title\": {\n    \"text\": \"销售额趋势\"\n  },\n  \"xAxis\": {\n    \"type\": \"category\",\n    \"data\": [\"1月\", \"2月\", \"3月\", \"4月\", \"5月\", \"6月\"]\n  },\n  \"yAxis\": {\n    \"type\": \"value\"\n  },\n  \"series\": [{\n    \"data\": [120, 200, 150, 80, 70, 110],\n    \"type\": \"line\"\n  }]\n}"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::echarts-code-only-002",
+        "name": "仅使用代码渲染ECharts柱状图（无prompt）",
+        "params": {
+          "chartType": "echarts",
+          "format": "png",
+          "code": "{\n  \"title\": {\n    \"text\": \"地区销售额对比\"\n  },\n  \"xAxis\": {\n    \"type\": \"category\",\n    \"data\": [\"北京\", \"上海\", \"广州\", \"深圳\", \"杭州\"]\n  },\n  \"yAxis\": {\n    \"type\": \"value\"\n  },\n  \"series\": [{\n    \"data\": [320, 302, 301, 334, 390],\n    \"type\": \"bar\"\n  }]\n}"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::plantuml-code-only-001",
+        "name": "仅使用代码渲染PlantUML类图（无prompt）",
+        "params": {
+          "chartType": "plantuml",
+          "format": "svg",
+          "code": "@startuml\nabstract class Animal {\n  +name: String\n  +makeSound()\n}\nclass Dog extends Animal {\n  +bark()\n}\nclass Cat extends Animal {\n  +meow()\n}\n@enduml"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "chart-generation::mermaid-code-png-001",
+        "name": "仅使用代码渲染Mermaid图表（PNG格式）",
+        "params": {
+          "chartType": "mermaid",
+          "format": "png",
+          "code": "graph LR\n    A[开始] --> B[处理数据]\n    B --> C[生成报告]\n    C --> D[结束]"
+        },
+        "assertions": {
+          "chartCodeShouldNotBeEmpty": true,
+          "urlShouldNotBeEmpty": true
+        }
       }
     ]
   }

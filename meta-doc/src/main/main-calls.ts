@@ -580,6 +580,26 @@ function bindUtilityHandlers(): void {
     }
   });
 
+  // SVG 字符串 → PDF 文件（resvg）
+  ipcMain.handle('convert-svg-string-to-pdf', async (event: IpcMainInvokeEvent, svgContent: string): Promise<{ success: boolean; pdfPath?: string; error?: string }> => {
+    const logger = createMainLogger('SvgToPdf');
+    try {
+      const { convertSvgStringToPdfFile } = await import('./utils/svg-to-pdf');
+      const url = await convertSvgStringToPdfFile(svgContent);
+      // 从URL中提取文件路径（用于返回）
+      const fileName = url.replace('http://localhost:52521/images/', '');
+      const { imageUploadDir } = await import('./express-server');
+      const pdfPath = path.join(imageUploadDir, fileName);
+      return { success: true, pdfPath };
+    } catch (error) {
+      logger.error('SVG 字符串转 PDF 失败:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
   // 保存图片文件
   ipcMain.handle('save-image-file', async (event: IpcMainInvokeEvent, imageUrl: string, suggestedName: string): Promise<{ success: boolean; path?: string; error?: string }> => {
     const logger = createMainLogger('SaveImage');

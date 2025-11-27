@@ -145,6 +145,7 @@ import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
+import { setupMonacoWorker } from '../../monaco-worker-config'
 
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps>()
@@ -412,6 +413,9 @@ const initMonacoEditors = async () => {
     console.warn('Monaco编辑器容器未找到')
     return
   }
+
+  // 确保 Monaco Worker 已配置
+  setupMonacoWorker()
 
   // 从全局获取编辑器实例（如果已存在则先销毁）
   const editors = monaco.editor.getEditors()

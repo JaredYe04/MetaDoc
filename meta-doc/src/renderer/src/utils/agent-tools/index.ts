@@ -20,6 +20,7 @@ import { proofreadToolConfig } from './proofread-tool'
 import { outlineOptimizeToolConfig } from './outline-optimize-tool'
 import { editToolConfig } from './edit-tool'
 import { metadataToolConfig } from './metadata-tool'
+import { registerAllWorkflowsAsTools } from '../agent-framework'
 
 /**
  * 初始化所有内部Tool
@@ -72,6 +73,9 @@ export function initializeAgentTools(): void {
 
   // 注册元信息管理Tool
   agentToolManager.registerTool(metadataToolConfig)
+
+  // 注册所有工作流为Tool
+  registerAllWorkflowsAsTools()
 }
 
 /**

@@ -68,5 +68,49 @@ export interface AgentSession {
   updatedAt: string;
   messages: AgentMessage[];
   activeToolIds: string[];
+  // 以下字段用于新的Agent框架（可选，保持向后兼容）
+  agentConfigId?: string;
+  messageQueue?: Array<{
+    id: string;
+    content: string;
+    role: 'user' | 'system' | 'assistant';
+    timestamp: number;
+    insertedAtMessageId?: string;
+    processed: boolean;
+  }>;
+  referenceStore?: Array<{
+    id: string;
+    name: string;
+    type: 'file' | 'url' | 'knowledge-base' | 'article-service' | 'custom';
+    url: string;
+    description?: string;
+    metadata?: Record<string, unknown>;
+    createdAt: number;
+    updatedAt: number;
+  }>;
+  publicContext?: {
+    currentTime?: string;
+    timezone?: string;
+    document?: {
+      id: string;
+      path: string;
+      format: 'md' | 'tex';
+      title?: string;
+    };
+    custom?: Record<string, unknown>;
+  };
+  executionNodes?: Array<{
+    id: string;
+    type: 'message' | 'tool-call' | 'workflow-call' | 'llm-call';
+    timestamp: number;
+    data: unknown;
+    status: 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled';
+    result?: unknown;
+    error?: string;
+  }>;
+  currentExecutionNodeId?: string;
+  status?: 'idle' | 'thinking' | 'generating' | 'tool-calling' | 'workflow-executing' | 'waiting-input' | 'error';
+  readonly?: boolean;
+  metadata?: Record<string, unknown>;
 }
 

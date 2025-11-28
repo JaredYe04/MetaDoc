@@ -12,8 +12,19 @@
         <header class="pane-header">
           <h2>{{ t('agent.sessions.title') }}</h2>
           <div class="actions">
+            <el-dropdown @command="handleManageCommand">
+              <el-button size="small" type="info" :icon="Setting" circle/>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="tool-collection">{{ t('agent.manage.toolCollection.title') }}</el-dropdown-item>
+                  <el-dropdown-item command="workflow">{{ t('agent.manage.workflow.title') }}</el-dropdown-item>
+                  <el-dropdown-item command="agent-config">{{ t('agent.manage.agentConfig.title') }}</el-dropdown-item>
+                  <el-dropdown-item divided command="import-session">{{ t('agent.sessions.import') }}</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
             <el-tooltip :content="t('agent.sessions.new')">
-              <el-button size="small" type="info" :icon="Plus" @click="createSession" circle/> 
+              <el-button size="small" type="info" :icon="Plus" @click="showCreateSessionDialog = true" circle/> 
             </el-tooltip>
           </div>
         </header>
@@ -47,6 +58,18 @@
                   >
                     <button type="button" class="session-menu__item" @click="handleSessionMenuAction('rename', session)">
                       {{ t('agent.sessions.rename') }}
+                    </button>
+                    <button type="button" class="session-menu__item" @click="handleSessionMenuAction('retry', session)">
+                      {{ t('agent.sessions.retry') }}
+                    </button>
+                    <button type="button" class="session-menu__item" @click="handleSessionMenuAction('duplicate', session)">
+                      {{ t('agent.sessions.duplicate') }}
+                    </button>
+                    <button type="button" class="session-menu__item" @click="handleSessionMenuAction('export', session)">
+                      {{ t('agent.sessions.export') }}
+                    </button>
+                    <button type="button" class="session-menu__item" @click="handleSessionMenuAction('references', session)">
+                      {{ t('agent.sessions.references') }}
                     </button>
                     <button type="button" class="session-menu__item danger" @click="handleSessionMenuAction('delete', session)">
                       {{ t('agent.sessions.delete') }}
@@ -190,7 +213,7 @@
                 <p>{{ activeTool.description }}</p>
                 <el-descriptions :column="1" size="small" border>
                   <el-descriptions-item :label="t('agent.tools.detail.origin')">
-                    <el-tag size="small">{{ originLabel(activeTool.origin) }}</el-tag>
+                    <el-tag size="small">{{ originLabel(activeTool.origin as ToolOrigin) }}</el-tag>
                   </el-descriptions-item>
                   <el-descriptions-item :label="t('agent.tools.detail.status')">
                     <el-tag v-if="activeTool.running" type="warning" size="small">
@@ -220,6 +243,66 @@
         </div>
       </section>
     </div>
+
+    <!-- 创建会话对话框 -->
+    <el-dialog
+      v-model="showCreateSessionDialog"
+      :title="t('agent.sessions.new')"
+      width="500px"
+    >
+      <el-form>
+        <el-form-item :label="t('agent.sessions.selectAgentConfig')">
+          <el-select
+            v-model="selectedAgentConfigId"
+            style="width: 100%"
+            :placeholder="t('agent.sessions.selectAgentConfigPlaceholder')"
+          >
+            <el-option
+              v-for="config in availableAgentConfigs"
+              :key="config.id"
+              :label="typeof config.name === 'string' ? config.name : config.name['zh_cn']?.name || config.id"
+              :value="config.id"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showCreateSessionDialog = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="createSession(selectedAgentConfigId)" :disabled="!selectedAgentConfigId">
+          {{ t('common.create') }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 管理界面对话框 -->
+    <el-dialog
+      v-model="showManageDialog"
+      :title="manageDialogType === 'tool-collection' ? t('agent.manage.toolCollection.title') : 
+              manageDialogType === 'workflow' ? t('agent.manage.workflow.title') : 
+              t('agent.manage.agentConfig.title')"
+      width="90%"
+      :close-on-click-modal="false"
+    >
+      <ToolCollectionManager v-if="manageDialogType === 'tool-collection'" />
+      <WorkflowManager v-else-if="manageDialogType === 'workflow'" />
+      <AgentConfigManager v-else-if="manageDialogType === 'agent-config'" />
+      <template #footer>
+        <el-button @click="showManageDialog = false">{{ t('common.close') }}</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 引用素材管理对话框 -->
+    <el-dialog
+      v-model="showReferenceDialog"
+      :title="t('agent.reference.title')"
+      width="800px"
+      v-if="referenceSession"
+    >
+      <ReferenceManager :session="referenceSession" @update="handleReferenceUpdate" />
+      <template #footer>
+        <el-button @click="showReferenceDialog = false">{{ t('common.close') }}</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -229,15 +312,20 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Plus, More } from '@element-plus/icons-vue';
+import { Plus, More, Setting } from '@element-plus/icons-vue';
 import { themeState } from '../utils/themes';
 import AgentMessageRenderer from '../components/agent/AgentMessageRenderer.vue';
 import ChatComposer from '../components/chat/ChatComposer.vue';
-import type { AgentSession, AgentTool, ChatAgentMessage } from '../types/agent';
+import type { AgentSession, AgentTool, ChatAgentMessage, ToolOrigin } from '../types/agent';
 import { cloneDeep } from 'lodash';
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
 import { useWorkspace } from '../stores/workspace';
-
+import { agentConfigManager, agentSessionManager } from '../utils/agent-framework';
+import { agentToolManager } from '../utils/agent-tool-manager';
+import ToolCollectionManager from '../components/agent/manage/ToolCollectionManager.vue';
+import WorkflowManager from '../components/agent/manage/WorkflowManager.vue';
+import AgentConfigManager from '../components/agent/manage/AgentConfigManager.vue';
+import ReferenceManager from '../components/agent/ReferenceManager.vue';
 dayjs.extend(relativeTime);
 
 const { t } = useI18n();
@@ -495,7 +583,20 @@ const sampleSessions: AgentSession[] = [
   },
 ];
 
-const tools = ref<AgentTool[]>(cloneDeep(sampleTools));
+// 从AgentToolManager获取工具
+const tools = computed(() => {
+  const allTools = agentToolManager.getAllTools();
+  return allTools.map(tool => ({
+    id: tool.config.id,
+    name: agentToolManager.getLocalizedText(tool.config.name),
+    description: agentToolManager.getLocalizedText(tool.config.description),
+    origin: tool.config.origin === 'internal' ? 'renderer' : tool.config.origin === 'mcp' ? 'mcp' : 'main',
+    tags: tool.config.tags || [],
+    running: tool.running,
+    enabled: tool.config.enabled !== false,
+    lastUsed: tool.lastUsed
+  }));
+});
 const sessionsState = ref<AgentSession[]>([]);
 const activeSessionId = ref<string | null>(null);
 const activeToolId = ref<string | null>(null);
@@ -504,6 +605,13 @@ const shouldBootstrapDemoSessions = true;
 const demoAppliedDocs = new Set<string>();
 const composerInput = ref('');
 const openSessionMenuId = ref<string | null>(null);
+const showCreateSessionDialog = ref(false);
+const showManageDialog = ref(false);
+const manageDialogType = ref<'tool-collection' | 'workflow' | 'agent-config' | null>(null);
+const availableAgentConfigs = ref(agentConfigManager.getAllConfigs());
+const selectedAgentConfigId = ref<string>('');
+const showReferenceDialog = ref(false);
+const referenceSession = ref<AgentSession | null>(null);
 
 const activeSession = computed(() =>
   sessionsState.value.find((session) => session.id === activeSessionId.value) ?? null,
@@ -612,28 +720,45 @@ const isIndeterminate = computed(() => {
 
 const formatRelativeTime = (timestamp: string) => dayjs(timestamp).fromNow();
 
-const createSession = () => {
-  const id = `session-${Date.now()}`;
-  const now = new Date().toISOString();
-  sessionsState.value.unshift({
-    id,
-    title: t('agent.sessions.newTitle', { index: sessionsState.value.length + 1 }),
-    createdAt: now,
-    updatedAt: now,
-    activeToolIds: [],
-    messages: [
-      {
-        id: `${id}-sys`,
-        role: 'system',
-        type: 'chat',
-        timestamp: now,
-        markdown: t('agent.sessions.defaultSystemPrompt'),
-      },
-    ],
-  });
-  ensureActiveSessionId();
-  activeSessionId.value = id;
-  persistSessions();
+const createSession = (agentConfigId?: string) => {
+  if (!agentConfigId) {
+    showCreateSessionDialog.value = true;
+    return;
+  }
+
+  try {
+    const session = agentSessionManager.createSession(
+      agentConfigId,
+      t('agent.sessions.newTitle', { index: sessionsState.value.length + 1 }),
+      ''
+    );
+
+    // 转换为旧的格式以保持兼容
+    const legacySession: AgentSession = {
+      id: session.id,
+      title: session.title,
+      description: session.description,
+      createdAt: new Date(session.createdAt).toISOString(),
+      updatedAt: new Date(session.updatedAt).toISOString(),
+      messages: session.messages,
+      activeToolIds: agentConfigManager.getAvailableToolIds(agentConfigId),
+      agentConfigId: session.agentConfigId,
+      messageQueue: session.messageQueue || [],
+      referenceStore: session.referenceStore || [],
+      publicContext: session.publicContext || {},
+      executionNodes: session.executionNodes || [],
+      status: session.status || 'idle'
+    };
+
+    sessionsState.value.unshift(legacySession);
+    ensureActiveSessionId();
+    activeSessionId.value = session.id;
+    persistSessions();
+    showCreateSessionDialog.value = false;
+    selectedAgentConfigId.value = '';
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : String(error));
+  }
 };
 
 const deleteSession = async (session?: AgentSession) => {
@@ -769,7 +894,7 @@ const toggleSessionMenu = (sessionId: string) => {
 };
 
 const handleSessionMenuAction = async (
-  action: 'rename' | 'delete',
+  action: 'rename' | 'delete' | 'retry' | 'duplicate' | 'export' | 'references',
   session: AgentSession,
 ) => {
   openSessionMenuId.value = null;
@@ -777,6 +902,228 @@ const handleSessionMenuAction = async (
     await renameSession(session);
   } else if (action === 'delete') {
     await deleteSession(session);
+  } else if (action === 'retry') {
+    await handleRetrySession(session);
+  } else if (action === 'duplicate') {
+    await handleDuplicateSession(session);
+  } else if (action === 'export') {
+    await handleExportSession(session);
+  } else if (action === 'references') {
+    referenceSession.value = session;
+    showReferenceDialog.value = true;
+  }
+};
+
+const handleRetrySession = async (session: AgentSession) => {
+  if (!session.currentExecutionNodeId && session.executionNodes && session.executionNodes.length > 0) {
+    ElMessage.warning(t('agent.sessions.noExecutionNode'));
+    return;
+  }
+
+  try {
+    // 转换为新的AgentSession格式
+    const newFormatSession: any = {
+      ...session,
+      entityType: 'agent-session',
+      createdAt: typeof session.createdAt === 'string' ? new Date(session.createdAt).getTime() : session.createdAt,
+      updatedAt: typeof session.updatedAt === 'string' ? new Date(session.updatedAt).getTime() : session.updatedAt,
+      messageQueue: session.messageQueue || [],
+      referenceStore: session.referenceStore || [],
+      publicContext: session.publicContext || {},
+      executionNodes: session.executionNodes || [],
+      status: session.status || 'idle'
+    };
+
+    if (session.currentExecutionNodeId) {
+      agentSessionManager.retryToNode(newFormatSession, session.currentExecutionNodeId);
+      
+      // 更新会话
+      const index = sessionsState.value.findIndex(s => s.id === session.id);
+      if (index !== -1) {
+        sessionsState.value[index] = {
+          ...sessionsState.value[index],
+          ...newFormatSession,
+          createdAt: new Date(newFormatSession.createdAt).toISOString(),
+          updatedAt: new Date(newFormatSession.updatedAt).toISOString()
+        };
+        persistSessions();
+        ElMessage.success(t('agent.sessions.retrySuccess'));
+      }
+    } else {
+      ElMessage.warning(t('agent.sessions.noExecutionNode'));
+    }
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : String(error));
+  }
+};
+
+const handleDuplicateSession = async (session: AgentSession) => {
+  try {
+    // 转换为新的AgentSession格式
+    const newFormatSession: any = {
+      ...session,
+      entityType: 'agent-session',
+      createdAt: typeof session.createdAt === 'string' ? new Date(session.createdAt).getTime() : session.createdAt,
+      updatedAt: typeof session.updatedAt === 'string' ? new Date(session.updatedAt).getTime() : session.updatedAt,
+      messageQueue: session.messageQueue || [],
+      referenceStore: session.referenceStore || [],
+      publicContext: session.publicContext || {},
+      executionNodes: session.executionNodes || [],
+      status: session.status || 'idle'
+    };
+
+    const duplicated = agentSessionManager.duplicateSession(
+      newFormatSession,
+      session.currentExecutionNodeId
+    );
+
+    // 转换为旧格式
+    const legacySession: AgentSession = {
+      id: duplicated.id,
+      title: duplicated.title,
+      description: duplicated.description,
+      createdAt: new Date(duplicated.createdAt).toISOString(),
+      updatedAt: new Date(duplicated.updatedAt).toISOString(),
+      messages: duplicated.messages,
+      activeToolIds: duplicated.agentConfigId 
+        ? agentConfigManager.getAvailableToolIds(duplicated.agentConfigId)
+        : session.activeToolIds,
+      agentConfigId: duplicated.agentConfigId,
+      messageQueue: duplicated.messageQueue,
+      referenceStore: duplicated.referenceStore,
+      publicContext: duplicated.publicContext,
+      executionNodes: duplicated.executionNodes,
+      status: duplicated.status
+    };
+
+    sessionsState.value.unshift(legacySession);
+    ensureActiveSessionId();
+    activeSessionId.value = duplicated.id;
+    persistSessions();
+    ElMessage.success(t('agent.sessions.duplicateSuccess'));
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : String(error));
+  }
+};
+
+const handleExportSession = async (session: AgentSession) => {
+  try {
+    // 转换为新的AgentSession格式
+    const newFormatSession: any = {
+      ...session,
+      entityType: 'agent-session',
+      createdAt: typeof session.createdAt === 'string' ? new Date(session.createdAt).getTime() : session.createdAt,
+      updatedAt: typeof session.updatedAt === 'string' ? new Date(session.updatedAt).getTime() : session.updatedAt,
+      messageQueue: session.messageQueue || [],
+      referenceStore: session.referenceStore || [],
+      publicContext: session.publicContext || {},
+      executionNodes: session.executionNodes || [],
+      status: session.status || 'idle'
+    };
+
+    const serialized = agentSessionManager.serializeSession(newFormatSession, true);
+    const json = JSON.stringify(serialized, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `agent-session-${session.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success(t('agent.sessions.exportSuccess'));
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : String(error));
+  }
+};
+
+const handleImportSession = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json';
+  input.onchange = async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      const session = agentSessionManager.deserializeSession(data, {
+        importDependencies: true,
+        overwriteDependencies: false
+      });
+
+      // 转换为旧格式
+      const legacySession: AgentSession = {
+        id: session.id,
+        title: session.title,
+        description: session.description,
+        createdAt: new Date(session.createdAt).toISOString(),
+        updatedAt: new Date(session.updatedAt).toISOString(),
+        messages: session.messages,
+        activeToolIds: session.agentConfigId 
+          ? agentConfigManager.getAvailableToolIds(session.agentConfigId)
+          : [],
+        agentConfigId: session.agentConfigId,
+        messageQueue: session.messageQueue,
+        referenceStore: session.referenceStore,
+        publicContext: session.publicContext,
+        executionNodes: session.executionNodes,
+        status: session.status
+      };
+
+      sessionsState.value.unshift(legacySession);
+      ensureActiveSessionId();
+      activeSessionId.value = session.id;
+      persistSessions();
+      ElMessage.success(t('agent.sessions.importSuccess'));
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : String(error));
+    }
+  };
+  input.click();
+};
+
+const handleReferenceUpdate = () => {
+  if (referenceSession.value) {
+    // 更新会话
+    const index = sessionsState.value.findIndex(s => s.id === referenceSession.value!.id);
+    if (index !== -1) {
+      // 转换为新的AgentSession格式以获取最新数据
+      const newFormatSession: any = {
+        ...referenceSession.value,
+        entityType: 'agent-session',
+        createdAt: typeof referenceSession.value.createdAt === 'string' 
+          ? new Date(referenceSession.value.createdAt).getTime() 
+          : referenceSession.value.createdAt,
+        updatedAt: typeof referenceSession.value.updatedAt === 'string' 
+          ? new Date(referenceSession.value.updatedAt).getTime() 
+          : referenceSession.value.updatedAt,
+        messageQueue: referenceSession.value.messageQueue || [],
+        referenceStore: referenceSession.value.referenceStore || [],
+        publicContext: referenceSession.value.publicContext || {},
+        executionNodes: referenceSession.value.executionNodes || [],
+        status: referenceSession.value.status || 'idle'
+      };
+      
+      // 更新会话
+      sessionsState.value[index] = {
+        ...sessionsState.value[index],
+        referenceStore: newFormatSession.referenceStore,
+        updatedAt: new Date(newFormatSession.updatedAt).toISOString()
+      };
+      touchSession(sessionsState.value[index]);
+      persistSessions();
+    }
+  }
+};
+
+const handleManageCommand = (command: string) => {
+  if (command === 'import-session') {
+    handleImportSession();
+  } else {
+    manageDialogType.value = command as any;
+    showManageDialog.value = true;
   }
 };
 

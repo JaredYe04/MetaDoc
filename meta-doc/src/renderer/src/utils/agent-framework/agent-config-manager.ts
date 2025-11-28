@@ -8,17 +8,27 @@ import type { LocalizedText } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
 import { toolCollectionManager } from './tool-collection-manager'
 
-const logger = createRendererLogger('AgentConfigManager')
-
 /**
  * Agent配置管理器类
  */
 class AgentConfigManager {
   private configs: Map<string, AgentConfig> = new Map()
   private readonly STORAGE_KEY = 'agent-configs'
+  private logger: ReturnType<typeof createRendererLogger> | null = null
 
   constructor() {
+    // 延迟初始化logger，避免循环依赖
     this.loadFromStorage()
+  }
+
+  /**
+   * 获取logger（懒加载）
+   */
+  private getLogger() {
+    if (!this.logger) {
+      this.logger = createRendererLogger('AgentConfigManager')
+    }
+    return this.logger
   }
 
   /**
@@ -47,7 +57,7 @@ class AgentConfigManager {
 
     this.configs.set(id, config)
     this.saveToStorage()
-    logger.info(`Agent配置已创建: ${id}`)
+    this.getLogger().info(`Agent配置已创建: ${id}`)
     return config
   }
 
@@ -100,7 +110,7 @@ class AgentConfigManager {
 
     this.configs.set(id, updated)
     this.saveToStorage()
-    logger.info(`Agent配置已更新: ${id}`)
+    this.getLogger().info(`Agent配置已更新: ${id}`)
   }
 
   /**
@@ -113,7 +123,7 @@ class AgentConfigManager {
 
     this.configs.delete(id)
     this.saveToStorage()
-    logger.info(`Agent配置已删除: ${id}`)
+    this.getLogger().info(`Agent配置已删除: ${id}`)
   }
 
   /**
@@ -211,7 +221,7 @@ class AgentConfigManager {
     }
 
     if (validation.warnings.length > 0) {
-      logger.warn(`Agent配置导入警告: ${validation.warnings.join(', ')}`)
+      this.getLogger().warn(`Agent配置导入警告: ${validation.warnings.join(', ')}`)
     }
 
     const existing = this.configs.get(config.id)
@@ -222,7 +232,7 @@ class AgentConfigManager {
 
     this.configs.set(config.id, config)
     this.saveToStorage()
-    logger.info(`Agent配置已导入: ${config.id}`)
+    this.getLogger().info(`Agent配置已导入: ${config.id}`)
     return config
   }
 
@@ -238,11 +248,19 @@ class AgentConfigManager {
           data.forEach((item: AgentConfig) => {
             this.configs.set(item.id, item)
           })
-          logger.info(`已加载 ${data.length} 个Agent配置`)
+          // 延迟记录日志，避免在构造函数中初始化logger
+          if (this.logger) {
+            this.logger.info(`已加载 ${data.length} 个Agent配置`)
+          }
         }
       }
     } catch (error) {
-      logger.error('加载Agent配置失败:', error)
+      // 延迟记录日志，避免在构造函数中初始化logger
+      if (this.logger) {
+        this.logger.error('加载Agent配置失败:', error)
+      } else {
+        console.error('加载Agent配置失败:', error)
+      }
     }
   }
 
@@ -254,7 +272,12 @@ class AgentConfigManager {
       const data = Array.from(this.configs.values())
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data))
     } catch (error) {
-      logger.error('保存Agent配置失败:', error)
+      // 延迟记录日志，避免在构造函数中初始化logger
+      if (this.logger) {
+        this.logger.error('保存Agent配置失败:', error)
+      } else {
+        console.error('保存Agent配置失败:', error)
+      }
     }
   }
 }

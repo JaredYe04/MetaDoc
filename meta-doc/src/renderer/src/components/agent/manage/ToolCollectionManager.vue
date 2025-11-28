@@ -90,11 +90,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { themeState } from '@/utils/themes'
-import { toolCollectionManager } from '@/utils/agent-framework'
-import { agentToolManager } from '@/utils/agent-tool-manager'
-import type { ToolCollection } from '@/types/agent-framework'
-import type { LocalizedText } from '@/types/agent-tool'
+import { themeState } from '../../../utils/themes'
+import { toolCollectionManager } from '../../../utils/agent-framework'
+import { agentToolManager } from '../../../utils/agent-tool-manager'
+import type { ToolCollection } from '../../../types/agent-framework'
+import type { LocalizedText } from '../../../types/agent-tool'
 
 const { t } = useI18n()
 

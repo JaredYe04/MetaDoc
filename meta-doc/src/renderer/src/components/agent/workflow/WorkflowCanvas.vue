@@ -55,9 +55,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { themeState } from '@/utils/themes'
-import { workflowManager } from '@/utils/agent-framework'
-import type { Workflow, ArtifactNode, ControlFlowNode } from '@/types/agent-framework'
+import { themeState } from '../../../utils/themes'
+import { workflowManager } from '../../../utils/agent-framework'
+import type { Workflow, ArtifactNode, ControlFlowNode } from '../../../types/agent-framework'
 
 const props = defineProps<{
   workflow?: Workflow | null

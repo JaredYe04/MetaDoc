@@ -75,10 +75,10 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Check, Loading, Clock, InfoFilled } from '@element-plus/icons-vue'
-import { themeState } from '@/utils/themes'
-import type { ToolDisplayComponentProps } from '@/types/agent-tool'
-import type { WorkflowExecutionState } from '@/types/agent-framework'
-import { workflowManager } from '@/utils/agent-framework'
+import { themeState } from '../../../utils/themes'
+import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
+import type { WorkflowExecutionState } from '../../../types/agent-framework'
+import { workflowManager } from '../../../utils/agent-framework'
 
 const props = defineProps<ToolDisplayComponentProps>()
 

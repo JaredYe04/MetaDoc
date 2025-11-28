@@ -10,7 +10,15 @@ import { agentToolManager } from '../agent-tool-manager'
 import { createRendererLogger } from '../logger'
 import WorkflowDisplay from '../../components/agent/workflow/WorkflowDisplay.vue'
 
-const logger = createRendererLogger('WorkflowTool')
+// 懒加载logger，避免初始化顺序问题
+let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
+
+function getLogger() {
+  if (!loggerInstance) {
+    loggerInstance = createRendererLogger('WorkflowTool')
+  }
+  return loggerInstance
+}
 
 /**
  * 创建工作流Tool配置
@@ -18,7 +26,7 @@ const logger = createRendererLogger('WorkflowTool')
 export function createWorkflowToolConfig(workflowId: string): AgentToolConfig | null {
   const workflow = workflowManager.getWorkflow(workflowId)
   if (!workflow) {
-    logger.warn(`工作流 ${workflowId} 未找到`)
+    getLogger().warn(`工作流 ${workflowId} 未找到`)
     return null
   }
 
@@ -89,7 +97,7 @@ export function createWorkflowToolConfig(workflowId: string): AgentToolConfig | 
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      logger.error(`工作流执行失败: ${errorMessage}`)
+      getLogger().error(`工作流执行失败: ${errorMessage}`)
       return {
         status: 'failed',
         error: errorMessage
@@ -138,7 +146,7 @@ export function registerWorkflowAsTool(workflowId: string): void {
   const toolConfig = createWorkflowToolConfig(workflowId)
   if (toolConfig) {
     agentToolManager.registerTool(toolConfig)
-    logger.info(`工作流 ${workflowId} 已注册为Tool: ${toolConfig.id}`)
+    getLogger().info(`工作流 ${workflowId} 已注册为Tool: ${toolConfig.id}`)
   }
 }
 
@@ -148,7 +156,7 @@ export function registerWorkflowAsTool(workflowId: string): void {
 export function unregisterWorkflowTool(workflowId: string): void {
   const toolId = `workflow-${workflowId}`
   agentToolManager.unregisterTool(toolId)
-  logger.info(`工作流Tool ${toolId} 已注销`)
+  getLogger().info(`工作流Tool ${toolId} 已注销`)
 }
 
 /**
@@ -159,7 +167,7 @@ export function registerAllWorkflowsAsTools(): void {
   for (const workflow of workflows) {
     registerWorkflowAsTool(workflow.id)
   }
-  logger.info(`已注册 ${workflows.length} 个工作流为Tool`)
+  getLogger().info(`已注册 ${workflows.length} 个工作流为Tool`)
 }
 
 /**

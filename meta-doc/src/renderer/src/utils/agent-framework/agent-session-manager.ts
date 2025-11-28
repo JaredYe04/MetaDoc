@@ -18,12 +18,21 @@ import { agentConfigManager } from './agent-config-manager'
 import { workflowManager } from './workflow-manager'
 import { toolCollectionManager } from './tool-collection-manager'
 
-const logger = createRendererLogger('AgentSessionManager')
-
 /**
  * Agent会话管理器类
  */
 class AgentSessionManager {
+  private logger: ReturnType<typeof createRendererLogger> | null = null
+
+  /**
+   * 获取logger（懒加载）
+   */
+  private getLogger() {
+    if (!this.logger) {
+      this.logger = createRendererLogger('AgentSessionManager')
+    }
+    return this.logger
+  }
   /**
    * 创建Agent会话
    */
@@ -60,7 +69,7 @@ class AgentSessionManager {
       readonly: false
     }
 
-    logger.info(`Agent会话已创建: ${id}`)
+    this.getLogger().info(`Agent会话已创建: ${id}`)
     return session
   }
 
@@ -84,7 +93,7 @@ class AgentSessionManager {
 
     session.messageQueue.push(message)
     this.touchSession(session)
-    logger.debug(`消息已加入队列: ${message.id}`)
+    this.getLogger().debug(`消息已加入队列: ${message.id}`)
     return message
   }
 
@@ -104,7 +113,7 @@ class AgentSessionManager {
     })
 
     this.touchSession(session)
-    logger.debug(`处理了 ${unprocessed.length} 条队列消息`)
+    this.getLogger().debug(`处理了 ${unprocessed.length} 条队列消息`)
     return unprocessed
   }
 
@@ -132,7 +141,7 @@ class AgentSessionManager {
 
     session.referenceStore.push(reference)
     this.touchSession(session)
-    logger.info(`引用素材已添加: ${reference.id}`)
+    this.getLogger().info(`引用素材已添加: ${reference.id}`)
     return reference
   }
 
@@ -147,7 +156,7 @@ class AgentSessionManager {
 
     session.referenceStore.splice(index, 1)
     this.touchSession(session)
-    logger.info(`引用素材已移除: ${referenceId}`)
+    this.getLogger().info(`引用素材已移除: ${referenceId}`)
   }
 
   /**
@@ -167,7 +176,7 @@ class AgentSessionManager {
       updatedAt: Date.now()
     })
     this.touchSession(session)
-    logger.info(`引用素材已更新: ${referenceId}`)
+    this.getLogger().info(`引用素材已更新: ${referenceId}`)
   }
 
   /**
@@ -184,7 +193,7 @@ class AgentSessionManager {
 
     session.publicContext.custom[key] = value
     this.touchSession(session)
-    logger.debug(`公共上下文已更新: ${key}`)
+    this.getLogger().debug(`公共上下文已更新: ${key}`)
   }
 
   /**
@@ -225,7 +234,7 @@ class AgentSessionManager {
     session.executionNodes.push(node)
     session.currentExecutionNodeId = node.id
     this.touchSession(session)
-    logger.debug(`执行节点已添加: ${node.id}`)
+    this.getLogger().debug(`执行节点已添加: ${node.id}`)
     return node
   }
 
@@ -244,7 +253,7 @@ class AgentSessionManager {
 
     Object.assign(node, updates)
     this.touchSession(session)
-    logger.debug(`执行节点已更新: ${nodeId}`)
+    this.getLogger().debug(`执行节点已更新: ${nodeId}`)
   }
 
   /**
@@ -269,7 +278,7 @@ class AgentSessionManager {
     }
 
     this.touchSession(session)
-    logger.info(`已重试到节点: ${nodeId}`)
+    this.getLogger().info(`已重试到节点: ${nodeId}`)
   }
 
   /**
@@ -302,7 +311,7 @@ class AgentSessionManager {
       }
     }
 
-    logger.info(`会话已复制: ${newId}`)
+    this.getLogger().info(`会话已复制: ${newId}`)
     return duplicated
   }
 
@@ -402,7 +411,7 @@ class AgentSessionManager {
             options.overwriteDependencies
           )
         } catch (error) {
-          logger.warn(`导入AgentConfig失败: ${error}`)
+          this.getLogger().warn(`导入AgentConfig失败: ${error}`)
         }
       }
 
@@ -415,7 +424,7 @@ class AgentSessionManager {
               options.overwriteDependencies
             )
           } catch (error) {
-            logger.warn(`导入工具集失败: ${error}`)
+            this.getLogger().warn(`导入工具集失败: ${error}`)
           }
         }
       }
@@ -429,7 +438,7 @@ class AgentSessionManager {
               options.overwriteDependencies
             )
           } catch (error) {
-            logger.warn(`导入工作流失败: ${error}`)
+            this.getLogger().warn(`导入工作流失败: ${error}`)
           }
         }
       }

@@ -139,10 +139,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { themeState } from '@/utils/themes'
-import { agentConfigManager, toolCollectionManager } from '@/utils/agent-framework'
-import type { AgentConfig } from '@/types/agent-framework'
-import type { LocalizedText } from '@/types/agent-tool'
+import { themeState } from '../../../utils/themes'
+import { agentConfigManager, toolCollectionManager } from '../../../utils/agent-framework'
+import type { AgentConfig } from '../../../types/agent-framework'
+import type { LocalizedText } from '../../../types/agent-tool'
 
 const { t } = useI18n()
 

@@ -16,12 +16,21 @@ import { workflowManager } from './workflow-manager'
 import { agentToolManager } from '../agent-tool-manager'
 import { createRendererLogger } from '../logger'
 
-const logger = createRendererLogger('WorkflowExecutor')
-
 /**
  * 工作流执行器类
  */
 class WorkflowExecutor {
+  private logger: ReturnType<typeof createRendererLogger> | null = null
+
+  /**
+   * 获取logger（懒加载）
+   */
+  private getLogger() {
+    if (!this.logger) {
+      this.logger = createRendererLogger('WorkflowExecutor')
+    }
+    return this.logger
+  }
   /**
    * 执行工作流
    */
@@ -72,7 +81,7 @@ class WorkflowExecutor {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      logger.error(`工作流执行失败: ${errorMessage}`)
+      this.getLogger().error(`工作流执行失败: ${errorMessage}`)
 
       // 更新状态为失败
       workflowManager.updateExecution(executionId, {
@@ -427,13 +436,13 @@ ${JSON.stringify(params, null, 2)}
 
       // 验证决策
       if (!decisionOptions.includes(decisionResult.decision)) {
-        logger.warn(`LLM返回了无效决策: ${decisionResult.decision}，使用默认决策`)
+        this.getLogger().warn(`LLM返回了无效决策: ${decisionResult.decision}，使用默认决策`)
         decisionResult.decision = decisionOptions[0]
       }
 
       return decisionResult
     } catch (error) {
-      logger.error('LLM决策节点执行失败:', error)
+      this.getLogger().error('LLM决策节点执行失败:', error)
       // 返回默认决策
       return {
         decision: decisionOptions[0],
@@ -506,7 +515,7 @@ ${JSON.stringify(params, null, 2)}
         input: params
       }
     } catch (error) {
-      logger.error('AgentConfig节点执行失败:', error)
+      this.getLogger().error('AgentConfig节点执行失败:', error)
       throw error
     }
   }
@@ -683,7 +692,7 @@ ${JSON.stringify(params, null, 2)}
     // 异步执行下游节点（不等待）
     for (const downstreamNode of downstreamNodes) {
       this.executeNode(workflow, execution, downstreamNode.id, signal).catch(error => {
-        logger.error(`异步节点执行失败: ${error}`)
+        this.getLogger().error(`异步节点执行失败: ${error}`)
       })
     }
 
@@ -776,7 +785,7 @@ ${JSON.stringify(params, null, 2)}
       const result = func(...Object.values(context))
       return Boolean(result)
     } catch (error) {
-      logger.error(`条件表达式评估失败: ${condition}`, error)
+      this.getLogger().error(`条件表达式评估失败: ${condition}`, error)
       return false
     }
   }
@@ -846,7 +855,7 @@ ${JSON.stringify(params, null, 2)}
       } else {
         // TODO: 评估条件表达式
         // 这里需要实现条件表达式评估逻辑
-        logger.warn('条件表达式评估尚未实现')
+        this.getLogger().warn('条件表达式评估尚未实现')
         filteredNodes.push(node)
       }
     }

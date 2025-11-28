@@ -8,8 +8,6 @@ import type { LocalizedText } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
 import { agentToolManager } from '../agent-tool-manager'
 
-const logger = createRendererLogger('WorkflowManager')
-
 /**
  * 工作流管理器类
  */
@@ -17,9 +15,21 @@ class WorkflowManager {
   private workflows: Map<string, Workflow> = new Map()
   private executions: Map<string, WorkflowExecutionState> = new Map()
   private readonly STORAGE_KEY = 'agent-workflows'
+  private logger: ReturnType<typeof createRendererLogger> | null = null
 
   constructor() {
+    // 延迟初始化logger，避免循环依赖
     this.loadFromStorage()
+  }
+
+  /**
+   * 获取logger（懒加载）
+   */
+  private getLogger() {
+    if (!this.logger) {
+      this.logger = createRendererLogger('WorkflowManager')
+    }
+    return this.logger
   }
 
   /**
@@ -54,7 +64,7 @@ class WorkflowManager {
 
     this.workflows.set(id, workflow)
     this.saveToStorage()
-    logger.info(`工作流已创建: ${id}`)
+    this.getLogger().info(`工作流已创建: ${id}`)
     
     // 自动注册为Tool
     if (workflow.enabled !== false) {
@@ -62,7 +72,7 @@ class WorkflowManager {
         const { registerWorkflowAsTool } = await import('./workflow-tool')
         registerWorkflowAsTool(id)
       } catch (error) {
-        logger.warn(`工作流 ${id} 注册为Tool失败:`, error)
+        this.getLogger().warn(`工作流 ${id} 注册为Tool失败:`, error)
       }
     }
     
@@ -109,7 +119,7 @@ class WorkflowManager {
 
     this.workflows.set(id, updated)
     this.saveToStorage()
-    logger.info(`工作流已更新: ${id}`)
+    this.getLogger().info(`工作流已更新: ${id}`)
     
     // 更新Tool注册
     try {
@@ -120,7 +130,7 @@ class WorkflowManager {
         unregisterWorkflowTool(id)
       }
     } catch (error) {
-      logger.warn(`工作流 ${id} Tool注册更新失败:`, error)
+      this.getLogger().warn(`工作流 ${id} Tool注册更新失败:`, error)
     }
   }
 
@@ -143,14 +153,14 @@ class WorkflowManager {
 
     this.workflows.delete(id)
     this.saveToStorage()
-    logger.info(`工作流已删除: ${id}`)
+    this.getLogger().info(`工作流已删除: ${id}`)
     
     // 注销Tool
     try {
       const { unregisterWorkflowTool } = await import('./workflow-tool')
       unregisterWorkflowTool(id)
     } catch (error) {
-      logger.warn(`工作流 ${id} Tool注销失败:`, error)
+      this.getLogger().warn(`工作流 ${id} Tool注销失败:`, error)
     }
   }
 
@@ -285,7 +295,7 @@ class WorkflowManager {
 
     this.workflows.set(workflow.id, workflow)
     this.saveToStorage()
-    logger.info(`工作流已导入: ${workflow.id}`)
+    this.getLogger().info(`工作流已导入: ${workflow.id}`)
     return workflow
   }
 
@@ -379,11 +389,19 @@ class WorkflowManager {
           data.forEach((item: Workflow) => {
             this.workflows.set(item.id, item)
           })
-          logger.info(`已加载 ${data.length} 个工作流`)
+          // 延迟记录日志，避免在构造函数中初始化logger
+          if (this.logger) {
+            this.logger.info(`已加载 ${data.length} 个工作流`)
+          }
         }
       }
     } catch (error) {
-      logger.error('加载工作流失败:', error)
+      // 延迟记录日志，避免在构造函数中初始化logger
+      if (this.logger) {
+        this.logger.error('加载工作流失败:', error)
+      } else {
+        console.error('加载工作流失败:', error)
+      }
     }
   }
 
@@ -395,7 +413,12 @@ class WorkflowManager {
       const data = Array.from(this.workflows.values())
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data))
     } catch (error) {
-      logger.error('保存工作流失败:', error)
+      // 延迟记录日志，避免在构造函数中初始化logger
+      if (this.logger) {
+        this.logger.error('保存工作流失败:', error)
+      } else {
+        console.error('保存工作流失败:', error)
+      }
     }
   }
 }

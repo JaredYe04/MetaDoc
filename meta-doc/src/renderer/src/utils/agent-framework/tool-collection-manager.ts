@@ -7,7 +7,6 @@ import type { ToolCollection, SerializedEntity } from '../../types/agent-framewo
 import type { LocalizedText } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
 
-const logger = createRendererLogger('ToolCollectionManager')
 
 /**
  * 工具集管理器类
@@ -15,9 +14,21 @@ const logger = createRendererLogger('ToolCollectionManager')
 class ToolCollectionManager {
   private collections: Map<string, ToolCollection> = new Map()
   private readonly STORAGE_KEY = 'agent-tool-collections'
+  private logger: ReturnType<typeof createRendererLogger> | null = null
 
   constructor() {
+    // 延迟初始化logger，避免循环依赖
     this.loadFromStorage()
+  }
+
+  /**
+   * 获取logger（懒加载）
+   */
+  private getLogger() {
+    if (!this.logger) {
+      this.logger = createRendererLogger('ToolCollectionManager')
+    }
+    return this.logger
   }
 
   /**
@@ -46,7 +57,7 @@ class ToolCollectionManager {
 
     this.collections.set(id, collection)
     this.saveToStorage()
-    logger.info(`工具集已创建: ${id}`)
+    this.getLogger().info(`工具集已创建: ${id}`)
     return collection
   }
 
@@ -90,7 +101,7 @@ class ToolCollectionManager {
 
     this.collections.set(id, updated)
     this.saveToStorage()
-    logger.info(`工具集已更新: ${id}`)
+    this.getLogger().info(`工具集已更新: ${id}`)
   }
 
   /**
@@ -103,7 +114,7 @@ class ToolCollectionManager {
 
     this.collections.delete(id)
     this.saveToStorage()
-    logger.info(`工具集已删除: ${id}`)
+    this.getLogger().info(`工具集已删除: ${id}`)
   }
 
   /**
@@ -201,7 +212,7 @@ class ToolCollectionManager {
 
     this.collections.set(collection.id, collection)
     this.saveToStorage()
-    logger.info(`工具集已导入: ${collection.id}`)
+    this.getLogger().info(`工具集已导入: ${collection.id}`)
     return collection
   }
 
@@ -217,11 +228,19 @@ class ToolCollectionManager {
           data.forEach((item: ToolCollection) => {
             this.collections.set(item.id, item)
           })
-          logger.info(`已加载 ${data.length} 个工具集`)
+          // 延迟记录日志，避免在构造函数中初始化logger
+          if (this.logger) {
+            this.logger.info(`已加载 ${data.length} 个工具集`)
+          }
         }
       }
     } catch (error) {
-      logger.error('加载工具集失败:', error)
+      // 延迟记录日志，避免在构造函数中初始化logger
+      if (this.logger) {
+        this.logger.error('加载工具集失败:', error)
+      } else {
+        console.error('加载工具集失败:', error)
+      }
     }
   }
 
@@ -233,7 +252,12 @@ class ToolCollectionManager {
       const data = Array.from(this.collections.values())
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data))
     } catch (error) {
-      logger.error('保存工具集失败:', error)
+      // 延迟记录日志，避免在构造函数中初始化logger
+      if (this.logger) {
+        this.logger.error('保存工具集失败:', error)
+      } else {
+        console.error('保存工具集失败:', error)
+      }
     }
   }
 }

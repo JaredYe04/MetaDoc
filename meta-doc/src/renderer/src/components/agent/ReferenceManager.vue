@@ -83,10 +83,10 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { themeState } from '@/utils/themes'
-import type { Reference } from '@/types/agent-framework'
-import type { AgentSession } from '@/types/agent'
-import { agentSessionManager } from '@/utils/agent-framework'
+import { themeState } from '../../utils/themes'
+import type { Reference } from '../../types/agent-framework'
+import type { AgentSession } from '../../types/agent'
+import { agentSessionManager } from '../../utils/agent-framework'
 
 const props = defineProps<{
   session: AgentSession

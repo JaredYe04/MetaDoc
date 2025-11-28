@@ -74,6 +74,15 @@
                   </el-tooltip>
                 </div>
                 <div class="test-result-actions">
+                  <el-button
+                    text
+                    size="small"
+                    :icon="Download"
+                    @click="exportResultSnapshot(result)"
+                    :title="$t('agent.tool.exportSnapshot')"
+                  >
+                    {{ $t('agent.tool.exportSnapshot') }}
+                  </el-button>
                   <el-tag :type="result.passed ? 'success' : 'danger'" size="small">
                     {{ result.passed ? $t('agent.display.autoTest.passed') : $t('agent.display.autoTest.failed') }}
                   </el-tag>
@@ -132,6 +141,10 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { Document, Download, Check, Close, CopyDocument } from '@element-plus/icons-vue'
+import {
+  createSnapshotFromHistoryEntry,
+  serializeToolExecutionSnapshot
+} from '../tool-serialization'
 import { themeState } from '../../themes'
 import { agentToolManager } from '../../agent-tool-manager'
 import Vditor from 'vditor'
@@ -352,6 +365,69 @@ const copyTestCaseId = async (testCaseId: string) => {
     ElMessage.success(t('agent.display.autoTest.testCaseIdCopied', { id: testCaseId }))
   } catch (error) {
     ElMessage.error(`${t('agent.display.autoTest.copyFailed')}: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
+// 导出测试结果快照
+const exportResultSnapshot = async (result: TestResult) => {
+  try {
+    const tool = agentToolManager.getTool(result.toolId)
+    if (!tool) {
+      ElMessage.error('找不到工具配置')
+      return
+    }
+
+    // 从result创建快照
+    const snapshot = createSnapshotFromHistoryEntry({
+      toolId: result.toolId,
+      toolName: result.toolName,
+      timestamp: Date.now(), // 测试结果可能没有timestamp，使用当前时间
+      status: result.passed ? 'succeeded' : 'failed',
+      params: result.params,
+      result: result.result,
+      data: result.result ? {
+        content: result.result,
+        format: 'json',
+        componentName: getDisplayComponentForTool(result.toolId)?.name || undefined
+      } : undefined,
+      progress: undefined,
+      error: result.error,
+      outputs: result.result ? [{
+        id: 'output-1',
+        label: '执行结果',
+        format: 'json',
+        data: result.result,
+        timestamp: Date.now()
+      }] : undefined,
+      invocationId: result.invocationId
+    }, tool.config ? {
+      id: tool.config.id,
+      name: tool.config.name,
+      description: tool.config.description,
+      origin: tool.config.origin,
+      displayComponent: typeof tool.config.displayComponent === 'string'
+        ? tool.config.displayComponent
+        : (tool.config.displayComponent as any)?.name || undefined
+    } : undefined)
+
+    // 序列化快照
+    const serialized = serializeToolExecutionSnapshot(snapshot)
+
+    // 创建下载链接
+    const blob = new Blob([serialized], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `tool-snapshot-${result.toolId}-${result.testCaseName}-${Date.now()}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    ElMessage.success(t('agent.tool.exportSnapshotSuccess'))
+  } catch (error) {
+    console.error('导出快照失败:', error)
+    ElMessage.error(`${t('agent.tool.exportSnapshotFailed')}: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
 

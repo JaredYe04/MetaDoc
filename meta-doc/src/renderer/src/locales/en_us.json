@@ -654,7 +654,22 @@
       "testResult": "Test Results",
       "title": "Debug Tool",
       "undefined": "I'm sorry.",
-      "unitTest": "Unit Test"
+      "unitTest": "Unit Test",
+      "importSnapshot": "Import Execution Snapshot",
+      "importSnapshotTitle": "Import Tool Execution Snapshot",
+      "importSnapshotDescription": "Import tool execution snapshot from file to restore tool execution state",
+      "selectSnapshotFile": "Select Snapshot File",
+      "snapshotFile": "Snapshot File",
+      "snapshotFilePlaceholder": "Please select or paste snapshot JSON content",
+      "importButton": "Import",
+      "importSuccess": "Snapshot imported successfully",
+      "importFailed": "Failed to import snapshot",
+      "invalidSnapshot": "Invalid snapshot file",
+      "exportSnapshot": "Export Execution Snapshot",
+      "exportSnapshotSuccess": "Execution snapshot exported",
+      "exportSnapshotFailed": "Failed to export execution snapshot",
+      "renderResult": "Render Result",
+      "rawResult": "Raw Result"
     }
   },
   "visualize": {
@@ -866,7 +881,17 @@
         "running": "Running",
         "success": "Succeeded",
         "failed": "Failed"
-      }
+      },
+      "exportSnapshot": "Export Execution Snapshot",
+      "exportSnapshotSuccess": "Execution snapshot exported",
+      "exportSnapshotFailed": "Failed to export execution snapshot",
+      "importSnapshot": "Import Execution Snapshot",
+      "importSnapshotSuccess": "Execution snapshot imported",
+      "importSnapshotFailed": "Failed to import execution snapshot",
+      "snapshotFile": "Snapshot File",
+      "selectSnapshotFile": "Select Snapshot File",
+      "invalidSnapshot": "Invalid snapshot file",
+      "snapshotVersionMismatch": "Snapshot version mismatch"
     },
     "sessions": {
       "title": "Agent Sessions",

@@ -9,7 +9,18 @@
         <span class="tool-name">{{ message.tool.name }}</span>
         <el-tag size="small" :type="statusTagType">{{ statusLabel }}</el-tag>
       </div>
-      <small class="timestamp">{{ formatTimestamp(message.timestamp) }}</small>
+      <div class="header-actions">
+        <el-button
+          text
+          size="small"
+          :icon="Download"
+          @click="exportSnapshot"
+          :title="t('agent.tool.exportSnapshot')"
+        >
+          {{ t('agent.tool.exportSnapshot') }}
+        </el-button>
+        <small class="timestamp">{{ formatTimestamp(message.timestamp) }}</small>
+      </div>
     </header>
 
     <p v-if="message.summary" class="summary">{{ message.summary }}</p>
@@ -73,12 +84,16 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { dayjs } from 'element-plus'
+import { dayjs, ElMessage } from 'element-plus'
 import type { ToolAgentMessage, ToolOutputDescriptor } from '../../types/agent'
-import { WarningFilled } from '@element-plus/icons-vue'
+import { WarningFilled, Download } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
 import { agentToolManager } from '../../utils/agent-tool-manager'
+import {
+  createSnapshotFromHistoryEntry,
+  serializeToolExecutionSnapshot
+} from '../../utils/agent-tools/tool-serialization'
 
 const props = defineProps<{
   message: ToolAgentMessage
@@ -187,6 +202,95 @@ const progressStatus = computed(() => {
   if (props.message.status === 'running') return undefined
   return undefined
 })
+
+// 从工具配置中提取组件名称
+const extractComponentName = (displayComponent: any): string | undefined => {
+  if (!displayComponent) return undefined
+  
+  // 如果是字符串，直接返回
+  if (typeof displayComponent === 'string') {
+    return displayComponent
+  }
+  
+  // 如果是组件对象，尝试提取名称
+  if (typeof displayComponent === 'object') {
+    // 方法1：从组件对象的name属性获取
+    const name = displayComponent.name || 
+                 displayComponent.__name || 
+                 displayComponent.displayName
+    
+    if (name && typeof name === 'string') {
+      return name
+    }
+    
+    // 方法2：尝试从组件文件的路径提取名称
+    const filePath = (displayComponent as any).__file
+    if (filePath && typeof filePath === 'string') {
+      const match = filePath.match(/([^/\\]+)\.vue$/)
+      if (match && match[1]) {
+        return match[1]
+      }
+    }
+  }
+  
+  return undefined
+}
+
+// 导出执行快照
+const exportSnapshot = async () => {
+  try {
+    // 从message创建快照
+    // AgentView中的message可能没有完整的params信息，使用空对象
+    const snapshot = createSnapshotFromHistoryEntry({
+      toolId: props.message.tool.id,
+      toolName: props.message.tool.name,
+      timestamp: new Date(props.message.timestamp).getTime(),
+      status: props.message.status,
+      params: (props.message as any).params || {}, // AgentView中的message可能没有params
+      result: props.message.outputs?.[0]?.data,
+      data: props.message.outputs?.[0]?.data ? {
+        content: props.message.outputs?.[0]?.data,
+        format: (props.message.outputs?.[0]?.format === 'table' ? 'json' : (props.message.outputs?.[0]?.format || 'json')) as 'json' | 'text' | 'markdown' | 'xml' | 'html' | 'custom',
+        componentName: props.message.outputs?.[0]?.renderer
+      } : undefined,
+      progress: props.message.progress,
+      error: props.message.error,
+      outputs: props.message.outputs?.map(output => ({
+        id: output.id,
+        label: output.label,
+        format: output.format,
+        data: output.data,
+        timestamp: new Date(props.message.timestamp).getTime()
+      })),
+      invocationId: (props.message as any).invocationId
+    }, toolConfig.value ? {
+      id: toolConfig.value.id,
+      name: toolConfig.value.name,
+      description: toolConfig.value.description,
+      origin: toolConfig.value.origin,
+      displayComponent: extractComponentName(toolConfig.value.displayComponent)
+    } : undefined)
+
+    // 序列化快照
+    const serialized = serializeToolExecutionSnapshot(snapshot)
+
+    // 创建下载链接
+    const blob = new Blob([serialized], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `tool-snapshot-${snapshot.toolId}-${snapshot.timestamp}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    ElMessage.success(t('agent.tool.exportSnapshotSuccess'))
+  } catch (error) {
+    console.error('导出快照失败:', error)
+    ElMessage.error(`${t('agent.tool.exportSnapshotFailed')}: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
 </script>
 
 <style scoped>
@@ -207,6 +311,12 @@ const progressStatus = computed(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .title-block {

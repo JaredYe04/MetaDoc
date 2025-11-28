@@ -229,6 +229,15 @@
                 <div class="test-history-header">
                   <span class="test-name">{{ entry.toolName }}</span>
                   <div class="test-header-right">
+                    <el-button
+                      text
+                      size="small"
+                      :icon="Download"
+                      @click="exportEntrySnapshot(entry)"
+                      :title="$t('agent.tool.exportSnapshot')"
+                    >
+                      {{ $t('agent.tool.exportSnapshot') }}
+                    </el-button>
                     <el-tag 
                       v-if="entry.status === 'running'" 
                       type="warning" 
@@ -324,6 +333,137 @@
                 暂无测试历史
               </div>
             </el-scrollbar>
+          </div>
+        </div>
+      </el-tab-pane>
+
+      <!-- 导入工具执行快照 -->
+      <el-tab-pane :label="$t('setting.debug.importSnapshot')" name="importsnapshot">
+        <div class="test-panel" :style="testPanelStyle">
+          <el-form :model="importSnapshotForm" label-width="140px">
+            <el-form-item :label="$t('setting.debug.importSnapshotTitle')">
+              <p style="color: var(--el-text-color-secondary); font-size: 13px; margin: 0;">
+                {{ $t('setting.debug.importSnapshotDescription') }}
+              </p>
+            </el-form-item>
+            <el-form-item :label="$t('setting.debug.snapshotFile')">
+              <el-input
+                v-model="importSnapshotForm.snapshotContent"
+                type="textarea"
+                :rows="12"
+                :placeholder="$t('setting.debug.snapshotFilePlaceholder')"
+              />
+              <div style="margin-top: 8px;">
+                <el-button
+                  type="primary"
+                  size="small"
+                  :icon="Upload"
+                  @click="selectSnapshotFile"
+                >
+                  {{ $t('setting.debug.selectSnapshotFile') }}
+                </el-button>
+                <input
+                  ref="fileInputRef"
+                  type="file"
+                  accept=".json"
+                  style="display: none"
+                  @change="handleFileSelect"
+                />
+              </div>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="importSnapshot" :loading="importSnapshotLoading">
+                {{ $t('setting.debug.importButton') }}
+              </el-button>
+              <el-button @click="clearImportForm">
+                {{ $t('common.cancel') }}
+              </el-button>
+            </el-form-item>
+          </el-form>
+
+          <!-- 导入后的渲染结果 -->
+          <div v-if="importedSnapshot" class="imported-snapshot-display" style="margin-top: 20px;">
+            <el-divider style="margin-top: 0;">{{ $t('setting.debug.importSuccess') }}</el-divider>
+            <div class="test-history-item" :style="testHistoryItemStyle">
+              <div class="test-history-header">
+                <span class="test-name">{{ importedSnapshot.toolName }}</span>
+                <div class="test-header-right">
+                  <el-tag 
+                    v-if="importedSnapshot.status === 'running'" 
+                    type="warning" 
+                    size="small"
+                    effect="dark"
+                  >
+                    {{ $t('agent.tool.status.running') }}
+                  </el-tag>
+                  <el-tag 
+                    v-else-if="importedSnapshot.status === 'succeeded'" 
+                    type="success" 
+                    size="small"
+                  >
+                    {{ $t('agent.tool.status.success') }}
+                  </el-tag>
+                  <el-tag 
+                    v-else-if="importedSnapshot.status === 'failed'" 
+                    type="danger" 
+                    size="small"
+                  >
+                    {{ $t('agent.tool.status.failed') }}
+                  </el-tag>
+                  <span class="test-time">{{ formatTime(importedSnapshot.timestamp) }}</span>
+                </div>
+              </div>
+              
+              <div v-if="importedSnapshot.params" class="test-params" :style="{ color: themeState.currentTheme.textColor }">
+                <strong>{{ $t('setting.debug.parameters') }}:</strong>
+                <pre :style="codeBlockStyle">{{ typeof importedSnapshot.params === 'string' ? importedSnapshot.params : JSON.stringify(importedSnapshot.params, null, 2) }}</pre>
+              </div>
+              
+              <div v-if="importedSnapshot.error" class="test-error-message" :style="{ color: themeState.currentTheme.textColor }">
+                <strong>{{ $t('setting.debug.error') }}:</strong>
+                <pre :style="{ ...codeBlockStyle, backgroundColor: themeState.currentTheme.type === 'dark' ? 'rgba(245, 108, 108, 0.15)' : '#fef0f0', color: '#f56c6c' }">{{ importedSnapshot.error }}</pre>
+              </div>
+              
+              <!-- 如果有显示组件，展示渲染卡片 -->
+              <div v-if="importedSnapshot.displayComponent && importedSnapshot.outputs && importedSnapshot.outputs.length > 0" class="test-display-component">
+                <el-divider>{{ $t('setting.debug.renderResult') }}</el-divider>
+                <el-collapse :model-value="getActivePanels(importedSnapshot)" accordion>
+                  <el-collapse-item
+                    v-for="output in importedSnapshot.outputs"
+                    :key="output.id"
+                    :name="output.id"
+                  >
+                    <template #title>
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <span>{{ output.label }}</span>
+                        <el-tag size="small" effect="light">{{ output.format }}</el-tag>
+                      </div>
+                    </template>
+                    <div class="output-body">
+                      <!-- 如果有渲染组件，使用组件渲染 -->
+                      <component
+                        v-if="getDisplayComponent(output.renderer || importedSnapshot.displayComponent)"
+                        :is="getDisplayComponent(output.renderer || importedSnapshot.displayComponent)"
+                        :data="output.data"
+                        :status="importedSnapshot.error ? 'failed' : (importedSnapshot.status || 'succeeded')"
+                        :progress="importedSnapshot.progress"
+                        :error="importedSnapshot.error"
+                        :tool-config="importedSnapshot.toolConfig"
+                        :invocation-id="importedSnapshot.invocationId"
+                      />
+                      <!-- 否则使用纯文本渲染 -->
+                      <pre v-else class="raw-text" :style="codeBlockStyle">{{ formatResult(output.data && typeof output.data === 'object' && 'content' in output.data ? output.data.content : output.data) }}</pre>
+                    </div>
+                  </el-collapse-item>
+                </el-collapse>
+              </div>
+              
+              <!-- 原始结果数据 -->
+              <div v-if="importedSnapshot.result !== undefined" class="test-result-data" :style="{ color: themeState.currentTheme.textColor }">
+                <el-divider>{{ $t('setting.debug.rawResult') }}</el-divider>
+                <pre :style="codeBlockStyle">{{ formatResult(importedSnapshot.result) }}</pre>
+              </div>
+            </div>
           </div>
         </div>
       </el-tab-pane>
@@ -548,7 +688,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, reactive, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus, Delete, Edit, InfoFilled, Search } from '@element-plus/icons-vue';
+import { Plus, Delete, Edit, InfoFilled, Search, Download, Upload } from '@element-plus/icons-vue';
 import eventBus, { sendBroadcast } from '../../utils/event-bus';
 import { testFramework, type TestFunction } from '../../utils/test-framework';
 import { dayjs } from 'element-plus';
@@ -576,6 +716,11 @@ import AutoTestResultDisplay, { type TestResult } from '../../utils/agent-tools/
 import { onToolUpdate, onToolComplete, onToolFailed } from '../../utils/agent-tools/tool-display-communication';
 import testCasesData from '../../utils/agent-tools/test-data/test-cases.json';
 import { themeState } from '../../utils/themes';
+import {
+  createSnapshotFromHistoryEntry,
+  serializeToolExecutionSnapshot,
+  deserializeToolExecutionSnapshot
+} from '../../utils/agent-tools/tool-serialization';
 
 // 组件映射
 const componentMap: Record<string, any> = {
@@ -758,6 +903,14 @@ const autoTestResults = ref<TestResult[]>([]);
 const autoTestProgress = ref(0);
 const autoTestCurrentTest = ref('');
 const autoTestAbortController = ref<AbortController | null>(null);
+
+// 导入快照相关
+const importSnapshotForm = reactive({
+  snapshotContent: ''
+});
+const importSnapshotLoading = ref(false);
+const importedSnapshot = ref<any>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 // 测试用例数据
 const testCases = testCasesData as Record<string, {
@@ -2190,6 +2343,160 @@ const stopAutoTests = () => {
     autoTestRunning.value = false;
     autoTestCurrentTest.value = '测试已停止';
     ElMessage.info('测试已停止');
+  }
+};
+
+// 导出工具执行快照
+const exportEntrySnapshot = async (entry: any) => {
+  try {
+    const tool = agentToolManager.getTool(entry.toolId);
+    if (!tool) {
+      ElMessage.error('找不到工具配置');
+      return;
+    }
+
+    // 从entry创建快照
+    const snapshot = createSnapshotFromHistoryEntry({
+      toolId: entry.toolId,
+      toolName: entry.toolName,
+      timestamp: entry.timestamp,
+      status: entry.status || 'pending',
+      params: typeof entry.params === 'string' ? JSON.parse(entry.params) : entry.params,
+      result: entry.result,
+      data: entry.outputs?.[0]?.data ? {
+        content: entry.outputs[0].data,
+        format: entry.outputs[0].format || 'json',
+        componentName: entry.outputs[0].renderer || entry.displayComponent
+      } : undefined,
+      progress: entry.progress,
+      error: entry.error,
+      outputs: entry.outputs?.map((output: any) => ({
+        id: output.id,
+        label: output.label,
+        format: output.format,
+        data: output.data,
+        timestamp: entry.timestamp
+      })),
+      invocationId: entry.invocationId
+    }, tool.config ? {
+      id: tool.config.id,
+      name: tool.config.name,
+      description: tool.config.description,
+      origin: tool.config.origin,
+      displayComponent: extractComponentName(tool.config.displayComponent)
+    } : undefined)
+
+    // 序列化快照
+    const serialized = serializeToolExecutionSnapshot(snapshot)
+
+    // 创建下载链接
+    const blob = new Blob([serialized], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `tool-snapshot-${snapshot.toolId}-${snapshot.timestamp}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    ElMessage.success(t('agent.tool.exportSnapshotSuccess'))
+  } catch (error) {
+    console.error('导出快照失败:', error)
+    ElMessage.error(`${t('agent.tool.exportSnapshotFailed')}: ${error instanceof Error ? error.message : String(error)}`)
+  }
+};
+
+// 选择快照文件
+const selectSnapshotFile = () => {
+  fileInputRef.value?.click();
+};
+
+// 处理文件选择
+const handleFileSelect = (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const content = e.target?.result as string;
+    importSnapshotForm.snapshotContent = content;
+  };
+  reader.readAsText(file);
+};
+
+// 导入快照
+const importSnapshot = async () => {
+  if (!importSnapshotForm.snapshotContent.trim()) {
+    ElMessage.warning(t('setting.debug.snapshotFilePlaceholder'));
+    return;
+  }
+
+  importSnapshotLoading.value = true;
+  try {
+    // 反序列化快照
+    const snapshot = deserializeToolExecutionSnapshot(importSnapshotForm.snapshotContent.trim());
+
+    // 获取工具配置
+    const tool = agentToolManager.getTool(snapshot.toolId);
+    if (!tool) {
+      ElMessage.warning(`工具 ${snapshot.toolId} 不存在，将使用快照中的配置`);
+    }
+
+    // 转换为entry格式用于显示
+    // 优先使用快照中的data（ToolCallbackData格式），如果没有则使用outputs中的data
+    const displayData = snapshot.data || (snapshot.outputs && snapshot.outputs.length > 0 ? snapshot.outputs[0].data : undefined)
+    
+    importedSnapshot.value = {
+      toolId: snapshot.toolId,
+      toolName: snapshot.toolName,
+      timestamp: snapshot.timestamp,
+      status: snapshot.status,
+      params: snapshot.params,
+      result: snapshot.result,
+      data: displayData,
+      progress: snapshot.progress,
+      error: snapshot.error,
+      outputs: snapshot.outputs?.map(output => ({
+        id: output.id,
+        label: output.label,
+        format: output.format,
+        // 如果output.data是ToolCallbackData格式，直接使用；否则包装成ToolCallbackData格式
+        data: output.data && typeof output.data === 'object' && 'content' in output.data
+          ? output.data
+          : {
+              content: output.data,
+              format: output.format || 'json',
+              componentName: snapshot.toolConfigSnapshot?.displayComponent
+            },
+        renderer: snapshot.toolConfigSnapshot?.displayComponent
+      })),
+      displayComponent: snapshot.toolConfigSnapshot?.displayComponent,
+      toolConfig: tool?.config || (snapshot.toolConfigSnapshot ? {
+        ...snapshot.toolConfigSnapshot,
+        displayComponent: snapshot.toolConfigSnapshot.displayComponent
+          ? getDisplayComponent(snapshot.toolConfigSnapshot.displayComponent) || snapshot.toolConfigSnapshot.displayComponent
+          : undefined
+      } : undefined),
+      invocationId: snapshot.invocationId
+    };
+
+    ElMessage.success(t('setting.debug.importSuccess'));
+  } catch (error) {
+    console.error('导入快照失败:', error);
+    ElMessage.error(`${t('setting.debug.importFailed')}: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    importSnapshotLoading.value = false;
+  }
+};
+
+// 清空导入表单
+const clearImportForm = () => {
+  importSnapshotForm.snapshotContent = '';
+  importedSnapshot.value = null;
+  if (fileInputRef.value) {
+    fileInputRef.value.value = '';
   }
 };
 

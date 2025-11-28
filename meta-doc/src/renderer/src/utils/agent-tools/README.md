@@ -1209,6 +1209,229 @@ const myToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 4. **环境适配**：服务接口会自动适配Electron和Web环境
 5. **易于测试**：服务接口可以轻松mock，便于单元测试
 
+## Tool执行快照序列化与反序列化
+
+**重要**：所有工具调用，无论成功与否，都必须100%支持完整的序列化与反序列化。这确保了工具执行结果能够完整保存和恢复，反序列化后Display渲染的结果与最初执行时完全一致。
+
+### 核心概念
+
+**工具执行快照（ToolExecutionSnapshot）**：包含工具执行的所有信息，包括：
+- 调用ID、Tool ID、Tool名称
+- 调用参数
+- 执行状态（pending/running/succeeded/failed/cancelled）
+- 所有中间输出（onUpdate调用）
+- 最终结果和数据
+- 进度信息
+- 错误信息（如果有）
+- Tool配置快照（用于验证）
+
+### 序列化/反序列化接口
+
+系统提供了统一的序列化/反序列化接口：
+
+```typescript
+import { agentToolManager } from './utils/agent-tool-manager'
+import type { ToolExecutionSnapshot } from '../types/agent-tool'
+
+// 创建快照
+const snapshot = agentToolManager.createExecutionSnapshot(
+  invocationId,
+  result,
+  outputs  // 可选
+)
+
+// 序列化快照
+const serialized = agentToolManager.serializeExecutionSnapshot(snapshot)
+
+// 反序列化快照
+const restoredSnapshot = agentToolManager.deserializeExecutionSnapshot(serialized)
+```
+
+### 快照数据结构
+
+```typescript
+interface ToolExecutionSnapshot {
+  version: string                    // 快照版本号（用于兼容性检查）
+  invocationId: string              // 调用ID
+  toolId: string                    // Tool ID
+  toolName: string                  // Tool名称（用于显示）
+  params: Record<string, unknown>   // 调用参数
+  timestamp: number                 // 开始时间戳
+  status: ToolExecutionStatus       // 执行状态
+  outputs?: Array<{                 // 所有中间输出
+    id: string
+    label: string
+    format: ToolOutputFormat
+    data: unknown
+    timestamp?: number
+  }>
+  result?: unknown                  // 最终结果
+  data?: ToolCallbackData           // 最终数据（用于Display组件）
+  progress?: ToolProgress          // 最终进度
+  error?: string                   // 错误信息（如果失败）
+  toolConfigSnapshot?: {           // Tool配置快照
+    id: string
+    name: LocalizedText
+    description: LocalizedText
+    origin: ToolOrigin
+    displayComponent?: string      // 组件名称或路径
+  }
+}
+```
+
+### 使用场景
+
+1. **保存工具执行历史**：将工具执行结果保存到本地存储或数据库
+2. **恢复工具执行状态**：从保存的快照中恢复工具执行状态，重新渲染Display组件
+3. **工具执行回放**：重现工具执行过程，包括所有中间输出
+4. **调试和问题排查**：保存完整的执行上下文，便于后续分析
+
+### 实现要求
+
+**所有Tool必须确保：**
+
+1. **数据可序列化**：
+   - 所有返回的数据必须是可序列化的（JSON兼容）
+   - 避免包含函数、循环引用、不可序列化的对象
+   - 如果必须包含特殊类型（Date、RegExp等），系统会自动处理
+
+2. **Display组件可恢复**：
+   - Display组件必须能够从快照数据中完全恢复渲染状态
+   - 不依赖外部状态或实时数据流
+   - 所有必要的显示数据都包含在快照中
+
+3. **状态完整性**：
+   - 快照必须包含所有必要的状态信息
+   - 包括中间输出、最终结果、错误信息等
+   - 确保反序列化后能够完全还原执行状态
+
+### 示例：从历史条目创建快照
+
+```typescript
+import { createSnapshotFromHistoryEntry } from './utils/agent-tools/tool-serialization'
+
+// 从工具测试历史条目创建快照
+const snapshot = createSnapshotFromHistoryEntry(
+  {
+    toolId: 'chart-generation',
+    toolName: '图表生成',
+    timestamp: Date.now(),
+    status: 'succeeded',
+    params: { prompt: '生成一个流程图', chartType: 'mermaid' },
+    result: { chartName: 'chart_123', url: 'http://...', chartCode: '...' },
+    outputs: [
+      { id: 'output-1', label: '输出 1', format: 'json', data: { stage: 'generating' } },
+      { id: 'output-2', label: '输出 2', format: 'json', data: { stage: 'rendering' } }
+    ],
+    invocationId: 'invocation-1234567890-abc'
+  },
+  {
+    id: 'chart-generation',
+    name: '图表生成',
+    description: '根据提示词生成各种类型的图表',
+    origin: 'internal',
+    displayComponent: 'ChartGenerationDisplay'
+  }
+)
+
+// 序列化快照
+const serialized = serializeToolExecutionSnapshot(snapshot)
+
+// 保存到localStorage
+localStorage.setItem(`tool-snapshot-${snapshot.invocationId}`, serialized)
+
+// 从localStorage恢复
+const restored = deserializeToolExecutionSnapshot(
+  localStorage.getItem(`tool-snapshot-${snapshot.invocationId}`)!
+)
+```
+
+### 示例：恢复并渲染Display组件
+
+```typescript
+import { deserializeToolExecutionSnapshot } from './utils/agent-tools/tool-serialization'
+import { agentToolManager } from './utils/agent-tool-manager'
+
+// 从序列化字符串恢复快照
+const snapshot = agentToolManager.deserializeExecutionSnapshot(serializedString)
+
+// 获取Tool配置
+const tool = agentToolManager.getTool(snapshot.toolId)
+if (!tool) {
+  throw new Error(`Tool ${snapshot.toolId} 未找到`)
+}
+
+// 渲染Display组件（使用快照数据）
+// 在Vue组件中：
+<AgentToolResultCard
+  :tool-config="tool.config"
+  :data="snapshot.data"
+  :status="snapshot.status"
+  :progress="snapshot.progress"
+  :error="snapshot.error"
+  :invocation-id="snapshot.invocationId"
+/>
+```
+
+### 特殊类型处理
+
+系统自动处理以下特殊类型：
+
+- **Date对象**：序列化为ISO字符串，反序列化时恢复为Date对象
+- **RegExp对象**：序列化为字符串，反序列化时恢复为RegExp对象
+- **Error对象**：序列化为包含name、message、stack的对象，反序列化时恢复为Error对象
+- **undefined值**：序列化为null，反序列化时保持为null（需要根据上下文判断）
+
+### 版本兼容性
+
+快照包含版本号字段，用于兼容性检查：
+
+- 当前版本：`1.0.0`
+- 当快照结构发生变化时，需要更新版本号
+- 反序列化时会检查版本兼容性，并给出警告（如果版本不匹配）
+
+### 验证快照
+
+在反序列化后，建议验证快照完整性：
+
+```typescript
+import { validateToolExecutionSnapshot } from './utils/agent-tools/tool-serialization'
+
+const validation = validateToolExecutionSnapshot(snapshot)
+if (!validation.valid) {
+  console.error('快照验证失败:', validation.errors)
+  // 处理验证失败的情况
+}
+```
+
+### 最佳实践
+
+1. **在Tool回调函数中**：
+   - 确保返回的数据是可序列化的
+   - 避免返回包含函数的对象（除非必要）
+   - 使用标准的数据结构（对象、数组、基本类型）
+
+2. **在Display组件中**：
+   - 不依赖外部状态或实时数据流
+   - 所有显示数据都从props中获取
+   - 支持从快照数据中完全恢复渲染状态
+
+3. **保存快照时**：
+   - 在工具执行完成后立即创建快照
+   - 包含所有中间输出（outputs）
+   - 保存Tool配置快照（用于验证）
+
+4. **恢复快照时**：
+   - 验证快照完整性
+   - 检查Tool是否仍然存在
+   - 验证Tool配置是否匹配（可选）
+
+### 相关文件
+
+- 类型定义: `src/renderer/src/types/agent-tool.ts` (ToolExecutionSnapshot接口)
+- 序列化工具: `src/renderer/src/utils/agent-tools/tool-serialization.ts`
+- Tool管理器: `src/renderer/src/utils/agent-tool-manager.ts` (序列化/反序列化方法)
+
 ## 未来扩展
 
 - [ ] MCP客户端完整实现
@@ -1217,6 +1440,7 @@ const myToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 - [ ] Tool依赖管理
 - [ ] 更丰富的交互组件库
 - [ ] 服务接口的事件总线支持（用于跨组件通信）
+- [ ] 快照版本迁移工具（处理版本不兼容的情况）
 
 ## 相关文件
 

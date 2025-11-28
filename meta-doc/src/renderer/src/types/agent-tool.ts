@@ -201,3 +201,68 @@ export interface ToolInvocationContext {
   onStatusUpdate?: (status: ToolExecutionStatus, data?: ToolCallbackData, progress?: ToolProgress) => void
 }
 
+/**
+ * Tool执行快照 - 用于完整序列化和反序列化
+ * 包含工具执行的所有信息，确保反序列化后能够完全还原执行状态
+ */
+export interface ToolExecutionSnapshot {
+  /** 快照版本（用于兼容性检查） */
+  version: string
+  /** 调用ID */
+  invocationId: string
+  /** Tool ID */
+  toolId: string
+  /** Tool名称（用于显示） */
+  toolName: string
+  /** 调用参数 */
+  params: Record<string, unknown>
+  /** 开始时间戳 */
+  timestamp: number
+  /** 执行状态 */
+  status: ToolExecutionStatus
+  /** 所有中间输出（onUpdate调用） */
+  outputs?: Array<{
+    id: string
+    label: string
+    format: ToolOutputFormat
+    data: unknown
+    timestamp?: number
+  }>
+  /** 最终结果 */
+  result?: unknown
+  /** 最终数据（用于Display组件） */
+  data?: ToolCallbackData
+  /** 最终进度 */
+  progress?: ToolProgress
+  /** 错误信息（如果失败） */
+  error?: string
+  /** Tool配置的快照（用于反序列化时验证） */
+  toolConfigSnapshot?: {
+    id: string
+    name: LocalizedText
+    description: LocalizedText
+    origin: ToolOrigin
+    displayComponent?: string  // 组件名称或路径，不序列化组件本身
+  }
+}
+
+/**
+ * Tool序列化器接口
+ * 每个Tool可以实现此接口以提供自定义的序列化/反序列化逻辑
+ */
+export interface ToolSerializer {
+  /**
+   * 序列化工具执行结果
+   * @param snapshot - 工具执行快照
+   * @returns 序列化后的字符串
+   */
+  serialize(snapshot: ToolExecutionSnapshot): string
+
+  /**
+   * 反序列化工具执行结果
+   * @param serialized - 序列化后的字符串
+   * @returns 工具执行快照
+   */
+  deserialize(serialized: string): ToolExecutionSnapshot
+}
+

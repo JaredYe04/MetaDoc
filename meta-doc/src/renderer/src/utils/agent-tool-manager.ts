@@ -11,12 +11,19 @@ import type {
   ToolCallbackData,
   ToolProgress,
   ToolExecutionStatus,
-  ToolLocales
+  ToolLocales,
+  ToolExecutionSnapshot
 } from '../types/agent-tool'
 import { createRendererLogger } from './logger'
 import { i18n } from '../i18n'
 import { emitToolUpdate, emitToolComplete, emitToolFailed } from './agent-tools/tool-display-communication'
 import eventBus from './event-bus.js'
+import {
+  serializeToolExecutionSnapshot,
+  deserializeToolExecutionSnapshot,
+  createToolExecutionSnapshot,
+  validateToolExecutionSnapshot
+} from './agent-tools/tool-serialization'
 
 
 
@@ -226,6 +233,94 @@ class AgentToolManager {
       this.invocations.delete(invocationId)
       logger.info(`Tool调用 ${invocationId} 已取消`)
     }
+  }
+
+  /**
+   * 创建工具执行快照
+   * @param invocationId - 调用ID
+   * @param result - 执行结果
+   * @param outputs - 中间输出（可选）
+   * @returns 工具执行快照
+   */
+  createExecutionSnapshot(
+    invocationId: string,
+    result: ToolCallbackResult,
+    outputs?: Array<{
+      id: string
+      label: string
+      format: string
+      data: unknown
+      timestamp?: number
+    }>
+  ): ToolExecutionSnapshot | null {
+    const context = this.invocations.get(invocationId)
+    if (!context) {
+      const logger = createRendererLogger('AgentToolManager')
+      logger.warn(`无法创建快照：找不到调用上下文 ${invocationId}`)
+      return null
+    }
+
+    const tool = this.tools.get(context.toolId)
+    if (!tool) {
+      const logger = createRendererLogger('AgentToolManager')
+      logger.warn(`无法创建快照：找不到Tool ${context.toolId}`)
+      return null
+    }
+
+    // 获取Tool显示名称
+    const toolName = this.getToolDisplayName(tool.config)
+
+    // 创建Tool配置快照（不包含函数和组件）
+    const toolConfigSnapshot = {
+      id: tool.config.id,
+      name: tool.config.name,
+      description: tool.config.description,
+      origin: tool.config.origin,
+      displayComponent: typeof tool.config.displayComponent === 'string'
+        ? tool.config.displayComponent
+        : tool.config.displayComponent?.name || undefined
+    }
+
+    const timestamp = new Date(context.startTime).getTime()
+
+    return createToolExecutionSnapshot(
+      invocationId,
+      context.toolId,
+      toolName,
+      context.params,
+      timestamp,
+      result,
+      outputs,
+      toolConfigSnapshot
+    )
+  }
+
+  /**
+   * 序列化工具执行快照
+   * @param snapshot - 工具执行快照
+   * @returns JSON字符串
+   */
+  serializeExecutionSnapshot(snapshot: ToolExecutionSnapshot): string {
+    return serializeToolExecutionSnapshot(snapshot)
+  }
+
+  /**
+   * 反序列化工具执行快照
+   * @param serialized - JSON字符串
+   * @returns 工具执行快照
+   */
+  deserializeExecutionSnapshot(serialized: string): ToolExecutionSnapshot {
+    const snapshot = deserializeToolExecutionSnapshot(serialized)
+    
+    // 验证快照
+    const validation = validateToolExecutionSnapshot(snapshot)
+    if (!validation.valid) {
+      const logger = createRendererLogger('AgentToolManager')
+      logger.warn('快照验证失败:', validation.errors)
+      throw new Error(`快照验证失败: ${validation.errors.join(', ')}`)
+    }
+
+    return snapshot
   }
 
   /**

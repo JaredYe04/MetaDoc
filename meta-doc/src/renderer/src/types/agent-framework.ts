@@ -9,7 +9,7 @@ import type { LocalizedText } from './agent-tool'
 /**
  * 实体类型标识符（用于序列化/反序列化时识别实体类型）
  */
-export type EntityType = 'workflow' | 'tool-collection' | 'agent-config' | 'agent-session'
+export type EntityType = 'workflow' | 'tool-collection' | 'agent-config' | 'agent-session' | 'agent-engine'
 
 /**
  * 工件（Artifact）类型
@@ -98,7 +98,15 @@ export interface WorkflowEdge {
 /**
  * 控制流节点类型
  */
-export type ControlFlowType = 'condition' | 'loop' | 'parallel' | 'merge' | 'async' | 'aggregate'
+export type ControlFlowType =
+  | 'start'
+  | 'end'
+  | 'condition'
+  | 'loop'
+  | 'parallel'
+  | 'merge'
+  | 'async'
+  | 'aggregate'
 
 /**
  * 控制流节点
@@ -177,6 +185,8 @@ export interface Workflow {
   enabled?: boolean
   /** 标签 */
   tags?: string[]
+  /** 是否为内置工作流（不可删除） */
+  isBuiltIn?: boolean
 }
 
 /**
@@ -217,6 +227,8 @@ export interface ToolCollection {
   enabled?: boolean
   /** 标签 */
   tags?: string[]
+  /** 是否为内置工具集（不可删除） */
+  isBuiltIn?: boolean
 }
 
 /**
@@ -239,6 +251,8 @@ export interface AgentConfig {
   updatedAt: number
   /** 工具集ID列表（取交集） */
   toolCollectionIds: string[]
+  /** 最大工具调用次数（null表示无限制） */
+  maxToolCalls?: number | null
   /** LLM配置 */
   llmConfig?: {
     /** 模型名称 */
@@ -249,6 +263,8 @@ export interface AgentConfig {
     maxTokens?: number
     /** 系统提示词 */
     systemPrompt?: string
+    /** 是否注入时间戳 */
+    injectTimestamp?: boolean
   }
   /** Agent行为配置 */
   behavior?: {
@@ -256,8 +272,6 @@ export interface AgentConfig {
     allowToolCalls?: boolean
     /** 是否允许工作流调用 */
     allowWorkflowCalls?: boolean
-    /** 最大工具调用次数 */
-    maxToolCalls?: number
     /** 是否启用思考过程 */
     enableThoughts?: boolean
   }
@@ -432,7 +446,7 @@ export interface SerializedEntity {
   /** 实体类型 */
   entityType: EntityType
   /** 实体数据 */
-  data: Workflow | ToolCollection | AgentConfig | AgentSession
+  data: Workflow | ToolCollection | AgentConfig | AgentSession | AgentEngine
   /** 依赖的实体列表（用于内嵌导出） */
   dependencies?: SerializedEntity[]
   /** 导出时间戳 */
@@ -459,5 +473,125 @@ export interface EntityVersionConflict {
     version: string
     updatedAt: number
   }
+}
+
+/**
+ * AgentEngine 相关类型定义
+ */
+
+/**
+ * 引擎类型
+ */
+export type EngineType = 'autogpt' | 'react' | 'plan-execute' | 'simple-chat' | 'workflow'
+
+/**
+ * LLM 配置模式
+ */
+export type LlmConfigMode = 'global' | 'custom'
+
+/**
+ * 自定义 LLM 配置
+ */
+export interface CustomLlmConfig {
+  /** API 类型（OpenAI 兼容） */
+  type: 'openai-compatible'
+  /** Base URL */
+  baseUrl: string
+  /** API Key */
+  apiKey: string
+  /** 模型名称 */
+  model: string
+  /** 温度 */
+  temperature?: number
+  /** 最大 token 数 */
+  maxTokens?: number
+}
+
+/**
+ * 引擎拦截器类型
+ */
+export type InterceptorType = 
+  | 'input-sanitization'
+  | 'security-review'
+  | 'token-control'
+  | 'tool-call-limit'
+  | 'workflow-error-recovery'
+  | 'debug-logging'
+
+/**
+ * 拦截器阶段
+ */
+export type InterceptorStage = 
+  | 'beforeLLMCall'
+  | 'afterLLMCall'
+  | 'beforeToolCall'
+  | 'afterToolCall'
+  | 'beforeFinish'
+
+/**
+ * 引擎拦截器配置
+ */
+export interface EngineInterceptor {
+  /** 拦截器类型 */
+  type: InterceptorType
+  /** 拦截器名称 */
+  name: string
+  /** 拦截器描述 */
+  description?: string
+  /** 是否启用 */
+  enabled: boolean
+  /** 拦截阶段 */
+  stages: InterceptorStage[]
+  /** 拦截器配置 */
+  config?: Record<string, unknown>
+}
+
+/**
+ * AgentEngine 配置
+ */
+export interface AgentEngine {
+  /** 实体类型 */
+  entityType: 'agent-engine'
+  /** 引擎ID（全局唯一） */
+  id: string
+  /** 引擎名称（支持i18n） */
+  name: LocalizedText
+  /** 引擎描述（支持i18n） */
+  description: LocalizedText
+  /** 引擎类型 */
+  engineType: EngineType
+  /** 版本号 */
+  version: string
+  /** 创建时间戳 */
+  createdAt: number
+  /** 更新时间戳 */
+  updatedAt: number
+  /** LLM 配置模式 */
+  llmConfigMode: LlmConfigMode
+  /** 自定义 LLM 配置（当 llmConfigMode 为 'custom' 时使用） */
+  customLlmConfig?: CustomLlmConfig
+  /** 引擎配置 */
+  engineConfig?: {
+    /** 最大迭代次数（AutoGPT 等） */
+    maxIterations?: number
+    /** 思考深度（ReAct 等） */
+    thinkingDepth?: number
+    /** 是否启用反思 */
+    enableReflection?: boolean
+    /** 是否启用规划 */
+    enablePlanning?: boolean
+    /** 超时时间（毫秒） */
+    timeout?: number
+    /** 其他配置项 */
+    [key: string]: unknown
+  }
+  /** 拦截器列表 */
+  interceptors?: EngineInterceptor[]
+  /** 是否启用 */
+  enabled?: boolean
+  /** 标签 */
+  tags?: string[]
+  /** 是否为内置引擎（不可删除） */
+  isBuiltIn?: boolean
 }
 

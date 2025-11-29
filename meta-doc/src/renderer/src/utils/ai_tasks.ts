@@ -40,10 +40,32 @@ export const ai_types = {
   chat: 'chat' as const      // 多轮聊天
 } as const
 
+/** 自定义LLM配置接口 */
+export interface CustomLlmConfigForTask {
+  /** API基础URL */
+  baseUrl: string;
+  /** API Key（可选） */
+  apiKey?: string;
+  /** 模型名称 */
+  model: string;
+  /** 温度参数 */
+  temperature?: number;
+  /** 最大token数 */
+  maxTokens?: number;
+  /** LLM类型（默认为openai-compatible） */
+  type?: 'openai' | 'openai-official' | 'deepseek' | 'ollama' | 'metadoc' | 'openai-compatible';
+  /** Chat API后缀（可选，默认为/chat/completions） */
+  chatSuffix?: string;
+  /** Completion API后缀（可选，默认为/completions） */
+  completionSuffix?: string;
+}
+
 /** LLM API 元数据接口 */
 interface LLMApiMeta {
   stream?: boolean;
   temperature?: number;
+  /** 自定义LLM配置（如果提供，将使用此配置而不是全局配置） */
+  customLlmConfig?: CustomLlmConfigForTask;
   [key: string]: any;
 }
 
@@ -65,6 +87,17 @@ export function createAiTask(
   origin_key: string,
   meta: LLMApiMeta = { stream: true }
 ): CreateTaskResult {
+  const logger = createRendererLogger('AiTasks')
+  
+  // 关键：记录传入的meta参数
+  logger.debug(`[createAiTask] 收到调用，检查meta参数:`, {
+    stream: meta?.stream,
+    streamType: typeof meta?.stream,
+    metaKeys: meta && typeof meta === 'object' ? Object.keys(meta) : [],
+    hasStream: meta && typeof meta === 'object' && 'stream' in meta,
+    fullMeta: JSON.stringify(meta)
+  });
+  
   const autoStart = true
   const handle = generateHandle()
 
@@ -75,6 +108,20 @@ export function createAiTask(
     rejectDone = reject
   })
 
+  // 关键：确保stream属性不会被覆盖
+  // 如果meta中没有stream，或者stream是undefined，默认设置为true
+  const finalMeta = { ...meta };
+  if (finalMeta.stream === undefined) {
+    finalMeta.stream = true;
+    logger.debug('[createAiTask] meta.stream未定义，设置为true（默认流式输出）');
+  }
+  
+  logger.debug(`[createAiTask] 最终meta对象:`, {
+    stream: finalMeta.stream,
+    streamType: typeof finalMeta.stream,
+    fullMeta: JSON.stringify(finalMeta)
+  });
+
   const task: InternalAITaskInfo = {
     handle,
     name,
@@ -82,7 +129,7 @@ export function createAiTask(
     target,
     type,
     origin_key,
-    meta,
+    meta: finalMeta,
     status: ref(ai_task_status.READY as AITaskStatusValue),
     controller: null,
     resolveDone,
@@ -98,6 +145,9 @@ export function createAiTask(
   tasks.value.push(task)
   taskMap.set(handle, task)
 
+  // 注册任务（主窗口和子窗口都需要注册，以便任务队列可以显示）
+  logger.debug(`[createAiTask] 创建任务: handle=${handle}, name=${name}, type=${type}, origin_key=${origin_key}, isMainWindow=${isMainWindow()}`)
+
   // 非主窗口注册任务到主窗口显示
   if (!isMainWindow()) {
     const payload: Record<string, unknown> = {
@@ -106,9 +156,14 @@ export function createAiTask(
       type,
       origin_key
     }
-    if (meta) {
+    // 关键：使用finalMeta而不是原始的meta，确保stream属性正确传递
+    if (finalMeta && typeof finalMeta === 'object') {
       try {
-        payload.meta = JSON.parse(JSON.stringify(meta))
+        payload.meta = JSON.parse(JSON.stringify(finalMeta))
+        logger.debug(`[createAiTask] 非主窗口，序列化meta:`, {
+          stream: (payload.meta as any)?.stream,
+          fullMeta: JSON.stringify(payload.meta)
+        });
       } catch (_error) {
         payload.meta = {}
       }
@@ -125,6 +180,10 @@ export function createAiTask(
       }
     }
     ipcRenderer.send('register-ai-task', payload)
+    logger.debug(`[createAiTask] 已发送register-ai-task IPC事件到主窗口`)
+  } else {
+    // 主窗口的任务已经添加到tasks.value，任务队列组件会自动显示
+    logger.debug(`[createAiTask] 主窗口任务，已添加到tasks.value，任务数量=${tasks.value.length}`)
   }
 
   if (autoStart) {
@@ -158,11 +217,16 @@ export async function startAiTask(handle: string): Promise<void> {
       const logger = createRendererLogger('AiTasks')
       console.log('task.prompt', task.prompt)
       logger.debug(`[主窗口] 开始执行answer任务: handle=${handle}, prompt长度=${typeof task.prompt === 'string' ? task.prompt.length : 'array'}`)
+      
+      // 提取自定义LLM配置
+      const customLlmConfig = task.meta?.customLlmConfig || null
+      
       await answerQuestion(
         task.prompt as string, 
         task.target, 
         task.meta as any, 
-        controller.signal
+        controller.signal,
+        customLlmConfig as any
       )
       logger.debug(`[主窗口] answerQuestion完成，target.value长度=${task.target.value?.length || 0}, 内容前100字符=${task.target.value?.substring(0, 100) || '空'}`)
       // 对于非流式输出，answerQuestionNonStream已经同步设置了ref.value
@@ -172,11 +236,42 @@ export async function startAiTask(handle: string): Promise<void> {
         logger.debug(`[主窗口] 等待后，target.value长度=${task.target.value?.length || 0}`)
       }
     } else if (task.type === ai_types.chat && task.target) {
+      const logger = createRendererLogger('AiTasks')
+      
+      // 提取自定义LLM配置
+      const customLlmConfig = task.meta?.customLlmConfig || null
+      
+      // 记录task.meta用于调试
+      logger.debug(`[startAiTask] chat任务，task.meta:`, {
+        stream: task.meta?.stream,
+        streamType: typeof task.meta?.stream,
+        metaKeys: task.meta ? Object.keys(task.meta) : [],
+        hasStream: 'stream' in (task.meta || {}),
+        metaValue: JSON.stringify(task.meta)
+      });
+      
+      // 确保meta对象包含stream属性，如果没有则默认使用流式输出
+      // 创建一个新的meta对象，确保stream属性正确
+      const finalMeta = { ...(task.meta || {}) };
+      
+      // 如果stream未定义，默认设置为true（流式输出）
+      if (finalMeta.stream === undefined) {
+        finalMeta.stream = true;
+        logger.debug('[startAiTask] meta.stream未定义，设置为true（默认流式输出）');
+      }
+      
+      logger.debug(`[startAiTask] 最终meta对象:`, {
+        stream: finalMeta.stream,
+        streamType: typeof finalMeta.stream,
+        fullMeta: JSON.stringify(finalMeta)
+      });
+      
       await continueConversation(
         task.prompt as AIDialogMessage[], 
         task.target, 
-        task.meta as any, 
-        controller.signal
+        finalMeta as any, 
+        controller.signal,
+        customLlmConfig as any
       )
       // 对于非流式输出，等待一小段时间确保ref.value已更新
       if (!task.meta?.stream && task.mirror) {

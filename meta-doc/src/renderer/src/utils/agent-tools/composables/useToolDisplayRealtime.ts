@@ -111,8 +111,34 @@ export function useToolDisplayRealtime(
 export function parseToolData(data: unknown): unknown {
   if (typeof data === 'object' && data !== null) {
     const dataObj = data as any
-    // 如果data有content字段（ToolCallbackData格式），提取content
-    return dataObj.content !== undefined ? dataObj.content : dataObj
+    
+    // 首先检查dataObj本身是否已经是期望的内容结构（有outlineTree、stage等字段）
+    // 如果是，直接返回（说明已经提取过了）
+    if (dataObj.outlineTree !== undefined || 
+        dataObj.stage !== undefined || 
+        dataObj.tree !== undefined) {
+      return dataObj
+    }
+    
+    // 如果data有content字段，并且content是对象
+    if (dataObj.content !== undefined && typeof dataObj.content === 'object') {
+      const content = dataObj.content
+      // 检查content是否包含我们期望的字段（如outlineTree、stage）
+      if (content.outlineTree !== undefined || 
+          content.stage !== undefined || 
+          content.tree !== undefined) {
+        // content是期望的结构，提取它
+        return content
+      }
+      // content不是期望的结构，检查dataObj本身是否可能是期望的结构
+      // 如果dataObj有format字段，说明它是ToolCallbackData包装器，应该提取content
+      if (dataObj.format !== undefined) {
+        return content
+      }
+    }
+    
+    // 默认返回dataObj本身
+    return dataObj
   }
   return data
 }

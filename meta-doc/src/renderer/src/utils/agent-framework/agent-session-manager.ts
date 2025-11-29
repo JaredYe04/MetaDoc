@@ -17,6 +17,7 @@ import { createRendererLogger } from '../logger'
 import { agentConfigManager } from './agent-config-manager'
 import { workflowManager } from './workflow-manager'
 import { toolCollectionManager } from './tool-collection-manager'
+import { DEFAULT_AGENT_ASSISTANT_GREETING } from '../../constants/document'
 
 /**
  * Agent会话管理器类
@@ -50,6 +51,15 @@ class AgentSessionManager {
       throw new Error(`Agent配置 ${agentConfigId} 未找到`)
     }
 
+    // 创建初始问候语消息
+    const greetingMessage: AgentMessage = {
+      id: `msg-${now}-greeting`,
+      role: 'assistant',
+      type: 'chat',
+      timestamp: new Date(now).toISOString(),
+      markdown: DEFAULT_AGENT_ASSISTANT_GREETING
+    }
+
     const session: AgentSession = {
       entityType: 'agent-session',
       id,
@@ -58,7 +68,7 @@ class AgentSessionManager {
       agentConfigId,
       createdAt: now,
       updatedAt: now,
-      messages: [],
+      messages: [greetingMessage],
       messageQueue: [],
       referenceStore: [],
       publicContext: {

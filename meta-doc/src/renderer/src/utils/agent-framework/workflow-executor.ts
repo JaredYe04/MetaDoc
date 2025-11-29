@@ -15,6 +15,7 @@ import type { ToolCallbackResult } from '../../types/agent-tool'
 import { workflowManager } from './workflow-manager'
 import { agentToolManager } from '../agent-tool-manager'
 import { createRendererLogger } from '../logger'
+import { extractOuterJsonString } from '../regex-utils'
 
 /**
  * 工作流执行器类
@@ -420,18 +421,13 @@ ${JSON.stringify(params, null, 2)}
         }
       }
 
-      // 解析结果
+      // 解析结果（优先提取最外层 JSON）
       let decisionResult: any
       try {
-        decisionResult = JSON.parse(resultRef.value)
+        const jsonStr = extractOuterJsonString(resultRef.value) ?? resultRef.value
+        decisionResult = JSON.parse(jsonStr)
       } catch {
-        // 如果解析失败，尝试提取JSON
-        const jsonMatch = resultRef.value.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          decisionResult = JSON.parse(jsonMatch[0])
-        } else {
-          throw new Error('无法解析LLM决策结果')
-        }
+        throw new Error('无法解析LLM决策结果')
       }
 
       // 验证决策
@@ -533,11 +529,12 @@ ${JSON.stringify(params, null, 2)}
       throw new Error('条件节点缺少条件表达式')
     }
 
-    // 评估条件表达式
-    const conditionResult = await this.evaluateCondition(
+    // 使用 LLM 进行条件判断，返回 {"result": true} 或 {"result": false}
+    const conditionResult = await this.executeLLMConditionNode(
       workflow,
       execution,
-      node.config.condition
+      node,
+      signal
     )
 
     // 获取下游节点
@@ -557,6 +554,90 @@ ${JSON.stringify(params, null, 2)}
     }
 
     return conditionResult
+  }
+
+  /**
+   * 使用 LLM 执行条件判断节点
+   * 约定返回 JSON：{ "result": true } 或 { "result": false }
+   */
+  private async executeLLMConditionNode(
+    workflow: Workflow,
+    execution: WorkflowExecutionState,
+    node: ControlFlowNode,
+    signal?: AbortSignal
+  ): Promise<boolean> {
+    try {
+      const { createAiTask, startAiTask } = await import('../ai_tasks')
+
+      // 构建上下文：工作流变量 + 已有节点结果
+      const variableContext = Object.fromEntries(execution.variableValues)
+      const nodeResultContext = Object.fromEntries(
+        Array.from(execution.nodeResults.entries()).map(([id, value]) => [
+          id,
+          value
+        ])
+      )
+
+      const prompt = `你是一个严格的布尔判断助手。
+根据给定的上下文和条件，返回一个 JSON，格式必须严格为：
+
+{"result": true}
+或
+{"result": false}
+
+不要输出任何多余的文字、解释或 Markdown 代码块。
+
+上下文（variables 和 nodeResults 可以为空对象）：
+${JSON.stringify(
+        {
+          variables: variableContext,
+          nodeResults: nodeResultContext
+        },
+        null,
+        2
+      )}
+
+条件：
+${node.config.condition}
+`
+
+      const resultRef: { value: string } = { value: '' }
+      const task = createAiTask(
+        'Workflow Condition',
+        prompt,
+        resultRef as any,
+        'answer',
+        `workflow-condition-${node.id}-${Date.now()}`,
+        { stream: false }
+      )
+
+      await startAiTask(task.handle)
+
+      // 轮询等待结果
+      let attempts = 0
+      while (resultRef.value === '' && attempts < 100) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        attempts++
+        if (signal?.aborted) {
+          throw new Error('条件判断已取消')
+        }
+      }
+
+      const raw = resultRef.value
+      const jsonStr = extractOuterJsonString(raw) ?? raw
+      const parsed = JSON.parse(jsonStr) as { result?: boolean }
+
+      if (typeof parsed.result !== 'boolean') {
+        this.getLogger().warn('条件节点 LLM 返回结果不包含布尔 result 字段，默认视为 false')
+        return false
+      }
+
+      return parsed.result
+    } catch (error) {
+      this.getLogger().error('条件节点 LLM 判断失败:', error)
+      // 失败时默认返回 false，避免中断整个工作流
+      return false
+    }
   }
 
   /**
@@ -814,7 +895,12 @@ ${JSON.stringify(params, null, 2)}
    * 判断是否是控制流节点
    */
   private isControlFlowNode(node: ArtifactNode | ControlFlowNode): node is ControlFlowNode {
-    return 'type' in node && ['condition', 'loop', 'parallel', 'merge', 'async', 'aggregate'].includes(node.type)
+    return (
+      'type' in node &&
+      ['start', 'end', 'condition', 'loop', 'parallel', 'merge', 'async', 'aggregate'].includes(
+        node.type
+      )
+    )
   }
 
   /**

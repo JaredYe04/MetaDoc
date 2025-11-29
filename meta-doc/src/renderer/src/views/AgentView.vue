@@ -19,6 +19,7 @@
                   <el-dropdown-item command="tool-collection">{{ t('agent.manage.toolCollection.title') }}</el-dropdown-item>
                   <el-dropdown-item command="workflow">{{ t('agent.manage.workflow.title') }}</el-dropdown-item>
                   <el-dropdown-item command="agent-config">{{ t('agent.manage.agentConfig.title') }}</el-dropdown-item>
+                  <el-dropdown-item command="agent-engine">{{ t('agent.manage.agentEngine.title') }}</el-dropdown-item>
                   <el-dropdown-item divided command="import-session">{{ t('agent.sessions.import') }}</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -80,6 +81,30 @@
             </el-radio>
           </el-radio-group>
         </el-scrollbar>
+        <div class="engine-selector-wrapper">
+          <el-select
+            v-model="selectedEngineId"
+            :placeholder="t('agent.sessions.selectEngine')"
+            size="small"
+            filterable
+            style="width: 100%"
+            @change="handleEngineChange"
+          >
+            <el-option
+              v-for="engine in availableEngines"
+              :key="engine.id"
+              :label="getEngineLabel(engine)"
+              :value="engine.id"
+            >
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span>{{ getEngineLabel(engine) }}</span>
+                <el-tag v-if="engine.isBuiltIn" size="small" type="info" effect="plain">
+                  {{ t('agent.manage.agentEngine.builtIn') }}
+                </el-tag>
+              </div>
+            </el-option>
+          </el-select>
+        </div>
       </section>
 
       <section class="conversation-pane" :style="panelStyle">
@@ -101,9 +126,16 @@
       <div v-if="activeSession" class="conversation-content">
         <el-scrollbar class="conversation-scroll">
           <AgentMessageRenderer
-            v-for="message in activeSession.messages"
+            v-for="(message, index) in activeSession.messages"
             :key="message.id"
             :message="message"
+            :messages="activeSession.messages"
+            :message-index="index"
+            :user-name="'用户'"
+            @edit="handleMessageEdit"
+            @regenerate="handleMessageRegenerate"
+            @duplicate="handleMessageDuplicate"
+            @delete="handleMessageDelete"
           />
           <div class="conversation-bottom-spacer" />
         </el-scrollbar>
@@ -111,13 +143,15 @@
           <ChatComposer
             class="conversation-composer"
             v-model="composerInput"
-            :loading="false"
-            :disabled="!activeSession"
+            :loading="isGenerating"
+            :disabled="!activeSession || isGenerating"
             :show-attach="false"
             :show-voice="false"
+            :show-cancel="isGenerating"
             :placeholder="t('aiChat.inputPlaceholder')"
             @submit="handleComposerSubmit"
             @reset="handleComposerReset"
+            @cancel="handleCancelGeneration"
           />
         </div>
       </div>
@@ -130,14 +164,6 @@
         <header class="pane-header">
           <div class="tool-header-title">
             <h2>{{ t('agent.tools.title') }}</h2>
-            <el-checkbox
-              v-model="allSelected"
-              :indeterminate="isIndeterminate"
-              :disabled="toolSelectionDisabled"
-              @change="toggleAllTools"
-            >
-              {{ t('agent.tools.toggleAll') }}
-            </el-checkbox>
           </div>
           <div class="tool-legend">
             <el-tag size="small" type="info">{{ t('agent.tools.legend.available') }}</el-tag>
@@ -170,8 +196,7 @@
                   <template #default="{ row }">
                     <el-checkbox
                       :model-value="activeSession?.activeToolIds.includes(row.id)"
-                      :disabled="toolSelectionDisabled"
-                      @change="onToolToggle(row.id, $event)"
+                      disabled
                     />
                   </template>
                 </el-table-column>
@@ -248,24 +273,33 @@
     <el-dialog
       v-model="showCreateSessionDialog"
       :title="t('agent.sessions.new')"
-      width="500px"
+      width="80%"
+      :style="dialogStyle"
     >
-      <el-form>
-        <el-form-item :label="t('agent.sessions.selectAgentConfig')">
-          <el-select
-            v-model="selectedAgentConfigId"
-            style="width: 100%"
-            :placeholder="t('agent.sessions.selectAgentConfigPlaceholder')"
-          >
-            <el-option
-              v-for="config in availableAgentConfigs"
-              :key="config.id"
-              :label="typeof config.name === 'string' ? config.name : config.name['zh_cn']?.name || config.id"
-              :value="config.id"
-            />
-          </el-select>
-        </el-form-item>
-      </el-form>
+      <div style="height: 60vh; display: flex; flex-direction: column;">
+        <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 500; flex-shrink: 0;">
+          {{ t('agent.sessions.selectAgentConfig') }}
+        </h3>
+        <div style="flex: 1; min-height: 0;">
+          <CardGrid
+            :items="availableAgentConfigs"
+            :loading="false"
+            :show-thumbnail="false"
+            :show-actions="false"
+            :get-item-id="(item) => item.id"
+            :get-item-title="(item) => typeof item.name === 'string' ? item.name : item.name['zh_cn']?.name || item.id"
+            :get-item-description="(item) => typeof item.description === 'string' ? item.description : item.description['zh_cn']?.description || ''"
+            :get-item-meta="(item) => [
+              t('agent.manage.agentConfig.toolCount') + ': ' + agentConfigManager.getAvailableToolIds(item.id).length,
+              item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
+            ]"
+            :get-badge="(item) => item.id === 'default-agent-config' ? t('agent.manage.agentConfig.default') : null"
+            :is-selected="(item) => item.id === selectedAgentConfigId"
+            :is-disabled="() => false"
+            @item-click="handleSelectAgentConfig"
+          />
+        </div>
+      </div>
       <template #footer>
         <el-button @click="showCreateSessionDialog = false">{{ t('common.cancel') }}</el-button>
         <el-button type="primary" @click="createSession(selectedAgentConfigId)" :disabled="!selectedAgentConfigId">
@@ -279,6 +313,7 @@
       v-model="showManageDialog"
       :title="manageDialogType === 'tool-collection' ? t('agent.manage.toolCollection.title') : 
               manageDialogType === 'workflow' ? t('agent.manage.workflow.title') : 
+              manageDialogType === 'agent-engine' ? t('agent.manage.agentEngine.title') :
               t('agent.manage.agentConfig.title')"
       width="90%"
       :close-on-click-modal="false"
@@ -286,6 +321,7 @@
       <ToolCollectionManager v-if="manageDialogType === 'tool-collection'" />
       <WorkflowManager v-else-if="manageDialogType === 'workflow'" />
       <AgentConfigManager v-else-if="manageDialogType === 'agent-config'" />
+      <AgentEngineManager v-else-if="manageDialogType === 'agent-engine'" />
       <template #footer>
         <el-button @click="showManageDialog = false">{{ t('common.close') }}</el-button>
       </template>
@@ -303,11 +339,29 @@
         <el-button @click="showReferenceDialog = false">{{ t('common.close') }}</el-button>
       </template>
     </el-dialog>
+
+    <!-- 消息编辑对话框 -->
+    <el-dialog
+      v-model="showEditMessageDialog"
+      :title="t('agent.message.editMessage')"
+      width="600px"
+    >
+      <el-input
+        v-model="editingMessageContent"
+        type="textarea"
+        :rows="10"
+        :placeholder="t('agent.message.editPlaceholder')"
+      />
+      <template #footer>
+        <el-button @click="showEditMessageDialog = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="handleConfirmEditMessage">{{ t('common.confirm') }}</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, reactive, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import dayjs from 'dayjs';
@@ -320,12 +374,17 @@ import type { AgentSession, AgentTool, ChatAgentMessage, ToolOrigin } from '../t
 import { cloneDeep } from 'lodash';
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
 import { useWorkspace } from '../stores/workspace';
-import { agentConfigManager, agentSessionManager } from '../utils/agent-framework';
+import { agentConfigManager, agentSessionManager, agentEngineManager, AIContextManager } from '../utils/agent-framework';
+import { createRendererLogger } from '../utils/logger';
 import { agentToolManager } from '../utils/agent-tool-manager';
+import { ai_types, createAiTask, cancelAiTask, type CustomLlmConfigForTask } from '../utils/ai_tasks';
+import { sanitizeMessages } from '../utils/llm-api.js';
 import ToolCollectionManager from '../components/agent/manage/ToolCollectionManager.vue';
 import WorkflowManager from '../components/agent/manage/WorkflowManager.vue';
 import AgentConfigManager from '../components/agent/manage/AgentConfigManager.vue';
+import AgentEngineManager from '../components/agent/manage/AgentEngineManager.vue';
 import ReferenceManager from '../components/agent/ReferenceManager.vue';
+import CardGrid from '../components/common/CardGrid.vue';
 dayjs.extend(relativeTime);
 
 const { t } = useI18n();
@@ -362,6 +421,11 @@ const sessionMenuStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor,
   borderColor: subtleBorderColor.value,
+}));
+
+const dialogStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  color: themeState.currentTheme.textColor,
 }));
 
 const sampleTools: AgentTool[] = [
@@ -583,35 +647,88 @@ const sampleSessions: AgentSession[] = [
   },
 ];
 
-// 从AgentToolManager获取工具
+// 从AgentToolManager获取工具，只显示当前会话可用的工具
 const tools = computed(() => {
-  const allTools = agentToolManager.getAllTools();
-  return allTools.map(tool => ({
-    id: tool.config.id,
-    name: agentToolManager.getLocalizedText(tool.config.name),
-    description: agentToolManager.getLocalizedText(tool.config.description),
-    origin: tool.config.origin === 'internal' ? 'renderer' : tool.config.origin === 'mcp' ? 'mcp' : 'main',
-    tags: tool.config.tags || [],
-    running: tool.running,
-    enabled: tool.config.enabled !== false,
-    lastUsed: tool.lastUsed
-  }));
+  const session = activeSession.value;
+  if (!session || !session.agentConfigId) {
+    return [];
+  }
+  
+  try {
+    // 获取Agent配置
+    const agentConfig = agentConfigManager.getConfig(session.agentConfigId);
+    if (!agentConfig) {
+      const logger = createRendererLogger('AgentView');
+      logger.warn(`Agent配置未找到: ${session.agentConfigId}`);
+      return [];
+    }
+    
+    // 获取当前会话配置可用工具ID列表
+    let availableToolIds = agentConfigManager.getAvailableToolIds(session.agentConfigId);
+    
+    // 获取所有工具
+    const allTools = agentToolManager.getAllTools();
+    
+    // 如果可用工具ID列表为空，尝试显示所有工具（用于调试）
+    // 但如果AgentConfig有toolCollectionIds，说明应该有限制，需要检查工具集
+    if (availableToolIds.length === 0 && agentConfig.toolCollectionIds && agentConfig.toolCollectionIds.length > 0) {
+      const logger = createRendererLogger('AgentView');
+      logger.warn(`工具集交集为空: agentConfigId=${session.agentConfigId}, toolCollectionIds=${agentConfig.toolCollectionIds.join(', ')}`);
+      // 如果有工具集但交集为空，返回空列表（这是正常情况，表示工具集配置有问题）
+      return [];
+    }
+    
+    // 如果availableToolIds为空且没有工具集配置，显示所有工具（回退）
+    if (availableToolIds.length === 0) {
+      availableToolIds = allTools.map(tool => tool.config.id);
+    }
+    
+    // 调试日志（仅在开发环境）
+    const logger = createRendererLogger('AgentView');
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug(`工具列表计算: session=${session.id}, agentConfigId=${session.agentConfigId}, availableToolIds=${availableToolIds.length}, allTools=${allTools.length}, toolCollectionIds=${agentConfig.toolCollectionIds?.join(', ') || 'none'}`);
+    }
+    
+    return allTools
+      .filter(tool => availableToolIds.includes(tool.config.id))
+      .map(tool => ({
+        id: tool.config.id,
+        name: agentToolManager.getLocalizedText(tool.config.name),
+        description: agentToolManager.getLocalizedText(tool.config.description),
+        origin: tool.config.origin === 'internal' ? 'renderer' : tool.config.origin === 'mcp' ? 'mcp' : 'main',
+        tags: tool.config.tags || [],
+        running: tool.running,
+        enabled: tool.config.enabled !== false,
+        lastUsed: tool.lastUsed
+      }));
+  } catch (error) {
+    const logger = createRendererLogger('AgentView');
+    logger.error('获取工具列表失败:', error);
+    return [];
+  }
 });
 const sessionsState = ref<AgentSession[]>([]);
 const activeSessionId = ref<string | null>(null);
 const activeToolId = ref<string | null>(null);
 const syncingSessions = ref(false);
-const shouldBootstrapDemoSessions = true;
+const shouldBootstrapDemoSessions = false; // 不再使用示例会话
 const demoAppliedDocs = new Set<string>();
 const composerInput = ref('');
 const openSessionMenuId = ref<string | null>(null);
 const showCreateSessionDialog = ref(false);
 const showManageDialog = ref(false);
-const manageDialogType = ref<'tool-collection' | 'workflow' | 'agent-config' | null>(null);
+const manageDialogType = ref<'tool-collection' | 'workflow' | 'agent-config' | 'agent-engine' | null>(null);
 const availableAgentConfigs = ref(agentConfigManager.getAllConfigs());
 const selectedAgentConfigId = ref<string>('');
 const showReferenceDialog = ref(false);
 const referenceSession = ref<AgentSession | null>(null);
+const selectedEngineId = ref<string>('default-autogpt-engine');
+const availableEngines = ref(agentEngineManager.getEnabledEngines());
+const currentAiTaskHandle = ref<string | null>(null);
+const isGenerating = ref(false);
+const showEditMessageDialog = ref(false);
+const editingMessage = ref<ChatAgentMessage | null>(null);
+const editingMessageContent = ref('');
 
 const activeSession = computed(() =>
   sessionsState.value.find((session) => session.id === activeSessionId.value) ?? null,
@@ -635,11 +752,11 @@ const touchSession = (session: AgentSession) => {
   session.updatedAt = new Date().toISOString();
 };
 
-const applySessionsToDocument = (sessions: AgentSession[]) => {
+const applySessionsToDocument = (sessions: AgentSession[], skipDirtyCheck = false) => {
   const doc = activeDocument.value;
   if (!doc) return;
   syncingSessions.value = true;
-  updateDocumentAgentSessions(doc.tabId, cloneDeep(sessions));
+  updateDocumentAgentSessions(doc.tabId, cloneDeep(sessions), skipDirtyCheck);
   nextTick(() => {
     syncingSessions.value = false;
   });
@@ -647,7 +764,7 @@ const applySessionsToDocument = (sessions: AgentSession[]) => {
 
 const persistSessions = () => {
   if (!activeDocument.value) return;
-  applySessionsToDocument(sessionsState.value);
+  applySessionsToDocument(sessionsState.value, false);
 };
 
 watch(
@@ -663,18 +780,62 @@ watch(
       syncingSessions.value = false;
       return;
     }
-    let source = Array.isArray(sessions) ? cloneDeep(sessions as AgentSession[]) : [];
-    if (!source.length && shouldBootstrapDemoSessions && !demoAppliedDocs.has(doc.tabId)) {
-      source = cloneDeep(sampleSessions);
-      sessionsState.value = source;
-      ensureActiveSessionId();
-      applySessionsToDocument(source);
-      demoAppliedDocs.add(doc.tabId);
+    
+    // 关键：如果在流式输出期间，不要更新sessionsState，避免破坏reactive对象
+    if (isGenerating.value) {
+      const logger = createRendererLogger('AgentView');
+      logger.debug('[watch agentSessions] 正在生成中，跳过会话更新以避免破坏reactive对象');
       return;
     }
+    
+    let source = Array.isArray(sessions) ? cloneDeep(sessions as AgentSession[]) : [];
+    
+    // 如果没有会话，创建默认会话
+    if (!source.length) {
+      try {
+        const defaultConfigId = 'default-agent-config';
+        const defaultSession = agentSessionManager.createSession(
+          defaultConfigId,
+          t('agent.sessions.defaultTitle'),
+          ''
+        );
+        
+        const legacySession: AgentSession = {
+          id: defaultSession.id,
+          title: defaultSession.title,
+          description: defaultSession.description,
+          createdAt: new Date(defaultSession.createdAt).toISOString(),
+          updatedAt: new Date(defaultSession.updatedAt).toISOString(),
+          messages: defaultSession.messages,
+          activeToolIds: agentConfigManager.getAvailableToolIds(defaultConfigId),
+          agentConfigId: defaultSession.agentConfigId,
+          messageQueue: defaultSession.messageQueue || [],
+          referenceStore: defaultSession.referenceStore || [],
+          publicContext: defaultSession.publicContext || {},
+          executionNodes: defaultSession.executionNodes || [],
+          status: defaultSession.status || 'idle'
+        };
+        
+        source = [legacySession];
+        sessionsState.value = source;
+        ensureActiveSessionId();
+        
+        // 创建默认会话时不触发dirty状态
+        applySessionsToDocument(source, true);
+        return;
+      } catch (error) {
+        console.error('创建默认会话失败:', error);
+      }
+    }
+    
     sessionsState.value = source;
     ensureActiveSessionId();
     openSessionMenuId.value = null;
+    
+    // 如果有会话变更，持久化
+    if (source.length > 0) {
+      applySessionsToDocument(source);
+    }
   },
   { immediate: true, deep: true },
 );
@@ -691,32 +852,7 @@ watch(
 const messageCount = computed(() => activeSession.value?.messages.length ?? 0);
 const activeToolCount = computed(() => activeSession.value?.activeToolIds.length ?? 0);
 
-const toolSelectionDisabled = computed(() => {
-  const session = activeSession.value;
-  if (!session) return true;
-  return session.messages.some(
-    (message) =>
-      message.type === 'tool' && (message.status === 'running' || message.status === 'pending'),
-  );
-});
-
-const allSelected = computed({
-  get() {
-    const session = activeSession.value;
-    if (!session) return false;
-    return tools.value.every((tool) => session.activeToolIds.includes(tool.id));
-  },
-  set(value: boolean) {
-    toggleAllTools(value);
-  },
-});
-
-const isIndeterminate = computed(() => {
-  const session = activeSession.value;
-  if (!session || !tools.value.length) return false;
-  const selectedCount = tools.value.filter((tool) => session.activeToolIds.includes(tool.id)).length;
-  return selectedCount > 0 && selectedCount < tools.value.length;
-});
+// 工具选择功能已移除，工具列表现在为只读模式
 
 const formatRelativeTime = (timestamp: string) => dayjs(timestamp).fromNow();
 
@@ -764,6 +900,13 @@ const createSession = (agentConfigId?: string) => {
 const deleteSession = async (session?: AgentSession) => {
   const target = session ?? activeSession.value;
   if (!target) return;
+  
+  // 如果删除后没有会话了，不允许删除（需要至少保留一个）
+  if (sessionsState.value.length <= 1) {
+    ElMessage.warning(t('agent.sessions.atLeastOneRequired'));
+    return;
+  }
+  
   try {
     await ElMessageBox.confirm(
       t('agent.sessions.confirmDelete', { title: target.title }),
@@ -774,8 +917,48 @@ const deleteSession = async (session?: AgentSession) => {
     ensureActiveSessionId();
     persistSessions();
     ElMessage.success(t('agent.sessions.deleteSuccess'));
+    
+    // 如果删除后没有会话了，创建一个默认会话
+    if (sessionsState.value.length === 0) {
+      createDefaultSession();
+    }
   } catch {
     // canceled
+  }
+};
+
+const createDefaultSession = () => {
+  try {
+    const defaultConfigId = 'default-agent-config';
+    const defaultSession = agentSessionManager.createSession(
+      defaultConfigId,
+      t('agent.sessions.defaultTitle'),
+      ''
+    );
+    
+    const legacySession: AgentSession = {
+      id: defaultSession.id,
+      title: defaultSession.title,
+      description: defaultSession.description,
+      createdAt: new Date(defaultSession.createdAt).toISOString(),
+      updatedAt: new Date(defaultSession.updatedAt).toISOString(),
+      messages: defaultSession.messages,
+      activeToolIds: agentConfigManager.getAvailableToolIds(defaultConfigId),
+      agentConfigId: defaultSession.agentConfigId,
+      messageQueue: defaultSession.messageQueue || [],
+      referenceStore: defaultSession.referenceStore || [],
+      publicContext: defaultSession.publicContext || {},
+      executionNodes: defaultSession.executionNodes || [],
+      status: defaultSession.status || 'idle'
+    };
+    
+    sessionsState.value = [legacySession];
+    ensureActiveSessionId();
+    activeSessionId.value = legacySession.id;
+    // 创建默认会话时不触发dirty状态
+    applySessionsToDocument([legacySession], true);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : String(error));
   }
 };
 
@@ -794,38 +977,7 @@ const renameSession = async (session: AgentSession) => {
   ElMessage.success(t('agent.sessions.renameSuccess'));
 };
 
-const toggleTool = (toolId: string, enabled: boolean) => {
-  const session = activeSession.value;
-  if (!session) return;
-  if (toolSelectionDisabled.value) return;
-  const nextIds = new Set(session.activeToolIds);
-  if (enabled) {
-    nextIds.add(toolId);
-  } else {
-    nextIds.delete(toolId);
-  }
-  session.activeToolIds = Array.from(nextIds);
-  touchSession(session);
-  persistSessions();
-};
-
-const onToolToggle = (toolId: string, value: boolean | string | number) => {
-  if (toolSelectionDisabled.value) return;
-  toggleTool(toolId, Boolean(value));
-};
-
-const toggleAllTools = (value: boolean) => {
-  const session = activeSession.value;
-  if (!session) return;
-  if (toolSelectionDisabled.value) return;
-  if (!tools.value.length) return;
-  session.activeToolIds = value
-    ? Array.from(new Set([...session.activeToolIds, ...tools.value.map((tool) => tool.id)]))
-    : [];
-  touchSession(session);
-  persistSessions();
-};
-
+// 工具选择功能已移除，工具列表现在为只读模式（显示当前会话可用的工具）
 const selectTool = (tool: AgentTool) => {
   activeToolId.value = tool.id;
 };
@@ -838,28 +990,406 @@ const createChatMessage = (role: 'user' | 'assistant', markdown: string): ChatAg
   markdown,
 });
 
-const handleComposerSubmit = () => {
+const handleComposerSubmit = async () => {
+  const logger = createRendererLogger('AgentView');
+  logger.debug('[handleComposerSubmit] 开始处理用户消息提交');
+  
   const session = activeSession.value;
-  if (!session) return;
+  if (!session) {
+    logger.warn('[handleComposerSubmit] 没有活动的会话');
+    return;
+  }
+  
   const content = composerInput.value.trim();
-  if (!content) return;
+  if (!content) {
+    logger.warn('[handleComposerSubmit] 消息内容为空');
+    return;
+  }
 
+  logger.debug(`[handleComposerSubmit] 用户消息内容: ${content.substring(0, 50)}...`);
+
+  // 创建用户消息
   const message = createChatMessage('user', content);
-
   session.messages.push(message);
+  logger.debug(`[handleComposerSubmit] 用户消息已添加，ID: ${message.id}, 当前消息数量: ${session.messages.length}`);
+  
   composerInput.value = '';
   touchSession(session);
-  persistSessions();
+  
+  // 注意：不要在创建消息后立即持久化，因为会破坏reactive对象的响应式
+  // 只在用户消息创建时持久化一次（延迟持久化，不影响响应式）
+  nextTick(() => {
+    persistSessions();
+  });
+
+  // 滚动到底部
   nextTick(() => {
     const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap');
     if (container) {
       container.scrollTop = container.scrollHeight;
     }
   });
+
+  // 执行Agent引擎
+  try {
+    const engineId = selectedEngineId.value || 'default-autogpt-engine';
+    const engine = agentEngineManager.getEngine(engineId);
+    logger.debug(`[handleComposerSubmit] 选择的引擎: ${engineId}, 引擎类型: ${engine?.engineType}`);
+    
+    // 对于SimpleChat引擎，在用户消息发送后立即创建空的assistant消息气泡（参考AIChat.vue）
+    if (engine?.engineType === 'simple-chat') {
+      logger.debug('[handleComposerSubmit] 使用simple-chat引擎，准备创建流式输出消息气泡');
+      
+      // 创建用于流式输出的ref
+      const assistantMessageRef = ref('');
+      logger.debug('[handleComposerSubmit] 创建了assistantMessageRef');
+      
+      // 创建空的assistant消息，使用reactive确保响应式更新（参考AIChat.vue的createAssistantPlaceholder）
+      const assistantMessage: ChatAgentMessage = reactive({
+        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        role: 'assistant',
+        type: 'chat',
+        timestamp: new Date().toISOString(),
+        markdown: ''
+      }) as ChatAgentMessage;
+      
+      logger.debug(`[handleComposerSubmit] 创建了reactive assistantMessage, ID: ${assistantMessage.id}, markdown初始值: "${assistantMessage.markdown}"`);
+      
+      // 关键：确保直接操作sessionsState中的session，而不是computed返回的session
+      // 因为computed返回的是新对象，直接操作它可能不会触发响应式更新
+      const sessionIndex = sessionsState.value.findIndex(s => s.id === session.id);
+      if (sessionIndex === -1) {
+        logger.error('[handleComposerSubmit] 找不到session在sessionsState中的索引');
+        return;
+      }
+      
+      // 直接操作sessionsState中的session，确保响应式更新
+      const actualSession = sessionsState.value[sessionIndex];
+      actualSession.messages.push(assistantMessage);
+      logger.debug(`[handleComposerSubmit] assistantMessage已添加到actualSession.messages, 当前消息数量: ${actualSession.messages.length}`);
+      logger.debug(`[handleComposerSubmit] assistantMessage对象是否为reactive: ${typeof assistantMessage === 'object' && assistantMessage !== null && 'markdown' in assistantMessage}`);
+      
+      touchSession(actualSession);
+      
+      // 关键：不要在流式输出期间持久化，因为cloneDeep会破坏reactive对象的响应式
+      // 只在流式输出完成后持久化
+      
+      // 等待Vue完成响应式更新
+      await nextTick();
+      logger.debug('[handleComposerSubmit] nextTick完成，准备创建watch');
+      
+      // 创建watch，实时更新消息内容（参考AIChat.vue的实现方式）
+      let stopWatcher: (() => void) | null = null;
+      let watchTriggerCount = 0;
+      stopWatcher = watch(
+        assistantMessageRef,
+        (newValue) => {
+          watchTriggerCount++;
+          logger.debug(`[handleComposerSubmit] watch触发 #${watchTriggerCount}, newValue长度: ${newValue.length}, 内容前50字符: "${newValue.substring(0, 50)}..."`);
+          
+          // 直接更新reactive对象的markdown属性，Vue会自动追踪变化
+          const oldMarkdown = assistantMessage.markdown;
+          assistantMessage.markdown = newValue;
+          logger.debug(`[handleComposerSubmit] 已更新assistantMessage.markdown, 旧长度: ${oldMarkdown.length}, 新长度: ${newValue.length}`);
+          
+          // 确保actualSession也被更新（虽然assistantMessage是reactive的，但为了保险起见）
+          const currentSessionIndex = sessionsState.value.findIndex(s => s.id === session.id);
+          if (currentSessionIndex !== -1) {
+            const currentSession = sessionsState.value[currentSessionIndex];
+            const messageIndex = currentSession.messages.findIndex(m => m.id === assistantMessage.id);
+            if (messageIndex !== -1) {
+              // 确保消息对象是同一个reactive对象
+              if (currentSession.messages[messageIndex] !== assistantMessage) {
+                currentSession.messages[messageIndex] = assistantMessage;
+                logger.debug('[handleComposerSubmit] 重新设置消息对象引用');
+              }
+            }
+          }
+          
+          // 实时滚动到底部
+          nextTick(() => {
+            const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap');
+            if (container) {
+              container.scrollTop = container.scrollHeight;
+            }
+          });
+        },
+        { immediate: true }
+      );
+      
+      logger.debug('[handleComposerSubmit] watch已创建，准备执行引擎');
+      
+      // 执行引擎，传入assistantMessageRef和stopWatcher
+      // 注意：使用actualSession而不是computed的session，确保响应式更新
+      await executeAgentEngine(content, assistantMessageRef, stopWatcher, assistantMessage, actualSession);
+      
+      logger.debug(`[handleComposerSubmit] 引擎执行完成, watch共触发${watchTriggerCount}次`);
+    } else {
+      logger.debug('[handleComposerSubmit] 使用其他引擎类型');
+      await executeAgentEngine(content);
+    }
+  } catch (error) {
+    logger.error('[handleComposerSubmit] 执行失败:', error);
+    ElMessage.error(error instanceof Error ? error.message : String(error));
+  }
+};
+
+// 执行Agent引擎
+const executeAgentEngine = async (
+  userMessage: string, 
+  assistantMessageRef?: Ref<string>,
+  stopWatcher?: (() => void) | null,
+  assistantMessage?: ChatAgentMessage,
+  actualSession?: AgentSession
+) => {
+  // 使用传入的actualSession，如果没有则使用computed的session
+  const session = actualSession || activeSession.value;
+  if (!session || !session.agentConfigId) {
+    ElMessage.warning(t('agent.sessions.noAgentConfig'));
+    return;
+  }
+
+  const engineId = selectedEngineId.value || 'default-autogpt-engine';
+  const engine = agentEngineManager.getEngine(engineId);
+  if (!engine) {
+    ElMessage.error(t('agent.sessions.engineNotFound'));
+    return;
+  }
+
+  const agentConfig = agentConfigManager.getConfig(session.agentConfigId);
+  if (!agentConfig) {
+    ElMessage.error(t('agent.sessions.agentConfigNotFound'));
+    return;
+  }
+
+  // 启动UI锁
+  workspace.lockUI?.();
+  isGenerating.value = true;
+
+  // 创建AbortController用于取消
+  const abortController = new AbortController();
+  const originKey = `agent-${session.id}-${Date.now()}`;
+  
+  // 更新会话状态
+  session.status = 'thinking';
+  // 注意：不要在流式输出期间持久化，会破坏reactive对象的响应式
+  // persistSessions();
+
+  // 对于SimpleChat引擎，使用createAiTask实现流式输出
+  if (engine.engineType === 'simple-chat') {
+    const logger = createRendererLogger('AgentView');
+    logger.debug('[executeAgentEngine] 开始执行simple-chat引擎');
+    try {
+      // 如果已经传入了assistantMessageRef和assistantMessage（在handleComposerSubmit中创建），使用它们
+      // 否则，在这里创建（兼容其他调用路径，如重新生成等）
+      if (!assistantMessageRef || !assistantMessage) {
+        assistantMessageRef = ref('');
+        assistantMessage = reactive({
+          id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          role: 'assistant',
+          type: 'chat',
+          timestamp: new Date().toISOString(),
+          markdown: ''
+        }) as ChatAgentMessage;
+        session.messages.push(assistantMessage);
+        // 注意：不要在流式输出期间持久化，会破坏reactive对象的响应式
+        // persistSessions();
+        await nextTick();
+        
+        // 创建watch，实时更新消息内容
+        stopWatcher = watch(
+          assistantMessageRef,
+          (newValue) => {
+            if (assistantMessage) {
+              assistantMessage.markdown = newValue;
+              nextTick(() => {
+                const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap');
+                if (container) {
+                  container.scrollTop = container.scrollHeight;
+                }
+              });
+            }
+          },
+          { immediate: true }
+        );
+      }
+      
+      // 确保assistantMessageRef存在
+      if (!assistantMessageRef) {
+        assistantMessageRef = ref('');
+      }
+      
+      // 构建上下文消息
+      const contextMessages = AIContextManager.buildMessages(session, agentConfig);
+      
+      // 准备自定义LLM配置（如果引擎有自定义配置）
+      let customLlmConfig: CustomLlmConfigForTask | undefined = undefined;
+      if (engine.llmConfigMode === 'custom' && engine.customLlmConfig) {
+        customLlmConfig = {
+          baseUrl: engine.customLlmConfig.baseUrl,
+          apiKey: engine.customLlmConfig.apiKey,
+          model: engine.customLlmConfig.model,
+          temperature: engine.customLlmConfig.temperature,
+          maxTokens: engine.customLlmConfig.maxTokens,
+          type: 'openai-compatible',
+          chatSuffix: '/chat/completions'
+        };
+      }
+
+      // 创建流式AI任务
+      // 直接使用sanitizeMessages清理所有消息，确保所有content都是字符串
+      // sanitizeMessages会处理所有消息格式问题，包括tool消息的content必须是字符串
+      // 这确保了在发送到LLM API之前，所有消息格式都符合规范
+      const formattedMessages = sanitizeMessages(contextMessages);
+      logger.debug(`[executeAgentEngine] 消息已清理，消息数量: ${formattedMessages.length}`);
+      
+      // 构建meta对象，确保stream明确为true
+      const metaForTask = {
+        stream: true,  // 明确设置为true
+        temperature: engine.customLlmConfig?.temperature || 0.7,
+        maxTokens: engine.customLlmConfig?.maxTokens,
+        customLlmConfig
+      };
+      
+      logger.debug('[executeAgentEngine] 准备创建AI任务，meta对象:', {
+        stream: metaForTask.stream,
+        streamType: typeof metaForTask.stream,
+        metaKeys: Object.keys(metaForTask),
+        fullMeta: JSON.stringify(metaForTask)
+      });
+      
+      const { handle, done } = createAiTask(
+        'Agent对话',
+        formattedMessages,
+        assistantMessageRef,
+        ai_types.chat,
+        originKey,
+        metaForTask
+      );
+      
+      currentAiTaskHandle.value = handle;
+      logger.debug(`[executeAgentEngine] AI任务已创建，handle: ${handle}, 开始等待流式输出`);
+
+      await done;
+      logger.debug('[executeAgentEngine] AI任务完成');
+      
+      // 任务完成后，确保消息内容是最新的
+      if (assistantMessage && assistantMessageRef) {
+        assistantMessage.markdown = assistantMessageRef.value;
+        logger.debug(`[executeAgentEngine] 任务完成，最终消息长度: ${assistantMessageRef.value.length}`);
+      }
+      
+      session.status = 'idle';
+      
+      // 流式输出完成后，现在可以安全地持久化（此时消息已经完整）
+      persistSessions();
+      logger.debug('[executeAgentEngine] 会话已持久化');
+      
+      // 滚动到底部
+      nextTick(() => {
+        const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap');
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      });
+    } catch (error) {
+      const logger = createRendererLogger('AgentView');
+      logger.error('Agent引擎执行失败:', error);
+      session.status = 'error';
+      persistSessions();
+      
+      // 如果任务被取消或失败，也要更新消息内容
+      if (assistantMessage && assistantMessageRef && assistantMessageRef.value) {
+        assistantMessage.markdown = assistantMessageRef.value;
+        persistSessions();
+      } else if (assistantMessage) {
+        // 移除空的响应式消息
+        if (!assistantMessage) return;
+        const messageIndex = session.messages.findIndex(m => m.id === assistantMessage.id);
+        if (messageIndex !== -1) {
+          session.messages.splice(messageIndex, 1);
+          persistSessions();
+        }
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        AIContextManager.addAssistantMessage(session, `执行失败: ${errorMessage}`);
+        persistSessions();
+      }
+      
+      throw error;
+    } finally {
+      // 清理watch监听器
+      if (stopWatcher) {
+        stopWatcher();
+      }
+      currentAiTaskHandle.value = null;
+      isGenerating.value = false;
+      workspace.unlockUI?.();
+    }
+  } else {
+    // 对于其他引擎，使用现有的执行器逻辑
+    try {
+      const { AgentEngineExecutorFactory } = await import('../utils/agent-framework/agent-engine-executor');
+      const executor = AgentEngineExecutorFactory.create(
+        engine,
+        session,
+        agentConfig,
+        {
+          signal: abortController.signal,
+          onProgress: (progress) => {
+            session.status = progress.stage as any;
+            persistSessions();
+          }
+        }
+      );
+
+      await executor.execute(userMessage);
+      
+      session.status = 'idle';
+      persistSessions();
+
+      // 滚动到底部
+      nextTick(() => {
+        const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap');
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      });
+    } catch (error) {
+      const logger = createRendererLogger('AgentView');
+      logger.error('Agent引擎执行失败:', error);
+      session.status = 'error';
+      persistSessions();
+      
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      AIContextManager.addAssistantMessage(session, `执行失败: ${errorMessage}`);
+      persistSessions();
+      
+      throw error;
+    } finally {
+      currentAiTaskHandle.value = null;
+      isGenerating.value = false;
+      workspace.unlockUI?.();
+    }
+  }
 };
 
 const handleComposerReset = () => {
   composerInput.value = '';
+};
+
+const handleCancelGeneration = () => {
+  if (currentAiTaskHandle.value) {
+    cancelAiTask(currentAiTaskHandle.value, false);
+    currentAiTaskHandle.value = null;
+  }
+  isGenerating.value = false;
+  workspace.unlockUI?.();
+  
+  const session = activeSession.value;
+  if (session) {
+    session.status = 'idle';
+    persistSessions();
+  }
 };
 
 const originLabel = (origin: AgentTool['origin']) => {
@@ -1124,15 +1654,196 @@ const handleManageCommand = (command: string) => {
   } else {
     manageDialogType.value = command as any;
     showManageDialog.value = true;
+    // 如果是打开引擎管理，刷新引擎列表
+    if (command === 'agent-engine') {
+      availableEngines.value = agentEngineManager.getEnabledEngines();
+    }
   }
+};
+
+const getEngineLabel = (engine: any) => {
+  if (typeof engine.name === 'string') {
+    return engine.name;
+  }
+  return engine.name['zh_cn']?.name || engine.name['en_us']?.name || engine.id;
+};
+
+const handleEngineChange = () => {
+  // 引擎切换逻辑，后续在Agent执行时使用
+  ElMessage.success(t('agent.sessions.engineChanged', { engine: getEngineLabel(agentEngineManager.getEngine(selectedEngineId.value)!) }));
 };
 
 const handleDocumentClick = () => {
   openSessionMenuId.value = null;
 };
 
+const handleSelectAgentConfig = (config: any) => {
+  selectedAgentConfigId.value = config.id;
+};
+
+// 消息操作方法
+const handleMessageEdit = (message: AgentMessage) => {
+  if (message.role !== 'user' || message.type !== 'chat') {
+    return;
+  }
+  editingMessage.value = message as ChatAgentMessage;
+  editingMessageContent.value = message.markdown || '';
+  showEditMessageDialog.value = true;
+};
+
+const handleConfirmEditMessage = async () => {
+  if (!editingMessage.value || !activeSession.value) {
+    return;
+  }
+  
+  const content = editingMessageContent.value.trim();
+  if (!content) {
+    ElMessage.warning(t('agent.message.editPlaceholder'));
+    return;
+  }
+
+  // 找到消息并更新
+  const session = activeSession.value;
+  const messageIndex = session.messages.findIndex(m => m.id === editingMessage.value!.id);
+  if (messageIndex !== -1) {
+    const message = session.messages[messageIndex] as ChatAgentMessage;
+    message.markdown = content;
+    touchSession(session);
+    persistSessions();
+    ElMessage.success(t('agent.message.editSuccess'));
+    showEditMessageDialog.value = false;
+    editingMessage.value = null;
+    editingMessageContent.value = '';
+    
+    // 重新触发AI生成
+    await executeAgentEngine(content);
+  }
+};
+
+const handleMessageRegenerate = async (message: AgentMessage) => {
+  if (!activeSession.value) {
+    return;
+  }
+  
+  // 找到消息在会话中的位置
+  const session = activeSession.value;
+  const messageIndex = session.messages.findIndex(m => m.id === message.id);
+  if (messageIndex === -1) {
+    return;
+  }
+
+  // 如果是用户消息，重新触发AI生成
+  if (message.role === 'user' && message.type === 'chat') {
+    const userMessage = message as ChatAgentMessage;
+    // 删除此消息之后的所有消息
+    session.messages = session.messages.slice(0, messageIndex + 1);
+    touchSession(session);
+    persistSessions();
+    
+    // 重新执行AI生成
+    await executeAgentEngine(userMessage.markdown);
+  }
+};
+
+const handleMessageDuplicate = async (message: AgentMessage) => {
+  if (!activeSession.value) {
+    return;
+  }
+
+  // 找到消息在会话中的位置
+  const session = activeSession.value;
+  const messageIndex = session.messages.findIndex(m => m.id === message.id);
+  if (messageIndex === -1) {
+    return;
+  }
+
+  // 复制会话到指定消息节点
+  try {
+    // 转换为新的AgentSession格式
+    const newFormatSession: any = {
+      ...session,
+      entityType: 'agent-session',
+      createdAt: typeof session.createdAt === 'string' ? new Date(session.createdAt).getTime() : session.createdAt,
+      updatedAt: typeof session.updatedAt === 'string' ? new Date(session.updatedAt).getTime() : session.updatedAt,
+      messageQueue: session.messageQueue || [],
+      referenceStore: session.referenceStore || [],
+      publicContext: session.publicContext || {},
+      executionNodes: session.executionNodes || [],
+      status: session.status || 'idle'
+    };
+
+    // 创建新的消息ID，用于标识Duplicate节点
+    const duplicateMessageId = message.id;
+
+    const duplicated = agentSessionManager.duplicateSession(
+      newFormatSession,
+      duplicateMessageId
+    );
+
+    // 转换为旧格式
+    const legacySession: AgentSession = {
+      id: duplicated.id,
+      title: duplicated.title,
+      description: duplicated.description,
+      createdAt: new Date(duplicated.createdAt).toISOString(),
+      updatedAt: new Date(duplicated.updatedAt).toISOString(),
+      messages: duplicated.messages,
+      activeToolIds: duplicated.agentConfigId 
+        ? agentConfigManager.getAvailableToolIds(duplicated.agentConfigId)
+        : session.activeToolIds,
+      agentConfigId: duplicated.agentConfigId,
+      messageQueue: duplicated.messageQueue,
+      referenceStore: duplicated.referenceStore,
+      publicContext: duplicated.publicContext,
+      executionNodes: duplicated.executionNodes,
+      status: duplicated.status
+    };
+
+    sessionsState.value.unshift(legacySession);
+    ensureActiveSessionId();
+    activeSessionId.value = duplicated.id;
+    persistSessions();
+    ElMessage.success(t('agent.sessions.duplicateSuccess'));
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : String(error));
+  }
+};
+
+const handleMessageDelete = async (message: AgentMessage) => {
+  if (!activeSession.value) {
+    return;
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      t('agent.message.confirmDelete'),
+      t('agent.message.delete'),
+      { type: 'warning' }
+    );
+
+    const session = activeSession.value;
+    const messageIndex = session.messages.findIndex(m => m.id === message.id);
+    if (messageIndex !== -1) {
+      // 删除这条消息及其之后的所有消息
+      session.messages = session.messages.slice(0, messageIndex);
+      touchSession(session);
+      persistSessions();
+      ElMessage.success(t('agent.message.deleteSuccess'));
+    }
+  } catch {
+    // canceled
+  }
+};
+
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick);
+  
+  // 初始化引擎选择器
+  const defaultEngine = agentEngineManager.getDefaultEngine();
+  if (defaultEngine) {
+    selectedEngineId.value = defaultEngine.id;
+  }
+  availableEngines.value = agentEngineManager.getEnabledEngines();
 });
 
 onBeforeUnmount(() => {
@@ -1195,6 +1906,17 @@ onBeforeUnmount(() => {
 .session-scroll {
   flex: 1;
   min-height: 0;
+}
+
+.engine-selector-wrapper {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid;
+  border-color: var(--el-border-color-lighter);
+  position: sticky;
+  bottom: 0;
+  background-color: inherit;
+  z-index: 10;
 }
 
 .session-scroll :deep(.el-scrollbar__wrap) {

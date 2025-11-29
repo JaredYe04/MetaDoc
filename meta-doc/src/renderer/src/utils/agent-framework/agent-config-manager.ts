@@ -35,18 +35,25 @@ class AgentConfigManager {
    * 创建Agent配置
    */
   createConfig(
-    name: LocalizedText,
-    description: LocalizedText,
+    name: string | LocalizedText,
+    description: string | LocalizedText,
     toolCollectionIds: string[] = []
   ): AgentConfig {
+    // 转换为LocalizedText格式
+    const nameText: LocalizedText = typeof name === 'string' 
+      ? { 'zh_cn': { name }, 'en_us': { name } }
+      : name
+    const descText: LocalizedText = typeof description === 'string'
+      ? { 'zh_cn': { description }, 'en_us': { description } }
+      : description
     const id = `agent-config-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const now = Date.now()
 
     const config: AgentConfig = {
       entityType: 'agent-config',
       id,
-      name,
-      description,
+      name: nameText,
+      description: descText,
       version: '1.0.0',
       createdAt: now,
       updatedAt: now,
@@ -121,9 +128,127 @@ class AgentConfigManager {
       throw new Error(`Agent配置 ${id} 未找到`)
     }
 
+    // 检查是否是默认配置
+    if (id === 'default-agent-config') {
+      throw new Error('不能删除默认Agent配置')
+    }
+
     this.configs.delete(id)
     this.saveToStorage()
     this.getLogger().info(`Agent配置已删除: ${id}`)
+  }
+
+  /**
+   * 初始化默认Agent配置
+   */
+  initializeDefaultAgentConfig(defaultToolCollectionId: string, additionalToolCollectionIds: string[] = []): void {
+    const defaultId = 'default-agent-config'
+    
+    // 合并所有工具集ID
+    const allToolCollectionIds = [defaultToolCollectionId, ...additionalToolCollectionIds].filter(Boolean)
+    
+    // 检查是否已存在
+    if (this.configs.has(defaultId)) {
+      // 更新工具集列表
+      const existingConfig = this.configs.get(defaultId)!
+      const existingIds = existingConfig.toolCollectionIds || []
+      // 合并现有的和新的工具集ID，去重
+      const mergedIds = Array.from(new Set([...existingIds, ...allToolCollectionIds]))
+      this.updateConfig(defaultId, {
+        toolCollectionIds: mergedIds,
+        name: {
+          'zh_cn': { name: '默认Agent配置' },
+          'en_us': { name: 'Default Agent Config' }
+        },
+        description: {
+          'zh_cn': { description: 'MetaDoc默认Agent配置。MetaDoc是一个专业的AI写作助手，高效地使用所含的AI工具，为用户生成图文并茂、内容充实丰富的、专业的、多领域的文章。该配置定义了MetaDoc的核心职责和工作方式，包括理解用户需求、检索知识、生成可视化内容、优化文档结构、确保内容质量等能力。' },
+          'en_us': { description: 'Default MetaDoc Agent config. MetaDoc is a professional AI writing assistant that efficiently uses AI tools to generate well-illustrated, rich, professional, multi-domain articles for users. This config defines MetaDoc\'s core responsibilities and working methods, including understanding user needs, retrieving knowledge, generating visualizations, optimizing document structure, and ensuring content quality.' }
+        },
+        llmConfig: {
+          systemPrompt: `你是MetaDoc，一个专业的AI写作助手。你的核心职责是高效地使用所含的AI工具，为用户生成图文并茂、内容充实丰富的、专业的、多领域的文章。
+
+## 你的核心能力
+
+1. **理解用户需求**：仔细分析用户的写作需求，理解文章的主题、目标读者、写作风格等要求，制定合理的写作计划。
+
+2. **知识检索与整合**：使用RAG工具检索相关知识库中的信息，整合多源信息，确保文章内容的准确性和丰富性。
+
+3. **可视化内容生成**：使用图表生成工具创建各类可视化内容（流程图、统计图、示意图等），使文章更加直观易懂。
+
+4. **文档结构优化**：使用编辑工具优化文档结构，确保文章逻辑清晰、层次分明、易于阅读。
+
+5. **内容质量保障**：使用校对工具检查并修正文章中的错误，确保内容的专业性、准确性和可读性。
+
+6. **专业文章生成**：最终生成结构清晰、内容丰富、专业可靠、图文并茂的高质量文章。
+
+## 工作原则
+
+- **专业性**：始终保持专业、准确、严谨的态度
+- **用户导向**：以用户需求为中心，提供符合用户期望的内容
+- **工具协同**：高效组合使用各种AI工具，发挥各自优势
+- **质量优先**：确保最终输出的文章质量达到专业标准
+- **友好沟通**：与用户保持友好、清晰的沟通，及时反馈进度和问题
+
+请始终遵循以上原则，为用户提供高质量的写作服务。`,
+          injectTimestamp: false
+        },
+        maxToolCalls: null // 无限制
+      })
+      return
+    }
+
+    // 创建默认Agent配置
+    const defaultConfig: AgentConfig = {
+      entityType: 'agent-config',
+      id: defaultId,
+      name: {
+        'zh_cn': { name: '默认Agent配置' },
+        'en_us': { name: 'Default Agent Config' }
+      },
+      description: {
+        'zh_cn': { description: 'MetaDoc默认Agent配置。MetaDoc是一个专业的AI写作助手，高效地使用所含的AI工具，为用户生成图文并茂、内容充实丰富的、专业的、多领域的文章。该配置定义了MetaDoc的核心职责和工作方式，包括理解用户需求、检索知识、生成可视化内容、优化文档结构、确保内容质量等能力。' },
+        'en_us': { description: 'Default MetaDoc Agent config. MetaDoc is a professional AI writing assistant that efficiently uses AI tools to generate well-illustrated, rich, professional, multi-domain articles for users. This config defines MetaDoc\'s core responsibilities and working methods, including understanding user needs, retrieving knowledge, generating visualizations, optimizing document structure, and ensuring content quality.' }
+      },
+      version: '1.0.0',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      toolCollectionIds: allToolCollectionIds,
+      enabled: true,
+      tags: ['default', 'built-in'],
+      maxToolCalls: null, // 无限制（null表示无限制）
+      llmConfig: {
+        systemPrompt: `你是MetaDoc，一个专业的AI写作助手。你的核心职责是高效地使用所含的AI工具，为用户生成图文并茂、内容充实丰富的、专业的、多领域的文章。
+
+## 你的核心能力
+
+1. **理解用户需求**：仔细分析用户的写作需求，理解文章的主题、目标读者、写作风格等要求，制定合理的写作计划。
+
+2. **知识检索与整合**：使用RAG工具检索相关知识库中的信息，整合多源信息，确保文章内容的准确性和丰富性。
+
+3. **可视化内容生成**：使用图表生成工具创建各类可视化内容（流程图、统计图、示意图等），使文章更加直观易懂。
+
+4. **文档结构优化**：使用编辑工具优化文档结构，确保文章逻辑清晰、层次分明、易于阅读。
+
+5. **内容质量保障**：使用校对工具检查并修正文章中的错误，确保内容的专业性、准确性和可读性。
+
+6. **专业文章生成**：最终生成结构清晰、内容丰富、专业可靠、图文并茂的高质量文章。
+
+## 工作原则
+
+- **专业性**：始终保持专业、准确、严谨的态度
+- **用户导向**：以用户需求为中心，提供符合用户期望的内容
+- **工具协同**：高效组合使用各种AI工具，发挥各自优势
+- **质量优先**：确保最终输出的文章质量达到专业标准
+- **友好沟通**：与用户保持友好、清晰的沟通，及时反馈进度和问题
+
+请始终遵循以上原则，为用户提供高质量的写作服务。`,
+        injectTimestamp: false
+      }
+    }
+
+    this.configs.set(defaultId, defaultConfig)
+    this.saveToStorage()
+    this.getLogger().info('默认Agent配置已初始化')
   }
 
   /**

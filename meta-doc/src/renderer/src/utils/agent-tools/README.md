@@ -1209,6 +1209,93 @@ const myToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 4. **环境适配**：服务接口会自动适配Electron和Web环境
 5. **易于测试**：服务接口可以轻松mock，便于单元测试
 
+## 工具执行结果的序列化机制
+
+**重要**：所有工具调用结果都支持两种序列化模式，在源头保证格式正确，避免在发送给LLM API时进行重复转换和验证。
+
+### 序列化模式
+
+工具执行结果支持两种序列化模式：
+
+1. **OpenAI格式（`OPENAI_FORMAT`）**：用于直接发送给LLM API
+   - 在保存工具消息时自动生成
+   - 确保`content`字段始终是字符串格式（JSON对象会被序列化）
+   - 保存在工具消息的`markdown`字段中
+   - 在`buildHistoryMessages`时直接使用，无需转换
+
+2. **快照格式（`SNAPSHOT`）**：用于完整保存和恢复工具执行上下文
+   - 包含所有中间输出、最终结果、错误信息等
+   - 用于导出、导入、历史记录等场景
+
+### 统一序列化接口
+
+所有工具执行结果都通过 `ToolRunner.serializeToOpenAIFormat()` 方法进行序列化：
+
+```typescript
+import { ToolRunner } from './utils/agent-framework/tool-runner'
+
+const observation: ToolObservation = {
+  toolId: 'my-tool',
+  toolName: '我的工具',
+  status: 'succeeded',
+  result: { /* 工具返回的数据 */ },
+  error: undefined,
+  summary: '执行成功'
+}
+
+// 序列化为OpenAI格式的字符串
+const openaiContent = ToolRunner.serializeToOpenAIFormat(observation)
+// 返回：JSON字符串或纯文本字符串（取决于result的类型）
+```
+
+### 自动序列化
+
+工具消息在保存时自动序列化：
+
+```typescript
+// 在 AIContextManager.addToolMessage 中自动调用
+const observation = await ToolRunner.runTool(toolId, params, signal)
+AIContextManager.addToolMessage(
+  session,
+  observation.toolId,
+  observation.toolName,
+  observation.status,
+  observation.result,
+  observation.error,
+  observation.summary,
+  tool_call_id,
+  toolConfig // 工具配置，用于渲染组件
+)
+// ↑ 内部会自动调用 ToolRunner.serializeToOpenAIFormat() 
+// 并将结果保存在 message.markdown 字段中
+```
+
+### 直接使用已序列化的内容
+
+在构建LLM消息时，直接使用已保存的OpenAI格式内容：
+
+```typescript
+// 在 buildHistoryMessages 中
+if (msg.role === 'tool' && msg.type === 'tool') {
+  // 直接使用已保存的OpenAI格式content（保存在markdown字段）
+  const content = msg.markdown || ToolRunner.serializeToOpenAIFormat(observation)
+  
+  const toolLlmMessage = {
+    role: 'tool',
+    content: content, // 已经是字符串格式，无需转换
+    tool_call_id: msg.tool_call_id,
+    name: msg.tool?.name
+  }
+}
+```
+
+### 优势
+
+1. **源头保证格式正确**：在保存时就生成正确的格式，避免后续转换错误
+2. **统一序列化逻辑**：所有工具使用相同的序列化方法，确保一致性
+3. **移除重复验证**：不需要在发送API前进行多次转换和验证
+4. **完整内容保留**：工具返回的所有数据都完整保存在`outputs`字段中，用于显示和快照
+
 ## Tool执行快照序列化与反序列化
 
 **重要**：所有工具调用，无论成功与否，都必须100%支持完整的序列化与反序列化。这确保了工具执行结果能够完整保存和恢复，反序列化后Display渲染的结果与最初执行时完全一致。

@@ -58,8 +58,8 @@
           <div class="output-body" :style="outputBodyStyle">
             <!-- 如果有显示组件，使用组件渲染 -->
             <component
-              v-if="output.renderer"
-              :is="output.renderer"
+              v-if="output.renderer && resolveComponent(output.renderer)"
+              :is="resolveComponent(output.renderer)"
               :data="output.data"
               :status="message.status"
               :progress="message.progress"
@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, defineAsyncComponent, h } from 'vue'
 import { dayjs, ElMessage } from 'element-plus'
 import type { ToolAgentMessage, ToolOutputDescriptor } from '../../types/agent'
 import { WarningFilled, Download } from '@element-plus/icons-vue'
@@ -234,6 +234,40 @@ const extractComponentName = (displayComponent: any): string | undefined => {
   }
   
   return undefined
+}
+
+// 解析组件 - 支持字符串组件名称或组件对象
+const resolveComponent = (renderer: string | any) => {
+  if (!renderer) return null
+  
+  // 如果是字符串，尝试动态导入
+  if (typeof renderer === 'string') {
+    // 组件名称映射表
+    const componentMap: Record<string, () => Promise<any>> = {
+      'OutlineTreeDisplay': () => import('../../utils/agent-tools/components/OutlineTreeDisplay.vue'),
+      // 可以添加更多组件的映射
+    }
+    
+    const componentLoader = componentMap[renderer]
+    if (componentLoader) {
+      return defineAsyncComponent(componentLoader)
+    }
+    
+    // 如果不在映射表中，尝试使用组件名称作为路径（假设在 components 目录下）
+    try {
+      return defineAsyncComponent(() => import(`../../utils/agent-tools/components/${renderer}.vue`))
+    } catch {
+      console.warn(`无法加载组件: ${renderer}`)
+      return null
+    }
+  }
+  
+  // 如果已经是组件对象，直接返回
+  if (typeof renderer === 'object' && ('setup' in renderer || 'render' in renderer || 'name' in renderer)) {
+    return renderer
+  }
+  
+  return null
 }
 
 // 导出执行快照

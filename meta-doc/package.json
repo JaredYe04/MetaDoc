@@ -95,6 +95,7 @@
     "monaco-editor": "^0.53.0",
     "monaco-latex": "^0.0.1",
     "multer": "^1.4.5-lts.1",
+    "mxgraph": "^4.2.2",
     "natural": "^8.1.0",
     "nock": "^13.5.6",
     "node-llama-cpp": "^3.11.0",

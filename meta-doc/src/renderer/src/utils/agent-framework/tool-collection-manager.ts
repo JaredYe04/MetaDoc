@@ -112,6 +112,12 @@ class ToolCollectionManager {
       throw new Error(`工具集 ${id} 未找到`)
     }
 
+    // 检查是否是内置工具集
+    const collection = this.collections.get(id)
+    if (collection && collection.isBuiltIn) {
+      throw new Error(`工具集 ${id} 是内置工具集，不能删除`)
+    }
+
     this.collections.delete(id)
     this.saveToStorage()
     this.getLogger().info(`工具集已删除: ${id}`)
@@ -146,7 +152,7 @@ class ToolCollectionManager {
   }
 
   /**
-   * 获取工具集的工具ID列表（取交集，如果有多个工具集）
+   * 获取工具集的工具ID列表（取并集，如果有多个工具集）
    */
   getToolIdsFromCollections(collectionIds: string[]): string[] {
     if (collectionIds.length === 0) {
@@ -161,11 +167,12 @@ class ToolCollectionManager {
       return []
     }
 
-    // 取交集
-    let result = new Set(collections[0].toolIds)
-    for (let i = 1; i < collections.length; i++) {
-      const currentSet = new Set(collections[i].toolIds)
-      result = new Set([...result].filter(id => currentSet.has(id)))
+    // 取并集（合并所有工具集的工具ID，去重）
+    const result = new Set<string>()
+    for (const collection of collections) {
+      for (const toolId of collection.toolIds) {
+        result.add(toolId)
+      }
     }
 
     return Array.from(result)
@@ -214,6 +221,106 @@ class ToolCollectionManager {
     this.saveToStorage()
     this.getLogger().info(`工具集已导入: ${collection.id}`)
     return collection
+  }
+
+  /**
+   * 初始化默认工具集
+   */
+  initializeDefaultToolSet(allToolIds: string[]): void {
+    const defaultId = 'default-tool-set'
+    
+    // 检查是否已存在
+    if (this.collections.has(defaultId)) {
+      // 更新工具列表（确保包含所有内置tool）
+      this.updateCollection(defaultId, {
+        toolIds: allToolIds,
+        name: {
+          'zh_cn': { name: '默认工具集' },
+          'en_us': { name: 'Default Tool Set' }
+        },
+        description: {
+          'zh_cn': { description: 'MetaDoc内置的全部Agent工具，不可删除' },
+          'en_us': { description: 'All built-in MetaDoc Agent tools, cannot be deleted' }
+        }
+      })
+      return
+    }
+
+    // 创建默认工具集
+    const defaultCollection: ToolCollection = {
+      entityType: 'tool-collection',
+      id: defaultId,
+      name: {
+        'zh_cn': { name: '默认工具集' },
+        'en_us': { name: 'Default Tool Set' }
+      },
+      description: {
+        'zh_cn': { description: 'MetaDoc内置的全部Agent工具，不可删除' },
+        'en_us': { description: 'All built-in MetaDoc Agent tools, cannot be deleted' }
+      },
+      version: '1.0.0',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      toolIds: allToolIds,
+      enabled: true,
+      tags: ['default', 'built-in'],
+      isBuiltIn: true
+    }
+
+    this.collections.set(defaultId, defaultCollection)
+    this.saveToStorage()
+    this.getLogger().info('默认工具集已初始化')
+  }
+
+  /**
+   * 初始化默认工作流工具集
+   */
+  async initializeDefaultWorkflowCollection(workflowIds: string[]): Promise<void> {
+    const defaultId = 'default-workflow-collection'
+    
+    // 检查是否已存在
+    const existing = this.collections.get(defaultId)
+    if (existing) {
+      // 更新工作流列表
+      this.updateCollection(defaultId, {
+        toolIds: workflowIds,
+        name: {
+          'zh_cn': { name: '默认工作流' },
+          'en_us': { name: 'Default Workflow Collection' }
+        },
+        description: {
+          'zh_cn': { description: 'MetaDoc内置的全部工作流，不可删除' },
+          'en_us': { description: 'All built-in MetaDoc workflows, cannot be deleted' }
+        },
+        isBuiltIn: true
+      })
+      return
+    }
+
+    // 创建默认工作流工具集
+    const defaultCollection: ToolCollection = {
+      entityType: 'tool-collection',
+      id: defaultId,
+      name: {
+        'zh_cn': { name: '默认工作流' },
+        'en_us': { name: 'Default Workflow Collection' }
+      },
+      description: {
+        'zh_cn': { description: 'MetaDoc内置的全部工作流，不可删除' },
+        'en_us': { description: 'All built-in MetaDoc workflows, cannot be deleted' }
+      },
+      version: '1.0.0',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      toolIds: workflowIds,
+      enabled: true,
+      tags: ['default', 'built-in', 'workflow'],
+      isBuiltIn: true
+    }
+
+    this.collections.set(defaultId, defaultCollection)
+    this.saveToStorage()
+    this.getLogger().info('默认工作流工具集已初始化')
   }
 
   /**

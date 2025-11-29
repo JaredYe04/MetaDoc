@@ -87,7 +87,10 @@
         "edit": "编辑",
         "delete": "删除",
         "deleteSuccess": "删除成功",
-        "deleteFailed": "删除失败"
+        "deleteFailed": "删除失败",
+        "format": "格式化",
+        "apply": "应用",
+        "success": "成功"
     },
     "console": {
         "title": "终端输出",
@@ -293,7 +296,8 @@
         "defaultTitle": "与AI助手对话",
         "enterToSend": "按 Enter 发送",
         "ctrlEnterToSend": "按 Ctrl+Enter 发送",
-        "changeSendMode": "点击切换发送快捷键"
+        "changeSendMode": "点击切换发送快捷键",
+        "cancelTooltip": "取消AI生成"
     },
     "aigraph": {
         "renameTitle": "重命名",
@@ -1064,6 +1068,8 @@
       "defaultSystemPrompt": "你是一名主动型智能体，请先向用户问好并等待指令。",
       "confirmDelete": "确定要删除「{title}」吗？",
       "deleteSuccess": "会话已删除",
+      "selectEngine": "选择引擎",
+      "engineChanged": "已切换至引擎：{engine}",
       "rename": "重命名会话",
       "renamePlaceholder": "请输入新的会话标题",
       "renameRequired": "标题不能为空",
@@ -1079,7 +1085,12 @@
       "retrySuccess": "重试成功",
       "duplicateSuccess": "复制成功",
       "exportSuccess": "导出成功",
-      "importSuccess": "导入成功"
+      "importSuccess": "导入成功",
+      "defaultTitle": "默认会话",
+      "atLeastOneRequired": "至少需要保留一个会话",
+      "noAgentConfig": "会话未关联Agent配置",
+      "engineNotFound": "未找到选定的引擎",
+      "agentConfigNotFound": "未找到Agent配置"
     },
     "reference": {
       "title": "引用素材管理",
@@ -1109,6 +1120,21 @@
       "tools": "启用工具 {count} 个",
       "none": "请选择或新建一个会话开始对话。"
     },
+    "message": {
+      "edit": "编辑",
+      "delete": "删除",
+      "regenerate": "重新生成",
+      "duplicateSession": "复制会话",
+      "editMessage": "编辑消息",
+      "editPlaceholder": "请输入消息内容",
+      "confirmDelete": "确定要删除这条消息吗？",
+      "deleteSuccess": "消息已删除",
+      "editSuccess": "消息已更新",
+      "callingTool": "正在调用工具：{tool}",
+      "callingTools": "正在调用 {count} 个工具：{tools}",
+      "toolCallInitiated": "AI发起了 {tool} 的调用",
+      "toolCallsInitiated": "AI发起了 {count} 个工具的调用：{tools}"
+    },
     "tools": {
       "title": "工具管理",
       "toggleAll": "全选 / 全不选",
@@ -1121,6 +1147,7 @@
       "enabled": "已启用",
       "disabled": "未启用",
       "detail": {
+        "lastUsed": "最后使用时间",
         "origin": "来源",
         "status": "运行状态",
         "idle": "空闲",
@@ -1135,6 +1162,7 @@
       }
     },
     "manage": {
+      "status": "状态",
       "title": "管理",
       "enabled": "已启用",
       "disabled": "已禁用",
@@ -1147,6 +1175,7 @@
       "exportSuccess": "导出成功",
       "importSuccess": "导入成功",
       "toolCollection": {
+        "tools": "工具",
         "title": "工具集管理",
         "create": "创建工具集",
         "edit": "编辑工具集",
@@ -1158,7 +1187,9 @@
         "createSuccess": "工具集创建成功",
         "updateSuccess": "工具集更新成功",
         "deleteSuccess": "工具集删除成功",
-        "confirmDelete": "确定要删除工具集「{name}」吗？"
+        "confirmDelete": "确定要删除工具集「{name}」吗？",
+        "cannotDeleteDefault": "不能删除默认工具集",
+        "builtIn": "内置"
       },
       "workflow": {
         "title": "工作流管理",
@@ -1168,6 +1199,10 @@
         "description": "描述",
         "version": "版本",
         "nodeCount": "节点数量",
+        "nodes": "节点",
+        "builtIn": "内置",
+        "cannotEditBuiltIn": "不能编辑内置工作流",
+        "cannotDeleteBuiltIn": "不能删除内置工作流",
         "validate": "验证",
         "validationSuccess": "工作流验证通过",
         "validationFailed": "工作流验证失败",
@@ -1185,15 +1220,17 @@
         "scenario": "场景",
         "toolCount": "可用工具",
         "toolCollections": "工具集",
+        "default": "默认",
+        "cannotEditDefault": "不能编辑默认配置",
         "selectToolCollections": "选择工具集",
         "toolCollectionHint": "多个工具集时，可用工具取交集",
         "llmModel": "LLM模型",
         "temperature": "温度",
         "systemPrompt": "系统提示词",
         "maxToolCalls": "最大工具调用次数",
-        "allowToolCalls": "允许工具调用",
-        "allowWorkflowCalls": "允许工作流调用",
-        "enableThoughts": "启用思考过程",
+        "unlimited": "无限制",
+        "toolCollectionRequired": "至少需要选择一个工具集",
+        "cannotDeleteDefault": "不能删除默认配置",
         "nameRequired": "名称不能为空",
         "createSuccess": "配置创建成功",
         "updateSuccess": "配置更新成功",
@@ -1201,7 +1238,63 @@
         "validationSuccess": "配置验证通过",
         "validationWarnings": "配置验证警告",
         "validationFailed": "配置验证失败",
-        "confirmDelete": "确定要删除配置「{name}」吗？"
+        "confirmDelete": "确定要删除配置「{name}」吗？",
+        "view": "查看",
+        "viewOnly": "只读",
+        "systemPromptPlaceholder": "输入Agent的系统提示词，定义Agent的角色和职责...",
+        "systemPromptHint": "系统提示词定义了Agent的核心角色、能力和工作方式",
+        "injectTimestamp": "注入时间戳",
+        "injectTimestampLabel": "在系统提示词前注入当前时间戳",
+        "injectTimestampHint": "启用后，每次使用此配置创建Agent实例时，会在系统提示词前自动添加当前时间戳信息"
+      },
+      "agentEngine": {
+        "title": "Agent引擎管理",
+        "create": "创建引擎",
+        "edit": "编辑引擎",
+        "view": "查看引擎",
+        "viewOnly": "只读",
+        "name": "名称",
+        "description": "描述",
+        "engineType": "引擎类型",
+        "llmMode": "LLM模式",
+        "selectEngineType": "选择引擎类型",
+        "engineTypes": {
+          "autogpt": "AutoGPT",
+          "react": "ReAct",
+          "planExecute": "Plan-Execute",
+          "simpleChat": "Simple Chat",
+          "workflow": "Workflow"
+        },
+        "llmConfigMode": "LLM配置模式",
+        "useGlobalLLM": "使用全局LLM",
+        "useCustomLLM": "使用自定义LLM",
+        "llmConfigModeHint": "全局LLM使用MetaDoc设置中的LLM配置，自定义LLM需要配置API地址和密钥",
+        "apiBaseUrl": "API Base URL",
+        "apiBaseUrlPlaceholder": "https://api.example.com/v1",
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "请输入API密钥",
+        "model": "模型名称",
+        "modelPlaceholder": "例如: gpt-3.5-turbo",
+        "temperature": "温度",
+        "maxTokens": "最大Token数",
+        "maxIterations": "最大迭代次数",
+        "thinkingDepth": "思考深度",
+        "enableReflection": "启用反思",
+        "enablePlanning": "启用规划",
+        "builtIn": "内置",
+        "nameRequired": "名称不能为空",
+        "baseUrlRequired": "API Base URL不能为空",
+        "apiKeyRequired": "API Key不能为空",
+        "modelRequired": "模型名称不能为空",
+        "cannotEditBuiltIn": "不能编辑内置引擎",
+        "cannotDeleteBuiltIn": "不能删除内置引擎",
+        "createSuccess": "引擎创建成功",
+        "updateSuccess": "引擎更新成功",
+        "deleteSuccess": "引擎删除成功",
+        "validationSuccess": "引擎验证通过",
+        "validationWarnings": "引擎验证警告",
+        "validationFailed": "引擎验证失败",
+        "confirmDelete": "确定要删除引擎「{name}」吗？"
       }
     },
     "workflow": {
@@ -1211,6 +1304,16 @@
       "entryNodeRequired": "必须指定入口节点",
       "canvasPlaceholder": "工作流画布（待集成draw.io）",
       "nodeProperties": "节点属性",
+      "addTool": "添加工具",
+      "addLLM": "添加LLM决策",
+      "addWorkflow": "添加工作流",
+      "addAgent": "添加Agent",
+      "addCondition": "添加条件",
+      "addLoop": "添加循环",
+      "addParallel": "添加并行",
+      "addMerge": "添加合并",
+      "addAsync": "添加异步",
+      "addAggregate": "添加汇总",
       "display": {
         "structure": "工作流结构",
         "progress": "执行进度",
@@ -1222,7 +1325,45 @@
           "running": "运行中",
           "pending": "待执行"
         }
-      }
+      },
+      "toolbar": {
+        "pointer": "指针",
+        "select": "框选",
+        "pan": "拖动画布",
+        "textEdit": "文字编辑",
+        "delete": "删除",
+        "copy": "复制",
+        "paste": "粘贴",
+        "cut": "剪切",
+        "undo": "撤销",
+        "redo": "重做",
+        "zoomIn": "放大",
+        "zoomOut": "缩小",
+        "zoomFit": "适应画布",
+        "zoomReset": "重置缩放"
+      },
+      "viewMode": {
+        "graph": "图形视图",
+        "code": "代码视图",
+        "switchToCode": "切换到代码视图",
+        "switchToGraph": "切换到图形视图"
+      },
+      "pseudoCode": {
+        "title": "伪代码",
+        "syntaxError": "语法错误",
+        "parseError": "解析错误",
+        "convertSuccess": "转换成功",
+        "convertFailed": "转换失败"
+      },
+      "nodeLabel": "节点标签",
+      "artifactId": "工件ID",
+      "selectTool": "选择工具",
+      "selectWorkflow": "选择工作流",
+      "selectToolPlaceholder": "请选择工具",
+      "selectWorkflowPlaceholder": "请选择工作流",
+      "toolRequired": "必须选择一个工具",
+      "workflowRequired": "必须选择一个工作流",
+      "cannotDeleteStartEnd": "不能删除工作流的入口节点或出口节点"
     },
     "display": {
       "dataAnalysis": {

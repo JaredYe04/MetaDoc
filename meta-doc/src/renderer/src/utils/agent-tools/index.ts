@@ -76,6 +76,60 @@ export function initializeAgentTools(): void {
 
   // 注册所有工作流为Tool
   registerAllWorkflowsAsTools()
+
+  // 初始化默认工具集（包含所有内置工具）
+  initializeDefaultToolSet()
+  
+  // 初始化默认Agent配置
+  initializeDefaultAgentConfig()
+
+  // 初始化内置工作流（异步执行，不阻塞）
+  Promise.resolve().then(async () => {
+    try {
+      const { workflowManager } = await import('../agent-framework/workflow-manager')
+      await workflowManager.initializeBuiltinWorkflows()
+      
+      // 初始化默认工作流工具集
+      const builtinWorkflows = ['builtin-article-expansion', 'builtin-smart-charting', 'builtin-article-polishing']
+      await toolCollectionManager.initializeDefaultWorkflowCollection(builtinWorkflows)
+      
+      // 更新默认AgentConfig，包含默认工具集和默认工作流工具集
+      const { agentConfigManager } = await import('../agent-framework/agent-config-manager')
+      agentConfigManager.updateConfig('default-agent-config', {
+        toolCollectionIds: ['default-tool-set', 'default-workflow-collection']
+      })
+    } catch (error) {
+      console.error('初始化内置工作流失败:', error)
+    }
+  })
+}
+
+/**
+ * 初始化默认工具集
+ */
+import { toolCollectionManager } from '../agent-framework'
+export function initializeDefaultToolSet(): void {
+  const allTools = agentToolManager.getAllTools()
+  
+  // 获取所有内置工具ID（排除工作流工具）
+  const builtInToolIds = allTools
+    .map(tool => tool.config.id)
+    .filter(id => !id.startsWith('workflow-'))
+
+  // 初始化默认工具集
+  toolCollectionManager.initializeDefaultToolSet(builtInToolIds)
+}
+
+/**
+ * 初始化默认Agent配置
+ */
+import { agentConfigManager } from '../agent-framework'
+export function initializeDefaultAgentConfig(): void {
+  // 默认工具集ID
+  const defaultToolCollectionId = 'default-tool-set'
+  
+  // 初始化默认Agent配置（先只包含默认工具集，工作流工具集稍后异步添加）
+  agentConfigManager.initializeDefaultAgentConfig(defaultToolCollectionId, [])
 }
 
 /**

@@ -1,5 +1,9 @@
 // import './assets/main.css'
 
+// mxgraph 初始化：必须在所有其他模块导入之前执行
+// 确保在导入任何 mxgraph 相关代码之前，全局变量已设置
+import './utils/mxgraph-init.js'
+
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'

@@ -142,6 +142,12 @@ class WorkflowManager {
       throw new Error(`工作流 ${id} 未找到`)
     }
 
+    // 检查是否是内置工作流
+    const workflow = this.workflows.get(id)
+    if (workflow && workflow.isBuiltIn) {
+      throw new Error(`工作流 ${id} 是内置工作流，不能删除`)
+    }
+
     // 检查是否有正在执行的实例
     const hasRunningExecution = Array.from(this.executions.values()).some(
       exec => exec.workflowId === id && exec.status === 'running'
@@ -215,6 +221,37 @@ class WorkflowManager {
     const duplicateIds = nodeIds.filter((id, index) => nodeIds.indexOf(id) !== index)
     if (duplicateIds.length > 0) {
       errors.push(`节点ID重复: ${duplicateIds.join(', ')}`)
+    }
+
+    // 检查出入度约束：普通节点最多一个出度，条件节点必须有两个出度
+    const edgeBySource = new Map<string, WorkflowEdge[]>()
+    for (const edge of workflow.edges) {
+      if (!edgeBySource.has(edge.source)) {
+        edgeBySource.set(edge.source, [])
+      }
+      edgeBySource.get(edge.source)!.push(edge)
+    }
+
+    for (const nodeId of allNodeIds) {
+      const node =
+        workflow.artifactNodes.find(n => n.id === nodeId) ||
+        workflow.controlFlowNodes.find(n => n.id === nodeId)
+      if (!node) continue
+
+      const outgoing = edgeBySource.get(nodeId) || []
+
+      const isCondition =
+        'type' in node && (node as any).type === 'condition'
+
+      if (isCondition) {
+        if (outgoing.length !== 2) {
+          errors.push(`条件节点 ${nodeId} 必须有且仅有两个出度（true/false 分支），当前为 ${outgoing.length}`)
+        }
+      } else {
+        if (outgoing.length > 1) {
+          errors.push(`节点 ${nodeId} 只能有一个出度，当前为 ${outgoing.length}`)
+        }
+      }
     }
 
     return {
@@ -419,6 +456,54 @@ class WorkflowManager {
       } else {
         console.error('保存工作流失败:', error)
       }
+    }
+  }
+
+  /**
+   * 初始化内置工作流
+   */
+  async initializeBuiltinWorkflows(): Promise<void> {
+    try {
+      const { getAllBuiltinWorkflows } = await import('./builtin-workflows')
+      const builtinWorkflows = getAllBuiltinWorkflows()
+      
+      for (const workflow of builtinWorkflows) {
+        // 如果工作流已存在，检查是否是内置工作流
+        const existing = this.workflows.get(workflow.id)
+        if (existing) {
+          // 如果已存在，更新它，但保留isBuiltIn状态
+          if (!existing.isBuiltIn) {
+            // 如果现有的不是内置工作流，说明用户已修改，保留用户版本
+            this.getLogger().debug(`工作流 ${workflow.id} 已存在且非内置，跳过初始化`)
+            continue
+          } else {
+            // 如果是内置工作流，更新它
+            this.workflows.set(workflow.id, { ...workflow, isBuiltIn: true, updatedAt: Date.now() })
+            this.getLogger().info(`内置工作流已更新: ${workflow.id}`)
+          }
+        } else {
+          // 创建新的内置工作流
+          this.workflows.set(workflow.id, { ...workflow, isBuiltIn: true })
+          this.getLogger().info(`内置工作流已初始化: ${workflow.id}`)
+        }
+      }
+      
+      // 保存到存储
+      this.saveToStorage()
+      
+      // 注册为Tool
+      for (const workflow of builtinWorkflows) {
+        if (workflow.enabled !== false) {
+          try {
+            const { registerWorkflowAsTool } = await import('./workflow-tool')
+            registerWorkflowAsTool(workflow.id)
+          } catch (error) {
+            this.getLogger().warn(`内置工作流 ${workflow.id} 注册为Tool失败:`, error)
+          }
+        }
+      }
+    } catch (error) {
+      this.getLogger().error('初始化内置工作流失败:', error)
     }
   }
 }

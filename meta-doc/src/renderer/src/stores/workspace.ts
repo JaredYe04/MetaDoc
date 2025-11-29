@@ -378,12 +378,19 @@ function updateDocumentAiDialogs(tabId: string, dialogs: AIDialogMessage[]): voi
   }
 }
 
-function updateDocumentAgentSessions(tabId: string, sessions: AgentSession[]): void {
+function updateDocumentAgentSessions(tabId: string, sessions: AgentSession[], skipDirtyCheck = false): void {
   const doc = ensureDocument(tabId);
   const serialized = JSON.stringify(sessions);
   if (JSON.stringify(doc.agentSessions) !== serialized) {
     doc.agentSessions = structuredCloneFallback(sessions);
-    updateDocumentDirty(tabId);
+    if (skipDirtyCheck) {
+      // 如果跳过dirty检查，同步到savedAgentSessions，这样就不会被认为是dirty
+      doc.savedAgentSessions = structuredCloneFallback(sessions);
+      // 重新计算dirty状态（现在应该是false了）
+      updateDocumentDirty(tabId);
+    } else {
+      updateDocumentDirty(tabId);
+    }
   }
 }
 

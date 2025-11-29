@@ -1,3 +1,21 @@
+/**
+ * 主进程 Logger 模块
+ * 
+ * ⚠️ **重要：避免初始化顺序问题**
+ * 
+ * 在使用 `createMainLogger()` 时，需要注意避免在模块顶层或类构造函数中直接创建 logger 实例。
+ * 这可能导致循环依赖或初始化顺序问题，出现 "Cannot access before initialization" 错误。
+ * 
+ * **最佳实践：**
+ * - ✅ 使用懒加载方式创建 logger（推荐）
+ * - ✅ 在函数/方法内部创建 logger
+ * - ❌ 避免在模块顶层直接创建 logger
+ * - ❌ 避免在类构造函数中直接创建 logger
+ * 
+ * 更多详情请参考 `createMainLogger()` 函数的 JSDoc 注释。
+ * 详细使用指南请查看：`src/renderer/src/utils/logger-usage-guide.md`
+ */
+
 import { app, BrowserWindow, shell } from 'electron';
 import fs from 'fs';
 import path from 'path';
@@ -232,6 +250,93 @@ export const getLoggerConfig = (): LoggerConfig => {
   };
 };
 
+/**
+ * 创建主进程 Logger
+ * 
+ * ⚠️ **重要：避免初始化顺序问题**
+ * 
+ * 在模块顶层直接调用 `createMainLogger()` 可能导致循环依赖或初始化顺序问题。
+ * 特别是在类构造函数中、或模块立即执行代码中调用时，可能会遇到 "Cannot access before initialization" 错误。
+ * 
+ * **推荐做法：**
+ * 
+ * 1. **类中使用懒加载方式（推荐）**：
+ * ```typescript
+ * class MyClass {
+ *   private logger: ReturnType<typeof createMainLogger> | null = null
+ * 
+ *   private getLogger() {
+ *     if (!this.logger) {
+ *       this.logger = createMainLogger('MyClass')
+ *     }
+ *     return this.logger
+ *   }
+ * 
+ *   someMethod() {
+ *     this.getLogger().info('消息')
+ *   }
+ * }
+ * ```
+ * 
+ * 2. **函数文件中使用懒加载方式（推荐）**：
+ * ```typescript
+ * let loggerInstance: ReturnType<typeof createMainLogger> | null = null
+ * 
+ * function getLogger() {
+ *   if (!loggerInstance) {
+ *     loggerInstance = createMainLogger('MyModule')
+ *   }
+ *   return loggerInstance
+ * }
+ * 
+ * export function myFunction() {
+ *   getLogger().info('消息')
+ * }
+ * ```
+ * 
+ * 3. **在函数/方法内部调用（可以，但性能略差）**：
+ * ```typescript
+ * export function myFunction() {
+ *   const logger = createMainLogger('MyModule')
+ *   logger.info('消息')
+ * }
+ * ```
+ * 
+ * **不推荐的做法（可能导致初始化顺序问题）**：
+ * ```typescript
+ * // ❌ 不推荐：在模块顶层直接创建
+ * const logger = createMainLogger('MyModule')  // 可能出错！
+ * 
+ * // ❌ 不推荐：在构造函数中立即使用
+ * class MyClass {
+ *   private logger = createMainLogger('MyClass')  // 可能出错！
+ *   
+ *   constructor() {
+ *     this.logger.info('消息')  // 可能出错！
+ *   }
+ * }
+ * ```
+ * 
+ * @param scope - Logger 的作用域名称，用于日志标识
+ * @returns 返回包含 debug、info、warn、error 方法的 Logger 对象
+ * 
+ * @example
+ * ```typescript
+ * // 推荐：懒加载方式
+ * let loggerInstance: ReturnType<typeof createMainLogger> | null = null
+ * 
+ * function getLogger() {
+ *   if (!loggerInstance) {
+ *     loggerInstance = createMainLogger('MyModule')
+ *   }
+ *   return loggerInstance
+ * }
+ * 
+ * export function myFunction() {
+ *   getLogger().info('函数执行')
+ * }
+ * ```
+ */
 export const createMainLogger = (scope: string): Record<LogLevel, (...args: unknown[]) => void> => {
   return {
     debug: (...args: unknown[]) => logInternal({ processType: 'main', scope }, 'debug', args),

@@ -10,81 +10,46 @@
       </div>
     </div>
 
-    <el-table
-      :data="configs"
-      border
-      stripe
-      :style="tableStyle"
-      v-loading="loading"
-    >
-      <el-table-column prop="id" label="ID" width="200" />
-      <el-table-column :label="t('agent.manage.agentConfig.name')" min-width="150">
-        <template #default="{ row }">
-          {{ getLocalizedText(row.name) }}
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.manage.agentConfig.description')" min-width="200">
-        <template #default="{ row }">
-          {{ getLocalizedText(row.description) }}
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.manage.agentConfig.scenario')" width="120">
-        <template #default="{ row }">
-          <el-tag size="small">{{ row.scenario || 'custom' }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.manage.agentConfig.toolCount')" width="120">
-        <template #default="{ row }">
-          {{ getAvailableToolCount(row.id) }}
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.manage.status')" width="100">
-        <template #default="{ row }">
-          <el-tag :type="row.enabled !== false ? 'success' : 'info'" size="small">
-            {{ row.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled') }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.manage.actions')" width="250" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="handleEdit(row)">{{ t('agent.manage.edit') }}</el-button>
-          <el-button size="small" @click="handleValidate(row)">{{ t('agent.manage.validate') }}</el-button>
-          <el-button size="small" @click="handleExport(row)">{{ t('agent.manage.export') }}</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(row)">{{ t('agent.manage.delete') }}</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <CardGrid
+      :items="configs"
+      :loading="loading"
+      :show-thumbnail="false"
+      :get-item-id="(item) => item.id || ''"
+      :get-item-title="(item) => getItemTitle(item as AgentConfig) || ''"
+      :get-item-description="(item) => getLocalizedText((item as AgentConfig).description) || ''"
+      :get-item-meta="(item) => [
+        t('agent.manage.agentConfig.toolCount') + ': ' + getAvailableToolCount((item as AgentConfig).id),
+        item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
+      ]"
+      :get-badge="(item) => (item as AgentConfig).id === 'default-agent-config' ? t('agent.manage.agentConfig.default') : null"
+      :get-actions="(item) => getActions(item as AgentConfig)"
+      :is-disabled="() => false"
+      @item-click="(item) => handleEdit(item as AgentConfig)"
+      @action="(cmd, item) => handleAction(cmd, item as AgentConfig)"
+    />
 
     <!-- 创建/编辑对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="editingConfig ? t('agent.manage.agentConfig.edit') : t('agent.manage.agentConfig.create')"
+      :title="editingConfig ? (editingConfig.id === 'default-agent-config' ? t('agent.manage.agentConfig.view') : t('agent.manage.agentConfig.edit')) : t('agent.manage.agentConfig.create')"
       width="700px"
       :style="dialogStyle"
     >
       <el-form :model="formData" label-width="140px">
         <el-form-item :label="t('agent.manage.agentConfig.name')" required>
-          <el-input v-model="formData.name" />
+          <el-input v-model="formData.name" :disabled="editingConfig?.id === 'default-agent-config'" />
         </el-form-item>
         <el-form-item :label="t('agent.manage.agentConfig.description')">
-          <el-input v-model="formData.description" type="textarea" :rows="3" />
+          <el-input v-model="formData.description" type="textarea" :rows="3" :disabled="editingConfig?.id === 'default-agent-config'" />
         </el-form-item>
-        <el-form-item :label="t('agent.manage.agentConfig.scenario')">
-          <el-select v-model="formData.scenario" style="width: 100%">
-            <el-option label="大纲" value="outline" />
-            <el-option label="编辑器" value="editor" />
-            <el-option label="分析" value="analysis" />
-            <el-option label="可视化" value="visualization" />
-            <el-option label="自定义" value="custom" />
-          </el-select>
-        </el-form-item>
-        <el-form-item :label="t('agent.manage.agentConfig.toolCollections')">
+        <el-form-item :label="t('agent.manage.agentConfig.toolCollections')" required>
           <el-select
             v-model="formData.toolCollectionIds"
             multiple
             filterable
             style="width: 100%"
             :placeholder="t('agent.manage.agentConfig.selectToolCollections')"
+            :disabled="editingConfig?.id === 'default-agent-config'"
           >
             <el-option
               v-for="collection in availableCollections"
@@ -97,38 +62,49 @@
             {{ t('agent.manage.agentConfig.toolCollectionHint') }}
           </div>
         </el-form-item>
-        <el-form-item :label="t('agent.manage.agentConfig.llmModel')">
-          <el-input v-model="formData.llmConfig.model" placeholder="gpt-4" />
-        </el-form-item>
-        <el-form-item :label="t('agent.manage.agentConfig.temperature')">
-          <el-slider v-model="formData.llmConfig.temperature" :min="0" :max="2" :step="0.1" />
+        <el-form-item :label="t('agent.manage.agentConfig.maxToolCalls')">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <el-input-number 
+              v-model="formData.maxToolCalls" 
+              :min="1" 
+              :max="100" 
+              :disabled="formData.unlimitedToolCalls"
+            />
+            <el-checkbox v-model="formData.unlimitedToolCalls">
+              {{ t('agent.manage.agentConfig.unlimited') }}
+            </el-checkbox>
+          </div>
         </el-form-item>
         <el-form-item :label="t('agent.manage.agentConfig.systemPrompt')">
           <el-input
-            v-model="formData.llmConfig.systemPrompt"
+            v-model="formData.systemPrompt"
             type="textarea"
-            :rows="4"
-            placeholder="系统提示词..."
+            :rows="8"
+            :placeholder="t('agent.manage.agentConfig.systemPromptPlaceholder')"
+            :disabled="editingConfig?.id === 'default-agent-config'"
           />
+          <div class="form-hint">
+            {{ t('agent.manage.agentConfig.systemPromptHint') }}
+          </div>
         </el-form-item>
-        <el-form-item :label="t('agent.manage.agentConfig.maxToolCalls')">
-          <el-input-number v-model="formData.behavior.maxToolCalls" :min="1" :max="100" />
-        </el-form-item>
-        <el-form-item>
-          <el-checkbox v-model="formData.behavior.allowToolCalls">
-            {{ t('agent.manage.agentConfig.allowToolCalls') }}
+        <el-form-item :label="t('agent.manage.agentConfig.injectTimestamp')">
+          <el-checkbox v-model="formData.injectTimestamp" :disabled="editingConfig?.id === 'default-agent-config'">
+            {{ t('agent.manage.agentConfig.injectTimestampLabel') }}
           </el-checkbox>
-          <el-checkbox v-model="formData.behavior.allowWorkflowCalls">
-            {{ t('agent.manage.agentConfig.allowWorkflowCalls') }}
-          </el-checkbox>
-          <el-checkbox v-model="formData.behavior.enableThoughts">
-            {{ t('agent.manage.agentConfig.enableThoughts') }}
-          </el-checkbox>
+          <div class="form-hint">
+            {{ t('agent.manage.agentConfig.injectTimestampHint') }}
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleSave">{{ t('common.save') }}</el-button>
+        <el-button 
+          type="primary" 
+          @click="handleSave"
+          :disabled="editingConfig?.id === 'default-agent-config'"
+        >
+          {{ editingConfig?.id === 'default-agent-config' ? t('agent.manage.agentConfig.viewOnly') : t('common.save') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -143,6 +119,8 @@ import { themeState } from '../../../utils/themes'
 import { agentConfigManager, toolCollectionManager } from '../../../utils/agent-framework'
 import type { AgentConfig } from '../../../types/agent-framework'
 import type { LocalizedText } from '../../../types/agent-tool'
+import CardGrid from '../../common/CardGrid.vue'
+import type { CardGridAction, CardGridItem } from '../../common/CardGrid.vue'
 
 const { t } = useI18n()
 
@@ -154,20 +132,11 @@ const editingConfig = ref<AgentConfig | null>(null)
 const formData = ref({
   name: '',
   description: '',
-  scenario: 'custom' as AgentConfig['scenario'],
-  toolCollectionIds: [] as string[],
-  llmConfig: {
-    model: '',
-    temperature: 0.7,
-    maxTokens: 2000,
-    systemPrompt: ''
-  },
-  behavior: {
-    allowToolCalls: true,
-    allowWorkflowCalls: true,
-    maxToolCalls: 10,
-    enableThoughts: false
-  }
+  toolCollectionIds: ['default-tool-set'] as string[], // 默认选择default工具集
+  maxToolCalls: null as number | null,
+  unlimitedToolCalls: true, // 默认无限次
+  systemPrompt: '',
+  injectTimestamp: false
 })
 
 const availableCollections = computed(() => {
@@ -180,9 +149,37 @@ const containerStyle = computed(() => ({
   padding: '20px'
 }))
 
-const tableStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background2nd
-}))
+const getItemTitle = (item: AgentConfig): string => {
+  return getLocalizedText(item.name) || item.id || ''
+}
+
+const getActions = (item: AgentConfig): CardGridAction[] => {
+  const isDefault = item.id === 'default-agent-config'
+  return [
+    { command: 'view', label: isDefault ? t('agent.manage.agentConfig.view') : t('agent.manage.edit'), disabled: false },
+    { command: 'edit', label: t('agent.manage.edit'), disabled: isDefault },
+    { command: 'validate', label: t('agent.manage.validate') },
+    { command: 'duplicate', label: t('agent.sessions.duplicate') },
+    { command: 'export', label: t('agent.manage.export') },
+    { command: 'delete', label: t('agent.manage.delete'), disabled: isDefault, danger: true }
+  ]
+}
+
+const handleAction = async (command: string, config: AgentConfig) => {
+  if (command === 'view') {
+    handleView(config)
+  } else if (command === 'edit') {
+    handleEdit(config)
+  } else if (command === 'validate') {
+    handleValidate(config)
+  } else if (command === 'duplicate') {
+    await handleDuplicate(config)
+  } else if (command === 'export') {
+    handleExport(config)
+  } else if (command === 'delete') {
+    await handleDelete(config)
+  }
+}
 
 const dialogStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
@@ -214,43 +211,43 @@ const handleCreate = () => {
   formData.value = {
     name: '',
     description: '',
-    scenario: 'custom',
-    toolCollectionIds: [],
-    llmConfig: {
-      model: '',
-      temperature: 0.7,
-      maxTokens: 2000,
-      systemPrompt: ''
-    },
-    behavior: {
-      allowToolCalls: true,
-      allowWorkflowCalls: true,
-      maxToolCalls: 10,
-      enableThoughts: false
-    }
+    toolCollectionIds: ['default-tool-set'], // 默认选择default工具集
+    maxToolCalls: null,
+    unlimitedToolCalls: true, // 默认无限次
+    systemPrompt: '',
+    injectTimestamp: false
+  }
+  dialogVisible.value = true
+}
+
+const handleView = (config: AgentConfig) => {
+  editingConfig.value = config
+  formData.value = {
+    name: typeof config.name === 'string' ? config.name : config.name['zh_cn']?.name || '',
+    description: typeof config.description === 'string' ? config.description : config.description['zh_cn']?.description || '',
+    toolCollectionIds: [...config.toolCollectionIds],
+    maxToolCalls: config.maxToolCalls ?? null,
+    unlimitedToolCalls: config.maxToolCalls === null,
+    systemPrompt: config.llmConfig?.systemPrompt || '',
+    injectTimestamp: config.llmConfig?.injectTimestamp || false
   }
   dialogVisible.value = true
 }
 
 const handleEdit = (config: AgentConfig) => {
+  if (config.id === 'default-agent-config') {
+    handleView(config) // 默认配置使用查看模式
+    return
+  }
   editingConfig.value = config
   formData.value = {
     name: typeof config.name === 'string' ? config.name : config.name['zh_cn']?.name || '',
     description: typeof config.description === 'string' ? config.description : config.description['zh_cn']?.description || '',
-    scenario: config.scenario || 'custom',
     toolCollectionIds: [...config.toolCollectionIds],
-    llmConfig: {
-      model: config.llmConfig?.model || '',
-      temperature: config.llmConfig?.temperature ?? 0.7,
-      maxTokens: config.llmConfig?.maxTokens ?? 2000,
-      systemPrompt: config.llmConfig?.systemPrompt || ''
-    },
-    behavior: {
-      allowToolCalls: config.behavior?.allowToolCalls ?? true,
-      allowWorkflowCalls: config.behavior?.allowWorkflowCalls ?? true,
-      maxToolCalls: config.behavior?.maxToolCalls ?? 10,
-      enableThoughts: config.behavior?.enableThoughts ?? false
-    }
+    maxToolCalls: config.maxToolCalls ?? null,
+    unlimitedToolCalls: config.maxToolCalls === null,
+    systemPrompt: config.llmConfig?.systemPrompt || '',
+    injectTimestamp: config.llmConfig?.injectTimestamp || false
   }
   dialogVisible.value = true
 }
@@ -261,16 +258,28 @@ const handleSave = () => {
     return
   }
 
+  if (formData.value.toolCollectionIds.length === 0) {
+    ElMessage.warning(t('agent.manage.agentConfig.toolCollectionRequired'))
+    return
+  }
+
   try {
     if (editingConfig.value) {
-      // 更新
+      // 更新（默认配置不允许保存）
+      if (editingConfig.value.id === 'default-agent-config') {
+        ElMessage.warning(t('agent.manage.agentConfig.cannotEditDefault'))
+        return
+      }
+      
       agentConfigManager.updateConfig(editingConfig.value.id, {
         name: formData.value.name,
         description: formData.value.description,
-        scenario: formData.value.scenario,
         toolCollectionIds: formData.value.toolCollectionIds,
-        llmConfig: formData.value.llmConfig,
-        behavior: formData.value.behavior
+        maxToolCalls: formData.value.unlimitedToolCalls ? null : formData.value.maxToolCalls,
+        llmConfig: {
+          systemPrompt: formData.value.systemPrompt || undefined,
+          injectTimestamp: formData.value.injectTimestamp || false
+        }
       })
       ElMessage.success(t('agent.manage.agentConfig.updateSuccess'))
     } else {
@@ -281,9 +290,11 @@ const handleSave = () => {
         formData.value.toolCollectionIds
       )
       agentConfigManager.updateConfig(created.id, {
-        scenario: formData.value.scenario,
-        llmConfig: formData.value.llmConfig,
-        behavior: formData.value.behavior
+        maxToolCalls: formData.value.unlimitedToolCalls ? null : formData.value.maxToolCalls,
+        llmConfig: {
+          systemPrompt: formData.value.systemPrompt || undefined,
+          injectTimestamp: formData.value.injectTimestamp || false
+        }
       })
       ElMessage.success(t('agent.manage.agentConfig.createSuccess'))
     }
@@ -294,7 +305,44 @@ const handleSave = () => {
   }
 }
 
+const handleDuplicate = async (config: AgentConfig) => {
+  try {
+    const baseName = getLocalizedText(config.name) || config.id
+    const newName = `${baseName} - ${t('agent.sessions.duplicate')}`
+    const desc =
+      typeof config.description === 'string'
+        ? config.description
+        : config.description['zh_cn']?.description ||
+          config.description['en_us']?.description ||
+          ''
+
+    const duplicated = agentConfigManager.createConfig(
+      newName,
+      desc,
+      [...config.toolCollectionIds]
+    )
+
+    // 继承行为和LLM配置等
+    agentConfigManager.updateConfig(duplicated.id, {
+      maxToolCalls: config.maxToolCalls ?? null,
+      llmConfig: config.llmConfig,
+      behavior: config.behavior,
+      enabled: config.enabled,
+      tags: config.tags
+    })
+
+    ElMessage.success(t('agent.sessions.duplicateSuccess'))
+    loadConfigs()
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : String(error))
+  }
+}
 const handleDelete = async (config: AgentConfig) => {
+  if (config.id === 'default-agent-config') {
+    ElMessage.warning(t('agent.manage.agentConfig.cannotDeleteDefault'))
+    return
+  }
+
   try {
     await ElMessageBox.confirm(
       t('agent.manage.agentConfig.confirmDelete', { name: getLocalizedText(config.name) }),
@@ -304,8 +352,10 @@ const handleDelete = async (config: AgentConfig) => {
     agentConfigManager.deleteConfig(config.id)
     ElMessage.success(t('agent.manage.agentConfig.deleteSuccess'))
     loadConfigs()
-  } catch {
-    // 用户取消
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error instanceof Error ? error.message : String(error))
+    }
   }
 }
 

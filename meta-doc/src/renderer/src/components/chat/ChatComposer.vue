@@ -65,6 +65,18 @@
           </el-button>
         </el-tooltip>
 
+        <el-tooltip v-if="showCancel && loading" :content="t('aiChat.cancelTooltip') || t('common.cancel')" placement="top">
+          <el-button
+            circle
+            class="composer-btn"
+            type="danger"
+            :disabled="false"
+            @click.prevent="emit('cancel')"
+          >
+            <Close />
+          </el-button>
+        </el-tooltip>
+
         <el-button
           circle
           class="composer-btn primary"
@@ -91,7 +103,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick, onBeforeUnmount, computed } from 'vue'
-import { Plus, Microphone, Position, Refresh } from '@element-plus/icons-vue'
+import { Plus, Microphone, Position, Refresh, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
 import type { ScrollbarInstance } from 'element-plus'
@@ -103,13 +115,15 @@ const props = withDefaults(defineProps<{
   placeholder?: string
   showAttach?: boolean
   showVoice?: boolean
+  showCancel?: boolean
 }>(), {
   modelValue: '',
   loading: false,
   disabled: false,
   placeholder: '',
   showAttach: false,
-  showVoice: false
+  showVoice: false,
+  showCancel: false
 })
 
 const emit = defineEmits<{
@@ -118,6 +132,7 @@ const emit = defineEmits<{
   (e: 'reset'): void
   (e: 'attach'): void
   (e: 'voice'): void
+  (e: 'cancel'): void
 }>()
 
 const { t } = useI18n()

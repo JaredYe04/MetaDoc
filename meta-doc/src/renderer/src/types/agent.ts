@@ -25,6 +25,11 @@ export interface AgentMessageBase {
 export interface ChatAgentMessage extends AgentMessageBase {
   type: 'chat';
   markdown: string;
+  tool_calls?: Array<{
+    id: string;
+    tool_id: string;
+    parameters: Record<string, unknown>;
+  }>;
 }
 
 export interface ThoughtAgentMessage extends AgentMessageBase {
@@ -43,6 +48,9 @@ export interface ToolAgentMessage extends AgentMessageBase {
     percentage: number;
     message?: string;
   };
+  tool_call_id?: string; // 关联到具体的tool_call
+  tool_config?: any; // 传递工具配置，用于渲染
+  markdown?: string; // OpenAI格式的content字符串，用于直接发送给LLM API
 }
 
 export type AgentMessage = ChatAgentMessage | ThoughtAgentMessage | ToolAgentMessage;

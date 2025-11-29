@@ -7,44 +7,23 @@
       </el-button>
     </div>
 
-    <el-table
-      :data="collections"
-      border
-      stripe
-      :style="tableStyle"
-      v-loading="loading"
-    >
-      <el-table-column prop="id" label="ID" width="200" />
-      <el-table-column :label="t('agent.manage.toolCollection.name')" min-width="150">
-        <template #default="{ row }">
-          {{ getLocalizedText(row.name) }}
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.manage.toolCollection.description')" min-width="200">
-        <template #default="{ row }">
-          {{ getLocalizedText(row.description) }}
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.manage.toolCollection.toolCount')" width="120">
-        <template #default="{ row }">
-          {{ row.toolIds.length }}
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.manage.toolCollection.status')" width="100">
-        <template #default="{ row }">
-          <el-tag :type="row.enabled !== false ? 'success' : 'info'" size="small">
-            {{ row.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled') }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.manage.actions')" width="200" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="handleEdit(row)">{{ t('agent.manage.edit') }}</el-button>
-          <el-button size="small" @click="handleExport(row)">{{ t('agent.manage.export') }}</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(row)">{{ t('agent.manage.delete') }}</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <CardGrid
+      :items="collections"
+      :loading="loading"
+      :show-thumbnail="false"
+      :get-item-id="(item) => item.id"
+      :get-item-title="(item) => getLocalizedText(item.name)"
+      :get-item-description="(item) => getLocalizedText(item.description)"
+      :get-item-meta="(item) => [
+        t('agent.manage.toolCollection.toolCount') + ': ' + item.toolIds.length,
+        item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
+      ]"
+      :get-badge="(item) => item.isBuiltIn ? t('agent.manage.toolCollection.builtIn') : null"
+      :get-actions="getActions"
+      :is-disabled="() => false"
+      @item-click="handleEdit"
+      @action="handleAction"
+    />
 
     <!-- 创建/编辑对话框 -->
     <el-dialog
@@ -79,7 +58,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleSave">{{ t('common.save') }}</el-button>
+        <el-button type="primary" @click="handleSave" :disabled="editingCollection?.isBuiltIn">{{ t('common.save') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -95,6 +74,8 @@ import { toolCollectionManager } from '../../../utils/agent-framework'
 import { agentToolManager } from '../../../utils/agent-tool-manager'
 import type { ToolCollection } from '../../../types/agent-framework'
 import type { LocalizedText } from '../../../types/agent-tool'
+import CardGrid from '../../common/CardGrid.vue'
+import type { CardGridAction } from '../../common/CardGrid.vue'
 
 const { t } = useI18n()
 
@@ -122,9 +103,26 @@ const containerStyle = computed(() => ({
   padding: '20px'
 }))
 
-const tableStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background2nd
-}))
+const getActions = (item: ToolCollection): CardGridAction[] => {
+  return [
+    { command: 'edit', label: t('agent.manage.edit'), disabled: item.isBuiltIn },
+    { command: 'duplicate', label: t('agent.sessions.duplicate') },
+    { command: 'export', label: t('agent.manage.export') },
+    { command: 'delete', label: t('agent.manage.delete'), disabled: item.isBuiltIn, danger: true }
+  ]
+}
+
+const handleAction = async (command: string, collection: ToolCollection) => {
+  if (command === 'edit') {
+    handleEdit(collection)
+  } else if (command === 'duplicate') {
+    await handleDuplicate(collection)
+  } else if (command === 'export') {
+    handleExport(collection)
+  } else if (command === 'delete') {
+    await handleDelete(collection)
+  }
+}
 
 const dialogStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
@@ -200,6 +198,11 @@ const handleSave = () => {
 }
 
 const handleDelete = async (collection: ToolCollection) => {
+  if (collection.isBuiltIn) {
+    ElMessage.warning(t('agent.manage.toolCollection.cannotDeleteDefault'))
+    return
+  }
+
   try {
     await ElMessageBox.confirm(
       t('agent.manage.toolCollection.confirmDelete', { name: getLocalizedText(collection.name) }),
@@ -209,8 +212,10 @@ const handleDelete = async (collection: ToolCollection) => {
     toolCollectionManager.deleteCollection(collection.id)
     ElMessage.success(t('agent.manage.toolCollection.deleteSuccess'))
     loadCollections()
-  } catch {
-    // 用户取消
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error instanceof Error ? error.message : String(error))
+    }
   }
 }
 
@@ -228,6 +233,25 @@ const handleExport = (collection: ToolCollection) => {
       URL.revokeObjectURL(url)
       ElMessage.success(t('agent.manage.exportSuccess'))
     }
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : String(error))
+  }
+}
+
+const handleDuplicate = async (collection: ToolCollection) => {
+  try {
+    const baseName = getLocalizedText(collection.name) || collection.id
+    const newName = `${baseName} - ${t('agent.sessions.duplicate')}`
+    const desc =
+      typeof collection.description === 'string'
+        ? collection.description
+        : collection.description['zh_cn']?.description ||
+          collection.description['en_us']?.description ||
+          ''
+
+    toolCollectionManager.createCollection(newName, desc, [...collection.toolIds])
+    ElMessage.success(t('agent.sessions.duplicateSuccess'))
+    loadCollections()
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : String(error))
   }

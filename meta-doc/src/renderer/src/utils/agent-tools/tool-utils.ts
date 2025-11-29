@@ -200,3 +200,33 @@ export function isRetryableError(error: any): boolean {
   return isJsonParseError(error) || isNetworkError(error)
 }
 
+/**
+ * 生成带示例和扩展用法的详细错误提示
+ * 用于Agent Tools，帮助AI更好地理解如何正确使用工具
+ * 
+ * @param error - 错误描述
+ * @param examples - 正确示例数组（JSON字符串格式）
+ * @param tips - 扩展用法提示数组（可选）
+ * @returns 格式化的错误消息
+ */
+export function createDetailedError(error: string, examples: string[] = [], tips: string[] = []): string {
+  let message = `❌ ${error}\n\n`
+  
+  if (examples.length > 0) {
+    message += `📝 正确示例：\n`
+    examples.forEach((example, index) => {
+      message += `${index + 1}. ${example}\n`
+    })
+    message += `\n`
+  }
+  
+  if (tips.length > 0) {
+    message += `💡 扩展用法：\n`
+    tips.forEach((tip, index) => {
+      message += `${index + 1}. ${tip}\n`
+    })
+  }
+  
+  return message
+}
+

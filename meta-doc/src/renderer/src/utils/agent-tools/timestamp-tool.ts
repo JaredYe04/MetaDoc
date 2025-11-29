@@ -13,6 +13,7 @@ import type {
 } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
+import { createDetailedError } from './tool-utils'
 
 const logger = createRendererLogger('TimestampTool')
 
@@ -219,7 +220,19 @@ const timestampToolCallback: ToolCallback = async (params, signal, onUpdate) => 
     logger.error('获取时间戳失败:', error)
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.timestamp.error.failed', { error: errorMessage }, `获取时间戳失败: ${errorMessage}`)
+      error: createDetailedError(
+        `获取时间戳失败: ${errorMessage}`,
+        [
+          '{}  // 不需要参数，直接返回当前时间戳',
+          '{"format": "iso"}  // 返回ISO格式',
+          '{"format": "unix"}  // 返回Unix时间戳'
+        ],
+        [
+          'timestamp工具不需要任何参数，直接调用即可',
+          '可以设置format参数：iso（ISO 8601格式）、unix（Unix时间戳）',
+          '如果不设置format，返回包含timestamp、iso、date、time等格式的对象'
+        ]
+      )
     }
   }
 }

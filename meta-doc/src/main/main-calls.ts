@@ -1325,11 +1325,19 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
     gen.in.write(plantumlCode);
     gen.in.end();
     
-    // 收集生成的 SVG 数据
+    // 收集生成的图片数据
     const chunks: Buffer[] = [];
     gen.out.on('data', (chunk: Buffer) => {
       chunks.push(chunk);
     });
+    
+    // 收集错误输出（stderr）
+    const errorChunks: Buffer[] = [];
+    if (gen.err) {
+      gen.err.on('data', (chunk: Buffer) => {
+        errorChunks.push(chunk);
+      });
+    }
     
     // 等待生成完成
     await new Promise<void>((resolve, reject) => {
@@ -1339,13 +1347,68 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
       gen.out.on('error', (err: Error) => {
         reject(err);
       });
+      if (gen.err) {
+        gen.err.on('error', (err: Error) => {
+          // stderr错误通常表示语法错误，收集错误信息
+          logger.warn('PlantUML stderr错误:', err.message);
+        });
+      }
     });
+    
+    // 检查是否有错误输出
+    if (errorChunks.length > 0) {
+      const errorOutput = Buffer.concat(errorChunks).toString('utf-8');
+      if (errorOutput.trim()) {
+        logger.error('PlantUML错误输出:', errorOutput);
+        // 尝试提取错误信息
+        const errorMatch = errorOutput.match(/(?:syntax\s+error|error|Error)[:\s]*(.+?)(?:\n|$)/i);
+        const errorMsg = errorMatch ? errorMatch[1].trim() : errorOutput.trim();
+        throw new Error(`PlantUML语法错误: ${errorMsg}`);
+      }
+    }
     
     const imageBuffer = Buffer.concat(chunks);
     logger.info('PlantUML 渲染完成，大小:', imageBuffer.length, 'bytes');
     
     if (imageBuffer.length === 0) {
       throw new Error(`生成的 ${outputFormat.toUpperCase()} 为空`);
+    }
+    
+    // 检查生成的图片是否包含语法错误信息（PlantUML会在生成的图片中包含错误文本）
+    const imageContent = imageBuffer.toString('utf-8');
+    const errorPatterns = [
+      /syntax\s+error/i,
+      /Syntax\s+error/i,
+      /Error:/i,
+      /error\s+detected/i,
+      /Error\s+detected/i,
+      /cannot\s+parse/i,
+      /Cannot\s+parse/i,
+      /parse\s+error/i,
+      /Parse\s+error/i,
+      /syntax\s+error\s+at/i,
+      /Syntax\s+error\s+at/i
+    ];
+    
+    // 检查是否包含错误信息（适用于SVG，PNG可能包含但难以检测，所以主要检查SVG）
+    if (outputFormat === 'svg') {
+      for (const pattern of errorPatterns) {
+        if (pattern.test(imageContent)) {
+          // 尝试提取具体的错误信息
+          const errorMatch = imageContent.match(/<text[^>]*>(.*?(?:error|Error).*?)<\/text>/i);
+          const errorMsg = errorMatch ? errorMatch[1] : 'PlantUML语法错误';
+          logger.error('PlantUML渲染检测到语法错误:', errorMsg);
+          throw new Error(`PlantUML语法错误: ${errorMsg}`);
+        }
+      }
+    } else if (outputFormat === 'png') {
+      // 对于PNG，检查文件大小是否异常小（通常错误PNG文件很小）
+      // 如果文件大小小于1KB，可能是错误图片
+      if (imageBuffer.length < 1024) {
+        // 进一步检查：尝试读取SVG格式来验证（如果PNG太小，可能是错误）
+        // 这里我们保守一些：只检查文件大小，如果太小则可能是错误
+        logger.warn('PlantUML生成的PNG文件异常小，可能是语法错误:', imageBuffer.length, 'bytes');
+      }
     }
     
     // 保存到本地图片目录（使用基于源码+格式的稳定哈希文件名，避免重复生成）

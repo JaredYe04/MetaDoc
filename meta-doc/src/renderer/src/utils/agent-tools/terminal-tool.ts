@@ -18,6 +18,7 @@ import { createAiTask } from '../ai_tasks'
 import { cancelAiTask } from '../ai_tasks'
 import { ref } from 'vue'
 import TerminalExecutionDisplay from './components/TerminalExecutionDisplay.vue'
+import { createDetailedError } from './tool-utils'
 
 const logger = createRendererLogger('TerminalTool')
 
@@ -292,7 +293,20 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   if (!command || typeof command !== 'string') {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.terminal.error.missingCommand', '缺少必需参数: command')
+      error: createDetailedError(
+        '缺少必需参数: command（要执行的终端命令）',
+        [
+          '{"command": "ls -la"}',
+          '{"command": "echo Hello", "cwd": "/path/to/directory"}',
+          '{"command": "npm install", "timeout": 300000}'
+        ],
+        [
+          '可以设置cwd参数指定命令执行的工作目录',
+          '可以设置timeout参数指定超时时间（毫秒）',
+          '命令执行需要用户批准，确保安全',
+          '支持Windows、macOS和Linux命令'
+        ]
+      )
     }
   }
 

@@ -13,6 +13,7 @@ import type {
 } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
+import { createDetailedError } from './tool-utils'
 
 const logger = createRendererLogger('CalculationTool')
 
@@ -193,7 +194,23 @@ const calculationToolCallback: ToolCallback = async (params, signal, onUpdate) =
   if (!expression || typeof expression !== 'string') {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.calculation.error.missingExpression', '缺少必需参数: expression')
+      error: createDetailedError(
+        '缺少必需参数: expression（要计算的表达式）',
+        [
+          '{"expression": "2 + 3 * 4"}',
+          '{"expression": "Math.sin(Math.PI / 2)"}',
+          '{"expression": "x * y + z", "variables": {"x": 10, "y": 20, "z": 5}}',
+          '{"expression": "vector:dot|[1,2,3]|[4,5,6]"}  // 向量点积',
+          '{"expression": "matrix:transpose|[[1,2],[3,4]]"}  // 矩阵转置'
+        ],
+        [
+          '支持基本数学运算、三角函数、对数等Math对象的所有函数',
+          '可以通过variables参数传入变量值',
+          '支持向量运算：vector:操作|向量1|向量2，如dot（点积）、magnitude（模长）',
+          '支持矩阵运算：matrix:操作|矩阵1|矩阵2，如transpose（转置）、multiply（乘法）',
+          '可以设置precision参数控制结果精度（小数位数）'
+        ]
+      )
     }
   }
 
@@ -277,7 +294,22 @@ const calculationToolCallback: ToolCallback = async (params, signal, onUpdate) =
     logger.error('计算失败:', error)
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.calculation.error.failed', { error: errorMessage }, `计算失败: ${errorMessage}`)
+      error: createDetailedError(
+        `计算失败: ${errorMessage}`,
+        [
+          '{"expression": "2 + 3"}',
+          '{"expression": "Math.sqrt(16)"}',
+          '检查表达式语法是否正确',
+          '确保使用的函数和常量在Math对象中存在'
+        ],
+        [
+          '确保表达式语法正确，使用JavaScript数学表达式',
+          '向量运算格式：vector:操作|向量1|向量2',
+          '矩阵运算格式：matrix:操作|矩阵1|矩阵2',
+          '可以通过variables参数传入变量值',
+          '如果表达式包含变量，确保所有变量都有值'
+        ]
+      )
     }
   }
 }

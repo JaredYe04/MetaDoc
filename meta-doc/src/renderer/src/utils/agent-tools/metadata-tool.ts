@@ -25,7 +25,7 @@ import {
 } from '../prompts'
 import { extractOuterJsonString } from '../regex-utils'
 import { removeTextFromOutline } from '../document/outline'
-import { parseJsonWithClean } from './tool-utils'
+import { parseJsonWithClean, createDetailedError } from './tool-utils'
 import MetadataDisplay from './components/MetadataDisplay.vue'
 import { getActiveDocumentInfoViaBroadcast } from './document-broadcast-helper'
 import { getWindowType } from '../event-bus'
@@ -390,7 +390,20 @@ const metadataToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   if (!operation) {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.metadata.error.missingOperation', '缺少必需参数: operation')
+      error: createDetailedError(
+        '缺少必需参数: operation（操作类型）',
+        [
+          '{"operation": "get", "field": "title"}  // 获取标题',
+          '{"operation": "set", "field": "title", "value": "新标题"}  // 设置标题',
+          '{"operation": "generate", "field": "all"}  // 生成所有元信息'
+        ],
+        [
+          '支持的操作：get（获取）、set（设置）、generate（生成）',
+          'get操作需要field参数指定要获取的字段：title、description、keywords、author、all',
+          'set操作需要field和value参数',
+          'generate操作可以调用AI生成元信息，需要field参数'
+        ]
+      )
     }
   }
 
@@ -398,7 +411,20 @@ const metadataToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   if (!validOperations.includes(operation)) {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.metadata.error.invalidOperation', `无效的操作: ${operation}`)
+      error: createDetailedError(
+        `无效的操作: ${operation}`,
+        [
+          '{"operation": "get", "field": "title"}  // 获取操作',
+          '{"operation": "set", "field": "title", "value": "新标题"}  // 设置操作',
+          '{"operation": "generate", "field": "all"}  // 生成操作'
+        ],
+        [
+          '支持的操作类型：get（获取）、set（设置）、generate（生成）',
+          'get：获取文档元信息',
+          'set：设置文档元信息',
+          'generate：使用AI生成文档元信息'
+        ]
+      )
     }
   }
 
@@ -425,7 +451,18 @@ const metadataToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       if (!docInfo) {
         return {
           status: 'failed',
-          error: i18n.global.t('agent.tool.metadata.error.noActiveTab', '没有活动的文档标签页')
+          error: createDetailedError(
+            '没有活动的文档标签页',
+            [
+              '请先打开一个文档，然后再执行元信息操作',
+              '或者指定tabId参数：{"operation": "get", "field": "title", "tabId": "文档ID"}'
+            ],
+            [
+              'metadata工具需要有一个活动的文档才能操作',
+              '可以通过tabId参数指定要操作的文档',
+              '支持在文档内容和元数据中进行操作'
+            ]
+          )
         }
       }
       // 检查文档是否有内容（根据格式检查对应的内容字段）
@@ -437,7 +474,18 @@ const metadataToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         const formatName = docInfo.format === 'tex' ? 'LaTeX' : 'Markdown'
         return {
           status: 'failed',
-          error: i18n.global.t('agent.tool.metadata.error.noContent', { format: formatName })
+          error: createDetailedError(
+            `文档内容为空，无法进行${formatName}格式的元信息操作`,
+            [
+              '请确保文档有内容后再执行元信息操作',
+              'generate操作可以根据文档内容生成元信息，需要文档有内容'
+            ],
+            [
+              '文档必须包含内容才能进行元信息操作',
+              'generate操作需要文档内容才能生成准确的元信息',
+              '确保文档已保存并有实际内容'
+            ]
+          )
         }
       }
       
@@ -459,14 +507,34 @@ const metadataToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       if (!targetTabId) {
         return {
           status: 'failed',
-          error: i18n.global.t('agent.tool.metadata.error.noActiveTab', '没有活动的文档标签页')
+          error: createDetailedError(
+            '没有活动的文档标签页',
+            [
+              '请先打开一个文档，然后再执行元信息操作',
+              '或者指定tabId参数：{"operation": "get", "field": "title", "tabId": "文档ID"}'
+            ],
+            [
+              'metadata工具需要有一个活动的文档才能操作',
+              '可以通过tabId参数指定要操作的文档'
+            ]
+          )
         }
       }
       doc = workspace.ensureDocument(targetTabId)
       if (!doc) {
         return {
           status: 'failed',
-          error: i18n.global.t('agent.tool.metadata.error.documentNotFound', '文档不存在')
+          error: createDetailedError(
+            '文档不存在',
+            [
+              '请确认文档已正确打开',
+              '检查tabId参数是否正确：{"operation": "get", "field": "title", "tabId": "正确的文档ID"}'
+            ],
+            [
+              '确保文档已正确打开或tabId有效',
+              '可以通过tabId参数指定要操作的文档'
+            ]
+          )
         }
       }
     }

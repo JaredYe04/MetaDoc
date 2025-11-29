@@ -1343,18 +1343,77 @@ export const chartGenerationToolConfig: AgentToolConfig = {
 返回JSON格式的结果，包含：
 - \`chartName\`: 图表名称
 - \`chartType\`: 图表类型
-- \`url\`: 图表URL（http://localhost:52521/images/...）
+- \`url\`: **图表图片URL**（http://localhost:52521/images/...）- **这是要插入到文档中的URL，不是代码！**
 - \`localPath\`: 本地绝对路径
-- \`chartCode\`: 提取后的可直接渲染的图表代码（已去除markdown代码块标记、中文说明文字等无关内容）
+- \`chartCode\`: 提取后的可直接渲染的图表代码（仅用于调试，**不应该插入到文档中**）
+
+## ⚠️ 重要：插入图表到文档的方法
+
+**生成图表后，必须使用 \`edit\` 工具将图片URL插入到文档中，而不是插入图表代码！**
+
+### 对于Markdown格式文档：
+插入图片URL使用Markdown图片语法：
+\`\`\`markdown
+![图表描述](http://localhost:52521/images/xxx.svg)
+\`\`\`
+
+### 对于LaTeX格式文档：
+1. **必须使用PDF格式**：LaTeX文档只支持PDF格式的图表，必须设置 \`format: "pdf"\`
+2. 插入图片URL使用LaTeX图片语法：
+\`\`\`latex
+\\includegraphics[width=0.8\\textwidth]{http://localhost:52521/images/xxx.pdf}
+\`\`\`
+或者使用完整路径：
+\`\`\`latex
+\\includegraphics[width=0.8\\textwidth]{/完整/本地/路径/xxx.pdf}
+\`\`\`
+
+### 完整工作流程示例 ⭐
+\`\`\`json
+// 步骤1：生成图表（根据文档格式选择format）
+{
+  "tool": "chart-generation",
+  "params": {
+    "prompt": "生成一个展示数据趋势的折线图",
+    "chartType": "echarts",
+    "format": "svg"  // Markdown使用svg或png，LaTeX必须使用pdf
+  }
+}
+// 返回结果包含 url: "http://localhost:52521/images/xxx.svg"
+
+// 步骤2：使用edit工具插入图片URL（不是插入代码！）
+{
+  "tool": "edit",
+  "params": {
+    "operations": [{
+      "type": "insert",
+      "range": {
+        "start": {"line": 15, "column": 1},  // 先使用outline-tree定位位置
+        "end": {"line": 15, "column": 1}
+      },
+      "content": "![数据趋势图](http://localhost:52521/images/xxx.svg)\n"  // Markdown格式
+      // 或者对于LaTeX：
+      // "content": "\\includegraphics[width=0.8\\textwidth]{http://localhost:52521/images/xxx.pdf}\n"
+    }]
+  }
+}
+\`\`\`
 
 ## 注意事项
-1. 如果提供了 \`code\` 参数，工具会直接使用该代码进行渲染，不需要 \`prompt\` 参数
-2. 如果不提供 \`code\` 参数，必须提供 \`prompt\` 参数，工具会调用LLM生成图表代码
-3. 返回的 \`chartCode\` 是经过提取和清理后的可直接渲染的代码（已去除markdown代码块标记、中文说明文字等无关内容）
-4. ECharts需要提供JSON格式的配置对象
-5. PDF格式主要用于LaTeX导出，需要额外转换步骤
-6. 图表代码会自动清理，移除markdown代码块标记
-7. ECharts和mindmap会自动去除动画效果
+1. **⚠️ 插入URL，不是代码**：生成图表后，必须将返回的 \`url\` 字段插入到文档中，而不是插入 \`chartCode\`
+2. **格式选择**：
+   - Markdown文档：使用 \`svg\` 或 \`png\` 格式
+   - LaTeX文档：**必须使用 \`pdf\` 格式**
+3. **插入位置**：插入图表前，先使用 \`outline-tree\` 工具定位合适的位置，不要总是从行1列1插入
+4. **插入语法**：
+   - Markdown: \`![描述](图片URL)\`
+   - LaTeX: \`\\includegraphics[width=0.8\\textwidth]{图片URL或路径}\`
+5. 如果提供了 \`code\` 参数，工具会直接使用该代码进行渲染，不需要 \`prompt\` 参数
+6. 如果不提供 \`code\` 参数，必须提供 \`prompt\` 参数，工具会调用LLM生成图表代码
+7. 返回的 \`chartCode\` 是经过提取和清理后的可直接渲染的代码（仅用于调试，不应插入文档）
+8. ECharts需要提供JSON格式的配置对象
+9. 图表代码会自动清理，移除markdown代码块标记
+10. ECharts和mindmap会自动去除动画效果
 
 ## 与其他Tool的区别
 - 这是唯一的图表生成工具

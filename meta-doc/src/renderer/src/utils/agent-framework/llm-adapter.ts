@@ -12,6 +12,7 @@ import { ai_types } from '../ai_tasks'
 import { ref, watch, type Ref } from 'vue'
 import type { AIDialogMessage } from '../../../../types'
 import { sanitizeMessages } from '../llm-api.js'
+import { extractOuterJsonString } from '../regex-utils'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -417,9 +418,11 @@ export class LlmAdapter {
       taskName?: string
       originKey?: string
       reactiveMessage?: { markdown?: string; content?: string } // 可选的响应式消息对象，用于实时更新
+      onTaskCreated?: (handle: string) => void // 任务创建时的回调，用于保存handle
+      onToolCallsDetected?: (toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>) => Promise<void> // 工具调用检测回调
     } = {}
   ): Promise<string> {
-    const { temperature, maxTokens, stream = false, signal, taskName = 'Agent LLM调用', originKey, reactiveMessage } = options
+    const { temperature, maxTokens, stream = false, signal, taskName = 'Agent LLM调用', originKey, reactiveMessage, onTaskCreated, onToolCallsDetected } = options
 
     // 准备自定义LLM配置（如果使用的是自定义配置）
     let customLlmConfig: CustomLlmConfigForTask | undefined = undefined
@@ -485,22 +488,184 @@ export class LlmAdapter {
     // 生成唯一的originKey（如果没有提供）
     const uniqueOriginKey = originKey || `agent-llm-call-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     
+    // 解析标记格式的工具调用（与agent-engine-executor.ts中的逻辑一致）
+    const parseToolCallsFromContent = (content: string): Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null => {
+      try {
+        getLogger().debug('[parseToolCallsFromContent] 开始解析工具调用，内容长度:', content.length, {
+          contentPreview: content.substring(Math.max(0, content.length - 500))
+        })
+        
+        // 匹配工具调用块（支持一个或两个开始标记，使用非贪婪匹配，支持换行）
+        // 注意：必须匹配完整的begin和end标记
+        const markedPattern = /\<｜tool▁calls▁begin｜>([\s\S]*?)\<｜tool▁calls▁end｜>/i
+        const blockMatch = content.match(markedPattern)
+        
+        if (!blockMatch || !blockMatch[1]) {
+          getLogger().warn('[parseToolCallsFromContent] ❌ 未找到完整的工具调用块', {
+            hasBegin: /\<｜tool▁calls▁begin｜>/i.test(content),
+            hasEnd: /\<｜tool▁calls▁end｜>/i.test(content),
+            contentSnippet: content.substring(Math.max(0, content.length - 300))
+          })
+          return null
+        }
+
+        const toolCallsContent = blockMatch[1].trim()
+        getLogger().debug('[parseToolCallsFromContent] ✅ 找到工具调用块，内容长度:', toolCallsContent.length, {
+          toolCallsContent
+        })
+        
+        const toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> = []
+
+        // 匹配单个工具调用
+        // 格式: <｜tool▁call▁begin｜>tool_id<｜tool▁sep｜>params<｜tool▁call▁end｜>
+        // 注意：使用[\s\S]*?来匹配包括换行在内的所有字符
+        const toolCallPattern = /\<｜tool▁call▁begin｜>([\s\S]*?)\<｜tool▁sep｜>([\s\S]*?)\<｜tool▁call▁end｜>/gi
+        
+        let match
+        let index = 0
+        while ((match = toolCallPattern.exec(toolCallsContent)) !== null) {
+          const toolId = match[1].trim()
+          let paramsStr = match[2].trim()
+          
+          getLogger().debug(`[parseToolCallsFromContent] 解析工具调用 ${index + 1}: toolId=${toolId}, paramsStr长度=${paramsStr.length}`)
+          
+          // 尝试解析参数JSON
+          let parameters: Record<string, unknown> = {}
+          try {
+            // 先尝试提取JSON字符串（处理可能包含其他文本的情况）
+            const jsonStr = extractOuterJsonString(paramsStr)
+            if (jsonStr) {
+              parameters = JSON.parse(jsonStr)
+              getLogger().debug(`[parseToolCallsFromContent] 成功解析JSON参数:`, parameters)
+            } else {
+              // 如果没有找到JSON，尝试直接解析
+              parameters = JSON.parse(paramsStr)
+              getLogger().debug(`[parseToolCallsFromContent] 直接解析JSON参数:`, parameters)
+            }
+          } catch (e) {
+            getLogger().warn(`[parseToolCallsFromContent] 解析工具调用参数失败 (工具: ${toolId}):`, e, 'paramsStr:', paramsStr.substring(0, 100))
+            // 如果解析失败，使用空对象，至少工具ID是有效的
+          }
+
+          toolCalls.push({
+            id: `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+            tool_id: toolId,
+            parameters
+          })
+          index++
+        }
+
+        getLogger().debug(`[parseToolCallsFromContent] ✅ 解析完成，找到 ${toolCalls.length} 个工具调用`, {
+          toolCalls: toolCalls.map(tc => ({ tool_id: tc.tool_id, parameters: tc.parameters }))
+        })
+        return toolCalls.length > 0 ? toolCalls : null
+      } catch (error) {
+        getLogger().error('[parseToolCallsFromContent] ❌ 解析标记格式工具调用失败:', error)
+        return null
+      }
+    }
+    
+    // 用于跟踪是否已经处理过工具调用
+    let toolCallsProcessed = false
+    
+    // 记录初始状态
+    getLogger().debug('[callChatViaTask] 初始化工具调用检测:', {
+      hasReactiveMessage: !!reactiveMessage,
+      stream,
+      hasOnToolCallsDetected: !!onToolCallsDetected,
+      taskName
+    })
+    
     // 如果提供了reactiveMessage且是流式输出，设置watch实时更新
     let stopWatcher: (() => void) | null = null
     if (reactiveMessage && stream) {
-    
+      getLogger().debug('[callChatViaTask] 设置watch监听resultRef变化，准备检测工具调用')
+      
       stopWatcher = watch(
         resultRef,
-        (newValue) => {
+        async (newValue, oldValue) => {
           // 更新响应式消息对象的markdown或content属性
           if ('markdown' in reactiveMessage) {
             reactiveMessage.markdown = newValue
           } else if ('content' in reactiveMessage) {
             reactiveMessage.content = newValue
           }
+          
+          // 检测工具调用标记（仅在流式输出且提供回调时）
+          // 重要：只有在检测到完整的begin和end标记时才触发
+          if (onToolCallsDetected && !toolCallsProcessed) {
+            // 检查是否有完整的工具调用标记块（必须同时包含begin和end）
+            const toolCallsBeginPattern = /\<｜tool▁calls▁begin｜>/i
+            const toolCallsEndPattern = /\<｜tool▁calls▁end｜>/i
+            
+            const hasBegin = toolCallsBeginPattern.test(newValue)
+            const hasEnd = toolCallsEndPattern.test(newValue)
+            
+            // 记录每次检测的状态（但只在有变化时记录，避免日志过多）
+            // if (hasBegin || hasEnd) {
+            //   getLogger().debug('[callChatViaTask] watch触发 - 检测工具调用标记:', {
+            //     contentLength: newValue.length,
+            //     hasBegin,
+            //     hasEnd,
+            //     hasBoth: hasBegin && hasEnd,
+            //     contentPreview: newValue.substring(Math.max(0, newValue.length - 200))
+            //   })
+            // }
+            
+            if (hasBegin && hasEnd) {
+              // 检测到完整的工具调用标记块，解析并触发回调
+              getLogger().debug('[callChatViaTask] ✅ 检测到完整的工具调用标记块，开始解析...', {
+                contentLength: newValue.length,
+                contentSnippet: newValue.substring(Math.max(0, newValue.indexOf('<｜tool▁calls▁begin｜>')), Math.min(newValue.length, newValue.indexOf('<｜tool▁calls▁end｜>') + 50))
+              })
+              
+              const toolCalls = parseToolCallsFromContent(newValue)
+              if (toolCalls && toolCalls.length > 0) {
+                toolCallsProcessed = true
+                getLogger().debug('[callChatViaTask] ✅✅✅ 成功解析工具调用，准备触发回调:', {
+                  toolCallsCount: toolCalls.length,
+                  toolCalls: toolCalls.map(tc => ({ 
+                    id: tc.tool_id, 
+                    params: Object.keys(tc.parameters),
+                    paramsValue: tc.parameters
+                  }))
+                })
+                
+                try {
+                  await onToolCallsDetected(toolCalls)
+                  getLogger().debug('[callChatViaTask] ✅✅✅ 工具调用回调执行成功')
+                } catch (error) {
+                  getLogger().error('[callChatViaTask] ❌ 工具调用回调执行失败:', error)
+                }
+              } else {
+                getLogger().warn('[callChatViaTask] ⚠️ 检测到工具调用标记块，但解析失败或为空', {
+                  contentSnippet: newValue.substring(Math.max(0, newValue.indexOf('<｜tool▁calls▁begin｜>')), Math.min(newValue.length, newValue.indexOf('<｜tool▁calls▁end｜>') + 100))
+                })
+              }
+            } else if (hasBegin && !hasEnd) {
+              // 只有begin标记，还没有end标记，等待完整块
+              // getLogger().debug('[callChatViaTask] ⏳ 检测到工具调用开始标记，等待结束标记...', {
+              //   contentLength: newValue.length,
+              //   beginIndex: newValue.indexOf('<｜tool▁calls▁begin｜>')
+              // })
+            }
+          } else if (!onToolCallsDetected) {
+            // 只在第一次记录，避免日志过多
+            // if (newValue.length < 100) {
+            //   getLogger().debug('[callChatViaTask] watch触发，但onToolCallsDetected未提供')
+            // }
+          }
         },
         { immediate: true }
       )
+      
+      getLogger().debug('[callChatViaTask] watch已设置完成')
+    } else {
+      getLogger().warn('[callChatViaTask] ⚠️ 未设置watch监听:', {
+        hasReactiveMessage: !!reactiveMessage,
+        stream,
+        reason: !reactiveMessage ? '缺少reactiveMessage' : !stream ? '非流式输出' : '未知原因'
+      })
     }
 
     try {
@@ -519,6 +684,11 @@ export class LlmAdapter {
         }
       )
 
+      // 如果有回调，通知调用者任务已创建
+      if (onTaskCreated) {
+        onTaskCreated(handle)
+      }
+
       // 如果提供了signal，监听取消事件
       if (signal) {
         signal.addEventListener('abort', () => {
@@ -536,6 +706,37 @@ export class LlmAdapter {
       // 停止watch（如果有）
       if (stopWatcher) {
         stopWatcher()
+      }
+
+      // 如果流式输出完成但还没有处理工具调用，再次检查
+      if (onToolCallsDetected && !toolCallsProcessed && stream) {
+        getLogger().debug('[callChatViaTask] 流式输出完成，检查最终结果中是否包含工具调用:', {
+          resultLength: resultRef.value.length,
+          hasBegin: /\<｜tool▁calls▁begin｜>/i.test(resultRef.value),
+          hasEnd: /\<｜tool▁calls▁end｜>/i.test(resultRef.value)
+        })
+        
+        const toolCalls = parseToolCallsFromContent(resultRef.value)
+        if (toolCalls && toolCalls.length > 0) {
+          getLogger().debug('[callChatViaTask] ✅ 流式输出完成，检测到工具调用:', {
+            toolCallsCount: toolCalls.length,
+            toolCalls: toolCalls.map(tc => ({ id: tc.tool_id, params: Object.keys(tc.parameters) }))
+          })
+          try {
+            await onToolCallsDetected(toolCalls)
+            getLogger().debug('[callChatViaTask] ✅ 工具调用回调执行成功')
+          } catch (error) {
+            getLogger().error('[callChatViaTask] ❌ 工具调用回调执行失败:', error)
+          }
+        } else {
+          getLogger().warn('[callChatViaTask] ⚠️ 流式输出完成，但未找到工具调用或解析失败', {
+            resultPreview: resultRef.value.substring(Math.max(0, resultRef.value.length - 300))
+          })
+        }
+      } else if (onToolCallsDetected && toolCallsProcessed) {
+        getLogger().debug('[callChatViaTask] 流式输出完成，工具调用已在流式过程中处理')
+      } else if (!onToolCallsDetected) {
+        getLogger().debug('[callChatViaTask] 流式输出完成，但onToolCallsDetected未提供')
       }
 
       // 返回结果

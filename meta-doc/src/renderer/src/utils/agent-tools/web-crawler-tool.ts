@@ -17,6 +17,7 @@ import axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
 import localIpcRenderer from '../web-adapter/local-ipc-renderer'
 import { webMainCalls } from '../web-adapter/web-main-calls'
 import WebCrawlerDisplay from './components/WebCrawlerDisplay.vue'
+import { createDetailedError } from './tool-utils'
 
 const logger = createRendererLogger('WebCrawlerTool')
 
@@ -295,7 +296,20 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
   if (!url || typeof url !== 'string') {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.crawler.error.missingUrl', '缺少必需参数: url')
+      error: createDetailedError(
+        '缺少必需参数: url（要访问的网页URL）',
+        [
+          '{"url": "https://example.com"}',
+          '{"url": "https://example.com", "method": "GET", "headers": {"User-Agent": "Mozilla/5.0"}}',
+          '{"url": "https://api.example.com/data", "method": "POST", "body": "{\\"key\\": \\"value\\"}"}'
+        ],
+        [
+          '支持GET和POST方法（默认GET）',
+          '可以设置自定义请求头headers',
+          'POST请求可以设置body参数',
+          '工具会自动处理CORS和网页内容解析'
+        ]
+      )
     }
   }
 
@@ -305,7 +319,19 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
   } catch {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.crawler.error.invalidUrl', '无效的URL格式')
+      error: createDetailedError(
+        '无效的URL格式',
+        [
+          '{"url": "https://example.com"}',
+          '{"url": "http://example.com/page"}',
+          '确保URL包含协议（http:// 或 https://）'
+        ],
+        [
+          'URL必须包含协议（http:// 或 https://）',
+          '确保URL格式正确，例如：https://example.com',
+          '支持完整的URL，包括路径和查询参数'
+        ]
+      )
     }
   }
 

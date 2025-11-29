@@ -17,6 +17,7 @@ import localIpcRenderer from '../web-adapter/local-ipc-renderer'
 import { webMainCalls } from '../web-adapter/web-main-calls'
 import axios from 'axios'
 import DiffDisplay from './components/DiffDisplay.vue'
+import { createDetailedError } from './tool-utils'
 
 const logger = createRendererLogger('DiffTool')
 
@@ -299,7 +300,20 @@ const diffToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   if (!text1 || !text2) {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.diff.error.missingParams', '缺少必需参数: text1 或 text2')
+      error: createDetailedError(
+        '缺少必需参数: text1 或 text2（要比较的两个文本/文件/URL）',
+        [
+          '{"text1": "第一段文本", "text2": "第二段文本"}',
+          '{"text1": "/path/to/file1.md", "source1": "file", "text2": "/path/to/file2.md", "source2": "file"}',
+          '{"text1": "https://example.com/doc1.md", "source1": "url", "text2": "https://example.com/doc2.md", "source2": "url"}'
+        ],
+        [
+          '支持直接文本比较，也支持文件和URL比较',
+          'source参数可选值："text"（文本，默认）、"file"（文件路径）、"url"（URL地址）',
+          '可以混合使用：一个文本和一个文件，或一个URL和一个文本',
+          '工具会自动检测文件类型并加载内容'
+        ]
+      )
     }
   }
 

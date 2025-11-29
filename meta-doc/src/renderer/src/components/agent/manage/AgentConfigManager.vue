@@ -16,7 +16,7 @@
       :show-thumbnail="false"
       :get-item-id="(item) => item.id || ''"
       :get-item-title="(item) => getItemTitle(item as AgentConfig) || ''"
-      :get-item-description="(item) => getLocalizedText((item as AgentConfig).description) || ''"
+      :get-item-description="(item) => (item as AgentConfig).id === 'default-agent-config' ? '' : (getLocalizedText((item as AgentConfig).description) || '')"
       :get-item-meta="(item) => [
         t('agent.manage.agentConfig.toolCount') + ': ' + getAvailableToolCount((item as AgentConfig).id),
         item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
@@ -136,7 +136,7 @@ const formData = ref({
   maxToolCalls: null as number | null,
   unlimitedToolCalls: true, // 默认无限次
   systemPrompt: '',
-  injectTimestamp: false
+  injectTimestamp: true // 默认勾选时间戳
 })
 
 const availableCollections = computed(() => {
@@ -215,7 +215,7 @@ const handleCreate = () => {
     maxToolCalls: null,
     unlimitedToolCalls: true, // 默认无限次
     systemPrompt: '',
-    injectTimestamp: false
+    injectTimestamp: true // 默认勾选时间戳
   }
   dialogVisible.value = true
 }

@@ -16,12 +16,13 @@ import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
 import type { TextRange } from '../../editor/text-editor-types'
 import EditDisplay from './components/EditDisplay.vue'
+import { createDetailedError } from './tool-utils'
 
 const logger = createRendererLogger('EditTool')
 const workspace = useWorkspace()
 
 /**
- * 编辑操作
+ * 编辑操作（基于位置的编辑）
  */
 export interface EditOperation {
   type: 'insert' | 'replace' | 'delete'
@@ -31,6 +32,30 @@ export interface EditOperation {
   }
   content?: string  // 对于insert和replace操作
 }
+
+/**
+ * 查找替换操作（基于文本内容的编辑）
+ * 支持两种模式：
+ * 1. 基于查找：使用oldText查找并替换（需要oldText和newText）
+ * 2. 基于位置：使用range和content直接替换（需要range和content，oldText可选用于验证）
+ */
+export interface FindReplaceOperation {
+  type: 'findReplace'
+  oldText?: string  // 要查找的文本（如果提供了range，则oldText可选，用于验证位置内容）
+  newText?: string  // 替换为的文本（与content二选一，如果提供了range则使用content）
+  content?: string  // 替换为的文本（与newText二选一，如果提供了range则优先使用content）
+  range?: {
+    start: { line: number; column: number }  // 1-based
+    end: { line: number; column: number }   // 1-based
+  }  // 可选，如果提供了range，则直接使用范围替换，不需要oldText查找
+  all?: boolean  // 是否替换所有匹配项（默认false，只替换第一个，仅在基于查找模式下有效）
+  caseSensitive?: boolean  // 是否区分大小写（默认false，仅在基于查找模式下有效）
+}
+
+/**
+ * 联合类型：所有支持的编辑操作
+ */
+export type AnyEditOperation = EditOperation | FindReplaceOperation
 
 /**
  * 编辑结果
@@ -87,6 +112,83 @@ function offsetToPosition(text: string, offset: number): { line: number; column:
     line: lines.length,
     column: lines[lines.length - 1]?.length + 1 || 1
   }
+}
+
+/**
+ * 查找文本在文档中的所有匹配位置（使用字符串查找，不使用正则表达式）
+ * @param text 文档内容
+ * @param searchText 要查找的文本
+ * @param caseSensitive 是否区分大小写
+ * @returns 所有匹配位置的偏移量数组
+ */
+function findAllMatches(text: string, searchText: string, caseSensitive: boolean = false): number[] {
+  if (!searchText) {
+    return []
+  }
+  
+  const matches: number[] = []
+  let searchIndex = 0
+  const workingText = caseSensitive ? text : text.toLowerCase()
+  const workingSearchText = caseSensitive ? searchText : searchText.toLowerCase()
+  
+  while (true) {
+    const index = workingText.indexOf(workingSearchText, searchIndex)
+    if (index === -1) {
+      break
+    }
+    matches.push(index)
+    searchIndex = index + 1  // 继续查找下一个匹配项
+  }
+  
+  return matches
+}
+
+/**
+ * 将查找替换操作转换为基于位置的编辑操作
+ * @param text 文档内容
+ * @param findReplace 查找替换操作
+ * @returns 转换后的编辑操作数组
+ */
+function convertFindReplaceToEditOperations(
+  text: string,
+  findReplace: FindReplaceOperation
+): EditOperation[] {
+  const { oldText, newText, content, all = false, caseSensitive = false } = findReplace
+  const replaceText = newText ?? content ?? ''
+  
+  if (!oldText) {
+    throw new Error('oldText不能为空')
+  }
+  
+  const matches = findAllMatches(text, oldText, caseSensitive)
+  
+  if (matches.length === 0) {
+    throw new Error(`未找到文本: ${oldText}`)
+  }
+  
+  const operations: EditOperation[] = []
+  
+  // 如果all为false，只替换第一个
+  const matchesToReplace = all ? matches : matches.slice(0, 1)
+  
+  for (const offset of matchesToReplace) {
+    // 计算起始位置
+    const startPos = offsetToPosition(text, offset)
+    // 计算结束位置（oldText的长度）
+    const endOffset = offset + oldText.length
+    const endPos = offsetToPosition(text, endOffset)
+    
+    operations.push({
+      type: 'replace',
+      range: {
+        start: startPos,
+        end: endPos
+      },
+      content: replaceText
+    })
+  }
+  
+  return operations
 }
 
 /**
@@ -164,38 +266,135 @@ function applyEditsToText(text: string, edits: EditOperation[]): string {
  * 编辑Tool回调函数
  */
 const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
-  const operations = params.operations as EditOperation[] | undefined
-  const operation = params.operation as EditOperation | undefined
+  const operations = params.operations as AnyEditOperation[] | undefined
+  const operation = params.operation as AnyEditOperation | undefined
   const tabId = params.tabId as string | undefined
 
   // 支持单个操作或多个操作
-  const edits: EditOperation[] = operations || (operation ? [operation] : [])
+  const rawEdits: AnyEditOperation[] = operations || (operation ? [operation] : [])
 
-  if (!edits || edits.length === 0) {
+  if (!rawEdits || rawEdits.length === 0) {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.edit.error.missingOperations', '缺少必需参数: operations 或 operation')
+      error: createDetailedError(
+        '缺少必需参数: operations 或 operation',
+        [
+          '{"operations": [{"type": "findReplace", "oldText": "前端", "newText": "前台", "all": true}]}',
+          '{"operation": {"type": "findReplace", "oldText": "前端", "newText": "前台", "all": true}}'
+        ],
+        ['可以一次调用中包含多个替换操作', '使用"all": true可以全局替换所有匹配项', '推荐使用findReplace，无需知道精确位置']
+      )
     }
   }
 
   // 验证编辑操作
-  for (const edit of edits) {
-    if (!edit.type || !['insert', 'replace', 'delete'].includes(edit.type)) {
+  for (const edit of rawEdits) {
+    if (!edit.type) {
       return {
         status: 'failed',
-        error: i18n.global.t('agent.tool.edit.error.invalidType', `无效的编辑类型: ${edit.type}`)
+        error: createDetailedError(
+          '缺少编辑类型',
+          [
+            '{"type": "findReplace", "oldText": "前端", "newText": "前台", "all": true}',
+            '{"type": "replace", "range": {"start": {"line": 10, "column": 1}, "end": {"line": 10, "column": 20}}, "content": "新内容"}'
+          ],
+          ['支持findReplace、insert、replace、delete等类型']
+        )
       }
     }
-    if (!edit.range || !edit.range.start || !edit.range.end) {
-      return {
-        status: 'failed',
-        error: i18n.global.t('agent.tool.edit.error.missingRange', '缺少编辑范围')
+    
+    // 验证查找替换操作
+    if (edit.type === 'findReplace') {
+      const findReplace = edit as FindReplaceOperation
+      const hasRange = findReplace.range && findReplace.range.start && findReplace.range.end
+      const hasOldText = findReplace.oldText !== undefined && findReplace.oldText !== null
+      const newTextValue = findReplace.newText ?? findReplace.content
+      
+      // 如果提供了range，需要content或newText
+      if (hasRange) {
+        if (newTextValue === undefined) {
+          return {
+            status: 'failed',
+            error: createDetailedError(
+              'findReplace操作：提供了range但缺少content或newText参数',
+              [
+                '{"type": "findReplace", "range": {"start": {"line": 10, "column": 1}, "end": {"line": 10, "column": 20}}, "content": "新内容"}',
+                '{"type": "findReplace", "range": {"start": {"line": 10, "column": 1}, "end": {"line": 10, "column": 20}}, "newText": "新内容"}'
+              ],
+              ['使用range时，可以直接替换指定位置的内容，oldText可选用于验证', 'content和newText功能相同，可以任选其一']
+            )
+          }
+        }
+      } else {
+        // 没有range，必须要有oldText来查找
+        if (!hasOldText) {
+          return {
+            status: 'failed',
+            error: createDetailedError(
+              'findReplace操作：缺少oldText参数（未提供range时必须提供oldText）',
+              [
+                '{"type": "findReplace", "oldText": "前端", "newText": "前台"}',
+                '{"type": "findReplace", "oldText": "前端", "newText": "前台", "all": true}  // 替换所有匹配项'
+              ],
+              ['使用oldText可以查找并替换文本，无需知道精确位置', '设置"all": true可以替换文档中所有匹配的文本', '可以一次调用中包含多个findReplace操作']
+            )
+          }
+        }
+        if (newTextValue === undefined) {
+          return {
+            status: 'failed',
+            error: createDetailedError(
+              'findReplace操作：缺少newText或content参数',
+              [
+                '{"type": "findReplace", "oldText": "前端", "newText": "前台"}',
+                '{"type": "findReplace", "oldText": "前端", "content": "前台"}  // content和newText功能相同'
+              ],
+              ['newText和content功能相同，可以任选其一', '可以设置为空字符串""来删除匹配的文本', '设置"all": true可以全局替换']
+            )
+          }
+        }
       }
     }
-    if ((edit.type === 'insert' || edit.type === 'replace') && edit.content === undefined) {
+    // 验证基于位置的操作
+    else if (['insert', 'replace', 'delete'].includes(edit.type)) {
+      const posEdit = edit as EditOperation
+      if (!posEdit.range || !posEdit.range.start || !posEdit.range.end) {
+        return {
+          status: 'failed',
+          error: createDetailedError(
+            '缺少编辑范围（range参数）',
+            [
+              `{"type": "${posEdit.type}", "range": {"start": {"line": 10, "column": 1}, "end": {"line": 10, "column": 20}}, "content": "内容"}`,
+              '或者使用findReplace：{"type": "findReplace", "oldText": "旧文本", "newText": "新文本", "all": true}  // 更简单，无需知道位置'
+            ],
+            ['推荐使用findReplace，无需知道精确的行号列号', 'findReplace支持全局替换和批量操作']
+          )
+        }
+      }
+      if ((posEdit.type === 'insert' || posEdit.type === 'replace') && posEdit.content === undefined) {
+        return {
+          status: 'failed',
+          error: createDetailedError(
+            `${posEdit.type}操作需要content参数`,
+            [
+              `{"type": "${posEdit.type}", "range": {"start": {"line": 10, "column": 1}, "end": {"line": 10, "column": 20}}, "content": "要插入或替换的内容"}`,
+              `或者使用findReplace：{"type": "findReplace", "oldText": "旧文本", "newText": "新文本"}  // 更简单`
+            ],
+            ['推荐使用findReplace进行替换操作，更灵活方便', 'findReplace支持全局替换（all: true）']
+          )
+        }
+      }
+    } else {
       return {
         status: 'failed',
-        error: i18n.global.t('agent.tool.edit.error.missingContent', `${edit.type}操作需要content参数`)
+        error: createDetailedError(
+          `无效的编辑类型: ${edit.type}`,
+          [
+            '支持的类型：findReplace, insert, replace, delete',
+            '推荐使用findReplace：{"type": "findReplace", "oldText": "旧文本", "newText": "新文本", "all": true}'
+          ],
+          ['findReplace是最灵活的编辑方式，支持全局替换和批量操作', '可以在一次调用中包含多个findReplace操作']
+        )
       }
     }
   }
@@ -204,7 +403,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     onUpdate({
       content: {
         stage: 'loading',
-        editCount: edits.length
+        editCount: rawEdits.length
       },
       format: 'json',
       componentName: 'EditDisplay'
@@ -218,7 +417,14 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     if (!targetTabId) {
       return {
         status: 'failed',
-        error: i18n.global.t('agent.tool.edit.error.noActiveTab', '没有活动的文档标签页')
+        error: createDetailedError(
+          '没有活动的文档标签页',
+          [
+            '请先打开一个文档，然后再执行编辑操作',
+            '或者指定tabId参数：{"operations": [...], "tabId": "文档ID"}'
+          ],
+          []
+        )
       }
     }
 
@@ -226,7 +432,14 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     if (!doc) {
       return {
         status: 'failed',
-        error: i18n.global.t('agent.tool.edit.error.documentNotFound', '文档不存在')
+        error: createDetailedError(
+          '文档不存在',
+          [
+            '请确认文档已正确打开',
+            '检查tabId参数是否正确：{"operations": [...], "tabId": "正确的文档ID"}'
+          ],
+          []
+        )
       }
     }
 
@@ -236,7 +449,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     onUpdate({
       content: {
         stage: 'applying',
-        editCount: edits.length,
+        editCount: rawEdits.length,
         currentEdit: 0
       },
       format: 'json',
@@ -246,15 +459,57 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       message: i18n.global.t('agent.tool.edit.progress.applying', '正在应用编辑...')
     })
 
+    // 将查找替换操作转换为基于位置的编辑操作
+    let edits: EditOperation[] = []
+    let findReplaceFailedCount = 0
+    
+    for (const rawEdit of rawEdits) {
+      if (rawEdit.type === 'findReplace') {
+        const findReplace = rawEdit as FindReplaceOperation
+        const hasRange = findReplace.range && findReplace.range.start && findReplace.range.end
+        const newTextValue = findReplace.newText ?? findReplace.content
+        
+        // 如果提供了range，直接使用位置编辑
+        if (hasRange && newTextValue !== undefined) {
+          edits.push({
+            type: 'replace',
+            range: findReplace.range!,
+            content: newTextValue
+          })
+        }
+        // 否则使用oldText查找替换
+        else if (findReplace.oldText && newTextValue !== undefined) {
+          try {
+            // 将查找替换转换为位置编辑（基于原始内容）
+            const convertedEdits = convertFindReplaceToEditOperations(currentContent, findReplace)
+            if (convertedEdits.length === 0) {
+              // 没有找到匹配项
+              findReplaceFailedCount++
+              logger.warn('查找替换未找到匹配项:', findReplace)
+            } else {
+              edits.push(...convertedEdits)
+            }
+          } catch (error) {
+            // 转换失败（例如未找到文本）
+            findReplaceFailedCount++
+            logger.warn('转换查找替换操作失败:', error, findReplace)
+          }
+        }
+      } else {
+        // 基于位置的操作直接使用
+        edits.push(rawEdit as EditOperation)
+      }
+    }
+
     // 应用编辑（需要跟踪成功和失败的数量）
     let appliedCount = 0
-    let failedCount = 0
+    let failedCount = findReplaceFailedCount  // 先计入查找替换失败的次数
     let newContent = currentContent
     
     // 从后往前排序，避免位置偏移
     const sortedEdits = [...edits].sort((a, b) => {
-      const aStart = positionToOffset(currentContent, a.range.start.line, a.range.start.column)
-      const bStart = positionToOffset(currentContent, b.range.start.line, b.range.start.column)
+      const aStart = positionToOffset(newContent, a.range.start.line, a.range.start.column)
+      const bStart = positionToOffset(newContent, b.range.start.line, b.range.start.column)
       return bStart - aStart  // 降序
     })
 
@@ -298,7 +553,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     const result: EditResult = {
       appliedEdits: appliedCount,
       failedEdits: failedCount,
-      operations: edits,
+      operations: edits,  // 注意：这里保存的是转换后的EditOperation，不是原始的AnyEditOperation
       newContent,
       originalContent: currentContent  // 保存原始内容用于显示对比
     }
@@ -339,27 +594,27 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 const editToolLocales: ToolLocales = {
   zh_cn: {
     name: '文档编辑',
-    description: '直接对文章进行编辑，支持多处编辑操作（插入、替换、删除）'
+    description: '直接对文章进行编辑，支持查找替换（全局/单个）和基于位置的编辑，支持一次调用执行多个替换操作'
   },
   en_us: {
     name: 'Document Edit',
-    description: 'Directly edit the document, support multiple edit operations (insert, replace, delete)'
+    description: 'Directly edit the document, support find-replace (global/single) and position-based editing, support multiple replace operations in one call'
   },
   de_DE: {
     name: 'Dokument bearbeiten',
-    description: 'Dokument direkt bearbeiten, unterstützt mehrere Bearbeitungsvorgänge (Einfügen, Ersetzen, Löschen)'
+    description: 'Dokument direkt bearbeiten, unterstützt Suchen-Ersetzen (global/einzeln) und positionsbasierte Bearbeitung, unterstützt mehrere Ersetzungsvorgänge in einem Aufruf'
   },
   fr_FR: {
     name: 'Édition de document',
-    description: 'Modifier directement le document, prendre en charge plusieurs opérations d\'édition (insérer, remplacer, supprimer)'
+    description: 'Modifier directement le document, prendre en charge la recherche-remplacement (globale/unique) et l\'édition basée sur la position, prendre en charge plusieurs opérations de remplacement en un seul appel'
   },
   ja_JP: {
     name: 'ドキュメント編集',
-    description: 'ドキュメントを直接編集し、複数の編集操作（挿入、置換、削除）をサポート'
+    description: 'ドキュメントを直接編集し、検索置換（グローバル/単一）と位置ベースの編集をサポートし、1回の呼び出しで複数の置換操作をサポート'
   },
   ko_KR: {
     name: '문서 편집',
-    description: '문서를 직접 편집하고 여러 편집 작업(삽입, 교체, 삭제) 지원'
+    description: '문서를 직접 편집하고 찾기-바꾸기(전역/단일) 및 위치 기반 편집을 지원하며, 한 번의 호출로 여러 바꾸기 작업 지원'
   }
 }
 
@@ -372,74 +627,540 @@ export const editToolConfig: AgentToolConfig = {
 # 文档编辑工具
 
 ## 功能描述
-直接对当前活动文档进行编辑，支持多处编辑操作。编辑操作包括插入、替换和删除。
+直接对当前活动文档进行编辑，支持多处编辑操作。支持三种编辑方式：
+1. **基于位置的插入**：只需指定行号和列号位置即可插入文本（**高效，推荐AI使用，无需查找文本，节省token**）
+2. **基于位置的替换/删除**：需要指定精确的行号和列号位置（适合已知位置的编辑）
+3. **查找替换编辑**：基于文本内容查找并替换（适合需要替换特定文本的场景）
 
 ## 使用场景
+- **批量插入文本**：在多个位置插入内容（高效，无需查找文本，只需要行号和列号）
 - 批量修改文档内容
+- 全局替换文档中的特定文本（所有匹配项）
+- 一次调用执行多个不同的查找替换操作
 - 在多个位置插入文本
-- 替换文档中的特定内容
+- 替换文档中的特定内容（查找替换）
 - 删除文档中的特定内容
 - AI辅助的文档编辑
 
 ## 输入格式
+
+### 方式1：单个查找替换操作
+替换文档中的第一个匹配项：
 \`\`\`json
 {
   "operations": [
     {
-      "type": "insert|replace|delete",
+      "type": "findReplace",
+      "oldText": "前端",
+      "newText": "前台"
+    }
+  ]
+}
+\`\`\`
+
+### 方式2：全局查找替换（替换所有匹配项）⭐ 推荐
+使用 \`"all": true\` 可以替换文档中**所有**匹配的文本：
+\`\`\`json
+{
+  "operations": [
+    {
+      "type": "findReplace",
+      "oldText": "前端",
+      "newText": "前台",
+      "all": true  // 关键：设置为true会替换文档中所有匹配项
+    }
+  ]
+}
+\`\`\`
+
+### 方式2a：使用range直接替换（不需要oldText查找）⭐ 新功能
+如果已知精确位置，可以直接使用range替换，无需查找：
+\`\`\`json
+{
+  "operations": [
+    {
+      "type": "findReplace",
+      "range": {
+        "start": {"line": 10, "column": 1},
+        "end": {"line": 10, "column": 20}
+      },
+      "content": "新内容"  // 直接替换指定位置，不需要oldText
+    }
+  ]
+}
+\`\`\`
+
+### 方式3：一次调用中执行多个查找替换操作 ⭐ 推荐
+可以在一次工具调用中，在 \`operations\` 数组中包含多个查找替换操作，工具会按顺序执行所有操作：
+\`\`\`json
+{
+  "operations": [
+    {
+      "type": "findReplace",
+      "oldText": "前端",
+      "newText": "前台",
+      "all": true  // 全局替换所有"前端"为"前台"
+    },
+    {
+      "type": "findReplace",
+      "oldText": "后端",
+      "newText": "后台",
+      "all": true  // 全局替换所有"后端"为"后台"
+    },
+    {
+      "type": "findReplace",
+      "oldText": "旧术语",
+      "newText": "新术语",
+      "all": true  // 全局替换所有"旧术语"为"新术语"
+    }
+  ]
+}
+\`\`\`
+
+**重要说明**：
+- 一次调用可以包含**任意多个**查找替换操作
+- 每个操作可以独立设置 \`all\` 参数（是否全局替换）
+- 所有操作会在一次工具调用中执行，提高效率
+- 如果某个操作找不到匹配文本，该操作会失败但不影响其他操作
+
+### 方式4：混合查找替换和基于位置的编辑
+\`\`\`json
+{
+  "operations": [
+    {
+      "type": "findReplace",
+      "oldText": "旧文本",
+      "newText": "新文本",
+      "all": true
+    },
+    {
+      "type": "replace",
+      "range": {
+        "start": { "line": 10, "column": 1 },
+        "end": { "line": 10, "column": 20 }
+      },
+      "content": "其他内容"
+    }
+  ]
+}
+\`\`\`
+
+### 方式5：基于位置的批量插入 ⭐ 推荐AI使用（高效，节省token）
+只需要指定行号和列号位置即可插入，**无需查找文本，高效且节省token**。支持批量插入多个位置：
+
+\`\`\`json
+{
+  "operations": [
+    {
+      "type": "insert",
       "range": {
         "start": { "line": 10, "column": 5 },
-        "end": { "line": 10, "column": 5 }
+        "end": { "line": 10, "column": 5 }  // start和end相同，表示插入位置
       },
-      "content": "string"  // insert和replace操作需要
+      "content": "要插入的文本"
+    },
+    {
+      "type": "insert",
+      "range": {
+        "start": { "line": 15, "column": 1 },
+        "end": { "line": 15, "column": 1 }
+      },
+      "content": "另一个位置的插入内容"
+    },
+    {
+      "type": "insert",
+      "range": {
+        "start": { "line": 20, "column": 10 },
+        "end": { "line": 20, "column": 10 }
+      },
+      "content": "第三个位置的插入内容"
+    }
+  ]
+}
+\`\`\`
+
+**重要说明**：
+- 批量插入会**自动从后往前排序并执行**，避免位置偏移
+- 只需指定精确的行号和列号位置，无需查找文本
+- **比findReplace更高效**：不需要输入oldText，节省token，避免字符匹配错误
+- 特别适合AI在已知位置插入内容（例如：在第10行第5列插入标题，在第15行第1列插入段落）
+
+### 方式6：基于位置的替换和删除
+\`\`\`json
+{
+  "operations": [
+    {
+      "type": "replace",
+      "range": {
+        "start": { "line": 10, "column": 1 },
+        "end": { "line": 10, "column": 20 }
+      },
+      "content": "新内容"
+    },
+    {
+      "type": "delete",
+      "range": {
+        "start": { "line": 15, "column": 1 },
+        "end": { "line": 15, "column": 50 }
+      }
     }
   ],
   "tabId": "string"  // 可选，文档标签页ID，默认使用当前活动标签页
 }
 \`\`\`
 
-或者使用单个操作：
+或者使用单个操作（不推荐，使用operations数组更灵活）：
 \`\`\`json
 {
   "operation": {
-    "type": "replace",
-    "range": {
-      "start": { "line": 10, "column": 1 },
-      "end": { "line": 10, "column": 20 }
-    },
-    "content": "新内容"
+    "type": "findReplace",
+    "oldText": "前端",
+    "newText": "前台",
+    "all": true
   }
 }
 \`\`\`
 
 ## 编辑类型说明
 
-### insert
-在指定位置插入文本。range的start和end应该相同，表示插入位置。
+### findReplace（查找替换）⭐ 强烈推荐AI使用
 
-### replace
+基于文本内容查找并替换，**不需要知道精确的行号列号位置**，非常适合AI使用。
+
+**支持两种模式**：
+
+1. **基于查找模式**（推荐）：使用oldText查找并替换
+   - \`oldText\`: 要查找的文本（必需）
+   - \`newText\` 或 \`content\`: 替换为的文本（必需，可以为空字符串表示删除，两者功能相同）
+   - \`all\`: 是否替换所有匹配项（可选）
+     - \`false\` 或省略：只替换**第一个**匹配项（默认）
+     - \`true\`：替换文档中**所有**匹配项（全局替换）⭐
+   - \`caseSensitive\`: 是否区分大小写（可选，默认false，不区分大小写）
+
+2. **基于位置模式**：如果提供了range，可以直接替换指定位置，不需要oldText查找
+   - \`range\`: 要替换的文本范围（必需）
+   - \`content\` 或 \`newText\`: 替换为的文本（必需，两者功能相同）
+   - \`oldText\`: 可选，如果提供则用于验证range位置的内容是否正确
+
+**参数说明**：
+- \`oldText\`: 要查找的文本（基于查找模式下必需，基于位置模式下可选用于验证）
+- \`newText\` 或 \`content\`: 替换为的文本（两者功能相同，任选其一）
+- \`range\`: 文本范围（可选，如果提供则直接使用位置替换，无需查找）
+- \`all\`: 是否替换所有匹配项（仅在基于查找模式下有效）
+- \`caseSensitive\`: 是否区分大小写（仅在基于查找模式下有效）
+
+**示例1**：全局替换所有"前端"为"前台"（基于查找模式）
+\`\`\`json
+{
+  "operations": [{
+    "type": "findReplace",
+    "oldText": "前端",
+    "newText": "前台",
+    "all": true  // 替换所有匹配项
+  }]
+}
+\`\`\`
+
+**示例2**：使用content参数（与newText功能相同）
+\`\`\`json
+{
+  "operations": [{
+    "type": "findReplace",
+    "oldText": "前端",
+    "content": "前台",  // content和newText功能相同
+    "all": true
+  }]
+}
+\`\`\`
+
+**示例3**：基于位置直接替换（提供range，不需要oldText查找）
+\`\`\`json
+{
+  "operations": [{
+    "type": "findReplace",
+    "range": {
+      "start": {"line": 10, "column": 1},
+      "end": {"line": 10, "column": 20}
+    },
+    "content": "新内容"  // 直接替换指定位置
+  }]
+}
+\`\`\`
+
+**示例4**：基于位置替换并验证（提供range和oldText，验证位置内容是否正确）
+\`\`\`json
+{
+  "operations": [{
+    "type": "findReplace",
+    "range": {
+      "start": {"line": 10, "column": 1},
+      "end": {"line": 10, "column": 20}
+    },
+    "oldText": "旧内容",  // 可选，用于验证
+    "content": "新内容"
+  }]
+}
+\`\`\`
+
+**示例5**：一次调用执行多个全局替换
+\`\`\`json
+{
+  "operations": [
+    {
+      "type": "findReplace",
+      "oldText": "术语A",
+      "newText": "术语B",
+      "all": true
+    },
+    {
+      "type": "findReplace",
+      "oldText": "术语C",
+      "newText": "术语D",
+      "all": true
+    }
+  ]
+}
+\`\`\`
+
+**示例6**：区分大小写的替换
+\`\`\`json
+{
+  "operations": [{
+    "type": "findReplace",
+    "oldText": "JavaScript",
+    "newText": "TypeScript",
+    "all": true,
+    "caseSensitive": true  // 区分大小写
+  }]
+}
+\`\`\`
+
+**示例7**：删除所有匹配的文本（用空字符串替换）
+\`\`\`json
+{
+  "operations": [{
+    "type": "findReplace",
+    "oldText": "待删除的文本",
+    "newText": "",  // 空字符串表示删除
+    "all": true
+  }]
+}
+\`\`\`
+
+### insert（插入）⭐ 推荐AI使用（高效，节省token）
+
+在指定位置插入文本，**只需要行号和列号位置，无需查找文本**。这是最高效的插入方式，特别适合AI使用。
+
+**⚠️ 重要：插入前必须先定位位置**
+在插入内容之前，**必须**先使用 \`outline-tree\` 工具获取文档大纲结构，了解文档内容分布，确定合适的插入位置。**绝对不能**总是从行1列1开始插入，这是错误的做法！
+
+**正确的工作流程**：
+1. 先调用 \`outline-tree\` 工具获取文档大纲结构（设置 \`includeText: true\` 可以看到具体内容）
+2. 分析大纲结构，确定要插入的位置（例如：在"第一章"之后、在"总结"之前等）
+3. 根据大纲结构和文档内容，计算准确的行号和列号位置
+4. 使用 \`insert\` 操作在确定的位置插入内容
+
+**定位位置的方法**：
+- 通过大纲树的 \`text\` 字段可以看到每个章节的具体内容
+- 根据文本内容，计算目标位置的行号（从1开始）
+- 列号通常为1（行首）或在行尾（需要计算行尾位置）
+
+**参数说明**：
+- \`range\`: 插入位置，\`start\` 和 \`end\` 应该相同（都指向同一个位置）
+  - \`start.line\`: 行号（从1开始，**必须大于1**，不要总是使用行1）
+  - \`start.column\`: 列号（从1开始，通常为1表示行首）
+  - \`end.line\`: 与start.line相同
+  - \`end.column\`: 与start.column相同
+- \`content\`: 要插入的文本内容
+
+**优势**：
+- **高效**：无需输入oldText，节省token
+- **准确**：直接指定位置，避免字符匹配错误
+- **支持批量**：可以一次调用插入多个位置，自动从后往前执行避免位置偏移
+
+**⚠️ 常见错误**：
+- ❌ 总是从行1列1插入（这是错误的！）
+- ❌ 不先获取文档结构就插入（无法确定正确位置）
+- ✅ 先获取大纲结构，分析文档，确定正确位置后再插入
+
+**示例1**：单个插入
+\`\`\`json
+{
+  "operations": [{
+    "type": "insert",
+    "range": {
+      "start": { "line": 10, "column": 5 },
+      "end": { "line": 10, "column": 5 }
+    },
+    "content": "插入的内容"
+  }]
+}
+\`\`\`
+
+**示例2**：批量插入（推荐）⭐
+\`\`\`json
+{
+  "operations": [
+    {
+      "type": "insert",
+      "range": { "start": { "line": 10, "column": 1 }, "end": { "line": 10, "column": 1 } },
+      "content": "第一个插入位置的内容"
+    },
+    {
+      "type": "insert",
+      "range": { "start": { "line": 20, "column": 1 }, "end": { "line": 20, "column": 1 } },
+      "content": "第二个插入位置的内容"
+    },
+    {
+      "type": "insert",
+      "range": { "start": { "line": 30, "column": 1 }, "end": { "line": 30, "column": 1 } },
+      "content": "第三个插入位置的内容"
+    }
+  ]
+}
+\`\`\`
+
+**注意**：批量插入时，工具会自动按位置从后往前排序执行，确保位置偏移不会影响后续插入。
+
+**示例3**：完整工作流程 - 先定位再插入 ⭐⭐⭐ **必须遵循**
+\`\`\`json
+// 步骤1：先获取文档大纲结构
+{
+  "tool": "outline-tree",
+  "params": {
+    "includeText": true  // 包含文本内容，可以看到具体行号
+  }
+}
+
+// 步骤2：分析大纲结构，确定插入位置
+// 例如：大纲显示"第一章"在文档开头，包含10行文本
+// 如果要插入到"第一章"之后，需要计算：
+// - 找到"第一章"标题的行号（例如第3行）
+// - 计算"第一章"内容结束的位置（例如第13行）
+// - 在第13行之后插入新内容（第14行，列1）
+
+// 步骤3：执行插入
+{
+  "operations": [{
+    "type": "insert",
+    "range": {
+      "start": { "line": 14, "column": 1 },  // 基于大纲分析得到的正确位置
+      "end": { "line": 14, "column": 1 }
+    },
+    "content": "第二章\n\n这是第二章的内容..."
+  }]
+}
+\`\`\`
+
+**如何从大纲树计算行号**：
+1. 大纲树的每个节点都有 \`text\` 字段，包含该节点下的所有文本内容（包括标题行）
+2. 通过分析 \`text\` 字段，可以确定每个章节的起始行号和结束行号
+3. 文档的总行数 = 所有文本内容的行数总和
+4. 计算目标位置：找到要插入的章节，计算该章节的结束位置，在结束位置后插入
+5. **关键**：不要猜测行号，必须基于实际的大纲树结构计算
+
+### replace（替换）
 替换指定范围内的文本。range表示要替换的范围，content是新内容。
 
-### delete
+### delete（删除）
 删除指定范围内的文本。range表示要删除的范围。
 
 ## 输出格式
 \`\`\`json
 {
-  "appliedEdits": 3,
-  "failedEdits": 0,
-  "operations": [...],
-  "newContent": "string"
+  "appliedEdits": 3,  // 成功应用的编辑数量
+  "failedEdits": 0,   // 失败的编辑数量
+  "operations": [...], // 实际执行的编辑操作列表
+  "newContent": "string"  // 编辑后的完整文档内容
+}
+\`\`\`
+
+## 最佳实践建议 ⭐
+
+### 对于AI（推荐方式）
+1. **⚠️ 插入前必须先定位**：在插入内容之前，**必须**先使用 \`outline-tree\` 工具获取文档大纲结构，分析文档内容，确定正确的插入位置。**绝对不能**总是从行1列1插入！
+2. **优先使用基于位置的insert**：如果已知插入位置（通过大纲树分析得到），使用insert操作最高效，**无需查找文本，节省token，避免字符匹配错误**
+3. **使用批量插入**：如果需要插入多个位置，在一次调用中包含多个insert操作，工具会自动从后往前执行，避免位置偏移
+4. **使用全局替换**：需要替换文本时，设置 \`"all": true\` 可以一次性替换所有匹配项
+5. **批量操作**：在一次调用中的 \`operations\` 数组中包含多个操作，可以高效执行多个编辑
+6. **组合使用**：可以混合使用insert、replace、delete和findReplace操作
+
+### 插入操作的标准流程 ⭐⭐⭐
+**必须遵循以下流程，否则插入位置会错误**：
+
+1. **获取文档结构**：先调用 \`outline-tree\` 工具，设置 \`includeText: true\`
+   \`\`\`json
+   {"tool": "outline-tree", "params": {"includeText": true}}
+   \`\`\`
+
+2. **分析大纲树**：仔细分析返回的大纲树结构
+   - 查看每个节点的 \`title\` 和 \`title_level\`
+   - 查看每个节点的 \`text\` 内容（包含该章节的所有文本）
+   - 理解文档的层次结构和内容分布
+
+3. **计算插入位置**：
+   - 确定要插入的目标位置（例如：在"第一章"之后、在"总结"之前等）
+   - 根据大纲树的 \`text\` 字段，计算目标位置的行号
+   - **行号计算**：分析文档全文，找到目标章节的位置，计算其结束行号
+
+4. **执行插入操作**：使用计算得到的准确行号和列号进行插入
+   \`\`\`json
+   {
+     "operations": [{
+       "type": "insert",
+       "range": {"start": {"line": 15, "column": 1}, "end": {"line": 15, "column": 1}},
+       "content": "插入的内容"
+     }]
+   }
+   \`\`\`
+
+### 示例1：批量插入多个位置（推荐，高效）⭐
+\`\`\`json
+{
+  "operations": [
+    { "type": "insert", "range": { "start": { "line": 5, "column": 1 }, "end": { "line": 5, "column": 1 } }, "content": "## 第一章\n" },
+    { "type": "insert", "range": { "start": { "line": 10, "column": 1 }, "end": { "line": 10, "column": 1 } }, "content": "## 第二章\n" },
+    { "type": "insert", "range": { "start": { "line": 15, "column": 1 }, "end": { "line": 15, "column": 1 } }, "content": "## 第三章\n" }
+  ]
+}
+\`\`\`
+
+### 示例2：一次性批量替换多个术语
+\`\`\`json
+{
+  "operations": [
+    { "type": "findReplace", "oldText": "前端", "newText": "前台", "all": true },
+    { "type": "findReplace", "oldText": "后端", "newText": "后台", "all": true },
+    { "type": "findReplace", "oldText": "数据库", "newText": "数据存储", "all": true }
+  ]
+}
+\`\`\`
+
+### 示例3：混合操作（插入+替换）
+\`\`\`json
+{
+  "operations": [
+    { "type": "insert", "range": { "start": { "line": 1, "column": 1 }, "end": { "line": 1, "column": 1 } }, "content": "# 标题\n" },
+    { "type": "findReplace", "oldText": "旧文本", "newText": "新文本", "all": true }
+  ]
 }
 \`\`\`
 
 ## 注意事项
-- 行号和列号都是1-based（从1开始）
-- 编辑操作会从后往前应用，避免位置偏移
+- **⚠️ 插入前必须先定位**：插入内容前，**必须**先使用 \`outline-tree\` 工具获取文档大纲，分析结构，确定正确位置。**绝对不要**总是从行1列1插入，这是严重错误！
+- **定位方法**：使用 \`outline-tree\` 工具获取大纲结构（\`includeText: true\`），分析文档内容，计算准确的行号位置
+- **优先使用基于位置的insert**：如果已知插入位置（通过大纲分析得到），使用insert操作最高效，无需查找文本，节省token，避免字符匹配错误
+- **批量插入自动排序**：批量插入时，工具会自动按位置从后往前排序执行，确保位置偏移不会影响后续插入
+- **全局替换**：使用 \`"all": true\` 可以替换文档中所有匹配的文本
+- **批量操作**：一次调用可以在 \`operations\` 数组中包含多个操作（insert、replace、delete、findReplace），工具会从后往前执行避免位置偏移
+- **行号和列号都是1-based**（从1开始），**行号必须大于1**，不要总是使用行1
+- **编辑操作会从后往前应用**，避免位置偏移（insert、replace、delete都会自动排序）
 - 支持Markdown和LaTeX格式
 - 编辑会直接更新文档内容
 - 建议在编辑前保存文档
-- 如果某个编辑操作失败，其他操作仍会继续执行
+- 如果某个编辑操作失败（例如找不到匹配文本、位置超出范围），其他操作仍会继续执行
+- 查找替换如果找不到匹配文本，该操作会失败但不影响其他操作
+- \`tabId\` 参数可选，默认使用当前活动的文档标签页
 `,
   callback: editToolCallback,
   displayComponent: EditDisplay,
@@ -454,41 +1175,77 @@ export const editToolConfig: AgentToolConfig = {
         type: 'array',
         items: {
           type: 'object',
-          properties: {
-            type: {
-              type: 'string',
-              enum: ['insert', 'replace', 'delete']
-            },
-            range: {
+          oneOf: [
+            {
+              // 查找替换操作
               type: 'object',
               properties: {
-                start: {
-                  type: 'object',
-                  properties: {
-                    line: { type: 'number' },
-                    column: { type: 'number' }
-                  }
+                type: {
+                  type: 'string',
+                  enum: ['findReplace']
                 },
-                end: {
+                oldText: {
+                  type: 'string',
+                  description: '要查找的文本'
+                },
+                newText: {
+                  type: 'string',
+                  description: '替换为的文本'
+                },
+                all: {
+                  type: 'boolean',
+                  description: '是否替换所有匹配项（默认false，只替换第一个）'
+                },
+                caseSensitive: {
+                  type: 'boolean',
+                  description: '是否区分大小写（默认false）'
+                }
+              },
+              required: ['type', 'oldText', 'newText']
+            },
+            {
+              // 基于位置的操作
+              type: 'object',
+              properties: {
+                type: {
+                  type: 'string',
+                  enum: ['insert', 'replace', 'delete']
+                },
+                range: {
                   type: 'object',
                   properties: {
-                    line: { type: 'number' },
-                    column: { type: 'number' }
-                  }
+                    start: {
+                      type: 'object',
+                      properties: {
+                        line: { type: 'number' },
+                        column: { type: 'number' }
+                      },
+                      required: ['line', 'column']
+                    },
+                    end: {
+                      type: 'object',
+                      properties: {
+                        line: { type: 'number' },
+                        column: { type: 'number' }
+                      },
+                      required: ['line', 'column']
+                    }
+                  },
+                  required: ['start', 'end']
+                },
+                content: {
+                  type: 'string'
                 }
-              }
-            },
-            content: {
-              type: 'string'
+              },
+              required: ['type', 'range']
             }
-          },
-          required: ['type', 'range']
+          ]
         },
-        description: '编辑操作列表'
+        description: '编辑操作列表，支持查找替换（findReplace）和基于位置的编辑（insert/replace/delete）'
       },
       operation: {
         type: 'object',
-        description: '单个编辑操作（与operations二选一）'
+        description: '单个编辑操作（与operations二选一），支持查找替换和基于位置的编辑'
       },
       tabId: {
         type: 'string',

@@ -36,6 +36,7 @@ export interface EngineExecuteOptions {
     message: string
     data?: unknown
   }) => void
+  onTaskCreated?: (handle: string) => void // AI任务创建时的回调，用于保存handle以便取消
 }
 
 /**
@@ -69,14 +70,27 @@ export abstract class BaseEngineExecutor {
   /**
    * 获取可用工具列表
    */
-  protected getAvailableTools(): Array<{ id: string; name: string; description: string; schema: unknown }> {
+  protected getAvailableTools(): Array<{ id: string; name: string; description: string; schema: unknown; instruction?: string }> {
     const toolIds = agentConfigManager.getAvailableToolIds(this.agentConfig.id)
-    const tools: Array<{ id: string; name: string; description: string; schema: unknown }> = []
+    const tools: Array<{ id: string; name: string; description: string; schema: unknown; instruction?: string }> = []
 
     // 添加普通工具
     for (const toolId of toolIds) {
       const tool = agentToolManager.getTool(toolId)
       if (tool && tool.config.enabled) {
+        // 提取instruction（支持string和ToolLocales格式）
+        let instruction: string | undefined = undefined
+        if (tool.config.instruction) {
+          if (typeof tool.config.instruction === 'string') {
+            instruction = tool.config.instruction
+          } else {
+            // ToolLocales格式，优先使用zh_cn，然后en_us
+            instruction = tool.config.instruction['zh_cn']?.instruction || 
+                         tool.config.instruction['en_us']?.instruction || 
+                         undefined
+          }
+        }
+        
         tools.push({
           id: toolId,
           name: typeof tool.config.name === 'string'
@@ -85,15 +99,30 @@ export abstract class BaseEngineExecutor {
           description: typeof tool.config.description === 'string'
             ? tool.config.description
             : tool.config.description['zh_cn']?.description || tool.config.description['en_us']?.description || '',
-          schema: tool.config.inputSchema || {}
+          schema: tool.config.inputSchema || {},
+          instruction
         })
       }
     }
 
-    // 添加Workflow工具
+    // 添加Workflow工具（如果还没有在第一个循环中添加）
     const workflows = workflowManager.getAllWorkflows()
+    const addedToolIds = new Set(tools.map(t => t.id))
     for (const workflow of workflows) {
-      if (workflow.enabled !== false && toolIds.includes(workflow.id)) {
+      if (workflow.enabled !== false && toolIds.includes(workflow.id) && !addedToolIds.has(workflow.id)) {
+        // 尝试从agentToolManager获取已注册的workflow工具（包含instruction）
+        const registeredWorkflowTool = agentToolManager.getTool(`workflow-${workflow.id}`)
+        let instruction: string | undefined = undefined
+        if (registeredWorkflowTool?.config.instruction) {
+          if (typeof registeredWorkflowTool.config.instruction === 'string') {
+            instruction = registeredWorkflowTool.config.instruction
+          } else {
+            instruction = registeredWorkflowTool.config.instruction['zh_cn']?.instruction || 
+                         registeredWorkflowTool.config.instruction['en_us']?.instruction || 
+                         undefined
+          }
+        }
+        
         tools.push({
           id: workflow.id,
           name: typeof workflow.name === 'string'
@@ -102,7 +131,8 @@ export abstract class BaseEngineExecutor {
           description: typeof workflow.description === 'string'
             ? workflow.description
             : workflow.description['zh_cn']?.description || workflow.description['en_us']?.description || '',
-          schema: workflow.inputSchema || {}
+          schema: workflow.inputSchema || {},
+          instruction
         })
       }
     }
@@ -119,48 +149,238 @@ export abstract class BaseEngineExecutor {
       return ''
     }
 
-    let prompt = '\n\n=== 可用工具 ===\n'
-    prompt += '你可以调用以下工具来完成任务。工具调用格式为JSON，例如：\n'
-    prompt += '```json\n'
-    prompt += '{\n'
-    prompt += '  "tool_calls": [\n'
-    prompt += '    {\n'
-    prompt += '      "tool_id": "tool_name",\n'
-    prompt += '      "parameters": { "param1": "value1" }\n'
-    prompt += '    }\n'
-    prompt += '  ]\n'
-    prompt += '}\n'
+    let prompt = '\n\n=== 工具调用规范 ===\n'
+    prompt += '你可以通过调用工具来完成各种任务。所有工具调用必须使用统一的标记格式。\n\n'
+    
+    prompt += '## 工具调用格式\n'
+    prompt += '当你需要调用工具时，必须使用以下标记格式（不要使用JSON格式）：\n'
+    prompt += '```\n'
+    prompt += '<｜tool▁calls▁begin｜>\n'
+    prompt += '<｜tool▁call▁begin｜>工具ID<｜tool▁sep｜>{"参数名1":"参数值1","参数名2":"参数值2"}<｜tool▁call▁end｜>\n'
+    prompt += '<｜tool▁calls▁end｜>\n'
+    prompt += '```\n\n'
+    
+    prompt += '## 重要规则\n'
+    prompt += '1. **必须使用标记格式**：工具调用必须使用上述标记格式，不要使用JSON代码块或其他格式\n'
+    prompt += '2. **标记必须完整**：必须包含所有开始和结束标记，格式严格遵循上述结构\n'
+    prompt += '3. **工具ID必须准确**：使用工具列表中的确切ID，不能随意修改\n'
+    prompt += '4. **参数必须是JSON字符串**：parameters部分必须是有效的JSON字符串格式\n'
+    prompt += '5. **一次可调用多个工具**：可以在标记块中包含多个工具调用\n'
+    prompt += '6. **不要在标记中混合文本**：标记块应该是独立的，不要在标记中混合其他文本说明\n'
+    prompt += '7. **调用前先确认需求**：仔细分析用户需求，选择最合适的工具，确保参数正确\n\n'
+    
+    prompt += '## 工具调用示例\n'
+    prompt += '示例1 - 调用单个工具：\n'
+    prompt += '```\n'
+    prompt += '<｜tool▁calls▁begin｜>\n'
+    prompt += '<｜tool▁call▁begin｜>chart-generation<｜tool▁sep｜>{"prompt":"生成一个关于数据趋势的折线图","type":"line"}<｜tool▁call▁end｜>\n'
+    prompt += '<｜tool▁calls▁end｜>\n'
+    prompt += '```\n\n'
+    
+    prompt += '示例2 - 调用多个工具：\n'
+    prompt += '```\n'
+    prompt += '<｜tool▁calls▁begin｜>\n'
+    prompt += '<｜tool▁call▁begin｜>outline-tree<｜tool▁sep｜>{"includeText":true}<｜tool▁call▁end｜>\n'
+    prompt += '<｜tool▁call▁begin｜>chart-generation<｜tool▁sep｜>{"prompt":"生成思维导图","type":"mindmap"}<｜tool▁call▁end｜>\n'
+    prompt += '<｜tool▁calls▁end｜>\n'
     prompt += '```\n\n'
 
+    prompt += '=== 可用工具列表 ===\n'
     for (const tool of tools) {
-      prompt += `- ${tool.name} (${tool.id}): ${tool.description}\n`
+      prompt += `\n**${tool.name}** (ID: \`${tool.id}\`)\n`
+      prompt += `${tool.description}\n`
+      
+      // 添加工具的详细使用说明（instruction）
+      if (tool.instruction) {
+        prompt += `\n${tool.instruction}\n`
+      }
+      
       if (tool.schema && typeof tool.schema === 'object') {
         const schema = tool.schema as any
         if (schema.properties) {
-          prompt += `  参数: ${JSON.stringify(Object.keys(schema.properties))}\n`
+          prompt += `\n参数说明：\n`
+          const props = schema.properties
+          const required = schema.required || []
+          for (const [key, value] of Object.entries(props)) {
+            const prop = value as any
+            const isRequired = required.includes(key)
+            prompt += `  - \`${key}\`${isRequired ? ' (必需)' : ' (可选)'}: ${prop.description || '无描述'}\n`
+            if (prop.type) {
+              prompt += `    类型: ${prop.type}\n`
+            }
+            if (prop.enum) {
+              prompt += `    可选值: ${JSON.stringify(prop.enum)}\n`
+            }
+          }
         }
       }
     }
 
-    prompt += '\n如果需要调用工具，请在回复中包含JSON格式的tool_calls。否则直接回复文本。\n'
+    prompt += '\n\n## 调用工具时的注意事项\n'
+    prompt += '- 仔细阅读每个工具的说明和参数要求\n'
+    prompt += '- 确保参数类型正确（字符串、数字、布尔值、对象等）\n'
+    prompt += '- 参数必须是有效的JSON字符串格式\n'
+    prompt += '- 如果工具调用失败，检查参数是否正确，然后重试\n'
+    prompt += '- 工具调用结果会在后续对话中提供，你可以基于结果继续处理\n'
+    prompt += '- 如果不需要调用工具，直接回复文本即可，不要包含工具调用标记\n'
+    prompt += '- **重要**：工具调用时，标记格式中的参数内容不会显示给用户，只会在系统内部处理\n'
 
     return prompt
+  }
+
+  /**
+   * 解析标记格式的工具调用
+   * 格式: <｜tool▁calls▁begin｜><｜tool▁call▁begin｜>tool_id<｜tool▁sep｜>params<｜tool▁call▁end｜><｜tool▁calls▁end｜>
+   * 支持一个或两个开始标记
+   */
+  private parseMarkedToolCalls(content: string): Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null {
+    try {
+      // 匹配工具调用块（支持一个或两个开始标记，使用非贪婪匹配，支持换行）
+      // 注意：必须匹配完整的begin和end标记
+      const markedPattern = /\<｜tool▁calls▁begin｜>([\s\S]*?)\<｜tool▁calls▁end｜>/i
+      const blockMatch = content.match(markedPattern)
+      
+      if (!blockMatch || !blockMatch[1]) {
+        getLogger().debug('[parseMarkedToolCalls] 未找到完整的工具调用块')
+        return null
+      }
+
+      const toolCallsContent = blockMatch[1].trim()
+      getLogger().debug('[parseMarkedToolCalls] 找到工具调用块，内容长度:', toolCallsContent.length)
+      
+      const toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> = []
+
+      // 匹配单个工具调用
+      // 格式: <｜tool▁call▁begin｜>tool_id<｜tool▁sep｜>params<｜tool▁call▁end｜>
+      // 注意：使用[\s\S]*?来匹配包括换行在内的所有字符
+      const toolCallPattern = /\<｜tool▁call▁begin｜>([\s\S]*?)\<｜tool▁sep｜>([\s\S]*?)\<｜tool▁call▁end｜>/gi
+      
+      let match
+      let index = 0
+      while ((match = toolCallPattern.exec(toolCallsContent)) !== null) {
+        const toolId = match[1].trim()
+        let paramsStr = match[2].trim()
+        
+        getLogger().debug(`[parseMarkedToolCalls] 解析工具调用 ${index + 1}: toolId=${toolId}, paramsStr长度=${paramsStr.length}`)
+        
+        // 尝试解析参数JSON
+        let parameters: Record<string, unknown> = {}
+        try {
+          // 先尝试提取JSON字符串（处理可能包含其他文本的情况）
+          const jsonStr = extractOuterJsonString(paramsStr)
+          if (jsonStr) {
+            parameters = JSON.parse(jsonStr)
+            getLogger().debug(`[parseMarkedToolCalls] 成功解析JSON参数:`, parameters)
+          } else {
+            // 如果没有找到JSON，尝试直接解析
+            parameters = JSON.parse(paramsStr)
+            getLogger().debug(`[parseMarkedToolCalls] 直接解析JSON参数:`, parameters)
+          }
+        } catch (e) {
+          getLogger().warn(`[parseMarkedToolCalls] 解析工具调用参数失败 (工具: ${toolId}):`, e, 'paramsStr:', paramsStr.substring(0, 100))
+          // 如果解析失败，使用空对象，至少工具ID是有效的
+        }
+
+        toolCalls.push({
+          id: `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+          tool_id: toolId,
+          parameters
+        })
+        index++
+      }
+
+      getLogger().debug(`[parseMarkedToolCalls] 解析完成，找到 ${toolCalls.length} 个工具调用`)
+      return toolCalls.length > 0 ? toolCalls : null
+    } catch (error) {
+      getLogger().error('[parseMarkedToolCalls] 解析标记格式工具调用失败:', error)
+      return null
+    }
+  }
+
+  /**
+   * 创建工具调用检测回调（统一处理逻辑）
+   * 用于在流式输出过程中检测并处理工具调用标记
+   */
+  protected createToolCallsDetectedHandler(
+    assistantMessage: ChatAgentMessage
+  ): (toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>) => Promise<void> {
+    return async (toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>) => {
+      getLogger().info('[BaseEngineExecutor] ✅✅✅ 工具调用检测回调被触发!', {
+        toolCallsCount: toolCalls.length,
+        toolCalls: toolCalls.map(tc => ({ 
+          id: tc.tool_id, 
+          parameters: tc.parameters 
+        })),
+        messageId: assistantMessage?.id
+      })
+      
+      // 更新assistantMessage，添加tool_calls
+      if (assistantMessage) {
+        const toolCallsArray = toolCalls.map(tc => ({
+          id: tc.id,
+          tool_id: tc.tool_id,
+          parameters: tc.parameters
+        }))
+        
+        Object.defineProperty(assistantMessage, 'tool_calls', {
+          value: toolCallsArray,
+          writable: true,
+          enumerable: true,
+          configurable: true
+        })
+        
+        getLogger().info('[BaseEngineExecutor] 已添加tool_calls到assistantMessage', {
+          messageId: assistantMessage.id,
+          toolCallsCount: toolCallsArray.length,
+          originalMarkdownLength: assistantMessage.markdown?.length || 0
+        })
+        
+        // 从markdown中移除工具调用标记，只保留标记之前的文本
+        if (assistantMessage.markdown) {
+          const originalMarkdown = assistantMessage.markdown
+          let cleanedMarkdown = assistantMessage.markdown
+          // 移除工具调用标记块
+          cleanedMarkdown = cleanedMarkdown.replace(
+            /\<｜tool▁calls▁begin｜>[\s\S]*?\<｜tool▁calls▁end｜>/gi,
+            ''
+          ).trim()
+          assistantMessage.markdown = cleanedMarkdown || ''
+          
+          getLogger().info('[BaseEngineExecutor] 已清理markdown中的工具调用标记', {
+            originalLength: originalMarkdown.length,
+            cleanedLength: cleanedMarkdown.length,
+            removed: originalMarkdown.length - cleanedMarkdown.length
+          })
+        }
+      } else {
+        getLogger().warn('[BaseEngineExecutor] ⚠️ assistantMessage不存在，无法更新')
+      }
+    }
   }
 
   /**
    * 解析工具调用
    * 支持多种格式：
    * 1. JSON格式: { "tool_calls": [...] }
-   * 2. function_call格式: function_call: { name: "...", arguments: "..." }
+   * 2. 代码块JSON格式: ```json { "tool_calls": [...] } ```
+   * 3. 标记格式: <｜tool▁calls▁begin｜><｜tool▁call▁begin｜>tool_id<｜tool▁sep｜>params<｜tool▁call▁end｜><｜tool▁calls▁end｜>
    */
   protected parseToolCalls(content: string): Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null {
     try {
-      // 方法1: 尝试提取JSON（tool_calls格式）
+      // 方法1: 尝试解析标记格式（新格式，优先级较高，因为更明确）
+      const markedResult = this.parseMarkedToolCalls(content)
+      if (markedResult && markedResult.length > 0) {
+        getLogger().debug('成功解析标记格式的工具调用:', markedResult.length)
+        return markedResult
+      }
+
+      // 方法2: 尝试提取JSON（tool_calls格式）
       const jsonStr = extractOuterJsonString(content)
       if (jsonStr) {
         try {
           const parsed = JSON.parse(jsonStr)
           if (parsed.tool_calls && Array.isArray(parsed.tool_calls)) {
+            getLogger().debug('成功解析JSON格式的工具调用:', parsed.tool_calls.length)
             return parsed.tool_calls.map((call: any, index: number) => ({
               id: call.id || `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
               tool_id: call.tool_id || call.toolId || call.id,
@@ -172,12 +392,13 @@ export abstract class BaseEngineExecutor {
         }
       }
 
-      // 方法2: 尝试提取代码块中的JSON
+      // 方法3: 尝试提取代码块中的JSON
       const codeBlockMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/)
       if (codeBlockMatch) {
         try {
           const parsed = JSON.parse(codeBlockMatch[1])
           if (parsed.tool_calls && Array.isArray(parsed.tool_calls)) {
+            getLogger().debug('成功解析代码块格式的工具调用:', parsed.tool_calls.length)
             return parsed.tool_calls.map((call: any, index: number) => ({
               id: call.id || `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
               tool_id: call.tool_id || call.toolId || call.id,
@@ -188,9 +409,6 @@ export abstract class BaseEngineExecutor {
           // 代码块JSON解析失败
         }
       }
-
-      // 方法3: 尝试查找function_call格式（如果LLM返回了function_call）
-      // 这里暂时不支持，需要LLM返回时包含function_call字段
 
       return null
     } catch (error) {
@@ -266,7 +484,9 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
           signal: this.options.signal,
           taskName: `ReAct推理 (${iterations}/${maxIterations})`,
           originKey: `agent-react-${this.session.id}-${Date.now()}-${iterations}`,
-          reactiveMessage: assistantMessage
+          reactiveMessage: assistantMessage,
+          onTaskCreated: this.options.onTaskCreated,
+          onToolCallsDetected: this.createToolCallsDetectedHandler(assistantMessage)
         }
       )
 
@@ -385,7 +605,9 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
             signal: this.options.signal,
             taskName: `ReAct最终回复`,
             originKey: `agent-react-${this.session.id}-${Date.now()}-final`,
-            reactiveMessage: finalMessage
+            reactiveMessage: finalMessage,
+            onTaskCreated: this.options.onTaskCreated,
+            onToolCallsDetected: this.createToolCallsDetectedHandler(finalMessage)
           }
         )
         // 消息已经通过reactiveMessage实时更新，不需要再调用addAssistantMessage
@@ -523,6 +745,10 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
       // 立即添加到消息列表，这样消息气泡就会立即显示
       this.session.messages.push(assistantMessage)
 
+      // 用于跟踪是否在流式输出过程中检测到工具调用
+      let toolCallsDetectedDuringStream = false
+      let detectedToolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null = null
+      
       // 调用LLM - 使用createAiTask而不是直接调用API，传入reactiveMessage实现实时更新
       const response = await LlmAdapter.callChatViaTask(
         llmConfig,
@@ -534,15 +760,32 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           signal: this.options.signal,
           taskName: `Agent思考 (${iterations}/${maxIterations})`,
           originKey: `agent-autogpt-${this.session.id}-${Date.now()}-${iterations}`,
-          reactiveMessage: assistantMessage
+          reactiveMessage: assistantMessage,
+          onTaskCreated: this.options.onTaskCreated,
+          onToolCallsDetected: async (toolCalls) => {
+            // 在流式输出过程中检测到工具调用，立即执行
+            toolCallsDetectedDuringStream = true
+            detectedToolCalls = toolCalls
+            // 使用统一的工具调用处理逻辑
+            await this.createToolCallsDetectedHandler(assistantMessage)(toolCalls)
+          }
         }
       )
 
       // 检查是否有工具调用
-      // 注意：response 可能包含完整的响应，包括文本和 tool_calls JSON
-      // 我们需要从 response 或 assistantMessage.markdown 中提取 tool_calls
-      const responseContent = response || assistantMessage.markdown || ''
-      const toolCalls = this.parseToolCalls(responseContent)
+      // 优先使用流式输出过程中检测到的工具调用
+      // 如果没有，则从响应中解析
+      let toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null = null
+      
+      if (toolCallsDetectedDuringStream && detectedToolCalls) {
+        toolCalls = detectedToolCalls
+        getLogger().debug('[AutoGPT] 使用流式输出过程中检测到的工具调用')
+      } else {
+        // 从响应中解析工具调用（兼容旧逻辑）
+        const responseContent = response || assistantMessage.markdown || ''
+        toolCalls = this.parseToolCalls(responseContent)
+        getLogger().debug('[AutoGPT] 从响应中解析工具调用:', toolCalls ? toolCalls.length : 0)
+      }
 
       if (!toolCalls || toolCalls.length === 0) {
         // 没有工具调用，消息已经通过reactiveMessage实时更新
@@ -730,7 +973,9 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
             signal: this.options.signal,
             taskName: `Agent最终回复`,
             originKey: `agent-autogpt-${this.session.id}-${Date.now()}-final`,
-            reactiveMessage: finalMessage
+            reactiveMessage: finalMessage,
+            onTaskCreated: this.options.onTaskCreated,
+            onToolCallsDetected: this.createToolCallsDetectedHandler(finalMessage)
           }
         )
         // 消息已经通过reactiveMessage实时更新，不需要再调用addAssistantMessage
@@ -788,7 +1033,9 @@ export class SimpleChatEngineExecutor extends BaseEngineExecutor {
         signal: this.options.signal,
         taskName: 'SimpleChat对话',
         originKey: `agent-simplechat-${this.session.id}-${Date.now()}`,
-        reactiveMessage: assistantMessage
+        reactiveMessage: assistantMessage,
+        onTaskCreated: this.options.onTaskCreated,
+        onToolCallsDetected: this.createToolCallsDetectedHandler(assistantMessage)
       }
     )
 
@@ -915,7 +1162,9 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
         signal: this.options.signal,
         taskName: 'PlanExecute总结',
         originKey: `agent-planexecute-${this.session.id}-${Date.now()}-summary`,
-        reactiveMessage: summaryMessage
+        reactiveMessage: summaryMessage,
+        onTaskCreated: this.options.onTaskCreated,
+        onToolCallsDetected: this.createToolCallsDetectedHandler(summaryMessage)
       }
     )
 
@@ -975,7 +1224,9 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
         stream: true,
         signal: this.options.signal,
         taskName: 'Workflow引擎选择',
-        originKey: `agent-workflow-${this.session.id}-${Date.now()}-select`
+        originKey: `agent-workflow-${this.session.id}-${Date.now()}-select`,
+        onTaskCreated: this.options.onTaskCreated,
+        // 注意：这里没有reactiveMessage，所以不需要onToolCallsDetected
       }
     )
 
@@ -1045,6 +1296,18 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
       })
     }
 
+    // 创建响应式消息对象用于实时流式显示
+    const assistantMessage = reactive({
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      role: 'assistant' as const,
+      type: 'chat' as const,
+      timestamp: new Date().toISOString(),
+      markdown: ''
+    }) as ChatAgentMessage
+    
+    // 立即添加到消息列表
+    this.session.messages.push(assistantMessage)
+
     // 调用LLM选择Workflow - 使用createAiTask
     const response = await LlmAdapter.callChatViaTask(
       llmConfig,
@@ -1055,7 +1318,10 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
         stream: true,
         signal: this.options.signal,
         taskName: 'Workflow引擎执行',
-        originKey: `agent-workflow-${this.session.id}-${Date.now()}-execute`
+        originKey: `agent-workflow-${this.session.id}-${Date.now()}-execute`,
+        reactiveMessage: assistantMessage,
+        onTaskCreated: this.options.onTaskCreated,
+        onToolCallsDetected: this.createToolCallsDetectedHandler(assistantMessage)
       }
     )
 
@@ -1123,7 +1389,9 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
                   signal: this.options.signal,
                   taskName: 'Workflow总结',
                   originKey: `agent-workflow-${this.session.id}-${Date.now()}-summary`,
-                  reactiveMessage: summaryMessage
+                  reactiveMessage: summaryMessage,
+                  onTaskCreated: this.options.onTaskCreated,
+                  onToolCallsDetected: this.createToolCallsDetectedHandler(summaryMessage)
                 }
               )
 

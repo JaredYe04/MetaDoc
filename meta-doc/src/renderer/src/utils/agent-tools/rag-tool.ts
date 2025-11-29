@@ -13,6 +13,7 @@ import type {
 import { queryKnowledgeBase } from '../rag_utils'
 import { getSetting } from '../settings'
 import RAGToolDisplay from './components/RAGToolDisplay.vue'
+import { createDetailedError } from './tool-utils'
 
 /**
  * RAG Tool回调函数
@@ -22,7 +23,21 @@ const ragToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   if (!question || typeof question !== 'string') {
     return {
       status: 'failed',
-      error: '缺少必需参数: question'
+      error: createDetailedError(
+        '缺少必需参数: question（要检索的问题或关键词）',
+        [
+          '{"question": "什么是机器学习？"}',
+          '{"question": "API使用方法", "scoreThreshold": 0.7}',
+          '{"question": "文档中的配置说明", "scoreThreshold": 0.5}'
+        ],
+        [
+          'question参数是要在知识库中搜索的问题或关键词',
+          '可以设置scoreThreshold参数（0-1）控制返回结果的相关性阈值',
+          'scoreThreshold值越大，结果越精确但可能更少；值越小，结果越多但可能包含低相关性内容',
+          '如果不设置scoreThreshold，将使用系统默认值（0.5）',
+          '确保知识库功能已在设置中启用'
+        ]
+      )
     }
   }
 
@@ -45,7 +60,18 @@ const ragToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     if (!enabledRag) {
       return {
         status: 'failed',
-        error: '知识库未启用，请在设置中启用知识库功能'
+        error: createDetailedError(
+          '知识库未启用，请在设置中启用知识库功能',
+          [
+            '使用前需要：1. 在设置中启用知识库功能 2. 上传文档到知识库',
+            '启用后可以使用：{"question": "要检索的问题"}'
+          ],
+          [
+            'RAG工具需要先启用知识库功能才能使用',
+            '在设置中找到"启用知识库"选项并开启',
+            '然后上传文档到知识库，即可使用RAG检索功能'
+          ]
+        )
       }
     }
 
@@ -61,7 +87,18 @@ const ragToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       if (isNaN(scoreThreshold) || scoreThreshold < 0 || scoreThreshold > 1) {
         return {
           status: 'failed',
-          error: '相似度阈值必须是0到1之间的数字'
+          error: createDetailedError(
+            '相似度阈值必须是0到1之间的数字',
+            [
+              '{"question": "问题", "scoreThreshold": 0.5}  // 正确：0.5在0-1之间',
+              '{"question": "问题", "scoreThreshold": 0.7}  // 正确：0.7在0-1之间'
+            ],
+            [
+              'scoreThreshold必须是0到1之间的数字',
+              '推荐值：0.3-0.5（获取更多结果）或0.7-0.9（高精度结果）',
+              '如果不设置，将使用系统默认值0.5'
+            ]
+          )
         }
       }
     } else {
@@ -128,7 +165,19 @@ const ragToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     const errorMessage = error instanceof Error ? error.message : String(error)
     return {
       status: 'failed',
-      error: `RAG检索失败: ${errorMessage}`
+      error: createDetailedError(
+        `RAG检索失败: ${errorMessage}`,
+        [
+          '{"question": "要检索的问题"}',
+          '确保知识库已启用并且有文档上传'
+        ],
+        [
+          '检查知识库功能是否已启用',
+          '确保知识库中已有上传的文档',
+          '检查网络连接和知识库服务是否正常',
+          '可以尝试降低scoreThreshold获取更多结果'
+        ]
+      )
     }
   }
 }

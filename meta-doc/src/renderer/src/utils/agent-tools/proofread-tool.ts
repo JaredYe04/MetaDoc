@@ -20,7 +20,7 @@ import localIpcRenderer from '../web-adapter/local-ipc-renderer'
 import { webMainCalls } from '../web-adapter/web-main-calls'
 import axios from 'axios'
 import ProofreadDisplay from './components/ProofreadDisplay.vue'
-import { cleanJsonString, parseJsonWithClean } from './tool-utils'
+import { cleanJsonString, parseJsonWithClean, createDetailedError } from './tool-utils'
 import { extractOuterJsonString } from '../regex-utils'
 
 const logger = createRendererLogger('ProofreadTool')
@@ -384,14 +384,38 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
     // 兼容旧格式：如果没有text字段，尝试从其他字段获取
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.proofread.error.missingText', '缺少必需参数: text')
+      error: createDetailedError(
+        '缺少必需参数: text（要校对的文本或文件路径或URL）',
+        [
+          '{"text": "要校对的文本内容", "source": "text", "format": "markdown"}',
+          '{"text": "/path/to/file.md", "source": "file", "format": "markdown"}',
+          '{"text": "https://example.com/doc.md", "source": "url", "format": "markdown"}'
+        ],
+        [
+          'source参数可选值："text"（直接文本，默认）、"file"（文件路径）、"url"（URL地址）',
+          'format参数可选值："text"（纯文本，默认）、"markdown"（Markdown）、"latex"（LaTeX）',
+          '可以直接传入文本内容，也可以传入文件路径或URL自动加载'
+        ]
+      )
     }
   }
 
   if (!text || text.trim().length === 0) {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.proofread.error.missingText', '缺少必需参数: text')
+      error: createDetailedError(
+        'text参数不能为空',
+        [
+          '{"text": "要校对的文本内容", "source": "text"}',
+          '{"text": "/path/to/file.md", "source": "file"}',
+          '{"text": "https://example.com/doc.md", "source": "url"}'
+        ],
+        [
+          '可以直接传入文本内容进行校对',
+          '也可以传入文件路径或URL，工具会自动加载内容',
+          '支持Markdown、LaTeX和纯文本格式的校对'
+        ]
+      )
     }
   }
 

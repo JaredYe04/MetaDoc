@@ -16,6 +16,7 @@ import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
 import tinycolor from 'tinycolor2'
 import ColorDisplay from './components/ColorDisplay.vue'
+import { createDetailedError } from './tool-utils'
 
 const logger = createRendererLogger('ColorTool')
 
@@ -107,7 +108,22 @@ const colorToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   if (!operation || !color1) {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.color.error.missingParams', '缺少必需参数: operation 和 color1')
+      error: createDetailedError(
+        '缺少必需参数: operation 和 color1',
+        [
+          '{"operation": "brightness", "color1": "#ff0000", "amount": 0.2}',
+          '{"operation": "mix", "color1": "#ff0000", "color2": "#0000ff", "weight": 0.5}',
+          '{"operation": "convert", "color1": "#ff0000", "format": "rgb"}',
+          '{"operation": "analyze", "color1": "#ff0000"}'
+        ],
+        [
+          '支持的操作：brightness（亮度）、contrast（对比度）、mix（混合）、complementary（互补色）、convert（转换格式）、analyze（分析）',
+          'mix操作需要color2参数',
+          '可以设置weight参数（0-1）控制混合比例，默认为0.5',
+          '可以设置amount参数（-1到1）控制亮度/对比度调整幅度，默认0.2',
+          '支持的颜色格式：hex（#ff0000）、rgb、hsl等'
+        ]
+      )
     }
   }
 
@@ -130,7 +146,21 @@ const colorToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     if (!color.isValid()) {
       return {
         status: 'failed',
-        error: i18n.global.t('agent.tool.color.error.invalidColor', '无效的颜色格式')
+        error: createDetailedError(
+          '无效的颜色格式',
+          [
+            '{"operation": "brightness", "color1": "#ff0000"}  // 使用hex格式',
+            '{"operation": "brightness", "color1": "rgb(255, 0, 0)"}  // 使用rgb格式',
+            '{"operation": "brightness", "color1": "hsl(0, 100%, 50%)"}  // 使用hsl格式',
+            '{"operation": "brightness", "color1": "red"}  // 使用颜色名称'
+          ],
+          [
+            '支持的颜色格式：hex（#ff0000）、rgb（rgb(255,0,0)）、hsl（hsl(0,100%,50%)）、颜色名称（red, blue等）',
+            '确保颜色值格式正确且有效',
+            'hex格式必须以#开头，如#ff0000或#f00',
+            'rgb格式：rgb(255, 0, 0)或rgba(255, 0, 0, 1)'
+          ]
+        )
       }
     }
 
@@ -139,7 +169,19 @@ const colorToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         if (!color2) {
           return {
             status: 'failed',
-            error: i18n.global.t('agent.tool.color.error.missingColor2', 'mix操作需要color2参数')
+            error: createDetailedError(
+              'mix操作需要color2参数（第二个颜色）',
+              [
+                '{"operation": "mix", "color1": "#ff0000", "color2": "#0000ff"}',
+                '{"operation": "mix", "color1": "#ff0000", "color2": "#0000ff", "weight": 0.7}  // 权重0.7表示color1占70%'
+              ],
+              [
+                'mix操作需要两个颜色参数：color1和color2',
+                '可以设置weight参数（0-1）控制混合比例：0表示完全使用color2，1表示完全使用color1',
+                'weight默认为0.5，表示各占50%',
+                'weight值越大，color1占比越高'
+              ]
+            )
           }
         }
         result = mixColors(color1, color2, weight)
@@ -203,7 +245,23 @@ const colorToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       default:
         return {
           status: 'failed',
-          error: i18n.global.t('agent.tool.color.error.unknownOperation', `未知的操作类型: ${operation}`)
+          error: createDetailedError(
+            `未知的操作类型: ${operation}`,
+            [
+              '{"operation": "brightness", "color1": "#ff0000"}  // 调整亮度',
+              '{"operation": "contrast", "color1": "#ff0000"}  // 调整对比度',
+              '{"operation": "mix", "color1": "#ff0000", "color2": "#0000ff"}  // 混合颜色',
+              '{"operation": "complementary", "color1": "#ff0000"}  // 获取互补色',
+              '{"operation": "convert", "color1": "#ff0000", "format": "rgb"}  // 转换格式',
+              '{"operation": "analyze", "color1": "#ff0000"}  // 分析颜色信息'
+            ],
+            [
+              '支持的操作类型：brightness（亮度）、contrast（对比度）、mix（混合）、complementary（互补色）、convert（转换格式）、analyze（分析）',
+              'brightness和contrast可以使用amount参数（-1到1）控制调整幅度',
+              'mix需要color2参数和可选的weight参数（0-1）',
+              'convert可以设置format参数：hex、rgb、hsl'
+            ]
+          )
         }
     }
 
@@ -244,7 +302,20 @@ const colorToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     logger.error('颜色处理失败:', error)
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.color.error.failed', { error: errorMessage }, `颜色处理失败: ${errorMessage}`)
+      error: createDetailedError(
+        `颜色处理失败: ${errorMessage}`,
+        [
+          '{"operation": "brightness", "color1": "#ff0000"}',
+          '{"operation": "mix", "color1": "#ff0000", "color2": "#0000ff"}',
+          '确保颜色格式正确，如：#ff0000、rgb(255,0,0)等'
+        ],
+        [
+          '检查颜色格式是否正确（hex、rgb、hsl等）',
+          '确保操作类型正确（brightness、contrast、mix、complementary、convert、analyze）',
+          'mix操作需要color2参数',
+          'amount和weight参数应该是数字类型'
+        ]
+      )
     }
   }
 }

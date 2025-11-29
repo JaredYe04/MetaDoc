@@ -725,6 +725,7 @@ const referenceSession = ref<AgentSession | null>(null);
 const selectedEngineId = ref<string>('default-autogpt-engine');
 const availableEngines = ref(agentEngineManager.getEnabledEngines());
 const currentAiTaskHandle = ref<string | null>(null);
+const aiTaskHandles = ref<Set<string>>(new Set()); // 保存所有AI任务的handle
 const isGenerating = ref(false);
 const showEditMessageDialog = ref(false);
 const editingMessage = ref<ChatAgentMessage | null>(null);
@@ -1085,7 +1086,7 @@ const handleComposerSubmit = async () => {
         assistantMessageRef,
         (newValue) => {
           watchTriggerCount++;
-          logger.debug(`[handleComposerSubmit] watch触发 #${watchTriggerCount}, newValue长度: ${newValue.length}, 内容前50字符: "${newValue.substring(0, 50)}..."`);
+          // logger.debug(`[handleComposerSubmit] watch触发 #${watchTriggerCount}, newValue长度: ${newValue.length}, 内容前50字符: "${newValue.substring(0, 50)}..."`);
           
           // 直接更新reactive对象的markdown属性，Vue会自动追踪变化
           const oldMarkdown = assistantMessage.markdown;
@@ -1196,12 +1197,45 @@ const executeAgentEngine = async (
         // persistSessions();
         await nextTick();
         
-        // 创建watch，实时更新消息内容
+        // 创建watch，实时更新消息内容，同时截断工具调用标记内容
         stopWatcher = watch(
           assistantMessageRef,
           (newValue) => {
             if (assistantMessage) {
-              assistantMessage.markdown = newValue;
+              // 清理工具调用标记，不显示参数给用户
+              let cleanedValue = newValue;
+              
+              // 如果检测到工具调用标记开始，截断内容
+              const toolCallsBeginPattern = /\<｜tool▁calls▁begin｜>/i;
+              const toolCallsBeginMatch = cleanedValue.match(toolCallsBeginPattern);
+              
+              if (toolCallsBeginMatch) {
+                // 找到工具调用标记开始的位置
+                const beginIndex = toolCallsBeginMatch.index!;
+                const beginMark = toolCallsBeginMatch[0];
+                
+                // 检查是否有结束标记
+                const toolCallsEndPattern = /\<｜tool▁calls▁end｜>/i;
+                const toolCallsEndMatch = cleanedValue.match(toolCallsEndPattern);
+                
+                // 提取标记之前的文本
+                const beforeText = cleanedValue.substring(0, beginIndex).trim();
+                
+                if (toolCallsEndMatch) {
+                  // 如果已经有结束标记，移除整个标记块，恢复正常显示后续文本
+                  const endIndex = toolCallsEndMatch.index! + toolCallsEndMatch[0].length;
+                  // 提取标记之后的文本（如果有）
+                  const afterText = cleanedValue.substring(endIndex).trim();
+                  // 只显示标记前和标记后的文本，不显示标记本身
+                  cleanedValue = [beforeText, afterText].filter(Boolean).join('\n\n');
+                } else {
+                  // 如果还没有结束标记，截断内容，只显示标记之前的文本
+                  // 不显示"正在调用工具..."，因为这会干扰用户
+                  cleanedValue = beforeText || '';
+                }
+              }
+              
+              assistantMessage.markdown = cleanedValue;
               nextTick(() => {
                 const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap');
                 if (container) {
@@ -1268,15 +1302,30 @@ const executeAgentEngine = async (
       );
       
       currentAiTaskHandle.value = handle;
+      aiTaskHandles.value.add(handle);
       logger.debug(`[executeAgentEngine] AI任务已创建，handle: ${handle}, 开始等待流式输出`);
 
       await done;
       logger.debug('[executeAgentEngine] AI任务完成');
       
-      // 任务完成后，确保消息内容是最新的
+      // 任务完成后，清理工具调用标记，确保消息内容是最新的
       if (assistantMessage && assistantMessageRef) {
-        assistantMessage.markdown = assistantMessageRef.value;
-        logger.debug(`[executeAgentEngine] 任务完成，最终消息长度: ${assistantMessageRef.value.length}`);
+        let finalContent = assistantMessageRef.value;
+        
+        // 清理工具调用标记，移除标记之间的内容
+        const toolCallsBeginPattern = /\<｜tool▁calls▁begin｜>/i;
+        const toolCallsEndPattern = /\<｜tool▁calls▁end｜>/i;
+        
+        if (toolCallsBeginPattern.test(finalContent)) {
+          // 找到所有工具调用标记块并移除
+          finalContent = finalContent.replace(
+            /\<｜tool▁calls▁begin｜>[\s\S]*?\<｜tool▁calls▁end｜>/gi,
+            ''
+          ).trim();
+        }
+        
+        assistantMessage.markdown = finalContent;
+        logger.debug(`[executeAgentEngine] 任务完成，最终消息长度: ${finalContent.length}`);
       }
       
       session.status = 'idle';
@@ -1321,6 +1370,10 @@ const executeAgentEngine = async (
       if (stopWatcher) {
         stopWatcher();
       }
+      // 清理handle
+      if (currentAiTaskHandle.value) {
+        aiTaskHandles.value.delete(currentAiTaskHandle.value);
+      }
       currentAiTaskHandle.value = null;
       isGenerating.value = false;
       workspace.unlockUI?.();
@@ -1338,6 +1391,10 @@ const executeAgentEngine = async (
           onProgress: (progress) => {
             session.status = progress.stage as any;
             persistSessions();
+          },
+          onTaskCreated: (handle: string) => {
+            // 保存所有AI任务的handle，以便取消
+            aiTaskHandles.value.add(handle);
           }
         }
       );
@@ -1366,6 +1423,10 @@ const executeAgentEngine = async (
       
       throw error;
     } finally {
+      // 清理handle
+      if (currentAiTaskHandle.value) {
+        aiTaskHandles.value.delete(currentAiTaskHandle.value);
+      }
       currentAiTaskHandle.value = null;
       isGenerating.value = false;
       workspace.unlockUI?.();
@@ -1378,10 +1439,21 @@ const handleComposerReset = () => {
 };
 
 const handleCancelGeneration = () => {
+  // 取消所有由Agent发起的AI任务
+  if (aiTaskHandles.value.size > 0) {
+    const handlesToCancel = Array.from(aiTaskHandles.value);
+    handlesToCancel.forEach(handle => {
+      cancelAiTask(handle, false);
+    });
+    aiTaskHandles.value.clear();
+  }
+  
+  // 同时取消当前任务（如果有）
   if (currentAiTaskHandle.value) {
     cancelAiTask(currentAiTaskHandle.value, false);
     currentAiTaskHandle.value = null;
   }
+  
   isGenerating.value = false;
   workspace.unlockUI?.();
   

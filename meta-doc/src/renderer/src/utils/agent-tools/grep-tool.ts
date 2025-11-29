@@ -18,6 +18,7 @@ import type { ArticleMetaData } from '../../../../types'
 import GrepDisplay from './components/GrepDisplay.vue'
 import { getActiveDocumentInfoViaBroadcast } from './document-broadcast-helper'
 import { getWindowType } from '../event-bus'
+import { createDetailedError } from './tool-utils'
 
 const logger = createRendererLogger('GrepTool')
 const workspace = useWorkspace()
@@ -183,7 +184,20 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   if (!pattern || typeof pattern !== 'string') {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.grep.error.missingPattern', '缺少必需参数: pattern')
+      error: createDetailedError(
+        '缺少必需参数: pattern（搜索模式）',
+        [
+          '{"pattern": "搜索文本", "isRegex": false}',
+          '{"pattern": "\\d+", "isRegex": true}  // 正则表达式搜索',
+          '{"pattern": "关键词", "scope": ["document", "metadata"], "contextLines": 3}'
+        ],
+        [
+          '支持普通文本搜索和正则表达式搜索（设置isRegex: true）',
+          '可以通过scope指定搜索范围：["document"]（文档）或["metadata"]（元数据）',
+          '可以设置contextLines参数控制返回的上下文行数',
+          '支持在文档和元数据中同时搜索'
+        ]
+      )
     }
   }
 
@@ -213,7 +227,17 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       if (!docInfo) {
         return {
           status: 'failed',
-          error: i18n.global.t('agent.tool.grep.error.noActiveTab', '没有活动的文档标签页')
+          error: createDetailedError(
+            '没有活动的文档标签页',
+            [
+              '请先打开一个文档，然后再执行搜索操作',
+              '或者指定tabId参数：{"pattern": "搜索文本", "tabId": "文档ID"}'
+            ],
+            [
+              'grep工具可以在文档内容和元数据中搜索文本',
+              '支持正则表达式搜索，设置isRegex: true'
+            ]
+          )
         }
       }
       doc = {
@@ -230,14 +254,34 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       if (!targetTabId) {
         return {
           status: 'failed',
-          error: i18n.global.t('agent.tool.grep.error.noActiveTab', '没有活动的文档标签页')
+          error: createDetailedError(
+            '没有活动的文档标签页',
+            [
+              '请先打开一个文档，然后再执行搜索操作',
+              '或者指定tabId参数：{"pattern": "搜索文本", "tabId": "文档ID"}'
+            ],
+            [
+              'grep工具可以在文档内容和元数据中搜索文本',
+              '支持正则表达式搜索，设置isRegex: true'
+            ]
+          )
         }
       }
       doc = workspace.ensureDocument(targetTabId)
       if (!doc) {
         return {
           status: 'failed',
-          error: i18n.global.t('agent.tool.grep.error.documentNotFound', '文档不存在')
+          error: createDetailedError(
+            '文档不存在',
+            [
+              '请确认文档已正确打开',
+              '检查tabId参数是否正确：{"pattern": "搜索文本", "tabId": "正确的文档ID"}'
+            ],
+            [
+              '可以通过tabId参数指定要搜索的文档',
+              '如果未指定tabId，将使用当前活动的文档'
+            ]
+          )
         }
       }
     }
@@ -376,13 +420,26 @@ export const grepToolConfig: AgentToolConfig = {
 # 文本搜索工具
 
 ## 功能描述
-在当前活动文档和metadata中搜索文本或正则表达式，返回所有匹配项及其上下文（前置和后置文本）。
+在当前活动文档和metadata中搜索文本或正则表达式，返回所有匹配项及其上下文（前置和后置文本）。这是一个**高效、轻量级的查询工具**，可以频繁调用，帮助快速定位文档内容。
+
+## ⭐ 推荐频繁使用
+
+此工具设计为轻量级、高效的查询工具，**建议频繁调用**以：
+- **快速定位内容**：查找特定文本在文档中的位置
+- **了解上下文**：不仅找到匹配项，还能看到其周围的上下文
+- **辅助编辑决策**：在插入、替换内容前，先搜索了解文档结构
+- **验证内容存在性**：检查某个概念、术语是否已在文档中出现
+
+**使用示例**：在插入内容前，可以先搜索相关内容的位置，根据匹配结果和上下文确定插入位置。
 
 ## 使用场景
 - 查找文档中的特定内容
 - 搜索关键词
 - 使用正则表达式进行复杂搜索
 - 在metadata中查找信息
+- **定位插入位置**：搜索关键词，根据匹配位置和上下文确定插入点
+- **验证内容**：检查某个内容是否已存在
+- **快速了解文档结构**：通过搜索关键术语了解文档内容分布
 
 ## 输入格式
 \`\`\`json
@@ -416,11 +473,13 @@ export const grepToolConfig: AgentToolConfig = {
 \`\`\`
 
 ## 注意事项
+- **鼓励频繁使用**：这是一个轻量级工具，可以随时调用，无需担心性能问题
 - 支持纯文本搜索和正则表达式搜索
-- 返回每个匹配的行号、列号和上下文
+- 返回每个匹配的行号、列号和上下文，便于定位和了解周围内容
 - 可以指定搜索范围：仅文档、仅metadata或两者
-- 上下文行数可以自定义（默认3行）
+- 上下文行数可以自定义（默认3行），帮助理解匹配项在文档中的位置
 - 正则表达式使用JavaScript RegExp语法
+- **定位插入位置的好方法**：可以搜索关键词，根据匹配位置确定插入点，比总是从行1列1插入更准确
 `,
   callback: grepToolCallback,
   displayComponent: GrepDisplay,

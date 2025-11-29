@@ -172,11 +172,33 @@ const messageMarkdown = computed(() => {
     if (hasToolCalls.value) {
       return ''
     }
-    // 直接返回消息的markdown（如果是响应式对象，会自动响应变化）
-    // 参考AIChat.vue：MessageBubble直接读取message.content，因为placeholder是reactive的
-    // 在AgentView中，assistantMessage也是reactive的，所以markdown的变化会触发UI更新
-    // 关键：直接访问props.message.markdown，Vue会自动追踪reactive对象属性的变化
-    return props.message.markdown || ''
+    
+    let content = props.message.markdown || '';
+    
+    // 清理工具调用标记，确保不显示给用户
+    {
+      const toolCallsBeginPattern = /\<｜tool▁calls▁begin｜>/i;
+      if (toolCallsBeginPattern.test(content)) {
+        // 移除工具调用标记块
+        content = content.replace(
+          /\<｜tool▁calls▁begin｜>[\s\S]*?\<｜tool▁calls▁end｜>/gi,
+          ''
+        ).trim();
+      }
+    }
+    {
+      const toolCallsBeginPattern = /\<｜tools▁call▁begin｜>/i;
+      if (toolCallsBeginPattern.test(content)) {
+        // 移除工具调用标记块
+        content = content.replace(
+          /\<｜tools▁call▁begin｜>[\s\S]*?<｜tools▁call▁end｜>/gi,
+          ''
+        ).trim();
+      }
+    }
+
+    
+    return content;
   }
   return ''
 })

@@ -192,14 +192,6 @@
                 :current-row-key="activeTool?.id"
                 style="width: 100%; table-layout: fixed;"
               >
-                <el-table-column type="selection" width="50">
-                  <template #default="{ row }">
-                    <el-checkbox
-                      :model-value="activeSession?.activeToolIds.includes(row.id)"
-                      disabled
-                    />
-                  </template>
-                </el-table-column>
                 <el-table-column
                   :label="t('agent.tools.name')"
                   prop="name"
@@ -226,45 +218,38 @@
               </el-table>
             </el-scrollbar>
           </el-card>
-          <el-card
-            class="tool-panel tool-detail-panel"
-            shadow="never"
-            :style="panelStyle"
-            :body-style="{ padding: '0', height: '100%', overflow: 'hidden' }"
-          >
-            <el-scrollbar class="tool-detail-scroll" :wrap-style="{ overflowX: 'hidden' }">
-              <div v-if="activeTool" class="tool-detail" :style="detailStyle">
-                <h3>{{ activeTool.name }}</h3>
-                <p>{{ activeTool.description }}</p>
-                <el-descriptions :column="1" size="small" border>
-                  <el-descriptions-item :label="t('agent.tools.detail.origin')">
-                    <el-tag size="small">{{ originLabel(activeTool.origin as ToolOrigin) }}</el-tag>
-                  </el-descriptions-item>
-                  <el-descriptions-item :label="t('agent.tools.detail.status')">
-                    <el-tag v-if="activeTool.running" type="warning" size="small">
-                      {{ t('agent.tool.status.running') }}
+          <el-scrollbar class="tool-detail-scroll" :wrap-style="{ overflowX: 'hidden' }">
+            <div v-if="activeTool" class="tool-detail" :style="detailStyle">
+              <h3>{{ activeTool.name }}</h3>
+              <p>{{ activeTool.description }}</p>
+              <el-descriptions :column="1" size="small" border>
+                <el-descriptions-item :label="t('agent.tools.detail.origin')">
+                  <el-tag size="small">{{ originLabel(activeTool.origin as ToolOrigin) }}</el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item :label="t('agent.tools.detail.status')">
+                  <el-tag v-if="activeTool.running" type="warning" size="small">
+                    {{ t('agent.tool.status.running') }}
+                  </el-tag>
+                  <el-tag v-else size="small" type="success">
+                    {{ t('agent.tools.detail.idle') }}
+                  </el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item :label="t('agent.tools.detail.lastUsed')">
+                  {{ activeTool.lastUsed ? formatRelativeTime(activeTool.lastUsed) : t('agent.tools.detail.never') }}
+                </el-descriptions-item>
+                <el-descriptions-item :label="t('agent.tools.detail.tags')" v-if="activeTool.tags?.length">
+                  <div class="tag-group">
+                    <el-tag v-for="tag in activeTool.tags" :key="tag" size="small" effect="dark">
+                      {{ tag }}
                     </el-tag>
-                    <el-tag v-else size="small" type="success">
-                      {{ t('agent.tools.detail.idle') }}
-                    </el-tag>
-                  </el-descriptions-item>
-                  <el-descriptions-item :label="t('agent.tools.detail.lastUsed')">
-                    {{ activeTool.lastUsed ? formatRelativeTime(activeTool.lastUsed) : t('agent.tools.detail.never') }}
-                  </el-descriptions-item>
-                  <el-descriptions-item :label="t('agent.tools.detail.tags')" v-if="activeTool.tags?.length">
-                    <div class="tag-group">
-                      <el-tag v-for="tag in activeTool.tags" :key="tag" size="small" effect="dark">
-                        {{ tag }}
-                      </el-tag>
-                    </div>
-                  </el-descriptions-item>
-                </el-descriptions>
-              </div>
-              <div v-else class="tool-detail placeholder" :style="detailStyle">
-                <el-empty :description="t('agent.tools.detail.placeholder')" />
-              </div>
-            </el-scrollbar>
-          </el-card>
+                  </div>
+                </el-descriptions-item>
+              </el-descriptions>
+            </div>
+            <div v-else class="tool-detail placeholder" :style="detailStyle">
+              <el-empty :description="t('agent.tools.detail.placeholder')" />
+            </div>
+          </el-scrollbar>
         </div>
       </section>
     </div>
@@ -286,17 +271,18 @@
             :loading="false"
             :show-thumbnail="false"
             :show-actions="false"
-            :get-item-id="(item) => item.id"
-            :get-item-title="(item) => typeof item.name === 'string' ? item.name : item.name['zh_cn']?.name || item.id"
+            :get-item-id="(item) => item.id || ''"
+            :get-item-title="(item) => typeof item.name === 'string' ? item.name : item.name['zh_cn']?.name || item.id || ''"
             :get-item-description="(item) => typeof item.description === 'string' ? item.description : item.description['zh_cn']?.description || ''"
             :get-item-meta="(item) => [
-              t('agent.manage.agentConfig.toolCount') + ': ' + agentConfigManager.getAvailableToolIds(item.id).length,
+              t('agent.manage.agentConfig.toolCount') + ': ' + agentConfigManager.getAvailableToolIds(item.id || '').length,
               item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
             ]"
             :get-badge="(item) => item.id === 'default-agent-config' ? t('agent.manage.agentConfig.default') : null"
             :is-selected="(item) => item.id === selectedAgentConfigId"
             :is-disabled="() => false"
             @item-click="handleSelectAgentConfig"
+            @item-double-click="handleDoubleClickAgentConfig"
           />
         </div>
       </div>
@@ -370,7 +356,7 @@ import { Plus, More, Setting } from '@element-plus/icons-vue';
 import { themeState } from '../utils/themes';
 import AgentMessageRenderer from '../components/agent/AgentMessageRenderer.vue';
 import ChatComposer from '../components/chat/ChatComposer.vue';
-import type { AgentSession, AgentTool, ChatAgentMessage, ToolOrigin } from '../types/agent';
+import type { AgentMessage, AgentSession, AgentTool, ChatAgentMessage, ToolOrigin } from '../types/agent';
 import { cloneDeep } from 'lodash';
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
 import { useWorkspace } from '../stores/workspace';
@@ -1351,10 +1337,9 @@ const executeAgentEngine = async (
       if (assistantMessage && assistantMessageRef && assistantMessageRef.value) {
         assistantMessage.markdown = assistantMessageRef.value;
         persistSessions();
-      } else if (assistantMessage) {
+      } else if (assistantMessage && assistantMessage.id) {
         // 移除空的响应式消息
-        if (!assistantMessage) return;
-        const messageIndex = session.messages.findIndex(m => m.id === assistantMessage.id);
+        const messageIndex = session.messages.findIndex(m => m.id === assistantMessage!.id);
         if (messageIndex !== -1) {
           session.messages.splice(messageIndex, 1);
           persistSessions();
@@ -1753,6 +1738,12 @@ const handleSelectAgentConfig = (config: any) => {
   selectedAgentConfigId.value = config.id;
 };
 
+const handleDoubleClickAgentConfig = (config: any) => {
+  selectedAgentConfigId.value = config.id;
+  // 双击时直接创建会话
+  createSession(config.id);
+};
+
 // 消息操作方法
 const handleMessageEdit = (message: AgentMessage) => {
   if (message.role !== 'user' || message.type !== 'chat') {
@@ -1944,6 +1935,10 @@ onBeforeUnmount(() => {
   min-height: 0;
   padding: 0 16px 16px;
   box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .pane-header {
@@ -1972,6 +1967,11 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
@@ -2187,6 +2187,11 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .tool-header-title {
@@ -2206,26 +2211,41 @@ onBeforeUnmount(() => {
   flex: 1;
   min-height: 0;
   gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .tool-panel {
   flex: 1;
   min-height: 0;
-  
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .tool-panel :deep(.el-card__body) {
   display: flex;
   flex: 1;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .tool-list-scroll,
 .tool-detail-scroll {
   flex: 1;
   min-height: 0;
+  width: 100%;
 }
 
 .tool-list-scroll :deep(.el-scrollbar__wrap),
@@ -2235,30 +2255,79 @@ onBeforeUnmount(() => {
 
 .tool-list-panel :deep(.el-table) {
   width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   table-layout: fixed;
+  box-sizing: border-box;
+}
+
+.tool-list-panel :deep(.el-table__inner-wrapper) {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+  overflow-x: auto;
+}
+
+.tool-list-panel :deep(.el-table__body-wrapper) {
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
 .tool-detail-scroll :deep(.el-scrollbar__view) {
-  padding: 14px;
+  padding: 0;
   box-sizing: border-box;
+  height: 100%;
 }
 
 .tool-detail {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 100%;
   border-radius: 12px;
   border: 1px solid;
   padding: 14px;
+  box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: auto;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .tool-detail :deep(.el-descriptions__body) {
   background-color: transparent;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.tool-detail :deep(.el-descriptions) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.tool-detail :deep(.el-descriptions__table) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  table-layout: auto;
+}
+
+/* 确保工具详情内部的所有容器元素都不会溢出 */
+.tool-detail :deep(div),
+.tool-detail :deep(p),
+.tool-detail :deep(span) {
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .tool-detail.placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 200px;
 }
 
 .tag-group {
@@ -2267,20 +2336,28 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
 }
 
-.tool-detail :deep(.el-descriptions__body) {
-  background-color: transparent;
-}
-
+/* 在较小屏幕上，稍微缩小面板宽度，但始终保持左中右布局 */
 @media (max-width: 1440px) {
   .agent-view {
     grid-template-columns: 240px 1fr 320px;
   }
 }
 
+/* 在更小屏幕上，进一步缩小面板宽度，但仍然保持左中右布局 */
 @media (max-width: 1200px) {
   .agent-view {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(220px, auto) 1fr minmax(280px, auto);
+    grid-template-columns: 200px 1fr 280px;
+    gap: 12px;
+    padding: 0 12px 12px;
+  }
+}
+
+/* 在极小屏幕上，继续缩小但保持左中右布局 */
+@media (max-width: 900px) {
+  .agent-view {
+    grid-template-columns: 180px 1fr 240px;
+    gap: 8px;
+    padding: 0 8px 8px;
   }
 }
 </style>

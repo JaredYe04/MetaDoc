@@ -1,12 +1,16 @@
 <template>
   <div :class="['agent-message', alignmentClass]">
-    <!-- AI/Assistant消息：头像在左边 -->
+    <!-- AI/Assistant/Tool消息：头像在左边 -->
     <div v-if="message.role !== 'user'" class="agent-message__avatar agent-message__avatar--left">
-      <img 
+      <el-avatar 
         v-if="message.role === 'assistant'"
         :src="themeState.currentTheme.AiLogo" 
-        alt="AI"
-        class="avatar-img"
+        class="avatar-with-mask"
+      />
+      <el-avatar 
+        v-else-if="message.type === 'tool'"
+        :src="themeState.currentTheme.ToolLogo" 
+        class="avatar-with-mask"
       />
       <el-avatar v-else :icon="Avatar" class="avatar-fallback" />
     </div>
@@ -70,11 +74,30 @@
       </transition>
 
       <!-- Tool结果 -->
-      <component
-        v-if="message.type === 'tool'"
-        :is="AgentToolResultCard"
-        :message="message"
-      />
+      <div v-if="message.type === 'tool'" class="tool-message-wrapper">
+        <el-collapse 
+          v-model="toolMessageCollapseActive"
+          class="tool-message-collapse"
+        >
+          <el-collapse-item :name="message.id">
+            <template #title>
+              <div class="tool-message-header-preview">
+                <span class="tool-message-title">{{ (message as ToolAgentMessage).tool.name }}</span>
+                <el-tag size="small" :type="getToolStatusTagType((message as ToolAgentMessage).status)">
+                  {{ getToolStatusLabel((message as ToolAgentMessage).status) }}
+                </el-tag>
+                <small class="tool-message-timestamp">{{ formatTimestamp((message as ToolAgentMessage).timestamp) }}</small>
+              </div>
+            </template>
+            <component
+              :is="AgentToolResultCard"
+              :message="message as ToolAgentMessage"
+              :messages="messages"
+              :message-index="messageIndex"
+            />
+          </el-collapse-item>
+        </el-collapse>
+      </div>
 
       <!-- 文本内容 -->
       <div v-else class="agent-message__content">
@@ -108,11 +131,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { MdPreview } from 'md-editor-v3'
 import { useI18n } from 'vue-i18n'
 import { Avatar, User, Edit, More, Loading, Check } from '@element-plus/icons-vue'
-import type { AgentMessage, ChatAgentMessage } from '../../types/agent'
+import type { AgentMessage, ChatAgentMessage, ToolAgentMessage } from '../../types/agent'
 import AgentToolResultCard from './AgentToolResultCard.vue'
 import { themeState } from '../../utils/themes'
 import { dayjs } from 'element-plus'
@@ -136,6 +159,122 @@ const { t } = useI18n()
 
 const showTimestamp = ref(false)
 const showActions = ref(false)
+
+// Tool消息折叠状态
+const toolMessageCollapseActive = ref<string[]>([])
+
+// 判断当前tool消息是否是最新的tool调用
+const isLatestToolMessage = computed(() => {
+  if (props.message.type !== 'tool' || !props.messages || props.messageIndex === undefined) {
+    return true // 如果不是tool消息，默认展开
+  }
+  
+  // 查找当前消息之后是否还有其他tool消息
+  for (let i = props.messageIndex + 1; i < props.messages.length; i++) {
+    if (props.messages[i].type === 'tool') {
+      return false // 后面还有tool消息，说明不是最新的
+    }
+  }
+  
+  return true // 没有其他tool消息，说明是最新的
+})
+
+// 是否已初始化折叠状态（避免覆盖用户的手动操作）
+const collapseInitialized = ref(false)
+
+// 初始化tool消息折叠状态（仅在首次加载时）
+const initToolMessageCollapse = () => {
+  if (props.message.type === 'tool' && !collapseInitialized.value) {
+    // 如果不是最新的tool消息，默认折叠
+    if (!isLatestToolMessage.value) {
+      toolMessageCollapseActive.value = []
+    } else {
+      // 如果是最新的，默认展开
+      toolMessageCollapseActive.value = [props.message.id]
+    }
+    collapseInitialized.value = true
+  }
+}
+
+// 监听messages变化，当有新的tool消息出现时，折叠之前的tool消息
+watch(
+  () => props.messages,
+  (newMessages, oldMessages) => {
+    if (!newMessages || props.messageIndex === undefined || props.message.type !== 'tool') {
+      return
+    }
+    
+    // 检查是否有新的tool消息出现在当前消息之后
+    if (oldMessages && newMessages.length > oldMessages.length) {
+      const currentIndex = props.messageIndex
+      const currentMsgId = props.message.id
+      
+      // 查找当前消息之后是否有新的tool消息
+      let hasNewToolAfter = false
+      for (let i = currentIndex + 1; i < newMessages.length; i++) {
+        if (newMessages[i].type === 'tool') {
+          hasNewToolAfter = true
+          break
+        }
+      }
+      
+      // 如果有新的tool消息在当前消息之后，折叠当前消息（强制折叠，因为这是自动行为）
+      if (hasNewToolAfter) {
+        toolMessageCollapseActive.value = []
+      }
+    }
+    
+    // 如果还未初始化，进行初始化
+    if (!collapseInitialized.value) {
+      initToolMessageCollapse()
+    }
+  },
+  { deep: true, immediate: true }
+)
+
+// 监听isLatestToolMessage变化，当变成不是最新时，折叠当前消息
+watch(
+  isLatestToolMessage,
+  (isLatest) => {
+    if (props.message.type === 'tool' && collapseInitialized.value && !isLatest) {
+      // 如果当前消息不再是最新的tool消息，折叠它
+      toolMessageCollapseActive.value = []
+    }
+  },
+  { immediate: false }
+)
+
+// 获取工具状态标签类型
+const getToolStatusTagType = (status: ToolAgentMessage['status']) => {
+  switch (status) {
+    case 'pending':
+      return 'info'
+    case 'running':
+      return 'warning'
+    case 'succeeded':
+      return 'success'
+    case 'failed':
+      return 'danger'
+    default:
+      return 'info'
+  }
+}
+
+// 获取工具状态标签文本
+const getToolStatusLabel = (status: ToolAgentMessage['status']) => {
+  switch (status) {
+    case 'pending':
+      return t('agent.tool.status.pending')
+    case 'running':
+      return t('agent.tool.status.running')
+    case 'succeeded':
+      return t('agent.tool.status.success')
+    case 'failed':
+      return t('agent.tool.status.failed')
+    default:
+      return status
+  }
+}
 
 const alignmentClass = computed(() => {
   if (props.message.role === 'user') return 'align-right'
@@ -281,66 +420,97 @@ const formatTimestamp = (timestamp: string) => {
   return dayjs(timestamp).format('HH:mm')
 }
 
-const actionsHovered = ref(false)
-const dropdownVisible = ref(false)
+// 统一的hover状态管理
+const isHoveringMessage = ref(false) // 鼠标是否在消息气泡上
+const isHoveringActions = ref(false) // 鼠标是否在按钮区域上
+const isHoveringDropdown = ref(false) // 鼠标是否在下拉菜单上
+const dropdownVisible = ref(false) // 下拉菜单是否可见
+let hideTimer: ReturnType<typeof setTimeout> | null = null
 
-const handleMouseEnter = () => {
+// 延迟隐藏时间（毫秒）
+const HIDE_DELAY = 500
+
+// 检查是否应该显示按钮
+const shouldShow = computed(() => {
+  return isHoveringMessage.value || isHoveringActions.value || isHoveringDropdown.value || dropdownVisible.value
+})
+
+// 清除隐藏定时器
+const clearHideTimer = () => {
+  if (hideTimer) {
+    clearTimeout(hideTimer)
+    hideTimer = null
+  }
+}
+
+// 显示操作按钮和时间戳
+const showActionsAndTimestamp = () => {
+  clearHideTimer()
   showTimestamp.value = true
   if (props.message.role === 'user') {
     showActions.value = true
   }
 }
 
-const handleMouseLeave = () => {
-  // 如果按钮或菜单正在被hover，不隐藏
-  if (actionsHovered.value || dropdownVisible.value) {
-    return
-  }
-  showTimestamp.value = false
-  showActions.value = false
-}
-
-const handleActionsMouseEnter = () => {
-  actionsHovered.value = true
-}
-
-const handleActionsMouseLeave = () => {
-  actionsHovered.value = false
-  // 延迟检查，给菜单时间显示
-  setTimeout(() => {
-    if (!dropdownVisible.value) {
+// 延迟隐藏操作按钮和时间戳
+const hideActionsAndTimestamp = () => {
+  clearHideTimer()
+  hideTimer = setTimeout(() => {
+    if (!shouldShow.value) {
       showActions.value = false
       showTimestamp.value = false
     }
-  }, 100)
+    hideTimer = null
+  }, HIDE_DELAY)
 }
 
+// 消息气泡hover进入
+const handleMouseEnter = () => {
+  isHoveringMessage.value = true
+  showActionsAndTimestamp()
+}
+
+// 消息气泡hover离开
+const handleMouseLeave = () => {
+  isHoveringMessage.value = false
+  hideActionsAndTimestamp()
+}
+
+// 按钮区域hover进入
+const handleActionsMouseEnter = () => {
+  isHoveringActions.value = true
+  showActionsAndTimestamp()
+}
+
+// 按钮区域hover离开
+const handleActionsMouseLeave = () => {
+  isHoveringActions.value = false
+  hideActionsAndTimestamp()
+}
+
+// 下拉菜单显示状态变化
 const handleDropdownVisibleChange = (visible: boolean) => {
   dropdownVisible.value = visible
-  if (!visible) {
-    // 菜单关闭时，如果按钮也不在hover状态，隐藏操作按钮
-    setTimeout(() => {
-      if (!actionsHovered.value) {
-        showActions.value = false
-        showTimestamp.value = false
-      }
-    }, 100)
+  if (visible) {
+    // 菜单打开时，保持显示
+    showActionsAndTimestamp()
+  } else {
+    // 菜单关闭时，检查是否需要隐藏
+    isHoveringDropdown.value = false
+    hideActionsAndTimestamp()
   }
 }
 
+// 下拉菜单hover进入
 const handleDropdownMouseEnter = () => {
-  // 菜单被hover时，保持操作按钮显示
-  showActions.value = true
+  isHoveringDropdown.value = true
+  showActionsAndTimestamp()
 }
 
+// 下拉菜单hover离开
 const handleDropdownMouseLeave = () => {
-  // 菜单离开时，延迟检查
-  setTimeout(() => {
-    if (!actionsHovered.value && !dropdownVisible.value) {
-      showActions.value = false
-      showTimestamp.value = false
-    }
-  }, 100)
+  isHoveringDropdown.value = false
+  hideActionsAndTimestamp()
 }
 
 const handleEdit = () => {
@@ -360,6 +530,11 @@ const handleActionCommand = (command: string) => {
       break
   }
 }
+
+// 组件卸载时清理定时器
+onBeforeUnmount(() => {
+  clearHideTimer()
+})
 </script>
 
 <style scoped>
@@ -367,8 +542,11 @@ const handleActionCommand = (command: string) => {
   display: flex;
   align-items: flex-start;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin-bottom: 18px;
   gap: 12px;
+  box-sizing: border-box;
 }
 
 .agent-message.align-right {
@@ -400,6 +578,13 @@ const handleActionCommand = (command: string) => {
   object-fit: cover;
 }
 
+.avatar-with-mask {
+  width: 40px;
+  height: 40px;
+  background-color: rgba(64, 158, 255, 0.15);
+  border: 2px solid rgba(64, 158, 255, 0.3);
+}
+
 .avatar-fallback {
   width: 40px;
   height: 40px;
@@ -407,12 +592,20 @@ const handleActionCommand = (command: string) => {
 
 .agent-message__body {
   position: relative;
-  max-width: 720px;
+  /* 使用 min() 函数确保不会溢出父容器，同时保持合理的宽度 */
+  /* 策略：主要依赖父容器宽度的百分比（75%），实现等比例缩放，在宽屏上使用固定最大值（750px）限制 */
+  /* 不使用视口宽度（vw），因为它会导致在窄屏上溢出 */
+  width: min(75%, 750px);
+  /* 双重保险：确保绝对不超过父容器可用宽度（考虑头像40px + 间距12px + 安全边距） */
+  max-width: calc(100% - 60px);
+  /* 设置合理的最小宽度，但也要考虑父容器宽度，确保在小屏幕上可读 */
+  min-width: min(250px, 50%);
   border: 1px solid transparent;
   border-radius: 14px;
   padding: 16px 18px;
+  box-sizing: border-box;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, width 0.2s ease;
   order: 1;
 }
 
@@ -422,8 +615,7 @@ const handleActionCommand = (command: string) => {
 
 .agent-message__timestamp {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 28px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
@@ -442,7 +634,7 @@ const handleActionCommand = (command: string) => {
 
 .agent-message__actions {
   position: absolute;
-  top: -8px;
+  bottom: -8px;
   display: flex;
   gap: 4px;
   align-items: center;
@@ -497,6 +689,57 @@ const handleActionCommand = (command: string) => {
 
 .tool-call-checkmark {
   color: var(--el-color-success);
+}
+
+.tool-message-collapse {
+  width: 100%;
+}
+
+.tool-message-wrapper {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.tool-message-collapse {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 确保 el-collapse-item 的内容区域也能正确限制宽度 */
+.tool-message-collapse :deep(.el-collapse-item__content) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+}
+
+/* 确保 AgentToolResultCard 不会超出父容器 */
+.tool-message-collapse :deep(.tool-result-card) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.tool-message-header-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  width: 100%;
+}
+
+.tool-message-title {
+  font-size: 14px;
+  color: v-bind('themeState.currentTheme.textColor');
+}
+
+.tool-message-timestamp {
+  margin-left: auto;
+  opacity: 0.65;
+  font-size: 12px;
+  color: v-bind('themeState.currentTheme.textColor2');
 }
 
 @keyframes rotating {

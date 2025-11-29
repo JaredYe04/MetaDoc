@@ -8,6 +8,7 @@
           class="card-grid-item"
           :class="{ 'is-selected': isSelected(item), 'is-disabled': isDisabled(item) }"
           @click="handleItemClick(item)"
+          @dblclick="handleItemDoubleClick(item)"
         >
           <!-- 卡片图片/缩略图区域 -->
           <div v-if="showThumbnail" class="card-item__thumbnail" :class="{ 'is-placeholder': !getThumbnail(item) }">
@@ -127,6 +128,7 @@ const props = withDefaults(defineProps<CardGridProps>(), {
 
 const emit = defineEmits<{
   itemClick: [item: CardGridItem]
+  itemDoubleClick: [item: CardGridItem]
   action: [command: string, item: CardGridItem]
 }>()
 
@@ -139,6 +141,12 @@ const containerStyle = computed(() => ({
 const handleItemClick = (item: CardGridItem) => {
   if (!props.isDisabled(item)) {
     emit('itemClick', item)
+  }
+}
+
+const handleItemDoubleClick = (item: CardGridItem) => {
+  if (!props.isDisabled(item)) {
+    emit('itemDoubleClick', item)
   }
 }
 

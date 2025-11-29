@@ -23,7 +23,39 @@
       </div>
     </header>
 
-    <p v-if="message.summary" class="summary">{{ message.summary }}</p>
+    <!-- 工具调用参数（默认折叠，仅在存在参数时显示） -->
+    <el-collapse 
+      v-if="toolCallParams !== null" 
+      v-model="paramsCollapseActive" 
+      class="params-collapse"
+    >
+      <el-collapse-item name="params">
+        <template #title>
+          <div class="params-title">
+            <span>{{ t('agent.tool.params', '调用参数') }}</span>
+            <el-tag size="small" effect="light">JSON</el-tag>
+          </div>
+        </template>
+        <div :id="paramsEditorId" class="params-editor-container" :style="paramsEditorContainerStyle"></div>
+      </el-collapse-item>
+    </el-collapse>
+
+    <!-- 原始结果（JSON，默认折叠） -->
+    <el-collapse 
+      v-if="rawResultJson !== null" 
+      v-model="rawResultCollapseActive" 
+      class="raw-result-collapse"
+    >
+      <el-collapse-item name="rawResult">
+        <template #title>
+          <div class="raw-result-title">
+            <span>{{ t('agent.tool.rawResult', '原始结果') }}</span>
+            <el-tag size="small" effect="light">JSON</el-tag>
+          </div>
+        </template>
+        <div :id="rawResultEditorId" class="raw-result-editor-container" :style="rawResultEditorContainerStyle"></div>
+      </el-collapse-item>
+    </el-collapse>
 
     <!-- 进度条 -->
     <div v-if="message.progress && message.progress.percentage > 0" class="progress-container">
@@ -83,9 +115,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, defineAsyncComponent, h } from 'vue'
+import { computed, ref, watch, defineAsyncComponent, h, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { dayjs, ElMessage } from 'element-plus'
-import type { ToolAgentMessage, ToolOutputDescriptor } from '../../types/agent'
+import type { ToolAgentMessage, ToolOutputDescriptor, AgentMessage, ChatAgentMessage } from '../../types/agent'
 import { WarningFilled, Download } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
@@ -94,9 +126,13 @@ import {
   createSnapshotFromHistoryEntry,
   serializeToolExecutionSnapshot
 } from '../../utils/agent-tools/tool-serialization'
+import * as monaco from 'monaco-editor'
+import { setupMonacoWorker } from '../../utils/monaco-worker-config'
 
 const props = defineProps<{
   message: ToolAgentMessage
+  messages?: AgentMessage[]
+  messageIndex?: number
 }>()
 
 const { t } = useI18n()
@@ -160,6 +196,336 @@ watch(
   },
   { immediate: true }
 )
+
+// 参数编辑器相关
+const paramsCollapseActive = ref<string[]>([]) // 默认折叠（空数组）
+const paramsEditorId = ref(`tool-params-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+let paramsMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
+
+// 原始结果编辑器相关
+const rawResultCollapseActive = ref<string[]>([]) // 默认折叠（空数组）
+const rawResultEditorId = ref(`tool-raw-result-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+let rawResultMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
+
+// 获取工具调用参数（通过tool_call_id查找对应的assistant消息）
+const toolCallParams = computed(() => {
+  const toolMessage = props.message
+  if (!toolMessage.tool_call_id || !props.messages || props.messageIndex === undefined) {
+    // 如果message中有params字段，直接使用
+    if ((toolMessage as any).params) {
+      return (toolMessage as any).params
+    }
+    return null
+  }
+
+  // 从之前的消息中查找对应的assistant消息
+  for (let i = props.messageIndex - 1; i >= 0; i--) {
+    const msg = props.messages[i]
+    if (msg.type === 'chat' && msg.role === 'assistant') {
+      const chatMsg = msg as ChatAgentMessage
+      if (chatMsg.tool_calls && Array.isArray(chatMsg.tool_calls)) {
+        const toolCall = chatMsg.tool_calls.find(tc => tc.id === toolMessage.tool_call_id)
+        if (toolCall && toolCall.parameters) {
+          return toolCall.parameters
+        }
+      }
+    }
+    // 如果遇到下一个assistant消息，停止查找
+    if (msg.role === 'assistant' && msg.type === 'chat') {
+      break
+    }
+  }
+  
+  return null
+})
+
+// 参数JSON字符串
+const paramsJsonString = computed(() => {
+  const params = toolCallParams.value
+  if (!params) {
+    return '{}'
+  }
+  try {
+    return JSON.stringify(params, null, 2)
+  } catch (error) {
+    return '{}'
+  }
+})
+
+// 获取原始结果JSON（从outputs[0].data或result字段）
+const rawResultJson = computed(() => {
+  // 优先从第一个output的data获取
+  if (props.message.outputs && props.message.outputs.length > 0) {
+    const firstOutput = props.message.outputs[0]
+    if (firstOutput.data) {
+      try {
+        // 如果data是对象，转换为JSON字符串
+        if (typeof firstOutput.data === 'object') {
+          return JSON.stringify(firstOutput.data, null, 2)
+        }
+        // 如果已经是字符串，尝试解析并重新格式化
+        if (typeof firstOutput.data === 'string') {
+          try {
+            const parsed = JSON.parse(firstOutput.data)
+            return JSON.stringify(parsed, null, 2)
+          } catch {
+            // 如果不是JSON字符串，直接返回
+            return firstOutput.data
+          }
+        }
+      } catch (error) {
+        console.warn('[AgentToolResultCard] 无法序列化原始结果:', error)
+      }
+    }
+  }
+  
+  // 如果没有outputs，检查是否有result字段
+  if ((props.message as any).result) {
+    try {
+      const result = (props.message as any).result
+      if (typeof result === 'object') {
+        return JSON.stringify(result, null, 2)
+      }
+      if (typeof result === 'string') {
+        try {
+          const parsed = JSON.parse(result)
+          return JSON.stringify(parsed, null, 2)
+        } catch {
+          return result
+        }
+      }
+    } catch (error) {
+      console.warn('[AgentToolResultCard] 无法序列化result字段:', error)
+    }
+  }
+  
+  return null
+})
+
+// 初始化参数编辑器
+const initParamsEditor = async () => {
+  if (paramsMonacoEditor) return
+  
+  await nextTick()
+  
+  const container = document.getElementById(paramsEditorId.value)
+  if (!container) {
+    console.warn('[AgentToolResultCard] 参数编辑器容器未找到')
+    return
+  }
+
+  // 确保 Monaco Worker 已配置
+  setupMonacoWorker()
+
+  // 从全局获取编辑器实例（如果已存在则先销毁）
+  const editors = monaco.editor.getEditors()
+  const existingEditor = editors.find(e => {
+    try {
+      const editorContainer = e.getContainerDomNode()
+      return editorContainer && editorContainer.id === paramsEditorId.value
+    } catch {
+      return false
+    }
+  })
+  
+  if (existingEditor) {
+    existingEditor.dispose()
+  }
+  
+  // 清理缓存（如果有）
+  if (paramsMonacoEditor) {
+    try {
+      const editor = paramsMonacoEditor as monaco.editor.IStandaloneCodeEditor
+      editor.dispose()
+    } catch {
+      // 忽略错误
+    }
+    paramsMonacoEditor = null
+  }
+
+  // 确保容器有ID
+  container.id = paramsEditorId.value
+
+  try {
+    paramsMonacoEditor = monaco.editor.create(container, {
+      value: paramsJsonString.value,
+      language: 'json',
+      theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
+      readOnly: true,
+      lineNumbers: 'on',
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      wordWrap: 'on',
+      automaticLayout: true,
+      fontSize: 13,
+      fontFamily: 'JetBrains Mono, Consolas, monospace',
+      renderLineHighlight: 'all',
+      lineDecorationsWidth: 10
+    })
+  } catch (error) {
+    console.error('[AgentToolResultCard] 创建参数编辑器失败:', error)
+  }
+}
+
+// 清理参数编辑器
+const disposeParamsEditor = () => {
+  if (paramsMonacoEditor) {
+    paramsMonacoEditor.dispose()
+    paramsMonacoEditor = null
+  }
+}
+
+// 初始化原始结果编辑器
+const initRawResultEditor = async () => {
+  if (rawResultMonacoEditor) return
+  
+  await nextTick()
+  
+  const container = document.getElementById(rawResultEditorId.value)
+  if (!container) {
+    console.warn('[AgentToolResultCard] 原始结果编辑器容器未找到')
+    return
+  }
+
+  // 确保 Monaco Worker 已配置
+  setupMonacoWorker()
+
+  // 从全局获取编辑器实例（如果已存在则先销毁）
+  const editors = monaco.editor.getEditors()
+  const existingEditor = editors.find(e => {
+    try {
+      const editorContainer = e.getContainerDomNode()
+      return editorContainer && editorContainer.id === rawResultEditorId.value
+    } catch {
+      return false
+    }
+  })
+  
+  if (existingEditor) {
+    existingEditor.dispose()
+  }
+  
+  // 清理缓存（如果有）
+  if (rawResultMonacoEditor) {
+    try {
+      const editor = rawResultMonacoEditor as monaco.editor.IStandaloneCodeEditor
+      editor.dispose()
+    } catch {
+      // 忽略错误
+    }
+    rawResultMonacoEditor = null
+  }
+
+  // 确保容器有ID
+  container.id = rawResultEditorId.value
+
+  try {
+    rawResultMonacoEditor = monaco.editor.create(container, {
+      value: rawResultJson.value || '{}',
+      language: 'json',
+      theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
+      readOnly: true,
+      lineNumbers: 'on',
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      wordWrap: 'on',
+      automaticLayout: true,
+      fontSize: 13,
+      fontFamily: 'JetBrains Mono, Consolas, monospace',
+      renderLineHighlight: 'all',
+      lineDecorationsWidth: 10
+    })
+  } catch (error) {
+    console.error('[AgentToolResultCard] 创建原始结果编辑器失败:', error)
+  }
+}
+
+// 清理原始结果编辑器
+const disposeRawResultEditor = () => {
+  if (rawResultMonacoEditor) {
+    rawResultMonacoEditor.dispose()
+    rawResultMonacoEditor = null
+  }
+}
+
+// 监听参数折叠状态变化
+watch(paramsCollapseActive, async (newValue) => {
+  if (newValue.includes('params')) {
+    // 展开时才初始化编辑器
+    await nextTick()
+    initParamsEditor()
+  } else {
+    // 折叠时清理编辑器（可选，也可以保留）
+    // disposeParamsEditor()
+  }
+})
+
+// 监听原始结果折叠状态变化
+watch(rawResultCollapseActive, async (newValue) => {
+  if (newValue.includes('rawResult')) {
+    // 展开时才初始化编辑器
+    await nextTick()
+    initRawResultEditor()
+  } else {
+    // 折叠时清理编辑器（可选，也可以保留）
+    // disposeRawResultEditor()
+  }
+})
+
+// 监听参数内容变化
+watch(() => paramsJsonString.value, async (newValue) => {
+  if (paramsMonacoEditor && newValue) {
+    paramsMonacoEditor.setValue(newValue)
+  } else if (paramsCollapseActive.value.includes('params')) {
+    // 如果编辑器已经展开，重新初始化
+    await nextTick()
+    initParamsEditor()
+  }
+})
+
+// 监听原始结果内容变化
+watch(() => rawResultJson.value, async (newValue) => {
+  if (rawResultMonacoEditor && newValue) {
+    rawResultMonacoEditor.setValue(newValue || '{}')
+  } else if (rawResultCollapseActive.value.includes('rawResult')) {
+    // 如果编辑器已经展开，重新初始化
+    await nextTick()
+    initRawResultEditor()
+  }
+})
+
+// 监听主题变化
+watch(() => themeState.currentTheme.type, () => {
+  if (paramsMonacoEditor) {
+    const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
+    monaco.editor.setTheme(theme)
+  }
+  if (rawResultMonacoEditor) {
+    const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
+    monaco.editor.setTheme(theme)
+  }
+})
+
+onMounted(async () => {
+  // 不自动初始化，等用户展开时才初始化
+})
+
+onBeforeUnmount(() => {
+  disposeParamsEditor()
+  disposeRawResultEditor()
+})
+
+const paramsEditorContainerStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  height: '300px',
+  minHeight: '200px'
+}))
+
+const rawResultEditorContainerStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  height: '300px',
+  minHeight: '200px'
+}))
 
 const formatTimestamp = (timestamp: string) => {
   return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')
@@ -333,6 +699,15 @@ const exportSnapshot = async () => {
   padding: 16px;
   border: 1px solid;
   transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 确保工具结果卡片内的所有直接子元素都不会超出容器 */
+.tool-result-card > * {
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .tool-result-card:hover {
@@ -375,6 +750,9 @@ const exportSnapshot = async () => {
 
 .outputs {
   margin-bottom: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .output-title {
@@ -390,6 +768,25 @@ const exportSnapshot = async () => {
   font-size: 13px;
   border: 1px solid;
   transition: background-color 0.2s ease, border-color 0.2s ease;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+/* 确保 Display 组件的根容器不会超出父容器 */
+.output-body :deep(> *) {
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 确保所有以 -display 结尾的类名的组件不会超出容器 */
+.output-body :deep([class$="-display"]) {
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .raw-text {
@@ -434,6 +831,40 @@ const exportSnapshot = async () => {
   font-size: 11px;
   color: var(--el-text-color-secondary);
   margin-left: 8px;
+}
+
+.params-collapse {
+  margin-bottom: 12px;
+}
+
+.params-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.params-editor-container {
+  border-radius: 6px;
+  border: 1px solid v-bind('contentBorderColor');
+  overflow: hidden;
+}
+
+.raw-result-collapse {
+  margin-bottom: 12px;
+}
+
+.raw-result-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.raw-result-editor-container {
+  border-radius: 6px;
+  border: 1px solid v-bind('contentBorderColor');
+  overflow: hidden;
 }
 </style>
 

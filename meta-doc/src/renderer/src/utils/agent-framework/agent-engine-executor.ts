@@ -1427,7 +1427,7 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
 export class AgentEngineExecutorFactory {
   static create(
     engine: AgentEngine,
-    session: AgentSession,
+    session: AgentSession | LegacyAgentSession,
     agentConfig: AgentConfig,
     options: EngineExecuteOptions = {}
   ): BaseEngineExecutor {

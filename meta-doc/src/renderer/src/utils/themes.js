@@ -1,6 +1,8 @@
 import { reactive } from "vue";
 import AiLogo from "../assets/ai-logo.svg";
 import AiLogoWhite from "../assets/ai-logo-white.svg";
+import ToolBlack from "../assets/tool-black.svg";
+import ToolWhite from "../assets/tool-white.svg";
 // theme.js
 export const contentThemes = [
   { label: 'Ant Design', value: 'ant-design' },
@@ -19,6 +21,7 @@ export const codeThemes = [
 export const lightTheme = {
   type: 'light',
   AiLogo: AiLogo,
+  ToolLogo: ToolBlack,
   background: '#ffffff',
   background2nd: '#f5f5f5',
   textColor: '#000000',
@@ -47,6 +50,7 @@ export const lightTheme = {
 export const darkTheme = {
   type: 'dark',
   AiLogo: AiLogoWhite,
+  ToolLogo: ToolWhite,
   background: '#2c2c2c',//背景色1，需要体现主题色，但不能过于突出，应当还是以偏黑或偏白为主
   background2nd: '#3a3a3a',//背景色2，次要背景色，可以是背景色1的变体或浅色调
   textColor: '#ffffff',//文字颜色1，主要文字颜色，应当与背景色形成对比
@@ -225,6 +229,7 @@ export const customTheme = (themeColor = '#000000') => {
   return {
     type: isDarkMode ? 'dark' : 'light',
     AiLogo: isDarkMode ? AiLogoWhite : AiLogo,
+    ToolLogo: isDarkMode ? ToolWhite : ToolBlack,
     ...generateColorSet(),
     // 注意：AiLogo 需要在外部根据模式设置
   };

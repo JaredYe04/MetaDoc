@@ -23,6 +23,7 @@ import {
   removeTextFromOutline,
   generateMarkdownFromOutlineTree 
 } from '../document/outline'
+import { searchParentNode } from '../outline-helpers'
 import { 
   expandTreeNodePrompt, 
   generateContentPrompt, 
@@ -70,20 +71,50 @@ function regeneratePaths(node: DocumentOutlineNode): void {
 }
 
 /**
+ * 移除节点（从父节点中删除）
+ */
+function removeNode(parent: DocumentOutlineNode, node: DocumentOutlineNode): void {
+  if (!parent.children) return
+  const index = parent.children.indexOf(node)
+  if (index !== -1) {
+    parent.children.splice(index, 1)
+  } else {
+    // 递归查找
+    parent.children.forEach((child) => removeNode(child, node))
+  }
+}
+
+/**
+ * 判断是否为后代节点
+ */
+function isDescendant(candidatePath: string, ancestorPath: string): boolean {
+  if (!ancestorPath) return false
+  return candidatePath === ancestorPath || candidatePath.startsWith(ancestorPath + '.')
+}
+
+/**
  * 生成节点的子节点
  */
 async function generateChildNodes(
   node: DocumentOutlineNode,
   outlineTree: DocumentOutlineNode,
   userPrompt: string,
+  docFormat: 'md' | 'tex' = 'md',
   signal?: AbortSignal
 ): Promise<DocumentOutlineNode[]> {
-  const prompt = expandTreeNodePrompt(
+  const basePrompt = expandTreeNodePrompt(
     JSON.stringify(removeTextFromOutline(outlineTree)),
     JSON.stringify(node),
     JSON.stringify(TREE_NODE_SCHEMA),
     userPrompt
   )
+  
+  // 根据文档格式调整提示词（子节点的title也需要使用正确的格式）
+  const formatInstruction = docFormat === 'tex' 
+    ? '**重要：文档格式是LaTeX，生成的节点标题应该使用LaTeX格式（例如：\\section{标题}），不要使用Markdown的#、##等标记。**'
+    : '**重要：文档格式是Markdown，生成的节点标题应该使用Markdown格式（例如：# 标题、## 标题），不要使用LaTeX的\\section{}等命令。**'
+  
+  const prompt = formatInstruction + '\n\n' + basePrompt
 
   const rawStringRef = ref('')
   const { handle, done } = createAiTask(
@@ -101,7 +132,18 @@ async function generateChildNodes(
     })
   }
 
-  await done
+  try {
+    await done
+  } catch (error) {
+    // 如果任务被取消或出错，检查是否是因为取消
+    if (signal?.aborted) {
+      throw new Error('操作已取消')
+    }
+    // 重新抛出原始错误，让调用者知道任务失败
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    logger.error('生成子节点失败:', error)
+    throw new Error(`AI任务失败: ${errorMessage}`)
+  }
 
   if (signal?.aborted) {
     throw new Error('操作已取消')
@@ -112,7 +154,7 @@ async function generateChildNodes(
     throw new Error('AI返回内容为空')
   }
 
-  // 提取JSON（尝试多种方式）
+  // 提取JSON（与Outline.vue保持一致，只使用extractOuterJsonString）
   let json = extractOuterJsonString(rawContent)
   
   // 如果第一次提取失败，尝试清理内容后再提取
@@ -124,23 +166,24 @@ async function generateChildNodes(
     json = extractOuterJsonString(cleaned)
   }
 
-  // 如果还是失败，尝试直接解析整个内容
+  // 如果还是失败，记录警告但不尝试直接解析（与Outline.vue保持一致）
   if (!json) {
-    logger.warn('未能提取JSON，尝试直接解析整个内容')
-    json = rawContent
+    logger.warn('未能提取JSON，无法生成子节点')
+    throw new Error('未能从AI响应中提取有效的JSON格式子节点数据')
   }
 
-  // 解析JSON
-  const parseResult = parseJsonWithClean<DocumentOutlineNode[]>(json)
-  if (!parseResult.success) {
-    // 如果解析失败，记录详细错误信息
-    logger.error('解析子节点JSON失败:', parseResult.error)
+  // 解析JSON（与Outline.vue保持一致，直接使用JSON.parse）
+  let newChildren: DocumentOutlineNode[]
+  try {
+    newChildren = JSON.parse(json) as DocumentOutlineNode[]
+  } catch (parseError) {
+    const errorMsg = parseError instanceof Error ? parseError.message : String(parseError)
+    logger.error('解析子节点JSON失败:', errorMsg)
     logger.error('原始内容:', rawContent.substring(0, 500))
     logger.error('提取的JSON:', json.substring(0, 500))
-    throw new Error(`解析子节点JSON失败: ${parseResult.error}`)
+    throw new Error(`解析子节点JSON失败: ${errorMsg}`)
   }
 
-  const newChildren = parseResult.data
   if (!Array.isArray(newChildren) || newChildren.length === 0) {
     throw new Error('解析出的子节点列表为空或格式不正确')
   }
@@ -160,10 +203,17 @@ async function generateNodeContent(
   node: DocumentOutlineNode,
   outlineTree: DocumentOutlineNode,
   userPrompt: string,
+  docFormat: 'md' | 'tex' = 'md',
   signal?: AbortSignal
 ): Promise<string> {
   const hasChildren = node.children && node.children.length > 0
-  const prompt = hasChildren
+  
+  // 根据文档格式调整提示词
+  const formatInstruction = docFormat === 'tex' 
+    ? '**重要：文档格式是LaTeX，请使用LaTeX语法生成内容（使用\\section{}, \\subsection{}等命令，不要使用Markdown的#、##等标记）。**'
+    : '**重要：文档格式是Markdown，请使用Markdown语法生成内容（使用#、##等标题标记）。**'
+  
+  const basePrompt = hasChildren
     ? generateParentNodeContentPrompt(
         JSON.stringify(removeTextFromOutline(outlineTree)),
         JSON.stringify(node),
@@ -174,6 +224,9 @@ async function generateNodeContent(
         JSON.stringify(node),
         userPrompt
       )
+  
+  // 在提示词开头添加格式说明
+  const prompt = formatInstruction + '\n\n' + basePrompt
 
   const rawStringRef = ref('')
   const { handle, done } = createAiTask(
@@ -191,7 +244,18 @@ async function generateNodeContent(
     })
   }
 
-  await done
+  try {
+    await done
+  } catch (error) {
+    // 如果任务被取消或出错，检查是否是因为取消
+    if (signal?.aborted) {
+      throw new Error('操作已取消')
+    }
+    // 重新抛出原始错误，让调用者知道任务失败
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    logger.error('生成节点内容失败:', error)
+    throw new Error(`AI任务失败: ${errorMessage}`)
+  }
 
   if (signal?.aborted) {
     throw new Error('操作已取消')
@@ -267,8 +331,11 @@ async function syncOutlineToDocument(
  * 大纲优化Tool回调函数
  */
 const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdate) => {
-  const operation = params.operation as 'generateChildren' | 'generateContent' | 'generateChildrenChildren' | 'generateChildrenContent'
+  const operation = params.operation as 'generateChildren' | 'generateContent' | 'generateChildrenChildren' | 'generateChildrenContent' | 'moveNode' | 'deleteNodes' | 'clearOutline'
   const nodePath = params.nodePath as string | undefined
+  const nodePaths = params.nodePaths as string[] | undefined  // 批量操作的节点路径数组
+  const targetPath = params.targetPath as string | undefined  // 移动操作的目标路径
+  const moveMode = params.moveMode as 'before' | 'after' | 'inside' | undefined  // 移动模式
   const userPrompt = (params.userPrompt as string) || ''
   const tabId = params.tabId as string | undefined
 
@@ -279,7 +346,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
     }
   }
 
-  const validOperations = ['generateChildren', 'generateContent', 'generateChildrenChildren', 'generateChildrenContent']
+  const validOperations = ['generateChildren', 'generateContent', 'generateChildrenChildren', 'generateChildrenContent', 'moveNode', 'deleteNodes', 'clearOutline']
   if (!validOperations.includes(operation)) {
     return {
       status: 'failed',
@@ -339,33 +406,61 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       }
     }
 
+    // 确保文档格式已设置（如果未设置，默认为md）
+    if (!doc.format) {
+      doc.format = 'md'
+      logger.warn('文档格式未设置，默认使用Markdown格式')
+    }
+    
     // 获取大纲树
     let outlineTree = doc.outline
-    if (!outlineTree || !outlineTree.children || outlineTree.children.length === 0) {
+    if (!outlineTree) {
       return {
         status: 'failed',
         error: i18n.global.t('agent.tool.outlineOptimize.error.emptyOutline', '文档大纲为空')
       }
     }
 
-    // 查找目标节点
+    // 对于clearOutline和generateChildren操作，允许只有dummy节点（空大纲）
+    // 对于generateChildren，即使只有dummy节点，也可以为根节点生成子节点
+    const allowEmptyOutline = ['clearOutline', 'generateChildren'].includes(operation)
+    if (!allowEmptyOutline && (!outlineTree.children || outlineTree.children.length === 0)) {
+      return {
+        status: 'failed',
+        error: i18n.global.t('agent.tool.outlineOptimize.error.emptyOutline', '文档大纲为空')
+      }
+    }
+
+    // 查找目标节点（某些操作不需要targetNode）
     let targetNode: DocumentOutlineNode | null = null
-    if (nodePath) {
+    const needsTargetNode = ['generateChildren', 'generateContent', 'generateChildrenChildren', 'generateChildrenContent', 'moveNode'].includes(operation)
+    
+    if (needsTargetNode) {
+      // 支持nodePath为"all"的情况（用于批量操作根节点的所有子节点）
+      if (nodePath === 'all' || nodePath === 'dummy') {
+        // 对于"all"或"dummy"，使用根节点
+        targetNode = outlineTree
+      } else if (nodePath) {
       targetNode = searchNode(nodePath, outlineTree)
       if (!targetNode) {
         return {
           status: 'failed',
-          error: i18n.global.t('agent.tool.outlineOptimize.error.nodeNotFound', `找不到路径为 ${nodePath} 的节点`)
+            error: i18n.global.t('agent.tool.outlineOptimize.error.nodeNotFound', `找不到路径为 ${nodePath} 的节点。提示：可以使用"dummy"指定根节点，或使用outline-tree工具查看节点路径`)
         }
       }
     } else {
-      // 如果没有指定节点路径，使用第一个非根节点
-      if (outlineTree.children.length > 0) {
+        // 如果没有指定节点路径，根据操作类型选择默认节点
+        // generateChildren可以为根节点生成子节点，即使只有dummy节点
+        if (operation === 'generateChildren') {
+          targetNode = outlineTree
+        } else if (outlineTree.children && outlineTree.children.length > 0) {
+          // 其他操作使用第一个非根节点
         targetNode = outlineTree.children[0]
       } else {
+          // 没有子节点且不是generateChildren操作，报错
         return {
           status: 'failed',
-          error: i18n.global.t('agent.tool.outlineOptimize.error.noTargetNode', '没有可操作的节点')
+            error: i18n.global.t('agent.tool.outlineOptimize.error.noTargetNode', '没有可操作的节点。提示：请先使用generateChildren为根节点生成子节点，或使用nodePath: "dummy"为根节点生成子节点')
         }
       }
     }
@@ -374,6 +469,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       return {
         status: 'failed',
         error: i18n.global.t('agent.tool.outlineOptimize.error.noTargetNode', '没有可操作的节点')
+        }
       }
     }
 
@@ -383,9 +479,21 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
     try {
       // 深拷贝大纲树（避免直接修改原对象）
       const workingOutline = JSON.parse(JSON.stringify(outlineTree)) as DocumentOutlineNode
-      const workingNode = searchNode(targetNode.path, workingOutline)
-      if (!workingNode) {
+      let workingNode: DocumentOutlineNode | null = null
+      
+      // 对于需要workingNode的操作，查找工作副本中的节点
+      if (targetNode) {
+        workingNode = searchNode(targetNode.path, workingOutline)
+        if (!workingNode && needsTargetNode) {
         throw new Error('无法在工作副本中找到目标节点')
+        }
+      }
+      
+      // 对于需要workingNode的操作，确保workingNode不为null
+      if (needsTargetNode) {
+        if (!workingNode) {
+          throw new Error('无法找到目标节点')
+        }
       }
 
       // 用于存储生成结果
@@ -395,6 +503,9 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       // 根据操作类型执行不同的生成任务
       if (operation === 'generateChildren') {
         // 为指定节点生成子节点
+        if (!workingNode) {
+          throw new Error('无法找到目标节点')
+        }
         onUpdate({
           content: {
             stage: 'generating',
@@ -408,7 +519,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
           message: i18n.global.t('agent.tool.outlineOptimize.progress.generatingChildren', `正在为节点 "${workingNode.title}" 生成子节点...`)
         })
 
-        const newChildren = await generateChildNodes(workingNode, workingOutline, userPrompt, signal)
+        const newChildren = await generateChildNodes(workingNode, workingOutline, userPrompt, doc.format, signal)
         if (!workingNode.children) {
           workingNode.children = []
         }
@@ -423,6 +534,9 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
 
       } else if (operation === 'generateContent') {
         // 为指定节点生成内容
+        if (!workingNode) {
+          throw new Error('无法找到目标节点')
+        }
         onUpdate({
           content: {
             stage: 'generating',
@@ -436,7 +550,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
           message: i18n.global.t('agent.tool.outlineOptimize.progress.generatingContent', `正在为节点 "${workingNode.title}" 生成内容...`)
         })
 
-        const content = await generateNodeContent(workingNode, workingOutline, userPrompt, signal)
+        const content = await generateNodeContent(workingNode, workingOutline, userPrompt, doc.format, signal)
         workingNode.text = content
         
         // 记录生成的内容信息
@@ -450,6 +564,9 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
 
       } else if (operation === 'generateChildrenChildren') {
         // 为指定节点的所有子节点生成子节点
+        if (!workingNode) {
+          throw new Error('无法找到目标节点')
+        }
         onUpdate({
           content: {
             stage: 'generating',
@@ -476,7 +593,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
 
           // 叶子节点，生成子节点
           try {
-            const newChildren = await generateChildNodes(curNode, workingOutline, userPrompt, signal)
+            const newChildren = await generateChildNodes(curNode, workingOutline, userPrompt, doc.format, signal)
             if (!curNode.children) {
               curNode.children = []
             }
@@ -492,6 +609,9 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
 
       } else if (operation === 'generateChildrenContent') {
         // 为指定节点的所有子节点生成内容
+        if (!workingNode) {
+          throw new Error('无法找到目标节点')
+        }
         onUpdate({
           content: {
             stage: 'generating',
@@ -518,7 +638,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
           // 生成当前节点的内容（只处理非根节点）
           if (curNode.path !== 'dummy') {
             try {
-              const content = await generateNodeContent(curNode, workingOutline, userPrompt, signal)
+              const content = await generateNodeContent(curNode, workingOutline, userPrompt, doc.format, signal)
               curNode.text = content || ''
             } catch (error) {
               logger.error(`为节点 ${curNode.path} 生成内容失败:`, error)
@@ -528,6 +648,22 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
         }
 
         await traverseAndGenerate(workingNode)
+      } else if (operation === 'clearOutline') {
+        // 清空大纲树：保留根节点，清空所有子节点
+        onUpdate({
+          content: {
+            stage: 'clearing',
+            operation
+          },
+          format: 'json'
+        }, {
+          percentage: 30,
+          message: i18n.global.t('agent.tool.outlineOptimize.progress.clearing', '正在清空大纲树...')
+        })
+        
+        // 清空所有子节点和文本
+        workingOutline.children = []
+        workingOutline.text = ''
       }
 
       if (signal?.aborted) {
@@ -536,7 +672,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
         }
       }
 
-      // 同步大纲到文档
+      // 同步大纲到文档（clearOutline操作也需要同步）
       onUpdate({
         content: {
           stage: 'syncing',
@@ -563,9 +699,13 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       // 构建返回结果，包含生成的具体内容
       let resultData: any = {
         operation,
-        nodePath: targetNode.path,
-        nodeTitle: targetNode.title,
         success: true
+      }
+
+      // 对于需要targetNode的操作，添加节点信息
+      if (targetNode && ['generateChildren', 'generateContent', 'generateChildrenChildren', 'generateChildrenContent'].includes(operation)) {
+        resultData.nodePath = targetNode.path
+        resultData.nodeTitle = targetNode.title
       }
 
       if (operation === 'generateChildren') {
@@ -591,9 +731,11 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
             }
           }
         }
+        if (workingNode) {
         collectChildren(workingNode)
         resultData.generatedChildren = allGenerated
         resultData.totalChildrenCount = allGenerated.length
+        }
       } else if (operation === 'generateChildrenContent') {
         // 统计所有生成的内容
         const allContent: any[] = []
@@ -614,21 +756,38 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
             }
           }
         }
+        if (workingNode) {
         collectContent(workingNode)
+        }
         resultData.generatedContent = allContent
         resultData.totalContentCount = allContent.length
+      } else if (operation === 'moveNode') {
+        resultData.movedNodePath = nodePath
+        resultData.targetPath = targetPath
+        resultData.moveMode = moveMode
+      } else if (operation === 'deleteNodes') {
+        resultData.deletedNodePaths = nodePaths || (nodePath ? [nodePath] : [])
+        resultData.deletedCount = resultData.deletedNodePaths.length
+      } else if (operation === 'clearOutline') {
+        resultData.cleared = true
+      }
+
+      const responseData: any = {
+            stage: 'completed',
+            operation,
+            ...resultData
+      }
+
+      // 添加节点信息（如果存在）
+      if (targetNode) {
+        responseData.nodePath = targetNode.path
+        responseData.nodeTitle = targetNode.title
       }
 
       return {
         status: 'succeeded',
         data: {
-          content: {
-            stage: 'completed',
-            operation,
-            nodePath: targetNode.path,
-            nodeTitle: targetNode.title,
-            ...resultData
-          },
+          content: responseData,
           format: 'json'
         },
         result: resultData
@@ -681,9 +840,23 @@ export const outlineOptimizeToolConfig: AgentToolConfig = {
 # 大纲优化工具
 
 ## 功能描述
-使用AI生成和优化文档大纲，支持多种操作模式，生成后自动同步到文档内容。
+使用AI生成和优化文档大纲，支持多种操作模式，生成后自动同步到文档内容。**采用并发处理机制，可以高效批量生成大量内容**。
+
+## ⭐ 核心优势：并发处理，高效批量生成
+
+此工具采用**并发AI处理机制**，可以同时为多个节点生成内容，**比手动逐段生成效率高数十倍**。
+
+**适用场景**：
+- ✅ **大规模内容生成**：需要生成大量章节、段落时，使用此工具可以并发处理，快速完成
+- ✅ **批量操作**：一键为所有子章节生成内容、一键为所有子章节添加子章节等
+- ✅ **结构化生成**：需要按照大纲结构生成内容时，使用此工具可以保持结构一致性
+
+**效率对比**：
+- ❌ **手动生成**：逐段生成，需要多次LLM调用，效率低，耗时长
+- ✅ **使用此工具**：并发处理，一次调用可以生成多个章节，效率高，节省时间
 
 ## 使用场景
+- **大规模内容生成**：需要生成大量章节、段落时（推荐使用此工具，并发处理）
 - 为某个节点生成子章节
 - 为某个节点生成内容
 - 批量生成所有子节点的子节点
@@ -693,26 +866,237 @@ export const outlineOptimizeToolConfig: AgentToolConfig = {
 ## 输入格式
 \`\`\`json
 {
-  "operation": "generateChildren|generateContent|generateChildrenChildren|generateChildrenContent",
-  "nodePath": "string",      // 可选，目标节点的路径（如"1", "1.1"），默认使用第一个非根节点
-  "userPrompt": "string",    // 可选，用户提示词，用于指导AI生成
-  "tabId": "string"          // 可选，文档标签页ID，默认使用当前活动标签页
+  "operation": "generateChildren|generateContent|generateChildrenChildren|generateChildrenContent|moveNode|deleteNodes|clearOutline",
+  "nodePath": "string",      // ⚠️ 重要：目标节点的路径（如"1", "1.1", "dummy"表示根节点）。对于generateChildren和generateContent，如果不指定nodePath，只会作用在第一个节点上
+  "nodePaths": ["string"],  // 可选，批量操作的节点路径数组（用于deleteNodes）
+  "targetPath": "string",   // 可选，移动操作的目标路径（用于moveNode）
+  "moveMode": "string",     // 可选，移动模式：before/after/inside（用于moveNode）
+  "userPrompt": "string",   // 可选，用户提示词，用于指导AI生成
+  "tabId": "string"         // 可选，文档标签页ID，默认使用当前活动标签页
 }
 \`\`\`
 
+## ⚠️ 重要提示：nodePath参数的使用
+
+### 必须指定nodePath的情况
+- **generateChildren**：为指定节点生成子节点，**必须指定nodePath**，否则只会作用在第一个节点上
+- **generateContent**：为指定节点生成内容，**必须指定nodePath**，否则只会作用在第一个节点上
+- **moveNode**：移动节点，**必须指定nodePath**（要移动的节点）和targetPath（目标位置）
+
+### 支持的特殊nodePath值
+- **"dummy"**：表示根节点（路径为"dummy"的节点），可以用于为根节点生成子节点
+- **"all"**：等同于"dummy"，表示根节点
+
+### 批量操作的方式
+1. **方式1：使用批量操作**（推荐，高效）
+   - \`generateChildrenChildren\`：为指定节点的所有子节点生成子节点（并发处理）
+   - \`generateChildrenContent\`：为指定节点的所有子节点生成内容（并发处理）
+   - 使用根节点（nodePath: "dummy"）可以批量处理整个文档
+
+2. **方式2：发起多个指令**
+   - 为每个节点单独调用一次操作，指定不同的nodePath
+
+### 如何获取节点路径
+使用 \`outline-tree\` 工具可以查看文档的大纲结构，获取每个节点的path。
+
 ## 操作类型说明
 
-### generateChildren
+### generateChildren ⭐ 推荐
 为指定节点生成子节点（子章节）。AI会根据节点的标题和内容，自动生成若干个子章节节点。
+
+**⚠️ 重要**：**必须指定nodePath**，否则只会作用在第一个节点上。即使只有dummy节点（空大纲），也可以为根节点生成子节点（使用nodePath: "dummy"）。
+
+**使用示例**：
+\`\`\`json
+// 为指定节点生成子节点
+{
+  "operation": "generateChildren",
+  "nodePath": "1",
+  "userPrompt": "生成3-5个关于人工智能的子章节，包括基础理论、应用场景、发展趋势等"
+}
+
+// 为空大纲的根节点生成子节点（首次生成）
+{
+  "operation": "generateChildren",
+  "nodePath": "dummy",
+  "userPrompt": "生成5个主要章节，包括引言、理论基础、应用实践、发展趋势、总结"
+}
+\`\`\`
 
 ### generateContent
 为指定节点生成正文内容。AI会根据文档的整体结构和节点的标题，生成丰富翔实的内容。
 
-### generateChildrenChildren
-为指定节点的所有子节点生成子节点。递归遍历所有叶子节点，为每个叶子节点生成子节点。
+**⚠️ 重要**：**必须指定nodePath**，否则只会作用在第一个节点上。
 
-### generateChildrenContent
-为指定节点的所有子节点生成内容。递归遍历所有子节点，为每个节点生成正文内容。
+**使用示例**：
+\`\`\`json
+{
+  "operation": "generateContent",
+  "nodePath": "1.1",
+  "userPrompt": "生成详细的内容，要求专业、准确，包含具体案例"
+}
+\`\`\`
+
+### generateChildrenChildren ⭐⭐⭐ 强烈推荐（批量生成）
+为指定节点的所有子节点生成子节点。递归遍历所有叶子节点，为每个叶子节点生成子节点。**并发处理，高效批量生成**。
+
+**使用场景**：需要为多个章节批量生成子章节时，使用此操作可以并发处理，快速完成。
+
+**⚠️ 重要**：**必须指定nodePath**。使用根节点（nodePath: "dummy"）可以为整个文档的所有章节批量生成子章节。
+
+**使用示例**：
+\`\`\`json
+// 为指定节点的所有子节点生成子节点
+{
+  "operation": "generateChildrenChildren",
+  "nodePath": "1",
+  "userPrompt": "为每个章节生成2-3个子章节，要求结构清晰、逻辑合理"
+}
+
+// 为整个文档的所有章节批量生成子章节（使用根节点）
+{
+  "operation": "generateChildrenChildren",
+  "nodePath": "dummy",
+  "userPrompt": "为文档中所有章节生成2-3个子章节"
+}
+\`\`\`
+
+### generateChildrenContent ⭐⭐⭐ 强烈推荐（批量生成）
+为指定节点的所有子节点生成内容。递归遍历所有子节点，为每个节点生成正文内容。**并发处理，高效批量生成**。
+
+**使用场景**：需要为多个章节批量生成内容时，使用此操作可以并发处理，快速完成。
+
+**⚠️ 重要**：**必须指定nodePath**。使用根节点（nodePath: "dummy"）可以为整个文档的所有章节批量生成内容。
+
+**使用示例**：
+\`\`\`json
+// 为指定节点的所有子节点生成内容
+{
+  "operation": "generateChildrenContent",
+  "nodePath": "1",
+  "userPrompt": "为每个章节生成详细内容，要求专业、准确，包含具体案例和数据"
+}
+
+// 为整个文档的所有章节批量生成内容（使用根节点）
+{
+  "operation": "generateChildrenContent",
+  "nodePath": "dummy",
+  "userPrompt": "为文档中所有章节生成详细内容，要求专业、准确"
+}
+\`\`\`
+
+### moveNode ⭐ 节点移动（调整顺序）
+移动节点到指定位置，支持调整节点顺序。参照Outline.vue的拖拽逻辑实现。
+
+**使用场景**：
+- 调整章节顺序
+- 将节点移动到其他位置
+- 重新组织文档结构
+
+**参数说明**：
+- \`nodePath\`: 要移动的节点路径（必需）
+- \`targetPath\`: 目标位置节点路径（必需）
+- \`moveMode\`: 移动模式（必需）
+  - \`"before"\`: 移动到目标节点之前（同级）
+  - \`"after"\`: 移动到目标节点之后（同级）
+  - \`"inside"\`: 移动到目标节点内部（作为子节点）
+
+**使用示例**：
+\`\`\`json
+{
+  "operation": "moveNode",
+  "nodePath": "1.2",
+  "targetPath": "1.1",
+  "moveMode": "after"
+}
+\`\`\`
+
+### deleteNodes ⭐ 删除节点（支持批量）
+删除指定的节点，支持批量删除多个节点。
+
+**使用场景**：
+- 删除不需要的章节
+- 批量清理大纲结构
+- 移除错误生成的节点
+
+**参数说明**：
+- \`nodePath\`: 单个节点路径（可选，与nodePaths二选一）
+- \`nodePaths\`: 节点路径数组（可选，用于批量删除）
+
+**使用示例**：
+\`\`\`json
+// 单个删除
+{
+  "operation": "deleteNodes",
+  "nodePath": "1.2"
+}
+
+// 批量删除
+{
+  "operation": "deleteNodes",
+  "nodePaths": ["1.2", "1.3", "2.1"]
+}
+\`\`\`
+
+### clearOutline ⭐ 清空大纲树
+清空整个文档的大纲树，保留根节点（dummy节点）。**即使只有dummy节点，也可以执行此操作**。
+
+**使用场景**：
+- 重新开始构建文档结构
+- 清空所有现有内容
+- 准备生成全新的文章
+
+**使用示例**：
+\`\`\`json
+{
+  "operation": "clearOutline"
+}
+\`\`\`
+
+**注意**：此操作会删除所有章节和内容，请谨慎使用。清空后可以使用generateChildren为根节点生成新的章节。
+
+## ⭐ 最佳实践：大规模内容生成
+
+### 推荐工作流程
+
+**场景1：生成完整文章结构**
+1. 先使用 \`generateChildren\` 为根节点生成主要章节
+2. 使用 \`generateChildrenChildren\` 为所有章节批量生成子章节
+3. 使用 \`generateChildrenContent\` 为所有章节批量生成内容
+
+**场景2：为已有大纲补充内容**
+1. 使用 \`outline-tree\` 工具查看文档大纲结构
+2. 使用 \`generateChildrenContent\` 为指定节点的所有子节点批量生成内容
+
+**场景3：扩展某个章节**
+1. 使用 \`generateChildren\` 为该章节生成子章节
+2. 使用 \`generateContent\` 为该章节生成内容
+3. 使用 \`generateChildrenContent\` 为所有子章节批量生成内容
+
+### 何时使用此工具 vs 手动编辑
+
+**✅ 推荐使用此工具**：
+- 需要生成大量章节（3个以上）
+- 需要为多个章节生成内容
+- 需要批量操作（批量生成子章节、批量生成内容）
+- 需要保持结构一致性
+
+**✅ 可以手动编辑**：
+- 小规模编辑（1-2个段落）
+- 精确控制单个位置的内容
+- 需要频繁调整的临时内容
+
+### userPrompt 参数的使用技巧
+
+\`userPrompt\` 参数可以让你控制生成的内容风格和质量：
+
+\`\`\`json
+{
+  "operation": "generateChildrenContent",
+  "nodePath": "1",
+  "userPrompt": "生成专业、准确的内容，要求：1. 包含具体案例和数据 2. 使用学术写作风格 3. 每个章节至少500字 4. 包含图表说明"
+}
+\`\`\`
 
 ## 输出格式
 \`\`\`json
@@ -730,6 +1114,9 @@ export const outlineOptimizeToolConfig: AgentToolConfig = {
 - 生成的内容会替换原有内容（如果有）
 - 操作完成后，文档会自动更新
 - 建议在操作前保存文档
+- **节点移动和删除操作**：操作完成后会自动重新生成路径编号
+- **批量删除**：可以一次删除多个节点，提高效率
+- **清空大纲**：会删除所有章节，请谨慎使用
 `,
   callback: outlineOptimizeToolCallback,
   displayComponent: OutlineOptimizeDisplay,
@@ -742,16 +1129,30 @@ export const outlineOptimizeToolConfig: AgentToolConfig = {
     properties: {
       operation: {
         type: 'string',
-        enum: ['generateChildren', 'generateContent', 'generateChildrenChildren', 'generateChildrenContent'],
+        enum: ['generateChildren', 'generateContent', 'generateChildrenChildren', 'generateChildrenContent', 'moveNode', 'deleteNodes', 'clearOutline'],
         description: '操作类型'
       },
       nodePath: {
         type: 'string',
         description: '目标节点的路径（如"1", "1.1"），默认使用第一个非根节点'
       },
+      nodePaths: {
+        type: 'array',
+        items: { type: 'string' },
+        description: '批量操作的节点路径数组（用于deleteNodes批量删除）'
+      },
+      targetPath: {
+        type: 'string',
+        description: '移动操作的目标路径（用于moveNode）'
+      },
+      moveMode: {
+        type: 'string',
+        enum: ['before', 'after', 'inside'],
+        description: '移动模式：before（之前）/after（之后）/inside（内部，作为子节点）'
+      },
       userPrompt: {
         type: 'string',
-        description: '用户提示词，用于指导AI生成'
+        description: '用户提示词，用于指导AI生成（用于生成操作）'
       },
       tabId: {
         type: 'string',

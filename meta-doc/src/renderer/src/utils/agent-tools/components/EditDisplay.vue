@@ -66,18 +66,61 @@
 
       <!-- 分列视图（Monaco 编辑器对比） -->
       <div v-else class="split-view-container">
-        <div class="split-editors">
-          <div class="editor-panel old-panel">
-            <div class="editor-header" :style="editorHeaderStyle">
-              <span class="editor-label">{{ $t('agent.display.edit.oldContent') }}</span>
+        <div class="split-view-layout">
+          <!-- 左侧：操作列表 -->
+          <div class="operations-panel" :style="{ width: leftPanelWidth + '%' }">
+            <div class="operations-header" :style="editorHeaderStyle">
+              <span class="editor-label">{{ $t('agent.display.edit.operations') || '操作列表' }}</span>
             </div>
-            <div :id="oldEditorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
+            <el-scrollbar class="operations-scroll">
+              <div class="operations-list-compact">
+                <div
+                  v-for="(operation, index) in resultData.operations"
+                  :key="index"
+                  class="operation-item-compact"
+                  :class="{ 'operation-item-active': selectedOperationIndex === index }"
+                  :style="operationItemStyle"
+                  @click="selectOperation(index)"
+                >
+                  <div class="operation-header-compact" :style="operationHeaderStyle">
+                    <el-tag :type="getOperationTypeTag(operation.type)" size="small">
+                      {{ getOperationTypeLabel(operation.type) }}
+                    </el-tag>
+                    <span class="operation-range" :style="rangeStyle">
+                      {{ formatRange(operation.range) }}
+                    </span>
+                  </div>
+                  <div v-if="operation.content" class="operation-preview" :style="contentStyle">
+                    <pre class="content-text-preview" :style="textStyle">{{ truncateText(operation.content, 50) }}</pre>
+                  </div>
+                </div>
+              </div>
+            </el-scrollbar>
           </div>
-          <div class="editor-panel new-panel">
-            <div class="editor-header" :style="editorHeaderStyle">
-              <span class="editor-label">{{ $t('agent.display.edit.newContent') }}</span>
+          
+          <!-- 可调整宽度的分割线 -->
+          <div 
+            class="resize-handle"
+            @mousedown="startResize"
+            :style="resizeHandleStyle"
+          ></div>
+          
+          <!-- 右侧：Monaco 编辑器对比 -->
+          <div class="editors-panel" :style="{ width: rightPanelWidth + '%' }">
+            <div class="split-editors">
+              <div class="editor-panel old-panel">
+                <div class="editor-header" :style="editorHeaderStyle">
+                  <span class="editor-label">{{ $t('agent.display.edit.oldContent') }}</span>
+                </div>
+                <div :id="oldEditorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
+              </div>
+              <div class="editor-panel new-panel">
+                <div class="editor-header" :style="editorHeaderStyle">
+                  <span class="editor-label">{{ $t('agent.display.edit.newContent') }}</span>
+                </div>
+                <div :id="newEditorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
+              </div>
             </div>
-            <div :id="newEditorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
           </div>
         </div>
       </div>
@@ -120,6 +163,12 @@ const oldEditorId = ref(`edit-old-${Date.now()}-${Math.random().toString(36).sub
 const newEditorId = ref(`edit-new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
 let oldMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 let newMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
+
+// 左右面板宽度（百分比）
+const leftPanelWidth = ref(30)  // 默认30%
+const rightPanelWidth = ref(70)  // 默认70%
+const selectedOperationIndex = ref<number | null>(null)
+const isResizing = ref(false)
 
 const workspace = useWorkspace()
 
@@ -253,6 +302,66 @@ const getOperationTypeLabel = (type: string) => {
   }
   return map[type] || type
 }
+
+// 截断文本
+const truncateText = (text: string, maxLength: number) => {
+  if (text.length <= maxLength) return text
+  return text.substring(0, maxLength) + '...'
+}
+
+// 选择操作
+const selectOperation = (index: number) => {
+  selectedOperationIndex.value = index
+  // 可以在这里添加跳转到对应位置的逻辑
+  if (oldMonacoEditor && resultData.value?.operations[index]) {
+    const op = resultData.value.operations[index]
+    const range = new monaco.Range(
+      op.range.start.line,
+      op.range.start.column,
+      op.range.end.line,
+      op.range.end.column
+    )
+    oldMonacoEditor.revealRangeInCenter(range)
+    oldMonacoEditor.setPosition({ lineNumber: op.range.start.line, column: op.range.start.column })
+  }
+}
+
+// 调整宽度
+const startResize = (e: MouseEvent) => {
+  isResizing.value = true
+  const startX = e.clientX
+  const startLeftWidth = leftPanelWidth.value
+  
+  const handleMouseMove = (moveEvent: MouseEvent) => {
+    const deltaX = moveEvent.clientX - startX
+    const container = (moveEvent.target as HTMLElement)?.closest('.split-view-container') as HTMLElement
+    if (container) {
+      const containerWidth = container.clientWidth
+      const deltaPercent = (deltaX / containerWidth) * 100
+      const newLeftWidth = Math.max(20, Math.min(60, startLeftWidth + deltaPercent))
+      leftPanelWidth.value = newLeftWidth
+      rightPanelWidth.value = 100 - newLeftWidth
+    }
+  }
+  
+  const handleMouseUp = () => {
+    isResizing.value = false
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
+  }
+  
+  document.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseup', handleMouseUp)
+}
+
+const resizeHandleStyle = computed(() => ({
+  cursor: 'col-resize',
+  backgroundColor: isResizing.value 
+    ? themeState.currentTheme.textColor2 + '40' 
+    : themeState.currentTheme.textColor2 + '20',
+  width: '4px',
+  transition: isResizing.value ? 'none' : 'background-color 0.2s'
+}))
 
 // 初始化 Monaco 编辑器（分列视图）
 const initMonacoEditors = async () => {
@@ -604,10 +713,93 @@ const editorContainerStyle = computed(() => ({
   background-color: v-bind('themeState.currentTheme.background');
 }
 
+.split-view-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.operations-panel {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid v-bind('themeState.currentTheme.borderColor');
+  overflow: hidden;
+  min-width: 200px;
+  max-width: 60%;
+}
+
+.operations-header {
+  flex-shrink: 0;
+}
+
+.operations-scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.operations-list-compact {
+  padding: 8px;
+}
+
+.operation-item-compact {
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+
+.operation-item-compact:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.operation-item-active {
+  border: 2px solid v-bind('themeState.currentTheme.primaryColor || "#409eff"') !important;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+}
+
+.operation-header-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.operation-preview {
+  margin-top: 4px;
+}
+
+.content-text-preview {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  max-height: 40px;
+  overflow: hidden;
+}
+
+.resize-handle {
+  flex-shrink: 0;
+  cursor: col-resize;
+  user-select: none;
+  position: relative;
+}
+
+.resize-handle:hover {
+  background-color: v-bind('themeState.currentTheme.textColor2 + "30"') !important;
+}
+
+.editors-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 300px;
+  flex: 1;
+}
+
 .split-editors {
   display: flex;
   width: 100%;
   height: 100%;
+  flex: 1;
 }
 
 .editor-panel {

@@ -49,6 +49,10 @@
                 :max-size="MARKDOWN_LAYOUT.sidebarMaxWidth"
                 :reverse="true"
                 sidebar-position="end"
+                :collapsible="true"
+                :auto-collapse-width="MARKDOWN_LAYOUT.editorMinWidth + MARKDOWN_LAYOUT.sidebarMinWidth + 100"
+                collapse-button-title="折叠元信息面板"
+                expand-button-title="展开元信息面板"
                 @resize="onMetaInfoResize"
             >
                 <template #main>
@@ -253,6 +257,8 @@ function syncMarkdownFromOutline() {
 function getEditorRoot(): HTMLElement | null {
   return document.getElementById(props.editorDomId) as HTMLElement | null
 }
+
+
 
 // 状态变量
 const modifyContentDialogVisible = ref(false);
@@ -1030,6 +1036,12 @@ onMounted(async () => {
                     tipPosition: 's',
                 },
                 {
+                    name: 'outline',
+                    tip: t('article.toolbar.toggle_outline'),
+                    tipPosition: 's',
+                    
+                },
+                {
                     name: 'headings',
                     tip: t('article.toolbar.headings'),
                     tipPosition: 's',
@@ -1084,6 +1096,7 @@ onMounted(async () => {
                     tip: t('article.toolbar.quote'),
                     tipPosition: "s",
                 },
+
                 {
                     name: 'search-replace',
                     tip: t('article.toolbar.search_replace'),
@@ -1142,6 +1155,9 @@ onMounted(async () => {
                 try {
                     flushOutlineSync();
                     await bindTitleMenu();
+                    // 初始化大纲显示状态
+                    await nextTick();
+
                 } catch (e) {
                     logger.error(e);
                 }

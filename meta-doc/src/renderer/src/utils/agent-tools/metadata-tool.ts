@@ -25,7 +25,7 @@ import {
 } from '../prompts'
 import { extractOuterJsonString } from '../regex-utils'
 import { removeTextFromOutline } from '../document/outline'
-import { parseJsonWithClean, createDetailedError } from './tool-utils'
+import { parseJsonWithClean, createDetailedError, retryLLMCall } from './tool-utils'
 import MetadataDisplay from './components/MetadataDisplay.vue'
 import { getActiveDocumentInfoViaBroadcast } from './document-broadcast-helper'
 import { getWindowType } from '../event-bus'
@@ -127,12 +127,13 @@ function parseKeywordsResult(raw: string): string[] {
 }
 
 /**
- * 使用LLM生成标题
+ * 使用LLM生成标题（带自动重试）
  */
 async function generateTitleWithLLM(
   outlineJson: string,
   signal?: AbortSignal
 ): Promise<string> {
+  return await retryLLMCall(async () => {
   const prompt = generateTitlePrompt(outlineJson)
   logger.debug(`[generateTitleWithLLM] 开始生成标题，outlineJson长度=${outlineJson.length}, prompt长度=${prompt.length}`)
   const target = ref('')
@@ -179,8 +180,6 @@ async function generateTitleWithLLM(
       targetValueLength: target.value.length,
       rawOutputLength: rawOutput.length
     })
-    // 提供更友好的错误信息，并返回一个默认值而不是直接抛出错误
-    // 这样可以让测试继续，而不是完全失败
     throw new Error('AI返回内容为空，无法生成标题。请检查API配置或重试。')
   }
 
@@ -213,15 +212,23 @@ async function generateTitleWithLLM(
   }
 
   return cleaned
+  }, {
+    maxRetries: 3,
+    retryDelay: 3000,
+    onRetry: (attempt, error) => {
+      logger.warn(`[generateTitleWithLLM] LLM返回空，正在重试 (${attempt}/3)...`, error)
+    }
+  })
 }
 
 /**
- * 使用LLM生成描述
+ * 使用LLM生成描述（带自动重试）
  */
 async function generateDescriptionWithLLM(
   outlineJson: string,
   signal?: AbortSignal
 ): Promise<string> {
+  return await retryLLMCall(async () => {
   const prompt = generateDescriptionPrompt(outlineJson)
   logger.debug(`[generateDescriptionWithLLM] 开始生成描述，outlineJson长度=${outlineJson.length}, prompt长度=${prompt.length}`)
   const target = ref('')
@@ -268,7 +275,6 @@ async function generateDescriptionWithLLM(
       targetValueLength: target.value.length,
       rawOutputLength: rawOutput.length
     })
-    // 提供更友好的错误信息
     throw new Error('AI返回内容为空，无法生成描述。请检查API配置或重试。')
   }
 
@@ -301,15 +307,23 @@ async function generateDescriptionWithLLM(
   }
 
   return cleaned
+  }, {
+    maxRetries: 3,
+    retryDelay: 3000,
+    onRetry: (attempt, error) => {
+      logger.warn(`[generateDescriptionWithLLM] LLM返回空，正在重试 (${attempt}/3)...`, error)
+    }
+  })
 }
 
 /**
- * 使用LLM生成关键词
+ * 使用LLM生成关键词（带自动重试）
  */
 async function generateKeywordsWithLLM(
   outlineJson: string,
   signal?: AbortSignal
 ): Promise<string[]> {
+  return await retryLLMCall(async () => {
   const prompt = generateKeywordsPrompt(outlineJson)
   logger.debug(`[generateKeywordsWithLLM] 开始生成关键词，outlineJson长度=${outlineJson.length}, prompt长度=${prompt.length}`)
   const target = ref('')
@@ -352,7 +366,7 @@ async function generateKeywordsWithLLM(
   logger.debug(`[generateKeywordsWithLLM] 任务完成，target.value长度=${target.value.length}, rawOutput长度=${rawOutput.length}`)
   if (!rawOutput || rawOutput.length === 0) {
     logger.warn('LLM返回空结果，返回空关键词数组')
-    return []
+      throw new Error('AI返回内容为空，无法生成关键词。请检查API配置或重试。')
   }
 
   const keywords = parseKeywordsResult(rawOutput)
@@ -370,12 +384,20 @@ async function generateKeywordsWithLLM(
       return sanitizeKeywords(extracted)
     }
     
-    // 如果还是失败，记录原始输出并返回空数组（而不是抛出错误）
+      // 如果还是失败，记录原始输出并抛出错误（让重试机制处理）
     logger.warn('无法解析关键词，原始输出:', rawOutput.substring(0, 200))
-    return []
+      throw new Error('AI返回内容无法解析为关键词。请检查API配置或重试。')
   }
 
   return keywords
+  }, {
+    maxRetries: 3,
+    retryDelay: 3000,
+    checkEmpty: (result) => Array.isArray(result) && result.length === 0,
+    onRetry: (attempt, error) => {
+      logger.warn(`[generateKeywordsWithLLM] LLM返回空，正在重试 (${attempt}/3)...`, error)
+    }
+  })
 }
 
 /**

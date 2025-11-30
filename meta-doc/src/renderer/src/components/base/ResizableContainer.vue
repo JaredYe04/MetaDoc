@@ -1,5 +1,5 @@
 <template>
-  <div class="resizable-container" :class="containerClass">
+  <div class="resizable-container" :class="containerClass" ref="containerRef">
     <!-- 主要内容区域 -->
     <div 
       class="main-content" 
@@ -11,7 +11,7 @@
 
     <!-- 可调整大小的分割线 -->
     <ResizableDivider
-      v-if="showDivider"
+      v-if="showDivider && !isCollapsed"
       :direction="direction"
       :size="dividerSize"
       :reverse="reverse"
@@ -22,20 +22,44 @@
       @resize-end="handleResizeEnd"
     />
 
+    <!-- 折叠按钮（在侧边栏内部，当展开时显示） -->
+    <div 
+      v-if="showSidebar && !isCollapsed && collapsible"
+      class="collapse-button"
+      :class="collapseButtonClass"
+      @click="toggleCollapse"
+      :title="collapseButtonTitle"
+    >
+      <el-icon><ArrowRight v-if="sidebarPosition === 'start'" /><ArrowLeft v-else /></el-icon>
+    </div>
+
     <!-- 侧边内容区域 -->
     <div 
-      v-if="showSidebar"
+      v-if="showSidebar && !isCollapsed"
       class="sidebar-content" 
       :class="sidebarClass"
       :style="sidebarStyle"
     >
       <slot name="sidebar"></slot>
     </div>
+
+    <!-- 展开按钮（当折叠时显示） -->
+    <div 
+      v-if="showSidebar && isCollapsed && collapsible"
+      class="expand-button"
+      :class="expandButtonClass"
+      @click="toggleCollapse"
+      :title="expandButtonTitle"
+    >
+      <el-icon><ArrowLeft v-if="sidebarPosition === 'start'" /><ArrowRight v-else /></el-icon>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+import { ElIcon } from 'element-plus'
 import ResizableDivider from './ResizableDivider.vue'
 
 interface Props {
@@ -55,6 +79,14 @@ interface Props {
   reverse?: boolean
   /** 侧边栏位置 */
   sidebarPosition?: 'start' | 'end'
+  /** 是否可折叠 */
+  collapsible?: boolean
+  /** 自动折叠的宽度阈值（当窗口宽度小于此值时自动折叠） */
+  autoCollapseWidth?: number
+  /** 折叠按钮标题 */
+  collapseButtonTitle?: string
+  /** 展开按钮标题 */
+  expandButtonTitle?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -65,21 +97,29 @@ const props = withDefaults(defineProps<Props>(), {
   dividerSize: 5,
   showSidebar: true,
   reverse: false,
-  sidebarPosition: 'end'
+  sidebarPosition: 'end',
+  collapsible: false,
+  autoCollapseWidth: 0,
+  collapseButtonTitle: '折叠',
+  expandButtonTitle: '展开'
 })
 
 const emit = defineEmits<{
   resize: [size: number, event: MouseEvent]
   resizeStart: [event: MouseEvent]
   resizeEnd: [event: MouseEvent]
+  collapse: [collapsed: boolean]
 }>()
 
 // 当前侧边栏尺寸
 const sidebarSize = ref(props.initialSidebarSize)
 const startSidebarSize = ref(props.initialSidebarSize)
 
+// 折叠状态
+const isCollapsed = ref(false)
+
 // 是否显示分割线
-const showDivider = computed(() => props.showSidebar)
+const showDivider = computed(() => props.showSidebar && !isCollapsed.value)
 
 // 容器类名
 const containerClass = computed(() => ({
@@ -112,6 +152,10 @@ const sidebarClass = computed(() => ({
 
 // 侧边栏样式
 const sidebarStyle = computed(() => {
+  if (isCollapsed.value) {
+    return { display: 'none' }
+  }
+  
   const size = sidebarSize.value + 'px'
   
   if (props.direction === 'horizontal') {
@@ -126,6 +170,63 @@ const sidebarStyle = computed(() => {
       minWidth: props.minSize + 'px',
       maxWidth: props.maxSize + 'px'
     }
+  }
+})
+
+// 折叠按钮类名
+const collapseButtonClass = computed(() => {
+  const base = 'collapse-button'
+  if (props.direction === 'horizontal') {
+    return `${base} collapse-button-horizontal`
+  } else {
+    return `${base} collapse-button-vertical ${props.sidebarPosition === 'start' ? 'collapse-button-left' : 'collapse-button-right'}`
+  }
+})
+
+// 展开按钮类名
+const expandButtonClass = computed(() => {
+  const base = 'expand-button'
+  if (props.direction === 'horizontal') {
+    return `${base} expand-button-horizontal`
+  } else {
+    return `${base} expand-button-vertical ${props.sidebarPosition === 'start' ? 'expand-button-left' : 'expand-button-right'}`
+  }
+})
+
+// 容器引用
+const containerRef = ref<HTMLElement | null>(null)
+
+// 切换折叠状态
+function toggleCollapse() {
+  isCollapsed.value = !isCollapsed.value
+  emit('collapse', isCollapsed.value)
+}
+
+// 监听窗口大小变化，自动折叠
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(async () => {
+  await nextTick()
+  if (props.collapsible && props.autoCollapseWidth > 0 && containerRef.value) {
+    const parentContainer = containerRef.value.parentElement
+    if (parentContainer) {
+      resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const width = entry.contentRect.width
+          if (width < props.autoCollapseWidth && !isCollapsed.value) {
+            isCollapsed.value = true
+            emit('collapse', true)
+          }
+        }
+      })
+      resizeObserver.observe(parentContainer)
+    }
+  }
+})
+
+onBeforeUnmount(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
   }
 })
 
@@ -157,7 +258,13 @@ defineExpose({
     sidebarSize.value = Math.max(props.minSize, Math.min(props.maxSize, size))
     startSidebarSize.value = sidebarSize.value
   },
-  getSidebarSize: () => sidebarSize.value
+  getSidebarSize: () => sidebarSize.value,
+  setCollapsed: (collapsed: boolean) => {
+    isCollapsed.value = collapsed
+    emit('collapse', collapsed)
+  },
+  getCollapsed: () => isCollapsed.value,
+  toggleCollapse
 })
 </script>
 
@@ -210,5 +317,77 @@ defineExpose({
 
 .sidebar-vertical {
   height: 100%;
+}
+
+/* 折叠按钮样式 */
+.collapse-button {
+  position: absolute;
+  z-index: 10;
+  cursor: pointer;
+  background-color: var(--el-bg-color-page, #f5f7fa);
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.collapse-button:hover {
+  background-color: var(--el-bg-color, #ffffff);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.collapse-button-vertical {
+  width: 24px;
+  height: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.collapse-button-left {
+  left: -12px;
+}
+
+.collapse-button-right {
+  right: -12px;
+}
+
+/* 展开按钮样式 */
+.expand-button {
+  position: absolute;
+  z-index: 10;
+  cursor: pointer;
+  background-color: var(--el-bg-color-page, #f5f7fa);
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.expand-button:hover {
+  background-color: var(--el-bg-color, #ffffff);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.expand-button-vertical {
+  width: 24px;
+  height: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.expand-button-left {
+  left: 0;
+}
+
+.expand-button-right {
+  right: 0;
 }
 </style>

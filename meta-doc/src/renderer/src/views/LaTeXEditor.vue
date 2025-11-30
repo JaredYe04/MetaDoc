@@ -48,6 +48,10 @@
                     :max-size="LATEX_LAYOUT.meta.maxWidth"
                     :reverse="true"
                     sidebar-position="end"
+                    :collapsible="true"
+                    :auto-collapse-width="LATEX_LAYOUT.left.minWidth + LATEX_LAYOUT.meta.minWidth + 100"
+                    collapse-button-title="折叠元信息面板"
+                    expand-button-title="展开元信息面板"
                 >
                     <template #main>
                         <div class="latex-main" ref="mainContainerRef">
@@ -626,7 +630,7 @@ const toggleRowNumber = () => {
 }
 
 const showPdfPanel = ref(true)
-const showConsole = ref(true)
+const showConsole = ref(false)  // 默认隐藏终端
 const pdfUrl = ref('file:///')
 const pdfContainer = ref<HTMLElement | null>(null);
 const canvasWrapper = ref<HTMLElement | null>(null);
@@ -1428,11 +1432,12 @@ async function loadPdf(url: string, preservePage = false) {
         
         // 如果是文件不存在或无法访问的错误，显示友好的提示
         if (error?.name === 'ResponseException' || error?.status === 0) {
-            eventBus.emit('show-warning', 
-                t('latexEditor.notification.pdfLoadFailed', { 
-                    reason: t('latexEditor.notification.pdfFileNotFoundOrInaccessible')
-                })
-            );
+            // eventBus.emit('show-warning', 
+            //     t('latexEditor.notification.pdfLoadFailed', { 
+            //         reason: t('latexEditor.notification.pdfFileNotFoundOrInaccessible')
+            //     })
+            // );
+            logger.warn(t('latexEditor.notification.pdfFileNotFoundOrInaccessible'))
         } else {
             eventBus.emit('show-error', 
                 t('latexEditor.notification.pdfLoadFailed', { 
@@ -1452,6 +1457,8 @@ function togglePdf() {
 
 const compile = async () => {
     if (!editor.value || !ipcRenderer) return;
+    // 自动打开终端输出界面
+    showConsole.value = true;
     eventBus.emit('clear-console', { key: 'latex' })
     eventBus.emit('cancel-suggestion')
     if(!currentPath.value || !currentPath.value.toLowerCase().endsWith(".tex")){

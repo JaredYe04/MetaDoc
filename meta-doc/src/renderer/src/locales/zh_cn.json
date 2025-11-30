@@ -388,7 +388,10 @@
             "fullscreen": "全屏编辑器",
             "quote": "引用",
             "search_replace": "查找与替换",
-            "ai_assistant": "AI助手"
+            "ai_assistant": "AI助手",
+            "toggle_outline": "切换大纲",
+            "toggle_outline_show": "显示大纲",
+            "toggle_outline_hide": "隐藏大纲"
         },
         "convert_to_latex":"将文档转换为LaTeX",
         "convert_to_latex_confirm":"转换后会生成tex文件，与现有的Markdown文件不同步，是否继续？",
@@ -592,6 +595,22 @@
                 "report": {
                     "label": "报告模板",
                     "description": "带章节结构的报告模板，适用于课程或项目报告。"
+                },
+                "gb7714_zh": {
+                    "label": "中文国标学术论文",
+                    "description": "符合 GB/T 7714-2015 标准的中文学术论文模板，包含完整的论文结构。"
+                },
+                "ieee_en": {
+                    "label": "英文标准学术论文",
+                    "description": "符合 IEEE 标准的英文学术论文模板，适用于国际期刊和会议。"
+                },
+                "gb7714_zh_twocolumn": {
+                    "label": "中文国标学术论文（双栏）",
+                    "description": "符合 GB/T 7714-2015 标准的中文学术论文模板（双栏排版），适用于期刊投稿。"
+                },
+                "ieee_en_twocolumn": {
+                    "label": "英文标准学术论文（双栏）",
+                    "description": "符合 IEEE 标准的英文学术论文模板（双栏排版），适用于期刊和会议投稿。"
                 }
             }
         }
@@ -1149,6 +1168,8 @@
       "detail": {
         "lastUsed": "最后使用时间",
         "origin": "来源",
+        "name": "名称",
+        "description": "描述",
         "status": "运行状态",
         "idle": "空闲",
         "never": "从未使用",

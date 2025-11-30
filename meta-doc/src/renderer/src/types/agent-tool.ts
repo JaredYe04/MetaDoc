@@ -199,6 +199,8 @@ export interface ToolInvocationContext {
   controller: AbortController
   /** 状态更新回调 */
   onStatusUpdate?: (status: ToolExecutionStatus, data?: ToolCallbackData, progress?: ToolProgress) => void
+  /** 超时计数（用于跟踪连续超时次数） */
+  timeoutCount?: number
 }
 
 /**

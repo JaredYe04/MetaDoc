@@ -22,7 +22,17 @@ const logger = createRendererLogger('EditTool')
 const workspace = useWorkspace()
 
 /**
- * 编辑操作（基于位置的编辑）
+ * 稳定锚点（用于增量diff编辑）
+ * 当行号失效时，使用锚点定位
+ */
+export interface StableAnchor {
+  before?: string  // 改动前的关键字（用于定位）
+  after?: string   // 改动后的关键字（用于验证）
+  context?: string // 上下文文本（可选，用于更精确的定位）
+}
+
+/**
+ * 编辑操作（基于位置的编辑，支持增量diff）
  */
 export interface EditOperation {
   type: 'insert' | 'replace' | 'delete'
@@ -31,6 +41,7 @@ export interface EditOperation {
     end: { line: number; column: number }   // 1-based
   }
   content?: string  // 对于insert和replace操作
+  anchor?: StableAnchor  // 稳定锚点（可选，用于fallback定位）
 }
 
 /**
@@ -192,22 +203,120 @@ function convertFindReplaceToEditOperations(
 }
 
 /**
- * 应用编辑操作到文本
+ * 使用锚点查找位置（fuzzy匹配）
+ * 当行号失效时，使用锚点文本进行模糊匹配
+ */
+function findPositionByAnchor(
+  text: string,
+  anchor: StableAnchor,
+  preferredLine?: number
+): { start: { line: number; column: number }; end: { line: number; column: number } } | null {
+  if (!anchor.before && !anchor.after && !anchor.context) {
+    return null
+  }
+  
+  // 优先使用before锚点
+  if (anchor.before) {
+    const beforeIndex = text.indexOf(anchor.before)
+    if (beforeIndex !== -1) {
+      const startPos = offsetToPosition(text, beforeIndex)
+      const endPos = offsetToPosition(text, beforeIndex + anchor.before.length)
+      
+      // 如果提供了preferredLine，检查是否在合理范围内（±10行）
+      if (preferredLine !== undefined) {
+        const lineDiff = Math.abs(startPos.line - preferredLine)
+        if (lineDiff > 10) {
+          // 行号差异太大，可能不是正确的匹配，继续尝试其他方法
+        } else {
+          return { start: startPos, end: endPos }
+        }
+      } else {
+        return { start: startPos, end: endPos }
+      }
+    }
+  }
+  
+  // 如果before锚点失败，尝试使用context
+  if (anchor.context) {
+    const contextIndex = text.indexOf(anchor.context)
+    if (contextIndex !== -1) {
+      const startPos = offsetToPosition(text, contextIndex)
+      const endPos = offsetToPosition(text, contextIndex + anchor.context.length)
+      return { start: startPos, end: endPos }
+    }
+  }
+  
+  // 如果都失败，尝试fuzzy匹配（查找包含锚点文本的行）
+  if (anchor.before) {
+    const lines = text.split(/\r?\n/)
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes(anchor.before)) {
+        const lineStart = positionToOffset(text, i + 1, 1)
+        const anchorIndex = lines[i].indexOf(anchor.before)
+        const startPos = offsetToPosition(text, lineStart + anchorIndex)
+        const endPos = offsetToPosition(text, lineStart + anchorIndex + anchor.before.length)
+        return { start: startPos, end: endPos }
+      }
+    }
+  }
+  
+  return null
+}
+
+/**
+ * 应用编辑操作到文本（支持增量diff，带锚点fallback）
  */
 function applyEditToText(text: string, edit: EditOperation): string {
   const lines = text.split(/\r?\n/)
   
-  // 验证行号范围
-  if (edit.range.start.line < 1 || edit.range.start.line > lines.length + 1) {
-    throw new Error(`起始行号 ${edit.range.start.line} 超出范围 [1, ${lines.length + 1}]`)
-  }
-  if (edit.range.end.line < 1 || edit.range.end.line > lines.length + 1) {
-    throw new Error(`结束行号 ${edit.range.end.line} 超出范围 [1, ${lines.length + 1}]`)
-  }
+  let startOffset: number
+  let endOffset: number
   
-  // 获取起始和结束位置的偏移量
-  const startOffset = positionToOffset(text, edit.range.start.line, edit.range.start.column)
-  const endOffset = positionToOffset(text, edit.range.end.line, edit.range.end.column)
+  // 尝试1：使用行号定位（优先）
+  try {
+    // 验证行号范围
+    if (edit.range.start.line < 1 || edit.range.start.line > lines.length + 1) {
+      throw new Error(`起始行号 ${edit.range.start.line} 超出范围 [1, ${lines.length + 1}]`)
+    }
+    if (edit.range.end.line < 1 || edit.range.end.line > lines.length + 1) {
+      throw new Error(`结束行号 ${edit.range.end.line} 超出范围 [1, ${lines.length + 1}]`)
+    }
+    
+    startOffset = positionToOffset(text, edit.range.start.line, edit.range.start.column)
+    endOffset = positionToOffset(text, edit.range.end.line, edit.range.end.column)
+    
+    // 验证位置内容（如果提供了anchor.before，验证是否匹配）
+    if (edit.anchor?.before) {
+      const actualText = text.slice(startOffset, endOffset)
+      // 允许部分匹配（因为可能包含换行符等）
+      if (!actualText.includes(edit.anchor.before) && !edit.anchor.before.includes(actualText.trim())) {
+        logger.warn('行号定位的内容与锚点不匹配，尝试使用锚点定位', {
+          expected: edit.anchor.before,
+          actual: actualText.substring(0, 50)
+        })
+        throw new Error('位置内容不匹配，尝试锚点定位')
+      }
+    }
+  } catch (error) {
+    // 尝试2：使用锚点定位（fallback）
+    if (edit.anchor) {
+      const anchorPos = findPositionByAnchor(text, edit.anchor, edit.range.start.line)
+      if (anchorPos) {
+        logger.info('使用锚点定位成功', {
+          originalLine: edit.range.start.line,
+          anchorLine: anchorPos.start.line
+        })
+        startOffset = positionToOffset(text, anchorPos.start.line, anchorPos.start.column)
+        endOffset = positionToOffset(text, anchorPos.end.line, anchorPos.end.column)
+      } else {
+        // 锚点定位也失败，抛出错误
+        throw new Error(`无法定位编辑位置：行号失效且锚点匹配失败。行号: ${edit.range.start.line}, 锚点: ${edit.anchor.before?.substring(0, 20)}`)
+      }
+    } else {
+      // 没有锚点，直接抛出原始错误
+      throw error
+    }
+  }
   
   if (startOffset > endOffset) {
     throw new Error(`起始位置不能大于结束位置`)
@@ -289,16 +398,34 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 
   // 验证编辑操作
   for (const edit of rawEdits) {
-    if (!edit.type) {
+    // 检查edit是否为有效对象
+    if (!edit || typeof edit !== 'object') {
       return {
         status: 'failed',
         error: createDetailedError(
-          '缺少编辑类型',
+          '编辑操作格式无效：必须是对象类型',
+          [
+            '{"operations": [{"type": "findReplace", "oldText": "前端", "newText": "前台", "all": true}]}',
+            '{"operation": {"type": "findReplace", "oldText": "前端", "newText": "前台", "all": true}}'
+          ],
+          ['每个编辑操作必须是一个对象，包含type字段', '支持findReplace、insert、replace、delete等类型']
+        )
+      }
+    }
+    
+    // 检查type字段是否存在且为字符串
+    if (!edit.type || typeof edit.type !== 'string') {
+      const invalidType = edit.type ? String(edit.type).substring(0, 50) : 'undefined'
+      return {
+        status: 'failed',
+        error: createDetailedError(
+          `缺少或无效的编辑类型: ${invalidType}`,
           [
             '{"type": "findReplace", "oldText": "前端", "newText": "前台", "all": true}',
-            '{"type": "replace", "range": {"start": {"line": 10, "column": 1}, "end": {"line": 10, "column": 20}}, "content": "新内容"}'
+            '{"type": "replace", "range": {"start": {"line": 10, "column": 1}, "end": {"line": 10, "column": 20}}, "content": "新内容"}',
+            '注意：type必须是字符串，不能是LaTeX命令或其他内容'
           ],
-          ['支持findReplace、insert、replace、delete等类型']
+          ['支持findReplace、insert、replace、delete等类型', 'type字段必须是字符串类型', '如果看到LaTeX命令（如\\section），说明参数格式错误，请检查JSON格式']
         )
       }
     }
@@ -444,7 +571,28 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     }
 
     // 获取当前文档内容
-    const currentContent = doc.format === 'md' ? doc.markdown : doc.tex
+    // 如果文档格式未确定（新建文档），尝试从现有内容检测格式
+    let currentFormat = doc.format
+    if (!currentFormat || (doc.markdown.trim().length === 0 && doc.tex.trim().length === 0)) {
+      // 新建文档或内容为空，尝试从markdown或tex中检测
+      if (doc.markdown.trim().length > 0) {
+        // 检测markdown内容是否为LaTeX
+        const latexPatterns = [
+          /\\documentclass/i,
+          /\\begin\{document\}/i,
+          /\\section\{/i,
+          /\\usepackage\{/i
+        ]
+        const isLatex = latexPatterns.some(pattern => pattern.test(doc.markdown))
+        currentFormat = isLatex ? 'tex' : 'md'
+      } else if (doc.tex.trim().length > 0) {
+        currentFormat = 'tex'
+      } else {
+        // 内容为空，默认使用md
+        currentFormat = 'md'
+      }
+    }
+    const currentContent = currentFormat === 'md' ? doc.markdown : doc.tex
 
     onUpdate({
       content: {
@@ -544,7 +692,8 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       message: i18n.global.t('agent.tool.edit.progress.updating', '正在更新文档...')
     })
 
-    if (doc.format === 'md') {
+    // 根据检测到的格式更新内容（updateDocumentMarkdown/updateDocumentTex会自动检测格式并同步大纲树）
+    if (currentFormat === 'md') {
       workspace.updateDocumentMarkdown(targetTabId, newContent)
     } else {
       workspace.updateDocumentTex(targetTabId, newContent)
@@ -627,7 +776,15 @@ export const editToolConfig: AgentToolConfig = {
 # 文档编辑工具
 
 ## 功能描述
-直接对当前活动文档进行编辑，支持多处编辑操作。支持三种编辑方式：
+直接对当前活动文档进行编辑，支持多处编辑操作。采用**增量diff编辑框架**（类似Cursor/Claude），确保编辑稳定、高效、可控。
+
+### 核心特性：增量diff编辑 ⭐
+- **只生成变化部分**：不重写整篇文档，只生成需要修改的部分（diff）
+- **稳定锚点定位**：使用行号+锚点双重定位，即使文档被修改也能准确定位
+- **智能fallback机制**：行号匹配 → 锚点匹配 → fuzzy匹配，确保编辑成功
+- **分块编辑**：支持将大范围编辑拆分为多个小范围编辑，提高稳定性
+
+支持三种编辑方式：
 1. **基于位置的插入**：只需指定行号和列号位置即可插入文本（**高效，推荐AI使用，无需查找文本，节省token**）
 2. **基于位置的替换/删除**：需要指定精确的行号和列号位置（适合已知位置的编辑）
 3. **查找替换编辑**：基于文本内容查找并替换（适合需要替换特定文本的场景）
@@ -1075,15 +1232,56 @@ export const editToolConfig: AgentToolConfig = {
 }
 \`\`\`
 
+## 增量diff编辑最佳实践 ⭐⭐⭐
+
+### 核心原则（类似Cursor/Claude）
+1. **只生成变化部分**：永远不要生成整篇文档，只生成需要修改的部分（diff）
+2. **使用稳定锚点**：在编辑操作中提供 \`anchor\` 字段，包含 \`before\` 关键字，用于fallback定位
+3. **分块编辑**：将大范围编辑拆分为多个小范围编辑，每次只编辑一个逻辑块（如一个函数、一个段落）
+4. **智能定位**：工具会自动尝试：行号定位 → 锚点定位 → fuzzy匹配，确保编辑成功
+
+### 稳定锚点（Stable Anchor）的使用 ⭐
+当编辑操作可能因为文档被修改而失效时，提供 \`anchor\` 字段可以大大提高成功率：
+
+\`\`\`json
+{
+  "operations": [{
+    "type": "replace",
+    "range": {
+      "start": { "line": 10, "column": 1 },
+      "end": { "line": 10, "column": 20 }
+    },
+    "content": "新内容",
+    "anchor": {
+      "before": "旧内容的关键字",  // 用于定位（必需）
+      "after": "新内容的关键字",   // 用于验证（可选）
+      "context": "周围的上下文"    // 额外的上下文（可选）
+    }
+  }]
+}
+\`\`\`
+
+**锚点的工作原理**：
+1. **优先使用行号**：如果行号有效且内容匹配，直接使用行号定位
+2. **fallback到锚点**：如果行号失效（文档被修改），使用 \`before\` 锚点查找位置
+3. **fuzzy匹配**：如果精确锚点匹配失败，使用fuzzy匹配查找包含锚点文本的行
+
+**何时使用锚点**：
+- 编辑可能跨越多个工具调用（文档可能在两次调用之间被修改）
+- 编辑大范围内容（多行、多段落）
+- 需要确保编辑稳定性的场景
+
 ## 最佳实践建议 ⭐
 
 ### 对于AI（推荐方式）
-1. **⚠️ 插入前必须先定位**：在插入内容之前，**必须**先使用 \`outline-tree\` 工具获取文档大纲结构，分析文档内容，确定正确的插入位置。**绝对不能**总是从行1列1插入！
+1. **⚠️ 插入前必须先定位**：在插入内容之前，**必须**先使用 \`outline-tree\` 或 \`grep\` 工具获取文档结构，分析文档内容，确定正确的插入位置。**绝对不能**总是从行1列1插入！
 2. **优先使用基于位置的insert**：如果已知插入位置（通过大纲树分析得到），使用insert操作最高效，**无需查找文本，节省token，避免字符匹配错误**
-3. **使用批量插入**：如果需要插入多个位置，在一次调用中包含多个insert操作，工具会自动从后往前执行，避免位置偏移
-4. **使用全局替换**：需要替换文本时，设置 \`"all": true\` 可以一次性替换所有匹配项
-5. **批量操作**：在一次调用中的 \`operations\` 数组中包含多个操作，可以高效执行多个编辑
-6. **组合使用**：可以混合使用insert、replace、delete和findReplace操作
+3. **使用稳定锚点**：对于重要编辑，提供 \`anchor.before\` 字段，提高编辑成功率
+4. **使用批量插入**：如果需要插入多个位置，在一次调用中包含多个insert操作，工具会自动从后往前执行，避免位置偏移
+5. **使用全局替换**：需要替换文本时，设置 \`"all": true\` 可以一次性替换所有匹配项
+6. **批量操作**：在一次调用中的 \`operations\` 数组中包含多个操作，可以高效执行多个编辑
+7. **组合使用**：可以混合使用insert、replace、delete和findReplace操作
+8. **分块编辑**：对于大范围编辑，拆分为多个小范围编辑，每次只编辑一个逻辑块
 
 ### 插入操作的标准流程 ⭐⭐⭐
 **必须遵循以下流程，否则插入位置会错误**：

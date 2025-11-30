@@ -152,6 +152,9 @@ export const loadDocumentFromTex = (content: string): LoadedDocumentData => {
         if (metadata.current_ai_dialogs) {
           dialogs = ensureArrayDialogs(metadata.current_ai_dialogs);
         }
+        if (metadata.current_agent_sessions) {
+          agentSessions = ensureArrayAgentSessions(metadata.current_agent_sessions);
+        }
       }
     } catch (error) {
       console.warn('[DocumentLoader] 解析 LaTeX 元信息失败', error);

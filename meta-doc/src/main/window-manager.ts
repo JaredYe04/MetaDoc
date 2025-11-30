@@ -176,9 +176,53 @@ export const initWindowManager = (parentProvider: ParentProvider): void => {
   parentWindowProvider = parentProvider;
 };
 
-export const preloadAuxiliaryWindows = (): void => {
-  (Object.keys(windowDefinitions) as AuxWindowId[]).forEach((id) => {
-    ensureWindow(id);
+/**
+ * 串行预加载所有辅助窗口
+ * 先加载主窗口，然后在后台串行加载其他窗口，避免并发加载导致的系统卡顿
+ */
+export const preloadAuxiliaryWindows = async (): Promise<void> => {
+  const windowIds = Object.keys(windowDefinitions) as AuxWindowId[];
+  
+  // 串行加载每个窗口，等待前一个窗口加载完成后再加载下一个
+  for (const id of windowIds) {
+    try {
+      await preloadSingleWindow(id);
+    } catch (error) {
+      console.error(`预加载窗口 ${id} 失败:`, error);
+      // 继续加载下一个窗口，不中断整个流程
+    }
+  }
+};
+
+/**
+ * 预加载单个窗口，等待窗口准备就绪
+ */
+const preloadSingleWindow = (id: AuxWindowId): Promise<void> => {
+  return new Promise((resolve) => {
+    const state = getWindowState(id);
+    
+    // 如果窗口已经存在且已准备好，直接返回
+    if (state.instance && !state.instance.isDestroyed() && state.ready) {
+      resolve();
+      return;
+    }
+    
+    // 创建或获取窗口
+    const win = ensureWindow(id);
+    
+    // 再次检查状态（可能在 ensureWindow 中已经准备好了）
+    if (state.ready) {
+      resolve();
+      return;
+    }
+    
+    // 等待窗口准备就绪
+    const onReady = () => {
+      win.removeListener('ready-to-show', onReady);
+      resolve();
+    };
+    
+    win.once('ready-to-show', onReady);
   });
 };
 

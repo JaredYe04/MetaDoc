@@ -407,7 +407,15 @@ ${analysisRequest ? `用户分析需求：${analysisRequest}` : ''}
     { temperature: 0.5, stream: false }
   )
 
-  await done
+  try {
+    await done
+  } catch (error) {
+    // 重新抛出原始错误，让调用者知道任务失败
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    logger.error('生成数据分析摘要失败:', error)
+    throw new Error(`AI任务失败: ${errorMessage}`)
+  }
+
   return target.value.trim()
 }
 

@@ -277,7 +277,15 @@ ${stderr ? `标准错误:\n${stderr}` : ''}
     { temperature: 0.3, stream: false }
   )
 
-  await done
+  try {
+    await done
+  } catch (error) {
+    // 重新抛出原始错误，让调用者知道任务失败
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    logger.error('分析终端输出失败:', error)
+    throw new Error(`AI任务失败: ${errorMessage}`)
+  }
+
   return target.value.trim()
 }
 

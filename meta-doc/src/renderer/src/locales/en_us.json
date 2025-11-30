@@ -852,6 +852,22 @@
         "report": {
           "description": "Reporting templates with chapter structure applicable to courses or project reports.",
           "label": "Reporting template"
+        },
+        "gb7714_zh": {
+          "label": "Chinese GB Standard Academic Paper",
+          "description": "Chinese academic paper template compliant with GB/T 7714-2015 standard, including complete paper structure."
+        },
+        "ieee_en": {
+          "label": "IEEE Standard Academic Paper",
+          "description": "IEEE standard English academic paper template, suitable for international journals and conferences."
+        },
+        "gb7714_zh_twocolumn": {
+          "label": "Chinese GB Standard Academic Paper (Two-Column)",
+          "description": "Chinese academic paper template compliant with GB/T 7714-2015 standard (two-column layout), suitable for journal submissions."
+        },
+        "ieee_en_twocolumn": {
+          "label": "IEEE Standard Academic Paper (Two-Column)",
+          "description": "IEEE standard English academic paper template (two-column layout), suitable for journal and conference submissions."
         }
       },
       "markdown": {

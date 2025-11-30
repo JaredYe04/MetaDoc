@@ -30,6 +30,7 @@ export interface ToolObservation {
   error?: string
   summary?: string
   toolConfig?: any // 工具配置，用于导出和序列化
+  params?: Record<string, unknown>  // 工具调用参数，用于快照导出
 }
 
 /**
@@ -80,7 +81,7 @@ export class ToolRunner {
         undefined, // 状态更新回调（可选）
       )
 
-      // 包装为Observation
+      // 包装为Observation（包含调用参数）
       return {
         toolId,
         toolName: typeof tool.config.name === 'string' 
@@ -89,7 +90,8 @@ export class ToolRunner {
         status: result.status === 'succeeded' ? 'succeeded' : 'failed',
         result: result.data,
         error: result.error,
-        summary: result.data ? this.generateSummary(result.data) : undefined
+        summary: result.data ? this.generateSummary(result.data) : undefined,
+        params: params  // 保存调用参数，用于快照导出
       }
     } catch (error) {
       getLogger().error(`工具执行失败: ${toolId}`, error)

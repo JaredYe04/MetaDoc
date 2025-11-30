@@ -307,6 +307,52 @@ function activateTab(id: string): void {
 }
 
 /**
+ * 检测内容格式（LaTeX或Markdown）
+ * @param content 文档内容
+ * @returns 'tex' | 'md' 检测到的格式
+ */
+export function detectDocumentFormat(content: string): 'tex' | 'md' {
+  if (!content || content.trim().length === 0) {
+    return 'md' // 空内容默认Markdown
+  }
+  
+  // LaTeX特征检测
+  const latexPatterns = [
+    /\\documentclass/i,           // \documentclass
+    /\\begin\{document\}/i,        // \begin{document}
+    /\\section\{/i,                // \section{
+    /\\subsection\{/i,            // \subsection{
+    /\\subsubsection\{/i,          // \subsubsection{
+    /\\chapter\{/i,                // \chapter{
+    /\\part\{/i,                   // \part{
+    /\\usepackage\{/i,             // \usepackage{
+    /\\newcommand/i,               // \newcommand
+    /\\def\s+\\/i,                 // \def \
+    /\\title\{/i,                  // \title{
+    /\\author\{/i,                 // \author{
+    /\\maketitle/i,                // \maketitle
+    /\\begin\{equation\}/i,        // \begin{equation}
+    /\\begin\{align\}/i,           // \begin{align}
+    /\\begin\{figure\}/i,          // \begin{figure}
+    /\\begin\{table\}/i,           // \begin{table}
+    /\\includegraphics/i,          // \includegraphics
+    /\\ref\{/i,                    // \ref{
+    /\\cite\{/i,                   // \cite{
+    /\\label\{/i,                  // \label{
+  ]
+  
+  // 检查是否包含LaTeX特征
+  for (const pattern of latexPatterns) {
+    if (pattern.test(content)) {
+      return 'tex'
+    }
+  }
+  
+  // 默认返回Markdown
+  return 'md'
+}
+
+/**
  * 更新一个标签页的Markdown内容
  * @param tabId 标签页ID
  * @param markdown 新的Markdown内容
@@ -314,9 +360,41 @@ function activateTab(id: string): void {
 function updateDocumentMarkdown(tabId: string, markdown: string): void {
   //logger.debug('更新一个标签页的Markdown内容', { tabId, markdownPreview: markdown.substring(0, 100) });
   const doc = ensureDocument(tabId);
+  const tab = tabs.find((t) => t.id === tabId)
   const normalized = normalizeContent(markdown);
   if (doc.markdown !== normalized) {
     doc.markdown = normalized;
+    
+    // 自动检测并设置格式（如果格式未确定或内容明显是LaTeX）
+    if (tab && tab.kind === 'new' && !tab.path) {
+      // 新建文档且未保存，可以自动检测格式
+      const detectedFormat = detectDocumentFormat(normalized)
+      if (detectedFormat === 'tex' && doc.format !== 'tex') {
+        // 检测到LaTeX格式，更新格式
+        doc.format = 'tex'
+        tab.format = 'tex'
+      } else if (detectedFormat === 'md' && doc.format !== 'md' && normalized.trim().length > 0) {
+        // 检测到Markdown格式（且内容不为空），更新格式
+        doc.format = 'md'
+        tab.format = 'md'
+      }
+    }
+    
+    // 自动同步大纲树（从Markdown内容提取）
+    if (doc.format === 'md' && normalized.trim().length > 0) {
+      try {
+        const newOutline = extractOutlineTreeFromMarkdown(normalized)
+        if (newOutline && newOutline.children && newOutline.children.length >= 0) {
+          // 只有当提取到有效大纲时才更新（允许空大纲）
+          updateDocumentOutline(tabId, newOutline)
+        }
+      } catch (error) {
+        // 提取大纲失败时，不更新大纲树，避免破坏现有结构
+        const logger = createRendererLogger('Workspace')
+        logger.warn('自动同步大纲树失败:', error)
+      }
+    }
+    
     updateDocumentDirty(tabId);
   }
 }
@@ -328,9 +406,43 @@ function updateDocumentMarkdown(tabId: string, markdown: string): void {
  */
 function updateDocumentTex(tabId: string, tex: string): void {
   const doc = ensureDocument(tabId);
+  const tab = tabs.find((t) => t.id === tabId)
   const normalized = normalizeContent(tex);
   if (doc.tex !== normalized) {
     doc.tex = normalized;
+    
+    // 自动检测并设置格式（如果格式未确定）
+    if (tab && tab.kind === 'new' && !tab.path) {
+      // 新建文档且未保存，可以自动检测格式
+      const detectedFormat = detectDocumentFormat(normalized)
+      if (detectedFormat === 'tex' && doc.format !== 'tex') {
+        // 检测到LaTeX格式，更新格式
+        doc.format = 'tex'
+        tab.format = 'tex'
+      } else if (detectedFormat === 'md' && doc.format !== 'md' && normalized.trim().length > 0) {
+        // 检测到Markdown格式（且内容不为空），更新格式
+        doc.format = 'md'
+        tab.format = 'md'
+      }
+    }
+    
+    // 自动同步大纲树（LaTeX需要先转换为Markdown再提取）
+    if (doc.format === 'tex' && normalized.trim().length > 0) {
+      try {
+        // 将LaTeX转换为Markdown，然后提取大纲树
+        const markdown = convertLatexToMarkdown(normalized)
+        const newOutline = extractOutlineTreeFromMarkdown(markdown)
+        if (newOutline && newOutline.children && newOutline.children.length >= 0) {
+          // 只有当提取到有效大纲时才更新（允许空大纲）
+          updateDocumentOutline(tabId, newOutline)
+        }
+      } catch (error) {
+        // 提取大纲失败时，不更新大纲树，避免破坏现有结构
+        const logger = createRendererLogger('Workspace')
+        logger.warn('自动同步大纲树失败（LaTeX转换）:', error)
+      }
+    }
+    
     updateDocumentDirty(tabId);
   }
 }

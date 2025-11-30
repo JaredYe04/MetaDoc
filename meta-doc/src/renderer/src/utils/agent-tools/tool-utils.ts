@@ -201,6 +201,111 @@ export function isRetryableError(error: any): boolean {
 }
 
 /**
+ * 判断错误是否为LLM返回空（可重试）
+ */
+export function isEmptyResultError(error: any): boolean {
+  if (!error) return false
+  const errorMessage = error instanceof Error ? error.message : String(error)
+  return errorMessage.includes('返回内容为空') ||
+         errorMessage.includes('返回结果为空') ||
+         errorMessage.includes('返回为空') ||
+         errorMessage.includes('empty result') ||
+         errorMessage.includes('empty content') ||
+         errorMessage.includes('LLM返回结果为空')
+}
+
+/**
+ * LLM调用重试包装函数
+ * 专门处理LLM返回空的情况，自动重试（3秒间隔，最多3次）
+ * 
+ * @param fn LLM调用函数，返回Promise<T>
+ * @param options 重试选项
+ * @returns LLM调用结果
+ */
+export async function retryLLMCall<T>(
+  fn: () => Promise<T>,
+  options: {
+    maxRetries?: number  // 最大重试次数，默认3
+    retryDelay?: number   // 重试延迟（毫秒），默认3000
+    checkEmpty?: (result: T) => boolean  // 检查结果是否为空的函数
+    onRetry?: (attempt: number, error: any) => void  // 重试回调
+  } = {}
+): Promise<T> {
+  const {
+    maxRetries = 3,
+    retryDelay = 3000,
+    checkEmpty = (result: any) => {
+      // 默认检查：字符串为空、数组为空、对象为空
+      if (result === null || result === undefined) return true
+      if (typeof result === 'string' && result.trim().length === 0) return true
+      if (Array.isArray(result) && result.length === 0) return true
+      if (typeof result === 'object' && Object.keys(result).length === 0) return true
+      return false
+    },
+    onRetry
+  } = options
+
+  let lastError: any
+  let lastResult: T | null = null
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await fn()
+      
+      // 检查结果是否为空
+      if (checkEmpty(result)) {
+        if (attempt < maxRetries) {
+          const error = new Error('LLM返回结果为空')
+          lastError = error
+          if (onRetry) {
+            onRetry(attempt + 1, error)
+          }
+          // 等待后重试
+          await new Promise(resolve => setTimeout(resolve, retryDelay))
+          continue
+        } else {
+          throw new Error('LLM返回结果为空，已重试3次仍失败。请检查API配置或稍后重试。')
+        }
+      }
+      
+      return result
+    } catch (error) {
+      lastError = error
+      
+      // 检查是否为返回空错误
+      if (isEmptyResultError(error)) {
+        if (attempt < maxRetries) {
+          if (onRetry) {
+            onRetry(attempt + 1, error)
+          }
+          // 等待后重试
+          await new Promise(resolve => setTimeout(resolve, retryDelay))
+          continue
+        } else {
+          throw new Error('LLM返回结果为空，已重试3次仍失败。请检查API配置或稍后重试。')
+        }
+      }
+      
+      // 如果是其他错误，检查是否可重试
+      if (isRetryableError(error) && attempt < maxRetries) {
+        if (onRetry) {
+          onRetry(attempt + 1, error)
+        }
+        // 等待后重试
+        await new Promise(resolve => setTimeout(resolve, retryDelay))
+        continue
+      }
+      
+      // 不可重试或已达到最大重试次数，抛出错误
+      throw error
+    }
+  }
+
+  // 如果所有重试都失败，抛出最后一个错误
+  throw lastError || new Error('LLM调用失败')
+}
+
+/**
  * 生成带示例和扩展用法的详细错误提示
  * 用于Agent Tools，帮助AI更好地理解如何正确使用工具
  * 

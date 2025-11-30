@@ -129,7 +129,8 @@ class AgentToolManager {
       params,
       startTime: new Date().toISOString(),
       controller,
-      onStatusUpdate
+      onStatusUpdate,
+      timeoutCount: 0  // 初始化超时计数
     }
 
     this.invocations.set(invocationId, context)
@@ -369,8 +370,45 @@ class AgentToolManager {
         this.checkToolAlive(tool.config.id).then(alive => {
           if (!alive) {
             const logger = createRendererLogger('AgentToolManager')
-            logger.warn(`Tool ${tool.config.id} 可能已停止响应`)
-            // 可以在这里触发超时处理
+            // 查找对应的invocation并增加超时计数
+            const runningInvocation = Array.from(this.invocations.values()).find(
+              inv => inv.toolId === tool.config.id
+            )
+            if (runningInvocation) {
+              runningInvocation.timeoutCount = (runningInvocation.timeoutCount || 0) + 1
+              logger.warn(`Tool ${tool.config.id} 调用超时 (${runningInvocation.timeoutCount}/3)`)
+              
+              // 如果连续超时3次，自动取消任务
+              if (runningInvocation.timeoutCount >= 3) {
+                logger.error(`Tool ${tool.config.id} 连续超时3次，自动取消任务`)
+                // 取消任务
+                runningInvocation.controller.abort()
+                // 发送失败事件
+                emitToolFailed(runningInvocation.invocationId, {
+                  status: 'failed',
+                  error: '工具调用连续超时3次，已自动取消'
+                })
+                // 从invocations中移除
+                this.invocations.delete(runningInvocation.invocationId)
+                // 更新tool状态
+                const hasOtherRunningInvocations = Array.from(this.invocations.values()).some(
+                  inv => inv.toolId === tool.config.id
+                )
+                if (!hasOtherRunningInvocations) {
+                  tool.running = false
+                }
+              }
+            } else {
+              logger.warn(`Tool ${tool.config.id} 可能已停止响应`)
+            }
+          } else {
+            // 如果工具还活着，重置超时计数
+            const runningInvocation = Array.from(this.invocations.values()).find(
+              inv => inv.toolId === tool.config.id
+            )
+            if (runningInvocation) {
+              runningInvocation.timeoutCount = 0
+            }
           }
         })
       }

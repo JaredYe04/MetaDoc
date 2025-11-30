@@ -452,15 +452,13 @@ async function setupKnowledgeAPI(): Promise<void> {
   expressApp.get('/api/knowledge/:id/download', handleKnowledgeDownload);
   logger.debug('知识库API路由注册完成');
   
-  // 然后异步初始化数据库和刷新列表（不阻塞路由注册）
+  // 只刷新列表，不初始化数据库（数据库初始化将在主窗口加载完成后进行）
+  // 这样可以避免在启动时阻塞系统和其他 Chromium 程序
   try {
-    await initVectorDatabase();
     refreshKnowledgeItems();
-    logger.info('知识库API设置完成');
+    logger.info('知识库API路由设置完成（数据库初始化将延迟到主窗口加载完成后）');
   } catch (err) {
-    logger.error('知识库初始化失败，但路由已注册', err);
-    // 即使初始化失败，也刷新列表（可能为空）
-    refreshKnowledgeItems();
+    logger.error('刷新知识库列表失败，但路由已注册', err);
   }
 }
 
@@ -537,7 +535,7 @@ function saveKnowledgeIndex(index: Record<string, KnowledgeItem>): void {
  * 刷新知识库项目列表
  * 现在直接从索引文件读取，不再需要"注入"vectorInfo
  */
-function refreshKnowledgeItems(): void {
+export function refreshKnowledgeItems(): void {
   // 从索引文件加载所有信息
   const index = loadKnowledgeIndex();
   

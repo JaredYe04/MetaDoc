@@ -306,6 +306,9 @@ export async function startAiTask(handle: string): Promise<void> {
       ipcRenderer.send('ai-task-done', handle)
     }
   } catch (e: any) {
+    const logger = createRendererLogger('AiTasks')
+    logger.error(`[startAiTask] 任务执行失败: handle=${handle}`, e)
+    
     // 如果是主窗口的mirror任务（来自子窗口），需要将错误发送回子窗口
     if (task.mirror) {
       const errorMessage = e.name === 'AbortError' 
@@ -316,11 +319,16 @@ export async function startAiTask(handle: string): Promise<void> {
     
     if (e.name === 'AbortError') {
       task.status.value = ai_task_status.CANCELLED as AITaskStatusValue
-      task.resolveDone?.(new Error(i18n.global.t('aiTask.taskCancelled2')))
+      // 取消时应该 reject promise，让调用者知道任务被取消
+      task.rejectDone?.(new Error(i18n.global.t('aiTask.taskCancelled2')))
     } else {
       task.status.value = ai_task_status.FAILED as AITaskStatusValue
-      task.resolveDone?.(e)
+      // 关键修复：失败时应该 reject promise，而不是 resolve，这样调用者才能通过 try-catch 捕获错误
+      task.rejectDone?.(e)
     }
+    
+    // 清理任务
+    deleteTask(handle)
   }
 }
 

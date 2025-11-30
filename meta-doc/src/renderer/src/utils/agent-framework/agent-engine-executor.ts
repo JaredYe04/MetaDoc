@@ -68,6 +68,31 @@ export abstract class BaseEngineExecutor {
   abstract execute(userMessage: string): Promise<void>
 
   /**
+   * 获取最大迭代次数（考虑maxToolCalls配置）
+   * 如果maxToolCalls为null（无限制），返回一个很大的值（2147483647）
+   * 否则返回engineConfig中的maxIterations或默认值10
+   */
+  protected getMaxIterations(): { maxIterations: number; isUnlimited: boolean } {
+    const maxToolCalls = this.agentConfig.maxToolCalls
+    const isUnlimited = maxToolCalls === null || maxToolCalls === undefined
+    const maxIterations = isUnlimited 
+      ? 2147483647  // 无限制时使用一个很大的值
+      : (this.engine.engineConfig?.maxIterations || 10)
+    return { maxIterations, isUnlimited }
+  }
+
+  /**
+   * 格式化进度消息（考虑无限制情况）
+   */
+  protected formatProgressMessage(baseMessage: string, current: number, total: number, isUnlimited: boolean): string {
+    if (isUnlimited) {
+      return `${baseMessage} (${current})`
+    } else {
+      return `${baseMessage} (${current}/${total})`
+    }
+  }
+
+  /**
    * 获取可用工具列表
    */
   protected getAvailableTools(): Array<{ id: string; name: string; description: string; schema: unknown; instruction?: string }> {
@@ -253,13 +278,39 @@ export abstract class BaseEngineExecutor {
       // 匹配单个工具调用
       // 格式: <｜tool▁call▁begin｜>tool_id<｜tool▁sep｜>params<｜tool▁call▁end｜>
       // 注意：使用[\s\S]*?来匹配包括换行在内的所有字符
-      const toolCallPattern = /\<｜tool▁call▁begin｜>([\s\S]*?)\<｜tool▁sep｜>([\s\S]*?)\<｜tool▁call▁end｜>/gi
+      // 重要：使用非贪婪匹配，但需要确保匹配到完整的end标记
+      // 改进：先找到所有分隔符位置，然后按顺序匹配，避免JSON中的特殊字符干扰
+      const beginMarker = '<｜tool▁call▁begin｜>'
+      const sepMarker = '<｜tool▁sep｜>'
+      const endMarker = '<｜tool▁call▁end｜>'
       
-      let match
+      let searchIndex = 0
       let index = 0
-      while ((match = toolCallPattern.exec(toolCallsContent)) !== null) {
-        const toolId = match[1].trim()
-        let paramsStr = match[2].trim()
+      
+      while (searchIndex < toolCallsContent.length) {
+        // 查找begin标记
+        const beginIndex = toolCallsContent.indexOf(beginMarker, searchIndex)
+        if (beginIndex === -1) break
+        
+        // 查找sep标记（在begin之后）
+        const sepIndex = toolCallsContent.indexOf(sepMarker, beginIndex + beginMarker.length)
+        if (sepIndex === -1) {
+          // 没有找到sep标记，跳过这个begin标记，继续查找
+          searchIndex = beginIndex + beginMarker.length
+          continue
+        }
+        
+        // 查找end标记（在sep之后）
+        const endIndex = toolCallsContent.indexOf(endMarker, sepIndex + sepMarker.length)
+        if (endIndex === -1) {
+          // 没有找到end标记，可能是未完成的工具调用，尝试查找下一个begin标记
+          searchIndex = sepIndex + sepMarker.length
+          continue
+        }
+        
+        // 提取toolId和params
+        const toolId = toolCallsContent.substring(beginIndex + beginMarker.length, sepIndex).trim()
+        let paramsStr = toolCallsContent.substring(sepIndex + sepMarker.length, endIndex).trim()
         
         getLogger().debug(`[parseMarkedToolCalls] 解析工具调用 ${index + 1}: toolId=${toolId}, paramsStr长度=${paramsStr.length}`)
         
@@ -267,6 +318,7 @@ export abstract class BaseEngineExecutor {
         let parameters: Record<string, unknown> = {}
         try {
           // 先尝试提取JSON字符串（处理可能包含其他文本的情况）
+          // extractOuterJsonString会处理包含转义字符的JSON
           const jsonStr = extractOuterJsonString(paramsStr)
           if (jsonStr) {
             parameters = JSON.parse(jsonStr)
@@ -277,8 +329,33 @@ export abstract class BaseEngineExecutor {
             getLogger().debug(`[parseMarkedToolCalls] 直接解析JSON参数:`, parameters)
           }
         } catch (e) {
-          getLogger().warn(`[parseMarkedToolCalls] 解析工具调用参数失败 (工具: ${toolId}):`, e, 'paramsStr:', paramsStr.substring(0, 100))
-          // 如果解析失败，使用空对象，至少工具ID是有效的
+          const errorMsg = e instanceof Error ? e.message : String(e)
+          getLogger().warn(`[parseMarkedToolCalls] 解析工具调用参数失败 (工具: ${toolId}):`, errorMsg, 'paramsStr前100字符:', paramsStr.substring(0, 100))
+          // 如果解析失败，尝试修复常见的JSON格式问题
+          try {
+            // 尝试修复：如果JSON不完整，尝试补全
+            let fixedParamsStr = paramsStr
+            // 检查是否缺少闭合括号
+            const openBraces = (fixedParamsStr.match(/{/g) || []).length
+            const closeBraces = (fixedParamsStr.match(/}/g) || []).length
+            if (openBraces > closeBraces) {
+              fixedParamsStr += '}'.repeat(openBraces - closeBraces)
+            }
+            const openBrackets = (fixedParamsStr.match(/\[/g) || []).length
+            const closeBrackets = (fixedParamsStr.match(/\]/g) || []).length
+            if (openBrackets > closeBrackets) {
+              fixedParamsStr += ']'.repeat(openBrackets - closeBrackets)
+            }
+            // 再次尝试解析
+            const jsonStr = extractOuterJsonString(fixedParamsStr)
+            if (jsonStr) {
+              parameters = JSON.parse(jsonStr)
+              getLogger().info(`[parseMarkedToolCalls] 修复后成功解析JSON参数`)
+            }
+          } catch (fixError) {
+            getLogger().warn(`[parseMarkedToolCalls] 修复JSON失败:`, fixError)
+            // 如果修复也失败，使用空对象，至少工具ID是有效的
+          }
         }
 
         toolCalls.push({
@@ -449,8 +526,8 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
       })
     }
 
-    // 最大迭代次数
-    const maxIterations = this.engine.engineConfig?.maxIterations || 10
+    // 最大迭代次数（使用基类方法，考虑maxToolCalls配置）
+    const { maxIterations, isUnlimited } = this.getMaxIterations()
     let iterations = 0
 
     while (iterations < maxIterations) {
@@ -458,7 +535,7 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
 
       this.options.onProgress?.({
         stage: 'thinking',
-        message: `ReAct推理中... (${iterations}/${maxIterations})`
+        message: this.formatProgressMessage('ReAct推理中...', iterations, maxIterations, isUnlimited)
       })
 
       // 创建响应式消息对象用于实时流式显示
@@ -482,7 +559,7 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
           maxTokens: this.engine.customLlmConfig?.maxTokens,
           stream: true,
           signal: this.options.signal,
-          taskName: `ReAct推理 (${iterations}/${maxIterations})`,
+          taskName: this.formatProgressMessage('ReAct推理', iterations, maxIterations, isUnlimited),
           originKey: `agent-react-${this.session.id}-${Date.now()}-${iterations}`,
           reactiveMessage: assistantMessage,
           onTaskCreated: this.options.onTaskCreated,
@@ -527,7 +604,11 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
             reactResult.action,
             'failed',
             null,
-            errorMsg
+            errorMsg,
+            undefined,
+            undefined,
+            undefined,
+            reactResult.actionInput || {}  // params: 保存工具调用参数
           )
           
           // 添加观察结果
@@ -548,7 +629,7 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
         const tool = agentToolManager.getTool(observation.toolId)
         const toolConfig = tool?.config
 
-        // 添加工具消息
+        // 添加工具消息（包含调用参数）
         AIContextManager.addToolMessage(
           this.session,
           observation.toolId,
@@ -558,7 +639,8 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
           observation.error,
           observation.summary,
           undefined, // tool_call_id
-          toolConfig // toolConfig
+          toolConfig, // toolConfig
+          observation.params || reactResult.actionInput || {}  // params: 保存工具调用参数
         )
 
         // 构建观察结果
@@ -574,6 +656,21 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
       } catch (error) {
         getLogger().error('ReAct行动执行失败:', error)
         const errorMsg = error instanceof Error ? error.message : String(error)
+        
+        // 添加工具消息（即使失败也要记录）
+        AIContextManager.addToolMessage(
+          this.session,
+          reactResult.action || 'unknown',
+          reactResult.action || 'unknown',
+          'failed',
+          null,
+          errorMsg,
+          undefined,
+          undefined,
+          undefined,
+          reactResult.actionInput || {}  // params: 保存工具调用参数
+        )
+        
         contextMessages.push({
           role: 'user',
           content: `Observation: 执行失败 - ${errorMsg}\n\n请根据这个错误继续推理和行动。`
@@ -721,8 +818,8 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
       })
     }
 
-    // 最大迭代次数
-    const maxIterations = this.engine.engineConfig?.maxIterations || 10
+    // 最大迭代次数（使用基类方法，考虑maxToolCalls配置）
+    const { maxIterations, isUnlimited } = this.getMaxIterations()
     let iterations = 0
 
     while (iterations < maxIterations) {
@@ -730,7 +827,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
 
       this.options.onProgress?.({
         stage: 'thinking',
-        message: `思考中... (${iterations}/${maxIterations})`
+        message: this.formatProgressMessage('思考中...', iterations, maxIterations, isUnlimited)
       })
 
       // 创建响应式消息对象用于实时流式显示
@@ -758,7 +855,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           maxTokens: this.engine.customLlmConfig?.maxTokens,
           stream: true,
           signal: this.options.signal,
-          taskName: `Agent思考 (${iterations}/${maxIterations})`,
+          taskName: this.formatProgressMessage('Agent思考', iterations, maxIterations, isUnlimited),
           originKey: `agent-autogpt-${this.session.id}-${Date.now()}-${iterations}`,
           reactiveMessage: assistantMessage,
           onTaskCreated: this.options.onTaskCreated,
@@ -873,12 +970,31 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           // 验证参数
           const validation = ToolRunner.validateToolParams(toolCall.tool_id, toolCall.parameters)
           if (!validation.valid) {
-            observations.push({
+            const errorMessage = validation.errors.join(', ')
+            const failedObservation: ToolObservation = {
               toolId: toolCall.tool_id,
               toolName: toolCall.tool_id,
               status: 'failed',
-              error: validation.errors.join(', ')
-            })
+              error: errorMessage
+            }
+            observations.push(failedObservation)
+            
+            // 重要：即使验证失败，也必须添加tool消息，确保每个tool_call都有对应的tool消息
+            // 获取工具配置
+            const tool = agentToolManager.getTool(toolCall.tool_id)
+            const toolConfig = tool?.config
+            
+            AIContextManager.addToolMessage(
+              this.session,
+              toolCall.tool_id,
+              toolCall.tool_id,
+              'failed',
+              undefined,
+              errorMessage,
+              undefined,
+              toolCall.id, // 使用toolCall的id作为tool_call_id
+              toolConfig
+            )
             continue
           }
 
@@ -906,16 +1022,37 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
             observation.error,
             observation.summary,
             toolCall.id, // 使用toolCall的id作为tool_call_id
-            toolConfig
+            toolConfig,
+            observation.params || toolCall.parameters || {}  // params: 保存工具调用参数
           )
         } catch (error) {
           getLogger().error('工具执行失败:', error)
-          observations.push({
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          const failedObservation: ToolObservation = {
             toolId: toolCall.tool_id,
             toolName: toolCall.tool_id,
             status: 'failed',
-            error: error instanceof Error ? error.message : String(error)
-          })
+            error: errorMessage
+          }
+          observations.push(failedObservation)
+          
+          // 重要：即使执行异常，也必须添加tool消息，确保每个tool_call都有对应的tool消息
+          // 获取工具配置
+          const tool = agentToolManager.getTool(toolCall.tool_id)
+          const toolConfig = tool?.config
+          
+          AIContextManager.addToolMessage(
+            this.session,
+            toolCall.tool_id,
+            toolCall.tool_id,
+            'failed',
+            undefined,
+            errorMessage,
+            undefined,
+            toolCall.id, // 使用toolCall的id作为tool_call_id
+            toolConfig,
+            toolCall.parameters || {}  // params: 保存工具调用参数
+          )
         }
       }
 
@@ -1075,11 +1212,15 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       AIContextManager.addAssistantMessage(this.session, planText)
 
       // 阶段2: 执行计划
-      for (let i = 0; i < plan.steps.length; i++) {
+      // 考虑maxToolCalls限制：如果设置了限制，只执行前N个步骤
+      const { maxIterations, isUnlimited } = this.getMaxIterations()
+      const maxSteps = isUnlimited ? plan.steps.length : Math.min(plan.steps.length, maxIterations)
+      
+      for (let i = 0; i < maxSteps; i++) {
         const step = plan.steps[i]
         this.options.onProgress?.({
           stage: 'tool-calling',
-          message: `执行计划步骤 ${i + 1}/${plan.steps.length}...`
+          message: this.formatProgressMessage('执行计划步骤', i + 1, plan.steps.length, isUnlimited && maxSteps === plan.steps.length)
         })
 
         // 解析步骤，可能需要工具调用
@@ -1110,7 +1251,8 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
               observation.error,
               observation.summary,
               undefined, // tool_call_id
-              toolConfig // toolConfig
+              toolConfig, // toolConfig
+              observation.params || {}  // params: 保存工具调用参数
             )
           } catch (error) {
             getLogger().error('计划步骤执行失败:', error)
@@ -1121,7 +1263,11 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
               toolId,
               'failed',
               null,
-              error instanceof Error ? error.message : String(error)
+              error instanceof Error ? error.message : String(error),
+              undefined,
+              undefined,
+              undefined,
+              step.params || {}  // params: 保存工具调用参数
             )
           }
         }
@@ -1357,7 +1503,8 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
               observation.error,
               observation.summary,
               undefined, // tool_call_id
-              toolConfig // toolConfig
+              toolConfig, // toolConfig
+              observation.params || {}  // params: 保存工具调用参数
             )
 
             // 如果执行成功，添加总结

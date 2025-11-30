@@ -25,6 +25,7 @@ import { ref, type Ref } from 'vue'
 import ChartGenerationDisplay from './components/ChartGenerationDisplay.vue'
 import { createRendererLogger } from '../logger'
 import { extractOuterJsonString } from '../regex-utils'
+import { retryLLMCall } from './tool-utils'
 
 const logger = createRendererLogger('ChartGenerationTool')
 
@@ -844,7 +845,17 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
     if (!finalChartCode) {
       try {
         const codeTarget = ref('')
-        finalChartCode = await generateChartCodeWithLLM(prompt, normalizedChartType, codeTarget, signal)
+        // 使用retryLLMCall包装，处理返回空的情况
+        finalChartCode = await retryLLMCall(
+          () => generateChartCodeWithLLM(prompt, normalizedChartType, codeTarget, signal),
+          {
+            maxRetries: 3,
+            retryDelay: 3000,
+            onRetry: (attempt, error) => {
+              logger.warn(`[chart-generation] LLM返回空，正在重试 (${attempt}/3)...`, error)
+            }
+          }
+        )
       } catch (error) {
         // LLM调用失败，返回更友好的错误信息
         const errorMessage = error instanceof Error ? error.message : String(error)
@@ -1079,6 +1090,60 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
             0,
             3,
             `PlantUML渲染失败: ${renderErrorMsg}`
+          )
+          params._retryAttempted = true
+          return await chartGenerationCallback({ ...params, code: retryCode }, signal, onUpdate)
+        }
+        throw renderError
+      }
+    } else if (normalizedChartType === 'mindmap' || normalizedChartType === 'markmap') {
+      // Mindmap/Markmap 使用 Vditor 渲染
+      // 确保代码格式正确（必须是缩进的列表格式）
+      let cleanedMindmapCode = finalChartCode.trim()
+      
+      // 验证mindmap代码格式
+      const lines = cleanedMindmapCode.split('\n')
+      const hasValidFormat = lines.some(line => {
+        const trimmed = line.trim()
+        return trimmed.startsWith('-') || trimmed.startsWith('*') || /^\s+[-*]/.test(line)
+      })
+      
+      if (!hasValidFormat) {
+        // 如果格式不正确，尝试修复
+        logger.warn('Mindmap代码格式可能不正确，尝试修复...')
+        // 尝试添加根节点
+        if (!cleanedMindmapCode.startsWith('-') && !cleanedMindmapCode.startsWith('*')) {
+          // 如果第一行不是列表项，尝试添加根节点
+          const firstLine = lines[0]?.trim() || 'root'
+          cleanedMindmapCode = `  - ${firstLine}\n${lines.slice(1).join('\n')}`
+        }
+      }
+      
+      // 确保至少有一行有效内容
+      if (!cleanedMindmapCode.trim() || cleanedMindmapCode.trim().length < 3) {
+        throw new Error('Mindmap代码为空或格式不正确，无法渲染')
+      }
+      
+      finalChartCode = cleanedMindmapCode
+      
+      try {
+        imageUrl = await renderChartViaVditor(normalizedChartType, finalChartCode, cdn, CHART_TYPES[normalizedChartType], targetFormat) as string
+      } catch (renderError) {
+        const renderErrorMsg = renderError instanceof Error ? renderError.message : String(renderError)
+        logger.error('Mindmap渲染失败:', renderErrorMsg, '代码:', finalChartCode.substring(0, 200))
+        
+        // 如果渲染失败且还没有重试过，尝试重新生成
+        if (!params._retryAttempted && (renderErrorMsg.includes('empty') || renderErrorMsg.includes('空') || renderErrorMsg.includes('格式'))) {
+          logger.info('Mindmap渲染失败，尝试重新生成代码...')
+          const codeTarget = ref('')
+          const retryCode = await generateChartCodeWithLLM(
+            prompt,
+            normalizedChartType,
+            codeTarget,
+            signal,
+            0,
+            3,
+            `Mindmap渲染失败: ${renderErrorMsg}。请确保代码是缩进的列表格式，例如：\n  - root\n    - child1\n    - child2`
           )
           params._retryAttempted = true
           return await chartGenerationCallback({ ...params, code: retryCode }, signal, onUpdate)

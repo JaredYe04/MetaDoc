@@ -8,7 +8,15 @@ import {localVditorCDN, vditorCDN } from "./vditor-cdn";
 import { createRendererLogger } from "./logger.ts";
 import { preRenderAllCharts } from './chart-pre-renderer.js';
 
-const logger = createRendererLogger('MDUtils');
+// 懒加载logger，避免初始化顺序问题
+let loggerInstance = null;
+
+function getLogger() {
+  if (!loggerInstance) {
+    loggerInstance = createRendererLogger('MDUtils');
+  }
+  return loggerInstance;
+}
 // 1. 从 Markdown 文本中提取所有标题，生成大纲树，同时记录 title_level
 
 export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
@@ -807,7 +815,7 @@ return html
 }
 
 export const ConvertHtmlForPdf = async (md) => {
-    logger.info(`ConvertHtmlForPdf 开始，Markdown 长度: ${md.length}`);
+    getLogger().info(`ConvertHtmlForPdf 开始，Markdown 长度: ${md.length}`);
     
     let cdn = '';
     if(isElectronEnv()){
@@ -816,7 +824,7 @@ export const ConvertHtmlForPdf = async (md) => {
     else{
         cdn=vditorCDN;
     }
-    logger.info(`使用 CDN: ${cdn}`);
+    getLogger().info(`使用 CDN: ${cdn}`);
     
     // 预渲染所有图表为图片（统一处理）
     // 统一使用 SVG 矢量图
@@ -824,10 +832,10 @@ export const ConvertHtmlForPdf = async (md) => {
     try {
         processedMd = await preRenderAllCharts(md, cdn);
         if (processedMd !== md) {
-            logger.info('图表代码块已预渲染为图片');
+            getLogger().info('图表代码块已预渲染为图片');
         }
     } catch (error) {
-        logger.warn('图表预渲染失败，使用原始 Markdown:', error);
+        getLogger().warn('图表预渲染失败，使用原始 Markdown:', error);
         processedMd = md;
     }
     
@@ -837,7 +845,7 @@ export const ConvertHtmlForPdf = async (md) => {
     const contentTheme = await getSetting('contentTheme');
     const codeTheme = await getSetting('codeTheme');
     const lineNumber = await getSetting('lineNumber');
-    logger.info(`主题设置: contentTheme=${contentTheme}, codeTheme=${codeTheme}, lineNumber=${lineNumber}`);
+    getLogger().info(`主题设置: contentTheme=${contentTheme}, codeTheme=${codeTheme}, lineNumber=${lineNumber}`);
 
     const html=`<!DOCTYPE html>
 <html lang="zh">
@@ -936,7 +944,7 @@ export const ConvertHtmlForPdf = async (md) => {
         //     font-family: "NotoSansSC", "SimSun", sans-serif;
         //     }
         // </style>
-    logger.info(`HTML 生成完成，长度: ${html.length}`);
+    getLogger().info(`HTML 生成完成，长度: ${html.length}`);
     return html;
 }
 

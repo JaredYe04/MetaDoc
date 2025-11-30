@@ -7,7 +7,22 @@
       @close="handleCloseTab"
       @reorder="handleTabReorder"
     />
-    <div class="agent-view">
+    <!-- 如果文档格式未选择，显示格式选择界面 -->
+    <div v-if="needsFormatSelection" class="format-selection-container">
+      <NewDocumentWorkspace 
+        v-if="activeTabId"
+        :tab-id="activeTabId"
+        :active="true"
+      />
+      <div v-else style="padding: 40px; text-align: center; color: v-bind('themeState.currentTheme.textColor2')">
+        <p>{{ t('agent.formatSelection.noTab', '请先创建一个新文档') }}</p>
+        <el-button type="primary" @click="workspace.openNewDocumentTab()">
+          {{ t('common.create') }}
+        </el-button>
+      </div>
+    </div>
+    <!-- 否则显示正常的AgentView内容 -->
+    <div v-else class="agent-view">
       <section class="session-pane" :style="panelStyle">
         <header class="pane-header">
           <h2>{{ t('agent.sessions.title') }}</h2>
@@ -221,21 +236,15 @@
           <el-scrollbar class="tool-detail-scroll" :wrap-style="{ overflowX: 'hidden' }">
             <div v-if="activeTool" class="tool-detail" :style="detailStyle">
               <h3>{{ activeTool.name }}</h3>
-              <p>{{ activeTool.description }}</p>
               <el-descriptions :column="1" size="small" border>
+                <el-descriptions-item :label="t('agent.tools.detail.name')">
+                  {{ activeTool.name }}
+                </el-descriptions-item>
+                <el-descriptions-item :label="t('agent.tools.detail.description')">
+                  <p>{{ activeTool.description }}</p>
+                </el-descriptions-item>
                 <el-descriptions-item :label="t('agent.tools.detail.origin')">
                   <el-tag size="small">{{ originLabel(activeTool.origin as ToolOrigin) }}</el-tag>
-                </el-descriptions-item>
-                <el-descriptions-item :label="t('agent.tools.detail.status')">
-                  <el-tag v-if="activeTool.running" type="warning" size="small">
-                    {{ t('agent.tool.status.running') }}
-                  </el-tag>
-                  <el-tag v-else size="small" type="success">
-                    {{ t('agent.tools.detail.idle') }}
-                  </el-tag>
-                </el-descriptions-item>
-                <el-descriptions-item :label="t('agent.tools.detail.lastUsed')">
-                  {{ activeTool.lastUsed ? formatRelativeTime(activeTool.lastUsed) : t('agent.tools.detail.never') }}
                 </el-descriptions-item>
                 <el-descriptions-item :label="t('agent.tools.detail.tags')" v-if="activeTool.tags?.length">
                   <div class="tag-group">
@@ -343,6 +352,7 @@
         <el-button type="primary" @click="handleConfirmEditMessage">{{ t('common.confirm') }}</el-button>
       </template>
     </el-dialog>
+
   </div>
 </template>
 
@@ -359,7 +369,7 @@ import ChatComposer from '../components/chat/ChatComposer.vue';
 import type { AgentMessage, AgentSession, AgentTool, ChatAgentMessage, ToolOrigin } from '../types/agent';
 import { cloneDeep } from 'lodash';
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
-import { useWorkspace } from '../stores/workspace';
+import { useWorkspace, detectDocumentFormat } from '../stores/workspace';
 import { agentConfigManager, agentSessionManager, agentEngineManager, AIContextManager } from '../utils/agent-framework';
 import { createRendererLogger } from '../utils/logger';
 import { agentToolManager } from '../utils/agent-tool-manager';
@@ -371,6 +381,8 @@ import AgentConfigManager from '../components/agent/manage/AgentConfigManager.vu
 import AgentEngineManager from '../components/agent/manage/AgentEngineManager.vue';
 import ReferenceManager from '../components/agent/ReferenceManager.vue';
 import CardGrid from '../components/common/CardGrid.vue';
+import NewDocumentWorkspace from './NewDocumentWorkspace.vue';
+import eventBus from '../utils/event-bus';
 dayjs.extend(relativeTime);
 
 const { t } = useI18n();
@@ -716,6 +728,26 @@ const isGenerating = ref(false);
 const showEditMessageDialog = ref(false);
 const editingMessage = ref<ChatAgentMessage | null>(null);
 const editingMessageContent = ref('');
+// 判断是否需要显示格式选择界面
+const needsFormatSelection = computed(() => {
+  const doc = activeDocument.value;
+  if (!doc) {
+    // 没有活动文档，如果没有标签页，创建一个
+    if (!activeTabId.value && workspace.tabs.length === 0) {
+      workspace.openNewDocumentTab();
+    }
+    return true;
+  }
+
+  // 检查文档格式是否已确定
+  // 如果文档是新建的（kind === 'new'）且格式未确定（format为空或未设置），需要选择格式
+  const tab = workspace.tabs.find(t => t.id === doc.tabId);
+  if (tab && tab.kind === 'new' && (!doc.format || (doc.markdown.trim().length === 0 && doc.tex.trim().length === 0))) {
+    return true;
+  }
+
+  return false;
+});
 
 const activeSession = computed(() =>
   sessionsState.value.find((session) => session.id === activeSessionId.value) ?? null,
@@ -787,6 +819,20 @@ watch(
           ''
         );
         
+        // 获取当前文档信息并设置到publicContext
+        const doc = activeDocument.value;
+        if (doc) {
+          // 确保文档格式已设置（如果未设置，默认为md）
+          const docFormat = doc.format || 'md';
+          defaultSession.publicContext = defaultSession.publicContext || {};
+          defaultSession.publicContext.document = {
+            id: activeTabId.value || '',
+            path: doc.path || '',
+            format: docFormat as 'md' | 'tex',
+            title: doc.meta?.title || ''
+          };
+        }
+        
         const legacySession: AgentSession = {
           id: defaultSession.id,
           title: defaultSession.title,
@@ -836,6 +882,22 @@ watch(
   },
 );
 
+// 监听文档格式变化，同步更新所有会话的publicContext
+watch(
+  [() => activeDocument.value?.format, () => activeTabId.value],
+  ([newFormat, newTabId]) => {
+    if (!newFormat || !newTabId) return;
+    
+    // 更新所有会话的publicContext中的文档格式信息
+    sessionsState.value.forEach(session => {
+      if (session.publicContext?.document?.id === newTabId) {
+        session.publicContext.document.format = newFormat as 'md' | 'tex';
+      }
+    });
+  },
+  { immediate: true }
+);
+
 const messageCount = computed(() => activeSession.value?.messages.length ?? 0);
 const activeToolCount = computed(() => activeSession.value?.activeToolIds.length ?? 0);
 
@@ -855,6 +917,20 @@ const createSession = (agentConfigId?: string) => {
       t('agent.sessions.newTitle', { index: sessionsState.value.length + 1 }),
       ''
     );
+
+    // 获取当前文档信息并设置到publicContext
+    const doc = activeDocument.value;
+    if (doc) {
+      // 确保文档格式已设置（如果未设置，默认为md）
+      const docFormat = doc.format || 'md';
+      session.publicContext = session.publicContext || {};
+      session.publicContext.document = {
+        id: activeTabId.value || '',
+        path: doc.path || '',
+        format: docFormat as 'md' | 'tex',
+        title: doc.meta?.title || ''
+      };
+    }
 
     // 转换为旧的格式以保持兼容
     const legacySession: AgentSession = {
@@ -980,6 +1056,12 @@ const createChatMessage = (role: 'user' | 'assistant', markdown: string): ChatAg
 const handleComposerSubmit = async () => {
   const logger = createRendererLogger('AgentView');
   logger.debug('[handleComposerSubmit] 开始处理用户消息提交');
+  
+  // 在提交消息前检查文档格式
+  if (needsFormatSelection.value) {
+    // 格式未选择，不处理消息
+    return;
+  }
   
   const session = activeSession.value;
   if (!session) {
@@ -1147,6 +1229,43 @@ const executeAgentEngine = async (
   if (!agentConfig) {
     ElMessage.error(t('agent.sessions.agentConfigNotFound'));
     return;
+  }
+
+  // 确保文档格式已设置（如果文档格式未确定，自动检测）
+  // 同时更新session的publicContext，确保Agent知道当前文档格式
+  const currentTabId = session.activeTabId || activeTabId.value;
+  if (currentTabId) {
+    const doc = workspace.ensureDocument(currentTabId);
+    if (doc) {
+      // 自动检测格式（如果未设置）
+      if (!doc.format || (doc.markdown.trim().length === 0 && doc.tex.trim().length === 0)) {
+        const currentContent = doc.markdown.trim().length > 0 ? doc.markdown : doc.tex;
+        if (currentContent.length > 0) {
+          const detectedFormat = detectDocumentFormat(currentContent);
+          if (detectedFormat !== doc.format) {
+            doc.format = detectedFormat;
+            workspace.updateDocumentFormat(currentTabId, detectedFormat);
+            const logger = createRendererLogger('AgentView');
+            logger.info(`AgentView: 文档 ${currentTabId} 格式自动检测为 ${detectedFormat}`);
+          }
+        } else {
+          // 如果内容为空，默认使用md
+          if (!doc.format) {
+            doc.format = 'md';
+            workspace.updateDocumentFormat(currentTabId, 'md');
+          }
+        }
+      }
+      
+      // 更新session的publicContext，确保文档格式信息被传递
+      session.publicContext = session.publicContext || {};
+      session.publicContext.document = {
+        id: currentTabId,
+        path: doc.path || '',
+        format: (doc.format || 'md') as 'md' | 'tex',
+        title: doc.meta?.title || ''
+      };
+    }
   }
 
   // 启动UI锁
@@ -1805,6 +1924,103 @@ const handleMessageRegenerate = async (message: AgentMessage) => {
     
     // 重新执行AI生成
     await executeAgentEngine(userMessage.markdown);
+  } 
+  // 如果是AI消息，重新生成回复
+  else if (message.role === 'assistant' && message.type === 'chat') {
+    // 找到此AI消息的上一个消息节点（可能是用户消息，也可能是其他AI消息）
+    if (messageIndex === 0) {
+      // 这是第一条消息，无法重新生成
+      return;
+    }
+    
+    const previousMessageIndex = messageIndex - 1;
+    const previousMessage = session.messages[previousMessageIndex];
+    
+    // 删除从上一个消息节点之后的所有消息（包括当前AI消息）
+    // 这样Agent会基于保留的消息历史重新生成
+    session.messages = session.messages.slice(0, previousMessageIndex + 1);
+    
+    // 重要：清理所有保留消息中未完成的tool_calls
+    // OpenAI API要求：如果assistant消息有tool_calls，必须紧接着有对应的tool消息
+    // 由于我们删除了后续消息，如果某个assistant消息有tool_calls但对应的tool消息被删除了，
+    // 需要清理这些tool_calls避免LLM API报错
+    // 遍历所有保留的消息，检查是否有未完成的tool_calls
+    const toolCallIds = new Set<string>();
+    for (let i = 0; i < session.messages.length; i++) {
+      const msg = session.messages[i];
+      if (msg.role === 'assistant' && msg.type === 'chat') {
+        const assistantMsg = msg as ChatAgentMessage;
+        const toolCalls = (assistantMsg as any).tool_calls;
+        if (toolCalls && Array.isArray(toolCalls) && toolCalls.length > 0) {
+          // 记录所有tool_call_ids
+          for (const tc of toolCalls) {
+            if (tc.id) {
+              toolCallIds.add(tc.id);
+            }
+          }
+        }
+      } else if (msg.role === 'tool' && msg.type === 'tool') {
+        // 如果找到对应的tool消息，从集合中移除
+        const toolCallId = (msg as any).tool_call_id;
+        if (toolCallId && toolCallIds.has(toolCallId)) {
+          toolCallIds.delete(toolCallId);
+        }
+      }
+    }
+    
+    // 清理所有未完成的tool_calls（有tool_call_id但没有对应tool消息的）
+    if (toolCallIds.size > 0) {
+      for (let i = 0; i < session.messages.length; i++) {
+        const msg = session.messages[i];
+        if (msg.role === 'assistant' && msg.type === 'chat') {
+          const assistantMsg = msg as ChatAgentMessage;
+          const toolCalls = (assistantMsg as any).tool_calls;
+          if (toolCalls && Array.isArray(toolCalls) && toolCalls.length > 0) {
+            // 检查是否有未完成的tool_calls
+            const hasUnfinishedToolCalls = toolCalls.some((tc: any) => tc.id && toolCallIds.has(tc.id));
+            if (hasUnfinishedToolCalls) {
+              // 如果所有tool_calls都未完成，删除整个tool_calls
+              // 如果部分完成，只保留已完成的（但这种情况不应该发生，因为tool消息应该在assistant消息之后）
+              // 为了安全，如果发现任何未完成的tool_calls，就删除整个tool_calls
+              delete (assistantMsg as any).tool_calls;
+            }
+          }
+        }
+      }
+    }
+    
+    touchSession(session);
+    persistSessions();
+    
+    // 如果上一个消息是用户消息，直接重新执行AI生成
+    if (previousMessage.role === 'user' && previousMessage.type === 'chat') {
+      const userMessage = previousMessage as ChatAgentMessage;
+      await executeAgentEngine(userMessage.markdown);
+    } 
+    // 如果上一个消息也是AI消息，需要找到触发这个AI消息链的用户消息
+    // 因为Agent是基于整个消息历史生成的，需要从用户消息开始重新执行
+    else if (previousMessage.role === 'assistant' && previousMessage.type === 'chat') {
+      // 向上查找，找到最后一个用户消息
+      let lastUserMessageIndex = -1;
+      for (let i = previousMessageIndex - 1; i >= 0; i--) {
+        if (session.messages[i].role === 'user' && session.messages[i].type === 'chat') {
+          lastUserMessageIndex = i;
+          break;
+        }
+      }
+      
+      if (lastUserMessageIndex === -1) {
+        // 没有找到用户消息，无法重新生成
+        return;
+      }
+      
+      // 重新执行AI生成（从用户消息开始，Agent会基于整个消息历史继续生成）
+      const userMessage = session.messages[lastUserMessageIndex] as ChatAgentMessage;
+      await executeAgentEngine(userMessage.markdown);
+    } else {
+      // 上一个消息是tool消息或其他类型，无法重新生成
+      return;
+    }
   }
 };
 
@@ -1898,6 +2114,7 @@ const handleMessageDelete = async (message: AgentMessage) => {
   }
 };
 
+
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick);
   
@@ -1907,6 +2124,7 @@ onMounted(() => {
     selectedEngineId.value = defaultEngine.id;
   }
   availableEngines.value = agentEngineManager.getEnabledEngines();
+
 });
 
 onBeforeUnmount(() => {
@@ -2284,13 +2502,13 @@ onBeforeUnmount(() => {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  height: 100%;
+
   border-radius: 12px;
   border: 1px solid;
   padding: 14px;
   box-sizing: border-box;
-  overflow-x: auto;
-  overflow-y: auto;
+  overflow-x: hidden;
+
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
@@ -2359,6 +2577,14 @@ onBeforeUnmount(() => {
     gap: 8px;
     padding: 0 8px 8px;
   }
+}
+/* 格式选择容器样式 */
+.format-selection-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 </style>
 

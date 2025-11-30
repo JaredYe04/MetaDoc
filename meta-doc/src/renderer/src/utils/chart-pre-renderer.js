@@ -266,17 +266,20 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
             mode: 'light',
         });
         
-        // 等待 preview 完成后再调用对应的渲染方法
-        setTimeout(() => {
-            const renderMethod = config.vditorMethod;
-            if (renderMethod && Vditor[renderMethod]) {
-                Vditor[renderMethod](container, cdn);
-            }
-            
-            // 开始检查渲染结果
-            const maxWait = 10000; // 最多等待 10 秒
-            const checkInterval = 200;
-            let waited = 0;
+            // 等待 preview 完成后再调用对应的渲染方法
+            // 对于 mindmap/markmap，需要额外等待时间让动画完成
+            const initialDelay = (chartType === 'mindmap' || chartType === 'markmap') ? 1500 : 0;
+            setTimeout(() => {
+                const renderMethod = config.vditorMethod;
+                if (renderMethod && Vditor[renderMethod]) {
+                    Vditor[renderMethod](container, cdn);
+                }
+                
+                // 开始检查渲染结果
+                // 对于 mindmap/markmap，需要等待更长时间确保动画完成
+                const maxWait = (chartType === 'mindmap' || chartType === 'markmap') ? 15000 : 10000; // mindmap 最多等待 15 秒
+                const checkInterval = 200;
+                let waited = 0;
             
             const checkRender = () => {
                 try {
@@ -312,8 +315,8 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
                         const serializer = new XMLSerializer();
                         let svgContent = serializer.serializeToString(svgElement);
 
-                        // mindmap 可能包含动画/过渡，导出前清理为静态
-                        if (chartType === 'mindmap') {
+                        // mindmap 和 markmap 可能包含动画/过渡，导出前清理为静态
+                        if (chartType === 'mindmap' || chartType === 'markmap') {
                             svgContent = cleanSvgForExport(svgContent);
                         }
                         

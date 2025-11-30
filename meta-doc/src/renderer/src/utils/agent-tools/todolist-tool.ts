@@ -17,7 +17,7 @@ import { ref } from 'vue'
 import TodoListDisplay from './components/TodoListDisplay.vue'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
-import { parseJsonWithClean, isJsonParseError, createDetailedError } from './tool-utils'
+import { parseJsonWithClean, isJsonParseError, createDetailedError, retryLLMCall } from './tool-utils'
 
 const logger = createRendererLogger('TodoListTool')
 
@@ -425,7 +425,22 @@ ${context ? `上下文信息：${context}` : ''}`
     })
   }
 
-  await done
+  try {
+    await done
+  } catch (error) {
+    // 如果任务被取消或出错，检查是否是因为取消
+    if (signal?.aborted) {
+      throw new Error('操作已取消')
+    }
+    // 重新抛出原始错误，让调用者知道任务失败
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    logger.error('生成任务列表失败:', error)
+    throw new Error(`AI任务失败: ${errorMessage}`)
+  }
+
+  if (signal?.aborted) {
+    throw new Error('操作已取消')
+  }
 
   if (!target.value || target.value.trim() === '') {
     throw new Error(i18n.global.t('agent.tool.todolist.error.emptyResult', 'LLM返回结果为空'))
@@ -703,7 +718,17 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     // 调用LLM生成TodoList（带自动重试）
     let todoList: TodoList
     try {
-      todoList = await generateTodoListWithLLM(input, context, signal, onUpdate)
+      // 使用retryLLMCall包装，处理返回空的情况
+      todoList = await retryLLMCall(
+        () => generateTodoListWithLLM(input, context, signal, onUpdate),
+        {
+          maxRetries: 3,
+          retryDelay: 3000,
+          onRetry: (attempt, error) => {
+            logger.warn(`[todolist-tool] LLM返回空，正在重试 (${attempt}/3)...`, error)
+          }
+        }
+      )
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       logger.error('生成TodoList失败:', error)

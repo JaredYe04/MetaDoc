@@ -18,7 +18,7 @@ const icon = undefined; // 暂时禁用icon导入
 import fs from 'fs';
 import http from 'http';
 import { mainCalls, refreshMainWindowTitle, openDoc } from './main-calls';
-import { registerExternalOpenHandler, registerFocusRequestHandler, runExpressServer } from './express-server';
+import { registerExternalOpenHandler, registerFocusRequestHandler, runExpressServer, refreshKnowledgeItems } from './express-server';
 import { initializeUtils } from './utils';
 import { initLogger, shutdownLogger, createMainLogger } from './logger';
 import { broadcastServiceStatus } from './service-status';
@@ -108,17 +108,29 @@ function createWindow(): void {
     bindShortcuts();
     broadcastServiceStatus();
     
-    // 初始化工具服务
+    // 初始化工具服务（包括知识库服务）
     (async () => {
       try {
-        logger.info('🚀 正在后台初始化工具服务...');
+        logger.info('🚀 正在后台初始化工具服务（包括知识库服务）...');
         await initializeUtils();
-        logger.info('✅ 工具服务初始化完成');
+        // 工具服务初始化完成后，刷新知识库列表
+        refreshKnowledgeItems();
+        logger.info('✅ 工具服务初始化完成，知识库列表已刷新');
       } catch (error) {
         logger.error('❌ 工具服务初始化失败:', error);
       }
     })();
-    setTimeout(() => preloadAuxiliaryWindows(), 0);
+    
+    // 在后台串行预加载辅助窗口，不阻塞主窗口显示
+    (async () => {
+      try {
+        logger.info('🚀 开始串行预加载辅助窗口...');
+        await preloadAuxiliaryWindows();
+        logger.info('✅ 所有辅助窗口预加载完成');
+      } catch (error) {
+        logger.error('❌ 预加载辅助窗口失败:', error);
+      }
+    })();
   });
 
   // 处理窗口关闭

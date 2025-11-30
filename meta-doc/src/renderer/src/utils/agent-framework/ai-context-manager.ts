@@ -138,9 +138,35 @@ export class AIContextManager {
       }
       if (publicCtx.document) {
         prompt += `当前文档: ${publicCtx.document.title || publicCtx.document.path}\n`
-        prompt += `文档格式: ${publicCtx.document.format}\n`
+        const docFormat = publicCtx.document.format || 'md'
+        prompt += `**文档格式: ${docFormat === 'tex' ? 'LaTeX' : 'Markdown'}**\n\n`
+        
+        // 根据文档格式添加格式特定的重要提示
+        if (docFormat === 'tex') {
+          prompt += `## ⚠️ 重要：当前文档是 LaTeX 格式\n\n`
+          prompt += `**你必须严格遵循以下规则：**\n`
+          prompt += `1. **所有生成的内容必须使用 LaTeX 语法**，包括：\n`
+          prompt += `   - 标题使用 \\section{}, \\subsection{}, \\subsubsection{} 等命令\n`
+          prompt += `   - **绝对不要使用 Markdown 的 #、##、### 等标题标记**\n`
+          prompt += `   - 列表使用 \\begin{itemize} 或 \\begin{enumerate}\n`
+          prompt += `   - 强调使用 \\textbf{}, \\textit{} 等命令\n`
+          prompt += `2. **图表插入**：必须使用 PDF 格式，插入语法：\\includegraphics[width=0.8\\textwidth]{图片URL}\n`
+          prompt += `3. **不要混淆格式**：当前文档是 LaTeX，不要生成 Markdown 格式的内容\n\n`
+        } else {
+          prompt += `## ⚠️ 重要：当前文档是 Markdown 格式\n\n`
+          prompt += `**你必须严格遵循以下规则：**\n`
+          prompt += `1. **所有生成的内容必须使用 Markdown 语法**，包括：\n`
+          prompt += `   - 标题使用 #、##、### 等标记\n`
+          prompt += `   - **绝对不要使用 LaTeX 的 \\section{}, \\subsection{} 等命令**\n`
+          prompt += `   - 列表使用 - 或 1. 等标记\n`
+          prompt += `   - 强调使用 **粗体** 或 *斜体*\n`
+          prompt += `2. **图表插入**：使用 SVG 或 PNG 格式，插入语法：![描述](图片URL)\n`
+          prompt += `3. **不要混淆格式**：当前文档是 Markdown，不要生成 LaTeX 格式的内容\n\n`
+        }
       }
-      prompt += '\n'
+      if (!publicCtx.document) {
+        prompt += '\n'
+      }
     }
 
     return prompt.trim()
@@ -435,7 +461,8 @@ export class AIContextManager {
     error?: string,
     summary?: string,
     tool_call_id?: string,
-    toolConfig?: any
+    toolConfig?: any,
+    params?: Record<string, unknown>  // 添加params参数，用于保存工具调用参数
   ): AgentMessage {
     const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     
@@ -537,8 +564,9 @@ export class AIContextManager {
       // 保存OpenAI格式的content字符串，这样buildHistoryMessages可以直接使用
       markdown: openaiContent, // 使用markdown字段保存OpenAI格式的content
       ...(tool_call_id ? { tool_call_id } : {}),
-      ...(toolConfig ? { tool_config: toolConfig } : {})
-    }
+      ...(toolConfig ? { tool_config: toolConfig } : {}),
+      ...(params ? { params } : {})  // 保存工具调用参数，用于快照导出
+    } as any  // 使用as any因为params不在ToolAgentMessage接口中，但我们需要保存它
 
     session.messages.push(message)
     // 兼容新旧格式的updatedAt

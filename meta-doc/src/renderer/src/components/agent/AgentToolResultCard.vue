@@ -640,13 +640,15 @@ const resolveComponent = (renderer: string | any) => {
 const exportSnapshot = async () => {
   try {
     // 从message创建快照
-    // AgentView中的message可能没有完整的params信息，使用空对象
+    // 优先使用toolCallParams（从assistant消息的tool_calls中提取），如果没有则使用message中的params
+    const params = toolCallParams.value || (props.message as any).params || {}
+    
     const snapshot = createSnapshotFromHistoryEntry({
       toolId: props.message.tool.id,
       toolName: props.message.tool.name,
       timestamp: new Date(props.message.timestamp).getTime(),
       status: props.message.status,
-      params: (props.message as any).params || {}, // AgentView中的message可能没有params
+      params: params, // 确保包含输入参数
       result: props.message.outputs?.[0]?.data,
       data: props.message.outputs?.[0]?.data ? {
         content: props.message.outputs?.[0]?.data,

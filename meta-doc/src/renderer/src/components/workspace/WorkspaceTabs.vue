@@ -560,6 +560,7 @@ onUnmounted(() => {
   white-space: nowrap;
   user-select: none;
   cursor: grab;
+  min-width: 0; /* 允许flex子元素收缩 */
 }
 
 .workspace-tab-label__primary {
@@ -568,6 +569,9 @@ onUnmounted(() => {
   color: var(--el-text-color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0; /* 关键：允许文本省略号生效 */
 }
 
 .workspace-tab-label__dot {
@@ -575,6 +579,8 @@ onUnmounted(() => {
   height: 8px;
   border-radius: 50%;
   background-color: var(--el-color-danger);
+  flex-shrink: 0; /* 确保红点不会被压缩 */
+  margin-left: auto; /* 确保红点始终在右侧可见 */
 }
 
 .workspace-tabs :deep(.el-tabs__header.is-top) {

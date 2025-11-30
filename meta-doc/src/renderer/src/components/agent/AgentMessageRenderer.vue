@@ -36,10 +36,10 @@
         </div>
       </transition>
 
-      <!-- 用户消息操作按钮（hover时显示） -->
+      <!-- 消息操作按钮（hover时显示） -->
       <transition name="fade">
         <div 
-          v-if="message.role === 'user' && showActions" 
+          v-if="showActions && (message.role === 'user' || (message.role === 'assistant' && message.type === 'chat'))" 
           class="agent-message__actions"
           :class="{
             'agent-message__actions--left': message.role === 'user',
@@ -48,7 +48,8 @@
           @mouseenter="handleActionsMouseEnter"
           @mouseleave="handleActionsMouseLeave"
         >
-          <el-tooltip :content="t('agent.message.edit')" placement="top">
+          <!-- 用户消息：显示编辑按钮 -->
+          <el-tooltip v-if="message.role === 'user'" :content="t('agent.message.edit')" placement="top">
             <el-button
               circle
               size="small"
@@ -65,7 +66,7 @@
             <template #dropdown>
               <el-dropdown-menu @mouseenter="handleDropdownMouseEnter" @mouseleave="handleDropdownMouseLeave">
                 <el-dropdown-item command="regenerate">{{ t('agent.message.regenerate') }}</el-dropdown-item>
-                <el-dropdown-item command="duplicate">{{ t('agent.message.duplicateSession') }}</el-dropdown-item>
+                <el-dropdown-item v-if="message.role === 'user'" command="duplicate">{{ t('agent.message.duplicateSession') }}</el-dropdown-item>
                 <el-dropdown-item command="delete" divided>{{ t('agent.message.delete') }}</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -447,7 +448,8 @@ const clearHideTimer = () => {
 const showActionsAndTimestamp = () => {
   clearHideTimer()
   showTimestamp.value = true
-  if (props.message.role === 'user') {
+  // 用户消息和AI聊天消息都可以显示操作按钮
+  if (props.message.role === 'user' || (props.message.role === 'assistant' && props.message.type === 'chat')) {
     showActions.value = true
   }
 }

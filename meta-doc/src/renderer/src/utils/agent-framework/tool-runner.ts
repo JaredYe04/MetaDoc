@@ -8,6 +8,7 @@ import { agentToolManager } from '../agent-tool-manager'
 import { workflowExecutor } from './workflow-executor'
 import { workflowManager } from './workflow-manager'
 import { createRendererLogger } from '../logger'
+import type { AgentSession } from '../../types/agent-framework'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -53,7 +54,8 @@ export class ToolRunner {
   static async runTool(
     toolId: string,
     params: Record<string, unknown>,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    session?: AgentSession  // 可选的session对象，用于工具访问session状态
   ): Promise<ToolObservation> {
     try {
       // 检查是否是Workflow工具
@@ -74,10 +76,15 @@ export class ToolRunner {
 
       getLogger().debug(`执行工具: ${toolId}`, params)
 
+      // 如果提供了session，自动注入sessionId到参数中（用于工具访问session状态）
+      const toolParams = session 
+        ? { ...params, _sessionId: session.id, _session: session }  // 同时传递sessionId和session对象
+        : params
+      
       // 调用工具
       const result = await agentToolManager.invokeTool(
         toolId,
-        params,
+        toolParams,
         undefined, // 状态更新回调（可选）
       )
 

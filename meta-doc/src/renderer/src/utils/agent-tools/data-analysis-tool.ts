@@ -404,7 +404,7 @@ ${analysisRequest ? `用户分析需求：${analysisRequest}` : ''}
     target,
     'answer',
     originKey,
-    { temperature: 0.5, stream: false }
+    { temperature: 0, stream: true }
   )
 
   try {

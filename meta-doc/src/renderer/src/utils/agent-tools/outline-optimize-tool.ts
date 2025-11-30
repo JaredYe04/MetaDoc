@@ -123,7 +123,7 @@ async function generateChildNodes(
     rawStringRef,
     'answer',
     `outline-children-${node.path}-${Date.now()}`,
-    { stream: false}
+    { stream: true}
   )
 
   if (signal) {
@@ -235,7 +235,7 @@ async function generateNodeContent(
     rawStringRef,
     'answer',
     `outline-content-${node.path}-${Date.now()}`,
-    { stream: false}
+    { stream: true}
   )
 
   if (signal) {

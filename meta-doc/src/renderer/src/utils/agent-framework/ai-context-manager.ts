@@ -71,6 +71,16 @@ export class AIContextManager {
     // 1. 系统提示词
     const systemPrompt = this.buildSystemPrompt(session, agentConfig, systemPromptOverride)
     if (systemPrompt) {
+      // 记录系统提示词内容（用于调试格式提示词注入）
+      const logger = createRendererLogger('AIContextManager')
+      logger.debug('[buildMessages] 构建系统提示词', {
+        promptLength: systemPrompt.length,
+        containsFormatWarning: systemPrompt.includes('⚠️ 重要：当前文档是'),
+        containsMarkdownWarning: systemPrompt.includes('Markdown 格式'),
+        containsLatexWarning: systemPrompt.includes('LaTeX 格式'),
+        promptPreview: systemPrompt.substring(0, 500)  // 前500字符预览
+      })
+      
       messages.push({
         role: 'system',
         content: systemPrompt
@@ -141,8 +151,18 @@ export class AIContextManager {
         const docFormat = publicCtx.document.format || 'md'
         prompt += `**文档格式: ${docFormat === 'tex' ? 'LaTeX' : 'Markdown'}**\n\n`
         
+        // 记录日志：文档格式检测和提示词注入
+        const logger = createRendererLogger('AIContextManager')
+        logger.info('[buildSystemPrompt] 检测到文档格式，注入格式提示词', {
+          documentPath: publicCtx.document.path,
+          documentTitle: publicCtx.document.title,
+          detectedFormat: docFormat,
+          formatType: docFormat === 'tex' ? 'LaTeX' : 'Markdown'
+        })
+        
         // 根据文档格式添加格式特定的重要提示
         if (docFormat === 'tex') {
+          logger.info('[buildSystemPrompt] 注入LaTeX格式提示词')
           prompt += `## ⚠️ 重要：当前文档是 LaTeX 格式\n\n`
           prompt += `**你必须严格遵循以下规则：**\n`
           prompt += `1. **所有生成的内容必须使用 LaTeX 语法**，包括：\n`
@@ -152,7 +172,9 @@ export class AIContextManager {
           prompt += `   - 强调使用 \\textbf{}, \\textit{} 等命令\n`
           prompt += `2. **图表插入**：必须使用 PDF 格式，插入语法：\\includegraphics[width=0.8\\textwidth]{图片URL}\n`
           prompt += `3. **不要混淆格式**：当前文档是 LaTeX，不要生成 Markdown 格式的内容\n\n`
+          logger.info('[buildSystemPrompt] LaTeX格式提示词注入完成')
         } else {
+          logger.info('[buildSystemPrompt] 注入Markdown格式提示词')
           prompt += `## ⚠️ 重要：当前文档是 Markdown 格式\n\n`
           prompt += `**你必须严格遵循以下规则：**\n`
           prompt += `1. **所有生成的内容必须使用 Markdown 语法**，包括：\n`
@@ -162,6 +184,7 @@ export class AIContextManager {
           prompt += `   - 强调使用 **粗体** 或 *斜体*\n`
           prompt += `2. **图表插入**：使用 SVG 或 PNG 格式，插入语法：![描述](图片URL)\n`
           prompt += `3. **不要混淆格式**：当前文档是 Markdown，不要生成 LaTeX 格式的内容\n\n`
+          logger.info('[buildSystemPrompt] Markdown格式提示词注入完成')
         }
       }
       if (!publicCtx.document) {

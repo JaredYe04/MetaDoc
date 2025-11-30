@@ -281,84 +281,141 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
                 const checkInterval = 200;
                 let waited = 0;
             
-            const checkRender = () => {
-                try {
-                    // 尝试找到渲染后的 SVG 元素
-                    let svgElement = null;
-                    let canvasElement = null;
-                    
-                    // 不同的图表类型可能有不同的 DOM 结构
-                    if (chartType === 'mermaid') {
-                        svgElement = container.querySelector('svg.mermaid') || container.querySelector('svg');
-                    } else if (chartType === 'echarts') {
-                        // ECharts 渲染为 canvas
-                        canvasElement = container.querySelector('canvas');
-                        if (!canvasElement) {
+                const checkRender = () => {
+                    try {
+                        // 尝试找到渲染后的 SVG 元素
+                        let svgElement = null;
+                        let canvasElement = null;
+                        
+                        // 不同的图表类型可能有不同的 DOM 结构
+                        if (chartType === 'mermaid') {
+                            svgElement = container.querySelector('svg.mermaid') || container.querySelector('svg');
+                        } else if (chartType === 'echarts') {
+                            // ECharts 渲染为 canvas
+                            canvasElement = container.querySelector('canvas');
+                            if (!canvasElement) {
+                                svgElement = container.querySelector('svg');
+                            }
+                        } else if (chartType === 'flowchart' || chartType === 'graphviz') {
+                            svgElement = container.querySelector('svg');
+                        } else if (chartType === 'mindmap' || chartType === 'markmap') {
+                            svgElement = container.querySelector('svg');
+                        } else if (chartType === 'smiles' || chartType === 'abc') {
                             svgElement = container.querySelector('svg');
                         }
-                    } else if (chartType === 'flowchart' || chartType === 'graphviz') {
-                        svgElement = container.querySelector('svg');
-                    } else if (chartType === 'mindmap' || chartType === 'markmap') {
-                        svgElement = container.querySelector('svg');
-                    } else if (chartType === 'smiles' || chartType === 'abc') {
-                        svgElement = container.querySelector('svg');
-                    }
-                    
-                    if (!svgElement && !canvasElement) {
-                        // 如果找不到，尝试查找所有 SVG 或 canvas
-                        svgElement = container.querySelector('svg');
-                        canvasElement = container.querySelector('canvas');
-                    }
-                    
-                    if (svgElement) {
-                        // 提取 SVG 内容
-                        const serializer = new XMLSerializer();
-                        let svgContent = serializer.serializeToString(svgElement);
-
-                        // mindmap 和 markmap 可能包含动画/过渡，导出前清理为静态
-                        if (chartType === 'mindmap' || chartType === 'markmap') {
-                            svgContent = cleanSvgForExport(svgContent);
+                        
+                        if (!svgElement && !canvasElement) {
+                            // 如果找不到，尝试查找所有 SVG 或 canvas
+                            svgElement = container.querySelector('svg');
+                            canvasElement = container.querySelector('canvas');
                         }
                         
-                        // 清理临时容器
-                        document.body.removeChild(container);
-                        
-                        if (targetFormat === 'png') {
-                            // 需要转换为 PNG：为避免渲染进程 canvas 污染，Mermaid 走主进程 resvg
-                            if (chartType === 'mermaid') {
-                                (async () => {
-                                    try {
-                                        let ipcRenderer = null;
-                                        if (window && window.electron) {
-                                            ipcRenderer = window.electron.ipcRenderer;
-                                        } else {
-                                            const localIpcRenderer = (await import('./web-adapter/local-ipc-renderer.ts')).default;
-                                            ipcRenderer = localIpcRenderer;
+                        if (svgElement) {
+                            // 定义处理 SVG 的函数
+                            const processSvgElement = () => {
+                                // 对于 mindmap 和 markmap，先在 DOM 中清理动画
+                                if (chartType === 'mindmap' || chartType === 'markmap') {
+                                    // 在 DOM 中直接清理动画
+                                    const allElements = svgElement.querySelectorAll('*');
+                                    allElements.forEach(el => {
+                                        // 移除 style 中的动画
+                                        if (el.hasAttribute('style')) {
+                                            let style = el.getAttribute('style') || '';
+                                            style = style.replace(/animation[^;]*;?/gi, '');
+                                            style = style.replace(/transition[^;]*;?/gi, '');
+                                            el.setAttribute('style', style);
                                         }
-                                        if (!ipcRenderer) throw new Error('无法获取 IPC 渲染器');
-                                        const ret = await ipcRenderer.invoke('convert-svg-string-to-png', svgContent);
-                                        if (!ret?.success || !ret.url) throw new Error(ret?.error || '主进程 SVG→PNG 失败');
-                                        resolve(ret.url);
-                                    } catch (err) {
-                                        reject(err);
+                                        // 移除 class 中可能包含的动画类（通过设置内联样式覆盖）
+                                        if (el.hasAttribute('class')) {
+                                            const currentStyle = el.getAttribute('style') || '';
+                                            el.setAttribute('style', currentStyle + '; animation: none !important; transition: none !important;');
+                                        }
+                                    });
+                                    
+                                    // 移除所有动画元素
+                                    const animations = svgElement.querySelectorAll('animate, animateTransform, animateMotion, set');
+                                    animations.forEach(el => el.remove());
+                                    
+                                    // 处理 style 标签
+                                    const styleTags = svgElement.querySelectorAll('style');
+                                    styleTags.forEach(tag => {
+                                        try {
+                                            let css = tag.textContent || '';
+                                            css = css.replace(/@(-webkit-|-moz-|-o-)?keyframes[\s\S]*?\}\s*\}/gi, '');
+                                            css = css.replace(/@keyframes[\s\S]*?\}\s*\}/gi, '');
+                                            css = css.replace(/animation\s*:[^;]+;?/gi, '');
+                                            css = css.replace(/transition\s*:[^;]+;?/gi, '');
+                                            tag.textContent = css;
+                                        } catch (_) {}
+                                    });
+                                    
+                                    // 添加覆盖样式
+                                    const overrideStyle = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+                                    overrideStyle.textContent = '*{animation: none !important; transition: none !important;}';
+                                    svgElement.appendChild(overrideStyle);
+                                }
+                                
+                                // 提取 SVG 内容
+                                const serializer = new XMLSerializer();
+                                let svgContent = serializer.serializeToString(svgElement);
+
+                                // mindmap 和 markmap 可能包含动画/过渡，导出前再次清理为静态
+                                if (chartType === 'mindmap' || chartType === 'markmap') {
+                                    svgContent = cleanSvgForExport(svgContent);
+                                }
+                        
+                                // 清理临时容器
+                                document.body.removeChild(container);
+                                
+                                if (targetFormat === 'png') {
+                                    // 需要转换为 PNG：为避免渲染进程 canvas 污染，Mermaid 走主进程 resvg
+                                    if (chartType === 'mermaid') {
+                                        (async () => {
+                                            try {
+                                                let ipcRenderer = null;
+                                                if (window && window.electron) {
+                                                    ipcRenderer = window.electron.ipcRenderer;
+                                                } else {
+                                                    const localIpcRenderer = (await import('./web-adapter/local-ipc-renderer.ts')).default;
+                                                    ipcRenderer = localIpcRenderer;
+                                                }
+                                                if (!ipcRenderer) throw new Error('无法获取 IPC 渲染器');
+                                                const ret = await ipcRenderer.invoke('convert-svg-string-to-png', svgContent);
+                                                if (!ret?.success || !ret.url) throw new Error(ret?.error || '主进程 SVG→PNG 失败');
+                                                resolve(ret.url);
+                                            } catch (err) {
+                                                reject(err);
+                                            }
+                                        })();
+                                    } else {
+                                        convertSvgToPng(svgContent)
+                                            .then((pngBlob) => {
+                                                return uploadImageToLocal(pngBlob, `${hashBase}_${chartType}.png`);
+                                            })
+                                            .then(resolve)
+                                            .catch(reject);
                                     }
-                                })();
+                                } else {
+                                    // 使用 SVG 矢量图
+                                    const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
+                                    uploadImageToLocal(svgBlob, `${hashBase}_${chartType}.svg`)
+                                        .then(resolve)
+                                        .catch(reject);
+                                }
+                            };
+                            
+                            // 对于 mindmap 和 markmap，等待动画完成后再处理
+                            if (chartType === 'mindmap' || chartType === 'markmap') {
+                                // 等待动画完成（强制等待一段时间，确保动画状态稳定）
+                                setTimeout(() => {
+                                    processSvgElement();
+                                }, 1000);
+                                return; // 提前返回，等待 setTimeout 执行
                             } else {
-                                convertSvgToPng(svgContent)
-                                    .then((pngBlob) => {
-                                        return uploadImageToLocal(pngBlob, `${hashBase}_${chartType}.png`);
-                                    })
-                                    .then(resolve)
-                                    .catch(reject);
+                                // 非 mindmap/markmap，直接处理
+                                processSvgElement();
+                                return;
                             }
-                        } else {
-                            // 使用 SVG 矢量图
-                            const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
-                            uploadImageToLocal(svgBlob, `${hashBase}_${chartType}.svg`)
-                                .then(resolve)
-                                .catch(reject);
-                        }
-                        return;
                     } else if (canvasElement) {
                         // 对于 canvas，根据目标格式处理
                         document.body.removeChild(container);

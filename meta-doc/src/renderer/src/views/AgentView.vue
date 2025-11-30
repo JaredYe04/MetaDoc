@@ -1259,12 +1259,24 @@ const executeAgentEngine = async (
       
       // 更新session的publicContext，确保文档格式信息被传递
       session.publicContext = session.publicContext || {};
+      const detectedFormat = (doc.format || 'md') as 'md' | 'tex';
       session.publicContext.document = {
         id: currentTabId,
         path: doc.path || '',
-        format: (doc.format || 'md') as 'md' | 'tex',
+        format: detectedFormat,
         title: doc.meta?.title || ''
       };
+      
+      // 记录日志：确保文档格式信息被正确设置
+      const logger = createRendererLogger('AgentView');
+      logger.info('[executeAgent] 更新session publicContext.document', {
+        sessionId: session.id,
+        documentId: currentTabId,
+        documentFormat: detectedFormat,
+        documentPath: doc.path || '',
+        documentTitle: doc.meta?.title || '',
+        publicContextDocument: session.publicContext.document
+      });
     }
   }
 

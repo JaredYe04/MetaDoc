@@ -1640,6 +1640,7 @@
         "content": "内容"
       },
       "proofread": {
+        "proofreading": "校对中",
         "title": "文本校对结果",
         "totalErrors": "共发现 {count} 个错误",
         "location": "位置: 行 {line}, 列 {column}",

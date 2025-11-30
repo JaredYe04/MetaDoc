@@ -249,8 +249,72 @@ export abstract class BaseEngineExecutor {
     prompt += '- 工具调用结果会在后续对话中提供，你可以基于结果继续处理\n'
     prompt += '- 如果不需要调用工具，直接回复文本即可，不要包含工具调用标记\n'
     prompt += '- **重要**：工具调用时，标记格式中的参数内容不会显示给用户，只会在系统内部处理\n'
+    prompt += '\n\n## ⚠️ 任务完成检测\n'
+    prompt += '**重要**：当你完成所有任务时，必须在回复中明确包含以下标记之一，系统才会判断任务已完成：\n'
+    prompt += '- `<|TASK_COMPLETE|>` （推荐）\n'
+    prompt += '- `任务已完成`\n'
+    prompt += '- `所有任务已完成`\n'
+    prompt += '- `任务完成`\n'
+    prompt += '**如果没有这些标记，系统会认为任务未完成，会继续执行或重新触发。**\n'
+    prompt += '即使你已经完成了所有工作，也必须明确标记任务完成，否则系统不会停止。\n'
 
     return prompt
+  }
+
+  /**
+   * 检测是否有未完成的工具调用标记（用于判断是否需要继续执行）
+   */
+  protected hasIncompleteToolCalls(content: string): boolean {
+    const beginMarker = '<｜tool▁calls▁begin｜>'
+    const callBeginMarker = '<｜tool▁call▁begin｜>'
+    const sepMarker = '<｜tool▁sep｜>'
+    const callEndMarker = '<｜tool▁call▁end｜>'
+    const endMarker = '<｜tool▁calls▁end｜>'
+    
+    // 检查是否有开始标记但没有结束标记
+    const hasBegin = content.includes(beginMarker)
+    const hasEnd = content.includes(endMarker)
+    
+    // 检查是否有工具调用开始但没有结束
+    const hasCallBegin = content.includes(callBeginMarker)
+    const hasCallEnd = content.includes(callEndMarker)
+    const hasSep = content.includes(sepMarker)
+    
+    // 如果有开始标记但没有结束标记，或者有工具调用开始但没有结束，说明可能未完成
+    if (hasBegin && !hasEnd) {
+      getLogger().warn('[hasIncompleteToolCalls] 检测到未完成的工具调用块（有begin但没有end）')
+      return true
+    }
+    
+    if (hasCallBegin && (!hasCallEnd || !hasSep)) {
+      getLogger().warn('[hasIncompleteToolCalls] 检测到未完成的工具调用（有call_begin但没有call_end或sep）')
+      return true
+    }
+    
+    return false
+  }
+
+  /**
+   * 检测任务是否完成（通过检查完成标记）
+   */
+  protected isTaskComplete(content: string): boolean {
+    const completeMarkers = [
+      '<|TASK_COMPLETE|>',
+      '任务已完成',
+      '所有任务已完成',
+      '任务完成',
+      'TASK_COMPLETE'
+    ]
+    
+    const lowerContent = content.toLowerCase()
+    for (const marker of completeMarkers) {
+      if (lowerContent.includes(marker.toLowerCase())) {
+        getLogger().info('[isTaskComplete] 检测到任务完成标记:', marker)
+        return true
+      }
+    }
+    
+    return false
   }
 
   /**
@@ -555,7 +619,7 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
         llmConfig,
         contextMessages,
         {
-          temperature: this.engine.customLlmConfig?.temperature || 0.7,
+          temperature: this.engine.customLlmConfig?.temperature || 0,
           maxTokens: this.engine.customLlmConfig?.maxTokens,
           stream: true,
           signal: this.options.signal,
@@ -622,7 +686,8 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
         const observation = await ToolRunner.runTool(
           reactResult.action,
           reactResult.actionInput || {},
-          this.options.signal
+          this.options.signal,
+          (this.session as any).entityType === 'agent-session' ? this.session as AgentSession : undefined  // 传递session对象（仅新类型）
         )
 
         // 获取工具配置以获取displayComponent
@@ -696,7 +761,7 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
           llmConfig,
           contextMessages,
           {
-            temperature: this.engine.customLlmConfig?.temperature || 0.7,
+            temperature: this.engine.customLlmConfig?.temperature || 0,
             maxTokens: this.engine.customLlmConfig?.maxTokens,
             stream: true,
             signal: this.options.signal,
@@ -851,7 +916,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         llmConfig,
         contextMessages,
         {
-          temperature: this.engine.customLlmConfig?.temperature || 0.7,
+          temperature: this.engine.customLlmConfig?.temperature || 0,
           maxTokens: this.engine.customLlmConfig?.maxTokens,
           stream: true,
           signal: this.options.signal,
@@ -884,8 +949,59 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         getLogger().debug('[AutoGPT] 从响应中解析工具调用:', toolCalls ? toolCalls.length : 0)
       }
 
+      // 检查是否有未完成的工具调用标记
+      const responseContent = response || assistantMessage.markdown || ''
+      const hasIncomplete = this.hasIncompleteToolCalls(responseContent)
+
       if (!toolCalls || toolCalls.length === 0) {
-        // 没有工具调用，消息已经通过reactiveMessage实时更新
+        // 没有工具调用，检查是否有未完成的标记
+        if (hasIncomplete) {
+          getLogger().warn('[AutoGPT] 检测到未完成的工具调用标记，继续执行...')
+          // 添加提示消息，让AI知道工具调用未完成
+          AIContextManager.addUserMessage(
+            this.session,
+            '⚠️ 检测到未完成的工具调用标记。请重新调用工具，确保使用完整的标记格式：<｜tool▁calls▁begin｜>...<｜tool▁calls▁end｜>'
+          )
+          // 继续循环，不break
+          continue
+        }
+        
+        // 检查任务是否完成
+        const isComplete = this.isTaskComplete(responseContent)
+        if (isComplete) {
+          getLogger().info('[AutoGPT] 检测到任务完成标记，结束执行')
+          this.options.onProgress?.({
+            stage: 'complete',
+            message: '完成'
+          })
+          break
+        }
+        
+        // 没有工具调用，也没有完成标记，检查是否应该继续
+        // 如果这是第一次迭代且没有工具调用，可能是AI在思考，继续执行
+        if (iterations === 1) {
+          getLogger().info('[AutoGPT] 第一次迭代没有工具调用，继续执行...')
+          // 添加提示，让AI知道需要调用工具或明确标记完成
+          AIContextManager.addUserMessage(
+            this.session,
+            '请继续执行任务。如果需要调用工具，请使用工具调用标记格式；如果任务已完成，请明确标记"<|TASK_COMPLETE|>"或"任务已完成"。'
+          )
+          continue
+        }
+        
+        // 多次迭代都没有工具调用，可能是任务已完成但没有标记
+        // 添加提示让AI明确标记完成
+        if (iterations >= 2) {
+          getLogger().warn('[AutoGPT] 多次迭代没有工具调用，提示AI标记任务完成')
+          AIContextManager.addUserMessage(
+            this.session,
+            '如果任务已完成，请明确标记"<|TASK_COMPLETE|>"或"任务已完成"。如果任务未完成，请继续调用工具。'
+          )
+          // 继续执行，给AI一次机会明确标记
+          continue
+        }
+        
+        // 默认情况：没有工具调用，消息已经通过reactiveMessage实时更新
         this.options.onProgress?.({
           stage: 'complete',
           message: '完成'
@@ -998,11 +1114,12 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
             continue
           }
 
-          // 执行工具
+          // 执行工具（自动传递session对象，用于工具访问session状态）
           const observation = await ToolRunner.runTool(
             toolCall.tool_id,
             toolCall.parameters,
-            this.options.signal
+            this.options.signal,
+            (this.session as any).entityType === 'agent-session' ? this.session as AgentSession : undefined  // 传递session对象（仅新类型）
           )
 
           observations.push(observation)
@@ -1104,7 +1221,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           llmConfig,
           contextMessages,
           {
-            temperature: this.engine.customLlmConfig?.temperature || 0.7,
+            temperature: this.engine.customLlmConfig?.temperature || 0,
             maxTokens: this.engine.customLlmConfig?.maxTokens,
             stream: true,
             signal: this.options.signal,
@@ -1164,7 +1281,7 @@ export class SimpleChatEngineExecutor extends BaseEngineExecutor {
       llmConfig,
       contextMessages,
       {
-        temperature: this.engine.customLlmConfig?.temperature || 0.7,
+        temperature: this.engine.customLlmConfig?.temperature || 0,
         maxTokens: this.engine.customLlmConfig?.maxTokens,
         stream: true,
         signal: this.options.signal,
@@ -1235,7 +1352,8 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
             const observation = await ToolRunner.runTool(
               toolId,
               step.parameters || step.params || {},
-              this.options.signal
+              this.options.signal,
+              (this.session as any).entityType === 'agent-session' ? this.session as AgentSession : undefined  // 传递session对象（仅新类型）
             )
 
             // 获取工具配置以获取displayComponent
@@ -1302,7 +1420,7 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       llmConfig,
       contextMessages,
       {
-        temperature: this.engine.customLlmConfig?.temperature || 0.7,
+        temperature: this.engine.customLlmConfig?.temperature || 0,
         maxTokens: this.engine.customLlmConfig?.maxTokens,
         stream: true,
         signal: this.options.signal,
@@ -1366,7 +1484,7 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       llmConfig,
       contextMessages,
       {
-        temperature: this.engine.customLlmConfig?.temperature || 0.7,
+        temperature: this.engine.customLlmConfig?.temperature || 0,
         stream: true,
         signal: this.options.signal,
         taskName: 'Workflow引擎选择',
@@ -1459,7 +1577,7 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
       llmConfig,
       contextMessages,
       {
-        temperature: this.engine.customLlmConfig?.temperature || 0.7,
+        temperature: this.engine.customLlmConfig?.temperature || 0,
         maxTokens: this.engine.customLlmConfig?.maxTokens,
         stream: true,
         signal: this.options.signal,
@@ -1487,7 +1605,8 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
             const observation = await ToolRunner.runTool(
               toolCall.tool_id,
               toolCall.parameters || {},
-              this.options.signal
+              this.options.signal,
+              (this.session as any).entityType === 'agent-session' ? this.session as AgentSession : undefined  // 传递session对象（仅新类型）
             )
 
             // 获取工具配置以获取displayComponent
@@ -1531,7 +1650,7 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
                 llmConfig,
                 summaryMessages,
                 {
-                  temperature: this.engine.customLlmConfig?.temperature || 0.7,
+                  temperature: this.engine.customLlmConfig?.temperature || 0,
                   stream: true,
                   signal: this.options.signal,
                   taskName: 'Workflow总结',

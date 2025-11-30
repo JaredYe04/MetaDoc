@@ -75,8 +75,6 @@ export interface EditResult {
   appliedEdits: number
   failedEdits: number
   operations: EditOperation[]
-  newContent: string
-  originalContent?: string  // 原始内容（用于显示对比）
 }
 
 /**
@@ -702,9 +700,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     const result: EditResult = {
       appliedEdits: appliedCount,
       failedEdits: failedCount,
-      operations: edits,  // 注意：这里保存的是转换后的EditOperation，不是原始的AnyEditOperation
-      newContent,
-      originalContent: currentContent  // 保存原始内容用于显示对比
+      operations: edits  // 注意：这里保存的是转换后的EditOperation，不是原始的AnyEditOperation
     }
 
     onUpdate({
@@ -1227,8 +1223,7 @@ export const editToolConfig: AgentToolConfig = {
 {
   "appliedEdits": 3,  // 成功应用的编辑数量
   "failedEdits": 0,   // 失败的编辑数量
-  "operations": [...], // 实际执行的编辑操作列表
-  "newContent": "string"  // 编辑后的完整文档内容
+  "operations": [...] // 实际执行的编辑操作列表
 }
 \`\`\`
 
@@ -1465,10 +1460,6 @@ export const editToolConfig: AgentToolConfig = {
       operations: {
         type: 'array',
         description: '编辑操作列表'
-      },
-      newContent: {
-        type: 'string',
-        description: '编辑后的文档内容'
       }
     }
   }

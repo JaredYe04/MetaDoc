@@ -295,14 +295,13 @@ ${text}
 
   const target = ref('')
   const originKey = `proofread-${Date.now()}-${Math.random().toString(36).slice(2)}`
-  const enableKnowledgeBase = await getSetting('enableKnowledgeBase')
   const { handle, done } = createAiTask(
     '文本校对',
     prompt,
     target,
     'answer',
     originKey,
-    { temperature: 0.3, stream: false, enableKnowledgeBase: Boolean(enableKnowledgeBase) }
+    { temperature: 0, stream: true }
   )
 
   if (signal) {
@@ -489,7 +488,7 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
   
   const text = params.text as string | undefined
   const source = (params.source as 'text' | 'file' | 'url' | 'document') || (text ? 'text' : 'document')
-  const format = (params.format as 'text' | 'markdown' | 'latex') | undefined
+  const format = (params.format as 'text' | 'markdown' | 'latex' | undefined) || undefined
   const nodePath = params.nodePath as string | undefined
   const tabId = params.tabId as string | undefined
 
@@ -518,7 +517,7 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
     }
   }
 
-  // 如果source为document或未提供text，使用全文比对
+  // 如果source为document或未提供text和nodePath，使用全文比对
   if (source === 'document' || (!text && !nodePath)) {
     try {
       const { content, format: docFormat } = await getFullDocumentText(tabId)
@@ -543,7 +542,7 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
   }
   }
 
-  // 其他情况：使用text参数
+  // 其他情况：使用text参数（source为text/file/url）
   if (!text || text.trim().length === 0) {
     return {
       status: 'failed',
@@ -567,7 +566,7 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
 
   // 加载文本
   let content: string
-  let finalFormat: 'text' | 'markdown' | 'latex' = format || 'text'
+  let finalFormat: 'text' | 'markdown' | 'latex' = (format as 'text' | 'markdown' | 'latex') || 'text'
 
   try {
     onUpdate({
@@ -918,8 +917,8 @@ export const proofreadToolConfig: AgentToolConfig = {
         type: 'string',
         description: '文档标签页ID（可选，默认使用当前活动标签页）'
       }
-    },
-    required: ['text']
+    }
+    // 注意：text不是必需的，如果source为"document"或提供了nodePath，则不需要text
   },
   outputSchema: {
     type: 'object',

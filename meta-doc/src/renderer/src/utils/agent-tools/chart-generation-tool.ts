@@ -1,6 +1,6 @@
 /**
  * 图表生成Tool
- * 根据提示词生成各种类型的图表（Mermaid、ECharts、PlantUML、mindmap、graphviz等）
+ * 根据提示词生成各种类型的图表（Mermaid、ECharts、PlantUML、flowchart、graphviz等）
  */
 
 import type {
@@ -35,9 +35,7 @@ const CHART_TYPE_MAP: Record<string, string> = {
   'echarts': 'echarts',
   'plantuml': 'plantuml',
   'flowchart': 'flowchart',
-  'graphviz': 'graphviz',
-  'mindmap': 'mindmap',
-  'markmap': 'markmap'
+  'graphviz': 'graphviz'
 }
 
 /**
@@ -310,7 +308,7 @@ function extractPlantUMLCode(text: string): string {
 }
 
 /**
- * 提取通用图表代码（flowchart, graphviz, mindmap, markmap 等）
+ * 提取通用图表代码（flowchart, graphviz 等）
  * 从可能包含其他文本的字符串中提取纯代码
  * 移除中文说明文字和其他无关内容
  */
@@ -335,9 +333,6 @@ function extractGenericChartCode(text: string, chartType: string): string {
   } else if (chartType === 'graphviz') {
     // Graphviz (dot) 通常以 digraph, graph 开头
     keywords = ['digraph', 'graph', 'node', 'edge', 'subgraph']
-  } else if (chartType === 'mindmap' || chartType === 'markmap') {
-    // Mindmap/Markmap 通常以缩进的 - 开头
-    keywords = ['  -', '    -', '      -', 'root', 'mindmap']
   }
   
   // 查找第一个匹配的关键字
@@ -357,48 +352,6 @@ function extractGenericChartCode(text: string, chartType: string): string {
   if (firstKeywordIndex > 0) {
     // 移除之前的所有内容
     let cleaned = text.substring(firstKeywordIndex)
-    
-    // 对于 mindmap/markmap，提取到遇到大量中文说明为止
-    if (chartType === 'mindmap' || chartType === 'markmap') {
-      const lines = cleaned.split('\n')
-      const codeLines: string[] = []
-      
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]
-        const trimmedLine = line.trim()
-        
-        // 如果遇到空行，继续（可能是代码中的空行）
-        if (!trimmedLine) {
-          if (codeLines.length > 0) {
-            codeLines.push(line)
-          }
-          continue
-        }
-        
-        // 检查是否是明显的说明文字（包含大量中文字符且不是代码）
-        const chineseCharCount = (line.match(/[\u4e00-\u9fa5]/g) || []).length
-        const totalCharCount = line.length
-        const chineseRatio = totalCharCount > 0 ? chineseCharCount / totalCharCount : 0
-        
-        // 检查是否是代码行（包含缩进和 - 或 root）
-        const isCodeLine = /^\s+[-*]/.test(line) || /^\s*root/i.test(trimmedLine)
-        
-        if (chineseRatio > 0.5 && !isCodeLine) {
-          // 如果已经有代码内容，停止提取
-          if (codeLines.length > 0) {
-            break
-          }
-          // 如果还没有代码内容，跳过这一行
-          continue
-        }
-        
-        codeLines.push(line)
-      }
-      
-      if (codeLines.length > 0) {
-        return codeLines.join('\n').trim()
-      }
-    }
     
     // 对于 flowchart 和 graphviz，提取到遇到大量中文说明为止
     if (chartType === 'flowchart' || chartType === 'graphviz') {
@@ -674,7 +627,7 @@ async function generateChartCodeWithLLM(
 
 用户需求：${prompt}`
 
-  // 使用createAiTask创建AI任务，设置stream: false使用非流式模式
+  // 使用createAiTask创建AI任务，设置stream: true使用流式模式
   const originKey = `chart-generation-${Date.now()}-${Math.random().toString(36).slice(2)}`
   const { handle, done } = createAiTask(
     '生成图表代码',
@@ -682,7 +635,7 @@ async function generateChartCodeWithLLM(
     target,
     'answer',
     originKey,
-    { temperature: 0.7, stream: false }
+    { temperature: 0, stream: true }
   )
 
   // 如果提供了signal，监听取消事件
@@ -894,9 +847,7 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
       // 对于 ECharts，清理代码
       finalChartCode = cleanEChartsCode(finalChartCode)
     } else if (normalizedChartType === 'flowchart' || 
-               normalizedChartType === 'graphviz' || 
-               normalizedChartType === 'mindmap' || 
-               normalizedChartType === 'markmap') {
+               normalizedChartType === 'graphviz') {
       // 对于其他图表类型，使用通用提取函数去除中文说明文字
       finalChartCode = extractGenericChartCode(finalChartCode, normalizedChartType)
     } else {
@@ -1090,60 +1041,6 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
             0,
             3,
             `PlantUML渲染失败: ${renderErrorMsg}`
-          )
-          params._retryAttempted = true
-          return await chartGenerationCallback({ ...params, code: retryCode }, signal, onUpdate)
-        }
-        throw renderError
-      }
-    } else if (normalizedChartType === 'mindmap' || normalizedChartType === 'markmap') {
-      // Mindmap/Markmap 使用 Vditor 渲染
-      // 确保代码格式正确（必须是缩进的列表格式）
-      let cleanedMindmapCode = finalChartCode.trim()
-      
-      // 验证mindmap代码格式
-      const lines = cleanedMindmapCode.split('\n')
-      const hasValidFormat = lines.some(line => {
-        const trimmed = line.trim()
-        return trimmed.startsWith('-') || trimmed.startsWith('*') || /^\s+[-*]/.test(line)
-      })
-      
-      if (!hasValidFormat) {
-        // 如果格式不正确，尝试修复
-        logger.warn('Mindmap代码格式可能不正确，尝试修复...')
-        // 尝试添加根节点
-        if (!cleanedMindmapCode.startsWith('-') && !cleanedMindmapCode.startsWith('*')) {
-          // 如果第一行不是列表项，尝试添加根节点
-          const firstLine = lines[0]?.trim() || 'root'
-          cleanedMindmapCode = `  - ${firstLine}\n${lines.slice(1).join('\n')}`
-        }
-      }
-      
-      // 确保至少有一行有效内容
-      if (!cleanedMindmapCode.trim() || cleanedMindmapCode.trim().length < 3) {
-        throw new Error('Mindmap代码为空或格式不正确，无法渲染')
-      }
-      
-      finalChartCode = cleanedMindmapCode
-      
-      try {
-        imageUrl = await renderChartViaVditor(normalizedChartType, finalChartCode, cdn, CHART_TYPES[normalizedChartType], targetFormat) as string
-      } catch (renderError) {
-        const renderErrorMsg = renderError instanceof Error ? renderError.message : String(renderError)
-        logger.error('Mindmap渲染失败:', renderErrorMsg, '代码:', finalChartCode.substring(0, 200))
-        
-        // 如果渲染失败且还没有重试过，尝试重新生成
-        if (!params._retryAttempted && (renderErrorMsg.includes('empty') || renderErrorMsg.includes('空') || renderErrorMsg.includes('格式'))) {
-          logger.info('Mindmap渲染失败，尝试重新生成代码...')
-          const codeTarget = ref('')
-          const retryCode = await generateChartCodeWithLLM(
-            prompt,
-            normalizedChartType,
-            codeTarget,
-            signal,
-            0,
-            3,
-            `Mindmap渲染失败: ${renderErrorMsg}。请确保代码是缩进的列表格式，例如：\n  - root\n    - child1\n    - child2`
           )
           params._retryAttempted = true
           return await chartGenerationCallback({ ...params, code: retryCode }, signal, onUpdate)
@@ -1363,12 +1260,12 @@ export const chartGenerationToolConfig: AgentToolConfig = {
     'ko_KR': { name: '차트 생성' }
   } as any,
   description: {
-    'zh_cn': { description: '根据提示词生成各种类型的图表（Mermaid、ECharts、PlantUML、mindmap、graphviz等），支持导出为SVG、PNG或PDF格式' },
-    'en_us': { description: 'Generate various types of charts (Mermaid, ECharts, PlantUML, mindmap, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats' },
-    'de_DE': { description: 'Generiert verschiedene Diagrammtypen (Mermaid, ECharts, PlantUML, Mindmap, Graphviz usw.) basierend auf Eingabeaufforderungen, unterstützt Export in SVG, PNG oder PDF' },
-    'fr_FR': { description: 'Génère divers types de graphiques (Mermaid, ECharts, PlantUML, mindmap, graphviz, etc.) basés sur des invites, supportant l\'export en SVG, PNG ou PDF' },
-    'ja_JP': { description: 'プロンプトに基づいて様々なタイプのチャート（Mermaid、ECharts、PlantUML、mindmap、graphvizなど）を生成し、SVG、PNG、PDF形式へのエクスポートをサポート' },
-    'ko_KR': { description: '프롬프트를 기반으로 다양한 유형의 차트(Mermaid, ECharts, PlantUML, mindmap, graphviz 등)를 생성하며 SVG, PNG 또는 PDF 형식으로 내보내기 지원' }
+    'zh_cn': { description: '根据提示词生成各种类型的图表（Mermaid、ECharts、PlantUML、flowchart、graphviz等），支持导出为SVG、PNG或PDF格式' },
+    'en_us': { description: 'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats' },
+    'de_DE': { description: 'Generiert verschiedene Diagrammtypen (Mermaid, ECharts, PlantUML, Flowchart, Graphviz usw.) basierend auf Eingabeaufforderungen, unterstützt Export in SVG, PNG oder PDF' },
+    'fr_FR': { description: 'Génère divers types de graphiques (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) basés sur des invites, supportant l\'export en SVG, PNG ou PDF' },
+    'ja_JP': { description: 'プロンプトに基づいて様々なタイプのチャート（Mermaid、ECharts、PlantUML、flowchart、graphvizなど）を生成し、SVG、PNG、PDF形式へのエクスポートをサポート' },
+    'ko_KR': { description: '프롬프트를 기반으로 다양한 유형의 차트(Mermaid, ECharts, PlantUML, flowchart, graphviz 등)를 생성하며 SVG, PNG 또는 PDF 형식으로 내보내기 지원' }
   } as any,
   origin: 'internal',
   instruction: `# 图表生成工具
@@ -1381,7 +1278,6 @@ export const chartGenerationToolConfig: AgentToolConfig = {
 - **ECharts**: 折线图、条形图、散点图、K线图、饼图、雷达图、和弦图、力导向布局图、地图、仪表盘图、漏斗图、事件河流图
 - **PlantUML**: UML类图、UML序列图、UML活动图、UML状态图、UML用例图、UML组件图
 - **Flowchart**: 流程图
-- **Mindmap**: 思维导图
 - **Graphviz**: 流程图
 
 ## 使用场景
@@ -1393,7 +1289,7 @@ export const chartGenerationToolConfig: AgentToolConfig = {
 \`\`\`json
 {
   "prompt": "string",        // 可选，图表描述或需求（如果提供了code参数，则不需要prompt）
-  "chartType": "string",     // 可选，图表类型（mermaid/echarts/plantuml/flowchart/mindmap/graphviz），默认mermaid
+  "chartType": "string",     // 可选，图表类型（mermaid/echarts/plantuml/flowchart/graphviz），默认mermaid
   "format": "string",        // 可选，导出格式（svg/png/pdf），默认svg
   "chartName": "string",     // 可选，图表名称，默认自动生成
   "code": "string"           // 可选，直接提供图表代码（如果提供了code，则跳过LLM生成，prompt可以为空）
@@ -1478,7 +1374,7 @@ export const chartGenerationToolConfig: AgentToolConfig = {
 7. 返回的 \`chartCode\` 是经过提取和清理后的可直接渲染的代码（仅用于调试，不应插入文档）
 8. ECharts需要提供JSON格式的配置对象
 9. 图表代码会自动清理，移除markdown代码块标记
-10. ECharts和mindmap会自动去除动画效果
+10. ECharts会自动去除动画效果
 
 ## 与其他Tool的区别
 - 这是唯一的图表生成工具

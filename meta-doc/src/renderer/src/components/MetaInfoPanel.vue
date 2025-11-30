@@ -246,7 +246,7 @@ const handleKeywordsGenerate = async () => {
       rawResult,
       ai_types.answer,
       'meta-keywords',
-      { stream: false },
+      { stream: true },
     );
     await done;
     const nextKeywords = parseKeywordsResult(rawResult.value);

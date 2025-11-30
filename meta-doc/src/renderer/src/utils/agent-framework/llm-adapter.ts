@@ -444,6 +444,35 @@ export class LlmAdapter {
     // 特别是确保tool消息的content是字符串，而不是对象
     
     // 记录原始消息格式（用于调试）
+    // 检查系统提示词中是否包含格式警告
+    const systemMessage = messages.find((msg: any) => msg.role === 'system')
+    if (systemMessage && systemMessage.content) {
+      const systemContent = systemMessage.content as string
+      const hasFormatWarning = systemContent.includes('⚠️ 重要：当前文档是')
+      const hasMarkdownWarning = systemContent.includes('Markdown 格式')
+      const hasLatexWarning = systemContent.includes('LaTeX 格式')
+      
+      getLogger().info('[callChatViaTask] 系统提示词格式检测', {
+        hasSystemMessage: !!systemMessage,
+        systemContentLength: systemContent.length,
+        hasFormatWarning,
+        hasMarkdownWarning,
+        hasLatexWarning,
+        formatWarningPreview: hasFormatWarning 
+          ? systemContent.substring(
+              Math.max(0, systemContent.indexOf('⚠️ 重要：当前文档是') - 50),
+              Math.min(systemContent.length, systemContent.indexOf('⚠️ 重要：当前文档是') + 200)
+            )
+          : '未找到格式警告',
+        systemContentPreview: systemContent.substring(0, 1000)  // 前1000字符预览
+      })
+    } else {
+      getLogger().warn('[callChatViaTask] ⚠️ 未找到系统消息或系统消息内容为空', {
+        hasSystemMessage: !!systemMessage,
+        systemMessageContent: systemMessage?.content
+      })
+    }
+    
     getLogger().debug('[callChatViaTask] 原始消息格式:', {
       messageCount: messages.length,
       messages: messages.map((msg, idx) => ({

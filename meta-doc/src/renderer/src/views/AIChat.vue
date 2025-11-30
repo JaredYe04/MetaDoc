@@ -357,7 +357,7 @@ const updateTitle = async (seedText?: string) => {
     generatedText, 
     ai_types.answer, 
     'ai-chat-generate-title',
-    { stream: false, enableKnowledgeBase: Boolean(enableKnowledgeBase) }
+    { stream: true, enableKnowledgeBase: Boolean(enableKnowledgeBase) }
   );
   try {
     await done;

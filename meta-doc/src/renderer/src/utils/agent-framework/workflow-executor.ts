@@ -404,7 +404,7 @@ ${JSON.stringify(params, null, 2)}
         resultRef,
         'answer',
         `llm-decision-${node.id}-${Date.now()}`,
-        { stream: false }
+        { stream: true }
       )
 
       // 启动任务并等待完成
@@ -608,7 +608,7 @@ ${node.config.condition}
         resultRef as any,
         'answer',
         `workflow-condition-${node.id}-${Date.now()}`,
-        { stream: false }
+        { stream: true }
       )
 
       await startAiTask(task.handle)

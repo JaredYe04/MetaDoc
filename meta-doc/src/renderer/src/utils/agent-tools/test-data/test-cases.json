@@ -581,6 +581,24 @@
           "source": "url",
           "format": "text"
         }
+      },
+      {
+        "id": "proofread::document-001",
+        "name": "校对当前文档全文（source为document）",
+        "params": {
+          "source": "document"
+        },
+        "assertions": {
+          "totalErrorsShouldBeGreaterThanOrEqual": 0
+        }
+      },
+      {
+        "id": "proofread::document-empty-001",
+        "name": "校对当前文档全文（不提供任何参数）",
+        "params": {},
+        "assertions": {
+          "totalErrorsShouldBeGreaterThanOrEqual": 0
+        }
       }
     ]
   },

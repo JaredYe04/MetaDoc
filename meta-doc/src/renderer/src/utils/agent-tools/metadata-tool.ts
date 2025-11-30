@@ -138,14 +138,14 @@ async function generateTitleWithLLM(
   logger.debug(`[generateTitleWithLLM] 开始生成标题，outlineJson长度=${outlineJson.length}, prompt长度=${prompt.length}`)
   const target = ref('')
   const originKey = `meta-title-${Date.now()}-${Math.random().toString(36).slice(2)}`
-  // 参照 MetaInfoPanel.vue 的实现，只设置 stream: false，不设置 temperature 和 enableKnowledgeBase
+  // 参照 MetaInfoPanel.vue 的实现，只设置 stream: true，不设置 temperature 和 enableKnowledgeBase
   const { handle, done } = createAiTask(
     '生成标题',
     prompt,
     target,
     'answer',
     originKey,
-    { stream: false }
+    { stream: true }
   )
   logger.debug(`[generateTitleWithLLM] 任务已创建，handle=${handle}, originKey=${originKey}`)
 
@@ -233,14 +233,14 @@ async function generateDescriptionWithLLM(
   logger.debug(`[generateDescriptionWithLLM] 开始生成描述，outlineJson长度=${outlineJson.length}, prompt长度=${prompt.length}`)
   const target = ref('')
   const originKey = `meta-description-${Date.now()}-${Math.random().toString(36).slice(2)}`
-  // 参照 MetaInfoPanel.vue 的实现，只设置 stream: false，不设置 temperature 和 enableKnowledgeBase
+  // 参照 MetaInfoPanel.vue 的实现，只设置 stream: true，不设置 temperature 和 enableKnowledgeBase
   const { handle, done } = createAiTask(
     '生成描述',
     prompt,
     target,
     'answer',
     originKey,
-    { stream: false }
+    { stream: true }
   )
   logger.debug(`[generateDescriptionWithLLM] 任务已创建，handle=${handle}, originKey=${originKey}`)
 
@@ -328,14 +328,14 @@ async function generateKeywordsWithLLM(
   logger.debug(`[generateKeywordsWithLLM] 开始生成关键词，outlineJson长度=${outlineJson.length}, prompt长度=${prompt.length}`)
   const target = ref('')
   const originKey = `meta-keywords-${Date.now()}-${Math.random().toString(36).slice(2)}`
-  // 参照 MetaInfoPanel.vue 的实现，只设置 stream: false，不设置 temperature 和 enableKnowledgeBase
+  // 参照 MetaInfoPanel.vue 的实现，只设置 stream: true，不设置 temperature 和 enableKnowledgeBase
   const { handle, done } = createAiTask(
     '生成关键词',
     prompt,
     target,
     'answer',
     originKey,
-    { stream: false }
+    { stream: true }
   )
   logger.debug(`[generateKeywordsWithLLM] 任务已创建，handle=${handle}, originKey=${originKey}`)
 

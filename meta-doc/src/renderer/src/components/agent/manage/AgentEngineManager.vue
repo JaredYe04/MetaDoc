@@ -203,7 +203,7 @@ const formData = ref({
     baseUrl: '',
     apiKey: '',
     model: '',
-    temperature: 0.7,
+    temperature: 0,
     maxTokens: undefined as number | undefined
   },
   engineConfig: {
@@ -301,7 +301,7 @@ const handleCreate = () => {
       baseUrl: '',
       apiKey: '',
       model: '',
-      temperature: 0.7,
+      temperature: 0,
       maxTokens: undefined
     },
     engineConfig: {
@@ -327,7 +327,7 @@ const handleView = (engine: AgentEngine) => {
       baseUrl: '',
       apiKey: '',
       model: '',
-      temperature: 0.7,
+      temperature: 0,
       maxTokens: undefined
     },
     engineConfig: engine.engineConfig || {

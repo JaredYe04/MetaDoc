@@ -34,13 +34,17 @@ export async function sendNonStreamRequest(url, payload, headers = {}, signal = 
 
 /**
  * 发送流式 HTTP 请求
+ * @param {Function} onChunk - 处理每个 chunk 的回调函数
+ * @param {Function} onComplete - 处理完成时的回调函数，接收最后一个包含 usage 的 chunk（如果有）
+ * @returns {Promise} 返回最后一个包含 usage 的 chunk（如果有）
  */
 export async function sendStreamRequest(
   url,
   payload,
   headers = {},
   signal = null,
-  onChunk = null
+  onChunk = null,
+  onComplete = null
 ) {
   const response = await fetch(url, {
     method: "POST",
@@ -69,6 +73,7 @@ export async function sendStreamRequest(
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
   let buffer = "";
+  let lastChunkWithUsage = null;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -93,9 +98,21 @@ export async function sendStreamRequest(
           ? line.replace(/^data: /, "")
           : line;
 
-        if (json === "[DONE]") continue;
+        if (json === "[DONE]") {
+          // 处理完成回调
+          if (onComplete && lastChunkWithUsage) {
+            onComplete(lastChunkWithUsage);
+          }
+          continue;
+        }
 
         const data = JSON.parse(json);
+        
+        // 检查是否包含 usage 信息
+        if (data.usage || extractUsageFromResponse(data)) {
+          lastChunkWithUsage = data;
+        }
+        
         if (onChunk) {
           onChunk(data);
         }
@@ -107,6 +124,13 @@ export async function sendStreamRequest(
       }
     }
   }
+
+  // 如果流结束时还有 usage 信息，调用完成回调
+  if (onComplete && lastChunkWithUsage) {
+    onComplete(lastChunkWithUsage);
+  }
+
+  return lastChunkWithUsage;
 }
 
 /**
@@ -163,5 +187,38 @@ export async function processThinkTag(text) {
     return "";
   }
   return text;
+}
+
+/**
+ * 从响应中提取 token 使用量信息
+ * @param {Object} result - API 响应对象
+ * @returns {Object|null} usage 对象，包含 prompt_tokens, completion_tokens, total_tokens
+ */
+export function extractUsageFromResponse(result) {
+  if (!result || typeof result !== 'object') {
+    return null;
+  }
+
+  // OpenAI 兼容格式：直接返回 usage 字段
+  if (result.usage && typeof result.usage === 'object') {
+    return {
+      prompt_tokens: result.usage.prompt_tokens || 0,
+      completion_tokens: result.usage.completion_tokens || 0,
+      total_tokens: result.usage.total_tokens || 0,
+    };
+  }
+
+  // Ollama 格式：使用 prompt_eval_count 和 eval_count
+  if (result.prompt_eval_count !== undefined || result.eval_count !== undefined) {
+    const prompt_tokens = result.prompt_eval_count || 0;
+    const completion_tokens = result.eval_count || 0;
+    return {
+      prompt_tokens,
+      completion_tokens,
+      total_tokens: prompt_tokens + completion_tokens,
+    };
+  }
+
+  return null;
 }
 

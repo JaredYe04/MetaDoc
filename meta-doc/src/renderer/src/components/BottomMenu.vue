@@ -7,6 +7,15 @@
     }"
   >
     <div class="status-group">
+      <el-tooltip :content="$t('llmStatistics.tooltip')" placement="top">
+        <span
+          class="status-item status-llm-statistics"
+          @click="showLlmStatisticsDialog = true"
+        >
+          {{ $t('bottomMenu.llmStatistics') }}
+        </span>
+      </el-tooltip>
+      <span class="status-divider">|</span>
       <el-tooltip :content="$t('wordCountDialog.tooltip')" placement="top">
         <span
           class="status-item status-word-count"
@@ -26,6 +35,9 @@
       v-model="showWordCountDialog"
       :content="documentContent"
       :format="documentFormat"
+    />
+    <LlmStatisticsDialog
+      v-model="showLlmStatisticsDialog"
     />
     <div class="actions-group">
         <el-tooltip :content="$t('bottomMenu.logConsoleTooltip')" placement="top">
@@ -79,6 +91,7 @@ import { themeState } from '../utils/themes'
 import { useNotificationStack, initializeNotificationListeners } from '../utils/notifications'
 import { useWorkspace } from '../stores/workspace'
 import WordCountDialog from './WordCountDialog.vue'
+import LlmStatisticsDialog from './LlmStatisticsDialog.vue'
 
 const workspace = useWorkspace()
 
@@ -97,6 +110,7 @@ const wordCount = computed(() => {
 const currentFilePath = computed(() => activeDocument.value?.path ?? '')
 
 const showWordCountDialog = ref(false)
+const showLlmStatisticsDialog = ref(false)
 
 const documentContent = computed(() => {
     const doc = activeDocument.value
@@ -251,6 +265,17 @@ function toggleLoggerConsole() {
 }
 
 .status-word-count:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.status-llm-statistics {
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.status-llm-statistics:hover {
     background-color: rgba(0, 0, 0, 0.08);
 }
 

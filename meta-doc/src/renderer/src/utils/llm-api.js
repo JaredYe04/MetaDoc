@@ -12,7 +12,9 @@ import {
   extractTextFromResponse,
   extractTextDeltaFromChunk,
   processThinkTag,
+  extractUsageFromResponse,
 } from "./llm-http.js";
+import { recordLlmRequest } from "./llm-statistics-service.js";
 import { createRendererLogger } from "./logger.ts";
 
 /**
@@ -525,6 +527,18 @@ async function answerQuestionNonStream(
     const text = extractTextFromResponse(result, responseType);
     const processedText = await processThinkTag(text);
     ref.value = processedText;
+    
+    // 记录 token 统计
+    try {
+      const usage = extractUsageFromResponse(result);
+      if (usage) {
+        await recordLlmRequest(usage, selectedModel, 'completion');
+      }
+    } catch (error) {
+      // 统计失败不影响主流程
+      const logger = createRendererLogger("LLM-API");
+      logger.warn('记录 token 统计失败:', error);
+    }
   } catch (error) {
     const llmError = handleLlmError(error, false);
     throw llmError;
@@ -634,6 +648,19 @@ async function answerQuestionStream(
           if (processed !== ref.value) {
             ref.value = processed;
           }
+        }
+      },
+      async (lastChunk) => {
+        // 流式响应完成时，记录 token 统计
+        try {
+          const usage = extractUsageFromResponse(lastChunk);
+          if (usage) {
+            await recordLlmRequest(usage, selectedModel, 'completion');
+          }
+        } catch (error) {
+          // 统计失败不影响主流程
+          const logger = createRendererLogger("LLM-API");
+          logger.warn('记录 token 统计失败:', error);
         }
       }
     );
@@ -759,6 +786,17 @@ async function continueConversationNonStream(
     const content = extractTextFromResponse(result, "chat");
     const processedContent = await processThinkTag(content);
     ref.value = processedContent;
+    
+    // 记录 token 统计
+    try {
+      const usage = extractUsageFromResponse(result);
+      if (usage) {
+        await recordLlmRequest(usage, selectedModel, 'chat');
+      }
+    } catch (error) {
+      // 统计失败不影响主流程
+      logger.warn('记录 token 统计失败:', error);
+    }
   } catch (error) {
     const llmError = handleLlmError(error, false);
     throw llmError;
@@ -849,6 +887,18 @@ async function continueConversationStream(
           if (processed !== ref.value) {
             ref.value = processed;
           }
+        }
+      },
+      async (lastChunk) => {
+        // 流式响应完成时，记录 token 统计
+        try {
+          const usage = extractUsageFromResponse(lastChunk);
+          if (usage) {
+            await recordLlmRequest(usage, selectedModel, 'chat');
+          }
+        } catch (error) {
+          // 统计失败不影响主流程
+          logger.warn('记录 token 统计失败:', error);
         }
       }
     );

@@ -39,7 +39,7 @@ import {
 } from './index';
 import { dirname } from './index';
 import { imageUploadDir } from './express-server';
-import { queryKnowledgeBase, getResourcesPath, compileLatexToPDF } from './utils';
+import { queryKnowledgeBase, getResourcesPath, compileLatexToPDF, setEmbeddingMode, getEmbeddingMode } from './utils';
 import type { LaTeXCompileResult } from '../types/utils';
 import type { DocumentFormat } from '../types';
 import { performExportRequest, type RendererExportPayload } from './export/export-manager';
@@ -242,15 +242,36 @@ function bindFileHandlers(): void {
   });
   
   // 读取文件内容
-  ipcMain.handle('read-file-content', async (event: IpcMainInvokeEvent, filePath: string): Promise<string> => {
+  ipcMain.handle('read-file-content', async (event: IpcMainInvokeEvent, filePath: string): Promise<string | null> => {
     try {
       if (!fs.existsSync(filePath)) {
-        throw new Error(`文件不存在: ${filePath}`);
+        // 文件不存在时返回 null，而不是抛出错误
+        return null;
       }
       const content = fs.readFileSync(filePath, 'utf-8');
       return content;
     } catch (error) {
       logger.error('读取文件失败:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('write-file-content', async (event: IpcMainInvokeEvent, payload: { filePath: string; content: string }): Promise<void> => {
+    try {
+      const { filePath, content } = payload;
+      if (!filePath || !content) {
+        throw new Error('文件路径和内容不能为空');
+      }
+      
+      // 确保目录存在
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      
+      fs.writeFileSync(filePath, content, 'utf-8');
+    } catch (error) {
+      logger.error('写入文件失败:', error);
       throw error;
     }
   });
@@ -312,6 +333,26 @@ function bindSettingHandlers(): void {
   
   ipcMain.handle('get-recent-docs', async (event: IpcMainInvokeEvent): Promise<string[]> => {
     return await getRecentDocs();
+  });
+
+  // 获取环境变量（仅限安全的环境变量，不暴露敏感信息）
+  ipcMain.handle('get-env', async (event: IpcMainInvokeEvent, key: string): Promise<string | undefined> => {
+    // 只允许获取特定的环境变量
+    const allowedKeys = ['SIMPLETEX_APP_ID', 'SIMPLETEX_APP_SECRET', 'SILICONFLOW_API_KEY'];
+    if (allowedKeys.includes(key)) {
+      return process.env[key];
+    }
+    return undefined;
+  });
+
+  // 设置 embedding 模式
+  ipcMain.handle('set-embedding-mode', async (event: IpcMainInvokeEvent, mode: 'local' | 'api'): Promise<void> => {
+    setEmbeddingMode(mode);
+  });
+
+  // 获取 embedding 模式
+  ipcMain.handle('get-embedding-mode', async (event: IpcMainInvokeEvent): Promise<'local' | 'api'> => {
+    return getEmbeddingMode();
   });
 }
 

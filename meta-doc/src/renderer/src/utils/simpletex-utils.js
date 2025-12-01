@@ -1,6 +1,7 @@
 import eventBus from "./event-bus";
 import localIpcRenderer from "./web-adapter/local-ipc-renderer";
 import { webMainCalls } from "./web-adapter/web-main-calls";
+import { getEnv } from "./env-utils";
 
 let ipcRenderer = null
 if (window && window.electron) {
@@ -11,9 +12,21 @@ if (window && window.electron) {
   //todo 说明当前环境不是electron环境，需要另外适配
 }
 
-// 配置 App 信息
-const SIMPLETEX_APP_ID = "c0eEgzdZWYa6as0cP5QEVOGC";
-const SIMPLETEX_APP_SECRET = "PxTHam5bqc9sZ1RhSd0Au0NfPNlEoOQQ";
+// 配置 App 信息（从环境变量获取）
+let SIMPLETEX_APP_ID = null;
+let SIMPLETEX_APP_SECRET = null;
+
+// 从主进程获取环境变量
+async function loadEnvVars() {
+  if (SIMPLETEX_APP_ID === null || SIMPLETEX_APP_SECRET === null) {
+    SIMPLETEX_APP_ID = await getEnv('SIMPLETEX_APP_ID');
+    SIMPLETEX_APP_SECRET = await getEnv('SIMPLETEX_APP_SECRET');
+    
+    if (!SIMPLETEX_APP_ID || !SIMPLETEX_APP_SECRET) {
+      console.warn('SimpleTex API 配置未找到，请检查 .env 文件');
+    }
+  }
+}
 
 // 生成指定长度的随机字符串
 function randomStr(randomLength = 16) {
@@ -58,6 +71,14 @@ async function getReqData(reqData, appId, secret) {
 
 // 示例上传函数，file 为 File 对象
 export async function simpletexOcr(base64string) {
+  // 加载环境变量
+  await loadEnvVars();
+  
+  if (!SIMPLETEX_APP_ID || !SIMPLETEX_APP_SECRET) {
+    eventBus.emit('show-error', 'SimpleTex API 配置未找到，请检查 .env 文件');
+    return 'SimpleTex API 配置未找到';
+  }
+
   // 请求参数数据（非文件型参数），根据需求填入
   let file;
   //把图片的base64转换为file

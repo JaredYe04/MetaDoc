@@ -28,6 +28,14 @@ import { initWindowManager, preloadAuxiliaryWindows, openAuxiliaryWindow, refres
 const url = require('url');
 const path = require('path');
 
+// 加载环境变量
+import dotenv from 'dotenv';
+
+// 加载 .env 文件
+// 在开发环境中，从项目根目录加载；在打包后，从应用目录加载
+const envPath = path.resolve(__dirname, '../../.env');
+dotenv.config({ path: envPath });
+
 initLogger();
 initI18n();
 const logger = createMainLogger('MainProcess');

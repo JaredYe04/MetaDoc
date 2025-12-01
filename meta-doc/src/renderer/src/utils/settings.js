@@ -53,6 +53,7 @@ export const settings = reactive({
   selectedLlm: "", // 选择的大模型类型
   enableKnowledgeBase: true, // 是否启用知识库
   knowledgeBaseScoreThreshold:0.5,//RAG置信度阈值
+  embeddingMode: "api", // Embedding 模式：'local' 或 'api'，默认使用外部 API
   autoCompletion: true, // 是否启用AI自动补全
   autoCompletionMode: "full", // 完全生成后再补全
   autoCompletionMaxTokens: 50, // 自动补全最大token数（最小20，0表示无限制）

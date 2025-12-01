@@ -152,6 +152,20 @@
           </el-tooltip>
         </el-form-item>
 
+        <el-form-item v-if="settings.enableKnowledgeBase" :label="t('setting.embeddingMode')">
+          <el-tooltip :content="t('setting.embeddingModeTooltip')" placement="top">
+            <el-select v-model="settings.embeddingMode" :placeholder="t('setting.chooseEmbeddingMode')"
+              @change="handleEmbeddingModeChange">
+              <el-tooltip :content="t('setting.embeddingModeApiHint')" placement="left">
+                <el-option :label="t('setting.embeddingModeApi')" value="api" />
+              </el-tooltip>
+              <el-tooltip :content="t('setting.embeddingModeLocalHint')" placement="left">
+                <el-option :label="t('setting.embeddingModeLocal')" value="local" />
+              </el-tooltip>
+            </el-select>
+          </el-tooltip>
+        </el-form-item>
+
         <el-form-item v-if="settings.enableKnowledgeBase" :label="t('setting.knowledgeBaseScoreThreshold')">
           <el-tooltip :content="t('setting.knowledgeBaseScoreThresholdTooltip')" placement="top">
             <el-slider v-model="settings.knowledgeBaseScoreThreshold" show-input :min="0.01" :max="0.99"
@@ -183,6 +197,14 @@ import eventBus, { sendBroadcast } from '../../utils/event-bus.js';
 import { getMetaDocLlmModels } from '../../utils/web-utils.ts';
 import { ai_types, createAiTask } from '../../utils/ai_tasks.ts';
 import { createRendererLogger } from '../../utils/logger.ts';
+import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer';
+
+let ipcRenderer: any = null;
+if (window && (window as any).electron) {
+  ipcRenderer = (window as any).electron.ipcRenderer;
+} else {
+  ipcRenderer = localIpcRenderer;
+}
 
 interface OllamaModel {
   name: string;
@@ -244,6 +266,12 @@ const fetchLlmSettings = async () => {
   settings['openai-official'].selectedModel = await getSetting('openaiOfficialSelectedModel');
   settings.deepseek.apiKey = await getSetting('deepseekApiKey');
   settings.deepseek.selectedModel = await getSetting('deepseekSelectedModel');
+  settings.embeddingMode = await getSetting('embeddingMode') || 'api';
+  
+  // 同步 embedding 模式到主进程
+  if (settings.embeddingMode) {
+    await ipcRenderer.invoke('set-embedding-mode', settings.embeddingMode);
+  }
 };
 
 const updateLlmInfo = () => {
@@ -348,6 +376,12 @@ const handleKnowledgeBaseToggle = () => {
 
 const handleKnowledgeBaseThresholdChange = () => {
   saveSetting('knowledgeBaseScoreThreshold', settings.knowledgeBaseScoreThreshold);
+};
+
+const handleEmbeddingModeChange = async () => {
+  saveSetting('embeddingMode', settings.embeddingMode);
+  // 同步到主进程
+  await ipcRenderer.invoke('set-embedding-mode', settings.embeddingMode);
 };
 
 const handleLlmToggle = (enabled: boolean) => {

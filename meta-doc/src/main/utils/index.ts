@@ -96,6 +96,8 @@ export {
 import ragService from './rag-service';
 export const saveDocs = () => ragService.saveDocs();
 export const saveVectorInfo = () => ragService.saveVectorInfo();
+export const setEmbeddingMode = (mode: 'local' | 'api') => ragService.setEmbeddingMode(mode);
+export const getEmbeddingMode = () => ragService.getEmbeddingMode();
 
 // ============ 统一服务管理器 ============
 

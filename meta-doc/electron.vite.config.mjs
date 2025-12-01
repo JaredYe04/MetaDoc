@@ -16,9 +16,22 @@ export default defineConfig({
         '@renderer': resolve('src/renderer/src')
       }
     },
-    plugins: [vue(),
-
-    ],
+    plugins: [vue()],
+    optimizeDeps: {
+      include: [
+        'pinia',
+        'element-plus',
+        '@element-plus/icons-vue',
+        '@ssthouse/vue3-tree-chart',
+        'vue3-markdown-it',
+        'vue',
+        'vue-router',
+        'vue-i18n'
+      ],
+      exclude: ['electron'],
+      // 禁用缓存锁定，避免并发问题
+      holdUntilCrawlEnd: false
+    },
   },
   server: {
     proxy: {

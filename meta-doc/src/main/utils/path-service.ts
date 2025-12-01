@@ -51,6 +51,13 @@ class PathServiceImpl implements PathService {
   }
 
   /**
+   * 获取 LLM 统计文件路径
+   */
+  getLlmStatisticsPath(): FilePath {
+    return path.join(this.config.resourcesPath, 'llm-statistics.json');
+  }
+
+  /**
    * 获取向量数据库路径
    */
   getVectorDatabasePath(): FilePath {

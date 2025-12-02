@@ -206,6 +206,10 @@ function toggleLoggerConsole() {
     padding: 0 5%;
     font-size: 12px;
     box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 .status-group {

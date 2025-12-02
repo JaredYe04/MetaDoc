@@ -142,34 +142,35 @@ ipcRenderer.on('os-theme-changed', (event) => {
   eventBus.emit('sync-theme')
 
 })
-ipcRenderer.on('close-triggered', () => {
-  //询问是否保存，有保存，放弃三个按钮
-  ElMessageBox.confirm(
-    i18n.global.t('leftMenu.askSave'),
-    i18n.global.t('leftMenu.tip'),
-    {
-      confirmButtonText: i18n.global.t('leftMenu.save'),
-      cancelButtonText: i18n.global.t('leftMenu.discard'),
-      showCancelButton: true,
-      distinguishCancelAndClose: true,
-      type: 'info',
+// 响应主进程请求获取活动文档信息
+ipcRenderer.on('request-active-document-info', () => {
+  try {
+    const doc = workspace.activeDocument.value;
+    if (!doc) {
+      ipcRenderer.send('active-document-info-response', null);
+      return;
     }
-  )
-    .then(() => {
-      eventBus.emit('is-need-save', false)
-      eventBus.emit('save-and-quit')
-    })
-    .catch((action) => {
-      // eventBus.emit('is-need-save',false)
-      // eventBus.emit('quit')
-      if (action === 'cancel') {
-        eventBus.emit('is-need-save', false)
-        eventBus.emit('quit')
-      }
-      else {
-        eventBus.emit('is-need-save', true)
-      }
-    })
+    const path = doc.path || '';
+    const title = doc.meta?.title?.trim() || '';
+    // 优先使用标题，其次使用路径中的文件名，最后使用默认值
+    let fileName = title;
+    if (!fileName && path) {
+      fileName = extractFileName(path, null);
+    }
+    if (!fileName) {
+      fileName = 'Untitled';
+    }
+    ipcRenderer.send('active-document-info-response', { fileName, path });
+  } catch (error) {
+    logger.error('获取活动文档信息失败:', error);
+    ipcRenderer.send('active-document-info-response', null);
+  }
+})
+
+// 注意：close-triggered 现在由主进程直接处理，这里保留以防需要
+ipcRenderer.on('close-triggered', () => {
+  // 主进程现在直接处理关闭确认对话框，这里不再需要显示 web 对话框
+  // 保留此处理以防需要，但通常不会执行到这里
 })
 
 ipcRenderer.on('sync-theme', (event) => {

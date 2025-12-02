@@ -236,6 +236,10 @@ onBeforeUnmount(() => {
   flex-direction: column;
   height: 100%;
   color: inherit;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .queue-header {

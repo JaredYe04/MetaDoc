@@ -375,6 +375,7 @@ import { createRendererLogger } from '../utils/logger';
 import { agentToolManager } from '../utils/agent-tool-manager';
 import { ai_types, createAiTask, cancelAiTask, useAiTasks, type CustomLlmConfigForTask } from '../utils/ai_tasks';
 import { sanitizeMessages } from '../utils/llm-api.js';
+import { getLlmTemperature } from '../utils/settings.js';
 import ToolCollectionManager from '../components/agent/manage/ToolCollectionManager.vue';
 import WorkflowManager from '../components/agent/manage/WorkflowManager.vue';
 import AgentConfigManager from '../components/agent/manage/AgentConfigManager.vue';
@@ -1490,10 +1491,13 @@ const executeAgentEngine = async (
       const formattedMessages = sanitizeMessages(contextMessages);
       logger.debug(`[executeAgentEngine] 消息已清理，消息数量: ${formattedMessages.length}`);
       
+      // 获取温度配置（优先使用engine的自定义配置，否则使用全局配置）
+      const temperature = engine.customLlmConfig?.temperature ?? await getLlmTemperature();
+      
       // 构建meta对象，确保stream明确为true
       const metaForTask = {
         stream: true,  // 明确设置为true
-        temperature: engine.customLlmConfig?.temperature || 1.3,
+        temperature,
         maxTokens: engine.customLlmConfig?.maxTokens,
         customLlmConfig
       };

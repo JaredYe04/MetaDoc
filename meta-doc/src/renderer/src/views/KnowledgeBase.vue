@@ -618,6 +618,11 @@ async function onConfirm() {
 </script>
 
 <style scoped>
+/* 为 el-scrollbar 根元素设置主题背景色 */
+:deep(.el-scrollbar) {
+    background-color: v-bind('themeState.currentTheme.background');
+}
+
 .kb-scroll-wrapper {
     min-height: 90vh;
     max-height: 90vh;

@@ -1445,6 +1445,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  /* 设置主题背景色 */
+  background-color: v-bind('themeState.currentTheme.background');
 }
 
 .outline-page > .container {

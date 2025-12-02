@@ -1,13 +1,15 @@
 <template>
   <div class="common-layout">
+    <!-- HeadMenu 最顶层占据一行 -->
+    <el-header class="top-header">
+      <HeadMenu />
+    </el-header>
+    <!-- 主内容区域：左边LeftMenu，右边router view -->
     <el-container class="main-shell">
       <el-aside class="side-menu">
         <LeftMenu />
       </el-aside>
       <el-container class="content-shell">
-        <el-header class="content-header">
-          <HeadMenu />
-        </el-header>
         <el-main class="content-main">
           <UserProfileCard v-if="showUserProfileCard" @close="showUserProfileCard = false" class="user-profile-card"
             :position="menuPosition" />
@@ -320,23 +322,46 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* 现代桌面应用布局 */
 .common-layout {
   height: 100vh;
   width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background-color: var(--el-bg-color, #ffffff);
+}
+
+/* 确保整体布局不产生滚动条 */
+.common-layout,
+.common-layout * {
+  box-sizing: border-box;
+}
+
+/* 顶部Header - 最顶层占据一行 */
+.top-header {
+  flex: 0 0 40px;
+  height: 40px;
+  padding: 0;
+  background-color: var(--el-bg-color, #ffffff);
+  border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0);
+  z-index: 100;
 }
 
 .main-shell {
   flex: 1;
   display: flex;
-  height: 100%;
+  height: calc(100vh - 40px);
   overflow: hidden;
+  background-color: var(--el-bg-color, #ffffff);
 }
 
 .side-menu {
   width: fit-content;
+  min-width: 64px;
+  background-color: var(--el-bg-color, #ffffff);
+  border-right: 1px solid var(--el-border-color-lighter, #f0f0f0);
+  overflow: hidden;
 }
 
 .content-shell {
@@ -344,10 +369,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-}
-
-.content-header {
-  flex: 0 0 auto;
+  flex: 1;
+  background-color: var(--el-bg-color-page, #f5f7fa);
 }
 
 .content-main {
@@ -364,11 +387,13 @@ onBeforeUnmount(() => {
 }
 
 .content-footer {
-  height: 30px;
+  height: 28px;
   padding: 0;
-  flex: 0 0 auto;
+  flex: 0 0 28px;
   display: flex;
   align-items: stretch;
+  background-color: var(--el-bg-color, #ffffff);
+  border-top: 1px solid var(--el-border-color-lighter, #f0f0f0);
 }
 
 .user-profile-card {

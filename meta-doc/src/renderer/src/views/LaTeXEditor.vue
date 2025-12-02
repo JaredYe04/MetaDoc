@@ -2213,6 +2213,11 @@ function onCancelSuggestion() {
 </script>
 
 <style scoped>
+.main-container {
+    /* 设置主题背景色 */
+    background-color: v-bind('themeState.currentTheme.background');
+}
+
 .content-container {
     position: relative;
     display: flex;

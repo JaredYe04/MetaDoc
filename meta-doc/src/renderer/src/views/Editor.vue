@@ -5,6 +5,7 @@ import { activeTabId, tabs, useWorkspace } from '../stores/workspace';
 import eventBus from '../utils/event-bus';
 import WorkspaceTabPane from '../components/workspace/WorkspaceTabPane.vue';
 import { useI18n } from 'vue-i18n';
+import { themeState } from '../utils/themes';
 
 const {
   activateTab,
@@ -133,6 +134,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   height: 100%;
   width: 100%;
+  /* 设置主题背景色 */
+  background-color: v-bind('themeState.currentTheme.background');
 }
 
 .workspace-editor-content {

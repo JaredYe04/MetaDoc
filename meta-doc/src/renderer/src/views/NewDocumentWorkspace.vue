@@ -59,6 +59,7 @@ import type { WorkspaceTabFormat } from '../stores/workspace';
 import type { SupportedFormat, DocumentTemplate } from '../types/formats';
 import { useI18n } from 'vue-i18n';
 import { Document } from '@element-plus/icons-vue';
+import { themeState } from '../utils/themes';
 
 const props = defineProps<{
   tabId: string;
@@ -142,6 +143,12 @@ function confirmTemplate(templateId?: string) {
   padding: 24px;
   height: 100%;
   overflow: auto;
+  /* 设置主题背景色 */
+  background-color: v-bind('themeState.currentTheme.background');
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .new-document__header h1 {

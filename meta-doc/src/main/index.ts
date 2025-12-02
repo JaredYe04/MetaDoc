@@ -9,7 +9,8 @@ import {
   BrowserWindow,
   ipcMain,
   globalShortcut,
-  IpcMainEvent
+  IpcMainEvent,
+  dialog
 } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
@@ -142,10 +143,59 @@ function createWindow(): void {
   });
 
   // 处理窗口关闭
-  mainWindow.on('close', (e) => {
+  mainWindow.on('close', async (e) => {
     if (is_need_save) {
       e.preventDefault();
-      mainWindow?.webContents.send('close-triggered');
+      
+      // 通过 IPC 调用获取当前文档信息
+      let docInfo: { fileName: string; path: string } | null = null;
+      try {
+        // 发送请求获取文档信息
+        mainWindow?.webContents.send('request-active-document-info');
+        
+        // 等待响应
+        docInfo = await new Promise<{ fileName: string; path: string } | null>((resolve) => {
+          const handler = (_event: IpcMainEvent, info: { fileName: string; path: string } | null) => {
+            ipcMain.removeListener('active-document-info-response', handler);
+            resolve(info);
+          };
+          ipcMain.once('active-document-info-response', handler);
+          // 设置超时，避免无限等待
+          setTimeout(() => {
+            ipcMain.removeListener('active-document-info-response', handler);
+            resolve(null);
+          }, 1000);
+        });
+      } catch (error) {
+        logger.error('获取文档信息失败:', error);
+      }
+      
+      const fileName = docInfo?.fileName || t('main.dialogs.unsavedDocument', '未保存的文档');
+      
+      // 显示系统级对话框
+      const result = await dialog.showMessageBox(mainWindow!, {
+        type: 'question',
+        buttons: [
+          t('leftMenu.save', '保存'),
+          t('leftMenu.discard', '放弃'),
+          t('common.cancel', '取消')
+        ],
+        defaultId: 0,
+        cancelId: 2,
+        title: t('main.dialogs.closeWindowTitle', '关闭窗口'),
+        message: t('main.dialogs.askSaveWithFileName', '是否保存 {fileName}？', { fileName }),
+        detail: t('main.dialogs.unsavedChangesDetail', '您的更改尚未保存。')
+      });
+      
+      if (result.response === 0) {
+        // 用户选择保存
+        mainWindow?.webContents.send('save-and-quit');
+      } else if (result.response === 1) {
+        // 用户选择放弃
+        is_need_save = false;
+        mainWindow?.close();
+      }
+      // 如果用户选择取消（response === 2），不做任何操作，窗口保持打开
     }
   });
 

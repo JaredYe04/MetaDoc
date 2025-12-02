@@ -356,14 +356,36 @@ export async function renderMarkdownMathToImages(markdown, output = 'png') {
     ...inlineMatches.map(m => ({ ...m, display: false })),
   ].sort((a, b) => b.index - a.index);
 
-  for (const m of allReplacements) {
+  // 并行渲染所有公式，完成后统一替换
+  const renderTasks = allReplacements.map(async (m) => {
     try {
       const url = await renderAndUpload(m.content, m.display);
       const imgMarkdown = m.display ? `\n\n![math](${url})\n\n` : `![math](${url})`;
-      result = result.slice(0, m.index) + imgMarkdown + result.slice(m.index + m.match.length);
+      return { 
+        index: m.index, 
+        matchLength: m.match.length, 
+        replacement: imgMarkdown,
+        success: true 
+      };
     } catch (e) {
       logger.warn(`${m.display ? '块级' : '行内'}公式转图片失败，保留原文：`, e);
       // 失败则保留原文，不替换
+      return { 
+        index: m.index, 
+        matchLength: m.match.length, 
+        replacement: null,
+        success: false 
+      };
+    }
+  });
+
+  const results = await Promise.allSettled(renderTasks);
+
+  // 从后往前替换，避免索引位移问题
+  for (const resultItem of results) {
+    if (resultItem.status === 'fulfilled' && resultItem.value && resultItem.value.success) {
+      const { index, matchLength, replacement } = resultItem.value;
+      result = result.slice(0, index) + replacement + result.slice(index + matchLength);
     }
   }
   //logger.debug(`renderMarkdownMathToImages result: ${result}`);

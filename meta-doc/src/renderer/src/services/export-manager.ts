@@ -106,9 +106,9 @@ const prepareMarkdownExports = async (
       markdown = await preRenderAllCharts(markdown, '', chartFormat);
       logger.debug(`preRenderAllCharts end`);
     } catch (error) {
-      console.warn('图表预渲染失败，继续使用原始 Markdown:', error);
+      logger.warn('图表预渲染失败，继续使用原始 Markdown:', error);
     }
-    
+
     // 根据导出格式处理图片路径
     if (targetFormat === 'tex') {
       // LaTeX 导出需要本地文件路径
@@ -118,10 +118,7 @@ const prepareMarkdownExports = async (
     markdown = await local2image(markdown);
     }
   }
-  if (['html', 'docx', 'pdf'].includes(targetFormat)) {
-    // 对 DOCX 和 PDF：将数学公式渲染为图片
-    // DOCX 使用 PNG 位图，PDF 使用 SVG 矢量图（质量更好）
-    if (targetFormat === 'docx' || targetFormat === 'pdf') {
+    if (targetFormat === 'docx') {
       try {
         const imageFormat = targetFormat === 'docx' ? 'png' : 'svg';
         logger.debug(`renderMarkdownMathToImages start, format: ${imageFormat}`);
@@ -136,8 +133,6 @@ const prepareMarkdownExports = async (
       }
       // PDF 保持 HTTP URL，不需要转换为 base64
     }
-    // HTML 格式保持 HTTP URL，不需要转换为 base64
-  }
 
   let html = '';
   let tex = '';

@@ -188,6 +188,51 @@ export function generateMarkdownFromOutlineTree(outline_tree) {
     return md;
 }
 
+/**
+ * 从大纲树生成精简的 Markdown 大纲（仅包含标题结构，不包含文本内容）
+ * 用于在prompts中传递，节省token开销
+ */
+function generateLightMarkdownFromOutlineTree(outline_tree) {
+    let md = '';
+    // 深度优先遍历生成 Markdown，只包含标题
+    function dfs(node) {
+        //如果老文档，node.title_level不存在，则根据path里面出现的"."的个数来判断
+        if(node.title_level==undefined||node.title_level==null){
+            //如果是无.，则是1级标题，如果类似于"1.1"，则是2级标题
+            node.title_level=node.path.split('.').length
+        }
+
+        // 只输出标题，不输出文本内容
+        if (node.title && node.title_level > 0) {
+            md += '#'.repeat(node.title_level) + ' ' + node.title + '\n';
+        }
+        
+        // 遍历子节点
+        if (node.children && Array.isArray(node.children)){
+            for (let child of node.children) {
+                dfs(child);
+            }
+        }
+    }
+    
+    dfs(outline_tree);
+    return md.trim();
+}
+
+/**
+ * 从 Markdown 文本中提取精简的大纲（返回Markdown格式，而非JSON）
+ * 用于在prompts中传递，节省token开销
+ * @param md Markdown文本
+ * @param bypassText 是否跳过文本内容（对于精简版，始终为true）
+ * @returns 精简的Markdown大纲字符串
+ */
+export function extractOutlineTreeFromMarkdownLight(md, bypassText = true) {
+    // 先使用完整方法获取大纲树（bypassText=true，因为我们只需要结构）
+    const outlineTree = extractOutlineTreeFromMarkdown(md, true);
+    // 转换为精简的Markdown大纲
+    return generateLightMarkdownFromOutlineTree(outlineTree);
+}
+
 // // 2. 从大纲树生成Markdown文本
 
 // export function generateMarkdownFromOutlineTreeLegacy(outline_tree) {
@@ -829,15 +874,15 @@ export const ConvertHtmlForPdf = async (md) => {
     // 预渲染所有图表为图片（统一处理）
     // 统一使用 SVG 矢量图
     let processedMd = md;
-    try {
-        processedMd = await preRenderAllCharts(md, cdn);
-        if (processedMd !== md) {
-            getLogger().info('图表代码块已预渲染为图片');
-        }
-    } catch (error) {
-        getLogger().warn('图表预渲染失败，使用原始 Markdown:', error);
-        processedMd = md;
-    }
+    // try {
+    //     processedMd = await preRenderAllCharts(md, cdn);
+    //     if (processedMd !== md) {
+    //         getLogger().info('图表代码块已预渲染为图片');
+    //     }
+    // } catch (error) {
+    //     getLogger().warn('图表预渲染失败，使用原始 Markdown:', error);
+    //     processedMd = md;
+    // }
     
     // 使用 JSON.stringify 对处理后的 md 进行转义
     const safeMarkdown = JSON.stringify(processedMd);
@@ -871,15 +916,33 @@ export const ConvertHtmlForPdf = async (md) => {
                         lineNumber: ${lineNumber}
                     }
                 });
-                Vditor.codeRender(previewElement);
-                Vditor.mathRender(previewElement, {
-                    cdn: '${cdn}',
-                });
                 // 图表已经预渲染为图片，不需要再次渲染
                 
-                // 导出 PDF 时，移除代码块的滚动限制，让代码完全展开
+                // 导出 PDF 时，移除所有滚动条，让内容完全展开
                 // 等待渲染完成后执行
                 setTimeout(() => {
+                    // 移除 html 和 body 的滚动条
+                    document.documentElement.style.overflow = 'visible';
+                    document.documentElement.style.overflowX = 'visible';
+                    document.documentElement.style.overflowY = 'visible';
+                    document.body.style.overflow = 'visible';
+                    document.body.style.overflowX = 'visible';
+                    document.body.style.overflowY = 'visible';
+                    
+                    // 移除预览容器的滚动条
+                    previewElement.style.overflow = 'visible';
+                    previewElement.style.overflowX = 'visible';
+                    previewElement.style.overflowY = 'visible';
+                    
+                    // 移除 Vditor 预览容器的滚动条
+                    const vditorPreview = previewElement.querySelector('.vditor-preview, .md-editor-preview');
+                    if (vditorPreview) {
+                        vditorPreview.style.overflow = 'visible';
+                        vditorPreview.style.overflowX = 'visible';
+                        vditorPreview.style.overflowY = 'visible';
+                    }
+                    
+                    // 移除代码块的滚动限制，让代码完全展开
                     const codeBlocks = previewElement.querySelectorAll('.md-editor-code pre code, pre code, .hljs');
                     codeBlocks.forEach(block => {
                         // 移除 overflow 限制，让代码完全展开
@@ -902,13 +965,55 @@ export const ConvertHtmlForPdf = async (md) => {
                             parentCode.style.maxHeight = 'none';
                         }
                     });
-                }, 100);
+                    
+                    // 移除所有可能的滚动容器
+                    const allElements = previewElement.querySelectorAll('*');
+                    allElements.forEach(el => {
+                        const computedStyle = window.getComputedStyle(el);
+                        if (computedStyle.overflow === 'auto' || computedStyle.overflow === 'scroll' ||
+                            computedStyle.overflowX === 'auto' || computedStyle.overflowX === 'scroll' ||
+                            computedStyle.overflowY === 'auto' || computedStyle.overflowY === 'scroll') {
+                            el.style.overflow = 'visible';
+                            el.style.overflowX = 'visible';
+                            el.style.overflowY = 'visible';
+                        }
+                    });
+                }, 1000);
             };
     </script>
     <style>
+        /* 确保 html 和 body 没有滚动条 */
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden !important;
+            overflow-x: hidden !important;
+            overflow-y: hidden !important;
+            width: 100%;
+            height: auto;
+        }
+        
         body {
             font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
         }
+        
+        /* 确保预览容器没有滚动条 */
+        #preview {
+            overflow: visible !important;
+            overflow-x: visible !important;
+            overflow-y: visible !important;
+            width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* 确保 Vditor 生成的预览容器没有滚动条 */
+        #preview .vditor-preview,
+        #preview .md-editor-preview {
+            overflow: visible !important;
+            overflow-x: visible !important;
+            overflow-y: visible !important;
+        }
+        
         /* 导出 PDF 时，确保代码块完全展开，无滚动条 */
         .md-editor-code pre code,
         pre code,

@@ -47,7 +47,7 @@ export const login = (loginData: { rememberMe: any }) => {
   axios.post(SERVER_URL + '/user/login', loginData)
     .then(async response => {
       const logger = createRendererLogger('WebUtils');
-      logger.debug(response)
+      //logger.debug(response)
       if (response.data.messageType == 'SUCCESS') {
         const token = response.data.data
         // 保存token到本次会话
@@ -119,26 +119,26 @@ export const changeAvatar = () => {
 }
 
 export const fetchImage = async (imageId: number) => {
-  const response = await axios.get(SERVER_URL + '/image/' + imageId).catch(error => {
-    eventBus.emit('show-error', '获取图片失败：' + error.message)
-    return null
-  })
-  if (response) {
+  try {
+    const response = await axios.get(SERVER_URL + '/image/' + imageId)
     const logger = createRendererLogger('WebUtils');
-    logger.debug('response:', response)
-    const b64String = response.data.data.b64String
-    logger.debug('bytes:', bytes)
-    const imageUrl = `data:image/jpeg;base64,${b64String}`;
-    logger.debug('imageUrl:', imageUrl)
-    return imageUrl;
-
-  } else {
-    eventBus.emit('show-error', '获取图片失败：' + response)
+    logger.debug('fetchImage response:', response.data)
+    
+    if (response.data && response.data.data && response.data.data.b64String) {
+      const b64String = response.data.data.b64String
+      const imageUrl = `data:image/jpeg;base64,${b64String}`;
+      logger.debug('Image URL created successfully')
+      return imageUrl;
+    } else {
+      logger.warn('Invalid image response format')
+      return null
+    }
+  } catch (error: any) {
+    const logger = createRendererLogger('WebUtils');
+    logger.error('获取图片失败:', error)
+    eventBus.emit('show-error', '获取图片失败：' + (error.message || '未知错误'))
     return null
   }
-
-
-
 }
 
 export async function getMetaDocLlmConfig(loginToken,model) {
@@ -169,41 +169,65 @@ export async function getMetaDocLlmConfig(loginToken,model) {
 }
 
 export async function verifyToken(token) {
-  await axios.post(SERVER_URL + '/user/verify-token', null, {
-    params: {
-      token: token
-    },
-  }).then(async (response) => {
+  const logger = createRendererLogger('WebUtils');
+  try {
+    const response = await axios.post(SERVER_URL + '/user/verify-token', null, {
+      params: {
+        token: token
+      },
+    })
+    
+    logger.debug('verifyToken response:', response.data)
+    
     if (response.data.messageType === 'SUCCESS') {
       user.value = response.data.data ?? {}
+      logger.debug('User data set:', user.value)
+      
+      // 获取头像
       if (user.value?.avatarId) {
+        logger.debug('Fetching avatar with avatarId:', user.value.avatarId)
         avatar.value = await fetchImage(user.value.avatarId)
+        logger.debug('Avatar fetched:', avatar.value ? 'success' : 'failed')
       } else {
+        logger.debug('No avatarId, setting avatar to empty string')
         avatar.value = ''
       }
+      
       loggedIn.value = true
+      logger.debug('Logged in set to true, emitting user-info-updated')
       eventBus.emit('user-info-updated')
+      
+      return true
+    } else {
+      logger.warn('Token verification failed:', response.data.message)
+      localStorage.removeItem('loginToken')
+      resetUserState()
+      return false
     }
-  }).catch((error) => {
-    //logger.error('Token验证请求失败:', error)
-    //sessionStorage.removeItem('loginToken')
+  } catch (error) {
+    logger.error('Token验证请求失败:', error)
     localStorage.removeItem('loginToken')
     resetUserState()
-  })
-  return loggedIn.value
+    return false
+  }
 }
 export async function updateUserInfo() {
   const logger = createRendererLogger('WebUtils');
+  const token = localStorage.getItem('loginToken')
   logger.debug('token:', token)
   const response = await axios.post(SERVER_URL + '/user/update', user.value, {
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': token || ''
     },
   }).catch((error) => {
     eventBus.emit('show-error', '更新用户信息失败：' + error.message)
     //logger.error('更新用户信息请求失败:', error)
-    return -1;
+    return null;
   })
+  if (!response) {
+    return -1;
+  }
   logger.debug('updateUserInfo:', response)
   if (response.data.messageType === 'SUCCESS') {
     return 0;

@@ -231,8 +231,9 @@ export async function renderTexToPngDataUrl(texSource, displayMode = false) {
 
 // 与 latex-utils 一致：匹配未转义的 $...$ 与 $$...$$（正则字面量使用单反斜杠）
 // 块级：优先匹配 $$...$$；行内：匹配单 $...$ 且排除 $$
+// 注意：行内公式不应该跨行，所以使用 [^\n$]+? 而不是 [\s\S]+?
 const mathBlockRegex = /(?<!\\)\$\$([\s\S]+?)(?<!\\)\$\$/g;
-const mathInlineRegex = /(?<!\\)\$(?!\$)([\s\S]+?)(?<!\\)\$/g;
+const mathInlineRegex = /(?<!\\)\$(?!\$)([^\n$]+?)(?<!\\)\$/g;
 
 export async function renderMarkdownMathToImages(markdown, output = 'png') {
   // 仅做：提取公式 → 渲染（MathJax）→ 生成图片 URL（上传）→ 回填到 Markdown

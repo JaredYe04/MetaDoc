@@ -118,18 +118,23 @@ const prepareMarkdownExports = async (
     markdown = await local2image(markdown);
     }
   }
-  if (['html', 'docx'].includes(targetFormat)) {
-    // 对 DOCX：将数学公式渲染为位图图片（仅 DOCX 需要）
-    if (targetFormat === 'docx') {
+  if (['html', 'docx', 'pdf'].includes(targetFormat)) {
+    // 对 DOCX 和 PDF：将数学公式渲染为图片
+    // DOCX 使用 PNG 位图，PDF 使用 SVG 矢量图（质量更好）
+    if (targetFormat === 'docx' || targetFormat === 'pdf') {
       try {
-        //logger.debug(`renderMarkdownMathToImages start`);
-        markdown = await renderMarkdownMathToImages(markdown, 'png');
-        //logger.debug(`renderMarkdownMathToImages end`);
+        const imageFormat = targetFormat === 'docx' ? 'png' : 'svg';
+        logger.debug(`renderMarkdownMathToImages start, format: ${imageFormat}`);
+        markdown = await renderMarkdownMathToImages(markdown, imageFormat);
+        logger.debug(`renderMarkdownMathToImages end`);
       } catch (e) {
         logger.error('数学公式转图片失败，保留原文:', e);
       }
       // DOCX 需要将图片转换为 base64
+      if (targetFormat === 'docx') {
     markdown = await image2base64(markdown);
+      }
+      // PDF 保持 HTTP URL，不需要转换为 base64
     }
     // HTML 格式保持 HTTP URL，不需要转换为 base64
   }

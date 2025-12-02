@@ -57,6 +57,10 @@ export interface AIDialog {
   title: string;
   /** 对话消息列表 */
   messages: AIDialogMessage[];
+  /** 创建时间戳（毫秒） */
+  createdAt?: number;
+  /** 更新时间戳（毫秒） */
+  updatedAt?: number;
 }
 
 /** LLM配置类型 */

@@ -297,7 +297,12 @@
         "enterToSend": "按 Enter 发送",
         "ctrlEnterToSend": "按 Ctrl+Enter 发送",
         "changeSendMode": "点击切换发送快捷键",
-        "cancelTooltip": "取消AI生成"
+        "cancelTooltip": "取消AI生成",
+        "today": "今天",
+        "yesterday": "昨天",
+        "lastWeek": "上周",
+        "lastMonth": "上月",
+        "earlier": "更早以前"
     },
     "aigraph": {
         "renameTitle": "重命名",
@@ -693,8 +698,8 @@
         "chooseEmbeddingMode": "选择 Embedding 模式",
         "embeddingModeApi": "外部 API",
         "embeddingModeLocal": "本地模型",
-        "embeddingModeTooltip": "选择使用外部 API 或本地模型生成文本嵌入向量。外部 API 需要配置 SILICONFLOW_API_KEY，本地模型需要显卡支持。",
-        "embeddingModeApiHint": "使用 SiliconFlow API 生成嵌入向量，无需显卡，需要配置 API Key",
+        "embeddingModeTooltip": "选择使用外部 API 或本地模型生成文本嵌入向量。",
+        "embeddingModeApiHint": "使用外部 API 生成嵌入向量，无需显卡",
         "embeddingModeLocalHint": "使用本地模型生成嵌入向量，需要显卡支持，无需网络",
         "knowledgeBaseScoreThreshold":"知识库文本相似度阈值",
         "knowledgeBaseScoreThresholdTooltip":"只有相似度高于该值的查询结果才会被AI采纳，推荐0.5",

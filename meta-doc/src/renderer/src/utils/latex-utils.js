@@ -2,6 +2,7 @@ import MarkdownIt from 'markdown-it';
 import footnote from 'markdown-it-footnote';
 import taskLists from 'markdown-it-task-lists';
 import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree } from './md-utils';
+import { extractOutlineTreeFromMarkdownLight } from './document/outline';
 
 const md = new MarkdownIt({
     html: false,
@@ -18,17 +19,20 @@ function extractMathPlaceholders(source) {
     let text = source;
 
     // 先处理块级 $$...$$（可跨行）
-    text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_, content) => {
+    // 使用负向后顾断言避免匹配转义的 \$$
+    text = text.replace(/(?<!\\)\$\$([\s\S]+?)(?<!\\)\$\$/g, (match, content) => {
         const index = placeholders.length;
         placeholders.push('$$' + content + '$$');
         return `@@MATHBLOCK:${index}@@`;
     });
 
     // 再处理内联 $...$（避免和 $$...$$ 冲突，且不跨行）
-    text = text.replace(/(^|[^\$])\$(?!\$)([^ \n][\s\S]*?[^ \n])\$(?!\$)/g, (m, prefix, content) => {
+    // 使用负向后顾断言避免匹配转义的 \$，且行内公式不应该跨行
+    // 注意：不要求 $ 前后不能有空格，只要不是转义的 $ 即可
+    text = text.replace(/(?<!\\)\$(?!\$)([^\n$]+?)(?<!\\)\$/g, (match, content) => {
         const index = placeholders.length;
         placeholders.push('$' + content + '$');
-        return `${prefix}@@MATHINLINE:${index}@@`;
+        return `@@MATHINLINE:${index}@@`;
     });
 
     return { text, placeholders };
@@ -860,6 +864,18 @@ function decodeLatexPath(path) {
 export function extractOutlineTreeFromLatex(latex, bypassText = false) {
     const md = convertLatexToMarkdown(latex); // 需要写/引入一个 LaTeX→Markdown 转换器
     return extractOutlineTreeFromMarkdown(md, bypassText);
+}
+
+/**
+ * 从 LaTeX 文本中提取精简的大纲（返回Markdown格式，而非JSON）
+ * 用于在prompts中传递，节省token开销
+ * @param latex LaTeX文本
+ * @param bypassText 是否跳过文本内容（对于精简版，始终为true）
+ * @returns 精简的Markdown大纲字符串
+ */
+export function extractOutlineTreeFromLatexLight(latex, bypassText = true) {
+    const md = convertLatexToMarkdown(latex);
+    return extractOutlineTreeFromMarkdownLight(md, true);
 }
 export function generateLatexFromOutlineTree(outline_tree, title = 'Generated Document') {
     // 先生成 Markdown

@@ -373,7 +373,7 @@ import { useWorkspace, detectDocumentFormat } from '../stores/workspace';
 import { agentConfigManager, agentSessionManager, agentEngineManager, AIContextManager } from '../utils/agent-framework';
 import { createRendererLogger } from '../utils/logger';
 import { agentToolManager } from '../utils/agent-tool-manager';
-import { ai_types, createAiTask, cancelAiTask, type CustomLlmConfigForTask } from '../utils/ai_tasks';
+import { ai_types, createAiTask, cancelAiTask, useAiTasks, type CustomLlmConfigForTask } from '../utils/ai_tasks';
 import { sanitizeMessages } from '../utils/llm-api.js';
 import ToolCollectionManager from '../components/agent/manage/ToolCollectionManager.vue';
 import WorkflowManager from '../components/agent/manage/WorkflowManager.vue';
@@ -898,6 +898,93 @@ watch(
   { immediate: true }
 );
 
+// 监听AI任务变化，当所有相关任务都已完成、失败、取消或被删除后，自动解锁UI
+// 注意：这个watch用于处理在AITaskQueue中手动取消/完成任务的情况
+// 正常情况下，任务完成或取消应该由executeAgentEngine的finally块处理
+const allTasks = useAiTasks();
+let unlockCheckTimer: ReturnType<typeof setTimeout> | null = null;
+watch(
+  [allTasks, () => activeSession.value?.id, isGenerating],
+  ([tasks, sessionId, generating]) => {
+    // 清除之前的定时器
+    if (unlockCheckTimer) {
+      clearTimeout(unlockCheckTimer);
+      unlockCheckTimer = null;
+    }
+    
+    // 只有在生成中时才检查
+    if (!generating || !sessionId) {
+      return;
+    }
+    
+    // 延迟检查，避免任务刚创建时状态还没更新导致的误判
+    // 增加延迟时间，确保任务已经创建并添加到列表中
+    unlockCheckTimer = setTimeout(() => {
+      // 首先检查是否有handle在管理（这是最可靠的判断方式）
+      // 如果有handle在管理，说明任务正在运行或刚创建，不应该解锁
+      if (aiTaskHandles.value.size > 0 || currentAiTaskHandle.value !== null) {
+        // 清理已完成/失败/取消的任务handle
+        const handlesToRemove: string[] = [];
+        aiTaskHandles.value.forEach(handle => {
+          const task = allTasks.value.find(t => t.handle === handle);
+          // 只有当任务确实已完成/失败/取消时，才从handle集合中移除
+          if (task && (task.status.value === '已完成' || task.status.value === '失败' || task.status.value === '取消')) {
+            handlesToRemove.push(handle);
+          }
+        });
+        handlesToRemove.forEach(handle => aiTaskHandles.value.delete(handle));
+        
+        // 清理currentAiTaskHandle（如果任务已完成/失败/取消）
+        if (currentAiTaskHandle.value) {
+          const currentTask = allTasks.value.find(t => t.handle === currentAiTaskHandle.value);
+          if (currentTask && (currentTask.status.value === '已完成' || currentTask.status.value === '失败' || currentTask.status.value === '取消')) {
+            currentAiTaskHandle.value = null;
+          }
+        }
+        
+        // 如果清理后还有handle，说明还有任务在运行，不应该解锁
+        if (aiTaskHandles.value.size > 0 || currentAiTaskHandle.value !== null) {
+          unlockCheckTimer = null;
+          return;
+        }
+      }
+      
+      // 如果没有handle在管理，再检查任务列表中是否有相关任务在运行
+      // 根据session.id找到所有相关的任务（通过origin_key前缀匹配）
+      const sessionPrefix = `agent-${sessionId}-`;
+      const allRelatedTasks = allTasks.value.filter(task => 
+        task.origin_key && task.origin_key.startsWith(sessionPrefix)
+      );
+      
+      // 检查是否有任何相关任务还在运行中或就绪
+      const runningTasks = allRelatedTasks.filter(task => 
+        task.status.value === '运行中' || task.status.value === '就绪'
+      );
+      
+      // 如果还有任务在运行，不应该解锁
+      if (runningTasks.length > 0) {
+        unlockCheckTimer = null;
+        return;
+      }
+      
+      // 如果确实没有任何相关任务在运行，且isGenerating仍然为true，才解锁UI
+      if (isGenerating.value) {
+        isGenerating.value = false;
+        workspace.unlockUI?.();
+        
+        const session = activeSession.value;
+        if (session) {
+          session.status = 'idle';
+          persistSessions();
+        }
+      }
+      
+      unlockCheckTimer = null;
+    }, 500); // 增加延迟到500ms，确保任务已经创建并添加到列表中
+  },
+  { deep: true }
+);
+
 const messageCount = computed(() => activeSession.value?.messages.length ?? 0);
 const activeToolCount = computed(() => activeSession.value?.activeToolIds.length ?? 0);
 
@@ -1215,6 +1302,9 @@ const executeAgentEngine = async (
   const session = actualSession || activeSession.value;
   if (!session || !session.agentConfigId) {
     ElMessage.warning(t('agent.sessions.noAgentConfig'));
+    // 确保状态正确，即使早期返回
+    isGenerating.value = false;
+    workspace.unlockUI?.();
     return;
   }
 
@@ -1222,12 +1312,18 @@ const executeAgentEngine = async (
   const engine = agentEngineManager.getEngine(engineId);
   if (!engine) {
     ElMessage.error(t('agent.sessions.engineNotFound'));
+    // 确保状态正确，即使早期返回
+    isGenerating.value = false;
+    workspace.unlockUI?.();
     return;
   }
 
   const agentConfig = agentConfigManager.getConfig(session.agentConfigId);
   if (!agentConfig) {
     ElMessage.error(t('agent.sessions.agentConfigNotFound'));
+    // 确保状态正确，即使早期返回
+    isGenerating.value = false;
+    workspace.unlockUI?.();
     return;
   }
 
@@ -1397,7 +1493,7 @@ const executeAgentEngine = async (
       // 构建meta对象，确保stream明确为true
       const metaForTask = {
         stream: true,  // 明确设置为true
-        temperature: engine.customLlmConfig?.temperature || 0.7,
+        temperature: engine.customLlmConfig?.temperature || 1.3,
         maxTokens: engine.customLlmConfig?.maxTokens,
         customLlmConfig
       };
@@ -1555,7 +1651,26 @@ const handleComposerReset = () => {
 };
 
 const handleCancelGeneration = () => {
-  // 取消所有由Agent发起的AI任务
+  const session = activeSession.value;
+  if (!session) {
+    return;
+  }
+  
+  // 获取所有AI任务
+  const allTasks = useAiTasks();
+  
+  // 根据session.id找到所有相关的任务（通过origin_key前缀匹配）
+  const sessionPrefix = `agent-${session.id}-`;
+  const relatedTasks = allTasks.value.filter(task => 
+    task.origin_key && task.origin_key.startsWith(sessionPrefix)
+  );
+  
+  // 取消所有相关的任务
+  relatedTasks.forEach(task => {
+    cancelAiTask(task.handle, false);
+  });
+  
+  // 取消所有由Agent发起的AI任务（通过handle集合）
   if (aiTaskHandles.value.size > 0) {
     const handlesToCancel = Array.from(aiTaskHandles.value);
     handlesToCancel.forEach(handle => {
@@ -1573,11 +1688,8 @@ const handleCancelGeneration = () => {
   isGenerating.value = false;
   workspace.unlockUI?.();
   
-  const session = activeSession.value;
-  if (session) {
-    session.status = 'idle';
-    persistSessions();
-  }
+  session.status = 'idle';
+  persistSessions();
 };
 
 const originLabel = (origin: AgentTool['origin']) => {
@@ -1902,6 +2014,61 @@ const handleConfirmEditMessage = async () => {
   if (messageIndex !== -1) {
     const message = session.messages[messageIndex] as ChatAgentMessage;
     message.markdown = content;
+    
+    // 删除此消息之后的所有消息（包括AI回复和工具调用结果）
+    session.messages = session.messages.slice(0, messageIndex + 1);
+    
+    // 清理所有保留消息中未完成的tool_calls
+    // OpenAI API要求：如果assistant消息有tool_calls，必须紧接着有对应的tool消息
+    // 由于我们删除了后续消息，如果某个assistant消息有tool_calls但对应的tool消息被删除了，
+    // 需要清理这些tool_calls避免LLM API报错
+    const toolCallIds = new Set<string>();
+    for (let i = 0; i < session.messages.length; i++) {
+      const msg = session.messages[i];
+      if (msg.role === 'assistant' && msg.type === 'chat') {
+        const assistantMsg = msg as ChatAgentMessage;
+        const toolCalls = (assistantMsg as any).tool_calls;
+        if (toolCalls && Array.isArray(toolCalls) && toolCalls.length > 0) {
+          // 记录所有tool_call_ids
+          for (const tc of toolCalls) {
+            if (tc.id) {
+              toolCallIds.add(tc.id);
+            }
+          }
+        }
+      } else if (msg.role === 'tool' && msg.type === 'tool') {
+        // 如果找到对应的tool消息，从集合中移除
+        const toolCallId = (msg as any).tool_call_id;
+        if (toolCallId && toolCallIds.has(toolCallId)) {
+          toolCallIds.delete(toolCallId);
+        }
+      }
+    }
+    
+    // 清理所有未完成的tool_calls
+    if (toolCallIds.size > 0) {
+      for (let i = 0; i < session.messages.length; i++) {
+        const msg = session.messages[i];
+        if (msg.role === 'assistant' && msg.type === 'chat') {
+          const assistantMsg = msg as ChatAgentMessage;
+          const toolCalls = (assistantMsg as any).tool_calls;
+          if (toolCalls && Array.isArray(toolCalls) && toolCalls.length > 0) {
+            // 过滤掉未完成的tool_calls
+            const completedToolCalls = toolCalls.filter((tc: any) => {
+              return tc.id && toolCallIds.has(tc.id);
+            });
+            if (completedToolCalls.length === 0) {
+              // 如果没有已完成的tool_calls，删除整个tool_calls字段
+              delete (assistantMsg as any).tool_calls;
+            } else {
+              // 保留已完成的tool_calls
+              (assistantMsg as any).tool_calls = completedToolCalls;
+            }
+          }
+        }
+      }
+    }
+    
     touchSession(session);
     persistSessions();
     ElMessage.success(t('agent.message.editSuccess'));

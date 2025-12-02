@@ -175,6 +175,8 @@ export class ParticleEffect {
     this.renderer.domElement.style.zIndex = '0'
     this.renderer.domElement.style.pointerEvents = 'none'
     this.renderer.domElement.style.filter = 'none'
+    // 初始状态隐藏 canvas，只有在启用粒子效果时才显示
+    this.renderer.domElement.style.display = 'none'
     
     container.appendChild(this.renderer.domElement)
     
@@ -479,6 +481,10 @@ export class ParticleEffect {
     }
     this.isAnimating = false
     this.renderer?.clear()
+    // 隐藏 canvas，避免显示黑色背景
+    if (this.renderer?.domElement) {
+      this.renderer.domElement.style.display = 'none'
+    }
   }
 
   // 动画循环
@@ -624,11 +630,20 @@ export class ParticleEffect {
               }
             }
             
+            // 显示 canvas
+            if (this.renderer?.domElement) {
+              this.renderer.domElement.style.display = 'block'
+            }
+            
             this.startAnimation()
           } else {
             this.particleEffectEnabled.value = false
             this.stopAnimation()
             this.disposeParticles()
+            // 确保 canvas 被隐藏
+            if (this.renderer?.domElement) {
+              this.renderer.domElement.style.display = 'none'
+            }
           }
         } catch (error) {
           this.logger.error('[Particle] toggle-particle-effect: 处理失败', error)

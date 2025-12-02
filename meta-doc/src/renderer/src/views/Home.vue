@@ -321,6 +321,8 @@ const handleCloseTab = (id: string) => {
   overflow: hidden;
   /* 确保容器内的内容在 canvas 之上 */
   z-index: 0;
+  /* 设置背景色，当粒子效果关闭时显示主题背景色 */
+  background-color: v-bind('themeState.currentTheme.background');
 }
 
 .homepage {

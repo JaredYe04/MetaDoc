@@ -137,7 +137,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElButton, ElCard, ElTooltip, ElAvatar, ElDialog, ElForm, ElFormItem, ElInput, ElCheckbox } from 'element-plus'
 import { useLocalStorage } from '@vueuse/core'
 import { themeState } from '../utils/themes'
@@ -334,6 +334,24 @@ const emit = defineEmits(['close'])
 function closeDialog() {
   emit("close", false);
 }
+
+// 监听用户信息更新事件，登录成功后自动关闭对话框
+const handleUserInfoUpdated = async () => {
+  // 等待响应式状态更新
+  await nextTick()
+  // 如果已经登录，则关闭对话框
+  if (loggedIn.value) {
+    closeDialog()
+  }
+}
+
+onMounted(() => {
+  eventBus.on('user-info-updated', handleUserInfoUpdated)
+})
+
+onBeforeUnmount(() => {
+  eventBus.off('user-info-updated', handleUserInfoUpdated)
+})
 
 // 登录表单数据
 const loginForm = ref({

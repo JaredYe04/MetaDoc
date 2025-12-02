@@ -88,6 +88,7 @@ export const settings = reactive({
   alwaysAskSave: true, // 是否总是询问保存,
   particleEffect: true, // 是否启用粒子效果
   outlineLayoutDirection: 'vertical', // 大纲树布局方向：'vertical' 或 'horizontal'
+  llmTemperature: 1.3, // LLM 全局温度配置
 });
 
 export async function initSettings() {
@@ -109,4 +110,13 @@ export async function initSettings() {
     });
   });
 
+}
+
+/**
+ * 获取全局LLM温度配置
+ * @returns {Promise<number>} 温度值，默认为1.3
+ */
+export async function getLlmTemperature() {
+  const temperature = await getSetting("llmTemperature");
+  return temperature !== undefined ? temperature : 1.3;
 }

@@ -24,7 +24,11 @@ if (window && (window as any).electron) {
 }
 
 // 任务存储
-type InternalAITaskInfo = AITaskInfo & { mirror?: boolean }
+type InternalAITaskInfo = AITaskInfo & { 
+  mirror?: boolean
+  error?: string | null  // 错误信息
+  deleteTimer?: NodeJS.Timeout | null  // 延迟删除定时器
+}
 
 const tasks: Ref<InternalAITaskInfo[]> = ref([])
 const taskMap = new Map<string, InternalAITaskInfo>()
@@ -218,13 +222,36 @@ export async function startAiTask(handle: string): Promise<void> {
       console.log('task.prompt', task.prompt)
       logger.debug(`[主窗口] 开始执行answer任务: handle=${handle}, prompt长度=${typeof task.prompt === 'string' ? task.prompt.length : 'array'}`)
       
+      // 记录task.meta用于调试
+      logger.debug(`[startAiTask] answer任务，task.meta:`, {
+        stream: task.meta?.stream,
+        streamType: typeof task.meta?.stream,
+        metaKeys: task.meta ? Object.keys(task.meta) : [],
+        hasStream: 'stream' in (task.meta || {}),
+        metaValue: JSON.stringify(task.meta)
+      });
+      
+      // 确保meta对象包含stream属性
+      const finalMeta = { ...(task.meta || {}) };
+      // 如果stream未定义，默认设置为true（流式输出）
+      if (finalMeta.stream === undefined) {
+        finalMeta.stream = true;
+        logger.debug('[startAiTask] answer任务，meta.stream未定义，设置为true（默认流式输出）');
+      }
+      
+      logger.debug(`[startAiTask] answer任务最终meta对象:`, {
+        stream: finalMeta.stream,
+        streamType: typeof finalMeta.stream,
+        fullMeta: JSON.stringify(finalMeta)
+      });
+      
       // 提取自定义LLM配置
       const customLlmConfig = task.meta?.customLlmConfig || null
       
       await answerQuestion(
         task.prompt as string, 
         task.target, 
-        task.meta as any, 
+        finalMeta as any, 
         controller.signal,
         customLlmConfig as any
       )
@@ -309,26 +336,61 @@ export async function startAiTask(handle: string): Promise<void> {
     const logger = createRendererLogger('AiTasks')
     logger.error(`[startAiTask] 任务执行失败: handle=${handle}`, e)
     
+    // 重新获取任务对象，确保我们操作的是最新的任务对象
+    const currentTask = taskMap.get(handle)
+    if (!currentTask) {
+      logger.warn(`[startAiTask] 任务已不存在: handle=${handle}`)
+      return
+    }
+    
+    // 提取错误信息
+    let errorMessage = ''
+    if (e?.getUserMessage) {
+      // LlmError 有 getUserMessage 方法
+      errorMessage = e.getUserMessage()
+    } else if (e?.message) {
+      errorMessage = e.message
+    } else {
+      errorMessage = String(e)
+    }
+    
+    logger.debug(`[startAiTask] 设置任务失败状态: handle=${handle}, errorMessage=${errorMessage}`)
+    
+    // 保存错误信息到任务对象
+    currentTask.error = errorMessage
+    
     // 如果是主窗口的mirror任务（来自子窗口），需要将错误发送回子窗口
-    if (task.mirror) {
-      const errorMessage = e.name === 'AbortError' 
+    if (currentTask.mirror) {
+      const msg = e.name === 'AbortError' 
         ? i18n.global.t('aiTask.taskCancelled2')
-        : (e.message || String(e))
-      ipcRenderer.send('ai-task-result', { handle, result: null, error: errorMessage })
+        : errorMessage
+      ipcRenderer.send('ai-task-result', { handle, result: null, error: msg })
     }
     
     if (e.name === 'AbortError') {
-      task.status.value = ai_task_status.CANCELLED as AITaskStatusValue
+      currentTask.status.value = ai_task_status.CANCELLED as AITaskStatusValue
+      logger.debug(`[startAiTask] 任务已取消: handle=${handle}, status=${currentTask.status.value}`)
       // 取消时应该 reject promise，让调用者知道任务被取消
-      task.rejectDone?.(new Error(i18n.global.t('aiTask.taskCancelled2')))
+      currentTask.rejectDone?.(new Error(i18n.global.t('aiTask.taskCancelled2')))
+      // 取消的任务可以立即删除
+      deleteTask(handle)
     } else {
-      task.status.value = ai_task_status.FAILED as AITaskStatusValue
+      // 关键：先设置状态，确保UI能立即看到
+      currentTask.status.value = ai_task_status.FAILED as AITaskStatusValue
+      logger.debug(`[startAiTask] 任务已失败: handle=${handle}, status=${currentTask.status.value}, error=${errorMessage}`)
+      
       // 关键修复：失败时应该 reject promise，而不是 resolve，这样调用者才能通过 try-catch 捕获错误
-      task.rejectDone?.(e)
+      currentTask.rejectDone?.(e)
+      
+      // 失败的任务延迟删除，让用户能看到错误信息（10秒后自动删除）
+      if (currentTask.deleteTimer) {
+        clearTimeout(currentTask.deleteTimer)
+      }
+      currentTask.deleteTimer = setTimeout(() => {
+        logger.debug(`[startAiTask] 延迟删除失败任务: handle=${handle}`)
+        deleteTask(handle)
+      }, 10000) // 10秒后删除
     }
-    
-    // 清理任务
-    deleteTask(handle)
   }
 }
 
@@ -336,6 +398,14 @@ export async function startAiTask(handle: string): Promise<void> {
  * 删除任务
  */
 function deleteTask(handle: string): void {
+  const task = taskMap.get(handle)
+  if (task) {
+    // 清理定时器
+    if (task.deleteTimer) {
+      clearTimeout(task.deleteTimer)
+      task.deleteTimer = null
+    }
+  }
   taskMap.delete(handle)
   tasks.value = tasks.value.filter(t => t.handle !== handle)
 }
@@ -347,14 +417,38 @@ export function cancelAiTask(handle: string, showWarning: boolean = true, propag
   const task = taskMap.get(handle)
   if (!task) return
   
+  const logger = createRendererLogger('AiTasks')
+  logger.debug(`[cancelAiTask] 取消任务: handle=${handle}, status=${task.status.value}`)
+  
+  // 先更新状态为CANCELLED
+  if (task.status.value !== ai_task_status.FINISHED && task.status.value !== ai_task_status.CANCELLED) {
+    task.status.value = ai_task_status.CANCELLED as AITaskStatusValue
+  }
+  
+  // 中止请求
   task.controller?.abort()
+  
+  // 拒绝promise，让调用者知道任务被取消
+  if (task.rejectDone) {
+    task.rejectDone(new Error('任务已取消'))
+  }
+  
   if (task.status.value !== ai_task_status.FINISHED && isMainWindow()) {
     if (showWarning) {
       eventBus.emit('show-warning', i18n.global.t('aiTask.taskCancelled', { task: task.name }))
     }
   }
   
-  deleteTask(task.handle)
+  // 如果是mirror任务，通知子窗口任务已取消
+  if (task.mirror) {
+    ipcRenderer.send('ai-task-result', { handle, result: null, error: '任务已取消' })
+  }
+  
+  // 延迟删除任务，让UI有时间更新状态
+  setTimeout(() => {
+    deleteTask(task.handle)
+  }, 100)
+  
   if (propagate) {
     ipcRenderer.send('broadcast-cancel-ai-task', task.handle)
   }
@@ -408,12 +502,14 @@ ipcRenderer.on('register-ai-task', (_: any, taskInfo: any) => {
   taskMap.set(handle, task)
   
   // 如果是流式输出，监听临时ref的变化，实时同步到子窗口
-  if (incomingMeta?.stream) {
+  // 注意：stream可能是true、false或undefined，需要明确检查
+  const isStream = incomingMeta?.stream === true || (incomingMeta?.stream === undefined && true); // 默认流式
+  if (isStream) {
     let lastSentValue = ''
     let updateTimer: ReturnType<typeof setTimeout> | null = null
     
     watch(tempTarget, (newValue) => {
-      // 节流更新，避免过于频繁的IPC通信
+      // 节流更新，避免过于频繁的IPC通信，但对于流式输出，需要更频繁的更新
       if (updateTimer) {
         clearTimeout(updateTimer)
       }
@@ -422,7 +518,7 @@ ipcRenderer.on('register-ai-task', (_: any, taskInfo: any) => {
           lastSentValue = newValue
           ipcRenderer.send('ai-task-update', { handle, result: newValue })
         }
-      }, 100) // 每100ms最多更新一次
+      }, 50) // 流式输出时，每50ms更新一次，确保实时性
     }, { immediate: false })
   }
 })

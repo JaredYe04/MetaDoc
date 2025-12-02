@@ -155,6 +155,7 @@ async function setupAPIs(): Promise<void> {
   logger.debug('开始设置API路由');
   setupRuntimeAPI();
   setupImageAPI();
+  setupManualLLMAPI();
   // 确保知识库路由注册完成（路由注册是同步的，但初始化是异步的）
   await setupKnowledgeAPI();
   setupErrorHandlers();
@@ -402,6 +403,259 @@ function handleUrlUpload(req: UrlUploadRequest, res: Response): void {
 /**
  * 设置知识库API
  */
+// 手动LLM API的待处理请求队列
+interface PendingLLMRequest {
+  resolve: (value: any) => void;
+  reject: (error: Error) => void;
+  requestId: string;
+  type: 'completion' | 'chat';
+  stream: boolean;
+}
+
+const pendingLLMRequests = new Map<string, PendingLLMRequest>();
+let manualLLMResponseHandler: ((requestId: string, response: any) => void) | null = null;
+
+/**
+ * 设置手动LLM API路由
+ */
+function setupManualLLMAPI(): void {
+  // 获取待处理的请求列表
+  expressApp.get('/api/llm/pending-requests', (req: Request, res: Response) => {
+    const requests = Array.from(pendingLLMRequests.values()).map(req => ({
+      requestId: req.requestId,
+      type: req.type,
+      stream: req.stream
+    }));
+    res.json({ requests });
+  });
+
+  // 提交手动响应
+  expressApp.post('/api/llm/submit-response', (req: Request, res: Response) => {
+    const { requestId, response } = req.body;
+    if (!requestId || !response) {
+      return res.status(400).json({ success: false, message: '缺少requestId或response' });
+    }
+
+    const pendingRequest = pendingLLMRequests.get(requestId);
+    if (!pendingRequest) {
+      return res.status(404).json({ success: false, message: '请求不存在或已过期' });
+    }
+
+    try {
+      // 根据请求类型处理响应
+      if (pendingRequest.stream) {
+        // 流式响应：需要提取文本内容
+        let textContent = '';
+        if (typeof response === 'string') {
+          textContent = response;
+        } else if (response && typeof response === 'object') {
+          // 如果是对象，尝试提取文本内容
+          if (response.choices && response.choices[0]) {
+            if (response.choices[0].text) {
+              textContent = response.choices[0].text;
+            } else if (response.choices[0].message && response.choices[0].message.content) {
+              textContent = response.choices[0].message.content;
+            } else if (response.choices[0].delta && response.choices[0].delta.content) {
+              textContent = response.choices[0].delta.content;
+            }
+          }
+          // 如果没有找到文本，尝试序列化整个对象
+          if (!textContent) {
+            textContent = JSON.stringify(response);
+          }
+        } else {
+          textContent = String(response);
+        }
+        pendingRequest.resolve(textContent);
+      } else {
+        // 非流式响应：直接传递响应对象
+        pendingRequest.resolve(response);
+      }
+      pendingLLMRequests.delete(requestId);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('处理手动LLM响应失败', error as Error);
+      res.status(500).json({ success: false, message: (error as Error).message });
+    }
+  });
+
+  // Completions API（非流式）
+  expressApp.post('/api/llm/completions', async (req: Request, res: Response) => {
+    const { model, prompt, stream, temperature, max_tokens } = req.body;
+    const requestId = `req-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    if (stream) {
+      // 流式响应
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      // 等待手动输入
+      const responsePromise = new Promise<string>((resolve, reject) => {
+        pendingLLMRequests.set(requestId, {
+          resolve: (value: string) => {
+            // 将完整响应拆分为流式chunks
+            const chunks = value.split('');
+            let index = 0;
+            const sendChunk = () => {
+              if (index < chunks.length) {
+                const chunk = {
+                  id: `chatcmpl-${Date.now()}`,
+                  object: 'text_completion',
+                  created: Math.floor(Date.now() / 1000),
+                  model: model || 'manual-model',
+                  choices: [{
+                    text: chunks[index],
+                    index: 0,
+                    logprobs: null,
+                    finish_reason: index === chunks.length - 1 ? 'stop' : null
+                  }]
+                };
+                res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+                index++;
+                setTimeout(sendChunk, 10); // 模拟流式输出（降低延迟）
+              } else {
+                res.write('data: [DONE]\n\n');
+                res.end();
+              }
+            };
+            sendChunk();
+            resolve(value);
+          },
+          reject,
+          requestId,
+          type: 'completion',
+          stream: true
+        });
+      });
+
+      // 通知前端等待手动输入
+      if (manualLLMResponseHandler) {
+        manualLLMResponseHandler(requestId, { type: 'completion', stream: true, prompt });
+      }
+
+      try {
+        await responsePromise;
+      } catch (error) {
+        res.status(500).end();
+      }
+    } else {
+      // 非流式响应
+      const responsePromise = new Promise<any>((resolve, reject) => {
+        pendingLLMRequests.set(requestId, {
+          resolve,
+          reject,
+          requestId,
+          type: 'completion',
+          stream: false
+        });
+      });
+
+      // 通知前端等待手动输入
+      if (manualLLMResponseHandler) {
+        manualLLMResponseHandler(requestId, { type: 'completion', stream: false, prompt });
+      }
+
+      try {
+        const response = await responsePromise;
+        res.json(response);
+      } catch (error) {
+        res.status(500).json({ error: (error as Error).message });
+      }
+    }
+  });
+
+  // Chat Completions API
+  expressApp.post('/api/llm/chat/completions', async (req: Request, res: Response) => {
+    const { model, messages, stream, temperature, max_tokens } = req.body;
+    const requestId = `req-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    if (stream) {
+      // 流式响应
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      const responsePromise = new Promise<string>((resolve, reject) => {
+        pendingLLMRequests.set(requestId, {
+          resolve: (value: string) => {
+            // 将完整响应拆分为流式chunks
+            const chunks = value.split('');
+            let index = 0;
+            const sendChunk = () => {
+              if (index < chunks.length) {
+                const chunk = {
+                  id: `chatcmpl-${Date.now()}`,
+                  object: 'chat.completion.chunk',
+                  created: Math.floor(Date.now() / 1000),
+                  model: model || 'manual-model',
+                  choices: [{
+                    index: 0,
+                    delta: { content: chunks[index] },
+                    finish_reason: index === chunks.length - 1 ? 'stop' : null
+                  }]
+                };
+                res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+                index++;
+                setTimeout(sendChunk, 50);
+              } else {
+                res.write('data: [DONE]\n\n');
+                res.end();
+              }
+            };
+            sendChunk();
+            resolve(value);
+          },
+          reject,
+          requestId,
+          type: 'chat',
+          stream: true
+        });
+      });
+
+      // 通知前端等待手动输入
+      if (manualLLMResponseHandler) {
+        manualLLMResponseHandler(requestId, { type: 'chat', stream: true, messages });
+      }
+
+      try {
+        await responsePromise;
+      } catch (error) {
+        res.status(500).end();
+      }
+    } else {
+      // 非流式响应
+      const responsePromise = new Promise<any>((resolve, reject) => {
+        pendingLLMRequests.set(requestId, {
+          resolve,
+          reject,
+          requestId,
+          type: 'chat',
+          stream: false
+        });
+      });
+
+      // 通知前端等待手动输入
+      if (manualLLMResponseHandler) {
+        manualLLMResponseHandler(requestId, { type: 'chat', stream: false, messages });
+      }
+
+      try {
+        const response = await responsePromise;
+        res.json(response);
+      } catch (error) {
+        res.status(500).json({ error: (error as Error).message });
+      }
+    }
+  });
+}
+
+export const registerManualLLMResponseHandler = (
+  handler: (requestId: string, requestInfo: any) => void
+): void => {
+  manualLLMResponseHandler = handler;
+};
+
 async function setupKnowledgeAPI(): Promise<void> {
   // 先设置上传目录和路由（同步操作）
   setupKnowledgeUploadDir();

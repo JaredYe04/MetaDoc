@@ -91,40 +91,43 @@ export function createLlmError(error, context = {}) {
     );
   }
 
-  // 处理 HTTP 错误
-  if (error?.response) {
-    const status = error.response.status;
+  // 优先从 context 中获取 status（用于 fetch API 返回的错误）
+  const status = context?.status || error?.response?.status || error?.status;
+
+  // 处理 HTTP 错误（包括从 context 中获取的 status）
+  if (status !== undefined) {
     if (status === 401 || status === 403) {
       return new LlmError(
         LlmErrorType.AUTH_ERROR,
-        `认证失败: ${error.response.data?.error?.message || error.message}`,
+        error?.response?.data?.error?.message || error?.message || "认证失败",
         error,
         { ...context, status }
       );
     }
     return new LlmError(
       LlmErrorType.HTTP_ERROR,
-      `HTTP 错误: ${error.response.data?.error?.message || error.message}`,
+      error?.response?.data?.error?.message || error?.message || `HTTP 错误: ${status}`,
       error,
       { ...context, status }
     );
   }
 
-  // 处理 API 错误响应
-  if (error?.status) {
-    if (error.status === 401 || error.status === 403) {
+  // 处理 HTTP 错误（从 error.response 获取）
+  if (error?.response) {
+    const responseStatus = error.response.status;
+    if (responseStatus === 401 || responseStatus === 403) {
       return new LlmError(
         LlmErrorType.AUTH_ERROR,
-        error.message || "认证失败",
+        `认证失败: ${error.response.data?.error?.message || error.message}`,
         error,
-        { ...context, status: error.status }
+        { ...context, status: responseStatus }
       );
     }
     return new LlmError(
       LlmErrorType.HTTP_ERROR,
-      error.message || `HTTP 错误: ${error.status}`,
+      `HTTP 错误: ${error.response.data?.error?.message || error.message}`,
       error,
-      { ...context, status: error.status }
+      { ...context, status: responseStatus }
     );
   }
 
@@ -204,6 +207,10 @@ export async function validateLlmConfig(config) {
           "Ollama 配置不完整：缺少 API URL"
         );
       }
+      break;
+
+    case "manual":
+      // manual类型不需要验证，使用Express服务器的模拟接口
       break;
 
     default:

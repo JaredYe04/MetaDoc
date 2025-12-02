@@ -41,6 +41,7 @@ import { getSetting, settings } from '../utils/settings.js';
 import { themeState } from '../utils/themes.js';
 import SettingBasicSection from './setting/SettingBasicSection.vue';
 import SettingLlmSection from './setting/SettingLlmSection.vue';
+import SettingKnowledgeBaseSection from './setting/SettingKnowledgeBaseSection.vue';
 import SettingThemeSection from './setting/SettingThemeSection.vue';
 import SettingLoggerSection from './setting/SettingLoggerSection.vue';
 import SettingDebugSection from './setting/SettingDebugSection.vue';
@@ -54,6 +55,7 @@ const isDev = ref(false);
 const componentMap: Record<string, any> = {
   basic: SettingBasicSection,
   llm: SettingLlmSection,
+  knowledgeBase: SettingKnowledgeBaseSection,
   themes: SettingThemeSection,
   logs: SettingLoggerSection,
   debug: SettingDebugSection
@@ -63,6 +65,7 @@ const menuItems = computed(() => {
   const items = [
     { key: 'basic', label: 'setting.basic' },
     { key: 'llm', label: 'setting.llm' },
+    { key: 'knowledgeBase', label: 'setting.knowledgeBase' },
     { key: 'themes', label: 'setting.themes' },
     { key: 'logs', label: 'setting.logs' }
   ];

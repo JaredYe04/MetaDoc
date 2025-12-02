@@ -15,6 +15,7 @@ import { workflowManager } from './workflow-manager'
 import { createRendererLogger } from '../logger'
 import { extractOuterJsonString } from '../regex-utils'
 import { reactive } from 'vue'
+import { getLlmTemperature } from '../settings.js'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -90,6 +91,16 @@ export abstract class BaseEngineExecutor {
     } else {
       return `${baseMessage} (${current}/${total})`
     }
+  }
+
+  /**
+   * 获取温度配置（优先使用engine的自定义配置，否则使用全局配置）
+   */
+  protected async getTemperature(): Promise<number> {
+    if (this.engine.customLlmConfig?.temperature !== undefined) {
+      return this.engine.customLlmConfig.temperature
+    }
+    return await getLlmTemperature()
   }
 
   /**
@@ -249,14 +260,6 @@ export abstract class BaseEngineExecutor {
     prompt += '- 工具调用结果会在后续对话中提供，你可以基于结果继续处理\n'
     prompt += '- 如果不需要调用工具，直接回复文本即可，不要包含工具调用标记\n'
     prompt += '- **重要**：工具调用时，标记格式中的参数内容不会显示给用户，只会在系统内部处理\n'
-    prompt += '\n\n## ⚠️ 任务完成检测\n'
-    prompt += '**重要**：当你完成所有任务时，必须在回复中明确包含以下标记之一，系统才会判断任务已完成：\n'
-    prompt += '- `<|TASK_COMPLETE|>` （推荐）\n'
-    prompt += '- `任务已完成`\n'
-    prompt += '- `所有任务已完成`\n'
-    prompt += '- `任务完成`\n'
-    prompt += '**如果没有这些标记，系统会认为任务未完成，会继续执行或重新触发。**\n'
-    prompt += '即使你已经完成了所有工作，也必须明确标记任务完成，否则系统不会停止。\n'
 
     return prompt
   }
@@ -619,7 +622,7 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
         llmConfig,
         contextMessages,
         {
-          temperature: this.engine.customLlmConfig?.temperature || 0,
+          temperature: await this.getTemperature(),
           maxTokens: this.engine.customLlmConfig?.maxTokens,
           stream: true,
           signal: this.options.signal,
@@ -761,7 +764,7 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
           llmConfig,
           contextMessages,
           {
-            temperature: this.engine.customLlmConfig?.temperature || 0,
+            temperature: await this.getTemperature(),
             maxTokens: this.engine.customLlmConfig?.maxTokens,
             stream: true,
             signal: this.options.signal,
@@ -916,7 +919,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         llmConfig,
         contextMessages,
         {
-          temperature: this.engine.customLlmConfig?.temperature || 0,
+          temperature: await this.getTemperature(),
           maxTokens: this.engine.customLlmConfig?.maxTokens,
           stream: true,
           signal: this.options.signal,
@@ -957,11 +960,11 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         // 没有工具调用，检查是否有未完成的标记
         if (hasIncomplete) {
           getLogger().warn('[AutoGPT] 检测到未完成的工具调用标记，继续执行...')
-          // 添加提示消息，让AI知道工具调用未完成
-          AIContextManager.addUserMessage(
-            this.session,
-            '⚠️ 检测到未完成的工具调用标记。请重新调用工具，确保使用完整的标记格式：<｜tool▁calls▁begin｜>...<｜tool▁calls▁end｜>'
-          )
+          // 添加系统提示消息（不显示给用户），让AI知道工具调用未完成
+          contextMessages.push({
+            role: 'user',
+            content: '⚠️ 检测到未完成的工具调用标记。请重新调用工具，确保使用完整的标记格式：\n\n<｜tool▁calls▁begin｜>\n<｜tool▁call▁begin｜>工具ID<｜tool▁sep｜>{"参数名":"参数值"}<｜tool▁call▁end｜>\n<｜tool▁calls▁end｜>\n\n**重要**：工具调用标记必须直接输出，不要放在代码块中！'
+          })
           // 继续循环，不break
           continue
         }
@@ -981,22 +984,22 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         // 如果这是第一次迭代且没有工具调用，可能是AI在思考，继续执行
         if (iterations === 1) {
           getLogger().info('[AutoGPT] 第一次迭代没有工具调用，继续执行...')
-          // 添加提示，让AI知道需要调用工具或明确标记完成
-          AIContextManager.addUserMessage(
-            this.session,
-            '请继续执行任务。如果需要调用工具，请使用工具调用标记格式；如果任务已完成，请明确标记"<|TASK_COMPLETE|>"或"任务已完成"。'
-          )
+          // 添加系统提示消息（不显示给用户），强调工具调用格式
+          contextMessages.push({
+            role: 'user',
+            content: '请继续执行任务。如果需要调用工具，必须使用以下标记格式（直接输出，不要用代码块包裹）：\n\n<｜tool▁calls▁begin｜>\n<｜tool▁call▁begin｜>工具ID<｜tool▁sep｜>{"参数名":"参数值"}<｜tool▁call▁end｜>\n<｜tool▁calls▁end｜>\n\n如果任务已完成，请明确标记"<|TASK_COMPLETE|>"或"任务已完成"。'
+          })
           continue
         }
         
         // 多次迭代都没有工具调用，可能是任务已完成但没有标记
-        // 添加提示让AI明确标记完成
+        // 添加系统提示消息（不显示给用户），强调工具调用格式
         if (iterations >= 2) {
           getLogger().warn('[AutoGPT] 多次迭代没有工具调用，提示AI标记任务完成')
-          AIContextManager.addUserMessage(
-            this.session,
-            '如果任务已完成，请明确标记"<|TASK_COMPLETE|>"或"任务已完成"。如果任务未完成，请继续调用工具。'
-          )
+          contextMessages.push({
+            role: 'user',
+            content: '如果任务已完成，请明确标记"<|TASK_COMPLETE|>"或"任务已完成"。如果任务未完成，请继续调用工具，使用以下格式（直接输出，不要用代码块包裹）：\n\n<｜tool▁calls▁begin｜>\n<｜tool▁call▁begin｜>工具ID<｜tool▁sep｜>{"参数名":"参数值"}<｜tool▁call▁end｜>\n<｜tool▁calls▁end｜>'
+          })
           // 继续执行，给AI一次机会明确标记
           continue
         }
@@ -1221,7 +1224,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           llmConfig,
           contextMessages,
           {
-            temperature: this.engine.customLlmConfig?.temperature || 0,
+            temperature: await this.getTemperature(),
             maxTokens: this.engine.customLlmConfig?.maxTokens,
             stream: true,
             signal: this.options.signal,
@@ -1281,7 +1284,7 @@ export class SimpleChatEngineExecutor extends BaseEngineExecutor {
       llmConfig,
       contextMessages,
       {
-        temperature: this.engine.customLlmConfig?.temperature || 0,
+            temperature: await this.getTemperature(),
         maxTokens: this.engine.customLlmConfig?.maxTokens,
         stream: true,
         signal: this.options.signal,
@@ -1420,7 +1423,7 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       llmConfig,
       contextMessages,
       {
-        temperature: this.engine.customLlmConfig?.temperature || 0,
+            temperature: await this.getTemperature(),
         maxTokens: this.engine.customLlmConfig?.maxTokens,
         stream: true,
         signal: this.options.signal,
@@ -1484,7 +1487,7 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       llmConfig,
       contextMessages,
       {
-        temperature: this.engine.customLlmConfig?.temperature || 0,
+            temperature: await this.getTemperature(),
         stream: true,
         signal: this.options.signal,
         taskName: 'Workflow引擎选择',
@@ -1577,7 +1580,7 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
       llmConfig,
       contextMessages,
       {
-        temperature: this.engine.customLlmConfig?.temperature || 0,
+            temperature: await this.getTemperature(),
         maxTokens: this.engine.customLlmConfig?.maxTokens,
         stream: true,
         signal: this.options.signal,
@@ -1650,7 +1653,7 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
                 llmConfig,
                 summaryMessages,
                 {
-                  temperature: this.engine.customLlmConfig?.temperature || 0,
+                  temperature: await this.getTemperature(),
                   stream: true,
                   signal: this.options.signal,
                   taskName: 'Workflow总结',

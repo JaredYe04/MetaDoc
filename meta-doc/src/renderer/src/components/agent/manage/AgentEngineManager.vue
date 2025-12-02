@@ -186,6 +186,7 @@ import type { AgentEngine, EngineType, LlmConfigMode } from '../../../types/agen
 import type { LocalizedText } from '../../../types/agent-tool'
 import CardGrid from '../../common/CardGrid.vue'
 import type { CardGridAction } from '../../common/CardGrid.vue'
+import { getLlmTemperature } from '../../../utils/settings.js'
 
 const { t } = useI18n()
 
@@ -193,6 +194,9 @@ const engines = ref<AgentEngine[]>([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const editingEngine = ref<AgentEngine | null>(null)
+
+// 默认温度配置（将在onMounted时从全局配置加载）
+const defaultTemperature = ref(1.3)
 
 const formData = ref({
   name: '',
@@ -203,7 +207,7 @@ const formData = ref({
     baseUrl: '',
     apiKey: '',
     model: '',
-    temperature: 0,
+    temperature: 1.3,
     maxTokens: undefined as number | undefined
   },
   engineConfig: {
@@ -290,8 +294,9 @@ const loadEngines = () => {
   }
 }
 
-const handleCreate = () => {
+const handleCreate = async () => {
   editingEngine.value = null
+  const globalTemp = await getLlmTemperature()
   formData.value = {
     name: '',
     description: '',
@@ -301,7 +306,7 @@ const handleCreate = () => {
       baseUrl: '',
       apiKey: '',
       model: '',
-      temperature: 0,
+      temperature: globalTemp,
       maxTokens: undefined
     },
     engineConfig: {
@@ -314,8 +319,9 @@ const handleCreate = () => {
   dialogVisible.value = true
 }
 
-const handleView = (engine: AgentEngine) => {
+const handleView = async (engine: AgentEngine) => {
   editingEngine.value = engine
+  const globalTemp = await getLlmTemperature()
   formData.value = {
     name: getLocalizedText(engine.name),
     description: typeof engine.description === 'string' 
@@ -327,7 +333,7 @@ const handleView = (engine: AgentEngine) => {
       baseUrl: '',
       apiKey: '',
       model: '',
-      temperature: 0,
+      temperature: globalTemp,
       maxTokens: undefined
     },
     engineConfig: engine.engineConfig || {
@@ -506,7 +512,10 @@ const handleImport = () => {
   input.click()
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 加载全局温度配置作为默认值
+  defaultTemperature.value = await getLlmTemperature()
+  formData.value.customLlmConfig.temperature = defaultTemperature.value
   loadEngines()
 })
 </script>

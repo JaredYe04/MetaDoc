@@ -43,7 +43,7 @@ export interface LlmResponseConfig {
   apiUrl: string
   apiKey?: string
   model: string
-  type: 'openai' | 'ollama' | 'metadoc' | 'openai-official' | 'deepseek' | 'openai-compatible'
+  type: 'openai' | 'ollama' | 'metadoc' | 'openai-official' | 'deepseek' | 'openai-compatible' | 'manual'
   chatSuffix?: string
   completionSuffix?: string
 }
@@ -156,6 +156,18 @@ export class LlmAdapter {
           }
           break
         }
+        case 'manual': {
+          // 手动API类型：使用Express服务器的模拟接口
+          config = {
+            apiUrl: 'http://localhost:52521/api/llm',
+            apiKey: undefined,
+            model: 'manual-model',
+            type: 'manual',
+            chatSuffix: '',
+            completionSuffix: ''
+          }
+          break
+        }
         default:
           throw new Error(`不支持的LLM类型: ${selectedLlm}`)
       }
@@ -209,6 +221,16 @@ export class LlmAdapter {
           stream,
           ...(temperature !== undefined && { temperature }),
           ...(maxTokens !== undefined && maxTokens > 0 && { num_predict: maxTokens })
+        }
+      } else if (config.type === 'manual') {
+        // Manual 格式：使用Express服务器的模拟接口
+        url = `${config.apiUrl}/chat/completions`
+        payload = {
+          model: config.model,
+          messages,
+          stream,
+          ...(temperature !== undefined && { temperature }),
+          ...(maxTokens !== undefined && maxTokens > 0 && { max_tokens: maxTokens })
         }
       } else {
         throw new Error(`不支持的LLM类型: ${config.type}`)
@@ -276,6 +298,16 @@ export class LlmAdapter {
           stream,
           ...(temperature !== undefined && { temperature }),
           ...(maxTokens !== undefined && maxTokens > 0 && { num_predict: maxTokens })
+        }
+      } else if (config.type === 'manual') {
+        // Manual 格式：使用Express服务器的模拟接口
+        url = `${config.apiUrl}/completions`
+        payload = {
+          model: config.model,
+          prompt,
+          stream,
+          ...(temperature !== undefined && { temperature }),
+          ...(maxTokens !== undefined && maxTokens > 0 && { max_tokens: maxTokens })
         }
       } else {
         throw new Error(`不支持的LLM类型: ${config.type}`)

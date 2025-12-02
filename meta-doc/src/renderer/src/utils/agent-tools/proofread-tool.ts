@@ -295,13 +295,14 @@ ${text}
 
   const target = ref('')
   const originKey = `proofread-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  // 温度配置将在llm-api.js中从全局配置读取
   const { handle, done } = createAiTask(
     '文本校对',
     prompt,
     target,
     'answer',
     originKey,
-    { temperature: 0, stream: true }
+    { stream: true }
   )
 
   if (signal) {

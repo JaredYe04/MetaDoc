@@ -75,59 +75,91 @@ export async function sendStreamRequest(
   let buffer = "";
   let lastChunkWithUsage = null;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-    if (signal?.aborted) {
-      throw createLlmError(
-        new DOMException("Aborted", "AbortError"),
-        { url }
-      );
-    }
+      if (signal?.aborted) {
+        throw createLlmError(
+          new DOMException("Aborted", "AbortError"),
+          { url }
+        );
+      }
 
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() || ""; // 保留未完成的行
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || ""; // 保留未完成的行
 
-    for (const line of lines) {
-      if (!line.trim()) continue;
+      for (const line of lines) {
+        if (!line.trim()) continue;
 
-      try {
-        let json = line.startsWith("data: ")
-          ? line.replace(/^data: /, "")
-          : line;
+        try {
+          let json = line.startsWith("data: ")
+            ? line.replace(/^data: /, "")
+            : line;
 
-        if (json === "[DONE]") {
-          // 处理完成回调
-          if (onComplete && lastChunkWithUsage) {
-            onComplete(lastChunkWithUsage);
+          if (json === "[DONE]") {
+            // 处理完成回调
+            if (onComplete && lastChunkWithUsage) {
+              try {
+                await onComplete(lastChunkWithUsage);
+              } catch (error) {
+                // 回调中的错误应该向上抛出
+                throw createLlmError(error, { url });
+              }
+            }
+            continue;
           }
-          continue;
-        }
 
-        const data = JSON.parse(json);
-        
-        // 检查是否包含 usage 信息
-        if (data.usage || extractUsageFromResponse(data)) {
-          lastChunkWithUsage = data;
-        }
-        
-        if (onChunk) {
-          onChunk(data);
-        }
-      } catch (error) {
-        // 忽略 JSON 解析错误，继续处理下一行
-        if (error.name === "AbortError") {
-          throw createLlmError(error, { url });
+          const data = JSON.parse(json);
+          
+          // 检查是否包含 usage 信息
+          if (data.usage || extractUsageFromResponse(data)) {
+            lastChunkWithUsage = data;
+          }
+          
+          if (onChunk) {
+            try {
+              await onChunk(data);
+            } catch (error) {
+              // 回调中的错误应该向上抛出
+              throw createLlmError(error, { url });
+            }
+          }
+        } catch (error) {
+          // 如果是中止错误，直接抛出
+          if (error.name === "AbortError" || error instanceof DOMException) {
+            throw createLlmError(error, { url });
+          }
+          // 如果是已经转换过的 LlmError，直接抛出
+          if (error.type) {
+            throw error;
+          }
+          // JSON 解析错误可以忽略，继续处理下一行
+          // 但如果是其他错误（比如回调中的错误），应该抛出
+          // 由于上面的 onChunk 已经用 try-catch 包裹，这里主要是 JSON 解析错误
         }
       }
     }
-  }
 
-  // 如果流结束时还有 usage 信息，调用完成回调
-  if (onComplete && lastChunkWithUsage) {
-    onComplete(lastChunkWithUsage);
+    // 如果流结束时还有 usage 信息，调用完成回调
+    if (onComplete && lastChunkWithUsage) {
+      try {
+        await onComplete(lastChunkWithUsage);
+      } catch (error) {
+        // 回调中的错误应该向上抛出
+        throw createLlmError(error, { url });
+      }
+    }
+  } catch (error) {
+    // 确保所有错误都被正确传播
+    // 如果已经是 LlmError，直接抛出
+    if (error.type) {
+      throw error;
+    }
+    // 否则转换为 LlmError 后抛出
+    throw createLlmError(error, { url });
   }
 
   return lastChunkWithUsage;
@@ -180,13 +212,28 @@ export function extractTextDeltaFromChunk(chunk, responseType = "completion") {
 
 /**
  * 处理思考标签自动移除
+ * 移除 <think>...</think> 和 <思考>...</思考> 标签及其内容
  */
 export async function processThinkTag(text) {
   const autoRemoveThinkTag = await getSetting("autoRemoveThinkTag");
-  if (autoRemoveThinkTag && text.trim().endsWith("</think>")) {
-    return "";
+  if (!autoRemoveThinkTag || !text) {
+    return text;
   }
-  return text;
+  
+  let result = text;
+  
+  // 移除 <think>...</think> 标签（不区分大小写，支持多行）
+  result = result.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  
+  // 移除 <思考>...</思考> 标签（支持多行）
+  result = result.replace(/<思考>[\s\S]*?<\/思考>/g, '');
+  
+  // 移除 </think> 结尾（兼容旧格式）
+  if (result.trim().endsWith("</think>")) {
+    result = result.replace(/<\/redacted_reasoning>\s*$/, '');
+  }
+  
+  return result;
 }
 
 /**

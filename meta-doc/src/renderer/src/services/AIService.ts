@@ -19,6 +19,7 @@ import {
   answerQuestion, 
   continueConversation 
 } from '../utils/llm-api'
+import { getLlmTemperature } from '../utils/settings.js'
 import { getSetting } from '../utils/settings'
 import eventBus from '../utils/event-bus'
 import type { Ref } from 'vue'
@@ -117,7 +118,8 @@ export class AIService {
     } = {}
   ): Promise<void> {
     try {
-      const { meta = { temperature: 0 }, signal } = options
+      const globalTemperature = await getLlmTemperature()
+      const { meta = { temperature: globalTemperature }, signal } = options
       await answerQuestion(prompt, target, meta, signal)
     } catch (error) {
       logger.error('AI回答问题失败:', error)
@@ -138,7 +140,8 @@ export class AIService {
     } = {}
   ): Promise<void> {
     try {
-      const { meta = { temperature: 0 }, signal } = options
+      const globalTemperature = await getLlmTemperature()
+      const { meta = { temperature: globalTemperature }, signal } = options
       await continueConversation(conversation, target, meta as any, signal)
     } catch (error) {
       logger.error('AI对话失败:', error)

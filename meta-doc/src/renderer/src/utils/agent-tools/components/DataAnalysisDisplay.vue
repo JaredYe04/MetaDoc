@@ -362,7 +362,7 @@ const renderSummary = async () => {
     // 获取 CDN 和主题设置
     const cdn = isElectronEnv() ? localVditorCDN : vditorCDN
     const contentTheme = await getSetting('contentTheme') || 'light'
-    const codeTheme = await getSetting('codeTheme') || 'github'
+    const codeTheme = themeState.currentTheme.codeTheme
     const lineNumber = await getSetting('lineNumber') ?? true
 
     // 清空容器

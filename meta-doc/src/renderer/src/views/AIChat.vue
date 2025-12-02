@@ -14,28 +14,37 @@
 
     <div class="main-container">
       <!-- 左侧菜单 -->
-      <el-menu class="side-menu" :default-active="activeDialogIndex.toString()">
+      <div class="side-menu-wrapper">
         <div class="menu-header">
-
           <el-tooltip :content="t('aiChat.newDialog')">
             <el-button type="primary" :icon="AddIcon" circle @click="addNewDialog" :disabled="responding"></el-button>
           </el-tooltip>
           <el-tooltip :content="t('aiChat.deleteCurrent')">
             <el-button type="danger" :icon="Delete" circle @click="deleteCurrentDialog" :disabled="responding"></el-button>
           </el-tooltip>
-
-
         </div>
-        <el-menu-item v-for="(dialog, index) in dialogs" :key="index" :index="index.toString()"
-          @click="loadDialog(index)" :disabled="responding">
-          <div class="menu-item-wrapper">
-            <span class="dialog-title">{{ dialog.title }}</span>
-            <el-button circle :icon="Edit" @click.stop="renameDialog(index)" class="rename-button" type="default">
-
-            </el-button>
-          </div>
-        </el-menu-item>
-      </el-menu>
+        <el-scrollbar class="menu-scrollbar">
+          <el-menu class="side-menu" :default-active="activeDialogIndex.toString()">
+            <template v-for="group in groupedDialogs" :key="group.label">
+              <el-menu-item disabled class="group-header">
+                <span class="group-label">{{ group.label }}</span>
+              </el-menu-item>
+              <el-menu-item 
+                v-for="item in group.dialogs" 
+                :key="item.originalIndex" 
+                :index="item.originalIndex.toString()"
+                @click="loadDialog(item.originalIndex)" 
+                :disabled="responding">
+                <div class="menu-item-wrapper">
+                  <span class="dialog-title">{{ item.dialog.title }}</span>
+                  <el-button circle :icon="Edit" @click.stop="renameDialog(item.originalIndex)" class="rename-button" type="default">
+                  </el-button>
+                </div>
+              </el-menu-item>
+            </template>
+          </el-menu>
+        </el-scrollbar>
+      </div>
 
       <!-- 右侧内容 -->
       <div class="content-area">
@@ -107,10 +116,15 @@ const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 const createDefaultMessages = (): AIDialogMessage[] =>
   DEFAULT_AI_CHAT_MESSAGES.map((message) => ({ ...message }));
 
-const createDefaultDialog = (title: string): AIDialog => ({
-  title,
-  messages: createDefaultMessages(),
-});
+const createDefaultDialog = (title: string): AIDialog => {
+  const now = Date.now();
+  return {
+    title,
+    messages: createDefaultMessages(),
+    createdAt: now,
+    updatedAt: now,
+  };
+};
 
 const messages = ref<AIDialogMessage[]>(createDefaultMessages());
 const cur_resp = ref('')
@@ -134,7 +148,18 @@ const loadDialogsFromStorage = () => {
     persistDialogsToStorage();
     return;
   }
-  dialogs.value = stored;
+  // 为没有时间戳的对话添加时间戳
+  const now = Date.now();
+  dialogs.value = stored.map(dialog => {
+    if (!dialog.createdAt) {
+      dialog.createdAt = now;
+    }
+    if (!dialog.updatedAt) {
+      dialog.updatedAt = now;
+    }
+    return dialog;
+  });
+  persistDialogsToStorage();
 };
 
 const persistDialogsToStorage = () => {
@@ -165,9 +190,13 @@ const updateCurrentDialog = (index: number | null = null) => {
   if (dialogs.value.length === 0) {
     dialogs.value.push(createDefaultDialog(defaultTitle));
   }
+  const targetIndex = index == null ? activeDialogIndex.value : index;
+  const existingDialog = dialogs.value[targetIndex];
   const dialog: AIDialog = {
     title: title.value,
     messages: cloneDeep(messages.value),
+    createdAt: existingDialog?.createdAt || Date.now(),
+    updatedAt: Date.now(),
   };
   if (index == null) {
     dialogs.value[activeDialogIndex.value] = dialog;
@@ -212,14 +241,18 @@ const finishRename = () => {
     renameDialogVisible.value = false;
     return;
   }
+  const existingDialog = dialogs.value[index];
   dialogs.value[index] = {
     title: editingTitle.value,
     messages: cloneDeep(messages.value),
+    createdAt: existingDialog?.createdAt || Date.now(),
+    updatedAt: existingDialog?.updatedAt || Date.now(),
   };
   if (activeDialogIndex.value === editingIndex.value) {
     title.value = editingTitle.value;
   }
   renameDialogVisible.value = false;
+  persistDialogsToStorage();
 };
 
 const title = ref(defaultTitle);
@@ -515,6 +548,58 @@ const onMsgEdit = async (data: MessageEditPayload) => {
   updateCurrentDialog();
 
 }
+
+// 分组逻辑
+type DialogGroup = {
+  label: string;
+  dialogs: Array<{ dialog: AIDialog; originalIndex: number }>;
+};
+
+const getDialogTime = (dialog: AIDialog): number => {
+  return dialog.updatedAt || dialog.createdAt || 0;
+};
+
+const groupDialogs = (dialogsList: AIDialog[]): DialogGroup[] => {
+  const now = Date.now();
+  const todayStart = new Date().setHours(0, 0, 0, 0);
+  const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
+  const lastWeekStart = todayStart - 7 * 24 * 60 * 60 * 1000;
+  const lastMonthStart = todayStart - 30 * 24 * 60 * 60 * 1000;
+
+  const groups: DialogGroup[] = [
+    { label: t('aiChat.today'), dialogs: [] },
+    { label: t('aiChat.yesterday'), dialogs: [] },
+    { label: t('aiChat.lastWeek'), dialogs: [] },
+    { label: t('aiChat.lastMonth'), dialogs: [] },
+    { label: t('aiChat.earlier'), dialogs: [] },
+  ];
+
+  dialogsList.forEach((dialog, index) => {
+    const time = getDialogTime(dialog);
+    if (time >= todayStart) {
+      groups[0].dialogs.push({ dialog, originalIndex: index });
+    } else if (time >= yesterdayStart) {
+      groups[1].dialogs.push({ dialog, originalIndex: index });
+    } else if (time >= lastWeekStart) {
+      groups[2].dialogs.push({ dialog, originalIndex: index });
+    } else if (time >= lastMonthStart) {
+      groups[3].dialogs.push({ dialog, originalIndex: index });
+    } else {
+      groups[4].dialogs.push({ dialog, originalIndex: index });
+    }
+  });
+
+  // 只返回有对话的分组，并按时间倒序排列每个分组内的对话
+  return groups
+    .map(group => ({
+      ...group,
+      dialogs: group.dialogs.sort((a, b) => getDialogTime(b.dialog) - getDialogTime(a.dialog)),
+    }))
+    .filter(group => group.dialogs.length > 0);
+};
+
+const groupedDialogs = computed(() => groupDialogs(dialogs.value));
+
 // 样式部分添加左侧菜单
 
 
@@ -528,10 +613,37 @@ const onMsgEdit = async (data: MessageEditPayload) => {
   height: 100vh;
 }
 
-.side-menu {
+.side-menu-wrapper {
   width: 250px;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
 
+.menu-scrollbar {
+  flex: 1;
+  overflow: hidden;
+}
+
+.side-menu {
+  width: 100%;
+  border-right: none;
+}
+
+.group-header {
+  opacity: 1 !important;
+  cursor: default !important;
+  height: auto !important;
+  padding: 8px 20px !important;
+  line-height: 1.5 !important;
+}
+
+.group-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .menu-header {

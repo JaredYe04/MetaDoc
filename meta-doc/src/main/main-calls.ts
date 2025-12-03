@@ -338,7 +338,7 @@ function bindSettingHandlers(): void {
   // 获取环境变量（仅限安全的环境变量，不暴露敏感信息）
   ipcMain.handle('get-env', async (event: IpcMainInvokeEvent, key: string): Promise<string | undefined> => {
     // 只允许获取特定的环境变量
-    const allowedKeys = ['SIMPLETEX_APP_ID', 'SIMPLETEX_APP_SECRET', 'SILICONFLOW_API_KEY'];
+    const allowedKeys = ['SIMPLETEX_APP_ID', 'SIMPLETEX_APP_SECRET', 'SILICONFLOW_API_KEY', 'SERVER_URL'];
     if (allowedKeys.includes(key)) {
       return process.env[key];
     }

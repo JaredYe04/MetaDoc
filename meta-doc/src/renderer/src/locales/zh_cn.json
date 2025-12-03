@@ -654,6 +654,8 @@
         "coverTip": "原有的编号 例如'1.1 1.2 一、'会被覆盖",
         "level1Chinese": "第一级标题是否为中文",
         "level1ChineseTip": "如果开启，第一级标题会以中文给出",
+        "removePrefixes": "移除所有标题前缀",
+        "removePrefixesTip": "移除所有标题开头的编号和点号，适用于Markdown转LaTeX的场景（LaTeX会自动编号）",
         "cancel": "取消",
         "confirm": "确定",
         "editChapterTitle": "修改章节名",
@@ -769,7 +771,7 @@
         "testLlm": "测试大模型",
         "testResult": "测试结果",
         "resultPlaceholder": "测试结果将显示在此处",
-        "testPrompt": "你好！请介绍一下你自己。",
+        "testPrompt": "你好！请用简短的话介绍一下你自己。",
         "testFailed": "测试失败：",
         "testScenario": "测试场景",
         "testCompletionStream": "补全-流式",
@@ -962,6 +964,7 @@
         "ready": "就绪",
         "running": "运行中",
         "failed": "失败",
+        "error": "错误",
         "cancel": "取消",
         "taskCancelled": "任务 {task} 已取消",
         "taskCancelled2": "任务已取消"
@@ -1703,6 +1706,7 @@
       },
       "proofread": {
         "proofreading": "校对中",
+        "fixing": "正在自动修复错误...",
         "title": "文本校对结果",
         "totalErrors": "共发现 {count} 个错误",
         "location": "位置: 行 {line}, 列 {column}",
@@ -1710,6 +1714,8 @@
         "suggestion": "修改建议",
         "noErrors": "未发现错误",
         "error": "校对失败",
+        "fixed": "已修复",
+        "autoFixed": "已自动修复",
         "severity": {
           "error": "错误",
           "warning": "警告",

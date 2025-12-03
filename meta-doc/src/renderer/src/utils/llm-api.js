@@ -14,7 +14,7 @@ import { createRendererLogger } from "./logger.ts";
 import OpenAI from "openai";
 import { createAdapterFromSettings } from "./llm-adapters/adapter-factory.ts";
 
-const DEFAULT_MAX_TOKENS = 1048576;
+const DEFAULT_MAX_TOKENS = 8192;
 /**
  * 获取自定义LLM配置对象
  * @param {Object} customConfig - 自定义LLM配置
@@ -916,7 +916,9 @@ async function continueConversation(
     // 设置默认值：如果没有指定stream，默认使用流式输出
     // 关键修复：确保stream默认为true，而不是undefined
     const shouldStream = meta?.stream !== false && (meta?.stream === true || meta?.stream === undefined);
-    
+    const maxTokens = meta.max_tokens !== undefined 
+    ? meta.max_tokens 
+    : DEFAULT_MAX_TOKENS;
     // 记录meta信息用于调试
     logger.debug('[continueConversation] meta参数检查:', {
       stream: meta?.stream,
@@ -924,6 +926,7 @@ async function continueConversation(
       metaKeys: meta && typeof meta === 'object' ? Object.keys(meta) : [],
       hasStream: meta && typeof meta === 'object' && 'stream' in meta,
       shouldStream: shouldStream,
+      maxTokens: maxTokens,
       metaValue: JSON.stringify(meta)
     });
     
@@ -935,7 +938,7 @@ async function continueConversation(
       await continueConversationNonStream(
         conversation,
         ref,
-        meta,
+        { ...meta, max_tokens: maxTokens },
         signal,
         effectiveCustomConfig
       );

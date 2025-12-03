@@ -916,7 +916,7 @@ const handleDeleteConfig = async (configId?: string) => {
       }
     );
     
-    deleteConfig(targetId);
+    await deleteConfig(targetId);
     loadConfigs();
     ElMessage.success(t('setting.configDeleted'));
   } catch {

@@ -193,7 +193,7 @@ export function addConfig(config: Omit<LlmConfigItem, 'id' | 'createdAt' | 'upda
 /**
  * 更新配置
  */
-export function updateConfig(id: string, updates: Partial<Omit<LlmConfigItem, 'id' | 'createdAt'>>): boolean {
+export async function updateConfig(id: string, updates: Partial<Omit<LlmConfigItem, 'id' | 'createdAt'>>): Promise<boolean> {
   const index = configs.value.findIndex(c => c.id === id);
   if (index === -1) return false;
   
@@ -203,24 +203,31 @@ export function updateConfig(id: string, updates: Partial<Omit<LlmConfigItem, 'i
     updatedAt: Date.now()
   };
   saveLlmConfigs();
+  
+  // 如果更新的是当前配置，需要重新应用设置并广播
+  if (currentConfigId.value === id) {
+    await applyConfigToSettings(configs.value[index]);
+  }
+  
   return true;
 }
 
 /**
  * 删除配置
  */
-export function deleteConfig(id: string): boolean {
+export async function deleteConfig(id: string): Promise<boolean> {
   const index = configs.value.findIndex(c => c.id === id);
   if (index === -1) return false;
+  
+  const wasCurrentConfig = currentConfigId.value === id;
   
   configs.value.splice(index, 1);
   saveLlmConfigs();
   
   // 如果删除的是当前配置，切换到第一个配置
-  if (currentConfigId.value === id) {
+  if (wasCurrentConfig) {
     if (configs.value.length > 0) {
-      currentConfigId.value = configs.value[0].id;
-      localStorage.setItem(CURRENT_CONFIG_KEY, currentConfigId.value);
+      await switchConfig(configs.value[0].id);
     } else {
       currentConfigId.value = '';
       localStorage.removeItem(CURRENT_CONFIG_KEY);
@@ -247,9 +254,9 @@ export async function switchConfig(id: string): Promise<boolean> {
 }
 
 /**
- * 应用配置到设置
+ * 应用配置到设置（不广播，用于接收广播后的同步）
  */
-async function applyConfigToSettings(config: LlmConfigItem): Promise<void> {
+async function applyConfigToSettingsWithoutBroadcast(config: LlmConfigItem): Promise<void> {
   await setSetting('selectedLlm', config.type);
   
   if (config.type === 'ollama' && config.ollama) {
@@ -274,9 +281,24 @@ async function applyConfigToSettings(config: LlmConfigItem): Promise<void> {
     await setSetting('metadocSelectedModel', config.metadoc.selectedModel);
   }
   
-  // 触发配置更新事件
+  // 只触发本窗口的配置更新事件，不广播（避免循环广播）
   const { default: eventBus } = await import('./event-bus.js');
   eventBus.emit('llm-api-updated');
+}
+
+/**
+ * 应用配置到设置
+ */
+async function applyConfigToSettings(config: LlmConfigItem): Promise<void> {
+  await applyConfigToSettingsWithoutBroadcast(config);
+  
+  // 广播配置更新事件到所有窗口，让其他窗口知道配置已更新
+  // 其他窗口在下次调用 createAdapterFromSettings 时会从主进程读取最新设置
+  const { sendBroadcast } = await import('./event-bus.js');
+  sendBroadcast('all', 'llm-config-updated', {
+    configId: config.id,
+    configType: config.type
+  });
 }
 
 /**
@@ -437,5 +459,42 @@ export async function isCurrentConfigModified(configId: string): Promise<boolean
 }
 
 // 初始化时加载配置
+// 监听广播：当其他窗口切换配置时，重新加载配置列表
+// 注意：配置列表存储在 localStorage 中，所有窗口共享
+// 但当前配置ID也存储在 localStorage 中，所以切换配置时其他窗口会自动感知
+async function initLlmConfigBroadcast() {
+  const { default: eventBus } = await import('./event-bus.js');
+  
+  eventBus.on('llm-config-updated', async (data: any) => {
+    getLogger().debug('收到LLM配置更新广播', data);
+    
+    // 重新加载配置列表（因为可能在其他窗口被修改）
+    loadLlmConfigs();
+    
+    // 如果当前配置ID与广播的配置ID一致，或者当前没有配置，重新应用配置
+    if (data?.configId && (currentConfigId.value === data.configId || !currentConfigId.value)) {
+      const config = configs.value.find(c => c.id === data.configId);
+      if (config) {
+        // 重新应用配置到设置（确保设置是最新的）
+        // 注意：这里不会再次广播，避免循环广播
+        await applyConfigToSettingsWithoutBroadcast(config);
+      }
+    } else if (data?.configId) {
+      // 如果广播的配置ID与当前配置ID不一致，说明其他窗口切换了配置
+      // 检查当前配置ID是否还存在，如果不存在则切换到第一个配置
+      const currentConfig = configs.value.find(c => c.id === currentConfigId.value);
+      if (!currentConfig && configs.value.length > 0) {
+        // 当前配置不存在，切换到第一个配置
+        await switchConfig(configs.value[0].id);
+      }
+    }
+  });
+}
+
+// 初始化时注册广播监听
+initLlmConfigBroadcast().catch(err => {
+  getLogger().error('初始化LLM配置广播监听失败', err);
+});
+
 loadLlmConfigs();
 

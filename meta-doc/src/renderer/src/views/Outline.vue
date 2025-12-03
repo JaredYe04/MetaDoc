@@ -242,6 +242,11 @@
             <el-switch v-model="formatTitleConfig.level1TitleChinese" active-color="#13ce66" inactive-color="#ff4949" />
           </el-tooltip>
         </el-form-item>
+        <el-form-item :label="$t('outline.removePrefixes')" prop="removePrefixes">
+          <el-tooltip :content="$t('outline.removePrefixesTip')" placement="right">
+            <el-switch v-model="formatTitleConfig.removePrefixes" active-color="#13ce66" inactive-color="#ff4949" />
+          </el-tooltip>
+        </el-form-item>
         <el-button type="info" @click="formatTitleDialogVisible = false">{{ $t('outline.cancel') }}</el-button>
         <el-button type="success" @click="executeFormatTitle">{{ $t('outline.confirm') }}</el-button>
       </el-form>
@@ -332,6 +337,7 @@ import type { DocumentOutlineNode } from '../../../types';
 import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document';
 import { searchNode, searchParentNode } from '../utils/outline-helpers';
 import { adjustTitleIndex, adjustTitleLevel, removeTextFromOutline, generateMarkdownFromOutlineTree } from '../utils/md-utils.js';
+import { removeTitleIndex } from '../utils/regex-utils.js';
 import { expandTreeNodePrompt, generateContentPrompt, generateParentNodeContentPrompt, outlineChangePrompt } from '../utils/prompts';
 
 import { themeState } from '../utils/themes.js';
@@ -424,6 +430,7 @@ const formatTitleConfig = reactive({
   adjustTitle: true,//是否调整标题编号
   cover: true,
   level1TitleChinese: true,//第一级标题使用中文，如一 二三四五六七八九十
+  removePrefixes: false,//是否移除所有标题前缀（用于md转latex）
 });
 
 const backupOutlineTree = ref<DocumentOutlineNode | null>(null);
@@ -488,6 +495,11 @@ const generateChildrenChildren = async () => {
         try {
           const newChildren = JSON.parse(json) as DocumentOutlineNode[];
           if (Array.isArray(newChildren) && newChildren.length > 0) {
+            // 清理所有子节点标题中的Markdown/LaTeX标记（因为title_level已经决定了层级）
+            for (const child of newChildren) {
+              cleanNodeTitleMarkers(child)
+            }
+            
             if (!curNode.children) {
               curNode.children = [];
             }
@@ -743,21 +755,73 @@ function stopDrag() {
 
 
 
-const executeFormatTitle = () => {
+/**
+ * 移除大纲树中所有节点的标题前缀
+ */
+function removeAllTitlePrefixes(outlineTree: DocumentOutlineNode): DocumentOutlineNode {
+  const node = cloneOutline(outlineTree);
+  
+  function dfs(n: DocumentOutlineNode): void {
+    if (n.title) {
+      n.title = removeTitleIndex(n.title);
+    }
+    
+    for (const child of n.children) {
+      dfs(child);
+    }
+  }
+  
+  if (node.path === 'dummy') {
+    for (const child of node.children) {
+      dfs(child);
+    }
+  } else {
+    dfs(node);
+  }
+  
+  return node;
+}
+
+const executeFormatTitle = async () => {
   backupOutlineTree.value = cloneOutline(treeData.value);
-  if (formatTitleConfig.adjustMarkdown) {
-    // 调整Markdown标题层级
-    const firstLevel = formatTitleConfig.firstMarkdownTitleLevel;
-    treeData.value = cloneOutline(adjustTitleLevel(treeData.value, firstLevel));
+  
+  // 暂停文档同步，避免触发 watch 导致循环
+  const prevSync = suppressDocumentSync;
+  suppressDocumentSync = true;
+  
+  try {
+    let modifiedTree = cloneOutline(treeData.value);
+    
+    // 1. 先移除所有标题前缀（如果指定）
+    if (formatTitleConfig.removePrefixes) {
+      modifiedTree = removeAllTitlePrefixes(modifiedTree);
+    }
+    
+    // 2. 调整Markdown标题层级（如果指定）
+    if (formatTitleConfig.adjustMarkdown) {
+      const firstLevel = formatTitleConfig.firstMarkdownTitleLevel;
+      modifiedTree = cloneOutline(adjustTitleLevel(modifiedTree, firstLevel));
+    }
+    
+    // 3. 调整章节编号（如果指定）
+    if (formatTitleConfig.adjustTitle) {
+      const cover = formatTitleConfig.cover;
+      const level1TitleChinese = formatTitleConfig.level1TitleChinese;
+      modifiedTree = cloneOutline(adjustTitleIndex(modifiedTree, cover, level1TitleChinese));
+    }
+    
+    // 更新 treeData（此时 suppressDocumentSync = true，不会触发 watch）
+    treeData.value = modifiedTree;
+    
+    // 手动提交更改
+    await commitOutline(modifiedTree);
+    
+    formatTitleDialogVisible.value = false;
+    eventBus.emit('show-success', t('outline.formatSuccess'));
+  } finally {
+    // 恢复同步状态
+    suppressDocumentSync = prevSync;
   }
-  if (formatTitleConfig.adjustTitle) {
-    // 调整章节编号
-    const cover = formatTitleConfig.cover;
-    const level1TitleChinese = formatTitleConfig.level1TitleChinese;
-    treeData.value = cloneOutline(adjustTitleIndex(treeData.value, cover, level1TitleChinese));
-  }
-  formatTitleDialogVisible.value = false;
-  eventBus.emit('show-success', t('outline.formatSuccess'));
 }
 
 const handleNodeDrag = (_dragNode: any, _targetNode: any) => {
@@ -1275,6 +1339,12 @@ const generateChildChapter = async () => {
       await done;
       const json = extractOuterJsonString(rawstring.value);
       const newChildren = JSON.parse(json) as DocumentOutlineNode[];
+      
+      // 清理所有子节点标题中的Markdown/LaTeX标记（因为title_level已经决定了层级）
+      for (const child of newChildren) {
+        cleanNodeTitleMarkers(child)
+      }
+      
       backupChildren.value = currentNode.children ? [...currentNode.children] : [];
       currentNode.children = [...currentNode.children, ...newChildren];
       pendingAccept.value = true;
@@ -1307,6 +1377,44 @@ const removeNode = (parent: DocumentOutlineNode, node: DocumentOutlineNode) => {
     parent.children.forEach((child) => removeNode(child, node));
   }
 };
+
+/**
+ * 清理标题中的Markdown和LaTeX标记
+ * 因为title_level字段已经决定了标题层级，所以标题中不应该包含#、##、\section{}等标记
+ */
+function cleanTitleMarkers(title: string): string {
+  if (!title || typeof title !== 'string') {
+    return title
+  }
+  
+  let cleaned = title.trim()
+  
+  // 移除Markdown标题标记（#、##、###等）
+  cleaned = cleaned.replace(/^#+\s+/, '')
+  
+  // 移除LaTeX命令标记（\section{}、\subsection{}等）
+  cleaned = cleaned.replace(/^\\(section|subsection|subsubsection|paragraph|subparagraph)\{([^}]+)\}/, '$2')
+  
+  // 移除可能的LaTeX格式：\section{标题} -> 标题
+  cleaned = cleaned.replace(/^\\[a-z]+\{([^}]+)\}/, '$1')
+  
+  return cleaned.trim()
+}
+
+/**
+ * 递归清理节点及其所有子节点的标题标记
+ */
+function cleanNodeTitleMarkers(node: DocumentOutlineNode): void {
+  if (node.title) {
+    node.title = cleanTitleMarkers(node.title)
+  }
+  
+  if (node.children && Array.isArray(node.children)) {
+    for (const child of node.children) {
+      cleanNodeTitleMarkers(child)
+    }
+  }
+}
 
 /**
  * 清理原始内容，去除可能的说明文字和格式标记

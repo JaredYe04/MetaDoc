@@ -102,12 +102,29 @@
 
       <!-- 文本内容 -->
       <div v-else class="agent-message__content">
-        <!-- 如果消息包含tool_calls，显示友好的工具调用提示 -->
-        <div v-if="hasToolCalls" class="tool-calls-indicator" :class="{ 'tool-calls-completed': toolCallsCompleted }">
-          <el-icon v-if="!toolCallsCompleted" class="is-loading"><Loading /></el-icon>
-          <el-icon v-else class="tool-call-checkmark"><Check /></el-icon>
-          <span>{{ toolCallsText }}</span>
-        </div>
+        <!-- 如果消息包含tool_calls，需要将工具调用标记替换为指示器 -->
+        <template v-if="hasToolCalls && processedContentParts.length > 0">
+          <template v-for="(part, index) in processedContentParts" :key="index">
+            <!-- 如果是工具调用指示器 -->
+            <div v-if="part.type === 'tool-call'" class="tool-calls-indicator tool-calls-completed">
+              <el-icon class="tool-call-checkmark"><Check /></el-icon>
+              <span>{{ part.text }}</span>
+            </div>
+            <!-- 如果是markdown内容 -->
+            <MdPreview
+              v-else-if="part.type === 'markdown' && part.content"
+              :modelValue="part.content"
+              previewTheme="github"
+              :codeFold="false"
+              :autoFoldThreshold="300"
+              :style="{
+                color: themeState.currentTheme.textColor
+              }"
+              :class="themeState.currentTheme.mdeditorClass"
+            />
+          </template>
+        </template>
+        <!-- 如果没有tool_calls，正常显示markdown -->
         <MdPreview
           v-else-if="messageMarkdown"
           :modelValue="messageMarkdown"
@@ -308,31 +325,122 @@ const bubbleStyle = computed(() => {
 
 const messageMarkdown = computed(() => {
   if (props.message.type === 'chat' || props.message.type === 'thought') {
-    // 如果消息包含tool_calls，不显示原始内容（显示友好的工具调用提示）
-    if (hasToolCalls.value) {
-      return ''
-    }
-    
     let content = props.message.markdown || '';
     
-    // 清理工具调用标记
-    // 重要：只有在确认没有tool_calls时才清理标记
-    // 如果在流式输出过程中，tool_calls可能还没有被添加，此时不应该清理标记
-    // 否则会导致markdown被清空，而tool_calls提示又显示不出来
-    // 如果消息有tool_calls，上面的逻辑已经返回空字符串了，不会执行到这里
-    // 所以这里只清理那些确实没有tool_calls的消息中的标记
+    // 如果没有tool_calls，清理标记（兼容旧消息）
     if (!hasToolCalls.value) {
-      // 清理新的<tool_call>格式
       content = content.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '').trim()
-      
-      // 清理旧的标记格式（兼容性）
       content = content.replace(/\<\|redacted_tool_calls_begin\|>[\s\S]*?\<\|redacted_tool_calls_end\|>/gi, '').trim()
       content = content.replace(/\<｜tools▁call▁begin｜>[\s\S]*?<｜tools▁call▁end｜>/gi, '').trim()
     }
+    // 如果有tool_calls，不清理标记（会在processedContentParts中处理）
     
     return content;
   }
   return ''
+})
+
+// 处理后的内容部分（包含工具调用指示器和markdown内容）
+const processedContentParts = computed(() => {
+  if (props.message.type !== 'chat' && props.message.type !== 'thought') {
+    return []
+  }
+  
+  if (!hasToolCalls.value) {
+    // 如果没有tool_calls，只返回markdown内容
+    if (messageMarkdown.value) {
+      return [{ type: 'markdown' as const, content: messageMarkdown.value }]
+    }
+    return []
+  }
+  
+  const chatMsg = props.message as ChatAgentMessage
+  if (!chatMsg.tool_calls || chatMsg.tool_calls.length === 0) {
+    return []
+  }
+  
+  // 获取原始markdown内容
+  let content = props.message.markdown || ''
+  
+  // 创建工具调用映射（按在markdown中出现的顺序）
+  const toolCallMap = new Map<string, { id: string; tool_id: string; text: string }>()
+  for (const toolCall of chatMsg.tool_calls) {
+    const tool = agentToolManager.getTool(toolCall.tool_id)
+    const toolName = tool 
+      ? agentToolManager.getLocalizedText(tool.config.name)
+      : toolCall.tool_id
+    const text = t('agent.message.toolCallInitiated', { tool: toolName })
+    toolCallMap.set(toolCall.id, {
+      id: toolCall.id,
+      tool_id: toolCall.tool_id,
+      text
+    })
+  }
+  
+  // 解析markdown，找到工具调用标记的位置
+  const parts: Array<{ type: 'tool-call' | 'markdown'; content?: string; text?: string }> = []
+  
+  // 使用正则表达式匹配所有工具调用标记
+  const toolCallRegex = /<tool_call>[\s\S]*?<\/tool_call>/gi
+  let lastIndex = 0
+  let match
+  let toolCallIndex = 0
+  
+  while ((match = toolCallRegex.exec(content)) !== null) {
+    // 添加标记前的markdown内容
+    if (match.index > lastIndex) {
+      const markdownPart = content.substring(lastIndex, match.index).trim()
+      if (markdownPart) {
+        parts.push({ type: 'markdown', content: markdownPart })
+      }
+    }
+    
+    // 尝试从工具调用标记中提取tool_call_id（如果可能）
+    // 但通常我们按顺序匹配
+    const toolCallIds = Array.from(toolCallMap.keys())
+    if (toolCallIndex < toolCallIds.length) {
+      const toolCallId = toolCallIds[toolCallIndex]
+      const toolCallInfo = toolCallMap.get(toolCallId)
+      if (toolCallInfo) {
+        parts.push({ type: 'tool-call', text: toolCallInfo.text })
+      }
+      toolCallIndex++
+    }
+    
+    lastIndex = match.index + match[0].length
+  }
+  
+  // 添加剩余的markdown内容
+  if (lastIndex < content.length) {
+    const markdownPart = content.substring(lastIndex).trim()
+    if (markdownPart) {
+      parts.push({ type: 'markdown', content: markdownPart })
+    }
+  }
+  
+  // 如果还有未匹配的工具调用，在末尾添加
+  while (toolCallIndex < toolCallMap.size) {
+    const toolCallIds = Array.from(toolCallMap.keys())
+    const toolCallId = toolCallIds[toolCallIndex]
+    const toolCallInfo = toolCallMap.get(toolCallId)
+    if (toolCallInfo) {
+      parts.push({ type: 'tool-call', text: toolCallInfo.text })
+    }
+    toolCallIndex++
+  }
+  
+  // 如果没有找到任何工具调用标记，但消息有tool_calls，在开头添加所有工具调用指示器
+  if (parts.length === 0 && toolCallMap.size > 0) {
+    for (const toolCallInfo of toolCallMap.values()) {
+      parts.push({ type: 'tool-call', text: toolCallInfo.text })
+    }
+    // 如果有markdown内容，添加在后面
+    if (content.trim()) {
+      parts.push({ type: 'markdown', content: content.trim() })
+    }
+  }
+  
+  return parts
 })
 
 // 检查消息是否包含tool_calls

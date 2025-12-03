@@ -32,6 +32,31 @@ if (typeof window !== 'undefined') {
   }
 }
 
+/**
+ * 从HTML中提取纯文本（类似innerText）
+ * 只返回HTML中可见的文本内容
+ */
+function extractPlainTextFromHtml(html: string): string {
+  if (!html || typeof html !== 'string') {
+    return ''
+  }
+
+  try {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html')
+    
+    // 移除script和style标签
+    doc.querySelectorAll('script, style, noscript').forEach(el => el.remove())
+    
+    // 直接获取body的innerText（类似浏览器Ctrl+A复制的文本）
+    const body = doc.body || doc.documentElement
+    return body.innerText || body.textContent || ''
+  } catch (error) {
+    logger.warn('HTML解析失败:', error)
+    return ''
+  }
+}
+
 const webCrawlerToolLocales: ToolLocales = {
   zh_cn: {
     name: '网页访问',
@@ -417,20 +442,84 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
       message: i18n.global.t('agent.tool.crawler.progress.processing', '正在处理响应...')
     })
 
-    const finalResult = {
+    // 判断是否为HTML内容
+    const isHtmlContent = result.contentType?.includes('text/html') || false
+    
+    logger.info('[WebCrawlerTool] 开始处理响应', {
+      url,
+      contentType: result.contentType,
+      isHtmlContent,
+      contentLength: result.content?.length || 0
+    })
+    
+    // 提取纯文本（用于返回给AI，避免上下文过长）
+    let plainTextContent = result.content
+    if (isHtmlContent && result.content) {
+      const originalContent = result.content
+      plainTextContent = extractPlainTextFromHtml(result.content)
+      const reduction = ((1 - plainTextContent.length / originalContent.length) * 100).toFixed(1)
+      
+      logger.info('[WebCrawlerTool] HTML内容已提取为纯文本', {
+        originalSize: originalContent.length,
+        extractedSize: plainTextContent.length,
+        reduction: `${reduction}%`,
+        originalPreview: originalContent.substring(0, 200) + '...',
+        extractedPreview: plainTextContent.substring(0, 200) + (plainTextContent.length > 200 ? '...' : '')
+      })
+    } else {
+      logger.info('[WebCrawlerTool] 非HTML内容，不提取纯文本', {
+        contentType: result.contentType
+      })
+    }
+
+    // Display组件使用完整内容（包括完整HTML）
+    const displayResult = {
       url,
       status: result.status,
       statusText: result.statusText,
       headers: result.headers,
-      content: result.content,
+      content: result.content, // 保留完整HTML用于显示
       contentType: result.contentType,
       size: result.content.length
     }
 
+    // 返回给AI的结果使用纯文本（如果是HTML）
+    const aiResult = {
+      url,
+      status: result.status,
+      statusText: result.statusText,
+      headers: result.headers,
+      content: plainTextContent, // 使用提取的纯文本
+      contentType: result.contentType,
+      size: plainTextContent.length,
+      // 如果是HTML，添加提示信息
+      ...(isHtmlContent && plainTextContent !== result.content ? {
+        note: 'HTML内容已提取为纯文本，完整HTML可在显示组件中查看'
+      } : {})
+    }
+
+    // 记录最终返回给AI的内容
+    logger.info('[WebCrawlerTool] 返回结果', {
+      forDisplay: {
+        hasFullHtml: displayResult.content === result.content,
+        contentLength: displayResult.content?.length || 0,
+        contentType: displayResult.contentType
+      },
+      forAI: {
+        isPlainText: aiResult.content === plainTextContent,
+        contentLength: aiResult.content?.length || 0,
+        contentType: aiResult.contentType,
+        hasNote: !!aiResult.note,
+        contentPreview: typeof aiResult.content === 'string' 
+          ? aiResult.content.substring(0, 500) + (aiResult.content.length > 500 ? '...' : '')
+          : 'N/A'
+      }
+    })
+
     onUpdate({
       content: {
         stage: 'completed',
-        ...finalResult
+        ...displayResult
       },
       format: 'json',
       componentName: 'WebCrawlerDisplay'
@@ -444,12 +533,13 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
       data: {
         content: {
           stage: 'completed',
-          ...finalResult
+          ...displayResult
         },
         format: 'json',
         componentName: 'WebCrawlerDisplay'
       },
-      result: finalResult
+      // 返回给AI的结果使用纯文本
+      result: aiResult
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)

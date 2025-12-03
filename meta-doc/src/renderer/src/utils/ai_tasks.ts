@@ -471,6 +471,20 @@ export function useAiTasks(): Ref<AITaskInfo[]> {
   return tasks as Ref<AITaskInfo[]>
 }
 
+/**
+ * 根据origin_key查找任务
+ */
+export function findTaskByOriginKey(originKey: string): InternalAITaskInfo | undefined {
+  return tasks.value.find(t => t.origin_key === originKey)
+}
+
+/**
+ * 获取任务Map（用于内部访问）
+ */
+export function getTaskMap(): Map<string, InternalAITaskInfo> {
+  return taskMap
+}
+
 // ========== IPC事件监听器 ==========
 
 // 在主窗口中：接收任务注册

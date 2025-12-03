@@ -89,15 +89,30 @@ export class ToolRunner {
       )
 
       // 包装为Observation（包含调用参数）
+      // 注意：如果result包含result字段（给AI的纯文本）和data字段（给Display的完整数据），
+      // 需要将两者都保存，以便serializeToOpenAIFormat可以使用result.result
+      const observationResult = result.result !== undefined 
+        ? { result: result.result, data: result.data }  // 同时保存result和data
+        : result.data  // 向后兼容：如果没有result字段，只使用data
+      
+      getLogger().debug(`[ToolRunner] 包装工具执行结果`, {
+        toolId,
+        hasResultField: result.result !== undefined,
+        hasDataField: result.data !== undefined,
+        resultType: typeof result.result,
+        dataType: typeof result.data,
+        status: result.status
+      })
+      
       return {
         toolId,
         toolName: typeof tool.config.name === 'string' 
           ? tool.config.name 
           : tool.config.name['zh_cn']?.name || tool.config.name['en_us']?.name || toolId,
         status: result.status === 'succeeded' ? 'succeeded' : 'failed',
-        result: result.data,
+        result: observationResult,
         error: result.error,
-        summary: result.data ? this.generateSummary(result.data) : undefined,
+        summary: result.result ? this.generateSummary(result.result) : (result.data ? this.generateSummary(result.data) : undefined),
         params: params  // 保存调用参数，用于快照导出
       }
     } catch (error) {
@@ -239,8 +254,27 @@ export class ToolRunner {
    */
   static serializeToOpenAIFormat(observation: ToolObservation): string {
     try {
-      // 如果result是ToolCallbackData格式（包含content和format字段），提取content
       let data = observation.result
+      
+      // 如果result是ToolCallbackResult格式（包含result和data字段），优先使用result（给AI的纯文本）
+      // 这是为了支持工具可以分别返回给AI和Display的内容（如web-crawler的HTML提取）
+      if (data && typeof data === 'object' && 'result' in data && 'data' in data) {
+        const toolResult = data as any
+        // 优先使用result字段（给AI的纯文本），如果没有则使用data
+        data = toolResult.result !== undefined ? toolResult.result : toolResult.data
+        
+        getLogger().debug(`[ToolRunner] 检测到ToolCallbackResult格式，使用result字段`, {
+          toolId: observation.toolId,
+          hasResult: toolResult.result !== undefined,
+          resultType: typeof toolResult.result,
+          dataType: typeof toolResult.data,
+          resultLength: typeof toolResult.result === 'string' ? toolResult.result.length : 'N/A',
+          dataLength: typeof toolResult.data === 'object' && toolResult.data?.content ? 
+            (typeof toolResult.data.content === 'string' ? toolResult.data.content.length : 'N/A') : 'N/A'
+        })
+      }
+      
+      // 如果result是ToolCallbackData格式（包含content和format字段），提取content
       if (data && typeof data === 'object' && 'content' in data && 'format' in data) {
         data = (data as any).content
       }
@@ -255,16 +289,33 @@ export class ToolRunner {
 
       // 如果是字符串，直接返回
       if (typeof data === 'string') {
+        getLogger().debug(`[ToolRunner] 序列化字符串结果`, {
+          toolId: observation.toolId,
+          length: data.length,
+          preview: data.substring(0, 200) + (data.length > 200 ? '...' : '')
+        })
         return data
       }
 
       // 如果是对象或数组，序列化为JSON字符串
       if (typeof data === 'object') {
-        return JSON.stringify(data)
+        const jsonString = JSON.stringify(data)
+        getLogger().debug(`[ToolRunner] 序列化对象结果`, {
+          toolId: observation.toolId,
+          jsonLength: jsonString.length,
+          jsonPreview: jsonString.substring(0, 200) + (jsonString.length > 200 ? '...' : '')
+        })
+        return jsonString
       }
 
       // 其他类型，转换为字符串
-      return String(data)
+      const stringResult = String(data)
+      getLogger().debug(`[ToolRunner] 序列化其他类型结果`, {
+        toolId: observation.toolId,
+        type: typeof data,
+        length: stringResult.length
+      })
+      return stringResult
     } catch (error) {
       getLogger().error(`序列化工具结果失败: ${observation.toolId}`, error)
       // 如果序列化失败，返回错误信息

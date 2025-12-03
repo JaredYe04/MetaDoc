@@ -1,6 +1,9 @@
 import { buildSchemaPrompt, DOCUMENT_TITLE_SCHEMA } from './schemas';
 import { CONTENT_SCHEMA } from '../constants/document';
 import { i18n } from '../i18n.js';
+import { extractOutlineTreeFromMarkdownLight, generateLightMarkdownFromOutlineTree } from './document/outline';
+import { extractOutlineTreeFromLatexLight } from './latex-utils';
+import type { DocumentOutlineNode } from '../../../types';
 
 // 语言到提示词配置的映射（使用动态导入）
 let promptsMapCache: Record<string, any> | null = null;
@@ -107,41 +110,77 @@ function getPromptTemplate(key: string, replacements: Record<string, string> = {
   return template;
 }
 
-export const generateTitlePrompt = (treeJson: string): string => {
-  const template = getPromptTemplate('generateTitlePrompt', { treeJson });
-  return template || `你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请自动判断文章在讲什么，并生成一个标题。
+export const generateTitlePrompt = (treeJson: string, useLight = true): string => {
+  // 如果传入的是JSON字符串，尝试转换为精简版
+  let outlineText = treeJson;
+  if (useLight && treeJson.trim().startsWith('{')) {
+    try {
+      const tree = JSON.parse(treeJson) as DocumentOutlineNode;
+      outlineText = generateLightMarkdownFromOutlineTree(tree);
+    } catch {
+      // 如果解析失败，使用原始值
+      outlineText = treeJson;
+    }
+  }
+  
+  const template = getPromptTemplate('generateTitlePrompt', { treeJson: outlineText });
+  return template || `你是一个文笔出色的编辑，以下是一篇文章的大纲结构，请自动判断文章在讲什么，并生成一个标题。
 
-**绝对禁止：**
-- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
-- 禁止添加任何解释、说明、前缀或后缀
-- 只输出标题本身，标题长度必须在15字以内
-- 输出必须从第一行开始就是标题，没有任何其他文字
+**输出要求：**
+- 请直接输出标题，建议从第一行开始就是标题
+- 标题长度应在15字以内
+- 优先输出标题内容，避免添加不必要的前缀或解释
 
-文章大纲：${treeJson}`;
+文章大纲：
+${outlineText}`;
 };
 
-export const generateDescriptionPrompt = (treeJson: string): string => {
-  const template = getPromptTemplate('generateDescriptionPrompt', { treeJson });
-  return template || `你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请自动判断文章在讲什么，并生成一篇文章摘要。
+export const generateDescriptionPrompt = (treeJson: string, useLight = true): string => {
+  // 如果传入的是JSON字符串，尝试转换为精简版
+  let outlineText = treeJson;
+  if (useLight && treeJson.trim().startsWith('{')) {
+    try {
+      const tree = JSON.parse(treeJson) as DocumentOutlineNode;
+      outlineText = generateLightMarkdownFromOutlineTree(tree);
+    } catch {
+      outlineText = treeJson;
+    }
+  }
+  
+  const template = getPromptTemplate('generateDescriptionPrompt', { treeJson: outlineText });
+  return template || `你是一个文笔出色的编辑，以下是一篇文章的大纲结构，请自动判断文章在讲什么，并生成一篇文章摘要。
 
-**绝对禁止：**
-- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
-- 禁止添加任何解释、说明、前缀或后缀
-- 只输出摘要内容，200字以内
-- 输出必须从第一行开始就是摘要，没有任何其他文字
+**输出要求：**
+- 请直接输出摘要内容，建议从第一行开始就是摘要
+- 摘要长度应在200字以内
+- 优先输出摘要内容，避免添加不必要的前缀或解释
 
-文章大纲：${treeJson}`;
+文章大纲：
+${outlineText}`;
 };
 
-export const generateKeywordsPrompt = (treeJson: string): string => {
-  const template = getPromptTemplate('generateKeywordsPrompt', { treeJson });
-  return template || `你是一个专业的文档编辑助手，以下是一篇文档的大纲结构(JSON)：${treeJson}。请根据全文内容生成 5-8 个高质量的关键词。
+export const generateKeywordsPrompt = (treeJson: string, useLight = true): string => {
+  // 如果传入的是JSON字符串，尝试转换为精简版
+  let outlineText = treeJson;
+  if (useLight && treeJson.trim().startsWith('{')) {
+    try {
+      const tree = JSON.parse(treeJson) as DocumentOutlineNode;
+      outlineText = generateLightMarkdownFromOutlineTree(tree);
+    } catch {
+      outlineText = treeJson;
+    }
+  }
+  
+  const template = getPromptTemplate('generateKeywordsPrompt', { treeJson: outlineText });
+  return template || `你是一个专业的文档编辑助手，以下是一篇文档的大纲结构：
+${outlineText}
 
-**绝对禁止：**
-- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
-- 禁止添加任何解释、说明、前缀或后缀
-- 只输出一个 JSON 数组，例如 ["人工智能","文字处理"]
-- 输出必须从第一行开始就是JSON数组，没有任何其他文字`;
+请根据全文内容生成 5-8 个高质量的关键词。
+
+**输出要求：**
+- 请直接输出一个 JSON 数组，例如 ["人工智能","文字处理"]
+- 建议从第一行开始就是JSON数组，避免添加不必要的解释或前缀
+- 如果确实需要说明，请保持简洁，优先输出JSON数组`;
 };
 
 export const sectionChangePrompt = (
@@ -152,7 +191,18 @@ export const sectionChangePrompt = (
   contextMode: number,
   article: string,
   language: 'markdown' | 'latex' = 'markdown',
+  useLight = true,
 ): string => {
+  // 对于mode1，如果tree是JSON格式，转换为精简版
+  let treeText = tree;
+  if (contextMode === 1 && useLight && tree.trim().startsWith('{')) {
+    try {
+      const treeObj = JSON.parse(tree) as DocumentOutlineNode;
+      treeText = generateLightMarkdownFromOutlineTree(treeObj);
+    } catch {
+      treeText = tree;
+    }
+  }
   const prompts = getCurrentLocalePrompts();
   const sectionPrompt = prompts.prompts?.sectionChangePrompt;
   
@@ -169,8 +219,8 @@ export const sectionChangePrompt = (
         break;
       case 1:
         prompt += (!section
-          ? (sectionPrompt.mode1_empty || '').replace('{tree}', tree).replace('{title}', title).replace('{userPrompt}', userPrompt)
-          : (sectionPrompt.mode1_hasContent || '').replace('{tree}', tree).replace('{title}', title).replace('{section}', section).replace('{userPrompt}', userPrompt));
+          ? (sectionPrompt.mode1_empty || '').replace('{tree}', treeText).replace('{title}', title).replace('{userPrompt}', userPrompt)
+          : (sectionPrompt.mode1_hasContent || '').replace('{tree}', treeText).replace('{title}', title).replace('{section}', section).replace('{userPrompt}', userPrompt));
         break;
       case 2:
         prompt += (!section
@@ -191,7 +241,7 @@ export const sectionChangePrompt = (
       prompt += `现在用户有生成内容的需求，请根据用户的提示词进行文字编写。"。当前需要处理的章节标题是："${title}"，用户提示词如下："${userPrompt}"。`;
       break;
     case 1:
-      prompt += `现在用户有一篇文章，其中有一个章节需要你修改或生成。以下是文章的大纲结构："${tree}"。当前需要处理的章节标题是："${title}"，`;
+      prompt += `现在用户有一篇文章，其中有一个章节需要你修改或生成。以下是文章的大纲结构：\n${treeText}\n\n当前需要处理的章节标题是："${title}"，`;
       prompt += !section
         ? '章节内容为空，需要你根据用户提示词来生成这一节。'
         : `需要修改的原本章节内容是："${section}"，`;
@@ -208,7 +258,7 @@ export const sectionChangePrompt = (
       break;
   }
   prompt += formatRequirement;
-  prompt += '\n\n**绝对禁止：**\n- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等\n- 禁止添加任何解释、说明、前缀或后缀\n- 禁止出现"请用中文回答"等自言自语的内容\n- 输出必须从第一行开始就是正文内容，没有任何其他文字';
+  prompt += '\n\n**输出要求：**\n- 请直接输出修改或生成的内容，建议从第一行开始就是正文\n- 建议避免复述提示词或添加不必要的解释\n- 如果确实需要说明，请保持简洁，优先输出正文内容';
   return prompt;
 };
 
@@ -216,15 +266,31 @@ export const outlineChangePrompt = (
   fullTreeJson: string,
   nodeTreeJson: string,
   userPrompt: string,
+  useLight = true,
 ): string => {
-  const template = getPromptTemplate('outlineChangePrompt', { fullTreeJson, nodeTreeJson, userPrompt });
-  return template || `你是一个文笔出色的编辑，现在有一个JSON类型的文章大纲树，全文大纲如下:"${fullTreeJson}"，当前章节是："${nodeTreeJson}"，以下是用户的需求："${userPrompt}"，请根据用户需求，结合本章节在全文的上下文结构，尝试生成本章节的大纲（Markdown格式）一个标题占一行，如果有多层结构，使用分级标题。
+  // 转换全文大纲为精简版
+  let fullTreeText = fullTreeJson;
+  if (useLight && fullTreeJson.trim().startsWith('{')) {
+    try {
+      const tree = JSON.parse(fullTreeJson) as DocumentOutlineNode;
+      fullTreeText = generateLightMarkdownFromOutlineTree(tree);
+    } catch {
+      fullTreeText = fullTreeJson;
+    }
+  }
+  
+  // nodeTreeJson保持原样，因为可能需要节点信息
+  const template = getPromptTemplate('outlineChangePrompt', { fullTreeJson: fullTreeText, nodeTreeJson, userPrompt });
+  return template || `你是一个文笔出色的编辑，现在有一篇文章大纲，全文大纲如下：
 
-**绝对禁止：**
-- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
-- 禁止添加任何解释、说明、前缀或后缀
-- 只输出本章节的子大纲（Markdown格式）
-- 输出必须从第一行开始就是标题，没有任何其他文字，而不是全文大纲`;
+${fullTreeText}
+
+当前章节是："${nodeTreeJson}"，以下是用户的需求："${userPrompt}"，请根据用户需求，结合本章节在全文的上下文结构，尝试生成本章节的大纲（Markdown格式）一个标题占一行，如果有多层结构，使用分级标题。
+
+**输出要求：**
+- 请直接输出本章节的子大纲（Markdown格式），而不是全文大纲
+- 建议从第一行开始就是标题，优先输出大纲内容
+- 如果确实需要说明，请保持简洁，优先输出大纲`;
 };
 
 export const generateArticlePrompt = (mood: string[], userPrompt: string): string => {
@@ -233,11 +299,10 @@ export const generateArticlePrompt = (mood: string[], userPrompt: string): strin
   const template = getPromptTemplate('generateArticlePrompt', { userPrompt, mood: normalizedMood.toString() });
   return template || `你是一个文笔出色的编辑，现在用户需要你为他写一篇文章，以下是用户的需求："${userPrompt}"，除此之外，你应当使用${normalizedMood.toString()}的情绪与口吻来撰写文章。
 
-**绝对禁止：**
-- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
-- 禁止添加任何解释、说明、前缀或后缀
-- 只输出文章内容本身
-- 输出必须从第一行开始就是正文，没有任何其他文字`;
+**输出要求：**
+- 请直接输出文章内容，建议从第一行开始就是正文
+- 优先输出文章内容本身，避免添加不必要的前缀或解释
+- 如果确实需要说明，请保持简洁，优先输出正文`;
 };
 
 /**
@@ -262,11 +327,10 @@ export const wholeArticleContextPrompt = (content: string): string => {
   const template = getPromptTemplate('wholeArticleContextPrompt', { content });
   return template || `你是一个文笔出色的编辑，现在我手上有一篇文档，内容如下：：：【文章开始】"${content}"【文章结束】；；；你需要理解文档意思，并根据我的提示词来进一步生成内容。
 
-**绝对禁止：**
-- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
-- 禁止添加任何解释、说明、前缀或后缀
-- 只输出生成的内容本身
-- 输出必须从第一行开始就是正文，没有任何其他文字`;
+**输出要求：**
+- 请直接输出生成的内容，建议从第一行开始就是正文
+- 优先输出生成的内容本身，避免添加不必要的前缀或解释
+- 如果确实需要说明，请保持简洁，优先输出正文`;
 };
 
 export interface SuggestionPreset {
@@ -307,7 +371,7 @@ export const explainWordPrompt = (word: string, contexts?: string[]): string => 
   }
   
   // 回退逻辑
-  return `请用一句话解释"${word}"这个词的意思。${contextText ? `结合以下文档中的上下文，给出更符合文章语境的解释：${contexts?.map((ctx, idx) => `${idx + 1}. ${ctx}`).join('\n')}` : ''}\n\n**必须严格遵守：只输出释义句子本身，从第一行开始直接输出，不要任何其他内容。禁止输出任何格式说明、标题、标签、前缀、后缀。禁止复述提示词或添加任何解释性文字。**`;
+  return `请用一句话解释"${word}"这个词的意思。${contextText ? `结合以下文档中的上下文，给出更符合文章语境的解释：${contexts?.map((ctx, idx) => `${idx + 1}. ${ctx}`).join('\n')}` : ''}\n\n**输出要求：请直接输出释义句子本身，建议从第一行开始直接输出。优先输出释义内容，避免添加格式说明、标题、标签等不必要的内容。**`;
 };
 
 export const generateGraphPrompt = (
@@ -320,11 +384,10 @@ export const generateGraphPrompt = (
   const template = getPromptTemplate('generateGraphPrompt', { engine, type, prompt, specialPrompt: specialPromptText });
   return template || `你现在需要使用代码来画出一个图表，你需要使用${engine}的图形语言，图表类型是：${type}，用户的提示词是：${prompt}，请根据用户的提示词来生成图表。
 
-**绝对禁止：**
-- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
-- 禁止添加任何解释、说明、前缀或后缀
-- 只输出代码，代码要用代码框\`\`\`${engine}\`\`\`包裹，并且代码框要包含图形语言的名称${specialPromptText}
-- 输出必须从第一行开始就是代码框，没有任何其他文字`;
+**输出要求：**
+- 请输出代码，代码要用代码框\`\`\`${engine}\`\`\`包裹，并且代码框要包含图形语言的名称${specialPromptText}
+- 建议从第一行开始就是代码框，优先输出代码内容
+- 如果确实需要说明，请保持简洁，优先输出代码`;
 };
 
 export const expandTreeNodePrompt = (
@@ -337,11 +400,10 @@ export const expandTreeNodePrompt = (
   const template = getPromptTemplate('expandTreeNodePrompt', { treeJson, nodeJson, schema, userPrompt: userPromptText });
   return template || `你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构，请判断文章的大致大纲结构:${treeJson}接下来，你要扩展其中的一个节点，为节点添加若干个子章节节点，需要扩展的节点如下：${nodeJson}，请根据节点的标题和文本内容，自动生成若干个子章节节点，以JSON列表的方式返回,类似于[{...},{...}]节点的格式与原节点相同，需要遵循如下规范:${schema}。${userPromptText}
 
-**绝对禁止：**
-- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
-- 禁止添加任何解释、说明、前缀或后缀
-- 只返回JSON格式的节点列表
-- 输出必须从第一行开始就是JSON数组，没有任何其他文字`;
+**输出要求：**
+- 请返回JSON格式的节点列表
+- 建议从第一行开始就是JSON数组，优先输出JSON内容
+- 如果确实需要说明，请保持简洁，优先输出JSON数组`;
 };
 
 export const generateContentPrompt = (
@@ -356,11 +418,10 @@ export const generateContentPrompt = (
 **重要：你必须严格按照 JSON 格式输出，格式如下：**
 {"content":"你的章节内容"}
 
-**绝对禁止：**
-- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
-- 禁止添加任何解释、说明、前缀或后缀
-- 禁止在 JSON 前后添加任何文字
-- 输出必须从第一行开始就是 JSON 对象，格式为 {"content":"..."}，没有任何其他文字`;
+**输出要求：**
+- 请直接输出 JSON 对象，格式为 {"content":"..."}，建议从第一行开始就是JSON对象
+- 优先输出JSON对象，避免在 JSON 前后添加不必要的文字
+- 如果确实需要说明，请保持简洁，优先输出JSON对象`;
   return buildSchemaPrompt(CONTENT_SCHEMA, baseInstruction);
 };
 
@@ -376,11 +437,10 @@ export const generateParentNodeContentPrompt = (
 **重要：你必须严格按照 JSON 格式输出，格式如下：**
 {"content":"你的章节内容"}
 
-**绝对禁止：**
-- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
-- 禁止添加任何解释、说明、前缀或后缀
-- 禁止在 JSON 前后添加任何文字
-- 输出必须从第一行开始就是 JSON 对象，格式为 {"content":"..."}，没有任何其他文字`;
+**输出要求：**
+- 请直接输出 JSON 对象，格式为 {"content":"..."}，建议从第一行开始就是JSON对象
+- 优先输出JSON对象，避免在 JSON 前后添加不必要的文字
+- 如果确实需要说明，请保持简洁，优先输出JSON对象`;
   return buildSchemaPrompt(CONTENT_SCHEMA, baseInstruction);
 };
 
@@ -394,11 +454,10 @@ export const updateTitlePrompt = (conversationSummary: string): string => {
 对话内容如下：
 ${conversationSummary}
 
-**绝对禁止：**
-- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
-- 禁止添加任何解释、说明、前缀或后缀
-- 请严格按照 JSON Schema 格式输出，只输出 JSON 对象
-- 输出必须从第一行开始就是JSON对象，没有任何其他文字`;
+**输出要求：**
+- 请严格按照 JSON Schema 格式输出，优先输出 JSON 对象
+- 建议从第一行开始就是JSON对象，避免添加不必要的解释
+- 如果确实需要说明，请保持简洁，优先输出JSON对象`;
   return buildSchemaPrompt(DOCUMENT_TITLE_SCHEMA, instruction);
 };
 
@@ -407,10 +466,10 @@ export const ragQueryReferencePrompt = (queryResults: unknown): string => {
   const template = getPromptTemplate('ragQueryReferencePrompt', { queryResults: queryResultsStr });
   return template || `本系统接入了RAG检索系统，以下是知识库的检索结果，由于内容可能与用户需求有偏差，所以请自行仔细甄别是否采纳：[检索内容开始]${queryResultsStr}[检索内容结束]
 
-**绝对禁止：**
-- 禁止复述提示词，禁止说"根据您的要求"、"我将为您"、"好的"、"明白了"等
-- 禁止添加任何解释、说明、前缀或后缀
-- 只输出实际需要的内容，从第一行开始就是正文`;
+**输出要求：**
+- 请直接输出实际需要的内容，建议从第一行开始就是正文
+- 优先输出内容本身，避免添加不必要的前缀或解释
+- 如果确实需要说明，请保持简洁，优先输出正文`;
 };
 
 export const suggestionCompletionPrompt = (
@@ -477,10 +536,10 @@ export const suggestionCompletionPrompt = (
   
   // 回退到原始实现（使用优化的内容）
   return [
-      {
-        role: 'system',
-        content: systemContent,
-      },
+    {
+      role: 'system',
+      content: systemContent,
+    },
     {
       role: 'user',
       content: userContent,

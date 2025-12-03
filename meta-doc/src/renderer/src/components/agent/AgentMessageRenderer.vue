@@ -308,35 +308,27 @@ const bubbleStyle = computed(() => {
 
 const messageMarkdown = computed(() => {
   if (props.message.type === 'chat' || props.message.type === 'thought') {
-    // 如果消息包含tool_calls，不显示原始内容
+    // 如果消息包含tool_calls，不显示原始内容（显示友好的工具调用提示）
     if (hasToolCalls.value) {
       return ''
     }
     
     let content = props.message.markdown || '';
     
-    // 清理工具调用标记，确保不显示给用户
-    {
-      const toolCallsBeginPattern = /\<｜tool▁calls▁begin｜>/i;
-      if (toolCallsBeginPattern.test(content)) {
-        // 移除工具调用标记块
-        content = content.replace(
-          /\<｜tool▁calls▁begin｜>[\s\S]*?\<｜tool▁calls▁end｜>/gi,
-          ''
-        ).trim();
-      }
+    // 清理工具调用标记
+    // 重要：只有在确认没有tool_calls时才清理标记
+    // 如果在流式输出过程中，tool_calls可能还没有被添加，此时不应该清理标记
+    // 否则会导致markdown被清空，而tool_calls提示又显示不出来
+    // 如果消息有tool_calls，上面的逻辑已经返回空字符串了，不会执行到这里
+    // 所以这里只清理那些确实没有tool_calls的消息中的标记
+    if (!hasToolCalls.value) {
+      // 清理新的<tool_call>格式
+      content = content.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '').trim()
+      
+      // 清理旧的标记格式（兼容性）
+      content = content.replace(/\<\|redacted_tool_calls_begin\|>[\s\S]*?\<\|redacted_tool_calls_end\|>/gi, '').trim()
+      content = content.replace(/\<｜tools▁call▁begin｜>[\s\S]*?<｜tools▁call▁end｜>/gi, '').trim()
     }
-    {
-      const toolCallsBeginPattern = /\<｜tools▁call▁begin｜>/i;
-      if (toolCallsBeginPattern.test(content)) {
-        // 移除工具调用标记块
-        content = content.replace(
-          /\<｜tools▁call▁begin｜>[\s\S]*?<｜tools▁call▁end｜>/gi,
-          ''
-        ).trim();
-      }
-    }
-
     
     return content;
   }

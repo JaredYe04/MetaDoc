@@ -15,6 +15,7 @@ import { workflowManager } from './workflow-manager'
 import { createRendererLogger } from '../logger'
 import { extractOuterJsonString } from '../regex-utils'
 import { parseToolCalls, type ParsedToolCall } from './tool-call-processor'
+import { ToolCallQueue } from './tool-call-queue'
 import { reactive } from 'vue'
 import { getLlmTemperature } from '../settings.js'
 
@@ -51,6 +52,8 @@ export abstract class BaseEngineExecutor {
   protected session: AgentSession | LegacyAgentSession
   protected agentConfig: AgentConfig
   protected options: EngineExecuteOptions
+  protected currentToolCallQueue: ToolCallQueue | null = null // 当前的工具调用队列
+  protected isAiResponding = false // 标记AI是否正在响应
 
   constructor(
     engine: AgentEngine,
@@ -366,8 +369,38 @@ export abstract class BaseEngineExecutor {
   }
 
   /**
+   * 创建工具调用队列（每次AI输出开始时调用）
+   */
+  protected createToolCallQueue(): ToolCallQueue {
+    // 如果已有队列且正在运行，等待完成
+    if (this.currentToolCallQueue && !this.currentToolCallQueue.isEmpty()) {
+      getLogger().warn('[BaseEngineExecutor] 检测到未完成的工具调用队列，等待完成...')
+    }
+    
+    // 创建新的队列
+    this.currentToolCallQueue = new ToolCallQueue(
+      this.session,
+      this.options.signal,
+      (task, observation) => {
+        // 工具调用完成回调（可选）
+        getLogger().debug('[BaseEngineExecutor] 工具调用完成:', {
+          toolId: task.tool_id,
+          status: observation.status
+        })
+      },
+      () => {
+        // 队列完成回调
+        getLogger().debug('[BaseEngineExecutor] 工具调用队列完成')
+      }
+    )
+    
+    return this.currentToolCallQueue
+  }
+
+  /**
    * 创建工具调用检测回调（统一处理逻辑）
    * 用于在流式输出过程中检测并处理工具调用标记
+   * 现在会将工具调用添加到队列中，而不是立即执行
    */
   protected createToolCallsDetectedHandler(
     assistantMessage: ChatAgentMessage
@@ -403,14 +436,37 @@ export abstract class BaseEngineExecutor {
           originalMarkdownLength: assistantMessage.markdown?.length || 0
         })
         
+        // 确保工具调用队列存在
+        if (!this.currentToolCallQueue) {
+          this.createToolCallQueue()
+        }
+        
+        // 将工具调用添加到队列（立即开始执行）
+        for (const toolCall of toolCalls) {
+          this.currentToolCallQueue!.addTask(toolCall)
+        }
+        
+        getLogger().info('[BaseEngineExecutor] 已将工具调用添加到队列，开始异步执行')
+        
         // 注意：不删除markdown中的工具调用标记
         // 原因：
         // 1. AI需要看到这些内容来理解上下文（在buildHistoryMessages中会使用）
-        // 2. UI层面（AgentMessageRenderer）已经有逻辑：如果有tool_calls，就不显示markdown，而是显示友好的提示
+        // 2. UI层面（AgentMessageRenderer）已经有逻辑：如果有tool_calls，就替换标记为友好的提示
         // 3. 这样既保证了AI能看到完整上下文，又保证了用户看到的是友好的UI提示
       } else {
         getLogger().warn('[BaseEngineExecutor] ⚠️ assistantMessage不存在，无法更新')
       }
+    }
+  }
+
+  /**
+   * 等待工具调用队列完成
+   */
+  protected async waitForToolCallQueue(): Promise<void> {
+    if (this.currentToolCallQueue) {
+      getLogger().debug('[BaseEngineExecutor] 等待工具调用队列完成...')
+      await this.currentToolCallQueue.waitForComplete()
+      getLogger().debug('[BaseEngineExecutor] 工具调用队列已完成')
     }
   }
 
@@ -810,6 +866,10 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         message: this.formatProgressMessage('思考中...', iterations, maxIterations, isUnlimited)
       })
 
+      // 创建新的工具调用队列（每次AI输出开始时）
+      this.createToolCallQueue()
+      this.isAiResponding = true
+
       // 创建响应式消息对象用于实时流式显示
       const assistantMessage = reactive({
         id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -840,14 +900,17 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           reactiveMessage: assistantMessage,
           onTaskCreated: this.options.onTaskCreated,
           onToolCallsDetected: async (toolCalls) => {
-            // 在流式输出过程中检测到工具调用，立即执行
+            // 在流式输出过程中检测到工具调用，添加到队列
             toolCallsDetectedDuringStream = true
             detectedToolCalls = toolCalls
-            // 使用统一的工具调用处理逻辑
+            // 使用统一的工具调用处理逻辑（会添加到队列并立即执行）
             await this.createToolCallsDetectedHandler(assistantMessage)(toolCalls)
           }
         }
       )
+
+      // AI输出完成
+      this.isAiResponding = false
 
       // 检查是否有工具调用
       // 优先使用流式输出过程中检测到的工具调用
@@ -951,13 +1014,74 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           })
         }
       }
+      // 等待工具调用队列完成（如果队列中有任务）
+      // 注意：工具调用已经在流式输出过程中添加到队列并开始执行
+      // 这里只需要等待完成即可
+      await this.waitForToolCallQueue()
+
       this.options.onProgress?.({
         stage: 'tool-calling',
-        message: `正在调用 ${toolCalls.length} 个工具...`
+        message: `工具调用完成`
       })
 
-      const observations: ToolObservation[] = []
+      // 注意：工具调用已经在队列中执行完成，不需要再次执行
+      // 下面的代码是为了兼容旧逻辑，但实际上工具调用已经在队列中处理了
+      // 如果工具调用是在流式输出过程中检测到的，它们已经在队列中执行
+      // 如果工具调用是从响应中解析的（兜底机制），需要添加到队列
+      if (!toolCallsDetectedDuringStream && toolCalls) {
+        // 兜底机制：如果流式输出过程中没有检测到工具调用，但响应中有工具调用
+        // 需要添加到队列并执行
+        getLogger().debug('[AutoGPT] 使用兜底机制：从响应中解析的工具调用，添加到队列')
+        for (const toolCall of toolCalls) {
+          if (this.currentToolCallQueue) {
+            this.currentToolCallQueue.addTask(toolCall)
+          }
+        }
+        await this.waitForToolCallQueue()
+      }
 
+      // 旧的执行逻辑已移除，因为工具调用现在在队列中执行
+      // 工具调用结果已经通过队列添加到messages中，我们需要从messages中获取结果
+      // 构建观察结果文本（从messages中获取工具执行结果）
+      let observationText = '\n\n=== 工具执行结果 ===\n'
+      
+      // 从messages中查找对应的tool消息
+      if (toolCalls) {
+        for (const toolCall of toolCalls) {
+          // 在当前消息之后查找对应的tool消息
+          const currentMessageIndex = this.session.messages.indexOf(assistantMessage)
+          if (currentMessageIndex !== -1) {
+            for (let i = currentMessageIndex + 1; i < this.session.messages.length; i++) {
+              const msg = this.session.messages[i]
+              if (msg.type === 'tool' && msg.role === 'tool' && (msg as any).tool_call_id === toolCall.id) {
+                const toolMsg = msg as any
+                const toolName = toolMsg.tool?.name || toolCall.tool_id
+                const status = toolMsg.status === 'succeeded' ? '成功' : '失败'
+                observationText += `工具 ${toolName}: ${status}\n`
+                
+                if (toolMsg.status === 'succeeded') {
+                  // 使用已保存的OpenAI格式content（在markdown字段中）
+                  const content = toolMsg.markdown || ToolRunner.serializeToOpenAIFormat({
+                    toolId: toolCall.tool_id,
+                    toolName,
+                    status: 'succeeded',
+                    result: toolMsg.outputs?.[0]?.data
+                  })
+                  observationText += `结果: ${content}\n`
+                } else if (toolMsg.error) {
+                  observationText += `错误: ${toolMsg.error}\n`
+                }
+                break
+              }
+            }
+          }
+        }
+      }
+
+      // 注意：不再需要手动执行工具调用，因为它们已经在队列中执行完成
+      // 下面的代码已被注释，但保留用于参考
+      /*
+      const observations: ToolObservation[] = []
       for (const toolCall of toolCalls) {
         try {
           // 处理dummy-tool（无效的工具调用）
@@ -1093,20 +1217,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           )
         }
       }
-
-      // 构建观察结果文本（使用完整结果，不截断）
-      let observationText = '\n\n=== 工具执行结果 ===\n'
-      for (const obs of observations) {
-        observationText += `工具 ${obs.toolName}: ${obs.status === 'succeeded' ? '成功' : '失败'}\n`
-        if (obs.status === 'succeeded') {
-          // 使用完整结果，不截断
-          const fullResult = ToolRunner.serializeToOpenAIFormat(obs)
-          observationText += `结果: ${fullResult}\n`
-        }
-        if (obs.error) {
-          observationText += `错误: ${obs.error}\n`
-        }
-      }
+      */
 
       // 重新构建上下文（包含新的工具结果）
       contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig)
@@ -1185,6 +1296,10 @@ export class SimpleChatEngineExecutor extends BaseEngineExecutor {
     // 构建上下文消息（不包含工具提示）
     const contextMessages = AIContextManager.buildMessages(this.session, this.agentConfig)
 
+    // 创建新的工具调用队列（每次AI输出开始时）
+    this.createToolCallQueue()
+    this.isAiResponding = true
+
     // 创建响应式消息对象用于实时流式显示
     const assistantMessage = reactive({
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1215,6 +1330,12 @@ export class SimpleChatEngineExecutor extends BaseEngineExecutor {
         onToolCallsDetected: this.createToolCallsDetectedHandler(assistantMessage)
       }
     )
+
+    // AI输出完成
+    this.isAiResponding = false
+
+    // 等待工具调用队列完成（如果队列中有任务）
+    await this.waitForToolCallQueue()
 
     // 消息已经通过reactiveMessage实时更新，不需要再调用addAssistantMessage
 

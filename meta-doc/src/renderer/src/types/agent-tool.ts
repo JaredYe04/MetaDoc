@@ -201,6 +201,16 @@ export interface ToolInvocationContext {
   onStatusUpdate?: (status: ToolExecutionStatus, data?: ToolCallbackData, progress?: ToolProgress) => void
   /** 超时计数（用于跟踪连续超时次数） */
   timeoutCount?: number
+  /** 最后一次更新时间（用于检测是否有实际进展） */
+  lastUpdateTime?: number
+  /** 最后一次ref值（用于检测流式输出是否有更新） */
+  lastRefValue?: string
+  /** 最后一次ref值长度（用于检测流式输出是否有更新） */
+  lastRefLength?: number
+  /** origin_key（用于查找对应的AI任务） */
+  originKey?: string
+  /** 是否已超时（用于标记超时但允许解析已有内容） */
+  isTimeout?: boolean
 }
 
 /**

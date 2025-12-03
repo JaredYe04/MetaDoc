@@ -498,9 +498,13 @@ export class AIContextManager {
       renderer?: string
     }> = []
     
-    // 如果data是ToolCallbackData格式，提取format和content
-    if (data && typeof data === 'object' && 'content' in data && 'format' in data) {
-      const callbackData = data as any
+    // 检查是否是包装对象（包含result和data字段，用于区分给AI和Display的内容）
+    const isWrappedResult = data && typeof data === 'object' && 'result' in data && 'data' in data
+    const displayData = isWrappedResult ? (data as any).data : data  // 用于Display组件的数据
+    
+    // 如果displayData是ToolCallbackData格式，提取format和content
+    if (displayData && typeof displayData === 'object' && 'content' in displayData && 'format' in displayData) {
+      const callbackData = displayData as any
       const displayComponent = toolConfig?.displayComponent
       
       // 提取组件名称（如果是组件对象）
@@ -529,8 +533,8 @@ export class AIContextManager {
         data: callbackData.content,
         renderer: rendererName // 使用组件名称字符串
       })
-    } else if (data) {
-      // 兼容旧格式：直接使用data
+    } else if (displayData) {
+      // 兼容旧格式：直接使用displayData
       const displayComponent = toolConfig?.displayComponent
       
       // 提取组件名称（如果是组件对象）
@@ -556,18 +560,20 @@ export class AIContextManager {
         id: 'result',
         label: '结果',
         format: 'json' as 'text' | 'json' | 'markdown' | 'html' | 'table' | 'custom',
-        data,
+        data: displayData,
         renderer: rendererName // 使用组件名称字符串
       })
     }
 
     // 构建OpenAI格式的content字符串（在保存时就生成，确保格式正确）
     // 使用ToolRunner的序列化方法，确保所有工具的结果格式一致
+    // 注意：如果data是包装对象（包含result和data），serializeToOpenAIFormat会优先使用result字段（给AI的纯文本）
+    // 如果data不是包装对象，serializeToOpenAIFormat会使用data作为结果
     const observation = {
       toolId,
       toolName,
       status,
-      result: data,
+      result: data,  // 传递原始data，serializeToOpenAIFormat会处理包装对象的提取
       error,
       summary,
       toolConfig

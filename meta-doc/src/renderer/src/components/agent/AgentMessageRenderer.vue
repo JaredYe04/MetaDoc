@@ -759,6 +759,11 @@ onBeforeUnmount(() => {
   max-width: calc(100% - 60px);
   /* 设置合理的最小宽度，但也要考虑父容器宽度，确保在小屏幕上可读 */
   min-width: min(250px, 50%);
+  /* 确保最小高度至少等于头像高度，以保证垂直居中对齐 */
+  min-height: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   border: 1px solid transparent;
   border-radius: 14px;
   padding: 16px 18px;
@@ -808,6 +813,31 @@ onBeforeUnmount(() => {
 .agent-message__actions--right {
   left: auto;
   right: -80px;
+}
+
+.agent-message__content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.agent-message__content :deep(.md-editor) {
+  width: 100%;
+}
+
+.agent-message__content :deep(.md-editor-preview) {
+  margin: 0;
+  padding: 0;
+}
+
+.agent-message__content :deep(.md-editor-preview p) {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.agent-message__content :deep(.md-editor-preview p:not(:last-child)) {
+  margin-bottom: 0.5em;
 }
 
 .agent-message__content :deep(pre) {

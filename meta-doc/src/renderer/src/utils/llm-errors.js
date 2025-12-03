@@ -186,6 +186,7 @@ export async function validateLlmConfig(config) {
     case "openai":
     case "openai-official":
     case "deepseek":
+    case "gemini":
       if (!config.apiKey) {
         throw new LlmError(
           LlmErrorType.INVALID_CONFIG,

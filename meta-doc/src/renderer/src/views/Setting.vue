@@ -140,11 +140,14 @@ onMounted(async () => {
 }
 
 .setting-section {
-  display: block;
+  display: flex;
+  flex-direction: column;
   padding: 32px 24px 64px;
   box-sizing: border-box;
   height: 100%;
+  width: 100%;
   overflow: hidden;
+  min-height: 0;
 }
 
 .setting-section.debug-section {

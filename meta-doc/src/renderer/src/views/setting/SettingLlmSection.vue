@@ -1060,8 +1060,7 @@ const testLlmApi = async () => {
   testResult.value = '';
   
   try {
-    const prompt = t('setting.testPrompt');
-    const enableKnowledgeBase = await getSetting('enableKnowledgeBase');
+    const prompt = `Current time: ${new Date().toLocaleString()}\n${t('setting.testPrompt')}`;
     const temperature = await getSetting('llmTemperature') || 1.3;
     
     // 解析测试场景：格式为 "completion-stream", "completion-nonstream", "chat-stream", "chat-nonstream"
@@ -1092,7 +1091,7 @@ const testLlmApi = async () => {
       {
         stream: stream, // 明确传递stream参数，确保类型正确
         temperature,
-      enableKnowledgeBase: Boolean(enableKnowledgeBase)
+        max_tokens: 128
       }
     );
     
@@ -1105,7 +1104,7 @@ const testLlmApi = async () => {
       meta: {
         stream: stream,
         temperature,
-        enableKnowledgeBase: Boolean(enableKnowledgeBase)
+        max_tokens: 128
       }
     });
     
@@ -1166,15 +1165,18 @@ onMounted(async () => {
 <style scoped>
 .llm-settings {
   height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .global-settings-section {
   margin-bottom: 24px;
   padding-bottom: 24px;
   border-bottom: 1px solid var(--el-border-color);
+  flex-shrink: 0;
 }
 
 .section-title {
@@ -1189,22 +1191,54 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
 }
 
 .llm-config-layout {
   display: flex;
   height: 100%;
+  width: 100%;
   min-height: 0;
   gap: 16px;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .config-list-pane {
+  min-width: 200px;
+  max-width: 320px;
   width: 280px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   border-right: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"');
   background-color: v-bind('themeState.currentTheme.background2nd');
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* 在小屏幕上，配置列表面板可以稍微缩小 */
+@media (max-width: 1200px) {
+  .config-list-pane {
+    min-width: 180px;
+    max-width: 280px;
+    width: 240px;
+  }
+}
+
+@media (max-width: 800px) {
+  .llm-config-layout {
+    flex-direction: column;
+  }
+  
+  .config-list-pane {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    max-height: 200px;
+    border-right: none;
+    border-bottom: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"');
+  }
 }
 
 .pane-header {
@@ -1360,20 +1394,75 @@ onMounted(async () => {
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+  width: 0; /* 配合 flex: 1 使用，确保能够正确收缩 */
 }
 
 .config-form-scroll {
   flex: 1;
   overflow: hidden;
   min-height: 0;
+  width: 100%;
+}
+
+.config-form-scroll :deep(.el-scrollbar) {
+  height: 100%;
+  width: 100%;
 }
 
 .config-form-scroll :deep(.el-scrollbar__wrap) {
   padding: 16px;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.settings-form {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .settings-form :deep(.el-form-item) {
   margin-bottom: 24px;
+}
+
+.settings-form :deep(.el-input),
+.settings-form :deep(.el-select),
+.settings-form :deep(.el-input-number),
+.settings-form :deep(.el-textarea) {
+  width: 100%;
+  max-width: 100%;
+}
+
+.settings-form :deep(.el-input-number) {
+  width: 100%;
+}
+
+.settings-form :deep(.el-input-number .el-input__inner) {
+  width: 100%;
+}
+
+/* 确保所有子组件都能自适应 */
+.llm-settings :deep(*) {
+  box-sizing: border-box;
+}
+
+/* 确保对话框内容也能自适应 */
+:deep(.el-dialog__body) {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+:deep(.el-dialog__body .el-form) {
+  width: 100%;
+  max-width: 100%;
+}
+
+:deep(.el-dialog__body .el-input),
+:deep(.el-dialog__body .el-select),
+:deep(.el-dialog__body .el-textarea) {
+  width: 100%;
+  max-width: 100%;
 }
 </style>
 

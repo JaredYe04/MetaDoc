@@ -323,17 +323,71 @@ const bubbleStyle = computed(() => {
   }
 })
 
+/**
+ * 清理多余的或不完整的工具调用标记
+ * 保留完整的标记对，只清理单独的开始或结束标记
+ */
+const cleanIncompleteToolCallTags = (content: string): string => {
+  // 使用占位符保护完整的标记对
+  const placeholders: Array<{ placeholder: string; original: string }> = []
+  let placeholderIndex = 0
+  
+  // 1. 替换完整的 <tool_call>...</tool_call> 为占位符
+  content = content.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, (match) => {
+    const placeholder = `__TOOL_CALL_COMPLETE_${placeholderIndex}__`
+    placeholders.push({ placeholder, original: match })
+    placeholderIndex++
+    return placeholder
+  })
+  
+  // 2. 替换完整的旧格式标记为占位符
+  content = content.replace(/\<\|redacted_tool_calls_begin\|>[\s\S]*?\<\|redacted_tool_calls_end\|>/gi, (match) => {
+    const placeholder = `__TOOL_CALL_COMPLETE_${placeholderIndex}__`
+    placeholders.push({ placeholder, original: match })
+    placeholderIndex++
+    return placeholder
+  })
+  
+  content = content.replace(/\<｜tools▁call▁begin｜>[\s\S]*?<｜tools▁call▁end｜>/gi, (match) => {
+    const placeholder = `__TOOL_CALL_COMPLETE_${placeholderIndex}__`
+    placeholders.push({ placeholder, original: match })
+    placeholderIndex++
+    return placeholder
+  })
+  
+  // 3. 清理剩余的单独标记（不完整的标记）
+  content = content.replace(/<tool_call>/gi, '')
+  content = content.replace(/<\/tool_call>/gi, '')
+  content = content.replace(/\<\|redacted_tool_calls_begin\|>/gi, '')
+  content = content.replace(/\<\|redacted_tool_calls_end\|>/gi, '')
+  content = content.replace(/\<｜tools▁call▁begin｜>/gi, '')
+  content = content.replace(/<｜tools▁call▁end｜>/gi, '')
+  
+  // 4. 恢复占位符（完整的标记）
+  placeholders.forEach(({ placeholder, original }) => {
+    content = content.replace(placeholder, original)
+  })
+  
+  return content
+}
+
 const messageMarkdown = computed(() => {
   if (props.message.type === 'chat' || props.message.type === 'thought') {
     let content = props.message.markdown || '';
     
-    // 如果没有tool_calls，清理标记（兼容旧消息）
+    // 如果没有tool_calls，清理所有标记（包括完整的和不完整的）
     if (!hasToolCalls.value) {
+      // 清理完整的工具调用标记
       content = content.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '').trim()
       content = content.replace(/\<\|redacted_tool_calls_begin\|>[\s\S]*?\<\|redacted_tool_calls_end\|>/gi, '').trim()
       content = content.replace(/\<｜tools▁call▁begin｜>[\s\S]*?<｜tools▁call▁end｜>/gi, '').trim()
+      
+      // 清理不完整的标记
+      content = cleanIncompleteToolCallTags(content)
+    } else {
+      // 如果有tool_calls，只清理不完整的标记（完整的标记会在processedContentParts中处理）
+      content = cleanIncompleteToolCallTags(content)
     }
-    // 如果有tool_calls，不清理标记（会在processedContentParts中处理）
     
     return content;
   }
@@ -361,6 +415,9 @@ const processedContentParts = computed(() => {
   
   // 获取原始markdown内容
   let content = props.message.markdown || ''
+  
+  // 先清理不完整的工具调用标记
+  content = cleanIncompleteToolCallTags(content)
   
   // 创建工具调用映射（按在markdown中出现的顺序）
   const toolCallMap = new Map<string, { id: string; tool_id: string; text: string }>()

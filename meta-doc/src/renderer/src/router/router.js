@@ -12,6 +12,7 @@ import AIGraph from '../views/AIGraph.vue'
 import AgentView from '../views/AgentView.vue'
 import KnowledgeBase from '../views/KnowledgeBase.vue'
 import Editor from '../views/Editor.vue'
+import DebugView from '../views/DebugView.vue'
 
 // 所有页面组件集中管理
 const pages = {
@@ -69,6 +70,12 @@ const routes = [
     path:'/agent',
     name:'Agent',
     component: AgentView,
+    meta: { requiresLayout: true }
+  },
+  {
+    path:'/debug',
+    name:'Debug',
+    component: DebugView,
     meta: { requiresLayout: true }
   },
     // 动态生成特殊页面的两种访问路径

@@ -19,6 +19,7 @@
     <el-menu-item index="/visualize">{{ $t('headMenu.visualize') }}</el-menu-item>
     <el-menu-item index="/agent">{{ $t('headMenu.agent') }}</el-menu-item>
     <el-menu-item index="/knowledge-base">{{ $t('headMenu.knowledgeBase') }}</el-menu-item>
+    <el-menu-item v-if="isDev" index="/debug">{{ $t('setting.debug.title') }}</el-menu-item>
     
   </el-menu>
 </template>
@@ -30,6 +31,7 @@ import eventBus from '../utils/event-bus'
 import { mixColors, themeState } from '../utils/themes'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace } from '../stores/workspace'
+import { isDevEnvironment } from '../utils/dev-env'
 
 // 获取路由实例
 const router = useRouter()
@@ -43,6 +45,7 @@ const { activeDocument } = useActiveDocument()
 const currentFormat = computed(() => activeDocument.value?.format ?? 'md')
 const workspace = useWorkspace()
 const isLocked = computed(() => workspace.uiLocked?.value === true)
+const isDev = ref(false)
 
 // 计算选中状态的背景色（使用辅助背景色）
 const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3))
@@ -59,11 +62,13 @@ const handleSelect = (key) => {
 }
 
 // 生命周期钩子
-onMounted(() => {
+onMounted(async () => {
   eventBus.on('nav-to', path => {
     activeMenuIndex.value = path
     router.push(path)
   })
+  // 检查是否为开发环境
+  isDev.value = await isDevEnvironment()
 })
 
 // 组件卸载前清除事件监听

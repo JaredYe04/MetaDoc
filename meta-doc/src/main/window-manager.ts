@@ -29,8 +29,8 @@ const windowDefinitions: Record<AuxWindowId, WindowDefinition> = {
     id: 'setting',
     route: '#/setting?windowType=setting',
     titleKey: 'main.windows.settingTitle',
-    width: 800,
-    height: 600,
+    width: 1280,
+    height: 720,
     minWidth: 800,
     minHeight: 600
   },

@@ -152,26 +152,37 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .settings-form {
-  max-width: 720px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .settings-form :deep(.el-form-item) {
   margin-bottom: 24px;
 }
 
+.settings-form :deep(.el-input),
+.settings-form :deep(.el-select) {
+  width: 100%;
+  max-width: 100%;
+}
+
 .log-path {
   display: flex;
   gap: 12px;
+  width: 100%;
 }
 
 .log-path :deep(.el-input) {
   flex: 1;
+  min-width: 0;
 }
 
 .logger-console {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  width: 100%;
 }
 
 .logger-console h4 {
@@ -181,9 +192,12 @@ onBeforeUnmount(() => {
 }
 
 .logger-console :deep(.console-container) {
+  min-height: 240px;
   height: 240px;
+  max-height: 50vh;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 8px;
+  flex-shrink: 0;
 }
 </style>
 

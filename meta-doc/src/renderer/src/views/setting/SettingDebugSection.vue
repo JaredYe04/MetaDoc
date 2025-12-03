@@ -2526,6 +2526,8 @@ onMounted(async () => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .debug-section :deep(.el-tabs) {
@@ -2590,6 +2592,9 @@ onMounted(async () => {
   overflow: hidden;
   background-color: v-bind('themeState.currentTheme.background');
   color: v-bind('themeState.currentTheme.textColor');
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 0;
 }
 
 .test-result {
@@ -2749,6 +2754,16 @@ onMounted(async () => {
 .debug-section :deep(.el-form) {
   flex-shrink: 0;
   flex-grow: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.debug-section :deep(.el-form .el-input),
+.debug-section :deep(.el-form .el-select),
+.debug-section :deep(.el-form .el-textarea) {
+  width: 100%;
+  max-width: 100%;
 }
 
 /* 确保各个 tab pane 内的内容能够正确布局 */

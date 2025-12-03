@@ -75,11 +75,30 @@ const handleEmbeddingModeChange = async () => {
 
 <style scoped>
 .knowledge-base-settings {
-  max-width: 820px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.settings-form {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .settings-form :deep(.el-form-item) {
   margin-bottom: 24px;
+}
+
+.settings-form :deep(.el-input),
+.settings-form :deep(.el-select),
+.settings-form :deep(.el-slider) {
+  width: 100%;
+  max-width: 100%;
+}
+
+.settings-form :deep(.el-slider) {
+  max-width: 100%;
 }
 </style>
 

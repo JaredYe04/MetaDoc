@@ -80,11 +80,19 @@ const handleParticleToggle = () => {
 
 <style scoped>
 .settings-form {
-  max-width: 720px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .settings-form :deep(.el-form-item) {
   margin-bottom: 24px;
+}
+
+.settings-form :deep(.el-input),
+.settings-form :deep(.el-select) {
+  width: 100%;
+  max-width: 100%;
 }
 </style>
 

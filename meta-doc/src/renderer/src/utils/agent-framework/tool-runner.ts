@@ -152,15 +152,15 @@ export class ToolRunner {
 
   /**
    * 生成结果摘要
+   * 注意：为了功能完整性，不再截断内容，返回完整数据
    */
   private static generateSummary(data: unknown): string {
     if (typeof data === 'string') {
-      return data.length > 200 ? data.substring(0, 200) + '...' : data
+      return data
     }
     if (typeof data === 'object' && data !== null) {
       try {
-        const json = JSON.stringify(data)
-        return json.length > 200 ? json.substring(0, 200) + '...' : json
+        return JSON.stringify(data)
       } catch {
         return '执行完成'
       }

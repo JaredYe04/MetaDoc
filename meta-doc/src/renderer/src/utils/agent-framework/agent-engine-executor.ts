@@ -623,9 +623,9 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
           observation.params || reactResult.actionInput || {}  // params: 保存工具调用参数
         )
 
-        // 构建观察结果
+        // 构建观察结果（使用完整结果，不截断）
         const observationText = observation.status === 'succeeded'
-          ? (observation.summary || JSON.stringify(observation.result))
+          ? ToolRunner.serializeToOpenAIFormat(observation)
           : `错误: ${observation.error}`
 
         // 添加观察到上下文
@@ -1094,12 +1094,14 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         }
       }
 
-      // 构建观察结果文本
+      // 构建观察结果文本（使用完整结果，不截断）
       let observationText = '\n\n=== 工具执行结果 ===\n'
       for (const obs of observations) {
         observationText += `工具 ${obs.toolName}: ${obs.status === 'succeeded' ? '成功' : '失败'}\n`
-        if (obs.summary) {
-          observationText += `结果: ${obs.summary}\n`
+        if (obs.status === 'succeeded') {
+          // 使用完整结果，不截断
+          const fullResult = ToolRunner.serializeToOpenAIFormat(obs)
+          observationText += `结果: ${fullResult}\n`
         }
         if (obs.error) {
           observationText += `错误: ${obs.error}\n`

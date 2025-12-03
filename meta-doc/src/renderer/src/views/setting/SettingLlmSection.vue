@@ -1000,7 +1000,6 @@ const testLlmApi = async () => {
       {
         stream: stream, // 明确传递stream参数，确保类型正确
         temperature,
-        max_tokens: 128
       }
     );
     
@@ -1013,7 +1012,6 @@ const testLlmApi = async () => {
       meta: {
         stream: stream,
         temperature,
-        max_tokens: 128
       }
     });
     

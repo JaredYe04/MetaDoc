@@ -14,7 +14,7 @@ import { createRendererLogger } from "./logger.ts";
 import OpenAI from "openai";
 import { createAdapterFromSettings } from "./llm-adapters/adapter-factory.ts";
 
-const DEFAULT_MAX_TOKENS = 1024;
+const DEFAULT_MAX_TOKENS = 1048576;
 /**
  * 获取自定义LLM配置对象
  * @param {Object} customConfig - 自定义LLM配置
@@ -674,8 +674,9 @@ async function continueConversationNonStream(
         let sanitizedMsgs = sanitizeMessages(conversation);
         sanitizedMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger);
     
-    // 转换消息格式（适配器可能需要转换）
-    const convertedMsgs = adapter.convertMessages(sanitizedMsgs);
+    // 对于Gemini类型，不需要预先转换消息格式，因为 generateChatNonStream 内部会自己转换
+    // 对于其他类型，转换消息格式（适配器可能需要转换）
+    const convertedMsgs = type === "gemini" ? sanitizedMsgs : adapter.convertMessages(sanitizedMsgs);
 
     // 对于ollama和manual类型，使用fetch方式
     if (type === "ollama" || type === "manual") {
@@ -699,8 +700,10 @@ async function continueConversationNonStream(
     }
 
     // 对于Gemini类型，使用 GoogleGenAI SDK
+    // 注意：Gemini 适配器的 generateChatNonStream 内部会自己转换消息格式
+    // 所以这里应该传入原始的 sanitizedMsgs，而不是 convertedMsgs
     if (type === "gemini") {
-      const { text, usage } = await adapter.generateChatNonStream(convertedMsgs, meta, signal);
+      const { text, usage } = await adapter.generateChatNonStream(sanitizedMsgs, meta, signal);
       const processedContent = await processThinkTag(text);
       ref.value = processedContent;
       
@@ -773,8 +776,9 @@ async function continueConversationStream(
         let sanitizedMsgs = sanitizeMessages(conversation);
         sanitizedMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger);
     
-    // 转换消息格式（适配器可能需要转换）
-    const convertedMsgs = adapter.convertMessages(sanitizedMsgs);
+    // 对于Gemini类型，不需要预先转换消息格式，因为 generateChatStream 内部会自己转换
+    // 对于其他类型，转换消息格式（适配器可能需要转换）
+    const convertedMsgs = type === "gemini" ? sanitizedMsgs : adapter.convertMessages(sanitizedMsgs);
 
     // 对于ollama和manual类型，使用fetch方式
     if (type === "ollama" || type === "manual") {
@@ -813,11 +817,13 @@ async function continueConversationStream(
     }
 
     // 对于Gemini类型，使用 GoogleGenAI SDK
+    // 注意：Gemini 适配器的 generateChatStream 内部会自己转换消息格式
+    // 所以这里应该传入原始的 sanitizedMsgs，而不是 convertedMsgs
     if (type === "gemini") {
       ref.value = "";
       let lastUsage = null;
       
-      const stream = adapter.generateChatStream(convertedMsgs, meta, signal);
+      const stream = adapter.generateChatStream(sanitizedMsgs, meta, signal);
       
       for await (const { delta, usage } of stream) {
         if (delta) {

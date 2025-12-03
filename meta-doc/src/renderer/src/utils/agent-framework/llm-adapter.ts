@@ -234,10 +234,29 @@ export class LlmAdapter {
           if (!adapter.generateChatNonStream) {
             throw new Error('Gemini适配器不支持非流式对话')
           }
+          
+          // 添加调试日志：检查传入的消息
+          getLogger().debug('调用 Gemini generateChatNonStream', {
+            messagesCount: messages.length,
+            firstMessage: messages[0] ? {
+              role: messages[0].role,
+              contentLength: typeof messages[0].content === 'string' ? messages[0].content.length : 'not string',
+              contentPreview: typeof messages[0].content === 'string' ? messages[0].content.substring(0, 100) : messages[0].content
+            } : null,
+            temperature,
+            maxTokens
+          });
+          
           const { text } = await adapter.generateChatNonStream(messages, {
             temperature,
             max_tokens: maxTokens
           }, signal)
+          
+          getLogger().debug('Gemini generateChatNonStream 返回', {
+            textLength: text.length,
+            textPreview: text.substring(0, 100)
+          });
+          
           return text
         }
       }

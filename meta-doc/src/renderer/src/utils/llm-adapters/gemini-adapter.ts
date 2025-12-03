@@ -46,23 +46,50 @@ export class GeminiAdapter extends BaseLlmAdapter {
 
   convertMessages(messages: Message[]): GeminiMessage[] {
     // Gemini API使用不同的消息格式
-    return messages
-      .map((msg): GeminiMessage | null => {
+    const converted = messages
+      .map((msg, index): GeminiMessage | null => {
+        // 添加调试日志
+        this.logger.debug(`转换消息 ${index}`, {
+          role: msg.role,
+          contentType: typeof msg.content,
+          contentLength: typeof msg.content === 'string' ? msg.content.length : 'not string',
+          contentPreview: typeof msg.content === 'string' ? msg.content.substring(0, 50) : msg.content
+        });
+        
         if (msg.role === 'system') {
           // Gemini不支持system角色，转换为user消息
+          const content = typeof msg.content === 'string' ? msg.content : (msg.content ? String(msg.content) : '');
+          if (!content) {
+            this.logger.warn(`消息 ${index} (system) 内容为空`);
+            return null;
+          }
           return {
             role: 'user',
-            parts: [{ text: typeof msg.content === 'string' ? msg.content : '' }]
+            parts: [{ text: content }]
           };
         } else if (msg.role === 'user' || msg.role === 'assistant') {
+          const content = typeof msg.content === 'string' ? msg.content : (msg.content ? String(msg.content) : '');
+          if (!content && msg.role === 'user') {
+            this.logger.warn(`消息 ${index} (user) 内容为空`);
+            return null;
+          }
           return {
             role: msg.role === 'user' ? 'user' : 'model',
-            parts: [{ text: typeof msg.content === 'string' ? msg.content : '' }]
+            parts: [{ text: content }]
           };
         }
+        this.logger.warn(`消息 ${index} 角色 ${msg.role} 不被支持，跳过`);
         return null;
       })
       .filter((msg): msg is GeminiMessage => msg !== null);
+    
+    this.logger.debug('消息转换完成', {
+      originalCount: messages.length,
+      convertedCount: converted.length,
+      convertedRoles: converted.map(m => m.role)
+    });
+    
+    return converted;
   }
 
   buildCompletionPayload(prompt: string, meta: RequestMeta = {}): any {
@@ -154,43 +181,48 @@ export class GeminiAdapter extends BaseLlmAdapter {
       let chunkCount = 0;
       for await (const chunk of stream) {
         chunkCount++;
-        this.logger.debug(`收到流式 chunk #${chunkCount}`, {
+        
+        // 添加详细的调试日志
+        this.logger.debug(`收到流式补全 chunk #${chunkCount}`, {
           hasCandidates: !!chunk.candidates,
           candidatesLength: chunk.candidates?.length || 0,
-          chunkKeys: Object.keys(chunk || {})
+          chunkKeys: Object.keys(chunk || {}),
+          chunkStructure: JSON.stringify(chunk, null, 2).substring(0, 500)
         });
         
-        // GoogleGenAI SDK 流式响应：每个 chunk 是 GenerateContentResponse
-        // 尝试多种方式提取文本
-        let chunkText = "";
-        if ((chunk as any).text) {
-          // 如果 chunk 直接有 text 属性
-          chunkText = (chunk as any).text;
-        } else if (chunk.candidates?.[0]?.content?.parts?.[0]?.text) {
-          // 标准格式：candidates[0].content.parts[0].text
-          chunkText = chunk.candidates[0].content.parts[0].text;
+        // GoogleGenAI SDK 流式响应：每个 chunk 可能包含增量文本
+        // 根据 SDK 文档，流式响应中每个 chunk 的 text 是增量，不是累积的
+        let deltaText = "";
+        
+        // 方法1：检查 candidates[0].content.parts[0].text（增量文本）
+        if (chunk.candidates?.[0]?.content?.parts?.[0]?.text) {
+          deltaText = chunk.candidates[0].content.parts[0].text;
+        }
+        // 方法2：检查 chunk.text（如果 SDK 直接提供）
+        else if ((chunk as any).text) {
+          deltaText = (chunk as any).text;
+        }
+        // 方法3：检查是否有 delta 字段
+        else if ((chunk as any).delta?.text) {
+          deltaText = (chunk as any).delta.text;
         }
         
-        this.logger.debug(`Chunk #${chunkCount} 文本提取`, {
-          chunkTextLength: chunkText.length,
+        this.logger.debug(`补全 Chunk #${chunkCount} 文本提取`, {
+          deltaTextLength: deltaText.length,
           accumulatedLength: accumulatedText.length,
-          chunkTextPreview: chunkText.substring(0, 50)
+          deltaTextPreview: deltaText.substring(0, 100),
+          accumulatedPreview: accumulatedText.substring(0, 100)
         });
         
-        if (chunkText) {
-          // 如果新文本长度大于累积文本，说明是累积文本，提取增量
-          if (chunkText.length > accumulatedText.length && chunkText.startsWith(accumulatedText)) {
-            const delta = chunkText.slice(accumulatedText.length);
-            accumulatedText = chunkText;
-            this.logger.debug('提取增量文本', { deltaLength: delta.length, deltaPreview: delta.substring(0, 30) });
-            yield { delta, usage: null };
-          } else if (chunkText !== accumulatedText) {
-            // 如果文本不同，可能是新的响应片段（增量文本）
-            const delta = chunkText;
-            accumulatedText += chunkText; // 累积增量文本
-            this.logger.debug('收到增量文本片段', { deltaLength: delta.length, deltaPreview: delta.substring(0, 30) });
-            yield { delta, usage: null };
-          }
+        if (deltaText) {
+          // 累积文本并返回增量
+          accumulatedText += deltaText;
+          this.logger.debug('提取增量文本', { 
+            deltaLength: deltaText.length, 
+            deltaPreview: deltaText.substring(0, 50),
+            newAccumulatedLength: accumulatedText.length
+          });
+          yield { delta: deltaText, usage: null };
         }
         
         // 检查是否有 usage 信息
@@ -222,7 +254,36 @@ export class GeminiAdapter extends BaseLlmAdapter {
   async generateChatNonStream(messages: any[], meta: RequestMeta = {}, signal?: AbortSignal): Promise<UnifiedResponse> {
     const client = this.getClient();
     const { selectedModel } = this.config;
+    
+    // 添加调试日志：检查输入消息
+    this.logger.debug('generateChatNonStream 输入消息', {
+      messagesCount: messages.length,
+      firstMessage: messages[0] ? {
+        role: messages[0].role,
+        contentLength: typeof messages[0].content === 'string' ? messages[0].content.length : 'not string',
+        contentPreview: typeof messages[0].content === 'string' ? messages[0].content.substring(0, 100) : messages[0].content
+      } : null,
+      allMessages: messages.map((msg, idx) => ({
+        index: idx,
+        role: msg.role,
+        hasContent: !!msg.content,
+        contentType: typeof msg.content,
+        contentLength: typeof msg.content === 'string' ? msg.content.length : 0
+      }))
+    });
+    
     const payload = this.buildChatPayload(messages, meta);
+    
+    // 添加调试日志：检查转换后的 payload
+    this.logger.debug('generateChatNonStream payload', {
+      contentsLength: payload.contents.length,
+      firstContent: payload.contents[0] ? {
+        role: payload.contents[0].role,
+        partsCount: payload.contents[0].parts?.length || 0,
+        firstPartText: payload.contents[0].parts?.[0]?.text?.substring(0, 100) || 'no text'
+      } : null,
+      generationConfig: payload.generationConfig
+    });
 
     const response = await client.models.generateContent({
       model: selectedModel,
@@ -233,6 +294,15 @@ export class GeminiAdapter extends BaseLlmAdapter {
 
     // GoogleGenAI SDK 返回的响应格式
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    
+    // 添加调试日志：检查响应
+    this.logger.debug('generateChatNonStream 响应', {
+      hasCandidates: !!response.candidates,
+      candidatesLength: response.candidates?.length || 0,
+      responseTextLength: text.length,
+      responseTextPreview: text.substring(0, 100)
+    });
+    
     const usage: UsageStats | null = (response as any).usageMetadata ? {
       prompt_tokens: (response as any).usageMetadata.promptTokenCount || 0,
       completion_tokens: (response as any).usageMetadata.candidatesTokenCount || 0,
@@ -272,43 +342,48 @@ export class GeminiAdapter extends BaseLlmAdapter {
       let chunkCount = 0;
       for await (const chunk of stream) {
         chunkCount++;
+        
+        // 添加详细的调试日志
         this.logger.debug(`收到流式对话 chunk #${chunkCount}`, {
           hasCandidates: !!chunk.candidates,
           candidatesLength: chunk.candidates?.length || 0,
-          chunkKeys: Object.keys(chunk || {})
+          chunkKeys: Object.keys(chunk || {}),
+          chunkStructure: JSON.stringify(chunk, null, 2).substring(0, 500)
         });
         
-        // GoogleGenAI SDK 流式响应：每个 chunk 是 GenerateContentResponse
-        // 尝试多种方式提取文本
-        let chunkText = "";
-        if ((chunk as any).text) {
-          // 如果 chunk 直接有 text 属性
-          chunkText = (chunk as any).text;
-        } else if (chunk.candidates?.[0]?.content?.parts?.[0]?.text) {
-          // 标准格式：candidates[0].content.parts[0].text
-          chunkText = chunk.candidates[0].content.parts[0].text;
+        // GoogleGenAI SDK 流式响应：每个 chunk 可能包含增量文本
+        // 根据 SDK 文档，流式响应中每个 chunk 的 text 是增量，不是累积的
+        let deltaText = "";
+        
+        // 方法1：检查 candidates[0].content.parts[0].text（增量文本）
+        if (chunk.candidates?.[0]?.content?.parts?.[0]?.text) {
+          deltaText = chunk.candidates[0].content.parts[0].text;
+        }
+        // 方法2：检查 chunk.text（如果 SDK 直接提供）
+        else if ((chunk as any).text) {
+          deltaText = (chunk as any).text;
+        }
+        // 方法3：检查是否有 delta 字段
+        else if ((chunk as any).delta?.text) {
+          deltaText = (chunk as any).delta.text;
         }
         
         this.logger.debug(`对话 Chunk #${chunkCount} 文本提取`, {
-          chunkTextLength: chunkText.length,
+          deltaTextLength: deltaText.length,
           accumulatedLength: accumulatedText.length,
-          chunkTextPreview: chunkText.substring(0, 50)
+          deltaTextPreview: deltaText.substring(0, 100),
+          accumulatedPreview: accumulatedText.substring(0, 100)
         });
         
-        if (chunkText) {
-          // 如果新文本长度大于累积文本，说明是累积文本，提取增量
-          if (chunkText.length > accumulatedText.length && chunkText.startsWith(accumulatedText)) {
-            const delta = chunkText.slice(accumulatedText.length);
-            accumulatedText = chunkText;
-            this.logger.debug('提取增量文本', { deltaLength: delta.length, deltaPreview: delta.substring(0, 30) });
-            yield { delta, usage: null };
-          } else if (chunkText !== accumulatedText) {
-            // 如果文本不同，可能是新的响应片段（增量文本）
-            const delta = chunkText;
-            accumulatedText += chunkText; // 累积增量文本
-            this.logger.debug('收到增量文本片段', { deltaLength: delta.length, deltaPreview: delta.substring(0, 30) });
-            yield { delta, usage: null };
-          }
+        if (deltaText) {
+          // 累积文本并返回增量
+          accumulatedText += deltaText;
+          this.logger.debug('提取增量文本', { 
+            deltaLength: deltaText.length, 
+            deltaPreview: deltaText.substring(0, 50),
+            newAccumulatedLength: accumulatedText.length
+          });
+          yield { delta: deltaText, usage: null };
         }
         
         // 检查是否有 usage 信息

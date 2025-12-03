@@ -14,6 +14,7 @@ import { agentToolManager } from '../agent-tool-manager'
 import { workflowManager } from './workflow-manager'
 import { createRendererLogger } from '../logger'
 import { extractOuterJsonString } from '../regex-utils'
+import { parseToolCalls, type ParsedToolCall } from './tool-call-processor'
 import { reactive } from 'vue'
 import { getLlmTemperature } from '../settings.js'
 
@@ -189,36 +190,38 @@ export abstract class BaseEngineExecutor {
     prompt += '你可以通过调用工具来完成各种任务。所有工具调用必须使用统一的标记格式。\n\n'
     
     prompt += '## 工具调用格式\n'
-    prompt += '当你需要调用工具时，必须使用以下标记格式（不要使用JSON格式）：\n'
+    prompt += '当你需要调用工具时，必须使用以下标记格式：\n'
     prompt += '```\n'
-    prompt += '<｜tool▁calls▁begin｜>\n'
-    prompt += '<｜tool▁call▁begin｜>工具ID<｜tool▁sep｜>{"参数名1":"参数值1","参数名2":"参数值2"}<｜tool▁call▁end｜>\n'
-    prompt += '<｜tool▁calls▁end｜>\n'
+    prompt += '<tool_call>\n'
+    prompt += '{"name": "工具ID", "arguments": {"参数名1": "参数值1", "参数名2": "参数值2"}}\n'
+    prompt += '</tool_call>\n'
     prompt += '```\n\n'
     
     prompt += '## 重要规则\n'
-    prompt += '1. **必须使用标记格式**：工具调用必须使用上述标记格式，不要使用JSON代码块或其他格式\n'
-    prompt += '2. **标记必须完整**：必须包含所有开始和结束标记，格式严格遵循上述结构\n'
-    prompt += '3. **工具ID必须准确**：使用工具列表中的确切ID，不能随意修改\n'
-    prompt += '4. **参数必须是JSON字符串**：parameters部分必须是有效的JSON字符串格式\n'
-    prompt += '5. **一次可调用多个工具**：可以在标记块中包含多个工具调用\n'
+    prompt += '1. **必须使用标记格式**：工具调用必须使用`<tool_call></tool_call>`标记格式\n'
+    prompt += '2. **标记必须完整**：必须包含开始标记`<tool_call>`和结束标记`</tool_call>`\n'
+    prompt += '3. **工具ID必须准确**：使用工具列表中的确切ID作为`name`字段的值，不能随意修改\n'
+    prompt += '4. **参数必须是JSON对象**：`arguments`字段必须是有效的JSON对象格式\n'
+    prompt += '5. **一次可调用多个工具**：可以连续使用多个`<tool_call></tool_call>`块来调用多个工具\n'
     prompt += '6. **不要在标记中混合文本**：标记块应该是独立的，不要在标记中混合其他文本说明\n'
     prompt += '7. **调用前先确认需求**：仔细分析用户需求，选择最合适的工具，确保参数正确\n\n'
     
     prompt += '## 工具调用示例\n'
     prompt += '示例1 - 调用单个工具：\n'
     prompt += '```\n'
-    prompt += '<｜tool▁calls▁begin｜>\n'
-    prompt += '<｜tool▁call▁begin｜>chart-generation<｜tool▁sep｜>{"prompt":"生成一个关于数据趋势的折线图","type":"line"}<｜tool▁call▁end｜>\n'
-    prompt += '<｜tool▁calls▁end｜>\n'
+    prompt += '<tool_call>\n'
+    prompt += '{"name": "chart-generation", "arguments": {"prompt": "生成一个关于数据趋势的折线图", "type": "line"}}\n'
+    prompt += '</tool_call>\n'
     prompt += '```\n\n'
     
     prompt += '示例2 - 调用多个工具：\n'
     prompt += '```\n'
-    prompt += '<｜tool▁calls▁begin｜>\n'
-    prompt += '<｜tool▁call▁begin｜>outline-tree<｜tool▁sep｜>{"includeText":true}<｜tool▁call▁end｜>\n'
-    prompt += '<｜tool▁call▁begin｜>chart-generation<｜tool▁sep｜>{"prompt":"生成思维导图","type":"mindmap"}<｜tool▁call▁end｜>\n'
-    prompt += '<｜tool▁calls▁end｜>\n'
+    prompt += '<tool_call>\n'
+    prompt += '{"name": "outline-tree", "arguments": {"includeText": true}}\n'
+    prompt += '</tool_call>\n'
+    prompt += '<tool_call>\n'
+    prompt += '{"name": "chart-generation", "arguments": {"prompt": "生成思维导图", "type": "mindmap"}}\n'
+    prompt += '</tool_call>\n'
     prompt += '```\n\n'
 
     prompt += '=== 可用工具列表 ===\n'
@@ -268,29 +271,24 @@ export abstract class BaseEngineExecutor {
    * 检测是否有未完成的工具调用标记（用于判断是否需要继续执行）
    */
   protected hasIncompleteToolCalls(content: string): boolean {
-    const beginMarker = '<｜tool▁calls▁begin｜>'
-    const callBeginMarker = '<｜tool▁call▁begin｜>'
-    const sepMarker = '<｜tool▁sep｜>'
-    const callEndMarker = '<｜tool▁call▁end｜>'
-    const endMarker = '<｜tool▁calls▁end｜>'
+    const beginMarker = '<tool_call>'
+    const endMarker = '</tool_call>'
     
     // 检查是否有开始标记但没有结束标记
     const hasBegin = content.includes(beginMarker)
     const hasEnd = content.includes(endMarker)
     
-    // 检查是否有工具调用开始但没有结束
-    const hasCallBegin = content.includes(callBeginMarker)
-    const hasCallEnd = content.includes(callEndMarker)
-    const hasSep = content.includes(sepMarker)
-    
-    // 如果有开始标记但没有结束标记，或者有工具调用开始但没有结束，说明可能未完成
+    // 如果有开始标记但没有结束标记，说明可能未完成
     if (hasBegin && !hasEnd) {
-      getLogger().warn('[hasIncompleteToolCalls] 检测到未完成的工具调用块（有begin但没有end）')
+      getLogger().warn('[hasIncompleteToolCalls] 检测到未完成的工具调用块（有<tool_call>但没有</tool_call>）')
       return true
     }
     
-    if (hasCallBegin && (!hasCallEnd || !hasSep)) {
-      getLogger().warn('[hasIncompleteToolCalls] 检测到未完成的工具调用（有call_begin但没有call_end或sep）')
+    // 检查是否有不匹配的标记（开始标记数量多于结束标记）
+    const beginCount = (content.match(/<tool_call>/g) || []).length
+    const endCount = (content.match(/<\/tool_call>/g) || []).length
+    if (beginCount > endCount) {
+      getLogger().warn('[hasIncompleteToolCalls] 检测到不匹配的工具调用标记（开始标记数量多于结束标记）')
       return true
     }
     
@@ -322,118 +320,44 @@ export abstract class BaseEngineExecutor {
 
   /**
    * 解析标记格式的工具调用
-   * 格式: <｜tool▁calls▁begin｜><｜tool▁call▁begin｜>tool_id<｜tool▁sep｜>params<｜tool▁call▁end｜><｜tool▁calls▁end｜>
-   * 支持一个或两个开始标记
+   * 格式: <tool_call>{"name": "tool_id", "arguments": {...}}</tool_call>
+   * 使用统一的工具调用处理工具
    */
   private parseMarkedToolCalls(content: string): Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null {
     try {
-      // 匹配工具调用块（支持一个或两个开始标记，使用非贪婪匹配，支持换行）
-      // 注意：必须匹配完整的begin和end标记
-      const markedPattern = /\<｜tool▁calls▁begin｜>([\s\S]*?)\<｜tool▁calls▁end｜>/i
-      const blockMatch = content.match(markedPattern)
+      // 使用统一的工具调用解析函数
+      const parsedToolCalls = parseToolCalls(content, {
+        loose: false, // 严格模式：需要完整的结束标记
+        validateToolId: false // 不在这里验证，在执行时验证
+      })
       
-      if (!blockMatch || !blockMatch[1]) {
-        getLogger().debug('[parseMarkedToolCalls] 未找到完整的工具调用块')
+      if (!parsedToolCalls || parsedToolCalls.length === 0) {
         return null
       }
-
-      const toolCallsContent = blockMatch[1].trim()
-      getLogger().debug('[parseMarkedToolCalls] 找到工具调用块，内容长度:', toolCallsContent.length)
       
+      // 转换格式并处理无效的工具调用
       const toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> = []
-
-      // 匹配单个工具调用
-      // 格式: <｜tool▁call▁begin｜>tool_id<｜tool▁sep｜>params<｜tool▁call▁end｜>
-      // 注意：使用[\s\S]*?来匹配包括换行在内的所有字符
-      // 重要：使用非贪婪匹配，但需要确保匹配到完整的end标记
-      // 改进：先找到所有分隔符位置，然后按顺序匹配，避免JSON中的特殊字符干扰
-      const beginMarker = '<｜tool▁call▁begin｜>'
-      const sepMarker = '<｜tool▁sep｜>'
-      const endMarker = '<｜tool▁call▁end｜>'
       
-      let searchIndex = 0
-      let index = 0
-      
-      while (searchIndex < toolCallsContent.length) {
-        // 查找begin标记
-        const beginIndex = toolCallsContent.indexOf(beginMarker, searchIndex)
-        if (beginIndex === -1) break
-        
-        // 查找sep标记（在begin之后）
-        const sepIndex = toolCallsContent.indexOf(sepMarker, beginIndex + beginMarker.length)
-        if (sepIndex === -1) {
-          // 没有找到sep标记，跳过这个begin标记，继续查找
-          searchIndex = beginIndex + beginMarker.length
-          continue
+      for (const parsed of parsedToolCalls) {
+        if (parsed.isValid) {
+          // 有效的工具调用
+          toolCalls.push({
+            id: parsed.id,
+            tool_id: parsed.tool_id,
+            parameters: parsed.parameters
+          })
+        } else {
+          // 无效的工具调用：使用dummy-tool处理
+          getLogger().warn(`[parseMarkedToolCalls] 检测到无效的工具调用，使用dummy-tool处理:`, parsed.error)
+          toolCalls.push({
+            id: parsed.id,
+            tool_id: 'dummy-tool', // 使用dummy-tool作为fallback
+            parameters: parsed.parameters // 包含错误信息
+          })
         }
-        
-        // 查找end标记（在sep之后）
-        const endIndex = toolCallsContent.indexOf(endMarker, sepIndex + sepMarker.length)
-        if (endIndex === -1) {
-          // 没有找到end标记，可能是未完成的工具调用，尝试查找下一个begin标记
-          searchIndex = sepIndex + sepMarker.length
-          continue
-        }
-        
-        // 提取toolId和params
-        const toolId = toolCallsContent.substring(beginIndex + beginMarker.length, sepIndex).trim()
-        let paramsStr = toolCallsContent.substring(sepIndex + sepMarker.length, endIndex).trim()
-        
-        getLogger().debug(`[parseMarkedToolCalls] 解析工具调用 ${index + 1}: toolId=${toolId}, paramsStr长度=${paramsStr.length}`)
-        
-        // 尝试解析参数JSON
-        let parameters: Record<string, unknown> = {}
-        try {
-          // 先尝试提取JSON字符串（处理可能包含其他文本的情况）
-          // extractOuterJsonString会处理包含转义字符的JSON
-          const jsonStr = extractOuterJsonString(paramsStr)
-          if (jsonStr) {
-            parameters = JSON.parse(jsonStr)
-            getLogger().debug(`[parseMarkedToolCalls] 成功解析JSON参数:`, parameters)
-          } else {
-            // 如果没有找到JSON，尝试直接解析
-            parameters = JSON.parse(paramsStr)
-            getLogger().debug(`[parseMarkedToolCalls] 直接解析JSON参数:`, parameters)
-          }
-        } catch (e) {
-          const errorMsg = e instanceof Error ? e.message : String(e)
-          getLogger().warn(`[parseMarkedToolCalls] 解析工具调用参数失败 (工具: ${toolId}):`, errorMsg, 'paramsStr前100字符:', paramsStr.substring(0, 100))
-          // 如果解析失败，尝试修复常见的JSON格式问题
-          try {
-            // 尝试修复：如果JSON不完整，尝试补全
-            let fixedParamsStr = paramsStr
-            // 检查是否缺少闭合括号
-            const openBraces = (fixedParamsStr.match(/{/g) || []).length
-            const closeBraces = (fixedParamsStr.match(/}/g) || []).length
-            if (openBraces > closeBraces) {
-              fixedParamsStr += '}'.repeat(openBraces - closeBraces)
-            }
-            const openBrackets = (fixedParamsStr.match(/\[/g) || []).length
-            const closeBrackets = (fixedParamsStr.match(/\]/g) || []).length
-            if (openBrackets > closeBrackets) {
-              fixedParamsStr += ']'.repeat(openBrackets - closeBrackets)
-            }
-            // 再次尝试解析
-            const jsonStr = extractOuterJsonString(fixedParamsStr)
-            if (jsonStr) {
-              parameters = JSON.parse(jsonStr)
-              getLogger().info(`[parseMarkedToolCalls] 修复后成功解析JSON参数`)
-            }
-          } catch (fixError) {
-            getLogger().warn(`[parseMarkedToolCalls] 修复JSON失败:`, fixError)
-            // 如果修复也失败，使用空对象，至少工具ID是有效的
-          }
-        }
-
-        toolCalls.push({
-          id: `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
-          tool_id: toolId,
-          parameters
-        })
-        index++
       }
-
-      getLogger().debug(`[parseMarkedToolCalls] 解析完成，找到 ${toolCalls.length} 个工具调用`)
+      
+      getLogger().debug(`[parseMarkedToolCalls] 解析完成，找到 ${toolCalls.length} 个工具调用（有效: ${parsedToolCalls.filter(p => p.isValid).length}, 无效: ${parsedToolCalls.filter(p => !p.isValid).length}）`)
       return toolCalls.length > 0 ? toolCalls : null
     } catch (error) {
       getLogger().error('[parseMarkedToolCalls] 解析标记格式工具调用失败:', error)
@@ -479,23 +403,11 @@ export abstract class BaseEngineExecutor {
           originalMarkdownLength: assistantMessage.markdown?.length || 0
         })
         
-        // 从markdown中移除工具调用标记，只保留标记之前的文本
-        if (assistantMessage.markdown) {
-          const originalMarkdown = assistantMessage.markdown
-          let cleanedMarkdown = assistantMessage.markdown
-          // 移除工具调用标记块
-          cleanedMarkdown = cleanedMarkdown.replace(
-            /\<｜tool▁calls▁begin｜>[\s\S]*?\<｜tool▁calls▁end｜>/gi,
-            ''
-          ).trim()
-          assistantMessage.markdown = cleanedMarkdown || ''
-          
-          getLogger().info('[BaseEngineExecutor] 已清理markdown中的工具调用标记', {
-            originalLength: originalMarkdown.length,
-            cleanedLength: cleanedMarkdown.length,
-            removed: originalMarkdown.length - cleanedMarkdown.length
-          })
-        }
+        // 注意：不删除markdown中的工具调用标记
+        // 原因：
+        // 1. AI需要看到这些内容来理解上下文（在buildHistoryMessages中会使用）
+        // 2. UI层面（AgentMessageRenderer）已经有逻辑：如果有tool_calls，就不显示markdown，而是显示友好的提示
+        // 3. 这样既保证了AI能看到完整上下文，又保证了用户看到的是友好的UI提示
       } else {
         getLogger().warn('[BaseEngineExecutor] ⚠️ assistantMessage不存在，无法更新')
       }
@@ -507,7 +419,7 @@ export abstract class BaseEngineExecutor {
    * 支持多种格式：
    * 1. JSON格式: { "tool_calls": [...] }
    * 2. 代码块JSON格式: ```json { "tool_calls": [...] } ```
-   * 3. 标记格式: <｜tool▁calls▁begin｜><｜tool▁call▁begin｜>tool_id<｜tool▁sep｜>params<｜tool▁call▁end｜><｜tool▁calls▁end｜>
+   * 3. 标记格式: <tool_call>{"name": "tool_id", "arguments": {...}}</tool_call>
    */
   protected parseToolCalls(content: string): Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null {
     try {
@@ -963,7 +875,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           // 添加系统提示消息（不显示给用户），让AI知道工具调用未完成
           contextMessages.push({
             role: 'user',
-            content: '⚠️ 检测到未完成的工具调用标记。请重新调用工具，确保使用完整的标记格式：\n\n<｜tool▁calls▁begin｜>\n<｜tool▁call▁begin｜>工具ID<｜tool▁sep｜>{"参数名":"参数值"}<｜tool▁call▁end｜>\n<｜tool▁calls▁end｜>\n\n**重要**：工具调用标记必须直接输出，不要放在代码块中！'
+            content: '⚠️ 检测到未完成的工具调用标记。请重新调用工具，确保使用完整的标记格式：\n\n<tool_call>\n{"name": "工具ID", "arguments": {"参数名": "参数值"}}\n</tool_call>\n\n**重要**：工具调用标记必须直接输出，不要放在代码块中！'
           })
           // 继续循环，不break
           continue
@@ -980,31 +892,8 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           break
         }
         
-        // 没有工具调用，也没有完成标记，检查是否应该继续
-        // 如果这是第一次迭代且没有工具调用，可能是AI在思考，继续执行
-        if (iterations === 1) {
-          getLogger().info('[AutoGPT] 第一次迭代没有工具调用，继续执行...')
-          // 添加系统提示消息（不显示给用户），强调工具调用格式
-          contextMessages.push({
-            role: 'user',
-            content: '请继续执行任务。如果需要调用工具，必须使用以下标记格式（直接输出，不要用代码块包裹）：\n\n<｜tool▁calls▁begin｜>\n<｜tool▁call▁begin｜>工具ID<｜tool▁sep｜>{"参数名":"参数值"}<｜tool▁call▁end｜>\n<｜tool▁calls▁end｜>\n\n如果任务已完成，请明确标记"<|TASK_COMPLETE|>"或"任务已完成"。'
-          })
-          continue
-        }
-        
-        // 多次迭代都没有工具调用，可能是任务已完成但没有标记
-        // 添加系统提示消息（不显示给用户），强调工具调用格式
-        if (iterations >= 2) {
-          getLogger().warn('[AutoGPT] 多次迭代没有工具调用，提示AI标记任务完成')
-          contextMessages.push({
-            role: 'user',
-            content: '如果任务已完成，请明确标记"<|TASK_COMPLETE|>"或"任务已完成"。如果任务未完成，请继续调用工具，使用以下格式（直接输出，不要用代码块包裹）：\n\n<｜tool▁calls▁begin｜>\n<｜tool▁call▁begin｜>工具ID<｜tool▁sep｜>{"参数名":"参数值"}<｜tool▁call▁end｜>\n<｜tool▁calls▁end｜>'
-          })
-          // 继续执行，给AI一次机会明确标记
-          continue
-        }
-        
-        // 默认情况：没有工具调用，消息已经通过reactiveMessage实时更新
+        // 没有工具调用，也没有完成标记，结束执行
+        getLogger().info('[AutoGPT] 没有工具调用且没有完成标记，结束执行')
         this.options.onProgress?.({
           stage: 'complete',
           message: '完成'
@@ -1031,27 +920,12 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           configurable: true
         })
         
-        // 从markdown中移除tool_calls的JSON内容，只保留其他文本内容
-        if (assistantMessage.markdown) {
-          let cleanedMarkdown = assistantMessage.markdown
-          
-          // 移除代码块中的tool_calls JSON（更精确的匹配）
-          cleanedMarkdown = cleanedMarkdown.replace(
-            /```(?:json)?\s*\{[\s\S]*?"tool_calls"[\s\S]*?\}\s*```/g,
-            ''
-          )
-          
-          // 移除独立的tool_calls JSON对象（更精确的匹配）
-          cleanedMarkdown = cleanedMarkdown.replace(
-            /\{\s*"tool_calls"\s*:\s*\[[\s\S]*?\]\s*[\s\S]*?\}/g,
-            ''
-          )
-          
-          cleanedMarkdown = cleanedMarkdown.trim()
-          
-          // 如果清理后还有内容，保留；否则设置为空字符串
-          assistantMessage.markdown = cleanedMarkdown || ''
-        }
+        // 注意：不删除markdown中的任何内容（包括<tool_call>标记和JSON格式的tool_calls）
+        // 原因：
+        // 1. AI需要看到这些内容来理解上下文（在buildHistoryMessages中会使用）
+        // 2. UI层面（AgentMessageRenderer）已经有逻辑：如果有tool_calls，就不显示markdown，而是显示友好的提示
+        // 3. 这样既保证了AI能看到完整上下文，又保证了用户看到的是友好的UI提示
+        // 4. 保留原始markdown可以确保在流式输出过程中，消息内容不会被意外清空
         
         // 验证tool_calls是否被正确添加
         const hasToolCalls = !!(assistantMessage as any).tool_calls
@@ -1086,6 +960,50 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
 
       for (const toolCall of toolCalls) {
         try {
+          // 处理dummy-tool（无效的工具调用）
+          if (toolCall.tool_id === 'dummy-tool') {
+            const errorInfo = toolCall.parameters.error as string || '工具调用格式错误'
+            const rawContent = toolCall.parameters.rawContent as string || ''
+            const parsed = toolCall.parameters.parsed as any
+            
+            // 构建详细的错误信息
+            let errorMessage = `工具调用格式错误：${errorInfo}\n\n`
+            errorMessage += `**原始内容：**\n\`\`\`\n${rawContent}\n\`\`\`\n\n`
+            
+            if (parsed) {
+              errorMessage += `**解析结果：**\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`\n\n`
+            }
+            
+            errorMessage += `**正确的调用格式：**\n\`\`\`\n<tool_call>\n{"name": "工具ID", "arguments": {"参数名": "参数值"}}\n</tool_call>\n\`\`\`\n\n`
+            errorMessage += `**注意事项：**\n`
+            errorMessage += `1. 必须包含 "name" 字段指定工具ID\n`
+            errorMessage += `2. 必须包含 "arguments" 字段（对象类型）\n`
+            errorMessage += `3. 标记必须完整：<tool_call>...</tool_call>\n`
+            errorMessage += `4. JSON格式必须正确（注意引号、逗号等）`
+            
+            const failedObservation: ToolObservation = {
+              toolId: 'dummy-tool',
+              toolName: '工具调用错误',
+              status: 'failed',
+              error: errorMessage
+            }
+            observations.push(failedObservation)
+            
+            // 添加tool消息
+            AIContextManager.addToolMessage(
+              this.session,
+              'dummy-tool',
+              '工具调用错误',
+              'failed',
+              undefined,
+              errorMessage,
+              undefined,
+              toolCall.id,
+              undefined // dummy-tool没有配置
+            )
+            continue
+          }
+          
           // 验证参数
           const validation = ToolRunner.validateToolParams(toolCall.tool_id, toolCall.parameters)
           if (!validation.valid) {

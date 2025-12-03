@@ -1411,45 +1411,16 @@ const executeAgentEngine = async (
         // persistSessions();
         await nextTick();
         
-        // 创建watch，实时更新消息内容，同时截断工具调用标记内容
+        // 注意：simple-chat引擎使用createAiTask，不是LlmAdapter.callChatViaTask
+        // 所以需要创建watch来同步assistantMessageRef到assistantMessage.markdown
+        // 但不要截断工具调用标记，让完整的markdown保留，以便后续检测工具调用
         stopWatcher = watch(
           assistantMessageRef,
           (newValue) => {
             if (assistantMessage) {
-              // 清理工具调用标记，不显示参数给用户
-              let cleanedValue = newValue;
-              
-              // 如果检测到工具调用标记开始，截断内容
-              const toolCallsBeginPattern = /\<｜tool▁calls▁begin｜>/i;
-              const toolCallsBeginMatch = cleanedValue.match(toolCallsBeginPattern);
-              
-              if (toolCallsBeginMatch) {
-                // 找到工具调用标记开始的位置
-                const beginIndex = toolCallsBeginMatch.index!;
-                const beginMark = toolCallsBeginMatch[0];
-                
-                // 检查是否有结束标记
-                const toolCallsEndPattern = /\<｜tool▁calls▁end｜>/i;
-                const toolCallsEndMatch = cleanedValue.match(toolCallsEndPattern);
-                
-                // 提取标记之前的文本
-                const beforeText = cleanedValue.substring(0, beginIndex).trim();
-                
-                if (toolCallsEndMatch) {
-                  // 如果已经有结束标记，移除整个标记块，恢复正常显示后续文本
-                  const endIndex = toolCallsEndMatch.index! + toolCallsEndMatch[0].length;
-                  // 提取标记之后的文本（如果有）
-                  const afterText = cleanedValue.substring(endIndex).trim();
-                  // 只显示标记前和标记后的文本，不显示标记本身
-                  cleanedValue = [beforeText, afterText].filter(Boolean).join('\n\n');
-                } else {
-                  // 如果还没有结束标记，截断内容，只显示标记之前的文本
-                  // 不显示"正在调用工具..."，因为这会干扰用户
-                  cleanedValue = beforeText || '';
-                }
-              }
-              
-              assistantMessage.markdown = cleanedValue;
+              // 直接更新markdown，保留完整的工具调用标记
+              // AgentMessageRenderer会根据tool_calls的存在来决定是否显示markdown
+              assistantMessage.markdown = newValue;
               nextTick(() => {
                 const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap');
                 if (container) {
@@ -1525,24 +1496,14 @@ const executeAgentEngine = async (
       await done;
       logger.debug('[executeAgentEngine] AI任务完成');
       
-      // 任务完成后，清理工具调用标记，确保消息内容是最新的
+      // 任务完成后，确保消息内容是最新的
+      // 注意：不要清理工具调用标记，因为：
+      // 1. tool_calls需要保留在markdown中供AI上下文使用
+      // 2. AgentMessageRenderer会根据tool_calls的存在来决定是否显示markdown
+      // 3. 如果消息有tool_calls，UI会显示友好的提示，而不是原始markdown
       if (assistantMessage && assistantMessageRef) {
-        let finalContent = assistantMessageRef.value;
-        
-        // 清理工具调用标记，移除标记之间的内容
-        const toolCallsBeginPattern = /\<｜tool▁calls▁begin｜>/i;
-        const toolCallsEndPattern = /\<｜tool▁calls▁end｜>/i;
-        
-        if (toolCallsBeginPattern.test(finalContent)) {
-          // 找到所有工具调用标记块并移除
-          finalContent = finalContent.replace(
-            /\<｜tool▁calls▁begin｜>[\s\S]*?\<｜tool▁calls▁end｜>/gi,
-            ''
-          ).trim();
-        }
-        
-        assistantMessage.markdown = finalContent;
-        logger.debug(`[executeAgentEngine] 任务完成，最终消息长度: ${finalContent.length}`);
+        assistantMessage.markdown = assistantMessageRef.value;
+        logger.debug(`[executeAgentEngine] 任务完成，最终消息长度: ${assistantMessageRef.value.length}`);
       }
       
       session.status = 'idle';

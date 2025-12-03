@@ -77,9 +77,6 @@
                           class="config-menu"
                           @click.stop
                         >
-                          <button type="button" class="config-menu__item" @click="handleConfigMenuAction('edit', config)">
-                            {{ t('setting.editConfig') }}
-                          </button>
                           <button type="button" class="config-menu__item" @click="handleConfigMenuAction('duplicate', config)">
                             {{ t('setting.saveCurrentAsConfig') }}
                           </button>
@@ -118,6 +115,9 @@
             <el-tooltip :content="t('setting.deepseekHint')" placement="left">
               <el-option :label="t('setting.deepseek')" value="deepseek" />
             </el-tooltip>
+            <el-tooltip :content="t('setting.geminiHint')" placement="left">
+              <el-option :label="t('setting.gemini')" value="gemini" />
+            </el-tooltip>
             <el-tooltip v-if="isDev" :content="t('setting.manualHint')" placement="left">
               <el-option :label="t('setting.manual')" value="manual" />
             </el-tooltip>
@@ -152,7 +152,7 @@
               <el-option v-for="model in openaiModels" :key="model.id" :label="model.id" :value="model.id" />
             </el-select>
           </el-form-item>
-          <el-form-item :label="t('setting.apiSuffix')">
+          <el-form-item>
             <el-input v-model="settings.openai.completionSuffix" :placeholder="t('setting.completionSuffix')"
               @change="handleFieldChange" />
             <div style="height:40px;"></div>
@@ -184,6 +184,19 @@
               @change="handleFieldChange">
               <el-option label="deepseek-chat" value="deepseek-chat" />
               <el-option label="deepseek-reasoner" value="deepseek-reasoner" />
+            </el-select>
+          </el-form-item>
+        </template>
+
+        <template v-else-if="settings.selectedLlm === 'gemini'">
+          <el-form-item :label="t('setting.apiKey')">
+            <el-input v-model="settings.gemini.apiKey" type="password"
+              :placeholder="t('setting.geminiApiKeyPlaceholder')" @change="handleFieldChange" />
+          </el-form-item>
+          <el-form-item :label="t('setting.chooseModel')">
+            <el-select v-model="settings.gemini.selectedModel" :placeholder="t('setting.chooseModel')"
+              @click="fetchGeminiModels" @change="handleFieldChange">
+              <el-option v-for="model in geminiModels" :key="model.name" :label="model.displayName || model.name" :value="model.name" />
             </el-select>
           </el-form-item>
         </template>
@@ -344,93 +357,6 @@
     </div>
     </el-dialog>
 
-    <!-- 配置编辑对话框 -->
-    <el-dialog
-      v-model="showConfigDialog"
-      :title="editingConfig ? t('setting.editConfig') : t('setting.newConfig')"
-      width="600px"
-    >
-      <el-form :model="configForm" label-width="140px">
-        <el-form-item :label="t('setting.configName')" required>
-          <el-input v-model="configForm.name" :placeholder="t('setting.enterConfigName')" />
-        </el-form-item>
-        <el-form-item :label="t('setting.llmType')" required>
-          <el-select v-model="configForm.type" style="width: 100%">
-            <el-option :label="t('setting.metadoc')" value="metadoc" />
-            <el-option :label="t('setting.ollama')" value="ollama" />
-            <el-option :label="t('setting.openai')" value="openai" />
-            <el-option :label="t('setting.openaiOfficial')" value="openai-official" />
-            <el-option :label="t('setting.deepseek')" value="deepseek" />
-            <el-option v-if="isDev" :label="t('setting.manual')" value="manual" />
-          </el-select>
-        </el-form-item>
-
-        <template v-if="configForm.type === 'ollama'">
-          <el-form-item :label="t('setting.apiBaseUrl')">
-            <el-input v-model="configForm.ollama.apiUrl" :placeholder="t('setting.ollamaApiUrl')" />
-          </el-form-item>
-          <el-form-item :label="t('setting.chooseModel')">
-            <el-input v-model="configForm.ollama.selectedModel" :placeholder="t('setting.chooseModel')" />
-          </el-form-item>
-        </template>
-
-        <template v-else-if="configForm.type === 'openai'">
-          <el-form-item :label="t('setting.apiBaseUrl')">
-            <el-input v-model="configForm.openai.apiUrl" :placeholder="t('setting.openaiApiUrl')" />
-          </el-form-item>
-          <el-form-item :label="t('setting.apiKey')">
-            <el-input v-model="configForm.openai.apiKey" type="password" :placeholder="t('setting.apiKeyPlaceholder')" />
-          </el-form-item>
-          <el-form-item :label="t('setting.chooseModel')">
-            <el-input v-model="configForm.openai.selectedModel" :placeholder="t('setting.chooseModel')" />
-          </el-form-item>
-          <el-form-item :label="t('setting.completionSuffix')">
-            <el-input v-model="configForm.openai.completionSuffix" :placeholder="t('setting.completionSuffix')" />
-          </el-form-item>
-          <el-form-item :label="t('setting.chatSuffix')">
-            <el-input v-model="configForm.openai.chatSuffix" :placeholder="t('setting.chatSuffix')" />
-          </el-form-item>
-        </template>
-
-        <template v-else-if="configForm.type === 'openai-official'">
-          <el-form-item :label="t('setting.apiKey')">
-            <el-input v-model="configForm['openai-official'].apiKey" type="password" :placeholder="t('setting.apiKeyPlaceholder')" />
-          </el-form-item>
-          <el-form-item :label="t('setting.chooseModel')">
-            <el-input v-model="configForm['openai-official'].selectedModel" :placeholder="t('setting.chooseModel')" />
-          </el-form-item>
-        </template>
-
-        <template v-else-if="configForm.type === 'deepseek'">
-          <el-form-item :label="t('setting.apiKey')">
-            <el-input v-model="configForm.deepseek.apiKey" type="password" :placeholder="t('setting.apiKeyPlaceholder')" />
-          </el-form-item>
-          <el-form-item :label="t('setting.chooseModel')">
-            <el-input v-model="configForm.deepseek.selectedModel" :placeholder="t('setting.chooseModel')" />
-          </el-form-item>
-        </template>
-
-        <template v-else-if="configForm.type === 'metadoc'">
-          <el-form-item :label="t('setting.chooseModel')">
-            <el-input v-model="configForm.metadoc.selectedModel" :placeholder="t('setting.chooseModel')" />
-          </el-form-item>
-        </template>
-
-        <template v-else-if="configForm.type === 'manual'">
-          <el-form-item>
-            <el-alert
-              :title="t('setting.manualConfigHint')"
-              type="info"
-              :closable="false"
-            />
-          </el-form-item>
-        </template>
-      </el-form>
-      <template #footer>
-        <el-button @click="showConfigDialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleSaveConfig">{{ t('common.save') }}</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -454,6 +380,7 @@ import {
   switchConfig,
   createConfigFromCurrentSettings,
   createTemporaryConfigAsync,
+  createDefaultTemporaryConfig,
   isCurrentConfigModified,
   type LlmConfigItem
 } from '../../utils/llm-config-manager';
@@ -487,6 +414,7 @@ const logger = createRendererLogger('SettingLlm');
 const ollamaModels = ref<OllamaModel[]>([]);
 const openaiModels = ref<OpenAIModel[]>([]);
 const openaiOfficialModels = ref<OpenAIModel[]>([]);
+const geminiModels = ref<Array<{ name: string; displayName?: string }>>([]);
 const metadocModels = ref<MetaDocModel[]>([]);
 const testResult = ref('');
 const testScenario = ref('completion-stream');
@@ -494,8 +422,6 @@ const testLoading = ref(false);
 const isDev = ref(false);
 const llmConfigs = ref<LlmConfigItem[]>([]);
 const currentConfigId = ref<string>('');
-const showConfigDialog = ref(false);
-const editingConfig = ref<LlmConfigItem | null>(null);
 const openConfigMenuId = ref<string>('');
 const configMenuStyle = ref({});
 const manualTokenInput = ref('');
@@ -503,15 +429,6 @@ const pendingManualRequestId = ref<string>('');
 const manualLLMDialogVisible = ref(false);
 const pendingRequests = ref<Array<{ requestId: string; type: string; stream: boolean }>>([]);
 const selectedRequestId = ref<string>('');
-const configForm = ref({
-  name: '',
-  type: 'ollama' as LlmConfigItem['type'],
-  ollama: { apiUrl: '', selectedModel: '' },
-  openai: { apiUrl: '', apiKey: '', selectedModel: '', completionSuffix: '', chatSuffix: '' },
-  'openai-official': { apiKey: '', selectedModel: '' },
-  deepseek: { apiKey: '', selectedModel: '' },
-  metadoc: { selectedModel: '' }
-});
 
 const sliderMarks = computed(() => ({
   0.3: {
@@ -554,6 +471,8 @@ const fetchLlmSettings = async () => {
   settings['openai-official'].selectedModel = await getSetting('openaiOfficialSelectedModel') || '';
   settings.deepseek.apiKey = await getSetting('deepseekApiKey') || '';
   settings.deepseek.selectedModel = await getSetting('deepseekSelectedModel') || '';
+  settings.gemini.apiKey = await getSetting('geminiApiKey') || '';
+  settings.gemini.selectedModel = await getSetting('geminiSelectedModel') || '';
   
   // 加载全局设置
   settings.llmTemperature = await getSetting('llmTemperature') || 1.3;
@@ -573,6 +492,8 @@ const updateLlmInfo = () => {
   setSetting('openaiOfficialSelectedModel', settings['openai-official'].selectedModel);
   setSetting('deepseekApiKey', settings.deepseek.apiKey);
   setSetting('deepseekSelectedModel', settings.deepseek.selectedModel);
+  setSetting('geminiApiKey', settings.gemini.apiKey);
+  setSetting('geminiSelectedModel', settings.gemini.selectedModel);
   eventBus.emit('llm-api-updated');
 };
 
@@ -661,6 +582,39 @@ const fetchOpenAIOfficialModels = async () => {
   }
 };
 
+const fetchGeminiModels = async () => {
+  const apiKey = settings.gemini.apiKey;
+  if (!apiKey) {
+    return;
+  }
+
+  try {
+    const response = await axios.get('https://generativelanguage.googleapis.com/v1beta/models', {
+      params: {
+        key: apiKey
+      },
+      headers: {
+        Accept: 'application/json'
+      }
+    });
+
+    if (response.data?.models) {
+      // 过滤出可用的生成模型（排除embedding等）
+      geminiModels.value = response.data.models
+        .filter((model: any) => model.supportedGenerationMethods?.includes('generateContent'))
+        .map((model: any) => ({
+          name: model.name.replace('models/', ''),
+          displayName: model.displayName || model.name.replace('models/', '')
+        }));
+    } else {
+      geminiModels.value = [];
+      logger.warn('未能获取 Gemini 模型列表，响应数据为空');
+    }
+  } catch (error) {
+    logger.error('无法获取 Gemini 模型列表', error);
+  }
+};
+
 
 const handleLlmToggle = (enabled: boolean) => {
   if (!enabled) {
@@ -727,6 +681,8 @@ const watchConfigChanges = () => {
   watch(() => settings['openai-official']?.selectedModel, debouncedHandleModification);
   watch(() => settings.deepseek?.apiKey, debouncedHandleModification);
   watch(() => settings.deepseek?.selectedModel, debouncedHandleModification);
+  watch(() => settings.gemini?.apiKey, debouncedHandleModification);
+  watch(() => settings.gemini?.selectedModel, debouncedHandleModification);
   watch(() => settings.metadoc?.selectedModel, debouncedHandleModification);
 };
 
@@ -754,6 +710,8 @@ const handleConfigSwitch = async (id: string) => {
     fetchOpenAIModels();
   } else if (settings.selectedLlm === 'openai-official' && settings['openai-official'].apiKey) {
     fetchOpenAIOfficialModels();
+  } else if (settings.selectedLlm === 'gemini' && settings.gemini.apiKey) {
+    fetchGeminiModels();
   } else if (settings.selectedLlm === 'manual') {
     // 切换到manual类型时，加载缓存的内容
     loadManualTokenFromCache();
@@ -762,18 +720,19 @@ const handleConfigSwitch = async (id: string) => {
   ElMessage.success(t('setting.configSwitched'));
 };
 
-const handleCreateConfig = () => {
-  editingConfig.value = null;
-  configForm.value = {
-    name: '',
-    type: 'ollama',
-    ollama: { apiUrl: 'http://localhost:11434/api', selectedModel: '' },
-    openai: { apiUrl: 'https://api.openai.com/v1', apiKey: '', selectedModel: '', completionSuffix: '', chatSuffix: '' },
-    'openai-official': { apiKey: '', selectedModel: '' },
-    deepseek: { apiKey: '', selectedModel: 'deepseek-chat' },
-    metadoc: { selectedModel: '' }
-  };
-  showConfigDialog.value = true;
+const handleCreateConfig = async () => {
+  try {
+    // 直接创建默认临时配置并切换
+    const tempConfig = await createDefaultTemporaryConfig();
+    await switchConfig(tempConfig.id);
+    currentConfigId.value = tempConfig.id;
+    await fetchLlmSettings();
+    loadConfigs();
+    ElMessage.success(t('setting.configCreated'));
+  } catch (error) {
+    logger.error('创建配置失败', error);
+    ElMessage.error(t('setting.configCreateFailed') || '创建配置失败');
+  }
 };
 
 const toggleConfigMenu = (configId: string) => {
@@ -791,9 +750,7 @@ const getConfigMenuStyle = () => {
 
 const handleConfigMenuAction = async (action: string, config: LlmConfigItem) => {
   openConfigMenuId.value = '';
-  if (action === 'edit') {
-    handleEditConfig(config);
-  } else if (action === 'duplicate') {
+  if (action === 'duplicate') {
     await handleSaveCurrentAsConfig();
   } else if (action === 'delete') {
     await handleDeleteConfig(config.id);
@@ -943,22 +900,6 @@ const selectPendingRequest = (requestId: string) => {
   pendingManualRequestId.value = requestId;
 };
 
-const handleEditConfig = (config?: LlmConfigItem) => {
-  const targetConfig = config || llmConfigs.value.find(c => c.id === currentConfigId.value);
-  if (!targetConfig) return;
-  
-  editingConfig.value = targetConfig;
-  configForm.value = {
-    name: targetConfig.name,
-    type: targetConfig.type,
-    ollama: targetConfig.ollama || { apiUrl: 'http://localhost:11434/api', selectedModel: '' },
-    openai: targetConfig.openai || { apiUrl: 'https://api.openai.com/v1', apiKey: '', selectedModel: '', completionSuffix: '', chatSuffix: '' },
-    'openai-official': targetConfig['openai-official'] || { apiKey: '', selectedModel: '' },
-    deepseek: targetConfig.deepseek || { apiKey: '', selectedModel: 'deepseek-chat' },
-    metadoc: targetConfig.metadoc || { selectedModel: '' }
-  };
-  showConfigDialog.value = true;
-};
 
 const handleDeleteConfig = async (configId?: string) => {
   const targetId = configId || currentConfigId.value;
@@ -996,58 +937,26 @@ const handleSaveCurrentAsConfig = async () => {
       }
     );
     
+    // 保存当前配置
     const config = await createConfigFromCurrentSettings(name);
-    llmConfigs.value = getAllConfigs();
+    
+    // 如果当前是临时配置，删除它
+    const currentConfig = llmConfigs.value.find(c => c.id === currentConfigId.value);
+    if (currentConfig?.isTemporary) {
+      deleteConfig(currentConfig.id);
+    }
+    
+    // 切换到新保存的配置
+    await switchConfig(config.id);
     currentConfigId.value = config.id;
+    await fetchLlmSettings();
+    loadConfigs();
     ElMessage.success(t('setting.configSaved'));
   } catch {
     // 用户取消
   }
 };
 
-const handleSaveConfig = async () => {
-  if (!configForm.value.name.trim()) {
-    ElMessage.warning(t('setting.configNameRequired'));
-    return;
-  }
-  
-  const configData: any = {
-    name: configForm.value.name.trim(),
-    type: configForm.value.type
-  };
-  
-  if (configForm.value.type === 'ollama') {
-    configData.ollama = configForm.value.ollama;
-  } else if (configForm.value.type === 'openai') {
-    configData.openai = configForm.value.openai;
-  } else if (configForm.value.type === 'openai-official') {
-    configData['openai-official'] = configForm.value['openai-official'];
-  } else if (configForm.value.type === 'deepseek') {
-    configData.deepseek = configForm.value.deepseek;
-  } else if (configForm.value.type === 'metadoc') {
-    configData.metadoc = configForm.value.metadoc;
-  }
-  
-  if (editingConfig.value) {
-    updateConfig(editingConfig.value.id, configData);
-    ElMessage.success(t('setting.configUpdated'));
-  } else {
-    addConfig(configData);
-    ElMessage.success(t('setting.configCreated'));
-  }
-  
-  loadConfigs();
-  showConfigDialog.value = false;
-  
-  // 如果创建的是新配置，自动切换过去
-  if (!editingConfig.value) {
-    const newConfig = llmConfigs.value.find(c => c.name === configData.name);
-    if (newConfig) {
-      await switchConfig(newConfig.id);
-      await fetchLlmSettings();
-    }
-  }
-};
 
 const clearTestResult = () => {
   testResult.value = '';

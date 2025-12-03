@@ -55,6 +55,7 @@
     "@element-plus/icons-vue": "^2.3.1",
     "@ffmpeg/core": "^0.12.6",
     "@ffmpeg/ffmpeg": "^0.12.10",
+    "@google/genai": "^1.30.0",
     "@resvg/resvg-js": "^2.6.2",
     "@rollup/plugin-babel": "^6.0.4",
     "@ssthouse/vue3-tree-chart": "^0.2.6",

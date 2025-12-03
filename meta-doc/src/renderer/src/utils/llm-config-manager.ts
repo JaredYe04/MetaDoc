@@ -20,7 +20,7 @@ function getLogger() {
 export interface LlmConfigItem {
   id: string;
   name: string;
-  type: 'metadoc' | 'ollama' | 'openai' | 'openai-official' | 'deepseek' | 'manual';
+  type: 'metadoc' | 'ollama' | 'openai' | 'openai-official' | 'deepseek' | 'gemini' | 'manual';
   isTemporary?: boolean; // 是否为临时配置（未保存）
   originalConfigId?: string; // 如果是临时配置，记录原始配置ID
   // Ollama配置
@@ -43,6 +43,11 @@ export interface LlmConfigItem {
   };
   // DeepSeek配置
   deepseek?: {
+    apiKey: string;
+    selectedModel: string;
+  };
+  // Gemini配置
+  gemini?: {
     apiKey: string;
     selectedModel: string;
   };
@@ -139,6 +144,11 @@ async function createDefaultConfigFromSettings(): Promise<LlmConfigItem> {
     config.deepseek = {
       apiKey: await getSetting('deepseekApiKey') || '',
       selectedModel: await getSetting('deepseekSelectedModel') || 'deepseek-chat'
+    };
+  } else if (selectedLlm === 'gemini') {
+    config.gemini = {
+      apiKey: await getSetting('geminiApiKey') || '',
+      selectedModel: await getSetting('geminiSelectedModel') || 'gemini-2.5-flash'
     };
   } else if (selectedLlm === 'metadoc') {
     config.metadoc = {
@@ -257,6 +267,9 @@ async function applyConfigToSettings(config: LlmConfigItem): Promise<void> {
   } else if (config.type === 'deepseek' && config.deepseek) {
     await setSetting('deepseekApiKey', config.deepseek.apiKey);
     await setSetting('deepseekSelectedModel', config.deepseek.selectedModel);
+  } else if (config.type === 'gemini' && config.gemini) {
+    await setSetting('geminiApiKey', config.gemini.apiKey);
+    await setSetting('geminiSelectedModel', config.gemini.selectedModel);
   } else if (config.type === 'metadoc' && config.metadoc) {
     await setSetting('metadocSelectedModel', config.metadoc.selectedModel);
   }
@@ -273,6 +286,26 @@ export async function createConfigFromCurrentSettings(name: string): Promise<Llm
   const config = await createDefaultConfigFromSettings();
   config.name = name;
   return addConfig(config);
+}
+
+/**
+ * 创建默认的临时配置
+ */
+export async function createDefaultTemporaryConfig(): Promise<LlmConfigItem> {
+  const config = await createDefaultConfigFromSettings();
+  config.name = '新配置';
+  config.isTemporary = true;
+  
+  const tempConfig: LlmConfigItem = {
+    ...config,
+    id: `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+  
+  configs.value.push(tempConfig);
+  saveLlmConfigs();
+  return tempConfig;
 }
 
 
@@ -387,6 +420,11 @@ export async function isCurrentConfigModified(configId: string): Promise<boolean
   } else if (config.type === 'deepseek' && config.deepseek) {
     if (config.deepseek.apiKey !== currentSettings.deepseek?.apiKey ||
         config.deepseek.selectedModel !== currentSettings.deepseek?.selectedModel) {
+      return true;
+    }
+  } else if (config.type === 'gemini' && config.gemini) {
+    if (config.gemini.apiKey !== currentSettings.gemini?.apiKey ||
+        config.gemini.selectedModel !== currentSettings.gemini?.selectedModel) {
       return true;
     }
   } else if (config.type === 'metadoc' && config.metadoc) {

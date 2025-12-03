@@ -82,6 +82,10 @@ export const settings = reactive({
     apiKey: "", // 只需要 API Key，base_url 固定为 https://api.deepseek.com
     selectedModel: "", // 模型名称，默认为 deepseek-chat
   },
+  gemini: {
+    apiKey: "", // 只需要 API Key，base_url 固定为 https://generativelanguage.googleapis.com/v1beta
+    selectedModel: "", // 模型名称
+  },
   metadoc: {
     selectedModel: "",//模型名称
   },

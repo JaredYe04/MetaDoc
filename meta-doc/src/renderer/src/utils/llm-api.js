@@ -1,23 +1,20 @@
 import { getSetting } from "./settings.js";
-import { getMetaDocLlmConfig, verifyToken } from "./web-utils.ts";
 import {
   handleLlmError,
-  validateLlmConfig,
   LlmError,
   LlmErrorType,
 } from "./llm-errors.js";
 import {
   sendNonStreamRequest,
   sendStreamRequest,
-  extractTextFromResponse,
-  extractTextDeltaFromChunk,
   processThinkTag,
-  extractUsageFromResponse,
 } from "./llm-http.js";
 import { recordLlmRequest } from "./llm-statistics-service.js";
 import { createRendererLogger } from "./logger.ts";
 import OpenAI from "openai";
+import { createAdapterFromSettings } from "./llm-adapters/adapter-factory.ts";
 
+const DEFAULT_MAX_TOKENS = 1024;
 /**
  * 获取自定义LLM配置对象
  * @param {Object} customConfig - 自定义LLM配置
@@ -44,103 +41,12 @@ function getCustomLlmConfigObject(customConfig) {
 }
 
 /**
- * 获取 LLM 配置
+ * 获取 LLM 适配器
  * @param {Object} customConfig - 可选的自定义LLM配置（如果提供则使用此配置）
- * @returns {Promise<Object>} LLM 配置对象
+ * @returns {Promise<BaseLlmAdapter>} LLM 适配器实例
  */
-async function getLlmConfig(customConfig = null) {
-  // 如果提供了自定义配置，优先使用
-  if (customConfig) {
-    return getCustomLlmConfigObject(customConfig);
-  }
-  const selectedLlm = await getSetting("selectedLlm");
-  if (!selectedLlm) {
-    throw new LlmError(LlmErrorType.INVALID_CONFIG, "未选择 LLM 类型");
-  }
-
-  let config = { type: selectedLlm };
-
-  switch (selectedLlm) {
-    case "metadoc": {
-      const token = localStorage.getItem("loginToken");
-      const modelName = await getSetting("metadocSelectedModel");
-
-      const isLoggedIn = verifyToken(token);
-      if (!isLoggedIn) {
-        throw new LlmError(
-          LlmErrorType.AUTH_ERROR,
-          "请先登录 MetaDoc 账户",
-          null,
-          { showLoginDialog: true }
-        );
-      }
-
-      const metadocConfig = await getMetaDocLlmConfig(token, modelName);
-      config = { ...config, ...metadocConfig };
-      break;
-    }
-
-    case "openai": {
-      config.apiKey = await getSetting("openaiApiKey");
-      config.apiUrl = await getSetting("openaiApiUrl");
-      config.selectedModel = await getSetting("openaiSelectedModel");
-      config.completionSuffix = await getSetting("openaiCompletionSuffix");
-      config.chatSuffix = await getSetting("openaiChatSuffix");
-      break;
-    }
-
-    case "openai-official": {
-      config.apiKey = await getSetting("openaiOfficialApiKey");
-      config.apiUrl = "https://api.openai.com/v1"; // 固定 URL
-      config.selectedModel = await getSetting("openaiOfficialSelectedModel");
-      config.completionSuffix = "";
-      config.chatSuffix = "";
-      break;
-    }
-
-    case "deepseek": {
-      config.apiKey = await getSetting("deepseekApiKey");
-      // DeepSeek 的 completions API 需要使用 beta URL，chat completions 使用标准 URL
-      config.apiUrl = "https://api.deepseek.com"; // Chat completions 使用标准 URL
-      config.completionApiUrl = "https://api.deepseek.com/beta"; // Completions 使用 beta URL
-      config.selectedModel =
-        (await getSetting("deepseekSelectedModel")) || "deepseek-chat";
-      config.completionSuffix = "";
-      config.chatSuffix = "";
-      break;
-    }
-
-    case "ollama": {
-      config.apiUrl = await getSetting("ollamaApiUrl");
-      config.selectedModel = await getSetting("ollamaSelectedModel");
-      break;
-    }
-
-    case "manual": {
-      // 手动API类型：使用Express服务器的模拟接口
-      config.apiUrl = "http://localhost:52521/api/llm";
-      config.selectedModel = "manual-model";
-      config.apiKey = ""; // manual类型不需要apiKey
-      break;
-    }
-
-    default:
-      throw new LlmError(
-        LlmErrorType.INVALID_CONFIG,
-        `不支持的 LLM 类型: ${selectedLlm}`
-      );
-  }
-
-  // 验证配置
-  await validateLlmConfig(config);
-
-  // 获取全局温度配置（如果meta中没有指定）
-  const globalTemperature = await getSetting("llmTemperature");
-  if (globalTemperature !== undefined && !config.temperature) {
-    config.temperature = globalTemperature;
-  }
-
-  return config;
+async function getLlmAdapter(customConfig = null) {
+  return await createAdapterFromSettings(customConfig);
 }
 
 /**
@@ -153,7 +59,8 @@ async function validateApi() {
       throw new LlmError(LlmErrorType.NOT_ENABLED, "LLM API 未启用");
     }
 
-    const config = await getLlmConfig();
+    const adapter = await getLlmAdapter();
+    const config = adapter.getConfig();
     if (!config.apiUrl && config.type !== "metadoc" && config.type !== "manual") {
       throw new LlmError(
         LlmErrorType.INVALID_CONFIG,
@@ -467,116 +374,87 @@ async function answerQuestionNonStream(
     return;
   }
 
-  const config = await getLlmConfig(customLlmConfig || (meta?.customLlmConfig || null));
-  const { type, apiUrl, apiKey, selectedModel, completionSuffix = "", completionApiUrl, temperature } = config;
-  
-  // 使用meta中的temperature，如果没有则使用配置中的temperature，最后使用默认值1.3
-  const effectiveTemperature = meta.temperature ?? temperature ?? 1.3;
+  const adapter = await getLlmAdapter(customLlmConfig || (meta?.customLlmConfig || null));
+  const config = adapter.getConfig();
+  const { type, selectedModel } = config;
 
   try {
     // 如果meta中有max_tokens，则使用它（用于自动补全限制）
-    const maxTokens = meta.max_tokens;
+    const maxTokens = meta.max_tokens !== undefined 
+      ? meta.max_tokens 
+      : DEFAULT_MAX_TOKENS;
 
     // 对于ollama和manual类型，使用原有的fetch方式
     if (type === "ollama" || type === "manual") {
-      let url, payload, responseType;
+      const url = adapter.getCompletionUrl();
+      const payload = adapter.buildCompletionPayload(prompt, { ...meta, max_tokens: maxTokens });
+      const headers = adapter.buildHeaders();
       
-      if (type === "ollama") {
-        url = `${apiUrl}/generate`;
-        payload = {
-          model: selectedModel,
-          prompt,
-          stream: false,
-          temperature: effectiveTemperature,
-          ...(meta || {}),
-        };
-        // Ollama使用num_predict参数
-        if (maxTokens !== undefined && maxTokens > 0) {
-          payload.num_predict = maxTokens;
-        }
-        responseType = "completion";
-      } else {
-        // manual类型：使用Express服务器的模拟接口
-        url = `http://localhost:52521/api/llm/completions`;
-        payload = {
-          model: selectedModel || "manual-model",
-          prompt,
-          stream: false,
-          temperature: effectiveTemperature,
-          ...(meta || {}),
-        };
-        if (maxTokens !== undefined && maxTokens > 0) {
-          payload.max_tokens = maxTokens;
-        }
-        responseType = "completion";
-      }
-
-      const headers = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
       const result = await sendNonStreamRequest(url, payload, headers, signal);
-      const text = extractTextFromResponse(result, responseType);
+      const { text, usage } = adapter.convertResponse(result, 'completion');
       const processedText = await processThinkTag(text);
       ref.value = processedText;
       
       // 记录 token 统计
-      try {
-        const usage = extractUsageFromResponse(result);
         if (usage) {
+        try {
           await recordLlmRequest(usage, selectedModel, 'completion');
-        }
       } catch (error) {
         const logger = createRendererLogger("LLM-API");
         logger.warn('记录 token 统计失败:', error);
+        }
+      }
+      return;
+    }
+
+    // 对于Gemini类型，使用 GoogleGenAI SDK
+    if (type === "gemini") {
+      const { text, usage } = await adapter.generateContentNonStream(prompt, { ...meta, max_tokens: maxTokens }, signal);
+      const processedText = await processThinkTag(text);
+      ref.value = processedText;
+      
+      if (usage) {
+        try {
+          await recordLlmRequest(usage, selectedModel, 'completion');
+        } catch (error) {
+          const logger = createRendererLogger("LLM-API");
+          logger.warn('记录 token 统计失败:', error);
+        }
       }
       return;
     }
 
     // 对于OpenAI兼容的API，使用OpenAI SDK
-    const baseURL = type === "deepseek" && completionApiUrl 
-      ? completionApiUrl 
-      : apiUrl;
-    const finalUrl = `${baseURL}${completionSuffix}`;
+    const baseURL = type === "deepseek" && config.completionApiUrl 
+      ? config.completionApiUrl 
+      : adapter.getCompletionUrl();
     
     const openai = new OpenAI({
-      apiKey: apiKey || "dummy-key", // manual类型可能没有apiKey
-      baseURL: finalUrl,
+      apiKey: config.apiKey || "dummy-key",
+      baseURL: baseURL,
       defaultQuery: {},
       defaultHeaders: {},
-      dangerouslyAllowBrowser: true, // Electron环境需要此选项
+      dangerouslyAllowBrowser: true,
     });
 
-    const completionParams = {
-      model: selectedModel || (type === "deepseek" ? "deepseek-chat" : "text-davinci-003"),
-      prompt: prompt,
-      temperature: effectiveTemperature,
-      ...(meta || {}),
-    };
-    
-    if (maxTokens !== undefined && maxTokens > 0) {
-      completionParams.max_tokens = maxTokens;
-    }
+    const completionParams = adapter.buildCompletionPayload(prompt, { ...meta, max_tokens: maxTokens });
 
     const completion = await openai.completions.create(completionParams, {
       signal: signal,
     });
 
-    const text = completion.choices[0]?.text || "";
+    const { text, usage } = adapter.convertResponse(completion, 'completion');
     const processedText = await processThinkTag(text);
     ref.value = processedText;
     
     // 记录 token 统计
-    try {
-      const usage = completion.usage ? {
-        prompt_tokens: completion.usage.prompt_tokens || 0,
-        completion_tokens: completion.usage.completion_tokens || 0,
-        total_tokens: completion.usage.total_tokens || 0,
-      } : null;
       if (usage) {
+      try {
         await recordLlmRequest(usage, selectedModel, 'completion');
-      }
     } catch (error) {
-      // 统计失败不影响主流程
       const logger = createRendererLogger("LLM-API");
       logger.warn('记录 token 统计失败:', error);
+      }
     }
   } catch (error) {
     const llmError = handleLlmError(error, false);
@@ -599,63 +477,31 @@ async function answerQuestionStream(
     return;
   }
 
-  const config = await getLlmConfig(customLlmConfig || (meta?.customLlmConfig || null));
-  const { type, apiUrl, apiKey, selectedModel, completionSuffix = "", completionApiUrl, temperature } = config;
-  
-  // 使用meta中的temperature，如果没有则使用配置中的temperature，最后使用默认值1.3
-  const effectiveTemperature = meta.temperature ?? temperature ?? 1.3;
+  const adapter = await getLlmAdapter(customLlmConfig || (meta?.customLlmConfig || null));
+  const config = adapter.getConfig();
+  const { type, selectedModel } = config;
 
   try {
-    // 如果meta中有max_tokens，则使用它（用于自动补全限制）
-    const maxTokens = meta.max_tokens;
+    const maxTokens = meta.max_tokens !== undefined 
+      ? meta.max_tokens 
+      : DEFAULT_MAX_TOKENS;
 
-    // 对于ollama和manual类型，使用原有的fetch方式
+    // 对于ollama和manual类型，使用fetch方式
     if (type === "ollama" || type === "manual") {
-      let url, payload, responseType;
+      const streamUrl = adapter.getStreamUrl('completion') || adapter.getCompletionUrl();
+      const payload = { ...adapter.buildCompletionPayload(prompt, { ...meta, max_tokens: maxTokens }), stream: true };
+      const headers = adapter.buildHeaders();
       
-      if (type === "ollama") {
-        url = `${apiUrl}/generate`;
-        payload = {
-          model: selectedModel,
-          prompt,
-          stream: true,
-          temperature: effectiveTemperature,
-          ...(meta || {}),
-        };
-        // Ollama使用num_predict参数
-        if (maxTokens !== undefined && maxTokens > 0) {
-          payload.num_predict = maxTokens;
-        }
-        responseType = "completion";
-      } else {
-        // manual类型：使用Express服务器的模拟接口
-        url = `http://localhost:52521/api/llm/completions`;
-        payload = {
-          model: selectedModel || "manual-model",
-          prompt,
-          stream: true,
-          temperature: effectiveTemperature,
-          ...(meta || {}),
-        };
-        if (maxTokens !== undefined && maxTokens > 0) {
-          payload.max_tokens = maxTokens;
-        }
-        responseType = "completion";
-      }
-
-      ref.value = ""; // 清空内容
-      const headers = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
-
+      ref.value = "";
       await sendStreamRequest(
-        url,
+        streamUrl,
         payload,
         headers,
         signal,
         async (chunk) => {
-          const delta = extractTextDeltaFromChunk(chunk, responseType);
+          const delta = adapter.extractStreamDelta(chunk, 'completion');
           if (delta) {
             ref.value += delta;
-            // 处理思考标签
             const processed = await processThinkTag(ref.value);
             if (processed !== ref.value) {
               ref.value = processed;
@@ -663,49 +509,68 @@ async function answerQuestionStream(
           }
         },
         async (lastChunk) => {
-          // 流式响应完成时，记录 token 统计
-          try {
-            const usage = extractUsageFromResponse(lastChunk);
-            if (usage) {
+          const usage = adapter.extractStreamUsage(lastChunk);
+          if (usage) {
+            try {
               await recordLlmRequest(usage, selectedModel, 'completion');
+            } catch (error) {
+              const logger = createRendererLogger("LLM-API");
+              logger.warn('记录 token 统计失败:', error);
             }
-          } catch (error) {
-            // 统计失败不影响主流程
-            const logger = createRendererLogger("LLM-API");
-            logger.warn('记录 token 统计失败:', error);
           }
         }
       );
       return;
     }
 
-    // 对于OpenAI兼容的API，使用OpenAI SDK
-    const baseURL = type === "deepseek" && completionApiUrl 
-      ? completionApiUrl 
-      : apiUrl;
-    const finalUrl = `${baseURL}${completionSuffix}`;
-    
-    const openai = new OpenAI({
-      apiKey: apiKey || "dummy-key",
-      baseURL: finalUrl,
-      defaultQuery: {},
-      defaultHeaders: {},
-      dangerouslyAllowBrowser: true, // Electron环境需要此选项
-    });
-
-    const completionParams = {
-      model: selectedModel || (type === "deepseek" ? "deepseek-chat" : "text-davinci-003"),
-      prompt: prompt,
-      stream: true,
-      temperature: effectiveTemperature,
-      ...(meta || {}),
-    };
-    
-    if (maxTokens !== undefined && maxTokens > 0) {
-      completionParams.max_tokens = maxTokens;
+    // 对于Gemini类型，使用 GoogleGenAI SDK
+    if (type === "gemini") {
+      ref.value = "";
+      let lastUsage = null;
+      
+      const stream = adapter.generateContentStream(prompt, { ...meta, max_tokens: maxTokens }, signal);
+      
+      for await (const { delta, usage } of stream) {
+        if (delta) {
+          ref.value += delta;
+          const processed = await processThinkTag(ref.value);
+          if (processed !== ref.value) {
+            ref.value = processed;
+          }
+        }
+        if (usage) {
+          lastUsage = usage;
+        }
+      }
+      
+      // 流式响应完成时，记录 token 统计
+      if (lastUsage) {
+        try {
+          await recordLlmRequest(lastUsage, selectedModel, 'completion');
+        } catch (error) {
+          const logger = createRendererLogger("LLM-API");
+          logger.warn('记录 token 统计失败:', error);
+        }
+      }
+      return;
     }
 
-    ref.value = ""; // 清空内容
+    // 对于OpenAI兼容的API，使用OpenAI SDK
+    const baseURL = type === "deepseek" && config.completionApiUrl 
+      ? config.completionApiUrl 
+      : adapter.getCompletionUrl();
+    
+    const openai = new OpenAI({
+      apiKey: config.apiKey || "dummy-key",
+      baseURL: baseURL,
+      defaultQuery: {},
+      defaultHeaders: {},
+      dangerouslyAllowBrowser: true,
+    });
+
+    const completionParams = { ...adapter.buildCompletionPayload(prompt, { ...meta, max_tokens: maxTokens }), stream: true };
+
+    ref.value = "";
     let lastUsage = null;
 
     const stream = await openai.completions.create(completionParams, {
@@ -713,35 +578,28 @@ async function answerQuestionStream(
     });
 
     for await (const chunk of stream) {
-      const delta = chunk.choices[0]?.text || "";
+      const delta = adapter.extractStreamDelta(chunk, 'completion');
       if (delta) {
         ref.value += delta;
-        // 处理思考标签
         const processed = await processThinkTag(ref.value);
         if (processed !== ref.value) {
           ref.value = processed;
         }
       }
-      // 保存usage信息（如果有）
-      if (chunk.usage) {
-        lastUsage = chunk.usage;
+      const usage = adapter.extractStreamUsage(chunk);
+      if (usage) {
+        lastUsage = usage;
       }
     }
 
     // 流式响应完成时，记录 token 统计
-    try {
       if (lastUsage) {
-        const usage = {
-          prompt_tokens: lastUsage.prompt_tokens || 0,
-          completion_tokens: lastUsage.completion_tokens || 0,
-          total_tokens: lastUsage.total_tokens || 0,
-        };
-        await recordLlmRequest(usage, selectedModel, 'completion');
-      }
+      try {
+        await recordLlmRequest(lastUsage, selectedModel, 'completion');
     } catch (error) {
-      // 统计失败不影响主流程
       const logger = createRendererLogger("LLM-API");
       logger.warn('记录 token 统计失败:', error);
+      }
     }
   } catch (error) {
     const llmError = handleLlmError(error, false);
@@ -780,18 +638,15 @@ async function answerQuestion(
 }
 
 /**
- * 准备对话请求配置
+ * 准备对话请求适配器
  */
-async function requestLlm(conversation, signal, customLlmConfig = null) {
+async function getConversationAdapter(conversation, signal, customLlmConfig = null) {
   // 如果有自定义配置，跳过全局验证
   if (!customLlmConfig && !(await validateApi())) {
     return null;
   }
 
-  const config = await getLlmConfig(customLlmConfig);
-  const { type, apiUrl, apiKey, selectedModel, chatSuffix = "", temperature } = config;
-
-  return { type, apiUrl, apiKey, selectedModel, chatSuffix, temperature, conversation };
+  return await getLlmAdapter(customLlmConfig);
 }
 
 /**
@@ -806,108 +661,86 @@ async function continueConversationNonStream(
 ) {
   const logger = createRendererLogger("LLM-API");
   const effectiveCustomConfig = customLlmConfig || meta?.customLlmConfig || null;
-  const config = await requestLlm(conversation, signal, effectiveCustomConfig);
-  if (!config) {
+  const adapter = await getConversationAdapter(conversation, signal, effectiveCustomConfig);
+  if (!adapter) {
     return;
   }
 
-  const { type, apiUrl, apiKey, selectedModel, chatSuffix, temperature } = config;
-  
-  // 使用meta中的temperature，如果没有则使用配置中的temperature，最后使用默认值1.3
-  const effectiveTemperature = meta?.temperature ?? temperature ?? 1.3;
+  const config = adapter.getConfig();
+  const { type, selectedModel } = config;
 
   try {
-    // 对于ollama和manual类型，使用原有的fetch方式
-    if (type === "ollama" || type === "manual") {
-      let url, payload;
-      
-      if (type === "ollama") {
-        url = `${apiUrl}/chat`;
-        payload = {
-          model: selectedModel,
-          messages: conversation,
-          stream: false,
-          temperature: effectiveTemperature,
-          ...(meta || {}),
-        };
-      } else {
-        // manual类型：使用Express服务器的模拟接口
-        url = `http://localhost:52521/api/llm/chat/completions`;
         // 清理并验证消息格式
         let sanitizedMsgs = sanitizeMessages(conversation);
         sanitizedMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger);
-        payload = {
-          model: selectedModel || "manual-model",
-          messages: sanitizedMsgs,
-          stream: false,
-          temperature: effectiveTemperature,
-          ...(meta || {}),
-        };
-      }
+    
+    // 转换消息格式（适配器可能需要转换）
+    const convertedMsgs = adapter.convertMessages(sanitizedMsgs);
 
-      const headers = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+    // 对于ollama和manual类型，使用fetch方式
+    if (type === "ollama" || type === "manual") {
+      const url = adapter.getChatUrl();
+      const payload = adapter.buildChatPayload(convertedMsgs, meta);
+      const headers = adapter.buildHeaders();
+      
       const result = await sendNonStreamRequest(url, payload, headers, signal);
-      const content = extractTextFromResponse(result, "chat");
-      const processedContent = await processThinkTag(content);
+      const { text, usage } = adapter.convertResponse(result, 'chat');
+      const processedContent = await processThinkTag(text);
       ref.value = processedContent;
       
-      // 记录 token 统计
-      try {
-        const usage = extractUsageFromResponse(result);
         if (usage) {
+        try {
           await recordLlmRequest(usage, selectedModel, 'chat');
-        }
       } catch (error) {
         logger.warn('记录 token 统计失败:', error);
+        }
+      }
+      return;
+    }
+
+    // 对于Gemini类型，使用 GoogleGenAI SDK
+    if (type === "gemini") {
+      const { text, usage } = await adapter.generateChatNonStream(convertedMsgs, meta, signal);
+      const processedContent = await processThinkTag(text);
+      ref.value = processedContent;
+      
+      if (usage) {
+        try {
+          await recordLlmRequest(usage, selectedModel, 'chat');
+        } catch (error) {
+          logger.warn('记录 token 统计失败:', error);
+        }
       }
       return;
     }
 
     // 对于OpenAI兼容的API，使用OpenAI SDK
-    // 清理并验证消息格式
-    let sanitizedMsgs = sanitizeMessages(conversation);
-    
-    // 最终验证和转换：这是发送到API之前的最后一道防线
-    sanitizedMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger);
-    
-    const finalUrl = `${apiUrl}${chatSuffix}`;
+    const finalUrl = adapter.getChatUrl();
     
     const openai = new OpenAI({
-      apiKey: apiKey || "dummy-key",
+      apiKey: config.apiKey || "dummy-key",
       baseURL: finalUrl,
       defaultQuery: {},
       defaultHeaders: {},
-      dangerouslyAllowBrowser: true, // Electron环境需要此选项
+      dangerouslyAllowBrowser: true,
     });
 
-    const chatParams = {
-      model: selectedModel,
-      messages: sanitizedMsgs,
-      temperature: effectiveTemperature,
-      ...(meta || {}),
-    };
+    const chatParams = adapter.buildChatPayload(convertedMsgs, meta);
 
     const completion = await openai.chat.completions.create(chatParams, {
       signal: signal,
     });
 
-    const content = completion.choices[0]?.message?.content || "";
-    const processedContent = await processThinkTag(content);
+    const { text, usage } = adapter.convertResponse(completion, 'chat');
+    const processedContent = await processThinkTag(text);
     ref.value = processedContent;
     
-    // 记录 token 统计
-    try {
-      const usage = completion.usage ? {
-        prompt_tokens: completion.usage.prompt_tokens || 0,
-        completion_tokens: completion.usage.completion_tokens || 0,
-        total_tokens: completion.usage.total_tokens || 0,
-      } : null;
       if (usage) {
+      try {
         await recordLlmRequest(usage, selectedModel, 'chat');
-      }
     } catch (error) {
-      // 统计失败不影响主流程
       logger.warn('记录 token 统计失败:', error);
+      }
     }
   } catch (error) {
     const llmError = handleLlmError(error, false);
@@ -927,58 +760,38 @@ async function continueConversationStream(
 ) {
   const logger = createRendererLogger("LLM-API");
   const effectiveCustomConfig = customLlmConfig || meta?.customLlmConfig || null;
-  const config = await requestLlm(conversation, signal, effectiveCustomConfig);
-  if (!config) {
+  const adapter = await getConversationAdapter(conversation, signal, effectiveCustomConfig);
+  if (!adapter) {
     return;
   }
 
-  const { type, apiUrl, apiKey, selectedModel, chatSuffix, temperature } = config;
-  
-  // 使用meta中的temperature，如果没有则使用配置中的temperature，最后使用默认值1.3
-  const effectiveTemperature = meta?.temperature ?? temperature ?? 1.3;
+  const config = adapter.getConfig();
+  const { type, selectedModel } = config;
 
   try {
-    // 对于ollama和manual类型，使用原有的fetch方式
-    if (type === "ollama" || type === "manual") {
-      let url, payload;
-      
-      if (type === "ollama") {
-        url = `${apiUrl}/chat`;
-        payload = {
-          model: selectedModel,
-          messages: conversation,
-          stream: true,
-          temperature: effectiveTemperature,
-          ...(meta || {}),
-        };
-      } else {
-        // manual类型：使用Express服务器的模拟接口
-        url = `http://localhost:52521/api/llm/chat/completions`;
         // 清理并验证消息格式
         let sanitizedMsgs = sanitizeMessages(conversation);
         sanitizedMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger);
-        payload = {
-          model: selectedModel || "manual-model",
-          messages: sanitizedMsgs,
-          stream: true,
-          temperature: effectiveTemperature,
-          ...(meta || {}),
-        };
-      }
+    
+    // 转换消息格式（适配器可能需要转换）
+    const convertedMsgs = adapter.convertMessages(sanitizedMsgs);
 
-      ref.value = ""; // 清空内容
-      const headers = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
-
+    // 对于ollama和manual类型，使用fetch方式
+    if (type === "ollama" || type === "manual") {
+      const streamUrl = adapter.getStreamUrl('chat') || adapter.getChatUrl();
+      const payload = { ...adapter.buildChatPayload(convertedMsgs, meta), stream: true };
+      const headers = adapter.buildHeaders();
+      
+      ref.value = "";
       await sendStreamRequest(
-        url,
+        streamUrl,
         payload,
         headers,
         signal,
         async (chunk) => {
-          const delta = extractTextDeltaFromChunk(chunk, "chat");
+          const delta = adapter.extractStreamDelta(chunk, 'chat');
           if (delta) {
             ref.value += delta;
-            // 处理思考标签
             const processed = await processThinkTag(ref.value);
             if (processed !== ref.value) {
               ref.value = processed;
@@ -986,47 +799,64 @@ async function continueConversationStream(
           }
         },
         async (lastChunk) => {
-          // 流式响应完成时，记录 token 统计
-          try {
-            const usage = extractUsageFromResponse(lastChunk);
+          const usage = adapter.extractStreamUsage(lastChunk);
             if (usage) {
+            try {
               await recordLlmRequest(usage, selectedModel, 'chat');
+            } catch (error) {
+              logger.warn('记录 token 统计失败:', error);
             }
-          } catch (error) {
-            // 统计失败不影响主流程
-            logger.warn('记录 token 统计失败:', error);
           }
         }
       );
       return;
     }
 
+    // 对于Gemini类型，使用 GoogleGenAI SDK
+    if (type === "gemini") {
+      ref.value = "";
+      let lastUsage = null;
+      
+      const stream = adapter.generateChatStream(convertedMsgs, meta, signal);
+      
+      for await (const { delta, usage } of stream) {
+        if (delta) {
+          ref.value += delta;
+          const processed = await processThinkTag(ref.value);
+          if (processed !== ref.value) {
+            ref.value = processed;
+          }
+        }
+        if (usage) {
+          lastUsage = usage;
+        }
+      }
+      
+      // 流式响应完成时，记录 token 统计
+      if (lastUsage) {
+        try {
+          await recordLlmRequest(lastUsage, selectedModel, 'chat');
+        } catch (error) {
+          logger.warn('记录 token 统计失败:', error);
+        }
+      }
+      return;
+    }
+
     // 对于OpenAI兼容的API，使用OpenAI SDK
-    // 清理并验证消息格式
-    let sanitizedMsgs = sanitizeMessages(conversation);
-    
-    // 最终验证和转换：这是发送到API之前的最后一道防线
-    sanitizedMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger);
-    
-    const finalUrl = `${apiUrl}${chatSuffix}`;
+    const finalUrl = adapter.getChatUrl();
     
     const openai = new OpenAI({
-      apiKey: apiKey || "dummy-key",
+      apiKey: config.apiKey || "dummy-key",
       baseURL: finalUrl,
       defaultQuery: {},
       defaultHeaders: {},
-      dangerouslyAllowBrowser: true, // Electron环境需要此选项
+      dangerouslyAllowBrowser: true,
     });
 
-    const chatParams = {
-      model: selectedModel,
-      messages: sanitizedMsgs,
-      stream: true,
-      temperature: effectiveTemperature,
-      ...(meta || {}),
-    };
+    const chatParams = { ...adapter.buildChatPayload(convertedMsgs, meta), stream: true };
 
-    ref.value = ""; // 清空内容
+    ref.value = "";
     let lastUsage = null;
 
     const stream = await openai.chat.completions.create(chatParams, {
@@ -1034,34 +864,27 @@ async function continueConversationStream(
     });
 
     for await (const chunk of stream) {
-      const delta = chunk.choices[0]?.delta?.content || "";
+      const delta = adapter.extractStreamDelta(chunk, 'chat');
       if (delta) {
         ref.value += delta;
-        // 处理思考标签
         const processed = await processThinkTag(ref.value);
         if (processed !== ref.value) {
           ref.value = processed;
         }
       }
-      // 保存usage信息（如果有）
-      if (chunk.usage) {
-        lastUsage = chunk.usage;
+      const usage = adapter.extractStreamUsage(chunk);
+      if (usage) {
+        lastUsage = usage;
       }
     }
 
     // 流式响应完成时，记录 token 统计
-    try {
       if (lastUsage) {
-        const usage = {
-          prompt_tokens: lastUsage.prompt_tokens || 0,
-          completion_tokens: lastUsage.completion_tokens || 0,
-          total_tokens: lastUsage.total_tokens || 0,
-        };
-        await recordLlmRequest(usage, selectedModel, 'chat');
-      }
+      try {
+        await recordLlmRequest(lastUsage, selectedModel, 'chat');
     } catch (error) {
-      // 统计失败不影响主流程
       logger.warn('记录 token 统计失败:', error);
+      }
     }
   } catch (error) {
     const llmError = handleLlmError(error, false);

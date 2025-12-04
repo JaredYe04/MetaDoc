@@ -245,3 +245,52 @@ export function createDefaultOutlineTree(): DocumentOutlineNode {
     children: []
   }
 }
+
+/**
+ * 从大纲树生成精简的 Markdown 大纲（仅包含标题结构，不包含文本内容）
+ * 用于在prompts中传递，节省token开销
+ */
+export function generateLightMarkdownFromOutlineTree(outlineTree: DocumentOutlineNode): string {
+  let md = ''
+
+  // 深度优先遍历生成 Markdown，只包含标题
+  function dfs(node: DocumentOutlineNode): void {
+    // 如果老文档，node.title_level不存在，则根据path里面出现的"."的个数来判断
+    if (node.title_level === undefined || node.title_level === null) {
+      // 如果是无.，则是1级标题，如果类似于"1.1"，则是2级标题
+      node.title_level = node.path.split('.').length
+    }
+
+    // 只输出标题，不输出文本内容
+    if (node.title && node.title_level > 0) {
+      md += '#'.repeat(node.title_level) + ' ' + node.title + '\n'
+    }
+
+    // 遍历子节点
+    if (node.children && Array.isArray(node.children)) {
+      for (const child of node.children) {
+        dfs(child)
+      }
+    }
+  }
+
+  dfs(outlineTree)
+  return md.trim()
+}
+
+/**
+ * 从 Markdown 文本中提取精简的大纲（返回Markdown格式，而非JSON）
+ * 用于在prompts中传递，节省token开销
+ * @param md Markdown文本
+ * @param bypassText 是否跳过文本内容（对于精简版，始终为true）
+ * @returns 精简的Markdown大纲字符串
+ */
+export function extractOutlineTreeFromMarkdownLight(
+  md: string,
+  bypassText = true
+): string {
+  // 先使用完整方法获取大纲树（bypassText=true，因为我们只需要结构）
+  const outlineTree = extractOutlineTreeFromMarkdown(md, true)
+  // 转换为精简的Markdown大纲
+  return generateLightMarkdownFromOutlineTree(outlineTree)
+}

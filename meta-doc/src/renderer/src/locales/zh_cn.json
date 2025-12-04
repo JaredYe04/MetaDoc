@@ -656,6 +656,8 @@
         "level1ChineseTip": "如果开启，第一级标题会以中文给出",
         "removePrefixes": "移除所有标题前缀",
         "removePrefixesTip": "移除所有标题开头的编号和点号，适用于Markdown转LaTeX的场景（LaTeX会自动编号）",
+        "removePrefixesConfirm": "确定要移除所有标题前缀吗？此操作将移除所有标题开头的编号和点号，且无法撤销。",
+        "removePrefixesSuccess": "已成功移除所有标题前缀",
         "cancel": "取消",
         "confirm": "确定",
         "editChapterTitle": "修改章节名",
@@ -1706,6 +1708,15 @@
         },
         "range": "范围",
         "content": "内容"
+      },
+      "titleFormat": {
+        "title": "标题格式化",
+        "completed": "标题格式化完成",
+        "operationsPerformed": "执行的操作",
+        "error": "标题格式化失败",
+        "loading": "正在加载文档大纲...",
+        "processing": "正在格式化标题...",
+        "saving": "正在保存文档..."
       },
       "proofread": {
         "proofreading": "校对中",

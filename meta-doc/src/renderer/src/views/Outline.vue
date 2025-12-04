@@ -242,13 +242,13 @@
             <el-switch v-model="formatTitleConfig.level1TitleChinese" active-color="#13ce66" inactive-color="#ff4949" />
           </el-tooltip>
         </el-form-item>
-        <el-form-item :label="$t('outline.removePrefixes')" prop="removePrefixes">
-          <el-tooltip :content="$t('outline.removePrefixesTip')" placement="right">
-            <el-switch v-model="formatTitleConfig.removePrefixes" active-color="#13ce66" inactive-color="#ff4949" />
-          </el-tooltip>
-        </el-form-item>
-        <el-button type="info" @click="formatTitleDialogVisible = false">{{ $t('outline.cancel') }}</el-button>
-        <el-button type="success" @click="executeFormatTitle">{{ $t('outline.confirm') }}</el-button>
+        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+          <el-button type="info" @click="formatTitleDialogVisible = false">{{ $t('outline.cancel') }}</el-button>
+          <div style="display: flex; gap: 10px;">
+            <el-button type="danger" @click="handleRemovePrefixes">{{ $t('outline.removePrefixes') }}</el-button>
+            <el-button type="success" @click="executeFormatTitle">{{ $t('outline.confirm') }}</el-button>
+          </div>
+        </div>
       </el-form>
     </el-dialog>
     <el-dialog v-model="editValueDialogVisible" :title="$t('outline.editChapterTitle')" width="40%">
@@ -362,6 +362,7 @@ const {
   updateDocumentOutline,
   updateDocumentLastView,
   updateDocumentMarkdown,
+  withAutoOutlineSyncSuppressed,
 } = workspace;
 
 const cloneOutline = (outline?: DocumentOutlineNode): DocumentOutlineNode =>
@@ -392,24 +393,29 @@ const commitOutline = async (outline?: DocumentOutlineNode) => {
   const tabId = activeTabId.value;
   if (!tabId) return;
   const snapshot = cloneOutline(outline ?? treeData.value);
-  suppressDocumentSync = true;
-  try {
-    updateDocumentOutline(tabId, snapshot);
-    updateDocumentLastView(tabId, 'outline');
-    // 使用适配器按不同格式同步正文文本
-    const doc = activeDocument.value;
-    const format = doc?.format ?? 'md';
-    const adapter = getOutlineAdapter(format as any);
-    if (format === 'tex') {
-      const nextTex = await adapter.toText(snapshot, doc?.tex ?? '');
-      workspace.updateDocumentTex(tabId, nextTex);
-    } else {
-      const nextMd = await adapter.toText(snapshot, doc?.markdown ?? '');
-      updateDocumentMarkdown(tabId, nextMd);
+  
+  // 使用 withAutoOutlineSyncSuppressed 防止死循环：
+  // 从大纲生成文本 -> 自动提取大纲 -> 触发 watch -> 再次生成文本
+  await withAutoOutlineSyncSuppressed(async () => {
+    suppressDocumentSync = true;
+    try {
+      updateDocumentOutline(tabId, snapshot);
+      updateDocumentLastView(tabId, 'outline');
+      // 使用适配器按不同格式同步正文文本
+      const doc = activeDocument.value;
+      const format = doc?.format ?? 'md';
+      const adapter = getOutlineAdapter(format as any);
+      if (format === 'tex') {
+        const nextTex = await adapter.toText(snapshot, doc?.tex ?? '');
+        workspace.updateDocumentTex(tabId, nextTex);
+      } else {
+        const nextMd = await adapter.toText(snapshot, doc?.markdown ?? '');
+        updateDocumentMarkdown(tabId, nextMd);
+      }
+    } finally {
+      suppressDocumentSync = false;
     }
-  } finally {
-    suppressDocumentSync = false;
-  }
+  });
 };
 
 const handleTabChange = (id: string) => {
@@ -430,7 +436,6 @@ const formatTitleConfig = reactive({
   adjustTitle: true,//是否调整标题编号
   cover: true,
   level1TitleChinese: true,//第一级标题使用中文，如一 二三四五六七八九十
-  removePrefixes: false,//是否移除所有标题前缀（用于md转latex）
 });
 
 const backupOutlineTree = ref<DocumentOutlineNode | null>(null);
@@ -792,12 +797,7 @@ const executeFormatTitle = async () => {
   try {
     let modifiedTree = cloneOutline(treeData.value);
     
-    // 1. 先移除所有标题前缀（如果指定）
-    if (formatTitleConfig.removePrefixes) {
-      modifiedTree = removeAllTitlePrefixes(modifiedTree);
-    }
-    
-    // 2. 调整Markdown标题层级（如果指定）
+    // 调整Markdown标题层级（如果指定）
     if (formatTitleConfig.adjustMarkdown) {
       const firstLevel = formatTitleConfig.firstMarkdownTitleLevel;
       modifiedTree = cloneOutline(adjustTitleLevel(modifiedTree, firstLevel));
@@ -822,6 +822,43 @@ const executeFormatTitle = async () => {
     // 恢复同步状态
     suppressDocumentSync = prevSync;
   }
+}
+
+const handleRemovePrefixes = () => {
+  ElMessageBox.confirm(
+    t('outline.removePrefixesConfirm'),
+    t('outline.warning'),
+    {
+      confirmButtonText: t('outline.confirm'),
+      cancelButtonText: t('outline.cancel'),
+      type: 'warning'
+    }
+  ).then(async () => {
+    backupOutlineTree.value = cloneOutline(treeData.value);
+    
+    // 暂停文档同步，避免触发 watch 导致循环
+    const prevSync = suppressDocumentSync;
+    suppressDocumentSync = true;
+    
+    try {
+      let modifiedTree = cloneOutline(treeData.value);
+      modifiedTree = removeAllTitlePrefixes(modifiedTree);
+      
+      // 更新 treeData（此时 suppressDocumentSync = true，不会触发 watch）
+      treeData.value = modifiedTree;
+      
+      // 手动提交更改
+      await commitOutline(modifiedTree);
+      
+      formatTitleDialogVisible.value = false;
+      eventBus.emit('show-success', t('outline.removePrefixesSuccess'));
+    } finally {
+      // 恢复同步状态
+      suppressDocumentSync = prevSync;
+    }
+  }).catch(() => {
+    // 用户取消，不做任何操作
+  });
 }
 
 const handleNodeDrag = (_dragNode: any, _targetNode: any) => {

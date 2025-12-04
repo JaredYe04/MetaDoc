@@ -55,14 +55,24 @@
       <div style="display: flex; align-items: center;">
         <el-tooltip :content="t('userProfile.changeAvatar')" placement="top" effect="dark">
           <el-avatar
-            v-if="avatar"
+            v-if="avatar && !avatarLoadError"
             :src="avatar"
             :size="128"
             style="width: 128px; height: 128px; padding: 0; cursor: pointer; object-fit: cover;"
             @click="changeAvatar"
+            @error="handleAvatarError"
           >
             {{ avatar ? '' : user.username }}
           </el-avatar>
+          <div
+            v-else
+            @click="changeAvatar"
+            style="width: 128px; height: 128px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #ccc; border-radius: 50%; background-color: rgba(0, 0, 0, 0.05);"
+          >
+            <el-icon :size="64" style="color: #909399;">
+              <User />
+            </el-icon>
+          </div>
         </el-tooltip>
 
         <div style="margin-left: 40px;">
@@ -137,7 +147,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { ElButton, ElCard, ElTooltip, ElAvatar, ElDialog, ElForm, ElFormItem, ElInput, ElCheckbox } from 'element-plus'
 import { useLocalStorage } from '@vueuse/core'
 import { themeState } from '../utils/themes'
@@ -312,7 +322,21 @@ const props = defineProps({
 // 用户登录信息
 import { avatar, loggedIn, user } from '../stores/user'
 import { changeAvatar, changePassword, login, updateUserInfo, verifyToken } from '../utils/web-utils.ts'
-import { Check, Edit, Lock, RefreshLeft, SwitchButton } from '@element-plus/icons-vue'
+import { Check, Edit, Lock, RefreshLeft, SwitchButton, User } from '@element-plus/icons-vue'
+
+// 头像加载错误处理
+const avatarLoadError = ref(false)
+
+// 监听 avatar 变化，重置错误状态
+watch(avatar, () => {
+  avatarLoadError.value = false
+})
+
+// 处理头像加载错误
+const handleAvatarError = () => {
+  avatarLoadError.value = true
+}
+
 const menuStyles = computed(() => ({
   position: 'absolute',
   top: `${menuPosition.value.top}px`,

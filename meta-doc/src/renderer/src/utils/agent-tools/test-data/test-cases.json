@@ -1246,6 +1246,148 @@
         }
       }
     ]
+  },
+  "title-format": {
+    "description": "标题格式化工具测试用例",
+    "testCases": [
+      {
+        "id": "title-format::default-001",
+        "name": "使用默认参数格式化标题",
+        "params": {},
+        "assertions": {
+          "outlineModified": true
+        }
+      },
+      {
+        "id": "title-format::remove-prefixes-001",
+        "name": "仅移除所有标题前缀",
+        "params": {
+          "removePrefixes": true
+        },
+        "assertions": {
+          "outlineModified": true
+        }
+      },
+      {
+        "id": "title-format::remove-prefixes-operation-001",
+        "name": "使用operation参数移除前缀（单独操作）",
+        "params": {
+          "operation": "removePrefixes"
+        },
+        "assertions": {
+          "outlineModified": true
+        }
+      },
+      {
+        "id": "title-format::remove-prefixes-only-001",
+        "name": "仅移除前缀（无其他参数）",
+        "params": {},
+        "description": "当不提供任何参数时，应该执行默认的格式化操作，但为了测试单独移除前缀，需要使用 operation 参数",
+        "assertions": {
+          "outlineModified": true
+        }
+      },
+      {
+        "id": "title-format::adjust-level-only-001",
+        "name": "仅调整标题层级",
+        "params": {
+          "adjustMarkdown": true,
+          "adjustTitle": false,
+          "firstMarkdownTitleLevel": 2
+        },
+        "assertions": {
+          "outlineModified": true
+        }
+      },
+      {
+        "id": "title-format::adjust-number-only-001",
+        "name": "仅调整标题编号",
+        "params": {
+          "adjustMarkdown": false,
+          "adjustTitle": true,
+          "cover": false,
+          "level1TitleChinese": false
+        },
+        "assertions": {
+          "outlineModified": true
+        }
+      },
+      {
+        "id": "title-format::full-params-001",
+        "name": "完整参数格式化",
+        "params": {
+          "adjustMarkdown": true,
+          "firstMarkdownTitleLevel": 1,
+          "adjustTitle": true,
+          "cover": true,
+          "level1TitleChinese": true,
+          "removePrefixes": false
+        },
+        "assertions": {
+          "outlineModified": true
+        }
+      },
+      {
+        "id": "title-format::chinese-number-001",
+        "name": "使用中文数字编号",
+        "params": {
+          "adjustTitle": true,
+          "level1TitleChinese": true,
+          "cover": true
+        },
+        "assertions": {
+          "outlineModified": true
+        }
+      },
+      {
+        "id": "title-format::arabic-number-001",
+        "name": "使用阿拉伯数字编号",
+        "params": {
+          "adjustTitle": true,
+          "level1TitleChinese": false,
+          "cover": true
+        },
+        "assertions": {
+          "outlineModified": true
+        }
+      },
+      {
+        "id": "title-format::level-3-001",
+        "name": "设置第一级标题为三级（###）",
+        "params": {
+          "adjustMarkdown": true,
+          "firstMarkdownTitleLevel": 3,
+          "adjustTitle": false
+        },
+        "assertions": {
+          "outlineModified": true
+        }
+      },
+      {
+        "id": "title-format::no-cover-001",
+        "name": "保留原有编号（不覆盖）",
+        "params": {
+          "adjustTitle": true,
+          "cover": false
+        },
+        "assertions": {
+          "outlineModified": true
+        }
+      },
+      {
+        "id": "title-format::remove-then-format-001",
+        "name": "先移除前缀再格式化",
+        "params": {
+          "removePrefixes": true,
+          "adjustMarkdown": true,
+          "adjustTitle": true,
+          "cover": true
+        },
+        "assertions": {
+          "outlineModified": true
+        }
+      }
+    ]
   }
 }
 

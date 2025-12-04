@@ -78,6 +78,33 @@ function withDirtyBroadcastSuppressed<T>(fn: () => T): T {
   }
 }
 
+// ===== 抑制自动大纲同步标志：用于在从大纲生成文本时，避免反向同步导致死循环 =====
+let suppressAutoOutlineSync = false;
+
+/**
+ * 在抑制自动大纲同步的情况下执行函数
+ * 用于在从大纲生成文本时，避免触发自动大纲提取导致的死循环
+ */
+function withAutoOutlineSyncSuppressed<T>(fn: () => T): T;
+function withAutoOutlineSyncSuppressed<T>(fn: () => Promise<T>): Promise<T>;
+function withAutoOutlineSyncSuppressed<T>(fn: () => T | Promise<T>): T | Promise<T> {
+  const prev = suppressAutoOutlineSync;
+  suppressAutoOutlineSync = true;
+  try {
+    const result = fn();
+    if (result instanceof Promise) {
+      return result.finally(() => {
+        suppressAutoOutlineSync = prev;
+      }) as Promise<T>;
+    }
+    suppressAutoOutlineSync = prev;
+    return result;
+  } catch (error) {
+    suppressAutoOutlineSync = prev;
+    throw error;
+  }
+}
+
 // ===== 全局UI锁：用于在执行关键任务时禁用导航、切换等交互 =====
 const uiLockCount = ref(0);
 const uiLocked = computed(() => uiLockCount.value > 0);
@@ -381,7 +408,8 @@ function updateDocumentMarkdown(tabId: string, markdown: string): void {
     }
     
     // 自动同步大纲树（从Markdown内容提取）
-    if (doc.format === 'md' && normalized.trim().length > 0) {
+    // 如果设置了抑制标志，则不进行自动同步（避免从大纲生成文本时的死循环）
+    if (!suppressAutoOutlineSync && doc.format === 'md' && normalized.trim().length > 0) {
       try {
         const newOutline = extractOutlineTreeFromMarkdown(normalized)
         if (newOutline && newOutline.children && newOutline.children.length >= 0) {
@@ -427,7 +455,8 @@ function updateDocumentTex(tabId: string, tex: string): void {
     }
     
     // 自动同步大纲树（LaTeX需要先转换为Markdown再提取）
-    if (doc.format === 'tex' && normalized.trim().length > 0) {
+    // 如果设置了抑制标志，则不进行自动同步（避免从大纲生成文本时的死循环）
+    if (!suppressAutoOutlineSync && doc.format === 'tex' && normalized.trim().length > 0) {
       try {
         // 将LaTeX转换为Markdown，然后提取大纲树
         const markdown = convertLatexToMarkdown(normalized)
@@ -837,6 +866,7 @@ export function useWorkspace() {
     saveDocument,
     saveAllDocuments,
     supportedFormats: getSupportedFormats(),
+    withAutoOutlineSyncSuppressed,
   };
 }
 

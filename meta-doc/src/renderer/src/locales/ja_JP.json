@@ -588,7 +588,7 @@
     "testLlm": "大規模言語モデルをテスト",
     "testResult": "テスト結果",
     "resultPlaceholder": "テスト結果はここに表示されます",
-    "testPrompt": "こんにちは！自己紹介をお願いします。",
+    "testPrompt": "こんにちは！簡潔に自己紹介をお願いします。",
     "testFailed": "テストに失敗しました：",
     "particleEffect": "粒子効果",
     "particleEffectHint": "粒子効果を有効にして、視覚的な美しさを向上させます。これを有効にすると、パフォーマンスに影響を与える可能性があります。",
@@ -623,6 +623,9 @@
     "openLogFile": "ログファイルを開く",
     "deepseek": "イマラチオ",
     "deepseekHint": "DeepSeekが提供する主要なAIモデルは複数のモデルをサポートしています",
+    "gemini": "Google Gemini",
+    "geminiHint": "Google Geminiが提供する主要なAIモデルは複数のモデルをサポートしています",
+    "geminiApiKeyPlaceholder": "Gemini APIキーを入力",
     "openaiOfficial": "公式OpenAI API",
     "openaiOfficialHint": "モデルをサポートするOpenAIのAPI",
     "debug": {

@@ -249,6 +249,29 @@ export function webMainCalls() {
     return calc_md5(data)
   });
 
+  // 保存 JSON 文件（web 环境后备方案）
+  localIpcMain.handle('save-json-file', async (event, jsonContent, suggestedName) => {
+    try {
+      // 在 web 环境中，使用浏览器的文件下载 API
+      const blob = new Blob([jsonContent], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = suggestedName.endsWith('.json') ? suggestedName : `${suggestedName}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  });
+
 
 
 }

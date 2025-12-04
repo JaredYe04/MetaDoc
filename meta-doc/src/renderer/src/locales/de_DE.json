@@ -545,7 +545,7 @@
     "startupOption": "Optionen starten",
     "testFailed": "Test fehlgeschlagen:",
     "testLlm": "Prüfung großer Modelle",
-    "testPrompt": "Hallo! Bitte stellen Sie sich vor.",
+    "testPrompt": "Hallo! Bitte stellen Sie sich vor in einer kurzen Form.",
     "testResult": "Prüfergebnisse",
     "themeCustom": "Zoll",
     "themeDark": "Dunkel",
@@ -583,6 +583,9 @@
     "openLogFile": "Datei öffnen",
     "deepseek": "Tiefsee",
     "deepseekHint": "Das große AI-Modell des offiziellen DeepSeek unterstützt mehrere Modelle",
+    "gemini": "Google Gemini",
+    "geminiHint": "Das große AI-Modell von Google Gemini unterstützt mehrere Modelle",
+    "geminiApiKeyPlaceholder": "Gemini API-Schlüssel eingeben",
     "openaiOfficial": "Offizielle OpenAI API",
     "openaiOfficialHint": "API von OpenAI, die Modelle unterstützt",
     "debug": {

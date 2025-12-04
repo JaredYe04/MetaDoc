@@ -59,6 +59,7 @@ export interface ProofreadError {
   suggestion: string    // 修改建议
   message: string       // 错误描述
   severity: 'error' | 'warning' | 'info'  // 严重程度
+  fixed?: boolean       // 是否已自动修复（可选）
 }
 
 /**
@@ -70,6 +71,8 @@ export interface ProofreadResult {
   errorCounts: Record<ErrorType, number>
   text: string
   format: 'text' | 'markdown' | 'latex'
+  fixedCount?: number   // 已修复的错误数量（可选）
+  autoFixed?: boolean   // 是否已自动应用修复（可选）
 }
 
 /**
@@ -314,26 +317,46 @@ ${text}
   try {
     await done
   } catch (error) {
-    // 如果任务被取消或出错，检查是否是因为取消
+    // 如果任务被取消或出错，检查是否有内容可以解析
     if (signal?.aborted) {
-      throw new Error('操作已取消')
+      const output = target.value.trim()
+      // 如果有内容，尝试解析而不是直接报错
+      if (output && output.length > 0) {
+        logger.warn('任务超时但检测到有输出内容，将尝试解析已有内容')
+        // 继续执行解析逻辑，不抛出错误
+      } else {
+        // 没有内容，才抛出错误
+        throw new Error('操作已取消且无输出内容')
+      }
+    } else {
+      // 重新抛出原始错误，让调用者知道任务失败
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      logger.error('文本校对任务失败:', error)
+      throw new Error(`AI任务失败: ${errorMessage}`)
     }
-    // 重新抛出原始错误，让调用者知道任务失败
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    logger.error('文本校对任务失败:', error)
-    throw new Error(`AI任务失败: ${errorMessage}`)
-  }
-
-  if (signal?.aborted) {
-    throw new Error('操作已取消')
   }
 
   // 解析JSON结果
   const output = target.value.trim()
   
-  // 如果没有输出，抛出错误（让重试机制处理）
+  // 检查是否超时
+  const isTimeout = signal?.aborted
+  
+  // 如果没有输出，根据是否超时决定处理方式
   if (!output || output.length === 0) {
-    throw new Error('LLM返回结果为空，无法进行校对')
+    if (isTimeout) {
+      // 超时且无内容，返回空数组并记录警告
+      logger.warn('任务超时且无输出内容，返回空错误数组')
+      return []
+    } else {
+      // 非超时情况，抛出错误（让重试机制处理）
+      throw new Error('LLM返回结果为空，无法进行校对')
+    }
+  }
+  
+  // 如果有内容但已超时，记录警告
+  if (isTimeout) {
+    logger.warn('任务超时但检测到有输出内容，将尝试解析已有内容（可能不完整）')
   }
 
   // 先提取JSON字符串（处理LLM返回的文本中包含其他文字的情况，如"现在请检查以下文本:"）
@@ -349,6 +372,11 @@ ${text}
 
   if (!parseResult.success) {
     const errorMsg = parseResult.error || '未知错误'
+    // 如果是超时情况，返回空数组而不是抛出错误
+    if (isTimeout) {
+      logger.warn(`任务超时且JSON解析失败: ${errorMsg}，返回空错误数组`)
+      return []
+    }
     logger.error('解析校对结果失败:', errorMsg)
     // 如果解析失败，尝试重试（最多2次）
     if (errorMsg.includes('Unexpected end of JSON') || errorMsg.includes('JSON')) {
@@ -493,11 +521,11 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
   const nodePath = params.nodePath as string | undefined
   const tabId = params.tabId as string | undefined
 
-  // 如果提供了nodePath，使用段落比对
+  // 如果提供了nodePath，使用段落比对（节点校对暂不自动修复，因为涉及部分文档更新）
   if (nodePath) {
     try {
       const { content, format: docFormat } = await getTextByNodePath(nodePath, tabId)
-      return await performProofread(content, docFormat, signal, onUpdate)
+      return await performProofread(content, docFormat, signal, onUpdate, tabId, false)
     } catch (error) {
       return {
         status: 'failed',
@@ -522,7 +550,7 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
   if (source === 'document' || (!text && !nodePath)) {
     try {
       const { content, format: docFormat } = await getFullDocumentText(tabId)
-      return await performProofread(content, docFormat, signal, onUpdate)
+      return await performProofread(content, docFormat, signal, onUpdate, tabId, true)
     } catch (error) {
     return {
       status: 'failed',
@@ -597,7 +625,7 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
       }
     }
 
-    return await performProofread(content, finalFormat, signal, onUpdate)
+    return await performProofread(content, finalFormat, signal, onUpdate, tabId, false)
   } catch (error) {
     logger.error('校对失败:', error)
     return {
@@ -608,13 +636,136 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
 }
 
 /**
+ * 应用修复到文本内容
+ * @param content 原始文本
+ * @param errors 错误列表（需要包含suggestion）
+ * @returns 修复后的文本和标记为已修复的错误
+ */
+function applyFixes(
+  content: string,
+  errors: ProofreadError[]
+): { fixedContent: string; fixedErrors: ProofreadError[] } {
+  // 筛选出可以修复的错误（必须有suggestion）
+  const fixableErrors = errors.filter(
+    error => error.suggestion && error.suggestion.trim().length > 0
+  )
+  
+  if (fixableErrors.length === 0) {
+    return { fixedContent: content, fixedErrors: [] }
+  }
+  
+  // 按行号和列号从后往前排序，避免位置偏移问题
+  const sortedErrors = [...fixableErrors].sort((a, b) => {
+    if (a.line !== b.line) return b.line - a.line
+    return b.column - a.column
+  })
+  
+  const lines = content.split(/\r?\n/)
+  const fixedErrors: ProofreadError[] = []
+  
+  // 从后往前应用修复
+  for (const error of sortedErrors) {
+    if (error.line > 0 && error.line <= lines.length) {
+      const lineIndex = error.line - 1
+      const line = lines[lineIndex]
+      
+      // 验证错误位置是否有效
+      if (error.column > 0 && error.column <= line.length) {
+        const before = line.substring(0, error.column - 1)
+        const after = line.substring(error.column - 1 + error.length)
+        
+        // 验证原始文本是否匹配
+        const actualText = line.substring(error.column - 1, error.column - 1 + error.length)
+        if (actualText === error.text) {
+          // 应用修复
+          lines[lineIndex] = before + error.suggestion + after
+          
+          // 标记为已修复
+          fixedErrors.push({
+            ...error,
+            fixed: true
+          })
+          
+          logger.debug(`已修复错误: 第${error.line}行第${error.column}列 "${error.text}" -> "${error.suggestion}"`)
+        } else {
+          logger.warn(`错误位置不匹配，跳过修复: 期望 "${error.text}"，实际 "${actualText}"`)
+        }
+      }
+    }
+  }
+  
+  return {
+    fixedContent: lines.join('\n'),
+    fixedErrors
+  }
+}
+
+/**
+ * 更新workspace中的文档内容
+ * @param tabId 文档标签页ID
+ * @param fixedContent 修复后的内容
+ * @param format 文档格式
+ */
+function updateDocumentInWorkspace(
+  tabId: string | undefined,
+  fixedContent: string,
+  format: 'text' | 'markdown' | 'latex'
+): void {
+  try {
+    const windowType = getWindowType()
+    
+    // 如果不是document来源，不更新workspace
+    if (windowType === 'setting') {
+      // 设置窗口模式下，可能需要通过广播更新，这里暂时不处理
+      logger.debug('设置窗口模式，跳过workspace更新')
+      return
+    }
+    
+    const targetTabId = tabId || workspace.activeTabId.value
+    if (!targetTabId) {
+      logger.warn('没有活动的文档标签页，无法更新文档')
+      return
+    }
+    
+    const doc = workspace.ensureDocument(targetTabId)
+    if (!doc) {
+      logger.warn('文档不存在，无法更新')
+      return
+    }
+    
+    // 根据格式更新对应的内容
+    if (format === 'latex' && doc.format === 'tex') {
+      workspace.updateDocumentTex(targetTabId, fixedContent)
+      logger.info('已更新LaTeX文档内容')
+    } else if ((format === 'markdown' || format === 'text') && doc.format === 'md') {
+      workspace.updateDocumentMarkdown(targetTabId, fixedContent)
+      logger.info('已更新Markdown文档内容')
+    } else {
+      // 格式不匹配，尝试根据文档格式更新
+      if (doc.format === 'tex') {
+        workspace.updateDocumentTex(targetTabId, fixedContent)
+        logger.info('已更新文档内容（格式转换）')
+      } else {
+        workspace.updateDocumentMarkdown(targetTabId, fixedContent)
+        logger.info('已更新文档内容（格式转换）')
+      }
+    }
+  } catch (error) {
+    logger.error('更新workspace文档失败:', error)
+    // 不抛出错误，让校对流程继续
+  }
+}
+
+/**
  * 执行校对操作（内部函数）
  */
 async function performProofread(
   content: string,
   format: 'text' | 'markdown' | 'latex',
   signal: AbortSignal | undefined,
-  onUpdate: (data: ToolCallbackData, progress?: ToolProgress) => void
+  onUpdate: (data: ToolCallbackData, progress?: ToolProgress) => void,
+  tabId?: string,
+  autoFix: boolean = true
 ): Promise<ToolCallbackResult> {
   try {
     onUpdate({
@@ -635,18 +786,41 @@ async function performProofread(
     logger.info(`本地拼写检查发现 ${localErrors.length} 个明显的拼写错误`)
 
     // 使用LLM进行校对（主要检查，包括语法、复杂拼写等），带重试机制
-    const llmErrors = await retryLLMCall(
-      () => proofreadWithLLM(content, format, signal),
-      {
-        maxRetries: 3,
-        retryDelay: 3000,
-        checkEmpty: (result) => Array.isArray(result) && result.length === 0 && content.trim().length > 50,
-        onRetry: (attempt, error) => {
-          logger.warn(`[proofread-tool] LLM返回空，正在重试 (${attempt}/3)...`, error)
+    let llmErrors: ProofreadError[] = []
+    let isTimeout = false
+    try {
+      llmErrors = await retryLLMCall(
+        () => proofreadWithLLM(content, format, signal),
+        {
+          maxRetries: 3,
+          retryDelay: 3000,
+          checkEmpty: (result) => Array.isArray(result) && result.length === 0 && content.trim().length > 50,
+          onRetry: (attempt, error) => {
+            logger.warn(`[proofread-tool] LLM返回空，正在重试 (${attempt}/3)...`, error)
+          }
         }
+      )
+      logger.info(`LLM检查发现 ${llmErrors.length} 个错误`)
+    } catch (error) {
+      // 检查是否是因为超时且有内容
+      if (signal?.aborted) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        // 如果错误信息包含"超时"或"取消"，但proofreadWithLLM应该已经处理了有内容的情况
+        // 这里主要是捕获其他可能的错误
+        if (errorMessage.includes('超时') || errorMessage.includes('取消')) {
+          logger.warn('任务超时，但可能已有部分结果，继续处理')
+          isTimeout = true
+          // 使用空数组，因为proofreadWithLLM应该已经返回了结果
+          llmErrors = []
+        } else {
+          // 其他错误，重新抛出
+          throw error
+        }
+      } else {
+        // 非超时错误，重新抛出
+        throw error
       }
-    )
-    logger.info(`LLM检查发现 ${llmErrors.length} 个错误`)
+    }
     
     // 合并错误（去重：如果本地和LLM都发现了相同的错误，只保留LLM的结果）
     const allErrors: ProofreadError[] = [...llmErrors]
@@ -676,11 +850,71 @@ async function performProofread(
       logger.warn('LLM和本地检查都未发现错误，但文本较长，可能存在问题')
     }
     
-    const errors = allErrors
+    let errors = allErrors
 
     if (signal?.aborted) {
       return {
         status: 'cancelled'
+      }
+    }
+
+    // 自动应用修复（如果启用且是可修复的错误）
+    let fixedContent = content
+    let fixedCount = 0
+    let autoFixed = false
+    
+    if (autoFix && errors.length > 0) {
+      try {
+        onUpdate({
+          content: {
+            stage: 'fixing',
+            format,
+            textLength: content.length
+          },
+          format: 'json',
+          componentName: 'ProofreadDisplay'
+        }, {
+          percentage: 80,
+          message: i18n.global.t('agent.tool.proofread.progress.fixing', '正在自动修复错误...')
+        })
+
+        // 应用修复
+        const { fixedContent: newContent, fixedErrors } = applyFixes(content, errors)
+        fixedContent = newContent
+        fixedCount = fixedErrors.length
+        
+        // 更新错误列表，标记已修复的错误
+        if (fixedErrors.length > 0) {
+          const fixedErrorMap = new Map<string, ProofreadError>()
+          fixedErrors.forEach(error => {
+            const key = `${error.line}-${error.column}-${error.text}`
+            fixedErrorMap.set(key, error)
+          })
+          
+          errors = errors.map(error => {
+            const key = `${error.line}-${error.column}-${error.text}`
+            const fixedError = fixedErrorMap.get(key)
+            return fixedError || error
+          })
+          
+          // 更新workspace文档（如果是document来源）
+          if (tabId !== undefined) {
+            updateDocumentInWorkspace(tabId, fixedContent, format)
+            autoFixed = true
+            logger.info(`已自动修复 ${fixedCount} 个错误并更新文档`)
+          } else {
+            // 检查是否是document来源（通过activeTabId判断）
+            const activeTabId = workspace.activeTabId.value
+            if (activeTabId) {
+              updateDocumentInWorkspace(activeTabId, fixedContent, format)
+              autoFixed = true
+              logger.info(`已自动修复 ${fixedCount} 个错误并更新文档`)
+            }
+          }
+        }
+      } catch (error) {
+        logger.error('自动修复失败:', error)
+        // 修复失败不影响校对结果，继续执行
       }
     }
 
@@ -701,8 +935,22 @@ async function performProofread(
       errors,
       totalErrors: errors.length,
       errorCounts,
-      text: content,
-      format
+      text: autoFixed ? fixedContent : content, // 如果已自动修复，使用修复后的内容
+      format,
+      fixedCount,
+      autoFixed
+    }
+
+    // 构建完成消息，如果超时则添加警告
+    let completedMessage = i18n.global.t(
+      'agent.tool.proofread.progress.completed',
+      autoFixed && fixedCount > 0
+        ? `校对完成，发现 ${errors.length} 个错误，已自动修复 ${fixedCount} 个`
+        : `校对完成，发现 ${errors.length} 个错误`
+    )
+    if (isTimeout) {
+      completedMessage = `⚠️ ${completedMessage}（任务超时，结果可能不完整）`
+      logger.warn('校对任务超时，但已返回已有结果')
     }
 
     onUpdate({
@@ -714,7 +962,7 @@ async function performProofread(
       componentName: 'ProofreadDisplay'
     }, {
       percentage: 100,
-      message: i18n.global.t('agent.tool.proofread.progress.completed', `校对完成，发现 ${errors.length} 个错误`)
+      message: completedMessage
     })
 
     return {
@@ -727,7 +975,9 @@ async function performProofread(
         format: 'json',
         componentName: 'ProofreadDisplay'
       },
-      result
+      result,
+      // 如果超时，在result中添加警告信息
+      ...(isTimeout ? { warning: '任务超时，结果可能不完整' } : {})
     }
   } catch (error) {
     logger.error('校对失败:', error)

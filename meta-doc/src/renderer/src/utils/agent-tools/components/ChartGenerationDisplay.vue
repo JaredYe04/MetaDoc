@@ -115,12 +115,14 @@ import { useI18n } from 'vue-i18n'
 import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
+import { createRendererLogger } from '../../logger'
 
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps>()
+const logger = createRendererLogger('ChartGenerationDisplay')
 
-console.log(`[ChartGenerationDisplay] 组件初始化，invocationId: ${props.invocationId}, status: ${props.status}, data:`, props.data)
-console.log(`[ChartGenerationDisplay] props 完整内容:`, props)
+logger.debug(`[ChartGenerationDisplay] 组件初始化，invocationId: ${props.invocationId}, status: ${props.status}, data:`, props.data)
+logger.debug(`[ChartGenerationDisplay] props 完整内容:`, props)
 
 // 使用实时通信
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
@@ -130,7 +132,7 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
   props.progress
 )
 
-console.log(`[ChartGenerationDisplay] useToolDisplayRealtime 返回:`, { realtimeData: realtimeData.value, realtimeStatus: realtimeStatus.value, realtimeProgress: realtimeProgress.value })
+logger.debug(`[ChartGenerationDisplay] useToolDisplayRealtime 返回:`, { realtimeData: realtimeData.value, realtimeStatus: realtimeStatus.value, realtimeProgress: realtimeProgress.value })
 
 // 解析显示数据（优先使用实时数据）
 const displayData = computed(() => {
@@ -242,7 +244,8 @@ const getFileExtension = (url: string): string => {
 
 // 处理图片加载错误
 const handleImageError = () => {
-  console.error('图表图片加载失败')
+  const logger = createRendererLogger('ChartGenerationDisplay')
+  logger.error('图表图片加载失败')
 }
 </script>
 

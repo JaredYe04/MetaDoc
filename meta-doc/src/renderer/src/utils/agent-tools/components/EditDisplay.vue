@@ -98,10 +98,9 @@
             </el-scrollbar>
           </div>
           
-          <!-- 可调整宽度的分割线 -->
+          <!-- 分割线（固定30/70比例，不可调整） -->
           <div 
             class="resize-handle"
-            @mousedown="startResize"
             :style="resizeHandleStyle"
           ></div>
           
@@ -326,8 +325,11 @@ const selectOperation = (index: number) => {
   }
 }
 
-// 调整宽度
+// 调整宽度（保持30/70比例，不允许用户调整）
 const startResize = (e: MouseEvent) => {
+  // 禁用调整功能，始终保持30/70比例
+  // 如果需要允许调整，可以取消注释下面的代码
+  /*
   isResizing.value = true
   const startX = e.clientX
   const startLeftWidth = leftPanelWidth.value
@@ -352,6 +354,7 @@ const startResize = (e: MouseEvent) => {
   
   document.addEventListener('mousemove', handleMouseMove)
   document.addEventListener('mouseup', handleMouseUp)
+  */
 }
 
 const resizeHandleStyle = computed(() => ({
@@ -725,7 +728,8 @@ const editorContainerStyle = computed(() => ({
   border-right: 1px solid v-bind('themeState.currentTheme.borderColor');
   overflow: hidden;
   min-width: 200px;
-  max-width: 60%;
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .operations-header {
@@ -778,7 +782,7 @@ const editorContainerStyle = computed(() => ({
 
 .resize-handle {
   flex-shrink: 0;
-  cursor: col-resize;
+  cursor: default;
   user-select: none;
   position: relative;
 }
@@ -792,7 +796,8 @@ const editorContainerStyle = computed(() => ({
   flex-direction: column;
   overflow: hidden;
   min-width: 300px;
-  flex: 1;
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .split-editors {

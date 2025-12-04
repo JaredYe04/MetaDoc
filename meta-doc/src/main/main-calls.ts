@@ -718,6 +718,64 @@ function bindUtilityHandlers(): void {
       };
     }
   });
+
+  // 保存 JSON 文件
+  ipcMain.handle('save-json-file', async (event: IpcMainInvokeEvent, jsonContent: string, suggestedName: string): Promise<{ success: boolean; path?: string; error?: string; canceled?: boolean }> => {
+    const logger = createMainLogger('SaveJson');
+    try {
+      // 使用调用 IPC 的窗口，而不是固定的 mainWindow
+      // 这样可以确保对话框显示在正确的窗口（主窗口或设置窗口）
+      const targetWindow = BrowserWindow.fromWebContents(event.sender) || mainWindow
+      if (!targetWindow) {
+        logger.error('无法获取窗口引用');
+        return {
+          success: false,
+          error: '无法获取窗口引用'
+        };
+      }
+
+      const filters: Electron.FileFilter[] = [
+        { name: 'JSON Files', extensions: ['json'] },
+        { name: 'All Files', extensions: ['*'] },
+      ];
+      
+      logger.debug(`显示保存对话框，建议文件名: ${suggestedName}`);
+      const result: SaveDialogReturnValue = await dialog.showSaveDialog(targetWindow, {
+        title: t('main.dialogs.saveFileTitle', '保存文件'),
+        defaultPath: suggestedName.endsWith('.json') ? suggestedName : `${suggestedName}.json`,
+        filters,
+      });
+      
+      if (result.canceled || !result.filePath) {
+        logger.debug('用户取消了保存对话框');
+        return { success: false, canceled: true };
+      }
+      
+      const targetPath = result.filePath;
+      logger.debug(`用户选择保存路径: ${targetPath}`);
+      
+      // 确保父目录存在
+      const parentDir = path.dirname(targetPath);
+      if (!fs.existsSync(parentDir)) {
+        fs.mkdirSync(parentDir, { recursive: true });
+      }
+      
+      // 保存文件
+      fs.writeFileSync(targetPath, jsonContent, 'utf-8');
+      logger.info(`JSON文件已保存到: ${targetPath}`);
+      
+      return {
+        success: true,
+        path: targetPath,
+      };
+    } catch (error) {
+      logger.error('保存JSON文件失败:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
 }
 
 /**

@@ -490,7 +490,7 @@ async function loadDataFromFile(filePath: string, signal?: AbortSignal): Promise
 
   try {
     logger.info(`读取文件: ${resolvedPath}`)
-    const content = await ipcRenderer.invoke('read-file-content', resolvedPath)
+    const content = await ipcRenderer.invoke('read-file-content', resolvedPath) as string
     return content
   } catch (error) {
     logger.error('读取文件失败:', error, '原始路径:', filePath, '解析后路径:', resolvedPath)
@@ -838,24 +838,10 @@ const dataAnalysisToolCallback: ToolCallback = async (params, signal, onUpdate) 
 
 export const dataAnalysisToolConfig: AgentToolConfig = {
   id: 'data-analysis',
-  name: {
-    'zh_cn': { name: '数据分析' },
-    'en_us': { name: 'Data Analysis' },
-    'de_DE': { name: 'Datenanalyse' },
-    'fr_FR': { name: 'Analyse de données' },
-    'ja_JP': { name: 'データ分析' },
-    'ko_KR': { name: '데이터 분석' }
-  } as any,
-  description: {
-    'zh_cn': { description: '自动分析CSV、JSON等数据，提取字段信息、描述统计、聚合分析等' },
-    'en_us': { description: 'Automatically analyze CSV, JSON data, extract fields, descriptive statistics, aggregations, etc.' },
-    'de_DE': { description: 'Analysiert automatisch CSV- und JSON-Daten, extrahiert Felder, beschreibende Statistiken, Aggregationen usw.' },
-    'fr_FR': { description: 'Analyse automatiquement les données CSV, JSON, extrait les champs, statistiques descriptives, agrégations, etc.' },
-    'ja_JP': { description: 'CSV、JSONデータを自動分析し、フィールド情報、記述統計、集計分析などを抽出' },
-    'ko_KR': { description: 'CSV, JSON 데이터를 자동으로 분석하고 필드 정보, 기술 통계, 집계 분석 등 추출' }
-  } as any,
-  instruction: dataAnalysisToolLocales,
+  name: dataAnalysisToolLocales,
+  description: dataAnalysisToolLocales,
   origin: 'internal',
+  instruction: dataAnalysisToolLocales,
   tags: ['data', 'analysis', 'statistics', 'csv', 'json'],
   running: false,
   enabled: true,

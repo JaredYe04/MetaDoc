@@ -1147,6 +1147,14 @@
           "invalidField": "无效的字段: {field}",
           "documentNotFound": "文档不存在"
         }
+      },
+      "grep": {
+        "progress": {
+          "searching": "正在搜索...",
+          "searchingDocument": "正在搜索文档内容...",
+          "searchingMetadata": "正在搜索元数据...",
+          "completed": "搜索完成，找到 {count} 个匹配"
+        }
       }
     },
     "sessions": {
@@ -1707,7 +1715,17 @@
           "delete": "删除"
         },
         "range": "范围",
-        "content": "内容"
+        "content": "内容",
+        "progress":{
+          "applying": "正在应用编辑...",
+          "updating": "正在更新文档...",
+          "processing": "正在处理...",
+          "completed": "编辑完成",
+          "failed": "编辑失败",
+          "totalOperations": "总操作数",
+          "loading": "正在加载文档...",
+          "error": "编辑失败"
+        }
       },
       "titleFormat": {
         "title": "标题格式化",

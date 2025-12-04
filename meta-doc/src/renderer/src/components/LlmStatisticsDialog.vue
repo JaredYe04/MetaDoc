@@ -118,6 +118,7 @@ import { getStatistics, exportStatistics, clearStatistics } from '../utils/llm-s
 import * as echarts from 'echarts';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer';
+import { createRendererLogger } from '../utils/logger.js';
 
 const { t } = useI18n();
 
@@ -241,7 +242,8 @@ async function loadStatistics() {
     await nextTick();
     updateCharts();
   } catch (error) {
-    console.error('加载统计数据失败:', error);
+    const logger = createRendererLogger('LlmStatisticsDialog')
+    logger.error('加载统计数据失败:', error);
     ElMessage.error(t('llmStatistics.loadFailed'));
   }
 }
@@ -523,7 +525,8 @@ async function handleExport() {
     URL.revokeObjectURL(url);
     ElMessage.success(t('llmStatistics.exportSuccess'));
   } catch (error) {
-    console.error('导出统计数据失败:', error);
+    const logger = createRendererLogger('LlmStatisticsDialog')
+    logger.error('导出统计数据失败:', error);
     ElMessage.error(t('llmStatistics.exportFailed'));
   }
 }
@@ -556,7 +559,8 @@ async function handleClear() {
     ElMessage.success(t('llmStatistics.clearSuccess'));
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('清空统计数据失败:', error);
+      const logger = createRendererLogger('LlmStatisticsDialog')
+      logger.error('清空统计数据失败:', error);
       ElMessage.error(t('llmStatistics.clearFailed'));
     }
   }

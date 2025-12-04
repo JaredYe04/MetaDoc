@@ -322,24 +322,10 @@ const colorToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 
 export const colorToolConfig: AgentToolConfig = {
   id: 'color-processing',
-  name: {
-    'zh_cn': { name: '颜色处理' },
-    'en_us': { name: 'Color Processing' },
-    'de_DE': { name: 'Farbverarbeitung' },
-    'fr_FR': { name: 'Traitement des couleurs' },
-    'ja_JP': { name: '色処理' },
-    'ko_KR': { name: '색상 처리' }
-  } as any,
-  description: {
-    'zh_cn': { description: '处理颜色混合、亮度/对比度调整、互补色等颜色操作' },
-    'en_us': { description: 'Process color mixing, brightness/contrast adjustment, complementary colors, etc.' },
-    'de_DE': { description: 'Verarbeitet Farbmischung, Helligkeits-/Kontrastanpassung, Komplementärfarben usw.' },
-    'fr_FR': { description: 'Traite le mélange de couleurs, l\'ajustement de la luminosité/du contraste, les couleurs complémentaires, etc.' },
-    'ja_JP': { description: '色の混合、明度/コントラスト調整、補色などの色操作を処理' },
-    'ko_KR': { description: '색상 혼합, 밝기/대비 조정, 보색 등의 색상 작업 처리' }
-  } as any,
-  instruction: colorToolLocales,
+  name: colorToolLocales,
+  description: colorToolLocales,
   origin: 'internal',
+  instruction: colorToolLocales,
   tags: ['color', 'design', 'ui'],
   running: false,
   enabled: true,

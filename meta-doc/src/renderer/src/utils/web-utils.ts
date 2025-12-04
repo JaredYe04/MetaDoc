@@ -5,6 +5,7 @@ import eventBus from "./event-bus"
 import { getMimeType } from "./image-utils"
 import Token from "markdown-it/lib/token.mjs"
 import { createRendererLogger } from "./logger.ts";
+import { getImageUrlWithCache, cacheImageUrl } from "./image-cache";
 
 
 
@@ -103,8 +104,13 @@ export const changeAvatar = () => {
             if (response.data.data && response.data.data.id) {
               user.value.avatarId = response.data.data.id
               updateUserInfo()
-              // 直接使用返回的 url，无需再次请求
-              avatar.value = response.data.data.url ?? ''
+              // 直接使用返回的 url，并缓存
+              const imageUrl = response.data.data.url ?? ''
+              if (imageUrl) {
+                avatar.value = await getImageUrlWithCache(imageUrl) || imageUrl
+              } else {
+                avatar.value = ''
+              }
             } else {
               // 兼容旧格式：如果直接返回 id，则通过 fetchImage 获取
               user.value.avatarId = response.data.data
@@ -136,7 +142,10 @@ export const fetchImage = async (imageId: number) => {
     if (response.data && response.data.data && response.data.data.url) {
       const imageUrl = response.data.data.url;
       //logger.debug('Image URL retrieved successfully')
-      return imageUrl;
+      
+      // 使用缓存获取图片 URL
+      const cachedUrl = await getImageUrlWithCache(imageUrl);
+      return cachedUrl || imageUrl;
     } else {
       logger.warn('Invalid image response format')
       return null
@@ -191,7 +200,7 @@ export async function verifyToken(token : string) {
       user.value = response.data.data ?? {}
       //logger.debug('User data set:', user.value)
       
-      // 获取头像
+      // 获取头像（已使用缓存）
       if (user.value?.avatarId) {
         //logger.debug('Fetching avatar with avatarId:', user.value.avatarId)
         avatar.value = await fetchImage(user.value.avatarId) ?? ''

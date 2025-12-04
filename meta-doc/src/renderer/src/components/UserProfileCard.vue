@@ -67,7 +67,7 @@
           <div
             v-else
             @click="changeAvatar"
-            style="width: 128px; height: 128px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #ccc; border-radius: 50%; background-color: rgba(0, 0, 0, 0.05);"
+            style="width: 128px; height: 128px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; background-color: rgba(0, 0, 0, 0.05);"
           >
             <el-icon :size="64" style="color: #909399;">
               <User />
@@ -341,7 +341,7 @@ const menuStyles = computed(() => ({
   position: 'absolute',
   top: `${menuPosition.value.top}px`,
   left: `${menuPosition.value.left}px`,
-  border: '1px solid #ccc',
+
   padding: '10px',
   boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',
   minWidth: '500px',

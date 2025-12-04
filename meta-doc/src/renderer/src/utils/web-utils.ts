@@ -99,9 +99,18 @@ export const changeAvatar = () => {
           //logger.debug(response)
           if (response.data.messageType == 'SUCCESS') {
             eventBus.emit('show-success', '头像上传成功')
-            user.value.avatarId = response.data.data
-            updateUserInfo()
-            avatar.value = await fetchImage(user.value.avatarId) ?? ''
+            // 新结构：response.data.data 包含 { id, hash, url }
+            if (response.data.data && response.data.data.id) {
+              user.value.avatarId = response.data.data.id
+              updateUserInfo()
+              // 直接使用返回的 url，无需再次请求
+              avatar.value = response.data.data.url ?? ''
+            } else {
+              // 兼容旧格式：如果直接返回 id，则通过 fetchImage 获取
+              user.value.avatarId = response.data.data
+              updateUserInfo()
+              avatar.value = await fetchImage(user.value.avatarId) ?? ''
+            }
             //logger.debug('avatar:', avatar.value)
             // 更新用户信息
           } else {
@@ -124,10 +133,9 @@ export const fetchImage = async (imageId: number) => {
     const logger = createRendererLogger('WebUtils');
     //logger.debug('fetchImage response:', response.data)
     
-    if (response.data && response.data.data && response.data.data.b64String) {
-      const b64String = response.data.data.b64String
-      const imageUrl = `data:image/jpeg;base64,${b64String}`;
-      //logger.debug('Image URL created successfully')
+    if (response.data && response.data.data && response.data.data.url) {
+      const imageUrl = response.data.data.url;
+      //logger.debug('Image URL retrieved successfully')
       return imageUrl;
     } else {
       logger.warn('Invalid image response format')

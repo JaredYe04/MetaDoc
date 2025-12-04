@@ -3,6 +3,7 @@ import { join } from 'path';
 import { is } from '@electron-toolkit/utils';
 
 import { dispatchLanguageToWindow, t } from './i18n';
+import { createMainLogger } from './logger';
 
 type AuxWindowId = 'setting' | 'aiChat' | 'formulaRecognition' | 'aiGraph';
 
@@ -188,7 +189,8 @@ export const preloadAuxiliaryWindows = async (): Promise<void> => {
     try {
       await preloadSingleWindow(id);
     } catch (error) {
-      console.error(`预加载窗口 ${id} 失败:`, error);
+      const logger = createMainLogger('window-manager')
+      logger.error(`预加载窗口 ${id} 失败:`, error);
       // 继续加载下一个窗口，不中断整个流程
     }
   }

@@ -126,6 +126,22 @@ Sends HTTP request to specified URL and fetches webpage content or API response.
 }
 \`\`\`
 `
+  },
+  de_DE: {
+    name: 'Web-Crawler',
+    description: 'Greift auf die angegebene URL zu und ruft HTML-Inhalt der Webseite oder API-Antwort ab'
+  },
+  fr_FR: {
+    name: 'Explorateur Web',
+    description: 'Accède à l\'URL spécifiée et récupère le contenu HTML de la page Web ou la réponse API'
+  },
+  ja_JP: {
+    name: 'ウェブクローラー',
+    description: '指定されたURLにアクセスし、ウェブページのHTMLコンテンツまたはAPIレスポンスを取得'
+  },
+  ko_KR: {
+    name: '웹 크롤러',
+    description: '지정된 URL에 액세스하여 웹페이지 HTML 콘텐츠 또는 API 응답 가져오기'
   }
 }
 
@@ -553,24 +569,10 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
 
 export const webCrawlerToolConfig: AgentToolConfig = {
   id: 'web-crawler',
-  name: {
-    'zh_cn': { name: '网页访问' },
-    'en_us': { name: 'Web Crawler' },
-    'de_DE': { name: 'Web-Crawler' },
-    'fr_FR': { name: 'Explorateur Web' },
-    'ja_JP': { name: 'ウェブクローラー' },
-    'ko_KR': { name: '웹 크롤러' }
-  } as any,
-  description: {
-    'zh_cn': { description: '访问指定URL，获取网页HTML内容或API响应' },
-    'en_us': { description: 'Access specified URL and fetch webpage HTML content or API response' },
-    'de_DE': { description: 'Greift auf die angegebene URL zu und ruft HTML-Inhalt der Webseite oder API-Antwort ab' },
-    'fr_FR': { description: 'Accède à l\'URL spécifiée et récupère le contenu HTML de la page Web ou la réponse API' },
-    'ja_JP': { description: '指定されたURLにアクセスし、ウェブページのHTMLコンテンツまたはAPIレスポンスを取得' },
-    'ko_KR': { description: '지정된 URL에 액세스하여 웹페이지 HTML 콘텐츠 또는 API 응답 가져오기' }
-  } as any,
-  instruction: webCrawlerToolLocales,
+  name: webCrawlerToolLocales,
+  description: webCrawlerToolLocales,
   origin: 'internal',
+  instruction: webCrawlerToolLocales,
   tags: ['web', 'crawler', 'http', 'url'],
   running: false,
   enabled: true,

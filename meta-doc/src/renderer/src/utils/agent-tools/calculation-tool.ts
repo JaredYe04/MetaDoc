@@ -316,24 +316,10 @@ const calculationToolCallback: ToolCallback = async (params, signal, onUpdate) =
 
 export const calculationToolConfig: AgentToolConfig = {
   id: 'data-calculation',
-  name: {
-    'zh_cn': { name: '数据计算' },
-    'en_us': { name: 'Data Calculation' },
-    'de_DE': { name: 'Datenberechnung' },
-    'fr_FR': { name: 'Calcul de données' },
-    'ja_JP': { name: 'データ計算' },
-    'ko_KR': { name: '데이터 계산' }
-  } as any,
-  description: {
-    'zh_cn': { description: '执行复杂的数学计算，包括数值、向量、矩阵等运算，支持表达式求值' },
-    'en_us': { description: 'Perform complex mathematical calculations including numerical, vector, and matrix operations' },
-    'de_DE': { description: 'Führt komplexe mathematische Berechnungen durch, einschließlich numerischer, Vektor- und Matrixoperationen' },
-    'fr_FR': { description: 'Effectue des calculs mathématiques complexes incluant des opérations numériques, vectorielles et matricielles' },
-    'ja_JP': { description: '数値、ベクトル、行列などの演算を含む複雑な数学計算を実行' },
-    'ko_KR': { description: '수치, 벡터, 행렬 연산을 포함한 복잡한 수학 계산 수행' }
-  } as any,
-  instruction: calculationToolLocales,
+  name: calculationToolLocales,
+  description: calculationToolLocales,
   origin: 'internal',
+  instruction: calculationToolLocales,
   tags: ['calculation', 'math', 'numeric'],
   running: false,
   enabled: true,

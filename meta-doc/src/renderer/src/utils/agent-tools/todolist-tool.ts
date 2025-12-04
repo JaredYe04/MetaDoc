@@ -1096,24 +1096,10 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 
 export const todolistToolConfig: AgentToolConfig = {
   id: 'todolist-planning',
-  name: {
-    'zh_cn': { name: '意图识别与任务划分' },
-    'en_us': { name: 'Intent Recognition & Task Planning' },
-    'de_DE': { name: 'Absichtserkennung & Aufgabenplanung' },
-    'fr_FR': { name: 'Reconnaissance d\'intention et planification de tâches' },
-    'ja_JP': { name: '意図認識とタスク計画' },
-    'ko_KR': { name: '의도 인식 및 작업 계획' }
-  } as any,
-  description: {
-    'zh_cn': { description: '分析用户意图，将复杂任务分解为结构化的任务列表（TodoList）' },
-    'en_us': { description: 'Analyze user intent and decompose complex tasks into structured todo lists' },
-    'de_DE': { description: 'Analysiert Benutzerabsichten und zerlegt komplexe Aufgaben in strukturierte Aufgabenlisten' },
-    'fr_FR': { description: 'Analyse l\'intention de l\'utilisateur et décompose les tâches complexes en listes de tâches structurées' },
-    'ja_JP': { description: 'ユーザーの意図を分析し、複雑なタスクを構造化されたタスクリストに分解' },
-    'ko_KR': { description: '사용자 의도를 분석하고 복잡한 작업을 구조화된 할 일 목록으로 분해' }
-  } as any,
-  instruction: todolistToolLocales,
+  name: todolistToolLocales,
+  description: todolistToolLocales,
   origin: 'internal',
+  instruction: todolistToolLocales,
   tags: ['planning', 'task', 'todolist', 'intent'],
   running: false,
   enabled: true,

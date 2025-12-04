@@ -106,6 +106,22 @@ Executes terminal/command line commands and returns results. Requires user appro
 }
 \`\`\`
 `
+  },
+  de_DE: {
+    name: 'Terminal-Ausführung',
+    description: 'Führt Terminal-Befehle aus, erfordert Benutzerbestätigung (Vertrauensmodus kann eingestellt werden)'
+  },
+  fr_FR: {
+    name: 'Exécution de terminal',
+    description: 'Exécute des commandes de terminal, nécessite l\'approbation de l\'utilisateur (mode de confiance peut être défini)'
+  },
+  ja_JP: {
+    name: 'ターミナル実行',
+    description: 'ターミナルコマンドを実行、ユーザー承認が必要（信頼モード設定可能）'
+  },
+  ko_KR: {
+    name: '터미널 실행',
+    description: '터미널 명령 실행, 사용자 승인 필요(신뢰 모드 설정 가능)'
   }
 }
 
@@ -492,24 +508,10 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
 
 export const terminalToolConfig: AgentToolConfig = {
   id: 'terminal-execution',
-  name: {
-    'zh_cn': { name: '终端执行' },
-    'en_us': { name: 'Terminal Execution' },
-    'de_DE': { name: 'Terminal-Ausführung' },
-    'fr_FR': { name: 'Exécution de terminal' },
-    'ja_JP': { name: 'ターミナル実行' },
-    'ko_KR': { name: '터미널 실행' }
-  } as any,
-  description: {
-    'zh_cn': { description: '执行终端命令，执行前需要用户批准（可设置信任模式）' },
-    'en_us': { description: 'Execute terminal commands, requires user approval (can set trust mode)' },
-    'de_DE': { description: 'Führt Terminal-Befehle aus, erfordert Benutzerbestätigung (Vertrauensmodus kann eingestellt werden)' },
-    'fr_FR': { description: 'Exécute des commandes de terminal, nécessite l\'approbation de l\'utilisateur (mode de confiance peut être défini)' },
-    'ja_JP': { description: 'ターミナルコマンドを実行、ユーザー承認が必要（信頼モード設定可能）' },
-    'ko_KR': { description: '터미널 명령 실행, 사용자 승인 필요(신뢰 모드 설정 가능)' }
-  } as any,
-  instruction: terminalToolLocales,
+  name: terminalToolLocales,
+  description: terminalToolLocales,
   origin: 'internal',
+  instruction: terminalToolLocales,
   tags: ['terminal', 'command', 'system', 'cli'],
   running: false,
   enabled: true,

@@ -128,6 +128,7 @@ import {
 } from '../../utils/agent-tools/tool-serialization'
 import * as monaco from 'monaco-editor'
 import { setupMonacoWorker } from '../../utils/monaco-worker-config'
+import { createRendererLogger } from '../../utils/logger'
 
 const props = defineProps<{
   message: ToolAgentMessage
@@ -145,16 +146,18 @@ const toolConfig = computed(() => {
 
 // 处理组件更新（用于交互式组件）
 const handleComponentUpdate = (data: unknown) => {
+  const logger = createRendererLogger('AgentToolResultCard')
   // 这里可以触发Tool的更新回调
   // 具体实现取决于交互需求
-  console.log('Component update:', data)
+  logger.debug('Component update:', data)
 }
 
 // 处理组件取消
 const handleComponentCancel = () => {
+  const logger = createRendererLogger('AgentToolResultCard')
   // 取消Tool执行
   // 需要从message中获取invocationId
-  console.log('Component cancel')
+  logger.debug('Component cancel')
 }
 
 const statusLabel = computed(() => {
@@ -643,6 +646,22 @@ const exportSnapshot = async () => {
     // 优先使用toolCallParams（从assistant消息的tool_calls中提取），如果没有则使用message中的params
     const params = toolCallParams.value || (props.message as any).params || {}
     
+    // 获取工具配置（优先使用 toolConfig.value，如果不存在则从 agentToolManager 获取）
+    let effectiveToolConfig = toolConfig.value
+    if (!effectiveToolConfig) {
+      const tool = agentToolManager.getTool(props.message.tool.id)
+      effectiveToolConfig = tool?.config
+    }
+    
+    // 获取 displayComponent（优先从 toolConfig，其次从 outputs 的 renderer）
+    let displayComponentName: string | undefined = undefined
+    if (effectiveToolConfig?.displayComponent) {
+      displayComponentName = extractComponentName(effectiveToolConfig.displayComponent)
+    } else if (props.message.outputs?.[0]?.renderer) {
+      // 如果 toolConfig 中没有，尝试从 outputs 中获取
+      displayComponentName = props.message.outputs[0].renderer
+    }
+    
     const snapshot = createSnapshotFromHistoryEntry({
       toolId: props.message.tool.id,
       toolName: props.message.tool.name,
@@ -653,7 +672,7 @@ const exportSnapshot = async () => {
       data: props.message.outputs?.[0]?.data ? {
         content: props.message.outputs?.[0]?.data,
         format: (props.message.outputs?.[0]?.format === 'table' ? 'json' : (props.message.outputs?.[0]?.format || 'json')) as 'json' | 'text' | 'markdown' | 'xml' | 'html' | 'custom',
-        componentName: props.message.outputs?.[0]?.renderer
+        componentName: props.message.outputs?.[0]?.renderer || displayComponentName
       } : undefined,
       progress: props.message.progress,
       error: props.message.error,
@@ -665,29 +684,64 @@ const exportSnapshot = async () => {
         timestamp: new Date(props.message.timestamp).getTime()
       })),
       invocationId: (props.message as any).invocationId
-    }, toolConfig.value ? {
-      id: toolConfig.value.id,
-      name: toolConfig.value.name,
-      description: toolConfig.value.description,
-      origin: toolConfig.value.origin,
-      displayComponent: extractComponentName(toolConfig.value.displayComponent)
-    } : undefined)
+    }, effectiveToolConfig ? {
+      id: effectiveToolConfig.id,
+      name: effectiveToolConfig.name,
+      description: effectiveToolConfig.description,
+      origin: effectiveToolConfig.origin,
+      displayComponent: displayComponentName
+    } : (displayComponentName ? {
+      id: props.message.tool.id,
+      name: props.message.tool.name,
+      description: { zh_cn: { name: props.message.tool.name }, en_us: { name: props.message.tool.name } },
+      origin: 'internal' as const,
+      displayComponent: displayComponentName
+    } : undefined))
 
     // 序列化快照
     const serialized = serializeToolExecutionSnapshot(snapshot)
 
-    // 创建下载链接
-    const blob = new Blob([serialized], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `tool-snapshot-${snapshot.toolId}-${snapshot.timestamp}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    // 获取 IPC 渲染器用于保存文件
+    let ipcRenderer: any = null
+    if (window && (window as any).electron) {
+      ipcRenderer = (window as any).electron.ipcRenderer
+    } else {
+      const localIpcRenderer = (await import('../../utils/web-adapter/local-ipc-renderer')).default
+      ipcRenderer = localIpcRenderer
+    }
 
-    ElMessage.success(t('agent.tool.exportSnapshotSuccess'))
+    if (!ipcRenderer) {
+      throw new Error('无法获取 IPC 渲染器')
+    }
+
+    const fileName = `tool-snapshot-${snapshot.toolId}-${snapshot.timestamp}.json`
+
+    const logger = createRendererLogger('AgentToolResultCard')
+    logger.debug('[导出快照] 开始调用保存文件对话框，文件名:', fileName)
+    
+    // 调用保存文件对话框
+    const result = await ipcRenderer.invoke('save-json-file', serialized, fileName)
+    
+    logger.debug('[导出快照] 保存文件对话框返回结果:', result)
+    
+    if (!result) {
+      console.error('[导出快照] 保存文件调用返回空结果')
+      throw new Error('保存文件调用返回空结果')
+    }
+
+    if (result.success) {
+      logger.debug('[导出快照] 文件保存成功，路径:', result.path)
+      ElMessage.success(t('agent.tool.exportSnapshotSuccess'))
+    } else {
+      // 用户取消对话框，不显示错误
+      if (result.canceled) {
+        logger.debug('[导出快照] 用户取消了保存对话框')
+        return
+      }
+      // 其他错误，显示错误消息
+      console.error('[导出快照] 保存失败:', result.error)
+      throw new Error(result.error || '保存失败')
+    }
   } catch (error) {
     console.error('导出快照失败:', error)
     ElMessage.error(`${t('agent.tool.exportSnapshotFailed')}: ${error instanceof Error ? error.message : String(error)}`)

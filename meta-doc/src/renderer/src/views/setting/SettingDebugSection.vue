@@ -721,6 +721,7 @@ import {
   serializeToolExecutionSnapshot,
   deserializeToolExecutionSnapshot
 } from '../../utils/agent-tools/tool-serialization';
+import { createRendererLogger } from '../../utils/logger';
 
 // 组件映射
 const componentMap: Record<string, any> = {
@@ -1061,12 +1062,13 @@ const getWindowTypeLabel = (windowType: string): string => {
 
 // 获取所有窗口类型
 const fetchWindowTypes = async () => {
+  const logger = createRendererLogger('SettingDebugSection')
   if (!ipcRenderer) return;
   try {
     const windowTypes = await ipcRenderer.invoke('get-all-window-types') as string[];
     availableWindowTypes.value = windowTypes || ['home'];
   } catch (error) {
-    console.error('获取窗口类型失败:', error);
+    logger.error('获取窗口类型失败:', error);
     // 如果获取失败，使用默认值
     availableWindowTypes.value = ['home', 'ai-chat'];
   }
@@ -1161,16 +1163,18 @@ const loadSavedConfigs = () => {
       savedConfigs.value = JSON.parse(stored);
     }
   } catch (error) {
-    console.error('加载保存的配置失败:', error);
+    const logger = createRendererLogger('SettingDebugSection')
+    logger.error('加载保存的配置失败:', error);
     savedConfigs.value = [];
   }
 };
 
 const saveSavedConfigs = () => {
+  const logger = createRendererLogger('SettingDebugSection')
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(savedConfigs.value));
   } catch (error) {
-    console.error('保存配置失败:', error);
+    logger.error('保存配置失败:', error);
     ElMessage.error('保存配置失败');
   }
 };
@@ -1486,11 +1490,12 @@ const executeToolTest = async () => {
     
     // 监听tool invocation开始事件，获取invocationId
     const handleInvocationStarted = (eventData: unknown) => {
+      const logger = createRendererLogger('SettingDebugSection');
       const data = eventData as { invocationId: string; toolId: string; params: any };
-      console.log(`[SettingDebugSection] 收到 tool-invocation-started 事件:`, data)
+      logger.debug(`[SettingDebugSection] 收到 tool-invocation-started 事件:`, data)
       if (data.toolId === toolTestForm.toolId) {
         invocationId = data.invocationId;
-        console.log(`[SettingDebugSection] 设置 invocationId: ${invocationId}`)
+        logger.debug(`[SettingDebugSection] 设置 invocationId: ${invocationId}`)
         
         // 使用更可靠的方式查找 entry：通过 toolId 和 timestamp
         let index = findEntryByToolIdAndTimestamp();
@@ -1499,7 +1504,7 @@ const executeToolTest = async () => {
           index = toolTestHistory.value.findIndex(entry => entry === currentEntry);
         }
         
-        console.log(`[SettingDebugSection] 找到 entry 的 index: ${index}`)
+        logger.debug(`[SettingDebugSection] 找到 entry 的 index: ${index}`)
         if (index !== -1) {
           // 使用 Vue 的响应式更新方式设置 invocationId
           const oldEntry = toolTestHistory.value[index]
@@ -1507,8 +1512,8 @@ const executeToolTest = async () => {
             ...oldEntry,
             invocationId: invocationId
           })
-          console.log(`[SettingDebugSection] 更新 entry[${index}].invocationId = ${invocationId}`)
-          console.log(`[SettingDebugSection] 验证更新后的 entry.invocationId:`, toolTestHistory.value[index].invocationId)
+          logger.debug(`[SettingDebugSection] 更新 entry[${index}].invocationId = ${invocationId}`)
+          logger.debug(`[SettingDebugSection] 验证更新后的 entry.invocationId:`, toolTestHistory.value[index].invocationId)
         } else {
           console.warn(`[SettingDebugSection] 找不到 entry，无法设置 invocationId。所有 entry:`, toolTestHistory.value.map((e, i) => ({ index: i, toolId: e.toolId, timestamp: e.timestamp })))
         }
@@ -1549,9 +1554,9 @@ const executeToolTest = async () => {
         });
         
         const completeUnsub = onToolComplete(invocationId, (completeData) => {
-          console.log(`[SettingDebugSection] 收到 tool-complete 事件，准备更新 entry，invocationId: ${invocationId}`, completeData)
+          logger.debug(`[SettingDebugSection] 收到 tool-complete 事件，准备更新 entry，invocationId: ${invocationId}`, completeData)
           // 调试：打印所有 entry 的 invocationId
-          console.log(`[SettingDebugSection] 所有 entry 的 invocationId:`, toolTestHistory.value.map((e, i) => ({ index: i, invocationId: e.invocationId, toolId: e.toolId, status: e.status })))
+          logger.debug(`[SettingDebugSection] 所有 entry 的 invocationId:`, toolTestHistory.value.map((e, i) => ({ index: i, invocationId: e.invocationId, toolId: e.toolId, status: e.status })))
           
           // 先尝试通过 invocationId 查找
           let entryIndex = toolTestHistory.value.findIndex(entry => entry.invocationId === invocationId);
@@ -1571,14 +1576,14 @@ const executeToolTest = async () => {
                 ...oldEntry,
                 invocationId: invocationId
               })
-              console.log(`[SettingDebugSection] 通过后备方案找到 entry[${entryIndex}]，已更新 invocationId`)
+              logger.debug(`[SettingDebugSection] 通过后备方案找到 entry[${entryIndex}]，已更新 invocationId`)
             }
           }
           
-          console.log(`[SettingDebugSection] 找到 entryIndex: ${entryIndex}`)
+          logger.debug(`[SettingDebugSection] 找到 entryIndex: ${entryIndex}`)
           if (entryIndex !== -1) {
             const oldEntry = toolTestHistory.value[entryIndex]
-            console.log(`[SettingDebugSection] 更新前 entry.status: ${oldEntry.status}`)
+            logger.debug(`[SettingDebugSection] 更新前 entry.status: ${oldEntry.status}`)
             // 使用 Vue 的响应式更新方式
             toolTestHistory.value.splice(entryIndex, 1, {
               ...oldEntry,
@@ -1587,7 +1592,7 @@ const executeToolTest = async () => {
               error: completeData.error
             })
             const newEntry = toolTestHistory.value[entryIndex]
-            console.log(`[SettingDebugSection] 更新后 entry.status: ${newEntry.status}`)
+            logger.debug(`[SettingDebugSection] 更新后 entry.status: ${newEntry.status}`)
             
             // 如果有最终数据，添加到outputs
             if (completeData.data) {
@@ -1627,7 +1632,7 @@ const executeToolTest = async () => {
         });
         
         const failedUnsub = onToolFailed(invocationId, (errorData) => {
-          console.log(`[SettingDebugSection] 收到 tool-failed 事件，准备更新 entry，invocationId: ${invocationId}`, errorData)
+          logger.debug(`[SettingDebugSection] 收到 tool-failed 事件，准备更新 entry，invocationId: ${invocationId}`, errorData)
           const entryIndex = toolTestHistory.value.findIndex(entry => entry.invocationId === invocationId);
           if (entryIndex !== -1) {
             const oldEntry = toolTestHistory.value[entryIndex]
@@ -1717,7 +1722,8 @@ const executeToolTest = async () => {
         }
         
         // 可以在这里更新UI显示进度
-        console.log('Tool状态更新:', status, data, progress);
+        const logger = createRendererLogger('SettingDebugSection')
+        logger.debug('Tool状态更新:', status, data, progress);
       }
     );
 
@@ -1745,7 +1751,7 @@ const executeToolTest = async () => {
         }
       }
     }
-
+    const logger = createRendererLogger('SettingDebugSection')
     // 更新当前项为最终状态（而不是创建新项）
     // 优先通过 invocationId 查找，如果找不到则通过 toolId 和 timestamp 查找
     let finalIndex = invocationId 
@@ -1774,7 +1780,8 @@ const executeToolTest = async () => {
         invocationId: invocationId || oldEntry.invocationId // 确保 invocationId 被设置
       });
       const updatedEntry = toolTestHistory.value[finalIndex]
-      console.log(`[SettingDebugSection] 最终更新 entry[${finalIndex}].status = ${updatedEntry.status}`)
+      
+      logger.debug(`[SettingDebugSection] 最终更新 entry[${finalIndex}].status = ${updatedEntry.status}`)
     } else {
       console.warn(`[SettingDebugSection] 无法找到 entry 进行最终更新，invocationId: ${invocationId}`)
       // 如果找不到，至少尝试通过 toolId 和 timestamp 查找并更新
@@ -1794,7 +1801,7 @@ const executeToolTest = async () => {
           toolConfig: tool.config,
           invocationId: invocationId || oldEntry.invocationId
         });
-        console.log(`[SettingDebugSection] 通过 fallback 更新 entry[${fallbackIndex}].status = ${result.status}`)
+        logger.debug(`[SettingDebugSection] 通过 fallback 更新 entry[${fallbackIndex}].status = ${result.status}`)
       }
     }
 
@@ -2223,7 +2230,8 @@ const runTestWithConcurrency = async function(
         .catch((error) => {
           // 即使出错也要更新进度
           updateProgress();
-          console.error('测试执行出错:', error);
+          const logger = createRendererLogger('SettingDebugSection')
+          logger.error('测试执行出错:', error);
         })
         .finally(() => {
           // 从executing数组中移除自己
@@ -2388,21 +2396,49 @@ const exportEntrySnapshot = async (entry: any) => {
 
     // 序列化快照
     const serialized = serializeToolExecutionSnapshot(snapshot)
+    const logger = createRendererLogger('SettingDebugSection');
+    // 获取 IPC 渲染器用于保存文件（动态获取，确保使用正确的 IPC）
+    let effectiveIpcRenderer: any = null
+    if (window && (window as any).electron) {
+      effectiveIpcRenderer = (window as any).electron.ipcRenderer
+    } else {
+      const localIpcRenderer = (await import('../../utils/web-adapter/local-ipc-renderer')).default
+      effectiveIpcRenderer = localIpcRenderer
+    }
 
-    // 创建下载链接
-    const blob = new Blob([serialized], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `tool-snapshot-${snapshot.toolId}-${snapshot.timestamp}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    if (!effectiveIpcRenderer) {
+      throw new Error('无法获取 IPC 渲染器')
+    }
 
-    ElMessage.success(t('agent.tool.exportSnapshotSuccess'))
+    const fileName = `tool-snapshot-${snapshot.toolId}-${snapshot.timestamp}.json`
+    logger.debug('[导出快照] 开始调用保存文件对话框，文件名:', fileName, 'ipcRenderer类型:', effectiveIpcRenderer === ipcRenderer ? '模块级' : '动态获取')
+    
+    // 调用保存文件对话框
+    const result = await effectiveIpcRenderer.invoke('save-json-file', serialized, fileName)
+    
+    logger.debug('[导出快照] 保存文件对话框返回结果:', result)
+    
+    if (!result) {
+      logger.error('[导出快照] 保存文件调用返回空结果')
+      throw new Error('保存文件调用返回空结果')
+    }
+
+    if (result.success) {
+      logger.debug('[导出快照] 文件保存成功，路径:', result.path)
+      ElMessage.success(t('agent.tool.exportSnapshotSuccess'))
+    } else {
+      // 用户取消对话框，不显示错误
+      if (result.canceled) {
+        logger.debug('[导出快照] 用户取消了保存对话框')
+        return
+      }
+      // 其他错误，显示错误消息
+      logger.error('[导出快照] 保存失败:', result.error)
+      throw new Error(result.error || '保存失败')
+    }
   } catch (error) {
-    console.error('导出快照失败:', error)
+    const logger = createRendererLogger('SettingDebugSection')
+    logger.error('导出快照失败:', error)
     ElMessage.error(`${t('agent.tool.exportSnapshotFailed')}: ${error instanceof Error ? error.message : String(error)}`)
   }
 };
@@ -2448,6 +2484,39 @@ const importSnapshot = async () => {
     // 优先使用快照中的data（ToolCallbackData格式），如果没有则使用outputs中的data
     const displayData = snapshot.data || (snapshot.outputs && snapshot.outputs.length > 0 ? snapshot.outputs[0].data : undefined)
     
+    // 提取组件名称：优先从 data.componentName 获取，然后从 toolConfigSnapshot.displayComponent 获取
+    const extractComponentNameFromSnapshot = (): string | undefined => {
+      // 1. 优先从 snapshot.data.componentName 获取
+      if (snapshot.data && typeof snapshot.data === 'object' && 'componentName' in snapshot.data) {
+        const componentName = (snapshot.data as any).componentName
+        if (componentName && typeof componentName === 'string') {
+          return componentName
+        }
+      }
+      
+      // 2. 从第一个 output.data.componentName 获取
+      if (snapshot.outputs && snapshot.outputs.length > 0) {
+        const firstOutput = snapshot.outputs[0]
+        if (firstOutput.data && typeof firstOutput.data === 'object' && 'componentName' in firstOutput.data) {
+          const componentName = (firstOutput.data as any).componentName
+          if (componentName && typeof componentName === 'string') {
+            return componentName
+          }
+        }
+      }
+      
+      // 3. 从 toolConfigSnapshot.displayComponent 获取
+      if (snapshot.toolConfigSnapshot?.displayComponent) {
+        return typeof snapshot.toolConfigSnapshot.displayComponent === 'string'
+          ? snapshot.toolConfigSnapshot.displayComponent
+          : undefined
+      }
+      
+      return undefined
+    }
+    
+    const componentName = extractComponentNameFromSnapshot()
+    
     importedSnapshot.value = {
       toolId: snapshot.toolId,
       toolName: snapshot.toolName,
@@ -2458,25 +2527,33 @@ const importSnapshot = async () => {
       data: displayData,
       progress: snapshot.progress,
       error: snapshot.error,
-      outputs: snapshot.outputs?.map(output => ({
-        id: output.id,
-        label: output.label,
-        format: output.format,
-        // 如果output.data是ToolCallbackData格式，直接使用；否则包装成ToolCallbackData格式
-        data: output.data && typeof output.data === 'object' && 'content' in output.data
-          ? output.data
-          : {
-              content: output.data,
-              format: output.format || 'json',
-              componentName: snapshot.toolConfigSnapshot?.displayComponent
-            },
-        renderer: snapshot.toolConfigSnapshot?.displayComponent
-      })),
-      displayComponent: snapshot.toolConfigSnapshot?.displayComponent,
+      outputs: snapshot.outputs?.map(output => {
+        // 检查 output.data 是否已经是 ToolCallbackData 格式
+        const isToolCallbackData = output.data && typeof output.data === 'object' && 'content' in output.data
+        const outputComponentName = isToolCallbackData && output.data && typeof output.data === 'object' && 'componentName' in output.data
+          ? (output.data as any).componentName
+          : componentName
+        
+        return {
+          id: output.id,
+          label: output.label,
+          format: output.format,
+          // 如果output.data是ToolCallbackData格式，直接使用；否则包装成ToolCallbackData格式
+          data: isToolCallbackData
+            ? output.data
+            : {
+                content: output.data,
+                format: output.format || 'json',
+                componentName: outputComponentName
+              },
+          renderer: outputComponentName
+        }
+      }),
+      displayComponent: componentName,
       toolConfig: tool?.config || (snapshot.toolConfigSnapshot ? {
         ...snapshot.toolConfigSnapshot,
-        displayComponent: snapshot.toolConfigSnapshot.displayComponent
-          ? getDisplayComponent(snapshot.toolConfigSnapshot.displayComponent) || snapshot.toolConfigSnapshot.displayComponent
+        displayComponent: componentName
+          ? getDisplayComponent(componentName) || componentName
           : undefined
       } : undefined),
       invocationId: snapshot.invocationId
@@ -2484,7 +2561,8 @@ const importSnapshot = async () => {
 
     ElMessage.success(t('setting.debug.importSuccess'));
   } catch (error) {
-    console.error('导入快照失败:', error);
+    const logger = createRendererLogger('SettingDebugSection')
+    logger.error('导入快照失败:', error);
     ElMessage.error(`${t('setting.debug.importFailed')}: ${error instanceof Error ? error.message : String(error)}`);
   } finally {
     importSnapshotLoading.value = false;

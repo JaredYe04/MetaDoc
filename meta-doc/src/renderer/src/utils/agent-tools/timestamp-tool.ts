@@ -239,24 +239,10 @@ const timestampToolCallback: ToolCallback = async (params, signal, onUpdate) => 
 
 export const timestampToolConfig: AgentToolConfig = {
   id: 'timestamp',
-  name: {
-    'zh_cn': { name: '时间戳' },
-    'en_us': { name: 'Timestamp' },
-    'de_DE': { name: 'Zeitstempel' },
-    'fr_FR': { name: 'Horodatage' },
-    'ja_JP': { name: 'タイムスタンプ' },
-    'ko_KR': { name: '타임스탬프' }
-  } as any,
-  description: {
-    'zh_cn': { description: '返回当前时间戳，记录每次调用的时间，可用于计算时间差' },
-    'en_us': { description: 'Returns current timestamp and records each call time for calculating time differences' },
-    'de_DE': { description: 'Gibt den aktuellen Zeitstempel zurück und zeichnet jede Aufrufzeit auf, um Zeitunterschiede zu berechnen' },
-    'fr_FR': { description: 'Retourne l\'horodatage actuel et enregistre chaque heure d\'appel pour calculer les différences de temps' },
-    'ja_JP': { description: '現在のタイムスタンプを返し、各呼び出し時間を記録して時間差を計算' },
-    'ko_KR': { description: '현재 타임스탬프를 반환하고 각 호출 시간을 기록하여 시간 차이 계산' }
-  } as any,
-  instruction: timestampToolLocales,
+  name: timestampToolLocales,
+  description: timestampToolLocales,
   origin: 'internal',
+  instruction: timestampToolLocales,
   tags: ['timestamp', 'time', 'utility'],
   running: false,
   enabled: true,

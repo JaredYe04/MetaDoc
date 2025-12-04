@@ -1,8 +1,9 @@
 <template>
   <div class="proofread-display" :style="containerStyle">
-    <div v-if="displayData.stage === 'loading' || displayData.stage === 'proofreading'" class="status-message" :style="statusMessageStyle">
+    <div v-if="displayData.stage === 'loading' || displayData.stage === 'proofreading' || displayData.stage === 'fixing'" class="status-message" :style="statusMessageStyle">
       <el-icon class="is-loading"><Loading /></el-icon>
-      <span>{{ $t('agent.display.proofread.proofreading') }}</span>
+      <span v-if="displayData.stage === 'fixing'">{{ $t('agent.display.proofread.fixing') }}</span>
+      <span v-else>{{ $t('agent.display.proofread.proofreading') }}</span>
     </div>
 
     <div v-else-if="displayData.stage === 'completed' && resultData" class="completed-state" :style="completedStateStyle">
@@ -10,6 +11,9 @@
         <h3 class="proofread-title" :style="titleStyle">{{ $t('agent.display.proofread.title') }}</h3>
         <div class="error-stats" :style="statsStyle">
           <el-tag type="danger" size="small">{{ $t('agent.display.proofread.totalErrors', { count: resultData.totalErrors }) }}</el-tag>
+          <el-tag v-if="resultData.fixedCount && resultData.fixedCount > 0" type="success" size="small">
+            {{ $t('agent.display.proofread.fixed') }}: {{ resultData.fixedCount }}
+          </el-tag>
           <el-tag v-for="(count, type) in resultData.errorCounts" :key="type" :type="getErrorTypeTag(type)" size="small">
             {{ getErrorTypeLabel(type) }}: {{ count }}
           </el-tag>
@@ -40,12 +44,13 @@
               v-for="(error, index) in resultData.errors"
               :key="index"
               class="error-item"
-              :class="`severity-${error.severity}`"
+              :class="[`severity-${error.severity}`, { 'error-fixed': error.fixed }]"
               :style="errorItemStyle"
             >
               <div class="error-header">
                 <el-tag :type="getSeverityType(error.severity)" size="small">{{ getSeverityLabel(error.severity) }}</el-tag>
                 <el-tag :type="getErrorTypeTag(error.type)" size="small">{{ getErrorTypeLabel(error.type) }}</el-tag>
+                <el-tag v-if="error.fixed" type="success" size="small">{{ $t('agent.display.proofread.autoFixed') }}</el-tag>
                 <span class="error-location" :style="locationStyle">
                   {{ $t('agent.display.proofread.location', { line: error.line, column: error.column }) }}
                 </span>
@@ -133,7 +138,7 @@ const displayData = computed(() => {
   const parsed = parseToolData(data) as any
   
   if (parsed && typeof parsed === 'object') {
-    const getStage = (): 'checking' | 'completed' | 'error' => {
+    const getStage = (): 'loading' | 'proofreading' | 'fixing' | 'completed' | 'error' => {
       if (parsed.stage) {
         return parsed.stage
       }
@@ -143,7 +148,7 @@ const displayData = computed(() => {
       if (props.status === 'failed') {
         return 'error'
       }
-      return 'checking'
+      return 'proofreading'
     }
     
     return {
@@ -556,6 +561,11 @@ const editorContainerStyle = computed(() => ({
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.error-item.error-fixed {
+  border-left: 4px solid #67c23a;
+  opacity: 0.8;
+}
+
 .error-header {
   display: flex;
   align-items: center;
@@ -615,7 +625,7 @@ code {
 .split-view-container {
   width: 100%;
   height: 500px;
-  border: 1px solid v-bind('themeState.currentTheme.borderColor');
+  border: 1px solid v-bind('themeState.currentTheme.textColor2');
   border-radius: 6px;
   overflow: hidden;
   background-color: v-bind('themeState.currentTheme.background');
@@ -631,7 +641,7 @@ code {
   flex: 1;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid v-bind('themeState.currentTheme.borderColor');
+  border-right: 1px solid v-bind('themeState.currentTheme.textColor2');
   overflow: hidden;
 }
 

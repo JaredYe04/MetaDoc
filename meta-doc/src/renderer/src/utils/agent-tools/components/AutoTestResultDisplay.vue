@@ -165,6 +165,7 @@ import MetadataDisplay from './MetadataDisplay.vue'
 import OutlineTreeDisplay from './OutlineTreeDisplay.vue'
 import OutlineOptimizeDisplay from './OutlineOptimizeDisplay.vue'
 import ColorDisplay from './ColorDisplay.vue'
+import { createRendererLogger } from '../../logger'
 
 const { t } = useI18n()
 
@@ -413,18 +414,46 @@ const exportResultSnapshot = async (result: TestResult) => {
     // 序列化快照
     const serialized = serializeToolExecutionSnapshot(snapshot)
 
-    // 创建下载链接
-    const blob = new Blob([serialized], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `tool-snapshot-${result.toolId}-${result.testCaseName}-${Date.now()}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    // 获取 IPC 渲染器用于保存文件（动态获取，确保使用正确的 IPC）
+    let ipcRenderer: any = null
+    if (window && (window as any).electron) {
+      ipcRenderer = (window as any).electron.ipcRenderer
+    } else {
+      const localIpcRenderer = (await import('../../web-adapter/local-ipc-renderer')).default
+      ipcRenderer = localIpcRenderer
+    }
 
-    ElMessage.success(t('agent.tool.exportSnapshotSuccess'))
+    if (!ipcRenderer) {
+      throw new Error('无法获取 IPC 渲染器')
+    }
+
+    const fileName = `tool-snapshot-${result.toolId}-${result.testCaseName}-${Date.now()}.json`
+    const logger = createRendererLogger('AutoTestResultDisplay')
+    logger.debug('[导出快照] 开始调用保存文件对话框，文件名:', fileName)
+    
+    // 调用保存文件对话框
+    const saveResult = await ipcRenderer.invoke('save-json-file', serialized, fileName) as { success: boolean; path?: string; error?: string; canceled?: boolean } | null
+    
+    logger.debug('[导出快照] 保存文件对话框返回结果:', saveResult)
+    
+    if (!saveResult) {
+      console.error('[导出快照] 保存文件调用返回空结果')
+      throw new Error('保存文件调用返回空结果')
+    }
+
+    if (saveResult.success) {
+      logger.debug('[导出快照] 文件保存成功，路径:', saveResult.path)
+      ElMessage.success(t('agent.tool.exportSnapshotSuccess'))
+    } else {
+      // 用户取消对话框，不显示错误
+      if (saveResult.canceled) {
+        logger.debug('[导出快照] 用户取消了保存对话框')
+        return
+      }
+      // 其他错误，显示错误消息
+      console.error('[导出快照] 保存失败:', saveResult.error)
+      throw new Error(saveResult.error || '保存失败')
+    }
   } catch (error) {
     console.error('导出快照失败:', error)
     ElMessage.error(`${t('agent.tool.exportSnapshotFailed')}: ${error instanceof Error ? error.message : String(error)}`)

@@ -164,6 +164,7 @@ import type { ToolDisplayComponentProps, ToolExecutionStatus } from '../../../ty
 import eventBus from '../../../utils/event-bus.js'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
+import { createRendererLogger } from '../../logger.js'
 
 const { t } = useI18n()
 
@@ -172,9 +173,9 @@ const STORAGE_KEY = 'agent-tool-terminal-trust-mode'
 const props = defineProps<ToolDisplayComponentProps>()
 
 const terminalBodyRef = ref<HTMLDivElement | null>(null)
-
-console.log(`[TerminalExecutionDisplay] 组件初始化，invocationId: ${props.invocationId}, status: ${props.status}, data:`, props.data)
-console.log(`[TerminalExecutionDisplay] props 完整内容:`, props)
+const logger = createRendererLogger('TerminalExecutionDisplay')
+logger.debug(`[TerminalExecutionDisplay] 组件初始化，invocationId: ${props.invocationId}, status: ${props.status}, data:`, props.data)
+logger.debug(`[TerminalExecutionDisplay] props 完整内容:`, props)
 
 // 使用实时通信
 const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtime(
@@ -184,7 +185,7 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
   props.progress
 )
 
-console.log(`[TerminalExecutionDisplay] useToolDisplayRealtime 返回:`, { realtimeData: realtimeData.value, realtimeStatus: realtimeStatus.value, realtimeProgress: realtimeProgress.value })
+logger.debug(`[TerminalExecutionDisplay] useToolDisplayRealtime 返回:`, { realtimeData: realtimeData.value, realtimeStatus: realtimeStatus.value, realtimeProgress: realtimeProgress.value })
 
 // 解析显示数据（优先使用实时数据）
 const displayData = computed(() => {

@@ -289,29 +289,11 @@ const titleFormatCallback: ToolCallback = async (
   }
 }
 
-/**
- * 标题格式化Tool配置
- */
-export const titleFormatToolConfig: AgentToolConfig = {
-  name: {
-    'zh_cn': { name: '标题格式化' },
-    'en_us': { name: 'Title Formatting' },
-    'ja_jp': { name: 'タイトルフォーマット' },
-    'ko_kr': { name: '제목 포맷팅' },
-    'fr_fr': { name: 'Formatage de titre' },
-    'de_de': { name: 'Titelformatierung' }
-  },
-  description: {
-    'zh_cn': { description: '格式化文档标题：调整标题层级、添加/移除标题编号、移除标题前缀等' },
-    'en_us': { description: 'Format document titles: adjust title levels, add/remove title numbering, remove title prefixes, etc.' },
-    'ja_jp': { description: 'ドキュメントタイトルをフォーマット：タイトルレベル調整、タイトル番号の追加/削除、タイトルプレフィックスの削除など' },
-    'ko_kr': { description: '문서 제목 포맷팅: 제목 레벨 조정, 제목 번호 추가/제거, 제목 접두사 제거 등' },
-    'fr_fr': { description: 'Formater les titres de document : ajuster les niveaux de titre, ajouter/supprimer la numérotation des titres, supprimer les préfixes de titre, etc.' },
-    'de_de': { description: 'Dokumenttitel formatieren: Titel-Ebenen anpassen, Titelnummerierung hinzufügen/entfernen, Titelpräfixe entfernen usw.' }
-  },
-  id: 'title-format',
-  origin: 'internal',
-  instruction: `# 标题格式化工具
+const titleFormatToolLocales: ToolLocales = {
+  zh_cn: {
+    name: '标题格式化',
+    description: '格式化文档标题：调整标题层级、添加/移除标题编号、移除标题前缀等',
+    instruction: `# 标题格式化工具
 
 ## 功能描述
 格式化文档标题，支持以下操作：
@@ -421,37 +403,155 @@ export const titleFormatToolConfig: AgentToolConfig = {
 
 - **outline-optimize**: 用于生成和优化大纲内容，不涉及标题格式化
 - **edit**: 用于编辑文档内容，不涉及批量格式化标题
-- **title-format**: 专门用于格式化标题层级和编号`,
+- **title-format**: 专门用于格式化标题层级和编号`
+  },
+  en_us: {
+    name: 'Title Formatting',
+    description: 'Format document titles: adjust title levels, add/remove title numbering, remove title prefixes, etc.',
+    instruction: `# Title Formatting Tool
+
+## Description
+Format document titles with the following operations:
+1. **Adjust title levels**: Adjust Markdown title levels (# count)
+2. **Add title numbering**: Add numbering to titles (e.g., 1.1, 1.2.3, etc.)
+3. **Remove title prefixes**: Remove all numbering and dots at the beginning of titles (for Markdown to LaTeX conversion)
+
+## Usage Scenarios
+- Adjust document title levels to meet specific format requirements
+- Add numbering to document titles for easy reference and navigation
+- Remove title prefixes to prepare for LaTeX auto-numbering
+- Batch format document titles
+
+## Input Parameters
+
+### Full Parameter Format
+\`\`\`json
+{
+  "operation": "format",  // Optional, operation type: "format" (format) or "removePrefixes" (remove prefixes only)
+  "adjustMarkdown": true,  // Optional, whether to adjust Markdown title levels, default true
+  "firstMarkdownTitleLevel": 1,  // Optional, first-level title level (1-6), default 1
+  "adjustTitle": true,  // Optional, whether to adjust title numbering, default true
+  "cover": true,  // Optional, whether to overwrite existing numbering, default true
+  "level1TitleChinese": true,  // Optional, whether first-level titles use Chinese numerals (一、二、三...), default true
+  "removePrefixes": false  // Optional, whether to remove all title prefixes, default false
+}
+\`\`\`
+
+### Default Parameter Format
+\`\`\`json
+{}  // Use all default values: adjust levels and numbering
+\`\`\`
+
+### Remove Prefixes Only
+\`\`\`json
+{
+  "removePrefixes": true
+}
+\`\`\`
+or
+\`\`\`json
+{
+  "operation": "removePrefixes"
+}
+\`\`\`
+
+### Adjust Levels Only
+\`\`\`json
+{
+  "adjustTitle": false,
+  "firstMarkdownTitleLevel": 2
+}
+\`\`\`
+
+### Adjust Numbering Only
+\`\`\`json
+{
+  "adjustMarkdown": false,
+  "cover": false,
+  "level1TitleChinese": false
+}
+\`\`\`
+
+## Parameter Description
+
+- **operation** (string, optional): Operation type
+  - \`"format"\`: Execute full formatting (default)
+  - \`"removePrefixes"\`: Remove all title prefixes only
+  
+- **adjustMarkdown** (boolean, optional): Whether to adjust Markdown title levels, default \`true\`
+  
+- **firstMarkdownTitleLevel** (number, optional): First-level title level (1-6), default \`1\`
+  - \`1\` means \`# Title\`
+  - \`2\` means \`## Title\`
+  - And so on
+  
+- **adjustTitle** (boolean, optional): Whether to adjust title numbering, default \`true\`
+  
+- **cover** (boolean, optional): Whether to overwrite existing numbering, default \`true\`
+  - \`true\`: Remove existing numbering first, then add new numbering
+  - \`false\`: Keep existing numbering, only add when there's no numbering
+  
+- **level1TitleChinese** (boolean, optional): Whether first-level titles use Chinese numerals, default \`true\`
+  - \`true\`: First-level titles use Chinese numerals (一、二、三...)
+  - \`false\`: First-level titles use Arabic numerals (1, 2, 3...)
+  
+- **removePrefixes** (boolean, optional): Whether to remove all title prefixes, default \`false\`
+  - Suitable for Markdown to LaTeX conversion scenarios, as LaTeX will auto-number
+
+## Output Format
+
+\`\`\`json
+{
+  "operations": ["Operation 1", "Operation 2", ...],
+  "outlineModified": true
+}
+\`\`\`
+
+## Notes
+
+1. A document must be opened before using this tool
+2. Remove prefixes operation will remove all numbering and dots at the beginning of titles (including Chinese numeral numbering)
+3. Adjust levels and numbering operations will modify the document's outline structure
+4. All operations will be automatically saved to the document
+
+## Differences from Other Tools
+
+- **outline-optimize**: Used for generating and optimizing outline content, does not involve title formatting
+- **edit**: Used for editing document content, does not involve batch title formatting
+- **title-format**: Specifically for formatting title levels and numbering`
+  },
+  ja_jp: {
+    name: 'タイトルフォーマット',
+    description: 'ドキュメントタイトルをフォーマット：タイトルレベル調整、タイトル番号の追加/削除、タイトルプレフィックスの削除など'
+  },
+  ko_kr: {
+    name: '제목 포맷팅',
+    description: '문서 제목 포맷팅: 제목 레벨 조정, 제목 번호 추가/제거, 제목 접두사 제거 등'
+  },
+  fr_fr: {
+    name: 'Formatage de titre',
+    description: 'Formater les titres de document : ajuster les niveaux de titre, ajouter/supprimer la numérotation des titres, supprimer les préfixes de titre, etc.'
+  },
+  de_de: {
+    name: 'Titelformatierung',
+    description: 'Dokumenttitel formatieren: Titel-Ebenen anpassen, Titelnummerierung hinzufügen/entfernen, Titelpräfixe entfernen usw.'
+  }
+}
+
+/**
+ * 标题格式化Tool配置
+ */
+export const titleFormatToolConfig: AgentToolConfig = {
+  id: 'title-format',
+  name: titleFormatToolLocales,
+  description: titleFormatToolLocales,
+  origin: 'internal',
+  instruction: titleFormatToolLocales,
   callback: titleFormatCallback,
   displayComponent: TitleFormatDisplay,
   tags: ['document', 'formatting', 'title', 'outline'],
   enabled: true,
   editable: false,
-  locales: {
-    'zh_cn': {
-      name: '标题格式化',
-      description: '格式化文档标题：调整标题层级、添加/移除标题编号、移除标题前缀等'
-    },
-    'en_us': {
-      name: 'Title Formatting',
-      description: 'Format document titles: adjust title levels, add/remove title numbering, remove title prefixes, etc.'
-    },
-    'ja_jp': {
-      name: 'タイトルフォーマット',
-      description: 'ドキュメントタイトルをフォーマット：タイトルレベル調整、タイトル番号の追加/削除、タイトルプレフィックスの削除など'
-    },
-    'ko_kr': {
-      name: '제목 포맷팅',
-      description: '문서 제목 포맷팅: 제목 레벨 조정, 제목 번호 추가/제거, 제목 접두사 제거 등'
-    },
-    'fr_fr': {
-      name: 'Formatage de titre',
-      description: 'Formater les titres de document : ajuster les niveaux de titre, ajouter/supprimer la numérotation des titres, supprimer les préfixes de titre, etc.'
-    },
-    'de_de': {
-      name: 'Titelformatierung',
-      description: 'Dokumenttitel formatieren: Titel-Ebenen anpassen, Titelnummerierung hinzufügen/entfernen, Titelpräfixe entfernen usw.'
-    }
-  } as ToolLocales
+  locales: titleFormatToolLocales
 }
 

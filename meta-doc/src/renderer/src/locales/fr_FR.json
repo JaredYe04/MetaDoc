@@ -545,7 +545,7 @@
     "startupOption": "Options de démarrage",
     "testFailed": "L'essai a échoué:",
     "testLlm": "Essais de grands modèles",
-    "testPrompt": "Bonjour ! Veuillez vous présenter.",
+    "testPrompt": "Bonjour ! Veuillez vous présenter en un court.",
     "testResult": "Résultats des essais",
     "themeCustom": "Personnalisé",
     "themeDark": "Noir",
@@ -583,6 +583,9 @@
     "openLogFile": "Ouvrir un fichier journal",
     "deepseek": "Recherche profonde",
     "deepseekHint": "Le principal modèle d'IA fourni par DeepSeek prend en charge plusieurs modèles",
+    "gemini": "Google Gemini",
+    "geminiHint": "Le principal modèle d'IA fourni par Google Gemini prend en charge plusieurs modèles",
+    "geminiApiKeyPlaceholder": "Entrez la clé API Gemini",
     "openaiOfficial": "API officielle OpenAI",
     "openaiOfficialHint": "API de OpenAI, qui prend en charge les modèles",
     "debug": {

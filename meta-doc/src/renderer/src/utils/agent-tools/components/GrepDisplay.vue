@@ -78,6 +78,7 @@ import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
 import type { GrepResult, GrepMatch } from '../grep-tool'
 import { setupMonacoWorker } from '../../monaco-worker-config'
+import { createRendererLogger } from '../../logger'
 
 const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps>()
@@ -207,8 +208,9 @@ const getMonacoEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
   })
   
   if (foundEditor) {
-    monacoEditor = foundEditor
-    return foundEditor
+    // foundEditor 可能是 ICodeEditor 类型（不是 IStandaloneCodeEditor），做类型断言
+    monacoEditor = foundEditor as monaco.editor.IStandaloneCodeEditor
+    return monacoEditor
   }
   
   console.warn('[GrepDisplay] 编辑器实例未找到，editorId:', editorId.value, '当前编辑器数量:', editors.length)
@@ -221,7 +223,6 @@ const getMonacoEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
         return 'error'
       }
     })
-    console.log('[GrepDisplay] 当前所有编辑器的容器 ID:', containerIds)
   }
   return null
 }
@@ -235,12 +236,13 @@ const highlightMatchInEditor = async (index: number) => {
   // 获取编辑器实例（如果不存在则从全局获取）
   const editor = getMonacoEditor()
   if (!editor) {
-    console.warn('[GrepDisplay] 无法获取编辑器实例，等待编辑器初始化')
+    const logger = createRendererLogger('GrepDisplay')
+    logger.warn('[GrepDisplay] 无法获取编辑器实例，等待编辑器初始化')
     // 如果编辑器还未初始化，等待一下再试
     await nextTick()
     const retryEditor = getMonacoEditor()
     if (!retryEditor) {
-      console.error('[GrepDisplay] 编辑器初始化失败，无法高亮匹配')
+      logger.error('[GrepDisplay] 编辑器初始化失败，无法高亮匹配')
       return
     }
     await highlightMatchInEditor(index)
@@ -382,9 +384,9 @@ const initMonacoEditor = async () => {
       glyphMargin: true
     })
     
-    console.log('[GrepDisplay] 编辑器创建成功，ID:', monacoEditor.getId(), 'editorId:', editorId.value)
   } catch (error) {
-    console.error('[GrepDisplay] 创建编辑器失败:', error)
+    const logger = createRendererLogger('GrepDisplay')
+    logger.error('[GrepDisplay] 创建编辑器失败:', error)
     return
   }
 
@@ -538,23 +540,27 @@ const noResultsStyle = computed(() => ({
 }
 
 .matches-panel {
-  flex: 0 0 400px;
+  width: 30%;
   display: flex;
   flex-direction: column;
   border: 1px solid v-bind('themeState.currentTheme.borderColor');
   border-radius: 6px;
   overflow: hidden;
   background-color: v-bind('themeState.currentTheme.background');
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .editor-panel {
-  flex: 1;
+  width: 70%;
   display: flex;
   flex-direction: column;
   border: 1px solid v-bind('themeState.currentTheme.borderColor');
   border-radius: 6px;
   overflow: hidden;
   background-color: v-bind('themeState.currentTheme.background');
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .monaco-editor-container {

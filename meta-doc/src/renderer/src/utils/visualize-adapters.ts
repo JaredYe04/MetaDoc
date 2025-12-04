@@ -5,6 +5,7 @@
 import type { DocumentOutlineNode } from '../../../types';
 import { extractOutlineTreeFromMarkdown } from './document/outline';
 import { extractPlainTextFromLatex, extractOutlineTreeFromLatex } from './latex-utils';
+import { createRendererLogger } from './logger';
 
 /**
  * 可视化适配器接口
@@ -83,8 +84,9 @@ export class MarkdownVisualizeAdapter implements VisualizeAdapter {
     maxContexts = 3,
     contextLength = 200
   ): string[] {
+    const logger = createRendererLogger('MarkdownVisualizeAdapter');
     if (!content || !word) {
-      console.log('[MarkdownVisualizeAdapter] searchWordContexts: 缺少参数', { content: !!content, word });
+      logger.debug('[MarkdownVisualizeAdapter] searchWordContexts: 缺少参数', { content: !!content, word });
       return [];
     }
 
@@ -98,7 +100,7 @@ export class MarkdownVisualizeAdapter implements VisualizeAdapter {
       'gi'
     );
 
-    console.log('[MarkdownVisualizeAdapter] 搜索模式:', {
+    logger.debug('[MarkdownVisualizeAdapter] 搜索模式:', {
       word,
       escapedWord,
       pattern: regex.source,
@@ -106,7 +108,7 @@ export class MarkdownVisualizeAdapter implements VisualizeAdapter {
     });
 
     const matches = Array.from(content.matchAll(regex));
-    console.log('[MarkdownVisualizeAdapter] 找到匹配:', matches.length);
+    logger.debug('[MarkdownVisualizeAdapter] 找到匹配:', matches.length);
     
     const seen = new Set<string>();
 
@@ -119,11 +121,11 @@ export class MarkdownVisualizeAdapter implements VisualizeAdapter {
       if (!seen.has(contextKey) && context.length > word.length) {
         seen.add(contextKey);
         contexts.push(context);
-        console.log('[MarkdownVisualizeAdapter] 添加上下文:', context.substring(0, 50) + '...');
+        logger.debug('[MarkdownVisualizeAdapter] 添加上下文:', context.substring(0, 50) + '...');
       }
     }
 
-    console.log('[MarkdownVisualizeAdapter] 最终上下文数量:', contexts.length);
+    logger.debug('[MarkdownVisualizeAdapter] 最终上下文数量:', contexts.length);
     return contexts;
   }
 
@@ -179,14 +181,15 @@ export class LatexVisualizeAdapter implements VisualizeAdapter {
     maxContexts = 3,
     contextLength = 200
   ): string[] {
+    const logger = createRendererLogger('LatexVisualizeAdapter');
     if (!content || !word) {
-      console.log('[LatexVisualizeAdapter] searchWordContexts: 缺少参数', { content: !!content, word });
+      logger.debug('[LatexVisualizeAdapter] searchWordContexts: 缺少参数', { content: !!content, word });
       return [];
     }
 
     // 先提取纯文本，然后在纯文本中搜索
     const plainText = this.extractPlainText(content, false);
-    console.log('[LatexVisualizeAdapter] 提取的纯文本长度:', plainText.length);
+    logger.debug('[LatexVisualizeAdapter] 提取的纯文本长度:', plainText.length);
     
     const contexts: string[] = [];
     const halfLength = Math.floor(contextLength / 2);
@@ -198,7 +201,7 @@ export class LatexVisualizeAdapter implements VisualizeAdapter {
       'gi'
     );
 
-    console.log('[LatexVisualizeAdapter] 搜索模式:', {
+    logger.debug('[LatexVisualizeAdapter] 搜索模式:', {
       word,
       escapedWord,
       pattern: regex.source,
@@ -206,7 +209,7 @@ export class LatexVisualizeAdapter implements VisualizeAdapter {
     });
 
     const matches = Array.from(plainText.matchAll(regex));
-    console.log('[LatexVisualizeAdapter] 找到匹配:', matches.length);
+    logger.debug('[LatexVisualizeAdapter] 找到匹配:', matches.length);
     
     const seen = new Set<string>();
 
@@ -219,11 +222,11 @@ export class LatexVisualizeAdapter implements VisualizeAdapter {
       if (!seen.has(contextKey) && context.length > word.length) {
         seen.add(contextKey);
         contexts.push(context);
-        console.log('[LatexVisualizeAdapter] 添加上下文:', context.substring(0, 50) + '...');
+        logger.debug('[LatexVisualizeAdapter] 添加上下文:', context.substring(0, 50) + '...');
       }
     }
 
-    console.log('[LatexVisualizeAdapter] 最终上下文数量:', contexts.length);
+    logger.debug('[LatexVisualizeAdapter] 最终上下文数量:', contexts.length);
     return contexts;
   }
 

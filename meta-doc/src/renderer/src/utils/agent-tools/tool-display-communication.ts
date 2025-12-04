@@ -4,6 +4,7 @@
  */
 
 import eventBus from '../event-bus.js'
+import { createRendererLogger } from '../logger.js';
 
 /**
  * Tool执行更新事件名称前缀
@@ -32,13 +33,14 @@ export function emitToolUpdate(
   progress?: { percentage: number; message?: string }
 ): void {
   const eventName = `${TOOL_UPDATE_EVENT_PREFIX}${invocationId}`
+  const logger = createRendererLogger('tool-display-communication');
   const payload = {
     invocationId,
     data,
     progress,
     timestamp: Date.now()
   }
-  console.log(`[emitToolUpdate] 发送事件: ${eventName}`, payload)
+  logger.debug(`[emitToolUpdate] 发送事件: ${eventName}`, payload)
   eventBus.emit(eventName, payload)
 }
 
@@ -57,12 +59,13 @@ export function emitToolComplete(
   }
 ): void {
   const eventName = `${TOOL_COMPLETE_EVENT_PREFIX}${invocationId}`
+  const logger = createRendererLogger('tool-display-communication');
   const payload = {
     invocationId,
     ...result,
     timestamp: Date.now()
   }
-  console.log(`[emitToolComplete] 发送事件: ${eventName}`, payload)
+  logger.debug(`[emitToolComplete] 发送事件: ${eventName}`, payload)
   eventBus.emit(eventName, payload)
 }
 
@@ -91,16 +94,17 @@ export function onToolUpdate(
   invocationId: string,
   callback: (data: { invocationId: string; data: unknown; progress?: { percentage: number; message?: string }; timestamp: number }) => void
 ): () => void {
+  const logger = createRendererLogger('tool-display-communication');
   const eventName = `${TOOL_UPDATE_EVENT_PREFIX}${invocationId}`
-  console.log(`[onToolUpdate] 注册监听器: ${eventName}`)
+  logger.debug(`[onToolUpdate] 注册监听器: ${eventName}`)
   const handler = (payload: any) => {
-    console.log(`[onToolUpdate] 收到事件: ${eventName}`, payload)
+    logger.debug(`[onToolUpdate] 收到事件: ${eventName}`, payload)
     callback(payload)
   }
   eventBus.on(eventName, handler)
   
   return () => {
-    console.log(`[onToolUpdate] 移除监听器: ${eventName}`)
+    logger.debug(`[onToolUpdate] 移除监听器: ${eventName}`)
     eventBus.off(eventName, handler)
   }
 }
@@ -122,16 +126,17 @@ export function onToolComplete(
     timestamp: number
   }) => void
 ): () => void {
+  const logger = createRendererLogger('tool-display-communication');
   const eventName = `${TOOL_COMPLETE_EVENT_PREFIX}${invocationId}`
-  console.log(`[onToolComplete] 注册监听器: ${eventName}`)
+  logger.debug(`[onToolComplete] 注册监听器: ${eventName}`)
   const handler = (payload: any) => {
-    console.log(`[onToolComplete] 收到事件: ${eventName}`, payload)
+    logger.debug(`[onToolComplete] 收到事件: ${eventName}`, payload)
     callback(payload)
   }
   eventBus.on(eventName, handler)
   
   return () => {
-    console.log(`[onToolComplete] 移除监听器: ${eventName}`)
+    logger.debug(`[onToolComplete] 移除监听器: ${eventName}`)
     eventBus.off(eventName, handler)
   }
 }
@@ -146,16 +151,17 @@ export function onToolFailed(
   invocationId: string,
   callback: (error: { invocationId: string; error: string; timestamp: number }) => void
 ): () => void {
+  const logger = createRendererLogger('tool-display-communication');
   const eventName = `${TOOL_FAILED_EVENT_PREFIX}${invocationId}`
-  console.log(`[onToolFailed] 注册监听器: ${eventName}`)
+  logger.debug(`[onToolFailed] 注册监听器: ${eventName}`)
   const handler = (payload: any) => {
-    console.log(`[onToolFailed] 收到事件: ${eventName}`, payload)
+    logger.debug(`[onToolFailed] 收到事件: ${eventName}`, payload)
     callback(payload)
   }
   eventBus.on(eventName, handler)
   
   return () => {
-    console.log(`[onToolFailed] 移除监听器: ${eventName}`)
+    logger.debug(`[onToolFailed] 移除监听器: ${eventName}`)
     eventBus.off(eventName, handler)
   }
 }

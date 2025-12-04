@@ -8,7 +8,8 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress
+  ToolProgress,
+  ToolLocales
 } from '../../types/agent-tool'
 import { queryKnowledgeBase } from '../rag_utils'
 import { getSetting } from '../settings'
@@ -182,29 +183,11 @@ const ragToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 }
 
-/**
- * RAG Tool配置
- */
-export const ragToolConfig: AgentToolConfig = {
-  id: 'rag-retrieval',
-  name: {
-    'zh_cn': { name: 'RAG知识库检索' },
-    'en_us': { name: 'RAG Knowledge Base Retrieval' },
-    'de_DE': { name: 'RAG-Wissensdatenbank-Abruf' },
-    'fr_FR': { name: 'Récupération de base de connaissances RAG' },
-    'ja_JP': { name: 'RAG知識ベース検索' },
-    'ko_KR': { name: 'RAG 지식 베이스 검색' }
-  } as any,
-  description: {
-    'zh_cn': { description: '从知识库中检索与问题相关的文档片段，用于增强AI回答的准确性' },
-    'en_us': { description: 'Retrieve relevant document chunks from the knowledge base to enhance AI response accuracy' },
-    'de_DE': { description: 'Ruft relevante Dokumentfragmente aus der Wissensdatenbank ab, um die Genauigkeit der KI-Antworten zu verbessern' },
-    'fr_FR': { description: 'Récupère des fragments de documents pertinents de la base de connaissances pour améliorer la précision des réponses IA' },
-    'ja_JP': { description: '知識ベースから関連する文書チャンクを検索し、AI回答の精度を向上' },
-    'ko_KR': { description: '지식 베이스에서 관련 문서 청크를 검색하여 AI 응답 정확도 향상' }
-  } as any,
-  origin: 'internal',
-  instruction: `# RAG知识库检索工具
+const ragToolLocales: ToolLocales = {
+  zh_cn: {
+    name: 'RAG知识库检索',
+    description: '从知识库中检索与问题相关的文档片段，用于增强AI回答的准确性',
+    instruction: `# RAG知识库检索工具
 
 ## 功能描述
 从用户的知识库中检索与查询问题相关的文档片段。使用向量相似度搜索和关键词匹配的混合评分机制，返回最相关的内容。
@@ -248,21 +231,89 @@ export const ragToolConfig: AgentToolConfig = {
 ## 与其他Tool的区别
 - 这是唯一的知识库检索工具
 - 主要用于文档内容检索，不涉及其他功能
-- 如果用户问题不需要参考文档，不应该调用此工具`,
+- 如果用户问题不需要参考文档，不应该调用此工具`
+  },
+  en_us: {
+    name: 'RAG Knowledge Base Retrieval',
+    description: 'Retrieve relevant document chunks from the knowledge base to enhance AI response accuracy',
+    instruction: `# RAG Knowledge Base Retrieval Tool
+
+## Description
+Retrieve relevant document chunks from the user's knowledge base based on query questions. Uses a hybrid scoring mechanism combining vector similarity search and keyword matching to return the most relevant content.
+
+## Usage Scenarios
+- When user questions need to reference uploaded document content
+- When answers need to be based on knowledge base content
+- When searching for information in specific documents
+
+## Input Parameters
+\`\`\`json
+{
+  "question": "string",  // Required, question or keyword to retrieve
+  "scoreThreshold": 0.5  // Optional, similarity threshold (0-1) for filtering low-relevance results. If not provided, will use default value from settings
+}
+\`\`\`
+
+**Parameter Description:**
+- \`question\`: Required parameter, question or keyword to retrieve
+- \`scoreThreshold\`: Optional parameter, similarity threshold (number between 0-1)
+  - Higher values return more relevant results but may have fewer results
+  - Lower values return more results but may include less relevant content
+  - If not provided, will use default threshold configured in settings (default 0.5)
+
+## Output Format
+Returns JSON array of retrieval results, each containing:
+- \`text\`: Document chunk text
+- \`score\`: Similarity score (0-1)
+- \`metadata\`: Document metadata (if available)
+
+## Notes
+1. Documents must be uploaded to the knowledge base first
+2. Knowledge base feature must be enabled in settings
+3. Similarity threshold can be specified via \`scoreThreshold\` parameter when calling, or configured as default value in settings (default 0.5)
+4. If retrieval results are empty, it means no relevant documents were found, should inform the user
+5. Retrieval results should be highly relevant to user questions, if relevance is low, should clearly inform the user
+6. Flexibly adjust \`scoreThreshold\` based on query needs:
+   - For high-precision results, set higher threshold (e.g., 0.7-0.9)
+   - For more results, set lower threshold (e.g., 0.3-0.5)
+
+## Differences from Other Tools
+- This is the only knowledge base retrieval tool
+- Mainly for document content retrieval, does not involve other functions
+- Should not call this tool if user questions do not need to reference documents`
+  },
+  de_DE: {
+    name: 'RAG-Wissensdatenbank-Abruf',
+    description: 'Ruft relevante Dokumentfragmente aus der Wissensdatenbank ab, um die Genauigkeit der KI-Antworten zu verbessern'
+  },
+  fr_FR: {
+    name: 'Récupération de base de connaissances RAG',
+    description: 'Récupère des fragments de documents pertinents de la base de connaissances pour améliorer la précision des réponses IA'
+  },
+  ja_JP: {
+    name: 'RAG知識ベース検索',
+    description: '知識ベースから関連する文書チャンクを検索し、AI回答の精度を向上'
+  },
+  ko_KR: {
+    name: 'RAG 지식 베이스 검색',
+    description: '지식 베이스에서 관련 문서 청크를 검색하여 AI 응답 정확도 향상'
+  }
+}
+
+/**
+ * RAG Tool配置
+ */
+export const ragToolConfig: AgentToolConfig = {
+  id: 'rag-retrieval',
+  name: ragToolLocales,
+  description: ragToolLocales,
+  origin: 'internal',
+  instruction: ragToolLocales,
   callback: ragToolCallback,
   displayComponent: RAGToolDisplay,
   tags: ['rag', 'retrieval', 'knowledge-base', 'internal'],
   enabled: true,
   editable: false,
-  locales: {
-    'zh_cn': {
-      name: 'RAG知识库检索',
-      description: '从知识库中检索与问题相关的文档片段，用于增强AI回答的准确性'
-    },
-    'en_us': {
-      name: 'RAG Knowledge Base Retrieval',
-      description: 'Retrieve relevant document chunks from the knowledge base to enhance AI response accuracy'
-    }
-  }
+  locales: ragToolLocales
 }
 

@@ -8,7 +8,8 @@ import type {
   ToolCallback,
   ToolCallbackResult,
   ToolCallbackData,
-  ToolProgress
+  ToolProgress,
+  ToolLocales
 } from '../../types/agent-tool'
 import {
   renderChartViaVditor,
@@ -1247,29 +1248,11 @@ ${currentCode}
   }
 }
 
-/**
- * 图表生成Tool配置
- */
-export const chartGenerationToolConfig: AgentToolConfig = {
-  id: 'chart-generation',
-  name: {
-    'zh_cn': { name: '图表生成' },
-    'en_us': { name: 'Chart Generation' },
-    'de_DE': { name: 'Diagramm-Generierung' },
-    'fr_FR': { name: 'Génération de graphiques' },
-    'ja_JP': { name: 'チャート生成' },
-    'ko_KR': { name: '차트 생성' }
-  } as any,
-  description: {
-    'zh_cn': { description: '根据提示词生成各种类型的图表（Mermaid、ECharts、PlantUML、flowchart、graphviz等），支持导出为SVG、PNG或PDF格式' },
-    'en_us': { description: 'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats' },
-    'de_DE': { description: 'Generiert verschiedene Diagrammtypen (Mermaid, ECharts, PlantUML, Flowchart, Graphviz usw.) basierend auf Eingabeaufforderungen, unterstützt Export in SVG, PNG oder PDF' },
-    'fr_FR': { description: 'Génère divers types de graphiques (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) basés sur des invites, supportant l\'export en SVG, PNG ou PDF' },
-    'ja_JP': { description: 'プロンプトに基づいて様々なタイプのチャート（Mermaid、ECharts、PlantUML、flowchart、graphvizなど）を生成し、SVG、PNG、PDF形式へのエクスポートをサポート' },
-    'ko_KR': { description: '프롬프트를 기반으로 다양한 유형의 차트(Mermaid, ECharts, PlantUML, flowchart, graphviz 등)를 생성하며 SVG, PNG 또는 PDF 형식으로 내보내기 지원' }
-  } as any,
-  origin: 'internal',
-  instruction: `# 图表生成工具
+const chartGenerationToolLocales: ToolLocales = {
+  zh_cn: {
+    name: '图表生成',
+    description: '根据提示词生成各种类型的图表（Mermaid、ECharts、PlantUML、flowchart、graphviz等），支持导出为SVG、PNG或PDF格式',
+    instruction: `# 图表生成工具
 
 ## 功能描述
 根据用户提供的提示词，自动生成各种类型的图表代码，并渲染为图片。支持多种图表类型和导出格式。
@@ -1380,21 +1363,156 @@ export const chartGenerationToolConfig: AgentToolConfig = {
 ## 与其他Tool的区别
 - 这是唯一的图表生成工具
 - 支持多种图表类型和格式
-- 可以调用LLM辅助生成代码`,
+- 可以调用LLM辅助生成代码`
+  },
+  en_us: {
+    name: 'Chart Generation',
+    description: 'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats',
+    instruction: `# Chart Generation Tool
+
+## Description
+Automatically generates various types of chart code based on user-provided prompts and renders them as images. Supports multiple chart types and export formats.
+
+## Supported Chart Types
+- **Mermaid**: Flowcharts, UML sequence diagrams, Gantt charts, UML class diagrams, mind maps, pie charts
+- **ECharts**: Line charts, bar charts, scatter plots, candlestick charts, pie charts, radar charts, chord charts, force-directed layout charts, maps, gauge charts, funnel charts, event river charts
+- **PlantUML**: UML class diagrams, UML sequence diagrams, UML activity diagrams, UML state diagrams, UML use case diagrams, UML component diagrams
+- **Flowchart**: Flowcharts
+- **Graphviz**: Flowcharts
+
+## Usage Scenarios
+- Need to quickly generate data visualization charts
+- Need to draw flowcharts, UML diagrams, etc.
+- Need to export charts in different formats for documents
+
+## Input Parameters
+\`\`\`json
+{
+  "prompt": "string",        // Optional, chart description or requirement (not needed if code parameter is provided)
+  "chartType": "string",     // Optional, chart type (mermaid/echarts/plantuml/flowchart/graphviz), default mermaid
+  "format": "string",        // Optional, export format (svg/png/pdf), default svg
+  "chartName": "string",     // Optional, chart name, default auto-generated
+  "code": "string"           // Optional, directly provide chart code (if code is provided, LLM generation is skipped, prompt can be empty)
+}
+\`\`\`
+
+**Note**:
+- If \`code\` parameter is provided, \`prompt\` can be empty, tool will directly use provided code for rendering
+- If \`code\` parameter is not provided, \`prompt\` parameter must be provided, tool will call LLM to generate code
+
+## Output Format
+Returns JSON format result containing:
+- \`chartName\`: Chart name
+- \`chartType\`: Chart type
+- \`url\`: **Chart image URL** (http://localhost:52521/images/...) - **This is the URL to insert into document, not code!**
+- \`localPath\`: Local absolute path
+- \`chartCode\`: Extracted directly renderable chart code (for debugging only, **should not be inserted into document**)
+
+## ⚠️ Important: Method to Insert Chart into Document
+
+**After generating chart, must use \`edit\` tool to insert image URL into document, not insert chart code!**
+
+### For Markdown Format Documents:
+Insert image URL using Markdown image syntax:
+\`\`\`markdown
+![Chart Description](http://localhost:52521/images/xxx.svg)
+\`\`\`
+
+### For LaTeX Format Documents:
+1. **Must use PDF format**: LaTeX documents only support PDF format charts, must set \`format: "pdf"\`
+2. Insert image URL using LaTeX image syntax:
+\`\`\`latex
+\\includegraphics[width=0.8\\textwidth]{http://localhost:52521/images/xxx.pdf}
+\`\`\`
+Or use full path:
+\`\`\`latex
+\\includegraphics[width=0.8\\textwidth]{/full/local/path/xxx.pdf}
+\`\`\`
+
+### Complete Workflow Example ⭐
+\`\`\`json
+// Step 1: Generate chart (choose format based on document format)
+{
+  "tool": "chart-generation",
+  "params": {
+    "prompt": "Generate a line chart showing data trends",
+    "chartType": "echarts",
+    "format": "svg"  // Markdown uses svg or png, LaTeX must use pdf
+  }
+}
+// Returns result containing url: "http://localhost:52521/images/xxx.svg"
+
+// Step 2: Use edit tool to insert image URL (not insert code!)
+{
+  "tool": "edit",
+  "params": {
+    "operations": [{
+      "type": "insert",
+      "range": {
+        "start": {"line": 15, "column": 1},  // First use outline-tree to locate position
+        "end": {"line": 15, "column": 1}
+      },
+      "content": "![Data Trend Chart](http://localhost:52521/images/xxx.svg)\n"  // Markdown format
+      // Or for LaTeX:
+      // "content": "\\includegraphics[width=0.8\\textwidth]{http://localhost:52521/images/xxx.pdf}\n"
+    }]
+  }
+}
+\`\`\`
+
+## Notes
+1. **⚠️ Insert URL, not code**: After generating chart, must insert returned \`url\` field into document, not insert \`chartCode\`
+2. **Format selection**:
+   - Markdown documents: Use \`svg\` or \`png\` format
+   - LaTeX documents: **Must use \`pdf\` format**
+3. **Insert position**: Before inserting chart, first use \`outline-tree\` tool to locate appropriate position, don't always insert from line 1 column 1
+4. **Insert syntax**:
+   - Markdown: \`![Description](Image URL)\`
+   - LaTeX: \`\\includegraphics[width=0.8\\textwidth]{Image URL or path}\`
+5. If \`code\` parameter is provided, tool will directly use that code for rendering, \`prompt\` parameter not needed
+6. If \`code\` parameter is not provided, must provide \`prompt\` parameter, tool will call LLM to generate chart code
+7. Returned \`chartCode\` is extracted and cleaned directly renderable code (for debugging only, should not be inserted into document)
+8. ECharts requires JSON format configuration object
+9. Chart code will be automatically cleaned, removing markdown code block markers
+10. ECharts will automatically remove animation effects
+
+## Differences from Other Tools
+- This is the only chart generation tool
+- Supports multiple chart types and formats
+- Can call LLM to assist in generating code`
+  },
+  de_DE: {
+    name: 'Diagramm-Generierung',
+    description: 'Generiert verschiedene Diagrammtypen (Mermaid, ECharts, PlantUML, Flowchart, Graphviz usw.) basierend auf Eingabeaufforderungen, unterstützt Export in SVG, PNG oder PDF'
+  },
+  fr_FR: {
+    name: 'Génération de graphiques',
+    description: 'Génère divers types de graphiques (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) basés sur des invites, supportant l\'export en SVG, PNG ou PDF'
+  },
+  ja_JP: {
+    name: 'チャート生成',
+    description: 'プロンプトに基づいて様々なタイプのチャート（Mermaid、ECharts、PlantUML、flowchart、graphvizなど）を生成し、SVG、PNG、PDF形式へのエクスポートをサポート'
+  },
+  ko_KR: {
+    name: '차트 생성',
+    description: '프롬프트를 기반으로 다양한 유형의 차트(Mermaid, ECharts, PlantUML, flowchart, graphviz 등)를 생성하며 SVG, PNG 또는 PDF 형식으로 내보내기 지원'
+  }
+}
+
+/**
+ * 图表生成Tool配置
+ */
+export const chartGenerationToolConfig: AgentToolConfig = {
+  id: 'chart-generation',
+  name: chartGenerationToolLocales,
+  description: chartGenerationToolLocales,
+  origin: 'internal',
+  instruction: chartGenerationToolLocales,
   callback: chartGenerationCallback,
   displayComponent: ChartGenerationDisplay,
   tags: ['chart', 'visualization', 'generation', 'internal'],
   enabled: true,
   editable: false,
-  locales: {
-    'zh_cn': {
-      name: '图表生成',
-      description: '根据提示词生成各种类型的图表，支持导出为SVG、PNG或PDF格式'
-    },
-    'en_us': {
-      name: 'Chart Generation',
-      description: 'Generate various types of charts based on prompts, supporting export to SVG, PNG, or PDF formats'
-    }
-  }
+  locales: chartGenerationToolLocales
 }
 

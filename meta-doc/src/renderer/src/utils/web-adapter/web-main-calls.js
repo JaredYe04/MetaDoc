@@ -211,9 +211,22 @@ export function webMainCalls() {
     return await getImagePath()
   })
 
-//   localIpcMain.handle('get-os-theme', async (event, data) => {
-//     return nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
-//   })
+  // 获取系统主题（亮暗色）
+  localIpcMain.handle('get-os-theme', async (event, data) => {
+    // Web 环境下，检测系统主题
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark'
+    }
+    return 'light'
+  })
+  
+  // 获取系统主题信息（包括亮暗色和主题色）
+  localIpcMain.handle('get-os-theme-info', async (event, data) => {
+    // Web 环境下，检测系统主题
+    const mode = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'
+    // Web 环境下无法获取系统主题色，返回 undefined
+    return { mode, accentColor: undefined }
+  })
   localIpcMain.handle('simpletex-ocr', async (event, { fileName, fileType, fileBuffer, reqData, header }) => {
     // 重新构造 FormData
     // 重新构造 Buffer

@@ -49,6 +49,8 @@ export const settings = reactive({
   codeTheme: "auto", // 代码主题
   lineNumber: true, // 是否显示行号
   customThemeColor: "#ffffff", // 自定义主题颜色
+  themeConfigs: [], // 主题配置列表 [{ id, name, type, themeColor, isDefault }]
+  selectedThemeId: null, // 当前选中的主题ID
   llmEnabled: false, // 是否启用 LLM
   selectedLlm: "", // 选择的大模型类型
   enableKnowledgeBase: true, // 是否启用知识库
@@ -106,7 +108,19 @@ export async function initSettings() {
     ipcRenderer.invoke('get-setting', { key: key }).then(value => {
       if (value === undefined) {
         //如果没有设置，则使用默认值
-        setSetting(key, settings[key]);
+        // 对于 themeConfigs，确保是可序列化的
+        if (key === 'themeConfigs' && Array.isArray(settings[key])) {
+          const serializable = settings[key].map((item) => ({
+            id: item.id,
+            name: item.name,
+            type: item.type,
+            themeColor: item.themeColor,
+            isDefault: item.isDefault
+          }));
+          setSetting(key, serializable);
+        } else {
+          setSetting(key, settings[key]);
+        }
       } else {
         //如果有设置，则更新settings
         settings[key] = value;

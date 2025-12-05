@@ -9,6 +9,7 @@ import {
   BrowserWindow, 
   ipcMain, 
   nativeTheme, 
+  systemPreferences,
   dialog, 
   Notification,
   IpcMainEvent,
@@ -368,9 +369,192 @@ function bindUtilityHandlers(): void {
     return await getImagePath();
   });
   
+  // 获取系统主题（亮暗色）
   ipcMain.handle('get-os-theme', async (event: IpcMainInvokeEvent): Promise<string> => {
     return nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
   });
+  
+  // 获取系统主题信息（包括亮暗色和主题色）
+  ipcMain.handle('get-os-theme-info', async (event: IpcMainInvokeEvent): Promise<{ mode: 'dark' | 'light', accentColor?: string }> => {
+    const mode = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+    let accentColor: string | undefined;
+    
+    // 尝试获取系统主题色（不同平台的方法不同）
+    try {
+      if (process.platform === 'win32') {
+        // Windows: 通过注册表获取主题色
+        accentColor = await getWindowsAccentColor();
+      } else if (process.platform === 'darwin') {
+        // macOS: 使用 Electron API 获取系统主题色
+        accentColor = getMacOSAccentColor();
+      } else {
+        // Linux: 通过 gsettings 或其他方式获取主题色
+        accentColor = await getLinuxAccentColor();
+      }
+    } catch (e) {
+      console.error('Failed to get system accent color:', e);
+      accentColor = undefined;
+    }
+    
+    return { mode, accentColor };
+  });
+  
+  // Windows: 从注册表获取系统主题色
+  async function getWindowsAccentColor(): Promise<string | undefined> {
+    try {
+      // 使用 PowerShell 读取注册表
+      const { exec } = require('child_process');
+      const { promisify } = require('util');
+      const execAsync = promisify(exec);
+      
+      // 读取 DWM AccentColor 注册表项
+      // HKEY_CURRENT_USER\Software\Microsoft\Windows\DWM\AccentColor
+      const command = 'powershell -Command "Get-ItemProperty -Path \'HKCU:\\Software\\Microsoft\\Windows\\DWM\' -Name AccentColor -ErrorAction SilentlyContinue | Select-Object -ExpandProperty AccentColor"';
+      
+      const { stdout, stderr } = await execAsync(command, { encoding: 'utf8', timeout: 5000 });
+      
+      if (stderr || !stdout || stdout.trim() === '') {
+        return undefined;
+      }
+      
+      // 注册表中的值是 DWORD (十进制) 或 ARGB (十六进制字符串)
+      // 例如: 4280151749 或 "0xFF0078D4"
+      let colorValue = stdout.trim();
+      
+      // Windows 注册表中的 AccentColor 格式是 0xAABBGGRR (DWORD)
+      // AA = Alpha, BB = Blue, GG = Green, RR = Red
+      // 需要提取 RGB 并转换为标准 HEX 格式
+      
+      // 如果是十进制数字，转换为十六进制
+      if (/^\d+$/.test(colorValue)) {
+        const num = parseInt(colorValue, 10);
+        // 按照 0xAABBGGRR 格式解析
+        const r = (num >> 0) & 0xFF;   // 最低字节是 Red
+        const g = (num >> 8) & 0xFF;    // 第二字节是 Green
+        const b = (num >> 16) & 0xFF;   // 第三字节是 Blue
+        // Alpha 在最高字节，我们不需要
+        // 转换为 HEX 格式 (RGB)
+        const hexColor = `#${[r, g, b].map(x => {
+          const hex = x.toString(16).padStart(2, '0');
+          return hex;
+        }).join('')}`;
+        return hexColor;
+      }
+      
+      // 如果已经是十六进制格式
+      if (colorValue.startsWith('0x') || colorValue.startsWith('0X')) {
+        colorValue = colorValue.substring(2);
+        // Windows 注册表中的格式是 0xAABBGGRR
+        if (colorValue.length === 8) {
+          // 按照 AABBGGRR 顺序解析
+          const r = parseInt(colorValue.substring(6, 8), 16); // RR (最后两位)
+          const g = parseInt(colorValue.substring(4, 6), 16); // GG (中间两位)
+          const b = parseInt(colorValue.substring(2, 4), 16); // BB (前两位，跳过 AA)
+          // 转换为 RGB HEX 格式
+          return `#${[r, g, b].map(x => {
+            const hex = x.toString(16).padStart(2, '0');
+            return hex;
+          }).join('')}`;
+        } else if (colorValue.length === 6) {
+          // 如果已经是 6 位，假设是 RGB 格式
+          return `#${colorValue}`;
+        }
+      }
+      
+      return undefined;
+    } catch (error) {
+      console.error('Failed to get Windows accent color:', error);
+      return undefined;
+    }
+  }
+  
+  // macOS: 获取系统主题色
+  function getMacOSAccentColor(): string | undefined {
+    try {
+      // Electron 的 systemPreferences.getAccentColor() 返回 RGB 字符串，如 "12, 123, 234"
+      const rgb = systemPreferences.getAccentColor();
+      if (!rgb) {
+        return undefined;
+      }
+      
+      // 解析 RGB 字符串并转换为 HEX
+      const parts = rgb.split(',').map(s => parseInt(s.trim(), 10));
+      if (parts.length === 3) {
+        const [r, g, b] = parts;
+        return `#${[r, g, b].map(x => {
+          const hex = x.toString(16).padStart(2, '0');
+          return hex;
+        }).join('')}`;
+      }
+      
+      return undefined;
+    } catch (error) {
+      console.error('Failed to get macOS accent color:', error);
+      return undefined;
+    }
+  }
+  
+  // Linux: 获取系统主题色
+  async function getLinuxAccentColor(): Promise<string | undefined> {
+    try {
+      // 尝试通过 gsettings 获取 GNOME 主题色
+      const { exec } = require('child_process');
+      const { promisify } = require('util');
+      const execAsync = promisify(exec);
+      
+      // 检查是否在 GNOME 环境中
+      const desktopEnv = process.env.XDG_CURRENT_DESKTOP || process.env.DESKTOP_SESSION || '';
+      
+      if (desktopEnv.toLowerCase().includes('gnome')) {
+        // GNOME: 尝试获取 accent-color (GNOME 42+)
+        try {
+          const { stdout } = await execAsync('gsettings get org.gnome.desktop.interface accent-color', { encoding: 'utf8', timeout: 3000 });
+          if (stdout && stdout.trim() && stdout.trim() !== "''") {
+            let color = stdout.trim().replace(/'/g, '');
+            // 如果已经是 HEX 格式
+            if (color.startsWith('#')) {
+              return color;
+            }
+            // 如果是 RGB 格式，尝试转换
+            if (color.startsWith('rgb')) {
+              const match = color.match(/(\d+),\s*(\d+),\s*(\d+)/);
+              if (match) {
+                const [, r, g, b] = match;
+                return `#${[r, g, b].map(x => {
+                  const hex = parseInt(x, 10).toString(16).padStart(2, '0');
+                  return hex;
+                }).join('')}`;
+              }
+            }
+          }
+        } catch (e) {
+          // 如果 accent-color 不存在，尝试获取 theme-name 并解析
+        }
+        
+        // 备选方案: 尝试从 GTK 主题获取
+        try {
+          const { stdout } = await execAsync('gsettings get org.gnome.desktop.interface gtk-theme', { encoding: 'utf8', timeout: 3000 });
+          // 这里可以进一步解析主题文件，但比较复杂
+          // 暂时返回 undefined，让用户手动选择
+        } catch (e) {
+          // 忽略错误
+        }
+      } else if (desktopEnv.toLowerCase().includes('kde')) {
+        // KDE: 可以通过 kreadconfig5 获取
+        try {
+          const { stdout } = await execAsync('kreadconfig5 --file kdeglobals --group Colors:Window --key BackgroundNormal', { encoding: 'utf8', timeout: 3000 });
+          // KDE 的颜色格式可能不同，需要解析
+        } catch (e) {
+          // 忽略错误
+        }
+      }
+      
+      return undefined;
+    } catch (error) {
+      console.error('Failed to get Linux accent color:', error);
+      return undefined;
+    }
+  }
   
   ipcMain.handle('get-is-packaged', async (event: IpcMainInvokeEvent): Promise<boolean> => {
     return app.isPackaged;

@@ -155,22 +155,52 @@ onMounted(async () => {
   // 监听主题同步事件
   eventBus.on('sync-theme', async () => {
     let theme = await getSetting('globalTheme')
-    if (theme === 'sync') {
-      theme = await ipcRenderer.invoke('get-os-theme')
+    
+    // 获取系统主题信息（用于 sync-color）
+    let osThemeInfo = null
+    try {
+      if (ipcRenderer) {
+        osThemeInfo = await ipcRenderer.invoke('get-os-theme-info')
+      } else {
+        // Web 环境
+        const mode = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'
+        osThemeInfo = { mode, accentColor: undefined }
+      }
+    } catch (e) {
+      console.error('获取系统主题信息失败:', e)
+      osThemeInfo = { mode: 'light', accentColor: undefined }
     }
+    
+    if (theme === 'sync') {
+      theme = osThemeInfo?.mode || 'light'
+    }
+    
     if (theme === 'light') {
       themeState.currentTheme = lightTheme
-      //给根元素html添加class light
       document.documentElement.classList.add('light')
-      //如果有dark主题的class则移除
       document.documentElement.classList.remove('dark')
-    }
-    if (theme === 'dark') {
+    } else if (theme === 'dark') {
       themeState.currentTheme = darkTheme
       document.documentElement.classList.add('dark')
       document.documentElement.classList.remove('light')
-    }
-    if (theme === 'custom') {
+    } else if (theme === 'sync-color') {
+      // 跟随系统颜色主题
+      const accentColor = osThemeInfo?.accentColor
+      if (accentColor) {
+        themeState.currentTheme = customTheme(accentColor)
+      } else {
+        // 如果没有系统主题色，使用系统亮暗色
+        theme = osThemeInfo?.mode || 'light'
+        themeState.currentTheme = theme === 'dark' ? darkTheme : lightTheme
+      }
+      if (themeState.currentTheme.type === 'light') {
+        document.documentElement.classList.add('light')
+        document.documentElement.classList.remove('dark')
+      } else {
+        document.documentElement.classList.add('dark')
+        document.documentElement.classList.remove('light')
+      }
+    } else if (theme === 'custom') {
       //自定义主题
       const customThemeColor = await getSetting('customThemeColor')
       themeState.currentTheme = customTheme(customThemeColor)

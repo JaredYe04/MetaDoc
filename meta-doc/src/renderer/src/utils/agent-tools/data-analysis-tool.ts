@@ -210,7 +210,7 @@ Automatically analyzes structured data (CSV, JSON) providing:
 /**
  * 解析CSV数据
  */
-function parseCSV(csvString: string): any[] {
+export function parseCSV(csvString: string): any[] {
   const lines = csvString.trim().split('\n')
   if (lines.length === 0) return []
 
@@ -249,7 +249,7 @@ function inferType(value: any): 'number' | 'string' | 'boolean' | 'date' | 'null
 /**
  * 提取字段信息
  */
-function extractFields(data: any[]): FieldInfo[] {
+export function extractFields(data: any[]): FieldInfo[] {
   if (data.length === 0) return []
 
   const fieldNames = Object.keys(data[0])
@@ -278,7 +278,7 @@ function extractFields(data: any[]): FieldInfo[] {
 /**
  * 计算描述统计
  */
-function calculateDescriptiveStats(data: any[], fieldName: string, fieldType: string): DescriptiveStats | null {
+export function calculateDescriptiveStats(data: any[], fieldName: string, fieldType: string): DescriptiveStats | null {
   const values = data.map(row => row[fieldName]).filter(v => v !== null && v !== undefined && v !== '')
 
   if (values.length === 0) return { count: 0 }
@@ -326,7 +326,7 @@ function calculateDescriptiveStats(data: any[], fieldName: string, fieldType: st
 /**
  * 执行聚合分析
  */
-function performAggregation(data: any[], groupByField: string, numericFields: string[]): AggregationResult {
+export function performAggregation(data: any[], groupByField: string, numericFields: string[]): AggregationResult {
   const groups: Record<string, any[]> = {}
 
   data.forEach(row => {

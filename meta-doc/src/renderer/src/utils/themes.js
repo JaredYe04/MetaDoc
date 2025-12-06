@@ -144,7 +144,14 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         borderColor: mixColors(themeColor, '#404040', 0.5),
         codeColor: adjustSaturation(mixColors(themeColor, '#e0e0e0', 0.8), 0.9),
         primaryColor: adjustSaturation(mixColors(themeColor, '#ffffff', 0.7), 1.2),
-        secondaryColor: adjustSaturation(mixColors(themeColor, '#cccccc', 0.6), 1.0)
+        secondaryColor: adjustSaturation(mixColors(themeColor, '#cccccc', 0.6), 1.0),
+        // 引用标签颜色
+        referenceActiveBg: adjustSaturation(mixColors(themeColor, '#4a9eff', 0.6), 1.1),
+        referenceActiveText: '#ffffff',
+        referenceInactiveBg: mixColors(themeColor, '#3a3a3a', 0.7),
+        referenceInactiveText: adjustSaturation(mixColors(themeColor, '#cccccc', 0.85), 0.7),
+        // 引用容器边框颜色
+        referenceContainerBorderColor: mixColors(themeColor, '#404040', 0.5)
       };
       // 应用覆盖值
       return { ...baseColors, ...overrides };
@@ -178,7 +185,14 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         borderColor: mixColors(themeColor, '#e0e0e0', 0.5),
         codeColor: adjustSaturation(mixColors(themeColor, '#333333', 0.8), 0.9),
         primaryColor: adjustSaturation(mixColors(themeColor, '#000000', 0.7), 1.2),
-        secondaryColor: adjustSaturation(mixColors(themeColor, '#666666', 0.6), 1.0)
+        secondaryColor: adjustSaturation(mixColors(themeColor, '#666666', 0.6), 1.0),
+        // 引用标签颜色
+        referenceActiveBg: adjustSaturation(mixColors(themeColor, '#409eff', 0.5), 1.1),
+        referenceActiveText: '#ffffff',
+        referenceInactiveBg: mixColors(themeColor, '#f5f5f5', 0.8),
+        referenceInactiveText: adjustSaturation(mixColors(themeColor, '#666666', 0.7), 0.8),
+        // 引用容器边框颜色
+        referenceContainerBorderColor: mixColors(themeColor, '#e0e0e0', 0.5)
       };
       // 应用覆盖值
       return { ...baseColors, ...overrides };
@@ -225,7 +239,14 @@ export const lightTheme = customTheme('#ffffff', {
   borderColor: '#e0e0e0',
   codeColor: '#333333',
   primaryColor: '#000000',
-  secondaryColor: '#666666'
+  secondaryColor: '#666666',
+  // 引用标签颜色
+  referenceActiveBg: '#409eff',
+  referenceActiveText: '#ffffff',
+  referenceInactiveBg: '#f5f5f5',
+  referenceInactiveText: '#666666',
+  // 引用容器边框颜色
+  referenceContainerBorderColor: '#e0e0e0'
 });
 
 // 深色主题：使用深灰色作为主题色，通过 customTheme 生成，但使用 overrides 保持原始颜色值
@@ -257,7 +278,14 @@ export const darkTheme = customTheme('#2c2c2c', {
   borderColor: '#404040',
   codeColor: '#e0e0e0',
   primaryColor: '#ffd04b',
-  secondaryColor: '#ffd0ee'
+  secondaryColor: '#ffd0ee',
+  // 引用标签颜色
+  referenceActiveBg: '#4a9eff',
+  referenceActiveText: '#ffffff',
+  referenceInactiveBg: '#3a3a3a',
+  referenceInactiveText: '#cccccc',
+  // 引用容器边框颜色
+  referenceContainerBorderColor: '#404040'
 });
 
 export const predefineColors = [

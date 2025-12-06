@@ -284,11 +284,6 @@ export interface AgentConfig {
 }
 
 /**
- * 引用素材类型
- */
-export type ReferenceType = 'file' | 'url' | 'knowledge-base' | 'article-service' | 'custom'
-
-/**
  * 引用素材
  */
 export interface Reference {
@@ -296,10 +291,12 @@ export interface Reference {
   id: string
   /** 引用名称 */
   name: string
-  /** 引用类型 */
-  type: ReferenceType
-  /** 引用地址/URL */
-  url: string
+  /** 引用来源（文件路径、URL或其他，如时间戳等程序注入的引用） */
+  origin: string
+  /** 文件格式（pdf, docx, pptx, html, xml, xlsx, csv, json, md, txt等，或纯文本） */
+  format: string
+  /** 解析后的内容（供AI参考的通用文本内容，上传时已解析） */
+  parsedContent: string
   /** 引用描述 */
   description?: string
   /** 元数据 */

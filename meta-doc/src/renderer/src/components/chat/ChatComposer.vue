@@ -11,14 +11,26 @@
     >
       <div class="composer-leading">
         <el-tooltip v-if="showAttach" :content="t('aiChat.attachTooltip')" placement="top">
-          <el-button
-            circle
-            class="composer-btn"
+          <el-upload
+            ref="uploadRef"
+            :auto-upload="false"
+            :on-change="handleFileChange"
+            :on-remove="handleFileRemove"
+            :show-file-list="false"
+            accept="*/*"
             :disabled="disabled"
-            @click.prevent="emit('attach')"
+            multiple
+            :limit="100"
           >
-            <Plus />
-          </el-button>
+            <el-button
+              circle
+              class="composer-btn"
+              :disabled="disabled"
+              @click.prevent
+            >
+              <Plus />
+            </el-button>
+          </el-upload>
         </el-tooltip>
       </div>
 
@@ -130,7 +142,7 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
   (e: 'submit'): void
   (e: 'reset'): void
-  (e: 'attach'): void
+  (e: 'attach', file?: File | File[]): void
   (e: 'voice'): void
   (e: 'cancel'): void
 }>()
@@ -138,8 +150,11 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const scrollbarRef = ref<ScrollbarInstance | null>(null)
+const uploadRef = ref<any>(null)
 const maxScrollHeight = ref(0)
 const singleLineHeight = ref<number | null>(null)
+// 用于防抖处理文件选择，等待所有文件选择完成
+let fileChangeTimer: ReturnType<typeof setTimeout> | null = null
 const isMultiline = ref(false)
 const SEND_PREF_KEY = 'meta-doc-chat-send-on-enter'
 const sendOnEnter = ref(true)
@@ -218,6 +233,70 @@ const toggleSendMode = () => {
   sendOnEnter.value = !sendOnEnter.value
 }
 
+// 用于存储当前选择的文件列表
+const currentFileList = ref<any[]>([])
+
+const handleFileChange = (file: any, fileList: any[]) => {
+  // 更新当前文件列表（fileList 会累积所有已选择的文件）
+  currentFileList.value = fileList || []
+  
+  // 清除之前的定时器
+  if (fileChangeTimer) {
+    clearTimeout(fileChangeTimer)
+  }
+  
+  // 当文件列表变化时，延迟处理，等待所有文件选择完成
+  // 使用防抖机制，等待文件选择对话框关闭后再处理所有文件
+  // 注意：el-upload 的 on-change 会在每个文件被选择时触发
+  // fileList 会累积所有已选择的文件，最后一次调用时包含所有文件
+  fileChangeTimer = setTimeout(() => {
+    // 使用最新的文件列表
+    const finalFileList = currentFileList.value
+    if (finalFileList && finalFileList.length > 0) {
+      // 提取所有文件的原始 File 对象
+      // fileList 中的每个元素都有 raw 属性（原始 File 对象）
+      const files: File[] = []
+      for (const item of finalFileList) {
+        if (item && item.raw && item.raw instanceof File) {
+          files.push(item.raw)
+        }
+      }
+      
+      if (files.length > 0) {
+        // 调试日志
+        console.log('[ChatComposer] 准备发送文件:', {
+          fileListLength: finalFileList.length,
+          filesLength: files.length,
+          fileNames: files.map(f => f.name),
+          willSendAsArray: files.length > 1
+        })
+        
+        // 使用 nextTick 确保文件选择对话框已关闭
+        nextTick(() => {
+          // 发送所有文件（单个文件发送 File，多个文件发送数组）
+          emit('attach', files.length === 1 ? files[0] : files)
+          
+          // 清空文件列表，以便下次选择时重新开始
+          setTimeout(() => {
+            if (uploadRef.value) {
+              uploadRef.value.clearFiles()
+            }
+            currentFileList.value = []
+          }, 200)
+        })
+      }
+    }
+    fileChangeTimer = null
+  }, 300) // 增加延迟时间，确保所有文件都被添加到 fileList
+}
+
+const handleFileRemove = () => {
+  // 文件被移除时，更新文件列表
+  if (uploadRef.value) {
+    currentFileList.value = uploadRef.value.fileList || []
+  }
+}
+
 watch(() => props.modelValue, () => {
   nextTick(autoResize)
 })
@@ -241,6 +320,11 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateMaxScrollHeight)
+  // 清理文件选择定时器
+  if (fileChangeTimer) {
+    clearTimeout(fileChangeTimer)
+    fileChangeTimer = null
+  }
 })
 </script>
 

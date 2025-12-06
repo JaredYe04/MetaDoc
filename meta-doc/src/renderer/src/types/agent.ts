@@ -30,6 +30,8 @@ export interface ChatAgentMessage extends AgentMessageBase {
     tool_id: string;
     parameters: Record<string, unknown>;
   }>;
+  /** 消息关联的引用ID列表（仅用于UI展示，不传给AI） */
+  referenceIds?: string[];
 }
 
 export interface ThoughtAgentMessage extends AgentMessageBase {
@@ -89,8 +91,9 @@ export interface AgentSession {
   referenceStore?: Array<{
     id: string;
     name: string;
-    type: 'file' | 'url' | 'knowledge-base' | 'article-service' | 'custom';
-    url: string;
+    origin: string;
+    format: string;
+    parsedContent: string;
     description?: string;
     metadata?: Record<string, unknown>;
     createdAt: number;

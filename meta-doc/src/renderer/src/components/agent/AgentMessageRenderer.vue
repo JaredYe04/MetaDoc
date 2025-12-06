@@ -1,5 +1,6 @@
 <template>
   <div :class="['agent-message', alignmentClass]">
+    <div class="agent-message__main">
     <!-- AI/Assistant/Tool消息：头像在左边 -->
     <div v-if="message.role !== 'user'" class="agent-message__avatar agent-message__avatar--left">
       <el-avatar 
@@ -145,6 +146,16 @@
         <el-avatar :icon="User" class="avatar-fallback" />
       </el-tooltip>
     </div>
+    </div>
+
+    <!-- 引用显示（只读模式，只显示用户消息的引用，放在气泡外面） -->
+    <ReferenceDisplay
+      v-if="message.role === 'user' && message.type === 'chat' && (message as ChatAgentMessage).referenceIds && (message as ChatAgentMessage).referenceIds!.length > 0 && sessionReferences && sessionReferences.length > 0"
+      :references="sessionReferences"
+      :active-reference-ids="(message as ChatAgentMessage).referenceIds || []"
+      readonly
+      class="agent-message__references"
+    />
   </div>
 </template>
 
@@ -155,7 +166,9 @@ import { useI18n } from 'vue-i18n'
 import { Avatar, User, Edit, More, Loading, Check } from '@element-plus/icons-vue'
 import type { AgentMessage, ChatAgentMessage, ToolAgentMessage } from '../../types/agent'
 import AgentToolResultCard from './AgentToolResultCard.vue'
+import ReferenceDisplay from './ReferenceDisplay.vue'
 import { themeState } from '../../utils/themes'
+import type { Reference } from '../../types/agent-framework'
 import { dayjs } from 'element-plus'
 import { agentToolManager } from '../../utils/agent-tool-manager'
 
@@ -164,6 +177,7 @@ const props = defineProps<{
   messages?: AgentMessage[] // 传递整个消息数组，用于检查tool_calls是否已完成
   messageIndex?: number // 当前消息的索引
   userName?: string
+  sessionReferences?: Reference[] // 会话的引用列表
 }>()
 
 const emit = defineEmits<{
@@ -699,6 +713,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .agent-message {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
   width: 100%;
   max-width: 100%;
@@ -708,7 +723,42 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 }
 
+.agent-message__main {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  gap: 12px;
+}
+
 .agent-message.align-right {
+  align-items: flex-end;
+}
+
+.agent-message.align-right .agent-message__main {
+  justify-content: flex-end;
+}
+
+.agent-message__references {
+  margin-top: 8px;
+  box-sizing: border-box;
+  /* 与消息气泡宽度一致 */
+  width: min(75%, 750px);
+  max-width: calc(100% - 60px);
+  min-width: min(250px, 50%);
+  /* 对齐方式 */
+  display: flex;
+  justify-content: flex-start;
+  margin-left: 52px; /* 对齐到消息气泡的左边（头像40px + 间距12px） */
+}
+
+.agent-message.align-right .agent-message__references {
+  margin-left: auto;
+  margin-right: 52px; /* 对齐到消息气泡的右边（头像40px + 间距12px） */
+  justify-content: flex-end;
+}
+
+.agent-message.align-right .agent-message__references :deep(.reference-display) {
+  display: flex;
   justify-content: flex-end;
 }
 

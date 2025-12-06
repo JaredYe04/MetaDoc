@@ -276,6 +276,40 @@ function bindFileHandlers(): void {
       throw error;
     }
   });
+
+  // 保存引用文件到临时目录
+  ipcMain.handle('save-reference-file', async (event: IpcMainInvokeEvent, payload: { filename: string; content: string }): Promise<string> => {
+    try {
+      const { filename, content } = payload;
+      if (!filename || !content) {
+        throw new Error('文件名和内容不能为空');
+      }
+      
+      // 创建临时目录（如果不存在）
+      const tempDir = path.join(os.tmpdir(), 'metadoc-references');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      // 生成唯一文件名（避免冲突）
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substr(2, 9);
+      const ext = path.extname(filename);
+      const baseName = path.basename(filename, ext);
+      const uniqueFilename = `${baseName}-${timestamp}-${randomStr}${ext}`;
+      const filePath = path.join(tempDir, uniqueFilename);
+      
+      // 将base64内容转换为Buffer并写入文件
+      const buffer = Buffer.from(content, 'base64');
+      fs.writeFileSync(filePath, buffer);
+      
+      logger.info(`引用文件已保存到临时目录: ${filePath}`);
+      return filePath;
+    } catch (error) {
+      logger.error('保存引用文件失败:', error);
+      throw error;
+    }
+  });
 }
 
 function bindLoggerHandlers(): void {

@@ -45,6 +45,7 @@ export interface ContextBuildOptions {
   includeReferences?: boolean
   maxHistoryMessages?: number
   systemPromptOverride?: string
+  activeReferenceIds?: string[] // 激活的引用ID列表，只处理这些引用
 }
 
 /**
@@ -89,13 +90,21 @@ export class AIContextManager {
 
     // 2. 引用素材（作为系统消息的一部分，兼容新旧格式）
     const referenceStore = (session as any).referenceStore
+    const activeReferenceIds = options.activeReferenceIds
     if (includeReferences && referenceStore && Array.isArray(referenceStore) && referenceStore.length > 0) {
-      const referencesContent = this.buildReferencesContent(referenceStore as Reference[])
-      if (referencesContent) {
-        messages.push({
-          role: 'system',
-          content: referencesContent
-        })
+      // 如果指定了activeReferenceIds，只处理激活的引用
+      const referencesToInclude = activeReferenceIds && activeReferenceIds.length > 0
+        ? (referenceStore as Reference[]).filter(ref => activeReferenceIds.includes(ref.id))
+        : (referenceStore as Reference[])
+      
+      if (referencesToInclude.length > 0) {
+        const referencesContent = this.buildReferencesContent(referencesToInclude)
+        if (referencesContent) {
+          messages.push({
+            role: 'system',
+            content: referencesContent
+          })
+        }
       }
     }
 
@@ -201,14 +210,37 @@ export class AIContextManager {
   private static buildReferencesContent(references: Reference[]): string {
     if (references.length === 0) return ''
 
+    const logger = createRendererLogger('AIContextManager')
+    logger.info('[buildReferencesContent] 开始构建引用素材内容', {
+      referenceCount: references.length,
+      references: references.map(ref => ({
+        id: ref.id,
+        name: ref.name,
+        format: ref.format,
+        hasParsedContent: !!ref.parsedContent,
+        parsedContentLength: ref.parsedContent?.length || 0
+      }))
+    })
+
     let content = '=== 引用素材 ===\n\n'
     for (const ref of references) {
-      content += `[${ref.name}] (${ref.type}): ${ref.url}\n`
+      content += `[${ref.name}] (格式: ${ref.format}, 来源: ${ref.origin})\n`
       if (ref.description) {
-        content += `  描述: ${ref.description}\n`
+        content += `描述: ${ref.description}\n`
+      }
+      // 添加解析后的内容（供AI直接参考，上传时已解析）
+      if (ref.parsedContent) {
+        content += `\n解析后的内容（已进行数据分析/文本提取）:\n\`\`\`\n${ref.parsedContent}\n\`\`\`\n`
+        logger.debug(`[buildReferencesContent] 引用 ${ref.name} 包含parsedContent，长度: ${ref.parsedContent.length}`)
+      } else {
+        logger.warn(`[buildReferencesContent] 引用 ${ref.name} 缺少parsedContent`)
       }
       content += '\n'
     }
+
+    logger.info('[buildReferencesContent] 构建完成', {
+      totalContentLength: content.length
+    })
 
     return content
   }

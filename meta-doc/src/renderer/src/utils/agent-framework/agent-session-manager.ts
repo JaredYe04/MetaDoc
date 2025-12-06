@@ -128,21 +128,23 @@ class AgentSessionManager {
   }
 
   /**
-   * 添加引用素材
+   * 添加引用素材（兼容旧接口，但需要提供parsedContent）
    */
   addReference(
     session: AgentSession,
     name: string,
-    type: Reference['type'],
-    url: string,
+    origin: string,
+    format: string,
+    parsedContent: string,
     description?: string,
     metadata?: Record<string, unknown>
   ): Reference {
     const reference: Reference = {
       id: `ref-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name,
-      type,
-      url,
+      origin,
+      format,
+      parsedContent,
       description,
       metadata,
       createdAt: Date.now(),
@@ -167,6 +169,23 @@ class AgentSessionManager {
     session.referenceStore.splice(index, 1)
     this.touchSession(session)
     this.getLogger().info(`引用素材已移除: ${referenceId}`)
+  }
+
+  /**
+   * 添加引用素材对象（直接添加已解析的Reference对象）
+   */
+  addReferenceObject(session: AgentSession, reference: Reference): void {
+    this.getLogger().info(`[addReferenceObject] 添加引用素材`, {
+      referenceId: reference.id,
+      referenceName: reference.name,
+      format: reference.format,
+      hasParsedContent: !!reference.parsedContent,
+      parsedContentLength: reference.parsedContent?.length || 0,
+      referenceStoreLength: session.referenceStore.length
+    })
+    session.referenceStore.push(reference)
+    this.touchSession(session)
+    this.getLogger().info(`[addReferenceObject] 引用素材已添加到referenceStore，当前引用数: ${session.referenceStore.length}`)
   }
 
   /**

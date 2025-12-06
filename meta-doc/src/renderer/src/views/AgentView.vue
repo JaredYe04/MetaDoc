@@ -135,6 +135,16 @@
             <el-tag size="small" effect="plain">
               {{ t('agent.conversation.tools', { count: activeToolCount }) }}
             </el-tag>
+            <el-tooltip :content="t('agent.conversation.referencesTooltip', '点击管理引用')" placement="top">
+              <el-tag 
+                size="small" 
+                effect="plain" 
+                style="cursor: pointer;"
+                @click="handleOpenReferenceDialog"
+              >
+                {{ t('agent.conversation.references', { count: referenceCount }) }}
+              </el-tag>
+            </el-tooltip>
           </div>
         </header>
 
@@ -147,25 +157,36 @@
             :messages="activeSession.messages"
             :message-index="index"
             :user-name="'用户'"
+            :session-references="activeSession.referenceStore || []"
             @edit="handleMessageEdit"
             @regenerate="handleMessageRegenerate"
             @duplicate="handleMessageDuplicate"
             @delete="handleMessageDelete"
           />
-          <div class="conversation-bottom-spacer" />
+          <div 
+            class="conversation-bottom-spacer" 
+            :class="{ 'has-references': activeSession && activeSession.referenceStore && activeSession.referenceStore.length > 0 }"
+          />
         </el-scrollbar>
         <div class="composer-wrapper">
+          <ReferenceDisplay
+            v-if="activeSession"
+            :references="activeSession.referenceStore || []"
+            :active-reference-ids="activeReferenceIds"
+            @toggle="handleToggleReference"
+          />
           <ChatComposer
             class="conversation-composer"
             v-model="composerInput"
             :loading="isGenerating"
             :disabled="!activeSession || isGenerating"
-            :show-attach="false"
+            :show-attach="true"
             :show-voice="false"
             :show-cancel="isGenerating"
             :placeholder="t('aiChat.inputPlaceholder')"
             @submit="handleComposerSubmit"
             @reset="handleComposerReset"
+            @attach="handleAttachFile"
             @cancel="handleCancelGeneration"
           />
         </div>
@@ -359,13 +380,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, reactive, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { Plus, More, Setting } from '@element-plus/icons-vue';
 import { themeState } from '../utils/themes';
 import AgentMessageRenderer from '../components/agent/AgentMessageRenderer.vue';
 import ChatComposer from '../components/chat/ChatComposer.vue';
+import ReferenceDisplay from '../components/agent/ReferenceDisplay.vue';
 import type { AgentMessage, AgentSession, AgentTool, ChatAgentMessage, ToolOrigin } from '../types/agent';
 import { cloneDeep } from 'lodash';
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
@@ -384,6 +406,7 @@ import ReferenceManager from '../components/agent/ReferenceManager.vue';
 import CardGrid from '../components/common/CardGrid.vue';
 import NewDocumentWorkspace from './NewDocumentWorkspace.vue';
 import eventBus from '../utils/event-bus';
+import type { Reference } from '../types/agent-framework';
 dayjs.extend(relativeTime);
 
 const { t } = useI18n();
@@ -710,6 +733,8 @@ const sessionsState = ref<AgentSession[]>([]);
 const activeSessionId = ref<string | null>(null);
 const activeToolId = ref<string | null>(null);
 const syncingSessions = ref(false);
+// 当前激活的引用ID列表（用于控制哪些引用会被发送给AI）
+const activeReferenceIds = ref<string[]>([]);
 const shouldBootstrapDemoSessions = false; // 不再使用示例会话
 const demoAppliedDocs = new Set<string>();
 const composerInput = ref('');
@@ -752,6 +777,27 @@ const needsFormatSelection = computed(() => {
 
 const activeSession = computed(() =>
   sessionsState.value.find((session) => session.id === activeSessionId.value) ?? null,
+);
+
+// 初始化activeReferenceIds（当activeSession变化时）
+watch(
+  () => activeSession.value?.referenceStore,
+  (newStore) => {
+    if (newStore && newStore.length > 0) {
+      // 获取所有引用ID，默认全部激活
+      const allReferenceIds = newStore.map(ref => ref.id);
+      // 如果activeReferenceIds为空或者是新会话，则激活所有引用
+      if (activeReferenceIds.value.length === 0 || !activeReferenceIds.value.some(id => allReferenceIds.includes(id))) {
+        activeReferenceIds.value = [...allReferenceIds];
+      } else {
+        // 否则，只保留仍然存在的引用ID
+        activeReferenceIds.value = activeReferenceIds.value.filter(id => allReferenceIds.includes(id));
+      }
+    } else {
+      activeReferenceIds.value = [];
+    }
+  },
+  { immediate: true, deep: true }
 );
 
 const activeTool = computed(() => tools.value.find((tool) => tool.id === activeToolId.value) ?? null);
@@ -880,7 +926,27 @@ watch(
     activeToolId.value = null;
     composerInput.value = '';
     openSessionMenuId.value = null;
+    // 切换会话时，重置激活的引用ID列表，默认激活所有引用
+    if (activeSession.value?.referenceStore) {
+      activeReferenceIds.value = activeSession.value.referenceStore.map(ref => ref.id);
+    } else {
+      activeReferenceIds.value = [];
+    }
   },
+);
+
+// 监听referenceStore变化，自动激活新添加的引用
+watch(
+  () => activeSession.value?.referenceStore,
+  (newStore) => {
+    if (newStore && newStore.length > 0) {
+      // 获取所有引用ID
+      const allReferenceIds = newStore.map(ref => ref.id);
+      // 合并到activeReferenceIds，保留已激活的引用
+      activeReferenceIds.value = [...new Set([...activeReferenceIds.value, ...allReferenceIds])];
+    }
+  },
+  { deep: true }
 );
 
 // 监听文档格式变化，同步更新所有会话的publicContext
@@ -988,6 +1054,7 @@ watch(
 
 const messageCount = computed(() => activeSession.value?.messages.length ?? 0);
 const activeToolCount = computed(() => activeSession.value?.activeToolIds.length ?? 0);
+const referenceCount = computed(() => activeSession.value?.referenceStore?.length ?? 0);
 
 // 工具选择功能已移除，工具列表现在为只读模式
 
@@ -1133,12 +1200,13 @@ const selectTool = (tool: AgentTool) => {
   activeToolId.value = tool.id;
 };
 
-const createChatMessage = (role: 'user' | 'assistant', markdown: string): ChatAgentMessage => ({
+const createChatMessage = (role: 'user' | 'assistant', markdown: string, referenceIds?: string[]): ChatAgentMessage => ({
   id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   timestamp: new Date().toISOString(),
   role,
   type: 'chat',
   markdown,
+  referenceIds: referenceIds || []
 });
 
 const handleComposerSubmit = async () => {
@@ -1165,8 +1233,8 @@ const handleComposerSubmit = async () => {
 
   logger.debug(`[handleComposerSubmit] 用户消息内容: ${content.substring(0, 50)}...`);
 
-  // 创建用户消息
-  const message = createChatMessage('user', content);
+  // 创建用户消息，保存当前激活的引用ID
+  const message = createChatMessage('user', content, [...activeReferenceIds.value]);
   session.messages.push(message);
   logger.debug(`[handleComposerSubmit] 用户消息已添加，ID: ${message.id}, 当前消息数量: ${session.messages.length}`);
   
@@ -1438,8 +1506,15 @@ const executeAgentEngine = async (
         assistantMessageRef = ref('');
       }
       
-      // 构建上下文消息
-      const contextMessages = AIContextManager.buildMessages(session, agentConfig);
+      // 构建上下文消息，只包含激活的引用
+      // 从用户消息中获取referenceIds（如果有），否则使用当前激活的引用
+      const lastUserMessage = session.messages
+        .filter(m => m.role === 'user' && m.type === 'chat')
+        .slice(-1)[0] as ChatAgentMessage | undefined;
+      const messageReferenceIds = lastUserMessage?.referenceIds || activeReferenceIds.value;
+      const contextMessages = AIContextManager.buildMessages(session, agentConfig, {
+        activeReferenceIds: messageReferenceIds
+      });
       
       // 准备自定义LLM配置（如果引擎有自定义配置）
       let customLlmConfig: CustomLlmConfigForTask | undefined = undefined;
@@ -1615,6 +1690,125 @@ const handleComposerReset = () => {
   composerInput.value = '';
 };
 
+// 切换引用激活状态
+const handleToggleReference = (referenceId: string) => {
+  const index = activeReferenceIds.value.indexOf(referenceId);
+  if (index > -1) {
+    activeReferenceIds.value.splice(index, 1);
+  } else {
+    activeReferenceIds.value.push(referenceId);
+  }
+};
+
+const handleAttachFile = async (fileOrFiles?: File | File[]) => {
+  if (!activeSession.value) {
+    return;
+  }
+
+  try {
+    const { processFileUpload, processUrlReference } = await import('../utils/agent-framework/reference-processor');
+    
+    // 检查输入框中是否是URL（用户可能粘贴了URL）
+    const inputText = composerInput.value.trim();
+    const isUrl = /^https?:\/\//.test(inputText);
+    
+    const files = Array.isArray(fileOrFiles) ? fileOrFiles : (fileOrFiles ? [fileOrFiles] : []);
+    
+    if (isUrl && files.length === 0) {
+      // 处理URL（用户输入了URL但没有选择文件）
+      const reference = await processUrlReference(inputText);
+      composerInput.value = ''; // 清空输入框
+      
+      const newFormatSession: any = {
+        ...activeSession.value,
+        entityType: 'agent-session',
+        createdAt: typeof activeSession.value.createdAt === 'string' ? new Date(activeSession.value.createdAt).getTime() : activeSession.value.createdAt,
+        updatedAt: typeof activeSession.value.updatedAt === 'string' ? new Date(activeSession.value.updatedAt).getTime() : activeSession.value.updatedAt,
+        messageQueue: activeSession.value.messageQueue || [],
+        referenceStore: activeSession.value.referenceStore || [],
+        publicContext: activeSession.value.publicContext || {},
+        executionNodes: activeSession.value.executionNodes || [],
+        status: activeSession.value.status || 'idle'
+      };
+      agentSessionManager.addReferenceObject(newFormatSession, reference);
+      ElMessage.success(t('agent.reference.addSuccess'));
+      persistSessions();
+    } else if (files.length > 0) {
+      // 批量处理文件上传
+      const loading = ElLoading.service({
+        lock: true,
+        text: files.length > 1 ? `正在处理 ${files.length} 个文件...` : '正在处理文件...',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
+      
+      try {
+        const references: Reference[] = [];
+        let successCount = 0;
+        let failCount = 0;
+        
+        // 逐个处理文件
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          try {
+            loading.setText(files.length > 1 ? `正在处理文件 ${i + 1}/${files.length}: ${file.name}` : `正在处理: ${file.name}`);
+            const reference = await processFileUpload(file);
+            references.push(reference);
+            successCount++;
+          } catch (error) {
+            failCount++;
+            console.error(`处理文件 ${file.name} 失败:`, error);
+            // 继续处理其他文件
+          }
+        }
+        
+        // 批量添加到会话
+        if (references.length > 0) {
+          const newFormatSession: any = {
+            ...activeSession.value,
+            entityType: 'agent-session',
+            createdAt: typeof activeSession.value.createdAt === 'string' ? new Date(activeSession.value.createdAt).getTime() : activeSession.value.createdAt,
+            updatedAt: typeof activeSession.value.updatedAt === 'string' ? new Date(activeSession.value.updatedAt).getTime() : activeSession.value.updatedAt,
+            messageQueue: activeSession.value.messageQueue || [],
+            referenceStore: activeSession.value.referenceStore || [],
+            publicContext: activeSession.value.publicContext || {},
+            executionNodes: activeSession.value.executionNodes || [],
+            status: activeSession.value.status || 'idle'
+          };
+          
+          // 批量添加引用
+          references.forEach(ref => {
+            agentSessionManager.addReferenceObject(newFormatSession, ref);
+          });
+          
+          persistSessions();
+          
+          // 显示成功消息
+          if (failCount === 0) {
+            ElMessage.success(
+              files.length > 1 
+                ? `成功添加 ${successCount} 个引用`
+                : t('agent.reference.addSuccess')
+            );
+          } else {
+            ElMessage.warning(
+              `成功添加 ${successCount} 个引用，${failCount} 个失败`
+            );
+          }
+        } else {
+          ElMessage.error('所有文件处理失败');
+        }
+      } finally {
+        loading.close();
+      }
+    } else {
+      // 既没有文件也没有URL
+      return;
+    }
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : String(error));
+  }
+};
+
 const handleCancelGeneration = () => {
   const session = activeSession.value;
   if (!session) {
@@ -1686,6 +1880,13 @@ const handleTabReorder = ({ fromId, toId }: { fromId: string; toId: string }) =>
 
 const toggleSessionMenu = (sessionId: string) => {
   openSessionMenuId.value = openSessionMenuId.value === sessionId ? null : sessionId;
+};
+
+const handleOpenReferenceDialog = () => {
+  if (activeSession.value) {
+    referenceSession.value = activeSession.value;
+    showReferenceDialog.value = true;
+  }
 };
 
 const handleSessionMenuAction = async (
@@ -2514,6 +2715,10 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
+.conversation-bottom-spacer.has-references {
+  height: 15vh; /* 如果有引用列表，增加底部空间 */
+}
+
 .conversation-content {
   position: relative;
   flex: 1;
@@ -2528,9 +2733,15 @@ onBeforeUnmount(() => {
   right: 0;
   bottom: 12px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   pointer-events: none;
   padding: 0 8px;
+  gap: 8px;
+}
+
+.composer-wrapper > * {
+  pointer-events: auto;
 }
 
 .conversation-composer {

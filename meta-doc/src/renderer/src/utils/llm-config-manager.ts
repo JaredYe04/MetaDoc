@@ -491,10 +491,16 @@ async function initLlmConfigBroadcast() {
   });
 }
 
-// 初始化时注册广播监听
-initLlmConfigBroadcast().catch(err => {
-  getLogger().error('初始化LLM配置广播监听失败', err);
-});
+// 初始化时注册广播监听（延迟执行，确保logger已初始化）
+// 使用 setTimeout 确保在下一个事件循环中执行，给 logger 模块足够的时间初始化
+setTimeout(() => {
+  initLlmConfigBroadcast().catch(err => {
+    getLogger().error('初始化LLM配置广播监听失败', err);
+  });
+}, 0);
 
-loadLlmConfigs();
+// 延迟加载配置，确保logger已初始化
+setTimeout(() => {
+  loadLlmConfigs();
+}, 0);
 

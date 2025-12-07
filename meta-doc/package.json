@@ -11,6 +11,7 @@
     "start": "electron-vite preview",
     "dev": "concurrently \"electron-vite dev\" \"vite\"",
     "open-test": "concurrently \"electron-vite dev -- c:\\Users\\tange\\Documents\\软件工程概述和流程.md\" \"vite\"",
+    "prebuild": "node scripts/copy-env.js",
     "build": "electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",

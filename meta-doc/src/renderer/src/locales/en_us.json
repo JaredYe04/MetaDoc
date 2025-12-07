@@ -503,6 +503,8 @@
     "level1ChineseTip": "If enabled, level one titles will be shown in Chinese",
     "removePrefixes": "Remove all title prefixes",
     "removePrefixesTip": "Remove all numbering and dots at the beginning of titles, suitable for Markdown to LaTeX conversion (LaTeX will auto-number)",
+    "removePrefixesConfirm": "Are you sure you want to remove all title prefixes? This operation will remove all numbering and dots at the beginning of titles and cannot be undone.",
+    "removePrefixesSuccess": "Successfully removed all title prefixes",
     "cancel": "Cancel",
     "confirm": "Confirm",
     "editChapterTitle": "Edit chapter title",
@@ -1106,6 +1108,15 @@
         "copyFailed": "Copy failed",
         "downloadSuccess": "Download successful",
         "downloadFailed": "Download failed"
+      },
+      "titleFormat": {
+        "title": "Title Formatting",
+        "completed": "Title formatting completed",
+        "operationsPerformed": "Operations performed",
+        "error": "Title formatting failed",
+        "loading": "Loading document outline...",
+        "processing": "Formatting titles...",
+        "saving": "Saving document..."
       }
     }
   },

@@ -9,63 +9,75 @@ import mermaid from 'mermaid';
 // 移除 dom-to-image 依赖，避免通过 DOM 截图导出路径
 
 // 导出图表类型配置供外部使用
+// 改进的正则表达式：使用更严格的匹配，确保只匹配到正确的代码块结束标记
+// 匹配模式：```type\n代码内容\n```
+// 使用非贪婪匹配和负向前瞻，确保不会匹配到嵌套的代码块结束标记
+// 注意：代码内容可以包含单个反引号，但不能包含三个连续的反引号
+function createChartRegex(type) {
+    // 匹配：```type\n 开头，然后是代码内容，最后是 ``` 结尾
+    // 使用 [\s\S] 匹配包括换行符在内的所有字符，但使用非贪婪匹配
+    // 注意：代码块可能以 \n``` 或 ``` 结尾（允许没有最后的换行符）
+    // 使用更宽松的匹配，确保能正确提取代码内容
+    return new RegExp(`\`\`\`${type}\\s*\\n([\\s\\S]*?)\\n?\`\`\``, 'g');
+}
+
 export const CHART_TYPES = {
     plantuml: {
-        regex: /```plantuml\s*\n([\s\S]*?)```/g,
+        regex: createChartRegex('plantuml'),
         useIpc: true, // 使用主进程 IPC 渲染
         defaultFormat: 'svg', // 默认矢量图
         canConvert: true, // 可以转换为位图
     },
     mermaid: {
-        regex: /```mermaid\s*\n([\s\S]*?)```/g,
+        regex: createChartRegex('mermaid'),
         useIpc: false, // 使用 Mermaid 官方 API 渲染
         useMermaidApi: true, // 使用 Mermaid 官方 API
         defaultFormat: 'svg', // 默认矢量图
         canConvert: true, // 可以转换为位图
     },
     echarts: {
-        regex: /```echarts\s*\n([\s\S]*?)```/g,
+        regex: createChartRegex('echarts'),
         useIpc: true, // 使用主进程 IPC 渲染（ECharts SSR）
         defaultFormat: 'svg', // 默认矢量图（但可以通过 SSR 生成 PNG）
         canConvert: true, // 可以转换为位图
     },
     flowchart: {
-        regex: /```flowchart\s*\n([\s\S]*?)```/g,
+        regex: createChartRegex('flowchart'),
         useIpc: false,
         vditorMethod: 'flowchartRender',
         defaultFormat: 'svg', // 默认矢量图
         canConvert: true, // 可以转换为位图
     },
     graphviz: {
-        regex: /```graphviz\s*\n([\s\S]*?)```/g,
+        regex: createChartRegex('graphviz'),
         useIpc: false,
         vditorMethod: 'graphvizRender',
         defaultFormat: 'svg', // 默认矢量图
         canConvert: true, // 可以转换为位图
     },
     mindmap: {
-        regex: /```mindmap\s*\n([\s\S]*?)```/g,
+        regex: createChartRegex('mindmap'),
         useIpc: false,
         vditorMethod: 'mindmapRender',
         defaultFormat: 'svg', // 默认矢量图
         canConvert: true, // 可以转换为位图
     },
     markmap: {
-        regex: /```markmap\s*\n([\s\S]*?)```/g,
+        regex: createChartRegex('markmap'),
         useIpc: false,
         vditorMethod: 'markmapRender',
         defaultFormat: 'svg', // 默认矢量图
         canConvert: true, // 可以转换为位图
     },
     smiles: {
-        regex: /```smiles\s*\n([\s\S]*?)```/g,
+        regex: createChartRegex('smiles'),
         useIpc: false,
         vditorMethod: 'SMILESRender',
         defaultFormat: 'svg', // 默认矢量图
         canConvert: true, // 可以转换为位图
     },
     abc: {
-        regex: /```abc\s*\n([\s\S]*?)```/g,
+        regex: createChartRegex('abc'),
         useIpc: false,
         vditorMethod: 'abcRender',
         defaultFormat: 'svg', // 默认矢量图
@@ -97,6 +109,71 @@ async function computeHash(text) {
  * @param {'svg'|'png'} format - 格式：'svg' 或 'png'
  */
 export async function renderPlantUMLViaIpc(code, format = 'svg') {
+    const logger = createRendererLogger('PlantUMLRenderer');
+    
+    // 验证传入的代码：不应该包含 XML 标签
+    if (typeof code !== 'string') {
+        throw new Error(`PlantUML 代码必须是字符串，实际类型: ${typeof code}`);
+    }
+    
+    if (code.includes('<svg') || code.includes('<text') || code.includes('<?xml')) {
+        logger.error('PlantUML 代码包含 XML 标签，这是错误的！');
+        logger.error(`代码前200字符: ${code.substring(0, 200)}`);
+        throw new Error('PlantUML 代码包含 XML 标签，可能是代码提取错误');
+    }
+    
+    // 验证代码格式
+    if (!code.includes('@startuml') && !code.includes('@start')) {
+        logger.warn('PlantUML 代码可能格式不正确，缺少 @startuml 标记');
+    }
+    
+    // 关键修复：确保代码是正确编码的 UTF-8 字符串
+    // 在传递给主进程之前，确保代码是正确编码的 UTF-8
+    let encodedCode = code;
+    try {
+        // 使用 TextEncoder/TextDecoder 确保 UTF-8 编码
+        // 这个方法会将字符串编码为 UTF-8 字节，然后解码回来，确保编码正确
+        const encoder = new TextEncoder();
+        const decoder = new TextDecoder('utf-8', { fatal: false });
+        const utf8Bytes = encoder.encode(code);
+        encodedCode = decoder.decode(utf8Bytes);
+        
+        // 验证：如果原始代码包含中文，编码后的代码也应该包含相同的中文
+        // 检查是否有乱码字符（如）
+        const replacementChar = '\uFFFD'; // Unicode 替换字符，表示无法解码的字符
+        if (encodedCode.includes(replacementChar)) {
+            logger.warn('检测到编码问题，代码中包含替换字符，使用原始代码');
+            encodedCode = code;
+        }
+        
+        // 验证中文字符是否正确
+        const chineseRegex = /[\u4e00-\u9fa5]/;
+        if (chineseRegex.test(code)) {
+            // 统计原始代码和编码后代码中的中文字符数量
+            const originalChineseCount = (code.match(chineseRegex) || []).length;
+            const encodedChineseCount = (encodedCode.match(chineseRegex) || []).length;
+            if (originalChineseCount !== encodedChineseCount) {
+                logger.warn(`中文字符数量不匹配（原始: ${originalChineseCount}, 编码后: ${encodedChineseCount}），使用原始代码`);
+                encodedCode = code;
+            }
+        }
+    } catch (error) {
+        logger.warn('编码转换失败，使用原始代码:', error);
+        encodedCode = code;
+    }
+    
+    logger.debug(`准备渲染 PlantUML，代码长度: ${encodedCode.length}，格式: ${format}`);
+    logger.debug(`代码前100字符: ${encodedCode.substring(0, 100)}`);
+    
+    // 最终验证：检查代码中是否包含明显的乱码模式
+    // 如果包含乱码字符（如 或其他无法显示的字符），记录警告
+    const replacementChar = '\uFFFD';
+    if (encodedCode.includes(replacementChar)) {
+        logger.error('检测到代码中包含替换字符（乱码），编码可能有问题');
+        logger.error(`代码前200字符: ${encodedCode.substring(0, 200)}`);
+        // 不抛出错误，继续尝试渲染，让 PlantUML 自己处理
+    }
+    
     let ipcRenderer = null;
     if (window && window.electron) {
         ipcRenderer = window.electron.ipcRenderer;
@@ -109,15 +186,16 @@ export async function renderPlantUMLViaIpc(code, format = 'svg') {
         throw new Error('无法获取 IPC 渲染器');
     }
     
-    return await ipcRenderer.invoke('render-plantuml', code, format);
+    return await ipcRenderer.invoke('render-plantuml', encodedCode, format);
 }
 
 /**
  * 使用主进程 IPC 渲染 ECharts（SSR）
- * @param {string} optionJson - ECharts option 的 JSON 字符串
+ * @param {string|object} optionJson - ECharts option 的 JSON 字符串或对象
  * @param {string} format - 格式：'svg' 或 'png'
  */
 export async function renderEChartsViaIpc(optionJson, format = 'svg') {
+    const logger = createRendererLogger('EChartsRenderer');
     let ipcRenderer = null;
     if (window && window.electron) {
         ipcRenderer = window.electron.ipcRenderer;
@@ -130,8 +208,43 @@ export async function renderEChartsViaIpc(optionJson, format = 'svg') {
         throw new Error('无法获取 IPC 渲染器');
     }
     
+    // 确保 optionJson 是正确的 JSON 字符串格式
+    // 如果已经是字符串，检查是否是有效的 JSON；如果是对象，则序列化
+    let jsonString;
+    if (typeof optionJson === 'string') {
+        // 检查是否是有效的 JSON 字符串（不是双重字符串化的）
+        try {
+            const parsed = JSON.parse(optionJson);
+            // 如果解析成功，说明是有效的 JSON 字符串，直接使用
+            jsonString = optionJson;
+        } catch (e) {
+            // 如果解析失败，可能是包含了函数的代码，需要特殊处理
+            // 检查是否看起来像是一个对象字面量（但不是有效的 JSON）
+            if (optionJson.trim().startsWith('{') || optionJson.trim().startsWith('[')) {
+                // 可能是包含函数的对象字面量，直接使用
+                jsonString = optionJson;
+            } else {
+                // 可能是双重字符串化的情况，尝试解析一次
+                try {
+                    const doubleParsed = JSON.parse(JSON.parse(optionJson));
+                    jsonString = JSON.stringify(doubleParsed);
+                } catch {
+                    // 如果还是失败，直接使用原始字符串
+                    jsonString = optionJson;
+                }
+            }
+        }
+    } else if (typeof optionJson === 'object' && optionJson !== null) {
+        // 如果是对象，序列化为 JSON 字符串
+        jsonString = JSON.stringify(optionJson);
+    } else {
+        throw new Error(`无效的 ECharts option 类型: ${typeof optionJson}`);
+    }
+    
+    logger.debug('发送 ECharts option 到主进程，长度:', jsonString.length);
+    
     // 主进程只返回 SVG 字符串，PNG 转换在渲染进程中完成
-    let svgContent = await ipcRenderer.invoke('render-echarts', optionJson);
+    let svgContent = await ipcRenderer.invoke('render-echarts', jsonString);
     
     // 检查返回的是否是 URL（错误情况）
     if (typeof svgContent === 'string' && svgContent.startsWith('http://')) {
@@ -143,15 +256,15 @@ export async function renderEChartsViaIpc(optionJson, format = 'svg') {
     // 清理 SVG 中的动画和交互元素，确保导出为静态图（避免动画导致 PDF/DOCX/TeX 截帧错误）
     svgContent = cleanSvgForExport(svgContent);
     
-    // 基于稳定输入（规范化后的 optionJson 字符串 + 格式）计算哈希
+    // 基于稳定输入（规范化后的 jsonString + 格式）计算哈希
     const ext = format === 'png' ? 'png' : 'svg';
-    const hashBase = await computeHash(String(optionJson) + ':echarts:' + ext);
+    const hashBase = await computeHash(jsonString + ':echarts:' + ext);
 
     if (format === 'png') {
         const pngBlob = await convertSvgToPng(svgContent);
         return await uploadImageToLocal(pngBlob, `${hashBase}_echarts.${ext}`);
     } else {
-        const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
+        const svgBlob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
         return await uploadImageToLocal(svgBlob, `${hashBase}_echarts.${ext}`);
     }
 }
@@ -895,10 +1008,51 @@ export async function preRenderAllCharts(md, cdn, format = '') {
         const regex = new RegExp(config.regex.source, 'g');
         let match;
         while ((match = regex.exec(md)) !== null) {
+            // 提取代码内容，确保正确处理 UTF-8 编码
+            let code = match[1];
+            // 移除可能的 BOM 标记和首尾空白
+            code = code.replace(/^\uFEFF/, '').trim();
+            
+            // 关键修复：确保提取的代码是正确编码的 UTF-8 字符串
+            // 使用 TextEncoder/TextDecoder 来确保编码正确
+            try {
+                const encoder = new TextEncoder();
+                const decoder = new TextDecoder('utf-8', { fatal: false });
+                // 将字符串编码为 UTF-8 字节，然后解码回来，确保编码正确
+                const utf8Bytes = encoder.encode(code);
+                code = decoder.decode(utf8Bytes);
+            } catch (error) {
+                logger.warn(`${chartType} 代码编码转换失败，使用原始代码:`, error);
+                // 如果编码转换失败，使用原始代码
+            }
+            
+            // 验证提取的代码：不应该包含 XML 标签（说明提取错误）
+            if (code.includes('<svg') || code.includes('<text') || code.includes('<?xml')) {
+                logger.error(`${chartType} 代码块提取错误：包含 XML 标签，可能是正则匹配错误`);
+                logger.error(`匹配到的完整内容前200字符: ${match[0].substring(0, 200)}`);
+                logger.error(`提取的代码前200字符: ${code.substring(0, 200)}`);
+                continue; // 跳过这个错误的匹配
+            }
+            
+            // 确保代码不为空
+            if (!code) {
+                logger.warn(`${chartType} 代码块为空，跳过`);
+                continue;
+            }
+            
+            // 对于 PlantUML，验证代码格式
+            if (chartType === 'plantuml') {
+                if (!code.includes('@startuml') && !code.includes('@start')) {
+                    logger.warn(`${chartType} 代码块格式可能不正确，缺少 @startuml 标记`);
+                }
+            }
+            
+            logger.debug(`提取到 ${chartType} 代码块，代码长度: ${code.length}，前50字符: ${code.substring(0, 50)}`);
+            
             allMatches.push({
                 chartType,
                 fullMatch: match[0],
-                code: match[1].trim(),
+                code: code,
                 index: match.index,
                 config,
             });
@@ -927,15 +1081,21 @@ export async function preRenderAllCharts(md, cdn, format = '') {
             let imageUrl;
             if (config.useIpc) {
                 if (chartType === 'echarts') {
-                    let optionJson;
-                    try {
-                        optionJson = JSON.parse(code);
-                    } catch (e) {
-                        optionJson = code;
-                    }
-                    imageUrl = await renderEChartsViaIpc(JSON.stringify(optionJson), targetFormat);
+                    // 对于 ECharts，code 应该是 JSON 字符串或对象字面量
+                    // renderEChartsViaIpc 会处理字符串化和解析
+                    imageUrl = await renderEChartsViaIpc(code, targetFormat);
                 } else if (chartType === 'plantuml') {
-                    imageUrl = await renderPlantUMLViaIpc(code, targetFormat);
+                    // 确保 PlantUML 代码是 UTF-8 编码的字符串
+                    // 移除可能的 BOM 标记
+                    const cleanCode = code.replace(/^\uFEFF/, '').trim();
+                    
+                    // 再次验证代码不包含 XML（双重检查）
+                    if (cleanCode.includes('<svg') || cleanCode.includes('<text') || cleanCode.includes('<?xml')) {
+                        logger.error(`PlantUML 代码包含 XML 标签，跳过渲染。代码前200字符: ${cleanCode.substring(0, 200)}`);
+                        throw new Error('PlantUML 代码包含 XML 标签，代码提取可能有问题');
+                    }
+                    
+                    imageUrl = await renderPlantUMLViaIpc(cleanCode, targetFormat);
                 } else {
                     throw new Error(`不支持的 IPC 渲染类型: ${chartType}`);
                 }

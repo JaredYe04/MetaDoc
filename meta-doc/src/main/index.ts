@@ -33,9 +33,25 @@ const path = require('path');
 import dotenv from 'dotenv';
 
 // 加载 .env 文件
-// 在开发环境中，从项目根目录加载；在打包后，从应用目录加载
-const envPath = path.resolve(__dirname, '../../.env');
+// 在开发环境中，从项目根目录加载；在打包后，从 resources 目录加载
+let envPath: string;
+if (app.isPackaged) {
+  // 打包后：从 resources 目录加载（resources 目录会被 asarUnpack 解包）
+  envPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', '.env');
+} else {
+  // 开发环境：从项目根目录加载
+  envPath = path.resolve(__dirname, '../../.env');
+}
 dotenv.config({ path: envPath });
+
+// 关键修复：在应用启动时设置 Java 环境变量，确保 PlantUML 使用 UTF-8 编码
+// 这必须在所有其他初始化之前设置，确保全局生效
+if (!process.env.JAVA_OPTS || !process.env.JAVA_OPTS.includes('-Dfile.encoding')) {
+  process.env.JAVA_OPTS = (process.env.JAVA_OPTS || '') + ' -Dfile.encoding=UTF-8';
+}
+if (!process.env._JAVA_OPTIONS || !process.env._JAVA_OPTIONS.includes('-Dfile.encoding')) {
+  process.env._JAVA_OPTIONS = (process.env._JAVA_OPTIONS || '') + ' -Dfile.encoding=UTF-8';
+}
 
 initLogger();
 initI18n();

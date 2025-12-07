@@ -47,15 +47,15 @@
         label="MCP配置"
         prop="mcpConfig"
       >
-        <el-form :model="formData.mcpConfig" label-width="100px">
+        <el-form :model="formData.mcpConfig" label-width="100px" v-if="formData.mcpConfig">
           <el-form-item label="服务器名称" prop="serverName">
-            <el-input v-model="formData.mcpConfig?.serverName" />
+            <el-input v-model="formData.mcpConfig.serverName" />
           </el-form-item>
           <el-form-item label="Tool名称" prop="toolName">
-            <el-input v-model="formData.mcpConfig?.toolName" />
+            <el-input v-model="formData.mcpConfig.toolName" />
           </el-form-item>
           <el-form-item label="服务器URL" prop="serverUrl">
-            <el-input v-model="formData.mcpConfig?.serverUrl" />
+            <el-input v-model="formData.mcpConfig.serverUrl" />
           </el-form-item>
         </el-form>
       </el-form-item>
@@ -198,7 +198,11 @@ const loadToolConfig = (toolId: string) => {
       instruction: instruction || '',
       name: name || '',
       description: description || '',
-      mcpConfig: config.mcpConfig || {}
+      mcpConfig: {
+        serverName: config.mcpConfig?.serverName || '',
+        toolName: config.mcpConfig?.toolName || '',
+        serverUrl: config.mcpConfig?.serverUrl || ''
+      }
     })
   }
 }

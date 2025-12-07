@@ -73,6 +73,8 @@ export async function convertMarkdownToLatex(markdown, title = 'Generated Docume
 \\usepackage{color}
 \\usepackage{fancyhdr}
 \\usepackage{lastpage}
+\\usepackage{float}
+\\usepackage{placeins}
 
 % 英文正文字体
 \\setmainfont{Times New Roman} % 英文正文
@@ -199,8 +201,9 @@ async function convertBlockToLatex(tokens) {
                     normalizedPath = normalizedPath.replace(/\\/g, '/').replace(/([{}])/g, '\\$1');
                     
                     // 对于 PDF（转换后的 SVG），使用标准的 includegraphics
+                    // 使用 [H] 强制图片在当前位置，不允许浮动
                     latex += `
-\\begin{figure}[h]
+\\begin{figure}[H]
   \\centering
   \\includegraphics[width=0.8\\textwidth]{\\detokenize{${normalizedPath}}}
   \\caption{${alt}}
@@ -210,8 +213,9 @@ async function convertBlockToLatex(tokens) {
                     // 其他图片格式：需要转义所有特殊字符（包括下划线）
                     normalizedPath = normalizedPath.replace(/([#%&{}_])/g, '\\$1');
                     
+                    // 使用 [H] 强制图片在当前位置，不允许浮动
                     latex += `
-\\begin{figure}[h]
+\\begin{figure}[H]
   \\centering
   \\includegraphics[width=0.8\\textwidth]{${normalizedPath}}
   \\caption{${alt}}
@@ -238,7 +242,63 @@ async function convertBlockToLatex(tokens) {
 
             case 'footnote_close': if (stack.pop() === 'footnote') latex += '}\n'; break;
             case 'inline':
-                latex += await convertTokensToLatex(token.children || []);
+                // 检查 inline 中是否只有图片（块级图片的情况）
+                const inlineChildren = token.children || [];
+                const hasOnlyImage = inlineChildren.length === 1 && inlineChildren[0].type === 'image';
+                
+                if (hasOnlyImage) {
+                    // 如果是块级图片（整个 inline 只包含一个图片），直接处理图片
+                    const imageToken = inlineChildren[0];
+                    let src = imageToken.attrs.find(([k]) => k === 'src')?.[1] || '';
+                    const alt = escapeLatex(imageToken.content || '');
+
+                    try {
+                        src = decodeURIComponent(src);
+                    } catch (e) {
+                        // 如果 decode 失败，保持原样
+                    }
+
+                    // 检测是否为 SVG 文件
+                    const isSvg = src.toLowerCase().endsWith('.svg');
+                    
+                    // 路径处理：统一转换为正斜杠
+                    let normalizedPath = src.replace(/\\/g, '/');
+                    
+                    if (isSvg) {
+                        // SVG 文件需要转换为 PDF
+                        try {
+                            const { convertSvgToPdf } = await import('./svg-to-pdf-utils.js');
+                            normalizedPath = await convertSvgToPdf(normalizedPath, { returnUrl: false });
+                        } catch (error) {
+                            console.warn('SVG 转 PDF 失败，使用原始路径:', error);
+                        }
+                        
+                        normalizedPath = normalizedPath.replace(/\\/g, '/').replace(/([{}])/g, '\\$1');
+                        
+                        // 使用 [H] 强制图片在当前位置，不允许浮动
+                        latex += `
+\\begin{figure}[H]
+  \\centering
+  \\includegraphics[width=0.8\\textwidth]{\\detokenize{${normalizedPath}}}
+  \\caption{${alt}}
+\\end{figure}
+`;
+                    } else {
+                        normalizedPath = normalizedPath.replace(/([#%&{}_])/g, '\\$1');
+                        
+                        // 使用 [H] 强制图片在当前位置，不允许浮动
+                        latex += `
+\\begin{figure}[H]
+  \\centering
+  \\includegraphics[width=0.8\\textwidth]{${normalizedPath}}
+  \\caption{${alt}}
+\\end{figure}
+`;
+                    }
+                } else {
+                    // 如果不是块级图片，正常处理 inline 内容
+                    latex += await convertTokensToLatex(inlineChildren);
+                }
                 break;
 
             case 'emoji':
@@ -269,6 +329,72 @@ function splitTokensIntoBlocks(tokens) {
         if (token.type === 'heading_open' && currentBlock.length > 0) {
             blocks.push(currentBlock);
             currentBlock = [];
+        }
+
+        // 检查是否是段落，如果是段落且只包含一个图片，则将其作为独立块
+        if (token.type === 'paragraph_open') {
+            // 查找对应的 paragraph_close
+            let paragraphEnd = -1;
+            let depth = 1;
+            for (let j = i + 1; j < tokens.length; j++) {
+                if (tokens[j].type === 'paragraph_open') depth++;
+                if (tokens[j].type === 'paragraph_close') {
+                    depth--;
+                    if (depth === 0) {
+                        paragraphEnd = j;
+                        break;
+                    }
+                }
+                // 如果遇到其他块级元素，说明段落提前结束
+                if (tokens[j].type === 'heading_open' || tokens[j].type === 'fence' || tokens[j].type === 'code_block') {
+                    break;
+                }
+            }
+            
+            if (paragraphEnd >= 0) {
+                // 检查段落中是否只有图片（没有其他文本内容）
+                let hasImage = false;
+                let hasOtherContent = false;
+                
+                for (let j = i + 1; j < paragraphEnd; j++) {
+                    const t = tokens[j];
+                    if (t.type === 'image') {
+                        hasImage = true;
+                    } else if (t.type === 'inline' && t.children) {
+                        // 检查 inline 中的内容
+                        for (const child of t.children) {
+                            if (child.type === 'image') {
+                                hasImage = true;
+                            } else if (child.type === 'text' && child.content && child.content.trim().length > 0) {
+                                hasOtherContent = true;
+                            } else if (child.type !== 'image' && child.type !== 'softbreak' && child.type !== 'hardbreak') {
+                                // 有其他非图片内容
+                                hasOtherContent = true;
+                            }
+                        }
+                    } else if (t.type !== 'paragraph_open' && t.type !== 'paragraph_close') {
+                        hasOtherContent = true;
+                    }
+                }
+                
+                // 如果段落中只有图片（没有其他内容），将其作为独立块
+                if (hasImage && !hasOtherContent) {
+                    // 如果当前块不为空，先保存当前块
+                    if (currentBlock.length > 0) {
+                        blocks.push(currentBlock);
+                        currentBlock = [];
+                    }
+                    // 将整个段落（包含图片）作为独立块
+                    const imageBlock = [];
+                    for (let j = i; j <= paragraphEnd; j++) {
+                        imageBlock.push(tokens[j]);
+                    }
+                    blocks.push(imageBlock);
+                    // 跳过已处理的 tokens
+                    i = paragraphEnd;
+                    continue;
+                }
+            }
         }
 
         currentBlock.push(token);

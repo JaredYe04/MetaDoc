@@ -1629,17 +1629,88 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
   const logger = createMainLogger('PlantUML');
   const crypto = require('crypto');
   
+  // 关键修复：设置 Java 环境变量，确保使用 UTF-8 编码
+  // 保存原始环境变量
+  const originalJavaOpts = process.env.JAVA_OPTS;
+  const originalJavaOptions = process.env._JAVA_OPTIONS;
+  const originalLang = process.env.LANG;
+  const originalLcAll = process.env.LC_ALL;
+  
   try {
-    logger.info('开始渲染 PlantUML，代码长度:', plantumlCode.length, '格式:', format);
+    // 设置 Java 环境变量，强制使用 UTF-8 编码
+    // JAVA_OPTS 和 _JAVA_OPTIONS 都可以设置 Java 参数
+    if (!process.env.JAVA_OPTS || !process.env.JAVA_OPTS.includes('-Dfile.encoding')) {
+      process.env.JAVA_OPTS = (process.env.JAVA_OPTS || '') + ' -Dfile.encoding=UTF-8';
+    }
+    if (!process.env._JAVA_OPTIONS || !process.env._JAVA_OPTIONS.includes('-Dfile.encoding')) {
+      process.env._JAVA_OPTIONS = (process.env._JAVA_OPTIONS || '') + ' -Dfile.encoding=UTF-8';
+    }
+    
+    // 设置系统语言环境为 UTF-8（Windows 上可能不需要，但设置也无妨）
+    if (!process.env.LANG) {
+      process.env.LANG = 'en_US.UTF-8';
+    }
+    if (!process.env.LC_ALL) {
+      process.env.LC_ALL = 'en_US.UTF-8';
+    }
+    
+    // 确保代码是 UTF-8 编码的字符串，移除可能的 BOM
+    let cleanCode = plantumlCode.replace(/^\uFEFF/, '').trim();
+    
+    if (!cleanCode) {
+      throw new Error('PlantUML 代码为空');
+    }
+    
+    // 关键修复：检查并处理 !theme 指令
+    // 如果 node-plantuml 使用的 PlantUML 版本较旧，可能不支持 !theme 指令
+    // 在这种情况下，我们需要移除 !theme 指令以避免语法错误
+    // 注意：这是一个临时解决方案，更好的方法是更新 PlantUML jar 文件
+    // 修复正则表达式：匹配整行，包括可能的行首空格、主题名称（可能包含连字符）、注释等
+    // 格式示例：!theme plain、!theme cerulean、!theme reddress-darkred、!theme plain // comment
+    const hasThemeDirective = /^[ \t]*!theme\s+[^\n]+/mi.test(cleanCode);
+    if (hasThemeDirective) {
+      logger.warn('检测到 !theme 指令，如果 PlantUML 版本不支持，可能会导致语法错误');
+      logger.warn('建议：更新 node-plantuml 使用的 PlantUML jar 文件到最新版本');
+      // 移除整行：匹配行首可能的空格/制表符 + !theme + 空格 + 主题名称和可能的注释 + 换行符
+      // 使用多行模式 (m) 和全局模式 (g) 来匹配所有出现的 !theme 行
+      cleanCode = cleanCode.replace(/^[ \t]*!theme\s+[^\n]*(?:\r?\n|$)/gmi, '');
+      logger.info('已移除 !theme 指令以兼容旧版本 PlantUML');
+    }
+    
+    // 关键修复：确保接收到的代码是正确编码的 UTF-8 字符串
+    // 如果代码是字符串，确保它是有效的 UTF-8
+    if (typeof cleanCode === 'string') {
+      try {
+        // 使用 Buffer 来验证和修复编码
+        // 将字符串编码为 UTF-8 Buffer，然后解码回来，确保编码正确
+        const buffer = Buffer.from(cleanCode, 'utf-8');
+        cleanCode = buffer.toString('utf-8');
+      } catch (error) {
+        logger.warn('代码编码验证失败，使用原始代码:', error);
+        // 如果编码转换失败，使用原始代码
+      }
+    }
+    
+    logger.info('开始渲染 PlantUML，代码长度:', cleanCode.length, '格式:', format);
+    logger.debug('PlantUML 代码前200字符:', cleanCode.substring(0, 200));
+    logger.debug('Java 环境变量 JAVA_OPTS:', process.env.JAVA_OPTS);
+    logger.debug('Java 环境变量 _JAVA_OPTIONS:', process.env._JAVA_OPTIONS);
     
     // 根据格式选择输出类型
     const outputFormat = format === 'png' ? 'png' : 'svg';
+    
+    // 检查 node-plantuml 的 API：可能需要使用 Buffer 或直接传递字符串
+    // 根据 node-plantuml 文档，应该直接传递字符串，不需要指定编码
+    // 注意：我们已经修改了 node-plantuml 的源码，添加了 -Dfile.encoding=UTF-8 参数
     const gen = plantuml.generate({
       format: outputFormat,
     });
     
     // 将 PlantUML 代码写入生成器
-    gen.in.write(plantumlCode);
+    // 关键：确保使用 UTF-8 编码的 Buffer 写入，而不是直接写入字符串
+    // 这样可以确保编码正确传递
+    const codeBuffer = Buffer.from(cleanCode, 'utf-8');
+    gen.in.write(codeBuffer);
     gen.in.end();
     
     // 收集生成的图片数据
@@ -1650,33 +1721,62 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
     
     // 收集错误输出（stderr）
     const errorChunks: Buffer[] = [];
-    if (gen.err) {
-      gen.err.on('data', (chunk: Buffer) => {
-        errorChunks.push(chunk);
-      });
-    }
     
     // 等待生成完成
+    // 需要同时等待 stdout 和 stderr 都结束
     await new Promise<void>((resolve, reject) => {
+      let outEnded = false;
+      let errEnded = false;
+      
+      const checkComplete = () => {
+        if (outEnded && errEnded) {
+          resolve();
+        }
+      };
+      
       gen.out.on('end', () => {
-        resolve();
+        outEnded = true;
+        checkComplete();
       });
       gen.out.on('error', (err: Error) => {
+        logger.error('PlantUML stdout错误:', err);
         reject(err);
       });
+      
       if (gen.err) {
-        gen.err.on('error', (err: Error) => {
-          // stderr错误通常表示语法错误，收集错误信息
-          logger.warn('PlantUML stderr错误:', err.message);
+        // 收集 stderr 数据
+        gen.err.on('data', (chunk: Buffer) => {
+          errorChunks.push(chunk);
         });
+        
+        gen.err.on('end', () => {
+          errEnded = true;
+          checkComplete();
+        });
+        gen.err.on('error', (err: Error) => {
+          logger.warn('PlantUML stderr错误:', err.message);
+          errEnded = true;
+          checkComplete();
+        });
+      } else {
+        errEnded = true;
+        checkComplete();
       }
+      
+      // 设置超时，避免无限等待
+      setTimeout(() => {
+        if (!outEnded || !errEnded) {
+          logger.warn('PlantUML 渲染超时');
+          resolve(); // 继续处理，即使超时
+        }
+      }, 30000); // 30秒超时
     });
     
-    // 检查是否有错误输出
+    // 检查是否有错误输出（stderr）
     if (errorChunks.length > 0) {
       const errorOutput = Buffer.concat(errorChunks).toString('utf-8');
       if (errorOutput.trim()) {
-        logger.error('PlantUML错误输出:', errorOutput);
+        logger.error('PlantUML stderr错误输出:', errorOutput);
         // 尝试提取错误信息
         const errorMatch = errorOutput.match(/(?:syntax\s+error|error|Error)[:\s]*(.+?)(?:\n|$)/i);
         const errorMsg = errorMatch ? errorMatch[1].trim() : errorOutput.trim();
@@ -1691,40 +1791,41 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
       throw new Error(`生成的 ${outputFormat.toUpperCase()} 为空`);
     }
     
-    // 检查生成的图片是否包含语法错误信息（PlantUML会在生成的图片中包含错误文本）
-    const imageContent = imageBuffer.toString('utf-8');
-    const errorPatterns = [
-      /syntax\s+error/i,
-      /Syntax\s+error/i,
-      /Error:/i,
-      /error\s+detected/i,
-      /Error\s+detected/i,
-      /cannot\s+parse/i,
-      /Cannot\s+parse/i,
-      /parse\s+error/i,
-      /Parse\s+error/i,
-      /syntax\s+error\s+at/i,
-      /Syntax\s+error\s+at/i
-    ];
+    // 错误检测逻辑：
+    // 1. 如果 stderr 有输出，说明有错误（已经在上面检查过了）
+    // 2. 如果 stderr 没有输出，但文件大小异常小，可能是错误图片
+    // 3. 对于 SVG，检查是否是有效的 SVG 格式
+    // 注意：不要检查 SVG 内容中的 "Syntax Error" 文本，因为正常的 SVG 可能也包含这些文本
     
-    // 检查是否包含错误信息（适用于SVG，PNG可能包含但难以检测，所以主要检查SVG）
     if (outputFormat === 'svg') {
-      for (const pattern of errorPatterns) {
-        if (pattern.test(imageContent)) {
-          // 尝试提取具体的错误信息
-          const errorMatch = imageContent.match(/<text[^>]*>(.*?(?:error|Error).*?)<\/text>/i);
-          const errorMsg = errorMatch ? errorMatch[1] : 'PlantUML语法错误';
-          logger.error('PlantUML渲染检测到语法错误:', errorMsg);
-          throw new Error(`PlantUML语法错误: ${errorMsg}`);
+      const imageContent = imageBuffer.toString('utf-8');
+      
+      // 检查是否是有效的 SVG（包含 <svg> 标签）
+      if (!imageContent.includes('<svg')) {
+        // 如果不是 SVG 格式，可能是纯文本错误信息
+        const errorMsg = imageContent.substring(0, 200).trim();
+        logger.error('PlantUML渲染返回非SVG内容，可能是错误:', errorMsg);
+        throw new Error(`PlantUML语法错误: ${errorMsg}`);
+      }
+      
+      // 检查文件大小是否异常小（错误 SVG 通常很小，小于 2KB）
+      // 正常的 PlantUML SVG 通常至少几 KB
+      if (imageBuffer.length < 2048) {
+        // 进一步检查：如果 SVG 很小，且包含错误标记，才认为是错误
+        // 错误 SVG 通常包含 "[From string" 和 "Syntax Error" 的组合
+        if (imageContent.includes('[From string') && 
+            (imageContent.includes('Syntax Error') || imageContent.includes('syntax error'))) {
+          logger.error('PlantUML渲染检测到语法错误（文件大小异常小且包含错误标记）');
+          throw new Error('PlantUML语法错误: 检测到语法错误，请检查 PlantUML 代码');
         }
+        // 如果只是文件小，但不包含错误标记，可能是简单的图表，不报错
       }
     } else if (outputFormat === 'png') {
       // 对于PNG，检查文件大小是否异常小（通常错误PNG文件很小）
       // 如果文件大小小于1KB，可能是错误图片
       if (imageBuffer.length < 1024) {
-        // 进一步检查：尝试读取SVG格式来验证（如果PNG太小，可能是错误）
-        // 这里我们保守一些：只检查文件大小，如果太小则可能是错误
         logger.warn('PlantUML生成的PNG文件异常小，可能是语法错误:', imageBuffer.length, 'bytes');
+        // PNG 无法检查内容，只警告，不报错
       }
     }
     
@@ -1756,6 +1857,22 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
   } catch (error) {
     logger.error('PlantUML 渲染失败:', error);
     throw error;
+  } finally {
+    // 恢复原始的环境变量（可选，为了安全我们暂时不恢复）
+    // 让 UTF-8 设置保持全局，确保所有 PlantUML 调用都使用 UTF-8
+    // 如果需要恢复，可以取消下面的注释
+    /*
+    if (originalJavaOpts !== undefined) {
+      process.env.JAVA_OPTS = originalJavaOpts;
+    } else {
+      delete process.env.JAVA_OPTS;
+    }
+    if (originalJavaOptions !== undefined) {
+      process.env._JAVA_OPTIONS = originalJavaOptions;
+    } else {
+      delete process.env._JAVA_OPTIONS;
+    }
+    */
   }
 }
 

@@ -223,8 +223,227 @@ const convertHtmlToPdfBuffer = async (html: string): Promise<Buffer> => {
   }
 };
 
+/**
+ * 将HTML中的标题和正文映射到Word样式库
+ * Word会识别特定的类名和样式，映射到样式库中的样式
+ * 使用Word标准样式名称：Heading1, Heading2, Heading3, Heading4, Normal
+ */
+const mapHtmlToWordStyles = (html: string): string => {
+  // 使用正则表达式替换标题标签，添加Word样式类名和样式
+  // Word在转换HTML时会识别这些类名并映射到样式库
+  let styledHtml = html;
+  
+  // 映射h1到标题1样式（Heading 1）
+  // 使用Word标准样式名称，并添加相应的格式
+  styledHtml = styledHtml.replace(
+    /<h1([^>]*)>/gi,
+    (match, attrs) => {
+      // 如果已经有class属性，追加；否则添加
+      if (attrs.includes('class=')) {
+        return match.replace(/class="([^"]*)"/, 'class="$1 Heading1"');
+      }
+      return `<h1${attrs} class="Heading1">`;
+    }
+  );
+  
+  // 映射h2到标题2样式（Heading 2）
+  styledHtml = styledHtml.replace(
+    /<h2([^>]*)>/gi,
+    (match, attrs) => {
+      if (attrs.includes('class=')) {
+        return match.replace(/class="([^"]*)"/, 'class="$1 Heading2"');
+      }
+      return `<h2${attrs} class="Heading2">`;
+    }
+  );
+  
+  // 映射h3到标题3样式（Heading 3）
+  styledHtml = styledHtml.replace(
+    /<h3([^>]*)>/gi,
+    (match, attrs) => {
+      if (attrs.includes('class=')) {
+        return match.replace(/class="([^"]*)"/, 'class="$1 Heading3"');
+      }
+      return `<h3${attrs} class="Heading3">`;
+    }
+  );
+  
+  // 映射h4到标题4样式（Heading 4）
+  styledHtml = styledHtml.replace(
+    /<h4([^>]*)>/gi,
+    (match, attrs) => {
+      if (attrs.includes('class=')) {
+        return match.replace(/class="([^"]*)"/, 'class="$1 Heading4"');
+      }
+      return `<h4${attrs} class="Heading4">`;
+    }
+  );
+  
+  // 映射p到正文样式（Normal）
+  // 只处理没有class的p标签，避免覆盖已有的样式
+  styledHtml = styledHtml.replace(
+    /<p(?![^>]*class=)([^>]*)>/gi,
+    '<p$1 class="Normal">'
+  );
+  
+  // 为h5和h6也添加样式类（虽然Word样式库通常只有4级标题）
+  styledHtml = styledHtml.replace(
+    /<h5([^>]*)>/gi,
+    (match, attrs) => {
+      if (attrs.includes('class=')) {
+        return match.replace(/class="([^"]*)"/, 'class="$1 Heading5"');
+      }
+      return `<h5${attrs} class="Heading5">`;
+    }
+  );
+  
+  styledHtml = styledHtml.replace(
+    /<h6([^>]*)>/gi,
+    (match, attrs) => {
+      if (attrs.includes('class=')) {
+        return match.replace(/class="([^"]*)"/, 'class="$1 Heading6"');
+      }
+      return `<h6${attrs} class="Heading6">`;
+    }
+  );
+  
+  return styledHtml;
+};
+
 const convertMarkdownToDocxBuffer = async (htmlContent: string): Promise<Buffer> => {
-  const htmlWrapped = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>Document</title></head><body>${htmlContent}</body></html>`;
+  // 将HTML中的标题和正文映射到Word样式库
+  const styledHtml = mapHtmlToWordStyles(htmlContent);
+  
+  // 添加CSS样式表，定义Word样式库映射和代码框样式
+  // Word在转换HTML时会识别这些样式类名并映射到样式库
+  const wordStyles = `
+    <style>
+      /* Word样式库映射 */
+      .Heading1, h1.Heading1 {
+        font-size: 18pt;
+        font-weight: bold;
+        color: #000000;
+        margin-top: 12pt;
+        margin-bottom: 6pt;
+        font-family: "Microsoft YaHei", "SimSun", serif;
+      }
+      .Heading2, h2.Heading2 {
+        font-size: 16pt;
+        font-weight: bold;
+        color: #000000;
+        margin-top: 10pt;
+        margin-bottom: 6pt;
+        font-family: "Microsoft YaHei", "SimSun", serif;
+      }
+      .Heading3, h3.Heading3 {
+        font-size: 14pt;
+        font-weight: bold;
+        color: #000000;
+        margin-top: 8pt;
+        margin-bottom: 4pt;
+        font-family: "Microsoft YaHei", "SimSun", serif;
+      }
+      .Heading4, h4.Heading4 {
+        font-size: 12pt;
+        font-weight: bold;
+        color: #000000;
+        margin-top: 6pt;
+        margin-bottom: 4pt;
+        font-family: "Microsoft YaHei", "SimSun", serif;
+      }
+      .Normal, p.Normal {
+        font-size: 10.5pt;
+        color: #000000;
+        margin-top: 0pt;
+        margin-bottom: 6pt;
+        line-height: 1.15;
+        font-family: "Microsoft YaHei", "SimSun", serif;
+      }
+      
+      /* 代码框样式 - 确保代码显示在带边框和背景的框内 */
+      pre, .md-editor-code, pre code, code[class*="language-"] {
+        background-color: #f5f5f5 !important;
+        border: 1px solid #d0d0d0 !important;
+        border-radius: 4px !important;
+        padding: 12pt !important;
+        margin: 6pt 0 !important;
+        font-family: "Consolas", "Monaco", "Courier New", monospace !important;
+        font-size: 9pt !important;
+        line-height: 1.4 !important;
+        color: #333333 !important;
+        overflow-x: auto !important;
+        white-space: pre !important;
+        word-wrap: normal !important;
+        display: block !important;
+      }
+      
+      /* 代码块容器 */
+      pre {
+        margin: 12pt 0 !important;
+        padding: 12pt !important;
+        background-color: #f5f5f5 !important;
+        border: 1px solid #d0d0d0 !important;
+        border-radius: 4px !important;
+      }
+      
+      /* 代码块内的code标签 */
+      pre code {
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        font-size: 9pt !important;
+        color: #333333 !important;
+        display: block !important;
+        white-space: pre !important;
+        overflow-x: auto !important;
+      }
+      
+      /* 内联代码样式（保持原有样式，不添加边框） */
+      code:not(pre code) {
+        background-color: #f0f0f0 !important;
+        border: none !important;
+        padding: 2pt 4pt !important;
+        border-radius: 2px !important;
+        font-family: "Consolas", "Monaco", "Courier New", monospace !important;
+        font-size: 9pt !important;
+        color: #d14 !important;
+      }
+      
+      /* md-editor-code 特定样式 */
+      .md-editor-code {
+        background-color: #f5f5f5 !important;
+        border: 1px solid #d0d0d0 !important;
+        border-radius: 4px !important;
+        padding: 12pt !important;
+        margin: 12pt 0 !important;
+      }
+      
+      .md-editor-code pre {
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: transparent !important;
+        border: none !important;
+      }
+      
+      .md-editor-code pre code {
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+      }
+      
+      /* highlight.js 代码高亮样式兼容 */
+      .hljs, code.hljs {
+        background-color: #f5f5f5 !important;
+        border: 1px solid #d0d0d0 !important;
+        border-radius: 4px !important;
+        padding: 12pt !important;
+        margin: 12pt 0 !important;
+      }
+    </style>
+  `;
+  
+  const htmlWrapped = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>Document</title>${wordStyles}</head><body>${styledHtml}</body></html>`;
   const docxBlob = htmlDocx.asBlob(htmlWrapped);
   const arrayBuffer = await docxBlob.arrayBuffer();
   return Buffer.from(arrayBuffer);

@@ -3,11 +3,14 @@ productName: MetaDoc
 directories:
   buildResources: build
 files:
+  - 'out/**/*'  # 明确包含 out 目录（构建输出）
+  - 'resources/**/*'  # 明确包含 resources 目录
   - '!**/.vscode/*'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - 'resources/.env'  # 允许 resources 目录下的 .env 文件被打包
 asarUnpack:
   - resources/**
 win:

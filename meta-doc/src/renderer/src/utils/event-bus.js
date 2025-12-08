@@ -359,6 +359,38 @@ ipcRenderer.on('open-doc-success', (event, payload) => {
   })
 })
 
+// 监听文件变化事件（来自主进程的文件监听服务）
+ipcRenderer.on('file-changed', (event, payload) => {
+  const { filePath, tabId, content, modifiedTime, diff } = payload || {}
+  if (!filePath) {
+    logger.warn('文件变化事件缺少文件路径', payload)
+    return
+  }
+  
+  // 发送文件变化事件到 workspace
+  eventBus.emit('external-file-changed', {
+    filePath,
+    tabId,
+    content,
+    modifiedTime,
+    diff // 增量变化信息
+  })
+})
+
+// 监听文件删除事件
+ipcRenderer.on('file-deleted', (event, payload) => {
+  const { filePath, tabId } = payload || {}
+  if (!filePath) {
+    return
+  }
+  
+  // 发送文件删除事件到 workspace
+  eventBus.emit('external-file-deleted', {
+    filePath,
+    tabId
+  })
+})
+
 
 
 

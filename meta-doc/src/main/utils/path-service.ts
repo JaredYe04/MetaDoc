@@ -100,6 +100,13 @@ class PathServiceImpl implements PathService {
   }
 
   /**
+   * 获取Tesseract训练数据文件夹路径
+   */
+  getTesseractDataPath(): FilePath {
+    return this.getResourceFile('tesseract');
+  }
+
+  /**
    * 检查路径是否存在（可选的辅助方法）
    */
   exists(filePath: FilePath): boolean {

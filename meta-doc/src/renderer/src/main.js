@@ -24,6 +24,7 @@ import { initServiceStatusWatcher } from './utils/service-status';
 import { i18n } from './i18n.js';
 import { initializeAgentTools } from './utils/agent-tools';
 import { initializeWorkspaceBroadcastListeners } from './stores/workspace';
+import { registerTitleFormatTests } from './utils/title-format-tests';
 
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
@@ -38,6 +39,9 @@ initializeAgentTools();
 
 // 初始化Workspace的跨窗口事件监听器
 initializeWorkspaceBroadcastListeners();
+
+// 注册标题格式化测试用例
+registerTitleFormatTests();
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)

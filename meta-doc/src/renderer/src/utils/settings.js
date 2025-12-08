@@ -63,6 +63,7 @@ export const settings = reactive({
   autoRemoveThinkTag: true,//自动去除推理过程
   bypassCodeBlock: true, // 统计文字信息时排除代码块
   autoSaveExternalImage: true, // 自动保存外部图片
+  parseEmbeddedImages: true, // 是否解析文档内嵌图片进行OCR
   loggingEnabled: true, // 是否写入日志
   loggingLevel: 'info', // 日志等级
   ollama: {

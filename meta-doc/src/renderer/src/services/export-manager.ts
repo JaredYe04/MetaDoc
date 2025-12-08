@@ -16,12 +16,15 @@ import { preRenderAllCharts } from '../utils/chart-pre-renderer';
 import type { WorkspaceDocument } from '../stores/workspace';
 import { createRendererLogger } from '../utils/logger.js';
 import { renderMarkdownMathToImages } from '../utils/math-renderer.js';
+import eventBus from '../utils/event-bus';
+import { useI18n } from 'vue-i18n';
 
 export interface BaseExportPayload {
   sourceFormat: DocumentFormat;
   targetFormat: ExportFormat;
   suggestedName: string;
   sourcePath?: string;
+  requestId?: string;
   data: {
     md: string;
     json: string;
@@ -47,6 +50,25 @@ export const prepareExportPayload = async (
   targetFormat: ExportFormat,
   explicitName?: string,
 ): Promise<BaseExportPayload> => {
+  const { default: localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
+  const { webMainCalls } = await import('../utils/web-adapter/web-main-calls')
+  const ipcRenderer = (window as any)?.electron?.ipcRenderer ?? (webMainCalls(), localIpcRenderer)
+  const { createProgressHandle } = await import('../utils/progress-handle')
+
+  const requestId = `export-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const handle = createProgressHandle({
+    requestId,
+    message: 'agent.reference.progress.preparingExport',
+    initialPercentage: 0,
+    onCancel: () => {
+      try {
+        ipcRenderer?.invoke?.('cancel-export-task', requestId)
+      } catch (err) {
+        // ignore
+      }
+    }
+  })
+
   const sourceFormat = (doc.format ?? 'md') as DocumentFormat;
   const descriptor = getExportTargets(sourceFormat).find((item) => item.format === targetFormat);
 
@@ -64,6 +86,7 @@ export const prepareExportPayload = async (
     targetFormat,
     suggestedName,
     sourcePath: doc.path,
+    requestId,
     data: {
       md: serialized.md,
       json: serialized.json,
@@ -77,11 +100,11 @@ export const prepareExportPayload = async (
 
   switch (sourceFormat) {
     case 'md':
-      return await prepareMarkdownExports(base, doc, targetFormat);
+      return await prepareMarkdownExports(base, doc, targetFormat, handle);
     case 'tex':
-      return await prepareLatexExports(base, doc, targetFormat);
+      return await prepareLatexExports(base, doc, targetFormat, handle);
     case 'json':
-      return await prepareJsonExports(base, targetFormat);
+      return await prepareJsonExports(base, targetFormat, handle);
     default:
       throw new Error(`未知的文档格式: ${String(sourceFormat)}`);
   }
@@ -91,6 +114,7 @@ const prepareMarkdownExports = async (
   base: BaseExportPayload,
   doc: WorkspaceDocument,
   targetFormat: ExportFormat,
+  handle: any,
 ): Promise<BaseExportPayload> => {
   let markdown = filterMetaDataFromMd(base.data.md);
   const logger = createRendererLogger('ExportManager');
@@ -125,10 +149,25 @@ const prepareMarkdownExports = async (
     const chartFormat = (targetFormat === 'docx') ? 'bitmap' : 'svg';
     try {
       logger.debug(`preRenderAllCharts start`);
-      markdown = await preRenderAllCharts(markdown, '', chartFormat);
+      handle.mark(5, { message: 'agent.reference.progress.preRenderingCharts', subMessage: 'agent.reference.progress.preparingExport' })
+      markdown = await preRenderAllCharts(markdown, '', chartFormat, (progress) => {
+        const percent = Math.min(80, progress?.percentage ?? 0);
+        handle.mark(percent, {
+          message: progress?.message ?? 'agent.reference.progress.preRenderingCharts',
+          subMessage: progress?.subMessage ?? 'agent.reference.progress.preparingExport',
+          params: progress?.params,
+          status: progress?.status as any
+        });
+      });
       logger.debug(`preRenderAllCharts end`);
+      handle.mark(80, { message: 'agent.reference.progress.preRenderingCharts' })
     } catch (error) {
       logger.warn('图表预渲染失败，继续使用原始 Markdown:', error);
+      handle.mark(5, {
+        message: '图表预渲染失败',
+        subMessage: error instanceof Error ? error.message : String(error),
+        status: 'warning'
+      });
     }
 
     // 根据导出格式处理图片路径
@@ -194,6 +233,7 @@ const prepareMarkdownExports = async (
 
   return {
     ...base,
+    requestId: base.requestId,
     html,
     data: {
       ...base.data,
@@ -209,6 +249,7 @@ const prepareLatexExports = async (
   base: BaseExportPayload,
   doc: WorkspaceDocument,
   targetFormat: ExportFormat,
+  _handle: any,
 ): Promise<BaseExportPayload> => {
   if (targetFormat === 'tex' || targetFormat === 'pdf') {
     return base;
@@ -252,6 +293,7 @@ const prepareLatexExports = async (
 const prepareJsonExports = async (
   base: BaseExportPayload,
   targetFormat: ExportFormat,
+  _handle: any,
 ): Promise<BaseExportPayload> => {
   if (targetFormat === 'json') {
     return base;

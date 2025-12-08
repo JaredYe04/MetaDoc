@@ -39,6 +39,7 @@
     <LlmStatisticsDialog
       v-model="showLlmStatisticsDialog"
     />
+    <GlobalProgressBar />
     <div class="actions-group">
         <el-tooltip :content="$t('bottomMenu.logConsoleTooltip')" placement="top">
         <span class="status-item status-logger" @click.prevent="toggleLoggerConsole">
@@ -92,6 +93,7 @@ import { useNotificationStack, initializeNotificationListeners } from '../utils/
 import { useWorkspace } from '../stores/workspace'
 import WordCountDialog from './WordCountDialog.vue'
 import LlmStatisticsDialog from './LlmStatisticsDialog.vue'
+import GlobalProgressBar from './GlobalProgressBar.vue'
 
 const workspace = useWorkspace()
 

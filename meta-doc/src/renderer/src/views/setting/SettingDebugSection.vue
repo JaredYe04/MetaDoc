@@ -1,69 +1,74 @@
 <template>
   <div class="debug-section">
     <el-tabs v-model="activeTab" type="border-card" tab-position="top">
-      <!-- EventBus 事件测试 -->
+      <!-- EventBus 事件（合并 EventBus 和广播事件） -->
       <el-tab-pane :label="$t('setting.debug.eventBus')" name="eventbus">
-        <div class="test-panel" :style="testPanelStyle">
-          <el-form :model="eventBusForm" label-width="140px">
-            <el-form-item :label="$t('setting.debug.eventName')">
-              <el-input
-                v-model="eventBusForm.eventName"
-                :placeholder="$t('setting.debug.eventNamePlaceholder')"
-              />
-            </el-form-item>
-            <el-form-item :label="$t('setting.debug.eventData')">
-              <el-input
-                v-model="eventBusForm.eventData"
-                type="textarea"
-                :rows="6"
-                :placeholder="$t('setting.debug.eventDataPlaceholder')"
-              />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="sendEventBusEvent">
-                {{ $t('setting.debug.sendEvent') }}
-              </el-button>
-            </el-form-item>
-          </el-form>
-        </div>
-      </el-tab-pane>
+        <el-tabs v-model="eventBusActiveTab" type="border-card" tab-position="top" style="height: 100%;">
+          <!-- EventBus 事件测试 -->
+          <el-tab-pane :label="$t('setting.debug.eventBus')" name="eventbus">
+            <div class="test-panel" :style="testPanelStyle">
+              <el-form :model="eventBusForm" label-width="140px">
+                <el-form-item :label="$t('setting.debug.eventName')">
+                  <el-input
+                    v-model="eventBusForm.eventName"
+                    :placeholder="$t('setting.debug.eventNamePlaceholder')"
+                  />
+                </el-form-item>
+                <el-form-item :label="$t('setting.debug.eventData')">
+                  <el-input
+                    v-model="eventBusForm.eventData"
+                    type="textarea"
+                    :rows="6"
+                    :placeholder="$t('setting.debug.eventDataPlaceholder')"
+                  />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" @click="sendEventBusEvent">
+                    {{ $t('setting.debug.sendEvent') }}
+                  </el-button>
+                </el-form-item>
+              </el-form>
+            </div>
+          </el-tab-pane>
 
-      <!-- 广播事件测试 -->
-      <el-tab-pane :label="$t('setting.debug.broadcast')" name="broadcast">
-        <div class="test-panel" :style="testPanelStyle">
-          <el-form :model="broadcastForm" label-width="140px">
-            <el-form-item :label="$t('setting.debug.targetWindow')">
-              <el-select v-model="broadcastForm.to" style="width: 100%">
-                <el-option :label="$t('setting.debug.targetAll')" value="all" />
-                <el-option
-                  v-for="windowType in availableWindowTypes"
-                  :key="windowType"
-                  :label="getWindowTypeLabel(windowType)"
-                  :value="windowType"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item :label="$t('setting.debug.eventName')">
-              <el-input
-                v-model="broadcastForm.eventName"
-                :placeholder="$t('setting.debug.eventNamePlaceholder')"
-              />
-            </el-form-item>
-            <el-form-item :label="$t('setting.debug.eventData')">
-              <el-input
-                v-model="broadcastForm.eventData"
-                type="textarea"
-                :rows="6"
-                :placeholder="$t('setting.debug.eventDataPlaceholder')"
-              />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="sendBroadcastEvent">
-                {{ $t('setting.debug.sendBroadcast') }}
-              </el-button>
-            </el-form-item>
-          </el-form>
-        </div>
+          <!-- 广播事件测试 -->
+          <el-tab-pane :label="$t('setting.debug.broadcast')" name="broadcast">
+            <div class="test-panel" :style="testPanelStyle">
+              <el-form :model="broadcastForm" label-width="140px">
+                <el-form-item :label="$t('setting.debug.targetWindow')">
+                  <el-select v-model="broadcastForm.to" style="width: 100%">
+                    <el-option :label="$t('setting.debug.targetAll')" value="all" />
+                    <el-option
+                      v-for="windowType in availableWindowTypes"
+                      :key="windowType"
+                      :label="getWindowTypeLabel(windowType)"
+                      :value="windowType"
+                    />
+                  </el-select>
+                </el-form-item>
+                <el-form-item :label="$t('setting.debug.eventName')">
+                  <el-input
+                    v-model="broadcastForm.eventName"
+                    :placeholder="$t('setting.debug.eventNamePlaceholder')"
+                  />
+                </el-form-item>
+                <el-form-item :label="$t('setting.debug.eventData')">
+                  <el-input
+                    v-model="broadcastForm.eventData"
+                    type="textarea"
+                    :rows="6"
+                    :placeholder="$t('setting.debug.eventDataPlaceholder')"
+                  />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" @click="sendBroadcastEvent">
+                    {{ $t('setting.debug.sendBroadcast') }}
+                  </el-button>
+                </el-form-item>
+              </el-form>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
       </el-tab-pane>
 
       <!-- Agent Tool测试 -->
@@ -532,118 +537,186 @@
       </el-tab-pane>
 
       <!-- 单元测试 -->
-      <el-tab-pane :label="$t('setting.debug.unitTest')" name="unittest">
-        <div class="test-panel" :style="testPanelStyle">
-          <el-form :model="testForm" label-width="140px">
-            <el-form-item :label="$t('setting.debug.module')">
-              <el-select
-                v-model="testForm.module"
-                :placeholder="$t('setting.debug.selectModule')"
-                style="width: 100%"
-                @change="handleModuleChange"
-              >
-                <el-option
-                  v-for="module in modules"
-                  :key="module"
-                  :label="module"
-                  :value="module"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item :label="$t('setting.debug.testFunction')">
-              <el-select
-                v-model="testForm.testId"
-                :placeholder="$t('setting.debug.selectTestFunction')"
-                style="width: 100%"
-                @change="handleTestChange"
-              >
-                <el-option
-                  v-for="test in availableTests"
-                  :key="test.id"
-                  :label="`${test.name}${test.description ? ' - ' + test.description : ''}`"
-                  :value="test.id"
-                />
-              </el-select>
-            </el-form-item>
-
-            <!-- 参数编辑区域 -->
-            <template v-if="selectedTest && selectedTest.params && selectedTest.params.length > 0">
-              <el-divider>{{ $t('setting.debug.parameters') }}</el-divider>
-              <el-form-item
-                v-for="param in selectedTest.params"
-                :key="param.name"
-                :label="`${param.name} (${param.type})`"
-              >
-                <template v-if="param.type === 'string' || param.type === 'number' || param.type === 'boolean'">
-                  <el-input
-                    v-if="param.type === 'string'"
-                    v-model="testForm.params[param.name]"
-                    :placeholder="param.description || param.name"
+      <el-tab-pane :label="$t('setting.debug.unitTest.title')" name="unittest">
+        <el-tabs v-model="unitTestActiveTab" type="border-card" tab-position="top" style="height: 100%;">
+          <!-- 单个测试 -->
+          <el-tab-pane :label="$t('setting.debug.unitTest.singleTest')" name="single">
+          <div class="test-panel" :style="testPanelStyle">
+            <el-form :model="testForm" label-width="140px">
+              <el-form-item :label="$t('setting.debug.module')">
+                <el-select
+                  v-model="testForm.module"
+                  :placeholder="$t('setting.debug.selectModule')"
+                  style="width: 100%"
+                  @change="handleModuleChange"
+                >
+                  <el-option
+                    v-for="module in modules"
+                    :key="module"
+                    :label="module"
+                    :value="module"
                   />
-                  <el-input-number
-                    v-else-if="param.type === 'number'"
-                    v-model="testForm.params[param.name]"
-                    style="width: 100%"
-                  />
-                  <el-switch
-                    v-else-if="param.type === 'boolean'"
-                    v-model="testForm.params[param.name]"
-                  />
-                </template>
-                <el-input
-                  v-else
-                  v-model="testForm.params[param.name]"
-                  type="textarea"
-                  :rows="4"
-                  :placeholder="$t('setting.debug.jsonPlaceholder')"
-                />
+                </el-select>
               </el-form-item>
-            </template>
+              <el-form-item :label="$t('setting.debug.testFunction')">
+                <el-select
+                  v-model="testForm.testId"
+                  :placeholder="$t('setting.debug.selectTestFunction')"
+                  style="width: 100%"
+                  @change="handleTestChange"
+                >
+                  <el-option
+                    v-for="test in availableTests"
+                    :key="test.id"
+                    :label="`${test.name}${test.description ? ' - ' + test.description : ''}`"
+                    :value="test.id"
+                  />
+                </el-select>
+              </el-form-item>
 
-            <el-form-item>
-              <el-button type="primary" @click="executeTest" :loading="testExecuting">
-                {{ $t('setting.debug.executeTest') }}
-              </el-button>
-              <el-button @click="clearTestHistory">
-                {{ $t('setting.debug.clearHistory') }}
-              </el-button>
-            </el-form-item>
-          </el-form>
+              <!-- 参数编辑区域 -->
+              <template v-if="selectedTest && selectedTest.params && selectedTest.params.length > 0">
+                <el-divider>{{ $t('setting.debug.parameters') }}</el-divider>
+                <el-form-item
+                  v-for="param in selectedTest.params"
+                  :key="param.name"
+                  :label="`${param.name} (${param.type})`"
+                >
+                  <template v-if="param.type === 'string' || param.type === 'number' || param.type === 'boolean'">
+                    <el-input
+                      v-if="param.type === 'string'"
+                      v-model="testForm.params[param.name]"
+                      :placeholder="param.description || param.name"
+                    />
+                    <el-input-number
+                      v-else-if="param.type === 'number'"
+                      v-model="testForm.params[param.name]"
+                      style="width: 100%"
+                    />
+                    <el-switch
+                      v-else-if="param.type === 'boolean'"
+                      v-model="testForm.params[param.name]"
+                    />
+                  </template>
+                  <el-input
+                    v-else
+                    v-model="testForm.params[param.name]"
+                    type="textarea"
+                    :rows="4"
+                    :placeholder="$t('setting.debug.jsonPlaceholder')"
+                  />
+                </el-form-item>
+              </template>
 
-          <!-- 测试结果 -->
-          <el-divider>{{ $t('setting.debug.testResult') }}</el-divider>
-          <div class="test-result">
-            <el-scrollbar height="300px">
-              <div
-                v-for="(entry, index) in testHistory"
-                :key="index"
-                class="test-history-item"
-                :class="{ 'test-error': entry.error }"
-                :style="entry.error ? testHistoryItemErrorStyle : testHistoryItemStyle"
-              >
-                <div class="test-history-header">
-                  <span class="test-name">{{ entry.name }}</span>
-                  <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
+              <el-form-item>
+                <el-button type="primary" @click="executeTest" :loading="testExecuting">
+                  {{ $t('setting.debug.executeTest') }}
+                </el-button>
+                <el-button @click="clearTestHistory">
+                  {{ $t('setting.debug.clearHistory') }}
+                </el-button>
+              </el-form-item>
+            </el-form>
+
+            <!-- 测试结果 -->
+            <el-divider>{{ $t('setting.debug.testResult') }}</el-divider>
+            <div class="test-result">
+              <el-scrollbar height="300px">
+                <div
+                  v-for="(entry, index) in testHistory"
+                  :key="index"
+                  class="test-history-item"
+                  :class="{ 'test-error': entry.error }"
+                  :style="entry.error ? testHistoryItemErrorStyle : testHistoryItemStyle"
+                >
+                  <div class="test-history-header">
+                    <span class="test-name">{{ entry.name }}</span>
+                    <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
+                  </div>
+                  <div v-if="entry.params && entry.params.length > 0" class="test-params">
+                    <strong>{{ $t('setting.debug.parameters') }}:</strong>
+                    <pre>{{ JSON.stringify(entry.params, null, 2) }}</pre>
+                  </div>
+                  <div v-if="entry.error" class="test-error-message">
+                    <strong>{{ $t('setting.debug.error') }}:</strong>
+                    <pre>{{ entry.error }}</pre>
+                  </div>
+                  <div v-else-if="entry.result !== undefined" class="test-result-data">
+                    <strong>{{ $t('setting.debug.result') }}:</strong>
+                    <pre>{{ formatResult(entry.result) }}</pre>
+                  </div>
                 </div>
-                <div v-if="entry.params && entry.params.length > 0" class="test-params">
-                  <strong>{{ $t('setting.debug.parameters') }}:</strong>
-                  <pre>{{ JSON.stringify(entry.params, null, 2) }}</pre>
+                <div v-if="testHistory.length === 0" class="test-empty">
+                  {{ $t('setting.debug.noHistory') }}
                 </div>
-                <div v-if="entry.error" class="test-error-message">
-                  <strong>{{ $t('setting.debug.error') }}:</strong>
-                  <pre>{{ entry.error }}</pre>
-                </div>
-                <div v-else-if="entry.result !== undefined" class="test-result-data">
-                  <strong>{{ $t('setting.debug.result') }}:</strong>
-                  <pre>{{ formatResult(entry.result) }}</pre>
-                </div>
-              </div>
-              <div v-if="testHistory.length === 0" class="test-empty">
-                {{ $t('setting.debug.noHistory') }}
-              </div>
-            </el-scrollbar>
+              </el-scrollbar>
+            </div>
           </div>
-        </div>
+        </el-tab-pane>
+
+        <!-- 批量测试 -->
+        <el-tab-pane :label="$t('setting.debug.unitTest.batchTest')" name="batch">
+          <div class="test-panel" :style="testPanelStyle">
+            <el-form :model="unitTestBatchForm" label-width="140px">
+              <el-form-item :label="$t('setting.debug.unitTest.selectModules')">
+                <el-select
+                  v-model="unitTestBatchForm.selectedModules"
+                  multiple
+                  placeholder="选择要测试的模块（留空则测试所有）"
+                  style="width: 100%"
+                  filterable
+                >
+                  <el-option
+                    v-for="module in modules"
+                    :key="module"
+                    :label="module"
+                    :value="module"
+                  />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item>
+                <el-button 
+                  type="primary" 
+                  @click="runUnitTestBatch" 
+                  :loading="unitTestBatchRunning"
+                  :disabled="unitTestBatchRunning"
+                >
+                  {{ unitTestBatchRunning ? '测试中...' : '开始批量测试' }}
+                </el-button>
+                <el-button 
+                  @click="stopUnitTestBatch" 
+                  :disabled="!unitTestBatchRunning"
+                >
+                  停止测试
+                </el-button>
+              </el-form-item>
+            </el-form>
+
+            <!-- 测试结果 -->
+            <div v-if="unitTestBatchResults.length > 0 || unitTestBatchRunning" class="unit-test-batch-results" style="margin-top: 20px;">
+              <el-divider style="margin-top: 0;">测试结果</el-divider>
+              <UnitTestResultDisplay
+                v-if="unitTestBatchResults.length > 0"
+                :test-results="unitTestBatchResults"
+                :summary="unitTestBatchSummary"
+                :markdown-summary="unitTestBatchMarkdown"
+              />
+              <div v-else-if="unitTestBatchRunning" class="test-progress-info">
+                <el-progress
+                  :percentage="unitTestBatchProgress"
+                  :status="unitTestBatchRunning ? undefined : 'success'"
+                >
+                  <template #default="{ percentage }">
+                    <span>{{ unitTestBatchCurrentTest }}</span>
+                    <span style="margin-left: 8px;">{{ percentage }}%</span>
+                  </template>
+                </el-progress>
+              </div>
+            </div>
+          </div>
+        </el-tab-pane>
+        </el-tabs>
       </el-tab-pane>
     </el-tabs>
 
@@ -713,6 +786,7 @@ import MetadataDisplay from '../../utils/agent-tools/components/MetadataDisplay.
 import OutlineTreeDisplay from '../../utils/agent-tools/components/OutlineTreeDisplay.vue';
 import OutlineOptimizeDisplay from '../../utils/agent-tools/components/OutlineOptimizeDisplay.vue';
 import AutoTestResultDisplay, { type TestResult } from '../../utils/agent-tools/components/AutoTestResultDisplay.vue';
+import UnitTestResultDisplay, { type UnitTestResult } from '../../utils/UnitTestResultDisplay.vue';
 import { onToolUpdate, onToolComplete, onToolFailed } from '../../utils/agent-tools/tool-display-communication';
 import testCasesData from '../../utils/agent-tools/test-data/test-cases.json';
 import { themeState } from '../../utils/themes';
@@ -792,6 +866,7 @@ if (typeof window !== 'undefined') {
 }
 
 const activeTab = ref('eventbus');
+const eventBusActiveTab = ref('eventbus');
 
 // EventBus 表单
 const eventBusForm = reactive({
@@ -826,6 +901,18 @@ const testHistory = ref<Array<{
   result?: any;
   error?: string;
 }>>([]);
+
+// 单元测试批量测试相关
+const unitTestActiveTab = ref('single');
+const unitTestBatchForm = reactive({
+  selectedModules: [] as string[]
+});
+
+const unitTestBatchRunning = ref(false);
+const unitTestBatchResults = ref<UnitTestResult[]>([]);
+const unitTestBatchProgress = ref(0);
+const unitTestBatchCurrentTest = ref('');
+const unitTestBatchAbortController = ref<AbortController | null>(null);
 
 // Agent Tool测试相关
 const toolTestForm = reactive({
@@ -1124,11 +1211,19 @@ const testPanelStyle = computed(() => ({
   color: themeState.currentTheme.textColor
 }))
 
-const codeBlockStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.codeBgColor || themeState.currentTheme.background2nd,
-  color: themeState.currentTheme.codeColor || themeState.currentTheme.textColor,
-  borderColor: themeState.currentTheme.borderColor
-}))
+const codeBlockStyle = computed(() => {
+  const theme = themeState.currentTheme as any
+  return {
+    backgroundColor: theme.codeBgColor || themeState.currentTheme.background2nd,
+    color: themeState.currentTheme.codeColor || themeState.currentTheme.textColor,
+    borderColor: themeState.currentTheme.borderColor
+  }
+})
+
+const codeBgColor = computed(() => {
+  const theme = themeState.currentTheme as any
+  return theme.codeBgColor || themeState.currentTheme.background2nd
+})
 
 const testEmptyStyle = computed(() => ({
   color: themeState.currentTheme.textColor2
@@ -2354,6 +2449,309 @@ const stopAutoTests = () => {
   }
 };
 
+// 计算单元测试批量测试摘要
+const unitTestBatchSummary = computed(() => {
+  const total = unitTestBatchResults.value.length;
+  const passed = unitTestBatchResults.value.filter(r => r.passed).length;
+  const failed = total - passed;
+  const passedRate = total > 0 ? Math.round((passed / total) * 100) : 0;
+  const failedRate = total > 0 ? Math.round((failed / total) * 100) : 0;
+  
+  // 计算总执行时间
+  const duration = unitTestBatchResults.value.reduce((sum, r) => sum + (r.duration || 0), 0);
+  
+  return {
+    total,
+    passed,
+    failed,
+    passedRate,
+    failedRate,
+    duration
+  };
+});
+
+// 生成单元测试批量测试 Markdown 摘要
+const unitTestBatchMarkdown = computed(() => {
+  const summary = unitTestBatchSummary.value;
+  const timestamp = new Date().toISOString();
+  
+  let markdown = `# 单元测试批量测试报告\n\n`;
+  markdown += `**测试时间**: ${timestamp}\n\n`;
+  markdown += `## 测试摘要\n\n`;
+  markdown += `- **总测试数**: ${summary.total}\n`;
+  markdown += `- **通过**: ${summary.passed} (${summary.passedRate}%)\n`;
+  markdown += `- **失败**: ${summary.failed} (${summary.failedRate}%)\n`;
+  markdown += `- **总执行时间**: ${summary.duration}ms\n\n`;
+  
+  // 按模块分组
+  const groupedByModule = unitTestBatchResults.value.reduce((acc, result) => {
+    if (!acc[result.module]) {
+      acc[result.module] = [];
+    }
+    acc[result.module].push(result);
+    return acc;
+  }, {} as Record<string, UnitTestResult[]>);
+  
+  markdown += `## 详细结果\n\n`;
+  
+  for (const [module, results] of Object.entries(groupedByModule)) {
+    const modulePassed = results.filter(r => r.passed).length;
+    const moduleFailed = results.length - modulePassed;
+    
+    markdown += `### ${module}\n\n`;
+    markdown += `- 测试用例数: ${results.length}\n`;
+    markdown += `- 通过: ${modulePassed}\n`;
+    markdown += `- 失败: ${moduleFailed}\n\n`;
+    
+    // 失败的测试用例
+    const failedTests = results.filter(r => !r.passed);
+    if (failedTests.length > 0) {
+      markdown += `#### 失败的测试用例\n\n`;
+      for (const test of failedTests) {
+        markdown += `**${test.testName}**\n\n`;
+        markdown += `- 参数:\n\`\`\`json\n${JSON.stringify(test.params, null, 2)}\n\`\`\`\n\n`;
+        if (test.error) {
+          markdown += `- 错误信息:\n\`\`\`\n${test.error}\n\`\`\`\n\n`;
+        }
+      }
+    }
+    
+    // 通过的测试用例
+    const passedTests = results.filter(r => r.passed);
+    if (passedTests.length > 0) {
+      markdown += `#### 通过的测试用例\n\n`;
+      for (const test of passedTests) {
+        markdown += `- ✅ ${test.testName}\n`;
+      }
+      markdown += `\n`;
+    }
+  }
+  
+  // 错误总结（供AI修复使用）
+  const allFailedTests = unitTestBatchResults.value.filter(r => !r.passed);
+  if (allFailedTests.length > 0) {
+    markdown += `## 错误总结（供AI修复参考）\n\n`;
+    for (const test of allFailedTests) {
+      markdown += `### ${test.module} - ${test.testName}\n\n`;
+      markdown += `**参数**:\n\`\`\`json\n${JSON.stringify(test.params, null, 2)}\n\`\`\`\n\n`;
+      markdown += `**错误信息**:\n\`\`\`\n${test.error || '未知错误'}\n\`\`\`\n\n`;
+      if (test.result) {
+        markdown += `**执行结果**:\n\`\`\`json\n${JSON.stringify(test.result, null, 2)}\n\`\`\`\n\n`;
+      }
+      markdown += `---\n\n`;
+    }
+  }
+  
+  return markdown;
+});
+
+// 并发执行单元测试用例（使用并发池）
+const runUnitTestWithConcurrency = async function(
+  testItems: Array<{ test: TestFunction; module: string }>,
+  concurrency: number = 5
+): Promise<UnitTestResult[]> {
+  const results: UnitTestResult[] = [];
+  let completedCount = 0;
+  const totalTests = testItems.length;
+  let currentIndex = 0;
+  
+  // 更新进度
+  const updateProgress = () => {
+    completedCount++;
+    unitTestBatchProgress.value = Math.round((completedCount / totalTests) * 100);
+    
+    // 更新当前测试信息
+    const runningTests = totalTests - completedCount;
+    if (runningTests > 0) {
+      unitTestBatchCurrentTest.value = `已完成 ${completedCount}/${totalTests}，剩余 ${runningTests} 个测试用例...`;
+    } else {
+      unitTestBatchCurrentTest.value = '测试完成';
+    }
+  };
+  
+  // 执行单个测试用例
+  const executeSingleTest = async (testItem: { test: TestFunction; module: string }): Promise<UnitTestResult> => {
+    if (unitTestBatchAbortController.value?.signal.aborted) {
+      throw new Error('测试已取消');
+    }
+    
+    const { test, module } = testItem;
+    const startTime = Date.now();
+    
+    let testResult: UnitTestResult = {
+      testId: test.id,
+      testName: test.name,
+      module: module,
+      params: [],
+      passed: false,
+      duration: 0
+    };
+    
+    try {
+      // 使用默认参数执行测试
+      const params = test.params 
+        ? testFramework.parseParams(test.params, {})
+        : [];
+      
+      testResult.params = params;
+      
+      const result = await testFramework.execute(test.id, params);
+      const duration = Date.now() - startTime;
+      testResult.duration = duration;
+      
+      // 判断测试是否通过（根据返回结果判断）
+      // 如果返回结果中有 passed 字段，使用它；否则根据是否有 error 判断
+      if (result && typeof result === 'object' && 'passed' in result) {
+        testResult.passed = result.passed === true;
+        testResult.result = result;
+        if (!testResult.passed && result.error) {
+          testResult.error = result.error;
+        }
+      } else {
+        // 如果没有明确的 passed 字段，认为测试通过（没有抛出异常）
+        testResult.passed = true;
+        testResult.result = result;
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      testResult.duration = duration;
+      testResult.passed = false;
+      testResult.error = error instanceof Error ? error.message : String(error);
+    }
+    
+    return testResult;
+  };
+  
+  // 并发池执行逻辑
+  const executeWithPool = async (): Promise<void> => {
+    const executing: Promise<void>[] = [];
+    
+    // 执行下一个测试用例的辅助函数
+    const runNext = async (): Promise<void> => {
+      // 获取下一个测试用例
+      if (currentIndex >= testItems.length || unitTestBatchAbortController.value?.signal.aborted) {
+        return;
+      }
+      
+      const testItem = testItems[currentIndex++];
+      const testPromise = executeSingleTest(testItem)
+        .then((result) => {
+          // 添加到结果数组（使用响应式更新）
+          results.push(result);
+          unitTestBatchResults.value = [...results]; // 创建新数组以触发响应式更新
+          updateProgress();
+        })
+        .catch((error) => {
+          // 即使出错也要更新进度
+          updateProgress();
+          const logger = createRendererLogger('SettingDebugSection')
+          logger.error('测试执行出错:', error);
+        })
+        .finally(() => {
+          // 从executing数组中移除自己
+          const index = executing.indexOf(testPromise);
+          if (index > -1) {
+            executing.splice(index, 1);
+          }
+          // 继续执行下一个（如果还有的话）
+          if (currentIndex < testItems.length && !unitTestBatchAbortController.value?.signal.aborted) {
+            runNext();
+          }
+        });
+      
+      executing.push(testPromise);
+    };
+    
+    // 启动初始的并发任务
+    const initialTasks = Math.min(concurrency, testItems.length);
+    for (let i = 0; i < initialTasks; i++) {
+      runNext();
+    }
+    
+    // 等待所有任务完成
+    while (executing.length > 0) {
+      await Promise.race(executing);
+    }
+  };
+  
+  await executeWithPool();
+  
+  return results;
+};
+
+// 运行单元测试批量测试
+const runUnitTestBatch = async () => {
+  if (unitTestBatchRunning.value) {
+    return;
+  }
+  
+  unitTestBatchResults.value = [];
+  unitTestBatchRunning.value = true;
+  unitTestBatchProgress.value = 0;
+  unitTestBatchAbortController.value = new AbortController();
+  
+  try {
+    // 确定要测试的模块列表
+    let modulesToTest: string[] = [];
+    if (unitTestBatchForm.selectedModules.length > 0) {
+      modulesToTest = unitTestBatchForm.selectedModules;
+    } else {
+      // 测试所有模块
+      modulesToTest = modules.value;
+    }
+    
+    // 收集所有测试用例
+    const allTestItems: Array<{ test: TestFunction; module: string }> = [];
+    
+    for (const module of modulesToTest) {
+      const moduleTests = testFramework.getTestsByModule(module);
+      for (const test of moduleTests) {
+        allTestItems.push({
+          test,
+          module
+        });
+      }
+    }
+    
+    if (allTestItems.length === 0) {
+      ElMessage.warning('没有找到可执行的测试用例');
+      return;
+    }
+    
+    unitTestBatchCurrentTest.value = `准备执行 ${allTestItems.length} 个测试用例...`;
+    
+    // 使用并发池执行测试（默认并发数为5）
+    const concurrency = 5;
+    await runUnitTestWithConcurrency(allTestItems, concurrency);
+    
+    unitTestBatchProgress.value = 100;
+    unitTestBatchCurrentTest.value = '测试完成';
+    
+    // 显示测试结果摘要
+    const summary = unitTestBatchSummary.value;
+    if (summary.failed > 0) {
+      ElMessage.warning(`测试完成: ${summary.passed} 通过, ${summary.failed} 失败`);
+    } else {
+      ElMessage.success(`所有测试通过! (${summary.passed}/${summary.total})`);
+    }
+  } catch (error) {
+    ElMessage.error(`批量测试失败: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    unitTestBatchRunning.value = false;
+    unitTestBatchAbortController.value = null;
+  }
+};
+
+// 停止单元测试批量测试
+const stopUnitTestBatch = () => {
+  if (unitTestBatchAbortController.value) {
+    unitTestBatchAbortController.value.abort();
+    unitTestBatchRunning.value = false;
+    unitTestBatchCurrentTest.value = '测试已停止';
+    ElMessage.info('测试已停止');
+  }
+};
+
 // 导出工具执行快照
 const exportEntrySnapshot = async (entry: any) => {
   try {
@@ -2766,7 +3164,7 @@ onMounted(async () => {
 .test-error-message pre {
   margin: 4px 0 0 0;
   padding: 8px;
-  background-color: v-bind('themeState.currentTheme.codeBgColor || themeState.currentTheme.background2nd');
+  background-color: v-bind('codeBgColor');
   color: v-bind('themeState.currentTheme.codeColor || themeState.currentTheme.textColor');
   border: 1px solid v-bind('themeState.currentTheme.borderColor');
   border-radius: 4px;
@@ -2787,7 +3185,7 @@ onMounted(async () => {
 }
 
 .raw-text {
-  background-color: v-bind('themeState.currentTheme.codeBgColor || themeState.currentTheme.background2nd');
+  background-color: v-bind('codeBgColor');
   color: v-bind('themeState.currentTheme.codeColor || themeState.currentTheme.textColor');
   border: 1px solid v-bind('themeState.currentTheme.borderColor');
   border-radius: 4px;

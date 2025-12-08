@@ -1418,6 +1418,8 @@ const removeNode = (parent: DocumentOutlineNode, node: DocumentOutlineNode) => {
 /**
  * 清理标题中的Markdown和LaTeX标记
  * 因为title_level字段已经决定了标题层级，所以标题中不应该包含#、##、\section{}等标记
+ * 
+ * 使用精确匹配，避免误清除其他LaTeX命令（如\textbf{}、\textit{}等）
  */
 function cleanTitleMarkers(title: string): string {
   if (!title || typeof title !== 'string') {
@@ -1426,14 +1428,92 @@ function cleanTitleMarkers(title: string): string {
   
   let cleaned = title.trim()
   
-  // 移除Markdown标题标记（#、##、###等）
+  // 1. 移除Markdown标题标记（#、##、###等）
+  // 确保：行首 + 一个或多个# + 至少一个空格
+  // 避免匹配代码中的 # 符号（通过要求后面必须有空格）
   cleaned = cleaned.replace(/^#+\s+/, '')
   
-  // 移除LaTeX命令标记（\section{}、\subsection{}等）
-  cleaned = cleaned.replace(/^\\(section|subsection|subsubsection|paragraph|subparagraph)\{([^}]+)\}/, '$2')
+  // 2. 移除LaTeX标题命令标记
+  // 只匹配已知的标题命令，避免误匹配其他LaTeX命令
+  // 支持的标题命令：\part, \chapter, \section, \subsection, \subsubsection, \paragraph, \subparagraph, \title
+  // 也支持带星号的变体：\section*, \subsection* 等（用于不编号的章节）
   
-  // 移除可能的LaTeX格式：\section{标题} -> 标题
-  cleaned = cleaned.replace(/^\\[a-z]+\{([^}]+)\}/, '$1')
+  // 匹配嵌套大括号的辅助函数
+  const extractBracedContent = (str: string, startPos: number): { content: string; endPos: number } | null => {
+    if (str[startPos] !== '{') return null
+    
+    let depth = 0
+    let i = startPos
+    let content = ''
+    
+    while (i < str.length) {
+      const char = str[i]
+      
+      // 检查是否是转义的字符（\ 后面跟 { 或 } 或 \）
+      if (char === '\\' && i + 1 < str.length) {
+        const nextChar = str[i + 1]
+        if (nextChar === '{' || nextChar === '}' || nextChar === '\\') {
+          // 转义字符，作为普通字符处理
+          if (depth >= 1) {
+            content += char + nextChar
+          }
+          i += 2
+          continue
+        }
+      }
+      
+      if (char === '{') {
+        depth++
+        // 只有深度大于1时才加入content（跳过最外层的大括号）
+        if (depth > 1) {
+          content += char
+        }
+      } else if (char === '}') {
+        depth--
+        if (depth === 0) {
+          // 找到匹配的右括号，返回内容
+          return { content, endPos: i }
+        } else {
+          // 嵌套的大括号，加入content
+          content += char
+        }
+      } else {
+        // 普通字符，如果在大括号内则加入content
+        if (depth >= 1) {
+          content += char
+        }
+      }
+      i++
+    }
+    
+    return null // 未找到匹配的右括号
+  }
+  
+  // 精确匹配LaTeX标题命令
+  // 匹配模式：\命令名[*]{内容}
+  const latexTitleCommands = [
+    'part', 'chapter', 'section', 'subsection', 'subsubsection',
+    'paragraph', 'subparagraph', 'title'
+  ]
+  
+  for (const cmd of latexTitleCommands) {
+    // 匹配 \command 或 \command*
+    const cmdPattern = new RegExp(`^\\\\${cmd}\\*?`, 'i')
+    const match = cleaned.match(cmdPattern)
+    
+    if (match) {
+      const afterCmd = cleaned.substring(match[0].length).trim()
+      
+      // 如果后面跟着 {，尝试提取大括号内容
+      if (afterCmd.startsWith('{')) {
+        const result = extractBracedContent(afterCmd, 0)
+        if (result) {
+          cleaned = result.content
+          break
+        }
+      }
+    }
+  }
   
   return cleaned.trim()
 }

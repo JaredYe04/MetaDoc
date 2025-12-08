@@ -40,14 +40,46 @@ import {
 } from './index';
 import { dirname } from './index';
 import { imageUploadDir } from './express-server';
-import { queryKnowledgeBase, getResourcesPath, compileLatexToPDF, setEmbeddingMode, getEmbeddingMode } from './utils';
+import { queryKnowledgeBase, getResourcesPath, compileLatexToPDF, setEmbeddingMode, getEmbeddingMode, fileConversionService } from './utils';
+import ocrService from './utils/ocr-service';
 import type { LaTeXCompileResult } from '../types/utils';
 import type { DocumentFormat } from '../types';
-import { performExportRequest, type RendererExportPayload } from './export/export-manager';
+import { performExportRequest, type RendererExportPayload, abortExportTask } from './export/export-manager';
+import { MainProgressHandle } from './utils/progress-handle';
 import { createMainLogger, handleRendererLog, getLoggerConfig, getLoggerHistory, openCurrentLogFile, openLogDirectory, updateLoggerConfig } from './logger';
 import { getServiceStatus } from './service-status';
 import type { LogPayload, LogLevel } from '../common/logger-constants';
 import { t } from './i18n';
+
+// ============ 取消令牌管理 ============
+// 维护requestId到AbortController的映射，用于取消异步任务
+const cancellationTokens = new Map<string, AbortController>();
+
+// 生成唯一的requestId
+function generateRequestId(): string {
+  return `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// 创建取消令牌
+function createCancellationToken(requestId: string): AbortController {
+  const controller = new AbortController();
+  cancellationTokens.set(requestId, controller);
+  return controller;
+}
+
+// 取消任务
+function cancelTask(requestId: string): void {
+  const controller = cancellationTokens.get(requestId);
+  if (controller) {
+    controller.abort();
+    cancellationTokens.delete(requestId);
+  }
+}
+
+// 清理取消令牌
+function cleanupCancellationToken(requestId: string): void {
+  cancellationTokens.delete(requestId);
+}
 
 // ============ 接口定义 ============
 
@@ -310,6 +342,198 @@ function bindFileHandlers(): void {
       throw error;
     }
   });
+
+  // 转换PDF到文本
+  ipcMain.handle('convert-pdf-to-text', async (event: IpcMainInvokeEvent, filePath: string, requestId?: string): Promise<string> => {
+    const reqId = requestId || generateRequestId();
+    const abortController = createCancellationToken(reqId);
+    const handle = new MainProgressHandle({
+      requestId: reqId,
+      canCancel: true,
+      send: (p) => event.sender.send('global-progress', p),
+      initialMessage: 'agent.reference.progress.parsingFile',
+      initialPercentage: 0,
+    });
+    try {
+      const progressCallback = (progress: { message: string; subMessage?: string; percentage: number; status?: string; params?: Record<string, any> }) => {
+        if (abortController.signal.aborted) return;
+        handle.mark(progress.percentage, {
+          message: progress.message,
+          subMessage: progress.subMessage,
+          status: progress.status as any,
+          params: progress.params
+        });
+      };
+      
+      const result = await fileConversionService.tryConvertFileToText(filePath, progressCallback, abortController.signal, reqId);
+      if (!result.success || result.text === undefined || result.text === null) {
+        throw new Error(result.error || 'PDF转换失败');
+      }
+      
+      handle.success({ message: 'agent.reference.progress.parseCompleteGeneric' });
+      return result.text;
+    } catch (error) {
+      if (abortController.signal.aborted) {
+        handle.cancel();
+        throw new Error('操作已取消');
+      }
+      logger.error('PDF转换失败:', error);
+      handle.fail(error instanceof Error ? error.message : String(error));
+      throw error;
+    } finally {
+      cancellationTokens.delete(reqId);
+    }
+  });
+
+  // 取消文件转换任务
+  ipcMain.handle('cancel-file-conversion', async (event: IpcMainInvokeEvent, requestId: string): Promise<void> => {
+    cancelTask(requestId);
+    // 取消该requestId的所有OCR任务
+    await fileConversionService.cancelOcrTasks(requestId);
+  });
+
+  // 转换DOCX到文本
+  ipcMain.handle('convert-docx-to-text', async (event: IpcMainInvokeEvent, filePath: string, requestId?: string): Promise<string> => {
+    const reqId = requestId || generateRequestId();
+    const abortController = createCancellationToken(reqId);
+    const handle = new MainProgressHandle({
+      requestId: reqId,
+      canCancel: true,
+      send: (p) => event.sender.send('global-progress', p),
+      initialMessage: 'agent.reference.progress.parsingFile',
+      initialPercentage: 0,
+    });
+    
+    try {
+      const progressCallback = (progress: { message: string; subMessage?: string; percentage: number; status?: string; params?: Record<string, any> }) => {
+        // 检查是否已取消
+        if (abortController.signal.aborted) {
+          return;
+        }
+        handle.mark(progress.percentage, {
+          message: progress.message,
+          subMessage: progress.subMessage,
+          status: progress.status as any,
+          params: progress.params
+        });
+      };
+      
+      const result = await fileConversionService.tryConvertFileToText(filePath, progressCallback, abortController.signal, reqId);
+      if (!result.success || result.text === undefined || result.text === null) {
+        throw new Error(result.error || 'DOCX转换失败');
+      }
+      
+      handle.success({ message: 'agent.reference.progress.parseCompleteGeneric' });
+      return result.text;
+    } catch (error) {
+      logger.error('DOCX转换失败:', error);
+      // 如果是取消错误，不显示错误消息
+      if (error instanceof Error && error.message === '操作已取消') {
+        handle.cancel();
+        throw error;
+      }
+      handle.fail(error instanceof Error ? error.message : String(error));
+      throw error;
+    } finally {
+      // 清理取消令牌
+      cancellationTokens.delete(reqId);
+    }
+  });
+
+  // 转换PPTX到文本
+  ipcMain.handle('convert-pptx-to-text', async (event: IpcMainInvokeEvent, filePath: string, requestId?: string): Promise<string> => {
+    const reqId = requestId || generateRequestId();
+    const abortController = createCancellationToken(reqId);
+    const handle = new MainProgressHandle({
+      requestId: reqId,
+      canCancel: true,
+      send: (p) => event.sender.send('global-progress', p),
+      initialMessage: 'agent.reference.progress.parsingFile',
+      initialPercentage: 0,
+    });
+    
+    try {
+      const progressCallback = (progress: { message: string; subMessage?: string; percentage: number; status?: string; params?: Record<string, any> }) => {
+        // 检查是否已取消
+        if (abortController.signal.aborted) {
+          return;
+        }
+        handle.mark(progress.percentage, {
+          message: progress.message,
+          subMessage: progress.subMessage,
+          status: progress.status as any,
+          params: progress.params
+        });
+      };
+      
+      const result = await fileConversionService.tryConvertFileToText(filePath, progressCallback, abortController.signal, reqId);
+      if (!result.success || result.text === undefined || result.text === null) {
+        throw new Error(result.error || 'PPTX转换失败');
+      }
+      
+      handle.success({ message: 'agent.reference.progress.parseCompleteGeneric' });
+      return result.text;
+    } catch (error) {
+      logger.error('PPTX转换失败:', error);
+      // 如果是取消错误，不显示错误消息
+      if (error instanceof Error && error.message === '操作已取消') {
+        handle.cancel();
+        throw error;
+      }
+      handle.fail(error instanceof Error ? error.message : String(error));
+      throw error;
+    } finally {
+      // 清理取消令牌
+      cancellationTokens.delete(reqId);
+    }
+  });
+
+  // 转换Excel到文本
+  ipcMain.handle('convert-excel-to-text', async (event: IpcMainInvokeEvent, filePath: string): Promise<string> => {
+    try {
+      const result = await fileConversionService.tryConvertFileToText(filePath);
+      if (!result.success || result.text === undefined || result.text === null) {
+        throw new Error(result.error || 'Excel转换失败');
+      }
+      return result.text;
+    } catch (error) {
+      logger.error('Excel转换失败:', error);
+      throw error;
+    }
+  });
+
+  // OCR识别图片（从文件路径）
+  ipcMain.handle('ocr-recognize-file', async (event: IpcMainInvokeEvent, payload: { imagePath: string; languages?: string[] }): Promise<string> => {
+    try {
+      const { imagePath, languages } = payload;
+      if (!imagePath) {
+        throw new Error('图片路径不能为空');
+      }
+      return await ocrService.recognizeFromFile(imagePath, languages);
+    } catch (error) {
+      logger.error('OCR识别失败:', error);
+      throw error;
+    }
+  });
+
+  // OCR识别图片（从Base64）
+  ipcMain.handle('ocr-recognize-base64', async (event: IpcMainInvokeEvent, payload: { base64String: string; languages?: string[] }): Promise<string> => {
+    try {
+      const { base64String, languages } = payload;
+      if (!base64String) {
+        throw new Error('Base64字符串不能为空');
+      }
+      return await ocrService.recognizeFromBase64(base64String, languages);
+    } catch (error) {
+      logger.error('OCR识别失败:', error);
+      throw error;
+    }
+  });
+
+  // 获取OCR支持的语言列表
+  ipcMain.handle('ocr-get-supported-languages', async (): Promise<string[]> => {
+    return ocrService.getSupportedLanguages();
+  });
 }
 
 function bindLoggerHandlers(): void {
@@ -347,6 +571,10 @@ function bindExportHandlers(): void {
       event.sender.send('export-error', result.error);
     }
     return result;
+  });
+
+  ipcMain.handle('cancel-export-task', async (_event: IpcMainInvokeEvent, requestId: string) => {
+    return abortExportTask(requestId);
   });
 }
 

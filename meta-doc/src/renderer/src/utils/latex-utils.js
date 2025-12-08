@@ -132,7 +132,24 @@ async function convertBlockToLatex(tokens) {
 
             case 'paragraph_open': latex += '\n\n'; break;
             case 'paragraph_close': latex += '\n\n'; break;
-            case 'text': latex += escapeLatex(token.content); break;
+            case 'text': {
+                // 检测文本是否包含 LaTeX 环境或命令
+                // 如果包含，则不转义，直接输出（因为已经是 LaTeX 代码）
+                const content = token.content || '';
+                // 检测常见的 LaTeX 环境开始标记
+                const hasLatexEnv = /\\begin\{[^}]+\}/.test(content) || 
+                                   /\\end\{[^}]+\}/.test(content) ||
+                                   /\\[a-zA-Z@]+\*?(\[[^\]]*\])?\{/.test(content);
+                
+                if (hasLatexEnv) {
+                    // 包含 LaTeX 代码，直接输出不转义
+                    latex += content;
+                } else {
+                    // 普通文本，需要转义
+                    latex += escapeLatex(content);
+                }
+                break;
+            }
 
             case 'em_open': latex += '\\emph{'; stack.push('em'); break;
             case 'em_close': if (stack.pop() === 'em') latex += '}'; break;
@@ -155,9 +172,19 @@ async function convertBlockToLatex(tokens) {
             case 'code_inline': latex += `\\texttt{${escapeLatex(token.content)}}`; break;
 
             case 'fence':
-            case 'code_block':
-                latex += `\\begin{verbatim}\n${token.content}\\end{verbatim}\n\n`;
+            case 'code_block': {
+                // 如果代码块语言是 latex，直接输出内容（不包装在 verbatim 中）
+                // 这样可以保留 figure 环境等 LaTeX 代码
+                const language = (token.info || '').trim().toLowerCase();
+                if (language === 'latex') {
+                    // 直接输出 LaTeX 代码，不转义
+                    latex += token.content;
+                } else {
+                    // 其他语言的代码块，使用 verbatim 环境
+                    latex += `\\begin{verbatim}\n${token.content}\\end{verbatim}\n\n`;
+                }
                 break;
+            }
 
             case 'blockquote_open': latex += '\\begin{quote}\n'; stack.push('quote'); break;
             case 'blockquote_close': if (stack.pop() === 'quote') latex += '\\end{quote}\n'; break;
@@ -198,7 +225,9 @@ async function convertBlockToLatex(tokens) {
                     }
                     
                     // 路径处理：使用 \detokenize 避免转义问题，保留下划线等字符
-                    normalizedPath = normalizedPath.replace(/\\/g, '/').replace(/([{}])/g, '\\$1');
+                    // 注意：\detokenize 的参数不应该被转义，因为 \detokenize 会处理所有特殊字符
+                    // 只需要统一路径分隔符即可
+                    normalizedPath = normalizedPath.replace(/\\/g, '/');
                     
                     // 对于 PDF（转换后的 SVG），使用标准的 includegraphics
                     // 使用 [H] 强制图片在当前位置，不允许浮动
@@ -273,7 +302,10 @@ async function convertBlockToLatex(tokens) {
                             console.warn('SVG 转 PDF 失败，使用原始路径:', error);
                         }
                         
-                        normalizedPath = normalizedPath.replace(/\\/g, '/').replace(/([{}])/g, '\\$1');
+                        // 路径处理：使用 \detokenize 避免转义问题，保留下划线等字符
+                        // 注意：\detokenize 的参数不应该被转义，因为 \detokenize 会处理所有特殊字符
+                        // 只需要统一路径分隔符即可
+                        normalizedPath = normalizedPath.replace(/\\/g, '/');
                         
                         // 使用 [H] 强制图片在当前位置，不允许浮动
                         latex += `
@@ -738,6 +770,9 @@ export function convertLatexToMarkdown(latex) {
     let inQuote = false;
     let inVerbatim = false;
     let inTable = false;
+    let inFigure = false;
+    let figureContent = '';
+    let figureDepth = 0;
     let tableRows = [];
     let pendingListItem = null;
     let enumerateIndex = 1;
@@ -805,13 +840,32 @@ export function convertLatexToMarkdown(latex) {
             continue;
         }
 
-        // --- itemize 列表 ---
+        // --- figure 环境 ---
+        // 完整保留 figure 环境，避免丢失 \detokenize{} 等命令
         if (line.startsWith('\\begin{figure')) {
             flushListItem();
+            inFigure = true;
+            figureDepth = 1;
+            figureContent = rawLine + '\n';
             continue;
         }
         if (line.startsWith('\\end{figure}')) {
-            flushListItem();
+            figureContent += rawLine + '\n';
+            figureDepth--;
+            if (figureDepth === 0) {
+                // 将 figure 环境作为代码块保留，这样在从大纲生成 LaTeX 时能正确恢复
+                md += '```latex\n' + figureContent + '```\n\n';
+                inFigure = false;
+                figureContent = '';
+            }
+            continue;
+        }
+        if (inFigure) {
+            // 在 figure 环境中，收集所有内容
+            if (line.startsWith('\\begin{figure')) {
+                figureDepth++;
+            }
+            figureContent += rawLine + '\n';
             continue;
         }
 
@@ -894,7 +948,8 @@ export function convertLatexToMarkdown(latex) {
         }
 
         // --- 图片 ---
-        if (line.startsWith('\\includegraphics')) {
+        // 注意：如果图片在 figure 环境中，已经在 figure 处理中包含了，这里跳过
+        if (!inFigure && line.startsWith('\\includegraphics')) {
             flushListItem();
             const match = line.match(/\\includegraphics\[.*\]\{(.+)\}/);
             if (match) {
@@ -904,7 +959,7 @@ export function convertLatexToMarkdown(latex) {
             }
             continue;
         }
-        if (line.startsWith('\\caption{')) {
+        if (!inFigure && line.startsWith('\\caption{')) {
             const caption = line.replace(/\\caption\{(.+)\}/, '$1');
             md = md.replace(/!\[\]\((.+?)\)/, `![$1]($1 "${caption}")`);
             continue;

@@ -345,6 +345,7 @@ const generate = async () => {
   const outlineNode = currentOutline.value
   if (!outlineNode) return
   generating.value = true
+  generated.value = false
   const outlineMarkdown = generateMarkdownFromOutlineTree(outlineNode)
 
   // 根据语言类型使用不同的提示词
@@ -358,14 +359,21 @@ const generate = async () => {
     fullText,
     props.language
   )
-  const { done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'section-optimizer')
-  generating.value = true
-  generated.value = false
-
+  
   try {
+    const { done } = createAiTask(
+      props.title, 
+      prompt, 
+      generatedText, 
+      ai_types.answer, 
+      'section-optimizer',
+      { stream: true }
+    )
     await done
   } catch (err) {
-    //console.warn('任务失败或取消：', err);
+    console.warn('段落优化任务失败或取消：', err)
+    generating.value = false
+    generated.value = false
   } finally {
     generated.value = true
     generating.value = false

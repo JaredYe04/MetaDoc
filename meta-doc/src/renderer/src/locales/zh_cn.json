@@ -538,7 +538,10 @@
             },
             "saveAllSuccess": "全部文档已保存",
             "saveAllPartial": "部分文档保存失败（{count}）",
-            "saveAllNone": "未保存任何文档"
+            "saveAllNone": "未保存任何文档",
+            "fileSynced": "文件已同步",
+            "keptCurrentVersion": "已保留当前版本",
+            "mergedConflicts": "冲突已合并"
         },
         "windows": {
             "appTitle": "MetaDoc",
@@ -552,6 +555,17 @@
             "openFileTitle": "打开文件",
             "saveFileTitle": "保存文件",
             "exportDocumentTitle": "导出文档",
+            "fileConflictTitle": "文件冲突",
+            "fileConflictMessage": "文件 \"{fileName}\" 已在外部被修改，且当前有未保存的改动。请选择如何处理。",
+            "fileConflictMessageWithConflicts": "文件 \"{fileName}\" 有 {unresolvedCount} 处冲突需要解决。请为每个冲突选择使用 MetaDoc 版本或磁盘版本。",
+            "currentVersion": "当前版本（MetaDoc）",
+            "externalVersion": "外部版本（磁盘）",
+            "useExternalVersion": "使用外部版本",
+            "useCurrentVersion": "使用 MetaDoc",
+            "keepCurrentVersion": "保留当前版本",
+            "conflictBlock": "冲突 {index}",
+            "conflictsList": "冲突列表 ({count})",
+            "mergeConflicts": "合并",
             "filters": {
                 "supportedDocuments":"支持的文件类型",
                 "markdown": "Markdown 文件",

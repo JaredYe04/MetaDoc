@@ -50,6 +50,7 @@ import { createMainLogger, handleRendererLog, getLoggerConfig, getLoggerHistory,
 import { getServiceStatus } from './service-status';
 import type { LogPayload, LogLevel } from '../common/logger-constants';
 import { t } from './i18n';
+import { fileWatcherService } from './utils/file-watcher-service';
 
 // ============ 取消令牌管理 ============
 // 维护requestId到AbortController的映射，用于取消异步任务
@@ -533,6 +534,45 @@ function bindFileHandlers(): void {
   // 获取OCR支持的语言列表
   ipcMain.handle('ocr-get-supported-languages', async (): Promise<string[]> => {
     return ocrService.getSupportedLanguages();
+  });
+
+  // ============ 文件监听处理器 ============
+  
+  // 启动文件监听
+  ipcMain.on('watch-file', (event: IpcMainEvent, filePath: string, tabId?: string) => {
+    try {
+      if (!filePath) {
+        logger.warn('文件路径为空，无法启动监听');
+        return;
+      }
+      fileWatcherService.watchFile(filePath, event.sender, tabId);
+    } catch (error) {
+      logger.error('启动文件监听失败', { filePath, error });
+    }
+  });
+
+  // 停止文件监听
+  ipcMain.on('unwatch-file', (event: IpcMainEvent, filePath: string) => {
+    try {
+      if (!filePath) {
+        return;
+      }
+      fileWatcherService.unwatchFile(filePath);
+    } catch (error) {
+      logger.error('停止文件监听失败', { filePath, error });
+    }
+  });
+
+  // 更新文件监听的标签页 ID
+  ipcMain.on('update-file-watcher-tab-id', (event: IpcMainEvent, filePath: string, tabId: string) => {
+    try {
+      if (!filePath || !tabId) {
+        return;
+      }
+      fileWatcherService.updateTabId(filePath, tabId);
+    } catch (error) {
+      logger.error('更新文件监听标签页 ID 失败', { filePath, tabId, error });
+    }
   });
 }
 
@@ -1594,7 +1634,13 @@ const saveInternal = async (
       return null;
   }
 
+  // 标记文件正在保存，避免触发文件监听
+  const normalizedPath = path.normalize(filePath);
+  fileWatcherService.markFileAsSaving(normalizedPath, 2000); // 2秒内忽略文件变化
+
+  // 写入文件
   fs.writeFileSync(filePath, content);
+  
   return {
     path: filePath,
     format,

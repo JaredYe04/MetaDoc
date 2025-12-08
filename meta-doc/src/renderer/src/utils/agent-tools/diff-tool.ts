@@ -138,8 +138,9 @@ async function loadTextFromUrl(url: string, signal?: AbortSignal): Promise<strin
 
 /**
  * 简单的行级diff算法（基于最长公共子序列）
+ * 导出以供其他组件使用
  */
-function computeDiff(oldText: string, newText: string): DiffResult {
+export function computeDiff(oldText: string, newText: string): DiffResult {
   const oldLines = oldText.split(/\r?\n/)
   const newLines = newText.split(/\r?\n/)
 

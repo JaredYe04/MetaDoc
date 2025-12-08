@@ -26,11 +26,26 @@
     <NotificationQueue />
     <AITaskQueue />
     <LoggerConsolePanel />
+    
+    <!-- 文件冲突对话框 -->
+    <FileConflictDialog
+      v-if="fileConflictData"
+      v-model:visible="fileConflictDialogVisible"
+      :fileName="getConflictFileName()"
+      :current-content="fileConflictData.currentContent"
+      :external-content="fileConflictData.externalContent"
+      :saved-content="fileConflictData.savedContent"
+      :format="fileConflictData.format"
+      :merge-result="fileConflictData.mergeResult"
+      @use-external="handleFileConflictUseExternal"
+      @keep-current="handleFileConflictKeepCurrent"
+      @merge="handleFileConflictMerge"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import path from 'path'
+// 不使用 Node.js path 模块，在浏览器环境中使用字符串操作
 import LeftMenu from '../components/LeftMenu.vue'
 import HeadMenu from '../components/HeadMenu.vue'
 import { onMounted, onBeforeUnmount, ref } from 'vue'
@@ -53,6 +68,7 @@ import BottomMenu from '../components/BottomMenu.vue'
 import AITaskQueue from '../components/AITaskQueue.vue'
 import NotificationQueue from '../components/NotificationQueue.vue'
 import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
+import FileConflictDialog from '../components/FileConflictDialog.vue'
 import { useRouter, useRoute } from 'vue-router'
 const { t } = useI18n()
 
@@ -70,6 +86,8 @@ const {
   ensureDocument,
   markDocumentSaved,
   removeTab,
+  updateDocumentTex,
+  updateDocumentMarkdown,
 } = workspace
 
 const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value))
@@ -119,13 +137,7 @@ const handleWorkspaceOpenDocument = (payload: OpenDocumentPayload) => {
       return title
     }
     if (filePath) {
-      try {
-        return path.basename(filePath)
-      } catch (error) {
-        logger.warn('解析文件名失败', error)
-        const segments = filePath.split(/[\\/]/)
-        return segments[segments.length - 1] || filePath
-      }
+      return extractFileName(filePath) || filePath
     }
     return t('workspace.untitledDocument')
   }
@@ -278,12 +290,31 @@ eventBus.on('save-success', (payload) => {
   eventBus.emit('is-need-save', false)
 });
 
-eventBus.on('open-doc-success', (payload) => {
+eventBus.on('open-doc-success', async (payload) => {
   let tabId
   if (payload && typeof payload === 'object' && 'tabId' in payload) {
     const value = payload.tabId
     if (typeof value === 'string') {
       tabId = value
+    }
+  }
+  
+  // 启动文件监听（如果文件路径存在）
+  if (payload && typeof payload === 'object' && 'path' in payload && payload.path) {
+    const filePath = payload.path as string
+    // 获取 ipcRenderer
+    let ipcRenderer: any = null
+    if (window && (window as any).electron) {
+      ipcRenderer = (window as any).electron.ipcRenderer
+    } else {
+      const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
+      ipcRenderer = localIpcRenderer
+    }
+    
+    if (ipcRenderer) {
+      // 启动文件监听
+      ipcRenderer.send('watch-file', filePath, tabId)
+      logger.debug('启动文件监听', { filePath, tabId })
     }
   }
 });
@@ -368,6 +399,127 @@ const handleCloseActiveTabRequest = async () => {
 }
 
 eventBus.on('close-active-tab', handleCloseActiveTabRequest)
+
+// 文件冲突对话框状态
+const fileConflictDialogVisible = ref(false)
+const fileConflictData = ref<{
+  tabId: string
+  filePath: string
+  externalContent: string
+  currentContent: string
+  savedContent: string
+  format: 'md' | 'tex'
+  mergeResult?: {
+    hasConflict: boolean
+    conflictRanges?: Array<{
+      start: number
+      end: number
+      baseText: string
+      currentText: string
+      externalText: string
+    }>
+  }
+} | null>(null)
+
+// 处理文件冲突
+eventBus.on('file-conflict-detected', (payload: unknown) => {
+  const conflictPayload = payload as {
+    tabId: string
+    filePath: string
+    externalContent: string
+    currentContent: string
+    savedContent: string
+    format: 'md' | 'tex'
+    mergeResult?: {
+      hasConflict: boolean
+      conflictRanges?: Array<{
+        start: number
+        end: number
+        baseText: string
+        currentText: string
+        externalText: string
+      }>
+    }
+  }
+  
+  const { tabId, filePath, externalContent, currentContent, savedContent, format, mergeResult } = conflictPayload
+  
+  // 显示冲突对话框
+  fileConflictData.value = {
+    tabId,
+    filePath,
+    externalContent,
+    currentContent,
+    savedContent,
+    format,
+    mergeResult
+  }
+  fileConflictDialogVisible.value = true
+})
+
+// 处理冲突对话框的选择
+const handleFileConflictUseExternal = () => {
+  if (!fileConflictData.value) return
+  
+  const { tabId, filePath, externalContent, format } = fileConflictData.value
+  const doc = ensureDocument(tabId)
+  
+  if (doc) {
+    // 注意：externalContent 已经是移除 meta-info 后的内容
+    // MetaDoc 会在下次保存时自动注入自己的 meta-info，所以这里不需要额外处理
+    if (format === 'tex') {
+      updateDocumentTex(tabId, externalContent)
+    } else {
+      updateDocumentMarkdown(tabId, externalContent)
+    }
+    markDocumentSaved(tabId, filePath)
+    eventBus.emit('show-info', t('main.notification.fileSynced', { defaultValue: '已同步外部文件更改' }))
+  }
+  
+  fileConflictDialogVisible.value = false
+  fileConflictData.value = null
+}
+
+const handleFileConflictKeepCurrent = () => {
+  if (!fileConflictData.value) return
+  
+  eventBus.emit('show-info', t('main.notification.keptCurrentVersion', { defaultValue: '已保留当前版本' }))
+  fileConflictDialogVisible.value = false
+  fileConflictData.value = null
+}
+
+const handleFileConflictMerge = (mergedContent: string) => {
+  if (!fileConflictData.value) return
+  
+  const { tabId, filePath, format } = fileConflictData.value
+  const doc = ensureDocument(tabId)
+  
+  if (doc) {
+    // 应用合并后的内容
+    if (format === 'tex') {
+      updateDocumentTex(tabId, mergedContent)
+    } else {
+      updateDocumentMarkdown(tabId, mergedContent)
+    }
+    // 注意：不调用 markDocumentSaved，因为合并后的内容可能仍然与外部文件不同
+    eventBus.emit('show-info', t('main.notification.mergedConflicts', { defaultValue: '冲突已合并' }))
+  }
+  
+  fileConflictDialogVisible.value = false
+  fileConflictData.value = null
+}
+
+// 提取文件名（不依赖 Node.js path 模块）
+const extractFileName = (fullPath: string): string => {
+  if (!fullPath) return ''
+  const segments = fullPath.split(/[/\\]+/).filter(Boolean)
+  return segments[segments.length - 1] ?? ''
+}
+
+const getConflictFileName = () => {
+  if (!fileConflictData.value) return ''
+  return extractFileName(fileConflictData.value.filePath)
+}
 
 eventBus.on('show-error', (message) => {
   ElNotification({

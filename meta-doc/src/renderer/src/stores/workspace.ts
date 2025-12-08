@@ -303,14 +303,44 @@ function removeTab(id: string): void {
   const index = tabs.findIndex((tab) => tab.id === id);
   if (index === -1) return;
 
+  const tab = tabs[index];
+  const doc = documents[id];
   const wasActive = activeTabId.value === id;
+  
+  // 停止文件监听（如果文件路径存在）
+  if (doc && doc.path) {
+    // 异步停止文件监听（避免阻塞）
+    (async () => {
+      try {
+        // 获取 ipcRenderer
+        let ipcRenderer: any = null;
+        if (typeof window !== 'undefined' && (window as any).electron) {
+          ipcRenderer = (window as any).electron.ipcRenderer;
+        } else {
+          // 在非 Electron 环境中，使用 localIpcRenderer
+          const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer');
+          ipcRenderer = localIpcRenderer;
+        }
+        
+        if (ipcRenderer) {
+          ipcRenderer.send('unwatch-file', doc.path);
+          const logger = createRendererLogger('Workspace');
+          logger.debug('停止文件监听', { filePath: doc.path, tabId: id });
+        }
+      } catch (error) {
+        const logger = createRendererLogger('Workspace');
+        logger.warn('停止文件监听失败', { filePath: doc.path, tabId: id, error });
+      }
+    })();
+  }
+  
   tabs.splice(index, 1);
   delete documents[id];
 
   if (!tabs.length) {
-    const tab = createNewDocumentTabInternal();
-    activeTabId.value = tab.id;
-    updateDocumentDirty(tab.id);
+    const newTab = createNewDocumentTabInternal();
+    activeTabId.value = newTab.id;
+    updateDocumentDirty(newTab.id);
     return;
   }
 
@@ -510,7 +540,7 @@ function updateDocumentOutline(tabId: string, outline: DocumentOutlineNode): voi
  * @param tabId 标签页ID
  * @param dialogs 新的AI对话消息
  */
-function updateDocumentAiDialogs(tabId: string, dialogs: AIDialogMessage[]): void {
+function updateDocumentAiDialogs(tabId: string, dialogs: AIDialog[]): void {
   const doc = ensureDocument(tabId);
   const serialized = JSON.stringify(dialogs);
   if (JSON.stringify(doc.aiDialogs) !== serialized) {
@@ -602,6 +632,8 @@ function syncTabMetadataFromDocument(tabId: string): void {
 
 function markDocumentSaved(tabId: string, newPath?: string): void {
   const doc = ensureDocument(tabId);
+  const oldPath = doc.path;
+  
   if (typeof newPath === 'string') {
     doc.path = newPath;
   }
@@ -626,6 +658,70 @@ function markDocumentSaved(tabId: string, newPath?: string): void {
 
   if (activeTabId.value === tabId) {
     eventBus.emit('is-need-save', false);
+  }
+  
+  // 如果路径发生变化，更新文件监听
+  if (typeof newPath === 'string' && newPath !== oldPath && newPath) {
+    // 异步更新文件监听（避免阻塞）
+    (async () => {
+      try {
+        // 停止旧路径的监听
+        if (oldPath) {
+          let ipcRenderer: any = null;
+          if (typeof window !== 'undefined' && (window as any).electron) {
+            ipcRenderer = (window as any).electron.ipcRenderer;
+          } else {
+            const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer');
+            ipcRenderer = localIpcRenderer;
+          }
+          
+          if (ipcRenderer) {
+            ipcRenderer.send('unwatch-file', oldPath);
+          }
+        }
+        
+        // 启动新路径的监听
+        let ipcRenderer: any = null;
+        if (typeof window !== 'undefined' && (window as any).electron) {
+          ipcRenderer = (window as any).electron.ipcRenderer;
+        } else {
+          const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer');
+          ipcRenderer = localIpcRenderer;
+        }
+        
+        if (ipcRenderer) {
+          ipcRenderer.send('watch-file', newPath, tabId);
+          ipcRenderer.send('update-file-watcher-tab-id', newPath, tabId);
+          const logger = createRendererLogger('Workspace');
+          logger.debug('更新文件监听路径', { oldPath, newPath, tabId });
+        }
+      } catch (error) {
+        const logger = createRendererLogger('Workspace');
+        logger.warn('更新文件监听失败', { oldPath, newPath, tabId, error });
+      }
+    })();
+  } else if (doc.path && !oldPath) {
+    // 如果是从无路径到有路径（首次保存），启动文件监听
+    (async () => {
+      try {
+        let ipcRenderer: any = null;
+        if (typeof window !== 'undefined' && (window as any).electron) {
+          ipcRenderer = (window as any).electron.ipcRenderer;
+        } else {
+          const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer');
+          ipcRenderer = localIpcRenderer;
+        }
+        
+        if (ipcRenderer) {
+          ipcRenderer.send('watch-file', doc.path, tabId);
+          const logger = createRendererLogger('Workspace');
+          logger.debug('启动文件监听（首次保存）', { filePath: doc.path, tabId });
+        }
+      } catch (error) {
+        const logger = createRendererLogger('Workspace');
+        logger.warn('启动文件监听失败', { filePath: doc.path, tabId, error });
+      }
+    })();
   }
 }
 
@@ -772,14 +868,222 @@ async function saveAllDocuments(): Promise<{ saved: string[]; failed: string[] }
 
 // ===== 跨窗口文档信息获取（用于设置窗口的Agent Tool测试） =====
 import { sendBroadcast } from '../utils/event-bus'
+import { mergeText } from '../utils/text-merge.js';
+import { removeMetaInfo } from '../utils/meta-info-remover';
 
 /**
  * 初始化workspace的跨窗口事件监听器
  * 应该在应用启动时调用，而不是在模块加载时
  */
+/**
+ * 处理外部文件变化
+ * 实现类似 VSCode 的文件自动同步功能
+ * 使用异步处理和防抖，避免阻塞主线程
+ */
+function handleExternalFileChange(payload: unknown): void {
+  const typedPayload = payload as {
+    filePath: string;
+    tabId?: string;
+    content: string;
+    modifiedTime: number;
+    diff?: Array<{
+      type: 'insert' | 'delete' | 'replace';
+      start: number;
+      end: number;
+      newText: string;
+    }>;
+  };
+  
+  const logger = createRendererLogger('Workspace');
+  
+  // 异步处理，避免阻塞主线程
+  Promise.resolve().then(async () => {
+    const { filePath, tabId, content, modifiedTime, diff } = typedPayload;
+    // 查找匹配的标签页
+    const matchingTab = tabs.find(tab => {
+      if (tabId && tab.id === tabId) return true;
+      const doc = documents[tab.id];
+      return doc && doc.path === filePath;
+    });
+    
+    if (!matchingTab) {
+      logger.debug('文件变化但未找到匹配的标签页', { filePath, tabId });
+      return;
+    }
+    
+    const doc = ensureDocument(matchingTab.id);
+    if (!doc) {
+      logger.warn('无法获取文档', { tabId: matchingTab.id });
+      return;
+    }
+    
+    // 获取当前编辑器内容（根据格式）
+    const currentContent = doc.format === 'tex' ? (doc.tex ?? '') : (doc.markdown ?? '');
+    const savedContent = doc.format === 'tex' ? (doc.savedTex ?? '') : (doc.savedMarkdown ?? '');
+    
+    // 规范化内容（统一换行符）
+    const normalizeContent = (text: string) => text.replace(/\r\n/g, '\n');
+    
+    // 移除 meta-info 以便比较（meta-info 是 MetaDoc 注入的，不应该参与比较）
+    const externalContentWithoutMeta = removeMetaInfo(content, doc.format);
+    const currentContentWithoutMeta = removeMetaInfo(currentContent, doc.format);
+    const savedContentWithoutMeta = removeMetaInfo(savedContent, doc.format);
+    
+    const normalizedExternal = normalizeContent(externalContentWithoutMeta);
+    const normalizedCurrent = normalizeContent(currentContentWithoutMeta);
+    const normalizedSaved = normalizeContent(savedContentWithoutMeta);
+    
+    // 情况1：外部文件内容与已保存内容相同（文件被外部恢复或撤销）
+    if (normalizedExternal === normalizedSaved) {
+      // 如果当前有未保存的改动，保留这些改动
+      if (normalizedCurrent !== normalizedSaved) {
+        logger.info('外部文件已恢复为已保存版本，保留未保存的改动', { filePath });
+        // 不更新内容，保留用户的未保存改动
+        return;
+      }
+      // 如果当前内容与已保存内容相同，直接同步外部文件
+      logger.info('外部文件已恢复为已保存版本，同步更新', { filePath });
+      // 使用移除 meta-info 后的内容
+      if (doc.format === 'tex') {
+        updateDocumentTex(matchingTab.id, externalContentWithoutMeta);
+      } else {
+        updateDocumentMarkdown(matchingTab.id, externalContentWithoutMeta);
+      }
+      markDocumentSaved(matchingTab.id, filePath);
+      return;
+    }
+    
+    // 情况2：外部文件内容与当前编辑器内容相同（可能是我们自己的保存操作触发的）
+    if (normalizedExternal === normalizedCurrent) {
+      logger.debug('外部文件内容与当前编辑器内容相同，忽略', { filePath });
+      // 更新已保存内容，但不触发dirty状态
+      if (doc.format === 'tex') {
+        doc.savedTex = content;
+      } else {
+        doc.savedMarkdown = content;
+      }
+      updateDocumentDirty(matchingTab.id);
+      return;
+    }
+    
+    // 情况3：外部文件内容与已保存内容不同，且与当前编辑器内容也不同
+    // 检查当前是否有未保存的改动
+    const hasUnsavedChanges = normalizedCurrent !== normalizedSaved;
+    
+    if (hasUnsavedChanges) {
+      // 有未保存的改动，尝试智能合并
+      logger.info('检测到外部文件修改且当前有未保存改动，尝试智能合并', { 
+        filePath,
+        externalSize: normalizedExternal.length,
+        currentSize: normalizedCurrent.length,
+        savedSize: normalizedSaved.length
+      });
+      
+      // 执行三路合并（使用移除 meta-info 后的内容，避免 meta-info 干扰合并）
+      const mergeResult = mergeText(savedContentWithoutMeta, currentContentWithoutMeta, externalContentWithoutMeta);
+      
+      // 只要有冲突，就弹出对话框让用户选择，不自动合并
+      if (mergeResult.hasConflict) {
+        // 有冲突，需要用户决定
+        logger.warn('检测到文件冲突：需要用户选择', { 
+          filePath,
+          conflictCount: mergeResult.conflictRanges?.length || 0
+        });
+        
+        // 发送冲突事件，让UI组件处理（显示对话框等）
+        // 注意：传递移除 meta-info 后的内容，这样 diff 窗口不会显示 meta-info 的差异
+        eventBus.emit('file-conflict-detected', {
+          tabId: matchingTab.id,
+          filePath,
+          externalContent: externalContentWithoutMeta, // 移除 meta-info
+          currentContent: currentContentWithoutMeta, // 移除 meta-info
+          savedContent: savedContentWithoutMeta, // 移除 meta-info
+          format: doc.format,
+          mergeResult: mergeResult,
+        });
+      } else if (mergeResult.success) {
+        // 合并成功，没有冲突，自动应用合并结果
+        logger.info('智能合并成功，自动应用合并结果', { filePath });
+        // 使用 nextTick 确保在下一个事件循环中更新，避免阻塞
+        await new Promise(resolve => setTimeout(resolve, 0));
+        // 注意：mergeResult.mergedContent 已经是移除 meta-info 后的内容，直接使用
+        if (doc.format === 'tex') {
+          updateDocumentTex(matchingTab.id, mergeResult.mergedContent);
+        } else {
+          updateDocumentMarkdown(matchingTab.id, mergeResult.mergedContent);
+        }
+        // 注意：不调用 markDocumentSaved，因为合并后的内容可能仍然与外部文件不同
+        // 用户可以选择保存或继续编辑
+        eventBus.emit('show-info', '已自动合并外部文件更改，未保存的改动已保留');
+      } else {
+        // 合并失败，也弹出对话框
+        logger.warn('文件合并失败，需要用户选择', { filePath });
+        eventBus.emit('file-conflict-detected', {
+          tabId: matchingTab.id,
+          filePath,
+          externalContent: externalContentWithoutMeta, // 移除 meta-info
+          currentContent: currentContentWithoutMeta, // 移除 meta-info
+          savedContent: savedContentWithoutMeta, // 移除 meta-info
+          format: doc.format,
+          mergeResult: mergeResult,
+        });
+      }
+    } else {
+      // 没有未保存的改动，直接同步外部文件
+      logger.info('外部文件已修改，自动同步（无未保存改动）', { filePath });
+      // 使用 nextTick 确保在下一个事件循环中更新，避免阻塞
+      await new Promise(resolve => setTimeout(resolve, 0));
+      // 注意：使用移除 meta-info 后的内容，这样不会把外部文件的 meta-info 带进来
+      // MetaDoc 会在保存时自动注入自己的 meta-info
+      if (doc.format === 'tex') {
+        updateDocumentTex(matchingTab.id, externalContentWithoutMeta);
+      } else {
+        updateDocumentMarkdown(matchingTab.id, externalContentWithoutMeta);
+      }
+      markDocumentSaved(matchingTab.id, filePath);
+    }
+  }).catch(error => {
+    logger.error('处理外部文件变化失败', { filePath: typedPayload.filePath, error });
+  });
+}
+
+/**
+ * 处理外部文件删除
+ */
+function handleExternalFileDeleted(payload: unknown): void {
+  const typedPayload = payload as { filePath: string; tabId?: string };
+  const { filePath, tabId } = typedPayload;
+  const logger = createRendererLogger('Workspace');
+  
+  // 查找匹配的标签页
+  const matchingTab = tabs.find(tab => {
+    if (tabId && tab.id === tabId) return true;
+    const doc = documents[tab.id];
+    return doc && doc.path === filePath;
+  });
+  
+  if (!matchingTab) {
+    logger.debug('文件删除但未找到匹配的标签页', { filePath, tabId });
+    return;
+  }
+  
+  logger.info('检测到文件被删除', { filePath, tabId: matchingTab.id });
+  
+  // 发送文件删除事件，让UI组件处理
+  eventBus.emit('external-file-deleted-for-tab', {
+    tabId: matchingTab.id,
+    filePath: typedPayload.filePath,
+  });
+}
+
 export function initializeWorkspaceBroadcastListeners(): void {
+  // 监听外部文件变化事件
+  eventBus.on('external-file-changed', handleExternalFileChange);
+  eventBus.on('external-file-deleted', handleExternalFileDeleted);
+  
   // 监听来自设置窗口的文档信息请求
-  eventBus.on('request-active-document-info', (requestId: string) => {
+  eventBus.on('request-active-document-info', (requestId: unknown) => {
+    const typedRequestId = requestId as string;
     const doc = activeDocument.value
     if (!doc) {
       sendBroadcast('setting', 'response-active-document-info', {
@@ -797,7 +1101,7 @@ export function initializeWorkspaceBroadcastListeners(): void {
 
     // 发送文档信息（不包含完整内容，只包含必要信息）
     sendBroadcast('setting', 'response-active-document-info', {
-      requestId,
+      requestId: typedRequestId,
       document: {
         id: doc.id,
         tabId: doc.tabId,
@@ -813,7 +1117,8 @@ export function initializeWorkspaceBroadcastListeners(): void {
   })
 
   // 监听来自设置窗口的文档内容请求
-  eventBus.on('request-document-content', (requestId: string) => {
+  eventBus.on('request-document-content', (requestId: unknown) => {
+    const typedRequestId = requestId as string;
     const doc = activeDocument.value
     if (!doc) {
       sendBroadcast('setting', 'response-document-content', {
@@ -825,7 +1130,7 @@ export function initializeWorkspaceBroadcastListeners(): void {
     }
 
     sendBroadcast('setting', 'response-document-content', {
-      requestId,
+      requestId: typedRequestId,
       content: {
         markdown: doc.markdown,
         tex: doc.tex,
@@ -867,6 +1172,8 @@ export function useWorkspace() {
     saveAllDocuments,
     supportedFormats: getSupportedFormats(),
     withAutoOutlineSyncSuppressed,
+    handleExternalFileChange,
+    handleExternalFileDeleted,
   };
 }
 

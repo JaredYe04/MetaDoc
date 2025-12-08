@@ -168,23 +168,50 @@ const handleWorkspaceOpenDocument = (payload: OpenDocumentPayload) => {
     snapshot.path = resolvedPath
     snapshot.dirty = false
 
-    const tab = addDocumentTab(snapshot, {
-      kind: 'file',
-      dirty: false,
-      path: resolvedPath,
-      format: loaded.format,
-    })
-    const doc = ensureDocument(tab.id)
-    doc.path = resolvedPath
-    doc.format = loaded.format
-    markDocumentSaved(tab.id, resolvedPath || undefined)
+    // 检查当前活跃的tab是否是新建文档（可以替换）
+    const currentTab = workspaceTabs.find(tab => tab.id === activeTabId.value)
+    const canUseCurrentTab = currentTab && 
+      (currentTab.kind === 'new' || !currentTab.path || currentTab.path === '') &&
+      !currentTab.dirty
+
+    let tab
+    if (canUseCurrentTab && resolvedPath) {
+      // 在当前tab中打开文档，替换新建文档
+      const currentDoc = ensureDocument(currentTab.id)
+      // 更新当前文档的内容
+      Object.assign(currentDoc, snapshot)
+      currentDoc.id = currentTab.id
+      currentDoc.tabId = currentTab.id
+      
+      // 更新tab信息
+      currentTab.kind = 'file'
+      currentTab.path = resolvedPath
+      currentTab.format = loaded.format
+      currentTab.dirty = false
+      
+      markDocumentSaved(currentTab.id, resolvedPath || undefined)
+      tab = currentTab
+    } else {
+      // 创建新tab
+      tab = addDocumentTab(snapshot, {
+        kind: 'file',
+        dirty: false,
+        path: resolvedPath,
+        format: loaded.format,
+      })
+      const doc = ensureDocument(tab.id)
+      doc.path = resolvedPath
+      doc.format = loaded.format
+      markDocumentSaved(tab.id, resolvedPath || undefined)
+    }
+    
     activateTab(tab.id)
     activated = true
 
     eventBus.emit('open-doc-success', {
       tabId: tab.id,
       path: resolvedPath,
-      fileName: getDisplayName(doc, resolvedPath)
+      fileName: getDisplayName(ensureDocument(tab.id), resolvedPath)
     })
     eventBus.emit('is-need-save', false)
   } catch (error) {

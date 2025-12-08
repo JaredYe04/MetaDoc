@@ -1504,7 +1504,7 @@ const updateRecentDocs = async (data: UpdateRecentDocsData): Promise<void> => {
   recentDocs = recentDocs.filter((item) => item !== data.path);
   recentDocs.unshift(data.path);
   
-  if (recentDocs.length > 5) {
+  if (recentDocs.length > 50) {
     recentDocs.pop();
   }
 

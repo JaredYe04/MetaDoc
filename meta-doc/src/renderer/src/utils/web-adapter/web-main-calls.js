@@ -55,10 +55,10 @@ const updateRecentDocs = async (data) => {
   const json = store.get('recent-docs')
   //如果没有recent-docs，初始化一个空数组
   let recentDocs = json ? JSON.parse(json) : []
-  //模拟双向栈，最新打开的文档在最前面，如果超过5个，删除最后一个；最新的文档可能已经在最前面，需要删除后再插入
+  //模拟双向栈，最新打开的文档在最前面，如果超过50个，删除最后一个；最新的文档可能已经在最前面，需要删除后再插入
   recentDocs = recentDocs.filter((item) => item != data.path)
   recentDocs.unshift(data.path)
-  if (recentDocs.length > 5) {
+  if (recentDocs.length > 50) {
     recentDocs.pop()
   }
 

@@ -441,6 +441,7 @@
         }
     },
     "home": {
+      "recentDocuments":"最近文档",
         "metaDoc": "MetaDoc智能文字处理软件",
         "tooltip": {
             "quickStart": "快速开始：快速生成一篇文档",

@@ -29,6 +29,57 @@
         </el-tooltip>
       </div>
 
+      <!-- 最近文档列表 -->
+      <div 
+        v-if="showWelcome && recentDocs.length > 0" 
+        class="recent-docs-container aero-div"
+        :style="{
+          borderColor: themeState.currentTheme.borderColor || 'rgba(0, 0, 0, 0.1)'
+        }"
+      >
+        <h3 class="recent-docs-title" :style="{ color: themeState.currentTheme.textColor }">
+          {{ $t('home.recentDocuments') || '最近文档' }}
+        </h3>
+        <!-- 当文档数量超过8条时使用滚动条 -->
+        <el-scrollbar v-if="recentDocs.length > 8" class="recent-docs-scrollbar">
+          <div class="recent-docs-list">
+            <div
+              v-for="docPath in recentDocs"
+              :key="docPath"
+              class="recent-doc-item"
+              @click="openRecentDoc(docPath)"
+              :style="{
+                backgroundColor: themeState.currentTheme.background2nd,
+                color: themeState.currentTheme.textColor
+              }"
+            >
+              <el-icon class="recent-doc-icon">
+                <Document />
+              </el-icon>
+              <span class="recent-doc-name">{{ getFileName(docPath) }}</span>
+            </div>
+          </div>
+        </el-scrollbar>
+        <!-- 当文档数量不超过8条时直接显示 -->
+        <div v-else class="recent-docs-list">
+          <div
+            v-for="docPath in recentDocs"
+            :key="docPath"
+            class="recent-doc-item"
+            @click="openRecentDoc(docPath)"
+            :style="{
+              backgroundColor: themeState.currentTheme.background2nd,
+              color: themeState.currentTheme.textColor
+            }"
+          >
+            <el-icon class="recent-doc-icon">
+              <Document />
+            </el-icon>
+            <span class="recent-doc-name">{{ getFileName(docPath) }}</span>
+          </div>
+        </div>
+      </div>
+
       <div v-else class="document-preview">
         <el-scrollbar class="md-metainfo" min-size="10">
           <h1 class="md-title" :style="{ color: themeState.currentTheme.textColor }">
@@ -83,6 +134,9 @@ import type { IpcRendererLike } from '../utils/particle-effect'
 import Vditor from 'vditor'
 import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn'
 import { preRenderAllCharts } from '../utils/chart-pre-renderer'
+import { getRecentDocs } from '../utils/settings'
+import { Document } from '@element-plus/icons-vue'
+import path from 'path'
 
 const { t } = useI18n()
 
@@ -103,6 +157,7 @@ const {
 const { activeDocument } = useActiveDocument()
 
 const quickStartStage = ref<'inactive' | 'format' | 'markdown' | 'latex'>('inactive')
+const recentDocs = ref<string[]>([])
 
 const currentFilePath = computed(() => activeDocument.value?.path ?? '')
 const metaTitle = computed(() => activeDocument.value?.meta?.title ?? '')
@@ -162,10 +217,48 @@ const openFile = () => {
   eventBus.emit('open-doc')
 }
 
+// 获取文件名
+const getFileName = (filePath: string): string => {
+  if (!filePath) return ''
+  try {
+    return path.basename(filePath)
+  } catch (error) {
+    const segments = filePath.split(/[/\\]+/).filter(Boolean)
+    return segments[segments.length - 1] || filePath
+  }
+}
+
+// 打开最近文档
+const openRecentDoc = (filePath: string) => {
+  eventBus.emit('open-doc', filePath)
+}
+
 // 粒子效果初始化
 const logger = createRendererLogger('Home', {
   windowTypeProvider: () => getWindowType()
 })
+
+// 加载最近文档列表
+const loadRecentDocs = async () => {
+  try {
+    recentDocs.value = await getRecentDocs()
+  } catch (error) {
+    logger.warn('加载最近文档失败', error)
+    recentDocs.value = []
+  }
+}
+
+// 定义事件处理器（需要在onMounted之前定义）
+const handleDocOpenSuccess = () => {
+  loadRecentDocs()
+}
+
+const handleDocOpen = () => {
+  // 延迟一下，确保更新完成
+  setTimeout(() => {
+    loadRecentDocs()
+  }, 100)
+}
 
 let ipcRenderer: IpcRendererLike | null = null
 if (maybeWindow?.electron?.ipcRenderer) {
@@ -264,7 +357,7 @@ const renderPreview = async () => {
     }
     
     // 预渲染所有图表（Mermaid, ECharts 等）
-    await preRenderAllCharts(markdown, cdn)
+    await preRenderAllCharts(markdown, cdn, 'md', undefined)
     
   } catch (error) {
     logger.error('渲染预览失败', error)
@@ -290,6 +383,15 @@ onMounted(() => {
     quickStartStage.value = 'format'
   })
   
+  // 加载最近文档列表
+  loadRecentDocs()
+  
+  // 监听文档打开成功事件，刷新最近文档列表
+  eventBus.on('open-doc-success', handleDocOpenSuccess)
+  
+  // 监听文档打开事件，也刷新列表（因为updateRecentDocs可能在打开前调用）
+  eventBus.on('open-doc', handleDocOpen)
+  
   // 初始渲染
   nextTick(() => {
     renderPreview()
@@ -301,6 +403,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', () => particleEffectInstance.handleWindowResize())
   particleEffectInstance.dispose()
   eventBus.off('open-quickstart')
+  eventBus.off('open-doc-success', handleDocOpenSuccess)
+  eventBus.off('open-doc', handleDocOpen)
 })
 
 const handleTabChange = (id: string) => {
@@ -445,5 +549,65 @@ const handleCloseTab = (id: string) => {
 .md-metainfo :deep(.el-scrollbar__wrap) {
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+/* 最近文档容器 */
+.recent-docs-container {
+  width: 80vw;
+  max-width: 800px;
+  margin-top: 32px;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recent-docs-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
+}
+
+.recent-docs-scrollbar {
+  max-height: calc(52px * 8); /* 8条文档的高度 */
+  width: 100%;
+}
+
+.recent-docs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recent-doc-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.recent-doc-item:hover {
+  opacity: 0.8;
+  transform: translateX(4px);
+}
+
+.recent-doc-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.recent-doc-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
 }
 </style>

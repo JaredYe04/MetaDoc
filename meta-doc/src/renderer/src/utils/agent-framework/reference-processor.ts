@@ -10,6 +10,7 @@ import { referenceAdapterManager } from './reference-adapters'
 import type { Reference } from '../../types/agent-framework'
 import { filterTextContent } from '../text-filter'
 import axios from 'axios'
+import { registerTask } from '../task-manager'
 
 /**
  * 将ArrayBuffer转换为base64字符串（浏览器兼容）
@@ -57,120 +58,230 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * 处理文件上传
+ * 生成唯一的requestId
  */
-export async function processFileUpload(file: File): Promise<Reference> {
-  const fileId = `ref-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+function generateRequestId(): string {
+  return `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+}
+
+/**
+ * 处理文件上传
+ * @param file 文件对象
+ * @param abortSignal 可选的AbortSignal，用于取消操作
+ * @param requestId 可选的requestId，用于取消主进程任务
+ */
+export async function processFileUpload(file: File, abortSignal?: AbortSignal, requestId?: string): Promise<Reference> {
   const filename = file.name
   const format = referenceAdapterManager.inferFormatFromFilename(filename)
   
-  // 读取文件内容并立即解析
-  const arrayBuffer = await file.arrayBuffer()
-  let parsedContent: string
-  let filePath: string | undefined
-  
-  try {
-    // 先解析内容（在上传时就解析）
-    // 纯文本格式（包括CSV），直接读取并解析
-    if (format === 'txt' || format === 'md' || format === 'json' || format === 'text' || format === 'markdown' || format === 'csv') {
-      // 纯文本格式，直接读取
-      if (format === 'csv') {
-        // CSV需要数据分析，使用适配器解析
-        getLogger().info(`[processFileUpload] 开始解析CSV文件: ${filename}`)
-        const text = await file.text()
-        getLogger().info(`[processFileUpload] CSV文件读取完成，长度: ${text.length}`)
-        parsedContent = await referenceAdapterManager.parse(text, format)
-        getLogger().info(`[processFileUpload] CSV文件解析完成，parsedContent长度: ${parsedContent?.length || 0}`)
-      } else {
-        // 其他纯文本格式，直接读取
-        parsedContent = await file.text()
-      }
-    } else {
-      // 其他格式（PDF、Word、PPTX等），需要适配器解析
-      // 如果是Electron环境，先保存到临时目录再解析
-      if (ipcRenderer) {
-        try {
-          // 通过主进程保存到临时目录
-          filePath = await ipcRenderer.invoke('save-reference-file', {
-            filename,
-            content: arrayBufferToBase64(arrayBuffer)
-          }) as string
-          
-          getLogger().info(`文件已保存到临时目录: ${filePath}`)
-          
-          // 从文件路径解析
-          parsedContent = await referenceAdapterManager.parse(filePath, format)
-        } catch (error) {
-          getLogger().error('保存文件失败:', error)
-          throw new Error(`保存文件失败: ${error instanceof Error ? error.message : String(error)}`)
-        }
-      } else {
-        // Web环境，直接解析ArrayBuffer
-        // 对于需要文件路径的格式（如PDF、Word），在Web环境中无法解析
-        if (format === 'pdf' || format === 'docx' || format === 'pptx') {
-          throw new Error(`格式 ${format} 在Web环境中需要Electron环境支持`)
-        }
-        
-        // 对于其他格式，尝试直接解析
-        const text = new TextDecoder('utf-8').decode(arrayBuffer)
-        parsedContent = await referenceAdapterManager.parse(text, format)
+  // 使用任务管理器注册任务，确保有明确的结束逻辑
+  const { handle, promise } = registerTask(async (handle) => {
+    const fileId = `ref-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    const signal = abortSignal ?? handle.signal
+    
+    // 检查取消状态并抛出错误的辅助函数
+    const throwIfCancelled = () => {
+      if (signal.aborted) {
+        throw new Error('操作已取消')
       }
     }
-  } catch (error) {
-    getLogger().error('解析文件内容失败:', error)
-    throw new Error(`解析文件失败: ${error instanceof Error ? error.message : String(error)}`)
-  }
-  
-  // 过滤无意义文本和meta-info标记
-  const originalLength = parsedContent?.length || 0
-  const filteredContent = filterTextContent(parsedContent || '')
-  const filteredLength = filteredContent.length
-  
-  if (originalLength !== filteredLength) {
-    getLogger().info(`[processFileUpload] 文本过滤完成`, {
-      originalLength,
-      filteredLength,
-      removedLength: originalLength - filteredLength
+    
+    // 包装异步操作，确保能响应取消信号
+    const withCancellation = async <T>(promise: Promise<T>): Promise<T> => {
+      throwIfCancelled()
+      const result = await promise
+      throwIfCancelled()
+      return result
+    }
+    
+    handle.mark(0, {
+      message: 'agent.reference.progress.parsingFile',
+      params: { filename }
     })
-  }
-  
-  const reference: Reference = {
-    id: fileId,
-    name: filename,
-    origin: filePath || filename,
-    format,
-    parsedContent: filteredContent,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  }
-  
-  getLogger().info(`[processFileUpload] Reference对象创建完成`, {
-    id: reference.id,
-    name: reference.name,
-    format: reference.format,
-    hasParsedContent: !!reference.parsedContent,
-    parsedContentLength: reference.parsedContent?.length || 0,
-    parsedContentPreview: reference.parsedContent?.substring(0, 200) || '无内容'
+    
+    throwIfCancelled()
+    const arrayBuffer = await withCancellation(file.arrayBuffer())
+
+    let parsedContent: string
+    let filePath: string | undefined
+    
+    try {
+      if (format === 'txt' || format === 'md' || format === 'json' || format === 'text' || format === 'markdown' || format === 'csv') {
+        handle.mark(30, {
+          message: 'agent.reference.progress.parsingFile',
+          subMessage: 'agent.reference.progress.extractingText',
+          params: { filename }
+        })
+        if (format === 'csv') {
+          getLogger().info(`[processFileUpload] 开始解析CSV文件: ${filename}`)
+          const text = await withCancellation(file.text())
+          parsedContent = await withCancellation(referenceAdapterManager.parse(text, format))
+        } else {
+          parsedContent = await withCancellation(file.text())
+        }
+      } else if (format === 'jpg' || format === 'jpeg' || format === 'png' || format === 'gif' || format === 'bmp' || format === 'webp' || format === 'image') {
+        getLogger().info(`[processFileUpload] 开始OCR识别图片: ${filename}`)
+        handle.setSegment(80, {
+          message: 'agent.reference.progress.parsingImage',
+          subMessage: 'agent.reference.progress.ocrRecognizing',
+          params: { filename }
+        })
+        
+        if (ipcRenderer) {
+          // 如果已取消，立即中断，不执行后续操作
+          throwIfCancelled()
+          filePath = await withCancellation(ipcRenderer.invoke('save-reference-file', {
+            filename,
+            content: arrayBufferToBase64(arrayBuffer)
+          }) as Promise<string>)
+          handle.updateSegmentProgress(1, 2, {
+            message: 'agent.reference.progress.parsingImage',
+            subMessage: 'agent.reference.progress.ocrRecognizing',
+            params: { filename }
+          })
+          throwIfCancelled()
+          parsedContent = await withCancellation(referenceAdapterManager.parse(filePath, format))
+        } else {
+          throwIfCancelled()
+          parsedContent = await withCancellation(referenceAdapterManager.parse(arrayBuffer, format))
+        }
+        handle.mark(80, {
+          message: 'agent.reference.progress.parsingImage',
+          subMessage: 'agent.reference.progress.ocrRecognizing',
+          params: { filename }
+        })
+      } else {
+        handle.mark(20, {
+          message: 'agent.reference.progress.parsingFile',
+          subMessage: 'agent.reference.progress.processingFormat',
+          params: { filename, format: format.toUpperCase() }
+        })
+        
+        if (ipcRenderer) {
+          try {
+            throwIfCancelled()
+            filePath = await withCancellation(ipcRenderer.invoke('save-reference-file', {
+              filename,
+              content: arrayBufferToBase64(arrayBuffer)
+            }) as Promise<string>)
+            handle.mark(40, {
+              message: 'agent.reference.progress.parsingFile',
+              subMessage: 'agent.reference.progress.extractingText',
+              params: { filename }
+            })
+            throwIfCancelled()
+            parsedContent = await withCancellation(referenceAdapterManager.parse(filePath, format))
+          } catch (error) {
+            getLogger().error('保存文件失败:', error)
+            throw new Error(`保存文件失败: ${error instanceof Error ? error.message : String(error)}`)
+          }
+        } else {
+          if (format === 'pdf' || format === 'docx' || format === 'pptx') {
+            throw new Error(`格式 ${format} 在Web环境中需要Electron环境支持`)
+          }
+          throwIfCancelled()
+          const text = new TextDecoder('utf-8').decode(arrayBuffer)
+          parsedContent = await withCancellation(referenceAdapterManager.parse(text, format))
+        }
+      }
+    } catch (error) {
+      getLogger().error('解析文件内容失败:', error)
+      // 如果是取消错误，直接抛出，任务管理器会处理
+      if (error instanceof Error && error.message === '操作已取消') {
+        throw error
+      }
+      throw new Error(`解析文件失败: ${error instanceof Error ? error.message : String(error)}`)
+    }
+    
+    handle.mark(90, {
+      message: 'agent.reference.progress.parsingFile',
+      subMessage: 'agent.reference.progress.cleaningText',
+      params: { filename }
+    })
+    
+    throwIfCancelled()
+    const originalLength = parsedContent?.length || 0
+    const filteredContent = filterTextContent(parsedContent || '')
+    const filteredLength = filteredContent.length
+    
+    if (originalLength !== filteredLength) {
+      getLogger().info(`[processFileUpload] 文本过滤完成`, {
+        originalLength,
+        filteredLength,
+        removedLength: originalLength - filteredLength
+      })
+    }
+    
+    const reference: Reference = {
+      id: fileId,
+      name: filename,
+      origin: filePath || filename,
+      format,
+      parsedContent: filteredContent,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
+    
+    getLogger().info(`[processFileUpload] Reference对象创建完成`, {
+      id: reference.id,
+      name: reference.name,
+      format: reference.format,
+      hasParsedContent: !!reference.parsedContent,
+      parsedContentLength: reference.parsedContent?.length || 0,
+      parsedContentPreview: reference.parsedContent?.substring(0, 200) || '无内容'
+    })
+    
+    return reference
+  }, {
+    name: `处理文件上传: ${filename}`,
+    requestId,
+    onCancel: async (reqId) => {
+      // 通知主进程取消文件转换任务
+      if (ipcRenderer && requestId) {
+        try {
+          await ipcRenderer.invoke('cancel-file-conversion', reqId)
+        } catch (err) {
+          getLogger().warn('取消主进程任务失败:', err)
+        }
+      }
+    }
   })
   
-  return reference
+  return promise
 }
 
 /**
  * 处理URL引用
  */
-export async function processUrlReference(url: string): Promise<Reference> {
-  const refId = `ref-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+export async function processUrlReference(url: string, abortSignal?: AbortSignal): Promise<Reference> {
+  // 使用任务管理器注册任务
+  const { handle, promise } = registerTask(async (handle) => {
+    const refId = `ref-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    const signal = abortSignal ?? handle.signal
+
+    const throwIfCancelled = () => {
+      if (signal.aborted) {
+        throw new Error('操作已取消')
+      }
+    }
+    
+    const withCancellation = async <T>(promise: Promise<T>): Promise<T> => {
+      throwIfCancelled()
+      const result = await promise
+      throwIfCancelled()
+      return result
+    }
+    
+    throwIfCancelled()
+    
+    // 验证URL格式
+    let urlObj: URL
+    try {
+      urlObj = new URL(url)
+    } catch {
+      throw new Error('无效的URL格式')
+    }
   
-  // 验证URL格式
-  let urlObj: URL
-  try {
-    urlObj = new URL(url)
-  } catch {
-    throw new Error('无效的URL格式')
-  }
-  
-  // 判断是否为普通网页（HTML）
   const format = referenceAdapterManager.inferFormatFromUrl(url)
   const isHtml = format === 'html' || format === 'htm'
   
@@ -178,47 +289,65 @@ export async function processUrlReference(url: string): Promise<Reference> {
   let filePath: string | undefined
   
   try {
-    // 下载内容
     if (isHtml) {
-      // HTML内容，使用web-crawler-tool的逻辑
+      handle.setSegment(50, {
+        message: 'agent.reference.progress.downloadingWebpage',
+        subMessage: '连接服务器...',
+      })
+      throwIfCancelled()
       const response = await axios.get(url, {
         timeout: 30000,
         responseType: 'text',
-        validateStatus: () => true
+        validateStatus: () => true,
+        signal
       })
-      
+      handle.mark(50, {
+        message: 'agent.reference.progress.downloadingWebpage',
+        subMessage: 'agent.reference.progress.downloading',
+      })
       if (response.status >= 200 && response.status < 300) {
         content = response.data
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
     } else {
-      // 其他格式，下载文件
+      handle.setSegment(70, {
+        message: 'agent.reference.progress.downloadingFile',
+        subMessage: '连接服务器...',
+      })
+      throwIfCancelled()
       const response = await axios.get(url, {
         timeout: 60000,
         responseType: 'arraybuffer',
-        validateStatus: () => true
+        validateStatus: () => true,
+        signal,
+        onDownloadProgress: (progressEvent) => {
+          if (progressEvent.total && !signal.aborted) {
+            const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100)
+            handle.updateSegmentProgress(progressEvent.loaded, progressEvent.total, {
+              message: 'agent.reference.progress.downloadingFile',
+              subMessage: `已下载 ${percent}%`,
+            })
+          }
+        }
       })
       
       if (response.status >= 200 && response.status < 300) {
         const arrayBuffer = response.data as ArrayBuffer
-        
-        // 保存到临时目录
         if (ipcRenderer) {
-          // 从URL路径提取文件名
           const pathname = urlObj.pathname
           const lastSlash = pathname.lastIndexOf('/')
           const filename = lastSlash >= 0 ? pathname.substring(lastSlash + 1) : `download-${Date.now()}`
           const finalFilename = filename || `download-${Date.now()}`
           
-          filePath = await ipcRenderer.invoke('save-reference-file', {
+          throwIfCancelled()
+          filePath = await withCancellation(ipcRenderer.invoke('save-reference-file', {
             filename: finalFilename,
             content: arrayBufferToBase64(arrayBuffer)
-          }) as string
+          }) as Promise<string>)
           
           getLogger().info(`URL文件已保存到临时目录: ${filePath}`)
         } else {
-          // Web环境，无法保存文件，直接转换为文本
           content = new TextDecoder('utf-8').decode(arrayBuffer)
         }
       } else {
@@ -226,29 +355,44 @@ export async function processUrlReference(url: string): Promise<Reference> {
       }
     }
   } catch (error) {
+    if (signal.aborted || (error instanceof Error && (error.name === 'CanceledError' || error.message.includes('canceled')))) {
+      throw new Error('操作已取消')
+    }
+    
     getLogger().error('下载URL内容失败:', error)
     throw new Error(`下载URL失败: ${error instanceof Error ? error.message : String(error)}`)
   }
   
-  // 解析内容
+  throwIfCancelled()
+  
+  handle.mark(85, {
+    message: 'agent.reference.progress.parsingContent',
+    subMessage: 'agent.reference.progress.extractingText',
+  })
+  
   let parsedContent: string
   try {
     if (isHtml) {
-      // HTML内容，使用HTML适配器解析
-      parsedContent = await referenceAdapterManager.parse(content!, 'html')
+      throwIfCancelled()
+      parsedContent = await withCancellation(referenceAdapterManager.parse(content!, 'html'))
     } else if (filePath) {
-      // 从文件路径解析
-      parsedContent = await referenceAdapterManager.parse(filePath, format)
+      throwIfCancelled()
+      parsedContent = await withCancellation(referenceAdapterManager.parse(filePath, format))
     } else {
-      // Web环境，直接解析内容
-      parsedContent = await referenceAdapterManager.parse(content!, format)
+      throwIfCancelled()
+      parsedContent = await withCancellation(referenceAdapterManager.parse(content!, format))
     }
   } catch (error) {
+    if (signal.aborted || (error instanceof Error && error.message === '操作已取消')) {
+      throw new Error('操作已取消')
+    }
+    
     getLogger().error('解析URL内容失败:', error)
     throw new Error(`解析内容失败: ${error instanceof Error ? error.message : String(error)}`)
   }
   
-  // 过滤无意义文本和meta-info标记
+  throwIfCancelled()
+  
   const originalLength = parsedContent?.length || 0
   const filteredContent = filterTextContent(parsedContent || '')
   const filteredLength = filteredContent.length
@@ -272,6 +416,14 @@ export async function processUrlReference(url: string): Promise<Reference> {
   }
   
   return reference
+  }, {
+    name: `处理URL引用: ${url}`,
+    onCancel: async () => {
+      // URL下载的取消由axios的signal处理，无需额外操作
+    }
+  })
+  
+  return promise
 }
 
 /**

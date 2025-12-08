@@ -19,7 +19,25 @@ export function filterTextContent(content: string): string {
   // 第二步：移除无意义的文本块
   filtered = removeMeaninglessBlocks(filtered)
 
+  // 第三步：清理多余的连续换行符（最多保留2个连续的\n）
+  filtered = normalizeLineBreaks(filtered)
+
   return filtered.trim()
+}
+
+/**
+ * 规范化换行符，将3个或更多连续的换行符替换为2个换行符
+ * @param content 原始文本内容
+ * @returns 规范化后的文本内容
+ */
+function normalizeLineBreaks(content: string): string {
+  if (!content || typeof content !== 'string') {
+    return ''
+  }
+
+  // 将3个或更多连续的换行符替换为2个换行符（段落分隔）
+  // 这样既保留了段落分隔，又去除了多余的空行
+  return content.replace(/\n{3,}/g, '\n\n')
 }
 
 /**

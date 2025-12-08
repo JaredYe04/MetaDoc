@@ -988,7 +988,7 @@ async function uploadImageToLocal(imageBlob, fileName) {
  * @param {string} format - 导出格式（已废弃，统一使用 SVG）
  * @returns {Promise<string>} - 处理后的 Markdown 文本
  */
-export async function preRenderAllCharts(md, cdn, format = '') {
+export async function preRenderAllCharts(md, cdn, format = '', progressCallback) {
     const logger = createRendererLogger('ChartPreRenderer');
     logger.debug('开始预渲染所有图表代码块');
 
@@ -1066,6 +1066,18 @@ export async function preRenderAllCharts(md, cdn, format = '') {
         return md;
     }
     
+    // 计算每张图表的进度增量
+    // 预渲染占用0-80%的进度范围
+    const progressPerChart = allMatches.length > 0 ? 75 / allMatches.length : 0;
+    let completedCount = 0;
+    
+    progressCallback?.({
+        message: 'agent.reference.progress.preRenderingCharts',
+        subMessage: 'agent.reference.progress.foundCharts',
+        percentage: 5,
+        params: { count: allMatches.length }
+    });
+    
     // 按索引从后往前排序，避免替换时索引变化
     allMatches.sort((a, b) => b.index - a.index);
     
@@ -1110,9 +1122,29 @@ export async function preRenderAllCharts(md, cdn, format = '') {
                 imageUrl = await renderChartViaVditor(chartType, code, cdn, chartConfig, targetFormat);
             }
             logger.debug(`${chartType} 图表渲染完成，URL: ${imageUrl}`);
+            
+            // 每完成一张图表，更新进度
+            completedCount++;
+            progressCallback?.({
+                message: 'agent.reference.progress.preRenderingCharts',
+                subMessage: 'agent.reference.progress.renderingChart',
+                percentage: 5 + Math.round(completedCount * progressPerChart),
+                params: { current: completedCount, total: allMatches.length }
+            });
+            
             return { fullMatch, replacement: `![${chartType} Diagram](${imageUrl})`, chartType };
         } catch (error) {
             logger.error(`${chartType} 图表渲染失败:`, error);
+            
+            // 即使失败也要更新进度
+            completedCount++;
+            progressCallback?.({
+                message: 'agent.reference.progress.preRenderingCharts',
+                subMessage: 'agent.reference.progress.renderingChartFailed',
+                percentage: 5 + Math.round(completedCount * progressPerChart),
+                params: { current: completedCount, total: allMatches.length }
+            });
+            
             return { fullMatch, replacement: null, chartType };
         }
     });

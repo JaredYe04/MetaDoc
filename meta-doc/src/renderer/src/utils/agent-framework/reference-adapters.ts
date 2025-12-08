@@ -31,6 +31,56 @@ if (typeof window !== 'undefined') {
 }
 
 /**
+ * i18n语言代码到Tesseract语言代码的映射
+ */
+const I18N_TO_TESSERACT_LANG_MAP: Record<string, string> = {
+  'en_US': 'eng',
+  'zh_CN': 'chi_sim',
+  'zh_TW': 'chi_tra', // 繁体中文（如果将来支持）
+  'ja_JP': 'jpn',
+  'ko_KR': 'kor',
+  'fr_FR': 'fra',
+  'de_DE': 'deu',
+  'es_ES': 'spa', // 西班牙语（如果将来支持）
+  'ru_RU': 'rus', // 俄语（如果将来支持）
+};
+
+/**
+ * 根据i18n语言代码获取对应的Tesseract语言代码
+ * @param i18nLocale i18n语言代码（如 'zh_CN', 'en_US'）
+ * @returns Tesseract语言代码（如 'chi_sim', 'eng'），如果未找到则返回 'eng'
+ */
+function getTesseractLangFromI18n(i18nLocale: string): string {
+  return I18N_TO_TESSERACT_LANG_MAP[i18nLocale] || 'eng';
+}
+
+/**
+ * 获取默认OCR语言列表（英语 + 当前用户语言）
+ * @returns 默认语言列表，至少包含 'eng'
+ */
+function getDefaultOcrLanguages(): string[] {
+  try {
+    // 从localStorage获取当前语言（与i18n.js保持一致）
+    const currentLocale = typeof window !== 'undefined' 
+      ? (localStorage.getItem('lang') || 'zh_CN')
+      : 'zh_CN';
+    
+    const userLang = getTesseractLangFromI18n(currentLocale);
+    
+    // 如果用户语言是英语，只返回英语
+    if (userLang === 'eng') {
+      return ['eng'];
+    }
+    
+    // 否则返回英语 + 用户语言
+    return ['eng', userLang];
+  } catch (error) {
+    getLogger().warn('获取i18n语言失败，使用默认英语:', error);
+    return ['eng'];
+  }
+}
+
+/**
  * 从HTML/XML中提取纯文本（类似innerText）
  */
 function extractPlainTextFromHtml(html: string): string {
@@ -141,7 +191,9 @@ class WordAdapter implements ReferenceAdapter {
       }
       
       try {
-        const text = await ipcRenderer.invoke('convert-docx-to-text', content) as string
+        // 从metadata中获取requestId（如果存在）
+        const requestId = metadata?.requestId as string | undefined
+        const text = await ipcRenderer.invoke('convert-docx-to-text', content, requestId) as string
         return text
       } catch (error) {
         getLogger().error('Word转换失败:', error)
@@ -177,8 +229,23 @@ class ExcelAdapter implements ReferenceAdapter {
       parsedData = parseCSV(csvString)
       getLogger().info(`[ExcelAdapter] CSV解析完成，行数: ${parsedData.length}`)
     } else {
-      // Excel文件需要先转换为CSV或JSON（这里简化处理，实际应该通过主进程转换）
-      throw new Error('Excel文件解析需要先转换为CSV格式')
+      // Excel文件通过主进程转换
+      if (typeof content === 'string' && (content.startsWith('/') || /^[A-Za-z]:[\\/]/.test(content))) {
+        if (!ipcRenderer) {
+          throw new Error('IPC渲染器不可用，无法解析Excel文件')
+        }
+        
+        try {
+          const text = await ipcRenderer.invoke('convert-excel-to-text', content) as string
+          // Excel转换后的文本已经包含结构化信息，直接返回
+          return text
+        } catch (error) {
+          getLogger().error('Excel转换失败:', error)
+          throw new Error(`Excel解析失败: ${error instanceof Error ? error.message : String(error)}`)
+        }
+      } else {
+        throw new Error('Excel文件解析需要文件路径，不支持ArrayBuffer输入')
+      }
     }
     
     if (parsedData.length === 0) {
@@ -237,13 +304,91 @@ class PptxAdapter implements ReferenceAdapter {
   supportedFormats = ['pptx', 'ppt']
 
   async parse(content: string | ArrayBuffer, format: string, metadata?: Record<string, unknown>): Promise<string> {
-    // PPTX解析需要主进程支持（暂时返回提示）
+    // 如果content是文件路径，通过主进程转换
     if (typeof content === 'string' && (content.startsWith('/') || /^[A-Za-z]:[\\/]/.test(content))) {
-      // 可以通过主进程解析PPTX（需要实现）
-      throw new Error('PPTX解析功能待实现')
+      if (!ipcRenderer) {
+        throw new Error('IPC渲染器不可用，无法解析PPTX文件')
+      }
+      
+      try {
+        // 从metadata中获取requestId（如果存在）
+        const requestId = metadata?.requestId as string | undefined
+        const text = await ipcRenderer.invoke('convert-pptx-to-text', content, requestId) as string
+        return text
+      } catch (error) {
+        getLogger().error('PPTX转换失败:', error)
+        throw new Error(`PPTX解析失败: ${error instanceof Error ? error.message : String(error)}`)
+      }
     }
     
     throw new Error('PPTX解析需要文件路径，不支持ArrayBuffer输入')
+  }
+}
+
+/**
+ * 图片适配器（支持OCR）
+ */
+class ImageAdapter implements ReferenceAdapter {
+  supportedFormats = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'image']
+
+  async parse(content: string | ArrayBuffer, format: string, metadata?: Record<string, unknown>): Promise<string> {
+    if (!ipcRenderer) {
+      throw new Error('IPC渲染器不可用，无法进行OCR识别')
+    }
+
+    try {
+      let ocrText: string
+
+      if (typeof content === 'string') {
+        // 如果是文件路径
+        if (content.startsWith('/') || /^[A-Za-z]:[\\/]/.test(content)) {
+          ocrText = await ipcRenderer.invoke('ocr-recognize-file', {
+            imagePath: content,
+            languages: getDefaultOcrLanguages()
+          }) as string
+        } else if (content.startsWith('data:image')) {
+          // 如果是Base64数据URL
+          ocrText = await ipcRenderer.invoke('ocr-recognize-base64', {
+            base64String: content,
+            languages: getDefaultOcrLanguages()
+          }) as string
+        } else {
+          throw new Error('不支持的图片内容格式')
+        }
+      } else {
+        // 如果是ArrayBuffer，先转换为Base64
+        const bytes = new Uint8Array(content)
+        let binary = ''
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i])
+        }
+        const base64 = btoa(binary)
+        const mimeType = this.getMimeTypeFromFormat(format) || 'image/png'
+        const dataUrl = `data:${mimeType};base64,${base64}`
+        
+        ocrText = await ipcRenderer.invoke('ocr-recognize-base64', {
+          base64String: dataUrl,
+          languages: getDefaultOcrLanguages()
+        }) as string
+      }
+
+      return ocrText || '图片OCR识别未找到文本内容'
+    } catch (error) {
+      getLogger().error('图片OCR识别失败:', error)
+      throw new Error(`图片OCR识别失败: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  private getMimeTypeFromFormat(format: string): string | null {
+    const mimeMap: Record<string, string> = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'bmp': 'image/bmp',
+      'webp': 'image/webp'
+    }
+    return mimeMap[format.toLowerCase()] || null
   }
 }
 
@@ -261,7 +406,8 @@ class ReferenceAdapterManager {
       new PdfAdapter(),
       new WordAdapter(),
       new ExcelAdapter(),
-      new PptxAdapter()
+      new PptxAdapter(),
+      new ImageAdapter()
     ]
   }
 

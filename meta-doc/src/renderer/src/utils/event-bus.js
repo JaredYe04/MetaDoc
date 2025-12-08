@@ -35,7 +35,7 @@ const logger = createRendererLogger('EventBus', {
 });
 
 const workspace = useWorkspace();
-const { activeTabId, ensureDocument, markDocumentSaved, updateDocumentDirty } = workspace;
+const { activeTabId, ensureDocument, markDocumentSaved, updateDocumentDirty, tabs, saveDocument, removeTab } = workspace;
 
 const cloneDeep = (value) => JSON.parse(JSON.stringify(value));
 
@@ -167,6 +167,71 @@ ipcRenderer.on('request-active-document-info', () => {
   }
 })
 
+// 响应主进程请求获取所有未保存的tabs信息
+ipcRenderer.on('request-unsaved-tabs-info', () => {
+  try {
+    const unsavedTabs = [];
+    
+    for (const tab of tabs) {
+      if (tab.dirty) {
+        const doc = ensureDocument(tab.id);
+        const path = doc.path || '';
+        const title = doc.meta?.title?.trim() || '';
+        // 优先使用标题，其次使用路径中的文件名，最后使用默认值
+        let fileName = title;
+        if (!fileName && path) {
+          fileName = extractFileName(path, null);
+        }
+        if (!fileName) {
+          fileName = 'Untitled';
+        }
+        unsavedTabs.push({
+          tabId: tab.id,
+          fileName,
+          path
+        });
+      }
+    }
+    
+    ipcRenderer.send('unsaved-tabs-info-response', unsavedTabs);
+  } catch (error) {
+    logger.error('获取未保存tabs信息失败:', error);
+    ipcRenderer.send('unsaved-tabs-info-response', []);
+  }
+})
+
+// 响应主进程请求获取特定tab信息
+ipcRenderer.on('request-tab-info', (_event, tabId) => {
+  try {
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) {
+      ipcRenderer.send('tab-info-response', null);
+      return;
+    }
+    
+    const doc = ensureDocument(tabId);
+    const path = doc.path || '';
+    const title = doc.meta?.title?.trim() || '';
+    // 优先使用标题，其次使用路径中的文件名，最后使用默认值
+    let fileName = title;
+    if (!fileName && path) {
+      fileName = extractFileName(path, null);
+    }
+    if (!fileName) {
+      fileName = 'Untitled';
+    }
+    
+    ipcRenderer.send('tab-info-response', {
+      fileName,
+      path,
+      dirty: tab.dirty || doc.dirty
+    });
+  } catch (error) {
+    logger.error('获取tab信息失败:', error);
+    ipcRenderer.send('tab-info-response', null);
+  }
+})
+
 // 注意：close-triggered 现在由主进程直接处理，这里保留以防需要
 ipcRenderer.on('close-triggered', () => {
   // 主进程现在直接处理关闭确认对话框，这里不再需要显示 web 对话框
@@ -250,6 +315,11 @@ ipcRenderer.on('search-replace-expand-triggered', () => {
   searchReplaceSharedState.isVisible = true;
   searchReplaceSharedState.expandReplace = true;
   eventBus.emit('search-replace', { expandReplace: true })
+})
+
+// 监听主进程发送的全局进度事件
+ipcRenderer.on('global-progress', (_event, progressData) => {
+  eventBus.emit('global-progress', progressData)
 })
 
 eventBus.on('search-replace', (payload) => {
@@ -346,6 +416,44 @@ eventBus.on('save-and-quit', async () => {
   ipcRenderer.send('quit')
 });
 
+// 响应主进程请求保存特定tab
+ipcRenderer.on('save-tab', async (_event, tabId) => {
+  try {
+    const result = await saveDocument(tabId, { saveAs: false });
+    ipcRenderer.send('save-tab-response', { tabId, success: result });
+  } catch (error) {
+    logger.error('保存tab失败:', error);
+    ipcRenderer.send('save-tab-response', { tabId, success: false, error: error.message });
+  }
+});
+
+// 响应主进程请求放弃特定tab的更改（直接关闭tab）
+ipcRenderer.on('discard-tab', (_event, tabId) => {
+  try {
+    removeTab(tabId);
+    ipcRenderer.send('discard-tab-response', { tabId, success: true });
+  } catch (error) {
+    logger.error('关闭tab失败:', error);
+    ipcRenderer.send('discard-tab-response', { tabId, success: false, error: error.message });
+  }
+});
+
+// 响应主进程请求关闭所有剩余的tabs
+ipcRenderer.on('close-all-tabs', () => {
+  try {
+    // 获取所有tab的ID（需要先复制数组，因为removeTab会修改tabs数组）
+    const tabIds = tabs.map(tab => tab.id);
+    // 依次关闭所有tabs
+    for (const tabId of tabIds) {
+      removeTab(tabId);
+    }
+    ipcRenderer.send('close-all-tabs-response', { success: true });
+  } catch (error) {
+    logger.error('关闭所有tabs失败:', error);
+    ipcRenderer.send('close-all-tabs-response', { success: false, error: error.message });
+  }
+});
+
 eventBus.on('open-doc', async (path) => {
   //await init()
   eventBus.emit('is-need-save', false)
@@ -399,7 +507,20 @@ eventBus.on('export', async ({ format, filename }) => {
 
   try {
     const payload = await prepareExportPayload(doc, format, filename)
-    await ipcRenderer.invoke('perform-export', payload)
+    const result = await ipcRenderer.invoke('perform-export', payload)
+    
+    // 如果用户取消了对话框（result.success === false 且没有 error），取消任务
+    if (!result.success && !result.error) {
+      // 用户取消了对话框，取消任务
+      if (payload.requestId) {
+        try {
+          await ipcRenderer.invoke('cancel-export-task', payload.requestId)
+        } catch (err) {
+          // ignore
+        }
+      }
+    }
+    
     // 确保在完成后恢复鼠标状态（防止事件未触发）
     restoreCursor();
   } catch (error) {

@@ -150,25 +150,71 @@ const currentActiveId = computed({
 const handleRemove = async (id: string | number) => {
   if (isLocked.value) return;
   const tabId = String(id);
-  const doc = workspace.ensureDocument?.(tabId);
-
-  if (doc?.dirty) {
-    try {
-      await ElMessageBox.confirm(
-        t('main.dialogs.closeTabMessage'),
-        t('main.dialogs.closeTabTitle'),
-        {
-          type: 'warning',
-          confirmButtonText: t('main.dialogs.closeTabConfirm'),
-          cancelButtonText: t('main.dialogs.closeTabCancel'),
-        },
-      );
-    } catch {
-      return;
-    }
+  
+  // 获取ipcRenderer
+  let ipcRenderer: any = null;
+  if (window && (window as any).electron) {
+    ipcRenderer = (window as any).electron.ipcRenderer;
   }
-
-  emit('close', tabId);
+  
+  if (!ipcRenderer) {
+    // 如果没有ipcRenderer，回退到原来的逻辑
+    const doc = workspace.ensureDocument?.(tabId);
+    if (doc?.dirty) {
+      try {
+        await ElMessageBox.confirm(
+          t('main.dialogs.closeTabMessage'),
+          t('main.dialogs.closeTabTitle'),
+          {
+            type: 'warning',
+            confirmButtonText: t('main.dialogs.closeTabConfirm'),
+            cancelButtonText: t('main.dialogs.closeTabCancel'),
+          },
+        );
+      } catch {
+        return;
+      }
+    }
+    emit('close', tabId);
+    return;
+  }
+  
+  // 使用系统对话框
+  try {
+    // 发送请求到主进程
+    ipcRenderer.send('request-close-tab', tabId);
+    
+    // 等待响应
+    const result = await new Promise<{ tabId: string; action: 'save' | 'discard' | 'cancel' }>((resolve) => {
+      const handler = (_event: any, response: { tabId: string; action: 'save' | 'discard' | 'cancel' }) => {
+        if (response.tabId === tabId) {
+          ipcRenderer.removeListener('close-tab-response', handler);
+          resolve(response);
+        }
+      };
+      ipcRenderer.on('close-tab-response', handler);
+      // 设置超时，避免无限等待
+      setTimeout(() => {
+        ipcRenderer.removeListener('close-tab-response', handler);
+        resolve({ tabId, action: 'cancel' });
+      }, 10000);
+    });
+    
+    if (result.action === 'save') {
+      // 用户选择保存
+      const { saveDocument } = workspace;
+      const saveResult = await saveDocument(tabId, { saveAs: false });
+      if (saveResult) {
+        emit('close', tabId);
+      }
+    } else if (result.action === 'discard') {
+      // 用户选择放弃，直接关闭tab
+      emit('close', tabId);
+    }
+    // 如果action是'cancel'，不做任何操作
+  } catch (error) {
+    logger.error('关闭tab失败:', error);
+  }
 };
 
 let draggingId: string | null = null;

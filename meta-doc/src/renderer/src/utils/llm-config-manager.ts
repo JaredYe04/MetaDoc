@@ -492,15 +492,57 @@ async function initLlmConfigBroadcast() {
 }
 
 // 初始化时注册广播监听（延迟执行，确保logger已初始化）
-// 使用 setTimeout 确保在下一个事件循环中执行，给 logger 模块足够的时间初始化
-setTimeout(() => {
-  initLlmConfigBroadcast().catch(err => {
-    getLogger().error('初始化LLM配置广播监听失败', err);
-  });
-}, 0);
+// 使用多层延迟确保 logger 模块完全初始化
+// 首先使用 setTimeout，然后使用 requestAnimationFrame（如果可用）或再次 setTimeout
+const initWithDelay = () => {
+  if (typeof requestAnimationFrame !== 'undefined') {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        initLlmConfigBroadcast().catch(err => {
+          // 使用 try-catch 包装，确保即使 logger 未初始化也不会崩溃
+          try {
+            getLogger().error('初始化LLM配置广播监听失败', err);
+          } catch (loggerError) {
+            console.error('初始化LLM配置广播监听失败:', err);
+            console.error('Logger初始化错误:', loggerError);
+          }
+        });
+      }, 10);
+    });
+  } else {
+    setTimeout(() => {
+      setTimeout(() => {
+        initLlmConfigBroadcast().catch(err => {
+          try {
+            getLogger().error('初始化LLM配置广播监听失败', err);
+          } catch (loggerError) {
+            console.error('初始化LLM配置广播监听失败:', err);
+            console.error('Logger初始化错误:', loggerError);
+          }
+        });
+      }, 10);
+    }, 0);
+  }
+};
+
+initWithDelay();
 
 // 延迟加载配置，确保logger已初始化
-setTimeout(() => {
-  loadLlmConfigs();
-}, 0);
+const loadWithDelay = () => {
+  if (typeof requestAnimationFrame !== 'undefined') {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        loadLlmConfigs();
+      }, 10);
+    });
+  } else {
+    setTimeout(() => {
+      setTimeout(() => {
+        loadLlmConfigs();
+      }, 10);
+    }, 0);
+  }
+};
+
+loadWithDelay();
 

@@ -163,33 +163,224 @@ function createWindow(): void {
     if (is_need_save) {
       e.preventDefault();
       
-      // 通过 IPC 调用获取当前文档信息
-      let docInfo: { fileName: string; path: string } | null = null;
+      // 通过 IPC 调用获取所有未保存的tabs信息
+      let unsavedTabs: Array<{ tabId: string; fileName: string; path: string }> = [];
       try {
-        // 发送请求获取文档信息
-        mainWindow?.webContents.send('request-active-document-info');
+        // 发送请求获取所有未保存的tabs信息
+        mainWindow?.webContents.send('request-unsaved-tabs-info');
         
         // 等待响应
-        docInfo = await new Promise<{ fileName: string; path: string } | null>((resolve) => {
-          const handler = (_event: IpcMainEvent, info: { fileName: string; path: string } | null) => {
-            ipcMain.removeListener('active-document-info-response', handler);
-            resolve(info);
+        unsavedTabs = await new Promise<Array<{ tabId: string; fileName: string; path: string }>>((resolve) => {
+          const handler = (_event: IpcMainEvent, tabs: Array<{ tabId: string; fileName: string; path: string }>) => {
+            ipcMain.removeListener('unsaved-tabs-info-response', handler);
+            resolve(tabs || []);
           };
-          ipcMain.once('active-document-info-response', handler);
+          ipcMain.once('unsaved-tabs-info-response', handler);
           // 设置超时，避免无限等待
           setTimeout(() => {
-            ipcMain.removeListener('active-document-info-response', handler);
-            resolve(null);
+            ipcMain.removeListener('unsaved-tabs-info-response', handler);
+            resolve([]);
           }, 1000);
         });
       } catch (error) {
-        logger.error('获取文档信息失败:', error);
+        logger.error('获取未保存tabs信息失败:', error);
       }
       
-      const fileName = docInfo?.fileName || t('main.dialogs.unsavedDocument', '未保存的文档');
+      // 如果没有未保存的tabs，直接关闭
+      if (unsavedTabs.length === 0) {
+        is_need_save = false;
+        mainWindow?.close();
+        return;
+      }
       
-      // 显示系统级对话框
-      const result = await dialog.showMessageBox(mainWindow!, {
+      // 依次处理每个未保存的tab
+      for (let i = 0; i < unsavedTabs.length; i++) {
+        const tab = unsavedTabs[i];
+        const fileName = tab.fileName || t('main.dialogs.unsavedDocument', '未保存的文档');
+        const isLastTab = i === unsavedTabs.length - 1;
+        
+        // 显示系统级对话框
+        const result = await dialog.showMessageBox(mainWindow!, {
+          type: 'question',
+          buttons: [
+            t('leftMenu.save', '保存'),
+            t('leftMenu.discard', '放弃'),
+            t('common.cancel', '取消')
+          ],
+          defaultId: 0,
+          cancelId: 2,
+          title: t('main.dialogs.closeWindowTitle', '关闭窗口'),
+          message: t('main.dialogs.askSaveWithFileName', '是否保存 {fileName}？', { fileName }),
+          detail: isLastTab 
+            ? t('main.dialogs.unsavedChangesDetail', '您的更改尚未保存。')
+            : t('main.dialogs.unsavedChangesDetail', '您的更改尚未保存。') + ` (${i + 1}/${unsavedTabs.length})`
+        });
+        
+        if (result.response === 0) {
+          // 用户选择保存
+          try {
+            // 发送保存请求
+            mainWindow?.webContents.send('save-tab', tab.tabId);
+            
+            // 等待保存响应
+            const saveResult = await new Promise<{ tabId: string; success: boolean; error?: string }>((resolve) => {
+              const handler = (_event: IpcMainEvent, result: { tabId: string; success: boolean; error?: string }) => {
+                if (result.tabId === tab.tabId) {
+                  ipcMain.removeListener('save-tab-response', handler);
+                  resolve(result);
+                }
+              };
+              ipcMain.on('save-tab-response', handler);
+              // 设置超时，避免无限等待
+              setTimeout(() => {
+                ipcMain.removeListener('save-tab-response', handler);
+                resolve({ tabId: tab.tabId, success: false, error: '保存超时' });
+              }, 10000);
+            });
+            
+            if (!saveResult.success) {
+              // 保存失败，询问用户是否继续
+              const continueResult = await dialog.showMessageBox(mainWindow!, {
+                type: 'error',
+                buttons: [
+                  t('common.continue', '继续'),
+                  t('common.cancel', '取消')
+                ],
+                defaultId: 0,
+                cancelId: 1,
+                title: t('main.dialogs.saveFailed', '保存失败'),
+                message: t('main.dialogs.saveFailedMessage', '保存 {fileName} 失败', { fileName }),
+                detail: saveResult.error || t('main.dialogs.saveFailedDetail', '是否继续关闭其他文档？')
+              });
+              
+              if (continueResult.response === 1) {
+                // 用户选择取消，停止处理
+                return;
+              }
+            }
+          } catch (error) {
+            logger.error('保存tab失败:', error);
+            // 保存出错，询问用户是否继续
+            const continueResult = await dialog.showMessageBox(mainWindow!, {
+              type: 'error',
+              buttons: [
+                t('common.continue', '继续'),
+                t('common.cancel', '取消')
+              ],
+              defaultId: 0,
+              cancelId: 1,
+              title: t('main.dialogs.saveFailed', '保存失败'),
+              message: t('main.dialogs.saveFailedMessage', '保存 {fileName} 失败', { fileName }),
+              detail: t('main.dialogs.saveFailedDetail', '是否继续关闭其他文档？')
+            });
+            
+            if (continueResult.response === 1) {
+              // 用户选择取消，停止处理
+              return;
+            }
+          }
+        } else if (result.response === 1) {
+          // 用户选择放弃
+          try {
+            // 发送放弃请求
+            mainWindow?.webContents.send('discard-tab', tab.tabId);
+            
+            // 等待放弃响应（通常很快，但我们也设置超时）
+            await new Promise<void>((resolve) => {
+              const handler = (_event: IpcMainEvent, result: { tabId: string; success: boolean }) => {
+                if (result.tabId === tab.tabId) {
+                  ipcMain.removeListener('discard-tab-response', handler);
+                  resolve();
+                }
+              };
+              ipcMain.on('discard-tab-response', handler);
+              // 设置超时，避免无限等待
+              setTimeout(() => {
+                ipcMain.removeListener('discard-tab-response', handler);
+                resolve();
+              }, 1000);
+            });
+          } catch (error) {
+            logger.error('放弃tab更改失败:', error);
+          }
+        } else {
+          // 用户选择取消（response === 2），停止处理，窗口保持打开
+          return;
+        }
+      }
+      
+      // 所有未保存的tabs都已处理完毕，关闭所有剩余的tabs（没有脏标记的tabs）
+      try {
+        // 发送请求关闭所有剩余的tabs
+        mainWindow?.webContents.send('close-all-tabs');
+        
+        // 等待响应（通常很快，但我们也设置超时）
+        await new Promise<void>((resolve) => {
+          const handler = (_event: IpcMainEvent, result: { success: boolean }) => {
+            ipcMain.removeListener('close-all-tabs-response', handler);
+            resolve();
+          };
+          ipcMain.once('close-all-tabs-response', handler);
+          // 设置超时，避免无限等待
+          setTimeout(() => {
+            ipcMain.removeListener('close-all-tabs-response', handler);
+            resolve();
+          }, 2000);
+        });
+      } catch (error) {
+        logger.error('关闭所有tabs失败:', error);
+      }
+      
+      // 更新标志并关闭窗口
+      is_need_save = false;
+      mainWindow?.close();
+    }
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+    if (!isAppQuitting) {
+      app.quit();
+    }
+  });
+
+  // 处理关闭单个tab的请求
+  ipcMain.on('request-close-tab', async (event, tabId: string) => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    
+    try {
+      // 发送请求获取tab信息
+      mainWindow.webContents.send('request-tab-info', tabId);
+      
+      // 等待响应
+      const tabInfo = await new Promise<{ fileName: string; path: string; dirty: boolean } | null>((resolve) => {
+        const handler = (_event: IpcMainEvent, info: { fileName: string; path: string; dirty: boolean } | null) => {
+          ipcMain.removeListener('tab-info-response', handler);
+          resolve(info);
+        };
+        ipcMain.once('tab-info-response', handler);
+        // 设置超时，避免无限等待
+        setTimeout(() => {
+          ipcMain.removeListener('tab-info-response', handler);
+          resolve(null);
+        }, 1000);
+      });
+      
+      if (!tabInfo) {
+        // 如果获取tab信息失败，直接关闭tab
+        mainWindow.webContents.send('close-tab-response', { tabId, action: 'discard' });
+        return;
+      }
+      
+      // 如果tab没有脏标记，直接关闭
+      if (!tabInfo.dirty) {
+        mainWindow.webContents.send('close-tab-response', { tabId, action: 'discard' });
+        return;
+      }
+      
+      // 如果有脏标记，显示系统对话框
+      const fileName = tabInfo.fileName || t('main.dialogs.unsavedDocument', '未保存的文档');
+      const result = await dialog.showMessageBox(mainWindow, {
         type: 'question',
         buttons: [
           t('leftMenu.save', '保存'),
@@ -198,27 +389,24 @@ function createWindow(): void {
         ],
         defaultId: 0,
         cancelId: 2,
-        title: t('main.dialogs.closeWindowTitle', '关闭窗口'),
+        title: t('main.dialogs.closeTabTitle', '未保存的更改'),
         message: t('main.dialogs.askSaveWithFileName', '是否保存 {fileName}？', { fileName }),
         detail: t('main.dialogs.unsavedChangesDetail', '您的更改尚未保存。')
       });
       
       if (result.response === 0) {
         // 用户选择保存
-        mainWindow?.webContents.send('save-and-quit');
+        mainWindow.webContents.send('close-tab-response', { tabId, action: 'save' });
       } else if (result.response === 1) {
         // 用户选择放弃
-        is_need_save = false;
-        mainWindow?.close();
+        mainWindow.webContents.send('close-tab-response', { tabId, action: 'discard' });
+      } else {
+        // 用户选择取消
+        mainWindow.webContents.send('close-tab-response', { tabId, action: 'cancel' });
       }
-      // 如果用户选择取消（response === 2），不做任何操作，窗口保持打开
-    }
-  });
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-    if (!isAppQuitting) {
-      app.quit();
+    } catch (error) {
+      logger.error('处理关闭tab请求失败:', error);
+      mainWindow.webContents.send('close-tab-response', { tabId, action: 'cancel' });
     }
   });
 

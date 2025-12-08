@@ -37,7 +37,7 @@ export interface ArticleMetaData {
 export type DocumentFormat = 'md' | 'tex' | 'json';
 
 /** 导出格式类型 */
-export type ExportFormat = 'md' | 'html' | 'docx' | 'pdf' | 'tex';
+export type ExportFormat = 'md' | 'html' | 'docx' | 'pdf' | 'tex' | 'json';
 
 // ========== AI相关类型 ==========
 

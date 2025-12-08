@@ -8,7 +8,7 @@ import { BrowserWindow } from 'electron';
 export type FilePath = string;
 
 /** 文件扩展名类型 */
-export type FileExtension = '.txt' | '.md' | '.pdf' | '.docx';
+export type FileExtension = '.txt' | '.md' | '.pdf' | '.docx' | '.pptx' | '.xlsx' | '.xls';
 
 /** 操作结果类型 */
 export interface OperationResult<T = void> {
@@ -128,7 +128,7 @@ export interface LaTeXCompileConfig {
 // ============ 文件转换相关类型 ============
 
 /** 支持的文件类型 */
-export type SupportedFileType = 'txt' | 'md' | 'pdf' | 'docx';
+export type SupportedFileType = 'txt' | 'md' | 'pdf' | 'docx' | 'pptx' | 'xlsx' | 'xls';
 
 /** 文件转换结果 */
 export interface FileConversionResult {

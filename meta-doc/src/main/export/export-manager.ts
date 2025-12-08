@@ -12,8 +12,10 @@ import { t } from '../i18n';
 import { compileLatexToPDF } from '../utils';
 import { createMainLogger } from '../logger';
 import { imageUploadDir } from '../express-server';
+import { MainProgressHandle } from '../utils/progress-handle';
 
 const logger = createMainLogger('PDFExport');
+let currentRequestId: string | undefined;
 
 /**
  * 清理中间图片文件
@@ -60,6 +62,7 @@ export interface RendererExportPayload {
   targetFormat: ExportFormat;
   suggestedName: string;
   sourcePath?: string;
+  requestId?: string;
   data: {
     md: string;
     json: string;
@@ -82,6 +85,26 @@ interface ExportContext {
 }
 
 type ExportHandler = (ctx: ExportContext) => Promise<void>;
+
+const exportAbortControllers = new Map<string, AbortController>();
+const exportProgressHandles = new Map<string, MainProgressHandle>();
+
+export function abortExportTask(requestId: string): boolean {
+  let aborted = false;
+  const controller = exportAbortControllers.get(requestId);
+  if (controller && !controller.signal.aborted) {
+    controller.abort();
+    aborted = true;
+  }
+  const handle = exportProgressHandles.get(requestId);
+  if (handle) {
+    handle.cancel();
+    aborted = true;
+  }
+  exportAbortControllers.delete(requestId);
+  exportProgressHandles.delete(requestId);
+  return aborted;
+}
 
 const ensureParentDirectory = async (filePath: string): Promise<void> => {
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
@@ -639,68 +662,227 @@ const enforceExtension = (fileName: string, targetFormat: ExportFormat): string 
   return `${fileName.replace(/\.+$/, '')}${extension}`;
 };
 
+const sendProgress = (mainWindow: BrowserWindow | null, progress: {
+  visible?: boolean;
+  message?: string;
+  subMessage?: string;
+  percentage?: number;
+  status?: 'success' | 'exception' | 'warning' | '';
+  params?: Record<string, any>;
+}, requestId?: string) => {
+  const reqId = requestId ?? currentRequestId;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    // 正确处理 visible 属性：如果明确设置为 false，则保持 false；否则默认为 true
+    const isVisible = progress.visible !== undefined ? progress.visible : true
+    mainWindow.webContents.send('global-progress', {
+      visible: isVisible,
+      message: progress.message || '',
+      subMessage: progress.subMessage,
+      percentage: progress.percentage ?? 0,
+      status: progress.status || '',
+      params: progress.params,
+      requestId: reqId,
+      canCancel: !!reqId,
+    });
+  }
+};
+
 const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
-  md: async ({ payload, targetPath }) => {
-    await writeTextFile(targetPath, payload.data.md);
-  },
-  html: async ({ payload, targetPath }) => {
-    if (!payload.html) {
-      throw new Error('缺少 HTML 数据，无法导出为 HTML');
-    }
-    const meta = extractDocumentMeta(payload);
-    const wrapped = wrapHtmlWithTemplate(meta, payload.html);
-    await writeTextFile(targetPath, wrapped);
-  },
-  docx: async ({ payload, targetPath }) => {
-    if (!payload.html) {
-      throw new Error('缺少 HTML 数据，无法导出为 DOCX');
-    }
-    const meta = extractDocumentMeta(payload);
-    const buffer = await convertMarkdownToDocxBuffer(payload.html);
-    const bufferWithMeta = await applyDocxMetadata(buffer, meta);
-    await writeBinaryFile(targetPath, bufferWithMeta);
-  },
-  pdf: async ({ payload, targetPath }) => {
-    logger.info('Markdown -> PDF 导出开始');
-    if (!payload.html) {
-      logger.error('缺少 HTML 数据');
-      throw new Error('缺少 HTML 数据，无法导出为 PDF');
-    }
-    logger.info(`HTML 数据长度: ${payload.html.length}`);
-    const meta = extractDocumentMeta(payload);
-    // ConvertHtmlForPdf 已经返回完整的 HTML 文档，不需要再次包装
-    // 但我们需要注入元数据到 head 中
-    let htmlDocument = payload.html;
-    if (!htmlDocument.includes('<!DOCTYPE html>')) {
-      // 如果不是完整文档，则包装
-      htmlDocument = wrapHtmlWithTemplate(meta, payload.html);
-    } else {
-      // 如果是完整文档，注入元数据到 head
-      const metaTags = [
-        meta.title ? `<title>${escapeHtml(meta.title)}</title>` : '',
-        meta.author ? `<meta name="author" content="${escapeHtml(meta.author)}">` : '',
-        meta.description ? `<meta name="description" content="${escapeHtml(meta.description)}">` : '',
-        meta.keywords.length > 0 ? `<meta name="keywords" content="${escapeHtml(meta.keywords.join(', '))}">` : '',
-      ].filter(Boolean).join('');
-      if (metaTags) {
-        htmlDocument = htmlDocument.replace('</head>', `${metaTags}</head>`);
-      }
-    }
-    logger.info(`处理后的 HTML 长度: ${htmlDocument.length}`);
+  md: async ({ payload, targetPath, mainWindow }) => {
     try {
+      // Markdown导出不需要预渲染，从0%开始
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exporting',
+        percentage: 50,
+        params: { format: 'Markdown' }
+      });
+      await writeTextFile(targetPath, payload.data.md);
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exportComplete',
+        percentage: 100,
+        status: 'success'
+      });
+      setTimeout(() => {
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+      }, 1000);
+    } finally {
+      setTimeout(() => {
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+      }, 2000);
+    }
+  },
+  html: async ({ payload, targetPath, mainWindow }) => {
+    try {
+      if (!payload.html) {
+        throw new Error('缺少 HTML 数据，无法导出为 HTML');
+      }
+      // 预渲染已完成（0-80%），现在从80%开始
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exporting',
+        subMessage: 'agent.reference.progress.convertingMarkdown',
+        percentage: 80,
+        params: { format: 'HTML' }
+      });
+      const meta = extractDocumentMeta(payload);
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exporting',
+        subMessage: 'agent.reference.progress.generatingFile',
+        percentage: 90,
+        params: { format: 'HTML' }
+      });
+      const wrapped = wrapHtmlWithTemplate(meta, payload.html);
+      await writeTextFile(targetPath, wrapped);
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exportComplete',
+        percentage: 100,
+        status: 'success'
+      });
+      setTimeout(() => {
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+      }, 1000);
+    } finally {
+      setTimeout(() => {
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+      }, 2000);
+    }
+  },
+  docx: async ({ payload, targetPath, mainWindow }) => {
+    try {
+      if (!payload.html) {
+        throw new Error('缺少 HTML 数据，无法导出为 DOCX');
+      }
+      // 预渲染已完成（0-80%），现在从80%开始
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exporting',
+        subMessage: 'agent.reference.progress.convertingMarkdown',
+        percentage: 80,
+        params: { format: 'DOCX' }
+      });
+      const meta = extractDocumentMeta(payload);
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exporting',
+        subMessage: 'agent.reference.progress.generatingFile',
+        percentage: 88,
+        params: { format: 'DOCX' }
+      });
+      const buffer = await convertMarkdownToDocxBuffer(payload.html);
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exporting',
+        subMessage: 'agent.reference.progress.addingMetadata',
+        percentage: 95,
+        params: { format: 'DOCX' }
+      });
+      const bufferWithMeta = await applyDocxMetadata(buffer, meta);
+      await writeBinaryFile(targetPath, bufferWithMeta);
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exportComplete',
+        percentage: 100,
+        status: 'success'
+      });
+      setTimeout(() => {
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+      }, 1000);
+    } finally {
+      setTimeout(() => {
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+      }, 2000);
+    }
+  },
+  pdf: async ({ payload, targetPath, mainWindow }) => {
+    try {
+      logger.info('Markdown -> PDF 导出开始');
+      if (!payload.html) {
+        logger.error('缺少 HTML 数据');
+        throw new Error('缺少 HTML 数据，无法导出为 PDF');
+      }
+      logger.info(`HTML 数据长度: ${payload.html.length}`);
+      // 预渲染已完成（0-80%），现在从80%开始
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exporting',
+        subMessage: 'agent.reference.progress.renderingHtml',
+        percentage: 80,
+        params: { format: 'PDF' }
+      });
+      const meta = extractDocumentMeta(payload);
+      // ConvertHtmlForPdf 已经返回完整的 HTML 文档，不需要再次包装
+      // 但我们需要注入元数据到 head 中
+      let htmlDocument = payload.html;
+      if (!htmlDocument.includes('<!DOCTYPE html>')) {
+        // 如果不是完整文档，则包装
+        htmlDocument = wrapHtmlWithTemplate(meta, payload.html);
+      } else {
+        // 如果是完整文档，注入元数据到 head
+        const metaTags = [
+          meta.title ? `<title>${escapeHtml(meta.title)}</title>` : '',
+          meta.author ? `<meta name="author" content="${escapeHtml(meta.author)}">` : '',
+          meta.description ? `<meta name="description" content="${escapeHtml(meta.description)}">` : '',
+          meta.keywords.length > 0 ? `<meta name="keywords" content="${escapeHtml(meta.keywords.join(', '))}">` : '',
+        ].filter(Boolean).join('');
+        if (metaTags) {
+          htmlDocument = htmlDocument.replace('</head>', `${metaTags}</head>`);
+        }
+      }
+      logger.info(`处理后的 HTML 长度: ${htmlDocument.length}`);
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exporting',
+        subMessage: 'agent.reference.progress.renderingHtml',
+        percentage: 85,
+        params: { format: 'PDF' }
+      });
       const buffer = await convertHtmlToPdfBuffer(htmlDocument);
       logger.info(`PDF Buffer 生成完成，大小: ${buffer.length}`);
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exporting',
+        subMessage: 'agent.reference.progress.addingMetadata',
+        percentage: 95,
+        params: { format: 'PDF' }
+      });
       const updated = await applyPdfMetadata(buffer, meta);
       logger.info('元数据应用完成');
       await writeBinaryFile(targetPath, updated);
       logger.info(`PDF 文件写入完成: ${targetPath}`);
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exportComplete',
+        percentage: 100,
+        status: 'success'
+      });
+      setTimeout(() => {
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+      }, 1000);
     } catch (error) {
       logger.error('PDF 导出过程中出错:', error);
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exportError',
+        subMessage: error instanceof Error ? error.message : String(error),
+        percentage: 0,
+        status: 'exception'
+      });
+      setTimeout(() => {
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+      }, 2000);
       throw error;
+    } finally {
+      // 确保进度条最终消失
+      setTimeout(() => {
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+      }, 3000);
     }
   },
-  tex: async ({ payload, targetPath }) => {
+  tex: async ({ payload, targetPath, mainWindow }) => {
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      percentage: 50,
+      params: { format: 'LaTeX' }
+    });
     await writeTextFile(targetPath, payload.data.tex);
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exportComplete',
+      percentage: 100,
+      status: 'success'
+    });
+    setTimeout(() => {
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+    }, 1000);
   },
   json: async () => {
     throw new Error('Markdown 文档不支持导出为 JSON');
@@ -708,12 +890,40 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
 };
 
 const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
-  tex: async ({ payload, targetPath }) => {
+  tex: async ({ payload, targetPath, mainWindow }) => {
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      percentage: 50,
+      params: { format: 'LaTeX' }
+    });
     await writeTextFile(targetPath, payload.data.tex);
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exportComplete',
+      percentage: 100,
+      status: 'success'
+    });
+    setTimeout(() => {
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+    }, 1000);
   },
   pdf: async ({ payload, targetPath, mainWindow }) => {
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      subMessage: 'agent.reference.progress.compilingLatex',
+      percentage: 10,
+      params: { format: 'PDF' }
+    });
+    
     const meta = extractDocumentMeta(payload);
     await ensureParentDirectory(targetPath);
+    
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      subMessage: 'agent.reference.progress.executingLatexCompile',
+      percentage: 30,
+      params: { format: 'PDF' }
+    });
+    
     const compileResult: LaTeXCompileResult = await compileLatexToPDF(
       payload.sourcePath || targetPath,
       payload.data.tex,
@@ -731,34 +941,128 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
               { code: String(compileResult.exitCode ?? '') },
             )
           : t('main.latex.compileFailed', 'Compilation failed, exit code: -1', { code: '-1' });
+      
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exportError',
+        subMessage: message,
+        percentage: 0,
+        status: 'exception'
+      });
+      setTimeout(() => {
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+      }, 2000);
+      
       throw new Error(message);
     }
+
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      subMessage: 'agent.reference.progress.copyingPdf',
+      percentage: 80,
+      params: { format: 'PDF' }
+    });
 
     if (compileResult.pdfPath !== targetPath) {
       await fs.promises.copyFile(compileResult.pdfPath, targetPath);
     }
 
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      subMessage: 'agent.reference.progress.addingMetadata',
+      percentage: 90,
+      params: { format: 'PDF' }
+    });
+
     await writePdfMetadataToFile(targetPath, meta);
+    
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exportComplete',
+      percentage: 100,
+      status: 'success'
+    });
+    
+    setTimeout(() => {
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+    }, 1000);
   },
-  md: async ({ payload, targetPath }) => {
+  md: async ({ payload, targetPath, mainWindow }) => {
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      percentage: 50,
+      params: { format: 'Markdown' }
+    });
     await writeTextFile(targetPath, payload.data.md);
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exportComplete',
+      percentage: 100,
+      status: 'success'
+    });
+    setTimeout(() => {
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+    }, 1000);
   },
-  html: async ({ payload, targetPath }) => {
+  html: async ({ payload, targetPath, mainWindow }) => {
     if (!payload.html) {
       throw new Error('缺少 HTML 数据，无法导出为 HTML');
     }
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      subMessage: 'agent.reference.progress.convertingMarkdown',
+      percentage: 30,
+      params: { format: 'HTML' }
+    });
     const meta = extractDocumentMeta(payload);
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      subMessage: 'agent.reference.progress.generatingFile',
+      percentage: 60,
+      params: { format: 'HTML' }
+    });
     const wrapped = wrapHtmlWithTemplate(meta, payload.html);
     await writeTextFile(targetPath, wrapped);
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exportComplete',
+      percentage: 100,
+      status: 'success'
+    });
+    setTimeout(() => {
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+    }, 1000);
   },
-  docx: async ({ payload, targetPath }) => {
+  docx: async ({ payload, targetPath, mainWindow }) => {
     if (!payload.html) {
       throw new Error('缺少 HTML 数据，无法导出为 DOCX');
     }
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      subMessage: 'agent.reference.progress.convertingMarkdown',
+      percentage: 20,
+      params: { format: 'DOCX' }
+    });
     const meta = extractDocumentMeta(payload);
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      subMessage: 'agent.reference.progress.generatingFile',
+      percentage: 50,
+      params: { format: 'DOCX' }
+    });
     const buffer = await convertMarkdownToDocxBuffer(payload.html);
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      subMessage: 'agent.reference.progress.addingMetadata',
+      percentage: 80,
+      params: { format: 'DOCX' }
+    });
     const bufferWithMeta = await applyDocxMetadata(buffer, meta);
     await writeBinaryFile(targetPath, bufferWithMeta);
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exportComplete',
+      percentage: 100,
+      status: 'success'
+    });
+    setTimeout(() => {
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
+    }, 1000);
   },
   json: async () => {
     throw new Error('LaTeX 文档不支持导出为 JSON');
@@ -807,6 +1111,30 @@ export const performExportRequest = async (
   payload: RendererExportPayload,
   mainWindow: BrowserWindow | null,
 ): Promise<ExportResponse> => {
+  currentRequestId = payload.requestId;
+  const abortController = payload.requestId ? new AbortController() : null;
+  if (payload.requestId && abortController) {
+    exportAbortControllers.set(payload.requestId, abortController);
+  }
+  const progressHandle = payload.requestId
+    ? new MainProgressHandle({
+        requestId: payload.requestId,
+        canCancel: true,
+        send: (p) => sendProgress(mainWindow, p, payload.requestId),
+        initialMessage: 'agent.reference.progress.preparingExport',
+        initialPercentage: 80,
+      })
+    : null;
+  if (payload.requestId && progressHandle) {
+    exportProgressHandles.set(payload.requestId, progressHandle);
+  }
+
+  const ensureNotCancelled = () => {
+    if (abortController?.signal.aborted) {
+      throw new Error('操作已取消');
+    }
+  };
+
   try {
     const availableTargets = getExportTargets(payload.sourceFormat);
     if (!availableTargets.some((item) => item.format === payload.targetFormat)) {
@@ -826,6 +1154,7 @@ export const performExportRequest = async (
       mainWindow.webContents.send('export-dialog-opening');
     }
     
+    // @ts-ignore - Electron's showSaveDialog accepts BrowserWindow | undefined
     const dialogResult = await dialog.showSaveDialog(mainWindow || undefined, {
       title: t('main.dialogs.exportDocumentTitle'),
       defaultPath: defaultFileName,
@@ -833,8 +1162,25 @@ export const performExportRequest = async (
     });
 
     if (dialogResult.canceled || !dialogResult.filePath) {
+      // 用户取消了对话框，取消任务并隐藏进度条
+      if (progressHandle) {
+        progressHandle.cancel();
+      }
+      if (abortController) {
+        abortController.abort();
+      }
+      sendProgress(mainWindow, { visible: false }, payload.requestId);
       return { success: false };
     }
+
+    // 显示导出进度条
+    // 预渲染已完成（0-80%），现在从80%开始
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      subMessage: 'agent.reference.progress.preparingExport',
+      percentage: 80,
+      params: { format: payload.targetFormat }
+    }, payload.requestId);
 
     const handler = EXPORT_HANDLER_MAP[payload.sourceFormat]?.[payload.targetFormat];
     if (!handler) {
@@ -845,29 +1191,64 @@ export const performExportRequest = async (
     }
 
     const targetPath = enforceExtension(dialogResult.filePath, payload.targetFormat);
+    ensureNotCancelled();
     await handler({
       payload,
       targetPath,
       mainWindow,
     });
+    ensureNotCancelled();
 
     // 导出完成后，清理中间图片文件（仅对 PDF 和 DOCX）
     // HTML 和 TEX 需要保留图片文件，因为它们会引用图片地址
     if (payload.imageUrls && payload.imageUrls.length > 0) {
       if (payload.targetFormat === 'pdf' || payload.targetFormat === 'docx') {
+        sendProgress(mainWindow, {
+          message: 'agent.reference.progress.cleaningTempFiles',
+          percentage: 98
+        }, payload.requestId);
         await cleanupIntermediateImages(payload.imageUrls);
       }
     }
+
+    // 清理完成后，确保进度条消失
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exportComplete',
+      percentage: 100,
+      status: 'success'
+    }, payload.requestId);
+    setTimeout(() => {
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 }, payload.requestId);
+    }, 1000);
 
     return {
       success: true,
       path: targetPath,
     };
   } catch (error) {
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exportError',
+      subMessage: error instanceof Error ? error.message : String(error),
+      percentage: 0,
+      status: 'exception'
+    }, payload.requestId);
+    setTimeout(() => {
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 }, payload.requestId);
+    }, 2000);
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
     };
+  } finally {
+    // 确保进度条最终消失
+    setTimeout(() => {
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 }, payload.requestId);
+    }, 3000);
+    if (payload.requestId) {
+      exportAbortControllers.delete(payload.requestId);
+      exportProgressHandles.delete(payload.requestId);
+    }
+    currentRequestId = undefined;
   }
 };
 

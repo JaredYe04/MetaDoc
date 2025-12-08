@@ -192,7 +192,7 @@
         </div>
       </el-menu-item>
 
-      <div v-for="item in recentDocs" :key="item">
+      <div v-for="item in recentDocs.slice(0, 10)" :key="item">
           <el-menu-item :index="`4-${item}`" @click="
             askSave(() => {
               eventBus.emit('open-doc', item)

@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, withDefaults, type CSSProperties } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch , type CSSProperties } from 'vue';
 import type { ContextMenuItem } from './contextMenus/types';
 import { themeState, mixColors } from '../utils/themes';
 

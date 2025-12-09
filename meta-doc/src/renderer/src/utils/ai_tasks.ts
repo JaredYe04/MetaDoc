@@ -220,7 +220,7 @@ export async function startAiTask(handle: string): Promise<void> {
     if (task.type === ai_types.answer && task.target) {
       const logger = createRendererLogger('AiTasks')
       console.log('task.prompt', task.prompt)
-      logger.debug(`[主窗口] 开始执行answer任务: handle=${handle}, prompt长度=${typeof task.prompt === 'string' ? task.prompt.length : 'array'}`)
+      logger.debug(`[主窗口] 开始执行answer任务: handle=${handle}, prompt长度=${typeof task.prompt === 'string' ? task.prompt.length : 'array'}, prompt前100字符=${typeof task.prompt === 'string' ? task.prompt.substring(0, 100) : 'array'}, prompt后100字符=${typeof task.prompt === 'string' ? task.prompt.substring(task.prompt.length - 100) : 'array'}`)
       
       // 记录task.meta用于调试
       logger.debug(`[startAiTask] answer任务，task.meta:`, {

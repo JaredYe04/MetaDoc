@@ -169,10 +169,21 @@ const currentOutline = computed<DocumentOutlineNode>({
 
 const currentOutlineJson = computed(() => {
   try {
-    return JSON.stringify(extractOutlineTreeFromMarkdown(currentMarkdown.value, true));
+    // 优先使用 workspace 中的 outline，如果为空或无效，再从 markdown 提取
+    const outline = currentOutline.value;
+    if (outline && outline.path === 'dummy' && outline.children && outline.children.length > 0) {
+      return JSON.stringify(outline);
+    }
+    // 如果 workspace 中的 outline 为空，尝试从 markdown 提取
+    const extracted = extractOutlineTreeFromMarkdown(currentMarkdown.value, true);
+    if (extracted && extracted.path === 'dummy' && extracted.children && extracted.children.length > 0) {
+      return JSON.stringify(extracted);
+    }
+    // 如果都没有内容，返回空数组的 JSON
+    return JSON.stringify({ path: 'dummy', title: '', text: '', title_level: 0, children: [] });
   } catch (error) {
     logger.warn('构建大纲 JSON 失败', error);
-    return '[]';
+    return JSON.stringify({ path: 'dummy', title: '', text: '', title_level: 0, children: [] });
   }
 });
 

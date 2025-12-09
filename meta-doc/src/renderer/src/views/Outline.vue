@@ -595,34 +595,15 @@ const generateChildrenContent = async () => {
 
     const task = done
       .then(() => {
-        // 提取 JSON 并解析
+        // 直接使用返回的文本内容
         const rawContent = rawStringRef.value?.trim() || '';
         if (!rawContent) {
           logger.warn(`节点 ${curNode.title} AI 返回内容为空`);
           curNode.text = '';
         } else {
-          const json = extractOuterJsonString(rawContent);
-          if (json) {
-            try {
-              const result = JSON.parse(json) as { content: string };
-              if (result.content) {
-                curNode.text = result.content;
-              } else {
-                logger.warn(`节点 ${curNode.title} JSON 中 content 字段为空，使用原始内容`);
-                const cleaned = cleanRawContent(rawContent);
-                curNode.text = cleaned || rawContent;
-              }
-            } catch (parseErr) {
-              logger.warn(`节点 ${curNode.title} JSON 解析失败，尝试使用原始内容`, parseErr);
-              const cleaned = cleanRawContent(rawContent);
-              curNode.text = cleaned || rawContent;
-            }
-          } else {
-            // 如果提取失败，尝试清理原始内容
-            logger.warn(`节点 ${curNode.title} 未能提取 JSON，尝试清理原始内容。原始内容前100字符：`, rawContent.substring(0, 100));
-            const cleaned = cleanRawContent(rawContent);
-            curNode.text = cleaned || rawContent;
-          }
+          // 清理可能的说明文字和格式标记
+          const cleaned = cleanRawContent(rawContent);
+          curNode.text = cleaned || rawContent;
         }
         eventBus.emit(
           'show-success',
@@ -686,35 +667,15 @@ const generateContent = async () => {
   );
   try {
     await done;
-    // 提取 JSON 并解析
+    // 直接使用返回的文本内容
     const rawContent = rawstring.value?.trim() || '';
     if (!rawContent) {
       logger.warn('AI 返回内容为空');
       curNode.text = '';
     } else {
-      const json = extractOuterJsonString(rawContent);
-      if (json) {
-        try {
-          const result = JSON.parse(json) as { content: string };
-          if (result.content) {
-            curNode.text = result.content;
-          } else {
-            logger.warn('JSON 中 content 字段为空，尝试清理原始内容');
-            const cleaned = cleanRawContent(rawContent);
-            curNode.text = cleaned || rawContent;
-          }
-        } catch (parseErr) {
-          logger.warn('JSON 解析失败，尝试使用原始内容', parseErr);
-          // 尝试清理原始内容（去除可能的说明文字）
-          const cleaned = cleanRawContent(rawContent);
-          curNode.text = cleaned || rawContent;
-        }
-      } else {
-        // 如果提取失败，尝试清理原始内容
-        logger.warn('未能提取 JSON，尝试清理原始内容。原始内容前100字符：', rawContent.substring(0, 100));
-        const cleaned = cleanRawContent(rawContent);
-        curNode.text = cleaned || rawContent;
-      }
+      // 清理可能的说明文字和格式标记
+      const cleaned = cleanRawContent(rawContent);
+      curNode.text = cleaned || rawContent;
     }
   } catch (err) {
     logger.warn('任务失败或取消：', err);
@@ -1541,21 +1502,8 @@ function cleanRawContent(raw: string): string {
   
   let cleaned = raw.trim();
   
-  // 首先尝试提取 JSON（如果内容被包裹在说明文字中）
-  const jsonMatch = cleaned.match(/\{[\s\S]*"content"[\s\S]*\}/);
-  if (jsonMatch) {
-    try {
-      const result = JSON.parse(jsonMatch[0]) as { content?: string };
-      if (result.content) {
-        return result.content.trim();
-      }
-    } catch {
-      // 解析失败，继续清理
-    }
-  }
-  
   // 去除代码块标记（如果 AI 错误地使用了代码块）
-  cleaned = cleaned.replace(/^```(?:json|markdown)?\s*\n?/i, '');
+  cleaned = cleaned.replace(/^```(?:json|markdown|text)?\s*\n?/i, '');
   cleaned = cleaned.replace(/\n?```\s*$/i, '');
   
   // 去除常见的说明文字段落（这些通常出现在内容开头，后面跟着换行和实际内容）
@@ -1603,7 +1551,7 @@ function cleanRawContent(raw: string): string {
       // 跳过空行和明显的说明文字
       if (!trimmedLine) continue;
       if (/^(请|现在|输出|根据|我将|好的|明白了)/i.test(trimmedLine) && 
-          /(格式|输出|JSON|示例|不要|添加)/i.test(trimmedLine)) {
+          /(格式|输出|示例|不要|添加)/i.test(trimmedLine)) {
         continue;
       }
       // 找到第一个看起来像实际内容的行

@@ -10,7 +10,9 @@
     :active-text-color="themeState.currentTheme.textColor2"
   >
     <el-menu-item>
-      <h1>{{ $t('headMenu.title') }}</h1>
+      <el-tooltip :content="appVersion" placement="bottom" :disabled="!appVersion">
+        <h1>{{ $t('headMenu.title') }}</h1>
+      </el-tooltip>
     </el-menu-item>
 
     <el-menu-item index="/">{{ $t('headMenu.home') }}</el-menu-item>
@@ -24,55 +26,58 @@
   </el-menu>
 </template>
 
-<script setup>
-import { defineComponent, ref, onMounted, onBeforeUnmount, computed } from 'vue'
+<script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import eventBus from '../utils/event-bus'
 import { mixColors, themeState } from '../utils/themes'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace } from '../stores/workspace'
 import { isDevEnvironment } from '../utils/dev-env'
+import { getAppVersion } from '../utils/version'
 
 // 获取路由实例
 const router = useRouter()
 const route = useRoute()
 
-
-
-
-const activeMenuIndex = ref(route.path)
+const activeMenuIndex = ref<string>(route.path)
 const { activeDocument } = useActiveDocument()
 const currentFormat = computed(() => activeDocument.value?.format ?? 'md')
 const workspace = useWorkspace()
 const isLocked = computed(() => workspace.uiLocked?.value === true)
-const isDev = ref(false)
+const isDev = ref<boolean>(false)
+const appVersion = ref<string>('')
 
 // 计算选中状态的背景色（使用辅助背景色）
 const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3))
 const activeTextColor = computed(() => themeState.currentTheme.textColor)
 
 // 方法
-const goHome = () => {
+const goHome = (): void => {
   router.push('/')
 }
 
-const handleSelect = (key) => {
+const handleSelect = (key: string): void => {
   if (isLocked.value) return
   router.push(key)
 }
 
 // 生命周期钩子
-onMounted(async () => {
-  eventBus.on('nav-to', path => {
-    activeMenuIndex.value = path
-    router.push(path)
+onMounted(async (): Promise<void> => {
+  eventBus.on('nav-to', (path: unknown) => {
+    if (typeof path === 'string') {
+      activeMenuIndex.value = path
+      router.push(path)
+    }
   })
   // 检查是否为开发环境
   isDev.value = await isDevEnvironment()
+  // 获取应用版本号
+  appVersion.value = await getAppVersion()
 })
 
 // 组件卸载前清除事件监听
-onBeforeUnmount(() => {
+onBeforeUnmount((): void => {
   eventBus.off('nav-to')
 })
 </script>

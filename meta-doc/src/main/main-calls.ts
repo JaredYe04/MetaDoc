@@ -1456,6 +1456,11 @@ function bindSystemHandlers(): void {
   nativeTheme.on('updated', () => {
     mainWindow?.webContents.send('os-theme-changed');
   });
+
+  // 获取应用版本号
+  ipcMain.handle('get-app-version', async (event: IpcMainInvokeEvent): Promise<string> => {
+    return getAppVersion();
+  });
 }
 
 // ============ 工具函数 ============
@@ -1479,6 +1484,62 @@ const cut_words = async (text: string): Promise<any[]> => {
 const getImagePath = async (): Promise<string> => {
   return imageUploadDir;
 };
+
+/**
+ * 获取应用版本号
+ */
+function getAppVersion(): string {
+  try {
+    // 在开发环境中，从项目根目录读取版本文件
+    // 在打包后，从 resources 目录读取（resources 目录会被 asarUnpack 解包）
+    let versionFilePath: string;
+    if (app.isPackaged) {
+      // 打包后：从 resources 目录加载（resources 目录会被 asarUnpack 解包）
+      versionFilePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'version.json');
+    } else {
+      // 开发环境：从项目根目录加载
+      // electron-vite 在开发环境中，__dirname 指向 out/main
+      // 所以需要向上两级到达项目根目录：out/main -> out -> 项目根目录
+      // 与 index.ts 中加载 .env 文件的路径保持一致
+      versionFilePath = path.resolve(__dirname, '../../version.json');
+    }
+    
+    logger.debug('尝试读取版本文件:', versionFilePath, '存在:', fs.existsSync(versionFilePath));
+    
+    if (fs.existsSync(versionFilePath)) {
+      const versionData = JSON.parse(fs.readFileSync(versionFilePath, 'utf-8'));
+      logger.debug('从版本文件读取版本号:', versionData.version);
+      return versionData.version || 'Beta0.0.1';
+    }
+    
+    logger.warn('版本文件不存在，尝试从 package.json 读取:', versionFilePath);
+    
+    // 如果版本文件不存在，尝试从 package.json 读取
+    let packageJsonPath: string;
+    if (app.isPackaged) {
+      packageJsonPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'package.json');
+    } else {
+      // 开发环境：从项目根目录加载 package.json
+      packageJsonPath = path.resolve(__dirname, '../../package.json');
+    }
+    
+    logger.debug('尝试读取 package.json:', packageJsonPath, '存在:', fs.existsSync(packageJsonPath));
+    
+    if (fs.existsSync(packageJsonPath)) {
+      const packageData = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+      const version = packageData.version || '1.0.0';
+      logger.debug('从 package.json 读取版本号:', version);
+      // 如果 package.json 中的版本没有 Beta 前缀，添加它
+      return version.startsWith('Beta') ? version : `Beta${version}`;
+    }
+    
+    logger.warn('无法找到版本文件或 package.json，使用默认版本');
+    return 'Beta0.0.1';
+  } catch (error) {
+    logger.warn('读取版本号失败，使用默认版本:', error);
+    return 'Beta0.0.1';
+  }
+}
 
 /**
  * 系统通知

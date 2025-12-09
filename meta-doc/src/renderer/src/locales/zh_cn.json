@@ -1289,6 +1289,14 @@
       "parseSuccess": "解析成功",
       "parseFailed": "解析失败",
       "parseCancelled": "已取消解析",
+      "fileTypeCategory": {
+        "all": "所有支持的格式",
+        "text": "文本文件",
+        "document": "文档文件",
+        "data": "数据文件",
+        "image": "图片文件",
+        "web": "网页文件"
+      },
       "progress": {
         "parsingFile": "正在解析文件: {filename}",
         "parsingImage": "正在解析图片: {filename}",

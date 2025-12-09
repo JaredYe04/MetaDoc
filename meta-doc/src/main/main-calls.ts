@@ -574,6 +574,153 @@ function bindFileHandlers(): void {
       logger.error('更新文件监听标签页 ID 失败', { filePath, tabId, error });
     }
   });
+
+  // ============ 通用文件选择服务 ============
+  
+  /**
+   * 根据文件类型类别生成文件过滤器
+   */
+  function getFileFiltersByCategory(category: string, i18nT: (key: string, defaultValue?: string) => string): Electron.FileFilter[] {
+    const filters: Electron.FileFilter[] = []
+    
+    switch (category) {
+      case 'all':
+        // 所有支持的格式，按类别分组显示
+        filters.push(
+          { name: i18nT('agent.reference.fileTypeCategory.all', 'All Supported Formats'), extensions: ['txt', 'md', 'json', 'xml', 'pdf', 'docx', 'pptx', 'xlsx', 'xls', 'csv', 'html', 'htm', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] },
+          { name: i18nT('agent.reference.fileTypeCategory.text', 'Text Files'), extensions: ['txt', 'md', 'json', 'xml'] },
+          { name: i18nT('agent.reference.fileTypeCategory.document', 'Document Files'), extensions: ['pdf', 'docx', 'pptx'] },
+          { name: i18nT('agent.reference.fileTypeCategory.data', 'Data Files'), extensions: ['csv', 'xlsx', 'xls'] },
+          { name: i18nT('agent.reference.fileTypeCategory.image', 'Image Files'), extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] },
+          { name: i18nT('agent.reference.fileTypeCategory.web', 'Web Files'), extensions: ['html', 'htm', 'xml'] },
+          { name: i18nT('main.dialogs.filters.all', 'All Files'), extensions: ['*'] }
+        )
+        break
+      case 'text':
+        filters.push(
+          { name: i18nT('agent.reference.fileTypeCategory.text', 'Text Files'), extensions: ['txt', 'md', 'json', 'xml'] },
+          { name: i18nT('main.dialogs.filters.all', 'All Files'), extensions: ['*'] }
+        )
+        break
+      case 'document':
+        filters.push(
+          { name: i18nT('agent.reference.fileTypeCategory.document', 'Document Files'), extensions: ['pdf', 'docx', 'pptx'] },
+          { name: i18nT('main.dialogs.filters.all', 'All Files'), extensions: ['*'] }
+        )
+        break
+      case 'data':
+        filters.push(
+          { name: i18nT('agent.reference.fileTypeCategory.data', 'Data Files'), extensions: ['csv', 'xlsx', 'xls'] },
+          { name: i18nT('main.dialogs.filters.all', 'All Files'), extensions: ['*'] }
+        )
+        break
+      case 'image':
+        filters.push(
+          { name: i18nT('agent.reference.fileTypeCategory.image', 'Image Files'), extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] },
+          { name: i18nT('main.dialogs.filters.all', 'All Files'), extensions: ['*'] }
+        )
+        break
+      case 'web':
+        filters.push(
+          { name: i18nT('agent.reference.fileTypeCategory.web', 'Web Files'), extensions: ['html', 'htm', 'xml'] },
+          { name: i18nT('main.dialogs.filters.all', 'All Files'), extensions: ['*'] }
+        )
+        break
+      default:
+        filters.push({ name: i18nT('main.dialogs.filters.all', 'All Files'), extensions: ['*'] })
+    }
+    
+    return filters
+  }
+
+  /**
+   * 通用文件选择服务
+   * @param options 文件选择选项
+   * @returns 选中的文件路径数组
+   */
+  ipcMain.handle('select-reference-files', async (
+    event: IpcMainInvokeEvent,
+    options: {
+      category?: string
+      multiple?: boolean
+      title?: string
+    }
+  ): Promise<{ canceled: boolean; filePaths: string[] }> => {
+    try {
+      const category = options.category || 'all'
+      const multiple = options.multiple ?? false
+      const title = options.title || t('agent.reference.selectFile', 'Select File')
+      
+      const filters = getFileFiltersByCategory(category, t)
+      
+      const result: OpenDialogReturnValue = await dialog.showOpenDialog(mainWindow!, {
+        title,
+        filters,
+        properties: multiple ? ['openFile', 'multiSelections'] : ['openFile']
+      })
+      
+      return {
+        canceled: result.canceled,
+        filePaths: result.filePaths || []
+      }
+    } catch (error) {
+      logger.error('文件选择失败:', error)
+      throw error
+    }
+  })
+
+  /**
+   * 读取文件内容并转换为 base64
+   * 用于在渲染进程中创建 File 对象
+   */
+  ipcMain.handle('read-file-for-upload', async (
+    event: IpcMainInvokeEvent,
+    filePath: string
+  ): Promise<{ name: string; data: string; mimeType: string }> => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        throw new Error('文件不存在')
+      }
+      
+      const fileBuffer = fs.readFileSync(filePath)
+      const fileName = path.basename(filePath)
+      const ext = path.extname(filePath).toLowerCase()
+      
+      // 根据扩展名推断 MIME 类型
+      const mimeTypes: Record<string, string> = {
+        '.txt': 'text/plain',
+        '.md': 'text/markdown',
+        '.json': 'application/json',
+        '.pdf': 'application/pdf',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.xls': 'application/vnd.ms-excel',
+        '.csv': 'text/csv',
+        '.html': 'text/html',
+        '.htm': 'text/html',
+        '.xml': 'text/xml',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.bmp': 'image/bmp',
+        '.webp': 'image/webp'
+      }
+      
+      const mimeType = mimeTypes[ext] || 'application/octet-stream'
+      const base64 = fileBuffer.toString('base64')
+      
+      return {
+        name: fileName,
+        data: base64,
+        mimeType
+      }
+    } catch (error) {
+      logger.error('读取文件失败:', error)
+      throw error
+    }
+  })
 }
 
 function bindLoggerHandlers(): void {

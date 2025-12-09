@@ -670,6 +670,22 @@
     "loggerConsoleTitle": "Log Output in Real Time",
     "loggingEnabled": "Enable log records",
     "loggingLevel": "Log Level",
+    "loggingFilter": "Log Filter",
+    "loggingFilterPlaceholder": "Enter module name to filter, e.g.: ai-graph",
+    "loggingFilterHint": "Filter logs by module name, e.g. enter \"ai-graph\" to show only logs from that module and its sub-modules",
+    "logRetentionPeriod": "Log Retention Period",
+    "logRetentionPeriodHint": "Automatically clean up old log files that exceed the retention period. Cleanup runs automatically when the application starts",
+    "logRetentionPeriods": {
+      "none": "Don't Save",
+      "1day": "1 Day",
+      "3days": "3 Days",
+      "7days": "7 Days",
+      "1month": "1 Month",
+      "3months": "3 Months",
+      "6months": "6 Months",
+      "1year": "1 Year",
+      "never": "Never Clean"
+    },
     "loggingLevels": {
       "debug": "Debug",
       "error": "Error",
@@ -1187,6 +1203,14 @@
       "parseSuccess": "Parse successful",
       "parseFailed": "Parse failed",
       "parseCancelled": "Parse cancelled",
+      "fileTypeCategory": {
+        "all": "All Supported Formats",
+        "text": "Text Files",
+        "document": "Document Files",
+        "data": "Data Files",
+        "image": "Image Files",
+        "web": "Web Files"
+      },
       "progress": {
         "parsingFile": "Parsing file: {filename}",
         "parsingImage": "Parsing image: {filename}",

@@ -1,6 +1,6 @@
 {
   "name": "meta-doc",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "基于LLM Agent的智能文字处理软件",
   "main": "./out/main/index.js",
   "author": "jaredye.com",

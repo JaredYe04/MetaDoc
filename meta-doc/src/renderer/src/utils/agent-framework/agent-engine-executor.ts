@@ -68,6 +68,23 @@ export abstract class BaseEngineExecutor {
   }
 
   /**
+   * 获取可以传递给工具的session对象
+   * 新类型有entityType字段，旧类型有publicContext字段，都可以使用
+   */
+  protected getSessionForTool(): AgentSession | undefined {
+    const session = this.session as any
+    // 新类型：有entityType字段
+    if (session.entityType === 'agent-session') {
+      return session as AgentSession
+    }
+    // 旧类型：有publicContext字段，也可以使用（需要确保publicContext存在）
+    if (session.publicContext) {
+      return session as AgentSession
+    }
+    return undefined
+  }
+
+  /**
    * 执行引擎（抽象方法）
    */
   abstract execute(userMessage: string): Promise<void>
@@ -658,7 +675,7 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
           reactResult.action,
           reactResult.actionInput || {},
           this.options.signal,
-          (this.session as any).entityType === 'agent-session' ? this.session as AgentSession : undefined  // 传递session对象（仅新类型）
+          this.getSessionForTool()  // 使用辅助函数获取session
         )
 
         // 获取工具配置以获取displayComponent
@@ -1164,7 +1181,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
             toolCall.tool_id,
             toolCall.parameters,
             this.options.signal,
-            (this.session as any).entityType === 'agent-session' ? this.session as AgentSession : undefined  // 传递session对象（仅新类型）
+            this.getSessionForTool()  // 使用辅助函数获取session
           )
 
           observations.push(observation)
@@ -1397,7 +1414,7 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
               toolId,
               step.parameters || step.params || {},
               this.options.signal,
-              (this.session as any).entityType === 'agent-session' ? this.session as AgentSession : undefined  // 传递session对象（仅新类型）
+              this.getSessionForTool()  // 使用辅助函数获取session
             )
 
             // 获取工具配置以获取displayComponent
@@ -1650,7 +1667,7 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
               toolCall.tool_id,
               toolCall.parameters || {},
               this.options.signal,
-              (this.session as any).entityType === 'agent-session' ? this.session as AgentSession : undefined  // 传递session对象（仅新类型）
+              this.getSessionForTool()  // 使用辅助函数获取session
             )
 
             // 获取工具配置以获取displayComponent

@@ -110,7 +110,7 @@ const dataAnalysisToolLocales: ToolLocales = {
 # 数据分析工具
 
 ## 功能描述
-自动分析结构化数据（CSV、JSON等），提供：
+自动分析结构化数据（CSV、JSON、XLS、XLSX等），提供：
 - 自动提取字段和数据类型
 - 描述统计信息（均值、中位数、众数、方差、标准差等）
 - 自动进行所有字段的groupby聚合分析
@@ -126,7 +126,7 @@ const dataAnalysisToolLocales: ToolLocales = {
 \`\`\`json
 {
   "data": "string|array|object", // 必需，数据内容（CSV字符串、JSON字符串或对象）、文件路径或URL
-  "format": "csv|json", // 必需，数据格式
+      "format": "csv|json|xls|xlsx", // 必需，数据格式（支持csv、json、xls、xlsx）
   "dataSource": "inline|file|url", // 可选，数据来源类型，默认"inline"（内联数据）
   "analysisRequest": "string", // 可选，自然语言描述的分析需求
   "groupByFields": ["string"], // 可选，指定要groupby的字段
@@ -136,8 +136,44 @@ const dataAnalysisToolLocales: ToolLocales = {
 
 ## 数据来源说明
 - **inline（默认）**：data字段直接包含数据内容（CSV字符串、JSON字符串或对象）
-- **file**：data字段为文件路径（相对路径或绝对路径），工具会读取文件内容
-- **url**：data字段为URL地址，工具会通过HTTP请求获取数据
+  - ⚠️ **仅适用于小数据**：仅当数据量很小（几KB以内）时使用，不推荐用于大文件
+- **file（推荐）**：data字段为文件路径（相对路径或绝对路径），工具会读取文件内容
+  - ✅ **推荐使用**：对于用户上传的数据文件（CSV、XLSX、XLS等），优先使用此方式
+  - ✅ **从引用素材获取路径**：如果用户在引用素材中上传了数据文件，从引用素材的 \`origin\` 字段获取文件路径
+- **url（推荐）**：data字段为URL地址，工具会通过HTTP请求获取数据
+  - ✅ **推荐使用**：对于网络数据源，优先使用此方式
+
+## ⚠️ 重要使用原则
+
+**优先使用文件路径或URL，不要直接输入数据内容！**
+
+1. **推荐方式**：
+   - ✅ 如果用户上传了数据文件，使用 \`dataSource: "file"\`，在 \`data\` 字段中传入文件路径
+   - ✅ 如果数据来自网络，使用 \`dataSource: "url"\`，在 \`data\` 字段中传入URL地址
+   - ✅ 如果用户在引用素材中上传了数据文件，从引用素材的 \`origin\` 字段获取文件路径
+
+2. **避免的方式**：
+   - ❌ **不要将读取到的reference内容全部输出一遍作为参数**：这样容易出错、效率低下、浪费token
+   - ❌ **不要使用inline模式处理大文件**：对于大文件（超过几KB），绝对不要使用 \`dataSource: "inline"\` 直接输入数据内容
+
+3. **使用示例**：
+   \`\`\`json
+   {
+     "data": "/path/to/data.csv",
+     "format": "csv",
+     "dataSource": "file",
+     "analysisRequest": "分析销售趋势"
+   }
+   \`\`\`
+   或
+   \`\`\`json
+   {
+     "data": "https://example.com/data.json",
+     "format": "json",
+     "dataSource": "url",
+     "analysisRequest": "分析用户行为"
+   }
+   \`\`\`
 
 ## 输出格式
 \`\`\`json
@@ -196,13 +232,46 @@ Automatically analyzes structured data (CSV, JSON) providing:
 ## Input Format
 \`\`\`json
 {
-  "data": "string|array|object",
-  "format": "csv|json",
-  "analysisRequest": "string",
-  "groupByFields": ["string"],
-  "autoGroupBy": true
+  "data": "string|array|object", // Required: data content (CSV/JSON string/object), file path, or URL
+  "format": "csv|json|xls|xlsx", // Required: data format (supports csv, json, xls, xlsx)
+  "dataSource": "inline|file|url", // Optional: data source type, default "inline"
+  "analysisRequest": "string", // Optional: natural language analysis request
+  "groupByFields": ["string"], // Optional: fields to group by
+  "autoGroupBy": true // Optional: auto groupby for all fields, default true
 }
 \`\`\`
+
+## ⚠️ Important Usage Principles
+
+**Prefer file paths or URLs, do NOT directly input data content!**
+
+1. **Recommended approaches**:
+   - ✅ If user uploaded a data file, use \`dataSource: "file"\` with file path in \`data\` field
+   - ✅ If data is from network, use \`dataSource: "url"\` with URL in \`data\` field
+   - ✅ If user uploaded data file in references, get file path from reference's \`origin\` field
+
+2. **Avoid**:
+   - ❌ **Do NOT output all reference content as parameters**: This is error-prone, inefficient, and wastes tokens
+   - ❌ **Do NOT use inline mode for large files**: For large files (over a few KB), never use \`dataSource: "inline"\` to directly input data content
+
+3. **Usage examples**:
+   \`\`\`json
+   {
+     "data": "/path/to/data.csv",
+     "format": "csv",
+     "dataSource": "file",
+     "analysisRequest": "Analyze sales trends"
+   }
+   \`\`\`
+   or
+   \`\`\`json
+   {
+     "data": "https://example.com/data.json",
+     "format": "json",
+     "dataSource": "url",
+     "analysisRequest": "Analyze user behavior"
+   }
+   \`\`\`
 `
   }
 }
@@ -627,10 +696,25 @@ const dataAnalysisToolCallback: ToolCallback = async (params, signal, onUpdate) 
     }
   }
 
-  if (!format || !['csv', 'json'].includes(format)) {
+  // 根据文件路径自动推断format（如果未指定或为file模式）
+  let inferredFormat = format
+  if (dataSource === 'file' && typeof data === 'string' && (!format || format === 'auto')) {
+    const ext = data.toLowerCase().match(/\.([^.]+)$/)?.[1]
+    if (ext === 'xlsx' || ext === 'xls') {
+      inferredFormat = ext
+    } else if (ext === 'csv') {
+      inferredFormat = 'csv'
+    } else if (ext === 'json') {
+      inferredFormat = 'json'
+    }
+  }
+
+  // 支持csv、json、xls、xlsx格式
+  const supportedFormats = ['csv', 'json', 'xls', 'xlsx']
+  if (!inferredFormat || !supportedFormats.includes(inferredFormat)) {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.dataAnalysis.error.invalidFormat', '无效的格式，支持: csv, json')
+      error: i18n.global.t('agent.tool.dataAnalysis.error.invalidFormat', `无效的格式，支持: ${supportedFormats.join(', ')}`)
     }
   }
 
@@ -677,7 +761,7 @@ const dataAnalysisToolCallback: ToolCallback = async (params, signal, onUpdate) 
     onUpdate({
       content: {
         stage: 'parsing',
-        format,
+        format: inferredFormat,
         dataSize: rawData.length
       },
       format: 'json'
@@ -688,9 +772,76 @@ const dataAnalysisToolCallback: ToolCallback = async (params, signal, onUpdate) 
 
     // 解析数据
     let parsedData: any[]
-    if (format === 'csv') {
+    if (inferredFormat === 'csv') {
       parsedData = parseCSV(rawData)
+    } else if (inferredFormat === 'xls' || inferredFormat === 'xlsx') {
+      // Excel文件需要特殊处理：通过主进程转换为CSV格式
+      if (dataSource === 'file' && typeof data === 'string') {
+        try {
+          if (!ipcRenderer) {
+            throw new Error('IPC渲染器不可用，无法解析Excel文件')
+          }
+          
+          // 调用主进程转换Excel文件
+          const excelText = await ipcRenderer.invoke('convert-excel-to-text', data) as string
+          
+          // Excel转换后的文本格式是：工作表名称 + 行数据（制表符分隔）
+          // 需要转换为CSV格式的数组
+          const lines = excelText.split('\n').filter(line => line.trim())
+          const dataRows: any[] = []
+          let currentSheet: string | null = null
+          let headers: string[] | null = null
+          
+          for (const line of lines) {
+            // 检测工作表标题
+            if (line.startsWith('工作表')) {
+              currentSheet = line
+              headers = null
+              continue
+            }
+            
+            // 检测行数据（格式：行 X: 数据）
+            const rowMatch = line.match(/^行 \d+:\s*(.+)$/)
+            if (rowMatch) {
+              const rowData = rowMatch[1].split('\t')
+              
+              // 第一行作为表头
+              if (!headers) {
+                headers = rowData.map((h, i) => h || `列${i + 1}`)
+                continue
+              }
+              
+              // 构建行对象
+              const row: any = {}
+              headers.forEach((header, index) => {
+                row[header] = rowData[index] || null
+              })
+              dataRows.push(row)
+            }
+          }
+          
+          parsedData = dataRows
+          
+          if (parsedData.length === 0) {
+            // 如果解析失败，尝试直接解析为CSV
+            logger.warn('Excel解析后无数据，尝试CSV解析')
+            parsedData = parseCSV(excelText.replace(/工作表 \d+: .+\n/g, '').replace(/行 \d+:\s*/g, ''))
+          }
+        } catch (error) {
+          logger.error('Excel解析失败:', error)
+          return {
+            status: 'failed',
+            error: `Excel解析失败: ${error instanceof Error ? error.message : String(error)}`
+          }
+        }
+      } else {
+        return {
+          status: 'failed',
+          error: 'Excel文件必须使用file模式，并提供文件路径'
+        }
+      }
     } else {
+      // JSON格式
       try {
         // 先提取JSON字符串（处理LLM返回的文本中包含其他文字的情况）
         const jsonString = extractOuterJsonString(rawData) || rawData
@@ -856,8 +1007,8 @@ export const dataAnalysisToolConfig: AgentToolConfig = {
       },
       format: {
         type: 'string',
-        enum: ['csv', 'json'],
-        description: '数据格式'
+        enum: ['csv', 'json', 'xls', 'xlsx'],
+        description: '数据格式（支持csv、json、xls、xlsx）。如果使用file模式且未指定format，将根据文件扩展名自动推断'
       },
       dataSource: {
         type: 'string',

@@ -2,7 +2,6 @@ import MarkdownIt from 'markdown-it';
 import footnote from 'markdown-it-footnote';
 import taskLists from 'markdown-it-task-lists';
 import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree } from './md-utils';
-import { extractOutlineTreeFromMarkdownLight } from './document/outline';
 
 const md = new MarkdownIt({
     html: false,
@@ -1048,15 +1047,15 @@ export function extractOutlineTreeFromLatex(latex, bypassText = false) {
 }
 
 /**
- * 从 LaTeX 文本中提取精简的大纲（返回Markdown格式，而非JSON）
- * 用于在prompts中传递，节省token开销
+ * 从 LaTeX 文本中提取完整的大纲（返回Markdown格式，而非JSON）
  * @param latex LaTeX文本
- * @param bypassText 是否跳过文本内容（对于精简版，始终为true）
- * @returns 精简的Markdown大纲字符串
+ * @param bypassText 是否跳过文本内容
+ * @returns 完整的Markdown大纲字符串（包含标题和文本内容）
  */
-export function extractOutlineTreeFromLatexLight(latex, bypassText = true) {
+export function extractOutlineTreeFromLatexLight(latex, bypassText = false) {
     const md = convertLatexToMarkdown(latex);
-    return extractOutlineTreeFromMarkdownLight(md, true);
+    const outlineTree = extractOutlineTreeFromMarkdown(md, bypassText);
+    return generateMarkdownFromOutlineTree(outlineTree);
 }
 export function generateLatexFromOutlineTree(outline_tree, title = 'Generated Document') {
     // 先生成 Markdown

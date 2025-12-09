@@ -188,11 +188,18 @@ export class ToolCallQueue {
         }
 
         // 执行工具
+        // 获取可以传递给工具的session对象：新类型有entityType字段，旧类型有publicContext字段
+        const sessionForTool = (this.session as any).entityType === 'agent-session' 
+          ? this.session as AgentSession 
+          : (this.session as any).publicContext 
+            ? this.session as any as AgentSession  // LegacyAgentSession也有publicContext，可以转换
+            : undefined
+        
         const observation = await ToolRunner.runTool(
           task.tool_id,
           task.parameters,
           this.signal,
-          (this.session as any).entityType === 'agent-session' ? this.session as AgentSession : undefined
+          sessionForTool
         )
 
         // 获取工具配置以获取displayComponent

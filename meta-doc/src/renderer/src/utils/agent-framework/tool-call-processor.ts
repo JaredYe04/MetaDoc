@@ -5,6 +5,7 @@
 
 import { extractOuterJsonString } from '../regex-utils'
 import { createRendererLogger } from '../logger'
+import { toolCallParserManager } from './tool-call-parsers'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -50,7 +51,10 @@ export interface ParseToolCallOptions {
 
 /**
  * 解析工具调用标记
- * 支持格式：<tool_call>{"name": "tool_id", "arguments": {...}}</tool_call>
+ * 支持多种格式：
+ * 1. <tool_call>{"name": "tool_id", "arguments": {...}}</tool_call> (标准格式)
+ * 2. <｜DSML｜function_calls>...</｜DSML｜function_calls> (DeepSeek DSML格式)
+ * 3. {"tool": "tool_id", "arguments": {...}} (OpenAI格式)
  * 
  * @param content 包含工具调用标记的内容
  * @param options 解析选项
@@ -63,12 +67,44 @@ export function parseToolCalls(
   const { loose = false, validateToolId = false, toolIdValidator } = options
 
   try {
-      getLogger().debug('[parseToolCalls] 开始解析工具调用', {
+    getLogger().debug('[parseToolCalls] 开始解析工具调用', {
       contentLength: content.length,
       loose,
       validateToolId
     })
 
+    // 使用新的解析器管理器（支持多种格式）
+    const result = toolCallParserManager.parse(content, {
+      loose,
+      validateToolId,
+      toolIdValidator
+    })
+
+    if (result) {
+      getLogger().debug(`[parseToolCalls] 解析完成，找到 ${result.length} 个工具调用`)
+    } else {
+      getLogger().debug('[parseToolCalls] 未找到工具调用')
+    }
+
+    return result
+  } catch (error) {
+    getLogger().error('[parseToolCalls] 解析工具调用失败:', error)
+    // 如果新解析器失败，尝试使用旧的解析逻辑作为fallback
+    return parseToolCallsLegacy(content, options)
+  }
+}
+
+/**
+ * 旧版解析逻辑（作为fallback）
+ * @deprecated 使用新的解析器系统，此方法仅作为兼容性fallback
+ */
+function parseToolCallsLegacy(
+  content: string,
+  options: ParseToolCallOptions = {}
+): ParsedToolCall[] | null {
+  const { loose = false, validateToolId = false, toolIdValidator } = options
+
+  try {
     // 检查是否有开始标记
     const beginIndex = content.indexOf('<tool_call>')
     if (beginIndex === -1) {
@@ -89,7 +125,7 @@ export function parseToolCalls(
       if (!match[1]) continue
       
       const toolCallContent = match[1].trim()
-      getLogger().debug(`[parseToolCalls] 解析工具调用 ${index + 1}，内容长度:`, toolCallContent.length)
+      getLogger().debug(`[parseToolCallsLegacy] 解析工具调用 ${index + 1}，内容长度:`, toolCallContent.length)
       
       const parsed = parseSingleToolCall(toolCallContent, index)
       
@@ -109,10 +145,10 @@ export function parseToolCalls(
       }
     }
 
-    getLogger().debug(`[parseToolCalls] 解析完成，找到 ${toolCalls.length} 个工具调用`)
+    getLogger().debug(`[parseToolCallsLegacy] 解析完成，找到 ${toolCalls.length} 个工具调用`)
     return toolCalls.length > 0 ? toolCalls : null
   } catch (error) {
-    getLogger().error('[parseToolCalls] 解析工具调用失败:', error)
+    getLogger().error('[parseToolCallsLegacy] 解析工具调用失败:', error)
     return null
   }
 }
@@ -350,6 +386,7 @@ function createInvalidToolCall(
 /**
  * 清理消息中的工具调用标记
  * 注意：只有在确认工具调用已被解析并添加到消息对象后，才应该清理标记
+ * 支持多种格式的标记清除
  * 
  * @param content 消息内容
  * @param hasToolCalls 消息是否已包含tool_calls属性（已解析）
@@ -361,13 +398,10 @@ export function cleanToolCallMarkers(
 ): string {
   // 如果消息已经有tool_calls，说明已经解析完成，可以安全清理标记
   if (hasToolCalls) {
-    // 清理所有工具调用标记格式
-    let cleaned = content
+    // 使用解析器管理器清除所有格式的标记
+    let cleaned = toolCallParserManager.cleanAllMarkers(content)
     
-    // 清理新的<tool_call>格式
-    cleaned = cleaned.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '').trim()
-    
-    // 清理旧的标记格式（兼容性）
+    // 清理旧的标记格式（兼容性，保留向后兼容）
     cleaned = cleaned.replace(/\<\|redacted_tool_calls_begin\|>[\s\S]*?\<\|redacted_tool_calls_end\|>/gi, '').trim()
     cleaned = cleaned.replace(/\<｜tools▁call▁begin｜>[\s\S]*?<｜tools▁call▁end｜>/gi, '').trim()
     
@@ -382,19 +416,44 @@ export function cleanToolCallMarkers(
 
 /**
  * 检查内容是否包含工具调用标记
+ * 支持多种格式的检测
  */
 export function hasToolCallMarkers(content: string): boolean {
-  return /<tool_call>/i.test(content) ||
-         /\<\|redacted_tool_calls_begin\|>/i.test(content) ||
+  // 使用解析器管理器检测所有格式
+  if (toolCallParserManager.hasAnyToolCallMarkers(content)) {
+    return true
+  }
+  
+  // 检查旧的标记格式（兼容性）
+  return /\<\|redacted_tool_calls_begin\|>/i.test(content) ||
          /\<｜tools▁call▁begin｜>/i.test(content)
 }
 
 /**
  * 检查内容是否包含完整的工具调用标记（有开始和结束）
+ * 支持多种格式的检测
  */
 export function hasCompleteToolCallMarkers(content: string): boolean {
+  // 检查标准格式
   const beginCount = (content.match(/<tool_call>/gi) || []).length
   const endCount = (content.match(/<\/tool_call>/gi) || []).length
-  return beginCount > 0 && endCount > 0 && beginCount === endCount
+  if (beginCount > 0 && endCount > 0 && beginCount === endCount) {
+    return true
+  }
+  
+  // 检查DSML格式
+  const dsmlBeginCount = (content.match(/<｜DSML｜function_calls>/gi) || []).length
+  const dsmlEndCount = (content.match(/<\/｜DSML｜function_calls>/gi) || []).length
+  if (dsmlBeginCount > 0 && dsmlEndCount > 0 && dsmlBeginCount === dsmlEndCount) {
+    return true
+  }
+  
+  // OpenAI格式是纯JSON，不需要开始/结束标记，只要检测到符合格式的JSON即可
+  if (toolCallParserManager.hasAnyToolCallMarkers(content)) {
+    // 如果解析器能检测到，说明有完整的标记
+    return true
+  }
+  
+  return false
 }
 

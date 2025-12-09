@@ -29,6 +29,7 @@ interface ConsoleHistoryEntry {
 interface InternalLoggerConfig {
   enabled: boolean;
   level: LogLevel;
+  filter?: string;
 }
 
 interface InternalContext {
@@ -42,6 +43,8 @@ const store = new Store();
 
 const CONFIG_ENABLED_KEY = 'loggingEnabled';
 const CONFIG_LEVEL_KEY = 'loggingLevel';
+const CONFIG_FILTER_KEY = 'loggingFilter';
+const CONFIG_RETENTION_PERIOD_KEY = 'logRetentionPeriod';
 
 let logDirectory = '';
 let logFilePath = '';
@@ -87,6 +90,13 @@ const ensureInitialized = () => {
     store.set(CONFIG_LEVEL_KEY, config.level);
   }
 
+  const filterFromStore = store.get(CONFIG_FILTER_KEY);
+  if (typeof filterFromStore === 'string') {
+    config.filter = filterFromStore || undefined;
+  } else if (filterFromStore === undefined) {
+    store.set(CONFIG_FILTER_KEY, config.filter || '');
+  }
+
   const basePath = app.getPath('documents');
   logDirectory = path.join(basePath, 'meta-doc', 'logs');
 
@@ -97,8 +107,15 @@ const ensureInitialized = () => {
   } catch (error) {
     console.error('创建日志目录失败:', error);
   }
-
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  // 使用用户本地时区，格式化为 YYYY-MM-DD HH-mm-ss
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const timestamp = `${year}-${month}-${day} ${hours}-${minutes}-${seconds}`;
   logFilePath = path.join(logDirectory, `${timestamp}.log`);
 
   try {
@@ -110,11 +127,37 @@ const ensureInitialized = () => {
 
   initialized = true;
   broadcastLoggerConfig();
+  
+  // 在初始化完成后执行日志清理
+  cleanupOldLogs();
+};
+
+/**
+ * 格式化scope字符串，支持链式子模块格式
+ * 如果scope已经是方括号格式（如 [parent][child]），则直接使用
+ * 如果是简单字符串，则添加方括号
+ */
+const formatScopeSegment = (scope: string | undefined): string => {
+  if (!scope) return '';
+  // 如果已经是方括号格式（包含多个方括号），直接返回
+  if (scope.includes('][')) {
+    return scope.startsWith('[') ? scope : `[${scope}]`;
+  }
+  // 简单字符串，添加方括号
+  return `[${scope}]`;
 };
 
 const formatMessage = (payload: LogPayload): string => {
-  const timestamp = new Date().toISOString();
-  const scopeSegment = payload.scope ? `[${payload.scope}]` : '';
+  // 使用用户本地时区，格式化为 YYYY-MM-DD HH:mm:ss
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const timestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  const scopeSegment = formatScopeSegment(payload.scope);
   const windowSegment = payload.windowType ? `[${payload.windowType}]` : '';
   const body = payload.messages.join(' ');
   return `${timestamp} [${payload.processType.toUpperCase()}]${windowSegment}${scopeSegment} [${payload.level.toUpperCase()}] ${body}`;
@@ -152,8 +195,43 @@ const broadcastConsoleMessage = (level: LogLevel, line: string): void => {
   });
 };
 
-const shouldLog = (level: LogLevel): boolean => {
-  return config.enabled && LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[config.level];
+/**
+ * 检查scope是否匹配过滤条件
+ * 支持完整匹配或前缀匹配，大小写不敏感
+ */
+const matchesFilter = (scope: string | undefined, filter: string | undefined): boolean => {
+  if (!filter || !filter.trim()) {
+    return true; // 无过滤条件，全部通过
+  }
+  if (!scope) {
+    return false; // 有过滤条件但无scope，不匹配
+  }
+  const filterTrimmed = filter.trim().toLowerCase();
+  const scopeLower = scope.toLowerCase();
+  // 完整匹配（大小写不敏感）
+  if (scopeLower === filterTrimmed) {
+    return true;
+  }
+  // 前缀匹配：如果scope以filter开头（考虑链式格式）
+  // 例如 filter="ai-graph" 匹配 "[ai-graph][WorkflowTool]"
+  if (scopeLower.startsWith(filterTrimmed) || scopeLower.includes(`[${filterTrimmed}]`)) {
+    return true;
+  }
+  return false;
+};
+
+const shouldLog = (level: LogLevel, scope?: string): boolean => {
+  if (!config.enabled) {
+    return false;
+  }
+  if (LOG_LEVEL_PRIORITY[level] < LOG_LEVEL_PRIORITY[config.level]) {
+    return false;
+  }
+  // 检查过滤条件
+  if (!matchesFilter(scope, config.filter)) {
+    return false;
+  }
+  return true;
 };
 
 const normalizeArg = (arg: unknown): string => {
@@ -175,7 +253,7 @@ const normalizeArg = (arg: unknown): string => {
 const logInternal = (context: InternalContext, level: LogLevel, args: unknown[]) => {
   ensureInitialized();
 
-  if (!shouldLog(level)) {
+  if (!shouldLog(level, context.scope)) {
     return;
   }
 
@@ -225,17 +303,29 @@ export const updateLoggerConfig = (partial: Partial<InternalLoggerConfig>): void
 
   if (typeof partial.enabled === 'boolean' && partial.enabled !== config.enabled) {
     config.enabled = partial.enabled;
+    store.set(CONFIG_ENABLED_KEY, config.enabled);
     changed = true;
   }
 
   if (partial.level && partial.level in LOG_LEVEL_PRIORITY && partial.level !== config.level) {
     config.level = partial.level;
+    store.set(CONFIG_LEVEL_KEY, config.level);
     changed = true;
+  }
+
+  if (partial.filter !== undefined) {
+    const newFilter = partial.filter?.trim() || undefined;
+    if (newFilter !== config.filter) {
+      config.filter = newFilter;
+      store.set(CONFIG_FILTER_KEY, config.filter || '');
+      changed = true;
+    }
   }
 
   if (changed) {
     broadcastLoggerConfig();
-    logInternal({ processType: 'main', scope: 'Logger' }, 'info', [`日志配置更新: enabled=${config.enabled}, level=${config.level}`]);
+    const filterInfo = config.filter ? `, filter=${config.filter}` : '';
+    logInternal({ processType: 'main', scope: 'Logger' }, 'info', [`日志配置更新: enabled=${config.enabled}, level=${config.level}${filterInfo}`]);
   }
 };
 
@@ -246,7 +336,8 @@ export const getLoggerConfig = (): LoggerConfig => {
     enabled: config.enabled,
     level: config.level,
     logFilePath,
-    logDirectory
+    logDirectory,
+    filter: config.filter
   };
 };
 
@@ -317,8 +408,28 @@ export const getLoggerConfig = (): LoggerConfig => {
  * }
  * ```
  * 
+ * **链式子模块支持：**
+ * 
+ * Logger 支持链式调用创建子模块logger，方便进行模块化日志管理：
+ * ```typescript
+ * const logger = createMainLogger('ai-graph');
+ * 
+ * // 单层子模块
+ * logger.sub('WorkflowTool').info('执行工作流');
+ * // 输出: [ai-graph][WorkflowTool] [INFO] 执行工作流
+ * 
+ * // 多层链式调用
+ * logger.sub('WorkflowTool').sub('Executor').sub('NodeRunner').info('运行节点');
+ * // 输出: [ai-graph][WorkflowTool][Executor][NodeRunner] [INFO] 运行节点
+ * 
+ * // 子模块logger可以独立使用
+ * const workflowLogger = logger.sub('WorkflowTool');
+ * workflowLogger.info('初始化');
+ * workflowLogger.sub('Parser').debug('解析配置');
+ * ```
+ * 
  * @param scope - Logger 的作用域名称，用于日志标识
- * @returns 返回包含 debug、info、warn、error 方法的 Logger 对象
+ * @returns 返回包含 debug、info、warn、error 和 sub 方法的 Logger 对象
  * 
  * @example
  * ```typescript
@@ -334,16 +445,54 @@ export const getLoggerConfig = (): LoggerConfig => {
  * 
  * export function myFunction() {
  *   getLogger().info('函数执行')
+ *   getLogger().sub('SubModule').debug('调试信息')
  * }
  * ```
  */
-export const createMainLogger = (scope: string): Record<LogLevel, (...args: unknown[]) => void> => {
-  return {
+/**
+ * 主进程Logger类型，支持链式子模块
+ */
+export interface MainLogger extends Record<LogLevel, (...args: unknown[]) => void> {
+  /**
+   * 创建子模块logger，支持链式调用
+   * @param subScope 子模块名称
+   * @returns 返回一个新的logger实例，其scope为当前scope的子模块
+   * @example
+   * ```typescript
+   * const logger = createMainLogger('ai-graph');
+   * logger.sub('WorkflowTool').sub('Executor').info('执行工作流');
+   * // 输出: [ai-graph][WorkflowTool][Executor] [INFO] 执行工作流
+   * ```
+   */
+  sub: (subScope: string) => MainLogger;
+}
+
+/**
+ * 创建子模块scope字符串
+ * 如果父scope为空，直接返回子scope
+ * 如果父scope已有内容，将子scope追加到父scope后面，格式为 [parent][child]
+ */
+const createSubScope = (parentScope: string, subScope: string): string => {
+  // 如果父scope已经是链式格式，直接追加
+  if (parentScope.includes('][')) {
+    return `${parentScope}[${subScope}]`;
+  }
+  // 如果父scope是简单字符串，组合成链式格式
+  return `[${parentScope}][${subScope}]`;
+};
+
+export const createMainLogger = (scope: string): MainLogger => {
+  const logger: MainLogger = {
     debug: (...args: unknown[]) => logInternal({ processType: 'main', scope }, 'debug', args),
     info: (...args: unknown[]) => logInternal({ processType: 'main', scope }, 'info', args),
     warn: (...args: unknown[]) => logInternal({ processType: 'main', scope }, 'warn', args),
-    error: (...args: unknown[]) => logInternal({ processType: 'main', scope }, 'error', args)
+    error: (...args: unknown[]) => logInternal({ processType: 'main', scope }, 'error', args),
+    sub: (subScope: string) => {
+      const subLoggerScope = createSubScope(scope, subScope);
+      return createMainLogger(subLoggerScope);
+    }
   };
+  return logger;
 };
 
 export const handleRendererLog = (payload: LogPayload): void => {
@@ -384,6 +533,144 @@ export const broadcastLoggerConfig = (): void => {
 export const getLoggerHistory = (): ConsoleHistoryEntry[] => {
   ensureInitialized();
   return [...logHistory];
+};
+
+/**
+ * 将保留期限字符串转换为毫秒数
+ */
+const getRetentionPeriodMs = (period: string): number | null => {
+  switch (period) {
+    case 'none':
+      return 0; // 不保存，立即删除
+    case '1day':
+      return 24 * 60 * 60 * 1000;
+    case '3days':
+      return 3 * 24 * 60 * 60 * 1000;
+    case '7days':
+      return 7 * 24 * 60 * 60 * 1000;
+    case '1month':
+      return 30 * 24 * 60 * 60 * 1000;
+    case '3months':
+      return 90 * 24 * 60 * 60 * 1000;
+    case '6months':
+      return 180 * 24 * 60 * 60 * 1000;
+    case '1year':
+      return 365 * 24 * 60 * 60 * 1000;
+    case 'never':
+      return null; // 不清理
+    default:
+      return 3 * 24 * 60 * 60 * 1000; // 默认3天
+  }
+};
+
+/**
+ * 从日志文件名解析日期
+ * 支持两种格式：
+ * 1. 新格式（本地时区）: YYYY-MM-DD HH-mm-ss.log
+ * 2. 旧格式（ISO）: YYYY-MM-DDTHH-mm-ss-sssZ.log 或 YYYY-MM-DDTHH-mm-ssZ.log
+ */
+const parseLogFileDate = (filename: string): Date | null => {
+  try {
+    // 移除.log后缀
+    const nameWithoutExt = filename.replace(/\.log$/, '');
+    
+    // 尝试解析新格式: YYYY-MM-DD HH-mm-ss
+    // 例如: "2025-12-09 13-34-21"
+    const newFormatMatch = nameWithoutExt.match(/^(\d{4}-\d{2}-\d{2}) (\d{2})-(\d{2})-(\d{2})$/);
+    if (newFormatMatch) {
+      const datePart = newFormatMatch[1]; // YYYY-MM-DD
+      const hours = newFormatMatch[2];
+      const minutes = newFormatMatch[3];
+      const seconds = newFormatMatch[4];
+      const dateTimeString = `${datePart} ${hours}:${minutes}:${seconds}`;
+      const date = new Date(dateTimeString);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+    
+    // 尝试解析旧格式（ISO）: YYYY-MM-DDTHH-mm-ss-sssZ 或 YYYY-MM-DDTHH-mm-ssZ
+    // 例如: "2025-12-09T13-34-21-798Z" 或 "2025-12-09T13-34-21Z"
+    const isoFormatMatch = nameWithoutExt.match(/^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})(?:-(\d+))?Z$/);
+    if (isoFormatMatch) {
+      const datePart = isoFormatMatch[1]; // YYYY-MM-DD
+      const hours = isoFormatMatch[2];
+      const minutes = isoFormatMatch[3];
+      const seconds = isoFormatMatch[4];
+      const milliseconds = isoFormatMatch[5] || '0';
+      
+      // 构建 ISO 格式字符串: YYYY-MM-DDTHH:mm:ss.sssZ
+      const isoString = `${datePart}T${hours}:${minutes}:${seconds}.${milliseconds.padStart(3, '0')}Z`;
+      const date = new Date(isoString);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+    
+    // 如果都不匹配，返回 null
+    return null;
+  } catch (error) {
+    return null;
+  }
+};
+
+/**
+ * 清理旧日志文件
+ */
+export const cleanupOldLogs = (): void => {
+  try {
+    if (!logDirectory || !fs.existsSync(logDirectory)) {
+      return;
+    }
+
+    const retentionPeriod = store.get(CONFIG_RETENTION_PERIOD_KEY) || '3days';
+    const retentionMs = getRetentionPeriodMs(retentionPeriod);
+
+    // 如果设置为never，不清理
+    if (retentionMs === null) {
+      return;
+    }
+
+    const now = Date.now();
+    const files = fs.readdirSync(logDirectory);
+    let deletedCount = 0;
+
+    for (const file of files) {
+      if (!file.endsWith('.log')) {
+        continue;
+      }
+
+      const filePath = path.join(logDirectory, file);
+      try {
+        const fileDate = parseLogFileDate(file);
+        if (!fileDate) {
+          // 无法解析日期，跳过
+          continue;
+        }
+
+        const fileAge = now - fileDate.getTime();
+        
+        // 如果文件年龄超过保留期限，删除
+        if (fileAge > retentionMs) {
+          // 如果当前正在使用的日志文件，不删除
+          if (filePath === logFilePath) {
+            continue;
+          }
+          fs.unlinkSync(filePath);
+          deletedCount++;
+        }
+      } catch (error) {
+        // 删除失败，记录但不中断
+        console.error(`删除日志文件失败: ${file}`, error);
+      }
+    }
+
+    if (deletedCount > 0) {
+      logInternal({ processType: 'main', scope: 'Logger' }, 'info', [`已清理 ${deletedCount} 个旧日志文件`]);
+    }
+  } catch (error) {
+    console.error('清理日志文件失败:', error);
+  }
 };
 
 process.on('exit', () => {

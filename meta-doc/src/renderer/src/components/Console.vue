@@ -274,6 +274,10 @@ onBeforeUnmount(() => {
   padding: 5px;
   white-space: pre-wrap;
   word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
 }
 
 .out {

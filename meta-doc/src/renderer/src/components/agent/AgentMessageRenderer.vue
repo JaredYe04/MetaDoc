@@ -171,6 +171,7 @@ import { themeState } from '../../utils/themes'
 import type { Reference } from '../../types/agent-framework'
 import { dayjs } from 'element-plus'
 import { agentToolManager } from '../../utils/agent-tool-manager'
+import { toolCallParserManager } from '../../utils/agent-framework/tool-call-parsers'
 
 const props = defineProps<{
   message: AgentMessage
@@ -340,21 +341,25 @@ const bubbleStyle = computed(() => {
 /**
  * 清理多余的或不完整的工具调用标记
  * 保留完整的标记对，只清理单独的开始或结束标记
+ * 支持多种格式的标记
  */
 const cleanIncompleteToolCallTags = (content: string): string => {
   // 使用占位符保护完整的标记对
   const placeholders: Array<{ placeholder: string; original: string }> = []
   let placeholderIndex = 0
   
-  // 1. 替换完整的 <tool_call>...</tool_call> 为占位符
-  content = content.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, (match) => {
-    const placeholder = `__TOOL_CALL_COMPLETE_${placeholderIndex}__`
-    placeholders.push({ placeholder, original: match })
-    placeholderIndex++
-    return placeholder
-  })
+  // 1. 使用解析器管理器获取所有格式的完整标记，并替换为占位符
+  const allPatterns = toolCallParserManager.getAllMarkerPatterns()
+  for (const pattern of allPatterns) {
+    content = content.replace(pattern, (match) => {
+      const placeholder = `__TOOL_CALL_COMPLETE_${placeholderIndex}__`
+      placeholders.push({ placeholder, original: match })
+      placeholderIndex++
+      return placeholder
+    })
+  }
   
-  // 2. 替换完整的旧格式标记为占位符
+  // 2. 替换完整的旧格式标记为占位符（兼容性）
   content = content.replace(/\<\|redacted_tool_calls_begin\|>[\s\S]*?\<\|redacted_tool_calls_end\|>/gi, (match) => {
     const placeholder = `__TOOL_CALL_COMPLETE_${placeholderIndex}__`
     placeholders.push({ placeholder, original: match })
@@ -370,8 +375,15 @@ const cleanIncompleteToolCallTags = (content: string): string => {
   })
   
   // 3. 清理剩余的单独标记（不完整的标记）
+  // 标准格式
   content = content.replace(/<tool_call>/gi, '')
   content = content.replace(/<\/tool_call>/gi, '')
+  // DSML格式
+  content = content.replace(/<｜DSML｜function_calls>/gi, '')
+  content = content.replace(/<\/｜DSML｜function_calls>/gi, '')
+  content = content.replace(/<｜DSML｜invoke/gi, '')
+  content = content.replace(/<\/｜DSML｜invoke>/gi, '')
+  // 旧格式（兼容性）
   content = content.replace(/\<\|redacted_tool_calls_begin\|>/gi, '')
   content = content.replace(/\<\|redacted_tool_calls_end\|>/gi, '')
   content = content.replace(/\<｜tools▁call▁begin｜>/gi, '')
@@ -391,8 +403,10 @@ const messageMarkdown = computed(() => {
     
     // 如果没有tool_calls，清理所有标记（包括完整的和不完整的）
     if (!hasToolCalls.value) {
-      // 清理完整的工具调用标记
-      content = content.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '').trim()
+      // 使用解析器管理器清理所有格式的完整标记
+      content = toolCallParserManager.cleanAllMarkers(content)
+      
+      // 清理旧的标记格式（兼容性）
       content = content.replace(/\<\|redacted_tool_calls_begin\|>[\s\S]*?\<\|redacted_tool_calls_end\|>/gi, '').trim()
       content = content.replace(/\<｜tools▁call▁begin｜>[\s\S]*?<｜tools▁call▁end｜>/gi, '').trim()
       
@@ -451,12 +465,17 @@ const processedContentParts = computed(() => {
   // 解析markdown，找到工具调用标记的位置
   const parts: Array<{ type: 'tool-call' | 'markdown'; content?: string; text?: string }> = []
   
-  // 使用正则表达式匹配所有工具调用标记
+  // 使用解析器管理器获取所有格式的标记模式
+  // 优先匹配标准格式（因为processedContentParts主要用于显示标准格式）
   const toolCallRegex = /<tool_call>[\s\S]*?<\/tool_call>/gi
+  // 也匹配DSML格式
+  const dsmlRegex = /<｜DSML｜function_calls>[\s\S]*?<\/｜DSML｜function_calls>|<｜DSML｜invoke[\s\S]*?<\/｜DSML｜invoke>/gi
+  
   let lastIndex = 0
   let match
   let toolCallIndex = 0
   
+  // 先匹配标准格式
   while ((match = toolCallRegex.exec(content)) !== null) {
     // 添加标记前的markdown内容
     if (match.index > lastIndex) {

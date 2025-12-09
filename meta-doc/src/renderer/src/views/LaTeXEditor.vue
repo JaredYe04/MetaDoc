@@ -586,6 +586,18 @@ const editorDomId = computed(() => props.editorDomId || 'latex-editor');
 // 增量同步缓存
 let textBuffer = currentTex.value;
 
+// 标记是否正在从外部更新编辑器（避免循环更新）
+let isUpdatingFromExternal = false;
+
+// 获取当前激活的 Monaco 编辑器（始终从全局获取，避免引用过期实例）
+const getActiveMonacoEditor = () => {
+    const editors = monaco.editor.getEditors();
+    const byId = editorId.value
+        ? editors.find(e => e.getId?.() === editorId.value)
+        : undefined;
+    return byId || editors[0] || editor.value;
+};
+
 // 文本到大纲的同步（类似 MarkdownEditor）
 let suppressOutlineSync = false;
 const syncOutlineFromTex = debounce(() => {
@@ -867,7 +879,44 @@ watch(
         const nextValue = incoming ?? '';
         textBuffer = nextValue;
         if (!isActive.value) return;
-        if (!editor.value) return;
+        const monacoEditor = getActiveMonacoEditor();
+        if (!monacoEditor) return;
+        
+        // 检查Monaco编辑器中的内容是否与currentTex不同
+        const editorContent = monacoEditor.getValue();
+        
+        // 如果内容不同，说明是外部更新，需要同步到Monaco
+        if (editorContent !== nextValue) {
+            // 设置标志，避免触发onDidChangeModelContent中的同步逻辑
+            isUpdatingFromExternal = true;
+            
+            try {
+                // 保存当前光标位置
+                const position = monacoEditor.getPosition();
+                
+                // 更新Monaco编辑器内容
+                monacoEditor.setValue(nextValue);
+                
+                // 恢复光标位置（如果可能）
+                if (position) {
+                    monacoEditor.setPosition(position);
+                    monacoEditor.revealLineInCenter(position.lineNumber);
+                }
+                
+                logger.debug('LaTeXEditor: 已同步外部文件修改到Monaco编辑器', {
+                    contentLength: nextValue.length,
+                    editorLength: editorContent.length
+                });
+            } catch (error) {
+                logger.error('LaTeXEditor: 同步外部文件修改失败', error);
+            } finally {
+                // 使用setTimeout确保在Monaco的onDidChangeModelContent事件处理完成后重置标志
+                // Monaco的setValue可能会异步触发内容变化事件
+                setTimeout(() => {
+                    isUpdatingFromExternal = false;
+                }, 0);
+            }
+        }
         
         // 触发重新建立映射
         rebuildMappingDebounced();
@@ -1980,22 +2029,18 @@ const initEditor = () => {
     })
     
     contentChangeListener = editor.value.onDidChangeModelContent((event: monaco.editor.IModelContentChangedEvent) => {
-        // 先保存原始文本
-        let oldText = textBuffer;
+        const monacoEditor = getActiveMonacoEditor();
+        if (!monacoEditor) return;
 
-    // 使用原始旧文本作为基底
-    let newText = textBuffer;
-
-    // 按 **从后到前** 的顺序应用 changes，避免偏移被修改
-    for (let i = event.changes.length - 1; i >= 0; i--) {
-      const change = event.changes[i];
-      const start = change.rangeOffset;
-      const end = start + change.rangeLength;
-      newText = newText.slice(0, start) + change.text + newText.slice(end);
-    }
-
-    // 更新缓存（完整文本）
-    textBuffer = newText;
+        // 如果正在从外部更新，跳过同步逻辑（避免循环更新）
+        if (isUpdatingFromExternal) {
+            // 更新textBuffer以保持一致性
+            textBuffer = monacoEditor.getValue();
+            return;
+        }
+        
+        // 直接从编辑器获取完整文本，避免手动对 model 进行操作
+        textBuffer = monacoEditor.getValue();
 
         // 如果正在更新ghost text，只同步文本，不触发新的补全
         if (isUpdatingGhostText) {

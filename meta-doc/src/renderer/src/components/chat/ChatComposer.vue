@@ -11,26 +11,14 @@
     >
       <div class="composer-leading">
         <el-tooltip v-if="showAttach" :content="t('aiChat.attachTooltip')" placement="top">
-          <el-upload
-            ref="uploadRef"
-            :auto-upload="false"
-            :on-change="handleFileChange"
-            :on-remove="handleFileRemove"
-            :show-file-list="false"
-            accept="*/*"
+          <el-button
+            circle
+            class="composer-btn"
             :disabled="disabled"
-            multiple
-            :limit="100"
+            @click.prevent="handleSelectFiles"
           >
-            <el-button
-              circle
-              class="composer-btn"
-              :disabled="disabled"
-              @click.prevent
-            >
-              <Plus />
-            </el-button>
-          </el-upload>
+            <Plus />
+          </el-button>
         </el-tooltip>
       </div>
 
@@ -119,6 +107,7 @@ import { Plus, Microphone, Position, Refresh, Close } from '@element-plus/icons-
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
 import type { ScrollbarInstance } from 'element-plus'
+import { selectReferenceFiles } from '../../utils/agent-framework/reference-processor'
 
 const props = withDefaults(defineProps<{
   modelValue: string
@@ -150,11 +139,8 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const scrollbarRef = ref<ScrollbarInstance | null>(null)
-const uploadRef = ref<any>(null)
 const maxScrollHeight = ref(0)
 const singleLineHeight = ref<number | null>(null)
-// 用于防抖处理文件选择，等待所有文件选择完成
-let fileChangeTimer: ReturnType<typeof setTimeout> | null = null
 const isMultiline = ref(false)
 const SEND_PREF_KEY = 'meta-doc-chat-send-on-enter'
 const sendOnEnter = ref(true)
@@ -233,67 +219,74 @@ const toggleSendMode = () => {
   sendOnEnter.value = !sendOnEnter.value
 }
 
-// 用于存储当前选择的文件列表
-const currentFileList = ref<any[]>([])
-
-const handleFileChange = (file: any, fileList: any[]) => {
-  // 更新当前文件列表（fileList 会累积所有已选择的文件）
-  currentFileList.value = fileList || []
-  
-  // 清除之前的定时器
-  if (fileChangeTimer) {
-    clearTimeout(fileChangeTimer)
+/**
+ * 将文件路径转换为 File 对象
+ */
+async function pathToFile(filePath: string): Promise<File> {
+  // 获取IPC渲染器
+  let ipcRenderer: any = null
+  if (typeof window !== 'undefined') {
+    if ((window as any).electron?.ipcRenderer) {
+      ipcRenderer = (window as any).electron.ipcRenderer
+    } else {
+      const { localIpcRenderer } = await import('../../utils/web-adapter/local-ipc-renderer')
+      ipcRenderer = localIpcRenderer
+    }
   }
   
-  // 当文件列表变化时，延迟处理，等待所有文件选择完成
-  // 使用防抖机制，等待文件选择对话框关闭后再处理所有文件
-  // 注意：el-upload 的 on-change 会在每个文件被选择时触发
-  // fileList 会累积所有已选择的文件，最后一次调用时包含所有文件
-  fileChangeTimer = setTimeout(() => {
-    // 使用最新的文件列表
-    const finalFileList = currentFileList.value
-    if (finalFileList && finalFileList.length > 0) {
-      // 提取所有文件的原始 File 对象
-      // fileList 中的每个元素都有 raw 属性（原始 File 对象）
-      const files: File[] = []
-      for (const item of finalFileList) {
-        if (item && item.raw && item.raw instanceof File) {
-          files.push(item.raw)
-        }
-      }
-      
-      if (files.length > 0) {
-        // 调试日志
-        console.log('[ChatComposer] 准备发送文件:', {
-          fileListLength: finalFileList.length,
-          filesLength: files.length,
-          fileNames: files.map(f => f.name),
-          willSendAsArray: files.length > 1
-        })
-        
-        // 使用 nextTick 确保文件选择对话框已关闭
-        nextTick(() => {
-          // 发送所有文件（单个文件发送 File，多个文件发送数组）
-          emit('attach', files.length === 1 ? files[0] : files)
-          
-          // 清空文件列表，以便下次选择时重新开始
-          setTimeout(() => {
-            if (uploadRef.value) {
-              uploadRef.value.clearFiles()
-            }
-            currentFileList.value = []
-          }, 200)
-        })
-      }
-    }
-    fileChangeTimer = null
-  }, 300) // 增加延迟时间，确保所有文件都被添加到 fileList
+  if (!ipcRenderer) {
+    throw new Error('IPC渲染器不可用')
+  }
+  
+  // 通过 IPC 调用主进程读取文件
+  const result = await ipcRenderer.invoke('read-file-for-upload', filePath) as {
+    name: string
+    data: string
+    mimeType: string
+  }
+  
+  // 将 base64 转换为 Blob
+  const binaryString = atob(result.data)
+  const bytes = new Uint8Array(binaryString.length)
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i)
+  }
+  const blob = new Blob([bytes], { type: result.mimeType })
+  
+  return new File([blob], result.name, { type: result.mimeType })
 }
 
-const handleFileRemove = () => {
-  // 文件被移除时，更新文件列表
-  if (uploadRef.value) {
-    currentFileList.value = uploadRef.value.fileList || []
+/**
+ * 处理文件选择
+ */
+const handleSelectFiles = async () => {
+  if (props.disabled) return
+  
+  try {
+    // 使用主进程文件选择服务
+    const filePaths = await selectReferenceFiles('all', true, t('aiChat.attachTooltip'))
+    
+    if (filePaths.length === 0) {
+      return // 用户取消了选择
+    }
+    
+    // 将文件路径转换为 File 对象
+    const files: File[] = []
+    for (const filePath of filePaths) {
+      try {
+        const file = await pathToFile(filePath)
+        files.push(file)
+      } catch (error) {
+        console.error(`无法读取文件 ${filePath}:`, error)
+      }
+    }
+    
+    if (files.length > 0) {
+      // 发送所有文件（单个文件发送 File，多个文件发送数组）
+      emit('attach', files.length === 1 ? files[0] : files)
+    }
+  } catch (error) {
+    console.error('文件选择失败:', error)
   }
 }
 
@@ -320,11 +313,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateMaxScrollHeight)
-  // 清理文件选择定时器
-  if (fileChangeTimer) {
-    clearTimeout(fileChangeTimer)
-    fileChangeTimer = null
-  }
 })
 </script>
 

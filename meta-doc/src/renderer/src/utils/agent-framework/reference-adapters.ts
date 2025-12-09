@@ -476,6 +476,17 @@ class ReferenceAdapterManager {
       return 'html'
     }
   }
+
+  /**
+   * 获取所有支持的格式列表
+   */
+  getAllSupportedFormats(): string[] {
+    const formats = new Set<string>()
+    for (const adapter of this.adapters) {
+      adapter.supportedFormats.forEach(format => formats.add(format))
+    }
+    return Array.from(formats)
+  }
 }
 
 // 导出单例

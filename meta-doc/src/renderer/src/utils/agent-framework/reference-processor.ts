@@ -477,3 +477,177 @@ export function processDocumentReference(
   }
 }
 
+/**
+ * 文件类型分组定义
+ */
+export type FileTypeCategory = 'all' | 'text' | 'document' | 'data' | 'image' | 'web'
+
+/**
+ * 格式到扩展名和 MIME 类型的映射
+ */
+const formatToAccept: Record<string, { extensions: string[], mimeTypes: string[] }> = {
+  'txt': { extensions: ['.txt'], mimeTypes: ['text/plain'] },
+  'text': { extensions: ['.txt'], mimeTypes: ['text/plain'] },
+  'md': { extensions: ['.md'], mimeTypes: ['text/markdown'] },
+  'markdown': { extensions: ['.md'], mimeTypes: ['text/markdown'] },
+  'json': { extensions: ['.json'], mimeTypes: ['application/json'] },
+  'pdf': { extensions: ['.pdf'], mimeTypes: ['application/pdf'] },
+  'docx': { extensions: ['.docx'], mimeTypes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'] },
+  // 暂时不支持doc和ppt格式，因为需要安装libreoffice，但是支持xls格式，因为可以转换为csv格式
+  // 'doc': { extensions: ['.doc'], mimeTypes: ['application/msword'] },
+  // 'ppt': { extensions: ['.ppt'], mimeTypes: ['application/vnd.ms-powerpoint'] },
+  'pptx': { extensions: ['.pptx'], mimeTypes: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'] },
+  'xlsx': { extensions: ['.xlsx'], mimeTypes: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] },
+  'xls': { extensions: ['.xls'], mimeTypes: ['application/vnd.ms-excel'] },
+  'csv': { extensions: ['.csv'], mimeTypes: ['text/csv'] },
+  'html': { extensions: ['.html', '.htm'], mimeTypes: ['text/html'] },
+  'htm': { extensions: ['.html', '.htm'], mimeTypes: ['text/html'] },
+  'xml': { extensions: ['.xml'], mimeTypes: ['text/xml', 'application/xml'] },
+  'jpg': { extensions: ['.jpg', '.jpeg'], mimeTypes: ['image/jpeg'] },
+  'jpeg': { extensions: ['.jpg', '.jpeg'], mimeTypes: ['image/jpeg'] },
+  'png': { extensions: ['.png'], mimeTypes: ['image/png'] },
+  'gif': { extensions: ['.gif'], mimeTypes: ['image/gif'] },
+  'bmp': { extensions: ['.bmp'], mimeTypes: ['image/bmp'] },
+  'webp': { extensions: ['.webp'], mimeTypes: ['image/webp'] },
+  'image': { extensions: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'], mimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'] }
+}
+
+/**
+ * 文件类型分组配置
+ */
+const fileTypeCategories: Record<FileTypeCategory, string[]> = {
+  'all': [], // 所有格式，将在函数中动态填充
+  'text': ['txt', 'text', 'md', 'markdown', 'json', 'xml'],
+  'document': ['pdf', 'docx', 'pptx'],
+  'data': ['csv', 'xlsx', 'xls'],
+  'image': ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'image'],
+  'web': ['html', 'htm', 'xml']
+}
+
+/**
+ * 根据类别获取格式列表
+ */
+function getFormatsByCategory(category: FileTypeCategory): string[] {
+  if (category === 'all') {
+    return referenceAdapterManager.getAllSupportedFormats()
+  }
+  return fileTypeCategories[category] || []
+}
+
+/**
+ * 将格式列表转换为 accept 字符串
+ * 优先使用 MIME 类型，以获得更好的浏览器显示效果
+ * @param includeExtensions 是否包含扩展名（默认 true，作为后备）
+ */
+function formatsToAcceptString(formats: string[], includeExtensions: boolean = true): string {
+  const mimeTypes = new Set<string>()
+  const extensions = new Set<string>()
+  
+  for (const format of formats) {
+    const formatLower = format.toLowerCase()
+    const acceptInfo = formatToAccept[formatLower]
+    
+    if (acceptInfo) {
+      // 优先使用 MIME 类型（浏览器显示更友好）
+      acceptInfo.mimeTypes.forEach(mime => mimeTypes.add(mime))
+      // 扩展名作为后备（某些浏览器可能不支持某些 MIME 类型）
+      if (includeExtensions) {
+        acceptInfo.extensions.forEach(ext => extensions.add(ext))
+      }
+    } else {
+      // 如果没有映射，直接使用格式作为扩展名
+      if (includeExtensions) {
+        extensions.add(`.${format}`)
+      }
+    }
+  }
+  
+  // 组合：优先使用 MIME 类型，然后添加扩展名作为后备
+  const acceptParts: string[] = []
+  
+  // 先添加 MIME 类型（浏览器会显示更友好的名称）
+  mimeTypes.forEach(mime => acceptParts.push(mime))
+  
+  // 然后添加扩展名（作为后备，确保兼容性）
+  if (includeExtensions) {
+    extensions.forEach(ext => acceptParts.push(ext))
+  }
+  
+  return acceptParts.join(',')
+}
+
+/**
+ * 获取支持的文件格式的 accept 字符串（用于文件上传对话框）
+ * @param category 文件类型类别，默认为 'all'（所有支持的格式）
+ * @returns accept 字符串，例如 "image/*" 或 ".txt,.md,.pdf,..."
+ */
+export function getSupportedFileAcceptString(category: FileTypeCategory = 'all'): string {
+  const formats = getFormatsByCategory(category)
+  
+  // 对于特定类别，使用更简洁的 MIME 类型通配符
+  if (category === 'image') {
+    return 'image/*'
+  }
+  
+  // 对于"所有格式"，只使用 MIME 类型，不添加扩展名
+  // 这样浏览器可能会显示第一个 MIME 类型的名称，而不是"自定义文件"
+  if (category === 'all') {
+    return formatsToAcceptString(formats, false)
+  }
+  
+  // 对于其他类别，使用 MIME 类型和扩展名（确保兼容性）
+  return formatsToAcceptString(formats, true)
+}
+
+/**
+ * 获取所有文件类型类别
+ */
+export function getFileTypeCategories(): FileTypeCategory[] {
+  return ['all', 'text', 'document', 'data', 'image', 'web']
+}
+
+/**
+ * 使用主进程文件选择服务选择文件
+ * @param category 文件类型类别
+ * @param multiple 是否支持多选
+ * @param title 对话框标题
+ * @returns 选中的文件路径数组，如果取消则返回空数组
+ */
+export async function selectReferenceFiles(
+  category: FileTypeCategory = 'all',
+  multiple: boolean = false,
+  title?: string
+): Promise<string[]> {
+  // 获取IPC渲染器
+  let ipcRenderer: typeof localIpcRenderer | null = null
+  if (typeof window !== 'undefined') {
+    if ((window as any).electron?.ipcRenderer) {
+      ipcRenderer = (window as any).electron.ipcRenderer
+    } else {
+      webMainCalls()
+      ipcRenderer = localIpcRenderer
+    }
+  }
+  
+  if (!ipcRenderer) {
+    throw new Error('IPC渲染器不可用')
+  }
+  
+  try {
+    const result = await ipcRenderer.invoke('select-reference-files', {
+      category,
+      multiple,
+      title
+    }) as { canceled: boolean; filePaths: string[] }
+    
+    if (result.canceled) {
+      return []
+    }
+    
+    return result.filePaths || []
+  } catch (error) {
+    getLogger().error('文件选择失败:', error)
+    throw error
+  }
+}
+

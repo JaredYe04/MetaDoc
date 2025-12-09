@@ -172,16 +172,16 @@
           <el-input v-model="formData.url" :placeholder="t('agent.reference.urlPlaceholder')" @blur="handleUrlBlur" />
         </el-form-item>
         <el-form-item :label="t('agent.reference.file')" required v-if="formData.inputType === 'file'">
-          <el-upload
-            :auto-upload="false"
-            :on-change="handleFileChange"
-            :show-file-list="false"
+          <el-button 
+            type="primary" 
             :disabled="parsing"
-            accept="*/*"
+            @click="handleSelectFile"
           >
-            <el-button type="primary" :disabled="parsing">{{ t('agent.reference.selectFile') }}</el-button>
-            <span v-if="selectedFile" style="margin-left: 8px;">{{ selectedFile.name }}</span>
-          </el-upload>
+            {{ t('agent.reference.selectFile') }}
+          </el-button>
+          <div v-if="selectedFile" style="margin-top: 8px; color: #666; font-size: 12px;">
+            {{ selectedFile.name }}
+          </div>
           <div v-if="parsedReference && formData.inputType === 'file'" style="margin-top: 8px; color: #67c23a; font-size: 12px;">
             ✓ {{ t('agent.reference.parseSuccess') }}
           </div>
@@ -218,7 +218,7 @@ import { themeState } from '../../utils/themes'
 import type { Reference } from '../../types/agent-framework'
 import type { AgentSession } from '../../types/agent'
 import { agentSessionManager } from '../../utils/agent-framework'
-import { processFileUpload, processUrlReference } from '../../utils/agent-framework/reference-processor'
+import { processFileUpload, processUrlReference, selectReferenceFiles } from '../../utils/agent-framework/reference-processor'
 import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer'
 import { createRendererLogger } from '../../utils/logger'
 
@@ -308,14 +308,71 @@ const handleAdd = () => {
   dialogVisible.value = true
 }
 
-const handleFileChange = async (file: any) => {
-  selectedFile.value = file.raw
-  formData.value.name = file.name
-  parsedReference.value = null
+/**
+ * 将文件路径转换为 File 对象
+ */
+async function pathToFile(filePath: string): Promise<File> {
+  // 获取IPC渲染器
+  let ipcRenderer: any = null
+  if (typeof window !== 'undefined') {
+    if ((window as any).electron?.ipcRenderer) {
+      ipcRenderer = (window as any).electron.ipcRenderer
+    } else {
+      const { localIpcRenderer } = await import('../../utils/web-adapter/local-ipc-renderer')
+      ipcRenderer = localIpcRenderer
+    }
+  }
   
-  // 立即开始解析
-  if (file.raw) {
-    await startParsingFile(file.raw)
+  if (!ipcRenderer) {
+    throw new Error('IPC渲染器不可用')
+  }
+  
+  // 通过 IPC 调用主进程读取文件
+  const result = await ipcRenderer.invoke('read-file-for-upload', filePath) as {
+    name: string
+    data: string
+    mimeType: string
+  }
+  
+  // 将 base64 转换为 Blob
+  const binaryString = atob(result.data)
+  const bytes = new Uint8Array(binaryString.length)
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i)
+  }
+  const blob = new Blob([bytes], { type: result.mimeType })
+  
+  return new File([blob], result.name, { type: result.mimeType })
+}
+
+const handleSelectFile = async () => {
+  if (parsing.value) return
+  
+  try {
+    // 使用主进程文件选择服务（使用 'all' 类别，对话框内部会显示所有分组）
+    const filePaths = await selectReferenceFiles('all', false, t('agent.reference.selectFile'))
+    
+    if (filePaths.length === 0) {
+      return // 用户取消了选择
+    }
+    
+    const filePath = filePaths[0]
+    const fileName = filePath.split(/[/\\]/).pop() || filePath
+    
+    // 将文件路径转换为 File 对象
+    const file = await pathToFile(filePath)
+    
+    selectedFile.value = file
+    // 如果名称为空，自动使用文件名
+    if (!formData.value.name.trim()) {
+      formData.value.name = fileName
+    }
+    parsedReference.value = null
+    
+    // 立即开始解析
+    await startParsingFile(file)
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -355,6 +412,11 @@ const startParsingFile = async (file: File) => {
     
     parsedReference.value = reference
     parsingMessage.value = t('agent.reference.parseSuccess')
+    
+    // 如果名称为空，自动使用文件名
+    if (!formData.value.name.trim() && selectedFile.value) {
+      formData.value.name = selectedFile.value.name
+    }
     
     // 延迟一下让用户看到成功消息
     await new Promise(resolve => setTimeout(resolve, 500))

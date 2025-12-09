@@ -302,6 +302,57 @@ const menuY = ref(0); // 菜单 Y 坐标
 
 const vditorEl = ref<HTMLElement | null>(null);
 const lastAppliedContent = ref('');
+const isEditorInteracting = ref(false);
+let pendingExternalUpdate: { value: string; clearHistory?: boolean } | undefined;
+
+type SetValueOptions = {
+    clearHistory?: boolean;
+    timeoutMs?: number;
+};
+
+const flushPendingExternalUpdate = () => {
+    const pending = pendingExternalUpdate;
+    if (!pending) return;
+    pendingExternalUpdate = undefined;
+    scheduleSetValue(pending.value, { clearHistory: pending.clearHistory, timeoutMs: 0 });
+};
+
+const resetInteractionFlag = debounce(() => {
+    isEditorInteracting.value = false;
+    flushPendingExternalUpdate();
+}, 300);
+
+const markEditorInteraction = () => {
+    isEditorInteracting.value = true;
+    resetInteractionFlag();
+};
+
+const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
+    const normalized = value ?? '';
+    if (!vditor.value) return;
+    if (normalized === lastAppliedContent.value) return;
+
+    const run = () => {
+        if (!vditor.value) return;
+        if (isEditorInteracting.value) {
+            pendingExternalUpdate = { value: normalized, clearHistory: options.clearHistory };
+            return;
+        }
+        vditor.value.setValue(normalized, options.clearHistory ?? true);
+        lastAppliedContent.value = normalized;
+    };
+
+    if (isEditorInteracting.value) {
+        pendingExternalUpdate = { value: normalized, clearHistory: options.clearHistory };
+        return;
+    }
+
+    if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(run, { timeout: options.timeoutMs ?? 300 });
+    } else {
+        setTimeout(run, options.timeoutMs ?? 0);
+    }
+};
 
 function onAcceptSuggestion(text: string) {
     //logger.log("补全已接受:", text);
@@ -507,7 +558,7 @@ const handleClick = async (event: MouseEvent, title: string, path: string) => {
 
 const handleRefresh = () => {
     if (!isActive.value) return;
-    vditor.value?.setValue(currentMarkdown.value, true);
+    scheduleSetValue(currentMarkdown.value, { clearHistory: true, timeoutMs: 0 });
 };
 eventBus.on('refresh', handleRefresh);
 
@@ -547,8 +598,9 @@ const handleSyncWithHtml = () => {
     if (!isActive.value) return;
     if (!vditor.value) return;
     const html = vditor.value.getHTML();
-    vditor.value.setValue(vditor.value.html2md(html), true);
-    currentMarkdown.value = vditor.value.getValue();
+    const markdown = vditor.value.html2md(html);
+    currentMarkdown.value = markdown;
+    scheduleSetValue(markdown, { clearHistory: true, timeoutMs: 0 });
 };
 eventBus.on('vditor-sync-with-html', handleSyncWithHtml);
 
@@ -584,7 +636,7 @@ const acceptGeneratedText = async (payload: any) => {
     currentOutline.value = outlineTree;
   syncMarkdownFromOutline();
   currentView.value = 'article';
-    vditor.value?.setValue(currentMarkdown.value);
+    scheduleSetValue(currentMarkdown.value, { clearHistory: false });
   flushOutlineSync();
     await bindTitleMenu();
     showSectionOptimizer.value = false;
@@ -1125,6 +1177,8 @@ onMounted(async () => {
             value: currentMarkdown.value,
             input: async (value) => {
 
+                markEditorInteraction();
+                lastAppliedContent.value = value;
                 // currentMarkdown.value = value;
                 currentView.value = 'article';
                 workspace.updateDocumentMarkdown(props.tabId, value);
@@ -1185,6 +1239,7 @@ onMounted(async () => {
                                     // 检查是否点击在编辑器内容区域（不是工具栏等）
                                     const target = e.target as HTMLElement;
                                     if (target && (target.closest('.vditor-content') || target.closest('.vditor-ir'))) {
+                                        markEditorInteraction();
                                         aiCompletionService.handleMouseClick();
                                     }
                                 }
@@ -1200,6 +1255,7 @@ onMounted(async () => {
                                 if (modifierKey && e.key === 'Tab') {
                                     e.preventDefault();
                                     e.stopPropagation();
+                                    markEditorInteraction();
                                     aiCompletionService.triggerCompletion('manual');
                                     return;
                                 }
@@ -1212,6 +1268,7 @@ onMounted(async () => {
                                 
                                 if (key) {
                                     // 用户继续打字时，立即取消当前补全
+                                    markEditorInteraction();
                                     aiCompletionService.cancelCurrentCompletion();
                                     // 触发补全（按键触发）
                                     aiCompletionService.triggerCompletion('key', key);
@@ -1303,7 +1360,7 @@ const handleSyncEditorTheme = async () => {
     }
 
     vditor.value?.setTheme(themeState.currentTheme.vditorTheme as any, contentTheme as any, codeTheme as any);
-    vditor.value?.setValue(currentMarkdown.value);
+    scheduleSetValue(currentMarkdown.value, { clearHistory: true, timeoutMs: 0 });
 };
 eventBus.on('sync-editor-theme', handleSyncEditorTheme);
 
@@ -1311,15 +1368,10 @@ watch(
     () => currentMarkdown.value,
     (content) => {
         if (!isActive.value) return;
-        if (!vditor.value) return;
         const incoming = content ?? '';
-        const currentValue = vditor.value.getValue();
-        if (incoming !== currentValue) {
-            nextTick(() => {
-                vditor.value?.setValue(incoming, true);
-                lastAppliedContent.value = incoming;
-                bindTitleMenu();
-            });
+        if (incoming !== lastAppliedContent.value) {
+            scheduleSetValue(incoming, { clearHistory: true });
+            bindTitleMenu();
         }
     },
 );
@@ -1328,18 +1380,11 @@ watch(
     isActive,
     (active) => {
         if (!active) return;
-        if (!vditor.value) return;
         const desired = currentMarkdown.value ?? '';
-        const currentValue = vditor.value.getValue();
-        if (desired !== currentValue) {
-            nextTick(() => {
-                vditor.value?.setValue(desired, true);
-                lastAppliedContent.value = desired;
-                bindTitleMenu();
-            });
-        } else {
-            bindTitleMenu();
+        if (desired !== lastAppliedContent.value) {
+            scheduleSetValue(desired, { clearHistory: true });
         }
+        bindTitleMenu();
     },
     { immediate: true },
 );

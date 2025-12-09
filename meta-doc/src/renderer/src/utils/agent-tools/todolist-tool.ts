@@ -24,20 +24,59 @@ import type { AgentSession } from '../../types/agent-framework'
 const logger = createRendererLogger('TodoListTool')
 
 /**
+ * 生成todolist的存储key
+ * 格式：tabId-sessionId（如果tabId存在）或 sessionId（如果tabId不存在）
+ * 这样确保同一个tab下的同一个session共享同一个todolist
+ */
+function getTodoListKey(session: AgentSession | undefined): string | null {
+  if (!session) {
+    return null
+  }
+  
+  // 从publicContext中获取document.id（即tabId）
+  const tabId = session.publicContext?.document?.id
+  if (tabId) {
+    return `todolist-${tabId}-${session.id}`
+  }
+  
+  // 如果没有tabId，使用session.id作为fallback
+  return `todolist-${session.id}`
+}
+
+/**
  * 从session中获取todolist（如果存在）
+ * 使用tabId-sessionId作为key，确保同一个tab下的同一个session共享todolist
  */
 function getTodoListFromSession(session: AgentSession | undefined): TodoList | null {
   try {
     if (!session) {
+      logger.debug('[getTodoListFromSession] session为空')
       return null
     }
     
-    const todoList = agentSessionManager.readFromPublicContext(session, 'todolist') as TodoList | undefined
+    const key = getTodoListKey(session)
+    if (!key) {
+      logger.warn('[getTodoListFromSession] 无法生成key')
+      return null
+    }
+    
+    // 调试信息：检查publicContext的结构
+    // logger.debug('[getTodoListFromSession] 调试信息:', {
+    //   sessionId: session.id,
+    //   key,
+    //   hasPublicContext: !!session.publicContext,
+    //   hasCustom: !!session.publicContext?.custom,
+    //   customKeys: session.publicContext?.custom ? Object.keys(session.publicContext.custom) : [],
+    //   documentId: session.publicContext?.document?.id
+    // })
+    
+    const todoList = agentSessionManager.readFromPublicContext(session, key) as TodoList | undefined
     if (todoList && typeof todoList === 'object' && 'items' in todoList) {
-      logger.info('[getTodoListFromSession] 从session中读取到todolist:', todoList.id, '任务数:', todoList.items?.length || 0)
+      logger.info('[getTodoListFromSession] 从session中读取到todolist:', todoList.id, '任务数:', todoList.items?.length || 0, 'key:', key)
       return todoList as TodoList
     }
     
+    // logger.debug('[getTodoListFromSession] 未找到todolist，key:', key, 'readFromPublicContext返回:', todoList)
     return null
   } catch (error) {
     logger.warn('[getTodoListFromSession] 读取session todolist失败:', error)
@@ -47,6 +86,7 @@ function getTodoListFromSession(session: AgentSession | undefined): TodoList | n
 
 /**
  * 保存todolist到session
+ * 使用tabId-sessionId作为key，确保同一个tab下的同一个session共享todolist
  */
 function saveTodoListToSession(session: AgentSession | undefined, todoList: TodoList): void {
   try {
@@ -55,8 +95,46 @@ function saveTodoListToSession(session: AgentSession | undefined, todoList: Todo
       return
     }
     
-    agentSessionManager.writeToPublicContext(session, 'todolist', todoList)
-    logger.info('[saveTodoListToSession] Todolist已保存到session:', session.id, '任务数:', todoList.items?.length || 0)
+    const key = getTodoListKey(session)
+    if (!key) {
+      logger.warn('[saveTodoListToSession] 无法生成key，跳过保存')
+      return
+    }
+    
+    // 调试信息：检查保存前的状态
+    // logger.debug('[saveTodoListToSession] 保存前调试信息:', {
+    //   sessionId: session.id,
+    //   key,
+    //   hasPublicContext: !!session.publicContext,
+    //   hasCustom: !!session.publicContext?.custom,
+    //   customKeysBefore: session.publicContext?.custom ? Object.keys(session.publicContext.custom) : [],
+    //   documentId: session.publicContext?.document?.id
+    // })
+    
+    agentSessionManager.writeToPublicContext(session, key, todoList)
+    
+    // 验证保存是否成功：立即读取一次，确保数据被正确保存
+    const verifyValue = agentSessionManager.readFromPublicContext(session, key)
+    if (!verifyValue) {
+      logger.error('[saveTodoListToSession] 保存后验证失败：无法读取刚保存的值！', {
+        sessionId: session.id,
+        key,
+        hasCustom: !!session.publicContext?.custom,
+        customKeys: session.publicContext?.custom ? Object.keys(session.publicContext.custom) : []
+      })
+    }
+    
+    // 调试信息：检查保存后的状态
+    // logger.debug('[saveTodoListToSession] 保存后调试信息:', {
+    //   sessionId: session.id,
+    //   key,
+    //   hasCustom: !!session.publicContext?.custom,
+    //   customKeysAfter: session.publicContext?.custom ? Object.keys(session.publicContext.custom) : [],
+    //   savedValue: verifyValue ? '存在' : '不存在',
+    //   verifySuccess: !!verifyValue
+    // })
+    
+    logger.info('[saveTodoListToSession] Todolist已保存到session:', session.id, '任务数:', todoList.items?.length || 0, 'key:', key, '验证:', verifyValue ? '成功' : '失败')
   } catch (error) {
     logger.warn('[saveTodoListToSession] 保存todolist到session失败:', error)
   }
@@ -276,20 +354,30 @@ const todolistToolLocales: ToolLocales = {
 
 ### 方式6：更新任务状态 ⭐ 新功能（类似Cursor）
 标记任务为完成或其他状态：
+
+**标记单个任务为完成**：
 \`\`\`json
 {
-  "markComplete": "task-1"  // 标记单个任务为完成
+  "markComplete": "task-1"  // 标记指定任务ID为完成
 }
 \`\`\`
 
-或：
+**标记多个任务为完成**：
 \`\`\`json
 {
   "markComplete": ["task-1", "task-2"]  // 标记多个任务为完成
 }
 \`\`\`
 
-或：
+**自动标记下一个任务为完成** ⭐ 推荐：
+\`\`\`json
+{
+  "markComplete": "true"  // 自动找到最后一条已完成的任务，将下一条任务标记为完成
+}
+\`\`\`
+例如：如果任务2已完成，调用 \`{"markComplete": "true"}\` 会将任务3标记为完成。如果没有已完成的任务，会标记第一条任务为完成。
+
+**更新任务状态**：
 \`\`\`json
 {
   "updateStatus": {
@@ -312,9 +400,13 @@ const todolistToolLocales: ToolLocales = {
    \`\`\`json
    {"items": ["任务1", "任务2", "任务3"]}
    \`\`\`
-2. 执行任务1后，标记为完成：
+2. 执行任务1后，标记为完成（方式1：指定任务ID）：
    \`\`\`json
    {"markComplete": "task-1"}
+   \`\`\`
+   或（方式2：自动标记下一个）⭐ 推荐：
+   \`\`\`json
+   {"markComplete": "true"}  // 自动标记下一个未完成的任务
    \`\`\`
 3. 查看当前进度：
    \`\`\`json
@@ -334,6 +426,7 @@ const todolistToolLocales: ToolLocales = {
 6. priority、tags、status等字段都是可选的，根据需要添加
 7. **字符串会自动转换**：列表中的字符串会自动转换为任务对象（title=字符串内容）
 8. **状态更新**：使用 \`markComplete\` 或 \`updateStatus\` 可以更新任务状态，类似Cursor的任务管理
+9. **自动标记下一个任务**：使用 \`{"markComplete": "true"}\` 可以自动找到最后一条已完成的任务，将下一条任务标记为完成，非常适合按顺序完成任务
 `
   },
   en_us: {
@@ -687,19 +780,54 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const items = params.items as FlexibleTodoItem[] | undefined  // 支持直接传入items数组
   const session = params._session as AgentSession | undefined  // 从agent-engine-executor自动注入
   const updateStatus = params.updateStatus as { itemId: string; status: 'pending' | 'in_progress' | 'completed' | 'cancelled' } | undefined  // 更新任务状态
-  const markComplete = params.markComplete as string | string[] | undefined  // 标记任务为完成（任务ID或ID数组）
+  const markComplete = params.markComplete as string | string[] | boolean | undefined  // 标记任务为完成（任务ID、ID数组、或true/"true"自动标记下一个）
 
-  // 首先尝试从session中读取现有的todolist
+  // 调试：检查session是否被正确传递
+  // logger.info('[todolistToolCallback] 开始执行，参数检查:', {
+  //   hasSession: !!session,
+  //   sessionId: session?.id,
+  //   hasInput: !!input,
+  //   hasItems: !!items,
+  //   hasTodoList: !!todoList,
+  //   hasMarkComplete: !!markComplete,
+  //   hasUpdateStatus: !!updateStatus,
+  //   allParams: Object.keys(params)
+  // })
+
+  // 首先尝试从session中读取现有的todolist（使用新的key逻辑：tabId-sessionId）
   let existingTodoList: TodoList | null = null
   if (session) {
+    const key = getTodoListKey(session)
+    // logger.debug('[todolistToolCallback] 准备读取todolist，key:', key)
     existingTodoList = getTodoListFromSession(session)
     if (existingTodoList) {
-      logger.info('[todolistToolCallback] 从session中读取到现有todolist，任务数:', existingTodoList.items.length)
+      logger.info('[todolistToolCallback] 从session中读取到现有todolist，任务数:', existingTodoList.items.length, 'key:', key)
+    } else {
+      logger.debug('[todolistToolCallback] 当前tab和session下没有todolist，key:', key)
     }
+  } else {
+    logger.warn('[todolistToolCallback] ⚠️ session为空！无法读取或保存todolist。params._session:', params._session)
   }
 
   // 如果提供了updateStatus，更新任务状态
-  if (updateStatus && existingTodoList) {
+  if (updateStatus) {
+    if (!existingTodoList) {
+      return {
+        status: 'failed',
+        error: createDetailedError(
+          '无法更新任务状态：当前会话中还没有任务列表。请先创建任务列表。',
+          [
+            '{"items": ["任务1", "任务2", "任务3"]}  // 先创建任务列表',
+            '{"updateStatus": {"itemId": "task-1", "status": "completed"}}  // 然后更新状态'
+          ],
+          [
+            '需要先使用todolist工具创建任务列表',
+            '然后才能使用updateStatus更新任务状态',
+            '任务ID必须存在于任务列表中'
+          ]
+        )
+      }
+    }
     const updated = updateTodoItemStatus(existingTodoList, updateStatus.itemId, updateStatus.status)
     if (updated) {
       saveTodoListToSession(session, existingTodoList)
@@ -715,20 +843,137 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         },
         result: existingTodoList
       }
+    } else {
+      return {
+        status: 'failed',
+        error: createDetailedError(
+          `无法更新任务状态：任务ID "${updateStatus.itemId}" 不存在于当前任务列表中`,
+          [
+            `{"updateStatus": {"itemId": "task-1", "status": "completed"}}  // 确保任务ID正确`,
+            '{}  // 先查看当前任务列表，确认任务ID'
+          ],
+          [
+            '任务ID必须与任务列表中的任务ID匹配',
+            '可以使用空参数 {} 查看当前任务列表',
+            '任务ID格式通常是 "task-1", "task-2" 等'
+          ]
+        )
+      }
     }
   }
 
   // 如果提供了markComplete，标记任务为完成
-  if (markComplete && existingTodoList) {
+  if (markComplete) {
+    if (!existingTodoList) {
+      return {
+        status: 'failed',
+        error: createDetailedError(
+          '无法标记任务为完成：当前会话中还没有任务列表。请先创建任务列表。',
+          [
+            '{"items": ["任务1", "任务2", "任务3"]}  // 先创建任务列表',
+            '{"markComplete": "task-1"}  // 然后标记任务为完成'
+          ],
+          [
+            '需要先使用todolist工具创建任务列表',
+            '然后才能使用markComplete标记任务为完成',
+            '任务ID必须存在于任务列表中'
+          ]
+        )
+      }
+    }
+    
+    // 特殊处理：如果markComplete是"true"字符串或布尔值true，标记最后一条已完成任务的下一条任务
+    const isAutoMark = (markComplete === 'true' || markComplete === true)
+    if (isAutoMark) {
+      // 找到最后一条已完成的任务
+      let lastCompletedIndex = -1
+      for (let i = existingTodoList.items.length - 1; i >= 0; i--) {
+        if (existingTodoList.items[i].status === 'completed') {
+          lastCompletedIndex = i
+          break
+        }
+      }
+      
+      // 如果找到了已完成的任务，且还有下一条任务，标记下一条为完成
+      if (lastCompletedIndex >= 0 && lastCompletedIndex < existingTodoList.items.length - 1) {
+        const nextItem = existingTodoList.items[lastCompletedIndex + 1]
+        if (updateTodoItemStatus(existingTodoList, nextItem.id!, 'completed')) {
+          saveTodoListToSession(session, existingTodoList)
+          return {
+            status: 'succeeded',
+            data: {
+              content: {
+                stage: 'completed',
+                todoList: existingTodoList
+              },
+              format: 'json',
+              componentName: 'TodoListDisplay'
+            },
+            result: existingTodoList
+          }
+        }
+      } else if (lastCompletedIndex === -1) {
+        // 没有已完成的任务，标记第一条为完成
+        if (existingTodoList.items.length > 0) {
+          const firstItem = existingTodoList.items[0]
+          if (updateTodoItemStatus(existingTodoList, firstItem.id!, 'completed')) {
+            saveTodoListToSession(session, existingTodoList)
+            return {
+              status: 'succeeded',
+              data: {
+                content: {
+                  stage: 'completed',
+                  todoList: existingTodoList
+                },
+                format: 'json',
+                componentName: 'TodoListDisplay'
+              },
+              result: existingTodoList
+            }
+          }
+        }
+      } else {
+        // 最后一条任务已完成，没有下一条任务
+        return {
+          status: 'failed',
+          error: createDetailedError(
+            '无法标记任务为完成：所有任务都已完成，没有下一个任务可以标记',
+            [
+              '{"markComplete": "true"}  // 只能标记下一个未完成的任务',
+              '{}  // 查看当前任务列表状态'
+            ],
+            [
+              '所有任务都已完成时，无法使用 markComplete: "true"',
+              '可以使用 markComplete: "task-id" 来标记特定任务'
+            ]
+          )
+        }
+      }
+    }
+    
+    // 普通处理：markComplete是任务ID或任务ID数组
     const itemIds = Array.isArray(markComplete) ? markComplete : [markComplete]
     let anyUpdated = false
+    const notFoundIds: string[] = []
     for (const itemId of itemIds) {
-      if (updateTodoItemStatus(existingTodoList, itemId, 'completed')) {
-        anyUpdated = true
+      // 跳过"true"字符串和布尔值true（已经在上面处理了）
+      if (itemId === 'true' || itemId === true) {
+        continue
+      }
+      // 确保itemId是字符串类型
+      if (typeof itemId === 'string') {
+        if (updateTodoItemStatus(existingTodoList, itemId, 'completed')) {
+          anyUpdated = true
+        } else {
+          notFoundIds.push(itemId)
+        }
       }
     }
     if (anyUpdated) {
       saveTodoListToSession(session, existingTodoList)
+      if (notFoundIds.length > 0) {
+        logger.warn('[todolistToolCallback] 部分任务ID未找到:', notFoundIds)
+      }
       return {
         status: 'succeeded',
         data: {
@@ -740,6 +985,24 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           componentName: 'TodoListDisplay'
         },
         result: existingTodoList
+      }
+    } else {
+      return {
+        status: 'failed',
+        error: createDetailedError(
+          `无法标记任务为完成：任务ID "${itemIds.join(', ')}" 不存在于当前任务列表中`,
+          [
+            `{"markComplete": "task-1"}  // 确保任务ID正确`,
+            '{"markComplete": "true"}  // 或使用true标记下一个任务',
+            '{}  // 先查看当前任务列表，确认任务ID'
+          ],
+          [
+            '任务ID必须与任务列表中的任务ID匹配',
+            '可以使用空参数 {} 查看当前任务列表',
+            '任务ID格式通常是 "task-1", "task-2" 等',
+            '或使用 "true" 自动标记下一个未完成的任务'
+          ]
+        )
       }
     }
   }
@@ -906,10 +1169,11 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 
   // 如果没有提供items或todoList，检查是否只是查看现有todolist
-  if (!input && !items && !todoList) {
-    // 如果session中有todolist，直接返回
+  // 注意：如果提供了markComplete或updateStatus，已经在上面处理了，不会走到这里
+  if (!input && !items && !todoList && !markComplete && !updateStatus) {
+    // 如果session中有todolist，直接返回（使用新的key逻辑自动识别当前tab和session）
     if (existingTodoList) {
-      logger.info('[todolistToolCallback] 返回session中的现有todolist')
+      logger.info('[todolistToolCallback] 返回session中的现有todolist（使用key:', getTodoListKey(session), ')')
       return {
         status: 'succeeded',
         data: {
@@ -923,10 +1187,48 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         result: existingTodoList
       }
     }
+    // 如果没有todolist，返回友好的提示信息（而不是错误）
+    // 说明当前tab和session下还没有任务列表，需要先创建
+    const key = getTodoListKey(session)
+    logger.info('[todolistToolCallback] 当前tab和session下没有todolist（key:', key, '），返回提示信息')
+    return {
+      status: 'succeeded',
+      data: {
+        content: {
+          stage: 'empty',
+          message: '当前会话中还没有任务列表。请先创建任务列表。',
+          todoList: null
+        },
+        format: 'json',
+        componentName: 'TodoListDisplay'
+      },
+      result: {
+        message: '当前会话中还没有任务列表。可以使用以下方式创建：',
+        suggestions: [
+          '{"items": ["任务1", "任务2", "任务3"]}  // 最简单的字符串列表',
+          '{"input": "帮我写一篇文章"}  // 自动生成任务列表'
+        ]
+      }
+    }
   }
 
   // 如果没有提供items或todoList，使用input生成（自动生成模式）
-  if (!input || typeof input !== 'string') {
+  // 注意：如果提供了markComplete或updateStatus，已经在上面处理了，不会走到这里
+  if (!items && !todoList && (!input || typeof input !== 'string')) {
+    // 如果已经处理了markComplete或updateStatus，不应该走到这里
+    // 但为了安全起见，再次检查
+    if (markComplete || updateStatus) {
+      // 这种情况不应该发生，因为已经在上面处理了
+      logger.error('[todolistToolCallback] 逻辑错误：markComplete或updateStatus应该已经处理')
+      return {
+        status: 'failed',
+        error: createDetailedError(
+          '内部错误：状态更新处理失败',
+          [],
+          ['请重试操作']
+        )
+      }
+    }
     return {
       status: 'failed',
       error: createDetailedError(
@@ -1130,6 +1432,30 @@ export const todolistToolConfig: AgentToolConfig = {
       todoList: {
         type: 'object',
         description: '手动创建的任务列表对象（手动创建模式使用），如果提供了items或todoList，input可以为空'
+      },
+      markComplete: {
+        oneOf: [
+          { type: 'string' },
+          { type: 'array', items: { type: 'string' } },
+          { type: 'boolean' }
+        ],
+        description: '标记任务为完成。可以是：1) 单个任务ID（字符串），如 "task-1"；2) 多个任务ID（字符串数组），如 ["task-1", "task-2"]；3) 布尔值 true 或字符串 "true"，自动标记最后一条已完成任务的下一条任务为完成'
+      },
+      updateStatus: {
+        type: 'object',
+        description: '更新任务状态，包含itemId（任务ID）和status（状态：pending|in_progress|completed|cancelled）',
+        properties: {
+          itemId: {
+            type: 'string',
+            description: '要更新的任务ID'
+          },
+          status: {
+            type: 'string',
+            enum: ['pending', 'in_progress', 'completed', 'cancelled'],
+            description: '新的任务状态'
+          }
+        },
+        required: ['itemId', 'status']
       }
     }
   },

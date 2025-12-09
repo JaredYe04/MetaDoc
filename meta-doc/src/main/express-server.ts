@@ -359,43 +359,92 @@ function handleUrlUpload(req: UrlUploadRequest, res: Response): void {
     return res.status(400).json({ error: 'No URL provided' });
   }
 
-  let ext = path.extname(new URL(url).pathname);
+  // 检测是否是本地文件路径
+  // Windows路径: C:\... 或 D:\... 等
+  // Unix路径: /... 或 ~/... 等
+  const isLocalPath = /^[A-Za-z]:\\|^\/|^~/.test(url) || path.isAbsolute(url);
   
-  if (!ext) {
-    // 从Content-Type推断扩展名的逻辑保持不变
-    ext = '';
+  if (isLocalPath) {
+    // 处理本地文件路径
+    try {
+      const localFilePath = url.replace(/^file:\/\//, ''); // 移除可能的 file:// 前缀
+      
+      // 检查文件是否存在
+      if (!fs.existsSync(localFilePath)) {
+        return res.status(404).json({ error: 'Local file not found' });
+      }
+      
+      // 获取文件扩展名
+      let ext = path.extname(localFilePath);
+      if (!ext) {
+        ext = '';
+      }
+      
+      // 生成目标文件名
+      const fileName = `${Date.now()}${ext}`;
+      const targetPath = path.join(imageUploadDir, fileName);
+      
+      // 复制文件
+      fs.copyFileSync(localFilePath, targetPath);
+      
+      res.json({
+        msg: '',
+        code: 0,
+        data: {
+          originalURL: url,
+          url: targetPath,
+        },
+      });
+    } catch (err) {
+      logger.error('复制本地图片失败', err as Error);
+      res.status(500).json({ error: 'Failed to copy local image' });
+    }
+    return;
   }
 
-  const fileName = `${Date.now()}${ext}`;
-  const filePath = path.join(imageUploadDir, fileName);
-  const fileStream = fs.createWriteStream(filePath);
-  
-  const https = require('https');
-  const http = require('http');
-  const protocol = url.startsWith('https') ? https : http;
+  // 处理 HTTP/HTTPS URL
+  try {
+    let ext = path.extname(new URL(url).pathname);
+    
+    if (!ext) {
+      // 从Content-Type推断扩展名的逻辑保持不变
+      ext = '';
+    }
 
-  protocol.get(url, (response: any) => {
-    if (response.statusCode === 200) {
-      response.pipe(fileStream);
-      fileStream.on('finish', () => {
-        fileStream.close(() => {
-          res.json({
-            msg: '',
-            code: 0,
-            data: {
-              originalURL: url,
-              url: filePath,
-            },
+    const fileName = `${Date.now()}${ext}`;
+    const filePath = path.join(imageUploadDir, fileName);
+    const fileStream = fs.createWriteStream(filePath);
+    
+    const https = require('https');
+    const http = require('http');
+    const protocol = url.startsWith('https') ? https : http;
+
+    protocol.get(url, (response: any) => {
+      if (response.statusCode === 200) {
+        response.pipe(fileStream);
+        fileStream.on('finish', () => {
+          fileStream.close(() => {
+            res.json({
+              msg: '',
+              code: 0,
+              data: {
+                originalURL: url,
+                url: filePath,
+              },
+            });
           });
         });
-      });
-    } else {
+      } else {
+        res.status(500).json({ error: 'Failed to download image' });
+      }
+    }).on('error', (err: Error) => {
+      logger.error('下载图片失败', err);
       res.status(500).json({ error: 'Failed to download image' });
-    }
-  }).on('error', (err: Error) => {
-    logger.error('下载图片失败', err);
-    res.status(500).json({ error: 'Failed to download image' });
-  });
+    });
+  } catch (err) {
+    logger.error('处理URL失败', err as Error);
+    res.status(400).json({ error: 'Invalid URL format' });
+  }
 }
 
 // ============ 知识库API ============

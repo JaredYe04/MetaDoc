@@ -15,6 +15,37 @@
       </el-select>
     </el-form-item>
 
+    <el-form-item :label="t('setting.loggingFilter')">
+      <el-input
+        v-model="settings.loggingFilter"
+        :placeholder="t('setting.loggingFilterPlaceholder')"
+        :disabled="!settings.loggingEnabled"
+        clearable
+        @change="handleFilterChange"
+      >
+        <template #prefix>
+          <el-icon><Search /></el-icon>
+        </template>
+      </el-input>
+      <div class="filter-hint">{{ t('setting.loggingFilterHint') }}</div>
+    </el-form-item>
+
+    <el-form-item :label="t('setting.logRetentionPeriod')">
+      <el-select
+        v-model="settings.logRetentionPeriod"
+        :disabled="!settings.loggingEnabled"
+        @change="handleRetentionPeriodChange"
+      >
+        <el-option
+          v-for="option in retentionPeriodOptions"
+          :key="option.value"
+          :label="option.label"
+          :value="option.value"
+        />
+      </el-select>
+      <div class="filter-hint">{{ t('setting.logRetentionPeriodHint') }}</div>
+    </el-form-item>
+
     <el-form-item :label="t('setting.logFilePath')">
       <div class="log-path">
         <el-input :model-value="logFilePath || t('setting.logFileUnavailable')" readonly />
@@ -45,6 +76,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Search } from '@element-plus/icons-vue';
 import { settings, setSetting } from '../../utils/settings.js';
 import eventBus from '../../utils/event-bus.js';
 import { fetchLoggerHistory, getRendererLoggerConfig } from '../../utils/logger.ts';
@@ -84,6 +116,18 @@ const levelOptions = computed(() => ([
   { value: 'error', label: t('setting.loggingLevels.error') }
 ]));
 
+const retentionPeriodOptions = computed(() => ([
+  { value: 'none', label: t('setting.logRetentionPeriods.none') },
+  { value: '1day', label: t('setting.logRetentionPeriods.1day') },
+  { value: '3days', label: t('setting.logRetentionPeriods.3days') },
+  { value: '7days', label: t('setting.logRetentionPeriods.7days') },
+  { value: '1month', label: t('setting.logRetentionPeriods.1month') },
+  { value: '3months', label: t('setting.logRetentionPeriods.3months') },
+  { value: '6months', label: t('setting.logRetentionPeriods.6months') },
+  { value: '1year', label: t('setting.logRetentionPeriods.1year') },
+  { value: 'never', label: t('setting.logRetentionPeriods.never') }
+]));
+
 const saveSetting = (key: string, value: unknown) => {
   setSetting(key, value);
 };
@@ -94,6 +138,14 @@ const handleEnabledChange = () => {
 
 const handleLevelChange = () => {
   saveSetting('loggingLevel', settings.loggingLevel);
+};
+
+const handleFilterChange = () => {
+  saveSetting('loggingFilter', settings.loggingFilter);
+};
+
+const handleRetentionPeriodChange = () => {
+  saveSetting('logRetentionPeriod', settings.logRetentionPeriod);
 };
 
 const openLogFile = () => {
@@ -189,6 +241,13 @@ onBeforeUnmount(() => {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
+}
+
+.filter-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
+  line-height: 1.4;
 }
 
 .logger-console :deep(.console-container) {

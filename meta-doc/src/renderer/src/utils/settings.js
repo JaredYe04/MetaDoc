@@ -66,6 +66,8 @@ export const settings = reactive({
   parseEmbeddedImages: true, // 是否解析文档内嵌图片进行OCR
   loggingEnabled: true, // 是否写入日志
   loggingLevel: 'info', // 日志等级
+  loggingFilter: '', // 日志过滤条件（按scope过滤）
+  logRetentionPeriod: '3days', // 日志保留期限：none, 1day, 3days, 7days, 1month, 3months, 6months, 1year, never
   ollama: {
     apiUrl: "http://localhost:11434/api", // Ollama 默认 API URL
     selectedModel: "",

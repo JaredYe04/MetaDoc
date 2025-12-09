@@ -40,6 +40,18 @@ export interface RendererLogger {
   info: (...args: unknown[]) => void;
   warn: (...args: unknown[]) => void;
   error: (...args: unknown[]) => void;
+  /**
+   * 创建子模块logger，支持链式调用
+   * @param subScope 子模块名称
+   * @returns 返回一个新的logger实例，其scope为当前scope的子模块
+   * @example
+   * ```typescript
+   * const logger = createRendererLogger('ai-graph');
+   * logger.sub('WorkflowTool').sub('Executor').info('执行工作流');
+   * // 输出: [ai-graph][WorkflowTool][Executor] [INFO] 执行工作流
+   * ```
+   */
+  sub: (subScope: string) => RendererLogger;
 }
 
 export interface LoggerHistoryEntry {
@@ -92,8 +104,43 @@ const normalizeArg = (arg: unknown): string => {
   }
 };
 
-const shouldLog = (level: LogLevel): boolean => {
-  return state.config.enabled && LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[state.config.level];
+/**
+ * 检查scope是否匹配过滤条件
+ * 支持完整匹配或前缀匹配，大小写不敏感
+ */
+const matchesFilter = (scope: string | undefined, filter: string | undefined): boolean => {
+  if (!filter || !filter.trim()) {
+    return true; // 无过滤条件，全部通过
+  }
+  if (!scope) {
+    return false; // 有过滤条件但无scope，不匹配
+  }
+  const filterTrimmed = filter.trim().toLowerCase();
+  const scopeLower = scope.toLowerCase();
+  // 完整匹配（大小写不敏感）
+  if (scopeLower === filterTrimmed) {
+    return true;
+  }
+  // 前缀匹配：如果scope以filter开头（考虑链式格式）
+  // 例如 filter="ai-graph" 匹配 "[ai-graph][WorkflowTool]"
+  if (scopeLower.startsWith(filterTrimmed) || scopeLower.includes(`[${filterTrimmed}]`)) {
+    return true;
+  }
+  return false;
+};
+
+const shouldLog = (level: LogLevel, scope?: string): boolean => {
+  if (!state.config.enabled) {
+    return false;
+  }
+  if (LOG_LEVEL_PRIORITY[level] < LOG_LEVEL_PRIORITY[state.config.level]) {
+    return false;
+  }
+  // 检查过滤条件
+  if (!matchesFilter(scope, state.config.filter)) {
+    return false;
+  }
+  return true;
 };
 
 const ensureConfigLoaded = async () => {
@@ -141,12 +188,27 @@ const dispatch = async (payload: LogPayload, level: LogLevel, formattedMessage: 
     await ensureConfigLoaded();
   }
 
-  if (!shouldLog(level)) {
+  if (!shouldLog(level, payload.scope)) {
     return;
   }
 
   ipcRenderer.send('logger-log', payload);
   logThroughConsole(level, formattedMessage);
+};
+
+/**
+ * 格式化scope字符串，支持链式子模块格式
+ * 如果scope已经是方括号格式（如 [parent][child]），则直接使用
+ * 如果是简单字符串，则添加方括号
+ */
+const formatScopeSegment = (scope: string | undefined): string => {
+  if (!scope) return '';
+  // 如果已经是方括号格式（包含多个方括号），直接返回
+  if (scope.includes('][')) {
+    return scope.startsWith('[') ? scope : `[${scope}]`;
+  }
+  // 简单字符串，添加方括号
+  return `[${scope}]`;
 };
 
 const buildMessage = (level: LogLevel, scope: string | undefined, processType: 'renderer', windowType: string | undefined, args: unknown[]): { payload: LogPayload; formatted: string } => {
@@ -159,8 +221,16 @@ const buildMessage = (level: LogLevel, scope: string | undefined, processType: '
     messages: normalized
   };
 
-  const timestamp = new Date().toISOString();
-  const scopeSegment = scope ? `[${scope}]` : '';
+  // 使用用户本地时区，格式化为 YYYY-MM-DD HH:mm:ss
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const timestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  const scopeSegment = formatScopeSegment(scope);
   const windowSegment = windowType ? `[${windowType}]` : '';
   const formatted = `${timestamp} [RENDERER]${windowSegment}${scopeSegment} [${level.toUpperCase()}] ${normalized.join(' ')}`;
 
@@ -234,9 +304,29 @@ const buildMessage = (level: LogLevel, scope: string | undefined, processType: '
  * }
  * ```
  * 
+ * **链式子模块支持：**
+ * 
+ * Logger 支持链式调用创建子模块logger，方便进行模块化日志管理：
+ * ```typescript
+ * const logger = createRendererLogger('ai-graph');
+ * 
+ * // 单层子模块
+ * logger.sub('WorkflowTool').info('执行工作流');
+ * // 输出: [ai-graph][WorkflowTool] [INFO] 执行工作流
+ * 
+ * // 多层链式调用
+ * logger.sub('WorkflowTool').sub('Executor').sub('NodeRunner').info('运行节点');
+ * // 输出: [ai-graph][WorkflowTool][Executor][NodeRunner] [INFO] 运行节点
+ * 
+ * // 子模块logger可以独立使用
+ * const workflowLogger = logger.sub('WorkflowTool');
+ * workflowLogger.info('初始化');
+ * workflowLogger.sub('Parser').debug('解析配置');
+ * ```
+ * 
  * @param scope - Logger 的作用域名称，用于日志标识（可选）
  * @param options - Logger 选项（可选）
- * @returns 返回 RendererLogger 实例，包含 debug、info、warn、error 方法
+ * @returns 返回 RendererLogger 实例，包含 debug、info、warn、error 和 sub 方法
  * 
  * @example
  * ```typescript
@@ -252,9 +342,27 @@ const buildMessage = (level: LogLevel, scope: string | undefined, processType: '
  * 
  * export function myFunction() {
  *   getLogger().info('函数执行')
+ *   getLogger().sub('SubModule').debug('调试信息')
  * }
  * ```
  */
+/**
+ * 创建子模块scope字符串
+ * 如果父scope为空，直接返回子scope
+ * 如果父scope已有内容，将子scope追加到父scope后面，格式为 [parent][child]
+ */
+const createSubScope = (parentScope: string | undefined, subScope: string): string => {
+  if (!parentScope) {
+    return subScope;
+  }
+  // 如果父scope已经是链式格式，直接追加
+  if (parentScope.includes('][')) {
+    return `${parentScope}[${subScope}]`;
+  }
+  // 如果父scope是简单字符串，组合成链式格式
+  return `[${parentScope}][${subScope}]`;
+};
+
 export const createRendererLogger = (scope?: string, options: RendererLoggerOptions = {}): RendererLogger => {
   const windowTypeProvider = options.windowTypeProvider;
   const cacheKey = `${scope ?? 'default'}|${windowTypeProvider ? windowTypeProvider.toString() : 'no-window-provider'}`;
@@ -272,7 +380,12 @@ export const createRendererLogger = (scope?: string, options: RendererLoggerOpti
     debug: (...args: unknown[]) => log('debug', args),
     info: (...args: unknown[]) => log('info', args),
     warn: (...args: unknown[]) => log('warn', args),
-    error: (...args: unknown[]) => log('error', args)
+    error: (...args: unknown[]) => log('error', args),
+    sub: (subScope: string) => {
+      const subLoggerScope = createSubScope(scope, subScope);
+      // 子logger使用相同的windowTypeProvider，但不使用缓存（因为scope不同）
+      return createRendererLogger(subLoggerScope, options);
+    }
   };
   rendererLoggerCache.set(cacheKey, logger);
   return logger;

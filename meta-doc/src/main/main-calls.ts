@@ -46,7 +46,7 @@ import type { LaTeXCompileResult } from '../types/utils';
 import type { DocumentFormat } from '../types';
 import { performExportRequest, type RendererExportPayload, abortExportTask } from './export/export-manager';
 import { MainProgressHandle } from './utils/progress-handle';
-import { createMainLogger, handleRendererLog, getLoggerConfig, getLoggerHistory, openCurrentLogFile, openLogDirectory, updateLoggerConfig } from './logger';
+import { createMainLogger, handleRendererLog, getLoggerConfig, getLoggerHistory, openCurrentLogFile, openLogDirectory, updateLoggerConfig, cleanupOldLogs } from './logger';
 import { getServiceStatus } from './service-status';
 import type { LogPayload, LogLevel } from '../common/logger-constants';
 import { t } from './i18n';
@@ -1649,6 +1649,15 @@ function setSetting(key: string, value: any): void {
     const normalized = typeof value === 'string' ? value.toLowerCase() : value;
     updateLoggerConfig({ level: normalized as LogLevel });
   }
+
+  if (key === 'loggingFilter') {
+    updateLoggerConfig({ filter: typeof value === 'string' ? value : undefined });
+  }
+
+  if (key === 'logRetentionPeriod') {
+    // 当保留期限改变时，立即执行清理
+    cleanupOldLogs();
+  }
 }
 
 // ============ 应用控制 ============
@@ -1887,7 +1896,7 @@ function sanitizeTitleForFilename(title: string): string {
 
 const chooseSaveFile = async (data: SaveData): Promise<string> => {
   const dateString = new Date()
-    .toISOString()
+    .toLocaleString()
     .replace(/:/g, '-')
     .replace('T', '_')
     .split('.')[0];

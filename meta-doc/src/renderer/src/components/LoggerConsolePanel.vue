@@ -22,25 +22,129 @@
           {{ t('common.close') }}
         </el-button>
       </div>
-      <Console console-key="logger" :history="logHistory" />
+      <div class="logger-filter">
+        <el-input
+          v-model="filterText"
+          :placeholder="t('setting.loggingFilterPlaceholder')"
+          size="small"
+          clearable
+          @input="handleFilterChange"
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+      </div>
+      <Console console-key="logger" :history="filteredLogHistory" />
     </div>
   </ResizablePanel>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { Search } from '@element-plus/icons-vue';
 import ResizablePanel from './base/ResizablePanel.vue';
 import Console from './Console.vue';
 import eventBus from '../utils/event-bus';
 import { themeState } from '../utils/themes';
 import { fetchLoggerHistory } from '../utils/logger.ts';
 import type { LoggerHistoryEntry } from '../utils/logger.ts';
+import { settings, setSetting } from '../utils/settings.js';
 
 const { t } = useI18n();
 
 const visible = ref(false);
 const logHistory = ref<LoggerHistoryEntry[]>([]);
+const filterText = ref(settings.loggingFilter || '');
+
+/**
+ * 从日志内容中提取scope信息
+ * 日志格式: timestamp [PROCESS][windowType?][scope] [LEVEL] message
+ * 例如: "2024-01-01 12:00:00 [MAIN][ai-graph] [INFO] message"
+ * 或: "2024-01-01 12:00:00 [RENDERER][windowType][ai-graph][WorkflowTool] [INFO] message"
+ */
+const extractScopeFromLog = (content: string): string | undefined => {
+  // 匹配所有方括号内容
+  const bracketMatches = content.match(/\[([^\]]+)\]/g);
+  if (!bracketMatches || bracketMatches.length < 2) {
+    return undefined;
+  }
+  
+  // 第一个是PROCESS类型（MAIN或RENDERER），最后一个通常是LEVEL
+  // 中间的可能是windowType和scope
+  // 跳过第一个（PROCESS）和最后一个（LEVEL）
+  const middleParts = bracketMatches.slice(1, -1);
+  if (middleParts.length === 0) {
+    return undefined;
+  }
+  
+  // 提取所有中间部分的内容（去掉方括号）
+  const parts = middleParts.map(p => p.slice(1, -1));
+  
+  // 如果只有一个部分，直接返回
+  if (parts.length === 1) {
+    return parts[0];
+  }
+  
+  // 如果有多个部分，尝试识别scope部分
+  // scope通常包含连字符、链式格式，或者不是常见的windowType值
+  const commonWindowTypes = ['main', 'renderer', 'agent', 'settings'];
+  const scopes = parts.filter(p => {
+    // 如果包含链式格式，肯定是scope
+    if (p.includes('][')) return true;
+    // 如果包含连字符，可能是scope
+    if (p.includes('-')) return true;
+    // 如果不是常见的windowType，可能是scope
+    if (!commonWindowTypes.includes(p.toLowerCase())) return true;
+    return false;
+  });
+  
+  if (scopes.length === 0) {
+    // 如果没有找到明显的scope，使用最后一个部分（通常是scope）
+    return parts[parts.length - 1];
+  }
+  
+  // 组合成链式格式
+  if (scopes.length === 1) {
+    return scopes[0];
+  }
+  return `[${scopes.join('][')}]`;
+};
+
+/**
+ * 检查日志内容是否匹配过滤条件（大小写不敏感）
+ */
+const matchesLogFilter = (content: string, filter: string): boolean => {
+  if (!filter || !filter.trim()) {
+    return true;
+  }
+  const filterLower = filter.trim().toLowerCase();
+  const scope = extractScopeFromLog(content);
+  if (!scope) {
+    return false; // 无法提取scope，不匹配
+  }
+  const scopeLower = scope.toLowerCase();
+  // 完整匹配
+  if (scopeLower === filterLower) {
+    return true;
+  }
+  // 前缀匹配或包含匹配
+  if (scopeLower.includes(`[${filterLower}]`) || scopeLower.startsWith(filterLower)) {
+    return true;
+  }
+  return false;
+};
+
+/**
+ * 过滤后的日志历史
+ */
+const filteredLogHistory = computed(() => {
+  if (!filterText.value || !filterText.value.trim()) {
+    return logHistory.value;
+  }
+  return logHistory.value.filter(entry => matchesLogFilter(entry.content, filterText.value));
+});
 
 const maxWidth = computed(() => Math.floor(window.innerWidth * 0.6));
 const maxHeight = computed(() => Math.floor(window.innerHeight * 0.7));
@@ -61,6 +165,17 @@ function toggleVisibility() {
 function closePanel() {
   visible.value = false;
 }
+
+function handleFilterChange() {
+  setSetting('loggingFilter', filterText.value);
+}
+
+// 监听settings变化，同步filterText
+watch(() => settings.loggingFilter, (newFilter) => {
+  if (filterText.value !== newFilter) {
+    filterText.value = newFilter || '';
+  }
+});
 
 onMounted(() => {
   fetchLoggerHistory().then(history => {
@@ -95,6 +210,11 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
+.logger-filter {
+  flex-shrink: 0;
+  margin-bottom: 8px;
+}
+
 .logger-console-header h3 {
   margin: 0;
   font-size: 16px;
@@ -114,6 +234,10 @@ onBeforeUnmount(() => {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
 }
 </style>
 

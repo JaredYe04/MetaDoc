@@ -61,6 +61,17 @@ export interface AIDialog {
   createdAt?: number;
   /** 更新时间戳（毫秒） */
   updatedAt?: number;
+  /** 引用素材存储（会话级别持久化） */
+  referenceStore?: Array<{
+    id: string;
+    name: string;
+    format: string;
+    origin: string;
+    description?: string;
+    parsedContent?: string;
+    createdAt?: number;
+    updatedAt?: number;
+  }>;
 }
 
 /** LLM配置类型 */

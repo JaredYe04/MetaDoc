@@ -1,42 +1,63 @@
 
 
-<script setup>
+<script setup lang="ts">
 
 import "../assets/response-container.css"
-import {ref, computed,onMounted,onBeforeMount } from 'vue';
+import {ref, computed,onMounted,onBeforeMount, nextTick, watch } from 'vue';
 import {Avatar, Delete, Edit, Refresh, User} from "@element-plus/icons-vue";
 import {ElMessageBox} from "element-plus";
 import {MdEditor,MdPreview, MdCatalog}from 'md-editor-v3';
 import { themeState } from "../utils/themes";
 import '../assets/md-editor-v3-style.css';
-const props=defineProps({
-      message:{
-      type: Object,
-      required: true
-    },
-    index:Number
-})
+import ReferenceDisplay from './agent/ReferenceDisplay.vue';
+import type { Reference } from '../types/agent-framework';
+import type { AIDialogMessage } from '../../../types';
+import { useI18n } from 'vue-i18n';
 
-const role=computed(()=>{
-      return props.message.role;
+interface MessageWithReferences extends AIDialogMessage {
+  referenceIds?: string[];
+}
+
+interface Props {
+  message: MessageWithReferences;
+  index: number;
+  sessionReferences?: Reference[];
+}
+
+interface MessageEditPayload {
+  index: number;
+  message: string;
+}
+
+const props = defineProps<Props>();
+
+const emit = defineEmits<{
+  delete: [index: number];
+  edit: [payload: MessageEditPayload];
+  regenerate: [index: number];
+}>();
+
+const { t } = useI18n();
+
+const role = computed(() => {
+  return props.message.role;
 });
-const content=computed(()=>{
-      return props.message.content;
+
+const content = computed(() => {
+  return props.message.content;
 });
-const roleClass=computed(()=>{
-      return props.message.role === 'user' ? 'user-role' : 'ai-role';
+
+const roleClass = computed(() => {
+  return props.message.role === 'user' ? 'user-role' : 'ai-role';
 });
+
 onBeforeMount(() => {
   //console.log(props.message)
-})
-const emit=defineEmits(["delete","edit","regenerate"]);
+});
 
-const regenerateMsg=()=>{
-    emit("regenerate",props.index+1);
-}
-import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
+const regenerateMsg = () => {
+  emit("regenerate", props.index + 1);
+};
 
 const onMsgDelete = () => {
   ElMessageBox.confirm(
@@ -49,38 +70,94 @@ const onMsgDelete = () => {
     }
   )
     .then(() => {
-      emit('delete', props.index)
+      emit('delete', props.index);
     })
     .catch(() => {
       // 取消无操作
-    })
-}
-const editDialogVisible=ref(false);
-const onMsgEdit=()=> {
-  editingText.value=content.value;
-  editDialogVisible.value = true;
-}
-const editingText=ref('');
+    });
+};
 
-const saveEdit=()=>{
+const editDialogVisible = ref(false);
+const onMsgEdit = () => {
+  editingText.value = content.value;
+  editDialogVisible.value = true;
+};
+
+const editingText = ref('');
+
+const saveEdit = () => {
   editDialogVisible.value = false;
-  emit('edit', {index:props.index,message:editingText});
-}
+  emit('edit', { index: props.index, message: editingText.value });
+};
+
+// 引用容器的ref和样式
+const referencesContainerRef = ref<HTMLElement | null>(null);
+const messageBubbleRef = ref<HTMLElement | null>(null);
+const bubbleContentRef = ref<HTMLElement | null>(null);
+const referencesStyle = ref<Record<string, string>>({});
+
+// 计算引用容器的右边缘位置和宽度
+const calculateReferencesPosition = () => {
+  nextTick(() => {
+    if (!referencesContainerRef.value || !messageBubbleRef.value) return;
+    
+    // 获取消息气泡元素
+    const messageBubble = messageBubbleRef.value;
+    const bubbleContent = bubbleContentRef.value || messageBubble.querySelector('.bubble-content') as HTMLElement;
+    
+    if (!bubbleContent) return;
+    
+    // 获取气泡内容的实际宽度（包括padding）
+    const bubbleContentRect = bubbleContent.getBoundingClientRect();
+    const bubbleContentWidth = bubbleContentRect.width;
+    
+    // 获取引用容器的位置
+    const referencesRect = referencesContainerRef.value.getBoundingClientRect();
+    
+    // 计算右边缘位置：窗口右边缘 - 气泡内容右边缘
+    // 需要减去气泡内容的padding-right
+    const windowWidth = window.innerWidth;
+    const bubbleContentRight = bubbleContentRect.right;
+    const bubbleContentStyle = window.getComputedStyle(bubbleContent);
+    const paddingRight = parseFloat(bubbleContentStyle.paddingRight) || 0;
+    // 计算margin-right，稍微减少一点（减去5px）来补偿可能的计算误差
+    const marginRight = windowWidth - bubbleContentRight - paddingRight - 30;
+    
+    // 设置宽度和margin-right，确保宽度与气泡内容一致
+    referencesStyle.value = {
+      width: `${bubbleContentWidth}px`,
+      marginRight: `${Math.max(0, marginRight)}px`
+    };
+  });
+};
+
+// 监听窗口大小变化和内容变化
+watch(() => [props.message, content.value], () => {
+  calculateReferencesPosition();
+}, { deep: true });
+
+onMounted(() => {
+  calculateReferencesPosition();
+  window.addEventListener('resize', calculateReferencesPosition);
+});
+
+onBeforeMount(() => {
+  window.removeEventListener('resize', calculateReferencesPosition);
+});
 </script>
 
 <template>
-  <div :class="['message-bubble', roleClass]">
+  <div ref="messageBubbleRef" :class="['message-bubble', roleClass]">
     <el-avatar class="avatar" v-if="role !== 'user'" :icon="Avatar"></el-avatar>
     <el-button type="primary" :icon="Edit" circle class="side-button" id="editSelfResponse" v-if="role === 'user'" @click="onMsgEdit" />
     <el-button type="info" :icon="Refresh" circle class="side-button" id="regenerateMsg" v-if="role === 'user'" @click="regenerateMsg" />
     <el-button type="danger" :icon="Delete" circle class="side-button" id="deleteSelfResponse" v-if="role === 'user'" @click="onMsgDelete" />
-    <div class="bubble-content response-container" style="max-height: none;">
+    <div ref="bubbleContentRef" class="bubble-content response-container" style="max-height: none;">
       <MdPreview
         :modelValue="content"
         previewTheme="github"
         codeStyleReverse
-        style="text-align: left;margin-top:20px"
-        :style="{ textColor: themeState.currentTheme.textColor }"
+        style="text-align: left;margin-top:20px; color: v-bind('themeState.currentTheme.textColor')"
         :class="themeState.currentTheme.mdeditorClass"
         :codeFold="false"
         :autoFoldThreshold="300"
@@ -90,7 +167,19 @@ const saveEdit=()=>{
     <el-button type="primary" :icon="Edit" circle class="side-button" id="editAiResponse" v-if="role !== 'user'" @click="onMsgEdit" />
     <el-button type="danger" :icon="Delete" circle class="side-button" id="deleteAiResponse" v-if="role !== 'user'" @click="onMsgDelete" />
     <el-avatar class="avatar" v-if="role === 'user'" :icon="User"></el-avatar>
-
+  </div>
+  <!-- 引用显示（只读模式，只显示用户消息的引用） -->
+  <div 
+    v-if="role === 'user' && props.message.referenceIds && props.message.referenceIds.length > 0 && props.sessionReferences && props.sessionReferences.length > 0"
+    ref="referencesContainerRef"
+    class="message-bubble__references"
+    :style="referencesStyle"
+  >
+    <ReferenceDisplay
+      :references="props.sessionReferences"
+      :active-reference-ids="props.message.referenceIds || []"
+      readonly
+    />
   </div>
   <el-dialog
     v-model="editDialogVisible"
@@ -104,7 +193,7 @@ const saveEdit=()=>{
       codeStyleReverse
       style="text-align: left"
       :autoFoldThreshold="300"
-      :theme="themeState.currentTheme.vditorTheme"
+      :theme="(themeState.currentTheme.vditorTheme as any)"
     />
 
     <template #footer>
@@ -161,6 +250,15 @@ const saveEdit=()=>{
   color: #181818;
   background-color: #6cc0f5; /* Customize the avatar background color */
 }
+
+.message-bubble__references {
+  margin-top: 8px;
+  margin-left: auto;
+  /* 宽度由 JavaScript 动态设置，与消息气泡宽度一致 */
+}
+
+
+
 
 </style>
 

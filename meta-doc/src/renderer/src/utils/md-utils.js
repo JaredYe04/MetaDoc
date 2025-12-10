@@ -676,8 +676,15 @@ export function generateWordFrequencyTrendChart(text, topWords) {
 
 
 
-export async function image2base64(md){
-    //查找markdown里面所有的图片链接，读取图片，转换为base64，返回经过替换后的markdown
+/**
+ * 将 Markdown 中的图片转换为内联 data URL
+ * - 对于位图（PNG、JPG等）：使用 base64 编码的 data URL
+ * - 对于矢量图（SVG）：使用 base64 编码的 data URL（兼容性更好，确保正确嵌入）
+ * @param {string} md - Markdown 文本
+ * @returns {Promise<string>} 处理后的 Markdown 文本
+ */
+export async function embedImagesInline(md){
+    //查找markdown里面所有的图片链接，读取图片，转换为内联 data URL，返回经过替换后的markdown
 
     const lines = md.split('\n')
     let new_md = ''
@@ -686,26 +693,77 @@ export async function image2base64(md){
         const match = line.match(/!\[.*?\]\((.*?)\)/)
         if (match) {
             const image_path = match[1]
-            let base64 = ''
+            let dataUrl = ''
             try {
                 const response = await fetch(image_path)
-                const blob = await response.blob()
-                const reader = new FileReader()
-                reader.readAsDataURL(blob)
-                base64 = await new Promise((resolve, reject) => {
-                    reader.onload = () => resolve(reader.result)
-                    reader.onerror = reject
-                })
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+                }
+                
+                // 检查是否为 SVG（通过 URL 或 Content-Type）
+                const contentType = response.headers.get('content-type') || ''
+                const isSvg = image_path.toLowerCase().endsWith('.svg') || 
+                             contentType.includes('image/svg+xml') ||
+                             contentType.includes('image/svg')
+                
+                if (isSvg) {
+                    // SVG：读取文本内容，使用 base64 编码的 data URL（更可靠，兼容性更好）
+                    const svgText = await response.text()
+                    if (!svgText || svgText.trim().length === 0) {
+                        throw new Error('SVG 内容为空')
+                    }
+                    // 将 SVG 文本转换为 base64（处理中文等特殊字符）
+                    const base64Svg = btoa(unescape(encodeURIComponent(svgText)))
+                    dataUrl = `data:image/svg+xml;base64,${base64Svg}`
+                    getLogger().debug(`SVG 转换为 data URL 成功，长度: ${dataUrl.length}`)
+                } else {
+                    // 位图：使用 base64 编码的 data URL
+                    const blob = await response.blob()
+                    if (!blob || blob.size === 0) {
+                        throw new Error('图片数据为空')
+                    }
+                    const reader = new FileReader()
+                    reader.readAsDataURL(blob)
+                    dataUrl = await new Promise((resolve, reject) => {
+                        reader.onload = () => {
+                            if (reader.result && typeof reader.result === 'string') {
+                                resolve(reader.result)
+                            } else {
+                                reject(new Error('读取图片数据失败'))
+                            }
+                        }
+                        reader.onerror = () => reject(new Error('FileReader 错误'))
+                    })
+                    getLogger().debug(`位图转换为 data URL 成功，长度: ${dataUrl.length}`)
+                }
+                
+                // 验证 data URL 格式
+                if (!dataUrl.startsWith('data:')) {
+                    throw new Error('生成的 data URL 格式不正确')
+                }
             } catch (error) {
-                eventBus.emit('show-error', '图片转换失败'+error)
-                console.error(error)
+                getLogger().error(`图片转换失败: ${image_path}`, error)
+                eventBus.emit('show-error', `图片转换失败: ${image_path} - ${error.message}`)
+                // 转换失败时保持原路径
+                dataUrl = image_path
             }
-            new_md += line.replace(image_path, base64) + '\n'
+            // 替换图片路径为 data URL
+            const newLine = line.replace(image_path, dataUrl)
+            new_md += newLine + '\n'
         } else {
             new_md += line + '\n'
         }
     }
     return new_md
+}
+
+/**
+ * @deprecated 使用 embedImagesInline 代替，函数名更准确
+ * 保持向后兼容
+ */
+export async function image2base64(md){
+    return embedImagesInline(md)
 }
 export async function image2local(md){
     //查找markdown里面所有的图片链接，读取图片，将路径替换为本地路径，返回经过替换后的markdown
@@ -828,35 +886,245 @@ export async function ConvertMarkdownToHtmlManually(md) {
     const contentTheme = await getSetting('contentTheme')
     const codeTheme = await getSetting('codeTheme')
     const lineNumber = await getSetting('lineNumber')
-    const cdn = 'https://unpkg.com/vditor'//导出的时候就不需要本地服务器了
-    const safeMarkdown = JSON.stringify(md);
-    const html = `<html><link rel="stylesheet" href="${cdn}/dist/index.css"/>
-        <script src="${cdn}/dist/method.min.js"></script>
-        <body><div id="preview" style="width: 800px;"></div></body>
-        <script>
-            // 等待 iframe 完全加载后，渲染 markdown 内容
-            window.onload = function() {
-            //鼠标设置为等待状态
-                // 使用转义后的 md 内容
-                const previewElement = document.getElementById('preview');
-                Vditor.preview(previewElement, ${safeMarkdown}, {
-                    cdn: "${cdn}",
-                    markdown: {
-                        theme: "{ current: '${contentTheme}' }",
-                    },
-                    hljs: {
-                        style: "${codeTheme}",
-                        lineNumber: ${lineNumber}
+    
+    let cdn = '';
+    if(isElectronEnv()){
+        cdn=localVditorCDN;
+    }
+    else{
+        cdn=vditorCDN;
+    }
+    
+    // 第一步：从 Markdown 中提取所有图片 URL，并转换为 data URL 映射
+    // 这样可以在渲染后替换，避免 Vditor 处理超长 data URL 时丢失
+    const imageUrlMap = new Map(); // 原始 URL -> data URL 的映射
+    const imageRegex = /!\[([^\]]*)\]\((.*?)\)/g;
+    let match;
+    const imagePromises = [];
+    
+    while ((match = imageRegex.exec(md)) !== null) {
+        const altText = match[1];
+        const imageUrl = match[2];
+        
+        // 跳过已经是 data URL 的图片
+        if (imageUrl.startsWith('data:')) {
+            continue;
+        }
+        
+        // 异步获取图片的 data URL
+        const promise = (async () => {
+            try {
+                const response = await fetch(imageUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type') || '';
+                const isSvg = imageUrl.toLowerCase().endsWith('.svg') || 
+                             contentType.includes('image/svg+xml') ||
+                             contentType.includes('image/svg');
+                
+                let dataUrl = '';
+                if (isSvg) {
+                    const svgText = await response.text();
+                    if (svgText && svgText.trim().length > 0) {
+                        const base64Svg = btoa(unescape(encodeURIComponent(svgText)));
+                        dataUrl = `data:image/svg+xml;base64,${base64Svg}`;
                     }
-                });
-                Vditor.codeRender(previewElement);
-                Vditor.mathRender(previewElement, {
-                    cdn: '${cdn}',
-                });
-                // 图表已经预渲染为图片，不需要再次渲染
-            };
-        </script></html>`;
-return html
+                } else {
+                    const blob = await response.blob();
+                    if (blob && blob.size > 0) {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(blob);
+                        dataUrl = await new Promise((resolve, reject) => {
+                            reader.onload = () => {
+                                if (reader.result && typeof reader.result === 'string') {
+                                    resolve(reader.result);
+                                } else {
+                                    reject(new Error('读取图片数据失败'));
+                                }
+                            };
+                            reader.onerror = () => reject(new Error('FileReader 错误'));
+                        });
+                    }
+                }
+                
+                if (dataUrl) {
+                    imageUrlMap.set(imageUrl, dataUrl);
+                    // 也通过 alt 文本建立映射（作为备用）
+                    if (altText) {
+                        imageUrlMap.set(altText, dataUrl);
+                    }
+                    getLogger().debug(`图片 URL 映射创建: ${imageUrl.substring(0, 50)}... -> data URL (长度: ${dataUrl.length})`);
+                }
+            } catch (error) {
+                getLogger().warn(`获取图片 data URL 失败: ${imageUrl}`, error);
+            }
+        })();
+        
+        imagePromises.push(promise);
+    }
+    
+    // 等待所有图片转换完成
+    await Promise.all(imagePromises);
+    
+    // 第二步：使用原始 Markdown（保持 HTTP URL）进行渲染
+    // 创建一个临时的 DOM 容器来执行完整的渲染
+    const tempContainer = document.createElement('div');
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-99999px';
+    tempContainer.style.top = '-99999px';
+    tempContainer.style.width = '800px';
+    document.body.appendChild(tempContainer);
+    
+    try {
+        // 使用 Vditor.preview 进行完整的渲染（包括代码高亮和数学公式）
+        const previewOptions = {
+            cdn: cdn,
+            markdown: {
+                theme: { current: contentTheme }
+            },
+            hljs: {
+                style: codeTheme,
+                lineNumber: lineNumber
+            }
+        };
+        
+        Vditor.preview(tempContainer, md, previewOptions);
+        
+        // 等待 preview 完成
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // 执行代码高亮渲染（确保代码块被正确高亮）
+        if (typeof Vditor.codeRender === 'function') {
+            Vditor.codeRender(tempContainer);
+        }
+        
+        // 执行数学公式渲染（确保数学公式被正确渲染）
+        if (typeof Vditor.mathRender === 'function') {
+            Vditor.mathRender(tempContainer, {
+                cdn: cdn
+            });
+        }
+        
+        // 等待渲染完成（数学公式和代码高亮可能需要一些时间）
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 获取渲染后的 HTML 内容
+        let finalHtml = tempContainer.innerHTML;
+        
+        // 第三步：在渲染后的 HTML 中替换所有图片 URL 为 data URL
+        finalHtml = finalHtml.replace(/<img([^>]*?)>/gi, (match, attributes) => {
+            // 提取 src 属性
+            const srcMatch = attributes.match(/src\s*=\s*"([^"]*)"/i);
+            const altMatch = attributes.match(/alt\s*=\s*"([^"]*)"/i);
+            
+            let imageUrl = srcMatch ? srcMatch[1] : null;
+            const altText = altMatch ? altMatch[1] : null;
+            
+            // 如果已经有 data URL，不需要替换
+            if (imageUrl && imageUrl.startsWith('data:')) {
+                return match;
+            }
+            
+            // 尝试从映射中找到对应的 data URL
+            let dataUrl = null;
+            if (imageUrl && imageUrlMap.has(imageUrl)) {
+                dataUrl = imageUrlMap.get(imageUrl);
+            } else if (altText && imageUrlMap.has(altText)) {
+                dataUrl = imageUrlMap.get(altText);
+            }
+            
+            if (dataUrl) {
+                // 替换 src 属性
+                if (srcMatch) {
+                    return match.replace(/src\s*=\s*"([^"]*)"/i, `src="${dataUrl}"`);
+                } else {
+                    // 如果没有 src 属性，添加一个
+                    return match.replace(/(<img[^>]*?)(>)/i, `$1 src="${dataUrl}"$2`);
+                }
+            } else {
+                // 如果找不到映射，记录警告但保持原样
+                if (!imageUrl) {
+                    getLogger().warn('发现没有 src 属性的 img 标签，且无法找到映射:', match.substring(0, 100));
+                } else {
+                    getLogger().warn(`无法找到图片 URL 的 data URL 映射: ${imageUrl.substring(0, 50)}...`);
+                }
+                return match;
+            }
+        });
+        
+        // 验证所有 img 标签都有 src 属性
+        const imgTags = finalHtml.match(/<img[^>]*>/gi);
+        if (imgTags) {
+            imgTags.forEach(imgTag => {
+                if (!/src\s*=/i.test(imgTag)) {
+                    getLogger().warn('替换后仍缺少 src 属性的 img 标签:', imgTag.substring(0, 100));
+                }
+            });
+        }
+        
+        // 第四步：获取并内嵌 Vditor CSS
+        let vditorCss = '';
+        try {
+            const cssUrl = `${cdn}/dist/index.css`;
+            const cssResponse = await fetch(cssUrl);
+            if (cssResponse.ok) {
+                vditorCss = await cssResponse.text();
+                getLogger().debug(`Vditor CSS 获取成功，长度: ${vditorCss.length}`);
+            } else {
+                getLogger().warn(`无法获取 Vditor CSS: ${cssUrl}`);
+            }
+        } catch (error) {
+            getLogger().warn('获取 Vditor CSS 失败:', error);
+        }
+        
+        // 从 finalHtml 中移除 Vditor 注入的 CSS 链接（如果有）
+        finalHtml = finalHtml.replace(/<link[^>]*rel\s*=\s*["']stylesheet["'][^>]*href\s*=\s*["'][^"']*vditor[^"']*["'][^>]*>/gi, '');
+        
+        // 包装成完整的 HTML 文档，内嵌所有 CSS
+        const html = `<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        /* Vditor 样式 */
+        ${vditorCss}
+        
+        /* 自定义样式 */
+        body {
+            font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        /* 确保代码块样式正确 */
+        pre code {
+            display: block;
+            overflow-x: auto;
+        }
+        code {
+            background-color: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    ${finalHtml}
+</body>
+</html>`;
+        
+        return html;
+    } finally {
+        // 清理临时容器
+        if (tempContainer.parentNode) {
+            tempContainer.parentNode.removeChild(tempContainer);
+        }
+    }
 }
 
 export const ConvertHtmlForPdf = async (md) => {

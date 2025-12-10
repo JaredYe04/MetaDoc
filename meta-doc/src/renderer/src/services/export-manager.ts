@@ -110,6 +110,23 @@ export const prepareExportPayload = async (
   }
 };
 
+
+const postProcessMarkdownImages = async (markdown: string, targetFormat: ExportFormat) => {
+  // 根据导出格式处理图片路径
+  if (targetFormat === 'tex') {
+    // LaTeX 导出需要本地文件路径
+    markdown = await image2local(markdown);
+  } else {
+    // 其他格式（html, docx, pdf）需要 HTTP URL
+    markdown = await local2image(markdown);
+  }
+  // DOCX 需要将图片内联嵌入，确保文件独立
+  // HTML 不需要在这里转换，ConvertMarkdownToHtmlManually 会在渲染后处理
+  if (targetFormat === 'docx') {
+    markdown = await image2base64(markdown);
+  }
+  return markdown;
+}
 const prepareMarkdownExports = async (
   base: BaseExportPayload,
   doc: WorkspaceDocument,
@@ -119,7 +136,7 @@ const prepareMarkdownExports = async (
   let markdown = filterMetaDataFromMd(base.data.md);
   const logger = createRendererLogger('ExportManager');
   //logger.debug(`targetFormat: ${targetFormat}`);
-  
+
   // 记录原始 markdown 中的图片，用于区分用户原本引用的图片和预渲染生成的图片
   const originalImageUrls = new Set<string>();
   if (['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
@@ -140,7 +157,7 @@ const prepareMarkdownExports = async (
       }
     }
   }
-  
+
   // 对于所有需要生成 HTML 的格式，先预渲染所有图表
   if (['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
     // 先预渲染图表（统一处理，不依赖 Vditor）
@@ -150,7 +167,7 @@ const prepareMarkdownExports = async (
     try {
       logger.debug(`preRenderAllCharts start`);
       handle.mark(5, { message: 'agent.reference.progress.preRenderingCharts', subMessage: 'agent.reference.progress.preparingExport' })
-      markdown = await preRenderAllCharts(markdown, '', chartFormat, (progress) => {
+      markdown = await preRenderAllCharts(markdown, '', chartFormat, (progress: any) => {
         const percent = Math.min(80, progress?.percentage ?? 0);
         handle.mark(percent, {
           message: progress?.message ?? 'agent.reference.progress.preRenderingCharts',
@@ -170,30 +187,24 @@ const prepareMarkdownExports = async (
       });
     }
 
-    // 根据导出格式处理图片路径
-    if (targetFormat === 'tex') {
-      // LaTeX 导出需要本地文件路径
-      markdown = await image2local(markdown);
-    } else {
-      // 其他格式（html, docx, pdf）需要 HTTP URL
-    markdown = await local2image(markdown);
-    }
+
   }
-    if (targetFormat === 'docx') {
-      try {
-        const imageFormat = targetFormat === 'docx' ? 'png' : 'svg';
-        logger.debug(`renderMarkdownMathToImages start, format: ${imageFormat}`);
-        markdown = await renderMarkdownMathToImages(markdown, imageFormat);
-        logger.debug(`renderMarkdownMathToImages end`);
-      } catch (e) {
-        logger.error('数学公式转图片失败，保留原文:', e);
-      }
-      // DOCX 需要将图片转换为 base64
-      if (targetFormat === 'docx') {
-    markdown = await image2base64(markdown);
-      }
-      // PDF 保持 HTTP URL，不需要转换为 base64
+  // 对于需要生成HTML的格式（html, docx, pdf），将数学公式转换为图片
+  if (['html', 'docx', 'pdf'].includes(targetFormat)) {
+    try {
+      const imageFormat = targetFormat === 'docx' ? 'png' : 'svg';
+      logger.debug(`renderMarkdownMathToImages start, format: ${imageFormat}`);
+      markdown = await renderMarkdownMathToImages(markdown, imageFormat);
+      logger.debug(`renderMarkdownMathToImages end`);
+    } catch (e) {
+      logger.error('数学公式转图片失败，保留原文:', e);
     }
+    // PDF 保持 HTTP URL，不需要转换为 base64（PDF导出时会处理）
+  }
+  // 后处理图片路径
+  markdown = await postProcessMarkdownImages(markdown, targetFormat);
+
+
 
   let html = '';
   let tex = '';
@@ -206,11 +217,11 @@ const prepareMarkdownExports = async (
   } else if (targetFormat === 'md') {
     html = await ConvertMarkdownToHtmlManually(markdown);
   } else if (targetFormat === 'tex') {
-            // Markdown 转 LaTeX，图表已经预渲染为图片 URL
-            const { convertMarkdownToLatex } = await import('../utils/latex-utils');
-            const title = doc.meta?.title || 'Generated Document';
-            tex = await convertMarkdownToLatex(markdown, title);
-          }
+    // Markdown 转 LaTeX，图表已经预渲染为图片 URL
+    const { convertMarkdownToLatex } = await import('../utils/latex-utils');
+    const title = doc.meta?.title || 'Generated Document';
+    tex = await convertMarkdownToLatex(markdown, title);
+  }
 
   // 收集预渲染生成的图片 URL（用于后续清理）
   // 只收集那些不在原始图片列表中的 URL，即预渲染生成的图片

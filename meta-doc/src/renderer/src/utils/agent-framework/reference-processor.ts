@@ -106,7 +106,7 @@ export async function processFileUpload(file: File, abortSignal?: AbortSignal, r
     let filePath: string | undefined
     
     try {
-      if (format === 'txt' || format === 'md' || format === 'json' || format === 'text' || format === 'markdown' || format === 'csv') {
+      if (format === 'txt' || format === 'md' || format === 'json' || format === 'text' || format === 'markdown' || format === 'csv' || format === 'html' || format === 'htm' || format === 'xml') {
         handle.mark(30, {
           message: 'agent.reference.progress.parsingFile',
           subMessage: 'agent.reference.progress.extractingText',
@@ -114,6 +114,11 @@ export async function processFileUpload(file: File, abortSignal?: AbortSignal, r
         })
         if (format === 'csv') {
           getLogger().info(`[processFileUpload] 开始解析CSV文件: ${filename}`)
+          const text = await withCancellation(file.text())
+          parsedContent = await withCancellation(referenceAdapterManager.parse(text, format))
+        } else if (format === 'html' || format === 'htm' || format === 'xml') {
+          // HTML/XML文件需要先读取内容，然后通过adapter解析提取纯文本
+          getLogger().info(`[processFileUpload] 开始解析HTML/XML文件: ${filename}`)
           const text = await withCancellation(file.text())
           parsedContent = await withCancellation(referenceAdapterManager.parse(text, format))
         } else {

@@ -17,16 +17,17 @@
       </div>
     </div>
 
-    <el-table
-      :data="references"
-      border
-      stripe
-      :style="tableStyle"
-      v-loading="loading"
-      max-height="600"
-      :table-layout="'auto'"
-      :row-style="{ height: 'auto' }"
-    >
+    <div class="table-container">
+      <el-table
+        :data="references"
+        border
+        stripe
+        :style="tableStyle"
+        v-loading="loading"
+        :table-layout="'auto'"
+        :row-style="{ height: 'auto' }"
+        height="100%"
+      >
       <el-table-column :label="t('agent.reference.name')" min-width="150" show-overflow-tooltip>
         <template #default="{ row }">
           <div class="table-cell-content">{{ row.name }}</div>
@@ -86,7 +87,8 @@
           </div>
         </template>
       </el-table-column>
-    </el-table>
+      </el-table>
+    </div>
 
     <!-- 查看内容对话框 -->
     <el-dialog
@@ -279,7 +281,8 @@ const references = computed(() => {
 const containerStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor,
-  padding: '16px'
+  padding: '16px',
+  minHeight: 0
 }))
 
 const tableStyle = computed(() => ({
@@ -731,6 +734,11 @@ const handleClearAll = async () => {
 <style scoped>
 .reference-manager {
   width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .manager-header {
@@ -738,11 +746,20 @@ const handleClearAll = async () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .manager-header h3 {
   margin: 0;
   font-size: 16px;
+}
+
+.table-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .table-cell-content {

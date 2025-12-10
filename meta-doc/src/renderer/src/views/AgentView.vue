@@ -349,6 +349,8 @@
       :title="t('agent.reference.title')"
       width="800px"
       v-if="referenceSession"
+      :body-style="{ flex: '1', minHeight: '0', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0' }"
+      style="height: 80vh; display: flex; flex-direction: column;"
     >
       <ReferenceManager :session="referenceSession" @update="handleReferenceUpdate" />
       <template #footer>

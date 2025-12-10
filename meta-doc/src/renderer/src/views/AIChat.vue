@@ -14,15 +14,15 @@
 
     <div class="main-container">
       <!-- 左侧菜单 -->
-      <div class="side-menu-wrapper">
-        <div class="menu-header">
-          <el-tooltip :content="t('aiChat.newDialog')">
-            <el-button type="primary" :icon="AddIcon" circle @click="addNewDialog" :disabled="responding"></el-button>
-          </el-tooltip>
-          <el-tooltip :content="t('aiChat.deleteCurrent')">
-            <el-button type="danger" :icon="Delete" circle @click="deleteCurrentDialog" :disabled="responding"></el-button>
-          </el-tooltip>
-        </div>
+      <div class="side-menu-wrapper" :style="panelStyle">
+        <header class="pane-header">
+          <h2>{{ t('aiChat.sessionsTitle', 'AI会话') }}</h2>
+          <div class="actions">
+            <el-tooltip :content="t('aiChat.newDialog')">
+              <el-button size="small" type="info" :icon="AddIcon" circle @click="addNewDialog" :disabled="responding"></el-button>
+            </el-tooltip>
+          </div>
+        </header>
         <el-scrollbar class="menu-scrollbar">
           <el-menu class="side-menu" :default-active="activeDialogIndex.toString()">
             <template v-for="group in groupedDialogs" :key="group.label">
@@ -34,11 +34,40 @@
                 :key="item.originalIndex" 
                 :index="item.originalIndex.toString()"
                 @click="loadDialog(item.originalIndex)" 
-                :disabled="responding">
+                :disabled="responding"
+                :class="{ 'menu-item-open': openDialogMenuId === item.originalIndex }">
                 <div class="menu-item-wrapper">
                   <span class="dialog-title">{{ item.dialog.title }}</span>
-                  <el-button circle :icon="Edit" @click.stop="renameDialog(item.originalIndex)" class="rename-button" type="default">
-                  </el-button>
+                  <div class="menu-item-actions">
+                    <el-button
+                      text
+                      circle
+                      size="small"
+                      class="more-btn"
+                      :disabled="responding"
+                      @click.stop="toggleDialogMenu(item.originalIndex)"
+                    >
+                      <el-icon><More /></el-icon>
+                    </el-button>
+                    <transition name="fade">
+                      <div
+                        v-if="openDialogMenuId === item.originalIndex && !responding"
+                        class="dialog-menu"
+                        :style="dialogMenuStyle"
+                        @click.stop
+                      >
+                        <button type="button" class="dialog-menu__item" @click="handleDialogMenuAction('rename', item.originalIndex)">
+                          {{ t('aiChat.rename') }}
+                        </button>
+                        <button type="button" class="dialog-menu__item" @click="handleDialogMenuAction('duplicate', item.originalIndex)">
+                          {{ t('aiChat.duplicate') }}
+                        </button>
+                        <button type="button" class="dialog-menu__item danger" @click="handleDialogMenuAction('delete', item.originalIndex)">
+                          {{ t('aiChat.delete') }}
+                        </button>
+                      </div>
+                    </transition>
+                  </div>
                 </div>
               </el-menu-item>
             </template>
@@ -47,23 +76,52 @@
       </div>
 
       <!-- 右侧内容 -->
-      <div class="content-area">
-        <h1 class="title">{{ title }}</h1>
+      <div class="content-area" :style="panelStyle">
+        <header class="conversation-header">
+          <h1 class="title">{{ title }}</h1>
+          <div class="conversation-stats">
+            <el-tooltip :content="t('agent.conversation.referencesTooltip', '点击管理引用')" placement="top">
+              <el-tag 
+                size="small" 
+                effect="plain" 
+                style="cursor: pointer;"
+                @click="handleOpenReferenceDialog"
+              >
+                {{ t('agent.conversation.references', { count: referenceStore.length }) }}
+              </el-tag>
+            </el-tooltip>
+          </div>
+        </header>
         <div class="dialog-container">
           <el-scrollbar>
-            <MessageBubble v-for="(message, index) in messages.filter(item => item.role !== 'system')" :key="index"
-              :message="message" @delete="onMsgDelete" @edit="onMsgEdit" @regenerate="regenerate" :index="index" />
+            <MessageBubble 
+              v-for="(message, index) in messages.filter(item => item.role !== 'system')" 
+              :key="index"
+              :message="message" 
+              :session-references="referenceStore"
+              @delete="onMsgDelete" 
+              @edit="onMsgEdit" 
+              @regenerate="regenerate" 
+              :index="index" 
+            />
           </el-scrollbar>
 
         </div>
 
         <div class="composer-wrapper">
+          <ReferenceDisplay
+            v-if="referenceStore.length > 0"
+            :references="referenceStore"
+            :active-reference-ids="activeReferenceIds"
+            @toggle="handleToggleReference"
+          />
           <ChatComposer
             v-model="promptInput"
             :loading="responding"
             :disabled="responding"
             :placeholder="t('aiChat.inputPlaceholder')"
             :show-voice="false"
+            :show-attach="true"
             @submit="onMsgSend"
             @reset="reset"
             @attach="handleAttach"
@@ -72,6 +130,37 @@
 
       </div>
     </div>
+
+    <!-- 引用管理对话框 -->
+    <el-dialog
+      v-model="showReferenceDialog"
+      :title="t('agent.reference.title')"
+      width="800px"
+      :body-style="{ flex: '1', minHeight: '0', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0' }"
+      style="height: 80vh; display: flex; flex-direction: column;"
+    >
+      <ReferenceManager 
+        :session="{
+          id: `ai-chat-${activeDialogIndex}`,
+          title: title,
+          description: '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          messages: [],
+          activeToolIds: [],
+          agentConfigId: '',
+          messageQueue: [],
+          referenceStore: referenceStore,
+          publicContext: {},
+          executionNodes: [],
+          status: 'idle'
+        } as AgentSession"
+        @update="handleReferenceUpdate"
+      />
+      <template #footer>
+        <el-button @click="showReferenceDialog = false">{{ t('common.close') }}</el-button>
+      </template>
+    </el-dialog>
   </el-scrollbar>
 
 </template>
@@ -81,10 +170,11 @@ import { computed, onMounted, onBeforeUnmount, reactive, ref, watch, type Ref, t
 import MessageBubble from "../components/MessageBubble.vue";
 //import { bindCode } from "../assets/aichat_legacy/utils";
 import { ChatSquare, Delete, Edit } from "@element-plus/icons-vue/global";
+import { More } from '@element-plus/icons-vue';
 import "../assets/input-box.css"
 import "../assets/title.css"
 
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import eventBus from '../utils/event-bus.js';
 import { themeState } from "../utils/themes.js";
 import { AddIcon } from 'tdesign-icons-vue-next';
@@ -97,9 +187,15 @@ import { getSetting } from '../utils/settings.js';
 // import { useActiveDocument } from '../composables/useActiveDocument';
 import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document';
 import type { AIDialog, AIDialogMessage } from '../../../types';
+import type { AgentSession } from '../types/agent';
 import ChatComposer from '../components/chat/ChatComposer.vue';
 import { readAiChatDialogs, writeAiChatDialogs } from '../utils/ai-chat-storage';
 import { parseSchemaJson, DOCUMENT_TITLE_SCHEMA, type DocumentTitleSchemaResult } from '../utils/schemas';
+import ReferenceDisplay from '../components/agent/ReferenceDisplay.vue';
+import ReferenceManager from '../components/agent/ReferenceManager.vue';
+import type { Reference } from '../types/agent-framework';
+import { processFileUpload, processUrlReference } from '../utils/agent-framework/reference-processor';
+import { ElLoading } from 'element-plus';
 const { t } = useI18n()
 const responding = ref(false);
 const activeDialogIndex = ref<number>(0);
@@ -123,6 +219,7 @@ const createDefaultDialog = (title: string): AIDialog => {
     messages: createDefaultMessages(),
     createdAt: now,
     updatedAt: now,
+    referenceStore: [],
   };
 };
 
@@ -179,30 +276,60 @@ const initCurrentDialog = () => {
 
 const addNewDialog = () => {
   const newDialog = createDefaultDialog(defaultTitle);
-  dialogs.value.push(newDialog);
-  activeDialogIndex.value = dialogs.value.length - 1;
+  dialogs.value.unshift(newDialog); // 新建的会话排在第一位
+  activeDialogIndex.value = 0;
   messages.value = cloneDeep(newDialog.messages);
   title.value = newDialog.title;
+  // 新建会话时清空引用
+  referenceStore.value = [];
+  activeReferenceIds.value = [];
   updateCurrentDialog();
 };
 
-const updateCurrentDialog = (index: number | null = null) => {
+const updateCurrentDialog = (index: number | null = null, shouldMoveToTop: boolean = false) => {
   if (dialogs.value.length === 0) {
     dialogs.value.push(createDefaultDialog(defaultTitle));
   }
   const targetIndex = index == null ? activeDialogIndex.value : index;
   const existingDialog = dialogs.value[targetIndex];
+  
+  // 计算AI最后一次回复时间（用于排序）
+  const lastAssistantMessage = messages.value
+    .filter(msg => msg.role === 'assistant')
+    .slice(-1)[0];
+  const lastAssistantTime = lastAssistantMessage?.timestamp 
+    ? (typeof lastAssistantMessage.timestamp === 'string' 
+        ? new Date(lastAssistantMessage.timestamp).getTime() 
+        : lastAssistantMessage.timestamp)
+    : Date.now();
+  
   const dialog: AIDialog = {
     title: title.value,
     messages: cloneDeep(messages.value),
     createdAt: existingDialog?.createdAt || Date.now(),
-    updatedAt: Date.now(),
+    updatedAt: lastAssistantTime, // 使用AI最后一次回复时间，而不是当前时间
+    referenceStore: cloneDeep(referenceStore.value), // 保存引用
   };
+  
   if (index == null) {
-    dialogs.value[activeDialogIndex.value] = dialog;
-  }
-  else {
+    const currentIndex = activeDialogIndex.value;
+    dialogs.value[currentIndex] = dialog;
+    
+    // 如果AI生成了新回复（shouldMoveToTop为true），将该会话移到最前面
+    if (shouldMoveToTop && currentIndex > 0) {
+      dialogs.value.splice(currentIndex, 1);
+      dialogs.value.unshift(dialog);
+      activeDialogIndex.value = 0;
+    }
+  } else {
     dialogs.value[index] = dialog;
+    
+    // 如果AI生成了新回复（shouldMoveToTop为true），将该会话移到最前面
+    if (shouldMoveToTop && index > 0) {
+      dialogs.value.splice(index, 1);
+      dialogs.value.unshift(dialog);
+      activeDialogIndex.value = 0;
+    }
   }
   persistDialogsToStorage();
 };
@@ -212,20 +339,38 @@ const loadDialog = (index: number) => {
   const dialog = dialogs.value[index];
   messages.value = cloneDeep(dialog.messages);
   title.value = dialog.title;
+  // 加载对话的引用（会话级别持久化）
+  if (dialog.referenceStore && Array.isArray(dialog.referenceStore)) {
+    referenceStore.value = cloneDeep(dialog.referenceStore) as Reference[];
+    // 默认激活所有引用
+    activeReferenceIds.value = referenceStore.value.map(ref => ref.id);
+  } else {
+    referenceStore.value = [];
+    activeReferenceIds.value = [];
+  }
+  // 注意：加载对话时不应该更新updatedAt，只有AI生成新回复时才更新
   //logger.log(dialogs.value[index])
 };
 
-const deleteCurrentDialog = () => {
+const deleteDialog = (index: number) => {
   if (dialogs.value.length === 0) return;
-  dialogs.value.splice(activeDialogIndex.value, 1);
+  
+  // 如果删除后没有对话了，不允许删除（需要至少保留一个）
+  if (dialogs.value.length <= 1) {
+    ElMessage.warning(t('aiChat.atLeastOneRequired', '至少需要保留一个对话'));
+    return;
+  }
+  
+  dialogs.value.splice(index, 1);
   if (dialogs.value.length > 0) {
-    const nextIndex = Math.min(activeDialogIndex.value, dialogs.value.length - 1);
+    const nextIndex = Math.min(index, dialogs.value.length - 1);
     activeDialogIndex.value = Math.max(nextIndex, 0);
     loadDialog(activeDialogIndex.value);
   } else {
     addNewDialog();
   }
   persistDialogsToStorage();
+  openDialogMenuId.value = null;
 };
 const renameDialog = (index: number) => {
   editingIndex.value = index;
@@ -235,6 +380,28 @@ const renameDialog = (index: number) => {
 const renameDialogVisible = ref(false);
 const editingTitle = ref('');
 const editingIndex = ref<number>(0);
+const openDialogMenuId = ref<number | null>(null);
+
+const borderColor = computed(() =>
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)',
+);
+
+const subtleBorderColor = computed(() =>
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+);
+
+const panelStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd,
+  color: themeState.currentTheme.textColor,
+  borderColor: borderColor.value,
+}));
+
+const dialogMenuStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  color: themeState.currentTheme.textColor,
+  borderColor: subtleBorderColor.value,
+}));
+
 const finishRename = () => {
   const index = editingIndex.value;
   if (index < 0 || index >= dialogs.value.length) {
@@ -243,10 +410,8 @@ const finishRename = () => {
   }
   const existingDialog = dialogs.value[index];
   dialogs.value[index] = {
+    ...existingDialog,
     title: editingTitle.value,
-    messages: cloneDeep(messages.value),
-    createdAt: existingDialog?.createdAt || Date.now(),
-    updatedAt: existingDialog?.updatedAt || Date.now(),
   };
   if (activeDialogIndex.value === editingIndex.value) {
     title.value = editingTitle.value;
@@ -255,15 +420,238 @@ const finishRename = () => {
   persistDialogsToStorage();
 };
 
+const duplicateDialog = (index: number) => {
+  const dialog = dialogs.value[index];
+  if (!dialog) return;
+  
+  const duplicated: AIDialog = {
+    title: dialog.title + ' (副本)',
+    messages: cloneDeep(dialog.messages),
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    referenceStore: cloneDeep(dialog.referenceStore || []),
+  };
+  
+  dialogs.value.unshift(duplicated);
+  activeDialogIndex.value = 0;
+  loadDialog(0);
+  persistDialogsToStorage();
+  openDialogMenuId.value = null;
+  ElMessage.success(t('aiChat.duplicateSuccess', '对话已复制'));
+};
+
+const toggleDialogMenu = (index: number) => {
+  if (responding.value) {
+    return; // 生成时禁用菜单
+  }
+  openDialogMenuId.value = openDialogMenuId.value === index ? null : index;
+};
+
+const handleDialogMenuAction = async (
+  action: 'rename' | 'duplicate' | 'delete',
+  index: number,
+) => {
+  openDialogMenuId.value = null;
+  if (action === 'rename') {
+    renameDialog(index);
+  } else if (action === 'duplicate') {
+    duplicateDialog(index);
+  } else if (action === 'delete') {
+    try {
+      await ElMessageBox.confirm(
+        t('aiChat.confirmDelete', { title: dialogs.value[index]?.title || '' }, `确定要删除"${dialogs.value[index]?.title || ''}"吗？`),
+        t('aiChat.delete'),
+        { type: 'warning' },
+      );
+      deleteDialog(index);
+      ElMessage.success(t('aiChat.deleteSuccess', '删除成功'));
+    } catch {
+      // canceled
+    }
+  }
+};
+
 const title = ref(defaultTitle);
 
 const reset = () => {
   promptInput.value = '';
 }
 
-const handleAttach = () => {
-  eventBus.emit('ai-chat-attach');
+// 引用管理（临时存储，不持久化）
+const referenceStore = ref<Reference[]>([]);
+const activeReferenceIds = ref<string[]>([]);
+const showReferenceDialog = ref(false);
+
+// 监听引用变化，自动激活新添加的引用
+watch(
+  () => referenceStore.value,
+  (newStore) => {
+    if (newStore && newStore.length > 0) {
+      const allReferenceIds = newStore.map(ref => ref.id);
+      if (activeReferenceIds.value.length === 0 || !activeReferenceIds.value.some(id => allReferenceIds.includes(id))) {
+        activeReferenceIds.value = [...allReferenceIds];
+      } else {
+        activeReferenceIds.value = activeReferenceIds.value.filter(id => allReferenceIds.includes(id));
+      }
+    } else {
+      activeReferenceIds.value = [];
+    }
+  },
+  { deep: true }
+);
+
+// 切换引用激活状态
+const handleToggleReference = (referenceId: string) => {
+  const index = activeReferenceIds.value.indexOf(referenceId);
+  if (index > -1) {
+    activeReferenceIds.value.splice(index, 1);
+  } else {
+    activeReferenceIds.value.push(referenceId);
+  }
 };
+
+// 处理附件上传
+const handleAttach = async (fileOrFiles?: File | File[]) => {
+  try {
+    // 检查输入框中是否是URL（用户可能粘贴了URL）
+    const inputText = promptInput.value.trim();
+    const isUrl = /^https?:\/\//.test(inputText);
+    
+    const files = Array.isArray(fileOrFiles) ? fileOrFiles : (fileOrFiles ? [fileOrFiles] : []);
+    
+    if (isUrl && files.length === 0) {
+      // 处理URL（用户输入了URL但没有选择文件）
+      const reference = await processUrlReference(inputText);
+      promptInput.value = ''; // 清空输入框
+      
+      referenceStore.value.push(reference);
+      ElMessage.success(t('agent.reference.addSuccess'));
+      // 同步更新对话持久化
+      updateCurrentDialog();
+    } else if (files.length > 0) {
+      // 批量处理文件上传
+      const loading = ElLoading.service({
+        lock: true,
+        text: files.length > 1 ? `正在处理 ${files.length} 个文件...` : '正在处理文件...',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
+      
+      try {
+        const references: Reference[] = [];
+        let successCount = 0;
+        let failCount = 0;
+        
+        // 逐个处理文件
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          try {
+            loading.setText(files.length > 1 ? `正在处理文件 ${i + 1}/${files.length}: ${file.name}` : `正在处理: ${file.name}`);
+            const reference = await processFileUpload(file);
+            references.push(reference);
+            successCount++;
+          } catch (error) {
+            failCount++;
+            console.error(`处理文件 ${file.name} 失败:`, error);
+            // 继续处理其他文件
+          }
+        }
+        
+        // 批量添加到引用列表
+        if (references.length > 0) {
+          referenceStore.value.push(...references);
+          
+          // 同步更新对话持久化
+          updateCurrentDialog();
+          
+          // 显示成功消息
+          if (failCount === 0) {
+            ElMessage.success(
+              files.length > 1 
+                ? `成功添加 ${successCount} 个引用`
+                : t('agent.reference.addSuccess')
+            );
+          } else {
+            ElMessage.warning(
+              `成功添加 ${successCount} 个引用，${failCount} 个失败`
+            );
+          }
+        } else {
+          ElMessage.error('所有文件处理失败');
+        }
+      } finally {
+        loading.close();
+      }
+    } else {
+      // 既没有文件也没有URL，不处理（ChatComposer 会处理文件选择）
+      return;
+    }
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : String(error));
+  }
+};
+
+// 打开引用管理对话框
+const handleOpenReferenceDialog = () => {
+  showReferenceDialog.value = true;
+};
+
+// 处理引用更新（从 ReferenceManager 触发）
+const handleReferenceUpdate = () => {
+  // ReferenceManager 会直接修改传入的 session.referenceStore
+  // 由于我们传入的是 referenceStore，所以会自动同步
+  // 同步更新对话持久化（包括添加、删除、清空等操作）
+  updateCurrentDialog();
+};
+
+// 创建一个简单的引用管理器，直接操作 referenceStore
+const aiChatReferenceManager = {
+  addReference: (reference: Reference) => {
+    referenceStore.value.push(reference);
+  },
+  removeReference: (referenceId: string) => {
+    const index = referenceStore.value.findIndex(ref => ref.id === referenceId);
+    if (index > -1) {
+      referenceStore.value.splice(index, 1);
+    }
+  },
+  updateReference: (referenceId: string, updates: { name?: string; description?: string }) => {
+    const reference = referenceStore.value.find(ref => ref.id === referenceId);
+    if (reference) {
+      if (updates.name !== undefined) {
+        reference.name = updates.name;
+      }
+      if (updates.description !== undefined) {
+        reference.description = updates.description;
+      }
+    }
+  },
+  clearAll: () => {
+    referenceStore.value = [];
+    activeReferenceIds.value = [];
+  }
+};
+
+/**
+ * 构建引用内容（类似 AIContextManager.buildReferencesContent）
+ */
+function buildReferencesContent(references: Reference[]): string {
+  if (references.length === 0) return '';
+
+  let content = '=== 引用素材 ===\n\n';
+  for (const ref of references) {
+    content += `[${ref.name}] (格式: ${ref.format}, 来源: ${ref.origin})\n`;
+    if (ref.description) {
+      content += `描述: ${ref.description}\n`;
+    }
+    // 添加解析后的内容（供AI直接参考，上传时已解析）
+    if (ref.parsedContent) {
+      content += `\n解析后的内容（已进行数据分析/文本提取）:\n\`\`\`\n${ref.parsedContent}\n\`\`\`\n`;
+    }
+    content += '\n';
+  }
+
+  return content;
+}
 
 async function generateNextResponse(
   beforeGeneration: () => void | Promise<void>,
@@ -274,6 +662,28 @@ async function generateNextResponse(
   await Promise.resolve(beforeGeneration());
   //logger.log(messages.value)
   const messageCopy: AIDialogMessage[] = JSON.parse(JSON.stringify(messages.value));// 深拷贝消息列表，因为Proxy不能直接拷贝
+  
+  // 构建包含引用信息的消息数组
+  // 1. 如果有激活的引用，构建引用内容作为系统消息
+  const activeReferences = referenceStore.value.filter(ref => activeReferenceIds.value.includes(ref.id));
+  if (activeReferences.length > 0) {
+    const referencesContent = buildReferencesContent(activeReferences);
+    // 在消息数组开头插入系统消息（如果还没有系统消息）
+    const hasSystemMessage = messageCopy.some(msg => msg.role === 'system');
+    if (!hasSystemMessage) {
+      messageCopy.unshift({
+        role: 'system',
+        content: referencesContent
+      });
+    } else {
+      // 如果有系统消息，将引用内容追加到第一个系统消息
+      const firstSystemIndex = messageCopy.findIndex(msg => msg.role === 'system');
+      if (firstSystemIndex !== -1) {
+        messageCopy[firstSystemIndex].content = (messageCopy[firstSystemIndex].content || '') + '\n\n' + referencesContent;
+      }
+    }
+  }
+  
   //logger.log(messageCopy)
   const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
   const { handle, done } = createAiTask(
@@ -298,9 +708,10 @@ async function generateNextResponse(
 }
 
 const onMsgSend = async () => {
-  const userMessage: AIDialogMessage = {
+  const userMessage: AIDialogMessage & { referenceIds?: string[] } = {
     role: 'user',
     content: promptInput.value,
+    referenceIds: [...activeReferenceIds.value], // 保存当前激活的引用ID
   };
   messages.value.push(userMessage);
   updateTitle(userMessage.content).catch((error) => {
@@ -335,7 +746,7 @@ const onMsgSend = async () => {
 
       //bindCode(false);
       //logger.log(messages.value);
-      updateCurrentDialog();
+      updateCurrentDialog(null, true); // AI生成新回复时，移到最前面
       updateTitle();
 
     }
@@ -350,12 +761,33 @@ const MAX_TITLE_LENGTH = 20;
 const TITLE_CONTEXT_LIMIT = 6;
 
 const buildTitleSource = (seedText?: string): string => {
-  if (seedText && seedText.trim()) {
-    return seedText.trim();
-  }
+  // 获取最近的对话消息（不包括系统消息）
   const recentMessages = messages.value
     .filter((msg) => msg.role !== 'system')
     .slice(-TITLE_CONTEXT_LIMIT);
+  
+  // 如果传入了 seedText（用户刚发送的消息），确保它包含在上下文中
+  // 由于 messages.value.push(userMessage) 是同步的，最后一条消息应该就是用户刚发送的消息
+  if (seedText && seedText.trim()) {
+    // 检查最后一条消息是否是用户消息，且内容匹配 seedText
+    const lastMessage = recentMessages[recentMessages.length - 1];
+    if (lastMessage && lastMessage.role === 'user' && lastMessage.content.trim() === seedText.trim()) {
+      // 如果最后一条消息就是用户刚发送的消息，使用完整的对话上下文（包括用户消息）
+      return recentMessages
+        .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
+        .join('\n');
+    }
+    // 如果最后一条消息不匹配（理论上不应该发生），仍然使用 seedText 和之前的消息
+    const previousMessages = recentMessages.slice(0, -1);
+    const contextMessages = previousMessages.length > 0 
+      ? [...previousMessages, { role: 'user', content: seedText.trim() }]
+      : [{ role: 'user', content: seedText.trim() }];
+    return contextMessages
+      .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
+      .join('\n');
+  }
+  
+  // 如果没有传入 seedText，使用最近的对话消息
   return recentMessages
     .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
     .join('\n');
@@ -464,23 +896,31 @@ const handleExternalDialogsUpdate = () => {
   initCurrentDialog();
 };
 
+const handleDocumentClick = () => {
+  openDialogMenuId.value = null;
+};
+
 onMounted(() => {
   initCurrentDialog();
   eventBus.on('ai-dialogs-loaded', initCurrentDialog);
   eventBus.on('ai-chat-dialogs-updated', handleExternalDialogsUpdate);
+  document.addEventListener('click', handleDocumentClick);
 });
 
 onBeforeUnmount(() => {
   eventBus.off('ai-dialogs-loaded', initCurrentDialog);
   eventBus.off('ai-chat-dialogs-updated', handleExternalDialogsUpdate);
+  document.removeEventListener('click', handleDocumentClick);
 });
 
 watch([messages], () => {
   //bindCode(false);
+  // 注意：这里不移动会话到最前面，只有AI生成新回复时才移动
   updateCurrentDialog();
 });
 
 watch([title], () => {
+  // 注意：这里不移动会话到最前面，只有AI生成新回复时才移动
   updateCurrentDialog();
 });
 
@@ -518,11 +958,12 @@ const regenerate = async (index: number) => {
       const assistantMessage: AIDialogMessage = {
         role: 'assistant',
         content: cur_resp.value,
+        timestamp: Date.now(), // 记录AI回复时间
       };
       messages.value.push(assistantMessage);
 
       //bindCode(false);
-      updateCurrentDialog();
+      updateCurrentDialog(null, true); // AI生成新回复时，移到最前面
     }
   );
   //await updateTitle();
@@ -556,6 +997,7 @@ type DialogGroup = {
 };
 
 const getDialogTime = (dialog: AIDialog): number => {
+  // 使用 updatedAt（AI最后一次回复时间）进行排序
   return dialog.updatedAt || dialog.createdAt || 0;
 };
 
@@ -574,28 +1016,25 @@ const groupDialogs = (dialogsList: AIDialog[]): DialogGroup[] => {
     { label: t('aiChat.earlier'), dialogs: [] },
   ];
 
-  dialogsList.forEach((dialog, index) => {
+  // 保持原始顺序，不进行排序（只在AI生成新回复时通过更新dialogs数组顺序来改变）
+  // 按时间分组，但保持每个分组内的原始顺序
+  dialogsList.forEach((dialog, originalIndex) => {
     const time = getDialogTime(dialog);
     if (time >= todayStart) {
-      groups[0].dialogs.push({ dialog, originalIndex: index });
+      groups[0].dialogs.push({ dialog, originalIndex });
     } else if (time >= yesterdayStart) {
-      groups[1].dialogs.push({ dialog, originalIndex: index });
+      groups[1].dialogs.push({ dialog, originalIndex });
     } else if (time >= lastWeekStart) {
-      groups[2].dialogs.push({ dialog, originalIndex: index });
+      groups[2].dialogs.push({ dialog, originalIndex });
     } else if (time >= lastMonthStart) {
-      groups[3].dialogs.push({ dialog, originalIndex: index });
+      groups[3].dialogs.push({ dialog, originalIndex });
     } else {
-      groups[4].dialogs.push({ dialog, originalIndex: index });
+      groups[4].dialogs.push({ dialog, originalIndex });
     }
   });
 
-  // 只返回有对话的分组，并按时间倒序排列每个分组内的对话
-  return groups
-    .map(group => ({
-      ...group,
-      dialogs: group.dialogs.sort((a, b) => getDialogTime(b.dialog) - getDialogTime(a.dialog)),
-    }))
-    .filter(group => group.dialogs.length > 0);
+  // 只返回有对话的分组
+  return groups.filter(group => group.dialogs.length > 0);
 };
 
 const groupedDialogs = computed(() => groupDialogs(dialogs.value));
@@ -611,23 +1050,52 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
 .main-container {
   display: flex;
   height: 100vh;
+  gap: 18px;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .side-menu-wrapper {
   width: 250px;
-  height: 100%;
+  height: calc(100vh - 32px);
   display: flex;
   flex-direction: column;
+  border-radius: 16px;
+  border: 1px solid;
+  padding: 16px;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  overflow: hidden;
 }
 
 .menu-scrollbar {
   flex: 1;
   overflow: hidden;
+  position: relative;
+  z-index: 0;
+}
+
+.menu-scrollbar :deep(.el-scrollbar__bar) {
+  z-index: 10;
 }
 
 .side-menu {
   width: 100%;
   border-right: none;
+}
+
+.side-menu :deep(.el-menu-item) {
+  overflow: visible;
+  position: relative;
+}
+
+.side-menu :deep(.el-menu-item:hover),
+.side-menu :deep(.el-menu-item.is-active) {
+  z-index: 1;
+}
+
+.side-menu :deep(.el-menu-item.menu-item-open) {
+  z-index: 200;
 }
 
 .group-header {
@@ -646,20 +1114,54 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
   letter-spacing: 0.5px;
 }
 
-.menu-header {
-  align-self: center;
-  padding: 10px;
+.pane-header {
   display: flex;
-  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
 
+.pane-header h2 {
+  font-size: 16px;
+  margin: 0;
+}
 
+.actions {
+  display: flex;
+  gap: 8px;
 }
 
 .content-area {
   flex: 1;
-
   display: flex;
   flex-direction: column;
+  min-width: 0; /* 允许收缩 */
+  overflow: hidden; /* 防止内容溢出 */
+  height: calc(100vh - 32px);
+  border-radius: 16px;
+  border: 1px solid;
+  padding: 16px;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.conversation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+  margin-bottom: 12px;
+}
+
+.conversation-header .title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.conversation-stats {
+  display: flex;
+  gap: 8px;
 }
 
 .dialog-container {
@@ -669,14 +1171,30 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
   border: #606060 1px solid;
   border-radius: 20px;
   padding: 20px;
-  margin: 20px;
+  margin: 0;
   overflow: auto;
+  min-height: 0;
 }
 
 .composer-wrapper {
-  padding: 12px 24px 32px;
+  padding: 12px 0 0;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0; /* 允许收缩 */
+  box-sizing: border-box;
+  overflow: hidden; /* 防止内容溢出 */
+}
+
+.composer-wrapper > * {
+  width: 100%;
+  max-width: min(960px, 100%);
+  min-width: 0; /* 允许收缩 */
+  box-sizing: border-box;
+  flex-shrink: 1; /* 允许收缩 */
 }
 
 .menu-item-wrapper {
@@ -684,35 +1202,79 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
   /* 让子元素绝对定位时以该元素为参考 */
   width: 100%;
   /* 占满整个菜单项 */
-  padding-right: 40px;
-  /* 给按钮留出空间，防止文字覆盖按钮 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   box-sizing: border-box;
-  /* 防止padding撑开宽度 */
-  overflow: hidden;
-  /* 超出部分隐藏 */
-  white-space: nowrap;
-  /* 禁止文字换行 */
-  text-overflow: ellipsis;
-  /* 超出部分显示省略号 */
+  /* 允许菜单溢出显示 */
+  overflow: visible;
 }
 
 .dialog-title {
-  display: inline-block;
-  max-width: calc(95%);
-  /* 避免文字覆盖按钮 */
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
-.rename-button {
-  position: absolute;
-  /* 绝对定位 */
-  right: 0px;
-  /* 始终固定在右侧 */
-  top: 50%;
-  transform: translateY(-50%);
-  /* 垂直居中 */
+.menu-item-actions {
+  display: flex;
+  align-items: center;
+  position: relative;
+  flex-shrink: 0;
+}
 
+.more-btn {
+  margin-left: 6px;
+}
+
+.dialog-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  border: 1px solid;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  min-width: 140px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.dialog-menu__item {
+  background: transparent;
+  border: none;
+  padding: 8px 10px;
+  text-align: left;
+  color: inherit;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.2s ease;
+}
+
+.dialog-menu__item:hover {
+  background-color: rgba(64, 158, 255, 0.16);
+}
+
+.dialog-menu__item.danger {
+  color: #f56c6c;
+}
+
+.dialog-menu__item.danger:hover {
+  background-color: rgba(245, 108, 108, 0.18);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.12s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

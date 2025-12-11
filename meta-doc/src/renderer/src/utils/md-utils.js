@@ -1168,7 +1168,7 @@ export const ConvertHtmlForPdf = async (md) => {
     <script src="${cdn}/dist/method.min.js"></script>
 </head>
 <body>
-    <div id="preview" style="width: 800px;"></div>
+    <div id="preview" style="max-width: 100%; width: auto; padding: 0 20px; box-sizing: border-box;"></div>
     <script>
             // 等待页面加载后，渲染 markdown 内容
             window.onload = function() {
@@ -1263,6 +1263,8 @@ export const ConvertHtmlForPdf = async (md) => {
         
         body {
             font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
         /* 确保预览容器没有滚动条 */
@@ -1270,8 +1272,11 @@ export const ConvertHtmlForPdf = async (md) => {
             overflow: visible !important;
             overflow-x: visible !important;
             overflow-y: visible !important;
-            width: 800px;
+            max-width: 100%;
+            width: auto;
             margin: 0 auto;
+            padding: 0 20px;
+            box-sizing: border-box;
         }
         
         /* 确保 Vditor 生成的预览容器没有滚动条 */
@@ -1280,6 +1285,8 @@ export const ConvertHtmlForPdf = async (md) => {
             overflow: visible !important;
             overflow-x: visible !important;
             overflow-y: visible !important;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
         /* 导出 PDF 时，确保代码块完全展开，无滚动条 */
@@ -1290,17 +1297,59 @@ export const ConvertHtmlForPdf = async (md) => {
             overflow-x: visible !important;
             overflow-y: visible !important;
             max-height: none !important;
+            max-width: 100% !important;
             height: auto !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            white-space: pre-wrap !important;
+            box-sizing: border-box;
         }
         .md-editor-code pre,
         pre {
             overflow: visible !important;
             max-height: none !important;
+            max-width: 100% !important;
             height: auto !important;
+            box-sizing: border-box;
         }
         .md-editor-code {
             overflow: visible !important;
             max-height: none !important;
+            max-width: 100% !important;
+            box-sizing: border-box;
+        }
+        
+        /* 确保图片、表格等元素不会超出页面宽度 */
+        img {
+            max-width: 100% !important;
+            height: auto !important;
+            box-sizing: border-box;
+        }
+        
+        table {
+            max-width: 100% !important;
+            table-layout: auto;
+            box-sizing: border-box;
+        }
+        
+        /* 确保所有块级元素都使用正确的盒模型 */
+        p, div, h1, h2, h3, h4, h5, h6, ul, ol, li, blockquote {
+            max-width: 100%;
+            box-sizing: border-box;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        /* 确保代码块内的长行可以换行（内联代码保持原样） */
+        pre {
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            white-space: pre-wrap !important;
+        }
+        
+        /* 内联代码保持原样，不强制换行 */
+        code:not(pre code) {
+            white-space: normal !important;
         }
     </style>
 </body>

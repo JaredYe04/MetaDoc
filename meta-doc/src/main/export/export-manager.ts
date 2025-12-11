@@ -230,9 +230,180 @@ const convertHtmlToPdfBuffer = async (html: string): Promise<Buffer> => {
     
     logger.info('代码块滚动限制已移除');
     
+    // 在生成 PDF 之前，确保内容宽度适合页面，并智能缩放超长图片
+    await win.webContents.executeJavaScript(`
+      (function() {
+        // A4 纸张尺寸和页边距计算
+        // A4: 210mm × 297mm = 8.27" × 11.69" = 595.44pt × 841.68pt
+        // 页边距：上下左右各 0.5 英寸 = 36pt
+        const pageWidthPt = 595.44;  // A4 宽度（points）
+        const pageHeightPt = 841.68; // A4 高度（points）
+        const marginTopPt = 36;       // 上边距（points）
+        const marginBottomPt = 36;     // 下边距（points）
+        const marginLeftPt = 36;       // 左边距（points）
+        const marginRightPt = 36;      // 右边距（points）
+        
+        // 可用内容区域
+        const availableWidthPt = pageWidthPt - marginLeftPt - marginRightPt;
+        const availableHeightPt = pageHeightPt - marginTopPt - marginBottomPt;
+        
+        // 将 points 转换为 pixels（假设 96 DPI，1 inch = 72pt = 96px）
+        const ptToPx = 96 / 72;
+        const availableWidthPx = availableWidthPt * ptToPx;
+        const availableHeightPx = availableHeightPt * ptToPx;
+        
+        // 设置 body 和预览容器的最大宽度，确保内容不会超出页面
+        const body = document.body;
+        const preview = document.getElementById('preview');
+        
+        if (body) {
+          body.style.maxWidth = '100%';
+          body.style.boxSizing = 'border-box';
+          body.style.padding = '0';
+          body.style.margin = '0';
+        }
+        
+        if (preview) {
+          preview.style.maxWidth = '100%';
+          preview.style.boxSizing = 'border-box';
+        }
+        
+        // 确保所有内容容器都有正确的盒模型
+        const allContainers = document.querySelectorAll('*');
+        allContainers.forEach(el => {
+          const style = window.getComputedStyle(el);
+          if (style.width && style.width !== 'auto' && !style.width.includes('%')) {
+            const widthValue = parseFloat(style.width);
+            if (widthValue > 700) {
+              el.style.maxWidth = '100%';
+              el.style.boxSizing = 'border-box';
+            }
+          }
+        });
+        
+        // 智能缩放超长图片（特别是 SVG 图表）
+        // 等待所有图片加载完成
+        const images = document.querySelectorAll('img');
+        let imagesProcessed = 0;
+        const totalImages = images.length;
+        
+        if (totalImages === 0) {
+          return { adjusted: 0, total: 0 };
+        }
+        
+        return new Promise((resolve) => {
+          const processImage = (img) => {
+            return new Promise((imgResolve) => {
+              if (img.complete && img.naturalHeight > 0) {
+                checkAndScaleImage(img);
+                imgResolve();
+              } else {
+                img.onload = () => {
+                  checkAndScaleImage(img);
+                  imgResolve();
+                };
+                img.onerror = () => imgResolve(); // 加载失败也继续
+                // 超时保护
+                setTimeout(() => imgResolve(), 3000);
+              }
+            });
+          };
+          
+          const checkAndScaleImage = (img) => {
+            try {
+              // 获取图片的原始尺寸和当前显示尺寸
+              const naturalWidth = img.naturalWidth || 0;
+              const naturalHeight = img.naturalHeight || 0;
+              const rect = img.getBoundingClientRect();
+              const displayWidth = rect.width || naturalWidth;
+              const displayHeight = rect.height || naturalHeight;
+              
+              // 如果图片没有尺寸信息，跳过
+              if (displayWidth <= 0 || displayHeight <= 0) {
+                return false;
+              }
+              
+              // 计算缩放比例：优先保证高度不超过可用高度
+              let scale = 1;
+              let needsScaling = false;
+              
+              if (displayHeight > availableHeightPx) {
+                scale = availableHeightPx / displayHeight;
+                needsScaling = true;
+              }
+              
+              // 如果缩放后的宽度超过可用宽度，需要进一步缩放
+              const scaledWidth = displayWidth * scale;
+              if (scaledWidth > availableWidthPx) {
+                scale = availableWidthPx / displayWidth;
+                needsScaling = true;
+              }
+              
+              if (needsScaling) {
+                // 应用缩放
+                const newWidth = displayWidth * scale;
+                const newHeight = displayHeight * scale;
+                
+                img.style.width = newWidth + 'px';
+                img.style.height = newHeight + 'px';
+                img.style.maxWidth = availableWidthPx + 'px';
+                img.style.maxHeight = availableHeightPx + 'px';
+                img.style.objectFit = 'contain';
+                img.style.display = 'block';
+                img.style.margin = '0 auto';
+                return true;
+              } else {
+                // 即使不需要缩放，也确保宽度不超过可用宽度
+                if (displayWidth > availableWidthPx) {
+                  img.style.maxWidth = availableWidthPx + 'px';
+                  img.style.height = 'auto';
+                  img.style.objectFit = 'contain';
+                  img.style.display = 'block';
+                  img.style.margin = '0 auto';
+                }
+                return false;
+              }
+            } catch (error) {
+              console.warn('处理图片时出错:', error);
+              return false;
+            }
+          };
+          
+          // 并行处理所有图片
+          Promise.all(Array.from(images).map(processImage)).then(() => {
+            // 等待一小段时间确保样式已应用
+            setTimeout(() => {
+              const adjustedCount = Array.from(images).filter(img => {
+                const hasMaxHeight = img.style.maxHeight && parseFloat(img.style.maxHeight) > 0;
+                const hasHeight = img.style.height && parseFloat(img.style.height) > 0;
+                return hasMaxHeight || hasHeight;
+              }).length;
+              resolve({ adjusted: adjustedCount, total: totalImages });
+            }, 200);
+          });
+        });
+      })();
+    `);
+    
+    logger.info(`图片智能缩放处理完成`);
+    
     logger.info('开始生成 PDF');
+    // A4 纸张尺寸：210mm × 297mm (8.27" × 11.69")
+    // 标准页边距设置（参考常见文档标准）：
+    // - Word 默认：上下 1 英寸（2.54cm），左右 1.25 英寸（3.18cm）
+    // - 一般文档：上下 2.54cm，左右 3.17cm
+    // - 紧凑设置（当前）：上下 0.5 英寸（1.27cm），左右 0.5 英寸（1.27cm）
+    // 这个设置既能保证基本的打印边距，又能最大化内容区域
     const pdfBuffer = await win.webContents.printToPDF({
       printBackground: true,
+      margins: {
+        marginType: 'custom',
+        top: 0.5,      // 0.5 英寸 (1.27cm) - 紧凑的上边距
+        bottom: 0.5,   // 0.5 英寸 (1.27cm) - 紧凑的下边距
+        left: 0.5,     // 0.5 英寸 (1.27cm) - 紧凑的左边距
+        right: 0.5,    // 0.5 英寸 (1.27cm) - 紧凑的右边距
+      },
+      pageSize: 'A4',
     });
     logger.info(`PDF 生成完成，大小: ${pdfBuffer.length} bytes`);
     return pdfBuffer;

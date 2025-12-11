@@ -22,7 +22,8 @@
     "android": "npx cap open android",
     "kill": "taskkill /IM electron.exe /F",
     "i18n": "python .\\src\\renderer\\src\\locales\\i18n_check.py",
-    "clean:vite": "rimraf node_modules/.vite || rm -rf node_modules/.vite"
+    "clean:vite": "rimraf node_modules/.vite || rm -rf node_modules/.vite",
+    "audit": "node scripts/code-audit.js"
   },
   "fileAssociations": [
     {

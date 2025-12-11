@@ -281,7 +281,55 @@ const convertHtmlToPdfBuffer = async (html: string): Promise<Buffer> => {
           }
         });
         
-        // 智能缩放超长图片（特别是 SVG 图表）
+        // 处理表格溢出问题
+        const tables = document.querySelectorAll('table');
+        tables.forEach(table => {
+          const rect = table.getBoundingClientRect();
+          if (rect.width > availableWidthPx) {
+            // 表格超出宽度，进行缩放
+            const scale = availableWidthPx / rect.width;
+            table.style.width = availableWidthPx + 'px';
+            table.style.maxWidth = availableWidthPx + 'px';
+            table.style.boxSizing = 'border-box';
+            table.style.tableLayout = 'auto';
+            table.style.wordWrap = 'break-word';
+            
+            // 同时调整表格内容的字体大小，避免列太窄导致文字重叠
+            const fontSize = window.getComputedStyle(table).fontSize;
+            if (fontSize) {
+              const currentSize = parseFloat(fontSize);
+              // 如果缩放比例小于0.9，适当缩小字体（但不小于0.8倍）
+              if (scale < 0.9) {
+                table.style.fontSize = (currentSize * Math.max(scale, 0.8)) + 'px';
+              }
+            }
+            
+            // 确保表格单元格内容可以换行，避免溢出
+            const cells = table.querySelectorAll('th, td');
+            cells.forEach(cell => {
+              cell.style.wordWrap = 'break-word';
+              cell.style.overflowWrap = 'break-word';
+              cell.style.whiteSpace = 'normal';
+              cell.style.maxWidth = 'none'; // 让表格自动分配列宽
+              cell.style.boxSizing = 'border-box';
+            });
+          } else {
+            // 即使不超出，也确保表格不会超出
+            table.style.maxWidth = '100%';
+            table.style.boxSizing = 'border-box';
+            table.style.tableLayout = 'auto';
+            
+            // 确保单元格内容可以换行
+            const cells = table.querySelectorAll('th, td');
+            cells.forEach(cell => {
+              cell.style.wordWrap = 'break-word';
+              cell.style.overflowWrap = 'break-word';
+              cell.style.whiteSpace = 'normal';
+            });
+          }
+        });
+        
+        // 智能缩放和放置图片（特别是 SVG 图表）
         // 等待所有图片加载完成
         const images = document.querySelectorAll('img');
         let imagesProcessed = 0;
@@ -315,37 +363,118 @@ const convertHtmlToPdfBuffer = async (html: string): Promise<Buffer> => {
               const naturalWidth = img.naturalWidth || 0;
               const naturalHeight = img.naturalHeight || 0;
               const rect = img.getBoundingClientRect();
-              const displayWidth = rect.width || naturalWidth;
-              const displayHeight = rect.height || naturalHeight;
+              let displayWidth = rect.width || naturalWidth;
+              let displayHeight = rect.height || naturalHeight;
               
               // 如果图片没有尺寸信息，跳过
               if (displayWidth <= 0 || displayHeight <= 0) {
                 return false;
               }
               
-              // 计算缩放比例：优先保证高度不超过可用高度
-              let scale = 1;
+              // 计算图片在页面中的位置，估算上一页的剩余空间
+              // 在PDF导出时，浏览器会根据内容自动分页
+              // 我们通过检测图片相对于文档的位置来估算分页情况
+              const bodyRect = document.body.getBoundingClientRect();
+              const imgTop = rect.top - bodyRect.top;
+              
+              // 估算当前位置在PDF页面中的偏移（假设从页面顶部开始）
+              // 考虑页边距，实际内容区域从marginTopPt开始
+              const estimatedPageOffset = (imgTop % availableHeightPx);
+              const remainingSpace = availableHeightPx - estimatedPageOffset;
+              
+              // 最小缩放比例阈值（避免过度缩放导致模糊，70%是最低可接受值）
+              const minScale = 0.7;
+              
+              // 如果剩余空间小于页面高度的20%，认为已经在页面底部，不需要智能放置
+              const isNearPageBottom = remainingSpace < availableHeightPx * 0.2;
+              
+              // 计算必需的缩放比例
+              let requiredScale = 1;
               let needsScaling = false;
               
+              // 如果图片高度超过可用高度，必须缩放
               if (displayHeight > availableHeightPx) {
-                scale = availableHeightPx / displayHeight;
+                requiredScale = availableHeightPx / displayHeight;
                 needsScaling = true;
               }
               
               // 如果缩放后的宽度超过可用宽度，需要进一步缩放
-              const scaledWidth = displayWidth * scale;
+              const scaledWidth = displayWidth * requiredScale;
               if (scaledWidth > availableWidthPx) {
-                scale = availableWidthPx / displayWidth;
+                requiredScale = availableWidthPx / displayWidth;
                 needsScaling = true;
               }
               
-              if (needsScaling) {
-                // 应用缩放
-                const newWidth = displayWidth * scale;
-                const newHeight = displayHeight * scale;
+              // 规格化处理：对于中等大小的图表进行标准化缩放
+              // 这样可以避免上一页留白过多，下一页图表被挤到下一页的情况
+              // 规格化只在图片不需要强制缩放时进行（即图片本身能放在一页内）
+              if (!needsScaling) {
+                // 计算图片高度占页面可用高度的百分比
+                const heightPercentage = (displayHeight / availableHeightPx) * 100;
                 
-                img.style.width = newWidth + 'px';
-                img.style.height = newHeight + 'px';
+                // 如果高度在30-50%（不含）之间，统一缩放为30%
+                // 这样可以统一中等大小图表的尺寸，提升排版美观度
+                if (heightPercentage >= 30 && heightPercentage < 50) {
+                  const targetHeight = availableHeightPx * 0.3;
+                  const heightScale = targetHeight / displayHeight;
+                  const widthScale = availableWidthPx / displayWidth;
+                  // 取高度缩放和宽度缩放的较小值，确保同时满足高度和宽度限制
+                  requiredScale = Math.min(heightScale, widthScale);
+                  needsScaling = true;
+                }
+                // 如果高度在50-70%（不含）之间，统一缩放为50%
+                // 这样可以统一较大图表的尺寸，保持排版一致性
+                else if (heightPercentage >= 50 && heightPercentage < 70) {
+                  const targetHeight = availableHeightPx * 0.5;
+                  const heightScale = targetHeight / displayHeight;
+                  const widthScale = availableWidthPx / displayWidth;
+                  // 取高度缩放和宽度缩放的较小值，确保同时满足高度和宽度限制
+                  requiredScale = Math.min(heightScale, widthScale);
+                  needsScaling = true;
+                }
+              }
+              
+              // 智能放置：如果上一页剩余空间较大，且图片只需要小幅缩放就能放下
+              // 就尝试放在上一页，而不是换到下一页
+              if (!needsScaling && !isNearPageBottom && displayHeight > remainingSpace) {
+                // 计算需要缩放多少才能放在剩余空间中
+                const fitScale = remainingSpace / displayHeight;
+                
+                // 检查缩放后的宽度是否也合适
+                const fitScaledWidth = displayWidth * fitScale;
+                let finalFitScale = fitScale;
+                if (fitScaledWidth > availableWidthPx) {
+                  finalFitScale = availableWidthPx / displayWidth;
+                }
+                
+                // 计算缩放后的实际高度
+                const fitScaledHeight = displayHeight * finalFitScale;
+                
+                // 判断条件：
+                // 1. 剩余空间足够大（超过30%页面高度），值得尝试
+                // 2. 缩放比例在可接受范围内（70%-100%），不会太模糊
+                // 3. 缩放后确实能放在剩余空间中
+                if (remainingSpace > availableHeightPx * 0.3 && 
+                    finalFitScale >= minScale && 
+                    finalFitScale < 1 && 
+                    fitScaledHeight <= remainingSpace) {
+                  requiredScale = finalFitScale;
+                  needsScaling = true;
+                }
+              }
+              
+              if (needsScaling) {
+                // 确保缩放比例不低于最小阈值
+                const finalScale = Math.max(requiredScale, minScale);
+                const newWidth = displayWidth * finalScale;
+                const newHeight = displayHeight * finalScale;
+                
+                // 再次检查缩放后的尺寸是否超出限制
+                const finalWidth = Math.min(newWidth, availableWidthPx);
+                const finalHeight = Math.min(newHeight, availableHeightPx);
+                
+                img.style.width = finalWidth + 'px';
+                img.style.height = finalHeight + 'px';
                 img.style.maxWidth = availableWidthPx + 'px';
                 img.style.maxHeight = availableHeightPx + 'px';
                 img.style.objectFit = 'contain';

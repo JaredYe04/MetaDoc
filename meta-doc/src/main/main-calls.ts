@@ -41,6 +41,26 @@ import {
 import { dirname } from './index';
 import { imageUploadDir } from './express-server';
 import { queryKnowledgeBase, getResourcesPath, compileLatexToPDF, setEmbeddingMode, getEmbeddingMode, fileConversionService } from './utils';
+import {
+  getDatabase,
+  getDatabasePath,
+  isSqliteVecAvailable,
+  tableExists
+} from './database/database';
+import {
+  ensureInitialized,
+  createKnowledgeFile,
+  getKnowledgeFileByFilename,
+  getKnowledgeFileById,
+  updateKnowledgeFile,
+  deleteKnowledgeFile,
+  createDataChunks,
+  getDataChunksByFileId,
+  deleteDataChunksByFileId,
+  createVectors,
+  getVectorsByFileId,
+  searchSimilarVectors
+} from './database/knowledge-db';
 import ocrService from './utils/ocr-service';
 import type { LaTeXCompileResult } from '../types/utils';
 import type { DocumentFormat } from '../types';
@@ -162,6 +182,7 @@ export function mainCalls(): void {
   bindLoggerHandlers();
   bindExportHandlers();
   bindTerminalHandlers();
+  bindDatabaseTestHandlers();
   
   initBroadcastChannel();
 }
@@ -2452,4 +2473,265 @@ async function renderEChartsToLocalImage(optionJson: string): Promise<string> {
     logger.error('ECharts 渲染失败:', error);
     throw error;
   }
+}
+
+/**
+ * 绑定数据库测试处理器
+ */
+function bindDatabaseTestHandlers(): void {
+  // 测试数据库连接
+  ipcMain.handle('test-database-connection', async () => {
+    try {
+      const dbPath = getDatabasePath();
+      const db = getDatabase();
+      
+      // 验证连接是否正常
+      const result = db.prepare('SELECT 1 as test').get();
+      
+      return {
+        success: true,
+        message: '数据库连接成功',
+        dbPath: dbPath,
+        sqliteVecAvailable: isSqliteVecAvailable()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '数据库连接失败'
+      };
+    }
+  });
+
+  // 测试创建表
+  ipcMain.handle('test-database-create-tables', async () => {
+    try {
+      ensureInitialized();
+      const tables = ['knowledge_files', 'data_chunks', 'vectors'];
+      const existingTables = tables.filter(t => tableExists(t));
+      
+      return {
+        success: true,
+        message: '表检查完成',
+        tablesCreated: existingTables,
+        allTablesExist: existingTables.length === tables.length
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '表创建测试失败'
+      };
+    }
+  });
+
+  // 测试创建知识库文件
+  ipcMain.handle('test-database-create-file', async (_event, params: {
+    filename: string;
+    originalPath: string;
+    format?: string;
+    origin?: string;
+  }) => {
+    try {
+      ensureInitialized();
+      const fileId = createKnowledgeFile(
+        params.filename,
+        params.originalPath,
+        params.format,
+        params.origin || 'test'
+      );
+      
+      return {
+        success: true,
+        message: '文件创建成功',
+        fileId: fileId
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '文件创建失败'
+      };
+    }
+  });
+
+  // 测试读取知识库文件
+  ipcMain.handle('test-database-read-file', async (_event, params: {
+    filename: string;
+  }) => {
+    try {
+      ensureInitialized();
+      const file = getKnowledgeFileByFilename(params.filename);
+      
+      return {
+        success: true,
+        file: file || null,
+        message: file ? '文件读取成功' : '文件不存在'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '文件读取失败'
+      };
+    }
+  });
+
+  // 测试更新知识库文件
+  ipcMain.handle('test-database-update-file', async (_event, params: {
+    fileId: number;
+    updates: {
+      chunks?: number;
+      vector_dim?: number;
+      vector_count?: number;
+      enabled?: number;
+    };
+  }) => {
+    try {
+      ensureInitialized();
+      updateKnowledgeFile(params.fileId, params.updates);
+      
+      return {
+        success: true,
+        message: '文件更新成功'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '文件更新失败'
+      };
+    }
+  });
+
+  // 测试删除知识库文件
+  ipcMain.handle('test-database-delete-file', async (_event, params: {
+    fileId: number;
+  }) => {
+    try {
+      ensureInitialized();
+      deleteKnowledgeFile(params.fileId);
+      
+      return {
+        success: true,
+        message: '文件删除成功'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '文件删除失败'
+      };
+    }
+  });
+
+  // 测试创建数据块
+  ipcMain.handle('test-database-create-chunks', async (_event, params: {
+    knowledgeFileId: number;
+    chunks: Array<{ index: number; text: string; embedding_model?: string }>;
+  }) => {
+    try {
+      ensureInitialized();
+      const chunkIds = createDataChunks(params.knowledgeFileId, params.chunks);
+      
+      return {
+        success: true,
+        message: '数据块创建成功',
+        chunkIds: chunkIds
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '数据块创建失败'
+      };
+    }
+  });
+
+  // 测试查询数据块
+  ipcMain.handle('test-database-query-chunks', async (_event, params: {
+    knowledgeFileId: number;
+  }) => {
+    try {
+      ensureInitialized();
+      const chunks = getDataChunksByFileId(params.knowledgeFileId);
+      
+      return {
+        success: true,
+        message: '数据块查询成功',
+        chunks: chunks
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '数据块查询失败'
+      };
+    }
+  });
+
+  // 测试创建向量
+  ipcMain.handle('test-database-create-vectors', async (_event, params: {
+    vectors: Array<{ chunkId: number; embedding: number[] }>;
+  }) => {
+    try {
+      ensureInitialized();
+      const vectorIds = createVectors(params.vectors);
+      
+      return {
+        success: true,
+        message: '向量创建成功',
+        vectorIds: vectorIds
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '向量创建失败'
+      };
+    }
+  });
+
+  // 测试查询向量
+  ipcMain.handle('test-database-query-vectors', async (_event, params: {
+    knowledgeFileId: number;
+  }) => {
+    try {
+      ensureInitialized();
+      const vectors = getVectorsByFileId(params.knowledgeFileId);
+      
+      return {
+        success: true,
+        message: '向量查询成功',
+        vectors: vectors
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '向量查询失败'
+      };
+    }
+  });
+
+  // 测试向量搜索
+  ipcMain.handle('test-database-search-vectors', async (_event, params: {
+    queryVector: number[];
+    topK?: number;
+    threshold?: number;
+    enabledOnly?: boolean;
+  }) => {
+    try {
+      ensureInitialized();
+      const results = searchSimilarVectors(
+        params.queryVector,
+        params.topK || 10,
+        params.threshold || 0.5,
+        params.enabledOnly !== false
+      );
+      
+      return {
+        success: true,
+        message: '向量搜索成功',
+        results: results,
+        sqliteVecAvailable: isSqliteVecAvailable()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '向量搜索失败',
+        results: []
+      };
+    }
+  });
 }

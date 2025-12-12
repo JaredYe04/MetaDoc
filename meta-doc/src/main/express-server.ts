@@ -19,12 +19,15 @@ import {
   clearKnowledgeBase,
   initVectorDatabase,
   removeFromIndex,
-  renameKnowledgeFile,
-  saveDocs,
-  saveVectorInfo,
-  VECTOR_INFO_PATH
+  renameKnowledgeFile
 } from './utils';
 import ragService from './utils/rag-service';
+import {
+  getAllKnowledgeFiles,
+  getKnowledgeFileByFilename,
+  updateKnowledgeFile,
+  ensureInitialized
+} from './database/knowledge-db';
 import type { 
   FilePath, 
   FileUploadResult, 
@@ -33,6 +36,9 @@ import type {
 } from '../types/utils';
 import { createMainLogger } from './logger';
 import { updateServiceStatus } from './service-status';
+import { MainProgressHandle } from './utils/progress-handle';
+import type { BrowserWindow } from 'electron';
+import { LEGACY_CONFIG_FILES } from './utils/express-server-legacy';
 
 // ============ 接口定义 ============
 
@@ -73,10 +79,12 @@ export let knowledgeUploadDir: FilePath = '';
 export let knowledgeItems: KnowledgeItem[] = [];
 
 // 知识库索引文件路径
-let knowledgeIndexPath: FilePath = '';
+// knowledgeIndexPath 已移除，不再使用 JSON 文件
 
 // 配置文件和向量数据库文件列表（不应出现在知识库列表中）
-const CONFIG_FILES = ['knowledge_index.json', 'vector_index.json', 'vector_docs.json', 'vector_info.json'];
+// @deprecated 现在使用SQLite数据库，这些JSON文件已不再使用
+// 保留此常量仅用于过滤旧文件，实际定义在 express-server-legacy.ts 中
+const CONFIG_FILES = LEGACY_CONFIG_FILES;
 
 const expressApp: Application = express();
 const logger = createMainLogger('ExpressServer');
@@ -772,8 +780,8 @@ function setupKnowledgeUploadDir(): void {
   knowledgeUploadDir = path.join(os.homedir(), 'Documents', 'meta-doc-kb');
   fs.mkdirSync(knowledgeUploadDir, { recursive: true });
   
-  // 设置索引文件路径
-  knowledgeIndexPath = path.join(knowledgeUploadDir, 'knowledge_index.json');
+  // 不再使用 knowledge_index.json，所有数据存储在 SQLite 数据库中
+  // 旧实现已迁移到 express-server-legacy.ts
 }
 
 /**
@@ -806,110 +814,112 @@ function humanSize(bytes: number): string {
 }
 
 /**
- * 加载知识库索引文件
+ * 加载知识库索引文件（已废弃，现在从数据库读取）
+ * @deprecated 已迁移到 express-server-legacy.ts，保留此函数仅为向后兼容
  */
 function loadKnowledgeIndex(): Record<string, KnowledgeItem> {
-  if (!fs.existsSync(knowledgeIndexPath)) {
-    return {};
-  }
-  
-  try {
-    const content = fs.readFileSync(knowledgeIndexPath, 'utf-8');
-    const index: Record<string, KnowledgeItem> = JSON.parse(content);
-    return index;
-  } catch (err) {
-    logger.error('加载知识库索引失败', err);
-    return {};
-  }
+  // 不再使用 JSON 文件，所有数据从数据库读取
+  // 旧实现已迁移到 express-server-legacy.ts 的 loadLegacyKnowledgeIndex
+  return {};
 }
 
 /**
- * 保存知识库索引文件
+ * 保存知识库索引文件（已废弃，现在使用数据库存储）
+ * @deprecated 已迁移到 express-server-legacy.ts，保留此函数仅为向后兼容
  */
 function saveKnowledgeIndex(index: Record<string, KnowledgeItem>): void {
-  try {
-    fs.writeFileSync(knowledgeIndexPath, JSON.stringify(index, null, 2), 'utf-8');
-  } catch (err) {
-    logger.error('保存知识库索引失败', err);
-  }
+  // 不再使用 JSON 文件，所有数据存储在数据库中
+  // 旧实现已迁移到 express-server-legacy.ts 的 saveLegacyKnowledgeIndex
 }
 
 /**
  * 刷新知识库项目列表
- * 现在直接从索引文件读取，不再需要"注入"vectorInfo
+ * 现在完全从数据库读取数据，不再依赖 JSON 文件
  */
 export function refreshKnowledgeItems(): void {
-  // 从索引文件加载所有信息
-  const index = loadKnowledgeIndex();
-  
-  // 验证文件是否仍然存在，清理已删除的文件
-  // 过滤掉配置文件和向量数据库文件
-  const existingFiles = new Set(
-    fs.readdirSync(knowledgeUploadDir)
-      .filter(f => {
-        const fullPath = path.join(knowledgeUploadDir, f);
-        return fs.statSync(fullPath).isFile() && !CONFIG_FILES.includes(f);
-      })
-  );
-  
-  // 过滤出仍然存在的文件，并更新文件大小（如果文件被修改）
-  const validItems: KnowledgeItem[] = [];
-  const updatedIndex: Record<string, KnowledgeItem> = {};
-  
-  for (const [id, item] of Object.entries(index)) {
-    if (existingFiles.has(id) && fs.existsSync(item.info.path)) {
-      // 文件存在，检查大小是否需要更新
-      const stats = fs.statSync(item.info.path);
-      if (stats.size !== item.info.size) {
-        // 文件大小变化，更新索引
-        item.info.size = stats.size;
-        item.info.sizeText = humanSize(stats.size);
+  try {
+    // 确保数据库已初始化
+    ensureInitialized();
+    
+    // 从数据库读取所有知识库文件
+    const dbFiles = getAllKnowledgeFiles();
+    
+    // 获取文件系统中存在的文件
+    const existingFiles = new Set(
+      fs.existsSync(knowledgeUploadDir)
+        ? fs.readdirSync(knowledgeUploadDir)
+            .filter(f => {
+              const fullPath = path.join(knowledgeUploadDir, f);
+              return fs.statSync(fullPath).isFile() && !CONFIG_FILES.includes(f);
+            })
+        : []
+    );
+    
+    // 构建知识库项目列表
+    const validItems: KnowledgeItem[] = [];
+    const updatedIndex: Record<string, KnowledgeItem> = {};
+    
+    // 从数据库文件构建列表
+    for (const dbFile of dbFiles) {
+      const filePath = dbFile.original_path;
+      
+      // 检查文件是否存在
+      if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        
+        const item: KnowledgeItem = {
+          id: dbFile.filename,
+          name: dbFile.filename,
+          info: {
+            path: filePath,
+            size: stats.size,
+            sizeText: humanSize(stats.size),
+            enabled: dbFile.enabled === 1,
+            chunks: dbFile.chunks,
+            vector_dim: dbFile.vector_dim,
+            vector_count: dbFile.vector_count
+          }
+        };
+        
+        validItems.push(item);
+        updatedIndex[dbFile.filename] = item;
       }
-      validItems.push(item);
-      updatedIndex[id] = item;
-    }
-    // 文件不存在，从索引中移除（不添加到validItems和updatedIndex）
-  }
-  
-  // 检查是否有新文件（在文件系统中但不在索引中）
-  // 排除配置文件和向量数据库文件
-  for (const file of existingFiles) {
-    if (CONFIG_FILES.includes(file)) {
-      continue; // 跳过配置文件和向量数据库文件
     }
     
-    if (!index[file]) {
-      // 新文件，添加到索引
-      const fullPath = path.join(knowledgeUploadDir, file);
-      const stats = fs.statSync(fullPath);
-      const name = path.basename(file);
-      
-      const newItem: KnowledgeItem = {
-        id: file,
-        name,
-        info: {
-          path: fullPath,
-          size: stats.size,
-          sizeText: humanSize(stats.size),
-          enabled: true,
-          chunks: 0,
-          vector_dim: 0,
-          vector_count: 0
-        }
-      };
-      
-      validItems.push(newItem);
-      updatedIndex[file] = newItem;
+    // 检查是否有新文件（在文件系统中但不在数据库中）
+    for (const file of existingFiles) {
+      if (!dbFiles.find(f => f.filename === file)) {
+        // 新文件，添加到索引（但不添加到数据库，等待用户上传时处理）
+        const fullPath = path.join(knowledgeUploadDir, file);
+        const stats = fs.statSync(fullPath);
+        const name = path.basename(file);
+        
+        const newItem: KnowledgeItem = {
+          id: file,
+          name,
+          info: {
+            path: fullPath,
+            size: stats.size,
+            sizeText: humanSize(stats.size),
+            enabled: true,
+            chunks: 0,
+            vector_dim: 0,
+            vector_count: 0
+          }
+        };
+        
+        validItems.push(newItem);
+        updatedIndex[file] = newItem;
+      }
     }
+    
+    // 最后过滤掉配置文件和向量数据库文件，确保不会出现在列表中
+    knowledgeItems = validItems.filter(item => !CONFIG_FILES.includes(item.id));
+  } catch (error) {
+    logger.error('刷新知识库列表失败', error);
+    // 如果数据库出错，返回空列表
+    knowledgeItems = [];
   }
-  
-  // 保存更新后的索引
-  if (Object.keys(updatedIndex).length !== Object.keys(index).length) {
-    saveKnowledgeIndex(updatedIndex);
-  }
-  
-  // 最后过滤掉配置文件和向量数据库文件，确保不会出现在列表中
-  knowledgeItems = validItems.filter(item => !CONFIG_FILES.includes(item.id));
 }
 
 // ============ 知识库API处理器 ============
@@ -920,14 +930,25 @@ function handleKnowledgeList(req: Request, res: Response): void {
 
 /**
  * 更新索引文件中的向量信息（当文件被向量化后调用）
+ * 现在只更新数据库，不再使用 JSON 文件
+ * 
+ * 注意：此函数保留用于向后兼容，但实际实现已迁移到数据库操作
+ * 旧实现（JSON文件更新）已迁移到 express-server-legacy.ts 的 updateLegacyIndexVectorInfo
  */
 function updateIndexVectorInfo(fileName: string, vectorInfo: { chunks: number; vector_dim: number; vector_count: number }): void {
-  const index = loadKnowledgeIndex();
-  if (index[fileName]) {
-    index[fileName].info.chunks = vectorInfo.chunks;
-    index[fileName].info.vector_dim = vectorInfo.vector_dim;
-    index[fileName].info.vector_count = vectorInfo.vector_count;
-    saveKnowledgeIndex(index);
+  try {
+    // 更新数据库（新实现）
+    const dbFile = getKnowledgeFileByFilename(fileName);
+    if (dbFile) {
+      updateKnowledgeFile(dbFile.id, {
+        chunks: vectorInfo.chunks,
+        vector_dim: vectorInfo.vector_dim,
+        vector_count: vectorInfo.vector_count
+      });
+    }
+    // 旧实现（更新JSON文件）已迁移到 express-server-legacy.ts 的 updateLegacyIndexVectorInfo
+  } catch (error) {
+    logger.error('更新向量信息失败', error);
   }
 }
 
@@ -940,50 +961,52 @@ async function handleKnowledgeUpload(req: KnowledgeUploadRequest, res: Response)
   const fullPath = path.join(knowledgeUploadDir, fileName);
 
   try {
-    const result: FileUploadResult = await addFileToKnowledgeBase(fullPath);
+    // 获取 mainWindow 以发送进度
+    const mainWindow = (global as any).mainWindow as BrowserWindow | undefined;
+    const requestId = `knowledge-upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     
-    // 只有在成功时才更新索引文件
-    if (result.success) {
-      // 更新索引文件
-      const index = loadKnowledgeIndex();
-      index[fileName] = {
-        id: fileName,
-        name: fileName,
-        info: {
-          path: fullPath,
-          enabled: true,
-          size: req.file.size,
-          sizeText: humanSize(req.file.size),
-          chunks: result.chunks || 0,
-          vector_dim: result.vector_dim || 0,
-          vector_count: result.vector_count || 0
+    // 创建进度句柄
+    const progressHandle = mainWindow ? new MainProgressHandle({
+      requestId,
+      canCancel: true,
+      send: (p) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('global-progress', p);
         }
-      };
-      saveKnowledgeIndex(index);
-      
-      // 刷新列表
-      refreshKnowledgeItems();
-      
+      },
+      initialMessage: '正在处理知识库文件...',
+      initialPercentage: 0,
+    }) : null;
+
+    const progressCallback = progressHandle ? (progress: { message: string; subMessage?: string; percentage: number; status?: 'success' | 'exception' | 'warning' | ''; params?: Record<string, any> }) => {
+      progressHandle.mark(progress.percentage, {
+        message: progress.message,
+        subMessage: progress.subMessage,
+        status: progress.status,
+        params: progress.params
+      });
+    } : undefined;
+
+    // addFileToKnowledgeBase 内部已经会更新数据库
+    const result: FileUploadResult = await addFileToKnowledgeBase(
+      fullPath,
+      progressCallback,
+      progressHandle?.signal
+    );
+    
+    // 如果成功，显示成功状态
+    if (result.success && progressHandle) {
+      progressHandle.success({ message: '知识库文件处理完成' });
+    } else if (!result.success && progressHandle) {
+      progressHandle.fail(result.message || '处理失败');
+    }
+    
+    // 刷新列表（会从数据库读取最新数据）
+    refreshKnowledgeItems();
+    
+    if (result.success) {
       logger.debug('文件向量化成功', { fileName, chunks: result.chunks, vector_dim: result.vector_dim, vector_count: result.vector_count });
     } else {
-      // 即使向量化失败，也创建索引条目（但chunks等为0），这样用户可以看到文件
-      const index = loadKnowledgeIndex();
-      index[fileName] = {
-        id: fileName,
-        name: fileName,
-        info: {
-          path: fullPath,
-          enabled: true,
-          size: req.file.size,
-          sizeText: humanSize(req.file.size),
-          chunks: 0,
-          vector_dim: 0,
-          vector_count: 0
-        }
-      };
-      saveKnowledgeIndex(index);
-      refreshKnowledgeItems();
-      
       logger.warn('文件向量化失败', { fileName, message: result.message });
     }
     
@@ -1004,26 +1027,7 @@ async function handleKnowledgeRename(req: KnowledgeRenameRequest, res: Response)
   const result: OperationResult = await renameKnowledgeFile(oldName, newName);
   
   if (result.success) {
-    // 更新索引文件
-    const index = loadKnowledgeIndex();
-    if (index[oldName]) {
-      const item = index[oldName];
-      const newPath = path.join(knowledgeUploadDir, newName);
-      
-      // 更新索引中的条目
-      index[newName] = {
-        id: newName,
-        name: newName,
-        info: {
-          ...item.info,
-          path: newPath
-        }
-      };
-      delete index[oldName];
-      saveKnowledgeIndex(index);
-    }
-    
-    // 刷新列表
+    // 刷新列表（数据已通过 renameKnowledgeFile 更新到数据库）
     refreshKnowledgeItems();
   }
   
@@ -1043,14 +1047,7 @@ async function handleKnowledgeDelete(req: Request, res: Response): Promise<void>
     // 删除文件
     fs.unlinkSync(filePath);
     
-    // 从索引中删除
-    const index = loadKnowledgeIndex();
-    if (index[fileBaseName]) {
-      delete index[fileBaseName];
-      saveKnowledgeIndex(index);
-    }
-    
-    // 从向量索引中删除
+    // 从向量索引和数据库中删除
     removeFromIndex(fileBaseName);
     
     // 刷新列表
@@ -1066,8 +1063,7 @@ async function handleKnowledgeClear(req: Request, res: Response): Promise<void> 
   try {
     await clearKnowledgeBase();
     
-    // 清空索引文件
-    saveKnowledgeIndex({});
+    // 清空列表
     knowledgeItems = [];
     
     res.json({ success: true });
@@ -1105,58 +1101,55 @@ function handleKnowledgeInfo(req: Request, res: Response): void {
   // 解码URL参数，处理特殊字符
   const id = decodeURIComponent(req.params.id);
   
-  // 直接从索引文件读取，确保数据是最新的
-  const index = loadKnowledgeIndex();
-  const item = index[id];
-  
-  if (!item) {
-    return res.json({ success: false, message: '找不到文件信息' });
+  try {
+    // 优先从数据库读取
+    const dbFile = getKnowledgeFileByFilename(id);
+    if (dbFile) {
+      const stats = fs.existsSync(dbFile.original_path) 
+        ? fs.statSync(dbFile.original_path) 
+        : null;
+      
+      return res.json({
+        success: true,
+        path: dbFile.original_path,
+        enabled: dbFile.enabled === 1,
+        size: stats?.size || 0,
+        sizeText: stats ? humanSize(stats.size) : '-',
+        chunks: dbFile.chunks,
+        vector_dim: dbFile.vector_dim,
+        vector_count: dbFile.vector_count
+      });
+    } else {
+      // 数据库中没有找到文件
+      return res.json({ success: false, message: '找不到文件信息' });
+    }
+  } catch (error) {
+    logger.error('获取文件信息失败', error);
+    return res.json({ success: false, message: '获取文件信息失败' });
   }
-  
-  res.json({
-    success: true,
-    ...item.info,
-  });
 }
 
 function handleKnowledgeToggle(req: KnowledgeToggleRequest, res: Response): void {
   // 解码URL参数，处理特殊字符
   const id = decodeURIComponent(req.params.id);
   
-  // 更新索引文件
-  const index = loadKnowledgeIndex();
-  const item = index[id];
-  
-  if (!item) {
-    return res.json({ success: false, message: '找不到文件' });
-  }
-  
-  // 更新enabled状态
-  item.info.enabled = !!req.body.enabled;
-  saveKnowledgeIndex(index);
-  
-  // 同时更新vectorInfo（如果文件已处理）
-  const name = path.basename(id);
-  const currentVectorInfo = ragService.getVectorInfo();
-  if (currentVectorInfo[name]) {
-    // 文件已处理，同步更新vectorInfo
-    try {
-      if (fs.existsSync(VECTOR_INFO_PATH)) {
-        const vectorInfoData = JSON.parse(fs.readFileSync(VECTOR_INFO_PATH, 'utf-8'));
-        if (vectorInfoData[name]) {
-          vectorInfoData[name].enabled = !!req.body.enabled;
-          fs.writeFileSync(VECTOR_INFO_PATH, JSON.stringify(vectorInfoData, null, 2), 'utf-8');
-        }
-      }
-    } catch (err) {
-      logger.error('同步更新vectorInfo失败', err);
+  try {
+    // 更新数据库
+    const dbFile = getKnowledgeFileByFilename(id);
+    if (!dbFile) {
+      return res.json({ success: false, message: '找不到文件' });
     }
+    
+    updateKnowledgeFile(dbFile.id, { enabled: req.body.enabled ? 1 : 0 });
+    
+    // 刷新列表
+    refreshKnowledgeItems();
+    
+    res.json({ success: true, enabled: !!req.body.enabled });
+  } catch (error) {
+    logger.error('切换文件启用状态失败', error);
+    return res.json({ success: false, message: '切换失败' });
   }
-  
-  // 刷新列表
-  refreshKnowledgeItems();
-  
-  res.json({ success: true, enabled: !!req.body.enabled });
 }
 
 async function handleKnowledgeRebuild(req: Request, res: Response): Promise<void> {
@@ -1169,9 +1162,40 @@ async function handleKnowledgeRebuild(req: Request, res: Response): Promise<void
   }
 
   try {
-    // 重建单个文件
-    const result = await addFileToKnowledgeBase(item.info.path);
+    // 获取 mainWindow 以发送进度
+    const mainWindow = (global as any).mainWindow as BrowserWindow | undefined;
+    const requestId = `knowledge-rebuild-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     
+    // 创建进度句柄
+    const progressHandle = mainWindow ? new MainProgressHandle({
+      requestId,
+      canCancel: true,
+      send: (p) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('global-progress', p);
+        }
+      },
+      initialMessage: '正在重建知识库向量...',
+      initialPercentage: 0,
+    }) : null;
+
+    const progressCallback = progressHandle ? (progress: { message: string; subMessage?: string; percentage: number; status?: 'success' | 'exception' | 'warning' | ''; params?: Record<string, any> }) => {
+      progressHandle.mark(progress.percentage, {
+        message: progress.message,
+        subMessage: progress.subMessage,
+        status: progress.status,
+        params: progress.params
+      });
+    } : undefined;
+
+    // 重建单个文件
+    const result = await addFileToKnowledgeBase(
+      item.info.path,
+      progressCallback,
+      progressHandle?.signal
+    );
+    
+    // 如果成功，显示成功状态
     if (result.success) {
       // 更新索引文件中的向量信息
       updateIndexVectorInfo(id, {
@@ -1182,9 +1206,17 @@ async function handleKnowledgeRebuild(req: Request, res: Response): Promise<void
       
       // 刷新列表
       refreshKnowledgeItems();
+      
+      if (progressHandle) {
+        progressHandle.success({ message: '重建知识库向量成功' });
+      }
+    } else {
+      if (progressHandle) {
+        progressHandle.fail(result.message || '重建失败');
+      }
     }
     
-    res.json({ success: result.success, message: result.success ? '重建知识库成功' : '重建失败' });
+    res.json({ success: result.success, message: result.success ? '重建知识库成功' : result.message || '重建失败' });
   } catch (err) {
     logger.error('重建知识库失败', err);
     return res.status(500).json({ success: false, error: '重建失败' });

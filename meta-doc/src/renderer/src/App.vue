@@ -3,7 +3,6 @@
   <div :style="{
     backgroundColor: themeState.currentTheme.background,
     color: themeState.currentTheme.textColor,
-    textColor: themeState.currentTheme.textColor,
   }">
     <!-- 布局仅在需要时显示 -->
     <Main v-if="requiresLayout" />
@@ -12,8 +11,8 @@
   </div>
 </template>
 
-<script setup>
-import { computed, onMounted, ref } from 'vue'
+<script setup lang="ts">
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import Main from './views/Main.vue'
 
@@ -26,14 +25,19 @@ import { clearAiTasks } from './utils/ai_tasks';
 import { useI18n } from 'vue-i18n';
 import { createRendererLogger } from './utils/logger';
 import { initMonacoEnvironment } from './utils/monaco-worker-config';
-let ipcRenderer = null
+import { aiCompletionService } from './utils/ai-completion-service';
+
+type IpcRenderer = typeof localIpcRenderer | (typeof window extends { electron: { ipcRenderer: infer T } } ? T : never)
+
 const route = useRoute()
 const { locale } = useI18n()
 const logger = createRendererLogger('App', {
   windowTypeProvider: () => getWindowType()
 });
-if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer
+
+let ipcRenderer: IpcRenderer | null = null
+if (window && (window as any).electron) {
+  ipcRenderer = (window as any).electron.ipcRenderer as IpcRenderer
 } else {
   webMainCalls();
   ipcRenderer = localIpcRenderer
@@ -44,6 +48,112 @@ if (window && window.electron) {
 // 根据路由的 meta 信息判断是否需要顶部菜单和侧边菜单
 const requiresLayout = computed(() => route.meta.requiresLayout !== false)
 const initialLoad = ref(true)
+
+/**
+ * 注册全局事件监听器
+ * 这些事件与具体的编辑器适配器无关，应该在整个应用生命周期内都可用
+ */
+const cleanupGlobalListeners: (() => void)[] = []
+
+function initGlobalEventListeners() {
+  // AI补全延迟相关事件监听（全局，与编辑器适配器无关）
+  eventBus.on('ai-completion-delay', (minutes: unknown) => {
+    aiCompletionService.delay(typeof minutes === 'number' ? minutes : 5)
+  })
+  
+  eventBus.on('ai-completion-cancel-delay', () => {
+    aiCompletionService.cancelDelay()
+  })
+  
+  // AI补全取消事件（全局，与编辑器适配器无关）
+  eventBus.on('cancel-suggestion', () => {
+    aiCompletionService.cancelCurrentCompletion()
+  })
+  
+  // 监听语言切换事件（全局）
+  eventBus.on('lang-changed', (lang: unknown) => {
+    const langStr = typeof lang === 'string' ? lang : 'zh-CN'
+    locale.value = langStr
+    localStorage.setItem('lang', langStr)
+  })
+  
+  // 监听主题同步事件（全局）
+  eventBus.on('sync-theme', async () => {
+    let theme: string | undefined = await getSetting('globalTheme') as string | undefined
+    
+    // 获取系统主题信息（用于 sync-color）
+    type OsThemeInfo = {
+      mode?: 'light' | 'dark'
+      accentColor?: string
+    }
+    let osThemeInfo: OsThemeInfo | null = null
+    try {
+      if (ipcRenderer && 'invoke' in ipcRenderer) {
+        osThemeInfo = (await ipcRenderer.invoke('get-os-theme-info')) as OsThemeInfo | null
+      } else {
+        // Web 环境
+        const mode = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'
+        osThemeInfo = { mode, accentColor: undefined }
+      }
+    } catch (e) {
+      console.error('获取系统主题信息失败:', e)
+      osThemeInfo = { mode: 'light', accentColor: undefined }
+    }
+    
+    if (theme === 'sync') {
+      theme = osThemeInfo?.mode || 'light'
+    }
+    
+    if (theme === 'light') {
+      themeState.currentTheme = lightTheme
+      document.documentElement.classList.add('light')
+      document.documentElement.classList.remove('dark')
+    } else if (theme === 'dark') {
+      themeState.currentTheme = darkTheme
+      document.documentElement.classList.add('dark')
+      document.documentElement.classList.remove('light')
+    } else if (theme === 'sync-color') {
+      // 跟随系统颜色主题
+      const accentColor = osThemeInfo?.accentColor
+      if (accentColor) {
+        themeState.currentTheme = customTheme(accentColor)
+      } else {
+        // 如果没有系统主题色，使用系统亮暗色
+        theme = osThemeInfo?.mode || 'light'
+        themeState.currentTheme = theme === 'dark' ? darkTheme : lightTheme
+      }
+      if (themeState.currentTheme.type === 'light') {
+        document.documentElement.classList.add('light')
+        document.documentElement.classList.remove('dark')
+      } else {
+        document.documentElement.classList.add('dark')
+        document.documentElement.classList.remove('light')
+      }
+    } else if (theme === 'custom') {
+      //自定义主题
+      const customThemeColor = await getSetting('customThemeColor')
+      themeState.currentTheme = customTheme(customThemeColor as string)
+      if (themeState.currentTheme.type === 'light') {
+        document.documentElement.classList.add('light')
+        document.documentElement.classList.remove('dark')
+      } else {
+        document.documentElement.classList.add('dark')
+        document.documentElement.classList.remove('light')
+      }
+    }
+    eventBus.emit('sync-editor-theme')//触发vditor主题同步事件
+    autoOpenDoc() // 自动打开文档
+  })
+  
+  // 清理函数
+  cleanupGlobalListeners.push(
+    () => eventBus.off('ai-completion-delay'),
+    () => eventBus.off('ai-completion-cancel-delay'),
+    () => eventBus.off('cancel-suggestion'),
+    () => eventBus.off('lang-changed'),
+    () => eventBus.off('sync-theme')
+  )
+}
 
 const autoOpenDoc = async () => {
   //首先要判断一下自己是哪个窗口，只有主窗口才需要自动打开文档
@@ -80,6 +190,9 @@ const autoOpenDoc = async () => {
 }
 
 onMounted(async () => {
+  // 初始化全局事件监听器（必须在其他初始化之前）
+  initGlobalEventListeners()
+  
   // 初始化 Monaco 环境（Worker 配置和 LaTeX 语言支持）
   initMonacoEnvironment()
   
@@ -147,76 +260,15 @@ onMounted(async () => {
   // const windowType=route.query.windowType
   // initWindowType(windowType);
   await initSettings() // 初始化设置
-  //监听语言切换事件
-  eventBus.on('lang-changed', (lang) => {
-    locale.value = lang
-    localStorage.setItem('lang', lang)
-  })
-  // 监听主题同步事件
-  eventBus.on('sync-theme', async () => {
-    let theme = await getSetting('globalTheme')
-    
-    // 获取系统主题信息（用于 sync-color）
-    let osThemeInfo = null
-    try {
-      if (ipcRenderer) {
-        osThemeInfo = await ipcRenderer.invoke('get-os-theme-info')
-      } else {
-        // Web 环境
-        const mode = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'
-        osThemeInfo = { mode, accentColor: undefined }
-      }
-    } catch (e) {
-      console.error('获取系统主题信息失败:', e)
-      osThemeInfo = { mode: 'light', accentColor: undefined }
-    }
-    
-    if (theme === 'sync') {
-      theme = osThemeInfo?.mode || 'light'
-    }
-    
-    if (theme === 'light') {
-      themeState.currentTheme = lightTheme
-      document.documentElement.classList.add('light')
-      document.documentElement.classList.remove('dark')
-    } else if (theme === 'dark') {
-      themeState.currentTheme = darkTheme
-      document.documentElement.classList.add('dark')
-      document.documentElement.classList.remove('light')
-    } else if (theme === 'sync-color') {
-      // 跟随系统颜色主题
-      const accentColor = osThemeInfo?.accentColor
-      if (accentColor) {
-        themeState.currentTheme = customTheme(accentColor)
-      } else {
-        // 如果没有系统主题色，使用系统亮暗色
-        theme = osThemeInfo?.mode || 'light'
-        themeState.currentTheme = theme === 'dark' ? darkTheme : lightTheme
-      }
-      if (themeState.currentTheme.type === 'light') {
-        document.documentElement.classList.add('light')
-        document.documentElement.classList.remove('dark')
-      } else {
-        document.documentElement.classList.add('dark')
-        document.documentElement.classList.remove('light')
-      }
-    } else if (theme === 'custom') {
-      //自定义主题
-      const customThemeColor = await getSetting('customThemeColor')
-      themeState.currentTheme = customTheme(customThemeColor)
-      if (themeState.currentTheme.type === 'light') {
-        document.documentElement.classList.add('light')
-        document.documentElement.classList.remove('dark')
-      } else {
-        document.documentElement.classList.add('dark')
-        document.documentElement.classList.remove('light')
-      }
-    }
-    eventBus.emit('sync-editor-theme')//触发vditor主题同步事件
-    autoOpenDoc() // 自动打开文档
-  })
-  // 触发一次主题同步事件
+  
+  // 触发一次主题同步事件（事件监听器已在 initGlobalEventListeners() 中注册）
   eventBus.emit('sync-theme')
+})
+
+// 组件卸载时清理全局事件监听器
+onUnmounted(() => {
+  cleanupGlobalListeners.forEach(cleanup => cleanup())
+  cleanupGlobalListeners.length = 0
 })
 
 

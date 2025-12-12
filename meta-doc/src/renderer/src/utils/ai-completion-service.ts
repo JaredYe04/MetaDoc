@@ -169,6 +169,8 @@ class AICompletionService {
   
   /**
    * 设置监听器
+   * 注意：延迟相关事件（ai-completion-delay、ai-completion-cancel-delay）和取消事件（cancel-suggestion）
+   * 应该在全局注册，而不是在这里注册，因为它们与编辑器适配器无关
    */
   private setupListeners() {
     
@@ -181,26 +183,8 @@ class AICompletionService {
     }
     updateEnabled()
     
-    // 监听延迟变化
-    eventBus.on('ai-completion-delay', (minutes: unknown) => {
-      this.delay(typeof minutes === 'number' ? minutes : 5)
-    })
-    
-    // 监听取消延迟事件
-    eventBus.on('ai-completion-cancel-delay', () => {
-      this.cancelDelay()
-    })
-    
-    // 监听取消事件
-    eventBus.on('cancel-suggestion', () => {
-      this.cancelCurrentCompletion()
-    })
-    
-    this.cleanupListeners.push(() => {
-      eventBus.off('ai-completion-delay')
-      eventBus.off('ai-completion-cancel-delay')
-      eventBus.off('cancel-suggestion')
-    })
+    // 注意：延迟相关的事件监听已移到全局事件监听器注册中（initGlobalEventListeners）
+    // 这样可以在任何地方监听这些事件，而不需要编辑器适配器
   }
   
   /**

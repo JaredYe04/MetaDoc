@@ -57,7 +57,9 @@ module.exports = {
     return ragService.getDocuments();
   },
 
-  // 路径常量
+  // 路径常量（已废弃，现在使用SQLite数据库）
+  // @deprecated 这些路径已不再使用，保留仅为向后兼容
+  // 如需访问旧路径，请使用 rag-service-legacy.ts 中的常量
   get INDEX_PATH() {
     return pathService.getVectorDatabaseFile('vector_index.json');
   },

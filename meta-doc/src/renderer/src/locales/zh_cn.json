@@ -1110,6 +1110,8 @@
         "rebuild_submitted": "重建向量任务已提交",
         "rebuild_failed": "重建失败",
         "rebuild_error": "重建出错",
+        "open_folder": "打开文件夹",
+        "open_folder_error": "打开文件夹失败",
         "searchTest": {
             "title": "检索测试",
             "placeholder": "请输入检索问题",

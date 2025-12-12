@@ -339,25 +339,9 @@ const renderPreview = async () => {
       },
       theme: themeState.currentTheme.vditorTheme
     }
-    Vditor.preview(container, markdown, previewOptions)
+    await Vditor.preview(container, markdown, previewOptions)
     
-    // 等待 preview 完成后再调用其他渲染方法
-    await nextTick()
     
-    // 渲染代码块
-    if (typeof Vditor.codeRender === 'function') {
-      Vditor.codeRender(container)
-    }
-    
-    // 渲染数学公式
-    if (typeof Vditor.mathRender === 'function') {
-      Vditor.mathRender(container, {
-        cdn
-      })
-    }
-    
-    // 预渲染所有图表（Mermaid, ECharts 等）
-    await preRenderAllCharts(markdown, cdn, 'md', undefined)
     
   } catch (error) {
     logger.error('渲染预览失败', error)

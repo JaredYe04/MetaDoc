@@ -253,154 +253,10 @@ async function autoSave() {
   } while (true)
 }
 
-onMounted(async () => {
-  eventBus.on('refresh', () => {
-      const title = workspace.activeDocument.value?.meta?.title ?? ''
-      eventBus.emit('update-window-title', title)
-    })
+// Main 组件的事件监听器清理函数
+const cleanupMainListeners: (() => void)[] = []
 
-  eventBus.emit('llm-api-updated')
-  const token = localStorage.getItem('loginToken')
-  if (token) {
-    localStorage.setItem('loginToken', token)
-    await verifyToken(token)//自动登录
-  }
-  await autoSave()
-
-
-})
-
-const workspaceOpenDocumentHandler = (payload: unknown) => {
-  handleWorkspaceOpenDocument(payload as OpenDocumentPayload)
-}
-
-eventBus.on('workspace-open-document', workspaceOpenDocumentHandler)
-
-eventBus.on('toggle-user-profile', () => {
-  showUserProfileCard.value = !showUserProfileCard.value
-})
-eventBus.on('save-success', (payload) => {
-  const maybeTabId =
-    payload && typeof payload === 'object' && 'tabId' in payload && typeof payload.tabId === 'string'
-      ? payload.tabId
-      : activeTabId.value
-  if (maybeTabId) {
-    workspace.updateDocumentDirty(maybeTabId)
-  }
-  eventBus.emit('is-need-save', false)
-});
-
-eventBus.on('open-doc-success', async (payload) => {
-  let tabId
-  if (payload && typeof payload === 'object' && 'tabId' in payload) {
-    const value = payload.tabId
-    if (typeof value === 'string') {
-      tabId = value
-    }
-  }
-  
-  // 启动文件监听（如果文件路径存在）
-  if (payload && typeof payload === 'object' && 'path' in payload && payload.path) {
-    const filePath = payload.path as string
-    // 获取 ipcRenderer
-    let ipcRenderer: any = null
-    if (window && (window as any).electron) {
-      ipcRenderer = (window as any).electron.ipcRenderer
-    } else {
-      const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-      ipcRenderer = localIpcRenderer
-    }
-    
-    if (ipcRenderer) {
-      // 启动文件监听
-      ipcRenderer.send('watch-file', filePath, tabId)
-      logger.debug('启动文件监听', { filePath, tabId })
-    }
-  }
-});
-// 处理新建文档请求 - 在 Main.vue 中监听，因为 Main.vue 总是被挂载
-// 而 Editor.vue 只在 /editor 路由下才挂载，在其他页面（如 Home）时无法响应事件
-const handleNewDocumentRequest = () => {
-  workspace.openNewDocumentTab()
-}
-
-eventBus.on('new-doc', handleNewDocumentRequest)
-
-// 处理关闭当前活跃 Tab 的请求 - 使用系统对话框
-const handleCloseActiveTabRequest = async () => {
-  if (workspace.uiLocked?.value === true) return;
-  const tabId = activeTabId.value;
-  if (!tabId) return;
-  
-  // 获取ipcRenderer
-  let ipcRenderer: any = null;
-  if (window && (window as any).electron) {
-    ipcRenderer = (window as any).electron.ipcRenderer;
-  }
-  
-  if (!ipcRenderer) {
-    // 如果没有ipcRenderer，回退到原来的逻辑
-    const doc = ensureDocument(tabId);
-    if (doc?.dirty) {
-      try {
-        await ElMessageBox.confirm(
-          t('main.dialogs.closeTabMessage'),
-          t('main.dialogs.closeTabTitle'),
-          {
-            type: 'warning',
-            confirmButtonText: t('main.dialogs.closeTabConfirm'),
-            cancelButtonText: t('main.dialogs.closeTabCancel'),
-          },
-        );
-      } catch {
-        return; // 用户取消，不关闭
-      }
-    }
-    removeTab(tabId);
-    return;
-  }
-  
-  // 使用系统对话框
-  try {
-    // 发送请求到主进程
-    ipcRenderer.send('request-close-tab', tabId);
-    
-    // 等待响应
-    const result = await new Promise<{ tabId: string; action: 'save' | 'discard' | 'cancel' }>((resolve) => {
-      const handler = (_event: any, response: { tabId: string; action: 'save' | 'discard' | 'cancel' }) => {
-        if (response.tabId === tabId) {
-          ipcRenderer.removeListener('close-tab-response', handler);
-          resolve(response);
-        }
-      };
-      ipcRenderer.on('close-tab-response', handler);
-      // 设置超时，避免无限等待
-      setTimeout(() => {
-        ipcRenderer.removeListener('close-tab-response', handler);
-        resolve({ tabId, action: 'cancel' });
-      }, 10000);
-    });
-    
-    if (result.action === 'save') {
-      // 用户选择保存
-      const { saveDocument } = workspace;
-      const saveResult = await saveDocument(tabId, { saveAs: false });
-      if (saveResult) {
-        removeTab(tabId);
-      }
-    } else if (result.action === 'discard') {
-      // 用户选择放弃，直接关闭tab
-      removeTab(tabId);
-    }
-    // 如果action是'cancel'，不做任何操作
-  } catch (error) {
-    logger.error('关闭tab失败:', error);
-  }
-}
-
-eventBus.on('close-active-tab', handleCloseActiveTabRequest)
-
-// 文件冲突对话框状态
+// 文件冲突对话框状态（需要在模块级别定义，以便模板访问）
 const fileConflictDialogVisible = ref(false)
 const fileConflictData = ref<{
   tabId: string
@@ -421,41 +277,239 @@ const fileConflictData = ref<{
   }
 } | null>(null)
 
-// 处理文件冲突
-eventBus.on('file-conflict-detected', (payload: unknown) => {
-  const conflictPayload = payload as {
-    tabId: string
-    filePath: string
-    externalContent: string
-    currentContent: string
-    savedContent: string
-    format: 'md' | 'tex'
-    mergeResult?: {
-      hasConflict: boolean
-      conflictRanges?: Array<{
-        start: number
-        end: number
-        baseText: string
-        currentText: string
-        externalText: string
-      }>
+/**
+ * 初始化 Main 组件的事件监听器
+ */
+function initMainEventListeners() {
+  // 刷新事件
+  const handleRefresh = () => {
+    const title = workspace.activeDocument.value?.meta?.title ?? ''
+    eventBus.emit('update-window-title', title)
+  }
+  eventBus.on('refresh', handleRefresh)
+
+  // 工作区打开文档
+  const workspaceOpenDocumentHandler = (payload: unknown) => {
+    handleWorkspaceOpenDocument(payload as OpenDocumentPayload)
+  }
+  eventBus.on('workspace-open-document', workspaceOpenDocumentHandler)
+
+  // 切换用户资料卡
+  const handleToggleUserProfile = () => {
+    showUserProfileCard.value = !showUserProfileCard.value
+  }
+  eventBus.on('toggle-user-profile', handleToggleUserProfile)
+
+  // 保存成功
+  const handleSaveSuccess = (payload: unknown) => {
+    const maybeTabId =
+      payload && typeof payload === 'object' && 'tabId' in payload && typeof payload.tabId === 'string'
+        ? payload.tabId
+        : activeTabId.value
+    if (maybeTabId) {
+      workspace.updateDocumentDirty(maybeTabId)
+    }
+    eventBus.emit('is-need-save', false)
+  }
+  eventBus.on('save-success', handleSaveSuccess)
+
+  // 打开文档成功
+  const handleOpenDocSuccess = async (payload: unknown) => {
+    let tabId
+    if (payload && typeof payload === 'object' && 'tabId' in payload) {
+      const value = payload.tabId
+      if (typeof value === 'string') {
+        tabId = value
+      }
+    }
+    
+    // 启动文件监听（如果文件路径存在）
+    if (payload && typeof payload === 'object' && 'path' in payload && payload.path) {
+      const filePath = payload.path as string
+      // 获取 ipcRenderer
+      let ipcRenderer: any = null
+      if (window && (window as any).electron) {
+        ipcRenderer = (window as any).electron.ipcRenderer
+      } else {
+        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
+        ipcRenderer = localIpcRenderer
+      }
+      
+      if (ipcRenderer) {
+        // 启动文件监听
+        ipcRenderer.send('watch-file', filePath, tabId)
+        logger.debug('启动文件监听', { filePath, tabId })
+      }
     }
   }
-  
-  const { tabId, filePath, externalContent, currentContent, savedContent, format, mergeResult } = conflictPayload
-  
-  // 显示冲突对话框
-  fileConflictData.value = {
-    tabId,
-    filePath,
-    externalContent,
-    currentContent,
-    savedContent,
-    format,
-    mergeResult
+  eventBus.on('open-doc-success', handleOpenDocSuccess)
+
+  // 新建文档请求 - 在 Main.vue 中监听，因为 Main.vue 总是被挂载
+  // 而 Editor.vue 只在 /editor 路由下才挂载，在其他页面（如 Home）时无法响应事件
+  const handleNewDocumentRequest = () => {
+    workspace.openNewDocumentTab()
   }
-  fileConflictDialogVisible.value = true
+  eventBus.on('new-doc', handleNewDocumentRequest)
+
+  // 处理关闭当前活跃 Tab 的请求 - 使用系统对话框
+  const handleCloseActiveTabRequest = async () => {
+    if (workspace.uiLocked?.value === true) return;
+    const tabId = activeTabId.value;
+    if (!tabId) return;
+    
+    // 获取ipcRenderer
+    let ipcRenderer: any = null;
+    if (window && (window as any).electron) {
+      ipcRenderer = (window as any).electron.ipcRenderer;
+    }
+    
+    if (!ipcRenderer) {
+      // 如果没有ipcRenderer，回退到原来的逻辑
+      const doc = ensureDocument(tabId);
+      if (doc?.dirty) {
+        try {
+          await ElMessageBox.confirm(
+            t('main.dialogs.closeTabMessage'),
+            t('main.dialogs.closeTabTitle'),
+            {
+              type: 'warning',
+              confirmButtonText: t('main.dialogs.closeTabConfirm'),
+              cancelButtonText: t('main.dialogs.closeTabCancel'),
+            },
+          );
+        } catch {
+          return; // 用户取消，不关闭
+        }
+      }
+      removeTab(tabId);
+      return;
+    }
+    
+    // 使用系统对话框
+    try {
+      // 发送请求到主进程
+      ipcRenderer.send('request-close-tab', tabId);
+      
+      // 等待响应
+      const result = await new Promise<{ tabId: string; action: 'save' | 'discard' | 'cancel' }>((resolve) => {
+        const handler = (_event: any, response: { tabId: string; action: 'save' | 'discard' | 'cancel' }) => {
+          if (response.tabId === tabId) {
+            ipcRenderer.removeListener('close-tab-response', handler);
+            resolve(response);
+          }
+        };
+        ipcRenderer.on('close-tab-response', handler);
+        // 设置超时，避免无限等待
+        setTimeout(() => {
+          ipcRenderer.removeListener('close-tab-response', handler);
+          resolve({ tabId, action: 'cancel' });
+        }, 10000);
+      });
+      
+      if (result.action === 'save') {
+        // 用户选择保存
+        const { saveDocument } = workspace;
+        const saveResult = await saveDocument(tabId, { saveAs: false });
+        if (saveResult) {
+          removeTab(tabId);
+        }
+      } else if (result.action === 'discard') {
+        // 用户选择放弃，直接关闭tab
+        removeTab(tabId);
+      }
+      // 如果action是'cancel'，不做任何操作
+    } catch (error) {
+      logger.error('关闭tab失败:', error);
+    }
+  }
+  eventBus.on('close-active-tab', handleCloseActiveTabRequest)
+
+  // 处理文件冲突
+  const handleFileConflictDetected = (payload: unknown) => {
+    const conflictPayload = payload as {
+      tabId: string
+      filePath: string
+      externalContent: string
+      currentContent: string
+      savedContent: string
+      format: 'md' | 'tex'
+      mergeResult?: {
+        hasConflict: boolean
+        conflictRanges?: Array<{
+          start: number
+          end: number
+          baseText: string
+          currentText: string
+          externalText: string
+        }>
+      }
+    }
+    
+    const { tabId, filePath, externalContent, currentContent, savedContent, format, mergeResult } = conflictPayload
+    
+    // 显示冲突对话框
+    fileConflictData.value = {
+      tabId,
+      filePath,
+      externalContent,
+      currentContent,
+      savedContent,
+      format,
+      mergeResult
+    }
+    fileConflictDialogVisible.value = true
+  }
+  eventBus.on('file-conflict-detected', handleFileConflictDetected)
+
+  // 显示错误通知
+  const handleShowError = (message: unknown) => {
+    ElNotification({
+      title: t('main.notification.error.title'),
+      message: message as string,
+      type: 'error',
+    });
+  }
+  eventBus.on('show-error', handleShowError)
+
+  // 显示警告通知
+  const handleShowWarning = (message: unknown) => {
+    ElNotification({
+      title: t('main.notification.warning.title'),
+      message: message as string,
+      type: 'warning',
+    });
+  }
+  eventBus.on('show-warning', handleShowWarning)
+
+  // 注册清理函数
+  cleanupMainListeners.push(
+    () => eventBus.off('refresh', handleRefresh),
+    () => eventBus.off('workspace-open-document', workspaceOpenDocumentHandler),
+    () => eventBus.off('toggle-user-profile', handleToggleUserProfile),
+    () => eventBus.off('save-success', handleSaveSuccess),
+    () => eventBus.off('open-doc-success', handleOpenDocSuccess),
+    () => eventBus.off('new-doc', handleNewDocumentRequest),
+    () => eventBus.off('close-active-tab', handleCloseActiveTabRequest),
+    () => eventBus.off('file-conflict-detected', handleFileConflictDetected),
+    () => eventBus.off('show-error', handleShowError),
+    () => eventBus.off('show-warning', handleShowWarning)
+  )
+}
+
+onMounted(async () => {
+  // 初始化 Main 组件的事件监听器
+  initMainEventListeners()
+
+  eventBus.emit('llm-api-updated')
+  const token = localStorage.getItem('loginToken')
+  if (token) {
+    localStorage.setItem('loginToken', token)
+    await verifyToken(token)//自动登录
+  }
+  await autoSave()
 })
+
+// 处理文件冲突
 
 // 处理冲突对话框的选择
 const handleFileConflictUseExternal = () => {
@@ -521,25 +575,10 @@ const getConflictFileName = () => {
   return extractFileName(fileConflictData.value.filePath)
 }
 
-eventBus.on('show-error', (message) => {
-  ElNotification({
-    title: t('main.notification.error.title'),
-    message: message as string,
-    type: 'error',
-  });
-});
-eventBus.on('show-warning', (message) => {
-  ElNotification({
-    title: t('main.notification.warning.title'),
-    message: message as string,
-    type: 'warning',
-  });
-});
-
 onBeforeUnmount(() => {
-  eventBus.off('workspace-open-document', workspaceOpenDocumentHandler)
-  eventBus.off('new-doc', handleNewDocumentRequest)
-  eventBus.off('close-active-tab', handleCloseActiveTabRequest)
+  // 清理所有 Main 组件的事件监听器
+  cleanupMainListeners.forEach(cleanup => cleanup())
+  cleanupMainListeners.length = 0
 })
 
 </script>

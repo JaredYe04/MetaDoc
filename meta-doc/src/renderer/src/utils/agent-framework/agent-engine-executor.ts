@@ -392,6 +392,10 @@ export abstract class BaseEngineExecutor {
     // 如果已有队列且正在运行，等待完成
     if (this.currentToolCallQueue && !this.currentToolCallQueue.isEmpty()) {
       getLogger().warn('[BaseEngineExecutor] 检测到未完成的工具调用队列，等待完成...')
+      // 等待旧队列完成
+      this.currentToolCallQueue.waitForComplete().catch(error => {
+        getLogger().error('[BaseEngineExecutor] 等待旧队列完成时出错:', error)
+      })
     }
     
     // 创建新的队列
@@ -410,6 +414,9 @@ export abstract class BaseEngineExecutor {
         getLogger().debug('[BaseEngineExecutor] 工具调用队列完成')
       }
     )
+    
+    // 重置队列状态（新队列，输入还未完成）
+    this.currentToolCallQueue.reset()
     
     return this.currentToolCallQueue
   }
@@ -478,10 +485,19 @@ export abstract class BaseEngineExecutor {
 
   /**
    * 等待工具调用队列完成
+   * 需要在AI输出完成后调用，确保所有工具调用都已添加到队列并执行完成
    */
   protected async waitForToolCallQueue(): Promise<void> {
     if (this.currentToolCallQueue) {
-      getLogger().debug('[BaseEngineExecutor] 等待工具调用队列完成...')
+      getLogger().debug('[BaseEngineExecutor] 等待工具调用队列完成...', {
+        queueLength: this.currentToolCallQueue.getLength(),
+        isRunning: this.currentToolCallQueue.getIsRunning()
+      })
+      
+      // 标记AI输出已完成，队列可以开始真正完成
+      this.currentToolCallQueue.setInputComplete()
+      
+      // 等待队列完成
       await this.currentToolCallQueue.waitForComplete()
       getLogger().debug('[BaseEngineExecutor] 工具调用队列已完成')
     }
@@ -590,6 +606,9 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
         message: this.formatProgressMessage('ReAct推理中...', iterations, maxIterations, isUnlimited)
       })
 
+      // 创建新的工具调用队列（每次AI输出开始时）
+      this.createToolCallQueue()
+
       // 创建响应式消息对象用于实时流式显示
       const assistantMessage = reactive({
         id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -627,6 +646,10 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
         AIContextManager.addAssistantMessage(this.session, `**思考**: ${reactResult.thought}`)
       }
 
+      // 如果没有行动，需要先等待队列完成（确保队列状态干净）
+      // 标记AI输出已完成，然后等待队列完成
+      await this.waitForToolCallQueue()
+      
       // 如果没有行动，直接返回
       if (!reactResult.action || reactResult.action === 'finish') {
         if (reactResult.finalAnswer) {
@@ -645,88 +668,61 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
         message: `执行行动: ${reactResult.action}`
       })
 
-      try {
-        // 验证并执行工具
-        const validation = ToolRunner.validateToolParams(reactResult.action, reactResult.actionInput || {})
-        if (!validation.valid) {
-          const errorMsg = `工具调用验证失败: ${validation.errors.join(', ')}`
-          AIContextManager.addToolMessage(
-            this.session,
-            reactResult.action,
-            reactResult.action,
-            'failed',
-            null,
-            errorMsg,
-            undefined,
-            undefined,
-            undefined,
-            reactResult.actionInput || {}  // params: 保存工具调用参数
-          )
-          
-          // 添加观察结果
-          contextMessages.push({
-            role: 'user',
-            content: `Observation: ${errorMsg}\n\n请根据这个观察继续推理和行动。`
-          })
-          continue
+      // 确保工具调用队列存在
+      if (!this.currentToolCallQueue) {
+        this.createToolCallQueue()
+      }
+
+      // 将ReAct格式的工具调用转换为队列任务格式
+      const toolCallId = `react-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const toolCall = {
+        id: toolCallId,
+        tool_id: reactResult.action,
+        parameters: reactResult.actionInput || {}
+      }
+
+      // 添加到队列并等待完成
+      this.currentToolCallQueue!.addTask(toolCall)
+      await this.waitForToolCallQueue()
+
+      // 从消息中获取工具执行结果
+      const currentMessageIndex = this.session.messages.indexOf(assistantMessage)
+      let observation: ToolObservation | null = null
+      
+      if (currentMessageIndex !== -1) {
+        for (let i = currentMessageIndex + 1; i < this.session.messages.length; i++) {
+          const msg = this.session.messages[i]
+          if (msg.type === 'tool' && msg.role === 'tool' && (msg as any).tool_call_id === toolCallId) {
+            const toolMsg = msg as any
+            observation = {
+              toolId: reactResult.action,
+              toolName: reactResult.action,
+              status: toolMsg.status === 'succeeded' ? 'succeeded' : 'failed',
+              result: toolMsg.outputs?.[0]?.data,
+              error: toolMsg.error,
+              summary: toolMsg.summary
+            }
+            break
+          }
         }
+      }
 
-        const observation = await ToolRunner.runTool(
-          reactResult.action,
-          reactResult.actionInput || {},
-          this.options.signal,
-          this.getSessionForTool()  // 使用辅助函数获取session
-        )
-
-        // 获取工具配置以获取displayComponent
-        const tool = agentToolManager.getTool(observation.toolId)
-        const toolConfig = tool?.config
-
-        // 添加工具消息（包含调用参数）
-        AIContextManager.addToolMessage(
-          this.session,
-          observation.toolId,
-          observation.toolName,
-          observation.status,
-          observation.result,
-          observation.error,
-          observation.summary,
-          undefined, // tool_call_id
-          toolConfig, // toolConfig
-          observation.params || reactResult.actionInput || {}  // params: 保存工具调用参数
-        )
-
-        // 构建观察结果（使用完整结果，不截断）
+      // 构建观察结果
+      if (observation) {
         const observationText = observation.status === 'succeeded'
           ? ToolRunner.serializeToOpenAIFormat(observation)
-          : `错误: ${observation.error}`
-
+          : `错误: ${observation.error || '执行失败'}`
+        
         // 添加观察到上下文
         contextMessages.push({
           role: 'user',
           content: `Observation: ${observationText}\n\n请根据这个观察继续推理和行动。如果任务完成，请使用 Action: finish 并提供最终答案。`
         })
-      } catch (error) {
-        getLogger().error('ReAct行动执行失败:', error)
-        const errorMsg = error instanceof Error ? error.message : String(error)
-        
-        // 添加工具消息（即使失败也要记录）
-        AIContextManager.addToolMessage(
-          this.session,
-          reactResult.action || 'unknown',
-          reactResult.action || 'unknown',
-          'failed',
-          null,
-          errorMsg,
-          undefined,
-          undefined,
-          undefined,
-          reactResult.actionInput || {}  // params: 保存工具调用参数
-        )
-        
+      } else {
+        // 如果没有找到观察结果，添加错误信息
         contextMessages.push({
           role: 'user',
-          content: `Observation: 执行失败 - ${errorMsg}\n\n请根据这个错误继续推理和行动。`
+          content: `Observation: 工具执行结果未找到\n\n请根据这个错误继续推理和行动。`
         })
       }
 
@@ -760,6 +756,10 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
             onToolCallsDetected: this.createToolCallsDetectedHandler(finalMessage)
           }
         )
+        
+        // 等待队列完成（最终回复可能也有工具调用）
+        await this.waitForToolCallQueue()
+        
         // 消息已经通过reactiveMessage实时更新，不需要再调用addAssistantMessage
         this.options.onProgress?.({
           stage: 'complete',
@@ -931,17 +931,29 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
 
       // 检查是否有工具调用
       // 优先使用流式输出过程中检测到的工具调用
-      // 如果没有，则从响应中解析
+      // 如果没有，则从响应中解析（兜底机制）
       let toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null = null
       
       if (toolCallsDetectedDuringStream && detectedToolCalls) {
         toolCalls = detectedToolCalls
-        getLogger().debug('[AutoGPT] 使用流式输出过程中检测到的工具调用')
+        getLogger().debug('[AutoGPT] 使用流式输出过程中检测到的工具调用', {
+          toolCallsCount: toolCalls.length
+        })
       } else {
-        // 从响应中解析工具调用（兼容旧逻辑）
+        // 从响应中解析工具调用（兜底机制：流式检测可能遗漏某些工具调用）
         const responseContent = response || assistantMessage.markdown || ''
         toolCalls = this.parseToolCalls(responseContent)
         getLogger().debug('[AutoGPT] 从响应中解析工具调用:', toolCalls ? toolCalls.length : 0)
+        
+        // 如果解析到工具调用但流式过程中未检测到，添加到队列
+        if (toolCalls && toolCalls.length > 0) {
+          getLogger().debug('[AutoGPT] 兜底机制：从响应中解析到工具调用，添加到队列')
+          for (const toolCall of toolCalls) {
+            if (this.currentToolCallQueue) {
+              this.currentToolCallQueue.addTask(toolCall)
+            }
+          }
+        }
       }
 
       // 检查是否有未完成的工具调用标记
@@ -949,6 +961,10 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
       const hasIncomplete = this.hasIncompleteToolCalls(responseContent)
 
       if (!toolCalls || toolCalls.length === 0) {
+        // 即使没有工具调用，也需要等待队列完成（确保队列状态干净）
+        // 标记AI输出已完成，然后等待队列完成
+        await this.waitForToolCallQueue()
+        
         // 没有工具调用，检查是否有未完成的标记
         if (hasIncomplete) {
           getLogger().warn('[AutoGPT] 检测到未完成的工具调用标记，继续执行...')
@@ -957,7 +973,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
             role: 'user',
             content: '⚠️ 检测到未完成的工具调用标记。请重新调用工具，确保使用完整的标记格式：\n\n<tool_call>\n{"name": "工具ID", "arguments": {"参数名": "参数值"}}\n</tool_call>\n\n**重要**：工具调用标记必须直接输出，不要放在代码块中！'
           })
-          // 继续循环，不break
+          // 继续循环，不break（确保队列已完成）
           continue
         }
         
@@ -1031,31 +1047,15 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           })
         }
       }
-      // 等待工具调用队列完成（如果队列中有任务）
-      // 注意：工具调用已经在流式输出过程中添加到队列并开始执行
-      // 这里只需要等待完成即可
+      // 等待工具调用队列完成
+      // 重要：先标记AI输出已完成，然后等待队列完成
+      // 这样可以确保所有在流式过程中检测到的工具调用都已添加到队列并执行完成
       await this.waitForToolCallQueue()
 
       this.options.onProgress?.({
         stage: 'tool-calling',
         message: `工具调用完成`
       })
-
-      // 注意：工具调用已经在队列中执行完成，不需要再次执行
-      // 下面的代码是为了兼容旧逻辑，但实际上工具调用已经在队列中处理了
-      // 如果工具调用是在流式输出过程中检测到的，它们已经在队列中执行
-      // 如果工具调用是从响应中解析的（兜底机制），需要添加到队列
-      if (!toolCallsDetectedDuringStream && toolCalls) {
-        // 兜底机制：如果流式输出过程中没有检测到工具调用，但响应中有工具调用
-        // 需要添加到队列并执行
-        getLogger().debug('[AutoGPT] 使用兜底机制：从响应中解析的工具调用，添加到队列')
-        for (const toolCall of toolCalls) {
-          if (this.currentToolCallQueue) {
-            this.currentToolCallQueue.addTask(toolCall)
-          }
-        }
-        await this.waitForToolCallQueue()
-      }
 
       // 旧的执行逻辑已移除，因为工具调用现在在队列中执行
       // 工具调用结果已经通过队列添加到messages中，我们需要从messages中获取结果
@@ -1283,6 +1283,10 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
             onToolCallsDetected: this.createToolCallsDetectedHandler(finalMessage)
           }
         )
+        
+        // 等待队列完成（最终回复可能也有工具调用）
+        await this.waitForToolCallQueue()
+        
         // 消息已经通过reactiveMessage实时更新，不需要再调用addAssistantMessage
         this.options.onProgress?.({
           stage: 'complete',
@@ -1394,63 +1398,46 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
       const { maxIterations, isUnlimited } = this.getMaxIterations()
       const maxSteps = isUnlimited ? plan.steps.length : Math.min(plan.steps.length, maxIterations)
       
+      // 创建工具调用队列
+      this.createToolCallQueue()
+      
+      // 收集所有需要工具调用的步骤
+      const toolCallSteps: Array<{ step: any; toolCall: { id: string; tool_id: string; parameters: Record<string, unknown> } }> = []
+      
       for (let i = 0; i < maxSteps; i++) {
         const step = plan.steps[i]
-        this.options.onProgress?.({
-          stage: 'tool-calling',
-          message: this.formatProgressMessage('执行计划步骤', i + 1, plan.steps.length, isUnlimited && maxSteps === plan.steps.length)
-        })
-
+        
         // 解析步骤，可能需要工具调用
         if (step.tool || step.tool_id) {
-          // 执行工具
-          try {
-            const toolId = step.tool_id || step.tool
-            if (!toolId) {
-              getLogger().warn('计划步骤缺少tool_id，跳过')
-              continue
-            }
-            const observation = await ToolRunner.runTool(
-              toolId,
-              step.parameters || step.params || {},
-              this.options.signal,
-              this.getSessionForTool()  // 使用辅助函数获取session
-            )
-
-            // 获取工具配置以获取displayComponent
-            const tool = agentToolManager.getTool(observation.toolId)
-            const toolConfig = tool?.config
-
-            AIContextManager.addToolMessage(
-              this.session,
-              observation.toolId,
-              observation.toolName,
-              observation.status,
-              observation.result,
-              observation.error,
-              observation.summary,
-              undefined, // tool_call_id
-              toolConfig, // toolConfig
-              observation.params || {}  // params: 保存工具调用参数
-            )
-          } catch (error) {
-            getLogger().error('计划步骤执行失败:', error)
-            const toolId = step.tool_id || step.tool || 'unknown'
-            AIContextManager.addToolMessage(
-              this.session,
-              toolId,
-              toolId,
-              'failed',
-              null,
-              error instanceof Error ? error.message : String(error),
-              undefined,
-              undefined,
-              undefined,
-              step.params || {}  // params: 保存工具调用参数
-            )
+          const toolId = step.tool_id || step.tool
+          if (!toolId) {
+            getLogger().warn('计划步骤缺少tool_id，跳过')
+            continue
           }
+          
+          const toolCallId = `plan-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`
+          toolCallSteps.push({
+            step,
+            toolCall: {
+              id: toolCallId,
+              tool_id: toolId,
+              parameters: step.parameters || step.params || {}
+            }
+          })
         }
       }
+      
+      // 将所有工具调用添加到队列
+      for (const { step, toolCall } of toolCallSteps) {
+        this.options.onProgress?.({
+          stage: 'tool-calling',
+          message: `执行计划步骤: ${step.description || toolCall.tool_id}`
+        })
+        this.currentToolCallQueue!.addTask(toolCall)
+      }
+      
+      // 等待所有工具调用完成
+      await this.waitForToolCallQueue()
     }
 
     // 阶段3: 生成最终总结
@@ -1633,6 +1620,9 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
     // 立即添加到消息列表
     this.session.messages.push(assistantMessage)
 
+    // 创建工具调用队列
+    this.createToolCallQueue()
+
     // 调用LLM选择Workflow - 使用createAiTask
     const response = await LlmAdapter.callChatViaTask(
       llmConfig,
@@ -1650,95 +1640,90 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
       }
     )
 
+    // AI输出完成
+    this.isAiResponding = false
+
     // 检查是否选择Workflow
-    const toolCalls = this.parseToolCalls(response)
-    if (toolCalls && toolCalls.length > 0) {
-      // 执行Workflow
-      for (const toolCall of toolCalls) {
-        const workflow = workflowManager.getWorkflow(toolCall.tool_id)
-        if (workflow) {
-          this.options.onProgress?.({
-            stage: 'workflow-executing',
-            message: `执行Workflow: ${workflow.name || toolCall.tool_id}`
-          })
+    // 优先使用流式输出过程中检测到的工具调用（已在onToolCallsDetected中添加到队列）
+    // 如果没有，则从响应中解析
+    let toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null = null
+    
+    // 从响应中解析工具调用（兜底机制）
+    if (!toolCalls) {
+      const responseContent = response || assistantMessage.markdown || ''
+      toolCalls = this.parseToolCalls(responseContent)
+      getLogger().debug('[WorkflowEngine] 从响应中解析工具调用:', toolCalls ? toolCalls.length : 0)
+      
+      // 如果解析到工具调用，添加到队列
+      if (toolCalls && toolCalls.length > 0) {
+        for (const toolCall of toolCalls) {
+          this.currentToolCallQueue!.addTask(toolCall)
+        }
+      }
+    }
 
-          try {
-            const observation = await ToolRunner.runTool(
-              toolCall.tool_id,
-              toolCall.parameters || {},
-              this.options.signal,
-              this.getSessionForTool()  // 使用辅助函数获取session
-            )
+    // 等待工具调用队列完成
+    await this.waitForToolCallQueue()
 
-            // 获取工具配置以获取displayComponent
-            const tool = agentToolManager.getTool(observation.toolId)
-            const toolConfig = tool?.config
-
-            AIContextManager.addToolMessage(
-              this.session,
-              observation.toolId,
-              observation.toolName,
-              observation.status,
-              observation.result,
-              observation.error,
-              observation.summary,
-              undefined, // tool_call_id
-              toolConfig, // toolConfig
-              observation.params || {}  // params: 保存工具调用参数
-            )
-
-            // 如果执行成功，添加总结
-            if (observation.status === 'succeeded') {
-              const summaryMessages = AIContextManager.buildMessages(this.session, this.agentConfig)
-              summaryMessages.push({
-                role: 'user',
-                content: '请根据Workflow执行结果，生成一个用户友好的总结。'
-              })
-
-              // 创建响应式消息对象用于实时流式显示
-              const summaryMessage = reactive({
-                id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                role: 'assistant' as const,
-                type: 'chat' as const,
-                timestamp: new Date().toISOString(),
-                markdown: ''
-              }) as ChatAgentMessage
-              
-              // 立即添加到消息列表
-              this.session.messages.push(summaryMessage)
-
-              const summary = await LlmAdapter.callChatViaTask(
-                llmConfig,
-                summaryMessages,
-                {
-                  temperature: await this.getTemperature(),
-                  stream: true,
-                  signal: this.options.signal,
-                  taskName: 'Workflow总结',
-                  originKey: `agent-workflow-${this.session.id}-${Date.now()}-summary`,
-                  reactiveMessage: summaryMessage,
-                  onTaskCreated: this.options.onTaskCreated,
-                  onToolCallsDetected: this.createToolCallsDetectedHandler(summaryMessage)
-                }
-              )
-
-              // 消息已经通过reactiveMessage实时更新，不需要再调用addAssistantMessage
-            }
-          } catch (error) {
-            getLogger().error('Workflow执行失败:', error)
-            AIContextManager.addToolMessage(
-              this.session,
-              toolCall.tool_id,
-              toolCall.tool_id,
-              'failed',
-              null,
-              error instanceof Error ? error.message : String(error)
-            )
+    // 如果执行成功，添加总结（检查是否有成功的Workflow执行）
+    const workflowExecuted = toolCalls && toolCalls.length > 0
+    if (workflowExecuted) {
+      // 检查是否有成功的工具调用
+      const currentMessageIndex = this.session.messages.indexOf(assistantMessage)
+      let hasSucceeded = false
+      
+      if (currentMessageIndex !== -1) {
+        for (let i = currentMessageIndex + 1; i < this.session.messages.length; i++) {
+          const msg = this.session.messages[i]
+          if (msg.type === 'tool' && msg.role === 'tool' && (msg as any).status === 'succeeded') {
+            hasSucceeded = true
+            break
           }
         }
       }
-    } else {
-      // 没有选择Workflow，消息已经通过reactiveMessage实时更新，不需要再调用addAssistantMessage
+
+      if (hasSucceeded) {
+        const summaryMessages = AIContextManager.buildMessages(this.session, this.agentConfig)
+        summaryMessages.push({
+          role: 'user',
+          content: '请根据Workflow执行结果，生成一个用户友好的总结。'
+        })
+
+        // 创建响应式消息对象用于实时流式显示
+        const summaryMessage = reactive({
+          id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          role: 'assistant' as const,
+          type: 'chat' as const,
+          timestamp: new Date().toISOString(),
+          markdown: ''
+        }) as ChatAgentMessage
+        
+        // 立即添加到消息列表
+        this.session.messages.push(summaryMessage)
+
+        // 创建新的工具调用队列用于总结阶段
+        this.createToolCallQueue()
+
+        const summary = await LlmAdapter.callChatViaTask(
+          llmConfig,
+          summaryMessages,
+          {
+            temperature: await this.getTemperature(),
+            stream: true,
+            signal: this.options.signal,
+            taskName: 'Workflow总结',
+            originKey: `agent-workflow-${this.session.id}-${Date.now()}-summary`,
+            reactiveMessage: summaryMessage,
+            onTaskCreated: this.options.onTaskCreated,
+            onToolCallsDetected: this.createToolCallsDetectedHandler(summaryMessage)
+          }
+        )
+
+        // 等待工具调用队列完成
+        await this.waitForToolCallQueue()
+
+        // 消息已经通过reactiveMessage实时更新，不需要再调用addAssistantMessage
+      }
     }
 
     this.options.onProgress?.({

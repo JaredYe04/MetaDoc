@@ -149,8 +149,8 @@ export async function createAdapterFromSettings(customConfig: CustomLlmConfig | 
         config.apiUrl = "http://localhost:52521/api/llm";
         config.selectedModel = "manual-model";
         config.apiKey = "";
-        config.completionSuffix = "";
-        config.chatSuffix = "";
+        config.completionSuffix = "/completions";
+        config.chatSuffix = "/chat/completions";
         break;
       }
 

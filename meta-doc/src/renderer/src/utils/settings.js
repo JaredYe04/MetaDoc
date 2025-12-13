@@ -98,6 +98,7 @@ export const settings = reactive({
   particleEffect: true, // 是否启用粒子效果
   outlineLayoutDirection: 'vertical', // 大纲树布局方向：'vertical' 或 'horizontal'
   llmTemperature: 1.3, // LLM 全局温度配置
+  vditorMode: 'ir', // Vditor编辑模式：'wysiwyg'、'ir'、'sv'，默认'ir'
 });
 
 export async function initSettings() {

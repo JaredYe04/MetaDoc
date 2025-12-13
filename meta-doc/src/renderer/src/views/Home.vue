@@ -100,6 +100,7 @@
             class="md-preview-container"
             :class="themeState.currentTheme.mdeditorClass"
             :style="{ color: themeState.currentTheme.textColor }"
+            v-loading="isRendering"
           ></div>
         </el-scrollbar>
       </div>
@@ -174,6 +175,7 @@ const previewMarkdown = computed(() => {
 })
 
 const previewContainerRef = ref<HTMLElement | null>(null)
+const isRendering = ref(false)
 
 // 粒子效果使用的文本：根据文档格式选择对应的文本源
 const particleMarkdown = computed(() => {
@@ -312,10 +314,14 @@ const renderPreview = async () => {
   
   if (!markdown) {
     container.innerHTML = ''
+    isRendering.value = false
     return
   }
   
   try {
+    // 开始渲染，显示loading
+    isRendering.value = true
+    
     // 获取 CDN 和主题设置
     const cdn = isElectronEnv() ? localVditorCDN : vditorCDN
     const contentTheme = await getSetting('contentTheme') || 'light'
@@ -326,7 +332,6 @@ const renderPreview = async () => {
     container.innerHTML = ''
     
     // 使用 Vditor.preview 渲染
-    // Vditor 类型定义可能不完整，但实际支持这些配置
     const previewOptions: any = {
       cdn,
       mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
@@ -340,12 +345,12 @@ const renderPreview = async () => {
       theme: themeState.currentTheme.vditorTheme
     }
     await Vditor.preview(container, markdown, previewOptions)
-    
-    
-    
   } catch (error) {
     logger.error('渲染预览失败', error)
     container.innerHTML = `<p style="color: var(--console-err, #fe8771);">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`
+  } finally {
+    // 渲染完成，隐藏loading
+    isRendering.value = false
   }
 }
 

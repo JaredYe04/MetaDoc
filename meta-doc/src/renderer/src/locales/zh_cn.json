@@ -399,6 +399,7 @@
             "strike": "删除线",
             "link": "超链接",
             "list": "列表",
+            "mode": "编辑模式",
             "table": "表格",
             "code": "代码块",
             "preview": "预览",

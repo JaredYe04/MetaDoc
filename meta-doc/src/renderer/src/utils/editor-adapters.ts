@@ -257,9 +257,30 @@ export class VditorEditorAdapter implements EditorAdapter {
     if (!range) return null
     
     // 获取Vditor的编辑器内容区域
-    // Vditor IR模式的实际编辑器在 vditorInstance.ir.element
+    // Vditor不同模式的实际编辑器位置：
+    // - IR模式: vditorInstance.ir.element
+    // - WYSIWYG模式: vditorInstance.wysiwyg.element
+    // - SV模式: vditorInstance.sv.element
     const vditorInstance = this.vditorInstance?.vditor
-    const editorElement = vditorInstance?.ir?.element || vditorInstance?.element
+    if (!vditorInstance) return null
+    
+    // 获取当前模式
+    const currentMode = vditorInstance.currentMode || 'ir'
+    
+    // 根据模式获取编辑器元素
+    let editorElement: HTMLElement | null = null
+    if (currentMode === 'ir') {
+      editorElement = vditorInstance.ir?.element || null
+    } else if (currentMode === 'wysiwyg') {
+      editorElement = vditorInstance.wysiwyg?.element || null
+    } else if (currentMode === 'sv') {
+      editorElement = vditorInstance.sv?.element || null
+    }
+    
+    // 如果没找到，尝试通用方法
+    if (!editorElement) {
+      editorElement = vditorInstance.element || null
+    }
     
     if (!editorElement) {
       const logger = createRendererLogger('VditorEditorAdapter', {
@@ -268,7 +289,10 @@ export class VditorEditorAdapter implements EditorAdapter {
       logger.warn('无法找到Vditor编辑器元素', {
         hasVditorInstance: !!this.vditorInstance,
         hasVditor: !!vditorInstance,
+        currentMode,
         hasIr: !!vditorInstance?.ir,
+        hasWysiwyg: !!vditorInstance?.wysiwyg,
+        hasSv: !!vditorInstance?.sv,
         hasElement: !!vditorInstance?.element
       })
       return null
@@ -281,43 +305,233 @@ export class VditorEditorAdapter implements EditorAdapter {
     // 计算光标在文本中的位置
     // 使用Range API计算从根元素到光标位置的文本长度
     try {
-      const measureRange = document.createRange()
-      measureRange.setStart(editorElement, 0)
-      measureRange.setEnd(range.startContainer, range.startOffset)
-      
-      // 获取Range内的文本内容（这会自动处理DOM结构）
-      // 注意：Range.toString() 会返回可见文本，但不包括换行符
-      // 我们需要通过遍历文本节点来准确计算offset
+      // 对于SV模式，需要特殊处理，因为DOM结构更复杂
+      // 使用更可靠的方法：通过遍历所有文本节点并计算offset
       let offset = 0
       const walker = document.createTreeWalker(
         editorElement,
-        NodeFilter.SHOW_TEXT,
-        null
+        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+        {
+          acceptNode: (node) => {
+            // 对于SV模式，需要识别换行符元素
+            if (currentMode === 'sv' && node.nodeType === Node.ELEMENT_NODE) {
+              const el = node as Element
+              // 检查是否是换行符元素（data-type="newline"）
+              if (el.getAttribute('data-type') === 'newline') {
+                // 在SV模式下，换行符应该被计算为1个字符（\n）
+                // 但我们不能在这里直接添加，需要在遍历时处理
+                return NodeFilter.FILTER_ACCEPT
+              }
+            }
+            return NodeFilter.FILTER_ACCEPT
+          }
+        }
       )
+      
+      // 辅助函数：获取元素中的第一个文本节点
+      const getFirstTextNode = (element: Node): Node | null => {
+        if (element.nodeType === Node.TEXT_NODE) {
+          return element
+        }
+        if (element.nodeType === Node.ELEMENT_NODE) {
+          for (let i = 0; i < element.childNodes.length; i++) {
+            const child = element.childNodes[i]
+            if (child.nodeType === Node.TEXT_NODE) {
+              return child
+            }
+            const textNode = getFirstTextNode(child)
+            if (textNode) return textNode
+          }
+        }
+        return null
+      }
+      
+      // 辅助函数：获取元素中的最后一个文本节点
+      const getLastTextNode = (element: Node): Node | null => {
+        if (element.nodeType === Node.TEXT_NODE) {
+          return element
+        }
+        if (element.nodeType === Node.ELEMENT_NODE) {
+          for (let i = element.childNodes.length - 1; i >= 0; i--) {
+            const child = element.childNodes[i]
+            if (child.nodeType === Node.TEXT_NODE) {
+              return child
+            }
+            const textNode = getLastTextNode(child)
+            if (textNode) return textNode
+          }
+        }
+        return null
+      }
+      
+      // 如果range.startContainer是元素节点，需要找到其中的文本节点
+      // 如果range.startContainer是文本节点，直接使用
+      let targetNode: Node | null = range.startContainer
+      let targetOffset = range.startOffset
+      
+      if (range.startContainer.nodeType === Node.ELEMENT_NODE) {
+        // 如果光标在元素节点内，需要找到对应的文本节点
+        const element = range.startContainer as Element
+        const childNodes = element.childNodes
+        
+        // 如果offset指向某个子节点
+        if (targetOffset < childNodes.length) {
+          const childNode = childNodes[targetOffset]
+          if (childNode.nodeType === Node.TEXT_NODE) {
+            targetNode = childNode
+            targetOffset = 0
+          } else if (childNode.nodeType === Node.ELEMENT_NODE) {
+            // 如果子节点是元素，尝试找到其中的第一个文本节点
+            const firstTextNode = getFirstTextNode(childNode)
+            if (firstTextNode) {
+              targetNode = firstTextNode
+              targetOffset = 0
+            }
+          }
+        } else if (childNodes.length > 0) {
+          // 如果offset超出子节点数量，使用最后一个文本节点
+          const lastTextNode = getLastTextNode(element)
+          if (lastTextNode) {
+            targetNode = lastTextNode
+            targetOffset = lastTextNode.textContent?.length || 0
+          }
+        } else {
+          // 如果元素没有子节点，尝试找到元素内的第一个文本节点
+          const firstTextNode = getFirstTextNode(element)
+          if (firstTextNode) {
+            targetNode = firstTextNode
+            targetOffset = 0
+          }
+        }
+      } else if (range.startContainer.nodeType === Node.TEXT_NODE) {
+        // 如果已经是文本节点，直接使用
+        targetNode = range.startContainer
+        targetOffset = range.startOffset
+      }
       
       let node: Node | null
       let found = false
       while ((node = walker.nextNode())) {
-        if (node === range.startContainer) {
+        if (node === targetNode) {
           // 到达目标节点，加上offset
-          offset += range.startOffset
+          offset += targetOffset
           found = true
           break
-        } else {
-          // 累加文本节点长度（包括换行符）
+        } else if (node.nodeType === Node.TEXT_NODE) {
+          // 累加文本节点长度
           const text = node.textContent || ''
           offset += text.length
+        } else if (currentMode === 'sv' && node.nodeType === Node.ELEMENT_NODE) {
+          // 对于SV模式，需要处理各种特殊元素
+          const el = node as Element
+          const dataType = el.getAttribute('data-type')
+          
+          if (dataType === 'newline') {
+            // 换行符在markdown文本中占1个字符
+            offset += 1
+          } else if (dataType === 'heading-marker' || dataType === 'li-marker') {
+            // 标题标记和列表标记的内容需要被计算（如 `# `, `## `, `1. ` 等）
+            const markerText = el.textContent || ''
+            offset += markerText.length
+          } else if (el.classList.contains('vditor-sv__marker--bi')) {
+            // 格式标记（如 `**`, `*`, `_` 等）的内容需要被计算
+            const markerText = el.textContent || ''
+            offset += markerText.length
+          }
+          // 注意：对于其他元素，我们不计算，因为它们的内容已经通过子文本节点计算了
         }
       }
       
-      // 如果没找到目标节点，使用Range.toString()的长度作为fallback
+      // 如果没找到目标节点，尝试使用Range.toString()作为fallback
       if (!found) {
-        const textBeforeCursor = measureRange.toString()
-        offset = textBeforeCursor.length
+        try {
+          const measureRange = document.createRange()
+          measureRange.setStart(editorElement, 0)
+          measureRange.setEnd(range.startContainer, range.startOffset)
+          
+          // 对于SV模式，Range.toString()可能无法正确处理换行符
+          // 所以我们需要手动计算
+          if (currentMode === 'sv') {
+            // 重新遍历，这次更仔细地处理所有元素
+            const walker2 = document.createTreeWalker(
+              editorElement,
+              NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+              null
+            )
+            let node2: Node | null
+            let offset2 = 0
+            let found2 = false
+            
+            // 如果range.startContainer是元素节点，需要找到对应的文本节点
+            let targetNode2: Node | null = range.startContainer
+            let targetOffset2 = range.startOffset
+            
+            if (range.startContainer.nodeType === Node.ELEMENT_NODE) {
+              const element = range.startContainer as Element
+              const childNodes = element.childNodes
+              if (targetOffset2 < childNodes.length) {
+                const childNode = childNodes[targetOffset2]
+                if (childNode.nodeType === Node.TEXT_NODE) {
+                  targetNode2 = childNode
+                  targetOffset2 = 0
+                } else if (childNode.nodeType === Node.ELEMENT_NODE) {
+                  const firstTextNode = getFirstTextNode(childNode)
+                  if (firstTextNode) {
+                    targetNode2 = firstTextNode
+                    targetOffset2 = 0
+                  }
+                }
+              } else if (childNodes.length > 0) {
+                const lastTextNode = getLastTextNode(element)
+                if (lastTextNode) {
+                  targetNode2 = lastTextNode
+                  targetOffset2 = lastTextNode.textContent?.length || 0
+                }
+              }
+            }
+            
+            while ((node2 = walker2.nextNode())) {
+              if (node2 === targetNode2) {
+                offset2 += targetOffset2
+                found2 = true
+                break
+              } else if (node2.nodeType === Node.TEXT_NODE) {
+                offset2 += (node2.textContent || '').length
+              } else if (node2.nodeType === Node.ELEMENT_NODE) {
+                const el = node2 as Element
+                const dataType = el.getAttribute('data-type')
+                if (dataType === 'newline') {
+                  offset2 += 1
+                } else if (dataType === 'heading-marker' || dataType === 'li-marker') {
+                  const markerText = el.textContent || ''
+                  offset2 += markerText.length
+                } else if (el.classList.contains('vditor-sv__marker--bi')) {
+                  const markerText = el.textContent || ''
+                  offset2 += markerText.length
+                }
+              }
+            }
+            if (found2) {
+              offset = offset2
+            } else {
+              // 如果还是没找到，使用Range.toString()作为最后的fallback
+              const textBeforeCursor = measureRange.toString()
+              offset = textBeforeCursor.length
+            }
+          } else {
+            const textBeforeCursor = measureRange.toString()
+            offset = textBeforeCursor.length
+          }
+        } catch (e) {
+          // 如果Range操作失败，使用之前计算的offset
+        }
       }
       
       // 转换为行号和列号
-      const lines = fullText.substring(0, offset).split('\n')
+      // 确保offset不超过文本长度
+      const safeOffset = Math.min(offset, fullText.length)
+      const textBeforeCursor = fullText.substring(0, safeOffset)
+      const lines = textBeforeCursor.split('\n')
       return {
         line: lines.length,
         column: lines[lines.length - 1].length + 1
@@ -382,9 +596,10 @@ export class VditorEditorAdapter implements EditorAdapter {
   }
   
   getContextAroundCursor(contextSize: number = 1000): { preContext: string; postContext: string } | null {
+    // 对于所有模式，都使用DOM遍历方法获取上下文，这样更可靠
+    // 参考AISuggestion.vue中的getContextFromCursor实现
     const sel = window.getSelection()
     if (!sel || sel.rangeCount === 0) return null
-    
     const range = sel.getRangeAt(0)
     return this.getContextFromCursor(range, contextSize)
   }

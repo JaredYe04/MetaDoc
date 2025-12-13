@@ -9,6 +9,7 @@ import type { AgentSession, Reference, PublicContext } from '../../types/agent-f
 import type { AgentConfig } from '../../types/agent-framework'
 import { createRendererLogger } from '../logger'
 import { ToolRunner } from './tool-runner'
+import { useWorkspace } from '../../stores/workspace'
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
 
@@ -91,20 +92,35 @@ export class AIContextManager {
     // 2. 引用素材（作为系统消息的一部分，兼容新旧格式）
     const referenceStore = (session as any).referenceStore
     const activeReferenceIds = options.activeReferenceIds
+    const enableBuiltInDocRef = (session as AgentSession).enableBuiltInDocumentReference !== false // 默认开启
+    
+    // 构建要包含的引用列表
+    let referencesToInclude: Reference[] = []
+    
+    // 添加内置0号reference（如果启用）
+    if (enableBuiltInDocRef && includeReferences) {
+      const builtInRef = this.buildBuiltInDocumentReference()
+      if (builtInRef) {
+        referencesToInclude.push(builtInRef)
+      }
+    }
+    
+    // 添加用户添加的引用
     if (includeReferences && referenceStore && Array.isArray(referenceStore) && referenceStore.length > 0) {
       // 如果指定了activeReferenceIds，只处理激活的引用
-      const referencesToInclude = activeReferenceIds && activeReferenceIds.length > 0
+      const userReferences = activeReferenceIds && activeReferenceIds.length > 0
         ? (referenceStore as Reference[]).filter(ref => activeReferenceIds.includes(ref.id))
         : (referenceStore as Reference[])
-      
-      if (referencesToInclude.length > 0) {
-        const referencesContent = this.buildReferencesContent(referencesToInclude)
-        if (referencesContent) {
-          messages.push({
-            role: 'system',
-            content: referencesContent
-          })
-        }
+      referencesToInclude.push(...userReferences)
+    }
+    
+    if (referencesToInclude.length > 0) {
+      const referencesContent = this.buildReferencesContent(referencesToInclude)
+      if (referencesContent) {
+        messages.push({
+          role: 'system',
+          content: referencesContent
+        })
       }
     }
 
@@ -205,6 +221,57 @@ export class AIContextManager {
   }
 
   /**
+   * 构建内置0号reference（动态获取当前文档内容）
+   */
+  private static buildBuiltInDocumentReference(): Reference | null {
+    try {
+      const workspace = useWorkspace()
+      const activeDoc = workspace.activeDocument.value
+      
+      if (!activeDoc) {
+        return null
+      }
+      
+      // 确定文档格式
+      const docFormat = activeDoc.format === 'tex' ? 'tex' : 'md'
+      const formatName = docFormat === 'tex' ? 'LaTeX' : 'Markdown'
+      
+      // 根据文档格式获取内容
+      const content = docFormat === 'tex' ? activeDoc.tex : activeDoc.markdown
+      
+      if (!content || content.trim().length === 0) {
+        return null
+      }
+      
+      // 创建内置0号reference
+      const reference: Reference = {
+        id: 'built-in-document-reference-0',
+        name: '当前文档内容',
+        origin: activeDoc.path || '当前活动文档',
+        format: docFormat,
+        parsedContent: content,
+        description: `动态获取的当前活动文档内容（${formatName}格式，实时更新，不占用历史消息空间）`,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }
+      
+      const logger = createRendererLogger('AIContextManager')
+      logger.debug('[buildBuiltInDocumentReference] 构建内置文档引用', {
+        format: docFormat,
+        formatName,
+        contentLength: content.length,
+        hasPath: !!activeDoc.path
+      })
+      
+      return reference
+    } catch (error) {
+      const logger = createRendererLogger('AIContextManager')
+      logger.warn('[buildBuiltInDocumentReference] 构建内置文档引用失败:', error)
+      return null
+    }
+  }
+
+  /**
    * 构建引用素材内容
    */
   private static buildReferencesContent(references: Reference[]): string {
@@ -224,14 +291,31 @@ export class AIContextManager {
 
     let content = '=== 引用素材 ===\n\n'
     for (const ref of references) {
-      content += `[${ref.name}] (格式: ${ref.format}, 来源: ${ref.origin})\n`
+      // 对于内置0号reference，使用更明确的格式说明
+      const isBuiltIn = ref.id === 'built-in-document-reference-0'
+      const formatDisplay = ref.format === 'tex' ? 'LaTeX' : (ref.format === 'md' ? 'Markdown' : ref.format)
+      
+      if (isBuiltIn) {
+        content += `[${ref.name}] (格式: ${formatDisplay}, 来源: ${ref.origin})\n`
+        content += `⚠️ 这是当前活动文档的实时内容，格式为 ${formatDisplay}。内容会在每次请求时动态获取，确保始终是最新的。\n`
+      } else {
+        content += `[${ref.name}] (格式: ${ref.format}, 来源: ${ref.origin})\n`
+      }
+      
       if (ref.description) {
         content += `描述: ${ref.description}\n`
       }
+      
       // 添加解析后的内容（供AI直接参考，上传时已解析）
       if (ref.parsedContent) {
-        content += `\n解析后的内容（已进行数据分析/文本提取）:\n\`\`\`\n${ref.parsedContent}\n\`\`\`\n`
-        logger.debug(`[buildReferencesContent] 引用 ${ref.name} 包含parsedContent，长度: ${ref.parsedContent.length}`)
+        // 对于内置0号reference，使用格式对应的代码块标记
+        const codeBlockLang = ref.format === 'tex' ? 'latex' : (ref.format === 'md' ? 'markdown' : 'text')
+        if (isBuiltIn) {
+          content += `\n当前文档内容（${formatDisplay}格式）:\n\`\`\`${codeBlockLang}\n${ref.parsedContent}\n\`\`\`\n`
+        } else {
+          content += `\n解析后的内容（已进行数据分析/文本提取）:\n\`\`\`\n${ref.parsedContent}\n\`\`\`\n`
+        }
+        logger.debug(`[buildReferencesContent] 引用 ${ref.name} 包含parsedContent，长度: ${ref.parsedContent.length}, 格式: ${ref.format}`)
       } else {
         logger.warn(`[buildReferencesContent] 引用 ${ref.name} 缺少parsedContent`)
       }

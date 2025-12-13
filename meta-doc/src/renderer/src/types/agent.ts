@@ -99,6 +99,8 @@ export interface AgentSession {
     createdAt: number;
     updatedAt: number;
   }>;
+  /** 是否启用内置0号reference（动态获取当前文档内容，默认开启） */
+  enableBuiltInDocumentReference?: boolean;
   publicContext?: {
     currentTime?: string;
     timezone?: string;

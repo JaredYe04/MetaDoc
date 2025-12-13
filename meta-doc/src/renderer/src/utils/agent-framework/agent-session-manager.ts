@@ -76,7 +76,8 @@ class AgentSessionManager {
       },
       executionNodes: [],
       status: 'idle',
-      readonly: false
+      readonly: false,
+      enableBuiltInDocumentReference: true // 默认开启内置0号reference
     }
 
     this.getLogger().info(`Agent会话已创建: ${id}`)

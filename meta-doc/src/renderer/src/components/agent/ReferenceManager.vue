@@ -17,6 +17,32 @@
       </div>
     </div>
 
+    <!-- 内置0号reference开关 -->
+    <div class="built-in-reference-section">
+      <div class="built-in-reference-info">
+        <el-icon class="info-icon"><Document /></el-icon>
+        <div class="info-content">
+          <div class="info-title">{{ t('agent.reference.builtInDocument.title', '当前文档引用') }}</div>
+          <div class="info-description">{{ t('agent.reference.builtInDocument.description', '动态获取当前活动文档内容，实时更新，不占用历史消息空间') }}</div>
+        </div>
+      </div>
+      <div class="built-in-reference-actions">
+        <el-button 
+          size="small" 
+          :icon="View"
+          @click="handlePreviewBuiltInDocument"
+        >
+          {{ t('agent.reference.builtInDocument.preview', '预览') }}
+        </el-button>
+        <el-switch
+          v-model="enableBuiltInDocRef"
+          @change="handleToggleBuiltInDocRef"
+          :active-text="t('agent.reference.builtInDocument.enabled', '已启用')"
+          :inactive-text="t('agent.reference.builtInDocument.disabled', '已禁用')"
+        />
+      </div>
+    </div>
+
     <div class="table-container">
       <el-table
         :data="references"
@@ -223,6 +249,7 @@ import { agentSessionManager } from '../../utils/agent-framework'
 import { processFileUpload, processUrlReference, selectReferenceFiles } from '../../utils/agent-framework/reference-processor'
 import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer'
 import { createRendererLogger } from '../../utils/logger'
+import { useWorkspace } from '../../stores/workspace'
 
 // 获取IPC渲染器
 let ipcRenderer: typeof localIpcRenderer | null = null
@@ -249,9 +276,11 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   update: []
+  'update-built-in-doc-ref': [value: boolean]
 }>()
 
 const { t } = useI18n()
+const workspace = useWorkspace()
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -277,6 +306,76 @@ const formData = ref({
 const references = computed(() => {
   return props.session.referenceStore || []
 })
+
+// 内置0号reference开关
+const enableBuiltInDocRef = computed({
+  get: () => (props.session as any).enableBuiltInDocumentReference !== false, // 默认开启
+  set: (value: boolean) => {
+    // 通过emit更新，由父组件处理
+    emit('update-built-in-doc-ref', value)
+  }
+})
+
+const handleToggleBuiltInDocRef = (value: boolean) => {
+  // 更新session的enableBuiltInDocumentReference字段
+  const newFormatSession: any = {
+    ...props.session,
+    entityType: 'agent-session',
+    createdAt: typeof props.session.createdAt === 'string' ? new Date(props.session.createdAt).getTime() : props.session.createdAt,
+    updatedAt: typeof props.session.updatedAt === 'string' ? new Date(props.session.updatedAt).getTime() : props.session.updatedAt,
+    messageQueue: props.session.messageQueue || [],
+    referenceStore: props.session.referenceStore || [],
+    publicContext: props.session.publicContext || {},
+    executionNodes: props.session.executionNodes || [],
+    status: props.session.status || 'idle',
+    enableBuiltInDocumentReference: value
+  }
+  
+  // 直接更新session对象
+  Object.assign(props.session, { enableBuiltInDocumentReference: value } as any)
+  emit('update')
+}
+
+const handlePreviewBuiltInDocument = () => {
+  try {
+    const activeDoc = workspace.activeDocument.value
+    
+    if (!activeDoc) {
+      ElMessage.warning(t('agent.reference.builtInDocument.noActiveDocument', '没有活动的文档'))
+      return
+    }
+    
+    // 确定文档格式
+    const docFormat = activeDoc.format === 'tex' ? 'tex' : 'md'
+    const formatName = docFormat === 'tex' ? 'LaTeX' : 'Markdown'
+    
+    // 根据文档格式获取内容
+    const content = docFormat === 'tex' ? activeDoc.tex : activeDoc.markdown
+    
+    if (!content || content.trim().length === 0) {
+      ElMessage.info(t('agent.reference.builtInDocument.emptyDocument', '当前文档为空'))
+      return
+    }
+    
+    // 创建临时reference用于预览
+    const builtInRef: Reference = {
+      id: 'built-in-document-reference-0',
+      name: t('agent.reference.builtInDocument.title'),
+      origin: activeDoc.path || t('agent.reference.builtInDocument.currentActiveDocument'),
+      format: docFormat,
+      parsedContent: content,
+      description: `${t('agent.reference.builtInDocument.description')}（${formatName}格式）`,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
+    
+    // 显示预览对话框
+    viewingReference.value = builtInRef
+    contentDialogVisible.value = true
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : String(error))
+  }
+}
 
 const containerStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
@@ -804,6 +903,52 @@ const handleClearAll = async () => {
   text-align: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 200px;
+}
+
+.built-in-reference-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--el-bg-color-page);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-light);
+}
+
+.built-in-reference-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.built-in-reference-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.info-icon {
+  font-size: 20px;
+  color: var(--el-color-primary);
+}
+
+.info-content {
+  flex: 1;
+}
+
+.info-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  margin-bottom: 4px;
+}
+
+.info-description {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  line-height: 1.4;
 }
 </style>
 

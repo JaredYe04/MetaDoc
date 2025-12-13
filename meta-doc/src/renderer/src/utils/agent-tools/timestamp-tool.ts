@@ -21,9 +21,17 @@ const STORAGE_KEY = 'agent-tool-timestamps'
 
 interface TimestampRecord {
   timestamp: number
-  iso: string
-  date: string
-  time: string
+  utc: {
+    iso: string
+    date: string
+    time: string
+  }
+  local: {
+    iso: string
+    date: string
+    time: string
+    timezone: string
+  }
 }
 
 const timestampToolLocales: ToolLocales = {
@@ -58,22 +66,50 @@ const timestampToolLocales: ToolLocales = {
 {
   "current": {
     "timestamp": 1234567890,
-    "iso": "2023-01-01T00:00:00.000Z",
-    "date": "2023-01-01",
-    "time": "00:00:00"
+    "utc": {
+      "iso": "2023-01-01T00:00:00.000Z",
+      "date": "2023-01-01",
+      "time": "00:00:00"
+    },
+    "local": {
+      "iso": "2023-01-01T08:00:00.000+08:00",
+      "date": "2023-01-01",
+      "time": "08:00:00",
+      "timezone": "+08:00"
+    }
   },
   "previous": {
     "timestamp": 1234567890,
-    "iso": "2023-01-01T00:00:00.000Z"
+    "utc": {
+      "iso": "2023-01-01T00:00:00.000Z"
+    },
+    "local": {
+      "iso": "2023-01-01T08:00:00.000+08:00"
+    }
   },
   "timeDiff": {
     "milliseconds": 1000,
     "seconds": 1,
     "minutes": 0.016,
-    "hours": 0.0003
+    "hours": 0.0003,
+    "days": 0.00001
   }
 }
 \`\`\`
+
+**字段说明：**
+- \`timestamp\`: Unix时间戳（毫秒）
+- \`utc\`: UTC时间（协调世界时）
+  - \`iso\`: ISO 8601格式的UTC时间
+  - \`date\`: UTC日期（YYYY-MM-DD）
+  - \`time\`: UTC时间（HH:mm:ss）
+- \`local\`: 本地时间（根据系统时区）
+  - \`iso\`: ISO 8601格式的本地时间（带时区偏移）
+  - \`date\`: 本地日期（YYYY-MM-DD）
+  - \`time\`: 本地时间（HH:mm:ss）
+  - \`timezone\`: 时区偏移（如+08:00）
+- \`previous\`: 上一次调用的时间戳（格式同current）
+- \`timeDiff\`: 与上一次调用的时间差
 `
   },
   en_us: {
@@ -84,10 +120,16 @@ const timestampToolLocales: ToolLocales = {
 
 ## Description
 Returns current timestamp and persistently records each call timestamp in the same session for:
-- Getting current time
+- Getting current time (both UTC and local time)
 - Calculating time difference from last call
 - Judging if execution time is too long
 - Time-related decisions
+
+## Use Cases
+- Monitoring task execution time
+- Time-related conditional judgments
+- Logging
+- Performance analysis
 
 ## Input Format
 \`\`\`json
@@ -95,6 +137,56 @@ Returns current timestamp and persistently records each call timestamp in the sa
   "format": "string" // Optional, return format: timestamp|iso|date|all, default all
 }
 \`\`\`
+
+## Output Format
+\`\`\`json
+{
+  "current": {
+    "timestamp": 1234567890,
+    "utc": {
+      "iso": "2023-01-01T00:00:00.000Z",
+      "date": "2023-01-01",
+      "time": "00:00:00"
+    },
+    "local": {
+      "iso": "2023-01-01T08:00:00.000+08:00",
+      "date": "2023-01-01",
+      "time": "08:00:00",
+      "timezone": "+08:00"
+    }
+  },
+  "previous": {
+    "timestamp": 1234567890,
+    "utc": {
+      "iso": "2023-01-01T00:00:00.000Z"
+    },
+    "local": {
+      "iso": "2023-01-01T08:00:00.000+08:00"
+    }
+  },
+  "timeDiff": {
+    "milliseconds": 1000,
+    "seconds": 1,
+    "minutes": 0.016,
+    "hours": 0.0003,
+    "days": 0.00001
+  }
+}
+\`\`\`
+
+**Field Descriptions:**
+- \`timestamp\`: Unix timestamp (milliseconds)
+- \`utc\`: UTC time (Coordinated Universal Time)
+  - \`iso\`: UTC time in ISO 8601 format
+  - \`date\`: UTC date (YYYY-MM-DD)
+  - \`time\`: UTC time (HH:mm:ss)
+- \`local\`: Local time (based on system timezone)
+  - \`iso\`: Local time in ISO 8601 format (with timezone offset)
+  - \`date\`: Local date (YYYY-MM-DD)
+  - \`time\`: Local time (HH:mm:ss)
+  - \`timezone\`: Timezone offset (e.g., +08:00)
+- \`previous\`: Timestamp from last call (same format as current)
+- \`timeDiff\`: Time difference from last call
 `
   }
 }
@@ -140,15 +232,46 @@ const timestampToolCallback: ToolCallback = async (params, signal, onUpdate) => 
   try {
     const now = new Date()
     const timestamp = now.getTime()
-    const iso = now.toISOString()
-    const date = now.toISOString().split('T')[0]
-    const time = now.toTimeString().split(' ')[0]
-
+    
+    // UTC时间
+    const utcIso = now.toISOString()
+    const utcDate = utcIso.split('T')[0]
+    const utcTime = utcIso.split('T')[1].split('.')[0]
+    
+    // 本地时间
+    const localYear = now.getFullYear()
+    const localMonth = String(now.getMonth() + 1).padStart(2, '0')
+    const localDay = String(now.getDate()).padStart(2, '0')
+    const localHours = String(now.getHours()).padStart(2, '0')
+    const localMinutes = String(now.getMinutes()).padStart(2, '0')
+    const localSeconds = String(now.getSeconds()).padStart(2, '0')
+    const localMs = String(now.getMilliseconds()).padStart(3, '0')
+    
+    const localDate = `${localYear}-${localMonth}-${localDay}`
+    const localTime = `${localHours}:${localMinutes}:${localSeconds}`
+    
+    // 获取时区偏移
+    const timezoneOffset = -now.getTimezoneOffset() // 注意：getTimezoneOffset返回的是UTC与本地时间的差值（分钟），需要取反
+    const timezoneHours = Math.floor(Math.abs(timezoneOffset) / 60)
+    const timezoneMinutes = Math.abs(timezoneOffset) % 60
+    const timezoneSign = timezoneOffset >= 0 ? '+' : '-'
+    const timezone = `${timezoneSign}${String(timezoneHours).padStart(2, '0')}:${String(timezoneMinutes).padStart(2, '0')}`
+    
+    const localIso = `${localDate}T${localTime}.${localMs}${timezone}`
+    
     const current: TimestampRecord = {
       timestamp,
-      iso,
-      date,
-      time
+      utc: {
+        iso: utcIso,
+        date: utcDate,
+        time: utcTime
+      },
+      local: {
+        iso: localIso,
+        date: localDate,
+        time: localTime,
+        timezone
+      }
     }
 
     // 保存当前时间戳
@@ -178,10 +301,16 @@ const timestampToolCallback: ToolCallback = async (params, signal, onUpdate) => 
         result = timestamp
         break
       case 'iso':
-        result = iso
+        result = {
+          utc: utcIso,
+          local: localIso
+        }
         break
       case 'date':
-        result = date
+        result = {
+          utc: utcDate,
+          local: localDate
+        }
         break
       default:
         result = {
@@ -229,8 +358,8 @@ const timestampToolCallback: ToolCallback = async (params, signal, onUpdate) => 
         ],
         [
           'timestamp工具不需要任何参数，直接调用即可',
-          '可以设置format参数：iso（ISO 8601格式）、unix（Unix时间戳）',
-          '如果不设置format，返回包含timestamp、iso、date、time等格式的对象'
+          '可以设置format参数：iso（返回UTC和本地ISO格式）、timestamp（Unix时间戳）、date（返回UTC和本地日期）',
+          '如果不设置format，返回包含timestamp、utc（UTC时间）、local（本地时间）、previous（上一次调用）、timeDiff（时间差）等信息的对象'
         ]
       )
     }
@@ -265,15 +394,40 @@ export const timestampToolConfig: AgentToolConfig = {
       current: {
         type: 'object',
         properties: {
-          timestamp: { type: 'number' },
-          iso: { type: 'string' },
-          date: { type: 'string' },
-          time: { type: 'string' }
+          timestamp: { type: 'number', description: 'Unix时间戳（毫秒）' },
+          utc: {
+            type: 'object',
+            description: 'UTC时间（协调世界时）',
+            properties: {
+              iso: { type: 'string', description: 'ISO 8601格式的UTC时间' },
+              date: { type: 'string', description: 'UTC日期（YYYY-MM-DD）' },
+              time: { type: 'string', description: 'UTC时间（HH:mm:ss）' }
+            }
+          },
+          local: {
+            type: 'object',
+            description: '本地时间（根据系统时区）',
+            properties: {
+              iso: { type: 'string', description: 'ISO 8601格式的本地时间（带时区偏移）' },
+              date: { type: 'string', description: '本地日期（YYYY-MM-DD）' },
+              time: { type: 'string', description: '本地时间（HH:mm:ss）' },
+              timezone: { type: 'string', description: '时区偏移（如+08:00）' }
+            }
+          }
         }
       },
-      previous: { type: 'object' },
+      previous: {
+        type: 'object',
+        description: '上一次调用的时间戳（格式同current）',
+        properties: {
+          timestamp: { type: 'number' },
+          utc: { type: 'object' },
+          local: { type: 'object' }
+        }
+      },
       timeDiff: {
         type: 'object',
+        description: '与上一次调用的时间差',
         properties: {
           milliseconds: { type: 'number' },
           seconds: { type: 'number' },

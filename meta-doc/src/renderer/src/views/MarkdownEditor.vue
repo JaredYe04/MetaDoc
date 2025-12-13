@@ -4,7 +4,7 @@
             <!-- 左边：Vditor Markdown 编辑器 -->
             <!-- 菜单组件 -->
                 <SectionOptimizer
-                    v-if="showSectionOptimizer" 
+                    v-if="showSectionOptimizer && sectionOptimizerAdapter" 
                 :title="currentSectionTitle" 
                 :position="sectionOptimizerPosition"
                 :path="currentTitlePath"
@@ -724,7 +724,9 @@ const openSectionOptimizerFromContext = async () => {
                             }
                         }
                     }
-                    node = node.parentNode
+                    const parent = node.parentNode;
+                    if (!parent) break;
+                    node = parent;
                 }
                 
                 // 如果通过 path 没找到，尝试通过文本内容匹配
@@ -751,7 +753,9 @@ const openSectionOptimizerFromContext = async () => {
                                 if (cursorLine > 0) break
                             }
                         }
-                        currentNode = currentNode.parentNode
+                        const parent = currentNode.parentNode;
+                        if (!parent) break;
+                        currentNode = parent;
                     }
                 }
             }
@@ -793,7 +797,7 @@ const openSectionOptimizerFromContext = async () => {
         // 如果没有找到章节，尝试使用第一个章节
         const outline = extractOutlineTreeFromMarkdown(currentMarkdown.value, true)
         if (outline && outline.children && outline.children.length > 0) {
-            const firstSection = outline.children[0]
+            const firstSection = outline.children[0] as DocumentOutlineNode
             const { searchNode } = await import('../utils/outline-helpers')
             const node = searchNode(firstSection.path, outline)
             
@@ -806,7 +810,7 @@ const openSectionOptimizerFromContext = async () => {
                 content = content.trim()
             }
             
-            currentSectionTitle.value = firstSection.title || firstSection.text?.split('\n')[0]?.replace(/^#+\s*/, '') || '段落优化'
+            currentSectionTitle.value = firstSection.title || (firstSection.text?.split('\n')[0]?.replace(/^#+\s*/, '') || '段落优化')
             currentTitlePath.value = firstSection.path || ''
             currentSectionInfo.value = {
                 title: currentSectionTitle.value,
@@ -843,13 +847,82 @@ const handleSectionOptimizerClose = () => {
     sectionOptimizerAdapter.value = null
 }
 
+// 切换Vditor编辑模式
+const switchVditorMode = async (mode: 'wysiwyg' | 'ir' | 'sv') => {
+    if (!vditor.value) return;
+    try {
+        // Vditor的setMode方法在工具栏按钮中，这里通过工具栏按钮触发
+        const vditorInstance = vditor.value.vditor;
+        if (vditorInstance && (vditorInstance as any).setMode) {
+            (vditorInstance as any).setMode(mode);
+        } else {
+            // 如果setMode不存在，尝试通过工具栏按钮触发
+            const toolbarElement = vditorInstance?.element?.querySelector('.vditor-toolbar');
+            const modeButton = toolbarElement?.querySelector(`[data-name="mode"]`) as HTMLElement;
+            if (modeButton) {
+                // 点击模式按钮会循环切换模式，需要多次点击直到切换到目标模式
+                const currentMode = vditor.value.getCurrentMode?.() || 'ir';
+                const modes: ('wysiwyg' | 'ir' | 'sv')[] = ['wysiwyg', 'ir', 'sv'];
+                const currentIndex = modes.indexOf(currentMode as any);
+                const targetIndex = modes.indexOf(mode);
+                if (currentIndex !== targetIndex) {
+                    const clicks = (targetIndex - currentIndex + modes.length) % modes.length;
+                    for (let i = 0; i < clicks; i++) {
+                        modeButton.click();
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                }
+            }
+        }
+        await setSetting('vditorMode', mode);
+        await nextTick();
+        await bindTitleMenu();
+    } catch (error) {
+        logger.error('切换Vditor模式失败', error);
+    }
+};
+
 // 更新大纲
 const bindTitleMenu = async () => {
     if (!isActive.value) return;
     const editorRoot = getEditorRoot();
     if (!editorRoot) return;
-    let sections = Array.from(editorRoot.querySelectorAll('.vditor-ir__node')).filter(node =>
-        ['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes((node as Element).tagName));
+    
+    // 根据当前模式选择不同的选择器
+    const currentMode = (vditor.value?.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv') || 'ir';
+    let sections: Element[] = [];
+    
+    if (currentMode === 'ir') {
+        // IR模式：使用.vditor-ir__node
+        sections = Array.from(editorRoot.querySelectorAll('.vditor-ir__node')).filter(node =>
+            ['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes((node as Element).tagName));
+    } else if (currentMode === 'wysiwyg') {
+        // WYSIWYG模式：标题直接在.vditor-reset下的H1-H6标签
+        // 根据实际DOM结构：<div class="vditor-wysiwyg"><pre class="vditor-reset"><h1>...</h1></pre></div>
+        const wysiwygContainer = editorRoot.querySelector('.vditor-wysiwyg .vditor-reset') || editorRoot.querySelector('.vditor-wysiwyg');
+        if (wysiwygContainer) {
+            // 直接查找.vditor-reset下的H1-H6标签
+            sections = Array.from(wysiwygContainer.querySelectorAll('h1, h2, h3, h4, h5, h6')).filter(node => {
+                // 确保不在预览区域
+                const isInPreview = (node as Element).closest('.vditor-preview');
+                return !isInPreview;
+            });
+            
+            // 如果没找到，尝试查找.vditor-wysiwyg__block下的标题（备用方案）
+            if (sections.length === 0) {
+                const wysiwygBlocks = Array.from(wysiwygContainer.querySelectorAll('.vditor-wysiwyg__block'));
+                sections = wysiwygBlocks.filter(block => {
+                    if (!block || !block.classList) return false;
+                    const heading = block.querySelector('h1, h2, h3, h4, h5, h6');
+                    return heading !== null;
+                });
+            }
+        }
+    } else if (currentMode === 'sv') {
+        // SV模式：使用.vditor-sv__node
+        sections = Array.from(editorRoot.querySelectorAll('.vditor-sv__node')).filter(node =>
+            ['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes((node as Element).tagName));
+    }
 
     // 处理大纲树和标题绑定
     const outlineTree = currentOutline.value;
@@ -863,16 +936,87 @@ const bindTitleMenu = async () => {
     dfsOutlineTree(outlineTree);
     treeNodeQueue.shift(); // 移除 'dummy' 节点
 
+    // 先移除所有旧的事件监听器
+    sections.forEach((section) => {
+        if ((section as any)._titleMousedownHandler) {
+            section.removeEventListener('mousedown', (section as any)._titleMousedownHandler, true);
+            section.removeEventListener('mouseup', (section as any)._titleMouseupHandler, true);
+            section.removeEventListener('mouseleave', (section as any)._titleMouseleaveHandler, true);
+            (section as any)._titleMousedownHandler = null;
+            (section as any)._titleMouseupHandler = null;
+            (section as any)._titleMouseleaveHandler = null;
+        }
+    });
+
     sections.forEach((section, i) => {
         const node = treeNodeQueue[i];
-        if (node?.path) {
-            (section as Element).setAttribute('path', node.path);
+        if (!section || !node?.path) return;
+        
+        // 检查元素是否仍然在DOM中
+        if (!section.isConnected) {
+            logger.debug('元素已不在DOM中，跳过', { i });
+            return;
         }
-        section.addEventListener('mousedown', (event) => mouseDownEvent(event as MouseEvent, section as HTMLElement));
-        section.addEventListener('mouseup', (event) => mouseUpEvent(event as MouseEvent, section as HTMLElement));
-        section.addEventListener('mouseleave', (event) => mouseLeaveEvent(event as MouseEvent, section as HTMLElement));
-        //添加tooltip
-        (section as Element).setAttribute('title', t('article.long_press_optimize'));
+        
+        try {
+            // 对于WYSIWYG模式，标题直接在.vditor-reset下，直接设置path
+            if (currentMode === 'wysiwyg') {
+                // 检查是否是H1-H6标签
+                if (['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes((section as Element).tagName)) {
+                    if (section.isConnected) {
+                        (section as Element).setAttribute('path', node.path);
+                    }
+                } else if (section.classList && section.classList.contains && section.classList.contains('vditor-wysiwyg__block')) {
+                    // 如果是block，找到其中的标题元素来设置path
+                    const heading = section.querySelector('h1, h2, h3, h4, h5, h6');
+                    if (heading && heading.isConnected) {
+                        heading.setAttribute('path', node.path);
+                    }
+                    // 也在block上设置path，方便查找
+                    if (section.isConnected) {
+                        (section as Element).setAttribute('path', node.path);
+                    }
+                } else {
+                    if (section.isConnected) {
+                        (section as Element).setAttribute('path', node.path);
+                    }
+                }
+            } else {
+                if (section.isConnected) {
+                    (section as Element).setAttribute('path', node.path);
+                }
+            }
+            
+            // 只有在元素仍在DOM中时才添加事件监听器
+            if (section.isConnected) {
+                // 创建事件处理函数并保存引用，以便后续移除
+                const handleMousedown = (event: Event) => {
+                    // 在WYSIWYG模式下，可能需要阻止默认行为，但允许事件传播
+                    mouseDownEvent(event as MouseEvent, section as HTMLElement);
+                };
+                const handleMouseup = (event: Event) => {
+                    mouseUpEvent(event as MouseEvent, section as HTMLElement);
+                };
+                const handleMouseleave = (event: Event) => {
+                    mouseLeaveEvent(event as MouseEvent, section as HTMLElement);
+                };
+                
+                // 保存处理函数引用以便后续移除
+                (section as any)._titleMousedownHandler = handleMousedown;
+                (section as any)._titleMouseupHandler = handleMouseup;
+                (section as any)._titleMouseleaveHandler = handleMouseleave;
+                
+                // 添加事件监听器，使用capture模式确保能捕获到事件（特别是在WYSIWYG模式下）
+                section.addEventListener('mousedown', handleMousedown, true);
+                section.addEventListener('mouseup', handleMouseup, true);
+                section.addEventListener('mouseleave', handleMouseleave, true);
+                
+                //添加tooltip
+                (section as Element).setAttribute('title', t('article.long_press_optimize'));
+            }
+        } catch (error) {
+            logger.warn('绑定标题事件失败', { error, section, node, isConnected: section.isConnected });
+        }
     });
 
     const outlineNode = editorRoot.querySelector('.vditor-outline__content');
@@ -881,15 +1025,47 @@ const bindTitleMenu = async () => {
         ? Array.from(outlineNode.getElementsByTagName('span'))
             .filter(node => !node.hasAttribute('data-target-id'))
         : [];
+    
+    // 先移除所有旧的事件监听器（通过data-bound标记）
+    outlineSections.forEach((section) => {
+        const target = section as HTMLElement;
+        if ((target as any)._outlineClickHandler) {
+            target.removeEventListener('click', (target as any)._outlineClickHandler);
+            target.removeEventListener('mousedown', (target as any)._outlineMousedownHandler);
+            target.removeEventListener('mouseup', (target as any)._outlineMouseupHandler);
+            target.removeEventListener('mouseleave', (target as any)._outlineMouseleaveHandler);
+        }
+    });
+    
     outlineSections.forEach((section, i) => {
         const node = treeNodeQueue[i];
-        const target = section;
+        const target = section as HTMLElement;
         if (node?.path) {
             target.setAttribute('path', node.path);
         }
-        target.addEventListener('mousedown', (event) => outlineMouseDownEvent(event, section));
-        target.addEventListener('mouseup', (event) => mouseUpEvent(event, section));
-        target.addEventListener('mouseleave', (event) => mouseLeaveEvent(event, section));
+        
+        // 创建事件处理函数
+        const handleClick = (event: MouseEvent) => {
+            event.preventDefault();
+            event.stopPropagation();
+            outlineMouseDownEvent(event, target);
+        };
+        
+        const handleMousedown = (event: MouseEvent) => outlineMouseDownEvent(event, target);
+        const handleMouseup = (event: MouseEvent) => mouseUpEvent(event, target);
+        const handleMouseleave = (event: MouseEvent) => mouseLeaveEvent(event, target);
+        
+        // 保存处理函数引用以便后续移除
+        (target as any)._outlineClickHandler = handleClick;
+        (target as any)._outlineMousedownHandler = handleMousedown;
+        (target as any)._outlineMouseupHandler = handleMouseup;
+        (target as any)._outlineMouseleaveHandler = handleMouseleave;
+        
+        // 添加事件监听器
+        target.addEventListener('click', handleClick);
+        target.addEventListener('mousedown', handleMousedown);
+        target.addEventListener('mouseup', handleMouseup);
+        target.addEventListener('mouseleave', handleMouseleave);
         //鼠标指针改成pointer
         target.style.cursor = 'pointer';
         //添加tooltip
@@ -905,13 +1081,123 @@ let isLongPress = false;
 
 const outlineMouseDownEvent = (event: MouseEvent, section: HTMLElement) => {
     const editorRoot = getEditorRoot();
-    const titles = editorRoot ? editorRoot.getElementsByClassName('vditor-ir__node') : [];
+    if (!editorRoot || !vditor.value) return;
+    
+    const currentMode = (vditor.value.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv') || 'ir';
+    
     const path = section.getAttribute('path');
-    //找到titles里面的第一个包含path的元素
-    const title = Array.from(titles).find(title => title.getAttribute('path') === path);
-    //聚焦到这个元素
-    title?.scrollIntoView({ behavior: 'instant', block: 'start' });
-    mouseDownEvent(event, section);
+    if (!path) return;
+    
+    // 确保只在编辑器内容区域查找，而不是大纲区域
+    let editorContent: Element | null = null;
+    if (currentMode === 'ir') {
+        editorContent = editorRoot.querySelector('.vditor-ir');
+    } else if (currentMode === 'wysiwyg') {
+        editorContent = editorRoot.querySelector('.vditor-wysiwyg .vditor-reset') || editorRoot.querySelector('.vditor-wysiwyg');
+    } else if (currentMode === 'sv') {
+        editorContent = editorRoot.querySelector('.vditor-sv.vditor-reset') || editorRoot.querySelector('.vditor-sv');
+    }
+    
+    if (!editorContent) {
+        logger.warn('无法找到编辑器内容区域', { currentMode });
+        return;
+    }
+    
+    let title: Element | null = null;
+    
+    // 根据当前模式选择不同的查找方式，只在编辑器内容区域查找
+    if (currentMode === 'ir') {
+        const titles = editorContent.getElementsByClassName('vditor-ir__node');
+        title = Array.from(titles).find(t => t.getAttribute('path') === path) || null;
+    } else if (currentMode === 'wysiwyg') {
+        // WYSIWYG模式：标题直接在.vditor-reset下的H1-H6标签
+        // 方法1：直接查找所有H1-H6标签
+        const headings = editorContent.querySelectorAll('h1, h2, h3, h4, h5, h6');
+        title = Array.from(headings).find(h => {
+            // 确保不在预览区域和大纲区域
+            const isInPreview = h.closest('.vditor-preview');
+            const isInOutline = h.closest('.vditor-outline');
+            return !isInPreview && !isInOutline && h.getAttribute('path') === path;
+        }) || null;
+        
+        // 方法2：如果方法1没找到，尝试查找.vditor-wysiwyg__block下的标题
+        if (!title) {
+            const blocks = editorContent.getElementsByClassName('vditor-wysiwyg__block');
+            const block = Array.from(blocks).find(b => {
+                const blockPath = b.getAttribute('path');
+                if (blockPath === path) return true;
+                // 也检查block内的标题
+                const heading = b.querySelector('h1, h2, h3, h4, h5, h6');
+                return heading && heading.getAttribute('path') === path;
+            });
+            
+            if (block) {
+                // 优先使用标题元素
+                const heading = block.querySelector('h1, h2, h3, h4, h5, h6');
+                if (heading && heading.getAttribute('path') === path) {
+                    title = heading;
+                } else if (block.getAttribute('path') === path) {
+                    // 如果block有path，使用block
+                    title = block;
+                } else if (heading) {
+                    // 如果block有path但标题没有，也使用标题（可能path在block上）
+                    title = heading;
+                }
+            }
+        }
+        
+        // 方法3：如果还是没找到，尝试查找所有有path的元素（但排除大纲区域和预览区域）
+        if (!title) {
+            const allElements = editorContent.querySelectorAll('[path]');
+            title = Array.from(allElements).find(el => {
+                // 确保不在大纲区域和预览区域
+                const isInOutline = el.closest('.vditor-outline');
+                const isInPreview = el.closest('.vditor-preview');
+                return !isInOutline && !isInPreview && el.getAttribute('path') === path;
+            }) || null;
+        }
+    } else if (currentMode === 'sv') {
+        const titles = editorContent.getElementsByClassName('vditor-sv__node');
+        title = Array.from(titles).find(t => t.getAttribute('path') === path) || null;
+    }
+    
+    if (title) {
+        // 聚焦到这个元素（在编辑器内容区域内）
+        title.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+        
+        // 如果是IR或SV模式，尝试将光标定位到标题
+        if (currentMode === 'ir' || currentMode === 'sv') {
+            const range = document.createRange();
+            const sel = window.getSelection();
+            if (sel && title.firstChild) {
+                range.setStart(title.firstChild, 0);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        } else if (currentMode === 'wysiwyg') {
+            // WYSIWYG模式：尝试聚焦到标题元素或block
+            const targetElement = title.querySelector('h1, h2, h3, h4, h5, h6') || title;
+            (targetElement as HTMLElement).focus?.();
+            
+            // 尝试设置光标位置
+            const range = document.createRange();
+            const sel = window.getSelection();
+            if (sel && targetElement.firstChild) {
+                range.setStart(targetElement.firstChild, 0);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }
+    } else {
+        logger.warn('未找到对应的标题元素', { path, currentMode });
+    }
+    
+    // 如果不是点击事件（而是mousedown），继续处理长按逻辑
+    if (event.type === 'mousedown') {
+        mouseDownEvent(event, section);
+    }
 };
 const mouseDownEvent = (event: MouseEvent, section: HTMLElement) => {
     isLongPress = false;
@@ -962,9 +1248,10 @@ const handleTab = (event: KeyboardEvent) => {
             return;
         }
         
-        //如果AISuggestion在工作，不插入制表符
-        if (triggerSuggestion.value) {
-            //logger.log('AI Suggestion is active, tab key pressed');
+        // 检查是否有AI补全正在进行（通过检查ghost text是否存在）
+        const hasActiveSuggestion = document.querySelector('.ai-suggestion-insert, .ai-suggestion-insert-dark');
+        if (hasActiveSuggestion) {
+            // AI补全正在进行，不插入制表符
             return;
         }
         else {
@@ -1058,9 +1345,16 @@ onMounted(async () => {
             cdn = vditorCDN;
         }
         const autoSaveExternalImage = await getSetting('autoSaveExternalImage');
+        // 读取Vditor模式设置，如果不存在则使用默认值'ir'，并保存默认值
+        let vditorMode = await getSetting('vditorMode');
+        if (!vditorMode || !['wysiwyg', 'ir', 'sv'].includes(vditorMode)) {
+            vditorMode = 'ir'; // 默认使用ir模式
+            await setSetting('vditorMode', vditorMode); // 保存默认值
+        }
         const supportedLang = ["en_US", "fr_FR", "pt_BR", "ja_JP", "ko_KR", "ru_RU", "sv_SE", "zh_CN", "zh_TW"]
         vditor.value = new Vditor(props.editorDomId, {
             lang: supportedLang.includes(t('lang') as string) ? (t('lang') as any) : 'en_US',
+            mode: vditorMode as 'wysiwyg' | 'ir' | 'sv',
             toolbarConfig: { pin: true },
             theme: themeState.currentTheme.vditorTheme as any,
             preview: {
@@ -1159,6 +1453,12 @@ onMounted(async () => {
                     tip: t('article.toolbar.quote'),
                     tipPosition: "s",
                 },
+                {
+                    name: 'edit-mode',
+                    tip: t('article.toolbar.mode'),
+                    tipPosition: 's',
+                    hotkey: '⌘⇧M',
+                },
 
                 {
                     name: 'search-replace',
@@ -1184,6 +1484,10 @@ onMounted(async () => {
             outline: {
                 enable: true,
                 position: "left",
+            },
+            // 显式设置 customWysiwygToolbar 为空函数以避免类型错误
+            customWysiwygToolbar: () => {
+                // 空函数，不使用自定义工具栏
             },
             value: currentMarkdown.value,
             input: async (value) => {
@@ -1222,6 +1526,118 @@ onMounted(async () => {
                     await bindTitleMenu();
                     // 初始化大纲显示状态
                     await nextTick();
+                    
+                    // 监听模式切换事件
+                    if (vditor.value?.vditor?.element) {
+                        const editorElement = vditor.value.vditor.element;
+                        // 保存上一次的模式，用于检测变化
+                        let lastMode = vditor.value?.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv' || 'ir';
+                        
+                        const handleModeChange = async () => {
+                            // 延迟一下，确保模式已经切换完成
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                            await nextTick();
+                            
+                            // 获取当前模式并保存到设置
+                            if (vditor.value) {
+                                const currentMode = vditor.value.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv';
+                                if (currentMode && currentMode !== lastMode) {
+                                    await setSetting('vditorMode', currentMode);
+                                    lastMode = currentMode;
+                                    logger.debug('Vditor模式已切换并保存', { mode: currentMode });
+                                }
+                            }
+                            await bindTitleMenu();
+                        };
+                        
+                        // 监听Vditor内部的模式切换
+                        const vditorInstance = vditor.value.vditor;
+                        if (vditorInstance) {
+                            // 通过监听工具栏按钮点击来检测模式切换
+                            const toolbarElement = editorElement.querySelector('.vditor-toolbar');
+                            if (toolbarElement) {
+                                // 监听模式切换按钮（Vditor内部使用的是 'edit-mode' 作为按钮名称）
+                                const modeButton = toolbarElement.querySelector('[data-name="edit-mode"]');
+                                if (modeButton) {
+                                    modeButton.addEventListener('click', handleModeChange);
+                                }
+                                
+                                // 也监听可能的其他模式切换方式
+                                const modeButtons = toolbarElement.querySelectorAll('[data-name="mode"], [data-name="edit-mode"]');
+                                modeButtons.forEach(btn => {
+                                    // 避免重复添加监听器
+                                    if (!(btn as any)._modeChangeHandler) {
+                                        (btn as any)._modeChangeHandler = handleModeChange;
+                                        btn.addEventListener('click', handleModeChange);
+                                    }
+                                });
+                                
+                                // 使用MutationObserver监听编辑器内容区域的变化，检测模式切换
+                                const editorContent = editorElement.querySelector('.vditor-content');
+                                if (editorContent) {
+                                    const modeObserver = new MutationObserver(async () => {
+                                        if (vditor.value) {
+                                            const currentMode = vditor.value.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv';
+                                            if (currentMode && currentMode !== lastMode) {
+                                                await setSetting('vditorMode', currentMode);
+                                                lastMode = currentMode;
+                                                logger.debug('通过MutationObserver检测到模式切换并保存', { mode: currentMode });
+                                                await bindTitleMenu();
+                                            }
+                                        }
+                                    });
+                                    
+                                    modeObserver.observe(editorContent, {
+                                        childList: true,
+                                        subtree: true,
+                                        attributes: true,
+                                        attributeFilter: ['class']
+                                    });
+                                    
+                                    // 保存observer以便后续清理
+                                    (vditor.value as any)._modeObserver = modeObserver;
+                                }
+                                
+                                // 监听大纲按钮的点击事件
+                                const outlineButton = toolbarElement.querySelector('[data-name="outline"]');
+                                if (outlineButton) {
+                                    outlineButton.addEventListener('click', async () => {
+                                        // 等待大纲显示/隐藏动画完成
+                                        await new Promise(resolve => setTimeout(resolve, 300));
+                                        await nextTick();
+                                        await bindTitleMenu();
+                                    });
+                                }
+                            }
+                            
+                            // 使用MutationObserver监听大纲DOM的变化
+                            const outlineContainer = editorElement.querySelector('.vditor-outline');
+                            if (outlineContainer) {
+                                const outlineObserver = new MutationObserver(async (mutations) => {
+                                    // 检查大纲是否从隐藏变为显示
+                                    const isVisible = outlineContainer.classList.contains('vditor-outline--show') || 
+                                                       (outlineContainer as HTMLElement).offsetWidth > 0;
+                                    
+                                    if (isVisible) {
+                                        // 等待DOM更新完成
+                                        await nextTick();
+                                        await new Promise(resolve => setTimeout(resolve, 100));
+                                        await bindTitleMenu();
+                                    }
+                                });
+                                
+                                outlineObserver.observe(outlineContainer, {
+                                    attributes: true,
+                                    attributeFilter: ['class', 'style'],
+                                    childList: true,
+                                    subtree: true
+                                });
+                                
+                                // 保存observer以便清理
+                                (vditor.value as any)._outlineObserver = outlineObserver;
+                            }
+                        }
+                    }
 
                 } catch (e) {
                     logger.error(e);
@@ -1247,9 +1663,18 @@ onMounted(async () => {
                             const handleMouseDown = (e: MouseEvent) => {
                                 // 只处理左键点击（button === 0），右键点击（button === 2）不处理
                                 if (e.button === 0) {
-                                    // 检查是否点击在编辑器内容区域（不是工具栏等）
+                                    // 检查是否点击在ghost text上
                                     const target = e.target as HTMLElement;
-                                    if (target && (target.closest('.vditor-content') || target.closest('.vditor-ir'))) {
+                                    const isGhostText = target?.closest('.ai-suggestion-insert, .ai-suggestion-insert-dark');
+                                    
+                                    if (isGhostText) {
+                                        // 如果点击的是ghost text，不取消补全，让AISuggestionGhost组件处理接受
+                                        // 不调用handleMouseClick，让点击事件传播到ghost text元素
+                                        return;
+                                    }
+                                    
+                                    // 检查是否点击在编辑器内容区域（不是工具栏等）
+                                    if (target && (target.closest('.vditor-content') || target.closest('.vditor-ir') || target.closest('.vditor-wysiwyg') || target.closest('.vditor-sv'))) {
                                         markEditorInteraction();
                                         aiCompletionService.handleMouseClick();
                                     }
@@ -1296,7 +1721,6 @@ onMounted(async () => {
                         (vditor.value as any)._aiCompletionCleanup = [
                             ...originalCleanup,
                             () => {
-                                clearInterval(checkCursorInterval);
                                 if (editorElement) {
                                     editorElement.removeEventListener('mousedown', handleMouseDown);
                                     editorElement.removeEventListener('keydown', handleKeyDown);
@@ -1339,6 +1763,11 @@ onBeforeUnmount(() => {
     const instance = vditor.value;
     if (instance && (instance as any).element) {
         try {
+            // 清理大纲Observer
+            if ((instance as any)._outlineObserver) {
+                (instance as any)._outlineObserver.disconnect();
+                (instance as any)._outlineObserver = null;
+            }
             instance.destroy();
         } catch (error) {
             logger.warn('销毁 Vditor 失败，将忽略', error);

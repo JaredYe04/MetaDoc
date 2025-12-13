@@ -451,12 +451,209 @@ function updateVditorGhostText(text: string) {
   
   const range = sel.getRangeAt(0).cloneRange()
   
+  // 检查是否在预览区域或大纲区域，如果是，需要找到编辑器区域
+  let startContainer = range.startContainer
+  const previewElement = startContainer.nodeType === Node.ELEMENT_NODE 
+    ? (startContainer as Element).closest('.vditor-preview')
+    : startContainer.parentElement?.closest('.vditor-preview')
+  
+  const outlineElement = startContainer.nodeType === Node.ELEMENT_NODE 
+    ? (startContainer as Element).closest('.vditor-outline')
+    : startContainer.parentElement?.closest('.vditor-outline')
+  
+  // 检查是否在编辑器内容区域
+  // 对于分屏模式，需要检查 .vditor-sv.vditor-reset 或 .vditor-sv
+  // 对于其他模式，检查 .vditor-reset, .vditor-ir, .vditor-wysiwyg
+  let isInEditorContent = false
+  if (startContainer.nodeType === Node.ELEMENT_NODE) {
+    const closest = (startContainer as Element).closest('.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg')
+    isInEditorContent = !!closest
+  } else {
+    const closest = startContainer.parentElement?.closest('.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg')
+    isInEditorContent = !!closest
+  }
+  
+  // 如果不在编辑器内容区域，或者在预览/大纲区域，需要切换到编辑器区域
+  if (previewElement || outlineElement || !isInEditorContent) {
+    // 如果在预览区域或大纲区域，需要找到编辑器区域
+    const editorRoot = props.targetEl
+    if (editorRoot) {
+      // 查找编辑器内容区域（根据不同的模式）
+      // 优先查找.vditor-reset（所有模式都有），然后根据模式查找特定区域
+      let editorContent = editorRoot.querySelector('.vditor-reset')
+      
+      // 如果没找到，尝试查找特定模式的内容区域
+      if (!editorContent) {
+        editorContent = editorRoot.querySelector('.vditor-ir, .vditor-wysiwyg, .vditor-sv')
+      }
+      
+      // 对于WYSIWYG模式，需要查找.vditor-wysiwyg .vditor-reset
+      if (!editorContent) {
+        const wysiwygContainer = editorRoot.querySelector('.vditor-wysiwyg')
+        if (wysiwygContainer) {
+          editorContent = wysiwygContainer.querySelector('.vditor-reset') || wysiwygContainer
+        }
+      }
+      
+      // 对于SV模式，需要查找.vditor-sv.vditor-reset（注意：这是两个类名，不是后代选择器）
+      if (!editorContent) {
+        // 先尝试查找同时包含两个类的元素
+        const svElements = editorRoot.querySelectorAll('.vditor-sv')
+        for (const el of Array.from(svElements)) {
+          if (el.classList.contains('vditor-reset')) {
+            editorContent = el
+            break
+          }
+        }
+        // 如果还是没找到，尝试查找.vditor-sv
+        if (!editorContent) {
+          editorContent = editorRoot.querySelector('.vditor-sv')
+        }
+      }
+      
+      if (editorContent) {
+        // 尝试在编辑器内容区域创建range
+        try {
+          const newRange = document.createRange()
+          
+          // 对于分屏模式，需要找到当前光标在编辑器中的实际位置
+          // 分屏模式的DOM结构：<pre class="vditor-sv vditor-reset"><div data-block="0"><span data-type="text">...</span></div></pre>
+          let targetNode: Node | null = null
+          let targetOffset = 0
+          
+          // 尝试从当前range找到在编辑器内容区域内的对应位置
+          const currentContainer = range.startContainer
+          const currentOffset = range.startOffset
+          
+          // 检查当前容器是否在编辑器内容区域内
+          let currentInEditor = false
+          if (currentContainer.nodeType === Node.ELEMENT_NODE) {
+            currentInEditor = editorContent.contains(currentContainer) && 
+              (currentContainer as Element).closest('.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg') === editorContent
+          } else {
+            currentInEditor = editorContent.contains(currentContainer) && 
+              currentContainer.parentElement?.closest('.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg') === editorContent
+          }
+          
+          if (currentInEditor) {
+            // 如果当前容器在编辑器内容区域内，直接使用
+            targetNode = currentContainer
+            targetOffset = currentOffset
+          } else {
+            // 否则，找到编辑器内容区域内的最后一个文本节点
+            // 对于分屏模式，优先查找 <span data-type="text"> 内的文本节点
+            const walker = document.createTreeWalker(
+              editorContent,
+              NodeFilter.SHOW_TEXT,
+              {
+                acceptNode: (node) => {
+                  // 排除预览区域和大纲区域
+                  const parent = node.parentElement
+                  if (parent) {
+                    if (parent.closest('.vditor-preview') || parent.closest('.vditor-outline')) {
+                      return NodeFilter.FILTER_REJECT
+                    }
+                    // 对于分屏模式，优先选择在 <span data-type="text"> 内的文本节点
+                    if (parent.hasAttribute('data-type') && parent.getAttribute('data-type') === 'text') {
+                      return NodeFilter.FILTER_ACCEPT
+                    }
+                  }
+                  return NodeFilter.FILTER_ACCEPT
+                }
+              }
+            )
+            
+            let lastTextNode: Node | null = null
+            while (walker.nextNode()) {
+              lastTextNode = walker.currentNode
+            }
+            
+            if (lastTextNode && lastTextNode.nodeType === Node.TEXT_NODE) {
+              targetNode = lastTextNode
+              targetOffset = lastTextNode.textContent?.length || 0
+            } else {
+              // 如果没有文本节点，尝试找到最后一个 <span data-type="text"> 元素
+              const textSpans = editorContent.querySelectorAll('span[data-type="text"]')
+              if (textSpans.length > 0) {
+                const lastSpan = textSpans[textSpans.length - 1]
+                if (lastSpan.lastChild && lastSpan.lastChild.nodeType === Node.TEXT_NODE) {
+                  targetNode = lastSpan.lastChild
+                  targetOffset = lastSpan.lastChild.textContent?.length || 0
+                } else {
+                  // 如果没有文本节点，在最后一个span后插入
+                  targetNode = lastSpan
+                  targetOffset = lastSpan.childNodes.length
+                }
+              } else {
+                // 如果都没有，使用编辑器内容的末尾
+                targetNode = editorContent
+                targetOffset = editorContent.childNodes.length
+              }
+            }
+          }
+          
+          if (targetNode) {
+            if (targetNode.nodeType === Node.TEXT_NODE) {
+              newRange.setStart(targetNode, targetOffset)
+              newRange.setEnd(targetNode, targetOffset)
+            } else if (targetNode.nodeType === Node.ELEMENT_NODE) {
+              if (targetOffset > 0 && targetOffset < targetNode.childNodes.length) {
+                newRange.setStart(targetNode, targetOffset)
+                newRange.setEnd(targetNode, targetOffset)
+              } else {
+                newRange.selectNodeContents(targetNode)
+                newRange.collapse(false)
+              }
+            } else {
+              newRange.setStart(targetNode, targetOffset)
+              newRange.collapse(true)
+            }
+            
+            range.setStart(newRange.startContainer, newRange.startOffset)
+            range.setEnd(newRange.endContainer, newRange.endOffset)
+            
+            // 更新selection
+            sel.removeAllRanges()
+            sel.addRange(range)
+            
+            logger.debug('已切换到编辑器区域', {
+              editorContent: editorContent.className,
+              targetNode: targetNode.nodeName,
+              targetOffset
+            })
+          }
+        } catch (error) {
+          logger.warn('切换到编辑器区域失败', error)
+          return
+        }
+      } else {
+        logger.warn('无法找到编辑器内容区域', {
+          hasTargetEl: !!editorRoot,
+          targetElId: editorRoot?.id
+        })
+        return
+      }
+    } else {
+      logger.warn('targetEl不存在，无法切换到编辑器区域')
+      return
+    }
+  }
+  
   logger.debug('选择范围', {
     startContainer: range.startContainer.nodeName,
     startOffset: range.startOffset,
     endContainer: range.endContainer.nodeName,
-    endOffset: range.endOffset
+    endOffset: range.endOffset,
+    inPreview: !!previewElement
   })
+  
+  // 检查是否已经存在ghost text元素（避免重复创建）
+  const existingGhostText = props.targetEl?.querySelector('.ai-suggestion-insert, .ai-suggestion-insert-dark')
+  if (existingGhostText && existingGhostText !== suggestionEl) {
+    // 如果存在旧的ghost text但不是当前的，先移除它
+    existingGhostText.remove()
+    suggestionEl = null
+  }
   
   // 如果suggestionEl不存在，创建它
   if (!suggestionEl) {
@@ -465,13 +662,236 @@ function updateVditorGhostText(text: string) {
     // 使用setElTheme函数设置样式（参考AISuggestion.vue）
     setElTheme(suggestionEl)
     
+    // 添加点击事件来接受补全
+    suggestionEl.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const text = aiCompletionService.getGeneratedText()
+      if (text.trim()) {
+        acceptVditorGhostText(text)
+        aiCompletionService.acceptCompletion()
+        emits('accepted', text)
+      }
+    })
+    
     try {
-      range.insertNode(suggestionEl)
-      logger.debug('suggestionEl已插入DOM')
+      // 确保插入到编辑器区域，而不是预览区域或大纲区域
+      const container = range.startContainer.nodeType === Node.ELEMENT_NODE
+        ? range.startContainer as Element
+        : range.startContainer.parentElement
       
-      // 恢复选择
-      sel.removeAllRanges()
-      sel.addRange(range)
+      // 检查是否在预览区域或大纲区域，或者是否在编辑器内容区域
+      const isInPreview = container?.closest('.vditor-preview')
+      const isInOutline = container?.closest('.vditor-outline')
+      let isInEditorContent = false
+      if (container) {
+        const closest = container.closest('.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg')
+        isInEditorContent = !!closest
+      }
+      
+      // 如果不在编辑器内容区域，或者在预览/大纲区域，需要找到编辑器区域并插入
+      if (isInPreview || isInOutline || !isInEditorContent) {
+        // 如果在预览区域或大纲区域，或者不在编辑器内容区域，找到编辑器区域并插入
+        const editorRoot = props.targetEl
+        if (editorRoot) {
+          // 优先查找.vditor-reset（所有模式都有）
+          let editorContent = editorRoot.querySelector('.vditor-reset')
+          
+          // 如果没找到，尝试查找特定模式的内容区域
+          if (!editorContent) {
+            editorContent = editorRoot.querySelector('.vditor-ir, .vditor-wysiwyg, .vditor-sv')
+          }
+          
+          // 对于WYSIWYG模式，需要查找.vditor-wysiwyg .vditor-reset
+          if (!editorContent) {
+            const wysiwygContainer = editorRoot.querySelector('.vditor-wysiwyg')
+            if (wysiwygContainer) {
+              editorContent = wysiwygContainer.querySelector('.vditor-reset') || wysiwygContainer
+            }
+          }
+          
+          // 对于SV模式，需要查找同时包含.vditor-sv和.vditor-reset的元素
+          if (!editorContent) {
+            const svElements = editorRoot.querySelectorAll('.vditor-sv')
+            for (const el of Array.from(svElements)) {
+              if (el.classList.contains('vditor-reset')) {
+                editorContent = el
+                break
+              }
+            }
+            if (!editorContent) {
+              editorContent = editorRoot.querySelector('.vditor-sv')
+            }
+          }
+          
+          if (editorContent) {
+            // 尝试在编辑器内容区域的当前光标位置插入，如果无法确定，则在末尾插入
+            try {
+              // 检查range是否在editorContent内
+              if (editorContent.contains(range.startContainer)) {
+                // 如果range在编辑器内容区域内，直接插入
+                range.insertNode(suggestionEl)
+              } else {
+                // 否则，找到编辑器内容区域的最后一个文本节点或末尾插入
+                // 对于分屏模式，优先查找 <span data-type="text"> 内的文本节点
+                const walker = document.createTreeWalker(
+                  editorContent,
+                  NodeFilter.SHOW_TEXT,
+                  {
+                    acceptNode: (node) => {
+                      // 排除预览区域和大纲区域
+                      const parent = node.parentElement
+                      if (parent) {
+                        if (parent.closest('.vditor-preview') || parent.closest('.vditor-outline')) {
+                          return NodeFilter.FILTER_REJECT
+                        }
+                        // 对于分屏模式，优先选择在 <span data-type="text"> 内的文本节点
+                        if (parent.hasAttribute('data-type') && parent.getAttribute('data-type') === 'text') {
+                          return NodeFilter.FILTER_ACCEPT
+                        }
+                      }
+                      return NodeFilter.FILTER_ACCEPT
+                    }
+                  }
+                )
+                
+                let lastTextNode: Node | null = null
+                while (walker.nextNode()) {
+                  lastTextNode = walker.currentNode
+                }
+                
+                if (lastTextNode && lastTextNode.nodeType === Node.TEXT_NODE) {
+                  // 在最后一个文本节点后插入
+                  const newRange = document.createRange()
+                  newRange.setStartAfter(lastTextNode)
+                  newRange.collapse(true)
+                  newRange.insertNode(suggestionEl)
+                } else {
+                  // 如果没有文本节点，尝试找到最后一个 <span data-type="text"> 元素
+                  const textSpans = editorContent.querySelectorAll('span[data-type="text"]')
+                  if (textSpans.length > 0) {
+                    const lastSpan = textSpans[textSpans.length - 1]
+                    if (lastSpan.lastChild && lastSpan.lastChild.nodeType === Node.TEXT_NODE) {
+                      const newRange = document.createRange()
+                      newRange.setStartAfter(lastSpan.lastChild)
+                      newRange.collapse(true)
+                      newRange.insertNode(suggestionEl)
+                    } else {
+                      // 在最后一个span后插入
+                      lastSpan.appendChild(suggestionEl)
+                    }
+                  } else {
+                    // 在编辑器内容末尾插入
+                    editorContent.appendChild(suggestionEl)
+                  }
+                }
+              }
+            } catch (error) {
+              // 如果插入失败，在末尾插入
+              logger.warn('在编辑器内容区域插入ghost text失败，尝试在末尾插入', error)
+              editorContent.appendChild(suggestionEl)
+            }
+            // 创建新的range并设置光标
+            const newRange = document.createRange()
+            newRange.setStartAfter(suggestionEl)
+            newRange.collapse(true)
+            sel.removeAllRanges()
+            sel.addRange(newRange)
+            logger.debug('suggestionEl已插入到编辑器区域', {
+              editorContent: editorContent.className
+            })
+          } else {
+            logger.warn('无法找到编辑器内容区域')
+            return
+          }
+        } else {
+          logger.warn('targetEl不存在')
+          return
+        }
+      } else {
+        // 正常插入，但需要确保在编辑器内容区域内
+        const finalContainer = range.startContainer.nodeType === Node.ELEMENT_NODE
+          ? range.startContainer as Element
+          : range.startContainer.parentElement
+        const finalIsInPreview = finalContainer?.closest('.vditor-preview')
+        const finalIsInOutline = finalContainer?.closest('.vditor-outline')
+        
+        if (finalIsInPreview || finalIsInOutline) {
+          logger.warn('插入位置在预览或大纲区域，跳过')
+          return
+        }
+        
+        // 检查是否在编辑器内容区域内（.vditor-reset或特定模式的内容区域）
+        let isInEditorContent = false
+        if (finalContainer) {
+          const closest = finalContainer.closest('.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg')
+          isInEditorContent = !!closest
+        }
+        
+        if (!isInEditorContent) {
+          // 如果不在编辑器内容区域，尝试找到正确的区域
+          const editorRoot = props.targetEl
+          if (editorRoot) {
+            // 优先查找.vditor-reset（所有模式都有）
+            let editorContent = editorRoot.querySelector('.vditor-reset')
+            
+            // 如果没找到，尝试查找特定模式的内容区域
+            if (!editorContent) {
+              editorContent = editorRoot.querySelector('.vditor-ir, .vditor-wysiwyg, .vditor-sv')
+            }
+            
+            // 对于WYSIWYG模式，需要查找.vditor-wysiwyg .vditor-reset
+            if (!editorContent) {
+              const wysiwygContainer = editorRoot.querySelector('.vditor-wysiwyg')
+              if (wysiwygContainer) {
+                editorContent = wysiwygContainer.querySelector('.vditor-reset') || wysiwygContainer
+              }
+            }
+            
+            // 对于SV模式，需要查找同时包含.vditor-sv和.vditor-reset的元素
+            if (!editorContent) {
+              const svElements = editorRoot.querySelectorAll('.vditor-sv')
+              for (const el of Array.from(svElements)) {
+                if (el.classList.contains('vditor-reset')) {
+                  editorContent = el
+                  break
+                }
+              }
+              if (!editorContent) {
+                editorContent = editorRoot.querySelector('.vditor-sv')
+              }
+            }
+            
+            if (editorContent) {
+              // 在编辑器内容末尾插入
+              editorContent.appendChild(suggestionEl)
+              // 创建新的range并设置光标
+              const newRange = document.createRange()
+              newRange.setStartAfter(suggestionEl)
+              newRange.collapse(true)
+              sel.removeAllRanges()
+              sel.addRange(newRange)
+              logger.debug('suggestionEl已插入到编辑器区域（正常插入路径）', {
+                editorContent: editorContent.className
+              })
+            } else {
+              logger.warn('无法找到编辑器内容区域（正常插入路径）')
+              return
+            }
+          } else {
+            logger.warn('targetEl不存在（正常插入路径）')
+            return
+          }
+        } else {
+          // 在编辑器内容区域内，正常插入
+          range.insertNode(suggestionEl)
+          logger.debug('suggestionEl已插入DOM')
+          
+          // 恢复选择
+          sel.removeAllRanges()
+          sel.addRange(range)
+        }
+      }
     } catch (error) {
       logger.error('插入suggestionEl失败', error)
       return
@@ -536,21 +956,56 @@ function cancelVditorGhostText() {
  */
 function acceptVditorGhostText(text: string) {
   if (suggestionEl) {
+    // 检查suggestionEl是否仍在DOM中
+    if (!suggestionEl.parentNode) {
+      logger.warn('suggestionEl已不在DOM中，无法接受补全')
+      suggestionEl = null
+      hideTooltip()
+      return
+    }
+    
     // 在suggestionEl之前插入文本节点
     const textNode = document.createTextNode(text)
-    suggestionEl.parentNode?.insertBefore(textNode, suggestionEl)
+    try {
+      suggestionEl.parentNode.insertBefore(textNode, suggestionEl)
+    } catch (error) {
+      logger.error('插入文本节点失败', error)
+      hideTooltip()
+      return
+    }
     
     // 移动光标到新插入文本的末尾
     const sel = window.getSelection()
-    if (sel) {
-      const range = document.createRange()
-      range.setStartAfter(textNode)
-      range.setEndAfter(textNode)
-      sel.removeAllRanges()
-      sel.addRange(range)
+    if (sel && textNode.parentNode) {
+      try {
+        const range = document.createRange()
+        // 确保textNode仍在DOM中
+        if (textNode.parentNode) {
+          range.setStartAfter(textNode)
+          range.setEndAfter(textNode)
+          sel.removeAllRanges()
+          sel.addRange(range)
+        } else {
+          // 如果textNode已被移除，尝试在suggestionEl的位置设置光标
+          if (suggestionEl.parentNode) {
+            range.setStartBefore(suggestionEl)
+            range.setEndBefore(suggestionEl)
+            sel.removeAllRanges()
+            sel.addRange(range)
+          }
+        }
+      } catch (error) {
+        logger.warn('设置光标位置失败', error)
+        // 即使设置光标失败，也继续移除suggestionEl
+      }
     }
     
-    suggestionEl.remove()
+    // 移除suggestionEl
+    try {
+      suggestionEl.remove()
+    } catch (error) {
+      logger.warn('移除suggestionEl失败', error)
+    }
     suggestionEl = null
   }
   hideTooltip()
@@ -616,7 +1071,9 @@ function handleTabKey(e: KeyboardEvent) {
       // 对于md格式，使用aiCompletionService.getGeneratedText()
       // 参考AISuggestion.vue的handleVditorKeydown实现
       const text = aiCompletionService.getGeneratedText()
-      if (text.trim() && suggestionEl) {
+      if (text.trim()) {
+        // 即使suggestionEl不存在，只要有生成的文本，也应该接受补全
+        // 因为ghost text可能已经被插入到DOM中了
         e.preventDefault()
         e.stopPropagation()
         e.stopImmediatePropagation()
@@ -738,7 +1195,14 @@ function setElTheme(element: HTMLElement) {
   }
   
   element.contentEditable = 'false'
-  element.style.pointerEvents = 'none'
+  // 允许pointer事件以便点击接受，但不允许文本选择
+  element.style.pointerEvents = 'auto'
+  element.style.userSelect = 'none'
+  element.style.cursor = 'pointer'
+  // 防止文本选择
+  element.style.webkitUserSelect = 'none'
+  element.style.mozUserSelect = 'none'
+  element.style.msUserSelect = 'none'
 }
 
 // 监听主题变化

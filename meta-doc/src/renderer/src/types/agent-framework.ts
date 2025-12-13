@@ -403,6 +403,8 @@ export interface AgentSession {
   status: AgentSessionStatus
   /** 是否只读（用于模板） */
   readonly?: boolean
+  /** 是否启用内置0号reference（动态获取当前文档内容，默认开启） */
+  enableBuiltInDocumentReference?: boolean
   /** 会话元数据 */
   metadata?: Record<string, unknown>
 }

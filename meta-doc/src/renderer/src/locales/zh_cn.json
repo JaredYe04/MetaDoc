@@ -1345,6 +1345,16 @@
         "processingSlide": "正在处理幻灯片 {current}/{total}",
         "foundSlides": "找到 {count} 张幻灯片",
         "foundImages": "找到 {count} 张图片"
+      },
+      "builtInDocument": {
+        "title": "当前文档引用",
+        "description": "动态获取当前活动文档内容，实时更新，不占用历史消息空间",
+        "enabled": "已启用",
+        "disabled": "已禁用",
+        "preview": "预览",
+        "noActiveDocument": "没有活动的文档",
+        "emptyDocument": "当前文档为空",
+        "currentActiveDocument": "当前活动文档"
       }
     },
     "conversation": {

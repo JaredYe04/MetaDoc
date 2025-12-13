@@ -747,8 +747,10 @@ export class LlmAdapter {
       }
     }
     
-    // 用于跟踪是否已经处理过工具调用
-    let toolCallsProcessed = false
+    // 用于跟踪已经处理过的工具调用ID（避免重复处理）
+    const processedToolCallIds = new Set<string>()
+    // 记录最后一个已处理工具调用的结束位置（用于只解析新内容，避免重复解析）
+    let lastProcessedEndIndex = 0
     
     // 记录初始状态
     getLogger().debug('[callChatViaTask] 初始化工具调用检测:', {
@@ -774,8 +776,8 @@ export class LlmAdapter {
           }
           
           // 检测工具调用标记（仅在流式输出且提供回调时）
-          // 重要：只有在检测到完整的begin和end标记时才触发
-          if (onToolCallsDetected && !toolCallsProcessed) {
+          // 重要：跟踪已处理的工具调用ID，只处理新的工具调用
+          if (onToolCallsDetected) {
             // 检查是否有完整的工具调用标记块（必须同时包含开始和结束标记）
             const toolCallsBeginPattern = /<tool_call>/i
             const toolCallsEndPattern = /<\/tool_call>/i
@@ -804,28 +806,87 @@ export class LlmAdapter {
                 const bracketsMatch = openBrackets === closeBrackets
                 
                 if (hasJsonStart && bracesMatch && bracketsMatch) {
-                  getLogger().debug('[callChatViaTask] ✅ 检测到完整的工具调用标记块，开始解析...', {
+                  // 只解析从上次处理位置之后的新内容，避免重复解析
+                  const contentToParse = newValue.substring(lastProcessedEndIndex)
+                  
+                  getLogger().debug('[callChatViaTask] ✅ 检测到完整的工具调用标记块，开始解析新内容...', {
                     contentLength: newValue.length,
+                    lastProcessedEndIndex,
+                    newContentLength: contentToParse.length,
                     toolCallBlockLength: toolCallBlock.length,
-                    contentSnippet: toolCallBlock.substring(0, Math.min(200, toolCallBlock.length))
+                    contentSnippet: toolCallBlock.substring(0, Math.min(200, toolCallBlock.length)),
+                    processedCount: processedToolCallIds.size
                   })
                   
-                  const toolCalls = parseToolCallsFromContent(newValue)
-                  if (toolCalls && toolCalls.length > 0) {
-                    toolCallsProcessed = true
-                    getLogger().debug('[callChatViaTask] ✅✅✅ 成功解析工具调用，准备触发回调:', {
-                      toolCallsCount: toolCalls.length,
-                      toolCalls: toolCalls.map(tc => ({ 
-                        id: tc.tool_id, 
-                        params: Object.keys(tc.parameters)
-                      }))
-                    })
+                  // 只解析新内容中的工具调用
+                  const allToolCalls = parseToolCallsFromContent(contentToParse)
+                  if (allToolCalls && allToolCalls.length > 0) {
+                    // 找到最后一个工具调用的结束位置（在原内容中的位置）
+                    // 需要在原内容中查找最后一个工具调用的结束标记
+                    let maxEndIndex = lastProcessedEndIndex
+                    const toolCallEndPattern = /<\/tool_call>/gi
+                    let match
+                    while ((match = toolCallEndPattern.exec(contentToParse)) !== null) {
+                      const endIndexInNewContent = match.index + match[0].length
+                      const endIndexInFullContent = lastProcessedEndIndex + endIndexInNewContent
+                      maxEndIndex = Math.max(maxEndIndex, endIndexInFullContent)
+                    }
                     
-                    try {
-                      await onToolCallsDetected(toolCalls)
-                      getLogger().debug('[callChatViaTask] ✅✅✅ 工具调用回调执行成功')
-                    } catch (error) {
-                      getLogger().error('[callChatViaTask] ❌ 工具调用回调执行失败:', error)
+                    // 基于工具调用的内容生成稳定的ID（用于去重）
+                    // 由于工具调用ID是动态生成的，我们需要基于工具ID和参数来去重
+                    const toolCallSignatures = new Set<string>()
+                    const newToolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> = []
+                    
+                    for (const tc of allToolCalls) {
+                      // 生成一个基于工具ID和参数的稳定签名
+                      const signature = `${tc.tool_id}:${JSON.stringify(tc.parameters)}`
+                      if (!toolCallSignatures.has(signature)) {
+                        toolCallSignatures.add(signature)
+                        newToolCalls.push(tc)
+                      } else {
+                        getLogger().debug('[callChatViaTask] 跳过重复的工具调用（基于签名）:', {
+                          tool_id: tc.tool_id,
+                          signature
+                        })
+                      }
+                    }
+                    
+                    if (newToolCalls.length > 0) {
+                      // 更新最后处理位置
+                      lastProcessedEndIndex = maxEndIndex
+                      
+                      // 标记这些工具调用为已处理（基于ID）
+                      newToolCalls.forEach(tc => processedToolCallIds.add(tc.id))
+                      
+                      getLogger().debug('[callChatViaTask] ✅✅✅ 发现新的工具调用，准备触发回调:', {
+                        newToolCallsCount: newToolCalls.length,
+                        totalToolCallsCount: allToolCalls.length,
+                        processedCount: processedToolCallIds.size,
+                        newLastProcessedEndIndex: lastProcessedEndIndex,
+                        newToolCalls: newToolCalls.map(tc => ({ 
+                          id: tc.id,
+                          tool_id: tc.tool_id, 
+                          params: Object.keys(tc.parameters)
+                        }))
+                      })
+                      
+                      try {
+                        await onToolCallsDetected(newToolCalls)
+                        getLogger().debug('[callChatViaTask] ✅✅✅ 工具调用回调执行成功')
+                      } catch (error) {
+                        getLogger().error('[callChatViaTask] ❌ 工具调用回调执行失败:', error)
+                        // 如果回调失败，回滚处理位置，以便重试
+                        // 注意：这里不重置lastProcessedEndIndex，因为内容已经解析了
+                        // 如果重置，可能会导致重复解析。失败的工具调用会在兜底机制中处理
+                      }
+                    } else {
+                      // 即使没有新工具调用，也要更新处理位置（避免重复解析）
+                      lastProcessedEndIndex = maxEndIndex
+                      getLogger().debug('[callChatViaTask] 所有工具调用都已处理过，跳过', {
+                        totalToolCallsCount: allToolCalls.length,
+                        processedCount: processedToolCallIds.size,
+                        newLastProcessedEndIndex: lastProcessedEndIndex
+                      })
                     }
                   } else {
                     getLogger().debug('[callChatViaTask] 检测到工具调用标记，但解析失败，可能JSON不完整，等待更多内容...')
@@ -904,48 +965,93 @@ export class LlmAdapter {
         stopWatcher()
       }
 
-      // 如果流式输出完成但还没有处理工具调用，再次检查（兜底机制）
-      if (onToolCallsDetected && !toolCallsProcessed) {
-        getLogger().debug('[callChatViaTask] 流式输出完成，检查最终结果中是否包含工具调用:', {
+      // 如果流式输出完成，再次检查是否有未处理的工具调用（兜底机制）
+      if (onToolCallsDetected) {
+        getLogger().debug('[callChatViaTask] 流式输出完成，检查最终结果中是否包含未处理的工具调用:', {
           resultLength: resultRef.value.length,
           hasBegin: /<tool_call>/i.test(resultRef.value),
-          hasEnd: /<\/tool_call>/i.test(resultRef.value)
+          hasEnd: /<\/tool_call>/i.test(resultRef.value),
+          processedCount: processedToolCallIds.size
         })
         
+        // 只解析从上次处理位置之后的新内容（兜底机制）
+        const contentToParse = resultRef.value.substring(lastProcessedEndIndex)
+        
         // 首先尝试标准解析（需要完整的begin和end标记）
-        let toolCalls = parseToolCallsFromContent(resultRef.value)
+        let allToolCalls = parseToolCallsFromContent(contentToParse)
         
         // 如果标准解析失败，尝试宽松解析（不需要完整的end标记）
-        if (!toolCalls || toolCalls.length === 0) {
+        if (!allToolCalls || allToolCalls.length === 0) {
           getLogger().debug('[callChatViaTask] 标准解析失败，尝试宽松解析（不需要完整end标记）')
-          toolCalls = parseToolCallsFromContentLoose(resultRef.value)
+          allToolCalls = parseToolCallsFromContentLoose(contentToParse)
         }
         
-        if (toolCalls && toolCalls.length > 0) {
-          toolCallsProcessed = true
-          getLogger().debug('[callChatViaTask] ✅ 流式输出完成，检测到工具调用:', {
-            toolCallsCount: toolCalls.length,
-            toolCalls: toolCalls.map(tc => ({ id: tc.tool_id, params: Object.keys(tc.parameters) }))
-          })
-          try {
-            await onToolCallsDetected(toolCalls)
-            getLogger().debug('[callChatViaTask] ✅ 工具调用回调执行成功')
+        if (allToolCalls && allToolCalls.length > 0) {
+          // 基于工具调用的内容生成稳定的ID（用于去重）
+          const toolCallSignatures = new Set<string>()
+          const newToolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> = []
+          
+          for (const tc of allToolCalls) {
+            // 生成一个基于工具ID和参数的稳定签名
+            const signature = `${tc.tool_id}:${JSON.stringify(tc.parameters)}`
+            if (!toolCallSignatures.has(signature)) {
+              toolCallSignatures.add(signature)
+              newToolCalls.push(tc)
+            } else {
+              getLogger().debug('[callChatViaTask] 跳过重复的工具调用（基于签名）:', {
+                tool_id: tc.tool_id,
+                signature
+              })
+            }
+          }
+          
+          if (newToolCalls.length > 0) {
+            // 更新最后处理位置（整个内容都已处理）
+            lastProcessedEndIndex = resultRef.value.length
             
-            // 注意：不删除markdown中的工具调用标记
-            // 原因：
-            // 1. AI需要看到这些内容来理解上下文（在buildHistoryMessages中会使用）
-            // 2. UI层面（AgentMessageRenderer）已经有逻辑：如果有tool_calls，就不显示markdown，而是显示友好的提示
-            // 3. 这样既保证了AI能看到完整上下文，又保证了用户看到的是友好的UI提示
-          } catch (error) {
-            getLogger().error('[callChatViaTask] ❌ 工具调用回调执行失败:', error)
+            // 标记这些工具调用为已处理
+            newToolCalls.forEach(tc => processedToolCallIds.add(tc.id))
+            
+            getLogger().debug('[callChatViaTask] ✅ 流式输出完成，发现未处理的工具调用:', {
+              newToolCallsCount: newToolCalls.length,
+              totalToolCallsCount: allToolCalls.length,
+              processedCount: processedToolCallIds.size,
+              lastProcessedEndIndex,
+              newToolCalls: newToolCalls.map(tc => ({ id: tc.id, tool_id: tc.tool_id, params: Object.keys(tc.parameters) }))
+            })
+            try {
+              await onToolCallsDetected(newToolCalls)
+              getLogger().debug('[callChatViaTask] ✅ 工具调用回调执行成功')
+              
+              // 注意：不删除markdown中的工具调用标记
+              // 原因：
+              // 1. AI需要看到这些内容来理解上下文（在buildHistoryMessages中会使用）
+              // 2. UI层面（AgentMessageRenderer）已经有逻辑：如果有tool_calls，就不显示markdown，而是显示友好的提示
+              // 3. 这样既保证了AI能看到完整上下文，又保证了用户看到的是友好的UI提示
+            } catch (error) {
+              getLogger().error('[callChatViaTask] ❌ 工具调用回调执行失败:', error)
+              // 如果回调失败，不回滚lastProcessedEndIndex，避免重复解析
+            }
+          } else {
+            // 即使没有新工具调用，也要更新处理位置
+            lastProcessedEndIndex = resultRef.value.length
+            getLogger().debug('[callChatViaTask] 流式输出完成，所有工具调用都已处理过', {
+              totalToolCallsCount: allToolCalls.length,
+              processedCount: processedToolCallIds.size,
+              lastProcessedEndIndex
+            })
           }
         } else {
-          getLogger().warn('[callChatViaTask] ⚠️ 流式输出完成，但未找到工具调用或解析失败', {
-            resultPreview: resultRef.value.substring(Math.max(0, resultRef.value.length - 300))
-          })
+          if (processedToolCallIds.size === 0) {
+            getLogger().warn('[callChatViaTask] ⚠️ 流式输出完成，但未找到工具调用或解析失败', {
+              resultPreview: resultRef.value.substring(Math.max(0, resultRef.value.length - 300))
+            })
+          } else {
+            getLogger().debug('[callChatViaTask] 流式输出完成，未找到新的工具调用（已处理过一些）', {
+              processedCount: processedToolCallIds.size
+            })
+          }
         }
-      } else if (onToolCallsDetected && toolCallsProcessed) {
-        getLogger().debug('[callChatViaTask] 流式输出完成，工具调用已在流式过程中处理')
       } else if (!onToolCallsDetected) {
         getLogger().debug('[callChatViaTask] 流式输出完成，但onToolCallsDetected未提供')
       }

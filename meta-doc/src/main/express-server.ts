@@ -175,8 +175,25 @@ async function setupAPIs(): Promise<void> {
  */
 function setupBodyParser(): void {
   const bodyParser = require('body-parser');
-  expressApp.use(bodyParser.json());
-  expressApp.use(bodyParser.urlencoded({ extended: true }));
+  
+  // 为 LLM API 路由设置更大的 body 限制（50MB，支持大对话历史）
+  // 注意：必须在通用 body-parser 之前设置，以确保匹配优先级
+  expressApp.use('/api/llm', bodyParser.json({ limit: '50mb' }));
+  expressApp.use('/api/llm', bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+  
+  // 其他路由使用默认限制（100kb），跳过已处理的 /api/llm 路径
+  expressApp.use((req, res, next) => {
+    if (req.path.startsWith('/api/llm')) {
+      return next(); // 跳过，因为已经由上面的中间件处理了
+    }
+    bodyParser.json()(req, res, next);
+  });
+  expressApp.use((req, res, next) => {
+    if (req.path.startsWith('/api/llm')) {
+      return next(); // 跳过，因为已经由上面的中间件处理了
+    }
+    bodyParser.urlencoded({ extended: true })(req, res, next);
+  });
 }
 
 function setupRuntimeAPI(): void {
@@ -570,7 +587,7 @@ function setupManualLLMAPI(): void {
                 };
                 res.write(`data: ${JSON.stringify(chunk)}\n\n`);
                 index++;
-                setTimeout(sendChunk, 10); // 模拟流式输出（降低延迟）
+                setTimeout(sendChunk, 2); // 模拟流式输出（降低延迟）
               } else {
                 res.write('data: [DONE]\n\n');
                 res.end();

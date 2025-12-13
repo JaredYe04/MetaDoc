@@ -1,0 +1,24 @@
+请按顺序执行以下工具调用任务，用于测试工具队列是否正常工作：
+
+<tool_call>
+{"name": "timestamp", "arguments": {"format": "all"}}
+</tool_call>
+
+<tool_call>
+{"name": "data-calculation", "arguments": {"expression": "Math.pow(2, 10) + Math.sqrt(144)", "precision": 2}}
+</tool_call>
+
+<tool_call>
+{"name": "chart-generation", "arguments": {"prompt": "生成一个展示数字2的次方关系的折线图，横轴是次方数（1到10），纵轴是结果值", "chartType": "mermaid", "format": "svg"}}
+</tool_call>
+
+<tool_call>
+{"name": "data-calculation", "arguments": {"expression": "(15 * 23) / 3 - 42", "precision": 4}}
+</tool_call>
+
+<tool_call>
+{"name": "timestamp", "arguments": {"format": "all"}}
+</tool_call>
+
+请执行完所有工具调用后，告诉我总共执行了多少个工具，以及最后一个时间戳与第一个时间戳的时间差。
+

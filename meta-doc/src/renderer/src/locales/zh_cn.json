@@ -94,7 +94,8 @@
         "success": "成功",
         "copy": "复制",
         "copySuccess": "已复制到剪贴板",
-        "copyFailed": "复制失败"
+        "copyFailed": "复制失败",
+        "reset": "重置"
     },
     "console": {
         "title": "终端输出",
@@ -1951,5 +1952,170 @@
     "clearFailed": "清空统计数据失败",
     "confirm": "确认",
     "cancel": "取消"
+  },
+  "export": {
+    "options": {
+      "title": "导出选项",
+      "pageSize": {
+        "label": "纸张大小",
+        "description": "选择PDF的纸张大小",
+        "descriptionTex": "选择PDF的纸张大小（需要在LaTeX文档类中配置）",
+        "a4": "A4",
+        "a3": "A3",
+        "a5": "A5",
+        "b5": "B5",
+        "letter": "Letter",
+        "legal": "Legal"
+      },
+      "margins": {
+        "label": "页边距",
+        "description": "PDF页边距设置",
+        "descriptionTex": "PDF页边距设置（注意：LaTeX边距需要在文档中配置）"
+      },
+      "marginTop": {
+        "label": "上边距（英寸）",
+        "description": "PDF上边距，单位：英寸",
+        "descriptionTex": "PDF上边距，单位：英寸（注意：LaTeX边距需要在文档中配置）"
+      },
+      "marginBottom": {
+        "label": "下边距（英寸）",
+        "description": "PDF下边距，单位：英寸"
+      },
+      "marginLeft": {
+        "label": "左边距（英寸）",
+        "description": "PDF左边距，单位：英寸"
+      },
+      "marginRight": {
+        "label": "右边距（英寸）",
+        "description": "PDF右边距，单位：英寸"
+      },
+      "printBackground": {
+        "label": "打印背景",
+        "description": "是否在PDF中包含背景颜色和图片"
+      },
+      "colorMode": {
+        "label": "颜色模式",
+        "description": "PDF的颜色模式（彩色或灰度）",
+        "color": "彩色",
+        "grayscale": "灰度"
+      },
+      "enableStyleMapping": {
+        "label": "启用格式绑定",
+        "description": "是否将Markdown元素映射到Word样式（如标题1、标题2等）"
+      },
+      "normalFontFamily": {
+        "label": "正文字体",
+        "description": "正文使用的字体"
+      },
+      "normalFontSize": {
+        "label": "正文字号（pt）",
+        "description": "正文字体大小，单位：磅（pt）"
+      },
+      "normalLineHeight": {
+        "label": "正文行距",
+        "description": "正文行距倍数"
+      },
+      "heading1FontFamily": {
+        "label": "标题1字体",
+        "description": "一级标题使用的字体"
+      },
+      "heading1FontSize": {
+        "label": "标题1字号（pt）",
+        "description": "一级标题字体大小，单位：磅（pt）"
+      },
+      "heading1LineHeight": {
+        "label": "标题1行距",
+        "description": "一级标题行距倍数"
+      },
+      "heading2FontFamily": {
+        "label": "标题2字体",
+        "description": "二级标题使用的字体"
+      },
+      "heading2FontSize": {
+        "label": "标题2字号（pt）",
+        "description": "二级标题字体大小，单位：磅（pt）"
+      },
+      "heading2LineHeight": {
+        "label": "标题2行距",
+        "description": "二级标题行距倍数"
+      },
+      "heading3FontFamily": {
+        "label": "标题3字体",
+        "description": "三级标题使用的字体"
+      },
+      "heading3FontSize": {
+        "label": "标题3字号（pt）",
+        "description": "三级标题字体大小，单位：磅（pt）"
+      },
+      "heading3LineHeight": {
+        "label": "标题3行距",
+        "description": "三级标题行距倍数"
+      },
+      "heading4FontFamily": {
+        "label": "标题4字体",
+        "description": "四级标题使用的字体"
+      },
+      "heading4FontSize": {
+        "label": "标题4字号（pt）",
+        "description": "四级标题字体大小，单位：磅（pt）"
+      },
+      "heading4LineHeight": {
+        "label": "标题4行距",
+        "description": "四级标题行距倍数"
+      },
+      "inlineStyles": {
+        "label": "内联CSS",
+        "description": "是否将CSS样式内联到HTML中"
+      },
+      "imageProcessing": {
+        "label": "图片处理方式",
+        "description": "选择图片的处理方式：保留原始链接、Base64嵌入或保存到文件夹",
+        "original": "保留原始链接",
+        "base64": "Base64嵌入",
+        "folder": "保存到文件夹"
+      },
+      "includeMetadata": {
+        "label": "包含元数据",
+        "description": "是否在导出的Markdown中包含文档元数据"
+      },
+      "documentClass": {
+        "label": "文档类",
+        "description": "LaTeX文档类"
+      },
+      "includePackages": {
+        "label": "包含常用包",
+        "description": "是否自动包含常用的LaTeX包"
+      }
+    },
+    "adapters": {
+      "mdToPdf": {
+        "name": "Markdown 转 PDF",
+        "description": "将 Markdown 文档导出为 PDF 格式"
+      },
+      "mdToDocx": {
+        "name": "Markdown 转 DOCX",
+        "description": "将 Markdown 文档导出为 DOCX 格式"
+      },
+      "mdToHtml": {
+        "name": "Markdown 转 HTML",
+        "description": "将 Markdown 文档导出为 HTML 格式"
+      },
+      "mdToMd": {
+        "name": "Markdown 转 Markdown",
+        "description": "导出 Markdown 文档"
+      },
+      "mdToTex": {
+        "name": "Markdown 转 LaTeX",
+        "description": "将 Markdown 文档导出为 LaTeX 格式"
+      },
+      "texToPdf": {
+        "name": "LaTeX 转 PDF",
+        "description": "将 LaTeX 文档编译为 PDF 格式"
+      },
+      "texToTex": {
+        "name": "LaTeX 转 LaTeX",
+        "description": "导出 LaTeX 文档"
+      }
+    }
   }
 }

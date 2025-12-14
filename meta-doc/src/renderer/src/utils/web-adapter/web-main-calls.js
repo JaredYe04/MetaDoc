@@ -227,6 +227,28 @@ export function webMainCalls() {
     // Web 环境下无法获取系统主题色，返回 undefined
     return { mode, accentColor: undefined }
   })
+  
+  // 获取系统字体列表（Web 环境下返回默认字体列表）
+  localIpcMain.handle('get-system-fonts', async (event, data) => {
+    // Web 环境下无法获取系统字体，返回默认字体列表
+    return [
+      { name: 'Arial', family: 'Arial' },
+      { name: 'Times New Roman', family: 'Times New Roman' },
+      { name: 'Courier New', family: 'Courier New' },
+      { name: 'Calibri', family: 'Calibri' },
+      { name: 'Verdana', family: 'Verdana' },
+      { name: 'Georgia', family: 'Georgia' },
+      { name: 'Helvetica', family: 'Helvetica' },
+      { name: 'Tahoma', family: 'Tahoma' },
+      { name: 'Trebuchet MS', family: 'Trebuchet MS' },
+      { name: 'Comic Sans MS', family: 'Comic Sans MS' },
+      { name: 'Microsoft YaHei', family: 'Microsoft YaHei' },
+      { name: 'SimSun', family: 'SimSun' },
+      { name: 'SimHei', family: 'SimHei' },
+      { name: 'KaiTi', family: 'KaiTi' },
+      { name: 'FangSong', family: 'FangSong' },
+    ]
+  })
   localIpcMain.handle('simpletex-ocr', async (event, { fileName, fileType, fileBuffer, reqData, header }) => {
     // 重新构造 FormData
     // 重新构造 Buffer

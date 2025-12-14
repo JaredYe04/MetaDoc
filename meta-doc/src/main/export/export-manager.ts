@@ -13,6 +13,12 @@ import { compileLatexToPDF } from '../utils';
 import { createMainLogger } from '../logger';
 import { imageUploadDir } from '../express-server';
 import { MainProgressHandle } from '../utils/progress-handle';
+import {
+  saveImagesToFolder,
+  updateMarkdownImageLinks,
+  updateHtmlImageLinks,
+  updateLatexImageLinks,
+} from '../utils/image-export-service';
 
 const logger = createMainLogger('PDFExport');
 let currentRequestId: string | undefined;
@@ -70,6 +76,7 @@ export interface RendererExportPayload {
   };
   html?: string;
   imageUrls?: string[]; // 预渲染生成的图片 URL，用于清理
+  exportOptions?: any; // 导出选项（从适配器传递）
 }
 
 export interface ExportResponse {
@@ -120,7 +127,11 @@ const writeBinaryFile = async (filePath: string, buffer: Buffer): Promise<void> 
   await fs.promises.writeFile(filePath, buffer);
 };
 
-const convertHtmlToPdfBuffer = async (html: string): Promise<Buffer> => {
+const convertHtmlToPdfBuffer = async (html: string, options?: {
+  margins?: { top: number; bottom: number; left: number; right: number };
+  pageSize?: 'A4' | 'A3' | 'Letter' | 'Legal' | 'A5' | 'B5';
+  printBackground?: boolean;
+}): Promise<Buffer> => {
   logger.info(`开始转换 HTML 到 PDF，HTML 长度: ${html.length}`);
   const win = new BrowserWindow({
     show: false,
@@ -517,22 +528,26 @@ const convertHtmlToPdfBuffer = async (html: string): Promise<Buffer> => {
     logger.info(`图片智能缩放处理完成`);
     
     logger.info('开始生成 PDF');
-    // A4 纸张尺寸：210mm × 297mm (8.27" × 11.69")
-    // 标准页边距设置（参考常见文档标准）：
-    // - Word 默认：上下 1 英寸（2.54cm），左右 1.25 英寸（3.18cm）
-    // - 一般文档：上下 2.54cm，左右 3.17cm
-    // - 紧凑设置（当前）：上下 0.5 英寸（1.27cm），左右 0.5 英寸（1.27cm）
-    // 这个设置既能保证基本的打印边距，又能最大化内容区域
+    // 使用导出选项或默认值
+    const margins = options?.margins || { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 };
+    let pageSize = options?.pageSize || 'A4';
+    // Electron 的 printToPDF 不支持 B5，将其映射为 A4
+    if (pageSize === 'B5') {
+      logger.warn('B5 纸张大小不受支持，使用 A4 代替');
+      pageSize = 'A4';
+    }
+    const printBackground = options?.printBackground !== undefined ? options.printBackground : true;
+    
     const pdfBuffer = await win.webContents.printToPDF({
-      printBackground: true,
+      printBackground,
       margins: {
         marginType: 'custom',
-        top: 0.5,      // 0.5 英寸 (1.27cm) - 紧凑的上边距
-        bottom: 0.5,   // 0.5 英寸 (1.27cm) - 紧凑的下边距
-        left: 0.5,     // 0.5 英寸 (1.27cm) - 紧凑的左边距
-        right: 0.5,    // 0.5 英寸 (1.27cm) - 紧凑的右边距
+        top: margins.top,
+        bottom: margins.bottom,
+        left: margins.left,
+        right: margins.right,
       },
-      pageSize: 'A4',
+      pageSize: pageSize as any, // 类型转换，因为我们已经处理了 B5
     });
     logger.info(`PDF 生成完成，大小: ${pdfBuffer.length} bytes`);
     return pdfBuffer;
@@ -633,9 +648,31 @@ const mapHtmlToWordStyles = (html: string): string => {
   return styledHtml;
 };
 
-const convertMarkdownToDocxBuffer = async (htmlContent: string): Promise<Buffer> => {
-  // 将HTML中的标题和正文映射到Word样式库
-  const styledHtml = mapHtmlToWordStyles(htmlContent);
+const convertMarkdownToDocxBuffer = async (
+  htmlContent: string,
+  options?: {
+    enableStyleMapping?: boolean;
+    styleMapping?: {
+      normal?: { fontFamily: string; fontSize: number; lineHeight: number };
+      heading1?: { fontFamily: string; fontSize: number; lineHeight: number };
+      heading2?: { fontFamily: string; fontSize: number; lineHeight: number };
+      heading3?: { fontFamily: string; fontSize: number; lineHeight: number };
+      heading4?: { fontFamily: string; fontSize: number; lineHeight: number };
+    };
+  }
+): Promise<Buffer> => {
+  // 使用导出选项或默认值
+  const enableStyleMapping = options?.enableStyleMapping !== undefined ? options.enableStyleMapping : true;
+  const styleMapping = options?.styleMapping || {
+    normal: { fontFamily: 'Microsoft YaHei', fontSize: 10.5, lineHeight: 1.15 },
+    heading1: { fontFamily: 'Microsoft YaHei', fontSize: 18, lineHeight: 1.2 },
+    heading2: { fontFamily: 'Microsoft YaHei', fontSize: 16, lineHeight: 1.2 },
+    heading3: { fontFamily: 'Microsoft YaHei', fontSize: 14, lineHeight: 1.2 },
+    heading4: { fontFamily: 'Microsoft YaHei', fontSize: 12, lineHeight: 1.2 },
+  };
+  
+  // 将HTML中的标题和正文映射到Word样式库（如果启用）
+  const styledHtml = enableStyleMapping ? mapHtmlToWordStyles(htmlContent) : htmlContent;
   
   // 添加CSS样式表，定义Word样式库映射和代码框样式
   // Word在转换HTML时会识别这些样式类名并映射到样式库
@@ -643,44 +680,48 @@ const convertMarkdownToDocxBuffer = async (htmlContent: string): Promise<Buffer>
     <style>
       /* Word样式库映射 */
       .Heading1, h1.Heading1 {
-        font-size: 18pt;
+        font-size: ${styleMapping.heading1?.fontSize || 18}pt;
         font-weight: bold;
         color: #000000;
         margin-top: 12pt;
         margin-bottom: 6pt;
-        font-family: "Microsoft YaHei", "SimSun", serif;
+        line-height: ${styleMapping.heading1?.lineHeight || 1.2};
+        font-family: "${styleMapping.heading1?.fontFamily || 'Microsoft YaHei'}", "SimSun", serif;
       }
       .Heading2, h2.Heading2 {
-        font-size: 16pt;
+        font-size: ${styleMapping.heading2?.fontSize || 16}pt;
         font-weight: bold;
         color: #000000;
         margin-top: 10pt;
         margin-bottom: 6pt;
-        font-family: "Microsoft YaHei", "SimSun", serif;
+        line-height: ${styleMapping.heading2?.lineHeight || 1.2};
+        font-family: "${styleMapping.heading2?.fontFamily || 'Microsoft YaHei'}", "SimSun", serif;
       }
       .Heading3, h3.Heading3 {
-        font-size: 14pt;
+        font-size: ${styleMapping.heading3?.fontSize || 14}pt;
         font-weight: bold;
         color: #000000;
         margin-top: 8pt;
         margin-bottom: 4pt;
-        font-family: "Microsoft YaHei", "SimSun", serif;
+        line-height: ${styleMapping.heading3?.lineHeight || 1.2};
+        font-family: "${styleMapping.heading3?.fontFamily || 'Microsoft YaHei'}", "SimSun", serif;
       }
       .Heading4, h4.Heading4 {
-        font-size: 12pt;
+        font-size: ${styleMapping.heading4?.fontSize || 12}pt;
         font-weight: bold;
         color: #000000;
         margin-top: 6pt;
         margin-bottom: 4pt;
-        font-family: "Microsoft YaHei", "SimSun", serif;
+        line-height: ${styleMapping.heading4?.lineHeight || 1.2};
+        font-family: "${styleMapping.heading4?.fontFamily || 'Microsoft YaHei'}", "SimSun", serif;
       }
       .Normal, p.Normal {
-        font-size: 10.5pt;
+        font-size: ${styleMapping.normal?.fontSize || 10.5}pt;
         color: #000000;
         margin-top: 0pt;
         margin-bottom: 6pt;
-        line-height: 1.15;
-        font-family: "Microsoft YaHei", "SimSun", serif;
+        line-height: ${styleMapping.normal?.lineHeight || 1.15};
+        font-family: "${styleMapping.normal?.fontFamily || 'Microsoft YaHei'}", "SimSun", serif;
       }
       
       /* 代码框样式 - 确保代码显示在带边框和背景的框内 */
@@ -996,7 +1037,56 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         percentage: 50,
         params: { format: 'Markdown' }
       });
-      await writeTextFile(targetPath, payload.data.md);
+      
+      let finalMarkdown = payload.data.md;
+      
+      // 处理图片（如果是 folder 模式）
+      const imageProcessing = payload.exportOptions?.imageProcessing;
+      if (imageProcessing === 'folder') {
+        sendProgress(mainWindow, {
+          message: 'agent.reference.progress.exporting',
+          subMessage: 'agent.reference.progress.savingImages',
+          percentage: 60,
+          params: { format: 'Markdown' }
+        });
+        
+        // 提取所有图片 URL
+        const imageUrls: string[] = [];
+        const regex = /!\[.*?\]\((.*?)\)/g;
+        let match;
+        while ((match = regex.exec(finalMarkdown)) !== null) {
+          const url = match[1];
+          if (url.startsWith('http://localhost:52521/images/')) {
+            imageUrls.push(url);
+          }
+        }
+        
+        if (imageUrls.length > 0) {
+          // 创建图片文件夹
+          const docName = path.basename(targetPath, path.extname(targetPath));
+          const imagesFolder = path.join(path.dirname(targetPath), `${docName}_images`);
+          
+          // 保存图片
+          const results = await saveImagesToFolder(imageUrls, imagesFolder);
+          
+          // 创建 URL 到相对路径的映射
+          const imageMappings = new Map<string, string>();
+          for (const result of results) {
+            imageMappings.set(result.originalUrl, result.relativePath);
+          }
+          
+          // 更新 Markdown 中的图片链接
+          finalMarkdown = updateMarkdownImageLinks(finalMarkdown, imageMappings);
+        }
+      }
+      
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exporting',
+        subMessage: 'agent.reference.progress.generatingFile',
+        percentage: 80,
+        params: { format: 'Markdown' }
+      });
+      await writeTextFile(targetPath, finalMarkdown);
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exportComplete',
         percentage: 100,
@@ -1024,13 +1114,56 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         params: { format: 'HTML' }
       });
       const meta = extractDocumentMeta(payload);
+      
+      let finalHtml = payload.html;
+      
+      // 处理图片（如果是 folder 模式）
+      const imageProcessing = payload.exportOptions?.imageProcessing;
+      if (imageProcessing === 'folder') {
+        sendProgress(mainWindow, {
+          message: 'agent.reference.progress.exporting',
+          subMessage: 'agent.reference.progress.savingImages',
+          percentage: 85,
+          params: { format: 'HTML' }
+        });
+        
+        // 提取所有图片 URL
+        const imageUrls: string[] = [];
+        const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+        const matches = Array.from(finalHtml.matchAll(imgRegex));
+        for (const match of matches) {
+          const src = match[1];
+          if (src.startsWith('http://localhost:52521/images/')) {
+            imageUrls.push(src);
+          }
+        }
+        
+        if (imageUrls.length > 0) {
+          // 创建图片文件夹
+          const docName = path.basename(targetPath, path.extname(targetPath));
+          const imagesFolder = path.join(path.dirname(targetPath), `${docName}_images`);
+          
+          // 保存图片
+          const results = await saveImagesToFolder(imageUrls, imagesFolder);
+          
+          // 创建 URL 到相对路径的映射
+          const imageMappings = new Map<string, string>();
+          for (const result of results) {
+            imageMappings.set(result.originalUrl, result.relativePath);
+          }
+          
+          // 更新 HTML 中的图片链接
+          finalHtml = updateHtmlImageLinks(finalHtml, imageMappings);
+        }
+      }
+      
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.generatingFile',
         percentage: 90,
         params: { format: 'HTML' }
       });
-      const wrapped = wrapHtmlWithTemplate(meta, payload.html);
+      const wrapped = wrapHtmlWithTemplate(meta, finalHtml);
       await writeTextFile(targetPath, wrapped);
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exportComplete',
@@ -1065,7 +1198,12 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         percentage: 88,
         params: { format: 'DOCX' }
       });
-      const buffer = await convertMarkdownToDocxBuffer(payload.html);
+      // 从导出选项中提取DOCX选项
+      const docxOptions = payload.exportOptions ? {
+        enableStyleMapping: payload.exportOptions.enableStyleMapping,
+        styleMapping: payload.exportOptions.styleMapping,
+      } : undefined;
+      const buffer = await convertMarkdownToDocxBuffer(payload.html, docxOptions);
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.addingMetadata',
@@ -1129,7 +1267,13 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         percentage: 85,
         params: { format: 'PDF' }
       });
-      const buffer = await convertHtmlToPdfBuffer(htmlDocument);
+      // 从导出选项中提取PDF选项
+      const pdfOptions = payload.exportOptions ? {
+        margins: payload.exportOptions.margins,
+        pageSize: payload.exportOptions.pageSize,
+        printBackground: payload.exportOptions.printBackground,
+      } : undefined;
+      const buffer = await convertHtmlToPdfBuffer(htmlDocument, pdfOptions);
       logger.info(`PDF Buffer 生成完成，大小: ${buffer.length}`);
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
@@ -1196,7 +1340,56 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       percentage: 50,
       params: { format: 'LaTeX' }
     });
-    await writeTextFile(targetPath, payload.data.tex);
+    
+    let finalTex = payload.data.tex;
+    
+    // 处理图片（如果是 folder 模式）
+    const imageProcessing = payload.exportOptions?.imageProcessing;
+    if (imageProcessing === 'folder') {
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exporting',
+        subMessage: 'agent.reference.progress.savingImages',
+        percentage: 60,
+        params: { format: 'LaTeX' }
+      });
+      
+      // 提取所有图片 URL
+      const imageUrls: string[] = [];
+      const latexRegex = /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g;
+      let match;
+      while ((match = latexRegex.exec(finalTex)) !== null) {
+        const imagePath = match[1];
+        if (imagePath.startsWith('http://localhost:52521/images/')) {
+          imageUrls.push(imagePath);
+        }
+      }
+      
+      if (imageUrls.length > 0) {
+        // 创建图片文件夹
+        const docName = path.basename(targetPath, path.extname(targetPath));
+        const imagesFolder = path.join(path.dirname(targetPath), `${docName}_images`);
+        
+        // 保存图片
+        const results = await saveImagesToFolder(imageUrls, imagesFolder);
+        
+        // 创建 URL 到相对路径的映射
+        const imageMappings = new Map<string, string>();
+        for (const result of results) {
+          imageMappings.set(result.originalUrl, result.relativePath);
+        }
+        
+        // 更新 LaTeX 中的图片链接
+        finalTex = updateLatexImageLinks(finalTex, imageMappings);
+      }
+    }
+    
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      subMessage: 'agent.reference.progress.generatingFile',
+      percentage: 80,
+      params: { format: 'LaTeX' }
+    });
+    await writeTextFile(targetPath, finalTex);
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exportComplete',
       percentage: 100,
@@ -1275,6 +1468,13 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
 
     await writePdfMetadataToFile(targetPath, meta);
     
+    // 注意：LaTeX编译的PDF颜色模式需要在LaTeX文档中配置
+    // 这里我们只是记录选项，实际的颜色模式需要在LaTeX源码中使用相应的包（如xcolor）来设置
+    if (payload.exportOptions?.colorMode === 'grayscale') {
+      logger.info('颜色模式设置为灰度，但LaTeX编译的PDF需要在LaTeX源码中配置颜色模式');
+      // 如果需要，可以在这里添加PDF后处理逻辑（但pdf-lib不支持直接转换为灰度）
+    }
+    
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exportComplete',
       percentage: 100,
@@ -1312,13 +1512,56 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       params: { format: 'HTML' }
     });
     const meta = extractDocumentMeta(payload);
+    
+    let finalHtml = payload.html;
+    
+    // 处理图片（如果是 folder 模式）
+    const imageProcessing = payload.exportOptions?.imageProcessing;
+    if (imageProcessing === 'folder') {
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exporting',
+        subMessage: 'agent.reference.progress.savingImages',
+        percentage: 50,
+        params: { format: 'HTML' }
+      });
+      
+      // 提取所有图片 URL
+      const imageUrls: string[] = [];
+      const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+      const matches = Array.from(finalHtml.matchAll(imgRegex));
+      for (const match of matches) {
+        const src = match[1];
+        if (src.startsWith('http://localhost:52521/images/')) {
+          imageUrls.push(src);
+        }
+      }
+      
+      if (imageUrls.length > 0) {
+        // 创建图片文件夹
+        const docName = path.basename(targetPath, path.extname(targetPath));
+        const imagesFolder = path.join(path.dirname(targetPath), `${docName}_images`);
+        
+        // 保存图片
+        const results = await saveImagesToFolder(imageUrls, imagesFolder);
+        
+        // 创建 URL 到相对路径的映射
+        const imageMappings = new Map<string, string>();
+        for (const result of results) {
+          imageMappings.set(result.originalUrl, result.relativePath);
+        }
+        
+        // 更新 HTML 中的图片链接
+        finalHtml = updateHtmlImageLinks(finalHtml, imageMappings);
+      }
+    }
+    
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
       subMessage: 'agent.reference.progress.generatingFile',
       percentage: 60,
       params: { format: 'HTML' }
     });
-    const wrapped = wrapHtmlWithTemplate(meta, payload.html);
+    const wrapped = wrapHtmlWithTemplate(meta, finalHtml);
     await writeTextFile(targetPath, wrapped);
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exportComplete',

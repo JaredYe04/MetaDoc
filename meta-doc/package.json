@@ -24,7 +24,9 @@
     "kill": "taskkill /IM electron.exe /F",
     "i18n": "python .\\src\\renderer\\src\\locales\\i18n_check.py",
     "clean:vite": "rimraf node_modules/.vite || rm -rf node_modules/.vite",
-    "audit": "node scripts/code-audit.js"
+    "audit": "node scripts/code-audit.js",
+    "compose-doc-icons": "node scripts/compose-doc-icons.js",
+    "generate-icons": "node scripts/generate-icons.js"
   },
   "fileAssociations": [
     {
@@ -155,6 +157,7 @@
     "eslint-plugin-vue": "^9.26.0",
     "less": "^4.2.0",
     "prettier": "^3.3.2",
+    "to-ico": "^1.1.5",
     "vite": "^5.3.1",
     "vite-plugin-babel": "^1.3.1",
     "vite-plugin-html": "^3.2.2",

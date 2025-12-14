@@ -510,7 +510,7 @@ eventBus.on('close-doc', () => {
   eventBus.emit('close-active-tab');
 });
 
-eventBus.on('export', async ({ format, filename }) => {
+eventBus.on('export', async ({ format, filename, options }) => {
   const doc = getDocument()
   if (!doc) return
 
@@ -538,7 +538,7 @@ eventBus.on('export', async ({ format, filename }) => {
   ipcRenderer.on('export-dialog-opening', handleDialogOpening);
 
   try {
-    const payload = await prepareExportPayload(doc, format, filename)
+    const payload = await prepareExportPayload(doc, format, filename, options)
     const result = await ipcRenderer.invoke('perform-export', payload)
     
     // 如果用户取消了对话框（result.success === false 且没有 error），取消任务

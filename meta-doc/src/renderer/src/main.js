@@ -27,6 +27,7 @@ import { initializeWorkspaceBroadcastListeners } from './stores/workspace';
 import { registerTitleFormatTests } from './utils/title-format-tests';
 import { registerDatabaseTests } from './utils/database-tests';
 import { registerToolCallParserTests } from './utils/agent-framework/tool-call-parser-tests';
+import { registerAllAdapters } from './services/export-adapters';
 
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
@@ -35,6 +36,9 @@ const app = createApp(App);
 const pinia = createPinia();
 
 initServiceStatusWatcher();
+
+// 注册导出适配器
+registerAllAdapters();
 
 // 初始化Agent Tools
 initializeAgentTools();

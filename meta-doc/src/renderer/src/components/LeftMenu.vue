@@ -100,7 +100,7 @@
             v-for="option in exportOptions"
             :key="option.format"
             :index="`1-5-${option.format}`"
-            @click="eventBus.emit('export', { format: option.format, filename: exportTitle })"
+            @click="handleExportClick(option.format)"
           >
             <span>{{ exportOptionLabel(option) }}</span>
           </el-menu-item>
@@ -295,6 +295,15 @@
         </el-menu-item>
       </el-sub-menu>
   </el-menu>
+
+  <!-- 导出选项对话框 -->
+  <ExportOptionsDialog
+    v-model="showExportOptionsDialog"
+    :adapter="currentExportAdapter"
+    :source-format="(activeDocument?.format ?? 'md') as DocumentFormat"
+    :target-format="currentExportFormat || 'pdf'"
+    @confirm="handleExportOptionsConfirm"
+  />
 </template>
 
 
@@ -332,7 +341,10 @@ import { avatar } from '../stores/user';
 import { useActiveDocument } from '../composables/useActiveDocument';
 import { EarthIcon } from 'tdesign-icons-vue-next';
 import { getExportOptions } from '../services/export-manager.ts';
-import type { DocumentFormat } from '../../../types';
+import type { DocumentFormat, ExportFormat } from '../../../types';
+import { exportAdapterRegistry } from '../services/export-adapters';
+import ExportOptionsDialog from './ExportOptionsDialog.vue';
+import type { ExportOptions } from '../services/export-adapters/types';
 const recentDocs = ref([])
 const isCollapse = ref(true)
 const showUserProfile = ref(false)
@@ -448,6 +460,39 @@ const saveAllAndQuit = () => {
 }
 const quitWithoutSave = () => {
   eventBus.emit('quit')
+}
+
+// 导出选项对话框相关
+const showExportOptionsDialog = ref(false)
+const currentExportFormat = ref<ExportFormat | null>(null)
+const currentExportAdapter = ref<any>(null)
+
+const handleExportClick = (format: ExportFormat) => {
+  const sourceFormat = (activeDocument.value?.format ?? 'md') as DocumentFormat
+  const adapter = exportAdapterRegistry.get(sourceFormat, format)
+  
+  if (adapter && adapter.getOptionFields().length > 0) {
+    // 如果有导出选项，显示对话框
+    currentExportFormat.value = format
+    currentExportAdapter.value = adapter
+    showExportOptionsDialog.value = true
+  } else {
+    // 如果没有选项，直接导出
+    eventBus.emit('export', { format, filename: exportTitle.value })
+  }
+}
+
+const handleExportOptionsConfirm = (options: ExportOptions) => {
+  if (currentExportFormat.value) {
+    eventBus.emit('export', { 
+      format: currentExportFormat.value, 
+      filename: exportTitle.value,
+      options 
+    })
+  }
+  showExportOptionsDialog.value = false
+  currentExportFormat.value = null
+  currentExportAdapter.value = null
 }
 </script>
 

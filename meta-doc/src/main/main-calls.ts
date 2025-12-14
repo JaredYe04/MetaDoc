@@ -41,6 +41,7 @@ import {
 import { dirname } from './index';
 import { imageUploadDir } from './express-server';
 import { queryKnowledgeBase, getResourcesPath, compileLatexToPDF, setEmbeddingMode, getEmbeddingMode, fileConversionService } from './utils';
+import { getSystemFonts, type SystemFont } from './utils/font-service';
 import {
   getDatabase,
   getDatabasePath,
@@ -867,6 +868,11 @@ function bindUtilityHandlers(): void {
     }
     
     return { mode, accentColor };
+  });
+
+  // 获取系统字体列表
+  ipcMain.handle('get-system-fonts', async (event: IpcMainInvokeEvent): Promise<SystemFont[]> => {
+    return await getSystemFonts();
   });
   
   // Windows: 从注册表获取系统主题色

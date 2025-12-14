@@ -66,7 +66,8 @@ class StandardToolCallParser implements ToolCallParser {
   name = 'standard-tool-call'
   
   detect(content: string): boolean {
-    return /<tool_call>/i.test(content)
+    // 支持多种标签变体：tool_call, tool-call, toolCall, function_call, function-call
+    return /<(?:tool[_-]?call|function[_-]?call)>/i.test(content)
   }
   
   parse(
@@ -80,9 +81,10 @@ class StandardToolCallParser implements ToolCallParser {
     const { loose = false, validateToolId = false, toolIdValidator } = options
     
     try {
+      // 支持多种标签变体
       const toolCallPattern = loose
-        ? /<tool_call>([\s\S]*?)(?:<\/tool_call>|$)/gi
-        : /<tool_call>([\s\S]*?)<\/tool_call>/gi
+        ? /<(?:tool[_-]?call|function[_-]?call)>([\s\S]*?)(?:<\/(?:tool[_-]?call|function[_-]?call)>|$)/gi
+        : /<(?:tool[_-]?call|function[_-]?call)>([\s\S]*?)<\/(?:tool[_-]?call|function[_-]?call)>/gi
       
       const toolCalls: ParsedToolCall[] = []
       let match
@@ -119,29 +121,88 @@ class StandardToolCallParser implements ToolCallParser {
     index: number
   ): ParsedToolCall | null {
     try {
-      let jsonStr = extractOuterJsonString(toolCallContent)
-      if (!jsonStr) {
+      // 检查是否包含嵌套的DSML格式（<｜DSML｜invoke 或 <｜DSML｜function_calls>）
+      // 如果包含，委托给DSML解析器处理
+      if (/<｜DSML｜invoke/i.test(toolCallContent) || /<｜DSML｜function_calls>/i.test(toolCallContent)) {
+        getLogger().debug('[StandardToolCallParser] 检测到嵌套的DSML格式，委托给DSML解析器')
+        const dsmlParser = new DeepSeekDSMLParser()
+        const dsmlResults = dsmlParser.parse(toolCallContent, {})
+        if (dsmlResults && dsmlResults.length > 0) {
+          // 返回第一个结果（通常只有一个）
+          return dsmlResults[0]
+        }
+        // 如果DSML解析失败，继续尝试JSON解析
+      }
+      
+      // 尝试从代码块中提取JSON（支持 ```json ... ``` 或 ``` ... ```）
+      let jsonStr = toolCallContent.trim()
+      
+      // 检查是否是代码块格式
+      const codeBlockMatch = jsonStr.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)
+      if (codeBlockMatch) {
+        jsonStr = codeBlockMatch[1].trim()
+      }
+      
+      // 尝试提取JSON字符串
+      if (!jsonStr.startsWith('{') && !jsonStr.startsWith('[')) {
+        jsonStr = extractOuterJsonString(toolCallContent) || jsonStr
+      }
+      
+      if (!jsonStr || !jsonStr.trim()) {
         return this.createInvalidToolCall(toolCallContent, index, '未找到有效的JSON字符串')
       }
       
-      jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1')
+      // 尝试宽松的JSON解析
+      let parsed: any = parseLooseJson(jsonStr)
       
-      let parsed: any
-      try {
-        parsed = JSON.parse(jsonStr)
-      } catch (parseError) {
-        return this.createInvalidToolCall(toolCallContent, index, `JSON解析失败: ${parseError}`)
+      // 如果宽松解析失败，尝试修复后解析
+      if (!parsed) {
+        const fixed = tryFixJsonFormat(jsonStr)
+        if (fixed) {
+          parsed = parseLooseJson(fixed)
+        }
       }
       
-      const toolId = parsed.name || parsed.tool_id || parsed.toolId
-      const parameters = parsed.arguments || parsed.parameters || parsed.params || {}
+      // 如果仍然失败，尝试标准解析
+      if (!parsed) {
+        try {
+          parsed = JSON.parse(jsonStr.replace(/,\s*([}\]])/g, '$1'))
+        } catch (parseError) {
+          return this.createInvalidToolCall(toolCallContent, index, `JSON解析失败: ${parseError}`)
+        }
+      }
+      
+      // 支持数组格式：如果解析结果是数组，取第一个元素
+      if (Array.isArray(parsed)) {
+        if (parsed.length === 0) {
+          return this.createInvalidToolCall(toolCallContent, index, '工具调用数组为空')
+        }
+        parsed = parsed[0] // 取第一个工具调用
+      }
+      
+      // 使用增强的字段提取函数
+      const toolId = extractToolId(parsed)
+      
+      // 先检查原始对象中的参数字段类型，如果存在但不是对象类型，应该报错
+      const paramFields = ['arguments', 'parameters', 'params', 'args', 'input', 'inputs', 'data', 'options']
+      for (const field of paramFields) {
+        if (parsed[field] !== undefined) {
+          const paramValue = parsed[field]
+          // 如果参数字段存在但不是对象类型（是字符串、数组等），应该报错
+          if (typeof paramValue !== 'object' || paramValue === null || Array.isArray(paramValue)) {
+            return this.createInvalidToolCall(toolCallContent, index, `参数必须是对象类型（${field}字段的值不是对象类型）`)
+          }
+        }
+      }
+      
+      const parameters = extractParameters(parsed)
       
       if (!toolId) {
-        return this.createInvalidToolCall(toolCallContent, index, '缺少工具ID（name/tool_id字段）')
+        return this.createInvalidToolCall(toolCallContent, index, '缺少工具ID（支持的字段：name, tool_id, toolId, tool, function等）')
       }
       
-      if (typeof parameters !== 'object' || parameters === null || Array.isArray(parameters)) {
-        return this.createInvalidToolCall(toolCallContent, index, '参数必须是对象类型')
+      if (!parameters || typeof parameters !== 'object' || Array.isArray(parameters)) {
+        return this.createInvalidToolCall(toolCallContent, index, '参数必须是对象类型（支持的字段：arguments, parameters, params等）')
       }
       
       return {
@@ -176,11 +237,13 @@ class StandardToolCallParser implements ToolCallParser {
   }
   
   cleanMarkers(content: string): string {
-    return content.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '').trim()
+    // 支持多种标签变体
+    return content.replace(/<(?:tool[_-]?call|function[_-]?call)>[\s\S]*?<\/(?:tool[_-]?call|function[_-]?call)>/gi, '').trim()
   }
   
   getMarkerPattern(): RegExp {
-    return /<tool_call>[\s\S]*?<\/tool_call>/gi
+    // 支持多种标签变体
+    return /<(?:tool[_-]?call|function[_-]?call)>[\s\S]*?<\/(?:tool[_-]?call|function[_-]?call)>/gi
   }
 }
 
@@ -403,10 +466,32 @@ class DeepSeekDSMLParser implements ToolCallParser {
       // 提取标签内容（保留原始格式，包括换行符）
       const innerContent = content.substring(tagEndPos, endMatch.index)
       
-      // 如果 string 属性存在且值不为 "false"，使用它作为字符串值
-      if (stringValue !== undefined && stringValue !== '' && stringValue !== 'false') {
+      // 修复：string="true" 应该表示参数是字符串类型，但值应该使用标签内容
+      // string属性的语义：
+      // - string="false" 或不存在：使用标签内容并尝试解析类型
+      // - string="true" 或其他值：如果标签内容存在，优先使用标签内容；否则使用string属性的值
+      // - 如果string属性存在且标签内容为空，使用string属性的值
+      if (innerContent && innerContent.trim()) {
+        // 标签内容存在且不为空，优先使用标签内容
+        // 如果string="true"，表示这是字符串类型，直接使用内容（不解析类型）
+        if (stringValue === 'true') {
+          // string="true" 表示参数是字符串类型，使用标签内容（保留原始格式）
+          parameters[paramName] = innerContent.trim()
+          getLogger().debug(`[parseDSMLParameters] 参数 ${paramName} string="true"，使用标签内容（长度: ${innerContent.length}）`)
+        } else {
+          // string属性不存在、为空，或值为"false"，使用标签内容并尝试解析类型
+          const parsedValue = this.parseParameterValue(innerContent)
+          parameters[paramName] = parsedValue
+          getLogger().debug(`[parseDSMLParameters] 参数 ${paramName} 使用标签内容（长度: ${innerContent.length}）`, {
+            preview: innerContent.substring(0, 100),
+            parsedType: typeof parsedValue,
+            isMultiline: innerContent.includes('\n')
+          })
+        }
+      } else if (stringValue !== undefined && stringValue !== '' && stringValue !== 'false') {
+        // 标签内容为空，但string属性存在且不为"false"，使用string属性的值
         parameters[paramName] = stringValue
-        getLogger().debug(`[parseDSMLParameters] 参数 ${paramName} 使用string属性:`, stringValue)
+        getLogger().debug(`[parseDSMLParameters] 参数 ${paramName} 标签内容为空，使用string属性:`, stringValue)
       } else if (innerContent) {
         // string属性不存在、为空，或值为"false"，使用标签内容，并尝试解析类型
         // 注意：对于多行内容，先尝试解析，如果失败则保留原始内容（包括换行符）
@@ -505,10 +590,11 @@ class OpenAIFunctionCallParser implements ToolCallParser {
   name = 'openai-function-call'
   
   detect(content: string): boolean {
-    // 检测是否包含 "tool" 字段的JSON对象
-    // 但要排除已经在 <tool_call> 标签中的内容
-    const withoutToolCallTags = content.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
-    return /\{\s*["']tool["']\s*:/i.test(withoutToolCallTags)
+    // 检测是否包含工具调用相关的JSON对象
+    // 但要排除已经在标签中的内容
+    const withoutToolCallTags = content.replace(/<(?:tool[_-]?call|function[_-]?call)>[\s\S]*?<\/(?:tool[_-]?call|function[_-]?call)>/gi, '')
+    // 支持多种字段名称：tool, name, tool_id, function等
+    return /\{\s*["'](?:tool|name|tool_id|toolId|function|function_name)["']\s*:/i.test(withoutToolCallTags)
   }
   
   parse(
@@ -522,8 +608,8 @@ class OpenAIFunctionCallParser implements ToolCallParser {
     const { validateToolId = false, toolIdValidator } = options
     
     try {
-      // 先移除 <tool_call> 标签中的内容，避免重复匹配
-      const withoutToolCallTags = content.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
+      // 先移除标签中的内容，避免重复匹配
+      const withoutToolCallTags = content.replace(/<(?:tool[_-]?call|function[_-]?call)>[\s\S]*?<\/(?:tool[_-]?call|function[_-]?call)>/gi, '')
       
       // 查找所有匹配的JSON对象
       const toolCalls: ParsedToolCall[] = []
@@ -541,39 +627,48 @@ class OpenAIFunctionCallParser implements ToolCallParser {
           continue
         }
         
-        try {
-          const parsed = JSON.parse(jsonStr)
-          
-          // 检查是否符合OpenAI格式：必须有 "tool" 字段
-          if (parsed.tool && typeof parsed.tool === 'string') {
-            const toolId = parsed.tool
-            const parameters = parsed.arguments || parsed.params || {}
-            
-            if (typeof parameters !== 'object' || parameters === null || Array.isArray(parameters)) {
-              searchIndex = jsonStart + jsonStr.length
-              continue
-            }
-            
-            const toolCall: ParsedToolCall = {
-              id: `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
-              tool_id: toolId,
-              parameters,
-              isValid: true,
-              rawContent: jsonStr
-            }
-            
-            if (validateToolId && toolIdValidator) {
-              if (!toolIdValidator(toolId)) {
-                toolCall.isValid = false
-                toolCall.error = `工具ID "${toolId}" 不存在或不可用`
-              }
-            }
-            
-            toolCalls.push(toolCall)
-            index++
+        // 尝试宽松的JSON解析
+        let parsed: any = parseLooseJson(jsonStr)
+        
+        // 如果宽松解析失败，尝试标准解析
+        if (!parsed) {
+          try {
+            parsed = JSON.parse(jsonStr.replace(/,\s*([}\]])/g, '$1'))
+          } catch (parseError) {
+            // JSON解析失败，继续查找下一个
+            searchIndex = jsonStart + jsonStr.length
+            continue
           }
-        } catch (parseError) {
-          // JSON解析失败，继续查找下一个
+        }
+        
+        // 使用增强的字段提取函数
+        const toolId = extractToolId(parsed)
+        const parameters = extractParameters(parsed)
+        
+        // 检查是否符合工具调用格式：必须有工具ID
+        if (toolId && parameters !== null) {
+          if (typeof parameters !== 'object' || Array.isArray(parameters)) {
+            searchIndex = jsonStart + jsonStr.length
+            continue
+          }
+          
+          const toolCall: ParsedToolCall = {
+            id: `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+            tool_id: toolId,
+            parameters: parameters || {},
+            isValid: true,
+            rawContent: jsonStr
+          }
+          
+          if (validateToolId && toolIdValidator) {
+            if (!toolIdValidator(toolId)) {
+              toolCall.isValid = false
+              toolCall.error = `工具ID "${toolId}" 不存在或不可用`
+            }
+          }
+          
+          toolCalls.push(toolCall)
+          index++
         }
         
         searchIndex = jsonStart + jsonStr.length
@@ -602,15 +697,12 @@ class OpenAIFunctionCallParser implements ToolCallParser {
         continue
       }
       
-      try {
-        const parsed = JSON.parse(jsonStr)
-        // 如果符合OpenAI格式，清除它
-        if (parsed.tool && typeof parsed.tool === 'string') {
-          cleaned = cleaned.substring(0, jsonStart) + cleaned.substring(jsonStart + jsonStr.length)
-          continue
-        }
-      } catch {
-        // 解析失败，不是我们要清除的JSON
+      // 尝试宽松的JSON解析
+      const parsed = parseLooseJson(jsonStr)
+      // 如果符合工具调用格式，清除它
+      if (parsed && extractToolId(parsed)) {
+        cleaned = cleaned.substring(0, jsonStart) + cleaned.substring(jsonStart + jsonStr.length)
+        continue
       }
       
       searchIndex = jsonStart + jsonStr.length
@@ -620,8 +712,8 @@ class OpenAIFunctionCallParser implements ToolCallParser {
   }
   
   getMarkerPattern(): RegExp {
-    // OpenAI格式没有固定的标记模式，返回一个匹配JSON的模式
-    return /\{\s*["']tool["']\s*:/gi
+    // OpenAI格式没有固定的标记模式，返回一个匹配JSON的模式（支持多种字段名称）
+    return /\{\s*["'](?:tool|name|tool_id|toolId|function|function_name)["']\s*:/gi
   }
 }
 
@@ -644,7 +736,7 @@ export class ToolCallParserManager {
   
   /**
    * 解析工具调用
-   * 按优先级顺序尝试，一旦匹配到就返回结果
+   * 按优先级顺序尝试，如果第一个解析器检测到格式但解析失败，会尝试其他解析器
    */
   parse(
     content: string,
@@ -659,22 +751,44 @@ export class ToolCallParserManager {
       contentPreview: content.substring(0, 200)
     })
     
-    // 按优先级顺序尝试解析
+    const detectedParsers: ToolCallParser[] = []
+    const allResults: ParsedToolCall[] = []
+    
+    // 第一轮：检测所有可能的解析器
     for (const parser of this.parsers) {
       const detected = parser.detect(content)
       getLogger().debug(`[ToolCallParserManager] 解析器 ${parser.name} 检测结果:`, detected)
       
       if (detected) {
-        getLogger().debug(`[ToolCallParserManager] 使用解析器: ${parser.name}`)
-        const result = parser.parse(content, options)
-        
-        if (result && result.length > 0) {
-          getLogger().debug(`[ToolCallParserManager] 解析器 ${parser.name} 成功解析 ${result.length} 个工具调用`)
+        detectedParsers.push(parser)
+      }
+    }
+    
+    // 第二轮：按优先级顺序尝试解析
+    for (const parser of detectedParsers) {
+      getLogger().debug(`[ToolCallParserManager] 尝试使用解析器: ${parser.name}`)
+      const result = parser.parse(content, options)
+      
+      if (result && result.length > 0) {
+        // 检查结果是否有效（至少有一个有效的工具调用）
+        const validResults = result.filter(r => r.isValid)
+        if (validResults.length > 0) {
+          getLogger().debug(`[ToolCallParserManager] 解析器 ${parser.name} 成功解析 ${validResults.length} 个有效工具调用`)
           return result
         } else {
-          getLogger().warn(`[ToolCallParserManager] 解析器 ${parser.name} 检测到格式但解析失败`)
+          getLogger().warn(`[ToolCallParserManager] 解析器 ${parser.name} 解析结果无效，尝试下一个解析器`)
+          // 保存结果，但继续尝试其他解析器
+          allResults.push(...result)
         }
+      } else {
+        getLogger().warn(`[ToolCallParserManager] 解析器 ${parser.name} 检测到格式但解析失败，尝试下一个解析器`)
       }
+    }
+    
+    // 如果所有解析器都失败，但有一些结果（即使是无效的），返回它们
+    if (allResults.length > 0) {
+      getLogger().warn(`[ToolCallParserManager] 所有解析器都未能解析出有效结果，返回部分结果`)
+      return allResults
     }
     
     getLogger().debug('[ToolCallParserManager] 所有解析器都未找到工具调用')
@@ -708,6 +822,144 @@ export class ToolCallParserManager {
    */
   hasAnyToolCallMarkers(content: string): boolean {
     return this.parsers.some(parser => parser.detect(content))
+  }
+}
+
+/**
+ * 宽松的JSON解析工具
+ * 支持尾随逗号、单引号、注释等非标准JSON格式
+ */
+function parseLooseJson(jsonStr: string): any | null {
+  try {
+    let cleaned = jsonStr.trim()
+    
+    // 1. 移除单行和多行注释（但要小心，避免误删字符串中的内容）
+    // 使用更精确的注释匹配，避免匹配到URL中的//
+    cleaned = cleaned
+      .replace(/\/\/[^\n\r"']*$/gm, '') // 单行注释（不在字符串中）
+      .replace(/\/\*[\s\S]*?\*\//g, '') // 多行注释
+    
+    // 2. 将单引号转换为双引号（更精确的匹配）
+    // 匹配键名：'key': 或 'key':
+    cleaned = cleaned.replace(/([{,]\s*)'([^']+)'(\s*:)/g, '$1"$2"$3')
+    // 匹配字符串值：: 'value' 或 :'value'
+    cleaned = cleaned.replace(/:\s*'([^']*)'/g, ': "$1"')
+    // 匹配数组中的字符串：['value']
+    cleaned = cleaned.replace(/\[\s*'([^']*)'\s*\]/g, '["$1"]')
+    
+    // 3. 移除尾随逗号（在对象和数组的最后一个元素后）
+    cleaned = cleaned.replace(/,\s*([}\]])/g, '$1')
+    
+    // 4. 修复未转义的换行符（在字符串值中）
+    // 注意：这是一个简化的修复，可能不适用于所有情况
+    cleaned = cleaned.replace(/:\s*"([^"]*)\n([^"]*)"/g, ': "$1\\n$2"')
+    
+    // 5. 尝试解析
+    return JSON.parse(cleaned)
+  } catch (error) {
+    getLogger().debug('[parseLooseJson] 宽松解析失败，尝试标准解析:', error)
+    try {
+      // 如果宽松解析失败，尝试标准解析（只修复尾随逗号）
+      return JSON.parse(jsonStr.replace(/,\s*([}\]])/g, '$1'))
+    } catch {
+      return null
+    }
+  }
+}
+
+/**
+ * 从对象中提取工具ID（支持多种字段名称）
+ */
+function extractToolId(obj: any): string | null {
+  // 按优先级尝试不同的字段名称
+  const possibleFields = [
+    'name',
+    'tool_id',
+    'toolId',
+    'tool',
+    'function',
+    'function_name',
+    'functionName',
+    'id',
+    'tool_name',
+    'toolName'
+  ]
+  
+  for (const field of possibleFields) {
+    if (obj[field] && typeof obj[field] === 'string') {
+      return obj[field]
+    }
+  }
+  
+  return null
+}
+
+/**
+ * 从对象中提取参数（支持多种字段名称）
+ */
+function extractParameters(obj: any): Record<string, unknown> | null {
+  // 按优先级尝试不同的字段名称
+  const possibleFields = [
+    'arguments',
+    'parameters',
+    'params',
+    'args',
+    'input',
+    'inputs',
+    'data',
+    'options'
+  ]
+  
+  for (const field of possibleFields) {
+    if (obj[field] !== undefined) {
+      const value = obj[field]
+      // 确保是对象类型
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        return value
+      }
+    }
+  }
+  
+  // 如果没有找到参数字段，但对象本身看起来像参数对象（有多个键但不是工具ID字段）
+  const toolIdFields = ['name', 'tool_id', 'toolId', 'tool', 'function', 'function_name', 'id']
+  const keys = Object.keys(obj)
+  const hasToolIdField = keys.some(key => toolIdFields.includes(key))
+  
+  if (!hasToolIdField && keys.length > 0) {
+    // 可能整个对象就是参数对象
+    return obj
+  }
+  
+  return {}
+}
+
+/**
+ * 尝试修复常见的JSON格式问题
+ */
+function tryFixJsonFormat(content: string): string | null {
+  try {
+    let fixed = content.trim()
+    
+    // 1. 如果缺少开始或结束括号，尝试添加
+    const openBraces = (fixed.match(/\{/g) || []).length
+    const closeBraces = (fixed.match(/\}/g) || []).length
+    
+    if (openBraces > closeBraces) {
+      // 缺少结束括号
+      fixed += '}'.repeat(openBraces - closeBraces)
+    } else if (closeBraces > openBraces) {
+      // 缺少开始括号
+      fixed = '{'.repeat(closeBraces - openBraces) + fixed
+    }
+    
+    // 2. 移除尾随逗号
+    fixed = fixed.replace(/,\s*([}\]])/g, '$1')
+    
+    // 3. 尝试解析修复后的JSON
+    JSON.parse(fixed)
+    return fixed
+  } catch {
+    return null
   }
 }
 

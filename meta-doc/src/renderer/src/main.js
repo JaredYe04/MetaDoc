@@ -26,6 +26,7 @@ import { initializeAgentTools } from './utils/agent-tools';
 import { initializeWorkspaceBroadcastListeners } from './stores/workspace';
 import { registerTitleFormatTests } from './utils/title-format-tests';
 import { registerDatabaseTests } from './utils/database-tests';
+import { registerToolCallParserTests } from './utils/agent-framework/tool-call-parser-tests';
 
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
@@ -43,6 +44,9 @@ initializeWorkspaceBroadcastListeners();
 
 // 注册标题格式化测试用例
 registerTitleFormatTests();
+
+// 注册工具调用解析器测试用例
+registerToolCallParserTests();
 
 // 注册数据库测试用例
 registerDatabaseTests();

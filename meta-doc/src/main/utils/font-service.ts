@@ -6,6 +6,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { platform } from 'os';
+import { readFileSync, existsSync } from 'fs';
 import { createMainLogger } from '../logger';
 
 const execAsync = promisify(exec);
@@ -29,7 +30,7 @@ export async function getSystemFonts(): Promise<SystemFont[]> {
   }
 
   try {
-    const osPlatform = platform();
+    const osPlatform = detectRuntimePlatform();
     let fonts: SystemFont[] = [];
 
     switch (osPlatform) {
@@ -40,6 +41,7 @@ export async function getSystemFonts(): Promise<SystemFont[]> {
         fonts = await getMacOSFonts();
         break;
       case 'linux':
+      case 'wsl': // WSL 依旧沿用 Linux 命令（fc-list）
         fonts = await getLinuxFonts();
         break;
       default:
@@ -63,12 +65,38 @@ export async function getSystemFonts(): Promise<SystemFont[]> {
 }
 
 /**
+ * 检测运行平台（包含 WSL 场景）
+ */
+function detectRuntimePlatform(): 'win32' | 'darwin' | 'linux' | 'wsl' {
+  const osPlatform = platform();
+
+  if (osPlatform === 'linux') {
+    try {
+      if (process.env.WSL_DISTRO_NAME || process.env.WSLENV) {
+        return 'wsl';
+      }
+      if (existsSync('/proc/version')) {
+        const content = readFileSync('/proc/version', 'utf-8');
+        if (/microsoft/i.test(content)) {
+          return 'wsl';
+        }
+      }
+    } catch {
+      // 静默降级
+    }
+  }
+
+  return osPlatform as 'win32' | 'darwin' | 'linux';
+}
+
+/**
  * Windows 系统获取字体
  */
 async function getWindowsFonts(): Promise<SystemFont[]> {
   try {
     // 使用 PowerShell 获取字体列表
-    const command = `powershell -Command "Get-ChildItem -Path 'C:\\Windows\\Fonts' -Filter '*.ttf','*.otf','*.ttc' | ForEach-Object { $_.BaseName } | Sort-Object -Unique"`;
+    const command =
+      `powershell -Command "& {Get-ChildItem -Path 'C:\\Windows\\Fonts' -Include '*.ttf','*.otf','*.ttc' -File -Recurse | ForEach-Object { $_.BaseName } | Sort-Object -Unique}"`;
     const { stdout } = await execAsync(command, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
     
     const fontNames = stdout

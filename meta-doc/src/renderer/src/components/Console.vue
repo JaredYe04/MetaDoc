@@ -10,17 +10,15 @@
         <el-button size="small" @click="saveConsole">{{ $t('console.saveLog') }}</el-button>
       </div>
     </div>
-    <div class="console-body" ref="consoleBody">
-        <div v-for="line in lines" :key="line.id" :class="line.type">
-        {{ line.content }}
-        </div>
-    </div>
+    <div class="console-editor" ref="editorContainer"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, PropType } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, PropType, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
+import * as monaco from 'monaco-editor';
+import { setupMonacoWorker } from '../utils/monaco-worker-config';
 import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer.ts';
 import { webMainCalls } from '../utils/web-adapter/web-main-calls.js';
 let ipcRenderer: typeof localIpcRenderer | null = null
@@ -79,20 +77,12 @@ const consoleStyle = ref({
   '--console-debug': '#909399'
 });
 
-eventBus.on('sync-editor-theme', async () => {
-  consoleStyle.value = {
-    '--console-bg': themeState.currentTheme.editorPanelBackgroundColor,
-    '--console-text': themeState.currentTheme.textColor2,
-    '--console-err': '#fe8771',
-    '--console-warn': '#e6a23c',
-    '--console-debug': '#909399'
-  };
-});
-
-const lines = ref<ConsoleLine[]>([]);
-const consoleBody = ref<HTMLDivElement | null>(null);
+const editorContainer = ref<HTMLDivElement | null>(null);
 
 let lineId = 0;
+let editorId: string | null = null;
+let decorationIds: string[] = [];
+let consoleFontLoaded = false;
 
 const normalizeType = (type?: string, fallback: ConsoleLineType = 'out'): ConsoleLineType => {
   if (!type) return fallback;
@@ -103,6 +93,117 @@ const normalizeType = (type?: string, fallback: ConsoleLineType = 'out'): Consol
   return fallback;
 };
 
+const lines = ref<ConsoleLine[]>([]);
+
+const getEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
+  if (!editorId) return null;
+  const editors = (monaco.editor as any).getEditors?.() ?? [];
+  const found = editors.find((e: monaco.editor.IStandaloneCodeEditor) => e.getId?.() === editorId);
+  return found ?? null;
+};
+
+const ensureConsoleFont = async () => {
+  if (consoleFontLoaded || !ipcRenderer?.invoke) return;
+  try {
+    const resourcesPath = await ipcRenderer.invoke('resources-path');
+    if (typeof resourcesPath !== 'string' || !resourcesPath) return;
+    const normalized = resourcesPath.replace(/\\/g, '/').replace(/^\/+/, '');
+    const fontUrl = `file:///${normalized}/consola.ttf`;
+    const fontFace = new FontFace('ConsoleAscii', `url(${fontUrl})`, {
+      style: 'normal',
+      weight: '400',
+      display: 'swap',
+      unicodeRange: 'U+0020-007E'
+    });
+    await fontFace.load();
+    document.fonts?.add(fontFace);
+    consoleFontLoaded = true;
+  } catch (error) {
+    console.warn('[Console] 加载 consola 字体失败', error);
+  }
+};
+
+const applyConsoleTheme = () => {
+  const editor = getEditor();
+  if (!editor) return;
+  const isDark = themeState.currentTheme.type === 'dark';
+  const bg = themeState.currentTheme.editorPanelBackgroundColor || (isDark ? '#1e1e1e' : '#ffffff');
+  const fg = themeState.currentTheme.textColor2 || (isDark ? '#d4d4d4' : '#333333');
+
+  monaco.editor.defineTheme('console-viewer', {
+    base: isDark ? 'vs-dark' : 'vs',
+    inherit: true,
+    rules: [],
+    colors: {
+      'editor.background': bg,
+      'editor.foreground': fg,
+      'editorLineNumber.foreground': fg,
+      'editorLineNumber.activeForeground': fg,
+      'scrollbarSlider.background': `${fg}33`,
+      'scrollbarSlider.hoverBackground': `${fg}55`
+    }
+  });
+  monaco.editor.setTheme('console-viewer');
+};
+
+const applyDecorations = (editor: monaco.editor.IStandaloneCodeEditor) => {
+  const decorations = lines.value
+    .map((line, idx) => {
+      let inlineClassName: string | undefined;
+      if (line.type === 'err') inlineClassName = 'console-inline-err';
+      else if (line.type === 'warn') inlineClassName = 'console-inline-warn';
+      if (!inlineClassName) return null;
+      return {
+        range: new monaco.Range(idx + 1, 1, idx + 1, line.content.length + 1),
+        options: { inlineClassName, stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges }
+      } as monaco.editor.IModelDeltaDecoration;
+    })
+    .filter((item): item is monaco.editor.IModelDeltaDecoration => !!item);
+
+  decorationIds = editor.deltaDecorations(decorationIds, decorations);
+};
+
+const renderConsole = () => {
+  const editor = getEditor();
+  if (!editor) return;
+  const text = lines.value.map(l => l.content).join('\n');
+  if (editor.getValue() !== text) {
+    editor.setValue(text);
+  }
+  applyDecorations(editor);
+  const lineCount = lines.value.length;
+  if (lineCount > 0) {
+    editor.revealLine(lineCount, monaco.editor.ScrollType.Immediate);
+  }
+};
+
+const createEditor = async () => {
+  await nextTick();
+  if (!editorContainer.value) return;
+  setupMonacoWorker();
+  await ensureConsoleFont();
+  const editor = monaco.editor.create(editorContainer.value, {
+    value: '',
+    language: 'plaintext',
+    theme: themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs',
+    readOnly: true,
+    lineNumbers: 'on',
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    wordWrap: 'on',
+    automaticLayout: true,
+    contextmenu: true,
+    fontSize: 13,
+    fontFamily: 'ConsoleAscii, "JetBrains Mono", Consolas, monospace',
+    renderLineHighlight: 'none',
+    glyphMargin: false,
+    folding: false
+  });
+  editorId = editor.getId();
+  applyConsoleTheme();
+  renderConsole();
+};
+
 const applyHistory = (history: HistoryLine[]) => {
   const initialLines = history.map(historyLine => ({
     id: lineId++,
@@ -110,6 +211,7 @@ const applyHistory = (history: HistoryLine[]) => {
     type: normalizeType(historyLine.type, 'out')
   }));
   lines.value = initialLines;
+  renderConsole();
 };
 
 applyHistory(props.history);
@@ -119,15 +221,29 @@ watch(() => props.history, (newHistory) => {
   applyHistory(newHistory);
 });
 
+eventBus.on('sync-editor-theme', async () => {
+  consoleStyle.value = {
+    '--console-bg': themeState.currentTheme.editorPanelBackgroundColor,
+    '--console-text': themeState.currentTheme.textColor2,
+    '--console-err': '#fe8771',
+    '--console-warn': '#e6a23c',
+    '--console-debug': '#909399'
+  };
+  applyConsoleTheme();
+});
+
 const addLine = (content: string, type: ConsoleLineType = 'out') => {
   lines.value.push({ id: lineId++, content, type });
-  requestAnimationFrame(() => {
-    if (consoleBody.value) consoleBody.value.scrollTop = consoleBody.value.scrollHeight;
-  });
+  renderConsole();
 };
 
 const clearConsole = () => {
   lines.value = [];
+  const editor = getEditor();
+  if (editor) {
+    decorationIds = editor.deltaDecorations(decorationIds, []);
+    editor.setValue('');
+  }
 };
 
 const copyConsole = () => {
@@ -217,6 +333,7 @@ const onEventBusConsoleErr = (data: unknown) => handleOutPayload(data, 'err');
 const onEventBusClear = (data: unknown) => handleClearPayload(data);
 
 onMounted(() => {
+  createEditor();
   eventBus.on('console-out', onEventBusConsoleOut);
   eventBus.on('console-err', onEventBusConsoleErr);
   eventBus.on('clear-console', onEventBusClear);
@@ -230,6 +347,12 @@ onBeforeUnmount(() => {
   eventBus.off('console-out', onEventBusConsoleOut);
   eventBus.off('console-err', onEventBusConsoleErr);
   eventBus.off('clear-console', onEventBusClear);
+  const editor = getEditor();
+  if (editor) {
+    editor.dispose();
+  }
+  editorId = null;
+  decorationIds = [];
   if (ipcRenderer) {
     ipcRenderer.removeListener('console-out', onConsoleOut);
     ipcRenderer.removeListener('console-err', onConsoleErr);
@@ -266,33 +389,26 @@ onBeforeUnmount(() => {
   margin-left: 5px;
 }
 
-.console-body {
+.console-editor {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 5px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  user-select: text;
-  -webkit-user-select: text;
-  -moz-user-select: text;
-  -ms-user-select: text;
+  overflow: hidden;
 }
 
-.out {
-  color: var(--console-text);
+:deep(.monaco-editor),
+:deep(.monaco-editor .margin) {
+  background-color: var(--console-bg) !important;
 }
 
-.err {
-  color: var(--console-err);
+:deep(.monaco-editor .view-overlays .current-line) {
+  background-color: transparent !important;
 }
 
-.warn {
-  color: var(--console-warn);
+:deep(.console-inline-err) {
+  color: var(--console-err) !important;
 }
 
-.debug {
-  color: var(--console-debug);
+:deep(.console-inline-warn) {
+  color: var(--console-warn) !important;
 }
 </style>

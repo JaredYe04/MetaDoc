@@ -648,6 +648,189 @@ const mapHtmlToWordStyles = (html: string): string => {
   return styledHtml;
 };
 
+/**
+ * 将 DOCX 中的超链接转换为 Word 交叉引用字段
+ * 处理格式：<a href="#ref-1">[1]</a> -> Word REF 字段
+ */
+const convertHyperlinksToWordCrossReferences = async (docxBuffer: Buffer): Promise<Buffer> => {
+  const zip = await JSZip.loadAsync(docxBuffer);
+  
+  // 读取 document.xml
+  const documentFile = zip.file('word/document.xml');
+  if (!documentFile) {
+    logger.warn('DOCX 文件中未找到 word/document.xml，跳过交叉引用转换');
+    return docxBuffer;
+  }
+  
+  let documentXml = await documentFile.async('string');
+  
+  // 第一步：收集现有的书签信息
+  // 查找所有现有的书签，记录它们的名称和 ID
+  const bookmarkStartRegex = /<w:bookmarkStart[^>]*w:id="(\d+)"[^>]*w:name="ref-([^"]+)"[^>]*\/>/g;
+  const existingBookmarks = new Set<string>(); // refId 集合
+  const existingBookmarkIds = new Set<number>(); // 已使用的书签 ID 集合
+  let bookmarkMatch;
+  while ((bookmarkMatch = bookmarkStartRegex.exec(documentXml)) !== null) {
+    const bookmarkId = parseInt(bookmarkMatch[1], 10);
+    const refId = bookmarkMatch[2];
+    existingBookmarks.add(refId);
+    existingBookmarkIds.add(bookmarkId);
+  }
+  
+  // 查找所有引用编号，为它们创建书签映射（如果还没有书签）
+  const refBookmarks = new Map<string, string>(); // refId -> citationNum
+  const allRefMatches = documentXml.matchAll(/<w:t[^>]*>\[(\d+)\][\s\S]*?<\/w:t>/g);
+  for (const match of allRefMatches) {
+    const citationNum = match[1];
+    const refId = citationNum; // 假设引用编号就是 refId
+    if (!existingBookmarks.has(refId) && !refBookmarks.has(refId)) {
+      refBookmarks.set(refId, citationNum);
+    }
+  }
+  
+  // 生成新的书签 ID（确保不与现有 ID 冲突）
+  let bookmarkIdCounter = 1;
+  while (existingBookmarkIds.has(bookmarkIdCounter)) {
+    bookmarkIdCounter++;
+  }
+  
+  // 第二步：处理超链接，转换为 Word 交叉引用字段
+  // 情况1：匹配 w:anchor 属性的超链接（理想情况）
+  const hyperlinkAnchorRegex = /<w:hyperlink[^>]*w:anchor="ref-([^"]+)"[^>]*>([\s\S]*?)<\/w:hyperlink>/g;
+  documentXml = documentXml.replace(hyperlinkAnchorRegex, (match, refId, content) => {
+    // 提取引用编号（从内容中提取）
+    const citationMatch = content.match(/<w:t[^>]*>\[([^\]]+)\]<\/w:t>/);
+    const citationNum = citationMatch ? citationMatch[1] : refId;
+    
+    // 确保书签存在
+    if (!existingBookmarks.has(refId)) {
+      existingBookmarks.add(refId);
+    }
+    
+    // 转换为 Word 交叉引用字段
+    // Word 字段代码格式：{ REF ref-X \h }
+    return `<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> REF ref-${refId} \\h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>[${citationNum}]</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r>`;
+  });
+  
+  // 情况2：匹配 file:// 链接（html-docx-js 可能将 #ref-X 转换为 file:// 链接）
+  // 格式：<w:hyperlink w:history="1" r:id="rIdX"> 或 <w:hyperlink r:id="rIdX">
+  // 需要从 relationships 中查找对应的 URL
+  const relationshipsFile = zip.file('word/_rels/document.xml.rels');
+  const refIdToRIdMap = new Map<string, string>(); // refId -> rId
+  
+  if (relationshipsFile) {
+    const relationshipsXml = await relationshipsFile.async('string');
+    // 匹配 <Relationship Id="rIdX" Target="#ref-X" ... />
+    const relRegex = /<Relationship[^>]*Id="([^"]+)"[^>]*Target="#ref-([^"]+)"[^>]*\/>/g;
+    let relMatch;
+    while ((relMatch = relRegex.exec(relationshipsXml)) !== null) {
+      refIdToRIdMap.set(relMatch[2], relMatch[1]);
+    }
+    
+    // 也匹配 file:// 链接，提取 ref-X
+    const fileRefRegex = /<Relationship[^>]*Id="([^"]+)"[^>]*Target="file:\/\/\/[^"]*#ref-([^"]+)"[^>]*\/>/g;
+    while ((relMatch = fileRefRegex.exec(relationshipsXml)) !== null) {
+      refIdToRIdMap.set(relMatch[2], relMatch[1]);
+    }
+  }
+  
+  // 处理使用 r:id 的超链接
+  for (const [refId, rId] of refIdToRIdMap.entries()) {
+    const hyperlinkRIdRegex = new RegExp(`<w:hyperlink[^>]*r:id="${rId}"[^>]*>([\\s\\S]*?)<\\/w:hyperlink>`, 'g');
+    documentXml = documentXml.replace(hyperlinkRIdRegex, (match, content) => {
+      // 提取引用编号
+      const citationMatch = content.match(/<w:t[^>]*>\[([^\]]+)\]<\/w:t>/);
+      const citationNum = citationMatch ? citationMatch[1] : refId;
+      
+      // 确保书签存在
+      if (!existingBookmarks.has(refId)) {
+        existingBookmarks.add(refId);
+      }
+      
+      // 转换为 Word 交叉引用字段
+      return `<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> REF ref-${refId} \\h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>[${citationNum}]</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r>`;
+    });
+  }
+  
+  // 第三步：在参考文献列表位置创建书签（如果还没有）
+  // 查找参考文献列表中的引用编号，在它们前面插入书签
+  for (const [refId, citationNum] of refBookmarks.entries()) {
+    if (!existingBookmarks.has(refId)) {
+      // 生成唯一的书签 ID
+      while (existingBookmarkIds.has(bookmarkIdCounter)) {
+        bookmarkIdCounter++;
+      }
+      const bookmarkId = bookmarkIdCounter++;
+      existingBookmarkIds.add(bookmarkId);
+      
+      // 查找引用编号的位置，在其前面插入书签
+      // 匹配格式：<w:p>...<w:t>[数字]</w:t>...</w:p>
+      const citationPattern = new RegExp(`(<w:p[^>]*>)([\\s\\S]*?)(<w:t[^>]*>\\[${citationNum}\\][\\s\\S]*?<\\/w:t>)`, 'g');
+      documentXml = documentXml.replace(citationPattern, (match, paraStart, beforeText, citationText) => {
+        // 检查是否已经包含书签（避免重复插入）
+        if (match.includes(`w:name="ref-${refId}"`)) {
+          return match;
+        }
+        // 在引用编号前插入书签开始和结束标记
+        return `${paraStart}${beforeText}<w:bookmarkStart w:id="${bookmarkId}" w:name="ref-${refId}"/><w:bookmarkEnd w:id="${bookmarkId}"/>${citationText}`;
+      });
+      existingBookmarks.add(refId);
+    }
+  }
+  
+  // 更新 document.xml
+  zip.file('word/document.xml', documentXml);
+  
+  // 重新生成 DOCX buffer
+  const newBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+  return newBuffer;
+};
+
+/**
+ * 将 Markdown 引用格式转换为 Word 交叉引用格式
+ * 处理格式：[[1](#ref-1)] -> Word 交叉引用
+ */
+const convertCitationsToWordCrossReferences = (html: string): string => {
+  // 匹配引用链接格式：[[数字或字符串](#ref-数字或字符串)]
+  const citationRegex = /\[\[([^\]]+)\]\(#ref-([^)]+)\)\]/g;
+  
+  // 替换为 Word 交叉引用格式
+  // 使用超链接格式，Word 可以识别并转换为交叉引用
+  let processedHtml = html.replace(citationRegex, (match, citationNum, refId) => {
+    // 使用 Word 可以识别的超链接格式
+    // 添加 superscript 样式使其看起来像上标引用
+    return `<a href="#ref-${refId}" style="text-decoration: none; color: #0000FF; vertical-align: super; font-size: 0.83em;">[${citationNum}]</a>`;
+  });
+  
+  // 处理 Vditor IR 模式的链接结构
+  // 匹配 <span data-type="a">...<span class="vditor-ir__marker--link">#ref-X</span>...</span>
+  const vditorLinkRegex = /<span\s+data-type="a"[^>]*>.*?<span[^>]*class="[^"]*vditor-ir__marker--link[^"]*"[^>]*>(#ref-([^<]+))<\/span>.*?<\/span>/gs;
+  
+  processedHtml = processedHtml.replace(vditorLinkRegex, (match, refLink, refId) => {
+    // 提取引用编号（从链接文本中）
+    const linkTextMatch = match.match(/<span[^>]*class="[^"]*vditor-ir__link[^"]*"[^>]*>([^<]+)<\/span>/);
+    const citationNum = linkTextMatch ? linkTextMatch[1] : refId;
+    
+    return `<a href="${refLink}" style="text-decoration: none; color: #0000FF; vertical-align: super; font-size: 0.83em;">[${citationNum}]</a>`;
+  });
+  
+  // 处理普通 <a> 标签中的引用链接（Vditor 渲染后的格式）
+  const anchorLinkRegex = /<a\s+href="#ref-([^"]+)"[^>]*>\[([^\]]+)\]<\/a>/g;
+  processedHtml = processedHtml.replace(anchorLinkRegex, (match, refId, citationNum) => {
+    return `<a href="#ref-${refId}" style="text-decoration: none; color: #0000FF; vertical-align: super; font-size: 0.83em;">[${citationNum}]</a>`;
+  });
+  
+  // 处理参考文献列表中的锚点
+  // 将 <div id="ref-X"/> 转换为 Word 可以识别的书签格式
+  const anchorRegex = /<div\s+id="ref-([^"]+)"\s*\/>/g;
+  processedHtml = processedHtml.replace(anchorRegex, (match, refId) => {
+    // 使用 Word 可以识别的书签格式（使用 <a name> 标签）
+    return `<a name="ref-${refId}" id="ref-${refId}"></a>`;
+  });
+  
+  return processedHtml;
+};
+
 const convertMarkdownToDocxBuffer = async (
   htmlContent: string,
   options?: {
@@ -672,7 +855,10 @@ const convertMarkdownToDocxBuffer = async (
   };
   
   // 将HTML中的标题和正文映射到Word样式库（如果启用）
-  const styledHtml = enableStyleMapping ? mapHtmlToWordStyles(htmlContent) : htmlContent;
+  let styledHtml = enableStyleMapping ? mapHtmlToWordStyles(htmlContent) : htmlContent;
+  
+  // 处理引用链接，转换为 Word 交叉引用格式
+  styledHtml = convertCitationsToWordCrossReferences(styledHtml);
   
   // 添加CSS样式表，定义Word样式库映射和代码框样式
   // Word在转换HTML时会识别这些样式类名并映射到样式库
@@ -810,7 +996,16 @@ const convertMarkdownToDocxBuffer = async (
   const htmlWrapped = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>Document</title>${wordStyles}</head><body>${styledHtml}</body></html>`;
   const docxBlob = htmlDocx.asBlob(htmlWrapped);
   const arrayBuffer = await docxBlob.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  let docxBuffer = Buffer.from(arrayBuffer);
+  
+  // 后处理：将超链接转换为 Word 交叉引用字段
+  try {
+    docxBuffer = await convertHyperlinksToWordCrossReferences(docxBuffer);
+  } catch (error) {
+    logger.warn('转换交叉引用字段失败，使用超链接格式:', error);
+  }
+  
+  return docxBuffer;
 };
 
 interface DocumentMetaInfo {

@@ -53,7 +53,15 @@ function restoreMathPlaceholders(text, placeholders) {
     return result;
 }
 
-export async function convertMarkdownToLatex(markdown, title = 'Generated Document') {
+export async function convertMarkdownToLatex(markdown, title = 'Generated Document', options = {}) {
+    // 选项：
+    // - includePreamble: 是否包含完整的 LaTeX 文档结构（documentclass、package 等），默认 true
+    // - documentClass: 文档类，默认 'article'
+    const { 
+        includePreamble = true, 
+        documentClass = 'article' 
+    } = options;
+    
     // 处理引用格式：将 [[1](#ref-1)] 转换为 \cite{1}
     // 同时收集参考文献信息
     const bibliography = new Map();
@@ -121,8 +129,15 @@ export async function convertMarkdownToLatex(markdown, title = 'Generated Docume
         });
         body += '\\end{thebibliography}\n';
     }
+    
+    // 如果不需要包含完整文档结构，只返回转换后的内容
+    if (!includePreamble) {
+        return body.trim();
+    }
+    
+    // 包含完整的 LaTeX 文档结构
     const latex = `
-\\documentclass{article}
+\\documentclass{${documentClass}}
 \\usepackage{fontspec}
 \\usepackage{xeCJK}
 \\usepackage{graphicx}

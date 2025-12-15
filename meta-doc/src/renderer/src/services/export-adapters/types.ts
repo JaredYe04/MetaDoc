@@ -91,8 +91,10 @@ export interface MarkdownExportOptions extends BaseExportOptions {
 export interface LatexExportOptions extends BaseExportOptions {
   // 文档类
   documentClass: string;
-  // 是否包含包
-  includePackages: boolean;
+  // 是否包含包（已废弃，使用 includePreamble）
+  includePackages?: boolean;
+  // 是否包含完整的 LaTeX 文档结构（preamble、documentclass、package 等），默认 true
+  includePreamble: boolean;
   // 图片处理方式：original（保留原始链接）、folder（保存到文件夹）
   imageProcessing: 'original' | 'folder';
 }

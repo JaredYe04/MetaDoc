@@ -19,6 +19,7 @@ import { renderMarkdownMathToImages } from '../utils/math-renderer.js';
 import eventBus from '../utils/event-bus';
 import { useI18n } from 'vue-i18n';
 import { exportAdapterRegistry, type ExportOptions } from './export-adapters';
+import type { LatexExportOptions } from './export-adapters/types';
 import { loadExportOptions, mergeExportOptions } from './export-adapters/storage';
 import { processMarkdownImages, processHtmlImages, extractImageUrls, extractImageUrlsFromHtml, type ImageProcessingMode } from './image-processor';
 
@@ -170,7 +171,11 @@ export const prepareExportPayload = async (
       } else if (targetFormat === 'tex') {
         const { convertMarkdownToLatex } = await import('../utils/latex-utils');
         const title = doc.meta?.title || 'Generated Document';
-        tex = await convertMarkdownToLatex(markdown, title);
+        const texOptions = (finalOptions as any) as LatexExportOptions | undefined;
+        tex = await convertMarkdownToLatex(markdown, title, {
+          includePreamble: texOptions?.includePreamble ?? texOptions?.includePackages ?? true,
+          documentClass: texOptions?.documentClass || 'article',
+        });
       }
 
       // 收集预渲染生成的图片 URL
@@ -457,7 +462,11 @@ const prepareMarkdownExports = async (
     // Markdown 转 LaTeX，图表已经预渲染为图片 URL
     const { convertMarkdownToLatex } = await import('../utils/latex-utils');
     const title = doc.meta?.title || 'Generated Document';
-    tex = await convertMarkdownToLatex(markdown, title);
+    // 在 prepareLatexExports 中，我们使用默认选项（因为这是旧版导出逻辑）
+    tex = await convertMarkdownToLatex(markdown, title, {
+      includePreamble: true,
+      documentClass: 'article',
+    });
   }
 
   // 收集预渲染生成的图片 URL（用于后续清理）

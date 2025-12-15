@@ -2085,6 +2085,10 @@
       "includePackages": {
         "label": "包含常用包",
         "description": "是否自动包含常用的LaTeX包"
+      },
+      "includePreamble": {
+        "label": "包含完整文档结构",
+        "description": "是否包含完整的 LaTeX 文档结构（documentclass、package、字体设置等）。关闭后只转换内容部分，适合嵌入到现有 LaTeX 文档中"
       }
     },
     "adapters": {

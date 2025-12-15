@@ -14,7 +14,8 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
   getDefaultOptions(): LatexExportOptions {
     return {
       documentClass: 'article',
-      includePackages: true,
+      includePackages: true, // 保持向后兼容
+      includePreamble: true, // 默认包含完整文档结构
       imageProcessing: 'original', // 默认保留原始链接
     };
   }
@@ -36,12 +37,21 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
         ],
       },
       {
+        key: 'includePreamble',
+        label: '包含完整文档结构',
+        labelKey: 'export.options.includePreamble.label',
+        type: 'boolean',
+        default: true,
+        description: '是否包含完整的 LaTeX 文档结构（documentclass、package、字体设置等）。关闭后只转换内容部分，适合嵌入到现有 LaTeX 文档中',
+        descriptionKey: 'export.options.includePreamble.description',
+      },
+      {
         key: 'includePackages',
         label: '包含常用包',
         labelKey: 'export.options.includePackages.label',
         type: 'boolean',
         default: true,
-        description: '是否自动包含常用的LaTeX包',
+        description: '是否自动包含常用的LaTeX包（已废弃，使用"包含完整文档结构"选项）',
         descriptionKey: 'export.options.includePackages.description',
       },
       {

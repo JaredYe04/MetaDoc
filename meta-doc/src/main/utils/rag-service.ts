@@ -839,8 +839,13 @@ class RAGServiceImpl implements RAGService {
 
   /**
    * 初始化嵌入模型
+   * 注意：本地嵌入模型功能已暂时关闭，此函数已禁用
    */
   private async initEmbedder(modelFileName = "bce-embedding-base_v1-Q8_0.gguf"): Promise<void> {
+    throw new Error('本地嵌入模型功能已暂时关闭。如需启用，请将 node-llama-cpp 移回 dependencies');
+    // 以下代码已注释，因为本地嵌入模型功能已暂时关闭
+    // node-llama-cpp 已移至 devDependencies，不会被打包
+    /*
     const { getLlama } = await import("node-llama-cpp");
 
     this.logger.info(`正在合并模型 ${modelFileName}...`);
@@ -859,6 +864,7 @@ class RAGServiceImpl implements RAGService {
       }
     };
     this.logger.info('嵌入上下文初始化完成');
+    */
   }
 
   /**

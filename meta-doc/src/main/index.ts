@@ -462,7 +462,8 @@ function handleCommandLineArgs(initialFilePath?: string | null): void {
  * 应用准备就绪时
  */
 app.whenReady().then(async () => {
-  electronApp.setAppUserModelId('com.jaredye.meta-doc');
+  // 使用与 electron-builder.yml 中一致的 appId
+  electronApp.setAppUserModelId('com.byte-light.metadoc');
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window);

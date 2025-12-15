@@ -1,25 +1,78 @@
-appId: com.electron.app
+appId: com.byte-light.metadoc
 productName: MetaDoc
 directories:
   buildResources: build
 files:
   - 'out/**/*'  # 明确包含 out 目录（构建输出）
   - 'resources/**/*'  # 明确包含 resources 目录
+  # 注意：buildResources 中的文件不会自动复制到安装目录
+  # 图标文件需要通过其他方式包含（如通过 resources 目录或嵌入到可执行文件中）
   - '!**/.vscode/*'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - 'resources/.env'  # 允许 resources 目录下的 .env 文件被打包
+  # 排除开发相关的 node_modules 目录和文件
+  - '!node_modules/.vite/**/*'
+  - '!node_modules/.pnpm/**/*'
+  - '!node_modules/.ignored/**/*'
+  - '!node_modules/.cache/**/*'
+  - '!node_modules/**/*.{ts,map}'
+  # 排除 node-llama-cpp（本地嵌入模型功能已关闭，只用于开发环境）
+  - '!node_modules/node-llama-cpp/**/*'
+  - '!node_modules/@node-llama-cpp/**/*'
+  # 排除 onnxruntime（已移除 chromadb 和 @chroma-core/default-embed，这些是它们的依赖，保留排除规则作为额外保险）
+  - '!node_modules/onnxruntime-node/**/*'
+  - '!node_modules/onnxruntime-web/**/*'
+  - '!node_modules/onnxruntime-common/**/*'
+  - '!node_modules/**/*.test.{js,ts}'
+  - '!node_modules/**/*.spec.{js,ts}'
+  - '!node_modules/**/test/**'
+  - '!node_modules/**/tests/**'
+  - '!node_modules/**/__tests__/**'
+  - '!node_modules/**/examples/**'
+  - '!node_modules/**/example/**'
+  - '!node_modules/**/docs/**'
+  - '!node_modules/**/doc/**'
+  - '!node_modules/**/.git/**'
+  - '!node_modules/**/.github/**'
+  - '!node_modules/**/CHANGELOG*'
+  - '!node_modules/**/LICENSE*'
+  - '!node_modules/**/README*'
+  - '!node_modules/**/HISTORY*'
+  - '!node_modules/**/AUTHORS*'
+  - '!node_modules/**/CONTRIBUTORS*'
 asarUnpack:
   - resources/**
 win:
   executableName: meta-doc
+  icon: build/icon.ico  # 主应用程序图标（用于可执行文件和"打开方式"对话框）
+  # Windows 文件关联配置
+  # 注意：图标路径应该是相对于 buildResources 目录的
+  fileAssociations:
+    - ext: md
+      name: Markdown Document
+      description: Markdown 文件
+      role: Editor
+      mimeType: text/markdown
+      icon: md-icon.ico  # 相对于 buildResources (build) 目录
+    - ext: tex
+      name: LaTeX Document
+      description: LaTeX 文件
+      role: Editor
+      mimeType: text/latex
+      icon: tex-icon.ico  # 相对于 buildResources (build) 目录
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  perMachine: true
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  # 包含自定义 NSIS 脚本来刷新图标缓存
+  include: build/installer.nsh
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
@@ -40,6 +93,8 @@ linux:
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
+# 确保使用 asar 打包以减小体积
+asar: true
 publish:
   provider: generic
   url: https://example.com/auto-updates

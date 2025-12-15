@@ -5,7 +5,8 @@ import Vditor from 'vditor';
 import { createRendererLogger } from './logger.ts';
 import { isElectronEnv } from './event-bus';
 import { localVditorCDN, vditorCDN } from './vditor-cdn';
-import mermaid from 'mermaid';
+//import mermaid from 'mermaid';
+// mermaid 改为动态导入，实现按需加载
 // 移除 dom-to-image 依赖，避免通过 DOM 截图导出路径
 
 // 导出图表类型配置供外部使用
@@ -279,6 +280,8 @@ export async function renderMermaidViaApi(code, format = 'svg') {
     const logger = createRendererLogger('MermaidRenderer');
     
     try {
+        // 动态导入 mermaid，实现按需加载
+        const mermaid = (await import('mermaid')).default;
         // 初始化 Mermaid（每次调用都初始化，确保配置正确）
         mermaid.initialize({ 
             startOnLoad: false,

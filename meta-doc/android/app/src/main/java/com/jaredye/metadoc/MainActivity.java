@@ -1,4 +1,4 @@
-package com.jaredye.metadoc;
+package com.byte-light.metadoc;
 
 import com.getcapacitor.BridgeActivity;
 

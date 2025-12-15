@@ -4,6 +4,9 @@
  */
 
 import { createWorker, Worker, PSM, OEM } from 'tesseract.js';
+import { pipeline } from 'stream/promises';
+import zlib from 'zlib';
+import { pathToFileURL } from 'url';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
@@ -12,6 +15,48 @@ import pathService from './path-service';
 import { getLocale } from '../i18n';
 
 const logger = createMainLogger('OCRService');
+
+/**
+ * 确保 Tesseract 读取本地训练数据时的环境变量已设置
+ */
+function ensureTessdataEnv(tessdataPath: string) {
+  if (!process.env.TESSDATA_PREFIX) {
+    process.env.TESSDATA_PREFIX = tessdataPath;
+    logger.debug(`设置 TESSDATA_PREFIX=${tessdataPath}`);
+  }
+}
+
+/**
+ * 确保指定语言的 .traineddata 存在；若仅有 .traineddata.gz，则自动解压一次
+ */
+async function ensureTrainedData(langList: string[], tessdataPath: string) {
+  for (const lang of langList) {
+    const target = path.join(tessdataPath, `${lang}.traineddata`);
+    if (fs.existsSync(target)) {
+      continue;
+    }
+    const gzPath = path.join(tessdataPath, `${lang}.traineddata.gz`);
+    if (!fs.existsSync(gzPath)) {
+      logger.warn(`缺少本地训练数据: ${target} 与 ${gzPath} 均不存在`);
+      continue;
+    }
+
+    logger.info(`检测到仅有压缩包，开始解压: ${gzPath}`);
+    const readStream = fs.createReadStream(gzPath);
+    const writeStream = fs.createWriteStream(target);
+    try {
+      await pipeline(readStream, zlib.createGunzip(), writeStream);
+      logger.info(`解压完成: ${target}`);
+    } catch (error) {
+      logger.error(`解压 ${gzPath} 失败:`, error);
+      // 解压失败时删除不完整文件
+      if (fs.existsSync(target)) {
+        try { fs.unlinkSync(target); } catch {}
+      }
+      throw error;
+    }
+  }
+}
 
 /**
  * 智能清理OCR文本，使其更加自然连贯
@@ -201,6 +246,7 @@ class OCRServiceImpl {
   private async getWorker(languages?: string[]): Promise<Worker> {
     // 如果没有指定语言，使用默认语言（英语 + 当前用户语言）
     const langList = languages || this.getDefaultLanguages();
+    // langPath 只按单个语言文件查找，这里保持数组供后续加载，每个语言单独加载
     const langKey = langList.sort().join('+');
     
     if (this.workers.has(langKey)) {
@@ -211,6 +257,8 @@ class OCRServiceImpl {
     
     // 获取本地Tesseract训练数据路径
     const tesseractDataPath = pathService.getTesseractDataPath();
+    ensureTessdataEnv(tesseractDataPath);
+    await ensureTrainedData(langList, tesseractDataPath);
     
     // 检查训练数据文件夹是否存在
     const langPathExists = fs.existsSync(tesseractDataPath);
@@ -219,14 +267,18 @@ class OCRServiceImpl {
     // Tesseract.js v6的createWorker支持options参数，可以指定langPath
     const workerOptions: any = {};
     if (langPathExists) {
-      workerOptions.langPath = tesseractDataPath;
-      logger.debug(`使用本地Tesseract训练数据: ${tesseractDataPath}`);
+      // tesseract.js 通过 langPath + lang + '.traineddata.gz' 拼路径，需以斜杠结尾
+      const langPathUrl = pathToFileURL(path.join(tesseractDataPath, path.sep)).toString();
+      workerOptions.langPath = langPathUrl;
+      workerOptions.cachePath = tesseractDataPath; // 若需缓存也落本地
+      workerOptions.cacheMethod = 'fs';
+      logger.debug(`使用本地Tesseract训练数据: ${langPathUrl}`);
     } else {
       logger.warn(`本地Tesseract训练数据路径不存在: ${tesseractDataPath}，将使用CDN下载`);
     }
     
-    // createWorker的第一个参数是语言，第二个参数是选项对象
-    const worker = await createWorker(langKey, workerOptions);
+    // 直接传多语言数组（官方示例），让核心按单个语言加载，避免 “chi_sim+eng.traineddata.gz”
+    const worker = await createWorker(langList as any, undefined as any, workerOptions);
     
     // 优化OCR配置以提高精度
     await worker.setParameters({
@@ -401,15 +453,20 @@ class OCRServiceImpl {
       
       // 获取tesseract数据路径
       const tesseractDataPath = pathService.getTesseractDataPath();
+      ensureTessdataEnv(tesseractDataPath);
+      await ensureTrainedData(langList, tesseractDataPath);
       
       // 配置createWorker选项
       const workerOptions: any = {};
       if (tesseractDataPath && fs.existsSync(tesseractDataPath)) {
-        workerOptions.langPath = tesseractDataPath;
+        const langPathUrl = pathToFileURL(path.join(tesseractDataPath, path.sep)).toString();
+        workerOptions.langPath = langPathUrl;
+        workerOptions.cachePath = tesseractDataPath;
+        workerOptions.cacheMethod = 'fs';
       }
       
-      // 创建独立的worker
-      const worker = await createWorker(langKey, workerOptions);
+      // 创建独立的worker，传多语言数组，避免拼成 “chi_sim+eng.traineddata.gz”
+      const worker = await createWorker(langList as any, undefined as any, workerOptions);
       
       // 配置worker参数
       await worker.setParameters({

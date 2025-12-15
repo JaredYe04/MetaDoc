@@ -130,17 +130,33 @@ const applyConsoleTheme = () => {
   const bg = themeState.currentTheme.editorPanelBackgroundColor || (isDark ? '#1e1e1e' : '#ffffff');
   const fg = themeState.currentTheme.textColor2 || (isDark ? '#d4d4d4' : '#333333');
 
+  // 规范化颜色格式（用于colors对象，带#的6位hex）
+  const normalizeColor = (color: string) => {
+    if (!color) return '#FFFFFF';
+    // 如果已经有#，移除它
+    let hex = color.replace('#', '');
+    // 如果是3位hex（如 fff），转换为6位（ffffff）
+    if (hex.length === 3) {
+      hex = hex.split('').map(c => c + c).join('');
+    }
+    // 确保是6位hex，如果不是则返回默认值
+    return hex.length === 6 ? '#' + hex.toUpperCase() : '#FFFFFF';
+  };
+
+  const normalizedBg = normalizeColor(bg);
+  const normalizedFg = normalizeColor(fg);
+
   monaco.editor.defineTheme('console-viewer', {
     base: isDark ? 'vs-dark' : 'vs',
     inherit: true,
     rules: [],
     colors: {
-      'editor.background': bg,
-      'editor.foreground': fg,
-      'editorLineNumber.foreground': fg,
-      'editorLineNumber.activeForeground': fg,
-      'scrollbarSlider.background': `${fg}33`,
-      'scrollbarSlider.hoverBackground': `${fg}55`
+      'editor.background': normalizedBg,
+      'editor.foreground': normalizedFg,
+      'editorLineNumber.foreground': normalizedFg,
+      'editorLineNumber.activeForeground': normalizedFg,
+      'scrollbarSlider.background': `${normalizedFg}33`,
+      'scrollbarSlider.hoverBackground': `${normalizedFg}55`
     }
   });
   monaco.editor.setTheme('console-viewer');

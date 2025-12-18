@@ -13,13 +13,22 @@ import AgentView from '../views/AgentView.vue'
 import KnowledgeBase from '../views/KnowledgeBase.vue'
 import Editor from '../views/Editor.vue'
 import DebugView from '../views/DebugView.vue'
+import DataAnalysisWindow from '../views/DataAnalysisWindow.vue'
+import OcrWindow from '../views/OcrWindow.vue'
+import AttachmentWindow from '../views/AttachmentWindow.vue'
+import GraphWindow from '../views/GraphWindow.vue'
+import ProofreadView from '../views/ProofreadView.vue'
 
 // 所有页面组件集中管理
 const pages = {
   setting: Setting,
   'ai-chat': AIChat,
   'fomula-recognition': FomulaRecognition,
-  'ai-graph': AIGraph
+  'ai-graph': AIGraph,
+  'data-analysis': DataAnalysisWindow,
+  'ocr': OcrWindow,
+  'attachment': AttachmentWindow,
+  'graph': GraphWindow
 }
 
 const routes = [
@@ -70,6 +79,12 @@ const routes = [
     path:'/agent',
     name:'Agent',
     component: AgentView,
+    meta: { requiresLayout: true }
+  },
+  {
+    path:'/proofread',
+    name:'Proofread',
+    component: ProofreadView,
     meta: { requiresLayout: true }
   },
   {

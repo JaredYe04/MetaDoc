@@ -21,7 +21,8 @@
     "editor": "Editor",
     "visualize": "Visualization",
     "knowledgeBase": "Knowledge base",
-    "agent": "Agent."
+    "agent": "Agent.",
+    "proofread": "Proofread"
   },
   "leftMenu": {
     "metaDocTooltip": "MetaDoc ;-)",
@@ -43,6 +44,10 @@
     "chatWithAI": "Chat with AI",
     "handwritingFormulaRecognition": "Handwriting Formula Recognition",
     "smartDrawingAssistant": "Smart Drawing Assistant",
+    "dataAnalysis": "Data Analysis Tool",
+    "ocr": "OCR Text Recognition",
+    "attachment": "Attachment Parser",
+    "graph": "Graph Tool",
     "settingsTooltip": "Settings",
     "settings": "Settings",
     "settingsPanel": "Settings Panel",
@@ -450,7 +455,11 @@
       "settingTitle": "Settings",
       "aiChatTitle": "AI Chat",
       "formulaRecognitionTitle": "Handwritten Formula Recognition",
-      "aiGraphTitle": "AI Chart Assistant"
+      "aiGraphTitle": "AI Chart Assistant",
+      "dataAnalysisTitle": "Data Analysis Tool",
+      "ocrTitle": "OCR Text Recognition",
+      "attachmentTitle": "Attachment Parser",
+      "graphTitle": "Graph Tool"
     },
     "dialogs": {
       "openFileTitle": "Open File",

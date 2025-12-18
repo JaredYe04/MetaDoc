@@ -301,13 +301,16 @@ const updateCurrentDialog = (index: number | null = null, shouldMoveToTop: boole
     ? (typeof lastAssistantMessage.timestamp === 'string' 
         ? new Date(lastAssistantMessage.timestamp).getTime() 
         : lastAssistantMessage.timestamp)
-    : Date.now();
+    : null;
+  
+  // 优先使用AI最后一次回复时间，如果没有则使用原有对话的updatedAt，最后才使用当前时间
+  const updatedAt = lastAssistantTime ?? existingDialog?.updatedAt ?? Date.now();
   
   const dialog: AIDialog = {
     title: title.value,
     messages: cloneDeep(messages.value),
     createdAt: existingDialog?.createdAt || Date.now(),
-    updatedAt: lastAssistantTime, // 使用AI最后一次回复时间，而不是当前时间
+    updatedAt: updatedAt, // 使用AI最后一次回复时间，如果没有则保持原有的updatedAt
     referenceStore: cloneDeep(referenceStore.value), // 保存引用
   };
   

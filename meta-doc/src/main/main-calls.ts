@@ -35,7 +35,11 @@ import {
   openSettingDialog, 
   openAiChatDialog, 
   openFomulaRecognitionDialog, 
-  openAiGraphDialog, 
+  openAiGraphDialog,
+  openDataAnalysisDialog,
+  openOcrDialog,
+  openAttachmentDialog,
+  openGraphDialog,
   initBroadcastChannel 
 } from './index';
 import { dirname } from './index';
@@ -46,7 +50,9 @@ import {
   getDatabase,
   getDatabasePath,
   isSqliteVecAvailable,
-  tableExists
+  tableExists,
+  query,
+  execute
 } from './database/database';
 import {
   ensureInitialized,
@@ -184,6 +190,7 @@ export function mainCalls(): void {
   bindExportHandlers();
   bindTerminalHandlers();
   bindDatabaseTestHandlers();
+  bindDatabaseHandlers();
   
   initBroadcastChannel();
 }
@@ -234,6 +241,22 @@ function bindDialogHandlers(): void {
   
   ipcMain.on('fomula-recognition', () => {
     openFomulaRecognitionDialog();
+  });
+  
+  ipcMain.on('data-analysis', () => {
+    openDataAnalysisDialog();
+  });
+  
+  ipcMain.on('ocr', () => {
+    openOcrDialog();
+  });
+  
+  ipcMain.on('attachment', () => {
+    openAttachmentDialog();
+  });
+  
+  ipcMain.on('graph', () => {
+    openGraphDialog();
   });
 }
 
@@ -550,6 +573,21 @@ function bindFileHandlers(): void {
     } catch (error) {
       logger.error('OCR识别失败:', error);
       throw error;
+    }
+  });
+
+  // 读取剪切板图片
+  ipcMain.handle('read-clipboard-image', async (event: IpcMainInvokeEvent): Promise<string | null> => {
+    try {
+      const { clipboard, nativeImage } = require('electron');
+      const image = clipboard.readImage();
+      if (image.isEmpty()) {
+        return null;
+      }
+      return image.toDataURL();
+    } catch (error) {
+      logger.error('读取剪切板图片失败:', error);
+      return null;
     }
   });
 
@@ -2738,6 +2776,86 @@ function bindDatabaseTestHandlers(): void {
         message: error instanceof Error ? error.message : '向量搜索失败',
         results: []
       };
+    }
+  });
+}
+
+/**
+ * 绑定数据库查询处理器（用于工具会话CRUD）
+ */
+function bindDatabaseHandlers(): void {
+  // 执行查询（SELECT）
+  ipcMain.handle('db-query', async (_event: IpcMainInvokeEvent, params: {
+    sql: string;
+    params: any[];
+  }) => {
+    try {
+      const results = query(params.sql, params.params);
+      // 直接返回结果数组，与 tool-sessions-db.ts 中的类型断言兼容
+      return results;
+    } catch (error) {
+      logger.error('数据库查询失败:', error as Error, { sql: params.sql, params: params.params });
+      throw error;
+    }
+  });
+
+  // 执行查询（SELECT）返回单行
+  ipcMain.handle('db-query-one', async (_event: IpcMainInvokeEvent, params: {
+    sql: string;
+    params: any[];
+  }) => {
+    try {
+      const { queryOne } = await import('./database/database');
+      const result = queryOne(params.sql, params.params);
+      return { success: true, data: result };
+    } catch (error) {
+      logger.error('数据库查询失败:', error as Error, { sql: params.sql, params: params.params });
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  // 执行更新（INSERT、UPDATE、DELETE）
+  ipcMain.handle('db-execute', async (_event: IpcMainInvokeEvent, params: {
+    sql: string;
+    params: any[];
+  }) => {
+    try {
+      const result = execute(params.sql, params.params);
+      // 直接返回结果，与 tool-sessions-db.ts 中的使用方式兼容
+      return result;
+    } catch (error) {
+      logger.error('数据库执行失败:', error as Error, { sql: params.sql, params: params.params });
+      throw error;
+    }
+  });
+
+  // 检查表是否存在
+  ipcMain.handle('db-table-exists', async (_event: IpcMainInvokeEvent, tableName: string) => {
+    try {
+      const exists = tableExists(tableName);
+      return { success: true, exists };
+    } catch (error) {
+      logger.error('检查表是否存在失败:', error as Error, { tableName });
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  // 执行事务
+  ipcMain.handle('db-transaction', async (_event: IpcMainInvokeEvent, sqlStatements: Array<{
+    sql: string;
+    params: any[];
+  }>) => {
+    try {
+      const { transaction } = await import('./database/database');
+      transaction(() => {
+        for (const { sql, params } of sqlStatements) {
+          execute(sql, params);
+        }
+      });
+      return { success: true };
+    } catch (error) {
+      logger.error('数据库事务失败:', error as Error, { sqlStatements });
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   });
 }

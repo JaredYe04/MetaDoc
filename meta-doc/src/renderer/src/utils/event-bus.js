@@ -593,6 +593,18 @@ eventBus.on('ai-graph', () => {
 eventBus.on('fomula-recognition', () => {
   ipcRenderer.send('fomula-recognition')
 })
+eventBus.on('data-analysis', () => {
+  ipcRenderer.send('data-analysis')
+})
+eventBus.on('ocr', () => {
+  ipcRenderer.send('ocr')
+})
+eventBus.on('attachment', () => {
+  ipcRenderer.send('attachment')
+})
+eventBus.on('graph', () => {
+  ipcRenderer.send('graph')
+})
 
 eventBus.on('system-notification', (data) => {
   //console.log(data)

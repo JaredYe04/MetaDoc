@@ -1,5 +1,5 @@
 -- Migration: 为 data_chunks 表添加 embedding_model 字段
--- Created: 2024-01-01T00:00:01.000Z
+-- Created: 2024-12-18T00:00:00.000Z
 -- Description: 此字段用于记录每个数据块使用的嵌入模型
 
 -- 注意：SQLite 不支持 ALTER TABLE ADD COLUMN IF NOT EXISTS

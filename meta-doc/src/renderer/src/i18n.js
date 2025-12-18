@@ -15,3 +15,7 @@ export const i18n = createI18n({
   messages: { en_US, zh_CN, ja_JP, ko_KR, de_DE, fr_FR }
 })
 
+export const getLocale = () => {
+  return i18n.global.locale.value || 'zh_CN'
+}
+

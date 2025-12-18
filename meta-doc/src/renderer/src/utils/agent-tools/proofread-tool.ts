@@ -28,7 +28,16 @@ import { getActiveDocumentInfoViaBroadcast } from './document-broadcast-helper'
 import { getWindowType } from '../event-bus'
 import type { DocumentOutlineNode } from '@/types'
 
-const logger = createRendererLogger('ProofreadTool')
+// 懒加载logger，避免初始化顺序问题
+let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
+
+function getLogger() {
+  if (!loggerInstance) {
+    loggerInstance = createRendererLogger('ProofreadTool')
+  }
+  return loggerInstance
+}
+
 const workspace = useWorkspace()
 
 // 获取IPC渲染器
@@ -91,7 +100,7 @@ async function loadTextFromFile(filePath: string, signal?: AbortSignal): Promise
     const content = await ipcRenderer.invoke('read-file-content', filePath) as string
     return content
   } catch (error) {
-    logger.error('读取文件失败:', error)
+    getLogger().error('读取文件失败:', error)
     throw new Error(`读取文件失败: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
@@ -116,7 +125,7 @@ async function loadTextFromUrl(url: string, signal?: AbortSignal): Promise<strin
         }) as { content: string }
         return response.content
       } catch (error) {
-        logger.warn('主进程HTTP请求失败，尝试使用axios:', error)
+        getLogger().warn('主进程HTTP请求失败，尝试使用axios:', error)
       }
     }
 
@@ -140,7 +149,7 @@ async function loadTextFromUrl(url: string, signal?: AbortSignal): Promise<strin
       }
       throw new Error(`从URL获取数据失败: ${error.message}`)
     }
-    logger.error('从URL获取数据失败:', error)
+    getLogger().error('从URL获取数据失败:', error)
     throw error
   }
 }
@@ -322,7 +331,7 @@ ${text}
       const output = target.value.trim()
       // 如果有内容，尝试解析而不是直接报错
       if (output && output.length > 0) {
-        logger.warn('任务超时但检测到有输出内容，将尝试解析已有内容')
+        getLogger().warn('任务超时但检测到有输出内容，将尝试解析已有内容')
         // 继续执行解析逻辑，不抛出错误
       } else {
         // 没有内容，才抛出错误
@@ -331,7 +340,7 @@ ${text}
     } else {
       // 重新抛出原始错误，让调用者知道任务失败
       const errorMessage = error instanceof Error ? error.message : String(error)
-      logger.error('文本校对任务失败:', error)
+      getLogger().error('文本校对任务失败:', error)
       throw new Error(`AI任务失败: ${errorMessage}`)
     }
   }
@@ -346,7 +355,7 @@ ${text}
   if (!output || output.length === 0) {
     if (isTimeout) {
       // 超时且无内容，返回空数组并记录警告
-      logger.warn('任务超时且无输出内容，返回空错误数组')
+      getLogger().warn('任务超时且无输出内容，返回空错误数组')
       return []
     } else {
       // 非超时情况，抛出错误（让重试机制处理）
@@ -356,7 +365,7 @@ ${text}
   
   // 如果有内容但已超时，记录警告
   if (isTimeout) {
-    logger.warn('任务超时但检测到有输出内容，将尝试解析已有内容（可能不完整）')
+    getLogger().warn('任务超时但检测到有输出内容，将尝试解析已有内容（可能不完整）')
   }
 
   // 先提取JSON字符串（处理LLM返回的文本中包含其他文字的情况，如"现在请检查以下文本:"）
@@ -374,14 +383,14 @@ ${text}
     const errorMsg = parseResult.error || '未知错误'
     // 如果是超时情况，返回空数组而不是抛出错误
     if (isTimeout) {
-      logger.warn(`任务超时且JSON解析失败: ${errorMsg}，返回空错误数组`)
+      getLogger().warn(`任务超时且JSON解析失败: ${errorMsg}，返回空错误数组`)
       return []
     }
-    logger.error('解析校对结果失败:', errorMsg)
+    getLogger().error('解析校对结果失败:', errorMsg)
     // 如果解析失败，尝试重试（最多2次）
     if (errorMsg.includes('Unexpected end of JSON') || errorMsg.includes('JSON')) {
       // 可能是LLM返回不完整，返回空数组而不是抛出错误
-      logger.warn('JSON解析失败，返回空错误数组')
+      getLogger().warn('JSON解析失败，返回空错误数组')
       return []
     }
     throw new Error(`解析校对结果失败: ${errorMsg}`)
@@ -391,7 +400,7 @@ ${text}
 
   // 验证错误格式
   if (!Array.isArray(errors)) {
-    logger.warn('校对结果不是数组，返回空数组')
+    getLogger().warn('校对结果不是数组，返回空数组')
     return []
   }
 
@@ -401,7 +410,7 @@ ${text}
     if (error && typeof error === 'object' && error.type && error.suggestion) {
       validErrors.push(error)
     } else {
-      logger.warn('校对错误格式不完整，跳过:', error)
+      getLogger().warn('校对错误格式不完整，跳过:', error)
     }
   }
 
@@ -507,7 +516,7 @@ async function getFullDocumentText(tabId?: string): Promise<{ content: string; f
 /**
  * 校对Tool回调函数
  */
-const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => {
+export const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   // 支持多种参数格式：
   // 1. 直接文本：{ text: "...", source: "text", format: "text|markdown|latex" }
   // 2. 文件路径：{ text: "/path/to/file", source: "file" }
@@ -627,7 +636,7 @@ const proofreadToolCallback: ToolCallback = async (params, signal, onUpdate) => 
 
     return await performProofread(content, finalFormat, signal, onUpdate, tabId, false)
   } catch (error) {
-    logger.error('校对失败:', error)
+    getLogger().error('校对失败:', error)
     return {
       status: 'failed',
       error: error instanceof Error ? error.message : String(error)
@@ -686,9 +695,9 @@ function applyFixes(
             fixed: true
           })
           
-          logger.debug(`已修复错误: 第${error.line}行第${error.column}列 "${error.text}" -> "${error.suggestion}"`)
+          getLogger().debug(`已修复错误: 第${error.line}行第${error.column}列 "${error.text}" -> "${error.suggestion}"`)
         } else {
-          logger.warn(`错误位置不匹配，跳过修复: 期望 "${error.text}"，实际 "${actualText}"`)
+          getLogger().warn(`错误位置不匹配，跳过修复: 期望 "${error.text}"，实际 "${actualText}"`)
         }
       }
     }
@@ -717,41 +726,41 @@ function updateDocumentInWorkspace(
     // 如果不是document来源，不更新workspace
     if (windowType === 'setting') {
       // 设置窗口模式下，可能需要通过广播更新，这里暂时不处理
-      logger.debug('设置窗口模式，跳过workspace更新')
+      getLogger().debug('设置窗口模式，跳过workspace更新')
       return
     }
     
     const targetTabId = tabId || workspace.activeTabId.value
     if (!targetTabId) {
-      logger.warn('没有活动的文档标签页，无法更新文档')
+      getLogger().warn('没有活动的文档标签页，无法更新文档')
       return
     }
     
     const doc = workspace.ensureDocument(targetTabId)
     if (!doc) {
-      logger.warn('文档不存在，无法更新')
+      getLogger().warn('文档不存在，无法更新')
       return
     }
     
     // 根据格式更新对应的内容
     if (format === 'latex' && doc.format === 'tex') {
       workspace.updateDocumentTex(targetTabId, fixedContent)
-      logger.info('已更新LaTeX文档内容')
+      getLogger().info('已更新LaTeX文档内容')
     } else if ((format === 'markdown' || format === 'text') && doc.format === 'md') {
       workspace.updateDocumentMarkdown(targetTabId, fixedContent)
-      logger.info('已更新Markdown文档内容')
+      getLogger().info('已更新Markdown文档内容')
     } else {
       // 格式不匹配，尝试根据文档格式更新
       if (doc.format === 'tex') {
         workspace.updateDocumentTex(targetTabId, fixedContent)
-        logger.info('已更新文档内容（格式转换）')
+        getLogger().info('已更新文档内容（格式转换）')
       } else {
         workspace.updateDocumentMarkdown(targetTabId, fixedContent)
-        logger.info('已更新文档内容（格式转换）')
+        getLogger().info('已更新文档内容（格式转换）')
       }
     }
   } catch (error) {
-    logger.error('更新workspace文档失败:', error)
+    getLogger().error('更新workspace文档失败:', error)
     // 不抛出错误，让校对流程继续
   }
 }
@@ -783,7 +792,7 @@ async function performProofread(
 
     // 先进行本地拼写检查（快速检查明显的拼写错误）
     const localErrors = checkSpellingLocally(content, format)
-    logger.info(`本地拼写检查发现 ${localErrors.length} 个明显的拼写错误`)
+    getLogger().info(`本地拼写检查发现 ${localErrors.length} 个明显的拼写错误`)
 
     // 使用LLM进行校对（主要检查，包括语法、复杂拼写等），带重试机制
     let llmErrors: ProofreadError[] = []
@@ -796,11 +805,11 @@ async function performProofread(
           retryDelay: 3000,
           checkEmpty: (result) => Array.isArray(result) && result.length === 0 && content.trim().length > 50,
           onRetry: (attempt, error) => {
-            logger.warn(`[proofread-tool] LLM返回空，正在重试 (${attempt}/3)...`, error)
+            getLogger().warn(`[proofread-tool] LLM返回空，正在重试 (${attempt}/3)...`, error)
           }
         }
       )
-      logger.info(`LLM检查发现 ${llmErrors.length} 个错误`)
+      getLogger().info(`LLM检查发现 ${llmErrors.length} 个错误`)
     } catch (error) {
       // 检查是否是因为超时且有内容
       if (signal?.aborted) {
@@ -808,7 +817,7 @@ async function performProofread(
         // 如果错误信息包含"超时"或"取消"，但proofreadWithLLM应该已经处理了有内容的情况
         // 这里主要是捕获其他可能的错误
         if (errorMessage.includes('超时') || errorMessage.includes('取消')) {
-          logger.warn('任务超时，但可能已有部分结果，继续处理')
+          getLogger().warn('任务超时，但可能已有部分结果，继续处理')
           isTimeout = true
           // 使用空数组，因为proofreadWithLLM应该已经返回了结果
           llmErrors = []
@@ -836,18 +845,18 @@ async function performProofread(
       
       if (!isDuplicate) {
         allErrors.push(localError)
-        logger.debug(`添加本地检查发现的错误: ${localError.text} -> ${localError.suggestion}`)
+        getLogger().debug(`添加本地检查发现的错误: ${localError.text} -> ${localError.suggestion}`)
       }
     }
     
     // 如果LLM没有发现错误，但本地检查发现了，记录警告
     if (llmErrors.length === 0 && localErrors.length > 0) {
-      logger.warn('LLM未发现错误，但本地检查发现了明显的拼写错误，可能LLM检查不够严格')
+      getLogger().warn('LLM未发现错误，但本地检查发现了明显的拼写错误，可能LLM检查不够严格')
     }
     
     // 如果LLM返回空数组，但文本不为空，记录警告（可能是LLM没有严格检查）
     if (llmErrors.length === 0 && localErrors.length === 0 && content.trim().length > 50) {
-      logger.warn('LLM和本地检查都未发现错误，但文本较长，可能存在问题')
+      getLogger().warn('LLM和本地检查都未发现错误，但文本较长，可能存在问题')
     }
     
     let errors = allErrors
@@ -901,19 +910,19 @@ async function performProofread(
           if (tabId !== undefined) {
             updateDocumentInWorkspace(tabId, fixedContent, format)
             autoFixed = true
-            logger.info(`已自动修复 ${fixedCount} 个错误并更新文档`)
+            getLogger().info(`已自动修复 ${fixedCount} 个错误并更新文档`)
           } else {
             // 检查是否是document来源（通过activeTabId判断）
             const activeTabId = workspace.activeTabId.value
             if (activeTabId) {
               updateDocumentInWorkspace(activeTabId, fixedContent, format)
               autoFixed = true
-              logger.info(`已自动修复 ${fixedCount} 个错误并更新文档`)
+              getLogger().info(`已自动修复 ${fixedCount} 个错误并更新文档`)
             }
           }
         }
       } catch (error) {
-        logger.error('自动修复失败:', error)
+        getLogger().error('自动修复失败:', error)
         // 修复失败不影响校对结果，继续执行
       }
     }
@@ -950,7 +959,7 @@ async function performProofread(
     )
     if (isTimeout) {
       completedMessage = `⚠️ ${completedMessage}（任务超时，结果可能不完整）`
-      logger.warn('校对任务超时，但已返回已有结果')
+      getLogger().warn('校对任务超时，但已返回已有结果')
     }
 
     onUpdate({
@@ -980,7 +989,7 @@ async function performProofread(
       ...(isTimeout ? { warning: '任务超时，结果可能不完整' } : {})
     }
   } catch (error) {
-    logger.error('校对失败:', error)
+    getLogger().error('校对失败:', error)
     return {
       status: 'failed',
       error: error instanceof Error ? error.message : String(error)

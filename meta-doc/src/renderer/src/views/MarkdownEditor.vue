@@ -423,6 +423,9 @@ const handleMenuClick = async (item: string) => {
         case 'section-optimizer':
             await openSectionOptimizerFromContext();
             break;
+        case 'insert-graph':
+            await handleInsertGraph();
+            break;
         case 'cut':
             await textEditorAdapter.value?.cut();
             break;
@@ -659,6 +662,55 @@ const handleTitleMenuClose = () => {
 };
 
 // 从右键菜单打开段落优化工具
+// 处理插入绘图
+const handleInsertGraph = async () => {
+    if (!vditor.value || !props.tabId) {
+        ElMessage.warning(t('graph.noEditor', '编辑器未就绪'))
+        return
+    }
+    
+    try {
+        // 获取光标位置的上下文（类似自动补全）
+        const markdown = vditor.value.getValue()
+        const vditorInstance = vditor.value.vditor
+        
+        // 获取光标位置
+        let cursorOffset = 0
+        if (vditorInstance?.ir?.element) {
+            const editorElement = vditorInstance.ir.element
+            const selection = window.getSelection()
+            if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0)
+                const preCaretRange = range.cloneRange()
+                preCaretRange.selectNodeContents(editorElement)
+                preCaretRange.setEnd(range.endContainer, range.endOffset)
+                cursorOffset = preCaretRange.toString().length
+            }
+        }
+        
+        // 获取上下文（前后各200字符）
+        const contextStart = Math.max(0, cursorOffset - 200)
+        const contextEnd = Math.min(markdown.length, cursorOffset + 200)
+        const context = markdown.substring(contextStart, contextEnd)
+        
+        // 打开绘图工具窗口，并传递上下文
+        eventBus.emit('graph', { context, insertPosition: cursorOffset })
+        
+        // 监听绘图完成事件
+        const onGraphComplete = (data: { imageUrl: string; imageMarkdown: string }) => {
+            // 插入图片Markdown
+            const imageMarkdown = data.imageMarkdown || `![生成的图片](${data.imageUrl})`
+            insertText(imageMarkdown)
+            eventBus.off('graph-complete', onGraphComplete)
+        }
+        
+        eventBus.on('graph-complete', onGraphComplete)
+    } catch (error) {
+        logger.error('打开绘图工具失败:', error)
+        ElMessage.error('打开绘图工具失败: ' + (error instanceof Error ? error.message : String(error)))
+    }
+}
+
 const openSectionOptimizerFromContext = async () => {
     logger.debug('[MarkdownEditor] ========== openSectionOptimizerFromContext 开始 ==========')
     

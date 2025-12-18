@@ -170,6 +170,22 @@ export function webMainCalls() {
     router.push('/single-page/fomula-recognition')
     //openFomulaRecognitionDialog();
   })
+  
+  localIpcMain.on('data-analysis', () => {
+    router.push('/single-page/data-analysis')
+  })
+  
+  localIpcMain.on('ocr', () => {
+    router.push('/single-page/ocr')
+  })
+  
+  localIpcMain.on('attachment', () => {
+    router.push('/single-page/attachment')
+  })
+  
+  localIpcMain.on('graph', () => {
+    router.push('/single-page/graph')
+  })
 
 
 

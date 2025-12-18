@@ -217,11 +217,11 @@ export class GeminiAdapter extends BaseLlmAdapter {
         if (deltaText) {
           // 累积文本并返回增量
           accumulatedText += deltaText;
-          this.logger.debug('提取增量文本', { 
-            deltaLength: deltaText.length, 
-            deltaPreview: deltaText.substring(0, 50),
-            newAccumulatedLength: accumulatedText.length
-          });
+          // this.logger.debug('提取增量文本', { 
+          //   deltaLength: deltaText.length, 
+          //   deltaPreview: deltaText.substring(0, 50),
+          //   newAccumulatedLength: accumulatedText.length
+          // });
           yield { delta: deltaText, usage: null };
         }
         
@@ -229,7 +229,7 @@ export class GeminiAdapter extends BaseLlmAdapter {
         const usage = this.extractStreamUsage(chunk as any);
         if (usage) {
           lastUsage = usage;
-          this.logger.debug('收到 usage 信息', usage);
+          // this.logger.debug('收到 usage 信息', usage);
         }
       }
       
@@ -378,11 +378,11 @@ export class GeminiAdapter extends BaseLlmAdapter {
         if (deltaText) {
           // 累积文本并返回增量
           accumulatedText += deltaText;
-          this.logger.debug('提取增量文本', { 
-            deltaLength: deltaText.length, 
-            deltaPreview: deltaText.substring(0, 50),
-            newAccumulatedLength: accumulatedText.length
-          });
+          // this.logger.debug('提取增量文本', { 
+          //   deltaLength: deltaText.length, 
+          //   deltaPreview: deltaText.substring(0, 50),
+          //   newAccumulatedLength: accumulatedText.length
+          // });
           yield { delta: deltaText, usage: null };
         }
         
@@ -390,7 +390,7 @@ export class GeminiAdapter extends BaseLlmAdapter {
         const usage = this.extractStreamUsage(chunk as any);
         if (usage) {
           lastUsage = usage;
-          this.logger.debug('收到 usage 信息', usage);
+          // this.logger.debug('收到 usage 信息', usage);
         }
       }
       

@@ -146,6 +146,30 @@
           </el-icon>
           <span>{{ $t('leftMenu.smartDrawingAssistant') }}</span>
         </el-menu-item>
+        <el-menu-item index="2-4" @click="eventBus.emit('data-analysis')">
+          <el-icon>
+            <DataAnalysis />
+          </el-icon>
+          <span>{{ $t('leftMenu.dataAnalysis') }}</span>
+        </el-menu-item>
+        <el-menu-item index="2-5" @click="eventBus.emit('ocr')">
+          <el-icon>
+            <EditPen />
+          </el-icon>
+          <span>{{ $t('leftMenu.ocr') }}</span>
+        </el-menu-item>
+        <el-menu-item index="2-6" @click="eventBus.emit('attachment')">
+          <el-icon>
+            <Document />
+          </el-icon>
+          <span>{{ $t('leftMenu.attachment') }}</span>
+        </el-menu-item>
+        <el-menu-item index="2-7" @click="eventBus.emit('graph')">
+          <el-icon>
+            <DataAnalysis />
+          </el-icon>
+          <span>{{ $t('leftMenu.graph') }}</span>
+        </el-menu-item>
       </el-sub-menu>
 
     <el-sub-menu index="3">

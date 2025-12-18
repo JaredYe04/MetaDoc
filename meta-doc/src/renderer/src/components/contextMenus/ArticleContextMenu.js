@@ -46,6 +46,8 @@ export async function getArticleContextMenuItems(options = {}) {
     { type: "divider" },
     { label: "contextMenu.aiAnalysis", value: "ai-assistant" },
     { label: "contextMenu.sectionOptimizer", value: "section-optimizer" },
+    { type: "divider" },
+    { label: "contextMenu.insertGraph", value: "insert-graph" },
   ];
 
   // LaTeX编辑器特有：定位到PDF位置

@@ -13,6 +13,7 @@
     "open-test": "concurrently \"electron-vite dev -- c:\\Users\\tange\\Documents\\软件工程概述和流程.md\" \"vite\"",
     "prebuild": "node scripts/copy-env.js && node scripts/version-manager.js update",
     "build": "electron-vite build",
+    "postbuild": "node scripts/copy-migrations.js",
     "postinstall": "electron-builder install-app-deps && npm run rebuild-native",
     "rebuild-native": "electron-rebuild -f -w better-sqlite3 --only better-sqlite3",
     "build:unpack": "npm run build && electron-builder --dir",

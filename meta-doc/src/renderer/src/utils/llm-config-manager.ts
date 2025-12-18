@@ -90,7 +90,13 @@ export async function loadLlmConfigs(): Promise<void> {
       localStorage.setItem(CURRENT_CONFIG_KEY, currentConfigId.value);
     }
   } catch (error) {
-    getLogger().error('加载LLM配置失败:', error);
+    // 使用 try-catch 保护，确保即使 logger 未初始化也不会崩溃
+    try {
+      getLogger().error('加载LLM配置失败:', error);
+    } catch (loggerError) {
+      console.error('加载LLM配置失败:', error);
+      console.error('Logger初始化错误:', loggerError);
+    }
     configs.value = [];
   }
 }
@@ -463,32 +469,44 @@ export async function isCurrentConfigModified(configId: string): Promise<boolean
 // 注意：配置列表存储在 localStorage 中，所有窗口共享
 // 但当前配置ID也存储在 localStorage 中，所以切换配置时其他窗口会自动感知
 async function initLlmConfigBroadcast() {
-  const { default: eventBus } = await import('./event-bus.js');
-  
-  eventBus.on('llm-config-updated', async (data: any) => {
-    getLogger().debug('收到LLM配置更新广播', data);
+  try {
+    const { default: eventBus } = await import('./event-bus.js');
     
-    // 重新加载配置列表（因为可能在其他窗口被修改）
-    loadLlmConfigs();
-    
-    // 如果当前配置ID与广播的配置ID一致，或者当前没有配置，重新应用配置
-    if (data?.configId && (currentConfigId.value === data.configId || !currentConfigId.value)) {
-      const config = configs.value.find(c => c.id === data.configId);
-      if (config) {
-        // 重新应用配置到设置（确保设置是最新的）
-        // 注意：这里不会再次广播，避免循环广播
-        await applyConfigToSettingsWithoutBroadcast(config);
+    eventBus.on('llm-config-updated', async (data: any) => {
+      // 使用 try-catch 保护 logger 调用
+      try {
+        getLogger().debug('收到LLM配置更新广播', data);
+      } catch (loggerError) {
+        console.debug('收到LLM配置更新广播', data);
+        console.warn('Logger初始化错误:', loggerError);
       }
-    } else if (data?.configId) {
-      // 如果广播的配置ID与当前配置ID不一致，说明其他窗口切换了配置
-      // 检查当前配置ID是否还存在，如果不存在则切换到第一个配置
-      const currentConfig = configs.value.find(c => c.id === currentConfigId.value);
-      if (!currentConfig && configs.value.length > 0) {
-        // 当前配置不存在，切换到第一个配置
-        await switchConfig(configs.value[0].id);
+      
+      // 重新加载配置列表（因为可能在其他窗口被修改）
+      loadLlmConfigs();
+      
+      // 如果当前配置ID与广播的配置ID一致，或者当前没有配置，重新应用配置
+      if (data?.configId && (currentConfigId.value === data.configId || !currentConfigId.value)) {
+        const config = configs.value.find(c => c.id === data.configId);
+        if (config) {
+          // 重新应用配置到设置（确保设置是最新的）
+          // 注意：这里不会再次广播，避免循环广播
+          await applyConfigToSettingsWithoutBroadcast(config);
+        }
+      } else if (data?.configId) {
+        // 如果广播的配置ID与当前配置ID不一致，说明其他窗口切换了配置
+        // 检查当前配置ID是否还存在，如果不存在则切换到第一个配置
+        const currentConfig = configs.value.find(c => c.id === currentConfigId.value);
+        if (!currentConfig && configs.value.length > 0) {
+          // 当前配置不存在，切换到第一个配置
+          await switchConfig(configs.value[0].id);
+        }
       }
-    }
-  });
+    });
+  } catch (error) {
+    // 如果初始化失败，使用 console.error 而不是 logger（因为 logger 可能未初始化）
+    console.error('初始化LLM配置广播监听失败:', error);
+    throw error;
+  }
 }
 
 // 初始化时注册广播监听（延迟执行，确保logger已初始化）

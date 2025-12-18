@@ -21,6 +21,7 @@
     <el-menu-item index="/visualize">{{ $t('headMenu.visualize') }}</el-menu-item>
     <el-menu-item index="/agent">{{ $t('headMenu.agent') }}</el-menu-item>
     <el-menu-item index="/knowledge-base">{{ $t('headMenu.knowledgeBase') }}</el-menu-item>
+    <el-menu-item index="/proofread" v-if="activeDocument">{{ $t('headMenu.proofread') }}</el-menu-item>
     <el-menu-item v-if="isDev" index="/debug">{{ $t('setting.debug.title') }}</el-menu-item>
     
   </el-menu>

@@ -26,7 +26,7 @@ export interface MigrationRecord {
 export interface MigrationFile {
   name: string;
   path: string;
-  timestamp: number;
+  order: number; // 迁移顺序号（用于排序）
 }
 
 /**
@@ -48,7 +48,39 @@ export function getMigrationsDirectory(): string {
  * 获取内置迁移文件目录（项目源码中的迁移文件）
  */
 export function getBuiltinMigrationsDirectory(): string {
-  return path.join(__dirname, 'migrations');
+  // 在开发环境中，__dirname 指向 out/main/database
+  // 在打包后，__dirname 指向 app.asar/main/database
+  // 迁移文件应该在同一目录下的 migrations 子目录中
+  let migrationsDir = path.join(__dirname, 'migrations');
+  
+  // 添加调试日志
+  logger.debug(`迁移文件目录: ${migrationsDir}, 存在: ${fs.existsSync(migrationsDir)}`);
+  
+  // 如果目录不存在，尝试从源码目录读取（仅开发环境）
+  if (!fs.existsSync(migrationsDir) && !app.isPackaged) {
+    // 尝试从源码目录读取：从 out/main/database 回到 src/main/database
+    const sourceMigrationsDir = path.resolve(__dirname, '../../src/main/database/migrations');
+    if (fs.existsSync(sourceMigrationsDir)) {
+      logger.info(`使用源码目录的迁移文件: ${sourceMigrationsDir}`);
+      migrationsDir = sourceMigrationsDir;
+    } else {
+      logger.warn(`迁移文件目录不存在: ${migrationsDir}`);
+      logger.warn(`源码迁移文件目录也不存在: ${sourceMigrationsDir}`);
+      // 列出 __dirname 的内容以便调试
+      try {
+        if (fs.existsSync(__dirname)) {
+          const dirContents = fs.readdirSync(__dirname);
+          logger.debug(`__dirname (${__dirname}) 内容:`, dirContents.join(', '));
+        }
+      } catch (error) {
+        logger.error('无法读取 __dirname 内容', error as Error);
+      }
+    }
+  } else if (!fs.existsSync(migrationsDir)) {
+    logger.warn(`迁移文件目录不存在: ${migrationsDir}`);
+  }
+  
+  return migrationsDir;
 }
 
 /**
@@ -110,18 +142,29 @@ export function recordMigration(migrationName: string): void {
 
 /**
  * 从文件名解析迁移信息
- * 格式: YYYYMMDDHHMMSS_description.sql
+ * 支持两种格式：
+ * 1. 顺序号格式: NNN_description.sql (推荐，如 001_initial_schema.sql)
+ * 2. 时间戳格式: YYYYMMDDHHMMSS_description.sql (兼容旧格式)
  */
-export function parseMigrationFileName(fileName: string): { timestamp: number; name: string } | null {
-  const match = fileName.match(/^(\d{14})_(.+)\.sql$/);
-  if (!match) {
-    return null;
+export function parseMigrationFileName(fileName: string): { order: number; name: string } | null {
+  // 优先匹配顺序号格式: NNN_description.sql
+  const orderMatch = fileName.match(/^(\d{3,})_(.+)\.sql$/);
+  if (orderMatch) {
+    const order = parseInt(orderMatch[1], 10);
+    const name = orderMatch[2];
+    return { order, name };
   }
   
-  const timestamp = parseInt(match[1], 10);
-  const name = match[2];
+  // 兼容旧的时间戳格式: YYYYMMDDHHMMSS_description.sql
+  const timestampMatch = fileName.match(/^(\d{14})_(.+)\.sql$/);
+  if (timestampMatch) {
+    // 将时间戳转换为顺序号（使用时间戳作为顺序号，确保旧文件仍然可以正确排序）
+    const timestamp = parseInt(timestampMatch[1], 10);
+    const name = timestampMatch[2];
+    return { order: timestamp, name };
+  }
   
-  return { timestamp, name };
+  return null;
 }
 
 /**
@@ -132,48 +175,66 @@ export function getAllMigrationFiles(): MigrationFile[] {
   
   // 1. 从内置迁移目录读取（项目源码中的迁移）
   const builtinDir = getBuiltinMigrationsDirectory();
+  logger.debug(`检查内置迁移目录: ${builtinDir}`);
   if (fs.existsSync(builtinDir)) {
-    const builtinFiles = fs.readdirSync(builtinDir)
-      .filter(f => f.endsWith('.sql'))
-      .map(f => {
-        const parsed = parseMigrationFileName(f);
-        if (parsed) {
-          return {
-            name: f,
-            path: path.join(builtinDir, f),
-            timestamp: parsed.timestamp
-          };
-        }
-        return null;
-      })
-      .filter((f): f is MigrationFile => f !== null);
-    
-    files.push(...builtinFiles);
+    try {
+      const builtinFiles = fs.readdirSync(builtinDir)
+        .filter(f => f.endsWith('.sql'))
+        .map(f => {
+          const parsed = parseMigrationFileName(f);
+          if (parsed) {
+            return {
+              name: f,
+              path: path.join(builtinDir, f),
+              order: parsed.order
+            };
+          }
+          logger.warn(`无法解析迁移文件名: ${f}`);
+          return null;
+        })
+        .filter((f): f is MigrationFile => f !== null);
+      
+      logger.debug(`从内置目录找到 ${builtinFiles.length} 个迁移文件:`, builtinFiles.map(f => f.name).join(', '));
+      files.push(...builtinFiles);
+    } catch (error) {
+      logger.error(`读取内置迁移目录失败: ${builtinDir}`, error as Error);
+    }
+  } else {
+    logger.warn(`内置迁移目录不存在: ${builtinDir}`);
   }
   
   // 2. 从用户数据目录读取（运行时创建的迁移）
   const userDir = getMigrationsDirectory();
+  logger.debug(`检查用户迁移目录: ${userDir}`);
   if (fs.existsSync(userDir)) {
-    const userFiles = fs.readdirSync(userDir)
-      .filter(f => f.endsWith('.sql'))
-      .map(f => {
-        const parsed = parseMigrationFileName(f);
-        if (parsed) {
-          return {
-            name: f,
-            path: path.join(userDir, f),
-            timestamp: parsed.timestamp
-          };
-        }
-        return null;
-      })
-      .filter((f): f is MigrationFile => f !== null);
-    
-    files.push(...userFiles);
+    try {
+      const userFiles = fs.readdirSync(userDir)
+        .filter(f => f.endsWith('.sql'))
+        .map(f => {
+          const parsed = parseMigrationFileName(f);
+          if (parsed) {
+            return {
+              name: f,
+              path: path.join(userDir, f),
+              order: parsed.order
+            };
+          }
+          logger.warn(`无法解析迁移文件名: ${f}`);
+          return null;
+        })
+        .filter((f): f is MigrationFile => f !== null);
+      
+      logger.debug(`从用户目录找到 ${userFiles.length} 个迁移文件:`, userFiles.map(f => f.name).join(', '));
+      files.push(...userFiles);
+    } catch (error) {
+      logger.error(`读取用户迁移目录失败: ${userDir}`, error as Error);
+    }
   }
   
-  // 按时间戳排序
-  return files.sort((a, b) => a.timestamp - b.timestamp);
+  // 按顺序号排序
+  const sorted = files.sort((a, b) => a.order - b.order);
+  logger.debug(`总共找到 ${sorted.length} 个迁移文件`);
+  return sorted;
 }
 
 /**
@@ -271,27 +332,47 @@ export function executeMigration(migrationFile: MigrationFile): void {
  * 执行所有待执行的迁移
  */
 export function runMigrations(): void {
-  initializeMigrationSystem();
-  
-  const pending = getPendingMigrations();
-  
-  if (pending.length === 0) {
-    logger.debug('没有待执行的迁移');
-    return;
-  }
-  
-  logger.info(`发现 ${pending.length} 个待执行的迁移`);
-  
-  for (const migration of pending) {
-    try {
-      executeMigration(migration);
-    } catch (error) {
-      logger.error(`迁移执行失败，停止后续迁移: ${migration.name}`, error as Error);
-      throw error;
+  try {
+    initializeMigrationSystem();
+    
+    // 获取所有迁移文件（用于调试）
+    const allFiles = getAllMigrationFiles();
+    logger.info(`扫描到 ${allFiles.length} 个迁移文件:`, allFiles.map(f => f.name).join(', '));
+    
+    if (allFiles.length === 0) {
+      logger.warn('未找到任何迁移文件！请检查迁移文件是否存在于正确的位置。');
+      return;
     }
+    
+    const pending = getPendingMigrations();
+    
+    if (pending.length === 0) {
+      logger.info('没有待执行的迁移');
+      return;
+    }
+    
+    logger.info(`发现 ${pending.length} 个待执行的迁移:`, pending.map(m => m.name).join(', '));
+    
+    for (const migration of pending) {
+      try {
+        logger.info(`准备执行迁移: ${migration.name} (路径: ${migration.path})`);
+        // 检查迁移文件是否存在
+        if (!fs.existsSync(migration.path)) {
+          logger.error(`迁移文件不存在: ${migration.path}`);
+          throw new Error(`迁移文件不存在: ${migration.path}`);
+        }
+        executeMigration(migration);
+      } catch (error) {
+        logger.error(`迁移执行失败，停止后续迁移: ${migration.name}`, error as Error);
+        throw error;
+      }
+    }
+    
+    logger.info('所有迁移执行完成');
+  } catch (error) {
+    logger.error('执行迁移时发生错误', error as Error);
+    throw error;
   }
-  
-  logger.info('所有迁移执行完成');
 }
 
 /**
@@ -300,16 +381,15 @@ export function runMigrations(): void {
  * @returns 创建的迁移文件路径
  */
 export function createMigration(description: string): string {
-  // 生成时间戳（YYYYMMDDHHMMSS）
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  const seconds = String(now.getSeconds()).padStart(2, '0');
+  // 获取下一个顺序号
+  const allFiles = getAllMigrationFiles();
+  const maxOrder = allFiles.length > 0 
+    ? Math.max(...allFiles.map(f => f.order))
+    : 0;
+  const nextOrder = maxOrder + 1;
   
-  const timestamp = `${year}${month}${day}${hours}${minutes}${seconds}`;
+  // 格式化顺序号为3位数字（001, 002, ...）
+  const orderStr = String(nextOrder).padStart(3, '0');
   
   // 清理描述，只保留字母、数字、下划线和连字符
   const cleanDescription = description
@@ -318,11 +398,12 @@ export function createMigration(description: string): string {
     .replace(/_{2,}/g, '_')
     .replace(/^_|_$/g, '');
   
-  const fileName = `${timestamp}_${cleanDescription}.sql`;
+  const fileName = `${orderStr}_${cleanDescription}.sql`;
   const migrationsDir = getMigrationsDirectory();
   const filePath = path.join(migrationsDir, fileName);
   
   // 创建空的迁移文件
+  const now = new Date();
   fs.writeFileSync(filePath, `-- Migration: ${description}\n-- Created: ${now.toISOString()}\n\n`, 'utf-8');
   
   logger.info(`迁移文件已创建: ${filePath}`);

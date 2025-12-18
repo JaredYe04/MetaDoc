@@ -476,6 +476,16 @@ app.whenReady().then(async () => {
     return;
   }
 
+  // 在创建窗口之前执行数据库迁移，确保表已创建
+  try {
+    logger.info('🚀 正在执行数据库迁移...');
+    const { ensureInitialized } = await import('./database/knowledge-db');
+    ensureInitialized();
+    logger.info('✅ 数据库迁移完成');
+  } catch (error) {
+    logger.error('❌ 数据库迁移失败:', error);
+  }
+
   createWindow();
   mainCalls();
 
@@ -591,6 +601,26 @@ export const openAiChatDialog = async (): Promise<void> => {
 
 export const openFomulaRecognitionDialog = async (): Promise<void> => {
   openAuxiliaryWindow(WINDOW_IDS.formulaRecognition);
+};
+
+export const openDataAnalysisDialog = async (): Promise<void> => {
+  const { openAuxiliaryWindow } = await import('./window-manager');
+  openAuxiliaryWindow('dataAnalysis');
+};
+
+export const openOcrDialog = async (): Promise<void> => {
+  const { openAuxiliaryWindow } = await import('./window-manager');
+  openAuxiliaryWindow('ocr');
+};
+
+export const openAttachmentDialog = async (): Promise<void> => {
+  const { openAuxiliaryWindow } = await import('./window-manager');
+  openAuxiliaryWindow('attachment');
+};
+
+export const openGraphDialog = async (): Promise<void> => {
+  const { openAuxiliaryWindow } = await import('./window-manager');
+  openAuxiliaryWindow('graph');
 };
 
 export const openAiGraphDialog = async (): Promise<void> => {

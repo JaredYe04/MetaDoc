@@ -5,7 +5,7 @@ import { is } from '@electron-toolkit/utils';
 import { dispatchLanguageToWindow, t } from './i18n';
 import { createMainLogger } from './logger';
 
-type AuxWindowId = 'setting' | 'aiChat' | 'formulaRecognition' | 'aiGraph';
+type AuxWindowId = 'setting' | 'aiChat' | 'formulaRecognition' | 'aiGraph' | 'dataAnalysis' | 'ocr' | 'attachment' | 'graph';
 
 interface WindowDefinition {
   id: AuxWindowId;
@@ -59,6 +59,42 @@ const windowDefinitions: Record<AuxWindowId, WindowDefinition> = {
     height: 720,
     minWidth: 800,
     minHeight: 600
+  },
+  dataAnalysis: {
+    id: 'dataAnalysis',
+    route: '#/data-analysis?windowType=data-analysis',
+    titleKey: 'main.windows.dataAnalysisTitle',
+    width: 1400,
+    height: 800,
+    minWidth: 1000,
+    minHeight: 600
+  },
+  ocr: {
+    id: 'ocr',
+    route: '#/ocr?windowType=ocr',
+    titleKey: 'main.windows.ocrTitle',
+    width: 1400,
+    height: 800,
+    minWidth: 1000,
+    minHeight: 600
+  },
+  attachment: {
+    id: 'attachment',
+    route: '#/attachment?windowType=attachment',
+    titleKey: 'main.windows.attachmentTitle',
+    width: 1400,
+    height: 800,
+    minWidth: 1000,
+    minHeight: 600
+  },
+  graph: {
+    id: 'graph',
+    route: '#/graph?windowType=graph',
+    titleKey: 'main.windows.graphTitle',
+    width: 1400,
+    height: 800,
+    minWidth: 1000,
+    minHeight: 600
   }
 };
 
@@ -66,7 +102,11 @@ const windowStates: Record<AuxWindowId, WindowState> = {
   setting: { instance: null, ready: false, pendingShow: false },
   aiChat: { instance: null, ready: false, pendingShow: false },
   formulaRecognition: { instance: null, ready: false, pendingShow: false },
-  aiGraph: { instance: null, ready: false, pendingShow: false }
+  aiGraph: { instance: null, ready: false, pendingShow: false },
+  dataAnalysis: { instance: null, ready: false, pendingShow: false },
+  ocr: { instance: null, ready: false, pendingShow: false },
+  attachment: { instance: null, ready: false, pendingShow: false },
+  graph: { instance: null, ready: false, pendingShow: false }
 };
 
 let parentWindowProvider: ParentProvider = () => null;

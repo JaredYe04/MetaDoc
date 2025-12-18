@@ -379,15 +379,34 @@ async function answerQuestionNonStream(
   const { type, selectedModel } = config;
 
   try {
-    // 如果meta中有max_tokens，则使用它（用于自动补全限制）
-    const maxTokens = meta.max_tokens !== undefined 
-      ? meta.max_tokens 
-      : DEFAULT_MAX_TOKENS;
+    // 根据配置决定是否使用 max_tokens
+    // 如果配置中 enableMaxTokens 为 false，则不传递 max_tokens
+    // 如果配置中 enableMaxTokens 为 true，使用配置的 maxTokens 作为上限
+    let effectiveMaxTokens = undefined;
+    const configEnableMaxTokens = (config?.enableMaxTokens ?? false);
+    const configMaxTokens = config?.maxTokens;
+    
+    if (configEnableMaxTokens) {
+      if (meta.max_tokens !== undefined && meta.max_tokens > 0) {
+        // 如果 meta 中指定了 max_tokens，取两者较小值
+        effectiveMaxTokens = configMaxTokens !== undefined && configMaxTokens > 0
+          ? Math.min(meta.max_tokens, configMaxTokens)
+          : meta.max_tokens;
+      } else if (configMaxTokens !== undefined && configMaxTokens > 0) {
+        // 如果没有指定 meta.max_tokens，使用配置的 maxTokens
+        effectiveMaxTokens = configMaxTokens;
+      }
+    }
+    // 如果 enableMaxTokens 为 false，effectiveMaxTokens 保持为 undefined，不传递 max_tokens
 
     // 对于ollama和manual类型，使用原有的fetch方式
     if (type === "ollama" || type === "manual") {
       const url = adapter.getCompletionUrl();
-      const payload = adapter.buildCompletionPayload(prompt, { ...meta, max_tokens: maxTokens });
+      const payloadMeta = { ...meta };
+      if (effectiveMaxTokens !== undefined) {
+        payloadMeta.max_tokens = effectiveMaxTokens;
+      }
+      const payload = adapter.buildCompletionPayload(prompt, payloadMeta);
       const headers = adapter.buildHeaders();
       
       const result = await sendNonStreamRequest(url, payload, headers, signal);
@@ -409,7 +428,11 @@ async function answerQuestionNonStream(
 
     // 对于Gemini类型，使用 GoogleGenAI SDK
     if (type === "gemini") {
-      const { text, usage } = await adapter.generateContentNonStream(prompt, { ...meta, max_tokens: maxTokens }, signal);
+      const geminiMeta = { ...meta };
+      if (effectiveMaxTokens !== undefined) {
+        geminiMeta.max_tokens = effectiveMaxTokens;
+      }
+      const { text, usage } = await adapter.generateContentNonStream(prompt, geminiMeta, signal);
       const processedText = await processThinkTag(text);
       ref.value = processedText;
       
@@ -482,14 +505,34 @@ async function answerQuestionStream(
   const { type, selectedModel } = config;
 
   try {
-    const maxTokens = meta.max_tokens !== undefined 
-      ? meta.max_tokens 
-      : DEFAULT_MAX_TOKENS;
+    // 根据配置决定是否使用 max_tokens
+    // 如果配置中 enableMaxTokens 为 false，则不传递 max_tokens
+    // 如果配置中 enableMaxTokens 为 true，使用配置的 maxTokens 作为上限
+    let effectiveMaxTokens = undefined;
+    const configEnableMaxTokens = (config?.enableMaxTokens ?? false);
+    const configMaxTokens = config?.maxTokens;
+    
+    if (configEnableMaxTokens) {
+      if (meta.max_tokens !== undefined && meta.max_tokens > 0) {
+        // 如果 meta 中指定了 max_tokens，取两者较小值
+        effectiveMaxTokens = configMaxTokens !== undefined && configMaxTokens > 0
+          ? Math.min(meta.max_tokens, configMaxTokens)
+          : meta.max_tokens;
+      } else if (configMaxTokens !== undefined && configMaxTokens > 0) {
+        // 如果没有指定 meta.max_tokens，使用配置的 maxTokens
+        effectiveMaxTokens = configMaxTokens;
+      }
+    }
+    // 如果 enableMaxTokens 为 false，effectiveMaxTokens 保持为 undefined，不传递 max_tokens
 
     // 对于ollama和manual类型，使用fetch方式
     if (type === "ollama" || type === "manual") {
       const streamUrl = adapter.getStreamUrl('completion') || adapter.getCompletionUrl();
-      const payload = { ...adapter.buildCompletionPayload(prompt, { ...meta, max_tokens: maxTokens }), stream: true };
+      const payloadMeta = { ...meta };
+      if (effectiveMaxTokens !== undefined) {
+        payloadMeta.max_tokens = effectiveMaxTokens;
+      }
+      const payload = { ...adapter.buildCompletionPayload(prompt, payloadMeta), stream: true };
       const headers = adapter.buildHeaders();
       
       ref.value = "";
@@ -528,7 +571,11 @@ async function answerQuestionStream(
       ref.value = "";
       let lastUsage = null;
       
-      const stream = adapter.generateContentStream(prompt, { ...meta, max_tokens: maxTokens }, signal);
+      const geminiMeta = { ...meta };
+      if (effectiveMaxTokens !== undefined) {
+        geminiMeta.max_tokens = effectiveMaxTokens;
+      }
+      const stream = adapter.generateContentStream(prompt, geminiMeta, signal);
       
       for await (const { delta, usage } of stream) {
         if (delta) {
@@ -568,7 +615,11 @@ async function answerQuestionStream(
       dangerouslyAllowBrowser: true,
     });
 
-    const completionParams = { ...adapter.buildCompletionPayload(prompt, { ...meta, max_tokens: maxTokens }), stream: true };
+    const completionMeta = { ...meta };
+    if (effectiveMaxTokens !== undefined) {
+      completionMeta.max_tokens = effectiveMaxTokens;
+    }
+    const completionParams = { ...adapter.buildCompletionPayload(prompt, completionMeta), stream: true };
 
     ref.value = "";
     let lastUsage = null;
@@ -670,6 +721,32 @@ async function continueConversationNonStream(
   const { type, selectedModel } = config;
 
   try {
+    // 根据配置决定是否使用 max_tokens
+    let effectiveMaxTokens = undefined;
+    const configEnableMaxTokens = (config?.enableMaxTokens ?? false);
+    const configMaxTokens = config?.maxTokens;
+    
+    if (configEnableMaxTokens) {
+      if (meta.max_tokens !== undefined && meta.max_tokens > 0) {
+        // 如果 meta 中指定了 max_tokens，取两者较小值
+        effectiveMaxTokens = configMaxTokens !== undefined && configMaxTokens > 0
+          ? Math.min(meta.max_tokens, configMaxTokens)
+          : meta.max_tokens;
+      } else if (configMaxTokens !== undefined && configMaxTokens > 0) {
+        // 如果没有指定 meta.max_tokens，使用配置的 maxTokens
+        effectiveMaxTokens = configMaxTokens;
+      }
+    }
+    // 如果 enableMaxTokens 为 false，effectiveMaxTokens 保持为 undefined，不传递 max_tokens
+    
+    const effectiveMeta = { ...meta };
+    if (effectiveMaxTokens !== undefined) {
+      effectiveMeta.max_tokens = effectiveMaxTokens;
+    } else if (effectiveMaxTokens === undefined && meta.max_tokens !== undefined) {
+      // 如果配置禁用了 max_tokens，移除 meta 中的 max_tokens
+      delete effectiveMeta.max_tokens;
+    }
+    
         // 清理并验证消息格式
         let sanitizedMsgs = sanitizeMessages(conversation);
         sanitizedMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger);
@@ -681,7 +758,7 @@ async function continueConversationNonStream(
     // 对于ollama和manual类型，使用fetch方式
     if (type === "ollama" || type === "manual") {
       const url = adapter.getChatUrl();
-      const payload = adapter.buildChatPayload(convertedMsgs, meta);
+      const payload = adapter.buildChatPayload(convertedMsgs, effectiveMeta);
       const headers = adapter.buildHeaders();
       
       const result = await sendNonStreamRequest(url, payload, headers, signal);
@@ -703,7 +780,7 @@ async function continueConversationNonStream(
     // 注意：Gemini 适配器的 generateChatNonStream 内部会自己转换消息格式
     // 所以这里应该传入原始的 sanitizedMsgs，而不是 convertedMsgs
     if (type === "gemini") {
-      const { text, usage } = await adapter.generateChatNonStream(sanitizedMsgs, meta, signal);
+      const { text, usage } = await adapter.generateChatNonStream(sanitizedMsgs, effectiveMeta, signal);
       const processedContent = await processThinkTag(text);
       ref.value = processedContent;
       
@@ -728,7 +805,7 @@ async function continueConversationNonStream(
       dangerouslyAllowBrowser: true,
     });
 
-    const chatParams = adapter.buildChatPayload(convertedMsgs, meta);
+    const chatParams = adapter.buildChatPayload(convertedMsgs, effectiveMeta);
 
     const completion = await openai.chat.completions.create(chatParams, {
       signal: signal,
@@ -772,6 +849,32 @@ async function continueConversationStream(
   const { type, selectedModel } = config;
 
   try {
+    // 根据配置决定是否使用 max_tokens
+    let effectiveMaxTokens = undefined;
+    const configEnableMaxTokens = (config?.enableMaxTokens ?? false);
+    const configMaxTokens = config?.maxTokens;
+    
+    if (configEnableMaxTokens) {
+      if (meta.max_tokens !== undefined && meta.max_tokens > 0) {
+        // 如果 meta 中指定了 max_tokens，取两者较小值
+        effectiveMaxTokens = configMaxTokens !== undefined && configMaxTokens > 0
+          ? Math.min(meta.max_tokens, configMaxTokens)
+          : meta.max_tokens;
+      } else if (configMaxTokens !== undefined && configMaxTokens > 0) {
+        // 如果没有指定 meta.max_tokens，使用配置的 maxTokens
+        effectiveMaxTokens = configMaxTokens;
+      }
+    }
+    // 如果 enableMaxTokens 为 false，effectiveMaxTokens 保持为 undefined，不传递 max_tokens
+    
+    const effectiveMeta = { ...meta };
+    if (effectiveMaxTokens !== undefined) {
+      effectiveMeta.max_tokens = effectiveMaxTokens;
+    } else if (effectiveMaxTokens === undefined && meta.max_tokens !== undefined) {
+      // 如果配置禁用了 max_tokens，移除 meta 中的 max_tokens
+      delete effectiveMeta.max_tokens;
+    }
+    
         // 清理并验证消息格式
         let sanitizedMsgs = sanitizeMessages(conversation);
         sanitizedMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger);
@@ -783,7 +886,7 @@ async function continueConversationStream(
     // 对于ollama和manual类型，使用fetch方式
     if (type === "ollama" || type === "manual") {
       const streamUrl = adapter.getStreamUrl('chat') || adapter.getChatUrl();
-      const payload = { ...adapter.buildChatPayload(convertedMsgs, meta), stream: true };
+      const payload = { ...adapter.buildChatPayload(convertedMsgs, effectiveMeta), stream: true };
       const headers = adapter.buildHeaders();
       
       ref.value = "";
@@ -823,7 +926,7 @@ async function continueConversationStream(
       ref.value = "";
       let lastUsage = null;
       
-      const stream = adapter.generateChatStream(sanitizedMsgs, meta, signal);
+      const stream = adapter.generateChatStream(sanitizedMsgs, effectiveMeta, signal);
       
       for await (const { delta, usage } of stream) {
         if (delta) {
@@ -860,7 +963,7 @@ async function continueConversationStream(
       dangerouslyAllowBrowser: true,
     });
 
-    const chatParams = { ...adapter.buildChatPayload(convertedMsgs, meta), stream: true };
+    const chatParams = { ...adapter.buildChatPayload(convertedMsgs, effectiveMeta), stream: true };
 
     ref.value = "";
     let lastUsage = null;
@@ -916,9 +1019,25 @@ async function continueConversation(
     // 设置默认值：如果没有指定stream，默认使用流式输出
     // 关键修复：确保stream默认为true，而不是undefined
     const shouldStream = meta?.stream !== false && (meta?.stream === true || meta?.stream === undefined);
-    const maxTokens = meta.max_tokens !== undefined 
-    ? meta.max_tokens 
-    : DEFAULT_MAX_TOKENS;
+    
+    // 根据配置决定是否使用 max_tokens
+    const config = adapter.getConfig();
+    let effectiveMaxTokens = undefined;
+    const configEnableMaxTokens = (config?.enableMaxTokens ?? false);
+    const configMaxTokens = config?.maxTokens;
+    
+    if (configEnableMaxTokens) {
+      if (meta.max_tokens !== undefined && meta.max_tokens > 0) {
+        // 如果 meta 中指定了 max_tokens，取两者较小值
+        effectiveMaxTokens = configMaxTokens !== undefined && configMaxTokens > 0
+          ? Math.min(meta.max_tokens, configMaxTokens)
+          : meta.max_tokens;
+      } else if (configMaxTokens !== undefined && configMaxTokens > 0) {
+        // 如果没有指定 meta.max_tokens，使用配置的 maxTokens
+        effectiveMaxTokens = configMaxTokens;
+      }
+    }
+    // 如果 enableMaxTokens 为 false，effectiveMaxTokens 保持为 undefined，不传递 max_tokens
     // 记录meta信息用于调试
     logger.debug('[continueConversation] meta参数检查:', {
       stream: meta?.stream,
@@ -932,13 +1051,24 @@ async function continueConversation(
     
     if (shouldStream) {
       logger.debug('[continueConversation] 使用流式输出模式');
-      await continueConversationStream(conversation, ref, meta, signal, effectiveCustomConfig);
+      const streamMeta = { ...meta };
+      if (effectiveMaxTokens !== undefined) {
+        streamMeta.max_tokens = effectiveMaxTokens;
+      } else if (effectiveMaxTokens === undefined && meta.max_tokens !== undefined) {
+        // 如果配置禁用了 max_tokens，移除 meta 中的 max_tokens
+        delete streamMeta.max_tokens;
+      }
+      await continueConversationStream(conversation, ref, streamMeta, signal, effectiveCustomConfig);
     } else {
       logger.warn(`[continueConversation] 使用非流式输出模式！meta.stream=${meta?.stream}, meta=${JSON.stringify(meta)}`);
+      const nonStreamMeta = { ...meta };
+      if (effectiveMaxTokens !== undefined) {
+        nonStreamMeta.max_tokens = effectiveMaxTokens;
+      }
       await continueConversationNonStream(
         conversation,
         ref,
-        { ...meta, max_tokens: maxTokens },
+        nonStreamMeta,
         signal,
         effectiveCustomConfig
       );

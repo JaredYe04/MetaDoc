@@ -135,6 +135,23 @@
               <el-option v-for="model in ollamaModels" :key="model.model" :label="model.name" :value="model.model" />
             </el-select>
           </el-form-item>
+          <el-form-item :label="t('setting.enableMaxTokens')">
+            <el-switch v-model="settings.ollama.enableMaxTokens" class="mb-2"
+              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
+              @change="handleFieldChange" />
+          </el-form-item>
+          <el-form-item v-if="settings.ollama.enableMaxTokens" :label="t('setting.maxTokens')">
+            <el-input-number
+              v-model="settings.ollama.maxTokens"
+              :min="1"
+              :max="32768"
+              :step="100"
+              :precision="0"
+              @change="handleFieldChange"
+              style="width: 200px"
+            />
+          </el-form-item>
         </template>
 
         <template v-else-if="settings.selectedLlm === 'openai'">
@@ -159,6 +176,23 @@
             <el-input v-model="settings.openai.chatSuffix" :placeholder="t('setting.chatSuffix')"
               @change="handleFieldChange" />
           </el-form-item>
+          <el-form-item :label="t('setting.enableMaxTokens')">
+            <el-switch v-model="settings.openai.enableMaxTokens" class="mb-2"
+              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
+              @change="handleFieldChange" />
+          </el-form-item>
+          <el-form-item v-if="settings.openai.enableMaxTokens" :label="t('setting.maxTokens')">
+            <el-input-number
+              v-model="settings.openai.maxTokens"
+              :min="1"
+              :max="32768"
+              :step="100"
+              :precision="0"
+              @change="handleFieldChange"
+              style="width: 200px"
+            />
+          </el-form-item>
         </template>
 
         <template v-else-if="settings.selectedLlm === 'openai-official'">
@@ -171,6 +205,23 @@
               @click="fetchOpenAIOfficialModels" @change="handleFieldChange">
               <el-option v-for="model in openaiOfficialModels" :key="model.id" :label="model.id" :value="model.id" />
             </el-select>
+          </el-form-item>
+          <el-form-item :label="t('setting.enableMaxTokens')">
+            <el-switch v-model="settings['openai-official'].enableMaxTokens" class="mb-2"
+              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
+              @change="handleFieldChange" />
+          </el-form-item>
+          <el-form-item v-if="settings['openai-official'].enableMaxTokens" :label="t('setting.maxTokens')">
+            <el-input-number
+              v-model="settings['openai-official'].maxTokens"
+              :min="1"
+              :max="32768"
+              :step="100"
+              :precision="0"
+              @change="handleFieldChange"
+              style="width: 200px"
+            />
           </el-form-item>
         </template>
 
@@ -186,6 +237,23 @@
               <el-option label="deepseek-reasoner" value="deepseek-reasoner" />
             </el-select>
           </el-form-item>
+          <el-form-item :label="t('setting.enableMaxTokens')">
+            <el-switch v-model="settings.deepseek.enableMaxTokens" class="mb-2"
+              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
+              @change="handleFieldChange" />
+          </el-form-item>
+          <el-form-item v-if="settings.deepseek.enableMaxTokens" :label="t('setting.maxTokens')">
+            <el-input-number
+              v-model="settings.deepseek.maxTokens"
+              :min="1"
+              :max="32768"
+              :step="100"
+              :precision="0"
+              @change="handleFieldChange"
+              style="width: 200px"
+            />
+          </el-form-item>
         </template>
 
         <template v-else-if="settings.selectedLlm === 'gemini'">
@@ -199,6 +267,23 @@
               <el-option v-for="model in geminiModels" :key="model.name" :label="model.displayName || model.name" :value="model.name" />
             </el-select>
           </el-form-item>
+          <el-form-item :label="t('setting.enableMaxTokens')">
+            <el-switch v-model="settings.gemini.enableMaxTokens" class="mb-2"
+              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
+              @change="handleFieldChange" />
+          </el-form-item>
+          <el-form-item v-if="settings.gemini.enableMaxTokens" :label="t('setting.maxTokens')">
+            <el-input-number
+              v-model="settings.gemini.maxTokens"
+              :min="1"
+              :max="32768"
+              :step="100"
+              :precision="0"
+              @change="handleFieldChange"
+              style="width: 200px"
+            />
+          </el-form-item>
         </template>
 
         <template v-else-if="settings.selectedLlm === 'metadoc'">
@@ -207,6 +292,23 @@
               @click="fetchMetaDocModels" @change="handleFieldChange">
               <el-option v-for="model in metadocModels" :key="model.label" :label="model.label" :value="model.label" />
             </el-select>
+          </el-form-item>
+          <el-form-item :label="t('setting.enableMaxTokens')">
+            <el-switch v-model="settings.metadoc.enableMaxTokens" class="mb-2"
+              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
+              @change="handleFieldChange" />
+          </el-form-item>
+          <el-form-item v-if="settings.metadoc.enableMaxTokens" :label="t('setting.maxTokens')">
+            <el-input-number
+              v-model="settings.metadoc.maxTokens"
+              :min="1"
+              :max="32768"
+              :step="100"
+              :precision="0"
+              @change="handleFieldChange"
+              style="width: 200px"
+            />
           </el-form-item>
         </template>
 
@@ -460,19 +562,31 @@ const fetchLlmSettings = async () => {
   settings.selectedLlm = await getSetting('selectedLlm') || '';
   
   settings.metadoc.selectedModel = await getSetting('metadocSelectedModel') || '';
+  settings.metadoc.enableMaxTokens = await getSetting('metadocEnableMaxTokens') ?? false;
+  settings.metadoc.maxTokens = await getSetting('metadocMaxTokens') || 4096;
   settings.ollama.apiUrl = await getSetting('ollamaApiUrl') || 'http://localhost:11434/api';
   settings.ollama.selectedModel = await getSetting('ollamaSelectedModel') || '';
+  settings.ollama.enableMaxTokens = await getSetting('ollamaEnableMaxTokens') ?? false;
+  settings.ollama.maxTokens = await getSetting('ollamaMaxTokens') || 4096;
   settings.openai.apiUrl = await getSetting('openaiApiUrl') || 'https://api.openai.com/v1';
   settings.openai.apiKey = await getSetting('openaiApiKey') || '';
   settings.openai.selectedModel = await getSetting('openaiSelectedModel') || '';
   settings.openai.completionSuffix = await getSetting('openaiCompletionSuffix') || '';
   settings.openai.chatSuffix = await getSetting('openaiChatSuffix') || '';
+  settings.openai.enableMaxTokens = await getSetting('openaiEnableMaxTokens') ?? false;
+  settings.openai.maxTokens = await getSetting('openaiMaxTokens') || 4096;
   settings['openai-official'].apiKey = await getSetting('openaiOfficialApiKey') || '';
   settings['openai-official'].selectedModel = await getSetting('openaiOfficialSelectedModel') || '';
+  settings['openai-official'].enableMaxTokens = await getSetting('openaiOfficialEnableMaxTokens') ?? false;
+  settings['openai-official'].maxTokens = await getSetting('openaiOfficialMaxTokens') || 4096;
   settings.deepseek.apiKey = await getSetting('deepseekApiKey') || '';
   settings.deepseek.selectedModel = await getSetting('deepseekSelectedModel') || '';
+  settings.deepseek.enableMaxTokens = await getSetting('deepseekEnableMaxTokens') ?? false;
+  settings.deepseek.maxTokens = await getSetting('deepseekMaxTokens') || 4096;
   settings.gemini.apiKey = await getSetting('geminiApiKey') || '';
   settings.gemini.selectedModel = await getSetting('geminiSelectedModel') || '';
+  settings.gemini.enableMaxTokens = await getSetting('geminiEnableMaxTokens') ?? false;
+  settings.gemini.maxTokens = await getSetting('geminiMaxTokens') || 4096;
   
   // 加载全局设置
   settings.llmTemperature = await getSetting('llmTemperature') || 1.3;
@@ -481,19 +595,31 @@ const fetchLlmSettings = async () => {
 
 const updateLlmInfo = () => {
   setSetting('metadocSelectedModel', settings.metadoc.selectedModel);
+  setSetting('metadocEnableMaxTokens', settings.metadoc.enableMaxTokens);
+  setSetting('metadocMaxTokens', settings.metadoc.maxTokens);
   setSetting('ollamaApiUrl', settings.ollama.apiUrl);
   setSetting('ollamaSelectedModel', settings.ollama.selectedModel);
+  setSetting('ollamaEnableMaxTokens', settings.ollama.enableMaxTokens);
+  setSetting('ollamaMaxTokens', settings.ollama.maxTokens);
   setSetting('openaiApiUrl', settings.openai.apiUrl);
   setSetting('openaiApiKey', settings.openai.apiKey);
   setSetting('openaiSelectedModel', settings.openai.selectedModel);
   setSetting('openaiCompletionSuffix', settings.openai.completionSuffix);
   setSetting('openaiChatSuffix', settings.openai.chatSuffix);
+  setSetting('openaiEnableMaxTokens', settings.openai.enableMaxTokens);
+  setSetting('openaiMaxTokens', settings.openai.maxTokens);
   setSetting('openaiOfficialApiKey', settings['openai-official'].apiKey);
   setSetting('openaiOfficialSelectedModel', settings['openai-official'].selectedModel);
+  setSetting('openaiOfficialEnableMaxTokens', settings['openai-official'].enableMaxTokens);
+  setSetting('openaiOfficialMaxTokens', settings['openai-official'].maxTokens);
   setSetting('deepseekApiKey', settings.deepseek.apiKey);
   setSetting('deepseekSelectedModel', settings.deepseek.selectedModel);
+  setSetting('deepseekEnableMaxTokens', settings.deepseek.enableMaxTokens);
+  setSetting('deepseekMaxTokens', settings.deepseek.maxTokens);
   setSetting('geminiApiKey', settings.gemini.apiKey);
   setSetting('geminiSelectedModel', settings.gemini.selectedModel);
+  setSetting('geminiEnableMaxTokens', settings.gemini.enableMaxTokens);
+  setSetting('geminiMaxTokens', settings.gemini.maxTokens);
   eventBus.emit('llm-api-updated');
 };
 
@@ -683,7 +809,19 @@ const watchConfigChanges = () => {
   watch(() => settings.deepseek?.selectedModel, debouncedHandleModification);
   watch(() => settings.gemini?.apiKey, debouncedHandleModification);
   watch(() => settings.gemini?.selectedModel, debouncedHandleModification);
+  watch(() => settings.gemini?.enableMaxTokens, debouncedHandleModification);
+  watch(() => settings.gemini?.maxTokens, debouncedHandleModification);
   watch(() => settings.metadoc?.selectedModel, debouncedHandleModification);
+  watch(() => settings.metadoc?.enableMaxTokens, debouncedHandleModification);
+  watch(() => settings.metadoc?.maxTokens, debouncedHandleModification);
+  watch(() => settings.ollama?.enableMaxTokens, debouncedHandleModification);
+  watch(() => settings.ollama?.maxTokens, debouncedHandleModification);
+  watch(() => settings.openai?.enableMaxTokens, debouncedHandleModification);
+  watch(() => settings.openai?.maxTokens, debouncedHandleModification);
+  watch(() => settings['openai-official']?.enableMaxTokens, debouncedHandleModification);
+  watch(() => settings['openai-official']?.maxTokens, debouncedHandleModification);
+  watch(() => settings.deepseek?.enableMaxTokens, debouncedHandleModification);
+  watch(() => settings.deepseek?.maxTokens, debouncedHandleModification);
 };
 
 const loadConfigs = () => {

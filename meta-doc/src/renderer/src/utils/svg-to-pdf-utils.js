@@ -6,7 +6,15 @@
 
 import { createRendererLogger } from './logger.ts'
 
-const logger = createRendererLogger('SvgToPdfUtils')
+// 懒加载logger，避免初始化顺序问题
+let loggerInstance = null
+
+function getLogger() {
+  if (!loggerInstance) {
+    loggerInstance = createRendererLogger('SvgToPdfUtils')
+  }
+  return loggerInstance
+}
 
 /**
  * 获取 IPC 渲染器（统一方法）
@@ -36,7 +44,7 @@ async function convertUrlToLocalPath(imageUrl) {
     }
     throw new Error('无法从 URL 提取本地路径')
   } catch (error) {
-    logger.error('URL 转本地路径失败:', error)
+    getLogger().error('URL 转本地路径失败:', error)
     throw error
   }
 }
@@ -92,10 +100,10 @@ export async function convertSvgToPdf(input, options = {}) {
         }
         svgContent = await response.text()
         useStringMethod = true
-        logger.debug('从 HTTP URL 下载 SVG 内容，使用字符串方法转换')
+        getLogger().debug('从 HTTP URL 下载 SVG 内容，使用字符串方法转换')
       } catch (fetchError) {
         // 如果下载失败，回退到路径方法
-        logger.warn('从 HTTP URL 下载失败，尝试使用路径方法:', fetchError)
+        getLogger().warn('从 HTTP URL 下载失败，尝试使用路径方法:', fetchError)
         svgPath = await convertUrlToLocalPath(input)
         useStringMethod = false
       }
@@ -103,12 +111,12 @@ export async function convertSvgToPdf(input, options = {}) {
       // SVG 字符串
       svgContent = input
       useStringMethod = true
-      logger.debug('检测到 SVG 字符串，使用字符串方法转换')
+      getLogger().debug('检测到 SVG 字符串，使用字符串方法转换')
     } else {
       // 本地文件路径
       svgPath = input.replace(/\\/g, '/') // 统一使用正斜杠
       useStringMethod = false
-      logger.debug('检测到本地文件路径，使用路径方法转换')
+      getLogger().debug('检测到本地文件路径，使用路径方法转换')
     }
     
     // 执行转换
@@ -139,7 +147,7 @@ export async function convertSvgToPdf(input, options = {}) {
       return pdfPath
     }
   } catch (error) {
-    logger.error('SVG 转 PDF 失败:', error)
+    getLogger().error('SVG 转 PDF 失败:', error)
     throw error
   }
 }

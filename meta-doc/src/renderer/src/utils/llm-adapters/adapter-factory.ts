@@ -99,6 +99,10 @@ export async function createAdapterFromSettings(customConfig: CustomLlmConfig | 
 
         const metadocConfig = await getMetaDocLlmConfig(token || '', modelName || '');
         config = { ...config, ...metadocConfig };
+        const enableMaxTokens = await getSetting("metadocEnableMaxTokens") ?? false;
+        const maxTokens = await getSetting("metadocMaxTokens") || 4096;
+        config.enableMaxTokens = enableMaxTokens;
+        config.maxTokens = maxTokens;
         break;
       }
 
@@ -108,6 +112,10 @@ export async function createAdapterFromSettings(customConfig: CustomLlmConfig | 
         config.selectedModel = await getSetting("openaiSelectedModel") as string || '';
         config.completionSuffix = await getSetting("openaiCompletionSuffix") as string | undefined;
         config.chatSuffix = await getSetting("openaiChatSuffix") as string | undefined;
+        const enableMaxTokens = await getSetting("openaiEnableMaxTokens") ?? false;
+        const maxTokens = await getSetting("openaiMaxTokens") || 4096;
+        config.enableMaxTokens = enableMaxTokens;
+        config.maxTokens = maxTokens;
         break;
       }
 
@@ -117,6 +125,10 @@ export async function createAdapterFromSettings(customConfig: CustomLlmConfig | 
         config.selectedModel = await getSetting("openaiOfficialSelectedModel") as string || '';
         config.completionSuffix = "";
         config.chatSuffix = "";
+        const enableMaxTokens = await getSetting("openaiOfficialEnableMaxTokens") ?? false;
+        const maxTokens = await getSetting("openaiOfficialMaxTokens") || 4096;
+        config.enableMaxTokens = enableMaxTokens;
+        config.maxTokens = maxTokens;
         break;
       }
 
@@ -127,6 +139,10 @@ export async function createAdapterFromSettings(customConfig: CustomLlmConfig | 
         config.selectedModel = (await getSetting("deepseekSelectedModel") as string | undefined) || "deepseek-chat";
         config.completionSuffix = "";
         config.chatSuffix = "";
+        const enableMaxTokens = await getSetting("deepseekEnableMaxTokens") ?? false;
+        const maxTokens = await getSetting("deepseekMaxTokens") || 4096;
+        config.enableMaxTokens = enableMaxTokens;
+        config.maxTokens = maxTokens;
         break;
       }
 
@@ -136,12 +152,20 @@ export async function createAdapterFromSettings(customConfig: CustomLlmConfig | 
         config.selectedModel = (await getSetting("geminiSelectedModel") as string | undefined) || "gemini-2.5-flash";
         config.completionSuffix = "";
         config.chatSuffix = "";
+        const enableMaxTokens = await getSetting("geminiEnableMaxTokens") ?? false;
+        const maxTokens = await getSetting("geminiMaxTokens") || 4096;
+        config.enableMaxTokens = enableMaxTokens;
+        config.maxTokens = maxTokens;
         break;
       }
 
       case "ollama": {
         config.apiUrl = await getSetting("ollamaApiUrl") as string | undefined;
         config.selectedModel = await getSetting("ollamaSelectedModel") as string || '';
+        const enableMaxTokens = await getSetting("ollamaEnableMaxTokens") ?? false;
+        const maxTokens = await getSetting("ollamaMaxTokens") || 4096;
+        config.enableMaxTokens = enableMaxTokens;
+        config.maxTokens = maxTokens;
         break;
       }
 
@@ -151,6 +175,7 @@ export async function createAdapterFromSettings(customConfig: CustomLlmConfig | 
         config.apiKey = "";
         config.completionSuffix = "/completions";
         config.chatSuffix = "/chat/completions";
+        config.enableMaxTokens = false;
         break;
       }
 

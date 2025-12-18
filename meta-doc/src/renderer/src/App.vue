@@ -26,6 +26,7 @@ import { useI18n } from 'vue-i18n';
 import { createRendererLogger } from './utils/logger';
 import { initMonacoEnvironment } from './utils/monaco-worker-config';
 import { aiCompletionService } from './utils/ai-completion-service';
+import { autoMigrateAIChatSessions } from './utils/db/migrate-ai-chat';
 
 type IpcRenderer = typeof localIpcRenderer | (typeof window extends { electron: { ipcRenderer: infer T } } ? T : never)
 
@@ -195,6 +196,15 @@ onMounted(async () => {
   
   // 初始化 Monaco 环境（Worker 配置和 LaTeX 语言支持）
   initMonacoEnvironment()
+  
+  // 自动迁移AIChat历史会话（从localStorage到SQLite）
+  // 只在主窗口执行迁移，避免在辅助窗口中重复执行
+  const windowType = getWindowType()
+  if (windowType === 'home') {
+    autoMigrateAIChatSessions().catch(error => {
+      logger.error('AIChat会话迁移失败:', error)
+    })
+  }
   
   window.addEventListener('beforeunload', () => {
     clearAiTasks()

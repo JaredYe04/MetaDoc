@@ -71,6 +71,8 @@ export const settings = reactive({
   ollama: {
     apiUrl: "http://localhost:11434/api", // Ollama 默认 API URL
     selectedModel: "",
+    enableMaxTokens: false, // 是否启用 max_tokens 限制
+    maxTokens: 4096, // max_tokens 最大值
   },
   openai: {
     apiUrl: "https://api.openai.com/v1", // BaseURL
@@ -78,21 +80,31 @@ export const settings = reactive({
     selectedModel: "",//模型名称
     completionSuffix: "", // 补全模式url后缀
     chatSuffix: "", // 聊天模式url后缀
+    enableMaxTokens: false, // 是否启用 max_tokens 限制
+    maxTokens: 4096, // max_tokens 最大值
   },
   "openai-official": {
     apiKey: "", // 只需要 API Key，base_url 固定为 https://api.openai.com/v1
     selectedModel: "", // 模型名称
+    enableMaxTokens: false, // 是否启用 max_tokens 限制
+    maxTokens: 4096, // max_tokens 最大值
   },
   deepseek: {
     apiKey: "", // 只需要 API Key，base_url 固定为 https://api.deepseek.com
     selectedModel: "", // 模型名称，默认为 deepseek-chat
+    enableMaxTokens: false, // 是否启用 max_tokens 限制
+    maxTokens: 4096, // max_tokens 最大值
   },
   gemini: {
     apiKey: "", // 只需要 API Key，base_url 固定为 https://generativelanguage.googleapis.com/v1beta
     selectedModel: "", // 模型名称
+    enableMaxTokens: false, // 是否启用 max_tokens 限制
+    maxTokens: 4096, // max_tokens 最大值
   },
   metadoc: {
     selectedModel: "",//模型名称
+    enableMaxTokens: false, // 是否启用 max_tokens 限制
+    maxTokens: 4096, // max_tokens 最大值
   },
   alwaysAskSave: true, // 是否总是询问保存,
   particleEffect: true, // 是否启用粒子效果

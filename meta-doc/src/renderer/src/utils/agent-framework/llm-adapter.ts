@@ -48,6 +48,8 @@ export interface LlmResponseConfig {
   type: 'openai' | 'ollama' | 'metadoc' | 'openai-official' | 'deepseek' | 'gemini' | 'openai-compatible' | 'manual'
   chatSuffix?: string
   completionSuffix?: string
+  enableMaxTokens?: boolean  // 是否启用 max_tokens 限制
+  maxTokens?: number  // max_tokens 最大值
 }
 
 /**
@@ -104,80 +106,106 @@ export class LlmAdapter {
           if (!metadocConfig) {
             throw new Error('获取MetaDoc配置失败')
           }
+          const enableMaxTokens = await getSetting('metadocEnableMaxTokens') ?? false
+          const maxTokens = await getSetting('metadocMaxTokens') || 4096
           config = {
             apiUrl: metadocConfig.apiUrl || '',
             apiKey: metadocConfig.apiKey,
             model: modelName || '',
             type: 'metadoc',
             chatSuffix: metadocConfig.chatSuffix || '',
-            completionSuffix: metadocConfig.completionSuffix || ''
+            completionSuffix: metadocConfig.completionSuffix || '',
+            enableMaxTokens,
+            maxTokens
           }
           break
         }
         case 'openai': {
+          const enableMaxTokens = await getSetting('openaiEnableMaxTokens') ?? false
+          const maxTokens = await getSetting('openaiMaxTokens') || 4096
           config = {
             apiUrl: (await getSetting('openaiApiUrl')) || 'https://api.openai.com/v1',
             apiKey: (await getSetting('openaiApiKey')) || '',
             model: (await getSetting('openaiSelectedModel')) || '',
             type: 'openai',
             chatSuffix: (await getSetting('openaiChatSuffix')) || '',
-            completionSuffix: (await getSetting('openaiCompletionSuffix')) || ''
+            completionSuffix: (await getSetting('openaiCompletionSuffix')) || '',
+            enableMaxTokens,
+            maxTokens
           }
           break
         }
         case 'openai-official': {
+          const enableMaxTokens = await getSetting('openaiOfficialEnableMaxTokens') ?? false
+          const maxTokens = await getSetting('openaiOfficialMaxTokens') || 4096
           config = {
             apiUrl: 'https://api.openai.com/v1',
             apiKey: (await getSetting('openaiOfficialApiKey')) || '',
             model: (await getSetting('openaiOfficialSelectedModel')) || '',
             type: 'openai-official',
             chatSuffix: '',
-            completionSuffix: ''
+            completionSuffix: '',
+            enableMaxTokens,
+            maxTokens
           }
           break
         }
         case 'deepseek': {
+          const enableMaxTokens = await getSetting('deepseekEnableMaxTokens') ?? false
+          const maxTokens = await getSetting('deepseekMaxTokens') || 4096
           config = {
             apiUrl: 'https://api.deepseek.com',
             apiKey: (await getSetting('deepseekApiKey')) || '',
             model: (await getSetting('deepseekSelectedModel')) || 'deepseek-chat',
             type: 'deepseek',
             chatSuffix: '',
-            completionSuffix: ''
+            completionSuffix: '',
+            enableMaxTokens,
+            maxTokens
           }
           break
         }
         case 'gemini': {
+          const enableMaxTokens = await getSetting('geminiEnableMaxTokens') ?? false
+          const maxTokens = await getSetting('geminiMaxTokens') || 4096
           config = {
             apiUrl: 'https://generativelanguage.googleapis.com/v1beta',
             apiKey: (await getSetting('geminiApiKey')) || '',
             model: (await getSetting('geminiSelectedModel')) || 'gemini-2.5-flash',
             type: 'gemini',
             chatSuffix: '',
-            completionSuffix: ''
+            completionSuffix: '',
+            enableMaxTokens,
+            maxTokens
           }
           break
         }
         case 'ollama': {
+          const enableMaxTokens = await getSetting('ollamaEnableMaxTokens') ?? false
+          const maxTokens = await getSetting('ollamaMaxTokens') || 4096
           config = {
             apiUrl: (await getSetting('ollamaApiUrl')) || 'http://localhost:11434/api',
             apiKey: undefined,
             model: (await getSetting('ollamaSelectedModel')) || '',
             type: 'ollama',
             chatSuffix: '',
-            completionSuffix: ''
+            completionSuffix: '',
+            enableMaxTokens,
+            maxTokens
           }
           break
         }
         case 'manual': {
           // 手动API类型：使用Express服务器的模拟接口
+          // manual 类型不使用 max_tokens 配置
           config = {
             apiUrl: 'http://localhost:52521/api/llm',
             apiKey: undefined,
             model: 'manual-model',
             type: 'manual',
             chatSuffix: '',
-            completionSuffix: ''
+            completionSuffix: '',
+            enableMaxTokens: false
           }
           break
         }
@@ -205,7 +233,19 @@ export class LlmAdapter {
       signal?: AbortSignal
     } = {}
   ): Promise<string> {
-    const { temperature, maxTokens, stream = false, signal } = options
+    const { temperature, maxTokens: optionsMaxTokens, stream = false, signal } = options
+
+    // 根据配置决定是否使用 max_tokens
+    // 如果 enableMaxTokens 为 false，则不传递 max_tokens
+    // 如果 enableMaxTokens 为 true，使用配置的 maxTokens 作为上限（如果 options.maxTokens 存在，取两者较小值）
+    let effectiveMaxTokens: number | undefined = undefined
+    if (config.enableMaxTokens) {
+      if (optionsMaxTokens !== undefined && optionsMaxTokens > 0) {
+        effectiveMaxTokens = Math.min(optionsMaxTokens, config.maxTokens || 4096)
+      } else if (config.maxTokens !== undefined && config.maxTokens > 0) {
+        effectiveMaxTokens = config.maxTokens
+      }
+    }
 
     try {
       // 对于 Gemini 类型，使用适配器模式
@@ -220,7 +260,7 @@ export class LlmAdapter {
           let fullText = ''
           const stream = adapter.generateChatStream(messages, {
             temperature,
-            max_tokens: maxTokens
+            ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
           }, signal)
           
           for await (const { delta } of stream) {
@@ -244,12 +284,12 @@ export class LlmAdapter {
               contentPreview: typeof messages[0].content === 'string' ? messages[0].content.substring(0, 100) : messages[0].content
             } : null,
             temperature,
-            maxTokens
+            maxTokens: effectiveMaxTokens
           });
           
           const { text } = await adapter.generateChatNonStream(messages, {
             temperature,
-            max_tokens: maxTokens
+            ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
           }, signal)
           
           getLogger().debug('Gemini generateChatNonStream 返回', {
@@ -276,7 +316,7 @@ export class LlmAdapter {
           messages,
           stream,
           ...(temperature !== undefined && { temperature }),
-          ...(maxTokens !== undefined && maxTokens > 0 && { max_tokens: maxTokens })
+          ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
         }
       } else if (config.type === 'ollama') {
         // Ollama 格式
@@ -286,7 +326,7 @@ export class LlmAdapter {
           messages,
           stream,
           ...(temperature !== undefined && { temperature }),
-          ...(maxTokens !== undefined && maxTokens > 0 && { num_predict: maxTokens })
+          ...(effectiveMaxTokens !== undefined && { num_predict: effectiveMaxTokens })
         }
       } else if (config.type === 'manual') {
         // Manual 格式：使用Express服务器的模拟接口
@@ -296,7 +336,7 @@ export class LlmAdapter {
           messages,
           stream,
           ...(temperature !== undefined && { temperature }),
-          ...(maxTokens !== undefined && maxTokens > 0 && { max_tokens: maxTokens })
+          ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
         }
       } else {
         throw new Error(`不支持的LLM类型: ${config.type}`)
@@ -335,7 +375,19 @@ export class LlmAdapter {
       signal?: AbortSignal
     } = {}
   ): Promise<string> {
-    const { temperature, maxTokens, stream = false, signal } = options
+    const { temperature, maxTokens: optionsMaxTokens, stream = false, signal } = options
+
+    // 根据配置决定是否使用 max_tokens
+    // 如果 enableMaxTokens 为 false，则不传递 max_tokens
+    // 如果 enableMaxTokens 为 true，使用配置的 maxTokens 作为上限（如果 options.maxTokens 存在，取两者较小值）
+    let effectiveMaxTokens: number | undefined = undefined
+    if (config.enableMaxTokens) {
+      if (optionsMaxTokens !== undefined && optionsMaxTokens > 0) {
+        effectiveMaxTokens = Math.min(optionsMaxTokens, config.maxTokens || 4096)
+      } else if (config.maxTokens !== undefined && config.maxTokens > 0) {
+        effectiveMaxTokens = config.maxTokens
+      }
+    }
 
     try {
       // 对于 Gemini 类型，使用适配器模式
@@ -350,7 +402,7 @@ export class LlmAdapter {
           let fullText = ''
           const stream = adapter.generateContentStream(prompt, {
             temperature,
-            max_tokens: maxTokens
+            ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
           }, signal)
           
           for await (const { delta } of stream) {
@@ -366,7 +418,7 @@ export class LlmAdapter {
           }
           const { text } = await adapter.generateContentNonStream(prompt, {
             temperature,
-            max_tokens: maxTokens
+            ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
           }, signal)
           return text
         }
@@ -387,7 +439,7 @@ export class LlmAdapter {
           prompt,
           stream,
           ...(temperature !== undefined && { temperature }),
-          ...(maxTokens !== undefined && maxTokens > 0 && { max_tokens: maxTokens })
+          ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
         }
       } else if (config.type === 'ollama') {
         // Ollama 格式
@@ -397,7 +449,7 @@ export class LlmAdapter {
           prompt,
           stream,
           ...(temperature !== undefined && { temperature }),
-          ...(maxTokens !== undefined && maxTokens > 0 && { num_predict: maxTokens })
+          ...(effectiveMaxTokens !== undefined && { num_predict: effectiveMaxTokens })
         }
       } else if (config.type === 'manual') {
         // Manual 格式：使用Express服务器的模拟接口
@@ -407,7 +459,7 @@ export class LlmAdapter {
           prompt,
           stream,
           ...(temperature !== undefined && { temperature }),
-          ...(maxTokens !== undefined && maxTokens > 0 && { max_tokens: maxTokens })
+          ...(effectiveMaxTokens !== undefined && { max_tokens: effectiveMaxTokens })
         }
       } else {
         throw new Error(`不支持的LLM类型: ${config.type}`)
@@ -554,7 +606,19 @@ export class LlmAdapter {
       onToolCallsDetected?: (toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>) => Promise<void> // 工具调用检测回调
     } = {}
   ): Promise<string> {
-    const { temperature, maxTokens, stream = false, signal, taskName = 'Agent LLM调用', originKey, reactiveMessage, onTaskCreated, onToolCallsDetected } = options
+    const { temperature, maxTokens: optionsMaxTokens, stream = false, signal, taskName = 'Agent LLM调用', originKey, reactiveMessage, onTaskCreated, onToolCallsDetected } = options
+
+    // 根据配置决定是否使用 max_tokens
+    // 如果 enableMaxTokens 为 false，则不传递 max_tokens (传递 undefined)
+    // 如果 enableMaxTokens 为 true，使用配置的 maxTokens 作为上限（如果 options.maxTokens 存在，取两者较小值）
+    let effectiveMaxTokens: number | undefined = undefined
+    if (config.enableMaxTokens) {
+      if (optionsMaxTokens !== undefined && optionsMaxTokens > 0) {
+        effectiveMaxTokens = Math.min(optionsMaxTokens, config.maxTokens || 4096)
+      } else if (config.maxTokens !== undefined && config.maxTokens > 0) {
+        effectiveMaxTokens = config.maxTokens
+      }
+    }
 
     // 准备自定义LLM配置（如果使用的是自定义配置）
     let customLlmConfig: CustomLlmConfigForTask | undefined = undefined
@@ -564,7 +628,7 @@ export class LlmAdapter {
         apiKey: config.apiKey,
         model: config.model,
         temperature,
-        maxTokens,
+        maxTokens: effectiveMaxTokens,
         type: 'openai-compatible',
         chatSuffix: config.chatSuffix || '/chat/completions',
         completionSuffix: config.completionSuffix || '/completions'
@@ -936,7 +1000,7 @@ export class LlmAdapter {
         {
           stream,
           temperature,
-          maxTokens,
+          maxTokens: effectiveMaxTokens,
           customLlmConfig
         }
       )

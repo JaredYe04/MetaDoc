@@ -606,3 +606,242 @@ export function getPresets(): PresetOption[] {
  * 调用者应该使用 getPresets() 函数而不是直接使用常量
  */
 export const presets: PresetOption[] = getPresets();
+
+/**
+ * 生成数据分析报告提示词（支持echarts和mermaid图表）
+ */
+export const generateDataAnalysisReportPrompt = (
+  analysisResult: any,
+  analysisRequest?: string
+): string => {
+  const prompts = getCurrentLocalePrompts();
+  const template = prompts.prompts?.dataAnalysisReportPrompt;
+  
+  if (template) {
+    const analysisRequestText = analysisRequest 
+      ? (isChineseLocale() 
+          ? `**用户分析需求：**\n${analysisRequest}\n\n`
+          : `**User Analysis Request:**\n${analysisRequest}\n\n`)
+      : '';
+    
+    return template
+      .replace(/{analysisResult}/g, JSON.stringify(analysisResult))
+      .replace(/{analysisRequest}/g, analysisRequestText)
+  }
+  
+  // 默认提示词（中文）
+  if (isChineseLocale()) {
+    return `你是一个专业的数据分析师，请根据以下数据分析结果，生成一份详细的Markdown格式分析报告。
+
+**数据分析结果：**
+\`\`\`json
+${JSON.stringify(analysisResult)}
+\`\`\`
+
+${analysisRequest ? `**用户分析需求：**\n${analysisRequest}\n` : ''}
+
+**报告要求：**
+
+1. **报告结构**：
+   - 使用Markdown格式编写
+   - 包含标题、摘要、数据概况、关键发现、可视化图表、结论等部分
+   - 使用清晰的标题层级（#、##、###）
+
+2. **可视化图表**（重要）：
+   - **必须包含多个数据可视化图表**，使用以下两种格式：
+     - **ECharts图表**：使用 \`\`\`echarts 代码块，包含完整的ECharts配置（JSON格式）
+     - **Mermaid图表**：使用 \`\`\`mermaid 代码块，包含Mermaid语法
+   
+   - **图表类型建议**：
+     - 雷达图：用于多维度数据对比
+     - 散点图：用于相关性分析
+     - 折线图：用于趋势分析
+     - 箱线图：用于分布分析
+     - 饼图：用于占比分析
+     - 柱状图：用于分类对比
+     - 热力图：用于相关性矩阵
+   
+   - **图表要求**：
+     - 每个图表都要有清晰的标题和说明
+     - ECharts配置要完整，包含title、tooltip、legend、xAxis、yAxis、series等
+     - 图表数据要基于分析结果中的实际数据
+     - 至少包含3-5个不同类型的图表
+
+3. **内容要求**：
+   - 数据概况：总结数据的基本信息（行数、列数、字段类型等）
+   - 关键发现：突出重要的统计发现和模式
+   - 异常值分析：识别并分析异常值
+   - 数据质量：评估数据质量（缺失值、重复值等）
+   - 结论和建议：基于分析结果给出结论和行动建议
+
+4. **格式要求**：
+   - 使用Markdown格式
+   - 代码块语言标识必须准确：\`\`\`echarts 和 \`\`\`mermaid
+   - 图表代码要完整可执行
+   - 文字描述要清晰、专业
+
+**输出示例格式：**
+\`\`\`markdown
+# 数据分析报告
+
+## 摘要
+[报告摘要]
+
+## 数据概况
+[数据基本信息]
+
+## 关键发现
+[重要发现]
+
+## 数据可视化
+
+### 字段分布雷达图
+\`\`\`echarts
+{
+  "title": { "text": "字段分布雷达图" },
+  "radar": {
+    "indicator": [...]
+  },
+  "series": [{
+    "type": "radar",
+    "data": [...]
+  }]
+}
+\`\`\`
+
+### 数值字段相关性散点图
+\`\`\`echarts
+{
+  "title": { "text": "相关性分析" },
+  "xAxis": {...},
+  "yAxis": {...},
+  "series": [{
+    "type": "scatter",
+    "data": [...]
+  }]
+}
+\`\`\`
+
+### 数据分布流程图
+\`\`\`mermaid
+graph TD
+  A[数据源] --> B[数据清洗]
+  B --> C[统计分析]
+  C --> D[可视化]
+\`\`\`
+
+## 结论和建议
+[结论和建议]
+\`\`\`
+
+现在请生成完整的分析报告。`
+  } else {
+    // 英文提示词
+    return `You are a professional data analyst. Please generate a detailed Markdown-format analysis report based on the following data analysis results.
+
+**Data Analysis Results:**
+\`\`\`json
+${JSON.stringify(analysisResult)}
+\`\`\`
+
+${analysisRequest ? `**User Analysis Request:**\n${analysisRequest}\n` : ''}
+
+**Report Requirements:**
+
+1. **Report Structure**:
+   - Use Markdown format
+   - Include title, summary, data overview, key findings, visualizations, conclusions, etc.
+   - Use clear heading hierarchy (#, ##, ###)
+
+2. **Visualizations** (Important):
+   - **Must include multiple data visualization charts** using:
+     - **ECharts charts**: Use \`\`\`echarts code blocks with complete ECharts configuration (JSON format)
+     - **Mermaid charts**: Use \`\`\`mermaid code blocks with Mermaid syntax
+   
+   - **Recommended Chart Types**:
+     - Radar chart: For multi-dimensional data comparison
+     - Scatter plot: For correlation analysis
+     - Line chart: For trend analysis
+     - Box plot: For distribution analysis
+     - Pie chart: For proportion analysis
+     - Bar chart: For category comparison
+     - Heatmap: For correlation matrix
+   
+   - **Chart Requirements**:
+     - Each chart should have a clear title and description
+     - ECharts configuration should be complete with title, tooltip, legend, xAxis, yAxis, series, etc.
+     - Chart data should be based on actual data from analysis results
+     - Include at least 3-5 different types of charts
+
+3. **Content Requirements**:
+   - Data Overview: Summarize basic data information (row count, column count, field types, etc.)
+   - Key Findings: Highlight important statistical findings and patterns
+   - Outlier Analysis: Identify and analyze outliers
+   - Data Quality: Assess data quality (missing values, duplicates, etc.)
+   - Conclusions and Recommendations: Provide conclusions and action recommendations based on analysis results
+
+4. **Format Requirements**:
+   - Use Markdown format
+   - Code block language identifiers must be accurate: \`\`\`echarts and \`\`\`mermaid
+   - Chart code should be complete and executable
+   - Text descriptions should be clear and professional
+
+Now please generate the complete analysis report.`
+  }
+}
+
+/**
+ * 生成附件分析提示词
+ */
+export const generateAttachmentAnalysisPrompt = (
+  parsedContent: string,
+  fileName: string
+): string => {
+  const prompts = getCurrentLocalePrompts()
+  const template = prompts.prompts?.attachmentAnalysisPrompt
+  
+  if (template) {
+    return template
+      .replace(/{parsedContent}/g, parsedContent)
+      .replace(/{fileName}/g, fileName)
+  }
+  
+  // 默认提示词
+  if (isChineseLocale()) {
+    return `你是一个专业的文档分析助手，请分析以下附件内容：
+
+**文件名：** ${fileName}
+
+**附件内容：**
+\`\`\`
+${parsedContent}
+\`\`\`
+
+请对附件内容进行详细分析，包括：
+1. **内容概述**：总结附件的主要内容和目的
+2. **关键信息**：提取重要的数据、事实或观点
+3. **结构分析**：分析文档的结构和组织方式
+4. **主题识别**：识别文档的主要主题和子主题
+5. **洞察和建议**：基于内容提供有价值的洞察和建议
+
+请使用Markdown格式输出分析结果，确保结构清晰、内容详实。`
+  } else {
+    return `You are a professional document analysis assistant. Please analyze the following attachment content:
+
+**File Name:** ${fileName}
+
+**Attachment Content:**
+\`\`\`
+${parsedContent}
+\`\`\`
+
+Please provide a detailed analysis of the attachment content, including:
+1. **Content Overview**: Summarize the main content and purpose of the attachment
+2. **Key Information**: Extract important data, facts, or viewpoints
+3. **Structure Analysis**: Analyze the document's structure and organization
+4. **Theme Identification**: Identify the main themes and sub-themes
+5. **Insights and Recommendations**: Provide valuable insights and recommendations based on the content
+
+Please output the analysis results in Markdown format, ensuring clear structure and detailed content.`
+  }
+}

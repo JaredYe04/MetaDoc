@@ -70,10 +70,16 @@ export async function convertMarkdownToLatex(markdown, title = 'Generated Docume
     // 提取参考文献列表：通过查找所有 <div id="ref-X"/> 锚点
     // 不依赖标题文本，因为不同语言可能有不同的标题（如 "References", "参考文献" 等）
     // 匹配格式：<div id="ref-X"/> 后跟 [数字] 和内容
-    const refItemRegex = new RegExp('<div id="ref-([^"]+)"\\s*/>\\s*\\n\\n\\[(\\d+)\\]\\s*(.+?)(?=\\n\\n<div id="ref-|\\n##|\\n#|\\Z)', 'gs');
+    // 改进正则表达式：更灵活地匹配内容，直到下一个参考文献或标题
+    // 使用更精确的匹配：确保能匹配到所有参考文献项
+    // 注意：在非多行模式下，$ 匹配字符串结尾
+    const refItemPattern = '<div id="ref-([^"]+)"\\s*/>\\s*\\n\\n\\[(\\d+)\\]\\s*([\\s\\S]*?)(?=\\n\\n<div id="ref-|\\n##|\\n#|$)';
+    const refItemRegex = new RegExp(refItemPattern, 'gs');
     let refMatch;
     const refItemsToRemove = [];
     
+    // 重置正则表达式的 lastIndex（确保从头开始匹配）
+    refItemRegex.lastIndex = 0;
     // 查找所有参考文献项
     while ((refMatch = refItemRegex.exec(markdown)) !== null) {
         const refId = refMatch[1];
@@ -99,7 +105,8 @@ export async function convertMarkdownToLatex(markdown, title = 'Generated Docume
     // 移除任何紧跟在 <div id="ref- 之前的标题（## 或 # 开头的行）
     // 这样无论标题是什么语言或文本，都能被正确移除
     // 匹配格式：标题行 + 至少一个空行 + <div id="ref-
-    processedMarkdown = processedMarkdown.replace(/^#{1,6}\s+[^\n]*\s*\n+\s*(?=<div id="ref-)/gm, '');
+    // 改进：更灵活地匹配标题和空行
+    processedMarkdown = processedMarkdown.replace(/^#{1,6}\s+[^\n]*\s*\n+\s*(?=\n*<div id="ref-)/gm, '');
     
     // 将引用格式 [[1](#ref-1)] 转换为 \cite{1}
     processedMarkdown = processedMarkdown.replace(/\[\[([^\]]+)\]\(#ref-([^)]+)\)\]/g, (match, citationNum, refId) => {
@@ -1146,6 +1153,260 @@ export function convertLatexToMarkdown(latex) {
                 // 将 \\ 转换为换行
                 content = content.replace(/\\\\/g, '\n');
                 // 保护大括号内的 & 符号（多行单元格中可能包含 &）
+                // 转义的 & (\&) 应该转换为普通的 &，所以先转换转义的 &，再保护所有的 &
+                content = content.replace(/\\&/g, '&');
+                content = content.replace(/&/g, '@@AMPERSAND@@');
+                processed += content;
+                i = braceResult.endIdx;
+                continue;
+            } else if (clean[i] === '\\' && i + 1 < clean.length && clean[i + 1] === '{') {
+                // 处理转义的大括号 \{，转换为普通大括号（在单元格中应该显示为 {）
+                processed += '{';
+                i += 2;
+                continue;
+            } else if (clean[i] === '\\' && i + 1 < clean.length && clean[i + 1] === '}') {
+                // 处理转义的大括号 \}，转换为普通大括号（在单元格中应该显示为 }）
+                processed += '}';
+                i += 2;
+                continue;
+            } else {
+                processed += clean[i];
+                i++;
+            }
+        }
+        
+        clean = processed;
+        
+        // 恢复数学公式
+        mathPlaceholders.forEach((math, idx) => {
+            // 先恢复块级公式
+            clean = clean.replace(`@@MATHBLOCK${idx}@@`, math);
+            // 再恢复内联公式
+            clean = clean.replace(`@@MATHINLINE${idx}@@`, math);
+        });
+        
+        // 移除列对齐标记（如 m{4cm}，如果还有残留）
+        clean = clean.replace(/\{m\{[^}]*\}\}/g, '');
+        clean = clean.replace(/\{[clr]\}/g, '');
+        
+        // 将行尾的 \\ 转换为空格
+        clean = clean.replace(/\\\\/g, ' ');
+        
+        // 移除多余的空白字符，但保留换行
+        clean = clean.replace(/[ \t]+/g, ' ');
+        clean = clean.replace(/\n\s*\n/g, '\n');
+        
+        // 分割单元格（只分割不在占位符中的 &）
+        const parts = clean.split('&').map(cell => {
+            let cellContent = cell.trim();
+            // 恢复单元格内的 & 符号
+            cellContent = cellContent.replace(/@@AMPERSAND@@/g, '&');
+            // 移除残留的大括号（如果还有，但要小心不要破坏数学公式）
+            // 只移除开头和结尾的单独大括号，不要移除数学公式中的大括号
+            cellContent = cellContent.replace(/^\{([^{$]*)\}$/, '$1');
+            // 转换内联 LaTeX（但保留数学公式）
+            cellContent = transformInlineLatex(cellContent);
+            // 将换行转换为空格（Markdown 表格单元格不支持换行）
+            cellContent = cellContent.replace(/\n/g, ' ');
+            // 清理多余空格（但保留数学公式中的空格）
+            // 先保护数学公式
+            const mathPlaceholders = [];
+            // 先保护块级公式
+            cellContent = cellContent.replace(/\$\$[\s\S]*?\$\$/g, (match) => {
+                const idx = mathPlaceholders.length;
+                mathPlaceholders.push(match);
+                return `@@MATH${idx}@@`;
+            });
+            // 再保护内联公式
+            cellContent = cellContent.replace(/\$[^$]*\$/g, (match) => {
+                const idx = mathPlaceholders.length;
+                mathPlaceholders.push(match);
+                return `@@MATH${idx}@@`;
+            });
+            // 清理多余空格
+            cellContent = cellContent.replace(/\s+/g, ' ').trim();
+            // 恢复数学公式
+            mathPlaceholders.forEach((math, idx) => {
+                cellContent = cellContent.replace(`@@MATH${idx}@@`, math);
+            });
+            return cellContent;
+        });
+        
+        return parts;
+    };
+
+    for (let rawLine of lines) {
+        let line = rawLine.trim();
+        if (tableRows.length === 0) return;
+        const headerIdx = headerBreakIndex !== null && headerBreakIndex > 0 ? headerBreakIndex - 1 : 0;
+        md += renderMarkdownTable(tableRows, tableCaption, headerIdx);
+        tableRows = [];
+        tableCaption = '';
+        tableType = null;
+        headerBreakIndex = null;
+    };
+
+    // 辅助函数：提取大括号中的内容（处理嵌套和转义）
+    const extractBraceContent = (str, startIdx = 0) => {
+        if (startIdx >= str.length || str[startIdx] !== '{') return { content: '', endIdx: startIdx };
+        let depth = 0;
+        let i = startIdx;
+        while (i < str.length) {
+            // 检查是否是数学公式占位符（@@MATH...@@）
+            if (str.substr(i).startsWith('@@MATH')) {
+                // 跳过整个占位符
+                const placeholderEnd = str.indexOf('@@', i + 6);
+                if (placeholderEnd !== -1) {
+                    i = placeholderEnd + 2;
+                    continue;
+                }
+            }
+            // 检查是否是转义字符（\ 后面跟着 { 或 }）
+            if (str[i] === '\\' && i + 1 < str.length) {
+                // 跳过转义字符和下一个字符
+                i += 2;
+                continue;
+            }
+            if (str[i] === '{') {
+                depth++;
+            } else if (str[i] === '}') {
+                depth--;
+                if (depth === 0) {
+                    return { content: str.substring(startIdx + 1, i), endIdx: i + 1 };
+                }
+            }
+            i++;
+        }
+        return { content: '', endIdx: str.length };
+    };
+
+    // 处理嵌套的 tabular 环境
+    const processNestedTabular = (content) => {
+        let result = content;
+        // 处理嵌套的 tabular 环境：提取其中的内容
+        // 匹配 \begin{tabular}[c]{@{}l@{}}...\end{tabular}
+        // 需要处理嵌套的 tabular（递归处理）
+        let changed = true;
+        while (changed) {
+            changed = false;
+            const tabularRegex = /\\begin\{tabular\}(?:\[[^\]]*\])?\{[^}]*\}([\s\S]*?)\\end\{tabular\}/g;
+            result = result.replace(tabularRegex, (match, innerContent) => {
+                changed = true;
+                // 提取 tabular 内的内容，移除列对齐标记
+                let inner = innerContent;
+                inner = inner.replace(/@\{\}/g, '');
+                inner = inner.replace(/@\{[^}]*\}/g, '');
+                // 将 \\ 转换为换行
+                inner = inner.replace(/\\\\/g, '\n');
+                // 移除多余的大括号
+                inner = inner.replace(/^\{|\}$/g, '');
+                return inner.trim();
+            });
+        }
+        // 移除列对齐标记（如果还有残留）
+        result = result.replace(/@\{\}/g, '');
+        result = result.replace(/@\{[^}]*\}/g, '');
+        // 移除换行符命令，保留实际换行
+        result = result.replace(/\\\\/g, '\n');
+        return result.trim();
+    };
+
+    const parseTableRow = (raw) => {
+        let clean = raw;
+        
+        // 移除行尾的换行命令和 \endfirsthead 等
+        clean = clean.replace(/\\\\.*$/, '');
+        clean = clean.replace(/\\endfirsthead\b/g, '');
+        clean = clean.replace(/\\endhead\b/g, '');
+        clean = clean.replace(/\\endfoot\b/g, '');
+        clean = clean.replace(/\\endlastfoot\b/g, '');
+        
+        // 先保护数学公式，避免在处理大括号时被破坏
+        // 支持块级公式 $$...$$ 和内联公式 $...$
+        const mathPlaceholders = [];
+        // 先处理块级公式 $$...$$（避免和内联公式冲突）
+        clean = clean.replace(/\$\$[\s\S]*?\$\$/g, (match) => {
+            const idx = mathPlaceholders.length;
+            mathPlaceholders.push(match);
+            return `@@MATHBLOCK${idx}@@`;
+        });
+        // 再处理内联公式 $...$
+        clean = clean.replace(/\$[^$]*\$/g, (match) => {
+            const idx = mathPlaceholders.length;
+            mathPlaceholders.push(match);
+            return `@@MATHINLINE${idx}@@`;
+        });
+        
+        // 移除控制命令
+        clean = clean.replace(/\\centering\b/g, '');
+        clean = clean.replace(/\\label\{[^}]*\}/g, '');
+        
+        // 先处理嵌套的 tabular 环境（在解析单元格之前）
+        clean = processNestedTabular(clean);
+        
+        // 处理 multicolumn 和 multirow：提取内容，忽略列数和对齐
+        // 需要处理嵌套大括号，并保护大括号内的 & 符号
+        let processed = '';
+        let i = 0;
+        while (i < clean.length) {
+            if (clean.substr(i).startsWith('\\multicolumn')) {
+                // 找到 \multicolumn{num}{align}{content}
+                const match = clean.substr(i).match(/\\multicolumn\{([^}]+)\}\{([^}]+)\}/);
+                if (match) {
+                    const numEnd = i + match[0].length;
+                    // 提取 content（可能包含嵌套大括号）
+                    const braceResult = extractBraceContent(clean, numEnd);
+                    let content = braceResult.content;
+                    // 移除内容中的 \centering 等命令
+                    content = content.replace(/\\centering\b/g, '');
+                    content = content.replace(/\\label\{[^}]*\}/g, '');
+                    // 清理多余空格
+                    content = content.trim();
+                    // 保护 multicolumn 内容中的 & 符号，避免被后续分割
+                    // 将 & 替换为占位符，稍后在单元格处理时恢复
+                    content = content.replace(/&/g, '@@AMPERSAND@@');
+                    processed += content;
+                    i = braceResult.endIdx;
+                    continue;
+                }
+            } else if (clean.substr(i).startsWith('\\multirow')) {
+                // 处理 multirow
+                const match = clean.substr(i).match(/\\multirow\{([^}]+)\}\{([^}]+)\}/);
+                if (match) {
+                    const numEnd = i + match[0].length;
+                    const braceResult = extractBraceContent(clean, numEnd);
+                    let content = braceResult.content;
+                    // 保护 multirow 内容中的 & 符号
+                    content = content.replace(/&/g, '@@AMPERSAND@@');
+                    processed += content;
+                    i = braceResult.endIdx;
+                    continue;
+                }
+            } else if (clean[i] === '{' && (i === 0 || clean[i - 1] !== '\\')) {
+                // 检查是否是列对齐标记（如 {m{4cm}} 或 {c}）
+                const nextChars = clean.substr(i + 1, 10);
+                if (/^[clr]}$/.test(nextChars) || /^m\{[^}]*\}/.test(nextChars)) {
+                    // 这是列对齐标记，跳过
+                    const braceResult = extractBraceContent(clean, i);
+                    i = braceResult.endIdx;
+                    continue;
+                }
+                // 检查大括号内容中是否包含数学公式占位符
+                // 如果包含，说明这是数学公式的一部分，不应该提取大括号
+                const bracePreview = clean.substr(i, Math.min(100, clean.length - i));
+                if (bracePreview.includes('@@MATH')) {
+                    // 包含数学公式占位符，保留原样
+                    processed += clean[i];
+                    i++;
+                    continue;
+                }
+                // 处理普通大括号包裹的内容（多行单元格）
+                const braceResult = extractBraceContent(clean, i);
+                // 保留大括号中的内容，但处理换行
+                let content = braceResult.content;
+                // 将 \\ 转换为换行
+                content = content.replace(/\\\\/g, '\n');
+                // 保护大括号内的 & 符号（多行单元格中可能包含 &）
                 content = content.replace(/&/g, '@@AMPERSAND@@');
                 processed += content;
                 i = braceResult.endIdx;
@@ -1516,10 +1777,24 @@ export function convertLatexToMarkdown(latex) {
             headerBreakIndex = null;
             continue;
         }
-        if (inTable && line.startsWith('\\caption{')) {
-            const cap = line.replace(/\\caption\{([^}]*)\}.*/, '$1').trim();
-            if (cap) tableCaption = cap;
-            continue;
+        if (inTable && line.includes('\\caption{')) {
+            // 提取 caption 内容，处理 \caption{...}\label{...} \\ 格式
+            // 注意：caption 可能在行的开头，也可能在中间（后面可能有 \\ 或其他内容）
+            const capMatch = line.match(/\\caption\{([^}]*)\}/);
+            if (capMatch && capMatch[1]) {
+                tableCaption = transformInlineLatex(capMatch[1].trim());
+            }
+            // 移除 caption 和 label，检查剩余内容
+            let remainingLine = line.replace(/\\caption\{[^}]*\}/, '')
+                                    .replace(/\\label\{[^}]*\}/, '')
+                                    .replace(/\\\\/g, '')
+                                    .trim();
+            // 如果这一行只有 caption 和可能的 label/\\，则跳过这一行
+            if (remainingLine.length === 0) {
+                continue;
+            }
+            // 否则，移除 caption 和 label，继续处理剩余内容
+            line = remainingLine;
         }
         if (inTable && (line.startsWith('\\end{tabular}') || line.startsWith('\\end{longtable}') || line.startsWith('\\end{longtblr}'))) {
             flushListItem();
@@ -2044,6 +2319,10 @@ function transformInlineLatex(line) {
         // }
         text = text.replace(`@@MATH${idx}@@`, converted);
     });
+    
+    // 处理转义的字符：转义的 & 符号应该转换为普通的 &
+    // 注意：这应该在处理其他命令之后，但在最终输出之前
+    text = text.replace(/\\&/g, '&');
     
     // 处理其他简单替换
     text = text

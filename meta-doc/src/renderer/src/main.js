@@ -27,6 +27,7 @@ import { initializeWorkspaceBroadcastListeners } from './stores/workspace';
 import { registerTitleFormatTests } from './utils/title-format-tests';
 import { registerDatabaseTests } from './utils/database-tests';
 import { registerToolCallParserTests } from './utils/agent-framework/tool-call-parser-tests';
+import { registerLatexUtilsTests } from './utils/latex-utils-tests';
 import { registerAllAdapters } from './services/export-adapters';
 
 import 'element-plus/theme-chalk/dark/css-vars.css'
@@ -54,6 +55,9 @@ registerToolCallParserTests();
 
 // 注册数据库测试用例
 registerDatabaseTests();
+
+// 注册 LaTeX/Markdown 转换测试用例
+registerLatexUtilsTests();
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)

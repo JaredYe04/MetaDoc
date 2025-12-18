@@ -1284,6 +1284,54 @@ const chartGenerationToolLocales: ToolLocales = {
 - 如果提供了 \`code\` 参数，则 \`prompt\` 可以为空，工具会直接使用提供的代码进行渲染
 - 如果没有提供 \`code\` 参数，则必须提供 \`prompt\` 参数，工具会调用LLM生成代码
 
+## ⚠️ 重要：数据分析场景下的使用方式
+
+**在数据分析后绘制图表时，必须提供 \`code\` 参数，不能使用 \`prompt\` 参数！**
+
+原因：
+- 图表生成工具**无法感知附件数据**：工具在调用LLM生成代码时，LLM无法访问你之前分析的数据、附件或引用素材
+- 图表生成工具**不知道具体数据**：如果使用自然语言描述（\`prompt\`），LLM无法知道具体的数据值、数据结构和分析结果
+- **正确做法**：在数据分析后，你需要自己根据分析结果生成图表代码（如ECharts配置JSON），然后通过 \`code\` 参数提供给工具
+
+### 数据分析后绘制图表的正确流程：
+
+\`\`\`json
+// 步骤1：使用数据分析工具分析数据
+{
+  "tool": "data-analysis",
+  "params": {
+    "data": "/path/to/data.csv",
+    "dataSource": "file",
+    "analysisRequest": "分析销售趋势并绘制折线图"
+  }
+}
+// 返回分析结果，包含数据摘要、统计信息等
+
+// 步骤2：根据分析结果，自己生成ECharts配置代码（包含具体数据）
+{
+  "tool": "chart-generation",
+  "params": {
+    "code": "{\"title\": {\"text\": \"销售趋势\"}, \"xAxis\": {\"type\": \"category\", \"data\": [\"1月\", \"2月\", \"3月\"]}, \"yAxis\": {\"type\": \"value\"}, \"series\": [{\"data\": [120, 200, 150], \"type\": \"line\"}]}",
+    "chartType": "echarts",
+    "format": "svg"
+  }
+}
+// ⚠️ 注意：必须提供 code 参数，包含完整的图表配置和具体数据值
+\`\`\`
+
+### 错误示例（不要这样做）：
+
+\`\`\`json
+// ❌ 错误：在数据分析后使用 prompt 参数
+{
+  "tool": "chart-generation",
+  "params": {
+    "prompt": "根据刚才的数据分析结果绘制折线图",  // ❌ 工具无法知道"刚才的数据"是什么
+    "chartType": "echarts"
+  }
+}
+\`\`\`
+
 ## 输出格式
 返回JSON格式的结果，包含：
 - \`chartName\`: 图表名称
@@ -1353,12 +1401,13 @@ const chartGenerationToolLocales: ToolLocales = {
 4. **插入语法**：
    - Markdown: \`![描述](图片URL)\`
    - LaTeX: \`\\includegraphics[width=0.8\\textwidth]{图片URL或路径}\`
-5. 如果提供了 \`code\` 参数，工具会直接使用该代码进行渲染，不需要 \`prompt\` 参数
-6. 如果不提供 \`code\` 参数，必须提供 \`prompt\` 参数，工具会调用LLM生成图表代码
-7. 返回的 \`chartCode\` 是经过提取和清理后的可直接渲染的代码（仅用于调试，不应插入文档）
-8. ECharts需要提供JSON格式的配置对象
-9. 图表代码会自动清理，移除markdown代码块标记
-10. ECharts会自动去除动画效果
+5. **⚠️ 数据分析场景必须提供代码**：在数据分析后绘制图表时，**必须提供 \`code\` 参数**，包含完整的图表配置和具体数据值，不能使用 \`prompt\` 参数（因为工具无法感知数据）
+6. 如果提供了 \`code\` 参数，工具会直接使用该代码进行渲染，不需要 \`prompt\` 参数
+7. 如果不提供 \`code\` 参数，必须提供 \`prompt\` 参数，工具会调用LLM生成图表代码（仅适用于不依赖具体数据的场景，如流程图、示意图等）
+8. 返回的 \`chartCode\` 是经过提取和清理后的可直接渲染的代码（仅用于调试，不应插入文档）
+9. ECharts需要提供JSON格式的配置对象
+10. 图表代码会自动清理，移除markdown代码块标记
+11. ECharts会自动去除动画效果
 
 ## 与其他Tool的区别
 - 这是唯一的图表生成工具
@@ -1399,6 +1448,54 @@ Automatically generates various types of chart code based on user-provided promp
 **Note**:
 - If \`code\` parameter is provided, \`prompt\` can be empty, tool will directly use provided code for rendering
 - If \`code\` parameter is not provided, \`prompt\` parameter must be provided, tool will call LLM to generate code
+
+## ⚠️ Important: Usage in Data Analysis Scenarios
+
+**When drawing charts after data analysis, you MUST provide the \`code\` parameter, NOT the \`prompt\` parameter!**
+
+Reasons:
+- Chart generation tool **cannot access attachment data**: When the tool calls LLM to generate code, the LLM cannot access the data, attachments, or references you analyzed earlier
+- Chart generation tool **does not know specific data**: If you use natural language description (\`prompt\`), the LLM cannot know specific data values, data structures, or analysis results
+- **Correct approach**: After data analysis, you need to generate chart code yourself (such as ECharts configuration JSON) based on the analysis results, then provide it to the tool via the \`code\` parameter
+
+### Correct Workflow for Drawing Charts After Data Analysis:
+
+\`\`\`json
+// Step 1: Use data analysis tool to analyze data
+{
+  "tool": "data-analysis",
+  "params": {
+    "data": "/path/to/data.csv",
+    "dataSource": "file",
+    "analysisRequest": "Analyze sales trends and draw a line chart"
+  }
+}
+// Returns analysis results, including data summary, statistics, etc.
+
+// Step 2: Based on analysis results, generate ECharts configuration code yourself (including specific data)
+{
+  "tool": "chart-generation",
+  "params": {
+    "code": "{\"title\": {\"text\": \"Sales Trends\"}, \"xAxis\": {\"type\": \"category\", \"data\": [\"Jan\", \"Feb\", \"Mar\"]}, \"yAxis\": {\"type\": \"value\"}, \"series\": [{\"data\": [120, 200, 150], \"type\": \"line\"}]}",
+    "chartType": "echarts",
+    "format": "svg"
+  }
+}
+// ⚠️ Note: Must provide code parameter, including complete chart configuration and specific data values
+\`\`\`
+
+### Wrong Example (Do NOT do this):
+
+\`\`\`json
+// ❌ Wrong: Using prompt parameter after data analysis
+{
+  "tool": "chart-generation",
+  "params": {
+    "prompt": "Draw a line chart based on the previous data analysis results",  // ❌ Tool cannot know what "previous data" is
+    "chartType": "echarts"
+  }
+}
+\`\`\`
 
 ## Output Format
 Returns JSON format result containing:
@@ -1469,12 +1566,13 @@ Or use full path:
 4. **Insert syntax**:
    - Markdown: \`![Description](Image URL)\`
    - LaTeX: \`\\includegraphics[width=0.8\\textwidth]{Image URL or path}\`
-5. If \`code\` parameter is provided, tool will directly use that code for rendering, \`prompt\` parameter not needed
-6. If \`code\` parameter is not provided, must provide \`prompt\` parameter, tool will call LLM to generate chart code
-7. Returned \`chartCode\` is extracted and cleaned directly renderable code (for debugging only, should not be inserted into document)
-8. ECharts requires JSON format configuration object
-9. Chart code will be automatically cleaned, removing markdown code block markers
-10. ECharts will automatically remove animation effects
+5. **⚠️ Data analysis scenarios must provide code**: When drawing charts after data analysis, **must provide \`code\` parameter**, including complete chart configuration and specific data values, cannot use \`prompt\` parameter (because tool cannot access data)
+6. If \`code\` parameter is provided, tool will directly use that code for rendering, \`prompt\` parameter not needed
+7. If \`code\` parameter is not provided, must provide \`prompt\` parameter, tool will call LLM to generate chart code (only suitable for scenarios that don't depend on specific data, such as flowcharts, diagrams, etc.)
+8. Returned \`chartCode\` is extracted and cleaned directly renderable code (for debugging only, should not be inserted into document)
+9. ECharts requires JSON format configuration object
+10. Chart code will be automatically cleaned, removing markdown code block markers
+11. ECharts will automatically remove animation effects
 
 ## Differences from Other Tools
 - This is the only chart generation tool

@@ -219,6 +219,22 @@ class AgentConfigManager {
    - **格式区分**：
      - Markdown文档：使用 \`svg\` 或 \`png\` 格式，插入语法：\`![描述](图片URL)\`
      - LaTeX文档：**必须使用 \`pdf\` 格式**，插入语法：\`\\includegraphics[width=0.8\\textwidth]{图片URL}\`
+   - **⚠️ 数据分析后绘制图表的重要规则**：
+     - **必须提供 \`code\` 参数**：在数据分析后绘制图表时，**必须自己生成图表代码**（如ECharts配置JSON），通过 \`code\` 参数提供给图表生成工具
+     - **不能使用 \`prompt\` 参数**：图表生成工具无法感知附件数据，如果使用自然语言描述（\`prompt\`），LLM无法知道具体的数据值、数据结构和分析结果
+     - **正确流程**：数据分析工具返回结果 → 根据分析结果自己生成图表代码（包含具体数据） → 使用 \`code\` 参数调用图表生成工具
+     - **示例**：
+       \`\`\`json
+       // 数据分析后，自己生成ECharts配置（包含具体数据）
+       {
+         "tool": "chart-generation",
+         "params": {
+           "code": "{\"title\": {\"text\": \"销售趋势\"}, \"xAxis\": {\"type\": \"category\", \"data\": [\"1月\", \"2月\", \"3月\"]}, \"yAxis\": {\"type\": \"value\"}, \"series\": [{\"data\": [120, 200, 150], \"type\": \"line\"}]}",
+           "chartType": "echarts",
+           "format": "svg"
+         }
+       }
+       \`\`\`
 
 5. **文档定位与编辑**：使用编辑工具修改文档内容。采用**增量diff编辑框架**（类似Cursor/Claude），确保编辑稳定、高效。
    - **增量编辑原则**：
@@ -342,6 +358,7 @@ class AgentConfigManager {
 9. ❌ **插入图表代码而不是URL**：必须插入图片URL，不是图表代码
 10. ❌ **LaTeX文档使用svg/png格式**：LaTeX文档必须使用pdf格式
 11. ❌ **数据分析时直接输入数据内容**：分析数据时，应该使用文件路径（\`dataSource: "file"\`）或URL（\`dataSource: "url"\`），不要将读取到的reference内容全部输出一遍作为参数，这样容易出错、效率低下、浪费token
+12. ❌ **数据分析后使用prompt参数绘制图表**：在数据分析后绘制图表时，必须自己生成图表代码（包含具体数据），通过 \`code\` 参数提供给图表生成工具，不能使用 \`prompt\` 参数（因为工具无法感知数据）
 
 请始终根据用户的具体需求，灵活地制定合适的工作计划，为用户提供高质量的服务。`,
           injectTimestamp: true
@@ -420,6 +437,22 @@ class AgentConfigManager {
    - **格式区分**：
      - Markdown文档：使用 \`svg\` 或 \`png\` 格式，插入语法：\`![描述](图片URL)\`
      - LaTeX文档：**必须使用 \`pdf\` 格式**，插入语法：\`\\includegraphics[width=0.8\\textwidth]{图片URL}\`
+   - **⚠️ 数据分析后绘制图表的重要规则**：
+     - **必须提供 \`code\` 参数**：在数据分析后绘制图表时，**必须自己生成图表代码**（如ECharts配置JSON），通过 \`code\` 参数提供给图表生成工具
+     - **不能使用 \`prompt\` 参数**：图表生成工具无法感知附件数据，如果使用自然语言描述（\`prompt\`），LLM无法知道具体的数据值、数据结构和分析结果
+     - **正确流程**：数据分析工具返回结果 → 根据分析结果自己生成图表代码（包含具体数据） → 使用 \`code\` 参数调用图表生成工具
+     - **示例**：
+       \`\`\`json
+       // 数据分析后，自己生成ECharts配置（包含具体数据）
+       {
+         "tool": "chart-generation",
+         "params": {
+           "code": "{\"title\": {\"text\": \"销售趋势\"}, \"xAxis\": {\"type\": \"category\", \"data\": [\"1月\", \"2月\", \"3月\"]}, \"yAxis\": {\"type\": \"value\"}, \"series\": [{\"data\": [120, 200, 150], \"type\": \"line\"}]}",
+           "chartType": "echarts",
+           "format": "svg"
+         }
+       }
+       \`\`\`
 
 5. **文档定位与编辑**：使用编辑工具修改文档内容。采用**增量diff编辑框架**（类似Cursor/Claude），确保编辑稳定、高效。
    - **增量编辑原则**：
@@ -543,6 +576,7 @@ class AgentConfigManager {
 9. ❌ **插入图表代码而不是URL**：必须插入图片URL，不是图表代码
 10. ❌ **LaTeX文档使用svg/png格式**：LaTeX文档必须使用pdf格式
 11. ❌ **数据分析时直接输入数据内容**：分析数据时，应该使用文件路径（\`dataSource: "file"\`）或URL（\`dataSource: "url"\`），不要将读取到的reference内容全部输出一遍作为参数，这样容易出错、效率低下、浪费token
+12. ❌ **数据分析后使用prompt参数绘制图表**：在数据分析后绘制图表时，必须自己生成图表代码（包含具体数据），通过 \`code\` 参数提供给图表生成工具，不能使用 \`prompt\` 参数（因为工具无法感知数据）
 
 请始终根据用户的具体需求，灵活地制定合适的工作计划，为用户提供高质量的服务。`,
         injectTimestamp: true

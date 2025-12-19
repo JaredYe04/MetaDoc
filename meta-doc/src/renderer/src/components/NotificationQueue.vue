@@ -1,5 +1,6 @@
 <template>
   <ResizablePanel
+    ref="panelRef"
     :visible="visible"
     :initial-width="360"
     :initial-height="320"
@@ -90,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useNotificationStack, markAllNotificationsRead, markNotificationRead, removeNotification, clearNotifications, initializeNotificationListeners } from '../utils/notifications'
 import ResizablePanel from './base/ResizablePanel.vue'
 import eventBus, { getWindowType } from '../utils/event-bus'
@@ -102,6 +103,7 @@ const { t } = useI18n()
 initializeNotificationListeners(t)
 
 const visible = ref(false)
+const panelRef = ref<InstanceType<typeof ResizablePanel> | null>(null)
 const { notifications, unreadCount } = useNotificationStack()
 const logger = createRendererLogger('NotificationQueue', {
   windowTypeProvider: () => getWindowType()
@@ -142,6 +144,33 @@ function closePanel() {
   visible.value = false
 }
 
+// 处理点击外部区域关闭面板
+function handleClickOutside(event: MouseEvent) {
+  if (!visible.value) return;
+  
+  const target = event.target as HTMLElement;
+  
+  // 获取面板DOM元素
+  const panelElement = panelRef.value?.$el as HTMLElement | undefined;
+  
+  // 如果点击的是面板内部，不关闭
+  if (panelElement && panelElement.contains(target)) {
+    return;
+  }
+  
+  // 如果点击的是BottomMenu中的按钮，不关闭（让toggle处理）
+  const bottomMenu = target.closest('.bottom-menu');
+  if (bottomMenu) {
+    const isToggleButton = target.closest('.status-logger, .status-notification, .ai-task-menu');
+    if (isToggleButton) {
+      return; // 让toggle事件处理
+    }
+  }
+  
+  // 点击外部区域，关闭面板
+  closePanel();
+}
+
 function handleMarkAllRead() {
   markAllNotificationsRead()
 }
@@ -170,11 +199,18 @@ function formatTimestamp(timestamp: number): string {
   })
 }
 
-watch(visible, (value) => {
-  if (value) {
+// 监听visible变化，添加/移除点击外部区域监听器，并标记所有通知为已读
+watch(visible, (isVisible) => {
+  if (isVisible) {
     markAllNotificationsRead()
+    // 使用nextTick确保DOM已更新
+    nextTick(() => {
+      document.addEventListener('click', handleClickOutside, true);
+    });
+  } else {
+    document.removeEventListener('click', handleClickOutside, true);
   }
-})
+});
 
 function setupEventListeners() {
   eventBus.on('toggle-notification-queue', toggleVisibility)
@@ -192,6 +228,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   removeEventListeners()
+  document.removeEventListener('click', handleClickOutside, true);
 })
 
 </script>

@@ -1,5 +1,6 @@
 <template>
   <ResizablePanel
+    ref="panelRef"
     :visible="visible"
     :initial-width="360"
     :initial-height="320"
@@ -87,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useAiTasks, startAiTask, cancelAiTask } from '../utils/ai_tasks.ts'
 import AITask from './AITask.vue'
 import ResizablePanel from './base/ResizablePanel.vue'
@@ -105,6 +106,7 @@ const logger = createRendererLogger('AITaskQueue', {
 
 // 组件状态
 const visible = ref(false)
+const panelRef = ref<InstanceType<typeof ResizablePanel> | null>(null)
 const tasks = useAiTasks()
 
 // 延迟相关状态
@@ -201,6 +203,45 @@ function closePanel() {
   visible.value = false
 }
 
+// 处理点击外部区域关闭面板
+function handleClickOutside(event: MouseEvent) {
+  if (!visible.value) return;
+  
+  const target = event.target as HTMLElement;
+  
+  // 获取面板DOM元素
+  const panelElement = panelRef.value?.$el as HTMLElement | undefined;
+  
+  // 如果点击的是面板内部，不关闭
+  if (panelElement && panelElement.contains(target)) {
+    return;
+  }
+  
+  // 如果点击的是BottomMenu中的按钮，不关闭（让toggle处理）
+  const bottomMenu = target.closest('.bottom-menu');
+  if (bottomMenu) {
+    const isToggleButton = target.closest('.status-logger, .status-notification, .ai-task-menu');
+    if (isToggleButton) {
+      return; // 让toggle事件处理
+    }
+  }
+  
+  // 点击外部区域，关闭面板
+  closePanel();
+}
+
+// 监听visible变化，添加/移除点击外部区域监听器
+watch(visible, (isVisible) => {
+  if (isVisible) {
+    // 使用nextTick确保DOM已更新
+    nextTick(() => {
+      document.addEventListener('click', handleClickOutside, true);
+    });
+  } else {
+    document.removeEventListener('click', handleClickOutside, true);
+  }
+});
+
 // 组件挂载后设置事件监听
 onMounted(() => {
   eventBus.on('toggle-ai-task-queue', toggleVisibility)
@@ -222,6 +263,7 @@ onBeforeUnmount(() => {
   eventBus.off('close-ai-task-queue', closePanel)
   eventBus.off('ai-completion-delay-updated')
   eventBus.off('ai-completion-cancel-delay')
+  document.removeEventListener('click', handleClickOutside, true);
   
   if (delayCheckInterval) {
     clearInterval(delayCheckInterval)

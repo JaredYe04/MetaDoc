@@ -63,6 +63,8 @@
                             '--toolbar-background-color': themeState.currentTheme.editorToolbarBackgroundColor,
                             '--textarea-background-color': themeState.currentTheme.editorTextareaBackgroundColor,
                             '--editor-min-width': MARKDOWN_LAYOUT.editorMinWidth + 'px',
+                            '--editor-text-color': themeState.currentTheme.textColor,
+                            color: themeState.currentTheme.textColor,
                         }"></div>
                 </template>
                 
@@ -570,7 +572,7 @@ const handleClick = async (event: MouseEvent, title: string, path: string) => {
     showSectionOptimizer.value = true
 };
 
-const handleRefresh = () => {
+const handleRefresh = async () => {
     if (!isActive.value) return;
     scheduleSetValue(currentMarkdown.value, { clearHistory: true, timeoutMs: 0 });
 };
@@ -665,7 +667,7 @@ const handleTitleMenuClose = () => {
 // 处理插入绘图
 const handleInsertGraph = async () => {
     if (!vditor.value || !props.tabId) {
-        ElMessage.warning(t('graph.noEditor', '编辑器未就绪'))
+        eventBus.emit('show-warning', t('graph.noEditor', '编辑器未就绪'))
         return
     }
     
@@ -701,14 +703,14 @@ const handleInsertGraph = async () => {
             // 插入图片Markdown
             const imageMarkdown = data.imageMarkdown || `![生成的图片](${data.imageUrl})`
             insertText(imageMarkdown)
-            eventBus.off('graph-complete', onGraphComplete)
+            eventBus.off('graph-complete', onGraphComplete as (payload?: unknown) => void)
         }
         
-        eventBus.on('graph-complete', onGraphComplete)
+        eventBus.on('graph-complete', onGraphComplete as (payload?: unknown) => void)
     } catch (error) {
         logger.error('打开绘图工具失败:', error)
-        ElMessage.error('打开绘图工具失败: ' + (error instanceof Error ? error.message : String(error)))
-    }
+        eventBus.emit('show-error', error)
+        }
 }
 
 const openSectionOptimizerFromContext = async () => {
@@ -1569,6 +1571,7 @@ onMounted(async () => {
                 syncOutlineFromMarkdown();
                 await bindTitleMenu();
 
+
             },
             after: async () => {
 
@@ -1576,8 +1579,7 @@ onMounted(async () => {
                 try {
                     flushOutlineSync();
                     await bindTitleMenu();
-                    // 初始化大纲显示状态
-                    await nextTick();
+
                     
                     // 监听模式切换事件
                     if (vditor.value?.vditor?.element) {
@@ -1853,6 +1855,7 @@ const handleSyncEditorTheme = async () => {
 
     vditor.value?.setTheme(themeState.currentTheme.vditorTheme as any, contentTheme as any, codeTheme as any);
     scheduleSetValue(currentMarkdown.value, { clearHistory: true, timeoutMs: 0 });
+
 };
 eventBus.on('sync-editor-theme', handleSyncEditorTheme);
 
@@ -1921,6 +1924,39 @@ watch(
     overflow: auto;
     scrollbar-color: #888 #63636300;
     scrollbar-width: thin;
+    color: var(--editor-text-color, inherit);
+}
+
+/* 强制覆盖 Vditor 的文字颜色 */
+.editor :deep(.vditor-reset),
+.editor :deep(.vditor-ir),
+.editor :deep(.vditor-wysiwyg),
+.editor :deep(.vditor-sv) {
+    color: var(--editor-text-color, inherit) !important;
+}
+
+.editor :deep(.vditor-reset *),
+.editor :deep(.vditor-ir *),
+.editor :deep(.vditor-wysiwyg *),
+.editor :deep(.vditor-sv *) {
+    color: inherit;
+}
+
+/* 确保标题、段落等文字颜色正确 */
+.editor :deep(.vditor-reset h1),
+.editor :deep(.vditor-reset h2),
+.editor :deep(.vditor-reset h3),
+.editor :deep(.vditor-reset h4),
+.editor :deep(.vditor-reset h5),
+.editor :deep(.vditor-reset h6),
+.editor :deep(.vditor-reset p),
+.editor :deep(.vditor-reset li),
+.editor :deep(.vditor-reset td),
+.editor :deep(.vditor-reset th),
+.editor :deep(.vditor-ir__node),
+.editor :deep(.vditor-wysiwyg__block),
+.editor :deep(.vditor-sv__node) {
+    color: var(--editor-text-color, inherit) !important;
 }
 
 

@@ -111,6 +111,14 @@ const emit = defineEmits<{
   resize: [width: number, height: number]
 }>()
 
+// 面板引用
+const panelRef = ref<HTMLElement | null>(null)
+
+// 暴露面板引用，供父组件使用
+defineExpose({
+  panelRef
+})
+
 // 响应式尺寸
 const width = ref(props.initialWidth)
 const height = ref(props.initialHeight)

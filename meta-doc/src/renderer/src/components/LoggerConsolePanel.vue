@@ -1,5 +1,6 @@
 <template>
   <ResizablePanel
+    ref="panelRef"
     :visible="visible"
     :initial-width="560"
     :initial-height="320"
@@ -41,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Search } from '@element-plus/icons-vue';
 import ResizablePanel from './base/ResizablePanel.vue';
@@ -55,6 +56,7 @@ import { settings, setSetting } from '../utils/settings.js';
 const { t } = useI18n();
 
 const visible = ref(false);
+const panelRef = ref<InstanceType<typeof ResizablePanel> | null>(null);
 const logHistory = ref<LoggerHistoryEntry[]>([]);
 const filterText = ref(settings.loggingFilter || '');
 
@@ -170,10 +172,49 @@ function handleFilterChange() {
   setSetting('loggingFilter', filterText.value);
 }
 
+// 处理点击外部区域关闭面板
+function handleClickOutside(event: MouseEvent) {
+  if (!visible.value) return;
+  
+  const target = event.target as HTMLElement;
+  
+  // 获取面板DOM元素
+  const panelElement = panelRef.value?.$el as HTMLElement | undefined;
+  
+  // 如果点击的是面板内部，不关闭
+  if (panelElement && panelElement.contains(target)) {
+    return;
+  }
+  
+  // 如果点击的是BottomMenu中的按钮，不关闭（让toggle处理）
+  const bottomMenu = target.closest('.bottom-menu');
+  if (bottomMenu) {
+    const isToggleButton = target.closest('.status-logger, .status-notification, .ai-task-menu');
+    if (isToggleButton) {
+      return; // 让toggle事件处理
+    }
+  }
+  
+  // 点击外部区域，关闭面板
+  closePanel();
+}
+
 // 监听settings变化，同步filterText
 watch(() => settings.loggingFilter, (newFilter) => {
   if (filterText.value !== newFilter) {
     filterText.value = newFilter || '';
+  }
+});
+
+// 监听visible变化，添加/移除点击外部区域监听器
+watch(visible, (isVisible) => {
+  if (isVisible) {
+    // 使用nextTick确保DOM已更新
+    nextTick(() => {
+      document.addEventListener('click', handleClickOutside, true);
+    });
+  } else {
+    document.removeEventListener('click', handleClickOutside, true);
   }
 });
 
@@ -188,6 +229,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   eventBus.off('toggle-logger-console', toggleVisibility);
   eventBus.off('close-logger-console', closePanel);
+  document.removeEventListener('click', handleClickOutside, true);
 });
 </script>
 

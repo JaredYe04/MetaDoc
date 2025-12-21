@@ -177,7 +177,7 @@ const currentOutlineJson = computed(() => {
       return JSON.stringify(outline);
     }
     // 如果 workspace 中的 outline 为空，尝试从 markdown 提取
-    const extracted = extractOutlineTreeFromMarkdown(currentMarkdown.value, true);
+    const extracted = extractOutlineTreeFromMarkdown(currentMarkdown.value, false);
     if (extracted && extracted.path === 'dummy' && extracted.children && extracted.children.length > 0) {
       return JSON.stringify(extracted);
     }

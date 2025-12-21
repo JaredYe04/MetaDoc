@@ -1043,20 +1043,10 @@ function decodeLatexPath(path) {
 
 export function extractOutlineTreeFromLatex(latex, bypassText = false) {
     const md = convertLatexToMarkdown(latex); // 需要写/引入一个 LaTeX→Markdown 转换器
-    return extractOutlineTreeFromMarkdown(md, bypassText);
+    const outline = extractOutlineTreeFromMarkdown(md, bypassText);
+    return outline;
 }
 
-/**
- * 从 LaTeX 文本中提取完整的大纲（返回Markdown格式，而非JSON）
- * @param latex LaTeX文本
- * @param bypassText 是否跳过文本内容
- * @returns 完整的Markdown大纲字符串（包含标题和文本内容）
- */
-export function extractOutlineTreeFromLatexLight(latex, bypassText = false) {
-    const md = convertLatexToMarkdown(latex);
-    const outlineTree = extractOutlineTreeFromMarkdown(md, bypassText);
-    return generateMarkdownFromOutlineTree(outlineTree);
-}
 export function generateLatexFromOutlineTree(outline_tree, title = 'Generated Document') {
     // 先生成 Markdown
     const md = generateMarkdownFromOutlineTree(outline_tree);

@@ -1020,24 +1020,6 @@ async function continueConversation(
     // 关键修复：确保stream默认为true，而不是undefined
     const shouldStream = meta?.stream !== false && (meta?.stream === true || meta?.stream === undefined);
     
-    // 根据配置决定是否使用 max_tokens
-    const config = adapter.getConfig();
-    let effectiveMaxTokens = undefined;
-    const configEnableMaxTokens = (config?.enableMaxTokens ?? false);
-    const configMaxTokens = config?.maxTokens;
-    
-    if (configEnableMaxTokens) {
-      if (meta.max_tokens !== undefined && meta.max_tokens > 0) {
-        // 如果 meta 中指定了 max_tokens，取两者较小值
-        effectiveMaxTokens = configMaxTokens !== undefined && configMaxTokens > 0
-          ? Math.min(meta.max_tokens, configMaxTokens)
-          : meta.max_tokens;
-      } else if (configMaxTokens !== undefined && configMaxTokens > 0) {
-        // 如果没有指定 meta.max_tokens，使用配置的 maxTokens
-        effectiveMaxTokens = configMaxTokens;
-      }
-    }
-    // 如果 enableMaxTokens 为 false，effectiveMaxTokens 保持为 undefined，不传递 max_tokens
     // 记录meta信息用于调试
     logger.debug('[continueConversation] meta参数检查:', {
       stream: meta?.stream,
@@ -1045,30 +1027,20 @@ async function continueConversation(
       metaKeys: meta && typeof meta === 'object' ? Object.keys(meta) : [],
       hasStream: meta && typeof meta === 'object' && 'stream' in meta,
       shouldStream: shouldStream,
-      maxTokens: maxTokens,
       metaValue: JSON.stringify(meta)
     });
     
+    // 注意：effectiveMaxTokens 的计算逻辑在 continueConversationStream 和 continueConversationNonStream 内部实现
+    // 因为需要先获取 adapter 才能访问配置，所以不能在外部计算
     if (shouldStream) {
       logger.debug('[continueConversation] 使用流式输出模式');
-      const streamMeta = { ...meta };
-      if (effectiveMaxTokens !== undefined) {
-        streamMeta.max_tokens = effectiveMaxTokens;
-      } else if (effectiveMaxTokens === undefined && meta.max_tokens !== undefined) {
-        // 如果配置禁用了 max_tokens，移除 meta 中的 max_tokens
-        delete streamMeta.max_tokens;
-      }
-      await continueConversationStream(conversation, ref, streamMeta, signal, effectiveCustomConfig);
+      await continueConversationStream(conversation, ref, meta, signal, effectiveCustomConfig);
     } else {
       logger.warn(`[continueConversation] 使用非流式输出模式！meta.stream=${meta?.stream}, meta=${JSON.stringify(meta)}`);
-      const nonStreamMeta = { ...meta };
-      if (effectiveMaxTokens !== undefined) {
-        nonStreamMeta.max_tokens = effectiveMaxTokens;
-      }
       await continueConversationNonStream(
         conversation,
         ref,
-        nonStreamMeta,
+        meta,
         signal,
         effectiveCustomConfig
       );

@@ -14,10 +14,10 @@ import type {
 import { useWorkspace } from '../../stores/workspace'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
-import { cancelAiTask, createAiTask } from '../ai_tasks'
+import { cancelAiTask, createAiTask, ai_types } from '../ai_tasks'
 import { getSetting } from '../settings'
 import { ref } from 'vue'
-import type { DocumentOutlineNode } from '@/types'
+import type { DocumentOutlineNode, AIDialogMessage } from '@/types'
 import { 
   searchNode, 
   removeTextFromOutline,
@@ -33,6 +33,13 @@ import { TREE_NODE_SCHEMA } from '../../constants/document'
 import { extractOuterJsonString } from '../regex-utils'
 import { getOutlineAdapter } from '../outline-adapters'
 import { parseJsonWithClean, isJsonParseError } from './tool-utils'
+import { 
+  generateChildNodes as generateChildNodesUtil,
+  generateNodeContent as generateNodeContentUtil,
+  cleanTitleMarkers,
+  cleanNodeTitleMarkers,
+  cleanRawContent as cleanRawContentUtil
+} from '../outline-ai-utils'
 import OutlineOptimizeDisplay from './components/OutlineOptimizeDisplay.vue'
 import { getActiveDocumentInfoViaBroadcast } from './document-broadcast-helper'
 import { getWindowType } from '../event-bus'
@@ -40,133 +47,7 @@ import { getWindowType } from '../event-bus'
 const logger = createRendererLogger('OutlineOptimizeTool')
 const workspace = useWorkspace()
 
-/**
- * 清理原始内容（移除可能的说明文字）
- */
-function cleanRawContent(rawContent: string): string {
-  return rawContent
-    .replace(/^[^{]*\{/, '{')  // 移除JSON前的文字
-    .replace(/\}[^}]*$/, '}')  // 移除JSON后的文字
-    .trim()
-}
-
-/**
- * 清理标题中的Markdown和LaTeX标记
- * 因为title_level字段已经决定了标题层级，所以标题中不应该包含#、##、\section{}等标记
- * 
- * 使用精确匹配，避免误清除其他LaTeX命令（如\textbf{}、\textit{}等）
- */
-function cleanTitleMarkers(title: string): string {
-  if (!title || typeof title !== 'string') {
-    return title
-  }
-  
-  let cleaned = title.trim()
-  
-  // 1. 移除Markdown标题标记（#、##、###等）
-  // 确保：行首 + 一个或多个# + 至少一个空格
-  // 避免匹配代码中的 # 符号（通过要求后面必须有空格）
-  cleaned = cleaned.replace(/^#+\s+/, '')
-  
-  // 2. 移除LaTeX标题命令标记
-  // 只匹配已知的标题命令，避免误匹配其他LaTeX命令
-  // 支持的标题命令：\part, \chapter, \section, \subsection, \subsubsection, \paragraph, \subparagraph, \title
-  // 也支持带星号的变体：\section*, \subsection* 等（用于不编号的章节）
-  
-  // 匹配嵌套大括号的辅助函数
-  const extractBracedContent = (str: string, startPos: number): { content: string; endPos: number } | null => {
-    if (str[startPos] !== '{') return null
-    
-    let depth = 0
-    let i = startPos
-    let content = ''
-    
-    while (i < str.length) {
-      const char = str[i]
-      
-      // 检查是否是转义的字符（\ 后面跟 { 或 } 或 \）
-      if (char === '\\' && i + 1 < str.length) {
-        const nextChar = str[i + 1]
-        if (nextChar === '{' || nextChar === '}' || nextChar === '\\') {
-          // 转义字符，作为普通字符处理
-          if (depth >= 1) {
-            content += char + nextChar
-          }
-          i += 2
-          continue
-        }
-      }
-      
-      if (char === '{') {
-        depth++
-        // 只有深度大于1时才加入content（跳过最外层的大括号）
-        if (depth > 1) {
-          content += char
-        }
-      } else if (char === '}') {
-        depth--
-        if (depth === 0) {
-          // 找到匹配的右括号，返回内容
-          return { content, endPos: i }
-        } else {
-          // 嵌套的大括号，加入content
-          content += char
-        }
-      } else {
-        // 普通字符，如果在大括号内则加入content
-        if (depth >= 1) {
-          content += char
-        }
-      }
-      i++
-    }
-    
-    return null // 未找到匹配的右括号
-  }
-  
-  // 精确匹配LaTeX标题命令
-  // 匹配模式：\命令名[*]{内容}
-  const latexTitleCommands = [
-    'part', 'chapter', 'section', 'subsection', 'subsubsection',
-    'paragraph', 'subparagraph', 'title'
-  ]
-  
-  for (const cmd of latexTitleCommands) {
-    // 匹配 \command 或 \command*
-    const cmdPattern = new RegExp(`^\\\\${cmd}\\*?`, 'i')
-    const match = cleaned.match(cmdPattern)
-    
-    if (match) {
-      const afterCmd = cleaned.substring(match[0].length).trim()
-      
-      // 如果后面跟着 {，尝试提取大括号内容
-      if (afterCmd.startsWith('{')) {
-        const result = extractBracedContent(afterCmd, 0)
-        if (result) {
-          cleaned = result.content
-          break
-        }
-      }
-    }
-  }
-  
-  return cleaned.trim()
-}
-
-/**
- * 递归清理节点及其所有子节点的标题标记
- */
-function cleanNodeTitleMarkers(node: DocumentOutlineNode): void {
-  if (node.title) {
-    node.title = cleanTitleMarkers(node.title)
-  }
-  
-  if (node.children && Array.isArray(node.children)) {
-    for (const child of node.children) {
-      cleanNodeTitleMarkers(child)
-    }
-  }
-}
+// 清理函数已迁移到 outline-ai-utils.ts，使用导入的版本
 
 /**
  * 重新生成路径（广度优先遍历）
@@ -395,13 +276,19 @@ ${text.substring(0, 2000)}${text.length > 2000 ? '...' : ''}
 - **必须生成至少3个章节节点，确保返回完整的JSON数组**
 `
 
+  // 构建消息数组，将 prompt 转换为对话格式
+  const messages: AIDialogMessage[] = []
+  messages.push({
+    role: 'user',
+    content: conversionPrompt,
+  })
+
   const rawStringRef = ref('')
-  // 设置较大的max_tokens限制，确保AI能够返回完整的JSON数组
   const { handle, done } = createAiTask(
     `转换文本为章节列表: ${node.title}`,
-    conversionPrompt,
+    messages,
     rawStringRef,
-    'answer',
+    ai_types.chat,
     `outline-convert-${node.path}-${Date.now()}`,
     { 
       stream: true,
@@ -510,7 +397,7 @@ ${text.substring(0, 2000)}${text.length > 2000 ? '...' : ''}
 }
 
 /**
- * 生成节点的子节点
+ * 生成节点的子节点（使用工具函数作为主要方式，保留自然语言转换作为fallback）
  */
 async function generateChildNodes(
   node: DocumentOutlineNode,
@@ -519,6 +406,21 @@ async function generateChildNodes(
   docFormat: 'md' | 'tex' = 'md',
   signal?: AbortSignal
 ): Promise<DocumentOutlineNode[]> {
+  // 先尝试使用工具函数生成（使用对话模式）
+  try {
+    return await generateChildNodesUtil(node, outlineTree, userPrompt, signal, docFormat)
+  } catch (error) {
+    // 如果基础生成失败，尝试自然语言转换（fallback）
+    logger.warn('基础生成失败，尝试自然语言转换', error)
+    // 继续使用下面的自然语言转换逻辑
+  }
+
+  // Fallback: 使用自然语言转换（保留原有复杂逻辑）
+
+  // 如果基础生成失败，使用自然语言转换（保留原有逻辑作为fallback）
+  const rawStringRef = ref('')
+  
+  // 构建提示词（使用工具函数中的逻辑，但保留转换能力）
   const basePrompt = expandTreeNodePrompt(
     JSON.stringify(removeTextFromOutline(outlineTree)),
     JSON.stringify(node),
@@ -526,20 +428,24 @@ async function generateChildNodes(
     userPrompt
   )
   
-  // 根据文档格式调整提示词（子节点的title也需要使用正确的格式）
   const formatInstruction = docFormat === 'tex' 
     ? '**重要：文档格式是LaTeX，生成的节点标题应该使用LaTeX格式（例如：\\section{标题}），不要使用Markdown的#、##等标记。**'
     : '**重要：文档格式是Markdown，生成的节点标题应该使用Markdown格式（例如：# 标题、## 标题），不要使用LaTeX的\\section{}等命令。**'
   
   const prompt = formatInstruction + '\n\n' + basePrompt
 
-  const rawStringRef = ref('')
-  // 设置较大的max_tokens限制，确保AI能够返回完整的JSON数组
+  // 构建消息数组，将 prompt 转换为对话格式
+  const messages: AIDialogMessage[] = []
+  messages.push({
+    role: 'user',
+    content: prompt,
+  })
+
   const { handle, done } = createAiTask(
     `生成子节点: ${node.title}`,
-    prompt,
+    messages,
     rawStringRef,
-    'answer',
+    ai_types.chat,
     `outline-children-${node.path}-${Date.now()}`,
     { 
       stream: true,
@@ -754,7 +660,7 @@ async function generateChildNodes(
 }
 
 /**
- * 生成节点内容
+ * 生成节点内容（使用工具函数）
  */
 async function generateNodeContent(
   node: DocumentOutlineNode,
@@ -763,82 +669,8 @@ async function generateNodeContent(
   docFormat: 'md' | 'tex' = 'md',
   signal?: AbortSignal
 ): Promise<string> {
-  const hasChildren = node.children && node.children.length > 0
-  
-  // 根据文档格式调整提示词
-  const formatInstruction = docFormat === 'tex' 
-    ? '**重要：文档格式是LaTeX，请使用LaTeX语法生成内容（使用\\section{}, \\subsection{}等命令，不要使用Markdown的#、##等标记）。**'
-    : '**重要：文档格式是Markdown，请使用Markdown语法生成内容（使用#、##等标题标记）。**'
-  
-  const basePrompt = hasChildren
-    ? generateParentNodeContentPrompt(
-        JSON.stringify(removeTextFromOutline(outlineTree)),
-        JSON.stringify(node),
-        userPrompt
-      )
-    : generateContentPrompt(
-        JSON.stringify(removeTextFromOutline(outlineTree)),
-        JSON.stringify(node),
-        userPrompt
-      )
-  
-  // 在提示词开头添加格式说明
-  const prompt = formatInstruction + '\n\n' + basePrompt
-
-  const rawStringRef = ref('')
-  const { handle, done } = createAiTask(
-    `生成内容: ${node.title}`,
-    prompt,
-    rawStringRef,
-    'answer',
-    `outline-content-${node.path}-${Date.now()}`,
-    { stream: true}
-  )
-
-  if (signal) {
-    signal.addEventListener('abort', () => {
-      cancelAiTask(handle, false, false)
-    })
-  }
-
-  try {
-    await done
-  } catch (error) {
-    // 如果任务被取消或出错，检查是否是因为取消
-    if (signal?.aborted) {
-      throw new Error('操作已取消')
-    }
-    // 重新抛出原始错误，让调用者知道任务失败
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    logger.error('生成节点内容失败:', error)
-    throw new Error(`AI任务失败: ${errorMessage}`)
-  }
-
-  if (signal?.aborted) {
-    throw new Error('操作已取消')
-  }
-
-  const rawContent = rawStringRef.value?.trim() || ''
-  if (!rawContent) {
-    return ''
-  }
-
-  // 提取JSON
-  const json = extractOuterJsonString(rawContent)
-  if (json) {
-    try {
-      const parseResult = parseJsonWithClean<{ content: string }>(json)
-      if (parseResult.success && parseResult.data?.content) {
-        return parseResult.data.content
-      }
-    } catch (parseErr) {
-      logger.warn('JSON解析失败，尝试使用原始内容', parseErr)
-    }
-  }
-
-  // 如果提取失败，尝试清理原始内容
-  const cleaned = cleanRawContent(rawContent)
-  return cleaned || rawContent
+  // 直接使用工具函数（已支持 docFormat 参数和对话模式）
+  return await generateNodeContentUtil(node, outlineTree, userPrompt, signal, docFormat)
 }
 
 /**

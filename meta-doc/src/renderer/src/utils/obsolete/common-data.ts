@@ -145,7 +145,7 @@ export {
 //因为ai助手属于不同的渲染进程，因此另一个进程需要先告诉主进程，主进程再广播给所有的渲染进程
 import { toRaw } from 'vue';
 import { decodeBase64ToJson, encodeJsonToBase64 } from '../base64-utils'
-import { convertLatexToMarkdown } from '../latex-utils'
+import { convertLatexToMarkdown, extractOutlineTreeFromLatex } from '../latex-utils'
 export function broadcastAiDialogs(): void {
   //console.log(JSON.parse(JSON.stringify(current_ai_dialogs.value)))
   if (!suppressSaveNotification) {
@@ -314,13 +314,12 @@ export function load_from_tex(tex: string): void {
     const metaDataBase64 = metaInfoMatch[1];
     const metaData = decodeBase64ToJson(metaDataBase64);
 
-    //current_outline_tree.value = JSON.parse(JSON.stringify(metaData.current_outline_tree));
-    //todo:现在还不支持和大纲树之间的映射
+    current_outline_tree.value = JSON.parse(JSON.stringify(metaData.current_outline_tree));
     current_article_meta_data.value = { ...metaData.current_article_meta_data };
     current_ai_dialogs.value = metaData.current_ai_dialogs;
   } else {
     // 如果没有元信息，则生成默认元信息
-    //current_outline_tree.value = extractOutlineTreeFromLaTeX(pureTex);
+    current_outline_tree.value = extractOutlineTreeFromLatex(pureTex);
     current_article_meta_data.value = { ...default_artical_meta_data };
     current_ai_dialogs.value = [];
   }

@@ -195,6 +195,7 @@ import { getSetting } from '../../utils/settings'
 import { ai_types, createAiTask } from '../../utils/ai_tasks'
 import { createRendererLogger } from '../../utils/logger'
 import { setupMonacoWorker, registerLatexLanguage } from '../../utils/monaco-worker-config'
+import type { AIDialogMessage } from '@/types'
 
 const emit = defineEmits(['close'])
 
@@ -340,11 +341,15 @@ const generate = async () => {
   if (editor) {
     editor.setValue('')
   }
+  const messages: AIDialogMessage[] = [{
+    role: 'user',
+    content: prompt,
+  }]
   const { done } = createAiTask(
     userPrompt.value,
-    prompt,
+    messages,
     generatedText,
-    ai_types.answer,
+    ai_types.chat,
     'quick-start-latex',
     { stream: true, temperature: temperature.value / 100 }
   )

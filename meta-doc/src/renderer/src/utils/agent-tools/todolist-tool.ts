@@ -11,6 +11,7 @@ import type {
   ToolProgress,
   ToolLocales
 } from '../../types/agent-tool'
+import type { AIDialogMessage } from '@/types'
 import { createAiTask } from '../ai_tasks'
 import { cancelAiTask } from '../ai_tasks'
 import { ref } from 'vue'
@@ -596,11 +597,15 @@ ${context ? `上下文信息：${context}` : ''}`
   const target = ref('')
   const originKey = `todolist-${Date.now()}-${Math.random().toString(36).slice(2)}`
   // 温度配置将在llm-api.js中从全局配置读取
+  const messages: AIDialogMessage[] = [{
+    role: 'user',
+    content: systemPrompt,
+  }]
   const { handle, done } = createAiTask(
     retryCount > 0 ? `重新生成任务列表（重试 ${retryCount}/${maxRetries}）` : '生成任务列表',
-    systemPrompt,
+    messages,
     target,
-    'answer',
+    'chat',
     originKey,
     { stream: true }
   )

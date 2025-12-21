@@ -837,7 +837,11 @@ async function generateCode() {
         },
         { immediate: true }
     )
-    const { handle, done } = createAiTask(activeScheme.value.prompt, prompt, codeRef, ai_types.answer, 'ai-graph');
+    const messages = [{
+      role: 'user',
+      content: prompt,
+    }]
+    const { handle, done } = createAiTask(activeScheme.value.prompt, messages, codeRef, ai_types.chat, 'ai-graph');
     generating.value = true;
 
     try {

@@ -212,6 +212,7 @@ import eventBus, { getWindowType } from '../../utils/event-bus'
 import { getSetting } from '../../utils/settings'
 import { themeState } from '../../utils/themes'
 import { convertMarkdownToLatex, convertLatexToMarkdown } from '../../utils/latex-utils'
+import type { AIDialogMessage } from '@/types'
 
 const emit = defineEmits<{ (e: 'close'): void }>()
 
@@ -383,11 +384,15 @@ async function generate() {
     const prompt = generateArticlePrompt(mood.value, userPrompt.value)
     // 清空内容，准备接收流式数据
     generatedText.value = ''
+    const messages: AIDialogMessage[] = [{
+      role: 'user',
+      content: prompt,
+    }]
     const { done } = createAiTask(
       userPrompt.value,
-      prompt,
+      messages,
       generatedText,
-      ai_types.answer,
+      ai_types.chat,
       'quick-start',
       { stream: true, temperature: temperature.value / 100 }
     )

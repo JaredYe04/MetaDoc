@@ -180,6 +180,7 @@ import { useWorkspace } from '../stores/workspace'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { searchNode } from '../utils/outline-helpers'
 import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document'
+import type { AIDialogMessage } from '../../../types'
 // @ts-ignore - vue3-markdown-it 没有类型定义
 import MarkdownItEditor from 'vue3-markdown-it'
 import * as monaco from 'monaco-editor'
@@ -361,11 +362,15 @@ const generate = async () => {
   )
   
   try {
+    const messages: AIDialogMessage[] = [{
+      role: 'user',
+      content: prompt,
+    }]
     const { done } = createAiTask(
       props.title, 
-      prompt, 
+      messages, 
       generatedText, 
-      ai_types.answer, 
+      ai_types.chat, 
       'section-optimizer',
       { stream: true }
     )

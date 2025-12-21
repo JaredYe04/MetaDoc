@@ -11,6 +11,7 @@ import type {
   ToolProgress,
   ToolLocales
 } from '../../types/agent-tool'
+import type { AIDialogMessage } from '@/types'
 import { createRendererLogger } from '../logger'
 import { extractOuterJsonString } from '../regex-utils'
 import { i18n } from '../../i18n'
@@ -721,11 +722,15 @@ ${analysisRequest ? `用户分析需求：${analysisRequest}` : ''}
   const target = ref('')
   const originKey = `data-analysis-summary-${Date.now()}-${Math.random().toString(36).slice(2)}`
   // 温度配置将在llm-api.js中从全局配置读取
+  const messages: AIDialogMessage[] = [{
+    role: 'user',
+    content: prompt,
+  }]
   const { handle, done } = createAiTask(
     '生成数据分析摘要',
-    prompt,
+    messages,
     target,
-    'answer',
+    'chat',
     originKey,
     { stream: true }
   )

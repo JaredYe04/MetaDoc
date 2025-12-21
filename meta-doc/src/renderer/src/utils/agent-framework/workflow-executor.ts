@@ -12,6 +12,7 @@ import type {
   WorkflowVariable
 } from '../../types/agent-framework'
 import type { ToolCallbackResult } from '../../types/agent-tool'
+import type { AIDialogMessage } from '@/types'
 import { workflowManager } from './workflow-manager'
 import { agentToolManager } from '../agent-tool-manager'
 import { createRendererLogger } from '../logger'
@@ -398,11 +399,15 @@ ${JSON.stringify(params, null, 2)}
 
       // 创建AI任务
       const resultRef = { value: '' }
+      const messages: AIDialogMessage[] = [{
+        role: 'user',
+        content: decisionPrompt,
+      }]
       const task = createAiTask(
         'LLM决策',
-        decisionPrompt,
+        messages,
         resultRef,
-        'answer',
+        'chat',
         `llm-decision-${node.id}-${Date.now()}`,
         { stream: true }
       )
@@ -602,11 +607,15 @@ ${node.config.condition}
 `
 
       const resultRef: { value: string } = { value: '' }
+      const messages: AIDialogMessage[] = [{
+        role: 'user',
+        content: prompt,
+      }]
       const task = createAiTask(
         'Workflow Condition',
-        prompt,
+        messages,
         resultRef as any,
-        'answer',
+        'chat',
         `workflow-condition-${node.id}-${Date.now()}`,
         { stream: true }
       )

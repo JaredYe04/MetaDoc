@@ -233,7 +233,11 @@ const generate = async () => {
     context_mode.value,
     currentMarkdown.value,
   );
-  const { done } = createAiTask(props.title, prompt, generatedText, ai_types.answer, 'title-menu');
+  const messages = [{
+    role: 'user',
+    content: prompt,
+  }]
+  const { done } = createAiTask(props.title, messages, generatedText, ai_types.chat, 'title-menu');
   generating.value = true;
   generated.value = false;
 

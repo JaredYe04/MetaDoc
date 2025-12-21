@@ -196,6 +196,7 @@ import { generateMarkdownPrompt, getSuggestionPresets, getPresets } from '../../
 import { getSetting } from '../../utils/settings'
 import { ai_types, createAiTask } from '../../utils/ai_tasks'
 import { createRendererLogger } from '../../utils/logger'
+import type { AIDialogMessage } from '@/types'
 
 const emit = defineEmits(['close'])
 
@@ -327,11 +328,15 @@ const generate = async () => {
   const prompt = generateMarkdownPrompt(mood.value, userPrompt.value)
   // 清空内容，准备接收流式数据
   generatedText.value = ''
+  const messages: AIDialogMessage[] = [{
+    role: 'user',
+    content: prompt,
+  }]
   const { done } = createAiTask(
     userPrompt.value,
-    prompt,
+    messages,
     generatedText,
-    ai_types.answer,
+    ai_types.chat,
     'quick-start-markdown',
     { stream: true, temperature: temperature.value / 100 }
   )

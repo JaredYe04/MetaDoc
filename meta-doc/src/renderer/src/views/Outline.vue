@@ -343,6 +343,12 @@ import { expandTreeNodePrompt, generateContentPrompt, generateParentNodeContentP
 import { themeState } from '../utils/themes.js';
 import { extractOuterJsonString } from '../utils/regex-utils.js';
 import { getOutlineAdapter } from '../utils/outline-adapters';
+import { 
+  generateChildNodes as generateChildNodesUtil, 
+  generateNodeContent as generateNodeContentUtil,
+  cleanNodeTitleMarkers,
+  cleanRawContent
+} from '../utils/outline-ai-utils';
 import '../assets/noselect-display.css';
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask, clearAiTasks } from '../utils/ai_tasks.ts';
@@ -473,52 +479,28 @@ const generateChildrenChildren = async () => {
       return;
     }
 
-    const prompt = expandTreeNodePrompt(
-      JSON.stringify(removeTextFromOutline(treeData.value)),
-      JSON.stringify(curNode),
-      JSON.stringify(TREE_NODE_SCHEMA),
-      userPrompt.value
-    );
-
-    const rawStringRef = ref('');
-    parallelChildren.value.push(rawStringRef);
-    const { done } = createAiTask(
-      curNode.title,
-      prompt,
-      rawStringRef,
-      ai_types.answer,
-      'outline-children-' + curNode.title,
-    );
-
-    const task = done
-      .then(() => {
-        const json = extractOuterJsonString(rawStringRef.value);
-        if (!json) {
-          logger.warn(`节点 ${curNode.title} 未能提取 JSON，无法生成子节点`);
-          return;
+    const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
+    // 为每个节点创建一个独立的ref用于显示原始内容
+    const nodeRawContentRef = ref('')
+    parallelChildren.value.push(nodeRawContentRef)
+    
+    const task = generateChildNodesUtil(
+      curNode,
+      treeData.value,
+      userPrompt.value,
+      undefined, // signal
+      docFormat,
+      nodeRawContentRef // 传入ref，用于实时显示原始内容
+    )
+      .then((newChildren) => {
+        if (!curNode.children) {
+          curNode.children = [];
         }
-        try {
-          const newChildren = JSON.parse(json) as DocumentOutlineNode[];
-          if (Array.isArray(newChildren) && newChildren.length > 0) {
-            // 清理所有子节点标题中的Markdown/LaTeX标记（因为title_level已经决定了层级）
-            for (const child of newChildren) {
-              cleanNodeTitleMarkers(child)
-            }
-            
-            if (!curNode.children) {
-              curNode.children = [];
-            }
-            curNode.children.push(...newChildren);
-            eventBus.emit(
-              'show-success',
-              t('outline.generateChildSuccessWithTitle', { title: curNode.title })
-            );
-          } else {
-            logger.warn(`节点 ${curNode.title} 解析出的子节点列表为空或格式不正确`);
-          }
-        } catch (parseErr) {
-          logger.warn(`节点 ${curNode.title} JSON 解析失败`, parseErr);
-        }
+        curNode.children.push(...newChildren);
+        eventBus.emit(
+          'show-success',
+          t('outline.generateChildSuccessWithTitle', { title: curNode.title })
+        );
       })
       .catch((err) => {
         logger.warn(`节点 ${curNode.title} 生成子节点失败`, err);
@@ -571,40 +553,21 @@ const generateChildrenContent = async () => {
       await Promise.all(curNode.children.map(child => traverseAndGenerate(child)));
     }
 
-    const prompt = curNode.children.length === 0
-      ? generateContentPrompt(
-          JSON.stringify(removeTextFromOutline(treeData.value)),
-          JSON.stringify(curNode),
-          userPrompt.value
-        )
-      : generateParentNodeContentPrompt(
-          JSON.stringify(removeTextFromOutline(treeData.value)),
-          JSON.stringify(curNode),
-          userPrompt.value
-        );
-
-    const rawStringRef = ref('');
-    parallelChildren.value.push(rawStringRef);
-    const { done } = createAiTask(
-      curNode.title,
-      prompt,
-      rawStringRef,
-      ai_types.answer,
-      'outline-content-' + curNode.title,
-    );
-
-    const task = done
-      .then(() => {
-        // 直接使用返回的文本内容
-        const rawContent = rawStringRef.value?.trim() || '';
-        if (!rawContent) {
-          logger.warn(`节点 ${curNode.title} AI 返回内容为空`);
-          curNode.text = '';
-        } else {
-          // 清理可能的说明文字和格式标记
-          const cleaned = cleanRawContent(rawContent);
-          curNode.text = cleaned || rawContent;
-        }
+    const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
+    // 为每个节点创建一个独立的ref用于显示原始内容
+    const nodeRawContentRef = ref('')
+    parallelChildren.value.push(nodeRawContentRef)
+    
+    const task = generateNodeContentUtil(
+      curNode,
+      treeData.value,
+      userPrompt.value,
+      undefined, // signal
+      docFormat,
+      nodeRawContentRef // 传入ref，用于实时显示原始内容
+    )
+      .then((content) => {
+        curNode.text = content || '';
         eventBus.emit(
           'show-success',
           t('outline.generateContentSuccessWithTitle', { title: curNode.title })
@@ -612,14 +575,7 @@ const generateChildrenContent = async () => {
       })
       .catch((err) => {
         logger.warn(`节点 ${curNode.title} 任务失败或取消：`, err);
-        // 如果任务失败，尝试使用原始内容
-        const rawContent = rawStringRef.value?.trim() || '';
-        if (rawContent) {
-          const cleaned = cleanRawContent(rawContent);
-          curNode.text = cleaned || rawContent;
-        } else {
-          curNode.text = '';
-        }
+        curNode.text = '';
       });
 
     taskPromises.push(task);
@@ -653,37 +609,24 @@ const generateContent = async () => {
     workspace.unlockUI?.();
     return;
   }
-  const prompt = generateContentPrompt(
-    JSON.stringify(removeTextFromOutline(treeData.value)),
-    JSON.stringify(curNode),
-    userPrompt.value
-  );
-  const { done } = createAiTask(
-    curNode.title,
-    prompt,
-    rawstring,
-    ai_types.answer,
-    'outline-content-' + curNode.title,
-  );
+  const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
+  rawstring.value = ''; // 清空之前的内容
   try {
-    await done;
-    // 直接使用返回的文本内容
-    const rawContent = rawstring.value?.trim() || '';
-    if (!rawContent) {
-      logger.warn('AI 返回内容为空');
-      curNode.text = '';
-    } else {
-      // 清理可能的说明文字和格式标记
-      const cleaned = cleanRawContent(rawContent);
-      curNode.text = cleaned || rawContent;
-    }
+    const content = await generateNodeContentUtil(
+      curNode,
+      treeData.value,
+      userPrompt.value,
+      undefined, // signal
+      docFormat,
+      rawstring // 传入rawstring ref，用于实时显示原始内容
+    );
+    // rawstring.value 已经通过ref实时更新了，这里只需要设置处理后的内容
+    curNode.text = content || '';
   } catch (err) {
     logger.warn('任务失败或取消：', err);
-    // 如果任务失败，尝试使用原始内容
     const rawContent = rawstring.value?.trim() || '';
     if (rawContent) {
-      const cleaned = cleanRawContent(rawContent);
-      curNode.text = cleaned || rawContent;
+      curNode.text = rawContent;
     } else {
       curNode.text = '';
     }
@@ -1140,6 +1083,12 @@ const cancelAllAiTasks = () => {
   } catch (_e) {
     // ignore
   } finally {
+    // 清空所有ref的值
+    rawstring.value = '';
+    parallelChildren.value.forEach(ref => {
+      ref.value = '';
+    });
+    
     generateContentLoading.value = false;
     generateChildrenContentLoading.value = false;
     generateChildrenChildrenLoading.value = false;
@@ -1319,30 +1268,22 @@ const generateChildChapter = async () => {
     const currentNode = searchNode(node.path, treeData.value);
     if (!currentNode) throw new Error('节点不存在');
 
-    const prompt = expandTreeNodePrompt(
-      JSON.stringify(removeTextFromOutline(treeData.value)),
-      JSON.stringify(currentNode),
-      JSON.stringify(TREE_NODE_SCHEMA),
-      userPrompt.value
-    );
-
-    const { done } = createAiTask(
-      currentNode.title,
-      prompt,
-      rawstring,
-      ai_types.answer,
-      'outline-children-' + currentNode.title,
-    );
+    const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
+    rawstring.value = ''; // 清空之前的内容
     try {
-      await done;
-      const json = extractOuterJsonString(rawstring.value);
-      const newChildren = JSON.parse(json) as DocumentOutlineNode[];
+      const newChildren = await generateChildNodesUtil(
+        currentNode,
+        treeData.value,
+        userPrompt.value,
+        undefined, // signal
+        docFormat,
+        rawstring // 传入rawstring ref，用于实时显示原始内容
+      );
       
-      // 清理所有子节点标题中的Markdown/LaTeX标记（因为title_level已经决定了层级）
-      for (const child of newChildren) {
-        cleanNodeTitleMarkers(child)
+      // rawstring.value 已经通过ref实时更新了，这里只在最终显示格式化后的JSON
+      if (!rawstring.value) {
+        rawstring.value = JSON.stringify(newChildren, null, 2);
       }
-      
       backupChildren.value = currentNode.children ? [...currentNode.children] : [];
       currentNode.children = [...currentNode.children, ...newChildren];
       pendingAccept.value = true;
@@ -1376,201 +1317,7 @@ const removeNode = (parent: DocumentOutlineNode, node: DocumentOutlineNode) => {
   }
 };
 
-/**
- * 清理标题中的Markdown和LaTeX标记
- * 因为title_level字段已经决定了标题层级，所以标题中不应该包含#、##、\section{}等标记
- * 
- * 使用精确匹配，避免误清除其他LaTeX命令（如\textbf{}、\textit{}等）
- */
-function cleanTitleMarkers(title: string): string {
-  if (!title || typeof title !== 'string') {
-    return title
-  }
-  
-  let cleaned = title.trim()
-  
-  // 1. 移除Markdown标题标记（#、##、###等）
-  // 确保：行首 + 一个或多个# + 至少一个空格
-  // 避免匹配代码中的 # 符号（通过要求后面必须有空格）
-  cleaned = cleaned.replace(/^#+\s+/, '')
-  
-  // 2. 移除LaTeX标题命令标记
-  // 只匹配已知的标题命令，避免误匹配其他LaTeX命令
-  // 支持的标题命令：\part, \chapter, \section, \subsection, \subsubsection, \paragraph, \subparagraph, \title
-  // 也支持带星号的变体：\section*, \subsection* 等（用于不编号的章节）
-  
-  // 匹配嵌套大括号的辅助函数
-  const extractBracedContent = (str: string, startPos: number): { content: string; endPos: number } | null => {
-    if (str[startPos] !== '{') return null
-    
-    let depth = 0
-    let i = startPos
-    let content = ''
-    
-    while (i < str.length) {
-      const char = str[i]
-      
-      // 检查是否是转义的字符（\ 后面跟 { 或 } 或 \）
-      if (char === '\\' && i + 1 < str.length) {
-        const nextChar = str[i + 1]
-        if (nextChar === '{' || nextChar === '}' || nextChar === '\\') {
-          // 转义字符，作为普通字符处理
-          if (depth >= 1) {
-            content += char + nextChar
-          }
-          i += 2
-          continue
-        }
-      }
-      
-      if (char === '{') {
-        depth++
-        // 只有深度大于1时才加入content（跳过最外层的大括号）
-        if (depth > 1) {
-          content += char
-        }
-      } else if (char === '}') {
-        depth--
-        if (depth === 0) {
-          // 找到匹配的右括号，返回内容
-          return { content, endPos: i }
-        } else {
-          // 嵌套的大括号，加入content
-          content += char
-        }
-      } else {
-        // 普通字符，如果在大括号内则加入content
-        if (depth >= 1) {
-          content += char
-        }
-      }
-      i++
-    }
-    
-    return null // 未找到匹配的右括号
-  }
-  
-  // 精确匹配LaTeX标题命令
-  // 匹配模式：\命令名[*]{内容}
-  const latexTitleCommands = [
-    'part', 'chapter', 'section', 'subsection', 'subsubsection',
-    'paragraph', 'subparagraph', 'title'
-  ]
-  
-  for (const cmd of latexTitleCommands) {
-    // 匹配 \command 或 \command*
-    const cmdPattern = new RegExp(`^\\\\${cmd}\\*?`, 'i')
-    const match = cleaned.match(cmdPattern)
-    
-    if (match) {
-      const afterCmd = cleaned.substring(match[0].length).trim()
-      
-      // 如果后面跟着 {，尝试提取大括号内容
-      if (afterCmd.startsWith('{')) {
-        const result = extractBracedContent(afterCmd, 0)
-        if (result) {
-          cleaned = result.content
-          break
-        }
-      }
-    }
-  }
-  
-  return cleaned.trim()
-}
-
-/**
- * 递归清理节点及其所有子节点的标题标记
- */
-function cleanNodeTitleMarkers(node: DocumentOutlineNode): void {
-  if (node.title) {
-    node.title = cleanTitleMarkers(node.title)
-  }
-  
-  if (node.children && Array.isArray(node.children)) {
-    for (const child of node.children) {
-      cleanNodeTitleMarkers(child)
-    }
-  }
-}
-
-/**
- * 清理原始内容，去除可能的说明文字和格式标记
- */
-function cleanRawContent(raw: string): string {
-  if (!raw) return '';
-  
-  let cleaned = raw.trim();
-  
-  // 去除代码块标记（如果 AI 错误地使用了代码块）
-  cleaned = cleaned.replace(/^```(?:json|markdown|text)?\s*\n?/i, '');
-  cleaned = cleaned.replace(/\n?```\s*$/i, '');
-  
-  // 去除常见的说明文字段落（这些通常出现在内容开头，后面跟着换行和实际内容）
-  const instructionPatterns = [
-    // 匹配完整的说明文字段落（包括换行）
-    /^请严格按照示例格式输出[，,，。.]?\s*不要添加任何其他内容[。.]?\s*[\n\r]+/i,
-    /^现在[，,，]?\s*请直接输出\s*JSON\s*结果[，,，。.]?\s*不要添加任何其他内容[。.]?\s*[\n\r]+/i,
-    /^请严格按照\s*JSON\s*格式输出[，,，。.]?\s*不要添加任何解释或多余文本[。.]?\s*[\n\r]+/i,
-    /^请严格按照\s*JSON\s*格式输出[，,，。.]?\s*不要添加任何其他内容[。.]?\s*[\n\r]+/i,
-    /^请严格按照\s*JSON\s*Schema\s*格式输出[，,，。.]?\s*不要添加任何解释或多余文本[。.]?\s*[\n\r]+/i,
-    /^输出必须从第一行开始就是\s*JSON\s*对象[，,，。.]?\s*没有任何其他文字[。.]?\s*[\n\r]+/i,
-    // 匹配单独的说明文字（没有换行，直接跟内容）
-    /^请严格按照示例格式输出[，,，。.]?\s*不要添加任何其他内容[。.]?\s*/i,
-    /^现在[，,，]?\s*请直接输出\s*JSON\s*结果[，,，。.]?\s*不要添加任何其他内容[。.]?\s*/i,
-    /^请严格按照\s*JSON\s*格式输出[，,，。.]?\s*不要添加任何解释或多余文本[。.]?\s*/i,
-    /^请严格按照\s*JSON\s*格式输出[，,，。.]?\s*不要添加任何其他内容[。.]?\s*/i,
-    /^请严格按照\s*JSON\s*Schema\s*格式输出[，,，。.]?\s*不要添加任何解释或多余文本[。.]?\s*/i,
-    /^输出必须从第一行开始就是\s*JSON\s*对象[，,，。.]?\s*没有任何其他文字[。.]?\s*/i,
-    // 其他常见前缀
-    /^根据您的要求[，,]\s*/i,
-    /^我将为您[，,]\s*/i,
-    /^好的[，,]\s*/i,
-    /^明白了[，,]\s*/i,
-    /^以下是[：:]\s*/i,
-    /^内容如下[：:]\s*/i,
-    /^生成的内容[：:]\s*/i,
-  ];
-  
-  for (const pattern of instructionPatterns) {
-    cleaned = cleaned.replace(pattern, '');
-  }
-  
-  // 去除开头的空行和空白
-  cleaned = cleaned.replace(/^[\s\n\r]+/, '');
-  
-  // 如果清理后内容为空，尝试从原始内容中提取（可能是说明文字在中间）
-  if (!cleaned.trim()) {
-    // 尝试找到第一个看起来像实际内容的段落（不是说明文字）
-    const lines = raw.split('\n');
-    const contentLines: string[] = [];
-    let foundContent = false;
-    
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      // 跳过空行和明显的说明文字
-      if (!trimmedLine) continue;
-      if (/^(请|现在|输出|根据|我将|好的|明白了)/i.test(trimmedLine) && 
-          /(格式|输出|示例|不要|添加)/i.test(trimmedLine)) {
-        continue;
-      }
-      // 找到第一个看起来像实际内容的行
-      if (trimmedLine.length > 10 || foundContent) {
-        foundContent = true;
-        contentLines.push(line);
-      }
-    }
-    
-    if (contentLines.length > 0) {
-      cleaned = contentLines.join('\n').trim();
-    }
-  }
-  
-  // 去除首尾的多余空白
-  cleaned = cleaned.trim();
-  
-  return cleaned;
-}
+// cleanRawContent 函数已迁移到 outline-ai-utils.ts，使用导入的版本
 function reindexChildrenPaths(parent: DocumentOutlineNode) {
   if (!parent.children) return;
   for (let i = 0; i < parent.children.length; i++) {

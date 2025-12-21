@@ -92,7 +92,7 @@
         <MetaFieldAssistant
           v-if="authorAssistantVisible"
           :visible="authorAssistantVisible"
-          :prompt="wholeArticleContextPrompt(markdown)"
+          :prompt="''"
           :title="$t('article.modify_author')"
           :default-value="meta.author || ''"
           :auto-generate="false"
@@ -149,7 +149,7 @@ import { ElIcon, ElMessage, ElMessageBox } from 'element-plus';
 import { Loading } from '@element-plus/icons-vue';
 import { themeState, mixColors } from '../utils/themes';
 import { generateDescriptionPrompt, generateKeywordsPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
-import type { ArticleMetaData } from '../../../types';
+import type { ArticleMetaData, AIDialogMessage } from '../../../types';
 import MetaFieldAssistant from './MetaFieldAssistant.vue';
 import KeywordInput from './KeywordInput.vue';
 import { createAiTask, ai_types } from '../utils/ai_tasks';
@@ -158,7 +158,8 @@ import { extractOuterJsonString } from '../utils/regex-utils';
 
 const props = defineProps<{
   meta: ArticleMetaData;
-  markdown: string;
+  markdown?: string | null;
+  latex?: string | null;
   outlineJson: string;
 }>();
 
@@ -244,11 +245,27 @@ const handleKeywordsGenerate = async () => {
   const previousKeywords = [...(props.meta.keywords || [])];
   const rawResult = ref('');
   try {
+    // 构建消息数组，将 prompt 转换为对话格式
+    const messages: AIDialogMessage[] = [];
+    const prompt = generateKeywordsPrompt(props.outlineJson);
+    
+    // 如果有现有关键词，在 prompt 中添加上下文信息
+    const currentKeywords = props.meta.keywords || [];
+    let userPrompt = prompt;
+    if (currentKeywords.length > 0) {
+      userPrompt = prompt + `\n\n**现有关键词：**${JSON.stringify(currentKeywords)}\n\n请基于上述现有关键词进行补充或优化。`;
+    }
+    
+    messages.push({
+      role: 'user',
+      content: userPrompt,
+    });
+    
     const { done } = createAiTask(
       t('article.generate_keywords'),
-      generateKeywordsPrompt(props.outlineJson),
+      messages,
       rawResult,
-      ai_types.answer,
+      ai_types.chat,
       'meta-keywords',
       { stream: true },
     );

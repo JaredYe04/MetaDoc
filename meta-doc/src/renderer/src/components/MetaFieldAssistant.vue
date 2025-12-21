@@ -50,6 +50,7 @@ import { themeState } from '../utils/themes';
 import { useI18n } from 'vue-i18n';
 import { ai_types, createAiTask } from '../utils/ai_tasks';
 import { getSetting } from '../utils/settings';
+import type { AIDialogMessage } from '../../../types';
 
 type ValueType = 'text' | 'array';
 
@@ -133,12 +134,32 @@ const generateContent = async () => {
   }
   loading.value = true;
   try {
+    // 构建消息数组，将 prompt 转换为对话格式
+    const messages: AIDialogMessage[] = [];
+    
+    // 如果有默认值，在 prompt 中添加上下文信息，让 AI 知道现有值
+    const currentValue = aiResponse.value.trim();
+    let userPrompt = props.prompt;
+    if (currentValue) {
+      // 如果已有值，在 prompt 中说明现有内容，让 AI 知道是在原有基础上工作
+      const contextInfo = props.valueType === 'array' 
+        ? `\n\n**现有内容：**\n${currentValue}\n\n请基于上述现有内容进行补充或优化。`
+        : `\n\n**现有内容：**${currentValue}\n\n请基于上述现有内容进行补充或优化。`;
+      userPrompt = props.prompt + contextInfo;
+    }
+    
+    messages.push({
+      role: 'user',
+      content: userPrompt,
+    });
+    
     await createAiTask(
       props.title,
-      props.prompt,
+      messages,
       aiResponse,
-      ai_types.answer,
+      ai_types.chat,
       props.title,
+      { stream: true },
     ).done;
   } catch (error) {
     ElMessage.error(t('llmDialog.generateFailedError'));

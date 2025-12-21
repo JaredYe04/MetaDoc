@@ -817,13 +817,20 @@ const updateTitle = async (seedText?: string) => {
   //备注：因为标题撰写需要一定时间，而用户可能在这个时间切换到其他对话，因此首先要保存索引
   const index = activeDialogIndex.value;//当前对话索引
 
+  // 构建消息数组，将 prompt 转换为对话格式
+  const messages: AIDialogMessage[] = [];
+  messages.push({
+    role: 'user',
+    content: prompt,
+  });
+
   const generatedText = ref('');
   const enableKnowledgeBase=await getSetting("enableKnowledgeBase")
   const { handle, done } = createAiTask(
     title.value || defaultTitle, 
-    prompt, 
+    messages, 
     generatedText, 
-    ai_types.answer, 
+    ai_types.chat, 
     'ai-chat-generate-title',
     { stream: true, enableKnowledgeBase: Boolean(enableKnowledgeBase) }
   );

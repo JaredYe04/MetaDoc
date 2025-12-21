@@ -8,7 +8,7 @@
                 :title="currentSectionTitle" 
                 :position="sectionOptimizerPosition"
                 :path="currentTitlePath"
-                :tree="extractOutlineTreeFromMarkdown(currentMarkdown, true)"
+                :tree="extractOutlineTreeFromLatex(currentTex, true)"
                 :adapter="sectionOptimizerAdapter"
                 :sectionInfo="currentSectionInfo"
                 language="latex"
@@ -19,7 +19,7 @@
             <!-- 保留TitleMenu以兼容旧代码 -->
             <TitleMenu v-if="showTitleMenu" :title="currentTitle.replaceAll('#', '').trim()" :position="menuPosition"
                 @close="handleTitleMenuClose" :path="currentTitlePath"
-                :tree="extractOutlineTreeFromMarkdown(currentMarkdown, true)"
+                :tree="extractOutlineTreeFromLatex(currentTex, true)"
                 @accept="async (payload: any) => { await acceptGeneratedText(payload); }" style="max-width: 500px;" />
             <SearchReplaceMenu
                 v-if="searchReplaceDialogVisible"
@@ -238,7 +238,7 @@
                         >
                             <MetaInfoPanel
                                 :meta="currentMeta"
-                                :markdown="currentMarkdown"
+                                :latex="currentTex"
                                 :outline-json="currentOutlineJson"
                                 @update-meta="handleMetaPatch"
                             />
@@ -263,6 +263,7 @@ import "../assets/title-menu.css";
 import eventBus, { getWindowType, sendBroadcast } from '../utils/event-bus';
 import { searchNode } from "../utils/outline-helpers";
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
+import { extractOutlineTreeFromLatex } from '../utils/latex-utils';
 import { getOutlineAdapter } from '../utils/outline-adapters';
 import TitleMenu from '../components/TitleMenu.vue';
 import SectionOptimizer from '../components/SectionOptimizer.vue';
@@ -355,10 +356,14 @@ const currentOutline = computed({
 
 const currentOutlineJson = computed(() => {
     try {
-        return JSON.stringify(extractOutlineTreeFromMarkdown(currentMarkdown.value, true));
+        // 直接从 LaTeX 文本提取大纲树，而不是依赖可能为空的 markdown
+        //logger.debug('currentOutlineJson: ' + currentTex.value);
+        const outline = extractOutlineTreeFromLatex(currentTex.value, false);
+        //logger.debug('currentOutlineJson: ' + JSON.stringify(outline));
+        return JSON.stringify(outline);
     } catch (error) {
         logger.warn('构建 LaTeX 大纲 JSON 失败', error);
-        return '[]';
+        return JSON.stringify({ path: 'dummy', title: '', text: '', title_level: 0, children: [] });
     }
 });
 
@@ -1297,8 +1302,9 @@ async function buildPdfToSourceMapping() {
     if (!editorId) return;
     // 从Monaco全局获取编辑器实例
     const editors = monaco.editor.getEditors();
-    const monacoEditor = editors.find(e => e.getId?.() === editorId) || editors[0];
-    
+    const id = editorId && typeof editorId === 'object' && 'value' in editorId ? editorId.value : editorId;
+    const monacoEditor = editors.find(e => e.getId?.() === id) || editors[0];
+
     if (!pdfDoc) {
         logger.warn('建立映射失败: pdfDoc不存在');
         return;
@@ -1601,8 +1607,10 @@ async function locateToCodeFromPdf() {
     if (!editorId) return;
     // 从Monaco全局获取编辑器实例
     const editors = monaco.editor.getEditors();
-    const monacoEditor = editors.find(e => e.getId?.() === editorId) || editors[0];
-    
+    // editorId 可能是 Ref<string|null>，取其 value
+    const currentEditorId = typeof editorId === 'object' && editorId !== null && 'value' in editorId ? editorId.value : editorId;
+    const monacoEditor = editors.find(e => e.getId?.() === currentEditorId) || editors[0];
+
     // 获取PDF中心位置或当前视图中心位置
     if (!pdfDoc || !monacoEditor) {
         eventBus.emit("show-info", t("latexEditor.notification.editorNotAvailable"));
@@ -1837,8 +1845,9 @@ async function locateToPdf() {
     if (!editorId) return;
     // 从Monaco全局获取编辑器实例
     const editors = monaco.editor.getEditors();
-    const monacoEditor = editors.find(e => e.getId?.() === editorId) || editors[0];
-    
+    const resolvedEditorId = typeof editorId === 'object' && 'value' in editorId ? editorId.value : editorId;
+    const monacoEditor = editors.find(e => e.getId?.() === resolvedEditorId) || editors[0];
+
     if (!pdfDoc || !monacoEditor) {
         eventBus.emit("show-info", t("latexEditor.notification.pdfNotAvailable"));
         return;
@@ -2064,7 +2073,7 @@ const initEditor = () => {
         
         // 确保适配器已设置（双重保险）
         if (!aiCompletionService.getAdapter()) {
-            const adapter = new MonacoEditorAdapter(editorId.value, () => isActive.value);
+            const adapter = new MonacoEditorAdapter(editorId.value ?? '', () => isActive.value);
             aiCompletionService.setAdapter(adapter);
         }
         

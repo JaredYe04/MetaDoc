@@ -2,6 +2,7 @@ import { buildSchemaPrompt, DOCUMENT_TITLE_SCHEMA } from './schemas';
 import { i18n } from '../i18n.js';
 import { generateMarkdownFromOutlineTree } from './document/outline';
 import type { DocumentOutlineNode } from '../../../types';
+import { createRendererLogger } from './logger.js';
 
 // 语言到提示词配置的映射（使用动态导入）
 let promptsMapCache: Record<string, any> | null = null;
@@ -104,48 +105,27 @@ function getPromptTemplate(key: string, replacements: Record<string, string> = {
     const value = replacements[placeholder];
     template = template.replace(new RegExp(`\\{${placeholder}\\}`, 'g'), value);
   });
-  
+  const logger = createRendererLogger('Prompts');
+  logger.debug('getPromptTemplate: ' + template);
   return template;
 }
 
 export const generateTitlePrompt = (treeJson: string): string => {
   // 如果传入的是JSON字符串，转换为完整版Markdown
   let outlineText = treeJson;
-  let hasContent = false;
-  
   if (treeJson.trim().startsWith('{')) {
     try {
       const tree = JSON.parse(treeJson) as DocumentOutlineNode;
-      // 检查是否有实际内容（不只是 dummy 根节点）
-      if (tree && tree.children && tree.children.length > 0) {
-        hasContent = true;
-        outlineText = generateMarkdownFromOutlineTree(tree);
-      } else {
-        outlineText = '';
-      }
+      outlineText = generateMarkdownFromOutlineTree(tree);
     } catch {
-      // 如果解析失败，使用原始值
       outlineText = treeJson;
-      hasContent = outlineText.trim().length > 0;
     }
-  } else {
-    hasContent = outlineText.trim().length > 0;
   }
-  
+
   const template = getPromptTemplate('generateTitlePrompt', { treeJson: outlineText || '（暂无大纲结构）' });
   
   if (template) {
     return template;
-  }
-  
-  // 如果没有大纲内容，给出更友好的提示
-  if (!hasContent || !outlineText || outlineText.trim().length === 0) {
-    return `你是一个文笔出色的编辑，当前文档还没有完整的大纲结构。请根据文档的整体主题和内容，生成一个合适的标题。
-
-**输出要求：**
-- 请直接输出标题，建议从第一行开始就是标题
-- 标题长度应在15字以内
-- 优先输出标题内容，避免添加不必要的前缀或解释`;
   }
   
   return `你是一个文笔出色的编辑，以下是一篇文章的大纲结构，请自动判断文章在讲什么，并生成一个标题。
@@ -156,58 +136,34 @@ export const generateTitlePrompt = (treeJson: string): string => {
 - 优先输出标题内容，避免添加不必要的前缀或解释
 
 文章大纲：
-${outlineText}`;
+${outlineText}`;//fallback
 };
 
 export const generateDescriptionPrompt = (treeJson: string): string => {
   // 如果传入的是JSON字符串，转换为完整版Markdown
   let outlineText = treeJson;
-  let hasContent = false;
-  
   if (treeJson.trim().startsWith('{')) {
     try {
       const tree = JSON.parse(treeJson) as DocumentOutlineNode;
-      // 检查是否有实际内容（不只是 dummy 根节点）
-      if (tree && tree.children && tree.children.length > 0) {
-        hasContent = true;
-        outlineText = generateMarkdownFromOutlineTree(tree);
-      } else {
-        outlineText = '';
-      }
+      outlineText = generateMarkdownFromOutlineTree(tree);
     } catch {
-      // 如果解析失败，使用原始值
       outlineText = treeJson;
-      hasContent = outlineText.trim().length > 0;
     }
-  } else {
-    hasContent = outlineText.trim().length > 0;
   }
-  
   const template = getPromptTemplate('generateDescriptionPrompt', { treeJson: outlineText || '（暂无大纲结构）' });
   
   if (template) {
     return template;
   }
   
-  // 如果没有大纲内容，给出更友好的提示
-  if (!hasContent || !outlineText || outlineText.trim().length === 0) {
-    return `你是一个文笔出色的编辑，当前文档还没有完整的大纲结构。请根据文档的整体主题和内容，生成一篇文章摘要。
-
-**输出要求：**
-- 请直接输出摘要内容，建议从第一行开始就是摘要
-- 摘要长度应在200字以内
-- 优先输出摘要内容，避免添加不必要的前缀或解释`;
-  }
-  
   return `你是一个文笔出色的编辑，以下是一篇文章的大纲结构，请自动判断文章在讲什么，并生成一篇文章摘要。
 
 **输出要求：**
-- 请直接输出摘要内容，建议从第一行开始就是摘要
+- 请直接输出摘要内容，类似于“本文主要介绍了...”
 - 摘要长度应在200字以内
-- 优先输出摘要内容，避免添加不必要的前缀或解释
 
 文章大纲：
-${outlineText}`;
+${outlineText}`;//fallback
 };
 
 export const generateKeywordsPrompt = (treeJson: string): string => {

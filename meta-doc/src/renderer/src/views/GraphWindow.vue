@@ -139,6 +139,7 @@ import { graphSessionsDb, type GraphSession } from '../utils/db/tool-sessions-db
 import { generateGraphPrompt } from '../utils/prompts'
 import { createAiTask } from '../utils/ai_tasks'
 import { ref as vueRef } from 'vue'
+import type { AIDialogMessage } from '@/types'
 import { renderChartViaVditor, renderEChartsViaIpc, renderMermaidViaApi } from '../utils/chart-pre-renderer'
 import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn'
 import { isElectronEnv } from '../utils/event-bus'
@@ -334,11 +335,15 @@ const handleGenerate = async () => {
     const codeTarget = vueRef('')
     const originKey = `graph-${Date.now()}-${Math.random().toString(36).slice(2)}`
     
+    const messages: AIDialogMessage[] = [{
+      role: 'user',
+      content: prompt,
+    }]
     const { done } = createAiTask(
       t('graph.generating', '生成图表'),
-      prompt,
+      messages,
       codeTarget,
-      'answer',
+      'chat',
       originKey,
       { stream: true }
     )

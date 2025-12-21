@@ -11,6 +11,7 @@ import type {
   ToolProgress,
   ToolLocales
 } from '../../types/agent-tool'
+import type { AIDialogMessage } from '@/types'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
 import eventBus from '../event-bus.js'
@@ -285,11 +286,15 @@ ${stderr ? `标准错误:\n${stderr}` : ''}
   const target = ref('')
   const originKey = `terminal-analysis-${Date.now()}-${Math.random().toString(36).slice(2)}`
   // 温度配置将在llm-api.js中从全局配置读取
+  const messages: AIDialogMessage[] = [{
+    role: 'user',
+    content: prompt,
+  }]
   const { handle, done } = createAiTask(
     '分析终端输出',
-    prompt,
+    messages,
     target,
-    'answer',
+    'chat',
     originKey,
     { stream: true }
   )

@@ -101,6 +101,7 @@ import { processFileUpload } from '../utils/agent-framework/reference-processor'
 import { generateAttachmentAnalysisPrompt } from '../utils/prompts'
 import { createAiTask } from '../utils/ai_tasks'
 import { ref as vueRef } from 'vue'
+import type { AIDialogMessage } from '@/types'
 import { selectReferenceFiles } from '../utils/agent-framework/reference-processor'
 import { themeState } from '../utils/themes'
 import Vditor from 'vditor'
@@ -290,11 +291,15 @@ const handleAiAnalysis = async () => {
     const target = vueRef('')
     const originKey = `attachment-analysis-${Date.now()}-${Math.random().toString(36).slice(2)}`
     
+    const messages: AIDialogMessage[] = [{
+      role: 'user',
+      content: prompt,
+    }]
     const { done } = createAiTask(
       t('attachment.analyzing', '分析附件'),
-      prompt,
+      messages,
       target,
-      'answer',
+      'chat',
       originKey,
       { stream: true }
     )

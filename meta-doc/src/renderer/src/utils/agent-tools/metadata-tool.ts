@@ -11,13 +11,13 @@ import type {
   ToolProgress,
   ToolLocales
 } from '../../types/agent-tool'
+import type { ArticleMetaData, AIDialogMessage } from '@/types'
 import { useWorkspace } from '../../stores/workspace'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
 import { createAiTask, cancelAiTask, ai_types } from '../ai_tasks'
 import { getSetting } from '../settings'
 import { ref } from 'vue'
-import type { ArticleMetaData } from '@/types'
 import { 
   generateTitlePrompt, 
   generateDescriptionPrompt, 
@@ -139,11 +139,15 @@ async function generateTitleWithLLM(
   const target = ref('')
   const originKey = `meta-title-${Date.now()}-${Math.random().toString(36).slice(2)}`
   // 参照 MetaInfoPanel.vue 的实现，只设置 stream: true，不设置 temperature 和 enableKnowledgeBase
+  const messages: AIDialogMessage[] = [{
+    role: 'user',
+    content: prompt,
+  }]
   const { handle, done } = createAiTask(
     '生成标题',
-    prompt,
+    messages,
     target,
-    'answer',
+    'chat',
     originKey,
     { stream: true }
   )
@@ -234,11 +238,15 @@ async function generateDescriptionWithLLM(
   const target = ref('')
   const originKey = `meta-description-${Date.now()}-${Math.random().toString(36).slice(2)}`
   // 参照 MetaInfoPanel.vue 的实现，只设置 stream: true，不设置 temperature 和 enableKnowledgeBase
+  const messages: AIDialogMessage[] = [{
+    role: 'user',
+    content: prompt,
+  }]
   const { handle, done } = createAiTask(
     '生成描述',
-    prompt,
+    messages,
     target,
-    'answer',
+    'chat',
     originKey,
     { stream: true }
   )
@@ -329,11 +337,15 @@ async function generateKeywordsWithLLM(
   const target = ref('')
   const originKey = `meta-keywords-${Date.now()}-${Math.random().toString(36).slice(2)}`
   // 参照 MetaInfoPanel.vue 的实现，只设置 stream: true，不设置 temperature 和 enableKnowledgeBase
+  const messages: AIDialogMessage[] = [{
+    role: 'user',
+    content: prompt,
+  }]
   const { handle, done } = createAiTask(
     '生成关键词',
-    prompt,
+    messages,
     target,
-    'answer',
+    'chat',
     originKey,
     { stream: true }
   )

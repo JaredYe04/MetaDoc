@@ -11,6 +11,7 @@ import type {
   ToolProgress,
   ToolLocales
 } from '../../types/agent-tool'
+import type { AIDialogMessage } from '@/types'
 import {
   renderChartViaVditor,
   renderEChartsViaIpc,
@@ -631,11 +632,15 @@ async function generateChartCodeWithLLM(
   // 使用createAiTask创建AI任务，设置stream: true使用流式模式
   const originKey = `chart-generation-${Date.now()}-${Math.random().toString(36).slice(2)}`
   // 温度配置将在llm-api.js中从全局配置读取
+  const messages: AIDialogMessage[] = [{
+    role: 'user',
+    content: systemPrompt,
+  }]
   const { handle, done } = createAiTask(
     '生成图表代码',
-    systemPrompt,
+    messages,
     target,
-    'answer',
+    'chat',
     originKey,
     { stream: true }
   )

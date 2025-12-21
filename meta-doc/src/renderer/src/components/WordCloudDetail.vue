@@ -73,6 +73,7 @@ const emit = defineEmits(["accept", 'close']);
 import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask } from '../utils/ai_tasks';
 import { getSetting } from '../utils/settings';
+import type { AIDialogMessage } from '@/types';
 const { t } = useI18n()
 
 const handleClose = () => {
@@ -116,7 +117,11 @@ const generate = async () => {
   const prompt = explainWordPrompt(props.word, contexts);
   console.log('[WordCloudDetail] 生成的提示词:', prompt);
   
-  const { handle, done } = createAiTask(props.word, prompt, generatedText, ai_types.answer, 'word-cloud-detail');
+  const messages: AIDialogMessage[] = [{
+    role: 'user',
+    content: prompt,
+  }]
+  const { handle, done } = createAiTask(props.word, messages, generatedText, ai_types.chat, 'word-cloud-detail');
 
   try {
     await done;

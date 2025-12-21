@@ -11,6 +11,7 @@ import type {
   ToolProgress,
   ToolLocales
 } from '../../types/agent-tool'
+import type { DocumentOutlineNode, AIDialogMessage } from '@/types'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
 import { createAiTask, cancelAiTask } from '../ai_tasks'
@@ -26,7 +27,6 @@ import { useWorkspace } from '../../stores/workspace'
 import { searchNode } from '../outline-helpers'
 import { getActiveDocumentInfoViaBroadcast } from './document-broadcast-helper'
 import { getWindowType } from '../event-bus'
-import type { DocumentOutlineNode } from '@/types'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -267,7 +267,7 @@ async function proofreadWithLLM(
 ): Promise<ProofreadError[]> {
   const formatName = format === 'latex' ? 'LaTeX' : format === 'markdown' ? 'Markdown' : '纯文本'
   
-  // 优化的 prompt，更简洁明确，强调直接输出JSON
+  // 优化的 prompt，使用更温和友好的语气，但仍保持清晰的要求
   const prompt = `请检查以下${formatName}文本中的语法错误、拼写错误${format === 'latex' ? '、LaTeX语法错误' : ''}等问题。
 
 文本内容：
@@ -275,15 +275,15 @@ async function proofreadWithLLM(
 ${text}
 \`\`\`
 
-**重要要求**：
-1. 必须严格检查每个错误，包括拼写、语法${format === 'latex' ? '、LaTeX语法' : ''}等
-2. 对于英文文本，必须验证每个单词的拼写
+**检查要求**：
+1. 请仔细检查每个错误，包括拼写、语法${format === 'latex' ? '、LaTeX语法' : 'Markdown语法'}等
+2. 对于英文文本，请验证每个单词的拼写
 3. 提供准确的错误位置（行号、列号从1开始）
 4. 提供具体的修改建议
 
-**输出格式**（必须严格遵守）：
-直接输出JSON数组，不要包含任何说明文字、代码块标记或其他内容。
-- 如果有错误，输出格式：
+**输出格式**：
+请直接输出JSON数组格式的结果。
+- **如果发现错误**，请按以下格式输出：
 [
   {
     "type": "spelling|grammar|latex|style|other",
@@ -296,23 +296,34 @@ ${text}
     "severity": "error|warning|info"
   }
 ]
-- 如果没有错误，输出：[]
+- **如果没有发现任何错误**，请输出空数组：[]
+  注意：即使文本完全正确，也请返回空数组 [] 而不是其他内容
 
-**示例**：
-输入："I have a eror in this text"
-输出（直接输出，不要任何说明）：
+**示例1（有错误）**：
+输入文本："I have a eror in this text"
+输出结果：
 [{"type":"spelling","line":1,"column":10,"length":4,"text":"eror","suggestion":"error","message":"拼写错误：eror 应该是 error","severity":"error"}]
 
-现在请直接输出JSON数组，不要包含任何其他文字。`
+**示例2（无错误）**：
+输入文本："This is a correct sentence."
+输出结果：
+[]
 
+请直接输出JSON数组即可（有错误返回错误数组，无错误返回空数组）。`
+
+  getLogger().debug('proofreadWithLLM prompt:', prompt)
   const target = ref('')
   const originKey = `proofread-${Date.now()}-${Math.random().toString(36).slice(2)}`
   // 温度配置将在llm-api.js中从全局配置读取
+  const messages: AIDialogMessage[] = [{
+    role: 'user',
+    content: prompt,
+  }]
   const { handle, done } = createAiTask(
     '文本校对',
-    prompt,
+    messages,
     target,
-    'answer',
+    'chat',
     originKey,
     { stream: true }
   )
@@ -359,7 +370,8 @@ ${text}
       return []
     } else {
       // 非超时情况，抛出错误（让重试机制处理）
-      throw new Error('LLM返回结果为空，无法进行校对')
+      // 因为AI应该始终返回JSON数组，即使是空数组 []
+      throw new Error('LLM返回结果为空，无法进行校对（AI应该返回JSON数组，即使没有错误也应返回[]）')
     }
   }
   
@@ -372,7 +384,7 @@ ${text}
   let jsonString = extractOuterJsonString(output)
   if (!jsonString) {
     // 如果提取失败，尝试清理后再提取
-  const cleaned = cleanJsonString(output)
+    const cleaned = cleanJsonString(output)
     jsonString = extractOuterJsonString(cleaned) || cleaned
   }
 
@@ -387,12 +399,7 @@ ${text}
       return []
     }
     getLogger().error('解析校对结果失败:', errorMsg)
-    // 如果解析失败，尝试重试（最多2次）
-    if (errorMsg.includes('Unexpected end of JSON') || errorMsg.includes('JSON')) {
-      // 可能是LLM返回不完整，返回空数组而不是抛出错误
-      getLogger().warn('JSON解析失败，返回空错误数组')
-      return []
-    }
+    // 如果解析失败，抛出错误（让重试机制处理）
     throw new Error(`解析校对结果失败: ${errorMsg}`)
   }
 
@@ -400,7 +407,13 @@ ${text}
 
   // 验证错误格式
   if (!Array.isArray(errors)) {
-    getLogger().warn('校对结果不是数组，返回空数组')
+    getLogger().error('校对结果不是数组:', errors)
+    throw new Error('LLM返回的结果格式错误：期望JSON数组，实际为其他类型')
+  }
+
+  // 如果返回空数组，说明没有错误，这是正常情况
+  if (errors.length === 0) {
+    getLogger().info('校对完成：未发现错误（返回空数组）')
     return []
   }
 
@@ -795,6 +808,7 @@ async function performProofread(
     getLogger().info(`本地拼写检查发现 ${localErrors.length} 个明显的拼写错误`)
 
     // 使用LLM进行校对（主要检查，包括语法、复杂拼写等），带重试机制
+    // 注意：空数组 [] 是有效结果（表示没有错误），不应该触发重试
     let llmErrors: ProofreadError[] = []
     let isTimeout = false
     try {
@@ -803,13 +817,18 @@ async function performProofread(
         {
           maxRetries: 3,
           retryDelay: 3000,
-          checkEmpty: (result) => Array.isArray(result) && result.length === 0 && content.trim().length > 50,
+          // 不设置 checkEmpty，因为空数组 [] 是有效结果（表示没有错误）
+          // 重试只在真正的错误（如解析失败、输出为空等）时触发
           onRetry: (attempt, error) => {
-            getLogger().warn(`[proofread-tool] LLM返回空，正在重试 (${attempt}/3)...`, error)
+            getLogger().warn(`[proofread-tool] LLM调用失败，正在重试 (${attempt}/3)...`, error)
           }
         }
       )
-      getLogger().info(`LLM检查发现 ${llmErrors.length} 个错误`)
+      if (llmErrors.length === 0) {
+        getLogger().info('LLM检查完成：未发现错误')
+      } else {
+        getLogger().info(`LLM检查发现 ${llmErrors.length} 个错误`)
+      }
     } catch (error) {
       // 检查是否是因为超时且有内容
       if (signal?.aborted) {
@@ -849,14 +868,14 @@ async function performProofread(
       }
     }
     
-    // 如果LLM没有发现错误，但本地检查发现了，记录警告
+    // 如果LLM没有发现错误，但本地检查发现了，记录信息（不是警告，因为这是正常情况）
     if (llmErrors.length === 0 && localErrors.length > 0) {
-      getLogger().warn('LLM未发现错误，但本地检查发现了明显的拼写错误，可能LLM检查不够严格')
+      getLogger().info('LLM未发现错误，但本地检查发现了明显的拼写错误')
     }
     
-    // 如果LLM返回空数组，但文本不为空，记录警告（可能是LLM没有严格检查）
-    if (llmErrors.length === 0 && localErrors.length === 0 && content.trim().length > 50) {
-      getLogger().warn('LLM和本地检查都未发现错误，但文本较长，可能存在问题')
+    // 如果所有检查都未发现错误，记录信息（不是警告，这是正常情况）
+    if (llmErrors.length === 0 && localErrors.length === 0) {
+      getLogger().info('校对完成：未发现任何错误')
     }
     
     let errors = allErrors
@@ -951,12 +970,20 @@ async function performProofread(
     }
 
     // 构建完成消息，如果超时则添加警告
-    let completedMessage = i18n.global.t(
-      'agent.tool.proofread.progress.completed',
-      autoFixed && fixedCount > 0
-        ? `校对完成，发现 ${errors.length} 个错误，已自动修复 ${fixedCount} 个`
-        : `校对完成，发现 ${errors.length} 个错误`
-    )
+    let completedMessage: string
+    if (errors.length === 0) {
+      completedMessage = i18n.global.t(
+        'agent.tool.proofread.progress.completedNoErrors',
+        '校对完成，未发现任何错误'
+      )
+    } else {
+      completedMessage = i18n.global.t(
+        'agent.tool.proofread.progress.completed',
+        autoFixed && fixedCount > 0
+          ? `校对完成，发现 ${errors.length} 个错误，已自动修复 ${fixedCount} 个`
+          : `校对完成，发现 ${errors.length} 个错误`
+      )
+    }
     if (isTimeout) {
       completedMessage = `⚠️ ${completedMessage}（任务超时，结果可能不完整）`
       getLogger().warn('校对任务超时，但已返回已有结果')

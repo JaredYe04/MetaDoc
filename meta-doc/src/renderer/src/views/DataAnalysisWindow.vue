@@ -148,6 +148,7 @@ import { dataAnalysisToolCallback } from '../utils/agent-tools/data-analysis-too
 import { generateDataAnalysisReportPrompt } from '../utils/prompts'
 import { createAiTask } from '../utils/ai_tasks'
 import { ref as vueRef } from 'vue'
+import type { AIDialogMessage } from '@/types'
 import DataAnalysisResultDisplay from '../components/data-analysis/DataAnalysisResultDisplay.vue'
 import { themeState } from '../utils/themes'
 import Vditor from 'vditor'
@@ -767,11 +768,15 @@ const handleAnalyze = async () => {
       const target = vueRef('')
       const originKey = `data-analysis-report-${Date.now()}-${Math.random().toString(36).slice(2)}`
       
+      const messages: AIDialogMessage[] = [{
+        role: 'user',
+        content: prompt,
+      }]
       const { done } = createAiTask(
         t('dataAnalysis.generateReport', '生成分析报告'),
-        prompt,
+        messages,
         target,
-        'answer',
+        'chat',
         originKey,
         { stream: true }
       )

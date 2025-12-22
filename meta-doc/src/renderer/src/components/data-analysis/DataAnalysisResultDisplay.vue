@@ -57,7 +57,7 @@
         </el-tab-pane>
 
         <!-- 描述统计 -->
-        <el-tab-pane :label="t('agent.display.dataAnalysis.stats')" name="stats">
+        <el-tab-pane :label="t('agent.display.dataAnalysis.statsLabel')" name="stats">
           <el-scrollbar max-height="400px">
             <el-tree
               :data="statsTreeData"

@@ -360,9 +360,12 @@
         "analyzeFailed": "分析失败",
         "noFile": "请先上传数据文件",
         "generateReport": "生成分析报告",
+        "headerRowIndex": "表头行数（从0开始）",
+        "headerPreview": "当前表头预览：",
         "tabs": {
             "report": "分析报告",
-            "data": "原始数据"
+            "data": "原始数据",
+            "analysis": "数据分析"
         }
     },
     "ocr": {
@@ -1753,7 +1756,7 @@
         "aggregating": "正在执行聚合分析...",
         "summarizing": "正在生成分析摘要...",
         "fields": "字段信息",
-        "stats": "描述统计",
+        "statsLabel": "描述统计",
         "aggregations": "聚合分析",
         "summary": "分析摘要",
         "totalRows": "总行数",
@@ -1763,7 +1766,19 @@
         "uniqueValues": "唯一值",
         "sampleValues": "示例值",
         "groupBy": "按 {field} 分组",
-        "analysisFailed": "分析失败"
+        "analysisFailed": "分析失败",
+        "stats": {
+          "count": "数量",
+          "mean": "均值",
+          "median": "中位数",
+          "mode": "众数",
+          "std": "标准差",
+          "variance": "方差",
+          "min": "最小值",
+          "max": "最大值",
+          "q25": "第一四分位数",
+          "q75": "第三四分位数"
+        }
       },
       "chartGeneration": {
         "generating": "正在生成图表代码...",

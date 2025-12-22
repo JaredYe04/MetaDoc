@@ -27,6 +27,7 @@ const renderMarkdown = async () => {
 
     // 清空容器
     containerRef.value.innerHTML = ''
+    containerRef.value.style.color = themeState.currentTheme.textColor
 
     // 使用 Vditor.preview 渲染
     const previewOptions: any = {
@@ -42,7 +43,7 @@ const renderMarkdown = async () => {
       theme: themeState.currentTheme.vditorTheme
     }
 
-    await Vditor.preview(containerRef.value, props.markdown, previewOptions)
+    await Vditor.preview(containerRef.value as HTMLDivElement, props.markdown, previewOptions)
 
     // 等待 preview 完成后再调用其他渲染方法
     await nextTick()

@@ -81,7 +81,7 @@
         </el-tab-pane>
 
         <!-- 描述统计 -->
-        <el-tab-pane :label="$t('agent.display.dataAnalysis.stats')" name="stats">
+        <el-tab-pane :label="$t('agent.display.dataAnalysis.statsLabel')" name="stats">
           <el-scrollbar max-height="400px">
             <el-tree
               :data="statsTreeData"
@@ -371,14 +371,15 @@ const renderSummary = async () => {
     // 使用 Vditor.preview 渲染
     const previewOptions: any = {
       cdn,
-      mode: 'light', // 摘要使用浅色主题，或者可以根据全局主题调整
+      mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
       markdown: {
         theme: { current: contentTheme }
       },
       hljs: {
         style: codeTheme,
         lineNumber: lineNumber
-      }
+      },
+      theme: themeState.currentTheme.vditorTheme
     }
     
     Vditor.preview(container, summary, previewOptions)

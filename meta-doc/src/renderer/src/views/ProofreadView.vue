@@ -117,7 +117,6 @@ const handleTabChange = (id: string) => {
 }
 
 const handleCloseTab = (id: string) => {
-  if (workspace.tabs.length <= 1) return
   workspace.removeTab(id)
 }
 

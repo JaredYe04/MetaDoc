@@ -181,7 +181,6 @@ const handleTabChange = (id: string) => {
 };
 
 const handleCloseTab = (id: string) => {
-  if (tabs.length <= 1) return;
   removeTab(id);
 };
 

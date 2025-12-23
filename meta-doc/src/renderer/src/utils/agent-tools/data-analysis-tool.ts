@@ -109,6 +109,7 @@ interface DataAnalysisResult {
   descriptiveStats: Record<string, DescriptiveStats>
   aggregations?: AggregationResult[]
   summary?: string
+  reportMarkdown?: string
 }
 
 const dataAnalysisToolLocales: ToolLocales = {
@@ -699,13 +700,95 @@ export function performAggregation(data: any[], groupByField: string, numericFie
 }
 
 /**
- * 使用LLM生成分析摘要
+ * 生成固定模板的分析报告（不调用LLM）
+ */
+function generateTemplateReport(
+  result: DataAnalysisResult,
+  analysisRequest?: string
+): string {
+  const locale = (i18n.global.locale as any).value || i18n.global.locale || 'zh_CN'
+  const isZh = String(locale) === 'zh_CN'
+  
+  let report = ''
+  
+  // 标题
+  report += `# ${isZh ? '数据分析报告' : 'Data Analysis Report'}\n\n`
+  
+  // 数据概况
+  report += `## ${isZh ? '数据概况' : 'Data Overview'}\n\n`
+  report += `- ${isZh ? '总行数' : 'Total Rows'}: ${result.rowCount}\n`
+  report += `- ${isZh ? '总列数' : 'Total Columns'}: ${result.columnCount}\n\n`
+  
+  // 字段信息
+  report += `## ${isZh ? '字段信息' : 'Field Information'}\n\n`
+  result.fields.forEach(field => {
+    report += `### ${field.name}\n`
+    report += `- ${isZh ? '类型' : 'Type'}: ${field.type}\n`
+    report += `- ${isZh ? '可空' : 'Nullable'}: ${field.nullable ? (isZh ? '是' : 'Yes') : (isZh ? '否' : 'No')}\n`
+    report += `- ${isZh ? '唯一值数量' : 'Unique Values'}: ${field.uniqueCount}\n`
+    if (field.sampleValues.length > 0) {
+      report += `- ${isZh ? '示例值' : 'Sample Values'}: ${field.sampleValues.slice(0, 3).join(', ')}\n`
+    }
+    report += `\n`
+  })
+  
+  // 描述统计
+  if (Object.keys(result.descriptiveStats).length > 0) {
+    report += `## ${isZh ? '描述统计' : 'Descriptive Statistics'}\n\n`
+    Object.entries(result.descriptiveStats).forEach(([fieldName, stats]) => {
+      report += `### ${fieldName}\n`
+      if (stats.count !== undefined) report += `- ${isZh ? '数量' : 'Count'}: ${stats.count}\n`
+      if (stats.mean !== undefined) report += `- ${isZh ? '均值' : 'Mean'}: ${stats.mean.toFixed(2)}\n`
+      if (stats.median !== undefined) report += `- ${isZh ? '中位数' : 'Median'}: ${stats.median.toFixed(2)}\n`
+      if (stats.min !== undefined) report += `- ${isZh ? '最小值' : 'Min'}: ${stats.min}\n`
+      if (stats.max !== undefined) report += `- ${isZh ? '最大值' : 'Max'}: ${stats.max}\n`
+      if (stats.std !== undefined) report += `- ${isZh ? '标准差' : 'Std Dev'}: ${stats.std.toFixed(2)}\n`
+      report += `\n`
+    })
+  }
+  
+  // 聚合分析
+  if (result.aggregations && result.aggregations.length > 0) {
+    report += `## ${isZh ? '聚合分析' : 'Aggregation Analysis'}\n\n`
+    result.aggregations.forEach(agg => {
+      report += `### ${isZh ? '按' : 'Group By'} ${agg.groupBy}\n\n`
+      Object.entries(agg.aggregations).forEach(([fieldName, aggData]: [string, any]) => {
+        report += `**${fieldName}**:\n`
+        if (aggData.sum !== undefined) report += `- ${isZh ? '总和' : 'Sum'}: ${aggData.sum}\n`
+        if (aggData.avg !== undefined) report += `- ${isZh ? '平均值' : 'Average'}: ${aggData.avg.toFixed(2)}\n`
+        if (aggData.count !== undefined) report += `- ${isZh ? '数量' : 'Count'}: ${aggData.count}\n`
+        if (aggData.min !== undefined) report += `- ${isZh ? '最小值' : 'Min'}: ${aggData.min}\n`
+        if (aggData.max !== undefined) report += `- ${isZh ? '最大值' : 'Max'}: ${aggData.max}\n`
+        report += `\n`
+      })
+    })
+  }
+  
+  // 用户分析需求
+  if (analysisRequest) {
+    report += `## ${isZh ? '用户分析需求' : 'User Analysis Request'}\n\n`
+    report += `${analysisRequest}\n\n`
+  }
+  
+  return report
+}
+
+/**
+ * 使用LLM生成分析摘要（文本摘要或Markdown报告混合版）
  */
 async function generateAnalysisSummary(
   result: DataAnalysisResult,
-  analysisRequest?: string
+  analysisRequest?: string,
+  generateReport: boolean = false
 ): Promise<string> {
-  const prompt = `分析以下数据分析结果，生成详细的分析摘要：
+  // 如果未启用报告生成，生成固定模板（不调用LLM）
+  if (!generateReport) {
+    return generateTemplateReport(result, analysisRequest)
+  }
+  
+  // 如果启用了报告生成，调用LLM生成文本摘要（可以混合markdown报告）
+  // 调整提示词，生成文本摘要和markdown报告的混合版
+  const prompt = `分析以下数据分析结果，生成详细的分析摘要和Markdown格式报告：
 
 字段信息：
 ${JSON.stringify(result.fields)}
@@ -717,7 +800,13 @@ ${result.aggregations ? `聚合分析：\n${JSON.stringify(result.aggregations)}
 
 ${analysisRequest ? `用户分析需求：${analysisRequest}` : ''}
 
-请提供详细的数据分析摘要，包括数据概况、关键发现、异常值等。`
+请提供详细的数据分析摘要，包括：
+1. 数据概况（总行数、总列数等）
+2. 关键发现和洞察
+3. 异常值或数据质量问题
+4. 建议的可视化图表类型
+
+可以使用Markdown格式，但重点应该是文本分析和洞察，而不是格式化。`
 
   const target = ref('')
   const originKey = `data-analysis-summary-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -746,6 +835,7 @@ ${analysisRequest ? `用户分析需求：${analysisRequest}` : ''}
 
   return target.value.trim()
 }
+
 
 /**
  * 从文件读取数据
@@ -946,6 +1036,7 @@ export const dataAnalysisToolCallback: ToolCallback = async (params, signal, onU
   const analysisRequest = params.analysisRequest as string | undefined
   const groupByFields = (params.groupByFields as string[]) || []
   const autoGroupBy = params.autoGroupBy !== false // 默认true
+  const generateReport = params.generateReport === true // 默认false，只有明确为true时才生成
   const headerRowIndex = params.headerRowIndex !== undefined ? (params.headerRowIndex as number) : undefined
 
   if (!data) {
@@ -1207,23 +1298,47 @@ export const dataAnalysisToolCallback: ToolCallback = async (params, signal, onU
       aggregations: aggregations.length > 0 ? aggregations : undefined
     }
 
-    // 使用LLM生成摘要
+    // 生成摘要或报告
+    // 如果启用了报告生成（generateReport === true），调用LLM生成文本摘要
+    // 如果未启用（generateReport === false），生成固定模板的markdown（不调用LLM）
     if (analysisRequest || true) { // 默认生成摘要
-      onUpdate({
-        content: {
-          stage: 'summarizing',
-          result
-        },
-        format: 'json'
-      }, {
-        percentage: 85,
-        message: i18n.global.t('agent.tool.dataAnalysis.progress.summarizing', '正在生成分析摘要...')
-      })
+      if (generateReport) {
+        // 启用报告生成，调用LLM
+        onUpdate({
+          content: {
+            stage: 'summarizing',
+            result
+          },
+          format: 'json'
+        }, {
+          percentage: 85,
+          message: i18n.global.t('agent.tool.dataAnalysis.progress.summarizing', '正在生成分析摘要...')
+        })
 
-      try {
-        result.summary = await generateAnalysisSummary(result, analysisRequest)
-      } catch (error) {
-        getLogger().warn('生成分析摘要失败:', error)
+        try {
+          const summary = await generateAnalysisSummary(result, analysisRequest, true)
+          result.summary = summary
+          result.reportMarkdown = summary // 同时保存到reportMarkdown
+        } catch (error) {
+          getLogger().warn('生成分析摘要失败:', error)
+        }
+      } else {
+        // 未启用报告生成，生成固定模板（不调用LLM，快速完成）
+        onUpdate({
+          content: {
+            stage: 'generating-template',
+            result
+          },
+          format: 'json'
+        }, {
+          percentage: 90,
+          message: i18n.global.t('agent.tool.dataAnalysis.progress.generatingTemplate', '正在生成分析报告模板...')
+        })
+
+        // 生成固定模板，不调用LLM
+        const templateReport = generateTemplateReport(result, analysisRequest)
+        result.summary = templateReport
+        result.reportMarkdown = templateReport
       }
     }
 
@@ -1303,6 +1418,11 @@ export const dataAnalysisToolConfig: AgentToolConfig = {
         type: 'boolean',
         description: '是否自动对所有字段进行groupby',
         default: true
+      },
+      generateReport: {
+        type: 'boolean',
+        description: '是否生成AI分析报告',
+        default: false
       },
       headerRowIndex: {
         type: 'number',

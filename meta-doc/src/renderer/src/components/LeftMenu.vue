@@ -136,13 +136,13 @@
         </el-menu-item>
         <el-menu-item index="2-2" @click="eventBus.emit('fomula-recognition')">
           <el-icon>
-            <EditPen />
+            <Reading />
           </el-icon>
           <span>{{ $t('leftMenu.handwritingFormulaRecognition') }}</span>
         </el-menu-item>
         <el-menu-item index="2-3" @click="eventBus.emit('ai-graph')">
           <el-icon>
-            <DataAnalysis />
+            <Picture />
           </el-icon>
           <span>{{ $t('leftMenu.smartDrawingAssistant') }}</span>
         </el-menu-item>
@@ -154,19 +154,19 @@
         </el-menu-item>
         <el-menu-item index="2-5" @click="eventBus.emit('ocr')">
           <el-icon>
-            <EditPen />
+            <View />
           </el-icon>
           <span>{{ $t('leftMenu.ocr') }}</span>
         </el-menu-item>
         <el-menu-item index="2-6" @click="eventBus.emit('attachment')">
           <el-icon>
-            <Document />
+            <Paperclip />
           </el-icon>
           <span>{{ $t('leftMenu.attachment') }}</span>
         </el-menu-item>
         <el-menu-item index="2-7" @click="eventBus.emit('graph')">
           <el-icon>
-            <DataAnalysis />
+            <PieChart />
           </el-icon>
           <span>{{ $t('leftMenu.graph') }}</span>
         </el-menu-item>
@@ -356,7 +356,10 @@ import {
   FolderAdd,
   CircleClose,
   Clock,
-  SwitchButton
+  SwitchButton,
+  Picture,
+  ZoomIn,
+  Connection
 } from '@element-plus/icons-vue'
 import eventBus, { sendBroadcast } from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'

@@ -817,34 +817,82 @@ export async function local2image(md){
             const image_path = match[1]
             
             // 处理不同的路径格式：
-            // 1. 本地路径：C:\Users\...\Pictures\meta-doc-imgs\filename
-            // 2. HTTP URL：http://localhost:52521/images/filename（已经是正确的，不需要转换）
-            // 3. 相对路径：filename（直接使用）
+            // 1. HTTP URL：http://localhost:52521/images/filename（已经是正确的，不需要转换）
+            // 2. local_path 下的本地路径：直接提取文件名并转换
+            // 3. 其他本地路径：先通过 API 上传，然后转换为 HTTP URL
             
-            let image_name = '';
+            let server_url = '';
             
             if (image_path.startsWith('http://localhost:52521/images/')) {
                 // 已经是 HTTP URL，直接使用
                 new_md += line + '\n';
                 continue;
-            } else if (image_path.startsWith(local_path)) {
-                // 本地绝对路径，提取文件名
+            } else if (image_path.startsWith('http://') || image_path.startsWith('https://')) {
+                // 其他 HTTP/HTTPS URL，保持原样
+                new_md += line + '\n';
+                continue;
+            } else if (image_path.startsWith('data:')) {
+                // Base64 图片，保持原样
+                new_md += line + '\n';
+                continue;
+            } else {
+                // 本地路径处理
                 // 支持 Windows 路径（\）和 Unix 路径（/）
                 const normalizedLocalPath = local_path.replace(/\\/g, '/');
                 const normalizedImagePath = image_path.replace(/\\/g, '/');
                 
-                if (normalizedImagePath.startsWith(normalizedLocalPath + '/')) {
-                    image_name = normalizedImagePath.slice(normalizedLocalPath.length + 1);
+                // 判断是否在 local_path 下
+                const isInLocalPath = normalizedImagePath.startsWith(normalizedLocalPath + '/') || 
+                                     normalizedImagePath.startsWith(normalizedLocalPath);
+                
+                if (isInLocalPath) {
+                    // 在 local_path 下，直接提取文件名并转换
+                    let image_name = '';
+                    if (normalizedImagePath.startsWith(normalizedLocalPath + '/')) {
+                        image_name = normalizedImagePath.slice(normalizedLocalPath.length + 1);
+                    } else if (normalizedImagePath === normalizedLocalPath) {
+                        // 如果路径就是 local_path 本身（不太可能，但处理一下）
+                        image_name = image_path.split(/[/\\]/).pop();
+                    } else {
+                        image_name = normalizedImagePath.slice(normalizedLocalPath.length);
+                    }
+                    server_url = 'http://localhost:52521/images/' + image_name;
                 } else {
-                    // 如果路径不匹配，尝试直接提取文件名
-                    image_name = image_path.split(/[/\\]/).pop();
+                    // 不在 local_path 下，需要通过 API 上传
+                    try {
+                        const response = await fetch('http://localhost:52521/api/image/url-upload', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ url: image_path }),
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`上传失败: ${response.status}`);
+                        }
+                        
+                        const result = await response.json();
+                        if (result.code === 0 && result.data && result.data.url) {
+                            // 从返回的服务器路径中提取文件名
+                            // result.data.url 格式类似: C:\Users\...\Pictures\meta-doc-imgs\1234567890.jpg
+                            const serverPath = result.data.url;
+                            const fileName = serverPath.split(/[/\\]/).pop();
+                            server_url = 'http://localhost:52521/images/' + fileName;
+                        } else {
+                            throw new Error(result.error || '上传失败');
+                        }
+                    } catch (error) {
+                        getLogger().error(`图片上传失败: ${image_path}`, error);
+                        eventBus.emit('show-error', `图片上传失败: ${image_path} - ${error.message}`);
+                        // 上传失败时，尝试直接使用原路径的文件名（作为回退方案）
+                        const fileName = image_path.split(/[/\\]/).pop() || image_path;
+                        server_url = 'http://localhost:52521/images/' + fileName;
+                    }
                 }
-            } else {
-                // 相对路径或其他格式，直接使用
-                image_name = image_path.split(/[/\\]/).pop() || image_path;
             }
             
-            new_md += line.replace(image_path, 'http://localhost:52521/images/' + image_name) + '\n'
+            new_md += line.replace(image_path, server_url) + '\n'
         } else {
             new_md += line + '\n'
         }

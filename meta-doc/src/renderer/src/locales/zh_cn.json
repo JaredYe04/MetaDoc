@@ -1755,6 +1755,7 @@
         "calculating": "正在计算描述统计...",
         "aggregating": "正在执行聚合分析...",
         "summarizing": "正在生成分析摘要...",
+        "generatingTemplate": "正在生成分析报告模板...",
         "fields": "字段信息",
         "statsLabel": "描述统计",
         "aggregations": "聚合分析",

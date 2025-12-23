@@ -28,51 +28,52 @@
           <p>{{ t('dataAnalysis.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
         </div>
         
-        <div v-else class="session-content">
+        <div v-else class="session-content-panel" :style="panelStyle">
+          <!-- 文件上传/显示区域（在最上方） -->
+          <div class="file-section" :style="fileSectionStyle">
+            <el-upload
+              v-if="!currentFile"
+              :file-list="[]"
+              :auto-upload="false"
+              :on-change="handleFileChange"
+              :limit="1"
+              accept=".csv,.xlsx,.xls,.json"
+              class="compact-upload"
+            >
+              <template #trigger>
+                <el-button type="primary" :icon="UploadFilled">
+                  {{ t('dataAnalysis.uploadFile', '上传文件') }}
+                </el-button>
+              </template>
+              <template #tip>
+                <div class="upload-tip" :style="tipStyle">
+                  {{ t('dataAnalysis.uploadTip', '支持 CSV、Excel、JSON 格式') }}
+                </div>
+              </template>
+            </el-upload>
+            
+            <div v-else class="file-list-item" :style="fileListItemStyle">
+              <el-icon class="file-icon"><Document /></el-icon>
+              <span class="file-name" :style="fileNameStyle">{{ currentFile.name }}</span>
+              <el-button
+                type="danger"
+                :icon="Delete"
+                circle plain
+                
+                size="small"
+                @click="handleFileRemove"
+              />
+            </div>
+          </div>
+          
           <!-- Tab 内容 -->
           <el-tabs v-model="activeTab" type="border-card" class="main-tabs" :style="tabsStyle">
             <!-- Tab 1: 数据预览与参数设置 -->
             <el-tab-pane :label="t('dataAnalysis.tabs.preview', '数据预览')" name="preview">
-              <!-- 文件上传/显示区域（紧凑布局） -->
-              <div class="file-section" :style="fileSectionStyle">
-                <el-upload
-                  v-if="!currentFile"
-                  :file-list="[]"
-                  :auto-upload="false"
-                  :on-change="handleFileChange"
-                  :limit="1"
-                  accept=".csv,.xlsx,.xls,.json"
-                  class="compact-upload"
-                >
-                  <template #trigger>
-                    <el-button type="primary" :icon="UploadFilled">
-                      {{ t('dataAnalysis.uploadFile', '上传文件') }}
-                    </el-button>
-                  </template>
-                  <template #tip>
-                    <div class="upload-tip" :style="tipStyle">
-                      {{ t('dataAnalysis.uploadTip', '支持 CSV、Excel、JSON 格式') }}
-                    </div>
-                  </template>
-                </el-upload>
-                
-                <div v-else class="file-list-item" :style="fileListItemStyle">
-                  <el-icon class="file-icon"><Document /></el-icon>
-                  <span class="file-name" :style="fileNameStyle">{{ currentFile.name }}</span>
-                  <el-button
-                    type="danger"
-                    :icon="Delete"
-                    circle
-                    size="small"
-                    @click="handleFileRemove"
-                  />
-                </div>
-              </div>
-              
               <div class="preview-tab-content">
                 <!-- 参数设置区域 -->
                 <div v-if="currentFile && (isCsvFile || isExcelFile)" class="params-section" :style="paramsSectionStyle">
-                  <el-form :model="analysisParams" label-width="140px" size="default">
+                  <el-form :model="analysisParams" label-width="200px" size="default" class="centered-form">
                     <el-form-item :label="t('dataAnalysis.headerRowIndex', '表头行数（从0开始）')">
                       <el-input-number
                         v-model="headerRowIndex"
@@ -84,30 +85,11 @@
                         style="width: 200px"
                         @change="handleHeaderRowIndexChange"
                       />
-                      <span class="header-row-hint" :style="hintStyle">
+                      <div class="header-row-hint" :style="hintStyle">
                         {{ t('dataAnalysis.headerRowHint', `默认值：自动检测（当前猜测：第 ${detectedHeaderRowIndex + 1} 行）`) }}
-                      </span>
-                    </el-form-item>
-                    
-                    <!-- 表头预览 -->
-                    <el-form-item v-if="headerPreview.length > 0" label="表头预览">
-                      <div class="header-preview-content" :style="headerPreviewContentStyle as any">
-                        <el-tag
-                          v-for="(header, index) in headerPreview"
-                          :key="index"
-                          size="small"
-                          effect="plain"
-                          class="header-tag"
-                          :style="headerTagStyle"
-                        >
-                          {{ header || `列${index + 1}` }}
-                        </el-tag>
                       </div>
                     </el-form-item>
-                  </el-form>
-                  
-                  <!-- 数据分析参数 -->
-                  <el-form :model="analysisParams" label-width="140px" size="default" class="analysis-params-form">
+                    
                     <el-form-item :label="t('dataAnalysis.autoGroupBy', '自动聚合分析')">
                       <el-switch v-model="analysisParams.autoGroupBy" />
                     </el-form-item>
@@ -116,7 +98,32 @@
                       <el-switch v-model="analysisParams.generateReport" />
                     </el-form-item>
                     
-                    <el-form-item :label="t('dataAnalysis.analysisRequest', '分析需求（可选）')">
+                    <!-- 表头预览已注释，因为底部已有预览组件 -->
+                    <!--
+                    <el-form-item v-if="headerPreview.length > 0" label="表头预览">
+                      <el-scrollbar class="header-preview-scrollbar">
+                        <div class="header-preview-content">
+                          <el-tag
+                            v-for="(header, index) in headerPreview"
+                            :key="index"
+                            size="small"
+                            effect="plain"
+                            class="header-tag"
+                            :style="headerTagStyle"
+                          >
+                            {{ header || `列${index + 1}` }}
+                          </el-tag>
+                        </div>
+                      </el-scrollbar>
+                    </el-form-item>
+                    <el-form-item v-else label="表头预览">
+                      <div class="no-header-preview" :style="noHeaderPreviewStyle">
+                        {{ t('dataAnalysis.noHeaderPreview', '暂无表头数据') }}
+                      </div>
+                    </el-form-item>
+                    -->
+                    
+                    <el-form-item v-if="analysisParams.generateReport" :label="t('dataAnalysis.analysisRequest', '分析需求（可选）')">
                       <el-input
                         v-model="analysisParams.analysisRequest"
                         type="textarea"
@@ -128,17 +135,19 @@
                 </div>
 
                 <!-- 数据预览表格 -->
-                <el-scrollbar v-if="currentFile && previewData.length > 0" class="preview-table-scrollbar">
-                  <hot-table
-                    ref="hotTableRef"
+                <div v-if="currentFile && previewData.length > 0" class="preview-table-container" ref="tableContainerRef">
+                  <DataTable
+                    ref="dataTableRef"
                     :data="previewData"
                     :read-only="true"
                     :row-headers="true"
                     :col-headers="true"
-                    :license-key="'non-commercial-and-evaluation'"
-                    class="preview-table"
+                    :auto-column-size="true"
+                    :manual-column-resize="true"
+                    :stretch-h="'none'"
+                    table-class="preview-table"
                   />
-                </el-scrollbar>
+                </div>
                 
                 <div v-else-if="currentFile" class="no-preview-data" :style="noPreviewDataStyle">
                   {{ t('dataAnalysis.loadingPreview', '正在加载数据预览...') }}
@@ -213,18 +222,11 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, Delete, Document, Loading } from '@element-plus/icons-vue'
-import { HotTable } from '@handsontable/vue3'
-import { registerAllModules } from 'handsontable/registry'
-import 'handsontable/styles/handsontable.min.css'
-import 'handsontable/styles/ht-theme-main.min.css'
 import SessionList from '../components/common/SessionList.vue'
+import DataTable from '../components/common/DataTable.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { dataAnalysisSessionsDb, type DataAnalysisSession } from '../utils/db/tool-sessions-db'
 import { dataAnalysisToolCallback } from '../utils/agent-tools/data-analysis-tool'
-import { generateDataAnalysisReportPrompt } from '../utils/prompts'
-import { createAiTask } from '../utils/ai_tasks'
-import { ref as vueRef } from 'vue'
-import type { AIDialogMessage } from '@/types'
 import DataAnalysisResultDisplay from '../components/data-analysis/DataAnalysisResultDisplay.vue'
 import { themeState } from '../utils/themes'
 import Vditor from 'vditor'
@@ -232,9 +234,6 @@ import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn'
 import { isElectronEnv } from '../utils/event-bus'
 import { getSetting } from '../utils/settings'
 import { parseCSV } from '../utils/agent-tools/data-analysis-tool'
-
-// 注册 Handsontable 模块
-registerAllModules()
 
 const { t } = useI18n()
 
@@ -259,7 +258,8 @@ const headerRowIndex = ref<number | undefined>(undefined)
 const detectedHeaderRowIndex = ref<number>(0)
 const headerPreview = ref<string[]>([])
 const reportContainerRef = ref<HTMLElement | null>(null)
-const hotTableRef = ref<any>(null)
+const dataTableRef = ref<InstanceType<typeof DataTable> | null>(null)
+const tableContainerRef = ref<HTMLElement | null>(null)
 const previewData = ref<any[][]>([])
 
 // 分析参数
@@ -497,9 +497,15 @@ const loadPreviewData = async () => {
       
       const delimiter = detectDelimiter(lines[Math.min(finalHeaderRowIndex, lines.length - 1)])
       
-      // 从表头行开始显示所有数据
+      // 从表头行开始显示所有数据（包括表头行本身）
       const previewRows: any[][] = []
-      for (let i = finalHeaderRowIndex; i < lines.length; i++) {
+      // 首先添加表头行
+      const headerLine = lines[finalHeaderRowIndex]
+      const headerData = headerLine.split(delimiter).map(c => c.trim())
+      previewRows.push(headerData)
+      
+      // 然后添加数据行（从表头行的下一行开始）
+      for (let i = finalHeaderRowIndex + 1; i < lines.length; i++) {
         const rowData = lines[i].split(delimiter).map(c => c.trim())
         previewRows.push(rowData)
         
@@ -530,16 +536,25 @@ const loadPreviewData = async () => {
         return
       }
       
-      // 从表头行开始显示所有数据
+      // 从表头行开始显示所有数据（包括表头行本身）
       const previewRows: any[][] = []
       let dataRowIndex = 0
       
+      // 首先找到并添加表头行
+      let headerRowData: string[] | null = null
       for (let i = dataStartIndex; i < lines.length; i++) {
         const rowMatch = lines[i].match(/^行 \d+:\s*(.+)$/)
         if (!rowMatch) continue
         
-        // 只显示表头行及之后的数据
-        if (dataRowIndex >= finalHeaderRowIndex) {
+        if (dataRowIndex === finalHeaderRowIndex) {
+          headerRowData = rowMatch[1].split('\t').map(c => c.trim())
+          previewRows.push(headerRowData)
+          dataRowIndex++
+          continue
+        }
+        
+        // 只显示表头行之后的数据
+        if (dataRowIndex > finalHeaderRowIndex) {
           const rowData = rowMatch[1].split('\t').map(c => c.trim())
           previewRows.push(rowData)
         }
@@ -660,10 +675,10 @@ const updateHeaderPreview = async () => {
 
 // 表头行数变化处理
 const handleHeaderRowIndexChange = async () => {
-  // 先更新预览数据（使用新的表头行数）
-  await loadPreviewData()
-  // 然后更新表头预览
+  // 先更新表头预览
   await updateHeaderPreview()
+  // 然后更新预览数据（使用新的表头行数）
+  await loadPreviewData()
   // 最后保存到数据库
   if (activeSessionId.value && headerRowIndex.value !== undefined) {
     await dataAnalysisSessionsDb.update(activeSessionId.value, {
@@ -672,6 +687,11 @@ const handleHeaderRowIndexChange = async () => {
     if (activeSessionData.value) {
       activeSessionData.value.header_row_index = headerRowIndex.value
     }
+  }
+  // 强制更新表格
+  await nextTick()
+  if (dataTableRef.value) {
+    dataTableRef.value.render()
   }
 }
 
@@ -850,14 +870,40 @@ const handleFileChange = async (file: any) => {
     
     if (activeSessionId.value && filePath) {
       const format = file.name.split('.').pop()?.toLowerCase() || 'csv'
-      await dataAnalysisSessionsDb.update(activeSessionId.value, {
+      
+      // 检查是否是首次上传（会话之前没有文件）
+      const isFirstUpload = !activeSessionData.value?.data_file_path
+      
+      // 如果是首次上传，更新会话名称为文件名（截断处理）
+      let updateData: any = {
         data_file_path: filePath,
         data_format: format === 'xlsx' || format === 'xls' ? format : format
-      })
+      }
+      
+      if (isFirstUpload) {
+        // 提取文件名（去掉扩展名）
+        const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, '')
+        // 截断文件名（最大50个字符）
+        const maxLength = 50
+        const truncatedFileName = fileNameWithoutExt.length > maxLength 
+          ? fileNameWithoutExt.substring(0, maxLength) + '...' 
+          : fileNameWithoutExt
+        updateData.title = truncatedFileName
+      }
+      
+      await dataAnalysisSessionsDb.update(activeSessionId.value, updateData)
       
       if (activeSessionData.value) {
         activeSessionData.value.data_file_path = filePath
         activeSessionData.value.data_format = format
+        if (isFirstUpload) {
+          activeSessionData.value.title = updateData.title
+        }
+      }
+      
+      // 如果是首次上传，更新会话列表中的标题
+      if (isFirstUpload) {
+        await loadSessions()
       }
       
       currentFile.value = {
@@ -967,71 +1013,34 @@ const handleAnalyze = async () => {
       dataSource: 'file',
       headerRowIndex: (isCsvFile.value || isExcelFile.value) ? headerRowIndex.value : undefined,
       autoGroupBy: analysisParams.value.autoGroupBy,
+      generateReport: analysisParams.value.generateReport === true, // 明确传递generateReport参数
       analysisRequest: analysisParams.value.analysisRequest || undefined
     }, abortController.signal, onProgress)
     
     if (result.status === 'succeeded' && result.result) {
-      analysisResult.value = result.result
+      const analysisResultData = result.result as any
+      analysisResult.value = analysisResultData
       analysisStage.value = ''
       
-      // 保存分析结果
-      await dataAnalysisSessionsDb.update(activeSessionId.value, {
-        analysis_result: JSON.stringify(result.result)
-      })
-      
-      if (activeSessionData.value) {
-        activeSessionData.value.analysis_result = JSON.stringify(result.result)
-      }
-      
-      // 如果启用了AI报告生成
-      if (analysisParams.value.generateReport) {
-        analysisStage.value = t('dataAnalysis.generatingReport', '正在生成报告...')
-        const prompt = generateDataAnalysisReportPrompt(result.result)
-        const target = vueRef('')
-        const originKey = `data-analysis-report-${Date.now()}-${Math.random().toString(36).slice(2)}`
-        
-        const messages: AIDialogMessage[] = [{
-          role: 'user',
-          content: prompt,
-        }]
-        const { done } = createAiTask(
-          t('dataAnalysis.generateReport', '生成分析报告'),
-          messages,
-          target,
-          'chat',
-          originKey,
-          { stream: true }
-        )
-        
-        // 监听报告内容变化，实时渲染
-        watch(
-          () => target.value,
-          () => {
-            if (target.value) {
-              reportMarkdown.value = target.value
-              // 防抖渲染
-              debouncedRenderReport()
-            }
-          },
-          { immediate: true }
-        )
-        
-        await done
-        reportMarkdown.value = target.value
-        analysisStage.value = ''
-        
+      // 从tool返回的结果中获取报告内容
+      if (analysisResultData.reportMarkdown) {
+        reportMarkdown.value = analysisResultData.reportMarkdown
         // 确保最终渲染
         await nextTick()
         await renderReport()
-        
-        // 保存报告
-        await dataAnalysisSessionsDb.update(activeSessionId.value, {
-          report_markdown: target.value
-        })
-        
-        if (activeSessionData.value) {
-          activeSessionData.value.report_markdown = target.value
-        }
+      } else {
+        reportMarkdown.value = ''
+      }
+      
+      // 保存分析结果（包括报告）
+      await dataAnalysisSessionsDb.update(activeSessionId.value, {
+        analysis_result: JSON.stringify(analysisResultData),
+        report_markdown: analysisResultData.reportMarkdown || undefined
+      })
+      
+      if (activeSessionData.value) {
+        activeSessionData.value.analysis_result = JSON.stringify(analysisResultData)
+        activeSessionData.value.report_markdown = analysisResultData.reportMarkdown || undefined
       }
       
       ElMessage.success(t('dataAnalysis.analyzeSuccess', '分析完成'))
@@ -1142,6 +1151,24 @@ watch(
   { immediate: true }
 )
 
+// 监听预览数据变化，更新表格
+watch(
+  () => previewData.value,
+  () => {
+    nextTick(() => {
+      if (dataTableRef.value) {
+        dataTableRef.value.updateData(previewData.value)
+        dataTableRef.value.render()
+        // 延迟执行自动列宽计算，确保表格已完全渲染
+        setTimeout(() => {
+          dataTableRef.value?.render()
+        }, 200)
+      }
+    })
+  },
+  { deep: true }
+)
+
 // 计算属性
 const isCsvFile = computed(() => {
   if (!activeSessionData.value?.data_file_path) return false
@@ -1155,7 +1182,19 @@ const isExcelFile = computed(() => {
   return path.endsWith('.xlsx') || path.endsWith('.xls')
 })
 
+
+
 // 主题样式
+const borderColor = computed(() =>
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)',
+)
+
+const panelStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd,
+  color: themeState.currentTheme.textColor,
+  borderColor: borderColor.value,
+}))
+
 const contentAreaStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor,
@@ -1175,9 +1214,8 @@ const emptyStateStyle = computed(() => ({
 }))
 
 const fileSectionStyle = computed(() => ({
-  padding: '12px 16px',
-  backgroundColor: themeState.currentTheme.background2nd || themeState.currentTheme.background,
-  borderBottom: `1px solid ${themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'}`,
+  padding: '16px',
+  borderBottom: `1px solid ${borderColor.value}`,
   flexShrink: 0
 }))
 
@@ -1209,26 +1247,28 @@ const tabsStyle = computed(() => ({
 
 const paramsSectionStyle = computed(() => ({
   padding: '16px',
-  backgroundColor: themeState.currentTheme.background2nd || themeState.currentTheme.background,
+  backgroundColor: themeState.currentTheme.background,
   borderRadius: '8px',
-  marginBottom: '16px'
+  marginBottom: '16px',
+  border: `1px solid ${borderColor.value}`
 }))
 
 const hintStyle = computed(() => ({
   color: themeState.currentTheme.textColor,
   opacity: 0.7,
-  fontSize: '12px',
-  marginLeft: '12px'
-}))
-
-const headerPreviewContentStyle = computed(() => ({
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: '8px'
+  fontSize: '12px'
 }))
 
 const headerTagStyle = computed(() => ({
   fontFamily: "'JetBrains Mono', 'Consolas', monospace"
+}))
+
+const noHeaderPreviewStyle = computed(() => ({
+  color: themeState.currentTheme.textColor,
+  opacity: 0.6,
+  fontSize: '12px',
+  textAlign: 'center' as const,
+  padding: '20px'
 }))
 
 const previewTableContainerStyle = computed(() => ({
@@ -1257,9 +1297,11 @@ const noFileHintStyle = computed(() => ({
 }))
 
 const analyzeButtonContainerStyle = computed(() => ({
-  position: 'sticky' as const,
-  bottom: 0,
+  flexShrink: 0,
   padding: '12px 16px',
+  marginBottom: '-16px',
+  marginLeft: '-16px',
+  marginRight: '-16px',
   backgroundColor: themeState.currentTheme.background,
   borderTop: `1px solid ${themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'}`,
   display: 'flex',
@@ -1294,6 +1336,7 @@ const reportHeaderStyle = computed(() => ({
 }))
 
 const reportContainerStyle = computed(() => ({
+  color: themeState.currentTheme.textColor,
   padding: '16px',
   backgroundColor: themeState.currentTheme.background2nd || themeState.currentTheme.background,
   borderRadius: '8px',
@@ -1344,6 +1387,10 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .empty-state {
@@ -1353,15 +1400,28 @@ onMounted(() => {
   height: 100%;
 }
 
-.session-content {
+.session-content-panel {
+  border-radius: 16px;
+  border: 1px solid;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   overflow: hidden;
+  margin: 0;
+  height: 100%;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .file-section {
   flex-shrink: 0;
+  padding: 16px;
+  border-bottom: 1px solid;
 }
 
 .compact-upload {
@@ -1409,6 +1469,7 @@ onMounted(() => {
   flex-direction: column;
   min-height: 0;
   position: relative !important;
+  padding: 0 !important;
 }
 
 .main-tabs :deep(.el-tab-pane) {
@@ -1418,11 +1479,6 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.file-section {
-  flex-shrink: 0;
-  padding: 12px 16px;
-  border-bottom: 1px solid;
-}
 
 .preview-tab-content {
   display: flex;
@@ -1435,22 +1491,72 @@ onMounted(() => {
 
 .params-section {
   flex-shrink: 0;
+  display: flex;
+  justify-content: center;
 }
 
-.analysis-params-form {
-  margin-top: 16px;
+.centered-form {
+  max-width: 900px;
+  width: 100%;
 }
 
-.preview-table-scrollbar {
+.centered-form :deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+.centered-form :deep(.el-form-item__label) {
+  text-align: left !important;
+  justify-content: flex-start !important;
+}
+
+.header-row-hint {
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.header-preview-scrollbar {
+  max-height: 120px;
+  min-height: 40px;
+  width: 100%;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+  padding: 8px;
+  box-sizing: border-box;
+  background-color: var(--el-fill-color-lighter);
+}
+
+.header-preview-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
+}
+
+.header-preview-scrollbar :deep(.el-scrollbar__bar) {
+  opacity: 0.6;
+}
+
+.header-preview-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: min-content;
+}
+
+.no-header-preview {
+  text-align: center;
+  padding: 20px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.preview-table-container {
   flex: 1;
   min-height: 0;
-  margin-bottom: 60px;
   width: 100%;
-  height: 100%;
+  overflow: hidden;
+  margin-bottom: 0;
 }
 
 .preview-table {
-  display: block;
+  width: 100%;
 }
 
 .no-preview-data,
@@ -1462,10 +1568,10 @@ onMounted(() => {
 }
 
 .analyze-button-container {
-  position: sticky;
-  bottom: 0;
   flex-shrink: 0;
   z-index: 10;
+  margin-top: auto;
+  margin-bottom: 0;
 }
 
 .result-tab-scrollbar {

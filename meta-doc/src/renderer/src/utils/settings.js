@@ -155,10 +155,57 @@ async function loadSetting(key) {
   }
 }
 
+// 优化：批量加载设置，减少 IPC 调用次数
+async function loadSettingsBatch(keys) {
+  try {
+    // 检查是否支持批量获取
+    if (ipcRenderer && typeof ipcRenderer.invoke === 'function') {
+      const values = await ipcRenderer.invoke('get-settings-batch', keys);
+      
+      // 处理每个设置
+      for (const key of keys) {
+        if (settings[key] && typeof settings[key] === 'object' && !Array.isArray(settings[key])) {
+          continue; // 如果是对象，则不处理
+        }
+        
+        const value = values[key];
+        if (value === undefined) {
+          //如果没有设置，则使用默认值
+          // 对于 themeConfigs，确保是可序列化的
+          if (key === 'themeConfigs' && Array.isArray(settings[key])) {
+            const serializable = settings[key].map((item) => ({
+              id: item.id,
+              name: item.name,
+              type: item.type,
+              themeColor: item.themeColor,
+              isDefault: item.isDefault
+            }));
+            await setSetting(key, serializable);
+          } else {
+            await setSetting(key, settings[key]);
+          }
+        } else {
+          //如果有设置，则更新settings
+          settings[key] = value;
+        }
+      }
+    } else {
+      // 回退到逐个加载
+      const promises = keys.map(key => loadSetting(key));
+      await Promise.all(promises);
+    }
+  } catch (error) {
+    console.error('Error loading settings batch:', error);
+    // 回退到逐个加载
+    const promises = keys.map(key => loadSetting(key));
+    await Promise.all(promises);
+  }
+}
+
 // 初始化关键设置（需要在窗口显示前完成）
+// 优化：使用批量加载减少 IPC 调用
 export async function initCriticalSettings() {
-  const promises = CRITICAL_SETTINGS.map(key => loadSetting(key));
-  await Promise.all(promises);
+  await loadSettingsBatch(CRITICAL_SETTINGS);
 }
 
 // 初始化非关键设置（可以异步加载，不影响窗口显示）

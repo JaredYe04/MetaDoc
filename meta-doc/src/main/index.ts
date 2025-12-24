@@ -133,6 +133,18 @@ function createWindow(): void {
     bindShortcuts();
     broadcastServiceStatus();
     
+    // 优化：在窗口显示后执行数据库迁移，避免阻塞启动
+    (async () => {
+      try {
+        logger.info('🚀 正在执行数据库迁移...');
+        const { ensureInitialized } = await import('./database/knowledge-db');
+        ensureInitialized();
+        logger.info('✅ 数据库迁移完成');
+      } catch (error) {
+        logger.error('❌ 数据库迁移失败:', error);
+      }
+    })();
+    
     // 初始化工具服务（包括知识库服务）
     (async () => {
       try {
@@ -476,15 +488,8 @@ app.whenReady().then(async () => {
     return;
   }
 
-  // 在创建窗口之前执行数据库迁移，确保表已创建
-  try {
-    logger.info('🚀 正在执行数据库迁移...');
-    const { ensureInitialized } = await import('./database/knowledge-db');
-    ensureInitialized();
-    logger.info('✅ 数据库迁移完成');
-  } catch (error) {
-    logger.error('❌ 数据库迁移失败:', error);
-  }
+  // 优化：延迟数据库迁移到窗口显示后，避免阻塞启动
+  // 数据库迁移将在窗口 ready-to-show 时执行
 
   createWindow();
   mainCalls();
@@ -713,7 +718,7 @@ function performHttpRequest(options: http.RequestOptions, body?: string): Promis
       {
         host: RUNTIME_API_HOST,
         port: RUNTIME_API_PORT,
-        timeout: 500,
+        timeout: 200, // 优化：减少超时时间从 500ms 到 200ms，加快启动
         ...options,
         headers: {
           Connection: 'close',

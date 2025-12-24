@@ -206,13 +206,16 @@ onMounted(async () => {
   // 初始化 Monaco 环境（Worker 配置和 LaTeX 语言支持）
   initMonacoEnvironment()
   
-  // 自动迁移AIChat历史会话（从localStorage到SQLite）
+  // 优化：延迟 AIChat 会话迁移到后台执行，不阻塞启动
   // 只在主窗口执行迁移，避免在辅助窗口中重复执行
   const windowType = getWindowType()
   if (windowType === 'home') {
-    autoMigrateAIChatSessions().catch(error => {
-      logger.error('AIChat会话迁移失败:', error)
-    })
+    // 延迟执行，不阻塞启动
+    setTimeout(() => {
+      autoMigrateAIChatSessions().catch(error => {
+        logger.error('AIChat会话迁移失败:', error)
+      })
+    }, 2000) // 延迟 2 秒执行
   }
   
   window.addEventListener('beforeunload', () => {

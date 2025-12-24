@@ -18,7 +18,7 @@ import Main from './views/Main.vue'
 
 import eventBus, { getWindowType, initWindowType } from './utils/event-bus';
 import { getRecentDocs, getSetting, initCriticalSettings, initNonCriticalSettings } from './utils/settings';
-import { lightTheme, darkTheme, themeState, customTheme } from './utils/themes';
+import { themeState, applyTheme } from './utils/themes';
 import localIpcRenderer from './utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from './utils/web-adapter/web-main-calls';
 import { clearAiTasks } from './utils/ai_tasks';
@@ -56,76 +56,6 @@ const initialLoad = ref(true)
  */
 const cleanupGlobalListeners: (() => void)[] = []
 
-// 应用主题的函数（从设置中加载并应用主题）
-const applyTheme = async () => {
-    let theme: string | undefined = await getSetting('globalTheme') as string | undefined
-    
-    // 获取系统主题信息（用于 sync-color）
-    type OsThemeInfo = {
-      mode?: 'light' | 'dark'
-      accentColor?: string
-    }
-    let osThemeInfo: OsThemeInfo | null = null
-    try {
-      if (ipcRenderer && 'invoke' in ipcRenderer) {
-        osThemeInfo = (await ipcRenderer.invoke('get-os-theme-info')) as OsThemeInfo | null
-      } else {
-        // Web 环境
-        const mode = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'
-        osThemeInfo = { mode, accentColor: undefined }
-      }
-    } catch (e) {
-      console.error('获取系统主题信息失败:', e)
-      osThemeInfo = { mode: 'light', accentColor: undefined }
-    }
-    
-    if (theme === 'sync') {
-      theme = osThemeInfo?.mode || 'light'
-    }
-    
-    if (theme === 'light') {
-      themeState.currentTheme = lightTheme
-      document.documentElement.classList.add('light')
-      document.documentElement.classList.remove('dark')
-    } else if (theme === 'dark') {
-      themeState.currentTheme = darkTheme
-      document.documentElement.classList.add('dark')
-      document.documentElement.classList.remove('light')
-    } else if (theme === 'sync-color') {
-      // 跟随系统颜色主题
-      const accentColor = osThemeInfo?.accentColor
-      if (accentColor) {
-        themeState.currentTheme = customTheme(accentColor)
-      } else {
-        // 如果没有系统主题色，使用系统亮暗色
-        theme = osThemeInfo?.mode || 'light'
-        themeState.currentTheme = theme === 'dark' ? darkTheme : lightTheme
-      }
-      if (themeState.currentTheme.type === 'light') {
-        document.documentElement.classList.add('light')
-        document.documentElement.classList.remove('dark')
-      } else {
-        document.documentElement.classList.add('dark')
-        document.documentElement.classList.remove('light')
-      }
-    } else if (theme === 'custom') {
-      //自定义主题
-      const customThemeColor = await getSetting('customThemeColor')
-      themeState.currentTheme = customTheme(customThemeColor as string)
-      if (themeState.currentTheme.type === 'light') {
-        document.documentElement.classList.add('light')
-        document.documentElement.classList.remove('dark')
-      } else {
-        document.documentElement.classList.add('dark')
-        document.documentElement.classList.remove('light')
-      }
-    } else {
-      // 如果没有设置，默认使用亮色主题（而不是暗色）
-      themeState.currentTheme = lightTheme
-      document.documentElement.classList.add('light')
-      document.documentElement.classList.remove('dark')
-    }
-}
 
 function initGlobalEventListeners() {
   // AI补全延迟相关事件监听（全局，与编辑器适配器无关）
@@ -282,11 +212,9 @@ onMounted(async () => {
   // 先加载关键设置（主题相关等，需要在窗口显示前完成）
   await initCriticalSettings()
   
-  // 立即应用主题（在渲染前就设置好，避免闪烁）
-  await applyTheme()
-  
-  // 触发一次主题同步事件（用于同步其他组件，如编辑器主题等）
-  eventBus.emit('sync-theme')
+  // // 触发一次主题同步事件（用于同步其他组件，如编辑器主题等）
+  // // 注意：主题已经在 main.js 中应用过了，这里只需要同步其他组件
+  // eventBus.emit('sync-theme')
   
   // 自动打开文档（只在主窗口加载时执行一次）
   await autoOpenDoc()

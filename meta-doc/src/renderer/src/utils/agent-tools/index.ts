@@ -26,7 +26,7 @@ import { registerAllWorkflowsAsTools } from '../agent-framework'
 /**
  * 初始化所有内部Tool
  */
-export function initializeAgentTools(): void {
+export async function initializeAgentTools(): Promise<void> {
   // 注册RAG Tool
   agentToolManager.registerTool(ragToolConfig)
 

@@ -18,82 +18,42 @@ import "@ssthouse/vue3-tree-chart/dist/vue3-tree-chart.css";
 import './assets/interactive-text.css'
 import './assets/wordcloud-text.css'
 import './assets/editor-search.css'
-import { lightTheme,darkTheme } from './utils/themes.js';
-import { reactive } from 'vue';
+import { themeState, applyTheme } from './utils/themes.js';
 import { initServiceStatusWatcher } from './utils/service-status';
 import { i18n } from './i18n.js';
 import { initializeAgentTools } from './utils/agent-tools';
 import { initializeWorkspaceBroadcastListeners } from './stores/workspace';
-import { registerTitleFormatTests } from './utils/title-format-tests';
-import { registerDatabaseTests } from './utils/database-tests';
-import { registerToolCallParserTests } from './utils/agent-framework/tool-call-parser-tests';
 import { registerAllAdapters } from './services/export-adapters';
+import { registerUnitTests } from './utils/unit-tests-register.ts';
 
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
+// 在挂载 Vue app 之前初始化主题（从持久化存储加载）
+await applyTheme()
 
 const app = createApp(App);
 const pinia = createPinia();
 
 initServiceStatusWatcher();
 
-// 注册导出适配器
+// 注册导出适配器（异步执行，不阻塞）
 registerAllAdapters();
 
-// 初始化Agent Tools
+// 初始化Agent Tools（异步执行，不阻塞）
 initializeAgentTools();
 
-// 初始化Workspace的跨窗口事件监听器
+// 初始化Workspace的跨窗口事件监听器（异步执行，不阻塞）
 initializeWorkspaceBroadcastListeners();
 
-// 注册标题格式化测试用例
-registerTitleFormatTests();
-
-// 注册工具调用解析器测试用例
-registerToolCallParserTests();
-
-// 注册数据库测试用例
-registerDatabaseTests();
+// 注册单元测试（异步执行，不阻塞）
+registerUnitTests();
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
   }
 
-const themeState = reactive({
-    currentTheme: darkTheme,  // 默认是浅色模式
-  });
-  
+// 使用从 themes.js 导入的 themeState，而不是创建新的
 app.provide('themeState', themeState);  // 全局提供 themeState 主题状态
-  
-
-
-
-import MetaFieldAssistant from "./components/MetaFieldAssistant.vue";
-app.component("MetaFieldAssistant", MetaFieldAssistant);
-import KeywordInput from "./components/KeywordInput.vue";
-app.component("KeywordInput", KeywordInput);
-import MetaInfoPanel from "./components/MetaInfoPanel.vue";
-app.component("MetaInfoPanel", MetaInfoPanel);
-
-import TitleMenu from './components/TitleMenu.vue';
-app.component("TitleMenu", TitleMenu); // 全局注册
-import ContextMenu from './components/ContextMenu.vue';
-app.component("ContextMenu", ContextMenu); // 全局注册
-import MicrophoneTest from './components/MicrophoneTest.vue';
-app.component("MicrophoneTest", MicrophoneTest); // 全局注册
-import VoiceInput from './components/VoiceInput.vue';
-app.component("VoiceInput", VoiceInput); // 全局注册
-
-import MarkdownItEditor from 'vue3-markdown-it';
-app.component('MarkdownItEditor', MarkdownItEditor)
-import SearchReplaceMenu from './components/SearchReplaceMenu.vue';
-app.component('SearchReplaceMenu', SearchReplaceMenu)
-import MessageBubble from './components/MessageBubble.vue'
-app.component('MessageBubble',MessageBubble)
-
-// 注册Agent Tool显示组件
-import TodoListDisplay from './utils/agent-tools/components/TodoListDisplay.vue'
-app.component('TodoListDisplay', TodoListDisplay)
 
 app.use(ElementPlus)
 app.component('VueTree', VueTree)

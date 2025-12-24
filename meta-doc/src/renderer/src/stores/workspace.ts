@@ -1076,7 +1076,7 @@ function handleExternalFileDeleted(payload: unknown): void {
   });
 }
 
-export function initializeWorkspaceBroadcastListeners(): void {
+export async function initializeWorkspaceBroadcastListeners(): Promise<void> {
   // 监听外部文件变化事件
   eventBus.on('external-file-changed', handleExternalFileChange);
   eventBus.on('external-file-deleted', handleExternalFileDeleted);

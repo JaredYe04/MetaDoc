@@ -118,7 +118,15 @@ interface DescriptiveStats {
 
 interface AggregationResult {
   groupBy: string
-  aggregations: Record<string, any>
+  aggregations: Record<string, any>  // 键为分组值，值为该组的统计信息
+  // 每个组的统计信息结构：
+  // {
+  //   count: number,  // 该组的行数
+  //   numericFields?: Record<string, { sum, avg, count, min, max }>,  // 数值字段统计
+  //   stringFields?: Record<string, { uniqueValues, valueCounts, valueRatios }>,  // 字符串字段统计
+  //   booleanFields?: Record<string, { trueCount, falseCount, trueRatio, falseRatio }>,  // 布尔字段统计
+  //   dateFields?: Record<string, { min, max, uniqueCount }>  // 日期字段统计
+  // }
 }
 
 interface DataAnalysisResult {
@@ -591,6 +599,7 @@ function inferType(value: any): 'number' | 'string' | 'boolean' | 'date' | 'null
 
 /**
  * 提取字段信息
+ * 自动剔除全为null或空的列
  */
 export function extractFields(data: any[]): FieldInfo[] {
   if (data.length === 0) return []
@@ -600,10 +609,19 @@ export function extractFields(data: any[]): FieldInfo[] {
 
   fieldNames.forEach(name => {
     const values = data.map(row => row[name])
+    
+    // 过滤掉null、undefined和空字符串，检查是否有有效值
+    const validValues = values.filter(v => v !== null && v !== undefined && v !== '')
+    
+    // 如果该列全为null或空，则跳过（不包含在字段列表中）
+    if (validValues.length === 0) {
+      return
+    }
+    
     const types = values.map(v => inferType(v))
     const type = types.find(t => t !== 'null') || 'null'
     const nullable = types.includes('null')
-    const uniqueValues = new Set(values.filter(v => v !== null && v !== undefined && v !== ''))
+    const uniqueValues = new Set(validValues)
     const sampleValues = Array.from(uniqueValues).slice(0, 5)
 
     fields.push({
@@ -668,6 +686,7 @@ export function calculateDescriptiveStats(data: any[], fieldName: string, fieldT
 
 /**
  * 对字段进行分类，确定聚合策略
+ * 智能判断字段是否适合分组聚合，避免对编号类字段（如手机号、身份证号、学号）和唯一值占主导的字段进行分组
  * @param field 字段信息
  * @param totalRows 总行数
  * @returns 字段分类信息
@@ -675,8 +694,74 @@ export function calculateDescriptiveStats(data: any[], fieldName: string, fieldT
 function categorizeField(field: FieldInfo, totalRows: number): FieldCategoryInfo {
   const uniqueRatio = field.uniqueCount / totalRows
   
-  // 布尔字段：直接分组
+  const UNIQUE_COUNT_THRESHOLD = 10
+  const UNIQUE_RATIO_THRESHOLD = 0.5 // 50%
+  
+  // 数值字段：对于数值类型，不管什么情况，均进行分组聚合（跳过通用规则）
+  if (field.type === 'number') {
+    // 如果唯一值数量 <= 1，不适合分组（没有分组意义）
+    if (field.uniqueCount <= 1) {
+      return {
+        category: 'unsuitable'
+      }
+    }
+    
+    // 如果唯一值比例 <= 20%，直接按值分组（每个组对应每个分数值）
+    // 例如：50人的班级，语文有10个不同分数（比例20%），直接按这10个分数值分组
+    if (uniqueRatio <= 0.2) {
+      return {
+        category: 'numeric-low-cardinality',
+        groupByStrategy: 'direct'
+      }
+    }
+    
+    // 如果唯一值比例 > 20%，进行分桶（分区间）
+    // 分桶数根据唯一值数量来确定：唯一值越多，说明数据越精细，需要使用更多的桶
+    let bucketCount = 10
+    
+    // 根据唯一值数量确定分桶数
+    if (field.uniqueCount > 500) {
+      bucketCount = 25
+    } else if (field.uniqueCount > 200) {
+      bucketCount = 20
+    } else if (field.uniqueCount > 100) {
+      bucketCount = 15
+    } else if (field.uniqueCount > 50) {
+      bucketCount = 12
+    } else if (field.uniqueCount > 30) {
+      bucketCount = 10
+    } else {
+      // 唯一值数量较少（<= 30），使用较少分桶数
+      bucketCount = 8
+    }
+    
+    return {
+      category: 'numeric-high-cardinality',
+      groupByStrategy: 'bucket',
+      bucketCount
+    }
+  }
+  
+  // 对于非数值字段，应用通用规则
+  // 规则1：如果唯一值数量 <= 1，不适合分组（没有分组意义）
+  if (field.uniqueCount <= 1) {
+    return {
+      category: 'unsuitable'
+    }
+  }
+  
+  // 规则2：如果唯一值数量 > 阈值（10）且唯一值数量 >= 总行数的一半，则不适合分组
+  // 这可以识别编号类字段（手机号、身份证号、学号等）和唯一值占主导的字段（如姓名）
+  // 注意：这个规则不适用于数值字段，数值字段已经在上面处理了
+  if (field.uniqueCount > UNIQUE_COUNT_THRESHOLD && uniqueRatio >= UNIQUE_RATIO_THRESHOLD) {
+    return {
+      category: 'unsuitable'
+    }
+  }
+  
+  // 布尔字段：直接分组（但需要满足上面的通用规则）
   if (field.type === 'boolean') {
+    // 布尔字段通常只有2个唯一值，不会触发上面的规则
     return {
       category: 'boolean',
       groupByStrategy: 'direct'
@@ -685,6 +770,12 @@ function categorizeField(field: FieldInfo, totalRows: number): FieldCategoryInfo
   
   // 日期字段：按时间粒度分组
   if (field.type === 'date') {
+    // 如果唯一值比例太高，可能是时间戳类数据，不适合分组
+    if (uniqueRatio >= UNIQUE_RATIO_THRESHOLD) {
+      return {
+        category: 'unsuitable'
+      }
+    }
     // 根据数据量选择合适的时间粒度
     if (totalRows < 100) {
       return {
@@ -713,56 +804,34 @@ function categorizeField(field: FieldInfo, totalRows: number): FieldCategoryInfo
     }
   }
   
-  // 数值字段
-  if (field.type === 'number') {
-    // 如果唯一值比例 < 20%，视为低基数，可以直接按值分组
-    if (uniqueRatio < 0.2 && field.uniqueCount <= 50) {
-      return {
-        category: 'numeric-low-cardinality',
-        groupByStrategy: 'direct'
-      }
-    }
-    // 如果唯一值比例 >= 20% 或唯一值数量 > 50，视为高基数，需要分桶
-    if (uniqueRatio >= 0.2 || field.uniqueCount > 50) {
-      // 根据唯一值数量确定分桶数
-      let bucketCount = 10
-      if (field.uniqueCount > 1000) {
-        bucketCount = 20
-      } else if (field.uniqueCount > 100) {
-        bucketCount = 15
-      }
-      return {
-        category: 'numeric-high-cardinality',
-        groupByStrategy: 'bucket',
-        bucketCount
-      }
-    }
-    // 默认作为数值字段用于聚合计算
-    return {
-      category: 'numeric',
-      groupByStrategy: 'direct'
-    }
-  }
-  
   // 字符串字段
   if (field.type === 'string') {
-    // 如果唯一值比例 < 30% 且唯一值数量 <= 100，视为分类字段
+    // 如果唯一值比例 >= 50%，可能是姓名等唯一值占主导的字段，不适合分组
+    if (uniqueRatio >= UNIQUE_RATIO_THRESHOLD) {
+      return {
+        category: 'unsuitable'
+      }
+    }
+    
+    // 如果唯一值比例 < 30% 且唯一值数量 <= 100，视为分类字段，适合分组
     if (uniqueRatio < 0.3 && field.uniqueCount <= 100) {
       return {
         category: 'categorical',
         groupByStrategy: 'direct'
       }
     }
-    // 如果唯一值太多，不适合作为分组字段
-    if (uniqueRatio > 0.9 || field.uniqueCount > 200) {
+    
+    // 如果唯一值比例在 30% - 50% 之间，且唯一值数量 <= 200，可以尝试分组
+    if (uniqueRatio >= 0.3 && uniqueRatio < UNIQUE_RATIO_THRESHOLD && field.uniqueCount <= 200) {
       return {
-        category: 'unsuitable'
+        category: 'categorical',
+        groupByStrategy: 'direct'
       }
     }
-    // 中等基数，可以尝试分组
+    
+    // 其他情况不适合分组
     return {
-      category: 'categorical',
-      groupByStrategy: 'direct'
+      category: 'unsuitable'
     }
   }
   
@@ -833,18 +902,18 @@ function groupDateValue(dateValue: any, granularity: 'year' | 'month' | 'day' | 
 }
 
 /**
- * 执行聚合分析（改进版：智能选择分组策略）
+ * 执行聚合分析（改进版：智能选择分组策略，按组分别统计所有字段类型）
  * @param data 数据
  * @param groupByField 分组字段名
+ * @param allFields 所有字段信息列表（用于统计所有字段类型）
  * @param groupByFieldInfo 分组字段的分类信息
- * @param numericFields 用于聚合计算的数值字段列表
  * @param totalRows 总行数
  * @returns 聚合结果
  */
 export function performAggregation(
   data: any[], 
   groupByField: string, 
-  numericFields: string[],
+  allFields: FieldInfo[],
   groupByFieldInfo?: FieldCategoryInfo,
   totalRows?: number
 ): AggregationResult {
@@ -901,37 +970,166 @@ export function performAggregation(
     })
   }
 
+  // 按组分别统计所有字段
   const aggregations: Record<string, any> = {}
 
-  // 对每个数值字段计算聚合统计
-  numericFields.forEach(field => {
-    const allValues: number[] = []
-    Object.values(groups).forEach(group => {
-      group.forEach(row => {
-        const val = Number(row[field])
-        if (!isNaN(val)) {
-          allValues.push(val)
+  // 对每个分组进行统计
+  Object.entries(groups).forEach(([groupKey, groupData]) => {
+    const groupStats: any = {
+      count: groupData.length
+    }
+
+    // 获取除分组字段外的所有字段
+    const fieldsToAnalyze = allFields.filter(f => f.name !== groupByField)
+
+    // 按字段类型分别统计
+    const numericFields: Record<string, any> = {}
+    const stringFields: Record<string, any> = {}
+    const booleanFields: Record<string, any> = {}
+    const dateFields: Record<string, any> = {}
+
+    fieldsToAnalyze.forEach(field => {
+      if (field.type === 'number') {
+        // 数值字段：计算 sum, avg, count, min, max（只使用有效数据）
+        // 注意：count 是有效数据的数量，不是总行数
+        const values = groupData
+          .map(row => row[field.name])
+          .filter(v => v !== null && v !== undefined && v !== '')
+          .map(v => Number(v))
+          .filter(v => !isNaN(v))
+
+        if (values.length > 0) {
+          let min = values[0]
+          let max = values[0]
+          for (let i = 1; i < values.length; i++) {
+            if (values[i] < min) min = values[i]
+            if (values[i] > max) max = values[i]
+          }
+
+          numericFields[field.name] = {
+            sum: values.reduce((sum, v) => sum + v, 0),
+            avg: values.reduce((sum, v) => sum + v, 0) / values.length,
+            count: values.length, // 有效数据的数量
+            min: min,
+            max: max
+          }
         }
-      })
+      } else if (field.type === 'string') {
+        // 字符串字段：只统计分组信息（唯一值、每个值的数量、比例），不进行数值聚合
+        // 对于姓名、城市等字符串字段，只需要保留不同分组集合包含的数据
+        const values = groupData
+          .map(row => row[field.name])
+          .filter(v => v !== null && v !== undefined && v !== '')
+        
+        if (values.length > 0) {
+          const valueCounts: Record<string, number> = {}
+          values.forEach(v => {
+            const strValue = String(v)
+            valueCounts[strValue] = (valueCounts[strValue] || 0) + 1
+          })
+
+          const uniqueValues = Object.keys(valueCounts)
+          const valueRatios: Record<string, number> = {}
+          uniqueValues.forEach(v => {
+            valueRatios[v] = valueCounts[v] / values.length
+          })
+
+          // 按数量排序，获取前10个最常见的值
+          const topValues = uniqueValues
+            .map(v => ({ value: v, count: valueCounts[v], ratio: valueRatios[v] }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10)
+
+          stringFields[field.name] = {
+            uniqueValues: uniqueValues,
+            uniqueCount: uniqueValues.length,
+            valueCounts: valueCounts,
+            valueRatios: valueRatios,
+            topValues: topValues,
+            totalCount: values.length // 有效数据的数量
+          }
+        }
+      } else if (field.type === 'boolean') {
+        // 布尔字段：统计 true/false 的数量和比例（只使用有效数据）
+        const values = groupData
+          .map(row => row[field.name])
+          .filter(v => v !== null && v !== undefined)
+        
+        if (values.length > 0) {
+          let trueCount = 0
+          let falseCount = 0
+          values.forEach(v => {
+            if (v === true || v === 'true' || v === 1 || v === '1') {
+              trueCount++
+            } else {
+              falseCount++
+            }
+          })
+
+          booleanFields[field.name] = {
+            trueCount: trueCount,
+            falseCount: falseCount,
+            trueRatio: trueCount / values.length,
+            falseRatio: falseCount / values.length,
+            totalCount: values.length // 有效数据的数量
+          }
+        }
+      } else if (field.type === 'date') {
+        // 日期字段：可以进行聚合统计（min/max日期），也可以统计唯一值数量
+        // 注意：count 是有效数据的数量，不是总行数
+        const values = groupData
+          .map(row => row[field.name])
+          .filter(v => v !== null && v !== undefined && v !== '')
+        
+        if (values.length > 0) {
+          const dates = values
+            .map(v => {
+              try {
+                const date = new Date(v)
+                return isNaN(date.getTime()) ? null : date
+              } catch {
+                return null
+              }
+            })
+            .filter(d => d !== null) as Date[]
+          
+          if (dates.length > 0) {
+            let minDate = dates[0]
+            let maxDate = dates[0]
+            for (let i = 1; i < dates.length; i++) {
+              if (dates[i] < minDate) minDate = dates[i]
+              if (dates[i] > maxDate) maxDate = dates[i]
+            }
+
+            const uniqueDates = new Set(dates.map(d => d.toISOString().split('T')[0]))
+            
+            dateFields[field.name] = {
+              min: minDate.toISOString().split('T')[0],
+              max: maxDate.toISOString().split('T')[0],
+              uniqueCount: uniqueDates.size,
+              totalCount: dates.length // 有效数据的数量
+            }
+          }
+        }
+      }
+      // 注意：其他类型（如null类型）不进行统计
     })
 
-    if (allValues.length > 0) {
-      // 使用循环计算 min/max，避免展开运算符导致栈溢出
-      let min = allValues[0]
-      let max = allValues[0]
-      for (let i = 1; i < allValues.length; i++) {
-        if (allValues[i] < min) min = allValues[i]
-        if (allValues[i] > max) max = allValues[i]
-      }
-
-      aggregations[field] = {
-        sum: allValues.reduce((sum, v) => sum + v, 0),
-        avg: allValues.reduce((sum, v) => sum + v, 0) / allValues.length,
-        count: allValues.length,
-        min: min,
-        max: max
-      }
+    // 只添加非空的统计信息
+    if (Object.keys(numericFields).length > 0) {
+      groupStats.numericFields = numericFields
     }
+    if (Object.keys(stringFields).length > 0) {
+      groupStats.stringFields = stringFields
+    }
+    if (Object.keys(booleanFields).length > 0) {
+      groupStats.booleanFields = booleanFields
+    }
+    if (Object.keys(dateFields).length > 0) {
+      groupStats.dateFields = dateFields
+    }
+
+    aggregations[groupKey] = groupStats
   })
 
   return {
@@ -1530,14 +1728,13 @@ export const dataAnalysisToolCallback: ToolCallback = async (params, signal, onU
         message: i18n.global.t('agent.tool.dataAnalysis.progress.aggregating', '正在执行聚合分析...')
       })
 
-      const numericFields = fields.filter(f => f.type === 'number').map(f => f.name)
       const totalRows = parsedData.length
       
-      // 如果手动指定了分组字段，使用指定的字段
+      // 如果手动指定了分组字段，使用指定的字段，即使它们可能不太适合
       let fieldsToGroupBy: Array<{ name: string; categoryInfo: FieldCategoryInfo }> = []
       
       if (groupByFields.length > 0) {
-        // 手动指定：使用指定的字段，即使它们可能不太适合
+        // 手动指定：使用指定的字段
         fieldsToGroupBy = groupByFields.map(fieldName => {
           const field = fields.find(f => f.name === fieldName)
           if (field) {
@@ -1573,56 +1770,15 @@ export const dataAnalysisToolCallback: ToolCallback = async (params, signal, onU
           return
         }
         
-        // 如果该字段本身就是数值字段且用于聚合，需要排除它自己（避免自己对自己聚合）
-        const numericFieldsForAgg = numericFields.filter(f => f !== fieldName)
-        
-        // 如果还有数值字段可以聚合，执行聚合
-        if (numericFieldsForAgg.length > 0) {
+        // 执行聚合分析，传入所有字段信息（函数内部会排除分组字段本身）
           const agg = performAggregation(
             parsedData, 
             fieldName, 
-            numericFieldsForAgg,
+          fields,  // 传入所有字段信息
             categoryInfo,
             totalRows
           )
           aggregations.push(agg)
-        } else if (categoryInfo.groupByStrategy === 'direct' || 
-                   categoryInfo.groupByStrategy === 'bucket' ||
-                   categoryInfo.groupByStrategy === 'date-granularity') {
-          // 即使没有数值字段，也可以按分组字段统计数量
-          const groups: Record<string, number> = {}
-          parsedData.forEach(row => {
-            let key: string
-            if (categoryInfo.groupByStrategy === 'bucket' && categoryInfo.category === 'numeric-high-cardinality') {
-              const values = parsedData.map(r => Number(r[fieldName])).filter(v => !isNaN(v))
-              if (values.length > 0) {
-                let min = values[0]
-                let max = values[0]
-                for (let i = 1; i < values.length; i++) {
-                  if (values[i] < min) min = values[i]
-                  if (values[i] > max) max = values[i]
-                }
-                const val = Number(row[fieldName])
-                key = !isNaN(val) ? bucketNumericValue(val, min, max, categoryInfo.bucketCount || 10) : 'null'
-              } else {
-                key = 'null'
-              }
-            } else if (categoryInfo.groupByStrategy === 'date-granularity' && categoryInfo.dateGranularity) {
-              const dateValue = row[fieldName]
-              key = dateValue ? groupDateValue(dateValue, categoryInfo.dateGranularity) : 'null'
-            } else {
-              key = String(row[fieldName] || 'null')
-            }
-            groups[key] = (groups[key] || 0) + 1
-          })
-          
-          aggregations.push({
-            groupBy: fieldName,
-            aggregations: {
-              _count: groups
-            }
-          })
-        }
       })
     }
 

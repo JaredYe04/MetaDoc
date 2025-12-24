@@ -85,14 +85,22 @@
                 class="aggregation-item"
                 :style="aggregationItemStyle"
               >
-                <div class="aggregation-header" :style="aggregationHeaderStyle">
+                <div 
+                  class="aggregation-header" 
+                  :style="aggregationHeaderStyle"
+                  @click="toggleAggregation(index)"
+                >
+                  <el-icon class="collapse-icon" :class="{ 'collapsed': !aggregationExpanded[index] }">
+                    <ArrowRight v-if="!aggregationExpanded[index]" />
+                    <ArrowDown v-else />
+                  </el-icon>
                   <el-icon><Connection /></el-icon>
                   <span class="aggregation-title" :style="aggregationTitleStyle">{{ t('agent.display.dataAnalysis.groupBy', { field: agg.groupBy }) }}</span>
                 </div>
                 <el-tree
+                  v-show="aggregationExpanded[index]"
                   :data="buildAggregationTree(agg)"
                   :props="{ children: 'children', label: 'label' }"
-                  default-expand-all
                   class="aggregation-tree"
                 >
                   <template #default="{ node, data }">
@@ -115,9 +123,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Connection } from '@element-plus/icons-vue'
+import { Connection, ArrowRight, ArrowDown } from '@element-plus/icons-vue'
 import { themeState } from '../../utils/themes'
 
 interface DataAnalysisResult {
@@ -144,6 +152,29 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const activeTab = ref('fields')
+
+// 聚合分析折叠状态（使用对象存储每个聚合项的展开状态，默认展开）
+const aggregationExpanded = ref<Record<string | number, boolean>>({})
+
+// 切换聚合分析的展开/折叠状态
+const toggleAggregation = (index: string | number) => {
+  aggregationExpanded.value[index] = !aggregationExpanded.value[index]
+}
+
+// 监听聚合分析数据变化，初始化展开状态（默认展开）
+watch(
+  () => props.result?.aggregations,
+  (aggregations) => {
+    if (aggregations && Array.isArray(aggregations)) {
+      aggregations.forEach((_, index) => {
+        if (aggregationExpanded.value[index] === undefined) {
+          aggregationExpanded.value[index] = true // 默认展开
+        }
+      })
+    }
+  },
+  { immediate: true }
+)
 
 const statsTreeData = computed(() => {
   if (!props.result?.descriptiveStats) return []
@@ -199,14 +230,142 @@ const formatValue = (value: any): string => {
 }
 
 const buildAggregationTree = (agg: { groupBy: string; aggregations: Record<string, any> }) => {
-  return Object.entries(agg.aggregations).map(([fieldName, aggData]) => ({
-    label: fieldName,
-    value: undefined,
-    children: Object.entries(aggData).map(([key, value]) => ({
-      label: key,
-      value
+  // 新的结构：aggregations 的键是分组值（如"北京"），值是该组的统计信息
+  // 检查是否是旧格式（aggregations 的键是字段名）
+  const firstKey = Object.keys(agg.aggregations)[0]
+  const firstValue = agg.aggregations[firstKey]
+  
+  // 如果第一个值有 numericFields/stringFields 等字段，说明是新格式
+  const isNewFormat = firstValue && typeof firstValue === 'object' && (
+    firstValue.numericFields !== undefined ||
+    firstValue.stringFields !== undefined ||
+    firstValue.booleanFields !== undefined ||
+    firstValue.dateFields !== undefined ||
+    firstValue.count !== undefined
+  )
+  
+  if (isNewFormat) {
+    // 新格式：按组显示统计信息
+    return Object.entries(agg.aggregations).map(([groupKey, groupStats]: [string, any]) => {
+      const children: any[] = []
+      
+      // 添加组的基本信息（行数）
+      if (groupStats.count !== undefined) {
+        children.push({
+          label: t('agent.display.dataAnalysis.groupCount', '组内行数'),
+          value: groupStats.count
+        })
+      }
+      
+      // 数值字段统计
+      if (groupStats.numericFields) {
+        Object.entries(groupStats.numericFields).forEach(([fieldName, stats]: [string, any]) => {
+          const fieldChildren: any[] = []
+          if (stats.sum !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.sum', '总和'), value: stats.sum })
+          if (stats.avg !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.avg', '平均值'), value: stats.avg })
+          if (stats.count !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.count', '数量'), value: stats.count })
+          if (stats.min !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.min', '最小值'), value: stats.min })
+          if (stats.max !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.max', '最大值'), value: stats.max })
+          
+          children.push({
+            label: `${fieldName} (${t('agent.display.dataAnalysis.numeric', '数值')})`,
+            value: undefined,
+            children: fieldChildren
+          })
+        })
+      }
+      
+      // 字符串字段统计
+      if (groupStats.stringFields) {
+        Object.entries(groupStats.stringFields).forEach(([fieldName, stats]: [string, any]) => {
+          const fieldChildren: any[] = []
+          if (stats.uniqueCount !== undefined) {
+            fieldChildren.push({ label: t('agent.display.dataAnalysis.uniqueCount', '唯一值数量'), value: stats.uniqueCount })
+          }
+          if (stats.totalCount !== undefined) {
+            fieldChildren.push({ label: t('agent.display.dataAnalysis.totalCount', '总数量'), value: stats.totalCount })
+          }
+          
+          // 显示前几个最常见的值
+          if (stats.topValues && stats.topValues.length > 0) {
+            const topValuesChildren = stats.topValues.map((item: any) => ({
+              label: `${item.value} (${item.count}, ${(item.ratio * 100).toFixed(2)}%)`,
+              value: undefined
+            }))
+            fieldChildren.push({
+              label: t('agent.display.dataAnalysis.topValues', '常见值'),
+              value: undefined,
+              children: topValuesChildren
+            })
+          }
+          
+          children.push({
+            label: `${fieldName} (${t('agent.display.dataAnalysis.string', '字符串')})`,
+            value: undefined,
+            children: fieldChildren.length > 0 ? fieldChildren : undefined
+          })
+        })
+      }
+      
+      // 布尔字段统计
+      if (groupStats.booleanFields) {
+        Object.entries(groupStats.booleanFields).forEach(([fieldName, stats]: [string, any]) => {
+          const fieldChildren: any[] = []
+          if (stats.trueCount !== undefined) {
+            fieldChildren.push({ 
+              label: `True: ${stats.trueCount} (${(stats.trueRatio * 100).toFixed(2)}%)`, 
+              value: undefined 
+            })
+          }
+          if (stats.falseCount !== undefined) {
+            fieldChildren.push({ 
+              label: `False: ${stats.falseCount} (${(stats.falseRatio * 100).toFixed(2)}%)`, 
+              value: undefined 
+            })
+          }
+          
+          children.push({
+            label: `${fieldName} (${t('agent.display.dataAnalysis.boolean', '布尔')})`,
+            value: undefined,
+            children: fieldChildren
+          })
+        })
+      }
+      
+      // 日期字段统计
+      if (groupStats.dateFields) {
+        Object.entries(groupStats.dateFields).forEach(([fieldName, stats]: [string, any]) => {
+          const fieldChildren: any[] = []
+          if (stats.min !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.min', '最小值'), value: stats.min })
+          if (stats.max !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.max', '最大值'), value: stats.max })
+          if (stats.uniqueCount !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.uniqueCount', '唯一值数量'), value: stats.uniqueCount })
+          if (stats.totalCount !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.totalCount', '总数量'), value: stats.totalCount })
+          
+          children.push({
+            label: `${fieldName} (${t('agent.display.dataAnalysis.date', '日期')})`,
+            value: undefined,
+            children: fieldChildren
+          })
+        })
+      }
+      
+      return {
+        label: `${groupKey} (${groupStats.count || 0} ${t('agent.display.dataAnalysis.rows', '行')})`,
+        value: undefined,
+        children: children.length > 0 ? children : undefined
+      }
+    })
+  } else {
+    // 旧格式：直接展开字段统计
+    return Object.entries(agg.aggregations).map(([fieldName, aggData]) => ({
+      label: fieldName,
+      value: undefined,
+      children: Object.entries(aggData).map(([key, value]) => ({
+        label: key,
+        value
+      }))
     }))
-  }))
+  }
 }
 
 // 主题样式
@@ -439,6 +598,19 @@ const emptyAggregationsStyle = computed(() => ({
   margin-bottom: 12px;
   padding-bottom: 8px;
   border-bottom: 1px solid;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s;
+}
+
+.aggregation-header:hover {
+  opacity: 0.8;
+}
+
+.collapse-icon {
+  font-size: 14px;
+  transition: transform 0.2s;
+  flex-shrink: 0;
 }
 
 .aggregation-title {

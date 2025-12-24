@@ -833,6 +833,15 @@ function bindSettingHandlers(): void {
     return await getSetting(data.key);
   });
   
+  // 优化：批量获取设置，减少 IPC 调用次数
+  ipcMain.handle('get-settings-batch', async (event: IpcMainInvokeEvent, keys: string[]): Promise<Record<string, any>> => {
+    const result: Record<string, any> = {};
+    for (const key of keys) {
+      result[key] = getSetting(key);
+    }
+    return result;
+  });
+  
   ipcMain.handle('set-setting', async (event: IpcMainInvokeEvent, data: SettingData): Promise<void> => {
     return await setSetting(data.key, data.value);
   });

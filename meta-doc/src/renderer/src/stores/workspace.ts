@@ -20,6 +20,7 @@ import {
   DEFAULT_OUTLINE_TREE,
   DEFAULT_AGENT_SESSIONS,
 } from '../constants/document';
+import { isElectronEnv } from '../utils/event-bus';
 
 export type WorkspaceTabKind = 'new' | 'file';
 export type WorkspaceTabFormat = 'md' | 'tex';
@@ -1140,6 +1141,60 @@ export async function initializeWorkspaceBroadcastListeners(): Promise<void> {
   })
 }
 
+/**
+ * 从文件路径中提取目录路径（用于设置 linkBase）
+ * @param filePath 文件路径
+ * @returns 目录路径（在 Electron 环境中返回 file:// URL 格式，否则返回相对路径）
+ */
+export function getDirectoryFromPath(filePath: string): string {
+  if (!filePath) return '';
+  
+  // 在 Electron 环境中，需要将文件路径转换为 file:// URL 格式
+  // 以便 Vditor 能够正确解析相对路径
+  if (isElectronEnv()) {
+    // 移除 file:/// 前缀（如果存在）
+    let path = filePath.replace(/^file:\/\/\//, '');
+    
+    // Windows 路径处理：将反斜杠转换为正斜杠
+    path = path.replace(/\\/g, '/');
+    
+    // 分割路径为各个部分，对每个部分进行编码
+    const parts = path.split('/');
+    const encodedParts = parts.map((part: string, index: number) => {
+      if (index === 0 && part.endsWith(':')) {
+        // Windows 驱动器号（如 C:）不需要编码
+        return part;
+      }
+      // 对路径的每一部分进行编码
+      return encodeURIComponent(part).replace(/%2F/g, '/');
+    });
+    
+    // 获取目录路径（去掉文件名）
+    const dirParts = encodedParts.slice(0, -1);
+    if (dirParts.length === 0) return '';
+    
+    // 返回 file:// URL 格式的目录路径
+    return `file:///${dirParts.join('/')}/`;
+  } else {
+    // 在 Web 环境中，使用简单的相对路径
+    const normalizedPath = filePath.replace(/\\/g, '/');
+    const lastSlashIndex = normalizedPath.lastIndexOf('/');
+    if (lastSlashIndex === -1) return '';
+    const dirPath = normalizedPath.substring(0, lastSlashIndex + 1);
+    return dirPath;
+  }
+}
+
+/**
+ * 获取文档的 linkBase（用于 Vditor 等编辑器解析相对路径）
+ * @param docPath 文档路径
+ * @returns linkBase 字符串
+ */
+export function getLinkBase(docPath: string): string {
+  if (!docPath) return '';
+  return getDirectoryFromPath(docPath);
+}
+
 export function useWorkspace() {
   return {
     tabs,
@@ -1174,6 +1229,8 @@ export function useWorkspace() {
     withAutoOutlineSyncSuppressed,
     handleExternalFileChange,
     handleExternalFileDeleted,
+    getDirectoryFromPath,
+    getLinkBase,
   };
 }
 

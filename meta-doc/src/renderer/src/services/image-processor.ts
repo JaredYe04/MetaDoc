@@ -24,12 +24,14 @@ export interface ImageProcessingOptions {
  * @param markdown - 原始 Markdown 内容
  * @param mode - 图片处理模式
  * @param targetFormat - 目标格式
+ * @param docPath - 可选，文档路径，用于解析相对路径
  * @returns 处理后的 Markdown 内容
  */
 export async function processMarkdownImages(
   markdown: string,
   mode: ImageProcessingMode,
-  targetFormat: 'html' | 'md' | 'tex'
+  targetFormat: 'html' | 'md' | 'tex',
+  docPath?: string
 ): Promise<string> {
   if (mode === 'original') {
     // 保留原始链接，不做处理
@@ -43,8 +45,8 @@ export async function processMarkdownImages(
       return markdown;
     }
     
-    // 先确保图片是 HTTP URL 格式
-    let processed = await local2image(markdown);
+    // 先确保图片是 HTTP URL 格式（传入文档路径以支持相对路径解析）
+    let processed = await local2image(markdown, docPath);
     // 然后转换为 Base64
     processed = await image2base64(processed);
     return processed;
@@ -53,7 +55,8 @@ export async function processMarkdownImages(
   if (mode === 'folder') {
     // 文件夹模式：在导出时由 main 进程处理
     // 这里只确保图片是 HTTP URL 格式，实际保存到文件夹的逻辑在 main 进程
-    return await local2image(markdown);
+    // 传入文档路径以支持相对路径解析
+    return await local2image(markdown, docPath);
   }
 
   return markdown;

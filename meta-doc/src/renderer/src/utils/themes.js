@@ -337,5 +337,5 @@ export const presetThemes = [
 
 
 export const themeState = reactive({
-  currentTheme: darkTheme
+  currentTheme: lightTheme
 })

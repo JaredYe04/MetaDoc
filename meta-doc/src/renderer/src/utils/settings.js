@@ -113,37 +113,73 @@ export const settings = reactive({
   vditorMode: 'ir', // Vditor编辑模式：'wysiwyg'、'ir'、'sv'，默认'ir'
 });
 
-export async function initSettings() {
-  //如果本地的设置不存在，则初始化默认设置
-  //从settings中获取所有的键
-  const keys = Object.keys(settings);
-  keys.forEach(key => {
-    if (settings[key] && typeof settings[key] === 'object' && !Array.isArray(settings[key])) {
-      return; // 如果是对象，则不处理
-    }
-    ipcRenderer.invoke('get-setting', { key: key }).then(value => {
-      if (value === undefined) {
-        //如果没有设置，则使用默认值
-        // 对于 themeConfigs，确保是可序列化的
-        if (key === 'themeConfigs' && Array.isArray(settings[key])) {
-          const serializable = settings[key].map((item) => ({
-            id: item.id,
-            name: item.name,
-            type: item.type,
-            themeColor: item.themeColor,
-            isDefault: item.isDefault
-          }));
-          setSetting(key, serializable);
-        } else {
-          setSetting(key, settings[key]);
-        }
+// 关键设置列表：需要在窗口显示前加载的设置（影响UI渲染）
+const CRITICAL_SETTINGS = [
+  'globalTheme',
+  'customThemeColor',
+  'themeConfigs',
+  'selectedThemeId',
+  'contentTheme',
+  'codeTheme',
+  'lineNumber'
+];
+
+// 加载单个设置的辅助函数
+async function loadSetting(key) {
+  if (settings[key] && typeof settings[key] === 'object' && !Array.isArray(settings[key])) {
+    return; // 如果是对象，则不处理
+  }
+  try {
+    const value = await ipcRenderer.invoke('get-setting', { key: key });
+    if (value === undefined) {
+      //如果没有设置，则使用默认值
+      // 对于 themeConfigs，确保是可序列化的
+      if (key === 'themeConfigs' && Array.isArray(settings[key])) {
+        const serializable = settings[key].map((item) => ({
+          id: item.id,
+          name: item.name,
+          type: item.type,
+          themeColor: item.themeColor,
+          isDefault: item.isDefault
+        }));
+        await setSetting(key, serializable);
       } else {
-        //如果有设置，则更新settings
-        settings[key] = value;
+        await setSetting(key, settings[key]);
       }
+    } else {
+      //如果有设置，则更新settings
+      settings[key] = value;
+    }
+  } catch (error) {
+    console.error(`Error initializing setting "${key}":`, error);
+  }
+}
+
+// 初始化关键设置（需要在窗口显示前完成）
+export async function initCriticalSettings() {
+  const promises = CRITICAL_SETTINGS.map(key => loadSetting(key));
+  await Promise.all(promises);
+}
+
+// 初始化非关键设置（可以异步加载，不影响窗口显示）
+export async function initNonCriticalSettings() {
+  const allKeys = Object.keys(settings);
+  const nonCriticalKeys = allKeys.filter(key => !CRITICAL_SETTINGS.includes(key));
+  
+  // 异步加载，不阻塞
+  nonCriticalKeys.forEach(key => {
+    loadSetting(key).catch(error => {
+      console.error(`Error loading non-critical setting "${key}":`, error);
     });
   });
+}
 
+// 初始化所有设置（兼容旧代码，但建议使用分批加载）
+export async function initSettings() {
+  // 先加载关键设置
+  await initCriticalSettings();
+  // 然后异步加载非关键设置
+  initNonCriticalSettings();
 }
 
 /**

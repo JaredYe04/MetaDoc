@@ -17,7 +17,7 @@ import { useRoute } from 'vue-router'
 import Main from './views/Main.vue'
 
 import eventBus, { getWindowType, initWindowType } from './utils/event-bus';
-import { getRecentDocs, getSetting, initSettings } from './utils/settings';
+import { getRecentDocs, getSetting, initCriticalSettings, initNonCriticalSettings } from './utils/settings';
 import { lightTheme, darkTheme, themeState, customTheme } from './utils/themes';
 import localIpcRenderer from './utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from './utils/web-adapter/web-main-calls';
@@ -56,30 +56,8 @@ const initialLoad = ref(true)
  */
 const cleanupGlobalListeners: (() => void)[] = []
 
-function initGlobalEventListeners() {
-  // AI补全延迟相关事件监听（全局，与编辑器适配器无关）
-  eventBus.on('ai-completion-delay', (minutes: unknown) => {
-    aiCompletionService.delay(typeof minutes === 'number' ? minutes : 5)
-  })
-  
-  eventBus.on('ai-completion-cancel-delay', () => {
-    aiCompletionService.cancelDelay()
-  })
-  
-  // AI补全取消事件（全局，与编辑器适配器无关）
-  eventBus.on('cancel-suggestion', () => {
-    aiCompletionService.cancelCurrentCompletion()
-  })
-  
-  // 监听语言切换事件（全局）
-  eventBus.on('lang-changed', (lang: unknown) => {
-    const langStr = typeof lang === 'string' ? lang : 'zh-CN'
-    locale.value = langStr
-    localStorage.setItem('lang', langStr)
-  })
-  
-  // 监听主题同步事件（全局）
-  eventBus.on('sync-theme', async () => {
+// 应用主题的函数（从设置中加载并应用主题）
+const applyTheme = async () => {
     let theme: string | undefined = await getSetting('globalTheme') as string | undefined
     
     // 获取系统主题信息（用于 sync-color）
@@ -141,9 +119,40 @@ function initGlobalEventListeners() {
         document.documentElement.classList.add('dark')
         document.documentElement.classList.remove('light')
       }
+    } else {
+      // 如果没有设置，默认使用亮色主题（而不是暗色）
+      themeState.currentTheme = lightTheme
+      document.documentElement.classList.add('light')
+      document.documentElement.classList.remove('dark')
     }
+}
+
+function initGlobalEventListeners() {
+  // AI补全延迟相关事件监听（全局，与编辑器适配器无关）
+  eventBus.on('ai-completion-delay', (minutes: unknown) => {
+    aiCompletionService.delay(typeof minutes === 'number' ? minutes : 5)
+  })
+  
+  eventBus.on('ai-completion-cancel-delay', () => {
+    aiCompletionService.cancelDelay()
+  })
+  
+  // AI补全取消事件（全局，与编辑器适配器无关）
+  eventBus.on('cancel-suggestion', () => {
+    aiCompletionService.cancelCurrentCompletion()
+  })
+  
+  // 监听语言切换事件（全局）
+  eventBus.on('lang-changed', (lang: unknown) => {
+    const langStr = typeof lang === 'string' ? lang : 'zh-CN'
+    locale.value = langStr
+    localStorage.setItem('lang', langStr)
+  })
+  
+  // 监听主题同步事件（全局）
+  eventBus.on('sync-theme', async () => {
+    await applyTheme()
     eventBus.emit('sync-editor-theme')//触发vditor主题同步事件
-    autoOpenDoc() // 自动打开文档
   })
   
   // 清理函数
@@ -269,10 +278,21 @@ onMounted(async () => {
   });
   // const windowType=route.query.windowType
   // initWindowType(windowType);
-  await initSettings() // 初始化设置
   
-  // 触发一次主题同步事件（事件监听器已在 initGlobalEventListeners() 中注册）
+  // 先加载关键设置（主题相关等，需要在窗口显示前完成）
+  await initCriticalSettings()
+  
+  // 立即应用主题（在渲染前就设置好，避免闪烁）
+  await applyTheme()
+  
+  // 触发一次主题同步事件（用于同步其他组件，如编辑器主题等）
   eventBus.emit('sync-theme')
+  
+  // 自动打开文档（只在主窗口加载时执行一次）
+  await autoOpenDoc()
+  
+  // 异步加载非关键设置（不阻塞窗口显示）
+  initNonCriticalSettings()
 })
 
 // 组件卸载时清理全局事件监听器

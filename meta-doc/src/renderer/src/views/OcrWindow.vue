@@ -6,7 +6,7 @@
         :title="t('ocr.sessionsTitle', 'OCR会话')"
         :items="sessions"
         :active-index="activeSessionId"
-        :disabled="processing"
+        :disabled="processing || loadingSession"
         :create-button-tooltip="t('ocr.newSession', '新建会话')"
         :rename-label="t('common.rename', '重命名')"
         :duplicate-label="t('common.duplicate', '复制')"
@@ -23,7 +23,7 @@
       />
 
       <!-- 右侧内容区域 -->
-      <div class="content-area" :style="contentAreaStyle">
+      <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
         <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
           <p>{{ t('ocr.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
         </div>
@@ -155,6 +155,7 @@ const activeSession = computed(() => {
 const imageList = ref<any[]>([])
 const selectedLanguages = ref<string[]>(['eng'])
 const processing = ref(false)
+const loadingSession = ref(false)
 const ocrResults = ref<Array<{ imageUrl: string; text: string }>>([])
 const activeTab = ref('image-0')
 
@@ -235,8 +236,15 @@ const handleCreateSession = async () => {
 
 // 选择会话
 const handleSelectSession = async (item: SessionListItem) => {
-  activeSessionId.value = item.id
+  // 如果正在加载，忽略新的切换请求
+  if (loadingSession.value) {
+    return
+  }
+  
+  loadingSession.value = true
+  
   try {
+    activeSessionId.value = item.id
     const session = await ocrSessionsDb.getById(item.id)
     if (session) {
       if (session.images) {
@@ -255,6 +263,8 @@ const handleSelectSession = async (item: SessionListItem) => {
     }
   } catch (error) {
     ElMessage.error('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
+  } finally {
+    loadingSession.value = false
   }
 }
 

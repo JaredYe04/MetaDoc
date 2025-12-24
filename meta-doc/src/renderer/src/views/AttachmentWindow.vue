@@ -6,7 +6,7 @@
         :title="t('attachment.attachmentsTitle', '附件解析')"
         :items="attachments"
         :active-index="activeAttachmentId"
-        :disabled="processing"
+        :disabled="processing || loadingSession"
         :create-button-tooltip="t('attachment.newAttachment', '上传附件')"
         :rename-label="t('common.rename', '重命名')"
         :duplicate-label="t('common.duplicate', '复制')"
@@ -23,7 +23,7 @@
       />
 
       <!-- 右侧内容区域 -->
-      <div class="content-area" :style="contentAreaStyle">
+      <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
         <div v-if="!activeAttachment" class="empty-state" :style="emptyStateStyle">
           <p>{{ t('attachment.noAttachmentSelected', '请选择一个附件或上传新附件') }}</p>
         </div>
@@ -122,6 +122,7 @@ const parsedContent = ref<string>('')
 const aiAnalysis = ref<string>('')
 const processing = ref(false)
 const analyzing = ref(false)
+const loadingSession = ref(false)
 const activeTab = ref('parsed')
 const aiAnalysisContainerRef = ref<HTMLElement | null>(null)
 
@@ -181,8 +182,15 @@ const handleUploadAttachment = async () => {
 
 // 选择附件
 const handleSelectAttachment = async (item: SessionListItem) => {
-  activeAttachmentId.value = item.id
+  // 如果正在加载，忽略新的切换请求
+  if (loadingSession.value) {
+    return
+  }
+  
+  loadingSession.value = true
+  
   try {
+    activeAttachmentId.value = item.id
     const attachment = await attachmentSessionsDb.getById(item.id)
     if (attachment) {
       parsedContent.value = attachment.parsed_content || ''
@@ -190,6 +198,8 @@ const handleSelectAttachment = async (item: SessionListItem) => {
     }
   } catch (error) {
     ElMessage.error('加载附件失败: ' + (error instanceof Error ? error.message : String(error)))
+  } finally {
+    loadingSession.value = false
   }
 }
 

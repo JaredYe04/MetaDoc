@@ -84,6 +84,25 @@ interface FieldInfo {
   sampleValues: any[]
 }
 
+/**
+ * 字段分类类型
+ */
+type FieldCategory = 
+  | 'categorical'      // 分类字段：唯一值少，适合直接分组（如：类型、标签、状态）
+  | 'numeric'          // 数值字段：用于聚合计算
+  | 'numeric-low-cardinality'  // 低基数数值字段：唯一值少，可以直接按值分组（如：等级、评分）
+  | 'numeric-high-cardinality' // 高基数数值字段：唯一值多，需要分桶（如：价格、金额）
+  | 'date'             // 日期字段：可以按时间粒度分组
+  | 'boolean'          // 布尔字段：适合直接分组
+  | 'unsuitable'       // 不适合聚合的字段：唯一值太多或全是唯一值
+
+interface FieldCategoryInfo {
+  category: FieldCategory
+  groupByStrategy?: 'direct' | 'bucket' | 'date-granularity'
+  bucketCount?: number
+  dateGranularity?: 'year' | 'month' | 'day' | 'week'
+}
+
 interface DescriptiveStats {
   count: number
   mean?: number
@@ -648,21 +667,243 @@ export function calculateDescriptiveStats(data: any[], fieldName: string, fieldT
 }
 
 /**
- * 执行聚合分析
+ * 对字段进行分类，确定聚合策略
+ * @param field 字段信息
+ * @param totalRows 总行数
+ * @returns 字段分类信息
  */
-export function performAggregation(data: any[], groupByField: string, numericFields: string[]): AggregationResult {
-  const groups: Record<string, any[]> = {}
-
-  data.forEach(row => {
-    const key = String(row[groupByField] || 'null')
-    if (!groups[key]) {
-      groups[key] = []
+function categorizeField(field: FieldInfo, totalRows: number): FieldCategoryInfo {
+  const uniqueRatio = field.uniqueCount / totalRows
+  
+  // 布尔字段：直接分组
+  if (field.type === 'boolean') {
+    return {
+      category: 'boolean',
+      groupByStrategy: 'direct'
     }
-    groups[key].push(row)
-  })
+  }
+  
+  // 日期字段：按时间粒度分组
+  if (field.type === 'date') {
+    // 根据数据量选择合适的时间粒度
+    if (totalRows < 100) {
+      return {
+        category: 'date',
+        groupByStrategy: 'date-granularity',
+        dateGranularity: 'day'
+      }
+    } else if (totalRows < 1000) {
+      return {
+        category: 'date',
+        groupByStrategy: 'date-granularity',
+        dateGranularity: 'week'
+      }
+    } else if (totalRows < 10000) {
+      return {
+        category: 'date',
+        groupByStrategy: 'date-granularity',
+        dateGranularity: 'month'
+      }
+    } else {
+      return {
+        category: 'date',
+        groupByStrategy: 'date-granularity',
+        dateGranularity: 'year'
+      }
+    }
+  }
+  
+  // 数值字段
+  if (field.type === 'number') {
+    // 如果唯一值比例 < 20%，视为低基数，可以直接按值分组
+    if (uniqueRatio < 0.2 && field.uniqueCount <= 50) {
+      return {
+        category: 'numeric-low-cardinality',
+        groupByStrategy: 'direct'
+      }
+    }
+    // 如果唯一值比例 >= 20% 或唯一值数量 > 50，视为高基数，需要分桶
+    if (uniqueRatio >= 0.2 || field.uniqueCount > 50) {
+      // 根据唯一值数量确定分桶数
+      let bucketCount = 10
+      if (field.uniqueCount > 1000) {
+        bucketCount = 20
+      } else if (field.uniqueCount > 100) {
+        bucketCount = 15
+      }
+      return {
+        category: 'numeric-high-cardinality',
+        groupByStrategy: 'bucket',
+        bucketCount
+      }
+    }
+    // 默认作为数值字段用于聚合计算
+    return {
+      category: 'numeric',
+      groupByStrategy: 'direct'
+    }
+  }
+  
+  // 字符串字段
+  if (field.type === 'string') {
+    // 如果唯一值比例 < 30% 且唯一值数量 <= 100，视为分类字段
+    if (uniqueRatio < 0.3 && field.uniqueCount <= 100) {
+      return {
+        category: 'categorical',
+        groupByStrategy: 'direct'
+      }
+    }
+    // 如果唯一值太多，不适合作为分组字段
+    if (uniqueRatio > 0.9 || field.uniqueCount > 200) {
+      return {
+        category: 'unsuitable'
+      }
+    }
+    // 中等基数，可以尝试分组
+    return {
+      category: 'categorical',
+      groupByStrategy: 'direct'
+    }
+  }
+  
+  // 其他类型或null类型
+  return {
+    category: 'unsuitable'
+  }
+}
+
+/**
+ * 对数值进行分桶
+ * @param value 数值
+ * @param min 最小值
+ * @param max 最大值
+ * @param bucketCount 分桶数量
+ * @returns 分桶标签
+ */
+function bucketNumericValue(value: number, min: number, max: number, bucketCount: number): string {
+  if (min === max) {
+    return `${min}`
+  }
+  
+  const bucketSize = (max - min) / bucketCount
+  const bucketIndex = Math.min(Math.floor((value - min) / bucketSize), bucketCount - 1)
+  const bucketMin = min + bucketIndex * bucketSize
+  const bucketMax = bucketIndex === bucketCount - 1 ? max : min + (bucketIndex + 1) * bucketSize
+  
+  // 格式化范围标签
+  if (bucketIndex === bucketCount - 1) {
+    return `[${bucketMin.toFixed(2)}, ${bucketMax.toFixed(2)}]`
+  } else {
+    return `[${bucketMin.toFixed(2)}, ${bucketMax.toFixed(2)})`
+  }
+}
+
+/**
+ * 对日期进行分组（按时间粒度）
+ * @param dateValue 日期值
+ * @param granularity 时间粒度
+ * @returns 分组标签
+ */
+function groupDateValue(dateValue: any, granularity: 'year' | 'month' | 'day' | 'week'): string {
+  try {
+    const date = new Date(dateValue)
+    if (isNaN(date.getTime())) {
+      return 'invalid-date'
+    }
+    
+    switch (granularity) {
+      case 'year':
+        return `${date.getFullYear()}年`
+      case 'month':
+        return `${date.getFullYear()}年${String(date.getMonth() + 1).padStart(2, '0')}月`
+      case 'week':
+        // 计算是第几周
+        const startOfYear = new Date(date.getFullYear(), 0, 1)
+        const days = Math.floor((date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000))
+        const week = Math.ceil((days + startOfYear.getDay() + 1) / 7)
+        return `${date.getFullYear()}年第${week}周`
+      case 'day':
+        return `${date.getFullYear()}年${String(date.getMonth() + 1).padStart(2, '0')}月${String(date.getDate()).padStart(2, '0')}日`
+      default:
+        return String(dateValue)
+    }
+  } catch {
+    return 'invalid-date'
+  }
+}
+
+/**
+ * 执行聚合分析（改进版：智能选择分组策略）
+ * @param data 数据
+ * @param groupByField 分组字段名
+ * @param groupByFieldInfo 分组字段的分类信息
+ * @param numericFields 用于聚合计算的数值字段列表
+ * @param totalRows 总行数
+ * @returns 聚合结果
+ */
+export function performAggregation(
+  data: any[], 
+  groupByField: string, 
+  numericFields: string[],
+  groupByFieldInfo?: FieldCategoryInfo,
+  totalRows?: number
+): AggregationResult {
+  const groups: Record<string, any[]> = {}
+  
+  // 根据字段类型和策略进行分组
+  if (groupByFieldInfo?.groupByStrategy === 'bucket' && groupByFieldInfo.category === 'numeric-high-cardinality') {
+    // 数值字段分桶
+    const values = data.map(row => Number(row[groupByField])).filter(v => !isNaN(v))
+    if (values.length > 0) {
+      let min = values[0]
+      let max = values[0]
+      for (let i = 1; i < values.length; i++) {
+        if (values[i] < min) min = values[i]
+        if (values[i] > max) max = values[i]
+      }
+      
+      const bucketCount = groupByFieldInfo.bucketCount || 10
+      data.forEach(row => {
+        const val = Number(row[groupByField])
+        if (!isNaN(val)) {
+          const bucketKey = bucketNumericValue(val, min, max, bucketCount)
+          if (!groups[bucketKey]) {
+            groups[bucketKey] = []
+          }
+          groups[bucketKey].push(row)
+        } else {
+          const nullKey = 'null'
+          if (!groups[nullKey]) {
+            groups[nullKey] = []
+          }
+          groups[nullKey].push(row)
+        }
+      })
+    }
+  } else if (groupByFieldInfo?.groupByStrategy === 'date-granularity' && groupByFieldInfo.dateGranularity) {
+    // 日期字段按时间粒度分组
+    data.forEach(row => {
+      const dateValue = row[groupByField]
+      const key = dateValue ? groupDateValue(dateValue, groupByFieldInfo.dateGranularity!) : 'null'
+      if (!groups[key]) {
+        groups[key] = []
+      }
+      groups[key].push(row)
+    })
+  } else {
+    // 直接按值分组（分类字段、低基数数值字段、布尔字段等）
+    data.forEach(row => {
+      const key = String(row[groupByField] || 'null')
+      if (!groups[key]) {
+        groups[key] = []
+      }
+      groups[key].push(row)
+    })
+  }
 
   const aggregations: Record<string, any> = {}
 
+  // 对每个数值字段计算聚合统计
   numericFields.forEach(field => {
     const allValues: number[] = []
     Object.values(groups).forEach(group => {
@@ -788,9 +1029,17 @@ async function generateAnalysisSummary(
   
   // 如果启用了报告生成，调用LLM生成文本摘要（可以混合markdown报告）
   // 调整提示词，生成文本摘要和markdown报告的混合版
-  const prompt = `分析以下数据分析结果，生成详细的分析摘要和Markdown格式报告：
+  const prompt = `${analysisRequest ? `## 用户分析需求（请优先关注并重点分析）
 
-字段信息：
+${analysisRequest}
+
+---
+
+## 数据分析结果
+
+` : `## 数据分析结果
+
+`}字段信息：
 ${JSON.stringify(result.fields)}
 
 描述统计：
@@ -798,15 +1047,19 @@ ${JSON.stringify(result.descriptiveStats)}
 
 ${result.aggregations ? `聚合分析：\n${JSON.stringify(result.aggregations)}` : ''}
 
-${analysisRequest ? `用户分析需求：${analysisRequest}` : ''}
+---
 
-请提供详细的数据分析摘要，包括：
+## 分析要求
+
+${analysisRequest ? `**请根据上述用户分析需求，重点分析和回答用户提出的问题。**\n\n` : ''}请提供详细的数据分析摘要，包括：
 1. 数据概况（总行数、总列数等）
-2. 关键发现和洞察
+2. 关键发现和洞察${analysisRequest ? '（特别关注用户提出的分析需求）' : ''}
 3. 异常值或数据质量问题
-4. 建议的可视化图表类型
+4. 建议的可视化图表类型${analysisRequest ? '\n5. 针对用户分析需求的具体回答和建议' : ''}
 
-可以使用Markdown格式，但重点应该是文本分析和洞察，而不是格式化。`
+${analysisRequest ? `\n**重要提示：请确保报告内容直接回答和满足用户的分析需求："${analysisRequest}"**` : ''}
+
+使用Markdown格式。`
 
   const target = ref('')
   const originKey = `data-analysis-summary-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -1278,14 +1531,97 @@ export const dataAnalysisToolCallback: ToolCallback = async (params, signal, onU
       })
 
       const numericFields = fields.filter(f => f.type === 'number').map(f => f.name)
-      const fieldsToGroupBy = groupByFields.length > 0
-        ? groupByFields
-        : (autoGroupBy ? fields.map(f => f.name) : [])
+      const totalRows = parsedData.length
+      
+      // 如果手动指定了分组字段，使用指定的字段
+      let fieldsToGroupBy: Array<{ name: string; categoryInfo: FieldCategoryInfo }> = []
+      
+      if (groupByFields.length > 0) {
+        // 手动指定：使用指定的字段，即使它们可能不太适合
+        fieldsToGroupBy = groupByFields.map(fieldName => {
+          const field = fields.find(f => f.name === fieldName)
+          if (field) {
+            return {
+              name: fieldName,
+              categoryInfo: categorizeField(field, totalRows)
+            }
+          }
+          return null
+        }).filter((item): item is { name: string; categoryInfo: FieldCategoryInfo } => item !== null)
+      } else if (autoGroupBy) {
+        // 自动模式：智能选择适合分组的字段
+        fieldsToGroupBy = fields
+          .map(field => ({
+            name: field.name,
+            categoryInfo: categorizeField(field, totalRows)
+          }))
+          .filter(item => {
+            // 只选择适合作为分组字段的字段
+            const cat = item.categoryInfo.category
+            return cat === 'categorical' || 
+                   cat === 'boolean' || 
+                   cat === 'numeric-low-cardinality' ||
+                   cat === 'numeric-high-cardinality' ||
+                   cat === 'date'
+          })
+      }
 
-      fieldsToGroupBy.forEach(fieldName => {
-        if (numericFields.length > 0) {
-          const agg = performAggregation(parsedData, fieldName, numericFields)
+      // 对每个选定的分组字段执行聚合
+      fieldsToGroupBy.forEach(({ name: fieldName, categoryInfo }) => {
+        // 如果字段不适合分组，跳过
+        if (categoryInfo.category === 'unsuitable') {
+          return
+        }
+        
+        // 如果该字段本身就是数值字段且用于聚合，需要排除它自己（避免自己对自己聚合）
+        const numericFieldsForAgg = numericFields.filter(f => f !== fieldName)
+        
+        // 如果还有数值字段可以聚合，执行聚合
+        if (numericFieldsForAgg.length > 0) {
+          const agg = performAggregation(
+            parsedData, 
+            fieldName, 
+            numericFieldsForAgg,
+            categoryInfo,
+            totalRows
+          )
           aggregations.push(agg)
+        } else if (categoryInfo.groupByStrategy === 'direct' || 
+                   categoryInfo.groupByStrategy === 'bucket' ||
+                   categoryInfo.groupByStrategy === 'date-granularity') {
+          // 即使没有数值字段，也可以按分组字段统计数量
+          const groups: Record<string, number> = {}
+          parsedData.forEach(row => {
+            let key: string
+            if (categoryInfo.groupByStrategy === 'bucket' && categoryInfo.category === 'numeric-high-cardinality') {
+              const values = parsedData.map(r => Number(r[fieldName])).filter(v => !isNaN(v))
+              if (values.length > 0) {
+                let min = values[0]
+                let max = values[0]
+                for (let i = 1; i < values.length; i++) {
+                  if (values[i] < min) min = values[i]
+                  if (values[i] > max) max = values[i]
+                }
+                const val = Number(row[fieldName])
+                key = !isNaN(val) ? bucketNumericValue(val, min, max, categoryInfo.bucketCount || 10) : 'null'
+              } else {
+                key = 'null'
+              }
+            } else if (categoryInfo.groupByStrategy === 'date-granularity' && categoryInfo.dateGranularity) {
+              const dateValue = row[fieldName]
+              key = dateValue ? groupDateValue(dateValue, categoryInfo.dateGranularity) : 'null'
+            } else {
+              key = String(row[fieldName] || 'null')
+            }
+            groups[key] = (groups[key] || 0) + 1
+          })
+          
+          aggregations.push({
+            groupBy: fieldName,
+            aggregations: {
+              _count: groups
+            }
+          })
         }
       })
     }

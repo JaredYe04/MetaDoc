@@ -350,6 +350,197 @@
           "groupByFields": ["product", "category", "region"],
           "analysisRequest": "进行多维度分析：1. 各产品的销售总额和平均价格 2. 各地区的销售分布 3. 各产品类别的销售趋势 4. 客户评分分析"
         }
+      },
+      {
+        "id": "data-analysis::categorical-field-001",
+        "name": "分类字段自动分组（字符串类型，唯一值少）",
+        "params": {
+          "data": [
+            {"category": "电子产品", "price": 1000, "quantity": 10},
+            {"category": "服装", "price": 200, "quantity": 20},
+            {"category": "电子产品", "price": 1500, "quantity": 5},
+            {"category": "食品", "price": 50, "quantity": 30},
+            {"category": "服装", "price": 300, "quantity": 15}
+          ],
+          "format": "json",
+          "autoGroupBy": true,
+          "analysisRequest": "按类别分组，统计各类别的价格和数量"
+        }
+      },
+      {
+        "id": "data-analysis::low-cardinality-numeric-001",
+        "name": "低基数数值字段直接分组（如等级、评分）",
+        "params": {
+          "data": [
+            {"rating": 1, "sales": 100, "revenue": 10000},
+            {"rating": 2, "sales": 200, "revenue": 20000},
+            {"rating": 3, "sales": 300, "revenue": 30000},
+            {"rating": 4, "sales": 400, "revenue": 40000},
+            {"rating": 5, "sales": 500, "revenue": 50000},
+            {"rating": 1, "sales": 150, "revenue": 15000},
+            {"rating": 2, "sales": 250, "revenue": 25000},
+            {"rating": 3, "sales": 350, "revenue": 35000}
+          ],
+          "format": "json",
+          "autoGroupBy": true,
+          "analysisRequest": "按评分等级分组，分析各等级的销售情况"
+        }
+      },
+      {
+        "id": "data-analysis::high-cardinality-numeric-001",
+        "name": "高基数数值字段自动分桶（如价格、金额）",
+        "params": {
+          "data": [
+            {"price": 10.5, "quantity": 5, "total": 52.5},
+            {"price": 25.8, "quantity": 3, "total": 77.4},
+            {"price": 100.2, "quantity": 2, "total": 200.4},
+            {"price": 250.7, "quantity": 1, "total": 250.7},
+            {"price": 500.3, "quantity": 1, "total": 500.3},
+            {"price": 15.6, "quantity": 4, "total": 62.4},
+            {"price": 30.9, "quantity": 2, "total": 61.8},
+            {"price": 75.4, "quantity": 3, "total": 226.2},
+            {"price": 120.8, "quantity": 2, "total": 241.6},
+            {"price": 200.1, "quantity": 1, "total": 200.1},
+            {"price": 350.5, "quantity": 1, "total": 350.5},
+            {"price": 450.9, "quantity": 1, "total": 450.9}
+          ],
+          "format": "json",
+          "autoGroupBy": true,
+          "analysisRequest": "按价格区间分组，分析各价格区间的销售情况"
+        }
+      },
+      {
+        "id": "data-analysis::date-field-001",
+        "name": "日期字段按时间粒度分组",
+        "params": {
+          "data": [
+            {"date": "2024-01-15", "sales": 1000, "orders": 50},
+            {"date": "2024-01-20", "sales": 1200, "orders": 60},
+            {"date": "2024-02-10", "sales": 1500, "orders": 75},
+            {"date": "2024-02-25", "sales": 1800, "orders": 90},
+            {"date": "2024-03-05", "sales": 2000, "orders": 100},
+            {"date": "2024-03-15", "sales": 2200, "orders": 110},
+            {"date": "2024-04-01", "sales": 2500, "orders": 125},
+            {"date": "2024-04-10", "sales": 2800, "orders": 140}
+          ],
+          "format": "json",
+          "autoGroupBy": true,
+          "analysisRequest": "按时间分组，分析各时间段的销售趋势"
+        }
+      },
+      {
+        "id": "data-analysis::boolean-field-001",
+        "name": "布尔字段分组",
+        "params": {
+          "data": [
+            {"isPremium": true, "sales": 1000, "customers": 50},
+            {"isPremium": false, "sales": 500, "customers": 200},
+            {"isPremium": true, "sales": 1200, "customers": 60},
+            {"isPremium": false, "sales": 600, "customers": 250},
+            {"isPremium": true, "sales": 1500, "customers": 75}
+          ],
+          "format": "json",
+          "autoGroupBy": true,
+          "analysisRequest": "按是否高级会员分组，分析会员类型的销售差异"
+        }
+      },
+      {
+        "id": "data-analysis::mixed-fields-001",
+        "name": "混合字段类型智能分组（分类+数值+日期+布尔）",
+        "params": {
+          "data": [
+            {"category": "A", "price": 100.5, "date": "2024-01-15", "isActive": true, "quantity": 10},
+            {"category": "B", "price": 200.3, "date": "2024-01-20", "isActive": false, "quantity": 5},
+            {"category": "A", "price": 150.8, "date": "2024-02-10", "isActive": true, "quantity": 8},
+            {"category": "C", "price": 300.2, "date": "2024-02-25", "isActive": true, "quantity": 3},
+            {"category": "B", "price": 250.7, "date": "2024-03-05", "isActive": true, "quantity": 6},
+            {"category": "A", "price": 120.4, "date": "2024-03-15", "isActive": false, "quantity": 12}
+          ],
+          "format": "json",
+          "autoGroupBy": true,
+          "analysisRequest": "进行多维度分析，包括按类别、价格区间、时间段、状态分组"
+        }
+      },
+      {
+        "id": "data-analysis::unsuitable-field-001",
+        "name": "不适合分组的字段（唯一值过多）应被跳过",
+        "params": {
+          "data": [
+            {"id": "ID001", "name": "Product A", "price": 100, "quantity": 10},
+            {"id": "ID002", "name": "Product B", "price": 200, "quantity": 5},
+            {"id": "ID003", "name": "Product C", "price": 150, "quantity": 8},
+            {"id": "ID004", "name": "Product D", "price": 300, "quantity": 3},
+            {"id": "ID005", "name": "Product E", "price": 250, "quantity": 6}
+          ],
+          "format": "json",
+          "autoGroupBy": true,
+          "analysisRequest": "分析数据，id字段应该被跳过（唯一值过多），name字段也应该被跳过"
+        }
+      },
+      {
+        "id": "data-analysis::manual-groupby-categorical-001",
+        "name": "手动指定分类字段分组",
+        "params": {
+          "data": [
+            {"type": "电子产品", "region": "北京", "sales": 1000, "profit": 200},
+            {"type": "服装", "region": "上海", "sales": 800, "profit": 150},
+            {"type": "电子产品", "region": "广州", "sales": 1200, "profit": 250},
+            {"type": "食品", "region": "北京", "sales": 600, "profit": 100},
+            {"type": "服装", "region": "深圳", "sales": 900, "profit": 180}
+          ],
+          "format": "json",
+          "groupByFields": ["type", "region"],
+          "analysisRequest": "按类型和地区分组，分析各组合的销售和利润"
+        }
+      },
+      {
+        "id": "data-analysis::manual-groupby-numeric-bucket-001",
+        "name": "手动指定高基数数值字段分组（应自动分桶）",
+        "params": {
+          "data": [
+            {"price": 10.5, "sales": 100, "revenue": 1050},
+            {"price": 25.8, "sales": 200, "revenue": 5160},
+            {"price": 100.2, "sales": 50, "revenue": 5010},
+            {"price": 250.7, "sales": 20, "revenue": 5014},
+            {"price": 500.3, "sales": 10, "revenue": 5003},
+            {"price": 15.6, "sales": 150, "revenue": 2340},
+            {"price": 30.9, "sales": 180, "revenue": 5562},
+            {"price": 75.4, "sales": 80, "revenue": 6032},
+            {"price": 120.8, "sales": 60, "revenue": 7248},
+            {"price": 200.1, "sales": 30, "revenue": 6003}
+          ],
+          "format": "json",
+          "groupByFields": ["price"],
+          "analysisRequest": "按价格区间分组，分析各价格区间的销售和收入"
+        }
+      },
+      {
+        "id": "data-analysis::large-dataset-date-001",
+        "name": "大数据集日期字段分组（应使用更大的时间粒度）",
+        "params": {
+          "dataSource": "file",
+          "data": "__TEST_DATA_DIR__/large_date_dataset.json",
+          "format": "json",
+          "autoGroupBy": true,
+          "analysisRequest": "按时间分组分析销售趋势，应该使用月或年作为粒度（数据量>1000行应使用年粒度）"
+        },
+        "description": "此测试用例需要准备一个包含500+行日期数据的大型JSON文件，用于测试日期字段在大数据集下的时间粒度选择逻辑"
+      },
+      {
+        "id": "data-analysis::numeric-exclude-self-001",
+        "name": "数值字段作为分组字段时，不应对自己进行聚合",
+        "params": {
+          "data": [
+            {"rating": 1, "price": 100, "quantity": 10},
+            {"rating": 2, "price": 200, "quantity": 5},
+            {"rating": 3, "price": 150, "quantity": 8},
+            {"rating": 1, "price": 120, "quantity": 12},
+            {"rating": 2, "price": 180, "quantity": 6}
+          ],
+          "format": "json",
+          "groupByFields": ["rating"],
+          "analysisRequest": "按评分分组，应该只对price和quantity进行聚合，不对rating本身聚合"
+        }
       }
     ]
   },

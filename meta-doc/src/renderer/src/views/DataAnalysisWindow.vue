@@ -6,7 +6,7 @@
         :title="t('dataAnalysis.sessionsTitle', '数据分析会话')"
         :items="sessions"
         :active-index="activeSessionId || undefined"
-        :disabled="analyzing"
+        :disabled="analyzing || loadingSession"
         :create-button-tooltip="t('dataAnalysis.newSession', '新建会话')"
         :rename-label="t('common.rename', '重命名')"
         :duplicate-label="t('common.duplicate', '复制')"
@@ -23,7 +23,7 @@
       />
 
       <!-- 右侧内容区域 -->
-      <div class="content-area" :style="contentAreaStyle">
+      <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
         <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
           <p>{{ t('dataAnalysis.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
         </div>
@@ -218,7 +218,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, Delete, Document, Loading } from '@element-plus/icons-vue'
@@ -250,6 +250,7 @@ const activeSession = computed(() => {
 
 const currentFile = ref<{ name: string; path: string } | null>(null)
 const analyzing = ref(false)
+const loadingSession = ref(false)
 const analysisStage = ref<string>('')
 const analysisResult = ref<any>(null)
 const reportMarkdown = ref<string>('')
@@ -302,7 +303,10 @@ const handleCreateSession = async () => {
       data_format: undefined,
       header_row_index: undefined,
       analysis_result: undefined,
-      report_markdown: undefined
+      report_markdown: undefined,
+      analysis_request: undefined,
+      auto_group_by: undefined,
+      generate_report: undefined
     }
     
     await dataAnalysisSessionsDb.create(newSession)
@@ -330,8 +334,25 @@ const handleCreateSession = async () => {
 
 // 选择会话
 const handleSelectSession = async (item: SessionListItem) => {
-  activeSessionId.value = item.id
+  // 如果正在加载，忽略新的切换请求
+  if (loadingSession.value) {
+    return
+  }
+  
+  loadingSession.value = true
+  
   try {
+    // 在切换会话前，先保存当前会话的参数（如果有未保存的更改）
+    if (activeSessionId.value && analysisParamsSaveTimer) {
+      // 清除防抖定时器
+      clearTimeout(analysisParamsSaveTimer)
+      analysisParamsSaveTimer = null
+      // 立即保存当前会话的参数
+      await saveAnalysisParamsImmediately(activeSessionId.value)
+      pendingSessionId = null
+    }
+    
+    activeSessionId.value = item.id
     const session = await dataAnalysisSessionsDb.getById(item.id)
     if (session) {
       activeSessionData.value = session
@@ -394,11 +415,17 @@ const handleSelectSession = async (item: SessionListItem) => {
         previewData.value = []
       }
       
-      // 加载分析参数（如果有保存的话，可以从数据库扩展字段读取）
-      // 这里暂时使用默认值
+      // 加载分析参数（数据库存储为0/1，需要转换为boolean）
+      analysisParams.value = {
+        autoGroupBy: session.auto_group_by !== undefined && session.auto_group_by !== null ? (session.auto_group_by === 1) : true,
+        generateReport: session.generate_report !== undefined && session.generate_report !== null ? (session.generate_report === 1) : true,
+        analysisRequest: session.analysis_request || ''
+      }
     }
   } catch (error) {
     ElMessage.error('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
+  } finally {
+    loadingSession.value = false
   }
 }
 
@@ -425,8 +452,12 @@ const handleDuplicateSession = async (item: SessionListItem) => {
       description: session.description,
       data_file_path: session.data_file_path,
       data_format: session.data_format,
+      header_row_index: session.header_row_index,
       analysis_result: session.analysis_result,
-      report_markdown: session.report_markdown
+      report_markdown: session.report_markdown,
+      analysis_request: session.analysis_request,
+      auto_group_by: session.auto_group_by,
+      generate_report: session.generate_report
     })
     
     await loadSessions()
@@ -448,6 +479,11 @@ const handleDeleteSession = async (item: SessionListItem) => {
       reportMarkdown.value = ''
       currentFile.value = null
       previewData.value = []
+      analysisParams.value = {
+        autoGroupBy: true,
+        generateReport: true,
+        analysisRequest: ''
+      }
     }
     ElMessage.success(t('common.deleteSuccess', '删除成功'))
   } catch (error) {
@@ -1169,6 +1205,59 @@ watch(
   { deep: true }
 )
 
+// 监听分析参数变化，自动保存到数据库（防抖）
+let analysisParamsSaveTimer: ReturnType<typeof setTimeout> | null = null
+let pendingSessionId: string | null = null // 记录待保存的会话ID
+
+// 立即保存分析参数（不防抖）
+const saveAnalysisParamsImmediately = async (sessionId: string) => {
+  if (!sessionId) return
+  
+  try {
+    await dataAnalysisSessionsDb.update(sessionId, {
+      analysis_request: analysisParams.value.analysisRequest || undefined,
+      auto_group_by: analysisParams.value.autoGroupBy ? 1 : 0,
+      generate_report: analysisParams.value.generateReport ? 1 : 0
+    })
+    // 更新本地数据
+    if (activeSessionData.value && activeSessionData.value.id === sessionId) {
+      activeSessionData.value.analysis_request = analysisParams.value.analysisRequest || undefined
+      activeSessionData.value.auto_group_by = analysisParams.value.autoGroupBy ? 1 : 0
+      activeSessionData.value.generate_report = analysisParams.value.generateReport ? 1 : 0
+    }
+  } catch (error) {
+    console.error('保存分析参数失败:', error)
+  }
+}
+
+watch(
+  () => analysisParams.value,
+  (newParams) => {
+    if (!activeSessionId.value) return
+    
+    // 记录当前会话ID
+    const currentSessionId = activeSessionId.value
+    
+    // 清除之前的定时器
+    if (analysisParamsSaveTimer) {
+      clearTimeout(analysisParamsSaveTimer)
+      analysisParamsSaveTimer = null
+    }
+    
+    // 防抖保存（500ms）
+    pendingSessionId = currentSessionId
+    analysisParamsSaveTimer = setTimeout(async () => {
+      // 检查会话ID是否还是原来的（防止快速切换会话导致保存到错误的会话）
+      if (activeSessionId.value === pendingSessionId && pendingSessionId) {
+        await saveAnalysisParamsImmediately(pendingSessionId)
+      }
+      pendingSessionId = null
+      analysisParamsSaveTimer = null
+    }, 500)
+  },
+  { deep: true }
+)
+
 // 计算属性
 const isCsvFile = computed(() => {
   if (!activeSessionData.value?.data_file_path) return false
@@ -1364,6 +1453,27 @@ onMounted(() => {
     nextTick(() => {
       renderReport()
     })
+  }
+})
+
+onUnmounted(() => {
+  // 在组件卸载前，保存当前会话的参数（如果有未保存的更改）
+  if (activeSessionId.value && analysisParamsSaveTimer) {
+    clearTimeout(analysisParamsSaveTimer)
+    analysisParamsSaveTimer = null
+    // 立即保存，不等待防抖
+    saveAnalysisParamsImmediately(activeSessionId.value)
+    pendingSessionId = null
+  }
+  
+  // 清理定时器
+  if (analysisParamsSaveTimer) {
+    clearTimeout(analysisParamsSaveTimer)
+    analysisParamsSaveTimer = null
+  }
+  if (reportRenderTimer) {
+    clearTimeout(reportRenderTimer)
+    reportRenderTimer = null
   }
 })
 </script>

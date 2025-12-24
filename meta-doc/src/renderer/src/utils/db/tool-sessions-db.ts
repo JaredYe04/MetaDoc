@@ -26,6 +26,9 @@ export interface DataAnalysisSession {
   header_row_index?: number // 表头行索引（从0开始）
   analysis_result?: string // JSON格式
   report_markdown?: string
+  analysis_request?: string // 分析需求提示词
+  auto_group_by?: number // 自动聚合分析（0或1，SQLite存储为INTEGER）
+  generate_report?: number // 生成AI报告（0或1，SQLite存储为INTEGER）
   created_at: string
   updated_at: string
 }
@@ -100,8 +103,8 @@ export const dataAnalysisSessionsDb = {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     await ipcRenderer.invoke('db-execute', {
       sql: `INSERT INTO data_analysis_sessions 
-            (id, title, description, data_file_path, data_format, header_row_index, analysis_result, report_markdown, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            (id, title, description, data_file_path, data_format, header_row_index, analysis_result, report_markdown, analysis_request, auto_group_by, generate_report, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
       params: [
         session.id,
         session.title,
@@ -110,7 +113,10 @@ export const dataAnalysisSessionsDb = {
         session.data_format || null,
         session.header_row_index !== undefined ? session.header_row_index : null,
         session.analysis_result || null,
-        session.report_markdown || null
+        session.report_markdown || null,
+        session.analysis_request || null,
+        session.auto_group_by !== undefined ? (session.auto_group_by ? 1 : 0) : null,
+        session.generate_report !== undefined ? (session.generate_report ? 1 : 0) : null
       ]
     })
   },
@@ -147,6 +153,18 @@ export const dataAnalysisSessionsDb = {
     if (updates.report_markdown !== undefined) {
       fields.push('report_markdown = ?')
       params.push(updates.report_markdown)
+    }
+    if (updates.analysis_request !== undefined) {
+      fields.push('analysis_request = ?')
+      params.push(updates.analysis_request || null)
+    }
+    if (updates.auto_group_by !== undefined) {
+      fields.push('auto_group_by = ?')
+      params.push(updates.auto_group_by ? 1 : 0)
+    }
+    if (updates.generate_report !== undefined) {
+      fields.push('generate_report = ?')
+      params.push(updates.generate_report ? 1 : 0)
     }
     
     fields.push('updated_at = CURRENT_TIMESTAMP')

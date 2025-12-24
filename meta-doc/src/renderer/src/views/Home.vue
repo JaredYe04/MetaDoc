@@ -165,6 +165,13 @@ const metaTitle = computed(() => activeDocument.value?.meta?.title ?? '')
 const metaAuthor = computed(() => activeDocument.value?.meta?.author ?? '')
 const metaDescription = computed(() => activeDocument.value?.meta?.description ?? '')
 
+// 计算当前文档的 linkBase（用于 Vditor.preview 解析相对路径）
+const currentLinkBase = computed(() => {
+  const path = currentFilePath.value;
+  if (!path) return '';
+  return workspace.getLinkBase(path);
+})
+
 const previewMarkdown = computed(() => {
   const doc = activeDocument.value
   if (!doc) return ''
@@ -331,12 +338,16 @@ const renderPreview = async () => {
     // 清空容器
     container.innerHTML = ''
     
+    // 获取当前文档的 linkBase
+    const linkBase = currentLinkBase.value;
+    
     // 使用 Vditor.preview 渲染
     const previewOptions: any = {
       cdn,
       mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
       markdown: {
-        theme: { current: contentTheme }
+        theme: { current: contentTheme },
+        linkBase: linkBase
       },
       hljs: {
         style: codeTheme,

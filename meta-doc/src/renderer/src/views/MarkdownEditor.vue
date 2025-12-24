@@ -162,6 +162,13 @@ const currentMarkdown = computed<string>({
   set: (val) => workspace.updateDocumentMarkdown(props.tabId, val),
 })
 
+// 计算当前文档的 linkBase（使用公共函数）
+const currentLinkBase = computed(() => {
+  const path = documentRef.value.path;
+  if (!path) return '';
+  return workspace.getLinkBase(path);
+})
+
 const currentMeta = computed<ArticleMetaData>(() => documentRef.value.meta)
 
 const currentOutline = computed<DocumentOutlineNode>({
@@ -1406,6 +1413,8 @@ onMounted(async () => {
             await setSetting('vditorMode', vditorMode); // 保存默认值
         }
         const supportedLang = ["en_US", "fr_FR", "pt_BR", "ja_JP", "ko_KR", "ru_RU", "sv_SE", "zh_CN", "zh_TW"]
+        // 获取当前文档的目录路径作为 linkBase
+        const linkBase = currentLinkBase.value;
         vditor.value = new Vditor(props.editorDomId, {
             lang: supportedLang.includes(t('lang') as string) ? (t('lang') as any) : 'en_US',
             mode: vditorMode as 'wysiwyg' | 'ir' | 'sv',
@@ -1418,6 +1427,9 @@ onMounted(async () => {
                 hljs: {
                     style: themeState.currentTheme.codeTheme,
                     lineNumber: await getSetting('lineNumber'),
+                },
+                markdown: {
+                    linkBase: linkBase,
                 },
             },
             upload: {
@@ -1882,6 +1894,25 @@ watch(
         bindTitleMenu();
     },
     { immediate: true },
+);
+
+// 监听文档路径变化，更新 linkBase
+watch(
+    () => documentRef.value.path,
+    (newPath) => {
+        if (!vditor.value || !isActive.value) return;
+        const newLinkBase = workspace.getLinkBase(newPath || '');
+        // 尝试更新 Vditor 内部的 linkBase 配置
+        try {
+            const vditorInstance = vditor.value.vditor;
+            if (vditorInstance && (vditorInstance as any).options?.preview?.markdown) {
+                (vditorInstance as any).options.preview.markdown.linkBase = newLinkBase;
+                logger.debug('已更新 Vditor linkBase', { newLinkBase, path: newPath });
+            }
+        } catch (error) {
+            logger.warn('更新 Vditor linkBase 失败', error);
+        }
+    },
 );
 
 </script>

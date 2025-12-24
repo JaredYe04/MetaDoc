@@ -826,23 +826,34 @@ export async function image2local(md){
     }
     return new_md
 }
-export async function local2image(md){
+/**
+ * 将本地图片路径转换为 HTTP URL
+ * @param md Markdown 文本
+ * @param docPath 可选，文档路径，用于解析相对路径
+ * @returns 转换后的 Markdown 文本
+ */
+export async function local2image(md, docPath = ''){
     //把local_path替换成'http://localhost:52521/images/'
     
     const local_path = await getImagePath()
     const lines = md.split('\n')
     let new_md = ''
+    
+    // 使用统一的路径解析服务（在函数外部导入，避免重复导入）
+    // 注意：这里使用动态导入是因为 path-resolver 是 TypeScript 文件
+    
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
         //把local_path替换成'http://localhost:52521/images/'
         const match = line.match(/!\[.*?\]\((.*?)\)/)
         if (match) {
-            const image_path = match[1]
+            let image_path = match[1]
             
             // 处理不同的路径格式：
             // 1. HTTP URL：http://localhost:52521/images/filename（已经是正确的，不需要转换）
-            // 2. local_path 下的本地路径：直接提取文件名并转换
-            // 3. 其他本地路径：先通过 API 上传，然后转换为 HTTP URL
+            // 2. 相对路径（./xxx.jpg 或 ../xxx.jpg）：先转换为绝对路径
+            // 3. local_path 下的本地路径：直接提取文件名并转换
+            // 4. 其他本地路径：先通过 API 上传，然后转换为 HTTP URL
             
             let server_url = '';
             
@@ -859,10 +870,23 @@ export async function local2image(md){
                 new_md += line + '\n';
                 continue;
             } else {
+                // 所有路径都经过 path-resolver 处理（绝对路径会直接返回，相对路径会解析）
+                let resolvedImagePath = image_path;
+                
+                if (docPath) {
+                    // 使用统一的路径解析服务（同步函数，不需要 await）
+                    const { resolvePathWithLinkBase } = await import('./path-resolver');
+                    // 将 docPath 转换为 linkBase 格式（目录路径）
+                    const { getLinkBase } = await import('../stores/workspace');
+                    const linkBase = getLinkBase(docPath);
+                    resolvedImagePath = resolvePathWithLinkBase(image_path, linkBase || docPath);
+                    getLogger().debug(`路径解析结果: ${image_path} -> ${resolvedImagePath}`, { docPath, linkBase });
+                }
+                
                 // 本地路径处理
                 // 支持 Windows 路径（\）和 Unix 路径（/）
                 const normalizedLocalPath = local_path.replace(/\\/g, '/');
-                const normalizedImagePath = image_path.replace(/\\/g, '/');
+                const normalizedImagePath = resolvedImagePath.replace(/\\/g, '/');
                 
                 // 判断是否在 local_path 下
                 const isInLocalPath = normalizedImagePath.startsWith(normalizedLocalPath + '/') || 
@@ -875,20 +899,22 @@ export async function local2image(md){
                         image_name = normalizedImagePath.slice(normalizedLocalPath.length + 1);
                     } else if (normalizedImagePath === normalizedLocalPath) {
                         // 如果路径就是 local_path 本身（不太可能，但处理一下）
-                        image_name = image_path.split(/[/\\]/).pop();
+                        image_name = resolvedImagePath.split(/[/\\]/).pop();
                     } else {
                         image_name = normalizedImagePath.slice(normalizedLocalPath.length);
                     }
                     server_url = 'http://localhost:52521/images/' + image_name;
                 } else {
                     // 不在 local_path 下，需要通过 API 上传
+                    // 注意：这里使用解析后的绝对路径（如果之前是相对路径，已经转换了）
                     try {
+                        getLogger().debug(`上传图片: ${resolvedImagePath}`, { originalPath: image_path, docPath });
                         const response = await fetch('http://localhost:52521/api/image/url-upload', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify({ url: image_path }),
+                            body: JSON.stringify({ url: resolvedImagePath }),
                         });
                         
                         if (!response.ok) {
@@ -906,16 +932,16 @@ export async function local2image(md){
                             throw new Error(result.error || '上传失败');
                         }
                     } catch (error) {
-                        getLogger().error(`图片上传失败: ${image_path}`, error);
-                        eventBus.emit('show-error', `图片上传失败: ${image_path} - ${error.message}`);
+                        getLogger().error(`图片上传失败: ${resolvedImagePath}`, error);
+                        eventBus.emit('show-error', `图片上传失败: ${resolvedImagePath} - ${error.message}`);
                         // 上传失败时，尝试直接使用原路径的文件名（作为回退方案）
-                        const fileName = image_path.split(/[/\\]/).pop() || image_path;
+                        const fileName = resolvedImagePath.split(/[/\\]/).pop() || resolvedImagePath;
                         server_url = 'http://localhost:52521/images/' + fileName;
                     }
                 }
             }
             
-            new_md += line.replace(image_path, server_url) + '\n'
+            new_md += line.replace(match[1], server_url) + '\n'
         } else {
             new_md += line + '\n'
         }

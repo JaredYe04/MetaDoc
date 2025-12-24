@@ -152,7 +152,7 @@ export const prepareExportPayload = async (
       if (targetFormat === 'html' || targetFormat === 'md' || targetFormat === 'tex') {
         const imageProcessing = (finalOptions as any)?.imageProcessing as ImageProcessingMode | undefined;
         if (imageProcessing) {
-          markdown = await processMarkdownImages(markdown, imageProcessing, targetFormat);
+          markdown = await processMarkdownImages(markdown, imageProcessing, targetFormat, doc.path);
         }
       }
 
@@ -196,7 +196,7 @@ export const prepareExportPayload = async (
       const markdownFromTex = convertLatexToMarkdown(doc.tex ?? base.data.tex ?? '');
       let processedMarkdown = markdownFromTex;
       if (['html', 'docx', 'pdf'].includes(targetFormat)) {
-        processedMarkdown = await local2image(processedMarkdown);
+        processedMarkdown = await local2image(processedMarkdown, doc.path);
       }
       if (['html', 'docx'].includes(targetFormat)) {
         processedMarkdown = await image2base64(processedMarkdown);
@@ -337,13 +337,13 @@ const prepareMarkdownForExport = async (
   }
 
   // 后处理图片路径
-  processedMarkdown = await postProcessMarkdownImages(processedMarkdown, targetFormat);
+  processedMarkdown = await postProcessMarkdownImages(processedMarkdown, targetFormat, doc.path);
 
   return processedMarkdown;
 };
 
 
-const postProcessMarkdownImages = async (markdown: string, targetFormat: ExportFormat) => {
+const postProcessMarkdownImages = async (markdown: string, targetFormat: ExportFormat, docPath?: string) => {
   // 注意：图片处理现在由导出选项控制，这个函数保留用于向后兼容
   // 对于使用适配器的导出，图片处理已经在 prepareExportPayload 中根据选项处理
   // 这里只处理不使用适配器的情况（向后兼容）
@@ -354,7 +354,8 @@ const postProcessMarkdownImages = async (markdown: string, targetFormat: ExportF
     markdown = await image2local(markdown);
   } else {
     // 其他格式（html, docx, pdf）需要 HTTP URL
-    markdown = await local2image(markdown);
+    // 传入文档路径以支持相对路径解析
+    markdown = await local2image(markdown, docPath);
   }
   // DOCX 需要将图片内联嵌入，确保文件独立
   // HTML 不需要在这里转换，ConvertMarkdownToHtmlManually 会在渲染后处理
@@ -518,7 +519,7 @@ const prepareLatexExports = async (
 
   let markdown = markdownFromTex;
   if (['html', 'docx', 'pdf'].includes(targetFormat)) {
-    markdown = await local2image(markdown);
+    markdown = await local2image(markdown, doc.path);
   }
 
   if (['html', 'docx'].includes(targetFormat)) {

@@ -58,8 +58,9 @@
 
     <vue-tree
       ref="treeRef"
-      style="width: 100%; height: 80vh; border: 1px solid gray;"
-      :style="{ backgroundColor: themeState.currentTheme.outlineBackground, marginBottom: '96px' }"
+      class="outline-tree-container"
+      style="width: 100%; height: 100%; border: 1px solid gray; border-radius: 12px; overflow: hidden;"
+      :style="{ backgroundColor: themeState.currentTheme.outlineBackground }"
       :dataset="treeData"
       :config="treeConfig"
       :direction="direction"
@@ -70,21 +71,27 @@
 
 
       <template #node="{ node, collapsed }" :style="{ backgroundColor: themeState.currentTheme.outlineNode }">
-        <div
-          class="tree-node"
-          :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-          :class="dropPreview.targetPath === node.path ? ('drop-' + dropPreview.mode) : ''"
-          draggable="true"
-          @dragstart.stop="onNodeDragStart(node)"
-          @dragover.prevent="onNodeDragOver($event, node)"
-          @dragleave="onNodeDragLeave(node)"
-          @drop.stop="onNodeDrop(node, $event)"
-          @dragend.stop="onNodeDragEnd"
-          @mousedown.stop
-          @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
+        <el-tooltip 
+          :content="node.title || ''" 
+          placement="top" 
+          :disabled="!node.title || !isNodeTextTruncated(node.path)"
         >
-          {{ node.title }}
-        </div>
+          <div
+            class="tree-node"
+            :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
+            :class="dropPreview.targetPath === node.path ? ('drop-' + dropPreview.mode) : ''"
+            draggable="true"
+            @dragstart.stop="onNodeDragStart(node)"
+            @dragover.prevent="onNodeDragOver($event, node)"
+            @dragleave="onNodeDragLeave(node)"
+            @drop.stop="onNodeDrop(node, $event)"
+            @dragend.stop="onNodeDragEnd"
+            @mousedown.stop
+            @mousemove.stop="isDraggingNode ? $event.stopPropagation() : null"
+          >
+            <span class="tree-node-text" :ref="el => setTextElementRef(el, node.path)">{{ node.title }}</span>
+          </div>
+        </el-tooltip>
         <el-tooltip :content="$t('outline.editNode')" placement="top">
           <el-button size="small" type="text" class="aero-btn" circle @click.stop="handleNodeButtonClick(node)"
             v-if="node.path !== 'dummy'" :disabled="pendingAccept || generating">
@@ -322,7 +329,7 @@
 </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive, watch, computed, onMounted, type Ref } from 'vue';
+import { ref, reactive, watch, computed, onMounted, onUnmounted, nextTick, type Ref, type ComponentPublicInstance } from 'vue';
 import { ElButton, ElDialog, ElMessageBox, ElNotification } from 'element-plus'; // 引入 Element Plus 组件
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
 import PromptTextarea from '../components/base/PromptTextarea.vue';
@@ -773,6 +780,11 @@ const handleNodeDrag = (_dragNode: any, _targetNode: any) => {
     const originParent = searchParentNode(_dragNode.path, treeData.value);
     // 如果拖动的是根节点，则不允许
     if (!originParent) return;
+    
+    // 暂停同步，防止频繁重新渲染
+    const wasSuppressed = suppressDocumentSync;
+    suppressDocumentSync = true;
+    
     // 从原父节点移除
     removeNode(originParent, drag);
     // 确定目标插入位置（目标节点作为父）
@@ -789,8 +801,18 @@ const handleNodeDrag = (_dragNode: any, _targetNode: any) => {
       targetParent.children.push(drag);
       reindexChildrenPaths(targetParent);
     }
+    
+    // 恢复同步并提交更改
+    suppressDocumentSync = wasSuppressed;
+    if (!wasSuppressed) {
+      commitOutline();
+    }
   } catch (err) {
     logger.warn('节点拖拽失败', err);
+    // 即使出错也要恢复同步状态
+    if (!suppressDocumentSync) {
+      suppressDocumentSync = false;
+    }
   }
 };
 
@@ -799,6 +821,8 @@ const isDraggingNode = ref(false);
 function onNodeDragStart(node: DocumentOutlineNode) {
   draggingNodePath.value = node.path;
   isDraggingNode.value = true;
+  // 拖动开始时暂停文档同步，防止频繁重新渲染
+  suppressDocumentSync = true;
 }
 type DropMode = 'before' | 'after' | 'inside' | 'parent';
 const dropPreview = reactive<{ targetPath: string | null; mode: DropMode | null }>({
@@ -981,8 +1005,18 @@ function onNodeDrop(targetNode: DocumentOutlineNode, e: DragEvent) {
       reindexChildrenPaths(grandParent);
       return;
     }
+    
+    // 拖动操作完成后恢复同步并提交更改
+    if (suppressDocumentSync) {
+      suppressDocumentSync = false;
+      commitOutline();
+    }
   } catch (err) {
     logger.warn('HTML5 拖拽节点失败', err);
+    // 即使出错也要恢复同步状态
+    if (suppressDocumentSync) {
+      suppressDocumentSync = false;
+    }
   }
 }
 function onNodeDragEnd() {
@@ -990,6 +1024,11 @@ function onNodeDragEnd() {
   dropPreview.targetPath = null;
   dropPreview.mode = null;
   isDraggingNode.value = false;
+  // 拖动结束时恢复同步并提交更改
+  if (suppressDocumentSync) {
+    suppressDocumentSync = false;
+    commitOutline();
+  }
 }
 const handleNodeClick = (node: DocumentOutlineNode) => {
   selectedNode.value = node;
@@ -1033,6 +1072,41 @@ const treeRef = ref<TreeInstance | null>(null);
 const currentChapterValue = ref('');
 const currentChapterContent = ref('');
 const editValueDialogVisible = ref(false);
+
+// 存储每个节点的文本元素引用，用于检查文本是否被截断
+const textElementRefs = new Map<string, HTMLElement>();
+// 存储每个节点的截断状态（响应式）
+const textTruncatedState = reactive<Record<string, boolean>>({});
+
+// 设置文本元素引用并检查截断状态
+const setTextElementRef = (el: Element | ComponentPublicInstance | null, nodePath: string) => {
+  if (el && el instanceof HTMLElement) {
+    textElementRefs.set(nodePath, el);
+    // 检查文本是否被截断
+    nextTick(() => {
+      const isTruncated = el.scrollWidth > el.clientWidth || 
+                         el.scrollHeight > el.clientHeight;
+      textTruncatedState[nodePath] = isTruncated;
+    });
+  } else if (!el) {
+    textElementRefs.delete(nodePath);
+    delete textTruncatedState[nodePath];
+  }
+};
+
+// 检查节点的文本是否被截断
+const isNodeTextTruncated = (nodePath: string): boolean => {
+  return textTruncatedState[nodePath] === true;
+};
+
+// 重新检查所有文本元素的截断状态
+const recheckTextTruncation = () => {
+  textElementRefs.forEach((el, nodePath) => {
+    const isTruncated = el.scrollWidth > el.clientWidth || 
+                       el.scrollHeight > el.clientHeight;
+    textTruncatedState[nodePath] = isTruncated;
+  });
+};
 
 watch(
   () => activeDocument.value?.outline,
@@ -1161,12 +1235,152 @@ const resetScale = () => {
   treeRef.value?.restoreScale();
 };
 
+// 缩放限制：最小5%，最大1000%
+const MIN_SCALE = 0.05;
+const MAX_SCALE = 10.0; // 1000% = 10.0
+
+// 获取当前缩放比例
+const getCurrentScale = (): number => {
+  const treeElement = document.querySelector('.outline-tree-container') as HTMLElement;
+  if (!treeElement) return 1.0;
+  
+  // 查找应用 transform scale 的元素
+  const svg = treeElement.querySelector('svg');
+  if (svg) {
+    const transform = svg.style.transform || window.getComputedStyle(svg).transform;
+    if (transform && transform !== 'none') {
+      const match = transform.match(/scale\(([\d.]+)\)/);
+      if (match) {
+        return parseFloat(match[1]);
+      }
+    }
+  }
+  
+  // 如果找不到，尝试查找其他可能应用 scale 的元素
+  const scaledElement = treeElement.querySelector('[style*="transform"]') as HTMLElement;
+  if (scaledElement) {
+    const transform = scaledElement.style.transform || window.getComputedStyle(scaledElement).transform;
+    if (transform && transform !== 'none') {
+      const match = transform.match(/scale\(([\d.]+)\)/);
+      if (match) {
+        return parseFloat(match[1]);
+      }
+    }
+  }
+  
+  return 1.0; // 默认缩放比例
+};
+
 const zoomIn = () => {
+  const currentScale = getCurrentScale();
+  if (currentScale >= MAX_SCALE) {
+    return; // 已达到最大缩放，不执行
+  }
   treeRef.value?.zoomIn();
 };
 
 const zoomOut = () => {
+  const currentScale = getCurrentScale();
+  if (currentScale <= MIN_SCALE) {
+    return; // 已达到最小缩放，不执行
+  }
   treeRef.value?.zoomOut();
+};
+
+// 以光标位置为中心的缩放
+const zoomAtPoint = (deltaY: number, clientX: number, clientY: number) => {
+  if (!treeRef.value) return;
+  
+  // 获取 vue-tree 的 DOM 元素
+  const treeElement = document.querySelector('.outline-tree-container') as HTMLElement;
+  if (!treeElement) return;
+  
+  // 查找内部的滚动容器
+  // vue-tree 通常会在内部有一个可滚动的容器
+  let scrollContainer: HTMLElement | null = null;
+  
+  // 尝试多种方式找到滚动容器
+  const possibleContainers = [
+    treeElement.querySelector('svg')?.parentElement,
+    treeElement.querySelector('[style*="overflow"]') as HTMLElement,
+    treeElement.querySelector('.vue-tree') as HTMLElement,
+    treeElement
+  ];
+  
+  for (const container of possibleContainers) {
+    if (container && (container.scrollHeight > container.clientHeight || container.scrollWidth > container.clientWidth)) {
+      scrollContainer = container;
+      break;
+    }
+  }
+  
+  if (!scrollContainer) {
+    scrollContainer = treeElement;
+  }
+  
+  // 获取光标相对于滚动容器的位置
+  const rect = scrollContainer.getBoundingClientRect();
+  const pointX = clientX - rect.left;
+  const pointY = clientY - rect.top;
+  
+  // 获取当前滚动位置
+  const scrollLeft = scrollContainer.scrollLeft || 0;
+  const scrollTop = scrollContainer.scrollTop || 0;
+  
+  // 计算光标在内容中的绝对位置（考虑滚动偏移）
+  const contentX = scrollLeft + pointX;
+  const contentY = scrollTop + pointY;
+  
+  // 确定缩放方向（向上滚动 = 放大，向下滚动 = 缩小）
+  const isZoomIn = deltaY < 0;
+  
+  // 检查缩放限制
+  const currentScale = getCurrentScale();
+  if (isZoomIn && currentScale >= MAX_SCALE) {
+    return; // 已达到最大缩放，不执行
+  }
+  if (!isZoomIn && currentScale <= MIN_SCALE) {
+    return; // 已达到最小缩放，不执行
+  }
+  
+  // 执行缩放
+  if (isZoomIn) {
+    zoomIn();
+  } else {
+    zoomOut();
+  }
+  
+  // 等待 DOM 更新后调整滚动位置
+  // 使用 nextTick 和 requestAnimationFrame 确保缩放操作已完成
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      // 重新获取容器（可能因为缩放而改变）
+      const newRect = scrollContainer!.getBoundingClientRect();
+      const newPointX = clientX - newRect.left;
+      const newPointY = clientY - newRect.top;
+      
+      // 计算新的滚动位置，使光标位置在内容中保持相对不变
+      // 缩放后，内容尺寸变化，需要按比例调整滚动位置
+      const newScrollLeft = contentX - newPointX;
+      const newScrollTop = contentY - newPointY;
+      
+      // 设置新的滚动位置，确保不超出边界
+      scrollContainer!.scrollLeft = Math.max(0, Math.min(newScrollLeft, scrollContainer!.scrollWidth - scrollContainer!.clientWidth));
+      scrollContainer!.scrollTop = Math.max(0, Math.min(newScrollTop, scrollContainer!.scrollHeight - scrollContainer!.clientHeight));
+    });
+  });
+};
+
+// 处理滚轮缩放事件
+const handleWheelZoom = (event: WheelEvent) => {
+  // 检查是否按下了 Ctrl 键（Windows/Linux）或 Meta 键（Mac）
+  if (event.ctrlKey || event.metaKey) {
+    event.preventDefault(); // 阻止默认的滚动行为
+    event.stopPropagation(); // 阻止事件冒泡
+    
+    // 以光标位置为中心进行缩放
+    zoomAtPoint(event.deltaY, event.clientX, event.clientY);
+  }
 };
 
 const nodeMenuToggle = ref(false);//false为普通节点，true为AI辅助节点
@@ -1351,9 +1565,36 @@ const discardChange = () => {
   pendingAccept.value = false;
 };
 
-// 组件挂载时加载布局方向设置
+// 组件挂载时加载布局方向设置并添加滚轮缩放监听
+// 处理窗口大小改变，重新检查文本截断状态
+const handleResize = () => {
+  recheckTextTruncation();
+};
+
 onMounted(() => {
   loadLayoutDirection();
+  
+  // 等待 DOM 渲染完成后添加滚轮事件监听器
+  nextTick(() => {
+    const treeElement = document.querySelector('.outline-tree-container') as HTMLElement;
+    if (treeElement) {
+      treeElement.addEventListener('wheel', handleWheelZoom, { passive: false });
+    }
+    // 初始检查文本截断状态
+    recheckTextTruncation();
+  });
+  
+  // 添加窗口大小改变监听器
+  window.addEventListener('resize', handleResize);
+});
+
+// 组件卸载时移除事件监听器
+onUnmounted(() => {
+  const treeElement = document.querySelector('.outline-tree-container') as HTMLElement;
+  if (treeElement) {
+    treeElement.removeEventListener('wheel', handleWheelZoom);
+  }
+  window.removeEventListener('resize', handleResize);
 });
 
 </script>
@@ -1370,7 +1611,8 @@ onMounted(() => {
 
 .outline-page > .container {
   flex: 1;
-  padding-bottom: 96px; /* 预留底部菜单高度，避免与状态栏重叠 */
+  position: relative;
+  overflow: hidden;
 }
 
 .el-scrollbar__wrap {
@@ -1427,10 +1669,8 @@ onMounted(() => {
 .container {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 5px;
-  justify-content: center;
-  /* 居中 */
+  width: 100%;
+  height: 100%;
 }
 
 .controls {
@@ -1447,14 +1687,18 @@ onMounted(() => {
   /* 增加内边距，使节点更大，更易点击 */
   margin: 10px;
   cursor: pointer;
-  transition: background-color 0.3s, transform 0.3s;
+  transition: background-color 0.3s;
   /* 添加过渡效果 */
+  max-width: 200px;
+  /* 限制最大宽度 */
+  max-height: 60px;
+  /* 限制最大高度，允许2-3行 */
+  overflow: hidden;
+  /* 隐藏溢出内容 */
+  box-sizing: border-box;
+  /* 包含 padding 在宽度计算中 */
 }
 
-.tree-node:hover {
-  transform: scale(1.02);
-  /* 节点放大效果 */
-}
 
 /* 纵向布局的拖拽高亮样式 */
 .tree-node.drop-before {
@@ -1488,13 +1732,28 @@ onMounted(() => {
   border-radius: 10px;
 }
 
-.tree-node span {
-  display: flex;
-  align-items: center;
+.tree-node-text {
+  display: -webkit-box;
+  /* 使用 webkit 的 box 模型以支持多行截断 */
   font-size: 14px;
   /* 设置默认字体大小 */
   color: #333;
   /* 设置文本颜色 */
+  width: 100%;
+  /* 占满父容器宽度 */
+  overflow: hidden;
+  /* 隐藏溢出内容 */
+  text-overflow: ellipsis;
+  /* 文本溢出时显示省略号 */
+  word-break: break-word;
+  /* 允许在单词内换行，处理长单词 */
+  line-height: 1.4;
+  /* 设置行高 */
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  /* 限制显示2行 */
+  -webkit-box-orient: vertical;
+  /* 垂直方向排列 */
 }
 
 .dialog-buttons {
@@ -1504,15 +1763,20 @@ onMounted(() => {
 }
 
 .bottom-menu {
-  position: fixed;
+  position: absolute;
+  bottom: 16px;
+  align-self: center;
+  align-items: center;
 
-
-  bottom: 12px;
   display: flex;
   gap: 10px;
   z-index: 1000;
   padding: 6px 10px;
   border-radius: 12px;
   box-sizing: border-box;
+  width: fit-content;
+  /* 覆盖 aero-div 的 transform transition，防止 hover 时偏移 */
+  transition: backdrop-filter 0.3s ease, box-shadow 0.3s ease !important;
 }
+
 </style>

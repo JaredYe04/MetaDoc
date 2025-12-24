@@ -31,8 +31,31 @@ export function extractOutlineTreeFromMarkdown(md, bypassText = false) {
     };
     // 栈初始化，起始只有根节点
     let stack = [root];
+    // 跟踪是否在代码块中（三个反引号包裹的代码块）
+    let inCodeBlock = false;
     // 遍历每一行
     for (let line of lines) {
+        // 检查是否是代码块开始/结束标记（三个反引号）
+        const codeBlockMatch = line.match(/^```/);
+        if (codeBlockMatch) {
+            // 切换代码块状态
+            inCodeBlock = !inCodeBlock;
+            // 非标题行，追加到当前节点的 text 中
+            if (!bypassText) {
+                stack[stack.length - 1].text += line + '\n';
+            }
+            continue;
+        }
+        
+        // 如果在代码块中，跳过标题匹配
+        if (inCodeBlock) {
+            // 非标题行，追加到当前节点的 text 中
+            if (!bypassText) {
+                stack[stack.length - 1].text += line + '\n';
+            }
+            continue;
+        }
+        
         // 匹配标题行：匹配1个或多个 '#' 后跟空格，再匹配标题文本
         const match = line.match(/^(#+)\s+(.*)/);
         if (match) {

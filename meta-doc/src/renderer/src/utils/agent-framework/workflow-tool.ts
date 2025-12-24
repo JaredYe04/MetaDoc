@@ -146,7 +146,7 @@ export function registerWorkflowAsTool(workflowId: string): void {
   const toolConfig = createWorkflowToolConfig(workflowId)
   if (toolConfig) {
     agentToolManager.registerTool(toolConfig)
-    getLogger().info(`工作流 ${workflowId} 已注册为Tool: ${toolConfig.id}`)
+    //getLogger().info(`工作流 ${workflowId} 已注册为Tool: ${toolConfig.id}`)
   }
 }
 

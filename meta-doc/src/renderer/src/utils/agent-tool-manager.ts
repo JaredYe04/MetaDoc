@@ -58,7 +58,7 @@ class AgentToolManager {
     }
 
     this.tools.set(config.id, registeredTool)
-    logger.debug(`Tool ${config.id} 已注册`)
+    //logger.debug(`Tool ${config.id} 已注册`)
   }
 
   /**

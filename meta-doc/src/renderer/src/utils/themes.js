@@ -339,3 +339,108 @@ export const presetThemes = [
 export const themeState = reactive({
   currentTheme: lightTheme
 })
+
+// 获取系统主题信息的辅助函数
+async function getOsThemeInfo(ipcRenderer) {
+  try {
+    if (ipcRenderer && 'invoke' in ipcRenderer) {
+      return await ipcRenderer.invoke('get-os-theme-info')
+    } else {
+      // Web 环境
+      const mode = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'
+      return { mode, accentColor: undefined }
+    }
+  } catch (e) {
+    console.error('获取系统主题信息失败:', e)
+    return { mode: 'light', accentColor: undefined }
+  }
+}
+
+// 应用主题类到 document
+function applyThemeClasses(themeType) {
+  if (themeType === 'light') {
+    document.documentElement.classList.add('light')
+    document.documentElement.classList.remove('dark')
+  } else {
+    document.documentElement.classList.add('dark')
+    document.documentElement.classList.remove('light')
+  }
+}
+
+/**
+ * 应用主题（从设置中加载并应用主题）
+ * @param {Function} getSetting - 获取设置的函数，如果未提供则从 settings.js 导入
+ * @param {Object} ipcRenderer - IPC Renderer 实例，如果未提供则自动获取
+ * @returns {Promise<void>}
+ */
+export async function applyTheme(getSettingFn = null, ipcRendererInstance = null) {
+  // 动态导入 getSetting 和 ipcRenderer（避免循环依赖）
+  let getSetting = getSettingFn
+  let ipcRenderer = ipcRendererInstance
+  
+  if (!getSetting) {
+    const settingsModule = await import('./settings.js')
+    getSetting = settingsModule.getSetting
+  }
+  
+  if (!ipcRenderer) {
+    if (window && window.electron) {
+      ipcRenderer = window.electron.ipcRenderer
+    } else {
+      const localIpcRenderer = await import('./web-adapter/local-ipc-renderer')
+      ipcRenderer = localIpcRenderer.default
+    }
+  }
+  
+  try {
+    // 获取主题设置
+    const globalTheme = await getSetting('globalTheme')
+    
+    // 获取系统主题信息（用于 sync-color）
+    const osThemeInfo = await getOsThemeInfo(ipcRenderer)
+    
+    // 根据设置应用主题
+    if (globalTheme === 'light' || globalTheme === undefined) {
+      themeState.currentTheme = lightTheme
+      applyThemeClasses('light')
+    } else if (globalTheme === 'dark') {
+      themeState.currentTheme = darkTheme
+      applyThemeClasses('dark')
+    } else if (globalTheme === 'sync') {
+      const theme = osThemeInfo?.mode || 'light'
+      themeState.currentTheme = theme === 'dark' ? darkTheme : lightTheme
+      applyThemeClasses(theme)
+    } else if (globalTheme === 'sync-color') {
+      // 跟随系统颜色主题
+      const accentColor = osThemeInfo?.accentColor
+      if (accentColor) {
+        themeState.currentTheme = customTheme(accentColor)
+      } else {
+        // 如果没有系统主题色，使用系统亮暗色
+        const theme = osThemeInfo?.mode || 'light'
+        themeState.currentTheme = theme === 'dark' ? darkTheme : lightTheme
+      }
+      applyThemeClasses(themeState.currentTheme.type)
+    } else if (globalTheme === 'custom') {
+      // 自定义主题
+      const customThemeColor = await getSetting('customThemeColor')
+      if (customThemeColor) {
+        themeState.currentTheme = customTheme(customThemeColor)
+        applyThemeClasses(themeState.currentTheme.type)
+      } else {
+        // 如果没有自定义主题色，回退到 light
+        themeState.currentTheme = lightTheme
+        applyThemeClasses('light')
+      }
+    } else {
+      // 未知的主题类型，回退到 light
+      themeState.currentTheme = lightTheme
+      applyThemeClasses('light')
+    }
+  } catch (error) {
+    console.error('应用主题失败，使用默认亮色主题:', error)
+    // 出错时回退到 light
+    themeState.currentTheme = lightTheme
+    applyThemeClasses('light')
+  }
+}

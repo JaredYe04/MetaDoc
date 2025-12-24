@@ -126,30 +126,30 @@ const CRITICAL_SETTINGS = [
 
 // 加载单个设置的辅助函数
 async function loadSetting(key) {
-  if (settings[key] && typeof settings[key] === 'object' && !Array.isArray(settings[key])) {
-    return; // 如果是对象，则不处理
-  }
+    if (settings[key] && typeof settings[key] === 'object' && !Array.isArray(settings[key])) {
+      return; // 如果是对象，则不处理
+    }
   try {
     const value = await ipcRenderer.invoke('get-setting', { key: key });
-    if (value === undefined) {
-      //如果没有设置，则使用默认值
-      // 对于 themeConfigs，确保是可序列化的
-      if (key === 'themeConfigs' && Array.isArray(settings[key])) {
-        const serializable = settings[key].map((item) => ({
-          id: item.id,
-          name: item.name,
-          type: item.type,
-          themeColor: item.themeColor,
-          isDefault: item.isDefault
-        }));
+      if (value === undefined) {
+        //如果没有设置，则使用默认值
+        // 对于 themeConfigs，确保是可序列化的
+        if (key === 'themeConfigs' && Array.isArray(settings[key])) {
+          const serializable = settings[key].map((item) => ({
+            id: item.id,
+            name: item.name,
+            type: item.type,
+            themeColor: item.themeColor,
+            isDefault: item.isDefault
+          }));
         await setSetting(key, serializable);
-      } else {
+        } else {
         await setSetting(key, settings[key]);
+        }
+      } else {
+        //如果有设置，则更新settings
+        settings[key] = value;
       }
-    } else {
-      //如果有设置，则更新settings
-      settings[key] = value;
-    }
   } catch (error) {
     console.error(`Error initializing setting "${key}":`, error);
   }

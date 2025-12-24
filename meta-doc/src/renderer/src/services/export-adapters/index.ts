@@ -13,7 +13,7 @@ import { TexToPdfAdapter } from './tex-to-pdf-adapter';
 import { TexToTexAdapter } from './tex-to-tex-adapter';
 
 // 注册所有适配器
-export function registerAllAdapters(): void {
+export async function registerAllAdapters(): Promise<void> {
   // Markdown 导出适配器
   exportAdapterRegistry.register(new MdToPdfAdapter());
   exportAdapterRegistry.register(new MdToDocxAdapter());

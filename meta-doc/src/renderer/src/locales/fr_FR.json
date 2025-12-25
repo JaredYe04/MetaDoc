@@ -488,6 +488,7 @@
     "findPrevBtn": "Trouver le précédent",
     "findNextBtn": "Trouver le suivant",
     "findAllBtn": "Tout trouver",
+    "findFromStartBtn": "Rechercher depuis le début",
     "resetBtn": "Réinitialiser",
     "aiRegexSuggestion": "Expression régulière suggérée par l'IA :",
     "replaceCount": "\"{find}\" a été remplacé {count} fois par \"{replace}\"",

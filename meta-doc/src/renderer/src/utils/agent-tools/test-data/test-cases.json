@@ -702,6 +702,203 @@
           "totalMatchesShouldBeGreaterThan": 0,
           "matchesShouldContainPattern": "function"
         }
+      },
+      {
+        "id": "grep::replace-first-001",
+        "name": "替换第一个匹配项",
+        "params": {
+          "pattern": "示例",
+          "replaceText": "测试",
+          "scope": ["document"]
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 0,
+          "replacedCountShouldBe": 1,
+          "replacementTextShouldBe": "测试"
+        }
+      },
+      {
+        "id": "grep::replace-all-001",
+        "name": "替换所有匹配项",
+        "params": {
+          "pattern": "示例",
+          "replaceText": "测试",
+          "replaceAll": true,
+          "scope": ["document"]
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 0,
+          "replacedCountShouldBeGreaterThan": 1,
+          "replacementTextShouldBe": "测试"
+        }
+      },
+      {
+        "id": "grep::replace-indices-001",
+        "name": "替换指定的匹配项（使用索引）",
+        "params": {
+          "pattern": "示例",
+          "replaceText": "测试",
+          "replaceIndices": [0, 2],
+          "scope": ["document"]
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 2,
+          "replacedCountShouldBe": 2,
+          "replacementTextShouldBe": "测试"
+        }
+      },
+      {
+        "id": "grep::regex-replace-capture-001",
+        "name": "正则表达式替换（使用捕获组）",
+        "params": {
+          "pattern": "(\\d+)-(\\d+)",
+          "isRegex": true,
+          "replaceText": "$2-$1",
+          "replaceAll": true,
+          "scope": ["document"]
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 0,
+          "replacedCountShouldBeGreaterThan": 0,
+          "replacementTextShouldBe": "$2-$1"
+        }
+      },
+      {
+        "id": "grep::regex-replace-multiple-groups-001",
+        "name": "正则表达式替换（使用多个捕获组）",
+        "params": {
+          "pattern": "Hello (\\w+)",
+          "isRegex": true,
+          "replaceText": "Hi $1",
+          "replaceAll": true,
+          "scope": ["document"]
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 0,
+          "replacedCountShouldBeGreaterThan": 0,
+          "replacementTextShouldBe": "Hi $1"
+        }
+      },
+      {
+        "id": "grep::regex-replace-literal-dollar-001",
+        "name": "正则表达式替换（使用字面量$符号）",
+        "params": {
+          "pattern": "价格",
+          "isRegex": true,
+          "replaceText": "$$100",
+          "replaceAll": true,
+          "scope": ["document"]
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 0,
+          "replacedCountShouldBeGreaterThan": 0,
+          "replacementTextShouldBe": "$$100"
+        }
+      },
+      {
+        "id": "grep::replace-with-groups-001",
+        "name": "替换时使用捕获组信息",
+        "params": {
+          "pattern": "第([一二三四五六七八九十]+)章",
+          "isRegex": true,
+          "replaceText": "章节$1",
+          "replaceAll": true,
+          "scope": ["document"]
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 0,
+          "replacedCountShouldBeGreaterThan": 0,
+          "replacementTextShouldBe": "章节$1"
+        }
+      },
+      {
+        "id": "grep::replace-document-only-001",
+        "name": "只替换文档内容（不替换metadata）",
+        "params": {
+          "pattern": "测试",
+          "replaceText": "替换",
+          "replaceAll": true,
+          "scope": ["document", "metadata"]
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 0,
+          "replacedCountShouldBeGreaterThan": 0,
+          "replacementTextShouldBe": "替换"
+        }
+      },
+      {
+        "id": "grep::replace-no-match-001",
+        "name": "替换不存在的匹配项",
+        "params": {
+          "pattern": "不存在的文本12345",
+          "replaceText": "新文本",
+          "replaceAll": true,
+          "scope": ["document"]
+        },
+        "assertions": {
+          "totalMatchesShouldBe": 0,
+          "replacedCountShouldBe": 0
+        }
+      },
+      {
+        "id": "grep::replace-single-match-001",
+        "name": "替换单个匹配项（默认行为）",
+        "params": {
+          "pattern": "示例",
+          "replaceText": "测试",
+          "scope": ["document"]
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 0,
+          "replacedCountShouldBe": 1,
+          "replacementTextShouldBe": "测试"
+        }
+      },
+      {
+        "id": "grep::regex-replace-complex-001",
+        "name": "复杂正则表达式替换",
+        "params": {
+          "pattern": "(\\d{4})-(\\d{2})-(\\d{2})",
+          "isRegex": true,
+          "replaceText": "$3/$2/$1",
+          "replaceAll": true,
+          "scope": ["document"]
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 0,
+          "replacedCountShouldBeGreaterThan": 0,
+          "replacementTextShouldBe": "$3/$2/$1"
+        }
+      },
+      {
+        "id": "grep::replace-indices-out-of-range-001",
+        "name": "替换索引超出范围（应只替换有效索引）",
+        "params": {
+          "pattern": "示例",
+          "replaceText": "测试",
+          "replaceIndices": [0, 100, 200],
+          "scope": ["document"]
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 0,
+          "replacedCountShouldBeLessThanOrEqual": 1
+        }
+      },
+      {
+        "id": "grep::replace-with-context-001",
+        "name": "替换并保留上下文信息",
+        "params": {
+          "pattern": "示例",
+          "replaceText": "测试",
+          "replaceAll": true,
+          "contextLines": 3,
+          "scope": ["document"]
+        },
+        "assertions": {
+          "totalMatchesShouldBeGreaterThan": 0,
+          "replacedCountShouldBeGreaterThan": 0,
+          "matchesShouldHaveContext": true
+        }
       }
     ]
   },

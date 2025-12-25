@@ -112,8 +112,13 @@
     "findPrevBtn": "Find Previous",
     "findNextBtn": "Find Next",
     "findAllBtn": "Find All",
+    "findFromStartBtn": "Find from Start",
     "resetBtn": "Reset",
     "aiRegexSuggestion": "AI suggested regex:",
+    "matchesList": "Matches",
+    "contextView": "Context",
+    "line": "Line",
+    "column": "Column",
     "replaceCount": "Replaced {count} occurrences of \"{find}\" with \"{replace}\"",
     "foundCount": "Found {count} occurrences of \"{find}\"",
     "notFoundMore": "No more matches found"
@@ -1018,7 +1023,17 @@
       "snapshotFile": "Snapshot File",
       "selectSnapshotFile": "Select Snapshot File",
       "invalidSnapshot": "Invalid snapshot file",
-      "snapshotVersionMismatch": "Snapshot version mismatch"
+      "snapshotVersionMismatch": "Snapshot version mismatch",
+      "grep": {
+        "progress": {
+          "searching": "Searching...",
+          "searchingDocument": "Searching document content...",
+          "searchingMetadata": "Searching metadata...",
+          "replacing": "Replacing...",
+          "completed": "Search completed, found {count} matches",
+          "completedWithReplace": "Search completed, found {count} matches, replaced {replaced} occurrences"
+        }
+      }
     },
     "sessions": {
       "title": "Agent Sessions",
@@ -1169,6 +1184,27 @@
         "loading": "Loading document outline...",
         "processing": "Formatting titles...",
         "saving": "Saving document..."
+      },
+      "grep": {
+        "searching": "Searching...",
+        "title": "Text Search Results",
+        "matchesCount": "Found {count} matches",
+        "searchPattern": "Search Pattern",
+        "matchesList": "Search Results List",
+        "contextView": "Context View",
+        "line": "Line",
+        "column": "Column",
+        "document": "Document",
+        "metadata": "Metadata",
+        "noMatches": "No matches found",
+        "error": "Search failed",
+        "preContext": "Pre-context",
+        "postContext": "Post-context",
+        "match": "Match text",
+        "replacedCount": "Replaced {count} occurrences",
+        "replacementText": "Replacement Text",
+        "showOriginal": "Show Original",
+        "showReplaced": "Show Replaced"
       }
     },
     "reference": {

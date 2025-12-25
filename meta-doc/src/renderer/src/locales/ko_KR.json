@@ -110,6 +110,7 @@
     "findPrevBtn": "이전 찾기",
     "findNextBtn": "다음 찾기",
     "findAllBtn": "모두 찾기",
+    "findFromStartBtn": "처음부터 찾기",
     "resetBtn": "초기화",
     "aiRegexSuggestion": "AI가 제안하는 정규 표현식:",
     "replaceCount": "총 {count}개의 \"{find}\"을(를) \"{replace}\"(으)로 바꿨습니다",

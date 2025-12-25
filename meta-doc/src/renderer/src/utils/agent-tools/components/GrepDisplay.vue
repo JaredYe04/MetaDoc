@@ -8,8 +8,16 @@
     <div v-else-if="displayData.stage === 'completed' && resultData && resultData.matches" class="completed-state" :style="completedStateStyle">
       <div class="grep-header" :style="headerStyle">
         <h3 class="grep-title" :style="titleStyle">{{ $t('agent.display.grep.title') }}</h3>
-        <el-tag type="info" size="small">{{ $t('agent.display.grep.matchesCount', { count: resultData.totalMatches }) }}</el-tag>
-        <el-tag type="primary" size="small">{{ $t('agent.display.grep.searchPattern') }}: {{ resultData.searchPattern }}</el-tag>
+        <div class="header-tags" :style="headerTagsStyle">
+          <el-tag type="info" size="small">{{ $t('agent.display.grep.matchesCount', { count: resultData.totalMatches }) }}</el-tag>
+          <el-tag type="primary" size="small">{{ $t('agent.display.grep.searchPattern') }}: {{ resultData.searchPattern }}</el-tag>
+          <el-tag v-if="resultData.replacedCount && resultData.replacedCount > 0" type="success" size="small">
+            {{ $t('agent.display.grep.replacedCount', { count: resultData.replacedCount }) }}
+          </el-tag>
+          <el-tag v-if="resultData.replacementText" type="warning" size="small">
+            {{ $t('agent.display.grep.replacementText') }}: {{ resultData.replacementText }}
+          </el-tag>
+        </div>
       </div>
 
       <div class="grep-content">
@@ -48,6 +56,14 @@
         <div class="editor-panel">
           <div class="panel-header" :style="panelHeaderStyle">
             <span>{{ $t('agent.display.grep.contextView') }}</span>
+            <el-button
+              v-if="hasReplacedContent"
+              size="small"
+              :type="showReplacedContent ? 'primary' : 'default'"
+              @click="toggleContent"
+            >
+              {{ showReplacedContent ? $t('agent.display.grep.showOriginal') : $t('agent.display.grep.showReplaced') }}
+            </el-button>
           </div>
           <div :id="editorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
         </div>
@@ -92,6 +108,7 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
 
 const selectedMatchIndex = ref<number | null>(null)
 const editorId = ref(`grep-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+const showReplacedContent = ref(false) // 是否显示替换后的内容
 let monacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 let currentDecorations: string[] = [] // 保存当前的高亮装饰ID，用于清除
 
@@ -139,10 +156,37 @@ const resultData = computed((): GrepResult | null => {
   return null
 })
 
-// 获取原始内容
+// 检查是否有替换后的内容
+const hasReplacedContent = computed(() => {
+  return !!(resultData.value?.replacedContent && resultData.value.replacedCount && resultData.value.replacedCount > 0)
+})
+
+// 获取当前显示的内容（原始内容或替换后内容）
+const currentContent = computed(() => {
+  if (showReplacedContent.value && hasReplacedContent.value && resultData.value?.replacedContent) {
+    return resultData.value.replacedContent
+  }
+  return resultData.value?.originalContent || ''
+})
+
+// 获取原始内容（用于向后兼容）
 const originalContent = computed(() => {
   return resultData.value?.originalContent || ''
 })
+
+// 切换显示内容
+const toggleContent = async () => {
+  showReplacedContent.value = !showReplacedContent.value
+  // 切换内容后，重新初始化编辑器
+  await nextTick()
+  if (monacoEditor && currentContent.value) {
+    monacoEditor.setValue(currentContent.value)
+    // 如果选中了匹配项，重新高亮
+    if (selectedMatchIndex.value !== null) {
+      await highlightMatchInEditor(selectedMatchIndex.value)
+    }
+  }
+}
 
 // 获取文档语言
 const documentLanguage = computed(() => {
@@ -228,7 +272,7 @@ const getMonacoEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
 }
 
 const highlightMatchInEditor = async (index: number) => {
-  if (!resultData.value || !originalContent.value) return
+  if (!resultData.value || !currentContent.value) return
   
   const match = resultData.value.matches[index]
   if (!match) return
@@ -264,16 +308,23 @@ const highlightMatchInEditor = async (index: number) => {
     return
   }
 
-  // 对于文档匹配，使用原始文档内容的行号和列号（match.line 和 match.column 是1-based的）
+  // 如果显示的是替换后的内容，需要重新计算位置（因为替换可能改变了文本长度）
+  // 为了简化，我们使用原始内容的行号和列号（通常替换不会改变行号，除非替换文本包含换行）
+  // 如果替换文本长度变化很大，列号可能会有偏差，但行号通常保持不变
   const lineNumber = match.line
   const column = match.column
   
   // 获取匹配文本（去除可能的 metadata 前缀）
   const matchText = match.match
-  const actualMatchText = matchText
+  let actualMatchText = matchText
   
-  // 确保行号和列号在有效范围内
-  const contentLines = originalContent.value.split(/\r?\n/)
+  // 如果显示替换后的内容，使用替换文本作为高亮目标
+  if (showReplacedContent.value && resultData.value.replacementText) {
+    actualMatchText = resultData.value.replacementText
+  }
+  
+  // 确保行号和列号在有效范围内（使用当前显示的内容）
+  const contentLines = currentContent.value.split(/\r?\n/)
   if (lineNumber < 1 || lineNumber > contentLines.length) {
     console.warn(`行号 ${lineNumber} 超出范围 [1, ${contentLines.length}]`)
     return
@@ -281,8 +332,29 @@ const highlightMatchInEditor = async (index: number) => {
   
   const lineContent = contentLines[lineNumber - 1] || ''
   const maxColumn = lineContent.length
-  const actualColumn = Math.min(column, maxColumn)
-  const actualMatchLength = Math.min(actualMatchText.length, maxColumn - actualColumn + 1)
+  
+  // 如果显示替换后的内容，尝试在当前行查找替换文本
+  let actualColumn = column
+  let actualMatchLength = actualMatchText.length
+  
+  if (showReplacedContent.value && resultData.value.replacementText) {
+    // 在替换后的内容中，尝试找到替换文本的位置
+    // 由于替换可能改变了列号，我们在当前行中搜索替换文本
+    const replacementText = resultData.value.replacementText
+    const replacementIndex = lineContent.indexOf(replacementText, Math.max(0, column - 10))
+    if (replacementIndex >= 0) {
+      actualColumn = replacementIndex + 1 // 转换为1-based
+      actualMatchLength = replacementText.length
+    } else {
+      // 如果找不到，使用原始列号（可能不准确，但总比没有好）
+      actualColumn = Math.min(column, maxColumn)
+      actualMatchLength = Math.min(actualMatchText.length, maxColumn - actualColumn + 1)
+    }
+  } else {
+    // 显示原始内容，使用原始列号
+    actualColumn = Math.min(column, maxColumn)
+    actualMatchLength = Math.min(actualMatchText.length, maxColumn - actualColumn + 1)
+  }
   
   // 创建高亮范围（在原始文档中）
   const range = new monaco.Range(
@@ -328,7 +400,7 @@ const highlightMatchInEditor = async (index: number) => {
 }
 
 const initMonacoEditor = async () => {
-  if (!resultData.value || resultData.value.matches.length === 0 || !originalContent.value) return
+  if (!resultData.value || resultData.value.matches.length === 0 || !currentContent.value) return
   
   // 确保 Monaco Worker 已配置
   setupMonacoWorker()
@@ -361,8 +433,8 @@ const initMonacoEditor = async () => {
   // 确保容器有 ID（在创建编辑器之前设置，这是匹配的关键）
   container.id = editorId.value
 
-  // 使用原始文档内容
-  const content = originalContent.value || ''
+  // 使用当前选择的内容（原始内容或替换后内容）
+  const content = currentContent.value || ''
   const lang = documentLanguage.value
 
   // 创建 Monaco 编辑器（参考 LaTeXEditor.vue 的做法）
@@ -406,9 +478,9 @@ const disposeMonacoEditor = () => {
   }
 }
 
-// 监听结果数据和原始内容变化，重新初始化编辑器
-watch([() => resultData.value, () => originalContent.value], async () => {
-  if (resultData.value && resultData.value.matches && resultData.value.matches.length > 0 && originalContent.value) {
+// 监听结果数据和当前内容变化，重新初始化编辑器
+watch([() => resultData.value, () => currentContent.value], async () => {
+  if (resultData.value && resultData.value.matches && resultData.value.matches.length > 0 && currentContent.value) {
     await nextTick()
     initMonacoEditor()
   }
@@ -473,6 +545,13 @@ const headerStyle = computed(() => ({
   flexWrap: 'wrap'
 }))
 
+const headerTagsStyle = computed(() => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  flexWrap: 'wrap'
+}))
+
 const titleStyle = computed(() => ({
   color: themeState.currentTheme.textColor,
   margin: 0
@@ -484,7 +563,11 @@ const panelHeaderStyle = computed(() => ({
   borderBottom: `1px solid ${themeState.currentTheme.textColor2}20`,
   padding: '8px 12px',
   fontWeight: '500',
-  fontSize: '13px'
+  fontSize: '13px',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: '8px'
 }))
 
 const getMatchItemStyle = (index: number) => {

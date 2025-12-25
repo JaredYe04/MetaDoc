@@ -34,6 +34,7 @@ export interface GrepMatch {
   postContext: string   // 后置上下文
   context: string       // 完整上下文（包含匹配行）
   similarity?: number   // 相似度分数（0-1，仅在模糊搜索模式下提供）
+  groups?: string[]     // 正则表达式捕获组（仅在正则表达式搜索模式下提供）
 }
 
 /**
@@ -49,6 +50,9 @@ export interface GrepResult {
   scope: string[]       // 搜索范围：['document', 'metadata']
   originalContent?: string  // 原始文档内容（用于Display组件显示）
   language?: string         // 文档语言类型（'markdown' | 'latex' | 'plaintext'）
+  replacedCount?: number    // 替换的数量（如果执行了替换）
+  replacementText?: string  // 替换文本（如果执行了替换）
+  replacedContent?: string  // 替换后的文档内容（如果执行了替换）
 }
 
 /**
@@ -314,7 +318,9 @@ function searchInText(
         match: match[0],
         preContext,
         postContext,
-        context
+        context,
+        // 如果使用正则表达式，保存捕获组信息
+        groups: isRegex && match.length > 1 ? [...match] : undefined
       })
     }
   }
@@ -399,12 +405,126 @@ function searchInMetadata(
         match: `[metadata.${field.name}] ${match[0]}`,
         preContext: field.value.substring(Math.max(0, match.index - 50), match.index),
         postContext: field.value.substring(match.index + match[0].length, Math.min(field.value.length, match.index + match[0].length + 50)),
-        context: field.value.substring(Math.max(0, match.index - 50), Math.min(field.value.length, match.index + match[0].length + 50))
+        context: field.value.substring(Math.max(0, match.index - 50), Math.min(field.value.length, match.index + match[0].length + 50)),
+        // 如果使用正则表达式，保存捕获组信息
+        groups: isRegex && match.length > 1 ? [...match] : undefined
       })
     }
   }
 
   return matches
+}
+
+/**
+ * 计算替换文本（支持正则表达式捕获组）
+ */
+function computeReplacementText(
+  replacement: string,
+  match: GrepMatch,
+  isRegex: boolean
+): string {
+  let result = replacement
+  
+  // 如果使用正则表达式且有捕获组，处理 $1, $2 等引用
+  if (isRegex && match.groups && match.groups.length > 0) {
+    // 处理 $1, $2, $3... 等捕获组引用
+    // 同时也支持 $$ 表示字面量 $
+    result = result.replace(/\$(\d+)|(\$\$)/g, (fullMatch, indexStr, literalDollar) => {
+      // 如果是 $$，返回单个 $
+      if (literalDollar) {
+        return "$"
+      }
+      // 如果是 $1, $2 等，返回对应的捕获组
+      const index = Number(indexStr)
+      if (Number.isNaN(index) || index < 0 || index >= match.groups!.length) {
+        return fullMatch // 如果索引无效，返回原始字符串
+      }
+      return match.groups![index] ?? ""
+    })
+  }
+  
+  return result
+}
+
+/**
+ * 在文本中执行替换操作
+ */
+function performReplacements(
+  text: string,
+  matches: GrepMatch[],
+  replacement: string,
+  isRegex: boolean,
+  replaceAll: boolean,
+  replaceIndices?: number[]
+): { newText: string; replacedCount: number } {
+  if (matches.length === 0) {
+    return { newText: text, replacedCount: 0 }
+  }
+  
+  // 确定要替换的匹配项
+  let indicesToReplace: number[]
+  if (replaceAll) {
+    // 全部替换
+    indicesToReplace = matches.map((_, index) => index)
+  } else if (replaceIndices && replaceIndices.length > 0) {
+    // 部分替换（指定索引）
+    indicesToReplace = replaceIndices.filter(index => index >= 0 && index < matches.length)
+  } else {
+    // 默认只替换第一个
+    indicesToReplace = [0]
+  }
+  
+  if (indicesToReplace.length === 0) {
+    return { newText: text, replacedCount: 0 }
+  }
+  
+  // 按行号分组匹配项，从后往前替换（避免位置偏移）
+  const lines = text.split(/\r?\n/)
+  const matchesByLine = new Map<number, Array<{ matchIndex: number; match: GrepMatch }>>()
+  
+  for (const index of indicesToReplace) {
+    const match = matches[index]
+    if (!matchesByLine.has(match.line)) {
+      matchesByLine.set(match.line, [])
+    }
+    matchesByLine.get(match.line)!.push({ matchIndex: index, match })
+  }
+  
+  // 从后往前处理每一行（避免位置偏移）
+  const sortedLines = Array.from(matchesByLine.keys()).sort((a, b) => b - a)
+  let replacedCount = 0
+  
+  for (const lineNum of sortedLines) {
+    const lineMatches = matchesByLine.get(lineNum)!
+    // 在同一行内，从后往前替换
+    lineMatches.sort((a, b) => b.match.column - a.match.column)
+    
+    const lineIndex = lineNum - 1 // 转换为0-based索引
+    if (lineIndex < 0 || lineIndex >= lines.length) continue
+    
+    let line = lines[lineIndex]
+    
+    for (const { match } of lineMatches) {
+      const colIndex = match.column - 1 // 转换为0-based索引
+      const matchLength = match.match.length
+      
+      // 计算替换文本
+      const replacementText = computeReplacementText(replacement, match, isRegex)
+      
+      // 执行替换
+      if (colIndex >= 0 && colIndex + matchLength <= line.length) {
+        line = line.substring(0, colIndex) + replacementText + line.substring(colIndex + matchLength)
+        replacedCount++
+      }
+    }
+    
+    lines[lineIndex] = line
+  }
+  
+  return {
+    newText: lines.join('\n'),
+    replacedCount
+  }
 }
 
 /**
@@ -418,6 +538,11 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const contextLines = (params.contextLines as number) || 3
   const scope = (params.scope as string[]) || ['document', 'metadata']
   const tabId = params.tabId as string | undefined
+  
+  // 替换相关参数
+  const replaceText = params.replaceText as string | undefined
+  const replaceAll = params.replaceAll === true  // 是否全部替换
+  const replaceIndices = params.replaceIndices as number[] | undefined  // 要替换的匹配项索引（0-based）
 
   // 模糊搜索和正则搜索不能同时启用
   if (isFuzzy && isRegex) {
@@ -547,6 +672,7 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     const allMatches: GrepMatch[] = []
     let originalContent: string | undefined = undefined
     let language: string = 'plaintext'
+    let documentText: string | undefined = undefined
 
     // 在文档中搜索
     if (scope.includes('document')) {
@@ -565,10 +691,10 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         message: i18n.global.t('agent.tool.grep.progress.searchingDocument', '正在搜索文档内容...')
       })
 
-      const documentText = doc.format === 'md' ? doc.markdown : doc.tex
+      documentText = doc.format === 'md' ? doc.markdown : doc.tex
       originalContent = documentText
       language = doc.format === 'md' ? 'markdown' : (doc.format === 'tex' ? 'latex' : 'plaintext')
-      const docMatches = searchInText(documentText, pattern, isRegex, contextLines, isFuzzy, similarityThreshold)
+      const docMatches = searchInText(documentText || '', pattern, isRegex, contextLines, isFuzzy, similarityThreshold)
       allMatches.push(...docMatches)
     }
 
@@ -599,6 +725,61 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       }
     }
 
+    // 执行替换操作（如果提供了替换文本）
+    let replacedCount = 0
+    let newContent: string | undefined = undefined
+    
+    if (replaceText && documentText && scope.includes('document')) {
+      // 只替换文档中的匹配项（不支持替换metadata）
+      const documentMatches = allMatches.filter(m => !m.match.startsWith('[metadata.'))
+      
+      if (documentMatches.length > 0) {
+        onUpdate({
+          content: {
+            stage: 'replacing',
+            pattern,
+            isRegex,
+            scope,
+            matchesCount: documentMatches.length
+          },
+          format: 'json',
+          componentName: 'GrepDisplay'
+        }, {
+          percentage: 85,
+          message: i18n.global.t('agent.tool.grep.progress.replacing', '正在执行替换...')
+        })
+        
+        // 此时 documentText 已经确认不是 undefined
+        const replacementResult = performReplacements(
+          documentText as string,
+          documentMatches,
+          replaceText,
+          isRegex,
+          replaceAll,
+          replaceIndices
+        )
+        
+        newContent = replacementResult.newText
+        replacedCount = replacementResult.replacedCount
+        
+        // 更新文档内容
+        if (windowType === 'setting') {
+          // 在设置窗口中，需要通过广播更新文档
+          // 注意：设置窗口可能无法直接更新文档，这里只返回结果
+          logger.warn('在设置窗口中无法直接更新文档，替换结果仅用于显示')
+        } else {
+          // 在主窗口中，直接更新文档
+          if (targetTabId) {
+            if (doc.format === 'md') {
+              workspace.updateDocumentMarkdown(targetTabId, newContent)
+            } else if (doc.format === 'tex') {
+              workspace.updateDocumentTex(targetTabId, newContent)
+            }
+          }
+        }
+      }
+    }
+
     const result: GrepResult = {
       matches: allMatches,
       totalMatches: allMatches.length,
@@ -608,7 +789,10 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       similarityThreshold: isFuzzy ? similarityThreshold : undefined,
       scope,
       originalContent,
-      language
+      language,
+      replacedCount: replacedCount > 0 ? replacedCount : undefined,
+      replacementText: replaceText,
+      replacedContent: newContent
     }
 
     onUpdate({
@@ -620,7 +804,9 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       componentName: 'GrepDisplay'
     }, {
       percentage: 100,
-      message: i18n.global.t('agent.tool.grep.progress.completed', `搜索完成，找到 ${allMatches.length} 个匹配`)
+      message: replacedCount > 0
+        ? i18n.global.t('agent.tool.grep.progress.completedWithReplace', { count: allMatches.length, replaced: replacedCount })
+        : i18n.global.t('agent.tool.grep.progress.completed', { count: allMatches.length })
     })
 
     return {
@@ -680,7 +866,7 @@ export const grepToolConfig: AgentToolConfig = {
 # 文本搜索工具
 
 ## 功能描述
-在当前活动文档和metadata中搜索文本或正则表达式，返回所有匹配项及其上下文（前置和后置文本）。这是一个**高效、轻量级的查询工具**，可以频繁调用，帮助快速定位文档内容。
+在当前活动文档和metadata中搜索文本或正则表达式，返回所有匹配项及其上下文（前置和后置文本）。支持**搜索和替换**功能，可以一次性完成查找和替换操作。这是一个**高效、轻量级的查询工具**，可以频繁调用，帮助快速定位和修改文档内容。
 
 ## ⭐ 推荐频繁使用
 
@@ -701,6 +887,8 @@ export const grepToolConfig: AgentToolConfig = {
 - **定位插入位置**：搜索关键词，根据匹配位置和上下文确定插入点
 - **验证内容**：检查某个内容是否已存在
 - **快速了解文档结构**：通过搜索关键术语了解文档内容分布
+- **批量替换**：使用正则表达式和捕获组进行批量替换
+- **选择性替换**：只替换指定的匹配项
 
 ## 搜索模式
 
@@ -734,7 +922,10 @@ export const grepToolConfig: AgentToolConfig = {
   "similarityThreshold": 0.6,    // 可选，模糊搜索相似度阈值（0-1），默认0.6，值越高要求越严格
   "contextLines": 3,             // 可选，上下文行数，默认3
   "scope": ["document", "metadata"],  // 可选，搜索范围，默认两者都搜索
-  "tabId": "string"              // 可选，指定文档标签页ID，默认使用当前活动标签页
+  "tabId": "string",             // 可选，指定文档标签页ID，默认使用当前活动标签页
+  "replaceText": "string",      // 可选，替换文本（如果提供，将执行替换操作）
+  "replaceAll": false,           // 可选，是否替换所有匹配项，默认false（只替换第一个）
+  "replaceIndices": [0, 2, 5]   // 可选，要替换的匹配项索引数组（0-based），与replaceAll互斥
 }
 \`\`\`
 
@@ -777,6 +968,52 @@ export const grepToolConfig: AgentToolConfig = {
 // 返回结果包含行号和列号，可以用这些位置信息配合edit工具插入内容
 \`\`\`
 
+### 示例5：替换第一个匹配项
+\`\`\`json
+{
+  "pattern": "旧文本",
+  "replaceText": "新文本"
+}
+\`\`\`
+
+### 示例6：替换所有匹配项
+\`\`\`json
+{
+  "pattern": "旧文本",
+  "replaceText": "新文本",
+  "replaceAll": true
+}
+\`\`\`
+
+### 示例7：替换指定的匹配项（使用索引）
+\`\`\`json
+{
+  "pattern": "旧文本",
+  "replaceText": "新文本",
+  "replaceIndices": [0, 2, 5]  // 只替换索引为0、2、5的匹配项
+}
+\`\`\`
+
+### 示例8：正则表达式替换（使用捕获组）
+\`\`\`json
+{
+  "pattern": "(\\d+)-(\\d+)",  // 匹配 "123-456"
+  "isRegex": true,
+  "replaceText": "$2-$1",      // 替换为 "456-123"（交换两个数字）
+  "replaceAll": true
+}
+\`\`\`
+
+### 示例9：正则表达式替换（使用多个捕获组）
+\`\`\`json
+{
+  "pattern": "Hello (\\w+)",   // 匹配 "Hello World"
+  "isRegex": true,
+  "replaceText": "Hi $1",      // 替换为 "Hi World"
+  "replaceAll": true
+}
+\`\`\`
+
 ## 输出格式
 \`\`\`json
 {
@@ -788,7 +1025,8 @@ export const grepToolConfig: AgentToolConfig = {
       "preContext": "前置上下文",
       "postContext": "后置上下文",
       "context": "完整上下文",
-      "similarity": 0.85  // 模糊搜索模式下提供，相似度分数（0-1）
+      "similarity": 0.85,  // 模糊搜索模式下提供，相似度分数（0-1）
+      "groups": ["完整匹配", "捕获组1", "捕获组2"]  // 正则表达式搜索模式下提供，捕获组数组
     }
   ],
   "totalMatches": 5,
@@ -796,7 +1034,9 @@ export const grepToolConfig: AgentToolConfig = {
   "isRegex": false,
   "isFuzzy": false,  // 是否使用模糊搜索
   "similarityThreshold": 0.6,  // 模糊搜索阈值（如果使用模糊搜索）
-  "scope": ["document", "metadata"]
+  "scope": ["document", "metadata"],
+  "replacedCount": 3,  // 替换的数量（如果执行了替换）
+  "replacementText": "新文本"  // 替换文本（如果执行了替换）
 }
 \`\`\`
 
@@ -815,6 +1055,13 @@ export const grepToolConfig: AgentToolConfig = {
 - 上下文行数可以自定义（默认3行），帮助理解匹配项在文档中的位置
 - 正则表达式使用JavaScript RegExp语法
 - **定位插入位置的好方法**：可以搜索关键词，根据匹配位置确定插入点，比总是从行1列1插入更准确
+- **替换功能**：
+  - 支持全部替换（\`replaceAll: true\`）和部分替换（\`replaceIndices: [0, 2, 5]\`）
+  - 默认只替换第一个匹配项
+  - \`replaceAll\` 和 \`replaceIndices\` 互斥，不能同时使用
+  - 替换操作只支持文档内容，不支持替换metadata
+  - 正则表达式替换支持捕获组引用：\`$1\`, \`$2\` 等表示捕获组，\`$$\` 表示字面量 \`$\`
+  - 替换文本中的捕获组引用会在替换时自动展开为实际的捕获组内容
 `,
   callback: grepToolCallback,
   displayComponent: GrepDisplay,
@@ -863,6 +1110,22 @@ export const grepToolConfig: AgentToolConfig = {
       tabId: {
         type: 'string',
         description: '文档标签页ID（可选，默认使用当前活动标签页）'
+      },
+      replaceText: {
+        type: 'string',
+        description: '替换文本（可选，如果提供将执行替换操作）。支持正则表达式捕获组引用：$1, $2等表示捕获组，$$表示字面量$'
+      },
+      replaceAll: {
+        type: 'boolean',
+        description: '是否替换所有匹配项（默认false，只替换第一个）。与replaceIndices互斥',
+        default: false
+      },
+      replaceIndices: {
+        type: 'array',
+        items: {
+          type: 'number'
+        },
+        description: '要替换的匹配项索引数组（0-based，可选）。与replaceAll互斥，如果提供则只替换指定索引的匹配项'
       }
     },
     required: ['pattern']
@@ -889,6 +1152,14 @@ export const grepToolConfig: AgentToolConfig = {
       scope: {
         type: 'array',
         description: '搜索范围'
+      },
+      replacedCount: {
+        type: 'number',
+        description: '替换的数量（如果执行了替换）'
+      },
+      replacementText: {
+        type: 'string',
+        description: '替换文本（如果执行了替换）'
       }
     }
   }

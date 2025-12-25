@@ -488,6 +488,7 @@
     "findPrevBtn": "Vorheriges suchen",
     "findNextBtn": "Nächstes suchen",
     "findAllBtn": "Alle suchen",
+    "findFromStartBtn": "Von Anfang suchen",
     "resetBtn": "Zurücksetzen",
     "aiRegexSuggestion": "KI-Vorschlag für RegEx:",
     "replaceCount": "\"{find}\" wurde {count}× durch \"{replace}\" ersetzt",

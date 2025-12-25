@@ -127,7 +127,12 @@
         "findPrevBtn": "查找上一处",
         "findNextBtn": "查找下一处",
         "findAllBtn": "查找全部",
+        "findFromStartBtn": "从头查找",
         "resetBtn": "重置",
+        "matchesList": "匹配列表",
+        "contextView": "上下文视图",
+        "line": "行",
+        "column": "列",
         "aiRegexSuggestion": "AI建议的正则表达式：",
         "replaceCount": "共把{count}处“{find}”匹配替换为“{replace}”",
         "foundCount": "“{find}”共找到{count}处匹配",
@@ -1355,7 +1360,9 @@
           "searching": "正在搜索...",
           "searchingDocument": "正在搜索文档内容...",
           "searchingMetadata": "正在搜索元数据...",
-          "completed": "搜索完成，找到 {count} 个匹配"
+          "replacing": "正在执行替换...",
+          "completed": "搜索完成，找到 {count} 个匹配",
+          "completedWithReplace": "搜索完成，找到 {count} 个匹配，已替换 {replaced} 处"
         }
       }
     },
@@ -1976,6 +1983,10 @@
         "error": "搜索失败",
         "preContext": "前置上下文",
         "postContext": "后置上下文",
+        "replacedCount": "已替换 {count} 处",
+        "replacementText": "替换文本",
+        "showOriginal": "显示原始内容",
+        "showReplaced": "显示替换后内容",
         "match": "匹配文本"
       },
       "webCrawler": {

@@ -74,6 +74,11 @@ export async function convertMarkdownToLatex(markdown, title = 'Generated Docume
 \\usepackage{lastpage}
 \\usepackage{float}
 \\usepackage{placeins}
+\\usepackage{amsmath}
+\\usepackage{amssymb}
+\\usepackage{amsthm}
+\\usepackage{amsfonts}
+\\usepackage{mathrsfs} 
 
 % 英文正文字体
 \\setmainfont{Times New Roman} % 英文正文

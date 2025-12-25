@@ -17,7 +17,7 @@ import { createRendererLogger, RendererLogger } from "../utils/logger";
 
 const WORD_SEPARATORS_FALLBACK =
   "~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?`´\"“”‘’、，。；：《》（）【】";
-const MAX_MATCHES = 5000;
+const MAX_MATCHES = Number.MAX_SAFE_INTEGER; // 对于 Monaco 编辑器，性能足够好，不需要限制匹配数量
 const MAX_HIGHLIGHTED_MATCHES = 512;
 
 let logger:RendererLogger;
@@ -111,6 +111,12 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     const text = editor.getValue();
     const lineStarts = this.computeLineStarts(text);
     
+    // 获取当前光标位置，从光标位置开始搜索
+    const selection = editor.getSelection();
+    const startOffset = selection
+      ? editor.getModel()?.getOffsetAt(selection.getStartPosition()) ?? 0
+      : 0;
+    
     // 使用 requestIdleCallback 或 setTimeout 来异步执行搜索
     const scheduleNext = (callback: () => void) => {
       if (typeof requestIdleCallback !== 'undefined') {
@@ -123,7 +129,7 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     // 异步执行搜索，避免阻塞 UI
     scheduleNext(() => {
       try {
-    const findResults = this.scanTextForMatches(text, normalized, lineStarts);
+    const findResults = this.scanTextForMatches(text, normalized, lineStarts, startOffset);
         this.finishSearch(findResults, previousIndex, previousMatchText, revealFirst);
       } catch (error) {
         logTrace("performAsyncSearch:error", error);
@@ -167,11 +173,13 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     }
     
     this.state.currentIndex = targetIndex;
-    this.applyDecorations(this.state.matches, this.state.currentIndex);
+    // 不在搜索时添加所有装饰，只在用户点击列表项时添加（类似 vditor）
+    // this.applyDecorations(this.state.matches, this.state.currentIndex);
     // 注意：不调用 revealMatch，只保留索引值，让用户通过"下一个"/"上一个"按钮来导航
     // 这样不会影响用户的编辑体验
     if (revealFirst && targetIndex >= 0 && findResults.length > 0) {
-      // 只有在首次搜索时才跳转到第一个匹配
+      // 只有在首次搜索时才跳转到第一个匹配并添加装饰
+      this.applyDecorations([findResults[targetIndex]], 0);
       this.revealMatch(findResults[targetIndex]);
     }
 
@@ -191,6 +199,9 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
         anchor: match.anchor,
         matchText: match.matchText,
         groups: match.groups ? [...match.groups] : undefined,
+        // 保留偏移量信息
+        startOffset: (match as any).startOffset,
+        endOffset: (match as any).endOffset,
       })),
       currentIndex: this.state.currentIndex,
     };
@@ -210,7 +221,8 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     this.state.currentIndex = nextIndex;
     const match = this.state.matches[nextIndex];
     logTrace("find:match", { match });
-    this.applyDecorations(this.state.matches, nextIndex);
+    // 只高亮当前匹配，不高亮所有匹配（类似 vditor）
+    this.applyDecorations([match], 0);
     logTrace("find:applyDecorations:done");
     this.revealMatch(match);
     logTrace("find:revealMatch:done");
@@ -290,11 +302,20 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
       for (const match of reversedMatches) {
         let replacementText = replacement;
         // 处理正则表达式替换组
-        if (this.state.options.useRegex && match.groups) {
-          replacementText = replacementText.replace(/\$(\d+)/g, (_full, indexStr) => {
+        if (this.state.options.useRegex && match.groups && match.groups.length > 0) {
+          // 处理 $1, $2, $3... 等捕获组引用
+          // 同时也支持 $$ 表示字面量 $
+          replacementText = replacementText.replace(/\$(\d+)|(\$\$)/g, (fullMatch, indexStr, literalDollar) => {
+            // 如果是 $$，返回单个 $
+            if (literalDollar) {
+              return "$";
+            }
+            // 如果是 $1, $2 等，返回对应的捕获组
             const index = Number(indexStr);
-            if (Number.isNaN(index)) return "";
-            return match.groups?.[index] ?? "";
+            if (Number.isNaN(index) || index < 0 || index >= match.groups!.length) {
+              return fullMatch; // 如果索引无效，返回原始字符串
+            }
+            return match.groups![index] ?? "";
           });
         }
         // 处理大小写保留
@@ -873,11 +894,20 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
 
   private computeReplacementText(match: FindResult, replacement: string): string {
     let result = replacement;
-    if (this.state.options.useRegex && match.groups) {
-      result = result.replace(/\$(\d+)/g, (_full, indexStr) => {
+    if (this.state.options.useRegex && match.groups && match.groups.length > 0) {
+      // 处理 $1, $2, $3... 等捕获组引用
+      // 同时也支持 $$ 表示字面量 $
+      result = result.replace(/\$(\d+)|(\$\$)/g, (fullMatch, indexStr, literalDollar) => {
+        // 如果是 $$，返回单个 $
+        if (literalDollar) {
+          return "$";
+        }
+        // 如果是 $1, $2 等，返回对应的捕获组
         const index = Number(indexStr);
-        if (Number.isNaN(index)) return "";
-        return match.groups?.[index] ?? "";
+        if (Number.isNaN(index) || index < 0 || index >= match.groups!.length) {
+          return fullMatch; // 如果索引无效，返回原始字符串
+        }
+        return match.groups![index] ?? "";
       });
     }
     if (this.state.options.preserveCase) {
@@ -911,9 +941,10 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     editor.revealRangeInCenter(range);
   }
 
-  private applyDecorations(matches: FindResult[], activeIndex: number) {
-    const highlightable = matches.slice(0, MAX_HIGHLIGHTED_MATCHES);
-    const decorations = highlightable.map((match, index) => {
+  // 将 applyDecorations 改为 public，以便 SearchReplaceMenu 可以调用
+  applyDecorations(matches: FindResult[], activeIndex: number) {
+    // 只高亮传入的匹配（通常只有一个）
+    const decorations = matches.map((match, index) => {
       const isActive = index === activeIndex;
       return {
         range: this.toMonacoRange(match.range),
@@ -995,6 +1026,7 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     text: string,
     options: Required<SearchOptions>,
     lineStarts: number[],
+    startOffset: number = 0,
   ): FindResult[] {
     const results: FindResult[] = [];
     if (!text || !options.text) return results;
@@ -1002,37 +1034,50 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     if (!regex) return results;
     const separators = this.getWordSeparators();
     
-    // 使用分时处理，避免大量匹配时阻塞
+    // 从指定偏移量开始搜索
+    const searchText = startOffset > 0 ? text.slice(startOffset) : text;
+    const searchStartOffset = startOffset;
+    
+    // 对于 Monaco 编辑器，性能足够好，不需要限制匹配数量
+    // 但保留 guard 机制防止空匹配时的无限循环
     const BATCH_SIZE = 100; // 每批处理100个匹配
     let guard = 0;
     let processedCount = 0;
+    const MAX_GUARD = 100000; // guard 的最大值，防止无限循环
     
-    while (results.length < MAX_MATCHES) {
-      const match = regex.exec(text);
+    // 移除 MAX_MATCHES 限制，允许查找所有匹配
+    regex.lastIndex = 0;
+    while (true) {
+      const match = regex.exec(searchText);
       if (!match) break;
       const value = match[0];
-      const start = match.index;
-      const end = start + value.length;
+      const relativeStart = match.index;
+      const relativeEnd = relativeStart + value.length;
+      const absoluteStart = searchStartOffset + relativeStart;
+      const absoluteEnd = searchStartOffset + relativeEnd;
       
       if (!value.length) {
         regex.lastIndex += 1;
-        if (++guard > MAX_MATCHES) break;
+        if (++guard > MAX_GUARD) break; // 防止空匹配导致的无限循环
         continue;
       }
       
       if (
         options.wholeWord &&
-        !this.isWholeWordBoundary(text, start, end, separators)
+        !this.isWholeWordBoundary(text, absoluteStart, absoluteEnd, separators)
       ) {
         continue;
       }
       
       results.push({
-        range: this.offsetsToRange(start, end, lineStarts),
+        range: this.offsetsToRange(absoluteStart, absoluteEnd, lineStarts),
         matchText: value,
         groups: options.useRegex ? [...match] : undefined,
-        anchor: null as unknown as TextAnchor
-      });
+        anchor: null as unknown as TextAnchor,
+        // 添加偏移量信息，用于生成上下文
+        startOffset: absoluteStart,
+        endOffset: absoluteEnd,
+      } as FindResult & { startOffset: number; endOffset: number });
 
       processedCount++;
       // 这里保持同步，但通过分批处理来减少单次阻塞时间

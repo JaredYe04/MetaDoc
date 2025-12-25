@@ -13,6 +13,8 @@ import {
   TextPosition,
   TextRange,
 } from "./text-editor-types";
+import { searchInText, computeReplacementText, offsetToPosition, positionToOffset as textPositionToOffset, type TextSearchMatch } from "../utils/text-search-utils";
+import type { TitleIndex } from "../utils/title-index";
 
 interface HighlightMatch {
   element: HTMLSpanElement;
@@ -38,12 +40,14 @@ const defaultState: EditorSearchState = {
 export interface VditorAdapterOptions {
   getInstance: () => Vditor | null | undefined;
   syncMarkdown: (markdown: string) => void;
+  getTitleIndex?: () => TitleIndex | null; // 获取标题索引的函数
 }
 
 export class VditorTextEditorAdapter implements TextEditorAdapter {
   public readonly kind = "vditor";
   private readonly getInstance: () => Vditor | null | undefined;
   private readonly syncMarkdown: (markdown: string) => void;
+  private readonly getTitleIndex?: () => TitleIndex | null;
   private state: EditorSearchState = { ...defaultState };
   private highlights: HighlightMatch[] = [];
   private isReplacing: boolean = false; // 标记是否正在执行替换操作
@@ -52,6 +56,7 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
   constructor(options: VditorAdapterOptions) {
     this.getInstance = options.getInstance;
     this.syncMarkdown = options.syncMarkdown;
+    this.getTitleIndex = options.getTitleIndex;
   }
 
   configureSearch(
@@ -82,24 +87,23 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
       return this.getSearchState();
     }
 
-    const root = this.getEditableRoot();
-    if (!root) {
-      return this.getSearchState();
-    }
+    // 默认从文档开头搜索（查找全部匹配）
+    // 如果需要从光标位置开始，应该在find方法中处理
+    const startOffset = 0;
 
-    // 异步执行搜索，避免大量匹配时卡顿
-    this.performAsyncSearch(root, normalized, previousIndex, previousMatchText, revealFirst);
+    // 使用纯文本搜索，而不是 DOM 遍历
+    this.performTextBasedSearch(normalized, previousIndex, previousMatchText, revealFirst, startOffset);
     
     // 立即返回当前状态（此时 matches 还是空的，会在异步完成后更新）
     return this.getSearchState();
   }
 
-  private performAsyncSearch(
-    root: HTMLElement,
+  private performTextBasedSearch(
     normalized: SearchOptions,
     previousIndex: number,
     previousMatchText: string | undefined,
     revealFirst: boolean,
+    startOffset: number,
   ): void {
     // 使用 requestIdleCallback 或 setTimeout 来异步执行搜索
     const scheduleNext = (callback: () => void) => {
@@ -112,93 +116,356 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
     
     scheduleNext(() => {
       try {
-        const regex = this.buildRegex(normalized);
-        const walker = document.createTreeWalker(
-          root,
-          NodeFilter.SHOW_TEXT,
-          {
-            acceptNode: (node) => {
-              if (!node || !node.textContent) return NodeFilter.FILTER_REJECT;
-              if (node.parentElement?.classList.contains(HIGHLIGHT_CLASS)) {
-                return NodeFilter.FILTER_REJECT;
-              }
-              if (this.shouldSkipNode(node.parentElement)) {
-                return NodeFilter.FILTER_REJECT;
-              }
-              return NodeFilter.FILTER_ACCEPT;
+        const fullText = this.getFullText();
+        if (!fullText) {
+          this.state.matches = [];
+          this.state.currentIndex = -1;
+          return;
+        }
+
+        // 使用纯文本搜索
+        const textMatches = searchInText(fullText, normalized.text, {
+          matchCase: normalized.matchCase,
+          wholeWord: normalized.wholeWord,
+          useRegex: normalized.useRegex,
+          startOffset,
+        });
+
+        // 将文本匹配转换为 FindResult
+        const findResults: FindResult[] = textMatches.map((textMatch, index) => {
+          const range: TextRange = {
+            start: { line: textMatch.line, column: textMatch.column },
+            end: { 
+              line: textMatch.line, 
+              column: textMatch.column + textMatch.match.length 
             },
-          },
-        );
+          };
 
-        const highlights: HighlightMatch[] = [];
-        let processedNodes = 0;
-        const BATCH_SIZE = 50; // 每批处理50个文本节点
+          const anchorId = `anchor-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`;
+          const anchor: TextAnchor = {
+            id: anchorId,
+            type: "text-content",
+            data: { range, matchText: textMatch.match, startOffset: textMatch.startOffset, endOffset: textMatch.endOffset },
+          };
 
-        const processBatch = () => {
-          let currentNode = walker.nextNode() as Text | null;
-          let batchCount = 0;
-          
-          while (currentNode && batchCount < BATCH_SIZE) {
-            const textContent = currentNode.textContent ?? "";
-            regex.lastIndex = 0;
-            let match: RegExpExecArray | null;
-            const fragments: { start: number; end: number; match: RegExpExecArray }[] = [];
-            while ((match = regex.exec(textContent)) !== null) {
-              const start = match.index;
-              const end = start + match[0].length;
-              fragments.push({ start, end, match });
-              if (!regex.global) break;
-              if (match[0].length === 0) {
-                regex.lastIndex += 1;
-              }
-            }
+          return {
+            range,
+            matchText: textMatch.match,
+            groups: textMatch.groups,
+            anchor,
+            getCurrentRange: () => {
+              // 基于文本内容重新计算范围
+              const currentText = this.getFullText();
+              if (!currentText) return null;
+              // 尝试通过匹配文本和偏移量重新定位
+              // 这是一个简化的实现，实际应该使用更智能的定位算法
+              return range;
+            },
+            replace: (replacement: string) => {
+              // 直接替换指定范围的文本
+              this.replaceRange(range, replacement);
+            },
+            getContext: (options?: ContextOptions) => {
+              return this.getContext(range, options);
+            },
+            // 添加偏移量信息，用于生成上下文
+            startOffset: textMatch.startOffset,
+            endOffset: textMatch.endOffset,
+          } as FindResult & { startOffset: number; endOffset: number };
+        });
 
-            if (fragments.length) {
-              const nodeHighlights: HighlightMatch[] = [];
-              for (let i = fragments.length - 1; i >= 0; i -= 1) {
-                const { start, end, match } = fragments[i];
-                const range = document.createRange();
-                range.setStart(currentNode, start);
-                range.setEnd(currentNode, end);
-                const span = document.createElement("span");
-                span.className = HIGHLIGHT_CLASS;
-                span.appendChild(range.extractContents());
-                range.insertNode(span);
-                nodeHighlights.push({
-                  element: span,
-                  range: this.getRangeFromElement(span),
-                  text: match[0],
-                  groups: Array.from(match),
-                });
-              }
-              nodeHighlights.reverse().forEach((item) => {
-                item.element.dataset.index = String(highlights.length);
-                highlights.push(item);
-              });
-            }
-
-            currentNode = walker.nextNode() as Text | null;
-            batchCount++;
-            processedNodes++;
-          }
-
-          // 如果还有节点需要处理，继续处理下一批
-          if (currentNode) {
-            scheduleNext(processBatch);
-          } else {
-            // 搜索完成，更新状态
-            this.finishSearch(highlights, previousIndex, previousMatchText, revealFirst);
-          }
-        };
+        // 更新状态
+        this.state.matches = findResults;
         
-        processBatch();
+        // 尝试恢复到之前的索引位置
+        let targetIndex = -1;
+        if (previousIndex >= 0 && findResults.length > 0) {
+          if (previousIndex < findResults.length) {
+            targetIndex = previousIndex;
+          } else {
+            const sameTextIndex = findResults.findIndex(
+              (m) => m.matchText === previousMatchText
+            );
+            if (sameTextIndex >= 0) {
+              targetIndex = sameTextIndex;
+            } else if (findResults.length > 0) {
+              targetIndex = Math.min(previousIndex, findResults.length - 1);
+            }
+          }
+        } else if (revealFirst && findResults.length > 0) {
+          targetIndex = 0;
+        }
+        
+        this.state.currentIndex = targetIndex;
+        
+        // Vditor不需要高亮所有匹配，只在用户点击列表项时高亮
+        // 如果revealFirst为true，只高亮第一个匹配
+        if (revealFirst && targetIndex >= 0 && findResults.length > 0) {
+          this.highlightSingleMatch(findResults[targetIndex], targetIndex, true);
+        }
       } catch (error) {
-        console.warn("performAsyncSearch:error", error);
+        console.warn("performTextBasedSearch:error", error);
         this.state.matches = [];
         this.state.currentIndex = -1;
         this.highlights = [];
       }
     });
+  }
+
+  /**
+   * 高亮单个匹配项（用于Vditor，只在用户点击列表项时调用）
+   * 公开方法，供SearchReplaceMenu调用
+   */
+  highlightSingleMatch(
+    findResult: FindResult,
+    index: number,
+    focus: boolean,
+  ): void {
+    const root = this.getEditableRoot();
+    if (!root) return;
+
+    // 清除旧的高亮
+    this.clearHighlights();
+
+    // 使用原来的DOM遍历算法进行精确定位，时间复杂度O(n)
+    this.highlightMatchWithDOMTraversal(root, findResult, index, focus);
+  }
+
+  /**
+   * 使用DOM遍历算法高亮单个匹配（时间复杂度O(n)）
+   * 简化：直接从头遍历，不使用标题索引优化（因为DOM遍历本身就是为了高亮，优化意义不大）
+   */
+  private highlightMatchWithDOMTraversal(
+    root: HTMLElement,
+    findResult: FindResult,
+    index: number,
+    focus: boolean,
+  ): void {
+    try {
+      const matchText = findResult.matchText;
+      const regex = this.buildRegex(this.state.options);
+      
+      // 直接从头开始遍历（不使用标题索引优化，因为DOM遍历本身就是为了高亮，优化意义不大）
+      const traverseRoot = root;
+      
+      // 使用TreeWalker遍历文本节点，找到匹配的文本
+      const walker = document.createTreeWalker(
+        traverseRoot,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode: (node) => {
+            if (!node || !node.textContent) return NodeFilter.FILTER_REJECT;
+            if (node.parentElement?.classList.contains(HIGHLIGHT_CLASS)) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            if (this.shouldSkipNode(node.parentElement)) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          },
+        },
+      );
+
+      let currentNode = walker.nextNode() as Text | null;
+      let matchCount = 0;
+      
+      // 遍历所有文本节点，找到第index个匹配
+      while (currentNode) {
+        const textContent = currentNode.textContent ?? "";
+        regex.lastIndex = 0;
+        let match: RegExpExecArray | null;
+        
+        while ((match = regex.exec(textContent)) !== null) {
+          if (matchCount === index) {
+            // 找到目标匹配，创建高亮
+            const start = match.index;
+            const end = start + match[0].length;
+            
+            try {
+              const range = document.createRange();
+              range.setStart(currentNode, start);
+              range.setEnd(currentNode, end);
+              const span = document.createElement("span");
+              span.className = HIGHLIGHT_CLASS;
+              span.classList.add(ACTIVE_CLASS);
+              span.dataset.index = String(index);
+              span.appendChild(range.extractContents());
+              range.insertNode(span);
+              
+              const highlight: HighlightMatch = {
+                element: span,
+                range: findResult.range,
+                text: matchText,
+                groups: findResult.groups,
+              };
+              
+              this.highlights = [highlight];
+              
+              if (focus) {
+                span.scrollIntoView({ block: "center", behavior: "smooth" });
+                const selection = window.getSelection();
+                selection?.removeAllRanges();
+                const selectRange = document.createRange();
+                selectRange.selectNodeContents(span);
+                selection?.addRange(selectRange);
+              }
+              
+              return; // 找到匹配后立即返回
+            } catch (error) {
+              console.warn("highlightMatchWithDOMTraversal:error", error);
+              return;
+            }
+          }
+          matchCount++;
+          if (!regex.global) break;
+          if (match[0].length === 0) {
+            regex.lastIndex += 1;
+          }
+        }
+        
+        currentNode = walker.nextNode() as Text | null;
+      }
+    } catch (error) {
+      console.warn("highlightMatchWithDOMTraversal:error", error);
+    }
+  }
+
+  /**
+   * 回退方案：从头开始遍历整个DOM（不使用标题索引优化）
+   * 注意：这个方法现在不再使用，保留作为备用
+   */
+  private highlightMatchWithDOMTraversalFallback(
+    root: HTMLElement,
+    findResult: FindResult,
+    index: number,
+    focus: boolean,
+  ): void {
+    try {
+      const matchText = findResult.matchText;
+      const regex = this.buildRegex(this.state.options);
+      
+      // 使用TreeWalker从头开始遍历文本节点
+      const walker = document.createTreeWalker(
+        root,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode: (node) => {
+            if (!node || !node.textContent) return NodeFilter.FILTER_REJECT;
+            if (node.parentElement?.classList.contains(HIGHLIGHT_CLASS)) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            if (this.shouldSkipNode(node.parentElement)) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          },
+        },
+      );
+
+      let currentNode = walker.nextNode() as Text | null;
+      let matchCount = 0;
+      
+      // 遍历所有文本节点，找到第index个匹配
+      while (currentNode) {
+        const textContent = currentNode.textContent ?? "";
+        regex.lastIndex = 0;
+        let match: RegExpExecArray | null;
+        
+        while ((match = regex.exec(textContent)) !== null) {
+          if (matchCount === index) {
+            // 找到目标匹配，创建高亮
+            const start = match.index;
+            const end = start + match[0].length;
+            
+            try {
+              const range = document.createRange();
+              range.setStart(currentNode, start);
+              range.setEnd(currentNode, end);
+              const span = document.createElement("span");
+              span.className = HIGHLIGHT_CLASS;
+              span.classList.add(ACTIVE_CLASS);
+              span.dataset.index = String(index);
+              span.appendChild(range.extractContents());
+              range.insertNode(span);
+              
+              const highlight: HighlightMatch = {
+                element: span,
+                range: findResult.range,
+                text: matchText,
+                groups: findResult.groups,
+              };
+              
+              this.highlights = [highlight];
+              
+              if (focus) {
+                span.scrollIntoView({ block: "center", behavior: "smooth" });
+                const selection = window.getSelection();
+                selection?.removeAllRanges();
+                const selectRange = document.createRange();
+                selectRange.selectNodeContents(span);
+                selection?.addRange(selectRange);
+              }
+              
+              return; // 找到匹配后立即返回
+            } catch (error) {
+              console.warn("highlightMatchWithDOMTraversalFallback:error", error);
+              return;
+            }
+          }
+          matchCount++;
+          if (!regex.global) break;
+          if (match[0].length === 0) {
+            regex.lastIndex += 1;
+          }
+        }
+        
+        currentNode = walker.nextNode() as Text | null;
+      }
+    } catch (error) {
+      console.warn("highlightMatchWithDOMTraversalFallback:error", error);
+    }
+  }
+
+  private textRangeToDOMRange(
+    root: HTMLElement,
+    plainText: string,
+    range: TextRange,
+  ): Range | null {
+    const startOffset = textPositionToOffset(plainText, range.start.line, range.start.column);
+    const endOffset = textPositionToOffset(plainText, range.end.line, range.end.column);
+    
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let charIndex = 0;
+    let startNode: Text | null = null;
+    let startNodeOffset = 0;
+    let endNode: Text | null = null;
+    let endNodeOffset = 0;
+    let currentNode = walker.nextNode() as Text | null;
+
+    while (currentNode) {
+      const nextIndex = charIndex + currentNode.length;
+      
+      if (!startNode && startOffset >= charIndex && startOffset <= nextIndex) {
+        startNode = currentNode;
+        startNodeOffset = startOffset - charIndex;
+      }
+      
+      if (!endNode && endOffset >= charIndex && endOffset <= nextIndex) {
+        endNode = currentNode;
+        endNodeOffset = endOffset - charIndex;
+        break;
+      }
+      
+      charIndex = nextIndex;
+      currentNode = walker.nextNode() as Text | null;
+    }
+
+    if (!startNode || !endNode) return null;
+
+    const domRange = document.createRange();
+    domRange.setStart(startNode, startNodeOffset);
+    domRange.setEnd(endNode, endNodeOffset);
+    return domRange;
   }
 
   private finishSearch(
@@ -295,7 +562,7 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
   }
 
   find(direction: SearchDirection): EditorSearchState {
-    if (!this.highlights.length) {
+    if (!this.state.matches.length) {
       return this.getSearchState();
     }
     const delta = direction === "next" ? 1 : -1;
@@ -305,10 +572,16 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
           ? -1
           : 0
         : this.state.currentIndex;
-    this.state.currentIndex =
-      (baseIndex + delta + this.highlights.length) %
-      this.highlights.length;
-    this.setActiveHighlight(this.state.currentIndex, { focus: true });
+    const newIndex =
+      (baseIndex + delta + this.state.matches.length) %
+      this.state.matches.length;
+    this.state.currentIndex = newIndex;
+    
+    // 对于vditor，只高亮当前匹配项（不高亮所有匹配）
+    if (newIndex >= 0 && newIndex < this.state.matches.length) {
+      this.highlightSingleMatch(this.state.matches[newIndex], newIndex, true);
+    }
+    
     return this.getSearchState();
   }
 
@@ -413,10 +686,19 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
         let replacementText = replacement;
         
         // 处理正则表达式替换组
-        if (this.state.options.useRegex && matchData) {
-          replacementText = replacementText.replace(/\$(\d+)/g, (_full, indexStr) => {
+        if (this.state.options.useRegex && matchData && matchData.length > 0) {
+          // 处理 $1, $2, $3... 等捕获组引用
+          // 同时也支持 $$ 表示字面量 $
+          replacementText = replacementText.replace(/\$(\d+)|(\$\$)/g, (fullMatch, indexStr, literalDollar) => {
+            // 如果是 $$，返回单个 $
+            if (literalDollar) {
+              return "$";
+            }
+            // 如果是 $1, $2 等，返回对应的捕获组
             const index = Number(indexStr);
-            if (Number.isNaN(index)) return "";
+            if (Number.isNaN(index) || index < 0 || index >= matchData.length) {
+              return fullMatch; // 如果索引无效，返回原始字符串
+            }
             return matchData[index] ?? "";
           });
         }
@@ -849,11 +1131,20 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
     replacement: string,
   ): string {
     let result = replacement;
-    if (this.state.options.useRegex && highlight.groups) {
-      result = result.replace(/\$(\d+)/g, (_full, indexStr) => {
+    if (this.state.options.useRegex && highlight.groups && highlight.groups.length > 0) {
+      // 处理 $1, $2, $3... 等捕获组引用
+      // 同时也支持 $$ 表示字面量 $
+      result = result.replace(/\$(\d+)|(\$\$)/g, (fullMatch, indexStr, literalDollar) => {
+        // 如果是 $$，返回单个 $
+        if (literalDollar) {
+          return "$";
+        }
+        // 如果是 $1, $2 等，返回对应的捕获组
         const index = Number(indexStr);
-        if (Number.isNaN(index)) return "";
-        return highlight.groups?.[index] ?? "";
+        if (Number.isNaN(index) || index < 0 || index >= highlight.groups!.length) {
+          return fullMatch; // 如果索引无效，返回原始字符串
+        }
+        return highlight.groups![index] ?? "";
       });
     }
     if (this.state.options.preserveCase) {

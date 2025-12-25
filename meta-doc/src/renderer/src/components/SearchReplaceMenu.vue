@@ -97,7 +97,44 @@
       {{ regexError }}
     </section>
 
+    <!-- 匹配列表 -->
+    <section v-if="showMatchesList && searchState?.matches.length" class="matches-section">
+      <div class="matches-panel">
+        <div class="panel-header-small">
+          <span>{{ t('searchReplace.matchesList') }} ({{ searchState.matches.length }})</span>
+        </div>
+        <el-scrollbar height="300px">
+          <div class="matches-list">
+            <div
+              v-for="(match, index) in searchState.matches"
+              :key="index"
+              class="match-item"
+              :class="{ 'match-item-active': searchState.currentIndex === index }"
+              :style="getMatchItemStyle(index)"
+              @click="selectMatch(index)"
+            >
+              <span class="match-location">
+                {{ t('searchReplace.line') }} {{ match.range.start.line }}, {{ t('searchReplace.column') }} {{ match.range.start.column }}
+              </span>
+              <div class="match-context" v-html="getMatchContextHtml(match, index)"></div>
+            </div>
+          </div>
+        </el-scrollbar>
+      </div>
+    </section>
+
     <footer class="panel-actions" @mousedown.stop>
+      <el-tooltip :content="t('searchReplace.findFromStartBtn')" placement="top">
+        <span>
+          <el-button
+            size="small"
+            :icon="RefreshLeft"
+            circle
+            :disabled="!canSearch"
+            @click="handleFindFromStart"
+          />
+        </span>
+      </el-tooltip>
       <el-tooltip :content="t('searchReplace.findPrevBtn')" placement="top">
         <span>
           <el-button
@@ -182,7 +219,7 @@ import {
   watch,
   watchEffect,
 } from "vue";
-import { ElButton, ElInput, ElTooltip } from "element-plus";
+import { ElButton, ElInput, ElTooltip, ElScrollbar } from "element-plus";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { themeState, mixColors } from "../utils/themes";
@@ -196,8 +233,10 @@ import {
   Bottom,
   EditPen,
   RefreshRight,
+  RefreshLeft,
   View,
 } from "@element-plus/icons-vue";
+import { generateMatchContext } from "../utils/match-context";
 
 const logger = createRendererLogger("SearchReplaceMenu");
 
@@ -275,49 +314,84 @@ const canReplace = computed(() => {
   return (searchState.value?.matches.length ?? 0) > 0;
 });
 
+// 防抖处理，避免频繁搜索导致卡顿
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+let searchCheckInterval: ReturnType<typeof setInterval> | null = null;
+
 const applySearch = () => {
   if (!props.adapter) return;
   if (!form.findText) {
+    // 清除之前的定时器
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+      searchTimeout = null;
+    }
+    if (searchCheckInterval) {
+      clearInterval(searchCheckInterval);
+      searchCheckInterval = null;
+    }
     props.adapter.clearSearch();
     searchState.value = null;
     regexError.value = null;
+    showMatchesList.value = false;
     return;
   }
-  try {
-    const state = props.adapter.configureSearch(
-      {
-        text: form.findText,
-        matchCase: form.matchCase,
-        wholeWord: form.wholeWord,
-        useRegex: form.useRegex,
-        preserveCase: form.preserveCase,
-      },
-      { revealFirst: false },
-    );
-    searchState.value = state;
-    regexError.value = null;
-    
-    // 异步搜索完成后，需要更新 searchState.value 以触发 UI 更新
-    // 使用简单的轮询，最多检查 30 次（约 1.5 秒）
-    let checkCount = 0;
-    const checkInterval = setInterval(() => {
-      const currentState = props.adapter?.getSearchState();
-      if (currentState) {
-        // 每次检查都更新状态，确保 UI 响应
-        searchState.value = currentState;
-        // 如果找到匹配，可以提前结束
-        if (currentState.matches.length > 0) {
-          clearInterval(checkInterval);
-        }
-      }
-      checkCount++;
-      if (checkCount >= 30) {
-        clearInterval(checkInterval);
-      }
-    }, 50);
-  } catch (error) {
-    regexError.value = (error as Error)?.message ?? String(error);
+  
+  // 清除之前的定时器
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+    searchTimeout = null;
   }
+  if (searchCheckInterval) {
+    clearInterval(searchCheckInterval);
+    searchCheckInterval = null;
+  }
+  
+  // 防抖：延迟300ms执行搜索，避免输入时频繁触发
+  searchTimeout = setTimeout(() => {
+    try {
+      const state = props.adapter!.configureSearch(
+        {
+          text: form.findText,
+          matchCase: form.matchCase,
+          wholeWord: form.wholeWord,
+          useRegex: form.useRegex,
+          preserveCase: form.preserveCase,
+        },
+        { revealFirst: false },
+      );
+      searchState.value = state;
+      regexError.value = null;
+      
+      // 异步搜索完成后，需要更新 searchState.value 以触发 UI 更新
+      // 使用简单的轮询，最多检查 30 次（约 1.5 秒）
+      let checkCount = 0;
+      searchCheckInterval = setInterval(() => {
+        const currentState = props.adapter?.getSearchState();
+        if (currentState) {
+          // 每次检查都更新状态，确保 UI 响应
+          searchState.value = currentState;
+          // 如果找到匹配，可以提前结束
+          if (currentState.matches.length > 0 || checkCount >= 30) {
+            if (searchCheckInterval) {
+              clearInterval(searchCheckInterval);
+              searchCheckInterval = null;
+            }
+          }
+        }
+        checkCount++;
+        if (checkCount >= 30) {
+          if (searchCheckInterval) {
+            clearInterval(searchCheckInterval);
+            searchCheckInterval = null;
+          }
+        }
+      }, 50);
+    } catch (error) {
+      regexError.value = (error as Error)?.message ?? String(error);
+    }
+    searchTimeout = null;
+  }, 300);
 };
 
 watch(
@@ -334,11 +408,68 @@ watch(
   },
 );
 
+// 监听搜索状态变化，自动显示匹配列表
+watch(
+  () => searchState.value?.matches.length,
+  (matchCount) => {
+    if (matchCount && matchCount > 0) {
+      showMatchesList.value = true;
+      const currentIndex = searchState.value?.currentIndex ?? -1;
+      selectedMatchIndex.value = currentIndex >= 0 ? currentIndex : 0;
+    }
+  },
+);
+
+// 监听搜索状态变化，更新选中项
+watch(
+  () => searchState.value?.currentIndex,
+  (newIndex) => {
+    if (newIndex !== null && newIndex !== undefined) {
+      selectedMatchIndex.value = newIndex;
+    }
+  },
+);
+
 const handleFind = (direction: "next" | "previous") => {
   if (!props.adapter || !canSearch.value) return;
   logger.debug("handleFind", direction);
   const state = props.adapter.find(direction);
   searchState.value = state;
+};
+
+const handleFindFromStart = () => {
+  if (!props.adapter || !canSearch.value) return;
+  logger.debug("handleFindFromStart");
+  // 先移动到文档开头
+  props.adapter.goTo({ line: 1, column: 1 });
+  // 重新配置搜索，从开头开始（startOffset=0）
+  const state = props.adapter.configureSearch(
+    {
+      text: form.findText,
+      matchCase: form.matchCase,
+      wholeWord: form.wholeWord,
+      useRegex: form.useRegex,
+      preserveCase: form.preserveCase,
+    },
+    { revealFirst: true },
+  );
+  searchState.value = state;
+  
+  // 等待搜索完成
+  let checkCount = 0;
+  const checkInterval = setInterval(() => {
+    const currentState = props.adapter?.getSearchState();
+    if (currentState) {
+      searchState.value = currentState;
+      if (currentState.matches.length > 0 || checkCount >= 30) {
+        clearInterval(checkInterval);
+      }
+    }
+    checkCount++;
+    if (checkCount >= 30) {
+      clearInterval(checkInterval);
+    }
+  }, 50);
 };
 
 const handleReplace = () => {
@@ -380,10 +511,177 @@ const handleFindAll = () => {
   if (!props.adapter || !canSearch.value) return;
   const state = props.adapter.getSearchState();
   searchState.value = state;
+  // 显示匹配列表
+  if (state.matches.length > 0) {
+    showMatchesList.value = true;
+    selectedMatchIndex.value = state.currentIndex >= 0 ? state.currentIndex : 0;
+  }
   eventBus.emit("show-info", t("searchReplace.foundCount", {
     count: state.matches.length,
     find: form.findText,
   }));
+};
+
+const selectMatch = (index: number) => {
+  if (!props.adapter || !searchState.value) return;
+  selectedMatchIndex.value = index;
+  // 更新适配器的当前索引并高亮
+  const state = props.adapter.getSearchState();
+  if (state.matches[index]) {
+    // 对于vditor，直接调用highlightSingleMatch高亮指定匹配
+    if (props.adapter.kind === "vditor") {
+      const vditorAdapter = props.adapter as any;
+      if (vditorAdapter.highlightSingleMatch) {
+        // 更新适配器内部的状态
+        const currentIndex = state.currentIndex;
+        if (currentIndex !== index) {
+          // 计算需要移动的步数，使用find方法更新适配器内部状态
+          const direction = index > currentIndex ? "next" : "previous";
+          const steps = Math.abs(index - currentIndex);
+          let newState = state;
+          for (let i = 0; i < steps; i++) {
+            newState = props.adapter.find(direction);
+          }
+          searchState.value = newState;
+        } else {
+          // 如果已经是当前索引，直接高亮（不通过find，避免重复操作）
+          vditorAdapter.highlightSingleMatch(state.matches[index], index, true);
+          // 更新UI状态
+          const newState = { ...state, currentIndex: index };
+          searchState.value = newState;
+        }
+        return;
+      }
+    }
+    
+    // 对于monaco，直接定位到行和列（不需要DOM搜索）
+    if (props.adapter.kind === "monaco") {
+      const match = state.matches[index];
+      if (match) {
+        // 直接使用 goTo 定位到匹配位置
+        props.adapter.goTo(match.range.start);
+        // 选中匹配范围
+        props.adapter.goToRanges([match.range]);
+        // 更新适配器内部的状态
+        const monacoAdapter = props.adapter as any;
+        if (monacoAdapter.applyDecorations) {
+          // 只高亮当前匹配
+          monacoAdapter.applyDecorations([match], 0);
+        }
+        // 更新UI状态
+        const newState = { ...state, currentIndex: index };
+        searchState.value = newState;
+      }
+      return;
+    }
+    
+    // 对于其他编辑器，使用find方法导航
+    const currentIndex = state.currentIndex;
+    if (currentIndex !== index) {
+      const direction = index > currentIndex ? "next" : "previous";
+      const steps = Math.abs(index - currentIndex);
+      let newState = state;
+      for (let i = 0; i < steps; i++) {
+        newState = props.adapter.find(direction);
+      }
+      searchState.value = newState;
+    }
+  }
+};
+
+
+const getMatchContextHtml = (match: any, index: number): string => {
+  if (!props.adapter) return '';
+  
+  try {
+    const fullText = props.adapter.getFullText();
+    if (!fullText) return '';
+    
+    // 获取匹配的偏移量
+    const startOffset = (match as any).startOffset;
+    const endOffset = (match as any).endOffset;
+    
+    if (startOffset === undefined || endOffset === undefined) {
+      // 如果没有偏移量信息，使用 range 计算
+      const lines = fullText.split('\n');
+      let offset = 0;
+      for (let i = 0; i < match.range.start.line - 1; i++) {
+        offset += lines[i].length + 1; // +1 for newline
+      }
+      const calculatedStartOffset = offset + match.range.start.column - 1;
+      const calculatedEndOffset = calculatedStartOffset + match.matchText.length;
+      
+      const context = generateMatchContext(
+        fullText,
+        match.matchText,
+        calculatedStartOffset,
+        calculatedEndOffset,
+        80
+      );
+      
+      // 转义HTML并高亮匹配部分
+      const escapeHtml = (text: string) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      };
+      
+      const beforeEscaped = escapeHtml(context.before);
+      const matchEscaped = escapeHtml(context.match);
+      const afterEscaped = escapeHtml(context.after);
+      
+      return `${beforeEscaped}<mark class="match-highlight">${matchEscaped}</mark>${afterEscaped}`;
+    } else {
+      // 使用偏移量生成上下文
+      const context = generateMatchContext(
+        fullText,
+        match.matchText,
+        startOffset,
+        endOffset,
+        80
+      );
+      
+      // 转义HTML并高亮匹配部分
+      const escapeHtml = (text: string) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      };
+      
+      const beforeEscaped = escapeHtml(context.before);
+      const matchEscaped = escapeHtml(context.match);
+      const afterEscaped = escapeHtml(context.after);
+      
+      return `${beforeEscaped}<mark class="match-highlight">${matchEscaped}</mark>${afterEscaped}`;
+    }
+  } catch (error) {
+    logger.warn('生成匹配上下文失败', error);
+    // 回退到只显示匹配文本
+    const escapeHtml = (text: string) => {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    };
+    return `<mark class="match-highlight">${escapeHtml(match.matchText)}</mark>`;
+  }
+};
+
+const getMatchItemStyle = (index: number) => {
+  const isActive = searchState.value?.currentIndex === index;
+  const theme = themeState.currentTheme;
+  return {
+    backgroundColor: isActive 
+      ? (theme.type === "dark" ? "rgba(64, 158, 255, 0.2)" : "rgba(64, 158, 255, 0.1)")
+      : theme.background,
+    border: `1px solid ${isActive 
+      ? theme.primaryColor 
+      : mixColors(theme.textColor, theme.background2nd, 0.2)}`,
+    borderRadius: "6px",
+    padding: "12px",
+    marginBottom: "8px",
+    cursor: "pointer",
+    transition: "all 0.2s",
+  };
 };
 
 const handleReset = () => {
@@ -410,8 +708,10 @@ const toggleFlag = (key: ToggleFlagKey) => {
 };
 
 const collapsed = ref(true);
+const showMatchesList = ref(false);
 const isDragging = ref(false);
 const dragStart = ref({ x: 0, y: 0 });
+const selectedMatchIndex = ref<number | null>(null);
 
 const onMouseDown = (event: MouseEvent) => {
   isDragging.value = true;
@@ -490,6 +790,15 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  // 清除搜索定时器
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+    searchTimeout = null;
+  }
+  if (searchCheckInterval) {
+    clearInterval(searchCheckInterval);
+    searchCheckInterval = null;
+  }
   props.adapter?.clearSearch();
   document.removeEventListener("mousemove", onMouseMove);
   document.removeEventListener("mouseup", onMouseUp);
@@ -609,6 +918,80 @@ onBeforeUnmount(() => {
 
 .textarea-scroll .el-scrollbar__view {
   padding: 0 !important;
+}
+
+.matches-section {
+  margin-top: 16px;
+  margin-bottom: 14px;
+}
+
+.matches-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid v-bind('mixColors(themeState.currentTheme.textColor, themeState.currentTheme.background2nd, 0.2)');
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: v-bind('themeState.currentTheme.background');
+}
+
+.panel-header-small {
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.textColor');
+  border-bottom: 1px solid v-bind('mixColors(themeState.currentTheme.textColor, themeState.currentTheme.background2nd, 0.2)');
+  padding: 8px 12px;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.matches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+.match-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.match-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateX(2px);
+}
+
+.match-item-active {
+  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.3);
+}
+
+.match-location {
+  color: v-bind('themeState.currentTheme.textColor2');
+  font-size: 11px;
+  font-family: monospace;
+  flex-shrink: 0;
+}
+
+.match-context {
+  font-size: 12px;
+  font-family: monospace;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+.match-context :deep(.match-highlight) {
+  background-color: rgba(255, 235, 59, 0.4);
+  padding: 2px 0;
+  border-radius: 2px;
+  font-weight: 600;
+  color: inherit;
 }
 </style>
 

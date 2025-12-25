@@ -128,6 +128,7 @@ import { debounce } from "lodash";
 import { createVditorAdapter } from "../editor/vditor-adapter";
 import type { TextEditorAdapter } from "../editor/text-editor-types";
 import { prependAiChatDialog } from '../utils/ai-chat-storage';
+import { TitleIndex } from '../utils/title-index';
 
 const MARKDOWN_LAYOUT = {
   editorMinWidth: 700,
@@ -287,6 +288,7 @@ const searchReplaceDialogVisible = ref(false);
 const vditor = ref<Vditor | null>(null); // Vditor 实例
 const articleContextMenuItems = ref<any[]>([]);//右键菜单项
 const textEditorAdapter = shallowRef<TextEditorAdapter | null>(null);
+const titleIndex = ref<TitleIndex | null>(null);
 const resizableRef = ref<InstanceType<typeof ResizableContainer> | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
 const containerWidth = ref(0);
@@ -1009,6 +1011,8 @@ const bindTitleMenu = async () => {
         }
     });
 
+    // 建立标题索引（用于优化查找替换性能）
+    const titleElements: HTMLElement[] = [];
     sections.forEach((section, i) => {
         const node = treeNodeQueue[i];
         if (!section || !node?.path) return;
@@ -1017,6 +1021,22 @@ const bindTitleMenu = async () => {
         if (!section.isConnected) {
             logger.debug('元素已不在DOM中，跳过', { i });
             return;
+        }
+        
+        // 收集标题元素用于建立索引
+        let titleElement: HTMLElement | null = null;
+        if (currentMode === 'wysiwyg') {
+            if (['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes((section as Element).tagName)) {
+                titleElement = section as HTMLElement;
+            } else if (section.classList && section.classList.contains && section.classList.contains('vditor-wysiwyg__block')) {
+                const heading = section.querySelector('h1, h2, h3, h4, h5, h6');
+                titleElement = heading as HTMLElement;
+            }
+        } else {
+            titleElement = section as HTMLElement;
+        }
+        if (titleElement) {
+            titleElements.push(titleElement);
         }
         
         try {
@@ -1079,6 +1099,19 @@ const bindTitleMenu = async () => {
             logger.warn('绑定标题事件失败', { error, section, node, isConnected: section.isConnected });
         }
     });
+    
+    // 建立标题索引
+    try {
+        titleIndex.value = TitleIndex.buildFromMarkdown(
+            currentMarkdown.value,
+            titleElements,
+            outlineTree
+        );
+        logger.debug('标题索引建立完成', { count: titleIndex.value.getAllEntries().length });
+    } catch (error) {
+        logger.warn('建立标题索引失败', error);
+        titleIndex.value = null;
+    }
 
     const outlineNode = editorRoot.querySelector('.vditor-outline__content');
     //获取所有的span子标签，并且这些标签没有data-target-id属性
@@ -1802,7 +1835,8 @@ onMounted(async () => {
             getInstance: () => vditor.value as unknown as Vditor | null,
             syncMarkdown: (markdown: string) => {
                 workspace.updateDocumentMarkdown(props.tabId, markdown);
-            }
+            },
+            getTitleIndex: () => titleIndex.value as TitleIndex | null
         });
     }
     catch (e) {

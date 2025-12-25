@@ -325,7 +325,7 @@ const prepareMarkdownForExport = async (
   }
 
   // 将数学公式转换为图片
-  if (['html', 'docx', 'pdf'].includes(targetFormat)) {
+  if (['html', 'docx'].includes(targetFormat)) {
     try {
       const imageFormat = targetFormat === 'docx' ? 'png' : 'svg';
       logger.debug(`renderMarkdownMathToImages start, format: ${imageFormat}`);
@@ -427,7 +427,7 @@ const prepareMarkdownExports = async (
 
   }
   // 对于需要生成HTML的格式（html, docx, pdf），将数学公式转换为图片
-  if (['html', 'docx', 'pdf'].includes(targetFormat)) {
+  if (['html', 'docx'].includes(targetFormat)) {
     try {
       const imageFormat = targetFormat === 'docx' ? 'png' : 'svg';
       logger.debug(`renderMarkdownMathToImages start, format: ${imageFormat}`);

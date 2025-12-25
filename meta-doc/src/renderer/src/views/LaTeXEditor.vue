@@ -2109,9 +2109,8 @@ const initEditor = () => {
     
     // 监听键盘事件，检测Enter、Space等触发按键
     editor.value.onKeyDown((e: monaco.IKeyboardEvent) => {
+        // 注意：Ctrl+F 和 Ctrl+H 现在由 App.vue 全局监听，这里不再处理
         // 手动触发（Ctrl+Tab 或 Mac 上的 Command+Tab）
-        const isMac = /Mac|iPhone|iPod|iPad/i.test(navigator.platform);
-        const modifierKey = isMac ? e.metaKey : e.ctrlKey;
         if (modifierKey && e.keyCode === monaco.KeyCode.Tab) {
             e.preventDefault();
             e.stopPropagation();

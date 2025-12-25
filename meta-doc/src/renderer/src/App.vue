@@ -85,13 +85,54 @@ function initGlobalEventListeners() {
     eventBus.emit('sync-editor-theme')//触发vditor主题同步事件
   })
   
+  // 全局键盘快捷键监听（Ctrl+F/H 查找替换）
+  // 注意：使用 capture 阶段确保在编辑器内部处理之前捕获
+  const handleGlobalKeyDown = (e: KeyboardEvent) => {
+    const isMac = /Mac|iPhone|iPod|iPad/i.test(navigator.platform)
+    const modifierKey = isMac ? e.metaKey : e.ctrlKey
+    
+    // 只处理 Ctrl+F 和 Ctrl+H
+    if (modifierKey && (e.key === 'f' || e.key === 'F' || e.key === 'h' || e.key === 'H')) {
+      // 检查是否在输入框、文本域等可编辑元素中（排除编辑器区域）
+      const target = e.target as HTMLElement
+      const isInInput = target.tagName === 'INPUT' || 
+                        target.tagName === 'TEXTAREA' || 
+                        target.isContentEditable
+      
+      // 如果焦点在输入框中，且不在编辑器区域，则不处理（让浏览器默认行为处理）
+      if (isInInput && !target.closest('.vditor, .monaco-editor, .editor, [data-editor]')) {
+        return
+      }
+      
+      // Ctrl+F 或 Command+F：打开查找替换菜单
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault()
+        e.stopPropagation()
+        eventBus.emit('search-replace')
+        return
+      }
+      
+      // Ctrl+H 或 Command+H：打开查找替换菜单（展开替换部分）
+      if (e.key === 'h' || e.key === 'H') {
+        e.preventDefault()
+        e.stopPropagation()
+        eventBus.emit('search-replace', { expandReplace: true })
+        return
+      }
+    }
+  }
+  
+  // 使用 capture 阶段，确保在编辑器内部处理之前捕获
+  window.addEventListener('keydown', handleGlobalKeyDown, true)
+  
   // 清理函数
   cleanupGlobalListeners.push(
     () => eventBus.off('ai-completion-delay'),
     () => eventBus.off('ai-completion-cancel-delay'),
     () => eventBus.off('cancel-suggestion'),
     () => eventBus.off('lang-changed'),
-    () => eventBus.off('sync-theme')
+    () => eventBus.off('sync-theme'),
+    () => window.removeEventListener('keydown', handleGlobalKeyDown, true)
   )
 }
 

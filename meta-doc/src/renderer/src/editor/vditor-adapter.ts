@@ -15,6 +15,7 @@ import {
 } from "./text-editor-types";
 import { searchInText, searchInTextBatched, computeReplacementText, offsetToPosition, positionToOffset as textPositionToOffset, type TextSearchMatch } from "../utils/text-search-utils";
 import type { TitleIndex } from "../utils/title-index";
+import { useWorkspace } from "../stores/workspace";
 
 interface HighlightMatch {
   element: HTMLSpanElement;
@@ -53,6 +54,7 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
   private highlights: HighlightMatch[] = [];
   private isReplacing: boolean = false; // 标记是否正在执行替换操作
   private pendingEdits: Map<string, PendingEdit> = new Map(); // 待确认的编辑操作
+  private currentSearchAbortController: AbortController | null = null; // 当前搜索的取消控制器
 
   constructor(options: VditorAdapterOptions) {
     this.getInstance = options.getInstance;
@@ -65,6 +67,12 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
     behavior?: { revealFirst?: boolean },
   ): EditorSearchState {
     const revealFirst = behavior?.revealFirst !== false;
+    
+    // 取消之前的搜索（如果存在）
+    if (this.currentSearchAbortController) {
+      this.currentSearchAbortController.abort();
+      this.currentSearchAbortController = null;
+    }
     
     // 保存之前的索引，以便在重新搜索后恢复
     const previousIndex = this.state.currentIndex;
@@ -89,12 +97,22 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
       return this.getSearchState();
     }
 
+    // 创建新的取消控制器
+    this.currentSearchAbortController = new AbortController();
+
     // 默认从文档开头搜索（查找全部匹配）
     // 如果需要从光标位置开始，应该在find方法中处理
     const startOffset = 0;
 
     // 使用纯文本搜索，而不是 DOM 遍历（异步分批搜索）
-    this.performTextBasedSearch(normalized, previousIndex, previousMatchText, revealFirst, startOffset);
+    this.performTextBasedSearch(
+      normalized, 
+      previousIndex, 
+      previousMatchText, 
+      revealFirst, 
+      startOffset,
+      this.currentSearchAbortController.signal
+    );
     
     // 立即返回当前状态（此时 matches 还是空的，会在异步完成后更新）
     return this.getSearchState();
@@ -106,6 +124,7 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
     previousMatchText: string | undefined,
     revealFirst: boolean,
     startOffset: number,
+    abortSignal: AbortSignal,
   ): Promise<void> {
     try {
       const fullText = this.getFullText();
@@ -135,6 +154,11 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
 
       // 分批处理匹配项
       for await (const batch of searchGenerator) {
+        // 检查是否已取消
+        if (abortSignal.aborted) {
+          return;
+        }
+        
         // 将文本匹配转换为 FindResult
         const batchResults: FindResult[] = batch.map((textMatch) => {
           const range: TextRange = {
@@ -179,8 +203,18 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
         // 追加当前批次的匹配到总列表
         allFindResults.push(...batchResults);
         
+        // 检查是否已取消
+        if (abortSignal.aborted) {
+          return;
+        }
+        
         // 更新状态，触发UI更新
         this.state.matches = [...allFindResults];
+      }
+
+      // 检查是否已取消
+      if (abortSignal.aborted) {
+        return;
       }
 
       // 搜索完成
@@ -213,6 +247,10 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
         this.highlightSingleMatch(allFindResults[targetIndex], targetIndex, true);
       }
     } catch (error) {
+      // 如果是因为取消导致的错误，不需要处理
+      if (abortSignal.aborted) {
+        return;
+      }
       console.warn("performTextBasedSearch:error", error);
       this.state.matches = [];
       this.state.currentIndex = -1;
@@ -830,6 +868,11 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
   }
 
   clearSearch(): void {
+    // 取消正在进行的搜索
+    if (this.currentSearchAbortController) {
+      this.currentSearchAbortController.abort();
+      this.currentSearchAbortController = null;
+    }
     this.clearHighlights();
     this.state = { ...defaultState };
   }
@@ -927,9 +970,10 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
 
   // ========== 文本获取 ==========
   getFullText(): string {
-    const instance = this.getInstance();
-    if (!instance) return "";
-    return instance.getValue();
+    const workspace = useWorkspace();
+    const activeDocument=workspace.activeDocument.value
+    if (!activeDocument) return ""
+    return activeDocument.markdown || ""
   }
 
   getTextAt(range: TextRange): string {
@@ -1184,9 +1228,10 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
   }
 
   private syncAfterMutation() {
-    const instance = this.getInstance();
-    if (!instance) return;
-    const markdown = instance.getValue();
+    const workspace=useWorkspace();
+    const activeDocument=workspace.activeDocument.value
+    if (!activeDocument) return;
+    const markdown = activeDocument.markdown || ""
     this.syncMarkdown(markdown);
   }
 

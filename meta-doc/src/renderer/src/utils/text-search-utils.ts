@@ -20,7 +20,114 @@ export interface TextSearchOptions {
 }
 
 /**
+ * 预计算所有行的起始偏移量，用于快速定位
+ */
+function computeLineStarts(text: string): number[] {
+  const starts: number[] = [0];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text.charCodeAt(i);
+    if (ch === 13 /* \r */) {
+      if (text.charCodeAt(i + 1) === 10 /* \n */) {
+        i += 1;
+      }
+      starts.push(i + 1);
+    } else if (ch === 10 /* \n */) {
+      starts.push(i + 1);
+    }
+  }
+  return starts;
+}
+
+/**
+ * 使用二分查找快速定位行号
+ */
+function getLineNumberFromOffset(lineStarts: number[], offset: number): number {
+  let low = 0;
+  let high = lineStarts.length - 1;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    if (lineStarts[mid] <= offset) {
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return Math.max(1, high + 1);
+}
+
+/**
+ * 高效的字符串搜索（非正则表达式模式）
+ * 使用 indexOf 循环搜索，比正则表达式更快
+ */
+function searchPlainText(
+  text: string,
+  pattern: string,
+  matchCase: boolean,
+  wholeWord: boolean,
+  startOffset: number,
+  lineStarts: number[]
+): TextSearchMatch[] {
+  const matches: TextSearchMatch[] = [];
+  const searchText = startOffset > 0 ? text.slice(startOffset) : text;
+  const searchStartOffset = startOffset;
+  
+  const patternLower = matchCase ? pattern : pattern.toLowerCase();
+  const textToSearch = matchCase ? searchText : searchText.toLowerCase();
+  const patternLength = pattern.length;
+  
+  if (patternLength === 0) return matches;
+  
+  let searchIndex = 0;
+  const textLength = textToSearch.length;
+  
+  // 字符类检查函数（用于wholeWord）
+  const isWordChar = (char: string | undefined): boolean => {
+    if (char === undefined) return false;
+    return /[\w\u4e00-\u9fff]/.test(char);
+  };
+  
+  while (searchIndex < textLength) {
+    const index = textToSearch.indexOf(patternLower, searchIndex);
+    if (index === -1) break;
+    
+    const absoluteStartOffset = searchStartOffset + index;
+    const absoluteEndOffset = absoluteStartOffset + patternLength;
+    
+    // 检查整词匹配
+    if (wholeWord) {
+      const beforeChar = searchText[index - 1];
+      const afterChar = searchText[index + patternLength];
+      if (isWordChar(beforeChar) || isWordChar(afterChar)) {
+        searchIndex = index + 1;
+        continue;
+      }
+    }
+    
+    // 计算行号和列号
+    const lineNum = getLineNumberFromOffset(lineStarts, absoluteStartOffset);
+    const lineStartOffset = lineStarts[lineNum - 1] ?? 0;
+    const colNum = absoluteStartOffset - lineStartOffset + 1;
+    
+    // 获取实际匹配的文本（保持原始大小写）
+    const actualMatchText = searchText.substring(index, index + patternLength);
+    
+    matches.push({
+      line: lineNum,
+      column: colNum,
+      match: actualMatchText,
+      startOffset: absoluteStartOffset,
+      endOffset: absoluteEndOffset,
+    });
+    
+    searchIndex = index + 1;
+  }
+  
+  return matches;
+}
+
+/**
  * 在文本中搜索匹配项
+ * 优化：对于非正则表达式搜索，使用更高效的字符串搜索算法
  */
 export function searchInText(
   text: string,
@@ -36,100 +143,160 @@ export function searchInText(
     startOffset = 0,
   } = options;
 
+  // 预计算行起始位置（一次性计算，避免重复计算）
+  const lineStarts = computeLineStarts(text);
+
+  // 对于非正则表达式的简单字符串搜索，使用更高效的算法
+  if (!useRegex) {
+    return searchPlainText(text, pattern, matchCase, wholeWord, startOffset, lineStarts);
+  }
+
+  // 对于正则表达式，使用原有的正则表达式搜索
   let regex: RegExp;
   try {
-    if (useRegex) {
-      regex = new RegExp(pattern, matchCase ? "g" : "gi");
-    } else {
-      const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const patternStr = wholeWord
-        ? `(?<!\\w)${escaped}(?!\\w)`
-        : escaped;
-      regex = new RegExp(patternStr, matchCase ? "g" : "gi");
-    }
+    regex = new RegExp(pattern, matchCase ? "g" : "gi");
   } catch (error) {
     console.warn("searchInText:regex-error", error);
     return [];
   }
 
   const matches: TextSearchMatch[] = [];
-  const lines = text.split(/\r?\n/);
-  
-  // 如果指定了startOffset，只搜索从该位置开始的内容
   const searchText = startOffset > 0 ? text.slice(startOffset) : text;
   const searchStartOffset = startOffset;
-
-  // 计算搜索文本的起始行号和列号（用于计算绝对位置）
-  let searchStartLine = 0;
-  let searchStartColumn = 0;
-  if (startOffset > 0) {
-    let offset = 0;
-    for (let i = 0; i < lines.length; i++) {
-      const lineLength = lines[i].length;
-      const lineEndOffset = offset + lineLength;
-      
-      if (startOffset <= lineEndOffset) {
-        searchStartLine = i;
-        searchStartColumn = startOffset - offset;
-        break;
-      }
-      
-      offset += lineLength + 1; // +1 for newline
-    }
-  }
 
   // 在搜索文本中查找匹配
   regex.lastIndex = 0;
   let match: RegExpExecArray | null;
+  let guard = 0;
+  const MAX_GUARD = 100000; // 防止空匹配导致的无限循环
+  
   while ((match = regex.exec(searchText)) !== null) {
     if (!match) break;
 
     const matchText = match[0];
+    if (!matchText.length) {
+      regex.lastIndex += 1;
+      if (++guard > MAX_GUARD) break;
+      continue;
+    }
+    
     const relativeStartOffset = match.index;
     const relativeEndOffset = relativeStartOffset + matchText.length;
     const absoluteStartOffset = searchStartOffset + relativeStartOffset;
     const absoluteEndOffset = searchStartOffset + relativeEndOffset;
 
-    // 计算在原始文本中的行号和列号（从整个文本开始计算）
-    let lineNum = 1;
-    let colNum = 1;
-    let offset = 0;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const lineLength = line.length;
-      const lineEndOffset = offset + lineLength;
-
-      if (absoluteStartOffset <= lineEndOffset) {
-        lineNum = i + 1; // 1-based
-        colNum = absoluteStartOffset - offset + 1; // 1-based
-        break;
-      }
-
-      offset += lineLength + 1; // +1 for newline
-    }
+    // 使用预计算的行起始位置快速定位行号和列号
+    const lineNum = getLineNumberFromOffset(lineStarts, absoluteStartOffset);
+    const lineStartOffset = lineStarts[lineNum - 1] ?? 0;
+    const colNum = absoluteStartOffset - lineStartOffset + 1;
 
     matches.push({
       line: lineNum,
       column: colNum,
       match: matchText,
-      groups: useRegex && match.length > 1 ? [...match] : undefined,
+      groups: match.length > 1 ? [...match] : undefined,
       startOffset: absoluteStartOffset,
       endOffset: absoluteEndOffset,
     });
 
     if (!regex.global) break;
-    if (match[0].length === 0) {
-      regex.lastIndex += 1;
-    }
   }
 
   return matches;
 }
 
 /**
+ * 高效的字符串分批搜索（非正则表达式模式）
+ */
+async function* searchPlainTextBatched(
+  text: string,
+  pattern: string,
+  matchCase: boolean,
+  wholeWord: boolean,
+  startOffset: number,
+  lineStarts: number[],
+  batchSize: number
+): AsyncGenerator<TextSearchMatch[], void, unknown> {
+  const searchText = startOffset > 0 ? text.slice(startOffset) : text;
+  const searchStartOffset = startOffset;
+  
+  const patternLower = matchCase ? pattern : pattern.toLowerCase();
+  const textToSearch = matchCase ? searchText : searchText.toLowerCase();
+  const patternLength = pattern.length;
+  
+  if (patternLength === 0) return;
+  
+  let searchIndex = 0;
+  const textLength = textToSearch.length;
+  let batch: TextSearchMatch[] = [];
+  
+  // 字符类检查函数（用于wholeWord）
+  const isWordChar = (char: string | undefined): boolean => {
+    if (char === undefined) return false;
+    return /[\w\u4e00-\u9fff]/.test(char);
+  };
+  
+  while (searchIndex < textLength) {
+    const index = textToSearch.indexOf(patternLower, searchIndex);
+    if (index === -1) break;
+    
+    const absoluteStartOffset = searchStartOffset + index;
+    const absoluteEndOffset = absoluteStartOffset + patternLength;
+    
+    // 检查整词匹配
+    if (wholeWord) {
+      const beforeChar = searchText[index - 1];
+      const afterChar = searchText[index + patternLength];
+      if (isWordChar(beforeChar) || isWordChar(afterChar)) {
+        searchIndex = index + 1;
+        continue;
+      }
+    }
+    
+    // 计算行号和列号
+    const lineNum = getLineNumberFromOffset(lineStarts, absoluteStartOffset);
+    const lineStartOffset = lineStarts[lineNum - 1] ?? 0;
+    const colNum = absoluteStartOffset - lineStartOffset + 1;
+    
+    // 获取实际匹配的文本（保持原始大小写）
+    const actualMatchText = searchText.substring(index, index + patternLength);
+    
+    batch.push({
+      line: lineNum,
+      column: colNum,
+      match: actualMatchText,
+      startOffset: absoluteStartOffset,
+      endOffset: absoluteEndOffset,
+    });
+    
+    // 每批处理指定数量的匹配后，yield 当前批次
+    if (batch.length >= batchSize) {
+      yield batch;
+      batch = [];
+      
+      // 使用 requestIdleCallback 或 setTimeout 让出控制权，避免阻塞UI
+      await new Promise<void>((resolve) => {
+        if (typeof requestIdleCallback !== 'undefined') {
+          requestIdleCallback(() => resolve(), { timeout: 10 });
+        } else {
+          setTimeout(() => resolve(), 0);
+        }
+      });
+    }
+    
+    searchIndex = index + 1;
+  }
+  
+  // 返回剩余的匹配项
+  if (batch.length > 0) {
+    yield batch;
+  }
+}
+
+/**
  * 分批搜索匹配项（异步迭代器方式）
  * 每批返回指定数量的匹配项，避免阻塞UI
+ * 优化：对于非正则表达式搜索，使用更高效的字符串搜索算法
  */
 export async function* searchInTextBatched(
   text: string,
@@ -146,25 +313,24 @@ export async function* searchInTextBatched(
     batchSize = 10,
   } = options;
 
+  // 预计算行起始位置（一次性计算，避免重复计算）
+  const lineStarts = computeLineStarts(text);
+
+  // 对于非正则表达式的简单字符串搜索，使用更高效的算法
+  if (!useRegex) {
+    yield* searchPlainTextBatched(text, pattern, matchCase, wholeWord, startOffset, lineStarts, batchSize);
+    return;
+  }
+
+  // 对于正则表达式，使用原有的正则表达式搜索
   let regex: RegExp;
   try {
-    if (useRegex) {
-      regex = new RegExp(pattern, matchCase ? "g" : "gi");
-    } else {
-      const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const patternStr = wholeWord
-        ? `(?<!\\w)${escaped}(?!\\w)`
-        : escaped;
-      regex = new RegExp(patternStr, matchCase ? "g" : "gi");
-    }
+    regex = new RegExp(pattern, matchCase ? "g" : "gi");
   } catch (error) {
     console.warn("searchInTextBatched:regex-error", error);
     return;
   }
 
-  const lines = text.split(/\r?\n/);
-  
-  // 如果指定了startOffset，只搜索从该位置开始的内容
   const searchText = startOffset > 0 ? text.slice(startOffset) : text;
   const searchStartOffset = startOffset;
 
@@ -172,46 +338,37 @@ export async function* searchInTextBatched(
   regex.lastIndex = 0;
   let match: RegExpExecArray | null;
   let batch: TextSearchMatch[] = [];
-  let processedCount = 0;
+  let guard = 0;
+  const MAX_GUARD = 100000; // 防止空匹配导致的无限循环
 
   while ((match = regex.exec(searchText)) !== null) {
     if (!match) break;
 
     const matchText = match[0];
+    if (!matchText.length) {
+      regex.lastIndex += 1;
+      if (++guard > MAX_GUARD) break;
+      continue;
+    }
+
     const relativeStartOffset = match.index;
     const relativeEndOffset = relativeStartOffset + matchText.length;
     const absoluteStartOffset = searchStartOffset + relativeStartOffset;
     const absoluteEndOffset = searchStartOffset + relativeEndOffset;
 
-    // 计算在原始文本中的行号和列号（从整个文本开始计算）
-    let lineNum = 1;
-    let colNum = 1;
-    let offset = 0;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const lineLength = line.length;
-      const lineEndOffset = offset + lineLength;
-
-      if (absoluteStartOffset <= lineEndOffset) {
-        lineNum = i + 1; // 1-based
-        colNum = absoluteStartOffset - offset + 1; // 1-based
-        break;
-      }
-
-      offset += lineLength + 1; // +1 for newline
-    }
+    // 使用预计算的行起始位置快速定位行号和列号
+    const lineNum = getLineNumberFromOffset(lineStarts, absoluteStartOffset);
+    const lineStartOffset = lineStarts[lineNum - 1] ?? 0;
+    const colNum = absoluteStartOffset - lineStartOffset + 1;
 
     batch.push({
       line: lineNum,
       column: colNum,
       match: matchText,
-      groups: useRegex && match.length > 1 ? [...match] : undefined,
+      groups: match.length > 1 ? [...match] : undefined,
       startOffset: absoluteStartOffset,
       endOffset: absoluteEndOffset,
     });
-
-    processedCount++;
 
     // 每批处理指定数量的匹配后，yield 当前批次
     if (batch.length >= batchSize) {
@@ -229,9 +386,6 @@ export async function* searchInTextBatched(
     }
 
     if (!regex.global) break;
-    if (match[0].length === 0) {
-      regex.lastIndex += 1;
-    }
   }
 
   // 返回剩余的匹配项

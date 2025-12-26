@@ -371,31 +371,66 @@ const applySearch = () => {
       searchState.value = state;
       regexError.value = null;
       
-      // 异步搜索完成后，需要更新 searchState.value 以触发 UI 更新
-      // 使用简单的轮询，最多检查 30 次（约 1.5 秒）
-      // 现在搜索是分批进行的，每次分批都会更新状态，所以这里主要是为了兼容性
+      // 异步搜索过程中，需要持续更新 searchState.value 以触发 UI 实时刷新
+      // 使用轮询机制，在搜索过程中（isSearching 为 true）持续更新状态
+      // 轮询间隔设为 30ms，确保分批加载时能及时刷新
+      // 开始新搜索时，清除用户选择标记
+      userSelectedIndex.value = null;
       let checkCount = 0;
+      const MAX_CHECK_COUNT = 500; // 最多检查 500 次（约 15 秒），足够长时间文档搜索
+      let lastMatchCount = 0;
+      
       searchCheckInterval = setInterval(() => {
         const currentState = props.adapter?.getSearchState();
         if (currentState) {
-          // 每次检查都更新状态，确保 UI 响应（包括 isSearching 状态）
-          searchState.value = currentState;
-          // 如果搜索完成（isSearching 为 false），停止轮询
-          if (!currentState.isSearching || checkCount >= 30) {
+          const currentMatchCount = currentState.matches.length;
+          const hasMatchCountChanged = currentMatchCount !== lastMatchCount;
+          const hasIsSearchingChanged = currentState.isSearching !== searchState.value?.isSearching;
+          
+          // 如果匹配数量或搜索状态发生变化，需要更新状态
+          // 但是对于 currentIndex，需要保护用户手动选择的索引
+          if (hasMatchCountChanged || hasIsSearchingChanged) {
+            // 创建状态副本，保护用户选择的索引
+            const stateToUpdate = { ...currentState };
+            
+            // 如果用户手动选择了索引，并且该索引仍然有效，保持用户的选择
+            if (userSelectedIndex.value !== null && userSelectedIndex.value < currentMatchCount) {
+              stateToUpdate.currentIndex = userSelectedIndex.value;
+              // 同时更新适配器的内部状态以保持一致
+              // 注意：这里只更新 searchState，不会触发适配器状态更新，因为适配器状态会在用户点击时通过 find 方法更新
+            }
+            
+            searchState.value = stateToUpdate;
+            lastMatchCount = currentMatchCount;
+          } else if (
+            // 如果只有 currentIndex 变化，且不是用户选择的索引，才更新
+            currentState.currentIndex !== searchState.value?.currentIndex &&
+            (userSelectedIndex.value === null || currentState.currentIndex !== userSelectedIndex.value)
+          ) {
+            // 这是适配器内部状态变化（比如通过 find 方法），可以更新
+            searchState.value = currentState;
+          }
+          
+          // 如果搜索完成（isSearching 为 false），停止轮询并清除用户选择标记
+          if (!currentState.isSearching) {
+            userSelectedIndex.value = null;
             if (searchCheckInterval) {
               clearInterval(searchCheckInterval);
               searchCheckInterval = null;
             }
           }
         }
+        
         checkCount++;
-        if (checkCount >= 30) {
+        // 安全保护：即使搜索未完成，也要在达到最大检查次数时停止
+        if (checkCount >= MAX_CHECK_COUNT) {
+          userSelectedIndex.value = null;
           if (searchCheckInterval) {
             clearInterval(searchCheckInterval);
             searchCheckInterval = null;
           }
         }
-      }, 50);
+      }, 500); // 500ms 轮询间隔，确保实时性
     } catch (error) {
       regexError.value = (error as Error)?.message ?? String(error);
     }
@@ -464,21 +499,47 @@ const handleFindFromStart = () => {
   );
   searchState.value = state;
   
-  // 等待搜索完成
+  // 等待搜索完成，实时更新状态
+  // 清除用户选择标记，因为这是新的搜索
+  userSelectedIndex.value = null;
   let checkCount = 0;
+  const MAX_CHECK_COUNT = 500;
+  let lastMatchCount = 0;
   const checkInterval = setInterval(() => {
     const currentState = props.adapter?.getSearchState();
     if (currentState) {
-      searchState.value = currentState;
-      if (currentState.matches.length > 0 || checkCount >= 30) {
+      const currentMatchCount = currentState.matches.length;
+      const hasMatchCountChanged = currentMatchCount !== lastMatchCount;
+      const hasIsSearchingChanged = currentState.isSearching !== searchState.value?.isSearching;
+      
+      // 如果匹配数量或搜索状态发生变化，需要更新状态
+      // 但是对于 currentIndex，需要保护用户手动选择的索引
+      if (hasMatchCountChanged || hasIsSearchingChanged) {
+        const stateToUpdate = { ...currentState };
+        if (userSelectedIndex.value !== null && userSelectedIndex.value < currentMatchCount) {
+          stateToUpdate.currentIndex = userSelectedIndex.value;
+        }
+        searchState.value = stateToUpdate;
+        lastMatchCount = currentMatchCount;
+      } else if (
+        currentState.currentIndex !== searchState.value?.currentIndex &&
+        (userSelectedIndex.value === null || currentState.currentIndex !== userSelectedIndex.value)
+      ) {
+        searchState.value = currentState;
+      }
+      
+      // 如果搜索完成，停止轮询
+      if (!currentState.isSearching) {
+        userSelectedIndex.value = null;
         clearInterval(checkInterval);
       }
     }
     checkCount++;
-    if (checkCount >= 30) {
+    if (checkCount >= MAX_CHECK_COUNT) {
+      userSelectedIndex.value = null;
       clearInterval(checkInterval);
     }
-  }, 50);
+  }, 500);
 };
 
 const handleReplace = () => {
@@ -486,22 +547,45 @@ const handleReplace = () => {
   const state = props.adapter.replaceCurrent(form.replaceText);
   searchState.value = state;
   
-  // replaceCurrent 会重新调用 configureSearch（异步），需要等待搜索完成
+  // replaceCurrent 会重新调用 configureSearch（异步），需要等待搜索完成并实时更新
+  // 替换后清除用户选择标记，因为搜索会重新开始
+  userSelectedIndex.value = null;
   let checkCount = 0;
+  const MAX_CHECK_COUNT = 500;
+  let lastMatchCount = 0;
   const checkInterval = setInterval(() => {
     const currentState = props.adapter?.getSearchState();
     if (currentState) {
-      searchState.value = currentState;
-      // 如果找到匹配，可以提前结束
-      if (currentState.matches.length > 0 || checkCount >= 30) {
+      const currentMatchCount = currentState.matches.length;
+      const hasMatchCountChanged = currentMatchCount !== lastMatchCount;
+      const hasIsSearchingChanged = currentState.isSearching !== searchState.value?.isSearching;
+      
+      if (hasMatchCountChanged || hasIsSearchingChanged) {
+        const stateToUpdate = { ...currentState };
+        if (userSelectedIndex.value !== null && userSelectedIndex.value < currentMatchCount) {
+          stateToUpdate.currentIndex = userSelectedIndex.value;
+        }
+        searchState.value = stateToUpdate;
+        lastMatchCount = currentMatchCount;
+      } else if (
+        currentState.currentIndex !== searchState.value?.currentIndex &&
+        (userSelectedIndex.value === null || currentState.currentIndex !== userSelectedIndex.value)
+      ) {
+        searchState.value = currentState;
+      }
+      
+      // 如果搜索完成，停止轮询
+      if (!currentState.isSearching) {
+        userSelectedIndex.value = null;
         clearInterval(checkInterval);
       }
     }
     checkCount++;
-    if (checkCount >= 30) {
+    if (checkCount >= MAX_CHECK_COUNT) {
+      userSelectedIndex.value = null;
       clearInterval(checkInterval);
     }
-  }, 50);
+  }, 500);
 };
 
 
@@ -534,6 +618,9 @@ const handleFindAll = () => {
 const selectMatch = (index: number) => {
   if (!props.adapter || !searchState.value) return;
   selectedMatchIndex.value = index;
+  // 标记为用户手动选择的索引，需要在轮询中保护
+  userSelectedIndex.value = index;
+  
   // 更新适配器的当前索引并高亮
   const state = props.adapter.getSearchState();
   if (state.matches[index]) {
@@ -698,6 +785,7 @@ const handleReset = () => {
   regexError.value = null;
   props.adapter?.clearSearch();
   searchState.value = null;
+  userSelectedIndex.value = null; // 清除用户选择标记
   // 如果有搜索文本，重新执行搜索
   if (form.findText) {
     applySearch();
@@ -706,6 +794,7 @@ const handleReset = () => {
 
 const handleClose = () => {
   props.adapter?.clearSearch();
+  userSelectedIndex.value = null; // 清除用户选择标记
   eventBus.emit("search-replace-closed");
   emit("close");
 };
@@ -721,6 +810,7 @@ const showMatchesList = ref(false);
 const isDragging = ref(false);
 const dragStart = ref({ x: 0, y: 0 });
 const selectedMatchIndex = ref<number | null>(null);
+const userSelectedIndex = ref<number | null>(null); // 用户手动选择的索引，需要保护不被轮询覆盖
 
 const onMouseDown = (event: MouseEvent) => {
   isDragging.value = true;

@@ -128,6 +128,119 @@ export function searchInText(
 }
 
 /**
+ * 分批搜索匹配项（异步迭代器方式）
+ * 每批返回指定数量的匹配项，避免阻塞UI
+ */
+export async function* searchInTextBatched(
+  text: string,
+  pattern: string,
+  options: TextSearchOptions & { batchSize?: number } = {}
+): AsyncGenerator<TextSearchMatch[], void, unknown> {
+  if (!text || !pattern) return;
+
+  const {
+    matchCase = false,
+    wholeWord = false,
+    useRegex = false,
+    startOffset = 0,
+    batchSize = 10,
+  } = options;
+
+  let regex: RegExp;
+  try {
+    if (useRegex) {
+      regex = new RegExp(pattern, matchCase ? "g" : "gi");
+    } else {
+      const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const patternStr = wholeWord
+        ? `(?<!\\w)${escaped}(?!\\w)`
+        : escaped;
+      regex = new RegExp(patternStr, matchCase ? "g" : "gi");
+    }
+  } catch (error) {
+    console.warn("searchInTextBatched:regex-error", error);
+    return;
+  }
+
+  const lines = text.split(/\r?\n/);
+  
+  // 如果指定了startOffset，只搜索从该位置开始的内容
+  const searchText = startOffset > 0 ? text.slice(startOffset) : text;
+  const searchStartOffset = startOffset;
+
+  // 在搜索文本中查找匹配
+  regex.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let batch: TextSearchMatch[] = [];
+  let processedCount = 0;
+
+  while ((match = regex.exec(searchText)) !== null) {
+    if (!match) break;
+
+    const matchText = match[0];
+    const relativeStartOffset = match.index;
+    const relativeEndOffset = relativeStartOffset + matchText.length;
+    const absoluteStartOffset = searchStartOffset + relativeStartOffset;
+    const absoluteEndOffset = searchStartOffset + relativeEndOffset;
+
+    // 计算在原始文本中的行号和列号（从整个文本开始计算）
+    let lineNum = 1;
+    let colNum = 1;
+    let offset = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const lineLength = line.length;
+      const lineEndOffset = offset + lineLength;
+
+      if (absoluteStartOffset <= lineEndOffset) {
+        lineNum = i + 1; // 1-based
+        colNum = absoluteStartOffset - offset + 1; // 1-based
+        break;
+      }
+
+      offset += lineLength + 1; // +1 for newline
+    }
+
+    batch.push({
+      line: lineNum,
+      column: colNum,
+      match: matchText,
+      groups: useRegex && match.length > 1 ? [...match] : undefined,
+      startOffset: absoluteStartOffset,
+      endOffset: absoluteEndOffset,
+    });
+
+    processedCount++;
+
+    // 每批处理指定数量的匹配后，yield 当前批次
+    if (batch.length >= batchSize) {
+      yield batch;
+      batch = [];
+      
+      // 使用 requestIdleCallback 或 setTimeout 让出控制权，避免阻塞UI
+      await new Promise<void>((resolve) => {
+        if (typeof requestIdleCallback !== 'undefined') {
+          requestIdleCallback(() => resolve(), { timeout: 10 });
+        } else {
+          setTimeout(() => resolve(), 0);
+        }
+      });
+    }
+
+    if (!regex.global) break;
+    if (match[0].length === 0) {
+      regex.lastIndex += 1;
+    }
+  }
+
+  // 返回剩余的匹配项
+  if (batch.length > 0) {
+    yield batch;
+  }
+}
+
+/**
  * 计算替换文本（支持正则表达式捕获组和大小写保留）
  */
 export function computeReplacementText(
@@ -227,4 +340,3 @@ export function positionToOffset(text: string, line: number, column: number): nu
   const lineLength = lines[lineIndex]?.length ?? 0;
   return offset + Math.min(colIndex, lineLength);
 }
-

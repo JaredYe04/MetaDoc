@@ -23,6 +23,9 @@
         <span v-if="matchSummary.total" class="match-counter">
           {{ matchSummary.current }}/{{ matchSummary.total }}
         </span>
+        <el-icon v-if="isSearching" class="search-loading-icon" :class="'is-loading'">
+          <Loading />
+        </el-icon>
     </div>
       <el-scrollbar class="textarea-scroll" > 
         <el-input
@@ -219,7 +222,7 @@ import {
   watch,
   watchEffect,
 } from "vue";
-import { ElButton, ElInput, ElTooltip, ElScrollbar } from "element-plus";
+import { ElButton, ElInput, ElTooltip, ElScrollbar, ElIcon } from "element-plus";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { themeState, mixColors } from "../utils/themes";
@@ -235,6 +238,7 @@ import {
   RefreshRight,
   RefreshLeft,
   View,
+  Loading,
 } from "@element-plus/icons-vue";
 import { generateMatchContext } from "../utils/match-context";
 
@@ -308,6 +312,10 @@ const matchSummary = computed(() => {
   };
 });
 
+const isSearching = computed(() => {
+  return searchState.value?.isSearching ?? false;
+});
+
 const canSearch = computed(() => !!form.findText && !regexError.value);
 const canReplace = computed(() => {
   if (!canSearch.value) return false;
@@ -365,14 +373,15 @@ const applySearch = () => {
       
       // 异步搜索完成后，需要更新 searchState.value 以触发 UI 更新
       // 使用简单的轮询，最多检查 30 次（约 1.5 秒）
+      // 现在搜索是分批进行的，每次分批都会更新状态，所以这里主要是为了兼容性
       let checkCount = 0;
       searchCheckInterval = setInterval(() => {
         const currentState = props.adapter?.getSearchState();
         if (currentState) {
-          // 每次检查都更新状态，确保 UI 响应
+          // 每次检查都更新状态，确保 UI 响应（包括 isSearching 状态）
           searchState.value = currentState;
-          // 如果找到匹配，可以提前结束
-          if (currentState.matches.length > 0 || checkCount >= 30) {
+          // 如果搜索完成（isSearching 为 false），停止轮询
+          if (!currentState.isSearching || checkCount >= 30) {
             if (searchCheckInterval) {
               clearInterval(searchCheckInterval);
               searchCheckInterval = null;
@@ -867,6 +876,20 @@ onBeforeUnmount(() => {
   padding: 2px 6px;
   border-radius: 999px;
     background: rgba(0, 0, 0, 0.08);
+}
+
+.search-loading-icon {
+  margin-left: 8px;
+  animation: rotating 2s linear infinite;
+}
+
+@keyframes rotating {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .toggle-row {

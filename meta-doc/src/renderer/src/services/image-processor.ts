@@ -9,7 +9,15 @@
 import { image2base64, local2image } from '../utils/md-utils';
 import { createRendererLogger } from '../utils/logger';
 
-const logger = createRendererLogger('ImageProcessor');
+// 懒加载logger，避免初始化顺序问题
+let loggerInstance: ReturnType<typeof createRendererLogger> | null = null;
+
+function getLogger() {
+  if (!loggerInstance) {
+    loggerInstance = createRendererLogger('ImageProcessor');
+  }
+  return loggerInstance;
+}
 
 export type ImageProcessingMode = 'original' | 'base64' | 'folder';
 
@@ -41,7 +49,7 @@ export async function processMarkdownImages(
   if (mode === 'base64') {
     // Base64 嵌入（仅 HTML 和 Markdown 支持）
     if (targetFormat === 'tex') {
-      logger.warn('LaTeX 格式不支持 Base64 嵌入，将使用原始链接');
+      getLogger().warn('LaTeX 格式不支持 Base64 嵌入，将使用原始链接');
       return markdown;
     }
     
@@ -110,7 +118,7 @@ export async function processHtmlImages(
           // 替换 src
           processedHtml = processedHtml.replace(imgTag, imgTag.replace(src, dataUrl));
         } catch (error) {
-          logger.warn(`转换图片失败: ${src}`, error);
+          getLogger().warn(`转换图片失败: ${src}`, error);
         }
       }
     }

@@ -12,12 +12,30 @@ import { useWorkspace } from '../stores/workspace'
 import { serializeDocument } from '../services/document-serializer'
 import { convertLatexToMarkdown } from './latex-utils'
 import { NotImplementedExportError, prepareExportPayload } from '../services/export-manager.ts'
+import { webMainCalls } from './web-adapter/web-main-calls.js'
+import { createRendererLogger } from './logger.ts'
+import { i18n } from '../i18n.js'
+import { ElMessage } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 
 
 const eventBus = mitt()
 
 export default eventBus
 
+// 窗口类型管理（需要在 logger 之前定义）
+let cachedWindowType = 'home'
+
+export function initWindowType(type) {
+  //console.log('initWindowType', type)
+  cachedWindowType = type
+}
+export function getWindowType() {
+  return cachedWindowType
+}
+export function isMainWindow() {
+  return cachedWindowType === 'home'
+}
 
 let ipcRenderer = null
 if (window && window.electron) {
@@ -29,10 +47,17 @@ if (window && window.electron) {
   //todo 说明当前环境不是electron环境，需要另外适配
 }
 
+// 懒加载logger，避免初始化顺序问题
+let loggerInstance = null;
 
-const logger = createRendererLogger('EventBus', {
-  windowTypeProvider: () => getWindowType()
-});
+function getLogger() {
+  if (!loggerInstance) {
+    loggerInstance = createRendererLogger('EventBus', {
+      windowTypeProvider: () => getWindowType()
+    });
+  }
+  return loggerInstance;
+}
 
 const workspace = useWorkspace();
 const { activeTabId, ensureDocument, markDocumentSaved, updateDocumentDirty, tabs, saveDocument, removeTab } = workspace;
@@ -47,7 +72,7 @@ const extractFileName = (filePath, fallbackTitle) => {
     try {
       return path.basename(filePath);
     } catch (error) {
-      logger.warn('解析文件名失败', error);
+      getLogger().warn('解析文件名失败', error);
       const parts = filePath.split(/[\\/]/);
       return parts[parts.length - 1] || filePath;
     }
@@ -61,7 +86,7 @@ const getDocument = (tabId) => {
   try {
     return ensureDocument(targetId);
   } catch (error) {
-    logger.warn('获取文档失败', error);
+    getLogger().warn('获取文档失败', error);
     return null;
   }
 };
@@ -162,7 +187,7 @@ ipcRenderer.on('request-active-document-info', () => {
     }
     ipcRenderer.send('active-document-info-response', { fileName, path });
   } catch (error) {
-    logger.error('获取活动文档信息失败:', error);
+    getLogger().error('获取活动文档信息失败:', error);
     ipcRenderer.send('active-document-info-response', null);
   }
 })
@@ -195,7 +220,7 @@ ipcRenderer.on('request-unsaved-tabs-info', () => {
     
     ipcRenderer.send('unsaved-tabs-info-response', unsavedTabs);
   } catch (error) {
-    logger.error('获取未保存tabs信息失败:', error);
+    getLogger().error('获取未保存tabs信息失败:', error);
     ipcRenderer.send('unsaved-tabs-info-response', []);
   }
 })
@@ -227,7 +252,7 @@ ipcRenderer.on('request-tab-info', (_event, tabId) => {
       dirty: tab.dirty || doc.dirty
     });
   } catch (error) {
-    logger.error('获取tab信息失败:', error);
+    getLogger().error('获取tab信息失败:', error);
     ipcRenderer.send('tab-info-response', null);
   }
 })
@@ -363,7 +388,7 @@ ipcRenderer.on('open-doc-success', (event, payload) => {
 ipcRenderer.on('file-changed', (event, payload) => {
   const { filePath, tabId, content, modifiedTime, diff } = payload || {}
   if (!filePath) {
-    logger.warn('文件变化事件缺少文件路径', payload)
+    getLogger().warn('文件变化事件缺少文件路径', payload)
     return
   }
   
@@ -454,7 +479,7 @@ ipcRenderer.on('save-tab', async (_event, tabId) => {
     const result = await saveDocument(tabId, { saveAs: false });
     ipcRenderer.send('save-tab-response', { tabId, success: result });
   } catch (error) {
-    logger.error('保存tab失败:', error);
+    getLogger().error('保存tab失败:', error);
     ipcRenderer.send('save-tab-response', { tabId, success: false, error: error.message });
   }
 });
@@ -465,7 +490,7 @@ ipcRenderer.on('discard-tab', (_event, tabId) => {
     removeTab(tabId);
     ipcRenderer.send('discard-tab-response', { tabId, success: true });
   } catch (error) {
-    logger.error('关闭tab失败:', error);
+    getLogger().error('关闭tab失败:', error);
     ipcRenderer.send('discard-tab-response', { tabId, success: false, error: error.message });
   }
 });
@@ -481,7 +506,7 @@ ipcRenderer.on('close-all-tabs', () => {
     }
     ipcRenderer.send('close-all-tabs-response', { success: true });
   } catch (error) {
-    logger.error('关闭所有tabs失败:', error);
+    getLogger().error('关闭所有tabs失败:', error);
     ipcRenderer.send('close-all-tabs-response', { success: false, error: error.message });
   }
 });
@@ -562,12 +587,12 @@ eventBus.on('export', async ({ format, filename, options }) => {
         i18n?.global?.t?.('export.notImplemented', '该导出组合尚未实现') ??
         '该导出功能尚未实现'
       ElMessage.error(message)
-      logger.warn(error.message)
+      getLogger().warn(error.message)
     } else {
       const message =
         error instanceof Error ? error.message : i18n?.global?.t?.('export.unknownError', '导出失败')
       ElMessage.error(message)
-      logger.error('导出失败', error)
+      getLogger().error('导出失败', error)
     }
   } finally {
     // 清理事件监听器
@@ -661,27 +686,7 @@ eventBus.on('receive-broadcast', (message) => {
 
 
 
-let cachedWindowType = 'home'
-
-export function initWindowType(type) {
-  //console.log('initWindowType', type)
-  cachedWindowType = type
-}
-export function getWindowType() {
-  return cachedWindowType
-}
-export function isMainWindow() {
-  return cachedWindowType === 'home'
-}
-
-import { lightTheme, darkTheme, themeState } from './themes.js'
-
-import { ElMessage } from 'element-plus'
-import { ElMessageBox } from 'element-plus'
-import { webMainCalls } from './web-adapter/web-main-calls.js'
-import { convertMarkdownToLatex } from './latex-utils.js'
-import { createRendererLogger } from './logger.ts'
-import { i18n } from '../i18n.js'
+// 这些导入已经在文件顶部处理了，这里移除重复的导入
 
 
 // window.electron.onMessageFromMain((event, message) => {

@@ -75,6 +75,7 @@ export interface EditorSearchState {
   options: SearchOptions;
   matches: FindResult[];
   currentIndex: number;
+  isSearching?: boolean; // 是否正在搜索中（用于显示加载状态）
 }
 
 export type SearchDirection = "next" | "previous";

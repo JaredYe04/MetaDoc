@@ -4,6 +4,7 @@
     "element-plus": "^2.8.7",
     "katex": "^0.16.25",
     "mathml-to-latex": "^1.5.0",
+    "re2": "^1.23.0",
     "tdesign-vue-next": "^1.10.3",
     "three": "^0.170.0",
     "xslt-processor": "^3.4.0"

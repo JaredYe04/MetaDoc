@@ -39,6 +39,7 @@ const defaultSearchState: EditorSearchState = {
   },
   matches: [],
   currentIndex: -1,
+  isSearching: false,
 };
 
 export class MonacoTextEditorAdapter implements TextEditorAdapter {
@@ -82,6 +83,7 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
       options: normalized,
       matches: [],
       currentIndex: -1,
+      isSearching: !!normalized.text, // 如果有搜索文本，标记为正在搜索
     };
     this.clearDecorations();
     logger.debug("configureSearch:state", this.state);
@@ -101,13 +103,13 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     return this.getSearchState();
   }
 
-  private performAsyncSearch(
+  private async performAsyncSearch(
     editor: monaco.editor.IStandaloneCodeEditor,
     normalized: Required<SearchOptions>,
     previousIndex: number,
     previousMatchText: string | undefined,
     revealFirst: boolean,
-  ): void {
+  ): Promise<void> {
     const text = editor.getValue();
     const lineStarts = this.computeLineStarts(text);
     
@@ -117,27 +119,38 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
       ? editor.getModel()?.getOffsetAt(selection.getStartPosition()) ?? 0
       : 0;
     
-    // 使用 requestIdleCallback 或 setTimeout 来异步执行搜索
-    const scheduleNext = (callback: () => void) => {
-      if (typeof requestIdleCallback !== 'undefined') {
-        requestIdleCallback(callback, { timeout: 50 });
-      } else {
-        setTimeout(callback, 0);
+    try {
+      // 设置搜索状态
+      this.state.isSearching = true;
+      this.state.matches = [];
+      this.state.currentIndex = -1;
+
+      const allFindResults: FindResult[] = [];
+
+      // 使用分批搜索，每批10个匹配
+      const searchGenerator = this.scanTextForMatchesBatched(text, normalized, lineStarts, startOffset);
+
+      // 分批处理匹配项
+      for await (const batch of searchGenerator) {
+        // 追加当前批次的匹配到总列表
+        allFindResults.push(...batch);
+        
+        // 更新状态，触发UI更新
+        this.state.matches = [...allFindResults];
       }
-    };
-    
-    // 异步执行搜索，避免阻塞 UI
-    scheduleNext(() => {
-      try {
-    const findResults = this.scanTextForMatches(text, normalized, lineStarts, startOffset);
-        this.finishSearch(findResults, previousIndex, previousMatchText, revealFirst);
-      } catch (error) {
-        logTrace("performAsyncSearch:error", error);
-        this.state.matches = [];
-        this.state.currentIndex = -1;
-        this.applyDecorations([], -1);
-      }
-    });
+
+      // 搜索完成
+      this.state.isSearching = false;
+
+      // 完成搜索处理
+      this.finishSearch(allFindResults, previousIndex, previousMatchText, revealFirst);
+    } catch (error) {
+      logTrace("performAsyncSearch:error", error);
+      this.state.matches = [];
+      this.state.currentIndex = -1;
+      this.state.isSearching = false;
+      this.applyDecorations([], -1);
+    }
   }
 
   private finishSearch(
@@ -204,6 +217,7 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
         endOffset: (match as any).endOffset,
       })),
       currentIndex: this.state.currentIndex,
+      isSearching: this.state.isSearching,
     };
   }
 
@@ -1084,6 +1098,85 @@ export class MonacoTextEditorAdapter implements TextEditorAdapter {
     }
     
     return results;
+  }
+
+  /**
+   * 分批搜索匹配项（异步迭代器方式）
+   * 每批返回指定数量的匹配项，避免阻塞UI
+   */
+  private async* scanTextForMatchesBatched(
+    text: string,
+    options: Required<SearchOptions>,
+    lineStarts: number[],
+    startOffset: number = 0,
+    batchSize: number = 10,
+  ): AsyncGenerator<FindResult[], void, unknown> {
+    if (!text || !options.text) return;
+
+    const regex = this.buildSearchRegex(options);
+    if (!regex) return;
+    const separators = this.getWordSeparators();
+    
+    // 从指定偏移量开始搜索
+    const searchText = startOffset > 0 ? text.slice(startOffset) : text;
+    const searchStartOffset = startOffset;
+    
+    let guard = 0;
+    const MAX_GUARD = 100000; // guard 的最大值，防止无限循环
+    let batch: FindResult[] = [];
+    
+    regex.lastIndex = 0;
+    while (true) {
+      const match = regex.exec(searchText);
+      if (!match) break;
+      const value = match[0];
+      const relativeStart = match.index;
+      const relativeEnd = relativeStart + value.length;
+      const absoluteStart = searchStartOffset + relativeStart;
+      const absoluteEnd = searchStartOffset + relativeEnd;
+      
+      if (!value.length) {
+        regex.lastIndex += 1;
+        if (++guard > MAX_GUARD) break; // 防止空匹配导致的无限循环
+        continue;
+      }
+      
+      if (
+        options.wholeWord &&
+        !this.isWholeWordBoundary(text, absoluteStart, absoluteEnd, separators)
+      ) {
+        continue;
+      }
+      
+      batch.push({
+        range: this.offsetsToRange(absoluteStart, absoluteEnd, lineStarts),
+        matchText: value,
+        groups: options.useRegex ? [...match] : undefined,
+        anchor: null as unknown as TextAnchor,
+        startOffset: absoluteStart,
+        endOffset: absoluteEnd,
+      } as FindResult & { startOffset: number; endOffset: number });
+
+      // 每批处理指定数量的匹配后，yield 当前批次
+      if (batch.length >= batchSize) {
+        yield batch;
+        batch = [];
+        
+        // 使用 requestIdleCallback 或 setTimeout 让出控制权，避免阻塞UI
+        await new Promise<void>((resolve) => {
+          if (typeof requestIdleCallback !== 'undefined') {
+            requestIdleCallback(() => resolve(), { timeout: 10 });
+          } else {
+            setTimeout(() => resolve(), 0);
+          }
+        });
+      }
+    }
+    
+    // 返回剩余的匹配项
+    if (batch.length > 0) {
+      yield batch;
+    }
   }
 
   private buildSearchRegex(options: Required<SearchOptions>): RegExp | null {

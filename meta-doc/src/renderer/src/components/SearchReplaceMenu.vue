@@ -1,5 +1,6 @@
 ﻿<template>
   <div
+    ref="panelRef"
     class="search-replace-panel"
     :style="panelStyles"
     @mousedown.stop="handlePanelMouseDown"
@@ -106,21 +107,28 @@
         <div class="panel-header-small">
           <span>{{ t('searchReplace.matchesList') }} ({{ searchState.matches.length }})</span>
         </div>
-        <el-scrollbar height="300px">
+        <el-scrollbar class="matches-scrollbar">
           <div class="matches-list">
-            <div
+            <el-tooltip
               v-for="(match, index) in searchState.matches"
               :key="index"
-              class="match-item"
-              :class="{ 'match-item-active': searchState.currentIndex === index }"
-              :style="getMatchItemStyle(index)"
-              @click="selectMatch(index)"
+              :content="getMatchLineText(match)"
+              placement="bottom"
+              :show-after="700"
+              :hide-after="0"
             >
-              <span class="match-location">
-                {{ t('searchReplace.line') }} {{ match.range.start.line }}, {{ t('searchReplace.column') }} {{ match.range.start.column }}
-              </span>
-              <div class="match-context" v-html="getMatchContextHtml(match, index)"></div>
-            </div>
+              <div
+                class="match-item"
+                :class="{ 'match-item-active': searchState.currentIndex === index }"
+                :style="getMatchItemStyle(index)"
+                @click="selectMatch(index)"
+              >
+                <span class="match-location">
+                  {{ t('searchReplace.line') }} {{ match.range.start.line }}, {{ t('searchReplace.column') }} {{ match.range.start.column }}
+                </span>
+                <div class="match-context" v-html="getMatchContextHtml(match, index)"></div>
+              </div>
+            </el-tooltip>
           </div>
         </el-scrollbar>
       </div>
@@ -208,6 +216,12 @@
         {{ t('searchReplace.resetBtn') }}
       </el-button>
     </footer>
+    
+    <!-- Resizer 组件 -->
+    <div
+      class="panel-resizer"
+      @mousedown.stop="handleResizerMouseDown"
+    ></div>
   </div>
 </template>
 
@@ -269,6 +283,16 @@ watch(
   { deep: true },
 );
 
+// 面板大小状态
+const panelSize = ref({
+  width: 380,
+  height: 0, // 0 表示自动高度
+});
+
+const panelRef = ref<HTMLElement | null>(null);
+const isResizing = ref(false);
+const resizeStart = ref({ x: 0, y: 0, width: 0, height: 0 });
+
 const form = reactive({
   findText: "",
   replaceText: "",
@@ -287,6 +311,8 @@ const panelStyles = computed(() => {
   return {
     top: `${menuPosition.value.top}px`,
     left: `${menuPosition.value.left}px`,
+    width: `${panelSize.value.width}px`,
+    height: panelSize.value.height > 0 ? `${panelSize.value.height}px` : 'auto',
     backgroundColor: theme.background2nd,
     color: theme.textColor,
     border: `1px solid ${mixColors(theme.background2nd, theme.textColor, 0.3)}`,
@@ -686,12 +712,33 @@ const selectMatch = (index: number) => {
 };
 
 
+/**
+ * 根据面板宽度计算可用的字符数
+ * 假设每个字符平均宽度为 8px（等宽字体），减去 padding 和 margin
+ */
+const calculateAvailableChars = (): number => {
+  if (!panelRef.value) return 80; // 默认值
+  
+  const panelWidth = panelSize.value.width;
+  // 减去左右 padding (16px * 2) 和匹配项左右 padding (12px * 2)
+  const availableWidth = panelWidth - 16 * 2 - 12 * 2 - 20; // 20px 作为安全边距
+  // 假设每个字符平均宽度为 7px（等宽字体，但考虑中文字符）
+  const charsPerPixel = 1 / 7;
+  const availableChars = Math.floor(availableWidth * charsPerPixel);
+  
+  // 确保最小和最大值
+  return Math.max(20, Math.min(200, availableChars));
+};
+
 const getMatchContextHtml = (match: any, index: number): string => {
   if (!props.adapter) return '';
   
   try {
     const fullText = props.adapter.getFullText();
     if (!fullText) return '';
+    
+    // 根据面板宽度动态计算可用字符数
+    const maxLength = calculateAvailableChars();
     
     // 获取匹配的偏移量
     const startOffset = (match as any).startOffset;
@@ -712,7 +759,7 @@ const getMatchContextHtml = (match: any, index: number): string => {
         match.matchText,
         calculatedStartOffset,
         calculatedEndOffset,
-        80
+        maxLength
       );
       
       // 转义HTML并高亮匹配部分
@@ -734,7 +781,7 @@ const getMatchContextHtml = (match: any, index: number): string => {
         match.matchText,
         startOffset,
         endOffset,
-        80
+        maxLength
       );
       
       // 转义HTML并高亮匹配部分
@@ -759,6 +806,38 @@ const getMatchContextHtml = (match: any, index: number): string => {
       return div.innerHTML;
     };
     return `<mark class="match-highlight">${escapeHtml(match.matchText)}</mark>`;
+  }
+};
+
+/**
+ * 获取匹配所在行的完整文本（用于tooltip显示）
+ * 最多显示50个字符，超过则截断并添加省略号
+ */
+const getMatchLineText = (match: any): string => {
+  if (!props.adapter || !match) return '';
+  
+  try {
+    // 获取匹配所在的行号（1-based）
+    const lineNumber = match.range.start.line;
+    
+    // 获取该行的完整文本
+    const lineText = props.adapter.getLineText(lineNumber);
+    
+    // 如果行文本为空，返回匹配文本
+    if (!lineText || lineText.trim().length === 0) {
+      return match.matchText || '';
+    }
+    
+    // 如果行文本超过50个字符，截断并添加省略号
+    const maxLength = 50;
+    if (lineText.length > maxLength) {
+      return lineText.substring(0, maxLength) + '...';
+    }
+    
+    return lineText;
+  } catch (error) {
+    logger.warn('获取匹配行文本失败', error);
+    return match.matchText || '';
   }
 };
 
@@ -836,6 +915,53 @@ const onMouseUp = () => {
   document.removeEventListener("mouseup", onMouseUp);
 };
 
+// Resizer 处理函数
+const handleResizerMouseDown = (event: MouseEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  if (!panelRef.value) return;
+  
+  isResizing.value = true;
+  const rect = panelRef.value.getBoundingClientRect();
+  resizeStart.value = {
+    x: event.clientX,
+    y: event.clientY,
+    width: rect.width,
+    height: rect.height,
+  };
+  
+  const onResizeMove = (e: MouseEvent) => {
+    if (!isResizing.value) return;
+    
+    const deltaX = e.clientX - resizeStart.value.x;
+    const deltaY = e.clientY - resizeStart.value.y;
+    
+    const minWidth = 300;
+    const maxWidth = 800;
+    const minHeight = 200;
+    // 最大高度限制为视口高度的 80%，但不超过 1000px
+    const maxHeight = Math.min(1000, window.innerHeight * 0.8);
+    
+    const newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStart.value.width + deltaX));
+    const newHeight = Math.max(minHeight, Math.min(maxHeight, resizeStart.value.height + deltaY));
+    
+    panelSize.value = {
+      width: newWidth,
+      height: newHeight,
+    };
+  };
+  
+  const onResizeUp = () => {
+    isResizing.value = false;
+    document.removeEventListener("mousemove", onResizeMove);
+    document.removeEventListener("mouseup", onResizeUp);
+  };
+  
+  document.addEventListener("mousemove", onResizeMove);
+  document.addEventListener("mouseup", onResizeUp);
+};
+
 const isInteractiveElement = (target: HTMLElement | null) => {
   if (!target) return false;
   return !!target.closest(
@@ -909,7 +1035,6 @@ onBeforeUnmount(() => {
 <style scoped>
 .search-replace-panel {
   position: absolute;
-  width: 380px;
   padding: 16px;
   border-radius: 10px;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
@@ -917,6 +1042,11 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(12px);
   transition: box-shadow 0.2s ease;
   user-select: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* 确保 flex 子元素可以收缩 */
+  max-height: min(1000px, 80vh); /* 限制最大高度，不超过视口高度的80%或1000px */
 }
 
 .search-replace-panel:active {
@@ -997,6 +1127,8 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  flex-shrink: 0; /* 不收缩，保持自然高度 */
+  margin-top: auto; /* 确保紧贴底部 */
 }
 
 .error-banner {
@@ -1036,16 +1168,22 @@ onBeforeUnmount(() => {
 .matches-section {
   margin-top: 16px;
   margin-bottom: 14px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* 确保可以收缩 */
 }
 
 .matches-panel {
   width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   border: 1px solid v-bind('mixColors(themeState.currentTheme.textColor, themeState.currentTheme.background2nd, 0.2)');
   border-radius: 6px;
   overflow: hidden;
   background-color: v-bind('themeState.currentTheme.background');
+  min-height: 0; /* 确保可以收缩 */
 }
 
 .panel-header-small {
@@ -1055,6 +1193,18 @@ onBeforeUnmount(() => {
   padding: 8px 12px;
   font-weight: 500;
   font-size: 13px;
+  flex-shrink: 0; /* 不收缩 */
+}
+
+.matches-scrollbar {
+  flex: 1;
+  min-height: 0; /* 确保可以收缩 */
+  overflow: hidden; /* 确保不会超出容器 */
+}
+
+.matches-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden !important;
+  overflow-y: auto !important; /* 确保可以垂直滚动 */
 }
 
 .matches-list {
@@ -1105,6 +1255,33 @@ onBeforeUnmount(() => {
   border-radius: 2px;
   font-weight: 600;
   color: inherit;
+}
+
+.panel-resizer {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  background: linear-gradient(
+    -45deg,
+    transparent 0%,
+    transparent 30%,
+    v-bind('mixColors(themeState.currentTheme.textColor, themeState.currentTheme.background2nd, 0.3)') 30%,
+    v-bind('mixColors(themeState.currentTheme.textColor, themeState.currentTheme.background2nd, 0.3)') 35%,
+    transparent 35%,
+    transparent 65%,
+    v-bind('mixColors(themeState.currentTheme.textColor, themeState.currentTheme.background2nd, 0.3)') 65%,
+    v-bind('mixColors(themeState.currentTheme.textColor, themeState.currentTheme.background2nd, 0.3)') 70%,
+    transparent 70%
+  );
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.panel-resizer:hover {
+  opacity: 1;
 }
 </style>
 

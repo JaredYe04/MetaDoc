@@ -280,7 +280,7 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
 
   /**
    * 使用DOM遍历算法高亮单个匹配（使用标题索引优化性能）
-   * 优化：从最近的标题DOM元素之后开始遍历，而不是从根节点开始
+   * 优化：从最近的标题DOM元素开始遍历，正确处理标题内的匹配
    */
   private highlightMatchWithDOMTraversal(
     root: HTMLElement,
@@ -295,10 +295,12 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
       // 尝试使用标题索引优化
       let nearestTitleElement: HTMLElement | null = null;
       let initialMatchCount = 0;
+      let startFromTitle = false; // 是否从标题元素开始遍历
       
       try {
         // 获取匹配的行号（转换为1-based，因为TitleIndex使用1-based）
         const matchLine = findResult.range.start.line + 1;
+        const matchColumn = findResult.range.start.column; // 1-based
         
         // 获取标题索引
         const titleIndex = this.getTitleIndex?.();
@@ -308,14 +310,44 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
           
           if (nearestTitle && nearestTitle.element && nearestTitle.element.isConnected) {
             nearestTitleElement = nearestTitle.element;
-            
-            // 计算在该标题之前有多少个匹配
             const titleLine = nearestTitle.line; // 1-based
-            initialMatchCount = this.state.matches.filter(m => {
-              // m.range.start.line 是 0-based，需要转换为 1-based
-              const matchLineNum = m.range.start.line + 1;
-              return matchLineNum < titleLine;
-            }).length;
+            
+            // 判断匹配是否在标题行内
+            const isMatchInTitleLine = matchLine === titleLine;
+            
+            if (isMatchInTitleLine) {
+              // 匹配在标题行内，需要从标题元素开始遍历
+              startFromTitle = true;
+              
+              // 计算标题行之前的所有匹配数
+              const matchesBeforeTitleLine = this.state.matches.filter(m => {
+                const matchLineNum = m.range.start.line + 1; // 转换为1-based
+                return matchLineNum < titleLine;
+              }).length;
+              
+              // 计算标题行内、该匹配之前的所有匹配数
+              const matchesInTitleLineBeforeMatch = this.state.matches.filter(m => {
+                const matchLineNum = m.range.start.line + 1; // 转换为1-based
+                const matchColNum = m.range.start.column; // 1-based
+                return matchLineNum === titleLine && matchColNum < matchColumn;
+              }).length;
+              
+              initialMatchCount = matchesBeforeTitleLine + matchesInTitleLineBeforeMatch;
+            } else {
+              // 匹配在标题行之后，计算标题行之前的所有匹配数
+              initialMatchCount = this.state.matches.filter(m => {
+                const matchLineNum = m.range.start.line + 1; // 转换为1-based
+                return matchLineNum < titleLine;
+              }).length;
+              
+              // 还需要计算标题行内的所有匹配数
+              const matchesInTitleLine = this.state.matches.filter(m => {
+                const matchLineNum = m.range.start.line + 1; // 转换为1-based
+                return matchLineNum === titleLine;
+              }).length;
+              
+              initialMatchCount += matchesInTitleLine;
+            }
           }
         }
       } catch (error) {
@@ -324,7 +356,8 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
       }
       
       // 使用闭包保存状态，判断是否已经经过标题元素
-      let hasPassedTitle = !nearestTitleElement; // 如果没有标题元素，认为已经"经过"了
+      let hasPassedTitle = !nearestTitleElement; // 是否已经经过标题元素
+      let isInTitleElement = false; // 是否正在标题元素内
       
       // 使用TreeWalker遍历文本节点
       const walker = document.createTreeWalker(
@@ -335,8 +368,14 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
             // 检查元素节点，判断是否已经经过标题元素
             if (node.nodeType === Node.ELEMENT_NODE) {
               if (nearestTitleElement && node === nearestTitleElement) {
-                // 遇到标题元素本身，标记为已经过
+                // 遇到标题元素本身，标记为已经过，并标记为在标题元素内
                 hasPassedTitle = true;
+                isInTitleElement = true;
+              } else if (isInTitleElement && nearestTitleElement) {
+                // 检查是否离开了标题元素
+                if (!nearestTitleElement.contains(node)) {
+                  isInTitleElement = false;
+                }
               }
               // 对于元素节点，继续遍历其子节点
               return NodeFilter.FILTER_ACCEPT;
@@ -355,30 +394,43 @@ export class VditorTextEditorAdapter implements TextEditorAdapter {
               return NodeFilter.FILTER_REJECT;
             }
             
-            // 如果使用了标题索引优化，跳过标题元素之前的文本节点
+            // 如果使用了标题索引优化
             if (nearestTitleElement) {
-              // 如果还没经过标题元素，跳过
-              if (!hasPassedTitle) {
-                // 检查当前节点是否在标题元素内（标题元素本身的文本节点）
-                if (nearestTitleElement.contains(node)) {
-                  // 标记为已经过，但跳过标题元素本身的文本
-                  hasPassedTitle = true;
-                  return NodeFilter.FILTER_REJECT;
-                }
-                // 在标题元素之前，跳过
-                return NodeFilter.FILTER_REJECT;
-              }
+              const isNodeInTitle = nearestTitleElement.contains(node);
               
-              // 如果节点在标题元素内，跳过（标题本身的文本不应该被计算）
-              if (nearestTitleElement.contains(node)) {
-                // 检查是否是标题元素本身的直接文本节点
-                let parent = node.parentElement;
-                while (parent && parent !== nearestTitleElement && parent !== root) {
-                  parent = parent.parentElement;
+              if (startFromTitle) {
+                // 如果从标题开始，只处理标题内的节点
+                if (!isNodeInTitle) {
+                  // 如果节点不在标题内，且已经离开了标题元素，停止遍历
+                  if (hasPassedTitle && !isInTitleElement) {
+                    return NodeFilter.FILTER_REJECT;
+                  }
+                  // 如果还没进入标题元素，跳过
+                  if (!hasPassedTitle) {
+                    return NodeFilter.FILTER_REJECT;
+                  }
+                } else {
+                  // 节点在标题内，接受
+                  if (!hasPassedTitle) {
+                    hasPassedTitle = true;
+                    isInTitleElement = true;
+                  }
                 }
-                // 如果在标题元素内，跳过
-                if (parent === nearestTitleElement) {
-                  return NodeFilter.FILTER_REJECT;
+              } else {
+                // 如果从标题之后开始，跳过标题元素之前的节点
+                if (!hasPassedTitle) {
+                  if (isNodeInTitle) {
+                    // 进入标题元素，标记为已经过，但跳过标题内的节点
+                    hasPassedTitle = true;
+                    isInTitleElement = true;
+                    return NodeFilter.FILTER_REJECT;
+                  } else {
+                    // 在标题元素之前，跳过
+                    return NodeFilter.FILTER_REJECT;
+                  }
+                } else if (isInTitleElement && !isNodeInTitle) {
+                  // 离开了标题元素
+                  isInTitleElement = false;
                 }
               }
             }

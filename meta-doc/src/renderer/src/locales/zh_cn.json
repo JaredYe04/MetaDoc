@@ -296,6 +296,8 @@
         "deleteCurrent": "删除当前对话",
         "inputPlaceholder": "在此处输入消息。",
         "attachTooltip": "附加文件",
+        "sendTooltip": "发送消息",
+        "knowledgeBaseTooltip": "查询知识库",
         "send": "发送",
         "reset": "重置",
         "defaultTitle": "与AI助手对话",

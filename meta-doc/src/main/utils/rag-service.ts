@@ -409,6 +409,8 @@ class RAGServiceImpl implements RAGService {
    * 查询知识库（使用SQLite向量搜索）
    */
   async queryKnowledgeBase(question: string, scoreThreshold = this.DEFAULT_SCORE_THRESHOLD): Promise<string[]> {
+    // this.logger.debug(`[queryKnowledgeBase] 开始查询，问题: ${question.substring(0, 50)}..., 阈值: ${scoreThreshold}, 模式: ${this.embeddingMode}`);
+    
     await this.initVectorDatabase();
 
     // 检查是否有启用的文档
@@ -418,48 +420,68 @@ class RAGServiceImpl implements RAGService {
       return [];
     }
 
+    // this.logger.debug(`[queryKnowledgeBase] 找到 ${enabledFiles.length} 个启用的文档`);
+
     // 如果查询文本很长，分段处理
     const chunks = question.length > this.CHUNK_SIZE
       ? this.chunkText(question, this.CHUNK_SIZE, this.DEFAULT_OVERLAP)
       : [question];
 
+    // this.logger.debug(`[queryKnowledgeBase] 查询文本分段数: ${chunks.length}`);
+
     let allCandidates: QueryResult[] = [];
 
     for (const chunk of chunks) {
-      // 生成查询向量
-      const embeddingResult = await this.embedText(chunk);
-      const queryEmbedding = embeddingResult.vector;
+      try {
+        // 生成查询向量
+        // this.logger.debug(`[queryKnowledgeBase] 开始生成嵌入向量，文本长度: ${chunk.length}`);
+        const embeddingResult = await this.embedText(chunk);
+        const queryEmbedding = embeddingResult.vector;
+        // this.logger.debug(`[queryKnowledgeBase] 嵌入向量生成完成，维度: ${queryEmbedding.length}, 模型: ${embeddingResult.model}`);
 
-      // 使用SQLite向量搜索获取候选结果
-      // 传入queryText用于关键词匹配和混合评分
-      const dbResults = searchSimilarVectors(
-        Array.from(queryEmbedding), // 转换为可变数组
-        this.VECTOR_SEARCH_TOP_K,
-        0, // 在searchSimilarVectors中不设置阈值，因为会进行标准化和混合评分
-        true, // 只搜索启用的文档
-        chunk // 传入查询文本用于关键词匹配
-      );
+        // 使用SQLite向量搜索获取候选结果
+        // 传入queryText用于关键词匹配和混合评分
+        // this.logger.debug(`[queryKnowledgeBase] 开始向量搜索，TOP_K: ${this.VECTOR_SEARCH_TOP_K}`);
+        const dbResults = searchSimilarVectors(
+          Array.from(queryEmbedding), // 转换为可变数组
+          this.VECTOR_SEARCH_TOP_K,
+          0, // 在searchSimilarVectors中不设置阈值，因为会进行标准化和混合评分
+          true, // 只搜索启用的文档
+          chunk // 传入查询文本用于关键词匹配
+        );
 
-      if (dbResults.length === 0) {
-        this.logger.debug(`SQLite向量搜索未返回结果 (查询: ${chunk.substring(0, 50)}...)`);
+        // this.logger.debug(`[queryKnowledgeBase] 向量搜索完成，找到 ${dbResults.length} 个候选结果`);
+
+        if (dbResults.length === 0) {
+          // this.logger.debug(`SQLite向量搜索未返回结果 (查询: ${chunk.substring(0, 50)}...)`);
+          continue;
+        }
+
+        // 转换为QueryResult格式
+        // searchSimilarVectors已经进行了标准化和关键词匹配，返回的similarity是混合评分
+        let candidates: QueryResult[] = dbResults.map(r => ({
+          id: `chunk_${r.chunkId}`,
+          cosSim: r.similarity, // 已经是混合评分后的similarity
+          text: r.chunkText,
+          hybridScore: r.similarity // 使用混合评分作为hybridScore
+        }));
+
+        // searchSimilarVectors已经按similarity排序，这里不需要再排序
+
+        // 使用改进的重排算法
+        candidates = this.rerankResults(queryEmbedding, candidates, chunk);
+        // this.logger.debug(`[queryKnowledgeBase] 重排完成，保留 ${candidates.length} 个候选结果`);
+
+        allCandidates.push(...candidates);
+      } catch (error) {
+        this.logger.error(`[queryKnowledgeBase] 处理查询块失败`, {
+          chunk: chunk.substring(0, 100),
+          error: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined
+        });
+        // 继续处理下一个块，不中断整个查询
         continue;
       }
-
-      // 转换为QueryResult格式
-      // searchSimilarVectors已经进行了标准化和关键词匹配，返回的similarity是混合评分
-      let candidates: QueryResult[] = dbResults.map(r => ({
-        id: `chunk_${r.chunkId}`,
-        cosSim: r.similarity, // 已经是混合评分后的similarity
-        text: r.chunkText,
-        hybridScore: r.similarity // 使用混合评分作为hybridScore
-      }));
-
-      // searchSimilarVectors已经按similarity排序，这里不需要再排序
-
-      // 使用改进的重排算法
-      candidates = this.rerankResults(queryEmbedding, candidates, chunk);
-
-      allCandidates.push(...candidates);
     }
 
     // 合并去重（基于文本内容）
@@ -873,18 +895,24 @@ class RAGServiceImpl implements RAGService {
   private async embedTextViaAPI(text: string): Promise<EmbeddingResult> {
     const apiKey = process.env.SILICONFLOW_API_KEY;
     if (!apiKey) {
-      throw new Error('SILICONFLOW_API_KEY 未配置，请检查 .env 文件');
+      this.logger.error('SILICONFLOW_API_KEY 未配置，无法使用 API 模式生成嵌入向量');
+      throw new Error('SILICONFLOW_API_KEY 未配置，请检查 .env 文件或切换到本地模式');
     }
+    
+    // this.logger.debug(`使用 API 模式生成嵌入向量，文本长度: ${text.length}, API URL: ${this.SILICONFLOW_API_URL}`);
 
     try {
       const https = require('https');
       const http = require('http');
       const url = require('url');
 
+      // SiliconFlow API 要求 input 必须是数组格式
       const requestData = JSON.stringify({
         model: this.SILICONFLOW_MODEL,
-        input: text
+        input: [text]  // 将字符串包装成数组
       });
+      
+      // this.logger.debug(`[embedTextViaAPI] 请求数据: ${JSON.stringify({ model: this.SILICONFLOW_MODEL, input: [text.substring(0, 50) + '...'] })}`);
 
       const urlObj = new URL(this.SILICONFLOW_API_URL);
       const isHttps = urlObj.protocol === 'https:';
@@ -912,7 +940,29 @@ class RAGServiceImpl implements RAGService {
 
           res.on('end', () => {
             try {
+              // 检查HTTP状态码
+              if (res.statusCode && res.statusCode !== 200) {
+                this.logger.error(`API 请求失败: HTTP ${res.statusCode}`, { response: data.substring(0, 500) });
+                reject(new Error(`API 请求失败: HTTP ${res.statusCode}`));
+                return;
+              }
+
               const response = JSON.parse(data);
+              
+              // 检查响应格式
+              if (!response) {
+                this.logger.error('API 响应为空', { rawResponse: data.substring(0, 500) });
+                reject(new Error('API 响应为空'));
+                return;
+              }
+
+              // 检查是否有错误信息
+              if (response.error) {
+                this.logger.error('API 返回错误', { error: response.error, rawResponse: data.substring(0, 500) });
+                reject(new Error(`API 返回错误: ${JSON.stringify(response.error)}`));
+                return;
+              }
+
               if (response.data && response.data[0] && response.data[0].embedding) {
                 const embedding = response.data[0].embedding;
                 if (embedding.length === this.VECTOR_LEN) {
@@ -925,10 +975,22 @@ class RAGServiceImpl implements RAGService {
                   reject(new Error(`向量维度不匹配: 期望 ${this.VECTOR_LEN}, 实际 ${embedding.length}`));
                 }
               } else {
-                reject(new Error('API 响应格式错误'));
+                // 提供更详细的错误信息
+                this.logger.error('API 响应格式错误', {
+                  hasData: !!response.data,
+                  dataLength: response.data?.length,
+                  hasFirstItem: !!(response.data && response.data[0]),
+                  hasEmbedding: !!(response.data && response.data[0] && response.data[0].embedding),
+                  responseKeys: Object.keys(response),
+                  rawResponse: data.substring(0, 1000)
+                });
+                reject(new Error(`API 响应格式错误: 期望 response.data[0].embedding，但响应结构为 ${JSON.stringify(Object.keys(response))}`));
               }
             } catch (error) {
-              this.logger.error('解析 API 响应失败:', error);
+              this.logger.error('解析 API 响应失败', {
+                error: error instanceof Error ? error.message : String(error),
+                rawResponse: data.substring(0, 1000)
+              });
               reject(error);
             }
           });

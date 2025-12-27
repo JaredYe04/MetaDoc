@@ -93,7 +93,7 @@
           </div>
         </header>
         <div class="dialog-container">
-          <el-scrollbar>
+          <el-scrollbar class="conversation-scroll">
             <MessageBubble 
               v-for="(message, index) in messages.filter(item => item.role !== 'system')" 
               :key="index"
@@ -104,28 +104,32 @@
               @regenerate="regenerate" 
               :index="index" 
             />
+            <div 
+              class="conversation-bottom-spacer" 
+              :class="{ 'has-references': referenceStore && referenceStore.length > 0 }"
+            />
           </el-scrollbar>
-
-        </div>
-
-        <div class="composer-wrapper">
-          <ReferenceDisplay
-            v-if="referenceStore.length > 0"
-            :references="referenceStore"
-            :active-reference-ids="activeReferenceIds"
-            @toggle="handleToggleReference"
-          />
-          <ChatComposer
-            v-model="promptInput"
-            :loading="responding"
-            :disabled="responding"
-            :placeholder="t('aiChat.inputPlaceholder')"
-            :show-voice="false"
-            :show-attach="true"
-            @submit="onMsgSend"
-            @reset="reset"
-            @attach="handleAttach"
-          />
+          <div class="composer-wrapper">
+            <ReferenceDisplay
+              v-if="referenceStore.length > 0"
+              :references="referenceStore"
+              :active-reference-ids="activeReferenceIds"
+              @toggle="handleToggleReference"
+            />
+            <ChatComposer
+              v-model="promptInput"
+              :loading="responding"
+              :disabled="responding"
+              :placeholder="t('aiChat.inputPlaceholder')"
+              :show-voice="false"
+              :show-attach="true"
+              :show-knowledge-base="true"
+              v-model:enable-knowledge-base-query="enableKnowledgeBaseQuery"
+              @submit="onMsgSend"
+              @reset="reset"
+              @attach="handleAttach"
+            />
+          </div>
         </div>
 
       </div>
@@ -475,6 +479,7 @@ const handleDialogMenuAction = async (
 };
 
 const title = ref(defaultTitle);
+const enableKnowledgeBaseQuery = ref(false);
 
 const reset = () => {
   promptInput.value = '';
@@ -660,6 +665,7 @@ async function generateNextResponse(
   beforeGeneration: () => void | Promise<void>,
   callbackRef: Ref<string>,
   afterGeneration: () => void | Promise<void>,
+  shouldQueryKnowledgeBase: boolean = false
 ) {
   responding.value = true;
   await Promise.resolve(beforeGeneration());
@@ -688,14 +694,13 @@ async function generateNextResponse(
   }
   
   //logger.log(messageCopy)
-  const enableKnowledgeBase=await getSetting("enableKnowledgeBase");
   const { handle, done } = createAiTask(
     messageCopy[messageCopy.length - 2].content ?? "AI Chat", 
     messageCopy, 
     cur_resp, 
     ai_types.chat, 
     'ai-chat',
-    { stream: true, enableKnowledgeBase: Boolean(enableKnowledgeBase) }
+    { stream: true, enableKnowledgeBase: shouldQueryKnowledgeBase }
   );
   try {
     await done;
@@ -710,7 +715,7 @@ async function generateNextResponse(
 
 }
 
-const onMsgSend = async () => {
+const onMsgSend = async (enableKnowledgeBaseQueryParam?: boolean) => {
   const userMessage: AIDialogMessage & { referenceIds?: string[] } = {
     role: 'user',
     content: promptInput.value,
@@ -723,6 +728,11 @@ const onMsgSend = async () => {
   //logger.log(messages.value);
   promptInput.value = '';
   cur_resp.value = '';
+
+  // 使用传入的参数或当前状态
+  const shouldQueryKnowledgeBase = enableKnowledgeBaseQueryParam !== undefined 
+    ? enableKnowledgeBaseQueryParam 
+    : enableKnowledgeBaseQuery.value;
 
   let stopStream: WatchStopHandle | undefined;
   await generateNextResponse(
@@ -752,7 +762,8 @@ const onMsgSend = async () => {
       updateCurrentDialog(null, true); // AI生成新回复时，移到最前面
       updateTitle();
 
-    }
+    },
+    shouldQueryKnowledgeBase
   );
 
 
@@ -974,7 +985,8 @@ const regenerate = async (index: number) => {
 
       //bindCode(false);
       updateCurrentDialog(null, true); // AI生成新回复时，移到最前面
-    }
+    },
+    enableKnowledgeBaseQuery.value
   );
   //await updateTitle();
 
@@ -1182,29 +1194,60 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
   border-radius: 20px;
   padding: 20px;
   margin: 0;
-  overflow: auto;
   min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dialog-container .conversation-scroll {
+  padding: 0;
+}
+
+.conversation-scroll {
+  flex: 1;
+  min-height: 0;
+  padding-right: 4px;
+}
+
+.conversation-scroll :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
+}
+
+.conversation-scroll :deep(.el-scrollbar__view) {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.conversation-bottom-spacer {
+  height: 15vh;
+  flex-shrink: 0;
+}
+
+.conversation-bottom-spacer.has-references {
+  height: 20vh; /* 如果有引用列表，增加底部空间 */
 }
 
 .composer-wrapper {
-  padding: 12px 0 0;
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  pointer-events: none;
+  padding: 0;
   gap: 8px;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0; /* 允许收缩 */
-  box-sizing: border-box;
-  overflow: hidden; /* 防止内容溢出 */
 }
 
 .composer-wrapper > * {
+  pointer-events: auto;
   width: 100%;
   max-width: min(960px, 100%);
-  min-width: 0; /* 允许收缩 */
+  min-width: 0;
   box-sizing: border-box;
-  flex-shrink: 1; /* 允许收缩 */
 }
 
 .menu-item-wrapper {

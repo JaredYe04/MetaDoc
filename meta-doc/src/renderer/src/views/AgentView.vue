@@ -184,6 +184,7 @@
             :show-voice="false"
             :show-cancel="isGenerating"
             :placeholder="t('aiChat.inputPlaceholder')"
+            :show-knowledge-base="false"
             @submit="handleComposerSubmit"
             @reset="handleComposerReset"
             @attach="handleAttachFile"
@@ -566,6 +567,7 @@ const shouldBootstrapDemoSessions = false; // 不再使用示例会话
 const demoAppliedDocs = new Set<string>();
 const composerInput = ref('');
 const openSessionMenuId = ref<string | null>(null);
+// AgentView 不使用 RAG 功能（Agent tool 中已有知识库检索）
 const showCreateSessionDialog = ref(false);
 const showManageDialog = ref(false);
 const manageDialogType = ref<'tool-collection' | 'workflow' | 'agent-config' | 'agent-engine' | null>(null);
@@ -1068,6 +1070,9 @@ const handleComposerSubmit = async () => {
   composerInput.value = '';
   touchSession(session);
   
+  // AgentView 不使用 RAG 功能（Agent tool 中已有知识库检索）
+  const shouldQueryKnowledgeBase = false;
+  
   // 注意：不要在创建消息后立即持久化，因为会破坏reactive对象的响应式
   // 只在用户消息创建时持久化一次（延迟持久化，不影响响应式）
   nextTick(() => {
@@ -1173,12 +1178,12 @@ const handleComposerSubmit = async () => {
       
       // 执行引擎，传入assistantMessageRef和stopWatcher
       // 注意：使用actualSession而不是computed的session，确保响应式更新
-      await executeAgentEngine(content, assistantMessageRef, stopWatcher, assistantMessage, actualSession);
+      await executeAgentEngine(content, assistantMessageRef, stopWatcher, assistantMessage, actualSession, shouldQueryKnowledgeBase);
       
       logger.debug(`[handleComposerSubmit] 引擎执行完成, watch共触发${watchTriggerCount}次`);
     } else {
       logger.debug('[handleComposerSubmit] 使用其他引擎类型');
-      await executeAgentEngine(content);
+      await executeAgentEngine(content, undefined, undefined, undefined, undefined, shouldQueryKnowledgeBase);
     }
   } catch (error) {
     logger.error('[handleComposerSubmit] 执行失败:', error);
@@ -1192,7 +1197,8 @@ const executeAgentEngine = async (
   assistantMessageRef?: Ref<string>,
   stopWatcher?: (() => void) | null,
   assistantMessage?: ChatAgentMessage,
-  actualSession?: AgentSession
+  actualSession?: AgentSession,
+  shouldQueryKnowledgeBase: boolean = false
 ) => {
   // 使用传入的actualSession，如果没有则使用computed的session
   const session = actualSession || activeSession.value;
@@ -1372,7 +1378,8 @@ const executeAgentEngine = async (
         stream: true,  // 明确设置为true
         temperature,
         maxTokens: engine.customLlmConfig?.maxTokens,
-        customLlmConfig
+        customLlmConfig,
+        enableKnowledgeBase: shouldQueryKnowledgeBase
       };
       
       logger.debug('[executeAgentEngine] 准备创建AI任务，meta对象:', {
@@ -2069,8 +2076,8 @@ const handleConfirmEditMessage = async () => {
     editingMessage.value = null;
     editingMessageContent.value = '';
     
-    // 重新触发AI生成
-    await executeAgentEngine(content);
+    // 重新触发AI生成（AgentView 不使用 RAG 功能）
+    await executeAgentEngine(content, undefined, undefined, undefined, undefined, false);
   }
 };
 
@@ -2094,8 +2101,8 @@ const handleMessageRegenerate = async (message: AgentMessage) => {
     touchSession(session);
     persistSessions();
     
-    // 重新执行AI生成
-    await executeAgentEngine(userMessage.markdown);
+    // 重新执行AI生成（AgentView 不使用 RAG 功能）
+    await executeAgentEngine(userMessage.markdown, undefined, undefined, undefined, undefined, false);
   } 
   // 如果是AI消息，重新生成回复
   else if (message.role === 'assistant' && message.type === 'chat') {
@@ -2187,8 +2194,9 @@ const handleMessageRegenerate = async (message: AgentMessage) => {
       }
       
       // 重新执行AI生成（从用户消息开始，Agent会基于整个消息历史继续生成）
+      // AgentView 不使用 RAG 功能（Agent tool 中已有知识库检索）
       const userMessage = session.messages[lastUserMessageIndex] as ChatAgentMessage;
-      await executeAgentEngine(userMessage.markdown);
+      await executeAgentEngine(userMessage.markdown, undefined, undefined, undefined, undefined, false);
     } else {
       // 上一个消息是tool消息或其他类型，无法重新生成
       return;

@@ -4,7 +4,8 @@
 
 import "../assets/response-container.css"
 import {ref, computed,onMounted,onBeforeMount, nextTick, watch } from 'vue';
-import {Avatar, Delete, Edit, Refresh, User} from "@element-plus/icons-vue";
+import {Avatar, Delete, Edit, Refresh, User, More, CopyDocument} from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 import {ElMessageBox} from "element-plus";
 import {MdEditor,MdPreview, MdCatalog}from 'md-editor-v3';
 import { themeState } from "../utils/themes";
@@ -90,6 +91,111 @@ const saveEdit = () => {
   emit('edit', { index: props.index, message: editingText.value });
 };
 
+// 复制内容到剪切板
+const copyContent = async () => {
+  try {
+    await navigator.clipboard.writeText(content.value);
+    ElMessage.success(t('common.copySuccess', '复制成功'));
+  } catch (error) {
+    console.error('复制失败:', error);
+    ElMessage.error(t('common.copyFailed', '复制失败'));
+  }
+};
+
+// 处理下拉菜单命令
+const handleActionCommand = (command: string) => {
+  switch (command) {
+    case 'edit':
+      onMsgEdit();
+      break;
+    case 'delete':
+      onMsgDelete();
+      break;
+    case 'regenerate':
+      regenerateMsg();
+      break;
+    case 'copy':
+      copyContent();
+      break;
+  }
+};
+
+// hover状态管理
+const showActions = ref(false);
+const isHoveringMessage = ref(false);
+const isHoveringActions = ref(false);
+const isHoveringDropdown = ref(false);
+const dropdownVisible = ref(false);
+let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+const HIDE_DELAY = 500;
+
+const shouldShow = computed(() => {
+  return isHoveringMessage.value || isHoveringActions.value || isHoveringDropdown.value || dropdownVisible.value;
+});
+
+const clearHideTimer = () => {
+  if (hideTimer) {
+    clearTimeout(hideTimer);
+    hideTimer = null;
+  }
+};
+
+const showActionsAndTimestamp = () => {
+  clearHideTimer();
+  showActions.value = true;
+};
+
+const hideActionsAndTimestamp = () => {
+  clearHideTimer();
+  hideTimer = setTimeout(() => {
+    if (!shouldShow.value) {
+      showActions.value = false;
+    }
+    hideTimer = null;
+  }, HIDE_DELAY);
+};
+
+const handleMouseEnter = () => {
+  isHoveringMessage.value = true;
+  showActionsAndTimestamp();
+};
+
+const handleMouseLeave = () => {
+  isHoveringMessage.value = false;
+  hideActionsAndTimestamp();
+};
+
+const handleActionsMouseEnter = () => {
+  isHoveringActions.value = true;
+  showActionsAndTimestamp();
+};
+
+const handleActionsMouseLeave = () => {
+  isHoveringActions.value = false;
+  hideActionsAndTimestamp();
+};
+
+const handleDropdownVisibleChange = (visible: boolean) => {
+  dropdownVisible.value = visible;
+  if (visible) {
+    showActionsAndTimestamp();
+  } else {
+    isHoveringDropdown.value = false;
+    hideActionsAndTimestamp();
+  }
+};
+
+const handleDropdownMouseEnter = () => {
+  isHoveringDropdown.value = true;
+  showActionsAndTimestamp();
+};
+
+const handleDropdownMouseLeave = () => {
+  isHoveringDropdown.value = false;
+  hideActionsAndTimestamp();
+};
+
 // 引用容器的ref和样式
 const referencesContainerRef = ref<HTMLElement | null>(null);
 const messageBubbleRef = ref<HTMLElement | null>(null);
@@ -143,16 +249,62 @@ onMounted(() => {
 
 onBeforeMount(() => {
   window.removeEventListener('resize', calculateReferencesPosition);
+  clearHideTimer();
 });
 </script>
 
 <template>
   <div ref="messageBubbleRef" :class="['message-bubble', roleClass]">
     <el-avatar class="avatar" v-if="role !== 'user'" :icon="Avatar"></el-avatar>
-    <el-button type="primary" :icon="Edit" circle class="side-button" id="editSelfResponse" v-if="role === 'user'" @click="onMsgEdit" />
-    <el-button type="info" :icon="Refresh" circle class="side-button" id="regenerateMsg" v-if="role === 'user'" @click="regenerateMsg" />
-    <el-button type="danger" :icon="Delete" circle class="side-button" id="deleteSelfResponse" v-if="role === 'user'" @click="onMsgDelete" />
-    <div ref="bubbleContentRef" class="bubble-content response-container" style="max-height: none;">
+    <!-- 用户消息的操作按钮（在左侧） -->
+    <transition name="fade">
+      <el-dropdown 
+        v-if="role === 'user' && showActions"
+        @command="handleActionCommand" 
+        trigger="click" 
+        @click.stop 
+        @visible-change="handleDropdownVisibleChange"
+        class="side-button"
+        @mouseenter="handleActionsMouseEnter"
+        @mouseleave="handleActionsMouseLeave"
+      >
+        <el-button
+          circle
+          size="small"
+          :icon="More"
+        />
+        <template #dropdown>
+          <el-dropdown-menu 
+            @mouseenter="handleDropdownMouseEnter" 
+            @mouseleave="handleDropdownMouseLeave"
+          >
+            <el-dropdown-item command="copy">
+              <el-icon style="margin-right: 8px;"><CopyDocument /></el-icon>
+              {{ t('common.copy', '复制') }}
+            </el-dropdown-item>
+            <el-dropdown-item command="edit">
+              <el-icon style="margin-right: 8px;"><Edit /></el-icon>
+              {{ t('messageBubble.edit', '编辑') }}
+            </el-dropdown-item>
+            <el-dropdown-item command="regenerate">
+              <el-icon style="margin-right: 8px;"><Refresh /></el-icon>
+              {{ t('messageBubble.regenerate', '重新生成') }}
+            </el-dropdown-item>
+            <el-dropdown-item command="delete" divided>
+              <el-icon style="margin-right: 8px;"><Delete /></el-icon>
+              {{ t('common.delete', '删除') }}
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </transition>
+    <div 
+      ref="bubbleContentRef" 
+      class="bubble-content response-container" 
+      style="max-height: none;"
+      @mouseenter="handleMouseEnter"
+      @mouseleave="handleMouseLeave"
+    >
       <MdPreview
         :modelValue="content"
         previewTheme="github"
@@ -164,8 +316,44 @@ onBeforeMount(() => {
       />
       <!-- <markdown-it :source="content" /> -->
     </div>
-    <el-button type="primary" :icon="Edit" circle class="side-button" id="editAiResponse" v-if="role !== 'user'" @click="onMsgEdit" />
-    <el-button type="danger" :icon="Delete" circle class="side-button" id="deleteAiResponse" v-if="role !== 'user'" @click="onMsgDelete" />
+    <!-- AI消息的操作按钮（在右侧） -->
+    <transition name="fade">
+      <el-dropdown 
+        v-if="role !== 'user' && showActions"
+        @command="handleActionCommand" 
+        trigger="click" 
+        @click.stop 
+        @visible-change="handleDropdownVisibleChange"
+        class="side-button"
+        @mouseenter="handleActionsMouseEnter"
+        @mouseleave="handleActionsMouseLeave"
+      >
+        <el-button
+          circle
+          size="small"
+          :icon="More"
+        />
+        <template #dropdown>
+          <el-dropdown-menu 
+            @mouseenter="handleDropdownMouseEnter" 
+            @mouseleave="handleDropdownMouseLeave"
+          >
+            <el-dropdown-item command="copy">
+              <el-icon style="margin-right: 8px;"><CopyDocument /></el-icon>
+              {{ t('common.copy', '复制') }}
+            </el-dropdown-item>
+            <el-dropdown-item command="edit">
+              <el-icon style="margin-right: 8px;"><Edit /></el-icon>
+              {{ t('messageBubble.edit', '编辑') }}
+            </el-dropdown-item>
+            <el-dropdown-item command="delete" divided>
+              <el-icon style="margin-right: 8px;"><Delete /></el-icon>
+              {{ t('common.delete', '删除') }}
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </transition>
     <el-avatar class="avatar" v-if="role === 'user'" :icon="User"></el-avatar>
   </div>
   <!-- 引用显示（只读模式，只显示用户消息的引用） -->
@@ -206,11 +394,11 @@ onBeforeMount(() => {
 </template>
 
 <style scoped>
-
-.side-button{
-    align-self: flex-end;      /* 将按钮对齐到容器的底部 */
+.side-button {
+  align-self: flex-end;      /* 将按钮对齐到容器的底部 */
   margin-top: auto;          /* 自动填充上方的空间，贴到底部 */
 }
+
 .message-bubble {
   display: flex;
   align-items: flex-start;
@@ -218,21 +406,32 @@ onBeforeMount(() => {
   margin-left: 30px;
   margin-right: 30px;
 }
-.bubble-content:hover{
-    border-color: rgba(48, 162, 255, 0.42); /* 改变边框颜色 */
-    box-shadow: 0 0 8px rgba(83, 109, 254, 0.46); /* 加入阴影 */
-}
-.bubble-content {
 
+.bubble-content {
   min-width: 10px;
   min-height: 10px;
   border-radius: 10px;
-  transition: transform 0.3s ease,border-color 0.3s, box-shadow 0.3s;
+  transition: transform 0.3s ease, border-color 0.3s, box-shadow 0.3s;
   margin: 10px 10px;
   padding: 0 25px; /* 内边距，增加空间 */
   max-width: 61.8%;
   flex-grow: 1;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.bubble-content:hover {
+  border-color: rgba(48, 162, 255, 0.42); /* 改变边框颜色 */
+  box-shadow: 0 0 8px rgba(83, 109, 254, 0.46); /* 加入阴影 */
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 .user-role {
@@ -249,6 +448,11 @@ onBeforeMount(() => {
   align-items: center;
   color: #181818;
   background-color: #6cc0f5; /* Customize the avatar background color */
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
 }
 
 .message-bubble__references {

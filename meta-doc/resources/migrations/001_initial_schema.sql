@@ -46,3 +46,4 @@ CREATE INDEX IF NOT EXISTS idx_data_chunks_file_id ON data_chunks(knowledge_file
 CREATE INDEX IF NOT EXISTS idx_data_chunks_file_index ON data_chunks(knowledge_file_id, chunk_index);
 CREATE INDEX IF NOT EXISTS idx_vectors_chunk_id ON vectors(chunk_id);
 
+

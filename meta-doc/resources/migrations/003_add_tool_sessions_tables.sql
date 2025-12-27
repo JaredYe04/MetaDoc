@@ -71,3 +71,4 @@ CREATE INDEX IF NOT EXISTS idx_attachment_sessions_updated_at ON attachment_sess
 CREATE INDEX IF NOT EXISTS idx_graph_sessions_updated_at ON graph_sessions(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_ai_chat_sessions_updated_at ON ai_chat_sessions(updated_at DESC);
 
+

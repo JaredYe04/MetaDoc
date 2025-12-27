@@ -9,3 +9,4 @@ ALTER TABLE data_analysis_sessions ADD COLUMN analysis_request TEXT;
 ALTER TABLE data_analysis_sessions ADD COLUMN auto_group_by INTEGER; -- 0或1，表示false或true
 ALTER TABLE data_analysis_sessions ADD COLUMN generate_report INTEGER; -- 0或1，表示false或true
 
+

@@ -80,7 +80,7 @@
         </div>
       </div>
 
-      <div v-else class="document-preview">
+      <div v-if="showDocumentPreview" class="document-preview">
         <el-scrollbar class="md-metainfo" min-size="10">
           <h1 class="md-title" :style="{ color: themeState.currentTheme.textColor }">
             {{ metaTitle }}
@@ -155,7 +155,7 @@ const {
   ensureDocument,
   removeTab
 } = workspace
-const { activeDocument } = useActiveDocument()
+const { activeDocument, activeTab } = useActiveDocument()
 
 const quickStartStage = ref<'inactive' | 'format' | 'markdown' | 'latex'>('inactive')
 const recentDocs = ref<string[]>([])
@@ -199,7 +199,27 @@ const particleMarkdown = computed(() => {
   return doc.markdown ?? ''
 })
 
-const showWelcome = computed(() => quickStartStage.value === 'inactive' && currentFilePath.value === '')
+// 显示欢迎界面：当quickStartStage为inactive且（没有活跃文档或活跃文档是新建文档或活跃文档没有路径）
+const showWelcome = computed(() => {
+  if (quickStartStage.value !== 'inactive') return false
+  const tab = activeTab.value
+  // 如果没有活跃tab，显示欢迎界面
+  if (!tab) return true
+  // 如果是新建文档，显示欢迎界面
+  if (tab.kind === 'new') return true
+  // 如果文档路径为空，显示欢迎界面
+  if (!currentFilePath.value) return true
+  // 否则显示文档预览
+  return false
+})
+
+// 是否显示文档预览：只有当真正打开了已存在的文档时才显示
+const showDocumentPreview = computed(() => {
+  if (quickStartStage.value !== 'inactive') return false
+  const tab = activeTab.value
+  // 必须有活跃tab且是文件类型且有路径
+  return !!(tab && tab.kind === 'file' && currentFilePath.value)
+})
 
 const openQuickStart = () => {
   eventBus.emit('reset-quickstart')
@@ -365,8 +385,9 @@ const renderPreview = async () => {
   }
 }
 
-// 监听预览内容变化
-watch([previewMarkdown, () => themeState.currentTheme.type], () => {
+// 监听预览内容变化，只在需要显示文档预览时渲染
+watch([previewMarkdown, () => themeState.currentTheme.type, showDocumentPreview], () => {
+  if (!showDocumentPreview.value) return
   nextTick(() => {
     renderPreview()
   })
@@ -392,9 +413,11 @@ onMounted(() => {
   // 监听文档打开事件，也刷新列表（因为updateRecentDocs可能在打开前调用）
   eventBus.on('open-doc', handleDocOpen)
   
-  // 初始渲染
+  // 初始渲染（只在需要显示文档预览时）
   nextTick(() => {
-    renderPreview()
+    if (showDocumentPreview.value) {
+      renderPreview()
+    }
   })
 })
 

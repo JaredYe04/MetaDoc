@@ -129,3 +129,5 @@ const filePath = createMigration('add_user_preferences_table');
 - 每个迁移只执行一次
 - 迁移按正确顺序执行
 - 迁移失败时会停止后续迁移并记录错误
+
+

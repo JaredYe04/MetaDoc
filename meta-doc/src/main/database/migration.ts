@@ -8,6 +8,7 @@ import { createMainLogger } from '../logger';
 import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
+import pathService from '../utils/path-service';
 
 const logger = createMainLogger('Migration');
 
@@ -46,39 +47,36 @@ export function getMigrationsDirectory(): string {
 
 /**
  * 获取内置迁移文件目录（项目源码中的迁移文件）
+ * 迁移文件现在位于 resources/migrations 目录，在 dev 和打包环境都能正确访问
  */
 export function getBuiltinMigrationsDirectory(): string {
-  // 在开发环境中，__dirname 指向 out/main/database
-  // 在打包后，__dirname 指向 app.asar/main/database
-  // 迁移文件应该在同一目录下的 migrations 子目录中
-  let migrationsDir = path.join(__dirname, 'migrations');
+  // 使用 path-service 获取稳定的迁移文件路径
+  // 在开发环境：resources/migrations
+  // 在打包环境：app.asar.unpacked/resources/migrations（通过 asarUnpack 解包）
+  const migrationsDir = pathService.getMigrationsPath();
+  
+  // 如果目录不存在，自动创建
+  if (!fs.existsSync(migrationsDir)) {
+    try {
+      fs.mkdirSync(migrationsDir, { recursive: true });
+      logger.info(`已创建迁移文件目录: ${migrationsDir}`);
+    } catch (error) {
+      logger.error(`创建迁移文件目录失败: ${migrationsDir}`, error as Error);
+      // 列出 resources 目录的内容以便调试
+      try {
+        const resourcesPath = pathService.getResourcesPath();
+        if (fs.existsSync(resourcesPath)) {
+          const dirContents = fs.readdirSync(resourcesPath);
+          logger.debug(`resources 目录 (${resourcesPath}) 内容:`, dirContents.join(', '));
+        }
+      } catch (debugError) {
+        logger.error('无法读取 resources 目录内容', debugError as Error);
+      }
+    }
+  }
   
   // 添加调试日志
   logger.debug(`迁移文件目录: ${migrationsDir}, 存在: ${fs.existsSync(migrationsDir)}`);
-  
-  // 如果目录不存在，尝试从源码目录读取（仅开发环境）
-  if (!fs.existsSync(migrationsDir) && !app.isPackaged) {
-    // 尝试从源码目录读取：从 out/main/database 回到 src/main/database
-    const sourceMigrationsDir = path.resolve(__dirname, '../../src/main/database/migrations');
-    if (fs.existsSync(sourceMigrationsDir)) {
-      logger.info(`使用源码目录的迁移文件: ${sourceMigrationsDir}`);
-      migrationsDir = sourceMigrationsDir;
-    } else {
-      logger.warn(`迁移文件目录不存在: ${migrationsDir}`);
-      logger.warn(`源码迁移文件目录也不存在: ${sourceMigrationsDir}`);
-      // 列出 __dirname 的内容以便调试
-      try {
-        if (fs.existsSync(__dirname)) {
-          const dirContents = fs.readdirSync(__dirname);
-          logger.debug(`__dirname (${__dirname}) 内容:`, dirContents.join(', '));
-        }
-      } catch (error) {
-        logger.error('无法读取 __dirname 内容', error as Error);
-      }
-    }
-  } else if (!fs.existsSync(migrationsDir)) {
-    logger.warn(`迁移文件目录不存在: ${migrationsDir}`);
-  }
   
   return migrationsDir;
 }

@@ -21,7 +21,8 @@ import eventBus from '../utils/event-bus'
 const defaultArticleMetaData: ArticleMetaData = {
   title: '',
   author: '',
-  description: ''
+  description: '',
+  keywords: []
 }
 
 /** 默认AI对话消息 */

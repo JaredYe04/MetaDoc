@@ -17,7 +17,7 @@
             :disabled="disabled"
             @click.prevent="handleSelectFiles"
           >
-            <Plus />
+            <el-icon><Paperclip /></el-icon>
           </el-button>
         </el-tooltip>
       </div>
@@ -77,25 +77,42 @@
           </el-button>
         </el-tooltip>
 
-        <el-button
-          circle
-          class="composer-btn primary"
-          type="primary"
-          :loading="loading"
-          :disabled="disabled || !modelValue.trim().length"
-          @click.prevent="handleSubmit"
-        >
-          <Position />
-        </el-button>
+        <el-tooltip :content="t('aiChat.sendTooltip')" placement="top">
+          <el-button
+            circle
+            class="composer-btn primary"
+            type="primary"
+            :loading="loading"
+            :disabled="disabled || !modelValue.trim().length"
+            @click.prevent="handleSubmit"
+          >
+            <el-icon v-if="!loading"><ArrowUp /></el-icon>
+          </el-button>
+        </el-tooltip>
 
-        <el-button
-          circle
-          class="composer-btn"
-          :disabled="disabled"
-          @click.prevent="emit('reset')"
-        >
-          <Refresh />
-        </el-button>
+        <el-tooltip v-if="showKnowledgeBase" :content="t('aiChat.knowledgeBaseTooltip')" placement="top">
+          <el-button
+            circle
+            class="composer-btn"
+            :class="{ 'composer-btn-knowledge-base-active': enableKnowledgeBaseQuery }"
+            :disabled="disabled || !knowledgeBaseEnabled"
+            :type="enableKnowledgeBaseQuery ? 'primary' : 'default'"
+            @click.prevent="toggleKnowledgeBaseQuery"
+          >
+            <el-icon><Connection /></el-icon>
+          </el-button>
+        </el-tooltip>
+
+        <el-tooltip :content="t('aiChat.resetTooltip', '重置')" placement="top">
+          <el-button
+            circle
+            class="composer-btn"
+            :disabled="disabled"
+            @click.prevent="emit('reset')"
+          >
+            <el-icon><Refresh /></el-icon>
+          </el-button>
+        </el-tooltip>
       </div>
     </div>
   </form>
@@ -103,7 +120,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick, onBeforeUnmount, computed } from 'vue'
-import { Plus, Microphone, Position, Refresh, Close } from '@element-plus/icons-vue'
+import { Paperclip, Microphone, ArrowUp, Refresh, Close, Connection } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
 import type { ScrollbarInstance } from 'element-plus'
@@ -117,6 +134,8 @@ const props = withDefaults(defineProps<{
   showAttach?: boolean
   showVoice?: boolean
   showCancel?: boolean
+  showKnowledgeBase?: boolean
+  enableKnowledgeBaseQuery?: boolean
 }>(), {
   modelValue: '',
   loading: false,
@@ -124,16 +143,19 @@ const props = withDefaults(defineProps<{
   placeholder: '',
   showAttach: false,
   showVoice: false,
-  showCancel: false
+  showCancel: false,
+  showKnowledgeBase: false,
+  enableKnowledgeBaseQuery: false
 })
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
-  (e: 'submit'): void
+  (e: 'submit', enableKnowledgeBaseQuery?: boolean): void
   (e: 'reset'): void
   (e: 'attach', file?: File | File[]): void
   (e: 'voice'): void
   (e: 'cancel'): void
+  (e: 'update:enableKnowledgeBaseQuery', value: boolean): void
 }>()
 
 const { t } = useI18n()
@@ -144,14 +166,17 @@ const singleLineHeight = ref<number | null>(null)
 const isMultiline = ref(false)
 const SEND_PREF_KEY = 'meta-doc-chat-send-on-enter'
 const sendOnEnter = ref(true)
+const knowledgeBaseEnabled = ref(false)
+const enableKnowledgeBaseQuery = ref(props.enableKnowledgeBaseQuery)
 
 const updateMaxScrollHeight = () => {
-  maxScrollHeight.value = Math.max(180, Math.floor(window.innerHeight * 0.4))
+  maxScrollHeight.value = Math.max(180, Math.floor(window.innerHeight * 0.3))
 }
 
 const scrollbarWrapStyle = computed(() => ({
   maxHeight: `${maxScrollHeight.value}px`,
-  overflowX: 'hidden'
+  overflowX: 'hidden',
+  overflowY: 'auto'
 }))
 
 
@@ -191,7 +216,13 @@ const handleInput = (event: Event) => {
 
 const handleSubmit = () => {
   if (props.disabled || !props.modelValue.trim().length) return
-  emit('submit')
+  emit('submit', enableKnowledgeBaseQuery.value)
+}
+
+const toggleKnowledgeBaseQuery = () => {
+  if (!knowledgeBaseEnabled.value || props.disabled) return
+  enableKnowledgeBaseQuery.value = !enableKnowledgeBaseQuery.value
+  emit('update:enableKnowledgeBaseQuery', enableKnowledgeBaseQuery.value)
 }
 
 const handleKeydown = (event: KeyboardEvent) => {
@@ -294,12 +325,27 @@ watch(() => props.modelValue, () => {
   nextTick(autoResize)
 })
 
+watch(() => props.enableKnowledgeBaseQuery, (value) => {
+  enableKnowledgeBaseQuery.value = value
+})
+
 watch(sendOnEnter, (value) => {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(SEND_PREF_KEY, String(value))
 })
 
-onMounted(() => {
+// 检查知识库总开关状态
+const checkKnowledgeBaseEnabled = async () => {
+  const { getSetting } = await import('../../utils/settings.js')
+  knowledgeBaseEnabled.value = await getSetting('enableKnowledgeBase') || false
+  // 如果总开关关闭，确保查询开关也关闭
+  if (!knowledgeBaseEnabled.value) {
+    enableKnowledgeBaseQuery.value = false
+    emit('update:enableKnowledgeBaseQuery', false)
+  }
+}
+
+onMounted(async () => {
   updateMaxScrollHeight()
   window.addEventListener('resize', updateMaxScrollHeight)
   nextTick(autoResize)
@@ -309,6 +355,19 @@ onMounted(() => {
       sendOnEnter.value = stored === 'true'
     }
   }
+  await checkKnowledgeBaseEnabled()
+  
+  // 监听知识库总开关变化
+  const eventBus = (await import('../../utils/event-bus.js')).default
+  eventBus.on('knowledge-base-toggle', () => {
+    checkKnowledgeBaseEnabled()
+  })
+})
+
+onBeforeUnmount(async () => {
+  // 清理事件监听
+  const eventBus = (await import('../../utils/event-bus.js')).default
+  eventBus.off('knowledge-base-toggle')
 })
 
 onBeforeUnmount(() => {
@@ -336,29 +395,42 @@ onBeforeUnmount(() => {
   transition: background-color 0.2s, color 0.2s, border-color 0.2s;
   overflow: hidden;
   position: relative;
+  z-index: 10;
 }
 
 .composer-shell.is-multiline {
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 1fr;
   align-items: stretch;
 }
 
 .composer-leading {
   display: flex;
   align-items: center;
+  align-self: flex-end;
 }
 
 .composer-shell.is-multiline .composer-leading {
-  align-self: flex-start;
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 10;
+  align-self: auto;
 }
 
 .composer-scroll {
   width: 100%;
+  min-width: 0;
+}
+
+.composer-shell.is-multiline .composer-scroll {
+  width: 100%;
+  padding-right: 0;
 }
 
 .composer-scroll :deep(.el-scrollbar__wrap) {
   overflow-x: hidden;
-  padding-bottom: 4px;
+  overflow-y: auto;
+  padding-bottom: 0;
 }
 
 .composer-scroll :deep(.el-scrollbar__view) {
@@ -371,6 +443,7 @@ onBeforeUnmount(() => {
 
 .composer-shell.is-multiline .composer-scroll :deep(.el-scrollbar__wrap) {
   padding-bottom: 28px;
+  padding-left: 48px;
 }
 
 .composer-textarea {
@@ -380,11 +453,15 @@ onBeforeUnmount(() => {
   resize: none;
   outline: none;
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.5;
   color: inherit;
   font-family: inherit;
   white-space: pre-wrap;
   word-break: break-word;
+  padding: 0;
+  margin: 0;
+  min-height: 24px;
+  vertical-align: bottom;
 }
 
 .composer-textarea::placeholder {
@@ -401,6 +478,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  align-self: flex-end;
 }
 
 .composer-send-switch {
@@ -441,6 +519,17 @@ onBeforeUnmount(() => {
 .composer-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.composer-btn-knowledge-base-active {
+  background: var(--el-color-primary) !important;
+  color: #fff !important;
+  border-color: var(--el-color-primary) !important;
+}
+
+.composer-btn-knowledge-base-active:hover:not(:disabled) {
+  background: var(--el-color-primary-light-3) !important;
+  border-color: var(--el-color-primary-light-3) !important;
 }
 </style>
 

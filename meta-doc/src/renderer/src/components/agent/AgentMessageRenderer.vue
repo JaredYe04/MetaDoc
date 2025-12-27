@@ -737,7 +737,7 @@ onBeforeUnmount(() => {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  margin-bottom: 18px;
+  margin-bottom: 28px;
   gap: 12px;
   box-sizing: border-box;
 }
@@ -871,7 +871,7 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 4px;
   align-items: center;
-  z-index: 10;
+  z-index: 5;
 }
 
 .agent-message__actions--left {

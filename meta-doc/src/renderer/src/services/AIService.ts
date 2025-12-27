@@ -226,7 +226,7 @@ export class AIService {
       target,
       type: 'answer',
       originKey,
-      useRAG
+      meta: { useRAG, stream: true }
     })
   }
 
@@ -248,7 +248,8 @@ export class AIService {
       prompt: conversation,
       target,
       type: 'chat',
-      originKey
+      originKey,
+      meta: { stream: true }
     })
   }
 }

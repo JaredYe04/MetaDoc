@@ -13,6 +13,8 @@ import { recordLlmRequest } from "./llm-statistics-service.js";
 import { createRendererLogger } from "./logger.ts";
 import OpenAI from "openai";
 import { createAdapterFromSettings } from "./llm-adapters/adapter-factory.ts";
+import { queryKnowledgeBase } from "./rag_utils.js";
+import { ragQueryReferencePrompt } from "./prompts";
 
 const DEFAULT_MAX_TOKENS = 8192;
 /**
@@ -701,6 +703,108 @@ async function getConversationAdapter(conversation, signal, customLlmConfig = nu
 }
 
 /**
+ * RAG 查询注入（对话模式）
+ */
+async function ragQueryInjectionConversation(originalConversation, enableKnowledgeBase) {
+  if (!enableKnowledgeBase) {
+    return originalConversation;
+  }
+  
+  if (
+    typeof originalConversation !== "object" ||
+    !Array.isArray(originalConversation)
+  ) {
+    throw new Error("Invalid conversation format");
+  }
+
+  try {
+    const logger = createRendererLogger("LLM-API");
+    
+    // 检查对话格式
+    if (originalConversation.length === 0) {
+      logger.warn('[ragQueryInjectionConversation] 对话为空，无法查询知识库');
+      return originalConversation;
+    }
+    
+    // 从最后一条消息开始往前找，找到第一条非空的用户消息
+    let userMessage = null;
+    let question = null;
+    
+    for (let i = originalConversation.length - 1; i >= 0; i--) {
+      const msg = originalConversation[i];
+      
+      // 只查找用户消息
+      if (msg.role !== 'user') {
+        continue;
+      }
+      
+      // 尝试获取 content 字段
+      let content = msg.content;
+      
+      // 如果 content 为空，尝试 markdown 字段（Agent 消息格式）
+      if (!content || content.trim() === '') {
+        if (msg.markdown) {
+          content = msg.markdown;
+          // logger.debug(`[ragQueryInjectionConversation] 消息[${i}] content 为空，使用 markdown 字段`);
+        } else {
+          // logger.debug(`[ragQueryInjectionConversation] 消息[${i}] content 和 markdown 都为空，继续查找`);
+          continue;
+        }
+      }
+      
+      // 确保 content 是字符串且非空
+      if (typeof content === 'string' && content.trim()) {
+        userMessage = msg;
+        question = content.trim();
+        // logger.debug(`[ragQueryInjectionConversation] 找到用户消息[${i}]: role=${msg.role}, content长度=${question.length}`);
+        break;
+      }
+    }
+    
+    // 如果找不到有效的用户消息
+    if (!userMessage || !question) {
+      logger.warn('[ragQueryInjectionConversation] 无法找到有效的用户消息，跳过知识库查询', {
+        conversationLength: originalConversation.length,
+        lastMessage: originalConversation[originalConversation.length - 1]
+      });
+      return originalConversation;
+    }
+    
+    // logger.debug(`[ragQueryInjectionConversation] 开始查询知识库，问题: ${question.substring(0, 50)}...`);
+    
+    const response = await queryKnowledgeBase(question);
+    
+    // logger.debug(`[ragQueryInjectionConversation] 知识库查询完成，返回 ${response.length} 条结果`);
+    
+    if (response.length === 0) {
+      // logger.debug('[ragQueryInjectionConversation] 知识库查询结果为空，返回原始对话');
+      return originalConversation;
+    }
+
+    // 把 RAG 插入到倒数第二个位置
+    const lastMessage = originalConversation[originalConversation.length - 1];
+    originalConversation.pop();
+    originalConversation.push({
+      role: "user",
+      content: ragQueryReferencePrompt(response),
+    });
+    originalConversation.push(lastMessage);
+
+    // logger.debug(`[ragQueryInjectionConversation] RAG 内容已注入，对话消息数: ${originalConversation.length}`);
+    return originalConversation;
+  } catch (error) {
+    const logger = createRendererLogger("LLM-API");
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.warn('知识库查询失败，继续使用原始对话', {
+      error: errorMessage,
+      errorStack: error instanceof Error ? error.stack : undefined
+    });
+    // 如果知识库查询失败，返回原始对话，不中断对话流程
+    return originalConversation;
+  }
+}
+
+/**
  * 非流式对话请求
  */
 async function continueConversationNonStream(
@@ -721,6 +825,15 @@ async function continueConversationNonStream(
   const { type, selectedModel } = config;
 
   try {
+    // RAG查询注入（如果启用）
+    const enableKnowledgeBase = meta?.enableKnowledgeBase === true;
+    let processedConversation = conversation;
+    if (enableKnowledgeBase) {
+      processedConversation = await ragQueryInjectionConversation(
+        JSON.parse(JSON.stringify(conversation)), // 深拷贝避免修改原数组
+        enableKnowledgeBase
+      );
+    }
     // 根据配置决定是否使用 max_tokens
     let effectiveMaxTokens = undefined;
     const configEnableMaxTokens = (config?.enableMaxTokens ?? false);
@@ -748,7 +861,7 @@ async function continueConversationNonStream(
     }
     
         // 清理并验证消息格式
-        let sanitizedMsgs = sanitizeMessages(conversation);
+        let sanitizedMsgs = sanitizeMessages(processedConversation);
         sanitizedMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger);
     
     // 对于Gemini类型，不需要预先转换消息格式，因为 generateChatNonStream 内部会自己转换
@@ -849,6 +962,15 @@ async function continueConversationStream(
   const { type, selectedModel } = config;
 
   try {
+    // RAG查询注入（如果启用）
+    const enableKnowledgeBase = meta?.enableKnowledgeBase === true;
+    let processedConversation = conversation;
+    if (enableKnowledgeBase) {
+      processedConversation = await ragQueryInjectionConversation(
+        JSON.parse(JSON.stringify(conversation)), // 深拷贝避免修改原数组
+        enableKnowledgeBase
+      );
+    }
     // 根据配置决定是否使用 max_tokens
     let effectiveMaxTokens = undefined;
     const configEnableMaxTokens = (config?.enableMaxTokens ?? false);
@@ -876,7 +998,7 @@ async function continueConversationStream(
     }
     
         // 清理并验证消息格式
-        let sanitizedMsgs = sanitizeMessages(conversation);
+        let sanitizedMsgs = sanitizeMessages(processedConversation);
         sanitizedMsgs = finalizeMessagesForAPI(sanitizedMsgs, logger);
     
     // 对于Gemini类型，不需要预先转换消息格式，因为 generateChatStream 内部会自己转换

@@ -1,12 +1,12 @@
 <template>
-    <el-scrollbar height="90vh">
+    <div class="kb-root">
         <div class="kb-scroll-wrapper">
             <div class="kb-container">
 
                 <!-- Left: list -->
                 <div class="kb-left" :style="{ background: themeState.currentTheme.background }">
-                    <!-- 上半部分: 知识库列表，占60%高度 -->
-                    <div class="kb-list-wrapper" style="flex: 0 0 60%;">
+                    <!-- 上半部分: 知识库列表，占50%高度 -->
+                    <div class="kb-list-wrapper">
                         <el-card class="kb-panel" shadow="hover" v-loading="isUploading"
                             :style="{ background: themeState.currentTheme.background2nd, height: '100%' }">
                             <div class="kb-panel-header">
@@ -56,8 +56,8 @@
                         </el-card>
                     </div>
 
-                    <!-- 下半部分: 检索测试，占40%高度 -->
-                    <el-scrollbar class="kb-search-wrapper" style="flex: 0 0 40%;">
+                    <!-- 下半部分: 检索测试，占50%高度 -->
+                    <div class="kb-search-wrapper">
                         <el-card class="kb-panel" shadow="hover"
                             :style="{ background: themeState.currentTheme.background2nd, height: '100%', display: 'flex', flexDirection: 'column' }">
                             <h3>{{ t('knowledgeBase.searchTest.title') }}</h3>
@@ -104,7 +104,7 @@
                                 </div>
                             </el-scrollbar>
                         </el-card>
-                    </el-scrollbar>
+                    </div>
 
                 </div>
 
@@ -112,7 +112,7 @@
                 <div class="kb-right" :style="{ background: themeState.currentTheme.background }">
                     <!-- 上：preview -->
                     <el-card class="kb-panel kb-preview" shadow="hover" v-loading="!previewLoaded"
-                        :style="{ background: themeState.currentTheme.background2nd }" style="flex: 0 0 50%;">
+                        :style="{ background: themeState.currentTheme.background2nd }">
                         <div class="kb-panel-header">
                             <h2 class="kb-panel-title">{{ t('knowledgeBase.preview') }}</h2>
                             <div v-if="selectedItem" class="kb-panel-actions">
@@ -130,7 +130,7 @@
 
                     <!-- 下：config -->
                     <el-card class="kb-panel kb-config" shadow="hover"
-                        :style="{ background: themeState.currentTheme.background2nd }" style="flex: 0 0 50%;">
+                        :style="{ background: themeState.currentTheme.background2nd }">
                         <div class="kb-panel-header">
                             <h2 class="kb-panel-title">{{ t('knowledgeBase.config') }}</h2>
                         </div>
@@ -222,8 +222,7 @@
 
             </div>
         </div>
-
-    </el-scrollbar>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -770,18 +769,23 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* 为 el-scrollbar 根元素设置主题背景色 */
-.kb-scrollbar :deep(.el-scrollbar__wrap) {
+.kb-root {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     background-color: v-bind('themeState.currentTheme.background');
 }
 
 .kb-scroll-wrapper {
-    min-height: 90vh;
-    max-height: 90vh;
-}
-
-.el-scrollbar {
     flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 10px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
 }
 
 /* 圆角样式 */
@@ -802,16 +806,18 @@ onBeforeUnmount(() => {
     display: flex;
     width: 100%;
     height: 100%;
-    padding: 10px;
+    padding: 0;
     margin: 0;
     box-sizing: border-box;
+    flex: 1;
+    min-height: 0;
 }
 
 .kb-left,
 .kb-right {
     width: 50%;
-    min-height: 85vh;
-    max-height: 85vh;
+    height: 100%;
+    min-height: 0;
     padding: 10px;
     box-sizing: border-box;
     display: flex;
@@ -820,11 +826,17 @@ onBeforeUnmount(() => {
 }
 
 .kb-panel {
-    flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
+}
+
+.kb-preview,
+.kb-config {
+    flex: 0 0 50%;
+    min-height: 0;
+    max-height: 50%;
 }
 
 .kb-panel-header {
@@ -847,14 +859,28 @@ onBeforeUnmount(() => {
     gap: 8px;
 }
 
+.kb-list-wrapper {
+    flex: 0 0 50%;
+    min-height: 0;
+    max-height: 50%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 .kb-list-scroll {
     flex: 1;
     min-height: 0;
+    overflow: hidden;
 }
 
 .kb-search-wrapper {
-    flex: 1;
+    flex: 0 0 50%;
     min-height: 0;
+    max-height: 50%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .kb-result-card {

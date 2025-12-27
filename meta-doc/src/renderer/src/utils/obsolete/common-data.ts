@@ -68,17 +68,18 @@ export const defaultAiChatMessages: AIDialogMessage[] = [
 
 export const firstLoad = ref(true)
 
-const default_artical_meta_data: ArticleMetaData = {
+const default_article_meta_data: ArticleMetaData = {
   title: '',
   author: '',
   description: '',
+  keywords: [],
 }
 
 var current_file_path = ref('')
 var current_outline_tree: Ref<DocumentOutlineNode> = ref(JSON.parse(JSON.stringify(default_outline_tree)))
 var current_article = ref(generateMarkdownFromOutlineTree(default_outline_tree))
 var current_tex_article = ref('')
-const current_article_meta_data: Ref<ArticleMetaData> = ref({ ...default_artical_meta_data })//拷贝了默认值，避免引用问题
+const current_article_meta_data: Ref<ArticleMetaData> = ref({ ...default_article_meta_data })//拷贝了默认值，避免引用问题
 //监听current_article_meta_data.value的变化，如果有变化，则发送is-need-save事件
 watch(
   current_article_meta_data,
@@ -100,32 +101,39 @@ var renderedHtml = ref('')
 import { reactive } from 'vue';
 import { da } from 'element-plus/es/locales.mjs'
 
-var current_ai_dialogs: Ref<any[]> = ref([])
+//decrypted
+// var current_ai_dialogs: Ref<any[]> = ref([])
 
 
-export const addDialog = (dialog: any, add2front: boolean = false): void => {
-  if(add2front) current_ai_dialogs.value.unshift(dialog);//添加到最前面
-  else current_ai_dialogs.value.push(dialog);
-  broadcastAiDialogs()
-};
+// export const addDialog = (dialog: any, add2front: boolean = false): void => {
+//   if(add2front) current_ai_dialogs.value.unshift(dialog);//添加到最前面
+//   else current_ai_dialogs.value.push(dialog);
+//   broadcastAiDialogs()
+// };
 
-export const updateDialog = (index: number, newData: any): void => {
-  if (index >= 0 && index < current_ai_dialogs.value.length) {
-    current_ai_dialogs.value[index] = { ...current_ai_dialogs.value[index], ...newData };
-    broadcastAiDialogs()
-  }
-  //console.log(current_ai_dialogs)
+// export const updateDialog = (index: number, newData: any): void => {
+//   if (index >= 0 && index < current_ai_dialogs.value.length) {
+//     current_ai_dialogs.value[index] = { ...current_ai_dialogs.value[index], ...newData };
+//     broadcastAiDialogs()
+//   }
+//   //console.log(current_ai_dialogs)
   
-};
+// };
 
-export const deleteDialog = (index: number): void => {
-  if (index >= 0 && index < current_ai_dialogs.value.length) {
-    current_ai_dialogs.value.splice(index, 1);
-    broadcastAiDialogs()
-  }
+// export const deleteDialog = (index: number): void => {
+//   if (index >= 0 && index < current_ai_dialogs.value.length) {
+//     current_ai_dialogs.value.splice(index, 1);
+//     broadcastAiDialogs()
+//   }
   
-};
-
+// };
+// export function broadcastAiDialogs(): void {
+//   //console.log(JSON.parse(JSON.stringify(current_ai_dialogs.value)))
+//   if (!suppressSaveNotification) {
+//   eventBus.emit('is-need-save',true)
+//   }
+//   sendBroadcast('home', 'sync-ai-dialogs', JSON.parse(JSON.stringify(current_ai_dialogs.value)));
+// }
 export const console_out=ref('')
 export const consolr_err=ref('')
 export {
@@ -135,24 +143,18 @@ export {
   current_tex_article,
   current_article_meta_data,
   default_outline_tree,
-  default_artical_meta_data,
+  default_article_meta_data,
   latest_view,
   renderedHtml,
 
-  current_ai_dialogs,
+  // current_ai_dialogs,
 
 }
 //因为ai助手属于不同的渲染进程，因此另一个进程需要先告诉主进程，主进程再广播给所有的渲染进程
 import { toRaw } from 'vue';
 import { decodeBase64ToJson, encodeJsonToBase64 } from '../base64-utils'
 import { convertLatexToMarkdown, extractOutlineTreeFromLatex } from '../latex-utils'
-export function broadcastAiDialogs(): void {
-  //console.log(JSON.parse(JSON.stringify(current_ai_dialogs.value)))
-  if (!suppressSaveNotification) {
-  eventBus.emit('is-need-save',true)
-  }
-  sendBroadcast('home', 'sync-ai-dialogs', JSON.parse(JSON.stringify(current_ai_dialogs.value)));
-}
+
 
 
 export function dump2json(mdreplace: string = ''): string {
@@ -162,7 +164,7 @@ export function dump2json(mdreplace: string = ''): string {
     current_outline_tree: current_outline_tree.value,
     current_article: mdreplace===''?current_article.value:mdreplace,
     current_article_meta_data: current_article_meta_data.value,
-    current_ai_dialogs: current_ai_dialogs.value
+    //current_ai_dialogs: current_ai_dialogs.value
   })
 }
 export function autoGenerateTitle(): void {
@@ -219,7 +221,7 @@ export function load_from_json(json: string): void {
   current_article.value = data.current_article
   //console.log(current_article)
   current_article_meta_data.value={...data.current_article_meta_data}
-  current_ai_dialogs.value=data.current_ai_dialogs
+  //current_ai_dialogs.value=data.current_ai_dialogs
   autoGenerateTitle();
 }
 /**
@@ -233,7 +235,7 @@ export function dump2md(mdreplace: string = ''): string {
   const metaData = {
     current_outline_tree: current_outline_tree.value,
     current_article_meta_data: current_article_meta_data.value,
-    current_ai_dialogs: current_ai_dialogs.value
+    //current_ai_dialogs: current_ai_dialogs.value
   }
   const metaDataBase64 = encodeJsonToBase64(metaData);
   //在md的结尾插入元信息
@@ -250,9 +252,9 @@ export function dump2tex(texreplace: string = ''): string {
   let pure_tex = tex.replace(/(% 请勿手动修改此行及下面的 META-INFO.*\n)/, '');
   pure_tex = pure_tex.replace(/(%META-INFO:.*\n)/, '');
   const metaData = {
-    //current_outline_tree: current_outline_tree.value,
+    current_outline_tree: current_outline_tree.value,
     current_article_meta_data: current_article_meta_data.value,
-    current_ai_dialogs: current_ai_dialogs.value
+    //current_ai_dialogs: current_ai_dialogs.value
   };
   
   const metaDataBase64 = encodeJsonToBase64(metaData);
@@ -280,12 +282,12 @@ export function load_from_md(md: string): void {
     //console.log(metaData)
     current_outline_tree.value = JSON.parse(JSON.stringify(metaData.current_outline_tree))
     current_article_meta_data.value = { ...metaData.current_article_meta_data }
-    current_ai_dialogs.value=metaData.current_ai_dialogs
+    //current_ai_dialogs.value=metaData.current_ai_dialogs
   } else {
     //如果没有元信息，则创建元信息
     current_outline_tree.value = extractOutlineTreeFromMarkdown(pureMd);
-    current_article_meta_data.value = { ...default_artical_meta_data }
-    current_ai_dialogs.value=[]
+    current_article_meta_data.value = { ...default_article_meta_data }
+    //current_ai_dialogs.value=[]
   }
   autoGenerateTitle();
   //console.log(current_article_meta_data.value)
@@ -316,12 +318,12 @@ export function load_from_tex(tex: string): void {
 
     current_outline_tree.value = JSON.parse(JSON.stringify(metaData.current_outline_tree));
     current_article_meta_data.value = { ...metaData.current_article_meta_data };
-    current_ai_dialogs.value = metaData.current_ai_dialogs;
+    //current_ai_dialogs.value = metaData.current_ai_dialogs;
   } else {
     // 如果没有元信息，则生成默认元信息
     current_outline_tree.value = extractOutlineTreeFromLatex(pureTex);
-    current_article_meta_data.value = { ...default_artical_meta_data };
-    current_ai_dialogs.value = [];
+    current_article_meta_data.value = { ...default_article_meta_data };
+    //current_ai_dialogs.value = [];
   }
 
   autoGenerateTitle(); // 自动生成标题
@@ -350,8 +352,8 @@ export async function init(): Promise<void> {
   current_format.value='md';
   current_outline_tree.value = JSON.parse(JSON.stringify(default_outline_tree)) //深拷贝
   current_article.value = generateMarkdownFromOutlineTree(current_outline_tree.value)
-  current_article_meta_data.value = { ...default_artical_meta_data } //拷贝默认值，避免引用问题
-  current_ai_dialogs.value = []
+  current_article_meta_data.value = { ...default_article_meta_data } //拷贝默认值，避免引用问题
+  //current_ai_dialogs.value = []
   eventBus.emit('refresh')
   eventBus.emit('reset-quickstart')
 }

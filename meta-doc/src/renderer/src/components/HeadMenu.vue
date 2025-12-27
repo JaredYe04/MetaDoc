@@ -20,7 +20,12 @@
     <el-menu-item index="/editor">{{ $t('headMenu.editor') }}</el-menu-item>
     <el-menu-item index="/visualize">{{ $t('headMenu.visualize') }}</el-menu-item>
     <el-menu-item index="/agent">{{ $t('headMenu.agent') }}</el-menu-item>
-    <el-menu-item index="/knowledge-base">{{ $t('headMenu.knowledgeBase') }}</el-menu-item>
+    <el-menu-item 
+      index="/knowledge-base"
+      :disabled="!knowledgeBaseEnabled"
+    >
+      {{ $t('headMenu.knowledgeBase') }}
+    </el-menu-item>
     <el-menu-item index="/proofread" v-if="activeDocument">{{ $t('headMenu.proofread') }}</el-menu-item>
     <el-menu-item v-if="isDev" index="/debug">{{ $t('setting.debug.title') }}</el-menu-item>
     
@@ -28,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import eventBus from '../utils/event-bus'
 import { mixColors, themeState } from '../utils/themes'
@@ -48,6 +53,7 @@ const workspace = useWorkspace()
 const isLocked = computed(() => workspace.uiLocked?.value === true)
 const isDev = ref<boolean>(false)
 const appVersion = ref<string>('')
+const knowledgeBaseEnabled = ref<boolean>(true)
 
 // 计算选中状态的背景色（使用辅助背景色）
 const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3))
@@ -63,6 +69,13 @@ const handleSelect = (key: string): void => {
   router.push(key)
 }
 
+// 检查知识库总开关状态
+const checkKnowledgeBaseEnabled = async () => {
+  const { getSetting } = await import('../utils/settings.js')
+  const enabled = await getSetting('enableKnowledgeBase') || false
+  return enabled
+}
+
 // 生命周期钩子
 onMounted(async (): Promise<void> => {
   eventBus.on('nav-to', (path: unknown) => {
@@ -71,11 +84,42 @@ onMounted(async (): Promise<void> => {
       router.push(path)
     }
   })
+  
+  // 监听知识库总开关变化
+  eventBus.on('knowledge-base-toggle', async (data: { enabled: boolean }) => {
+    knowledgeBaseEnabled.value = data.enabled
+    if (!data.enabled) {
+      // 如果总开关被关闭，且当前在知识库页面，则切换到首页
+      if (route.path === '/knowledge-base') {
+        router.push('/')
+      }
+    }
+  })
+  
   // 检查是否为开发环境
   isDev.value = await isDevEnvironment()
   // 获取应用版本号
   appVersion.value = await getAppVersion()
+  
+  // 初始化时检查知识库开关状态
+  const kbEnabled = await checkKnowledgeBaseEnabled()
+  knowledgeBaseEnabled.value = kbEnabled
+  if (!kbEnabled && route.path === '/knowledge-base') {
+    router.push('/')
+  }
 })
+
+// 监听知识库开关变化
+watch(
+  () => route.path,
+  async () => {
+    const kbEnabled = await checkKnowledgeBaseEnabled()
+    knowledgeBaseEnabled.value = kbEnabled
+    if (!kbEnabled && route.path === '/knowledge-base') {
+      router.push('/')
+    }
+  }
+)
 
 // 组件卸载前清除事件监听
 onBeforeUnmount((): void => {

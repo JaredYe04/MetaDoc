@@ -11,7 +11,7 @@
     "openAutoCompletion": "AI完了を有効にする",
     "openKnowledgeBase": "知識の有効化 立派な図書館",
     "locateToPdf": "PDFへの投稿",
-    "sectionOptimizer": "AIパラグラフの最適化",
+    "sectionOptimizer": "現在の段落を最適化",
     "triggerAutoCompletion": "手動でAIの完了をトリガーする"
   },
   "headMenu": {

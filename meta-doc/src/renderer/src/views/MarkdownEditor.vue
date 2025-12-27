@@ -51,8 +51,8 @@
                 sidebar-position="end"
                 :collapsible="true"
                 :auto-collapse-width="MARKDOWN_LAYOUT.editorMinWidth + MARKDOWN_LAYOUT.sidebarMinWidth + 100"
-                collapse-button-title="折叠元信息面板"
-                expand-button-title="展开元信息面板"
+                :collapse-button-title="$t('article.collapse_meta_panel')"
+                :expand-button-title="$t('article.expand_meta_panel')"
                 @resize="onMetaInfoResize"
             >
                 <template #main>
@@ -663,7 +663,7 @@ const acceptGeneratedText = async (payload: any) => {
   currentView.value = 'article';
     scheduleSetValue(currentMarkdown.value, { clearHistory: false });
   flushOutlineSync();
-    await bindTitleMenu();
+    bindTitleMenu();
     showSectionOptimizer.value = false;
 };
 
@@ -939,7 +939,7 @@ const switchVditorMode = async (mode: 'wysiwyg' | 'ir' | 'sv') => {
         }
         await setSetting('vditorMode', mode);
         await nextTick();
-        await bindTitleMenu();
+        bindTitleMenu();
     } catch (error) {
         logger.error('切换Vditor模式失败', error);
     }
@@ -1614,7 +1614,7 @@ onMounted(async () => {
                 aiCompletionService.triggerCompletion('input');
 
                 syncOutlineFromMarkdown();
-                await bindTitleMenu();
+                bindTitleMenu();
 
 
             },
@@ -1623,7 +1623,7 @@ onMounted(async () => {
                 //logger.log(themeState);
                 try {
                     flushOutlineSync();
-                    await bindTitleMenu();
+                    bindTitleMenu();
 
                     
                     // 监听模式切换事件
@@ -1646,7 +1646,7 @@ onMounted(async () => {
                                     logger.debug('Vditor模式已切换并保存', { mode: currentMode });
                                 }
                             }
-                            await bindTitleMenu();
+                            bindTitleMenu();
                         };
                         
                         // 监听Vditor内部的模式切换
@@ -1681,7 +1681,7 @@ onMounted(async () => {
                                                 await setSetting('vditorMode', currentMode);
                                                 lastMode = currentMode;
                                                 logger.debug('通过MutationObserver检测到模式切换并保存', { mode: currentMode });
-                                                await bindTitleMenu();
+                                                bindTitleMenu();
                                             }
                                         }
                                     });
@@ -1704,7 +1704,7 @@ onMounted(async () => {
                                         // 等待大纲显示/隐藏动画完成
                                         await new Promise(resolve => setTimeout(resolve, 300));
                                         await nextTick();
-                                        await bindTitleMenu();
+                                        bindTitleMenu();
                                     });
                                 }
                             }
@@ -1721,7 +1721,7 @@ onMounted(async () => {
                                         // 等待DOM更新完成
                                         await nextTick();
                                         await new Promise(resolve => setTimeout(resolve, 100));
-                                        await bindTitleMenu();
+                                        bindTitleMenu();
                                     }
                                 });
                                 

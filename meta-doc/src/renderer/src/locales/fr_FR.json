@@ -186,7 +186,7 @@
     "openAutoCompletion": "Activer l'achèvement de l'intelligence artificielle",
     "openKnowledgeBase": "Activer la connaissance Bibliothèque de récupération",
     "locateToPdf": "Position au format PDF.",
-    "sectionOptimizer": "Optimisation du paragraphe AI",
+    "sectionOptimizer": "Optimiser le paragraphe actuel",
     "triggerAutoCompletion": "Déclencher manuellement l'achèvement de l'IA"
   },
   "formulaRecognition": {

@@ -11,7 +11,7 @@
     "openAutoCompletion": "Enable AI 완료",
     "openKnowledgeBase": "자주 묻는 질문 Retrieval 도서관",
     "locateToPdf": "PDF의 위치.",
-    "sectionOptimizer": "AI Paragraph 최적화",
+    "sectionOptimizer": "현재 단락 최적화",
     "triggerAutoCompletion": "수동으로 트리거 AI 완료"
   },
   "headMenu": {

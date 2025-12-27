@@ -1,7 +1,7 @@
-import { encodeJsonToBase64 } from '../utils/base64-utils';
 import { filterMetaDataFromMd } from '../utils/md-utils.js';
 import { convertMarkdownToLatex, convertLatexToMarkdown } from '../utils/latex-utils.js';
 import type { WorkspaceDocument } from '../stores/workspace';
+import { serializeMetadataToBase64 } from '../utils/metadata-serializer';
 
 export interface SaveDataPayload {
   path: string;
@@ -22,33 +22,31 @@ const WARNING_PATTERN = /% 请勿手动修改此行及下面的 META-INFO.*\n/;
 
 const normalizeLineEndings = (value: string): string => value.replace(/\r\n/g, '\n');
 
-const buildMarkdownMetadataPayload = (doc: WorkspaceDocument, markdown: string) => ({
-  current_outline_tree: doc.outline,
-  current_article: markdown,
+const buildMarkdownMetadataPayload = (doc: WorkspaceDocument) => ({
   current_article_meta_data: doc.meta,
-  current_ai_dialogs: doc.aiDialogs,
   current_agent_sessions: doc.agentSessions,
 });
 
 const buildTexMetadataPayload = (doc: WorkspaceDocument) => ({
   current_article_meta_data: doc.meta,
-  current_ai_dialogs: doc.aiDialogs,
   current_agent_sessions: doc.agentSessions,
 });
 
-const composeMarkdownWithMeta = (doc: WorkspaceDocument, markdown: string): string => {
+const composeMarkdownWithMeta = async (doc: WorkspaceDocument, markdown: string): Promise<string> => {
   const pureMarkdown = filterMetaDataFromMd(markdown ?? '');
-  const metaBase64 = encodeJsonToBase64({
-    current_outline_tree: doc.outline,
+  // 序列化 metadata（现在是异步的，因为需要 zstd 压缩）
+  const metadata = {
     current_article_meta_data: doc.meta,
-    current_ai_dialogs: doc.aiDialogs,
     current_agent_sessions: doc.agentSessions,
-  });
+  };
+  const metaBase64 = await serializeMetadataToBase64(metadata);
   return `${pureMarkdown}\n<!--meta-info: ${metaBase64} -->`;
 };
 
-const composeTexWithMeta = (doc: WorkspaceDocument, texContent: string): string => {
-  const metaBase64 = encodeJsonToBase64(buildTexMetadataPayload(doc));
+const composeTexWithMeta = async (doc: WorkspaceDocument, texContent: string): Promise<string> => {
+  // 序列化 metadata（现在是异步的，因为需要 zstd 压缩）
+  const metadata = buildTexMetadataPayload(doc);
+  const metaBase64 = await serializeMetadataToBase64(metadata);
   let pureTex = texContent ?? '';
 
   pureTex = normalizeLineEndings(pureTex);
@@ -58,18 +56,19 @@ const composeTexWithMeta = (doc: WorkspaceDocument, texContent: string): string 
 };
 
 export const serializeDocument = async (doc: WorkspaceDocument): Promise<SaveDataPayload> => {
+
   const isTex = doc.format === 'tex';
   const markdownSource = isTex ? convertLatexToMarkdown(doc.tex ?? '') : doc.markdown ?? '';
   const normalizedMarkdown = normalizeLineEndings(markdownSource);
-  const markdownWithMeta = composeMarkdownWithMeta(doc, normalizedMarkdown);
+  const markdownWithMeta = await composeMarkdownWithMeta(doc, normalizedMarkdown);
 
-  const jsonPayload = buildMarkdownMetadataPayload(doc, normalizeLineEndings(markdownWithMeta));
+  const jsonPayload = buildMarkdownMetadataPayload(doc);
   const json = JSON.stringify(jsonPayload);
 
   const texSource = isTex
     ? doc.tex ?? ''
     : await convertMarkdownToLatex(normalizedMarkdown, doc.meta?.title || 'Generated Document');
-  const tex = composeTexWithMeta(doc, texSource);
+  const tex = await composeTexWithMeta(doc, texSource);
 
   return {
     path: doc.path,

@@ -2859,3 +2859,4 @@ function bindDatabaseHandlers(): void {
     }
   });
 }
+

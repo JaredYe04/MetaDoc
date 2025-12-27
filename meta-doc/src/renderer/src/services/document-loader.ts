@@ -1,6 +1,6 @@
 import { extractOutlineTreeFromMarkdown, filterMetaDataFromMd } from '../utils/md-utils';
-import { decodeBase64ToJson } from '../utils/base64-utils';
 import { convertLatexToMarkdown } from '../utils/latex-utils';
+import { deserializeMetadataFromBase64 } from '../utils/metadata-serializer';
 import type { ArticleMetaData, AIDialog, AIDialogMessage, DocumentOutlineNode } from '../../../types';
 import type { AgentSession } from '../types/agent';
 import {
@@ -79,7 +79,7 @@ const ensureArrayAgentSessions = (value: unknown): AgentSession[] => {
   return cloneAgentSessions(DEFAULT_AGENT_SESSIONS);
 };
 
-export const loadDocumentFromMarkdown = (content: string): LoadedDocumentData => {
+export const loadDocumentFromMarkdown = async (content: string): Promise<LoadedDocumentData> => {
   const normalized = normalizeLineEndings(content ?? '');
   const metaMatch = normalized.match(META_INFO_COMMENT_PATTERN);
   const pureMarkdown = filterMetaDataFromMd(normalized);
@@ -91,21 +91,10 @@ export const loadDocumentFromMarkdown = (content: string): LoadedDocumentData =>
 
   if (metaMatch && metaMatch[1]) {
     try {
-      const metadata = decodeBase64ToJson(metaMatch[1]);
+      const metadata = await deserializeMetadataFromBase64(metaMatch[1]);
       if (metadata && typeof metadata === 'object') {
-        if (metadata.current_outline_tree) {
-          outline = cloneOutline(metadata.current_outline_tree as DocumentOutlineNode);
-        } else {
-          outline = deriveMarkdownOutline(pureMarkdown);
-        }
         if (metadata.current_article_meta_data) {
           meta = cloneMeta(metadata.current_article_meta_data as ArticleMetaData);
-        }
-        if (metadata.current_ai_dialogs) {
-          dialogs = ensureArrayDialogs(metadata.current_ai_dialogs);
-        }
-        if (metadata.current_agent_sessions) {
-          sessions = ensureArrayAgentSessions(metadata.current_agent_sessions);
         }
         if (metadata.current_agent_sessions) {
           sessions = ensureArrayAgentSessions(metadata.current_agent_sessions);
@@ -133,7 +122,7 @@ export const loadDocumentFromMarkdown = (content: string): LoadedDocumentData =>
   };
 };
 
-export const loadDocumentFromTex = (content: string): LoadedDocumentData => {
+export const loadDocumentFromTex = async (content: string): Promise<LoadedDocumentData> => {
   const normalized = normalizeLineEndings(content ?? '');
   const metaMatch = normalized.match(META_INFO_TEX_PATTERN);
   let pureTex = normalized.replace(META_INFO_TEX_PATTERN, '');
@@ -144,13 +133,10 @@ export const loadDocumentFromTex = (content: string): LoadedDocumentData => {
 
   if (metaMatch && metaMatch[1]) {
     try {
-      const metadata = decodeBase64ToJson(metaMatch[1]);
+      const metadata = await deserializeMetadataFromBase64(metaMatch[1]);
       if (metadata && typeof metadata === 'object') {
         if (metadata.current_article_meta_data) {
           meta = cloneMeta(metadata.current_article_meta_data as ArticleMetaData);
-        }
-        if (metadata.current_ai_dialogs) {
-          dialogs = ensureArrayDialogs(metadata.current_ai_dialogs);
         }
         if (metadata.current_agent_sessions) {
           agentSessions = ensureArrayAgentSessions(metadata.current_agent_sessions);
@@ -180,14 +166,17 @@ export const loadDocumentFromTex = (content: string): LoadedDocumentData => {
 export const loadDocumentFromJson = (content: string): LoadedDocumentData => {
   try {
     const data = JSON.parse(content ?? '{}') as Record<string, unknown>;
+    // JSON 格式现在只包含 meta 和 agent_sessions
+    // 为了向后兼容，如果没有 markdown，使用空字符串
     const markdown = normalizeLineEndings((data.current_article as string) ?? '');
-    const outline = cloneOutline(
-      (data.current_outline_tree as DocumentOutlineNode | undefined) ?? DEFAULT_OUTLINE_TREE,
-    );
+    // outline 从 markdown 内容提取（不再从 JSON 加载）
+    const outline = deriveMarkdownOutline(markdown);
     const meta = cloneMeta(
       (data.current_article_meta_data as ArticleMetaData | undefined) ?? DEFAULT_ARTICLE_META,
     );
-    const dialogs = ensureArrayDialogs(data.current_ai_dialogs);
+    // dialogs 不再从 JSON 加载，使用默认值
+    const dialogs = cloneDialogs(DEFAULT_AI_DIALOGS);
+    // agent_sessions 从 JSON 加载（如果存在）
     const sessions = ensureArrayAgentSessions(data.current_agent_sessions);
 
     return {

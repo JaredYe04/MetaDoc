@@ -1229,54 +1229,54 @@ const executeAgentEngine = async (
     return;
   }
 
-  // 确保文档格式已设置（如果文档格式未确定，自动检测）
-  // 同时更新session的publicContext，确保Agent知道当前文档格式
-  const currentTabId = session.activeTabId || activeTabId.value;
-  if (currentTabId) {
-    const doc = workspace.ensureDocument(currentTabId);
-    if (doc) {
-      // 自动检测格式（如果未设置）
-      if (!doc.format || (doc.markdown.trim().length === 0 && doc.tex.trim().length === 0)) {
-        const currentContent = doc.markdown.trim().length > 0 ? doc.markdown : doc.tex;
-        if (currentContent.length > 0) {
-          const detectedFormat = detectDocumentFormat(currentContent);
-          if (detectedFormat !== doc.format) {
-            doc.format = detectedFormat;
-            workspace.updateDocumentFormat(currentTabId, detectedFormat);
-            const logger = createRendererLogger('AgentView');
-            logger.info(`AgentView: 文档 ${currentTabId} 格式自动检测为 ${detectedFormat}`);
-          }
-        } else {
-          // 如果内容为空，默认使用md
-          if (!doc.format) {
-            doc.format = 'md';
-            workspace.updateDocumentFormat(currentTabId, 'md');
-          }
-        }
-      }
+  // // 确保文档格式已设置（如果文档格式未确定，自动检测）
+  // // 同时更新session的publicContext，确保Agent知道当前文档格式
+  // const currentTabId = session.activeTabId || activeTabId.value;
+  // if (currentTabId) {
+  //   const doc = workspace.ensureDocument(currentTabId);
+  //   if (doc) {
+  //     // 自动检测格式（如果未设置）
+  //     if (!doc.format || (doc.markdown.trim().length === 0 && doc.tex.trim().length === 0)) {
+  //       const currentContent = doc.markdown.trim().length > 0 ? doc.markdown : doc.tex;
+  //       if (currentContent.length > 0) {
+  //         const detectedFormat = detectDocumentFormat(currentContent);
+  //         if (detectedFormat !== doc.format) {
+  //           doc.format = detectedFormat;
+  //           workspace.updateDocumentFormat(currentTabId, detectedFormat);
+  //           const logger = createRendererLogger('AgentView');
+  //           logger.info(`AgentView: 文档 ${currentTabId} 格式自动检测为 ${detectedFormat}`);
+  //         }
+  //       } else {
+  //         // 如果内容为空，默认使用md
+  //         if (!doc.format) {
+  //           doc.format = 'md';
+  //           workspace.updateDocumentFormat(currentTabId, 'md');
+  //         }
+  //       }
+  //     }
       
-      // 更新session的publicContext，确保文档格式信息被传递
-      session.publicContext = session.publicContext || {};
-      const detectedFormat = (doc.format || 'md') as 'md' | 'tex';
-      session.publicContext.document = {
-        id: currentTabId,
-        path: doc.path || '',
-        format: detectedFormat,
-        title: doc.meta?.title || ''
-      };
+  //     // 更新session的publicContext，确保文档格式信息被传递
+  //     session.publicContext = session.publicContext || {};
+  //     const detectedFormat = (doc.format || 'md') as 'md' | 'tex';
+  //     session.publicContext.document = {
+  //       id: currentTabId,
+  //       path: doc.path || '',
+  //       format: detectedFormat,
+  //       title: doc.meta?.title || ''
+  //     };
       
-      // 记录日志：确保文档格式信息被正确设置
-      const logger = createRendererLogger('AgentView');
-      logger.info('[executeAgent] 更新session publicContext.document', {
-        sessionId: session.id,
-        documentId: currentTabId,
-        documentFormat: detectedFormat,
-        documentPath: doc.path || '',
-        documentTitle: doc.meta?.title || '',
-        publicContextDocument: session.publicContext.document
-      });
-    }
-  }
+  //     // 记录日志：确保文档格式信息被正确设置
+  //     const logger = createRendererLogger('AgentView');
+  //     logger.info('[executeAgent] 更新session publicContext.document', {
+  //       sessionId: session.id,
+  //       documentId: currentTabId,
+  //       documentFormat: detectedFormat,
+  //       documentPath: doc.path || '',
+  //       documentTitle: doc.meta?.title || '',
+  //       publicContextDocument: session.publicContext.document
+  //     });
+  //   }
+  // }
 
   // 启动UI锁
   workspace.lockUI?.();

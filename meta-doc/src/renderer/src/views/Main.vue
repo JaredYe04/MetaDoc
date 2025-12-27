@@ -121,7 +121,7 @@ type OpenDocumentPayload = {
   tabId?: string
 }
 
-const handleWorkspaceOpenDocument = (payload: OpenDocumentPayload) => {
+const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
   if (!payload || typeof payload !== 'object') {
     eventBus.emit('show-error', t('main.notification.error.title'))
     return
@@ -167,10 +167,10 @@ const handleWorkspaceOpenDocument = (payload: OpenDocumentPayload) => {
         loaded = loadDocumentFromJson(content)
         break
       case 'md':
-        loaded = loadDocumentFromMarkdown(content)
+        loaded = await loadDocumentFromMarkdown(content)
         break
       case 'tex':
-        loaded = loadDocumentFromTex(content)
+        loaded = await loadDocumentFromTex(content)
         break
       default:
         throw new Error(`Unsupported document format: ${format}`)

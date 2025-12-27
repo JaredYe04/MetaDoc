@@ -7,3 +7,4 @@
 
 ALTER TABLE data_analysis_sessions ADD COLUMN header_row_index INTEGER;
 
+

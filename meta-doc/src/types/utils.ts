@@ -228,5 +228,6 @@ export interface LaTeXService {
 export interface PathService {
   getResourcesPath(): FilePath;
   getVectorDatabasePath(): FilePath;
+  getMigrationsPath(): FilePath;
   getConfig(): PathConfig;
 }

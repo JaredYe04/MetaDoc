@@ -7,3 +7,4 @@
 
 ALTER TABLE data_chunks ADD COLUMN embedding_model TEXT DEFAULT 'bce-embedding-base_v1';
 
+

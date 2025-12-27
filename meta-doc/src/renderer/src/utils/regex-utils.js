@@ -89,6 +89,36 @@ export function convertNumberToChinese(number) {
 
 
 export function removeTitleIndex(title) {
+    if (!title || typeof title !== 'string') {
+        return title;
+    }
+    
+    // 处理包含 Markdown 格式标记的标题（如 "** 一、引言 **"）
+    // 策略：先提取格式标记，移除前缀，然后重新组合
+    
+    let original = title.trim();
+    
+    // 检测并提取开头的格式标记（**、__、*、_、` 等）
+    // 支持有空格和无空格的情况：** 、**、__ 、__ 等
+    const leadingMarkerMatch = original.match(/^((\*\*|__|\*|_|`)+(\s*)?)/);
+    const leadingMarker = leadingMarkerMatch ? leadingMarkerMatch[0] : '';
+    const leadingMarkerLength = leadingMarker.length;
+    
+    // 检测并提取结尾的格式标记
+    const trailingMarkerMatch = original.match(/((\s*)?(\*\*|__|\*|_|`)+)$/);
+    const trailingMarker = trailingMarkerMatch ? trailingMarkerMatch[0] : '';
+    const trailingMarkerLength = trailingMarker.length;
+    
+    // 提取中间的内容（去除格式标记）
+    let content = original;
+    if (leadingMarkerLength > 0) {
+        content = content.substring(leadingMarkerLength);
+    }
+    if (trailingMarkerLength > 0) {
+        content = content.substring(0, content.length - trailingMarkerLength);
+    }
+    content = content.trim();
+    
     //通过正则表达式，去除标题开头的数字和点号
     //例如1.1 xxx,去除1.1
     //例如1. xxx,去除1.
@@ -105,5 +135,40 @@ export function removeTitleIndex(title) {
     // (\d+(\.\d+)*[\.\、]?)? 匹配数字+点结构+可选点号/顿号
     // \s* 匹配可能存在的空格
     const regex = /^((([一二三四五六七八九十百千]+[\、\.]?)|(\d+(\.\d+)*[\、\.]?))\s*)+/;
-    return title.replace(regex, '');
+    const cleanedContent = content.replace(regex, '');
+    
+    // 重新组合：开头标记 + 移除前缀后的内容 + 结尾标记
+    // 如果内容为空，则返回空字符串（不保留格式标记）
+    if (!cleanedContent) {
+        return '';
+    }
+    
+    // 重新组合时，保持原有的空格格式
+    // 提取纯格式标记（不含空格）
+    const leadingMarkerOnly = leadingMarker.replace(/\s+$/, ''); // 移除末尾空格
+    const trailingMarkerOnly = trailingMarker.replace(/^\s+/, ''); // 移除开头空格
+    
+    // 判断原来是否有空格
+    const hasLeadingSpace = leadingMarker.length > leadingMarkerOnly.length;
+    const hasTrailingSpace = trailingMarker.length > trailingMarkerOnly.length;
+    
+    // 重新组合
+    let result = '';
+    if (leadingMarkerOnly) {
+        result += leadingMarkerOnly;
+        // 如果原来有空格，或者格式标记和内容之间需要空格，则添加空格
+        if (hasLeadingSpace || cleanedContent) {
+            result += ' ';
+        }
+    }
+    result += cleanedContent;
+    if (trailingMarkerOnly) {
+        // 如果原来有空格，或者内容和格式标记之间需要空格，则添加空格
+        if (hasTrailingSpace || cleanedContent) {
+            result += ' ';
+        }
+        result += trailingMarkerOnly;
+    }
+    
+    return result;
 }

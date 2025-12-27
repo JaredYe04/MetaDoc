@@ -93,6 +93,13 @@ class PathServiceImpl implements PathService {
   }
 
   /**
+   * 获取数据库迁移文件目录路径
+   */
+  getMigrationsPath(): FilePath {
+    return path.join(this.config.resourcesPath, 'migrations');
+  }
+
+  /**
    * 获取tectonic可执行文件路径
    */
   getTectonicPath(): FilePath {

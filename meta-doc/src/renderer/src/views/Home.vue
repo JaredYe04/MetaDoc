@@ -1,18 +1,9 @@
 <template>
   <div id="particle-bg" class="homepage">
-    <WorkspaceTabs
-      closable
-      @update:activeId="handleTabChange"
-      @close="handleCloseTab"
-    />
+    <WorkspaceTabs closable @update:activeId="handleTabChange" @close="handleCloseTab" />
 
     <div v-if="quickStartStage === 'inactive'" class="center-content">
-      <h1
-        class="main-letter"
-        v-if="showWelcome"
-        @mouseover="highlightM"
-        @mouseleave="resetM"
-      >
+      <h1 class="main-letter" v-if="showWelcome" @mouseover="highlightM" @mouseleave="resetM">
         {{ $t('home.metaDoc') }}
       </h1>
 
@@ -30,29 +21,20 @@
       </div>
 
       <!-- 最近文档列表 -->
-      <div 
-        v-if="showWelcome && recentDocs.length > 0" 
-        class="recent-docs-container aero-div"
-        :style="{
-          borderColor: themeState.currentTheme.borderColor || 'rgba(0, 0, 0, 0.1)'
-        }"
-      >
+      <div v-if="showWelcome && recentDocs.length > 0" class="recent-docs-container aero-div" :style="{
+        borderColor: themeState.currentTheme.borderColor || 'rgba(0, 0, 0, 0.1)'
+      }">
         <h3 class="recent-docs-title" :style="{ color: themeState.currentTheme.textColor }">
           {{ $t('home.recentDocuments') || '最近文档' }}
         </h3>
         <!-- 当文档数量超过8条时使用滚动条 -->
         <el-scrollbar v-if="recentDocs.length > 8" class="recent-docs-scrollbar">
           <div class="recent-docs-list">
-            <div
-              v-for="docPath in recentDocs"
-              :key="docPath"
-              class="recent-doc-item"
-              @click="openRecentDoc(docPath)"
+            <div v-for="docPath in recentDocs" :key="docPath" class="recent-doc-item" @click="openRecentDoc(docPath)"
               :style="{
                 backgroundColor: themeState.currentTheme.background2nd,
                 color: themeState.currentTheme.textColor
-              }"
-            >
+              }">
               <el-icon class="recent-doc-icon">
                 <Document />
               </el-icon>
@@ -62,16 +44,11 @@
         </el-scrollbar>
         <!-- 当文档数量不超过8条时直接显示 -->
         <div v-else class="recent-docs-list">
-          <div
-            v-for="docPath in recentDocs"
-            :key="docPath"
-            class="recent-doc-item"
-            @click="openRecentDoc(docPath)"
+          <div v-for="docPath in recentDocs" :key="docPath" class="recent-doc-item" @click="openRecentDoc(docPath)"
             :style="{
               backgroundColor: themeState.currentTheme.background2nd,
               color: themeState.currentTheme.textColor
-            }"
-          >
+            }">
             <el-icon class="recent-doc-icon">
               <Document />
             </el-icon>
@@ -95,21 +72,13 @@
         </el-scrollbar>
 
         <el-scrollbar class="md-container">
-          <div
-            ref="previewContainerRef"
-            class="md-preview-container"
-            :class="themeState.currentTheme.mdeditorClass"
-            :style="{ color: themeState.currentTheme.textColor }"
-            v-loading="isRendering"
-          ></div>
+          <div ref="previewContainerRef" class="md-preview-container" :class="themeState.currentTheme.mdeditorClass"
+            :style="{ color: themeState.currentTheme.textColor }" v-loading="isRendering"></div>
         </el-scrollbar>
       </div>
     </div>
 
-    <QuickStartPanel
-      v-else
-      @close="handleQuickStartClose"
-    />
+    <QuickStartPanel v-else @close="handleQuickStartClose" />
   </div>
 </template>
 
@@ -121,7 +90,7 @@ import QuickStartPanel from '../components/home/QuickStartPanel.vue'
 import '../assets/aero-div.css'
 import '../assets/aero-btn.css'
 import '../assets/aero-input.css'
-import eventBus, { getWindowType, isElectronEnv } from '../utils/event-bus'
+import eventBus, { getWindowType } from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
 import { getSetting } from '../utils/settings'
 import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer'
@@ -132,8 +101,7 @@ import { useActiveDocument } from '../composables/useActiveDocument'
 import { convertLatexToMarkdown, extractPlainTextFromLatex } from '../utils/latex-utils'
 import { ParticleEffect } from '../utils/particle-effect'
 import type { IpcRendererLike } from '../utils/particle-effect'
-import Vditor from 'vditor'
-import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn'
+import { renderMarkdownPreview } from '../utils/md-utils'
 import { preRenderAllCharts } from '../utils/chart-pre-renderer'
 import { getRecentDocs } from '../utils/settings'
 import { Document } from '@element-plus/icons-vue'
@@ -165,7 +133,7 @@ const metaTitle = computed(() => activeDocument.value?.meta?.title ?? '')
 const metaAuthor = computed(() => activeDocument.value?.meta?.author ?? '')
 const metaDescription = computed(() => activeDocument.value?.meta?.description ?? '')
 
-// 计算当前文档的 linkBase（用于 Vditor.preview 解析相对路径）
+// 计算当前文档的 linkBase（用于 Markdown 预览解析相对路径）
 const currentLinkBase = computed(() => {
   const path = currentFilePath.value;
   if (!path) return '';
@@ -188,13 +156,13 @@ const isRendering = ref(false)
 const particleMarkdown = computed(() => {
   const doc = activeDocument.value
   if (!doc) return ''
-  
+
   // 根据文档格式选择文本源
   if (doc.format === 'tex') {
     // LaTeX 格式：直接使用 LaTeX 文本（ParticleEffect 内部会提取纯文本）
     return doc.tex ?? ''
   }
-  
+
   // Markdown 格式：直接使用 Markdown 文本
   return doc.markdown ?? ''
 })
@@ -335,47 +303,29 @@ const scheduleParticleEffect = () => {
 // 渲染预览内容
 const renderPreview = async () => {
   if (!previewContainerRef.value) return
-  
+
   const container = previewContainerRef.value as HTMLDivElement
   const markdown = previewMarkdown.value
-  
+
   if (!markdown) {
     container.innerHTML = ''
     isRendering.value = false
     return
   }
-  
+
   try {
     // 开始渲染，显示loading
     isRendering.value = true
-    
-    // 获取 CDN 和主题设置
-    const cdn = isElectronEnv() ? localVditorCDN : vditorCDN
-    const contentTheme = await getSetting('contentTheme') || 'light'
-    const codeTheme = themeState.currentTheme.codeTheme
-    const lineNumber = await getSetting('lineNumber') ?? true
 
-    // 清空容器
-    container.innerHTML = ''
-    
     // 获取当前文档的 linkBase
     const linkBase = currentLinkBase.value;
-    
-    // 使用 Vditor.preview 渲染
-    const previewOptions: any = {
-      cdn,
-      mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
-      markdown: {
-        theme: { current: contentTheme },
-        linkBase: linkBase
-      },
-      hljs: {
-        style: codeTheme,
-        lineNumber: lineNumber
-      },
-      theme: themeState.currentTheme.vditorTheme
-    }
-    await Vditor.preview(container, markdown, previewOptions)
+
+    // 使用统一的 Markdown 预览渲染函数
+    await renderMarkdownPreview(container, markdown, {
+      linkBase: linkBase,
+      renderCode: false,
+      renderMath: false
+    })
   } catch (error) {
     logger.error('渲染预览失败', error)
     container.innerHTML = `<p style="color: var(--console-err, #fe8771);">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`
@@ -398,21 +348,21 @@ onMounted(() => {
   window.addEventListener('mousemove', (e) => particleEffectInstance.handleMouseMove(e))
   window.addEventListener('resize', () => particleEffectInstance.handleWindowResize())
   preventNavigate()
-  
+
   // 监听 quickStartPanel 的状态变化
   eventBus.on('open-quickstart', () => {
     quickStartStage.value = 'format'
   })
-  
+
   // 加载最近文档列表
   loadRecentDocs()
-  
+
   // 监听文档打开成功事件，刷新最近文档列表
   eventBus.on('open-doc-success', handleDocOpenSuccess)
-  
+
   // 监听文档打开事件，也刷新列表（因为updateRecentDocs可能在打开前调用）
   eventBus.on('open-doc', handleDocOpen)
-  
+
   // 初始渲染（只在需要显示文档预览时）
   nextTick(() => {
     if (showDocumentPreview.value) {
@@ -559,7 +509,7 @@ const handleCloseTab = (id: string) => {
 .md-preview-container {
   width: 100%;
   padding: 16px;
-  overflow:visible;
+  overflow: visible;
   box-sizing: border-box;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -594,7 +544,8 @@ const handleCloseTab = (id: string) => {
 }
 
 .recent-docs-scrollbar {
-  max-height: calc(52px * 8); /* 8条文档的高度 */
+  max-height: calc(52px * 8);
+  /* 8条文档的高度 */
   width: 100%;
 }
 

@@ -65,7 +65,7 @@ const terminalToolLocales: ToolLocales = {
   "command": "string", // 必需，要执行的命令
   "cwd": "string", // 可选，工作目录
   "timeout": 30000, // 可选，超时时间（毫秒），默认30秒
-  "analyze": true // 可选，是否使用LLM分析输出结果，默认true
+  "analyze": false // 可选，是否使用LLM分析输出结果，默认false
 }
 \`\`\`
 
@@ -103,7 +103,7 @@ Executes terminal/command line commands and returns results. Requires user appro
   "command": "string", // Required, command to execute
   "cwd": "string", // Optional, working directory
   "timeout": 30000, // Optional, timeout in milliseconds, default 30s
-  "analyze": true // Optional, whether to use LLM to analyze output, default true
+  "analyze": false // Optional, whether to use LLM to analyze output, default false
 }
 \`\`\`
 `
@@ -318,7 +318,7 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const command = params.command as string
   const cwd = params.cwd as string | undefined
   const timeout = (params.timeout as number) || 30000
-  const analyze = params.analyze !== false // 默认true
+  const analyze = params.analyze ?? false // 默认false
 
   if (!command || typeof command !== 'string') {
     return {
@@ -562,5 +562,5 @@ export const terminalToolConfig: AgentToolConfig = {
 }
 
 // 导出信任模式相关函数供UI使用
-export { isTrustMode, setTrustMode }
+export { isTrustMode, requestApproval }
 

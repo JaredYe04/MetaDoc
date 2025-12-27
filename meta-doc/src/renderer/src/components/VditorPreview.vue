@@ -4,11 +4,8 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick } from 'vue'
-import Vditor from 'vditor'
 import { themeState } from '../utils/themes'
-import { getSetting } from '../utils/settings'
-import { isElectronEnv } from '../utils/event-bus'
-import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn'
+import { renderMarkdownPreview } from '../utils/md-utils'
 
 const props = defineProps<{
   markdown: string
@@ -20,45 +17,11 @@ const renderMarkdown = async () => {
   if (!containerRef.value || !props.markdown) return
 
   try {
-    const cdn = isElectronEnv() ? localVditorCDN : vditorCDN
-    const contentTheme = await getSetting('contentTheme') || 'light'
-    const codeTheme = themeState.currentTheme.codeTheme
-    const lineNumber = await getSetting('lineNumber') ?? true
-
-    // 清空容器
-    containerRef.value.innerHTML = ''
+    // 设置容器文字颜色
     containerRef.value.style.color = themeState.currentTheme.textColor
 
-    // 使用 Vditor.preview 渲染
-    const previewOptions: any = {
-      cdn,
-      mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
-      markdown: {
-        theme: { current: contentTheme }
-      },
-      hljs: {
-        style: codeTheme,
-        lineNumber: lineNumber
-      },
-      theme: themeState.currentTheme.vditorTheme
-    }
-
-    await Vditor.preview(containerRef.value as HTMLDivElement, props.markdown, previewOptions)
-
-    // 等待 preview 完成后再调用其他渲染方法
-    await nextTick()
-
-    // 渲染代码块
-    if (typeof Vditor.codeRender === 'function') {
-      Vditor.codeRender(containerRef.value)
-    }
-
-    // 渲染数学公式
-    if (typeof Vditor.mathRender === 'function') {
-      Vditor.mathRender(containerRef.value, {
-        cdn
-      })
-    }
+    // 使用统一的 Markdown 预览渲染函数
+    await renderMarkdownPreview(containerRef.value as HTMLDivElement, props.markdown)
   } catch (error) {
     console.error('渲染 Markdown 失败:', error)
     if (containerRef.value) {

@@ -104,10 +104,7 @@ import { ref as vueRef } from 'vue'
 import type { AIDialogMessage } from '@/types'
 import { selectReferenceFiles } from '../utils/agent-framework/reference-processor'
 import { themeState } from '../utils/themes'
-import Vditor from 'vditor'
-import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn'
-import { isElectronEnv } from '../utils/event-bus'
-import { getSetting } from '../utils/settings'
+import { renderMarkdownPreview } from '../utils/md-utils'
 
 const { t } = useI18n()
 
@@ -380,45 +377,8 @@ const renderAiAnalysis = async () => {
   const container = aiAnalysisContainerRef.value as HTMLDivElement
   
   try {
-    // 获取 CDN 和主题设置
-    const cdn = isElectronEnv() ? localVditorCDN : vditorCDN
-    const contentTheme = await getSetting('contentTheme') || 'light'
-    const codeTheme = themeState.currentTheme.codeTheme
-    const lineNumber = await getSetting('lineNumber') ?? true
-    
-    // 清空容器
-    container.innerHTML = ''
-    
-    // 使用 Vditor.preview 渲染
-    const previewOptions: any = {
-      cdn,
-      mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
-      markdown: {
-        theme: { current: contentTheme }
-      },
-      hljs: {
-        style: codeTheme,
-        lineNumber: lineNumber
-      },
-      theme: themeState.currentTheme.vditorTheme
-    }
-    
-    await Vditor.preview(container, aiAnalysis.value, previewOptions)
-    
-    // 等待 preview 完成后再调用其他渲染方法
-    await nextTick()
-    
-    // 渲染代码块
-    if (typeof Vditor.codeRender === 'function') {
-      Vditor.codeRender(container)
-    }
-    
-    // 渲染数学公式
-    if (typeof Vditor.mathRender === 'function') {
-      Vditor.mathRender(container, {
-        cdn
-      })
-    }
+    // 使用统一的 Markdown 预览渲染函数
+    await renderMarkdownPreview(container, aiAnalysis.value)
   } catch (error) {
     console.error('渲染AI分析失败:', error)
     container.innerHTML = `<p style="color: var(--el-color-danger);">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`

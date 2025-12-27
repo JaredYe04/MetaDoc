@@ -1737,8 +1737,8 @@ onUnmounted(() => {
   /* 使用 webkit 的 box 模型以支持多行截断 */
   font-size: 14px;
   /* 设置默认字体大小 */
-  color: #333;
-  /* 设置文本颜色 */
+  color: v-bind('themeState.currentTheme.textColor');
+  /* 设置文本颜色 - 使用主题文字颜色 */
   width: 100%;
   /* 占满父容器宽度 */
   overflow: hidden;

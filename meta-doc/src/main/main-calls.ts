@@ -320,6 +320,16 @@ function bindFileHandlers(): void {
     }
   });
   
+  // 检查文件是否存在
+  ipcMain.handle('file-exists', async (event: IpcMainInvokeEvent, filePath: string): Promise<boolean> => {
+    try {
+      return fs.existsSync(filePath);
+    } catch (error) {
+      logger.error('检查文件是否存在失败:', error);
+      return false;
+    }
+  });
+
   // 读取文件内容
   ipcMain.handle('read-file-content', async (event: IpcMainInvokeEvent, filePath: string): Promise<string | null> => {
     try {

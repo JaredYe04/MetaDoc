@@ -147,10 +147,7 @@ import {
 } from '../tool-serialization'
 import { themeState } from '../../themes'
 import { agentToolManager } from '../../agent-tool-manager'
-import Vditor from 'vditor'
-import { localVditorCDN, vditorCDN } from '../../vditor-cdn'
-import { isElectronEnv } from '../../event-bus'
-import { getSetting } from '../../settings'
+import { renderMarkdownPreview } from '../../md-utils'
 // 导入所有Display组件
 import ChartGenerationDisplay from './ChartGenerationDisplay.vue'
 import RAGToolDisplay from './RAGToolDisplay.vue'
@@ -533,45 +530,8 @@ const renderMarkdown = async () => {
   const container = markdownContainerRef.value as HTMLDivElement
 
   try {
-    // 获取 CDN 和主题设置
-    const cdn = isElectronEnv() ? localVditorCDN : vditorCDN
-    const contentTheme = await getSetting('contentTheme') || 'light'
-    const codeTheme = themeState.currentTheme.codeTheme
-    const lineNumber = await getSetting('lineNumber') ?? true
-
-    // 清空容器
-    container.innerHTML = ''
-
-    // 使用 Vditor.preview 渲染
-    const previewOptions: any = {
-      cdn,
-      mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
-      markdown: {
-        theme: { current: contentTheme }
-      },
-      hljs: {
-        style: codeTheme,
-        lineNumber: lineNumber
-      },
-      theme: themeState.currentTheme.vditorTheme
-    }
-    
-    Vditor.preview(container, markdownContent, previewOptions)
-
-    // 等待 preview 完成后再调用其他渲染方法
-    await nextTick()
-
-    // 渲染代码块
-    if (typeof Vditor.codeRender === 'function') {
-      Vditor.codeRender(container)
-    }
-
-    // 渲染数学公式
-    if (typeof Vditor.mathRender === 'function') {
-      Vditor.mathRender(container, {
-        cdn
-      })
-    }
+    // 使用统一的 Markdown 预览渲染函数
+    await renderMarkdownPreview(container, markdownContent)
   } catch (error) {
     console.error('渲染 Markdown 摘要失败:', error)
     container.innerHTML = `<p style="color: var(--el-color-danger);">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`

@@ -1318,6 +1318,12 @@ class FileConversionServiceImpl implements FileConversionService {
    */
   private async convertExcelToText(filePath: FilePath): Promise<string> {
     try {
+      // 检查文件是否存在
+      if (!fs.existsSync(filePath)) {
+        logger.error(`Excel文件不存在: ${filePath}`);
+        throw new Error(`文件不存在: ${filePath}。文件可能已被删除或移动到其他位置，请重新上传文件。`);
+      }
+      
       const buffer = await fs.promises.readFile(filePath);
       const workbook = XLSX.read(buffer, { type: 'buffer' });
       const textParts: string[] = [];
@@ -1345,7 +1351,12 @@ class FileConversionServiceImpl implements FileConversionService {
       return textParts.join('\n') || 'Excel文件无数据';
     } catch (error) {
       logger.error('Error parsing Excel:', error);
-      throw new Error('Failed to parse Excel file');
+      // 如果错误信息已经包含文件不存在的提示，直接抛出
+      if (error instanceof Error && error.message.includes('文件不存在')) {
+        throw error;
+      }
+      // 其他错误统一处理
+      throw new Error(`解析Excel文件失败: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

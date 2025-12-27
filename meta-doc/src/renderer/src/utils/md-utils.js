@@ -7,6 +7,7 @@ import { convertNumberToChinese, removeTitleIndex } from "./regex-utils";
 import {localVditorCDN, vditorCDN } from "./vditor-cdn";
 import { createRendererLogger } from "./logger.ts";
 import { preRenderAllCharts } from './chart-pre-renderer.js';
+import { themeState } from "./themes";
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance = null;
@@ -948,6 +949,62 @@ export async function local2image(md, docPath = ''){
     }
     //console.log(new_md);
     return new_md
+}
+
+/**
+ * 统一的 Markdown 预览渲染函数
+ * @param {HTMLElement} container - 渲染容器的 DOM 元素
+ * @param {string} markdown - 要渲染的 Markdown 文本
+ * @param {Object} options - 可选配置
+ * @param {string} options.linkBase - 用于解析相对路径的基础路径
+ * @param {boolean} options.renderCode - 是否渲染代码块（默认 true）
+ * @param {boolean} options.renderMath - 是否渲染数学公式（默认 true）
+ * @returns {Promise<void>}
+ */
+export async function renderMarkdownPreview(container, markdown, options = {}) {
+    const { linkBase = '', renderCode = true, renderMath = true } = options;
+    
+    // 获取 CDN
+    const cdn = isElectronEnv() ? localVditorCDN : vditorCDN;
+    
+    // 获取主题设置
+    let contentTheme = await getSetting('contentTheme');
+    if (contentTheme === 'auto' || !contentTheme) {
+        contentTheme = themeState.currentTheme.vditorTheme;
+    }
+    const codeTheme = themeState.currentTheme.codeTheme;
+    const lineNumber = await getSetting('lineNumber') ?? true;
+    
+    // 清空容器
+    container.innerHTML = '';
+    
+    // 构建预览选项
+    const previewOptions = {
+        cdn,
+        mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
+        theme: {
+            current: contentTheme
+        },
+        markdown: {
+            linkBase: linkBase
+        },
+        hljs: {
+            style: codeTheme,
+            lineNumber: lineNumber
+        }
+    };
+    
+    // 调用 Vditor.preview
+    await Vditor.preview(container, markdown, previewOptions);
+    
+    // 可选：渲染代码块和数学公式
+    if (renderCode && typeof Vditor.codeRender === 'function') {
+        Vditor.codeRender(container);
+    }
+    
+    if (renderMath && typeof Vditor.mathRender === 'function') {
+        Vditor.mathRender(container, { cdn });
+    }
 }
 
 export async function ConvertMarkdownToHtmlVditor(md) {

@@ -229,10 +229,7 @@ import { dataAnalysisSessionsDb, type DataAnalysisSession } from '../utils/db/to
 import { dataAnalysisToolCallback } from '../utils/agent-tools/data-analysis-tool'
 import DataAnalysisResultDisplay from '../components/data-analysis/DataAnalysisResultDisplay.vue'
 import { themeState } from '../utils/themes'
-import Vditor from 'vditor'
-import { localVditorCDN, vditorCDN } from '../utils/vditor-cdn'
-import { isElectronEnv } from '../utils/event-bus'
-import { getSetting } from '../utils/settings'
+import { renderMarkdownPreview } from '../utils/md-utils'
 import { parseCSV } from '../utils/agent-tools/data-analysis-tool'
 
 const { t } = useI18n()
@@ -517,6 +514,11 @@ const loadPreviewData = async () => {
     
     if (format === 'csv') {
       const content = await ipcRenderer.invoke('read-file-content', filePath) as string
+      if (!content) {
+        console.error('CSV文件不存在或无法读取:', filePath)
+        previewData.value = []
+        return
+      }
       const lines = content.trim().split('\n').filter(line => line.trim())
       
       if (lines.length === 0) {
@@ -551,6 +553,14 @@ const loadPreviewData = async () => {
       
       previewData.value = previewRows
     } else if (format === 'xlsx' || format === 'xls') {
+      // 检查文件是否存在
+      const fileExists = await ipcRenderer.invoke('file-exists', filePath) as boolean
+      if (!fileExists) {
+        console.error('Excel文件不存在:', filePath, '文件可能已被删除或移动到其他位置，请重新上传文件')
+        previewData.value = []
+        return
+      }
+      
       const excelText = await ipcRenderer.invoke('convert-excel-to-text', filePath) as string
       const lines = excelText.split('\n').filter(line => line.trim())
       
@@ -654,6 +664,13 @@ const previewExcelHeader = async (filePath: string, rowIndex: number) => {
     
     if (!ipcRenderer) return []
     
+    // 检查文件是否存在
+    const fileExists = await ipcRenderer.invoke('file-exists', filePath) as boolean
+    if (!fileExists) {
+      console.error('Excel文件不存在:', filePath, '文件可能已被删除或移动到其他位置，请重新上传文件')
+      return []
+    }
+    
     const excelText = await ipcRenderer.invoke('convert-excel-to-text', filePath) as string
     const lines = excelText.split('\n').filter(line => line.trim())
     
@@ -683,6 +700,10 @@ const previewExcelHeader = async (filePath: string, rowIndex: number) => {
     return rowData.map(c => c.trim())
   } catch (error) {
     console.error('预览Excel表头失败:', error)
+    // 如果错误信息包含文件不存在的提示，记录更详细的日志
+    if (error instanceof Error && error.message.includes('文件不存在')) {
+      console.error('文件不存在，请重新上传文件')
+    }
     return []
   }
 }
@@ -779,6 +800,10 @@ const detectCsvHeaderRow = async (filePath: string) => {
     await updateHeaderPreview()
   } catch (error) {
     console.error('检测表头行数失败:', error)
+    // 如果错误信息包含文件不存在的提示，记录更详细的日志
+    if (error instanceof Error && error.message.includes('文件不存在')) {
+      console.error('文件不存在，请重新上传文件')
+    }
     detectedHeaderRowIndex.value = 0
     headerRowIndex.value = 0
     headerPreview.value = []
@@ -799,6 +824,15 @@ const detectExcelHeaderRow = async (filePath: string) => {
     }
     
     if (!ipcRenderer) return
+    
+    // 检查文件是否存在
+    const fileExists = await ipcRenderer.invoke('file-exists', filePath) as boolean
+    if (!fileExists) {
+      console.error('Excel文件不存在:', filePath, '文件可能已被删除或移动到其他位置，请重新上传文件')
+      detectedHeaderRowIndex.value = 0
+      headerRowIndex.value = 0
+      return
+    }
     
     const excelText = await ipcRenderer.invoke('convert-excel-to-text', filePath) as string
     const lines = excelText.split('\n').filter(line => line.trim())
@@ -1135,39 +1169,8 @@ const renderReport = async () => {
   const container = reportContainerRef.value as HTMLDivElement
   
   try {
-    const cdn = isElectronEnv() ? localVditorCDN : vditorCDN
-    const contentTheme = await getSetting('contentTheme') || 'light'
-    const codeTheme = themeState.currentTheme.codeTheme
-    const lineNumber = await getSetting('lineNumber') ?? true
-    
-    container.innerHTML = ''
-    
-    const previewOptions: any = {
-      cdn,
-      mode: themeState.currentTheme.type === 'dark' ? 'dark' : 'light',
-      markdown: {
-        theme: { current: contentTheme }
-      },
-      hljs: {
-        style: codeTheme,
-        lineNumber: lineNumber
-      },
-      theme: themeState.currentTheme.vditorTheme
-    }
-    
-    await Vditor.preview(container, reportMarkdown.value, previewOptions)
-    
-    await nextTick()
-    
-    if (typeof Vditor.codeRender === 'function') {
-      Vditor.codeRender(container)
-    }
-    
-    if (typeof Vditor.mathRender === 'function') {
-      Vditor.mathRender(container, {
-        cdn
-      })
-    }
+    // 使用统一的 Markdown 预览渲染函数
+    await renderMarkdownPreview(container, reportMarkdown.value)
   } catch (error) {
     console.error('渲染分析报告失败:', error)
     container.innerHTML = `<p style="color: var(--el-color-danger);">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`

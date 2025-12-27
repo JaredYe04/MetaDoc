@@ -11,7 +11,7 @@
         "closeKnowledgeBase":"禁用知识检索库",
         "openKnowledgeBase":"启用知识检索库",
         "locateToPdf": "定位到PDF位置",
-        "sectionOptimizer": "AI段落优化",
+        "sectionOptimizer": "优化当前段落",
         "triggerAutoCompletion": "手动触发AI补全",
         "insertGraph": "插入绘图"
     },
@@ -83,25 +83,6 @@
     },
     "microphoneTest": {
         "cannotAccessMic": "无法访问麦克风，请检查权限设置"
-    },
-    "common": {
-        "confirm": "确认",
-        "cancel": "取消",
-        "continue": "继续",
-        "save": "保存",
-        "close": "关闭",
-        "create": "创建",
-        "edit": "编辑",
-        "delete": "删除",
-        "deleteSuccess": "删除成功",
-        "deleteFailed": "删除失败",
-        "format": "格式化",
-        "apply": "应用",
-        "success": "成功",
-        "copy": "复制",
-        "copySuccess": "已复制到剪贴板",
-        "copyFailed": "复制失败",
-        "reset": "重置"
     },
     "console": {
         "title": "终端输出",
@@ -548,6 +529,8 @@
         },
         "convert_to_latex":"将文档转换为LaTeX",
         "convert_to_latex_confirm":"转换后会生成tex文件，与现有的Markdown文件不同步，是否继续？",
+        "collapse_meta_panel":"折叠元信息面板",
+        "expand_meta_panel":"展开元信息面板",
         "msgbox":{
             "tip":"提示",
             "confirm":"确定",

@@ -22,17 +22,6 @@
       @resize-end="handleResizeEnd"
     />
 
-    <!-- 折叠按钮（在侧边栏内部，当展开时显示） -->
-    <div 
-      v-if="showSidebar && !isCollapsed && collapsible"
-      class="collapse-button"
-      :class="collapseButtonClass"
-      @click="toggleCollapse"
-      :title="collapseButtonTitle"
-    >
-      <el-icon><ArrowRight v-if="sidebarPosition === 'start'" /><ArrowLeft v-else /></el-icon>
-    </div>
-
     <!-- 侧边内容区域 -->
     <div 
       v-if="showSidebar && !isCollapsed"
@@ -40,7 +29,19 @@
       :class="sidebarClass"
       :style="sidebarStyle"
     >
-      <slot name="sidebar"></slot>
+      <!-- 折叠按钮（紧贴分割线左侧，当展开时显示） -->
+      <div 
+        v-if="collapsible"
+        class="collapse-button"
+        :class="collapseButtonClass"
+        @click="toggleCollapse"
+        :title="collapseButtonTitle"
+      >
+        <el-icon><ArrowLeft v-if="sidebarPosition === 'start'" /><ArrowRight v-else /></el-icon>
+      </div>
+      <div class="sidebar-inner">
+        <slot name="sidebar"></slot>
+      </div>
     </div>
 
     <!-- 展开按钮（当折叠时显示） -->
@@ -51,7 +52,7 @@
       @click="toggleCollapse"
       :title="expandButtonTitle"
     >
-      <el-icon><ArrowLeft v-if="sidebarPosition === 'start'" /><ArrowRight v-else /></el-icon>
+      <el-icon><ArrowRight v-if="sidebarPosition === 'start'" /><ArrowLeft v-else /></el-icon>
     </div>
   </div>
 </template>
@@ -308,7 +309,14 @@ defineExpose({
 .sidebar-content {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+}
+
+.sidebar-inner {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
 }
 
 .sidebar-horizontal {
@@ -322,7 +330,7 @@ defineExpose({
 /* 折叠按钮样式 */
 .collapse-button {
   position: absolute;
-  z-index: 10;
+  z-index: 100;
   cursor: pointer;
   background-color: var(--el-bg-color-page, #f5f7fa);
   border: 1px solid var(--el-border-color, #dcdfe6);
@@ -333,6 +341,7 @@ defineExpose({
   padding: 4px;
   transition: all 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  pointer-events: auto;
 }
 
 .collapse-button:hover {
@@ -347,12 +356,15 @@ defineExpose({
   transform: translateY(-50%);
 }
 
+/* 当侧边栏在左侧时，按钮在分割线右侧（相对于侧边栏） */
 .collapse-button-left {
-  left: -12px;
+  left: 100%;
+  margin-left: -12px;
 }
 
+/* 当侧边栏在右侧时，按钮在分割线左侧（相对于侧边栏，紧贴分割线） */
 .collapse-button-right {
-  right: -12px;
+  left: -12px;
 }
 
 /* 展开按钮样式 */

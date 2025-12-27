@@ -14,58 +14,75 @@
           </el-tooltip>
         </div>
 
-        <div
-          class="meta-panel__item interactive-text"
-          role="button"
-          tabindex="0"
-          @click="titleAssistantVisible = true"
-          @keydown.enter.prevent="titleAssistantVisible = true"
-          @keydown.space.prevent="titleAssistantVisible = true"
-        >
-          <span class="meta-panel__label" :style="{ color: themeState.currentTheme.textColor }">{{ $t('article.title') }}：</span>
-          <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{ meta.title || $t('article.no_title') }}</span>
+        <div class="meta-panel__item">
+          <el-tooltip :content="$t('article.generate_title')" placement="left">
+            <span
+              class="meta-panel__label meta-panel__label--clickable"
+              :style="{ color: themeState.currentTheme.textColor }"
+              role="button"
+              tabindex="0"
+              @click="titleAssistantVisible = true"
+              @keydown.enter.prevent="titleAssistantVisible = true"
+              @keydown.space.prevent="titleAssistantVisible = true"
+            >{{ $t('article.title') }}：</span>
+          </el-tooltip>
+          <div class="meta-panel__value-wrapper">
+            <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{ meta.title || $t('article.no_title') }}</span>
+          </div>
         </div>
 
-        <div
-          class="meta-panel__item interactive-text"
-          role="button"
-          tabindex="0"
-          @click="authorAssistantVisible = true"
-          @keydown.enter.prevent="authorAssistantVisible = true"
-          @keydown.space.prevent="authorAssistantVisible = true"
-        >
-          <span class="meta-panel__label" :style="{ color: themeState.currentTheme.textColor }">{{ $t('article.author') }}：</span>
-          <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{ meta.author || $t('article.no_author') }}</span>
+        <div class="meta-panel__item">
+          <el-tooltip :content="$t('article.modify_author')" placement="left">
+            <span
+              class="meta-panel__label meta-panel__label--clickable"
+              :style="{ color: themeState.currentTheme.textColor }"
+              role="button"
+              tabindex="0"
+              @click="authorAssistantVisible = true"
+              @keydown.enter.prevent="authorAssistantVisible = true"
+              @keydown.space.prevent="authorAssistantVisible = true"
+            >{{ $t('article.author') }}：</span>
+          </el-tooltip>
+          <div class="meta-panel__value-wrapper">
+            <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{ meta.author || $t('article.no_author') }}</span>
+          </div>
         </div>
 
-        <div
-          class="meta-panel__item interactive-text"
-          role="button"
-          tabindex="0"
-          @click="descriptionAssistantVisible = true"
-          @keydown.enter.prevent="descriptionAssistantVisible = true"
-          @keydown.space.prevent="descriptionAssistantVisible = true"
-        >
-          <span class="meta-panel__label" :style="{ color: themeState.currentTheme.textColor }">{{ $t('article.description') }}：</span>
-          <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{ meta.description || $t('article.no_description') }}</span>
+        <div class="meta-panel__item meta-panel__item--description">
+          <el-tooltip :content="$t('article.generate_description')" placement="left">
+            <span
+              class="meta-panel__label meta-panel__label--clickable"
+              :style="{ color: themeState.currentTheme.textColor }"
+              role="button"
+              tabindex="1"
+              @click="descriptionAssistantVisible = true"
+              @keydown.enter.prevent="descriptionAssistantVisible = true"
+              @keydown.space.prevent="descriptionAssistantVisible = true"
+            >{{ $t('article.description') }}：</span>
+          </el-tooltip>
+          <div class="meta-panel__value-wrapper meta-panel__value-wrapper--description">
+            <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{ meta.description || $t('article.no_description') }}</span>
+          </div>
         </div>
 
         <div class="meta-panel__item meta-panel__item--keywords">
-          <span
-            class="meta-panel__label meta-panel__label--keywords"
-            :style="{ color: themeState.currentTheme.textColor }"
-            role="button"
-            tabindex="0"
-            :aria-busy="keywordsGenerating"
-            @click="handleKeywordsGenerate"
-            @keydown.enter.prevent="handleKeywordsGenerate"
-            @keydown.space.prevent="handleKeywordsGenerate"
-          >
-            {{ $t('article.keywords') }}：
-            <el-icon v-if="keywordsGenerating" class="meta-keywords__icon" :size="14">
-              <Loading />
-            </el-icon>
-          </span>
+          <el-tooltip :content="$t('article.generate_keywords')" placement="bottom">
+            <span
+              class="meta-panel__label meta-panel__label--keywords meta-panel__label--clickable"
+              :style="{ color: themeState.currentTheme.textColor }"
+              role="button"
+              tabindex="0"
+              :aria-busy="keywordsGenerating"
+              @click="handleKeywordsGenerate"
+              @keydown.enter.prevent="handleKeywordsGenerate"
+              @keydown.space.prevent="handleKeywordsGenerate"
+            >
+              {{ $t('article.keywords') }}：
+              <el-icon v-if="keywordsGenerating" class="meta-keywords__icon" :size="14">
+                <Loading />
+              </el-icon>
+            </span>
+          </el-tooltip>
           <div class="meta-panel__value meta-panel__value--keywords">
             <KeywordInput
               :model-value="meta.keywords || []"
@@ -342,19 +359,54 @@ const commitForm = () => {
   gap: 10px;
   font-size: 15px;
   line-height: 1.6;
-  cursor: pointer;
   padding: 6px 0;
+  align-items: flex-start;
 }
 
 .meta-panel__label {
   font-weight: 600;
-  min-width: 64px;
+  flex-shrink: 0;
+  width: 80px;
+}
+
+.meta-panel__label--clickable {
+  width: 80px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  position: relative;
+  z-index: 1;
+}
+
+.meta-panel__value-wrapper {
+  flex: 1;
+  min-width: 0;
+  /* 使用padding-left和负margin-left的组合，让文本换行后从label左边对齐 */
+  /* 负margin让value向左移动，padding补偿第一行 */
+  margin-left: -90px;
+  padding-left: 90px;
+}
+
+.meta-panel__item--description {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.meta-panel__value-wrapper--description {
+  margin-left: 0;
+  padding-left: 0;
+  width: 100%;
 }
 
 .meta-panel__value {
-  flex: 1;
+  display: block;
   text-align: left;
   word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .meta-panel__item--keywords {
@@ -362,6 +414,7 @@ const commitForm = () => {
 }
 
 .meta-panel__label--keywords {
+  width: 80px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;

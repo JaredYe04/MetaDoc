@@ -4,7 +4,6 @@
 // 使用 Vue 实例作为事件总线
 
 import mitt from 'mitt'
-import path from 'path'
 import { getSetting, updateRecentDocs } from './settings.js'
 import { ConvertMarkdownToHtmlManually } from './md-utils.js'
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
@@ -69,13 +68,9 @@ const extractFileName = (filePath, fallbackTitle) => {
     return fallbackTitle.trim();
   }
   if (typeof filePath === 'string' && filePath.length > 0) {
-    try {
-      return path.basename(filePath);
-    } catch (error) {
-      getLogger().warn('解析文件名失败', error);
-      const parts = filePath.split(/[\\/]/);
-      return parts[parts.length - 1] || filePath;
-    }
+    // 使用字符串分割方式提取文件名，兼容浏览器环境
+    const parts = filePath.split(/[\\/]/);
+    return parts[parts.length - 1] || filePath;
   }
   return i18n?.global?.t?.('workspace.untitledDocument') ?? 'Untitled';
 };

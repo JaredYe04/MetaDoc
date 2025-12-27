@@ -11,7 +11,7 @@
     "openAutoCompletion": "Enable AI Completion",
     "openKnowledgeBase": "Enable Knowledge Retrieval Library",
     "locateToPdf": "Locate to PDF Position",
-    "sectionOptimizer": "AI Paragraph Optimization"
+    "sectionOptimizer": "Optimize Current Paragraph"
   },
   "headMenu": {
     "tooltip": "An intelligent document processor based on AI Agent",

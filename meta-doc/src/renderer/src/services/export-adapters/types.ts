@@ -63,6 +63,14 @@ export interface DocxExportOptions extends BaseExportOptions {
       lineHeight: number;
     };
   };
+  // 是否生成封面
+  generateCover?: boolean;
+  // 是否生成目录
+  generateToc?: boolean;
+  // 是否显示页码
+  showPageNumbers?: boolean;
+  // 是否显示页眉
+  showHeader?: boolean;
 }
 
 /**
@@ -95,6 +103,14 @@ export interface LatexExportOptions extends BaseExportOptions {
   includePackages: boolean;
   // 图片处理方式：original（保留原始链接）、folder（保存到文件夹）
   imageProcessing: 'original' | 'folder';
+  // 是否生成封面
+  generateCover?: boolean;
+  // 是否生成目录
+  generateToc?: boolean;
+  // 是否显示页码
+  showPageNumbers?: boolean;
+  // 是否显示页眉
+  showHeader?: boolean;
 }
 
 /**

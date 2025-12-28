@@ -2229,6 +2229,23 @@
       "includePackages": {
         "label": "包含常用包",
         "description": "是否自动包含常用的LaTeX包"
+      },
+      "generateCover": {
+        "label": "生成封面",
+        "description": "在第一页显示文档标题、作者、摘要和关键词"
+      },
+      "generateToc": {
+        "label": "生成目录",
+        "description": "在封面后（或文档开头）生成目录",
+        "title": "目录"
+      },
+      "showPageNumbers": {
+        "label": "显示页码",
+        "description": "在页脚显示页码"
+      },
+      "showHeader": {
+        "label": "显示页眉",
+        "description": "在页眉显示文档标题和页码信息"
       }
     },
     "adapters": {

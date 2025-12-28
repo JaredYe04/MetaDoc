@@ -16,6 +16,10 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
       documentClass: 'article',
       includePackages: true,
       imageProcessing: 'original', // 默认保留原始链接
+      generateCover: false,
+      generateToc: false,
+      showPageNumbers: true, // LaTeX 默认显示页码
+      showHeader: true, // LaTeX 默认显示页眉
     };
   }
   
@@ -56,6 +60,42 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
           { label: '保留原始链接', value: 'original', labelKey: 'export.options.imageProcessing.original' },
           { label: '保存到文件夹', value: 'folder', labelKey: 'export.options.imageProcessing.folder' },
         ],
+      },
+      {
+        key: 'generateCover',
+        label: '生成封面',
+        labelKey: 'export.options.generateCover.label',
+        type: 'boolean',
+        default: false,
+        description: '在第一页显示文档标题、作者、摘要和关键词',
+        descriptionKey: 'export.options.generateCover.description',
+      },
+      {
+        key: 'generateToc',
+        label: '生成目录',
+        labelKey: 'export.options.generateToc.label',
+        type: 'boolean',
+        default: false,
+        description: '在封面后（或文档开头）生成目录',
+        descriptionKey: 'export.options.generateToc.description',
+      },
+      {
+        key: 'showPageNumbers',
+        label: '显示页码',
+        labelKey: 'export.options.showPageNumbers.label',
+        type: 'boolean',
+        default: true,
+        description: '在页脚显示页码',
+        descriptionKey: 'export.options.showPageNumbers.description',
+      },
+      {
+        key: 'showHeader',
+        label: '显示页眉',
+        labelKey: 'export.options.showHeader.label',
+        type: 'boolean',
+        default: true,
+        description: '在页眉显示文档标题和页码信息',
+        descriptionKey: 'export.options.showHeader.description',
       },
     ];
   }

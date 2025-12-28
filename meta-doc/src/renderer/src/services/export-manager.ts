@@ -170,7 +170,25 @@ export const prepareExportPayload = async (
       } else if (targetFormat === 'tex') {
         const { convertMarkdownToLatex } = await import('../utils/latex-utils');
         const title = doc.meta?.title || 'Generated Document';
-        tex = await convertMarkdownToLatex(markdown, title);
+        // 提取文档元信息
+        let meta = {};
+        try {
+          const parsed = JSON.parse(doc.json || '{}');
+          meta = parsed?.current_article_meta_data || {};
+        } catch {
+          // 忽略解析错误
+        }
+        // 传递导出选项和元信息
+        const latexOptions = {
+          ...finalOptions,
+          meta: {
+            title: meta.title || title,
+            author: meta.author || '',
+            description: meta.description || '',
+            keywords: Array.isArray(meta.keywords) ? meta.keywords : [],
+          },
+        };
+        tex = await convertMarkdownToLatex(markdown, title, latexOptions);
       }
 
       // 收集预渲染生成的图片 URL
@@ -458,7 +476,25 @@ const prepareMarkdownExports = async (
     // Markdown 转 LaTeX，图表已经预渲染为图片 URL
     const { convertMarkdownToLatex } = await import('../utils/latex-utils');
     const title = doc.meta?.title || 'Generated Document';
-    tex = await convertMarkdownToLatex(markdown, title);
+    // 提取文档元信息
+    let meta = {};
+    try {
+      const parsed = JSON.parse(doc.json || '{}');
+      meta = parsed?.current_article_meta_data || {};
+    } catch {
+      // 忽略解析错误
+    }
+    // 传递导出选项和元信息
+    const latexOptions = {
+      ...finalOptions,
+      meta: {
+        title: meta.title || title,
+        author: meta.author || '',
+        description: meta.description || '',
+        keywords: Array.isArray(meta.keywords) ? meta.keywords : [],
+      },
+    };
+    tex = await convertMarkdownToLatex(markdown, title, latexOptions);
   }
 
   // 收集预渲染生成的图片 URL（用于后续清理）

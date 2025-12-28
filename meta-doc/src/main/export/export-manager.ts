@@ -19,6 +19,9 @@ import {
   updateHtmlImageLinks,
   updateLatexImageLinks,
 } from '../utils/image-export-service';
+import {
+  DocxProcessingManager,
+} from './docx-processor';
 
 const logger = createMainLogger('PDFExport');
 let currentRequestId: string | undefined;
@@ -648,8 +651,119 @@ const mapHtmlToWordStyles = (html: string): string => {
   return styledHtml;
 };
 
+// 从 Markdown 生成手动目录（HTML格式）
+const generateTocHtml = (markdown: string): string => {
+  // 从 Markdown 中提取所有标题
+  const lines = markdown.split('\n');
+  const headings: Array<{ level: number; title: string }> = [];
+  let inCodeBlock = false;
+
+  for (const line of lines) {
+    // 检查是否是代码块标记
+    if (line.match(/^```/)) {
+      inCodeBlock = !inCodeBlock;
+      continue;
+    }
+    
+    // 如果在代码块中，跳过
+    if (inCodeBlock) {
+      continue;
+    }
+
+    // 匹配标题行：匹配1个或多个 '#' 后跟空格，再匹配标题文本
+    const match = line.match(/^(#+)\s+(.*)/);
+    if (match) {
+      const level = match[1].length; // 标题等级（1-6）
+      const title = match[2].trim();
+      if (title) {
+        headings.push({ level, title });
+      }
+    }
+  }
+
+  // 如果没有标题，返回空
+  if (headings.length === 0) {
+    return '';
+  }
+
+  // 生成目录 HTML
+  // 直接在段落上设置分页属性
+  // 使用 i18n 获取"目录"文本
+  const tocTitle = t('export.options.generateToc.title', '目录');
+  
+  let tocHtml = '';
+  
+  // 目录标题 - 直接在这个段落上设置 page-break-before，确保目录另起一页
+  tocHtml += `<p class="Normal" style="text-align: center; font-size: 18pt; font-weight: bold; margin-top: 0; margin-bottom: 24pt; page-break-before: always;">${escapeHtml(tocTitle)}</p>`;
+  
+  // 使用单个段落存放所有目录项，确保它们不分页
+  // 不在这个段落上设置分页属性，避免每个目录项都换页
+  tocHtml += '<p class="Normal" style="margin: 0; padding: 0; line-height: 1.8;">';
+  
+  for (let i = 0; i < headings.length; i++) {
+    const heading = headings[i];
+    const level = heading.level;
+    const fontSize = Math.max(10.5 - (level - 1) * 0.5, 9);
+    // 使用非断行空格来缩进（每个级别 4 个空格）
+    const indentSpaces = '&nbsp;'.repeat((level - 1) * 4);
+    
+    // 如果不是第一项，先添加换行
+    if (i > 0) {
+      tocHtml += '<br>';
+    }
+    
+    // 添加缩进和标题，使用 span 设置字体大小
+    tocHtml += `${indentSpaces}<span style="font-size: ${fontSize}pt;">${escapeHtml(heading.title)}</span>`;
+  }
+  
+  // 在最后一个目录项后添加一个空项，用于换页
+  // 使用换行分隔，然后添加一个不可见的空 span，设置 page-break-after 来换页
+  tocHtml += '<br>';
+  tocHtml += '<span style="page-break-after: always; display: block; height: 0; margin: 0; padding: 0; visibility: hidden;"></span>';
+  
+  tocHtml += '</p>';
+  
+  return tocHtml;
+};
+
+// 生成封面 HTML
+const generateCoverPage = (meta: DocumentMetaInfo, styleMapping?: {
+  normal?: { fontFamily: string; fontSize: number; lineHeight: number };
+  heading1?: { fontFamily: string; fontSize: number; lineHeight: number };
+}): string => {
+  // 使用与正文相同的字体，默认使用 Microsoft YaHei
+  const fontFamily = styleMapping?.normal?.fontFamily || styleMapping?.heading1?.fontFamily || 'Microsoft YaHei';
+  const baseFontSize = styleMapping?.normal?.fontSize || 10.5;
+  
+  const titleHtml = meta.title 
+    ? `<h1 style="text-align: center; font-size: 28pt; margin-top: 200pt; margin-bottom: 40pt; font-family: '${fontFamily}', 'SimSun', serif;">${escapeHtml(meta.title)}</h1>` 
+    : '';
+  const authorHtml = meta.author 
+    ? `<p style="text-align: center; font-size: ${baseFontSize + 3.5}pt; margin-bottom: 20pt; font-family: '${fontFamily}', 'SimSun', serif;">作者：${escapeHtml(meta.author)}</p>` 
+    : '';
+  
+  // 摘要：加粗"摘要"标识，内容靠左对齐，使用与正文相同的字体
+  const descriptionHtml = meta.description 
+    ? `<p style="text-align: left; font-size: ${baseFontSize + 1.5}pt; margin-top: 40pt; margin-bottom: 10pt; padding: 0 100pt; font-family: '${fontFamily}', 'SimSun', serif;"><strong>摘要：</strong>${escapeHtml(meta.description)}</p>` 
+    : '';
+  
+  // 关键词：加粗"关键词"标识，关键词用逗号分割，使用与正文相同的字体
+  const keywordsHtml = meta.keywords.length > 0 
+    ? `<p style="text-align: left; font-size: ${baseFontSize + 1.5}pt; margin-top: 20pt; padding: 0 100pt; font-family: '${fontFamily}', 'SimSun', serif;"><strong>关键词：</strong>${escapeHtml(meta.keywords.join(', '))}</p>` 
+    : '';
+  
+  return `<div style="page-break-after: always; min-height: 100vh; display: flex; flex-direction: column; justify-content: center;">
+    ${titleHtml}
+    ${authorHtml}
+    ${descriptionHtml}
+    ${keywordsHtml}
+  </div>`;
+};
+
+
 const convertMarkdownToDocxBuffer = async (
   htmlContent: string,
+  markdown: string,
   options?: {
     enableStyleMapping?: boolean;
     styleMapping?: {
@@ -659,7 +773,10 @@ const convertMarkdownToDocxBuffer = async (
       heading3?: { fontFamily: string; fontSize: number; lineHeight: number };
       heading4?: { fontFamily: string; fontSize: number; lineHeight: number };
     };
-  }
+    generateCover?: boolean;
+    generateToc?: boolean;
+  },
+  meta?: DocumentMetaInfo
 ): Promise<Buffer> => {
   // 使用导出选项或默认值
   const enableStyleMapping = options?.enableStyleMapping !== undefined ? options.enableStyleMapping : true;
@@ -672,7 +789,43 @@ const convertMarkdownToDocxBuffer = async (
   };
   
   // 将HTML中的标题和正文映射到Word样式库（如果启用）
-  const styledHtml = enableStyleMapping ? mapHtmlToWordStyles(htmlContent) : htmlContent;
+  let styledHtml = enableStyleMapping ? mapHtmlToWordStyles(htmlContent) : htmlContent;
+  
+  // 添加封面
+  let coverHtml = '';
+  if (options?.generateCover && meta) {
+    coverHtml = generateCoverPage(meta, styleMapping);
+  }
+  
+  // 添加目录（从 Markdown 生成手动目录）
+  let tocHtml = '';
+  if (options?.generateToc) {
+    tocHtml = generateTocHtml(markdown);
+  }
+  
+  // 如果有目录，在正文的第一个段落添加 page-break-before
+  if (tocHtml && tocHtml.trim()) {
+    // 匹配第一个块级元素（p, h1-h6, div, li, blockquote 等）
+    // replace 默认只替换第一个匹配的元素
+    styledHtml = styledHtml.replace(
+      /(<(p|h[1-6]|div|li|blockquote)(?:\s+[^>]*?)?)(style\s*=\s*["']([^"']*)["'])?([^>]*>)/i,
+      (match, tagStart, tagName, existingStyle, styleContent, tagEnd) => {
+        // 如果已经有 style 属性，在其中添加 page-break-before
+        if (existingStyle) {
+          // 检查是否已经有 page-break-before
+          if (styleContent && styleContent.includes('page-break-before')) {
+            return match; // 已经存在，不修改
+          }
+          // 在现有样式后添加 page-break-before
+          const newStyle = `${styleContent}; page-break-before: always;`;
+          return `${tagStart}style="${newStyle}"${tagEnd}`;
+        } else {
+          // 没有 style 属性，添加新的 style 属性
+          return `${tagStart} style="page-break-before: always;"${tagEnd}`;
+        }
+      }
+    );
+  }
   
   // 添加CSS样式表，定义Word样式库映射和代码框样式
   // Word在转换HTML时会识别这些样式类名并映射到样式库
@@ -807,7 +960,10 @@ const convertMarkdownToDocxBuffer = async (
     </style>
   `;
   
-  const htmlWrapped = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>Document</title>${wordStyles}</head><body>${styledHtml}</body></html>`;
+  // 组合封面、目录和正文
+  const finalContent = coverHtml + tocHtml + styledHtml;
+  
+  const htmlWrapped = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>Document</title>${wordStyles}</head><body>${finalContent}</body></html>`;
   const docxBlob = htmlDocx.asBlob(htmlWrapped);
   const arrayBuffer = await docxBlob.arrayBuffer();
   return Buffer.from(arrayBuffer);
@@ -899,11 +1055,41 @@ const CORE_PROPERTIES_CONTENT_TYPE = 'application/vnd.openxmlformats-package.cor
 const CORE_PROPERTIES_REL_TYPE =
   'http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties';
 
-const applyDocxMetadata = async (buffer: Buffer, meta: DocumentMetaInfo): Promise<Buffer> => {
+// 创建 DOCX 处理管理器实例（单例）
+let docxProcessingManager: DocxProcessingManager | null = null;
+
+/**
+ * 获取 DOCX 处理管理器
+ * 使用单例模式，确保所有处理器只注册一次
+ */
+const getDocxProcessingManager = (): DocxProcessingManager => {
+  if (!docxProcessingManager) {
+    docxProcessingManager = new DocxProcessingManager();
+    // 目录和字体样式现在都在 HTML 阶段处理，不需要后处理
+    // 保留处理器注册以备将来使用
+    // 后续可以在这里注册其他处理器，例如：
+    // docxProcessingManager.register(new FormulaProcessor());
+    // docxProcessingManager.register(new ImageProcessor());
+  }
+  return docxProcessingManager;
+};
+
+const applyDocxMetadata = async (buffer: Buffer, meta: DocumentMetaInfo, options?: {
+  generateToc?: boolean;
+  styleMapping?: {
+    normal?: { fontFamily: string; fontSize: number; lineHeight: number };
+    heading1?: { fontFamily: string; fontSize: number; lineHeight: number };
+  };
+}): Promise<Buffer> => {
+  // 首先应用元数据
   const zip = await JSZip.loadAsync(buffer);
   zip.file('docProps/core.xml', buildCorePropertiesXml(meta));
   await ensureCorePropsRegistered(zip);
-  const updated = await zip.generateAsync({ type: 'nodebuffer' });
+  let updated = await zip.generateAsync({ type: 'nodebuffer' });
+  
+  // 目录和字体样式现在都在 HTML 阶段处理，这里不需要后处理
+  // 保留处理管理器以备将来使用
+  
   return Buffer.from(updated);
 };
 
@@ -1202,15 +1388,20 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
       const docxOptions = payload.exportOptions ? {
         enableStyleMapping: payload.exportOptions.enableStyleMapping,
         styleMapping: payload.exportOptions.styleMapping,
+        generateCover: payload.exportOptions.generateCover,
+        generateToc: payload.exportOptions.generateToc,
       } : undefined;
-      const buffer = await convertMarkdownToDocxBuffer(payload.html, docxOptions);
+      const buffer = await convertMarkdownToDocxBuffer(payload.html, payload.data.md, docxOptions, meta);
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.addingMetadata',
         percentage: 95,
         params: { format: 'DOCX' }
       });
-      const bufferWithMeta = await applyDocxMetadata(buffer, meta);
+      const bufferWithMeta = await applyDocxMetadata(buffer, meta, {
+        generateToc: docxOptions?.generateToc,
+        styleMapping: docxOptions?.styleMapping,
+      });
       await writeBinaryFile(targetPath, bufferWithMeta);
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exportComplete',
@@ -1589,7 +1780,7 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       percentage: 50,
       params: { format: 'DOCX' }
     });
-    const buffer = await convertMarkdownToDocxBuffer(payload.html);
+    const buffer = await convertMarkdownToDocxBuffer(payload.html, payload.data.md);
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
       subMessage: 'agent.reference.progress.addingMetadata',

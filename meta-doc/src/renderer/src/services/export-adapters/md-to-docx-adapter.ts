@@ -44,6 +44,10 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
           lineHeight: 1.2,
         },
       },
+      generateCover: false,
+      generateToc: false,
+      showPageNumbers: false,
+      showHeader: false,
     };
   }
   
@@ -237,6 +241,42 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '四级标题行距倍数',
         descriptionKey: 'export.options.heading4LineHeight.description',
         showWhen: (options) => options.enableStyleMapping === true,
+      },
+      {
+        key: 'generateCover',
+        label: '生成封面',
+        labelKey: 'export.options.generateCover.label',
+        type: 'boolean',
+        default: false,
+        description: '在第一页显示文档标题、作者、摘要和关键词',
+        descriptionKey: 'export.options.generateCover.description',
+      },
+      {
+        key: 'generateToc',
+        label: '生成目录',
+        labelKey: 'export.options.generateToc.label',
+        type: 'boolean',
+        default: false,
+        description: '在封面后（或文档开头）生成目录',
+        descriptionKey: 'export.options.generateToc.description',
+      },
+      {
+        key: 'showPageNumbers',
+        label: '显示页码',
+        labelKey: 'export.options.showPageNumbers.label',
+        type: 'boolean',
+        default: false,
+        description: '在页脚显示页码',
+        descriptionKey: 'export.options.showPageNumbers.description',
+      },
+      {
+        key: 'showHeader',
+        label: '显示页眉',
+        labelKey: 'export.options.showHeader.label',
+        type: 'boolean',
+        default: false,
+        description: '在页眉显示文档标题和页码信息',
+        descriptionKey: 'export.options.showHeader.description',
       },
     ];
   }

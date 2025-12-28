@@ -53,14 +53,55 @@ function restoreMathPlaceholders(text, placeholders) {
     return result;
 }
 
-export async function convertMarkdownToLatex(markdown, title = 'Generated Document') {
+export async function convertMarkdownToLatex(markdown, title = 'Generated Document', options = {}) {
     // 提前抽取数学公式，避免后续字符转义破坏 TeX 语法
     const { text: markdownWithoutMath, placeholders } = extractMathPlaceholders(markdown);
     let body = await convertTokensToLatex(md.parse(markdownWithoutMath, {}));
     // 转换完成后再恢复数学公式原文
     body = restoreMathPlaceholders(body, placeholders);
-    const latex = `
-\\documentclass{article}
+    
+    // 提取选项，设置默认值
+    const documentClass = options.documentClass || 'article';
+    const includePackages = options.includePackages !== false; // 默认 true
+    const generateCover = options.generateCover === true;
+    const generateToc = options.generateToc === true;
+    const showPageNumbers = options.showPageNumbers !== false; // 默认 true
+    const showHeader = options.showHeader !== false; // 默认 true
+    const meta = options.meta || {}; // 文档元信息
+    
+    // 生成封面
+    let coverContent = '';
+    if (generateCover) {
+        const coverTitle = meta.title || title;
+        const coverAuthor = meta.author || '';
+        const coverDescription = meta.description || '';
+        const coverKeywords = meta.keywords || [];
+        coverContent = `\\begin{titlepage}
+\\centering
+\\vspace*{2cm}
+{\\Huge\\bfseries ${escapeLatex(coverTitle)}\\par}
+\\vspace{1.5cm}
+${coverAuthor ? `{\\Large ${escapeLatex(coverAuthor)}\\par}` : ''}
+\\vspace{2cm}
+${coverDescription ? `{\\large ${escapeLatex(coverDescription)}\\par}` : ''}
+\\vspace{1cm}
+${coverKeywords.length > 0 ? `{\\normalsize 关键词：${escapeLatex(coverKeywords.join('、'))}\\par}` : ''}
+\\vfill
+\\end{titlepage}
+\\newpage
+`;
+    }
+    
+    // 生成目录
+    let tocContent = '';
+    if (generateToc) {
+        tocContent = `\\tableofcontents
+\\newpage
+`;
+    }
+    
+    // 构建包列表
+    const packages = includePackages ? `
 \\usepackage{fontspec}
 \\usepackage{xeCJK}
 \\usepackage{graphicx}
@@ -74,11 +115,30 @@ export async function convertMarkdownToLatex(markdown, title = 'Generated Docume
 \\usepackage{lastpage}
 \\usepackage{float}
 \\usepackage{placeins}
-\\usepackage{amsmath}
-\\usepackage{amssymb}
 \\usepackage{amsthm}
 \\usepackage{amsfonts}
-\\usepackage{mathrsfs} 
+\\usepackage{mathrsfs}` : '';
+    
+    // 构建页眉页脚
+    let headerFooter = '';
+    if (showHeader || showPageNumbers) {
+        headerFooter = `\\pagestyle{fancy}
+\\fancyhf{}`;
+        if (showHeader) {
+            headerFooter += `
+\\lhead{${escapeLatex(title)}}
+\\rhead{Page \\thepage\\,of\\,\\pageref{LastPage}}`;
+        }
+        if (showPageNumbers) {
+            headerFooter += `
+\\cfoot{\\thepage}`;
+        }
+    } else {
+        headerFooter = `\\pagestyle{plain}`;
+    }
+    
+    const latex = `
+\\documentclass{${documentClass}}${packages}
 
 % 英文正文字体
 \\setmainfont{Times New Roman} % 英文正文
@@ -91,14 +151,9 @@ export async function convertMarkdownToLatex(markdown, title = 'Generated Docume
 \\setCJKmonofont{FangSong}     % 中文等宽字体（可选）
 
 \\geometry{margin=1in}
-\\pagestyle{fancy}
-\\fancyhf{}
-\\lhead{${title}}
-\\rhead{Page \\thepage\\,of\\,\\pageref{LastPage}}
-\\cfoot{\\thepage}
-\\setmainfont{Times New Roman}
+${headerFooter}
 \\begin{document}
-${body}
+${coverContent}${tocContent}${body}
 \\label{LastPage}
 \\end{document}
   `.trim();

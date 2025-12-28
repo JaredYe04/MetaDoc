@@ -1264,7 +1264,9 @@
         "togglePreview": "预览显示",
         "compile": "编译 LaTeX",
         "showPdf": "显示 PDF",
-        "showConsole": "显示终端"
+        "showConsole": "显示终端",
+        "pointerMode": "指针模式（文本选择）",
+        "handMode": "手型模式（拖动）"
         },
         "notification":{
             "pleaseSaveFirst":"请先保存文件",

@@ -163,7 +163,7 @@
                                 <template #sidebar>
                                     <keep-alive>
                                         <div class="latex-column pdf-column" v-show="showPdfPanel">
-                                            <div class="pdf-toolbar" v-if="pdfUrl"
+                                            <div class="pdf-toolbar" v-if="isValidPdfUrl"
                                                 :style="{
                                                     backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor
                                                 }">
@@ -176,11 +176,11 @@
                                                     {{ $t('latexEditor.nextPage') }}
                                                 </el-button>
 
-                                                <span class="pdf-toolbar__page">
+                                                <span class="pdf-toolbar__page" :title="`${inputPdfPage} / ${totalPdfPages} ${$t('latexEditor.pages')}`">
                                                     <input type="number" v-model.number="inputPdfPage" @change="jumpToPage" :min="1"
                                                         :max="totalPdfPages"
                                                     />
-                                                    / {{ totalPdfPages }} {{ $t('latexEditor.pages') }}
+                                                    <span class="pdf-toolbar__page-label">/ {{ totalPdfPages }} {{ $t('latexEditor.pages') }}</span>
                                                 </span>
                                                 <el-tooltip :content="$t('latexEditor.toolbar.zoomIn')" placement="bottom">
                                                     <div class="pdf-toolbar-icon" @click="pdfZoomIn">
@@ -209,9 +209,35 @@
                                             <div class="pdf-preview-container"
                                                 :style="{ background: themeState.currentTheme.background }"
                                                 @contextmenu.prevent="openPdfContextMenu($event)">
-                                                <div ref="pdfContainer" id="pdfContainer" v-if="pdfUrl" class="pdf-container">
-                                                    <div class="canvas-wrapper" ref="canvasWrapper"></div>
-                                                </div>
+                                                <el-scrollbar
+                                                    ref="pdfScrollbarRef"
+                                                    v-if="isValidPdfUrl && totalPdfPages > 0"
+                                                    class="pdf-scrollbar">
+                                                    <div 
+                                                        ref="pdfPagesContainer"
+                                                        class="pdf-pages-container"
+                                                        :style="pdfContainerStyle"
+                                                        @wheel="handlePdfScroll">
+                                                        <div
+                                                            v-for="pageNum in totalPdfPages"
+                                                            :key="`pdf-page-${pageNum}-${pdfUrl}-${pdfRenderKey}`"
+                                                            :ref="el => setPageRef(el, pageNum)"
+                                                            class="pdf-page-wrapper"
+                                                            :data-page-number="pageNum">
+                                                            <VuePdf
+                                                                :key="`vue-pdf-${pageNum}-${zoomScale}`"
+                                                                :src="pdfUrl"
+                                                                :page="pageNum"
+                                                                :scale="zoomScale"
+                                                                :enable-text-selection="true"
+                                                                :enable-annotations="false"
+                                                                @total-pages="handleNumPages"
+                                                                @pdf-loaded="pageNum === 1 ? handlePdfLoaded($event) : undefined"
+                                                                class="vue-pdf-wrapper"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </el-scrollbar>
                                                 <h3 v-else class="pdf-empty-text">
                                                     {{ $t('latexEditor.pdfEmpty') }}
                                                 </h3>
@@ -253,7 +279,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed, watch, onUnmounted, shallowRef } from "vue";
-import { ElButton, ElDialog, ElLoading } from 'element-plus';
+import { ElButton, ElDialog, ElLoading, ElScrollbar } from 'element-plus';
 import { Icon } from 'tdesign-icons-vue-next';
 
 import "../assets/aero-div.css";
@@ -291,7 +317,7 @@ import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import { useWorkspace } from '../stores/workspace';
 
 import 'monaco-latex';
-import { ArrowLeft, ArrowRight, Document, Refresh, ZoomIn, ZoomOut } from "@element-plus/icons-vue";
+import { ArrowLeft, ArrowRight, Document, Refresh, ZoomIn, ZoomOut, Rank } from "@element-plus/icons-vue";
 import { debounce } from 'lodash';
 import localIpcRenderer from "../utils/web-adapter/local-ipc-renderer";
 import { webMainCalls } from "../utils/web-adapter/web-main-calls";
@@ -648,25 +674,24 @@ const toggleRowNumber = () => {
 
 const showPdfPanel = ref(true)
 const showConsole = ref(false)  // 默认隐藏终端
-const pdfUrl = ref('file:///')
-const pdfContainer = ref<HTMLElement | null>(null);
-const canvasWrapper = ref<HTMLElement | null>(null);
-let isDragging = false;
-let isDoubleClick = false; // 双击标志，需要在外部作用域以便事件处理函数访问
-let startX: number, startY: number, offsetX = 0, offsetY = 0;
+const pdfUrl = ref('')
 
-import * as pdfjsLib from "pdfjs-dist";
+// 检查 PDF URL 是否有效
+const isValidPdfUrl = computed(() => {
+    return pdfUrl.value && 
+           pdfUrl.value !== '' && 
+           pdfUrl.value !== 'file:///' && 
+           pdfUrl.value.trim() !== '';
+})
+const pdfScrollbarRef = ref<InstanceType<typeof ElScrollbar> | null>(null);
+const pdfPagesContainer = ref<HTMLElement | null>(null);
+// 存储每个页面的DOM引用，用于跳转定位
+const pageRefs = new Map<number, HTMLElement>();
+
+import { VuePdf, createLoadingTask } from 'vue3-pdfjs';
+import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api';
 import { wholeArticleContextPrompt } from "../utils/prompts.ts";
 let pdfInitialized = false;
-let pdfEventListenersAttached = false; // 标记事件监听器是否已绑定
-// 存储事件处理函数引用，以便可以移除
-let pdfEventHandlers: {
-    wheel?: (e: WheelEvent) => void;
-    dblclick?: (e: MouseEvent) => void;
-    mousedown?: (e: MouseEvent) => void;
-    mousemove?: (e: MouseEvent) => void;
-    mouseup?: () => void;
-} = {};
 
 let ipcRenderer: any = null
 if (window && (window as any).electron) {
@@ -677,7 +702,33 @@ if (window && (window as any).electron) {
     ipcRenderer = localIpcRenderer
     //todo 说明当前环境不是electron环境，需要另外适配
 }
-let currentScale = 1;
+// 计算最优缩放比例（使用整数倍或接近整数倍，避免模糊）
+function calculateOptimalScale(baseScale: number): number {
+    // 将缩放比例调整为接近整数倍，提高清晰度
+    // 使用0.1的倍数以确保缩放能产生明显变化
+    // 例如：1.0 + 0.1 = 1.1, 1.0 - 0.1 = 0.9
+    const rounded = Math.round(baseScale * 10) / 10; // 四舍五入到0.1的倍数
+    const result = Math.max(0.2, Math.min(5, rounded));
+    return result;
+}
+
+// PDF缩放比例（用于VuePdf组件的scale属性，动态调整以优化渲染质量）
+const zoomScale = ref(1.0); // 默认缩放比例
+
+// 容器样式（不需要CSS transform，因为VuePdf的scale已经处理了缩放）
+const pdfContainerStyle = computed(() => {
+    return {
+        // 不需要transform，VuePdf的scale已经处理了缩放
+        // 容器大小会自动匹配PDF的渲染尺寸
+    };
+});
+
+// 用于强制重新渲染的 key（文件重新加载时更新）
+const pdfRenderKey = ref(0);
+// Monaco编辑器高亮装饰ID
+let highlightDecorationIds: string[] = [];
+
+// watch 监听器将在 currentPdfPage 定义后添加
 
 // 将文件路径编码为 file:// URL
 // 注意：file:// URL 需要正确编码路径中的特殊字符（如 #、空格、中文字符等）
@@ -706,128 +757,35 @@ function encodeFilePathToUrl(filePath: string): string {
     return `file:///${encodedParts.join('/')}`;
 }
 
-// 移除 PDF 容器事件监听器
-function removePdfEventListeners() {
-    const container = pdfContainer.value;
-    if (!container || !pdfEventListenersAttached) {
-        return;
+// 设置页面DOM引用
+function setPageRef(el: any, pageNum: number) {
+    if (el && el instanceof HTMLElement) {
+        pageRefs.set(pageNum, el);
+    } else if (el === null) {
+        pageRefs.delete(pageNum);
     }
-    
-    logger.debug('移除PDF容器事件监听器');
-    
-    // 移除所有已绑定的事件监听器
-    if (pdfEventHandlers.wheel) {
-        container.removeEventListener("wheel", pdfEventHandlers.wheel);
-    }
-    if (pdfEventHandlers.dblclick) {
-        container.removeEventListener("dblclick", pdfEventHandlers.dblclick);
-    }
-    if (pdfEventHandlers.mousedown) {
-        container.removeEventListener("mousedown", pdfEventHandlers.mousedown);
-    }
-    if (pdfEventHandlers.mousemove) {
-        container.removeEventListener("mousemove", pdfEventHandlers.mousemove);
-    }
-    if (pdfEventHandlers.mouseup) {
-        container.removeEventListener("mouseup", pdfEventHandlers.mouseup);
-    }
-    
-    // 清空事件处理函数引用
-    pdfEventHandlers = {};
-    pdfEventListenersAttached = false;
-    
-    // 重置状态变量
-    isDragging = false;
-    isDoubleClick = false;
 }
 
-// 绑定 PDF 容器事件监听器
-function attachPdfEventListeners() {
-    const container = pdfContainer.value;
-    if (!container) {
-        logger.debug('PDF容器尚未准备好，延迟绑定事件');
-        return;
-    }
-    
-    // 如果已经绑定过，先移除旧的监听器（避免重复绑定）
-    if (pdfEventListenersAttached) {
-        removePdfEventListeners();
-    }
-    
-    logger.debug('绑定PDF容器事件监听器');
-    
-    // 创建事件处理函数并保存引用
-    pdfEventHandlers.wheel = async (e: WheelEvent) => {
-        if (e.ctrlKey || e.metaKey) {
-            // Ctrl/Cmd + 滚轮：缩放
-            e.preventDefault();
-            const delta = e.deltaY > 0 ? -0.1 : 0.1; // 上滚放大，下滚缩小
-            currentScale = Math.min(Math.max(currentScale + delta, 0.2), 5); // 限制缩放范围
-            await renderPage(currentPdfPage.value, currentScale);
-        } else {
-            // 普通滚轮：翻页
-            e.preventDefault();
-            if (e.deltaY > 0) {
-                // 下滚：下一页
-                goNextPage();
-            } else {
-                // 上滚：上一页
-                goPrevPage();
-            }
+// 处理PDF滚动事件（用于Ctrl+滚轮缩放）
+function handlePdfScroll(event?: WheelEvent) {
+    if (event && (event.ctrlKey || event.metaKey)) {
+        // Ctrl/Cmd + 滚轮：缩放
+        event.preventDefault();
+        event.stopPropagation();
+        const currentValue = zoomScale.value;
+        const delta = event.deltaY > 0 ? -0.1 : 0.1; // 上滚放大，下滚缩小
+        const newScale = Math.min(Math.max(currentValue + delta, 0.2), 5);
+        const optimalScale = calculateOptimalScale(newScale);
+        
+        // 只有当optimalScale与currentValue不同时才更新，避免无效更新
+        if (Math.abs(optimalScale - currentValue) > 0.05) {
+            zoomScale.value = optimalScale;
+            console.log('handlePdfScroll: zoomScale changed to', optimalScale);
         }
-    };
-    
-    pdfEventHandlers.dblclick = async (e: MouseEvent) => {
-        // 双击事件
-        e.preventDefault();
-        e.stopPropagation();
-        isDoubleClick = true;
-        // 取消拖拽
-        isDragging = false;
-        container.classList.remove("dragging");
-        await handlePdfTextClick(e);
-    };
-    
-    pdfEventHandlers.mousedown = (e: MouseEvent) => {
-        // 如果是双击，不启动拖拽
-        if (isDoubleClick) {
-            isDoubleClick = false;
-            return;
-        }
-        // 普通点击：拖拽
-        isDragging = true;
-        startX = e.clientX - offsetX;
-        startY = e.clientY - offsetY;
-        container.classList.add("dragging");
-    };
-
-    pdfEventHandlers.mousemove = (e: MouseEvent) => {
-        if (!isDragging || !canvasWrapper.value) return;
-        offsetX = e.clientX - startX;
-        offsetY = e.clientY - startY;
-        canvasWrapper.value.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-    };
-
-    pdfEventHandlers.mouseup = () => {
-        isDragging = false;
-        container.classList.remove("dragging");
-    };
-    
-    // 绑定事件监听器
-    container.addEventListener("wheel", pdfEventHandlers.wheel);
-    container.addEventListener("dblclick", pdfEventHandlers.dblclick);
-    container.addEventListener("mousedown", pdfEventHandlers.mousedown);
-    container.addEventListener("mousemove", pdfEventHandlers.mousemove);
-    container.addEventListener("mouseup", pdfEventHandlers.mouseup);
-    
-    pdfEventListenersAttached = true;
-    logger.debug('PDF事件监听器绑定完成');
+    }
 }
 
 async function initPdfJs() {
-    const resourcePath = await ipcRenderer.invoke('resources-path')
-    pdfjsLib.GlobalWorkerOptions.workerSrc = resourcePath + "/pdf.worker.min.mjs";
-    
     if(currentPath.value && currentPath.value.toLowerCase().endsWith(".tex")){
         const pdfPath = currentPath.value.toLowerCase().replace('.tex','.pdf');
         pdfUrl.value = encodeFilePathToUrl(pdfPath);
@@ -837,29 +795,325 @@ async function initPdfJs() {
     
     pdfInitialized = true;
     
-    // 等待容器准备好后再绑定事件和加载PDF
+    // 等待容器准备好后加载PDF
     await nextTick();
-    attachPdfEventListeners();
     if (pdfUrl.value) {
         loadPdf(pdfUrl.value);
     }
+    
+    // 绑定wheel事件到容器（用于Ctrl+滚轮缩放）
+    await nextTick();
+    if (pdfPagesContainer.value) {
+        pdfPagesContainer.value.addEventListener('wheel', handlePdfScroll as any, { passive: false });
+    }
+    
+    // 设置滚动监听器（用于自动检测当前页面）
+    await nextTick();
+    setupScrollListener();
 }
-const pdfZoomIn = async () => {
-    currentScale = Math.min(Math.max(currentScale + 0.1, 0.2), 5); // 限制缩放范围
-    await renderPage(currentPdfPage.value, currentScale);
+const pdfZoomIn = () => {
+    const currentValue = zoomScale.value;
+    const newScale = Math.min(Math.max(currentValue + 0.1, 0.2), 5);
+    const optimalScale = calculateOptimalScale(newScale);
+    zoomScale.value = optimalScale;
 }
-const pdfZoomOut = async () => {
-    currentScale = Math.min(Math.max(currentScale - 0.1, 0.2), 5); // 限制缩放范围
-    await renderPage(currentPdfPage.value, currentScale);
+const pdfZoomOut = () => {
+    const currentValue = zoomScale.value;
+    const newScale = Math.min(Math.max(currentValue - 0.1, 0.2), 5);
+    const optimalScale = calculateOptimalScale(newScale);
+    zoomScale.value = optimalScale;
 }
-const pdfZoomReset = async () => {
-    currentScale = 1
-    await renderPage(currentPdfPage.value, currentScale);
+const pdfZoomReset = () => {
+    zoomScale.value = calculateOptimalScale(1.0);
 }
 let pdfDoc: any = null;        // pdfjs document
 const currentPdfPage = ref(1);
 const totalPdfPages = ref(0);
 const inputPdfPage = ref(1);
+
+// 滚动到指定页面
+async function scrollToPage(pageNumber: number) {
+    await nextTick();
+    const pageElement = pageRefs.get(pageNumber);
+    if (pageElement && pdfScrollbarRef.value) {
+        const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null;
+        const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null;
+        if (scrollbarWrap && pageElement) {
+            const containerRect = scrollbarWrap.getBoundingClientRect();
+            const pageRect = pageElement.getBoundingClientRect();
+            const scrollTop = scrollbarWrap.scrollTop;
+            const targetScrollTop = scrollTop + pageRect.top - containerRect.top - 20; // 20px 顶部边距
+            scrollbarWrap.scrollTo({
+                top: Math.max(0, targetScrollTop),
+                behavior: 'smooth'
+            });
+        }
+    }
+}
+
+// 标志：是否正在自动更新页码（避免触发跳转）
+let isAutoUpdatingPage = false;
+
+// 监听页码变化，自动滚动到对应页面（仅在非自动更新时）
+watch(
+    () => currentPdfPage.value,
+    (newPage) => {
+        if (!isAutoUpdatingPage) {
+            scrollToPage(newPage);
+        }
+    }
+);
+
+// 检测当前视口显示的页面
+function detectCurrentPage() {
+    if (!pdfScrollbarRef.value || !pdfPagesContainer.value || totalPdfPages.value === 0) {
+        return;
+    }
+    
+    const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null;
+    const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null;
+    if (!scrollbarWrap) return;
+    
+    const containerRect = scrollbarWrap.getBoundingClientRect();
+    const viewportCenter = containerRect.top + containerRect.height / 2;
+    
+    // 查找视口中心对应的页面
+    let currentPage = 1;
+    let minDistance = Infinity;
+    
+    for (let pageNum = 1; pageNum <= totalPdfPages.value; pageNum++) {
+        const pageElement = pageRefs.get(pageNum);
+        if (!pageElement) continue;
+        
+        const pageRect = pageElement.getBoundingClientRect();
+        const pageCenter = pageRect.top + pageRect.height / 2;
+        const distance = Math.abs(viewportCenter - pageCenter);
+        
+        // 如果页面在视口内，优先选择
+        if (pageRect.top <= viewportCenter && pageRect.bottom >= viewportCenter) {
+            if (distance < minDistance) {
+                minDistance = distance;
+                currentPage = pageNum;
+            }
+        } else if (minDistance === Infinity) {
+            // 如果还没有找到在视口内的页面，记录最近的页面
+            if (distance < minDistance) {
+                minDistance = distance;
+                currentPage = pageNum;
+            }
+        }
+    }
+    
+    // 如果检测到的页面与当前页面不同，更新页码（不触发跳转）
+    if (currentPage !== currentPdfPage.value) {
+        isAutoUpdatingPage = true;
+        currentPdfPage.value = currentPage;
+        inputPdfPage.value = currentPage;
+        // 使用nextTick确保watch已经处理完
+        nextTick(() => {
+            isAutoUpdatingPage = false;
+        });
+    }
+}
+
+// 滚动事件处理（防抖）
+const handleScrollDebounced = debounce(() => {
+    detectCurrentPage();
+}, 100);
+
+// 监听滚动事件
+function setupScrollListener() {
+    if (!pdfScrollbarRef.value) return;
+    
+    const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null;
+    const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null;
+    if (scrollbarWrap) {
+        scrollbarWrap.addEventListener('scroll', handleScrollDebounced, { passive: true });
+    }
+}
+
+// 移除滚动监听器
+function removeScrollListener() {
+    if (!pdfScrollbarRef.value) return;
+    
+    const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null;
+    const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null;
+    if (scrollbarWrap) {
+        scrollbarWrap.removeEventListener('scroll', handleScrollDebounced);
+    }
+}
+
+// 始终启用文本选择监听
+onMounted(() => {
+    nextTick(() => {
+        setupTextSelectionListener();
+    });
+});
+
+// 文本选择监听器
+let textSelectionHandler: ((e: Event) => void) | null = null;
+
+function setupTextSelectionListener() {
+    if (textSelectionHandler) return;
+    
+    textSelectionHandler = () => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+        
+        const selectedText = selection.toString().trim();
+        if (!selectedText || selectedText.length < 2) return;
+        
+        // 使用选中的文本定位到Monaco编辑器
+        locateTextInMonaco(selectedText);
+    };
+    
+    // 监听文本选择变化
+    document.addEventListener('selectionchange', textSelectionHandler);
+}
+
+function removeTextSelectionListener() {
+    if (textSelectionHandler) {
+        document.removeEventListener('selectionchange', textSelectionHandler);
+        textSelectionHandler = null;
+    }
+}
+
+// 高亮代码行
+function highlightCodeLine(monacoEditor: monaco.editor.IStandaloneCodeEditor | monaco.editor.ICodeEditor, lineNumber: number) {
+    // 清除之前的高亮
+    if (highlightDecorationIds.length > 0) {
+        monacoEditor.deltaDecorations(highlightDecorationIds, []);
+        highlightDecorationIds = [];
+    }
+    
+    // 获取该行的内容，计算列范围
+    const model = monacoEditor.getModel();
+    if (!model) return;
+    
+    const lineContent = model.getLineContent(lineNumber);
+    const lineLength = lineContent.length;
+    
+    // 创建整行高亮装饰
+    const decoration: monaco.editor.IModelDeltaDecoration = {
+        range: new monaco.Range(lineNumber, 1, lineNumber, lineLength + 1),
+        options: {
+            isWholeLine: true,
+            className: 'pdf-locate-highlight-line',
+            minimap: {
+                color: 'rgba(64, 158, 255, 0.3)',
+                position: monaco.editor.MinimapPosition.Inline
+            },
+            overviewRuler: {
+                color: 'rgba(64, 158, 255, 0.8)',
+                position: monaco.editor.OverviewRulerLane.Full
+            },
+            hoverMessage: { value: '从PDF定位到此位置' }
+        }
+    };
+    
+    highlightDecorationIds = monacoEditor.deltaDecorations([], [decoration]);
+    
+    // 3秒后自动清除高亮
+    setTimeout(() => {
+        if (highlightDecorationIds.length > 0) {
+            monacoEditor.deltaDecorations(highlightDecorationIds, []);
+            highlightDecorationIds = [];
+        }
+    }, 3000);
+}
+
+// 高亮代码范围
+function highlightCodeRange(monacoEditor: monaco.editor.IStandaloneCodeEditor | monaco.editor.ICodeEditor, range: any) {
+    // 清除之前的高亮
+    if (highlightDecorationIds.length > 0) {
+        monacoEditor.deltaDecorations(highlightDecorationIds, []);
+        highlightDecorationIds = [];
+    }
+    
+    // 处理不同的range格式：可能是 {start: {line, column}, end: {line, column}} 或 monaco.IRange
+    let startLine: number, startColumn: number, endLine: number, endColumn: number;
+    
+    if (range.start && range.end) {
+        // TextRange 格式：{start: {line, column}, end: {line, column}}
+        startLine = range.start.line || range.start.lineNumber;
+        startColumn = range.start.column || range.start.column;
+        endLine = range.end.line || range.end.lineNumber;
+        endColumn = range.end.column || range.end.column;
+    } else {
+        // monaco.IRange 格式：{startLineNumber, startColumn, endLineNumber, endColumn}
+        startLine = range.startLineNumber;
+        startColumn = range.startColumn;
+        endLine = range.endLineNumber;
+        endColumn = range.endColumn;
+    }
+    
+    // 创建范围高亮装饰
+    const monacoRange = new monaco.Range(
+        startLine,
+        startColumn,
+        endLine,
+        endColumn
+    );
+    
+    const decoration: monaco.editor.IModelDeltaDecoration = {
+        range: monacoRange,
+        options: {
+            isWholeLine: false,
+            className: 'pdf-locate-highlight-range',
+            minimap: {
+                color: 'rgba(64, 158, 255, 0.3)',
+                position: monaco.editor.MinimapPosition.Inline
+            },
+            overviewRuler: {
+                color: 'rgba(64, 158, 255, 0.8)',
+                position: monaco.editor.OverviewRulerLane.Full
+            },
+            hoverMessage: { value: '从PDF定位到此位置' }
+        }
+    };
+    
+    highlightDecorationIds = monacoEditor.deltaDecorations([], [decoration]);
+    
+    // 同时选中文本
+    monacoEditor.setSelection(monacoRange);
+    
+    // 3秒后自动清除高亮
+    setTimeout(() => {
+        if (highlightDecorationIds.length > 0) {
+            monacoEditor.deltaDecorations(highlightDecorationIds, []);
+            highlightDecorationIds = [];
+        }
+    }, 3000);
+}
+
+// 使用选中的文本定位到Monaco编辑器
+function locateTextInMonaco(selectedText: string) {
+    if (!textEditorAdapter.value || !editorId.value) return;
+    
+    const editors = monaco.editor.getEditors();
+    const monacoEditor = editors.find(e => e.getId?.() === editorId.value) || editors[0];
+    if (!monacoEditor) return;
+    
+    try {
+        if (typeof textEditorAdapter.value.locateText === 'function') {
+            const range = (textEditorAdapter.value as any).locateText(selectedText, {
+                matchCase: false,
+                wholeWord: false,
+                useRegex: false,
+            });
+            
+                if (range) {
+                    const monacoPosition = new monaco.Position(range.start.line, range.start.column);
+                    monacoEditor.setPosition(monacoPosition);
+                    monacoEditor.revealLineInCenter(range.start.line);
+                    // 高亮找到的文本范围
+                    highlightCodeRange(monacoEditor, range);
+                }
+        }
+    } catch (error) {
+        logger.error('定位文本到Monaco失败', error);
+    }
+}
 
 // PDF文本到Monaco源码的映射系统
 // 结构：Map<pageNumber, Array<{pdfRange: {x, y, width, height}, monacoPosition: {line, column}}>>
@@ -938,26 +1192,8 @@ watch(
             return;
         }
         if (pdfUrl.value && pdfInitialized) {
-            // 确保事件监听器已绑定
             nextTick(() => {
-                attachPdfEventListeners();
-                if (pdfContainer.value) {
-                    loadPdf(pdfUrl.value);
-                }
-            });
-        }
-    },
-    { immediate: true },
-);
-
-// 监听 PDF 容器和 URL 的变化，确保事件监听器在容器准备好时绑定
-watch(
-    [() => pdfContainer.value, () => pdfUrl.value],
-    ([container, url]) => {
-        if (container && url && pdfInitialized && !pdfEventListenersAttached) {
-            // 容器已准备好，URL 存在，且事件监听器未绑定
-            nextTick(() => {
-                attachPdfEventListeners();
+                loadPdf(pdfUrl.value);
             });
         }
     },
@@ -976,7 +1212,7 @@ watch(
         const nextUrl = encodeFilePathToUrl(pdfPath);
         pdfUrl.value = nextUrl;
         if (!isActive.value) return;
-        if (pdfInitialized && pdfContainer.value) {
+        if (pdfInitialized) {
             loadPdf(nextUrl);
         }
     },
@@ -988,20 +1224,16 @@ watch(
         //logger.debug("LaTeXEditor showPdfPanel changed", { visible })
         nextTick(() => {
             if (visible) {
-                // 当PDF面板显示时，确保事件监听器已绑定
-                attachPdfEventListeners();
                 ensurePdfWithinBounds();
                 // 如果PDF URL存在且已初始化，重新加载PDF
                 if (pdfUrl.value && pdfInitialized && pdfDoc) {
-                    // PDF文档已存在，只需重新渲染当前页
-                    renderPage(currentPdfPage.value, currentScale);
+                    // PDF文档已存在，VuePdf 组件会自动响应 page 和 scale 变化
                 } else if (pdfUrl.value && pdfInitialized) {
                     // PDF文档不存在，需要重新加载
                     loadPdf(pdfUrl.value, true); // 保留当前页码
                 }
             } else {
-                // 当PDF面板隐藏时，移除事件监听器
-                removePdfEventListeners();
+                // 当PDF面板隐藏时，调整面板大小
                 if (pdfResizableRef.value?.setSidebarSize) {
                     pdfResizableRef.value.setSidebarSize(LATEX_LAYOUT.pdf.minWidth);
                 }
@@ -1014,7 +1246,7 @@ function goPrevPage() {
     if (currentPdfPage.value > 1) {
         currentPdfPage.value--;
         inputPdfPage.value = currentPdfPage.value;
-        renderPage(currentPdfPage.value, currentScale);
+        // watch会自动触发滚动
     }
 }
 
@@ -1022,99 +1254,21 @@ function goNextPage() {
     if (currentPdfPage.value < totalPdfPages.value) {
         currentPdfPage.value++;
         inputPdfPage.value = currentPdfPage.value;
-        renderPage(currentPdfPage.value, currentScale);
+        // watch会自动触发滚动
     }
 }
 
 function jumpToPage() {
     let page = Math.min(Math.max(inputPdfPage.value, 1), totalPdfPages.value);
     currentPdfPage.value = page;
-    renderPage(page, currentScale);
+    inputPdfPage.value = page;
+    // watch会自动触发滚动
 }
 
-// 渲染 PDF 页面
-async function renderPage(pageNumber: number, scale: number) {
-  if (!pdfDoc) return;
-  const page = await pdfDoc.getPage(pageNumber);
-
-  // 根据缩放计算 viewport
-  const viewport = page.getViewport({ scale });
-  currentScale = scale;
-
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d", {
-    alpha: false, // 禁用透明度以提高性能
-    desynchronized: true, // 允许异步渲染
-  });
-  if (!context) return;
-
-  // 高清渲染：使用更高的DPI倍数以提高清晰度
-  const ratio = (window.devicePixelRatio || 1) * 2; // 使用2倍DPI以提高清晰度
-  canvas.width = Math.floor(viewport.width * ratio);
-  canvas.height = Math.floor(viewport.height * ratio);
-
-  // 保持样式为逻辑像素，避免 CSS 再次缩放导致模糊
-  canvas.style.width = Math.floor(viewport.width) + "px";
-  canvas.style.height = Math.floor(viewport.height) + "px";
-
-  // 设置高质量图像渲染
-  context.imageSmoothingEnabled = true;
-  context.imageSmoothingQuality = 'high';
-
-  // 缩放 context，使得 1 CSS 像素 = ratio 个物理像素
-  context.setTransform(ratio, 0, 0, ratio, 0, 0);
-
-  // 创建白色背景canvas（用于避免闪屏）
-  if (!canvasWrapper.value) return;
-  let backgroundCanvas = canvasWrapper.value.querySelector('.pdf-background-canvas') as HTMLCanvasElement | null;
-  if (!backgroundCanvas) {
-    backgroundCanvas = document.createElement("canvas");
-    backgroundCanvas.className = 'pdf-background-canvas';
-    backgroundCanvas.style.position = 'absolute';
-    backgroundCanvas.style.top = '0';
-    backgroundCanvas.style.left = '0';
-    backgroundCanvas.style.zIndex = '0';
-    backgroundCanvas.style.backgroundColor = '#ffffff';
-    canvasWrapper.value.appendChild(backgroundCanvas);
-  }
-  
-  // 更新背景canvas尺寸和位置（与PDF canvas保持一致）
-  backgroundCanvas.width = Math.floor(viewport.width * ratio);
-  backgroundCanvas.height = Math.floor(viewport.height * ratio);
-  backgroundCanvas.style.width = Math.floor(viewport.width) + "px";
-  backgroundCanvas.style.height = Math.floor(viewport.height) + "px";
-  
-  // 填充白色背景
-  const bgContext = backgroundCanvas.getContext("2d");
-  if (bgContext) {
-  bgContext.fillStyle = '#ffffff';
-  bgContext.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
-  }
-  
-  // 清空旧 canvas（保留背景canvas）
-  const existingCanvas = canvasWrapper.value.querySelector('canvas:not(.pdf-background-canvas)');
-  if (existingCanvas) {
-    existingCanvas.remove();
-  }
-  
-  // 设置PDF canvas的z-index，确保在背景之上
-  canvas.style.position = 'absolute';
-  canvas.style.top = '0';
-  canvas.style.left = '0';
-  canvas.style.zIndex = '1';
-  canvas.style.backgroundColor = '#ffffff';
-  if (canvasWrapper.value) {
-  canvasWrapper.value.appendChild(canvas);
-  }
-
-  // 渲染 PDF，使用高质量渲染选项
-  const renderContext = {
-    canvasContext: context,
-    viewport: viewport,
-    // 启用文本层渲染以提高文本清晰度
-    enableWebGL: false, // 使用2D渲染以确保兼容性
-  };
-  await page.render(renderContext).promise;
+// 获取PDF页面对象（用于映射功能）
+async function getPdfPage(pageNumber: number) {
+    if (!pdfDoc) return null;
+    return await pdfDoc.getPage(pageNumber);
 }
 
 
@@ -1132,40 +1286,32 @@ async function handlePdfTextClick(event: MouseEvent) {
     
     try {
         const page = await pdfDoc.getPage(currentPdfPage.value);
-        const viewport = page.getViewport({ scale: currentScale });
+        const viewport = page.getViewport({ scale: 1 }); // 使用标准viewport（scale=1）用于坐标转换
         
-        // 获取点击位置相对于canvas的坐标
-        if (!canvasWrapper.value || !pdfContainer.value) {
-            logger.warn('PDF双击定位失败: 容器不存在');
+        // 获取当前页面的DOM元素
+        const currentPageElement = pageRefs.get(currentPdfPage.value);
+        if (!currentPageElement) {
+            logger.warn('PDF双击定位失败: 当前页面元素不存在');
             return;
         }
-        const canvas = canvasWrapper.value.querySelector('canvas:not(.pdf-background-canvas)') as HTMLCanvasElement | null;
+        
+        // VuePdf 组件会在容器内渲染 canvas，查找当前页面的 canvas 元素
+        const canvas = currentPageElement.querySelector('canvas') as HTMLCanvasElement | null;
         if (!canvas) {
             logger.warn('PDF双击定位失败: canvas不存在');
             return;
         }
         
-        const containerRect = pdfContainer.value.getBoundingClientRect();
+        const pageRect = currentPageElement.getBoundingClientRect();
+        const canvasRect = canvas.getBoundingClientRect();
         
         // 获取canvas的样式尺寸（逻辑像素）
-        const canvasStyleWidth = parseFloat(canvas.style.width) || viewport.width;
-        const canvasStyleHeight = parseFloat(canvas.style.height) || viewport.height;
+        const canvasStyleWidth = canvasRect.width || viewport.width;
+        const canvasStyleHeight = canvasRect.height || viewport.height;
         
-        // 获取canvas在容器中的位置（考虑偏移）
-        const canvasWrapperRect = canvasWrapper.value.getBoundingClientRect();
-        if (!canvasWrapperRect) return;
-        
-        // 计算点击位置相对于canvas wrapper的坐标
-        const wrapperX = event.clientX - canvasWrapperRect.left;
-        const wrapperY = event.clientY - canvasWrapperRect.top;
-        
-        // 考虑canvas的transform偏移（拖拽产生的偏移）
-        const canvasOffsetX = offsetX || 0;
-        const canvasOffsetY = offsetY || 0;
-        
-        // 计算在canvas逻辑坐标中的位置（考虑偏移）
-        const canvasX = wrapperX - canvasOffsetX;
-        const canvasY = wrapperY - canvasOffsetY;
+        // 计算点击位置相对于canvas的坐标
+        const canvasX = event.clientX - canvasRect.left;
+        const canvasY = event.clientY - canvasRect.top;
         
         // 转换为PDF相对坐标（相对于页面尺寸的比例，0-1之间）
         // 这样不受缩放影响
@@ -1212,6 +1358,9 @@ async function handlePdfTextClick(event: MouseEvent) {
                     const monacoPosition = new monaco.Position(position.line, position.column);
                     monacoEditor.setPosition(monacoPosition);
                     monacoEditor.revealLineInCenter(position.line);
+                    
+                    // 高亮整行代码
+                    highlightCodeLine(monacoEditor, position.line);
                     return;
                 } catch (error) {
                     logger.error('设置Monaco位置失败', error);
@@ -1220,54 +1369,58 @@ async function handlePdfTextClick(event: MouseEvent) {
             }
         }
         
-        // 如果映射系统不可用，回退到文本搜索方式
+        // 如果映射系统不可用，使用文本搜索方式
+        // 获取点击位置附近的文本项，查找上下文本
         const textContent = await page.getTextContent();
         const textItems = textContent.items;
-        
-        // 找到点击位置附近的文本
-        let closestItem = null;
-        let minDistance = Infinity;
         
         // 获取标准viewport（scale=1）用于坐标转换
         const standardViewport = page.getViewport({ scale: 1 });
         
+        // 转换为PDF坐标（左下角为原点）
+        const pdfX = relativeX * standardViewport.width;
+        const pdfY = relativeY * standardViewport.height;
+        
+        // 查找点击位置附近的文本项，按Y坐标排序
+        const nearbyItems = [];
         for (const item of textItems) {
             if (!item.transform || !item.str || !item.str.trim()) continue;
             
-            // 获取文本项的绝对坐标
             const itemX = item.transform[4];
             const itemY = item.transform[5];
             const itemHeight = item.height || 12;
             const itemWidth = item.width || 0;
             
-            // 转换为相对坐标（相对于标准页面尺寸）
-            const itemRelativeX = itemX / standardViewport.width;
-            const itemRelativeY = itemY / standardViewport.height;
-            const itemRelativeWidth = itemWidth / standardViewport.width;
-            const itemRelativeHeight = itemHeight / standardViewport.height;
+            // 计算到点击位置的距离（考虑Y坐标的优先级）
+            const deltaX = Math.abs(itemX + itemWidth / 2 - pdfX);
+            const deltaY = Math.abs(itemY + itemHeight / 2 - pdfY);
             
-            // 使用相对坐标进行比较（容差也是相对的）
-            const tolerance = 0.01; // 1%的容差
-            const inXRange = relativeX >= itemRelativeX - tolerance && relativeX <= itemRelativeX + itemRelativeWidth + tolerance;
-            const inYRange = relativeY >= itemRelativeY - tolerance && relativeY <= itemRelativeY + itemRelativeHeight + tolerance;
-            
-            if (inXRange && inYRange) {
-                const centerX = itemRelativeX + itemRelativeWidth / 2;
-                const centerY = itemRelativeY + itemRelativeHeight / 2;
-                const distance = Math.sqrt(
-                    Math.pow(relativeX - centerX, 2) + Math.pow(relativeY - centerY, 2)
-                );
-                
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestItem = item;
-                }
+            // 如果文本项在点击位置的合理范围内
+            if (deltaX < standardViewport.width * 0.3 && deltaY < standardViewport.height * 0.1) {
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                nearbyItems.push({
+                    item,
+                    distance,
+                    y: itemY,
+                    text: item.str.trim()
+                });
             }
         }
         
-        if (closestItem && closestItem.str && textEditorAdapter.value && typeof textEditorAdapter.value.locateText === 'function') {
-            // 使用textEditorAdapter的locateText方法
-            const searchText = closestItem.str.trim();
+        // 按距离和Y坐标排序，优先选择距离近且Y坐标接近的
+        nearbyItems.sort((a, b) => {
+            if (Math.abs(a.y - pdfY) < Math.abs(b.y - pdfY)) return -1;
+            if (Math.abs(a.y - pdfY) > Math.abs(b.y - pdfY)) return 1;
+            return a.distance - b.distance;
+        });
+        
+        // 尝试定位文本：优先使用最近的文本，如果失败则尝试上下文本
+        let found = false;
+        for (let i = 0; i < Math.min(nearbyItems.length, 5); i++) {
+            const nearbyItem = nearbyItems[i];
+            const searchText = nearbyItem.text;
+            
+            if (!textEditorAdapter.value || typeof textEditorAdapter.value.locateText !== 'function') continue;
             
             try {
                 const range = (textEditorAdapter.value as any).locateText(searchText, {
@@ -1280,14 +1433,18 @@ async function handlePdfTextClick(event: MouseEvent) {
                     const monacoPosition = new monaco.Position(range.start.line, range.start.column);
                     monacoEditor.setPosition(monacoPosition);
                     monacoEditor.revealLineInCenter(range.start.line);
-                } else {
-                    eventBus.emit("show-info", t("latexEditor.notification.textNotFound", { text: searchText.substring(0, 20) }));
+                    // 高亮找到的文本范围
+                    highlightCodeRange(monacoEditor, range);
+                    found = true;
+                    break;
                 }
             } catch (error) {
                 logger.error('locateText调用失败', error);
-                throw error;
+                continue;
             }
-        } else {
+        }
+        
+        if (!found) {
             eventBus.emit("show-info", t("latexEditor.notification.clickToLocate"));
         }
     } catch (error) {
@@ -1448,6 +1605,21 @@ async function buildPdfToSourceMapping() {
     }
 }
 
+// 处理 PDF 总页数事件
+function handleNumPages(numPages: number) {
+    totalPdfPages.value = numPages;
+    logger.debug('PDF 总页数:', numPages);
+}
+
+// 处理 PDF 加载完成事件
+function handlePdfLoaded(pdf: any) {
+    logger.debug('PDF 加载完成:', pdf);
+    // 可以在这里处理 PDF 加载后的逻辑
+    if (pdf && pdf.numPages) {
+        totalPdfPages.value = pdf.numPages;
+    }
+}
+
 // 在加载 PDF 后初始化
 async function loadPdf(url: string, preservePage = false) {
     if (!url || url.trim() === '') {
@@ -1455,24 +1627,33 @@ async function loadPdf(url: string, preservePage = false) {
         return;
     }
     
-    // 确保事件监听器已绑定
-    await nextTick();
-    attachPdfEventListeners();
-    
     // 保存当前页码（如果要求保留）
     const savedPage = preservePage ? currentPdfPage.value : 1;
     
     try {
-        const loadingTask = pdfjsLib.getDocument(url);
+        // 使用 createLoadingTask 获取 PDF 文档对象（用于映射功能）
+        const loadingTask = createLoadingTask(url);
         pdfDoc = await loadingTask.promise;
-        //logger.log(pdfDoc.value)
         totalPdfPages.value = pdfDoc.numPages;
         
         // 恢复或设置页码
         const targetPage = preservePage ? Math.min(Math.max(savedPage, 1), pdfDoc.numPages) : 1;
         currentPdfPage.value = targetPage;
         inputPdfPage.value = targetPage;
-        renderPage(targetPage, currentScale);
+        
+        // 更新渲染key，强制重新渲染所有页面组件
+        pdfRenderKey.value++;
+        
+        // 清空页面引用
+        pageRefs.clear();
+        
+        // 等待DOM更新后滚动到目标页面
+        await nextTick();
+        scrollToPage(targetPage);
+        
+        // 设置滚动监听器（用于自动检测当前页面）
+        await nextTick();
+        setupScrollListener();
         
         // 异步建立映射关系
         buildPdfToSourceMapping();
@@ -1487,11 +1668,6 @@ async function loadPdf(url: string, preservePage = false) {
         
         // 如果是文件不存在或无法访问的错误，显示友好的提示
         if (error?.name === 'ResponseException' || error?.status === 0) {
-            // eventBus.emit('show-warning', 
-            //     t('latexEditor.notification.pdfLoadFailed', { 
-            //         reason: t('latexEditor.notification.pdfFileNotFoundOrInaccessible')
-            //     })
-            // );
             logger.warn(t('latexEditor.notification.pdfFileNotFoundOrInaccessible'))
         } else {
             eventBus.emit('show-error', 
@@ -1562,11 +1738,15 @@ const openContextMenu = (event: MouseEvent) => {
     contextMenuVisible.value = true;
 };
 
+// 存储右键菜单时的鼠标位置
+let contextMenuMouseEvent: MouseEvent | null = null;
+
 // 打开PDF右键菜单
 const openPdfContextMenu = (event: MouseEvent) => {
     event.preventDefault();
     pdfMenuX.value = event.clientX;
     pdfMenuY.value = event.clientY;
+    contextMenuMouseEvent = event; // 保存鼠标事件，用于定位
     pdfContextMenuVisible.value = true;
 };
 
@@ -1602,8 +1782,8 @@ const handlePdfMenuClick = async (item: string) => {
     pdfContextMenuVisible.value = false;
 };
 
-// 从PDF定位到代码（双击的另一种方式）
-async function locateToCodeFromPdf() {
+// 从PDF定位到代码（右键菜单或双击）
+async function locateToCodeFromPdf(event?: MouseEvent) {
     if (!editorId) return;
     // 从Monaco全局获取编辑器实例
     const editors = monaco.editor.getEditors();
@@ -1611,37 +1791,64 @@ async function locateToCodeFromPdf() {
     const currentEditorId = typeof editorId === 'object' && editorId !== null && 'value' in editorId ? editorId.value : editorId;
     const monacoEditor = editors.find(e => e.getId?.() === currentEditorId) || editors[0];
 
-    // 获取PDF中心位置或当前视图中心位置
+    if (!pdfDoc || !monacoEditor) {
+        eventBus.emit("show-info", t("latexEditor.notification.editorNotAvailable"));
+        return;
+    }
+    
+    // 使用传入的事件或保存的右键菜单事件
+    const targetEvent = event || contextMenuMouseEvent;
+    if (!targetEvent) {
+        // 如果没有事件，使用中心位置
+        return await locateToCodeFromPdfCenter();
+    }
+    
+    // 使用右键位置进行定位
+    await handlePdfTextClick(targetEvent);
+}
+
+// 从PDF中心位置定位到代码（备用方法）
+async function locateToCodeFromPdfCenter() {
+    if (!editorId) return;
+    const editors = monaco.editor.getEditors();
+    const currentEditorId = typeof editorId === 'object' && editorId !== null && 'value' in editorId ? editorId.value : editorId;
+    const monacoEditor = editors.find(e => e.getId?.() === currentEditorId) || editors[0];
+
     if (!pdfDoc || !monacoEditor) {
         eventBus.emit("show-info", t("latexEditor.notification.editorNotAvailable"));
         return;
     }
     
     try {
+        // 获取当前页面的DOM元素
+        const currentPageElement = pageRefs.get(currentPdfPage.value);
+        if (!currentPageElement) {
+            eventBus.emit("show-info", t("latexEditor.notification.noCodeMapping"));
+            return;
+        }
+        
         const page = await pdfDoc.getPage(currentPdfPage.value);
-        const viewport = page.getViewport({ scale: currentScale });
+        const viewport = page.getViewport({ scale: 1 }); // 使用标准viewport（scale=1）用于坐标转换
         
-        // 获取PDF容器中心位置
-        if (!pdfContainer.value || !canvasWrapper.value) return;
-        const containerRect = pdfContainer.value.getBoundingClientRect();
+        // 获取当前页面的canvas元素
+        const canvas = currentPageElement.querySelector('canvas') as HTMLCanvasElement | null;
+        if (!canvas) {
+            eventBus.emit("show-info", t("latexEditor.notification.noCodeMapping"));
+            return;
+        }
         
-        const centerX = containerRect.width / 2;
-        const centerY = containerRect.height / 2;
+        const pageRect = currentPageElement.getBoundingClientRect();
+        const canvasRect = canvas.getBoundingClientRect();
         
-        // 转换为PDF相对坐标
-        const canvas = canvasWrapper.value.querySelector('canvas') as HTMLCanvasElement | null;
-        if (!canvas) return;
+        // 使用页面中心位置
+        const centerX = pageRect.width / 2;
+        const centerY = pageRect.height / 2;
         
-        const canvasStyleWidth = parseFloat(canvas.style.width) || viewport.width;
-        const canvasStyleHeight = parseFloat(canvas.style.height) || viewport.height;
+        const canvasStyleWidth = canvasRect.width || viewport.width;
+        const canvasStyleHeight = canvasRect.height || viewport.height;
         
-        const canvasWrapperRect = canvasWrapper.value.getBoundingClientRect();
-        if (!canvasWrapperRect) return;
-        
-        const wrapperX = centerX;
-        const wrapperY = centerY;
-        const canvasX = wrapperX - (offsetX || 0);
-        const canvasY = wrapperY - (offsetY || 0);
+        const canvasX = centerX;
+        const canvasY = centerY;
         
         const relativeX = canvasX / canvasStyleWidth;
         const relativeY = 1 - (canvasY / canvasStyleHeight);
@@ -1649,26 +1856,21 @@ async function locateToCodeFromPdf() {
         // 查找映射
         const pageMappings = pdfToSourceMap.get(currentPdfPage.value);
         if (pageMappings && pageMappings.length > 0) {
+            // 使用页面中心的映射（选择最接近中心的映射）
             let closestMapping = null;
             let minDistance = Infinity;
             
             for (const mapping of pageMappings) {
                 const range = mapping.pdfRange;
-                const tolerance = 0.05;
-                const inXRange = relativeX >= range.x - tolerance && relativeX <= range.x + range.width + tolerance;
-                const inYRange = relativeY >= range.y - tolerance && relativeY <= range.y + range.height + tolerance;
+                const rangeCenterX = range.x + range.width / 2;
+                const rangeCenterY = range.y + range.height / 2;
+                const distance = Math.sqrt(
+                    Math.pow(relativeX - rangeCenterX, 2) + Math.pow(relativeY - rangeCenterY, 2)
+                );
                 
-                if (inXRange && inYRange) {
-                    const centerX = range.x + range.width / 2;
-                    const centerY = range.y + range.height / 2;
-                    const distance = Math.sqrt(
-                        Math.pow(relativeX - centerX, 2) + Math.pow(relativeY - centerY, 2)
-                    );
-                    
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        closestMapping = mapping;
-                    }
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestMapping = mapping;
                 }
             }
             
@@ -1677,6 +1879,8 @@ async function locateToCodeFromPdf() {
                 const monacoPosition = new monaco.Position(position.line, position.column);
                 monacoEditor.setPosition(monacoPosition);
                 monacoEditor.revealLineInCenter(position.line);
+                // 高亮整行代码
+                highlightCodeLine(monacoEditor, position.line);
             } else {
                 eventBus.emit("show-info", t("latexEditor.notification.noCodeMapping"));
             }
@@ -1877,42 +2081,9 @@ async function locateToPdf() {
         }
         
         if (pdfLocation) {
-            // 跳转到对应页面
+            // 跳转到对应页面（watch会自动触发滚动）
             currentPdfPage.value = pdfLocation.pageNumber;
             inputPdfPage.value = pdfLocation.pageNumber;
-            await renderPage(pdfLocation.pageNumber, currentScale);
-            
-            // 滚动到对应位置（需要将相对坐标转换为实际坐标）
-            const page = await pdfDoc.getPage(pdfLocation.pageNumber);
-            const viewport = page.getViewport({ scale: currentScale });
-            
-            // 计算目标位置（相对坐标转换为实际坐标）
-            const targetX = pdfLocation.pdfRange.x * viewport.width;
-            const targetY = pdfLocation.pdfRange.y * viewport.height;
-            
-            // 调整canvas偏移，使目标位置居中或可见
-            if (!canvasWrapper.value || !pdfContainer.value) return;
-            const canvas = canvasWrapper.value.querySelector('canvas') as HTMLCanvasElement | null;
-            if (canvas) {
-                const canvasStyleWidth = parseFloat(canvas.style.width) || viewport.width;
-                const canvasStyleHeight = parseFloat(canvas.style.height) || viewport.height;
-                
-                // 计算需要偏移的距离（使目标位置在视口中心）
-                const containerRect = pdfContainer.value.getBoundingClientRect();
-                    const centerX = containerRect.width / 2;
-                    const centerY = containerRect.height / 2;
-                    
-                    // 计算目标位置在canvas中的坐标
-                    const targetCanvasX = (targetX / viewport.width) * canvasStyleWidth;
-                    const targetCanvasY = (targetY / viewport.height) * canvasStyleHeight;
-                    
-                    // 计算偏移量
-                    offsetX = centerX - targetCanvasX;
-                    offsetY = centerY - targetCanvasY;
-                    
-                    // 应用偏移
-                    canvasWrapper.value.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
-            }
             
         } else {
             eventBus.emit("show-info", t("latexEditor.notification.noPdfMapping"));
@@ -2220,8 +2391,16 @@ onUnmounted(() => {
         mainObserver = null;
     }
     
-    // 移除PDF事件监听器
-    removePdfEventListeners();
+    // 移除文本选择监听器
+    removeTextSelectionListener();
+    
+    // 移除wheel事件监听器
+    if (pdfPagesContainer.value) {
+        pdfPagesContainer.value.removeEventListener('wheel', handlePdfScroll as any);
+    }
+    
+    // 移除滚动监听器
+    removeScrollListener();
     
     // 移除编辑器适配器
     aiCompletionService.removeAdapter();
@@ -2410,20 +2589,33 @@ function onCancelSuggestion() {
     z-index: 1;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
+    gap: 6px;
+    padding: 6px 8px;
     border-bottom: 1px solid var(--el-border-color-lighter);
+    overflow: hidden; /* 防止内容溢出 */
+    flex-wrap: nowrap; /* 禁止换行 */
 }
 
 .pdf-toolbar__page {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
+    white-space: nowrap; /* 防止换行 */
+    flex-shrink: 0; /* 防止收缩 */
+    min-width: 0; /* 允许内容溢出时使用省略号 */
 }
 
 .pdf-toolbar__page input {
-    width: 60px;
+    width: 50px;
     text-align: center;
+    flex-shrink: 0;
+}
+
+.pdf-toolbar__page-label {
+    white-space: nowrap; /* 防止标签换行 */
+    flex-shrink: 1; /* 允许在空间不足时收缩 */
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .pdf-toolbar-icon {
@@ -2442,6 +2634,15 @@ function onCancelSuggestion() {
     background-color: rgba(0, 0, 0, 0.05);
 }
 
+.pdf-toolbar-icon.active {
+    background-color: rgba(0, 0, 0, 0.15);
+    color: var(--el-color-primary);
+}
+
+.pdf-toolbar-icon.active .el-icon {
+    color: var(--el-color-primary);
+}
+
 .pdf-preview-container {
     position: relative;
     flex: 1;
@@ -2451,23 +2652,90 @@ function onCancelSuggestion() {
     border-left: 1px solid var(--el-border-color-lighter);
 }
 
-.pdf-container {
-    width: 100%;
+.pdf-scrollbar {
+    flex: 1;
     height: 100%;
-    overflow: hidden;
-    position: relative;
-    cursor: grab;
+    width: 100%;
+    min-height: 0;
 }
 
-.pdf-container.dragging {
-    cursor: grabbing;
+.pdf-scrollbar :deep(.el-scrollbar__wrap) {
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
-.canvas-wrapper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    transform-origin: 0 0;
+.pdf-pages-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    gap: 20px;
+    min-height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    /* 优化渲染质量 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+
+.pdf-page-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    /* 容器大小自动匹配内容，不设置固定宽度 */
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.vue-pdf-wrapper {
+    /* VuePdf组件会自动根据scale调整大小，容器跟随内容 */
+    display: inline-block;
+}
+
+/* 确保PDF页面本身有白色背景，避免暗色模式下的闪烁 */
+.pdf-page-wrapper .vue-pdf-main {
+    background-color: #ffffff;
+}
+
+.pdf-page-wrapper .vue-pdf {
+    background-color: #ffffff;
+}
+
+.pdf-page-wrapper .vue-pdf__wrapper {
+    background-color: #ffffff;
+}
+
+/* PDF页面canvas应该有白色背景，并优化渲染质量 */
+.pdf-page-wrapper canvas {
+    background-color: #ffffff;
+    /* 优化缩放时的渲染质量 */
+    image-rendering: auto; /* 使用默认渲染，避免crisp-edges导致的锯齿 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* 启用硬件加速 */
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* 优化文本层渲染 */
+.pdf-page-wrapper .textLayer {
+    opacity: 1;
+}
+
+/* PDF定位高亮样式 */
+:global(.pdf-locate-highlight-line) {
+    background-color: rgba(64, 158, 255, 0.15) !important;
+    border-left: 3px solid rgba(64, 158, 255, 0.8) !important;
+}
+
+:global(.pdf-locate-highlight-range) {
+    background-color: rgba(64, 158, 255, 0.25) !important;
+    border: 1px solid rgba(64, 158, 255, 0.6) !important;
+    border-radius: 2px;
 }
 
 .pdf-empty-text {

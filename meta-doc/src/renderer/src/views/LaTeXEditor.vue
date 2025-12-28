@@ -2081,9 +2081,23 @@ async function locateToPdf() {
         }
         
         if (pdfLocation) {
-            // 跳转到对应页面（watch会自动触发滚动）
+            // 设置标志，避免自动更新页码时触发跳转
+            isAutoUpdatingPage = true;
+            
+            // 更新页码
             currentPdfPage.value = pdfLocation.pageNumber;
             inputPdfPage.value = pdfLocation.pageNumber;
+            
+            // 等待DOM更新后，滚动到页面内的具体位置
+            await nextTick();
+            
+            // 滚动到页面内的具体位置
+            await scrollToPdfLocation(pdfLocation);
+            
+            // 重置标志
+            nextTick(() => {
+                isAutoUpdatingPage = false;
+            });
             
         } else {
             eventBus.emit("show-info", t("latexEditor.notification.noPdfMapping"));
@@ -2091,6 +2105,258 @@ async function locateToPdf() {
     } catch (error) {
         logger.error('定位到PDF位置失败', error);
         eventBus.emit("show-error", t("latexEditor.notification.locateToPdfFailed"));
+    }
+}
+
+// 滚动到PDF页面内的具体位置
+async function scrollToPdfLocation(pdfLocation: { pageNumber: number; pdfRange: { x: number; y: number; width: number; height: number } }) {
+    if (!pdfScrollbarRef.value || !pdfDoc) return;
+    
+    try {
+        // 等待页面元素准备好
+        await nextTick();
+        const pageElement = pageRefs.get(pdfLocation.pageNumber);
+        if (!pageElement) {
+            // 如果页面元素还没有准备好，先滚动到页面顶部
+            await scrollToPage(pdfLocation.pageNumber);
+            // 等待一下再重试
+            await new Promise(resolve => setTimeout(resolve, 300));
+            const retryPageElement = pageRefs.get(pdfLocation.pageNumber);
+            if (!retryPageElement) {
+                logger.warn('页面元素仍未准备好，无法精确定位');
+                return;
+            }
+        }
+        
+        const finalPageElement = pageRefs.get(pdfLocation.pageNumber);
+        if (!finalPageElement) return;
+        
+        const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null;
+        const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null;
+        if (!scrollbarWrap) return;
+        
+        // 获取页面元素的位置（相对于视口）
+        const pageRect = finalPageElement.getBoundingClientRect();
+        const containerRect = scrollbarWrap.getBoundingClientRect();
+        
+        // pdfRange是相对坐标（0-1之间），y坐标是从下往上的（PDF坐标系）
+        // 需要转换为从上往下的坐标（DOM坐标系）
+        const pdfRelativeY = pdfLocation.pdfRange.y; // PDF坐标系：0=底部，1=顶部
+        const domRelativeY = 1 - pdfRelativeY; // DOM坐标系：0=顶部，1=底部
+        
+        // 获取页面的实际渲染高度
+        const pageHeight = pageRect.height;
+        
+        // 计算目标位置在页面元素内的像素位置（从顶部开始）
+        const targetPageY = domRelativeY * pageHeight;
+        
+        // 计算页面在滚动容器中的位置
+        const scrollTop = scrollbarWrap.scrollTop;
+        // 页面顶部相对于滚动容器内容的位置
+        const pageTopInScrollContent = pageRect.top - containerRect.top + scrollTop;
+        
+        // 计算目标位置在滚动容器中的位置
+        const targetInScrollContent = pageTopInScrollContent + targetPageY;
+        
+        // 计算需要滚动的距离，使目标位置显示在视口的上1/3处（更易见）
+        const viewportHeight = containerRect.height;
+        const targetScrollTop = targetInScrollContent - viewportHeight / 3;
+        
+        // 执行滚动
+        scrollbarWrap.scrollTo({
+            top: Math.max(0, targetScrollTop),
+            behavior: 'smooth'
+        });
+        
+        // 等待滚动完成后再选中文字
+        await new Promise(resolve => setTimeout(resolve, 400));
+        
+        // 选中对应的文字
+        await selectPdfText(finalPageElement, pdfLocation.pdfRange);
+        
+        logger.debug('定位到PDF位置', {
+            pageNumber: pdfLocation.pageNumber,
+            pdfRange: pdfLocation.pdfRange,
+            targetPageY,
+            targetScrollTop
+        });
+        
+    } catch (error) {
+        logger.error('滚动到PDF位置失败', error);
+        // 如果精确定位失败，至少滚动到页面顶部
+        await scrollToPage(pdfLocation.pageNumber);
+    }
+}
+
+// 选中PDF中的文字
+async function selectPdfText(
+    pageElement: HTMLElement,
+    pdfRange: { x: number; y: number; width: number; height: number }
+) {
+    try {
+        // 查找textLayer容器（尝试多种选择器）
+        let textLayer = pageElement.querySelector('.textLayer.vue-pdf__wrapper-text-layer') as HTMLElement | null;
+        if (!textLayer) {
+            textLayer = pageElement.querySelector('.textLayer') as HTMLElement | null;
+        }
+        if (!textLayer) {
+            textLayer = pageElement.querySelector('.vue-pdf__wrapper-text-layer') as HTMLElement | null;
+        }
+        
+        if (!textLayer) {
+            logger.warn('找不到textLayer容器，无法选中文字');
+            return;
+        }
+        
+        // 获取textLayer的实际尺寸
+        const textLayerRect = textLayer.getBoundingClientRect();
+        const textLayerWidth = textLayerRect.width;
+        const textLayerHeight = textLayerRect.height;
+        
+        if (textLayerWidth === 0 || textLayerHeight === 0) {
+            logger.warn('textLayer尺寸为0，无法选中文字');
+            return;
+        }
+        
+        // pdfRange是相对坐标（0-1之间），y坐标是从下往上的（PDF坐标系）
+        const pdfRelativeY = pdfRange.y;
+        const domRelativeY = 1 - pdfRelativeY; // 转换为DOM坐标系（从上往下）
+        
+        // 计算目标区域在textLayer中的像素坐标
+        const targetX = pdfRange.x * textLayerWidth;
+        const targetY = domRelativeY * textLayerHeight;
+        const targetWidth = pdfRange.width * textLayerWidth;
+        const targetHeight = pdfRange.height * textLayerHeight;
+        
+        // 获取所有span元素
+        const spans = textLayer.querySelectorAll('span') as NodeListOf<HTMLElement>;
+        if (spans.length === 0) {
+            logger.warn('textLayer中没有找到span元素');
+            return;
+        }
+        
+        // 找到与目标区域重叠的span元素
+        const targetSpans: HTMLElement[] = [];
+        const tolerance = 5; // 容差（像素），稍微增大以提高匹配率
+        
+        for (const span of spans) {
+            const spanRect = span.getBoundingClientRect();
+            // 计算span相对于textLayer的位置
+            const spanX = spanRect.left - textLayerRect.left;
+            const spanY = spanRect.top - textLayerRect.top;
+            const spanRight = spanX + spanRect.width;
+            const spanBottom = spanY + spanRect.height;
+            
+            // 检查span是否与目标区域重叠（使用更宽松的条件）
+            const overlaps = !(
+                spanRight < targetX - tolerance ||
+                spanX > targetX + targetWidth + tolerance ||
+                spanBottom < targetY - tolerance ||
+                spanY > targetY + targetHeight + tolerance
+            );
+            
+            if (overlaps) {
+                targetSpans.push(span);
+            }
+        }
+        
+        if (targetSpans.length === 0) {
+            logger.warn('没有找到匹配的span元素', {
+                targetX, targetY, targetWidth, targetHeight,
+                textLayerWidth, textLayerHeight,
+                spansCount: spans.length
+            });
+            return;
+        }
+        
+        // 按位置排序span（从上到下，从左到右）
+        targetSpans.sort((a, b) => {
+            const rectA = a.getBoundingClientRect();
+            const rectB = b.getBoundingClientRect();
+            const topDiff = rectA.top - rectB.top;
+            if (Math.abs(topDiff) > 5) {
+                return topDiff; // 按Y坐标排序
+            }
+            return rectA.left - rectB.left; // Y坐标相近时按X坐标排序
+        });
+        
+        // 使用Selection API选中文字
+        const selection = window.getSelection();
+        if (!selection) return;
+        
+        // 清除当前选择
+        selection.removeAllRanges();
+        
+        // 创建新的Range
+        const range = document.createRange();
+        
+        // 设置起始位置为第一个span的开始
+        const firstSpan = targetSpans[0];
+        // 尝试找到文本节点
+        let startNode: Node | null = null;
+        let startOffset = 0;
+        
+        if (firstSpan.firstChild) {
+            startNode = firstSpan.firstChild;
+            if (startNode.nodeType === Node.TEXT_NODE) {
+                startOffset = 0;
+            }
+        } else {
+            startNode = firstSpan;
+        }
+        
+        if (startNode) {
+            range.setStart(startNode, startOffset);
+        } else {
+            range.setStartBefore(firstSpan);
+        }
+        
+        // 设置结束位置为最后一个span的结束
+        const lastSpan = targetSpans[targetSpans.length - 1];
+        let endNode: Node | null = null;
+        let endOffset = 0;
+        
+        if (lastSpan.lastChild) {
+            endNode = lastSpan.lastChild;
+            if (endNode.nodeType === Node.TEXT_NODE) {
+                endOffset = endNode.textContent?.length || 0;
+            } else {
+                endNode = lastSpan;
+            }
+        } else {
+            endNode = lastSpan;
+        }
+        
+        if (endNode) {
+            if (endNode.nodeType === Node.TEXT_NODE) {
+                range.setEnd(endNode, endOffset);
+            } else {
+                range.setEndAfter(endNode);
+            }
+        } else {
+            range.setEndAfter(lastSpan);
+        }
+        
+        // 应用选择
+        selection.addRange(range);
+        
+        const selectedText = selection.toString();
+        logger.debug('已选中PDF文字', {
+            spansCount: targetSpans.length,
+            selectedText: selectedText.substring(0, 100) + (selectedText.length > 100 ? '...' : ''),
+            textLength: selectedText.length
+        });
+        
+        // 3秒后自动清除选择（可选）
+        setTimeout(() => {
+            const currentSelection = window.getSelection();
+            if (currentSelection && currentSelection.toString() === selectedText) {
+                currentSelection.removeAllRanges();
+            }
+        }, 3000);
+        
+    } catch (error) {
+        logger.error('选中PDF文字失败', error);
     }
 }
 

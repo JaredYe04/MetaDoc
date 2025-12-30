@@ -4,7 +4,7 @@
  */
 
 import eventBus from '../event-bus.js'
-import { createRendererLogger } from '../logger.js';
+import { createRendererLogger } from '../logger';
 
 /**
  * Tool执行更新事件名称前缀

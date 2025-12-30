@@ -164,7 +164,7 @@ import type { ToolDisplayComponentProps, ToolExecutionStatus } from '../../../ty
 import eventBus from '../../../utils/event-bus.js'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
-import { createRendererLogger } from '../../logger.js'
+import { createRendererLogger } from '../../logger'
 
 const { t } = useI18n()
 

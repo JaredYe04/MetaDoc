@@ -2,7 +2,7 @@ import { buildSchemaPrompt, DOCUMENT_TITLE_SCHEMA } from './schemas';
 import { i18n } from '../i18n.js';
 import { generateMarkdownFromOutlineTree } from './document/outline';
 import type { DocumentOutlineNode } from '../../../types';
-import { createRendererLogger } from './logger.js';
+import { createRendererLogger } from './logger';
 
 // 语言到提示词配置的映射（使用动态导入）
 let promptsMapCache: Record<string, any> | null = null;

@@ -1459,6 +1459,7 @@
         "exporting": "正在导出为{format}",
         "preparingExport": "准备导出...",
         "preRenderingCharts": "正在预渲染图表",
+        "foundCharts": "找到 {count} 个图表",
         "renderingChart": "已渲染图表 {current}/{total}",
         "renderingChartFailed": "已渲染图表 {current}/{total} (失败)",
         "convertingMarkdown": "转换Markdown到{format}...",

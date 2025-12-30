@@ -1,8 +1,8 @@
 import { BrowserWindow, dialog } from 'electron';
 import fs from 'fs';
 import path from 'path';
-// @ts-ignore
-import htmlDocx from 'html-docx-js';
+// @ts-ignore - html-to-docx 没有类型定义
+import HTMLtoDOCX from 'html-to-docx';
 import JSZip from 'jszip';
 import { PDFDocument } from 'pdf-lib';
 import type { DocumentFormat, ExportFormat } from '../../types';
@@ -21,6 +21,10 @@ import {
 } from '../utils/image-export-service';
 import {
   DocxProcessingManager,
+  OMMLInsertionProcessor,
+  DocumentXmlFixProcessor,
+  WordTocProcessor,
+  HeaderFooterProcessor,
 } from './docx-processor';
 
 const logger = createMainLogger('PDFExport');
@@ -487,10 +491,12 @@ const convertHtmlToPdfBuffer = async (html: string, options?: {
                 const finalWidth = Math.min(newWidth, availableWidthPx);
                 const finalHeight = Math.min(newHeight, availableHeightPx);
                 
-                img.style.width = finalWidth + 'px';
-                img.style.height = finalHeight + 'px';
-                img.style.maxWidth = availableWidthPx + 'px';
-                img.style.maxHeight = availableHeightPx + 'px';
+                // 使用max-width和max-height而不是固定的width和height，以保持图片原始质量
+                // 这样浏览器/PDF渲染器会使用原始图片质量，只是限制显示尺寸
+                img.style.maxWidth = finalWidth + 'px';
+                img.style.maxHeight = finalHeight + 'px';
+                img.style.width = 'auto';
+                img.style.height = 'auto';
                 img.style.objectFit = 'contain';
                 img.style.display = 'block';
                 img.style.margin = '0 auto';
@@ -499,6 +505,8 @@ const convertHtmlToPdfBuffer = async (html: string, options?: {
                 // 即使不需要缩放，也确保宽度不超过可用宽度
                 if (displayWidth > availableWidthPx) {
                   img.style.maxWidth = availableWidthPx + 'px';
+                  img.style.maxHeight = 'none';
+                  img.style.width = 'auto';
                   img.style.height = 'auto';
                   img.style.objectFit = 'contain';
                   img.style.display = 'block';
@@ -651,80 +659,545 @@ const mapHtmlToWordStyles = (html: string): string => {
   return styledHtml;
 };
 
-// 从 Markdown 生成手动目录（HTML格式）
-const generateTocHtml = (markdown: string): string => {
-  // 从 Markdown 中提取所有标题
-  const lines = markdown.split('\n');
-  const headings: Array<{ level: number; title: string }> = [];
-  let inCodeBlock = false;
+/**
+ * 移除Markdown格式符号，提取纯文本
+ * 用于目录标题的清理，去除加粗、斜体等Markdown符号
+ */
+const stripMarkdownFromTitle = (title: string): string => {
+  let text = title;
+  
+  // 移除链接但保留文本 [text](url) -> text
+  text = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+  text = text.replace(/\[([^\]]+)\]\[[^\]]+\]/g, '$1');
+  
+  // 移除图片 ![alt](url) -> alt
+  text = text.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '$1');
+  
+  // 移除代码标记 `code` -> code
+  text = text.replace(/`([^`]+)`/g, '$1');
+  
+  // 移除粗体和斜体标记（注意顺序：先处理双星号，再处理单星号）
+  text = text.replace(/\*\*([^*]+)\*\*/g, '$1');  // **bold** -> bold
+  text = text.replace(/__([^_]+)__/g, '$1');      // __bold__ -> bold
+  text = text.replace(/\*([^*]+)\*/g, '$1');      // *italic* -> italic
+  text = text.replace(/_([^_]+)_/g, '$1');        // _italic_ -> italic
+  
+  // 移除删除线 ~~text~~ -> text
+  text = text.replace(/~~([^~]+)~~/g, '$1');
+  
+  return text.trim();
+};
 
-  for (const line of lines) {
-    // 检查是否是代码块标记
-    if (line.match(/^```/)) {
-      inCodeBlock = !inCodeBlock;
-      continue;
+// 注意：手动目录生成已移除，现在使用 Word 自动目录（WordTocProcessor）
+
+/**
+ * 处理代码块，将换行符转换为<br>标签，并包装在表格中创建背景框
+ * html-to-docx可能不支持white-space: pre和某些CSS属性（如背景色、边框），
+ * 使用表格来创建边框和背景效果
+ */
+const processCodeBlocksForWord = (html: string): string => {
+  let processed = html;
+  
+  // 辅助函数：提取纯文本内容并处理换行符
+  const extractAndProcessCode = (content: string): string => {
+    
+    // 先处理HTML实体，避免在移除标签时丢失信息
+    let text = content
+      .replace(/&lt;/g, '\u0001LT\u0001')  // 临时标记，避免<被当作标签
+      .replace(/&gt;/g, '\u0001GT\u0001')  // 临时标记，避免>被当作标签
+      .replace(/&amp;/g, '\u0001AMP\u0001')  // 临时标记
+      .replace(/&quot;/g, '\u0001QUOT\u0001')
+      .replace(/&#39;/g, '\u0001APOS\u0001')
+      .replace(/&nbsp;/g, ' ');  // &nbsp;转换为空格
+    
+    // 将现有的<br>标签转换为换行符
+    text = text.replace(/<br\s*\/?>/gi, '\n');
+    
+    // 移除所有HTML标签，但保留文本内容
+    // 使用递归方式移除嵌套标签，确保正确提取文本
+    let lastText = '';
+    while (text !== lastText) {
+      lastText = text;
+      text = text.replace(/<[^>]+>/g, '');
     }
     
-    // 如果在代码块中，跳过
-    if (inCodeBlock) {
-      continue;
+    // 恢复HTML实体
+    text = text
+      .replace(/\u0001LT\u0001/g, '<')
+      .replace(/\u0001GT\u0001/g, '>')
+      .replace(/\u0001AMP\u0001/g, '&')
+      .replace(/\u0001QUOT\u0001/g, '"')
+      .replace(/\u0001APOS\u0001/g, "'");
+    
+    // 统一换行符（\r\n -> \n, \r -> \n）
+    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
+    // 分割为行
+    let lines = text.split('\n');
+    
+    // 移除开头的空行（纯空白行）
+    while (lines.length > 0 && lines[0].trim().length === 0) {
+      lines.shift();
     }
+    
+    // 移除结尾的空行（纯空白行）
+    while (lines.length > 0 && lines[lines.length - 1].trim().length === 0) {
+      lines.pop();
+    }
+    
+    // 如果所有行都被移除了，返回空字符串
+    if (lines.length === 0) {
+      logger.warn('所有行都被移除了，返回空字符串');
+      return '';
+    }
+    
+    // 处理第一行：移除第一行前面的多余空格（只移除前导空格，不影响代码本身的缩进）
+    if (lines.length > 0) {
+      lines[0] = lines[0].replace(/^\s+/, '');
+    }
+    
+    // 过滤掉所有空行（行与行之间的多余空行）
+    const processedLines = lines.filter(line => line.trim().length > 0);
+    
+    // 将每行代码用<p>标签包裹，每个<p>标签设置margin:0和padding:0，避免多余的空行
+    // 这样可以确保在Word中每行代码之间没有额外的间距
+    // 注意：需要先转义HTML特殊字符，因为代码可能包含<、>等字符
+    const escapeHtml = (text: string): string => {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    };
+    
+    const result = processedLines.map(line => 
+      `<p style="margin: 0 !important; padding: 0 !important; line-height: 1.2 !important;">${escapeHtml(line)}</p>`
+    ).join('');
+    
+    return result;
+  };
+  
+  // 表格样式模板（使用更明显的背景色）
+  // 注意：td的padding设为6pt上下（减少上下padding），左右12pt
+  // 每个代码行使用<p>标签，margin和padding都设为0，避免多余的空行
+  // 表格的margin-bottom设为0，避免代码框之后有多余的换行
+  const codeTableTemplate = (content: string) => 
+    `<table style="width: 100%; border: 1px solid #d0d0d0; background-color: #f5f5f5; margin: 0 0 0 0; border-collapse: collapse;" bgcolor="#f5f5f5">
+      <tr>
+        <td style="padding: 6pt 12pt !important; font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important; font-size: 9pt !important; color: #333333 !important; background-color: #f5f5f5 !important; line-height: 1.2 !important;" bgcolor="#f5f5f5">
+          ${content}
+        </td>
+      </tr>
+    </table>`;
+  
+  // 1. 处理<div class="md-editor-code">包装的代码块（优先处理，因为可能包含pre和code）
+  processed = processed.replace(/<div[^>]*class="[^"]*md-editor-code[^"]*"[^>]*>([\s\S]*?)<\/div>/gi, (match, content) => {
+    // 如果content已经是表格（被上面的处理替换了），直接返回
+    if (content.includes('<table')) {
+      return match;
+    }
+    const codeContent = extractAndProcessCode(content);
+    return codeTableTemplate(codeContent);
+  });
+  
+  // 2. 处理<pre>标签（可能包含<code>标签）
+  processed = processed.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (match, content) => {
+    // 如果content已经是表格（被上面的处理替换了），直接返回
+    if (content.includes('<table')) {
+      return match;
+    }
+    const codeContent = extractAndProcessCode(content);
+    return codeTableTemplate(codeContent);
+  });
+  
+  // 3. 处理独立的<code class="hljs">代码块
+  processed = processed.replace(/<code[^>]*class="[^"]*hljs[^"]*"[^>]*>([\s\S]*?)<\/code>/gi, (match, content) => {
+    // 如果content已经是表格（被上面的处理替换了），直接返回
+    if (content.includes('<table')) {
+      return match;
+    }
+    const codeContent = extractAndProcessCode(content);
+    return codeTableTemplate(codeContent);
+  });
+  
+  return processed;
+};
 
-    // 匹配标题行：匹配1个或多个 '#' 后跟空格，再匹配标题文本
-    const match = line.match(/^(#+)\s+(.*)/);
-    if (match) {
-      const level = match[1].length; // 标题等级（1-6）
-      const title = match[2].trim();
-      if (title) {
-        headings.push({ level, title });
+/**
+ * 将 HTML 中的公式替换为 MathML
+ * @param htmlContent HTML 内容
+ * @param markdown 原始 Markdown 内容（用于提取公式）
+ * @returns 替换后的 HTML
+ */
+const convertFormulaToMathML = async (htmlContent: string, markdown: string): Promise<string> => {
+  // 匹配公式的正则表达式（与 math-renderer.js 中的一致）
+  const mathBlockRegex = /(?<!\\)\$\$([\s\S]+?)(?<!\\)\$\$/g;
+  const mathInlineRegex = /(?<!\\)\$(?!\$)([^\n$]+?)(?<!\\)\$/g;
+  
+  // 从 Markdown 中提取所有公式
+  const blockMatches: Array<{ content: string; index: number }> = [];
+  const inlineMatches: Array<{ content: string; index: number }> = [];
+  
+  let match;
+  while ((match = mathBlockRegex.exec(markdown)) !== null) {
+    blockMatches.push({ content: match[1].trim(), index: match.index });
+  }
+  
+  while ((match = mathInlineRegex.exec(markdown)) !== null) {
+    inlineMatches.push({ content: match[1].trim(), index: match.index });
+  }
+  
+  // 合并所有公式（块级在前，行内在后，按出现顺序排序）
+  const allFormulas = [
+    ...blockMatches.map(m => ({ ...m, display: true })),
+    ...inlineMatches.map(m => ({ ...m, display: false })),
+  ].sort((a, b) => a.index - b.index);
+  
+  if (allFormulas.length === 0) {
+    return htmlContent;
+  }
+  
+  // 在 HTML 中查找公式元素
+  // 公式可能是图片（_math.svg 或 _math.png）或 .language-math 类的元素
+  const formulaImageRegex = /<img[^>]+src\s*=\s*["']([^"']*_math\.(?:svg|png)[^"']*)["'][^>]*>/gi;
+  const formulaLanguageRegex = /<(span|div)[^>]*class\s*=\s*["'][^"']*language-math[^"']*["'][^>]*>([\s\S]*?)<\/(span|div)>/gi;
+  
+  // 先找出所有公式图片
+  const imageMatches: Array<{ tag: string; type: 'image'; index: number }> = [];
+  let imgMatch;
+  while ((imgMatch = formulaImageRegex.exec(htmlContent)) !== null) {
+    imageMatches.push({
+      tag: imgMatch[0],
+      type: 'image',
+      index: imgMatch.index
+    });
+  }
+  
+  // 再找出所有 .language-math 类的元素
+  const languageMatches: Array<{ tag: string; content: string; display: boolean; type: 'language-math'; index: number }> = [];
+  let langMatch;
+  while ((langMatch = formulaLanguageRegex.exec(htmlContent)) !== null) {
+    const tagName = langMatch[1].toLowerCase();
+    const isDisplay = tagName === 'div';
+    let content = langMatch[2].trim();
+    
+    // 解码 HTML 实体（如 =3D 表示 =）
+    // 使用简单的替换来处理常见的实体
+    content = content
+      .replace(/=3D/g, '=')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ');
+    
+    languageMatches.push({
+      tag: langMatch[0],
+      content: content,
+      display: isDisplay,
+      type: 'language-math',
+      index: langMatch.index
+    });
+  }
+  
+  // 合并所有匹配，按位置排序
+  // 对于 .language-math 元素，尝试通过内容匹配公式，而不是简单的顺序匹配
+  const allMatches: Array<{
+    tag: string;
+    type: 'image' | 'language-math';
+    index: number;
+    formulaIndex: number;
+    content?: string;
+    display?: boolean;
+  }> = [];
+  
+  // 添加图片匹配
+  for (const imgMatch of imageMatches) {
+    allMatches.push({
+      ...imgMatch,
+      formulaIndex: -1
+    });
+  }
+  
+  // 添加 .language-math 匹配，并尝试匹配对应的公式
+  for (const langMatch of languageMatches) {
+    // 尝试通过内容匹配公式（允许一些差异，比如空格、换行等）
+    const normalizedContent = langMatch.content.replace(/\s+/g, ' ').trim();
+    let matchedFormulaIndex = -1;
+    
+    for (let i = 0; i < allFormulas.length; i++) {
+      const formula = allFormulas[i];
+      const normalizedFormula = formula.content.replace(/\s+/g, ' ').trim();
+      // 检查是否匹配（允许部分匹配，因为可能有转义字符的差异）
+      if (normalizedContent === normalizedFormula || 
+          normalizedContent.includes(normalizedFormula) || 
+          normalizedFormula.includes(normalizedContent)) {
+        matchedFormulaIndex = i;
+        break;
+      }
+    }
+    
+    allMatches.push({
+      tag: langMatch.tag,
+      type: 'language-math',
+      index: langMatch.index,
+      formulaIndex: matchedFormulaIndex,
+      content: langMatch.content,
+      display: langMatch.display
+    });
+  }
+  
+  // 按位置排序
+  allMatches.sort((a, b) => a.index - b.index);
+  
+  // 对于没有匹配到的图片，使用顺序分配
+  let nextFormulaIndex = 0;
+  for (const match of allMatches) {
+    if (match.formulaIndex < 0) {
+      // 找到一个未使用的公式索引
+      while (nextFormulaIndex < allFormulas.length && 
+             allMatches.some(m => m.formulaIndex === nextFormulaIndex)) {
+        nextFormulaIndex++;
+      }
+      if (nextFormulaIndex < allFormulas.length) {
+        match.formulaIndex = nextFormulaIndex;
+        nextFormulaIndex++;
       }
     }
   }
-
-  // 如果没有标题，返回空
-  if (headings.length === 0) {
-    return '';
-  }
-
-  // 生成目录 HTML
-  // 直接在段落上设置分页属性
-  // 使用 i18n 获取"目录"文本
-  const tocTitle = t('export.options.generateToc.title', '目录');
   
-  let tocHtml = '';
+  logger.info(`找到 ${imageMatches.length} 个公式图片，${languageMatches.length} 个 .language-math 元素，提取了 ${allFormulas.length} 个公式`, {
+    imageCount: imageMatches.length,
+    languageMathCount: languageMatches.length,
+    formulaCount: allFormulas.length,
+    formulas: allFormulas.map(f => ({ content: f.content.substring(0, 30), display: f.display }))
+  });
   
-  // 目录标题 - 直接在这个段落上设置 page-break-before，确保目录另起一页
-  tocHtml += `<p class="Normal" style="text-align: center; font-size: 18pt; font-weight: bold; margin-top: 0; margin-bottom: 24pt; page-break-before: always;">${escapeHtml(tocTitle)}</p>`;
-  
-  // 使用单个段落存放所有目录项，确保它们不分页
-  // 不在这个段落上设置分页属性，避免每个目录项都换页
-  tocHtml += '<p class="Normal" style="margin: 0; padding: 0; line-height: 1.8;">';
-  
-  for (let i = 0; i < headings.length; i++) {
-    const heading = headings[i];
-    const level = heading.level;
-    const fontSize = Math.max(10.5 - (level - 1) * 0.5, 9);
-    // 使用非断行空格来缩进（每个级别 4 个空格）
-    const indentSpaces = '&nbsp;'.repeat((level - 1) * 4);
+  // 对于DOCX导出，我们使用占位符策略：在HTML阶段创建占位符（包含LaTeX代码），
+  // 后续在document.xml处理阶段转换为OMML
+  // 从后往前替换，避免索引偏移
+  // 对于DOCX导出，我们使用占位符策略：在HTML阶段创建占位符（包含LaTeX代码），
+  // 后续在document.xml处理阶段转换为OMML
+  let result = htmlContent;
+  for (let i = allMatches.length - 1; i >= 0; i--) {
+    const match = allMatches[i];
     
-    // 如果不是第一项，先添加换行
-    if (i > 0) {
-      tocHtml += '<br>';
+    // 获取LaTeX代码
+    let latexCode: string | null = null;
+    let isDisplay = false;
+    
+    if (match.type === 'language-math' && match.content) {
+      // 对于 .language-math 元素，直接使用元素内容
+      latexCode = match.content;
+      isDisplay = match.display || false;
+    } else if (match.formulaIndex >= 0 && match.formulaIndex < allFormulas.length) {
+      // 对于图片，使用从markdown中提取的公式
+      const formula = allFormulas[match.formulaIndex];
+      latexCode = formula.content;
+      isDisplay = formula.display;
     }
     
-    // 添加缩进和标题，使用 span 设置字体大小
-    tocHtml += `${indentSpaces}<span style="font-size: ${fontSize}pt;">${escapeHtml(heading.title)}</span>`;
+    if (latexCode) {
+      // 创建占位符（包含LaTeX代码，而不是OMML）
+      const placeholder = convertLatexToPlaceholder(latexCode, isDisplay);
+      
+      if (match.type === 'language-math') {
+        logger.debug(`替换 .language-math 元素为占位符: ${latexCode.substring(0, 30)}...`);
+        result = result.substring(0, match.index) + placeholder + result.substring(match.index + match.tag.length);
+      } else if (match.type === 'image') {
+        logger.debug(`替换公式图片为占位符: ${latexCode.substring(0, 30)}...`);
+        result = result.substring(0, match.index) + placeholder + result.substring(match.index + match.tag.length);
+      }
+    } else {
+      logger.warn(`无法获取公式代码，保留原元素`, {
+        matchIndex: i,
+        matchType: match.type,
+        formulaIndex: match.formulaIndex
+      });
+    }
   }
   
-  // 在最后一个目录项后添加一个空项，用于换页
-  // 使用换行分隔，然后添加一个不可见的空 span，设置 page-break-after 来换页
-  tocHtml += '<br>';
-  tocHtml += '<span style="page-break-after: always; display: block; height: 0; margin: 0; padding: 0; visibility: hidden;"></span>';
-  
-  tocHtml += '</p>';
-  
-  return tocHtml;
+  logger.info(`公式替换完成，共处理 ${allMatches.length} 个元素（${imageMatches.length} 个图片，${languageMatches.length} 个 .language-math）`);
+  return result;
 };
+
+// 公式占位符存储（用于在document.xml处理阶段替换）
+const formulaPlaceholders = new Map<number, { latex: string; display: boolean }>();
+let formulaPlaceholderIndex = 0;
+
+/**
+ * 将 LaTeX 公式转换为占位符（用于DOCX导出）
+ * 使用简单的编号占位符，后续在document.xml处理阶段直接文本替换
+ * 
+ * @param latex LaTeX 公式代码
+ * @param displayMode 是否为块级公式
+ * @returns 包含占位符的 HTML 字符串
+ */
+const convertLatexToPlaceholder = (latex: string, displayMode: boolean): string => {
+  const index = formulaPlaceholderIndex++;
+  formulaPlaceholders.set(index, { latex, display: displayMode });
+  
+  // 使用简单的编号占位符，格式：MATH_PLACEHOLDER_0, MATH_PLACEHOLDER_1 等
+  const placeholderText = `MATH_PLACEHOLDER_${index}`;
+  const placeholder = `<span>${placeholderText}</span>`;
+  
+  if (displayMode) {
+    return `<p class="Normal" style="text-align: center; margin: 12pt 0;">${placeholder}</p>`;
+  } else {
+    return placeholder;
+  }
+};
+
+/**
+ * 获取所有公式占位符数据（用于document.xml处理）
+ */
+export const getFormulaPlaceholders = (): Map<number, { latex: string; display: boolean }> => {
+  return new Map(formulaPlaceholders);
+};
+
+/**
+ * 清除公式占位符数据
+ */
+export const clearFormulaPlaceholders = (): void => {
+  formulaPlaceholders.clear();
+  formulaPlaceholderIndex = 0;
+};
+
+/**
+ * 将 LaTeX 公式转换为包含 MathML 和 OOXML 的 HTML（保留用于PDF导出）
+ * 使用 mathjax-node 进行准确的 LaTeX 到 MathML 转换
+ * 
+ * @param latex LaTeX 公式代码
+ * @param displayMode 是否为块级公式
+ * @returns 包含 MathML 和 OOXML 的 HTML 字符串
+ */
+const convertLatexToMathML = async (latex: string, displayMode: boolean): Promise<string> => {
+  // 导入转换函数（在主进程中直接调用，不需要 IPC）
+  const { convertLatexToMathML: convertLatex } = await import('../utils/mathml-converter');
+  
+  // 使用 mathjax-node 转换为 MathML
+  const mathml = await convertLatex(latex, displayMode);
+  
+  // 如果转换失败，使用转义的 LaTeX 作为后备
+  if (!mathml) {
+    logger.warn(`LaTeX 转 MathML 失败，使用后备方案: ${latex}`);
+    const escapedLatex = escapeXml(latex);
+    const fallbackMathML = `<math xmlns="http://www.w3.org/1998/Math/MathML" display="${displayMode ? 'block' : 'inline'}">
+  <mtext>${escapedLatex}</mtext>
+</math>`;
+    
+    if (displayMode) {
+      return `<p class="Normal" style="text-align: center; margin: 12pt 0;">${fallbackMathML}</p>`;
+    } else {
+      return `<span>${fallbackMathML}</span>`;
+    }
+  }
+  
+  // 清理 MathML：移除 MathJax 特定的属性和 HTML 注释，使其符合 Word 的要求
+  const cleanedMathml = cleanMathMLForWord(mathml);
+  
+  // 将 MathML 转换为 OMML（Office Math Markup Language）
+  // OMML 是 Word 的原生数学公式格式，能够正确渲染
+  let omml: string;
+  try {
+    // 动态导入 mathml2omml（ES Module）
+    // mathml2omml 使用命名导出 mml2omml
+    const { mml2omml } = await import('mathml2omml');
+    omml = mml2omml(cleanedMathml);
+    
+    logger.debug('MathML 转换为 OMML 成功', {
+      mathmlLength: cleanedMathml.length,
+      ommlLength: omml.length,
+      ommlPreview: omml.substring(0, 300),
+      hasOMath: omml.includes('<m:oMath'),
+      hasOMathPara: omml.includes('<m:oMathPara')
+    });
+  } catch (error) {
+    logger.error('MathML 转换为 OMML 失败，使用原始 MathML:', error);
+    // 如果转换失败，回退到标准 MathML
+    const mathmlContent = cleanedMathml.replace(/^<math[^>]*>/, '').replace(/<\/math>$/, '').trim();
+    const wordFormat = displayMode
+      ? `<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">${mathmlContent}</math>`
+      : `<math xmlns="http://www.w3.org/1998/Math/MathML">${mathmlContent}</math>`;
+    
+    if (displayMode) {
+      return `<p class="Normal" style="text-align: center; margin: 12pt 0;">
+${wordFormat}
+</p>`;
+    } else {
+      return wordFormat;
+    }
+  }
+  
+  // mathml2omml 返回的 OMML 通常已经包含了 <m:oMath> 标签
+  // 我们需要检查并适当包装
+  let ommlContent = omml.trim();
+  
+  // 如果返回的 OMML 不包含 <m:oMath> 或 <m:oMathPara>，需要包装
+  if (!ommlContent.includes('<m:oMath')) {
+    if (displayMode) {
+      ommlContent = `<m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
+<m:oMath>
+${ommlContent}
+</m:oMath>
+</m:oMathPara>`;
+    } else {
+      ommlContent = `<m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">${ommlContent}</m:oMath>`;
+    }
+  } else if (displayMode && !ommlContent.includes('<m:oMathPara')) {
+    // 如果是块级公式但没有 oMathPara，需要包装
+    ommlContent = `<m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">${ommlContent}</m:oMathPara>`;
+  }
+  
+  // 使用占位符标记，后续在 document.xml 中替换为正确的 WordprocessingML 结构
+  // 将 OMML 内容进行 Base64 编码，避免特殊字符问题
+  const ommlBase64 = Buffer.from(ommlContent, 'utf-8').toString('base64');
+  const placeholder = `<span data-omml="${ommlBase64}" data-display="${displayMode}"></span>`;
+  
+  if (displayMode) {
+    return `<p class="Normal" style="text-align: center; margin: 12pt 0;">${placeholder}</p>`;
+  } else {
+    return placeholder;
+  }
+};
+
+/**
+ * 清理 MathML，移除 MathJax 特定的属性和 HTML 注释，使其符合 Word 的要求
+ */
+function cleanMathMLForWord(mathml: string): string {
+  let cleaned = mathml;
+  
+  // 1. 移除 HTML 注释（如 <!-- ϕ -->、<!-- − --> 等）
+  cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '');
+  
+  // 2. 移除 MathJax 特定的类名（如 class="MJX-TeXAtom-OPEN"、class="MJX-TeXAtom-ORD" 等）
+  cleaned = cleaned.replace(/\s+class="[^"]*"/g, '');
+  
+  // 3. 移除 scriptlevel 属性（MathJax 特定）
+  cleaned = cleaned.replace(/\s+scriptlevel="[^"]*"/g, '');
+  
+  // 4. 移除 maxsize 和 minsize 属性（MathJax 特定，Word 不支持）
+  cleaned = cleaned.replace(/\s+maxsize="[^"]*"/g, '');
+  cleaned = cleaned.replace(/\s+minsize="[^"]*"/g, '');
+  
+  // 5. 移除其他 MathJax 特定的属性（如 mathvariant、mathcolor 等可能不被 Word 支持）
+  // 但保留基本的 MathML 属性（如 xmlns、display 等）
+  
+  // 6. 清理多余的空白字符（标签之间的）
+  cleaned = cleaned.replace(/>\s+</g, '><');
+  cleaned = cleaned.replace(/\s{2,}/g, ' ');
+  cleaned = cleaned.trim();
+  
+  logger.debug('MathML 清理完成', {
+    originalLength: mathml.length,
+    cleanedLength: cleaned.length,
+    preview: cleaned.substring(0, 200)
+  });
+  
+  return cleaned;
+}
 
 // 生成封面 HTML
 const generateCoverPage = (meta: DocumentMetaInfo, styleMapping?: {
@@ -735,29 +1208,54 @@ const generateCoverPage = (meta: DocumentMetaInfo, styleMapping?: {
   const fontFamily = styleMapping?.normal?.fontFamily || styleMapping?.heading1?.fontFamily || 'Microsoft YaHei';
   const baseFontSize = styleMapping?.normal?.fontSize || 10.5;
   
+  // 根据标题长度动态调整字体大小，确保在一行内显示
+  // 使用简单的分段策略，根据字符数选择合适的字体大小
+  let titleFontSize = 28; // 默认28pt
+  if (meta.title) {
+    const titleLength = meta.title.length;
+    // 根据字符数分段设置字体大小
+    if (titleLength <= 10) {
+      titleFontSize = 32; // 短标题使用大字体
+    } else if (titleLength <= 20) {
+      titleFontSize = 28; // 中等标题
+    } else if (titleLength <= 30) {
+      titleFontSize = 24; // 较长标题
+    } else if (titleLength <= 40) {
+      titleFontSize = 20; // 很长标题
+    } else {
+      titleFontSize = 18; // 非常长的标题，使用最小字体
+    }
+  }
+  
+  // 使用简单的段落结构，合理控制间距
+  // 标题：普通段落，居中，加粗，动态字号
   const titleHtml = meta.title 
-    ? `<h1 style="text-align: center; font-size: 28pt; margin-top: 200pt; margin-bottom: 40pt; font-family: '${fontFamily}', 'SimSun', serif;">${escapeHtml(meta.title)}</h1>` 
+    ? `<p style="text-align: center; font-size: ${titleFontSize}pt; font-weight: bold; margin-top: 200pt; margin-bottom: 40pt; font-family: '${fontFamily}', 'SimSun', serif;">${escapeHtml(meta.title)}</p>` 
     : '';
+  
+  // 作者：居中
   const authorHtml = meta.author 
-    ? `<p style="text-align: center; font-size: ${baseFontSize + 3.5}pt; margin-bottom: 20pt; font-family: '${fontFamily}', 'SimSun', serif;">作者：${escapeHtml(meta.author)}</p>` 
+    ? `<p style="text-align: center; font-size: ${baseFontSize + 3.5}pt; margin-bottom: 30pt; font-family: '${fontFamily}', 'SimSun', serif;">作者：${escapeHtml(meta.author)}</p>` 
     : '';
   
   // 摘要：加粗"摘要"标识，内容靠左对齐，使用与正文相同的字体
   const descriptionHtml = meta.description 
-    ? `<p style="text-align: left; font-size: ${baseFontSize + 1.5}pt; margin-top: 40pt; margin-bottom: 10pt; padding: 0 100pt; font-family: '${fontFamily}', 'SimSun', serif;"><strong>摘要：</strong>${escapeHtml(meta.description)}</p>` 
+    ? `<p style="text-align: left; font-size: ${baseFontSize + 1.5}pt; margin-top: 30pt; margin-bottom: 15pt; padding: 0 100pt; font-family: '${fontFamily}', 'SimSun', serif;"><strong>摘要：</strong>${escapeHtml(meta.description)}</p>` 
     : '';
   
   // 关键词：加粗"关键词"标识，关键词用逗号分割，使用与正文相同的字体
   const keywordsHtml = meta.keywords.length > 0 
-    ? `<p style="text-align: left; font-size: ${baseFontSize + 1.5}pt; margin-top: 20pt; padding: 0 100pt; font-family: '${fontFamily}', 'SimSun', serif;"><strong>关键词：</strong>${escapeHtml(meta.keywords.join(', '))}</p>` 
+    ? `<p style="text-align: left; font-size: ${baseFontSize + 1.5}pt; margin-top: 15pt; margin-bottom: 0; padding: 0 100pt; font-family: '${fontFamily}', 'SimSun', serif;"><strong>关键词：</strong>${escapeHtml(meta.keywords.join(', '))}</p>` 
     : '';
   
-  return `<div style="page-break-after: always; min-height: 100vh; display: flex; flex-direction: column; justify-content: center;">
+  // 组合封面内容，使用分页标记
+  return `
     ${titleHtml}
     ${authorHtml}
     ${descriptionHtml}
     ${keywordsHtml}
-  </div>`;
+    <div class="page-break" style="page-break-after: always;"></div>
+  `;
 };
 
 
@@ -797,35 +1295,26 @@ const convertMarkdownToDocxBuffer = async (
     coverHtml = generateCoverPage(meta, styleMapping);
   }
   
-  // 添加目录（从 Markdown 生成手动目录）
-  let tocHtml = '';
+  // 添加目录占位符（如果有封面，目录在封面后；如果没有封面，目录在正文前）
+  // 目录标题在HTML阶段插入，目录内容占位符将在document.xml处理阶段替换为Word自动目录
+  let tocPlaceholder = '';
   if (options?.generateToc) {
-    tocHtml = generateTocHtml(markdown);
+    const tocTitle = t('common.tableOfContents', '目录');
+    // 目录占位符：h1标题 + 占位符div（将被替换为Word自动目录字段）
+    // 注意：占位符div需要使用特定的data属性，以便在document.xml处理阶段识别
+    tocPlaceholder = `
+      <h1 style="text-align: center; margin-bottom: 20pt;">${escapeHtml(tocTitle)}</h1>
+      <div data-toc-placeholder="true" style="display: none;"></div>
+      <div class="page-break" style="page-break-after: always;"></div>
+    `;
   }
-  
-  // 如果有目录，在正文的第一个段落添加 page-break-before
-  if (tocHtml && tocHtml.trim()) {
-    // 匹配第一个块级元素（p, h1-h6, div, li, blockquote 等）
-    // replace 默认只替换第一个匹配的元素
-    styledHtml = styledHtml.replace(
-      /(<(p|h[1-6]|div|li|blockquote)(?:\s+[^>]*?)?)(style\s*=\s*["']([^"']*)["'])?([^>]*>)/i,
-      (match, tagStart, tagName, existingStyle, styleContent, tagEnd) => {
-        // 如果已经有 style 属性，在其中添加 page-break-before
-        if (existingStyle) {
-          // 检查是否已经有 page-break-before
-          if (styleContent && styleContent.includes('page-break-before')) {
-            return match; // 已经存在，不修改
-          }
-          // 在现有样式后添加 page-break-before
-          const newStyle = `${styleContent}; page-break-before: always;`;
-          return `${tagStart}style="${newStyle}"${tagEnd}`;
-        } else {
-          // 没有 style 属性，添加新的 style 属性
-          return `${tagStart} style="page-break-before: always;"${tagEnd}`;
-        }
-      }
-    );
-  }
+
+  // 处理代码块：将换行符转换为<br>标签，并使用表格包装创建背景框
+  // html-to-docx可能不支持white-space: pre和某些CSS属性（如背景色、边框）
+  styledHtml = processCodeBlocksForWord(styledHtml);
+
+  // 将公式替换为 MathML
+  styledHtml = await convertFormulaToMathML(styledHtml, markdown);
   
   // 添加CSS样式表，定义Word样式库映射和代码框样式
   // Word在转换HTML时会识别这些样式类名并映射到样式库
@@ -840,6 +1329,7 @@ const convertMarkdownToDocxBuffer = async (
         margin-bottom: 6pt;
         line-height: ${styleMapping.heading1?.lineHeight || 1.2};
         font-family: "${styleMapping.heading1?.fontFamily || 'Microsoft YaHei'}", "SimSun", serif;
+        text-align: left !important; /* 确保标题左对齐 */
       }
       .Heading2, h2.Heading2 {
         font-size: ${styleMapping.heading2?.fontSize || 16}pt;
@@ -849,6 +1339,7 @@ const convertMarkdownToDocxBuffer = async (
         margin-bottom: 6pt;
         line-height: ${styleMapping.heading2?.lineHeight || 1.2};
         font-family: "${styleMapping.heading2?.fontFamily || 'Microsoft YaHei'}", "SimSun", serif;
+        text-align: left !important; /* 确保标题左对齐 */
       }
       .Heading3, h3.Heading3 {
         font-size: ${styleMapping.heading3?.fontSize || 14}pt;
@@ -858,6 +1349,7 @@ const convertMarkdownToDocxBuffer = async (
         margin-bottom: 4pt;
         line-height: ${styleMapping.heading3?.lineHeight || 1.2};
         font-family: "${styleMapping.heading3?.fontFamily || 'Microsoft YaHei'}", "SimSun", serif;
+        text-align: left !important; /* 确保标题左对齐 */
       }
       .Heading4, h4.Heading4 {
         font-size: ${styleMapping.heading4?.fontSize || 12}pt;
@@ -867,6 +1359,7 @@ const convertMarkdownToDocxBuffer = async (
         margin-bottom: 4pt;
         line-height: ${styleMapping.heading4?.lineHeight || 1.2};
         font-family: "${styleMapping.heading4?.fontFamily || 'Microsoft YaHei'}", "SimSun", serif;
+        text-align: left !important; /* 确保标题左对齐 */
       }
       .Normal, p.Normal {
         font-size: ${styleMapping.normal?.fontSize || 10.5}pt;
@@ -875,49 +1368,23 @@ const convertMarkdownToDocxBuffer = async (
         margin-bottom: 6pt;
         line-height: ${styleMapping.normal?.lineHeight || 1.15};
         font-family: "${styleMapping.normal?.fontFamily || 'Microsoft YaHei'}", "SimSun", serif;
+        text-align: left !important; /* 确保正文段落左对齐 */
       }
       
-      /* 代码框样式 - 确保代码显示在带边框和背景的框内 */
-      pre, .md-editor-code, pre code, code[class*="language-"] {
-        background-color: #f5f5f5 !important;
-        border: 1px solid #d0d0d0 !important;
-        border-radius: 4px !important;
-        padding: 12pt !important;
-        margin: 6pt 0 !important;
-        font-family: "Consolas", "Monaco", "Courier New", monospace !important;
-        font-size: 9pt !important;
-        line-height: 1.4 !important;
-        color: #333333 !important;
-        overflow-x: auto !important;
-        white-space: pre !important;
-        word-wrap: normal !important;
-        display: block !important;
+      /* 确保所有段落默认左对齐，除非明确指定 */
+      p {
+        text-align: left !important;
       }
       
-      /* 代码块容器 */
-      pre {
-        margin: 12pt 0 !important;
-        padding: 12pt !important;
-        background-color: #f5f5f5 !important;
-        border: 1px solid #d0d0d0 !important;
-        border-radius: 4px !important;
+      /* 标题可以居中（如果有明确指定） */
+      h1[style*="center"], h2[style*="center"], h3[style*="center"], h4[style*="center"], h5[style*="center"], h6[style*="center"] {
+        /* 保持居中对齐 */
       }
       
-      /* 代码块内的code标签 */
-      pre code {
-        background-color: transparent !important;
-        border: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        font-size: 9pt !important;
-        color: #333333 !important;
-        display: block !important;
-        white-space: pre !important;
-        overflow-x: auto !important;
-      }
-      
+      /* 代码框样式 - 代码块已通过processCodeBlocksForWord函数转换为表格格式 */
+      /* 这里只保留内联代码的样式 */
       /* 内联代码样式（保持原有样式，不添加边框） */
-      code:not(pre code) {
+      code:not(pre code):not(.hljs) {
         background-color: #f0f0f0 !important;
         border: none !important;
         padding: 2pt 4pt !important;
@@ -927,46 +1394,53 @@ const convertMarkdownToDocxBuffer = async (
         color: #d14 !important;
       }
       
-      /* md-editor-code 特定样式 */
-      .md-editor-code {
-        background-color: #f5f5f5 !important;
-        border: 1px solid #d0d0d0 !important;
-        border-radius: 4px !important;
-        padding: 12pt !important;
-        margin: 12pt 0 !important;
-      }
-      
-      .md-editor-code pre {
-        margin: 0 !important;
-        padding: 0 !important;
-        background-color: transparent !important;
-        border: none !important;
-      }
-      
-      .md-editor-code pre code {
-        background-color: transparent !important;
-        border: none !important;
-        padding: 0 !important;
-      }
-      
-      /* highlight.js 代码高亮样式兼容 */
-      .hljs, code.hljs {
-        background-color: #f5f5f5 !important;
-        border: 1px solid #d0d0d0 !important;
-        border-radius: 4px !important;
-        padding: 12pt !important;
-        margin: 12pt 0 !important;
+      /* 图片尺寸控制 - 使用max-width和max-height保持原始质量 */
+      /* A4页面可用区域：约680px × 1000px */
+      img {
+        max-width: 680px !important;
+        max-height: 1000px !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
       }
     </style>
   `;
   
-  // 组合封面、目录和正文
-  const finalContent = coverHtml + tocHtml + styledHtml;
+  // 组合封面、目录占位符和正文（目录占位符将在document.xml处理阶段替换为Word自动目录）
+  const finalContent = coverHtml + tocPlaceholder + styledHtml;
   
+  // 使用 html-to-docx 库生成 DOCX
+  // 该库直接生成 document.xml，不包含 afchunk.mht
   const htmlWrapped = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>Document</title>${wordStyles}</head><body>${finalContent}</body></html>`;
-  const docxBlob = htmlDocx.asBlob(htmlWrapped);
-  const arrayBuffer = await docxBlob.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  
+  // html-to-docx 配置选项
+  const documentOptions = {
+    orientation: 'portrait' as const,
+    margins: {
+      top: 1440, // TWIP (1/20 point), 默认约 2.54cm
+      right: 1800,
+      bottom: 1440,
+      left: 1800,
+      header: 720,
+      footer: 720,
+      gutter: 0,
+    },
+    title: meta?.title || 'Document',
+    creator: meta?.author || DEFAULT_AUTHOR,
+    keywords: meta?.keywords || [],
+    description: meta?.description || '',
+    font: styleMapping.normal?.fontFamily || 'Microsoft YaHei',
+    fontSize: (styleMapping.normal?.fontSize || 10.5) * 2, // html-to-docx 使用 HIP (Half of point)，所以需要乘以 2
+    lang: 'zh-CN', // 设置语言为中文，避免拼写检查错误
+  };
+  
+  const docxBuffer = await HTMLtoDOCX(htmlWrapped, null, documentOptions, null);
+  return Buffer.from(docxBuffer);
+};
+
+// 导出公式占位符数据，供DOCX处理器使用
+export const getCurrentFormulaPlaceholders = (): Map<number, { latex: string; display: boolean }> => {
+  return getFormulaPlaceholders();
 };
 
 interface DocumentMetaInfo {
@@ -1065,30 +1539,56 @@ let docxProcessingManager: DocxProcessingManager | null = null;
 const getDocxProcessingManager = (): DocxProcessingManager => {
   if (!docxProcessingManager) {
     docxProcessingManager = new DocxProcessingManager();
-    // 目录和字体样式现在都在 HTML 阶段处理，不需要后处理
-    // 保留处理器注册以备将来使用
-    // 后续可以在这里注册其他处理器，例如：
-    // docxProcessingManager.register(new FormulaProcessor());
-    // docxProcessingManager.register(new ImageProcessor());
+    // 注册 Document XML 修复处理器（首先执行，修复对齐、分页、语言等问题）
+    docxProcessingManager.register(new DocumentXmlFixProcessor());
+    // 注册 Word 自动目录处理器
+    docxProcessingManager.register(new WordTocProcessor());
+    // 注册页眉页脚处理器
+    docxProcessingManager.register(new HeaderFooterProcessor());
+    // 注册 OMML 插入处理器（最后执行，插入公式）
+    docxProcessingManager.register(new OMMLInsertionProcessor());
   }
   return docxProcessingManager;
 };
 
-const applyDocxMetadata = async (buffer: Buffer, meta: DocumentMetaInfo, options?: {
-  generateToc?: boolean;
-  styleMapping?: {
-    normal?: { fontFamily: string; fontSize: number; lineHeight: number };
-    heading1?: { fontFamily: string; fontSize: number; lineHeight: number };
-  };
-}): Promise<Buffer> => {
+const applyDocxMetadata = async (
+  buffer: Buffer, 
+  meta: DocumentMetaInfo, 
+  options?: {
+    generateToc?: boolean;
+    showPageNumbers?: boolean;
+    showHeader?: boolean;
+    styleMapping?: {
+      normal?: { fontFamily: string; fontSize: number; lineHeight: number };
+      heading1?: { fontFamily: string; fontSize: number; lineHeight: number };
+    };
+    targetPath?: string; // 用于调试文件保存
+  },
+  progressCallback?: (current: number, total: number, message?: string) => void
+): Promise<Buffer> => {
   // 首先应用元数据
   const zip = await JSZip.loadAsync(buffer);
   zip.file('docProps/core.xml', buildCorePropertiesXml(meta));
   await ensureCorePropsRegistered(zip);
   let updated = await zip.generateAsync({ type: 'nodebuffer' });
   
-  // 目录和字体样式现在都在 HTML 阶段处理，这里不需要后处理
-  // 保留处理管理器以备将来使用
+  // 应用 DOCX 处理器（如目录、页眉页脚、OMML等）
+  const processorManager = getDocxProcessingManager();
+  const formulaPlaceholders = getFormulaPlaceholders();
+  
+  // 从 options 中提取 targetPath（如果存在）
+  const targetPath = (options as any)?.targetPath;
+  
+  updated = await processorManager.process(updated, {
+    ...options,
+    title: meta.title,
+    formulaPlaceholders: formulaPlaceholders, // 传递公式占位符数据
+    progressCallback: progressCallback, // 传递进度回调
+    targetPath: targetPath, // 传递目标路径用于调试文件保存
+  });
+  
+  // 清除公式占位符数据
+  clearFormulaPlaceholders();
   
   return Buffer.from(updated);
 };
@@ -1390,18 +1890,45 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         styleMapping: payload.exportOptions.styleMapping,
         generateCover: payload.exportOptions.generateCover,
         generateToc: payload.exportOptions.generateToc,
+        showPageNumbers: payload.exportOptions.showPageNumbers,
+        showHeader: payload.exportOptions.showHeader,
       } : undefined;
       const buffer = await convertMarkdownToDocxBuffer(payload.html, payload.data.md, docxOptions, meta);
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.addingMetadata',
-        percentage: 95,
+        percentage: 88,
         params: { format: 'DOCX' }
       });
+      
+      // 创建进度回调，将公式转换进度映射到 88-95% 区间
+      const formulaPlaceholders = getFormulaPlaceholders();
+      const totalFormulas = formulaPlaceholders ? formulaPlaceholders.size : 0;
+      const formulaProgressStart = 88;
+      const formulaProgressEnd = 95;
+      const formulaProgressRange = formulaProgressEnd - formulaProgressStart;
+      
+      const formulaProgressCallback = totalFormulas > 0 
+        ? (current: number, total: number, message?: string) => {
+            // current 是 0-100 的进度值（转换阶段0-50，替换阶段50-100）
+            // 将其映射到 88-95% 区间
+            const ratio = Math.min(current / 100, 1);
+            const mappedProgress = formulaProgressStart + (ratio * formulaProgressRange);
+            
+            sendProgress(mainWindow, {
+              message: 'agent.reference.progress.exporting',
+              subMessage: message || 'agent.reference.progress.convertingFormulas',
+              percentage: Math.min(mappedProgress, formulaProgressEnd),
+              params: { format: 'DOCX' }
+            });
+          }
+        : undefined;
+      
       const bufferWithMeta = await applyDocxMetadata(buffer, meta, {
         generateToc: docxOptions?.generateToc,
         styleMapping: docxOptions?.styleMapping,
-      });
+        targetPath: targetPath, // 传递目标路径用于调试
+      }, formulaProgressCallback);
       await writeBinaryFile(targetPath, bufferWithMeta);
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exportComplete',

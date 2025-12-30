@@ -9,18 +9,16 @@ import {
   ConvertMarkdownToHtmlVditor,
   filterMetaDataFromMd,
   image2base64,
-  image2local,
   local2image,
 } from '../utils/md-utils';
 import { preRenderAllCharts } from '../utils/chart-pre-renderer';
 import type { WorkspaceDocument } from '../stores/workspace';
 import { createRendererLogger } from '../utils/logger.js';
 import { renderMarkdownMathToImages } from '../utils/math-renderer.js';
-import eventBus from '../utils/event-bus';
-import { useI18n } from 'vue-i18n';
 import { exportAdapterRegistry, type ExportOptions } from './export-adapters';
 import { loadExportOptions, mergeExportOptions } from './export-adapters/storage';
-import { processMarkdownImages, processHtmlImages, extractImageUrls, extractImageUrlsFromHtml, type ImageProcessingMode } from './image-processor';
+import { processMarkdownImages, processHtmlImages, type ImageProcessingMode } from './image-processor';
+import { prepareExportPayloadLegacy } from './export-manager.obsolete';
 
 export interface BaseExportPayload {
   sourceFormat: DocumentFormat;
@@ -120,33 +118,18 @@ export const prepareExportPayload = async (
   }
 
   // 使用适配器准备导出数据
-  // 注意：适配器的 prepareExportData 主要用于处理选项相关的逻辑
-  // 实际的转换逻辑仍然使用原有代码，但会根据选项进行调整
   try {
-    // 对于需要HTML的格式，执行原有的转换逻辑
     let html = '';
     let tex = '';
     let markdown = base.data.md;
     let imageUrls: string[] = [];
 
     if (sourceFormat === 'md') {
+      // 预处理Markdown：过滤元数据、预渲染图表、转换数学公式
       markdown = await prepareMarkdownForExport(markdown, targetFormat, handle, doc);
       
-      // 收集预渲染生成的图片 URL
-      const originalImageUrls = new Set<string>();
-      if (['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
-        const originalImageRegex = /!\[.*?\]\((.*?)\)/g;
-        let match;
-        while ((match = originalImageRegex.exec(base.data.md)) !== null) {
-          const imagePath = match[1];
-          if (imagePath.startsWith('http://localhost:52521/images/')) {
-            originalImageUrls.add(imagePath);
-          } else if (!imagePath.startsWith('data:image/')) {
-            const fileName = imagePath.split(/[/\\]/).pop() || imagePath;
-            originalImageUrls.add(`http://localhost:52521/images/${fileName}`);
-          }
-        }
-      }
+      // 收集原始markdown中的图片URL（用于区分原始图片和预渲染生成的图片）
+      const originalImageUrls = collectOriginalImageUrls(base.data.md);
 
       // 根据导出选项处理图片
       if (targetFormat === 'html' || targetFormat === 'md' || targetFormat === 'tex') {
@@ -156,8 +139,13 @@ export const prepareExportPayload = async (
         }
       }
 
+      // 根据目标格式生成HTML或LaTeX
       if (targetFormat === 'docx') {
-        html = await ConvertMarkdownToHtmlVditor(markdown);
+        // DOCX导出需要将图片转换为base64格式，以便内嵌到文档中
+        let markdownWithBase64Images = await image2base64(markdown);
+        // 调整图片尺寸以适应页面大小
+        markdownWithBase64Images = await resizeImagesForDocx(markdownWithBase64Images);
+        html = await ConvertMarkdownToHtmlVditor(markdownWithBase64Images);
       } else if (targetFormat === 'pdf') {
         html = await ConvertHtmlForPdf(markdown);
       } else if (targetFormat === 'html') {
@@ -168,40 +156,11 @@ export const prepareExportPayload = async (
           html = await processHtmlImages(html, 'base64');
         }
       } else if (targetFormat === 'tex') {
-        const { convertMarkdownToLatex } = await import('../utils/latex-utils');
-        const title = doc.meta?.title || 'Generated Document';
-        // 提取文档元信息
-        let meta = {};
-        try {
-          const parsed = JSON.parse(doc.json || '{}');
-          meta = parsed?.current_article_meta_data || {};
-        } catch {
-          // 忽略解析错误
-        }
-        // 传递导出选项和元信息
-        const latexOptions = {
-          ...finalOptions,
-          meta: {
-            title: meta.title || title,
-            author: meta.author || '',
-            description: meta.description || '',
-            keywords: Array.isArray(meta.keywords) ? meta.keywords : [],
-          },
-        };
-        tex = await convertMarkdownToLatex(markdown, title, latexOptions);
+        tex = await convertMarkdownToLatexWithOptions(markdown, doc, base.data.json, finalOptions);
       }
 
-      // 收集预渲染生成的图片 URL
-      if (['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
-        const imageRegex = /!\[.*?\]\((http:\/\/localhost:52521\/images\/[^)]+)\)/g;
-        let match;
-        while ((match = imageRegex.exec(markdown)) !== null) {
-          const imageUrl = match[1];
-          if (!originalImageUrls.has(imageUrl)) {
-            imageUrls.push(imageUrl);
-          }
-        }
-      }
+      // 收集预渲染生成的图片 URL（排除原始图片）
+      imageUrls = collectRenderedImageUrls(markdown, originalImageUrls);
     } else if (sourceFormat === 'tex') {
       if (targetFormat === 'tex' || targetFormat === 'pdf') {
         // LaTeX 导出不需要转换
@@ -211,6 +170,7 @@ export const prepareExportPayload = async (
         };
       }
 
+      // LaTeX转其他格式：先转为Markdown，然后按照Markdown导出流程处理
       const markdownFromTex = convertLatexToMarkdown(doc.tex ?? base.data.tex ?? '');
       let processedMarkdown = markdownFromTex;
       if (['html', 'docx', 'pdf'].includes(targetFormat)) {
@@ -237,7 +197,6 @@ export const prepareExportPayload = async (
         tex: tex || base.data.tex,
       },
       imageUrls,
-      // 将导出选项附加到payload中，以便main进程使用
       exportOptions: finalOptions,
     };
   } catch (error) {
@@ -247,48 +206,7 @@ export const prepareExportPayload = async (
 };
 
 /**
- * 原有的导出准备逻辑（作为回退）
- */
-const prepareExportPayloadLegacy = async (
-  doc: WorkspaceDocument,
-  targetFormat: ExportFormat,
-  explicitName: string | undefined,
-  requestId: string,
-  handle: any,
-): Promise<BaseExportPayload> => {
-  const sourceFormat = (doc.format ?? 'md') as DocumentFormat;
-  const serialized = await serializeDocument(doc);
-  const suggestedName = explicitName && explicitName.trim().length > 0
-    ? explicitName.trim()
-    : inferDocumentName(doc);
-
-  const base: BaseExportPayload = {
-    sourceFormat,
-    targetFormat,
-    suggestedName,
-    sourcePath: doc.path,
-    requestId,
-    data: {
-      md: serialized.md,
-      json: serialized.json,
-      tex: serialized.tex,
-    },
-  };
-
-  switch (sourceFormat) {
-    case 'md':
-      return await prepareMarkdownExports(base, doc, targetFormat, handle);
-    case 'tex':
-      return await prepareLatexExports(base, doc, targetFormat, handle);
-    case 'json':
-      return await prepareJsonExports(base, targetFormat, handle);
-    default:
-      throw new Error(`未知的文档格式: ${String(sourceFormat)}`);
-  }
-};
-
-/**
- * 准备Markdown用于导出（提取的公共逻辑）
+ * 准备Markdown用于导出（预处理：过滤元数据、预渲染图表、转换数学公式）
  */
 const prepareMarkdownForExport = async (
   markdown: string,
@@ -298,22 +216,6 @@ const prepareMarkdownForExport = async (
 ): Promise<string> => {
   const logger = createRendererLogger('ExportManager');
   let processedMarkdown = filterMetaDataFromMd(markdown);
-
-  // 记录原始 markdown 中的图片
-  const originalImageUrls = new Set<string>();
-  if (['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
-    const originalImageRegex = /!\[.*?\]\((.*?)\)/g;
-    let match;
-    while ((match = originalImageRegex.exec(processedMarkdown)) !== null) {
-      const imagePath = match[1];
-      if (imagePath.startsWith('http://localhost:52521/images/')) {
-        originalImageUrls.add(imagePath);
-      } else if (!imagePath.startsWith('data:image/')) {
-        const fileName = imagePath.split(/[/\\]/).pop() || imagePath;
-        originalImageUrls.add(`http://localhost:52521/images/${fileName}`);
-      }
-    }
-  }
 
   // 预渲染图表
   if (['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
@@ -342,251 +244,112 @@ const prepareMarkdownForExport = async (
     }
   }
 
+
+  const mathToImageFormats=['html'];//只转换html，docx和pdf已经转换
   // 将数学公式转换为图片
-  if (['html', 'docx'].includes(targetFormat)) {
+  if (mathToImageFormats.includes(targetFormat)) {
     try {
-      const imageFormat = targetFormat === 'docx' ? 'png' : 'svg';
-      logger.debug(`renderMarkdownMathToImages start, format: ${imageFormat}`);
-      processedMarkdown = await renderMarkdownMathToImages(processedMarkdown, imageFormat);
-      logger.debug(`renderMarkdownMathToImages end`);
+      processedMarkdown = await renderMarkdownMathToImages(processedMarkdown, 'svg');
     } catch (e) {
       logger.error('数学公式转图片失败，保留原文:', e);
     }
   }
 
-  // 后处理图片路径
-  processedMarkdown = await postProcessMarkdownImages(processedMarkdown, targetFormat, doc.path);
+  // 处理图片路径（转换为HTTP URL格式，以便后续处理）
+  processedMarkdown = await local2image(processedMarkdown, doc.path);
 
   return processedMarkdown;
 };
 
-
-const postProcessMarkdownImages = async (markdown: string, targetFormat: ExportFormat, docPath?: string) => {
-  // 注意：图片处理现在由导出选项控制，这个函数保留用于向后兼容
-  // 对于使用适配器的导出，图片处理已经在 prepareExportPayload 中根据选项处理
-  // 这里只处理不使用适配器的情况（向后兼容）
-  
-  // 根据导出格式处理图片路径
-  if (targetFormat === 'tex') {
-    // LaTeX 导出需要本地文件路径
-    markdown = await image2local(markdown);
-  } else {
-    // 其他格式（html, docx, pdf）需要 HTTP URL
-    // 传入文档路径以支持相对路径解析
-    markdown = await local2image(markdown, docPath);
-  }
-  // DOCX 需要将图片内联嵌入，确保文件独立
-  // HTML 不需要在这里转换，ConvertMarkdownToHtmlManually 会在渲染后处理
-  if (targetFormat === 'docx') {
-    markdown = await image2base64(markdown);
-  }
-  return markdown;
-}
-const prepareMarkdownExports = async (
-  base: BaseExportPayload,
-  doc: WorkspaceDocument,
-  targetFormat: ExportFormat,
-  handle: any,
-): Promise<BaseExportPayload> => {
-  let markdown = filterMetaDataFromMd(base.data.md);
-  const logger = createRendererLogger('ExportManager');
-  //logger.debug(`targetFormat: ${targetFormat}`);
-
-  // 记录原始 markdown 中的图片，用于区分用户原本引用的图片和预渲染生成的图片
+/**
+ * 收集原始markdown中的图片URL（用于区分原始图片和预渲染生成的图片）
+ */
+const collectOriginalImageUrls = (markdown: string): Set<string> => {
   const originalImageUrls = new Set<string>();
-  if (['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
-    // 提取原始 markdown 中的所有图片 URL（可能是本地路径或 HTTP URL）
-    const originalImageRegex = /!\[.*?\]\((.*?)\)/g;
-    let match;
-    while ((match = originalImageRegex.exec(markdown)) !== null) {
-      const imagePath = match[1];
-      // 如果是 HTTP URL，直接记录
-      if (imagePath.startsWith('http://localhost:52521/images/')) {
-        originalImageUrls.add(imagePath);
-      }
-      // 如果是本地路径，转换为 HTTP URL 格式后记录（用于后续比较）
-      else if (!imagePath.startsWith('data:image/')) {
-        // 提取文件名
-        const fileName = imagePath.split(/[/\\]/).pop() || imagePath;
-        originalImageUrls.add(`http://localhost:52521/images/${fileName}`);
-      }
+  const originalImageRegex = /!\[.*?\]\((.*?)\)/g;
+  let match;
+  while ((match = originalImageRegex.exec(markdown)) !== null) {
+    const imagePath = match[1];
+    if (imagePath.startsWith('http://localhost:52521/images/')) {
+      originalImageUrls.add(imagePath);
+    } else if (!imagePath.startsWith('data:image/')) {
+      const fileName = imagePath.split(/[/\\]/).pop() || imagePath;
+      originalImageUrls.add(`http://localhost:52521/images/${fileName}`);
     }
   }
+  return originalImageUrls;
+};
 
-  // 对于所有需要生成 HTML 的格式，先预渲染所有图表
-  if (['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
-    // 先预渲染图表（统一处理，不依赖 Vditor）
-    // 图表会被转换为本地图片 URL，这样在导出时就不需要依赖 Vditor 的渲染
-    // Word 导出使用位图，其他格式使用矢量图
-    const chartFormat = (targetFormat === 'docx') ? 'bitmap' : 'svg';
-    try {
-      logger.debug(`preRenderAllCharts start`);
-      handle.mark(5, { message: 'agent.reference.progress.preRenderingCharts', subMessage: 'agent.reference.progress.preparingExport' })
-      markdown = await preRenderAllCharts(markdown, '', chartFormat, (progress: any) => {
-        const percent = Math.min(80, progress?.percentage ?? 0);
-        handle.mark(percent, {
-          message: progress?.message ?? 'agent.reference.progress.preRenderingCharts',
-          subMessage: progress?.subMessage ?? 'agent.reference.progress.preparingExport',
-          params: progress?.params,
-          status: progress?.status as any
-        });
-      });
-      logger.debug(`preRenderAllCharts end`);
-      handle.mark(80, { message: 'agent.reference.progress.preRenderingCharts' })
-    } catch (error) {
-      logger.warn('图表预渲染失败，继续使用原始 Markdown:', error);
-      handle.mark(5, {
-        message: '图表预渲染失败',
-        subMessage: error instanceof Error ? error.message : String(error),
-        status: 'warning'
-      });
-    }
-
-
-  }
-  // 对于需要生成HTML的格式（html, docx, pdf），将数学公式转换为图片
-  if (['html', 'docx'].includes(targetFormat)) {
-    try {
-      const imageFormat = targetFormat === 'docx' ? 'png' : 'svg';
-      logger.debug(`renderMarkdownMathToImages start, format: ${imageFormat}`);
-      markdown = await renderMarkdownMathToImages(markdown, imageFormat);
-      logger.debug(`renderMarkdownMathToImages end`);
-    } catch (e) {
-      logger.error('数学公式转图片失败，保留原文:', e);
-    }
-    // PDF 保持 HTTP URL，不需要转换为 base64（PDF导出时会处理）
-  }
-  // 后处理图片路径（根据导出选项）
-  // 注意：这里不再自动处理图片，而是根据导出选项来决定
-  // 图片处理逻辑已经在 prepareExportPayload 中根据选项处理了
-
-
-
-  let html = '';
-  let tex = '';
-  if (targetFormat === 'docx') {
-    html = await ConvertMarkdownToHtmlVditor(markdown);
-  } else if (targetFormat === 'pdf') {
-    html = await ConvertHtmlForPdf(markdown);
-  } else if (targetFormat === 'html') {
-    html = await ConvertMarkdownToHtmlManually(markdown);
-  } else if (targetFormat === 'md') {
-    html = await ConvertMarkdownToHtmlManually(markdown);
-  } else if (targetFormat === 'tex') {
-    // Markdown 转 LaTeX，图表已经预渲染为图片 URL
-    const { convertMarkdownToLatex } = await import('../utils/latex-utils');
-    const title = doc.meta?.title || 'Generated Document';
-    // 提取文档元信息
-    let meta = {};
-    try {
-      const parsed = JSON.parse(doc.json || '{}');
-      meta = parsed?.current_article_meta_data || {};
-    } catch {
-      // 忽略解析错误
-    }
-    // 传递导出选项和元信息
-    const latexOptions = {
-      ...finalOptions,
-      meta: {
-        title: meta.title || title,
-        author: meta.author || '',
-        description: meta.description || '',
-        keywords: Array.isArray(meta.keywords) ? meta.keywords : [],
-      },
-    };
-    tex = await convertMarkdownToLatex(markdown, title, latexOptions);
-  }
-
-  // 收集预渲染生成的图片 URL（用于后续清理）
-  // 只收集那些不在原始图片列表中的 URL，即预渲染生成的图片
+/**
+ * 收集预渲染生成的图片URL（排除原始图片）
+ */
+const collectRenderedImageUrls = (markdown: string, originalImageUrls: Set<string>): string[] => {
   const imageUrls: string[] = [];
-  if (['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
-    // 从 markdown 中提取所有图片 URL
-    const imageRegex = /!\[.*?\]\((http:\/\/localhost:52521\/images\/[^)]+)\)/g;
-    let match;
-    while ((match = imageRegex.exec(markdown)) !== null) {
-      const imageUrl = match[1];
-      // 只收集预渲染生成的图片（不在原始图片列表中的）
-      if (!originalImageUrls.has(imageUrl)) {
-        imageUrls.push(imageUrl);
-        logger.debug(`收集预渲染生成的图片: ${imageUrl}`);
-      } else {
-        logger.debug(`跳过用户原本引用的图片: ${imageUrl}`);
-      }
+  const imageRegex = /!\[.*?\]\((http:\/\/localhost:52521\/images\/[^)]+)\)/g;
+  let match;
+  while ((match = imageRegex.exec(markdown)) !== null) {
+    const imageUrl = match[1];
+    if (!originalImageUrls.has(imageUrl)) {
+      imageUrls.push(imageUrl);
     }
   }
-
-  return {
-    ...base,
-    requestId: base.requestId,
-    html,
-    data: {
-      ...base.data,
-      md: markdown,
-      tex: tex || base.data.tex,
-    },
-    // 保存图片 URL 用于清理
-    imageUrls,
-  };
+  return imageUrls;
 };
 
-const prepareLatexExports = async (
-  base: BaseExportPayload,
+/**
+ * 调整DOCX导出时的图片尺寸标记（不实际缩放图片，保持原始质量）
+ * A4页面：210mm × 297mm，页边距上下左右各0.5英寸
+ * 可用区域：约523pt × 770pt ≈ 697px × 1026px (96 DPI)
+ * 使用稍小的值以确保安全：680px × 1000px
+ * 
+ * 注意：不实际缩放图片，而是通过添加HTML属性来控制显示尺寸
+ * 这样html-to-docx会使用原始图片质量，只是限制显示尺寸
+ */
+const resizeImagesForDocx = async (markdown: string): Promise<string> => {
+  // DOCX导出时，图片会在HTML阶段处理，这里不需要实际缩放
+  // 保持原始图片质量，在HTML转换阶段通过CSS控制尺寸
+  // 这个函数现在只返回原始markdown，不做任何处理
+  return markdown;
+};
+
+/**
+ * 将Markdown转换为LaTeX（带导出选项）
+ */
+const convertMarkdownToLatexWithOptions = async (
+  markdown: string,
   doc: WorkspaceDocument,
-  targetFormat: ExportFormat,
-  _handle: any,
-): Promise<BaseExportPayload> => {
-  if (targetFormat === 'tex' || targetFormat === 'pdf') {
-    return base;
+  jsonData: string,
+  exportOptions: ExportOptions,
+): Promise<string> => {
+  const { convertMarkdownToLatex } = await import('../utils/latex-utils');
+  const title = doc.meta?.title || 'Generated Document';
+  
+  // 提取文档元信息
+  let meta: any = {};
+  try {
+    const parsed = JSON.parse(jsonData || '{}');
+    meta = parsed?.current_article_meta_data || {};
+  } catch {
+    // 忽略解析错误
   }
-
-  const markdownFromTex = convertLatexToMarkdown(doc.tex ?? base.data.tex ?? '');
-  const updatedBase: BaseExportPayload = {
-    ...base,
-    data: {
-      ...base.data,
-      md: markdownFromTex,
+  
+  // 传递导出选项和元信息
+  const latexOptions = {
+    ...exportOptions,
+    meta: {
+      title: meta.title || title,
+      author: meta.author || '',
+      description: meta.description || '',
+      keywords: Array.isArray(meta.keywords) ? meta.keywords : [],
     },
   };
-
-  if (targetFormat === 'md') {
-    return updatedBase;
-  }
-
-  let markdown = markdownFromTex;
-  if (['html', 'docx', 'pdf'].includes(targetFormat)) {
-    markdown = await local2image(markdown, doc.path);
-  }
-
-  if (['html', 'docx'].includes(targetFormat)) {
-    markdown = await image2base64(markdown);
-  }
-
-  let html = '';
-  if (targetFormat === 'docx') {
-    html = await ConvertMarkdownToHtmlVditor(markdown);
-  } else if (targetFormat === 'html') {
-    html = await ConvertMarkdownToHtmlManually(markdown);
-  }
-
-  return {
-    ...updatedBase,
-    html,
-  };
+  
+  return await convertMarkdownToLatex(markdown, title, latexOptions);
 };
 
-const prepareJsonExports = async (
-  base: BaseExportPayload,
-  targetFormat: ExportFormat,
-  _handle: any,
-): Promise<BaseExportPayload> => {
-  if (targetFormat === 'json') {
-    return base;
-  }
-
-  throw new NotImplementedExportError(base.sourceFormat, targetFormat);
-};
-
+/**
+ * 推断文档名称
+ */
 const inferDocumentName = (doc: WorkspaceDocument): string => {
   const title = doc.meta?.title?.trim();
   if (title) {

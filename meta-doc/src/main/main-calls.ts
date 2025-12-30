@@ -191,6 +191,7 @@ export function mainCalls(): void {
   bindTerminalHandlers();
   bindDatabaseTestHandlers();
   bindDatabaseHandlers();
+  bindMathHandlers();
   
   initBroadcastChannel();
 }
@@ -2866,6 +2867,42 @@ function bindDatabaseHandlers(): void {
     } catch (error) {
       logger.error('数据库事务失败:', error as Error, { sqlStatements });
       return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+}
+
+/**
+ * 绑定数学公式处理器
+ */
+function bindMathHandlers(): void {
+  // 单个公式转换
+  ipcMain.handle('latex-to-mathml', async (
+    event: IpcMainInvokeEvent,
+    latex: string,
+    displayMode: boolean = false
+  ): Promise<string | null> => {
+    try {
+      const { convertLatexToMathML } = await import('./utils/mathml-converter');
+      const mathml = await convertLatexToMathML(latex, displayMode);
+      return mathml;
+    } catch (error) {
+      logger.error('LaTeX 转 MathML 失败:', error);
+      return null;
+    }
+  });
+
+  // 批量公式转换
+  ipcMain.handle('latex-batch-to-mathml', async (
+    event: IpcMainInvokeEvent,
+    formulas: Array<{ latex: string; displayMode: boolean }>
+  ): Promise<Array<string | null>> => {
+    try {
+      const { convertLatexBatchToMathML } = await import('./utils/mathml-converter');
+      const results = await convertLatexBatchToMathML(formulas);
+      return results;
+    } catch (error) {
+      logger.error('批量 LaTeX 转 MathML 失败:', error);
+      return formulas.map(() => null);
     }
   });
 }

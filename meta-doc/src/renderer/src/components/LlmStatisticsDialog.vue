@@ -118,7 +118,7 @@ import { getStatistics, exportStatistics, clearStatistics } from '../utils/llm-s
 import * as echarts from 'echarts';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer';
-import { createRendererLogger } from '../utils/logger.js';
+import { createRendererLogger } from '../utils/logger';
 
 const { t } = useI18n();
 

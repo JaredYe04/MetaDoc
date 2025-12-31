@@ -267,15 +267,14 @@ export class WordTocProcessor implements DocxProcessor {
     `;
 
     // 查找目录标题段落（包含 "目录" 或可能的其他语言翻译）
-    // 查找包含 Heading1 样式且包含目录相关文本的段落
-    // 由于html-to-docx的转换，我们需要查找可能的文本内容
-    // 目录标题应该是一个 h1，转换后是 <w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>目录</w:t></w:r></w:p>
+    // 目录标题现在是一个普通的加粗居中段落，不是 Heading1 样式
+    // 转换后的格式：<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>目录</w:t></w:r></w:p>
     
-    // 使用更通用的方法：查找包含目录标题的段落（Heading1样式），然后查找其后的空段落或分页标记
+    // 使用更通用的方法：查找包含目录标题的段落（居中、加粗、大字号），然后查找其后的空段落或分页标记
     // 目录占位符的div在HTML中是 <div data-toc-placeholder="true"></div>，转换为Word后可能是一个空段落
     
-    // 查找目录标题段落的正则（包含Heading1样式）
-    const tocTitleRegex = /<w:p[^>]*>[\s\S]*?<w:pPr[^>]*>[\s\S]*?<w:pStyle[^>]*w:val="Heading1"[^>]*\/?>[\s\S]*?<\/w:pPr>[\s\S]*?<w:r[^>]*>[\s\S]*?<w:t[^>]*>[\s\S]{0,50}(?:目录|Table of Contents|目次)[\s\S]{0,50}<\/w:t>[\s\S]*?<\/w:r>[\s\S]*?<\/w:p>/i;
+    // 查找目录标题段落的正则（居中、加粗、包含目录文本，但不包含 Heading 样式）
+    const tocTitleRegex = /<w:p[^>]*>[\s\S]*?<w:pPr[^>]*>[\s\S]*?<w:jc[^>]*w:val="center"[^>]*\/?>[\s\S]*?<\/w:pPr>[\s\S]*?<w:r[^>]*>[\s\S]*?<w:rPr[^>]*>[\s\S]*?<w:b[^>]*\/?>[\s\S]*?<\/w:rPr>[\s\S]*?<w:t[^>]*>[\s\S]{0,50}(?:目录|Table of Contents|目次|Contents)[\s\S]{0,50}<\/w:t>[\s\S]*?<\/w:r>[\s\S]*?<\/w:p>/i;
     const tocTitleMatch = updatedXml.match(tocTitleRegex);
     
     if (tocTitleMatch) {
@@ -1900,14 +1899,20 @@ export class DocumentXmlFixProcessor implements DocxProcessor {
       
       if (tocItemsEndMatch) {
         const tocItemsEndPos = tocTitleEnd + tocItemsEndMatch.index! + tocItemsEndMatch[0].length;
-        // 检查是否已经有换页符
+        // 检查是否已经有换页符（检查多种格式：pageBreakAfter、pageBreakBefore、br type="page"）
         const checkContent = updatedXml.substring(Math.max(0, tocItemsEndPos - 100), Math.min(updatedXml.length, tocItemsEndPos + 500));
-        if (!checkContent.includes('<w:pageBreakAfter') && !checkContent.includes('<w:pageBreakBefore')) {
+        const hasPageBreak = checkContent.includes('<w:pageBreakAfter') || 
+                             checkContent.includes('<w:pageBreakBefore') ||
+                             checkContent.includes('<w:br w:type="page"') ||
+                             checkContent.includes('<w:br w:type=\'page\'');
+        if (!hasPageBreak) {
           // 插入一个带换页符的空段落
           const pageBreakPara = '<w:p><w:pPr><w:pageBreakAfter/></w:pPr></w:p>';
           updatedXml = updatedXml.substring(0, tocItemsEndPos) + pageBreakPara + updatedXml.substring(tocItemsEndPos);
           modified = true;
           logger.debug('已在目录结尾添加换页符');
+        } else {
+          logger.debug('目录后已存在分页符，跳过添加');
         }
       } else {
         // 如果找不到明确的结束位置，在目录标题后查找最后一个段落
@@ -1921,11 +1926,17 @@ export class DocumentXmlFixProcessor implements DocxProcessor {
           }
           
           const checkContent = updatedXml.substring(Math.max(0, lastParaEndPos - 100), Math.min(updatedXml.length, lastParaEndPos + 500));
-          if (!checkContent.includes('<w:pageBreakAfter') && !checkContent.includes('<w:pageBreakBefore')) {
+          const hasPageBreak = checkContent.includes('<w:pageBreakAfter') || 
+                               checkContent.includes('<w:pageBreakBefore') ||
+                               checkContent.includes('<w:br w:type="page"') ||
+                               checkContent.includes('<w:br w:type=\'page\'');
+          if (!hasPageBreak) {
             const pageBreakPara = '<w:p><w:pPr><w:pageBreakAfter/></w:pPr></w:p>';
             updatedXml = updatedXml.substring(0, lastParaEndPos) + pageBreakPara + updatedXml.substring(lastParaEndPos);
             modified = true;
             logger.debug('已在目录结尾添加换页符（备用策略）');
+          } else {
+            logger.debug('目录后已存在分页符，跳过添加（备用策略）');
           }
         }
       }

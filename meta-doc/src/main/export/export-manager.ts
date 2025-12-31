@@ -1643,15 +1643,18 @@ const convertMarkdownToDocxBuffer = async (
   
   // 添加目录占位符（如果有封面，目录在封面后；如果没有封面，目录在正文前）
   // 目录标题在HTML阶段插入，目录内容占位符将在document.xml处理阶段替换为Word自动目录
+  // 注意：目录标题不使用 h1（会被映射为 Heading1），而是使用普通的加粗居中段落，避免目录项包含"目录"
   let tocPlaceholder = '';
   if (options?.generateToc) {
-    const tocTitle = t('common.tableOfContents', '目录');
-    // 目录占位符：h1标题 + 占位符div（将被替换为Word自动目录字段）
+    const tocTitle = t('export.options.generateToc.title', '目录');
+    // 目录占位符：普通加粗居中段落 + 占位符div（将被替换为Word自动目录字段）
     // 注意：占位符div需要使用特定的data属性，以便在document.xml处理阶段识别
+    // 注意：不在HTML阶段添加分页符，WordTocProcessor会在目录后自动添加分页符
     tocPlaceholder = `
-      <h1 style="text-align: center; margin-bottom: 20pt;">${escapeHtml(tocTitle)}</h1>
+      <p style="text-align: center; margin-bottom: 20pt; font-weight: bold; font-size: 18pt;">
+        <span>${escapeHtml(tocTitle)}</span>
+      </p>
       <div data-toc-placeholder="true" style="display: none;"></div>
-      <div class="page-break" style="page-break-after: always;"></div>
     `;
   }
 
@@ -1903,6 +1906,7 @@ const applyDocxMetadata = async (
   meta: DocumentMetaInfo, 
   options?: {
     generateToc?: boolean;
+    processFormula?: boolean;
     showPageNumbers?: boolean;
     showHeader?: boolean;
     styleMapping?: {
@@ -1921,18 +1925,25 @@ const applyDocxMetadata = async (
   
   // 应用 DOCX 处理器（如目录、页眉页脚、OMML等）
   const processorManager = getDocxProcessingManager();
-  const formulaPlaceholders = getFormulaPlaceholders();
   
   // 从 options 中提取 targetPath（如果存在）
   const targetPath = (options as any)?.targetPath;
   
-  updated = await processorManager.process(updated, {
+  // 如果 processFormula 为 true，传递公式占位符数据；否则不传递，跳过公式处理
+  const processOptions: any = {
     ...options,
     title: meta.title,
-    formulaPlaceholders: formulaPlaceholders, // 传递公式占位符数据
     progressCallback: progressCallback, // 传递进度回调
     targetPath: targetPath, // 传递目标路径用于调试文件保存
-  });
+  };
+  
+  // 只有当 processFormula 不为 false 时才处理公式
+  if (options?.processFormula !== false) {
+    const formulaPlaceholders = getFormulaPlaceholders();
+    processOptions.formulaPlaceholders = formulaPlaceholders;
+  }
+  
+  updated = await processorManager.process(updated, processOptions);
   
   // 清除公式占位符数据
   clearFormulaPlaceholders();
@@ -2237,6 +2248,7 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         styleMapping: payload.exportOptions.styleMapping,
         generateCover: payload.exportOptions.generateCover,
         generateToc: payload.exportOptions.generateToc,
+        processFormula: payload.exportOptions.processFormula,
         showPageNumbers: payload.exportOptions.showPageNumbers,
         showHeader: payload.exportOptions.showHeader,
       } : undefined;
@@ -2273,6 +2285,7 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
       
       const bufferWithMeta = await applyDocxMetadata(buffer, meta, {
         generateToc: docxOptions?.generateToc,
+        processFormula: docxOptions?.processFormula,
         styleMapping: docxOptions?.styleMapping,
         targetPath: targetPath, // 传递目标路径用于调试
       }, formulaProgressCallback);

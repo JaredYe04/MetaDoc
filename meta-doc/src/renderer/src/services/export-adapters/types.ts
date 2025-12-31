@@ -67,6 +67,8 @@ export interface DocxExportOptions extends BaseExportOptions {
   generateCover?: boolean;
   // 是否生成目录
   generateToc?: boolean;
+  // 是否处理公式
+  processFormula?: boolean;
   // 是否显示页码
   showPageNumbers?: boolean;
   // 是否显示页眉
@@ -107,6 +109,8 @@ export interface LatexExportOptions extends BaseExportOptions {
   generateCover?: boolean;
   // 是否生成目录
   generateToc?: boolean;
+  // 是否处理公式
+  processFormula?: boolean;
   // 是否显示页码
   showPageNumbers?: boolean;
   // 是否显示页眉
@@ -146,6 +150,8 @@ export interface ExportOptionField {
   fields?: ExportOptionField[];
   // 是否显示（基于其他字段的值）
   showWhen?: (options: any) => boolean;
+  // 所属的 tab 分组（用于UI分组显示）
+  tab?: string;
 }
 
 /**

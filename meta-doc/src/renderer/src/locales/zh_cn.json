@@ -2242,6 +2242,14 @@
         "description": "在封面后（或文档开头）生成目录",
         "title": "目录"
       },
+      "processFormula": {
+        "label": "处理公式",
+        "description": "是否自动处理 LaTeX 公式"
+      },
+      "tabs": {
+        "basic": "基本设置",
+        "style": "样式设置"
+      },
       "showPageNumbers": {
         "label": "显示页码",
         "description": "在页脚显示页码"

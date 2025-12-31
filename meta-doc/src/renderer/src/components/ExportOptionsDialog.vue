@@ -13,7 +13,138 @@
     class="export-options-dialog"
   >
     <el-scrollbar height="500px">
+      <el-tabs v-model="activeTab" type="border-card" v-if="hasTabs">
+        <el-tab-pane
+          v-for="tab in tabs"
+          :key="tab.name"
+          :label="tab.label"
+          :name="tab.name"
+        >
+          <el-form
+            :model="formData"
+            label-width="140px"
+            label-position="left"
+            class="export-options-form"
+          >
+            <template v-for="field in getFieldsForTab(tab.name)" :key="field.key">
+          <!-- 对象类型字段（如margins） -->
+          <template v-if="field.type === 'object' && field.fields">
+            <el-divider>
+              <span>{{ getFieldLabel(field) }}</span>
+            </el-divider>
+            <template v-for="subField in field.fields" :key="subField.key">
+              <el-form-item
+                v-if="shouldShowField(subField) && (subField.type === 'select' || subField.type === 'font')"
+                :label="getFieldLabel(subField)"
+                :prop="subField.key"
+              >
+                <el-select
+                  :model-value="getNestedValue(formData, subField.key)"
+                  @update:model-value="(val) => setNestedValue(formData, subField.key, val)"
+                  :placeholder="getFieldLabel(subField)"
+                  :loading="subField.type === 'font' && fontsLoading"
+                  v-bind="getFieldProps(subField)"
+                  style="width: 100%"
+                >
+                  <el-option
+                    v-for="option in (subField.type === 'font' ? getFontOptions(subField) : (subField.options || []))"
+                    :key="option.value"
+                    :label="option.labelKey ? t(option.labelKey) : option.label"
+                    :value="option.value"
+                  />
+                </el-select>
+                <el-text
+                  v-if="subField.description || subField.descriptionKey"
+                  size="small"
+                  type="info"
+                  style="display: block; margin-top: 4px;"
+                >
+                  {{ getFieldDescription(subField) }}
+                </el-text>
+              </el-form-item>
+              <el-form-item
+                v-else-if="shouldShowField(subField)"
+                :label="getFieldLabel(subField)"
+                :prop="subField.key"
+              >
+                <component
+                  :is="getFieldComponent(subField)"
+                  :model-value="getNestedValue(formData, subField.key)"
+                  @update:model-value="(val) => setNestedValue(formData, subField.key, val)"
+                  v-bind="getFieldProps(subField)"
+                  style="width: 100%"
+                />
+                <el-text
+                  v-if="subField.description || subField.descriptionKey"
+                  size="small"
+                  type="info"
+                  style="display: block; margin-top: 4px;"
+                >
+                  {{ getFieldDescription(subField) }}
+                </el-text>
+              </el-form-item>
+            </template>
+          </template>
+          
+          <!-- Select字段和Font字段 -->
+          <el-form-item
+            v-else-if="shouldShowField(field) && (field.type === 'select' || field.type === 'font')"
+            :label="getFieldLabel(field)"
+            :prop="field.key"
+          >
+            <el-select
+              :model-value="getNestedValue(formData, field.key)"
+              @update:model-value="(val) => setNestedValue(formData, field.key, val)"
+              :placeholder="getFieldLabel(field)"
+              :loading="field.type === 'font' && fontsLoading"
+              v-bind="getFieldProps(field)"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="option in (field.type === 'font' ? getFontOptions(field) : (field.options || []))"
+                :key="option.value"
+                :label="option.labelKey ? t(option.labelKey) : option.label"
+                :value="option.value"
+              />
+            </el-select>
+            <el-text
+              v-if="field.description || field.descriptionKey"
+              size="small"
+              type="info"
+              style="display: block; margin-top: 4px;"
+            >
+              {{ getFieldDescription(field) }}
+            </el-text>
+          </el-form-item>
+          
+          <!-- 普通字段 -->
+          <el-form-item
+            v-else-if="shouldShowField(field)"
+            :label="getFieldLabel(field)"
+            :prop="field.key"
+          >
+            <component
+              :is="getFieldComponent(field)"
+              :model-value="getNestedValue(formData, field.key)"
+              @update:model-value="(val) => setNestedValue(formData, field.key, val)"
+              v-bind="getFieldProps(field)"
+              style="width: 100%"
+            />
+            <el-text
+              v-if="field.description || field.descriptionKey"
+              size="small"
+              type="info"
+              style="display: block; margin-top: 4px;"
+            >
+              {{ getFieldDescription(field) }}
+            </el-text>
+          </el-form-item>
+            </template>
+          </el-form>
+        </el-tab-pane>
+      </el-tabs>
       <el-form
+        v-else
         :model="formData"
         label-width="140px"
         label-position="left"
@@ -153,7 +284,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElDialog, ElForm, ElFormItem, ElInput, ElInputNumber, ElSelect, ElOption, ElSwitch, ElButton, ElScrollbar, ElDivider, ElText } from 'element-plus';
+import { ElDialog, ElForm, ElFormItem, ElInput, ElInputNumber, ElSelect, ElOption, ElSwitch, ElButton, ElScrollbar, ElDivider, ElText, ElTabs, ElTabPane } from 'element-plus';
 import { themeState } from '../utils/themes';
 import type { ExportAdapter, ExportOptionField, ExportOptions } from '../services/export-adapters/types';
 import type { DocumentFormat, ExportFormat } from '../../types';
@@ -188,6 +319,7 @@ const formData = ref<Record<string, any>>({});
 const defaultOptions = ref<ExportOptions>({});
 const systemFonts = ref<SystemFont[]>([]);
 const fontsLoading = ref(false);
+const activeTab = ref<string>('basic');
 
 // 加载系统字体
 onMounted(async () => {
@@ -224,6 +356,36 @@ const visibleFields = computed(() => {
   if (!props.adapter) return [];
   return props.adapter.getOptionFields().filter(field => shouldShowField(field));
 });
+
+// 获取所有 tab
+const tabs = computed(() => {
+  if (!props.adapter) return [];
+  const fields = props.adapter.getOptionFields();
+  const tabSet = new Set<string>();
+  fields.forEach(field => {
+    if (field.tab) {
+      tabSet.add(field.tab);
+    }
+  });
+  const tabList = Array.from(tabSet);
+  return tabList.map(tabName => ({
+    name: tabName,
+    label: t(`export.options.tabs.${tabName}`, tabName === 'basic' ? '基本设置' : '样式设置'),
+  }));
+});
+
+// 是否有 tabs
+const hasTabs = computed(() => {
+  return tabs.value.length > 0;
+});
+
+// 获取指定 tab 的字段
+function getFieldsForTab(tabName: string): ExportOptionField[] {
+  if (!props.adapter) return [];
+  return props.adapter.getOptionFields().filter(field => {
+    return shouldShowField(field) && (field.tab === tabName || (!field.tab && tabName === 'basic'));
+  });
+}
 
 // 判断字段是否应该显示
 function shouldShowField(field: ExportOptionField): boolean {

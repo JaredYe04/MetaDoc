@@ -44,8 +44,9 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
           lineHeight: 1.2,
         },
       },
-      generateCover: false,
-      generateToc: false,
+      generateCover: true,
+      generateToc: true,
+      processFormula: true,
       showPageNumbers: false,
       showHeader: false,
     };
@@ -53,6 +54,38 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
   
   getOptionFields(): ExportOptionField[] {
     return [
+      // 第一个 tab：封面、目录等设置
+      {
+        key: 'generateCover',
+        label: '生成封面',
+        labelKey: 'export.options.generateCover.label',
+        type: 'boolean',
+        default: true,
+        description: '在第一页显示文档标题、作者、摘要和关键词',
+        descriptionKey: 'export.options.generateCover.description',
+        tab: 'basic',
+      },
+      {
+        key: 'generateToc',
+        label: '生成目录',
+        labelKey: 'export.options.generateToc.label',
+        type: 'boolean',
+        default: true,
+        description: '在封面后（或文档开头）生成目录',
+        descriptionKey: 'export.options.generateToc.description',
+        tab: 'basic',
+      },
+      {
+        key: 'processFormula',
+        label: '处理公式',
+        labelKey: 'export.options.processFormula.label',
+        type: 'boolean',
+        default: true,
+        description: '是否自动处理 LaTeX 公式',
+        descriptionKey: 'export.options.processFormula.description',
+        tab: 'basic',
+      },
+      // 第二个 tab：字体、行距等设置
       {
         key: 'enableStyleMapping',
         label: '启用格式绑定',
@@ -61,6 +94,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         default: true,
         description: '是否将Markdown元素映射到Word样式（如标题1、标题2等）',
         descriptionKey: 'export.options.enableStyleMapping.description',
+        tab: 'style',
       },
       {
         key: 'styleMapping.normal.fontFamily',
@@ -71,6 +105,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '正文使用的字体',
         descriptionKey: 'export.options.normalFontFamily.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.normal.fontSize',
@@ -84,6 +119,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '正文字体大小，单位：磅（pt）',
         descriptionKey: 'export.options.normalFontSize.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.normal.lineHeight',
@@ -97,6 +133,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '正文行距倍数',
         descriptionKey: 'export.options.normalLineHeight.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.heading1.fontFamily',
@@ -107,6 +144,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '一级标题使用的字体',
         descriptionKey: 'export.options.heading1FontFamily.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.heading1.fontSize',
@@ -120,6 +158,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '一级标题字体大小，单位：磅（pt）',
         descriptionKey: 'export.options.heading1FontSize.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.heading1.lineHeight',
@@ -133,6 +172,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '一级标题行距倍数',
         descriptionKey: 'export.options.heading1LineHeight.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.heading2.fontFamily',
@@ -143,6 +183,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '二级标题使用的字体',
         descriptionKey: 'export.options.heading2FontFamily.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.heading2.fontSize',
@@ -156,6 +197,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '二级标题字体大小，单位：磅（pt）',
         descriptionKey: 'export.options.heading2FontSize.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.heading2.lineHeight',
@@ -169,6 +211,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '二级标题行距倍数',
         descriptionKey: 'export.options.heading2LineHeight.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.heading3.fontFamily',
@@ -179,6 +222,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '三级标题使用的字体',
         descriptionKey: 'export.options.heading3FontFamily.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.heading3.fontSize',
@@ -192,6 +236,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '三级标题字体大小，单位：磅（pt）',
         descriptionKey: 'export.options.heading3FontSize.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.heading3.lineHeight',
@@ -205,6 +250,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '三级标题行距倍数',
         descriptionKey: 'export.options.heading3LineHeight.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.heading4.fontFamily',
@@ -215,6 +261,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '四级标题使用的字体',
         descriptionKey: 'export.options.heading4FontFamily.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.heading4.fontSize',
@@ -228,6 +275,7 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '四级标题字体大小，单位：磅（pt）',
         descriptionKey: 'export.options.heading4FontSize.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
       {
         key: 'styleMapping.heading4.lineHeight',
@@ -241,43 +289,27 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
         description: '四级标题行距倍数',
         descriptionKey: 'export.options.heading4LineHeight.description',
         showWhen: (options) => options.enableStyleMapping === true,
+        tab: 'style',
       },
-      {
-        key: 'generateCover',
-        label: '生成封面',
-        labelKey: 'export.options.generateCover.label',
-        type: 'boolean',
-        default: false,
-        description: '在第一页显示文档标题、作者、摘要和关键词',
-        descriptionKey: 'export.options.generateCover.description',
-      },
-      {
-        key: 'generateToc',
-        label: '生成目录',
-        labelKey: 'export.options.generateToc.label',
-        type: 'boolean',
-        default: false,
-        description: '在封面后（或文档开头）生成目录',
-        descriptionKey: 'export.options.generateToc.description',
-      },
-      {
-        key: 'showPageNumbers',
-        label: '显示页码',
-        labelKey: 'export.options.showPageNumbers.label',
-        type: 'boolean',
-        default: false,
-        description: '在页脚显示页码',
-        descriptionKey: 'export.options.showPageNumbers.description',
-      },
-      {
-        key: 'showHeader',
-        label: '显示页眉',
-        labelKey: 'export.options.showHeader.label',
-        type: 'boolean',
-        default: false,
-        description: '在页眉显示文档标题和页码信息',
-        descriptionKey: 'export.options.showHeader.description',
-      },
+      // 页眉页脚功能暂时隐藏（功能未完成）
+      // {
+      //   key: 'showPageNumbers',
+      //   label: '显示页码',
+      //   labelKey: 'export.options.showPageNumbers.label',
+      //   type: 'boolean',
+      //   default: false,
+      //   description: '在页脚显示页码',
+      //   descriptionKey: 'export.options.showPageNumbers.description',
+      // },
+      // {
+      //   key: 'showHeader',
+      //   label: '显示页眉',
+      //   labelKey: 'export.options.showHeader.label',
+      //   type: 'boolean',
+      //   default: false,
+      //   description: '在页眉显示文档标题和页码信息',
+      //   descriptionKey: 'export.options.showHeader.description',
+      // },
     ];
   }
   

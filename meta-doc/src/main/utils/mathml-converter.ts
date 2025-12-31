@@ -53,10 +53,10 @@ export async function convertLatexToMathML(
 
     // 调用 mathjax-node 进行转换
     // mathjax-node 使用回调模式，我们将其转换为 Promise
-    logger.debug(`开始转换 LaTeX: ${latex.substring(0, 50)}${latex.length > 50 ? '...' : ''}`, { 
-      latex, 
-      displayMode 
-    });
+    // logger.debug(`开始转换 LaTeX: ${latex.substring(0, 50)}${latex.length > 50 ? '...' : ''}`, { 
+    //   latex, 
+    //   displayMode 
+    // });
     
     const result = await new Promise<{ mml?: string; html?: string; svg?: string; errors?: string[] }>((resolve, reject) => {
       mjAPI.typeset(
@@ -67,26 +67,27 @@ export async function convertLatexToMathML(
           display: displayMode
         },
         (data: any) => {
-          // 记录返回的数据结构
-          logger.debug('MathJax 转换返回数据:', { 
-            hasMml: !!data.mml,
-            hasHtml: !!data.html,
-            hasSvg: !!data.svg,
-            hasErrors: !!(data.errors && data.errors.length > 0),
-            keys: Object.keys(data),
-            mmlLength: data.mml ? data.mml.length : 0,
-            mmlPreview: data.mml ? data.mml.substring(0, 100) : null
-          });
+          // // 记录返回的数据结构
+          // logger.debug('MathJax 转换返回数据:', { 
+          //   hasMml: !!data.mml,
+          //   hasHtml: !!data.html,
+          //   hasSvg: !!data.svg,
+          //   hasErrors: !!(data.errors && data.errors.length > 0),
+          //   keys: Object.keys(data),
+          //   mmlLength: data.mml ? data.mml.length : 0,
+          //   mmlPreview: data.mml ? data.mml.substring(0, 100) : null
+          // });
           
           if (data.errors && data.errors.length > 0) {
-            logger.warn(`LaTeX 转换失败: ${data.errors.join(', ')}`, { latex });
+            //输出html
+            logger.warn(`LaTeX 转换失败: ${data.html}`, { latex });
             reject(new Error(data.errors.join(', ')));
           } else if (data.mml) {
-            // mathjax-node 返回的字段是 'mml'，不是 'mathml'
-            logger.info(`成功转换 LaTeX 为 MathML，长度: ${data.mml.length}`, { 
-              latex: latex.substring(0, 50),
-              mmlPreview: data.mml.substring(0, 200)
-            });
+            // // mathjax-node 返回的字段是 'mml'，不是 'mathml'
+            // logger.info(`成功转换 LaTeX 为 MathML，长度: ${data.mml.length}`, { 
+            //   latex: latex.substring(0, 50),
+            //   mmlPreview: data.mml.substring(0, 200)
+            // });
             resolve(data);
           } else {
             logger.warn('MathJax 转换返回空结果，但无错误', { 
@@ -101,9 +102,10 @@ export async function convertLatexToMathML(
     });
 
     const mathml = result.mml || null;
-    logger.debug(`转换完成，MathML: ${mathml ? '有结果' : '无结果'}`, { 
-      mathmlLength: mathml ? mathml.length : 0 
-    });
+    if (!mathml) {
+      logger.error('MathML 转换失败，返回空结果', { latex });
+      return null;
+    }
     return mathml;
   } catch (error) {
     logger.error('LaTeX 到 MathML 转换出错:', error);

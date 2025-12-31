@@ -2,6 +2,7 @@ import { registerToolCallParserTests } from "./agent-framework/tool-call-parser-
 import { registerDatabaseTests } from "./database-tests";
 import { registerTitleFormatTests } from "./title-format-tests";
 import { registerSearchReplaceTests } from "./search-replace-tests";
+import { registerLatexOMMLConversionTests } from "./latex-omml-conversion-tests";
 
 
 export async function registerUnitTests(): Promise<void> {
@@ -16,5 +17,8 @@ registerDatabaseTests();
 
 // 注册查找替换测试用例
 registerSearchReplaceTests();
+
+// 注册 LaTeX 到 OMML 转换测试用例
+registerLatexOMMLConversionTests();
 
 }

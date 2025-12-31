@@ -21,6 +21,11 @@
 import JSZip from 'jszip';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { createMainLogger } from '../logger';
+import { 
+  getFormulaConversionConfig, 
+  shouldLogVerbose, 
+  shouldUseCustomConverter 
+} from '../utils/formula-conversion-config';
 
 const logger = createMainLogger('DocxProcessor');
 
@@ -712,13 +717,20 @@ export class HeaderFooterProcessor implements DocxProcessor {
 
 /**
  * OMML 公式插入处理器
- * 在 document.xml 中查找占位符标记，并替换为正确的 WordprocessingML 结构
+ * 在 document.xml 中查找文本占位符，并替换为正确的 WordprocessingML 结构
  * Word 需要的格式：
  * - 行内公式：<w:r><w:rPr>...</w:rPr><m:oMath>...</m:oMath></w:r>
  * - 块级公式：<w:p><m:oMathPara><m:oMath>...</m:oMath></m:oMathPara></w:p>
+ * 
+ * 占位符格式（文本）：
+ * - 块级公式：[MATH_PLACEHOLDER_0]
+ * - 行内公式：[MATH_PLACEHOLDER_0_INLINE]
  */
 export class OMMLInsertionProcessor implements DocxProcessor {
   name = 'OMMLInsertionProcessor';
+  
+  // 最大并发转换数
+  private static readonly MAX_CONCURRENT = 10;
 
   async process(context: DocxProcessingContext, options?: any, progressCallback?: (current: number, total: number, message?: string) => void): Promise<boolean> {
     const { documentXml } = context;
@@ -731,25 +743,101 @@ export class OMMLInsertionProcessor implements DocxProcessor {
       return false;
     }
 
-    let modified = false;
-    let updatedXml = documentXml;
-
-    // 导入转换函数
-    const { convertLatexToMathML } = await import('../utils/mathml-converter');
-    const { mml2omml } = await import('mathml2omml');
-
     const totalFormulas = formulaPlaceholders.size;
     logger.info(`开始处理 ${totalFormulas} 个公式占位符`);
+
+    // 验证占位符存在性
+    const { existingPlaceholders, missingPlaceholders } = this.validatePlaceholders(documentXml, formulaPlaceholders);
     
-    // 验证占位符：检查哪些占位符实际存在于 XML 中
+    if (existingPlaceholders.size === 0) {
+      logger.warn('没有找到任何占位符，跳过公式处理');
+      return false;
+    }
+
+    // 去重公式
+    const { uniqueFormulas, sortedIndices } = this.deduplicateFormulas(existingPlaceholders, formulaPlaceholders);
+    const uniqueCount = uniqueFormulas.size;
+    logger.info(`去重后需要转换 ${uniqueCount} 个唯一公式`);
+
+    // 转换公式
+    const { formulaResults, failedIndices } = await this.convertFormulas(
+      uniqueFormulas,
+      progressCallback,
+      uniqueCount,
+      totalFormulas
+    );
+
+    // 如果所有公式都转换失败，使用后备方案
+    if (formulaResults.size === 0 && failedIndices.size > 0) {
+      logger.warn('所有公式转换失败，使用后备方案（显示 LaTeX 代码）');
+      return this.applyFallbackSolution(context, documentXml, formulaPlaceholders, existingPlaceholders);
+    }
+
+    // 查找并替换占位符
+    return await this.findAndReplacePlaceholders(
+      context,
+      documentXml,
+      formulaPlaceholders,
+      formulaResults,
+      sortedIndices,
+      existingPlaceholders,
+      totalFormulas,
+      progressCallback
+    );
+  }
+
+  /**
+   * 验证占位符在 XML 中的存在性
+   */
+  private validatePlaceholders(
+    documentXml: string,
+    formulaPlaceholders: Map<number, { latex: string; display: boolean }>
+  ): { existingPlaceholders: Set<number>; missingPlaceholders: Set<number> } {
     const existingPlaceholders = new Set<number>();
     const missingPlaceholders = new Set<number>();
     
+    // 先检查 XML 中是否有任何占位符文本（用于调试）
+    const allPlaceholderMatches = documentXml.match(/MATH_PLACEHOLDER_\d+/g);
+    if (allPlaceholderMatches) {
+      logger.debug(`在 XML 中找到 ${allPlaceholderMatches.length} 个占位符文本片段`);
+      // 显示前几个匹配
+      const uniqueMatches = [...new Set(allPlaceholderMatches)].slice(0, 10);
+      logger.debug(`占位符示例: ${uniqueMatches.join(', ')}`);
+    } else {
+      logger.warn('在 XML 中未找到任何占位符文本，可能占位符格式不正确或被转换掉了');
+      // 尝试查找其他可能的格式
+      const underscoreMatches = documentXml.match(/&#95;&#95;MATH_PLACEHOLDER_\d+&#95;&#95;/g);
+      if (underscoreMatches) {
+        logger.debug(`找到转义形式的占位符: ${underscoreMatches.length} 个`);
+      }
+    }
+    
     for (const index of formulaPlaceholders.keys()) {
-      const placeholderText = `MATH_PLACEHOLDER_${index}`;
-      if (updatedXml.includes(placeholderText)) {
-        existingPlaceholders.add(index);
-      } else {
+      // 文本占位符格式：[MATH_PLACEHOLDER_0] 或 [MATH_PLACEHOLDER_0_INLINE]
+      const blockPlaceholder = `[MATH_PLACEHOLDER_${index}]`;
+      const inlinePlaceholder = `[MATH_PLACEHOLDER_${index}_INLINE]`;
+      
+      // 检查占位符是否存在（可能被转义或分割）
+      // 尝试多种可能的格式
+      const patterns = [
+        blockPlaceholder,
+        inlinePlaceholder,
+        blockPlaceholder.replace(/\[/g, '&#91;').replace(/\]/g, '&#93;'),  // 方括号被转义
+        inlinePlaceholder.replace(/\[/g, '&#91;').replace(/\]/g, '&#93;'),
+        `MATH_PLACEHOLDER_${index}`,  // 只有核心部分（可能被分割）
+        `MATH_PLACEHOLDER_${index}_INLINE`,  // 行内占位符的核心部分
+      ];
+      
+      let found = false;
+      for (const pattern of patterns) {
+        if (documentXml.includes(pattern)) {
+          existingPlaceholders.add(index);
+          found = true;
+          break;
+        }
+      }
+      
+      if (!found) {
         missingPlaceholders.add(index);
       }
     }
@@ -757,29 +845,55 @@ export class OMMLInsertionProcessor implements DocxProcessor {
     if (missingPlaceholders.size > 0) {
       logger.warn(`发现 ${missingPlaceholders.size} 个占位符在 XML 中不存在，这些占位符将被跳过`, {
         missingCount: missingPlaceholders.size,
-        totalCount: totalFormulas,
-        missingIndices: Array.from(missingPlaceholders).slice(0, 10), // 只显示前10个
+        totalCount: formulaPlaceholders.size,
+        missingIndices: Array.from(missingPlaceholders).slice(0, 10),
       });
+      
+      // 调试：检查前几个缺失的占位符，看看 XML 中实际有什么
+      if (missingPlaceholders.size > 0) {
+        for(const missing of missingPlaceholders) {
+          const placeholderData = formulaPlaceholders.get(missing);
+          if (placeholderData) {
+            logger.debug(`示例缺失占位符 ${missing}: LaTeX="${placeholderData.latex}", display=${placeholderData.display}`);
+            // 查找 XML 中是否有类似的文本
+            const searchKey = `MATH_PLACEHOLDER_${missing}`;
+            const foundInXml = documentXml.includes(searchKey);
+            logger.debug(`占位符 ${missing} 的核心部分 "${searchKey}" 在 XML 中${foundInXml ? '存在' : '不存在'}`);
+          }
+        }
+      }
     }
     
     logger.info(`验证完成：${existingPlaceholders.size} 个占位符存在于 XML 中，${missingPlaceholders.size} 个不存在`);
+    
+    return { existingPlaceholders, missingPlaceholders };
+  }
 
-    // 缓存：相同的公式代码只转换一次
-    const conversionCache = new Map<string, { wrappedContent: string; ommlContent: string }>();
-    
-    // 公式转换结果映射：index -> wrappedContent
-    const formulaResults = new Map<number, string>();
-    
-    // 收集所有需要转换的公式（去重）
-    // 只处理实际存在于 XML 中的占位符
+  /**
+   * 去重公式（相同 LaTeX 代码只转换一次）
+   */
+  private deduplicateFormulas(
+    existingPlaceholders: Set<number>,
+    formulaPlaceholders: Map<number, { latex: string; display: boolean }>
+  ): {
+    uniqueFormulas: Map<string, Array<{ index: number; isBlockLevel: boolean }>>;
+    sortedIndices: number[];
+  } {
     const uniqueFormulas = new Map<string, Array<{ index: number; isBlockLevel: boolean }>>();
     const sortedIndices = Array.from(existingPlaceholders).sort((a, b) => b - a);
+    
+    const verbose = shouldLogVerbose();
     
     for (const index of sortedIndices) {
       const placeholderData = formulaPlaceholders.get(index);
       if (!placeholderData) continue;
       
       const { latex: latexCode, display: isBlockLevel } = placeholderData;
+      if (verbose) {
+        logger.debug(`[去重公式] 索引: ${index}, LaTeX长度: ${latexCode.length}, 块级: ${isBlockLevel}`);
+        logger.debug(`[去重公式] 索引: ${index}, LaTeX内容: ${JSON.stringify(latexCode)}`);
+      }
+      
       const cacheKey = `${latexCode}|${isBlockLevel}`;
       
       if (!uniqueFormulas.has(cacheKey)) {
@@ -787,79 +901,272 @@ export class OMMLInsertionProcessor implements DocxProcessor {
       }
       uniqueFormulas.get(cacheKey)!.push({ index, isBlockLevel });
     }
+    
+    return { uniqueFormulas, sortedIndices };
+  }
 
-    const uniqueCount = uniqueFormulas.size;
-    logger.info(`去重后需要转换 ${uniqueCount} 个唯一公式`);
-
-    // 并行转换函数
-    const convertFormula = async (latexCode: string, isBlockLevel: boolean): Promise<{ wrappedContent: string; ommlContent: string }> => {
-      const cacheKey = `${latexCode}|${isBlockLevel}`;
+  /**
+   * 预处理 LaTeX 代码，转义可能在 XML 文本节点中引起问题的特殊字符
+   * 注意：LaTeX 代码在 Markdown 阶段已经进行过转义，这里主要是为了兼容性
+   * 只转义会影响 XML 解析的字符（< 和 >），不转义其他字符
+   */
+  private preprocessLatexForXml(latex: string): string {
+    let processed = latex;
+    
+    // 注意：LaTeX 代码在 Markdown 阶段已经通过 escapeLatexForMarkdown 转义过了
+    // 这里主要是为了兼容性，但要注意不要重复转义
+    
+    // 检查是否已经转义过（如果已经有 \lt 或 \gt，说明已经转义过）
+    const alreadyEscaped = processed.includes('\\lt') || processed.includes('\\gt');
+    
+    if (!alreadyEscaped) {
+      // 只转义会影响 XML 解析的字符：< 和 >
+      // 不再转义 & 符号，因为过度转义会导致公式无法被正确解析
       
-      // 检查缓存
-      if (conversionCache.has(cacheKey)) {
-        return conversionCache.get(cacheKey)!;
-      }
-
-      // 将 LaTeX 转换为 MathML
-      let mathml: string | null = null;
-      try {
-        mathml = await convertLatexToMathML(latexCode, isBlockLevel);
-      } catch (error) {
-        logger.error(`LaTeX 转 MathML 失败:`, error, { latex: latexCode.substring(0, 50) });
-        throw error;
-      }
-
-      if (!mathml) {
-        throw new Error(`LaTeX 转 MathML 返回空结果: ${latexCode.substring(0, 50)}`);
-      }
-
-      // 清理 MathML（移除 MathJax 特定的属性）
-      let cleanedMathml = mathml
-        .replace(/<!--[\s\S]*?-->/g, '') // 移除 HTML 注释
-        .replace(/\s+class="[^"]*"/g, '') // 移除 class 属性
-        .replace(/\s+scriptlevel="[^"]*"/g, '') // 移除 scriptlevel
-        .replace(/\s+maxsize="[^"]*"/g, '') // 移除 maxsize
-        .replace(/\s+minsize="[^"]*"/g, '') // 移除 minsize
-        .replace(/>\s+</g, '><') // 移除标签间空白
-        .replace(/\s{2,}/g, ' ') // 规范化空白
-        .trim();
-
-      // 将 MathML 转换为 OMML
-      let omml: string;
-      try {
-        omml = mml2omml(cleanedMathml);
-      } catch (error) {
-        logger.error(`MathML 转 OMML 失败:`, error);
-        throw error;
-      }
-
-      // mml2omml 通常只返回 <m:oMath>...</m:oMath> 结构
-      let ommlContent = omml.trim();
+      // 转义小于号 < 为 LaTeX 命令 \lt（注意：不要加空格，MathJax 可能无法正确解析）
+      processed = processed.replace(/(?<!\\)<(?![a-zA-Z])/g, '\\lt');
       
-      // 验证 OMML 是否符合 XML 规范
+      // 转义大于号 > 为 LaTeX 命令 \gt（注意：不要加空格）
+      processed = processed.replace(/(?<!\\)>(?![a-zA-Z])/g, '\\gt');
+    }
+    
+    return processed;
+  }
+
+  /**
+   * 转换公式（LaTeX → MathML → OMML → WordprocessingML）
+   */
+  private async convertFormula(
+    latexCode: string,
+    isBlockLevel: boolean,
+    conversionCache: Map<string, { wrappedContent: string; ommlContent: string }>
+  ): Promise<{ wrappedContent: string; ommlContent: string }> {
+    const cacheKey = `${latexCode}|${isBlockLevel}`;
+    const verbose = shouldLogVerbose();
+    
+    if (verbose) {
+      logger.debug(`[转换公式] 开始转换, 块级: ${isBlockLevel}, LaTeX长度: ${latexCode.length}`);
+      logger.debug(`[转换公式] LaTeX内容: ${JSON.stringify(latexCode)}`);
+    }
+    
+    // 检查缓存
+    if (conversionCache.has(cacheKey)) {
+      if (verbose) {
+        logger.debug(`[转换公式] 使用缓存结果`);
+      }
+      return conversionCache.get(cacheKey)!;
+    }
+
+    // 导入转换函数
+    const { convertLatexToMathML } = await import('../utils/mathml-converter');
+
+    // 预处理 LaTeX 代码，转义特殊字符
+    const preprocessedLatex = this.preprocessLatexForXml(latexCode);
+    if (verbose) {
+      logger.debug(`[转换公式] 预处理后长度: ${preprocessedLatex.length}`);
+      logger.debug(`[转换公式] 预处理后内容: ${JSON.stringify(preprocessedLatex)}`);
+    }
+
+    // 将 LaTeX 转换为 MathML
+    let mathml: string | null = null;
+    try {
+      if (verbose) {
+        logger.debug(`[转换公式] 开始调用 convertLatexToMathML`);
+      }
+      mathml = await convertLatexToMathML(preprocessedLatex, isBlockLevel);
+      if (verbose) {
+        logger.debug(`[转换公式] MathML转换成功, 长度: ${mathml?.length || 0}`);
+      }
+    } catch (error) {
+      logger.error(`[转换公式] MathML转换失败:`, error);
+      logger.error(`LaTeX 转 MathML 失败:`, error, { latex: latexCode.substring(0, 50) });
+      throw error;
+    }
+
+    if (!mathml) {
+      throw new Error(`LaTeX 转 MathML 返回空结果: ${latexCode.substring(0, 50)}`);
+    }
+
+    // 清理 MathML
+    const cleanedMathml = this.cleanMathML(mathml);
+    
+    if (verbose) {
+      logger.debug(`[转换公式] 清理后的 MathML 长度: ${cleanedMathml.length}`);
+      // 检查 MathML 中是否包含未转义的 < 字符（在文本节点中）
+      if (cleanedMathml.includes('<mo>&lt;</mo>') || cleanedMathml.match(/<m:t[^>]*>[^<]*<[^<]/)) {
+        logger.warn(`[转换公式] MathML 中可能包含未转义的 < 字符`);
+      }
+    }
+
+    // 将 MathML 转换为 OMML（根据配置选择转换器）
+    const useCustomConverter = shouldUseCustomConverter();
+    let ommlContent: string;
+    
+    if (useCustomConverter) {
+      // 使用我们自己的转换器
       try {
-        const testParser = new DOMParser({
-          errorHandler: {
-            warning: () => {},
-            error: (e) => { throw e; },
-            fatalError: (e) => { throw e; },
-          },
-        });
-        const testXml = `<root xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">${ommlContent}</root>`;
-        const testDoc = testParser.parseFromString(testXml, 'text/xml');
-        const parseError = testDoc.getElementsByTagName('parsererror');
-        if (parseError.length > 0) {
-          throw new Error(`OMML XML 解析失败: ${parseError[0].textContent}`);
+        if (verbose) {
+          logger.debug(`[转换公式] 使用自定义转换器`);
         }
-      } catch (validationError) {
-        logger.error(`OMML 验证失败，跳过该公式:`, validationError, { latex: latexCode.substring(0, 50) });
-        throw new Error(`OMML 不符合 XML 规范: ${validationError instanceof Error ? validationError.message : String(validationError)}`);
+        const { convertMathMLToOMML } = await import('../utils/mml2omml-converter');
+        ommlContent = convertMathMLToOMML(cleanedMathml).trim();
+      } catch (error) {
+        logger.error(`[转换公式] 自定义转换器失败:`, error);
+        // 如果自定义转换器失败，尝试使用 mathml2omml 作为后备
+        try {
+          const { mml2omml } = await import('mathml2omml');
+          ommlContent = mml2omml(cleanedMathml).trim();
+          logger.warn(`[转换公式] 使用 mathml2omml 作为后备转换器`);
+        } catch (fallbackError) {
+          logger.error(`[转换公式] 后备转换器也失败:`, fallbackError);
+          throw error; // 抛出原始错误
+        }
+      }
+    } else {
+      // 使用 mathml2omml 库
+      try {
+        if (verbose) {
+          logger.debug(`[转换公式] 使用 mathml2omml 库`);
+        }
+        const { mml2omml } = await import('mathml2omml');
+        ommlContent = mml2omml(cleanedMathml).trim();
+        
+        if (verbose) {
+          logger.debug(`[转换公式] OMML 生成成功, 长度: ${ommlContent.length}`);
+          // 检查 OMML 中是否包含未转义的 < 字符（在文本内容中，不是标签）
+          const hasUnescapedLt = /<m:t[^>]*>[^<]*<[^<]/.test(ommlContent) || /<m:r[^>]*><m:t[^>]*>[^<]*<[^<]/.test(ommlContent);
+          if (hasUnescapedLt) {
+            logger.warn(`[转换公式] OMML 中可能包含未转义的 < 字符，需要清理`);
+          }
+        }
+      } catch (error) {
+        logger.error(`[转换公式] MathML 转 OMML 失败:`, error);
+        // 如果 mathml2omml 失败，可以尝试使用我们自己的转换器作为后备
+        try {
+          const { convertMathMLToOMML } = await import('../utils/mml2omml-converter');
+          ommlContent = convertMathMLToOMML(cleanedMathml).trim();
+          logger.warn(`[转换公式] 使用自定义转换器作为后备`);
+        } catch (fallbackError) {
+          logger.error(`[转换公式] 后备转换器也失败:`, fallbackError);
+          throw error; // 抛出原始错误
+        }
+      }
+    }
+    
+    // 清理 OMML 中的未转义字符（在文本节点中）
+    ommlContent = this.cleanOMMLTextNodes(ommlContent);
+    
+    if (verbose) {
+      logger.debug(`[转换公式] 清理后的 OMML 长度: ${ommlContent.length}`);
+    }
+    
+    // 验证 OMML
+    this.validateOMML(ommlContent, latexCode);
+    
+    // 增强 OMML（字体设置）
+    const enhancedOMML = this.enhanceOMMLWithFonts(ommlContent);
+    
+    // 包装为 WordprocessingML 结构
+    const wrappedContent = this.wrapOMMLAsWordprocessingML(enhancedOMML, isBlockLevel);
+
+    const result = { wrappedContent, ommlContent: enhancedOMML };
+    conversionCache.set(cacheKey, result);
+    return result;
+  }
+
+  /**
+   * 清理 MathML（移除 MathJax 特定的属性和不支持的元素）
+   */
+  private cleanMathML(mathml: string): string {
+    let cleaned = mathml
+      .replace(/<!--[\s\S]*?-->/g, '') // 移除 HTML 注释
+      .replace(/\s+class="[^"]*"/g, '') // 移除 class 属性
+      .replace(/\s+scriptlevel="[^"]*"/g, '') // 移除 scriptlevel
+      .replace(/\s+maxsize="[^"]*"/g, '') // 移除 maxsize
+      .replace(/\s+minsize="[^"]*"/g, '') // 移除 minsize
+      .replace(/>\s+</g, '><') // 移除标签间空白
+      .replace(/\s{2,}/g, ' ') // 规范化空白
+      .trim();
+    
+    // 移除 mathml2omml 不支持的元素（如 mpadded）
+    // mpadded 通常用于调整间距，我们可以尝试提取其内容
+    cleaned = cleaned.replace(/<mpadded[^>]*>([\s\S]*?)<\/mpadded>/gi, '$1');
+    
+    // 移除其他可能不支持的元素
+    // annotation 和 annotation-xml 通常包含元数据，可以移除
+    cleaned = cleaned.replace(/<annotation[^>]*>[\s\S]*?<\/annotation>/gi, '');
+    cleaned = cleaned.replace(/<annotation-xml[^>]*>[\s\S]*?<\/annotation-xml>/gi, '');
+    
+    // 清理可能出现的无效标签（如数字开头的标签）
+    // 这种情况通常是由于 MathML 格式错误导致的
+    cleaned = cleaned.replace(/<[0-9][^>]*>[\s\S]*?<\/[0-9][^>]*>/gi, '');
+    cleaned = cleaned.replace(/<[0-9][^>]*\/>/gi, '');
+    
+    return cleaned.trim();
+  }
+
+  /**
+   * 清理 OMML 文本节点中的未转义字符
+   * 在 <m:t> 标签中的文本内容，需要转义 XML 特殊字符
+   * 
+   * 注意：由于 OMML 可能包含未转义的字符导致无法解析，我们使用正则表达式方法
+   * 直接处理文本内容，而不依赖 XML 解析
+   */
+  private cleanOMMLTextNodes(omml: string): string {
+    // 使用正则表达式匹配 <m:t> 标签及其内容
+    // 注意：使用非贪婪匹配，处理可能包含其他标签的情况
+    return omml.replace(/<m:t([^>]*)>([\s\S]*?)<\/m:t>/g, (match, attrs, textContent) => {
+      // 检查文本内容中是否包含未转义的 XML 特殊字符
+      // 如果 textContent 中包含其他标签（如嵌套的 <m:r>），我们需要更小心
+      
+      // 先检查是否包含标签（说明是嵌套结构）
+      if (textContent.includes('<') && textContent.includes('>')) {
+        // 包含嵌套标签，需要递归处理
+        // 但这里我们只处理纯文本部分
+        // 对于嵌套标签，应该已经是正确的 XML 格式
+        return match; // 保持原样，假设嵌套标签已经正确转义
       }
       
-      // 增强 OMML：在多个层级添加字体设置
-      // 为每个 <m:r> 的 <m:rPr> 添加 <w:rPr> 字体设置
-      // 特别处理：数字使用正体，而不是斜体
-      const enhanceOMMLWithFonts = (omml: string): string => {
+      // 纯文本内容，转义 XML 特殊字符
+      let escaped = textContent
+        .replace(/&(?!amp;|lt;|gt;|quot;|apos;|#\d+;)/g, '&amp;')  // 转义未转义的 &
+        .replace(/</g, '&lt;')    // 转义 <
+        .replace(/>/g, '&gt;')    // 转义 >
+        .replace(/"/g, '&quot;')  // 转义 "
+        .replace(/'/g, '&apos;'); // 转义 '
+      
+      return `<m:t${attrs}>${escaped}</m:t>`;
+    });
+  }
+
+  /**
+   * 验证 OMML 是否符合 XML 规范
+   */
+  private validateOMML(ommlContent: string, latexCode: string): void {
+    try {
+      const testParser = new DOMParser({
+        errorHandler: {
+          warning: () => {},
+          error: (e) => { throw e; },
+          fatalError: (e) => { throw e; },
+        },
+      });
+      const testXml = `<root xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">${ommlContent}</root>`;
+      const testDoc = testParser.parseFromString(testXml, 'text/xml');
+      const parseError = testDoc.getElementsByTagName('parsererror');
+      if (parseError.length > 0) {
+        throw new Error(`OMML XML 解析失败: ${parseError[0].textContent}`);
+      }
+    } catch (validationError) {
+      logger.error(`OMML 验证失败:`, validationError, { latex: latexCode });
+      throw new Error(`OMML 不符合 XML 规范: ${validationError instanceof Error ? validationError.message : String(validationError)}`);
+    }
+  }
+  /**
+   * 增强 OMML：在多个层级添加字体设置
+   * 特别处理：数字使用正体，而不是斜体
+   */
+  private enhanceOMMLWithFonts(omml: string): string {
         let enhanced = omml;
         
         // 字体设置模板（普通文本，可能是斜体）
@@ -1000,61 +1307,63 @@ export class OMMLInsertionProcessor implements DocxProcessor {
         );
         
         return enhanced;
-      };
-      
-      // 包装为 WordprocessingML 结构
-      let wrappedContent: string;
-      
-      if (isBlockLevel) {
-        // 块级公式：<w:p><m:oMathPara><m:oMathParaPr>...</m:oMathParaPr><m:oMath>...</m:oMath></m:oMathPara></w:p>
-        // 提取 m:oMath 的内部内容
-        const oMathMatch = ommlContent.match(/<m:oMath[^>]*>([\s\S]*?)<\/m:oMath>/);
-        if (oMathMatch) {
-          let innerOMML = oMathMatch[1];
-          // 增强 OMML：添加字体设置（只增强内部内容）
-          innerOMML = enhanceOMMLWithFonts(innerOMML);
-          
-          wrappedContent = `<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><m:oMathParaPr><m:jc m:val="center"/></m:oMathParaPr><m:oMath><m:oMathPr><m:mathFont m:val="Times New Roman"/></m:oMathPr>${innerOMML}</m:oMath></m:oMathPara></w:p>`;
-        } else {
-          // 如果没有匹配到，直接增强整个内容
-          const enhanced = enhanceOMMLWithFonts(ommlContent);
-          wrappedContent = `<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><m:oMathParaPr><m:jc m:val="center"/></m:oMathParaPr><m:oMath><m:oMathPr><m:mathFont m:val="Times New Roman"/></m:oMathPr>${enhanced}</m:oMath></m:oMathPara></w:p>`;
-        }
-      } else {
-        // 行内公式：<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="Times New Roman"/></w:rPr><m:oMath>...</m:oMath></w:r>
-        // 注意：行内公式使用 <m:oMath> 而不是 <w:oMath>，这是 OOXML 规范要求
-        // 提取 m:oMath 的内部内容
-        const oMathMatch = ommlContent.match(/<m:oMath[^>]*>([\s\S]*?)<\/m:oMath>/);
-        if (oMathMatch) {
-          let innerOMML = oMathMatch[1];
-          // 增强 OMML：添加字体设置
-          innerOMML = enhanceOMMLWithFonts(innerOMML);
-          wrappedContent = `<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><m:oMath><m:oMathPr><m:mathFont m:val="Times New Roman"/></m:oMathPr>${innerOMML}</m:oMath></w:r>`;
-        } else {
-          // 如果没有匹配到，直接增强整个内容
-          const enhanced = enhanceOMMLWithFonts(ommlContent);
-          wrappedContent = `<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><m:oMath><m:oMathPr><m:mathFont m:val="Times New Roman"/></m:oMathPr>${enhanced}</m:oMath></w:r>`;
-        }
-      }
+  }
 
-      const result = { wrappedContent, ommlContent };
-      conversionCache.set(cacheKey, result);
-      return result;
-    };
+  /**
+   * 包装 OMML 为 WordprocessingML 结构
+   */
+  private wrapOMMLAsWordprocessingML(enhancedOMML: string, isBlockLevel: boolean): string {
+    // 提取 m:oMath 的内部内容
+    const oMathMatch = enhancedOMML.match(/<m:oMath[^>]*>([\s\S]*?)<\/m:oMath>/);
+    const innerOMML = oMathMatch ? oMathMatch[1] : enhancedOMML;
+    
+    if (isBlockLevel) {
+      // 块级公式
+      return `<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><m:oMathParaPr><m:jc m:val="center"/></m:oMathParaPr><m:oMath><m:oMathPr><m:mathFont m:val="Times New Roman"/></m:oMathPr>${innerOMML}</m:oMath></m:oMathPara></w:p>`;
+    } else {
+      // 行内公式
+      return `<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><m:oMath><m:oMathPr><m:mathFont m:val="Times New Roman"/></m:oMathPr>${innerOMML}</m:oMath></w:r>`;
+    }
+  }
 
-    // 并发池：最大10个并发
-    const MAX_CONCURRENT = 10;
+  /**
+   * 批量转换公式
+   */
+  private async convertFormulas(
+    uniqueFormulas: Map<string, Array<{ index: number; isBlockLevel: boolean }>>,
+    progressCallback: ((current: number, total: number, message?: string) => void) | undefined,
+    uniqueCount: number,
+    totalFormulas: number
+  ): Promise<{ formulaResults: Map<number, string>; failedIndices: Set<number> }> {
+    const conversionCache = new Map<string, { wrappedContent: string; ommlContent: string }>();
+    const formulaResults = new Map<number, string>();
+    const failedIndices = new Set<number>();
+    
     let completedCount = 0;
     let failedCount = 0;
     const conversionTasks: Array<Promise<void>> = [];
     
     // 处理每个唯一公式
     for (const [cacheKey, indices] of uniqueFormulas.entries()) {
-      const [latexCode, isBlockLevelStr] = cacheKey.split('|');
+      // 注意：cacheKey 格式是 "latexCode|isBlockLevel"
+      // 但是 LaTeX 代码中可能包含 | 字符，所以不能直接用 split('|')
+      // 应该从最后一个 | 分割
+      const lastPipeIndex = cacheKey.lastIndexOf('|');
+      if (lastPipeIndex === -1) {
+        logger.error(`[转换公式] 无效的 cacheKey 格式: ${cacheKey}`);
+        continue;
+      }
+      
+      const latexCode = cacheKey.substring(0, lastPipeIndex);
+      const isBlockLevelStr = cacheKey.substring(lastPipeIndex + 1);
       const isBlockLevel = isBlockLevelStr === 'true';
       
+      logger.debug(`[转换公式] cacheKey长度: ${cacheKey.length}, LaTeX长度: ${latexCode.length}, 块级: ${isBlockLevel}`);
+      logger.debug(`[转换公式] cacheKey: ${JSON.stringify(cacheKey)}`);
+      logger.debug(`[转换公式] 提取的LaTeX: ${JSON.stringify(latexCode)}`);
+      
       // 创建转换任务
-      const task = convertFormula(latexCode, isBlockLevel)
+      const task = this.convertFormula(latexCode, isBlockLevel, conversionCache)
         .then((result) => {
           // 为所有使用相同公式的占位符设置结果
           for (const { index } of indices) {
@@ -1062,15 +1371,17 @@ export class OMMLInsertionProcessor implements DocxProcessor {
           }
           completedCount++;
           if (progressCallback) {
-            // 报告转换进度（转换阶段占50%）
             const conversionProgress = Math.floor((completedCount / uniqueCount) * 50);
             progressCallback(conversionProgress, 100, `正在转换公式 (${completedCount}/${uniqueCount})`);
           }
         })
         .catch((error) => {
           failedCount++;
-          logger.error(`公式转换失败: ${latexCode.substring(0, 50)}...`, error);
-          // 即使失败也更新进度
+          // 记录失败的索引
+          for (const { index } of indices) {
+            failedIndices.add(index);
+          }
+          logger.error(`公式转换失败: ${latexCode}`, error);
           if (progressCallback) {
             const totalProcessed = completedCount + failedCount;
             const conversionProgress = Math.floor((totalProcessed / uniqueCount) * 50);
@@ -1081,21 +1392,35 @@ export class OMMLInsertionProcessor implements DocxProcessor {
       conversionTasks.push(task);
     }
     
-    // 使用并发池控制：每次最多处理 MAX_CONCURRENT 个任务
-    // 将任务分批处理
+    // 使用并发池控制
     const batches: Array<Promise<void>[]> = [];
-    for (let i = 0; i < conversionTasks.length; i += MAX_CONCURRENT) {
-      batches.push(conversionTasks.slice(i, i + MAX_CONCURRENT));
+    for (let i = 0; i < conversionTasks.length; i += OMMLInsertionProcessor.MAX_CONCURRENT) {
+      batches.push(conversionTasks.slice(i, i + OMMLInsertionProcessor.MAX_CONCURRENT));
     }
     
-    // 按批次执行，每批最多 MAX_CONCURRENT 个并发
+    // 按批次执行
     for (const batch of batches) {
       await Promise.all(batch);
     }
     
     logger.info(`公式转换完成: 成功 ${completedCount}, 失败 ${failedCount}, 总计 ${uniqueCount}`);
+    
+    return { formulaResults, failedIndices };
+  }
 
-    // 一次性解析 XML 文档（避免重复解析）
+  /**
+   * 应用后备方案：转换失败时显示 LaTeX 代码原文
+   */
+  private applyFallbackSolution(
+    context: DocxProcessingContext,
+    documentXml: string,
+    formulaPlaceholders: Map<number, { latex: string; display: boolean }>,
+    existingPlaceholders: Set<number>
+  ): boolean {
+    let updatedXml = documentXml;
+    let modified = false;
+
+    // 解析 XML 文档
     const parser = new DOMParser({
       errorHandler: {
         warning: (w) => logger.warn('XML 解析警告:', w),
@@ -1110,244 +1435,250 @@ export class OMMLInsertionProcessor implements DocxProcessor {
     const parseError = xmlDoc.getElementsByTagName('parsererror');
     if (parseError.length > 0) {
       logger.error(`XML 解析失败: ${parseError[0].textContent}`);
-      return modified;
+      return false;
     }
-    
-    // 一次性获取所有文本节点（避免重复遍历）
-    const allTextNodes = this.findAllTextNodes(xmlDoc);
-    logger.debug(`找到 ${allTextNodes.length} 个文本节点`);
-    
-    // 并行查找所有占位符的位置（只读操作，可以并行）
-    interface PlaceholderLocation {
-      index: number;
-      placeholderText: string;
-      textNode: Text;
-      targetParent: Element;
-      wrappedContent: string;
-      isBlockLevel: boolean;
-    }
-    
-    const findPlaceholderLocation = async (index: number): Promise<PlaceholderLocation | null> => {
+
+    // 为每个失败的公式创建后备内容（显示 LaTeX 代码）
+    for (const index of existingPlaceholders) {
       const placeholderData = formulaPlaceholders.get(index);
-      if (!placeholderData) return null;
+      if (!placeholderData) continue;
+
+      const { latex, display: isBlockLevel } = placeholderData;
       
-      const { display: isBlockLevel } = placeholderData;
-      const placeholderText = `MATH_PLACEHOLDER_${index}`;
+      // 文本占位符
+      const blockPlaceholder = `[MATH_PLACEHOLDER_${index}]`;
+      const inlinePlaceholder = `[MATH_PLACEHOLDER_${index}_INLINE]`;
+      const placeholder = isBlockLevel ? blockPlaceholder : inlinePlaceholder;
+
+      // 转义 LaTeX 代码用于 XML
+      const escapedLatex = this.escapeXml(latex);
       
-      // 从缓存中获取转换结果
-      const wrappedContent = formulaResults.get(index);
-      if (!wrappedContent) {
-        logger.warn(`占位符 ${index} 没有转换结果，跳过`);
-        return null;
-      }
-      
-      // 检查占位符在 XML 中的存在情况（考虑可能被转义或分割）
-      // 占位符格式：MATH_PLACEHOLDER_123
-      // 可能的情况：
-      // 1. 完整存在：MATH_PLACEHOLDER_123
-      // 2. 被转义：MATH_PLACEHOLDER_123（下划线可能被处理）
-      // 3. 被分割：MATH_PLACEHOLDER_ 和 123 在不同节点
-      const placeholderParts = placeholderText.split('_');
-      const hasPlaceholderInXml = updatedXml.includes(placeholderText) || 
-                                   updatedXml.includes(placeholderText.replace(/_/g, '&#95;')) ||
-                                   (placeholderParts.length > 0 && updatedXml.includes(placeholderParts[0]));
-      
-      if (!hasPlaceholderInXml) {
-        logger.debug(`占位符 ${placeholderText} 在 XML 中不存在，可能已被处理或格式不同`);
-        return null;
-      }
-      
-      // 在已获取的文本节点中查找（支持占位符被分割到多个节点的情况）
-      let placeholderTextNode: Text | null = null;
-      
-      // 首先尝试精确匹配
-      for (const textNode of allTextNodes) {
-        const nodeValue = textNode.nodeValue;
-        if (nodeValue && (nodeValue.trim() === placeholderText || nodeValue === placeholderText)) {
-          placeholderTextNode = textNode as Text;
-          break;
-        }
-      }
-      
-      // 如果精确匹配失败，尝试包含匹配（占位符可能被分割）
-      if (!placeholderTextNode) {
-        for (const textNode of allTextNodes) {
-          const nodeValue = textNode.nodeValue;
-          if (nodeValue && nodeValue.includes(placeholderText)) {
-            placeholderTextNode = textNode as Text;
-            break;
-          }
-        }
-      }
-      
-      // 如果还是找不到，尝试查找包含占位符的父元素（占位符可能被分割到多个文本节点）
-      if (!placeholderTextNode) {
-        // 查找包含占位符关键部分的元素
-        const searchKey = `MATH_PLACEHOLDER_${index}`;
-        const allElements = xmlDoc.getElementsByTagName('*');
-        for (let i = 0; i < allElements.length; i++) {
-          const element = allElements[i];
-          const textContent = element.textContent || '';
-          // 检查是否包含占位符的关键部分
-          if (textContent.includes('MATH_PLACEHOLDER') && textContent.includes(index.toString())) {
-            // 查找该元素下的所有文本节点
-            const childTextNodes = this.findAllTextNodes(element);
-            for (const textNode of childTextNodes) {
-              const nodeValue = textNode.nodeValue || '';
-              // 检查文本节点是否包含占位符的任何部分
-              if (nodeValue.includes('MATH_PLACEHOLDER') || nodeValue.includes(index.toString())) {
-                // 检查父元素的完整文本内容是否包含完整占位符
-                if (textContent.includes(searchKey)) {
-                  placeholderTextNode = textNode as Text;
-                  break;
-                }
-              }
-            }
-            if (placeholderTextNode) break;
-          }
-        }
-      }
-      
-      // 最后尝试：通过元素的完整文本内容查找
-      if (!placeholderTextNode) {
-        const searchKey = `MATH_PLACEHOLDER_${index}`;
-        const allElements = xmlDoc.getElementsByTagName('*');
-        for (let i = 0; i < allElements.length; i++) {
-          const element = allElements[i];
-          const textContent = element.textContent || '';
-          if (textContent.includes(searchKey)) {
-            // 找到包含占位符的元素，使用第一个文本节点
-            const childTextNodes = this.findAllTextNodes(element);
-            if (childTextNodes.length > 0) {
-              placeholderTextNode = childTextNodes[0];
-              break;
-            }
-          }
-        }
-      }
-      
-      if (!placeholderTextNode) {
-        logger.warn(`未找到包含占位符 ${placeholderText} 的文本节点，但 XML 中可能存在该文本`);
-        return null;
-      }
-      
-      // 找到包含占位符的父元素（w:r 或 w:p）
-      let targetParent: Element | null = null;
-      let fallbackParent: Element | null = null;
-      let current: Node | null = placeholderTextNode;
-      
-      while (current && current.nodeType !== 9) {
-        if (current.nodeType === 1) {
-          const element = current as Element;
-          const tagName = element.tagName;
-          const localName = (element as any).localName || tagName.split(':').pop() || tagName;
-          const isParagraph = localName === 'p' || tagName === 'w:p' || tagName === 'p';
-          const isRun = localName === 'r' || tagName === 'w:r' || tagName === 'r';
+      // 创建后备内容（显示 LaTeX 代码）
+      const fallbackContent = isBlockLevel
+        ? `<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">${escapedLatex}</w:t></w:r></w:p>`
+        : `<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">${escapedLatex}</w:t></w:r>`;
+
+      // 查找包含占位符的文本节点
+      const textNodes = this.findAllTextNodes(xmlDoc);
+      for (const textNode of textNodes) {
+        const nodeValue = textNode.nodeValue || '';
+        // 尝试多种可能的格式（方括号可能被转义）
+        const escapedPlaceholder = placeholder.replace(/\[/g, '&#91;').replace(/\]/g, '&#93;');
+        const corePlaceholder = placeholder.replace(/[\[\]]/g, '');  // 移除方括号，只保留核心部分
+        if (nodeValue.includes(placeholder) || 
+            nodeValue.includes(escapedPlaceholder) ||
+            nodeValue.includes(corePlaceholder)) {
+          // 找到包含占位符的父元素（w:r 或 w:p）
+          let parentElement: Element | null = null;
+          let current: Node | null = textNode;
           
-          if (isBlockLevel && isParagraph) {
-            targetParent = element;
-            break;
-          } else if (!isBlockLevel && isRun) {
-            targetParent = element;
-            break;
-          } else if (!isBlockLevel && isParagraph && !fallbackParent) {
-            fallbackParent = element;
-          }
-        }
-        current = current.parentNode;
-      }
-      
-      // 对于行内公式，如果没找到 w:r，使用 w:p 作为备用
-      if (!targetParent && !isBlockLevel && fallbackParent) {
-        targetParent = fallbackParent;
-      }
-      
-      if (!targetParent) {
-        logger.warn(`未找到占位符 ${index} 的目标父节点`);
-        return null;
-      }
-      
-      // 对于行内公式，如果 targetParent 是 w:p，需要找到包含占位符的 w:r
-      let actualTargetParent: Element = targetParent;
-      if (!isBlockLevel) {
-        const tagName = targetParent.tagName;
-        const localName = (targetParent as any).localName || tagName.split(':').pop() || tagName;
-        const isParagraph = localName === 'p' || tagName === 'w:p' || tagName === 'p';
-        
-        if (isParagraph) {
-          const runs = targetParent.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'r');
-          for (let i = 0; i < runs.length; i++) {
-            const run = runs[i];
-            const textNodes = this.findAllTextNodes(run);
-            for (const textNode of textNodes) {
-              if (textNode.nodeValue && textNode.nodeValue.includes(placeholderText)) {
-                actualTargetParent = run;
+          while (current && current.nodeType !== 9) {
+            if (current.nodeType === 1) {
+              const element = current as Element;
+              const tagName = element.tagName;
+              const localName = (element as any).localName || tagName.split(':').pop() || tagName;
+              const isParagraph = localName === 'p' || tagName === 'w:p' || tagName === 'p';
+              const isRun = localName === 'r' || tagName === 'w:r' || tagName === 'r';
+              
+              if (isBlockLevel && isParagraph) {
+                parentElement = element;
+                break;
+              } else if (!isBlockLevel && isRun) {
+                parentElement = element;
+                break;
+              } else if (!isBlockLevel && isParagraph) {
+                parentElement = element;
                 break;
               }
             }
-            if (actualTargetParent !== targetParent) break;
+            current = current.parentNode;
           }
           
-          if (actualTargetParent === targetParent) {
-            // 如果找不到 w:r，尝试查找 w:t
-            const texts = targetParent.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 't');
-            for (let i = 0; i < texts.length; i++) {
-              const text = texts[i];
-              const textNodes = this.findAllTextNodes(text);
-              for (const textNode of textNodes) {
-                if (textNode.nodeValue && textNode.nodeValue.includes(placeholderText)) {
-                  const parentRun = textNode.parentNode;
-                  if (parentRun && parentRun.nodeType === 1) {
-                    const runLocalName = ((parentRun as Element) as any).localName || (parentRun as Element).tagName.split(':').pop();
-                    if (runLocalName === 'r') {
-                      actualTargetParent = parentRun as Element;
-                      break;
-                    }
-                  }
-                }
+          if (parentElement) {
+            // 解析后备内容
+            const fallbackParser = new DOMParser({
+              errorHandler: {
+                warning: () => {},
+                error: () => {},
+                fatalError: () => {},
+              },
+            });
+            const fallbackDoc = fallbackParser.parseFromString(
+              `<root xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${fallbackContent}</root>`,
+              'text/xml'
+            );
+            const fallbackNode = fallbackDoc.documentElement?.firstChild;
+            if (fallbackNode) {
+              const importedNode = xmlDoc.importNode(fallbackNode, true);
+              // 替换整个父节点（w:r 或 w:p）
+              const grandParent = parentElement.parentNode;
+              if (grandParent) {
+                grandParent.replaceChild(importedNode, parentElement);
+                modified = true;
+                logger.info(`已为占位符 ${index} 应用后备方案（显示 LaTeX 代码）`);
+                break;
               }
-              if (actualTargetParent !== targetParent) break;
             }
           }
         }
       }
-      
-      return {
-        index,
-        placeholderText,
-        textNode: placeholderTextNode,
-        targetParent: actualTargetParent,
-        wrappedContent,
-        isBlockLevel,
-      };
-    };
-    
-    // 并行查找所有占位符位置（只查找存在于 XML 中的占位符）
-    const locationTasks = sortedIndices.map(index => findPlaceholderLocation(index));
-    const locations = (await Promise.all(locationTasks)).filter((loc): loc is PlaceholderLocation => loc !== null);
-    
-    const foundCount = locations.length;
-    const expectedCount = existingPlaceholders.size;
-    
-    if (foundCount < expectedCount) {
-      logger.warn(`占位符查找不完整：期望找到 ${expectedCount} 个，实际找到 ${foundCount} 个`);
     }
-    
-    logger.info(`找到 ${foundCount} 个占位符位置（期望 ${expectedCount} 个），开始替换`);
-    
-    // 按索引从大到小排序，避免索引偏移问题
-    locations.sort((a, b) => b.index - a.index);
-    
-    // 解析所有新内容（可以并行）
-    const newContentParser = new DOMParser({
+
+    // 序列化 XML
+    if (modified) {
+      const serializer = new XMLSerializer();
+      updatedXml = serializer.serializeToString(xmlDoc);
+      context.documentXml = updatedXml;
+    }
+
+    return modified;
+  }
+
+  /**
+   * 转义 XML 特殊字符
+   */
+  private escapeXml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  /**
+   * 查找并替换占位符
+   */
+  private async findAndReplacePlaceholders(
+    context: DocxProcessingContext,
+    documentXml: string,
+    formulaPlaceholders: Map<number, { latex: string; display: boolean }>,
+    formulaResults: Map<number, string>,
+    sortedIndices: number[],
+    existingPlaceholders: Set<number>,
+    totalFormulas: number,
+    progressCallback: ((current: number, total: number, message?: string) => void) | undefined
+  ): Promise<boolean> {
+    let updatedXml = documentXml;
+    let modified = false;
+
+    // 解析 XML 文档
+    const parser = new DOMParser({
       errorHandler: {
-        warning: (w) => logger.warn('OMML 解析警告:', w),
-        error: (e) => logger.error('OMML 解析错误:', e),
-        fatalError: (e) => logger.error('OMML 解析致命错误:', e),
+        warning: (w) => logger.warn('XML 解析警告:', w),
+        error: (e) => logger.error('XML 解析错误:', e),
+        fatalError: (e) => logger.error('XML 解析致命错误:', e),
       },
     });
     
+    let xmlDoc = parser.parseFromString(updatedXml, 'text/xml');
+    
+    // 检查解析错误
+    const parseError = xmlDoc.getElementsByTagName('parsererror');
+    if (parseError.length > 0) {
+      logger.error(`XML 解析失败: ${parseError[0].textContent}`);
+      return false;
+    }
+
+    // 查找所有文本节点中的占位符
+    interface PlaceholderLocation {
+      textNode: Text;
+      index: number;
+      isBlockLevel: boolean;
+      parentElement: Element;
+    }
+
+    const placeholderLocations: PlaceholderLocation[] = [];
+    const textNodes = this.findAllTextNodes(xmlDoc);
+
+    // 查找包含占位符的文本节点
+    for (const textNode of textNodes) {
+      const nodeValue = textNode.nodeValue || '';
+      
+      // 匹配文本占位符：[MATH_PLACEHOLDER_0] 或 [MATH_PLACEHOLDER_0_INLINE]
+      const blockMatch = nodeValue.match(/\[MATH_PLACEHOLDER_(\d+)\]/);
+      const inlineMatch = nodeValue.match(/\[MATH_PLACEHOLDER_(\d+)_INLINE\]/);
+      
+      // 如果直接匹配失败，尝试查找可能被分割的占位符（方括号可能被转义或分割）
+      let blockMatchAlt: RegExpMatchArray | null = null;
+      let inlineMatchAlt: RegExpMatchArray | null = null;
+      if (!blockMatch && !inlineMatch) {
+        // 尝试查找核心部分（可能方括号被转义或分割到不同节点）
+        blockMatchAlt = nodeValue.match(/MATH_PLACEHOLDER_(\d+)(?!_INLINE)/);
+        inlineMatchAlt = nodeValue.match(/MATH_PLACEHOLDER_(\d+)_INLINE/);
+      }
+      
+      let matchIndex: number | null = null;
+      let isBlockLevel = false;
+      
+      if (blockMatch) {
+        matchIndex = parseInt(blockMatch[1], 10);
+        isBlockLevel = true;
+      } else if (inlineMatch) {
+        matchIndex = parseInt(inlineMatch[1], 10);
+        isBlockLevel = false;
+      } else if (blockMatchAlt) {
+        // 使用备用匹配（可能方括号被转义或分割）
+        matchIndex = parseInt(blockMatchAlt[1], 10);
+        isBlockLevel = true;
+      } else if (inlineMatchAlt) {
+        matchIndex = parseInt(inlineMatchAlt[1], 10);
+        isBlockLevel = false;
+      }
+      
+      if (matchIndex !== null && existingPlaceholders.has(matchIndex)) {
+        // 找到包含占位符的父元素（w:r 或 w:p）
+        let parentElement: Element | null = null;
+        let current: Node | null = textNode;
+        
+        while (current && current.nodeType !== 9) {
+          if (current.nodeType === 1) {
+            const element = current as Element;
+            const tagName = element.tagName;
+            const localName = (element as any).localName || tagName.split(':').pop() || tagName;
+            const isParagraph = localName === 'p' || tagName === 'w:p' || tagName === 'p';
+            const isRun = localName === 'r' || tagName === 'w:r' || tagName === 'r';
+            
+            if (isBlockLevel && isParagraph) {
+              parentElement = element;
+              break;
+            } else if (!isBlockLevel && isRun) {
+              parentElement = element;
+              break;
+            } else if (!isBlockLevel && isParagraph) {
+              parentElement = element;
+              break;
+            }
+          }
+          current = current.parentNode;
+        }
+        
+        if (parentElement) {
+          placeholderLocations.push({
+            textNode,
+            index: matchIndex,
+            isBlockLevel,
+            parentElement,
+          });
+        }
+      }
+    }
+
+    logger.info(`找到 ${placeholderLocations.length} 个文本占位符，开始替换`);
+
+    // 按索引从大到小排序，避免索引偏移问题
+    placeholderLocations.sort((a, b) => b.index - a.index);
+
+    // 解析新内容的辅助函数
     const parseNewContent = (wrappedContent: string): Node | null => {
+      const newContentParser = new DOMParser({
+        errorHandler: {
+          warning: (w) => logger.warn('OMML 解析警告:', w),
+          error: (e) => logger.error('OMML 解析错误:', e),
+          fatalError: (e) => logger.error('OMML 解析致命错误:', e),
+        },
+      });
+      
       const wrappedForParsing = `<root xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">${wrappedContent}</root>`;
       const newContentDoc = newContentParser.parseFromString(wrappedForParsing, 'text/xml');
       
@@ -1364,54 +1695,85 @@ export class OMMLInsertionProcessor implements DocxProcessor {
       
       return xmlDoc.importNode(rootElement.firstChild, true);
     };
-    
-    // 并行解析所有新内容
-    const parseTasks = locations.map(loc => Promise.resolve(parseNewContent(loc.wrappedContent)));
-    const newNodes = await Promise.all(parseTasks);
-    
-    // 按顺序替换（避免索引偏移）
+
+    // 替换占位符
     let replacementCount = 0;
-    for (let i = 0; i < locations.length; i++) {
-      const location = locations[i];
-      const newNode = newNodes[i];
-      
-      if (!newNode) {
-        logger.warn(`无法解析占位符 ${location.index} 的新内容`);
-        continue;
+    const verbose = shouldLogVerbose();
+    
+    for (const { textNode, index, isBlockLevel, parentElement } of placeholderLocations) {
+      if (verbose) {
+        logger.debug(`[替换占位符] 索引: ${index}, 块级: ${isBlockLevel}`);
       }
       
-      const parentOfTarget = location.targetParent.parentNode;
-      if (parentOfTarget) {
-        try {
-          parentOfTarget.replaceChild(newNode, location.targetParent);
+      // 从 Map 中获取 LaTeX 代码
+      const placeholderData = formulaPlaceholders.get(index);
+      if (placeholderData) {
+        if (verbose) {
+          logger.debug(`[替换占位符] 索引: ${index}, LaTeX长度: ${placeholderData.latex.length}`);
+          logger.debug(`[替换占位符] 索引: ${index}, LaTeX内容: ${JSON.stringify(placeholderData.latex)}`);
+        }
+      } else {
+        logger.warn(`[替换占位符] 索引: ${index}, 未找到占位符数据`);
+      }
+      
+      const wrappedContent = formulaResults.get(index);
+      
+      if (!wrappedContent) {
+        logger.warn(`占位符 ${index} 没有转换结果，使用后备方案`);
+        // 使用后备方案
+        if (placeholderData) {
+          const escapedLatex = this.escapeXml(placeholderData.latex);
+          const fallbackContent = isBlockLevel
+            ? `<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">${escapedLatex}</w:t></w:r></w:p>`
+            : `<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">${escapedLatex}</w:t></w:r>`;
+          
+          const fallbackNode = parseNewContent(fallbackContent);
+          if (fallbackNode) {
+            const grandParent = parentElement.parentNode;
+            if (grandParent) {
+              grandParent.replaceChild(fallbackNode, parentElement);
+              modified = true;
+              replacementCount++;
+            }
+          }
+        }
+        continue;
+      }
+
+      const newNode = parseNewContent(wrappedContent);
+      if (!newNode) {
+        logger.warn(`无法解析占位符 ${index} 的新内容`);
+        continue;
+      }
+
+      try {
+        const grandParent = parentElement.parentNode;
+        if (grandParent) {
+          grandParent.replaceChild(newNode, parentElement);
           modified = true;
           replacementCount++;
-          logger.debug(`已替换占位符 ${location.index} (${location.isBlockLevel ? '块级' : '行内'})`);
           
-          // 报告替换进度
           if (progressCallback) {
             const replacementProgress = 50 + Math.floor((replacementCount / totalFormulas) * 50);
             progressCallback(replacementProgress, 100, `正在替换公式 (${replacementCount}/${totalFormulas})`);
           }
-        } catch (replaceError) {
-          logger.error(`替换占位符 ${location.index} 的节点时发生错误:`, replaceError);
         }
+      } catch (replaceError) {
+        logger.error(`替换占位符 ${index} 的节点时发生错误:`, replaceError);
       }
     }
-    
-    // 最后序列化一次 XML
+
+    // 序列化 XML
     if (modified) {
       const serializer = new XMLSerializer();
       updatedXml = serializer.serializeToString(xmlDoc);
-    }
-
-    if (modified) {
       context.documentXml = updatedXml;
-      logger.info(`已处理 ${formulaPlaceholders.size} 个公式占位符`);
+      logger.info(`已处理 ${replacementCount} 个公式占位符`);
     }
 
     return modified;
   }
+
 
   /**
    * 查找文档中的所有文本节点

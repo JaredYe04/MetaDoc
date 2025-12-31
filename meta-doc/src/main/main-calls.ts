@@ -2905,5 +2905,52 @@ function bindMathHandlers(): void {
       return formulas.map(() => null);
     }
   });
+
+  // MathML 到 OMML 转换（根据配置选择转换器）
+  ipcMain.handle('mathml-to-omml', async (
+    event: IpcMainInvokeEvent,
+    mathml: string
+  ): Promise<string | null> => {
+    try {
+      const { shouldUseCustomConverter } = await import('./utils/formula-conversion-config');
+      const useCustomConverter = shouldUseCustomConverter();
+      
+      if (useCustomConverter) {
+        // 使用我们自己的转换器
+        const { convertMathMLToOMML } = await import('./utils/mml2omml-converter');
+        const omml = convertMathMLToOMML(mathml);
+        return omml;
+      } else {
+        // 使用 mathml2omml 库
+        const { mml2omml } = await import('mathml2omml');
+        const omml = mml2omml(mathml);
+        return omml;
+      }
+    } catch (error) {
+      logger.error('MathML 转 OMML 失败:', error);
+      // 如果主转换器失败，尝试使用另一个作为后备
+      try {
+        const { shouldUseCustomConverter } = await import('./utils/formula-conversion-config');
+        const useCustomConverter = shouldUseCustomConverter();
+        
+        if (useCustomConverter) {
+          // 主转换器是自定义的，后备使用 mathml2omml
+          const { mml2omml } = await import('mathml2omml');
+          const omml = mml2omml(mathml);
+          logger.warn('使用 mathml2omml 作为后备转换器');
+          return omml;
+        } else {
+          // 主转换器是 mathml2omml，后备使用自定义转换器
+          const { convertMathMLToOMML } = await import('./utils/mml2omml-converter');
+          const omml = convertMathMLToOMML(mathml);
+          logger.warn('使用自定义转换器作为后备');
+          return omml;
+        }
+      } catch (fallbackError) {
+        logger.error('后备转换器也失败:', fallbackError);
+        return null;
+      }
+    }
+  });
 }
 

@@ -823,12 +823,21 @@ function onNodeDragStart(node: DocumentOutlineNode) {
   isDraggingNode.value = true;
   // 拖动开始时暂停文档同步，防止频繁重新渲染
   suppressDocumentSync = true;
+  // 清除可能存在的 commitOutline 定时器，避免在拖拽过程中触发提交
+  if (commitOutlineTimer) {
+    clearTimeout(commitOutlineTimer);
+    commitOutlineTimer = null;
+  }
 }
 type DropMode = 'before' | 'after' | 'inside' | 'parent';
 const dropPreview = reactive<{ targetPath: string | null; mode: DropMode | null }>({
   targetPath: null,
   mode: null,
 });
+
+// 节流定时器，用于减少拖拽过程中的 dropPreview 更新频率
+let dropPreviewThrottleTimer: NodeJS.Timeout | null = null;
+let pendingDropPreviewUpdate: { targetPath: string; mode: DropMode } | null = null;
 
 function computeDropMode(e: DragEvent, el: HTMLElement): DropMode {
   const rect = el.getBoundingClientRect();
@@ -868,17 +877,47 @@ function onNodeDragOver(e: DragEvent, node: DocumentOutlineNode) {
   const el = e.currentTarget as HTMLElement | null;
   if (!el) return;
   const mode = computeDropMode(e, el);
-  dropPreview.targetPath = node.path;
-  dropPreview.mode = mode;
+  
+  // 保存待更新的值
+  pendingDropPreviewUpdate = { targetPath: node.path, mode };
+  
+  // 如果定时器不存在，立即更新并设置定时器
+  if (!dropPreviewThrottleTimer) {
+    dropPreview.targetPath = node.path;
+    dropPreview.mode = mode;
+    // 使用节流，每 50ms 最多更新一次，减少重新渲染频率
+    dropPreviewThrottleTimer = setTimeout(() => {
+      dropPreviewThrottleTimer = null;
+      // 应用最后一次待更新的值
+      if (pendingDropPreviewUpdate) {
+        dropPreview.targetPath = pendingDropPreviewUpdate.targetPath;
+        dropPreview.mode = pendingDropPreviewUpdate.mode;
+        pendingDropPreviewUpdate = null;
+      }
+    }, 50);
+  }
 }
 
 function onNodeDragLeave(_node: DocumentOutlineNode) {
+  // 清除节流定时器
+  if (dropPreviewThrottleTimer) {
+    clearTimeout(dropPreviewThrottleTimer);
+    dropPreviewThrottleTimer = null;
+  }
+  pendingDropPreviewUpdate = null;
   dropPreview.targetPath = null;
   dropPreview.mode = null;
 }
 
 function onNodeDrop(targetNode: DocumentOutlineNode, e: DragEvent) {
   try {
+    // 清除节流定时器
+    if (dropPreviewThrottleTimer) {
+      clearTimeout(dropPreviewThrottleTimer);
+      dropPreviewThrottleTimer = null;
+    }
+    pendingDropPreviewUpdate = null;
+    
     const fromPath = draggingNodePath.value;
     draggingNodePath.value = null;
     const mode = dropPreview.mode;
@@ -1020,6 +1059,12 @@ function onNodeDrop(targetNode: DocumentOutlineNode, e: DragEvent) {
   }
 }
 function onNodeDragEnd() {
+  // 清除节流定时器
+  if (dropPreviewThrottleTimer) {
+    clearTimeout(dropPreviewThrottleTimer);
+    dropPreviewThrottleTimer = null;
+  }
+  pendingDropPreviewUpdate = null;
   draggingNodePath.value = null;
   dropPreview.targetPath = null;
   dropPreview.mode = null;
@@ -1099,13 +1144,22 @@ const isNodeTextTruncated = (nodePath: string): boolean => {
   return textTruncatedState[nodePath] === true;
 };
 
-// 重新检查所有文本元素的截断状态
+// 重新检查所有文本元素的截断状态（使用防抖避免频繁触发）
+let recheckTextTruncationTimer: NodeJS.Timeout | null = null;
 const recheckTextTruncation = () => {
-  textElementRefs.forEach((el, nodePath) => {
-    const isTruncated = el.scrollWidth > el.clientWidth || 
-                       el.scrollHeight > el.clientHeight;
-    textTruncatedState[nodePath] = isTruncated;
-  });
+  // 清除之前的定时器
+  if (recheckTextTruncationTimer) {
+    clearTimeout(recheckTextTruncationTimer);
+  }
+  // 使用防抖，延迟 200ms 执行，避免在缩放过程中频繁触发
+  recheckTextTruncationTimer = setTimeout(() => {
+    recheckTextTruncationTimer = null;
+    textElementRefs.forEach((el, nodePath) => {
+      const isTruncated = el.scrollWidth > el.clientWidth || 
+                         el.scrollHeight > el.clientHeight;
+      textTruncatedState[nodePath] = isTruncated;
+    });
+  }, 200);
 };
 
 watch(
@@ -1136,11 +1190,22 @@ watch(
 // 
 // 在 Outline 视图中，大纲是数据源，文本是从大纲生成的，不应该反向同步。
 
+// 防抖定时器，用于延迟 commitOutline 调用
+let commitOutlineTimer: NodeJS.Timeout | null = null;
+
 watch(
   treeData,
   () => {
     if (suppressDocumentSync) return;
-    commitOutline();
+    // 清除之前的定时器
+    if (commitOutlineTimer) {
+      clearTimeout(commitOutlineTimer);
+    }
+    // 使用防抖延迟提交，避免频繁触发（300ms）
+    commitOutlineTimer = setTimeout(() => {
+      commitOutlineTimer = null;
+      commitOutline();
+    }, 300);
   },
   { deep: true },
 );
@@ -1588,13 +1653,27 @@ onMounted(() => {
   window.addEventListener('resize', handleResize);
 });
 
-// 组件卸载时移除事件监听器
+// 组件卸载时移除事件监听器并清理定时器
 onUnmounted(() => {
   const treeElement = document.querySelector('.outline-tree-container') as HTMLElement;
   if (treeElement) {
     treeElement.removeEventListener('wheel', handleWheelZoom);
   }
   window.removeEventListener('resize', handleResize);
+  
+  // 清理所有定时器
+  if (commitOutlineTimer) {
+    clearTimeout(commitOutlineTimer);
+    commitOutlineTimer = null;
+  }
+  if (dropPreviewThrottleTimer) {
+    clearTimeout(dropPreviewThrottleTimer);
+    dropPreviewThrottleTimer = null;
+  }
+  if (recheckTextTruncationTimer) {
+    clearTimeout(recheckTextTruncationTimer);
+    recheckTextTruncationTimer = null;
+  }
 });
 
 </script>

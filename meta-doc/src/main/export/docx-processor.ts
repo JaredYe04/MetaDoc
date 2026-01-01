@@ -731,6 +731,18 @@ export class OMMLInsertionProcessor implements DocxProcessor {
   // 最大并发转换数
   private static readonly MAX_CONCURRENT = 10;
 
+  /**
+   * 转义 XML 特殊字符
+   */
+  private escapeXml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
   async process(context: DocxProcessingContext, options?: any, progressCallback?: (current: number, total: number, message?: string) => void): Promise<boolean> {
     const { documentXml } = context;
 
@@ -920,13 +932,18 @@ export class OMMLInsertionProcessor implements DocxProcessor {
     
     if (!alreadyEscaped) {
       // 只转义会影响 XML 解析的字符：< 和 >
-      // 不再转义 & 符号，因为过度转义会导致公式无法被正确解析
+      // 不再转义 & 符号，因为：
+      // 1. 在数学公式中，& 通常用于对齐（如 \begin{aligned} 环境）
+      // 2. 过度转义会导致公式无法被正确解析
+      // 3. MathJax 和 MathML 转换器应该能正确处理 & 符号
       
       // 转义小于号 < 为 LaTeX 命令 \lt（注意：不要加空格，MathJax 可能无法正确解析）
-      processed = processed.replace(/(?<!\\)<(?![a-zA-Z])/g, '\\lt');
+      // 改进：更精确的匹配，避免匹配到 LaTeX 命令中的 <（如 \langle）
+      processed = processed.replace(/(?<!\\)<(?![a-zA-Z\\])/g, '\\lt');
       
       // 转义大于号 > 为 LaTeX 命令 \gt（注意：不要加空格）
-      processed = processed.replace(/(?<!\\)>(?![a-zA-Z])/g, '\\gt');
+      // 改进：更精确的匹配，避免匹配到 LaTeX 命令中的 >（如 \rangle）
+      processed = processed.replace(/(?<!\\)>(?![a-zA-Z\\])/g, '\\gt');
     }
     
     return processed;
@@ -938,8 +955,8 @@ export class OMMLInsertionProcessor implements DocxProcessor {
   private async convertFormula(
     latexCode: string,
     isBlockLevel: boolean,
-    conversionCache: Map<string, { wrappedContent: string; ommlContent: string }>
-  ): Promise<{ wrappedContent: string; ommlContent: string }> {
+    conversionCache: Map<string, { wrappedContent: string; ommlContent: string; tag: string | null }>
+  ): Promise<{ wrappedContent: string; ommlContent: string; tag: string | null }> {
     const cacheKey = `${latexCode}|${isBlockLevel}`;
     const verbose = shouldLogVerbose();
     
@@ -956,11 +973,17 @@ export class OMMLInsertionProcessor implements DocxProcessor {
       return conversionCache.get(cacheKey)!;
     }
 
-    // 导入转换函数
-    const { convertLatexToMathML } = await import('../utils/mathml-converter');
+    // 导入转换函数和标签提取函数
+    const { convertLatexToMathML, extractTagFromLatex } = await import('../utils/mathml-converter');
 
-    // 预处理 LaTeX 代码，转义特殊字符
-    const preprocessedLatex = this.preprocessLatexForXml(latexCode);
+    // 提取标签信息（在转义之前提取，避免转义影响标签提取）
+    const { tag, processedLatex: latexWithoutTag } = extractTagFromLatex(latexCode);
+    if (tag && verbose) {
+      logger.debug(`[转换公式] 提取到标签: ${tag}`);
+    }
+
+    // 预处理 LaTeX 代码，转义特殊字符（使用已移除标签的版本）
+    const preprocessedLatex = this.preprocessLatexForXml(latexWithoutTag);
     if (verbose) {
       logger.debug(`[转换公式] 预处理后长度: ${preprocessedLatex.length}`);
       logger.debug(`[转换公式] 预处理后内容: ${JSON.stringify(preprocessedLatex)}`);
@@ -974,7 +997,7 @@ export class OMMLInsertionProcessor implements DocxProcessor {
       }
       mathml = await convertLatexToMathML(preprocessedLatex, isBlockLevel);
       if (verbose) {
-        logger.debug(`[转换公式] MathML转换成功, 长度: ${mathml?.length || 0}`);
+        //logger.debug(`[转换公式] MathML转换成功, 长度: ${mathml?.length || 0}`);
       }
     } catch (error) {
       logger.error(`[转换公式] MathML转换失败:`, error);
@@ -990,7 +1013,7 @@ export class OMMLInsertionProcessor implements DocxProcessor {
     const cleanedMathml = this.cleanMathML(mathml);
     
     if (verbose) {
-      logger.debug(`[转换公式] 清理后的 MathML 长度: ${cleanedMathml.length}`);
+      //logger.debug(`[转换公式] 清理后的 MathML 长度: ${cleanedMathml.length}`);
       // 检查 MathML 中是否包含未转义的 < 字符（在文本节点中）
       if (cleanedMathml.includes('<mo>&lt;</mo>') || cleanedMathml.match(/<m:t[^>]*>[^<]*<[^<]/)) {
         logger.warn(`[转换公式] MathML 中可能包含未转义的 < 字符`);
@@ -1031,11 +1054,12 @@ export class OMMLInsertionProcessor implements DocxProcessor {
         ommlContent = mml2omml(cleanedMathml).trim();
         
         if (verbose) {
-          logger.debug(`[转换公式] OMML 生成成功, 长度: ${ommlContent.length}`);
+          //logger.debug(`[转换公式] OMML 生成成功, 长度: ${ommlContent.length}`);
           // 检查 OMML 中是否包含未转义的 < 字符（在文本内容中，不是标签）
           const hasUnescapedLt = /<m:t[^>]*>[^<]*<[^<]/.test(ommlContent) || /<m:r[^>]*><m:t[^>]*>[^<]*<[^<]/.test(ommlContent);
           if (hasUnescapedLt) {
             logger.warn(`[转换公式] OMML 中可能包含未转义的 < 字符，需要清理`);
+            logger.warn(`[转换公式] OMML 内容: ${ommlContent}`);
           }
         }
       } catch (error) {
@@ -1065,10 +1089,10 @@ export class OMMLInsertionProcessor implements DocxProcessor {
     // 增强 OMML（字体设置）
     const enhancedOMML = this.enhanceOMMLWithFonts(ommlContent);
     
-    // 包装为 WordprocessingML 结构
-    const wrappedContent = this.wrapOMMLAsWordprocessingML(enhancedOMML, isBlockLevel);
+    // 包装为 WordprocessingML 结构（包含标签）
+    const wrappedContent = this.wrapOMMLAsWordprocessingML(enhancedOMML, isBlockLevel, tag);
 
-    const result = { wrappedContent, ommlContent: enhancedOMML };
+    const result = { wrappedContent, ommlContent: enhancedOMML, tag };
     conversionCache.set(cacheKey, result);
     return result;
   }
@@ -1110,6 +1134,8 @@ export class OMMLInsertionProcessor implements DocxProcessor {
    * 
    * 注意：由于 OMML 可能包含未转义的字符导致无法解析，我们使用正则表达式方法
    * 直接处理文本内容，而不依赖 XML 解析
+   * 
+   * 改进：更精确地处理嵌套标签和特殊字符，避免破坏公式结构
    */
   private cleanOMMLTextNodes(omml: string): string {
     // 使用正则表达式匹配 <m:t> 标签及其内容
@@ -1118,21 +1144,39 @@ export class OMMLInsertionProcessor implements DocxProcessor {
       // 检查文本内容中是否包含未转义的 XML 特殊字符
       // 如果 textContent 中包含其他标签（如嵌套的 <m:r>），我们需要更小心
       
-      // 先检查是否包含标签（说明是嵌套结构）
-      if (textContent.includes('<') && textContent.includes('>')) {
-        // 包含嵌套标签，需要递归处理
-        // 但这里我们只处理纯文本部分
-        // 对于嵌套标签，应该已经是正确的 XML 格式
-        return match; // 保持原样，假设嵌套标签已经正确转义
+      // 检查是否包含有效的 XML 标签（以字母或冒号开头，如 <m:r> 或 <tag>）
+      // 如果包含有效的 XML 标签，说明是嵌套结构，应该已经是正确的 XML 格式
+      // 但仍然需要检查文本部分是否有未转义的 & 字符
+      const hasValidXmlTag = /<[a-zA-Z:][\w:]*(\s[^>]*)?>/.test(textContent);
+      
+      if (hasValidXmlTag) {
+        // 包含有效的嵌套标签，这种情况下的 < > 应该是标签的一部分，不应该转义
+        // 但我们仍然需要转义文本中的特殊字符（如 &），而不是标签中的
+        // 对于这种情况，假设 OMML 转换器已经正确处理，只转义未转义的 & 字符
+        // 注意：不要转义已经是实体引用的字符（如 &amp;、&lt; 等）
+        let processed = textContent.replace(/&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9a-fA-F]+;)/g, '&amp;');
+        return `<m:t${attrs}>${processed}</m:t>`;
       }
       
-      // 纯文本内容，转义 XML 特殊字符
-      let escaped = textContent
-        .replace(/&(?!amp;|lt;|gt;|quot;|apos;|#\d+;)/g, '&amp;')  // 转义未转义的 &
-        .replace(/</g, '&lt;')    // 转义 <
-        .replace(/>/g, '&gt;')    // 转义 >
-        .replace(/"/g, '&quot;')  // 转义 "
-        .replace(/'/g, '&apos;'); // 转义 '
+      // 纯文本内容或包含无效的 < > 字符，需要转义所有 XML 特殊字符
+      // 顺序很重要：先转义 &，再转义 < 和 >
+      // 注意：不要转义已经是实体引用的字符
+      // 简化：先检查是否包含已转义的实体，如果包含，说明可能已经处理过，只转义未转义的 &
+      const hasEntities = /&(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);/.test(textContent);
+      
+      let escaped = textContent;
+      if (!hasEntities) {
+        // 没有实体引用，需要转义所有特殊字符
+        escaped = escaped
+          .replace(/&/g, '&amp;')  // 转义 &
+          .replace(/</g, '&lt;')    // 转义 <
+          .replace(/>/g, '&gt;')    // 转义 >
+          .replace(/"/g, '&quot;')  // 转义 "
+          .replace(/'/g, '&apos;'); // 转义 '
+      } else {
+        // 有实体引用，只转义未转义的 &
+        escaped = escaped.replace(/&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9a-fA-F]+;)/g, '&amp;');
+      }
       
       return `<m:t${attrs}>${escaped}</m:t>`;
     });
@@ -1310,17 +1354,35 @@ export class OMMLInsertionProcessor implements DocxProcessor {
 
   /**
    * 包装 OMML 为 WordprocessingML 结构
+   * @param enhancedOMML 增强后的 OMML 内容
+   * @param isBlockLevel 是否为块级公式
+   * @param tag 公式标签（如 "(1)"），如果提供，将在公式右侧显示
    */
-  private wrapOMMLAsWordprocessingML(enhancedOMML: string, isBlockLevel: boolean): string {
+  private wrapOMMLAsWordprocessingML(enhancedOMML: string, isBlockLevel: boolean, tag: string | null = null): string {
     // 提取 m:oMath 的内部内容
     const oMathMatch = enhancedOMML.match(/<m:oMath[^>]*>([\s\S]*?)<\/m:oMath>/);
     const innerOMML = oMathMatch ? oMathMatch[1] : enhancedOMML;
     
     if (isBlockLevel) {
       // 块级公式
-      return `<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><m:oMathParaPr><m:jc m:val="center"/></m:oMathParaPr><m:oMath><m:oMathPr><m:mathFont m:val="Times New Roman"/></m:oMathPr>${innerOMML}</m:oMath></m:oMathPara></w:p>`;
+      const formulaContent = `<m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><m:oMathParaPr><m:jc m:val="center"/></m:oMathParaPr><m:oMath><m:oMathPr><m:mathFont m:val="Times New Roman"/></m:oMathPr>${innerOMML}</m:oMath></m:oMathPara>`;
+      
+      // 如果有标签，在公式后添加右对齐的标签文本
+      if (tag) {
+        const escapedTag = this.escapeXml(tag);
+        // 使用制表符实现右对齐：公式居中，标签右对齐
+        // 在段落属性中设置制表位，然后在公式后添加制表符和标签
+        // 制表位位置设置为 9000 twips（约 15.9 cm，足够宽以容纳公式和标签）
+        const tagRun = `<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:tab/></w:r><w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">${escapedTag}</w:t></w:r>`;
+        
+        // 设置段落属性：居中对齐，并添加右对齐制表位
+        // 注意：公式本身居中，标签通过制表符右对齐
+        return `<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:pPr><w:jc w:val="center"/><w:tabs><w:tab w:val="right" w:pos="9000"/></w:tabs></w:pPr>${formulaContent}${tagRun}</w:p>`;
+      } else {
+        return `<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:pPr><w:jc w:val="center"/></w:pPr>${formulaContent}</w:p>`;
+      }
     } else {
-      // 行内公式
+      // 行内公式（不支持标签，因为行内公式通常不需要标签）
       return `<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><m:oMath><m:oMathPr><m:mathFont m:val="Times New Roman"/></m:oMathPr>${innerOMML}</m:oMath></w:r>`;
     }
   }
@@ -1334,7 +1396,7 @@ export class OMMLInsertionProcessor implements DocxProcessor {
     uniqueCount: number,
     totalFormulas: number
   ): Promise<{ formulaResults: Map<number, string>; failedIndices: Set<number> }> {
-    const conversionCache = new Map<string, { wrappedContent: string; ommlContent: string }>();
+    const conversionCache = new Map<string, { wrappedContent: string; ommlContent: string; tag: string | null }>();
     const formulaResults = new Map<number, string>();
     const failedIndices = new Set<number>();
     
@@ -1531,18 +1593,6 @@ export class OMMLInsertionProcessor implements DocxProcessor {
     }
 
     return modified;
-  }
-
-  /**
-   * 转义 XML 特殊字符
-   */
-  private escapeXml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
   }
 
   /**

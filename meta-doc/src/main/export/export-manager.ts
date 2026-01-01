@@ -1048,16 +1048,24 @@ const escapeLatexForMarkdown = (latex: string): string => {
   // 转义小于号 < 为 \lt（LaTeX 命令）
   // 注意：只转义不在反斜杠后的 <，避免破坏 LaTeX 命令
   // 注意：不要加空格，MathJax 可能无法正确解析带空格的 \lt
-  escaped = escaped.replace(/(?<!\\)<(?![a-zA-Z])/g, '\\lt');
+  // 改进：更精确的匹配，避免匹配到 LaTeX 命令中的 <（如 \langle）
+  escaped = escaped.replace(/(?<!\\)<(?![a-zA-Z\\])/g, '\\lt');
   
   // 转义大于号 > 为 \gt（LaTeX 命令）
   // 注意：不要加空格
-  escaped = escaped.replace(/(?<!\\)>(?![a-zA-Z])/g, '\\gt');
+  // 改进：更精确的匹配，避免匹配到 LaTeX 命令中的 >（如 \rangle）
+  escaped = escaped.replace(/(?<!\\)>(?![a-zA-Z\\])/g, '\\gt');
   
   // 不再转义 & 符号，因为：
-  // 1. 在数学公式中，& 通常不需要转义
+  // 1. 在数学公式中，& 通常不需要转义（如 aligned 环境中的对齐符号）
   // 2. 如果确实需要转义，应该在 LaTeX 代码中手动使用 \&
   // 3. 过度转义会导致公式无法被正确解析
+  // 注意：& 符号在后续的 XML 处理中会被正确转义为 &amp;，但这里我们保持原始 LaTeX 代码
+  
+  // 不转义 % 符号，因为：
+  // 1. 在 LaTeX 中，% 是注释符号，但在数学公式中可能作为普通字符使用（如 O\%）
+  // 2. 如果确实需要转义，应该在 LaTeX 代码中手动使用 \%
+  // 3. 保持原始 LaTeX 代码，让 MathJax 处理
   
   return escaped;
 };
@@ -1075,7 +1083,10 @@ const extractFormulasFromMarkdown = (markdown: string): { processedMarkdown: str
   let processedMarkdown = markdown;
   
   // 匹配公式的正则表达式
-  const mathBlockRegex = /(?<!\\)\$\$([\s\S]+?)(?<!\\)\$\$/g;
+  // 块级公式：使用非贪婪匹配，但需要确保能匹配多行复杂公式（如 \begin{aligned}...\end{aligned}）
+  // 改进：使用更精确的匹配，确保能正确处理包含 $$ 的公式内容
+  const mathBlockRegex = /(?<!\\)\$\$([\s\S]*?)(?<!\\)\$\$/g;
+  // 行内公式：不跨行，避免匹配到块级公式的一部分
   const mathInlineRegex = /(?<!\\)\$(?!\$)([^\n$]+?)(?<!\\)\$/g;
   
   // 收集所有公式（块级和行内）
@@ -1092,12 +1103,27 @@ const extractFormulasFromMarkdown = (markdown: string): { processedMarkdown: str
   }
   
   // 提取块级公式
-  let match;
+  // 注意：需要重置正则表达式的 lastIndex，避免全局匹配的问题
+  mathBlockRegex.lastIndex = 0;
+  let match: RegExpExecArray | null;
   while ((match = mathBlockRegex.exec(markdown)) !== null) {
-    const content = match[1].trim();
+    let content = match[1];
+    
+    // 对于包含 \begin{...} 和 \end{...} 的复杂公式，需要确保内容完整
+    // 检查是否包含未闭合的环境（如 \begin{aligned} 但没有对应的 \end{aligned}）
+    // 这种情况通常不会发生，因为正则表达式已经匹配了完整的 $$...$$ 块
+    // 但为了安全，我们仍然保留原始内容，不做额外的处理
+    
+    // 只去除首尾空白，保留内部格式（包括换行符）
+    content = content.trim();
+    
     if (verbose) {
       logger.debug(`[提取公式-块级] 位置: ${match.index}, 长度: ${match[0].length}, 内容预览: ${content.substring(0, 100)}${content.length > 100 ? '...' : ''}`);
       logger.debug(`[提取公式-块级] 完整内容: ${JSON.stringify(content)}`);
+      // 检查是否包含复杂结构
+      if (content.includes('\\begin{') || content.includes('\\end{')) {
+        logger.debug(`[提取公式-块级] 检测到复杂公式结构（包含 \\begin 或 \\end）`);
+      }
     }
     allMatches.push({
       match: match[0],
@@ -1109,7 +1135,23 @@ const extractFormulasFromMarkdown = (markdown: string): { processedMarkdown: str
   }
   
   // 提取行内公式
+  // 注意：需要重置正则表达式的 lastIndex，避免全局匹配的问题
+  mathInlineRegex.lastIndex = 0;
+  match = null;
   while ((match = mathInlineRegex.exec(markdown)) !== null) {
+    // 检查这个行内公式是否在块级公式内部（避免重复匹配）
+    // 如果匹配位置在已提取的块级公式范围内，跳过
+    const matchIndex = match.index;
+    const isInsideBlockFormula = allMatches.some(m => 
+      m.display && matchIndex >= m.startPos && matchIndex < m.startPos + m.match.length
+    );
+    if (isInsideBlockFormula) {
+      if (verbose) {
+        logger.debug(`[提取公式-行内] 跳过位于块级公式内部的行内公式: ${match.index}`);
+      }
+      continue;
+    }
+    
     const content = match[1].trim();
     if (verbose) {
       logger.debug(`[提取公式-行内] 位置: ${match.index}, 长度: ${match[0].length}, 内容预览: ${content.substring(0, 100)}${content.length > 100 ? '...' : ''}`);

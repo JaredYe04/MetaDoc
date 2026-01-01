@@ -1386,5 +1386,23 @@
     "title": "Word Statistics",
     "tooltip": "Click to see detailed word count",
     "words": "Number of words"
+  },
+  "fontSize": {
+    "chuhao": "Initial",
+    "xiaochu": "Small Initial",
+    "yihao": "First",
+    "xiaoyi": "Small First",
+    "erhao": "Second",
+    "xiaoer": "Small Second",
+    "sanhao": "Third",
+    "xiaosan": "Small Third",
+    "sihao": "Fourth",
+    "xiaosi": "Small Fourth",
+    "wuhao": "Fifth",
+    "xiaowu": "Small Fifth",
+    "liuhao": "Sixth",
+    "xiaoliu": "Small Sixth",
+    "qihao": "Seventh",
+    "bahao": "Eighth"
   }
 }

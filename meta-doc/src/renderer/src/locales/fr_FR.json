@@ -1125,5 +1125,23 @@
       "generate": "Générer",
       "reset": "Réinitialiser"
     }
+  },
+  "fontSize": {
+    "chuhao": "Initial",
+    "xiaochu": "Petit Initial",
+    "yihao": "Premier",
+    "xiaoyi": "Petit Premier",
+    "erhao": "Deuxième",
+    "xiaoer": "Petit Deuxième",
+    "sanhao": "Troisième",
+    "xiaosan": "Petit Troisième",
+    "sihao": "Quatrième",
+    "xiaosi": "Petit Quatrième",
+    "wuhao": "Cinquième",
+    "xiaowu": "Petit Cinquième",
+    "liuhao": "Sixième",
+    "xiaoliu": "Petit Sixième",
+    "qihao": "Septième",
+    "bahao": "Huitième"
   }
 }

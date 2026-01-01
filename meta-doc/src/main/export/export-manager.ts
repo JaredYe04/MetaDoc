@@ -1467,6 +1467,7 @@ const convertMarkdownToDocxBuffer = async (
     };
     generateCover?: boolean;
     generateToc?: boolean;
+    processFormula?: boolean;
   },
   meta?: DocumentMetaInfo
 ): Promise<Buffer> => {
@@ -1480,157 +1481,165 @@ const convertMarkdownToDocxBuffer = async (
     heading4: { fontFamily: 'Microsoft YaHei', fontSize: 12, lineHeight: 1.2 },
   };
   
-  // 在 Markdown 阶段提取公式并替换为文本占位符
+  // 只有当 processFormula 不为 false 时，才在 Markdown 阶段提取公式并替换为文本占位符
   // 这样可以避免在 HTML 转换过程中 LaTeX 代码被破坏
-  const { processedMarkdown, placeholders: markdownPlaceholders } = extractFormulasFromMarkdown(markdown);
+  let processedMarkdown = markdown;
+  let markdownPlaceholders = new Map<number, { latex: string; display: boolean }>();
+  if (options?.processFormula !== false) {
+    const result = extractFormulasFromMarkdown(markdown);
+    processedMarkdown = result.processedMarkdown;
+    markdownPlaceholders = result.placeholders;
+  }
   
-  // 在 HTML 中查找公式元素并替换为占位符
+  // 只有当 processFormula 不为 false 时，才在 HTML 中查找公式元素并替换为占位符
   // 因为 HTML 是在渲染进程中生成的，公式可能已经被转换为图片或 MathML
   // 我们需要在 HTML 中找到这些公式元素，并替换为对应的占位符
   let processedHtml = htmlContent;
   
-  // 匹配公式图片和 .language-math 元素
-  // 注意：公式图片可能以多种格式存在：
-  // 1. data:image/svg+xml;base64,... (base64 编码的 SVG)
-  // 2. http://localhost:52521/images/xxx_math.svg (HTTP URL)
-  // 3. 其他格式的图片 URL
-  const formulaImageRegex = /<img[^>]+src\s*=\s*["']([^"']*(?:data:image[^"']*|_math\.(?:svg|png)|math[^"']*\.(?:svg|png))[^"']*)["'][^>]*>/gi;
-  const formulaLanguageRegex = /<(span|div)[^>]*class\s*=\s*["'][^"']*language-math[^"']*["'][^>]*>([\s\S]*?)<\/(span|div)>/gi;
-  
-  // 也匹配 MathML 元素（如果 HTML 中包含原生 MathML）
-  const mathmlRegex = /<math[^>]*>[\s\S]*?<\/math>/gi;
-  
-  // 收集所有公式元素
-  const htmlFormulaMatches: Array<{ match: string; index: number; type: 'image' | 'language-math'; isBlockLevel: boolean }> = [];
-  
-  let match;
-  while ((match = formulaImageRegex.exec(htmlContent)) !== null) {
-    const tagName = match[0];
-    // 判断是否为块级（通过检查周围的标签）
-    const beforeMatch = htmlContent.substring(Math.max(0, match.index - 100), match.index);
-    const afterMatch = htmlContent.substring(match.index + match[0].length, Math.min(htmlContent.length, match.index + match[0].length + 100));
-    const isBlockLevel = beforeMatch.includes('<p') || beforeMatch.includes('<div') || 
-                         afterMatch.includes('</p>') || afterMatch.includes('</div>') ||
-                         tagName.includes('display');
-    htmlFormulaMatches.push({ 
-      match: tagName, 
-      index: match.index, 
-      type: 'image',
-      isBlockLevel 
-    });
-  }
-  
-  while ((match = formulaLanguageRegex.exec(htmlContent)) !== null) {
-    const tagName = match[1].toLowerCase();
-    const isBlockLevel = tagName === 'div';
-    htmlFormulaMatches.push({ 
-      match: match[0], 
-      index: match.index, 
-      type: 'language-math',
-      isBlockLevel 
-    });
-  }
-  
-  // 匹配 MathML 元素
-  while ((match = mathmlRegex.exec(htmlContent)) !== null) {
-    // 判断是否为块级（通过检查 display 属性或周围的标签）
-    const beforeMatch = htmlContent.substring(Math.max(0, match.index - 100), match.index);
-    const afterMatch = htmlContent.substring(match.index + match[0].length, Math.min(htmlContent.length, match.index + match[0].length + 100));
-    const isBlockLevel = match[0].includes('display="block"') || 
-                         match[0].includes('display="block"') ||
-                         beforeMatch.includes('<p') || beforeMatch.includes('<div') || 
-                         afterMatch.includes('</p>') || afterMatch.includes('</div>');
-    htmlFormulaMatches.push({ 
-      match: match[0], 
-      index: match.index, 
-      type: 'language-math', // 使用相同的类型
-      isBlockLevel 
-    });
-  }
-  
-  // 按位置从后往前排序，避免替换时索引偏移
-  htmlFormulaMatches.sort((a, b) => b.index - a.index);
-  
-  const blockCount = htmlFormulaMatches.filter(m => m.isBlockLevel).length;
-  const inlineCount = htmlFormulaMatches.filter(m => !m.isBlockLevel).length;
-  const markdownBlockCount = Array.from(markdownPlaceholders.values()).filter(v => v.display).length;
-  const markdownInlineCount = Array.from(markdownPlaceholders.values()).filter(v => !v.display).length;
-  
-  logger.info(`在 HTML 中找到 ${htmlFormulaMatches.length} 个公式元素（块级：${blockCount}，行内：${inlineCount}），Markdown 中有 ${markdownPlaceholders.size} 个公式（块级：${markdownBlockCount}，行内：${markdownInlineCount}）`);
-  
-  // 将 HTML 中的公式元素替换为占位符
-  // 按块级和行内分别匹配
-  const blockPlaceholderIndices = Array.from(markdownPlaceholders.entries())
-    .filter(([_, data]) => data.display)
-    .map(([index]) => index)
-    .sort((a, b) => a - b);
-  const inlinePlaceholderIndices = Array.from(markdownPlaceholders.entries())
-    .filter(([_, data]) => !data.display)
-    .map(([index]) => index)
-    .sort((a, b) => a - b);
-  
-  let blockIndex = 0;
-  let inlineIndex = 0;
-  let replacedCount = 0;
-  const unmatchedHtmlFormulas: number[] = [];
-  const unmatchedPlaceholders: number[] = [];
-  
-  for (let i = 0; i < htmlFormulaMatches.length; i++) {
-    const htmlMatch = htmlFormulaMatches[i];
-    let placeholderIndex: number | null = null;
+  if (options?.processFormula !== false) {
+    // 匹配公式图片和 .language-math 元素
+    // 注意：公式图片可能以多种格式存在：
+    // 1. data:image/svg+xml;base64,... (base64 编码的 SVG)
+    // 2. http://localhost:52521/images/xxx_math.svg (HTTP URL)
+    // 3. 其他格式的图片 URL
+    const formulaImageRegex = /<img[^>]+src\s*=\s*["']([^"']*(?:data:image[^"']*|_math\.(?:svg|png)|math[^"']*\.(?:svg|png))[^"']*)["'][^>]*>/gi;
+    const formulaLanguageRegex = /<(span|div)[^>]*class\s*=\s*["'][^"']*language-math[^"']*["'][^>]*>([\s\S]*?)<\/(span|div)>/gi;
     
-    if (htmlMatch.isBlockLevel && blockIndex < blockPlaceholderIndices.length) {
-      placeholderIndex = blockPlaceholderIndices[blockIndex];
-      blockIndex++;
-    } else if (!htmlMatch.isBlockLevel && inlineIndex < inlinePlaceholderIndices.length) {
-      placeholderIndex = inlinePlaceholderIndices[inlineIndex];
-      inlineIndex++;
-    } else {
-      // 无法匹配的公式元素
-      unmatchedHtmlFormulas.push(i);
-      logger.warn(`无法匹配 HTML 中的公式元素 ${i}（${htmlMatch.isBlockLevel ? '块级' : '行内'}），可能 HTML 中的公式数量与 Markdown 不一致`);
+    // 也匹配 MathML 元素（如果 HTML 中包含原生 MathML）
+    const mathmlRegex = /<math[^>]*>[\s\S]*?<\/math>/gi;
+    
+    // 收集所有公式元素
+    const htmlFormulaMatches: Array<{ match: string; index: number; type: 'image' | 'language-math'; isBlockLevel: boolean }> = [];
+    
+    let match;
+    while ((match = formulaImageRegex.exec(htmlContent)) !== null) {
+      const tagName = match[0];
+      // 判断是否为块级（通过检查周围的标签）
+      const beforeMatch = htmlContent.substring(Math.max(0, match.index - 100), match.index);
+      const afterMatch = htmlContent.substring(match.index + match[0].length, Math.min(htmlContent.length, match.index + match[0].length + 100));
+      const isBlockLevel = beforeMatch.includes('<p') || beforeMatch.includes('<div') || 
+                           afterMatch.includes('</p>') || afterMatch.includes('</div>') ||
+                           tagName.includes('display');
+      htmlFormulaMatches.push({ 
+        match: tagName, 
+        index: match.index, 
+        type: 'image',
+        isBlockLevel 
+      });
     }
     
-    if (placeholderIndex !== null) {
-        // 创建占位符文本
-        const placeholderText = htmlMatch.isBlockLevel
-          ? `[MATH_PLACEHOLDER_${placeholderIndex}]`
-          : `[MATH_PLACEHOLDER_${placeholderIndex}_INLINE]`;
+    while ((match = formulaLanguageRegex.exec(htmlContent)) !== null) {
+      const tagName = match[1].toLowerCase();
+      const isBlockLevel = tagName === 'div';
+      htmlFormulaMatches.push({ 
+        match: match[0], 
+        index: match.index, 
+        type: 'language-math',
+        isBlockLevel 
+      });
+    }
+    
+    // 匹配 MathML 元素
+    while ((match = mathmlRegex.exec(htmlContent)) !== null) {
+      // 判断是否为块级（通过检查 display 属性或周围的标签）
+      const beforeMatch = htmlContent.substring(Math.max(0, match.index - 100), match.index);
+      const afterMatch = htmlContent.substring(match.index + match[0].length, Math.min(htmlContent.length, match.index + match[0].length + 100));
+      const isBlockLevel = match[0].includes('display="block"') || 
+                           match[0].includes('display="block"') ||
+                           beforeMatch.includes('<p') || beforeMatch.includes('<div') || 
+                           afterMatch.includes('</p>') || afterMatch.includes('</div>');
+      htmlFormulaMatches.push({ 
+        match: match[0], 
+        index: match.index, 
+        type: 'language-math', // 使用相同的类型
+        isBlockLevel 
+      });
+    }
+    
+    // 按位置从后往前排序，避免替换时索引偏移
+    htmlFormulaMatches.sort((a, b) => b.index - a.index);
+    
+    const blockCount = htmlFormulaMatches.filter(m => m.isBlockLevel).length;
+    const inlineCount = htmlFormulaMatches.filter(m => !m.isBlockLevel).length;
+    const markdownBlockCount = Array.from(markdownPlaceholders.values()).filter(v => v.display).length;
+    const markdownInlineCount = Array.from(markdownPlaceholders.values()).filter(v => !v.display).length;
+    
+    logger.info(`在 HTML 中找到 ${htmlFormulaMatches.length} 个公式元素（块级：${blockCount}，行内：${inlineCount}），Markdown 中有 ${markdownPlaceholders.size} 个公式（块级：${markdownBlockCount}，行内：${markdownInlineCount}）`);
+    
+    // 将 HTML 中的公式元素替换为占位符
+    // 按块级和行内分别匹配
+    const blockPlaceholderIndices = Array.from(markdownPlaceholders.entries())
+      .filter(([_, data]) => data.display)
+      .map(([index]) => index)
+      .sort((a, b) => a - b);
+    const inlinePlaceholderIndices = Array.from(markdownPlaceholders.entries())
+      .filter(([_, data]) => !data.display)
+      .map(([index]) => index)
+      .sort((a, b) => a - b);
+    
+    let blockIndex = 0;
+    let inlineIndex = 0;
+    let replacedCount = 0;
+    const unmatchedHtmlFormulas: number[] = [];
+    const unmatchedPlaceholders: number[] = [];
+    
+    for (let i = 0; i < htmlFormulaMatches.length; i++) {
+      const htmlMatch = htmlFormulaMatches[i];
+      let placeholderIndex: number | null = null;
       
-      // 替换公式元素为占位符
-      if (htmlMatch.isBlockLevel) {
-        // 块级公式：替换为段落中的占位符
-        processedHtml = processedHtml.substring(0, htmlMatch.index) + 
-                        `<p class="Normal" style="text-align: center; margin: 12pt 0;"><span>${placeholderText}</span></p>` + 
-                        processedHtml.substring(htmlMatch.index + htmlMatch.match.length);
+      if (htmlMatch.isBlockLevel && blockIndex < blockPlaceholderIndices.length) {
+        placeholderIndex = blockPlaceholderIndices[blockIndex];
+        blockIndex++;
+      } else if (!htmlMatch.isBlockLevel && inlineIndex < inlinePlaceholderIndices.length) {
+        placeholderIndex = inlinePlaceholderIndices[inlineIndex];
+        inlineIndex++;
       } else {
-        // 行内公式：替换为 span 中的占位符
-        processedHtml = processedHtml.substring(0, htmlMatch.index) + 
-                        `<span>${placeholderText}</span>` + 
-                        processedHtml.substring(htmlMatch.index + htmlMatch.match.length);
+        // 无法匹配的公式元素
+        unmatchedHtmlFormulas.push(i);
+        logger.warn(`无法匹配 HTML 中的公式元素 ${i}（${htmlMatch.isBlockLevel ? '块级' : '行内'}），可能 HTML 中的公式数量与 Markdown 不一致`);
       }
       
-      replacedCount++;
+      if (placeholderIndex !== null) {
+          // 创建占位符文本
+          const placeholderText = htmlMatch.isBlockLevel
+            ? `[MATH_PLACEHOLDER_${placeholderIndex}]`
+            : `[MATH_PLACEHOLDER_${placeholderIndex}_INLINE]`;
+        
+        // 替换公式元素为占位符
+        if (htmlMatch.isBlockLevel) {
+          // 块级公式：替换为段落中的占位符
+          processedHtml = processedHtml.substring(0, htmlMatch.index) + 
+                          `<p class="Normal" style="text-align: center; margin: 12pt 0;"><span>${placeholderText}</span></p>` + 
+                          processedHtml.substring(htmlMatch.index + htmlMatch.match.length);
+        } else {
+          // 行内公式：替换为 span 中的占位符
+          processedHtml = processedHtml.substring(0, htmlMatch.index) + 
+                          `<span>${placeholderText}</span>` + 
+                          processedHtml.substring(htmlMatch.index + htmlMatch.match.length);
+        }
+        
+        replacedCount++;
+      }
     }
+    
+    // 检查未匹配的占位符
+    if (blockIndex < blockPlaceholderIndices.length) {
+      const remaining = blockPlaceholderIndices.slice(blockIndex);
+      unmatchedPlaceholders.push(...remaining);
+      logger.warn(`有 ${remaining.length} 个块级占位符无法在 HTML 中找到对应的公式元素: ${remaining.slice(0, 10).join(', ')}`);
+    }
+    if (inlineIndex < inlinePlaceholderIndices.length) {
+      const remaining = inlinePlaceholderIndices.slice(inlineIndex);
+      unmatchedPlaceholders.push(...remaining);
+      logger.warn(`有 ${remaining.length} 个行内占位符无法在 HTML 中找到对应的公式元素: ${remaining.slice(0, 10).join(', ')}`);
+    }
+    
+    logger.info(`在 HTML 中替换了 ${replacedCount} 个公式元素为占位符（块级：${blockIndex}，行内：${inlineIndex}），未匹配：HTML 公式 ${unmatchedHtmlFormulas.length} 个，占位符 ${unmatchedPlaceholders.length} 个`);
+    
+    // 验证占位符是否在 HTML 中（用于调试）
+    const placeholderCountInHtml = (processedHtml.match(/\[MATH_PLACEHOLDER_\d+(?:_INLINE)?\]/g) || []).length;
+    logger.info(`HTML 中包含 ${placeholderCountInHtml} 个占位符文本`);
   }
-  
-  // 检查未匹配的占位符
-  if (blockIndex < blockPlaceholderIndices.length) {
-    const remaining = blockPlaceholderIndices.slice(blockIndex);
-    unmatchedPlaceholders.push(...remaining);
-    logger.warn(`有 ${remaining.length} 个块级占位符无法在 HTML 中找到对应的公式元素: ${remaining.slice(0, 10).join(', ')}`);
-  }
-  if (inlineIndex < inlinePlaceholderIndices.length) {
-    const remaining = inlinePlaceholderIndices.slice(inlineIndex);
-    unmatchedPlaceholders.push(...remaining);
-    logger.warn(`有 ${remaining.length} 个行内占位符无法在 HTML 中找到对应的公式元素: ${remaining.slice(0, 10).join(', ')}`);
-  }
-  
-  logger.info(`在 HTML 中替换了 ${replacedCount} 个公式元素为占位符（块级：${blockIndex}，行内：${inlineIndex}），未匹配：HTML 公式 ${unmatchedHtmlFormulas.length} 个，占位符 ${unmatchedPlaceholders.length} 个`);
-  
-  // 验证占位符是否在 HTML 中（用于调试）
-  const placeholderCountInHtml = (processedHtml.match(/\[MATH_PLACEHOLDER_\d+(?:_INLINE)?\]/g) || []).length;
-  logger.info(`HTML 中包含 ${placeholderCountInHtml} 个占位符文本`);
   
   // 将HTML中的标题和正文映射到Word样式库（如果启用）
   let styledHtml = enableStyleMapping ? mapHtmlToWordStyles(processedHtml) : processedHtml;

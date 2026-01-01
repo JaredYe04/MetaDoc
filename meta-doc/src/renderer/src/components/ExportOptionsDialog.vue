@@ -34,20 +34,20 @@
             </el-divider>
             <template v-for="subField in field.fields" :key="subField.key">
               <el-form-item
-                v-if="shouldShowField(subField) && (subField.type === 'select' || subField.type === 'font')"
+                v-if="shouldShowField(subField) && (subField.type === 'select' || subField.type === 'font' || subField.type === 'fontSize')"
                 :label="getFieldLabel(subField)"
                 :prop="subField.key"
               >
                 <el-select
                   :model-value="getNestedValue(formData, subField.key)"
-                  @update:model-value="(val) => setNestedValue(formData, subField.key, val)"
+                  @update:model-value="(val: any) => setNestedValue(formData, subField.key, val)"
                   :placeholder="getFieldLabel(subField)"
                   :loading="subField.type === 'font' && fontsLoading"
                   v-bind="getFieldProps(subField)"
                   style="width: 100%"
                 >
                   <el-option
-                    v-for="option in (subField.type === 'font' ? getFontOptions(subField) : (subField.options || []))"
+                    v-for="option in getFieldOptions(subField)"
                     :key="option.value"
                     :label="option.labelKey ? t(option.labelKey) : option.label"
                     :value="option.value"
@@ -70,7 +70,7 @@
                 <component
                   :is="getFieldComponent(subField)"
                   :model-value="getNestedValue(formData, subField.key)"
-                  @update:model-value="(val) => setNestedValue(formData, subField.key, val)"
+                  @update:model-value="(val: any) => setNestedValue(formData, subField.key, val)"
                   v-bind="getFieldProps(subField)"
                   style="width: 100%"
                 />
@@ -86,34 +86,34 @@
             </template>
           </template>
           
-          <!-- Select字段和Font字段 -->
+          <!-- Select字段、Font字段和FontSize字段 -->
           <el-form-item
-            v-else-if="shouldShowField(field) && (field.type === 'select' || field.type === 'font')"
+            v-else-if="shouldShowField(field) && (field.type === 'select' || field.type === 'font' || field.type === 'fontSize')"
             :label="getFieldLabel(field)"
             :prop="field.key"
           >
             <el-select
               :model-value="getNestedValue(formData, field.key)"
-              @update:model-value="(val) => setNestedValue(formData, field.key, val)"
+              @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
               :placeholder="getFieldLabel(field)"
               :loading="field.type === 'font' && fontsLoading"
               v-bind="getFieldProps(field)"
               style="width: 100%"
             >
               <el-option
-                v-for="option in (field.type === 'font' ? getFontOptions(field) : (field.options || []))"
+                v-for="option in getFieldOptions(field)"
                 :key="option.value"
                 :label="option.labelKey ? t(option.labelKey) : option.label"
                 :value="option.value"
               />
             </el-select>
             <el-text
-              v-if="field.description || field.descriptionKey"
+              v-if="hasFieldHelperText(field)"
               size="small"
               type="info"
               style="display: block; margin-top: 4px;"
             >
-              {{ getFieldDescription(field) }}
+              {{ getFieldHelperText(field) }}
             </el-text>
           </el-form-item>
           
@@ -126,17 +126,17 @@
             <component
               :is="getFieldComponent(field)"
               :model-value="getNestedValue(formData, field.key)"
-              @update:model-value="(val) => setNestedValue(formData, field.key, val)"
+              @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
               v-bind="getFieldProps(field)"
               style="width: 100%"
             />
             <el-text
-              v-if="field.description || field.descriptionKey"
+              v-if="hasFieldHelperText(field)"
               size="small"
               type="info"
               style="display: block; margin-top: 4px;"
             >
-              {{ getFieldDescription(field) }}
+              {{ getFieldHelperText(field) }}
             </el-text>
           </el-form-item>
             </template>
@@ -158,20 +158,20 @@
             </el-divider>
             <template v-for="subField in field.fields" :key="subField.key">
               <el-form-item
-                v-if="shouldShowField(subField) && (subField.type === 'select' || subField.type === 'font')"
+                v-if="shouldShowField(subField) && (subField.type === 'select' || subField.type === 'font' || subField.type === 'fontSize')"
                 :label="getFieldLabel(subField)"
                 :prop="subField.key"
               >
                 <el-select
                   :model-value="getNestedValue(formData, subField.key)"
-                  @update:model-value="(val) => setNestedValue(formData, subField.key, val)"
+                  @update:model-value="(val: any) => setNestedValue(formData, subField.key, val)"
                   :placeholder="getFieldLabel(subField)"
                   :loading="subField.type === 'font' && fontsLoading"
                   v-bind="getFieldProps(subField)"
                   style="width: 100%"
                 >
                   <el-option
-                    v-for="option in (subField.type === 'font' ? getFontOptions(subField) : (subField.options || []))"
+                    v-for="option in getFieldOptions(subField)"
                     :key="option.value"
                     :label="option.labelKey ? t(option.labelKey) : option.label"
                     :value="option.value"
@@ -194,7 +194,7 @@
                 <component
                   :is="getFieldComponent(subField)"
                   :model-value="getNestedValue(formData, subField.key)"
-                  @update:model-value="(val) => setNestedValue(formData, subField.key, val)"
+                  @update:model-value="(val: any) => setNestedValue(formData, subField.key, val)"
                   v-bind="getFieldProps(subField)"
                   style="width: 100%"
                 />
@@ -210,34 +210,34 @@
             </template>
           </template>
           
-          <!-- Select字段和Font字段 -->
+          <!-- Select字段、Font字段和FontSize字段 -->
           <el-form-item
-            v-else-if="shouldShowField(field) && (field.type === 'select' || field.type === 'font')"
+            v-else-if="shouldShowField(field) && (field.type === 'select' || field.type === 'font' || field.type === 'fontSize')"
             :label="getFieldLabel(field)"
             :prop="field.key"
           >
             <el-select
               :model-value="getNestedValue(formData, field.key)"
-              @update:model-value="(val) => setNestedValue(formData, field.key, val)"
+              @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
               :placeholder="getFieldLabel(field)"
               :loading="field.type === 'font' && fontsLoading"
               v-bind="getFieldProps(field)"
               style="width: 100%"
             >
               <el-option
-                v-for="option in (field.type === 'font' ? getFontOptions(field) : (field.options || []))"
+                v-for="option in getFieldOptions(field)"
                 :key="option.value"
                 :label="option.labelKey ? t(option.labelKey) : option.label"
                 :value="option.value"
               />
             </el-select>
             <el-text
-              v-if="field.description || field.descriptionKey"
+              v-if="hasFieldHelperText(field)"
               size="small"
               type="info"
               style="display: block; margin-top: 4px;"
             >
-              {{ getFieldDescription(field) }}
+              {{ getFieldHelperText(field) }}
             </el-text>
           </el-form-item>
           
@@ -250,17 +250,17 @@
             <component
               :is="getFieldComponent(field)"
               :model-value="getNestedValue(formData, field.key)"
-              @update:model-value="(val) => setNestedValue(formData, field.key, val)"
+              @update:model-value="(val: any) => setNestedValue(formData, field.key, val)"
               v-bind="getFieldProps(field)"
               style="width: 100%"
             />
             <el-text
-              v-if="field.description || field.descriptionKey"
+              v-if="hasFieldHelperText(field)"
               size="small"
               type="info"
               style="display: block; margin-top: 4px;"
             >
-              {{ getFieldDescription(field) }}
+              {{ getFieldHelperText(field) }}
             </el-text>
           </el-form-item>
         </template>
@@ -287,9 +287,10 @@ import { useI18n } from 'vue-i18n';
 import { ElDialog, ElForm, ElFormItem, ElInput, ElInputNumber, ElSelect, ElOption, ElSwitch, ElButton, ElScrollbar, ElDivider, ElText, ElTabs, ElTabPane } from 'element-plus';
 import { themeState } from '../utils/themes';
 import type { ExportAdapter, ExportOptionField, ExportOptions } from '../services/export-adapters/types';
-import type { DocumentFormat, ExportFormat } from '../../types';
+import type { DocumentFormat, ExportFormat } from '../../../types';
 import { loadExportOptions, mergeExportOptions, saveExportOptions } from '../services/export-adapters/storage';
 import { getSystemFonts, type SystemFont } from '../services/font-service';
+import { getLocalizedFontSize, getFontSizeOptions, type FontSizeOption } from '../utils/font-size-localization';
 
 const { t } = useI18n();
 
@@ -409,6 +410,28 @@ function getFieldDescription(field: ExportOptionField): string {
   return field.description || '';
 }
 
+// 获取字段的辅助文本（描述或本地化字号）
+function getFieldHelperText(field: ExportOptionField): string {
+  // 字号字段显示本地化名称
+  if (field.type === 'number' && field.key?.includes('fontSize')) {
+    const pt = getNestedValue(formData.value, field.key);
+    if (pt && typeof pt === 'number') {
+      return getLocalizedFontSize(pt);
+    }
+  }
+  // 其他字段显示描述
+  return getFieldDescription(field);
+}
+
+// 判断字段是否有辅助文本
+function hasFieldHelperText(field: ExportOptionField): boolean {
+  if (field.type === 'number' && field.key?.includes('fontSize')) {
+    const pt = getNestedValue(formData.value, field.key);
+    return pt !== undefined && pt !== null;
+  }
+  return !!(field.description || field.descriptionKey);
+}
+
 // 获取嵌套值（支持 "margins.top" 这样的路径）
 function getNestedValue(obj: any, path: string): any {
   const keys = path.split('.');
@@ -457,6 +480,7 @@ function getFieldComponent(field: ExportOptionField): any {
       return ElInputNumber;
     case 'select':
     case 'font':
+    case 'fontSize':
       return ElSelect;
     case 'string':
     default:
@@ -481,18 +505,54 @@ function getFieldProps(field: ExportOptionField): Record<string, any> {
     props.placeholder = getFieldLabel(field);
   }
   
+  if (field.type === 'fontSize') {
+    // 字号选择框
+    props.filterable = true;
+    props.placeholder = getFieldLabel(field);
+  }
+  
   return props;
 }
 
-// 获取字体选项列表
+// 获取字段选项列表（统一处理 font、fontSize 和 select 类型）
+function getFieldOptions(field: ExportOptionField): Array<{ label: string; value: any; labelKey?: string }> {
+  if (field.type === 'font') {
+    return systemFonts.value.map(font => ({
+      label: font.displayName || font.name, // 使用本地化显示名称
+      value: font.name, // 值仍然使用内部名称
+    }));
+  }
+  
+  if (field.type === 'fontSize') {
+    // 获取字号选项列表（包含中文字号和数字字号，按实际大小排序）
+    const fontSizeOptions = getFontSizeOptions();
+    return fontSizeOptions.map(option => ({
+      label: option.label,
+      value: option.value, // pt 值
+    }));
+  }
+  
+  return field.options || [];
+}
+
+// 获取字体选项列表（保留用于兼容）
 function getFontOptions(field: ExportOptionField): Array<{ label: string; value: string }> {
   if (field.type === 'font') {
     return systemFonts.value.map(font => ({
-      label: font.name,
-      value: font.name,
+      label: font.displayName || font.name, // 使用本地化显示名称
+      value: font.name, // 值仍然使用内部名称
     }));
   }
   return field.options || [];
+}
+
+// 获取本地化的字号显示文本
+function getLocalizedFontSizeText(fieldKey: string): string {
+  const pt = getNestedValue(formData.value, fieldKey);
+  if (pt && typeof pt === 'number') {
+    return getLocalizedFontSize(pt);
+  }
+  return '';
 }
 
 // 处理确认

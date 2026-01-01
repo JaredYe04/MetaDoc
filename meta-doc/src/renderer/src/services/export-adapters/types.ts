@@ -136,7 +136,7 @@ export interface ExportOptionField {
   key: string;
   label: string;
   labelKey?: string; // i18n key
-  type: 'number' | 'string' | 'boolean' | 'select' | 'object' | 'font';
+  type: 'number' | 'string' | 'boolean' | 'select' | 'object' | 'font' | 'fontSize';
   default: any;
   description?: string;
   descriptionKey?: string; // i18n key

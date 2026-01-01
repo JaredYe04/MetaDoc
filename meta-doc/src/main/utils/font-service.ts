@@ -13,8 +13,9 @@ const execAsync = promisify(exec);
 const logger = createMainLogger('FontService');
 
 export interface SystemFont {
-  name: string;
-  family: string;
+  name: string; // 字体内部名称（用于实际使用）
+  family: string; // 字体族名称
+  displayName?: string; // 本地化显示名称（如：微软雅黑）
   style?: string;
 }
 
@@ -90,16 +91,58 @@ function detectRuntimePlatform(): 'win32' | 'darwin' | 'linux' | 'wsl' {
 }
 
 /**
- * Windows 系统获取字体
+ * Windows 系统获取字体（包含本地化显示名称）
  */
 async function getWindowsFonts(): Promise<SystemFont[]> {
   try {
-    // 使用 PowerShell 获取字体列表
-    const command =
-      `powershell -Command "& {Get-ChildItem -Path 'C:\\Windows\\Fonts' -Include '*.ttf','*.otf','*.ttc' -File -Recurse | ForEach-Object { $_.BaseName } | Sort-Object -Unique}"`;
+    // 使用 PowerShell 调用 .NET API 获取字体的本地化显示名称
+    // System.Drawing.Text.InstalledFontCollection 返回的 Name 属性已经是本地化名称
+    // 在中文系统上会返回"微软雅黑"而不是"Microsoft YaHei"
+    const command = `powershell -Command "& {
+      Add-Type -AssemblyName System.Drawing
+      $fonts = New-Object System.Drawing.Text.InstalledFontCollection
+      $fontFamilies = $fonts.Families
+      $result = @()
+      foreach ($family in $fontFamilies) {
+        $fontName = $family.Name
+        # 获取字体的内部名称（用于 CSS 等实际使用）
+        # 在 Windows 上，本地化名称和内部名称可能不同
+        # 我们使用 Name 作为显示名称，同时尝试获取内部名称
+        $result += [PSCustomObject]@{
+          Name = $fontName
+          DisplayName = $fontName
+        }
+      }
+      $result | ConvertTo-Json -Compress
+    }"`;
+    
     const { stdout } = await execAsync(command, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
     
-    const fontNames = stdout
+    try {
+      // 解析 JSON 输出
+      const fonts = JSON.parse(stdout);
+      if (Array.isArray(fonts) && fonts.length > 0) {
+        return fonts.map((font: any) => {
+          const displayName = font.DisplayName || font.displayName || font.Name || font.name || '';
+          // 在 Windows 上，系统返回的名称已经是本地化名称
+          // 我们使用它作为显示名称，同时作为内部名称（Windows 会自动处理）
+          return {
+            name: displayName, // 内部名称（Windows 会自动处理本地化）
+            family: displayName,
+            displayName: displayName, // 显示名称（已经是本地化的）
+          };
+        });
+      }
+    } catch (parseError) {
+      logger.warn('解析字体 JSON 失败，尝试备用方法:', parseError);
+    }
+    
+    // 备用方法：使用原来的方法获取字体列表
+    const fallbackCommand =
+      `powershell -Command "& {Get-ChildItem -Path 'C:\\Windows\\Fonts' -Include '*.ttf','*.otf','*.ttc' -File -Recurse | ForEach-Object { $_.BaseName } | Sort-Object -Unique}"`;
+    const { stdout: fallbackStdout } = await execAsync(fallbackCommand, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+    
+    const fontNames = fallbackStdout
       .split('\n')
       .map(line => line.trim())
       .filter(line => line.length > 0)
@@ -123,11 +166,13 @@ async function getWindowsFonts(): Promise<SystemFont[]> {
 }
 
 /**
- * macOS 系统获取字体
+ * macOS 系统获取字体（包含本地化显示名称）
  */
 async function getMacOSFonts(): Promise<SystemFont[]> {
   try {
     // 使用 system_profiler 获取字体列表
+    // macOS 的 system_profiler 会根据系统语言设置返回本地化字体名称
+    // 在中文系统上会返回"微软雅黑"而不是"Microsoft YaHei"
     const command = `system_profiler SPFontsDataType | grep "Font:" | sed 's/.*Font: //' | sort -u`;
     const { stdout } = await execAsync(command, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
     
@@ -136,14 +181,15 @@ async function getMacOSFonts(): Promise<SystemFont[]> {
       .map(line => line.trim())
       .filter(line => line.length > 0)
       .map(name => ({
-        name,
+        name, // macOS 系统返回的名称已经是本地化的（根据系统语言设置）
         family: name,
+        displayName: name, // 显示名称（已经是本地化的）
       }));
 
     return fontNames;
   } catch (error) {
     logger.error('macOS 字体获取失败:', error);
-    // 尝试使用 fc-list（如果安装了 fontconfig）
+    // 尝试使用 fc-list（如果安装了 fontconfig，比如通过 Homebrew）
     try {
       return await getLinuxFonts();
     } catch {
@@ -153,11 +199,13 @@ async function getMacOSFonts(): Promise<SystemFont[]> {
 }
 
 /**
- * Linux 系统获取字体
+ * Linux 系统获取字体（包含本地化显示名称）
  */
 async function getLinuxFonts(): Promise<SystemFont[]> {
   try {
     // 使用 fc-list 获取字体列表
+    // fontconfig 的 fc-list 会根据系统语言环境（LANG/LC_ALL）自动返回本地化字体名称
+    // 在中文系统上会返回"微软雅黑"而不是"Microsoft YaHei"
     const command = `fc-list : family | sort -u`;
     const { stdout } = await execAsync(command, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
     
@@ -166,8 +214,9 @@ async function getLinuxFonts(): Promise<SystemFont[]> {
       .map(line => line.trim())
       .filter(line => line.length > 0)
       .map(name => ({
-        name,
+        name, // fontconfig 返回的名称已经是本地化的（根据系统语言环境）
         family: name,
+        displayName: name, // 显示名称（已经是本地化的）
       }));
 
     return fontNames;

@@ -53,6 +53,20 @@ function restoreMathPlaceholders(text, placeholders) {
     return result;
 }
 
+/**
+ * 转换Markdown正文内容为LaTeX格式（仅正文，不包含documentclass、包等）
+ * @param {string} markdown - Markdown内容
+ * @returns {Promise<string>} LaTeX正文内容
+ */
+export async function convertMarkdownBodyToLatex(markdown) {
+    // 提前抽取数学公式，避免后续字符转义破坏 TeX 语法
+    const { text: markdownWithoutMath, placeholders } = extractMathPlaceholders(markdown);
+    let body = await convertTokensToLatex(md.parse(markdownWithoutMath, {}));
+    // 转换完成后再恢复数学公式原文
+    body = restoreMathPlaceholders(body, placeholders);
+    return body;
+}
+
 export async function convertMarkdownToLatex(markdown, title = 'Generated Document', options = {}) {
     // 提前抽取数学公式，避免后续字符转义破坏 TeX 语法
     const { text: markdownWithoutMath, placeholders } = extractMathPlaceholders(markdown);

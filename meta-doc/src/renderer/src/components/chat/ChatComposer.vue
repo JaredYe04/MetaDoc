@@ -65,28 +65,21 @@
           </el-button>
         </el-tooltip>
 
-        <el-tooltip v-if="showCancel && loading" :content="t('aiChat.cancelTooltip') || t('common.cancel')" placement="top">
-          <el-button
-            circle
-            class="composer-btn"
-            type="danger"
-            :disabled="false"
-            @click.prevent="emit('cancel')"
-          >
-            <Close />
-          </el-button>
-        </el-tooltip>
-
-        <el-tooltip :content="t('aiChat.sendTooltip')" placement="top">
+        <el-tooltip :content="loading ? t('aiChat.cancelTooltip') : t('aiChat.sendTooltip')" placement="top">
           <el-button
             circle
             class="composer-btn primary"
-            type="primary"
-            :loading="loading"
-            :disabled="disabled || !modelValue.trim().length"
-            @click.prevent="handleSubmit"
+            :type="loading ? 'danger' : 'primary'"
+            :loading="false"
+            :disabled="disabled || (loading ? false : !modelValue.trim().length)"
+            @click.prevent="loading ? emit('cancel') : handleSubmit()"
           >
             <el-icon v-if="!loading"><ArrowUp /></el-icon>
+            <el-icon v-else class="stop-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                <rect x="6" y="6" width="12" height="12" rx="2"/>
+              </svg>
+            </el-icon>
           </el-button>
         </el-tooltip>
 
@@ -530,6 +523,12 @@ onBeforeUnmount(() => {
 .composer-btn-knowledge-base-active:hover:not(:disabled) {
   background: var(--el-color-primary-light-3) !important;
   border-color: var(--el-color-primary-light-3) !important;
+}
+
+.stop-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
 

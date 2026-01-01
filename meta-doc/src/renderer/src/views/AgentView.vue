@@ -179,10 +179,9 @@
             class="conversation-composer"
             v-model="composerInput"
             :loading="isGenerating"
-            :disabled="!activeSession || isGenerating"
+            :disabled="!activeSession"
             :show-attach="true"
             :show-voice="false"
-            :show-cancel="isGenerating"
             :placeholder="t('aiChat.inputPlaceholder')"
             :show-knowledge-base="false"
             @submit="handleComposerSubmit"
@@ -1430,6 +1429,27 @@ const executeAgentEngine = async (
       });
     } catch (error) {
       const logger = createRendererLogger('AgentView');
+      
+      // 检查是否是用户取消的任务
+      const isCancelled = error instanceof Error && (
+        error.message === '任务已取消' || 
+        error.message.includes('任务已取消') ||
+        error.name === 'AbortError'
+      );
+      
+      if (isCancelled) {
+        // 用户手动取消，不记录为错误，只更新消息内容
+        logger.debug('Agent引擎任务已取消');
+        session.status = 'idle';
+        if (assistantMessage && assistantMessageRef && assistantMessageRef.value) {
+          assistantMessage.markdown = assistantMessageRef.value;
+          persistSessions();
+        }
+        // 不抛出错误，正常返回
+        return;
+      }
+      
+      // 真正的错误才记录
       logger.error('Agent引擎执行失败:', error);
       session.status = 'error';
       persistSessions();
@@ -1499,6 +1519,24 @@ const executeAgentEngine = async (
       });
     } catch (error) {
       const logger = createRendererLogger('AgentView');
+      
+      // 检查是否是用户取消的任务
+      const isCancelled = error instanceof Error && (
+        error.message === '任务已取消' || 
+        error.message.includes('任务已取消') ||
+        error.name === 'AbortError'
+      );
+      
+      if (isCancelled) {
+        // 用户手动取消，不记录为错误
+        logger.debug('Agent引擎任务已取消');
+        session.status = 'idle';
+        persistSessions();
+        // 不抛出错误，正常返回
+        return;
+      }
+      
+      // 真正的错误才记录
       logger.error('Agent引擎执行失败:', error);
       session.status = 'error';
       persistSessions();

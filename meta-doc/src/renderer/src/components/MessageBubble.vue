@@ -1,10 +1,9 @@
 
 
 <script setup lang="ts">
-
 import "../assets/response-container.css"
 import {ref, computed,onMounted,onBeforeMount, nextTick, watch } from 'vue';
-import {Avatar, Delete, Edit, Refresh, User, More, CopyDocument} from "@element-plus/icons-vue";
+import {Avatar, Delete, Edit, Refresh, User, More, CopyDocument, DocumentAdd, FolderAdd} from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import {ElMessageBox} from "element-plus";
 import {MdEditor,MdPreview, MdCatalog}from 'md-editor-v3';
@@ -14,6 +13,7 @@ import ReferenceDisplay from './agent/ReferenceDisplay.vue';
 import type { Reference } from '../types/agent-framework';
 import type { AIDialogMessage } from '../../../types';
 import { useI18n } from 'vue-i18n';
+import { sendBroadcast } from '../utils/event-bus';
 
 interface MessageWithReferences extends AIDialogMessage {
   referenceIds?: string[];
@@ -102,6 +102,22 @@ const copyContent = async () => {
   }
 };
 
+// 插入到当前文档
+const insertToDocument = () => {
+  sendBroadcast('home', 'ai-chat-insert-to-document', {
+    content: content.value
+  });
+  ElMessage.success(t('aiChat.insertToDocumentSuccess', '已发送插入请求'));
+};
+
+// 导出到新文档
+const exportToNewDocument = () => {
+  sendBroadcast('home', 'ai-chat-export-to-document', {
+    content: content.value
+  });
+  ElMessage.success(t('aiChat.exportToDocumentSuccess', '已发送导出请求'));
+};
+
 // 处理下拉菜单命令
 const handleActionCommand = (command: string) => {
   switch (command) {
@@ -116,6 +132,12 @@ const handleActionCommand = (command: string) => {
       break;
     case 'copy':
       copyContent();
+      break;
+    case 'insert-to-document':
+      insertToDocument();
+      break;
+    case 'export-to-document':
+      exportToNewDocument();
       break;
   }
 };
@@ -255,7 +277,7 @@ onBeforeMount(() => {
 
 <template>
   <div ref="messageBubbleRef" :class="['message-bubble', roleClass]">
-    <el-avatar class="avatar" v-if="role !== 'user'" :icon="Avatar"></el-avatar>
+    <el-avatar class="avatar-with-mask" v-if="role !== 'user'" :src="themeState.currentTheme.AiLogo"></el-avatar>
     <!-- 用户消息的操作按钮（在左侧） -->
     <transition name="fade">
       <el-dropdown 
@@ -281,6 +303,14 @@ onBeforeMount(() => {
             <el-dropdown-item command="copy">
               <el-icon style="margin-right: 8px;"><CopyDocument /></el-icon>
               {{ t('common.copy', '复制') }}
+            </el-dropdown-item>
+            <el-dropdown-item command="insert-to-document">
+              <el-icon style="margin-right: 8px;"><DocumentAdd /></el-icon>
+              {{ t('aiChat.insertToDocument', '插入到当前文档') }}
+            </el-dropdown-item>
+            <el-dropdown-item command="export-to-document">
+              <el-icon style="margin-right: 8px;"><FolderAdd /></el-icon>
+              {{ t('aiChat.exportToDocument', '导出到新文档') }}
             </el-dropdown-item>
             <el-dropdown-item command="edit">
               <el-icon style="margin-right: 8px;"><Edit /></el-icon>
@@ -342,6 +372,14 @@ onBeforeMount(() => {
               <el-icon style="margin-right: 8px;"><CopyDocument /></el-icon>
               {{ t('common.copy', '复制') }}
             </el-dropdown-item>
+            <el-dropdown-item command="insert-to-document">
+              <el-icon style="margin-right: 8px;"><DocumentAdd /></el-icon>
+              {{ t('aiChat.insertToDocument', '插入到当前文档') }}
+            </el-dropdown-item>
+            <el-dropdown-item command="export-to-document">
+              <el-icon style="margin-right: 8px;"><FolderAdd /></el-icon>
+              {{ t('aiChat.exportToDocument', '导出到新文档') }}
+            </el-dropdown-item>
             <el-dropdown-item command="edit">
               <el-icon style="margin-right: 8px;"><Edit /></el-icon>
               {{ t('messageBubble.edit', '编辑') }}
@@ -354,7 +392,7 @@ onBeforeMount(() => {
         </template>
       </el-dropdown>
     </transition>
-    <el-avatar class="avatar" v-if="role === 'user'" :icon="User"></el-avatar>
+    <el-avatar class="avatar-fallback" v-if="role === 'user'" :icon="User"></el-avatar>
   </div>
   <!-- 引用显示（只读模式，只显示用户消息的引用） -->
   <div 
@@ -442,17 +480,23 @@ onBeforeMount(() => {
   justify-content: flex-start;
 }
 
-.avatar {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #181818;
-  background-color: #6cc0f5; /* Customize the avatar background color */
-  flex-shrink: 0;
+.avatar-img {
   width: 40px;
   height: 40px;
-  min-width: 40px;
-  min-height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-with-mask {
+  width: 40px;
+  height: 40px;
+  background-color: rgba(64, 158, 255, 0.15);
+  border: 2px solid rgba(64, 158, 255, 0.3);
+}
+
+.avatar-fallback {
+  width: 40px;
+  height: 40px;
 }
 
 .message-bubble__references {

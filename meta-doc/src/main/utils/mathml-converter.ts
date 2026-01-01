@@ -74,7 +74,14 @@ export function extractTagFromLatex(latex: string): { tag: string | null; proces
   }
   
   // 处理可能存在的多余空白（由于移除 \tag 导致的）
-  processed = processed.replace(/\s+/g, ' ').trim();
+  // 注意：对于块级公式，换行符可能是公式格式的一部分（如 aligned 环境），应该保留
+  // 只处理连续的空白字符（空格、制表符等），但保留换行符
+  // 先规范化换行符（统一为 \n）
+  processed = processed.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  // 将多个连续的空格/制表符替换为单个空格，但保留换行符
+  processed = processed.replace(/[ \t]+/g, ' ');
+  // 移除首尾空白（包括换行符）
+  processed = processed.trim();
   
   return { tag, processedLatex: processed };
 }
@@ -107,14 +114,23 @@ export async function convertLatexToMathML(
     }
 
     // 预处理 LaTeX 代码，移除 MathJax 不支持的命令（如 \tag）
-    const preprocessedLatex = preprocessLatexForMathJax(latex);
+    let preprocessedLatex = preprocessLatexForMathJax(latex);
+    
+    // 对于块级公式，MathJax 可能无法正确处理换行符
+    // 将换行符替换为空格，因为 MathJax 会自动处理公式的换行
+    // 注意：这不会影响公式的语义，因为 LaTeX 中的换行在数学模式中通常只是格式问题
+    if (displayMode) {
+      // 将换行符和周围的空白字符规范化
+      preprocessedLatex = preprocessedLatex.replace(/\s*\n\s*/g, ' ');
+    }
     
     // 调用 mathjax-node 进行转换
     // mathjax-node 使用回调模式，我们将其转换为 Promise
-    // logger.debug(`开始转换 LaTeX: ${preprocessedLatex.substring(0, 50)}${preprocessedLatex.length > 50 ? '...' : ''}`, { 
-    //   latex: preprocessedLatex, 
-    //   displayMode 
-    // });
+    logger.debug(`开始转换 LaTeX: ${preprocessedLatex.substring(0, 100)}${preprocessedLatex.length > 100 ? '...' : ''}`, { 
+      originalLatex: latex.substring(0, 100),
+      preprocessedLatex: preprocessedLatex.substring(0, 100),
+      displayMode 
+    });
     
     const result = await new Promise<{ mml?: string; html?: string; svg?: string; errors?: string[] }>((resolve, reject) => {
       mjAPI.typeset(
@@ -138,7 +154,11 @@ export async function convertLatexToMathML(
           
           if (data.errors && data.errors.length > 0) {
             //输出html
-            logger.warn(`LaTeX 转换失败: ${data.html}`, { latex });
+            logger.error(`LaTeX 转换失败: ${data.errors.join(', ')}`, { 
+              latex: preprocessedLatex,
+              html: data.html,
+              errors: data.errors
+            });
             reject(new Error(data.errors.join(', ')));
           } else if (data.mml) {
             // // mathjax-node 返回的字段是 'mml'，不是 'mathml'

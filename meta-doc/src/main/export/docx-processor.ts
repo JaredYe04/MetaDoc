@@ -1164,7 +1164,11 @@ export class OMMLInsertionProcessor implements DocxProcessor {
       // 简化：先检查是否包含已转义的实体，如果包含，说明可能已经处理过，只转义未转义的 &
       const hasEntities = /&(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);/.test(textContent);
       
-      let escaped = textContent;
+      // 先处理 LaTeX 特殊字符转换
+      // \_ 在 LaTeX 中表示下划线，应该转换为普通下划线 _
+      let processed = textContent.replace(/\\_/g, '_');
+      
+      let escaped = processed;
       if (!hasEntities) {
         // 没有实体引用，需要转义所有特殊字符
         escaped = escaped

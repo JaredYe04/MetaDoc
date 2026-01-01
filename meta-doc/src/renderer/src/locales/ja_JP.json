@@ -1125,5 +1125,23 @@
       "generate": "生成する",
       "reset": "リセット"
     }
+  },
+  "fontSize": {
+    "chuhao": "初号",
+    "xiaochu": "小初",
+    "yihao": "一号",
+    "xiaoyi": "小一",
+    "erhao": "二号",
+    "xiaoer": "小二",
+    "sanhao": "三号",
+    "xiaosan": "小三",
+    "sihao": "四号",
+    "xiaosi": "小四",
+    "wuhao": "五号",
+    "xiaowu": "小五",
+    "liuhao": "六号",
+    "xiaoliu": "小六",
+    "qihao": "七号",
+    "bahao": "八号"
   }
 }

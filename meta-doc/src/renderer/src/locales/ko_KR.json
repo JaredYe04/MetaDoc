@@ -1125,5 +1125,23 @@
       "generate": "제품 정보",
       "reset": "지원하다"
     }
+  },
+  "fontSize": {
+    "chuhao": "초호",
+    "xiaochu": "소초",
+    "yihao": "일호",
+    "xiaoyi": "소일",
+    "erhao": "이호",
+    "xiaoer": "소이",
+    "sanhao": "삼호",
+    "xiaosan": "소삼",
+    "sihao": "사호",
+    "xiaosi": "소사",
+    "wuhao": "오호",
+    "xiaowu": "소오",
+    "liuhao": "육호",
+    "xiaoliu": "소육",
+    "qihao": "칠호",
+    "bahao": "팔호"
   }
 }

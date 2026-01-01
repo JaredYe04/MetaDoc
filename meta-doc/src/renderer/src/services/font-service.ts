@@ -4,8 +4,9 @@
  */
 
 export interface SystemFont {
-  name: string;
-  family: string;
+  name: string; // 字体内部名称（用于实际使用）
+  family: string; // 字体族名称
+  displayName?: string; // 本地化显示名称（如：微软雅黑）
   style?: string;
 }
 

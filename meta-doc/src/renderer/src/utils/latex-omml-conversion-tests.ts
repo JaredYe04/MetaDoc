@@ -313,7 +313,7 @@ const testLimitDefinition = createTest(
   '测试块级公式 \\lim_{x\\to a} f(x) = L 的转换',
   '\\lim_{x\\to a} f(x) = L',
   true,
-  ['<m:groupChr>'] // OMML 中使用 <m:groupChr> 结构表示 munder，lim 被拆分为 l, i, m 三个字符
+  ['<m:limLow>'] // OMML 中使用 <m:limLow> 结构表示 munder（下标极限），这是正确的 OMML 结构
 );
 
 const testPiecewiseFunction = createTest(
@@ -528,6 +528,17 @@ const testComplexNestedSqrt = createTest(
   ['<m:rad>'] // 应该包含 <m:rad> 结构
 );
 
+// ================= 复杂公式测试（包含 aligned 环境和 tag） =================
+
+const testComplexAlignedWithTag = createTest(
+  'complex-aligned-with-tag',
+  '复杂 aligned 环境公式（包含 tag 标签）',
+  '测试包含 \\begin{aligned} 环境、\\% 百分号、\\times 乘号、\\log 函数和 \\tag{1} 标签的复杂多行公式',
+  '\\begin{aligned}\n\n\\mathcal{P} =\\;& \\beta_0 + \\beta_1 (I-\\bar I) + \\beta_2 (I-\\bar I)^2 + \\beta_3 \\log(1+T) + \\beta_4 \\log(1+n_a) \\\\\n\n&+ \\beta_5 \\log(1+O\\%) + \\beta_6 c + \\beta_7 R + \\beta_8 E_c + \\beta_9 \\log(1+A_e) \\\\\n\n&+ \\beta_{10} P_{SA} + \\beta_{11} (I \\times E_c) + \\beta_{12} (A_e \\times P_{SA}) \\\\\n\n&+ \\beta_{13} (O\\% \\times T) + \\beta_{14} (R \\times n_a) + \\beta_{15} (c \\times I) \\\\\n\n&+ \\beta_{16} (E_c \\times T) + \\beta_{17} (P_{SA} \\times \\log(1+n_a)) \\\\\n\n&+ \\beta_{18} (I \\times \\log(1+T)) + \\beta_{19} (A_e \\times T) + \\varepsilon,\n\n\\end{aligned}\n\n\\tag{1}',
+  true,
+  ['<m:m>'] // aligned 环境在 MathML 中被转换为 <mtable>，在 OMML 中转换为 <m:m>（矩阵）结构，这是正确的
+);
+
 // ============ 注册所有测试函数 ============
 
 /**
@@ -566,4 +577,5 @@ export function registerLatexOMMLConversionTests() {
   testFramework.register(testErrorCaseLt);
   testFramework.register(testErrorCaseRawLt);
   testFramework.register(testComplexNestedSqrt);
+  testFramework.register(testComplexAlignedWithTag);
 }

@@ -36,6 +36,61 @@ function initializeMathJax(): void {
 }
 
 /**
+ * 提取并移除 \tag 命令，返回标签内容和预处理后的 LaTeX
+ * @param latex 原始 LaTeX 代码
+ * @returns 包含标签内容和预处理后 LaTeX 的对象
+ */
+export function extractTagFromLatex(latex: string): { tag: string | null; processedLatex: string } {
+  let processed = latex;
+  let tag: string | null = null;
+  
+  // 匹配 \tag{...} 或 \tag*{...}（带星号的版本）
+  // 在 LaTeX 中：
+  // - \tag{1} 会自动添加括号，显示为 (1)
+  // - \tag*{1} 不会添加括号，显示为 1
+  const tagMatch = processed.match(/\\tag\*?\{([^}]*)\}/);
+  if (tagMatch) {
+    const tagContent = tagMatch[1].trim();
+    // 判断是否为 \tag*（带星号）
+    const isTagStar = tagMatch[0].startsWith('\\tag*');
+    
+    if (isTagStar) {
+      // \tag*{...}：不添加括号，直接使用内容
+      tag = tagContent;
+    } else {
+      // \tag{...}：需要添加括号（除非内容本身已经包含括号）
+      // 检查内容是否已经以括号开头和结尾
+      if (tagContent.startsWith('(') && tagContent.endsWith(')')) {
+        // 已经包含括号，直接使用
+        tag = tagContent;
+      } else {
+        // 没有括号，添加括号
+        tag = `(${tagContent})`;
+      }
+    }
+    
+    // 移除 \tag 命令
+    processed = processed.replace(/\\tag\*?\{[^}]*\}/g, '');
+  }
+  
+  // 处理可能存在的多余空白（由于移除 \tag 导致的）
+  processed = processed.replace(/\s+/g, ' ').trim();
+  
+  return { tag, processedLatex: processed };
+}
+
+/**
+ * 预处理 LaTeX 代码，移除或处理 MathJax 不支持的命令
+ * @param latex 原始 LaTeX 代码
+ * @returns 预处理后的 LaTeX 代码
+ */
+function preprocessLatexForMathJax(latex: string): string {
+  // 使用 extractTagFromLatex 提取标签并移除
+  const { processedLatex } = extractTagFromLatex(latex);
+  return processedLatex;
+}
+
+/**
  * 将 LaTeX 公式转换为 MathML
  * @param latex LaTeX 公式代码
  * @param displayMode 是否为块级公式
@@ -51,17 +106,20 @@ export async function convertLatexToMathML(
       initializeMathJax();
     }
 
+    // 预处理 LaTeX 代码，移除 MathJax 不支持的命令（如 \tag）
+    const preprocessedLatex = preprocessLatexForMathJax(latex);
+    
     // 调用 mathjax-node 进行转换
     // mathjax-node 使用回调模式，我们将其转换为 Promise
-    // logger.debug(`开始转换 LaTeX: ${latex.substring(0, 50)}${latex.length > 50 ? '...' : ''}`, { 
-    //   latex, 
+    // logger.debug(`开始转换 LaTeX: ${preprocessedLatex.substring(0, 50)}${preprocessedLatex.length > 50 ? '...' : ''}`, { 
+    //   latex: preprocessedLatex, 
     //   displayMode 
     // });
     
     const result = await new Promise<{ mml?: string; html?: string; svg?: string; errors?: string[] }>((resolve, reject) => {
       mjAPI.typeset(
         {
-          math: latex,
+          math: preprocessedLatex,
           format: 'TeX',
           mml: true,  // 请求 MathML 输出
           display: displayMode

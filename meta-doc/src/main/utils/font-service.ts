@@ -98,23 +98,8 @@ async function getWindowsFonts(): Promise<SystemFont[]> {
     // 使用 PowerShell 调用 .NET API 获取字体的本地化显示名称
     // System.Drawing.Text.InstalledFontCollection 返回的 Name 属性已经是本地化名称
     // 在中文系统上会返回"微软雅黑"而不是"Microsoft YaHei"
-    const command = `powershell -Command "& {
-      Add-Type -AssemblyName System.Drawing
-      $fonts = New-Object System.Drawing.Text.InstalledFontCollection
-      $fontFamilies = $fonts.Families
-      $result = @()
-      foreach ($family in $fontFamilies) {
-        $fontName = $family.Name
-        # 获取字体的内部名称（用于 CSS 等实际使用）
-        # 在 Windows 上，本地化名称和内部名称可能不同
-        # 我们使用 Name 作为显示名称，同时尝试获取内部名称
-        $result += [PSCustomObject]@{
-          Name = $fontName
-          DisplayName = $fontName
-        }
-      }
-      $result | ConvertTo-Json -Compress
-    }"`;
+    // 将脚本压缩为单行以避免 PowerShell 解析错误
+    const command = `powershell -Command "& { Add-Type -AssemblyName System.Drawing; $fonts = New-Object System.Drawing.Text.InstalledFontCollection; $fontFamilies = $fonts.Families; $result = @(); foreach ($family in $fontFamilies) { $fontName = $family.Name; $result += [PSCustomObject]@{ Name = $fontName; DisplayName = $fontName } }; $result | ConvertTo-Json -Compress }"`;
     
     const { stdout } = await execAsync(command, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
     

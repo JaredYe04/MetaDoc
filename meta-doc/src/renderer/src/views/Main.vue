@@ -61,6 +61,7 @@ import {
   type LoadedDocumentData,
 } from '../services/document-loader'
 import type { WorkspaceDocument } from '../stores/workspace'
+import { convertMarkdownBodyToLatex } from '../utils/latex-utils'
 import UserProfileCard from '../components/UserProfileCard.vue'
 import { verifyToken } from '../utils/web-utils.ts'
 import { useI18n } from 'vue-i18n'
@@ -481,6 +482,153 @@ function initMainEventListeners() {
   }
   eventBus.on('show-warning', handleShowWarning)
 
+  // 处理AI Chat插入到当前文档
+  const handleAiChatInsertToDocument = async (payload: unknown) => {
+    const data = payload as { content: string }
+    if (!data || !data.content) return
+
+    const tabId = activeTabId.value
+    if (!tabId) {
+      // 如果没有活动文档，创建新文档并插入
+      const newTab = workspace.openNewDocumentTab()
+      workspace.initializeDocumentFromTemplate(newTab.id, 'md', 'blank')
+      const newDoc = workspace.ensureDocument(newTab.id)
+      workspace.updateDocumentMarkdown(newTab.id, data.content)
+      ElNotification({
+        title: t('main.notification.success.title'),
+        message: t('aiChat.insertSuccess', '内容已插入到文档'),
+        type: 'success',
+      })
+      return
+    }
+
+    const doc = workspace.ensureDocument(tabId)
+    const tab = workspaceTabs.find(t => t.id === tabId)
+    
+    // 如果文档格式未确定，自动设置为md
+    if (!doc.format || (tab && tab.kind === 'new' && !tab.format)) {
+      doc.format = 'md'
+      if (tab) {
+        tab.format = 'md'
+      }
+      // 如果是新文档且未初始化，先初始化
+      if (tab && tab.kind === 'new') {
+        workspace.initializeDocumentFromTemplate(tabId, 'md', 'blank')
+      }
+    }
+
+    try {
+      if (doc.format === 'md') {
+        // Markdown格式，直接追加
+        const currentContent = doc.markdown || ''
+        const newContent = currentContent + (currentContent ? '\n\n' : '') + data.content
+        workspace.updateDocumentMarkdown(tabId, newContent)
+        ElNotification({
+          title: t('main.notification.success.title'),
+          message: t('aiChat.insertSuccess', '内容已插入到文档'),
+          type: 'success',
+        })
+      } else if (doc.format === 'tex') {
+        // LaTeX格式，询问用户选择
+        try {
+          await ElMessageBox.confirm(
+            t('aiChat.insertToLatexMessage', '请选择插入方式：'),
+            t('aiChat.insertToLatexTitle', '插入到LaTeX文档'),
+            {
+              distinguishCancelAndClose: true,
+              confirmButtonText: t('aiChat.insertAsLatex', '转换为LaTeX插入'),
+              cancelButtonText: t('aiChat.insertAsMarkdown', '插入Markdown原文'),
+              type: 'info',
+            }
+          )
+          // 用户选择转换为LaTeX
+          const latexBody = await convertMarkdownBodyToLatex(data.content)
+          const currentTex = doc.tex || ''
+          
+          // 找到 \end{document} 的位置，在其之前插入
+          const endDocIndex = currentTex.lastIndexOf('\\end{document}')
+          if (endDocIndex !== -1) {
+            const beforeEnd = currentTex.slice(0, endDocIndex).trim()
+            const afterEnd = currentTex.slice(endDocIndex)
+            const newTex = beforeEnd + (beforeEnd ? '\n\n' : '') + latexBody + '\n' + afterEnd
+            workspace.updateDocumentTex(tabId, newTex)
+          } else {
+            // 如果没有 \end{document}，直接追加
+            const newTex = currentTex + (currentTex ? '\n\n' : '') + latexBody
+            workspace.updateDocumentTex(tabId, newTex)
+          }
+          
+          ElNotification({
+            title: t('main.notification.success.title'),
+            message: t('aiChat.insertSuccess', '内容已插入到文档'),
+            type: 'success',
+          })
+        } catch (error) {
+          // 用户选择插入Markdown原文或取消
+          if (error === 'cancel') {
+            // 插入Markdown原文
+            const currentTex = doc.tex || ''
+            const endDocIndex = currentTex.lastIndexOf('\\end{document}')
+            if (endDocIndex !== -1) {
+              const beforeEnd = currentTex.slice(0, endDocIndex).trim()
+              const afterEnd = currentTex.slice(endDocIndex)
+              const markdownBlock = '% Markdown原文:\n% ' + data.content.replace(/\n/g, '\n% ') + '\n'
+              const newTex = beforeEnd + (beforeEnd ? '\n\n' : '') + markdownBlock + afterEnd
+              workspace.updateDocumentTex(tabId, newTex)
+            } else {
+              const markdownBlock = '% Markdown原文:\n% ' + data.content.replace(/\n/g, '\n% ') + '\n'
+              const newTex = currentTex + (currentTex ? '\n\n' : '') + markdownBlock
+              workspace.updateDocumentTex(tabId, newTex)
+            }
+            
+            ElNotification({
+              title: t('main.notification.success.title'),
+              message: t('aiChat.insertSuccess', '内容已插入到文档'),
+              type: 'success',
+            })
+          }
+        }
+      }
+    } catch (error) {
+      logger.error('插入内容到文档失败:', error)
+      ElNotification({
+        title: t('main.notification.error.title'),
+        message: error instanceof Error ? error.message : String(error),
+        type: 'error',
+      })
+    }
+  }
+  eventBus.on('ai-chat-insert-to-document', handleAiChatInsertToDocument)
+
+  // 处理AI Chat导出到新文档
+  const handleAiChatExportToDocument = async (payload: unknown) => {
+    const data = payload as { content: string }
+    if (!data || !data.content) return
+
+    try {
+      // 创建新的markdown文档tab
+      const newTab = workspace.openNewDocumentTab()
+      // 初始化文档为markdown格式，使用空白模板
+      workspace.initializeDocumentFromTemplate(newTab.id, 'md', 'blank')
+      // 设置内容
+      workspace.updateDocumentMarkdown(newTab.id, data.content)
+      
+      ElNotification({
+        title: t('main.notification.success.title'),
+        message: t('aiChat.exportSuccess', '已导出到新文档'),
+        type: 'success',
+      })
+    } catch (error) {
+      logger.error('导出到新文档失败:', error)
+      ElNotification({
+        title: t('main.notification.error.title'),
+        message: error instanceof Error ? error.message : String(error),
+        type: 'error',
+      })
+    }
+  }
+  eventBus.on('ai-chat-export-to-document', handleAiChatExportToDocument)
+
   // 注册清理函数
   cleanupMainListeners.push(
     () => eventBus.off('refresh', handleRefresh),
@@ -492,7 +640,9 @@ function initMainEventListeners() {
     () => eventBus.off('close-active-tab', handleCloseActiveTabRequest),
     () => eventBus.off('file-conflict-detected', handleFileConflictDetected),
     () => eventBus.off('show-error', handleShowError),
-    () => eventBus.off('show-warning', handleShowWarning)
+    () => eventBus.off('show-warning', handleShowWarning),
+    () => eventBus.off('ai-chat-insert-to-document', handleAiChatInsertToDocument),
+    () => eventBus.off('ai-chat-export-to-document', handleAiChatExportToDocument)
   )
 }
 

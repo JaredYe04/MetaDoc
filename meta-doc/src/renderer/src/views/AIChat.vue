@@ -119,7 +119,7 @@
             <ChatComposer
               v-model="promptInput"
               :loading="responding"
-              :disabled="responding"
+              :disabled="false"
               :placeholder="t('aiChat.inputPlaceholder')"
               :show-voice="false"
               :show-attach="true"
@@ -128,6 +128,7 @@
               @submit="onMsgSend"
               @reset="reset"
               @attach="handleAttach"
+              @cancel="handleCancel"
             />
           </div>
         </div>
@@ -186,7 +187,7 @@ import { answerQuestion } from '../utils/llm-api.js';
 import '../assets/tool-group.css'
 import { updateTitlePrompt } from '../utils/prompts';
 import { useI18n } from 'vue-i18n'
-import { ai_types, createAiTask } from '../utils/ai_tasks.ts';
+import { ai_types, createAiTask, cancelAiTask } from '../utils/ai_tasks.ts';
 import { getSetting } from '../utils/settings.js';
 // import { useActiveDocument } from '../composables/useActiveDocument';
 import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document';
@@ -230,6 +231,7 @@ const createDefaultDialog = (title: string): AIDialog => {
 const messages = ref<AIDialogMessage[]>(createDefaultMessages());
 const cur_resp = ref('')
 const promptInput = ref('');
+const currentAiTaskHandle = ref<string | null>(null);
 const createAssistantPlaceholder = (): AIDialogMessage =>
   reactive({
     role: 'assistant',
@@ -485,6 +487,31 @@ const reset = () => {
   promptInput.value = '';
 }
 
+const handleCancel = () => {
+  if (currentAiTaskHandle.value) {
+    cancelAiTask(currentAiTaskHandle.value, false);
+    currentAiTaskHandle.value = null;
+  }
+  responding.value = false;
+  // 不清空cur_resp，保留已生成的内容
+  // 如果当前有placeholder消息，将其替换为实际内容
+  if (messages.value.length > 0) {
+    const lastMessage = messages.value[messages.value.length - 1];
+    if (lastMessage.role === 'assistant' && lastMessage.content === '') {
+      // 这是一个placeholder，用cur_resp的内容替换它
+      lastMessage.content = cur_resp.value;
+      if (cur_resp.value.trim()) {
+        // 如果有内容，更新对话
+        updateCurrentDialog(null, true);
+      } else {
+        // 如果没有内容，移除placeholder消息
+        messages.value.pop();
+      }
+    }
+  }
+  ElMessage.info(t('aiChat.generationCancelled'));
+};
+
 // 引用管理（临时存储，不持久化）
 const referenceStore = ref<Reference[]>([]);
 const activeReferenceIds = ref<string[]>([]);
@@ -702,11 +729,17 @@ async function generateNextResponse(
     'ai-chat',
     { stream: true, enableKnowledgeBase: shouldQueryKnowledgeBase }
   );
+  currentAiTaskHandle.value = handle;
+  let wasCancelled = false;
   try {
     await done;
   } catch (err) {
+    wasCancelled = true;
     logger.warn('任务失败或取消：', err);
+    // 如果取消，不清空cur_resp，保留已生成的内容
+    // afterGeneration会处理placeholder的替换
   } finally {
+    currentAiTaskHandle.value = null;
     await Promise.resolve(afterGeneration());
     responding.value = false;
   }
@@ -749,18 +782,34 @@ const onMsgSend = async (enableKnowledgeBaseQueryParam?: boolean) => {
     },
     cur_resp,
     async () => {
-      messages.value.pop();
       stopStream?.();
-      const assistantMessage: AIDialogMessage = {
-        role: 'assistant',
-        content: cur_resp.value,
-      };
-      messages.value.push(assistantMessage);
+      // 如果最后一个消息是placeholder（空内容），用实际内容替换它
+      if (messages.value.length > 0) {
+        const lastMessage = messages.value[messages.value.length - 1];
+        if (lastMessage.role === 'assistant' && lastMessage.content === '') {
+          // 这是一个placeholder，用cur_resp的内容替换它
+          lastMessage.content = cur_resp.value;
+          if (!cur_resp.value.trim()) {
+            // 如果没有内容，移除placeholder消息
+            messages.value.pop();
+          }
+        } else {
+          // 不是placeholder，正常处理（这种情况不应该发生，但为了安全起见）
+          messages.value.pop();
+          const assistantMessage: AIDialogMessage = {
+            role: 'assistant',
+            content: cur_resp.value,
+          };
+          messages.value.push(assistantMessage);
+        }
+      }
 
       //bindCode(false);
       //logger.log(messages.value);
-      updateCurrentDialog(null, true); // AI生成新回复时，移到最前面
-      updateTitle();
+      if (cur_resp.value.trim()) {
+        updateCurrentDialog(null, true); // AI生成新回复时，移到最前面
+        updateTitle();
+      }
 
     },
     shouldQueryKnowledgeBase
@@ -974,17 +1023,31 @@ const regenerate = async (index: number) => {
     },
     cur_resp,
     () => {
-      messages.value.pop();
       stopStream?.();
-      const assistantMessage: AIDialogMessage = {
-        role: 'assistant',
-        content: cur_resp.value,
-        timestamp: Date.now(), // 记录AI回复时间
-      };
-      messages.value.push(assistantMessage);
-
-      //bindCode(false);
-      updateCurrentDialog(null, true); // AI生成新回复时，移到最前面
+      // 如果最后一个消息是placeholder（空内容），用实际内容替换它
+      if (messages.value.length > 0) {
+        const lastMessage = messages.value[messages.value.length - 1];
+        if (lastMessage.role === 'assistant' && lastMessage.content === '') {
+          // 这是一个placeholder，用cur_resp的内容替换它
+          lastMessage.content = cur_resp.value;
+          if (!cur_resp.value.trim()) {
+            // 如果没有内容，移除placeholder消息
+            messages.value.pop();
+          }
+        } else {
+          // 不是placeholder，正常处理（这种情况不应该发生，但为了安全起见）
+          messages.value.pop();
+          const assistantMessage: AIDialogMessage = {
+            role: 'assistant',
+            content: cur_resp.value,
+            timestamp: Date.now(), // 记录AI回复时间
+          };
+          messages.value.push(assistantMessage);
+        }
+      }
+      if (cur_resp.value.trim()) {
+        updateCurrentDialog(null, true); // AI生成新回复时，移到最前面
+      }
     },
     enableKnowledgeBaseQuery.value
   );

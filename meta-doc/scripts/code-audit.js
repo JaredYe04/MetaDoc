@@ -559,6 +559,702 @@ function getRecentCommits(months = 6) {
 }
 
 /**
+ * 使用 Git 统计当前 src/ 目录下的代码行数
+ * 确保与 Git 改动量统计口径一致
+ */
+function getGitSrcLinesCount(repoDir) {
+  try {
+    // 使用 git ls-files 获取所有 src/ 目录下的文件
+    // 注意：git ls-files 返回的路径是相对于仓库根目录的，可能是 src/... 或 meta-doc/src/...
+    const filesOutput = execSync(
+      `git ls-files src/`,
+      { cwd: repoDir, encoding: 'utf-8' }
+    ).trim();
+
+    if (!filesOutput) {
+      // 如果 src/ 下没有文件，尝试 meta-doc/src/
+      const filesOutput2 = execSync(
+        `git ls-files meta-doc/src/`,
+        { cwd: repoDir, encoding: 'utf-8' }
+      ).trim();
+      
+      if (!filesOutput2) {
+        console.log(`      ⚠️  未找到 src/ 目录下的文件`);
+        return 0;
+      }
+      
+      const files = filesOutput2.split('\n').filter(f => f.trim());
+      return processGitFiles(files, repoDir);
+    }
+
+    const files = filesOutput.split('\n').filter(f => f.trim());
+    // 检查第一个文件的路径格式，判断是否需要添加 meta-doc/ 前缀
+    const firstFile = files[0];
+    let needsPrefix = false;
+    
+    try {
+      execSync(`git show HEAD:${firstFile}`, { cwd: repoDir, encoding: 'utf-8', stdio: 'ignore' });
+    } catch (err) {
+      // 如果失败，说明需要添加 meta-doc/ 前缀
+      needsPrefix = true;
+    }
+    
+    // 如果需要前缀，为所有文件添加
+    const processedFiles = needsPrefix 
+      ? files.map(f => f.startsWith('meta-doc/') ? f : `meta-doc/${f}`)
+      : files;
+    
+    return processGitFiles(processedFiles, repoDir);
+  } catch (error) {
+    console.warn(`   ⚠️  无法使用 Git 统计代码行数: ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * 处理 Git 文件列表，统计代码行数
+ */
+function processGitFiles(files, repoDir) {
+  console.log(`      找到 ${files.length} 个文件需要统计`);
+  
+  let totalLines = 0;
+  let processed = 0;
+  let failed = 0;
+
+  // 对每个文件，使用 git show HEAD:文件路径 获取内容并统计行数
+  for (const file of files) {
+    try {
+      const content = execSync(
+        `git show HEAD:${file}`,
+        { cwd: repoDir, encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 }
+      );
+      
+      const lines = content.split('\n').length;
+      totalLines += lines;
+      processed++;
+      
+      // 每处理100个文件输出一次进度
+      if (processed % 100 === 0) {
+        console.log(`      已处理 ${processed}/${files.length} 个文件...`);
+      }
+    } catch (error) {
+      // 如果文件不存在或无法读取，跳过
+      failed++;
+      if (failed <= 5) {
+        console.log(`      ⚠️  无法读取文件 ${file}: ${error.message.substring(0, 50)}`);
+      }
+      continue;
+    }
+  }
+
+  console.log(`      完成，共处理 ${processed} 个文件，失败 ${failed} 个`);
+  return totalLines;
+}
+
+/**
+ * 获取所有提交的改动量统计（一次性获取，提高性能）
+ */
+function getAllCommitsStats(repoDir) {
+  console.log(`   🔍 一次性获取所有提交的改动量统计...`);
+  
+  // 获取所有提交的 hash 和日期
+  const logOutput = execSync(
+    `git log --pretty=format:"%H|%ad" --date=iso`,
+    { cwd: repoDir, encoding: 'utf-8' }
+  ).trim();
+
+  if (!logOutput) {
+    return [];
+  }
+
+  const commits = [];
+  const lines = logOutput.split('\n');
+  
+  console.log(`      找到 ${lines.length} 次提交，开始统计改动量...`);
+  
+  let processed = 0;
+  let samplePaths = [];
+  
+  for (const line of lines) {
+    const parts = line.split('|');
+    if (parts.length < 2) continue;
+    
+    const hash = parts[0].trim();
+    const dateStr = parts[1].trim();
+    const commitDate = new Date(dateStr);
+    
+    let insertions = 0;
+    let deletions = 0;
+    
+    try {
+      // 优先使用 git show --numstat
+      const showOutput = execSync(
+        `git show --numstat --format="" ${hash}`,
+        { cwd: repoDir, encoding: 'utf-8' }
+      ).trim();
+
+      if (showOutput) {
+        const outputLines = showOutput.split('\n');
+        for (const outputLine of outputLines) {
+          const parts = outputLine.trim().split(/\s+/);
+          if (parts.length >= 2) {
+            const filePath = parts.slice(2).join(' ');
+            const normalizedPath = filePath.replace(/\\/g, '/');
+            
+            // 收集前几个示例路径用于调试
+            if (samplePaths.length < 3 && filePath) {
+              samplePaths.push(filePath);
+            }
+            
+            // 匹配包含 /src/ 的路径
+            if (filePath && normalizedPath.includes('/src/')) {
+              insertions += parseInt(parts[0], 10) || 0;
+              deletions += parseInt(parts[1], 10) || 0;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // 如果 git show 失败，尝试使用 git diff
+      try {
+        const diffOutput = execSync(
+          `git diff --numstat ${hash}^..${hash}`,
+          { cwd: repoDir, encoding: 'utf-8' }
+        ).trim();
+
+        if (diffOutput) {
+          const outputLines = diffOutput.split('\n');
+          for (const outputLine of outputLines) {
+            const parts = outputLine.trim().split(/\s+/);
+            if (parts.length >= 2) {
+              const filePath = parts.slice(2).join(' ');
+              const normalizedPath = filePath.replace(/\\/g, '/');
+              
+              if (filePath && normalizedPath.includes('/src/')) {
+                insertions += parseInt(parts[0], 10) || 0;
+                deletions += parseInt(parts[1], 10) || 0;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        // 忽略无法获取统计的提交
+        continue;
+      }
+    }
+    
+    commits.push({
+      hash,
+      date: commitDate,
+      insertions,
+      deletions,
+      totalChanges: insertions + deletions,
+      netChanges: insertions - deletions
+    });
+    
+    processed++;
+    if (processed % 50 === 0) {
+      console.log(`      已处理 ${processed}/${lines.length} 次提交...`);
+    }
+  }
+  
+  if (samplePaths.length > 0) {
+    console.log(`      示例文件路径: ${samplePaths.join(', ')}`);
+  }
+  
+  console.log(`      完成，共处理 ${processed} 次提交`);
+  return commits;
+}
+
+/**
+ * 获取不同时间段的提交改动量统计
+ * 优化：只执行一次"所有时间"统计，然后按日期分配到各时间段
+ */
+function getTimePeriodCommitStats(totalLines) {
+  try {
+    const repoDir = path.join(__dirname, '..');
+    if (!isGitRepository(repoDir)) {
+      console.log('   ⚠️  当前目录不是 Git 仓库');
+      return null;
+    }
+    
+    console.log(`   📁 Git 仓库目录: ${repoDir}`);
+    
+    // 使用 Git 统计当前 src/ 目录下的代码行数，确保统计口径一致
+    console.log(`   📊 使用 Git 统计当前 src/ 目录下的代码行数...`);
+    const gitSrcLines = getGitSrcLinesCount(repoDir);
+    
+    // 如果 Git 统计失败，使用文件系统统计的结果
+    const actualTotalLines = gitSrcLines !== null ? gitSrcLines : totalLines;
+    
+    if (gitSrcLines !== null) {
+      console.log(`   📊 Git 统计的代码行数: ${gitSrcLines.toLocaleString()}`);
+      console.log(`   📊 文件系统统计的代码行数: ${totalLines.toLocaleString()}`);
+      if (gitSrcLines !== totalLines) {
+        console.log(`   ⚠️  注意: Git 统计和文件系统统计存在差异，使用 Git 统计结果`);
+      }
+    } else {
+      console.log(`   📊 项目总代码行数: ${totalLines.toLocaleString()} (使用文件系统统计)`);
+    }
+
+    // 一次性获取所有提交的改动量统计
+    const allCommits = getAllCommitsStats(repoDir);
+    
+    if (allCommits.length === 0) {
+      console.log('   ⚠️  未找到任何提交');
+      return null;
+    }
+
+    const now = new Date();
+    const periods = [
+      { name: '近一周', days: 7 },
+      { name: '近一月', days: 30 },
+      { name: '近一季', days: 90 },
+      { name: '近半年', days: 180 },
+      { name: '近一年', days: 365 },
+      { name: '所有时间', days: null } // null 表示不限制时间范围
+    ];
+
+    const stats = [];
+
+    // 根据时间段，从所有提交中筛选出符合条件的提交
+    for (const period of periods) {
+      try {
+        let periodStart;
+        let periodCommits;
+        
+        if (period.days === null) {
+          // 所有时间，包含所有提交
+          console.log(`   🔍 分析 ${period.name}（所有提交）...`);
+          periodCommits = allCommits;
+        } else {
+          // 有时间限制的统计
+          periodStart = new Date(now);
+          periodStart.setDate(now.getDate() - period.days);
+          const sinceDate = periodStart.toISOString().split('T')[0];
+          console.log(`   🔍 分析 ${period.name} (${sinceDate} 至今)...`);
+          
+          // 从所有提交中筛选出该时间段内的提交
+          periodCommits = allCommits.filter(commit => commit.date >= periodStart);
+        }
+
+        if (periodCommits.length === 0) {
+          stats.push({
+            name: period.name,
+            days: period.days,
+            commits: 0,
+            insertions: 0,
+            deletions: 0,
+            totalChanges: 0,
+            netChanges: 0,
+            percentage: 0
+          });
+          continue;
+        }
+
+        // 汇总该时间段内的改动量
+        const totalInsertions = periodCommits.reduce((sum, commit) => sum + commit.insertions, 0);
+        const totalDeletions = periodCommits.reduce((sum, commit) => sum + commit.deletions, 0);
+        const totalChanges = totalInsertions + totalDeletions; // 累计总改动量
+        const netChanges = totalInsertions - totalDeletions; // 净变化量（实际增长）
+        
+        // 使用净变化量计算占比，这样更合理（净变化量占项目代码量的比例）
+        // 使用 actualTotalLines 确保统计口径一致
+        const percentage = actualTotalLines > 0 ? ((Math.abs(netChanges) / actualTotalLines) * 100) : 0;
+
+        console.log(`      ✅ ${period.name}: ${periodCommits.length} 次提交, 新增 ${totalInsertions.toLocaleString()} 行, 删除 ${totalDeletions.toLocaleString()} 行, 累计改动 ${totalChanges.toLocaleString()} 行, 净变化 ${netChanges >= 0 ? '+' : ''}${netChanges.toLocaleString()} 行, 净变化占比 ${percentage.toFixed(2)}%`);
+
+        stats.push({
+          name: period.name,
+          days: period.days,
+          commits: periodCommits.length,
+          insertions: totalInsertions,
+          deletions: totalDeletions,
+          totalChanges: totalChanges,
+          netChanges: netChanges,
+          percentage: percentage
+        });
+      } catch (error) {
+        console.warn(`无法处理 ${period.name} 的统计:`, error.message);
+        stats.push({
+          name: period.name,
+          days: period.days,
+          commits: 0,
+          insertions: 0,
+          deletions: 0,
+          totalChanges: 0,
+          netChanges: 0,
+          percentage: 0
+        });
+      }
+    }
+
+    return stats;
+  } catch (error) {
+    console.warn('⚠️  警告: 无法获取时间段提交统计:', error.message);
+    return null;
+  }
+}
+
+/**
+ * 生成时间段改动量堆叠柱状图（按时间范围从长到短）
+ * 每个时间段一个柱子，柱子高度代表该时间段的改动量
+ */
+function generateTimePeriodStackedBarChart(title, stats) {
+  // 按时间范围从长到短排序（所有时间 > 一年 > 半年 > 一季 > 一月 > 一周）
+  const sortedStats = [...stats].sort((a, b) => {
+    // 所有时间排第一
+    if (a.name === '所有时间') return -1;
+    if (b.name === '所有时间') return 1;
+    // 其他按 days 从大到小排序（null 或 undefined 的排在最后）
+    const aDays = a.days || 0;
+    const bDays = b.days || 0;
+    return bDays - aDays;
+  });
+
+  const names = sortedStats.map(s => s.name);
+  const totalChanges = sortedStats.map(s => s.totalChanges);
+  const netChanges = sortedStats.map(s => s.netChanges || (s.insertions - s.deletions));
+  const percentages = sortedStats.map(s => s.percentage);
+
+  // 为不同时间段设置不同的颜色（从深到浅，时间范围越长颜色越深）
+  const periodColors = [
+    '#1f77b4',   // 所有时间 - 深蓝
+    '#2ca02c',   // 近一年 - 绿色
+    '#ff7f0e',   // 近半年 - 橙色
+    '#d62728',   // 近一季 - 红色
+    '#9467bd',   // 近一月 - 紫色
+    '#8c564b'    // 近一周 - 棕色
+  ];
+
+  return {
+    title: {
+      text: title,
+      left: 'center',
+      textStyle: { fontSize: 16, fontWeight: 'bold' }
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: function(params) {
+        const param = params[0];
+        const stat = sortedStats[param.dataIndex];
+        const net = stat.netChanges || (stat.insertions - stat.deletions);
+        return `${stat.name}<br/>` +
+               `累计改动量: ${stat.totalChanges.toLocaleString()} 行<br/>` +
+               `净变化量: ${net >= 0 ? '+' : ''}${net.toLocaleString()} 行<br/>` +
+               `净变化占比: ${stat.percentage.toFixed(2)}%<br/>` +
+               `提交数: ${stat.commits} 次<br/>` +
+               `新增: +${stat.insertions.toLocaleString()} 行<br/>` +
+               `删除: -${stat.deletions.toLocaleString()} 行`;
+      }
+    },
+    legend: {
+      data: ['累计改动量', '净变化量'],
+      top: '10%'
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      top: '20%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: names,
+      axisLabel: {
+        rotate: 0,
+        fontSize: 12
+      }
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '累计改动量 (行)',
+        position: 'left'
+      },
+      {
+        type: 'value',
+        name: '净变化占比 (%)',
+        position: 'right',
+        axisLabel: {
+          formatter: '{value}%'
+        }
+      }
+    ],
+    series: [
+      {
+        name: '累计改动量',
+        type: 'bar',
+        yAxisIndex: 0,
+        data: totalChanges.map((value, index) => ({
+          value: value,
+          itemStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: periodColors[Math.min(index, periodColors.length - 1)] },
+                { offset: 1, color: periodColors[Math.min(index, periodColors.length - 1)] + 'CC' }
+              ]
+            }
+          }
+        })),
+        label: {
+          show: true,
+          position: 'top',
+          formatter: function(params) {
+            return params.value.toLocaleString();
+          }
+        },
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      },
+      {
+        name: '净变化占比',
+        type: 'line',
+        yAxisIndex: 1,
+        data: percentages,
+        itemStyle: { color: '#67C23A' },
+        lineStyle: { width: 3 },
+        symbol: 'circle',
+        symbolSize: 8,
+        label: {
+          show: true,
+          position: 'top',
+          formatter: function(params) {
+            return params.value.toFixed(1) + '%';
+          }
+        }
+      }
+    ]
+  };
+}
+
+/**
+ * 生成时间段改动量占比饼图（已废弃，改用堆叠柱状图）
+ */
+function generateTimePeriodPieChart(title, stats) {
+  const data = stats.map(s => ({
+    name: s.name,
+    value: s.totalChanges
+  })).filter(d => d.value > 0);
+
+  return {
+    title: {
+      text: title,
+      left: 'center',
+      textStyle: { fontSize: 16, fontWeight: 'bold' }
+    },
+    tooltip: {
+      trigger: 'item',
+      formatter: function(params) {
+        const stat = stats.find(s => s.name === params.name);
+        if (!stat) return '';
+        return `${params.name}<br/>` +
+               `改动量: ${stat.totalChanges.toLocaleString()} 行<br/>` +
+               `占比: ${stat.percentage.toFixed(2)}%<br/>` +
+               `提交数: ${stat.commits} 次`;
+      }
+    },
+    legend: {
+      orient: 'vertical',
+      left: 'left',
+      top: 'middle'
+    },
+    series: [{
+      name: '改动量',
+      type: 'pie',
+      radius: ['40%', '70%'],
+      avoidLabelOverlap: false,
+      itemStyle: {
+        borderRadius: 10,
+        borderColor: '#fff',
+        borderWidth: 2
+      },
+      label: {
+        show: true,
+        formatter: '{b}\n{d}%'
+      },
+      emphasis: {
+        label: {
+          show: true,
+          fontSize: 16,
+          fontWeight: 'bold'
+        }
+      },
+      data: data
+    }]
+  };
+}
+
+/**
+ * 生成时间段改动量占比条形图
+ */
+function generateTimePeriodBarChart(title, stats) {
+  const names = stats.map(s => s.name);
+  const totalChanges = stats.map(s => s.totalChanges);
+  const percentages = stats.map(s => s.percentage);
+
+  return {
+    title: {
+      text: title,
+      left: 'center',
+      textStyle: { fontSize: 16, fontWeight: 'bold' }
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: function(params) {
+        const param = params[0];
+        const stat = stats[param.dataIndex];
+        return `${stat.name}<br/>` +
+               `改动量: ${stat.totalChanges.toLocaleString()} 行<br/>` +
+               `占比: ${stat.percentage.toFixed(2)}%<br/>` +
+               `提交数: ${stat.commits} 次<br/>` +
+               `新增: +${stat.insertions.toLocaleString()} 行<br/>` +
+               `删除: -${stat.deletions.toLocaleString()} 行`;
+      }
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      top: '15%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: names,
+      axisLabel: {
+        rotate: 0
+      }
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '改动量 (行)',
+        position: 'left'
+      },
+      {
+        type: 'value',
+        name: '占比 (%)',
+        position: 'right',
+        axisLabel: {
+          formatter: '{value}%'
+        }
+      }
+    ],
+    series: [
+      {
+        name: '改动量',
+        type: 'bar',
+        yAxisIndex: 0,
+        data: totalChanges,
+        itemStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: '#83bff6' },
+              { offset: 0.5, color: '#188df0' },
+              { offset: 1, color: '#188df0' }
+            ]
+          }
+        }
+      },
+      {
+        name: '占比',
+        type: 'line',
+        yAxisIndex: 1,
+        data: percentages,
+        itemStyle: { color: '#67C23A' },
+        lineStyle: { width: 3 },
+        symbol: 'circle',
+        symbolSize: 8
+      }
+    ]
+  };
+}
+
+/**
+ * 生成时间段改动量堆叠条形图（显示新增和删除）
+ */
+function generateTimePeriodStackedChart(title, stats) {
+  const names = stats.map(s => s.name);
+  const insertions = stats.map(s => s.insertions);
+  const deletions = stats.map(s => s.deletions);
+
+  return {
+    title: {
+      text: title,
+      left: 'center',
+      textStyle: { fontSize: 16, fontWeight: 'bold' }
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: function(params) {
+        const param = params[0];
+        const stat = stats[param.dataIndex];
+        return `${stat.name}<br/>` +
+               `新增: +${stat.insertions.toLocaleString()} 行<br/>` +
+               `删除: -${stat.deletions.toLocaleString()} 行<br/>` +
+               `总计: ${stat.totalChanges.toLocaleString()} 行<br/>` +
+               `占比: ${stat.percentage.toFixed(2)}%`;
+      }
+    },
+    legend: {
+      data: ['新增', '删除'],
+      top: '10%'
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      top: '15%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: names
+    },
+    yAxis: {
+      type: 'value',
+      name: '代码行数'
+    },
+    series: [
+      {
+        name: '新增',
+        type: 'bar',
+        stack: 'total',
+        data: insertions,
+        itemStyle: { color: '#67C23A' }
+      },
+      {
+        name: '删除',
+        type: 'bar',
+        stack: 'total',
+        data: deletions,
+        itemStyle: { color: '#F56C6C' }
+      }
+    ]
+  };
+}
+
+/**
  * 生成提交趋势折线图
  */
 function generateCommitTrendChart(title, commits) {
@@ -1272,6 +1968,22 @@ function generateChartExplanation(chartType, data, context = {}) {
       const caretPercent = totalVersions > 0 ? ((caretCount / totalVersions) * 100).toFixed(1) : 0;
       return `**图表说明**：该饼图展示了依赖项版本前缀的分布情况。兼容版本（^）占 ${caretPercent}%（${caretCount} 个包），这是最常见的版本管理方式，允许自动更新小版本和补丁版本。精确版本通常用于需要锁定特定版本的场景。\n\n`;
     
+    case 'timePeriodPie':
+      const maxPeriod = data.reduce((max, d) => d.value > max.value ? d : max, data[0]);
+      const maxPeriodPercent = ((maxPeriod.value / data.reduce((sum, d) => sum + d.value, 0)) * 100).toFixed(1);
+      return `**图表说明**：该饼图展示了不同时间段的代码改动量占比。${maxPeriod.name} 的改动量最大，占 ${maxPeriodPercent}%。这反映了项目在不同时期的开发活跃度，可以帮助了解项目的开发节奏和代码演进情况。\n\n`;
+    
+    case 'timePeriodBar':
+      const maxChange = Math.max(...data);
+      const avgChange = (data.reduce((sum, val) => sum + val, 0) / data.length).toFixed(0);
+      return `**图表说明**：该条形图对比了不同时间段的代码改动量。平均每个时间段的改动量为 ${avgChange.toLocaleString()} 行，最多为 ${maxChange.toLocaleString()} 行。结合占比趋势线可以直观看出各时间段改动量占项目总代码量的比例，有助于评估代码变更的规模和频率。\n\n`;
+    
+    case 'timePeriodStacked':
+      const totalIns = context.totalInsertions || 0;
+      const totalDels = context.totalDeletions || 0;
+      const netChange = totalIns - totalDels;
+      return `**图表说明**：该堆叠条形图展示了不同时间段的新增和删除代码行数。总新增 ${totalIns.toLocaleString()} 行，总删除 ${totalDels.toLocaleString()} 行，净增 ${netChange.toLocaleString()} 行。通过对比新增和删除可以了解代码的演进方向，净增为正表示代码在增长，净增为负表示代码在精简。\n\n`;
+    
     default:
       return '';
   }
@@ -1701,6 +2413,82 @@ function generateMarkdownReport(stats, outputPath, gitCommits = null, npmDeps = 
     });
     
     markdown += `\n`;
+  }
+  
+  // 时间段改动量占比分析
+  console.log('📊 分析时间段改动量占比...');
+  const timePeriodStats = getTimePeriodCommitStats(stats.total.lines);
+  if (timePeriodStats) {
+    console.log(`   找到时间段统计数据: ${timePeriodStats.length} 个时间段`);
+    const hasChanges = timePeriodStats.some(s => s.totalChanges > 0);
+    console.log(`   是否有改动: ${hasChanges}`);
+    
+    markdown += `## 📈 时间段改动量占比分析\n\n`;
+    markdown += `### 📊 改动量概览\n\n`;
+    markdown += `| 时间段 | 提交数 | 新增行数 | 删除行数 | 累计改动量 | 净变化量 | 净变化占比 |\n`;
+    markdown += `|--------|--------|----------|----------|------------|----------|-------------|\n`;
+    
+    timePeriodStats.forEach(stat => {
+      const netChanges = stat.netChanges || (stat.insertions - stat.deletions);
+      const netChangesStr = netChanges >= 0 ? `+${netChanges.toLocaleString()}` : netChanges.toLocaleString();
+      markdown += `| ${stat.name} | ${stat.commits} | +${stat.insertions.toLocaleString()} | -${stat.deletions.toLocaleString()} | ${stat.totalChanges.toLocaleString()} | ${netChangesStr} | ${stat.percentage.toFixed(2)}% |\n`;
+    });
+    
+    markdown += `\n`;
+    markdown += `> 💡 **说明**：\n`;
+    markdown += `> - **累计改动量** = 新增行数 + 删除行数（同一文件多次修改会累加，可能超过项目代码量）\n`;
+    markdown += `> - **净变化量** = 新增行数 - 删除行数（实际代码增长量）\n`;
+    markdown += `> - **净变化占比** = 净变化量的绝对值 / 项目当前代码量 × 100%\n\n`;
+    
+    markdown += `\n`;
+    
+    // 时间段改动量堆叠柱状图（按时间范围从长到短）
+    markdown += `### 📊 时间段改动量对比（堆叠柱状图）\n\n`;
+    markdown += `\`\`\`echarts\n`;
+    markdown += JSON.stringify(generateTimePeriodStackedBarChart('时间段改动量对比', timePeriodStats), null, 2);
+    markdown += `\n\`\`\`\n\n`;
+    const timePeriodBarData = timePeriodStats.map(s => s.totalChanges);
+    markdown += generateChartExplanation('timePeriodBar', timePeriodBarData);
+    
+    // 时间段改动量堆叠图（新增和删除）
+    markdown += `### 📊 时间段改动量组成（新增/删除）\n\n`;
+    const totalInsertions = timePeriodStats.reduce((sum, s) => sum + s.insertions, 0);
+    const totalDeletions = timePeriodStats.reduce((sum, s) => sum + s.deletions, 0);
+    markdown += `\`\`\`echarts\n`;
+    markdown += JSON.stringify(generateTimePeriodStackedChart('时间段改动量组成分析', timePeriodStats), null, 2);
+    markdown += `\n\`\`\`\n\n`;
+    markdown += generateChartExplanation('timePeriodStacked', [], {
+      totalInsertions,
+      totalDeletions
+    });
+    
+    // 分析说明
+    markdown += `### 💡 分析说明\n\n`;
+    const totalNetChanges = totalInsertions - totalDeletions;
+    const maxPeriod = timePeriodStats.reduce((max, s) => {
+      const sNet = Math.abs(s.netChanges || (s.insertions - s.deletions));
+      const maxNet = Math.abs(max.netChanges || (max.insertions - max.deletions));
+      return sNet > maxNet ? s : max;
+    }, timePeriodStats[0]);
+    const minPeriod = timePeriodStats.reduce((min, s) => {
+      const sNet = Math.abs(s.netChanges || (s.insertions - s.deletions));
+      const minNet = Math.abs(min.netChanges || (min.insertions - min.deletions));
+      return sNet < minNet ? s : min;
+    }, timePeriodStats[0]);
+    const avgPercentage = (timePeriodStats.reduce((sum, s) => sum + s.percentage, 0) / timePeriodStats.length).toFixed(2);
+    
+    const maxNetChanges = maxPeriod.netChanges || (maxPeriod.insertions - maxPeriod.deletions);
+    const minNetChanges = minPeriod.netChanges || (minPeriod.insertions - minPeriod.deletions);
+    
+    markdown += `- **最活跃时间段**：${maxPeriod.name}（净变化 ${maxNetChanges >= 0 ? '+' : ''}${maxNetChanges.toLocaleString()} 行，占比 ${maxPeriod.percentage.toFixed(2)}%）\n`;
+    markdown += `- **最不活跃时间段**：${minPeriod.name}（净变化 ${minNetChanges >= 0 ? '+' : ''}${minNetChanges.toLocaleString()} 行，占比 ${minPeriod.percentage.toFixed(2)}%）\n`;
+    markdown += `- **平均净变化占比**：${avgPercentage}%\n`;
+    markdown += `- **累计总改动量**：${timePeriodStats.reduce((sum, s) => sum + s.totalChanges, 0).toLocaleString()} 行（新增 ${totalInsertions.toLocaleString()} 行，删除 ${totalDeletions.toLocaleString()} 行）\n`;
+    markdown += `- **总净变化量**：${totalNetChanges >= 0 ? '+' : ''}${totalNetChanges.toLocaleString()} 行\n\n`;
+    
+    markdown += `> 💡 **提示**：时间段改动量占比反映了项目在不同时期的开发活跃度。净变化占比使用净变化量（新增-删除）的绝对值计算，更准确地反映了代码的实际增长情况。累计改动量可能超过项目代码量，因为同一文件可能被多次修改。\n\n`;
+  } else {
+    console.log('   ⚠️  无法获取时间段改动量统计（可能不是 Git 仓库或没有提交记录）');
   }
   
   // NPM 依赖项分析

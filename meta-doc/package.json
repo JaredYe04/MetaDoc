@@ -1,6 +1,6 @@
 {
   "name": "meta-doc",
-  "version": "0.13.1",
+  "version": "0.13.3",
   "description": "基于LLM Agent的智能文字处理软件",
   "main": "./out/main/index.js",
   "author": "ByteLight",
@@ -26,7 +26,11 @@
     "clean:vite": "rimraf node_modules/.vite || rm -rf node_modules/.vite",
     "audit": "node scripts/code-audit.js",
     "compose-doc-icons": "node scripts/compose-doc-icons.js",
-    "generate-icons": "node scripts/generate-icons.js"
+    "generate-icons": "node scripts/generate-icons.js",
+    "release:dev": "node scripts/release-dev.js",
+    "release:prod": "node scripts/release-prod.js",
+    "release:rollback": "node scripts/release-rollback.js",
+    "changelog": "node scripts/generate-changelog.js"
   },
   "fileAssociations": [
     {

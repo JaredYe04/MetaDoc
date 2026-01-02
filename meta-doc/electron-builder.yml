@@ -95,8 +95,17 @@ appImage:
 npmRebuild: false
 # 确保使用 asar 打包以减小体积
 asar: true
+# GitHub发布配置（通过环境变量设置）
+# 需要在.env文件中配置：
+# UPDATE_GITHUB_OWNER=your-github-username
+# UPDATE_GITHUB_REPO=MetaDoc-Releases
+# UPDATE_GITHUB_TOKEN=your-github-token (可选，私有仓库需要)
 publish:
-  provider: generic
-  url: https://example.com/auto-updates
+  provider: github
+  # 注意：这些值应该从环境变量中读取，但electron-builder不支持直接从.env读取
+  # 实际使用时需要通过命令行参数或环境变量传递
+  # owner: ${env.UPDATE_GITHUB_OWNER}
+  # repo: ${env.UPDATE_GITHUB_REPO}
+  # token: ${env.UPDATE_GITHUB_TOKEN}
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

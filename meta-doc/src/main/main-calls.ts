@@ -45,6 +45,7 @@ import {
 import { dirname } from './index';
 import { imageUploadDir } from './express-server';
 import { queryKnowledgeBase, getResourcesPath, compileLatexToPDF, setEmbeddingMode, getEmbeddingMode, fileConversionService } from './utils';
+import { initUpdateService, checkForUpdates, setUpdateChannel, getUpdateStatus, type UpdateChannel } from './utils/update-service';
 import { getSystemFonts, type SystemFont } from './utils/font-service';
 import {
   getDatabase,
@@ -1684,6 +1685,53 @@ function bindSystemHandlers(): void {
   // 获取应用版本号
   ipcMain.handle('get-app-version', async (event: IpcMainInvokeEvent): Promise<string> => {
     return getAppVersion();
+  });
+
+  // 获取版本详细信息（包含发布日期）
+  ipcMain.handle('get-version-info', async (event: IpcMainInvokeEvent): Promise<any> => {
+    try {
+      let versionFilePath: string;
+      if (app.isPackaged) {
+        versionFilePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'version.json');
+      } else {
+        versionFilePath = path.resolve(__dirname, '../../version.json');
+      }
+      
+      if (fs.existsSync(versionFilePath)) {
+        const versionData = JSON.parse(fs.readFileSync(versionFilePath, 'utf-8'));
+        return versionData;
+      }
+      return null;
+    } catch (error) {
+      logger.error('获取版本信息失败:', error);
+      return null;
+    }
+  });
+
+  // 获取资源路径
+  ipcMain.handle('get-resources-path', async (event: IpcMainInvokeEvent): Promise<string> => {
+    return getResourcesPath();
+  });
+
+  // 检查更新
+  ipcMain.handle('check-for-updates', async (event: IpcMainInvokeEvent, channel: UpdateChannel = 'release'): Promise<any> => {
+    try {
+      return await checkForUpdates(channel);
+    } catch (error) {
+      logger.error('检查更新失败:', error);
+      return {
+        checking: false,
+        updateAvailable: false,
+        updateNotAvailable: false,
+        error: error instanceof Error ? error.message : String(error),
+        updateInfo: null
+      };
+    }
+  });
+
+  // 获取更新状态
+  ipcMain.handle('get-update-status', async (event: IpcMainInvokeEvent): Promise<any> => {
+    return getUpdateStatus();
   });
 }
 

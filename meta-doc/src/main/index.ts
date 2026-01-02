@@ -19,6 +19,7 @@ const icon = undefined; // 暂时禁用icon导入
 import fs from 'fs';
 import http from 'http';
 import { mainCalls, refreshMainWindowTitle, openDoc } from './main-calls';
+import { initUpdateService } from './utils/update-service';
 import { registerExternalOpenHandler, registerFocusRequestHandler, runExpressServer, refreshKnowledgeItems } from './express-server';
 import { initializeUtils } from './utils';
 import { initLogger, shutdownLogger, createMainLogger } from './logger';
@@ -488,6 +489,9 @@ app.whenReady().then(async () => {
 
   createWindow();
   mainCalls();
+  
+  // 初始化更新服务
+  initUpdateService();
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) {

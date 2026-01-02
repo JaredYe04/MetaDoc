@@ -1,0 +1,178 @@
+name: 发布到 Releases 仓库
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: '发布类型'
+        required: true
+        type: choice
+        options:
+          - prod
+          - dev
+      version:
+        description: '版本号（可选，留空则使用当前版本）'
+        required: false
+        type: string
+      release_notes:
+        description: '发布说明（可选，留空则自动生成）'
+        required: false
+        type: string
+  push:
+    tags:
+      - 'v*'
+      - 'dev-*'
+
+env:
+  RELEASE_REPO_OWNER: ${{ github.repository_owner }}
+  RELEASE_REPO: MetaDoc-Releases
+
+jobs:
+  release:
+    runs-on: windows-latest
+    
+    permissions:
+      contents: write
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: 安装依赖
+        run: npm ci
+      
+      - name: 读取版本信息
+        id: version_info
+        shell: bash
+        run: |
+          if [ "${{ github.event.inputs.version }}" != "" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=$(node scripts/version-manager.js get)
+          fi
+          CLEAN_VERSION=${VERSION#Beta}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "clean_version=$CLEAN_VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION (clean: $CLEAN_VERSION)"
+      
+      - name: 确定发布类型
+        id: release_type
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            TYPE="${{ github.event.inputs.release_type }}"
+          elif [[ "${{ github.ref }}" == refs/tags/dev-* ]]; then
+            TYPE="dev"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            TYPE="prod"
+          else
+            TYPE="prod"
+          fi
+          echo "type=$TYPE" >> $GITHUB_OUTPUT
+          echo "Release type: $TYPE"
+      
+      - name: 构建项目
+        run: npm run build
+        env:
+          NODE_ENV: production
+      
+      - name: 打包 Windows 版本
+        run: npm run build:win
+        env:
+          NODE_ENV: production
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      
+      - name: 生成发布日志
+        id: changelog
+        shell: bash
+        run: |
+          node scripts/generate-changelog.js "${{ steps.version_info.outputs.version }}" "${{ steps.release_type.outputs.type }}" > release-notes.txt
+          echo "notes_file=release-notes.txt" >> $GITHUB_OUTPUT
+      
+      - name: 读取发布说明
+        id: release_notes
+        shell: bash
+        run: |
+          if [ "${{ github.event.inputs.release_notes }}" != "" ]; then
+            echo "${{ github.event.inputs.release_notes }}" > final-notes.txt
+          else
+            cat release-notes.txt > final-notes.txt
+          fi
+          echo "notes=$(cat final-notes.txt)" >> $GITHUB_OUTPUT
+      
+      - name: 确定标签和 Release 名称
+        id: release_info
+        shell: bash
+        run: |
+          TYPE="${{ steps.release_type.outputs.type }}"
+          CLEAN_VERSION="${{ steps.version_info.outputs.clean_version }}"
+          
+          if [ "$TYPE" == "dev" ]; then
+            TAG="dev-$CLEAN_VERSION"
+            RELEASE_NAME="开发版 $CLEAN_VERSION"
+          else
+            TAG="v$CLEAN_VERSION"
+            RELEASE_NAME="v$CLEAN_VERSION"
+          fi
+          
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+          if [ "$TYPE" == "dev" ]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: 发布到 Releases 仓库
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          repository: ${{ env.RELEASE_REPO }}
+          owner: ${{ env.RELEASE_REPO_OWNER }}
+          tag_name: ${{ steps.release_info.outputs.tag }}
+          name: ${{ steps.release_info.outputs.release_name }}
+          body_path: final-notes.txt
+          prerelease: ${{ steps.release_info.outputs.is_prerelease == 'true' }}
+          files: |
+            dist/*.exe
+            dist/*.yml
+            dist/*.yaml
+            release/*.exe
+            release/*.yml
+            release/*.yaml
+          draft: false
+      
+      - name: 保存发布日志
+        shell: bash
+        run: |
+          mkdir -p .github/release-logs
+          DATE=$(date +"%Y%m%d_%H%M%S")
+          LOG_FILE=".github/release-logs/release_${{ steps.release_info.outputs.tag }}_$DATE.json"
+          cat > "$LOG_FILE" <<EOF
+          {
+            "version": "${{ steps.version_info.outputs.version }}",
+            "tag": "${{ steps.release_info.outputs.tag }}",
+            "type": "${{ steps.release_type.outputs.type }}",
+            "release_name": "${{ steps.release_info.outputs.release_name }}",
+            "prerelease": ${{ steps.release_info.outputs.is_prerelease == 'true' }},
+            "published_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "commit": "${{ github.sha }}",
+            "workflow_run": "${{ github.run_id }}"
+          }
+          EOF
+      
+      - name: 上传发布日志
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-log-${{ steps.release_info.outputs.tag }}
+          path: .github/release-logs/release_${{ steps.release_info.outputs.tag }}_*.json
+          retention-days: 90
+

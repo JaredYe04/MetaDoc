@@ -246,16 +246,18 @@ async function convertBlockToLatex(tokens) {
 
             case 'fence':
             case 'code_block': {
-                // 如果代码块语言是 latex，直接输出内容（不包装在 verbatim 中）
-                // 这样可以保留 figure 环境等 LaTeX 代码
-                const language = (token.info || '').trim().toLowerCase();
-                if (language === 'latex') {
-                    // 直接输出 LaTeX 代码，不转义
-                    latex += token.content;
-                } else {
-                    // 其他语言的代码块，使用 verbatim 环境
-                    latex += `\\begin{verbatim}\n${token.content}\\end{verbatim}\n\n`;
-                }
+                // // 如果代码块语言是 latex，直接输出内容（不包装在 verbatim 中）
+                // // 这样可以保留 figure 环境等 LaTeX 代码
+                // const language = (token.info || '').trim().toLowerCase();
+                // if (language === 'latex') {
+                //     // 直接输出 LaTeX 代码，不转义
+                //     latex += token.content;
+                // } else {
+                //     // 其他语言的代码块，使用 verbatim 环境
+                //     latex += `\\begin{verbatim}\n${token.content}\\end{verbatim}\n\n`;
+                // }
+                latex += `\\begin{verbatim}\n${token.content}\\end{verbatim}\n\n`;
+                //不管是什么语言，都使用 verbatim 环境，避免转义问题，因为代码框的代码只应该用于阅读，不应该用于编译
                 break;
             }
 

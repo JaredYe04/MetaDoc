@@ -274,44 +274,76 @@ export class WordTocProcessor implements DocxProcessor {
     // 目录占位符的div在HTML中是 <div data-toc-placeholder="true"></div>，转换为Word后可能是一个空段落
     
     // 查找目录标题段落的正则（居中、加粗、包含目录文本，但不包含 Heading 样式）
+    // 改进：使用更精确的匹配，确保只匹配单个段落，不跨越多个段落
+    // 匹配模式：<w:p>...</w:p> 其中包含居中、加粗和目录文本
     const tocTitleRegex = /<w:p[^>]*>[\s\S]*?<w:pPr[^>]*>[\s\S]*?<w:jc[^>]*w:val="center"[^>]*\/?>[\s\S]*?<\/w:pPr>[\s\S]*?<w:r[^>]*>[\s\S]*?<w:rPr[^>]*>[\s\S]*?<w:b[^>]*\/?>[\s\S]*?<\/w:rPr>[\s\S]*?<w:t[^>]*>[\s\S]{0,50}(?:目录|Table of Contents|目次|Contents)[\s\S]{0,50}<\/w:t>[\s\S]*?<\/w:r>[\s\S]*?<\/w:p>/i;
     const tocTitleMatch = updatedXml.match(tocTitleRegex);
     
     if (tocTitleMatch) {
+      // 确保匹配的是完整的段落（以</w:p>结尾）
+      const matchedText = tocTitleMatch[0];
+      if (!matchedText.trim().endsWith('</w:p>')) {
+        logger.warn('目录标题段落匹配不完整，可能匹配到了多个段落');
+      }
+      
+      // 找到目录标题段落的结束位置（</w:p>标签的结束位置）
+      // 这是插入目录字段的正确位置
       const tocTitleEnd = tocTitleMatch.index! + tocTitleMatch[0].length;
+      
+      // 验证：确保tocTitleEnd确实是</w:p>的结束位置
+      const beforeInsert = updatedXml.substring(Math.max(0, tocTitleEnd - 10), tocTitleEnd);
+      if (!beforeInsert.includes('</w:p>')) {
+        logger.warn('目录标题结束位置验证失败，可能匹配位置不正确');
+      }
+      
       const afterTitle = updatedXml.substring(tocTitleEnd);
       
-      // 查找目录标题后的占位符（可能是空段落或包含data-toc-placeholder的元素）
-      // 查找目录标题后的第一个段落，如果它是空的或包含占位符标记，就替换它
-      // 如果没有空段落，就在目录标题后直接插入
+      // 策略：总是在目录标题后插入新段落（包含目录字段和分页符），而不是替换现有段落
+      // 这样可以避免误删第一个标题段落
+      // 如果存在占位符空段落，先删除它，然后插入新段落
       
-      // 尝试查找空段落（只包含段落属性但没有内容）或只有空白字符的段落
+      // 尝试查找占位符空段落（只包含段落属性但没有内容）
       // 匹配模式：<w:p>...</w:p> 其中内容为空或只包含空白字符
-      // 需要考虑两种格式：<w:p><w:pPr>...</w:pPr></w:p> 或 <w:p></w:p> 或 <w:p> 只有空白 </w:p>
+      // 需要确保只匹配真正的空段落，不能匹配包含文本内容的段落
       const emptyParaRegex = /<w:p[^>]*>(?:<w:pPr[^>]*>[\s\S]*?<\/w:pPr>)?[\s]*<\/w:p>/;
       const emptyParaMatch = afterTitle.match(emptyParaRegex);
       
+      // 验证匹配到的段落确实是空的（不包含任何文本运行或文本节点）
+      let isValidEmptyPara = false;
+      let placeholderStart = -1;
+      let placeholderEnd = -1;
+      
       if (emptyParaMatch) {
-        // 找到空段落，替换为目录字段
-        const placeholderEnd = tocTitleEnd + emptyParaMatch.index! + emptyParaMatch[0].length;
-        updatedXml = updatedXml.substring(0, tocTitleEnd) + tocFieldXml + updatedXml.substring(placeholderEnd);
-        modified = true;
-        logger.info('已找到目录占位符并替换为Word自动目录字段');
-      } else {
-        // 没有找到空段落，直接在目录标题后插入目录字段
-        // 但需要跳过可能的分页标记段落
-        const pageBreakRegex = /<w:p[^>]*>[\s\S]*?<w:pPr[^>]*>[\s\S]*?<w:pageBreakAfter[^>]*\/?>[\s\S]*?<\/w:pPr>[\s\S]*?<\/w:p>/;
-        const pageBreakMatch = afterTitle.match(pageBreakRegex);
-        if (pageBreakMatch) {
-          // 找到分页段落，在其后插入目录字段
-          const pageBreakEnd = tocTitleEnd + pageBreakMatch.index! + pageBreakMatch[0].length;
-          updatedXml = updatedXml.substring(0, pageBreakEnd) + tocFieldXml + updatedXml.substring(pageBreakEnd);
-        } else {
-          updatedXml = updatedXml.substring(0, tocTitleEnd) + tocFieldXml + updatedXml.substring(tocTitleEnd);
+        const matchedPara = emptyParaMatch[0];
+        // 检查段落中是否包含文本运行（w:r）或文本节点（w:t）
+        // 如果包含，说明不是空段落，可能是第一个标题被误匹配了
+        const hasTextRun = /<w:r[^>]*>/.test(matchedPara);
+        const hasText = /<w:t[^>]*>/.test(matchedPara);
+        const hasHeadingStyle = /<w:pStyle[^>]*w:val="Heading/.test(matchedPara);
+        // 如果包含文本运行、文本或标题样式，说明不是空段落
+        isValidEmptyPara = !hasTextRun && !hasText && !hasHeadingStyle;
+        
+        if (isValidEmptyPara) {
+          placeholderStart = tocTitleEnd + emptyParaMatch.index!;
+          placeholderEnd = placeholderStart + emptyParaMatch[0].length;
         }
-        modified = true;
-        logger.info('已在目录标题后插入Word自动目录字段');
       }
+      
+      // 策略：总是在目录标题后（tocTitleEnd）插入新段落（包含目录字段和分页符）
+      // 如果存在占位符空段落且在目录标题之后，先删除它，然后再插入目录字段
+      
+      // 如果找到了占位符空段落，且它在目录标题之后，先删除它
+      if (isValidEmptyPara && placeholderStart >= 0 && placeholderEnd >= 0 && placeholderStart > tocTitleEnd) {
+        // 占位符在目录标题之后，先删除它
+        updatedXml = updatedXml.substring(0, placeholderStart) + updatedXml.substring(placeholderEnd);
+        // 由于删除了占位符，tocTitleEnd 的位置不变（因为占位符在目录标题之后）
+        logger.info('已删除目录占位符空段落');
+      }
+      
+      // 在目录标题后插入目录字段（总是在目录标题后，确保在第一个标题之前）
+      updatedXml = updatedXml.substring(0, tocTitleEnd) + tocFieldXml + updatedXml.substring(tocTitleEnd);
+      modified = true;
+      logger.info('已在目录标题后插入Word自动目录字段');
     } else {
       logger.warn('未找到目录标题段落，无法插入目录字段');
       return false;

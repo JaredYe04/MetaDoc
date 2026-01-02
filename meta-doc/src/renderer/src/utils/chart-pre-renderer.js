@@ -262,7 +262,8 @@ export async function renderEChartsViaIpc(optionJson, format = 'svg') {
     const hashBase = await computeHash(jsonString + ':echarts:' + ext);
 
     if (format === 'png') {
-        const pngBlob = await convertSvgToPng(svgContent);
+        // 使用 2.0 倍缩放生成高分辨率位图，确保与矢量图清晰度相当
+        const pngBlob = await convertSvgToPng(svgContent, 2.0);
         return await uploadImageToLocal(pngBlob, `${hashBase}_echarts.${ext}`);
     } else {
         const svgBlob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
@@ -333,7 +334,8 @@ export async function renderMermaidViaApi(code, format = 'svg') {
             }
             if (!ipcRenderer) throw new Error('无法获取 IPC 渲染器');
             
-            const ret = await ipcRenderer.invoke('convert-svg-string-to-png', cleanedSvg);
+            // 使用 2.0 倍缩放生成高分辨率位图，确保与矢量图清晰度相当
+            const ret = await ipcRenderer.invoke('convert-svg-string-to-png', cleanedSvg, 2.0);
             if (!ret?.success || !ret.url) {
                 throw new Error(ret?.error || '主进程 SVG→PNG 失败');
             }
@@ -496,7 +498,8 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
                                                     ipcRenderer = localIpcRenderer;
                                                 }
                                                 if (!ipcRenderer) throw new Error('无法获取 IPC 渲染器');
-                                                const ret = await ipcRenderer.invoke('convert-svg-string-to-png', svgContent);
+                                                // 使用 2.0 倍缩放生成高分辨率位图，确保与矢量图清晰度相当
+                                                const ret = await ipcRenderer.invoke('convert-svg-string-to-png', svgContent, 2.0);
                                                 if (!ret?.success || !ret.url) throw new Error(ret?.error || '主进程 SVG→PNG 失败');
                                                 resolve(ret.url);
                                             } catch (err) {
@@ -504,7 +507,8 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
                                             }
                                         })();
                                     } else {
-                                        convertSvgToPng(svgContent)
+                                        // 使用 2.0 倍缩放生成高分辨率位图，确保与矢量图清晰度相当
+                                        convertSvgToPng(svgContent, 2.0)
                                             .then((pngBlob) => {
                                                 return uploadImageToLocal(pngBlob, `${hashBase}_${chartType}.png`);
                                             })
@@ -573,7 +577,8 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
                                 const serializer = new XMLSerializer();
                                 const svgContent = serializer.serializeToString(svg);
                                 
-                                convertSvgToPng(svgContent)
+                                // 使用 2.0 倍缩放生成高分辨率位图，确保与矢量图清晰度相当
+                                convertSvgToPng(svgContent, 2.0)
                                     .then((pngBlob) => {
                                         return uploadImageToLocal(pngBlob, `${hashBase}_${chartType}.png`);
                                     })
@@ -808,8 +813,10 @@ function ensureSvgFormat(svgContent) {
 /**
  * 将 SVG 转换为 PNG（位图）
  * 使用 FileReader 和 data URL 方式避免 canvas 污染问题
+ * @param {string} svgContent - SVG 内容
+ * @param {number} scale - 缩放因子，用于生成高分辨率位图。默认 2.0（相当于 192 DPI），与矢量图清晰度相当
  */
-export async function convertSvgToPng(svgContent) {
+export async function convertSvgToPng(svgContent, scale = 2.0) {
     return new Promise((resolve, reject) => {
         try {
             // 确保 SVG 格式正确
@@ -824,7 +831,7 @@ export async function convertSvgToPng(svgContent) {
             const timeout = setTimeout(() => {
                 URL.revokeObjectURL(objectUrl);
                 reject(new Error('SVG 图片加载超时'));
-            }, 10000);
+            }, 10000 * scale);
 
             img.onload = async function() {
                 clearTimeout(timeout);
@@ -853,15 +860,24 @@ export async function convertSvgToPng(svgContent) {
                             height = toNum(h) || height || 1080;
                         }
                     }
+                    // 使用缩放因子增加分辨率，确保位图与矢量图清晰度相当
+                    // 2.0 倍缩放相当于 192 DPI，与标准矢量图清晰度相当
+                    const scaledWidth = Math.max(1, Math.round(width * scale));
+                    const scaledHeight = Math.max(1, Math.round(height * scale));
+                    
                     const canvas = document.createElement('canvas');
-                    canvas.width = Math.max(1, Math.round(width));
-                    canvas.height = Math.max(1, Math.round(height));
+                    canvas.width = scaledWidth;
+                    canvas.height = scaledHeight;
                     const ctx = canvas.getContext('2d');
+                    
+                    // 设置高质量渲染选项
                     ctx.fillStyle = 'white';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = 'high';
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // 在高分辨率 canvas 上绘制，实现高 DPI 渲染
+                    ctx.drawImage(img, 0, 0, scaledWidth, scaledHeight);
 
                     URL.revokeObjectURL(objectUrl);
                     try {

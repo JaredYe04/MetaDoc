@@ -1315,11 +1315,12 @@ function bindUtilityHandlers(): void {
   });
 
   // SVG 字符串 → PNG 文件（resvg）
-  ipcMain.handle('convert-svg-string-to-png', async (event: IpcMainInvokeEvent, svgContent: string): Promise<{ success: boolean; url?: string; error?: string }> => {
+  // scale: 缩放因子，用于生成高分辨率位图，默认 2.0（相当于 192 DPI）
+  ipcMain.handle('convert-svg-string-to-png', async (event: IpcMainInvokeEvent, svgContent: string, scale: number = 2.0): Promise<{ success: boolean; url?: string; error?: string }> => {
     const logger = createMainLogger('SvgToPng');
     try {
       const { convertSvgStringToPngFile } = await import('./utils/svg-to-pdf');
-      const url = await convertSvgStringToPngFile(svgContent);
+      const url = await convertSvgStringToPngFile(svgContent, scale);
       return { success: true, url };
     } catch (error) {
       logger.error('SVG 字符串转 PNG 失败:', error);
@@ -2263,14 +2264,16 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
     logger.debug('Java 环境变量 JAVA_OPTS:', process.env.JAVA_OPTS);
     logger.debug('Java 环境变量 _JAVA_OPTIONS:', process.env._JAVA_OPTIONS);
     
-    // 根据格式选择输出类型
-    const outputFormat = format === 'png' ? 'png' : 'svg';
+    // 对于 PNG 格式，为了确保高分辨率，我们先生成 SVG，然后转换为高分辨率 PNG
+    // 这样可以与其他图表类型保持一致的高分辨率设置
+    const outputFormat = format === 'png' ? 'svg' : 'svg';
+    const targetFormat = format; // 保留原始目标格式，用于后续判断
     
     // 检查 node-plantuml 的 API：可能需要使用 Buffer 或直接传递字符串
     // 根据 node-plantuml 文档，应该直接传递字符串，不需要指定编码
     // 注意：我们已经修改了 node-plantuml 的源码，添加了 -Dfile.encoding=UTF-8 参数
     const gen = plantuml.generate({
-      format: outputFormat,
+      format: outputFormat, // 总是先生成 SVG，PNG 稍后转换
     });
     
     // 将 PlantUML 代码写入生成器
@@ -2364,9 +2367,11 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
     // 3. 对于 SVG，检查是否是有效的 SVG 格式
     // 注意：不要检查 SVG 内容中的 "Syntax Error" 文本，因为正常的 SVG 可能也包含这些文本
     
+    // 将 imageBuffer 转换为字符串，供后续使用（包括 PNG 转换）
+    // 由于我们总是先生成 SVG，所以 imageContent 总是 SVG 内容
+    const imageContent = imageBuffer.toString('utf-8');
+    
     if (outputFormat === 'svg') {
-      const imageContent = imageBuffer.toString('utf-8');
-      
       // 检查是否是有效的 SVG（包含 <svg> 标签）
       if (!imageContent.includes('<svg')) {
         // 如果不是 SVG 格式，可能是纯文本错误信息
@@ -2387,19 +2392,29 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
         }
         // 如果只是文件小，但不包含错误标记，可能是简单的图表，不报错
       }
-    } else if (outputFormat === 'png') {
-      // 对于PNG，检查文件大小是否异常小（通常错误PNG文件很小）
-      // 如果文件大小小于1KB，可能是错误图片
-      if (imageBuffer.length < 1024) {
-        logger.warn('PlantUML生成的PNG文件异常小，可能是语法错误:', imageBuffer.length, 'bytes');
-        // PNG 无法检查内容，只警告，不报错
+    }
+    
+    // 如果目标格式是 PNG，将 SVG 转换为高分辨率 PNG
+    let finalFormat = targetFormat;
+    if (targetFormat === 'png') {
+      try {
+        // 使用 resvg 将 SVG 转换为高分辨率 PNG
+        const { convertSvgStringToPngFile } = await import('./utils/svg-to-pdf');
+        // 使用 2.0 倍缩放生成高分辨率位图，确保与矢量图清晰度相当
+        const pngUrl = await convertSvgStringToPngFile(imageContent, 2.0);
+        logger.info('PlantUML SVG 已转换为高分辨率 PNG:', pngUrl);
+        return pngUrl;
+      } catch (conversionError) {
+        logger.error('PlantUML SVG 转 PNG 失败，使用 SVG 格式:', conversionError);
+        // 如果转换失败，继续使用 SVG（降级处理）
+        finalFormat = 'svg';
       }
     }
     
     // 保存到本地图片目录（使用基于源码+格式的稳定哈希文件名，避免重复生成）
     const { imageUploadDir } = await import('./express-server');
-    const fileExt = outputFormat === 'png' ? 'png' : 'svg';
-    const hash = crypto.createHash('sha256').update(String(plantumlCode) + ':' + outputFormat).digest('hex').slice(0, 16);
+    const fileExt = finalFormat === 'png' ? 'png' : 'svg';
+    const hash = crypto.createHash('sha256').update(String(plantumlCode) + ':' + finalFormat).digest('hex').slice(0, 16);
     const fileName = `${hash}_plantuml.${fileExt}`;
     const filePath = path.join(imageUploadDir, fileName);
 
@@ -2413,8 +2428,9 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
       // not exists, continue to write
     }
     
+    // 写入 SVG buffer
     await fs.promises.writeFile(filePath, imageBuffer);
-    logger.info(`${outputFormat.toUpperCase()} 已保存到:`, filePath);
+    logger.info(`${finalFormat.toUpperCase()} 已保存到:`, filePath);
     
     // 返回本地 HTTP URL
     const localUrl = `http://localhost:52521/images/${fileName}`;

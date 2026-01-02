@@ -407,19 +407,21 @@ const convertHtmlToPdfBuffer = async (html: string, options?: {
               const isNearPageBottom = remainingSpace < availableHeightPx * 0.2;
               
               // 计算必需的缩放比例
+              // 关键修复：同时计算宽度和高度缩放比例，取较小值，确保缩放后同时满足宽度和高度限制
               let requiredScale = 1;
               let needsScaling = false;
               
-              // 如果图片高度超过可用高度，必须缩放
-              if (displayHeight > availableHeightPx) {
-                requiredScale = availableHeightPx / displayHeight;
-                needsScaling = true;
-              }
+              // 计算宽度缩放比例（如果宽度超出）
+              const widthScale = displayWidth > availableWidthPx ? availableWidthPx / displayWidth : 1;
               
-              // 如果缩放后的宽度超过可用宽度，需要进一步缩放
-              const scaledWidth = displayWidth * requiredScale;
-              if (scaledWidth > availableWidthPx) {
-                requiredScale = availableWidthPx / displayWidth;
+              // 计算高度缩放比例（如果高度超出）
+              const heightScale = displayHeight > availableHeightPx ? availableHeightPx / displayHeight : 1;
+              
+              // 取两者的最小值，确保缩放后的图片既不超过宽度，也不超过高度
+              requiredScale = Math.min(widthScale, heightScale);
+              
+              // 如果缩放比例小于1，说明需要缩放
+              if (requiredScale < 1) {
                 needsScaling = true;
               }
               
@@ -456,26 +458,24 @@ const convertHtmlToPdfBuffer = async (html: string, options?: {
               // 就尝试放在上一页，而不是换到下一页
               if (!needsScaling && !isNearPageBottom && displayHeight > remainingSpace) {
                 // 计算需要缩放多少才能放在剩余空间中
-                const fitScale = remainingSpace / displayHeight;
+                // 关键修复：同时考虑高度和宽度约束，取较小值
+                const fitHeightScale = remainingSpace / displayHeight;
+                const fitWidthScale = availableWidthPx / displayWidth;
+                const finalFitScale = Math.min(fitHeightScale, fitWidthScale);
                 
-                // 检查缩放后的宽度是否也合适
-                const fitScaledWidth = displayWidth * fitScale;
-                let finalFitScale = fitScale;
-                if (fitScaledWidth > availableWidthPx) {
-                  finalFitScale = availableWidthPx / displayWidth;
-                }
-                
-                // 计算缩放后的实际高度
+                // 计算缩放后的实际尺寸
+                const fitScaledWidth = displayWidth * finalFitScale;
                 const fitScaledHeight = displayHeight * finalFitScale;
                 
                 // 判断条件：
                 // 1. 剩余空间足够大（超过30%页面高度），值得尝试
                 // 2. 缩放比例在可接受范围内（70%-100%），不会太模糊
-                // 3. 缩放后确实能放在剩余空间中
+                // 3. 缩放后确实能放在剩余空间中（高度和宽度都满足）
                 if (remainingSpace > availableHeightPx * 0.3 && 
                     finalFitScale >= minScale && 
                     finalFitScale < 1 && 
-                    fitScaledHeight <= remainingSpace) {
+                    fitScaledHeight <= remainingSpace &&
+                    fitScaledWidth <= availableWidthPx) {
                   requiredScale = finalFitScale;
                   needsScaling = true;
                 }
@@ -502,15 +502,31 @@ const convertHtmlToPdfBuffer = async (html: string, options?: {
                 img.style.margin = '0 auto';
                 return true;
               } else {
-                // 即使不需要缩放，也确保宽度不超过可用宽度
-                if (displayWidth > availableWidthPx) {
-                  img.style.maxWidth = availableWidthPx + 'px';
-                  img.style.maxHeight = 'none';
+                // 即使不需要缩放，也确保宽度和高度都不超过可用范围
+                let needsConstraint = false;
+                
+                if (displayWidth > availableWidthPx || displayHeight > availableHeightPx) {
+                  needsConstraint = true;
+                }
+                
+                // 如果宽度或高度超出，设置约束以确保同时满足两者
+                if (needsConstraint) {
+                  // 计算同时满足宽度和高度约束的缩放比例
+                  const widthScale = displayWidth > availableWidthPx ? availableWidthPx / displayWidth : 1;
+                  const heightScale = displayHeight > availableHeightPx ? availableHeightPx / displayHeight : 1;
+                  const constraintScale = Math.min(widthScale, heightScale);
+                  
+                  const constrainedWidth = displayWidth * constraintScale;
+                  const constrainedHeight = displayHeight * constraintScale;
+                  
+                  img.style.maxWidth = constrainedWidth + 'px';
+                  img.style.maxHeight = constrainedHeight + 'px';
                   img.style.width = 'auto';
                   img.style.height = 'auto';
                   img.style.objectFit = 'contain';
                   img.style.display = 'block';
                   img.style.margin = '0 auto';
+                  return true;
                 }
                 return false;
               }

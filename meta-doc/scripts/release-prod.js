@@ -104,7 +104,7 @@ async function main() {
     }
 
     // 2. 先更新版本号（prebuild 会运行 version-manager.js update）
-    console.log('\n📦 步骤 1/4: 更新版本号...');
+    console.log('\n📦 步骤 1/3: 更新版本号...');
     execSync('npm run prebuild', { 
       stdio: 'inherit', 
       cwd: rootDir,
@@ -141,54 +141,19 @@ async function main() {
       }
     }
 
-    // 5. 检查是否已有当前版本的构建产物（基于更新后的版本号）
-    const distDir = path.join(rootDir, 'dist');
-    let hasExistingBuild = false;
-    if (fs.existsSync(distDir)) {
-      const files = fs.readdirSync(distDir);
-      // 检查是否存在包含当前版本号的构建产物
-      hasExistingBuild = files.some(file => {
-        const isBuildFile = file.endsWith('.exe') || file.endsWith('.yml') || file.endsWith('.yaml');
-        // 检查文件名是否包含当前版本号（去掉 Beta 前缀）
-        return isBuildFile && file.includes(cleanVersion);
-      });
-    }
-    
-    if (hasExistingBuild) {
-      console.log('\n📦 步骤 2-3/4: 检测到当前版本的构建产物已存在，跳过构建和打包...');
-      console.log(`   当前版本: ${version}`);
-      console.log(`   构建目录: ${distDir}`);
-      const files = fs.readdirSync(distDir);
-      const buildFiles = files.filter(f => {
-        const isBuildFile = f.endsWith('.exe') || f.endsWith('.yml') || f.endsWith('.yaml');
-        return isBuildFile && f.includes(cleanVersion);
-      });
-      console.log(`   已有文件: ${buildFiles.join(', ')}`);
-    } else {
-      // 构建项目（prebuild 已经运行过，这里只运行 electron-vite build）
-      console.log('\n📦 步骤 2/4: 构建项目...');
-      execSync('electron-vite build', { 
-        stdio: 'inherit', 
-        cwd: rootDir,
-        env: {
-          ...process.env,
-          NODE_ENV: 'production'
-        }
-      });
+    // 5. 构建项目验证编译（prebuild 已经运行过，这里只运行 electron-vite build）
+    console.log('\n📦 步骤 2/3: 构建项目验证编译...');
+    execSync('electron-vite build', { 
+      stdio: 'inherit', 
+      cwd: rootDir,
+      env: {
+        ...process.env,
+        NODE_ENV: 'production'
+      }
+    });
 
-      // 打包Windows版本（当前仅支持Windows，但预留扩展空间）
-      console.log('\n📦 步骤 3/4: 打包Windows版本...');
-      execSync('electron-builder --win', { 
-        stdio: 'inherit', 
-        cwd: rootDir,
-        env: {
-          ...process.env,
-          NODE_ENV: 'production'
-        }
-      });
-    }
-
-    console.log(`\n✅ 构建完成！版本: ${version}`);
+    console.log(`\n✅ 构建验证通过！版本: ${version}`);
+    console.log('💡 实际打包将由 GitHub Actions 自动完成');
 
     if (isGitHubActions) {
       // 在 GitHub Actions 中，工作流会自动处理发布
@@ -204,7 +169,7 @@ async function main() {
         }).trim();
 
         if (status) {
-          console.log('\n📝 步骤 3/4: 提交更改...');
+          console.log('\n📝 步骤 3/3: 提交更改...');
           execSync('git add version.json package.json', {
             cwd: rootDir,
             stdio: 'inherit'
@@ -219,7 +184,7 @@ async function main() {
       }
 
       // 6. 创建标签并推送
-      console.log(`\n🏷️  步骤 4/4: 创建标签 ${tag} 并推送到 GitHub...`);
+      console.log(`\n🏷️  步骤 3/3: 创建标签 ${tag} 并推送到 GitHub...`);
       
       // 创建标签
       execSync(`git tag -a "${tag}" -m "Release ${tag}"`, {

@@ -29,6 +29,7 @@ export default defineConfig({
     optimizeDeps: {
       include: [
         'pinia',
+        'element-plus',
         '@element-plus/icons-vue',
         '@ssthouse/vue3-tree-chart',
         'vue3-markdown-it',

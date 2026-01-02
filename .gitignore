@@ -18,3 +18,6 @@ meta-doc/.env
 meta-doc/code-audit-report.md
 meta-doc/resources_disabled/bce-embedding-base_v1-Q8_0.gguf
 *.traineddata
+meta-doc/resources/version.json
+meta-doc/version.json
+meta-doc/package.json

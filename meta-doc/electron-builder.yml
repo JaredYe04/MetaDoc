@@ -100,12 +100,9 @@ asar: true
 # UPDATE_GITHUB_OWNER=your-github-username
 # UPDATE_GITHUB_REPO=MetaDoc-Releases
 # UPDATE_GITHUB_TOKEN=your-github-token (可选，私有仓库需要)
-publish:
-  provider: github
-  # 注意：这些值应该从环境变量中读取，但electron-builder不支持直接从.env读取
-  # 实际使用时需要通过命令行参数或环境变量传递
-  # owner: ${env.UPDATE_GITHUB_OWNER}
-  # repo: ${env.UPDATE_GITHUB_REPO}
-  # token: ${env.UPDATE_GITHUB_TOKEN}
+# publish 配置已移除，因为我们使用 GitHub Actions 进行发布
+# 本地构建不需要发布功能，避免 electron-builder 尝试自动发布
+# publish:
+#   provider: github
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

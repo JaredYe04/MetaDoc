@@ -130,27 +130,40 @@ async function main() {
       }
     }
 
-    // 3. 构建项目
-    console.log('\n📦 步骤 1/4: 构建项目...');
-    execSync('npm run build', { 
-      stdio: 'inherit', 
-      cwd: rootDir,
-      env: {
-        ...process.env,
-        NODE_ENV: 'production'
-      }
-    });
+    // 3. 检查是否已有构建产物，如果有则跳过构建
+    const distDir = path.join(rootDir, 'dist');
+    const hasExistingBuild = fs.existsSync(distDir) && 
+      fs.readdirSync(distDir).some(file => file.endsWith('.exe') || file.endsWith('.yml') || file.endsWith('.yaml'));
+    
+    if (hasExistingBuild) {
+      console.log('\n📦 步骤 1-2/4: 检测到已存在的构建产物，跳过构建和打包...');
+      console.log(`   构建目录: ${distDir}`);
+      const files = fs.readdirSync(distDir);
+      const buildFiles = files.filter(f => f.endsWith('.exe') || f.endsWith('.yml') || f.endsWith('.yaml'));
+      console.log(`   已有文件: ${buildFiles.join(', ')}`);
+    } else {
+      // 构建项目
+      console.log('\n📦 步骤 1/4: 构建项目...');
+      execSync('npm run build', { 
+        stdio: 'inherit', 
+        cwd: rootDir,
+        env: {
+          ...process.env,
+          NODE_ENV: 'production'
+        }
+      });
 
-    // 4. 打包Windows版本（当前仅支持Windows）
-    console.log('\n📦 步骤 2/4: 打包Windows版本...');
-    execSync('npm run build:win', { 
-      stdio: 'inherit', 
-      cwd: rootDir,
-      env: {
-        ...process.env,
-        NODE_ENV: 'production'
-      }
-    });
+      // 打包Windows版本（当前仅支持Windows）
+      console.log('\n📦 步骤 2/4: 打包Windows版本...');
+      execSync('npm run build:win', { 
+        stdio: 'inherit', 
+        cwd: rootDir,
+        env: {
+          ...process.env,
+          NODE_ENV: 'production'
+        }
+      });
+    }
 
     console.log(`\n✅ 构建完成！版本: ${version}`);
 

@@ -45,6 +45,7 @@ import SettingKnowledgeBaseSection from './setting/SettingKnowledgeBaseSection.v
 import SettingThemeSection from './setting/SettingThemeSection.vue';
 import SettingLoggerSection from './setting/SettingLoggerSection.vue';
 import SettingDebugSection from './setting/SettingDebugSection.vue';
+import SettingAboutSection from './setting/SettingAboutSection.vue';
 import { isDevEnvironment } from '../utils/dev-env';
 import '../assets/aero-btn.css';
 import '../assets/aero-div.css';
@@ -58,7 +59,8 @@ const componentMap: Record<string, any> = {
   knowledgeBase: SettingKnowledgeBaseSection,
   themes: SettingThemeSection,
   logs: SettingLoggerSection,
-  debug: SettingDebugSection
+  debug: SettingDebugSection,
+  about: SettingAboutSection
 };
 
 const menuItems = computed(() => {
@@ -67,7 +69,8 @@ const menuItems = computed(() => {
     { key: 'llm', label: 'setting.llm' },
     { key: 'knowledgeBase', label: 'setting.knowledgeBase' },
     { key: 'themes', label: 'setting.themes' },
-    { key: 'logs', label: 'setting.logs' }
+    { key: 'logs', label: 'setting.logs' },
+    { key: 'about', label: 'setting.about.title' }
   ];
   
   // 仅在开发环境显示调试菜单

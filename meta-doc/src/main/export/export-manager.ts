@@ -825,6 +825,120 @@ const processCodeBlocksForWord = (html: string): string => {
 };
 
 /**
+ * 处理表格样式，统一表格边框，确保边框粗细一致
+ * @param html HTML 内容
+ * @returns 处理后的 HTML
+ */
+const processTablesForWord = (html: string): string => {
+  // 使用正则表达式匹配所有表格
+  // 匹配 <table> 标签及其内容（包括嵌套的表格）
+  const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+  
+  return html.replace(tableRegex, (match, tableContent) => {
+    // 提取原始 table 标签的属性
+    const tableTagMatch = match.match(/<table[^>]*>/i);
+    if (!tableTagMatch) return match;
+    
+    const originalTableTag = tableTagMatch[0];
+    
+    // 统一表格边框样式
+    // 使用 border-collapse: collapse 确保边框合并，避免双重边框
+    // 统一边框宽度为 0.5pt（Word 中常用的细边框）
+    const borderStyle = '0.5pt solid #000000';
+    
+    // 更新 table 标签的样式
+    let updatedTableTag = originalTableTag;
+    
+    // 移除现有的 border 相关样式
+    updatedTableTag = updatedTableTag.replace(/\s*border[^;]*;?/gi, '');
+    updatedTableTag = updatedTableTag.replace(/\s*border-collapse[^;]*;?/gi, '');
+    updatedTableTag = updatedTableTag.replace(/\s*border-spacing[^;]*;?/gi, '');
+    
+    // 添加统一的边框样式
+    if (updatedTableTag.includes('style=')) {
+      // 如果已有 style 属性，追加样式
+      updatedTableTag = updatedTableTag.replace(
+        /style\s*=\s*["']([^"']*)["']/i,
+        (_, existingStyle) => {
+          const cleanStyle = existingStyle.trim().replace(/;\s*$/, '');
+          return `style="${cleanStyle}; border: ${borderStyle}; border-collapse: collapse;"`;
+        }
+      );
+    } else {
+      // 如果没有 style 属性，添加新的 style 属性
+      updatedTableTag = updatedTableTag.replace(
+        /<table([^>]*)>/i,
+        `<table$1 style="border: ${borderStyle}; border-collapse: collapse;">`
+      );
+    }
+    
+    // 处理表格内容中的 th 和 td 标签
+    let processedContent = tableContent;
+    
+    // 处理 th 标签
+    processedContent = processedContent.replace(/<th[^>]*>/gi, (thTag: string) => {
+      // 移除现有的 border 相关样式
+      let updatedThTag = thTag
+        .replace(/\s*border[^;]*;?/gi, '')
+        .replace(/\s*border-top[^;]*;?/gi, '')
+        .replace(/\s*border-right[^;]*;?/gi, '')
+        .replace(/\s*border-bottom[^;]*;?/gi, '')
+        .replace(/\s*border-left[^;]*;?/gi, '');
+      
+      // 添加统一的边框样式（所有边都使用相同的边框）
+      if (updatedThTag.includes('style=')) {
+        updatedThTag = updatedThTag.replace(
+          /style\s*=\s*["']([^"']*)["']/i,
+          (_: string, existingStyle: string) => {
+            const cleanStyle = existingStyle.trim().replace(/;\s*$/, '');
+            return `style="${cleanStyle}; border: ${borderStyle}; padding: 4pt;"`;
+          }
+        );
+      } else {
+        updatedThTag = updatedThTag.replace(
+          /<th([^>]*)>/i,
+          `<th$1 style="border: ${borderStyle}; padding: 4pt;">`
+        );
+      }
+      
+      return updatedThTag;
+    });
+    
+    // 处理 td 标签
+    processedContent = processedContent.replace(/<td[^>]*>/gi, (tdTag: string) => {
+      // 移除现有的 border 相关样式
+      let updatedTdTag = tdTag
+        .replace(/\s*border[^;]*;?/gi, '')
+        .replace(/\s*border-top[^;]*;?/gi, '')
+        .replace(/\s*border-right[^;]*;?/gi, '')
+        .replace(/\s*border-bottom[^;]*;?/gi, '')
+        .replace(/\s*border-left[^;]*;?/gi, '');
+      
+      // 添加统一的边框样式（所有边都使用相同的边框）
+      if (updatedTdTag.includes('style=')) {
+        updatedTdTag = updatedTdTag.replace(
+          /style\s*=\s*["']([^"']*)["']/i,
+          (_: string, existingStyle: string) => {
+            const cleanStyle = existingStyle.trim().replace(/;\s*$/, '');
+            return `style="${cleanStyle}; border: ${borderStyle}; padding: 4pt;"`;
+          }
+        );
+      } else {
+        updatedTdTag = updatedTdTag.replace(
+          /<td([^>]*)>/i,
+          `<td$1 style="border: ${borderStyle}; padding: 4pt;">`
+        );
+      }
+      
+      return updatedTdTag;
+    });
+    
+    // 返回更新后的表格
+    return `${updatedTableTag}${processedContent}</table>`;
+  });
+};
+
+/**
  * 将 HTML 中的公式替换为 MathML
  * @param htmlContent HTML 内容
  * @param markdown 原始 Markdown 内容（用于提取公式）
@@ -1735,6 +1849,9 @@ const convertMarkdownToDocxBuffer = async (
   // html-to-docx可能不支持white-space: pre和某些CSS属性（如背景色、边框）
   styledHtml = processCodeBlocksForWord(styledHtml);
 
+  // 处理表格样式：统一表格边框，确保边框粗细一致
+  styledHtml = processTablesForWord(styledHtml);
+
   // 注意：公式已经在 Markdown 阶段被替换为文本占位符
   // 如果 HTML 中还有公式元素，也需要替换为占位符（作为备用处理）
   // 这里不再需要 convertFormulaToMathML，因为占位符会直接传递到 document.xml
@@ -1825,6 +1942,26 @@ const convertMarkdownToDocxBuffer = async (
         width: auto !important;
         height: auto !important;
         object-fit: contain !important;
+      }
+      
+      /* 表格样式 - 统一边框粗细，确保美观 */
+      table {
+        border-collapse: collapse !important;
+        border: 0.5pt solid #000000 !important;
+        width: 100% !important;
+        margin: 6pt 0 !important;
+      }
+      
+      table th,
+      table td {
+        border: 0.5pt solid #000000 !important;
+        padding: 4pt !important;
+        vertical-align: top !important;
+      }
+      
+      table th {
+        background-color: #f5f5f5 !important;
+        font-weight: bold !important;
       }
     </style>
   `;

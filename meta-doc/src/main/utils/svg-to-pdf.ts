@@ -73,10 +73,14 @@ export async function convertSvgToPdf(svgPath: string): Promise<string> {
     // 针对 Mermaid 等使用 foreignObject 的 SVG 进行规范化，避免 resvg 丢字
     svgContent = normalizeSvgForResvg(svgContent);
 
+    // 使用 2.0 倍缩放生成高分辨率位图，确保 PDF 中图表清晰度与矢量图相当
+    const scale = 2.0;
+    const targetWidth = Math.max(1400, Math.round(widthHeight.width * scale));
+
     const resvg = new Resvg(svgContent, {
       fitTo: {
         mode: 'width',
-        value: Math.max(1400, Math.round(widthHeight.width)), // 略提高默认宽度，改善小字清晰度
+        value: targetWidth,
       },
       font: {
         loadSystemFonts: true,
@@ -93,6 +97,7 @@ export async function convertSvgToPdf(svgPath: string): Promise<string> {
     });
 
     const pngData = resvg.render();
+    logger.debug(`高分辨率 PNG 已生成用于 PDF（缩放因子: ${scale}x，宽度: ${targetWidth}px）`);
     const renderedPngBuffer = Buffer.from(pngData.asPng());
 
     const pngImage = await pdfDoc.embedPng(renderedPngBuffer);
@@ -117,11 +122,13 @@ export async function convertSvgToPdf(svgPath: string): Promise<string> {
 /**
  * 使用 resvg 将 SVG 字符串渲染为 PNG 文件，并保存到本地图片目录
  * 返回本地 HTTP URL（http://localhost:52521/images/xxx.png）
+ * @param scale - 缩放因子，用于生成高分辨率位图。默认 2.0（相当于 192 DPI），与矢量图清晰度相当
  */
-export async function convertSvgStringToPngFile(svgContent: string): Promise<string> {
+export async function convertSvgStringToPngFile(svgContent: string, scale: number = 2.0): Promise<string> {
   try {
     const crypto = require('crypto');
-    const hash = crypto.createHash('sha256').update(String(svgContent)).digest('hex').slice(0, 16);
+    // 在哈希中包含 scale，确保不同分辨率有不同的缓存文件
+    const hash = crypto.createHash('sha256').update(String(svgContent) + ':scale:' + scale).digest('hex').slice(0, 16);
     const { imageUploadDir } = await import('../express-server');
     const fileName = `${hash}_mermaid.png`;
     const filePath = path.join(imageUploadDir, fileName);
@@ -161,10 +168,14 @@ export async function convertSvgStringToPngFile(svgContent: string): Promise<str
       try { return fs.existsSync(p); } catch { return false; }
     });
 
+    // 使用缩放因子增加分辨率，确保位图与矢量图清晰度相当
+    // 2.0 倍缩放相当于 192 DPI，与标准矢量图清晰度相当
+    const targetWidth = Math.max(1400, Math.round(widthHeight.width * scale));
+
     const resvg = new Resvg(normalized, {
       fitTo: {
         mode: 'width',
-        value: Math.max(1400, Math.round(widthHeight.width)),
+        value: targetWidth,
       },
       font: {
         loadSystemFonts: true,
@@ -182,6 +193,7 @@ export async function convertSvgStringToPngFile(svgContent: string): Promise<str
     const pngData = resvg.render();
     const renderedPngBuffer = Buffer.from(pngData.asPng());
     await fs.promises.writeFile(filePath, renderedPngBuffer);
+    logger.debug(`高分辨率 PNG 已生成（缩放因子: ${scale}x，宽度: ${targetWidth}px）`);
     return `http://localhost:52521/images/${fileName}`;
   } catch (error) {
     logger.error('SVG 字符串转 PNG 失败:', error);
@@ -316,10 +328,14 @@ export async function convertSvgStringToPdfFile(svgContent: string): Promise<str
       try { return fs.existsSync(p); } catch { return false; }
     });
 
+    // 使用 2.0 倍缩放生成高分辨率位图，确保 PDF 中图表清晰度与矢量图相当
+    const scale = 2.0;
+    const targetWidth = Math.max(1400, Math.round(widthHeight.width * scale));
+
     const resvg = new Resvg(normalized, {
       fitTo: {
         mode: 'width',
-        value: Math.max(1400, Math.round(widthHeight.width)),
+        value: targetWidth,
       },
       font: {
         loadSystemFonts: true,
@@ -336,6 +352,7 @@ export async function convertSvgStringToPdfFile(svgContent: string): Promise<str
 
     const pngData = resvg.render();
     const renderedPngBuffer = Buffer.from(pngData.asPng());
+    logger.debug(`高分辨率 PNG 已生成用于 PDF（缩放因子: ${scale}x，宽度: ${targetWidth}px）`);
 
     const pngImage = await pdfDoc.embedPng(renderedPngBuffer);
     const page = pdfDoc.addPage([pngImage.width, pngImage.height]);

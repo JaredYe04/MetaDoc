@@ -103,9 +103,20 @@ async function main() {
       }
     }
 
-    // 1. 读取版本信息（在构建前读取，以便构建时使用正确的版本）
-    const versionPath = path.join(rootDir, 'version.json');
-    const versionData = JSON.parse(fs.readFileSync(versionPath, 'utf-8'));
+    // 2. 先更新版本号（prebuild 会运行 version-manager.js update）
+    console.log('\n📦 步骤 1/4: 更新版本号...');
+    execSync('npm run prebuild', { 
+      stdio: 'inherit', 
+      cwd: rootDir,
+      env: {
+        ...process.env,
+        NODE_ENV: 'production'
+      }
+    });
+
+    // 3. 读取更新后的版本号
+    const versionJsonPath = path.join(rootDir, 'version.json');
+    const versionData = JSON.parse(fs.readFileSync(versionJsonPath, 'utf-8'));
     const version = versionData.version;
     const cleanVersion = version.replace(/^Beta/, ''); // 移除Beta前缀用于GitHub标签
     const tag = `v${cleanVersion}`;
@@ -113,7 +124,7 @@ async function main() {
     console.log(`📋 版本信息: ${version}`);
     console.log(`🏷️  标签: ${tag}\n`);
 
-    // 2. 检查标签是否已存在
+    // 4. 检查标签是否已存在
     if (!isGitHubActions && checkTagExists(tag)) {
       console.warn(`⚠️  警告: 标签 ${tag} 已存在`);
       const overwrite = await askQuestion('是否删除并重新创建标签？(y/N): ');
@@ -130,21 +141,33 @@ async function main() {
       }
     }
 
-    // 3. 检查是否已有构建产物，如果有则跳过构建
+    // 5. 检查是否已有当前版本的构建产物（基于更新后的版本号）
     const distDir = path.join(rootDir, 'dist');
-    const hasExistingBuild = fs.existsSync(distDir) && 
-      fs.readdirSync(distDir).some(file => file.endsWith('.exe') || file.endsWith('.yml') || file.endsWith('.yaml'));
+    let hasExistingBuild = false;
+    if (fs.existsSync(distDir)) {
+      const files = fs.readdirSync(distDir);
+      // 检查是否存在包含当前版本号的构建产物
+      hasExistingBuild = files.some(file => {
+        const isBuildFile = file.endsWith('.exe') || file.endsWith('.yml') || file.endsWith('.yaml');
+        // 检查文件名是否包含当前版本号（去掉 Beta 前缀）
+        return isBuildFile && file.includes(cleanVersion);
+      });
+    }
     
     if (hasExistingBuild) {
-      console.log('\n📦 步骤 1-2/4: 检测到已存在的构建产物，跳过构建和打包...');
+      console.log('\n📦 步骤 2-3/4: 检测到当前版本的构建产物已存在，跳过构建和打包...');
+      console.log(`   当前版本: ${version}`);
       console.log(`   构建目录: ${distDir}`);
       const files = fs.readdirSync(distDir);
-      const buildFiles = files.filter(f => f.endsWith('.exe') || f.endsWith('.yml') || f.endsWith('.yaml'));
+      const buildFiles = files.filter(f => {
+        const isBuildFile = f.endsWith('.exe') || f.endsWith('.yml') || f.endsWith('.yaml');
+        return isBuildFile && f.includes(cleanVersion);
+      });
       console.log(`   已有文件: ${buildFiles.join(', ')}`);
     } else {
-      // 构建项目
-      console.log('\n📦 步骤 1/4: 构建项目...');
-      execSync('npm run build', { 
+      // 构建项目（prebuild 已经运行过，这里只运行 electron-vite build）
+      console.log('\n📦 步骤 2/4: 构建项目...');
+      execSync('electron-vite build', { 
         stdio: 'inherit', 
         cwd: rootDir,
         env: {
@@ -154,8 +177,8 @@ async function main() {
       });
 
       // 打包Windows版本（当前仅支持Windows，但预留扩展空间）
-      console.log('\n📦 步骤 2/4: 打包Windows版本...');
-      execSync('npm run build:win', { 
+      console.log('\n📦 步骤 3/4: 打包Windows版本...');
+      execSync('electron-builder --win', { 
         stdio: 'inherit', 
         cwd: rootDir,
         env: {

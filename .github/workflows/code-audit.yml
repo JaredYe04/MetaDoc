@@ -1,0 +1,209 @@
+name: 代码审计报告
+
+on:
+  schedule:
+    # 每天 UTC 时间 02:00 执行（北京时间 10:00）
+    - cron: '0 2 * * *'
+  workflow_dispatch: # 允许手动触发
+
+env:
+  NODE_VERSION: '20'
+  RELEASE_REPO_OWNER: ${{ github.repository_owner }}
+  RELEASE_REPO: MetaDoc-Releases
+
+jobs:
+  code-audit:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 需要完整历史记录用于 Git 分析
+      
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: meta-doc/package-lock.json
+      
+      - name: 安装依赖
+        working-directory: meta-doc
+        run: npm ci
+      
+      - name: 运行代码审计
+        working-directory: meta-doc
+        run: npm run audit
+      
+      - name: 检查报告是否生成
+        id: check_report
+        run: |
+          if [ -f "meta-doc/code-audit-report.md" ]; then
+            echo "report_exists=true" >> $GITHUB_OUTPUT
+            echo "✅ 报告已生成"
+          else
+            echo "report_exists=false" >> $GITHUB_OUTPUT
+            echo "❌ 报告未生成"
+            exit 1
+          fi
+      
+      - name: 准备报告文件
+        if: steps.check_report.outputs.report_exists == 'true'
+        run: |
+          mkdir -p reports/code-audit
+          cp meta-doc/code-audit-report.md reports/code-audit/code-audit-report-$(date +%Y%m%d).md
+          # 同时保存为最新版本
+          cp meta-doc/code-audit-report.md reports/code-audit/code-audit-report-latest.md
+      
+      - name: 检出 Releases 仓库
+        if: steps.check_report.outputs.report_exists == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}
+          token: ${{ secrets.GH_TOKEN }}
+          path: release-repo
+          fetch-depth: 1
+      
+      - name: 复制报告到 Releases 仓库
+        if: steps.check_report.outputs.report_exists == 'true'
+        run: |
+          mkdir -p release-repo/reports/code-audit
+          cp meta-doc/code-audit-report.md release-repo/reports/code-audit/code-audit-report-$(date +%Y%m%d).md
+          cp meta-doc/code-audit-report.md release-repo/reports/code-audit/code-audit-report-latest.md
+          # 如果 README 不存在，创建它
+          if [ ! -f "release-repo/reports/code-audit/README.md" ]; then
+            cp reports/code-audit/README.md release-repo/reports/code-audit/README.md || true
+          fi
+      
+      - name: 提交报告到 Releases 仓库
+        if: steps.check_report.outputs.report_exists == 'true'
+        working-directory: release-repo
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git remote set-url origin https://${{ secrets.GH_TOKEN }}@github.com/${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}.git
+          git add reports/code-audit/
+          if ! git diff --staged --quiet; then
+            git commit -m "📊 代码审计报告 - $(date +%Y-%m-%d)"
+            git push origin HEAD:main || git push origin HEAD:master
+          else
+            echo "没有变更需要提交"
+          fi
+      
+      - name: 上传报告作为 Artifact
+        if: steps.check_report.outputs.report_exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-audit-report-${{ github.run_number }}
+          path: |
+            meta-doc/code-audit-report.md
+            reports/code-audit/code-audit-report-*.md
+          retention-days: 90
+      
+      - name: 创建或更新 Issue
+        if: steps.check_report.outputs.report_exists == 'true'
+        uses: actions/github-script@v7
+        env:
+          RELEASE_REPO_OWNER: ${{ env.RELEASE_REPO_OWNER }}
+          RELEASE_REPO: ${{ env.RELEASE_REPO }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // 读取报告内容
+            const reportPath = path.join('meta-doc', 'code-audit-report.md');
+            const reportContent = fs.readFileSync(reportPath, 'utf-8');
+            
+            // 提取报告摘要（前 100 行）
+            const lines = reportContent.split('\n');
+            const summary = lines.slice(0, 100).join('\n');
+            
+            // 查找是否已存在审计报告 issue
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'code-audit',
+              per_page: 10
+            });
+            
+            const auditIssue = issues.find(issue => 
+              issue.title.includes('代码审计报告') || 
+              issue.title.includes('Code Audit Report')
+            );
+            
+            const today = new Date().toISOString().split('T')[0];
+            const todayFormatted = today.replace(/-/g, '');
+            const reportDate = new Date().toLocaleString('zh-CN', {
+              timeZone: 'Asia/Shanghai',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            
+            const reportTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+            const releaseRepoOwner = process.env.RELEASE_REPO_OWNER || context.repo.owner;
+            const releaseRepo = process.env.RELEASE_REPO || 'MetaDoc-Releases';
+            const issueBody = '# 📊 代码审计报告 - ' + reportDate + '\n\n' +
+              '## 📋 报告摘要\n\n' +
+              summary + '\n\n' +
+              '---\n\n' +
+              '## 📁 完整报告\n\n' +
+              '完整报告已保存到 Releases 仓库：\n' +
+              '- 📄 [最新报告](https://github.com/' + releaseRepoOwner + '/' + releaseRepo + '/blob/main/reports/code-audit/code-audit-report-latest.md)\n' +
+              '- 📄 [今日报告](https://github.com/' + releaseRepoOwner + '/' + releaseRepo + '/blob/main/reports/code-audit/code-audit-report-' + todayFormatted + '.md)\n\n' +
+              '## 📦 Artifact\n\n' +
+              '报告已作为 Artifact 上传，可在 [Actions 页面](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ') 下载。\n\n' +
+              '---\n\n' +
+              '*此 Issue 由 GitHub Actions 自动创建/更新*\n' +
+              '*报告生成时间: ' + reportTime + '*';
+            
+            if (auditIssue) {
+              // 更新现有 issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: auditIssue.number,
+                body: issueBody
+              });
+              
+              console.log(`✅ 已更新 Issue #${auditIssue.number}`);
+            } else {
+              // 创建新 issue
+              const { data: issue } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `📊 代码审计报告 - ${reportDate}`,
+                body: issueBody,
+                labels: ['code-audit', 'automated']
+              });
+              
+              console.log(`✅ 已创建 Issue #${issue.number}`);
+            }
+      
+      - name: 输出报告摘要
+        if: steps.check_report.outputs.report_exists == 'true'
+        run: |
+          echo "## 📊 代码审计报告摘要" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ 代码审计已完成！" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📄 报告位置：" >> $GITHUB_STEP_SUMMARY
+          echo "- Releases 仓库: \`${{ env.RELEASE_REPO }}/reports/code-audit/code-audit-report-latest.md\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Artifact: \`code-audit-report-${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          # 提取报告中的关键统计信息
+          if [ -f "meta-doc/code-audit-report.md" ]; then
+            echo "### 关键指标" >> $GITHUB_STEP_SUMMARY
+            grep -E "^\| (总文件数|总代码行数|平均圈复杂度)" meta-doc/code-audit-report.md | head -5 >> $GITHUB_STEP_SUMMARY || true
+          fi
+

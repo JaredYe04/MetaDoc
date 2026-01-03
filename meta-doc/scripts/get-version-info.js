@@ -17,10 +17,10 @@ const versionJsonPath = path.join(rootDir, 'version.json');
 const packageJsonPath = path.join(rootDir, 'package.json');
 
 function getVersion() {
-  // 如果提供了命令行参数，使用它
+  // 如果提供了命令行参数且不为空，使用它
   const args = process.argv.slice(2);
-  if (args.length > 0 && args[0]) {
-    return args[0];
+  if (args.length > 0 && args[0] && args[0].trim() !== '') {
+    return args[0].trim();
   }
 
   // 尝试从 version.json 读取

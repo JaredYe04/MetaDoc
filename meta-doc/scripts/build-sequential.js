@@ -13,11 +13,11 @@ const rootDir = path.resolve(__dirname, '..');
 console.log('🚀 开始分步构建...\n');
 
 // 增强 GC 参数以减少内存使用
+// 注意：只有部分 Node.js 选项可以在 NODE_OPTIONS 中使用
+// --optimize-for-size 和 --always-compact 不能通过 NODE_OPTIONS 设置
 const enhancedNodeOptions = [
   process.env.NODE_OPTIONS || '',
-  '--expose-gc',
-  '--optimize-for-size',
-  '--always-compact'
+  '--expose-gc'
 ].filter(Boolean).join(' ');
 
 const buildEnv = {

@@ -12,9 +12,18 @@ const rootDir = path.resolve(__dirname, '..');
 
 console.log('🚀 开始分步构建...\n');
 
+// 增强 GC 参数以减少内存使用
+const enhancedNodeOptions = [
+  process.env.NODE_OPTIONS || '',
+  '--expose-gc',
+  '--optimize-for-size',
+  '--always-compact'
+].filter(Boolean).join(' ');
+
 const buildEnv = {
   ...process.env,
-  NODE_ENV: process.env.NODE_ENV || 'production'
+  NODE_ENV: process.env.NODE_ENV || 'production',
+  NODE_OPTIONS: enhancedNodeOptions || process.env.NODE_OPTIONS
 };
 
 try {

@@ -17,14 +17,18 @@
       </el-tooltip>
     </div>
 
-    <el-input
-      type="textarea"
-      v-model="aiResponse"
-      class="meta-assistant__input"
-      :autosize="{ minRows: defaultInputSize, maxRows: 10 }"
-      :style="{ color: themeState.currentTheme.textColor }"
-      :placeholder="$t('llmDialog.inputPlaceholder')"
-    />
+    <el-scrollbar class="meta-assistant__input-scroll" max-height="300px">
+      <div class="meta-assistant__input-wrapper">
+        <el-input
+          type="textarea"
+          v-model="aiResponse"
+          class="meta-assistant__input"
+          :autosize="{ minRows: defaultInputSize }"
+          :style="{ color: themeState.currentTheme.textColor }"
+          :placeholder="$t('llmDialog.inputPlaceholder')"
+        />
+      </div>
+    </el-scrollbar>
 
     <div class="meta-assistant__footer">
       <el-tooltip v-if="prompt && allowGenerate" :content="$t('llmDialog.generateAITooltip')" placement="left" style="z-index: 1001;">
@@ -204,7 +208,7 @@ watch(
   z-index: 1000;
   width: 15%;
   max-height: 400px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid rgba(128, 128, 128, 0.3);
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
   padding: 15px;
@@ -220,8 +224,21 @@ watch(
   font-weight: bold;
 }
 
+.meta-assistant__input-scroll {
+  width: 100%;
+}
+
+.meta-assistant__input-wrapper {
+  width: 100%;
+}
+
 .meta-assistant__input {
   width: 100%;
+}
+
+.meta-assistant__input :deep(.el-textarea__inner) {
+  resize: none;
+  overflow: hidden;
 }
 
 .meta-assistant__footer {

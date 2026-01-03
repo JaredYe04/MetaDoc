@@ -1982,7 +1982,7 @@ watch(
 /* 左边的编辑器样式 */
 .editor {
     flex: 1 1 auto;
-    border-right: 1px solid #ddd;
+    border-right: 1px solid rgba(128, 128, 128, 0.3);
     width: 100%;
     min-width: var(--editor-min-width, 360px);
     height: 100%;

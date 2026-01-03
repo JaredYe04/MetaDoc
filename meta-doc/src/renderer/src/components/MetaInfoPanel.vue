@@ -3,65 +3,81 @@
     <el-scrollbar class="meta-panel__scroll" wrap-class="meta-panel__scroll-wrap">
       <div class="meta-panel__content">
         <div class="meta-panel__header">
-          <el-tooltip :content="$t('article.edit_meta_info')" placement="left">
-            <h1
-              class="meta-panel__title interactive-text"
-              @click="metaDialogVisible = true"
-              :style="{ color: themeState.currentTheme.textColor }"
-            >
-              {{ $t('article.meta_info') }}
-            </h1>
-          </el-tooltip>
+          <h1
+            class="meta-panel__title"
+            :style="{ color: themeState.currentTheme.textColor }"
+          >
+            {{ $t('article.meta_info') }}
+          </h1>
+          <el-button circle plain size="small" @click="metaDialogVisible = true">
+            <el-icon><Edit /></el-icon>
+          </el-button>
         </div>
 
         <div class="meta-panel__item">
-          <el-tooltip :content="$t('article.generate_title')" placement="left">
+          <div class="meta-panel__label-wrapper">
             <span
-              class="meta-panel__label meta-panel__label--clickable"
+              class="meta-panel__label"
               :style="{ color: themeState.currentTheme.textColor }"
-              role="button"
-              tabindex="0"
-              @click="titleAssistantVisible = true"
-              @keydown.enter.prevent="titleAssistantVisible = true"
-              @keydown.space.prevent="titleAssistantVisible = true"
             >{{ $t('article.title') }}：</span>
-          </el-tooltip>
+            <el-button
+              circle
+              plain
+              size="small"
+              class="meta-panel__edit-btn"
+              @click="titleAssistantVisible = true"
+            >
+              <el-icon><Edit /></el-icon>
+            </el-button>
+          </div>
           <div class="meta-panel__value-wrapper">
             <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{ meta.title || $t('article.no_title') }}</span>
           </div>
         </div>
 
         <div class="meta-panel__item">
-          <el-tooltip :content="$t('article.modify_author')" placement="left">
+          <div class="meta-panel__label-wrapper">
             <span
-              class="meta-panel__label meta-panel__label--clickable"
+              class="meta-panel__label"
               :style="{ color: themeState.currentTheme.textColor }"
-              role="button"
-              tabindex="0"
-              @click="authorAssistantVisible = true"
-              @keydown.enter.prevent="authorAssistantVisible = true"
-              @keydown.space.prevent="authorAssistantVisible = true"
             >{{ $t('article.author') }}：</span>
-          </el-tooltip>
+            <el-button
+              circle
+              plain
+              size="small"
+              class="meta-panel__edit-btn"
+              @click="authorAssistantVisible = true"
+            >
+              <el-icon><Edit /></el-icon>
+            </el-button>
+          </div>
           <div class="meta-panel__value-wrapper">
             <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{ meta.author || $t('article.no_author') }}</span>
           </div>
         </div>
 
         <div class="meta-panel__item meta-panel__item--description">
-          <el-tooltip :content="$t('article.generate_description')" placement="left">
+          <div class="meta-panel__label-wrapper">
             <span
-              class="meta-panel__label meta-panel__label--clickable"
+              class="meta-panel__label"
               :style="{ color: themeState.currentTheme.textColor }"
-              role="button"
-              tabindex="1"
-              @click="descriptionAssistantVisible = true"
-              @keydown.enter.prevent="descriptionAssistantVisible = true"
-              @keydown.space.prevent="descriptionAssistantVisible = true"
             >{{ $t('article.description') }}：</span>
-          </el-tooltip>
+            <el-button
+              circle
+              plain
+              size="small"
+              class="meta-panel__edit-btn"
+              @click="descriptionAssistantVisible = true"
+            >
+              <el-icon><Edit /></el-icon>
+            </el-button>
+          </div>
           <div class="meta-panel__value-wrapper meta-panel__value-wrapper--description">
-            <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{ meta.description || $t('article.no_description') }}</span>
+            <el-scrollbar class="meta-panel__description-scroll" max-height="200px">
+              <div class="meta-panel__description-panel">
+                <span class="meta-panel__value" :style="{ color: themeState.currentTheme.textColor }">{{ meta.description || $t('article.no_description') }}</span>
+              </div>
+            </el-scrollbar>
           </div>
         </div>
 
@@ -99,7 +115,7 @@
           v-if="titleAssistantVisible"
           :visible="titleAssistantVisible"
           :prompt="generateTitlePrompt(outlineJson)"
-          :title="$t('article.generate_title')"
+          :title="$t('article.edit_title')"
           :default-value="meta.title || ''"
           :default-input-size="1"
           @accept="(value) => emitUpdate({ title: normalizeStringValue(value) })"
@@ -123,7 +139,7 @@
           v-if="descriptionAssistantVisible"
           :visible="descriptionAssistantVisible"
           :prompt="generateDescriptionPrompt(outlineJson)"
-          :title="$t('article.generate_description')"
+          :title="$t('article.edit_description')"
           :default-value="meta.description || ''"
           :default-input-size="10"
           @accept="(value) => emitUpdate({ description: normalizeStringValue(value) })"
@@ -138,14 +154,14 @@
             <el-form-item :label="$t('article.author')">
               <el-input v-model="formState.author" autocomplete="off" class="aero-input" />
             </el-form-item>
-            <el-form-item :label="$t('article.description')">
-              <el-input
-                type="textarea"
+            <el-form-item :label="$t('article.description')" class="meta-dialog__description-item">
+              <AutoResizeTextarea
                 v-model="formState.description"
-                autocomplete="off"
-                resize="none"
-                :autoSize="{ minRows: 3, maxRows: 5 }"
-                class="aero-input"
+                :autosize="{ minRows: 20 }"
+                max-height="400px"
+                height="400px"
+                :placeholder="$t('article.description_placeholder')"
+                class="meta-dialog__description-textarea"
               />
             </el-form-item>
           </el-form>
@@ -163,12 +179,13 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElIcon, ElMessage, ElMessageBox } from 'element-plus';
-import { Loading } from '@element-plus/icons-vue';
+import { Loading, Edit } from '@element-plus/icons-vue';
 import { themeState, mixColors } from '../utils/themes';
 import { generateDescriptionPrompt, generateKeywordsPrompt, generateTitlePrompt, wholeArticleContextPrompt } from '../utils/prompts';
 import type { ArticleMetaData, AIDialogMessage } from '../../../types';
 import MetaFieldAssistant from './MetaFieldAssistant.vue';
 import KeywordInput from './KeywordInput.vue';
+import AutoResizeTextarea from './base/AutoResizeTextarea.vue';
 import { createAiTask, ai_types } from '../utils/ai_tasks';
 import { getSetting } from '../utils/settings';
 import { extractOuterJsonString } from '../utils/regex-utils';
@@ -342,10 +359,11 @@ const commitForm = () => {
 
 .meta-panel__header {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
+  justify-content: center;
+  gap: 8px;
   text-align: center;
-  gap: 6px;
 }
 
 .meta-panel__title {
@@ -363,23 +381,26 @@ const commitForm = () => {
   align-items: flex-start;
 }
 
-.meta-panel__label {
-  font-weight: 600;
+.meta-panel__label-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
   flex-shrink: 0;
   width: 80px;
 }
 
-.meta-panel__label--clickable {
-  width: 80px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  position: relative;
-  z-index: 1;
+.meta-panel__label {
+  font-weight: 600;
+}
+
+.meta-panel__edit-btn {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.meta-panel__label-wrapper:hover .meta-panel__edit-btn {
+  opacity: 1;
 }
 
 .meta-panel__value-wrapper {
@@ -399,6 +420,38 @@ const commitForm = () => {
 .meta-panel__value-wrapper--description {
   margin-left: 0;
   padding-left: 0;
+  width: 100%;
+}
+
+.meta-panel__description-scroll {
+  width: 100%;
+}
+
+.meta-panel__description-panel {
+  padding: 10px 12px;
+  margin: 0;
+  border-radius: 8px;
+  min-height: 40px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.6;
+  background-color: transparent;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.meta-dialog__description-item {
+  width: 100%;
+}
+
+.meta-dialog__description-item :deep(.el-form-item__content) {
+  width: 100%;
+}
+
+.meta-dialog__description-textarea {
+  width: 100%;
+}
+
+.meta-dialog__description-textarea :deep(.auto-resize-textarea-scrollbar) {
   width: 100%;
 }
 

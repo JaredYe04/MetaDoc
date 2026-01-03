@@ -135,6 +135,7 @@ jobs:
           files: |
             meta-doc/dist/*.exe
             meta-doc/dist/*.yml
+            meta-doc/dist/*.blockmap
           draft: false
       
       - name: 保存发布日志

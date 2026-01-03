@@ -82,12 +82,48 @@
           :closable="false"
         />
       </div>
+
+      <!-- 下载和安装按钮 -->
+      <div v-if="updateStatus?.updateAvailable" class="update-actions">
+        <el-button
+          v-if="!downloaded && !downloading"
+          type="primary"
+          @click="handleDownloadUpdate"
+        >
+          {{ $t('setting.about.downloadUpdate') }}
+        </el-button>
+        <el-button
+          v-if="downloading"
+          type="primary"
+          :loading="true"
+          disabled
+        >
+          {{ $t('setting.about.downloading') }} ({{ downloadProgress }}%)
+        </el-button>
+        <el-button
+          v-if="downloaded"
+          type="success"
+          @click="handleInstallUpdate"
+        >
+          {{ $t('setting.about.installAndRestart') }}
+        </el-button>
+        <el-alert
+          v-if="downloadError"
+          type="error"
+          :title="$t('setting.about.downloadError')"
+          :description="downloadError"
+          show-icon
+          :closable="true"
+          @close="downloadError = null"
+          style="margin-top: 16px;"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getAppVersion } from '../../utils/version';
 import { setSetting, getSetting } from '../../utils/settings';
@@ -116,6 +152,10 @@ const updateStatus = ref<{
   error: string | null;
   updateInfo: any;
 } | null>(null);
+const downloading = ref<boolean>(false);
+const downloaded = ref<boolean>(false);
+const downloadProgress = ref<number>(0);
+const downloadError = ref<string | null>(null);
 
 
 
@@ -186,6 +226,10 @@ const handleChannelChange = () => {
 const handleCheckUpdate = async () => {
   checking.value = true;
   updateStatus.value = null;
+  downloaded.value = false;
+  downloading.value = false;
+  downloadProgress.value = 0;
+  downloadError.value = null;
 
   try {
     const status = await ipcRenderer.invoke('check-for-updates', updateChannel.value);
@@ -204,11 +248,98 @@ const handleCheckUpdate = async () => {
   }
 };
 
+// 下载更新
+const handleDownloadUpdate = async () => {
+  downloading.value = true;
+  downloadProgress.value = 0;
+  downloadError.value = null;
+
+  try {
+    // 监听下载进度
+    const progressHandler = (event: any, progress: { percent: number }) => {
+      downloadProgress.value = Math.round(progress.percent);
+    };
+
+    if (ipcRenderer && ipcRenderer.on) {
+      ipcRenderer.on('update-download-progress', progressHandler);
+    }
+
+    const result = await ipcRenderer.invoke('download-update');
+    
+    if (ipcRenderer && ipcRenderer.removeListener) {
+      ipcRenderer.removeListener('update-download-progress', progressHandler);
+    }
+
+    if (result.success) {
+      downloaded.value = true;
+      downloading.value = false;
+      downloadProgress.value = 100;
+    } else {
+      downloadError.value = result.error || t('setting.about.downloadError');
+      downloading.value = false;
+    }
+  } catch (error) {
+    console.error('下载更新失败:', error);
+    downloadError.value = error instanceof Error ? error.message : String(error);
+    downloading.value = false;
+  }
+};
+
+// 安装更新并重启
+const handleInstallUpdate = async () => {
+  try {
+    await ipcRenderer.invoke('quit-and-install');
+  } catch (error) {
+    console.error('安装更新失败:', error);
+    downloadError.value = error instanceof Error ? error.message : String(error);
+  }
+};
+
+// 监听自动下载完成事件
+const handleUpdateDownloaded = (event: any, data: { version: string }) => {
+  downloaded.value = true;
+  downloading.value = false;
+  downloadProgress.value = 100;
+  // 如果有更新状态，更新它
+  if (updateStatus.value) {
+    updateStatus.value.updateAvailable = true;
+    if (data.version) {
+      updateStatus.value.updateInfo = { ...updateStatus.value.updateInfo, version: data.version };
+    }
+  }
+};
+
 onMounted(async () => {
   await Promise.all([
     loadVersionInfo(),
     loadSettings(),
   ]);
+
+  // 监听自动下载完成事件
+  if (ipcRenderer && ipcRenderer.on) {
+    ipcRenderer.on('update-downloaded', handleUpdateDownloaded);
+  }
+
+  // 检查是否有已下载的更新
+  try {
+    const status = await ipcRenderer.invoke('get-update-status');
+    if (status && status.updateAvailable) {
+      updateStatus.value = status;
+      // 检查更新是否已下载（通过检查是否有 update-downloaded 事件）
+      // 这里我们假设如果状态显示有更新可用，可能已经下载完成
+      // 实际应该通过其他方式判断，比如检查下载状态
+    }
+  } catch (error) {
+    console.warn('获取更新状态失败:', error);
+  }
+});
+
+// 组件卸载时清理监听器
+import { onUnmounted } from 'vue';
+onUnmounted(() => {
+  if (ipcRenderer && ipcRenderer.removeListener) {
+    ipcRenderer.removeListener('update-downloaded', handleUpdateDownloaded);
+  }
 });
 </script>
 
@@ -303,5 +434,9 @@ onMounted(async () => {
 
 .update-status :deep(.el-alert) {
   margin-bottom: 16px;
+}
+
+.update-actions {
+  margin-top: 24px;
 }
 </style>

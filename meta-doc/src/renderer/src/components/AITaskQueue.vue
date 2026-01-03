@@ -196,6 +196,7 @@ function toggleVisibility() {
   if (next) {
     eventBus.emit('close-notification-queue')
     eventBus.emit('close-logger-console')
+    eventBus.emit('close-version-info-panel')
   }
 }
 

@@ -71,6 +71,158 @@
         </el-tabs>
       </el-tab-pane>
 
+      <!-- 更新测试 -->
+      <el-tab-pane label="更新测试" name="updatetest">
+        <div class="test-panel" :style="testPanelStyle">
+          <el-form :model="updateTestForm" label-width="140px">
+            <el-form-item label="当前版本">
+              <el-input
+                v-model="updateTestForm.currentVersion"
+                placeholder="例如: 0.13.4"
+                style="width: 200px"
+              />
+            </el-form-item>
+
+            <el-form-item label="模拟更新版本">
+              <el-input
+                v-model="updateTestForm.mockUpdateVersion"
+                placeholder="例如: 0.14.0"
+                style="width: 200px"
+              />
+            </el-form-item>
+
+            <el-form-item label="更新渠道">
+              <el-radio-group v-model="updateTestForm.channel">
+                <el-radio label="release">正式版</el-radio>
+                <el-radio label="dev">内测版</el-radio>
+              </el-radio-group>
+            </el-form-item>
+
+            <el-form-item label="测试场景">
+              <el-radio-group v-model="updateTestForm.scenario">
+                <el-radio label="hasUpdate">有更新可用</el-radio>
+                <el-radio label="noUpdate">已是最新版本</el-radio>
+                <el-radio label="error">模拟网络错误</el-radio>
+              </el-radio-group>
+            </el-form-item>
+
+            <el-form-item>
+              <el-button
+                type="primary"
+                :loading="updateTestChecking"
+                :disabled="updateTestChecking"
+                @click="handleMockCheckUpdate"
+              >
+                {{ updateTestChecking ? '检查中...' : '检查更新' }}
+              </el-button>
+              <el-button
+                @click="handleMockReset"
+              >
+                重置状态
+              </el-button>
+            </el-form-item>
+          </el-form>
+
+          <!-- 更新状态显示 -->
+          <div v-if="updateTestStatus" class="update-test-status" style="margin-top: 20px;">
+            <el-divider style="margin-top: 0;">更新状态</el-divider>
+            <el-alert
+              v-if="updateTestStatus.updateAvailable"
+              type="success"
+              :title="`发现新版本: ${updateTestStatus.updateInfo?.version || ''}`"
+              :description="updateTestStatus.updateInfo?.releaseNotes || ''"
+              show-icon
+              :closable="false"
+              style="margin-bottom: 16px;"
+            />
+            <el-alert
+              v-else-if="updateTestStatus.updateNotAvailable"
+              type="info"
+              title="已是最新版本"
+              :description="`当前版本: ${updateTestStatus.updateInfo?.version || ''}`"
+              show-icon
+              :closable="false"
+              style="margin-bottom: 16px;"
+            />
+            <el-alert
+              v-else-if="updateTestStatus.error"
+              type="error"
+              title="检查更新失败"
+              :description="updateTestStatus.error"
+              show-icon
+              :closable="false"
+              style="margin-bottom: 16px;"
+            />
+
+            <!-- 下载和安装按钮 -->
+            <div v-if="updateTestStatus?.updateAvailable" class="update-test-actions">
+              <el-button
+                v-if="!updateTestDownloaded && !updateTestDownloading"
+                type="primary"
+                @click="handleMockDownloadUpdate"
+              >
+                下载更新
+              </el-button>
+              <el-button
+                v-if="updateTestDownloading"
+                type="primary"
+                :loading="true"
+                disabled
+              >
+                正在下载 ({{ updateTestDownloadProgress }}%)
+              </el-button>
+              <el-button
+                v-if="updateTestDownloaded"
+                type="success"
+                @click="handleMockInstallUpdate"
+              >
+                安装并重启
+              </el-button>
+              <el-button
+                v-if="updateTestDownloading"
+                @click="handleMockCancelDownload"
+              >
+                取消下载
+              </el-button>
+              <el-alert
+                v-if="updateTestDownloadError"
+                type="error"
+                :title="updateTestDownloadError"
+                show-icon
+                :closable="true"
+                @close="updateTestDownloadError = null"
+                style="margin-top: 16px;"
+              />
+            </div>
+          </div>
+
+          <!-- 测试历史 -->
+          <div v-if="updateTestHistory.length > 0" class="update-test-history" style="margin-top: 20px;">
+            <el-divider>测试历史</el-divider>
+            <el-scrollbar height="200px">
+              <div
+                v-for="(entry, index) in updateTestHistory"
+                :key="index"
+                class="test-history-item"
+                :style="testHistoryItemStyle"
+              >
+                <div class="test-history-header">
+                  <span class="test-name">{{ entry.action }}</span>
+                  <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
+                </div>
+                <div v-if="entry.result" class="test-result-data" :style="{ color: themeState.currentTheme.textColor }">
+                  <pre :style="codeBlockStyle">{{ JSON.stringify(entry.result, null, 2) }}</pre>
+                </div>
+                <div v-if="entry.error" class="test-error-message" :style="{ color: themeState.currentTheme.textColor }">
+                  <strong>错误:</strong>
+                  <pre :style="{ ...codeBlockStyle, backgroundColor: themeState.currentTheme.type === 'dark' ? 'rgba(245, 108, 108, 0.15)' : '#fef0f0', color: '#f56c6c' }">{{ entry.error }}</pre>
+                </div>
+              </div>
+            </el-scrollbar>
+          </div>
+        </div>
+      </el-tab-pane>
+
       <!-- Agent Tool测试 -->
       <el-tab-pane label="Agent Tool测试" name="agenttool">
         <div class="test-panel" :style="testPanelStyle">
@@ -764,7 +916,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Delete, Edit, InfoFilled, Search, Download, Upload } from '@element-plus/icons-vue';
 import eventBus, { sendBroadcast } from '../../utils/event-bus';
 import { testFramework, type TestFunction } from '../../utils/test-framework';
-import { dayjs } from 'element-plus';
+// 移除 dayjs 导入，改用原生 Date 格式化
 import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from '../../utils/web-adapter/web-main-calls';
 import { agentToolManager } from '../../utils/agent-tool-manager';
@@ -790,6 +942,7 @@ import UnitTestResultDisplay, { type UnitTestResult } from '../../utils/UnitTest
 import { onToolUpdate, onToolComplete, onToolFailed } from '../../utils/agent-tools/tool-display-communication';
 import testCasesData from '../../utils/agent-tools/test-data/test-cases.json';
 import { themeState } from '../../utils/themes';
+import { updateMockService } from '../../utils/update-mock-service';
 import {
   createSnapshotFromHistoryEntry,
   serializeToolExecutionSnapshot,
@@ -1000,6 +1153,27 @@ const importSnapshotLoading = ref(false);
 const importedSnapshot = ref<any>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
+// 更新测试相关
+const updateTestForm = reactive({
+  currentVersion: '0.13.4',
+  mockUpdateVersion: '0.14.0',
+  channel: 'release' as 'dev' | 'release',
+  scenario: 'hasUpdate' as 'hasUpdate' | 'noUpdate' | 'error'
+});
+
+const updateTestChecking = ref(false);
+const updateTestStatus = ref<any>(null);
+const updateTestDownloading = ref(false);
+const updateTestDownloaded = ref(false);
+const updateTestDownloadProgress = ref(0);
+const updateTestDownloadError = ref<string | null>(null);
+const updateTestHistory = ref<Array<{
+  action: string;
+  timestamp: number;
+  result?: any;
+  error?: string;
+}>>([]);
+
 // 测试用例数据
 const testCases = testCasesData as Record<string, {
   description: string;
@@ -1121,7 +1295,14 @@ const clearTestHistory = () => {
 
 // 格式化时间
 const formatTime = (timestamp: number) => {
-  return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss');
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 };
 
 // 格式化结果
@@ -2976,6 +3157,148 @@ const clearImportForm = () => {
   }
 };
 
+// 更新测试相关函数
+const handleMockCheckUpdate = async () => {
+  updateTestChecking.value = true;
+  updateTestStatus.value = null;
+  updateTestDownloaded.value = false;
+  updateTestDownloading.value = false;
+  updateTestDownloadProgress.value = 0;
+  updateTestDownloadError.value = null;
+
+  // 设置 mock 服务的版本
+  updateMockService.setCurrentVersion(updateTestForm.currentVersion);
+  updateMockService.setMockUpdateVersion(updateTestForm.mockUpdateVersion);
+
+  try {
+    let shouldHaveUpdate = true;
+    if (updateTestForm.scenario === 'noUpdate') {
+      shouldHaveUpdate = false;
+    } else if (updateTestForm.scenario === 'error') {
+      // 模拟错误：设置一个不存在的版本，然后手动触发错误
+      updateTestStatus.value = {
+        checking: false,
+        updateAvailable: false,
+        updateNotAvailable: false,
+        error: '网络连接失败，请检查网络设置',
+        updateInfo: null
+      };
+      updateTestHistory.value.unshift({
+        action: '检查更新',
+        timestamp: Date.now(),
+        error: '网络连接失败，请检查网络设置'
+      });
+      return;
+    }
+
+    const status = await updateMockService.checkForUpdates(updateTestForm.channel, shouldHaveUpdate);
+    updateTestStatus.value = status;
+    
+    updateTestHistory.value.unshift({
+      action: '检查更新',
+      timestamp: Date.now(),
+      result: status
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    updateTestStatus.value = {
+      checking: false,
+      updateAvailable: false,
+      updateNotAvailable: false,
+      error: errorMessage,
+      updateInfo: null
+    };
+    updateTestHistory.value.unshift({
+      action: '检查更新',
+      timestamp: Date.now(),
+      error: errorMessage
+    });
+  } finally {
+    updateTestChecking.value = false;
+  }
+};
+
+const handleMockDownloadUpdate = async () => {
+  updateTestDownloading.value = true;
+  updateTestDownloadProgress.value = 0;
+  updateTestDownloadError.value = null;
+
+  try {
+    const result = await updateMockService.downloadUpdate((progress) => {
+      updateTestDownloadProgress.value = progress.percent;
+    });
+
+    if (result.success) {
+      updateTestDownloaded.value = true;
+      updateTestDownloading.value = false;
+      updateTestDownloadProgress.value = 100;
+      updateTestHistory.value.unshift({
+        action: '下载更新',
+        timestamp: Date.now(),
+        result: { success: true, progress: 100 }
+      });
+    } else {
+      updateTestDownloadError.value = result.error || '下载失败';
+      updateTestDownloading.value = false;
+      updateTestHistory.value.unshift({
+        action: '下载更新',
+        timestamp: Date.now(),
+        error: result.error || '下载失败'
+      });
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    updateTestDownloadError.value = errorMessage;
+    updateTestDownloading.value = false;
+    updateTestHistory.value.unshift({
+      action: '下载更新',
+      timestamp: Date.now(),
+      error: errorMessage
+    });
+  }
+};
+
+const handleMockCancelDownload = () => {
+  updateMockService.cancelDownload();
+  updateTestDownloading.value = false;
+  updateTestDownloadProgress.value = 0;
+  updateTestHistory.value.unshift({
+    action: '取消下载',
+    timestamp: Date.now()
+  });
+};
+
+const handleMockInstallUpdate = async () => {
+  try {
+    await updateMockService.quitAndInstall();
+    updateTestHistory.value.unshift({
+      action: '安装并重启',
+      timestamp: Date.now(),
+      result: { success: true }
+    });
+    ElMessage.success('模拟安装完成（实际环境中会重启应用）');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    updateTestHistory.value.unshift({
+      action: '安装并重启',
+      timestamp: Date.now(),
+      error: errorMessage
+    });
+    ElMessage.error(`安装失败: ${errorMessage}`);
+  }
+};
+
+const handleMockReset = () => {
+  updateMockService.reset();
+  updateTestStatus.value = null;
+  updateTestDownloaded.value = false;
+  updateTestDownloading.value = false;
+  updateTestDownloadProgress.value = 0;
+  updateTestDownloadError.value = null;
+  updateTestHistory.value = [];
+  ElMessage.success('状态已重置');
+};
+
 onMounted(async () => {
   modules.value = testFramework.getModules();
   refreshTestHistory();
@@ -2986,6 +3309,14 @@ onMounted(async () => {
   
   // 加载保存的配置
   loadSavedConfigs();
+  
+  // 初始化更新测试表单的版本信息
+  try {
+    const versionInfo = await updateMockService.getVersionInfo();
+    updateTestForm.currentVersion = versionInfo.version;
+  } catch (error) {
+    console.warn('获取版本信息失败:', error);
+  }
   
   // 定期刷新窗口类型列表（每5秒）
   const interval = setInterval(fetchWindowTypes, 5000);

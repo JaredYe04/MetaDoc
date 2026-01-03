@@ -6,15 +6,30 @@
  *   node scripts/get-version-info.js [version]
  * 
  * 如果提供了 version 参数，则使用该版本
- * 否则从 version.json 或 package.json 读取
+ * 否则先运行 version-manager.js update 更新版本，然后从 version.json 或 package.json 读取
  */
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const rootDir = path.resolve(__dirname, '..');
 const versionJsonPath = path.join(rootDir, 'version.json');
 const packageJsonPath = path.join(rootDir, 'package.json');
+const versionManagerPath = path.join(__dirname, 'version-manager.js');
+
+function updateVersion() {
+  try {
+    // 先运行 version-manager.js update 来更新版本信息
+    execSync(`node "${versionManagerPath}" update`, {
+      cwd: rootDir,
+      stdio: 'inherit'
+    });
+  } catch (error) {
+    console.warn('警告: 运行 version-manager.js update 失败，将使用现有版本信息');
+    // 不抛出错误，继续使用现有版本信息
+  }
+}
 
 function getVersion() {
   // 如果提供了命令行参数且不为空，使用它
@@ -22,6 +37,9 @@ function getVersion() {
   if (args.length > 0 && args[0] && args[0].trim() !== '') {
     return args[0].trim();
   }
+
+  // 如果没有提供版本参数，先更新版本信息
+  updateVersion();
 
   // 尝试从 version.json 读取
   if (fs.existsSync(versionJsonPath)) {

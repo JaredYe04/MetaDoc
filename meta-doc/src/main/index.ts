@@ -19,7 +19,7 @@ const icon = undefined; // 暂时禁用icon导入
 import fs from 'fs';
 import http from 'http';
 import { mainCalls, refreshMainWindowTitle, openDoc } from './main-calls';
-import { initUpdateService } from './utils/update-service';
+import { initUpdateService, checkForUpdates, downloadUpdate, setUpdateChannel, type UpdateChannel } from './utils/update-service';
 import { registerExternalOpenHandler, registerFocusRequestHandler, runExpressServer, refreshKnowledgeItems } from './express-server';
 import { initializeUtils } from './utils';
 import { initLogger, shutdownLogger, createMainLogger } from './logger';
@@ -492,6 +492,11 @@ app.whenReady().then(async () => {
   
   // 初始化更新服务
   initUpdateService();
+  
+  // 自动检查更新（延迟执行，避免阻塞应用启动）
+  setTimeout(() => {
+    autoCheckForUpdates();
+  }, 5000); // 延迟5秒后检查更新
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -525,6 +530,80 @@ app.on('before-quit', () => {
   isAppQuitting = true;
   shutdownLogger();
 });
+
+// ============ 自动更新检查 ============
+
+/**
+ * 自动检查更新
+ */
+async function autoCheckForUpdates(): Promise<void> {
+  try {
+    const Store = require('electron-store');
+    const store = new Store();
+    
+    // 检查是否启用自动检查更新
+    const autoCheck = store.get('autoCheckUpdates');
+    if (autoCheck === false) {
+      logger.info('自动检查更新已禁用，跳过更新检查');
+      return;
+    }
+
+    // 获取更新渠道
+    const channel = (store.get('updateChannel') as UpdateChannel) || 'release';
+    
+    logger.info(`开始自动检查更新（渠道: ${channel}）...`);
+    
+    // 设置更新渠道
+    setUpdateChannel(channel);
+    
+    // 检查更新
+    const status = await checkForUpdates(channel);
+    
+    if (status.updateAvailable) {
+      logger.info(`发现新版本: ${status.updateInfo?.version}`);
+      
+      // 如果启用了自动检查更新，自动下载
+      if (autoCheck !== false) {
+        logger.info('开始自动下载更新...');
+        try {
+          // 监听下载进度并发送到渲染进程
+          const { autoUpdater } = require('electron-updater');
+          const progressHandler = (progressObj: { percent: number }) => {
+            if (mainWindow) {
+              mainWindow.webContents.send('update-download-progress', { percent: progressObj.percent });
+            }
+          };
+          
+          autoUpdater.on('download-progress', progressHandler);
+          
+          try {
+            await downloadUpdate();
+            autoUpdater.removeListener('download-progress', progressHandler);
+            logger.info('更新下载完成，等待用户安装');
+            
+            // 通知主窗口有更新可用
+            if (mainWindow) {
+              mainWindow.webContents.send('update-downloaded', {
+                version: status.updateInfo?.version
+              });
+            }
+          } catch (error) {
+            autoUpdater.removeListener('download-progress', progressHandler);
+            throw error;
+          }
+        } catch (error) {
+          logger.error('自动下载更新失败:', error);
+        }
+      }
+    } else if (status.updateNotAvailable) {
+      logger.info('当前已是最新版本');
+    } else if (status.error) {
+      logger.warn('检查更新时出错:', status.error);
+    }
+  } catch (error) {
+    logger.error('自动检查更新失败:', error);
+  }
+}
 
 // ============ 快捷键绑定 ============
 

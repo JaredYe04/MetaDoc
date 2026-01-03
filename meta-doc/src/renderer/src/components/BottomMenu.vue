@@ -7,6 +7,15 @@
     }"
   >
     <div class="status-group">
+      <el-tooltip :content="$t('bottomMenu.versionTooltip')" placement="top">
+        <span
+          class="status-item status-version"
+          @click.prevent="toggleVersionInfoPanel"
+        >
+          {{ $t('bottomMenu.versionLabel') }} {{ currentVersion }}
+        </span>
+      </el-tooltip>
+      <span class="status-divider">|</span>
       <el-tooltip :content="$t('llmStatistics.tooltip')" placement="top">
         <span
           class="status-item status-llm-statistics"
@@ -39,6 +48,7 @@
     <LlmStatisticsDialog
       v-model="showLlmStatisticsDialog"
     />
+    <VersionInfoPanel />
     <GlobalProgressBar />
     <div class="actions-group">
         <el-tooltip :content="$t('bottomMenu.logConsoleTooltip')" placement="top">
@@ -85,17 +95,26 @@
   </div>
 </template>
 
-<script setup>
-import { computed, ref, watch } from 'vue'
+<script setup lang="ts">
+import { computed, ref, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { BellFilled, Document } from '@element-plus/icons-vue'
 import eventBus from '../utils/event-bus'
 import { themeState } from '../utils/themes'
 import { useNotificationStack, initializeNotificationListeners } from '../utils/notifications'
 import { useWorkspace } from '../stores/workspace'
+import { useAiTasks } from '../utils/ai_tasks'
+import { getAppVersion } from '../utils/version'
 import WordCountDialog from './WordCountDialog.vue'
 import LlmStatisticsDialog from './LlmStatisticsDialog.vue'
+import VersionInfoPanel from './VersionInfoPanel.vue'
 import GlobalProgressBar from './GlobalProgressBar.vue'
 
 const workspace = useWorkspace()
+const { t } = useI18n()
+
+initializeNotificationListeners(t)
+const tasks = useAiTasks()
 
 const activeDocument = computed(() => workspace.activeDocument.value)
 const activeTab = computed(() => workspace.activeTab.value)
@@ -113,6 +132,21 @@ const currentFilePath = computed(() => activeDocument.value?.path ?? '')
 
 const showWordCountDialog = ref(false)
 const showLlmStatisticsDialog = ref(false)
+const currentVersion = ref<string>('')
+
+// 加载版本信息
+const loadVersion = async (): Promise<void> => {
+  try {
+    currentVersion.value = await getAppVersion()
+  } catch (error) {
+    console.error('加载版本信息失败:', error)
+    currentVersion.value = 'Unknown'
+  }
+}
+
+function toggleVersionInfoPanel(): void {
+  eventBus.emit('toggle-version-info-panel')
+}
 
 const documentContent = computed(() => {
     const doc = activeDocument.value
@@ -128,14 +162,6 @@ const documentFormat = computed(() => {
     if (!doc) return 'md'
     return doc.format
 })
-
-import { useI18n } from 'vue-i18n'
-import { BellFilled, Document } from '@element-plus/icons-vue'
-import { useAiTasks } from '../utils/ai_tasks'
-
-const { t } = useI18n()
-initializeNotificationListeners(t)
-const tasks = useAiTasks()
 
 const { latestNotification, unreadCount } = useNotificationStack()
 const notificationType = computed(() => latestNotification.value?.type ?? null)
@@ -159,7 +185,7 @@ const badgeColor = computed(() => {
 })
 
 const isShaking = ref(false)
-let lastNotificationId = -1;
+let lastNotificationId: string | null = null
 
 watch(
     () => latestNotification.value?.id,
@@ -187,13 +213,18 @@ const notificationTooltip = computed(() => {
     return `${latestNotification.value.title} - ${latestNotification.value.message}`
 })
 
-function toggleNotificationQueue() {
+function toggleNotificationQueue(): void {
     eventBus.emit('toggle-notification-queue')
 }
 
-function toggleLoggerConsole() {
+function toggleLoggerConsole(): void {
     eventBus.emit('toggle-logger-console')
 }
+
+// 组件挂载时加载版本信息
+onMounted(() => {
+  loadVersion()
+})
 </script>
 <style scoped>
 .bottom-menu {
@@ -282,6 +313,17 @@ function toggleLoggerConsole() {
 }
 
 .status-llm-statistics:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.status-version {
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.status-version:hover {
     background-color: rgba(0, 0, 0, 0.08);
 }
 

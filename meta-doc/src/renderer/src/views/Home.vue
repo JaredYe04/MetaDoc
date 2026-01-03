@@ -105,7 +105,7 @@ import { renderMarkdownPreview } from '../utils/md-utils'
 import { preRenderAllCharts } from '../utils/chart-pre-renderer'
 import { getRecentDocs } from '../utils/settings'
 import { Document } from '@element-plus/icons-vue'
-import path from 'path'
+import { basename } from '../utils/path-utils'
 
 const { t } = useI18n()
 
@@ -218,7 +218,7 @@ const openFile = () => {
 const getFileName = (filePath: string): string => {
   if (!filePath) return ''
   try {
-    return path.basename(filePath)
+    return basename(filePath)
   } catch (error) {
     const segments = filePath.split(/[/\\]+/).filter(Boolean)
     return segments[segments.length - 1] || filePath

@@ -79,6 +79,9 @@ import { getServiceStatus } from './service-status';
 import type { LogPayload, LogLevel } from '../common/logger-constants';
 import { t } from './i18n';
 import { fileWatcherService } from './utils/file-watcher-service';
+import { convertSvgToPdf, convertSvgStringToPngFile, convertSvgStringToPdfFile } from './utils/svg-to-pdf';
+import { queryOne, transaction } from './database/database';
+import { shouldUseCustomConverter } from './utils/formula-conversion-config';
 
 // ============ 取消令牌管理 ============
 // 维护requestId到AbortController的映射，用于取消异步任务
@@ -1303,7 +1306,6 @@ function bindUtilityHandlers(): void {
   ipcMain.handle('convert-svg-to-pdf', async (event: IpcMainInvokeEvent, svgPath: string): Promise<{ success: boolean; pdfPath?: string; error?: string }> => {
     const logger = createMainLogger('SvgToPdf');
     try {
-      const { convertSvgToPdf } = await import('./utils/svg-to-pdf');
       const pdfPath = await convertSvgToPdf(svgPath);
       return { success: true, pdfPath };
     } catch (error) {
@@ -1320,7 +1322,6 @@ function bindUtilityHandlers(): void {
   ipcMain.handle('convert-svg-string-to-png', async (event: IpcMainInvokeEvent, svgContent: string, scale: number = 2.0): Promise<{ success: boolean; url?: string; error?: string }> => {
     const logger = createMainLogger('SvgToPng');
     try {
-      const { convertSvgStringToPngFile } = await import('./utils/svg-to-pdf');
       const url = await convertSvgStringToPngFile(svgContent, scale);
       return { success: true, url };
     } catch (error) {
@@ -1336,11 +1337,9 @@ function bindUtilityHandlers(): void {
   ipcMain.handle('convert-svg-string-to-pdf', async (event: IpcMainInvokeEvent, svgContent: string): Promise<{ success: boolean; pdfPath?: string; error?: string }> => {
     const logger = createMainLogger('SvgToPdf');
     try {
-      const { convertSvgStringToPdfFile } = await import('./utils/svg-to-pdf');
       const url = await convertSvgStringToPdfFile(svgContent);
       // 从URL中提取文件路径（用于返回）
       const fileName = url.replace('http://localhost:52521/images/', '');
-      const { imageUploadDir } = await import('./express-server');
       const pdfPath = path.join(imageUploadDir, fileName);
       return { success: true, pdfPath };
     } catch (error) {
@@ -2447,7 +2446,6 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
     if (targetFormat === 'png') {
       try {
         // 使用 resvg 将 SVG 转换为高分辨率 PNG
-        const { convertSvgStringToPngFile } = await import('./utils/svg-to-pdf');
         // 使用 2.0 倍缩放生成高分辨率位图，确保与矢量图清晰度相当
         const pngUrl = await convertSvgStringToPngFile(imageContent, 2.0);
         logger.info('PlantUML SVG 已转换为高分辨率 PNG:', pngUrl);
@@ -2460,7 +2458,6 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
     }
     
     // 保存到本地图片目录（使用基于源码+格式的稳定哈希文件名，避免重复生成）
-    const { imageUploadDir } = await import('./express-server');
     const fileExt = finalFormat === 'png' ? 'png' : 'svg';
     const hash = crypto.createHash('sha256').update(String(plantumlCode) + ':' + finalFormat).digest('hex').slice(0, 16);
     const fileName = `${hash}_plantuml.${fileExt}`;
@@ -2880,7 +2877,6 @@ function bindDatabaseHandlers(): void {
     params: any[];
   }) => {
     try {
-      const { queryOne } = await import('./database/database');
       const result = queryOne(params.sql, params.params);
       return { success: true, data: result };
     } catch (error) {
@@ -2921,7 +2917,6 @@ function bindDatabaseHandlers(): void {
     params: any[];
   }>) => {
     try {
-      const { transaction } = await import('./database/database');
       transaction(() => {
         for (const { sql, params } of sqlStatements) {
           execute(sql, params);
@@ -2976,7 +2971,6 @@ function bindMathHandlers(): void {
     mathml: string
   ): Promise<string | null> => {
     try {
-      const { shouldUseCustomConverter } = await import('./utils/formula-conversion-config');
       const useCustomConverter = shouldUseCustomConverter();
       
       if (useCustomConverter) {
@@ -2985,7 +2979,7 @@ function bindMathHandlers(): void {
         const omml = convertMathMLToOMML(mathml);
         return omml;
       } else {
-        // 使用 mathml2omml 库
+        // 使用 mathml2omml 库（ES Module，需要动态导入）
         const { mml2omml } = await import('mathml2omml');
         const omml = mml2omml(mathml);
         return omml;
@@ -2994,7 +2988,6 @@ function bindMathHandlers(): void {
       logger.error('MathML 转 OMML 失败:', error);
       // 如果主转换器失败，尝试使用另一个作为后备
       try {
-        const { shouldUseCustomConverter } = await import('./utils/formula-conversion-config');
         const useCustomConverter = shouldUseCustomConverter();
         
         if (useCustomConverter) {

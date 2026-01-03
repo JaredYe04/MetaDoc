@@ -1,6 +1,6 @@
 {
   "name": "meta-doc",
-  "version": "0.13.7",
+  "version": "0.13.10",
   "description": "基于LLM Agent的智能文字处理软件",
   "main": "./out/main/index.js",
   "author": "ByteLight",
@@ -13,6 +13,7 @@
     "open-test": "concurrently \"electron-vite dev -- c:\\Users\\tange\\Documents\\软件工程概述和流程.md\" \"vite\"",
     "prebuild": "node scripts/copy-env.js && node scripts/version-manager.js update",
     "build": "npm run prebuild && electron-vite build",
+    "build:sequential": "npm run prebuild && node scripts/build-sequential.js",
     "postinstall": "electron-builder install-app-deps && npm run rebuild-native",
     "rebuild-native": "electron-rebuild -f -w better-sqlite3 --only better-sqlite3",
     "build:unpack": "npm run build && electron-builder --dir",

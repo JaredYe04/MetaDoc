@@ -79,15 +79,17 @@ jobs:
           echo "type=$TYPE" >> $GITHUB_OUTPUT
           echo "Release type: $TYPE"
       
-      - name: 构建项目
-        run: npm run build
+      - name: 构建项目（分步构建以减少内存使用）
+        run: npm run build:sequential
         env:
           NODE_ENV: production
+          NODE_OPTIONS: --max-old-space-size=2048 --gc-interval=100
       
       - name: 打包 Windows 版本
-        run: npm run build:win
+        run: electron-builder --win
         env:
           NODE_ENV: production
+          NODE_OPTIONS: --max-old-space-size=2048 --gc-interval=100
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
       
       - name: 生成发布日志

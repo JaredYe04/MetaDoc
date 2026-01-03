@@ -736,8 +736,11 @@ export class HeaderFooterProcessor implements DocxProcessor {
   /**
    * 转义 XML 特殊字符
    */
-  private escapeXml(text: string): string {
-    return text
+  private escapeXml(text: string | null | undefined): string {
+    if (text === null || text === undefined) {
+      return '';
+    }
+    return String(text)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -766,8 +769,11 @@ export class OMMLInsertionProcessor implements DocxProcessor {
   /**
    * 转义 XML 特殊字符
    */
-  private escapeXml(text: string): string {
-    return text
+  private escapeXml(text: string | null | undefined): string {
+    if (text === null || text === undefined) {
+      return '';
+    }
+    return String(text)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')

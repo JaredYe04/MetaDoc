@@ -271,8 +271,21 @@ ipcRenderer.on('sync-theme', (event) => {
 ipcRenderer.on('update-current-path', (_event, path) => {
   const doc = getDocument()
   if (!doc) return
-  doc.path = path || ''
-  markDocumentSaved(doc.tabId, doc.path)
+  
+  // 检查是否有其他标签页已经使用了这个路径（排除当前活动标签页）
+  const existingTab = tabs.find(tab => tab.id !== doc.tabId && tab.path === path)
+  if (existingTab) {
+    // 如果其他标签页已经使用了这个路径，忽略这个事件
+    // 这可以避免在打开新文档时，错误地更新其他标签页的路径和标题
+    return
+  }
+  
+  // 只有当路径匹配当前活动标签页，或者是新建文档（路径为空）时，才更新
+  if (doc.path === path || (!doc.path && path)) {
+    doc.path = path || ''
+    markDocumentSaved(doc.tabId, doc.path)
+  }
+  // 否则忽略这个事件，因为路径不匹配，可能是针对其他标签页的
 })
 
 ipcRenderer.on('save-success', (_event, data = {}) => {

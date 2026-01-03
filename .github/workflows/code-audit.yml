@@ -33,6 +33,13 @@ jobs:
           cache: 'npm'
           cache-dependency-path: meta-doc/package-lock.json
       
+      - name: 安装中文字体（用于 ECharts 渲染）
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk fonts-wqy-microhei fonts-wqy-zenhei
+          fc-cache -fv
+          echo "✅ 中文字体安装完成"
+      
       - name: 安装依赖
         working-directory: meta-doc
         run: npm ci
@@ -53,6 +60,14 @@ jobs:
             exit 1
           fi
       
+      - name: 转换 ECharts 代码块为图片
+        if: steps.check_report.outputs.report_exists == 'true'
+        working-directory: meta-doc
+        run: |
+          echo "🖼️  开始转换 ECharts 代码块为图片..."
+          node scripts/convert-echarts-to-images.js code-audit-report.md images
+          echo "✅ ECharts 转换完成"
+      
       - name: 准备报告文件
         if: steps.check_report.outputs.report_exists == 'true'
         run: |
@@ -60,6 +75,10 @@ jobs:
           cp meta-doc/code-audit-report.md reports/code-audit/code-audit-report-$(date +%Y%m%d).md
           # 同时保存为最新版本
           cp meta-doc/code-audit-report.md reports/code-audit/code-audit-report-latest.md
+          # 复制图片目录（如果存在）
+          if [ -d "meta-doc/images" ]; then
+            cp -r meta-doc/images reports/code-audit/images || true
+          fi
       
       - name: 检出 Releases 仓库
         if: steps.check_report.outputs.report_exists == 'true'
@@ -76,6 +95,11 @@ jobs:
           mkdir -p release-repo/reports/code-audit
           cp meta-doc/code-audit-report.md release-repo/reports/code-audit/code-audit-report-$(date +%Y%m%d).md
           cp meta-doc/code-audit-report.md release-repo/reports/code-audit/code-audit-report-latest.md
+          # 复制图片目录（如果存在）
+          if [ -d "meta-doc/images" ]; then
+            mkdir -p release-repo/reports/code-audit/images
+            cp -r meta-doc/images/* release-repo/reports/code-audit/images/ || true
+          fi
           # 如果 README 不存在，创建它
           if [ ! -f "release-repo/reports/code-audit/README.md" ]; then
             cp reports/code-audit/README.md release-repo/reports/code-audit/README.md || true
@@ -89,6 +113,7 @@ jobs:
           git config --local user.name "GitHub Action"
           git remote set-url origin https://${{ secrets.GH_TOKEN }}@github.com/${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}.git
           git add reports/code-audit/
+          git add reports/code-audit/images/ || true
           if ! git diff --staged --quiet; then
             git commit -m "📊 代码审计报告 - $(date +%Y-%m-%d)"
             git push origin HEAD:main || git push origin HEAD:master
@@ -103,7 +128,9 @@ jobs:
           name: code-audit-report-${{ github.run_number }}
           path: |
             meta-doc/code-audit-report.md
+            meta-doc/images/
             reports/code-audit/code-audit-report-*.md
+            reports/code-audit/images/
           retention-days: 90
       
       - name: 创建或更新 Issue

@@ -102,12 +102,12 @@
     </section>
 
     <!-- 匹配列表 -->
-    <section v-if="showMatchesList && searchState?.matches.length" class="matches-section">
-      <div class="matches-panel">
+    <section v-if="showMatchesList && searchState?.matches.length" class="matches-section" :style="matchesSectionStyle">
+      <div class="matches-panel" :style="matchesPanelStyle">
         <div class="panel-header-small">
           <span>{{ t('searchReplace.matchesList') }} ({{ searchState.matches.length }})</span>
         </div>
-        <el-scrollbar class="matches-scrollbar">
+        <el-scrollbar class="matches-scrollbar" :style="matchesScrollbarStyle">
           <div class="matches-list">
             <el-tooltip
               v-for="(match, index) in searchState.matches"
@@ -858,6 +858,43 @@ const getMatchItemStyle = (index: number) => {
     transition: "all 0.2s",
   };
 };
+
+// 计算匹配列表区域的样式，当面板高度为auto时，设置明确的高度约束以显示滚动条
+const matchesSectionStyle = computed(() => {
+  // 当面板高度为0（auto）时，设置固定高度，让flex布局和滚动条能正确工作
+  // 固定高度300px，确保滚动条能正确显示
+  if (panelSize.value.height === 0) {
+    return {
+      height: '300px', // 固定高度，确保flex子元素能正确计算
+      flex: 'none', // 不使用flex: 1，直接使用固定高度
+    };
+  }
+  return {};
+});
+
+// 计算匹配面板的样式，确保在auto模式下有明确高度
+const matchesPanelStyle = computed(() => {
+  // 当面板高度为0（auto）时，确保面板有明确高度约束
+  if (panelSize.value.height === 0) {
+    return {
+      height: '100%',
+      minHeight: '0',
+    };
+  }
+  return {};
+});
+
+// 计算滚动条容器的样式，确保在auto模式下有明确高度
+const matchesScrollbarStyle = computed(() => {
+  // 当面板高度为0（auto）时，确保滚动条有明确高度约束
+  if (panelSize.value.height === 0) {
+    return {
+      height: '100%',
+      minHeight: '0',
+    };
+  }
+  return {};
+});
 
 const handleReset = () => {
   // 只重置搜索结果，不清除搜索和替换文本

@@ -39,7 +39,7 @@ const props = withDefaults(defineProps<Props>(), {
   direction: 'vertical',
   size: 5,
   backgroundColor: '#55555555',
-  hoverColor: '#007bff',
+  hoverColor: '#55555566',
   minValue: 100,
   maxValue: 1000,
   reverse: false

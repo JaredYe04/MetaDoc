@@ -1,12 +1,12 @@
 <template>
   <el-scrollbar 
-    class="prompt-scrollbar"
+    class="auto-resize-textarea-scrollbar"
     :style="scrollbarStyle">
     <textarea
       ref="textareaRef"
       :value="modelValue"
       @input="handleInput"
-      class="prompt-input"
+      class="auto-resize-textarea-input"
       :disabled="disabled"
       :placeholder="placeholder"
       :rows="minRows"
@@ -92,31 +92,31 @@ const scrollbarStyle = computed(() => {
 const inputStyle = computed(() => {
   const textColor = themeState.currentTheme.textColor
   return {
-    '--prompt-text-color': textColor,
-    '--prompt-placeholder-color': colorWithOpacity(textColor, 0.6)
+    '--textarea-text-color': textColor,
+    '--textarea-placeholder-color': colorWithOpacity(textColor, 0.6)
   } as Record<string, string>
 })
 </script>
 
 <style scoped lang="less">
-.prompt-scrollbar {
+.auto-resize-textarea-scrollbar {
   border: 1px solid rgba(145, 145, 145, 0.5);
   border-radius: 8px;
   padding: 4px;
 }
 
 /* 确保 el-scrollbar 内部可以滚动 */
-.prompt-scrollbar :deep(.el-scrollbar__wrap) {
+.auto-resize-textarea-scrollbar :deep(.el-scrollbar__wrap) {
   overflow-x: hidden;
   overflow-y: auto;
   max-height: 100%;
 }
 
-.prompt-scrollbar :deep(.el-scrollbar__view) {
+.auto-resize-textarea-scrollbar :deep(.el-scrollbar__view) {
   width: 100%;
 }
 
-.prompt-input {
+.auto-resize-textarea-input {
   width: 100%;
   border: none;
   background-color: transparent;
@@ -125,7 +125,7 @@ const inputStyle = computed(() => {
   outline: none;
   resize: none;
   overflow: hidden; /* textarea 自己不要滚动，让父容器滚动 */
-  color: var(--prompt-text-color, inherit);
+  color: var(--textarea-text-color, inherit);
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
@@ -136,23 +136,23 @@ const inputStyle = computed(() => {
   min-height: 1em;
 }
 
-.prompt-input::placeholder {
-  color: var(--prompt-placeholder-color, rgba(145, 145, 145, 0.6));
+.auto-resize-textarea-input::placeholder {
+  color: var(--textarea-placeholder-color, rgba(145, 145, 145, 0.6));
 }
 
-.prompt-input:hover {
+.auto-resize-textarea-input:hover {
   border: none;
   box-shadow: none;
   outline: none;
 }
 
-.prompt-input:focus {
+.auto-resize-textarea-input:focus {
   border: none;
   box-shadow: none;
   outline: none;
 }
 
-.prompt-input:disabled {
+.auto-resize-textarea-input:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }

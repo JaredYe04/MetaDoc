@@ -185,7 +185,7 @@
                 </el-button>
               </el-tooltip>
             </div>
-            <PromptTextarea 
+            <AutoResizeTextarea 
               v-if="nodeMenuToggle && !pendingAccept"
               v-model="userPrompt"
               :disabled="generating"
@@ -332,7 +332,7 @@
 import { ref, reactive, watch, computed, onMounted, onUnmounted, nextTick, type Ref, type ComponentPublicInstance } from 'vue';
 import { ElButton, ElDialog, ElMessageBox, ElNotification } from 'element-plus'; // 引入 Element Plus 组件
 import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
-import PromptTextarea from '../components/base/PromptTextarea.vue';
+import AutoResizeTextarea from '../components/base/AutoResizeTextarea.vue';
 import { tabs, useWorkspace } from '../stores/workspace';
 import eventBus, { getWindowType } from '../utils/event-bus.js';
 import '../assets/aero-div.css';

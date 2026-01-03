@@ -8,6 +8,7 @@ import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+//@ts-ignore
 import dotenv from 'dotenv';
 import { createMainLogger } from '../logger';
 
@@ -198,9 +199,10 @@ export function initUpdateService(): void {
       token: config.githubToken || undefined
     });
 
-    // 禁用自动下载（手动控制）
-    autoUpdater.autoDownload = false;
-    autoUpdater.autoInstallOnAppQuit = true;
+    // 启用自动下载，用户手动选择安装更新
+    autoUpdater.autoDownload = true;
+    // 禁用自动安装，只允许用户手动选择安装更新
+    autoUpdater.autoInstallOnAppQuit = false;
     
     // 允许检查预发布版本
     autoUpdater.allowPrerelease = true;

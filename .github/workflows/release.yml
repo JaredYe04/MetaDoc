@@ -90,7 +90,15 @@ jobs:
         working-directory: meta-doc
         run: npm ci
       
-      - name: 构建并打包 Windows 版本
+      - name: 构建项目
+        if: steps.check_release.outputs.release_exists != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
+        working-directory: meta-doc
+        run: npm run build
+        env:
+          NODE_ENV: production
+          NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
+      
+      - name: 打包 Windows 版本
         if: steps.check_release.outputs.release_exists != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
         working-directory: meta-doc
         run: npx electron-builder --win --publish never

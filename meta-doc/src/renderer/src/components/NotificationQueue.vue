@@ -132,6 +132,7 @@ function ensureExclusiveOpen(targetVisible: boolean) {
   if (targetVisible) {
     eventBus.emit('close-ai-task-queue')
     eventBus.emit('close-logger-console')
+    eventBus.emit('close-version-info-panel')
   }
 }
 

@@ -45,7 +45,7 @@ import {
 import { dirname } from './index';
 import { imageUploadDir } from './express-server';
 import { queryKnowledgeBase, getResourcesPath, compileLatexToPDF, setEmbeddingMode, getEmbeddingMode, fileConversionService } from './utils';
-import { initUpdateService, checkForUpdates, setUpdateChannel, getUpdateStatus, type UpdateChannel } from './utils/update-service';
+import { initUpdateService, checkForUpdates, setUpdateChannel, getUpdateStatus, downloadUpdate, quitAndInstall, type UpdateChannel } from './utils/update-service';
 import { getSystemFonts, type SystemFont } from './utils/font-service';
 import {
   getDatabase,
@@ -1731,6 +1731,44 @@ function bindSystemHandlers(): void {
   // 获取更新状态
   ipcMain.handle('get-update-status', async (event: IpcMainInvokeEvent): Promise<any> => {
     return getUpdateStatus();
+  });
+
+  // 下载更新
+  ipcMain.handle('download-update', async (event: IpcMainInvokeEvent): Promise<{ success: boolean; error?: string }> => {
+    try {
+      // 监听下载进度并发送到渲染进程
+      const { autoUpdater } = require('electron-updater');
+      const progressHandler = (progressObj: { percent: number }) => {
+        event.sender.send('update-download-progress', { percent: progressObj.percent });
+      };
+      
+      autoUpdater.on('download-progress', progressHandler);
+      
+      try {
+        await downloadUpdate();
+        autoUpdater.removeListener('download-progress', progressHandler);
+        return { success: true };
+      } catch (error) {
+        autoUpdater.removeListener('download-progress', progressHandler);
+        throw error;
+      }
+    } catch (error) {
+      logger.error('下载更新失败:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  });
+
+  // 安装更新并退出
+  ipcMain.handle('quit-and-install', async (event: IpcMainInvokeEvent): Promise<void> => {
+    try {
+      quitAndInstall();
+    } catch (error) {
+      logger.error('安装更新失败:', error);
+      throw error;
+    }
   });
 }
 

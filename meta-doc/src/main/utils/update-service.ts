@@ -7,6 +7,7 @@ import { autoUpdater, UpdateInfo } from 'electron-updater';
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import dotenv from 'dotenv';
 import { createMainLogger } from '../logger';
 
@@ -81,10 +82,108 @@ function loadUpdateConfig(): { githubOwner: string; githubRepo: string; githubTo
 }
 
 /**
+ * 清理更新安装包缓存
+ * electron-updater 会在安装后自动清理，但为了确保，我们在应用启动时也清理旧的安装包
+ * electron-updater 会将下载的安装包存储在临时目录中，安装完成后通常会自动清理
+ * 这里我们作为额外保障，清理可能遗留的安装包文件
+ */
+function cleanupUpdateCache(): void {
+  try {
+    // electron-updater 的缓存目录位置取决于平台
+    // Windows: %LOCALAPPDATA%\<app-name>\pending
+    // macOS: ~/Library/Application Support/<app-name>/pending  
+    // Linux: ~/.config/<app-name>/pending 或 ~/.cache/<app-name>/pending
+    
+    // 使用 app.getPath 获取用户数据目录（electron-updater 可能在这里存储待安装文件）
+    const userDataPath = app.getPath('userData');
+    const pendingDir = path.join(userDataPath, 'pending');
+    
+    if (fs.existsSync(pendingDir)) {
+      try {
+        // 清理 pending 目录中的安装包文件
+        const files = fs.readdirSync(pendingDir);
+        for (const file of files) {
+          const filePath = path.join(pendingDir, file);
+          try {
+            const stats = fs.statSync(filePath);
+            if (stats.isFile()) {
+              // 检查文件扩展名，只清理安装包文件
+              const ext = path.extname(file).toLowerCase();
+              if (['.exe', '.dmg', '.zip', '.AppImage', '.deb', '.rpm', '.pkg'].includes(ext)) {
+                fs.unlinkSync(filePath);
+                logger.info(`已清理旧安装包: ${file}`);
+              }
+            }
+          } catch (error) {
+            logger.warn(`清理文件失败: ${file}`, error);
+          }
+        }
+        
+        // 如果目录为空，尝试删除目录
+        try {
+          const remainingFiles = fs.readdirSync(pendingDir);
+          if (remainingFiles.length === 0) {
+            fs.rmdirSync(pendingDir);
+          }
+        } catch (error) {
+          // 忽略删除目录失败的错误
+        }
+      } catch (error) {
+        logger.warn(`清理缓存目录失败: ${pendingDir}`, error);
+      }
+    }
+    
+    // 也检查临时目录中的 electron-updater 缓存
+    const tempDir = os.tmpdir();
+    const electronUpdaterCacheDir = path.join(tempDir, 'electron-updater');
+    if (fs.existsSync(electronUpdaterCacheDir)) {
+      try {
+        const cacheDirs = fs.readdirSync(electronUpdaterCacheDir, { withFileTypes: true })
+          .filter(dirent => dirent.isDirectory())
+          .map(dirent => path.join(electronUpdaterCacheDir, dirent.name, 'pending'));
+        
+        for (const pendingDir of cacheDirs) {
+          if (fs.existsSync(pendingDir)) {
+            try {
+              const files = fs.readdirSync(pendingDir);
+              for (const file of files) {
+                const filePath = path.join(pendingDir, file);
+                try {
+                  const stats = fs.statSync(filePath);
+                  if (stats.isFile()) {
+                    const ext = path.extname(file).toLowerCase();
+                    if (['.exe', '.dmg', '.zip', '.AppImage', '.deb', '.rpm', '.pkg'].includes(ext)) {
+                      fs.unlinkSync(filePath);
+                      logger.info(`已清理临时目录中的旧安装包: ${file}`);
+                    }
+                  }
+                } catch (error) {
+                  logger.warn(`清理临时文件失败: ${file}`, error);
+                }
+              }
+            } catch (error) {
+              logger.warn(`清理临时缓存目录失败: ${pendingDir}`, error);
+            }
+          }
+        }
+      } catch (error) {
+        logger.debug('清理临时缓存目录失败（可忽略）:', error);
+      }
+    }
+  } catch (error) {
+    // 清理失败不影响应用启动
+    logger.debug('清理更新缓存失败（可忽略）:', error);
+  }
+}
+
+/**
  * 初始化更新服务
  */
 export function initUpdateService(): void {
   try {
+    // 清理旧的安装包缓存
+    cleanupUpdateCache();
+    
     const config = loadUpdateConfig();
     if (!config) {
       return;
@@ -106,10 +205,34 @@ export function initUpdateService(): void {
     // 允许检查预发布版本
     autoUpdater.allowPrerelease = true;
 
+    // 在开发环境中也允许更新检查
+    // electron-updater 默认在开发环境中会跳过更新检查
+    // 通过设置 devUpdater 配置来强制启用开发环境更新检查
+    if (!app.isPackaged) {
+      try {
+        // 方法1: 尝试设置 forceDevUpdateConfig（某些版本支持）
+        (autoUpdater as any).forceDevUpdateConfig = true;
+        logger.info('已启用开发环境更新检查 (forceDevUpdateConfig)');
+      } catch (error) {
+        // 如果 forceDevUpdateConfig 不存在，尝试其他方法
+        try {
+          // 方法2: 通过设置 devUpdater 配置
+          const updaterConfig = (autoUpdater as any).config;
+          if (updaterConfig) {
+            updaterConfig.devUpdater = true;
+            logger.info('已启用开发环境更新检查 (devUpdater)');
+          }
+        } catch (e) {
+          logger.warn('无法强制启用开发环境更新检查，electron-updater 可能会跳过更新检查');
+          logger.warn('提示：在开发环境中可以使用调试界面的"更新测试"功能来测试更新逻辑');
+        }
+      }
+    }
+
     // 设置更新检查间隔（毫秒）- 默认24小时
     const checkInterval = parseInt(process.env.UPDATE_CHECK_INTERVAL || '86400000', 10);
     
-    logger.info(`更新服务已初始化: ${config.githubOwner}/${config.githubRepo}`);
+    logger.info(`更新服务已初始化: ${config.githubOwner}/${config.githubRepo}${!app.isPackaged ? ' (开发环境)' : ''}`);
   } catch (error) {
     logger.error('初始化更新服务失败:', error);
   }
@@ -150,6 +273,17 @@ export function setUpdateChannel(channel: UpdateChannel): void {
 export async function checkForUpdates(channel: UpdateChannel = 'release'): Promise<UpdateStatus> {
   return new Promise((resolve) => {
     try {
+      // 在开发环境中，electron-updater 默认会跳过更新检查
+      // 需要在每次检查前都设置 forceDevUpdateConfig
+      if (!app.isPackaged) {
+        try {
+          (autoUpdater as any).forceDevUpdateConfig = true;
+        } catch (error) {
+          // 如果设置失败，继续尝试检查（可能会被跳过）
+          logger.debug('无法设置 forceDevUpdateConfig，继续尝试检查更新');
+        }
+      }
+
       // 设置渠道
       setUpdateChannel(channel);
 
@@ -213,22 +347,39 @@ export async function checkForUpdates(channel: UpdateChannel = 'release'): Promi
 export async function downloadUpdate(): Promise<boolean> {
   return new Promise((resolve, reject) => {
     try {
-      autoUpdater.once('download-progress', (progressObj) => {
+      // 使用 on 而不是 once，因为进度事件会多次触发
+      const progressHandler = (progressObj: { percent: number }) => {
         logger.info('下载进度:', `${Math.round(progressObj.percent)}%`);
-      });
+      };
 
-      autoUpdater.once('update-downloaded', () => {
+      const downloadedHandler = () => {
         logger.info('更新下载完成');
+        // 清理监听器
+        autoUpdater.removeListener('download-progress', progressHandler);
+        autoUpdater.removeListener('update-downloaded', downloadedHandler);
+        autoUpdater.removeListener('error', errorHandler);
         resolve(true);
-      });
+      };
 
-      autoUpdater.once('error', (error: Error) => {
+      const errorHandler = (error: Error) => {
         logger.error('下载更新失败:', error);
+        // 清理监听器
+        autoUpdater.removeListener('download-progress', progressHandler);
+        autoUpdater.removeListener('update-downloaded', downloadedHandler);
+        autoUpdater.removeListener('error', errorHandler);
         reject(error);
-      });
+      };
+
+      autoUpdater.on('download-progress', progressHandler);
+      autoUpdater.once('update-downloaded', downloadedHandler);
+      autoUpdater.once('error', errorHandler);
 
       autoUpdater.downloadUpdate().catch((error) => {
         logger.error('下载更新异常:', error);
+        // 清理监听器
+        autoUpdater.removeListener('download-progress', progressHandler);
+        autoUpdater.removeListener('update-downloaded', downloadedHandler);
+        autoUpdater.removeListener('error', errorHandler);
         reject(error);
       });
     } catch (error) {

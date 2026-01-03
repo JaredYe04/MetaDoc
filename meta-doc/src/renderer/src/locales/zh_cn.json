@@ -1090,7 +1090,11 @@
             "updateAvailableDesc": "新版本 {version} 已可用",
             "noUpdate": "已是最新版本",
             "noUpdateDesc": "您当前使用的已是最新版本",
-            "checkUpdateError": "检查更新失败"
+            "checkUpdateError": "检查更新失败",
+            "downloadUpdate": "下载更新",
+            "downloading": "正在下载",
+            "downloadError": "下载失败",
+            "installAndRestart": "安装并重启"
         },
         "debug":{
             "title": "调试工具",
@@ -1182,7 +1186,9 @@
         "notificationTooltip": "通知队列",
         "notificationEmpty": "暂无通知",
         "logConsoleLabel": "日志",
-        "logConsoleTooltip": "打开日志控制台"
+        "logConsoleTooltip": "打开日志控制台",
+        "versionTooltip": "版本信息",
+        "versionLabel": "版本"
     },
     "wordCountDialog": {
         "title": "字数统计",
@@ -1235,6 +1241,24 @@
             "warning": "警告通知",
             "error": "错误通知"
         }
+    },
+    "versionInfoPanel": {
+        "title": "版本信息",
+        "version": "版本",
+        "releaseDate": "发布日期",
+        "buildEnvironment": "构建环境",
+        "checkUpdate": "检查更新",
+        "checking": "检查中...",
+        "updateAvailable": "发现新版本",
+        "updateAvailableDesc": "新版本 {version} 已可用",
+        "noUpdate": "已是最新版本",
+        "noUpdateDesc": "您当前使用的已是最新版本",
+        "checkUpdateError": "检查更新失败",
+        "downloadAndInstall": "下载并安装",
+        "downloading": "正在下载",
+        "downloadProgress": "下载进度：{progress}%",
+        "downloadError": "下载失败",
+        "installAndRestart": "安装并重启"
     },
     "knowledgeBase": {
         "title": "知识库",

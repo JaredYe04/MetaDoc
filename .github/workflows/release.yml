@@ -117,20 +117,17 @@ jobs:
       
       - name: 生成发布日志
         id: changelog
-        working-directory: meta-doc
-        run: node scripts/generate-changelog-to-file.js "${{ steps.version_info.outputs.version }}" "${{ steps.release_type.outputs.type }}" ../release-notes.txt
+        run: node meta-doc/scripts/generate-changelog-to-file.js "${{ steps.version_info.outputs.version }}" "${{ steps.release_type.outputs.type }}" release-notes.txt
       
       - name: 读取发布说明
         id: release_notes
-        working-directory: meta-doc
-        run: node scripts/prepare-release-notes.js "${{ github.event.inputs.release_notes }}" ../release-notes.txt ../final-notes.txt
+        run: node meta-doc/scripts/prepare-release-notes.js "${{ github.event.inputs.release_notes }}" release-notes.txt final-notes.txt
       
       - name: 发布到 Releases 仓库
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GH_TOKEN }}
-          repository: ${{ env.RELEASE_REPO }}
-          owner: ${{ env.RELEASE_REPO_OWNER }}
+          repository: ${{ env.RELEASE_REPO_OWNER }}/${{ env.RELEASE_REPO }}
           tag_name: ${{ steps.release_info.outputs.tag }}
           name: ${{ steps.release_info.outputs.release_name }}
           body_path: final-notes.txt
@@ -138,12 +135,7 @@ jobs:
           files: |
             meta-doc/dist/*.exe
             meta-doc/dist/*.yml
-            meta-doc/dist/*.yaml
-            meta-doc/release/*.exe
-            meta-doc/release/*.yml
-            meta-doc/release/*.yaml
           draft: false
-          overwrite: true
       
       - name: 保存发布日志
         working-directory: meta-doc

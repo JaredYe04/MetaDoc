@@ -1990,6 +1990,8 @@ const convertMarkdownToDocxBuffer = async (
   const htmlWrapped = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>Document</title>${wordStyles}</head><body>${finalContent}</body></html>`;
   
   // html-to-docx 配置选项
+  // 注意：不在 html-to-docx 中传递元信息，因为该库可能不会正确转义特殊字符
+  // 我们会在后续的 applyDocxMetadata 中完全控制元信息的生成和转义
   const documentOptions = {
     orientation: 'portrait' as const,
     margins: {
@@ -2001,10 +2003,11 @@ const convertMarkdownToDocxBuffer = async (
       footer: 720,
       gutter: 0,
     },
-    title: meta?.title || 'Document',
-    creator: meta?.author || DEFAULT_AUTHOR,
-    keywords: meta?.keywords || [],
-    description: meta?.description || '',
+    // 不传递元信息，避免 html-to-docx 库生成包含未转义特殊字符的 XML
+    // title: meta?.title || 'Document',
+    // creator: meta?.author || DEFAULT_AUTHOR,
+    // keywords: meta?.keywords || [],
+    // description: meta?.description || '',
     font: styleMapping.normal?.fontFamily || 'Microsoft YaHei',
     fontSize: (styleMapping.normal?.fontSize || 10.5) * 2, // html-to-docx 使用 HIP (Half of point)，所以需要乘以 2
     lang: 'zh-CN', // 设置语言为中文，避免拼写检查错误
@@ -2062,13 +2065,17 @@ const escapeHtml = (value: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-const escapeXml = (value: string): string =>
-  value
+const escapeXml = (value: string | null | undefined): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
+};
 
 const wrapHtmlWithTemplate = (meta: DocumentMetaInfo, bodyContent: string): string => {
   const title = escapeHtml(meta.title || 'Document');
@@ -2087,14 +2094,21 @@ const wrapHtmlWithTemplate = (meta: DocumentMetaInfo, bodyContent: string): stri
 
 const buildCorePropertiesXml = (meta: DocumentMetaInfo): string => {
   const now = new Date().toISOString();
+  // 确保所有元信息字段都被正确转义，处理 null/undefined 值
+  const title = escapeXml(meta.title || '');
+  const description = escapeXml(meta.description || '');
+  const author = escapeXml(meta.author || '');
+  const keywords = escapeXml((meta.keywords || []).join(', '));
+  const lastModifiedBy = escapeXml(DEFAULT_APPLICATION);
+  
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <dc:title>${escapeXml(meta.title)}</dc:title>
-  <dc:subject>${escapeXml(meta.description)}</dc:subject>
-  <dc:creator>${escapeXml(meta.author)}</dc:creator>
-  <cp:lastModifiedBy>${escapeXml(DEFAULT_APPLICATION)}</cp:lastModifiedBy>
-  <cp:keywords>${escapeXml(meta.keywords.join(', '))}</cp:keywords>
-  <dc:description>${escapeXml(meta.description)}</dc:description>
+  <dc:title>${title}</dc:title>
+  <dc:subject>${description}</dc:subject>
+  <dc:creator>${author}</dc:creator>
+  <cp:lastModifiedBy>${lastModifiedBy}</cp:lastModifiedBy>
+  <cp:keywords>${keywords}</cp:keywords>
+  <dc:description>${description}</dc:description>
   <dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created>
   <dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified>
 </cp:coreProperties>`;
@@ -2524,6 +2538,23 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
       setTimeout(() => {
         sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
       }, 1000);
+    } catch (error) {
+      logger.error('导出 DOCX 失败:', error);
+      // 发送错误消息到 renderer 进程
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : String(error);
+        // 检查是否是 XML 解析错误
+        const isXmlError = errorMessage.includes('Missing equals sign') || 
+                          errorMessage.includes('XML') ||
+                          errorMessage.includes('parse');
+        const userMessage = isXmlError
+          ? `导出 DOCX 失败：文档元信息中包含特殊字符（如 <、>、& 等），导致 XML 解析错误。请检查文档的标题、作者、摘要等元信息。\n\n错误详情：${errorMessage}`
+          : `导出 DOCX 失败：${errorMessage}`;
+        mainWindow.webContents.send('export-error', userMessage);
+      }
+      throw error;
     } finally {
       setTimeout(() => {
         sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });

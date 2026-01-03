@@ -317,7 +317,8 @@ ipcRenderer.on('export-error', (event, data) => {
     typeof data === 'string'
       ? data
       : data?.message || i18n?.global?.t?.('export.unknownError', '导出失败')
-  ElMessage.error(message)
+  // 使用 eventBus.emit 显示错误（用户要求）
+  eventBus.emit('show-error', message)
 })
 
 ipcRenderer.on('save-triggered', () => {

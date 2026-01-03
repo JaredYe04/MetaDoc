@@ -4,7 +4,7 @@
 // 使用 Vue 实例作为事件总线
 
 import mitt from 'mitt'
-import path from 'path'
+import { basename } from './path-utils.js'
 import { getSetting, updateRecentDocs } from './settings.js'
 import { ConvertMarkdownToHtmlManually } from './md-utils.js'
 import localIpcRenderer from './web-adapter/local-ipc-renderer.ts'
@@ -70,7 +70,7 @@ const extractFileName = (filePath, fallbackTitle) => {
   }
   if (typeof filePath === 'string' && filePath.length > 0) {
     try {
-      return path.basename(filePath);
+      return basename(filePath);
     } catch (error) {
       getLogger().warn('解析文件名失败', error);
       const parts = filePath.split(/[\\/]/);

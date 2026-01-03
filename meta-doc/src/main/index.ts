@@ -26,6 +26,7 @@ import { initLogger, shutdownLogger, createMainLogger } from './logger';
 import { broadcastServiceStatus } from './service-status';
 import { initI18n, t, dispatchLanguageToWindow, setLocale, broadcastLanguage } from './i18n';
 import { initWindowManager, preloadAuxiliaryWindows, openAuxiliaryWindow, refreshAuxiliaryWindowTitles, dispatchLanguageToAuxWindows } from './window-manager';
+import { ensureInitialized } from './database/knowledge-db';
 
 const url = require('url');
 const path = require('path');
@@ -480,7 +481,6 @@ app.whenReady().then(async () => {
   // 在创建窗口之前执行数据库迁移，确保表已创建
   try {
     logger.info('🚀 正在执行数据库迁移...');
-    const { ensureInitialized } = await import('./database/knowledge-db');
     ensureInitialized();
     logger.info('✅ 数据库迁移完成');
   } catch (error) {
@@ -608,22 +608,18 @@ export const openFomulaRecognitionDialog = async (): Promise<void> => {
 };
 
 export const openDataAnalysisDialog = async (): Promise<void> => {
-  const { openAuxiliaryWindow } = await import('./window-manager');
   openAuxiliaryWindow('dataAnalysis');
 };
 
 export const openOcrDialog = async (): Promise<void> => {
-  const { openAuxiliaryWindow } = await import('./window-manager');
   openAuxiliaryWindow('ocr');
 };
 
 export const openAttachmentDialog = async (): Promise<void> => {
-  const { openAuxiliaryWindow } = await import('./window-manager');
   openAuxiliaryWindow('attachment');
 };
 
 export const openGraphDialog = async (): Promise<void> => {
-  const { openAuxiliaryWindow } = await import('./window-manager');
   openAuxiliaryWindow('graph');
 };
 

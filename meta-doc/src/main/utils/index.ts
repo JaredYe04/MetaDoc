@@ -94,6 +94,8 @@ export {
 
 // 导出RAG服务实例的保存方法
 import ragService from './rag-service';
+import pathService from './path-service';
+import latexService from './latex-service';
 export const saveDocs = () => ragService.saveDocs();
 export const saveVectorInfo = () => ragService.saveVectorInfo();
 export const setEmbeddingMode = (mode: 'local' | 'api') => ragService.setEmbeddingMode(mode);
@@ -133,8 +135,7 @@ export class UtilsManager {
 
       // 初始化RAG服务（最重要的）
       logger.info('初始化 RAG 服务');
-      const ragServiceModule = await import('./rag-service');
-      await ragServiceModule.default.initVectorDatabase();
+      await ragService.initVectorDatabase();
 
       this.initialized = true;
       logger.info('工具服务初始化完成');
@@ -166,21 +167,15 @@ export class UtilsManager {
    * 获取服务状态信息
    */
   async getStatus() {
-    const [ragServiceModule, pathServiceModule, latexServiceModule] = await Promise.all([
-      import('./rag-service'),
-      import('./path-service'),
-      import('./latex-service')
-    ]);
-
     return {
       initialized: this.initialized,
       rag: {
-        stats: ragServiceModule.default.getStats(),
-        config: pathServiceModule.default.getConfig()
+        stats: ragService.getStats(),
+        config: pathService.getConfig()
       },
       latex: {
-        available: latexServiceModule.default.isTectonicAvailable(),
-        version: await latexServiceModule.default.getTectonicVersion()
+        available: latexService.isTectonicAvailable(),
+        version: await latexService.getTectonicVersion()
       }
     };
   }

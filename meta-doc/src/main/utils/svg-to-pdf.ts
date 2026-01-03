@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import { PDFDocument } from 'pdf-lib';
 import { createMainLogger } from '../logger';
+import { imageUploadDir } from '../express-server';
 // 仅保留 resvg-js 渲染链路，不再引入 BrowserWindow 或 sharp 回退
 
 const logger = createMainLogger('SvgToPdf');
@@ -129,7 +130,6 @@ export async function convertSvgStringToPngFile(svgContent: string, scale: numbe
     const crypto = require('crypto');
     // 在哈希中包含 scale，确保不同分辨率有不同的缓存文件
     const hash = crypto.createHash('sha256').update(String(svgContent) + ':scale:' + scale).digest('hex').slice(0, 16);
-    const { imageUploadDir } = await import('../express-server');
     const fileName = `${hash}_mermaid.png`;
     const filePath = path.join(imageUploadDir, fileName);
     if (fs.existsSync(filePath)) {
@@ -285,7 +285,6 @@ export async function convertSvgStringToPdfFile(svgContent: string): Promise<str
   try {
     const crypto = require('crypto');
     const hash = crypto.createHash('sha256').update(String(svgContent)).digest('hex').slice(0, 16);
-    const { imageUploadDir } = await import('../express-server');
     const fileName = `${hash}_chart.pdf`;
     const filePath = path.join(imageUploadDir, fileName);
     if (fs.existsSync(filePath)) {

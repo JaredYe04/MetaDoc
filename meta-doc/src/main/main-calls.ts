@@ -2277,8 +2277,6 @@ async function handleSimpleTexOCR(params: SimpleTexOCRData): Promise<any> {
  * @returns 本地 SVG 的 HTTP URL
  */
 async function renderPlantUMLToLocalImage(plantumlCode: string, format: string = 'svg'): Promise<string> {
-  // @ts-ignore
-  const plantuml = require('node-plantuml');
   const logger = createMainLogger('PlantUML');
   const crypto = require('crypto');
   
@@ -2289,22 +2287,111 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
   const originalLang = process.env.LANG;
   const originalLcAll = process.env.LC_ALL;
   
+  // 设置 Java 环境变量，强制使用 UTF-8 编码
+  // JAVA_OPTS 和 _JAVA_OPTIONS 都可以设置 Java 参数
+  if (!process.env.JAVA_OPTS || !process.env.JAVA_OPTS.includes('-Dfile.encoding')) {
+    process.env.JAVA_OPTS = (process.env.JAVA_OPTS || '') + ' -Dfile.encoding=UTF-8';
+  }
+  if (!process.env._JAVA_OPTIONS || !process.env._JAVA_OPTIONS.includes('-Dfile.encoding')) {
+    process.env._JAVA_OPTIONS = (process.env._JAVA_OPTIONS || '') + ' -Dfile.encoding=UTF-8';
+  }
+  
+  // 设置系统语言环境为 UTF-8（Windows 上可能不需要，但设置也无妨）
+  if (!process.env.LANG) {
+    process.env.LANG = 'en_US.UTF-8';
+  }
+  if (!process.env.LC_ALL) {
+    process.env.LC_ALL = 'en_US.UTF-8';
+  }
+  
+  // 在打包环境中，修复 node-plantuml 的 jar 文件路径
+  // node-plantuml 使用 PLANTUML_HOME 环境变量或 __dirname 来查找 jar 文件
+  // 在打包环境中，__dirname 指向 app.asar 内部，但 jar 文件在 app.asar.unpacked 中
+  // 必须在 require('node-plantuml') 之前设置环境变量，因为模块加载时会读取它
+  if (app.isPackaged) {
+    try {
+      // node-plantuml 的 jar 文件在 vendor/plantuml.jar
+      const unpackedJarPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'node-plantuml', 'vendor', 'plantuml.jar');
+      
+      // 检查解包后的 jar 文件是否存在
+      if (fs.existsSync(unpackedJarPath)) {
+        logger.debug('找到解包后的 jar 文件:', unpackedJarPath);
+        // node-plantuml 使用 PLANTUML_HOME 环境变量来指定 jar 文件路径
+        // 如果没有设置，它会使用 __dirname 来查找，但在 asar 中会失败
+        if (!process.env.PLANTUML_HOME) {
+          process.env.PLANTUML_HOME = unpackedJarPath;
+          logger.debug('设置 PLANTUML_HOME 环境变量:', unpackedJarPath);
+        }
+      } else {
+        logger.warn('未找到解包后的 jar 文件:', unpackedJarPath);
+        logger.debug('检查解包目录是否存在:', path.dirname(unpackedJarPath), fs.existsSync(path.dirname(unpackedJarPath)));
+        
+        // 如果解包目录存在，列出其内容以便调试
+        const unpackedDir = path.dirname(unpackedJarPath);
+        if (fs.existsSync(unpackedDir)) {
+          try {
+            const files = fs.readdirSync(unpackedDir);
+            logger.debug('解包目录内容:', files.join(', '));
+          } catch (err) {
+            // 忽略错误
+          }
+        }
+      }
+    } catch (pathError) {
+      logger.warn('修复 jar 路径失败:', pathError);
+    }
+  }
+  
+  // 在设置环境变量后加载 node-plantuml 模块
+  // @ts-ignore
+  const plantuml = require('node-plantuml');
+  
   try {
-    // 设置 Java 环境变量，强制使用 UTF-8 编码
-    // JAVA_OPTS 和 _JAVA_OPTIONS 都可以设置 Java 参数
-    if (!process.env.JAVA_OPTS || !process.env.JAVA_OPTS.includes('-Dfile.encoding')) {
-      process.env.JAVA_OPTS = (process.env.JAVA_OPTS || '') + ' -Dfile.encoding=UTF-8';
-    }
-    if (!process.env._JAVA_OPTIONS || !process.env._JAVA_OPTIONS.includes('-Dfile.encoding')) {
-      process.env._JAVA_OPTIONS = (process.env._JAVA_OPTIONS || '') + ' -Dfile.encoding=UTF-8';
-    }
-    
-    // 设置系统语言环境为 UTF-8（Windows 上可能不需要，但设置也无妨）
-    if (!process.env.LANG) {
-      process.env.LANG = 'en_US.UTF-8';
-    }
-    if (!process.env.LC_ALL) {
-      process.env.LC_ALL = 'en_US.UTF-8';
+    // 在打包环境中，检查 Java 是否可用以及 node-plantuml 模块路径
+    if (app.isPackaged) {
+      // 检查 Java 是否可用
+      try {
+        const { execSync } = require('child_process');
+        try {
+          execSync('java -version', { 
+            encoding: 'utf-8', 
+            stdio: ['ignore', 'pipe', 'pipe'],
+            timeout: 5000 
+          });
+          logger.debug('Java 可用');
+        } catch (execError: any) {
+          // execSync 在 Windows 上会抛出错误，但 stderr 包含版本信息
+          if (execError.stderr && execError.stderr.includes('version')) {
+            logger.debug('Java 可用（从 stderr 检测到版本信息）');
+          } else {
+            throw execError;
+          }
+        }
+      } catch (javaError) {
+        logger.error('Java 不可用或无法执行:', javaError instanceof Error ? javaError.message : String(javaError));
+        // 不立即抛出错误，让 node-plantuml 自己处理（它可能会使用在线服务）
+        logger.warn('Java 不可用，node-plantuml 可能会尝试使用在线服务或自动下载 jar 文件');
+      }
+      
+      // 检查 node-plantuml 模块路径和 jar 文件
+      try {
+        const plantumlPath = require.resolve('node-plantuml');
+        logger.debug('node-plantuml 模块路径:', plantumlPath);
+        
+        // 检查 PLANTUML_HOME 环境变量是否已设置
+        if (process.env.PLANTUML_HOME) {
+          logger.debug('PLANTUML_HOME 环境变量已设置:', process.env.PLANTUML_HOME);
+          if (fs.existsSync(process.env.PLANTUML_HOME)) {
+            logger.debug('PLANTUML_HOME 指向的 jar 文件存在');
+          } else {
+            logger.warn('PLANTUML_HOME 指向的 jar 文件不存在:', process.env.PLANTUML_HOME);
+          }
+        } else {
+          logger.debug('PLANTUML_HOME 环境变量未设置，node-plantuml 将使用 __dirname 查找');
+        }
+      } catch (pathError) {
+        logger.warn('检查 node-plantuml 路径失败:', pathError);
+      }
     }
     
     // 确保代码是 UTF-8 编码的字符串，移除可能的 BOM
@@ -2314,7 +2401,7 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
       throw new Error('PlantUML 代码为空');
     }
     
-    // 关键修复：检查并处理 !theme 指令
+    // 检查并处理 !theme 指令
     // 如果 node-plantuml 使用的 PlantUML 版本较旧，可能不支持 !theme 指令
     // 在这种情况下，我们需要移除 !theme 指令以避免语法错误
     // 注意：这是一个临时解决方案，更好的方法是更新 PlantUML jar 文件
@@ -2330,8 +2417,7 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
       logger.info('已移除 !theme 指令以兼容旧版本 PlantUML');
     }
     
-    // 关键修复：确保接收到的代码是正确编码的 UTF-8 字符串
-    // 如果代码是字符串，确保它是有效的 UTF-8
+    // 确保接收到的代码是正确编码的 UTF-8 字符串
     if (typeof cleanCode === 'string') {
       try {
         // 使用 Buffer 来验证和修复编码
@@ -2346,8 +2432,8 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
     
     logger.info('开始渲染 PlantUML，代码长度:', cleanCode.length, '格式:', format);
     logger.debug('PlantUML 代码前200字符:', cleanCode.substring(0, 200));
-    logger.debug('Java 环境变量 JAVA_OPTS:', process.env.JAVA_OPTS);
-    logger.debug('Java 环境变量 _JAVA_OPTIONS:', process.env._JAVA_OPTIONS);
+    logger.debug('是否打包环境:', app.isPackaged);
+    logger.debug('资源路径:', process.resourcesPath);
     
     // 对于 PNG 格式，为了确保高分辨率，我们先生成 SVG，然后转换为高分辨率 PNG
     // 这样可以与其他图表类型保持一致的高分辨率设置
@@ -2356,17 +2442,29 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
     
     // 检查 node-plantuml 的 API：可能需要使用 Buffer 或直接传递字符串
     // 根据 node-plantuml 文档，应该直接传递字符串，不需要指定编码
-    // 注意：我们已经修改了 node-plantuml 的源码，添加了 -Dfile.encoding=UTF-8 参数
-    const gen = plantuml.generate({
-      format: outputFormat, // 总是先生成 SVG，PNG 稍后转换
-    });
+    let gen;
+    try {
+      gen = plantuml.generate({
+        format: outputFormat, // 总是先生成 SVG，PNG 稍后转换
+      });
+      logger.debug('PlantUML 生成器已创建');
+    } catch (genError) {
+      logger.error('创建 PlantUML 生成器失败:', genError);
+      throw new Error(`无法创建 PlantUML 生成器: ${genError instanceof Error ? genError.message : String(genError)}`);
+    }
     
     // 将 PlantUML 代码写入生成器
     // 关键：确保使用 UTF-8 编码的 Buffer 写入，而不是直接写入字符串
     // 这样可以确保编码正确传递
-    const codeBuffer = Buffer.from(cleanCode, 'utf-8');
-    gen.in.write(codeBuffer);
-    gen.in.end();
+    try {
+      const codeBuffer = Buffer.from(cleanCode, 'utf-8');
+      gen.in.write(codeBuffer);
+      gen.in.end();
+      logger.debug('PlantUML 代码已写入生成器，大小:', codeBuffer.length, 'bytes');
+    } catch (writeError) {
+      logger.error('写入 PlantUML 代码失败:', writeError);
+      throw new Error(`无法写入 PlantUML 代码: ${writeError instanceof Error ? writeError.message : String(writeError)}`);
+    }
     
     // 收集生成的图片数据
     const chunks: Buffer[] = [];
@@ -2377,11 +2475,18 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
     // 收集错误输出（stderr）
     const errorChunks: Buffer[] = [];
     
+    // 在打包环境中，检查 gen 对象是否有子进程信息
+    if (app.isPackaged && gen && gen.spawnargs) {
+      logger.debug('PlantUML 子进程参数:', gen.spawnargs);
+      logger.debug('PlantUML 子进程 PID:', gen.pid);
+    }
+    
     // 等待生成完成
     // 需要同时等待 stdout 和 stderr 都结束
     await new Promise<void>((resolve, reject) => {
       let outEnded = false;
       let errEnded = false;
+      let processExited = false;
       
       const checkComplete = () => {
         if (outEnded && errEnded) {
@@ -2389,8 +2494,25 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
         }
       };
       
+      // 如果 gen 有子进程，监听退出事件
+      if (gen && typeof gen.on === 'function') {
+        gen.on('exit', (code: number | null, signal: string | null) => {
+          processExited = true;
+          logger.debug('PlantUML 子进程退出，code:', code, 'signal:', signal);
+          if (code !== 0 && code !== null) {
+            logger.warn('PlantUML 子进程异常退出，退出码:', code);
+          }
+        });
+        
+        gen.on('error', (err: Error) => {
+          logger.error('PlantUML 子进程错误:', err);
+          // 不立即 reject，等待 stderr 输出
+        });
+      }
+      
       gen.out.on('end', () => {
         outEnded = true;
+        logger.debug('PlantUML stdout 流已结束');
         checkComplete();
       });
       gen.out.on('error', (err: Error) => {
@@ -2402,10 +2524,12 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
         // 收集 stderr 数据
         gen.err.on('data', (chunk: Buffer) => {
           errorChunks.push(chunk);
+          logger.debug('收到 stderr 数据，大小:', chunk.length, 'bytes');
         });
         
         gen.err.on('end', () => {
           errEnded = true;
+          logger.debug('PlantUML stderr 流已结束');
           checkComplete();
         });
         gen.err.on('error', (err: Error) => {
@@ -2421,7 +2545,12 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
       // 设置超时，避免无限等待
       setTimeout(() => {
         if (!outEnded || !errEnded) {
-          logger.warn('PlantUML 渲染超时');
+          logger.warn('PlantUML 渲染超时', {
+            outEnded,
+            errEnded,
+            processExited,
+            chunksCount: chunks.length
+          });
           resolve(); // 继续处理，即使超时
         }
       }, 30000); // 30秒超时
@@ -2441,9 +2570,16 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
     
     const imageBuffer = Buffer.concat(chunks);
     logger.info('PlantUML 渲染完成，大小:', imageBuffer.length, 'bytes');
+    logger.debug('收集到的数据块数量:', chunks.length);
     
     if (imageBuffer.length === 0) {
-      throw new Error(`生成的 ${outputFormat.toUpperCase()} 为空`);
+      // 在打包环境中，如果输出为空，可能是 node-plantuml 无法找到 Java 或 PlantUML jar 文件
+      const errorDetails = app.isPackaged 
+        ? '（打包环境：请确保系统已安装 Java 运行环境，且 node-plantuml 可以访问 PlantUML jar 文件）'
+        : '';
+      logger.error('PlantUML 渲染输出为空', errorDetails);
+      logger.error('stderr 输出:', errorChunks.length > 0 ? Buffer.concat(errorChunks).toString('utf-8') : '无');
+      throw new Error(`生成的 ${outputFormat.toUpperCase()} 为空${errorDetails}`);
     }
     
     // 错误检测逻辑：
@@ -2522,6 +2658,18 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
     return localUrl;
   } catch (error) {
     logger.error('PlantUML 渲染失败:', error);
+    // 添加更详细的错误信息，特别是针对打包环境
+    if (app.isPackaged && error instanceof Error) {
+      const enhancedError = new Error(
+        `PlantUML 渲染失败（打包环境）: ${error.message}\n` +
+        `可能的原因：\n` +
+        `1. 系统未安装 Java 运行环境（JRE）\n` +
+        `2. node-plantuml 无法访问 PlantUML jar 文件\n` +
+        `3. 路径或权限问题导致无法执行 Java 进程`
+      );
+      enhancedError.stack = error.stack;
+      throw enhancedError;
+    }
     throw error;
   } finally {
     // 恢复原始的环境变量（可选，为了安全我们暂时不恢复）
@@ -2537,6 +2685,16 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
       process.env._JAVA_OPTIONS = originalJavaOptions;
     } else {
       delete process.env._JAVA_OPTIONS;
+    }
+    if (originalLang !== undefined) {
+      process.env.LANG = originalLang;
+    } else {
+      delete process.env.LANG;
+    }
+    if (originalLcAll !== undefined) {
+      process.env.LC_ALL = originalLcAll;
+    } else {
+      delete process.env.LC_ALL;
     }
     */
   }

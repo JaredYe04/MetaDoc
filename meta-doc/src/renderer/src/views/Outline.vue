@@ -996,17 +996,69 @@ function onNodeDrop(targetNode: DocumentOutlineNode, e: DragEvent) {
     if (mode === 'before' || mode === 'after') {
       const parent = searchParentNode(target.path, treeData.value);
       if (!parent || !parent.children) return;
-      const idx = parent.children.findIndex((c) => c.path === target.path);
-      if (idx === -1) return;
-      const insertIndex = mode === 'before' ? idx : idx + 1;
-      // 插入到目标同级；如果该“同级父节点”是拖拽节点的后代，同样只复制“当前节点内容”
+      const targetIdx = parent.children.findIndex((c) => c.path === target.path);
+      if (targetIdx === -1) return;
+      
+      // 插入到目标同级；如果该"同级父节点"是拖拽节点的后代，同样只复制"当前节点内容"
       if (isDescendant(parent.path, drag.path)) {
+        const insertIndex = mode === 'before' ? targetIdx : targetIdx + 1;
         const shallow = createShallowCopy(drag);
         parent.children.splice(insertIndex, 0, shallow);
-      } else {
-        removeNode(originParent, drag);
-        parent.children.splice(insertIndex, 0, drag);
+        reindexChildrenPaths(parent);
+        return;
       }
+      
+      // 检查拖拽节点和目标节点是否在同一父节点（同层级）
+      const isSameParent = originParent === parent;
+      let dragIdx = -1;
+      if (isSameParent) {
+        dragIdx = parent.children.findIndex((c) => c.path === drag.path);
+      }
+      
+      // 计算插入位置（基于移除前的索引）
+      let insertIndex: number;
+      if (mode === 'before') {
+        insertIndex = targetIdx;
+      } else {
+        insertIndex = targetIdx + 1;
+      }
+      
+      // 如果同层级移动，需要调整插入索引
+      if (isSameParent && dragIdx !== -1) {
+        // 如果拖拽节点已经在目标位置（before模式：dragIdx === targetIdx，after模式：dragIdx === targetIdx + 1），保持顺序不变
+        if ((mode === 'before' && dragIdx === targetIdx) || (mode === 'after' && dragIdx === targetIdx + 1)) {
+          // 已经在目标位置，不需要移动
+          reindexChildrenPaths(parent);
+          return;
+        }
+        
+        // 先移除拖拽节点
+        parent.children.splice(dragIdx, 1);
+        
+        // 移除后，如果拖拽节点在目标节点之前，目标节点的索引会-1
+        if (dragIdx < targetIdx) {
+          // 目标节点索引变成 targetIdx - 1
+          if (mode === 'before') {
+            // 插入到目标前面，现在目标在 targetIdx - 1，所以插入位置也是 targetIdx - 1
+            insertIndex = targetIdx - 1;
+          } else {
+            // 插入到目标后面，现在目标在 targetIdx - 1，后面是 targetIdx
+            insertIndex = targetIdx;
+          }
+        } else {
+          // 拖拽节点在目标节点之后（dragIdx > targetIdx），目标节点索引不变
+          // 需要调整插入位置：如果 dragIdx < insertIndex，移除后 insertIndex 需要-1
+          if (dragIdx < insertIndex) {
+            insertIndex--;
+          }
+        }
+      } else {
+        // 不同层级，直接移除
+        removeNode(originParent, drag);
+      }
+      
+      // 插入节点
+      parent.children.splice(insertIndex, 0, drag);
       reindexChildrenPaths(parent);
       return;
     }

@@ -2328,6 +2328,26 @@
       "showHeader": {
         "label": "显示页眉",
         "description": "在页眉显示文档标题和页码信息"
+      },
+      "autoNumberImages": {
+        "label": "自动给图片编号",
+        "description": "为文档中的图片自动添加编号标签（如图 1、图 2）"
+      },
+      "imageLabelFontSize": {
+        "label": "图片标签字号",
+        "description": "图片编号标签的字号大小（pt）"
+      },
+      "imageLabelFontFamily": {
+        "label": "图片标签字体",
+        "description": "图片编号标签的字体"
+      },
+      "imageLabelPrefix": {
+        "label": "图",
+        "description": "图片编号前缀"
+      },
+      "imageLabelDefaultName": {
+        "label": "图片",
+        "description": "图片默认名称（当图片没有名称时使用）"
       }
     },
     "adapters": {

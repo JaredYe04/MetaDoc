@@ -73,6 +73,12 @@ export interface DocxExportOptions extends BaseExportOptions {
   showPageNumbers?: boolean;
   // 是否显示页眉
   showHeader?: boolean;
+  // 是否自动给图片编号
+  autoNumberImages?: boolean;
+  // 图片标签字号（pt）
+  imageLabelFontSize?: number;
+  // 图片标签字体
+  imageLabelFontFamily?: string;
 }
 
 /**

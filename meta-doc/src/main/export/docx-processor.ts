@@ -1902,6 +1902,227 @@ export class OMMLInsertionProcessor implements DocxProcessor {
 }
 
 /**
+ * 图片编号处理器
+ * 为文档中的图片自动添加编号标签（如图 1、图 2）
+ */
+export class ImageNumberingProcessor implements DocxProcessor {
+  name = 'ImageNumberingProcessor';
+
+  async process(
+    context: DocxProcessingContext,
+    options?: {
+      autoNumberImages?: boolean;
+      imageLabelFontSize?: number;
+      imageLabelFontFamily?: string;
+      imageLabelPrefix?: string;
+      imageLabelDefaultName?: string;
+      locale?: string;
+    }
+  ): Promise<boolean> {
+    if (!options?.autoNumberImages) {
+      return false;
+    }
+
+    const { documentXml } = context;
+    let updatedXml = documentXml;
+    let modified = false;
+
+    // 获取配置
+    const fontSize = options.imageLabelFontSize || 10.5; // pt
+    // 默认字体：中文用黑体（SimHei），英文用 Arial Bold 或类似的粗体字体
+    const fontFamily = options.imageLabelFontFamily || (options.locale === 'en_US' ? 'Arial' : 'SimHei');
+    const prefix = options.imageLabelPrefix || (options.locale === 'en_US' ? 'Graph' : '图');
+    const defaultName = options.imageLabelDefaultName || (options.locale === 'en_US' ? 'Image' : '图片');
+
+    // 查找所有图片段落
+    // 图片在 DOCX 中通常包含在 <w:drawing> 或 <w:pict> 标签中
+    // 我们需要找到包含图片的段落，并在其后添加编号标签段落
+    
+    // 匹配包含图片的段落：<w:p>...</w:p> 其中包含 <w:drawing> 或 <w:pict>
+    // 使用非贪婪匹配，确保只匹配单个段落
+    const imageParagraphRegex = /<w:p[^>]*>([\s\S]*?<w:drawing[\s\S]*?<\/w:drawing>[\s\S]*?|[\s\S]*?<w:pict[\s\S]*?<\/w:pict>[\s\S]*?)<\/w:p>/g;
+    
+    const imageParagraphs: Array<{ match: string; index: number; endIndex: number }> = [];
+    let match: RegExpExecArray | null;
+    
+    // 收集所有图片段落的位置（从后往前处理，避免索引偏移）
+    while ((match = imageParagraphRegex.exec(documentXml)) !== null) {
+      imageParagraphs.push({
+        match: match[0],
+        index: match.index,
+        endIndex: match.index + match[0].length,
+      });
+    }
+
+    if (imageParagraphs.length === 0) {
+      logger.debug('未找到图片段落，跳过图片编号处理');
+      return false;
+    }
+
+    logger.info(`找到 ${imageParagraphs.length} 个图片段落，开始添加编号标签`);
+
+    // 从后往前处理，避免索引偏移
+    for (let i = imageParagraphs.length - 1; i >= 0; i--) {
+      const imagePara = imageParagraphs[i];
+      const imageParaEnd = imagePara.endIndex;
+
+      // 尝试从图片的 alt 文本中提取图片名称
+      // 在 HTML 转 DOCX 过程中，alt 文本可能被转换为不同的格式
+      // 我们尝试从图片段落中查找可能的文本内容，或者从紧跟在图片段落后的段落中查找
+      let imageName = defaultName;
+      
+      // 方法1：尝试从图片段落中查找文本内容（可能是 alt 文本）
+      // 查找段落中的 <w:t> 标签
+      const textMatch = imagePara.match.match(/<w:t[^>]*>([^<]*)<\/w:t>/);
+      if (textMatch && textMatch[1] && textMatch[1].trim()) {
+        const altText = textMatch[1].trim();
+        // 如果文本不是纯数字或特殊字符，使用它作为图片名称
+        if (altText && !/^[\d\s\-_]+$/.test(altText)) {
+          imageName = altText;
+        }
+      }
+      
+      // 方法2：如果方法1没有找到，尝试从紧跟在图片段落后的段落中查找
+      // 这可能是我们在 HTML 阶段添加的隐藏文本节点
+      if (imageName === defaultName && i < imageParagraphs.length - 1) {
+        // 查找图片段落和下一个图片段落之间的内容
+        const nextImagePara = imageParagraphs[i + 1];
+        const betweenContent = updatedXml.substring(imageParaEnd, nextImagePara.index);
+        
+        // 查找包含 data-image-alt-text 的文本节点
+        const altTextMatch = betweenContent.match(/<w:t[^>]*data-image-alt-text[^>]*>([^<]*)<\/w:t>/i);
+        if (altTextMatch && altTextMatch[1] && altTextMatch[1].trim()) {
+          const altText = altTextMatch[1].trim();
+          if (altText && !/^[\d\s\-_]+$/.test(altText)) {
+            imageName = altText;
+          }
+        } else {
+          // 如果没有找到 data 属性，尝试查找紧跟在图片段落后的第一个文本节点
+          const nextTextMatch = betweenContent.match(/<w:t[^>]*>([^<]+)<\/w:t>/);
+          if (nextTextMatch && nextTextMatch[1] && nextTextMatch[1].trim()) {
+            const altText = nextTextMatch[1].trim();
+            if (altText && !/^[\d\s\-_]+$/.test(altText) && altText.length < 100) {
+              imageName = altText;
+            }
+          }
+        }
+      } else if (imageName === defaultName && i === imageParagraphs.length - 1) {
+        // 如果是最后一个图片，查找图片段落后的内容
+        const afterContent = updatedXml.substring(imageParaEnd, Math.min(updatedXml.length, imageParaEnd + 500));
+        
+        // 查找包含 data-image-alt-text 的文本节点
+        const altTextMatch = afterContent.match(/<w:t[^>]*data-image-alt-text[^>]*>([^<]*)<\/w:t>/i);
+        if (altTextMatch && altTextMatch[1] && altTextMatch[1].trim()) {
+          const altText = altTextMatch[1].trim();
+          if (altText && !/^[\d\s\-_]+$/.test(altText)) {
+            imageName = altText;
+          }
+        } else {
+          // 如果没有找到 data 属性，尝试查找紧跟在图片段落后的第一个文本节点
+          const nextTextMatch = afterContent.match(/<w:t[^>]*>([^<]+)<\/w:t>/);
+          if (nextTextMatch && nextTextMatch[1] && nextTextMatch[1].trim()) {
+            const altText = nextTextMatch[1].trim();
+            if (altText && !/^[\d\s\-_]+$/.test(altText) && altText.length < 100) {
+              imageName = altText;
+            }
+          }
+        }
+      }
+
+      // 构建图片编号标签段落
+      // 格式：居中对齐、加粗、指定字号
+      // 包含 SEQ 域用于自动编号
+      // SEQ Figure \* ARABIC 表示使用阿拉伯数字的图片序列
+      // 注意：SEQ 域会自动递增，不需要手动计算编号
+      const labelParagraph = `
+    <w:p>
+      <w:pPr>
+        <w:jc w:val="center"/>
+        <w:spacing w:after="120" w:before="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:b/>
+          <w:sz w:val="${Math.round(fontSize * 2)}"/>
+          <w:szCs w:val="${Math.round(fontSize * 2)}"/>
+          <w:rFonts w:ascii="${fontFamily}" w:hAnsi="${fontFamily}" w:eastAsia="${fontFamily}" w:cs="${fontFamily}"/>
+        </w:rPr>
+        <w:t xml:space="preserve">${prefix} </w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:b/>
+          <w:sz w:val="${Math.round(fontSize * 2)}"/>
+          <w:szCs w:val="${Math.round(fontSize * 2)}"/>
+          <w:rFonts w:ascii="${fontFamily}" w:hAnsi="${fontFamily}" w:eastAsia="${fontFamily}" w:cs="${fontFamily}"/>
+        </w:rPr>
+        <w:fldChar w:fldCharType="begin"/>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:b/>
+          <w:sz w:val="${Math.round(fontSize * 2)}"/>
+          <w:szCs w:val="${Math.round(fontSize * 2)}"/>
+          <w:rFonts w:ascii="${fontFamily}" w:hAnsi="${fontFamily}" w:eastAsia="${fontFamily}" w:cs="${fontFamily}"/>
+        </w:rPr>
+        <w:instrText xml:space="preserve"> SEQ Figure \\* ARABIC </w:instrText>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:b/>
+          <w:sz w:val="${Math.round(fontSize * 2)}"/>
+          <w:szCs w:val="${Math.round(fontSize * 2)}"/>
+          <w:rFonts w:ascii="${fontFamily}" w:hAnsi="${fontFamily}" w:eastAsia="${fontFamily}" w:cs="${fontFamily}"/>
+        </w:rPr>
+        <w:fldChar w:fldCharType="separate"/>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:b/>
+          <w:sz w:val="${Math.round(fontSize * 2)}"/>
+          <w:szCs w:val="${Math.round(fontSize * 2)}"/>
+          <w:rFonts w:ascii="${fontFamily}" w:hAnsi="${fontFamily}" w:eastAsia="${fontFamily}" w:cs="${fontFamily}"/>
+        </w:rPr>
+        <w:t>1</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:b/>
+          <w:sz w:val="${Math.round(fontSize * 2)}"/>
+          <w:szCs w:val="${Math.round(fontSize * 2)}"/>
+          <w:rFonts w:ascii="${fontFamily}" w:hAnsi="${fontFamily}" w:eastAsia="${fontFamily}" w:cs="${fontFamily}"/>
+        </w:rPr>
+        <w:fldChar w:fldCharType="end"/>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:b/>
+          <w:sz w:val="${Math.round(fontSize * 2)}"/>
+          <w:szCs w:val="${Math.round(fontSize * 2)}"/>
+          <w:rFonts w:ascii="${fontFamily}" w:hAnsi="${fontFamily}" w:eastAsia="${fontFamily}" w:cs="${fontFamily}"/>
+        </w:rPr>
+        <w:t xml:space="preserve"> ${imageName}</w:t>
+      </w:r>
+    </w:p>
+    `;
+
+      // 在图片段落后插入编号标签段落
+      updatedXml = updatedXml.substring(0, imagePara.endIndex) + 
+                   labelParagraph + 
+                   updatedXml.substring(imagePara.endIndex);
+      modified = true;
+    }
+
+    if (modified) {
+      context.documentXml = updatedXml;
+      logger.info(`已为 ${imageParagraphs.length} 个图片添加编号标签`);
+    }
+
+    return modified;
+  }
+}
+
+/**
  * Document XML 修复处理器
  * 修复对齐、分页等问题
  * 注意：语言设置在html-to-docx的documentOptions中已经配置

@@ -1387,6 +1387,31 @@
     "tooltip": "Click to see detailed word count",
     "words": "Number of words"
   },
+  "export": {
+    "options": {
+      "title": "Export Options",
+      "autoNumberImages": {
+        "label": "Auto Number Images",
+        "description": "Automatically add numbering labels to images in the document (e.g., Graph 1, Graph 2)"
+      },
+      "imageLabelFontSize": {
+        "label": "Image Label Font Size",
+        "description": "Font size for image numbering labels (pt)"
+      },
+      "imageLabelFontFamily": {
+        "label": "Image Label Font Family",
+        "description": "Font family for image numbering labels"
+      },
+      "imageLabelPrefix": {
+        "label": "Graph",
+        "description": "Image numbering prefix"
+      },
+      "imageLabelDefaultName": {
+        "label": "Image",
+        "description": "Default image name (used when image has no name)"
+      }
+    }
+  },
   "fontSize": {
     "chuhao": "Initial",
     "xiaochu": "Small Initial",

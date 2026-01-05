@@ -49,6 +49,9 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
       processFormula: true,
       showPageNumbers: false,
       showHeader: false,
+      autoNumberImages: false,
+      imageLabelFontSize: 10.5, // pt
+      imageLabelFontFamily: 'SimHei', // 默认黑体（中文）或 Arial Bold（英文）
     };
   }
   
@@ -295,6 +298,38 @@ export class MdToDocxAdapter extends BaseExportAdapter<'md', 'docx', DocxExportO
       //   description: '在页眉显示文档标题和页码信息',
       //   descriptionKey: 'export.options.showHeader.description',
       // },
+      {
+        key: 'autoNumberImages',
+        label: '自动给图片编号',
+        labelKey: 'export.options.autoNumberImages.label',
+        type: 'boolean',
+        default: false,
+        description: '为文档中的图片自动添加编号标签（如图 1、图 2）',
+        descriptionKey: 'export.options.autoNumberImages.description',
+        tab: 'basic',
+      },
+      {
+        key: 'imageLabelFontSize',
+        label: '图片标签字号',
+        labelKey: 'export.options.imageLabelFontSize.label',
+        type: 'fontSize',
+        default: 10.5,
+        description: '图片编号标签的字号大小（pt）',
+        descriptionKey: 'export.options.imageLabelFontSize.description',
+        showWhen: (options) => options.autoNumberImages === true,
+        tab: 'basic',
+      },
+      {
+        key: 'imageLabelFontFamily',
+        label: '图片标签字体',
+        labelKey: 'export.options.imageLabelFontFamily.label',
+        type: 'font',
+        default: 'SimHei',
+        description: '图片编号标签的字体',
+        descriptionKey: 'export.options.imageLabelFontFamily.description',
+        showWhen: (options) => options.autoNumberImages === true,
+        tab: 'basic',
+      },
     ];
   }
   

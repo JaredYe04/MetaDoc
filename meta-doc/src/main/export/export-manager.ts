@@ -8,7 +8,7 @@ import { PDFDocument } from 'pdf-lib';
 import type { DocumentFormat, ExportFormat } from '../../types';
 import type { LaTeXCompileResult } from '../../types/utils';
 import { getExportTargets } from '../../common/export-rules';
-import { t } from '../i18n';
+import { t, getLocale } from '../i18n';
 import { compileLatexToPDF } from '../utils';
 import { createMainLogger } from '../logger';
 import { imageUploadDir } from '../express-server';
@@ -25,6 +25,7 @@ import {
   DocumentXmlFixProcessor,
   WordTocProcessor,
   HeaderFooterProcessor,
+  ImageNumberingProcessor,
 } from './docx-processor';
 
 const logger = createMainLogger('PDFExport');
@@ -1868,6 +1869,26 @@ const convertMarkdownToDocxBuffer = async (
   // 处理表格样式：统一表格边框，确保边框粗细一致
   styledHtml = processTablesForWord(styledHtml);
 
+  // 如果启用了图片编号，为每个图片添加隐藏的文本节点来保存 alt 文本
+  // 这样在 document.xml 处理阶段可以提取图片名称
+  if (options?.autoNumberImages) {
+    // 匹配所有图片标签，提取 alt 文本并添加隐藏文本节点
+    styledHtml = styledHtml.replace(/<img([^>]*?)>/gi, (match, attrs) => {
+      // 提取 alt 属性
+      const altMatch = attrs.match(/alt\s*=\s*["']([^"']*)["']/i);
+      const altText = altMatch ? altMatch[1] : '';
+      
+      // 如果图片有 alt 文本，在图片后添加隐藏的文本节点
+      // 使用 data 属性保存，html-to-docx 可能会保留
+      if (altText) {
+        return `<img${attrs} data-image-alt="${escapeHtml(altText)}"><span style="display: none;" data-image-alt-text="${escapeHtml(altText)}"></span>`;
+      } else {
+        // 即使没有 alt 文本，也添加标记，以便处理器识别
+        return `<img${attrs} data-image-alt=""><span style="display: none;" data-image-alt-text=""></span>`;
+      }
+    });
+  }
+
   // 注意：公式已经在 Markdown 阶段被替换为文本占位符
   // 如果 HTML 中还有公式元素，也需要替换为占位符（作为备用处理）
   // 这里不再需要 convertFormulaToMathML，因为占位符会直接传递到 document.xml
@@ -2135,6 +2156,8 @@ const getDocxProcessingManager = (): DocxProcessingManager => {
     docxProcessingManager.register(new WordTocProcessor());
     // 注册页眉页脚处理器
     docxProcessingManager.register(new HeaderFooterProcessor());
+    // 注册图片编号处理器（在 OMML 之前执行，因为图片编号应该在公式之前）
+    docxProcessingManager.register(new ImageNumberingProcessor());
     // 注册 OMML 插入处理器（最后执行，插入公式）
     docxProcessingManager.register(new OMMLInsertionProcessor());
   }
@@ -2149,11 +2172,15 @@ const applyDocxMetadata = async (
     processFormula?: boolean;
     showPageNumbers?: boolean;
     showHeader?: boolean;
+    autoNumberImages?: boolean;
+    imageLabelFontSize?: number;
+    imageLabelFontFamily?: string;
     styleMapping?: {
       normal?: { fontFamily: string; fontSize: number; lineHeight: number };
       heading1?: { fontFamily: string; fontSize: number; lineHeight: number };
     };
     targetPath?: string; // 用于调试文件保存
+    locale?: string; // 语言设置，用于图片编号前缀
   },
   progressCallback?: (current: number, total: number, message?: string) => void
 ): Promise<Buffer> => {
@@ -2491,6 +2518,9 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         processFormula: payload.exportOptions.processFormula,
         showPageNumbers: payload.exportOptions.showPageNumbers,
         showHeader: payload.exportOptions.showHeader,
+        autoNumberImages: payload.exportOptions.autoNumberImages,
+        imageLabelFontSize: payload.exportOptions.imageLabelFontSize,
+        imageLabelFontFamily: payload.exportOptions.imageLabelFontFamily,
       } : undefined;
       const buffer = await convertMarkdownToDocxBuffer(payload.html, payload.data.md, docxOptions, meta);
       sendProgress(mainWindow, {
@@ -2523,10 +2553,17 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
           }
         : undefined;
       
+      // 获取当前语言设置（用于图片编号前缀）
+      const locale = getLocale() || 'zh_CN';
+      
       const bufferWithMeta = await applyDocxMetadata(buffer, meta, {
         generateToc: docxOptions?.generateToc,
         processFormula: docxOptions?.processFormula,
         styleMapping: docxOptions?.styleMapping,
+        autoNumberImages: docxOptions?.autoNumberImages,
+        imageLabelFontSize: docxOptions?.imageLabelFontSize,
+        imageLabelFontFamily: docxOptions?.imageLabelFontFamily,
+        locale: locale,
         targetPath: targetPath, // 传递目标路径用于调试
       }, formulaProgressCallback);
       await writeBinaryFile(targetPath, bufferWithMeta);

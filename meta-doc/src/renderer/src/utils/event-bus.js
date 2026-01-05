@@ -269,10 +269,36 @@ ipcRenderer.on('sync-theme', (event) => {
 
 //监听主进程的事件，转发给事件总线，从而可以在Vue组件中使用
 ipcRenderer.on('update-current-path', (_event, path) => {
+  if (!path) return
+  
+  // 检查是否有标签页已经使用了这个路径
+  const existingTab = tabs.find(tab => tab.path === path)
+  if (existingTab) {
+    // 如果已经有标签页使用了这个路径
+    if (existingTab.id === activeTabId.value) {
+      // 如果当前活动标签页就是这个标签页，更新它（可能是路径更新）
+      const doc = getDocument()
+      if (doc && doc.path !== path) {
+        doc.path = path
+        markDocumentSaved(doc.tabId, path)
+      }
+    }
+    // 否则忽略这个事件，因为路径已经被其他标签页使用了
+    // 这可以避免在打开新文档时，错误地更新其他标签页的路径和标题
+    return
+  }
+  
+  // 如果没有标签页使用这个路径，检查当前活动标签页
   const doc = getDocument()
   if (!doc) return
-  doc.path = path || ''
-  markDocumentSaved(doc.tabId, doc.path)
+  
+  // 只有当当前活动标签页是新建文档（路径为空）时，才更新
+  // 这样可以避免在打开新文档时，错误地更新其他标签页的路径和标题
+  if (!doc.path && path) {
+    doc.path = path
+    markDocumentSaved(doc.tabId, path)
+  }
+  // 否则忽略这个事件，因为当前活动标签页已经有路径了，可能是针对其他标签页的
 })
 
 ipcRenderer.on('save-success', (_event, data = {}) => {

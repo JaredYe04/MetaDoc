@@ -241,7 +241,11 @@ function bindDialogHandlers(): void {
   });
   
   ipcMain.on('ai-graph', () => {
-    openAiGraphDialog();
+    openGraphDialog();
+  });
+  
+  ipcMain.on('smart-drawing-assistant', () => {
+    openGraphDialog();
   });
   
   ipcMain.on('fomula-recognition', () => {
@@ -281,6 +285,26 @@ function bindFileHandlers(): void {
     }
   });
   
+  // 保存文件对话框
+  ipcMain.handle('save-file-dialog', async (event: IpcMainInvokeEvent, options: { defaultName?: string; filters?: Array<{ name: string; extensions: string[] }> }): Promise<{ canceled: boolean; filePath?: string }> => {
+    try {
+      const result = await dialog.showSaveDialog(mainWindow!, {
+        title: options.defaultName ? '保存文件' : '保存文件',
+        defaultPath: options.defaultName,
+        filters: options.filters || [{ name: 'All Files', extensions: ['*'] }]
+      });
+      
+      if (result.canceled || !result.filePath) {
+        return { canceled: true };
+      }
+      
+      return { canceled: false, filePath: result.filePath };
+    } catch (error) {
+      logger.error('保存文件对话框失败:', error);
+      throw error;
+    }
+  });
+
   // 保存PDF对话框
   ipcMain.handle('save-pdf-dialog', async (event: IpcMainInvokeEvent, options: { sourcePath: string; defaultName: string }) => {
     try {
@@ -350,9 +374,9 @@ function bindFileHandlers(): void {
     }
   });
 
-  ipcMain.handle('write-file-content', async (event: IpcMainInvokeEvent, payload: { filePath: string; content: string }): Promise<void> => {
+  ipcMain.handle('write-file-content', async (event: IpcMainInvokeEvent, payload: { filePath: string; content: string; encoding?: 'utf8' | 'base64' }): Promise<void> => {
     try {
-      const { filePath, content } = payload;
+      const { filePath, content, encoding = 'utf8' } = payload;
       if (!filePath || !content) {
         throw new Error('文件路径和内容不能为空');
       }
@@ -363,14 +387,22 @@ function bindFileHandlers(): void {
         fs.mkdirSync(dir, { recursive: true });
       }
       
-      fs.writeFileSync(filePath, content, 'utf-8');
+      // 根据编码类型写入文件
+      if (encoding === 'base64') {
+        // base64 编码：将 base64 字符串转换为 Buffer 后写入
+        const buffer = Buffer.from(content, 'base64');
+        fs.writeFileSync(filePath, buffer);
+      } else {
+        // UTF-8 编码：直接写入文本
+        fs.writeFileSync(filePath, content, 'utf-8');
+      }
     } catch (error) {
       logger.error('写入文件失败:', error);
       throw error;
     }
   });
 
-  // 保存引用文件到临时目录
+  // 保存引用文件到userData/reference目录
   ipcMain.handle('save-reference-file', async (event: IpcMainInvokeEvent, payload: { filename: string; content: string }): Promise<string> => {
     try {
       const { filename, content } = payload;
@@ -378,10 +410,13 @@ function bindFileHandlers(): void {
         throw new Error('文件名和内容不能为空');
       }
       
-      // 创建临时目录（如果不存在）
-      const tempDir = path.join(os.tmpdir(), 'metadoc-references');
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
+      // 获取userData目录下的reference文件夹
+      const userDataPath = app.getPath('userData');
+      const referenceDir = path.join(userDataPath, 'reference');
+      
+      // 确保目录存在
+      if (!fs.existsSync(referenceDir)) {
+        fs.mkdirSync(referenceDir, { recursive: true });
       }
       
       // 生成唯一文件名（避免冲突）
@@ -390,18 +425,92 @@ function bindFileHandlers(): void {
       const ext = path.extname(filename);
       const baseName = path.basename(filename, ext);
       const uniqueFilename = `${baseName}-${timestamp}-${randomStr}${ext}`;
-      const filePath = path.join(tempDir, uniqueFilename);
+      const filePath = path.join(referenceDir, uniqueFilename);
       
       // 将base64内容转换为Buffer并写入文件
       const buffer = Buffer.from(content, 'base64');
       fs.writeFileSync(filePath, buffer);
       
-      logger.info(`引用文件已保存到临时目录: ${filePath}`);
+      logger.info(`引用文件已保存到: ${filePath}`);
       return filePath;
     } catch (error) {
       logger.error('保存引用文件失败:', error);
       throw error;
     }
+  });
+
+  // 获取reference目录路径
+  ipcMain.handle('get-reference-dir-path', async (): Promise<string> => {
+    const userDataPath = app.getPath('userData');
+    return path.join(userDataPath, 'reference');
+  });
+
+  // 获取reference目录大小
+  ipcMain.handle('get-reference-dir-size', async (): Promise<number> => {
+    const userDataPath = app.getPath('userData');
+    const referenceDir = path.join(userDataPath, 'reference');
+    
+    if (!fs.existsSync(referenceDir)) {
+      return 0;
+    }
+    
+    let totalSize = 0;
+    const calculateSize = (dir: string): void => {
+      const files = fs.readdirSync(dir);
+      for (const file of files) {
+        const filePath = path.join(dir, file);
+        const stats = fs.statSync(filePath);
+        if (stats.isDirectory()) {
+          calculateSize(filePath);
+        } else {
+          totalSize += stats.size;
+        }
+      }
+    };
+    
+    calculateSize(referenceDir);
+    return totalSize;
+  });
+
+  // 清空reference目录
+  ipcMain.handle('clear-reference-dir', async (): Promise<void> => {
+    const userDataPath = app.getPath('userData');
+    const referenceDir = path.join(userDataPath, 'reference');
+    
+    if (!fs.existsSync(referenceDir)) {
+      return;
+    }
+    
+    const deleteDir = (dir: string): void => {
+      const files = fs.readdirSync(dir);
+      for (const file of files) {
+        const filePath = path.join(dir, file);
+        const stats = fs.statSync(filePath);
+        if (stats.isDirectory()) {
+          deleteDir(filePath);
+          fs.rmdirSync(filePath);
+        } else {
+          fs.unlinkSync(filePath);
+        }
+      }
+    };
+    
+    deleteDir(referenceDir);
+    logger.info('Reference目录已清空');
+  });
+
+  // 打开reference目录
+  ipcMain.handle('open-reference-dir', async (): Promise<void> => {
+    const userDataPath = app.getPath('userData');
+    const referenceDir = path.join(userDataPath, 'reference');
+    
+    // 确保目录存在
+    if (!fs.existsSync(referenceDir)) {
+      fs.mkdirSync(referenceDir, { recursive: true });
+    }
+    
+    const { shell } = require('electron');
+    shell.openPath(referenceDir);
   });
 
   // 转换PDF到文本

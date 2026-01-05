@@ -163,8 +163,11 @@ export function webMainCalls() {
     //openAiChatDialog();
   })
   localIpcMain.on('ai-graph',() => {
-    router.push('/single-page/ai-graph')
+    router.push('/single-page/graph')
     //openAiGraphDialog();
+  })
+  localIpcMain.on('smart-drawing-assistant', () => {
+    router.push('/single-page/graph')
   })
   localIpcMain.on('fomula-recognition', () => {
     router.push('/single-page/fomula-recognition')

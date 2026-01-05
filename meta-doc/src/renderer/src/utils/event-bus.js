@@ -642,6 +642,9 @@ eventBus.on('ai-chat', () => {
 eventBus.on('ai-graph', () => {
   ipcRenderer.send('ai-graph')
 })
+eventBus.on('smart-drawing-assistant', () => {
+  ipcRenderer.send('smart-drawing-assistant')
+})
 eventBus.on('fomula-recognition', () => {
   ipcRenderer.send('fomula-recognition')
 })

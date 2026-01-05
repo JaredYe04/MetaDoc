@@ -374,6 +374,8 @@
         "generateReport": "生成分析报告",
         "headerRowIndex": "表头行数（从0开始）",
         "headerPreview": "当前表头预览：",
+        "currentHeader": "当前表头",
+        "headerRowHint": "默认值：自动检测（当前猜测：第 {0} 行）",
         "tabs": {
             "report": "分析报告",
             "data": "原始数据",
@@ -400,7 +402,11 @@
         "pasteSuccess": "图片已从剪切板粘贴",
         "noImages": "请先上传图片",
         "noLanguages": "请至少选择一个语言包",
-        "ocrSuccess": "识别完成"
+        "ocrSuccess": "识别完成",
+        "copySuccess": "文本已复制到剪切板",
+        "imagePreview": "图片预览",
+        "previewImage": "预览图片",
+        "resetZoom": "重置"
     },
     "attachment": {
         "attachmentsTitle": "附件解析",
@@ -436,19 +442,23 @@
         "user": "用户",
         "assistant": "助手",
         "generatedImage": "生成的图片",
-        "inputPlaceholder": "输入绘图需求...",
+        "inputPlaceholder": "输入绘图需求，AI会自动选择合适的图表引擎...",
         "generate": "生成",
+        "generating": "生成中...",
         "optimize": "优化图片",
         "export": "导出",
         "noPrompt": "请输入绘图需求",
         "noOptimizePrompt": "请输入优化需求",
-        "noImage": "没有可导出的图片",
+        "noChart": "没有可导出的图表",
         "exportSuccess": "导出成功",
-        "generating": "生成图表",
+        "analyzingIntent": "分析意图中...",
         "generated": "图表已生成",
         "generateSuccess": "生成成功",
         "optimizePrompt": "基于以下对话历史，优化图片：",
-        "userRequest": "用户新需求"
+        "userRequest": "用户新需求",
+        "simpleMode": "简单模式",
+        "conversationMode": "对话模式",
+        "optimizeOnlyInConversation": "优化功能仅在对话模式下可用"
     },
     "proofread": {
         "title": "文章校对",
@@ -1073,6 +1083,13 @@
         },
         "openLogDirectory": "打开日志文件夹",
         "loggerConsoleTitle": "日志实时输出",
+        "referenceDirManagement": "引用文件目录管理",
+        "referenceDirSize": "目录大小",
+        "refresh": "刷新",
+        "openReferenceDir": "打开目录",
+        "clearReferenceDir": "清空目录",
+        "clearReferenceDirConfirm": "确定要清空引用文件目录吗？此操作将删除目录中的所有文件，且无法恢复。",
+        "clearReferenceDirSuccess": "目录已清空",
         "about": {
             "title": "关于",
             "appName": "MetaDoc",

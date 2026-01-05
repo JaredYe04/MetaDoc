@@ -703,7 +703,7 @@ export const openGraphDialog = async (): Promise<void> => {
 };
 
 export const openAiGraphDialog = async (): Promise<void> => {
-  openAuxiliaryWindow(WINDOW_IDS.aiGraph);
+  openGraphDialog();
 };
 
 // ============ 广播频道管理 ============

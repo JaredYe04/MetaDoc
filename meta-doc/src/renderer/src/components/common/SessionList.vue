@@ -104,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { AddIcon } from 'tdesign-icons-vue-next'
 import { More } from '@element-plus/icons-vue'
@@ -182,6 +182,23 @@ const menuStyle = computed(() => ({
     ? 'rgba(255, 255, 255, 0.1)' 
     : 'rgba(0, 0, 0, 0.08)'
 }))
+
+// 点击外部区域关闭菜单
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  // 检查点击是否在菜单内部
+  if (openMenuId.value && !target.closest('.item-menu') && !target.closest('.more-btn')) {
+    openMenuId.value = null
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 // 按日期分组
 const groupedItems = computed<SessionListGroup[]>(() => {

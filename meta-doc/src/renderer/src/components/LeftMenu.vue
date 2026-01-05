@@ -140,7 +140,7 @@
           </el-icon>
           <span>{{ $t('leftMenu.handwritingFormulaRecognition') }}</span>
         </el-menu-item>
-        <el-menu-item index="2-3" @click="eventBus.emit('ai-graph')">
+        <el-menu-item index="2-3" @click="eventBus.emit('smart-drawing-assistant')">
           <el-icon>
             <Picture />
           </el-icon>
@@ -163,12 +163,6 @@
             <Paperclip />
           </el-icon>
           <span>{{ $t('leftMenu.attachment') }}</span>
-        </el-menu-item>
-        <el-menu-item index="2-7" @click="eventBus.emit('graph')">
-          <el-icon>
-            <PieChart />
-          </el-icon>
-          <span>{{ $t('leftMenu.graph') }}</span>
         </el-menu-item>
       </el-sub-menu>
 

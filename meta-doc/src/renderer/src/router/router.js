@@ -8,7 +8,6 @@ import component from 'element-plus/es/components/tree-select/src/tree-select-op
 import Visualize from '../views/Visualize.vue'
 import AIChat from '../views/AIChat.vue'
 import FomulaRecognition from '../views/FomulaRecognition.vue'
-import AIGraph from '../views/AIGraph.vue'
 import AgentView from '../views/AgentView.vue'
 import KnowledgeBase from '../views/KnowledgeBase.vue'
 import Editor from '../views/Editor.vue'
@@ -24,7 +23,7 @@ const pages = {
   setting: Setting,
   'ai-chat': AIChat,
   'fomula-recognition': FomulaRecognition,
-  'ai-graph': AIGraph,
+  'ai-graph': GraphWindow, // 已合并到GraphWindow
   'data-analysis': DataAnalysisWindow,
   'ocr': OcrWindow,
   'attachment': AttachmentWindow,

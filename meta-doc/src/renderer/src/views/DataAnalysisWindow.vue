@@ -71,67 +71,69 @@
             <!-- Tab 1: 数据预览与参数设置 -->
             <el-tab-pane :label="t('dataAnalysis.tabs.preview', '数据预览')" name="preview">
               <div class="preview-tab-content">
-                <!-- 参数设置区域 -->
-                <div v-if="currentFile && (isCsvFile || isExcelFile)" class="params-section" :style="paramsSectionStyle">
-                  <el-form :model="analysisParams" label-width="200px" size="default" class="centered-form">
-                    <el-form-item :label="t('dataAnalysis.headerRowIndex', '表头行数（从0开始）')">
-                      <el-input-number
-                        v-model="headerRowIndex"
-                        :min="0"
-                        :max="20"
-                        :step="1"
-                        :precision="0"
-                        controls-position="right"
-                        style="width: 200px"
-                        @change="handleHeaderRowIndexChange"
-                      />
-                      <div class="header-row-hint" :style="hintStyle">
-                        {{ t('dataAnalysis.headerRowHint', `默认值：自动检测（当前猜测：第 ${detectedHeaderRowIndex + 1} 行）`) }}
-                      </div>
-                    </el-form-item>
-                    
-                    <el-form-item :label="t('dataAnalysis.autoGroupBy', '自动聚合分析')">
-                      <el-switch v-model="analysisParams.autoGroupBy" />
-                    </el-form-item>
-                    
-                    <el-form-item :label="t('dataAnalysis.generateReport', '生成AI报告')">
-                      <el-switch v-model="analysisParams.generateReport" />
-                    </el-form-item>
-                    
-                    <!-- 表头预览已注释，因为底部已有预览组件 -->
-                    <!--
-                    <el-form-item v-if="headerPreview.length > 0" label="表头预览">
-                      <el-scrollbar class="header-preview-scrollbar">
-                        <div class="header-preview-content">
-                          <el-tag
-                            v-for="(header, index) in headerPreview"
-                            :key="index"
-                            size="small"
-                            effect="plain"
-                            class="header-tag"
-                            :style="headerTagStyle"
-                          >
-                            {{ header || `列${index + 1}` }}
-                          </el-tag>
+                <!-- 参数设置区域 - 拆分为左右两个panel -->
+                <div v-if="currentFile && (isCsvFile || isExcelFile)" class="params-section-split" :style="paramsSectionStyle">
+                  <!-- 左侧70%：参数设置 -->
+                  <div class="params-left-panel">
+                    <el-form :model="analysisParams" label-width="200px" size="default" class="centered-form">
+                      <el-form-item :label="t('dataAnalysis.headerRowIndex', '表头行数（从0开始）')">
+                        <el-input-number
+                          v-model="headerRowIndex"
+                          :min="0"
+                          :max="20"
+                          :step="1"
+                          :precision="0"
+                          controls-position="right"
+                          style="width: 200px"
+                          @change="handleHeaderRowIndexChange"
+                        />
+                        <div class="header-row-hint" :style="hintStyle">
+                          {{ t('dataAnalysis.headerRowHint', `默认值：自动检测（当前猜测：第 ${detectedHeaderRowIndex + 1} 行）`) }}
                         </div>
-                      </el-scrollbar>
-                    </el-form-item>
-                    <el-form-item v-else label="表头预览">
-                      <div class="no-header-preview" :style="noHeaderPreviewStyle">
-                        {{ t('dataAnalysis.noHeaderPreview', '暂无表头数据') }}
+                      </el-form-item>
+                      
+                      <el-form-item :label="t('dataAnalysis.autoGroupBy', '自动聚合分析')">
+                        <el-switch v-model="analysisParams.autoGroupBy" />
+                      </el-form-item>
+                      
+                      <el-form-item :label="t('dataAnalysis.generateReport', '生成AI报告')">
+                        <el-switch v-model="analysisParams.generateReport" />
+                      </el-form-item>
+                      
+                      <el-form-item v-if="analysisParams.generateReport" :label="t('dataAnalysis.analysisRequest', '分析需求（可选）')">
+                        <el-input
+                          v-model="analysisParams.analysisRequest"
+                          type="textarea"
+                          :rows="2"
+                          :placeholder="t('dataAnalysis.analysisRequestPlaceholder', '描述您的分析需求...')"
+                        />
+                      </el-form-item>
+                    </el-form>
+                  </div>
+                  
+                  <!-- 右侧30%：当前表头显示 -->
+                  <div class="params-right-panel" :style="paramsRightPanelStyle">
+                    <div class="header-preview-title" :style="headerPreviewTitleStyle">
+                      {{ t('dataAnalysis.currentHeader', '当前表头') }}
+                    </div>
+                    <el-scrollbar class="header-preview-scrollbar" v-if="headerPreview.length > 0">
+                      <div class="header-preview-content">
+                        <el-tag
+                          v-for="(header, index) in headerPreview"
+                          :key="index"
+                          size="small"
+                          effect="plain"
+                          class="header-tag"
+                          :style="headerTagStyle"
+                        >
+                          {{ header || `列${index + 1}` }}
+                        </el-tag>
                       </div>
-                    </el-form-item>
-                    -->
-                    
-                    <el-form-item v-if="analysisParams.generateReport" :label="t('dataAnalysis.analysisRequest', '分析需求（可选）')">
-                      <el-input
-                        v-model="analysisParams.analysisRequest"
-                        type="textarea"
-                        :rows="2"
-                        :placeholder="t('dataAnalysis.analysisRequestPlaceholder', '描述您的分析需求...')"
-                      />
-                    </el-form-item>
-                  </el-form>
+                    </el-scrollbar>
+                    <div v-else class="no-header-preview" :style="noHeaderPreviewStyle">
+                      {{ t('dataAnalysis.noHeaderPreview', '暂无表头数据') }}
+                    </div>
+                  </div>
                 </div>
 
                 <!-- 数据预览表格 -->
@@ -1342,7 +1344,23 @@ const paramsSectionStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   borderRadius: '8px',
   marginBottom: '16px',
+  border: `1px solid ${borderColor.value}`,
+  display: 'flex',
+  gap: '16px'
+}))
+
+const paramsRightPanelStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd || themeState.currentTheme.background,
+  borderRadius: '8px',
+  padding: '16px',
   border: `1px solid ${borderColor.value}`
+}))
+
+const headerPreviewTitleStyle = computed(() => ({
+  color: themeState.currentTheme.textColor,
+  fontWeight: 'bold',
+  marginBottom: '12px',
+  fontSize: '14px'
 }))
 
 const hintStyle = computed(() => ({
@@ -1602,10 +1620,28 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.params-section {
+.params-section-split {
   flex-shrink: 0;
   display: flex;
-  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.params-left-panel {
+  flex: 0 0 70%;
+  min-width: 0;
+  max-width: 70%;
+  box-sizing: border-box;
+}
+
+.params-right-panel {
+  flex: 0 0 30%;
+  min-width: 0;
+  max-width: 30%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 .centered-form {

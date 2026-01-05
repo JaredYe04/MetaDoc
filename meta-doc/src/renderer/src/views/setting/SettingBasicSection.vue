@@ -66,16 +66,40 @@
           @change="saveSetting('parseEmbeddedImages', settings.parseEmbeddedImages)" />
       </el-tooltip>
     </el-form-item>
+
+    <el-form-item :label="t('setting.referenceDirManagement', '引用文件目录管理')">
+      <div class="reference-dir-management">
+        <div class="reference-dir-info">
+          <span class="reference-dir-size-label">{{ t('setting.referenceDirSize', '目录大小') }}: </span>
+          <span class="reference-dir-size-value">{{ formatFileSize(referenceDirSize) }}</span>
+        </div>
+        <div class="reference-dir-actions">
+          <el-button size="small" @click="refreshReferenceDirSize">
+            {{ t('setting.refresh', '刷新') }}
+          </el-button>
+          <el-button size="small" type="primary" @click="openReferenceDir">
+            {{ t('setting.openReferenceDir', '打开目录') }}
+          </el-button>
+          <el-button size="small" type="danger" @click="clearReferenceDir">
+            {{ t('setting.clearReferenceDir', '清空目录') }}
+          </el-button>
+        </div>
+      </div>
+    </el-form-item>
   </el-form>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import MicrophoneTest from '../../components/MicrophoneTest.vue';
 import { settings, setSetting } from '../../utils/settings.js';
 import { sendBroadcast } from '../../utils/event-bus.js';
 
 const { t } = useI18n();
+
+const referenceDirSize = ref<number>(0);
 
 const saveSetting = (key: string, value: unknown) => {
   setSetting(key, value);
@@ -85,6 +109,103 @@ const handleParticleToggle = () => {
   saveSetting('particleEffect', settings.particleEffect);
   sendBroadcast('home', 'toggle-particle-effect', {});
 };
+
+// 格式化文件大小
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+};
+
+// 获取reference目录大小
+const refreshReferenceDirSize = async () => {
+  try {
+    let ipcRenderer: any = null;
+    if (typeof window !== 'undefined') {
+      if ((window as any).electron?.ipcRenderer) {
+        ipcRenderer = (window as any).electron.ipcRenderer;
+      } else {
+        const { localIpcRenderer } = await import('../../utils/web-adapter/local-ipc-renderer');
+        ipcRenderer = localIpcRenderer;
+      }
+    }
+    
+    if (!ipcRenderer) {
+      throw new Error('IPC渲染器不可用');
+    }
+    
+    const size = await ipcRenderer.invoke('get-reference-dir-size') as number;
+    referenceDirSize.value = size;
+  } catch (error) {
+    ElMessage.error('获取目录大小失败: ' + (error instanceof Error ? error.message : String(error)));
+  }
+};
+
+// 打开reference目录
+const openReferenceDir = async () => {
+  try {
+    let ipcRenderer: any = null;
+    if (typeof window !== 'undefined') {
+      if ((window as any).electron?.ipcRenderer) {
+        ipcRenderer = (window as any).electron.ipcRenderer;
+      } else {
+        const { localIpcRenderer } = await import('../../utils/web-adapter/local-ipc-renderer');
+        ipcRenderer = localIpcRenderer;
+      }
+    }
+    
+    if (!ipcRenderer) {
+      throw new Error('IPC渲染器不可用');
+    }
+    
+    await ipcRenderer.invoke('open-reference-dir');
+  } catch (error) {
+    ElMessage.error('打开目录失败: ' + (error instanceof Error ? error.message : String(error)));
+  }
+};
+
+// 清空reference目录
+const clearReferenceDir = async () => {
+  try {
+    await ElMessageBox.confirm(
+      t('setting.clearReferenceDirConfirm', '确定要清空引用文件目录吗？此操作将删除目录中的所有文件，且无法恢复。'),
+      t('setting.clearReferenceDir', '清空目录'),
+      {
+        type: 'warning',
+        confirmButtonText: t('common.confirm', '确认'),
+        cancelButtonText: t('common.cancel', '取消')
+      }
+    );
+    
+    let ipcRenderer: any = null;
+    if (typeof window !== 'undefined') {
+      if ((window as any).electron?.ipcRenderer) {
+        ipcRenderer = (window as any).electron.ipcRenderer;
+      } else {
+        const { localIpcRenderer } = await import('../../utils/web-adapter/local-ipc-renderer');
+        ipcRenderer = localIpcRenderer;
+      }
+    }
+    
+    if (!ipcRenderer) {
+      throw new Error('IPC渲染器不可用');
+    }
+    
+    await ipcRenderer.invoke('clear-reference-dir');
+    await refreshReferenceDirSize();
+    ElMessage.success(t('setting.clearReferenceDirSuccess', '目录已清空'));
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('清空目录失败: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  }
+};
+
+onMounted(() => {
+  refreshReferenceDirSize();
+});
 </script>
 
 <style scoped>
@@ -102,6 +223,31 @@ const handleParticleToggle = () => {
 .settings-form :deep(.el-select) {
   width: 100%;
   max-width: 100%;
+}
+
+.reference-dir-management {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reference-dir-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reference-dir-size-label {
+  font-weight: 500;
+}
+
+.reference-dir-size-value {
+  color: var(--el-text-color-regular);
+}
+
+.reference-dir-actions {
+  display: flex;
+  gap: 8px;
 }
 </style>
 

@@ -1,10 +1,5 @@
 <template>
   <div class="proofread-view" :style="pageStyle">
-    <WorkspaceTabs
-      closable
-      @update:activeId="handleTabChange"
-      @close="handleCloseTab"
-    />
     <div class="proofread-content-wrapper">
       <div class="proofread-header">
         <h2>{{ $t('proofread.title', '文章校对') }}</h2>
@@ -98,7 +93,6 @@ import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace } from '../stores/workspace'
 import { proofreadToolCallback } from '../utils/agent-tools/proofread-tool'
 import type { ProofreadResult } from '../utils/agent-tools/proofread-tool'
-import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue'
 import { themeState } from '../utils/themes'
 
 const { t } = useI18n()
@@ -111,14 +105,6 @@ const pageStyle = computed(() => ({
   color: themeState.currentTheme.textColor,
 }))
 
-// Tab 切换处理
-const handleTabChange = (id: string) => {
-  workspace.activateTab(id)
-}
-
-const handleCloseTab = (id: string) => {
-  workspace.removeTab(id)
-}
 
 const proofreading = ref(false)
 const proofreadResult = ref<ProofreadResult | null>(null)

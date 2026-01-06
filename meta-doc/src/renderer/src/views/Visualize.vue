@@ -1,10 +1,5 @@
 <template>
   <div class="visualize-page">
-    <WorkspaceTabs
-      closable
-      @update:activeId="handleTabChange"
-      @close="handleCloseTab"
-    />
   <WordCloudDetail
     v-if="showTitleMenu"
     :word="current_word"
@@ -108,7 +103,6 @@ import WordCloudDetail from '../components/WordCloudDetail.vue';
 import { getSetting } from '../utils/settings';
 import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer';
 import { webMainCalls } from '../utils/web-adapter/web-main-calls';
-import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
 import { useWorkspace } from '../stores/workspace';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
@@ -176,13 +170,6 @@ const documentTitle = computed(() => {
   return segments[segments.length - 1] || '未命名文档';
 });
 
-const handleTabChange = (id: string) => {
-  activateTab(id);
-};
-
-const handleCloseTab = (id: string) => {
-  removeTab(id);
-};
 
 // const initVditor = async () => {
 //     Vditor = await ipcRenderer.invoke('get-vditor');

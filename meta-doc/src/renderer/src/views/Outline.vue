@@ -1,10 +1,5 @@
 <template>
   <div class="outline-page" :data-direction="direction">
-    <WorkspaceTabs
-      closable
-      @update:activeId="handleTabChange"
-      @close="handleCloseTab"
-    />
   <div class="container">
     <el-scrollbar class="aero-div generate-preview" v-if="generating || pendingAccept" :style="{
       backgroundColor: themeState.currentTheme.background, top: position.top + 'px',
@@ -331,7 +326,6 @@
 <script setup lang="ts">
 import { ref, reactive, watch, computed, onMounted, onUnmounted, nextTick, type Ref, type ComponentPublicInstance } from 'vue';
 import { ElButton, ElDialog, ElMessageBox, ElNotification } from 'element-plus'; // 引入 Element Plus 组件
-import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
 import AutoResizeTextarea from '../components/base/AutoResizeTextarea.vue';
 import { tabs, useWorkspace } from '../stores/workspace';
 import eventBus, { getWindowType } from '../utils/event-bus.js';
@@ -413,7 +407,11 @@ const commitOutline = async (outline?: DocumentOutlineNode) => {
     suppressDocumentSync = true;
     try {
       updateDocumentOutline(tabId, snapshot);
-      updateDocumentLastView(tabId, 'outline');
+      // 只有在当前视图确实是outline时才更新lastView，避免切换Tab时自动跳转到outline
+      const currentView = workspace.ensureDocument(tabId).lastView;
+      if (currentView === 'outline') {
+        updateDocumentLastView(tabId, 'outline');
+      }
       // 使用适配器按不同格式同步正文文本
       const doc = activeDocument.value;
       const format = doc?.format ?? 'md';
@@ -431,13 +429,6 @@ const commitOutline = async (outline?: DocumentOutlineNode) => {
   });
 };
 
-const handleTabChange = (id: string) => {
-  activateTab(id);
-};
-
-const handleCloseTab = (id: string) => {
-  removeTab(id);
-};
 const formatTitleDialogVisible = ref(false);
 const formatTitle = () => {
   formatTitleDialogVisible.value = true;
@@ -1359,29 +1350,39 @@ const MAX_SCALE = 10.0; // 1000% = 10.0
 // 获取当前缩放比例
 const getCurrentScale = (): number => {
   const treeElement = document.querySelector('.outline-tree-container') as HTMLElement;
-  if (!treeElement) return 1.0;
+  if (!treeElement || !(treeElement instanceof Element)) return 1.0;
   
   // 查找应用 transform scale 的元素
   const svg = treeElement.querySelector('svg');
-  if (svg) {
-    const transform = svg.style.transform || window.getComputedStyle(svg).transform;
-    if (transform && transform !== 'none') {
-      const match = transform.match(/scale\(([\d.]+)\)/);
-      if (match) {
-        return parseFloat(match[1]);
+  if (svg && svg instanceof Element) {
+    try {
+      const transform = svg.style.transform || window.getComputedStyle(svg).transform;
+      if (transform && transform !== 'none') {
+        const match = transform.match(/scale\(([\d.]+)\)/);
+        if (match) {
+          return parseFloat(match[1]);
+        }
       }
+    } catch (error) {
+      // 如果getComputedStyle失败，忽略错误
+      console.warn('Failed to get computed style for svg:', error);
     }
   }
   
   // 如果找不到，尝试查找其他可能应用 scale 的元素
-  const scaledElement = treeElement.querySelector('[style*="transform"]') as HTMLElement;
-  if (scaledElement) {
-    const transform = scaledElement.style.transform || window.getComputedStyle(scaledElement).transform;
-    if (transform && transform !== 'none') {
-      const match = transform.match(/scale\(([\d.]+)\)/);
-      if (match) {
-        return parseFloat(match[1]);
+  const scaledElement = treeElement.querySelector('[style*="transform"]');
+  if (scaledElement && scaledElement instanceof Element) {
+    try {
+      const transform = (scaledElement as HTMLElement).style.transform || window.getComputedStyle(scaledElement).transform;
+      if (transform && transform !== 'none') {
+        const match = transform.match(/scale\(([\d.]+)\)/);
+        if (match) {
+          return parseFloat(match[1]);
+        }
       }
+    } catch (error) {
+      // 如果getComputedStyle失败，忽略错误
+      console.warn('Failed to get computed style for scaledElement:', error);
     }
   }
   
@@ -1410,7 +1411,7 @@ const zoomAtPoint = (deltaY: number, clientX: number, clientY: number) => {
   
   // 获取 vue-tree 的 DOM 元素
   const treeElement = document.querySelector('.outline-tree-container') as HTMLElement;
-  if (!treeElement) return;
+  if (!treeElement || !(treeElement instanceof Element)) return;
   
   // 查找内部的滚动容器
   // vue-tree 通常会在内部有一个可滚动的容器
@@ -1425,67 +1426,78 @@ const zoomAtPoint = (deltaY: number, clientX: number, clientY: number) => {
   ];
   
   for (const container of possibleContainers) {
-    if (container && (container.scrollHeight > container.clientHeight || container.scrollWidth > container.clientWidth)) {
-      scrollContainer = container;
+    if (container && container instanceof Element && (container.scrollHeight > container.clientHeight || container.scrollWidth > container.clientWidth)) {
+      scrollContainer = container as HTMLElement;
       break;
     }
   }
   
-  if (!scrollContainer) {
+  if (!scrollContainer || !(scrollContainer instanceof Element)) {
     scrollContainer = treeElement;
   }
   
   // 获取光标相对于滚动容器的位置
-  const rect = scrollContainer.getBoundingClientRect();
-  const pointX = clientX - rect.left;
-  const pointY = clientY - rect.top;
+  try {
+    const rect = scrollContainer.getBoundingClientRect();
+    const pointX = clientX - rect.left;
+    const pointY = clientY - rect.top;
   
-  // 获取当前滚动位置
-  const scrollLeft = scrollContainer.scrollLeft || 0;
-  const scrollTop = scrollContainer.scrollTop || 0;
-  
-  // 计算光标在内容中的绝对位置（考虑滚动偏移）
-  const contentX = scrollLeft + pointX;
-  const contentY = scrollTop + pointY;
-  
-  // 确定缩放方向（向上滚动 = 放大，向下滚动 = 缩小）
-  const isZoomIn = deltaY < 0;
-  
-  // 检查缩放限制
-  const currentScale = getCurrentScale();
-  if (isZoomIn && currentScale >= MAX_SCALE) {
-    return; // 已达到最大缩放，不执行
-  }
-  if (!isZoomIn && currentScale <= MIN_SCALE) {
-    return; // 已达到最小缩放，不执行
-  }
-  
-  // 执行缩放
-  if (isZoomIn) {
-    zoomIn();
-  } else {
-    zoomOut();
-  }
-  
-  // 等待 DOM 更新后调整滚动位置
-  // 使用 nextTick 和 requestAnimationFrame 确保缩放操作已完成
-  nextTick(() => {
-    requestAnimationFrame(() => {
-      // 重新获取容器（可能因为缩放而改变）
-      const newRect = scrollContainer!.getBoundingClientRect();
-      const newPointX = clientX - newRect.left;
-      const newPointY = clientY - newRect.top;
-      
-      // 计算新的滚动位置，使光标位置在内容中保持相对不变
-      // 缩放后，内容尺寸变化，需要按比例调整滚动位置
-      const newScrollLeft = contentX - newPointX;
-      const newScrollTop = contentY - newPointY;
-      
-      // 设置新的滚动位置，确保不超出边界
-      scrollContainer!.scrollLeft = Math.max(0, Math.min(newScrollLeft, scrollContainer!.scrollWidth - scrollContainer!.clientWidth));
-      scrollContainer!.scrollTop = Math.max(0, Math.min(newScrollTop, scrollContainer!.scrollHeight - scrollContainer!.clientHeight));
+    // 获取当前滚动位置
+    const scrollLeft = scrollContainer.scrollLeft || 0;
+    const scrollTop = scrollContainer.scrollTop || 0;
+    
+    // 计算光标在内容中的绝对位置（考虑滚动偏移）
+    const contentX = scrollLeft + pointX;
+    const contentY = scrollTop + pointY;
+    
+    // 确定缩放方向（向上滚动 = 放大，向下滚动 = 缩小）
+    const isZoomIn = deltaY < 0;
+    
+    // 检查缩放限制
+    const currentScale = getCurrentScale();
+    if (isZoomIn && currentScale >= MAX_SCALE) {
+      return; // 已达到最大缩放，不执行
+    }
+    if (!isZoomIn && currentScale <= MIN_SCALE) {
+      return; // 已达到最小缩放，不执行
+    }
+    
+    // 执行缩放
+    if (isZoomIn) {
+      zoomIn();
+    } else {
+      zoomOut();
+    }
+    
+    // 等待 DOM 更新后调整滚动位置
+    // 使用 nextTick 和 requestAnimationFrame 确保缩放操作已完成
+    nextTick(() => {
+      requestAnimationFrame(() => {
+        if (!scrollContainer || !(scrollContainer instanceof Element)) return;
+        try {
+          // 重新获取容器（可能因为缩放而改变）
+          const newRect = scrollContainer.getBoundingClientRect();
+          const newPointX = clientX - newRect.left;
+          const newPointY = clientY - newRect.top;
+          
+          // 计算新的滚动位置，使光标位置在内容中保持相对不变
+          // 缩放后，内容尺寸变化，需要按比例调整滚动位置
+          const newScrollLeft = contentX - newPointX;
+          const newScrollTop = contentY - newPointY;
+          
+          // 设置新的滚动位置，确保不超出边界
+          scrollContainer.scrollLeft = Math.max(0, Math.min(newScrollLeft, scrollContainer.scrollWidth - scrollContainer.clientWidth));
+          scrollContainer.scrollTop = Math.max(0, Math.min(newScrollTop, scrollContainer.scrollHeight - scrollContainer.clientHeight));
+        } catch (error) {
+          // 如果getBoundingClientRect失败，忽略错误
+          console.warn('Failed to adjust scroll position after zoom:', error);
+        }
+      });
     });
-  });
+  } catch (error) {
+    // 如果getBoundingClientRect或其他DOM操作失败，忽略错误
+    console.warn('Failed to zoom at point:', error);
+  }
 };
 
 // 处理滚轮缩放事件

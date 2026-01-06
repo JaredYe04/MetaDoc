@@ -37,7 +37,7 @@
                   :srcdoc="sanitizedHtmlContent"
                   class="html-iframe"
                   frameborder="0"
-                  sandbox="allow-same-origin"
+                  sandbox="allow-same-origin allow-scripts"
                   @load="preventIframeNavigation"
                 ></iframe>
               </div>

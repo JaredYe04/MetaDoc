@@ -134,6 +134,149 @@ class StandardToolCallParser implements ToolCallParser {
         // 如果DSML解析失败，继续尝试JSON解析
       }
       
+      // 尝试使用DOMParser解析XML格式
+      // 支持两种格式：
+      // 1. 纯XML格式：<tool_id>{...}</tool_id>（标签名即工具ID）
+      // 2. 标准XML格式：<name>tool_id</name><arguments>{...}</arguments>
+      try {
+        const parser = new DOMParser()
+        // 尝试解析为XML（如果失败会返回包含解析错误的文档）
+        const xmlDoc = parser.parseFromString(toolCallContent, 'text/xml')
+        
+        // 检查是否有解析错误
+        const parseError = xmlDoc.querySelector('parsererror')
+        if (!parseError) {
+          // 解析成功，检查是哪种XML格式
+          
+          // 首先检查是否是标准XML格式（<name>...</name><arguments>...</arguments>）
+          const nameElement = xmlDoc.querySelector('name')
+          const argumentsElement = xmlDoc.querySelector('arguments')
+          
+          if (nameElement && argumentsElement) {
+            getLogger().debug('[StandardToolCallParser] 检测到标准XML格式的工具调用')
+            const toolId = nameElement.textContent?.trim() || ''
+            const argumentsContent = argumentsElement.textContent?.trim() || ''
+            
+            if (!toolId) {
+              return this.createInvalidToolCall(toolCallContent, index, 'XML格式中缺少工具ID（<name>标签为空）')
+            }
+            
+            // 尝试解析arguments中的JSON
+            let parameters: Record<string, unknown> | null = null
+            
+            // 先尝试提取JSON字符串
+            let jsonStr = extractOuterJsonString(argumentsContent) || argumentsContent.trim()
+            
+            // 尝试宽松的JSON解析
+            let parsed: any = parseLooseJson(jsonStr)
+            
+            // 如果宽松解析失败，尝试修复后解析
+            if (!parsed) {
+              const fixed = tryFixJsonFormat(jsonStr)
+              if (fixed) {
+                parsed = parseLooseJson(fixed)
+              }
+            }
+            
+            // 如果仍然失败，尝试标准解析
+            if (!parsed) {
+              try {
+                parsed = JSON.parse(jsonStr.replace(/,\s*([}\]])/g, '$1'))
+              } catch (parseError) {
+                return this.createInvalidToolCall(toolCallContent, index, `XML格式中arguments的JSON解析失败: ${parseError}`)
+              }
+            }
+            
+            // 确保参数是对象类型
+            if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+              parameters = parsed
+            } else {
+              return this.createInvalidToolCall(toolCallContent, index, 'XML格式中arguments必须是JSON对象')
+            }
+            
+            if (!parameters) {
+              return this.createInvalidToolCall(toolCallContent, index, 'XML格式中arguments解析失败')
+            }
+            
+            getLogger().debug(`[StandardToolCallParser] 标准XML格式解析成功: toolId=${toolId}`)
+            
+            return {
+              id: `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+              tool_id: toolId,
+              parameters,
+              isValid: true,
+              rawContent: toolCallContent
+            }
+          }
+          
+          // 检查是否是纯XML格式（标签名即工具ID）
+          // 排除保留的标签名（如name、arguments等，这些是标准XML格式）
+          const reservedTags = ['name', 'arguments', 'parameters', 'params', 'args', 'tool_call', 'tool-call', 'function_call', 'function-call']
+          const rootElement = xmlDoc.documentElement
+          
+          if (rootElement && rootElement.tagName && !reservedTags.includes(rootElement.tagName.toLowerCase())) {
+            const toolId = rootElement.tagName
+            const jsonContent = rootElement.textContent?.trim() || ''
+            
+            getLogger().debug(`[StandardToolCallParser] 检测到纯XML格式的工具调用: toolId=${toolId}`)
+            
+            if (!toolId) {
+              return this.createInvalidToolCall(toolCallContent, index, '纯XML格式中标签名为空')
+            }
+            
+            // 尝试解析标签内容中的JSON
+            let parameters: Record<string, unknown> | null = null
+            
+            // 先尝试提取JSON字符串
+            let jsonStr = extractOuterJsonString(jsonContent) || jsonContent.trim()
+            
+            // 尝试宽松的JSON解析
+            let parsed: any = parseLooseJson(jsonStr)
+            
+            // 如果宽松解析失败，尝试修复后解析
+            if (!parsed) {
+              const fixed = tryFixJsonFormat(jsonStr)
+              if (fixed) {
+                parsed = parseLooseJson(fixed)
+              }
+            }
+            
+            // 如果仍然失败，尝试标准解析
+            if (!parsed) {
+              try {
+                parsed = JSON.parse(jsonStr.replace(/,\s*([}\]])/g, '$1'))
+              } catch (parseError) {
+                return this.createInvalidToolCall(toolCallContent, index, `纯XML格式中JSON解析失败: ${parseError}`)
+              }
+            }
+            
+            // 确保参数是对象类型
+            if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+              parameters = parsed
+            } else {
+              return this.createInvalidToolCall(toolCallContent, index, '纯XML格式中内容必须是JSON对象')
+            }
+            
+            if (!parameters) {
+              return this.createInvalidToolCall(toolCallContent, index, '纯XML格式中JSON解析失败')
+            }
+            
+            getLogger().debug(`[StandardToolCallParser] 纯XML格式解析成功: toolId=${toolId}`)
+            
+            return {
+              id: `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+              tool_id: toolId,
+              parameters,
+              isValid: true,
+              rawContent: toolCallContent
+            }
+          }
+        }
+      } catch (xmlParseError) {
+        // XML解析失败，继续尝试其他格式
+        getLogger().debug('[StandardToolCallParser] XML解析失败，继续尝试其他格式:', xmlParseError)
+      }
+      
       // 尝试从代码块中提取JSON（支持 ```json ... ``` 或 ``` ... ```）
       let jsonStr = toolCallContent.trim()
       
@@ -718,6 +861,271 @@ class OpenAIFunctionCallParser implements ToolCallParser {
 }
 
 /**
+ * XML格式工具调用解析器
+ * 支持两种格式：
+ * 1. 标准XML格式：<name>tool_id</name><arguments>{...}</arguments>
+ * 2. 纯XML格式：<tool_id>{...}</tool_id>（标签名即工具ID）
+ */
+class XMLToolCallParser implements ToolCallParser {
+  name = 'xml-tool-call'
+  
+  detect(content: string): boolean {
+    // 检测标准XML格式：<name>...</name><arguments>...</arguments>
+    // 或者只有name或只有arguments（不完整格式，需要返回dummy-tool）
+    const hasName = /<name>[\s\S]*?<\/name>/i.test(content)
+    const hasArguments = /<arguments>[\s\S]*?<\/arguments>/i.test(content)
+    
+    if (hasName || hasArguments) {
+      return true
+    }
+    
+    // 检测纯XML格式：<tool_id>...</tool_id>
+    // 排除保留标签（这些是标准XML格式的一部分）
+    const reservedTags = ['name', 'arguments', 'parameters', 'params', 'args', 'tool_call', 'tool-call', 'function_call', 'function-call']
+    const pureXmlMatch = content.match(/^<([a-zA-Z0-9_-]+)>[\s\S]*?<\/\1>$/i)
+    if (pureXmlMatch && !reservedTags.includes(pureXmlMatch[1].toLowerCase())) {
+      return true
+    }
+    
+    return false
+  }
+  
+  parse(
+    content: string,
+    options: {
+      loose?: boolean
+      validateToolId?: boolean
+      toolIdValidator?: (toolId: string) => boolean
+    } = {}
+  ): ParsedToolCall[] | null {
+    const { validateToolId = false, toolIdValidator } = options
+    
+    try {
+      const toolCalls: ParsedToolCall[] = []
+      let isStandardXMLFormat = false
+      let isPureXMLFormat = false
+      
+      // 尝试使用DOMParser解析XML
+      try {
+        const parser = new DOMParser()
+        // 将内容包裹在根元素中，使其成为有效的XML文档
+        const wrappedContent = `<root>${content}</root>`
+        const xmlDoc = parser.parseFromString(wrappedContent, 'text/xml')
+        
+        // 检查是否有解析错误
+        const parseError = xmlDoc.querySelector('parsererror')
+        if (parseError) {
+          getLogger().debug('[XMLToolCallParser] XML解析失败，尝试其他格式')
+          return null
+        }
+        
+        const rootElement = xmlDoc.documentElement
+        
+        // 首先检查是否是标准XML格式（<name>...</name><arguments>...</arguments>）
+        const nameElements = rootElement.querySelectorAll('name')
+        const argumentsElements = rootElement.querySelectorAll('arguments')
+        
+        // 检测格式类型
+        const hasName = nameElements.length > 0
+        const hasArguments = argumentsElements.length > 0
+        
+        if (hasName && hasArguments) {
+          // 标准XML格式：可能有多个工具调用
+          isStandardXMLFormat = true
+          for (let i = 0; i < Math.min(nameElements.length, argumentsElements.length); i++) {
+            const nameElement = nameElements[i]
+            const argumentsElement = argumentsElements[i]
+            
+            const toolId = nameElement.textContent?.trim() || ''
+            const argumentsContent = argumentsElement.textContent?.trim() || ''
+            
+            // 如果name标签为空，返回dummy-tool
+            if (!toolId) {
+              toolCalls.push(this.createInvalidToolCall(content, i, 'XML格式中缺少工具ID（<name>标签为空）', 'standard'))
+              continue
+            }
+            
+            const parsed = this.parseXMLToolCall(toolId, argumentsContent, i, validateToolId, toolIdValidator, content, 'standard')
+            if (parsed) {
+              toolCalls.push(parsed)
+            }
+          }
+        } else if (hasName || hasArguments) {
+          // 只有name或只有arguments，格式不完整
+          if (hasName && !hasArguments) {
+            toolCalls.push(this.createInvalidToolCall(content, 0, 'XML格式中缺少arguments标签', 'standard'))
+          } else if (!hasName && hasArguments) {
+            toolCalls.push(this.createInvalidToolCall(content, 0, 'XML格式中缺少name标签', 'standard'))
+          }
+        } else {
+          // 检查是否是纯XML格式（标签名即工具ID）
+          const reservedTags = ['name', 'arguments', 'parameters', 'params', 'args', 'tool_call', 'tool-call', 'function_call', 'function-call', 'root']
+          
+          // 查找所有直接子元素（排除root）
+          const children = Array.from(rootElement.children).filter(child => 
+            child.tagName && !reservedTags.includes(child.tagName.toLowerCase())
+          )
+          
+          if (children.length > 0) {
+            isPureXMLFormat = true
+            for (let i = 0; i < children.length; i++) {
+              const child = children[i]
+              const toolId = child.tagName
+              const jsonContent = child.textContent?.trim() || ''
+              
+              const parsed = this.parseXMLToolCall(toolId, jsonContent, i, validateToolId, toolIdValidator, content, 'pure')
+              if (parsed) {
+                toolCalls.push(parsed)
+              }
+            }
+          }
+        }
+        
+        // 如果检测到XML格式但解析失败，返回dummy-tool
+        if ((isStandardXMLFormat || isPureXMLFormat) && toolCalls.length === 0) {
+          // 这种情况不应该发生，因为上面已经处理了
+          return null
+        }
+        
+        return toolCalls.length > 0 ? toolCalls : null
+      } catch (xmlParseError) {
+        getLogger().debug('[XMLToolCallParser] XML解析异常:', xmlParseError)
+        return null
+      }
+    } catch (error) {
+      getLogger().error('[XMLToolCallParser] 解析失败:', error)
+      return null
+    }
+  }
+  
+  private parseXMLToolCall(
+    toolId: string,
+    jsonContent: string,
+    index: number,
+    validateToolId: boolean,
+    toolIdValidator: ((toolId: string) => boolean) | undefined,
+    rawContent: string,
+    formatType: 'standard' | 'pure' = 'standard'
+  ): ParsedToolCall | null {
+    if (!toolId) {
+      const errorMsg = formatType === 'pure' 
+        ? '纯XML格式中标签名为空'
+        : 'XML格式中缺少工具ID（<name>标签为空）'
+      return this.createInvalidToolCall(rawContent, index, errorMsg, formatType)
+    }
+    
+    // 尝试解析JSON内容
+    let parameters: Record<string, unknown> | null = null
+    
+    // 先尝试提取JSON字符串
+    let jsonStr = extractOuterJsonString(jsonContent) || jsonContent.trim()
+    
+    // 尝试宽松的JSON解析
+    let parsed: any = parseLooseJson(jsonStr)
+    
+    // 如果宽松解析失败，尝试修复后解析
+    if (!parsed) {
+      const fixed = tryFixJsonFormat(jsonStr)
+      if (fixed) {
+        parsed = parseLooseJson(fixed)
+      }
+    }
+    
+    // 如果仍然失败，尝试标准解析
+    if (!parsed) {
+      try {
+        parsed = JSON.parse(jsonStr.replace(/,\s*([}\]])/g, '$1'))
+      } catch (parseError) {
+        const errorMsg = formatType === 'pure'
+          ? `纯XML格式中JSON解析失败: ${parseError}`
+          : `XML格式中arguments的JSON解析失败: ${parseError}`
+        return this.createInvalidToolCall(rawContent, index, errorMsg, formatType)
+      }
+    }
+    
+    // 确保参数是对象类型
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      parameters = parsed
+    } else {
+      const errorMsg = formatType === 'pure'
+        ? '纯XML格式中内容必须是JSON对象'
+        : 'XML格式中arguments必须是JSON对象'
+      return this.createInvalidToolCall(rawContent, index, errorMsg, formatType)
+    }
+    
+    if (!parameters) {
+      const errorMsg = formatType === 'pure'
+        ? '纯XML格式中JSON解析失败'
+        : 'XML格式中arguments解析失败'
+      return this.createInvalidToolCall(rawContent, index, errorMsg, formatType)
+    }
+    
+    const toolCall: ParsedToolCall = {
+      id: `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+      tool_id: toolId,
+      parameters,
+      isValid: true,
+      rawContent: rawContent
+    }
+    
+    if (validateToolId && toolIdValidator) {
+      if (!toolIdValidator(toolId)) {
+        toolCall.isValid = false
+        toolCall.error = `工具ID "${toolId}" 不存在或不可用`
+      }
+    }
+    
+    getLogger().debug(`[XMLToolCallParser] XML格式解析成功: toolId=${toolId}, formatType=${formatType}`)
+    
+    return toolCall
+  }
+  
+  private createInvalidToolCall(
+    rawContent: string,
+    index: number,
+    error: string,
+    formatType: 'standard' | 'pure' = 'standard'
+  ): ParsedToolCall {
+    return {
+      id: `call_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+      tool_id: 'dummy-tool',
+      parameters: {
+        error,
+        rawContent
+      },
+      isValid: false,
+      error,
+      rawContent
+    }
+  }
+  
+  cleanMarkers(content: string): string {
+    let cleaned = content
+    
+    // 清除标准XML格式
+    cleaned = cleaned.replace(/<name>[\s\S]*?<\/name>/gi, '')
+    cleaned = cleaned.replace(/<arguments>[\s\S]*?<\/arguments>/gi, '')
+    
+    // 清除纯XML格式（需要匹配标签名）
+    // 匹配 <tag>...</tag> 格式，但排除保留标签
+    const reservedTags = ['name', 'arguments', 'parameters', 'params', 'args', 'tool_call', 'tool-call', 'function_call', 'function-call']
+    cleaned = cleaned.replace(/<([a-zA-Z0-9_-]+)>[\s\S]*?<\/\1>/gi, (match, tagName) => {
+      if (reservedTags.includes(tagName.toLowerCase())) {
+        return match // 保留保留标签
+      }
+      return '' // 清除工具调用标签
+    })
+    
+    return cleaned.trim()
+  }
+  
+  getMarkerPattern(): RegExp {
+    // 匹配标准XML格式和纯XML格式
+    return /<name>[\s\S]*?<\/name>\s*<arguments>[\s\S]*?<\/arguments>|<([a-zA-Z0-9_-]+)>[\s\S]*?<\/\1>/gi
+  }
+}
+
+/**
  * 工具调用解析器管理器
  * 按优先级顺序尝试解析，避免重复匹配
  */
@@ -728,9 +1136,11 @@ export class ToolCallParserManager {
     // 按优先级注册解析器（优先级高的在前）
     // 1. 标准格式（最明确，优先级最高）
     this.parsers.push(new StandardToolCallParser())
-    // 2. DeepSeek DSML格式
+    // 2. XML格式（在DSML之前，因为XML格式更常见）
+    this.parsers.push(new XMLToolCallParser())
+    // 3. DeepSeek DSML格式
     this.parsers.push(new DeepSeekDSMLParser())
-    // 3. OpenAI格式（最宽松，优先级最低，避免误匹配）
+    // 4. OpenAI格式（最宽松，优先级最低，避免误匹配）
     this.parsers.push(new OpenAIFunctionCallParser())
   }
   

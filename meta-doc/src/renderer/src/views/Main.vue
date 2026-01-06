@@ -1,25 +1,127 @@
 <template>
   <div class="common-layout">
-    <!-- HeadMenu 最顶层占据一行 -->
+    <!-- MainTabs 最顶层占据一行 -->
     <el-header class="top-header">
-      <HeadMenu />
+      <MainTabs />
     </el-header>
-    <!-- 主内容区域：左边LeftMenu，右边router view -->
+    <!-- 主内容区域：左边LeftMenu，中间HeadMenu（仅在文档Tab显示），右边内容 -->
     <el-container class="main-shell">
       <el-aside class="side-menu">
         <LeftMenu />
+      </el-aside>
+      <!-- 子视图菜单（仅在文档相关视图显示） -->
+      <el-aside v-if="showSubViewMenu" class="sub-view-menu-aside" :class="{ 'is-collapsed': headMenuCollapsed }">
+        <HeadMenu />
       </el-aside>
       <el-container class="content-shell">
         <el-main class="content-main">
           <UserProfileCard v-if="showUserProfileCard" @close="showUserProfileCard = false" class="user-profile-card"
             :position="menuPosition" />
-          <router-view></router-view>
+          <!-- Tab内容区域 - 使用v-show实现真正的keepAlive，所有Tab保持挂载 -->
+          <div class="tab-content-wrapper">
+            <!-- 使用v-show控制显示/隐藏，实现零时间切换，所有组件保持挂载状态 -->
+            <div class="tab-content-container">
+              <!-- 渲染所有Tab的内容，使用v-show控制显示/隐藏，实现零时间切换 -->
+              <template v-for="tab in workspace.tabs" :key="tab.id">
+                <!-- 文档Tab：根据lastView显示不同视图 -->
+                <template v-if="tab.kind === 'file' || tab.kind === 'new'">
+                  <Editor 
+                    v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'editor'"
+                    :key="`editor-${tab.id}`"
+                  />
+                  <Outline 
+                    v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'outline'"
+                    :key="`outline-${tab.id}`"
+                  />
+                  <Visualize 
+                    v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'visualize'"
+                    :key="`visualize-${tab.id}`"
+                  />
+                  <AgentView 
+                    v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'agent'"
+                    :key="`agent-${tab.id}`"
+                  />
+                  <ProofreadView 
+                    v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'proofread'"
+                    :key="`proofread-${tab.id}`"
+                  />
+                </template>
+                <!-- 系统Tab和工具Tab：直接渲染对应组件，不使用router-view，实现真正的keepAlive -->
+                <template v-else-if="tab.kind === 'system' || tab.kind === 'tool'">
+                  <GlobalHome 
+                    v-if="tab.route === '/global-home'"
+                    v-show="tab.id === activeTabId"
+                    :key="`global-home-${tab.id}`"
+                  />
+                  <KnowledgeBase 
+                    v-else-if="tab.route === '/knowledge-base'"
+                    v-show="tab.id === activeTabId"
+                    :key="`knowledge-base-${tab.id}`"
+                  />
+                  <DebugView 
+                    v-else-if="tab.route === '/debug'"
+                    v-show="tab.id === activeTabId"
+                    :key="`debug-${tab.id}`"
+                  />
+                  <DummyView 
+                    v-else-if="tab.route === '/dummy'"
+                    v-show="tab.id === activeTabId"
+                    :key="`dummy-${tab.id}`"
+                  />
+                  <Setting 
+                    v-else-if="tab.route === '/setting'"
+                    v-show="tab.id === activeTabId"
+                    :key="`setting-${tab.id}`"
+                  />
+                  <AIChat 
+                    v-else-if="tab.route === '/ai-chat'"
+                    v-show="tab.id === activeTabId"
+                    :key="`ai-chat-${tab.id}`"
+                  />
+                  <FomulaRecognition 
+                    v-else-if="tab.route === '/fomula-recognition'"
+                    v-show="tab.id === activeTabId"
+                    :key="`fomula-recognition-${tab.id}`"
+                  />
+                  <DataAnalysisWindow 
+                    v-else-if="tab.route === '/data-analysis'"
+                    v-show="tab.id === activeTabId"
+                    :key="`data-analysis-${tab.id}`"
+                  />
+                  <OcrWindow 
+                    v-else-if="tab.route === '/ocr'"
+                    v-show="tab.id === activeTabId"
+                    :key="`ocr-${tab.id}`"
+                  />
+                  <AttachmentWindow 
+                    v-else-if="tab.route === '/attachment'"
+                    v-show="tab.id === activeTabId"
+                    :key="`attachment-${tab.id}`"
+                  />
+                  <GraphWindow 
+                    v-else-if="tab.route === '/graph' || tab.route === '/ai-graph' || tab.route === '/smart-drawing-assistant'"
+                    v-show="tab.id === activeTabId"
+                    :key="`graph-${tab.id}`"
+                  />
+                  <!-- 其他系统Tab和工具Tab使用router-view作为fallback -->
+                  <router-view 
+                    v-else
+                    v-show="tab.id === activeTabId"
+                    :key="`router-${tab.id}`"
+                  />
+                </template>
+              </template>
+              <!-- 如果没有Tab，显示router-view作为fallback -->
+              <router-view v-if="!workspace.tabs.length" key="router-fallback"></router-view>
+            </div>
+          </div>
         </el-main>
-        <el-footer class="content-footer">
-          <BottomMenu />
-        </el-footer>
       </el-container>
     </el-container>
+    <!-- BottomMenu放在最下侧，在所有内容之上 -->
+    <el-footer class="bottom-footer">
+      <BottomMenu />
+    </el-footer>
     <!-- 固定底部菜单 -->
     <!-- 固定的底部状态栏 -->
 
@@ -48,7 +150,8 @@
 // 不使用 Node.js path 模块，在浏览器环境中使用字符串操作
 import LeftMenu from '../components/LeftMenu.vue'
 import HeadMenu from '../components/HeadMenu.vue'
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import MainTabs from '../components/MainTabs.vue'
+import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
 import { getRecentDocs, getSetting } from '../utils/settings.js'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
 import { ElNotification, ElMessageBox } from 'element-plus'
@@ -71,6 +174,22 @@ import NotificationQueue from '../components/NotificationQueue.vue'
 import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
 import FileConflictDialog from '../components/FileConflictDialog.vue'
 import { useRouter, useRoute } from 'vue-router'
+import Editor from './Editor.vue'
+import Outline from './Outline.vue'
+import Visualize from './Visualize.vue'
+import AgentView from './AgentView.vue'
+import ProofreadView from './ProofreadView.vue'
+import KnowledgeBase from './KnowledgeBase.vue'
+import DebugView from './DebugView.vue'
+import GlobalHome from './GlobalHome.vue'
+import DummyView from './DummyView.vue'
+import Setting from './Setting.vue'
+import AIChat from './AIChat.vue'
+import FomulaRecognition from './FomulaRecognition.vue'
+import DataAnalysisWindow from './DataAnalysisWindow.vue'
+import OcrWindow from './OcrWindow.vue'
+import AttachmentWindow from './AttachmentWindow.vue'
+import GraphWindow from './GraphWindow.vue'
 const { t } = useI18n()
 
 import { createRendererLogger } from '../utils/logger.ts'
@@ -79,6 +198,37 @@ const logger = createRendererLogger('Main', {
 })
 
 const workspace = useWorkspace()
+
+// 当前活动Tab
+const activeTab = computed(() => {
+  return workspace.tabs.find(t => t.id === workspace.activeTabId.value)
+})
+
+// 判断是否显示子视图菜单（仅在文档相关视图显示）
+const showSubViewMenu = computed(() => {
+  if (!activeTab.value) return false
+  // 如果是文档Tab，显示子视图菜单
+  return activeTab.value.kind === 'file' || activeTab.value.kind === 'new'
+})
+
+// 当前文档视图
+const currentDocumentView = computed(() => {
+  if (!activeTab.value || (activeTab.value.kind !== 'file' && activeTab.value.kind !== 'new')) {
+    return 'editor'
+  }
+  const doc = workspace.ensureDocument(activeTab.value.id)
+  return doc.lastView || 'editor'
+})
+
+// 获取指定Tab的文档视图（用于v-show）
+const getDocumentView = (tabId: string): string => {
+  const tab = workspace.tabs.find(t => t.id === tabId)
+  if (!tab || (tab.kind !== 'file' && tab.kind !== 'new')) {
+    return 'editor'
+  }
+  const doc = workspace.ensureDocument(tabId)
+  return doc.lastView || 'editor'
+}
 const {
   tabs: workspaceTabs,
   activeTabId,
@@ -104,7 +254,7 @@ const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocume
   meta: { ...data.meta },
   aiDialogs: cloneDeep(data.aiDialogs),
   agentSessions: cloneDeep(data.agentSessions),
-  lastView: data.lastView,
+  lastView: data.lastView === 'article' ? 'editor' : (data.lastView === 'outline' ? 'outline' : 'editor'),
   renderedHtml: '',
   dirty: false,
   savedMarkdown: data.markdown,
@@ -239,6 +389,7 @@ const showUserProfileCard = ref(false)
 const autoSaveEnabled = ref(false)
 const autoSaveInterval = ref(2147483647)
 const menuPosition = ref({ top: 100, left: 100 });
+const headMenuCollapsed = ref(false)
 async function autoSave() {
   do {
     const autoSave = await getSetting('autoSave')
@@ -629,6 +780,42 @@ function initMainEventListeners() {
   }
   eventBus.on('ai-chat-export-to-document', handleAiChatExportToDocument)
 
+  // 处理工具窗口打开请求（改为在主窗口Tab中打开）
+  const handleOpenToolTab = (payload: unknown) => {
+    const data = payload as { toolType: 'ocr' | 'graph' | 'attachment' | 'dataAnalysis' | 'formulaRecognition' | 'aiChat' | 'setting' }
+    if (!data || !data.toolType) return
+    
+    workspace.openToolTab(data.toolType)
+  }
+  eventBus.on('open-tool-tab', handleOpenToolTab)
+
+  // 监听HeadMenu折叠状态变化
+  const handleHeadMenuCollapseChanged = (payload: unknown) => {
+    headMenuCollapsed.value = payload as boolean
+  }
+  eventBus.on('head-menu-collapse-changed', handleHeadMenuCollapseChanged)
+
+  // 处理系统窗口打开请求（主页、知识库、调试工具等）
+  const handleOpenSystemTab = (payload: unknown) => {
+    const data = payload as { route: string; title: string }
+    if (!data || !data.route || !data.title) return
+    
+    workspace.openSystemTab(data.route, data.title)
+  }
+  eventBus.on('open-system-tab', handleOpenSystemTab)
+
+  // 监听broadcast消息（用于接收主进程发送的工具Tab打开请求）
+  const handleReceiveBroadcast = (message: any) => {
+    if (message && typeof message === 'object') {
+      if (message.eventName === 'open-tool-tab' && message.data) {
+        handleOpenToolTab(message.data)
+      } else if (message.eventName === 'open-system-tab' && message.data) {
+        handleOpenSystemTab(message.data)
+      }
+    }
+  }
+  eventBus.on('receive-broadcast', handleReceiveBroadcast)
+
   // 注册清理函数
   cleanupMainListeners.push(
     () => eventBus.off('refresh', handleRefresh),
@@ -642,7 +829,11 @@ function initMainEventListeners() {
     () => eventBus.off('show-error', handleShowError),
     () => eventBus.off('show-warning', handleShowWarning),
     () => eventBus.off('ai-chat-insert-to-document', handleAiChatInsertToDocument),
-    () => eventBus.off('ai-chat-export-to-document', handleAiChatExportToDocument)
+    () => eventBus.off('ai-chat-export-to-document', handleAiChatExportToDocument),
+    () => eventBus.off('open-tool-tab', handleOpenToolTab),
+    () => eventBus.off('open-system-tab', handleOpenSystemTab),
+    () => eventBus.off('receive-broadcast', handleReceiveBroadcast),
+    () => eventBus.off('head-menu-collapse-changed', handleHeadMenuCollapseChanged)
   )
 }
 
@@ -656,6 +847,7 @@ onMounted(async () => {
     localStorage.setItem('loginToken', token)
     await verifyToken(token)//自动登录
   }
+  
   await autoSave()
 })
 
@@ -760,10 +952,46 @@ onBeforeUnmount(() => {
   z-index: 100;
 }
 
+.sub-view-menu-aside {
+  width: 120px;
+  min-width: 120px;
+  background-color: var(--el-bg-color, #ffffff);
+  border-right: 1px solid var(--el-border-color-lighter, #f0f0f0);
+  overflow: hidden;
+  transition: width 0.3s ease, min-width 0.3s ease;
+}
+
+.sub-view-menu-aside.is-collapsed {
+  width: 64px;
+  min-width: 64px;
+}
+
+.tab-content-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.tab-content-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* 确保所有Tab内容都绝对定位，使用v-show控制显示/隐藏 */
+.tab-content-container > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
 .main-shell {
   flex: 1;
   display: flex;
-  height: calc(100vh - 40px);
+  height: calc(100vh - 40px - 30px); /* 减去顶部Header和底部BottomMenu的高度 */
   overflow: hidden;
   background-color: var(--el-bg-color, #ffffff);
 }
@@ -798,14 +1026,16 @@ onBeforeUnmount(() => {
   display: none;
 }
 
-.content-footer {
-  height: 28px;
+/* BottomMenu放在最下侧 */
+.bottom-footer {
+  height: 30px;
   padding: 0;
-  flex: 0 0 28px;
+  flex: 0 0 30px;
   display: flex;
   align-items: stretch;
   background-color: var(--el-bg-color, #ffffff);
   border-top: 1px solid var(--el-border-color-lighter, #f0f0f0);
+  z-index: 10;
 }
 
 .user-profile-card {

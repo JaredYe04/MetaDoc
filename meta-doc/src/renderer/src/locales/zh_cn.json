@@ -26,6 +26,12 @@
         "agent": "Agent",
         "proofread": "文章校对"
     },
+    "mainTabs": {
+        "version": "版本 {version}",
+        "minimize": "最小化",
+        "maximize": "最大化",
+        "close": "关闭"
+    },
     "leftMenu": {
         "metaDocTooltip": "MetaDoc ;-)",
         "fileTooltip": "文件",
@@ -2422,5 +2428,8 @@
     "xiaoliu": "小六",
     "qihao": "七号",
     "bahao": "八号"
+  },
+  "dummyView": {
+    "emptyDescription": "暂无打开的文档"
   }
 }

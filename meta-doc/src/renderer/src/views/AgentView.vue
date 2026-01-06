@@ -1,12 +1,5 @@
 <template>
   <div class="agent-view-page" :style="pageStyle">
-    <WorkspaceTabs
-      class="agent-tabs"
-      closable
-      @update:activeId="handleTabChange"
-      @close="handleCloseTab"
-      @reorder="handleTabReorder"
-    />
     <!-- 如果文档格式未选择，显示格式选择界面 -->
     <div v-if="needsFormatSelection" class="format-selection-container">
       <NewDocumentWorkspace 
@@ -393,7 +386,6 @@ import ChatComposer from '../components/chat/ChatComposer.vue';
 import ReferenceDisplay from '../components/agent/ReferenceDisplay.vue';
 import type { AgentMessage, AgentSession, AgentTool, ChatAgentMessage, ToolOrigin } from '../types/agent';
 import { cloneDeep } from 'lodash';
-import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
 import { useWorkspace, detectDocumentFormat } from '../stores/workspace';
 import { agentConfigManager, agentSessionManager, agentEngineManager, AIContextManager } from '../utils/agent-framework';
 import { createRendererLogger } from '../utils/logger';
@@ -1784,19 +1776,6 @@ const originLabel = (origin: AgentTool['origin']) => {
   }
 };
 
-const handleTabChange = (id: string) => {
-  if (id !== activeTabId.value) {
-    activateTab(id);
-  }
-};
-
-const handleCloseTab = (id: string) => {
-  removeTab(id);
-};
-
-const handleTabReorder = ({ fromId, toId }: { fromId: string; toId: string }) => {
-  moveTab(fromId, toId);
-};
 
 const toggleSessionMenu = (sessionId: string) => {
   openSessionMenuId.value = openSessionMenuId.value === sessionId ? null : sessionId;

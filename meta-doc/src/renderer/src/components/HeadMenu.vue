@@ -1,173 +1,214 @@
 <template>
-  <el-menu
-    :class="['modern-top-menu', { 'is-locked': isLocked }]"
-    mode="horizontal"
-    :menu-trigger="isLocked ? 'manual' : 'hover'"
-    @select="handleSelect"
-    :default-active="activeMenuIndex"
-    :background-color="themeState.currentTheme.headerBackground"
-    :text-color="themeState.currentTheme.textColor"
-    :active-text-color="themeState.currentTheme.textColor2"
-  >
-    <el-menu-item>
-      <el-tooltip :content="appVersion" placement="bottom" :disabled="!appVersion">
-        <h1>{{ $t('headMenu.title') }}</h1>
-      </el-tooltip>
-    </el-menu-item>
-
-    <el-menu-item index="/">{{ $t('headMenu.home') }}</el-menu-item>
-    <el-menu-item index="/outline">{{ $t('headMenu.outline') }}</el-menu-item>
-    <el-menu-item index="/editor">{{ $t('headMenu.editor') }}</el-menu-item>
-    <el-menu-item index="/visualize">{{ $t('headMenu.visualize') }}</el-menu-item>
-    <el-menu-item index="/agent">{{ $t('headMenu.agent') }}</el-menu-item>
-    <el-menu-item 
-      index="/knowledge-base"
-      :disabled="!knowledgeBaseEnabled"
+  <div class="head-menu-container" :class="{ 'is-collapsed': isCollapsed }">
+    <el-menu
+      :class="['modern-side-menu', 'sub-view-menu', { 'is-locked': isLocked, 'is-collapsed': isCollapsed }]"
+      mode="vertical"
+      :menu-trigger="isLocked ? 'manual' : 'hover'"
+      @select="handleSelect"
+      :default-active="activeMenuIndex"
+      :background-color="themeState.currentTheme.background2nd"
+      :text-color="themeState.currentTheme.SideTextColor"
+      :active-text-color="themeState.currentTheme.SideTextColor"
     >
-      {{ $t('headMenu.knowledgeBase') }}
-    </el-menu-item>
-    <el-menu-item index="/proofread" v-if="activeDocument">{{ $t('headMenu.proofread') }}</el-menu-item>
-    <el-menu-item v-if="isDev" index="/debug">{{ $t('setting.debug.title') }}</el-menu-item>
-    
-  </el-menu>
+      <el-tooltip v-if="isCollapsed" :content="$t('headMenu.editor')" placement="right">
+        <el-menu-item index="editor">
+          <el-icon><EditPen /></el-icon>
+        </el-menu-item>
+      </el-tooltip>
+      <el-menu-item v-if="!isCollapsed" index="editor">
+        <span>{{ $t('headMenu.editor') }}</span>
+      </el-menu-item>
+      
+      <el-tooltip v-if="isCollapsed" :content="$t('headMenu.outline')" placement="right">
+        <el-menu-item index="outline">
+          <el-icon><Menu /></el-icon>
+        </el-menu-item>
+      </el-tooltip>
+      <el-menu-item v-if="!isCollapsed" index="outline">
+        <span>{{ $t('headMenu.outline') }}</span>
+      </el-menu-item>
+      
+      <el-tooltip v-if="isCollapsed" :content="$t('headMenu.visualize')" placement="right">
+        <el-menu-item index="visualize">
+          <el-icon><DataAnalysis /></el-icon>
+        </el-menu-item>
+      </el-tooltip>
+      <el-menu-item v-if="!isCollapsed" index="visualize">
+        <span>{{ $t('headMenu.visualize') }}</span>
+      </el-menu-item>
+      
+      <el-tooltip v-if="isCollapsed" :content="$t('headMenu.agent')" placement="right">
+        <el-menu-item index="agent">
+          <el-icon><User /></el-icon>
+        </el-menu-item>
+      </el-tooltip>
+      <el-menu-item v-if="!isCollapsed" index="agent">
+        <span>{{ $t('headMenu.agent') }}</span>
+      </el-menu-item>
+      
+      <el-tooltip v-if="isCollapsed && activeDocument" :content="$t('headMenu.proofread')" placement="right">
+        <el-menu-item index="proofread">
+          <el-icon><Check /></el-icon>
+        </el-menu-item>
+      </el-tooltip>
+      <el-menu-item v-if="!isCollapsed && activeDocument" index="proofread">
+        <span>{{ $t('headMenu.proofread') }}</span>
+      </el-menu-item>
+    </el-menu>
+    <!-- 折叠按钮 -->
+    <div class="collapse-button" @click="toggleCollapse">
+      <el-icon>
+        <ArrowLeft v-if="!isCollapsed" />
+        <ArrowRight v-else />
+      </el-icon>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import eventBus from '../utils/event-bus'
 import { mixColors, themeState } from '../utils/themes'
 import { useActiveDocument } from '../composables/useActiveDocument'
-import { useWorkspace } from '../stores/workspace'
-import { isDevEnvironment } from '../utils/dev-env'
-import { getAppVersion } from '../utils/version'
+import { useWorkspace, type DocumentView } from '../stores/workspace'
+import { EditPen, Menu, DataAnalysis, User, Check, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 
-// 获取路由实例
-const router = useRouter()
-const route = useRoute()
-
-const activeMenuIndex = ref<string>(route.path)
 const { activeDocument } = useActiveDocument()
-const currentFormat = computed(() => activeDocument.value?.format ?? 'md')
 const workspace = useWorkspace()
 const isLocked = computed(() => workspace.uiLocked?.value === true)
-const isDev = ref<boolean>(false)
-const appVersion = ref<string>('')
-const knowledgeBaseEnabled = ref<boolean>(true)
+
+// 折叠状态
+const isCollapsed = ref(false)
+
+// 切换折叠状态
+const toggleCollapse = () => {
+  if (isLocked.value) return
+  isCollapsed.value = !isCollapsed.value
+  // 通过事件总线通知Main.vue更新宽度
+  eventBus.emit('head-menu-collapse-changed', isCollapsed.value)
+}
+
+// 监听折叠状态变化，通知父组件
+watch(isCollapsed, (newVal) => {
+  eventBus.emit('head-menu-collapse-changed', newVal)
+})
+
+// 当前活动的文档视图
+const activeMenuIndex = computed(() => {
+  if (!activeDocument.value) return 'editor'
+  return activeDocument.value.lastView || 'editor'
+})
 
 // 计算选中状态的背景色（使用辅助背景色）
 const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3))
 const activeTextColor = computed(() => themeState.currentTheme.textColor)
 
-// 方法
-const goHome = (): void => {
-  router.push('/')
-}
-
 const handleSelect = (key: string): void => {
   if (isLocked.value) return
-  router.push(key)
-}
-
-// 检查知识库总开关状态
-const checkKnowledgeBaseEnabled = async () => {
-  const { getSetting } = await import('../utils/settings.js')
-  const enabled = await getSetting('enableKnowledgeBase') || false
-  return enabled
-}
-
-// 生命周期钩子
-onMounted(async (): Promise<void> => {
-  eventBus.on('nav-to', (path: unknown) => {
-    if (typeof path === 'string') {
-      activeMenuIndex.value = path
-      router.push(path)
-    }
-  })
-  
-  // 监听知识库总开关变化
-  eventBus.on('knowledge-base-toggle', async (data: { enabled: boolean }) => {
-    knowledgeBaseEnabled.value = data.enabled
-    if (!data.enabled) {
-      // 如果总开关被关闭，且当前在知识库页面，则切换到首页
-      if (route.path === '/knowledge-base') {
-        router.push('/')
-      }
-    }
-  })
-  
-  // 检查是否为开发环境
-  isDev.value = await isDevEnvironment()
-  // 获取应用版本号
-  appVersion.value = await getAppVersion()
-  
-  // 初始化时检查知识库开关状态
-  const kbEnabled = await checkKnowledgeBaseEnabled()
-  knowledgeBaseEnabled.value = kbEnabled
-  if (!kbEnabled && route.path === '/knowledge-base') {
-    router.push('/')
+  // 切换文档视图，不改变路由
+  const activeTabId = workspace.activeTabId.value
+  if (activeTabId && (workspace.activeTab.value?.kind === 'file' || workspace.activeTab.value?.kind === 'new')) {
+    workspace.updateDocumentLastView(activeTabId, key as DocumentView)
   }
-})
+}
 
-// 监听知识库开关变化
+// 监听活动文档变化，更新菜单选中状态
 watch(
-  () => route.path,
-  async () => {
-    const kbEnabled = await checkKnowledgeBaseEnabled()
-    knowledgeBaseEnabled.value = kbEnabled
-    if (!kbEnabled && route.path === '/knowledge-base') {
-      router.push('/')
+  () => activeDocument.value?.lastView,
+  (newView) => {
+    if (newView) {
+      // 菜单会自动更新，因为activeMenuIndex是computed
     }
-  }
+  },
+  { immediate: true }
 )
 
 // 组件卸载前清除事件监听
 onBeforeUnmount((): void => {
-  eventBus.off('nav-to')
+  // 不需要清除，因为使用的是computed
 })
 </script>
 
 <style scoped>
-/* 现代桌面应用风格的顶部菜单 */
-.modern-top-menu {
-  height: 40px;
-  line-height: 40px;
-  border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0);
-  padding: 0 8px;
+.head-menu-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+
+.head-menu-container.is-collapsed .modern-side-menu {
+  width: 64px;
+}
+
+/* 现代桌面应用风格的侧边菜单 */
+.modern-side-menu.sub-view-menu {
+  width: 120px;
+  height: 100%;
+  border-right: none;
+  padding: 8px 4px;
+  padding-bottom: 48px; /* 为折叠按钮留出空间 */
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  transition: width 0.3s ease;
+  overflow: hidden;
 }
 
-.modern-top-menu :deep(.el-menu-item) {
-  height: 36px;
-  line-height: 36px;
-  margin: 2px 4px;
-  padding: 0 16px;
+.modern-side-menu.is-collapsed {
+  width: 64px;
+  padding: 8px 4px;
+  padding-bottom: 48px;
+}
+
+.modern-side-menu :deep(.el-menu-item) {
+  height: 40px;
+  line-height: 40px;
+  margin: 4px 0;
+  padding: 0 12px;
   border-radius: 6px;
   transition: all 0.2s ease;
   font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
-.modern-top-menu :deep(.el-menu-item:hover) {
+.modern-side-menu.is-collapsed :deep(.el-menu-item) {
+  padding: 0 !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100%;
+  text-align: center;
+}
+
+.modern-side-menu.is-collapsed :deep(.el-menu-item .el-icon) {
+  font-size: 18px;
+  margin: 0 auto !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.modern-side-menu.is-collapsed :deep(.el-menu-item > *) {
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modern-side-menu :deep(.el-menu-item:hover) {
   background-color: var(--el-menu-hover-bg-color, rgba(0, 0, 0, 0.06)) !important;
   border-radius: 6px;
 }
 
-.modern-top-menu :deep(.el-menu-item.is-active) {
+.modern-side-menu :deep(.el-menu-item.is-active) {
   background-color: v-bind('activeBackgroundColor') !important;
   border-radius: 6px;
   border-color: v-bind('activeBackgroundColor') !important;
   color: v-bind('activeTextColor') !important;
-}
-
-/* 标题样式 */
-.modern-top-menu :deep(.el-menu-item:first-child h1) {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 36px;
 }
 
 /* 锁定状态 */
@@ -185,6 +226,39 @@ onBeforeUnmount((): void => {
 .is-locked :deep(.el-sub-menu__title) {
   pointer-events: none;
   cursor: not-allowed !important;
+  opacity: 0.6;
+}
+
+/* 折叠按钮 */
+.collapse-button {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--el-text-color-primary);
+  background-color: transparent;
+  z-index: 10;
+}
+
+.collapse-button:hover {
+  background-color: var(--el-fill-color-light, rgba(0, 0, 0, 0.06));
+}
+
+.collapse-button .el-icon {
+  font-size: 16px;
+}
+
+.is-locked .collapse-button {
+  pointer-events: none;
+  cursor: not-allowed;
   opacity: 0.6;
 }
 </style>

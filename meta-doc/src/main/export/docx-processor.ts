@@ -1012,7 +1012,7 @@ export class OMMLInsertionProcessor implements DocxProcessor {
     }
 
     // 提取标签信息（latex-to-omml 会自动移除 \tag，但我们需要提取标签用于后续显示）
-    const { extractTagFromLatex } = await import('../utils/mathml-converter');
+    const { extractTagFromLatex } = await import('../utils/latex-tag-extractor');
     const { tag, processedLatex: latexWithoutTag } = extractTagFromLatex(latexCode);
     if (tag && verbose) {
       logger.debug(`[转换公式] 提取到标签: ${tag}`);

@@ -1434,7 +1434,7 @@ export const clearFormulaPlaceholders = (): void => {
 
 /**
  * 将 LaTeX 公式转换为包含 MathML 和 OOXML 的 HTML（保留用于PDF导出）
- * 使用 mathjax-node 进行准确的 LaTeX 到 MathML 转换
+ * 使用 latex-to-omml 包进行 LaTeX 到 OMML 转换
  * 
  * @param latex LaTeX 公式代码
  * @param displayMode 是否为块级公式

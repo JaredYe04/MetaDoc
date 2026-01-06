@@ -201,10 +201,10 @@
           <div class="tool-header-title">
             <h2>{{ t('agent.tools.title') }}</h2>
           </div>
-          <div class="tool-legend">
+          <!-- <div class="tool-legend">
             <el-tag size="small" type="info">{{ t('agent.tools.legend.available') }}</el-tag>
             <el-tag size="small" type="warning">{{ t('agent.tools.legend.running') }}</el-tag>
-          </div>
+          </div> -->
         </header>
         <div class="tool-content">
           <el-card
@@ -226,6 +226,7 @@
                 @row-click="selectTool"
                 :highlight-current-row="true"
                 :current-row-key="activeTool?.id"
+                :row-class-name="getToolRowClassName"
                 style="width: 100%; table-layout: fixed;"
               >
                 <el-table-column
@@ -240,14 +241,14 @@
                       {{ t('agent.tool.status.running') }}
                     </el-tag>
                     <el-tag
-                      v-else-if="activeSession?.activeToolIds.includes(row.id)"
+                      v-else-if="activeSession?.activeToolIds && activeSession.activeToolIds.length > 0 && activeSession.activeToolIds.includes(row.id)"
                       type="success"
                       size="small"
                     >
                       {{ t('agent.tools.enabled') }}
                     </el-tag>
                     <el-tag v-else size="small" type="info">
-                      {{ t('agent.tools.disabled') }}
+                      {{ t('agent.tools.available') }}
                     </el-tag>
                   </template>
                 </el-table-column>
@@ -397,6 +398,7 @@ import { useWorkspace, detectDocumentFormat } from '../stores/workspace';
 import { agentConfigManager, agentSessionManager, agentEngineManager, AIContextManager } from '../utils/agent-framework';
 import { createRendererLogger } from '../utils/logger';
 import { agentToolManager } from '../utils/agent-tool-manager';
+import { recognizeIntent } from '../utils/agent-framework/intent-processor';
 import { ai_types, createAiTask, cancelAiTask, useAiTasks, type CustomLlmConfigForTask } from '../utils/ai_tasks';
 import { sanitizeMessages } from '../utils/llm-api.js';
 import { getLlmTemperature } from '../utils/settings.js';
@@ -715,7 +717,7 @@ watch(
           createdAt: new Date(defaultSession.createdAt).toISOString(),
           updatedAt: new Date(defaultSession.updatedAt).toISOString(),
           messages: defaultSession.messages,
-          activeToolIds: agentConfigManager.getAvailableToolIds(defaultConfigId),
+          activeToolIds: [], // 初始状态：所有工具都不高亮，等待意图识别器判断
           agentConfigId: defaultSession.agentConfigId,
           messageQueue: defaultSession.messageQueue || [],
           referenceStore: defaultSession.referenceStore || [],
@@ -923,7 +925,7 @@ const createSession = (agentConfigId?: string) => {
       createdAt: new Date(session.createdAt).toISOString(),
       updatedAt: new Date(session.updatedAt).toISOString(),
       messages: session.messages,
-      activeToolIds: agentConfigManager.getAvailableToolIds(agentConfigId),
+      activeToolIds: [], // 初始状态：所有工具都不高亮，等待意图识别器判断
       agentConfigId: session.agentConfigId,
       messageQueue: session.messageQueue || [],
       referenceStore: session.referenceStore || [],
@@ -989,7 +991,7 @@ const createDefaultSession = () => {
       createdAt: new Date(defaultSession.createdAt).toISOString(),
       updatedAt: new Date(defaultSession.updatedAt).toISOString(),
       messages: defaultSession.messages,
-      activeToolIds: agentConfigManager.getAvailableToolIds(defaultConfigId),
+      activeToolIds: [], // 初始状态：所有工具都不高亮，等待意图识别器判断
       agentConfigId: defaultSession.agentConfigId,
       messageQueue: defaultSession.messageQueue || [],
       referenceStore: defaultSession.referenceStore || [],
@@ -1028,6 +1030,15 @@ const selectTool = (tool: AgentTool) => {
   activeToolId.value = tool.id;
 };
 
+// 获取工具行的CSS类名（用于高亮活跃工具）
+// 只有在意图识别器选中工具后才高亮（activeToolIds 不为空且包含该工具）
+const getToolRowClassName = ({ row }: { row: AgentTool }) => {
+  if (activeSession.value?.activeToolIds && activeSession.value.activeToolIds.length > 0 && activeSession.value.activeToolIds.includes(row.id)) {
+    return 'active-tool-row';
+  }
+  return '';
+};
+
 const createChatMessage = (role: 'user' | 'assistant', markdown: string, referenceIds?: string[]): ChatAgentMessage => ({
   id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   timestamp: new Date().toISOString(),
@@ -1060,6 +1071,12 @@ const handleComposerSubmit = async () => {
   }
 
   logger.debug(`[handleComposerSubmit] 用户消息内容: ${content.substring(0, 50)}...`);
+
+  // 清空之前的活跃工具（用户发送新消息时，等待意图识别结果）
+  if (session.activeToolIds) {
+    session.activeToolIds = [];
+    logger.debug('[handleComposerSubmit] 已清空activeToolIds，等待意图识别结果');
+  }
 
   // 创建用户消息，保存当前激活的引用ID
   const message = createChatMessage('user', content, [...activeReferenceIds.value]);
@@ -1336,6 +1353,37 @@ const executeAgentEngine = async (
       // 确保assistantMessageRef存在
       if (!assistantMessageRef) {
         assistantMessageRef = ref('');
+      }
+      
+      // 执行意图识别（用于更新activeToolIds和工具高亮）
+      try {
+        const intentOutputRef = ref('');
+        // 类型转换：AgentView使用的是agent类型的AgentSession，但recognizeIntent期望agent-framework类型
+        // 这两个类型兼容，可以安全转换
+        const intentResult = await recognizeIntent(
+          session as any,
+          agentConfig,
+          userMessage,
+          intentOutputRef,
+          engine,
+          {
+            taskName: 'Intent Recognition',
+            temperature: 0.3,
+            maxTokens: 500
+          }
+        );
+        
+        // 更新session的activeToolIds（用于UI高亮显示）
+        if (session.activeToolIds) {
+          session.activeToolIds = [...intentResult.toolIds];
+          logger.debug('[executeAgentEngine] 意图识别完成，已更新activeToolIds', {
+            activeToolIds: session.activeToolIds,
+            toolCount: intentResult.toolIds.length
+          });
+        }
+      } catch (error) {
+        logger.warn('[executeAgentEngine] 意图识别失败，继续执行', error);
+        // 意图识别失败不影响主流程，继续执行
       }
       
       // 构建上下文消息，只包含激活的引用
@@ -1929,9 +1977,7 @@ const handleImportSession = () => {
         createdAt: new Date(session.createdAt).toISOString(),
         updatedAt: new Date(session.updatedAt).toISOString(),
         messages: session.messages,
-        activeToolIds: session.agentConfigId 
-          ? agentConfigManager.getAvailableToolIds(session.agentConfigId)
-          : [],
+        activeToolIds: [], // 初始状态：所有工具都不高亮，等待意图识别器判断
         agentConfigId: session.agentConfigId,
         messageQueue: session.messageQueue,
         referenceStore: session.referenceStore,
@@ -2285,9 +2331,7 @@ const handleMessageDuplicate = async (message: AgentMessage) => {
       createdAt: new Date(duplicated.createdAt).toISOString(),
       updatedAt: new Date(duplicated.updatedAt).toISOString(),
       messages: duplicated.messages,
-      activeToolIds: duplicated.agentConfigId 
-        ? agentConfigManager.getAvailableToolIds(duplicated.agentConfigId)
-        : session.activeToolIds,
+      activeToolIds: [], // 初始状态：所有工具都不高亮，等待意图识别器判断
       agentConfigId: duplicated.agentConfigId,
       messageQueue: duplicated.messageQueue,
       referenceStore: duplicated.referenceStore,
@@ -2718,6 +2762,26 @@ onBeforeUnmount(() => {
 .tool-list-panel :deep(.el-table__body-wrapper) {
   overflow-x: auto;
   overflow-y: auto;
+}
+
+/* 高亮活跃工具行 */
+.tool-list-panel :deep(.el-table__row.active-tool-row) {
+  background-color: rgba(64, 158, 255, 0.1) !important;
+}
+
+.tool-list-panel :deep(.el-table__row.active-tool-row:hover) {
+  background-color: rgba(64, 158, 255, 0.15) !important;
+}
+
+/* 暗色主题下的高亮样式 */
+@media (prefers-color-scheme: dark) {
+  .tool-list-panel :deep(.el-table__row.active-tool-row) {
+    background-color: rgba(64, 158, 255, 0.2) !important;
+  }
+
+  .tool-list-panel :deep(.el-table__row.active-tool-row:hover) {
+    background-color: rgba(64, 158, 255, 0.25) !important;
+  }
 }
 
 .tool-detail-scroll :deep(.el-scrollbar__view) {

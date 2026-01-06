@@ -128,6 +128,14 @@ export abstract class BaseEngineExecutor {
       toolCount: intentResult.toolIds.length
     })
     
+    // 更新session的activeToolIds（用于UI高亮显示）
+    if (session.activeToolIds) {
+      session.activeToolIds = [...intentResult.toolIds]
+      getLogger().debug('[processIntentAndUpdateSpecs] 已更新activeToolIds', {
+        activeToolIds: session.activeToolIds
+      })
+    }
+    
     // 根据识别结果，注入对应工具的fullSpec
     for (const toolId of intentResult.toolIds) {
       // 尝试从普通工具获取

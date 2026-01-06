@@ -657,10 +657,162 @@ const testDSMLStringFalse: TestFunction = createTestFunction(
   }
 )
 
+// ========== XML格式 ==========
+
+/**
+ * 测试用例29: XML格式-基本
+ */
+const testXMLBasic: TestFunction = createTestFunction(
+  'tool-call-parser.xml-basic',
+  'XML格式-基本',
+  '测试XML格式的基本工具调用',
+  '<name>web-crawler</name>\n<arguments>\n{\n  "url": "https://example.com",\n  "method": "GET"\n}\n</arguments>',
+  {
+    tool_id: 'web-crawler',
+    parameters: { url: 'https://example.com', method: 'GET' }
+  }
+)
+
+/**
+ * 测试用例30: XML格式-多参数
+ */
+const testXMLMultiParams: TestFunction = createTestFunction(
+  'tool-call-parser.xml-multi-params',
+  'XML格式-多参数',
+  '测试XML格式的多参数工具调用',
+  '<name>web-crawler</name>\n<arguments>\n{\n  "url": "https://weather.com/zh-CN/weather/today/l/31.23,121.47",\n  "method": "GET",\n  "timeout": 10000,\n  "useCurl": true\n}\n</arguments>',
+  {
+    tool_id: 'web-crawler',
+    parameters: {
+      url: 'https://weather.com/zh-CN/weather/today/l/31.23,121.47',
+      method: 'GET',
+      timeout: 10000,
+      useCurl: true
+    }
+  }
+)
+
+/**
+ * 测试用例31: XML格式-嵌套对象参数
+ */
+const testXMLNestedParams: TestFunction = createTestFunction(
+  'tool-call-parser.xml-nested-params',
+  'XML格式-嵌套对象参数',
+  '测试XML格式的嵌套对象参数',
+  '<name>chart-generation</name>\n<arguments>\n{\n  "prompt": "生成图表",\n  "options": {\n    "width": 800,\n    "height": 600\n  }\n}\n</arguments>',
+  {
+    tool_id: 'chart-generation',
+    parameters: {
+      prompt: '生成图表',
+      options: { width: 800, height: 600 }
+    }
+  }
+)
+
+/**
+ * 测试用例32: XML格式-空参数
+ */
+const testXMLEmptyParams: TestFunction = createTestFunction(
+  'tool-call-parser.xml-empty-params',
+  'XML格式-空参数',
+  '测试XML格式的空参数工具调用',
+  '<name>outline-tree</name>\n<arguments>\n{}\n</arguments>',
+  {
+    tool_id: 'outline-tree',
+    parameters: {}
+  }
+)
+
+/**
+ * 测试用例33: XML格式-单行格式
+ */
+const testXMLSingleLine: TestFunction = createTestFunction(
+  'tool-call-parser.xml-single-line',
+  'XML格式-单行格式',
+  '测试XML格式的单行格式工具调用',
+  '<name>grep</name><arguments>{"pattern": "test", "caseSensitive": false}</arguments>',
+  {
+    tool_id: 'grep',
+    parameters: { pattern: 'test', caseSensitive: false }
+  }
+)
+
+// ========== 纯XML格式（标签名即工具ID）==========
+
+/**
+ * 测试用例34: 纯XML格式-基本
+ */
+const testPureXMLBasic: TestFunction = createTestFunction(
+  'tool-call-parser.pure-xml-basic',
+  '纯XML格式-基本',
+  '测试纯XML格式的基本工具调用（标签名即工具ID）',
+  '<web-crawler>\n{"url": "https://example.com", "method": "GET", "timeout": 10000}\n</web-crawler>',
+  {
+    tool_id: 'web-crawler',
+    parameters: { url: 'https://example.com', method: 'GET', timeout: 10000 }
+  }
+)
+
+/**
+ * 测试用例35: 纯XML格式-多参数
+ */
+const testPureXMLMultiParams: TestFunction = createTestFunction(
+  'tool-call-parser.pure-xml-multi-params',
+  '纯XML格式-多参数',
+  '测试纯XML格式的多参数工具调用',
+  '<web-crawler>\n{"url": "https://wttr.in/上海?format=3", "method": "GET", "timeout": 10000}\n</web-crawler>',
+  {
+    tool_id: 'web-crawler',
+    parameters: { url: 'https://wttr.in/上海?format=3', method: 'GET', timeout: 10000 }
+  }
+)
+
+/**
+ * 测试用例36: 纯XML格式-包含useCurl
+ */
+const testPureXMLWithUseCurl: TestFunction = createTestFunction(
+  'tool-call-parser.pure-xml-with-use-curl',
+  '纯XML格式-包含useCurl',
+  '测试纯XML格式包含useCurl参数的工具调用',
+  '<web-crawler>\n{"url": "https://arxiv.org/list/cs/new", "method": "GET", "timeout": 30000, "useCurl": true}\n</web-crawler>',
+  {
+    tool_id: 'web-crawler',
+    parameters: { url: 'https://arxiv.org/list/cs/new', method: 'GET', timeout: 30000, useCurl: true }
+  }
+)
+
+/**
+ * 测试用例37: 纯XML格式-单行格式
+ */
+const testPureXMLSingleLine: TestFunction = createTestFunction(
+  'tool-call-parser.pure-xml-single-line',
+  '纯XML格式-单行格式',
+  '测试纯XML格式的单行格式工具调用',
+  '<grep>{"pattern": "test", "caseSensitive": false}</grep>',
+  {
+    tool_id: 'grep',
+    parameters: { pattern: 'test', caseSensitive: false }
+  }
+)
+
+/**
+ * 测试用例38: 纯XML格式-嵌套对象参数
+ */
+const testPureXMLNestedParams: TestFunction = createTestFunction(
+  'tool-call-parser.pure-xml-nested-params',
+  '纯XML格式-嵌套对象参数',
+  '测试纯XML格式的嵌套对象参数',
+  '<chart-generation>\n{"prompt": "生成图表", "options": {"width": 800, "height": 600}}\n</chart-generation>',
+  {
+    tool_id: 'chart-generation',
+    parameters: { prompt: '生成图表', options: { width: 800, height: 600 } }
+  }
+)
+
 // ========== OpenAI格式 ==========
 
 /**
- * 测试用例29: OpenAI格式-基本
+ * 测试用例39: OpenAI格式-基本
  */
 const testOpenAIBasic: TestFunction = createTestFunction(
   'tool-call-parser.openai-basic',
@@ -674,7 +826,7 @@ const testOpenAIBasic: TestFunction = createTestFunction(
 )
 
 /**
- * 测试用例30: OpenAI格式-字段变体
+ * 测试用例40: OpenAI格式-字段变体
  */
 const testOpenAIFieldVariant: TestFunction = createTestFunction(
   'tool-call-parser.openai-field-variant',
@@ -690,7 +842,7 @@ const testOpenAIFieldVariant: TestFunction = createTestFunction(
 // ========== 多个工具调用 ==========
 
 /**
- * 测试用例31: 多个工具调用
+ * 测试用例41: 多个工具调用
  */
 const testMultipleToolCalls: TestFunction = createTestFunction(
   'tool-call-parser.multiple-tool-calls',
@@ -712,7 +864,7 @@ const testMultipleToolCalls: TestFunction = createTestFunction(
 // ========== 边界情况 ==========
 
 /**
- * 测试用例32: 空参数对象
+ * 测试用例42: 空参数对象
  */
 const testEmptyParams: TestFunction = createTestFunction(
   'tool-call-parser.empty-params',
@@ -726,7 +878,7 @@ const testEmptyParams: TestFunction = createTestFunction(
 )
 
 /**
- * 测试用例33: 无参数字段
+ * 测试用例43: 无参数字段
  */
 const testNoParamsField: TestFunction = createTestFunction(
   'tool-call-parser.no-params-field',
@@ -740,7 +892,7 @@ const testNoParamsField: TestFunction = createTestFunction(
 )
 
 /**
- * 测试用例34: 参数值为null
+ * 测试用例44: 参数值为null
  */
 const testParamValueNull: TestFunction = createTestFunction(
   'tool-call-parser.param-value-null',
@@ -754,7 +906,7 @@ const testParamValueNull: TestFunction = createTestFunction(
 )
 
 /**
- * 测试用例35: 参数值为布尔值
+ * 测试用例45: 参数值为布尔值
  */
 const testParamValueBoolean: TestFunction = createTestFunction(
   'tool-call-parser.param-value-boolean',
@@ -768,7 +920,7 @@ const testParamValueBoolean: TestFunction = createTestFunction(
 )
 
 /**
- * 测试用例36: 参数值为数字
+ * 测试用例46: 参数值为数字
  */
 const testParamValueNumber: TestFunction = createTestFunction(
   'tool-call-parser.param-value-number',
@@ -782,7 +934,7 @@ const testParamValueNumber: TestFunction = createTestFunction(
 )
 
 /**
- * 测试用例37: 参数值为数组
+ * 测试用例47: 参数值为数组
  */
 const testParamValueArray: TestFunction = createTestFunction(
   'tool-call-parser.param-value-array',
@@ -796,7 +948,7 @@ const testParamValueArray: TestFunction = createTestFunction(
 )
 
 /**
- * 测试用例38: 参数值为嵌套数组
+ * 测试用例48: 参数值为嵌套数组
  */
 const testParamValueNestedArray: TestFunction = createTestFunction(
   'tool-call-parser.param-value-nested-array',
@@ -812,7 +964,7 @@ const testParamValueNestedArray: TestFunction = createTestFunction(
 // ========== 无效格式（应该返回null或无效结果）==========
 
 /**
- * 测试用例39: 无效格式-无工具调用标记
+ * 测试用例44: 无效格式-无工具调用标记
  */
 const testInvalidNoMarkers: TestFunction = createTestFunction(
   'tool-call-parser.invalid-no-markers',
@@ -823,7 +975,7 @@ const testInvalidNoMarkers: TestFunction = createTestFunction(
 )
 
 /**
- * 测试用例40: 无效格式-不完整的标记
+ * 测试用例45: 无效格式-不完整的标记
  */
 const testInvalidIncomplete: TestFunction = createTestFunction(
   'tool-call-parser.invalid-incomplete',
@@ -834,7 +986,7 @@ const testInvalidIncomplete: TestFunction = createTestFunction(
 )
 
 /**
- * 测试用例41: 无效格式-缺少工具ID
+ * 测试用例46: 无效格式-缺少工具ID
  */
 const testInvalidMissingToolId: TestFunction = createDummyToolTestFunction(
   'tool-call-parser.invalid-missing-tool-id',
@@ -845,7 +997,7 @@ const testInvalidMissingToolId: TestFunction = createDummyToolTestFunction(
 )
 
 /**
- * 测试用例42: 无效格式-参数不是对象类型
+ * 测试用例47: 无效格式-参数不是对象类型
  */
 const testInvalidParamsNotObject: TestFunction = createDummyToolTestFunction(
   'tool-call-parser.invalid-params-not-object',
@@ -856,7 +1008,7 @@ const testInvalidParamsNotObject: TestFunction = createDummyToolTestFunction(
 )
 
 /**
- * 测试用例43: 无效格式-参数是数组
+ * 测试用例48: 无效格式-参数是数组
  */
 const testInvalidParamsIsArray: TestFunction = createDummyToolTestFunction(
   'tool-call-parser.invalid-params-is-array',
@@ -867,7 +1019,7 @@ const testInvalidParamsIsArray: TestFunction = createDummyToolTestFunction(
 )
 
 /**
- * 测试用例44: 无效格式-JSON解析失败
+ * 测试用例49: 无效格式-JSON解析失败
  */
 const testInvalidJsonParseError: TestFunction = createDummyToolTestFunction(
   'tool-call-parser.invalid-json-parse-error',
@@ -878,7 +1030,7 @@ const testInvalidJsonParseError: TestFunction = createDummyToolTestFunction(
 )
 
 /**
- * 测试用例45: 无效格式-未找到有效的JSON字符串
+ * 测试用例50: 无效格式-未找到有效的JSON字符串
  */
 const testInvalidNoJsonString: TestFunction = createDummyToolTestFunction(
   'tool-call-parser.invalid-no-json-string',
@@ -889,7 +1041,7 @@ const testInvalidNoJsonString: TestFunction = createDummyToolTestFunction(
 )
 
 /**
- * 测试用例46: 无效格式-工具ID为空字符串
+ * 测试用例51: 无效格式-工具ID为空字符串
  */
 const testInvalidEmptyToolId: TestFunction = createDummyToolTestFunction(
   'tool-call-parser.invalid-empty-tool-id',
@@ -900,7 +1052,7 @@ const testInvalidEmptyToolId: TestFunction = createDummyToolTestFunction(
 )
 
 /**
- * 测试用例47: 无效格式-工具ID为null
+ * 测试用例52: 无效格式-工具ID为null
  */
 const testInvalidNullToolId: TestFunction = createDummyToolTestFunction(
   'tool-call-parser.invalid-null-tool-id',
@@ -911,7 +1063,7 @@ const testInvalidNullToolId: TestFunction = createDummyToolTestFunction(
 )
 
 /**
- * 测试用例48: 无效格式-工具ID为数字
+ * 测试用例53: 无效格式-工具ID为数字
  */
 const testInvalidNumberToolId: TestFunction = createDummyToolTestFunction(
   'tool-call-parser.invalid-number-tool-id',
@@ -922,7 +1074,7 @@ const testInvalidNumberToolId: TestFunction = createDummyToolTestFunction(
 )
 
 /**
- * 测试用例49: 无效格式-工具ID为对象
+ * 测试用例54: 无效格式-工具ID为对象
  */
 const testInvalidObjectToolId: TestFunction = createDummyToolTestFunction(
   'tool-call-parser.invalid-object-tool-id',
@@ -930,6 +1082,72 @@ const testInvalidObjectToolId: TestFunction = createDummyToolTestFunction(
   '测试工具ID为对象的工具调用（应返回dummy-tool）',
   '<tool_call>{"name": {"id": "grep"}, "arguments": {"pattern": "test"}}</tool_call>',
   '缺少工具ID'
+)
+
+/**
+ * 测试用例55: 无效格式-XML缺少name标签
+ */
+const testInvalidXMLMissingName: TestFunction = createDummyToolTestFunction(
+  'tool-call-parser.invalid-xml-missing-name',
+  '无效格式-XML缺少name标签',
+  '测试XML格式缺少name标签的工具调用（应返回dummy-tool）',
+  '<arguments>{"url": "https://example.com"}</arguments>',
+  'XML格式中缺少name标签'
+)
+
+/**
+ * 测试用例56: 无效格式-XML缺少arguments标签
+ */
+const testInvalidXMLMissingArguments: TestFunction = createDummyToolTestFunction(
+  'tool-call-parser.invalid-xml-missing-arguments',
+  '无效格式-XML缺少arguments标签',
+  '测试XML格式缺少arguments标签的工具调用（应返回dummy-tool）',
+  '<name>web-crawler</name>',
+  'XML格式中缺少arguments标签'
+)
+
+/**
+ * 测试用例57: 无效格式-XML name标签为空
+ */
+const testInvalidXMLEmptyName: TestFunction = createDummyToolTestFunction(
+  'tool-call-parser.invalid-xml-empty-name',
+  '无效格式-XML name标签为空',
+  '测试XML格式name标签为空的工具调用（应返回dummy-tool）',
+  '<name></name>\n<arguments>{"url": "https://example.com"}</arguments>',
+  'XML格式中缺少工具ID'
+)
+
+/**
+ * 测试用例58: 无效格式-XML arguments中JSON解析失败
+ */
+const testInvalidXMLJsonParseError: TestFunction = createDummyToolTestFunction(
+  'tool-call-parser.invalid-xml-json-parse-error',
+  '无效格式-XML arguments中JSON解析失败',
+  '测试XML格式arguments中JSON解析失败的工具调用（应返回dummy-tool）',
+  '<name>web-crawler</name>\n<arguments>{invalid json}</arguments>',
+  'XML格式中arguments的JSON解析失败'
+)
+
+/**
+ * 测试用例59: 无效格式-纯XML JSON解析失败
+ */
+const testInvalidPureXMLJsonParseError: TestFunction = createDummyToolTestFunction(
+  'tool-call-parser.invalid-pure-xml-json-parse-error',
+  '无效格式-纯XML JSON解析失败',
+  '测试纯XML格式中JSON解析失败的工具调用（应返回dummy-tool）',
+  '<web-crawler>{invalid json}</web-crawler>',
+  '纯XML格式中JSON解析失败'
+)
+
+/**
+ * 测试用例60: 无效格式-纯XML内容不是对象
+ */
+const testInvalidPureXMLNotObject: TestFunction = createDummyToolTestFunction(
+  'tool-call-parser.invalid-pure-xml-not-object',
+  '无效格式-纯XML内容不是对象',
+  '测试纯XML格式内容不是JSON对象的工具调用（应返回dummy-tool）',
+  '<web-crawler>"not an object"</web-crawler>',
+  '纯XML格式中内容必须是JSON对象'
 )
 
 // ============ 注册所有测试函数 ============
@@ -982,6 +1200,20 @@ export function registerToolCallParserTests() {
   testFramework.register(testDSMLNoStringAttr)
   testFramework.register(testDSMLStringFalse)
   
+  // XML格式
+  testFramework.register(testXMLBasic)
+  testFramework.register(testXMLMultiParams)
+  testFramework.register(testXMLNestedParams)
+  testFramework.register(testXMLEmptyParams)
+  testFramework.register(testXMLSingleLine)
+  
+  // 纯XML格式（标签名即工具ID）
+  testFramework.register(testPureXMLBasic)
+  testFramework.register(testPureXMLMultiParams)
+  testFramework.register(testPureXMLWithUseCurl)
+  testFramework.register(testPureXMLSingleLine)
+  testFramework.register(testPureXMLNestedParams)
+  
   // OpenAI格式
   testFramework.register(testOpenAIBasic)
   testFramework.register(testOpenAIFieldVariant)
@@ -1012,4 +1244,10 @@ export function registerToolCallParserTests() {
   testFramework.register(testInvalidNullToolId)
   testFramework.register(testInvalidNumberToolId)
   testFramework.register(testInvalidObjectToolId)
+  testFramework.register(testInvalidXMLMissingName)
+  testFramework.register(testInvalidXMLMissingArguments)
+  testFramework.register(testInvalidXMLEmptyName)
+  testFramework.register(testInvalidXMLJsonParseError)
+  testFramework.register(testInvalidPureXMLJsonParseError)
+  testFramework.register(testInvalidPureXMLNotObject)
 }

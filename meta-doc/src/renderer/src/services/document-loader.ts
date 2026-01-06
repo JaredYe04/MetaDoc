@@ -20,7 +20,7 @@ export interface LoadedDocumentData {
   meta: ArticleMetaData;
   aiDialogs: AIDialog[];
   agentSessions: AgentSession[];
-  lastView: 'article' | 'outline';
+  lastView: 'editor' | 'outline' | 'article';
 }
 
 const META_INFO_COMMENT_PATTERN = /<!--meta-info:\s*([^-\s]+?)\s*-->/;
@@ -118,7 +118,7 @@ export const loadDocumentFromMarkdown = async (content: string): Promise<LoadedD
     meta,
     aiDialogs: dialogs,
     agentSessions: sessions,
-    lastView: 'article',
+    lastView: 'editor',
   };
 };
 
@@ -159,7 +159,7 @@ export const loadDocumentFromTex = async (content: string): Promise<LoadedDocume
     meta,
     aiDialogs: dialogs,
     agentSessions: agentSessions,
-    lastView: 'article',
+    lastView: 'editor',
   };
 };
 
@@ -187,7 +187,7 @@ export const loadDocumentFromJson = (content: string): LoadedDocumentData => {
       meta: autoGenerateTitle(meta, markdown),
       aiDialogs: dialogs,
       agentSessions: sessions,
-      lastView: 'article',
+      lastView: 'editor',
     };
   } catch (error) {
     console.error('[DocumentLoader] 解析 JSON 文档失败', error);
@@ -199,7 +199,7 @@ export const loadDocumentFromJson = (content: string): LoadedDocumentData => {
       meta: cloneMeta(DEFAULT_ARTICLE_META),
       aiDialogs: cloneDialogs(DEFAULT_AI_DIALOGS),
       agentSessions: cloneAgentSessions(DEFAULT_AGENT_SESSIONS),
-      lastView: 'article',
+      lastView: 'editor',
     };
   }
 };
@@ -212,6 +212,6 @@ export const createEmptyDocument = (): LoadedDocumentData => ({
   meta: cloneMeta(DEFAULT_ARTICLE_META),
   aiDialogs: cloneDialogs(DEFAULT_AI_DIALOGS),
   agentSessions: cloneAgentSessions(DEFAULT_AGENT_SESSIONS),
-  lastView: 'article',
+  lastView: 'editor',
 });
 

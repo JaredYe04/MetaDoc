@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory,createWebHashHistory } from 'vue-router'
 import Home from '../views/Home.vue'
+import GlobalHome from '../views/GlobalHome.vue'
 import About from '../views/About.vue'
 import Outline from '../views/Outline.vue'
 import MarkdownEditor from '../views/MarkdownEditor.vue'
@@ -17,6 +18,7 @@ import OcrWindow from '../views/OcrWindow.vue'
 import AttachmentWindow from '../views/AttachmentWindow.vue'
 import GraphWindow from '../views/GraphWindow.vue'
 import ProofreadView from '../views/ProofreadView.vue'
+import DummyView from '../views/DummyView.vue'
 
 // 所有页面组件集中管理
 const pages = {
@@ -31,6 +33,12 @@ const pages = {
 }
 
 const routes = [
+  {
+    path: '/global-home',
+    name: 'GlobalHome',
+    component: GlobalHome,
+    meta: { requiresLayout: true } 
+  },
   {
     path: '/',
     name: 'Home',
@@ -92,13 +100,20 @@ const routes = [
     component: DebugView,
     meta: { requiresLayout: true }
   },
+  {
+    path:'/dummy',
+    name:'Dummy',
+    component: DummyView,
+    meta: { requiresLayout: true }
+  },
     // 动态生成特殊页面的两种访问路径
+    // 工具Tab和设置页面现在在主窗口Tab中显示，所以需要requiresLayout: true
   ...Object.entries(pages).flatMap(([name, component]) => [
     {
       path: `/${name}`,
       name: `${name}-raw`,
       component,
-      meta: { requiresLayout: false }
+      meta: { requiresLayout: true } // 改为true，因为现在在主窗口Tab中显示
     },
     {
       path: `/single-page/${name}`,

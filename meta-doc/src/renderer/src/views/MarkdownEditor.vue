@@ -202,9 +202,12 @@ const currentDialogs = computed<any[]>({
   set: (val) => workspace.updateDocumentAiDialogs(props.tabId, val),
 })
 
-const currentView = computed<'outline' | 'article'>({
-  get: () => documentRef.value.lastView ?? 'outline',
-  set: (val) => workspace.updateDocumentLastView(props.tabId, val),
+// currentView不再需要，因为视图切换由Main.vue根据lastView控制
+// 保留这个computed只是为了兼容旧代码，但不应该被设置
+const currentView = computed(() => {
+  const view = documentRef.value.lastView ?? 'editor'
+  // 兼容旧的'article'值，转换为'editor'
+  return view === 'article' ? 'editor' : view
 })
 
 const currentRenderedHtml = computed<string>({
@@ -592,7 +595,7 @@ const handleSyncActiveEditor = (payload?: { tabId?: string }) => {
     if (resolvedTabId !== props.tabId) return;
     if (!vditor.value) return;
     const latest = vditor.value.getValue();
-    currentView.value = 'article';
+    // 不修改视图，保持当前视图状态
     workspace.updateDocumentMarkdown(props.tabId, latest);
     syncOutlineFromMarkdown.cancel();
     syncOutlineFromMarkdown();
@@ -660,7 +663,7 @@ const acceptGeneratedText = async (payload: any) => {
     }
     currentOutline.value = outlineTree;
   syncMarkdownFromOutline();
-  currentView.value = 'article';
+  // 不修改视图，保持当前视图状态
     scheduleSetValue(currentMarkdown.value, { clearHistory: false });
   flushOutlineSync();
     bindTitleMenu();
@@ -1594,7 +1597,7 @@ onMounted(async () => {
                 markEditorInteraction();
                 lastAppliedContent.value = value;
                 // currentMarkdown.value = value;
-                currentView.value = 'article';
+                // 不修改视图，保持当前视图状态
                 workspace.updateDocumentMarkdown(props.tabId, value);
                 
                 // 确保适配器已设置（如果还没有设置）

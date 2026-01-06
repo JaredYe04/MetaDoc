@@ -1608,7 +1608,7 @@ async function buildPdfToSourceMapping() {
 // 处理 PDF 总页数事件
 function handleNumPages(numPages: number) {
     totalPdfPages.value = numPages;
-    logger.debug('PDF 总页数:', numPages);
+    //logger.debug('PDF 总页数:', numPages);
 }
 
 // 处理 PDF 加载完成事件

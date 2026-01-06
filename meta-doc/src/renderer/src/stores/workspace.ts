@@ -22,8 +22,10 @@ import {
 } from '../constants/document';
 import { isElectronEnv } from '../utils/event-bus';
 
-export type WorkspaceTabKind = 'new' | 'file';
+export type WorkspaceTabKind = 'new' | 'file' | 'tool' | 'system';
 export type WorkspaceTabFormat = 'md' | 'tex';
+
+export type ToolTabType = 'ocr' | 'graph' | 'attachment' | 'dataAnalysis' | 'formulaRecognition' | 'aiChat' | 'setting';
 
 export interface WorkspaceTab {
   id: string;
@@ -34,7 +36,11 @@ export interface WorkspaceTab {
   format: WorkspaceTabFormat;
   dirty: boolean;
   readonly?: boolean;
+  toolType?: ToolTabType; // 工具Tab类型
+  route?: string; // 路由路径（用于工具Tab）
 }
+
+export type DocumentView = 'outline' | 'editor' | 'visualize' | 'agent' | 'proofread';
 
 export interface WorkspaceDocument {
   id: string;
@@ -47,7 +53,7 @@ export interface WorkspaceDocument {
   meta: ArticleMetaData;
   aiDialogs: AIDialog[];
   agentSessions: AgentSession[];
-  lastView: 'outline' | 'article';
+  lastView: DocumentView;
   renderedHtml: string;
   dirty: boolean;
   savedMarkdown: string;
@@ -305,6 +311,12 @@ function removeTab(id: string): void {
   if (index === -1) return;
 
   const tab = tabs[index];
+  
+  // 检查是否可以删除
+  if (!canRemoveTab(id)) {
+    return; // 不可删除的Tab，直接返回
+  }
+  
   const doc = documents[id];
   const wasActive = activeTabId.value === id;
   
@@ -338,10 +350,10 @@ function removeTab(id: string): void {
   tabs.splice(index, 1);
   delete documents[id];
 
+  // 如果关闭后没有Tab了，创建一个系统Tab显示Dummy组件
   if (!tabs.length) {
-    const newTab = createNewDocumentTabInternal();
-    activeTabId.value = newTab.id;
-    updateDocumentDirty(newTab.id);
+    const dummyTab = openSystemTab('/dummy', '空白');
+    activeTabId.value = dummyTab.id;
     return;
   }
 
@@ -598,7 +610,7 @@ function updateDocumentDirty(tabId: string): void {
  * @param tabId 标签页ID
  * @param view 新的最后视图
  */
-function updateDocumentLastView(tabId: string, view: 'outline' | 'article'): void {
+function updateDocumentLastView(tabId: string, view: DocumentView): void {
   const doc = ensureDocument(tabId);
   if (doc.lastView !== view) {
     doc.lastView = view;
@@ -753,7 +765,7 @@ function createDocumentSnapshotFromTemplate(
     meta: structuredCloneFallback(meta),
     aiDialogs: structuredCloneFallback(DEFAULT_AI_DIALOGS),
     agentSessions: structuredCloneFallback(DEFAULT_AGENT_SESSIONS),
-    lastView: 'article',
+    lastView: 'editor' as DocumentView,
     renderedHtml: '',
     dirty: false,
     savedMarkdown: markdownContent,
@@ -1195,6 +1207,108 @@ export function getLinkBase(docPath: string): string {
   return getDirectoryFromPath(docPath);
 }
 
+// 工具Tab的标题映射
+const TOOL_TAB_TITLES: Record<ToolTabType, string> = {
+  ocr: 'OCR识别',
+  graph: '绘图',
+  attachment: '附件解析',
+  dataAnalysis: '数据分析',
+  formulaRecognition: '公式识别',
+  aiChat: 'AI对话',
+  setting: '设置'
+};
+
+// 工具Tab的路由映射
+const TOOL_TAB_ROUTES: Record<ToolTabType, string> = {
+  ocr: '/ocr',
+  graph: '/graph',
+  attachment: '/attachment',
+  dataAnalysis: '/data-analysis',
+  formulaRecognition: '/fomula-recognition',
+  aiChat: '/ai-chat',
+  setting: '/setting'
+};
+
+/**
+ * 打开或激活工具Tab
+ * @param toolType 工具类型
+ * @returns 工具Tab
+ */
+function openToolTab(toolType: ToolTabType): WorkspaceTab {
+  // 查找是否已存在该工具Tab
+  const existingTab = tabs.find(tab => tab.kind === 'tool' && tab.toolType === toolType);
+  
+  if (existingTab) {
+    // 如果已存在，激活它
+    activateTab(existingTab.id);
+    return existingTab;
+  }
+  
+  // 创建新的工具Tab
+  const id = generateTabId();
+  const tab = reactive<WorkspaceTab>({
+    id,
+    kind: 'tool',
+    title: TOOL_TAB_TITLES[toolType],
+    subtitle: '',
+    path: '',
+    format: 'md',
+    dirty: false,
+    readonly: true,
+    toolType,
+    route: TOOL_TAB_ROUTES[toolType]
+  });
+  
+  tabs.push(tab);
+  activateTab(id);
+  return tab;
+}
+
+/**
+ * 打开或激活系统Tab（主页、知识库、调试工具等不可删除的Tab）
+ * @param route 路由路径
+ * @param title 标题
+ * @returns 系统Tab
+ */
+function openSystemTab(route: string, title: string): WorkspaceTab {
+  // 查找是否已存在该系统Tab
+  const existingTab = tabs.find(tab => tab.kind === 'system' && tab.route === route);
+  
+  if (existingTab) {
+    activateTab(existingTab.id);
+    return existingTab;
+  }
+  
+  const id = generateTabId();
+  const tab = reactive<WorkspaceTab>({
+    id,
+    kind: 'system',
+    title,
+    subtitle: '',
+    path: '',
+    format: 'md',
+    dirty: false,
+    readonly: true,
+    route
+  });
+  
+  tabs.push(tab);
+  activateTab(id);
+  return tab;
+}
+
+/**
+ * 检查Tab是否可以删除
+ */
+function canRemoveTab(tabId: string): boolean {
+  const tab = tabs.find(t => t.id === tabId);
+  if (!tab) return false;
+  
+  // 所有Tab都可以关闭（包括系统Tab和工具Tab）
+  // 允许关闭最后一个Tab，关闭后会显示Dummy组件
+  return true;
+}
+
 export function useWorkspace() {
   return {
     tabs,
@@ -1231,6 +1345,9 @@ export function useWorkspace() {
     handleExternalFileDeleted,
     getDirectoryFromPath,
     getLinkBase,
+    openToolTab,
+    openSystemTab,
+    canRemoveTab,
   };
 }
 

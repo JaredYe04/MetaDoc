@@ -1,95 +1,41 @@
 <template>
   <div id="particle-bg" class="homepage">
-    <WorkspaceTabs closable @update:activeId="handleTabChange" @close="handleCloseTab" />
-
-    <div v-if="quickStartStage === 'inactive'" class="center-content">
-      <h1 class="main-letter" v-if="showWelcome" @mouseover="highlightM" @mouseleave="resetM">
-        {{ $t('home.metaDoc') }}
-      </h1>
-
-      <div class="buttons aero-div" v-if="showWelcome">
-        <el-tooltip :content="$t('home.tooltip.quickStart')" placement="top">
-          <el-button type="primary" @click="openQuickStart" class="aero-btn">
-            {{ $t('home.button.quickStart') }}
-          </el-button>
-        </el-tooltip>
-        <el-tooltip :content="$t('home.tooltip.openFile')" placement="top">
-          <el-button type="success" @click="openFile" class="aero-btn">
-            {{ $t('home.button.openFile') }}
-          </el-button>
-        </el-tooltip>
-      </div>
-
-      <!-- 最近文档列表 -->
-      <div v-if="showWelcome && recentDocs.length > 0" class="recent-docs-container aero-div" :style="{
-        borderColor: themeState.currentTheme.borderColor || 'rgba(0, 0, 0, 0.1)'
-      }">
-        <h3 class="recent-docs-title" :style="{ color: themeState.currentTheme.textColor }">
-          {{ $t('home.recentDocuments') || '最近文档' }}
-        </h3>
-        <!-- 当文档数量超过8条时使用滚动条 -->
-        <el-scrollbar v-if="recentDocs.length > 8" class="recent-docs-scrollbar">
-          <div class="recent-docs-list">
-            <div v-for="docPath in recentDocs" :key="docPath" class="recent-doc-item" @click="openRecentDoc(docPath)"
-              :style="{
-                backgroundColor: themeState.currentTheme.background2nd,
-                color: themeState.currentTheme.textColor
-              }">
-              <el-icon class="recent-doc-icon">
-                <Document />
-              </el-icon>
-              <span class="recent-doc-name">{{ getFileName(docPath) }}</span>
-            </div>
-          </div>
-        </el-scrollbar>
-        <!-- 当文档数量不超过8条时直接显示 -->
-        <div v-else class="recent-docs-list">
-          <div v-for="docPath in recentDocs" :key="docPath" class="recent-doc-item" @click="openRecentDoc(docPath)"
-            :style="{
-              backgroundColor: themeState.currentTheme.background2nd,
-              color: themeState.currentTheme.textColor
-            }">
-            <el-icon class="recent-doc-icon">
-              <Document />
-            </el-icon>
-            <span class="recent-doc-name">{{ getFileName(docPath) }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="showDocumentPreview" class="document-preview">
-        <el-scrollbar class="md-metainfo" min-size="10">
-          <h1 class="md-title" :style="{ color: themeState.currentTheme.textColor }">
-            {{ metaTitle }}
-          </h1>
-          <div class="md-author" :style="{ color: themeState.currentTheme.textColor }">
-            <h3>{{ $t('home.authorLabel') }}：{{ metaAuthor }}</h3>
-          </div>
-          <div class="md-description" :style="{ color: themeState.currentTheme.textColor }">
-            <h3>{{ $t('home.abstractLabel') }}</h3>
-            {{ metaDescription }}
-          </div>
-        </el-scrollbar>
-
-        <el-scrollbar class="md-container">
-          <div ref="previewContainerRef" class="md-preview-container" :class="themeState.currentTheme.mdeditorClass"
-            :style="{ color: themeState.currentTheme.textColor }" v-loading="isRendering"></div>
-        </el-scrollbar>
-      </div>
+    <!-- 如果文档格式未选择，显示格式选择界面 -->
+    <div v-if="needsFormatSelection" class="format-selection-container">
+      <NewDocumentWorkspace 
+        v-if="activeTabId"
+        :tab-id="activeTabId"
+        :active="true"
+      />
     </div>
 
-    <QuickStartPanel v-else @close="handleQuickStartClose" />
+    <!-- 如果已选择格式，显示文档预览 -->
+    <div v-else-if="showDocumentPreview" class="document-preview">
+      <el-scrollbar class="md-metainfo" min-size="10">
+        <h1 class="md-title" :style="{ color: themeState.currentTheme.textColor }">
+          {{ metaTitle }}
+        </h1>
+        <div class="md-author" :style="{ color: themeState.currentTheme.textColor }">
+          <h3>{{ $t('home.authorLabel') }}：{{ metaAuthor }}</h3>
+        </div>
+        <div class="md-description" :style="{ color: themeState.currentTheme.textColor }">
+          <h3>{{ $t('home.abstractLabel') }}</h3>
+          {{ metaDescription }}
+        </div>
+      </el-scrollbar>
+
+      <el-scrollbar class="md-container">
+        <div ref="previewContainerRef" class="md-preview-container" :class="themeState.currentTheme.mdeditorClass"
+          :style="{ color: themeState.currentTheme.textColor }" v-loading="isRendering"></div>
+      </el-scrollbar>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue'
-import QuickStartPanel from '../components/home/QuickStartPanel.vue'
-import '../assets/aero-div.css'
-import '../assets/aero-btn.css'
-import '../assets/aero-input.css'
+import NewDocumentWorkspace from './NewDocumentWorkspace.vue'
 import eventBus, { getWindowType } from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
 import { getSetting } from '../utils/settings'
@@ -103,9 +49,6 @@ import { ParticleEffect } from '../utils/particle-effect'
 import type { IpcRendererLike } from '../utils/particle-effect'
 import { renderMarkdownPreview } from '../utils/md-utils'
 import { preRenderAllCharts } from '../utils/chart-pre-renderer'
-import { getRecentDocs } from '../utils/settings'
-import { Document } from '@element-plus/icons-vue'
-import { basename } from '../utils/path-utils'
 
 const { t } = useI18n()
 
@@ -115,23 +58,20 @@ const maybeWindow =
     : undefined
 
 const workspace = useWorkspace()
-const {
-  tabs,
-  activeTabId,
-  initializeDocumentFromTemplate,
-  activateTab,
-  ensureDocument,
-  removeTab
-} = workspace
+const { activeTabId } = workspace
 const { activeDocument, activeTab } = useActiveDocument()
-
-const quickStartStage = ref<'inactive' | 'format' | 'markdown' | 'latex'>('inactive')
-const recentDocs = ref<string[]>([])
 
 const currentFilePath = computed(() => activeDocument.value?.path ?? '')
 const metaTitle = computed(() => activeDocument.value?.meta?.title ?? '')
 const metaAuthor = computed(() => activeDocument.value?.meta?.author ?? '')
 const metaDescription = computed(() => activeDocument.value?.meta?.description ?? '')
+
+// 判断是否需要显示格式选择界面
+const needsFormatSelection = computed(() => {
+  const tab = activeTab.value
+  // 如果是新建文档且还没有选择格式，显示格式选择界面
+  return tab?.kind === 'new' && !activeDocument.value?.format
+})
 
 // 计算当前文档的 linkBase（用于 Markdown 预览解析相对路径）
 const currentLinkBase = computed(() => {
@@ -167,95 +107,22 @@ const particleMarkdown = computed(() => {
   return doc.markdown ?? ''
 })
 
-// 显示欢迎界面：当quickStartStage为inactive且（没有活跃文档或活跃文档是新建文档或活跃文档没有路径）
-const showWelcome = computed(() => {
-  if (quickStartStage.value !== 'inactive') return false
+// 是否显示文档预览：只有当真正打开了已存在的文档或已选择格式的文档时才显示
+const showDocumentPreview = computed(() => {
   const tab = activeTab.value
-  // 如果没有活跃tab，显示欢迎界面
-  if (!tab) return true
-  // 如果是新建文档，显示欢迎界面
-  if (tab.kind === 'new') return true
-  // 如果文档路径为空，显示欢迎界面
-  if (!currentFilePath.value) return true
-  // 否则显示文档预览
+  if (!tab) return false
+  // 如果是文件类型且有路径，显示预览
+  if (tab.kind === 'file' && currentFilePath.value) return true
+  // 如果是新建文档但已选择格式，显示预览
+  if (tab.kind === 'new' && activeDocument.value?.format) return true
   return false
 })
-
-// 是否显示文档预览：只有当真正打开了已存在的文档时才显示
-const showDocumentPreview = computed(() => {
-  if (quickStartStage.value !== 'inactive') return false
-  const tab = activeTab.value
-  // 必须有活跃tab且是文件类型且有路径
-  return !!(tab && tab.kind === 'file' && currentFilePath.value)
-})
-
-const openQuickStart = () => {
-  eventBus.emit('reset-quickstart')
-  eventBus.emit('open-quickstart')
-  quickStartStage.value = 'format'
-}
-
-const handleQuickStartClose = () => {
-  quickStartStage.value = 'inactive'
-  eventBus.emit('reset-quickstart')
-}
-
-const highlightM = () => {
-  const el = document.querySelector('.main-letter') as HTMLElement | null
-  if (el) el.style.color = 'rgb(50, 150, 250)'
-}
-
-const resetM = () => {
-  const el = document.querySelector('.main-letter') as HTMLElement | null
-  if (el) el.style.color = 'rgb(65,105,225)'
-}
-
-const openFile = () => {
-  eventBus.emit('open-doc')
-}
-
-// 获取文件名
-const getFileName = (filePath: string): string => {
-  if (!filePath) return ''
-  try {
-    return basename(filePath)
-  } catch (error) {
-    const segments = filePath.split(/[/\\]+/).filter(Boolean)
-    return segments[segments.length - 1] || filePath
-  }
-}
-
-// 打开最近文档
-const openRecentDoc = (filePath: string) => {
-  eventBus.emit('open-doc', filePath)
-}
 
 // 粒子效果初始化
 const logger = createRendererLogger('Home', {
   windowTypeProvider: () => getWindowType()
 })
 
-// 加载最近文档列表
-const loadRecentDocs = async () => {
-  try {
-    recentDocs.value = await getRecentDocs()
-  } catch (error) {
-    logger.warn('加载最近文档失败', error)
-    recentDocs.value = []
-  }
-}
-
-// 定义事件处理器（需要在onMounted之前定义）
-const handleDocOpenSuccess = () => {
-  loadRecentDocs()
-}
-
-const handleDocOpen = () => {
-  // 延迟一下，确保更新完成
-  setTimeout(() => {
-    loadRecentDocs()
-  }, 100)
-}
 
 let ipcRenderer: IpcRendererLike | null = null
 if (maybeWindow?.electron?.ipcRenderer) {
@@ -349,20 +216,6 @@ onMounted(() => {
   window.addEventListener('resize', () => particleEffectInstance.handleWindowResize())
   preventNavigate()
 
-  // 监听 quickStartPanel 的状态变化
-  eventBus.on('open-quickstart', () => {
-    quickStartStage.value = 'format'
-  })
-
-  // 加载最近文档列表
-  loadRecentDocs()
-
-  // 监听文档打开成功事件，刷新最近文档列表
-  eventBus.on('open-doc-success', handleDocOpenSuccess)
-
-  // 监听文档打开事件，也刷新列表（因为updateRecentDocs可能在打开前调用）
-  eventBus.on('open-doc', handleDocOpen)
-
   // 初始渲染（只在需要显示文档预览时）
   nextTick(() => {
     if (showDocumentPreview.value) {
@@ -375,18 +228,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('mousemove', (e) => particleEffectInstance.handleMouseMove(e))
   window.removeEventListener('resize', () => particleEffectInstance.handleWindowResize())
   particleEffectInstance.dispose()
-  eventBus.off('open-quickstart')
-  eventBus.off('open-doc-success', handleDocOpenSuccess)
-  eventBus.off('open-doc', handleDocOpen)
 })
 
-const handleTabChange = (id: string) => {
-  activateTab(id)
-}
-
-const handleCloseTab = (id: string) => {
-  removeTab(id)
-}
 </script>
 
 <style scoped>
@@ -410,16 +253,9 @@ const handleCloseTab = (id: string) => {
   overflow: hidden;
 }
 
-/* 确保 WorkspaceTabs 在 canvas 之上 */
-.homepage :deep(.workspace-tabs-wrapper) {
-  position: relative;
-  z-index: 1;
-}
-
-/* 确保 QuickStartPanel 在 canvas 之上 */
-.homepage :deep(.quick-start-panel),
-.homepage :deep(.quick-start-markdown),
-.homepage :deep(.quick-start-latex) {
+.format-selection-container {
+  width: 100%;
+  height: 100%;
   position: relative;
   z-index: 1;
 }

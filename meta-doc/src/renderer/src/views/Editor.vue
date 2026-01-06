@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
-import WorkspaceTabs from '../components/workspace/WorkspaceTabs.vue';
 import { activeTabId, tabs, useWorkspace } from '../stores/workspace';
 import eventBus from '../utils/event-bus';
 import WorkspaceTabPane from '../components/workspace/WorkspaceTabPane.vue';
@@ -18,17 +17,6 @@ const {
 const { t } = useI18n();
 
 const isSavingAll = ref(false);
-const handleTabChange = (id: string) => {
-  activateTab(id);
-};
-
-const handleTabReorder = ({ fromId, toId }: { fromId: string; toId: string }) => {
-  moveTab(fromId, toId);
-};
-
-const handleCloseTab = (id: string) => {
-  removeTab(id);
-};
 
 // 注意：new-doc 事件已在 Main.vue 中统一处理，这里不需要重复监听
 // const handleNewDocumentRequest = () => {
@@ -103,12 +91,6 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="workspace-editor-layout">
-    <WorkspaceTabs
-      closable
-      @update:activeId="handleTabChange"
-      @close="handleCloseTab"
-      @reorder="handleTabReorder"
-    />
     <div class="workspace-editor-content">
       <KeepAlive>
         <WorkspaceTabPane

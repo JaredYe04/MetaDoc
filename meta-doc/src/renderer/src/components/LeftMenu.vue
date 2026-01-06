@@ -14,16 +14,35 @@
     :background-color="themeState.currentTheme.background2nd"
     :text-color="themeState.currentTheme.SideTextColor"
     :active-text-color="themeState.currentTheme.SideTextColor">
-    <!-- <el-tooltip :content="$t('leftMenu.metaDocTooltip')" placement="right">
-      <el-sub-menu index="0">
-        <template #title>
-          <el-icon>
-            <Document />
-          </el-icon>
-          <span></span>
-        </template>
-      </el-sub-menu>
-    </el-tooltip> -->
+    <!-- 主页 - 一级菜单 -->
+    <el-tooltip :content="$t('leftMenu.home', '主页')" placement="right">
+    <el-menu-item index="home" @click="openGlobalHome">
+      <el-icon>
+        <House />
+      </el-icon>
+      <span>{{ $t('leftMenu.home', '主页') }}</span>
+    </el-menu-item>
+    </el-tooltip>
+
+    <!-- 知识库 - 一级菜单 -->
+    <el-tooltip :content="$t('leftMenu.knowledgeBase', '知识库')" placement="right">
+    <el-menu-item index="knowledge-base" @click="openKnowledgeBase">
+      <el-icon>
+        <Collection />
+      </el-icon>
+      <span>{{ $t('leftMenu.knowledgeBase', '知识库') }}</span>
+    </el-menu-item>
+    </el-tooltip>
+
+    <!-- 调试工具 - 一级菜单（仅在开发环境显示） -->
+    <el-tooltip v-if="isDev" :content="$t('leftMenu.debugTools', '调试工具')" placement="right">
+      <el-menu-item index="debug" @click="openDebugTools">
+      <el-icon>
+        <Tools />
+      </el-icon>
+      <span>{{ $t('leftMenu.debugTools', '调试工具') }}</span>
+    </el-menu-item>
+    </el-tooltip>
 
     <el-sub-menu index="1">
       <template #title>
@@ -353,7 +372,10 @@ import {
   SwitchButton,
   Picture,
   ZoomIn,
-  Connection
+  Connection,
+  House,
+  Collection,
+  Tools
 } from '@element-plus/icons-vue'
 import eventBus, { sendBroadcast } from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -373,8 +395,12 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 import { convertMarkdownToLatex } from '../utils/latex-utils';
 import { createRendererLogger } from '../utils/logger';
+import { isDevEnvironment } from '../utils/dev-env';
+import { useWorkspace } from '../stores/workspace';
 const { locale } = useI18n()
 const logger = createRendererLogger('LeftMenu')
+const workspace = useWorkspace()
+const isDev = ref(false)
 
 // 计算弹出菜单的背景色和悬停颜色（参考 ContextMenu 设计）
 const subMenuBackgroundColor = computed(() => themeState.currentTheme.background2nd)
@@ -427,8 +453,25 @@ const handleOpen = (_key: string, _keyPath: string[]) => {
 const handleClose = (_key: string, _keyPath: string[]) => {
   //console.log(key, keyPath)
 }
+// 打开全局主页
+const openGlobalHome = () => {
+  workspace.openSystemTab('/global-home', t('leftMenu.home', '主页'))
+}
+
+// 打开知识库
+const openKnowledgeBase = () => {
+  workspace.openSystemTab('/knowledge-base', t('leftMenu.knowledgeBase', '知识库'))
+}
+
+// 打开调试工具
+const openDebugTools = () => {
+  workspace.openSystemTab('/debug', t('leftMenu.debugTools', '调试工具'))
+}
+
 onMounted(async () => {
   await refreshRecentDocs()
+  // 检查是否为开发环境
+  isDev.value = await isDevEnvironment()
 })
 const refreshRecentDocs = async () => {
   recentDocs.value = await getRecentDocs()

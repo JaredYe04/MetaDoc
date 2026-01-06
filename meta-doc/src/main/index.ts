@@ -114,6 +114,8 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
+    frame: false, // 隐藏默认窗口栏
+    titleBarStyle: 'hidden', // macOS 隐藏标题栏
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -148,16 +150,18 @@ function createWindow(): void {
       }
     })();
     
-    // 在后台串行预加载辅助窗口，不阻塞主窗口显示
-    (async () => {
-      try {
-        logger.info('🚀 开始串行预加载辅助窗口...');
-        await preloadAuxiliaryWindows();
-        logger.info('✅ 所有辅助窗口预加载完成');
-      } catch (error) {
-        logger.error('❌ 预加载辅助窗口失败:', error);
-      }
-    })();
+    // 注释掉预加载辅助窗口的代码
+    // 说明：由于已经将所有AI工具窗口和设置窗口改为在主窗口Tab中显示，不再需要独立窗口
+    // 因此不再需要预加载辅助窗口。保留代码以便将来如果需要恢复独立窗口功能时参考。
+    // (async () => {
+    //   try {
+    //     logger.info('🚀 开始串行预加载辅助窗口...');
+    //     await preloadAuxiliaryWindows();
+    //     logger.info('✅ 所有辅助窗口预加载完成');
+    //   } catch (error) {
+    //     logger.error('❌ 预加载辅助窗口失败:', error);
+    //   }
+    // })();
   });
 
   // 处理窗口关闭
@@ -675,31 +679,74 @@ const WINDOW_IDS = {
 } as const;
 
 export const openSettingDialog = async (): Promise<void> => {
-  openAuxiliaryWindow(WINDOW_IDS.setting);
+  // 改为在主窗口Tab中打开
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('receive-broadcast', {
+      eventName: 'open-tool-tab',
+      data: { toolType: 'setting' }
+    });
+    focusMainApplicationWindow();
+  }
 };
 
 export const openAiChatDialog = async (): Promise<void> => {
-  openAuxiliaryWindow(WINDOW_IDS.aiChat);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('receive-broadcast', {
+      eventName: 'open-tool-tab',
+      data: { toolType: 'aiChat' }
+    });
+    focusMainApplicationWindow();
+  }
 };
 
 export const openFomulaRecognitionDialog = async (): Promise<void> => {
-  openAuxiliaryWindow(WINDOW_IDS.formulaRecognition);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('receive-broadcast', {
+      eventName: 'open-tool-tab',
+      data: { toolType: 'formulaRecognition' }
+    });
+    focusMainApplicationWindow();
+  }
 };
 
 export const openDataAnalysisDialog = async (): Promise<void> => {
-  openAuxiliaryWindow('dataAnalysis');
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('receive-broadcast', {
+      eventName: 'open-tool-tab',
+      data: { toolType: 'dataAnalysis' }
+    });
+    focusMainApplicationWindow();
+  }
 };
 
 export const openOcrDialog = async (): Promise<void> => {
-  openAuxiliaryWindow('ocr');
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('receive-broadcast', {
+      eventName: 'open-tool-tab',
+      data: { toolType: 'ocr' }
+    });
+    focusMainApplicationWindow();
+  }
 };
 
 export const openAttachmentDialog = async (): Promise<void> => {
-  openAuxiliaryWindow('attachment');
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('receive-broadcast', {
+      eventName: 'open-tool-tab',
+      data: { toolType: 'attachment' }
+    });
+    focusMainApplicationWindow();
+  }
 };
 
 export const openGraphDialog = async (): Promise<void> => {
-  openAuxiliaryWindow('graph');
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('receive-broadcast', {
+      eventName: 'open-tool-tab',
+      data: { toolType: 'graph' }
+    });
+    focusMainApplicationWindow();
+  }
 };
 
 export const openAiGraphDialog = async (): Promise<void> => {

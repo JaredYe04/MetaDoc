@@ -1311,17 +1311,25 @@ export class OMMLInsertionProcessor implements DocxProcessor {
       // 块级公式
       const formulaContent = `<m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><m:oMathParaPr><m:jc m:val="center"/></m:oMathParaPr><m:oMath><m:oMathPr><m:mathFont m:val="Times New Roman"/></m:oMathPr>${innerOMML}</m:oMath></m:oMathPara>`;
       
-      // 如果有标签，在公式后添加右对齐的标签文本
+      // 如果有标签，使用优雅的 Tab 方案：左侧 n 个 tab，右侧 n-1 个 tab + 标签
       if (tag) {
         const escapedTag = this.escapeXml(tag);
-        // 使用制表符实现右对齐：公式居中，标签右对齐
-        // 在段落属性中设置制表位，然后在公式后添加制表符和标签
-        // 制表位位置设置为 9000 twips（约 15.9 cm，足够宽以容纳公式和标签）
-        const tagRun = `<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:tab/></w:r><w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">${escapedTag}</w:t></w:r>`;
+        // 使用正常大小的 Tab（默认约 720 twips，1.27 cm）
+        // 在公式左侧插入 n 个 tab，右侧插入 n-1 个 tab
+        // 由于段落居中对齐，左右两侧 tab 数量不同，会为标签留出空间
+        const n = 3; // 左侧 tab 数量，可以根据需要调整
         
-        // 设置段落属性：居中对齐，并添加右对齐制表位
-        // 注意：公式本身居中，标签通过制表符右对齐
-        return `<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:pPr><w:jc w:val="center"/><w:tabs><w:tab w:val="right" w:pos="9000"/></w:tabs></w:pPr>${formulaContent}${tagRun}</w:p>`;
+        // 左侧 tab：n 个
+        const leftTabs = Array(n).fill('<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:tab/></w:r>').join('');
+        
+        // 右侧 tab：n-1 个，然后标签通过右对齐制表位定位
+        const rightTabs = Array(n - 1).fill('<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:tab/></w:r>').join('');
+        const tagRun = `${rightTabs}<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:tab/></w:r><w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr><w:t xml:space="preserve">${escapedTag}</w:t></w:r>`;
+        
+        // 设置段落属性：居中对齐，并添加右对齐制表位（使用默认制表位大小 720 twips）
+        // 注意：公式本身居中，左侧 n 个 tab，右侧 n-1 个 tab + 标签（通过右对齐制表位定位）
+        // 由于左右 tab 数量不同（左侧多 1 个），会为标签留出合适的空间
+        return `<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:pPr><w:jc w:val="center"/><w:tabs><w:tab w:val="right" w:pos="720"/></w:tabs></w:pPr>${leftTabs}${formulaContent}${tagRun}</w:p>`;
       } else {
         return `<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:pPr><w:jc w:val="center"/></w:pPr>${formulaContent}</w:p>`;
       }

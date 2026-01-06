@@ -75,15 +75,47 @@
         </div>
       </transition>
 
+      <!-- 意图识别消息 -->
+      <div v-if="message.type === 'intent-recognition'" class="intent-recognition-message">
+        <div class="intent-recognition-header">
+          <el-icon class="intent-icon"><Search /></el-icon>
+          <span class="intent-title">{{ t('agent.message.intentRecognition') }}</span>
+        </div>
+        <div class="intent-content">
+          <div v-if="(message as IntentRecognitionAgentMessage).toolIds.length > 0" class="intent-tools">
+            <div class="intent-tools-label">{{ t('agent.message.selectedTools') }}</div>
+            <div class="intent-tools-list">
+              <el-tag
+                v-for="toolId in (message as IntentRecognitionAgentMessage).toolIds"
+                :key="toolId"
+                size="small"
+                type="info"
+                effect="plain"
+                class="intent-tool-tag"
+              >
+                {{ getToolName(toolId) }}
+              </el-tag>
+            </div>
+          </div>
+          <div v-else class="intent-no-tools">
+            {{ t('agent.message.noToolsNeeded') }}
+          </div>
+          <div v-if="(message as IntentRecognitionAgentMessage).reasoning" class="intent-reasoning">
+            <div class="intent-reasoning-label">{{ t('agent.message.reasoning') }}</div>
+            <div class="intent-reasoning-text">{{ (message as IntentRecognitionAgentMessage).reasoning }}</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Tool结果 -->
-      <div v-if="message.type === 'tool'" class="tool-message-wrapper">
+      <div v-else-if="message.type === 'tool'" class="tool-message-wrapper">
         <el-collapse 
           v-model="toolMessageCollapseActive"
           class="tool-message-collapse"
         >
           <el-collapse-item :name="message.id">
             <template #title>
-              <div class="tool-message-header-preview">
+              <div class="tool-message-header-preview" >
                 <span class="tool-message-title">{{ (message as ToolAgentMessage).tool.name }}</span>
                 <el-tag size="small" :type="getToolStatusTagType((message as ToolAgentMessage).status)">
                   {{ getToolStatusLabel((message as ToolAgentMessage).status) }}
@@ -163,8 +195,8 @@
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { MdPreview } from 'md-editor-v3'
 import { useI18n } from 'vue-i18n'
-import { Avatar, User, Edit, More, Loading, Check } from '@element-plus/icons-vue'
-import type { AgentMessage, ChatAgentMessage, ToolAgentMessage } from '../../types/agent'
+import { Avatar, User, Edit, More, Loading, Check, Search } from '@element-plus/icons-vue'
+import type { AgentMessage, ChatAgentMessage, ToolAgentMessage, IntentRecognitionAgentMessage } from '../../types/agent'
 import AgentToolResultCard from './AgentToolResultCard.vue'
 import ReferenceDisplay from './ReferenceDisplay.vue'
 import { themeState } from '../../utils/themes'
@@ -723,6 +755,15 @@ const handleActionCommand = (command: string) => {
   }
 }
 
+// 获取工具名称（用于显示）
+const getToolName = (toolId: string): string => {
+  const tool = agentToolManager.getTool(toolId)
+  if (tool) {
+    return agentToolManager.getLocalizedText(tool.config.name)
+  }
+  return toolId
+}
+
 // 组件卸载时清理定时器
 onBeforeUnmount(() => {
   clearHideTimer()
@@ -965,12 +1006,20 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 }
 
-/* 确保 el-collapse-item 的内容区域也能正确限制宽度 */
+/* 设置折叠菜单栏的背景色 */
+.tool-message-collapse :deep(.el-collapse-item__header) {
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.textColor');
+}
+
+/* 设置折叠内容区域的背景色 */
 .tool-message-collapse :deep(.el-collapse-item__content) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: auto;
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  padding: 0;
 }
 
 /* 确保 AgentToolResultCard 不会超出父容器 */
@@ -1007,5 +1056,86 @@ onBeforeUnmount(() => {
   to {
     transform: rotate(360deg);
   }
+}
+
+.intent-recognition-message {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: rgba(64, 158, 255, 0.08);
+  border: 1px solid rgba(64, 158, 255, 0.2);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.intent-recognition-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-weight: 500;
+  font-size: 14px;
+  color: v-bind('themeState.currentTheme.textColor');
+}
+
+.intent-icon {
+  color: var(--el-color-primary);
+}
+
+.intent-title {
+  color: var(--el-color-primary);
+}
+
+.intent-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.intent-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intent-tools-label {
+  font-size: 13px;
+  color: v-bind('themeState.currentTheme.textColor2');
+  font-weight: 500;
+}
+
+.intent-tools-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.intent-tool-tag {
+  margin: 0;
+}
+
+.intent-no-tools {
+  font-size: 13px;
+  color: v-bind('themeState.currentTheme.textColor2');
+  font-style: italic;
+}
+
+.intent-reasoning {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.intent-reasoning-label {
+  font-size: 12px;
+  color: v-bind('themeState.currentTheme.textColor2');
+  font-weight: 500;
+}
+
+.intent-reasoning-text {
+  font-size: 13px;
+  color: v-bind('themeState.currentTheme.textColor');
+  line-height: 1.5;
 }
 </style>

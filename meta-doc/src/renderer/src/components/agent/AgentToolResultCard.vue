@@ -519,13 +519,13 @@ onBeforeUnmount(() => {
 })
 
 const paramsEditorContainerStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background,
+  backgroundColor: themeState.currentTheme.background2nd,
   height: '300px',
   minHeight: '200px'
 }))
 
 const rawResultEditorContainerStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background,
+  backgroundColor: themeState.currentTheme.background2nd,
   height: '300px',
   minHeight: '200px'
 }))
@@ -559,7 +559,7 @@ const cardStyle = computed(() => ({
 }))
 
 const outputBodyStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background,
+  backgroundColor: themeState.currentTheme.background2nd,
   color: themeState.currentTheme.textColor,
   borderColor: contentBorderColor.value,
 }))
@@ -811,6 +811,16 @@ const exportSnapshot = async () => {
   box-sizing: border-box;
 }
 
+.outputs :deep(.el-collapse-item__header) {
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.textColor');
+}
+
+.outputs :deep(.el-collapse-item__content) {
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  padding: 0;
+}
+
 .output-title {
   display: flex;
   align-items: center;
@@ -820,15 +830,17 @@ const exportSnapshot = async () => {
 
 .output-body {
   border-radius: 8px;
-  padding: 12px;
+  padding: 0;
   font-size: 13px;
   border: 1px solid;
   transition: background-color 0.2s ease, border-color 0.2s ease;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: hidden;
+  margin: 0;
+  /* 确保圆角边缘的背景色正确 */
+  background-color: v-bind('themeState.currentTheme.background2nd');
 }
 
 /* 确保 Display 组件的根容器不会超出父容器 */
@@ -836,6 +848,8 @@ const exportSnapshot = async () => {
   max-width: 100%;
   width: 100%;
   box-sizing: border-box;
+  margin: 0;
+  display: block;
 }
 
 /* 确保所有以 -display 结尾的类名的组件不会超出容器 */
@@ -843,13 +857,64 @@ const exportSnapshot = async () => {
   max-width: 100%;
   width: 100%;
   box-sizing: border-box;
+  margin: 0;
+  display: block;
+  margin-bottom: 0 !important;
+}
+
+/* 消除所有子元素的底部空隙 */
+.output-body :deep(*) {
+  margin-bottom: 0;
+}
+
+.output-body :deep(*:last-child) {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* 消除pre标签的底部空隙 */
+.output-body :deep(pre) {
+  margin: 0;
+  padding: 12px;
+  background-color: v-bind('themeState.currentTheme.background2nd');
+}
+
+/* 确保monaco编辑器容器没有底部空隙 */
+.output-body :deep(.monaco-editor),
+.output-body :deep(.monaco-editor-container) {
+  margin: 0;
+}
+
+/* 消除display组件内部可能存在的底部间距 */
+.output-body :deep([class*="display"]) {
+  margin-bottom: 0 !important;
+}
+
+.output-body :deep([class*="display"] > *:last-child) {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* 确保所有内部容器都没有底部空隙 */
+.output-body :deep(div),
+.output-body :deep(section),
+.output-body :deep(article) {
+  margin-bottom: 0;
+}
+
+.output-body :deep(div:last-child),
+.output-body :deep(section:last-child),
+.output-body :deep(article:last-child) {
+  margin-bottom: 0 !important;
 }
 
 .raw-text {
   margin: 0;
+  padding: 12px;
   white-space: pre-wrap;
   word-break: break-word;
   font-family: var(--code-font-family, 'JetBrains Mono', monospace);
+  background-color: v-bind('themeState.currentTheme.background2nd');
 }
 
 .error-block {
@@ -893,6 +958,16 @@ const exportSnapshot = async () => {
   margin-bottom: 12px;
 }
 
+.params-collapse :deep(.el-collapse-item__header) {
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.textColor');
+}
+
+.params-collapse :deep(.el-collapse-item__content) {
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  padding: 0;
+}
+
 .params-title {
   display: flex;
   align-items: center;
@@ -904,10 +979,21 @@ const exportSnapshot = async () => {
   border-radius: 6px;
   border: 1px solid v-bind('contentBorderColor');
   overflow: hidden;
+  margin: 0;
 }
 
 .raw-result-collapse {
   margin-bottom: 12px;
+}
+
+.raw-result-collapse :deep(.el-collapse-item__header) {
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.textColor');
+}
+
+.raw-result-collapse :deep(.el-collapse-item__content) {
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  padding: 0;
 }
 
 .raw-result-title {
@@ -921,6 +1007,7 @@ const exportSnapshot = async () => {
   border-radius: 6px;
   border: 1px solid v-bind('contentBorderColor');
   overflow: hidden;
+  margin: 0;
 }
 </style>
 

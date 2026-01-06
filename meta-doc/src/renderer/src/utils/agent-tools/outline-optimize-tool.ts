@@ -1225,6 +1225,55 @@ export const outlineOptimizeToolConfig: AgentToolConfig = {
   name: outlineOptimizeToolLocales,
   description: outlineOptimizeToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'outline-optimize',
+    brief: 'Generate and optimize document outline using AI. Supports multiple operation modes with concurrent processing for efficient batch content generation.',
+    fullSpec: `# Outline Optimization Tool
+
+## Description
+Uses AI to generate and optimize document outline, supports multiple operation modes. After generation, automatically syncs to document content. **Uses concurrent processing mechanism for efficient batch generation of large amounts of content**.
+
+**⭐ Smart Parsing**: This tool supports multiple AI response formats:
+- ✅ JSON format (recommended): [{"title": "Section 1", "children": []}, ...]
+- ✅ Natural language text: Lists, titles, numbering, etc., tool automatically extracts sections
+- ✅ Mixed format: JSON with explanatory text, tool automatically cleans and extracts
+
+## ⭐ Core Advantage: Concurrent Processing, Efficient Batch Generation
+
+This tool uses **concurrent AI processing mechanism**, can generate content for multiple nodes simultaneously, **tens of times more efficient than manual generation**.
+
+**Suitable scenarios**:
+- ✅ **Large-scale content generation**: When generating many sections/paragraphs, use this tool for concurrent processing
+- ✅ **Batch operations**: One-click generate content for all subsections, one-click add subsections to all subsections, etc.
+- ✅ **Structured generation**: When generating content according to outline structure, use this tool to maintain structural consistency
+
+## Usage Scenarios
+- **Large-scale content generation**: When generating many sections/paragraphs (recommended to use this tool, concurrent processing)
+- Generate child sections for a node
+- Generate content for a node
+- Batch generate child nodes for all child nodes
+- Batch generate content for all child nodes
+- Optimize document structure
+
+## Input Format
+\`\`\`json
+{
+  "operation": "generateChildren|generateContent|generateChildrenChildren|generateChildrenContent|moveNode|deleteNodes|clearOutline",
+  "nodePath": "string",      // ⚠️ Important: Target node path (e.g., "1", "1.1", "dummy" for root). For generateChildren and generateContent, if nodePath is not specified, only affects first node
+  "nodePaths": ["string"],  // Optional, array of node paths for batch operations (for deleteNodes)
+  "targetPath": "string",   // Optional, target path for move operation (for moveNode)
+  "moveMode": "string",     // Optional, move mode: before/after/inside (for moveNode)
+  "userPrompt": "string",   // Optional, user prompt to guide AI generation
+  "tabId": "string"         // Optional, document tab ID, default uses current active tab
+}
+\`\`\`
+
+## Important Notes
+1. **Must specify nodePath** for generateChildren and generateContent operations
+2. Use "dummy" as nodePath to represent root node
+3. Batch operations (generateChildrenChildren, generateChildrenContent) use concurrent processing for efficiency
+4. Use outline-tree tool to view document outline structure and get node paths`
+  },
   instruction: `
 # 大纲优化工具
 

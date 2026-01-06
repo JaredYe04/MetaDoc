@@ -21,6 +21,7 @@ import { outlineOptimizeToolConfig } from './outline-optimize-tool'
 import { editToolConfig } from './edit-tool'
 import { metadataToolConfig } from './metadata-tool'
 import { titleFormatToolConfig } from './title-format-tool'
+import { toolSpecFetcherToolConfig } from './tool-spec-fetcher-tool'
 import { registerAllWorkflowsAsTools } from '../agent-framework'
 
 /**
@@ -77,6 +78,9 @@ export async function initializeAgentTools(): Promise<void> {
 
   // 注册标题格式化Tool
   agentToolManager.registerTool(titleFormatToolConfig)
+
+  // 注册工具说明获取器Tool
+  agentToolManager.registerTool(toolSpecFetcherToolConfig)
 
   // 注册所有工作流为Tool
   registerAllWorkflowsAsTools()

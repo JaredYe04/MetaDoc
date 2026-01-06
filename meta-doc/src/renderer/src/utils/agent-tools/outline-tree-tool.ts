@@ -195,6 +195,82 @@ export const outlineTreeToolConfig: AgentToolConfig = {
   name: outlineTreeToolLocales,
   description: outlineTreeToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'outline-tree',
+    brief: 'Get the outline tree structure of the current document. Returns hierarchical structure with titles, paths, and optional text content.',
+    fullSpec: `# Outline Tree Tool
+
+## Description
+Gets the outline tree structure of the current active document. The outline tree is a hierarchical representation of the document, containing titles, paths, and optional text content.
+
+## Usage Recommendations
+
+**Before calling this tool, check reference materials first:**
+- If there is a reference with ID "当前文档内容" in reference materials, it means the current document content has been automatically injected, you can directly view that reference to understand the document content
+- If there is no "当前文档内容" in reference materials, or you need structured outline tree data, you can call this tool
+
+## When to Use This Tool
+
+**Suitable scenarios:**
+1. **Need structured outline tree data**: When other tools (like outline-optimize) need outline tree structure data
+2. **Need precise node path information**: When you need to get the path field (like "1.1", "1.2.1") of specific sections for other tool calls
+3. **Need outline tree format data**: When you need to process document structure in outline tree format
+4. **No current document content in references**: If reference materials don't have "当前文档内容" reference, you can use this tool to get document information
+
+**Optional scenarios:**
+- View document content: If reference materials have "当前文档内容", you can view directly; if not, you can call this tool
+- Understand document structure: If reference materials have "当前文档内容", you can analyze directly; if not, you can call this tool
+- Locate insertion position: Recommended to use \`grep\` tool to search keywords for positioning; if you need outline tree format data, you can also use this tool
+
+## Usage Scenarios
+- Get structured outline tree data for other tools to process
+- Need precise node path information (path field)
+- Need outline tree format data for specific operations
+- Get document information when reference materials don't have current document content
+
+## Methods for Locating Insertion Position
+
+When using \`edit\` tool to insert content, you can use the following methods:
+1. **Check reference materials**: If reference materials have "当前文档内容", you can directly view to understand document structure
+2. **Use \`grep\` tool**: Search keywords, determine insertion point based on match position and context (recommended, lightweight and efficient)
+3. **Use this tool**: If you need outline tree format data, you can call this tool, set \`includeText: true\` to include text content
+
+**Note**: This tool is mainly for getting structured outline tree data. If reference materials already have "当前文档内容", you can usually use reference materials directly; if not, or you need outline tree format data, you can use this tool.
+
+## Input Format
+\`\`\`json
+{
+  "includeText": true,  // Optional, whether to include text content, default true
+  "tabId": "string"     // Optional, specify document tab ID, default uses current active tab
+}
+\`\`\`
+
+## Output Format
+\`\`\`json
+{
+  "outlineTree": {
+    "title": "string",
+    "title_level": 1,
+    "path": "1",
+    "text": "string",  // Empty string if includeText is false
+    "children": []
+  },
+  "includeText": true,
+  "format": "md|tex",
+  "tabId": "string",
+  "path": "string"
+}
+\`\`\`
+
+## Important Notes
+- **Locate before insertion**: Before using \`edit\` tool to insert content, you can use this tool to get document outline, analyze structure, determine correct position (can also use grep or other methods)
+- **includeText parameter**: When you need to view specific content, it's recommended to set \`includeText: true\` to view specific content, making it easier to calculate accurate line number positions
+- Outline tree supports Markdown and LaTeX formats
+- LaTeX documents are first converted to Markdown before extracting outline
+- If includeText is false, the returned outline tree only contains structure information, not text content
+- The path field of outline tree represents the node's position in the tree (like "1", "1.1", "1.2.1", etc.)
+- The text field of outline tree contains all text content under that node, can be used to analyze document content distribution and calculate line numbers`
+  },
   instruction: `
 # 大纲树工具
 

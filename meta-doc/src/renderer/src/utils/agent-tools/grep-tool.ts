@@ -862,6 +862,70 @@ export const grepToolConfig: AgentToolConfig = {
   name: grepToolLocales,
   description: grepToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'grep',
+    brief: 'Search for text patterns in the current document using regular expressions or fuzzy search. Returns matches with line numbers and context. Supports search and replace.',
+    fullSpec: `# Text Search Tool (Grep)
+
+## Description
+Search for text patterns in the current document and metadata using text, regular expressions, or fuzzy search. Returns all matches with context (preceding and following text). Supports search and replace functionality. This is an **efficient, lightweight query tool** that can be called frequently to quickly locate and modify document content.
+
+## ⭐ Recommended for Frequent Use
+
+This tool is designed as a lightweight, efficient query tool, **recommended for frequent use** to:
+- **Quickly locate content**: Find specific text positions in document
+- **Understand context**: Not only find matches, but also see surrounding context
+- **Assist editing decisions**: Search to understand document structure before inserting/replacing content
+- **Verify content existence**: Check if a concept or term already exists in document
+
+## Usage Scenarios
+- Find specific content in document
+- Search keywords
+- Use regular expressions for complex searches
+- **Fuzzy search**: Don't remember exact keywords, use similarity matching (like search engines)
+- Find information in metadata
+- **Locate insertion positions**: Search keywords, determine insertion point based on match position and context
+- **Verify content**: Check if content already exists
+- **Quickly understand document structure**: Understand document content distribution by searching key terms
+- **Batch replace**: Use regular expressions and capture groups for batch replacement
+- **Selective replace**: Replace only specified matches
+
+## Search Modes
+
+### 1. Exact Search (default)
+Exact match search pattern, case-sensitive.
+
+### 2. Regular Expression Search
+Use regular expressions for pattern matching.
+
+### 3. Fuzzy Search ⭐ Recommended (like search engines)
+Use when you don't remember exact keywords, based on similarity matching, **very flexible**, suitable for Chinese text search.
+
+**Fuzzy search features**:
+- No need for exact match, similar text will also be found
+- Supports error tolerance: can find related content even with minor character errors or differences
+- Returns similarity scores, can be sorted by similarity
+- Especially suitable for fuzzy matching of Chinese text
+
+## Input Format
+\`\`\`json
+{
+  "pattern": "string",           // Required, search pattern (text, regex, or fuzzy search keyword)
+  "isRegex": false,              // Optional, whether it's a regex, default false (cannot be true with fuzzy)
+  "fuzzy": false,                // Optional, whether to use fuzzy search, default false (cannot be true with isRegex)
+  "similarityThreshold": 0.6,    // Optional, fuzzy search similarity threshold (0-1), default 0.6
+  "contextLines": 3,             // Optional, context lines, default 3
+  "scope": ["document", "metadata"],  // Optional, search scope, default both
+  "tabId": "string",             // Optional, document tab ID
+  "replaceText": "string",      // Optional, replacement text (if provided, will perform replace)
+  "replaceAll": false,           // Optional, whether to replace all matches, default false
+  "replaceIndices": [0, 2, 5]   // Optional, array of match indices to replace (0-based), mutually exclusive with replaceAll
+}
+\`\`\`
+
+## Output Format
+Returns array of matches with line numbers, positions, and context.`
+  },
   instruction: `
 # 文本搜索工具
 

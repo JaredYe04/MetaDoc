@@ -42,7 +42,15 @@
             <!-- 图表预览区域 -->
             <div class="preview-section" :style="previewSectionStyle">
               <el-scrollbar>
+                <!-- 流式输出显示 -->
+                <StreamingContentDisplay
+                  v-if="isStreaming"
+                  :content-ref="streamingContentRefWrapper"
+                  :done="streamingDoneValue"
+                  :style="{ marginBottom: '16px' }"
+                />
                 <div 
+                  v-if="!isStreaming"
                   ref="chartPreviewContainerRef"
                   class="chart-preview-container"
                   :style="chartPreviewContainerStyle"
@@ -106,15 +114,21 @@
                     <div class="message-content">
                       <pre v-if="msg.role === 'user'" :style="preStyle">{{ msg.content }}</pre>
                       <div v-else>
+                        <!-- 如果这是最后一条消息且正在流式输出，显示流式内容 -->
+                        <StreamingContentDisplay
+                          v-if="index === conversationHistory.length - 1 && isStreaming"
+                          :content-ref="streamingContentRefWrapper"
+                          :done="streamingDoneValue"
+                        />
                         <!-- 使用renderMarkdownPreview渲染图表 -->
-                        <el-scrollbar v-if="msg.chartMarkdown">
+                        <el-scrollbar v-else-if="msg.chartMarkdown && !(index === conversationHistory.length - 1 && isStreaming)">
                           <div 
                             :ref="el => setChartContainerRef(el as HTMLElement | null, index)"
                             class="chart-container"
                             :style="chartContainerStyle"
                           ></div>
                         </el-scrollbar>
-                        <div v-if="msg.code && !msg.chartMarkdown" class="code-preview" :style="codePreviewStyle">
+                        <div v-else-if="msg.code && !msg.chartMarkdown && !(index === conversationHistory.length - 1 && isStreaming)" class="code-preview" :style="codePreviewStyle">
                           <pre :style="preStyle">{{ msg.code }}</pre>
                         </div>
                       </div>
@@ -157,7 +171,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import SessionList from '../components/common/SessionList.vue'
@@ -172,6 +186,7 @@ import { extractOuterJsonString } from '../utils/regex-utils'
 import { createRendererLogger } from '../utils/logger'
 import { themeState } from '../utils/themes'
 import AutoResizeTextarea from '../components/base/AutoResizeTextarea.vue'
+import StreamingContentDisplay from '../components/common/StreamingContentDisplay.vue'
 
 const { t } = useI18n()
 const logger = createRendererLogger('GraphWindow')
@@ -211,6 +226,21 @@ const setChartContainerRef = (el: HTMLElement | null, index: number) => {
     chartContainerRefs.value.delete(index)
   }
 }
+
+// 流式显示相关的refs
+const streamingContentRef = ref<string>('')
+const streamingDonePromise = ref<Promise<any> | null | undefined>(null)
+const isStreaming = computed(() => {
+  return streamingDonePromise.value !== null && streamingDonePromise.value !== undefined
+})
+// 计算属性，用于安全传递done promise
+const streamingDoneValue = computed(() => {
+  return streamingDonePromise.value || undefined
+})
+// 创建一个稳定的ref引用（用于模板绑定）
+const streamingContentRefWrapper = computed(() => {
+  return streamingContentRef
+})
 
 // 防抖渲染定时器
 let renderDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -277,7 +307,28 @@ ${enginesList}
     { stream: true }
   )
   
-  await done
+  // 设置流式显示（虽然意图分析通常很快，但也显示）
+  streamingContentRef.value = ''
+  streamingDonePromise.value = done
+  
+  try {
+    await done
+  } catch (error) {
+    // 如果是取消错误，保留已生成的内容，当作完成处理
+    const isCancelled = error instanceof Error && (
+      error.message === '任务已取消' || 
+      error.message.includes('任务已取消') ||
+      (error as any).name === 'AbortError'
+    )
+    
+    if (!isCancelled) {
+      // 非取消错误，重新抛出
+      throw error
+    }
+    // 取消时继续执行，使用已生成的内容
+  }
+  
+  streamingDonePromise.value = null
   
   // 提取JSON
   let jsonStr = extractOuterJsonString(intentTarget.value)
@@ -580,11 +631,29 @@ const handleGenerate = async () => {
       { stream: true }
     )
     
-    // 监听代码生成，实时渲染
+    // 设置流式显示
+    streamingContentRef.value = ''
+    streamingDonePromise.value = done
+    
+    // 同步codeTarget到streamingContentRef
+    const syncWatcher = watch(
+      () => codeTarget.value,
+      (newValue) => {
+        streamingContentRef.value = newValue
+      },
+      { immediate: true }
+    )
+    
+    // 监听代码生成，实时渲染（仅在简单模式且非流式显示时）
     const renderWatcher = watch(
       () => codeTarget.value,
       async (newCode) => {
         if (!newCode.trim()) return
+        
+        // 如果正在显示流式内容，不需要实时渲染图表
+        if (isStreaming.value && mode.value === 'simple') {
+          return
+        }
         
         // 提取代码块内容
         let chartCode = newCode.trim()
@@ -606,10 +675,27 @@ const handleGenerate = async () => {
       { immediate: false }
     )
     
-    await done
+    try {
+      await done
+    } catch (error) {
+      // 如果是取消错误，保留已生成的内容，当作完成处理
+      const isCancelled = error instanceof Error && (
+        error.message === '任务已取消' || 
+        error.message.includes('任务已取消') ||
+        (error as any).name === 'AbortError'
+      )
+      
+      if (!isCancelled) {
+        // 非取消错误，重新抛出
+        throw error
+      }
+      // 取消时继续执行，使用已生成的内容
+    }
     
     // 清理监听器
+    syncWatcher()
     renderWatcher()
+    streamingDonePromise.value = null
     
     let chartCode = codeTarget.value.trim()
     let chartMarkdown = chartCode

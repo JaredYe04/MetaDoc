@@ -945,6 +945,68 @@ export const metadataToolConfig: AgentToolConfig = {
   name: metadataToolLocales,
   description: metadataToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'metadata',
+    brief: 'Access and modify document metadata. Use AI to automatically generate title, description, keywords, etc.',
+    fullSpec: `# Metadata Management Tool
+
+## Description
+Access, modify document metadata, or use AI to automatically generate title, description, keywords, and other metadata.
+
+## Usage Scenarios
+- View document metadata
+- Modify document title, author, description, keywords
+- Use AI to automatically generate metadata
+- Batch update metadata
+
+## Input Format
+\`\`\`json
+{
+  "operation": "get|set|generate",
+  "field": "title|description|keywords|author|all",  // Required for set and generate operations
+  "value": "string|string[]|object",  // Required for set operation
+  "tabId": "string"  // Optional, document tab ID, default uses current active tab
+}
+\`\`\`
+
+## Operation Types
+
+### get
+Get current document metadata. No field parameter needed.
+
+### set
+Set a metadata field or all fields.
+- Single field: field specifies field name, value is corresponding value
+- All fields: field is "all", value is object containing all fields
+
+### generate
+Use AI to generate metadata.
+- Single field: field specifies field to generate (title, description, keywords)
+- All fields: field is "all", will generate title, description, keywords in sequence
+
+## Output Format
+\`\`\`json
+{
+  "operation": "get|set|generate",
+  "field": "string",
+  "metadata": {
+    "title": "string",
+    "author": "string",
+    "description": "string",
+    "keywords": ["string"]
+  },
+  "generatedValue": "string|string[]|object"
+}
+\`\`\`
+
+## Important Notes
+- Metadata includes: title, author, description, keywords (array)
+- generate operation generates metadata based on document outline tree
+- Generated metadata automatically updates to document
+- keywords field must be string array
+- All string fields automatically trim leading/trailing spaces
+- keywords automatically deduplicated`
+  },
   instruction: `
 # 元信息管理工具
 

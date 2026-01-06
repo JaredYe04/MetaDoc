@@ -452,6 +452,60 @@ export const diffToolConfig: AgentToolConfig = {
   name: diffToolLocales,
   description: diffToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'diff',
+    brief: 'Compare two text contents, URLs, or local files and generate a diff showing additions, deletions, and modifications.',
+    fullSpec: `# Text Comparison Tool (Diff)
+
+## Description
+Compares two text contents, URLs, or local files and generates a detailed diff result. Similar to Git diff and WinMerge functionality.
+
+## Usage Scenarios
+- Compare different versions of documents
+- Check code changes
+- Compare configuration files
+- Analyze text differences
+
+## Input Format
+\`\`\`json
+{
+  "text1": "string",        // Required, first text, file path, or URL
+  "text2": "string",        // Required, second text, file path, or URL
+  "source1": "text|file|url",  // Optional, source type for text1, default "text"
+  "source2": "text|file|url"  // Optional, source type for text2, default "text"
+}
+\`\`\`
+
+## Output Format
+\`\`\`json
+{
+  "chunks": [
+    {
+      "type": "equal|insert|delete|replace",
+      "oldStart": 1,
+      "oldEnd": 5,
+      "newStart": 1,
+      "newEnd": 6,
+      "oldLines": ["line1", "line2"],
+      "newLines": ["line1", "line2", "line3"]
+    }
+  ],
+  "summary": {
+    "totalChanges": 10,
+    "insertions": 15,
+    "deletions": 8,
+    "replacements": 3
+  }
+}
+\`\`\`
+
+## Important Notes
+- Supports three source types: plain text, file paths, and URLs
+- File paths must be absolute paths or relative to project root
+- URLs automatically handle redirects and CORS issues
+- Diff calculation is based on line-level comparison
+- Diff types include: equal (same), insert (insertion), delete (deletion), replace (replacement)`
+  },
   instruction: `
 # 文本比对工具
 

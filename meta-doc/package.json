@@ -1,6 +1,6 @@
 {
   "name": "meta-doc",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "基于LLM Agent的智能文字处理软件",
   "main": "./out/main/index.js",
   "author": "ByteLight",

@@ -768,7 +768,10 @@ export const editToolConfig: AgentToolConfig = {
   name: editToolLocales,
   description: editToolLocales,
   origin: 'internal',
-  instruction: `
+  spec: {
+    name: 'edit',
+    brief: 'Edit the current document with incremental diff editing. Supports insert, replace, delete operations based on position or text search.',
+    fullSpec: `
 # 文档编辑工具
 
 ## 功能描述
@@ -1354,7 +1357,8 @@ export const editToolConfig: AgentToolConfig = {
 - 如果某个编辑操作失败（例如找不到匹配文本、位置超出范围），其他操作仍会继续执行
 - 查找替换如果找不到匹配文本，该操作会失败但不影响其他操作
 - \`tabId\` 参数可选，默认使用当前活动的文档标签页
-`,
+`
+  },
   callback: editToolCallback,
   displayComponent: EditDisplay,
   tags: ['edit', 'document', 'text'],
@@ -1464,4 +1468,3 @@ export const editToolConfig: AgentToolConfig = {
     }
   }
 }
-

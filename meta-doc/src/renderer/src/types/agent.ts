@@ -1,6 +1,6 @@
 export type AgentRole = 'system' | 'assistant' | 'user' | 'tool';
 
-export type AgentMessageType = 'chat' | 'tool' | 'thought';
+export type AgentMessageType = 'chat' | 'tool' | 'thought' | 'intent-recognition';
 
 export interface AgentToolReference {
   id: string;
@@ -55,7 +55,14 @@ export interface ToolAgentMessage extends AgentMessageBase {
   markdown?: string; // OpenAI格式的content字符串，用于直接发送给LLM API
 }
 
-export type AgentMessage = ChatAgentMessage | ThoughtAgentMessage | ToolAgentMessage;
+export interface IntentRecognitionAgentMessage extends AgentMessageBase {
+  type: 'intent-recognition';
+  toolIds: string[]; // 识别到的工具ID列表
+  reasoning?: string; // 识别原因
+  output?: string; // AI输出的原始文本（用于调试）
+}
+
+export type AgentMessage = ChatAgentMessage | ThoughtAgentMessage | ToolAgentMessage | IntentRecognitionAgentMessage;
 
 export type ToolOrigin = 'renderer' | 'main' | 'mcp';
 

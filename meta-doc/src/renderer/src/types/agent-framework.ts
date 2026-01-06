@@ -405,6 +405,8 @@ export interface AgentSession {
   readonly?: boolean
   /** 是否启用内置0号reference（动态获取当前文档内容，默认开启） */
   enableBuiltInDocumentReference?: boolean
+  /** 当前激活的工具完整说明（按需注入，每次用户消息时清空并重新填充） */
+  activeToolSpecs?: Map<string, string>
   /** 会话元数据 */
   metadata?: Record<string, unknown>
 }

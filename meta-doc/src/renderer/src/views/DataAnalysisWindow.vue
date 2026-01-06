@@ -178,8 +178,8 @@
             <el-tab-pane :label="t('dataAnalysis.tabs.result', '分析结果')" name="result">
               <el-scrollbar class="result-tab-scrollbar">
                 <div class="result-tab-content" :style="resultTabContentStyle">
-                <!-- 分析状态显示 -->
-                <div v-if="analyzing || analysisStage" class="analysis-status" :style="analysisStatusStyle">
+                <!-- 分析状态显示（仅在非报告流式生成阶段显示） -->
+                <div v-if="(analyzing || analysisStage) && !isReportStreaming" class="analysis-status" :style="analysisStatusStyle">
                   <el-icon class="is-loading"><Loading /></el-icon>
                   <span>{{ getStageMessage() }}</span>
                 </div>
@@ -190,18 +190,25 @@
                 </div>
                 
                 <!-- AI报告 -->
-                <div v-if="analysisResult || reportMarkdown" class="report-section" :style="reportSectionStyle">
+                <div v-if="analysisResult || reportMarkdown || isReportStreaming" class="report-section" :style="reportSectionStyle">
                   <div class="report-header" :style="reportHeaderStyle">
                     <h3>{{ t('dataAnalysis.tabs.report', '分析报告') }}</h3>
                   </div>
+                  <!-- 流式输出显示 -->
+                  <StreamingContentDisplay
+                    v-if="isReportStreaming"
+                    :content-ref="reportStreamingRefWrapper"
+                    :done="reportStreamingDoneValue"
+                    :style="{ marginBottom: '16px' }"
+                  />
                   <div 
-                    v-if="reportMarkdown" 
+                    v-else-if="reportMarkdown" 
                     ref="reportContainerRef"
                     class="report-markdown-container"
                     :style="reportContainerStyle"
                   ></div>
                   <div v-else class="no-report" :style="noReportStyle">
-                    {{ analyzing ? t('dataAnalysis.generatingReport', '正在生成报告...') : t('dataAnalysis.noReport', '暂无分析报告') }}
+                    {{ t('dataAnalysis.noReport', '暂无分析报告') }}
                   </div>
                 </div>
                 
@@ -233,6 +240,8 @@ import DataAnalysisResultDisplay from '../components/data-analysis/DataAnalysisR
 import { themeState } from '../utils/themes'
 import { renderMarkdownPreview } from '../utils/md-utils'
 import { parseCSV } from '../utils/agent-tools/data-analysis-tool'
+import StreamingContentDisplay from '../components/common/StreamingContentDisplay.vue'
+import type { Ref } from 'vue'
 
 const { t } = useI18n()
 
@@ -253,6 +262,13 @@ const loadingSession = ref(false)
 const analysisStage = ref<string>('')
 const analysisResult = ref<any>(null)
 const reportMarkdown = ref<string>('')
+
+// 报告流式显示相关的refs
+const reportStreamingRef = ref<string>('')
+const reportStreamingDonePromise = ref<Promise<any> | null | undefined>(null)
+const isReportStreaming = computed(() => reportStreamingDonePromise.value !== null && reportStreamingDonePromise.value !== undefined)
+const reportStreamingDoneValue = computed(() => reportStreamingDonePromise.value || undefined)
+const reportStreamingRefWrapper = computed(() => reportStreamingRef)
 const activeTab = ref('preview')
 const headerRowIndex = ref<number | undefined>(undefined)
 const detectedHeaderRowIndex = ref<number>(0)
@@ -1070,10 +1086,54 @@ const handleAnalyze = async () => {
   try {
     const session = activeSessionData.value
     
+    // 清空流式显示状态
+    reportStreamingRef.value = ''
+    reportStreamingDonePromise.value = null
+    
     // 创建进度更新回调
-    const onProgress = (progress: any) => {
-      if (progress.message) {
+    const onProgress = (data: any, progress?: any) => {
+      if (progress?.message) {
         analysisStage.value = progress.message
+      }
+      
+      // 检查是否是报告流式输出更新
+      if (data?.content?.stage === 'summarizing-streaming') {
+        const content = data.content as any
+        if (content.reportTargetRef && content.reportDonePromise) {
+          // 设置流式显示
+          reportStreamingRef.value = ''
+          reportStreamingDonePromise.value = content.reportDonePromise
+          
+          // 同步targetRef到reportStreamingRef
+          const syncWatcher = watch(
+            () => content.reportTargetRef.value,
+            (newValue) => {
+              reportStreamingRef.value = newValue || ''
+            },
+            { immediate: true }
+          )
+          
+          // 当done完成时，清理（取消时也保留已生成的内容）
+          content.reportDonePromise
+            .then(() => {
+              syncWatcher()
+              reportStreamingDonePromise.value = null
+            })
+            .catch((error: any) => {
+              // 如果是取消错误，保留已生成的内容，当作完成处理
+              const isCancelled = error instanceof Error && (
+                error.message === '任务已取消' || 
+                error.message.includes('任务已取消') ||
+                error.name === 'AbortError'
+              )
+              
+              // 无论是否取消，都清理流式显示状态
+              syncWatcher()
+              reportStreamingDonePromise.value = null
+              
+              // 取消时保留内容，继续处理后续逻辑（不需要抛出错误）
+            })
+        }
       }
     }
     
@@ -1117,10 +1177,14 @@ const handleAnalyze = async () => {
       
       ElMessage.success(t('dataAnalysis.analyzeSuccess', '分析完成'))
     } else {
+      // 清理流式显示
+      reportStreamingDonePromise.value = null
       ElMessage.error(result.error || t('dataAnalysis.analyzeFailed', '分析失败'))
       analysisStage.value = ''
     }
   } catch (error) {
+    // 清理流式显示
+    reportStreamingDonePromise.value = null
     ElMessage.error('分析失败: ' + (error instanceof Error ? error.message : String(error)))
     analysisStage.value = ''
   } finally {
@@ -1275,6 +1339,7 @@ const isExcelFile = computed(() => {
   const path = activeSessionData.value.data_file_path.toLowerCase()
   return path.endsWith('.xlsx') || path.endsWith('.xls')
 })
+
 
 
 

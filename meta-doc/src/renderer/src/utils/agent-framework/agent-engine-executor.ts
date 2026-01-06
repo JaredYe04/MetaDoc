@@ -16,8 +16,11 @@ import { createRendererLogger } from '../logger'
 import { extractOuterJsonString } from '../regex-utils'
 import { parseToolCalls, type ParsedToolCall } from './tool-call-processor'
 import { ToolCallQueue } from './tool-call-queue'
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { getLlmTemperature } from '../settings.js'
+import { recognizeIntent, type IntentRecognitionResult } from './intent-processor'
+import { agentToolManager } from '../agent-tool-manager'
+import { workflowManager } from './workflow-manager'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -90,6 +93,99 @@ export abstract class BaseEngineExecutor {
   abstract execute(userMessage: string): Promise<void>
 
   /**
+   * 执行意图识别并更新activeToolSpecs
+   * 每次用户发送消息时调用，清空旧的fullSpecs并注入新的
+   */
+  protected async processIntentAndUpdateSpecs(userMessage: string, intentOutputRef?: ReturnType<typeof ref<string>>): Promise<IntentRecognitionResult> {
+    const session = this.session as any
+    
+    // 清空当前的activeToolSpecs（每次用户消息时清空）
+    // 检查是否是 Map 实例（可能被序列化后变成普通对象）
+    if (!session.activeToolSpecs || !(session.activeToolSpecs instanceof Map)) {
+      session.activeToolSpecs = new Map<string, string>()
+    } else {
+      session.activeToolSpecs.clear()
+    }
+    
+    getLogger().debug('[processIntentAndUpdateSpecs] 已清空activeToolSpecs，开始意图识别')
+    
+    // 执行意图识别
+    const intentResult = await recognizeIntent(
+      session as AgentSession,
+      this.agentConfig,
+      userMessage,
+      intentOutputRef,
+      this.engine,
+      {
+        taskName: 'Intent Recognition',
+        temperature: 0.3,
+        maxTokens: 500
+      }
+    )
+    
+    getLogger().info('[processIntentAndUpdateSpecs] 意图识别完成', {
+      toolIds: intentResult.toolIds,
+      toolCount: intentResult.toolIds.length
+    })
+    
+    // 根据识别结果，注入对应工具的fullSpec
+    for (const toolId of intentResult.toolIds) {
+      // 尝试从普通工具获取
+      let tool = agentToolManager.getTool(toolId)
+      let fullSpec: string | undefined = undefined
+      
+      if (tool && tool.config.enabled) {
+        if (tool.config.spec?.fullSpec) {
+          fullSpec = tool.config.spec.fullSpec
+        } else if (tool.config.instruction) {
+          // 回退到instruction
+          if (typeof tool.config.instruction === 'string') {
+            fullSpec = tool.config.instruction
+          } else {
+            fullSpec = tool.config.instruction['zh_cn']?.instruction || 
+                      tool.config.instruction['en_us']?.instruction || 
+                      undefined
+          }
+        }
+      } else {
+        // 尝试从workflow获取
+        const workflow = workflowManager.getWorkflow(toolId)
+        if (workflow) {
+          const registeredWorkflowTool = agentToolManager.getTool(`workflow-${workflow.id}`)
+          if (registeredWorkflowTool?.config.spec?.fullSpec) {
+            fullSpec = registeredWorkflowTool.config.spec.fullSpec
+          } else if (registeredWorkflowTool?.config.instruction) {
+            if (typeof registeredWorkflowTool.config.instruction === 'string') {
+              fullSpec = registeredWorkflowTool.config.instruction
+            } else {
+              fullSpec = registeredWorkflowTool.config.instruction['zh_cn']?.instruction || 
+                        registeredWorkflowTool.config.instruction['en_us']?.instruction || 
+                        undefined
+            }
+          }
+        }
+      }
+      
+      if (fullSpec) {
+        session.activeToolSpecs.set(toolId, fullSpec)
+        getLogger().debug(`[processIntentAndUpdateSpecs] 已注入工具 ${toolId} 的fullSpec`, {
+          toolId,
+          fullSpecLength: fullSpec.length
+        })
+      } else {
+        getLogger().warn(`[processIntentAndUpdateSpecs] 工具 ${toolId} 没有找到fullSpec`)
+      }
+    }
+    
+    getLogger().info('[processIntentAndUpdateSpecs] fullSpec注入完成', {
+      activeToolSpecsCount: session.activeToolSpecs.size,
+      toolIds: Array.from(session.activeToolSpecs.keys())
+    })
+    
+    return intentResult
+  }
+
+  /**
    * 获取最大迭代次数（考虑maxToolCalls配置）
    * 如果maxToolCalls为null（无限制），返回一个很大的值（2147483647）
    * 否则返回engineConfig中的maxIterations或默认值10
@@ -125,27 +221,53 @@ export abstract class BaseEngineExecutor {
   }
 
   /**
-   * 获取可用工具列表
+   * 获取可用工具列表（包含brief和fullSpec信息）
    */
-  protected getAvailableTools(): Array<{ id: string; name: string; description: string; schema: unknown; instruction?: string }> {
+  protected getAvailableTools(): Array<{ id: string; name: string; description: string; schema: unknown; brief?: string; fullSpec?: string }> {
     const toolIds = agentConfigManager.getAvailableToolIds(this.agentConfig.id)
-    const tools: Array<{ id: string; name: string; description: string; schema: unknown; instruction?: string }> = []
+    const tools: Array<{ id: string; name: string; description: string; schema: unknown; brief?: string; fullSpec?: string }> = []
+    
+    // 获取当前会话的activeToolSpecs（如果存在）
+    const session = this.session as any
+    // 确保 activeToolSpecs 是 Map 实例（可能被序列化后变成普通对象）
+    const activeToolSpecs = (session.activeToolSpecs instanceof Map) 
+      ? session.activeToolSpecs 
+      : new Map<string, string>()
 
     // 添加普通工具
     for (const toolId of toolIds) {
       const tool = agentToolManager.getTool(toolId)
       if (tool && tool.config.enabled) {
-        // 提取instruction（支持string和ToolLocales格式）
-        let instruction: string | undefined = undefined
-        if (tool.config.instruction) {
-          if (typeof tool.config.instruction === 'string') {
-            instruction = tool.config.instruction
-          } else {
-            // ToolLocales格式，优先使用zh_cn，然后en_us
-            instruction = tool.config.instruction['zh_cn']?.instruction || 
-                         tool.config.instruction['en_us']?.instruction || 
-                         undefined
+        // 提取brief和fullSpec
+        let brief: string | undefined = undefined
+        let fullSpec: string | undefined = undefined
+        
+        if (tool.config.spec) {
+          // 优先使用spec
+          brief = tool.config.spec.brief
+          fullSpec = tool.config.spec.fullSpec
+        } else {
+          // 回退到description和instruction
+          brief = typeof tool.config.description === 'string'
+            ? tool.config.description
+            : tool.config.description['zh_cn']?.description || 
+              tool.config.description['en_us']?.description || 
+              ''
+          
+          if (tool.config.instruction) {
+            if (typeof tool.config.instruction === 'string') {
+              fullSpec = tool.config.instruction
+            } else {
+              fullSpec = tool.config.instruction['zh_cn']?.instruction || 
+                        tool.config.instruction['en_us']?.instruction || 
+                        undefined
+            }
           }
+        }
+        
+        // 如果activeToolSpecs中有该工具的fullSpec，使用它（按需注入）
+        if (activeToolSpecs.has(toolId)) {
+          fullSpec = activeToolSpecs.get(toolId)
         }
         
         tools.push({
@@ -157,7 +279,8 @@ export abstract class BaseEngineExecutor {
             ? tool.config.description
             : tool.config.description['zh_cn']?.description || tool.config.description['en_us']?.description || '',
           schema: tool.config.inputSchema || {},
-          instruction
+          brief,
+          fullSpec
         })
       }
     }
@@ -167,17 +290,36 @@ export abstract class BaseEngineExecutor {
     const addedToolIds = new Set(tools.map(t => t.id))
     for (const workflow of workflows) {
       if (workflow.enabled !== false && toolIds.includes(workflow.id) && !addedToolIds.has(workflow.id)) {
-        // 尝试从agentToolManager获取已注册的workflow工具（包含instruction）
+        // 尝试从agentToolManager获取已注册的workflow工具
         const registeredWorkflowTool = agentToolManager.getTool(`workflow-${workflow.id}`)
-        let instruction: string | undefined = undefined
-        if (registeredWorkflowTool?.config.instruction) {
-          if (typeof registeredWorkflowTool.config.instruction === 'string') {
-            instruction = registeredWorkflowTool.config.instruction
-          } else {
-            instruction = registeredWorkflowTool.config.instruction['zh_cn']?.instruction || 
-                         registeredWorkflowTool.config.instruction['en_us']?.instruction || 
-                         undefined
+        
+        let brief: string | undefined = undefined
+        let fullSpec: string | undefined = undefined
+        
+        if (registeredWorkflowTool?.config.spec) {
+          brief = registeredWorkflowTool.config.spec.brief
+          fullSpec = registeredWorkflowTool.config.spec.fullSpec
+        } else {
+          brief = typeof workflow.description === 'string'
+            ? workflow.description
+            : workflow.description['zh_cn']?.description || 
+              workflow.description['en_us']?.description || 
+              ''
+          
+          if (registeredWorkflowTool?.config.instruction) {
+            if (typeof registeredWorkflowTool.config.instruction === 'string') {
+              fullSpec = registeredWorkflowTool.config.instruction
+            } else {
+              fullSpec = registeredWorkflowTool.config.instruction['zh_cn']?.instruction || 
+                        registeredWorkflowTool.config.instruction['en_us']?.instruction || 
+                        undefined
+            }
           }
+        }
+        
+        // 如果activeToolSpecs中有该工具的fullSpec，使用它
+        if (activeToolSpecs.has(workflow.id)) {
+          fullSpec = activeToolSpecs.get(workflow.id)
         }
         
         tools.push({
@@ -189,7 +331,8 @@ export abstract class BaseEngineExecutor {
             ? workflow.description
             : workflow.description['zh_cn']?.description || workflow.description['en_us']?.description || '',
           schema: workflow.inputSchema || {},
-          instruction
+          brief,
+          fullSpec
         })
       }
     }
@@ -198,7 +341,7 @@ export abstract class BaseEngineExecutor {
   }
 
   /**
-   * 构建工具调用提示
+   * 构建工具调用提示（支持brief和fullSpec）
    */
   protected buildToolCallPrompt(): string {
     const tools = this.getAvailableTools()
@@ -206,83 +349,90 @@ export abstract class BaseEngineExecutor {
       return ''
     }
 
-    let prompt = '\n\n=== 工具调用规范 ===\n'
-    prompt += '你可以通过调用工具来完成各种任务。所有工具调用必须使用统一的标记格式。\n\n'
+    let prompt = '\n\n=== Tool Calling Specification ===\n'
+    prompt += 'You can call tools to complete various tasks. All tool calls must use a unified marker format.\n\n'
     
-    prompt += '## 工具调用格式\n'
-    prompt += '当你需要调用工具时，必须使用以下标记格式：\n'
+    prompt += '## Tool Call Format\n'
+    prompt += 'When you need to call a tool, you must use the following marker format:\n'
     prompt += '```\n'
     prompt += '<tool_call>\n'
-    prompt += '{"name": "工具ID", "arguments": {"参数名1": "参数值1", "参数名2": "参数值2"}}\n'
+    prompt += '{"name": "tool_id", "arguments": {"param1": "value1", "param2": "value2"}}\n'
     prompt += '</tool_call>\n'
     prompt += '```\n\n'
     
-    prompt += '## 重要规则\n'
-    prompt += '1. **必须使用标记格式**：工具调用必须使用`<tool_call></tool_call>`标记格式\n'
-    prompt += '2. **标记必须完整**：必须包含开始标记`<tool_call>`和结束标记`</tool_call>`\n'
-    prompt += '3. **工具ID必须准确**：使用工具列表中的确切ID作为`name`字段的值，不能随意修改\n'
-    prompt += '4. **参数必须是JSON对象**：`arguments`字段必须是有效的JSON对象格式\n'
-    prompt += '5. **一次可调用多个工具**：可以连续使用多个`<tool_call></tool_call>`块来调用多个工具\n'
-    prompt += '6. **不要在标记中混合文本**：标记块应该是独立的，不要在标记中混合其他文本说明\n'
-    prompt += '7. **调用前先确认需求**：仔细分析用户需求，选择最合适的工具，确保参数正确\n\n'
+    prompt += '## Important Rules\n'
+    prompt += '1. **Must use marker format**: Tool calls must use `<tool_call></tool_call>` marker format\n'
+    prompt += '2. **Markers must be complete**: Must include both opening `<tool_call>` and closing `</tool_call>` markers\n'
+    prompt += '3. **Tool ID must be accurate**: Use the exact ID from the tool list as the `name` field value, do not modify it\n'
+    prompt += '4. **Arguments must be JSON object**: The `arguments` field must be a valid JSON object format\n'
+    prompt += '5. **Can call multiple tools**: You can use multiple `<tool_call></tool_call>` blocks to call multiple tools\n'
+    prompt += '6. **Do not mix text in markers**: Marker blocks should be independent, do not mix other text explanations in markers\n'
+    prompt += '7. **Confirm requirements before calling**: Carefully analyze user requirements, select the most appropriate tool, and ensure parameters are correct\n\n'
     
-    prompt += '## 工具调用示例\n'
-    prompt += '示例1 - 调用单个工具：\n'
+    prompt += '## Tool Call Examples\n'
+    prompt += 'Example 1 - Call a single tool:\n'
     prompt += '```\n'
     prompt += '<tool_call>\n'
-    prompt += '{"name": "chart-generation", "arguments": {"prompt": "生成一个关于数据趋势的折线图", "type": "line"}}\n'
+    prompt += '{"name": "chart-generation", "arguments": {"prompt": "Generate a line chart about data trends", "type": "line"}}\n'
     prompt += '</tool_call>\n'
     prompt += '```\n\n'
     
-    prompt += '示例2 - 调用多个工具：\n'
+    prompt += 'Example 2 - Call multiple tools:\n'
     prompt += '```\n'
     prompt += '<tool_call>\n'
     prompt += '{"name": "outline-tree", "arguments": {"includeText": true}}\n'
     prompt += '</tool_call>\n'
     prompt += '<tool_call>\n'
-    prompt += '{"name": "chart-generation", "arguments": {"prompt": "生成思维导图", "type": "mindmap"}}\n'
+    prompt += '{"name": "chart-generation", "arguments": {"prompt": "Generate a mind map", "type": "mindmap"}}\n'
     prompt += '</tool_call>\n'
     prompt += '```\n\n'
 
-    prompt += '=== 可用工具列表 ===\n'
+    prompt += '=== Available Tools List ===\n'
     for (const tool of tools) {
       prompt += `\n**${tool.name}** (ID: \`${tool.id}\`)\n`
-      prompt += `${tool.description}\n`
       
-      // 添加工具的详细使用说明（instruction）
-      if (tool.instruction) {
-        prompt += `\n${tool.instruction}\n`
+      // 总是显示brief（简短说明）
+      if (tool.brief) {
+        prompt += `${tool.brief}\n`
+      } else {
+        prompt += `${tool.description}\n`
       }
       
+      // 如果有fullSpec（按需注入的完整说明），显示它
+      if (tool.fullSpec) {
+        prompt += `\n${tool.fullSpec}\n`
+      }
+      
+      // 显示参数说明
       if (tool.schema && typeof tool.schema === 'object') {
         const schema = tool.schema as any
         if (schema.properties) {
-          prompt += `\n参数说明：\n`
+          prompt += `\nParameters:\n`
           const props = schema.properties
           const required = schema.required || []
           for (const [key, value] of Object.entries(props)) {
             const prop = value as any
             const isRequired = required.includes(key)
-            prompt += `  - \`${key}\`${isRequired ? ' (必需)' : ' (可选)'}: ${prop.description || '无描述'}\n`
+            prompt += `  - \`${key}\`${isRequired ? ' (required)' : ' (optional)'}: ${prop.description || 'No description'}\n`
             if (prop.type) {
-              prompt += `    类型: ${prop.type}\n`
+              prompt += `    Type: ${prop.type}\n`
             }
             if (prop.enum) {
-              prompt += `    可选值: ${JSON.stringify(prop.enum)}\n`
+              prompt += `    Allowed values: ${JSON.stringify(prop.enum)}\n`
             }
           }
         }
       }
     }
 
-    prompt += '\n\n## 调用工具时的注意事项\n'
-    prompt += '- 仔细阅读每个工具的说明和参数要求\n'
-    prompt += '- 确保参数类型正确（字符串、数字、布尔值、对象等）\n'
-    prompt += '- 参数必须是有效的JSON字符串格式\n'
-    prompt += '- 如果工具调用失败，检查参数是否正确，然后重试\n'
-    prompt += '- 工具调用结果会在后续对话中提供，你可以基于结果继续处理\n'
-    prompt += '- 如果不需要调用工具，直接回复文本即可，不要包含工具调用标记\n'
-    prompt += '- **重要**：工具调用时，标记格式中的参数内容不会显示给用户，只会在系统内部处理\n'
+    prompt += '\n\n## Notes When Calling Tools\n'
+    prompt += '- Read each tool\'s instructions and parameter requirements carefully\n'
+    prompt += '- Ensure parameter types are correct (string, number, boolean, object, etc.)\n'
+    prompt += '- Parameters must be in valid JSON string format\n'
+    prompt += '- If tool call fails, check if parameters are correct, then retry\n'
+    prompt += '- Tool call results will be provided in subsequent conversations, you can continue processing based on results\n'
+    prompt += '- If no tools are needed, reply with text directly, do not include tool call markers\n'
+    prompt += '- **Important**: When calling tools, the parameter content in the marker format will not be displayed to users, it will only be processed internally by the system\n'
 
     return prompt
   }
@@ -571,9 +721,32 @@ export class ReActEngineExecutor extends BaseEngineExecutor {
   async execute(userMessage: string): Promise<void> {
     // 用户消息已经在handleComposerSubmit中添加，这里不再重复添加
 
+    // 步骤1: 意图识别并更新activeToolSpecs
     this.options.onProgress?.({
       stage: 'thinking',
-      message: 'ReAct模式：推理中...'
+      message: 'Analyzing intent...'
+    })
+    
+    const intentOutputRef = ref('')
+    const intentResult = await this.processIntentAndUpdateSpecs(userMessage, intentOutputRef)
+    
+    // 添加意图识别消息到会话（用于UI显示）
+    if (intentResult.toolIds.length > 0) {
+      const intentMessage = {
+        id: `intent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        role: 'system' as const,
+        type: 'intent-recognition' as const,
+        timestamp: new Date().toISOString(),
+        toolIds: intentResult.toolIds,
+        reasoning: intentResult.reasoning,
+        output: intentOutputRef.value
+      }
+      this.session.messages.push(intentMessage as any)
+    }
+
+    this.options.onProgress?.({
+      stage: 'thinking',
+      message: 'ReAct mode: Reasoning...'
     })
 
     // 获取LLM配置
@@ -849,9 +1022,32 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
   async execute(userMessage: string): Promise<void> {
     // 用户消息已经在handleComposerSubmit中添加，这里不再重复添加
 
+    // 步骤1: 意图识别并更新activeToolSpecs
     this.options.onProgress?.({
       stage: 'thinking',
-      message: '正在思考...'
+      message: 'Analyzing intent...'
+    })
+    
+    const intentOutputRef = ref('')
+    const intentResult = await this.processIntentAndUpdateSpecs(userMessage, intentOutputRef)
+    
+    // 添加意图识别消息到会话（用于UI显示）
+    if (intentResult.toolIds.length > 0) {
+      const intentMessage = {
+        id: `intent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        role: 'system' as const,
+        type: 'intent-recognition' as const,
+        timestamp: new Date().toISOString(),
+        toolIds: intentResult.toolIds,
+        reasoning: intentResult.reasoning,
+        output: intentOutputRef.value
+      }
+      this.session.messages.push(intentMessage as any)
+    }
+
+    this.options.onProgress?.({
+      stage: 'thinking',
+      message: 'Thinking...'
     })
 
     // 获取LLM配置
@@ -1306,9 +1502,32 @@ export class SimpleChatEngineExecutor extends BaseEngineExecutor {
   async execute(userMessage: string): Promise<void> {
     // 用户消息已经在handleComposerSubmit中添加，这里不再重复添加
 
+    // 步骤1: 意图识别并更新activeToolSpecs（即使SimpleChat也可能需要工具）
+    this.options.onProgress?.({
+      stage: 'thinking',
+      message: 'Analyzing intent...'
+    })
+    
+    const intentOutputRef = ref('')
+    const intentResult = await this.processIntentAndUpdateSpecs(userMessage, intentOutputRef)
+    
+    // 添加意图识别消息到会话（用于UI显示）
+    if (intentResult.toolIds.length > 0) {
+      const intentMessage = {
+        id: `intent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        role: 'system' as const,
+        type: 'intent-recognition' as const,
+        timestamp: new Date().toISOString(),
+        toolIds: intentResult.toolIds,
+        reasoning: intentResult.reasoning,
+        output: intentOutputRef.value
+      }
+      this.session.messages.push(intentMessage as any)
+    }
+
     this.options.onProgress?.({
       stage: 'generating',
-      message: '生成回复中...'
+      message: 'Generating response...'
     })
 
     // 获取LLM配置
@@ -1375,9 +1594,32 @@ export class PlanExecuteEngineExecutor extends BaseEngineExecutor {
   async execute(userMessage: string): Promise<void> {
     // 用户消息已经在handleComposerSubmit中添加，这里不再重复添加
 
+    // 步骤1: 意图识别并更新activeToolSpecs
     this.options.onProgress?.({
       stage: 'thinking',
-      message: '规划阶段：生成执行计划...'
+      message: 'Analyzing intent...'
+    })
+    
+    const intentOutputRef = ref('')
+    const intentResult = await this.processIntentAndUpdateSpecs(userMessage, intentOutputRef)
+    
+    // 添加意图识别消息到会话（用于UI显示）
+    if (intentResult.toolIds.length > 0) {
+      const intentMessage = {
+        id: `intent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        role: 'system' as const,
+        type: 'intent-recognition' as const,
+        timestamp: new Date().toISOString(),
+        toolIds: intentResult.toolIds,
+        reasoning: intentResult.reasoning,
+        output: intentOutputRef.value
+      }
+      this.session.messages.push(intentMessage as any)
+    }
+
+    this.options.onProgress?.({
+      stage: 'thinking',
+      message: 'Planning phase: Generating execution plan...'
     })
 
     // 获取LLM配置
@@ -1570,9 +1812,32 @@ export class WorkflowEngineExecutor extends BaseEngineExecutor {
   async execute(userMessage: string): Promise<void> {
     // 用户消息已经在handleComposerSubmit中添加，这里不再重复添加
 
+    // 步骤1: 意图识别并更新activeToolSpecs
     this.options.onProgress?.({
       stage: 'thinking',
-      message: 'Workflow模式：分析需求...'
+      message: 'Analyzing intent...'
+    })
+    
+    const intentOutputRef = ref('')
+    const intentResult = await this.processIntentAndUpdateSpecs(userMessage, intentOutputRef)
+    
+    // 添加意图识别消息到会话（用于UI显示）
+    if (intentResult.toolIds.length > 0) {
+      const intentMessage = {
+        id: `intent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        role: 'system' as const,
+        type: 'intent-recognition' as const,
+        timestamp: new Date().toISOString(),
+        toolIds: intentResult.toolIds,
+        reasoning: intentResult.reasoning,
+        output: intentOutputRef.value
+      }
+      this.session.messages.push(intentMessage as any)
+    }
+
+    this.options.onProgress?.({
+      stage: 'thinking',
+      message: 'Workflow mode: Analyzing requirements...'
     })
 
     // 获取可用工具（包括Workflow）

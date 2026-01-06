@@ -546,6 +546,64 @@ export const titleFormatToolConfig: AgentToolConfig = {
   name: titleFormatToolLocales,
   description: titleFormatToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'title-format',
+    brief: 'Format document titles: adjust title levels, add/remove title numbering, remove title prefixes. Supports Markdown and LaTeX formats.',
+    fullSpec: `# Title Formatting Tool
+
+## Description
+Formats document titles with the following operations:
+1. **Adjust title levels**: Adjust Markdown title levels (# count)
+2. **Add title numbering**: Add numbering to titles (e.g., 1.1, 1.2.3, etc.)
+3. **Remove title prefixes**: Remove all numbering and dots at the beginning of titles (for Markdown to LaTeX conversion)
+
+## Usage Scenarios
+- Adjust document title levels to meet specific format requirements
+- Add numbering to document titles for easy reference and navigation
+- Remove title prefixes to prepare for LaTeX auto-numbering
+- Batch format document titles
+
+## Input Format
+
+### Full Parameter Format
+\`\`\`json
+{
+  "operation": "format",  // Optional, operation type: "format" or "removePrefixes"
+  "adjustMarkdown": true,  // Optional, whether to adjust Markdown title levels, default true
+  "firstMarkdownTitleLevel": 1,  // Optional, first-level title level (1-6), default 1
+  "adjustTitle": true,  // Optional, whether to adjust title numbering, default true
+  "cover": true,  // Optional, whether to overwrite existing numbering, default true
+  "level1TitleChinese": true,  // Optional, whether first-level titles use Chinese numerals, default true
+  "removePrefixes": false  // Optional, whether to remove all title prefixes, default false
+}
+\`\`\`
+
+### Default Parameter Format
+\`\`\`json
+{}  // Use all default values: adjust levels and numbering
+\`\`\`
+
+### Remove Prefixes Only
+\`\`\`json
+{
+  "removePrefixes": true
+}
+\`\`\`
+
+## Output Format
+\`\`\`json
+{
+  "operations": ["operation1", "operation2", ...],
+  "outlineModified": true
+}
+\`\`\`
+
+## Important Notes
+1. Need to open a document first to use this tool
+2. Remove prefixes operation removes all numbering and dots at the beginning of titles
+3. Adjust levels and numbering operations modify document outline structure
+4. Supports both Markdown and LaTeX formats`
+  },
   instruction: titleFormatToolLocales,
   callback: titleFormatCallback,
   displayComponent: TitleFormatDisplay,

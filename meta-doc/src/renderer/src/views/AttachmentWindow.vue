@@ -31,8 +31,31 @@
         <div v-else class="session-content-panel" :style="panelStyle">
           <!-- 附件信息 -->
           <div class="attachment-info" :style="attachmentInfoStyle">
-            <h3 :style="attachmentTitleStyle">{{ activeAttachment.title }}</h3>
-            <p v-if="activeAttachment.file_type" :style="attachmentTextStyle">{{ t('attachment.fileType', '文件类型') }}: {{ activeAttachment.file_type }}</p>
+            <div class="attachment-info-header">
+              <div class="attachment-info-text">
+                <h3 :style="attachmentTitleStyle">{{ activeAttachment.title }}</h3>
+                <p v-if="activeAttachment.file_type" :style="attachmentTextStyle">{{ t('attachment.fileType', '文件类型') }}: {{ activeAttachment.file_type }}</p>
+              </div>
+              <div class="attachment-actions">
+                <el-button 
+                  size="small"
+                  :loading="processing"
+                  @click="handleParse"
+                  :disabled="analyzing"
+                >
+                  {{ parsedContent && parsedContent.trim() ? t('attachment.reparse', '重新解析') : t('attachment.parse', '解析附件') }}
+                </el-button>
+                <el-button 
+                  type="primary"
+                  size="small"
+                  :loading="analyzing"
+                  @click="handleAiAnalysis"
+                  :disabled="!parsedContent || processing"
+                >
+                  {{ aiAnalysis && aiAnalysis.trim() ? t('attachment.reanalyze', '重新AI分析') : t('attachment.startAnalysis', '开始AI分析') }}
+                </el-button>
+              </div>
+            </div>
           </div>
 
           <!-- 解析内容 -->
@@ -44,18 +67,17 @@
                 </div>
                 <div v-else class="no-content" :style="noAnalysisStyle">
                   <p>{{ t('attachment.noParsedContent', '暂无解析内容') }}</p>
-                  <el-button 
-                    type="primary" 
-                    :loading="processing"
-                    @click="handleParse"
-                  >
-                    {{ t('attachment.parse', '解析附件') }}
-                  </el-button>
                 </div>
               </el-tab-pane>
               <el-tab-pane :label="t('attachment.tabs.aiAnalysis', 'AI分析')" name="analysis">
                 <div class="analysis-display">
-                  <el-scrollbar v-if="aiAnalysis" class="ai-analysis-scrollbar">
+                  <!-- 流式输出显示 -->
+                  <StreamingContentDisplay
+                    v-if="isAnalyzingStreaming"
+                    :content-ref="aiAnalysisStreamingRefWrapper"
+                    :done="aiAnalysisDoneValue"
+                  />
+                  <el-scrollbar v-else-if="aiAnalysis" class="ai-analysis-scrollbar">
                     <div 
                       ref="aiAnalysisContainerRef"
                       class="ai-analysis-container"
@@ -63,14 +85,6 @@
                   </el-scrollbar>
                   <div v-else class="no-analysis" :style="noAnalysisStyle">
                     <p>{{ t('attachment.noAnalysis', '暂无AI分析结果') }}</p>
-                    <el-button 
-                      type="primary" 
-                      :loading="analyzing"
-                      @click="handleAiAnalysis"
-                      :disabled="!parsedContent"
-                    >
-                      {{ t('attachment.startAnalysis', '开始AI分析') }}
-                    </el-button>
                   </div>
                 </div>
               </el-tab-pane>
@@ -83,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import SessionList from '../components/common/SessionList.vue'
@@ -98,6 +112,7 @@ import { selectReferenceFiles } from '../utils/agent-framework/reference-process
 import { themeState } from '../utils/themes'
 import { renderMarkdownPreview } from '../utils/md-utils'
 import * as monaco from 'monaco-editor'
+import StreamingContentDisplay from '../components/common/StreamingContentDisplay.vue'
 // 不导入 setupMonacoWorker，禁用 worker 避免卡死
 
 const { t } = useI18n()
@@ -119,6 +134,20 @@ const aiAnalysisContainerRef = ref<HTMLElement | null>(null)
 const textEditorRef = ref<HTMLElement | null>(null)
 let textEditor: monaco.editor.IStandaloneCodeEditor | null = null
 let textEditorId: string | null = null
+
+// 流式显示相关的refs
+const aiAnalysisStreamingRef = ref<string>('')
+const aiAnalysisDonePromise = ref<Promise<any> | null | undefined>(null)
+const isAnalyzingStreaming = computed(() => {
+  return aiAnalysisDonePromise.value !== null && aiAnalysisDonePromise.value !== undefined
+})
+// 计算属性，用于安全传递done promise和ref
+const aiAnalysisDoneValue = computed(() => {
+  return aiAnalysisDonePromise.value || undefined
+})
+const aiAnalysisStreamingRefWrapper = computed(() => {
+  return aiAnalysisStreamingRef
+})
 
 const setTextEditorRef = (el: HTMLElement | null) => {
   textEditorRef.value = el
@@ -368,23 +397,18 @@ const handleDeleteAttachment = async (item: SessionListItem) => {
 
 // 解析附件
 const handleParse = async () => {
-  console.log('[AttachmentWindow] handleParse 被调用, activeAttachmentId:', activeAttachmentId.value)
-  
   if (!activeAttachmentId.value) {
-    console.log('[AttachmentWindow] activeAttachmentId 为空，返回')
     return
   }
   
-  console.log('[AttachmentWindow] 开始解析，processing 设置为 true')
   processing.value = true
+  // 清空之前的解析结果（重新解析时）
+  parsedContent.value = ''
   try {
     const attachment = await attachmentSessionsDb.getById(activeAttachmentId.value)
     if (!attachment) {
-      console.log('[AttachmentWindow] 附件不存在，返回')
       return
     }
-    
-    console.log('[AttachmentWindow] 附件信息:', attachment.file_path, attachment.file_name)
     
     // 使用reference-processor解析文件
     let ipcRenderer: any = null
@@ -420,35 +444,17 @@ const handleParse = async () => {
     const reference = await processFileUpload(file)
     const content = reference.parsedContent || ''
     
-    console.log('[AttachmentWindow] 解析完成，内容长度:', content.length, '内容预览:', content.substring(0, 100))
-    
     // 先更新显示（立即更新，确保UI响应）
     parsedContent.value = content
-    console.log('[AttachmentWindow] parsedContent.value 已更新:', parsedContent.value.length)
     
     // 保存解析结果到数据库
     await attachmentSessionsDb.update(activeAttachmentId.value, {
       parsed_content: content
     })
-    console.log('[AttachmentWindow] 已保存到数据库')
     
     // 确保UI更新并切换到解析内容标签页
     await nextTick()
     activeTab.value = 'parsed'
-    console.log('[AttachmentWindow] activeTab 已切换到 parsed, parsedContent.value:', parsedContent.value ? parsedContent.value.length : 0)
-    
-    // 强制触发响应式更新
-    await nextTick()
-    
-    // 再次确保数据已更新
-    if (parsedContent.value !== content) {
-      console.log('[AttachmentWindow] 检测到数据不一致，重新设置')
-      parsedContent.value = content
-      await nextTick()
-    }
-    
-    // 最后验证
-    console.log('[AttachmentWindow] 最终状态 - parsedContent.value:', parsedContent.value ? parsedContent.value.length : 0, 'activeTab:', activeTab.value)
     
     ElMessage.success(t('attachment.parseSuccess', '解析完成'))
   } catch (error) {
@@ -487,16 +493,52 @@ const handleAiAnalysis = async () => {
       { stream: true }
     )
     
-    await done
+    // 设置流式显示
+    aiAnalysisStreamingRef.value = ''
+    aiAnalysisDonePromise.value = done
+    
+    // 同步target到streamingRef
+    const syncWatcher = watch(
+      () => target.value,
+      (newValue) => {
+        aiAnalysisStreamingRef.value = newValue
+      },
+      { immediate: true }
+    )
+    
+    try {
+      await done
+    } catch (error) {
+      // 如果是取消错误，保留已生成的内容，当作完成处理
+      const isCancelled = error instanceof Error && (
+        error.message === '任务已取消' || 
+        error.message.includes('任务已取消') ||
+        (error as any).name === 'AbortError'
+      )
+      
+      if (isCancelled) {
+        // 取消时保留已生成的内容，继续执行后续逻辑
+        // 不显示错误消息，因为用户主动取消
+      } else {
+        // 其他错误，重新抛出
+        throw error
+      }
+    }
+    
+    // 清理监听器
+    syncWatcher()
+    aiAnalysisDonePromise.value = null
     aiAnalysis.value = target.value
     
-    // 保存分析结果
-    await attachmentSessionsDb.update(activeAttachmentId.value, {
-      ai_analysis: aiAnalysis.value
-    })
-    
-    activeTab.value = 'analysis'
-    ElMessage.success(t('attachment.analysisSuccess', '分析完成'))
+    // 如果有内容，保存分析结果
+    if (aiAnalysis.value && aiAnalysis.value.trim()) {
+      await attachmentSessionsDb.update(activeAttachmentId.value, {
+        ai_analysis: aiAnalysis.value
+      })
+      
+      activeTab.value = 'analysis'
+      ElMessage.success(t('attachment.analysisSuccess', '分析完成'))
+    }
   } catch (error) {
     ElMessage.error('分析失败: ' + (error instanceof Error ? error.message : String(error)))
   } finally {
@@ -660,6 +702,24 @@ onMounted(() => {
 .attachment-info {
   padding: 16px;
   border-radius: 8px;
+}
+
+.attachment-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.attachment-info-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.attachment-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .parsed-section {

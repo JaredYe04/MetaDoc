@@ -516,6 +516,48 @@ export const terminalToolConfig: AgentToolConfig = {
   name: terminalToolLocales,
   description: terminalToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'terminal-execution',
+    brief: 'Execute terminal/command line commands in a sandboxed environment. Requires user approval by default, supports trust mode for automatic execution.',
+    fullSpec: `# Terminal Execution Tool
+
+## Description
+Executes terminal/command line commands and returns results. Requires user approval by default, user can choose to trust AI for automatic execution of all commands.
+
+## Usage Scenarios
+- Execute system commands
+- Run CLI programs
+- File operations
+- System management
+
+## Input Format
+\`\`\`json
+{
+  "command": "string", // Required, command to execute
+  "cwd": "string", // Optional, working directory
+  "timeout": 30000, // Optional, timeout in milliseconds, default 30s
+  "analyze": false // Optional, whether to use LLM to analyze output, default false
+}
+\`\`\`
+
+## Output Format
+\`\`\`json
+{
+  "command": "string",
+  "exitCode": 0,
+  "stdout": "string",
+  "stderr": "string",
+  "summary": "string", // LLM analysis result summary
+  "approved": true
+}
+\`\`\`
+
+## Important Notes
+1. Dangerous commands require explicit user approval
+2. Can set trust mode to allow AI to automatically execute commands
+3. Recommend setting reasonable timeout
+4. Some commands may require administrator privileges`
+  },
   instruction: terminalToolLocales,
   tags: ['terminal', 'command', 'system', 'cli'],
   running: false,

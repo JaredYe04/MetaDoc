@@ -572,6 +572,52 @@ export const webCrawlerToolConfig: AgentToolConfig = {
   name: webCrawlerToolLocales,
   description: webCrawlerToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'web-crawler',
+    brief: 'Access specified URL and fetch webpage HTML content or API response. Supports GET, POST, PUT, DELETE methods.',
+    fullSpec: `# Web Crawler Tool
+
+## Description
+Sends HTTP request to specified URL and fetches webpage content or API response.
+
+## Usage Scenarios
+- Get webpage content for analysis
+- Call API interfaces
+- Data scraping
+- Content monitoring
+
+## Input Format
+\`\`\`json
+{
+  "url": "string", // Required, URL to access
+  "method": "string", // Optional, HTTP method (GET|POST|PUT|DELETE), default GET
+  "headers": {}, // Optional, request headers
+  "body": "string|object", // Optional, request body (for POST/PUT)
+  "timeout": 30000, // Optional, timeout in milliseconds, default 30s
+  "useCurl": false // Optional, whether to use backend proxy (bypass CORS), default false uses axios
+}
+\`\`\`
+
+## Output Format
+\`\`\`json
+{
+  "url": "string",
+  "status": 200,
+  "statusText": "OK",
+  "headers": {},
+  "content": "string",
+  "contentType": "string",
+  "size": 1024
+}
+\`\`\`
+
+## Important Notes
+1. **axios mode (default)**: Used in browser environment, subject to CORS restrictions, suitable for accessing CORS-enabled APIs
+2. **curl proxy mode (useCurl=true)**: Executed through main process proxy, can bypass CORS restrictions, suitable for accessing regular web pages
+3. Some websites may have anti-crawling mechanisms
+4. Recommend setting reasonable timeout
+5. Large files may affect performance`
+  },
   instruction: webCrawlerToolLocales,
   tags: ['web', 'crawler', 'http', 'url'],
   running: false,

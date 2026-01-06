@@ -1056,6 +1056,71 @@ export const proofreadToolConfig: AgentToolConfig = {
   name: proofreadToolLocales,
   description: proofreadToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'proofread',
+    brief: 'Check text for grammar errors, spelling errors, LaTeX syntax errors, etc. Returns detailed error information and suggestions.',
+    fullSpec: `# Text Proofreading Tool
+
+## Description
+Checks text for grammar errors, spelling errors, LaTeX syntax errors, and other issues. Returns detailed error information and modification suggestions.
+
+## Usage Scenarios
+- Check document grammar and spelling
+- Verify LaTeX document syntax correctness
+- Improve document quality
+- Automatically discover text issues
+
+## Input Format
+
+### Method 1: Direct Text (traditional)
+\`\`\`json
+{
+  "text": "text to proofread",
+  "source": "text",
+  "format": "markdown"
+}
+\`\`\`
+
+### Method 2: File Path or URL
+\`\`\`json
+{
+  "text": "/path/to/file.md",
+  "source": "file",
+  "format": "markdown"
+}
+\`\`\`
+
+### Method 3: Proofread Full Document ⭐ Recommended (simplest)
+Don't provide any parameters, or explicitly specify source as "document":
+\`\`\`json
+{}  // Proofread full text of current active document
+\`\`\`
+
+or:
+\`\`\`json
+{
+  "source": "document"
+}
+\`\`\`
+
+### Method 4: Proofread Specific Section ⭐ Recommended (efficient)
+Proofread specified section based on outline node path:
+\`\`\`json
+{
+  "nodePath": "1"  // Proofread first section (including all subsections)
+}
+\`\`\`
+
+**Parameter Description**:
+- \`text\`: Text to proofread, file path, or URL (mutually exclusive with nodePath)
+- \`source\`: Text source type: "text"|"file"|"url"|"document"
+- \`nodePath\`: Outline node path (e.g., "1", "1.1", "1.2.3"), proofread specified section
+- \`format\`: Text format ("text"|"markdown"|"latex"), auto-detected if using document or nodePath
+- \`tabId\`: Document tab ID (optional, default uses current active tab)
+
+## Output Format
+Returns array of errors with line numbers, positions, suggestions, and severity levels.`
+  },
   instruction: `
 # 文本校对工具
 

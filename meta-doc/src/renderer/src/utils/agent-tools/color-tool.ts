@@ -325,6 +325,47 @@ export const colorToolConfig: AgentToolConfig = {
   name: colorToolLocales,
   description: colorToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'color-processing',
+    brief: 'Process color mixing, brightness/contrast adjustment, complementary colors, and color format conversion.',
+    fullSpec: `# Color Processing Tool
+
+## Description
+Provides various color processing functions:
+- Color mixing (mix two colors by weight)
+- Brightness adjustment
+- Contrast adjustment
+- Get complementary color
+- Color format conversion (HEX, RGB, HSL)
+- Color analysis (get hue, saturation, lightness)
+
+## Usage Scenarios
+- Theme color design
+- UI color scheme generation
+- Color matching suggestions
+- Color adjustment and optimization
+
+## Input Format
+\`\`\`json
+{
+  "operation": "string", // Operation type: mix|brightness|contrast|complementary|convert|analyze
+  "color1": "string", // Color 1 (HEX format, e.g. #FF0000)
+  "color2": "string", // Color 2 (only for mix operation)
+  "weight": 0.5, // Mix weight (0-1, only for mix operation)
+  "amount": 0.2, // Adjustment amount (-1 to 1, for brightness/contrast)
+  "format": "hex" // Output format (hex|rgb|hsl, only for convert)
+}
+\`\`\`
+
+## Output Format
+\`\`\`json
+{
+  "result": "string|object",
+  "operation": "string",
+  "input": "string|object"
+}
+\`\`\``
+  },
   instruction: colorToolLocales,
   tags: ['color', 'design', 'ui'],
   running: false,

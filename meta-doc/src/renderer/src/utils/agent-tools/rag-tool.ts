@@ -308,6 +308,55 @@ export const ragToolConfig: AgentToolConfig = {
   name: ragToolLocales,
   description: ragToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'rag-retrieval',
+    brief: 'Retrieve relevant document chunks from the knowledge base using vector similarity search and keyword matching.',
+    fullSpec: `# RAG Knowledge Base Retrieval Tool
+
+## Description
+Retrieve relevant document chunks from the user's knowledge base based on query questions. Uses a hybrid scoring mechanism combining vector similarity search and keyword matching to return the most relevant content.
+
+## Usage Scenarios
+- When user questions need to reference uploaded document content
+- When answers need to be based on knowledge base content
+- When searching for information in specific documents
+
+## Input Parameters
+\`\`\`json
+{
+  "question": "string",  // Required, question or keyword to retrieve
+  "scoreThreshold": 0.5  // Optional, similarity threshold (0-1) for filtering low-relevance results. If not provided, will use default value from settings
+}
+\`\`\`
+
+**Parameter Description:**
+- \`question\`: Required parameter, question or keyword to retrieve
+- \`scoreThreshold\`: Optional parameter, similarity threshold (number between 0-1)
+  - Higher values return more relevant results but may have fewer results
+  - Lower values return more results but may include less relevant content
+  - If not provided, will use default threshold configured in settings (default 0.5)
+
+## Output Format
+Returns JSON array of retrieval results, each containing:
+- \`text\`: Document chunk text
+- \`score\`: Similarity score (0-1)
+- \`metadata\`: Document metadata (if available)
+
+## Notes
+1. Documents must be uploaded to the knowledge base first
+2. Knowledge base feature must be enabled in settings
+3. Similarity threshold can be specified via \`scoreThreshold\` parameter when calling, or configured as default value in settings (default 0.5)
+4. If retrieval results are empty, it means no relevant documents were found, should inform the user
+5. Retrieval results should be highly relevant to user questions, if relevance is low, should clearly inform the user
+6. Flexibly adjust \`scoreThreshold\` based on query needs:
+   - For high-precision results, set higher threshold (e.g., 0.7-0.9)
+   - For more results, set lower threshold (e.g., 0.3-0.5)
+
+## Differences from Other Tools
+- This is the only knowledge base retrieval tool
+- Mainly for document content retrieval, does not involve other functions
+- Should not call this tool if user questions do not need to reference documents`
+  },
   instruction: ragToolLocales,
   callback: ragToolCallback,
   displayComponent: RAGToolDisplay,

@@ -371,6 +371,63 @@ export const timestampToolConfig: AgentToolConfig = {
   name: timestampToolLocales,
   description: timestampToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'timestamp',
+    brief: 'Get current timestamp and track time differences between calls. Useful for monitoring execution time and time-based decisions.',
+    fullSpec: `# Timestamp Tool
+
+## Description
+Returns current timestamp and persistently records each call's timestamp in the same session. Can be used for:
+- Getting current time
+- Calculating time difference since last call
+- Determining if execution time is too long
+- Time-related decision making
+
+## Usage Scenarios
+- Monitor task execution time
+- Time-based conditional logic
+- Logging
+- Performance analysis
+
+## Input Format
+\`\`\`json
+{
+  "format": "string" // Optional, return format: timestamp|iso|date|all, default all
+}
+\`\`\`
+
+## Output Format
+\`\`\`json
+{
+  "current": {
+    "timestamp": 1234567890,
+    "utc": {
+      "iso": "2023-01-01T00:00:00.000Z",
+      "date": "2023-01-01",
+      "time": "00:00:00"
+    },
+    "local": {
+      "iso": "2023-01-01T08:00:00.000+08:00",
+      "date": "2023-01-01",
+      "time": "08:00:00",
+      "timezone": "+08:00"
+    }
+  },
+  "previous": {
+    "timestamp": 1234567890,
+    "utc": { "iso": "2023-01-01T00:00:00.000Z" },
+    "local": { "iso": "2023-01-01T08:00:00.000+08:00" }
+  },
+  "timeDiff": {
+    "milliseconds": 1000,
+    "seconds": 1,
+    "minutes": 0.016,
+    "hours": 0.0003,
+    "days": 0.00001
+  }
+}
+\`\`\``
+  },
   instruction: timestampToolLocales,
   tags: ['timestamp', 'time', 'utility'],
   running: false,

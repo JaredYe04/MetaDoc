@@ -418,8 +418,10 @@
         "selectFile": "选择附件",
         "uploadSuccess": "附件上传成功",
         "parse": "解析附件",
+        "reparse": "重新解析",
         "parseSuccess": "解析完成",
         "startAnalysis": "开始AI分析",
+        "reanalyze": "重新AI分析",
         "analyzing": "分析附件",
         "analysisSuccess": "分析完成",
         "noParsedContent": "请先解析附件",
@@ -1597,7 +1599,11 @@
       "callingTool": "正在调用工具：{tool}",
       "callingTools": "正在调用 {count} 个工具：{tools}",
       "toolCallInitiated": "AI发起了 {tool} 的调用",
-      "toolCallsInitiated": "AI发起了 {count} 个工具的调用：{tools}"
+      "toolCallsInitiated": "AI发起了 {count} 个工具的调用：{tools}",
+      "intentRecognition": "意图识别",
+      "selectedTools": "已选工具：",
+      "noToolsNeeded": "此请求无需工具。",
+      "reasoning": "推理："
     },
     "tools": {
       "title": "工具管理",

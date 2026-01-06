@@ -1610,6 +1610,45 @@ export const chartGenerationToolConfig: AgentToolConfig = {
   name: chartGenerationToolLocales,
   description: chartGenerationToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'chart-generation',
+    brief: 'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz) based on prompts.',
+    fullSpec: `# Chart Generation Tool
+
+## Description
+Generate various types of charts based on prompts, including:
+- Mermaid diagrams (flowchart, sequence, class, state, er, gantt, pie, gitgraph, journey, mindmap, timeline, etc.)
+- ECharts charts (line, bar, pie, scatter, radar, heatmap, tree, treemap, sunburst, etc.)
+- PlantUML diagrams
+- Flowchart diagrams
+- Graphviz diagrams
+
+## Usage Scenarios
+- Generate visualizations for data
+- Create diagrams for documentation
+- Generate flowcharts for processes
+- Create mind maps
+- Generate sequence diagrams
+
+## Input Format
+\`\`\`json
+{
+  "prompt": "string", // Required, description of the chart to generate
+  "type": "string", // Required, chart type: mermaid|echarts|plantuml|flowchart|graphviz
+  "width": 800, // Optional, chart width in pixels
+  "height": 600 // Optional, chart height in pixels
+}
+\`\`\`
+
+## Output Format
+Returns chart code or rendered chart URL depending on the chart type. For Mermaid and ECharts, returns the code that can be rendered directly.
+
+## Important Notes
+1. For ECharts: Must return valid JSON format, use English punctuation (commas, colons, quotes)
+2. For Mermaid: Ensure syntax is correct, use proper diagram type identifiers
+3. For PlantUML: Must include @startuml and @enduml markers
+4. The tool will automatically validate syntax and retry if needed`
+  },
   instruction: chartGenerationToolLocales,
   callback: chartGenerationCallback,
   displayComponent: ChartGenerationDisplay,

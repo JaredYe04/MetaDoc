@@ -1406,6 +1406,62 @@ export const todolistToolConfig: AgentToolConfig = {
   name: todolistToolLocales,
   description: todolistToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'todolist-planning',
+    brief: 'Analyze user intent and decompose complex tasks into structured todo lists. Supports automatic generation and manual creation.',
+    fullSpec: `# Intent Recognition & Task Planning Tool
+
+## Description
+Analyzes user's natural language input to recognize intent and decompose complex tasks into structured todo lists. Supports both automatic generation and manual creation modes.
+
+## Usage Scenarios
+- User proposes complex requirements that need to be broken down
+- Project management, creating task lists
+- Workflow planning
+- Study plan creation
+
+## Input Format
+
+### Mode 1: Automatic Generation (using input parameter)
+\`\`\`json
+{
+  "input": "string", // Required, user's natural language input
+  "context": "string" // Optional, context information
+}
+\`\`\`
+
+### Mode 2: Manual Creation (directly provide todoList)
+\`\`\`json
+{
+  "todoList": {
+    "id": "string",
+    "title": "string",
+    "description": "string",
+    "createdAt": "string",
+    "updatedAt": "string",
+    "items": [
+      {
+        "id": "string",
+        "title": "string",
+        "description": "string",
+        "status": "pending|in_progress|completed|cancelled",
+        "priority": "low|medium|high|urgent",
+        "dueDate": "string",
+        "tags": ["string"],
+        "dependencies": ["string"],
+        "estimatedTime": "string",
+        "assignee": "string",
+        "metadata": {}
+      }
+    ],
+    "metadata": {}
+  }
+}
+\`\`\`
+
+## Output Format
+Returns the created or updated todo list with all items and their status.`
+  },
   instruction: todolistToolLocales,
   tags: ['planning', 'task', 'todolist', 'intent'],
   running: false,

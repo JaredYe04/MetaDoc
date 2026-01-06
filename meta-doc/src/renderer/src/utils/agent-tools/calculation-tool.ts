@@ -319,6 +319,51 @@ export const calculationToolConfig: AgentToolConfig = {
   name: calculationToolLocales,
   description: calculationToolLocales,
   origin: 'internal',
+  spec: {
+    name: 'data-calculation',
+    brief: 'Perform complex mathematical calculations including numerical, vector, and matrix operations. Supports expression evaluation.',
+    fullSpec: `# Data Calculation Tool
+
+## Description
+Performs various mathematical calculations including:
+- Basic arithmetic (addition, subtraction, multiplication, division, power)
+- Trigonometric and logarithmic functions
+- Vector operations (dot product, cross product, magnitude)
+- Matrix operations (multiplication, transpose, determinant)
+- Statistical calculations (mean, variance, standard deviation)
+- Expression evaluation (supports eval operations)
+
+## Usage Scenarios
+- Numerical calculations
+- Scientific computing
+- Data analysis calculations
+- Formula verification
+
+## Input Format
+\`\`\`json
+{
+  "expression": "string", // Required, expression or calculation description
+  "variables": {}, // Optional, variable value mapping
+  "precision": 10 // Optional, result precision (decimal places), default 10
+}
+\`\`\`
+
+## Output Format
+\`\`\`json
+{
+  "result": "number|string|object",
+  "expression": "string",
+  "steps": ["string"],
+  "unit": "string"
+}
+\`\`\`
+
+## Important Notes
+1. Expressions must be safe, avoid executing malicious code
+2. Supports common mathematical functions and constants (Math object)
+3. Vectors and matrices are represented as arrays
+4. Results will retain specified precision`
+  },
   instruction: calculationToolLocales,
   tags: ['calculation', 'math', 'numeric'],
   running: false,

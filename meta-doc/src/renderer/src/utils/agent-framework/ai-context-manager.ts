@@ -137,6 +137,107 @@ export class AIContextManager {
   }
 
   /**
+   * 获取系统信息（操作系统、处理器架构）
+   */
+  private static getSystemInfo(): { platform: string; arch: string } {
+    let platform = 'unknown'
+    let arch = 'unknown'
+    
+    try {
+      // 优先使用 Electron 的 process 对象（如果可用）
+      // 在 Electron 中，window.electron.process 可能包含 platform 和 arch
+      if (typeof window !== 'undefined') {
+        const win = window as any
+        // 尝试多种方式获取 Electron process 信息
+        if (win.electron?.process) {
+          const electronProcess = win.electron.process
+          if (electronProcess.platform) {
+            platform = electronProcess.platform
+          }
+          if (electronProcess.arch) {
+            arch = electronProcess.arch
+          }
+        }
+        // 如果 Electron process 不可用，尝试直接访问 process（如果 contextIsolation 允许）
+        if ((platform === 'unknown' || arch === 'unknown') && typeof (globalThis as any).process !== 'undefined') {
+          const nodeProcess = (globalThis as any).process
+          if (nodeProcess.platform && platform === 'unknown') {
+            platform = nodeProcess.platform
+          }
+          if (nodeProcess.arch && arch === 'unknown') {
+            arch = nodeProcess.arch
+          }
+        }
+      }
+      
+      // 如果仍未获取到信息，回退到 navigator API
+      if ((platform === 'unknown' || arch === 'unknown') && typeof navigator !== 'undefined') {
+        const userAgent = navigator.userAgent || ''
+        const platformStr = navigator.platform || ''
+        
+        // 解析操作系统
+        if (platform === 'unknown') {
+          if (userAgent.includes('Win') || platformStr.includes('Win')) {
+            platform = 'win32'
+          } else if (userAgent.includes('Mac') || platformStr.includes('Mac')) {
+            platform = 'darwin'
+          } else if (userAgent.includes('Linux') || platformStr.includes('Linux')) {
+            platform = 'linux'
+          } else {
+            platform = platformStr.toLowerCase() || 'unknown'
+          }
+        }
+        
+        // 解析处理器架构
+        if (arch === 'unknown') {
+          if (userAgent.includes('x64') || userAgent.includes('x86_64') || userAgent.includes('AMD64')) {
+            arch = 'x64'
+          } else if (userAgent.includes('x86') || userAgent.includes('i686')) {
+            arch = 'ia32'
+          } else if (userAgent.includes('ARM64') || userAgent.includes('arm64')) {
+            arch = 'arm64'
+          } else if (userAgent.includes('ARM')) {
+            arch = 'arm'
+          } else {
+            // 尝试从 navigator 获取
+            const cpuClass = (navigator as any).cpuClass
+            if (cpuClass) {
+              arch = cpuClass.toLowerCase()
+            } else {
+              arch = 'unknown'
+            }
+          }
+        }
+      }
+    } catch (error) {
+      const logger = createRendererLogger('AIContextManager')
+      logger.warn('[getSystemInfo] 获取系统信息失败:', error)
+    }
+    
+    // 格式化平台名称
+    const platformNames: Record<string, string> = {
+      'win32': 'Windows',
+      'darwin': 'macOS',
+      'linux': 'Linux',
+      'unknown': '未知系统'
+    }
+    
+    // 格式化架构名称
+    const archNames: Record<string, string> = {
+      'x64': 'x64 (64位)',
+      'ia32': 'x86 (32位)',
+      'arm64': 'ARM64',
+      'arm': 'ARM',
+      'unknown': '未知架构'
+    }
+    
+    return {
+      platform: platformNames[platform] || platform,
+      arch: archNames[arch] || arch
+    }
+  }
+
+  /**
    * 构建系统提示词
    */
   private static buildSystemPrompt(
@@ -155,11 +256,16 @@ export class AIContextManager {
       prompt += agentConfig.llmConfig.systemPrompt + '\n\n'
     }
 
-    // 注入时间戳
+    // 注入时间戳和系统信息
     if (agentConfig.llmConfig?.injectTimestamp) {
       const now = new Date()
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      const systemInfo = this.getSystemInfo()
+      
       prompt += `当前时间: ${now.toISOString()}\n`
-      prompt += `当前时区: ${Intl.DateTimeFormat().resolvedOptions().timeZone}\n\n`
+      prompt += `当前时区: ${timeZone}\n`
+      prompt += `系统环境: ${systemInfo.platform}\n`
+      prompt += `处理器架构: ${systemInfo.arch}\n\n`
     }
 
     // 公共上下文（兼容新旧格式）

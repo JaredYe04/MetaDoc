@@ -112,6 +112,19 @@ export interface ToolDisplayComponentProps {
 }
 
 /**
+ * Tool规范接口（用于优化上下文空间）
+ * brief 永远进入 System Prompt，fullSpec 按需注入
+ */
+export interface ToolSpec {
+  /** Tool名称 */
+  name: string
+  /** 简短说明（永远进入 System Prompt，用于意图识别和工具选择） */
+  brief: string
+  /** 完整说明（按需注入，包含详细的使用说明、参数说明等） */
+  fullSpec: string
+}
+
+/**
  * Tool配置接口
  */
 export interface AgentToolConfig {
@@ -125,6 +138,8 @@ export interface AgentToolConfig {
   origin: ToolOrigin
   /** Tool详细说明（Markdown格式，支持i18n） */
   instruction: string | ToolLocales
+  /** Tool规范（用于优化上下文空间，如果提供则优先使用） */
+  spec?: ToolSpec
   /** 回调函数（必须） */
   callback: ToolCallback
   /** 显示组件（可选） */

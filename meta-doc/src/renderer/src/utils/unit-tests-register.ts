@@ -3,6 +3,7 @@ import { registerDatabaseTests } from "./database-tests";
 import { registerTitleFormatTests } from "./title-format-tests";
 import { registerSearchReplaceTests } from "./search-replace-tests";
 import { registerLatexOMMLConversionTests } from "./latex-omml-conversion-tests";
+import { registerAiSchemaTaskTests } from "./ai-schema-task-tests";
 
 
 export async function registerUnitTests(): Promise<void> {
@@ -20,5 +21,8 @@ registerSearchReplaceTests();
 
 // 注册 LaTeX 到 OMML 转换测试用例
 registerLatexOMMLConversionTests();
+
+// 注册 AI Schema Task 测试用例
+registerAiSchemaTaskTests();
 
 }

@@ -1441,15 +1441,21 @@ export const clearFormulaPlaceholders = (): void => {
  * @returns 包含 MathML 和 OOXML 的 HTML 字符串
  */
 const convertLatexToMathML = async (latex: string, displayMode: boolean): Promise<string> => {
-  // 导入转换函数（在主进程中直接调用，不需要 IPC）
-  const { convertLatexToMathML: convertLatex } = await import('../utils/mathml-converter');
-  
-  // 使用 mathjax-node 转换为 MathML
-  const mathml = await convertLatex(latex, displayMode);
-  
-  // 如果转换失败，使用转义的 LaTeX 作为后备
-  if (!mathml) {
-    logger.warn(`LaTeX 转 MathML 失败，使用后备方案: ${latex}`);
+  // 使用 latex-to-omml 包直接转换（LaTeX → MathML → OMML）
+  let omml: string;
+  try {
+    const { latexToOMML } = await import('latex-to-omml');
+    omml = await latexToOMML(latex, { displayMode });
+    
+    logger.debug('LaTeX 转换为 OMML 成功', {
+      ommlLength: omml.length,
+      ommlPreview: omml.substring(0, 300),
+      hasOMath: omml.includes('<m:oMath'),
+      hasOMathPara: omml.includes('<m:oMathPara')
+    });
+  } catch (error) {
+    logger.error('LaTeX 转 OMML 失败，使用后备方案:', error);
+    // 如果转换失败，使用转义的 LaTeX 作为后备
     const escapedLatex = escapeXml(latex);
     const fallbackMathML = `<math xmlns="http://www.w3.org/1998/Math/MathML" display="${displayMode ? 'block' : 'inline'}">
   <mtext>${escapedLatex}</mtext>
@@ -1462,43 +1468,7 @@ const convertLatexToMathML = async (latex: string, displayMode: boolean): Promis
     }
   }
   
-  // 清理 MathML：移除 MathJax 特定的属性和 HTML 注释，使其符合 Word 的要求
-  const cleanedMathml = cleanMathMLForWord(mathml);
-  
-  // 将 MathML 转换为 OMML（Office Math Markup Language）
-  // OMML 是 Word 的原生数学公式格式，能够正确渲染
-  let omml: string;
-  try {
-    // 动态导入 mathml2omml（ES Module）
-    // mathml2omml 使用命名导出 mml2omml
-    const { mml2omml } = await import('mathml2omml');
-    omml = mml2omml(cleanedMathml);
-    
-    logger.debug('MathML 转换为 OMML 成功', {
-      mathmlLength: cleanedMathml.length,
-      ommlLength: omml.length,
-      ommlPreview: omml.substring(0, 300),
-      hasOMath: omml.includes('<m:oMath'),
-      hasOMathPara: omml.includes('<m:oMathPara')
-    });
-  } catch (error) {
-    logger.error('MathML 转换为 OMML 失败，使用原始 MathML:', error);
-    // 如果转换失败，回退到标准 MathML
-    const mathmlContent = cleanedMathml.replace(/^<math[^>]*>/, '').replace(/<\/math>$/, '').trim();
-    const wordFormat = displayMode
-      ? `<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">${mathmlContent}</math>`
-      : `<math xmlns="http://www.w3.org/1998/Math/MathML">${mathmlContent}</math>`;
-    
-    if (displayMode) {
-      return `<p class="Normal" style="text-align: center; margin: 12pt 0;">
-${wordFormat}
-</p>`;
-    } else {
-      return wordFormat;
-    }
-  }
-  
-  // mathml2omml 返回的 OMML 通常已经包含了 <m:oMath> 标签
+  // latex-to-omml 返回的 OMML 通常已经包含了 <m:oMath> 标签
   // 我们需要检查并适当包装
   let ommlContent = omml.trim();
   

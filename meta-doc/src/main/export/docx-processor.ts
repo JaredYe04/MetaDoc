@@ -23,8 +23,7 @@ import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { createMainLogger } from '../logger';
 import { 
   getFormulaConversionConfig, 
-  shouldLogVerbose, 
-  shouldUseCustomConverter 
+  shouldLogVerbose
 } from '../utils/formula-conversion-config';
 
 const logger = createMainLogger('DocxProcessor');
@@ -988,7 +987,8 @@ export class OMMLInsertionProcessor implements DocxProcessor {
   }
 
   /**
-   * 转换公式（LaTeX → MathML → OMML → WordprocessingML）
+   * 转换公式（LaTeX → OMML → WordprocessingML）
+   * 使用 latex-to-omml 包进行转换
    */
   private async convertFormula(
     latexCode: string,
@@ -1011,10 +1011,8 @@ export class OMMLInsertionProcessor implements DocxProcessor {
       return conversionCache.get(cacheKey)!;
     }
 
-    // 导入转换函数和标签提取函数
-    const { convertLatexToMathML, extractTagFromLatex } = await import('../utils/mathml-converter');
-
-    // 提取标签信息（在转义之前提取，避免转义影响标签提取）
+    // 提取标签信息（latex-to-omml 会自动移除 \tag，但我们需要提取标签用于后续显示）
+    const { extractTagFromLatex } = await import('../utils/mathml-converter');
     const { tag, processedLatex: latexWithoutTag } = extractTagFromLatex(latexCode);
     if (tag && verbose) {
       logger.debug(`[转换公式] 提取到标签: ${tag}`);
@@ -1027,95 +1025,30 @@ export class OMMLInsertionProcessor implements DocxProcessor {
       logger.debug(`[转换公式] 预处理后内容: ${JSON.stringify(preprocessedLatex)}`);
     }
 
-    // 将 LaTeX 转换为 MathML
-    let mathml: string | null = null;
+    // 使用 latex-to-omml 包进行转换（LaTeX → MathML → OMML）
+    let ommlContent: string;
     try {
       if (verbose) {
-        logger.debug(`[转换公式] 开始调用 convertLatexToMathML`);
+        logger.debug(`[转换公式] 开始调用 latexToOMML`);
       }
-      mathml = await convertLatexToMathML(preprocessedLatex, isBlockLevel);
+      const { latexToOMML } = await import('latex-to-omml');
+      ommlContent = await latexToOMML(preprocessedLatex, { displayMode: isBlockLevel });
+      
       if (verbose) {
-        //logger.debug(`[转换公式] MathML转换成功, 长度: ${mathml?.length || 0}`);
+        logger.debug(`[转换公式] OMML 生成成功, 长度: ${ommlContent.length}`);
       }
     } catch (error) {
-      logger.error(`[转换公式] MathML转换失败:`, error);
-      logger.error(`LaTeX 转 MathML 失败:`, error, { latex: latexCode.substring(0, 50) });
+      logger.error(`[转换公式] LaTeX 转 OMML 失败:`, error);
+      logger.error(`LaTeX 转 OMML 失败:`, error, { latex: latexCode.substring(0, 50) });
       throw error;
     }
 
-    if (!mathml) {
-      throw new Error(`LaTeX 转 MathML 返回空结果: ${latexCode.substring(0, 50)}`);
+    if (!ommlContent) {
+      throw new Error(`LaTeX 转 OMML 返回空结果: ${latexCode.substring(0, 50)}`);
     }
 
-    // 清理 MathML
-    const cleanedMathml = this.cleanMathML(mathml);
-    
-    if (verbose) {
-      //logger.debug(`[转换公式] 清理后的 MathML 长度: ${cleanedMathml.length}`);
-      // 检查 MathML 中是否包含未转义的 < 字符（在文本节点中）
-      if (cleanedMathml.includes('<mo>&lt;</mo>') || cleanedMathml.match(/<m:t[^>]*>[^<]*<[^<]/)) {
-        logger.warn(`[转换公式] MathML 中可能包含未转义的 < 字符`);
-      }
-    }
-
-    // 将 MathML 转换为 OMML（根据配置选择转换器）
-    const useCustomConverter = shouldUseCustomConverter();
-    let ommlContent: string;
-    
-    if (useCustomConverter) {
-      // 使用我们自己的转换器
-      try {
-        if (verbose) {
-          logger.debug(`[转换公式] 使用自定义转换器`);
-        }
-        const { convertMathMLToOMML } = await import('../utils/mml2omml-converter');
-        ommlContent = convertMathMLToOMML(cleanedMathml).trim();
-      } catch (error) {
-        logger.error(`[转换公式] 自定义转换器失败:`, error);
-        // 如果自定义转换器失败，尝试使用 mathml2omml 作为后备
-        try {
-          const { mml2omml } = await import('mathml2omml');
-          ommlContent = mml2omml(cleanedMathml).trim();
-          logger.warn(`[转换公式] 使用 mathml2omml 作为后备转换器`);
-        } catch (fallbackError) {
-          logger.error(`[转换公式] 后备转换器也失败:`, fallbackError);
-          throw error; // 抛出原始错误
-        }
-      }
-    } else {
-      // 使用 mathml2omml 库
-      try {
-        if (verbose) {
-          logger.debug(`[转换公式] 使用 mathml2omml 库`);
-        }
-        const { mml2omml } = await import('mathml2omml');
-        ommlContent = mml2omml(cleanedMathml).trim();
-        
-        if (verbose) {
-          //logger.debug(`[转换公式] OMML 生成成功, 长度: ${ommlContent.length}`);
-          // 检查 OMML 中是否包含未转义的 < 字符（在文本内容中，不是标签）
-          const hasUnescapedLt = /<m:t[^>]*>[^<]*<[^<]/.test(ommlContent) || /<m:r[^>]*><m:t[^>]*>[^<]*<[^<]/.test(ommlContent);
-          if (hasUnescapedLt) {
-            logger.warn(`[转换公式] OMML 中可能包含未转义的 < 字符，需要清理`);
-            logger.warn(`[转换公式] OMML 内容: ${ommlContent}`);
-          }
-        }
-      } catch (error) {
-        logger.error(`[转换公式] MathML 转 OMML 失败:`, error);
-        // 如果 mathml2omml 失败，可以尝试使用我们自己的转换器作为后备
-        try {
-          const { convertMathMLToOMML } = await import('../utils/mml2omml-converter');
-          ommlContent = convertMathMLToOMML(cleanedMathml).trim();
-          logger.warn(`[转换公式] 使用自定义转换器作为后备`);
-        } catch (fallbackError) {
-          logger.error(`[转换公式] 后备转换器也失败:`, fallbackError);
-          throw error; // 抛出原始错误
-        }
-      }
-    }
-    
     // 清理 OMML 中的未转义字符（在文本节点中）
-    ommlContent = this.cleanOMMLTextNodes(ommlContent);
+    ommlContent = this.cleanOMMLTextNodes(ommlContent.trim());
     
     if (verbose) {
       logger.debug(`[转换公式] 清理后的 OMML 长度: ${ommlContent.length}`);
@@ -1133,37 +1066,6 @@ export class OMMLInsertionProcessor implements DocxProcessor {
     const result = { wrappedContent, ommlContent: enhancedOMML, tag };
     conversionCache.set(cacheKey, result);
     return result;
-  }
-
-  /**
-   * 清理 MathML（移除 MathJax 特定的属性和不支持的元素）
-   */
-  private cleanMathML(mathml: string): string {
-    let cleaned = mathml
-      .replace(/<!--[\s\S]*?-->/g, '') // 移除 HTML 注释
-      .replace(/\s+class="[^"]*"/g, '') // 移除 class 属性
-      .replace(/\s+scriptlevel="[^"]*"/g, '') // 移除 scriptlevel
-      .replace(/\s+maxsize="[^"]*"/g, '') // 移除 maxsize
-      .replace(/\s+minsize="[^"]*"/g, '') // 移除 minsize
-      .replace(/>\s+</g, '><') // 移除标签间空白
-      .replace(/\s{2,}/g, ' ') // 规范化空白
-      .trim();
-    
-    // 移除 mathml2omml 不支持的元素（如 mpadded）
-    // mpadded 通常用于调整间距，我们可以尝试提取其内容
-    cleaned = cleaned.replace(/<mpadded[^>]*>([\s\S]*?)<\/mpadded>/gi, '$1');
-    
-    // 移除其他可能不支持的元素
-    // annotation 和 annotation-xml 通常包含元数据，可以移除
-    cleaned = cleaned.replace(/<annotation[^>]*>[\s\S]*?<\/annotation>/gi, '');
-    cleaned = cleaned.replace(/<annotation-xml[^>]*>[\s\S]*?<\/annotation-xml>/gi, '');
-    
-    // 清理可能出现的无效标签（如数字开头的标签）
-    // 这种情况通常是由于 MathML 格式错误导致的
-    cleaned = cleaned.replace(/<[0-9][^>]*>[\s\S]*?<\/[0-9][^>]*>/gi, '');
-    cleaned = cleaned.replace(/<[0-9][^>]*\/>/gi, '');
-    
-    return cleaned.trim();
   }
 
   /**

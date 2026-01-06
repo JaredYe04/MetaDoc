@@ -1,6 +1,6 @@
 /**
  * LaTeX 到 OMML 转换测试用例
- * 测试从 LaTeX → MathML → OMML 的完整转换流程
+ * 测试从 LaTeX → OMML 的完整转换流程（使用 latex-to-omml 包）
  */
 
 import { testFramework, type TestFunction } from './test-framework';
@@ -15,57 +15,6 @@ function normalizeXml(xml: string): string {
     .replace(/\s*>\s*/g, '>')  // 移除标签结束符周围的空白
     .replace(/\s*<\s*/g, '<')  // 移除标签开始符周围的空白
     .trim();
-}
-
-/**
- * 清理 MathML（移除 MathJax 特定的属性和不支持的元素）
- */
-function cleanMathML(mathml: string): string {
-  let cleaned = mathml
-    .replace(/<!--[\s\S]*?-->/g, '') // 移除 HTML 注释
-    .replace(/\s+class="[^"]*"/g, '') // 移除 class 属性
-    .replace(/\s+scriptlevel="[^"]*"/g, '') // 移除 scriptlevel
-    .replace(/\s+maxsize="[^"]*"/g, '') // 移除 maxsize
-    .replace(/\s+minsize="[^"]*"/g, '') // 移除 minsize
-    .replace(/>\s+</g, '><') // 移除标签间空白
-    .replace(/\s{2,}/g, ' ') // 规范化空白
-    .trim();
-  
-  // 移除 mathml2omml 不支持的元素（如 mpadded）
-  cleaned = cleaned.replace(/<mpadded[^>]*>([\s\S]*?)<\/mpadded>/gi, '$1');
-  
-  // 移除其他可能不支持的元素
-  cleaned = cleaned.replace(/<annotation[^>]*>[\s\S]*?<\/annotation>/gi, '');
-  cleaned = cleaned.replace(/<annotation-xml[^>]*>[\s\S]*?<\/annotation-xml>/gi, '');
-  
-  // 清理可能出现的无效标签（如数字开头的标签）
-  cleaned = cleaned.replace(/<[0-9][^>]*>[\s\S]*?<\/[0-9][^>]*>/gi, '');
-  cleaned = cleaned.replace(/<[0-9][^>]*\/>/gi, '');
-  
-  return cleaned.trim();
-}
-
-/**
- * 预处理 LaTeX 代码，转义可能在 XML 文本节点中引起问题的特殊字符
- */
-function preprocessLatexForXml(latex: string): string {
-  let processed = latex;
-  
-  // 检查是否已经转义过
-  const alreadyEscaped = processed.includes('\\lt') || processed.includes('\\gt');
-  
-  if (!alreadyEscaped) {
-    // 转义 & 符号
-    processed = processed.replace(/(?<!\\)&(?!amp;|lt;|gt;|quot;|apos;|#|\w|\\&)/g, '\\&');
-    
-    // 转义小于号 < 为 LaTeX 命令 \lt（注意：不要加空格）
-    processed = processed.replace(/(?<!\\)<(?![a-zA-Z])/g, '\\lt');
-    
-    // 转义大于号 > 为 LaTeX 命令 \gt（注意：不要加空格）
-    processed = processed.replace(/(?<!\\)>(?![a-zA-Z])/g, '\\gt');
-  }
-  
-  return processed;
 }
 
 /**
@@ -86,21 +35,15 @@ function getIpcRenderer(): any {
  */
 interface ConversionResult {
   latex: string;
-  preprocessedLatex: string;
-  mathml: string;
-  cleanedMathml: string;
   omml: string;
   normalizedOMML: string;
 }
 
 /**
- * 转换 LaTeX 到 OMML（完整流程）
- * 返回完整的转换信息，包括 MathML 和 OMML
+ * 转换 LaTeX 到 OMML（使用 latex-to-omml 包）
+ * 直接转换，不再需要 MathML 中间步骤
  */
 async function convertLatexToOMML(latex: string, displayMode: boolean): Promise<ConversionResult> {
-  // 预处理 LaTeX
-  const preprocessedLatex = preprocessLatexForXml(latex);
-  
   try {
     const ipcRenderer = getIpcRenderer();
     
@@ -108,55 +51,19 @@ async function convertLatexToOMML(latex: string, displayMode: boolean): Promise<
       throw new Error('IPC 渲染器不可用，无法调用主进程函数');
     }
     
-    // 调用主进程的转换函数
-    const mathml = await ipcRenderer.invoke('latex-to-mathml', preprocessedLatex, displayMode);
+    // 直接调用主进程的 latex-to-omml IPC 处理器
+    const omml = await ipcRenderer.invoke('latex-to-omml', latex, displayMode);
     
-    if (!mathml) {
-      throw new Error('MathML 转换返回空结果');
-    }
-    
-    // 清理 MathML
-    const cleanedMathml = cleanMathML(mathml);
-    
-    // 转换 MathML 到 OMML（根据配置选择转换器）
-    // 在 renderer 中，通过 IPC 调用主进程的转换器，主进程会根据配置选择
-    let omml: string;
-    try {
-      // 尝试通过 IPC 调用主进程的转换器
-      const ipcRenderer = getIpcRenderer();
-      if (ipcRenderer && ipcRenderer.invoke) {
-        try {
-          omml = await ipcRenderer.invoke('mathml-to-omml', cleanedMathml);
-          if (omml) {
-            omml = omml.trim();
-          } else {
-            throw new Error('IPC 调用返回空结果');
-          }
-        } catch (ipcError) {
-          // IPC 调用失败，使用 mathml2omml 作为后备
-          console.warn('IPC 调用失败，使用 mathml2omml 作为后备:', ipcError);
-          const { mml2omml } = await import('mathml2omml');
-          omml = mml2omml(cleanedMathml).trim();
-        }
-      } else {
-        throw new Error('IPC 渲染器不可用');
-      }
-    } catch (error) {
-      // 如果所有方法都失败，使用 mathml2omml 作为最后的后备
-      console.warn('使用 mathml2omml 作为最后的后备转换器:', error);
-      const { mml2omml } = await import('mathml2omml');
-      omml = mml2omml(cleanedMathml).trim();
+    if (!omml) {
+      throw new Error('OMML 转换返回空结果');
     }
     
     // 规范化 OMML
-    const normalizedOMML = normalizeXml(omml);
+    const normalizedOMML = normalizeXml(omml.trim());
     
     return {
       latex,
-      preprocessedLatex,
-      mathml,
-      cleanedMathml,
-      omml,
+      omml: omml.trim(),
       normalizedOMML
     };
   } catch (error) {
@@ -232,9 +139,6 @@ function createTest(
           success: true, 
           message: `${name} 转换成功`,
           latex: conversionResult.latex,
-          preprocessedLatex: conversionResult.preprocessedLatex,
-          mathml: conversionResult.mathml,
-          cleanedMathml: conversionResult.cleanedMathml,
           omml: conversionResult.omml,
           normalizedOMML: conversionResult.normalizedOMML
         };
@@ -255,9 +159,6 @@ function createTest(
             error: errorObj.message || '验证失败',
             details: errorObj.details,
             latex: conversionResult.latex,
-            preprocessedLatex: conversionResult.preprocessedLatex,
-            mathml: conversionResult.mathml,
-            cleanedMathml: conversionResult.cleanedMathml,
             omml: conversionResult.omml,
             normalizedOMML: conversionResult.normalizedOMML
           };

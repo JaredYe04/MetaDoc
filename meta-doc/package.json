@@ -102,7 +102,7 @@
     "js-cookie": "^3.0.5",
     "jsdom": "^27.0.1",
     "jszip": "^3.10.1",
-    "latex-to-omml": "^2.0.0",
+    "latex-to-omml": "^2.1.0",
     "lodash": "^4.17.21",
     "mammoth": "^1.10.0",
     "markdown-it": "^14.1.0",

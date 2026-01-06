@@ -3238,55 +3238,7 @@ function bindDatabaseHandlers(): void {
  * 绑定数学公式处理器
  */
 function bindMathHandlers(): void {
-  // 单个公式转换
-  ipcMain.handle('latex-to-mathml', async (
-    event: IpcMainInvokeEvent,
-    latex: string,
-    displayMode: boolean = false
-  ): Promise<string | null> => {
-    try {
-      const { convertLatexToMathML } = await import('./utils/mathml-converter');
-      const mathml = await convertLatexToMathML(latex, displayMode);
-      return mathml;
-    } catch (error) {
-      logger.error('LaTeX 转 MathML 失败:', error);
-      return null;
-    }
-  });
-
-  // 批量公式转换
-  ipcMain.handle('latex-batch-to-mathml', async (
-    event: IpcMainInvokeEvent,
-    formulas: Array<{ latex: string; displayMode: boolean }>
-  ): Promise<Array<string | null>> => {
-    try {
-      const { convertLatexBatchToMathML } = await import('./utils/mathml-converter');
-      const results = await convertLatexBatchToMathML(formulas);
-      return results;
-    } catch (error) {
-      logger.error('批量 LaTeX 转 MathML 失败:', error);
-      return formulas.map(() => null);
-    }
-  });
-
-  // MathML 到 OMML 转换（已废弃，保留以兼容旧代码）
-  // 注意：推荐使用 latex-to-omml 直接转换，此接口仅用于兼容
-  ipcMain.handle('mathml-to-omml', async (
-    event: IpcMainInvokeEvent,
-    mathml: string
-  ): Promise<string | null> => {
-    try {
-      // 使用 mathml2omml 库作为后备方案
-      const { mml2omml } = await import('mathml2omml');
-      const omml = mml2omml(mathml);
-      return omml;
-    } catch (error) {
-      logger.error('MathML 转 OMML 失败:', error);
-      return null;
-    }
-  });
-
-  // LaTeX 到 OMML 转换（推荐使用，使用 latex-to-omml 包）
+  // LaTeX 到 OMML 转换（使用 latex-to-omml 包）
   ipcMain.handle('latex-to-omml', async (
     event: IpcMainInvokeEvent,
     latex: string,

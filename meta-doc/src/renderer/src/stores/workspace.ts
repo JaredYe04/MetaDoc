@@ -73,6 +73,16 @@ export const activeTabId = ref<string>('');
 
 const documents = reactive<Record<string, WorkspaceDocument>>({});
 
+// 懒加载logger，避免初始化顺序问题和循环依赖
+let loggerInstance: ReturnType<typeof createRendererLogger> | null = null;
+
+function getLogger() {
+  if (!loggerInstance) {
+    loggerInstance = createRendererLogger('Workspace');
+  }
+  return loggerInstance;
+}
+
 let suppressDirtyBroadcast = false;
 
 function withDirtyBroadcastSuppressed<T>(fn: () => T): T {
@@ -372,6 +382,22 @@ function removeTab(id: string): void {
 function activateTab(id: string): void {
   if (activeTabId.value === id) return;
   if (!tabs.some((tab) => tab.id === id)) return;
+  
+  // 如果激活的不是空白页Tab，检查是否有空白页Tab需要关闭
+  const targetTab = tabs.find(tab => tab.id === id);
+  if (targetTab && !(targetTab.kind === 'system' && targetTab.route === '/dummy')) {
+    // 查找空白页Tab
+    const dummyTab = tabs.find(tab => tab.kind === 'system' && tab.route === '/dummy');
+    if (dummyTab && dummyTab.id !== id) {
+      // 关闭空白页Tab
+      const dummyIndex = tabs.findIndex(tab => tab.id === dummyTab.id);
+      if (dummyIndex !== -1) {
+        tabs.splice(dummyIndex, 1);
+        delete documents[dummyTab.id];
+      }
+    }
+  }
+  
   activeTabId.value = id;
   refreshActiveTabMetadata();
 }
@@ -428,11 +454,50 @@ export function detectDocumentFormat(content: string): 'tex' | 'md' {
  * @param markdown 新的Markdown内容
  */
 function updateDocumentMarkdown(tabId: string, markdown: string): void {
-  //logger.debug('更新一个标签页的Markdown内容', { tabId, markdownPreview: markdown.substring(0, 100) });
   const doc = ensureDocument(tabId);
   const tab = tabs.find((t) => t.id === tabId)
   const normalized = normalizeContent(markdown);
+  const currentNormalized = normalizeContent(doc.markdown);
+  
+  // 如果规范化后的内容相同，说明只是规范化导致的差异，不触发更新
+  if (normalized === currentNormalized) {
+    getLogger().debug('忽略规范化导致的内容变化', {
+      tabId,
+      path: doc.path,
+      markdownLength: normalized.length,
+      currentMarkdownLength: currentNormalized.length,
+    });
+    return;
+  }
+  
   if (doc.markdown !== normalized) {
+    // 检查是否只是末尾换行符的差异
+    const savedNormalized = normalizeContent(doc.savedMarkdown ?? '');
+    const normalizedTrimmed = normalized.trimEnd();
+    const savedTrimmed = savedNormalized.trimEnd();
+    
+    // 如果去除末尾空白后内容相同，说明只是末尾空白字符的差异，不应该触发脏标记
+    if (normalizedTrimmed === savedTrimmed && normalized !== savedNormalized) {
+      getLogger().debug('检测到末尾空白字符差异，自动同步savedMarkdown', {
+        tabId,
+        path: doc.path,
+        normalizedLength: normalized.length,
+        savedLength: savedNormalized.length,
+        normalizedEndsWith: JSON.stringify(normalized.slice(-5)),
+        savedEndsWith: JSON.stringify(savedNormalized.slice(-5)),
+      });
+      // 自动同步 savedMarkdown，避免触发脏标记
+      doc.savedMarkdown = normalized;
+    }
+    
+    getLogger().debug('更新Markdown内容', {
+      tabId,
+      path: doc.path,
+      oldLength: doc.markdown?.length ?? 0,
+      newLength: normalized.length,
+      diff: normalized.length - (doc.markdown?.length ?? 0),
+    });
+    
     doc.markdown = normalized;
     
     // 自动检测并设置格式（如果格式未确定或内容明显是LaTeX）
@@ -451,8 +516,14 @@ function updateDocumentMarkdown(tabId: string, markdown: string): void {
     }
     
     // 自动同步大纲树（从Markdown内容提取）
+    // 只在编辑器视图时才自动同步，避免在outline视图时触发编辑器刷新
     // 如果设置了抑制标志，则不进行自动同步（避免从大纲生成文本时的死循环）
     if (!suppressAutoOutlineSync && doc.format === 'md' && normalized.trim().length > 0) {
+      // 检查当前视图：只有在编辑器视图时才自动同步大纲树
+      // 在outline视图时，大纲树是数据源，不应该从编辑器内容反向同步
+      const currentView = doc.lastView ?? 'editor'
+      // 兼容旧的'article'值（已被'editor'替代）
+      if (currentView === 'editor' || (currentView as string) === 'article') {
       try {
         const newOutline = extractOutlineTreeFromMarkdown(normalized)
         if (newOutline && newOutline.children && newOutline.children.length >= 0) {
@@ -463,6 +534,7 @@ function updateDocumentMarkdown(tabId: string, markdown: string): void {
         // 提取大纲失败时，不更新大纲树，避免破坏现有结构
         const logger = createRendererLogger('Workspace')
         logger.warn('自动同步大纲树失败:', error)
+        }
       }
     }
     
@@ -480,6 +552,25 @@ function updateDocumentTex(tabId: string, tex: string): void {
   const tab = tabs.find((t) => t.id === tabId)
   const normalized = normalizeContent(tex);
   if (doc.tex !== normalized) {
+    // 检查是否只是末尾换行符的差异
+    const savedNormalized = normalizeContent(doc.savedTex ?? '');
+    const normalizedTrimmed = normalized.trimEnd();
+    const savedTrimmed = savedNormalized.trimEnd();
+    
+    // 如果去除末尾空白后内容相同，说明只是末尾空白字符的差异，不应该触发脏标记
+    if (normalizedTrimmed === savedTrimmed && normalized !== savedNormalized) {
+      getLogger().debug('检测到末尾空白字符差异，自动同步savedTex', {
+        tabId,
+        path: doc.path,
+        normalizedLength: normalized.length,
+        savedLength: savedNormalized.length,
+        normalizedEndsWith: JSON.stringify(normalized.slice(-5)),
+        savedEndsWith: JSON.stringify(savedNormalized.slice(-5)),
+      });
+      // 自动同步 savedTex，避免触发脏标记
+      doc.savedTex = normalized;
+    }
+    
     doc.tex = normalized;
     
     // 自动检测并设置格式（如果格式未确定）
@@ -498,8 +589,14 @@ function updateDocumentTex(tabId: string, tex: string): void {
     }
     
     // 自动同步大纲树（LaTeX需要先转换为Markdown再提取）
+    // 只在编辑器视图时才自动同步，避免在outline视图时触发编辑器刷新
     // 如果设置了抑制标志，则不进行自动同步（避免从大纲生成文本时的死循环）
     if (!suppressAutoOutlineSync && doc.format === 'tex' && normalized.trim().length > 0) {
+      // 检查当前视图：只有在编辑器视图时才自动同步大纲树
+      // 在outline视图时，大纲树是数据源，不应该从编辑器内容反向同步
+      const currentView = doc.lastView ?? 'editor'
+      // 兼容旧的'article'值（已被'editor'替代）
+      if (currentView === 'editor' || (currentView as string) === 'article') {
       try {
         // 将LaTeX转换为Markdown，然后提取大纲树
         const markdown = convertLatexToMarkdown(normalized)
@@ -512,6 +609,7 @@ function updateDocumentTex(tabId: string, tex: string): void {
         // 提取大纲失败时，不更新大纲树，避免破坏现有结构
         const logger = createRendererLogger('Workspace')
         logger.warn('自动同步大纲树失败（LaTeX转换）:', error)
+        }
       }
     }
     
@@ -544,7 +642,9 @@ function updateDocumentOutline(tabId: string, outline: DocumentOutlineNode): voi
   const serialized = JSON.stringify(outline);
   if (JSON.stringify(doc.outline) !== serialized) {
     doc.outline = structuredCloneFallback(outline);
-    updateDocumentDirty(tabId);
+    // 大纲树是程序内部状态，不应该触发脏标记
+    // 只有当大纲树被修改并同步到文档内容，导致文档内容改变时，才会通过updateDocumentMarkdown/updateDocumentTex触发脏标记
+    // 因此这里不调用 updateDocumentDirty
   }
 }
 
@@ -579,19 +679,183 @@ function updateDocumentAgentSessions(tabId: string, sessions: AgentSession[], sk
 }
 
 /**
+ * 找出两个文本的差异详情
+ * @param current 当前文本
+ * @param saved 保存的文本
+ * @param maxContextLength 上下文最大长度
+ * @returns 差异详情对象
+ */
+function findTextDiff(
+  current: string,
+  saved: string,
+  maxContextLength: number = 50
+): {
+  diffPosition: number;
+  diffLine: number;
+  currentContext: string;
+  savedContext: string;
+  currentChar: string;
+  savedChar: string;
+} | null {
+  if (current === saved) {
+    return null;
+  }
+
+  const currentLength = current.length;
+  const savedLength = saved.length;
+  const minLength = Math.min(currentLength, savedLength);
+
+  // 找出第一个不同的位置
+  let diffPosition = minLength; // 默认差异在较短文本的末尾
+  for (let i = 0; i < minLength; i++) {
+    if (current[i] !== saved[i]) {
+      diffPosition = i;
+      break;
+    }
+  }
+  // 如果循环完成都没有找到差异，说明差异在长度上（diffPosition已经是minLength）
+
+  // 计算差异所在的行号（从1开始）
+  const diffLine = current.substring(0, diffPosition).split('\n').length;
+
+  // 获取差异位置的上下文
+  const contextStart = Math.max(0, diffPosition - maxContextLength);
+  const contextEnd = Math.min(
+    currentLength,
+    diffPosition + maxContextLength
+  );
+  const savedContextEnd = Math.min(
+    savedLength,
+    diffPosition + maxContextLength
+  );
+
+  const currentContext = current.substring(contextStart, contextEnd);
+  const savedContext = saved.substring(contextStart, savedContextEnd);
+
+  // 获取差异位置的字符
+  const currentChar =
+    diffPosition < currentLength
+      ? JSON.stringify(current[diffPosition])
+      : '(EOF)';
+  const savedChar =
+    diffPosition < savedLength
+      ? JSON.stringify(saved[diffPosition])
+      : '(EOF)';
+
+  // 如果差异在末尾，尝试从末尾向前查找，找出真正的差异位置
+  if (diffPosition === minLength && currentLength !== savedLength) {
+    // 差异在长度上，尝试找出末尾的差异
+    const maxCheck = Math.min(20, minLength); // 最多检查末尾20个字符
+    let endDiffPosition = minLength;
+    for (let i = 1; i <= maxCheck; i++) {
+      const currentEnd = currentLength - i;
+      const savedEnd = savedLength - i;
+      if (currentEnd >= 0 && savedEnd >= 0 && current[currentEnd] !== saved[savedEnd]) {
+        endDiffPosition = Math.min(currentEnd, savedEnd);
+        break;
+      }
+    }
+    if (endDiffPosition < minLength) {
+      // 找到了末尾的差异位置
+      return {
+        diffPosition: endDiffPosition,
+        diffLine: current.substring(0, endDiffPosition).split('\n').length,
+        currentContext: current.substring(Math.max(0, endDiffPosition - maxContextLength), currentLength),
+        savedContext: saved.substring(Math.max(0, endDiffPosition - maxContextLength), savedLength),
+        currentChar: endDiffPosition < currentLength ? JSON.stringify(current[endDiffPosition]) : '(EOF)',
+        savedChar: endDiffPosition < savedLength ? JSON.stringify(saved[endDiffPosition]) : '(EOF)',
+      };
+    }
+  }
+
+  return {
+    diffPosition,
+    diffLine,
+    currentContext,
+    savedContext,
+    currentChar,
+    savedChar,
+  };
+}
+
+/**
  * 更新一个标签页的脏状态，根据文档内容计算脏状态
  * @param tabId 标签页ID
  */
 function updateDocumentDirty(tabId: string): void {
   const doc = ensureDocument(tabId);
   function computeDocumentDirty(): boolean {
-    if (doc.markdown !== doc.savedMarkdown) return true;
-    if (doc.tex !== doc.savedTex) return true;
-    if (JSON.stringify(doc.meta) !== JSON.stringify(doc.savedMeta)) return true;
-    if (JSON.stringify(doc.outline) !== JSON.stringify(doc.savedOutline)) return true;
-    if (JSON.stringify(doc.aiDialogs) !== JSON.stringify(doc.savedAiDialogs)) return true;
-    if (JSON.stringify(doc.agentSessions) !== JSON.stringify(doc.savedAgentSessions)) return true;
-    return false;
+    // 只检查文档内容和元信息的变化，不检查大纲树
+    // 大纲树是程序内部状态，不应该触发脏标记
+    // 只有当大纲树被修改并同步到文档内容，导致文档内容改变时，才会通过markdownDiff或texDiff触发脏标记
+    // 
+    // 对于md文件：只检查markdown和元信息，不检查tex（tex是自动转换的内部状态）
+    // 对于tex文件：只检查tex和元信息，不检查markdown（markdown是自动转换的内部状态）
+    const markdownDiff = doc.format === 'md' && doc.markdown !== doc.savedMarkdown;
+    const texDiff = doc.format === 'tex' && doc.tex !== doc.savedTex;
+    const metaDiff = JSON.stringify(doc.meta) !== JSON.stringify(doc.savedMeta);
+    const aiDialogsDiff = JSON.stringify(doc.aiDialogs) !== JSON.stringify(doc.savedAiDialogs);
+    const agentSessionsDiff = JSON.stringify(doc.agentSessions) !== JSON.stringify(doc.savedAgentSessions);
+    
+    const isDirty = markdownDiff || texDiff || metaDiff || aiDialogsDiff || agentSessionsDiff;
+    
+    // 添加详细日志用于排查
+    if (isDirty) {
+      const logData: Record<string, any> = {
+        tabId,
+        path: doc.path,
+        format: doc.format,
+        markdownDiff,
+        texDiff,
+        metaDiff,
+        aiDialogsDiff,
+        agentSessionsDiff,
+        markdownLength: doc.markdown?.length ?? 0,
+        savedMarkdownLength: doc.savedMarkdown?.length ?? 0,
+        texLength: doc.tex?.length ?? 0,
+        savedTexLength: doc.savedTex?.length ?? 0,
+      };
+
+      // 如果Markdown有差异，记录详细差异信息
+      if (markdownDiff) {
+        const markdownDiffDetail = findTextDiff(
+          doc.markdown ?? '',
+          doc.savedMarkdown ?? ''
+        );
+        if (markdownDiffDetail) {
+          logData.markdownDiffDetail = {
+            diffPosition: markdownDiffDetail.diffPosition,
+            diffLine: markdownDiffDetail.diffLine,
+            currentContext: markdownDiffDetail.currentContext,
+            savedContext: markdownDiffDetail.savedContext,
+            currentChar: markdownDiffDetail.currentChar,
+            savedChar: markdownDiffDetail.savedChar,
+          };
+        }
+      }
+
+      // 如果LaTeX有差异，记录详细差异信息
+      if (texDiff) {
+        const texDiffDetail = findTextDiff(
+          doc.tex ?? '',
+          doc.savedTex ?? ''
+        );
+        if (texDiffDetail) {
+          logData.texDiffDetail = {
+            diffPosition: texDiffDetail.diffPosition,
+            diffLine: texDiffDetail.diffLine,
+            currentContext: texDiffDetail.currentContext,
+            savedContext: texDiffDetail.savedContext,
+            currentChar: texDiffDetail.currentChar,
+            savedChar: texDiffDetail.savedChar,
+          };
+        }
+      }
+
+      getLogger().debug('文档dirty状态检查', logData);
+    }
+    
+    return isDirty;
   }
   const dirty = computeDocumentDirty();
   doc.dirty = dirty;
@@ -647,12 +911,31 @@ function markDocumentSaved(tabId: string, newPath?: string): void {
   const doc = ensureDocument(tabId);
   const oldPath = doc.path;
   
+  // 规范化内容，确保与打开文档时使用的规范化逻辑一致
+  const normalizedMarkdown = normalizeContent(doc.markdown);
+  const normalizedTex = normalizeContent(doc.tex);
+  
+  getLogger().debug('标记文档已保存', {
+    tabId,
+    oldPath,
+    newPath,
+    format: doc.format,
+    markdownLength: normalizedMarkdown.length,
+    savedMarkdownLength: doc.savedMarkdown?.length ?? 0,
+    texLength: normalizedTex.length,
+    savedTexLength: doc.savedTex?.length ?? 0,
+    markdownEqual: normalizedMarkdown === doc.savedMarkdown,
+    texEqual: normalizedTex === doc.savedTex,
+  });
+  
   if (typeof newPath === 'string') {
     doc.path = newPath;
   }
 
-  doc.savedMarkdown = doc.markdown;
-  doc.savedTex = doc.tex;
+  // 确保保存的内容是规范化后的（与编辑器更新时保持一致）
+  // 注意：这里使用规范化后的内容，确保与打开文档时的处理逻辑一致
+  doc.savedMarkdown = normalizedMarkdown;
+  doc.savedTex = normalizedTex;
   doc.savedOutline = structuredCloneFallback(doc.outline);
   doc.savedMeta = structuredCloneFallback(doc.meta);
   doc.savedAiDialogs = structuredCloneFallback(doc.aiDialogs);
@@ -672,6 +955,9 @@ function markDocumentSaved(tabId: string, newPath?: string): void {
   if (activeTabId.value === tabId) {
     eventBus.emit('is-need-save', false);
   }
+  
+  // 重新计算dirty状态以确保一致性
+  updateDocumentDirty(tabId);
   
   // 如果路径发生变化，更新文件监听
   if (typeof newPath === 'string' && newPath !== oldPath && newPath) {

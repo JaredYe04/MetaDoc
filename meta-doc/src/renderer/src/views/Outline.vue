@@ -55,7 +55,7 @@
       ref="treeRef"
       class="outline-tree-container"
       style="width: 100%; height: 100%; border: 1px solid gray; border-radius: 12px; overflow: hidden;"
-      :style="{ backgroundColor: themeState.currentTheme.outlineBackground }"
+      :style="{ backgroundColor: themeState.currentTheme.background }"
       :dataset="treeData"
       :config="treeConfig"
       :direction="direction"
@@ -274,7 +274,7 @@
       <el-button type="primary" @click="changeNodeValue">{{ $t('outline.confirm') }}</el-button>
     </el-dialog>
     <div class="bottom-menu aero-div">
-      <el-tooltip :content="direction === 'vertical' ? $t('outline.switchToHorizontal') : $t('outline.switchToVertical')" placement="top">
+      <el-tooltip :content="direction !== 'horizontal' ? $t('outline.switchToVertical') : $t('outline.switchToHorizontal')" placement="top">
         <el-button type="info" circle @click="toggleLayout">
           <el-icon>
             <Sort />
@@ -327,7 +327,7 @@
 import { ref, reactive, watch, computed, onMounted, onUnmounted, nextTick, type Ref, type ComponentPublicInstance } from 'vue';
 import { ElButton, ElDialog, ElMessageBox, ElNotification } from 'element-plus'; // 引入 Element Plus 组件
 import AutoResizeTextarea from '../components/base/AutoResizeTextarea.vue';
-import { tabs, useWorkspace } from '../stores/workspace';
+import { tabs, useWorkspace, type DocumentView } from '../stores/workspace';
 import eventBus, { getWindowType } from '../utils/event-bus.js';
 import '../assets/aero-div.css';
 import '../assets/aero-btn.css';
@@ -1205,20 +1205,68 @@ const recheckTextTruncation = () => {
   }, 200);
 };
 
+// 跟踪上一次的视图状态，用于检测视图切换
+const lastKnownView = ref<DocumentView | null>(null);
+
+// 同步大纲树到treeData的函数
+const syncOutlineToTreeData = (outline?: DocumentOutlineNode) => {
+  if (suppressDocumentSync) return;
+  const doc = activeDocument.value;
+  if (!doc) return;
+  
+  suppressDocumentSync = true;
+  try {
+    treeData.value = cloneOutline(outline ?? doc.outline);
+    dialogVisible.value = {};
+    selectedNode.value = null;
+    generated.value = false;
+    generatedText.value = '';
+  } finally {
+    suppressDocumentSync = false;
+  }
+};
+
+// 监听视图切换：当切换到outline视图时，从文档同步大纲树
+watch(
+  () => activeDocument.value?.lastView,
+  (newView, oldView) => {
+    const currentView = (newView ?? 'editor') as DocumentView;
+    const prevView = (oldView ?? lastKnownView.value ?? 'editor') as DocumentView;
+    
+    // 检测视图切换到outline
+    if (currentView === 'outline' && prevView !== 'outline') {
+      // 视图刚切换到outline，从文档同步大纲树
+      const doc = activeDocument.value;
+      if (doc) {
+        syncOutlineToTreeData(doc.outline);
+      }
+    }
+    
+    // 更新lastKnownView
+    lastKnownView.value = currentView;
+  },
+  { immediate: true }
+);
+
+// 监听文档outline变化：只在outline视图时同步到treeData
 watch(
   () => activeDocument.value?.outline,
   (outline) => {
     if (suppressDocumentSync) return;
-    suppressDocumentSync = true;
-    try {
-      treeData.value = cloneOutline(outline);
-      dialogVisible.value = {};
-      selectedNode.value = null;
-      generated.value = false;
-      generatedText.value = '';
-    } finally {
-      suppressDocumentSync = false;
+    
+    // 只在当前视图是outline时才从文档同步大纲树
+    // 这样可以避免在编辑器视图中编辑时，大纲树更新导致编辑器刷新
+    const doc = activeDocument.value;
+    if (!doc) return;
+    
+    const currentView = doc.lastView ?? 'editor';
+    
+    // 只在outline视图时才同步，避免编辑器视图时的干扰
+    if (currentView !== 'outline') {
+      return;
     }
+    
+    syncOutlineToTreeData(outline);
   },
   { deep: true, immediate: true },
 );
@@ -1703,11 +1751,68 @@ const handleResize = () => {
 onMounted(() => {
   loadLayoutDirection();
   
-  // 等待 DOM 渲染完成后添加滚轮事件监听器
+  // 确保初始状态同步：如果当前视图是outline，同步大纲树
+  const doc = activeDocument.value;
+  if (doc) {
+    const currentView = doc.lastView ?? 'editor';
+    if (currentView === 'outline') {
+      lastKnownView.value = currentView;
+      syncOutlineToTreeData(doc.outline);
+    }
+  }
+  
+  // 等待 DOM 渲染完成后添加滚轮事件监听器并居中显示
   nextTick(() => {
     const treeElement = document.querySelector('.outline-tree-container') as HTMLElement;
     if (treeElement) {
       treeElement.addEventListener('wheel', handleWheelZoom, { passive: false });
+      
+      // 居中显示大纲树：找到滚动容器并设置滚动位置到中心
+      setTimeout(() => {
+        try {
+          // 查找vue-tree内部的滚动容器（通常是svg的父容器）
+          const svg = treeElement.querySelector('svg');
+          if (svg) {
+            // 查找可滚动的父容器
+            let scrollContainer: HTMLElement | null = null;
+            let current: HTMLElement | null = svg.parentElement as HTMLElement;
+            
+            while (current && current !== treeElement) {
+              if (current.scrollHeight > current.clientHeight || current.scrollWidth > current.clientWidth) {
+                scrollContainer = current;
+                break;
+              }
+              current = current.parentElement as HTMLElement;
+            }
+            
+            // 如果没找到滚动容器，尝试查找所有可能的容器
+            if (!scrollContainer) {
+              const possibleContainers = [
+                treeElement.querySelector('[style*="overflow"]') as HTMLElement,
+                treeElement.querySelector('.vue-tree') as HTMLElement,
+                svg.parentElement as HTMLElement,
+              ];
+              
+              for (const container of possibleContainers) {
+                if (container && (container.scrollHeight > container.clientHeight || container.scrollWidth > container.clientWidth)) {
+                  scrollContainer = container;
+                  break;
+                }
+              }
+            }
+            
+            // 如果找到了滚动容器，居中显示
+            if (scrollContainer) {
+              const centerX = (scrollContainer.scrollWidth - scrollContainer.clientWidth) / 2;
+              const centerY = (scrollContainer.scrollHeight - scrollContainer.clientHeight) / 2;
+              scrollContainer.scrollLeft = Math.max(0, centerX);
+              scrollContainer.scrollTop = Math.max(0, centerY);
+            }
+          }
+        } catch (error) {
+          logger.warn('居中显示大纲树失败', error);
+        }
+      }, 300); // 延迟300ms确保vue-tree完全渲染
     }
     // 初始检查文本截断状态
     recheckTextTruncation();

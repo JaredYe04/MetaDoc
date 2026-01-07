@@ -3,11 +3,22 @@
     <!-- Logo Tab (最左侧，不可选中) -->
     <div class="logo-tab-wrapper">
       <el-tooltip :content="versionTooltip" placement="bottom">
-        <div class="logo-tab">
+        <div class="logo-tab" @click="handleLogoClick">
           <img src="../assets/logo.svg" alt="MetaDoc" class="logo-tab__image" />
         </div>
       </el-tooltip>
     </div>
+    
+    <!-- 关于对话框 -->
+    <el-dialog
+      v-model="aboutDialogVisible"
+      :title="$t('setting.about.appName')"
+      width="600px"
+      :close-on-click-modal="true"
+      :close-on-press-escape="true"
+    >
+      <SettingAboutSection />
+    </el-dialog>
     
     <el-tabs
       ref="tabsRef"
@@ -84,6 +95,7 @@ import { createRendererLogger } from '../utils/logger'
 import { Minus, FullScreen, Close } from '@element-plus/icons-vue'
 import { getAppVersion } from '../utils/version'
 import { mixColors, themeState } from '../utils/themes'
+import SettingAboutSection from '../views/setting/SettingAboutSection.vue'
 
 const logger = createRendererLogger('MainTabs')
 const { t } = useI18n()
@@ -93,6 +105,7 @@ const route = useRoute()
 const workspace = useWorkspace()
 const tabsRef = ref<any>(null)
 const appVersion = ref<string>('')
+const aboutDialogVisible = ref(false)
 
 const isLocked = computed(() => workspace.uiLocked?.value === true)
 
@@ -207,9 +220,14 @@ const handleClose = () => {
   eventBus.emit('quit')
 }
 
-// 合并文档Tab和系统Tab、工具Tab
+// 点击Logo打开关于对话框
+const handleLogoClick = () => {
+  aboutDialogVisible.value = true
+}
+
+// 合并文档Tab和系统Tab、工具Tab，过滤掉空白页Tab
 const allTabs = computed(() => {
-  return [...workspace.tabs]
+  return workspace.tabs.filter(tab => !(tab.kind === 'system' && tab.route === '/dummy'))
 })
 
 // 计算Tab数量，用于CSS变量
@@ -721,7 +739,7 @@ watch(() => route.path, (newPath) => {
   height: 100%;
   white-space: nowrap;
   user-select: none;
-  cursor: grab;
+  cursor: pointer;
   min-width: 0;
   position: relative;
   
@@ -756,25 +774,34 @@ watch(() => route.path, (newPath) => {
   padding-right: 2px !important;
   margin-left: 1px !important;
   margin-right: 1px !important;
-  height: 32px;
-  line-height: 32px;
+  height: 40px;
+  line-height: 40px;
   transition: background-color 0.15s ease, color 0.15s ease;
   margin-bottom: 0 !important;
   margin-top: 0 !important;
+  border-radius: 6px 6px 0 0;
 }
 
 .main-tabs :deep(.el-tabs__nav-wrap) {
   margin-bottom: 0 !important;
+  height: 40px;
 }
 
 /* 确保Tab下方没有缝隙 */
 .main-tabs :deep(.el-tabs__header) {
   margin-bottom: 0 !important;
   padding-bottom: 0 !important;
+  height: 40px;
+  padding-top: 0 !important;
+}
+
+.main-tabs :deep(.el-tabs__nav-scroll) {
+  height: 40px;
 }
 
 .main-tabs :deep(.el-tabs__nav) {
   margin-bottom: 0 !important;
+  height: 40px;
 }
 
 .main-tabs :deep(.el-tabs__item) {
@@ -801,13 +828,13 @@ watch(() => route.path, (newPath) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   position: absolute;
-  right: 0; 
+  right: 2px; 
   top: 0;
   bottom: 0;
-  margin: auto 0;
+  margin: 0;
   border-radius: 3px;
   cursor: pointer;
   color: var(--el-text-color-secondary);

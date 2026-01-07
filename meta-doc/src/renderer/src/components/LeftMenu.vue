@@ -1,337 +1,773 @@
 <template>
-  <el-menu 
-    class="modern-sidebar-menu" 
-    :collapse="isCollapse" 
-    @open="handleOpen" 
-    @close="handleClose"
-    :style="{
-      height: '100%',
-      borderRight: 'none',
-      overflow: 'hidden',
-      '--sub-menu-bg': themeState.currentTheme.background2nd,
-      '--sub-menu-hover': subMenuHoverColor
-    }"
+  <UIMenu 
+    :collapse="isCollapse"
     :background-color="themeState.currentTheme.background2nd"
     :text-color="themeState.currentTheme.SideTextColor"
-    :active-text-color="themeState.currentTheme.SideTextColor">
-    <!-- 主页 - 一级菜单 -->
-    <el-tooltip :content="$t('leftMenu.home', '主页')" placement="right">
-    <el-menu-item index="home" @click="openGlobalHome">
-      <el-icon>
-        <House />
-      </el-icon>
-      <span>{{ $t('leftMenu.home', '主页') }}</span>
-    </el-menu-item>
-    </el-tooltip>
+  >
+    <!-- 顶部菜单项 -->
+    <template v-for="menuId in getMenuOrder().top" :key="menuId">
+      <!-- 主页 -->
+      <UIMenuItem
+        v-if="menuId === 'home' && isMenuItemVisible('home')"
+        :label="$t('leftMenu.home', '主页')"
+        :tooltip="$t('leftMenu.home', '主页')"
+        :icon="House"
+        @click="openGlobalHome"
+      />
 
-    <!-- 知识库 - 一级菜单 -->
-    <el-tooltip :content="$t('leftMenu.knowledgeBase', '知识库')" placement="right">
-    <el-menu-item index="knowledge-base" @click="openKnowledgeBase">
-      <el-icon>
-        <Collection />
-      </el-icon>
-      <span>{{ $t('leftMenu.knowledgeBase', '知识库') }}</span>
-    </el-menu-item>
-    </el-tooltip>
-
-    <!-- 调试工具 - 一级菜单（仅在开发环境显示） -->
-    <el-tooltip v-if="isDev" :content="$t('leftMenu.debugTools', '调试工具')" placement="right">
-      <el-menu-item index="debug" @click="openDebugTools">
-      <el-icon>
-        <Tools />
-      </el-icon>
-      <span>{{ $t('leftMenu.debugTools', '调试工具') }}</span>
-    </el-menu-item>
-    </el-tooltip>
-
-    <el-sub-menu index="1">
-      <template #title>
-        <el-icon>
-          <Document />
-        </el-icon>
-        <span>{{ $t('leftMenu.file') }}</span>
-      </template>
-
-      <!-- 标题项 -->
-      <el-menu-item class="menu-title-item" disabled>
-        <div class="menu-title-content">
+      <!-- 文件菜单 -->
+      <UISubMenu
+        v-if="menuId === 'file' && isMenuItemVisible('file')"
+        :title="$t('leftMenu.file')"
+        :tooltip="$t('leftMenu.file')"
+        :icon="Document"
+        trigger="click"
+        :level="1"
+      >
+        <template #title>
           <el-icon>
             <Document />
           </el-icon>
-          <span>{{ $t('leftMenu.fileTooltip') }}</span>
-        </div>
-      </el-menu-item>
+          <span>{{ $t('leftMenu.file') }}</span>
+        </template>
 
-      <el-menu-item index="1-1" @click="newDoc">
-          <el-icon>
-            <DocumentAdd />
-          </el-icon>
-          <span>{{ $t('leftMenu.new') }}</span>
-        </el-menu-item>
-
-        <el-menu-item index="1-2" @click="openDoc">
-          <el-icon>
-            <FolderOpened />
-          </el-icon>
-          <span>{{ $t('leftMenu.open') }}</span>
-        </el-menu-item>
-
-        <el-menu-item index="1-2-1" @click="saveAll">
-          <el-icon>
-            <FolderChecked />
-          </el-icon>
-          <span>{{ $t('leftMenu.saveAll') }}</span>
-        </el-menu-item>
-
-        <el-menu-item index="1-3" @click="eventBus.emit('save')">
-          <el-icon>
-            <FolderChecked />
-          </el-icon>
-          <span>{{ $t('leftMenu.save') }}</span>
-        </el-menu-item>
-
-        <el-menu-item index="1-4" @click="eventBus.emit('save-as')">
-          <el-icon>
-            <FolderAdd />
-          </el-icon>
-          <span>{{ $t('leftMenu.saveAs') }}</span>
-        </el-menu-item>
-
-        <el-sub-menu index="1-5">
-          <template #title>
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
             <el-icon>
-              <FirstAidKit />
+              <Document />
             </el-icon>
+          </template>
+          {{ $t('leftMenu.fileTooltip') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="DocumentAdd" @click="newDoc">
+          {{ $t('leftMenu.new') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="FolderOpened" @click="openDoc">
+          {{ $t('leftMenu.open') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="FolderChecked" @click="saveAll">
+          {{ $t('leftMenu.saveAll') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="FolderChecked" @click="eventBus.emit('save')">
+          {{ $t('leftMenu.save') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="FolderAdd" @click="eventBus.emit('save-as')">
+          {{ $t('leftMenu.saveAs') }}
+        </UISubMenuItem>
+
+        <UISubMenu :icon="FirstAidKit" :title="$t('leftMenu.export')" trigger="hover" :level="2">
+          <template #title>
             <span>{{ $t('leftMenu.export') }}</span>
           </template>
 
           <!-- 标题项 -->
-          <el-menu-item class="menu-title-item" disabled>
-            <div class="menu-title-content">
+          <UISubMenuItem :is-title="true" :disabled="true">
+            <template #icon>
               <el-icon>
                 <FirstAidKit />
               </el-icon>
-              <span>{{ $t('leftMenu.export') }}</span>
-            </div>
-          </el-menu-item>
+            </template>
+            {{ $t('leftMenu.export') }}
+          </UISubMenuItem>
 
-          <el-menu-item
+          <UISubMenuItem
             v-for="option in exportOptions"
             :key="option.format"
-            :index="`1-5-${option.format}`"
             @click="handleExportClick(option.format)"
           >
-            <span>{{ exportOptionLabel(option) }}</span>
-          </el-menu-item>
-        </el-sub-menu>
+            {{ exportOptionLabel(option) }}
+          </UISubMenuItem>
+        </UISubMenu>
 
-        <el-menu-item index="1-6" @click="eventBus.emit('close-active-tab')">
-          <el-icon>
-            <CircleClose />
-          </el-icon>
-          <span>{{ $t('leftMenu.closeFile') }}</span>
-        </el-menu-item>
-      </el-sub-menu>
+        <UISubMenuItem :icon="CircleClose" @click="eventBus.emit('close-active-tab')">
+          {{ $t('leftMenu.closeFile') }}
+        </UISubMenuItem>
+      </UISubMenu>
 
-    <el-sub-menu index="2">
-      <template #title>
-        <img :src="themeState.currentTheme.AiLogo" alt="AI" class="ai-logo-icon" />
-        <span>{{ $t('leftMenu.aiAssistant') }}</span>
-      </template>
+      <!-- AI助手菜单 -->
+      <UISubMenu
+        v-if="menuId === 'ai-assistant' && isMenuItemVisible('ai-assistant')"
+        :title="$t('leftMenu.aiAssistant')"
+        :tooltip="$t('leftMenu.aiAssistant')"
+        :icon-image="themeState.currentTheme.AiLogo"
+        trigger="click"
+        :level="1"
+      >
+        <template #title>
+          <img :src="themeState.currentTheme.AiLogo" alt="AI" class="ai-logo-icon" />
+          <span>{{ $t('leftMenu.aiAssistant') }}</span>
+        </template>
 
-      <!-- 标题项 -->
-      <el-menu-item class="menu-title-item" disabled>
-        <div class="menu-title-content">
-          <img :src="themeState.currentTheme.AiLogo" alt="AI" class="menu-title-icon" />
-          <span>{{ $t('leftMenu.aiToolTooltip') }}</span>
-        </div>
-      </el-menu-item>
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
+            <img :src="themeState.currentTheme.AiLogo" alt="AI" class="menu-title-icon" />
+          </template>
+          {{ $t('leftMenu.aiToolTooltip') }}
+        </UISubMenuItem>
 
-      <el-menu-item index="2-1" @click="eventBus.emit('ai-chat')">
-          <el-icon>
-            <ChatDotRound />
-          </el-icon>
-          <span>{{ $t('leftMenu.chatWithAI') }}</span>
-        </el-menu-item>
-        <el-menu-item index="2-2" @click="eventBus.emit('fomula-recognition')">
-          <el-icon>
-            <Reading />
-          </el-icon>
-          <span>{{ $t('leftMenu.handwritingFormulaRecognition') }}</span>
-        </el-menu-item>
-        <el-menu-item index="2-3" @click="eventBus.emit('smart-drawing-assistant')">
-          <el-icon>
-            <Picture />
-          </el-icon>
-          <span>{{ $t('leftMenu.smartDrawingAssistant') }}</span>
-        </el-menu-item>
-        <el-menu-item index="2-4" @click="eventBus.emit('data-analysis')">
-          <el-icon>
-            <DataAnalysis />
-          </el-icon>
-          <span>{{ $t('leftMenu.dataAnalysis') }}</span>
-        </el-menu-item>
-        <el-menu-item index="2-5" @click="eventBus.emit('ocr')">
-          <el-icon>
-            <View />
-          </el-icon>
-          <span>{{ $t('leftMenu.ocr') }}</span>
-        </el-menu-item>
-        <el-menu-item index="2-6" @click="eventBus.emit('attachment')">
-          <el-icon>
-            <Paperclip />
-          </el-icon>
-          <span>{{ $t('leftMenu.attachment') }}</span>
-        </el-menu-item>
-      </el-sub-menu>
+        <UISubMenuItem :icon="ChatDotRound" @click="eventBus.emit('ai-chat')">
+          {{ $t('leftMenu.chatWithAI') }}
+        </UISubMenuItem>
 
-    <el-sub-menu index="3">
-      <template #title>
-        <el-icon>
-          <Setting />
-        </el-icon>
-        <span>{{ $t('leftMenu.settings') }}</span>
-      </template>
+        <UISubMenuItem :icon="Reading" @click="eventBus.emit('fomula-recognition')">
+          {{ $t('leftMenu.handwritingFormulaRecognition') }}
+        </UISubMenuItem>
 
-      <!-- 标题项 -->
-      <el-menu-item class="menu-title-item" disabled>
-        <div class="menu-title-content">
+        <UISubMenuItem :icon="Picture" @click="eventBus.emit('smart-drawing-assistant')">
+          {{ $t('leftMenu.smartDrawingAssistant') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="DataAnalysis" @click="eventBus.emit('data-analysis')">
+          {{ $t('leftMenu.dataAnalysis') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="View" @click="eventBus.emit('ocr')">
+          {{ $t('leftMenu.ocr') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="Paperclip" @click="eventBus.emit('attachment')">
+          {{ $t('leftMenu.attachment') }}
+        </UISubMenuItem>
+      </UISubMenu>
+
+      <!-- 设置菜单 -->
+      <UISubMenu
+        v-if="menuId === 'settings' && isMenuItemVisible('settings')"
+        :title="$t('leftMenu.settings')"
+        :tooltip="$t('leftMenu.settings')"
+        :icon="Setting"
+        trigger="click"
+        :level="1"
+      >
+        <template #title>
           <el-icon>
             <Setting />
           </el-icon>
-          <span>{{ $t('leftMenu.settingsTooltip') }}</span>
-        </div>
-      </el-menu-item>
+          <span>{{ $t('leftMenu.settings') }}</span>
+        </template>
 
-      <el-menu-item index="3-1" @click="eventBus.emit('setting')">
-          <el-icon>
-            <Setting />
-          </el-icon>
-          <span>{{ $t('leftMenu.settingsPanel') }}</span>
-        </el-menu-item>
-      </el-sub-menu>
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
+            <el-icon>
+              <Setting />
+            </el-icon>
+          </template>
+          {{ $t('leftMenu.settingsTooltip') }}
+        </UISubMenuItem>
 
-    <el-sub-menu index="4" @click="refreshRecentDocs">
-      <template #title>
-        <el-icon>
-          <Clock />
-        </el-icon>
-        <span>{{ $t('leftMenu.recentFiles') }}</span>
-      </template>
+        <UISubMenuItem :icon="Setting" @click="eventBus.emit('setting')">
+          {{ $t('leftMenu.settingsPanel') }}
+        </UISubMenuItem>
+      </UISubMenu>
 
-      <!-- 标题项 -->
-      <el-menu-item class="menu-title-item" disabled>
-        <div class="menu-title-content">
-          <el-icon>
+      <!-- 最近文件菜单 -->
+      <UISubMenu
+        v-if="menuId === 'recent-files' && isMenuItemVisible('recent-files')"
+        :title="$t('leftMenu.recentFiles')"
+        :tooltip="$t('leftMenu.recentFiles')"
+        :icon="Clock"
+        trigger="click"
+        :level="1"
+        class="recent-files-menu"
+        @open="refreshRecentDocs"
+      >
+        <template #title>
+          <el-icon class="recent-files-icon">
             <Clock />
           </el-icon>
-          <span>{{ $t('leftMenu.recentFilesTooltip') }}</span>
-        </div>
-      </el-menu-item>
+          <span class="recent-files-text">{{ $t('leftMenu.recentFiles') }}</span>
+        </template>
 
-      <div v-for="item in recentDocs.slice(0, 10)" :key="item">
-          <el-menu-item :index="`4-${item}`" @click="
-            askSave(() => {
-              eventBus.emit('open-doc', item)
-            })
-            ">
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
             <el-icon>
-              <Document />
+              <Clock />
             </el-icon>
-            <span>{{ item }}</span>
-          </el-menu-item>
-        </div>
-      </el-sub-menu>
+          </template>
+          {{ $t('leftMenu.recentFilesTooltip') }}
+        </UISubMenuItem>
 
-    <el-sub-menu index="6">
-      <template #title>
-        <el-icon>
-          <EarthIcon />
-        </el-icon>
-        <span>{{ $t('leftMenu.langTooltip') }}</span>
-      </template>
+        <UISubMenuItem
+          v-for="item in recentDocs.slice(0, 10)"
+          :key="item"
+          :icon="Document"
+          @click="askSave(() => { eventBus.emit('open-doc', item) })"
+        >
+          {{ item }}
+        </UISubMenuItem>
+      </UISubMenu>
 
-      <!-- 标题项 -->
-      <el-menu-item class="menu-title-item" disabled>
-        <div class="menu-title-content">
+      <!-- 语言菜单 -->
+      <UISubMenu
+        v-if="menuId === 'language' && isMenuItemVisible('language')"
+        :title="$t('leftMenu.langTooltip')"
+        :tooltip="$t('leftMenu.langTooltip')"
+        :icon="EarthIcon as any"
+        trigger="click"
+        :level="1"
+      >
+        <template #title>
           <el-icon>
             <EarthIcon />
           </el-icon>
           <span>{{ $t('leftMenu.langTooltip') }}</span>
-        </div>
-      </el-menu-item>
+        </template>
 
-      <el-menu-item index="6-1" @click="changeLang('zh_CN')">
-          <span>中文（简体）</span>
-        </el-menu-item>
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
+            <el-icon>
+              <EarthIcon />
+            </el-icon>
+          </template>
+          {{ $t('leftMenu.langTooltip') }}
+        </UISubMenuItem>
 
-        <el-menu-item index="6-2" @click="changeLang('en_US')">
-          <span>English (US)</span>
-        </el-menu-item>
-        <el-menu-item index="6-3" @click="changeLang('ja_JP')">
-          <span>日本語</span>
-        </el-menu-item>
+        <UISubMenuItem @click="changeLang('zh_CN')">
+          中文（简体）
+        </UISubMenuItem>
 
-        <el-menu-item index="6-4" @click="changeLang('ko_KR')">
-          <span>한국어</span>
-        </el-menu-item>
-        
-        <el-menu-item index="6-5" @click="changeLang('fr_FR')">
-          <span>Français</span>
-        </el-menu-item>
-        
-        <el-menu-item index="6-6" @click="changeLang('de_DE')">
-          <span>Deutsch</span>
-        </el-menu-item>
-      </el-sub-menu>
+        <UISubMenuItem @click="changeLang('en_US')">
+          English (US)
+        </UISubMenuItem>
 
-    <el-menu-item @click="toggleUserProfile" class="bottom-menu">
-      <img v-if="avatar" :src="avatar" width="25" height="25"
-        style="border-radius: 50%; display: flex; align-items: center; align-self: center;" />
-      <el-icon v-else>
-        <UserFilled />
-      </el-icon>
-    </el-menu-item>
-    <el-sub-menu index="5" class="bottom-menu">
-      <template #title>
-        <el-icon>
-          <SwitchButton />
-        </el-icon>
-        <span>{{ $t('leftMenu.exit') }}</span>
-      </template>
+        <UISubMenuItem @click="changeLang('ja_JP')">
+          日本語
+        </UISubMenuItem>
 
-      <!-- 标题项 -->
-      <el-menu-item class="menu-title-item" disabled>
-        <div class="menu-title-content">
+        <UISubMenuItem @click="changeLang('ko_KR')">
+          한국어
+        </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('fr_FR')">
+          Français
+        </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('de_DE')">
+          Deutsch
+        </UISubMenuItem>
+      </UISubMenu>
+      
+      <!-- 知识库 -->
+      <UIMenuItem
+        v-if="menuId === 'knowledge-base' && isMenuItemVisible('knowledge-base')"
+        :label="$t('leftMenu.knowledgeBase', '知识库')"
+        :tooltip="$t('leftMenu.knowledgeBase', '知识库')"
+        :icon="Collection"
+        @click="openKnowledgeBase"
+      />
+
+      <!-- LLM统计 -->
+      <UIMenuItem
+        v-if="menuId === 'llm-statistics' && isMenuItemVisible('llm-statistics')"
+        :label="$t('bottomMenu.llmStatistics', 'LLM统计')"
+        :tooltip="$t('bottomMenu.llmStatistics', 'LLM统计')"
+        :icon="DataAnalysis"
+        @click="openLlmStatistics"
+      />
+
+      <!-- 用户资料 -->
+      <UIMenuItem
+        v-if="menuId === 'user-profile' && isMenuItemVisible('user-profile')"
+        class="bottom-menu"
+        @click="toggleUserProfile"
+      >
+        <template #icon>
+          <img v-if="avatar" :src="avatar" width="25" height="25"
+            style="border-radius: 50%;" />
+          <el-icon v-else>
+            <UserFilled />
+          </el-icon>
+        </template>
+      </UIMenuItem>
+
+      <!-- 调试工具（仅在开发环境显示） -->
+      <UIMenuItem
+        v-if="menuId === 'debug' && isDev && isMenuItemVisible('debug')"
+        :label="$t('leftMenu.debugTools', '调试工具')"
+        :tooltip="$t('leftMenu.debugTools', '调试工具')"
+        :icon="Tools"
+        @click="openDebugTools"
+      />
+
+      <!-- 更多功能 -->
+      <UISubMenu
+        v-if="menuId === 'more-features' && isMenuItemVisible('more-features')"
+        :title="$t('leftMenu.moreFeatures', '更多功能')"
+        :tooltip="$t('leftMenu.moreFeatures', '更多功能')"
+        :icon="Grid"
+        trigger="click"
+        :level="1"
+      >
+        <template #title>
+          <el-icon>
+            <Grid />
+          </el-icon>
+          <span>{{ $t('leftMenu.moreFeatures', '更多功能') }}</span>
+        </template>
+
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
+            <el-icon>
+              <Grid />
+            </el-icon>
+          </template>
+          {{ $t('leftMenu.moreFeatures', '更多功能') }}
+        </UISubMenuItem>
+
+        <!-- LLM统计：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
+        <UISubMenuItem 
+          v-if="!isMenuItemVisible('llm-statistics')"
+          :icon="DataAnalysis" 
+          @click="openLlmStatistics"
+        >
+          {{ $t('bottomMenu.llmStatistics', 'LLM统计') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="Grid" @click="openMenuConfigDialog">
+          {{ $t('leftMenu.menuConfig.title', '菜单配置') }}
+        </UISubMenuItem>
+      </UISubMenu>
+
+      <!-- 退出菜单 -->
+      <UISubMenu
+        v-if="menuId === 'exit' && isMenuItemVisible('exit')"
+        :title="$t('leftMenu.exit')"
+        :tooltip="$t('leftMenu.exit')"
+        :icon="SwitchButton"
+        trigger="click"
+        :level="1"
+        class="bottom-menu"
+      >
+        <template #title>
           <el-icon>
             <SwitchButton />
           </el-icon>
-          <span>{{ $t('leftMenu.exitTooltip') }}</span>
-        </div>
-      </el-menu-item>
+          <span>{{ $t('leftMenu.exit') }}</span>
+        </template>
 
-      <el-menu-item index="5-1" @click="saveAndQuit">
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
+            <el-icon>
+              <SwitchButton />
+            </el-icon>
+          </template>
+          {{ $t('leftMenu.exitTooltip') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="SwitchButton" @click="saveAndQuit">
+          {{ $t('leftMenu.saveAndExit') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="SwitchButton" @click="saveAllAndQuit">
+          {{ $t('leftMenu.saveAllAndExit') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="SwitchButton" @click="quitWithoutSave">
+          {{ $t('leftMenu.exitWithoutSaving') }}
+        </UISubMenuItem>
+      </UISubMenu>
+    </template>
+
+    <!-- 顶部和底部之间的分隔符（spacer） -->
+    <div class="menu-spacer" v-if="getMenuOrder().bottom.length > 0"></div>
+
+    <!-- 底部菜单项 -->
+    <template v-for="menuId in getMenuOrder().bottom" :key="menuId">
+      <!-- 主页 -->
+      <UIMenuItem
+        v-if="menuId === 'home' && isMenuItemVisible('home')"
+        :label="$t('leftMenu.home', '主页')"
+        :tooltip="$t('leftMenu.home', '主页')"
+        :icon="House"
+        class="bottom-menu"
+        @click="openGlobalHome"
+      />
+
+      <!-- 文件菜单 -->
+      <UISubMenu
+        v-if="menuId === 'file' && isMenuItemVisible('file')"
+        :title="$t('leftMenu.file')"
+        :tooltip="$t('leftMenu.file')"
+        :icon="Document"
+        trigger="click"
+        :level="1"
+        class="bottom-menu"
+      >
+        <template #title>
+          <el-icon>
+            <Document />
+          </el-icon>
+          <span>{{ $t('leftMenu.file') }}</span>
+        </template>
+
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
+            <el-icon>
+              <Document />
+            </el-icon>
+          </template>
+          {{ $t('leftMenu.fileTooltip') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="DocumentAdd" @click="newDoc">
+          {{ $t('leftMenu.new') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="FolderOpened" @click="openDoc">
+          {{ $t('leftMenu.open') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="FolderChecked" @click="saveAll">
+          {{ $t('leftMenu.saveAll') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="FolderChecked" @click="eventBus.emit('save')">
+          {{ $t('leftMenu.save') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="FolderAdd" @click="eventBus.emit('save-as')">
+          {{ $t('leftMenu.saveAs') }}
+        </UISubMenuItem>
+
+        <UISubMenu :icon="FirstAidKit" :title="$t('leftMenu.export')" trigger="hover" :level="2">
+          <template #title>
+            <span>{{ $t('leftMenu.export') }}</span>
+          </template>
+
+          <!-- 标题项 -->
+          <UISubMenuItem :is-title="true" :disabled="true">
+            <template #icon>
+              <el-icon>
+                <FirstAidKit />
+              </el-icon>
+            </template>
+            {{ $t('leftMenu.export') }}
+          </UISubMenuItem>
+
+          <UISubMenuItem
+            v-for="option in exportOptions"
+            :key="option.format"
+            @click="handleExportClick(option.format)"
+          >
+            {{ exportOptionLabel(option) }}
+          </UISubMenuItem>
+        </UISubMenu>
+
+        <UISubMenuItem :icon="CircleClose" @click="eventBus.emit('close-active-tab')">
+          {{ $t('leftMenu.closeFile') }}
+        </UISubMenuItem>
+      </UISubMenu>
+
+      <!-- AI助手菜单 -->
+      <UISubMenu
+        v-if="menuId === 'ai-assistant' && isMenuItemVisible('ai-assistant')"
+        :title="$t('leftMenu.aiAssistant')"
+        :tooltip="$t('leftMenu.aiAssistant')"
+        :icon-image="themeState.currentTheme.AiLogo"
+        trigger="click"
+        :level="1"
+        class="bottom-menu"
+      >
+        <template #title>
+          <img :src="themeState.currentTheme.AiLogo" alt="AI" class="ai-logo-icon" />
+          <span>{{ $t('leftMenu.aiAssistant') }}</span>
+        </template>
+
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
+            <img :src="themeState.currentTheme.AiLogo" alt="AI" class="menu-title-icon" />
+          </template>
+          {{ $t('leftMenu.aiToolTooltip') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="ChatDotRound" @click="eventBus.emit('ai-chat')">
+          {{ $t('leftMenu.chatWithAI') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="Reading" @click="eventBus.emit('fomula-recognition')">
+          {{ $t('leftMenu.handwritingFormulaRecognition') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="Picture" @click="eventBus.emit('smart-drawing-assistant')">
+          {{ $t('leftMenu.smartDrawingAssistant') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="DataAnalysis" @click="eventBus.emit('data-analysis')">
+          {{ $t('leftMenu.dataAnalysis') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="View" @click="eventBus.emit('ocr')">
+          {{ $t('leftMenu.ocr') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="Paperclip" @click="eventBus.emit('attachment')">
+          {{ $t('leftMenu.attachment') }}
+        </UISubMenuItem>
+      </UISubMenu>
+
+      <!-- 设置菜单 -->
+      <UISubMenu
+        v-if="menuId === 'settings' && isMenuItemVisible('settings')"
+        :title="$t('leftMenu.settings')"
+        :tooltip="$t('leftMenu.settings')"
+        :icon="Setting"
+        trigger="click"
+        :level="1"
+        class="bottom-menu"
+      >
+        <template #title>
+          <el-icon>
+            <Setting />
+          </el-icon>
+          <span>{{ $t('leftMenu.settings') }}</span>
+        </template>
+
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
+            <el-icon>
+              <Setting />
+            </el-icon>
+          </template>
+          {{ $t('leftMenu.settingsTooltip') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="Setting" @click="eventBus.emit('setting')">
+          {{ $t('leftMenu.settingsPanel') }}
+        </UISubMenuItem>
+      </UISubMenu>
+
+      <!-- 最近文件菜单 -->
+      <UISubMenu
+        v-if="menuId === 'recent-files' && isMenuItemVisible('recent-files')"
+        :title="$t('leftMenu.recentFiles')"
+        :tooltip="$t('leftMenu.recentFiles')"
+        :icon="Clock"
+        trigger="click"
+        :level="1"
+        class="recent-files-menu bottom-menu"
+        @open="refreshRecentDocs"
+      >
+        <template #title>
+          <el-icon class="recent-files-icon">
+            <Clock />
+          </el-icon>
+          <span class="recent-files-text">{{ $t('leftMenu.recentFiles') }}</span>
+        </template>
+
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
+            <el-icon>
+              <Clock />
+            </el-icon>
+          </template>
+          {{ $t('leftMenu.recentFilesTooltip') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem
+          v-for="item in recentDocs.slice(0, 10)"
+          :key="item"
+          :icon="Document"
+          @click="askSave(() => { eventBus.emit('open-doc', item) })"
+        >
+          {{ item }}
+        </UISubMenuItem>
+      </UISubMenu>
+
+      <!-- 语言菜单 -->
+      <UISubMenu
+        v-if="menuId === 'language' && isMenuItemVisible('language')"
+        :title="$t('leftMenu.langTooltip')"
+        :tooltip="$t('leftMenu.langTooltip')"
+        :icon="EarthIcon as any"
+        trigger="click"
+        :level="1"
+        class="bottom-menu"
+      >
+        <template #title>
+          <el-icon>
+            <EarthIcon />
+          </el-icon>
+          <span>{{ $t('leftMenu.langTooltip') }}</span>
+        </template>
+
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
+            <el-icon>
+              <EarthIcon />
+            </el-icon>
+          </template>
+          {{ $t('leftMenu.langTooltip') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('zh_CN')">
+          中文（简体）
+        </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('en_US')">
+          English (US)
+        </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('ja_JP')">
+          日本語
+        </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('ko_KR')">
+          한국어
+        </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('fr_FR')">
+          Français
+        </UISubMenuItem>
+
+        <UISubMenuItem @click="changeLang('de_DE')">
+          Deutsch
+        </UISubMenuItem>
+      </UISubMenu>
+      
+      <!-- 知识库 -->
+      <UIMenuItem
+        v-if="menuId === 'knowledge-base' && isMenuItemVisible('knowledge-base')"
+        :label="$t('leftMenu.knowledgeBase', '知识库')"
+        :tooltip="$t('leftMenu.knowledgeBase', '知识库')"
+        :icon="Collection"
+        class="bottom-menu"
+        @click="openKnowledgeBase"
+      />
+
+      <!-- LLM统计 -->
+      <UIMenuItem
+        v-if="menuId === 'llm-statistics' && isMenuItemVisible('llm-statistics')"
+        :label="$t('bottomMenu.llmStatistics', 'LLM统计')"
+        :tooltip="$t('bottomMenu.llmStatistics', 'LLM统计')"
+        :icon="DataAnalysis"
+        class="bottom-menu"
+        @click="openLlmStatistics"
+      />
+
+      <!-- 用户资料 -->
+      <UIMenuItem
+        v-if="menuId === 'user-profile' && isMenuItemVisible('user-profile')"
+        class="bottom-menu"
+        @click="toggleUserProfile"
+      >
+        <template #icon>
+          <img v-if="avatar" :src="avatar" width="25" height="25"
+            style="border-radius: 50%;" />
+          <el-icon v-else>
+            <UserFilled />
+          </el-icon>
+        </template>
+      </UIMenuItem>
+
+      <!-- 调试工具（仅在开发环境显示） -->
+      <UIMenuItem
+        v-if="menuId === 'debug' && isDev && isMenuItemVisible('debug')"
+        :label="$t('leftMenu.debugTools', '调试工具')"
+        :tooltip="$t('leftMenu.debugTools', '调试工具')"
+        :icon="Tools"
+        class="bottom-menu"
+        @click="openDebugTools"
+      />
+
+      <!-- 更多功能 -->
+      <UISubMenu
+        v-if="menuId === 'more-features' && isMenuItemVisible('more-features')"
+        :title="$t('leftMenu.moreFeatures', '更多功能')"
+        :tooltip="$t('leftMenu.moreFeatures', '更多功能')"
+        :icon="Grid"
+        trigger="click"
+        :level="1"
+        class="bottom-menu"
+      >
+        <template #title>
+          <el-icon>
+            <Grid />
+          </el-icon>
+          <span>{{ $t('leftMenu.moreFeatures', '更多功能') }}</span>
+        </template>
+
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
+            <el-icon>
+              <Grid />
+            </el-icon>
+          </template>
+          {{ $t('leftMenu.moreFeatures', '更多功能') }}
+        </UISubMenuItem>
+
+        <!-- LLM统计：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
+        <UISubMenuItem 
+          v-if="!isMenuItemVisible('llm-statistics')"
+          :icon="DataAnalysis" 
+          @click="openLlmStatistics"
+        >
+          {{ $t('bottomMenu.llmStatistics', 'LLM统计') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="Grid" @click="openMenuConfigDialog">
+          {{ $t('leftMenu.menuConfig.title', '菜单配置') }}
+        </UISubMenuItem>
+      </UISubMenu>
+
+      <!-- 退出菜单 -->
+      <UISubMenu
+        v-if="menuId === 'exit' && isMenuItemVisible('exit')"
+        :title="$t('leftMenu.exit')"
+        :tooltip="$t('leftMenu.exit')"
+        :icon="SwitchButton"
+        trigger="click"
+        :level="1"
+        class="bottom-menu"
+      >
+        <template #title>
           <el-icon>
             <SwitchButton />
           </el-icon>
-          <span>{{ $t('leftMenu.saveAndExit') }}</span>
-        </el-menu-item>
+          <span>{{ $t('leftMenu.exit') }}</span>
+        </template>
 
-        <el-menu-item index="5-1-1" @click="saveAllAndQuit">
-          <el-icon>
-            <SwitchButton />
-          </el-icon>
-          <span>{{ $t('leftMenu.saveAllAndExit') }}</span>
-        </el-menu-item>
+        <!-- 标题项 -->
+        <UISubMenuItem :is-title="true" :disabled="true">
+          <template #icon>
+            <el-icon>
+              <SwitchButton />
+            </el-icon>
+          </template>
+          {{ $t('leftMenu.exitTooltip') }}
+        </UISubMenuItem>
 
-        <el-menu-item index="5-2" @click="quitWithoutSave">
-          <el-icon>
-            <SwitchButton />
-          </el-icon>
-          <span>{{ $t('leftMenu.exitWithoutSaving') }}</span>
-        </el-menu-item>
-      </el-sub-menu>
-  </el-menu>
+        <UISubMenuItem :icon="SwitchButton" @click="saveAndQuit">
+          {{ $t('leftMenu.saveAndExit') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="SwitchButton" @click="saveAllAndQuit">
+          {{ $t('leftMenu.saveAllAndExit') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="SwitchButton" @click="quitWithoutSave">
+          {{ $t('leftMenu.exitWithoutSaving') }}
+        </UISubMenuItem>
+      </UISubMenu>
+    </template>
+  </UIMenu>
 
   <!-- 导出选项对话框 -->
   <ExportOptionsDialog
@@ -341,17 +777,23 @@
     :target-format="currentExportFormat || 'pdf'"
     @confirm="handleExportOptionsConfirm"
   />
+  
+  <!-- 菜单配置对话框 -->
+  <MenuConfigDialog
+    v-model="showMenuConfigDialog"
+    :items="menuConfigItems"
+    @save="handleMenuConfigSave"
+  />
 </template>
 
 
 <script lang="ts" setup>
-
-
-import UserProfileCard from './UserProfileCard.vue'
-
-
-import { updateRecentDocs, getRecentDocs, getSetting } from '../utils/settings';
-import { computed, onMounted, ref } from 'vue'
+import { updateRecentDocs, getRecentDocs, getSetting, setSetting } from '../utils/settings';
+import { computed, onMounted, ref, provide } from 'vue'
+import UIMenu from './ui/UIMenu.vue'
+import UIMenuItem from './ui/UIMenuItem.vue'
+import UISubMenu from './ui/UISubMenu.vue'
+import UISubMenuItem from './ui/UISubMenuItem.vue'
 import {
   Document,
   FirstAidKit,
@@ -375,7 +817,11 @@ import {
   Connection,
   House,
   Collection,
-  Tools
+  Tools,
+  Grid,
+  Reading,
+  View,
+  Paperclip
 } from '@element-plus/icons-vue'
 import eventBus, { sendBroadcast } from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -388,9 +834,11 @@ import type { DocumentFormat, ExportFormat } from '../../../types';
 import { exportAdapterRegistry } from '../services/export-adapters';
 import ExportOptionsDialog from './ExportOptionsDialog.vue';
 import type { ExportOptions } from '../services/export-adapters/types';
+import MenuConfigDialog, { type MenuConfigItem } from './MenuConfigDialog.vue';
 const recentDocs = ref([])
 const isCollapse = ref(true)
 const showUserProfile = ref(false)
+const showMenuConfigDialog = ref(false)
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 import { convertMarkdownToLatex } from '../utils/latex-utils';
@@ -402,6 +850,145 @@ const logger = createRendererLogger('LeftMenu')
 const workspace = useWorkspace()
 const isDev = ref(false)
 
+// 菜单配置项定义
+const menuConfigItems = computed<MenuConfigItem[]>(() => {
+  return [
+    { id: 'home', label: t('leftMenu.home', '主页'), icon: House, visible: true, isCore: true, position: 'top' },
+    { id: 'file', label: t('leftMenu.file'), icon: Document, visible: true, isCore: true, position: 'top' },
+    { id: 'ai-assistant', label: t('leftMenu.aiAssistant'), iconImage: themeState.currentTheme.AiLogo, visible: true, isCore: false, position: 'top' },
+    { id: 'settings', label: t('leftMenu.settings'), icon: Setting, visible: true, isCore: true, position: 'top' },
+    { id: 'recent-files', label: t('leftMenu.recentFiles'), icon: Clock, visible: true, isCore: false, position: 'top' },
+    { id: 'language', label: t('leftMenu.langTooltip'), icon: EarthIcon as any, visible: true, isCore: true, position: 'top' },
+    { id: 'knowledge-base', label: t('leftMenu.knowledgeBase', '知识库'), icon: Collection, visible: true, isCore: false, position: 'top' },
+    { id: 'debug', label: t('leftMenu.debugTools', '调试工具'), icon: Tools, visible: isDev.value, isCore: false, position: 'top' },
+    { id: 'more-features', label: t('leftMenu.moreFeatures', '更多功能'), icon: Grid, visible: true, isCore: true, position: 'top' },
+    { id: 'llm-statistics', label: t('bottomMenu.llmStatistics', 'LLM统计'), icon: DataAnalysis, visible: false, isCore: false, position: 'top' },
+    { id: 'user-profile', label: t('leftMenu.userProfileTooltip', '用户资料'), icon: UserFilled, visible: true, isCore: true, position: 'bottom' },
+    { id: 'exit', label: t('leftMenu.exit'), icon: SwitchButton, visible: true, isCore: true, position: 'bottom' },
+  ]
+})
+
+// 强制核心菜单项始终可见（主页、文件、设置、更多功能、退出）
+const CORE_MENU_IDS = ['home', 'file', 'settings', 'more-features', 'exit']
+
+// 菜单配置状态（包含顺序和可见性）
+const menuConfigState = ref<{
+  items: MenuConfigItem[]
+  order: string[]
+}>({
+  items: [],
+  order: []
+})
+
+// 加载菜单配置
+const loadMenuConfig = async () => {
+  try {
+    const config = await getSetting('leftMenuConfig')
+    if (config && Array.isArray(config) && config.length > 0) {
+      // 合并保存的配置和当前定义的配置
+      const configMap = new Map(config.map((item: any) => [item.id, item]))
+      const mergedItems = menuConfigItems.value.map(item => {
+        const saved = configMap.get(item.id)
+        if (saved) {
+          // 将 middle 位置转换为 bottom（迁移逻辑）
+          const savedPosition = (saved.position as any) || item.position || 'top'
+          let position: 'top' | 'bottom' = savedPosition === 'middle' ? 'bottom' : (savedPosition === 'top' ? 'top' : 'bottom')
+          
+          return {
+            ...item,
+            // 核心菜单项强制可见
+            visible: CORE_MENU_IDS.includes(item.id) ? true : (saved.visible ?? item.visible),
+            // 恢复位置信息（确保只有 top 或 bottom）
+            position
+          }
+        }
+        return { ...item, position: item.position || 'top' }
+      })
+      menuConfigState.value.items = mergedItems
+      // 使用保存的顺序，但确保所有项都在列表中
+      const savedOrder = config.map((item: any) => item.id)
+      const allIds = menuConfigItems.value.map(item => item.id)
+      const orderedIds = [...savedOrder, ...allIds.filter(id => !savedOrder.includes(id))]
+      menuConfigState.value.order = orderedIds
+    } else {
+      // 使用默认配置
+      menuConfigState.value.items = menuConfigItems.value.map(item => ({ ...item }))
+      menuConfigState.value.order = menuConfigItems.value.map(item => item.id)
+    }
+  } catch (error) {
+    logger.error('加载菜单配置失败:', error)
+    menuConfigState.value.items = menuConfigItems.value.map(item => ({ ...item }))
+    menuConfigState.value.order = menuConfigItems.value.map(item => item.id)
+  }
+}
+
+// 检查菜单项是否可见
+const isMenuItemVisible = (menuId: string) => {
+  const item = menuConfigState.value.items.find(i => i.id === menuId)
+  if (!item) return true // 如果找不到配置，默认显示
+  return item.visible
+}
+
+// 获取菜单项的顺序（用于渲染，分为 top 和 bottom）
+const getMenuOrder = () => {
+  // 根据配置的顺序排列
+  const order = menuConfigState.value.order || menuConfigItems.value.map(item => item.id)
+  const visibleIds = order.filter(id => {
+    const item = menuConfigState.value.items.find(i => i.id === id)
+    return item ? item.visible : true
+  })
+  
+  // 分离 top 和 bottom 菜单项
+  const topIds: string[] = []
+  const bottomIds: string[] = []
+  
+  visibleIds.forEach(id => {
+    const item = menuConfigState.value.items.find(i => i.id === id)
+    const position = item?.position || 'top'
+    // 将 middle 位置转换为 bottom（迁移逻辑）
+    if (position === 'bottom' || (position as any) === 'middle') {
+      bottomIds.push(id)
+    } else {
+      topIds.push(id)
+    }
+  })
+  
+  return { top: topIds, bottom: bottomIds }
+}
+
+// 打开菜单配置对话框
+const openMenuConfigDialog = () => {
+  showMenuConfigDialog.value = true
+}
+
+// 处理菜单配置保存
+const handleMenuConfigSave = async (items: MenuConfigItem[]) => {
+  // 合并保存的配置和当前定义的配置，保留icon等Vue组件引用
+  const configMap = new Map(items.map((item: any) => [item.id, item]))
+  const mergedItems = menuConfigItems.value.map(item => {
+    const saved = configMap.get(item.id)
+    if (saved) {
+      // 将 middle 位置转换为 bottom（迁移逻辑）
+      const savedPosition = (saved.position as any) || item.position || 'top'
+      let position: 'top' | 'bottom' = savedPosition === 'middle' ? 'bottom' : (savedPosition === 'top' ? 'top' : 'bottom')
+      
+      return {
+        ...item,
+        // 核心菜单项强制可见
+        visible: CORE_MENU_IDS.includes(item.id) ? true : (saved.visible ?? item.visible),
+        // 恢复位置信息（确保只有 top 或 bottom）
+        position
+      }
+    }
+    return item
+  })
+  
+  // 直接更新配置状态，使用保存后的顺序
+  menuConfigState.value.items = mergedItems
+  menuConfigState.value.order = items.map((item: any) => item.id)
+  logger.info('菜单配置已更新', menuConfigState.value)
+}
+
 // 计算弹出菜单的背景色和悬停颜色（参考 ContextMenu 设计）
 const subMenuBackgroundColor = computed(() => themeState.currentTheme.background2nd)
 const subMenuHoverColor = computed(() => {
@@ -409,13 +996,16 @@ const subMenuHoverColor = computed(() => {
   return mixColors(baseBg, themeState.currentTheme.textColor, 0.5)
 })
 
-const changeLang = (lang: string) => {
+// 提供 collapse 状态给子组件
+provide('menuCollapse', isCollapse)
 
+const changeLang = (lang: string) => {
   locale.value = lang
   localStorage.setItem('lang', lang)
   logger.info(`Language changed to ${lang}`)
   sendBroadcast('all', 'lang-changed', lang)
 }
+
 const toggleUserProfile = () => {
   eventBus.emit('toggle-user-profile')
 }
@@ -433,10 +1023,12 @@ const exportTitle = computed(() => {
   }
   return 'Untitled'
 })
+
 const exportOptions = computed(() => {
   const format = (activeDocument.value?.format ?? 'md') as DocumentFormat
   return getExportOptions(format)
 })
+
 const exportOptionLabel = (option: { labelKey?: string; label?: string; format: string }) => {
   if (option.labelKey) {
     return t(option.labelKey)
@@ -445,13 +1037,6 @@ const exportOptionLabel = (option: { labelKey?: string; label?: string; format: 
     return option.label
   }
   return option.format.toUpperCase()
-}
-
-const handleOpen = (_key: string, _keyPath: string[]) => {
-  //console.log(key, keyPath)
-}
-const handleClose = (_key: string, _keyPath: string[]) => {
-  //console.log(key, keyPath)
 }
 // 打开全局主页
 const openGlobalHome = () => {
@@ -468,10 +1053,17 @@ const openDebugTools = () => {
   workspace.openSystemTab('/debug', t('leftMenu.debugTools', '调试工具'))
 }
 
+// 打开 LLM 统计
+const openLlmStatistics = () => {
+  workspace.openSystemTab('/llm-statistics', t('bottomMenu.llmStatistics', 'LLM统计'))
+}
+
 onMounted(async () => {
   await refreshRecentDocs()
   // 检查是否为开发环境
   isDev.value = await isDevEnvironment()
+  // 加载菜单配置
+  await loadMenuConfig()
 })
 const refreshRecentDocs = async () => {
   recentDocs.value = await getRecentDocs()
@@ -561,14 +1153,25 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
 </script>
 
 <style scoped>
-/* 现代桌面应用风格的侧边栏 */
-.modern-sidebar-menu {
-  width: 64px;
-  transition: width 0.2s ease;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
+/* 底部菜单项 */
+.bottom-menu {
+  margin-top: auto;
+}
+
+/* AI Logo 图标样式 */
+.ai-logo-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-title-icon {
+  width: 16px;
+  height: 16px;
+  margin: 0;
 }
 
 .modern-sidebar-menu:not(.el-menu--collapse) {
@@ -593,9 +1196,11 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  cursor: pointer;
 }
 
-/* 图标居中 */
+
+/* 图标左对齐 */
 .modern-sidebar-menu :deep(.el-menu-item .el-icon),
 .modern-sidebar-menu :deep(.el-sub-menu__title .el-icon) {
   margin-right: 8px;
@@ -603,7 +1208,26 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   width: 18px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+
+/* 最近文件菜单特殊样式：图标左对齐，文本居中 */
+.modern-sidebar-menu :deep(.recent-files-menu .el-sub-menu__title) {
+  position: relative;
+  justify-content: flex-start;
+}
+
+.modern-sidebar-menu :deep(.recent-files-menu .recent-files-icon) {
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.modern-sidebar-menu :deep(.recent-files-menu .recent-files-text) {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
 }
 
 /* AI Logo 图标居中 */
@@ -748,6 +1372,18 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   margin: 0 auto !important;
 }
 
+/* 非折叠状态下，确保所有菜单项和图标左对齐 */
+.modern-sidebar-menu:not(.el-menu--collapse) :deep(.el-menu-item),
+.modern-sidebar-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title) {
+  justify-content: flex-start !important;
+}
+
+.modern-sidebar-menu:not(.el-menu--collapse) :deep(.el-menu-item .el-icon),
+.modern-sidebar-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title .el-icon) {
+  margin-right: 8px !important;
+  margin-left: 0 !important;
+}
+
 /* 底部菜单项 */
 .bottom-menu {
   margin-top: auto;
@@ -809,10 +1445,10 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   opacity: 0.8;
 }
 
-/* 用户头像和退出按钮区域 */
-.modern-sidebar-menu :deep(.el-menu-item:last-child),
-.modern-sidebar-menu :deep(.el-sub-menu:last-child) {
-  margin-top: auto;
+/* 顶部和底部菜单之间的分隔符 */
+.menu-spacer {
+  flex: 1;
+  min-height: 0;
 }
 
 /* 子菜单箭头图标 */

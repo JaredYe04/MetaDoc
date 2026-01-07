@@ -257,6 +257,14 @@ let suppressOutlineSync = false;
 
 const syncOutlineFromMarkdown = debounce(() => {
   if (suppressOutlineSync) return;
+  
+  // 只在编辑器视图时才同步大纲，避免在outline视图时触发不必要的同步
+  const currentView = documentRef.value.lastView ?? 'editor';
+  // 兼容旧的'article'值（已被'editor'替代）
+  if (currentView !== 'editor' && (currentView as string) !== 'article') {
+    return;
+  }
+  
   const outline = extractOutlineTreeFromMarkdown(currentMarkdown.value);
   currentOutline.value = outline;
 }, 200);
@@ -355,16 +363,36 @@ const markEditorInteraction = () => {
 const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
     const normalized = value ?? '';
     if (!vditor.value) return;
+    // 检查 Vditor 实例是否已完全初始化（是否有 vditor 内部实例）
+    if (!vditor.value.vditor || !vditor.value.vditor.ir) {
+        // 如果未完全初始化，延迟执行
+        setTimeout(() => {
+            scheduleSetValue(normalized, options);
+        }, 100);
+        return;
+    }
     if (normalized === lastAppliedContent.value) return;
 
     const run = () => {
         if (!vditor.value) return;
+        // 再次检查是否已初始化
+        if (!vditor.value.vditor || !vditor.value.vditor.ir) {
+            // 如果仍未初始化，延迟执行
+            setTimeout(() => {
+                scheduleSetValue(normalized, options);
+            }, 100);
+            return;
+        }
         if (isEditorInteracting.value) {
             pendingExternalUpdate = { value: normalized, clearHistory: options.clearHistory };
             return;
         }
-        vditor.value.setValue(normalized, options.clearHistory ?? true);
-        lastAppliedContent.value = normalized;
+        try {
+            vditor.value.setValue(normalized, options.clearHistory ?? true);
+            lastAppliedContent.value = normalized;
+        } catch (error) {
+            logger.warn('设置 Vditor 值失败，可能未完全初始化:', error);
+        }
     };
 
     if (isEditorInteracting.value) {
@@ -951,11 +979,25 @@ const switchVditorMode = async (mode: 'wysiwyg' | 'ir' | 'sv') => {
 // 更新大纲
 const bindTitleMenu = async () => {
     if (!isActive.value) return;
+    // 检查 Vditor 是否已初始化
+    if (!vditor.value || !vditor.value.vditor || !vditor.value.vditor.ir) {
+        // 如果未初始化，延迟执行
+        setTimeout(() => {
+            bindTitleMenu();
+        }, 100);
+        return;
+    }
     const editorRoot = getEditorRoot();
     if (!editorRoot) return;
     
     // 根据当前模式选择不同的选择器
-    const currentMode = (vditor.value?.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv') || 'ir';
+    let currentMode: 'wysiwyg' | 'ir' | 'sv' = 'ir';
+    try {
+        currentMode = (vditor.value?.getCurrentMode?.() as 'wysiwyg' | 'ir' | 'sv') || 'ir';
+    } catch (error) {
+        logger.warn('获取 Vditor 模式失败，使用默认模式 ir:', error);
+        currentMode = 'ir';
+    }
     let sections: Element[] = [];
     
     if (currentMode === 'ir') {
@@ -1625,6 +1667,27 @@ onMounted(async () => {
 
                 //logger.log(themeState);
                 try {
+                    // 确保初始化后同步内容（特别是对于新创建的tab）
+                    // 如果当前tab是激活的，确保内容正确显示
+                    if (isActive.value && vditor.value) {
+                        const desired = currentMarkdown.value ?? '';
+                        // 初始化时设置 lastAppliedContent，确保后续watch能正确检测变化
+                        if (lastAppliedContent.value === '') {
+                            lastAppliedContent.value = desired;
+                        }
+                        // 如果内容不一致，同步到编辑器
+                        if (desired !== lastAppliedContent.value) {
+                            await nextTick();
+                            scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0 });
+                        } else {
+                            // 即使内容相同，也确保编辑器显示正确的内容
+                            const currentValue = vditor.value.getValue();
+                            if (currentValue !== desired) {
+                                await nextTick();
+                                scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0 });
+                            }
+                        }
+                    }
                     flushOutlineSync();
                     bindTitleMenu();
 
@@ -1922,13 +1985,70 @@ watch(
 
 watch(
     isActive,
-    (active) => {
+    async (active) => {
         if (!active) return;
+        // 如果Vditor还未初始化，等待初始化完成
+        if (!vditor.value) {
+            // 等待Vditor初始化（通过监听vditor的创建）
+            await new Promise<void>((resolve) => {
+                let attempts = 0;
+                const maxAttempts = 50; // 最多等待5秒
+                const checkVditor = () => {
+                    attempts++;
+                    if (vditor.value && vditor.value.vditor && vditor.value.vditor.ir) {
+                        resolve();
+                    } else if (attempts < maxAttempts) {
+                        setTimeout(checkVditor, 100);
+                    } else {
+                        logger.warn('等待 Vditor 初始化超时');
+                        resolve(); // 超时后也继续，避免无限等待
+                    }
+                };
+                checkVditor();
+            });
+        } else {
+            // 即使有 vditor.value，也要检查是否完全初始化
+            if (!vditor.value.vditor || !vditor.value.vditor.ir) {
+                // 等待完全初始化
+                await new Promise<void>((resolve) => {
+                    let attempts = 0;
+                    const maxAttempts = 50;
+                    const checkInitialized = () => {
+                        attempts++;
+                        if (vditor.value && vditor.value.vditor && vditor.value.vditor.ir) {
+                            resolve();
+                        } else if (attempts < maxAttempts) {
+                            setTimeout(checkInitialized, 100);
+                        } else {
+                            logger.warn('等待 Vditor 完全初始化超时');
+                            resolve();
+                        }
+                    };
+                    checkInitialized();
+                });
+            }
+        }
+        // 确保DOM已经更新
+        await nextTick();
         const desired = currentMarkdown.value ?? '';
         if (desired !== lastAppliedContent.value) {
-            scheduleSetValue(desired, { clearHistory: true });
+            scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0 });
+        } else if (vditor.value && vditor.value.vditor && vditor.value.vditor.ir) {
+            // 即使内容相同，也检查Vditor内部的值是否一致
+            try {
+                const currentValue = vditor.value.getValue();
+                if (currentValue !== desired) {
+                    scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0 });
+                }
+            } catch (error) {
+                logger.warn('获取 Vditor 当前值失败:', error);
+            }
         }
-        bindTitleMenu();
+        // 延迟执行 bindTitleMenu，确保 Vditor 完全准备好
+        await nextTick();
+        setTimeout(() => {
+            bindTitleMenu();
+        }, 50);
     },
     { immediate: true },
 );

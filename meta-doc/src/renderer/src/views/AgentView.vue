@@ -2392,7 +2392,7 @@ onBeforeUnmount(() => {
   gap: 18px;
   flex: 1;
   min-height: 0;
-  padding: 0 16px 16px;
+  padding: 12px;
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;

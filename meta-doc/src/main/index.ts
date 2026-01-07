@@ -108,8 +108,8 @@ function createWindow(): void {
   
   // 创建浏览器窗口
   mainWindow = new BrowserWindow({
-    width: 1600,
-    height: 900,
+    width: 1366,
+    height: 768,
     minWidth: 800,
     minHeight: 600,
     show: false,

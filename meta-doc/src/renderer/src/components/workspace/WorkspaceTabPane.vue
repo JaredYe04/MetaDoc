@@ -22,7 +22,7 @@ const props = withDefaults(
     active: boolean;
   }>(),
   {
-    active: false,
+    active: true,
   },
 );
 
@@ -42,7 +42,21 @@ const editorDomId = computed(() => {
 <style scoped>
 .workspace-tab-pane {
   display: flex;
+  flex-direction: column;
   flex: 1;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 关键：无论渲染的是 MarkdownEditor/LaTeXEditor/NewDocumentWorkspace，
+   都确保其“根节点元素”在 flex 容器中铺满可用空间，避免首次布局宽度/高度为 0 或不稳定 */
+.workspace-tab-pane > :first-child {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
   min-height: 0;
 }
 </style>

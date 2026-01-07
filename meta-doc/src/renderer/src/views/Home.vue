@@ -10,25 +10,27 @@
     </div>
 
     <!-- 如果已选择格式，显示文档预览 -->
-    <div v-else-if="showDocumentPreview" class="document-preview">
-      <el-scrollbar class="md-metainfo" min-size="10">
-        <h1 class="md-title" :style="{ color: themeState.currentTheme.textColor }">
-          {{ metaTitle }}
-        </h1>
-        <div class="md-author" :style="{ color: themeState.currentTheme.textColor }">
-          <h3>{{ $t('home.authorLabel') }}：{{ metaAuthor }}</h3>
-        </div>
-        <div class="md-description" :style="{ color: themeState.currentTheme.textColor }">
-          <h3>{{ $t('home.abstractLabel') }}</h3>
-          {{ metaDescription }}
-        </div>
-      </el-scrollbar>
+    <el-scrollbar v-else-if="showDocumentPreview" class="document-preview">
+      <div class="document-preview-content">
+        <el-scrollbar class="md-metainfo" min-size="10">
+          <h1 class="md-title" :style="{ color: themeState.currentTheme.textColor }">
+            {{ metaTitle }}
+          </h1>
+          <div class="md-author" :style="{ color: themeState.currentTheme.textColor }">
+            <h3>{{ $t('home.authorLabel') }}：{{ metaAuthor }}</h3>
+          </div>
+          <div class="md-description" :style="{ color: themeState.currentTheme.textColor }">
+            <h3>{{ $t('home.abstractLabel') }}</h3>
+            {{ metaDescription }}
+          </div>
+        </el-scrollbar>
 
-      <el-scrollbar class="md-container">
-        <div ref="previewContainerRef" class="md-preview-container" :class="themeState.currentTheme.mdeditorClass"
-          :style="{ color: themeState.currentTheme.textColor }" v-loading="isRendering"></div>
-      </el-scrollbar>
-    </div>
+        <el-scrollbar class="md-container">
+          <div ref="previewContainerRef" class="md-preview-container" :class="themeState.currentTheme.mdeditorClass"
+            :style="{ color: themeState.currentTheme.textColor }" v-loading="isRendering"></div>
+        </el-scrollbar>
+      </div>
+    </el-scrollbar>
   </div>
 </template>
 
@@ -308,20 +310,26 @@ onBeforeUnmount(() => {
 }
 
 .document-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
   width: 80vw;
+  height: 100%;
   /* 确保内容在 canvas 之上 */
   position: relative;
   z-index: 1;
+}
+
+.document-preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  min-height: 100%;
+  box-sizing: border-box;
 }
 
 .md-metainfo {
   width: 100%;
   height: 15vh;
   max-height: 15vh;
-  overflow: auto;
   border-radius: 4px;
 }
 
@@ -345,7 +353,6 @@ onBeforeUnmount(() => {
 .md-preview-container {
   width: 100%;
   padding: 16px;
-  overflow: visible;
   box-sizing: border-box;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -355,6 +362,18 @@ onBeforeUnmount(() => {
 
 /* 摘要栏的滚动条样式 */
 .md-metainfo :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* 文档预览容器的滚动条样式 */
+.md-container :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* 外层文档预览滚动条样式 */
+.document-preview :deep(.el-scrollbar__wrap) {
   overflow-x: hidden;
   overflow-y: auto;
 }

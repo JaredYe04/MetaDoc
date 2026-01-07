@@ -10,75 +10,73 @@
     @close="handleTitleMenuClose"
     style="max-width: 300px;"
   />
-  <el-scrollbar>
+  <div class="main-panel" :style="mainPanelStyle">
     <div class="visualize-container">
-      <!-- 左侧：文章大纲和字数统计 -->
-      <div class="left-section">
-        <div class="outline-section aero-div">
-          <h3>{{ $t('visualize.articleOutline') }}</h3>
-          <el-scrollbar style="max-height:300px;overflow: auto;">
-            <div
-              id="outline-graph"
-              :style="{
-                color: themeState.currentTheme.textColor
-              }"
-            ></div>
-          </el-scrollbar>
-        </div>
+        <!-- 左侧：文章大纲和字数统计 -->
+        <div class="left-section">
+          <div class="outline-section panel-item">
+            <h3>{{ $t('visualize.articleOutline') }}</h3>
+            <el-scrollbar class="outline-scrollbar">
+              <div
+                id="outline-graph"
+                :style="{
+                  color: themeState.currentTheme.textColor
+                }"
+              ></div>
+            </el-scrollbar>
+          </div>
 
-        <div class="word-count-section aero-div">
-          <h3>{{ $t('visualize.wordCount') }}</h3>
-          <el-scrollbar>
-            <div class="word-count-placeholder">
+          <div class="word-count-section panel-item">
+            <h3>{{ $t('visualize.wordCount') }}</h3>
+            <div class="word-count-chart-container">
               <div
                 id="word-count-diagram"
-                style="width: 100%; height: 300%;overflow: auto;"
+                class="chart-container"
                 :style="{
                   color: themeState.currentTheme.textColor
                 }"
               ></div>
             </div>
-          </el-scrollbar>
-        </div>
-      </div>
-
-      <!-- 中间：词云图 -->
-      <div class="wordcloud-section aero-div" style="padding: 0;overflow: auto;">
-        <h1
-          class="big-title interactive-text"
-          @click="generateWordCloud"
-          :style="{
-            color: themeState.currentTheme.textColor
-          }"
-        >
-          {{ $t('visualize.wordCloud') }}
-        </h1>
-        <div id="wordcloud-3d" class="wordcloud-canvas"></div>
-      </div>
-
-      <!-- 右侧：段落分布和词频统计 -->
-      <div class="right-section">
-        <div class="pie-analysis aero-div" style="height: 400px;">
-          <h3>{{ $t('visualize.paragraphDistribution') }}</h3>
-          <el-scrollbar style="overflow: auto;">
-            <div id="pie" class="chart-placeholder" style="width: 100%; height: 400px;"></div>
-          </el-scrollbar>
+          </div>
         </div>
 
-        <div class="word-frequency-section aero-div">
-          <h3>{{ $t('visualize.wordFrequency') }}</h3>
-          <div class="word-frequency">
-            <div id="word-frequency-diagram" style="width: 100%; height: 300%;overflow: auto;"></div>
+        <!-- 中间：词云图 -->
+        <div class="wordcloud-section panel-item">
+          <h1
+            class="big-title interactive-text"
+            @click="generateWordCloud"
+            :style="{
+              color: themeState.currentTheme.textColor
+            }"
+          >
+            {{ $t('visualize.wordCloud') }}
+          </h1>
+          <div id="wordcloud-3d" class="wordcloud-canvas"></div>
+        </div>
+
+        <!-- 右侧：段落分布和词频统计 -->
+        <div class="right-section">
+          <div class="pie-analysis panel-item">
+            <h3>{{ $t('visualize.paragraphDistribution') }}</h3>
+            <div class="pie-chart-container">
+              <div id="pie" class="chart-container"></div>
+            </div>
+          </div>
+
+          <div class="word-frequency-section panel-item">
+            <h3>{{ $t('visualize.wordFrequency') }}</h3>
+            <div class="word-frequency-chart-container">
+              <div id="word-frequency-diagram" class="chart-container"></div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </el-scrollbar>
-</div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch, nextTick } from 'vue';
 
 // @ts-ignore - d3-cloud没有类型定义
 import cloud from 'd3-cloud';
@@ -89,11 +87,6 @@ import { createVisualizeAdapter, type VisualizeAdapter } from '../utils/visualiz
 // @ts-ignore - lodash.debounce没有类型定义
 import debounce from 'lodash.debounce';
 import type { DocumentOutlineNode } from '../../../types';
-onMounted(async () => {
-    //await initVditor();
-    //await refreshAll();
-    await refreshAll();
-});
 
 
 import * as echarts from 'echarts';
@@ -126,6 +119,14 @@ interface WordCountItem {
 const words = ref<string[]>([]);
 const wordCount = ref<WordCountItem[]>([]);
 const showTitleMenu = ref(false);
+
+// 保存图表实例引用
+const pieChart = ref<echarts.ECharts | null>(null);
+const wordCountChart = ref<echarts.ECharts | null>(null);
+const wordFrequencyChart = ref<echarts.ECharts | null>(null);
+
+// ResizeObserver 实例
+let resizeObserver: ResizeObserver | null = null;
 // 关闭标题菜单
 const handleTitleMenuClose = () => {
     showTitleMenu.value = false;
@@ -142,6 +143,14 @@ const {
   activateTab,
   removeTab,
 } = workspace;
+
+// 主 Panel 样式
+const mainPanelStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd,
+  borderColor: themeState.currentTheme.type === 'dark' 
+    ? 'rgba(255, 255, 255, 0.18)' 
+    : 'rgba(0, 0, 0, 0.12)',
+}));
 
 // 获取当前文档的适配器
 const currentAdapter = computed<VisualizeAdapter | null>(() => {
@@ -217,9 +226,69 @@ watch(
   { deep: true },
 );
 
+// 处理窗口大小变化（使用 debounce 避免频繁调用）
+const handleResize = debounce(() => {
+  // 调整所有 ECharts 图表大小
+  if (pieChart.value) {
+    pieChart.value.resize();
+  }
+  if (wordCountChart.value) {
+    wordCountChart.value.resize();
+  }
+  if (wordFrequencyChart.value) {
+    wordFrequencyChart.value.resize();
+  }
+  // 重新生成词云图以适应新大小
+  if (wordCount.value.length > 0) {
+    generateWordCloud();
+  }
+}, 300);
+
+onMounted(async () => {
+  // 初始化所有图表
+  await refreshAll();
+  
+  // 使用 ResizeObserver 监听容器大小变化
+  await nextTick();
+  const mainPanel = document.querySelector('.main-panel');
+  if (mainPanel) {
+    resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+    resizeObserver.observe(mainPanel);
+  }
+  
+  // 也监听窗口大小变化（作为备用）
+  window.addEventListener('resize', handleResize);
+});
+
 onBeforeUnmount(() => {
   scheduleRefresh.cancel();
   eventBus.off('refresh', refreshAll);
+  
+  // 取消 resize debounce
+  handleResize.cancel();
+  
+  // 清理 resize 监听器
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
+  window.removeEventListener('resize', handleResize);
+  
+  // 销毁所有图表实例
+  if (pieChart.value) {
+    pieChart.value.dispose();
+    pieChart.value = null;
+  }
+  if (wordCountChart.value) {
+    wordCountChart.value.dispose();
+    wordCountChart.value = null;
+  }
+  if (wordFrequencyChart.value) {
+    wordFrequencyChart.value.dispose();
+    wordFrequencyChart.value = null;
+  }
 });
 const generatePie = async () => {
   const node = document.getElementById('pie');
@@ -274,6 +343,7 @@ const generatePie = async () => {
   }
   const chart = echarts.init(node);
   chart.setOption(config);
+  pieChart.value = chart;
 };
 
 const generateWordCountDiagram = async () => {
@@ -282,9 +352,15 @@ const generateWordCountDiagram = async () => {
   if (!article_text.value?.trim()) {
     return;
   }
+  // 先销毁已存在的图表实例
+  const existingChart = echarts.getInstanceByDom(node);
+  if (existingChart) {
+    existingChart.dispose();
+  }
   const config = generateWordCountBarChart(article_text.value);
   const chart = echarts.init(node);
   chart.setOption(config);
+  wordCountChart.value = chart;
 };
 
 const generateWordFrequencyDiagram = async () => {
@@ -293,11 +369,17 @@ const generateWordFrequencyDiagram = async () => {
   if (!wordCount.value.length || !article_text.value?.trim()) {
     return;
   }
+  // 先销毁已存在的图表实例
+  const existingChart = echarts.getInstanceByDom(node);
+  if (existingChart) {
+    existingChart.dispose();
+  }
   const top5words = wordCount.value.slice(0, 5).map((item) => item.text);
   if (!top5words.length) return;
   const config = generateWordFrequencyTrendChart(article_text.value, top5words);
   const chart = echarts.init(node);
   chart.setOption(config);
+  wordFrequencyChart.value = chart;
 };
 
 const generateOutlineGraph = async () => {
@@ -403,8 +485,15 @@ const generateWordCloud = async () => {
     return;
   }
 
+  // 获取容器实际大小
+  const containerNode = document.getElementById('wordcloud-3d');
+  if (!containerNode) return;
+  const containerWidth = containerNode.clientWidth || 600;
+  const containerHeight = containerNode.clientHeight || 600;
+  const size = Math.min(containerWidth, containerHeight, 600);
+
   const layout = cloud()
-    .size([600, 600])
+    .size([size, size])
     .words(
       wordCount.value.map((d) => ({
         text: d.text,
@@ -473,25 +562,33 @@ const generateWordCloud = async () => {
     background-color: v-bind('themeState.currentTheme.background');
 }
 
-.visualize-page :deep(.el-scrollbar) {
+/* 主 Panel：包裹所有子 panel 的圆角矩形容器 */
+.main-panel {
     flex: 1;
+    min-height: 0;
+    min-width: 0;
+    margin: 16px;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
-}
-
-.visualize-page :deep(.el-scrollbar__wrap) {
-    flex: 1;
+    overflow: hidden;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .visualize-container {
     display: grid;
-    grid-template-columns: 30% 40% 30%;
-    /* 左中右三列，宽度分别为30%, 40%, 30% */
-    gap: 4px;
-    height: 80vh;
-    max-height: 80vh;
-    padding: 10px;
-
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.33fr) minmax(0, 1fr);
+    /* 左中右三列，比例约为 30% : 40% : 30%，使用 fr 单位确保自适应 */
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 /* 左侧区域：文章大纲和字数统计 */
@@ -499,13 +596,56 @@ const generateWordCloud = async () => {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
 
+/* 子 Panel 通用样式 */
+.panel-item {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    box-sizing: border-box;
+    background-color: v-bind('themeState.currentTheme.background');
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+    overflow: hidden;
+}
+
+.panel-item h3 {
+    flex-shrink: 0;
+    margin: 0 0 12px 0;
+    font-size: 18px;
+    font-weight: bold;
 }
 
 .outline-section,
 .word-count-section {
     flex: 1;
-    border: 1px dashed #ccc;
+    min-height: 0;
+}
+
+.outline-scrollbar {
+    flex: 1;
+    min-height: 0;
+}
+
+.outline-section :deep(.el-scrollbar) {
+    flex: 1;
+    min-height: 0;
+}
+
+.word-count-chart-container {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 /* 中间区域：词云图 */
@@ -514,8 +654,21 @@ const generateWordCloud = async () => {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    min-height: 0;
+}
 
-    border: 1px dashed #ccc;
+.wordcloud-section .big-title {
+    flex-shrink: 0;
+    margin-bottom: 16px;
+}
+
+.wordcloud-canvas {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 
@@ -524,38 +677,41 @@ const generateWordCloud = async () => {
     display: flex;
     flex-direction: column;
     gap: 16px;
-
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
 }
 
 /* 段落分布部分 */
 .pie-analysis,
 .word-frequency-section {
     flex: 1;
+    min-height: 0;
     /* 让两部分平分右侧区域的高度 */
-    border: 1px dashed #ccc;
+}
+
+.pie-chart-container,
+.word-frequency-chart-container {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 /* 图表容器：宽度和高度自动填充父容器 */
-.chart-placeholder {
+.chart-container {
     width: 100%;
     height: 100%;
-}
-
-h3 {
-    margin-bottom: 16px;
-    font-size: 18px;
-    font-weight: bold;
+    min-width: 0;
+    min-height: 0;
 }
 
 .big-title {
     font-size: 36px;
     cursor: pointer;
-    margin-bottom: 0;
+    margin: 0;
     padding: 0;
-}
-
-.aero-div {
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 </style>

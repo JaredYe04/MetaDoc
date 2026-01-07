@@ -3,6 +3,17 @@ import AiLogo from "../assets/ai-logo.svg";
 import AiLogoWhite from "../assets/ai-logo-white.svg";
 import ToolBlack from "../assets/tool-black.svg";
 import ToolWhite from "../assets/tool-white.svg";
+// 菜单图标导入
+import EditorIconBlack from "../assets/icons/editor-black.svg";
+import EditorIconWhite from "../assets/icons/editor-white.svg";
+import OutlineIconBlack from "../assets/icons/outline-black.svg";
+import OutlineIconWhite from "../assets/icons/outline-white.svg";
+import VisualIconBlack from "../assets/icons/visual-black.svg";
+import VisualIconWhite from "../assets/icons/visual-white.svg";
+import AgentIconBlack from "../assets/icons/agent-black.svg";
+import AgentIconWhite from "../assets/icons/agent-white.svg";
+import ProofreadIconBlack from "../assets/icons/proofread-black.svg";
+import ProofreadIconWhite from "../assets/icons/proofread-white.svg";
 // theme.js
 export const contentThemes = [
   { label: 'Ant Design', value: 'ant-design' },
@@ -102,6 +113,33 @@ export const colorWithOpacity = (color, opacity) => {
   }
   // 其他情况直接返回原颜色
   return color;
+};
+
+/**
+ * 根据亮暗色模式选择图标的辅助函数
+ * @param {boolean} isDarkMode - 是否为暗色模式
+ * @param {Object} iconPair - 包含 light 和 dark 属性的图标对象
+ * @returns {string} 返回对应模式的图标路径
+ */
+const selectIconByTheme = (isDarkMode, iconPair) => {
+  return isDarkMode ? iconPair.dark : iconPair.light;
+};
+
+/**
+ * 生成主题相关的图标集合
+ * @param {boolean} isDarkMode - 是否为暗色模式
+ * @returns {Object} 包含所有主题图标的对象
+ */
+const generateThemeIcons = (isDarkMode) => {
+  return {
+    AiLogo: selectIconByTheme(isDarkMode, { light: AiLogo, dark: AiLogoWhite }),
+    ToolLogo: selectIconByTheme(isDarkMode, { light: ToolBlack, dark: ToolWhite }),
+    EditorIcon: selectIconByTheme(isDarkMode, { light: EditorIconBlack, dark: EditorIconWhite }),
+    OutlineIcon: selectIconByTheme(isDarkMode, { light: OutlineIconBlack, dark: OutlineIconWhite }),
+    VisualIcon: selectIconByTheme(isDarkMode, { light: VisualIconBlack, dark: VisualIconWhite }),
+    AgentIcon: selectIconByTheme(isDarkMode, { light: AgentIconBlack, dark: AgentIconWhite }),
+    ProofreadIcon: selectIconByTheme(isDarkMode, { light: ProofreadIconBlack, dark: ProofreadIconWhite }),
+  };
 };
 
 // 主函数：生成自定义主题
@@ -204,13 +242,12 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
   };
 
   const colorSet = generateColorSet();
+  const themeIcons = generateThemeIcons(isDarkMode);
   
   return {
     type: isDarkMode ? 'dark' : 'light',
-    AiLogo: isDarkMode ? AiLogoWhite : AiLogo,
-    ToolLogo: isDarkMode ? ToolWhite : ToolBlack,
+    ...themeIcons,
     ...colorSet,
-    // 注意：AiLogo 需要在外部根据模式设置
   };
 };
 

@@ -21,28 +21,33 @@
           <div class="tab-content-wrapper">
             <!-- 使用v-show控制显示/隐藏，实现零时间切换，所有组件保持挂载状态 -->
             <div class="tab-content-container">
-              <!-- 渲染所有Tab的内容，使用v-show控制显示/隐藏，实现零时间切换 -->
+              <!-- 渲染所有Tab的内容，使用v-if+v-show组合：首次挂载时确保可见，之后用v-show保持挂载 -->
               <template v-for="tab in workspace.tabs" :key="tab.id">
                 <!-- 文档Tab：根据lastView显示不同视图 -->
                 <template v-if="tab.kind === 'file' || tab.kind === 'new'">
                   <Editor 
+                    v-if="shouldRenderView(tab.id, 'editor')"
                     v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'editor'"
                     :key="`editor-${tab.id}`"
                     :tab-id="tab.id"
                   />
                   <Outline 
+                    v-if="shouldRenderView(tab.id, 'outline')"
                     v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'outline'"
                     :key="`outline-${tab.id}`"
                   />
                   <Visualize 
+                    v-if="shouldRenderView(tab.id, 'visualize')"
                     v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'visualize'"
                     :key="`visualize-${tab.id}`"
                   />
                   <AgentView 
+                    v-if="shouldRenderView(tab.id, 'agent')"
                     v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'agent'"
                     :key="`agent-${tab.id}`"
                   />
                   <ProofreadView 
+                    v-if="shouldRenderView(tab.id, 'proofread')"
                     v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'proofread'"
                     :key="`proofread-${tab.id}`"
                   />
@@ -157,7 +162,7 @@
 import LeftMenu from '../components/LeftMenu.vue'
 import HeadMenu from '../components/HeadMenu.vue'
 import MainTabs from '../components/MainTabs.vue'
-import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue'
 import { getRecentDocs, getSetting } from '../utils/settings.js'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
 import { ElNotification, ElMessageBox } from 'element-plus'
@@ -235,6 +240,24 @@ const getDocumentView = (tabId: string): string => {
   }
   const doc = workspace.ensureDocument(tabId)
   return doc.lastView || 'editor'
+}
+
+// 跟踪已经挂载过的视图，确保组件在可见状态下首次挂载，之后保持挂载
+const mountedViews = ref<Set<string>>(new Set())
+
+// 判断是否应该渲染视图（首次显示时挂载，之后保持挂载）
+const shouldRenderView = (tabId: string, viewType: string): boolean => {
+  const viewKey = `${tabId}-${viewType}`
+  const isActive = tabId === activeTabId.value && getDocumentView(tabId) === viewType
+  
+  // 如果当前需要显示，标记为已挂载
+  if (isActive) {
+    mountedViews.value.add(viewKey)
+    return true
+  }
+  
+  // 如果已经挂载过，保持挂载状态
+  return mountedViews.value.has(viewKey)
 }
 const {
   tabs: workspaceTabs,
@@ -825,6 +848,22 @@ function initMainEventListeners() {
     headMenuCollapsed.value = payload as boolean
   }
   eventBus.on('head-menu-collapse-changed', handleHeadMenuCollapseChanged)
+  
+  // 处理HeadMenu的折叠状态请求
+  const handleHeadMenuCollapseRequest = () => {
+    eventBus.emit('head-menu-collapse-sync', headMenuCollapsed.value)
+  }
+  eventBus.on('head-menu-collapse-request', handleHeadMenuCollapseRequest)
+  
+  // 当显示子视图菜单时，同步折叠状态到HeadMenu组件
+  watch(showSubViewMenu, (show) => {
+    if (show) {
+      // 使用 setTimeout 确保 HeadMenu 组件已经挂载
+      setTimeout(() => {
+        eventBus.emit('head-menu-collapse-sync', headMenuCollapsed.value)
+      }, 0)
+    }
+  })
 
   // 处理系统窗口打开请求（主页、知识库、调试工具等）
   const handleOpenSystemTab = (payload: unknown) => {
@@ -864,9 +903,29 @@ function initMainEventListeners() {
     () => eventBus.off('open-tool-tab', handleOpenToolTab),
     () => eventBus.off('open-system-tab', handleOpenSystemTab),
     () => eventBus.off('receive-broadcast', handleReceiveBroadcast),
-    () => eventBus.off('head-menu-collapse-changed', handleHeadMenuCollapseChanged)
+    () => eventBus.off('head-menu-collapse-changed', handleHeadMenuCollapseChanged),
+    () => eventBus.off('head-menu-collapse-request', handleHeadMenuCollapseRequest)
   )
 }
+
+// 监听 tabs 变化，清理已移除 tab 的挂载记录
+watch(
+  () => workspace.tabs.map(t => t.id),
+  (currentTabIds, previousTabIds) => {
+    if (previousTabIds) {
+      // 找出被移除的 tab IDs
+      const removedTabIds = previousTabIds.filter(id => !currentTabIds.includes(id))
+      // 清理这些 tab 的所有视图挂载记录
+      removedTabIds.forEach(tabId => {
+        const viewTypes = ['editor', 'outline', 'visualize', 'agent', 'proofread']
+        viewTypes.forEach(viewType => {
+          mountedViews.value.delete(`${tabId}-${viewType}`)
+        })
+      })
+    }
+  },
+  { immediate: false }
+)
 
 onMounted(async () => {
   // 初始化 Main 组件的事件监听器

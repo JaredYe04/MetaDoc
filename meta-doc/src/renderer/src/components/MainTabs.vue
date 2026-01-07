@@ -20,54 +20,66 @@
       <SettingAboutSection />
     </el-dialog>
     
-    <el-tabs
-      ref="tabsRef"
-      v-model="currentActiveId"
-      type="card"
-      class="main-tabs"
-      @tab-remove="handleRemove"
-      @tab-click="handleTabClick"
-      :before-leave="handleBeforeLeave"
-    >
-      <el-tab-pane
-        v-for="tab in allTabs"
-        :key="tab.id"
-        :name="tab.id"
-        :closable="false"
+    <div class="tabs-container">
+      <el-tabs
+        ref="tabsRef"
+        v-model="currentActiveId"
+        type="card"
+        class="main-tabs"
+        @tab-remove="handleRemove"
+        @tab-click="handleTabClick"
+        :before-leave="handleBeforeLeave"
       >
-        <template #label>
-          <div
-            class="main-tab-label"
-            :title="getTabTooltip(tab)"
-            @mousedown.stop
-            :draggable="canDragTab(tab)"
-            @dragstart.stop="handleDragStart(tab.id, $event)"
-            @dragover.prevent="handleDragOver(tab.id, $event)"
-            @dragleave="handleDragLeave"
-            @drop.stop="handleDrop(tab.id, $event)"
-            @dragend.stop="handleDragEnd"
-          >
-            <span class="main-tab-label__text">
-              {{ getTabLabel(tab) }}
-            </span>
-            <span
-              v-if="tab.dirty"
-              class="main-tab-label__dot"
-            />
-            <!-- 自定义关闭按钮 - 每个Tab都显示 -->
-            <span
-              v-if="canCloseTab(tab)"
-              class="main-tab-label__close"
-              @click.stop="handleCloseTab(tab.id)"
+        <el-tab-pane
+          v-for="tab in allTabs"
+          :key="tab.id"
+          :name="tab.id"
+          :closable="false"
+        >
+          <template #label>
+            <div
+              class="main-tab-label"
+              :title="getTabTooltip(tab)"
               @mousedown.stop
-              @dragstart.stop
+              :draggable="canDragTab(tab)"
+              @dragstart.stop="handleDragStart(tab.id, $event)"
+              @dragover.prevent="handleDragOver(tab.id, $event)"
+              @dragleave="handleDragLeave"
+              @drop.stop="handleDrop(tab.id, $event)"
+              @dragend.stop="handleDragEnd"
             >
-              <el-icon><Close /></el-icon>
-            </span>
-          </div>
-        </template>
-      </el-tab-pane>
-    </el-tabs>
+              <span class="main-tab-label__text">
+                {{ getTabLabel(tab) }}
+              </span>
+              <span
+                v-if="tab.dirty"
+                class="main-tab-label__dot"
+              />
+              <!-- 自定义关闭按钮 - 默认所有Tab都显示，活跃Tab始终显示 -->
+              <span
+                v-if="canCloseTab(tab)"
+                class="main-tab-label__close"
+                :class="{ 'main-tab-label__close--active': currentActiveId === tab.id }"
+                @click.stop="handleCloseTab(tab.id)"
+                @mousedown.stop
+                @dragstart.stop
+              >
+                <el-icon><Close /></el-icon>
+              </span>
+            </div>
+          </template>
+        </el-tab-pane>
+      </el-tabs>
+      <!-- 新建文档按钮 -->
+      <div
+        class="new-tab-button"
+        :class="{ 'is-locked': isLocked }"
+        @click="handleNewTabClick"
+        title="新建文档"
+      >
+        <el-icon><Plus /></el-icon>
+      </div>
+    </div>
     
     <!-- 窗口控制按钮 (最右侧) -->
     <div class="window-controls">
@@ -92,7 +104,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
 import eventBus from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
-import { Minus, FullScreen, Close } from '@element-plus/icons-vue'
+import { Minus, FullScreen, Close, Plus } from '@element-plus/icons-vue'
 import { getAppVersion } from '../utils/version'
 import { mixColors, themeState } from '../utils/themes'
 import SettingAboutSection from '../views/setting/SettingAboutSection.vue'
@@ -223,6 +235,12 @@ const handleClose = () => {
 // 点击Logo打开关于对话框
 const handleLogoClick = () => {
   aboutDialogVisible.value = true
+}
+
+// 点击新建文档按钮
+const handleNewTabClick = () => {
+  if (isLocked.value) return
+  workspace.openNewDocumentTab()
 }
 
 // 合并文档Tab和系统Tab、工具Tab，过滤掉空白页Tab
@@ -658,7 +676,8 @@ watch(() => route.path, (newPath) => {
 .main-tabs-wrapper .el-tabs__header *,
 .main-tabs-wrapper .el-tabs__nav-wrap,
 .main-tabs-wrapper .el-tabs__nav-wrap *,
-.main-tabs-wrapper .el-tabs__active-bar {
+.main-tabs-wrapper .el-tabs__active-bar,
+.main-tabs-wrapper .new-tab-button {
   -webkit-app-region: no-drag !important;
   position: relative;
   z-index: 10 !important;
@@ -675,59 +694,73 @@ watch(() => route.path, (newPath) => {
   opacity: 0.6;
 }
 
+.tabs-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  position: relative;
+  gap: 0; /* 确保没有间隙 */
+}
+
 .main-tabs {
   flex: 1;
   border-bottom: none;
   min-width: 0; /* 允许flex收缩 */
+  max-width: 100%; /* 确保不会超出容器 */
   --tab-count: v-bind('tabCount'); /* CSS变量：Tab数量 */
   background-color: v-bind('tabsContainerBackgroundColor');
   position: relative;
   z-index: 1;
   /* 确保tabs容器本身可以拖动（空白区域） */
   -webkit-app-region: drag;
+  margin-right: 0; /* 确保没有右侧margin */
+  padding-right: 0; /* 确保没有右侧padding */
 }
 
 /* Chrome样式的Tab宽度 */
 .main-tabs :deep(.el-tabs__nav) {
   display: flex;
   width: 100%;
+  max-width: 100%; /* 确保不会超出容器 */
   flex-wrap: nowrap;
+  margin-right: 0; /* 确保没有右侧margin */
+  padding-right: 0; /* 确保没有右侧padding */
 }
 
 .main-tabs :deep(.el-tabs__nav-wrap) {
   overflow: visible;
 }
 
-/* Tab宽度：统一宽度，模仿Chrome样式 */
+/* Tab宽度：统一宽度，模仿Chrome样式 - 所有Tab平均分配空间 */
 .main-tabs :deep(.el-tabs__item) {
-  flex: 0 0 auto;
-  min-width: 80px;
-  max-width: 240px;
+  flex: 1 1 0; /* 平均分配空间，允许缩小，像浏览器一样 */
+  min-width: 0 !important; /* 无下限，允许无限缩小，使用 !important 覆盖 Element Plus 默认样式 */
+  max-width: none !important; /* 默认无最大宽度限制 */
   width: auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   /* 扩大拖拽区域：整个 Tab 项都可以接收拖拽事件 */
   position: relative;
-}
-
-/* 为 Tab 项添加拖拽区域监听 */
-.main-tabs :deep(.el-tabs__item) {
   -webkit-app-region: no-drag !important;
 }
 
-/* 当Tab数量 <= 6时，使用flex-grow让Tab平均分配空间 */
-.main-tabs :deep(.el-tabs__nav:not(:has(.el-tabs__item:nth-child(7)))) .el-tabs__item {
-  flex: 1 1 0;
+/* 当Tab数量 <= 16时，设置最大宽度为200px */
+.main-tabs :deep(.el-tabs__nav:not(:has(.el-tabs__item:nth-child(17)))) .el-tabs__item {
+  max-width: 200px !important;
 }
 
-/* 当Tab数量 > 6时，移除max-width限制，允许压缩 */
-.main-tabs :deep(.el-tabs__nav:has(.el-tabs__item:nth-child(7))) .el-tabs__item {
-  flex: 0 0 auto;
-  max-width: none;
-  /* 使用flex-basis来均匀分配空间 */
-  flex-basis: calc((100% - 120px) / var(--tab-count, 6));
-  min-width: 60px; /* 压缩后的最小宽度 */
+/* 确保 Element Plus 的 label 元素也可以缩小 */
+.main-tabs :deep(.el-tabs__item .el-tabs__label) {
+  min-width: 0 !important;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden !important;
+  flex-shrink: 1;
+  /* 确保 label 容器不会阻止子元素缩小 */
+  display: flex;
+  align-items: center;
 }
 
 .main-tab-label {
@@ -736,41 +769,51 @@ watch(() => route.path, (newPath) => {
   gap: 4px;
   line-height: 1.2;
   width: 100%;
+  min-width: 0 !important; /* 允许缩小到内容以下，使用 !important 确保生效 */
+  max-width: 100%; /* 确保不会超出父容器 */
   height: 100%;
   white-space: nowrap;
   user-select: none;
   cursor: pointer;
-  min-width: 0;
   position: relative;
-  
+  flex-shrink: 1; /* 允许缩小 */
+  box-sizing: border-box;
+  overflow: hidden; /* 确保内容不会溢出 */
+  /* 确保 flex 容器本身可以缩小 */
+  flex: 0 1 auto;
 }
 
 .main-tab-label__text {
   font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
+  overflow: hidden !important; /* 确保溢出隐藏 */
+  text-overflow: ellipsis !important; /* 确保显示省略号 */
+  white-space: nowrap !important; /* 确保不换行 */
+  flex: 1 1 0; /* 允许缩小 */
+  min-width: 0 !important; /* 确保可以缩小到0 */
+  max-width: 100%;
+  /* 确保文本元素有明确的宽度限制，text-overflow 才能生效 */
+  width: 0; /* 设置为 0，让 flex: 1 来控制宽度 */
 }
 
 .main-tab-label__dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: var(--el-color-danger);
+  background-color: var(--el-text-color-primary);
   flex-shrink: 0;
 }
 
 .main-tabs :deep(.el-tabs__header.is-top) {
   margin: 0;
   margin-bottom: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .main-tabs :deep(.el-tabs__item) {
-  padding-left: 8px !important;
+  padding-left: 12px !important;
   padding-right: 2px !important;
   margin-left: 1px !important;
   margin-right: 1px !important;
@@ -780,27 +823,44 @@ watch(() => route.path, (newPath) => {
   margin-bottom: 0 !important;
   margin-top: 0 !important;
   border-radius: 6px 6px 0 0;
+  /* 确保内容可以缩小 */
+  box-sizing: border-box;
+  overflow: hidden; /* 确保内容不会溢出 */
 }
 
 .main-tabs :deep(.el-tabs__nav-wrap) {
   margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
   height: 40px;
 }
 
 /* 确保Tab下方没有缝隙 */
 .main-tabs :deep(.el-tabs__header) {
   margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   padding-bottom: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
   height: 40px;
   padding-top: 0 !important;
 }
 
 .main-tabs :deep(.el-tabs__nav-scroll) {
   height: 40px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .main-tabs :deep(.el-tabs__nav) {
   margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
   height: 40px;
 }
 
@@ -837,17 +897,28 @@ watch(() => route.path, (newPath) => {
   margin: 0;
   border-radius: 3px;
   cursor: pointer;
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-primary);
   transition: all 0.2s ease;
   flex-shrink: 0;
   -webkit-app-region: no-drag;
   z-index: 10;
   padding: 0;
+  /* 默认所有Tab的关闭按钮都显示 */
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 活跃Tab的关闭按钮：始终显示 */
+.main-tab-label__close--active {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
 }
 
 .main-tab-label__close:hover {
-  background-color: var(--el-color-danger-light-8);
-  color: var(--el-color-danger);
+  background-color: var(--el-fill-color-light, rgba(0, 0, 0, 0.06));
+  color: var(--el-text-color-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .main-tab-label__close .el-icon {
@@ -963,6 +1034,46 @@ watch(() => route.path, (newPath) => {
 
 .window-control-btn .el-icon {
   font-size: 16px;
+}
+
+/* 新建文档按钮样式 */
+.new-tab-button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  color: var(--el-text-color-primary);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  flex-shrink: 0;
+  margin-left: 4px;
+  margin-right: 0; /* 移除右侧margin，紧贴窗口控制按钮 */
+  background-color: v-bind('tabItemBackgroundColor');
+  -webkit-app-region: no-drag;
+  position: relative;
+  z-index: 10;
+  /* 确保按钮紧贴 Tabs 列表，没有间隙 */
+  padding: 0;
+}
+
+.new-tab-button:hover:not(.is-locked) {
+  background-color: v-bind('tabItemHoverBackgroundColor');
+}
+
+.new-tab-button.is-locked {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.new-tab-button .el-icon {
+  font-size: 16px;
+  font-weight: 600;
 }
 </style>
 

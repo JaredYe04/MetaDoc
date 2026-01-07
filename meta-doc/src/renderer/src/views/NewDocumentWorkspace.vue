@@ -1,59 +1,65 @@
 <template>
-  <div class="new-document">
-    <div class="new-document__header">
-      <h1>{{ t('newDocument.title') }}</h1>
-      <p>{{ t('newDocument.subtitle') }}</p>
-    </div>
+  <el-scrollbar class="new-document-scroll">
+    <div class="new-document">
+      <div class="new-document__header">
+        <h1>{{ t('newDocument.title') }}</h1>
+        <p>{{ t('newDocument.subtitle') }}</p>
+      </div>
 
-    <div class="new-document__formats">
-      <el-radio-group v-model="selectedFormatId" class="format-group">
-        <el-radio-button
-          v-for="format in formats"
-          :key="format.id"
-          :label="format.id"
-        >
-          {{ formatLabel(format) }}
-        </el-radio-button>
-      </el-radio-group>
-      <p class="format-description">
-        {{ formatDescription(currentFormat) }}
-      </p>
-    </div>
+      <div class="new-document__formats">
+        <el-radio-group v-model="selectedFormatId" class="format-group">
+          <el-radio-button
+            v-for="format in formats"
+            :key="format.id"
+            :label="format.id"
+          >
+            {{ formatLabel(format) }}
+          </el-radio-button>
+        </el-radio-group>
+        <p class="format-description">
+          {{ formatDescription(currentFormat) }}
+        </p>
+      </div>
 
-    <div class="new-document__templates">
-      <h2>{{ t('newDocument.templateTitle') }}</h2>
-      <div class="template-grid">
-        <div
-          v-for="template in currentTemplates"
-          :key="template.id"
-          class="template-card"
-          :class="{ active: template.id === selectedTemplateId }"
-          @click="selectTemplate(template.id)"
-          @dblclick="confirmTemplate(template.id)"
-        >
-          <div class="template-card__image" :class="{ 'is-placeholder': !template.image }">
-            <img v-if="template.image" :src="template.image" :alt="templateLabel(template)" />
-            <div v-else class="template-card__placeholder">
-              <el-icon><Document /></el-icon>
+      <div class="new-document__templates">
+        <h2>{{ t('newDocument.templateTitle') }}</h2>
+        <el-scrollbar class="template-grid-scroll">
+          <div class="template-grid-wrapper" ref="templateGridWrapperRef">
+            <div class="template-grid" :style="{ gridTemplateColumns: gridTemplateColumns }">
+            <div
+              v-for="template in currentTemplates"
+              :key="template.id"
+              class="template-card"
+              :class="{ active: template.id === selectedTemplateId }"
+              @click="selectTemplate(template.id)"
+              @dblclick="confirmTemplate(template.id)"
+            >
+              <div class="template-card__image" :class="{ 'is-placeholder': !template.image }">
+                <img v-if="template.image" :src="template.image" :alt="templateLabel(template)" />
+                <div v-else class="template-card__placeholder">
+                  <el-icon><Document /></el-icon>
+                </div>
+              </div>
+              <div class="template-card__body">
+                <h3>{{ templateLabel(template) }}</h3>
+                <p>{{ templateDescription(template) }}</p>
+              </div>
+              <div class="template-card__actions">
+                <el-button type="primary" round size="small" @click.stop="confirmTemplate(template.id)">
+                  {{ t('newDocument.useTemplate') }}
+                </el-button>
+              </div>
+            </div>
             </div>
           </div>
-          <div class="template-card__body">
-            <h3>{{ templateLabel(template) }}</h3>
-            <p>{{ templateDescription(template) }}</p>
-          </div>
-          <div class="template-card__actions">
-            <el-button type="primary" round size="small" @click.stop="confirmTemplate(template.id)">
-              {{ t('newDocument.useTemplate') }}
-            </el-button>
-          </div>
-        </div>
+        </el-scrollbar>
       </div>
     </div>
-  </div>
+  </el-scrollbar>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useWorkspace } from '../stores/workspace';
 import type { WorkspaceTabFormat } from '../stores/workspace';
 import type { SupportedFormat, DocumentTemplate } from '../types/formats';
@@ -78,6 +84,48 @@ const currentFormat = computed(() =>
 );
 
 const currentTemplates = computed<DocumentTemplate[]>(() => currentFormat.value?.templates ?? []);
+
+// 监听模板网格容器宽度，动态计算列数，尽量占满一行并减少换行
+const templateGridWrapperRef = ref<HTMLElement | null>(null);
+const gridContainerWidth = ref<number>(0);
+let templateGridResizeObserver: ResizeObserver | null = null;
+
+onMounted(() => {
+  if (templateGridWrapperRef.value) {
+    gridContainerWidth.value = templateGridWrapperRef.value.clientWidth;
+    templateGridResizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        gridContainerWidth.value = entry.contentRect.width;
+      }
+    });
+    templateGridResizeObserver.observe(templateGridWrapperRef.value);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (templateGridResizeObserver && templateGridWrapperRef.value) {
+    templateGridResizeObserver.unobserve(templateGridWrapperRef.value);
+    templateGridResizeObserver.disconnect();
+    templateGridResizeObserver = null;
+  }
+});
+
+const gridTemplateColumns = computed<string>(() => {
+  const width = gridContainerWidth.value;
+  const itemCount = currentTemplates.value.length || 1;
+  const cardMin = 220; // 卡片最小理想宽度
+  const cardMax = 360; // 卡片最大理想宽度
+  if (!width) {
+    return `repeat(auto-fit, minmax(${cardMin}px, 1fr))`;
+  }
+  // 在 [ceil(width/cardMax), floor(width/cardMin)] 范围内取值，
+  // 同时不超过 itemCount，优先更多列（减少换行），并让每个单元宽度处在 [cardMin, cardMax]。
+  const minColsByMax = Math.max(1, Math.ceil(width / cardMax));
+  const maxColsByMin = Math.max(1, Math.floor(width / cardMin));
+  const cols = Math.max(minColsByMax, Math.min(itemCount, maxColsByMin));
+  return `repeat(${cols}, 1fr)`;
+});
 
 const translate = (key?: string, fallback = '') => {
   if (!key) return fallback;
@@ -142,13 +190,17 @@ function confirmTemplate(templateId?: string) {
   gap: 24px;
   padding: 24px;
   height: 100%;
-  overflow: auto;
+  overflow: hidden;
   /* 设置主题背景色 */
   background-color: v-bind('themeState.currentTheme.background');
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+}
+
+.new-document-scroll {
+  height: 100%;
 }
 
 .new-document__header h1 {
@@ -180,6 +232,18 @@ function confirmTemplate(templateId?: string) {
 .new-document__templates h2 {
   margin: 0 0 12px;
   font-size: 18px;
+}
+
+.new-document__templates {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.template-grid-scroll {
+  flex: 1;
+  min-height: 0;
 }
 
 .template-grid {
@@ -263,6 +327,10 @@ function confirmTemplate(templateId?: string) {
 
 .template-card__actions {
   padding: 0 16px 16px;
+}
+
+.template-grid-wrapper {
+  width: 100%;
 }
 </style>
 

@@ -54,7 +54,7 @@
     <vue-tree
       ref="treeRef"
       class="outline-tree-container"
-      style="width: 100%; height: 100%; border: 1px solid gray; border-radius: 12px; overflow: hidden;"
+      style="width: 100%; height: 100%; border: 1px solid gray; border-radius: 12px;"
       :style="{ backgroundColor: themeState.currentTheme.background }"
       :dataset="treeData"
       :config="treeConfig"
@@ -62,6 +62,7 @@
       link-style="straight"
       @node-click="handleNodeClick"
       @drag-node-end="handleNodeDrag"
+      @wheel="handleWheelZoom"
     >
 
 
@@ -274,7 +275,7 @@
       <el-button type="primary" @click="changeNodeValue">{{ $t('outline.confirm') }}</el-button>
     </el-dialog>
     <div class="bottom-menu aero-div">
-      <el-tooltip :content="direction !== 'horizontal' ? $t('outline.switchToVertical') : $t('outline.switchToHorizontal')" placement="top">
+      <el-tooltip :content="direction === 'horizontal' ? $t('outline.switchToVertical') : $t('outline.switchToHorizontal')" placement="top">
         <el-button type="info" circle @click="toggleLayout">
           <el-icon>
             <Sort />
@@ -324,7 +325,7 @@
 </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive, watch, computed, onMounted, onUnmounted, nextTick, type Ref, type ComponentPublicInstance } from 'vue';
+import { ref, reactive, watch, computed, onMounted, onBeforeMount, onUnmounted, nextTick, type Ref, type ComponentPublicInstance } from 'vue';
 import { ElButton, ElDialog, ElMessageBox, ElNotification } from 'element-plus'; // 引入 Element Plus 组件
 import AutoResizeTextarea from '../components/base/AutoResizeTextarea.vue';
 import { tabs, useWorkspace, type DocumentView } from '../stores/workspace';
@@ -1121,6 +1122,8 @@ function onNodeDragEnd() {
 const handleNodeClick = (node: DocumentOutlineNode) => {
   selectedNode.value = node;
 };
+
+// 初始化方向，使用默认值
 const direction = ref<'vertical' | 'horizontal'>('vertical');
 const treeConfig = reactive({
   nodeWidth: 180,
@@ -1129,12 +1132,19 @@ const treeConfig = reactive({
   layout: 'vertical' as 'vertical' | 'horizontal',
 });
 
-// 加载布局方向设置
+// 标记方向是否已加载，用于控制vue-tree的渲染时机
+const directionLoaded = ref(false);
+
+// 加载布局方向设置 - 必须在渲染前完成
 const loadLayoutDirection = async () => {
   const savedDirection = await getSetting('outlineLayoutDirection');
   if (savedDirection === 'horizontal' || savedDirection === 'vertical') {
     direction.value = savedDirection;
     treeConfig.layout = savedDirection;
+  }
+  // 只有在首次加载时才设置directionLoaded，避免重复设置
+  if (!directionLoaded.value) {
+    directionLoaded.value = true;
   }
 };
 
@@ -1229,13 +1239,17 @@ const syncOutlineToTreeData = (outline?: DocumentOutlineNode) => {
 // 监听视图切换：当切换到outline视图时，从文档同步大纲树
 watch(
   () => activeDocument.value?.lastView,
-  (newView, oldView) => {
+  async (newView, oldView) => {
     const currentView = (newView ?? 'editor') as DocumentView;
     const prevView = (oldView ?? lastKnownView.value ?? 'editor') as DocumentView;
     
     // 检测视图切换到outline
     if (currentView === 'outline' && prevView !== 'outline') {
-      // 视图刚切换到outline，从文档同步大纲树
+      // 视图刚切换到outline，确保方向已加载
+      if (!directionLoaded.value) {
+        await loadLayoutDirection();
+      }
+      // 从文档同步大纲树
       const doc = activeDocument.value;
       if (doc) {
         syncOutlineToTreeData(doc.outline);
@@ -1248,10 +1262,25 @@ watch(
   { immediate: true }
 );
 
+// 监听文档切换：当切换文档时，确保方向已加载
+watch(
+  () => activeTabId.value,
+  async () => {
+    // 切换文档时，如果当前视图是outline，确保方向已加载
+    const doc = activeDocument.value;
+    if (doc) {
+      const currentView = doc.lastView ?? 'editor';
+      if (currentView === 'outline' && !directionLoaded.value) {
+        await loadLayoutDirection();
+      }
+    }
+  }
+);
+
 // 监听文档outline变化：只在outline视图时同步到treeData
 watch(
   () => activeDocument.value?.outline,
-  (outline) => {
+  async (outline) => {
     if (suppressDocumentSync) return;
     
     // 只在当前视图是outline时才从文档同步大纲树
@@ -1264,6 +1293,11 @@ watch(
     // 只在outline视图时才同步，避免编辑器视图时的干扰
     if (currentView !== 'outline') {
       return;
+    }
+    
+    // 确保方向已加载
+    if (!directionLoaded.value) {
+      await loadLayoutDirection();
     }
     
     syncOutlineToTreeData(outline);
@@ -1742,14 +1776,14 @@ const discardChange = () => {
   pendingAccept.value = false;
 };
 
-// 组件挂载时加载布局方向设置并添加滚轮缩放监听
 // 处理窗口大小改变，重新检查文本截断状态
 const handleResize = () => {
   recheckTextTruncation();
 };
 
-onMounted(() => {
-  loadLayoutDirection();
+onMounted(async () => {
+  // 首先加载布局方向设置，确保在渲染vue-tree之前方向已确定
+  await loadLayoutDirection();
   
   // 确保初始状态同步：如果当前视图是outline，同步大纲树
   const doc = activeDocument.value;
@@ -1761,60 +1795,8 @@ onMounted(() => {
     }
   }
   
-  // 等待 DOM 渲染完成后添加滚轮事件监听器并居中显示
+  // 等待 DOM 渲染完成后初始检查文本截断状态
   nextTick(() => {
-    const treeElement = document.querySelector('.outline-tree-container') as HTMLElement;
-    if (treeElement) {
-      treeElement.addEventListener('wheel', handleWheelZoom, { passive: false });
-      
-      // 居中显示大纲树：找到滚动容器并设置滚动位置到中心
-      setTimeout(() => {
-        try {
-          // 查找vue-tree内部的滚动容器（通常是svg的父容器）
-          const svg = treeElement.querySelector('svg');
-          if (svg) {
-            // 查找可滚动的父容器
-            let scrollContainer: HTMLElement | null = null;
-            let current: HTMLElement | null = svg.parentElement as HTMLElement;
-            
-            while (current && current !== treeElement) {
-              if (current.scrollHeight > current.clientHeight || current.scrollWidth > current.clientWidth) {
-                scrollContainer = current;
-                break;
-              }
-              current = current.parentElement as HTMLElement;
-            }
-            
-            // 如果没找到滚动容器，尝试查找所有可能的容器
-            if (!scrollContainer) {
-              const possibleContainers = [
-                treeElement.querySelector('[style*="overflow"]') as HTMLElement,
-                treeElement.querySelector('.vue-tree') as HTMLElement,
-                svg.parentElement as HTMLElement,
-              ];
-              
-              for (const container of possibleContainers) {
-                if (container && (container.scrollHeight > container.clientHeight || container.scrollWidth > container.clientWidth)) {
-                  scrollContainer = container;
-                  break;
-                }
-              }
-            }
-            
-            // 如果找到了滚动容器，居中显示
-            if (scrollContainer) {
-              const centerX = (scrollContainer.scrollWidth - scrollContainer.clientWidth) / 2;
-              const centerY = (scrollContainer.scrollHeight - scrollContainer.clientHeight) / 2;
-              scrollContainer.scrollLeft = Math.max(0, centerX);
-              scrollContainer.scrollTop = Math.max(0, centerY);
-            }
-          }
-        } catch (error) {
-          logger.warn('居中显示大纲树失败', error);
-        }
-      }, 300); // 延迟300ms确保vue-tree完全渲染
-    }
-    // 初始检查文本截断状态
     recheckTextTruncation();
   });
   
@@ -1824,10 +1806,6 @@ onMounted(() => {
 
 // 组件卸载时移除事件监听器并清理定时器
 onUnmounted(() => {
-  const treeElement = document.querySelector('.outline-tree-container') as HTMLElement;
-  if (treeElement) {
-    treeElement.removeEventListener('wheel', handleWheelZoom);
-  }
   window.removeEventListener('resize', handleResize);
   
   // 清理所有定时器
@@ -1861,6 +1839,21 @@ onUnmounted(() => {
   flex: 1;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.outline-tree-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+
 }
 
 .el-scrollbar__wrap {
@@ -1914,12 +1907,6 @@ onUnmounted(() => {
   /* 限制最大宽度 */
 }
 
-.container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-}
 
 .controls {
   margin-bottom: 20px;
@@ -2013,9 +2000,9 @@ onUnmounted(() => {
 .bottom-menu {
   position: absolute;
   bottom: 16px;
-  align-self: center;
+  left: 50%;
+  transform: translateX(-50%) !important;
   align-items: center;
-
   display: flex;
   gap: 10px;
   z-index: 1000;
@@ -2025,6 +2012,11 @@ onUnmounted(() => {
   width: fit-content;
   /* 覆盖 aero-div 的 transform transition，防止 hover 时偏移 */
   transition: backdrop-filter 0.3s ease, box-shadow 0.3s ease !important;
+  
+  // 确保hover时transform不变
+  &:hover {
+    transform: translateX(-50%) !important;
+  }
 }
 
 </style>

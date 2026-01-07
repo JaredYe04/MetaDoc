@@ -6,13 +6,13 @@
       :menu-trigger="isLocked ? 'manual' : 'hover'"
       @select="handleSelect"
       :default-active="activeMenuIndex"
-      :background-color="themeState.currentTheme.background2nd"
+      :background-color="themeState.currentTheme.background"
       :text-color="themeState.currentTheme.SideTextColor"
       :active-text-color="themeState.currentTheme.SideTextColor"
     >
       <el-tooltip v-if="isCollapsed" :content="$t('headMenu.editor')" placement="right">
         <el-menu-item index="editor">
-          <el-icon><EditPen /></el-icon>
+          <img :src="themeState.currentTheme.EditorIcon" class="menu-icon" alt="editor" />
         </el-menu-item>
       </el-tooltip>
       <el-menu-item v-if="!isCollapsed" index="editor">
@@ -21,7 +21,7 @@
       
       <el-tooltip v-if="isCollapsed" :content="$t('headMenu.outline')" placement="right">
         <el-menu-item index="outline">
-          <el-icon><Menu /></el-icon>
+          <img :src="themeState.currentTheme.OutlineIcon" class="menu-icon" alt="outline" />
         </el-menu-item>
       </el-tooltip>
       <el-menu-item v-if="!isCollapsed" index="outline">
@@ -30,7 +30,7 @@
       
       <el-tooltip v-if="isCollapsed" :content="$t('headMenu.visualize')" placement="right">
         <el-menu-item index="visualize">
-          <el-icon><DataAnalysis /></el-icon>
+          <img :src="themeState.currentTheme.VisualIcon" class="menu-icon" alt="visualize" />
         </el-menu-item>
       </el-tooltip>
       <el-menu-item v-if="!isCollapsed" index="visualize">
@@ -39,7 +39,7 @@
       
       <el-tooltip v-if="isCollapsed" :content="$t('headMenu.agent')" placement="right">
         <el-menu-item index="agent">
-          <el-icon><User /></el-icon>
+          <img :src="themeState.currentTheme.AgentIcon" class="menu-icon" alt="agent" />
         </el-menu-item>
       </el-tooltip>
       <el-menu-item v-if="!isCollapsed" index="agent">
@@ -48,7 +48,7 @@
       
       <el-tooltip v-if="isCollapsed && activeDocument" :content="$t('headMenu.proofread')" placement="right">
         <el-menu-item index="proofread">
-          <el-icon><Check /></el-icon>
+          <img :src="themeState.currentTheme.ProofreadIcon" class="menu-icon" alt="proofread" />
         </el-menu-item>
       </el-tooltip>
       <el-menu-item v-if="!isCollapsed && activeDocument" index="proofread">
@@ -71,7 +71,7 @@ import eventBus from '../utils/event-bus'
 import { mixColors, themeState } from '../utils/themes'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace, type DocumentView } from '../stores/workspace'
-import { EditPen, Menu, DataAnalysis, User, Check, ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 
 const { activeDocument } = useActiveDocument()
 const workspace = useWorkspace()
@@ -91,6 +91,21 @@ const toggleCollapse = () => {
 // 监听折叠状态变化，通知父组件
 watch(isCollapsed, (newVal) => {
   eventBus.emit('head-menu-collapse-changed', newVal)
+})
+
+// 监听来自Main.vue的折叠状态同步
+const handleHeadMenuCollapseSync = (payload: unknown) => {
+  const collapsed = payload as boolean
+  if (isCollapsed.value !== collapsed) {
+    isCollapsed.value = collapsed
+  }
+}
+eventBus.on('head-menu-collapse-sync', handleHeadMenuCollapseSync)
+
+// 组件挂载时请求同步状态
+onMounted(() => {
+  // 请求Main.vue同步当前的折叠状态
+  eventBus.emit('head-menu-collapse-request')
 })
 
 // 当前活动的文档视图
@@ -125,7 +140,7 @@ watch(
 
 // 组件卸载前清除事件监听
 onBeforeUnmount((): void => {
-  // 不需要清除，因为使用的是computed
+  eventBus.off('head-menu-collapse-sync', handleHeadMenuCollapseSync)
 })
 </script>
 
@@ -189,6 +204,14 @@ onBeforeUnmount((): void => {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+
+.modern-side-menu.is-collapsed :deep(.el-menu-item .menu-icon) {
+  width: 18px;
+  height: 18px;
+  margin: 0 auto;
+  display: block;
   flex-shrink: 0;
 }
 

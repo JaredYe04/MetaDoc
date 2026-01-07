@@ -1,33 +1,48 @@
 <template>
   <div id="particle-bg" class="homepage">
-    <div class="center-content">
-      <h1 class="main-letter" v-if="showWelcome" @mouseover="highlightM" @mouseleave="resetM">
-        {{ $t('home.metaDoc') }}
-      </h1>
+    <el-scrollbar class="center-content">
+      <div class="center-content-wrapper">
+        <h1 class="main-letter" v-if="showWelcome" @mouseover="highlightM" @mouseleave="resetM">
+          {{ $t('home.metaDoc') }}
+        </h1>
 
-      <div class="buttons aero-div" v-if="showWelcome">
-        <el-tooltip :content="$t('home.tooltip.quickStart')" placement="top">
-          <el-button type="primary" @click="openQuickStart" class="aero-btn">
-            {{ $t('home.button.quickStart') }}
-          </el-button>
-        </el-tooltip>
-        <el-tooltip :content="$t('home.tooltip.openFile')" placement="top">
-          <el-button type="success" @click="openFile" class="aero-btn">
-            {{ $t('home.button.openFile') }}
-          </el-button>
-        </el-tooltip>
-      </div>
+        <div class="buttons aero-div" v-if="showWelcome">
+          <el-tooltip :content="$t('home.tooltip.quickStart')" placement="top">
+            <el-button type="primary" @click="openQuickStart" class="aero-btn">
+              {{ $t('home.button.quickStart') }}
+            </el-button>
+          </el-tooltip>
+          <el-tooltip :content="$t('home.tooltip.openFile')" placement="top">
+            <el-button type="success" @click="openFile" class="aero-btn">
+              {{ $t('home.button.openFile') }}
+            </el-button>
+          </el-tooltip>
+        </div>
 
-      <!-- 最近文档列表 -->
-      <div v-if="showWelcome && recentDocs.length > 0" class="recent-docs-container aero-div" :style="{
-        borderColor: themeState.currentTheme.borderColor || 'rgba(0, 0, 0, 0.1)'
-      }">
-        <h3 class="recent-docs-title" :style="{ color: themeState.currentTheme.textColor }">
-          {{ $t('home.recentDocuments') || '最近文档' }}
-        </h3>
-        <!-- 当文档数量超过8条时使用滚动条 -->
-        <el-scrollbar v-if="recentDocs.length > 8" class="recent-docs-scrollbar">
-          <div class="recent-docs-list">
+        <!-- 最近文档列表 -->
+        <div v-if="showWelcome && recentDocs.length > 0" class="recent-docs-container aero-div" :style="{
+          borderColor: themeState.currentTheme.borderColor || 'rgba(0, 0, 0, 0.1)'
+        }">
+          <h3 class="recent-docs-title" :style="{ color: themeState.currentTheme.textColor }">
+            {{ $t('home.recentDocuments') || '最近文档' }}
+          </h3>
+          <!-- 当文档数量超过8条时使用滚动条 -->
+          <el-scrollbar v-if="recentDocs.length > 8" class="recent-docs-scrollbar">
+            <div class="recent-docs-list">
+              <div v-for="docPath in recentDocs" :key="docPath" class="recent-doc-item" @click="openRecentDoc(docPath)"
+                :style="{
+                  backgroundColor: themeState.currentTheme.background2nd,
+                  color: themeState.currentTheme.textColor
+                }">
+                <el-icon class="recent-doc-icon">
+                  <Document />
+                </el-icon>
+                <span class="recent-doc-name">{{ getFileName(docPath) }}</span>
+              </div>
+            </div>
+          </el-scrollbar>
+          <!-- 当文档数量不超过8条时直接显示 -->
+          <div v-else class="recent-docs-list">
             <div v-for="docPath in recentDocs" :key="docPath" class="recent-doc-item" @click="openRecentDoc(docPath)"
               :style="{
                 backgroundColor: themeState.currentTheme.background2nd,
@@ -39,22 +54,9 @@
               <span class="recent-doc-name">{{ getFileName(docPath) }}</span>
             </div>
           </div>
-        </el-scrollbar>
-        <!-- 当文档数量不超过8条时直接显示 -->
-        <div v-else class="recent-docs-list">
-          <div v-for="docPath in recentDocs" :key="docPath" class="recent-doc-item" @click="openRecentDoc(docPath)"
-            :style="{
-              backgroundColor: themeState.currentTheme.background2nd,
-              color: themeState.currentTheme.textColor
-            }">
-            <el-icon class="recent-doc-icon">
-              <Document />
-            </el-icon>
-            <span class="recent-doc-name">{{ getFileName(docPath) }}</span>
-          </div>
         </div>
       </div>
-    </div>
+    </el-scrollbar>
 
     <QuickStartPanel v-if="quickStartStage !== 'inactive'" @close="handleQuickStartClose" />
   </div>
@@ -254,18 +256,26 @@ onBeforeUnmount(() => {
 }
 
 .center-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.center-content-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 16px;
-  width: 100%;
-  height: 100%;
+  min-height: 100%;
   padding: 16px 24px;
   box-sizing: border-box;
-  position: relative;
-  z-index: 1;
-  overflow: auto;
+}
+
+.center-content :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .main-letter {
@@ -310,6 +320,11 @@ onBeforeUnmount(() => {
 .recent-docs-scrollbar {
   max-height: calc(52px * 8);
   width: 100%;
+}
+
+.recent-docs-scrollbar :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .recent-docs-list {

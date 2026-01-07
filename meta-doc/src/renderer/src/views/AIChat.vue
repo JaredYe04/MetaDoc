@@ -1,5 +1,5 @@
 <template>
-  <el-scrollbar>
+  <div class="ai-chat-container" :style="containerStyle">
     <el-dialog v-model="renameDialogVisible" :title="t('aiChat.renameTitle')" width="500">
       <el-input v-model="editingTitle" style="width: 100%" :placeholder="t('aiChat.renamePlaceholder')" />
       <template #footer>
@@ -24,7 +24,7 @@
           </div>
         </header>
         <el-scrollbar class="menu-scrollbar">
-          <el-menu class="side-menu" :default-active="activeDialogIndex.toString()">
+          <el-menu class="side-menu" :default-active="activeDialogIndex.toString()" :style="menuStyle">
             <template v-for="group in groupedDialogs" :key="group.label">
               <el-menu-item disabled class="group-header">
                 <span class="group-label">{{ group.label }}</span>
@@ -166,7 +166,7 @@
         <el-button @click="showReferenceDialog = false">{{ t('common.close') }}</el-button>
       </template>
     </el-dialog>
-  </el-scrollbar>
+  </div>
 
 </template>
 
@@ -409,6 +409,21 @@ const dialogMenuStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor,
   borderColor: subtleBorderColor.value,
+}));
+
+const containerStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  color: themeState.currentTheme.textColor,
+}));
+
+const menuStyle = computed(() => ({
+  '--menu-item-bg': themeState.currentTheme.background2nd,
+  '--menu-item-hover-bg': themeState.currentTheme.type === 'dark' 
+    ? 'rgba(255, 255, 255, 0.08)' 
+    : 'rgba(0, 0, 0, 0.04)',
+  '--menu-item-active-bg': themeState.currentTheme.type === 'dark'
+    ? 'rgba(64, 158, 255, 0.2)'
+    : 'rgba(64, 158, 255, 0.1)',
 }));
 
 const finishRename = () => {
@@ -1132,17 +1147,27 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
 </script>
 
 <style scoped>
+.ai-chat-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .main-container {
   display: flex;
-  height: 100vh;
+  flex: 1;
+  min-height: 0;
   gap: 18px;
   padding: 16px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .side-menu-wrapper {
   width: 250px;
-  height: calc(100vh - 32px);
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   border-radius: 16px;
@@ -1172,6 +1197,15 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
 .side-menu :deep(.el-menu-item) {
   overflow: visible;
   position: relative;
+  background-color: var(--menu-item-bg, transparent) !important;
+}
+
+.side-menu :deep(.el-menu-item:not(.is-disabled):hover) {
+  background-color: var(--menu-item-hover-bg, rgba(64, 158, 255, 0.1)) !important;
+}
+
+.side-menu :deep(.el-menu-item.is-active) {
+  background-color: var(--menu-item-active-bg, rgba(64, 158, 255, 0.15)) !important;
 }
 
 .side-menu :deep(.el-menu-item:hover),
@@ -1222,8 +1256,8 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
   display: flex;
   flex-direction: column;
   min-width: 0; /* 允许收缩 */
+  min-height: 0; /* 允许收缩 */
   overflow: hidden; /* 防止内容溢出 */
-  height: calc(100vh - 32px);
   border-radius: 16px;
   border: 1px solid;
   padding: 16px;
@@ -1284,12 +1318,12 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
 }
 
 .conversation-bottom-spacer {
-  height: 15vh;
+  height: 120px;
   flex-shrink: 0;
 }
 
 .conversation-bottom-spacer.has-references {
-  height: 20vh; /* 如果有引用列表，增加底部空间 */
+  height: 160px; /* 如果有引用列表，增加底部空间 */
 }
 
 .composer-wrapper {

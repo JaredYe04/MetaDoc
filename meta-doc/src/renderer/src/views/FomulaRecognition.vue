@@ -1,7 +1,36 @@
-<template> 
-  <div class="main-container">
-    <!-- 顶部工具栏：工具选择、撤销/重做、重置、图片导入与粘贴、笔刷粗细调节 -->
-    <div class="toolbar-group">
+<template>
+  <div class="formula-recognition-window">
+    <div class="main-container">
+      <!-- 左侧会话列表 -->
+      <SessionList
+        :title="t('formulaRecognition.sessionsTitle', '公式识别会话')"
+        :items="sessions"
+        :active-index="activeSessionId || undefined"
+        :disabled="processing || loadingSession"
+        :create-button-tooltip="t('formulaRecognition.newSession', '新建会话')"
+        :rename-label="t('common.rename', '重命名')"
+        :duplicate-label="t('common.duplicate', '复制')"
+        :delete-label="t('common.delete', '删除')"
+        :rename-dialog-title="t('formulaRecognition.renameTitle', '重命名会话')"
+        :rename-placeholder="t('formulaRecognition.renamePlaceholder', '请输入会话名称')"
+        :cancel-label="t('common.cancel', '取消')"
+        :confirm-label="t('common.confirm', '确认')"
+        @create="handleCreateSession"
+        @select="handleSelectSession"
+        @rename="handleRenameSession"
+        @duplicate="handleDuplicateSession"
+        @delete="handleDeleteSession"
+      />
+
+      <!-- 右侧内容区域 -->
+      <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+        <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
+          <p>{{ t('formulaRecognition.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
+        </div>
+        
+        <div v-else class="session-content-panel" :style="panelStyle">
+          <!-- 顶部工具栏：工具选择、撤销/重做、重置、图片导入与粘贴、笔刷粗细调节 -->
+          <div class="toolbar-group" :style="toolbarGroupStyle">
       <div class="flex flex-col items-start tool-group">
         <el-segmented v-model="tool" :options="options" size="default">
           <template #default="scope">
@@ -10,7 +39,6 @@
               'items-center',
               'gap-2',
               'flex-col',
-              direction === 'horizontal' && 'p-2',
             ]">
               <el-icon size="20">
                 <component :is="scope.item.icon" />
@@ -71,10 +99,10 @@
           border: tool === 'eraser' ? '1px solid #ccc' : 'none'
         }"></div>
       </div>
-    </div>
+          </div>
 
-    <!-- 中间内容区域 -->
-    <div class="content">
+          <!-- 中间内容区域 -->
+          <div class="content">
       <!-- 左侧：画板 -->
       <div class="left-panel display-panel" id="canvasContainer">
         <canvas ref="drawingCanvas" class="drawing-canvas"></canvas>
@@ -95,7 +123,7 @@
           class="latex-container"
           previewTheme="github"
           codeStyleReverse
-          :style="{ textColor: themeState.currentTheme.textColor }"
+          :style="{ color: themeState.currentTheme.textColor }"
           :class="themeState.currentTheme.mdeditorClass"
           :codeFold="false"
           :autoFoldThreshold="300"
@@ -112,6 +140,9 @@
               <el-button type="primary" :icon="Picture" circle @click="openExportDialog" />
             </el-tooltip>
           </div>
+          </div>
+        </div>
+      </div>
         </div>
       </div>
     </div>
@@ -149,22 +180,34 @@
 </template>
 
 
-<script setup>
-import { ref, onMounted, computed } from 'vue'
-import { ElNotification } from 'element-plus'
+<script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
+import { ElNotification, ElMessage } from 'element-plus'
 import { CircleClose, CopyDocument, DocumentCopy, Edit, EditPen, Picture, Pointer, Refresh, RefreshLeft, RefreshRight, Upload } from '@element-plus/icons-vue'
-import { getElement } from 'element-plus/es/utils/index.mjs'
 import { convertBase64ToBlob, toBase64 } from '../utils/image-utils'
 import { simpletexOcr } from '../utils/simpletex-utils'
-import { ConvertMarkdownToHtmlManually } from '../utils/md-utils'
 import { themeState } from '../utils/themes'
 import { MdPreview } from 'md-editor-v3'
 import '../assets/tool-group.css'
 import { useI18n } from 'vue-i18n'
-const { t } = useI18n()
 import { createRendererLogger } from '../utils/logger.ts'
-const logger = createRendererLogger('FormulaRecognition')
 import { exportSingleFormula } from '../utils/math-renderer.js'
+import SessionList from '../components/common/SessionList.vue'
+import type { SessionListItem } from '../components/common/SessionList.vue'
+import { formulaRecognitionSessionsDb, type FormulaRecognitionSession } from '../utils/db/tool-sessions-db'
+
+const { t } = useI18n()
+const logger = createRendererLogger('FormulaRecognition')
+
+// 会话管理
+const sessions = ref<SessionListItem[]>([])
+const activeSessionId = ref<string | null>(null)
+const activeSession = computed(() => {
+  if (!activeSessionId.value) return null
+  return sessions.value.find(s => s.id === activeSessionId.value) as any
+})
+const loadingSession = ref(false)
+const processing = ref(false)
 
 // 当前工具：'pen'、'eraser' 或 'pointer'
 const tool = ref('pen')
@@ -178,9 +221,9 @@ const editDialogVisible = ref(false)
 // 公式识别得到的 LaTeX 公式
 const latexResult = ref('')
 // 文件上传和 canvas 引用
-const fileInput = ref(null)
-const drawingCanvas = ref(null)
-let canvasContext = null
+const fileInput = ref<HTMLInputElement | null>(null)
+const drawingCanvas = ref<HTMLCanvasElement | null>(null)
+let canvasContext: CanvasRenderingContext2D | null = null
 let isDrawing = false
 // 笔刷粗细（画笔模式下有效），范围1~20，默认2
 const brushSize = ref(2)
@@ -199,51 +242,341 @@ const brushPreviewSize = computed(() => {
 })
 
 // 撤销与重做栈（保存 canvas ImageData 对象）
-const undoStack = []
-const redoStack = []
+const undoStack: ImageData[] = []
+const redoStack: ImageData[] = []
 
-//监听窗口的resize事件，重新设置canvas的宽高
-window.addEventListener('resize', () => {
-    //先保留原来的画布内容
-    const imgData = canvasContext.getImageData(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-    //重新设置画布的宽高
-    drawingCanvas.value.width = document.getElementById('canvasContainer').clientWidth
-    drawingCanvas.value.height = document.getElementById('canvasContainer').clientHeight
-    //重新绘制画布内容
-    canvasContext.putImageData(imgData, 0, 0)
+// 窗口resize处理函数
+let resizeHandler: (() => void) | null = null
 
+
+// 加载会话列表
+const loadSessions = async () => {
+  try {
+    const dbSessions = await formulaRecognitionSessionsDb.getAll()
+    sessions.value = dbSessions.map(s => ({
+      id: s.id,
+      title: s.title,
+      updatedAt: s.updated_at
+    }))
+  } catch (error) {
+    ElMessage.error('加载会话列表失败: ' + (error instanceof Error ? error.message : String(error)))
+  }
+}
+
+// 创建新会话
+const handleCreateSession = async () => {
+  try {
+    const id = `formula-recognition-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    const title = t('formulaRecognition.defaultTitle', '新公式识别会话')
+    
+    await formulaRecognitionSessionsDb.create({
+      id,
+      title,
+      description: '',
+      canvas_image: undefined,
+      latex_result: undefined,
+      brush_size: 2
+    })
+    
+    await loadSessions()
+    activeSessionId.value = id
+    // 等待 DOM 更新
+    await nextTick()
+    // 确保画布已初始化
+    if (!canvasContext && drawingCanvas.value) {
+      initCanvas()
+      await nextTick()
+    }
+    resetCanvas()
+    latexResult.value = ''
+  } catch (error) {
+    ElMessage.error('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
+  }
+}
+
+// 选择会话
+const handleSelectSession = async (item: SessionListItem) => {
+  if (loadingSession.value) return
+  
+  loadingSession.value = true
+  try {
+    // 保存当前会话
+    if (activeSessionId.value) {
+      await saveCurrentSession()
+    }
+    
+    activeSessionId.value = item.id
+    const session = await formulaRecognitionSessionsDb.getById(item.id)
+    if (session) {
+      // 等待 DOM 更新
+      await nextTick()
+      // 确保画布已初始化
+      if (!canvasContext && drawingCanvas.value) {
+        initCanvas()
+        await nextTick()
+      }
+      // 恢复画布
+      if (session.canvas_image) {
+        await restoreCanvas(session.canvas_image)
+      } else {
+        resetCanvas()
+      }
+      // 恢复公式
+      latexResult.value = session.latex_result || ''
+      // 恢复笔刷大小
+      brushSize.value = session.brush_size || 2
+    }
+  } catch (error) {
+    ElMessage.error('加载会话失败: ' + (error instanceof Error ? error.message : String(error)))
+  } finally {
+    loadingSession.value = false
+  }
+}
+
+// 重命名会话
+const handleRenameSession = async (item: SessionListItem, newTitle: string) => {
+  try {
+    await formulaRecognitionSessionsDb.update(item.id, { title: newTitle })
+    await loadSessions()
+  } catch (error) {
+    ElMessage.error('重命名失败: ' + (error instanceof Error ? error.message : String(error)))
+  }
+}
+
+// 复制会话
+const handleDuplicateSession = async (item: SessionListItem) => {
+  try {
+    const session = await formulaRecognitionSessionsDb.getById(item.id)
+    if (!session) return
+    
+    const id = `formula-recognition-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    await formulaRecognitionSessionsDb.create({
+      id,
+      title: session.title + ' (副本)',
+      description: session.description,
+      canvas_image: session.canvas_image,
+      latex_result: session.latex_result,
+      brush_size: session.brush_size
+    })
+    
+    await loadSessions()
+    ElMessage.success(t('common.duplicateSuccess', '复制成功'))
+  } catch (error) {
+    ElMessage.error('复制失败: ' + (error instanceof Error ? error.message : String(error)))
+  }
+}
+
+// 删除会话
+const handleDeleteSession = async (item: SessionListItem) => {
+  try {
+    await formulaRecognitionSessionsDb.delete(item.id)
+    await loadSessions()
+    if (activeSessionId.value === item.id) {
+      activeSessionId.value = null
+      resetCanvas()
+      latexResult.value = ''
+    }
+    ElMessage.success(t('common.deleteSuccess', '删除成功'))
+  } catch (error) {
+    ElMessage.error('删除失败: ' + (error instanceof Error ? error.message : String(error)))
+  }
+}
+
+// 保存当前会话
+const saveCurrentSession = async () => {
+  if (!activeSessionId.value || !drawingCanvas.value) return
+  
+  try {
+    const canvasImage = drawingCanvas.value.toDataURL('image/png')
+    await formulaRecognitionSessionsDb.update(activeSessionId.value, {
+      canvas_image: canvasImage,
+      latex_result: latexResult.value,
+      brush_size: brushSize.value
+    })
+  } catch (error) {
+    logger.error('保存会话失败:', error)
+  }
+}
+
+// 恢复画布
+const restoreCanvas = async (canvasImage: string) => {
+  if (!drawingCanvas.value || !canvasContext) return
+  
+  const img = new Image()
+  img.onload = () => {
+    if (!drawingCanvas.value || !canvasContext) return
+    canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
+    canvasContext.drawImage(img, 0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
+    pushState()
+  }
+  img.src = canvasImage
+}
+
+// 初始化画布
+const initCanvas = () => {
+  if (!drawingCanvas.value) return
+  
+  const container = document.getElementById('canvasContainer')
+  if (!container) return
+  
+  canvasContext = drawingCanvas.value.getContext('2d')
+  if (!canvasContext) return
+  
+  // 设置默认绘图参数
+  canvasContext.lineWidth = brushSize.value
+  canvasContext.lineCap = 'round'
+  canvasContext.lineJoin = 'round'
+  // 填充背景为白色
+  canvasContext.fillStyle = '#fff'
+  
+  // 设置画布尺寸 - 使用容器的实际尺寸
+  const updateCanvasSize = () => {
+    if (!drawingCanvas.value || !container || !canvasContext) return
+    const rect = container.getBoundingClientRect()
+    const width = rect.width
+    const height = rect.height
+    
+    if (width > 0 && height > 0) {
+      // 检查是否是首次初始化（画布尺寸为0或未设置）
+      const isFirstInit = drawingCanvas.value.width === 0 || drawingCanvas.value.height === 0
+      
+      // 如果不是首次初始化，保存当前内容
+      let imgData: ImageData | null = null
+      if (!isFirstInit && drawingCanvas.value.width > 0 && drawingCanvas.value.height > 0) {
+        try {
+          imgData = canvasContext.getImageData(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
+        } catch (e) {
+          // 如果获取失败，忽略
+        }
+      }
+      
+      // 设置新尺寸
+      drawingCanvas.value.width = width
+      drawingCanvas.value.height = height
+      
+      // 恢复内容或填充白色背景
+      if (imgData && imgData.width > 0 && imgData.height > 0) {
+        canvasContext.putImageData(imgData, 0, 0)
+      } else {
+        // 如果是首次初始化或没有内容，填充白色背景
+        canvasContext.fillStyle = '#fff'
+        canvasContext.fillRect(0, 0, width, height)
+      }
+    }
+  }
+  
+  // 初始设置尺寸
+  updateCanvasSize()
+  
+  // 保存初始状态
+  pushState()
+  
+  // 移除旧的事件监听器（如果存在）
+  if (drawingCanvas.value) {
+    drawingCanvas.value.removeEventListener('mousedown', startDrawing)
+    drawingCanvas.value.removeEventListener('mousemove', draw)
+    drawingCanvas.value.removeEventListener('mouseup', stopDrawing)
+    drawingCanvas.value.removeEventListener('mouseout', stopDrawing)
+  }
+  
+  // 监听绘图事件
+  drawingCanvas.value.addEventListener('mousedown', startDrawing)
+  drawingCanvas.value.addEventListener('mousemove', draw)
+  drawingCanvas.value.addEventListener('mouseup', stopDrawing)
+  drawingCanvas.value.addEventListener('mouseout', stopDrawing)
+  
+  // 触摸事件支持
+  drawingCanvas.value.addEventListener('touchstart', (e) => {
+    e.preventDefault()
+    const touch = e.touches[0]
+    const mouseEvent = new MouseEvent('mousedown', {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    })
+    drawingCanvas.value?.dispatchEvent(mouseEvent)
+  })
+  
+  drawingCanvas.value.addEventListener('touchmove', (e) => {
+    e.preventDefault()
+    const touch = e.touches[0]
+    const mouseEvent = new MouseEvent('mousemove', {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    })
+    drawingCanvas.value?.dispatchEvent(mouseEvent)
+  })
+  
+  drawingCanvas.value.addEventListener('touchend', (e) => {
+    e.preventDefault()
+    const mouseEvent = new MouseEvent('mouseup', {})
+    drawingCanvas.value?.dispatchEvent(mouseEvent)
+  })
+  
+  // 监听窗口resize
+  resizeHandler = () => {
+    if (!drawingCanvas.value || !canvasContext || !container) return
+    updateCanvasSize()
+  }
+  window.addEventListener('resize', resizeHandler)
+  
+  // 使用 ResizeObserver 监听容器尺寸变化
+  const resizeObserver = new ResizeObserver(() => {
+    updateCanvasSize()
+  })
+  resizeObserver.observe(container)
+  
+  // 保存 observer 以便清理
+  ;(drawingCanvas.value as any).__resizeObserver = resizeObserver
+}
+
+onMounted(async () => {
+  await loadSessions()
+  // 等待 DOM 完全渲染后再初始化画布
+  await nextTick()
+  // 使用 setTimeout 确保容器尺寸已计算
+  setTimeout(() => {
+    initCanvas()
+  }, 100)
+  window.addEventListener('paste', handlePaste)
 })
 
-
-onMounted(() => {
-    if (drawingCanvas.value) {
-        canvasContext = drawingCanvas.value.getContext('2d')
-        // 设置默认绘图参数
-        canvasContext.lineWidth = brushSize.value
-        canvasContext.lineCap = 'round'
-        // 填充背景为白色
-        canvasContext.fillStyle = '#fff'
-        canvasContext.fillRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-        // drawingCanvas.value.width = document.getElementById('canvasContainer').offsetWidth
-        // drawingCanvas.value.height = document.getElementById('canvasContainer').offsetHeight
-        drawingCanvas.value.width = document.getElementById('canvasContainer').clientWidth
-        drawingCanvas.value.height = document.getElementById('canvasContainer').clientHeight
-
-
-        // drawingCanvas.value.height = drawingCanvas.value.offsetHeight
-        // 保存初始状态
-        pushState()
-        // 监听绘图事件
-        drawingCanvas.value.addEventListener('mousedown', startDrawing)
-        drawingCanvas.value.addEventListener('mousemove', draw)
-        drawingCanvas.value.addEventListener('mouseup', stopDrawing)
-        drawingCanvas.value.addEventListener('mouseout', stopDrawing)
+onBeforeUnmount(() => {
+  if (activeSessionId.value) {
+    saveCurrentSession()
+  }
+  if (resizeHandler) {
+    window.removeEventListener('resize', resizeHandler)
+  }
+  window.removeEventListener('paste', handlePaste)
+  
+  // 清理事件监听器
+  if (drawingCanvas.value) {
+    drawingCanvas.value.removeEventListener('mousedown', startDrawing)
+    drawingCanvas.value.removeEventListener('mousemove', draw)
+    drawingCanvas.value.removeEventListener('mouseup', stopDrawing)
+    drawingCanvas.value.removeEventListener('mouseout', stopDrawing)
+    
+    // 清理 ResizeObserver
+    const observer = (drawingCanvas.value as any).__resizeObserver
+    if (observer) {
+      observer.disconnect()
     }
-    window.addEventListener('paste', handlePaste)
+  }
+})
+
+// 监听画布变化，自动保存
+watch([() => latexResult.value, () => brushSize.value], () => {
+  if (activeSessionId.value) {
+    // 防抖保存
+    setTimeout(() => {
+      saveCurrentSession()
+    }, 1000)
+  }
 })
 
 // 计算 canvas 内部的实际坐标（考虑缩放偏移）
-function getCanvasCoordinates(e) {
+function getCanvasCoordinates(e: MouseEvent) {
+    if (!drawingCanvas.value) return { x: 0, y: 0 }
     const rect = drawingCanvas.value.getBoundingClientRect()
     const scaleX = drawingCanvas.value.width / rect.width
     const scaleY = drawingCanvas.value.height / rect.height
@@ -254,8 +587,8 @@ function getCanvasCoordinates(e) {
 }
 
 // 绘图开始
-function startDrawing(e) {
-    if (tool.value === 'pointer') return
+function startDrawing(e: MouseEvent) {
+    if (tool.value === 'pointer' || !canvasContext) return
     isDrawing = true
     const { x, y } = getCanvasCoordinates(e)
     canvasContext.beginPath()
@@ -263,8 +596,8 @@ function startDrawing(e) {
 }
 
 // 绘制过程
-function draw(e) {
-    if (!isDrawing || tool.value === 'pointer') return
+function draw(e: MouseEvent) {
+    if (!isDrawing || tool.value === 'pointer' || !canvasContext) return
     const { x, y } = getCanvasCoordinates(e)
     if (tool.value === 'eraser') {
         canvasContext.strokeStyle = '#fff'
@@ -280,7 +613,7 @@ function draw(e) {
 
 // 绘图结束
 function stopDrawing() {
-    if (!isDrawing) return
+    if (!isDrawing || !canvasContext) return
     isDrawing = false
     canvasContext.closePath()
     pushState()
@@ -289,33 +622,47 @@ function stopDrawing() {
 
 // 保存当前 canvas 状态到撤销栈
 function pushState() {
+    if (!drawingCanvas.value || !canvasContext) return
     const canvas = drawingCanvas.value
-    if (canvas && canvasContext) {
-        const imgData = canvasContext.getImageData(0, 0, canvas.width, canvas.height)
-        undoStack.push(imgData)
-    }
+    const imgData = canvasContext.getImageData(0, 0, canvas.width, canvas.height)
+    undoStack.push(imgData)
 }
 
 // 撤销操作
 function undo() {
-    if (undoStack.length > 1) {
-        const currentState = undoStack.pop()
+    if (!canvasContext) return
+    if (undoStack.length <= 1) {
+        ElNotification({
+            title: t('formulaRecognition.notification.title_info'),
+            message: t('formulaRecognition.notification.undo_fail'),
+            type: 'warning'
+        })
+        return
+    }
+    const currentState = undoStack.pop()
+    if (currentState) {
         redoStack.push(currentState)
         const previousState = undoStack[undoStack.length - 1]
-        canvasContext.putImageData(previousState, 0, 0)
-    } else {
-ElNotification({
-  title: t('formulaRecognition.notification.title_info'),
-  message: t('formulaRecognition.notification.undo_fail'),
-  type: 'warning'
-})
+        if (previousState) {
+            canvasContext.putImageData(previousState, 0, 0)
+        }
     }
 }
 
 // 重做操作
 function redo() {
-    if (redoStack.length > 0) {
-        const state = redoStack.pop()
+    if (!canvasContext || redoStack.length === 0) {
+        if (redoStack.length === 0) {
+            ElNotification({
+                title: t('formulaRecognition.notification.title_info'),
+                message: t('formulaRecognition.notification.redo_fail'),
+                type: 'warning'
+            })
+        }
+        return
+    }
+    const state = redoStack.pop()
+    if (state) {
         undoStack.push(state)
         canvasContext.putImageData(state, 0, 0)
     } else {
@@ -328,12 +675,13 @@ ElNotification({
 }
 
 // 工具选择
-function selectTool(selected) {
+function selectTool(selected: string) {
     tool.value = selected
 }
 
 // 重置画布，清空内容并保存初始状态
 function resetCanvas() {
+    if (!canvasContext || !drawingCanvas.value) return
     canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
     canvasContext.fillStyle = '#fff'
     canvasContext.fillRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
@@ -348,25 +696,32 @@ function triggerImport() {
 }
 
 // 处理上传的图片文件
-function handleFileChange(e) {
-    const file = e.target.files[0]
-    if (file && file.type.startsWith('image/')) {
+function handleFileChange(e: Event) {
+    const target = e.target as HTMLInputElement
+    const file = target.files?.[0]
+    if (file && file.type.startsWith('image/') && canvasContext && drawingCanvas.value) {
         const reader = new FileReader()
         reader.onload = (event) => {
-            const img = new Image()
-            img.onload = () => {
-                canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-                canvasContext.drawImage(img, 0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-                pushState()
+            const result = event.target?.result
+            if (typeof result === 'string') {
+                const img = new Image()
+                img.onload = () => {
+                    if (canvasContext && drawingCanvas.value) {
+                        canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
+                        canvasContext.drawImage(img, 0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
+                        pushState()
+                    }
+                }
+                img.src = result
             }
-            img.src = event.target.result
         }
         reader.readAsDataURL(file)
     }
 }
 
-// 粘贴图片提示
+// 复制图片到剪切板
 async function copyImage() {
+    if (!drawingCanvas.value) return
     // 将 canvas 转为图片
     const imgData = drawingCanvas.value.toDataURL('image/png')
     // 将图片转为Base64格式，然后转换成Blob对象
@@ -388,28 +743,34 @@ ElNotification({
 
 }
 // 处理剪切板粘贴的图片
-function handlePaste(e, items_ = null) {
-    let items;
+function handlePaste(e: ClipboardEvent, items_?: DataTransferItemList | null) {
+    let items: DataTransferItemList
     if (items_) {
         items = items_
-        //console.log(items)
     } else {
-        items = (e.clipboardData || e.originalEvent.clipboardData).items
+        items = (e.clipboardData || (e as any).originalEvent?.clipboardData)?.items
+        if (!items) return
     }
 
     for (let index in items) {
         const item = items[index]
-        if (item.kind === 'file') {
+        if (item.kind === 'file' && canvasContext && drawingCanvas.value) {
             const blob = item.getAsFile()
+            if (!blob) continue
             const reader = new FileReader()
             reader.onload = (event) => {
-                const img = new Image()
-                img.onload = () => {
-                    canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-                    canvasContext.drawImage(img, 0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-                    pushState()
+                const result = event.target?.result
+                if (typeof result === 'string') {
+                    const img = new Image()
+                    img.onload = () => {
+                        if (canvasContext && drawingCanvas.value) {
+                            canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
+                            canvasContext.drawImage(img, 0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
+                            pushState()
+                        }
+                    }
+                    img.src = result
                 }
-                img.src = event.target.result
             }
             reader.readAsDataURL(blob)
             break
@@ -419,13 +780,28 @@ function handlePaste(e, items_ = null) {
 
 // 模拟调用公式识别 API
 async function recognizeFormula() {
+  if (!drawingCanvas.value) return
+  
+  processing.value = true
+  try {
     const imageData = drawingCanvas.value.toDataURL('image/png')
-    simpletexOcr(imageData).then((res) => {
-        res = '$$\n' + res + '\n$$'
-        res =
-            latexResult.value = res
+    const res = await simpletexOcr(imageData)
+    latexResult.value = '$$\n' + res + '\n$$'
+    
+    // 保存结果
+    if (activeSessionId.value) {
+      await saveCurrentSession()
+    }
+  } catch (error) {
+    logger.error('公式识别失败:', error)
+    ElNotification({
+      title: t('formulaRecognition.notification.title_error'),
+      message: error instanceof Error ? error.message : String(error),
+      type: 'error'
     })
-
+  } finally {
+    processing.value = false
+  }
 }
 
 // 打开编辑对话框
@@ -454,7 +830,7 @@ function openExportDialog() {
     exportDialogVisible.value = true
 }
 
-function normalizeTex(src) {
+function normalizeTex(src: string) {
     // 去掉外围 ```latex 或者 $$ 包裹
     let s = (src || '').trim()
     // 去除 markdown 代码围栏
@@ -510,7 +886,7 @@ async function confirmExport() {
             const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
             const imageUrl = `http://localhost:52521/images/${uploaded}`
 
-            const saveResult = await ipcRenderer.invoke('save-image-file', imageUrl, 'formula.svg')
+            const saveResult = await ipcRenderer.invoke('save-image-file', imageUrl, 'formula.svg') as { success: boolean; error?: string }
             if (!saveResult.success) throw new Error(saveResult.error || '保存失败')
         } else if (exportFormat.value === 'png') {
             // 矢量生成后再转位图
@@ -527,7 +903,7 @@ async function confirmExport() {
                 reader.readAsDataURL(pngBlob)
             })
             
-            const result = await ipcRenderer.invoke('save-image-file', dataUrl, 'formula.png')
+            const result = await ipcRenderer.invoke('save-image-file', dataUrl, 'formula.png') as { success: boolean; error?: string }
             if (!result.success) throw new Error(result.error || '保存失败')
         } else if (exportFormat.value === 'pdf') {
             // 先拿到 SVG data URL，再转 PDF（上传到本地再转换）
@@ -552,36 +928,120 @@ async function confirmExport() {
             const m = converted.match(/!\[.*?\]\((.+?)\)/)
             const svgPath = m ? m[1] : imageUrl
 
-            const convertResult = await ipcRenderer.invoke('convert-svg-to-pdf', svgPath)
+            const convertResult = await ipcRenderer.invoke('convert-svg-to-pdf', svgPath) as { success: boolean; pdfPath?: string; error?: string }
             if (!convertResult.success || !convertResult.pdfPath) {
                 throw new Error(convertResult.error || 'SVG 转 PDF 失败')
             }
-            const saveResult = await ipcRenderer.invoke('save-image-file', convertResult.pdfPath, 'formula.pdf')
+            const saveResult = await ipcRenderer.invoke('save-image-file', convertResult.pdfPath, 'formula.pdf') as { success: boolean; error?: string }
             if (!saveResult.success) throw new Error(saveResult.error || '保存失败')
         }
         ElNotification({ title: t('aigraph.success.export_succeeded'), message: '', type: 'success' })
     } catch (error) {
         logger.error('导出公式失败:', error)
-        ElNotification({ title: t('aigraph.error.export_failed'), message: String(error?.message || error), type: 'error' })
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        ElNotification({ title: t('aigraph.error.export_failed'), message: errorMessage, type: 'error' })
     }
 }
+
+// 主题样式
+const borderColor = computed(() =>
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)',
+)
+
+const panelStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd,
+  color: themeState.currentTheme.textColor,
+  borderColor: borderColor.value,
+}))
+
+const contentAreaStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  color: themeState.currentTheme.textColor,
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column' as const,
+  overflow: 'hidden' as const,
+  height: '100%',
+  minHeight: 0,
+  padding: '16px',
+  boxSizing: 'border-box' as const
+}))
+
+const emptyStateStyle = computed(() => ({
+  color: themeState.currentTheme.textColor,
+  opacity: 0.6,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: '100%'
+}))
+
+const toolbarGroupStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd || themeState.currentTheme.background,
+  color: themeState.currentTheme.textColor
+}))
 </script>
 
 <style scoped>
+.formula-recognition-window {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .main-container {
-    padding: 20px;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.session-content-panel {
+  border-radius: 16px;
+  border: 1px solid;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  margin: 0;
+  height: 100%;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  gap: 16px;
 }
 
 /* 顶部工具栏 */
 .toolbar-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 
 /* 笔刷粗细设置 */
@@ -593,28 +1053,34 @@ async function confirmExport() {
 
 /* 中间内容区域 */
 .content {
-    display: flex;
-    gap: 20px;
-    width: 100%;
-    height: 400px;
+  display: flex;
+  gap: 20px;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* 左侧画板 */
 .left-panel {
     flex: 1;
     position: relative;
-
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .drawing-canvas {
-
     background-color: #fff;
     display: block;
     position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
-
-
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    touch-action: none;
 }
 
 /* 中间区域 */
@@ -645,11 +1111,13 @@ async function confirmExport() {
 }
 
 .display-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-
-    border: 1px solid #8d8d8d;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid v-bind('borderColor');
+  border-radius: 8px;
+  padding: 10px;
+  background-color: v-bind('themeState.currentTheme.background');
 }
 
 /* 底部工具栏 */

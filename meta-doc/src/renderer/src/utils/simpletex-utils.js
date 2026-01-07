@@ -106,10 +106,12 @@ export async function simpletexOcr(base64string) {
   const fileBuffer = await file.arrayBuffer();
   // 将 reqData 中的其它参数也加入 FormData
   // 发送到主进程
+  // 注意：浏览器环境不支持 Buffer，直接传递 ArrayBuffer，主进程会处理
+  // IPC 可以序列化 ArrayBuffer，主进程会使用 Buffer.from() 转换
   let result=await ipcRenderer.invoke('simpletex-ocr', {
     fileName: file.name, // 传递文件名
     fileType: file.type, // 传递文件类型
-    fileBuffer: Buffer.from(fileBuffer), // 传递 Buffer
+    fileBuffer: fileBuffer, // 直接传递 ArrayBuffer，主进程会转换为 Buffer
     reqData,
     header
   });

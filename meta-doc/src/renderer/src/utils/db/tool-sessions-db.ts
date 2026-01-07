@@ -69,6 +69,17 @@ export interface GraphSession {
   updated_at: string
 }
 
+export interface FormulaRecognitionSession {
+  id: string
+  title: string
+  description?: string
+  canvas_image?: string // Base64编码的画布图片
+  latex_result?: string // LaTeX公式
+  brush_size?: number // 笔刷粗细（1-20）
+  created_at: string
+  updated_at: string
+}
+
 export interface AIChatSession {
   id: string
   title: string
@@ -521,6 +532,88 @@ export const aiChatSessionsDb = {
     } catch {
       return false
     }
+  }
+}
+
+/**
+ * 公式识别会话CRUD
+ */
+export const formulaRecognitionSessionsDb = {
+  async getAll(): Promise<FormulaRecognitionSession[]> {
+    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
+    return await ipcRenderer.invoke('db-query', {
+      sql: 'SELECT * FROM formula_recognition_sessions ORDER BY updated_at DESC',
+      params: []
+    }) as FormulaRecognitionSession[]
+  },
+
+  async getById(id: string): Promise<FormulaRecognitionSession | null> {
+    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
+    const results = await ipcRenderer.invoke('db-query', {
+      sql: 'SELECT * FROM formula_recognition_sessions WHERE id = ?',
+      params: [id]
+    }) as FormulaRecognitionSession[]
+    return results[0] || null
+  },
+
+  async create(session: Omit<FormulaRecognitionSession, 'created_at' | 'updated_at'>): Promise<void> {
+    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
+    await ipcRenderer.invoke('db-execute', {
+      sql: `INSERT INTO formula_recognition_sessions 
+            (id, title, description, canvas_image, latex_result, brush_size, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      params: [
+        session.id,
+        session.title,
+        session.description || null,
+        session.canvas_image || null,
+        session.latex_result || null,
+        session.brush_size !== undefined ? session.brush_size : 2
+      ]
+    })
+  },
+
+  async update(id: string, updates: Partial<Omit<FormulaRecognitionSession, 'id' | 'created_at'>>): Promise<void> {
+    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
+    const fields: string[] = []
+    const params: any[] = []
+    
+    if (updates.title !== undefined) {
+      fields.push('title = ?')
+      params.push(updates.title)
+    }
+    if (updates.description !== undefined) {
+      fields.push('description = ?')
+      params.push(updates.description || null)
+    }
+    if (updates.canvas_image !== undefined) {
+      fields.push('canvas_image = ?')
+      params.push(updates.canvas_image || null)
+    }
+    if (updates.latex_result !== undefined) {
+      fields.push('latex_result = ?')
+      params.push(updates.latex_result || null)
+    }
+    if (updates.brush_size !== undefined) {
+      fields.push('brush_size = ?')
+      params.push(updates.brush_size)
+    }
+    
+    fields.push('updated_at = CURRENT_TIMESTAMP')
+    params.push(id)
+    
+    await ipcRenderer.invoke('db-execute', {
+      sql: `UPDATE formula_recognition_sessions SET ${fields.join(', ')} WHERE id = ?`,
+      params
+    })
+  },
+
+  async delete(id: string): Promise<void> {
+    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
+    await ipcRenderer.invoke('db-execute', {
+      sql: 'DELETE FROM formula_recognition_sessions WHERE id = ?',
+      params: [id]
+    })
   }
 }
 

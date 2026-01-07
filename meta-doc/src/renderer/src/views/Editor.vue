@@ -1,22 +1,41 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
-import { activeTabId, tabs, useWorkspace } from '../stores/workspace';
+import { onMounted, onBeforeUnmount, ref, watch, computed } from 'vue';
+import { useWorkspace } from '../stores/workspace';
 import eventBus from '../utils/event-bus';
 import WorkspaceTabPane from '../components/workspace/WorkspaceTabPane.vue';
 import { useI18n } from 'vue-i18n';
 import { themeState } from '../utils/themes';
 
+const props = defineProps<{
+  tabId?: string;
+}>();
+
+const workspace = useWorkspace();
 const {
   activateTab,
   removeTab,
   openNewDocumentTab,
   moveTab,
   saveAllDocuments,
-} = useWorkspace();
+  activeTabId,
+} = workspace;
 
 const { t } = useI18n();
 
 const isSavingAll = ref(false);
+
+// 根据传入的tabId获取对应的tab，如果没有传入则使用activeTabId
+const currentTab = computed(() => {
+  // 直接访问 workspace.tabs（reactive 数组）保持响应式
+  if (!workspace.tabs || !Array.isArray(workspace.tabs) || workspace.tabs.length === 0) {
+    return null;
+  }
+  const targetTabId = props.tabId || activeTabId.value;
+  if (!targetTabId) {
+    return null;
+  }
+  return workspace.tabs.find(tab => tab.id === targetTabId) || null;
+});
 
 // 注意：new-doc 事件已在 Main.vue 中统一处理，这里不需要重复监听
 // const handleNewDocumentRequest = () => {
@@ -94,15 +113,14 @@ onBeforeUnmount(() => {
     <div class="workspace-editor-content">
       <KeepAlive>
         <WorkspaceTabPane
-          v-for="tab in tabs"
-          :key="tab.id"
-          v-show="tab.id === activeTabId"
-          :tab="tab"
-          :active="tab.id === activeTabId"
+          v-if="currentTab"
+          :key="currentTab.id"
+          :tab="currentTab"
+          :active="currentTab.id === activeTabId"
         />
       </KeepAlive>
       <el-empty
-        v-if="!tabs.length"
+        v-if="!currentTab"
         class="workspace-editor-empty"
         description="暂无打开的文档"
       />

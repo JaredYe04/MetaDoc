@@ -19,6 +19,7 @@ import AttachmentWindow from '../views/AttachmentWindow.vue'
 import GraphWindow from '../views/GraphWindow.vue'
 import ProofreadView from '../views/ProofreadView.vue'
 import DummyView from '../views/DummyView.vue'
+import LlmStatisticsView from '../views/LlmStatisticsView.vue'
 
 // 所有页面组件集中管理
 const pages = {
@@ -104,6 +105,12 @@ const routes = [
     path:'/dummy',
     name:'Dummy',
     component: DummyView,
+    meta: { requiresLayout: true }
+  },
+  {
+    path:'/llm-statistics',
+    name:'LlmStatistics',
+    component: LlmStatisticsView,
     meta: { requiresLayout: true }
   },
     // 动态生成特殊页面的两种访问路径

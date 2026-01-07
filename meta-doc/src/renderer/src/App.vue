@@ -597,4 +597,26 @@ a {
   -moz-user-select: text !important;
   -ms-user-select: text !important;
 }
+
+/* 全局对话框圆角样式 */
+.el-dialog {
+  border-radius: 20px !important;
+}
+
+.el-dialog__header {
+  border-radius: 20px 20px 0 0 !important;
+}
+
+.el-dialog__body {
+  border-radius: 0 !important;
+}
+
+.el-dialog__footer {
+  border-radius: 0 0 20px 20px !important;
+}
+
+/* Element Plus MessageBox 也使用对话框样式 */
+.el-message-box {
+  border-radius: 20px !important;
+}
 </style>

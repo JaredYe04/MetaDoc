@@ -28,6 +28,7 @@
                   <Editor 
                     v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'editor'"
                     :key="`editor-${tab.id}`"
+                    :tab-id="tab.id"
                   />
                   <Outline 
                     v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'outline'"
@@ -102,6 +103,11 @@
                     v-else-if="tab.route === '/graph' || tab.route === '/ai-graph' || tab.route === '/smart-drawing-assistant'"
                     v-show="tab.id === activeTabId"
                     :key="`graph-${tab.id}`"
+                  />
+                  <LlmStatisticsView 
+                    v-else-if="tab.route === '/llm-statistics'"
+                    v-show="tab.id === activeTabId"
+                    :key="`llm-statistics-${tab.id}`"
                   />
                   <!-- 其他系统Tab和工具Tab使用router-view作为fallback -->
                   <router-view 
@@ -190,6 +196,7 @@ import DataAnalysisWindow from './DataAnalysisWindow.vue'
 import OcrWindow from './OcrWindow.vue'
 import AttachmentWindow from './AttachmentWindow.vue'
 import GraphWindow from './GraphWindow.vue'
+import LlmStatisticsView from './LlmStatisticsView.vue'
 const { t } = useI18n()
 
 import { createRendererLogger } from '../utils/logger.ts'
@@ -243,27 +250,51 @@ const {
 
 const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 
-const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocument => ({
-  id: '',
-  tabId: '',
-  path: '',
-  format: data.format,
-  markdown: data.markdown,
-  tex: data.tex,
-  outline: cloneDeep(data.outline),
-  meta: { ...data.meta },
-  aiDialogs: cloneDeep(data.aiDialogs),
-  agentSessions: cloneDeep(data.agentSessions),
-  lastView: data.lastView === 'article' ? 'editor' : (data.lastView === 'outline' ? 'outline' : 'editor'),
-  renderedHtml: '',
-  dirty: false,
-  savedMarkdown: data.markdown,
-  savedTex: data.tex,
-  savedOutline: cloneDeep(data.outline),
-  savedMeta: { ...data.meta },
-  savedAiDialogs: cloneDeep(data.aiDialogs),
-  savedAgentSessions: cloneDeep(data.agentSessions),
-})
+// 规范化内容（统一换行符）
+const normalizeContent = (value: string | null | undefined): string => {
+  if (!value) return '';
+  return value.replace(/\r\n/g, '\n');
+}
+
+const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocument => {
+  // 规范化内容，确保与编辑器更新时使用的规范化逻辑一致
+  const normalizedMarkdown = normalizeContent(data.markdown);
+  const normalizedTex = normalizeContent(data.tex);
+  
+  logger.debug('创建文档快照', {
+    format: data.format,
+    markdownLength: normalizedMarkdown.length,
+    originalMarkdownLength: data.markdown?.length ?? 0,
+    texLength: normalizedTex.length,
+    originalTexLength: data.tex?.length ?? 0,
+    hasMarkdown: !!normalizedMarkdown,
+    hasTex: !!normalizedTex,
+    markdownEndsWithNewline: normalizedMarkdown.endsWith('\n'),
+    originalMarkdownEndsWithNewline: data.markdown?.endsWith('\n'),
+  });
+  
+  return {
+    id: '',
+    tabId: '',
+    path: '',
+    format: data.format,
+    markdown: normalizedMarkdown,
+    tex: normalizedTex,
+    outline: cloneDeep(data.outline),
+    meta: { ...data.meta },
+    aiDialogs: cloneDeep(data.aiDialogs),
+    agentSessions: cloneDeep(data.agentSessions),
+    lastView: data.lastView === 'article' ? 'editor' : (data.lastView === 'outline' ? 'outline' : 'editor'),
+    renderedHtml: '',
+    dirty: false,
+    savedMarkdown: normalizedMarkdown,
+    savedTex: normalizedTex,
+    savedOutline: cloneDeep(data.outline),
+    savedMeta: { ...data.meta },
+    savedAiDialogs: cloneDeep(data.aiDialogs),
+    savedAgentSessions: cloneDeep(data.agentSessions),
+  }
+}
 
 type OpenDocumentPayload = {
   format?: string
@@ -947,8 +978,11 @@ onBeforeUnmount(() => {
   flex: 0 0 40px;
   height: 40px;
   padding: 0;
+  margin: 0;
+  line-height: 40px;
   background-color: var(--el-bg-color, #ffffff);
-  border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0);
+  /* 分割线由 MainTabs 自己绘制，避免与其叠加造成“1-3px 缝隙/双线”观感 */
+  border-bottom: none;
   z-index: 100;
 }
 

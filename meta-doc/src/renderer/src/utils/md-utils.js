@@ -1525,6 +1525,8 @@ export const ConvertHtmlForPdf = async (md) => {
 }
 
 export function filterMetaDataFromMd(md){
-    const pureMd = md.replace(/<!--meta-info:\s*[^-]+?\s*-->/, '').trim();
+    // 只移除 meta-info 注释，不改变文件内容的原始格式（包括末尾换行符）
+    // 使用全局替换，移除所有 meta-info 注释
+    const pureMd = md.replace(/<!--meta-info:\s*[^-]+?\s*-->/g, '');
     return pureMd;
 }

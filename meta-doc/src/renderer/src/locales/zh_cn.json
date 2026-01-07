@@ -36,6 +36,7 @@
         "metaDocTooltip": "MetaDoc ;-)",
         "fileTooltip": "文件",
         "file": "文件",
+        "home": "主页",
         "tip": "提示",
         "askSave": "是否要保存当前文档？",
         "new": "新建",
@@ -71,7 +72,18 @@
         "saveAllAndExit": "保存全部并退出",
         "exitWithoutSaving": "退出但不保存",
         "userProfileTooltip": "用户资料",
-        "langTooltip": "语言"
+        "langTooltip": "语言",
+        "knowledgeBase": "知识库",
+        "debugTools": "调试工具",
+        "moreFeatures": "更多功能",
+        "menuConfig": {
+            "title": "菜单配置",
+            "description": "拖拽调整菜单顺序，或隐藏不需要的功能",
+            "visible": "显示",
+            "hidden": "隐藏",
+            "reset": "重置",
+            "save": "保存"
+        }
     },
     "llmDialog": {
         "aiAssistant": "AI助手",

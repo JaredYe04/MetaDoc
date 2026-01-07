@@ -634,6 +634,14 @@ let suppressOutlineSync = false;
 const syncOutlineFromTex = debounce(() => {
     if (suppressOutlineSync) return;
     if (!isActive.value) return;
+    
+    // 只在编辑器视图时才同步大纲，避免在outline视图时触发不必要的同步
+    const currentView = documentRef.value.lastView ?? 'editor';
+    // 兼容旧的'article'值（已被'editor'替代）
+    if (currentView !== 'editor' && (currentView as string) !== 'article') {
+        return;
+    }
+    
     try {
         const adapter = getOutlineAdapter('tex');
         const extractedOutline = adapter.fromText(currentTex.value);

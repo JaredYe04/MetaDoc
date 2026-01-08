@@ -1,5 +1,5 @@
 <template>
-  <div class="head-menu-container" :class="{ 'is-collapsed': isCollapsed }">
+  <div class="view-menu-container" :class="{ 'is-collapsed': isCollapsed }">
     <el-menu
       :class="['modern-side-menu', 'sub-view-menu', { 'is-locked': isLocked, 'is-collapsed': isCollapsed }]"
       mode="vertical"
@@ -95,27 +95,27 @@ const toggleCollapse = () => {
   if (isLocked.value) return
   isCollapsed.value = !isCollapsed.value
   // 通过事件总线通知Main.vue更新宽度
-  eventBus.emit('head-menu-collapse-changed', isCollapsed.value)
+  eventBus.emit('view-menu-collapse-changed', isCollapsed.value)
 }
 
 // 监听折叠状态变化，通知父组件
 watch(isCollapsed, (newVal) => {
-  eventBus.emit('head-menu-collapse-changed', newVal)
+  eventBus.emit('view-menu-collapse-changed', newVal)
 })
 
 // 监听来自Main.vue的折叠状态同步
-const handleHeadMenuCollapseSync = (payload: unknown) => {
+const handleViewMenuCollapseSync = (payload: unknown) => {
   const collapsed = payload as boolean
   if (isCollapsed.value !== collapsed) {
     isCollapsed.value = collapsed
   }
 }
-eventBus.on('head-menu-collapse-sync', handleHeadMenuCollapseSync)
+eventBus.on('view-menu-collapse-sync', handleViewMenuCollapseSync)
 
 // 组件挂载时请求同步状态
 onMounted(() => {
   // 请求Main.vue同步当前的折叠状态
-  eventBus.emit('head-menu-collapse-request')
+  eventBus.emit('view-menu-collapse-request')
 })
 
 // 当前活动的文档视图
@@ -152,19 +152,19 @@ watch(
 
 // 组件卸载前清除事件监听
 onBeforeUnmount((): void => {
-  eventBus.off('head-menu-collapse-sync', handleHeadMenuCollapseSync)
+  eventBus.off('view-menu-collapse-sync', handleViewMenuCollapseSync)
 })
 </script>
 
 <style scoped>
-.head-menu-container {
+.view-menu-container {
   display: flex;
   flex-direction: column;
   height: 100%;
   position: relative;
 }
 
-.head-menu-container.is-collapsed .modern-side-menu {
+.view-menu-container.is-collapsed .modern-side-menu {
   width: 64px;
 }
 
@@ -180,7 +180,7 @@ onBeforeUnmount((): void => {
   padding-bottom: 48px;
 }
 
-/* 激活状态的颜色绑定（HeadMenu 特定） */
+/* 激活状态的颜色绑定（ViewMenu 特定） */
 .modern-side-menu :deep(.el-menu-item.is-active) {
   background-color: v-bind('activeBackgroundColor') !important;
   color: v-bind('activeTextColor') !important;
@@ -225,3 +225,4 @@ onBeforeUnmount((): void => {
   opacity: 0.6;
 }
 </style>
+

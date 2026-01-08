@@ -1,138 +1,36 @@
 <template>
   <div class="common-layout">
-    <!-- MainTabs 最顶层占据一行 -->
-    <el-header class="top-header">
-      <MainTabs />
-    </el-header>
-    <!-- 主内容区域：左边LeftMenu，中间HeadMenu（仅在文档Tab显示），右边内容 -->
+    <!-- 顶部区域：Logo + MainTabs -->
+    <div class="top-header-container">
+      <LogoTab />
+      <el-header class="top-header">
+        <MainTabs />
+      </el-header>
+    </div>
+    <!-- 主内容区域：左边LeftMenu，中间ViewMenuContainer，右边内容 -->
     <el-container class="main-shell">
       <el-aside class="side-menu">
         <LeftMenu />
       </el-aside>
-      <!-- 子视图菜单（仅在文档相关视图显示） -->
-      <el-aside v-if="showSubViewMenu" class="sub-view-menu-aside" :class="{ 'is-collapsed': headMenuCollapsed }">
-        <HeadMenu />
-      </el-aside>
-      <el-container class="content-shell">
-        <el-main class="content-main">
+      <!-- ViewMenuContainer：包含工作目录菜单和主内容区 -->
+      <ViewMenuContainer>
+        <div class="content-area-wrapper">
+          <el-container class="content-area">
+            <!-- 子视图菜单（仅在文档相关视图显示） -->
+            <el-aside v-if="showSubViewMenu" class="sub-view-menu-aside" :class="{ 'is-collapsed': viewMenuCollapsed }">
+              <ViewMenu />
+            </el-aside>
+            <el-container class="content-shell">
+              <el-main class="content-main">
           <UserProfileCard v-if="showUserProfileCard" @close="showUserProfileCard = false" class="user-profile-card"
             :position="menuPosition" />
-          <!-- Tab内容区域 - 使用v-show实现真正的keepAlive，所有Tab保持挂载 -->
-          <div class="tab-content-wrapper">
-            <!-- 使用v-show控制显示/隐藏，实现零时间切换，所有组件保持挂载状态 -->
-            <div class="tab-content-container">
-              <!-- 渲染所有Tab的内容，使用v-if+v-show组合：首次挂载时确保可见，之后用v-show保持挂载 -->
-              <template v-for="tab in workspace.tabs" :key="tab.id">
-                <!-- 文档Tab：根据lastView显示不同视图 -->
-                <template v-if="tab.kind === 'file' || tab.kind === 'new'">
-                  <Home 
-                    v-if="shouldRenderView(tab.id, 'home')"
-                    v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'home'"
-                    :key="`home-${tab.id}`"
-                  />
-                  <Editor 
-                    v-if="shouldRenderView(tab.id, 'editor')"
-                    v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'editor'"
-                    :key="`editor-${tab.id}`"
-                    :tab-id="tab.id"
-                  />
-                  <Outline 
-                    v-if="shouldRenderView(tab.id, 'outline')"
-                    v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'outline'"
-                    :key="`outline-${tab.id}`"
-                  />
-                  <Visualize 
-                    v-if="shouldRenderView(tab.id, 'visualize')"
-                    v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'visualize'"
-                    :key="`visualize-${tab.id}`"
-                  />
-                  <AgentView 
-                    v-if="shouldRenderView(tab.id, 'agent')"
-                    v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'agent'"
-                    :key="`agent-${tab.id}`"
-                  />
-                  <ProofreadView 
-                    v-if="shouldRenderView(tab.id, 'proofread')"
-                    v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'proofread'"
-                    :key="`proofread-${tab.id}`"
-                  />
-                </template>
-                <!-- 系统Tab和工具Tab：直接渲染对应组件，不使用router-view，实现真正的keepAlive -->
-                <template v-else-if="tab.kind === 'system' || tab.kind === 'tool'">
-                  <GlobalHome 
-                    v-if="tab.route === '/global-home'"
-                    v-show="tab.id === activeTabId"
-                    :key="`global-home-${tab.id}`"
-                  />
-                  <KnowledgeBase 
-                    v-else-if="tab.route === '/knowledge-base'"
-                    v-show="tab.id === activeTabId"
-                    :key="`knowledge-base-${tab.id}`"
-                  />
-                  <DebugView 
-                    v-else-if="tab.route === '/debug'"
-                    v-show="tab.id === activeTabId"
-                    :key="`debug-${tab.id}`"
-                  />
-                  <DummyView 
-                    v-else-if="tab.route === '/dummy'"
-                    v-show="tab.id === activeTabId"
-                    :key="`dummy-${tab.id}`"
-                  />
-                  <Setting 
-                    v-else-if="tab.route === '/setting'"
-                    v-show="tab.id === activeTabId"
-                    :key="`setting-${tab.id}`"
-                  />
-                  <AIChat 
-                    v-else-if="tab.route === '/ai-chat'"
-                    v-show="tab.id === activeTabId"
-                    :key="`ai-chat-${tab.id}`"
-                  />
-                  <FomulaRecognition 
-                    v-else-if="tab.route === '/fomula-recognition'"
-                    v-show="tab.id === activeTabId"
-                    :key="`fomula-recognition-${tab.id}`"
-                  />
-                  <DataAnalysisWindow 
-                    v-else-if="tab.route === '/data-analysis'"
-                    v-show="tab.id === activeTabId"
-                    :key="`data-analysis-${tab.id}`"
-                  />
-                  <OcrWindow 
-                    v-else-if="tab.route === '/ocr'"
-                    v-show="tab.id === activeTabId"
-                    :key="`ocr-${tab.id}`"
-                  />
-                  <AttachmentWindow 
-                    v-else-if="tab.route === '/attachment'"
-                    v-show="tab.id === activeTabId"
-                    :key="`attachment-${tab.id}`"
-                  />
-                  <GraphWindow 
-                    v-else-if="tab.route === '/graph' || tab.route === '/ai-graph' || tab.route === '/smart-drawing-assistant'"
-                    v-show="tab.id === activeTabId"
-                    :key="`graph-${tab.id}`"
-                  />
-                  <LlmStatisticsView 
-                    v-else-if="tab.route === '/llm-statistics'"
-                    v-show="tab.id === activeTabId"
-                    :key="`llm-statistics-${tab.id}`"
-                  />
-                  <!-- 其他系统Tab和工具Tab使用router-view作为fallback -->
-                  <router-view 
-                    v-else
-                    v-show="tab.id === activeTabId"
-                    :key="`router-${tab.id}`"
-                  />
-                </template>
-              </template>
-              <!-- 如果没有Tab，显示router-view作为fallback -->
-              <router-view v-if="!workspace.tabs.length" key="router-fallback"></router-view>
-            </div>
-          </div>
-        </el-main>
-      </el-container>
+          <!-- Tab内容区域 - 使用TabContentRenderer组件处理所有Tab渲染 -->
+          <TabContentRenderer />
+              </el-main>
+            </el-container>
+          </el-container>
+        </div>
+      </ViewMenuContainer>
     </el-container>
     <!-- BottomMenu放在最下侧，在所有内容之上 -->
     <el-footer class="bottom-footer">
@@ -163,15 +61,31 @@
 </template>
 
 <script setup lang="ts">
-// 不使用 Node.js path 模块，在浏览器环境中使用字符串操作
+// ============================================================================
+// 导入组件
+// ============================================================================
 import LeftMenu from '../components/LeftMenu.vue'
-import HeadMenu from '../components/HeadMenu.vue'
+import ViewMenu from '../components/ViewMenu.vue'
 import MainTabs from '../components/MainTabs.vue'
+import LogoTab from '../components/LogoTab.vue'
+import ViewMenuContainer from '../components/ViewMenuContainer.vue'
+import UserProfileCard from '../components/UserProfileCard.vue'
+import BottomMenu from '../components/BottomMenu.vue'
+import AITaskQueue from '../components/AITaskQueue.vue'
+import NotificationQueue from '../components/NotificationQueue.vue'
+import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
+import FileConflictDialog from '../components/FileConflictDialog.vue'
+import TabContentRenderer from '../components/TabContentRenderer.vue'
+
+// ============================================================================
+// 导入工具和库
+// ============================================================================
 import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue'
-import { getRecentDocs, getSetting } from '../utils/settings.js'
-import eventBus, { getWindowType } from '../utils/event-bus.js'
+import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElNotification, ElMessageBox } from 'element-plus'
-import { lightTheme, darkTheme } from '../utils/themes.js'
+import { getSetting } from '../utils/settings.js'
+import eventBus, { getWindowType } from '../utils/event-bus.js'
 import { useWorkspace, hasDocumentContent as checkDocumentContent } from '../stores/workspace'
 import {
   loadDocumentFromJson,
@@ -179,105 +93,23 @@ import {
   loadDocumentFromTex,
   type LoadedDocumentData,
 } from '../services/document-loader'
-import type { WorkspaceDocument, DocumentView, WorkspaceTab } from '../stores/workspace'
+import type { WorkspaceDocument, WorkspaceTab, DocumentView } from '../stores/workspace'
 import { convertMarkdownBodyToLatex } from '../utils/latex-utils'
-import UserProfileCard from '../components/UserProfileCard.vue'
 import { verifyToken } from '../utils/web-utils.ts'
-import { useI18n } from 'vue-i18n'
-import BottomMenu from '../components/BottomMenu.vue'
-import AITaskQueue from '../components/AITaskQueue.vue'
-import NotificationQueue from '../components/NotificationQueue.vue'
-import LoggerConsolePanel from '../components/LoggerConsolePanel.vue'
-import FileConflictDialog from '../components/FileConflictDialog.vue'
-import { useRouter, useRoute } from 'vue-router'
-import Editor from './Editor.vue'
-import Outline from './Outline.vue'
-import Visualize from './Visualize.vue'
-import AgentView from './AgentView.vue'
-import ProofreadView from './ProofreadView.vue'
-import KnowledgeBase from './KnowledgeBase.vue'
-import DebugView from './DebugView.vue'
-import GlobalHome from './GlobalHome.vue'
-import Home from './Home.vue'
-import DummyView from './DummyView.vue'
-import Setting from './Setting.vue'
-import AIChat from './AIChat.vue'
-import FomulaRecognition from './FomulaRecognition.vue'
-import DataAnalysisWindow from './DataAnalysisWindow.vue'
-import OcrWindow from './OcrWindow.vue'
-import AttachmentWindow from './AttachmentWindow.vue'
-import GraphWindow from './GraphWindow.vue'
-import LlmStatisticsView from './LlmStatisticsView.vue'
-const { t } = useI18n()
-
 import { createRendererLogger } from '../utils/logger.ts'
+
+// ============================================================================
+// 初始化和基础设置
+// ============================================================================
+const { t } = useI18n()
 const logger = createRendererLogger('Main', {
   windowTypeProvider: () => getWindowType()
 })
-
 const workspace = useWorkspace()
 
-// 当前活动Tab
-const activeTab = computed(() => {
-  return workspace.tabs.find(t => t.id === workspace.activeTabId.value)
-})
-
-// 判断是否显示子视图菜单（仅在文档相关视图显示）
-const showSubViewMenu = computed(() => {
-  if (!activeTab.value) return false
-  // 如果是文档Tab，显示子视图菜单
-  return activeTab.value.kind === 'file' || activeTab.value.kind === 'new'
-})
-
-// 当前文档视图
-const currentDocumentView = computed(() => {
-  if (!activeTab.value || (activeTab.value.kind !== 'file' && activeTab.value.kind !== 'new')) {
-    logger.debug('[Main] currentDocumentView - 非文档Tab', { activeTabId: activeTab.value?.id, activeTabKind: activeTab.value?.kind })
-    return 'editor'
-  }
-  const doc = workspace.ensureDocument(activeTab.value.id)
-  // 直接使用 doc.lastView，逻辑已经在创建文档时根据内容正确设置了
-  const view = doc.lastView || 'editor'
-  logger.debug('[Main] currentDocumentView 计算', { activeTabId: activeTab.value.id, lastView: doc.lastView, returnedView: view })
-  return view
-})
-
-// 使用 workspace 导出的统一函数
-const hasDocumentContent = (doc: WorkspaceDocument): boolean => {
-  return checkDocumentContent(doc)
-}
-
-// 获取指定Tab的文档视图（直接使用 doc.lastView，不再修修补补）
-const getDocumentView = (tabId: string): string => {
-  const tab = workspace.tabs.find(t => t.id === tabId)
-  if (!tab || (tab.kind !== 'file' && tab.kind !== 'new')) {
-    logger.debug('[Main] getDocumentView - 非文档Tab', { tabId, tabKind: tab?.kind })
-    return 'editor'
-  }
-  const doc = workspace.ensureDocument(tabId)
-  // 直接使用 doc.lastView，不再根据内容动态决定
-  const view = doc.lastView || 'editor'
-  logger.debug('[Main] getDocumentView', { tabId, lastView: doc.lastView, returnedView: view })
-  return view
-}
-
-// 跟踪已经挂载过的视图，确保组件在可见状态下首次挂载，之后保持挂载
-const mountedViews = ref<Set<string>>(new Set())
-
-// 判断是否应该渲染视图（首次显示时挂载，之后保持挂载）
-const shouldRenderView = (tabId: string, viewType: string): boolean => {
-  const viewKey = `${tabId}-${viewType}`
-  const isActive = tabId === activeTabId.value && getDocumentView(tabId) === viewType
-  
-  // 如果当前需要显示，标记为已挂载
-  if (isActive) {
-    mountedViews.value.add(viewKey)
-    return true
-  }
-  
-  // 如果已经挂载过，保持挂载状态
-  return mountedViews.value.has(viewKey)
-}
+// ============================================================================
+// 计算属性和状态
+// ============================================================================
 const {
   tabs: workspaceTabs,
   activeTabId,
@@ -291,20 +123,67 @@ const {
   refreshActiveTabMetadata,
 } = workspace
 
+// 判断是否显示子视图菜单（仅在文档相关视图显示）
+const showSubViewMenu = computed(() => {
+  const activeTab = workspace.tabs.find(t => t.id === workspace.activeTabId.value)
+  if (!activeTab) return false
+  return activeTab.kind === 'file' || activeTab.kind === 'new'
+})
+
+// UI状态
+const showUserProfileCard = ref(false)
+const menuPosition = ref({ top: 100, left: 100 })
+const viewMenuCollapsed = ref(true) // 默认折叠，与 ViewMenu 保持一致
+const fileConflictDialogVisible = ref(false)
+const fileConflictData = ref<{
+  tabId: string
+  filePath: string
+  externalContent: string
+  currentContent: string
+  savedContent: string
+  format: 'md' | 'tex'
+  mergeResult?: {
+    hasConflict: boolean
+    conflictRanges?: Array<{
+      start: number
+      end: number
+      baseText: string
+      currentText: string
+      externalText: string
+    }>
+  }
+} | null>(null)
+
+// ============================================================================
+// 工具函数
+// ============================================================================
 const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 
 // 规范化内容（统一换行符）
 const normalizeContent = (value: string | null | undefined): string => {
-  if (!value) return '';
-  return value.replace(/\r\n/g, '\n');
+  if (!value) return ''
+  return value.replace(/\r\n/g, '\n')
 }
 
+// 使用 workspace 导出的统一函数
+const hasDocumentContent = (doc: WorkspaceDocument): boolean => {
+  return checkDocumentContent(doc)
+}
+
+// 提取文件名（不依赖 Node.js path 模块）
+const extractFileName = (fullPath: string): string => {
+  if (!fullPath) return ''
+  const segments = fullPath.split(/[/\\]+/).filter(Boolean)
+  return segments[segments.length - 1] ?? ''
+}
+
+// ============================================================================
+// 文档处理函数
+// ============================================================================
 const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocument => {
-  // 规范化内容，确保与编辑器更新时使用的规范化逻辑一致
-  const normalizedMarkdown = normalizeContent(data.markdown);
-  const normalizedTex = normalizeContent(data.tex);
+  const normalizedMarkdown = normalizeContent(data.markdown)
+  const normalizedTex = normalizeContent(data.tex)
   
-  // 创建临时文档对象用于检查内容
   const tempDoc: WorkspaceDocument = {
     id: '',
     tabId: '',
@@ -316,7 +195,7 @@ const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocume
     meta: { ...data.meta },
     aiDialogs: cloneDeep(data.aiDialogs),
     agentSessions: cloneDeep(data.agentSessions),
-    lastView: 'editor', // 临时值，下面会根据内容决定
+    lastView: 'editor',
     renderedHtml: '',
     dirty: false,
     savedMarkdown: normalizedMarkdown,
@@ -327,9 +206,6 @@ const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocume
     savedAgentSessions: cloneDeep(data.agentSessions),
   }
   
-  // 根据文档内容决定初始视图
-  // document-loader 返回的 lastView 总是 'editor'，这是占位符，不是真实保存的值
-  // 所以我们总是根据内容来决定初始视图
   const hasContent = hasDocumentContent(tempDoc)
   const initialView: DocumentView = hasContent ? 'home' : 'editor'
   
@@ -339,7 +215,7 @@ const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocume
     texLength: normalizedTex.length,
     hasContent,
     initialView,
-  });
+  })
   
   return {
     ...tempDoc,
@@ -347,6 +223,9 @@ const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocume
   }
 }
 
+// ============================================================================
+// 文档打开处理
+// ============================================================================
 type OpenDocumentPayload = {
   format?: string
   content?: string
@@ -514,11 +393,11 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
   }
 }
 
-const showUserProfileCard = ref(false)
+// ============================================================================
+// 自动保存
+// ============================================================================
 const autoSaveEnabled = ref(false)
 const autoSaveInterval = ref(2147483647)
-const menuPosition = ref({ top: 100, left: 100 });
-const headMenuCollapsed = ref(true) // 默认折叠，与 HeadMenu 保持一致
 async function autoSave() {
   do {
     const autoSave = await getSetting('autoSave')
@@ -534,29 +413,10 @@ async function autoSave() {
   } while (true)
 }
 
-// Main 组件的事件监听器清理函数
+// ============================================================================
+// 事件监听器管理
+// ============================================================================
 const cleanupMainListeners: (() => void)[] = []
-
-// 文件冲突对话框状态（需要在模块级别定义，以便模板访问）
-const fileConflictDialogVisible = ref(false)
-const fileConflictData = ref<{
-  tabId: string
-  filePath: string
-  externalContent: string
-  currentContent: string
-  savedContent: string
-  format: 'md' | 'tex'
-  mergeResult?: {
-    hasConflict: boolean
-    conflictRanges?: Array<{
-      start: number
-      end: number
-      baseText: string
-      currentText: string
-      externalText: string
-    }>
-  }
-} | null>(null)
 
 /**
  * 初始化 Main 组件的事件监听器
@@ -967,27 +827,18 @@ function initMainEventListeners() {
   }
   eventBus.on('open-tool-tab', handleOpenToolTab)
 
-  // 监听HeadMenu折叠状态变化
-  const handleHeadMenuCollapseChanged = (payload: unknown) => {
-    headMenuCollapsed.value = payload as boolean
+  // 监听ViewMenu折叠状态变化
+  const handleViewMenuCollapseChanged = (payload: unknown) => {
+    viewMenuCollapsed.value = payload as boolean
   }
-  eventBus.on('head-menu-collapse-changed', handleHeadMenuCollapseChanged)
+  eventBus.on('view-menu-collapse-changed', handleViewMenuCollapseChanged)
   
-  // 处理HeadMenu的折叠状态请求
-  const handleHeadMenuCollapseRequest = () => {
-    eventBus.emit('head-menu-collapse-sync', headMenuCollapsed.value)
+  // 处理ViewMenu的折叠状态请求
+  const handleViewMenuCollapseRequest = () => {
+    eventBus.emit('view-menu-collapse-sync', viewMenuCollapsed.value)
   }
-  eventBus.on('head-menu-collapse-request', handleHeadMenuCollapseRequest)
+  eventBus.on('view-menu-collapse-request', handleViewMenuCollapseRequest)
   
-  // 当显示子视图菜单时，同步折叠状态到HeadMenu组件
-  watch(showSubViewMenu, (show) => {
-    if (show) {
-      // 使用 setTimeout 确保 HeadMenu 组件已经挂载
-      setTimeout(() => {
-        eventBus.emit('head-menu-collapse-sync', headMenuCollapsed.value)
-      }, 0)
-    }
-  })
 
   // 处理系统窗口打开请求（主页、知识库、调试工具等）
   const handleOpenSystemTab = (payload: unknown) => {
@@ -1027,47 +878,37 @@ function initMainEventListeners() {
     () => eventBus.off('open-tool-tab', handleOpenToolTab),
     () => eventBus.off('open-system-tab', handleOpenSystemTab),
     () => eventBus.off('receive-broadcast', handleReceiveBroadcast),
-    () => eventBus.off('head-menu-collapse-changed', handleHeadMenuCollapseChanged),
-    () => eventBus.off('head-menu-collapse-request', handleHeadMenuCollapseRequest)
+    () => eventBus.off('view-menu-collapse-changed', handleViewMenuCollapseChanged),
+    () => eventBus.off('view-menu-collapse-request', handleViewMenuCollapseRequest)
   )
 }
 
-// 监听 tabs 变化，清理已移除 tab 的挂载记录
-watch(
-  () => workspace.tabs.map(t => t.id),
-  (currentTabIds, previousTabIds) => {
-    if (previousTabIds) {
-      // 找出被移除的 tab IDs
-      const removedTabIds = previousTabIds.filter(id => !currentTabIds.includes(id))
-      // 清理这些 tab 的所有视图挂载记录
-      removedTabIds.forEach(tabId => {
-        const viewTypes = ['editor', 'outline', 'visualize', 'agent', 'proofread']
-        viewTypes.forEach(viewType => {
-          mountedViews.value.delete(`${tabId}-${viewType}`)
-        })
-      })
-    }
-  },
-  { immediate: false }
-)
+// ============================================================================
+// 生命周期和监听器
+// ============================================================================
+// 当显示子视图菜单时，同步折叠状态到ViewMenu组件
+watch(showSubViewMenu, (show) => {
+  if (show) {
+    setTimeout(() => {
+      eventBus.emit('view-menu-collapse-sync', viewMenuCollapsed.value)
+    }, 0)
+  }
+})
 
 onMounted(async () => {
-  // 初始化 Main 组件的事件监听器
   initMainEventListeners()
-
   eventBus.emit('llm-api-updated')
   const token = localStorage.getItem('loginToken')
   if (token) {
     localStorage.setItem('loginToken', token)
-    await verifyToken(token)//自动登录
+    await verifyToken(token)
   }
-  
   await autoSave()
 })
 
-// 处理文件冲突
-
-// 处理冲突对话框的选择
+// ============================================================================
+// 文件冲突处理
+// ============================================================================
 const handleFileConflictUseExternal = () => {
   if (!fileConflictData.value) return
   
@@ -1119,13 +960,6 @@ const handleFileConflictMerge = (mergedContent: string) => {
   fileConflictData.value = null
 }
 
-// 提取文件名（不依赖 Node.js path 模块）
-const extractFileName = (fullPath: string): string => {
-  if (!fullPath) return ''
-  const segments = fullPath.split(/[/\\]+/).filter(Boolean)
-  return segments[segments.length - 1] ?? ''
-}
-
 const getConflictFileName = () => {
   if (!fileConflictData.value) return ''
   return extractFileName(fileConflictData.value.filePath)
@@ -1156,15 +990,23 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 }
 
-/* 顶部Header - 最顶层占据一行 */
+/* 顶部容器：Logo + MainTabs */
+.top-header-container {
+  display: flex;
+  height: 40px;
+  background-color: var(--el-bg-color, #ffffff);
+  border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0);
+  z-index: 100;
+}
+
+/* 顶部Header - MainTabs */
 .top-header {
-  flex: 0 0 40px;
+  flex: 1;
   height: 40px;
   padding: 0;
   margin: 0;
   line-height: 40px;
   background-color: var(--el-bg-color, #ffffff);
-  /* 分割线由 MainTabs 自己绘制，避免与其叠加造成“1-3px 缝隙/双线”观感 */
   border-bottom: none;
   z-index: 100;
 }
@@ -1183,34 +1025,30 @@ onBeforeUnmount(() => {
   min-width: 64px;
 }
 
-.tab-content-wrapper {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  overflow: hidden;
-}
-
-.tab-content-container {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-/* 确保所有Tab内容都绝对定位，使用v-show控制显示/隐藏 */
-.tab-content-container > * {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
 
 .main-shell {
   flex: 1;
   display: flex;
-  height: calc(100vh - 40px - 30px); /* 减去顶部Header和底部BottomMenu的高度 */
+  flex-direction: row; /* 确保水平排列 */
+  height: calc(100vh - 40px - 30px); /* 减去顶部Logo和底部BottomMenu的高度 */
   overflow: hidden;
   background-color: var(--el-bg-color, #ffffff);
+}
+
+.content-area-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--el-bg-color-page, #f5f7fa);
+}
+
+.content-area {
+  flex: 1;
+  display: flex;
+  height: 100%;
+  overflow: hidden;
 }
 
 .side-menu {

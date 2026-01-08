@@ -59,7 +59,7 @@ async function loadPromptsMap(): Promise<Record<string, any>> {
 /**
  * 获取当前语言的提示词配置（同步版本，使用缓存）
  */
-function getCurrentLocalePrompts() {
+export function getCurrentLocalePrompts() {
   const currentLocale = getCurrentLocale();
   
   // 如果缓存未加载，返回空数组（会在首次使用时异步加载）

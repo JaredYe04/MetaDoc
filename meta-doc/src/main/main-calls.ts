@@ -79,6 +79,7 @@ import { getServiceStatus } from './service-status';
 import type { LogPayload, LogLevel } from '../common/logger-constants';
 import { t } from './i18n';
 import { fileWatcherService } from './utils/file-watcher-service';
+import { directoryWatcherService } from './utils/directory-watcher-service';
 import { convertSvgToPdf, convertSvgStringToPngFile, convertSvgStringToPdfFile } from './utils/svg-to-pdf';
 import { queryOne, transaction } from './database/database';
 
@@ -366,6 +367,63 @@ function bindFileHandlers(): void {
     } catch (error) {
       logger.error('获取目录路径失败:', error);
       return null;
+    }
+  });
+
+  // 打开对话框（支持文件和文件夹选择）
+  ipcMain.handle('show-open-dialog', async (event: IpcMainInvokeEvent, options: {
+    title?: string
+    defaultPath?: string
+    filters?: Array<{ name: string; extensions: string[] }>
+    properties?: Array<'openFile' | 'openDirectory' | 'multiSelections'>
+  }): Promise<{ canceled: boolean; filePaths?: string[] }> => {
+    try {
+      const result = await dialog.showOpenDialog(mainWindow!, {
+        title: options.title || '选择文件或文件夹',
+        defaultPath: options.defaultPath,
+        filters: options.filters,
+        properties: options.properties || ['openFile']
+      });
+
+      if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+        return { canceled: true };
+      }
+
+      return { canceled: false, filePaths: result.filePaths };
+    } catch (error) {
+      logger.error('打开对话框失败:', error);
+      throw error;
+    }
+  });
+
+  // 读取目录内容
+  ipcMain.handle('read-directory', async (event: IpcMainInvokeEvent, dirPath: string): Promise<Array<{ name: string; path: string; isDirectory: boolean }>> => {
+    try {
+      if (!fs.existsSync(dirPath)) {
+        throw new Error(`目录不存在: ${dirPath}`);
+      }
+
+      const stats = fs.statSync(dirPath);
+      if (!stats.isDirectory()) {
+        throw new Error(`路径不是目录: ${dirPath}`);
+      }
+
+      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+      const result: Array<{ name: string; path: string; isDirectory: boolean }> = [];
+
+      for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        result.push({
+          name: entry.name,
+          path: fullPath,
+          isDirectory: entry.isDirectory()
+        });
+      }
+
+      return result;
+    } catch (error) {
+      logger.error('读取目录失败:', error);
+      throw error;
     }
   });
   
@@ -764,6 +822,31 @@ function bindFileHandlers(): void {
       fileWatcherService.unwatchFile(filePath);
     } catch (error) {
       logger.error('停止文件监听失败', { filePath, error });
+    }
+  });
+
+  // 监听目录变化
+  ipcMain.on('watch-directory', (event: IpcMainEvent, directoryPath: string) => {
+    try {
+      if (!directoryPath) {
+        logger.warn('目录路径为空，无法启动监听');
+        return;
+      }
+      directoryWatcherService.watchDirectory(directoryPath, event.sender);
+    } catch (error) {
+      logger.error('启动目录监听失败', { directoryPath, error });
+    }
+  });
+
+  // 停止监听目录变化
+  ipcMain.on('unwatch-directory', (event: IpcMainEvent, directoryPath: string) => {
+    try {
+      if (!directoryPath) {
+        return;
+      }
+      directoryWatcherService.unwatchDirectory(directoryPath);
+    } catch (error) {
+      logger.error('停止目录监听失败', { directoryPath, error });
     }
   });
 

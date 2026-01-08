@@ -161,6 +161,31 @@ const homepageBackgroundColor = computed(() => {
   }
 })
 
+// 根据主题类型计算标题渐变色
+const titleGradient = computed(() => {
+  const isDark = themeState.currentTheme.type === 'dark'
+  
+  if (isDark) {
+    // 暗色主题：使用更亮的渐变色，确保在暗色背景下足够明显
+    return 'linear-gradient(135deg, rgb(100, 150, 255) 0%, rgb(120, 140, 255) 50%, rgb(160, 120, 255) 100%)'
+  } else {
+    // 亮色主题：使用原有的渐变色
+    return 'linear-gradient(135deg, rgb(65, 105, 225) 0%, rgb(99, 102, 241) 50%, rgb(139, 92, 246) 100%)'
+  }
+})
+
+// 根据主题类型计算标题阴影效果
+const titleTextShadow = computed(() => {
+  const isDark = themeState.currentTheme.type === 'dark'
+  if (isDark) {
+    // 暗色主题：使用更深的阴影，增强对比度
+    return '0 4px 8px rgba(0, 0, 0, 0.25), 0 8px 16px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(99, 102, 241, 0.3)'
+  }
+  //亮色主题不使用阴影
+  return 'none'
+})
+
+
 const maybeWindow =
   typeof window !== 'undefined'
     ? (window as Window & { electron?: { ipcRenderer?: IpcRendererLike } })
@@ -500,24 +525,26 @@ onBeforeUnmount(() => {
 .main-title {
   font-size: clamp(42px, 8vw, 72px);
   font-weight: 700;
-  background: linear-gradient(135deg, rgb(65, 105, 225) 0%, rgb(99, 102, 241) 50%, rgb(139, 92, 246) 100%);
+  background: v-bind('titleGradient');
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin: 0;
   padding: 0;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease, filter 0.3s ease;
   letter-spacing: -0.02em;
   line-height: 1.2;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  text-shadow: v-bind('titleTextShadow');
 }
 
 .main-title:hover {
   transform: scale(1.02);
   filter: brightness(1.1);
+  text-shadow: v-bind('titleTextShadow');
 }
 
 .subtitle {
@@ -767,7 +794,7 @@ onBeforeUnmount(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
   transition: transform 0.5s ease;
   pointer-events: none;
   

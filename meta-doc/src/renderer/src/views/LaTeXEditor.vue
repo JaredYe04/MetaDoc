@@ -324,6 +324,8 @@ import { webMainCalls } from "../utils/web-adapter/web-main-calls";
 import { createMonacoAdapter } from "../editor/monaco-adapter";
 import { prependAiChatDialog } from '../utils/ai-chat-storage';
 import { setupMonacoWorker, registerLatexLanguage } from '../utils/monaco-worker-config';
+import { createAiTask, ai_types, cancelAiTask } from '../utils/ai_tasks';
+import { getCurrentLocalePrompts } from '../utils/prompts';
 
 const { t } = useI18n();
 const logger = createRendererLogger('LaTeXEditor', {
@@ -683,6 +685,20 @@ const toggleRowNumber = () => {
 const showPdfPanel = ref(true)
 const showConsole = ref(false)  // 默认隐藏终端
 const pdfUrl = ref('')
+
+// AI 错误分析相关
+const aiErrorAnalysisOutput = ref('')
+let lastOutputLength = 0 // 用于增量输出
+let errorAnalysisWatchStop: (() => void) | null = null
+let currentAiTaskHandle: string | null = null // 当前AI任务的handle
+const enableAiAnalysis = ref(true) // AI分析开关（默认开启）
+
+// 收集编译过程中的 console 输出
+let compileConsoleOutput: { stdout: string; stderr: string } = { stdout: '', stderr: '' }
+let compileConsoleListeners: { 
+    onStdout?: (data: unknown) => void
+    onStderr?: (data: unknown) => void
+} = {}
 
 // 检查 PDF URL 是否有效
 const isValidPdfUrl = computed(() => {
@@ -1707,35 +1723,309 @@ const compile = async () => {
     showConsole.value = true;
     eventBus.emit('clear-console', { key: 'latex' })
     eventBus.emit('cancel-suggestion')
+    
+    // 取消之前的AI分析任务（如果存在）
+    if (currentAiTaskHandle) {
+        cancelAiTask(currentAiTaskHandle, false);
+        currentAiTaskHandle = null;
+    }
+    
     if(!currentPath.value || !currentPath.value.toLowerCase().endsWith(".tex")){
         eventBus.emit("show-warning",t("latexEditor.notification.pleaseSaveFirst"));
         eventBus.emit('save');
         return;
     }
+    
+    // 重置收集的 console 输出
+    compileConsoleOutput = { stdout: '', stderr: '' }
+    
+    // 设置 console 输出监听器来收集输出
+    compileConsoleListeners.onStdout = (data: unknown) => {
+        const payload = typeof data === 'object' && data !== null && 'key' in data && (data as any).key === 'latex'
+            ? (data as any)
+            : null;
+        if (payload?.content) {
+            compileConsoleOutput.stdout += payload.content;
+        }
+    };
+    compileConsoleListeners.onStderr = (data: unknown) => {
+        const payload = typeof data === 'object' && data !== null && 'key' in data && (data as any).key === 'latex'
+            ? (data as any)
+            : null;
+        if (payload?.content) {
+            compileConsoleOutput.stderr += payload.content;
+        }
+    };
+    
+    // 注册监听器
+    eventBus.on('console-out', compileConsoleListeners.onStdout);
+    eventBus.on('console-err', compileConsoleListeners.onStderr);
+    
     editor.value.updateOptions({
         readOnly: true
     });
-    const compileResult: any = await ipcRenderer.invoke("compile-tex",{
-        tex:currentTex.value,
-        texPath:currentPath.value??'',
-        outputDir:"",//todo:用户后续可以设置保存在哪
-        customPdfFileName:"",//todo
-    })
-    editor.value.updateOptions({
-        readOnly: false
-    });
-    //logger.log(compileResult)
-    if(compileResult?.status==='success'){
-        eventBus.emit("show-success",t("latexEditor.notification.compileSuccess"));
-        pdfUrl.value = encodeFilePathToUrl(compileResult.pdfPath);
+    
+    try {
+        const compileResult: any = await ipcRenderer.invoke("compile-tex",{
+            tex:currentTex.value,
+            texPath:currentPath.value??'',
+            outputDir:"",//todo:用户后续可以设置保存在哪
+            customPdfFileName:"",//todo
+        })
         
-        // 重新加载PDF并建立映射
-        await loadPdf(pdfUrl.value);
-    }
-    else{
-        eventBus.emit("show-error",t("latexEditor.notification.compileFailed",{ code:compileResult?.code }));
+        editor.value.updateOptions({
+            readOnly: false
+        });
+        
+        //logger.log(compileResult)
+        if(compileResult?.status==='success'){
+            // 移除监听器
+            if (compileConsoleListeners.onStdout) {
+                eventBus.off('console-out', compileConsoleListeners.onStdout);
+            }
+            if (compileConsoleListeners.onStderr) {
+                eventBus.off('console-err', compileConsoleListeners.onStderr);
+            }
+            compileConsoleListeners = {};
+            
+            eventBus.emit("show-success",t("latexEditor.notification.compileSuccess"));
+            pdfUrl.value = encodeFilePathToUrl(compileResult.pdfPath);
+            
+            // 重新加载PDF并建立映射
+            await loadPdf(pdfUrl.value);
+        }
+        else{
+            eventBus.emit("show-error",t("latexEditor.notification.compileFailed",{ code:compileResult?.exitCode || compileResult?.code }));
+            
+            // 等待一小段时间，确保所有异步的 console 输出都被收集到
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // 如果编译失败，使用AI分析错误（在移除监听器之前调用，确保能收集到所有输出）
+            await analyzeCompileError(compileResult);
+            
+            // 移除监听器（在AI分析开始后移除）
+            if (compileConsoleListeners.onStdout) {
+                eventBus.off('console-out', compileConsoleListeners.onStdout);
+            }
+            if (compileConsoleListeners.onStderr) {
+                eventBus.off('console-err', compileConsoleListeners.onStderr);
+            }
+            compileConsoleListeners = {};
+        }
+    } catch (error) {
+        // 确保移除监听器
+        if (compileConsoleListeners.onStdout) {
+            eventBus.off('console-out', compileConsoleListeners.onStdout);
+        }
+        if (compileConsoleListeners.onStderr) {
+            eventBus.off('console-err', compileConsoleListeners.onStderr);
+        }
+        compileConsoleListeners = {};
+        
+        editor.value.updateOptions({
+            readOnly: false
+        });
+        
+        logger.error('编译过程出错', error);
     }
     //logger.log("编译 LaTeX");
+};
+
+// 分析编译错误
+const analyzeCompileError = async (compileResult: any) => {
+    // 检查AI分析开关
+    if (!enableAiAnalysis.value) {
+        logger.debug('AI分析已关闭，跳过错误分析');
+        return;
+    }
+    
+    try {
+        // 停止之前的监听
+        if (errorAnalysisWatchStop) {
+            errorAnalysisWatchStop();
+            errorAnalysisWatchStop = null;
+        }
+        
+        // 重置状态
+        aiErrorAnalysisOutput.value = '';
+        lastOutputLength = 0;
+        
+        // 提取错误输出（只包含错误部分，即红色部分）
+        // 优先使用 stderr（这应该是错误输出）
+        let errorOutput = compileConsoleOutput.stderr || 
+                           compileResult?.errorOutput || compileResult?.stderr || '';
+        
+        // 如果 stderr 为空，尝试从 stdout 中提取错误行
+        if (!errorOutput || errorOutput.trim().length === 0) {
+            if (compileConsoleOutput.stdout) {
+                // 从 stdout 中提取包含 "error" 或 "Error" 的行（不区分大小写）
+                const stdoutLines = compileConsoleOutput.stdout.split('\n');
+                const errorLines = stdoutLines.filter((line: string) => {
+                    const lowerLine = line.toLowerCase().trim();
+                    return lowerLine.includes('error') || 
+                           lowerLine.startsWith('!') || // LaTeX 错误通常以 ! 开头
+                           /error:\s/i.test(line); // 匹配 "error: " 模式
+                });
+                if (errorLines.length > 0) {
+                    errorOutput = errorLines.join('\n');
+                }
+            }
+        }
+        
+        // 如果还是没有错误输出，尝试从 compileResult.stdout 中提取
+        if (!errorOutput || errorOutput.trim().length === 0) {
+            if (compileResult?.stdout) {
+                const stdoutLines = compileResult.stdout.split('\n');
+                const errorLines = stdoutLines.filter((line: string) => {
+                    const lowerLine = line.toLowerCase().trim();
+                    return lowerLine.includes('error') || 
+                           lowerLine.startsWith('!') ||
+                           /error:\s/i.test(line);
+                });
+                if (errorLines.length > 0) {
+                    errorOutput = errorLines.join('\n');
+                }
+            }
+        }
+        
+        logger.debug('AI错误分析 - 收集到的错误信息', {
+            hasStderr: !!compileConsoleOutput.stderr,
+            hasStdout: !!compileConsoleOutput.stdout,
+            stderrLength: compileConsoleOutput.stderr?.length || 0,
+            stdoutLength: compileConsoleOutput.stdout?.length || 0,
+            compileResultStatus: compileResult?.status,
+            compileResultExitCode: compileResult?.exitCode || compileResult?.code,
+            errorOutputLength: errorOutput.length
+        });
+        
+        // 如果错误输出为空，使用备用信息
+        if (!errorOutput || errorOutput.trim().length === 0) {
+            const exitCode = compileResult?.exitCode || compileResult?.code;
+            if (exitCode !== undefined && exitCode !== null) {
+                errorOutput = `编译失败，退出代码: ${exitCode}`;
+                logger.info('使用备用错误信息进行AI分析', { exitCode });
+            } else {
+                logger.warn('没有错误输出信息，跳过AI分析', {
+                    compileResult: compileResult,
+                    compileConsoleOutput: compileConsoleOutput
+                });
+                return;
+            }
+        }
+        
+        // 获取 LaTeX 原文并添加行号
+        const rawLatexSource = currentTex.value || '';
+        // 在每一行前面添加行号，格式为 "1: xxx\n2: xxx\n3: xxx"
+        const latexSourceWithLineNumbers = rawLatexSource
+            .split('\n')
+            .map((line, index) => `${index + 1}: ${line}`)
+            .join('\n');
+        
+        // 获取提示词模板
+        const prompts = getCurrentLocalePrompts();
+        const template = prompts.prompts?.latexCompileErrorAnalysisPrompt;
+        
+        let prompt = '';
+        if (template) {
+            prompt = template
+                .replace(/{errorOutput}/g, errorOutput)
+                .replace(/{texPath}/g, currentPath.value || '未知路径')
+                .replace(/{latexSource}/g, latexSourceWithLineNumbers);
+        } else {
+            // 回退提示词
+            prompt = `你是一个专业的LaTeX编译错误分析助手。请简洁精炼地分析以下编译错误：
+
+**编译错误输出：**
+\`\`\`
+${errorOutput}
+\`\`\`
+
+**LaTeX 原文（已标注行号）：**
+\`\`\`latex
+${latexSourceWithLineNumbers}
+\`\`\`
+
+**请分析并输出：**
+1. **错误原因**：一句话说明错误原因
+2. **错误位置**：指出具体行号或命令
+3. **解决方法**：提供简洁的修复方案（如需要添加的包、修改的代码等）
+
+**输出要求：**
+- 语言精炼，直击要害，不要过于详细
+- 直接输出分析结果，从第一行开始就是分析内容
+- 避免冗长的解释和前缀，只输出必要的分析和建议`;
+        }
+        
+        // 输出分析开始提示
+        eventBus.emit('console-out', {
+            key: 'latex',
+            content: '\n' + t('latexEditor.notification.analyzingError'),
+            type: 'out'
+        });
+        
+        // 设置增量输出监听
+        errorAnalysisWatchStop = watch(
+            () => aiErrorAnalysisOutput.value,
+            (newValue) => {
+                // 计算新增的内容（增量部分）
+                if (newValue.length > lastOutputLength) {
+                    const newContent = newValue.substring(lastOutputLength);
+                    
+                    // 如果 lastOutputLength === 0，说明是第一次输出，创建新行
+                    // 否则，说明是增量输出，追加到当前行
+                    const shouldAppend = lastOutputLength > 0;
+                    
+                    // 输出增量内容到Console
+                    eventBus.emit('console-out', {
+                        key: 'latex',
+                        content: newContent,
+                        type: 'out',
+                        append: shouldAppend
+                    });
+                    
+                    lastOutputLength = newValue.length;
+                }
+            },
+            { immediate: false }
+        );
+        
+        // 创建AI任务
+        const messages = [{
+            role: 'user' as const,
+            content: prompt
+        }];
+        
+        const { done, handle } = createAiTask(
+            t('latexEditor.notification.analyzingError'),
+            messages,
+            aiErrorAnalysisOutput,
+            ai_types.chat,
+            'latex-error-analysis',
+            { stream: true }
+        );
+        
+        // 保存当前AI任务的handle，以便后续取消
+        currentAiTaskHandle = handle;
+        
+        // 等待任务完成
+        try {
+            await done;
+        } catch (err) {
+            logger.error('AI错误分析失败', err);
+            eventBus.emit('console-err', {
+                key: 'latex',
+                content: '\n' + t('latexEditor.notification.errorAnalysisFailed'),
+                type: 'err'
+            });
+        }
+    } catch (error) {
+        logger.error('启动AI错误分析失败', error);
+        eventBus.emit('console-err', {
+            key: 'latex',
+            content: '\n' + t('latexEditor.notification.errorAnalysisFailed'),
+            type: 'err'
+        });
+    }
 };
 
 const toggleConsole = async () => {
@@ -2608,6 +2898,13 @@ onMounted(async () => {
         await waitForService('express');
         await refreshContextMenu();
         initEditor();
+        
+        // 监听AI分析开关变化
+        eventBus.on('console-ai-analysis-toggle', (payload: any) => {
+            if (payload && payload.key === 'latex') {
+                enableAiAnalysis.value = payload.enabled;
+            }
+        });
 
         eventBus.on('sync-editor-theme', () => {
             const isDark = themeState.currentTheme.type === 'dark';
@@ -2673,6 +2970,21 @@ onUnmounted(() => {
         mainObserver = null;
     }
     
+    // 停止错误分析监听
+    if (errorAnalysisWatchStop) {
+        errorAnalysisWatchStop();
+        errorAnalysisWatchStop = null;
+    }
+    
+    // 移除 console 输出监听器
+    if (compileConsoleListeners.onStdout) {
+        eventBus.off('console-out', compileConsoleListeners.onStdout);
+    }
+    if (compileConsoleListeners.onStderr) {
+        eventBus.off('console-err', compileConsoleListeners.onStderr);
+    }
+    compileConsoleListeners = {};
+    
     // 移除文本选择监听器
     removeTextSelectionListener();
     
@@ -2715,6 +3027,9 @@ onUnmounted(() => {
     if (typeof window !== 'undefined') {
         window.removeEventListener('resize', updateSearchMenuPosition);
     }
+    
+    // 移除AI分析开关监听器
+    eventBus.off('console-ai-analysis-toggle');
 });
 
 function onAcceptSuggestion(text: string) {

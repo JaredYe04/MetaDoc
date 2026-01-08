@@ -74,6 +74,7 @@
         "userProfileTooltip": "用户资料",
         "langTooltip": "语言",
         "knowledgeBase": "知识库",
+        "workspaceExplorer": "工作目录",
         "debugTools": "调试工具",
         "moreFeatures": "更多功能",
         "menuConfig": {
@@ -115,12 +116,14 @@
         "cannotAccessMic": "无法访问麦克风，请检查权限设置"
     },
     "console": {
+        "enableAiAnalysis": "AI分析",
         "title": "终端输出",
         "clear": "清屏",
         "copy": "复制",
         "saveLog": "保存日志",
         "copiedToClipboard": "已复制到剪贴板",
-        "logSaved": "日志已保存"
+        "logSaved": "日志已保存",
+        "logSaveFailed": "保存日志失败"
     },
     "searchReplace": {
         "title": "查找与替换",
@@ -1388,6 +1391,8 @@
             "pleaseSaveFirst":"请先保存文件",
             "compileSuccess":"编译成功",
             "compileFailed":"编译失败，错误码：{code}",
+            "analyzingError":"正在使用AI分析编译错误...",
+            "errorAnalysisFailed":"AI错误分析失败",
             "textNotFound":"未找到文本：{text}",
             "clickToLocate":"请点击PDF中的文字以定位到源码",
             "pdfNotAvailable":"PDF不可用",
@@ -2184,7 +2189,21 @@
       }
     }
   },
-  "llmStatistics": {
+    "workspaceExplorer": {
+        "title": "工作目录",
+        "noWorkspaceFolder": "未选择工作文件夹",
+        "openFolder": "打开文件夹",
+        "refresh": "刷新",
+        "loading": "加载中...",
+        "selectFolder": "选择工作文件夹",
+        "ipcNotAvailable": "IPC 不可用",
+        "fileNotFound": "文件不存在"
+    },
+    "viewMenuContainer": {
+        "collapse": "折叠",
+        "expand": "展开"
+    },
+    "llmStatistics": {
     "title": "LLM API 用量统计",
     "tooltip": "点击查看 LLM API 用量统计",
     "quickSelect": "快速选择",

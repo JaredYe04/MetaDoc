@@ -60,9 +60,13 @@ let startY = 0
 
 // 分割线样式
 const dividerStyle = computed(() => {
+  // 默认透明，拖拽时显示hoverColor
   const baseStyle = {
-    backgroundColor: isResizing.value ? props.hoverColor : props.backgroundColor,
-    cursor: props.direction === 'horizontal' ? 'row-resize' : 'col-resize'
+    backgroundColor: isResizing.value ? props.hoverColor : 'transparent',
+    cursor: props.direction === 'horizontal' ? 'row-resize' : 'col-resize',
+    // 将原始背景色和悬停色传递给 CSS 变量，用于 hover 状态
+    '--divider-bg-color': props.backgroundColor,
+    '--divider-hover-color': props.hoverColor
   }
 
   if (props.direction === 'horizontal') {
@@ -140,7 +144,7 @@ onUnmounted(() => {
 <style scoped>
 .resizable-divider {
   position: relative;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease 0s;
   z-index: 10;
 }
 
@@ -162,9 +166,11 @@ onUnmounted(() => {
   position: relative;
 }
 
-/* 悬停效果 */
+/* 悬停效果 - 显示原先的背景色 */
 .resizable-divider:hover {
+  background-color: var(--divider-bg-color) !important;
   opacity: 0.8;
+  transition: background-color 0.3s ease 0.5s;
 }
 
 .resizable-divider:hover .divider-handle::after {
@@ -185,5 +191,10 @@ onUnmounted(() => {
 .divider-vertical:hover .divider-handle::after {
   width: 2px;
   height: 40px;
+}
+
+/* 拖拽时保持显示颜色 */
+.divider-resizing {
+  background-color: var(--divider-hover-color) !important;
 }
 </style>

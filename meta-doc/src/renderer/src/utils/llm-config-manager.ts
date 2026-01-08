@@ -300,8 +300,9 @@ async function applyConfigToSettings(config: LlmConfigItem): Promise<void> {
   
   // 广播配置更新事件到所有窗口，让其他窗口知道配置已更新
   // 其他窗口在下次调用 createAdapterFromSettings 时会从主进程读取最新设置
-  const { sendBroadcast } = await import('./event-bus.js');
-  sendBroadcast('all', 'llm-config-updated', {
+  // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+  const eventBus = (await import('./event-bus.js')).default;
+  eventBus.emit('llm-config-updated', {
     configId: config.id,
     configType: config.type
   });

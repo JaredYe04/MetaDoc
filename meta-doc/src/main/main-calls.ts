@@ -146,6 +146,10 @@ interface UpdateRecentDocsData {
   path: string;
 }
 
+interface RemoveRecentDocData {
+  path: string;
+}
+
 interface CutWordsData {
   text: string;
 }
@@ -983,6 +987,10 @@ function bindSettingHandlers(): void {
   
   ipcMain.handle('get-recent-docs', async (event: IpcMainInvokeEvent): Promise<string[]> => {
     return await getRecentDocs();
+  });
+  
+  ipcMain.handle('remove-recent-doc', async (event: IpcMainInvokeEvent, data: RemoveRecentDocData): Promise<void> => {
+    return await removeRecentDoc(data);
   });
 
   // 获取环境变量（仅限安全的环境变量，不暴露敏感信息）
@@ -2043,6 +2051,19 @@ const updateRecentDocs = async (data: UpdateRecentDocsData): Promise<void> => {
     recentDocs.pop();
   }
 
+  store.set('recent-docs', JSON.stringify(recentDocs));
+};
+
+/**
+ * 删除最近文档
+ */
+const removeRecentDoc = async (data: RemoveRecentDocData): Promise<void> => {
+  const json = store.get('recent-docs') as string | null;
+  let recentDocs: string[] = json ? JSON.parse(json) : [];
+  
+  // 从列表中移除指定路径
+  recentDocs = recentDocs.filter((item) => item !== data.path);
+  
   store.set('recent-docs', JSON.stringify(recentDocs));
 };
 

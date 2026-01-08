@@ -286,7 +286,7 @@ import "../assets/aero-div.css";
 import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
 import "../assets/title-menu.css";
-import eventBus, { getWindowType, sendBroadcast } from '../utils/event-bus';
+import eventBus, { getWindowType } from '../utils/event-bus';
 import { searchNode } from "../utils/outline-helpers";
 import { extractOutlineTreeFromMarkdown } from '../utils/md-utils';
 import { extractOutlineTreeFromLatex } from '../utils/latex-utils';
@@ -1667,20 +1667,27 @@ async function loadPdf(url: string, preservePage = false) {
         buildPdfToSourceMapping();
     } catch (error: any) {
         // 捕获 PDF 加载错误，避免未处理的 rejection
+        const errorMessage = error?.message || String(error);
         logger.warn('加载 PDF 失败', { 
             url, 
-            error: error?.message || error,
+            error: errorMessage,
             errorName: error?.name,
             status: error?.status
         });
         
-        // 如果是文件不存在或无法访问的错误，显示友好的提示
-        if (error?.name === 'ResponseException' || error?.status === 0) {
+        // 如果是文件不存在或无法访问的错误（包括未编译的情况），不显示错误提示
+        const isFileNotFound = 
+            error?.name === 'ResponseException' || 
+            error?.status === 0 ||
+            (typeof errorMessage === 'string' && errorMessage.toLowerCase().includes('missing pdf'));
+        
+        if (isFileNotFound) {
+            // 文件不存在是正常情况（可能还未编译），只记录警告，不显示错误提示
             logger.warn(t('latexEditor.notification.pdfFileNotFoundOrInaccessible'))
         } else {
             eventBus.emit('show-error', 
                 t('latexEditor.notification.pdfLoadFailed', { 
-                    reason: error?.message || String(error)
+                    reason: errorMessage
                 })
             );
         }
@@ -1992,7 +1999,8 @@ const handleMenuClick = async (item: string) => {
             };
             addDialogEntry(newDialog, true)
             prependAiChatDialog(newDialog);
-            sendBroadcast('ai-chat', 'ai-chat-dialogs-updated', null);
+            // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+            eventBus.emit('ai-chat-dialogs-updated', null);
             eventBus.emit('ai-chat')
             break;
         case 'cut':

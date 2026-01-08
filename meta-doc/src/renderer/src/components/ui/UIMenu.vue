@@ -31,11 +31,18 @@ const menuStyle = computed(() => ({
 
 // 管理所有打开的 click 触发的子菜单
 const openClickSubMenus = ref<Set<() => void>>(new Set())
+// 管理所有打开的子菜单（包括 hover 和 click，用于控制 tooltip 显示）
+const openSubMenus = ref<Set<() => void>>(new Set())
+
+// 是否有任何子菜单打开（用于控制 tooltip 显示）
+const hasOpenSubMenu = computed(() => openSubMenus.value.size > 0)
 
 // 关闭所有 click 触发的子菜单
 const closeAllClickSubMenus = () => {
+  // 先调用所有关闭函数，它们会自动从 openSubMenus 中注销
   openClickSubMenus.value.forEach(closeFn => closeFn())
   openClickSubMenus.value.clear()
+  // 注意：不需要手动清理 openSubMenus，因为 closeFn 会调用 unregisterSubMenu
 }
 
 // 注册/注销 click 触发的子菜单
@@ -47,10 +54,22 @@ const unregisterClickSubMenu = (closeFn: () => void) => {
   openClickSubMenus.value.delete(closeFn)
 }
 
+// 注册/注销所有类型的子菜单（用于 tooltip 控制）
+const registerSubMenu = (closeFn: () => void) => {
+  openSubMenus.value.add(closeFn)
+}
+
+const unregisterSubMenu = (closeFn: () => void) => {
+  openSubMenus.value.delete(closeFn)
+}
+
 // 提供给子组件使用
 provide('closeAllClickSubMenus', closeAllClickSubMenus)
 provide('registerClickSubMenu', registerClickSubMenu)
 provide('unregisterClickSubMenu', unregisterClickSubMenu)
+provide('registerSubMenu', registerSubMenu)
+provide('unregisterSubMenu', unregisterSubMenu)
+provide('hasOpenSubMenu', hasOpenSubMenu)
 </script>
 
 <style scoped>

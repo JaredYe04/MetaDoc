@@ -4,14 +4,14 @@
     :style="{ backgroundColor: themeState.currentTheme.background, color: themeState.currentTheme.textColor }"
   >
     <el-container class="settings-layout">
-      <el-aside class="settings-aside" width="200px">
+      <el-aside class="settings-aside" width="120px">
         <el-menu
           :default-active="activeMenu"
           @select="handleMenuSelect"
-          :background-color="themeState.currentTheme.sidebarBackground2"
+          :background-color="themeState.currentTheme.background"
           :text-color="themeState.currentTheme.SideTextColor"
           :active-text-color="themeState.currentTheme.SideActiveTextColor"
-          class="settings-menu"
+          :class="['settings-menu', 'modern-side-menu']"
         >
           <el-menu-item
             v-for="item in menuItems"
@@ -38,7 +38,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { getSetting, settings } from '../utils/settings.js';
-import { themeState } from '../utils/themes.js';
+import { themeState, mixColors } from '../utils/themes.js';
 import SettingBasicSection from './setting/SettingBasicSection.vue';
 import SettingLlmSection from './setting/SettingLlmSection.vue';
 import SettingKnowledgeBaseSection from './setting/SettingKnowledgeBaseSection.vue';
@@ -49,6 +49,7 @@ import SettingAboutSection from './setting/SettingAboutSection.vue';
 import { isDevEnvironment } from '../utils/dev-env';
 import '../assets/aero-btn.css';
 import '../assets/aero-div.css';
+import '../assets/modern-side-menu.css';
 
 const activeMenu = ref('basic');
 const isDev = ref(false);
@@ -82,6 +83,10 @@ const menuItems = computed(() => {
 });
 
 const currentComponent = computed(() => componentMap[activeMenu.value] ?? SettingBasicSection);
+
+// 计算选中状态的背景色和文字色（与 HeadMenu 保持一致）
+const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3));
+const activeTextColor = computed(() => themeState.currentTheme.textColor);
 
 const handleMenuSelect = (index: string) => {
   activeMenu.value = index;
@@ -128,7 +133,24 @@ onMounted(async () => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  border-right: none;
+  width: 120px; /* 与 HeadMenu 保持一致 */
+}
+
+/* 设置菜单激活状态的颜色绑定 */
+.settings-menu.modern-side-menu :deep(.el-menu-item.is-active) {
+  background-color: v-bind('activeBackgroundColor') !important;
+  color: v-bind('activeTextColor') !important;
+  border-radius: 6px !important;
+}
+
+/* 确保 hover 状态也有圆角 */
+.settings-menu.modern-side-menu :deep(.el-menu-item:hover) {
+  border-radius: 6px !important;
+}
+
+/* 确保所有菜单项都有圆角 */
+.settings-menu.modern-side-menu :deep(.el-menu-item) {
+  border-radius: 6px !important;
 }
 
 .settings-main {

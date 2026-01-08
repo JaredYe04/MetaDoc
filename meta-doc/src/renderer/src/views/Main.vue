@@ -25,6 +25,11 @@
               <template v-for="tab in workspace.tabs" :key="tab.id">
                 <!-- 文档Tab：根据lastView显示不同视图 -->
                 <template v-if="tab.kind === 'file' || tab.kind === 'new'">
+                  <Home 
+                    v-if="shouldRenderView(tab.id, 'home')"
+                    v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'home'"
+                    :key="`home-${tab.id}`"
+                  />
                   <Editor 
                     v-if="shouldRenderView(tab.id, 'editor')"
                     v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'editor'"
@@ -167,14 +172,14 @@ import { getRecentDocs, getSetting } from '../utils/settings.js'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
 import { ElNotification, ElMessageBox } from 'element-plus'
 import { lightTheme, darkTheme } from '../utils/themes.js'
-import { useWorkspace } from '../stores/workspace'
+import { useWorkspace, hasDocumentContent as checkDocumentContent } from '../stores/workspace'
 import {
   loadDocumentFromJson,
   loadDocumentFromMarkdown,
   loadDocumentFromTex,
   type LoadedDocumentData,
 } from '../services/document-loader'
-import type { WorkspaceDocument } from '../stores/workspace'
+import type { WorkspaceDocument, DocumentView, WorkspaceTab } from '../stores/workspace'
 import { convertMarkdownBodyToLatex } from '../utils/latex-utils'
 import UserProfileCard from '../components/UserProfileCard.vue'
 import { verifyToken } from '../utils/web-utils.ts'
@@ -193,6 +198,7 @@ import ProofreadView from './ProofreadView.vue'
 import KnowledgeBase from './KnowledgeBase.vue'
 import DebugView from './DebugView.vue'
 import GlobalHome from './GlobalHome.vue'
+import Home from './Home.vue'
 import DummyView from './DummyView.vue'
 import Setting from './Setting.vue'
 import AIChat from './AIChat.vue'
@@ -226,20 +232,33 @@ const showSubViewMenu = computed(() => {
 // 当前文档视图
 const currentDocumentView = computed(() => {
   if (!activeTab.value || (activeTab.value.kind !== 'file' && activeTab.value.kind !== 'new')) {
+    logger.debug('[Main] currentDocumentView - 非文档Tab', { activeTabId: activeTab.value?.id, activeTabKind: activeTab.value?.kind })
     return 'editor'
   }
   const doc = workspace.ensureDocument(activeTab.value.id)
-  return doc.lastView || 'editor'
+  // 直接使用 doc.lastView，逻辑已经在创建文档时根据内容正确设置了
+  const view = doc.lastView || 'editor'
+  logger.debug('[Main] currentDocumentView 计算', { activeTabId: activeTab.value.id, lastView: doc.lastView, returnedView: view })
+  return view
 })
 
-// 获取指定Tab的文档视图（用于v-show）
+// 使用 workspace 导出的统一函数
+const hasDocumentContent = (doc: WorkspaceDocument): boolean => {
+  return checkDocumentContent(doc)
+}
+
+// 获取指定Tab的文档视图（直接使用 doc.lastView，不再修修补补）
 const getDocumentView = (tabId: string): string => {
   const tab = workspace.tabs.find(t => t.id === tabId)
   if (!tab || (tab.kind !== 'file' && tab.kind !== 'new')) {
+    logger.debug('[Main] getDocumentView - 非文档Tab', { tabId, tabKind: tab?.kind })
     return 'editor'
   }
   const doc = workspace.ensureDocument(tabId)
-  return doc.lastView || 'editor'
+  // 直接使用 doc.lastView，不再根据内容动态决定
+  const view = doc.lastView || 'editor'
+  logger.debug('[Main] getDocumentView', { tabId, lastView: doc.lastView, returnedView: view })
+  return view
 }
 
 // 跟踪已经挂载过的视图，确保组件在可见状态下首次挂载，之后保持挂载
@@ -269,6 +288,7 @@ const {
   removeTab,
   updateDocumentTex,
   updateDocumentMarkdown,
+  refreshActiveTabMetadata,
 } = workspace
 
 const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value))
@@ -284,19 +304,8 @@ const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocume
   const normalizedMarkdown = normalizeContent(data.markdown);
   const normalizedTex = normalizeContent(data.tex);
   
-  logger.debug('创建文档快照', {
-    format: data.format,
-    markdownLength: normalizedMarkdown.length,
-    originalMarkdownLength: data.markdown?.length ?? 0,
-    texLength: normalizedTex.length,
-    originalTexLength: data.tex?.length ?? 0,
-    hasMarkdown: !!normalizedMarkdown,
-    hasTex: !!normalizedTex,
-    markdownEndsWithNewline: normalizedMarkdown.endsWith('\n'),
-    originalMarkdownEndsWithNewline: data.markdown?.endsWith('\n'),
-  });
-  
-  return {
+  // 创建临时文档对象用于检查内容
+  const tempDoc: WorkspaceDocument = {
     id: '',
     tabId: '',
     path: '',
@@ -307,7 +316,7 @@ const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocume
     meta: { ...data.meta },
     aiDialogs: cloneDeep(data.aiDialogs),
     agentSessions: cloneDeep(data.agentSessions),
-    lastView: data.lastView === 'article' ? 'editor' : (data.lastView === 'outline' ? 'outline' : 'editor'),
+    lastView: 'editor', // 临时值，下面会根据内容决定
     renderedHtml: '',
     dirty: false,
     savedMarkdown: normalizedMarkdown,
@@ -316,6 +325,25 @@ const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocume
     savedMeta: { ...data.meta },
     savedAiDialogs: cloneDeep(data.aiDialogs),
     savedAgentSessions: cloneDeep(data.agentSessions),
+  }
+  
+  // 根据文档内容决定初始视图
+  // document-loader 返回的 lastView 总是 'editor'，这是占位符，不是真实保存的值
+  // 所以我们总是根据内容来决定初始视图
+  const hasContent = hasDocumentContent(tempDoc)
+  const initialView: DocumentView = hasContent ? 'home' : 'editor'
+  
+  logger.debug('创建文档快照', {
+    format: data.format,
+    markdownLength: normalizedMarkdown.length,
+    texLength: normalizedTex.length,
+    hasContent,
+    initialView,
+  });
+  
+  return {
+    ...tempDoc,
+    lastView: initialView,
   }
 }
 
@@ -385,31 +413,76 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     snapshot.path = resolvedPath
     snapshot.dirty = false
 
-    // 检查当前活跃的tab是否是新建文档（可以替换）
-    const currentTab = workspaceTabs.find(tab => tab.id === activeTabId.value)
-    const canUseCurrentTab = currentTab && 
-      (currentTab.kind === 'new' || !currentTab.path || currentTab.path === '') &&
-      !currentTab.dirty
+    // 关键修复：在打开文档之前，先查找并准备替换的新建文档Tab
+    // 这样可以避免启动时出现多余的新建文档Tab
+    let tabToReplace: WorkspaceTab | null = null
+    if (resolvedPath) {
+      // 优先查找当前活动的Tab是否可以替换
+      const currentTab = workspaceTabs.find(tab => tab.id === activeTabId.value)
+      const isSystemOrToolTab = currentTab && (currentTab.kind === 'system' || currentTab.kind === 'tool')
+      const canUseCurrentTab = currentTab && 
+        !isSystemOrToolTab && // 不是系统tab或工具tab（包括主页）
+        currentTab.kind === 'new' && // 只能是新建文档tab
+        (!currentTab.path || currentTab.path === '') && // 没有路径
+        !currentTab.dirty // 没有未保存的更改
+      
+      if (canUseCurrentTab) {
+        tabToReplace = currentTab
+      } else {
+        // 如果当前Tab不能替换，查找第一个可用的新建文档Tab
+        tabToReplace = workspaceTabs.find(t => 
+          t.kind === 'new' && 
+          (!t.path || t.path === '') &&
+          !t.dirty
+        ) || null
+      }
+      
+      // 如果找到了可替换的Tab，先删除所有其他多余的新建文档Tab
+      if (tabToReplace) {
+        const newDocTabs = workspaceTabs.filter(t => 
+          t.kind === 'new' && 
+          t.id !== tabToReplace!.id && // 不包括要替换的tab
+          (!t.path || t.path === '') &&
+          !t.dirty
+        )
+        // 删除所有多余的新建文档tab
+        newDocTabs.forEach(newTab => {
+          removeTab(newTab.id)
+        })
+      } else {
+        // 如果找不到可替换的Tab，删除所有多余的新建文档Tab
+        const newDocTabs = workspaceTabs.filter(t => 
+          t.kind === 'new' && 
+          (!t.path || t.path === '') &&
+          !t.dirty
+        )
+        newDocTabs.forEach(newTab => {
+          removeTab(newTab.id)
+        })
+      }
+    }
 
-    let tab
-    if (canUseCurrentTab && resolvedPath) {
-      // 在当前tab中打开文档，替换新建文档
-      const currentDoc = ensureDocument(currentTab.id)
-      // 更新当前文档的内容
-      Object.assign(currentDoc, snapshot)
-      currentDoc.id = currentTab.id
-      currentDoc.tabId = currentTab.id
+    let tab: WorkspaceTab
+    if (tabToReplace && resolvedPath) {
+      // 在找到的tab中打开文档，替换新建文档
+      const replaceDoc = ensureDocument(tabToReplace.id)
+      // 更新文档的内容
+      Object.assign(replaceDoc, snapshot)
+      replaceDoc.id = tabToReplace.id
+      replaceDoc.tabId = tabToReplace.id
       
-      // 更新tab信息
-      currentTab.kind = 'file'
-      currentTab.path = resolvedPath
-      currentTab.format = loaded.format
-      currentTab.dirty = false
+      // 更新tab信息（先更新kind，这样refreshActiveTabMetadata才能正确工作）
+      tabToReplace.kind = 'file'
+      tabToReplace.path = resolvedPath
+      tabToReplace.format = loaded.format
+      tabToReplace.dirty = false
       
-      markDocumentSaved(currentTab.id, resolvedPath || undefined)
-      tab = currentTab
+      markDocumentSaved(tabToReplace.id, resolvedPath || undefined)
+      // 更新tab标题和副标题（现在kind已经是'file'了，refreshActiveTabMetadata会正确工作）
+      refreshActiveTabMetadata()
+      tab = tabToReplace
     } else {
-      // 创建新tab
+      // 创建新tab（包括从主页打开文档的情况）
       tab = addDocumentTab(snapshot, {
         kind: 'file',
         dirty: false,
@@ -420,6 +493,8 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       doc.path = resolvedPath
       doc.format = loaded.format
       markDocumentSaved(tab.id, resolvedPath || undefined)
+      // 更新tab标题和副标题
+      refreshActiveTabMetadata()
     }
     
     activateTab(tab.id)
@@ -443,7 +518,7 @@ const showUserProfileCard = ref(false)
 const autoSaveEnabled = ref(false)
 const autoSaveInterval = ref(2147483647)
 const menuPosition = ref({ top: 100, left: 100 });
-const headMenuCollapsed = ref(false)
+const headMenuCollapsed = ref(true) // 默认折叠，与 HeadMenu 保持一致
 async function autoSave() {
   do {
     const autoSave = await getSetting('autoSave')
@@ -487,8 +562,14 @@ const fileConflictData = ref<{
  * 初始化 Main 组件的事件监听器
  */
 function initMainEventListeners() {
-  // 刷新事件
+  // 刷新事件 - 只在非 GlobalHome 时更新标题
   const handleRefresh = () => {
+    // 检查当前活动的 tab 是否是 GlobalHome
+    const currentTab = workspace.tabs.find(t => t.id === workspace.activeTabId.value)
+    if (currentTab && currentTab.route === '/global-home') {
+      // 如果是 GlobalHome，不更新标题，保持主页标题
+      return
+    }
     const title = workspace.activeDocument.value?.meta?.title ?? ''
     eventBus.emit('update-window-title', title)
   }
@@ -521,6 +602,17 @@ function initMainEventListeners() {
 
   // 打开文档成功
   const handleOpenDocSuccess = async (payload: unknown) => {
+    // 检查当前活动的 tab 是否是 GlobalHome，如果是则不更新标题
+    const currentTab = workspace.tabs.find(t => t.id === workspace.activeTabId.value)
+    if (!currentTab || currentTab.route === '/global-home') {
+      // 如果是 GlobalHome，不更新标题，保持主页标题
+      logger.debug('[Main] handleOpenDocSuccess - GlobalHome 不更新标题', { currentTabRoute: currentTab?.route })
+    } else {
+      // 只在非 GlobalHome 时更新标题
+      const title = workspace.activeDocument.value?.meta?.title ?? ''
+      eventBus.emit('update-window-title', title)
+    }
+    
     let tabId
     if (payload && typeof payload === 'object' && 'tabId' in payload) {
       const value = payload.tabId
@@ -547,6 +639,9 @@ function initMainEventListeners() {
         logger.debug('启动文件监听', { filePath, tabId })
       }
     }
+    
+    // lastView 已经在 createSnapshotFromLoadedData 中根据内容正确设置了
+    // 这里不需要再修改，保持逻辑清晰
   }
   eventBus.on('open-doc-success', handleOpenDocSuccess)
 
@@ -689,15 +784,42 @@ function initMainEventListeners() {
 
   // 处理AI Chat插入到当前文档
   const handleAiChatInsertToDocument = async (payload: unknown) => {
-    const data = payload as { content: string }
+    const data = payload as { content: string; tabId?: string }
     if (!data || !data.content) return
 
-    const tabId = activeTabId.value
-    if (!tabId) {
-      // 如果没有活动文档，创建新文档并插入
+    // 确定目标文档tabId
+    let targetTabId: string | null = null
+    
+    if (data.tabId) {
+      // 如果指定了tabId，验证它是否是文档tab
+      const specifiedTab = workspaceTabs.find(t => t.id === data.tabId)
+      if (specifiedTab && (specifiedTab.kind === 'file' || specifiedTab.kind === 'new')) {
+        targetTabId = data.tabId
+      }
+    }
+    
+    // 如果没有指定或指定的不是文档tab，查找当前活动的文档tab
+    if (!targetTabId) {
+      const activeTab = workspaceTabs.find(t => t.id === activeTabId.value)
+      if (activeTab && (activeTab.kind === 'file' || activeTab.kind === 'new')) {
+        targetTabId = activeTab.id
+      }
+    }
+    
+    // 如果还是没有，查找第一个文档tab（优先选择非新文档）
+    if (!targetTabId) {
+      const documentTabs = workspaceTabs.filter(t => t.kind === 'file' || t.kind === 'new')
+      if (documentTabs.length > 0) {
+        // 优先选择已保存的文档（kind === 'file'），否则选择第一个
+        const savedDoc = documentTabs.find(t => t.kind === 'file')
+        targetTabId = savedDoc ? savedDoc.id : documentTabs[0].id
+      }
+    }
+    
+    // 如果仍然没有，创建新文档
+    if (!targetTabId) {
       const newTab = workspace.openNewDocumentTab()
       workspace.initializeDocumentFromTemplate(newTab.id, 'md', 'blank')
-      const newDoc = workspace.ensureDocument(newTab.id)
       workspace.updateDocumentMarkdown(newTab.id, data.content)
       ElNotification({
         title: t('main.notification.success.title'),
@@ -707,32 +829,33 @@ function initMainEventListeners() {
       return
     }
 
-    const doc = workspace.ensureDocument(tabId)
-    const tab = workspaceTabs.find(t => t.id === tabId)
+    const doc = workspace.ensureDocument(targetTabId)
+    const tab = workspaceTabs.find(t => t.id === targetTabId)
     
-    // 如果文档格式未确定，自动设置为md
-    if (!doc.format || (tab && tab.kind === 'new' && !tab.format)) {
-      doc.format = 'md'
-      if (tab) {
-        tab.format = 'md'
+      // 如果文档格式未确定，自动设置为md
+      if (!doc.format || (tab && tab.kind === 'new' && !tab.format)) {
+        doc.format = 'md'
+        if (tab) {
+          tab.format = 'md'
+        }
+        // 如果是新文档且未初始化，先初始化
+        if (tab && tab.kind === 'new') {
+          workspace.initializeDocumentFromTemplate(targetTabId, 'md', 'blank')
+        }
       }
-      // 如果是新文档且未初始化，先初始化
-      if (tab && tab.kind === 'new') {
-        workspace.initializeDocumentFromTemplate(tabId, 'md', 'blank')
-      }
-    }
 
     try {
       if (doc.format === 'md') {
         // Markdown格式，直接追加
         const currentContent = doc.markdown || ''
         const newContent = currentContent + (currentContent ? '\n\n' : '') + data.content
-        workspace.updateDocumentMarkdown(tabId, newContent)
-        ElNotification({
-          title: t('main.notification.success.title'),
-          message: t('aiChat.insertSuccess', '内容已插入到文档'),
-          type: 'success',
-        })
+        workspace.updateDocumentMarkdown(targetTabId, newContent)
+        // 不显示通知，避免多选时显示多个通知
+        // ElNotification({
+        //   title: t('main.notification.success.title'),
+        //   message: t('aiChat.insertSuccess', '内容已插入到文档'),
+        //   type: 'success',
+        // })
       } else if (doc.format === 'tex') {
         // LaTeX格式，询问用户选择
         try {
@@ -756,18 +879,19 @@ function initMainEventListeners() {
             const beforeEnd = currentTex.slice(0, endDocIndex).trim()
             const afterEnd = currentTex.slice(endDocIndex)
             const newTex = beforeEnd + (beforeEnd ? '\n\n' : '') + latexBody + '\n' + afterEnd
-            workspace.updateDocumentTex(tabId, newTex)
+            workspace.updateDocumentTex(targetTabId, newTex)
           } else {
             // 如果没有 \end{document}，直接追加
             const newTex = currentTex + (currentTex ? '\n\n' : '') + latexBody
-            workspace.updateDocumentTex(tabId, newTex)
+            workspace.updateDocumentTex(targetTabId, newTex)
           }
           
-          ElNotification({
-            title: t('main.notification.success.title'),
-            message: t('aiChat.insertSuccess', '内容已插入到文档'),
-            type: 'success',
-          })
+          // 不显示通知，避免多选时显示多个通知
+          // ElNotification({
+          //   title: t('main.notification.success.title'),
+          //   message: t('aiChat.insertSuccess', '内容已插入到文档'),
+          //   type: 'success',
+          // })
         } catch (error) {
           // 用户选择插入Markdown原文或取消
           if (error === 'cancel') {
@@ -779,11 +903,11 @@ function initMainEventListeners() {
               const afterEnd = currentTex.slice(endDocIndex)
               const markdownBlock = '% Markdown原文:\n% ' + data.content.replace(/\n/g, '\n% ') + '\n'
               const newTex = beforeEnd + (beforeEnd ? '\n\n' : '') + markdownBlock + afterEnd
-              workspace.updateDocumentTex(tabId, newTex)
+              workspace.updateDocumentTex(targetTabId, newTex)
             } else {
               const markdownBlock = '% Markdown原文:\n% ' + data.content.replace(/\n/g, '\n% ') + '\n'
               const newTex = currentTex + (currentTex ? '\n\n' : '') + markdownBlock
-              workspace.updateDocumentTex(tabId, newTex)
+              workspace.updateDocumentTex(targetTabId, newTex)
             }
             
             ElNotification({

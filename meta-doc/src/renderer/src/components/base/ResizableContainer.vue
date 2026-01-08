@@ -1,5 +1,11 @@
 <template>
-  <div class="resizable-container" :class="containerClass" ref="containerRef">
+  <div 
+    class="resizable-container" 
+    :class="containerClass" 
+    ref="containerRef"
+    @mousemove="handleMouseMove"
+    @mouseleave="handleMouseLeave"
+  >
     <!-- 主要内容区域 -->
     <div 
       class="main-content" 
@@ -44,12 +50,14 @@
       </div>
     </div>
 
-    <!-- 展开按钮（当折叠时显示） -->
+    <!-- 展开按钮（当折叠时显示，仅在 hover 时显示） -->
     <div 
       v-if="showSidebar && isCollapsed && collapsible"
       class="expand-button"
-      :class="expandButtonClass"
+      :class="[expandButtonClass, { 'expand-button-visible': showExpandButton }]"
       @click="toggleCollapse"
+      @mouseenter="handleExpandButtonEnter"
+      @mouseleave="handleExpandButtonLeave"
       :title="expandButtonTitle"
     >
       <el-icon><ArrowRight v-if="sidebarPosition === 'start'" /><ArrowLeft v-else /></el-icon>
@@ -118,6 +126,9 @@ const startSidebarSize = ref(props.initialSidebarSize)
 
 // 折叠状态
 const isCollapsed = ref(false)
+
+// 是否显示展开按钮
+const showExpandButton = ref(false)
 
 // 是否显示分割线
 const showDivider = computed(() => props.showSidebar && !isCollapsed.value)
@@ -194,6 +205,131 @@ const expandButtonClass = computed(() => {
   }
 })
 
+// 处理鼠标移动，检测是否在边缘区域
+function handleMouseMove(event: MouseEvent) {
+  if (!isCollapsed.value || !props.collapsible) {
+    showExpandButton.value = false
+    return
+  }
+  
+  const container = containerRef.value
+  if (!container) return
+  
+  const rect = container.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  const edgeThreshold = 30 // 边缘检测阈值（像素）
+  
+  // 检测是否在边缘区域
+  let isInEdgeZone = false
+  
+  if (props.direction === 'vertical') {
+    // 垂直布局：检测左右边缘
+    if (props.sidebarPosition === 'end') {
+      // 侧边栏在右侧，检测右边缘
+      isInEdgeZone = x >= rect.width - edgeThreshold
+    } else {
+      // 侧边栏在左侧，检测左边缘
+      isInEdgeZone = x <= edgeThreshold
+    }
+  } else {
+    // 水平布局：检测上下边缘
+    if (props.sidebarPosition === 'end') {
+      // 侧边栏在下侧，检测下边缘
+      isInEdgeZone = y >= rect.height - edgeThreshold
+    } else {
+      // 侧边栏在上侧，检测上边缘
+      isInEdgeZone = y <= edgeThreshold
+    }
+  }
+  
+  showExpandButton.value = isInEdgeZone
+}
+
+// 处理鼠标离开容器
+function handleMouseLeave() {
+  // 延迟隐藏，给按钮 hover 留出时间
+  setTimeout(() => {
+    if (!showExpandButton.value) return
+    
+    // 检查鼠标是否在按钮上
+    const container = containerRef.value
+    if (container) {
+      const expandButton = container.querySelector('.expand-button') as HTMLElement
+      if (expandButton) {
+        const buttonRect = expandButton.getBoundingClientRect()
+        const mouseX = (window as any).lastMouseX || 0
+        const mouseY = (window as any).lastMouseY || 0
+        
+        // 如果鼠标不在按钮上，才隐藏
+        if (
+          mouseX < buttonRect.left ||
+          mouseX > buttonRect.right ||
+          mouseY < buttonRect.top ||
+          mouseY > buttonRect.bottom
+        ) {
+          showExpandButton.value = false
+        }
+      } else {
+        showExpandButton.value = false
+      }
+    }
+  }, 100)
+}
+
+// 处理展开按钮鼠标进入
+function handleExpandButtonEnter() {
+  showExpandButton.value = true
+}
+
+// 处理展开按钮鼠标离开
+function handleExpandButtonLeave() {
+  // 延迟隐藏，检查鼠标是否移回边缘区域
+  setTimeout(() => {
+    const container = containerRef.value
+    if (container) {
+      const rect = container.getBoundingClientRect()
+      const mouseX = (window as any).lastMouseX || 0
+      const mouseY = (window as any).lastMouseY || 0
+      
+      // 检查鼠标是否还在容器内
+      if (
+        mouseX < rect.left ||
+        mouseX > rect.right ||
+        mouseY < rect.top ||
+        mouseY > rect.bottom
+      ) {
+        showExpandButton.value = false
+        return
+      }
+      
+      // 检查是否还在边缘区域
+      const x = mouseX - rect.left
+      const y = mouseY - rect.top
+      const edgeThreshold = 30
+      
+      let isInEdgeZone = false
+      if (props.direction === 'vertical') {
+        if (props.sidebarPosition === 'end') {
+          isInEdgeZone = x >= rect.width - edgeThreshold
+        } else {
+          isInEdgeZone = x <= edgeThreshold
+        }
+      } else {
+        if (props.sidebarPosition === 'end') {
+          isInEdgeZone = y >= rect.height - edgeThreshold
+        } else {
+          isInEdgeZone = y <= edgeThreshold
+        }
+      }
+      
+      if (!isInEdgeZone) {
+        showExpandButton.value = false
+      }
+    }
+  }, 100)
+}
+
 // 容器引用
 const containerRef = ref<HTMLElement | null>(null)
 
@@ -205,6 +341,9 @@ function toggleCollapse() {
 
 // 监听窗口大小变化，自动折叠
 let resizeObserver: ResizeObserver | null = null
+
+// 全局鼠标移动处理函数引用
+let handleGlobalMouseMove: ((event: MouseEvent) => void) | null = null
 
 onMounted(async () => {
   await nextTick()
@@ -223,11 +362,22 @@ onMounted(async () => {
       resizeObserver.observe(parentContainer)
     }
   }
+  
+  // 监听全局鼠标移动，记录鼠标位置
+  handleGlobalMouseMove = (event: MouseEvent) => {
+    ;(window as any).lastMouseX = event.clientX
+    ;(window as any).lastMouseY = event.clientY
+  }
+  window.addEventListener('mousemove', handleGlobalMouseMove)
 })
 
 onBeforeUnmount(() => {
   if (resizeObserver) {
     resizeObserver.disconnect()
+  }
+  if (handleGlobalMouseMove) {
+    window.removeEventListener('mousemove', handleGlobalMouseMove)
+    handleGlobalMouseMove = null
   }
 })
 
@@ -367,7 +517,7 @@ defineExpose({
   left: -12px;
 }
 
-/* 展开按钮样式 */
+/* 展开按钮样式 - 默认隐藏 */
 .expand-button {
   position: absolute;
   z-index: 10;
@@ -379,10 +529,21 @@ defineExpose({
   align-items: center;
   justify-content: center;
   padding: 4px;
-  transition: all 0.2s;
+  transition: opacity 0.2s, visibility 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
+/* 当按钮可见时 */
+.expand-button.expand-button-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* 当 hover 到按钮本身时 */
 .expand-button:hover {
   background-color: var(--el-bg-color, #ffffff);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);

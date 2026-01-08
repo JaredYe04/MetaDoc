@@ -259,8 +259,9 @@ export class ParticleEffect {
     this.disposeParticles()
     
     const areaSize = 1500
-    const baseParticleCount = 60
-    const scaleFactor = Math.min(this.cachedContainerWidth * this.cachedContainerHeight / (1920 * 1080), 1.5)
+    // 减少基础粒子数量，让画面更清爽
+    const baseParticleCount = 40
+    const scaleFactor = Math.min(this.cachedContainerWidth * this.cachedContainerHeight / (1920 * 1080), 1.2)
     const particleCount = Math.floor(baseParticleCount * scaleFactor)
     let wordList: string[] = []
 
@@ -321,12 +322,13 @@ export class ParticleEffect {
       geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 
       const material = new THREE.PointsMaterial({
-        size: 40 + Math.random() * 15,
+        size: 30 + Math.random() * 10,
         vertexColors: true,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.6,
         sizeAttenuation: true,
         fog: false,
+        blending: THREE.AdditiveBlending,
       })
 
       this.particles = new THREE.Points(geometry, material)
@@ -433,10 +435,14 @@ export class ParticleEffect {
           (Math.random() - 0.5) * areaSize
         )
 
-        const baseScale = 100 + Math.random() * 120
+        // 减小文字粒子的大小，让画面更清爽
+        const baseScale = 80 + Math.random() * 60
         const widthRatio = canvasWidth / textureSize
         const scale = baseScale * widthRatio
         sprite.scale.set(scale, baseScale, 1)
+        
+        // 添加轻微的透明度变化，增强层次感
+        material.opacity = 0.6 + Math.random() * 0.2
 
         group.add(sprite)
       })
@@ -509,8 +515,9 @@ export class ParticleEffect {
     const containerWidth = this.cachedContainerWidth || window.innerWidth
     const containerHeight = this.cachedContainerHeight || window.innerHeight
     
-    const baseRotationSpeed = 0.0005
-    const mouseRotationFactor = 0.08
+    // 更慢的旋转速度，让画面更稳定
+    const baseRotationSpeed = 0.0001
+    const mouseRotationFactor = 0.06
     
     this.particles.rotation.x += baseRotationSpeed + (this.mouseY.value / containerHeight) * mouseRotationFactor
     this.particles.rotation.y += baseRotationSpeed + (this.mouseX.value / containerWidth) * mouseRotationFactor

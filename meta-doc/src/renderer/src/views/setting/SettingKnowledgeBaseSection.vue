@@ -6,7 +6,7 @@
           <el-switch v-model="settings.enableKnowledgeBase" class="mb-2"
             style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
             :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
-            @change="handleKnowledgeBaseToggle" />
+            @change="handleKnowledgeBaseToggleChange" />
         </el-tooltip>
       </el-form-item>
 
@@ -36,10 +36,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { settings, setSetting } from '../../utils/settings.js';
-import { sendBroadcast } from '../../utils/event-bus.js';
+// 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
+import eventBus from '../../utils/event-bus.js';
 import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer';
 
 const { t } = useI18n();
@@ -57,10 +58,30 @@ const sliderMarks = computed(() => ({
   0.9: '0.9'
 }));
 
-const handleKnowledgeBaseToggle = () => {
-  setSetting('enableKnowledgeBase', settings.enableKnowledgeBase);
-  sendBroadcast('home', 'knowledge-base-toggle', { enabled: settings.enableKnowledgeBase });
+// 监听知识库开关事件（从其他组件同步状态）
+const handleKnowledgeBaseToggle = (payload: unknown) => {
+  const data = payload as { enabled?: boolean };
+  if (typeof data?.enabled === 'boolean' && settings.enableKnowledgeBase !== data.enabled) {
+    settings.enableKnowledgeBase = data.enabled;
+    setSetting('enableKnowledgeBase', data.enabled);
+  }
 };
+
+const handleKnowledgeBaseToggleChange = () => {
+  setSetting('enableKnowledgeBase', settings.enableKnowledgeBase);
+  // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+  eventBus.emit('knowledge-base-toggle', { enabled: settings.enableKnowledgeBase });
+};
+
+onMounted(() => {
+  // 监听知识库开关事件，同步状态
+  eventBus.on('knowledge-base-toggle', handleKnowledgeBaseToggle);
+});
+
+onBeforeUnmount(() => {
+  // 清理事件监听器
+  eventBus.off('knowledge-base-toggle', handleKnowledgeBaseToggle);
+});
 
 const handleKnowledgeBaseThresholdChange = () => {
   setSetting('knowledgeBaseScoreThreshold', settings.knowledgeBaseScoreThreshold);

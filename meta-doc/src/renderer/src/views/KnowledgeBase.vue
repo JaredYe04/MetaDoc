@@ -1,6 +1,23 @@
 <template>
     <div class="kb-root">
-        <div class="kb-scroll-wrapper">
+        <!-- 知识库已禁用时的提示界面 -->
+        <div v-if="!knowledgeBaseEnabled" class="kb-disabled-overlay">
+            <div class="kb-disabled-content">
+                <el-icon class="kb-disabled-icon" :size="64">
+                    <Lock />
+                </el-icon>
+                <h2 class="kb-disabled-title">{{ t('knowledgeBase.disabled') || '知识库已禁用' }}</h2>
+                <p class="kb-disabled-message">
+                    {{ t('knowledgeBase.disabledMessage') || '知识库功能当前已禁用。请在设置中启用知识库功能以使用此功能。' }}
+                </p>
+                <el-button type="primary" @click="enableKnowledgeBase">
+                    {{ t('knowledgeBase.enable') || '启用知识库' }}
+                </el-button>
+            </div>
+        </div>
+        
+        <!-- 知识库正常界面 -->
+        <div v-else class="kb-scroll-wrapper">
             <div class="kb-container">
 
                 <!-- Left: list -->
@@ -221,17 +238,17 @@
 
 
             </div>
-        </div>
+            </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount, onActivated, watch, nextTick } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import eventBus, { getWindowType } from '../utils/event-bus';
 import { themeState } from '../utils/themes';
-import { Check, Close, Edit } from '@element-plus/icons-vue';
+import { Check, Close, Edit, Lock } from '@element-plus/icons-vue';
 import { queryKnowledgeBase } from '../utils/rag_utils';
 import { setSetting, settings } from '../utils/settings';
 import { waitForService } from '../utils/service-status.ts';
@@ -270,7 +287,7 @@ const isUploading = ref<boolean>(false);
 const isRebuilding = ref<boolean>(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const baseUrl = 'http://localhost:52521/api/knowledge';
-
+const knowledgeBaseEnabled = ref<boolean>(settings.enableKnowledgeBase ?? true);
 // Monaco Editor相关
 const previewEditorId = `kb-preview-editor-${Date.now()}`;
 
@@ -755,11 +772,48 @@ watch(previewText, () => {
     updateEditorContent();
 });
 
+// 启用知识库
+const enableKnowledgeBase = async () => {
+    try {
+        await setSetting('enableKnowledgeBase', true);
+        knowledgeBaseEnabled.value = true;
+        eventBus.emit('knowledge-base-toggle', { enabled: true });
+        eventBus.emit('show-success', t('knowledgeBase.enabled') || '知识库已启用');
+    } catch (error) {
+        logger.error('启用知识库失败', error);
+        eventBus.emit('show-error', t('knowledgeBase.enableError') || '启用知识库失败');
+    }
+};
+
+// 监听知识库开关事件
+const handleKnowledgeBaseToggle = (payload: unknown) => {
+    const data = payload as { enabled?: boolean };
+    if (typeof data?.enabled === 'boolean') {
+        knowledgeBaseEnabled.value = data.enabled;
+        logger.info('知识库状态已更新', { enabled: data.enabled });
+    }
+};
+
 onMounted(async () => {
+    // 初始化知识库状态
+    knowledgeBaseEnabled.value = settings.enableKnowledgeBase ?? true;
+    
+    // 监听知识库开关事件
+    eventBus.on('knowledge-base-toggle', handleKnowledgeBaseToggle);
+    
     await fetchList();
 });
 
+// 当组件激活时（Tab 切换回来时），重新检查知识库状态
+onActivated(() => {
+    // 重新读取设置，确保状态同步
+    knowledgeBaseEnabled.value = settings.enableKnowledgeBase ?? true;
+});
+
 onBeforeUnmount(() => {
+    // 清理事件监听器
+    eventBus.off('knowledge-base-toggle', handleKnowledgeBaseToggle);
+    
     // 清理Monaco编辑器
     const editor = getPreviewEditor();
     if (editor) {
@@ -1014,5 +1068,42 @@ onBeforeUnmount(() => {
 
 :deep(.el-descriptions__table td) {
     border-color: v-bind('themeState.currentTheme.borderColor') !important;
+}
+
+/* 知识库禁用状态样式 */
+.kb-disabled-overlay {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: v-bind('themeState.currentTheme.background');
+}
+
+.kb-disabled-content {
+    text-align: center;
+    padding: 40px;
+    max-width: 500px;
+}
+
+.kb-disabled-icon {
+    color: v-bind('themeState.currentTheme.textColor2');
+    margin-bottom: 24px;
+    opacity: 0.6;
+}
+
+.kb-disabled-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    color: v-bind('themeState.currentTheme.textColor');
+}
+
+.kb-disabled-message {
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0 0 32px 0;
+    color: v-bind('themeState.currentTheme.textColor2');
+    opacity: 0.8;
 }
 </style>

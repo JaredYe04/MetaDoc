@@ -14,6 +14,8 @@ import AgentIconBlack from "../assets/icons/agent-black.svg";
 import AgentIconWhite from "../assets/icons/agent-white.svg";
 import ProofreadIconBlack from "../assets/icons/proofread-black.svg";
 import ProofreadIconWhite from "../assets/icons/proofread-white.svg";
+import HomeIconBlack from "../assets/icons/home-black.svg";
+import HomeIconWhite from "../assets/icons/home-white.svg";
 // theme.js
 export const contentThemes = [
   { label: 'Ant Design', value: 'ant-design' },
@@ -134,6 +136,7 @@ const generateThemeIcons = (isDarkMode) => {
   return {
     AiLogo: selectIconByTheme(isDarkMode, { light: AiLogo, dark: AiLogoWhite }),
     ToolLogo: selectIconByTheme(isDarkMode, { light: ToolBlack, dark: ToolWhite }),
+    HomeIcon: selectIconByTheme(isDarkMode, { light: HomeIconBlack, dark: HomeIconWhite }),
     EditorIcon: selectIconByTheme(isDarkMode, { light: EditorIconBlack, dark: EditorIconWhite }),
     OutlineIcon: selectIconByTheme(isDarkMode, { light: OutlineIconBlack, dark: OutlineIconWhite }),
     VisualIcon: selectIconByTheme(isDarkMode, { light: VisualIconBlack, dark: VisualIconWhite }),
@@ -166,9 +169,9 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         SideTextColor: mixColors(themeColor, '#ffffff', 0.9),
         SideActiveTextColor: mixColors(themeColor, '#ffffff', 0.95),
         SideTextColor2: mixColors(themeColor, '#dddddd', 0.8),
-        editorPanelBackgroundColor: mixColors(themeColor,'#24292e', 0.7),
-        editorToolbarBackgroundColor: mixColors(themeColor, '#1d2125', 0.7),
-        editorTextareaBackgroundColor: mixColors(themeColor, '#2f363d', 0.7),
+        editorPanelBackgroundColor: mixColors(themeColor, '#1a1a1a', 0.8),
+        editorToolbarBackgroundColor: mixColors(themeColor, '#0d0d0d', 0.9),
+        editorTextareaBackgroundColor: mixColors(themeColor, '#1a1a1a', 0.8),
         vditorTheme: 'dark',
         codeTheme: 'a11y-dark',
         titleMenuBackground: mixColors(themeColor, '#000000', 0.15) + 'AA',
@@ -290,6 +293,7 @@ export const lightTheme = customTheme('#ffffff', {
     referenceContainerBorderColor: '#e0e0e0',
     // Handsontable 主题名称
     handsontableTheme: 'ht-theme-horizon'
+  ,...generateThemeIcons(false)
 });
 
 // 深色主题：使用深灰色作为主题色，通过 customTheme 生成，但使用 overrides 保持原始颜色值
@@ -331,6 +335,7 @@ export const darkTheme = customTheme('#2c2c2c', {
     referenceContainerBorderColor: '#404040',
     // Handsontable 主题名称
     handsontableTheme: 'ht-theme-horizon-dark'
+    ,...generateThemeIcons(true)
 });
 
 export const predefineColors = [
@@ -361,7 +366,7 @@ export const presetThemes = [
   { color: '#1e90ff', nameKey: 'presetThemeSkyBlue' },       // 天空蓝
   { color: '#c71585', nameKey: 'presetThemeRosePurple' },   // 玫瑰紫
   // 浅色系
-  { color: '#f5f5f5', nameKey: 'presetThemeSpaceGray' },     // 太空灰
+  { color: '#777777', nameKey: 'presetThemeSpaceGray' },     // 太空灰
   { color: '#ffe0e0', nameKey: 'presetThemeLightRed' },      // 浅红色
   { color: '#ffe4b5', nameKey: 'presetThemeLightOrange' },   // 浅橙色
   { color: '#fffacd', nameKey: 'presetThemeLightYellow' },   // 浅黄色

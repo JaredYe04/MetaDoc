@@ -93,6 +93,26 @@ const normalizeType = (type?: string, fallback: ConsoleLineType = 'out'): Consol
   return fallback;
 };
 
+// 根据消息内容自动检测类型（检测 "warning" 或 "error" 开头）
+// 兜底判断：开头是 warning 的显示黄色，开头是 error 的显示红色，其余白色
+const detectTypeFromContent = (content: string): ConsoleLineType | null => {
+  if (!content || typeof content !== 'string') return null;
+  const trimmed = content.trim();
+  if (!trimmed) return null;
+  const lowerContent = trimmed.toLowerCase();
+  
+  // 兜底判断：如果消息开头是 "error"（不区分大小写），返回 'err'（红色）
+  if (lowerContent.startsWith('error')) {
+    return 'err';
+  }
+  // 兜底判断：如果消息开头是 "warning"（不区分大小写），返回 'warn'（黄色）
+  if (lowerContent.startsWith('warning')) {
+    return 'warn';
+  }
+  // 其余情况返回 null，将使用 fallbackType（通常是 'out'，显示白色）
+  return null;
+};
+
 const lines = ref<ConsoleLine[]>([]);
 
 const getEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
@@ -326,7 +346,21 @@ const resolvePayload = (payload: unknown, fallbackType: ConsoleLineType, require
 const handleOutPayload = (payload: unknown, fallbackType: ConsoleLineType) => {
   const resolved = resolvePayload(payload, fallbackType);
   if (!resolved) return;
-  addLine(resolved.content, normalizeType(resolved.type, fallbackType));
+  
+  // 优先根据消息内容检测类型（兜底判断：开头是 error 或 warning）
+  const detectedType = detectTypeFromContent(resolved.content);
+  
+  // 如果内容检测到类型，使用检测到的类型；否则使用 payload 中的类型或 fallbackType
+  let finalType: ConsoleLineType;
+  if (detectedType !== null) {
+    // 内容检测到类型，优先使用
+    finalType = detectedType;
+  } else {
+    // 内容未检测到，使用 payload 中的类型或 fallbackType
+    finalType = normalizeType(resolved.type, fallbackType);
+  }
+  
+  addLine(resolved.content, finalType);
 };
 
 const handleClearPayload = (payload: unknown) => {

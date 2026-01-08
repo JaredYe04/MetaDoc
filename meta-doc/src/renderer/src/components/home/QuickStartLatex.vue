@@ -1,164 +1,187 @@
 <template>
-  <div class="center-content">
-    <h2 class="main-letter" @mouseover="highlightM" @mouseleave="resetM">
-      {{ $t('home.quickStartTitle') }} · LaTeX
-    </h2>
-
-    <div
-      class="aero-div quick-start-container"
-      :style="containerStyle"
-    >
-      <div class="quick-start__header">
-        <el-button @click="emitClose" class="aero-btn" plain round type="danger" size="small"/>
+  <div class="quick-start-panel-wrapper">
+    <div class="quick-start-panel-container" :style="containerStyle">
+      <!-- 头部 -->
+      <div class="panel-header">
+        <h2 class="panel-title">{{ $t('home.quickStartTitle') }} · LaTeX</h2>
+        <el-button 
+          @click="emitClose" 
+          class="close-button"
+          circle
+          size="small"
+          :icon="Close"
+        />
       </div>
 
-      <div class="quick-start__content">
-        <div class="quick-start__editor">
-          <div class="generated-latex-container" ref="editorContainerRef"></div>
+      <!-- 主内容区域 -->
+      <div class="panel-content">
+        <!-- 左侧：编辑器区域 -->
+        <div class="preview-section">
+          <div class="preview-header">
+            <span class="section-label">LaTeX 代码</span>
+          </div>
+          <div class="editor-container">
+            <div class="generated-latex-container" ref="editorContainerRef"></div>
+          </div>
         </div>
 
-        <div class="quick-start__divider"></div>
+        <!-- 分隔线 -->
+        <div class="content-divider"></div>
 
-        <div class="quick-start__form">
-          <div class="tab-switch">
-            <el-segmented v-model="tab" :options="segmentOptions" />
+        <!-- 右侧：控制面板 -->
+        <div class="control-section">
+          <div class="tab-switch-wrapper">
+            <el-segmented v-model="tab" :options="segmentOptions" class="tab-switch" />
           </div>
 
-          <div class="aero-div quick-start__panel" v-if="tab === segmentOptions[1]">
-            <label class="interactive-text quick-start__label" :style="labelStyle">
-              {{ $t('home.documentInfoLabel') }}
-            </label>
-            <div class="quick-start__field">
-              <label class="quick-start__field-label">{{ $t('home.label.title') }}</label>
-              <el-input v-model="metaTitle" :placeholder="$t('home.placeholder.title')" />
-            </div>
-            <div class="quick-start__field">
-              <label class="quick-start__field-label">{{ $t('home.label.author') }}</label>
-              <el-input v-model="metaAuthor" :placeholder="$t('home.placeholder.author')" />
-            </div>
-            <div class="quick-start__field">
-              <label class="quick-start__field-label">{{ $t('home.label.abstract') }}</label>
-              <el-input
-                v-model="metaDescription"
-                type="textarea"
-                :placeholder="$t('home.placeholder.abstract')"
-                :autosize="{ minRows: 2, maxRows: 3 }"
-              />
-            </div>
-            <div class="quick-start__actions">
-              <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
-                <el-button circle type="success" @click="allSet">
-                  <el-icon><Check /></el-icon>
-                </el-button>
-              </el-tooltip>
-            </div>
-          </div>
-
-          <div class="aero-div quick-start__panel" v-if="tab === segmentOptions[0]">
-            <label class="interactive-text quick-start__label" :style="labelStyle">
-              {{ $t('home.aiAssistantLabel') }}
-            </label>
-            <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left" >
-              <el-slider
-                v-model="temperature"
-                :marks="marks"
-                :min="0"
-                :max="100"
-                :disabled="generating || generated"
-                class="temperature-slider-wrapper"
-              />
-            </el-tooltip>
-
-            <el-tooltip :content="$t('home.tooltip.selectMood')" placement="left">
-              <el-select
-                v-model="mood"
-                multiple
-                filterable
-                allow-create
-                :placeholder="$t('home.tooltip.selectMood')"
-                :disabled="generating || generated"
-                size="small"
-              >
-                <el-option
-                  v-for="option in moodOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                >
-                  <template #prefix>
-                    <el-icon :size="12">
-                      <component :is="option.icon" />
-                    </el-icon>
-                  </template>
-                </el-option>
-              </el-select>
-            </el-tooltip>
-
-            <el-tooltip :content="$t('home.tooltip.inputPrompt')" placement="left">
-              <el-autocomplete
-                v-model="userPrompt"
-                :fetch-suggestions="querySearch"
-                clearable
-                class="inline-input aero-input"
-                :placeholder="$t('home.tooltip.inputPrompt')"
-                @mousedown.stop
-                type="textarea"
-                :autosize="{ minRows: 3, maxRows: 3 }"
-                resize="none"
-                :disabled="generating || generated"
-              />
-            </el-tooltip>
-
-
-            <div class="aero-div quick-start__suggestions">
-              <label class="interactive-text quick-start__suggestion-label" :style="labelStyle">
-                {{ $t('home.suggestionLabel') }}
-              </label>
-              <div class="quick-start__suggestion-grid" id="latex-suggestion-buttons">
-                <el-button
-                  v-for="(button, index) in buttons"
-                  :key="index"
-                  size="small"
-                  class="aero-btn"
-                  :disabled="generating || generated"
-                  @click="handleAcceptSuggestion(button.prompt)"
-                >
-                  {{ button.label }}
-                </el-button>
+          <!-- 文档信息面板 -->
+          <div class="control-panel" v-if="tab === segmentOptions[1]">
+            <div class="panel-section">
+              <h3 class="section-title">{{ $t('home.documentInfoLabel') }}</h3>
+              <div class="form-fields">
+                <div class="form-field">
+                  <label class="field-label">{{ $t('home.label.title') }}</label>
+                  <el-input v-model="metaTitle" :placeholder="$t('home.placeholder.title')" />
+                </div>
+                <div class="form-field">
+                  <label class="field-label">{{ $t('home.label.author') }}</label>
+                  <el-input v-model="metaAuthor" :placeholder="$t('home.placeholder.author')" />
+                </div>
+                <div class="form-field">
+                  <label class="field-label">{{ $t('home.label.abstract') }}</label>
+                  <el-input
+                    v-model="metaDescription"
+                    type="textarea"
+                    :placeholder="$t('home.placeholder.abstract')"
+                    :autosize="{ minRows: 3, maxRows: 4 }"
+                  />
+                </div>
+                <div class="form-field">
+                  <label class="field-label">{{ $t('article.keywords') }}</label>
+                  <KeywordInput
+                    v-model="metaKeywords"
+                    :placeholder="$t('article.keywords_placeholder')"
+                  />
+                </div>
               </div>
-              <el-button
-                size="small"
-                type="primary"
-                class="aero-btn quick-start__refresh"
-                :disabled="generating || generated"
-                @click="refreshButtons"
-              >
-                <el-icon><Refresh /></el-icon>
-                {{ $t('home.button.refresh') }}
-              </el-button>
+              <div class="panel-actions">
+                <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
+                  <el-button type="success" @click="allSet" :icon="Check">
+                    {{ $t('home.tooltip.ready') }}
+                  </el-button>
+                </el-tooltip>
+              </div>
             </div>
+          </div>
 
-            <div class="quick-start__footer" @mousedown.stop>
-              <el-tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
-                <el-button
-                  circle
-                  type="primary"
-                  :disabled="generating || userPrompt.length === 0"
-                  @click="generate"
+          <!-- AI 助手面板 -->
+          <div class="control-panel" v-if="tab === segmentOptions[0]">
+            <div class="panel-section">
+              <h3 class="section-title">{{ $t('home.aiAssistantLabel') }}</h3>
+              <!-- 温度滑块 -->
+              <div class="control-item">
+                <div class="control-item-header">
+                  <span class="control-label">{{ $t('home.tooltip.selectTemperature') }}</span>
+                </div>
+                <el-slider
+                  v-model="temperature"
+                  :marks="marks"
+                  :min="0"
+                  :max="100"
+                  :disabled="generating || generated"
+                  class="temperature-slider"
+                />
+              </div>
+
+              <!-- 风格选择 -->
+              <div class="control-item">
+                <div class="control-item-header">
+                  <span class="control-label">{{ $t('home.tooltip.selectMood') }}</span>
+                </div>
+                <el-select
+                  v-model="mood"
+                  multiple
+                  filterable
+                  allow-create
+                  :placeholder="$t('home.tooltip.selectMood')"
+                  :disabled="generating || generated"
+                  class="mood-select"
                 >
-                  <el-icon><Promotion /></el-icon>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
-                <el-button circle type="info" v-if="generated" @click="reset">
-                  <el-icon><RefreshLeft /></el-icon>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
-                <el-button circle type="success" v-if="generated" @click="accept">
-                  <el-icon><Check /></el-icon>
-                </el-button>
-              </el-tooltip>
+                  <el-option
+                    v-for="option in moodOptions"
+                    :key="option.value"
+                    :label="option.label"
+                    :value="option.value"
+                  >
+                    <template #prefix>
+                      <el-icon :size="14">
+                        <component :is="option.icon" />
+                      </el-icon>
+                    </template>
+                  </el-option>
+                </el-select>
+              </div>
+
+              <!-- 提示词输入 -->
+              <div class="control-item">
+                <div class="control-item-header">
+                  <span class="control-label">{{ $t('home.tooltip.inputPrompt') }}</span>
+                </div>
+                <AutoResizeTextarea
+                  v-model="userPrompt"
+                  :autosize="{ minRows: 4, maxRows: 8 }"
+                  max-height="200px"
+                  height="200px"
+                  :placeholder="$t('home.tooltip.inputPrompt')"
+                  :disabled="generating || generated"
+                  class="prompt-input"
+                />
+              </div>
+
+              <!-- 建议标签 -->
+              <div class="control-item suggestions-item">
+                <SuggestionTags
+                  :tags="buttons"
+                  :title="$t('home.suggestionLabel')"
+                  :disabled="generating || generated"
+                  @select="handleAcceptSuggestion"
+                  @refresh="refreshButtons"
+                />
+              </div>
+
+              <!-- 操作按钮 -->
+              <div class="panel-actions" @mousedown.stop>
+                <el-tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
+                  <el-button
+                    type="primary"
+                    :disabled="generating || userPrompt.length === 0"
+                    @click="generate"
+                    :icon="Promotion"
+                    :loading="generating"
+                  >
+                    {{ $t('home.tooltip.generateArticle') }}
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
+                  <el-button 
+                    v-if="generated" 
+                    @click="reset"
+                    :icon="RefreshLeft"
+                  >
+                    {{ $t('home.tooltip.reset') }}
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
+                  <el-button 
+                    v-if="generated" 
+                    type="success"
+                    @click="accept"
+                    :icon="Check"
+                  >
+                    {{ $t('home.tooltip.accept') }}
+                  </el-button>
+                </el-tooltip>
+              </div>
             </div>
           </div>
         </div>
@@ -172,7 +195,7 @@ import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import VoiceInput from '../VoiceInput.vue'
 import * as monaco from 'monaco-editor'
-import { Check, Promotion, Refresh, RefreshLeft } from '@element-plus/icons-vue'
+import { Check, Promotion, Refresh, RefreshLeft, Close } from '@element-plus/icons-vue'
 import {
   DataAnalysis,
   Drizzling,
@@ -184,7 +207,6 @@ import {
   Warning
 } from '@element-plus/icons-vue'
 import { useWorkspace } from '../../stores/workspace'
-import { useActiveDocument } from '../../composables/useActiveDocument'
 import { extractOutlineTreeFromMarkdown } from '../../utils/md-utils'
 import { DEFAULT_OUTLINE_TREE } from '../../constants/document'
 import { convertLatexToMarkdown } from '../../utils/latex-utils'
@@ -196,60 +218,37 @@ import { ai_types, createAiTask } from '../../utils/ai_tasks'
 import { createRendererLogger } from '../../utils/logger'
 import { setupMonacoWorker, registerLatexLanguage } from '../../utils/monaco-worker-config'
 import type { AIDialogMessage } from '@/types'
+import SuggestionTags from './SuggestionTags.vue'
+import AutoResizeTextarea from '../base/AutoResizeTextarea.vue'
+import KeywordInput from '../KeywordInput.vue'
+import { loggedIn, user } from '../../stores/user'
+import { generateTitlePrompt, generateDescriptionPrompt, generateKeywordsPrompt } from '../../utils/prompts'
+import { extractOuterJsonString } from '../../utils/regex-utils'
+import { ElMessage } from 'element-plus'
 
 const emit = defineEmits(['close'])
 
 const { t } = useI18n()
 const workspace = useWorkspace()
 const {
-  activeTabId,
   updateDocumentMarkdown,
   updateDocumentTex,
   updateDocumentMeta,
   updateDocumentOutline,
-  updateDocumentLastView
+  updateDocumentLastView,
+  initializeDocumentFromTemplate,
+  openNewDocumentTab,
+  activateTab
 } = workspace
-const { activeDocument } = useActiveDocument()
 
 const logger = createRendererLogger('QuickStartLatex', {
   windowTypeProvider: () => getWindowType()
 })
 
-const currentTex = computed({
-  get: () => activeDocument.value?.tex ?? '',
-  set: (val: string) => {
-    const tabId = activeTabId.value
-    if (!tabId) return
-    updateDocumentTex(tabId, val)
-    const markdown = convertLatexToMarkdown(val)
-    updateDocumentMarkdown(tabId, markdown)
-    const outline = extractOutlineTreeFromMarkdown(markdown) ?? DEFAULT_OUTLINE_TREE
-    updateDocumentOutline(tabId, outline)
-  }
-})
-
-const currentMeta = computed(() => activeDocument.value?.meta ?? { title: '', author: '', description: '' })
-
-const updateMetaField = (field: 'title' | 'author' | 'description', value: string) => {
-  const tabId = activeTabId.value
-  if (!tabId) return
-  updateDocumentMeta(tabId, (meta) => {
-    meta[field] = value
-  })
-}
-
-const metaTitle = computed({
-  get: () => currentMeta.value?.title ?? '',
-  set: (val: string) => updateMetaField('title', val)
-})
-const metaAuthor = computed({
-  get: () => currentMeta.value?.author ?? '',
-  set: (val: string) => updateMetaField('author', val)
-})
-const metaDescription = computed({
-  get: () => currentMeta.value?.description ?? '',
-  set: (val: string) => updateMetaField('description', val)
-})
+const metaTitle = ref('')
+const metaAuthor = ref('')
+const metaDescription = ref('')
+const metaKeywords = ref<string[]>([])
 
 const buttons = ref<{ label: string; prompt: string }[]>([])
 const tab = ref<string>('')
@@ -281,7 +280,7 @@ const moodOptions = [
 ]
 const userPrompt = ref('')
 const defaultText = t('home.defaultLatexText')
-const generatedText = ref(currentTex.value || defaultText)
+const generatedText = ref(defaultText)
 const generated = ref(false)
 const generating = ref(false)
 const editorContainerRef = ref<HTMLElement | null>(null)
@@ -357,6 +356,16 @@ const generate = async () => {
   try {
     await done
     generated.value = true
+    
+    // 自动生成标题、摘要、关键词
+    await autoGenerateMetaInfo()
+    
+    // 设置作者
+    if (loggedIn.value && user.value?.username) {
+      metaAuthor.value = user.value.username
+    } else {
+      metaAuthor.value = 'MetaDoc'
+    }
   } catch (error) {
     logger.warn('LaTeX 任务失败或取消', error)
   } finally {
@@ -365,11 +374,121 @@ const generate = async () => {
   }
 }
 
+// 自动生成元信息（标题、摘要、关键词）
+const autoGenerateMetaInfo = async () => {
+  if (!generatedText.value) return
+  
+  try {
+    // 将 LaTeX 转换为 Markdown 以提取大纲
+    const markdown = convertLatexToMarkdown(generatedText.value)
+    const outline = extractOutlineTreeFromMarkdown(markdown) ?? DEFAULT_OUTLINE_TREE
+    const outlineJson = JSON.stringify(outline)
+    
+    // 生成标题
+    const titleResult = ref('')
+    const titleMessages: AIDialogMessage[] = [{
+      role: 'user',
+      content: generateTitlePrompt(outlineJson),
+    }]
+    const { done: titleDone } = createAiTask(
+      t('article.generate_title'),
+      titleMessages,
+      titleResult,
+      ai_types.chat,
+      'quick-start-title',
+      { stream: true }
+    )
+    await titleDone
+    const titleText = titleResult.value.trim()
+    if (titleText) {
+      const titleMatch = titleText.match(/^[^\n]+/)
+      metaTitle.value = titleMatch ? titleMatch[0].trim() : titleText
+    }
+    
+    // 生成摘要
+    const descResult = ref('')
+    const descMessages: AIDialogMessage[] = [{
+      role: 'user',
+      content: generateDescriptionPrompt(outlineJson),
+    }]
+    const { done: descDone } = createAiTask(
+      t('article.generate_description'),
+      descMessages,
+      descResult,
+      ai_types.chat,
+      'quick-start-description',
+      { stream: true }
+    )
+    await descDone
+    const descText = descResult.value.trim()
+    if (descText) {
+      metaDescription.value = descText
+    }
+    
+    // 生成关键词
+    const keywordsResult = ref('')
+    const keywordsMessages: AIDialogMessage[] = [{
+      role: 'user',
+      content: generateKeywordsPrompt(outlineJson),
+    }]
+    const { done: keywordsDone } = createAiTask(
+      t('article.generate_keywords'),
+      keywordsMessages,
+      keywordsResult,
+      ai_types.chat,
+      'quick-start-keywords',
+      { stream: true }
+    )
+    await keywordsDone
+    const keywords = parseKeywordsResult(keywordsResult.value)
+    if (keywords.length > 0) {
+      metaKeywords.value = keywords
+    }
+  } catch (error) {
+    logger.warn('自动生成元信息失败', error)
+  }
+}
+
+// 解析关键词结果
+const parseKeywordsResult = (raw: string): string[] => {
+  const jsonString = extractOuterJsonString(raw)
+  if (!jsonString) {
+    return []
+  }
+  try {
+    const parsed = JSON.parse(jsonString)
+    const payload = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray((parsed as { keywords?: unknown[] })?.keywords)
+        ? (parsed as { keywords: unknown[] }).keywords
+        : []
+    return sanitizeKeywords(payload.map((item) => String(item ?? '')))
+  } catch {
+    return []
+  }
+}
+
+// 清理关键词
+const sanitizeKeywords = (keywords: string[]): string[] => {
+  const unique = new Set<string>()
+  keywords.forEach((item) => {
+    const trimmed = String(item).trim()
+    if (trimmed) {
+      unique.add(trimmed)
+    }
+  })
+  return Array.from(unique)
+}
+
 const reset = () => {
   generated.value = false
-  generatedText.value = currentTex.value || defaultText
+  generatedText.value = defaultText
   userPrompt.value = ''
   tab.value = segmentOptions.value[0]
+  metaTitle.value = ''
+  metaAuthor.value = ''
+  metaDescription.value = ''
+  metaKeywords.value = []
   const editor = getEditor()
   if (editor) {
     editor.setValue(generatedText.value)
@@ -393,22 +512,40 @@ const cleanupEditor = () => {
 }
 
 const accept = async () => {
-  const tabId = activeTabId.value
-  if (tabId) {
-    const latexContent = generatedText.value
-    // 先更新文档内容
-    currentTex.value = latexContent
-    updateDocumentLastView(tabId, 'article')
-  }
+  logger.info('[QuickStartLatex] accept 开始')
   
-  // 在导航前清理快速开始的编辑器，避免引用问题
-  // 快速开始的编辑器是临时的，应该被销毁
+  const latexContent = generatedText.value
+
+  // 创建并激活新文档 tab
+  const tabObj = openNewDocumentTab()
+  const tabId = tabObj.id
+  activateTab(tabId)
+
+  // 初始化文档
+  initializeDocumentFromTemplate(tabId, 'tex')
+
+  // 更新内容
+  updateDocumentTex(tabId, latexContent)
+  updateDocumentMarkdown(tabId, convertLatexToMarkdown(latexContent))
+  updateDocumentMeta(tabId, (meta) => {
+    meta.title = metaTitle.value
+    meta.author = metaAuthor.value
+    meta.description = metaDescription.value
+    meta.keywords = metaKeywords.value
+  })
+  const outline = extractOutlineTreeFromMarkdown(convertLatexToMarkdown(latexContent)) ?? DEFAULT_OUTLINE_TREE
+  updateDocumentOutline(tabId, outline)
+
+  // 切换视图
+  updateDocumentLastView(tabId, 'editor')
+
+  // 清理临时编辑器
   cleanupEditor()
-  
-  // 使用 nextTick 确保清理完成后再导航
   await nextTick()
+
   eventBus.emit('nav-to', '/editor')
   emitClose()
+  logger.info('[QuickStartLatex] accept - 完成', { tabId })
 }
 
 const allSet = () => {
@@ -544,20 +681,6 @@ watch(
   { immediate: true }
 )
 
-watch(
-  () => currentTex.value,
-  (value) => {
-    if (!generated.value) {
-      const editor = getEditor()
-      if (editor) {
-        const newValue = value || defaultText
-        generatedText.value = newValue
-        editor.setValue(newValue)
-      }
-    }
-  }
-)
-
 eventBus.on('reset-quickstart', reset)
 
 onBeforeUnmount(() => {
@@ -570,197 +693,217 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.center-content {
+/* 快速开始面板外层容器 */
+.quick-start-panel-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  height: 100vh;
-  overflow: auto;
-  padding: 16px;
+  justify-content: center;
+  z-index: 1;
+  padding: 24px;
   box-sizing: border-box;
 }
 
-.main-letter {
-  font-size: 36px;
-  font-weight: bold;
-  color: rgb(65, 105, 225);
-  transition: color 0.3s ease;
-  background-color: transparent;
-  cursor: pointer;
-  margin: 0;
-  padding: 8px 0;
-}
-
-.quick-start-container {
-  width: 70vw;
+.quick-start-panel-container {
+  width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
+  border-radius: 20px;
   backdrop-filter: blur(20px) brightness(1.05);
+  border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.1)"');
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  position: relative;
+  background: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
 }
 
-.quick-start__header {
-  width: 100%;
+.panel-header {
   display: flex;
-  justify-content: flex-start;
-  margin-bottom: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  border-bottom: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.1)"');
+  flex-shrink: 0;
+  background: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
 }
 
-.quick-start__content {
-  display: flex;
+.panel-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  color: v-bind('themeState.currentTheme.textColor');
+  letter-spacing: -0.02em;
+}
+
+.close-button {
+  color: v-bind('themeState.currentTheme.textColor');
+}
+
+.panel-content {
   flex: 1;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  padding-top: 10px;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.quick-start__editor {
-  flex-grow: 1;
-  padding-right: 10px;
+.preview-section {
+  flex: 0 0 60%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: v-bind('themeState.currentTheme.background');
+}
+
+.preview-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.1)"');
+  flex-shrink: 0;
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: v-bind('themeState.currentTheme.textColor');
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.editor-container {
+  flex: 1;
+  min-height: 0;
+  padding: 24px;
+  overflow: hidden;
 }
 
 .generated-latex-container {
   width: 100%;
-  height: 55vh;
+  height: 100%;
   min-height: 400px;
 }
 
-.quick-start__divider {
+.content-divider {
   width: 1px;
-  margin: 0 10px;
-  align-self: stretch;
-  background-color: rgba(0, 0, 0, 0.1);
+  background: v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.1)"');
+  flex-shrink: 0;
 }
 
-.quick-start__form {
-  width: 30%;
+.control-section {
+  flex: 0 0 40%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  min-width: 0;
+  background: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
+  overflow: hidden;
+}
+
+.tab-switch-wrapper {
+  padding: 16px 24px;
+  border-bottom: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.1)"');
+  flex-shrink: 0;
 }
 
 .tab-switch {
-  --el-segmented-item-selected-color: var(--el-text-color-primary);
-  --el-segmented-item-selected-bg-color: var(--el-color-primary);
-  --el-border-radius-base: 4px;
-  opacity: 0.9;
+  width: 100%;
 }
 
-.quick-start__panel {
+.control-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.panel-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  gap: 20px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: v-bind('themeState.currentTheme.textColor');
+  letter-spacing: -0.01em;
+}
+
+.form-fields {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 10px;
-  height: 47vh;
-  width: 18vw;
-  border-radius: 4px;
 }
 
-.temperature-slider-wrapper {
-  margin-bottom: 20px;
-  width: 80%;
-  align-self: center;
-}
-
-
-.quick-start__label {
-  width: 100%;
-  text-align: center;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.quick-start__field {
+.form-field {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
 }
 
-.quick-start__field-label {
-  width: 60px;
-  text-align: left;
-}
-
-.quick-start__actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.quick-start__suggestions {
-  position: relative;
-  height: 150px;
-  width: 80%;
-  margin: 10px auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  background-color: rgba(255, 255, 255, 0.05);
-  box-shadow: none;
-  border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.quick-start__suggestion-label {
-  text-align: center;
-  font-weight: bold;
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.quick-start__suggestion-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  justify-items: center;
-  align-items: center;
-  height: 100%;
-  width: 100%;
-  padding-top: 24px;
-}
-
-.quick-start__refresh {
-  position: absolute;
-  bottom: 3px;
-  left: 50%;
-  transform: translateX(-50%);
+.field-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: v-bind('themeState.currentTheme.textColor');
   opacity: 0.8;
 }
 
-.quick-start__footer {
+.control-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.control-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.control-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: v-bind('themeState.currentTheme.textColor');
+  opacity: 0.8;
+}
+
+.temperature-slider {
+  width: 100%;
+}
+
+.mood-select {
+  width: 100%;
+}
+
+.prompt-input {
+  width: 100%;
+}
+
+.suggestions-item {
+  margin-top: 8px;
+}
+
+.panel-actions {
   display: flex;
   gap: 12px;
-  justify-content: center;
-  align-items: center;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.1)"');
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
-/* 修复输入框border颜色，使其不固定 */
-.aero-input :deep(.el-input__wrapper) {
-  border-color: rgba(0, 0, 0, 0.1) !important;
-}
-
-.aero-input :deep(.el-input__wrapper:hover) {
-  border-color: rgba(0, 0, 0, 0.2) !important;
-}
-
-.aero-input :deep(.el-input__wrapper.is-focus) {
-  border-color: var(--el-color-primary) !important;
-}
-
-/* 修复textarea的border */
-.aero-input :deep(.el-textarea__inner) {
-  border-color: rgba(0, 0, 0, 0.1) !important;
-}
-
-.aero-input :deep(.el-textarea__inner:hover) {
-  border-color: rgba(0, 0, 0, 0.2) !important;
-}
-
-.aero-input :deep(.el-textarea__inner:focus) {
-  border-color: var(--el-color-primary) !important;
+/* 滚动条样式 */
+.panel-section :deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
 }
 </style>

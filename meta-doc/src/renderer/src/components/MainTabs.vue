@@ -815,8 +815,8 @@ watch(() => route.path, (newPath) => {
 .main-tabs :deep(.el-tabs__item) {
   padding-left: 12px !important;
   padding-right: 2px !important;
-  margin-left: 1px !important;
-  margin-right: 1px !important;
+  margin-left: 0 !important;
+  margin-right: 2px !important;
   height: 40px;
   line-height: 40px;
   transition: background-color 0.15s ease, color 0.15s ease;

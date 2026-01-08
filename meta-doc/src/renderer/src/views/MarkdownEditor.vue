@@ -101,7 +101,7 @@ import "../assets/aero-div.css";
 import "../assets/aero-btn.css";
 import "../assets/aero-input.css";
 import "../assets/title-menu.css";
-import eventBus, { isElectronEnv, getWindowType, sendBroadcast } from '../utils/event-bus';
+import eventBus, { isElectronEnv, getWindowType } from '../utils/event-bus';
 import { createRendererLogger } from '../utils/logger.ts'
 import { extractOutlineTreeFromMarkdown, generateMarkdownFromOutlineTree } from '../utils/md-utils';
 import { wholeArticleContextPrompt } from '../utils/prompts.ts';
@@ -459,7 +459,8 @@ const handleMenuClick = async (item: string) => {
             //logger.log(newDialog)
             addDialog(newDialog, true)
             prependAiChatDialog(newDialog);
-            sendBroadcast('ai-chat', 'ai-chat-dialogs-updated', null);
+            // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+            eventBus.emit('ai-chat-dialogs-updated', null);
             eventBus.emit('ai-chat')
             break;
         case 'section-optimizer':

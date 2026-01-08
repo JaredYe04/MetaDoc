@@ -1,0 +1,101 @@
+/* 现代桌面应用风格的侧边菜单样式 - 可复用 */
+/* 使用此样式时，需要在组件中计算 activeBackgroundColor 和 activeTextColor，并通过 v-bind 绑定 */
+
+/* 基础菜单样式 */
+.modern-side-menu {
+  border-right: none;
+  padding: 8px 4px;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  transition: width 0.3s ease;
+  overflow: hidden;
+}
+
+/* 菜单项基础样式 - 圆角设计，带边距 */
+.modern-side-menu .el-menu-item {
+  height: 40px !important;
+  line-height: 40px !important;
+  margin: 4px 8px !important;  /* 上下 4px，左右 8px 边距 */
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  font-size: 13px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+
+/* 菜单项悬停状态 - 圆角保持 */
+.modern-side-menu .el-menu-item:hover {
+  background-color: var(--el-menu-hover-bg-color, rgba(0, 0, 0, 0.06)) !important;
+  border-radius: 6px !important;
+}
+
+/* 菜单项激活状态 - 圆角保持 */
+.modern-side-menu .el-menu-item.is-active {
+  border-radius: 6px !important;
+}
+
+/* 折叠状态的菜单项样式 */
+.modern-side-menu.is-collapsed .el-menu-item {
+  padding: 0 !important;
+  margin: 4px 8px !important;  /* 保持左右边距 */
+  justify-content: center !important;
+  align-items: center !important;
+  width: auto !important;  /* 改为 auto，配合 margin 实现边距 */
+  text-align: center !important;
+  border-radius: 6px !important;
+}
+
+.modern-side-menu.is-collapsed .el-menu-item .el-icon {
+  font-size: 18px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.modern-side-menu.is-collapsed .el-menu-item .menu-icon {
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 auto !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+}
+
+.modern-side-menu.is-collapsed .el-menu-item > * {
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.modern-side-menu.is-collapsed .el-menu-item:hover {
+  border-radius: 6px !important;
+}
+
+.modern-side-menu.is-collapsed .el-menu-item.is-active {
+  border-radius: 6px !important;
+}
+
+/* 锁定状态样式 */
+.modern-side-menu.is-locked {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.modern-side-menu.is-locked .el-menu-item {
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+}
+
+.modern-side-menu.is-locked .el-sub-menu__title {
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+}
+

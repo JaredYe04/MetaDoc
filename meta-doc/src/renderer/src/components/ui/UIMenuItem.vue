@@ -3,6 +3,7 @@
     v-if="tooltip && collapse" 
     :content="tooltip" 
     placement="right"
+    :disabled="hasOpenSubMenu"
   >
     <div
       class="ui-menu-item"
@@ -47,7 +48,12 @@
 </template>
 
 <script setup lang="ts">
-import { inject } from 'vue'
+import { inject, computed, type ComputedRef } from 'vue'
+import { themeState, mixColors } from '../../utils/themes'
+
+// 计算与 HeadMenu 一致的 active 背景色
+const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3))
+const activeTextColor = computed(() => themeState.currentTheme.textColor)
 
 const props = withDefaults(defineProps<{
   label?: string
@@ -68,6 +74,7 @@ const emit = defineEmits<{
 }>()
 
 const collapse = inject<boolean>('menuCollapse', false)
+const hasOpenSubMenu = inject<ComputedRef<boolean>>('hasOpenSubMenu', computed(() => false))
 
 const handleClick = () => {
   if (!props.disabled) {
@@ -104,7 +111,7 @@ const handleMouseLeave = () => {
 }
 
 .ui-menu-item:hover:not(.is-disabled) {
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: v-bind('activeBackgroundColor');
   border-radius: 6px;
 }
 

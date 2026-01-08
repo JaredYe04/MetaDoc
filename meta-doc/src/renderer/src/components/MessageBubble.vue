@@ -13,7 +13,7 @@ import ReferenceDisplay from './agent/ReferenceDisplay.vue';
 import type { Reference } from '../types/agent-framework';
 import type { AIDialogMessage } from '../../../types';
 import { useI18n } from 'vue-i18n';
-import { sendBroadcast } from '../utils/event-bus';
+import eventBus from '../utils/event-bus';
 
 interface MessageWithReferences extends AIDialogMessage {
   referenceIds?: string[];
@@ -102,24 +102,25 @@ const copyContent = async () => {
   }
 };
 
-// 插入到当前文档
-const insertToDocument = () => {
-  sendBroadcast('home', 'ai-chat-insert-to-document', {
+// 请求插入到文档（触发选择对话框）
+const requestInsertToDocument = () => {
+  eventBus.emit('ai-chat-request-insert-to-document', {
     content: content.value
   });
-  ElMessage.success(t('aiChat.insertToDocumentSuccess', '已发送插入请求'));
 };
+
+// 注意：getDocumentDisplayName 已不再使用，显示名称现在在 documentTabs computed 中预先计算
 
 // 导出到新文档
 const exportToNewDocument = () => {
-  sendBroadcast('home', 'ai-chat-export-to-document', {
+  eventBus.emit('ai-chat-export-to-document', {
     content: content.value
   });
-  ElMessage.success(t('aiChat.exportToDocumentSuccess', '已发送导出请求'));
+  ElMessage.success(t('aiChat.exportToDocumentSuccess', '已导出到新文档'));
 };
 
 // 处理下拉菜单命令
-const handleActionCommand = (command: string) => {
+const handleActionCommand = (command: string, data?: any) => {
   switch (command) {
     case 'edit':
       onMsgEdit();
@@ -134,13 +135,17 @@ const handleActionCommand = (command: string) => {
       copyContent();
       break;
     case 'insert-to-document':
-      insertToDocument();
+      // 触发选择文档对话框
+      requestInsertToDocument();
       break;
     case 'export-to-document':
       exportToNewDocument();
       break;
   }
 };
+
+// 子菜单hover状态
+const showDocumentSubmenu = ref(false);
 
 // hover状态管理
 const showActions = ref(false);
@@ -276,7 +281,12 @@ onBeforeMount(() => {
 </script>
 
 <template>
-  <div ref="messageBubbleRef" :class="['message-bubble', roleClass]">
+  <div 
+    ref="messageBubbleRef" 
+    :class="['message-bubble', roleClass]"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
+  >
     <el-avatar class="avatar-with-mask" v-if="role !== 'user'" :src="themeState.currentTheme.AiLogo"></el-avatar>
     <!-- 用户消息的操作按钮（在左侧） -->
     <transition name="fade">
@@ -306,7 +316,7 @@ onBeforeMount(() => {
             </el-dropdown-item>
             <el-dropdown-item command="insert-to-document">
               <el-icon style="margin-right: 8px;"><DocumentAdd /></el-icon>
-              {{ t('aiChat.insertToDocument', '插入到当前文档') }}
+              {{ t('aiChat.insertToDocument', '插入到文档') }}
             </el-dropdown-item>
             <el-dropdown-item command="export-to-document">
               <el-icon style="margin-right: 8px;"><FolderAdd /></el-icon>
@@ -332,8 +342,6 @@ onBeforeMount(() => {
       ref="bubbleContentRef" 
       class="bubble-content response-container" 
       style="max-height: none;"
-      @mouseenter="handleMouseEnter"
-      @mouseleave="handleMouseLeave"
     >
       <MdPreview
         :modelValue="content"
@@ -374,7 +382,7 @@ onBeforeMount(() => {
             </el-dropdown-item>
             <el-dropdown-item command="insert-to-document">
               <el-icon style="margin-right: 8px;"><DocumentAdd /></el-icon>
-              {{ t('aiChat.insertToDocument', '插入到当前文档') }}
+              {{ t('aiChat.insertToDocument', '插入到文档') }}
             </el-dropdown-item>
             <el-dropdown-item command="export-to-document">
               <el-icon style="margin-right: 8px;"><FolderAdd /></el-icon>
@@ -435,6 +443,9 @@ onBeforeMount(() => {
 .side-button {
   align-self: flex-end;      /* 将按钮对齐到容器的底部 */
   margin-top: auto;          /* 自动填充上方的空间，贴到底部 */
+  z-index: 10;               /* 确保按钮在内容之上 */
+  position: relative;        /* 建立定位上下文 */
+  flex-shrink: 0;            /* 防止按钮被压缩 */
 }
 
 .message-bubble {

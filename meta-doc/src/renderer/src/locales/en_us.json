@@ -357,6 +357,8 @@
   },
   "home": {
     "metaDoc": "MetaDoc - AI Document Editor",
+    "subtitle": "Modern Document Editor & Creation Tool",
+    "recentDocuments": "Recent Documents",
     "tooltip": {
       "quickStart": "Quick Start: Generate a document fast",
       "openFile": "Open an existing document",

@@ -1214,7 +1214,9 @@ const sendBroadcastEvent = () => {
     if (broadcastForm.eventData.trim()) {
       data = JSON.parse(broadcastForm.eventData);
     }
-    sendBroadcast(broadcastForm.to, broadcastForm.eventName, data);
+    // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+    // 注意：这是调试工具，保留sendBroadcast调用以便测试，但实际会直接使用eventBus
+    eventBus.emit(broadcastForm.eventName, data);
     ElMessage.success(t('setting.debug.broadcastSent'));
   } catch (error) {
     ElMessage.error(t('setting.debug.invalidJson'));

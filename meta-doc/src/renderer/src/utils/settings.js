@@ -37,6 +37,10 @@ export async function getRecentDocs() {
   return await ipcRenderer.invoke('get-recent-docs');
 }
 
+export async function removeRecentDoc(filePath) {
+  return await ipcRenderer.invoke('remove-recent-doc', { path: filePath });
+}
+
 export async function getImagePath() {
   return await ipcRenderer.invoke('get-image-path');
 }

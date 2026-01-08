@@ -1,29 +1,36 @@
 <template>
-  <div v-if="stage === 'format'" class="center-content quick-start-format-wrapper">
-    <div class="aero-div quick-start-format" :style="formatContainerStyle">
-      <h2 class="main-letter">{{ $t('home.quickStartFormatTitle') }}</h2>
-      <div class="quick-start-format__options">
+  <div v-if="stage === 'format'" class="quick-start-panel-wrapper">
+    <div class="quick-start-panel-container" :style="formatContainerStyle">
+      <div class="panel-header">
+        <h2 class="panel-title">{{ $t('home.quickStartFormatTitle') }}</h2>
+        <el-button 
+          class="close-button" 
+          @click="closeQuickStart"
+          circle
+          size="small"
+          :icon="Close"
+          text
+        />
+      </div>
+      <div class="format-options-container">
         <div
-          class="quick-start-format__option"
+          class="format-option-card"
           :style="formatOptionStyle"
           @click="selectQuickStartFormat('md')"
         >
-          <h3>Markdown</h3>
-          <p>{{ $t('home.quickStartFormatDescriptionMarkdown') }}</p>
+          <div class="format-option-icon">📝</div>
+          <h3 class="format-option-title">Markdown</h3>
+          <p class="format-option-description">{{ $t('home.quickStartFormatDescriptionMarkdown') }}</p>
         </div>
         <div
-          class="quick-start-format__option"
+          class="format-option-card"
           :style="formatOptionStyle"
           @click="selectQuickStartFormat('tex')"
         >
-          <h3>LaTeX</h3>
-          <p>{{ $t('home.quickStartFormatDescriptionLatex') }}</p>
+          <div class="format-option-icon">📄</div>
+          <h3 class="format-option-title">LaTeX</h3>
+          <p class="format-option-description">{{ $t('home.quickStartFormatDescriptionLatex') }}</p>
         </div>
-      </div>
-      <div class="quick-start-format__actions">
-        <el-button class="aero-btn" @click="closeQuickStart">
-          {{ $t('home.tooltip.close') }}
-        </el-button>
       </div>
     </div>
   </div>
@@ -52,7 +59,7 @@
             :key="option.id"
             class="format-card"
             shadow="hover"
-            @click="selectFormat(option.id as 'md' | 'tex')"
+            @click="selectQuickStartFormat(option.id as 'md' | 'tex')"
           >
             <h3>{{ option.title }}</h3>
             <p>{{ option.description }}</p>
@@ -199,7 +206,8 @@ import {
   Check,
   Promotion,
   Refresh,
-  RefreshLeft
+  RefreshLeft,
+  Close
 } from '@element-plus/icons-vue'
 import { generateArticlePrompt, getPresets, getSuggestionPresets } from '../../utils/prompts'
 import { useWorkspace } from '../../stores/workspace'
@@ -232,7 +240,9 @@ const {
   initializeDocumentFromTemplate,
   supportedFormats,
   openNewDocumentTab,
-  activateTab
+  activateTab,
+  addDocumentTab,
+  createDocumentSnapshotFromTemplate
 } = workspace
 
 const formatOptions = computed(() => supportedFormats.map((format) => ({
@@ -419,7 +429,7 @@ async function accept() {
     const outline = extractOutlineTreeFromMarkdown(markdownContent) ?? DEFAULT_OUTLINE_TREE
     updateDocumentOutline(tabId, outline)
   }
-  updateDocumentLastView(tabId, 'article')
+  updateDocumentLastView(tabId, 'editor')
   activeTab.value = tabOptions.value[1]
 }
 
@@ -472,6 +482,7 @@ function handleClose() {
 const closeQuickStart = () => {
   stage.value = 'format'
   eventBus.emit('reset-quickstart')
+  eventBus.emit('quickstart-stage-changed', 'inactive')
   emit('close')
 }
 
@@ -480,15 +491,18 @@ const handleQuickStartClose = () => {
 }
 
 const selectQuickStartFormat = (format: 'md' | 'tex') => {
-  const tabId = activeTabId.value
-  if (!tabId) return
-  try {
-    initializeDocumentFromTemplate(tabId, format)
-  } catch (error) {
-    logger.warn('初始化文档模板失败', error)
-  }
+  logger.info('[QuickStartPanel] selectQuickStartFormat 开始', { format })
+
+  // 仅切换界面状态，不创建或激活任何文档 tab
   eventBus.emit('reset-quickstart')
-  stage.value = format === 'md' ? 'markdown' : 'latex'
+  const newStage = format === 'md' ? 'markdown' : 'latex'
+  logger.info('[QuickStartPanel] 设置 stage', { newStage, currentStage: stage.value })
+  stage.value = newStage
+  logger.info('[QuickStartPanel] stage 已更新', { stage: stage.value })
+  
+  // 通知 GlobalHome.vue 更新快速开始面板状态
+  eventBus.emit('quickstart-stage-changed', newStage)
+  logger.info('[QuickStartPanel] 已发送 quickstart-stage-changed 事件', { newStage })
 }
 
 onMounted(() => {
@@ -498,6 +512,7 @@ onMounted(() => {
   // 监听 openQuickStart 事件
   eventBus.on('open-quickstart', () => {
     stage.value = 'format'
+    eventBus.emit('quickstart-stage-changed', 'format')
   })
 })
 
@@ -553,53 +568,142 @@ watch(
   color: rgb(50, 150, 250);
 }
 
-.quick-start-format-wrapper {
-  height: 100%;
+/* 快速开始面板外层容器 */
+.quick-start-panel-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  position: relative;
   z-index: 1;
+  padding: 24px;
+  box-sizing: border-box;
 }
 
-.quick-start-format {
-  width: 60vw;
-  padding: 24px;
+.quick-start-panel-container {
+  width: 100%;
+  height: 100%;
+  max-width: 900px;
+  max-height: 600px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  border-radius: 4px;
+  border-radius: 20px;
   backdrop-filter: blur(20px) brightness(1.05);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.1)"');
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  position: relative;
+  background: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
 }
 
-.quick-start-format__options {
-  width: 100%;
+.panel-header {
   display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 32px;
+  border-bottom: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.1)"');
+  flex-shrink: 0;
+  position: relative;
+}
+
+.panel-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  color: v-bind('themeState.currentTheme.textColor');
+  letter-spacing: -0.02em;
+}
+
+.close-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: v-bind('themeState.currentTheme.textColor');
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.close-button:hover {
+  opacity: 1;
+}
+
+.format-options-container {
+  flex: 1;
+  display: flex;
+  gap: 24px;
+  padding: 40px 32px;
+  align-items: center;
   justify-content: center;
+  overflow: auto;
 }
 
-.quick-start-format__option {
-  flex: 1 1 240px;
-  padding: 20px;
-  border-radius: 4px;
+.format-option-card {
+  flex: 1;
+  max-width: 350px;
+  min-width: 280px;
+  padding: 40px 32px;
+  border-radius: 16px;
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: none;
-  transition: transform 0.2s ease;
-}
-
-.quick-start-format__option:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  border-color: rgba(0, 0, 0, 0.15);
-  transform: scale(1.01);
-}
-
-.quick-start-format__actions {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.format-option-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.format-option-card:hover::before {
+  opacity: 1;
+}
+
+.format-option-card:hover {
+  transform: translateY(-4px);
+  border-color: v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.2)"');
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.format-option-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  transition: transform 0.3s ease;
+}
+
+.format-option-card:hover .format-option-icon {
+  transform: scale(1.1);
+}
+
+.format-option-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: v-bind('themeState.currentTheme.textColor');
+  letter-spacing: -0.01em;
+}
+
+.format-option-description {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  color: v-bind('themeState.currentTheme.textColor');
+  opacity: 0.8;
 }
 
 .quick-start-overlay {

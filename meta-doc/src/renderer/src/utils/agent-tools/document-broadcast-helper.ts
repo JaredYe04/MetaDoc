@@ -3,8 +3,7 @@
  * 用于在设置窗口中通过广播获取主窗口的文档信息
  */
 
-import eventBus from '../event-bus'
-import { sendBroadcast, getWindowType } from '../event-bus'
+import eventBus, { getWindowType } from '../event-bus'
 
 /**
  * 获取活动文档信息（通过广播）
@@ -59,7 +58,8 @@ export async function getActiveDocumentInfoViaBroadcast(): Promise<{
     eventBus.on('response-active-document-info', handler)
     
     // 发送请求到主窗口
-    sendBroadcast('home', 'request-active-document-info', requestId)
+    // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+    eventBus.emit('request-active-document-info', requestId)
   })
 }
 
@@ -107,7 +107,8 @@ export async function getDocumentContentViaBroadcast(): Promise<{
 
     eventBus.on('response-document-content', handler)
     
-    sendBroadcast('home', 'request-document-content', requestId)
+    // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+    eventBus.emit('request-document-content', requestId)
   })
 }
 

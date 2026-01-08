@@ -335,7 +335,10 @@
         "ctrlEnterToSend": "按 Ctrl+Enter 发送",
         "changeSendMode": "点击切换发送快捷键",
         "cancelTooltip": "取消AI生成",
-        "insertToDocument": "插入到当前文档",
+        "insertToDocument": "插入到文档",
+        "selectDocumentTitle": "选择要插入的文档",
+        "insertToDocumentsSuccess": "内容已插入到所选文档",
+        "noDocuments": "没有打开的文档",
         "exportToDocument": "导出到新文档",
         "insertSuccess": "内容已插入到文档",
         "exportSuccess": "已导出到新文档",
@@ -627,6 +630,7 @@
     "home": {
       "recentDocuments":"最近文档",
         "metaDoc": "MetaDoc智能文字处理软件",
+        "subtitle": "现代文档编辑与创作工具",
         "tooltip": {
             "quickStart": "快速开始：快速生成一篇文档",
             "openFile": "打开已有文档",
@@ -1352,7 +1356,11 @@
             "placeholder": "请输入检索问题",
             "searchBtn": "搜索",
             "noResult": "暂无结果"
-        }
+        },
+        "disabled": "禁用",
+        "disabledMessage": "知识库功能当前已禁用。请在设置中启用知识库功能以使用此功能。",
+        "enable": "启用知识库",
+        "enableError": "启用知识库失败"
     },
     "aiSuggestion": {
         "tooltip": "AI建议",

@@ -3,6 +3,7 @@
     :collapse="isCollapse"
     :background-color="themeState.currentTheme.background2nd"
     :text-color="themeState.currentTheme.SideTextColor"
+    :style="{ '--sub-menu-hover': activeBackgroundColor }"
   >
     <!-- 顶部菜单项 -->
     <template v-for="menuId in getMenuOrder().top" :key="menuId">
@@ -789,7 +790,7 @@
 
 <script lang="ts" setup>
 import { updateRecentDocs, getRecentDocs, getSetting, setSetting } from '../utils/settings';
-import { computed, onMounted, ref, provide } from 'vue'
+import { computed, onMounted, ref, provide, watch } from 'vue'
 import UIMenu from './ui/UIMenu.vue'
 import UIMenuItem from './ui/UIMenuItem.vue'
 import UISubMenu from './ui/UISubMenu.vue'
@@ -823,7 +824,7 @@ import {
   View,
   Paperclip
 } from '@element-plus/icons-vue'
-import eventBus, { sendBroadcast } from '../utils/event-bus';
+import eventBus from '../utils/event-bus';
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { themeState, mixColors } from '../utils/themes';
 import { avatar } from '../stores/user';
@@ -989,12 +990,12 @@ const handleMenuConfigSave = async (items: MenuConfigItem[]) => {
   logger.info('菜单配置已更新', menuConfigState.value)
 }
 
-// 计算弹出菜单的背景色和悬停颜色（参考 ContextMenu 设计）
+// 计算弹出菜单的背景色和悬停颜色（与 HeadMenu 保持一致）
 const subMenuBackgroundColor = computed(() => themeState.currentTheme.background2nd)
-const subMenuHoverColor = computed(() => {
-  const baseBg = themeState.currentTheme.background2nd;
-  return mixColors(baseBg, themeState.currentTheme.textColor, 0.5)
-})
+// 使用与 HeadMenu 相同的 active 背景色作为 hover 和 active 颜色
+const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3))
+const activeTextColor = computed(() => themeState.currentTheme.textColor)
+const subMenuHoverColor = computed(() => activeBackgroundColor.value)
 
 // 提供 collapse 状态给子组件
 provide('menuCollapse', isCollapse)
@@ -1003,7 +1004,8 @@ const changeLang = (lang: string) => {
   locale.value = lang
   localStorage.setItem('lang', lang)
   logger.info(`Language changed to ${lang}`)
-  sendBroadcast('all', 'lang-changed', lang)
+  // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+  eventBus.emit('lang-changed', lang)
 }
 
 const toggleUserProfile = () => {
@@ -1058,12 +1060,19 @@ const openLlmStatistics = () => {
   workspace.openSystemTab('/llm-statistics', t('bottomMenu.llmStatistics', 'LLM统计'))
 }
 
+// 更新全局 CSS 变量以匹配 active 背景色
+watch(activeBackgroundColor, (newColor) => {
+  document.documentElement.style.setProperty('--sub-menu-hover', newColor)
+}, { immediate: true })
+
 onMounted(async () => {
   await refreshRecentDocs()
   // 检查是否为开发环境
   isDev.value = await isDevEnvironment()
   // 加载菜单配置
   await loadMenuConfig()
+  // 初始化全局 CSS 变量
+  document.documentElement.style.setProperty('--sub-menu-hover', activeBackgroundColor.value)
 })
 const refreshRecentDocs = async () => {
   recentDocs.value = await getRecentDocs()
@@ -1240,18 +1249,25 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   justify-content: center;
 }
 
-/* 悬停效果 - 圆角背景框 */
+/* 悬停效果 - 圆角背景框（与 HeadMenu 保持一致） */
 .modern-sidebar-menu :deep(.el-menu-item:hover),
 .modern-sidebar-menu :deep(.el-sub-menu__title:hover) {
-  background-color: var(--el-menu-hover-bg-color, rgba(0, 0, 0, 0.06)) !important;
+  background-color: v-bind('activeBackgroundColor') !important;
   border-radius: 6px;
 }
 
-/* 激活状态 - 禁用高亮 */
+/* 激活状态（与 HeadMenu 保持一致） */
 .modern-sidebar-menu :deep(.el-menu-item.is-active) {
-  background-color: transparent !important;
+  background-color: v-bind('activeBackgroundColor') !important;
+  color: v-bind('activeTextColor') !important;
   border-radius: 6px;
-  color: inherit !important;
+}
+
+/* 打开的 submenu 标题应该显示 active 颜色 */
+.modern-sidebar-menu :deep(.el-sub-menu.is-opened > .el-sub-menu__title) {
+  background-color: v-bind('activeBackgroundColor') !important;
+  color: v-bind('activeTextColor') !important;
+  border-radius: 6px;
 }
 
 /* 子菜单弹出框样式 - Windows 11 / QQ NT 风格圆角 */
@@ -1314,7 +1330,7 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
 
 .modern-sidebar-menu :deep(.el-sub-menu .el-menu .el-menu-item:hover),
 .modern-sidebar-menu :deep(.el-popper .el-menu .el-menu-item:hover) {
-  background-color: v-bind('subMenuHoverColor') !important;
+  background-color: v-bind('activeBackgroundColor') !important;
   border-radius: 6px !important;
 }
 
@@ -1331,7 +1347,7 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
 
 .modern-sidebar-menu :deep(.el-sub-menu .el-menu .el-sub-menu .el-sub-menu__title:hover),
 .modern-sidebar-menu :deep(.el-popper .el-menu .el-sub-menu .el-sub-menu__title:hover) {
-  background-color: v-bind('subMenuHoverColor') !important;
+  background-color: v-bind('activeBackgroundColor') !important;
   border-radius: 6px !important;
 }
 
@@ -1806,6 +1822,13 @@ body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-sub-men
 body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .el-sub-menu .el-sub-menu__title:hover,
 body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .el-sub-menu .el-sub-menu__title:hover,
 body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-sub-menu .el-sub-menu__title:hover {
+  background-color: var(--sub-menu-hover, rgba(0, 0, 0, 0.06)) !important;
+  border-radius: 6px !important;
+}
+
+/* 打开的 submenu 标题显示 active 颜色 */
+.modern-sidebar-menu :deep(.el-sub-menu.is-opened > .el-sub-menu__title),
+body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-sub-menu.is-opened > .el-sub-menu__title {
   background-color: var(--sub-menu-hover, rgba(0, 0, 0, 0.06)) !important;
   border-radius: 6px !important;
 }

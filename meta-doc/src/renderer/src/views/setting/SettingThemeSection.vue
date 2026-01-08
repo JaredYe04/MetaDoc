@@ -166,7 +166,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { More, Plus, Check, CopyDocument, Edit, Delete } from '@element-plus/icons-vue';
 import { settings, setSetting, getSetting } from '../../utils/settings.js';
-import eventBus, { sendBroadcast } from '../../utils/event-bus.js';
+import eventBus from '../../utils/event-bus.js';
 import { predefineColors, presetThemes, contentThemes, codeThemes, customTheme, lightTheme, darkTheme } from '../../utils/themes.js';
 import { themeState } from '../../utils/themes.js';
 
@@ -453,7 +453,7 @@ const confirmColorEdit = async (theme: ThemeConfig, color: string | null) => {
     // 同步主题（跨进程）
     eventBus.emit('sync-theme');
     eventBus.emit('theme-changed');
-    sendBroadcast('all', 'sync-theme', {});
+    // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast（上面已经emit了sync-theme）
   }
   
   // 清除编辑状态
@@ -487,7 +487,7 @@ const cancelColorEdit = async (theme: ThemeConfig) => {
     // 同步主题（跨进程）
   eventBus.emit('sync-theme');
   eventBus.emit('theme-changed');
-    sendBroadcast('all', 'sync-theme', {});
+    // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast（上面已经emit了sync-theme）
   }
   
   // 清除编辑状态
@@ -525,7 +525,7 @@ const selectTheme = async (theme: ThemeConfig) => {
   
   eventBus.emit('sync-theme');
   eventBus.emit('theme-changed');
-  sendBroadcast('all', 'sync-theme', {});
+  // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast（上面已经emit了sync-theme）
 };
 
 // 处理操作
@@ -664,12 +664,14 @@ const saveSetting = (key: string, value: unknown) => {
 
 const handleContentThemeChange = () => {
   saveSetting('contentTheme', settings.contentTheme);
-  sendBroadcast('all', 'sync-editor-theme', {});
+  // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+  eventBus.emit('sync-editor-theme', {});
 };
 
 const handleCodeThemeChange = () => {
   saveSetting('codeTheme', settings.codeTheme);
-  sendBroadcast('all', 'sync-editor-theme', {});
+  // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+  eventBus.emit('sync-editor-theme', {});
 };
 
 // 初始化

@@ -12,7 +12,8 @@
           class="status-item status-version"
           @click.prevent="toggleVersionInfoPanel"
         >
-          {{ $t('bottomMenu.versionLabel') }} {{ currentVersion }}
+          <!-- {{ $t('bottomMenu.versionLabel') }}  -->
+          {{ currentVersion }}
         </span>
       </el-tooltip>
       <span class="status-divider">|</span>

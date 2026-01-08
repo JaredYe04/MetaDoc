@@ -147,7 +147,8 @@ eventBus.on('sync-ai-dialogs', (dialogs) => {//ai-chat -> home，一般来说只
 eventBus.on('request-ai-dialogs', () => {//home -> ai-chat，主窗口请求AICHAT组件获取对话数据
   const doc = getDocument()
   if (!doc) return
-  sendBroadcast('ai-chat', 'response-ai-dialogs', cloneDeep(doc.aiDialogs))
+  // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+  eventBus.emit('response-ai-dialogs', cloneDeep(doc.aiDialogs))
 })
 
 eventBus.on('response-ai-dialogs', (dialogs) => {//主进程发送给AICHAT组件对话数据
@@ -676,7 +677,8 @@ eventBus.on('open-log-directory', () => {
 })
 
 eventBus.on('theme-changed', () => {
-  sendBroadcast('all', 'sync-theme', {});
+  // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+  eventBus.emit('sync-theme', {});
 })
 eventBus.on('send-broadcast', (message) => {
   //console.log('发送广播消息:', message)
@@ -688,8 +690,21 @@ eventBus.on('send-broadcast', (message) => {
   //   data: { key: 'value' } // 传递的数据
   // });
 })
+/**
+ * 发送广播消息（单窗口多Tab架构下，直接使用eventBus）
+ * @param {string} to - 目标窗口类型（'home', 'ai-chat', 'setting', 'all'），单窗口下已不再需要
+ * @param {string} eventName - 事件名称
+ * @param {*} data - 事件数据
+ */
 export function sendBroadcast(to, eventName, data) {
-  eventBus.emit('send-broadcast', { to, eventName, data });
+  // 单窗口多Tab架构：直接使用 eventBus，不再通过 IPC
+  // 如果将来需要支持多窗口，可以在这里添加条件判断
+  eventBus.emit(eventName, data);
+  
+  // 可选：如果 to 不是 'all'，可以记录日志以便调试
+  if (to !== 'all') {
+    getLogger().debug(`[Broadcast] ${to} -> ${eventName}`, data);
+  }
 }
 
 

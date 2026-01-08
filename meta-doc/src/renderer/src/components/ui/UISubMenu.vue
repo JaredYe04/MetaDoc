@@ -5,7 +5,7 @@
       v-if="tooltip && collapse && trigger === 'click'" 
       :content="tooltip" 
       placement="right"
-      :disabled="isOpen"
+      :disabled="isOpen || hasOpenSubMenu"
     >
       <div
         class="ui-sub-menu__title"
@@ -88,9 +88,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, nextTick, onBeforeUnmount, onMounted, watch } from 'vue'
+import { ref, computed, inject, nextTick, onBeforeUnmount, onMounted, watch, type ComputedRef } from 'vue'
 import { ArrowRight } from '@element-plus/icons-vue'
 import { themeState, mixColors } from '../../utils/themes'
+
+// 计算与 HeadMenu 一致的 active 背景色
+const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3))
+const activeTextColor = computed(() => themeState.currentTheme.textColor)
 
 const props = withDefaults(defineProps<{
   title?: string
@@ -112,6 +116,7 @@ const emit = defineEmits<{
 }>()
 
 const collapse = inject<boolean>('menuCollapse', false)
+const hasOpenSubMenu = inject<ComputedRef<boolean>>('hasOpenSubMenu', computed(() => false))
 // 对于嵌套在弹出层中的子菜单（level > 1），应该总是显示 title
 // 因为弹出层中的菜单不在主菜单的折叠状态控制范围内，collapse 可能无法正确获取
 const shouldShowTitle = computed(() => {
@@ -125,6 +130,8 @@ const shouldShowTitle = computed(() => {
 const closeAllClickSubMenus = inject<(() => void) | undefined>('closeAllClickSubMenus', undefined)
 const registerClickSubMenu = inject<((closeFn: () => void) => void) | undefined>('registerClickSubMenu', undefined)
 const unregisterClickSubMenu = inject<((closeFn: () => void) => void) | undefined>('unregisterClickSubMenu', undefined)
+const registerSubMenu = inject<((closeFn: () => void) => void) | undefined>('registerSubMenu', undefined)
+const unregisterSubMenu = inject<((closeFn: () => void) => void) | undefined>('unregisterSubMenu', undefined)
 
 const subMenuRef = ref<HTMLElement | null>(null)
 const popupRef = ref<HTMLElement | null>(null)
@@ -133,7 +140,8 @@ const popupPosition = ref({ top: 0, left: 0 })
 
 const popupStyle = computed(() => {
   const baseBg = themeState.currentTheme.background2nd
-  const hoverColor = mixColors(baseBg, themeState.currentTheme.textColor, 0.5)
+  // 使用与 HeadMenu 一致的 active 背景色作为 hover 颜色
+  const hoverColor = activeBackgroundColor.value
   return {
     top: `${popupPosition.value.top}px`,
     left: `${popupPosition.value.left}px`,
@@ -199,6 +207,11 @@ const openPopup = async () => {
     registerClickSubMenu(closePopup)
   }
   
+  // 注册到所有菜单列表（用于 tooltip 控制）
+  if (registerSubMenu) {
+    registerSubMenu(closePopup)
+  }
+  
   emit('open')
 }
 
@@ -209,6 +222,11 @@ const closePopup = () => {
   // 如果是 click 触发的，注销关闭函数
   if (props.trigger === 'click' && unregisterClickSubMenu) {
     unregisterClickSubMenu(closePopup)
+  }
+  
+  // 从所有菜单列表中注销（用于 tooltip 控制）
+  if (unregisterSubMenu) {
+    unregisterSubMenu(closePopup)
   }
   
   emit('close')
@@ -304,6 +322,9 @@ onBeforeUnmount(() => {
   if (props.trigger === 'click' && unregisterClickSubMenu) {
     unregisterClickSubMenu(closePopup)
   }
+  if (unregisterSubMenu) {
+    unregisterSubMenu(closePopup)
+  }
 })
 </script>
 
@@ -331,7 +352,14 @@ onBeforeUnmount(() => {
 }
 
 .ui-sub-menu__title:hover {
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: v-bind('activeBackgroundColor');
+  border-radius: 6px;
+}
+
+/* 打开的菜单显示 active 颜色 */
+.ui-sub-menu__title.is-open {
+  background-color: v-bind('activeBackgroundColor');
+  color: v-bind('activeTextColor');
   border-radius: 6px;
 }
 

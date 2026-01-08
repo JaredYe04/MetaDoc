@@ -95,7 +95,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import MicrophoneTest from '../../components/MicrophoneTest.vue';
 import { settings, setSetting } from '../../utils/settings.js';
-import { sendBroadcast } from '../../utils/event-bus.js';
+// 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 
 const { t } = useI18n();
 
@@ -107,7 +107,8 @@ const saveSetting = (key: string, value: unknown) => {
 
 const handleParticleToggle = () => {
   saveSetting('particleEffect', settings.particleEffect);
-  sendBroadcast('home', 'toggle-particle-effect', {});
+  // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+  eventBus.emit('toggle-particle-effect', {});
 };
 
 // 格式化文件大小

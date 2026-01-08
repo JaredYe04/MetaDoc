@@ -40,7 +40,7 @@ export interface WorkspaceTab {
   route?: string; // 路由路径（用于工具Tab）
 }
 
-export type DocumentView = 'outline' | 'editor' | 'visualize' | 'agent' | 'proofread';
+export type DocumentView = 'home' | 'outline' | 'editor' | 'visualize' | 'agent' | 'proofread';
 
 export interface WorkspaceDocument {
   id: string;
@@ -138,11 +138,20 @@ ensureInitialTab();
  * 确保一个标签页的文档存在
  * @param tabId 标签页ID
  * @returns 标签页文档
+ * @throws 如果tab是tool或system类型，抛出错误
  */
 function ensureDocument(tabId: string): WorkspaceDocument {
   let doc = documents[tabId];
   if (!doc) {
     const tabInfo = tabs.find((tab) => tab.id === tabId);
+    
+    // 工具Tab和系统Tab不应该有文档上下文
+    if (tabInfo && (tabInfo.kind === 'tool' || tabInfo.kind === 'system')) {
+      const logger = createRendererLogger('Workspace');
+      logger.warn(`尝试为工具/系统Tab创建文档: ${tabId} (${tabInfo.kind})`);
+      throw new Error(`工具Tab或系统Tab (${tabInfo.kind}) 不应该有文档上下文`);
+    }
+    
     const snapshot =
       tabInfo?.kind === 'new'
         ? createDocumentSnapshotFromTemplate('md', '')
@@ -178,7 +187,16 @@ const activeTab = computed(() => {
 const activeDocument = computed<WorkspaceDocument | null>(() => {
   const tab = activeTab.value;
   if (!tab) return null;
-  return ensureDocument(tab.id);
+  // 工具Tab和系统Tab不应该有文档上下文
+  if (tab.kind === 'tool' || tab.kind === 'system') {
+    return null;
+  }
+  try {
+    return ensureDocument(tab.id);
+  } catch (error) {
+    // 如果ensureDocument失败（不应该发生，因为我们已经检查了kind），返回null
+    return null;
+  }
 });
 
 /**
@@ -207,6 +225,63 @@ function structuredCloneFallback<T>(value: T): T {
 function normalizeContent(value: string | null | undefined): string {
   if (!value) return '';
   return value.replace(/\r\n/g, '\n');
+}
+
+/**
+ * 检查文档是否有内容（用于决定默认视图）
+ * @param doc 文档对象
+ * @returns 是否有内容
+ */
+export function hasDocumentContent(doc: { format: WorkspaceTabFormat; markdown: string; tex: string }): boolean {
+  if (doc.format === 'md') {
+    // Markdown: trim 后不为空
+    const content = (doc.markdown || '').trim()
+    return content.length > 0
+  } else if (doc.format === 'tex') {
+    // LaTeX: 检查是否有正文或标题内容
+    const tex = doc.tex || ''
+    if (!tex.trim()) return false
+    
+    // 检查是否有 \begin{document} ... \end{document} 之间的内容
+    const beginDocIndex = tex.indexOf('\\begin{document}')
+    const endDocIndex = tex.indexOf('\\end{document}')
+    
+    if (beginDocIndex !== -1 && endDocIndex !== -1 && endDocIndex > beginDocIndex) {
+      // 提取 document 环境中的内容
+      const docContent = tex.substring(beginDocIndex + '\\begin{document}'.length, endDocIndex)
+      
+      // 移除注释（% 开头的行）
+      const withoutComments = docContent.replace(/%[^\n]*/g, '')
+      
+      // 移除空白字符
+      const trimmed = withoutComments.replace(/\s+/g, ' ').trim()
+      
+      if (trimmed.length === 0) return false
+      
+      // 检查是否有实际的文字内容（不是只有 LaTeX 命令）
+      let meaningfulContent = trimmed
+        .replace(/\\begin\{[^}]+\}/g, '')
+        .replace(/\\end\{[^}]+\}/g, '')
+        .replace(/\\[a-zA-Z]+\{([^}]*)\}/g, '$1')
+        .replace(/\\[a-zA-Z]+/g, '')
+        .replace(/[{}]/g, '')
+        .trim()
+      
+      return meaningfulContent.length > 0
+    }
+    
+    // 如果没有 document 环境，检查整个文档是否有实际内容
+    const withoutComments = tex.replace(/%[^\n]*/g, '')
+    const withoutCommands = withoutComments
+      .replace(/\\[a-zA-Z]+\{([^}]*)\}/g, '$1')
+      .replace(/\\[a-zA-Z]+/g, '')
+      .replace(/[{}]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+    
+    return withoutCommands.length > 0
+  }
+  return false
 }
 
 function ensureInitialTab(): void {
@@ -875,6 +950,8 @@ function updateDocumentDirty(tabId: string): void {
  * @param view 新的最后视图
  */
 function updateDocumentLastView(tabId: string, view: DocumentView): void {
+  const logger = getLogger()
+  logger.info('[Workspace] updateDocumentLastView 被调用', { tabId, view, stack: new Error().stack })
   const doc = ensureDocument(tabId);
   if (doc.lastView !== view) {
     doc.lastView = view;
@@ -1040,6 +1117,17 @@ function createDocumentSnapshotFromTemplate(
 
   const meta = structuredCloneFallback(DEFAULT_ARTICLE_META);
 
+  // 创建临时文档对象用于检查内容
+  const tempDoc = {
+    format: formatId,
+    markdown: markdownContent,
+    tex: texContent,
+  };
+  
+  // 根据模板内容决定初始视图
+  const hasContent = hasDocumentContent(tempDoc);
+  const initialView: DocumentView = hasContent ? 'home' : 'editor';
+
   return {
     id: '',
     tabId: '',
@@ -1051,7 +1139,7 @@ function createDocumentSnapshotFromTemplate(
     meta: structuredCloneFallback(meta),
     aiDialogs: structuredCloneFallback(DEFAULT_AI_DIALOGS),
     agentSessions: structuredCloneFallback(DEFAULT_AGENT_SESSIONS),
-    lastView: 'editor' as DocumentView,
+    lastView: initialView,
     renderedHtml: '',
     dirty: false,
     savedMarkdown: markdownContent,
@@ -1067,6 +1155,7 @@ function initializeDocumentFromTemplate(
   tabId: string,
   formatId: WorkspaceTabFormat,
   templateId?: string,
+  targetView?: DocumentView,
 ): void {
   const tab = tabs.find((item) => item.id === tabId);
   if (!tab) return;
@@ -1083,6 +1172,11 @@ function initializeDocumentFromTemplate(
   const snapshot = createDocumentSnapshotFromTemplate(formatId, template?.content ?? '');
   snapshot.id = tabId;
   snapshot.tabId = tabId;
+
+  // 如果指定了目标视图，则覆盖默认的 lastView
+  if (targetView) {
+    snapshot.lastView = targetView;
+  }
 
   Object.assign(doc, snapshot);
 
@@ -1166,7 +1260,7 @@ async function saveAllDocuments(): Promise<{ saved: string[]; failed: string[] }
 }
 
 // ===== 跨窗口文档信息获取（用于设置窗口的Agent Tool测试） =====
-import { sendBroadcast } from '../utils/event-bus'
+// 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 import { mergeText } from '../utils/text-merge.js';
 import { removeMetaInfo } from '../utils/meta-info-remover';
 
@@ -1381,11 +1475,13 @@ export async function initializeWorkspaceBroadcastListeners(): Promise<void> {
   eventBus.on('external-file-deleted', handleExternalFileDeleted);
   
   // 监听来自设置窗口的文档信息请求
+  // 单窗口多Tab架构：设置窗口也是Tab，直接使用eventBus响应
   eventBus.on('request-active-document-info', (requestId: unknown) => {
     const typedRequestId = requestId as string;
     const doc = activeDocument.value
     if (!doc) {
-      sendBroadcast('setting', 'response-active-document-info', {
+      // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+      eventBus.emit('response-active-document-info', {
         requestId,
         document: null,
         error: '没有活动的文档'
@@ -1399,7 +1495,8 @@ export async function initializeWorkspaceBroadcastListeners(): Promise<void> {
     const hasContent = Boolean(content && content.trim().length > 0)
 
     // 发送文档信息（不包含完整内容，只包含必要信息）
-    sendBroadcast('setting', 'response-active-document-info', {
+    // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+    eventBus.emit('response-active-document-info', {
       requestId: typedRequestId,
       document: {
         id: doc.id,
@@ -1416,11 +1513,13 @@ export async function initializeWorkspaceBroadcastListeners(): Promise<void> {
   })
 
   // 监听来自设置窗口的文档内容请求
+  // 单窗口多Tab架构：设置窗口也是Tab，直接使用eventBus响应
   eventBus.on('request-document-content', (requestId: unknown) => {
     const typedRequestId = requestId as string;
     const doc = activeDocument.value
     if (!doc) {
-      sendBroadcast('setting', 'response-document-content', {
+      // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+      eventBus.emit('response-document-content', {
         requestId,
         content: null,
         error: '没有活动的文档'
@@ -1428,7 +1527,8 @@ export async function initializeWorkspaceBroadcastListeners(): Promise<void> {
       return
     }
 
-    sendBroadcast('setting', 'response-document-content', {
+    // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
+    eventBus.emit('response-document-content', {
       requestId: typedRequestId,
       content: {
         markdown: doc.markdown,
@@ -1634,6 +1734,9 @@ export function useWorkspace() {
     openToolTab,
     openSystemTab,
     canRemoveTab,
+    createDocumentSnapshotFromTemplate,
+    hasDocumentContent,
+    refreshActiveTabMetadata,
   };
 }
 

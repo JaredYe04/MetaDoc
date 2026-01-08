@@ -179,6 +179,7 @@ function confirmTemplate(templateId?: string) {
     props.tabId,
     formatId as WorkspaceTabFormat,
     template,
+    'editor', // 指定跳转到 Editor 视图
   );
 }
 </script>

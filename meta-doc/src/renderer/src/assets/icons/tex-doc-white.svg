@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <defs>
+    <!-- base-doc 的 mask：在 overlay 的白色区域挖空 -->
+    <mask id="base-mask-1767894824161-6nadwofqx">
+      <!-- 白色区域表示显示，黑色区域表示隐藏（挖空） -->
+      <rect width="24" height="24" fill="white"/>
+      <g transform="translate(9.8, 6) scale(0.55)">
+        <path fill="black" d="M5 8H4l1.5-3L4 2h1l1 2l1-2h1L6.5 5L8 8H7L6 6M2 5V1H0V0h5v1H3v4m0 1v1H0V2h1v4" />
+      </g>
+    </mask>
+    <!-- overlay 的 mask：在 base-doc 的白色区域挖空 -->
+    <!-- 我们需要提取 base-doc 在 overlay 位置的形状 -->
+    <clipPath id="base-clip-base-mask-1767894824161-6nadwofqx">
+      <rect x="9.8" y="6" width="4.4" height="4.4"/>
+    </clipPath>
+    <mask id="overlay-mask-1767894824161-jqhh36mmy">
+      <!-- 白色区域表示显示，黑色区域表示隐藏（挖空） -->
+      <!-- overlay 的 mask 使用原始 8x8 尺寸，因为 overlay 本身是在 8x8 的 viewBox 中 -->
+      <rect width="8" height="8" fill="white"/>
+      <!-- 在 overlay 位置绘制 base-doc，然后转换为 mask -->
+      <!-- base-doc 是 24x24，需要转换到 overlay 的 8x8 坐标系 -->
+      <!-- 转换：将 base-doc 从 24x24 坐标系映射到 8x8 坐标系 -->
+      <!-- scale = 8 / overlaySize，然后平移 base-doc 到 overlay 位置 -->
+      <g transform="scale(1.8181818181818181) translate(-9.8, -6)" clip-path="url(#base-clip-base-mask-1767894824161-6nadwofqx)">
+        <!-- 将 base-doc 的内容转换为 mask 格式 -->
+        <path fill="black" fill-rule="evenodd" d="M14.25 2.5a.25.25 0 0 0-.25-.25H7A2.75 2.75 0 0 0 4.25 5v14A2.75 2.75 0 0 0 7 21.75h10A2.75 2.75 0 0 0 19.75 19V9.147a.25.25 0 0 0-.25-.25H15a.75.75 0 0 1-.75-.75zm.75 9.75a.75.75 0 0 1 0 1.5H9a.75.75 0 0 1 0-1.5zm0 4a.75.75 0 0 1 0 1.5H9a.75.75 0 0 1 0-1.5z" clip-rule="evenodd" />
+	<path fill="black" d="M15.75 2.824c0-.184.193-.301.336-.186q.182.147.323.342l3.013 4.197c.068.096-.006.22-.124.22H16a.25.25 0 0 1-.25-.25z" />
+      </g>
+    </mask>
+  </defs>
+  <!-- 绘制 base-doc，应用 mask 在 overlay 的白色区域挖空 -->
+  <g mask="url(#base-mask-1767894824161-6nadwofqx)">
+    <path fill="#fff" fill-rule="evenodd" d="M14.25 2.5a.25.25 0 0 0-.25-.25H7A2.75 2.75 0 0 0 4.25 5v14A2.75 2.75 0 0 0 7 21.75h10A2.75 2.75 0 0 0 19.75 19V9.147a.25.25 0 0 0-.25-.25H15a.75.75 0 0 1-.75-.75zm.75 9.75a.75.75 0 0 1 0 1.5H9a.75.75 0 0 1 0-1.5zm0 4a.75.75 0 0 1 0 1.5H9a.75.75 0 0 1 0-1.5z" clip-rule="evenodd" />
+	<path fill="#fff" d="M15.75 2.824c0-.184.193-.301.336-.186q.182.147.323.342l3.013 4.197c.068.096-.006.22-.124.22H16a.25.25 0 0 1-.25-.25z" />
+  </g>
+  <!-- 绘制 overlay，应用 mask 在 base-doc 的白色区域挖空，缩小 30% -->
+  <g transform="translate(9.8, 6) scale(0.55)" mask="url(#overlay-mask-1767894824161-jqhh36mmy)">
+    <path fill="#fff" d="M5 8H4l1.5-3L4 2h1l1 2l1-2h1L6.5 5L8 8H7L6 6M2 5V1H0V0h5v1H3v4m0 1v1H0V2h1v4" />
+  </g>
+</svg>

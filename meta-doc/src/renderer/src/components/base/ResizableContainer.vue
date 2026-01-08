@@ -37,7 +37,7 @@
     >
       <!-- 折叠按钮（紧贴分割线左侧，当展开时显示） -->
       <div 
-        v-if="collapsible"
+        v-if="collapsible && showCollapseButton"
         class="collapse-button"
         :class="collapseButtonClass"
         @click="toggleCollapse"
@@ -52,7 +52,7 @@
 
     <!-- 展开按钮（当折叠时显示，仅在 hover 时显示） -->
     <div 
-      v-if="showSidebar && isCollapsed && collapsible"
+      v-if="showSidebar && isCollapsed && collapsible && showCollapseButton"
       class="expand-button"
       :class="[expandButtonClass, { 'expand-button-visible': showExpandButton }]"
       @click="toggleCollapse"
@@ -90,6 +90,8 @@ interface Props {
   sidebarPosition?: 'start' | 'end'
   /** 是否可折叠 */
   collapsible?: boolean
+  /** 是否显示折叠按钮（当 collapsible 为 true 时，可以通过此参数控制是否显示按钮） */
+  showCollapseButton?: boolean
   /** 自动折叠的宽度阈值（当窗口宽度小于此值时自动折叠） */
   autoCollapseWidth?: number
   /** 折叠按钮标题 */
@@ -108,6 +110,7 @@ const props = withDefaults(defineProps<Props>(), {
   reverse: false,
   sidebarPosition: 'end',
   collapsible: false,
+  showCollapseButton: true,
   autoCollapseWidth: 0,
   collapseButtonTitle: '折叠',
   expandButtonTitle: '展开'
@@ -207,7 +210,7 @@ const expandButtonClass = computed(() => {
 
 // 处理鼠标移动，检测是否在边缘区域
 function handleMouseMove(event: MouseEvent) {
-  if (!isCollapsed.value || !props.collapsible) {
+  if (!isCollapsed.value || !props.collapsible || !props.showCollapseButton) {
     showExpandButton.value = false
     return
   }

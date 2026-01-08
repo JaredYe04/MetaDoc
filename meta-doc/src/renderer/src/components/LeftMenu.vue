@@ -267,6 +267,15 @@
         @click="openKnowledgeBase"
       />
 
+      <!-- 工作目录 -->
+      <UIMenuItem
+        v-if="menuId === 'workspace-explorer' && isMenuItemVisible('workspace-explorer')"
+        :label="$t('leftMenu.workspaceExplorer', '工作目录')"
+        :tooltip="$t('leftMenu.workspaceExplorer', '工作目录')"
+        :icon="FolderOpened"
+        @click="toggleWorkspaceExplorer"
+      />
+
       <!-- LLM统计 -->
       <UIMenuItem
         v-if="menuId === 'llm-statistics' && isMenuItemVisible('llm-statistics')"
@@ -652,6 +661,16 @@
         @click="openKnowledgeBase"
       />
 
+      <!-- 工作目录 -->
+      <UIMenuItem
+        v-if="menuId === 'workspace-explorer' && isMenuItemVisible('workspace-explorer')"
+        :label="$t('leftMenu.workspaceExplorer', '工作目录')"
+        :tooltip="$t('leftMenu.workspaceExplorer', '工作目录')"
+        :icon="FolderOpened"
+        class="bottom-menu"
+        @click="toggleWorkspaceExplorer"
+      />
+
       <!-- LLM统计 -->
       <UIMenuItem
         v-if="menuId === 'llm-statistics' && isMenuItemVisible('llm-statistics')"
@@ -861,6 +880,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     { id: 'recent-files', label: t('leftMenu.recentFiles'), icon: Clock, visible: true, isCore: false, position: 'top' },
     { id: 'language', label: t('leftMenu.langTooltip'), icon: EarthIcon as any, visible: true, isCore: true, position: 'top' },
     { id: 'knowledge-base', label: t('leftMenu.knowledgeBase', '知识库'), icon: Collection, visible: true, isCore: false, position: 'top' },
+    { id: 'workspace-explorer', label: t('leftMenu.workspaceExplorer', '工作目录'), icon: FolderOpened, visible: true, isCore: true, position: 'top' },
     { id: 'debug', label: t('leftMenu.debugTools', '调试工具'), icon: Tools, visible: isDev.value, isCore: false, position: 'top' },
     { id: 'more-features', label: t('leftMenu.moreFeatures', '更多功能'), icon: Grid, visible: true, isCore: true, position: 'top' },
     { id: 'llm-statistics', label: t('bottomMenu.llmStatistics', 'LLM统计'), icon: DataAnalysis, visible: false, isCore: false, position: 'top' },
@@ -1048,6 +1068,11 @@ const openGlobalHome = () => {
 // 打开知识库
 const openKnowledgeBase = () => {
   workspace.openSystemTab('/knowledge-base', t('leftMenu.knowledgeBase', '知识库'))
+}
+
+// 切换工作目录菜单
+const toggleWorkspaceExplorer = () => {
+  eventBus.emit('toggle-workspace-explorer')
 }
 
 // 打开调试工具

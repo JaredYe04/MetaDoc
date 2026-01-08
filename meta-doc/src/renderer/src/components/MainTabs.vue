@@ -1,25 +1,5 @@
 <template>
   <div class="main-tabs-wrapper" :class="{ 'is-locked': isLocked }" @dblclick="handleDoubleClick">
-    <!-- Logo Tab (最左侧，不可选中) -->
-    <div class="logo-tab-wrapper">
-      <el-tooltip :content="versionTooltip" placement="bottom">
-        <div class="logo-tab" @click="handleLogoClick">
-          <img src="../assets/logo.svg" alt="MetaDoc" class="logo-tab__image" />
-        </div>
-      </el-tooltip>
-    </div>
-    
-    <!-- 关于对话框 -->
-    <el-dialog
-      v-model="aboutDialogVisible"
-      :title="$t('setting.about.appName')"
-      width="600px"
-      :close-on-click-modal="true"
-      :close-on-press-escape="true"
-    >
-      <SettingAboutSection />
-    </el-dialog>
-    
     <div class="tabs-container">
       <el-tabs
         ref="tabsRef"
@@ -105,9 +85,7 @@ import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
 import eventBus from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
 import { Minus, FullScreen, Close, Plus } from '@element-plus/icons-vue'
-import { getAppVersion } from '../utils/version'
 import { mixColors, themeState } from '../utils/themes'
-import SettingAboutSection from '../views/setting/SettingAboutSection.vue'
 
 const logger = createRendererLogger('MainTabs')
 const { t } = useI18n()
@@ -116,8 +94,6 @@ const route = useRoute()
 
 const workspace = useWorkspace()
 const tabsRef = ref<any>(null)
-const appVersion = ref<string>('')
-const aboutDialogVisible = ref(false)
 
 const isLocked = computed(() => workspace.uiLocked?.value === true)
 
@@ -170,21 +146,6 @@ const borderColor = computed(() => {
   }
 })
 
-// 获取应用版本
-onMounted(async () => {
-  try {
-    appVersion.value = await getAppVersion()
-  } catch (error) {
-    logger.warn('获取应用版本失败:', error)
-    appVersion.value = 'Unknown'
-  }
-})
-
-const versionTooltip = computed(() => {
-  if (!appVersion.value) return `版本 ...`
-  return `版本 ${appVersion.value}`
-})
-
 // 窗口控制函数
 const handleMinimize = () => {
   let ipcRenderer: any = null
@@ -211,8 +172,7 @@ let lastClickTime = 0
 const handleDoubleClick = (event: MouseEvent) => {
   // 检查是否在空白区域（不是可交互元素）
   const target = event.target as HTMLElement
-  if (target.closest('.logo-tab-wrapper') || 
-      target.closest('.main-tabs') || 
+  if (target.closest('.main-tabs') || 
       target.closest('.window-controls') ||
       target.closest('.main-tab-label')) {
     return
@@ -230,11 +190,6 @@ const handleDoubleClick = (event: MouseEvent) => {
 
 const handleClose = () => {
   eventBus.emit('quit')
-}
-
-// 点击Logo打开关于对话框
-const handleLogoClick = () => {
-  aboutDialogVisible.value = true
 }
 
 // 点击新建文档按钮
@@ -659,8 +614,6 @@ watch(() => route.path, (newPath) => {
 }
 
 /* 可交互元素需要禁用拖拽窗口功能 */
-.main-tabs-wrapper .logo-tab-wrapper,
-.main-tabs-wrapper .logo-tab-wrapper *,
 .main-tabs-wrapper .window-controls,
 .main-tabs-wrapper .window-controls *,
 .main-tabs-wrapper .main-tab-label,
@@ -956,45 +909,6 @@ watch(() => route.path, (newPath) => {
   background-color: var(--el-color-primary);
   z-index: 10;
   border-radius: 2px 0 0 2px;
-}
-
-/* Logo Tab 样式 - 宽度与LeftMenu保持一致 */
-.logo-tab-wrapper {
-  display: flex;
-  align-items: center;
-  padding: 0 8px;
-  height: 40px;
-  width: 64px; /* 与LeftMenu折叠状态宽度一致 */
-  min-width: 64px;
-  flex-shrink: 0;
-  border-right: 1px solid v-bind('borderColor');
-  position: relative;
-  z-index: 1;
-}
-
-.logo-tab {
-  width: 100%;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  cursor: default;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  transition: background-color 0.2s ease;
-}
-
-.logo-tab:hover {
-  background-color: var(--el-fill-color-light, rgba(0, 0, 0, 0.06));
-}
-
-.logo-tab__image {
-  width: 24px;
-  height: 24px;
-  display: block;
 }
 
 /* 窗口控制按钮样式 */

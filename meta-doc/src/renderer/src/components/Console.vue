@@ -5,6 +5,13 @@
     }">
       <span class="console-title">{{ $t('console.title') }}</span>
       <div class="console-actions">
+        <el-switch
+          v-model="enableAiAnalysis"
+          :active-text="$t('console.enableAiAnalysis')"
+          size="small"
+          style="margin-right: 8px;"
+          @change="handleAiAnalysisToggle"
+        />
         <el-button size="small" @click="clearConsole">{{ $t('console.clear') }}</el-button>
         <el-button size="small" @click="copyConsole">{{ $t('console.copy') }}</el-button>
         <el-button size="small" @click="saveConsole">{{ $t('console.saveLog') }}</el-button>
@@ -50,6 +57,7 @@ interface ConsolePayload {
   message?: string;
   text?: string;
   type?: string;
+  append?: boolean; // 是否追加到当前行（而不是创建新行）
 }
 
 interface ConsoleLine {
@@ -114,6 +122,18 @@ const detectTypeFromContent = (content: string): ConsoleLineType | null => {
 };
 
 const lines = ref<ConsoleLine[]>([]);
+
+// AI分析开关（默认开启）
+const enableAiAnalysis = ref(true);
+
+// 处理AI分析开关变化
+const handleAiAnalysisToggle = (value: boolean) => {
+  // 通过eventBus通知LaTeXEditor组件
+  eventBus.emit('console-ai-analysis-toggle', {
+    key: props.consoleKey,
+    enabled: value
+  });
+};
 
 const getEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
   if (!editorId) return null;
@@ -269,8 +289,58 @@ eventBus.on('sync-editor-theme', async () => {
 });
 
 const addLine = (content: string, type: ConsoleLineType = 'out') => {
-  lines.value.push({ id: lineId++, content, type });
+  // 如果内容包含换行符，需要分割成多行
+  if (content.includes('\n')) {
+    const parts = content.split('\n');
+    // 添加所有部分（包括空行）
+    for (const part of parts) {
+      lines.value.push({ id: lineId++, content: part, type });
+    }
+  } else {
+    // 没有换行符，直接添加一行
+    lines.value.push({ id: lineId++, content, type });
+  }
   renderConsole();
+};
+
+// 追加内容到当前行（如果内容包含换行符，会分割成多行）
+const appendToLastLine = (content: string, type: ConsoleLineType = 'out') => {
+  if (lines.value.length === 0) {
+    // 如果没有行，创建第一行
+    addLine(content, type);
+    return;
+  }
+  
+  // 检查内容是否包含换行符
+  const hasNewline = content.includes('\n');
+  if (!hasNewline) {
+    // 没有换行符，直接追加到最后一行
+    const lastLine = lines.value[lines.value.length - 1];
+    lastLine.content += content;
+    renderConsole();
+  } else {
+    // 包含换行符，需要分割处理
+    const parts = content.split('\n');
+    // 第一部分追加到当前行
+    if (parts[0]) {
+      const lastLine = lines.value[lines.value.length - 1];
+      lastLine.content += parts[0];
+    }
+    // 中间部分创建新行
+    for (let i = 1; i < parts.length - 1; i++) {
+      if (parts[i]) {
+        lines.value.push({ id: lineId++, content: parts[i], type });
+      } else {
+        // 空行
+        lines.value.push({ id: lineId++, content: '', type });
+      }
+    }
+    // 最后一部分作为新行的开始（如果存在）
+    if (parts.length > 1 && parts[parts.length - 1]) {
+      lines.value.push({ id: lineId++, content: parts[parts.length - 1], type });
+    }
+    renderConsole();
+  }
 };
 
 const clearConsole = () => {
@@ -289,19 +359,50 @@ const copyConsole = () => {
   });
 };
 
-const saveConsole = () => {
+const saveConsole = async () => {
   const text = lines.value.map(l => l.content).join('\n');
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `console-${props.consoleKey}.log`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  eventBus.emit("show-success", t('console.logSaved'))
+  
+  try {
+    if (!ipcRenderer) {
+      // 如果没有IPC，使用浏览器下载方式（降级方案）
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `console-${props.consoleKey}.log`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      eventBus.emit("show-success", t('console.logSaved'));
+      return;
+    }
+    
+    // 使用IPC调用保存对话框
+    const result = await ipcRenderer.invoke('save-file-dialog', {
+      defaultName: `console-${props.consoleKey}.log`,
+      filters: [
+        { name: 'Log Files', extensions: ['log', 'txt'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    });
+    
+    if (result.canceled || !result.filePath) {
+      return; // 用户取消了保存
+    }
+    
+    // 写入文件（使用write-file-content IPC handler）
+    await ipcRenderer.invoke('write-file-content', {
+      filePath: result.filePath,
+      content: text,
+      encoding: 'utf8'
+    });
+    
+    eventBus.emit("show-success", t('console.logSaved'));
+  } catch (error) {
+    console.error('保存日志失败:', error);
+    eventBus.emit("show-error", t('console.logSaveFailed') || '保存日志失败');
+  }
 };
 
 const resolvePayload = (payload: unknown, fallbackType: ConsoleLineType, requireContent = true) => {
@@ -315,7 +416,8 @@ const resolvePayload = (payload: unknown, fallbackType: ConsoleLineType, require
       return {
         key: keyMatch,
         content: payload,
-        type: fallbackType
+        type: fallbackType,
+        append: false
       };
     }
     return null;
@@ -336,7 +438,8 @@ const resolvePayload = (payload: unknown, fallbackType: ConsoleLineType, require
     return {
       key,
       content,
-      type: normalizeType(obj.type, fallbackType)
+      type: normalizeType(obj.type, fallbackType),
+      append: obj.append ?? false
     };
   }
 
@@ -360,7 +463,12 @@ const handleOutPayload = (payload: unknown, fallbackType: ConsoleLineType) => {
     finalType = normalizeType(resolved.type, fallbackType);
   }
   
-  addLine(resolved.content, finalType);
+  // 根据 append 标志决定是追加还是新建行
+  if (resolved.append) {
+    appendToLastLine(resolved.content, finalType);
+  } else {
+    addLine(resolved.content, finalType);
+  }
 };
 
 const handleClearPayload = (payload: unknown) => {

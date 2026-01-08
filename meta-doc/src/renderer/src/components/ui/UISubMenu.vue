@@ -370,6 +370,7 @@ onBeforeUnmount(() => {
 
 .ui-sub-menu__title-content {
   display: flex;
+  font-size: 13px;
   align-items: center;
   width: 100%;
   justify-content: flex-start;

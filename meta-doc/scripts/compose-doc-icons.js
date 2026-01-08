@@ -8,11 +8,10 @@ const path = require('path');
 
 // 路径配置
 const logov3Dir = path.resolve(__dirname, '../../logos/logov3');
+const assetsIconsDir = path.resolve(__dirname, '../src/renderer/src/assets/icons');
 const baseDocPath = path.join(logov3Dir, 'base-doc.svg');
 const mdPath = path.join(logov3Dir, 'md.svg');
 const texPath = path.join(logov3Dir, 'tex.svg');
-const mdDocPath = path.join(logov3Dir, 'md-doc.svg');
-const texDocPath = path.join(logov3Dir, 'tex-doc.svg');
 
 /**
  * 读取 SVG 文件内容
@@ -37,12 +36,36 @@ function extractSvgContent(svgContent) {
 }
 
 /**
+ * 将 SVG 转换为黑色或白色版本（直接颜色取反，不改变 mask）
+ * @param {string} svgContent - SVG 内容
+ * @param {boolean} isBlack - true 为黑色版本，false 为白色版本
+ * @returns {string} 转换后的 SVG 内容
+ */
+function convertToColorVersion(svgContent, isBlack) {
+  if (!isBlack) {
+    // 白色版本，直接返回原内容
+    return svgContent;
+  }
+  
+  // 黑色版本：将所有的 fill="#fff" 改为 fill="#000"，保持 mask 不变
+  let converted = svgContent;
+  
+  // 替换绘制部分的所有 fill="#fff" 为 fill="#000"
+  converted = converted.replace(/fill="#fff"/g, 'fill="#000"');
+  
+  // 如果有多余的空格，也处理一下
+  converted = converted.replace(/fill="#fff\s*"/g, 'fill="#000"');
+  
+  return converted;
+}
+
+/**
  * 合成文档图标（使用作差方式，重叠部分透明）
  * @param {string} baseDocContent - base-doc.svg 的内容
  * @param {string} overlayContent - md.svg 或 tex.svg 的内容
- * @param {string} outputPath - 输出文件路径
+ * @param {string} outputBasePath - 输出文件基础路径（不含 -white/-black 后缀）
  */
-function composeDocIcon(baseDocContent, overlayContent, outputPath) {
+function composeDocIcon(baseDocContent, overlayContent, outputBasePath) {
   // 提取 base-doc 的 SVG 属性
   const baseMatch = baseDocContent.match(/<svg([^>]*)>/i);
   if (!baseMatch) {
@@ -124,9 +147,17 @@ function composeDocIcon(baseDocContent, overlayContent, outputPath) {
   </g>
 </svg>`;
 
-  // 写入文件
-  fs.writeFileSync(outputPath, composedSvg, 'utf-8');
-  console.log(`✓ 已生成: ${path.basename(outputPath)}`);
+  // 生成白色版本
+  const whiteSvg = convertToColorVersion(composedSvg, false);
+  const whitePath = outputBasePath.replace('.svg', '-white.svg');
+  fs.writeFileSync(whitePath, whiteSvg, 'utf-8');
+  console.log(`✓ 已生成: ${path.basename(whitePath)}`);
+
+  // 生成黑色版本
+  const blackSvg = convertToColorVersion(composedSvg, true);
+  const blackPath = outputBasePath.replace('.svg', '-black.svg');
+  fs.writeFileSync(blackPath, blackSvg, 'utf-8');
+  console.log(`✓ 已生成: ${path.basename(blackPath)}`);
 }
 
 /**
@@ -147,16 +178,24 @@ function main() {
       throw new Error(`tex.svg 不存在: ${texPath}`);
     }
 
+    // 确保输出目录存在
+    if (!fs.existsSync(assetsIconsDir)) {
+      fs.mkdirSync(assetsIconsDir, { recursive: true });
+      console.log(`✓ 创建输出目录: ${assetsIconsDir}`);
+    }
+
     // 读取文件
     const baseDocContent = readSvgFile(baseDocPath);
     const mdContent = readSvgFile(mdPath);
     const texContent = readSvgFile(texPath);
 
-    // 合成 md-doc.svg
-    composeDocIcon(baseDocContent, mdContent, mdDocPath);
+    // 合成 md-doc.svg（生成黑白两个版本）
+    const mdDocBasePath = path.join(assetsIconsDir, 'md-doc.svg');
+    composeDocIcon(baseDocContent, mdContent, mdDocBasePath);
 
-    // 合成 tex-doc.svg
-    composeDocIcon(baseDocContent, texContent, texDocPath);
+    // 合成 tex-doc.svg（生成黑白两个版本）
+    const texDocBasePath = path.join(assetsIconsDir, 'tex-doc.svg');
+    composeDocIcon(baseDocContent, texContent, texDocBasePath);
 
     console.log('\n✓ 所有文档图标合成完成！');
   } catch (error) {

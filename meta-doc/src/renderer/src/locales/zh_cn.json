@@ -2193,11 +2193,57 @@
         "title": "工作目录",
         "noWorkspaceFolder": "未选择工作文件夹",
         "openFolder": "打开文件夹",
+        "addFolder": "添加工作文件夹",
+        "closeWorkspace": "关闭工作区",
+        "folderAlreadyAdded": "该工作文件夹已添加",
         "refresh": "刷新",
         "loading": "加载中...",
         "selectFolder": "选择工作文件夹",
         "ipcNotAvailable": "IPC 不可用",
-        "fileNotFound": "文件不存在"
+        "fileNotFound": "文件不存在",
+        "openedFiles": "已打开文件",
+        "closeFile": "关闭文件",
+        "closeFileTitle": "关闭文件",
+        "closeFileConfirm": "文件「{name}」有未保存的更改，是否继续关闭？",
+        "contextMenu": {
+            "open": "打开",
+            "cut": "剪切",
+            "copy": "复制",
+            "paste": "粘贴",
+            "rename": "重命名",
+            "delete": "删除",
+            "copyPath": "复制路径",
+            "copyRelativePath": "复制相对路径",
+            "showInFolder": "在文件夹中显示",
+            "newFile": "新建文件",
+            "newFolder": "新建文件夹"
+        },
+        "copyPathSuccess": "路径已复制到剪贴板",
+        "copyRelativePathSuccess": "相对路径已复制到剪贴板",
+        "copySuccess": "已复制 {count} 项",
+        "cutSuccess": "已剪切 {count} 项",
+        "pasteSuccess": "已粘贴 {count} 项",
+        "deleteTitle": "删除确认",
+        "deleteConfirm": "确定要将「{name}」移到回收站吗？",
+        "deleteSuccess": "已移到回收站",
+        "renameDialog": {
+            "title": "重命名",
+            "name": "名称",
+            "placeholder": "请输入新名称"
+        },
+        "renameSuccess": "重命名成功",
+        "newFileDialog": {
+            "title": "新建文件",
+            "name": "文件名",
+            "placeholder": "请输入文件名（.md 或 .tex）"
+        },
+        "newFileSuccess": "文件创建成功",
+        "newFolderDialog": {
+            "title": "新建文件夹",
+            "name": "文件夹名",
+            "placeholder": "请输入文件夹名称"
+        },
+        "newFolderSuccess": "文件夹创建成功"
     },
     "viewMenuContainer": {
         "collapse": "折叠",

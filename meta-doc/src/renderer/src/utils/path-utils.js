@@ -120,3 +120,72 @@ export function normalize(filePath) {
   return result.join('/')
 }
 
+/**
+ * 获取文件扩展名（extname）
+ * @param {string} filePath - 文件路径
+ * @returns {string} 扩展名（包含点号）
+ */
+export function extname(filePath) {
+  if (!filePath || typeof filePath !== 'string') {
+    return ''
+  }
+  
+  const basename = filePath.split(/[/\\]/).pop() || ''
+  const lastDotIndex = basename.lastIndexOf('.')
+  
+  if (lastDotIndex === -1 || lastDotIndex === 0) {
+    return ''
+  }
+  
+  return basename.substring(lastDotIndex)
+}
+
+/**
+ * 计算相对路径（relative）
+ * @param {string} from - 起始路径
+ * @param {string} to - 目标路径
+ * @returns {string} 相对路径
+ */
+export function relative(from, to) {
+  if (!from || !to || typeof from !== 'string' || typeof to !== 'string') {
+    return to
+  }
+  
+  // 规范化路径
+  const fromNormalized = normalize(from).replace(/\\/g, '/')
+  const toNormalized = normalize(to).replace(/\\/g, '/')
+  
+  // 如果路径相同，返回空字符串
+  if (fromNormalized === toNormalized) {
+    return ''
+  }
+  
+  // 分割路径
+  const fromParts = fromNormalized.split('/').filter(Boolean)
+  const toParts = toNormalized.split('/').filter(Boolean)
+  
+  // 找到共同前缀
+  let commonLength = 0
+  const minLength = Math.min(fromParts.length, toParts.length)
+  
+  for (let i = 0; i < minLength; i++) {
+    if (fromParts[i] === toParts[i]) {
+      commonLength++
+    } else {
+      break
+    }
+  }
+  
+  // 计算需要向上几级
+  const upLevels = fromParts.length - commonLength
+  
+  // 计算目标路径的剩余部分
+  const remainingParts = toParts.slice(commonLength)
+  
+  // 构建相对路径
+  const upPath = '../'.repeat(upLevels)
+  const downPath = remainingParts.join('/')
+  
+  return upPath + downPath || '.'
+}
+

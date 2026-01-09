@@ -16,11 +16,9 @@ import { createRendererLogger } from '../logger'
 import { extractOuterJsonString } from '../regex-utils'
 import { parseToolCalls, type ParsedToolCall } from './tool-call-processor'
 import { ToolCallQueue } from './tool-call-queue'
-import { reactive, ref } from 'vue'
+import { reactive, ref, type Ref } from 'vue'
 import { getLlmTemperature } from '../settings.js'
 import { recognizeIntent, type IntentRecognitionResult } from './intent-processor'
-import { agentToolManager } from '../agent-tool-manager'
-import { workflowManager } from './workflow-manager'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -96,7 +94,7 @@ export abstract class BaseEngineExecutor {
    * 执行意图识别并更新activeToolSpecs
    * 每次用户发送消息时调用，清空旧的fullSpecs并注入新的
    */
-  protected async processIntentAndUpdateSpecs(userMessage: string, intentOutputRef?: ReturnType<typeof ref<string>>): Promise<IntentRecognitionResult> {
+  protected async processIntentAndUpdateSpecs(userMessage: string, intentOutputRef?: Ref<string>): Promise<IntentRecognitionResult> {
     const session = this.session as any
     
     // 清空当前的activeToolSpecs（每次用户消息时清空）
@@ -591,7 +589,8 @@ export abstract class BaseEngineExecutor {
       getLogger().info('[BaseEngineExecutor] ✅✅✅ 工具调用检测回调被触发!', {
         toolCallsCount: toolCalls.length,
         toolCalls: toolCalls.map(tc => ({ 
-          id: tc.tool_id, 
+          id: tc.id,
+          tool_id: tc.tool_id, 
           parameters: tc.parameters 
         })),
         messageId: assistantMessage?.id
@@ -599,11 +598,30 @@ export abstract class BaseEngineExecutor {
       
       // 更新assistantMessage，添加tool_calls
       if (assistantMessage) {
-        const toolCallsArray = toolCalls.map(tc => ({
-          id: tc.id,
-          tool_id: tc.tool_id,
-          parameters: tc.parameters
-        }))
+        // 获取现有的tool_calls数组（如果存在）
+        const existingToolCalls = (assistantMessage as any).tool_calls || []
+        const existingToolCallIds = new Set(existingToolCalls.map((tc: any) => tc.id))
+        
+        // 过滤出新的工具调用（避免重复添加）
+        const newToolCalls = toolCalls.filter(tc => !existingToolCallIds.has(tc.id))
+        
+        if (newToolCalls.length === 0) {
+          getLogger().debug('[BaseEngineExecutor] 所有工具调用都已存在，跳过添加', {
+            existingCount: existingToolCalls.length,
+            incomingCount: toolCalls.length
+          })
+          return
+        }
+        
+        // 合并现有的和新的工具调用
+        const toolCallsArray = [
+          ...existingToolCalls,
+          ...newToolCalls.map(tc => ({
+            id: tc.id,
+            tool_id: tc.tool_id,
+            parameters: tc.parameters
+          }))
+        ]
         
         Object.defineProperty(assistantMessage, 'tool_calls', {
           value: toolCallsArray,
@@ -612,9 +630,11 @@ export abstract class BaseEngineExecutor {
           configurable: true
         })
         
-        getLogger().info('[BaseEngineExecutor] 已添加tool_calls到assistantMessage', {
+        getLogger().info('[BaseEngineExecutor] 已添加tool_calls到assistantMessage（追加模式）', {
           messageId: assistantMessage.id,
-          toolCallsCount: toolCallsArray.length,
+          existingCount: existingToolCalls.length,
+          newCount: newToolCalls.length,
+          totalCount: toolCallsArray.length,
           originalMarkdownLength: assistantMessage.markdown?.length || 0
         })
         
@@ -623,12 +643,14 @@ export abstract class BaseEngineExecutor {
           this.createToolCallQueue()
         }
         
-        // 将工具调用添加到队列（立即开始执行）
-        for (const toolCall of toolCalls) {
+        // 只将新的工具调用添加到队列（立即开始执行）
+        for (const toolCall of newToolCalls) {
           this.currentToolCallQueue!.addTask(toolCall)
         }
         
-        getLogger().info('[BaseEngineExecutor] 已将工具调用添加到队列，开始异步执行')
+        getLogger().info('[BaseEngineExecutor] 已将新工具调用添加到队列，开始异步执行', {
+          addedCount: newToolCalls.length
+        })
         
         // 注意：不删除markdown中的工具调用标记
         // 原因：
@@ -1107,6 +1129,8 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
       let toolCallsDetectedDuringStream = false
       let detectedToolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null = null
       
+      // 注意：detectedToolCalls只用于标记，实际的tool_calls应该从assistantMessage中获取
+      
       // 调用LLM - 使用createAiTask而不是直接调用API，传入reactiveMessage实现实时更新
       const response = await LlmAdapter.callChatViaTask(
         llmConfig,
@@ -1120,7 +1144,7 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
           originKey: `agent-autogpt-${this.session.id}-${Date.now()}-${iterations}`,
           reactiveMessage: assistantMessage,
           onTaskCreated: this.options.onTaskCreated,
-          onToolCallsDetected: async (toolCalls) => {
+          onToolCallsDetected: async (toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>) => {
             // 在流式输出过程中检测到工具调用，添加到队列
             toolCallsDetectedDuringStream = true
             detectedToolCalls = toolCalls
@@ -1134,29 +1158,91 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
       this.isAiResponding = false
 
       // 检查是否有工具调用
-      // 优先使用流式输出过程中检测到的工具调用
+      // 优先使用流式输出过程中检测到的工具调用（已经在onToolCallsDetected中添加到tool_calls数组和队列）
       // 如果没有，则从响应中解析（兜底机制）
       let toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> | null = null
       
-      if (toolCallsDetectedDuringStream && detectedToolCalls) {
-        toolCalls = detectedToolCalls
+      // 获取已经在assistantMessage中的tool_calls（由onToolCallsDetected添加）
+      const existingToolCallsInMessage = (assistantMessage as any).tool_calls || []
+      const existingToolCallIds = new Set(existingToolCallsInMessage.map((tc: any) => tc.id))
+      
+      if (toolCallsDetectedDuringStream && detectedToolCalls !== null) {
+        // 流式过程中已经检测到工具调用，并且已经通过onToolCallsDetected添加到tool_calls数组和队列
+        // 使用assistantMessage中已有的tool_calls（可能包含多次检测到的工具调用）
+        const mappedToolCalls = existingToolCallsInMessage.map((tc: any) => ({
+          id: tc.id,
+          tool_id: tc.tool_id,
+          parameters: tc.parameters
+        }))
+        toolCalls = mappedToolCalls
+        // 计算detectedToolCalls的长度（用于日志）
+        const detectedCountValue = (detectedToolCalls as Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>).length
         getLogger().debug('[AutoGPT] 使用流式输出过程中检测到的工具调用', {
-          toolCallsCount: toolCalls.length
+          toolCallsCount: mappedToolCalls.length,
+          detectedCount: detectedCountValue,
+          existingCount: existingToolCallsInMessage.length
         })
       } else {
         // 从响应中解析工具调用（兜底机制：流式检测可能遗漏某些工具调用）
         const responseContent = response || assistantMessage.markdown || ''
-        toolCalls = this.parseToolCalls(responseContent)
-        getLogger().debug('[AutoGPT] 从响应中解析工具调用:', toolCalls ? toolCalls.length : 0)
+        const parsedToolCalls = this.parseToolCalls(responseContent)
+        getLogger().debug('[AutoGPT] 从响应中解析工具调用:', parsedToolCalls ? parsedToolCalls.length : 0)
         
-        // 如果解析到工具调用但流式过程中未检测到，添加到队列
-        if (toolCalls && toolCalls.length > 0) {
-          getLogger().debug('[AutoGPT] 兜底机制：从响应中解析到工具调用，添加到队列')
-          for (const toolCall of toolCalls) {
-            if (this.currentToolCallQueue) {
-              this.currentToolCallQueue.addTask(toolCall)
+        if (parsedToolCalls && parsedToolCalls.length > 0) {
+          // 过滤出新的工具调用（避免重复）
+          const newToolCalls = parsedToolCalls.filter(tc => !existingToolCallIds.has(tc.id))
+          
+          if (newToolCalls.length > 0) {
+            getLogger().debug('[AutoGPT] 兜底机制：从响应中解析到新工具调用，添加到队列和tool_calls数组', {
+              newCount: newToolCalls.length,
+              existingCount: existingToolCallsInMessage.length
+            })
+            
+            // 合并现有的和新的工具调用
+            const mergedToolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> = [
+              ...existingToolCallsInMessage.map((tc: any) => ({
+                id: tc.id,
+                tool_id: tc.tool_id,
+                parameters: tc.parameters
+              })),
+              ...newToolCalls
+            ]
+            
+            // 更新assistantMessage的tool_calls
+            Object.defineProperty(assistantMessage, 'tool_calls', {
+              value: mergedToolCalls,
+              writable: true,
+              enumerable: true,
+              configurable: true
+            })
+            
+            // 将新工具调用添加到队列
+            for (const toolCall of newToolCalls) {
+              if (this.currentToolCallQueue) {
+                this.currentToolCallQueue.addTask(toolCall)
+              }
             }
+            
+            toolCalls = mergedToolCalls
+          } else {
+            // 没有新工具调用，使用现有的
+            toolCalls = existingToolCallsInMessage.length > 0 
+              ? existingToolCallsInMessage.map((tc: any) => ({
+                  id: tc.id,
+                  tool_id: tc.tool_id,
+                  parameters: tc.parameters
+                }))
+              : null
           }
+        } else {
+          // 没有解析到工具调用，使用现有的
+          toolCalls = existingToolCallsInMessage.length > 0 
+            ? existingToolCallsInMessage.map((tc: any) => ({
+                id: tc.id,
+                tool_id: tc.tool_id,
+                parameters: tc.parameters
+              }))
+            : null
         }
       }
 
@@ -1201,53 +1287,62 @@ export class AutoGPTEngineExecutor extends BaseEngineExecutor {
         break
       }
 
-      // 如果有工具调用，更新已创建的assistantMessage，添加tool_calls
-      // 重要：必须确保tool_calls被正确添加到消息对象上，以便buildHistoryMessages能识别
-      if (assistantMessage) {
-        // 创建tool_calls数组（使用我们的内部格式）
-        const toolCallsArray = toolCalls.map(tc => ({
-          id: tc.id,
-          tool_id: tc.tool_id,
-          parameters: tc.parameters
-        }))
+      // 如果有工具调用，确保tool_calls已经被正确添加到assistantMessage
+      // 注意：tool_calls可能已经在onToolCallsDetected回调中添加了，这里只需要验证
+      if (assistantMessage && toolCalls && toolCalls.length > 0) {
+        // 验证tool_calls是否已经存在
+        const existingToolCalls = (assistantMessage as any).tool_calls || []
         
-        // 确保tool_calls被正确添加到消息对象上
-        // 直接设置属性，确保它是响应式的
-        Object.defineProperty(assistantMessage, 'tool_calls', {
-          value: toolCallsArray,
-          writable: true,
-          enumerable: true,
-          configurable: true
-        })
-        
-        // 注意：不删除markdown中的任何内容（包括<tool_call>标记和JSON格式的tool_calls）
-        // 原因：
-        // 1. AI需要看到这些内容来理解上下文（在buildHistoryMessages中会使用）
-        // 2. UI层面（AgentMessageRenderer）已经有逻辑：如果有tool_calls，就不显示markdown，而是显示友好的提示
-        // 3. 这样既保证了AI能看到完整上下文，又保证了用户看到的是友好的UI提示
-        // 4. 保留原始markdown可以确保在流式输出过程中，消息内容不会被意外清空
+        // 如果tool_calls不存在或数量不匹配，更新它
+        if (existingToolCalls.length !== toolCalls.length) {
+          getLogger().warn('[AutoGPT] tool_calls数量不匹配，更新tool_calls数组', {
+            existingCount: existingToolCalls.length,
+            expectedCount: toolCalls.length
+          })
+          
+          const toolCallsArray = toolCalls.map(tc => ({
+            id: tc.id,
+            tool_id: tc.tool_id,
+            parameters: tc.parameters
+          }))
+          
+          Object.defineProperty(assistantMessage, 'tool_calls', {
+            value: toolCallsArray,
+            writable: true,
+            enumerable: true,
+            configurable: true
+          })
+        }
         
         // 验证tool_calls是否被正确添加
         const hasToolCalls = !!(assistantMessage as any).tool_calls
         const toolCallsValue = (assistantMessage as any).tool_calls
         
         // 记录日志用于调试
-        getLogger().debug('[AutoGPT] 添加tool_calls到消息:', {
+        getLogger().debug('[AutoGPT] 验证tool_calls:', {
           messageId: assistantMessage.id,
-          toolCallsCount: toolCallsArray.length,
-          toolCalls: toolCallsArray.map(tc => ({ id: tc.id, tool_id: tc.tool_id })),
+          toolCallsCount: toolCalls.length,
+          toolCallsInMessage: toolCallsValue?.length || 0,
+          toolCalls: toolCalls.map(tc => ({ id: tc.id, tool_id: tc.tool_id })),
           hasToolCallsInMessage: hasToolCalls,
-          toolCallsValue: toolCallsValue,
-          messageKeys: Object.keys(assistantMessage),
-          messageType: typeof assistantMessage
+          messageKeys: Object.keys(assistantMessage)
         })
         
-        // 如果tool_calls没有被正确添加，抛出错误
+        // 如果tool_calls没有被正确添加，记录错误
         if (!hasToolCalls || !Array.isArray(toolCallsValue)) {
           getLogger().error('[AutoGPT] 严重错误：tool_calls没有被正确添加到消息对象上！', {
             messageId: assistantMessage.id,
-            assistantMessage: assistantMessage,
-            toolCallsArray: toolCallsArray
+            hasToolCalls,
+            toolCallsValueType: typeof toolCallsValue,
+            toolCallsValue
+          })
+        } else if (toolCallsValue.length !== toolCalls.length) {
+          getLogger().error('[AutoGPT] 严重错误：tool_calls数量不匹配！', {
+            messageId: assistantMessage.id,
+            expectedCount: toolCalls.length,
+            actualCount: toolCallsValue.length,
+            expectedIds: toolCalls.map(tc => tc.id),
+            actualIds: toolCallsValue.map((tc: any) => tc.id)
           })
         }
       }

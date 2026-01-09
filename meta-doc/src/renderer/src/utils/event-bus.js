@@ -403,9 +403,7 @@ eventBus.on('search-replace-closed', () => {
 
 ipcRenderer.on('open-doc-success', (event, payload) => {
   const fileName = extractFileName(payload?.path, payload?.fileName)
-  if (payload?.path) {
-    updateRecentDocs(payload.path)
-  }
+  // recent-docs 更新现在统一在 Main.vue 的 handleOpenDocSuccess 中处理
   eventBus.emit('workspace-open-document', {
     ...payload,
     fileName
@@ -543,7 +541,7 @@ eventBus.on('open-doc', async (path) => {
   //await init()
   eventBus.emit('is-need-save', false)
   ipcRenderer.send('open-doc', path)
-  updateRecentDocs(path)
+  // recent-docs 更新现在统一在 Main.vue 的 handleOpenDocSuccess 中处理
 })
 eventBus.on('open-link', async (url) => {
   ipcRenderer.send('open-link', url)

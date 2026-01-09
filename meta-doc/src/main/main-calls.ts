@@ -28,6 +28,7 @@ import os from 'os';
 import { exec, spawn } from 'child_process';
 import https from 'https';
 import http from 'http';
+import iconv from 'iconv-lite';
 
 // 内部模块导入
 import { 
@@ -1921,6 +1922,20 @@ function bindUtilityHandlers(): void {
 }
 
 /**
+ * 根据平台解码Buffer为字符串
+ * Windows上cmd.exe使用GBK编码，其他平台使用UTF-8
+ */
+function decodeBuffer(data: Buffer): string {
+  if (process.platform === 'win32') {
+    // Windows上使用GBK编码解码
+    return iconv.decode(data, 'gbk');
+  } else {
+    // 其他平台使用UTF-8
+    return data.toString('utf8');
+  }
+}
+
+/**
  * 绑定终端命令执行处理器
  */
 function bindTerminalHandlers(): void {
@@ -1970,7 +1985,7 @@ function bindTerminalHandlers(): void {
         const invocationId = options.invocationId || `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
         childProcess.stdout?.on('data', (data: Buffer) => {
-          const text = data.toString()
+          const text = decodeBuffer(data)
           stdout += text
           // 实时发送 stdout 到渲染进程
           event.sender.send('terminal-stdout-stream', {
@@ -1981,7 +1996,7 @@ function bindTerminalHandlers(): void {
         });
 
         childProcess.stderr?.on('data', (data: Buffer) => {
-          const text = data.toString()
+          const text = decodeBuffer(data)
           stderr += text
           // 实时发送 stderr 到渲染进程
           event.sender.send('terminal-stderr-stream', {

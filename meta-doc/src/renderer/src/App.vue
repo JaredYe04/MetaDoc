@@ -27,6 +27,7 @@ import { createRendererLogger } from './utils/logger';
 import { initMonacoEnvironment } from './utils/monaco-worker-config';
 import { aiCompletionService } from './utils/ai-completion-service';
 import { autoMigrateAIChatSessions } from './utils/db/migrate-ai-chat';
+import { useWorkspace } from './stores/workspace';
 
 type IpcRenderer = typeof localIpcRenderer | (typeof window extends { electron: { ipcRenderer: infer T } } ? T : never)
 
@@ -164,6 +165,20 @@ const autoOpenDoc = async () => {
     const recentDocs = await getRecentDocs()
 
     if (recentDocs.length > 0 && initialLoad.value) {
+      // 在打开最近文档之前，先删除所有新文档Tab
+      // 这样可以确保只有一个Tab，并且是最近文档
+      const workspace = useWorkspace()
+      const newDocTabs = workspace.tabs.filter(t => 
+        t.kind === 'new' && 
+        (!t.path || t.path === '') &&
+        !t.dirty
+      )
+      // 删除所有新文档Tab
+      newDocTabs.forEach(newTab => {
+        workspace.removeTab(newTab.id)
+      })
+      
+      // 然后打开最近文档
       eventBus.emit('open-doc', recentDocs[0])
       initialLoad.value = false
     }

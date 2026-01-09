@@ -12,55 +12,85 @@
     >
       <el-tooltip v-if="isCollapsed" :content="$t('headMenu.home')" placement="right">
         <el-menu-item index="home">
-          <img :src="themeState.currentTheme.HomeIcon" class="menu-icon" alt="home" />
+          <div class="icon-wrapper">
+            <img :src="themeState.currentTheme.HomeIcon" class="menu-icon" alt="home" />
+          </div>
         </el-menu-item>
       </el-tooltip>
       <el-menu-item v-if="!isCollapsed" index="home">
+        <div class="icon-wrapper">
+          <img :src="themeState.currentTheme.HomeIcon" class="menu-icon" alt="home" />
+        </div>
         <span>{{ $t('headMenu.home') }}</span>
       </el-menu-item>
       
       <el-tooltip v-if="isCollapsed" :content="$t('headMenu.editor')" placement="right">
         <el-menu-item index="editor">
-          <img :src="themeState.currentTheme.EditorIcon" class="menu-icon" alt="editor" />
+          <div class="icon-wrapper">
+            <img :src="themeState.currentTheme.EditorIcon" class="menu-icon" alt="editor" />
+          </div>
         </el-menu-item>
       </el-tooltip>
       <el-menu-item v-if="!isCollapsed" index="editor">
+        <div class="icon-wrapper">
+          <img :src="themeState.currentTheme.EditorIcon" class="menu-icon" alt="editor" />
+        </div>
         <span>{{ $t('headMenu.editor') }}</span>
       </el-menu-item>
       
       <el-tooltip v-if="isCollapsed" :content="$t('headMenu.outline')" placement="right">
         <el-menu-item index="outline">
-          <img :src="themeState.currentTheme.OutlineIcon" class="menu-icon" alt="outline" />
+          <div class="icon-wrapper">
+            <img :src="themeState.currentTheme.OutlineIcon" class="menu-icon" alt="outline" />
+          </div>
         </el-menu-item>
       </el-tooltip>
       <el-menu-item v-if="!isCollapsed" index="outline">
+        <div class="icon-wrapper">
+          <img :src="themeState.currentTheme.OutlineIcon" class="menu-icon" alt="outline" />
+        </div>
         <span>{{ $t('headMenu.outline') }}</span>
       </el-menu-item>
       
       <el-tooltip v-if="isCollapsed" :content="$t('headMenu.visualize')" placement="right">
         <el-menu-item index="visualize">
-          <img :src="themeState.currentTheme.VisualIcon" class="menu-icon" alt="visualize" />
+          <div class="icon-wrapper">
+            <img :src="themeState.currentTheme.VisualIcon" class="menu-icon" alt="visualize" />
+          </div>
         </el-menu-item>
       </el-tooltip>
       <el-menu-item v-if="!isCollapsed" index="visualize">
+        <div class="icon-wrapper">
+          <img :src="themeState.currentTheme.VisualIcon" class="menu-icon" alt="visualize" />
+        </div>
         <span>{{ $t('headMenu.visualize') }}</span>
       </el-menu-item>
       
       <el-tooltip v-if="isCollapsed" :content="$t('headMenu.agent')" placement="right">
         <el-menu-item index="agent">
-          <img :src="themeState.currentTheme.AgentIcon" class="menu-icon" alt="agent" />
+          <div class="icon-wrapper">
+            <img :src="themeState.currentTheme.AgentIcon" class="menu-icon" alt="agent" />
+          </div>
         </el-menu-item>
       </el-tooltip>
       <el-menu-item v-if="!isCollapsed" index="agent">
+        <div class="icon-wrapper">
+          <img :src="themeState.currentTheme.AgentIcon" class="menu-icon" alt="agent" />
+        </div>
         <span>{{ $t('headMenu.agent') }}</span>
       </el-menu-item>
       
       <el-tooltip v-if="isCollapsed && activeDocument" :content="$t('headMenu.proofread')" placement="right">
         <el-menu-item index="proofread">
-          <img :src="themeState.currentTheme.ProofreadIcon" class="menu-icon" alt="proofread" />
+          <div class="icon-wrapper">
+            <img :src="themeState.currentTheme.ProofreadIcon" class="menu-icon" alt="proofread" />
+          </div>
         </el-menu-item>
       </el-tooltip>
       <el-menu-item v-if="!isCollapsed && activeDocument" index="proofread">
+        <div class="icon-wrapper">
+          <img :src="themeState.currentTheme.ProofreadIcon" class="menu-icon" alt="proofread" />
+        </div>
         <span>{{ $t('headMenu.proofread') }}</span>
       </el-menu-item>
     </el-menu>
@@ -88,7 +118,7 @@ const workspace = useWorkspace()
 const isLocked = computed(() => workspace.uiLocked?.value === true)
 
 // 折叠状态 - 默认折叠
-const isCollapsed = ref(true)
+const isCollapsed = ref(false)
 
 // 切换折叠状态
 const toggleCollapse = () => {
@@ -223,6 +253,30 @@ onBeforeUnmount((): void => {
   pointer-events: none;
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* 图标容器 - 固定尺寸的正方形 */
+.icon-wrapper {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 图标样式 - 在容器内自适应 */
+.menu-icon {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* 展开状态下，图标容器和文字之间的间距 */
+.modern-side-menu.sub-view-menu:not(.is-collapsed) .el-menu-item .icon-wrapper {
+  margin-right: 8px;
 }
 </style>
 

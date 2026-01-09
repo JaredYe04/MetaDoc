@@ -7,6 +7,8 @@ import { createRendererLogger } from '../logger'
 import { ToolRunner, type ToolObservation } from './tool-runner'
 import { AIContextManager } from './ai-context-manager'
 import { agentToolManager } from '../agent-tool-manager'
+import { createAiTask, ai_types } from '../ai_tasks'
+import { ref } from 'vue'
 import type { AgentSession } from '../../types/agent-framework'
 import type { AgentSession as LegacyAgentSession } from '../../types/agent'
 
@@ -195,7 +197,6 @@ export class ToolCallQueue {
           continue
         }
 
-        // 执行工具
         // 获取可以传递给工具的session对象：新类型有entityType字段，旧类型有publicContext字段
         const sessionForTool = (this.session as any).entityType === 'agent-session' 
           ? this.session as AgentSession 
@@ -203,16 +204,102 @@ export class ToolCallQueue {
             ? this.session as any as AgentSession  // LegacyAgentSession也有publicContext，可以转换
             : undefined
         
-        const observation = await ToolRunner.runTool(
-          task.tool_id,
-          task.parameters,
-          this.signal,
-          sessionForTool
+        // 获取工具配置以获取工具名称
+        let tool = agentToolManager.getTool(task.tool_id)
+        let toolConfig = tool?.config
+        const toolName = toolConfig 
+          ? (typeof toolConfig.name === 'string' 
+              ? toolConfig.name 
+              : toolConfig.name?.['zh_cn']?.name || toolConfig.name?.['en_us']?.name || task.tool_id)
+          : task.tool_id
+        
+        // 为工具调用创建AI任务，让用户能在任务队列中看到工具执行过程
+        const taskResultRef = ref('')
+        const originKey = `tool-${task.tool_id}-${task.tool_call_id}-${Date.now()}`
+        const { handle, done } = createAiTask(
+          toolName,
+          task.tool_id, // prompt使用工具ID
+          taskResultRef,
+          ai_types.tool,
+          originKey,
+          {
+            toolId: task.tool_id,
+            parameters: task.parameters,
+            tool_call_id: task.tool_call_id,
+            session: sessionForTool,
+            stream: false // 工具调用不是流式的
+          }
         )
+        
+        getLogger().debug('[ToolCallQueue] 已创建工具调用AI任务:', {
+          handle,
+          toolId: task.tool_id,
+          toolName,
+          originKey
+        })
+        
+        // 执行工具（通过AI任务系统）
+        // 注意：createAiTask会自动启动任务（autoStart=true），所以任务会立即开始执行
+        // startAiTask会执行工具并将结果更新到taskResultRef
+        let observation: ToolObservation
+        try {
+          // 等待AI任务完成（startAiTask会执行工具）
+          await done
+          
+          // 从任务系统中获取保存的observation
+          // 注意：任务可能已经完成但还未删除，我们需要在删除前获取observation
+          const { getTaskMap } = await import('../ai_tasks')
+          const taskMap = getTaskMap()
+          const aiTask = taskMap.get(handle)
+          const savedObservation = aiTask?.meta?.__observation as ToolObservation | undefined
+          
+          if (savedObservation) {
+            observation = savedObservation
+            getLogger().debug('[ToolCallQueue] 从AI任务中获取observation:', {
+              toolId: observation.toolId,
+              status: observation.status
+            })
+          } else {
+            // 兜底：从taskResultRef构建简单的observation
+            const resultText = taskResultRef.value
+            getLogger().warn('[ToolCallQueue] 无法从AI任务获取observation，使用taskResultRef构建:', {
+              resultTextLength: resultText.length,
+              resultTextPreview: resultText.substring(0, 100)
+            })
+            
+            if (resultText.startsWith('工具执行失败:')) {
+              observation = {
+                toolId: task.tool_id,
+                toolName,
+                status: 'failed',
+                error: resultText.replace('工具执行失败: ', '')
+              }
+            } else {
+              observation = {
+                toolId: task.tool_id,
+                toolName,
+                status: 'succeeded',
+                result: resultText,
+                summary: resultText.length > 200 ? resultText.substring(0, 200) + '...' : resultText
+              }
+            }
+          }
+        } catch (error) {
+          // 如果AI任务执行失败，使用ToolRunner直接执行（兜底）
+          getLogger().warn('[ToolCallQueue] AI任务执行失败，使用ToolRunner直接执行:', error)
+          observation = await ToolRunner.runTool(
+            task.tool_id,
+            task.parameters,
+            this.signal,
+            sessionForTool
+          )
+        }
 
-        // 获取工具配置以获取displayComponent
-        const tool = agentToolManager.getTool(observation.toolId)
-        const toolConfig = tool?.config
+        // 获取工具配置以获取displayComponent（如果之前没有获取）
+        if (!tool) {
+          const toolObj = agentToolManager.getTool(observation.toolId)
+          toolConfig = toolObj?.config
+        }
 
         // 添加工具消息到会话
         // 注意：这个操作会向messages数组添加新消息，但不会触发新的AI响应

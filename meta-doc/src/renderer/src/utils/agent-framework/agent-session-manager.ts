@@ -482,6 +482,291 @@ class AgentSessionManager {
 
     return session
   }
+
+  /**
+   * 回溯到指定节点（支持节点反演）
+   * 将会话状态回退到指定节点，移除该节点之后的所有内容
+   */
+  revertToNode(session: AgentSession, nodeId: string): void {
+    const nodeIndex = session.executionNodes.findIndex(n => n.id === nodeId)
+    if (nodeIndex === -1) {
+      throw new Error(`执行节点 ${nodeId} 未找到`)
+    }
+
+    const targetNode = session.executionNodes[nodeIndex]
+    
+    // 移除该节点之后的所有节点
+    session.executionNodes = session.executionNodes.slice(0, nodeIndex + 1)
+    session.currentExecutionNodeId = nodeId
+
+    // 移除该节点之后的所有消息
+    if (targetNode && targetNode.timestamp) {
+      const nodeTimestamp = targetNode.timestamp
+      session.messages = session.messages.filter(
+        msg => new Date(msg.timestamp).getTime() <= nodeTimestamp
+      )
+    }
+
+    // 重置状态
+    session.status = 'idle'
+    
+    this.touchSession(session)
+    this.getLogger().info(`已回溯到节点: ${nodeId}`)
+  }
+
+  /**
+   * 获取消息关联的执行节点
+   */
+  getMessageNode(session: AgentSession, messageId: string): ExecutionNode | null {
+    // 查找与消息时间戳最接近的执行节点
+    const message = session.messages.find(m => m.id === messageId)
+    if (!message) {
+      return null
+    }
+
+    const messageTimestamp = new Date(message.timestamp).getTime()
+    
+    // 查找时间戳最接近且早于或等于消息时间的节点
+    let closestNode: ExecutionNode | null = null
+    let minDiff = Infinity
+
+    for (const node of session.executionNodes) {
+      const diff = messageTimestamp - node.timestamp
+      if (diff >= 0 && diff < minDiff) {
+        minDiff = diff
+        closestNode = node
+      }
+    }
+
+    return closestNode
+  }
+
+  /**
+   * 获取工具调用消息关联的执行节点
+   */
+  getToolCallNode(session: AgentSession, toolCallId: string): ExecutionNode | null {
+    // 查找类型为tool-call且包含该toolCallId的节点
+    const toolNode = session.executionNodes.find(node => {
+      if (node.type === 'tool-call') {
+        const data = node.data as any
+        return data?.tool_call_id === toolCallId || data?.id === toolCallId
+      }
+      return false
+    })
+
+    return toolNode || null
+  }
+
+  /**
+   * 重新执行消息节点（模拟消息重新发出）
+   * 将会话回溯到该消息之前，然后重新触发Agent执行
+   */
+  async replayMessage(
+    session: AgentSession,
+    messageId: string,
+    onReplay?: (message: AgentMessage) => Promise<void>
+  ): Promise<void> {
+    const message = session.messages.find(m => m.id === messageId)
+    if (!message) {
+      throw new Error(`消息 ${messageId} 未找到`)
+    }
+
+    if (message.role !== 'user' || message.type !== 'chat') {
+      throw new Error(`只能重新执行用户消息，当前消息类型: ${message.role}/${message.type}`)
+    }
+
+    // 找到消息在列表中的位置
+    const messageIndex = session.messages.findIndex(m => m.id === messageId)
+    if (messageIndex === -1) {
+      throw new Error(`消息 ${messageId} 在会话中未找到`)
+    }
+
+    // 移除该消息及之后的所有消息
+    session.messages = session.messages.slice(0, messageIndex)
+
+    // 移除该消息时间戳之后的所有执行节点
+    const messageTimestamp = new Date(message.timestamp).getTime()
+    session.executionNodes = session.executionNodes.filter(
+      node => node.timestamp < messageTimestamp
+    )
+
+    // 重置状态
+    session.status = 'idle'
+    session.currentExecutionNodeId = undefined
+
+    // 重新添加用户消息
+    session.messages.push(message)
+
+    this.touchSession(session)
+    this.getLogger().info(`准备重新执行消息: ${messageId}`)
+
+    // 如果提供了重放回调，调用它
+    if (onReplay) {
+      await onReplay(message)
+    }
+  }
+
+  /**
+   * 重新执行工具调用节点
+   * 从会话中移除该工具调用的结果，然后重新执行工具调用
+   */
+  async replayToolCall(
+    session: AgentSession,
+    toolCallId: string,
+    onReplay?: (toolCallData: any) => Promise<void>
+  ): Promise<void> {
+    // 查找工具调用消息
+    const toolMessageIndex = session.messages.findIndex(msg => {
+      if (msg.role === 'tool' && msg.type === 'tool') {
+        const toolMsg = msg as any
+        return toolMsg.tool_call_id === toolCallId
+      }
+      return false
+    })
+
+    if (toolMessageIndex === -1) {
+      throw new Error(`工具调用消息 ${toolCallId} 未找到`)
+    }
+
+    // 查找包含该工具调用的assistant消息
+    let assistantMessageIndex = -1
+    let assistantMessage: AgentMessage | null = null
+    
+    for (let i = toolMessageIndex - 1; i >= 0; i--) {
+      const msg = session.messages[i]
+      if (msg.role === 'assistant' && msg.type === 'chat') {
+        const chatMsg = msg as any
+        const toolCalls = chatMsg.tool_calls
+        if (toolCalls && Array.isArray(toolCalls)) {
+          const hasToolCall = toolCalls.some((tc: any) => tc.id === toolCallId)
+          if (hasToolCall) {
+            assistantMessageIndex = i
+            assistantMessage = msg
+            break
+          }
+        }
+      }
+    }
+
+    if (!assistantMessage) {
+      throw new Error(`未找到包含工具调用 ${toolCallId} 的assistant消息`)
+    }
+
+    // 获取工具调用数据
+    const chatMsg = assistantMessage as any
+    const toolCalls = chatMsg.tool_calls || []
+    const toolCallData = toolCalls.find((tc: any) => tc.id === toolCallId)
+
+    if (!toolCallData) {
+      throw new Error(`工具调用数据 ${toolCallId} 未找到`)
+    }
+
+    // 移除工具调用消息
+    session.messages.splice(toolMessageIndex, 1)
+
+    // 移除该工具调用之后的所有消息（包括后续的assistant回复等）
+    session.messages = session.messages.slice(0, toolMessageIndex)
+
+    // 移除该工具调用时间戳之后的所有执行节点
+    const toolMessage = session.messages[toolMessageIndex] || assistantMessage
+    if (toolMessage) {
+      const messageTimestamp = new Date(toolMessage.timestamp).getTime()
+      session.executionNodes = session.executionNodes.filter(
+        node => node.timestamp <= messageTimestamp
+      )
+    }
+
+    // 重置状态
+    session.status = 'idle'
+    session.currentExecutionNodeId = undefined
+
+    this.touchSession(session)
+    this.getLogger().info(`准备重新执行工具调用: ${toolCallId}`)
+
+    // 如果提供了重放回调，调用它
+    if (onReplay) {
+      await onReplay({
+        tool_call_id: toolCallId,
+        tool_id: toolCallData.function?.name || toolCallData.name,
+        parameters: toolCallData.function?.arguments || toolCallData.arguments || {}
+      })
+    }
+  }
+
+  /**
+   * 增强序列化：支持每个节点的完整序列化（包含执行上下文）
+   */
+  serializeSessionWithNodes(session: AgentSession, includeDependencies = false): {
+    session: AgentSession
+    nodeMetadata?: Array<{
+      nodeId: string
+      type: ExecutionNode['type']
+      timestamp: number
+      messageIds: string[]
+      toolCallIds?: string[]
+      context: {
+        messagesBefore: number
+        messagesAfter: number
+        nodesBefore: number
+        nodesAfter: number
+      }
+    }>
+    dependencies?: {
+      agentConfig?: any
+      toolCollections?: any[]
+      workflows?: any[]
+    }
+  } {
+    const serialized = this.serializeSession(session, includeDependencies)
+    
+    // 为每个执行节点生成元数据
+    const nodeMetadata = session.executionNodes.map((node, index) => {
+      const nodeTimestamp = node.timestamp
+      
+      // 查找该节点时间戳范围内的消息
+      const messageIds = session.messages
+        .filter(msg => {
+          const msgTimestamp = new Date(msg.timestamp).getTime()
+          return msgTimestamp <= nodeTimestamp
+        })
+        .map(msg => msg.id)
+
+      // 如果是工具调用节点，提取toolCallIds
+      const toolCallIds: string[] = []
+      if (node.type === 'tool-call') {
+        const data = node.data as any
+        if (data?.tool_call_id) {
+          toolCallIds.push(data.tool_call_id)
+        } else if (data?.id) {
+          toolCallIds.push(data.id)
+        } else if (Array.isArray(data)) {
+          data.forEach((item: any) => {
+            if (item.tool_call_id) toolCallIds.push(item.tool_call_id)
+            if (item.id) toolCallIds.push(item.id)
+          })
+        }
+      }
+
+      return {
+        nodeId: node.id,
+        type: node.type,
+        timestamp: nodeTimestamp,
+        messageIds,
+        toolCallIds: toolCallIds.length > 0 ? toolCallIds : undefined,
+        context: {
+          messagesBefore: messageIds.length,
+          messagesAfter: session.messages.length - messageIds.length,
+          nodesBefore: index,
+          nodesAfter: session.executionNodes.length - index - 1
+        }
+      }
+    })
+
+    return {
+      ...serialized,
+      nodeMetadata
+    }
+  }
 }
 
 // 导出单例

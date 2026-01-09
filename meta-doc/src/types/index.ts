@@ -97,7 +97,7 @@ export interface LLMConfig {
 export type AITaskStatusValue = '就绪' | '运行中' | '已完成' | '失败' | '取消';
 
 /** AI任务类型 */
-export type AITaskType = 'answer' | 'chat';
+export type AITaskType = 'answer' | 'chat' | 'tool';
 
 /** AI任务信息 */
 export interface AITaskInfo {

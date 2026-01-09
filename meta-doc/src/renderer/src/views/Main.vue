@@ -84,7 +84,7 @@ import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElNotification, ElMessageBox } from 'element-plus'
-import { getSetting } from '../utils/settings.js'
+import { getSetting, updateRecentDocs } from '../utils/settings.js'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
 import { useWorkspace, hasDocumentContent as checkDocumentContent } from '../stores/workspace'
 import {
@@ -133,7 +133,7 @@ const showSubViewMenu = computed(() => {
 // UI状态
 const showUserProfileCard = ref(false)
 const menuPosition = ref({ top: 100, left: 100 })
-const viewMenuCollapsed = ref(true) // 默认折叠，与 ViewMenu 保持一致
+const viewMenuCollapsed = ref(false) // 默认展开，除非用户手动折叠
 const fileConflictDialogVisible = ref(false)
 const fileConflictData = ref<{
   tabId: string
@@ -484,6 +484,10 @@ function initMainEventListeners() {
     // 启动文件监听（如果文件路径存在）
     if (payload && typeof payload === 'object' && 'path' in payload && payload.path) {
       const filePath = payload.path as string
+      
+      // 更新最近文档列表（只要打开文件就更新，无论从哪个路径打开）
+      await updateRecentDocs(filePath)
+      
       // 获取 ipcRenderer
       let ipcRenderer: any = null
       if (window && (window as any).electron) {

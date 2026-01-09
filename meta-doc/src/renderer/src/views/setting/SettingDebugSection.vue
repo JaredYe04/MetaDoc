@@ -870,6 +870,422 @@
         </el-tab-pane>
         </el-tabs>
       </el-tab-pane>
+
+      <!-- Agent会话调试 -->
+      <el-tab-pane label="Agent会话调试" name="agentsessiondebug">
+        <el-tabs v-model="agentSessionDebugActiveTab" type="border-card" tab-position="top">
+          <!-- 会话调试 -->
+          <el-tab-pane label="会话调试" name="debug">
+            <div class="test-panel" :style="testPanelStyle">
+              <el-form :model="agentSessionDebugForm" label-width="140px">
+                <el-form-item label="选择文档">
+                  <el-select
+                    v-model="agentSessionDebugForm.tabId"
+                    placeholder="选择要调试的文档"
+                    style="width: 100%"
+                    @change="handleSessionDebugTabChange"
+                    filterable
+                  >
+                    <el-option
+                      v-for="tab in workspaceTabs"
+                      :key="tab.id"
+                      :label="tab.title || tab.path || '未命名文档'"
+                      :value="tab.id"
+                    />
+                  </el-select>
+                </el-form-item>
+
+            <el-form-item label="选择会话" v-if="agentSessionDebugForm.tabId">
+              <div style="display: flex; gap: 8px;">
+                <el-select
+                  v-model="agentSessionDebugForm.sessionId"
+                  placeholder="选择要调试的会话"
+                  style="flex: 1"
+                  @change="handleSessionDebugSessionChange"
+                  filterable
+                >
+                  <el-option
+                    v-for="session in availableSessions"
+                    :key="session.id"
+                    :label="session.title || session.id"
+                    :value="session.id"
+                  >
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span>{{ session.title || session.id }}</span>
+                      <el-tag size="small" type="info" style="margin-left: 8px;">
+                        {{ session.messages?.length || 0 }} 条消息
+                      </el-tag>
+                    </div>
+                  </el-option>
+                </el-select>
+                <el-button
+                  type="primary"
+                  :icon="Upload"
+                  @click="handleImportSessionJson"
+                  :disabled="!agentSessionDebugForm.tabId"
+                >
+                  导入会话
+                </el-button>
+              </div>
+            </el-form-item>
+          </el-form>
+
+          <!-- 会话详情 -->
+          <div v-if="selectedSession" class="session-debug-details" style="margin-top: 20px;">
+            <el-tabs v-model="sessionDebugActiveTab" type="border-card" tab-position="top">
+              <!-- 执行节点列表 -->
+              <el-tab-pane label="执行节点" name="nodes">
+                <el-scrollbar height="400px">
+                  <div v-if="selectedSession.executionNodes && selectedSession.executionNodes.length > 0">
+                    <div
+                      v-for="(node, index) in selectedSession.executionNodes"
+                      :key="node.id"
+                      class="execution-node-item"
+                      :class="{ 'current-node': node.id === selectedSession.currentExecutionNodeId }"
+                      :style="executionNodeItemStyle"
+                    >
+                      <div class="node-header">
+                        <div class="node-info">
+                          <el-tag size="small" :type="getNodeTypeTagType(node.type)">
+                            {{ getNodeTypeLabel(node.type) }}
+                          </el-tag>
+                          <span class="node-id">{{ node.id.substring(0, 16) }}...</span>
+                          <span class="node-time">{{ formatTime(node.timestamp) }}</span>
+                        </div>
+                        <div class="node-actions">
+                          <el-button
+                            size="small"
+                            type="primary"
+                            @click="handleRevertToNode(node.id)"
+                          >
+                            回溯到此节点
+                          </el-button>
+                          <el-button
+                            v-if="node.type === 'tool-call'"
+                            size="small"
+                            type="warning"
+                            @click="handleReplayToolCall(node.id)"
+                          >
+                            重新执行工具
+                          </el-button>
+                        </div>
+                      </div>
+                      <div class="node-status">
+                        <el-tag size="small" :type="getNodeStatusTagType(node.status)">
+                          {{ getNodeStatusLabel(node.status) }}
+                        </el-tag>
+                      </div>
+                      <div class="node-data">
+                        <el-collapse>
+                          <el-collapse-item title="节点数据" :name="node.id">
+                            <pre :style="messageContentStyle">{{ formatResult(node.data) }}</pre>
+                          </el-collapse-item>
+                          <el-collapse-item v-if="node.result" title="执行结果" :name="`${node.id}-result`">
+                            <pre :style="messageContentStyle">{{ formatResult(node.result) }}</pre>
+                          </el-collapse-item>
+                          <el-collapse-item v-if="node.error" title="错误信息" :name="`${node.id}-error`">
+                            <pre :style="{ ...messageContentStyle, color: '#f56c6c' }">{{ node.error }}</pre>
+                          </el-collapse-item>
+                        </el-collapse>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="test-empty">
+                    暂无执行节点
+                  </div>
+                </el-scrollbar>
+              </el-tab-pane>
+
+              <!-- 消息列表 -->
+              <el-tab-pane label="消息列表" name="messages">
+                <el-scrollbar height="400px">
+                  <div v-if="selectedSession.messages && selectedSession.messages.length > 0">
+                    <div
+                      v-for="(message, index) in selectedSession.messages"
+                      :key="message.id"
+                      class="message-item"
+                      :class="{ 'user-message': message.role === 'user', 'assistant-message': message.role === 'assistant', 'tool-message': message.role === 'tool' }"
+                      :style="messageItemStyle"
+                    >
+                      <div class="message-header">
+                        <div class="message-info">
+                          <el-tag size="small" :type="getMessageRoleTagType(message.role)">
+                            {{ getMessageRoleLabel(message.role) }}
+                          </el-tag>
+                          <span class="message-type">{{ message.type }}</span>
+                          <span class="message-id">{{ message.id.substring(0, 16) }}...</span>
+                          <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+                        </div>
+                        <div class="message-actions">
+                          <el-button
+                            v-if="message.role === 'user' && message.type === 'chat'"
+                            size="small"
+                            type="primary"
+                            @click="handleReplayMessage(message.id)"
+                          >
+                            重新执行消息
+                          </el-button>
+                          <el-button
+                            v-if="message.role === 'tool' && message.type === 'tool'"
+                            size="small"
+                            type="warning"
+                            @click="handleReplayToolCallFromMessage(message.id)"
+                          >
+                            重新执行工具
+                          </el-button>
+                        </div>
+                      </div>
+                      <div class="message-content">
+                        <el-collapse>
+                          <el-collapse-item title="消息内容" :name="message.id">
+                            <div v-if="message.type === 'chat'">
+                              <pre :style="messageContentStyle">{{ (message as any).markdown || (message as any).content || '' }}</pre>
+                            </div>
+                            <div v-else-if="message.type === 'tool' && message.role === 'tool'">
+                              <!-- 使用 AgentToolResultCard 显示工具消息 -->
+                              <AgentToolResultCard
+                                :message="message as ToolAgentMessage"
+                                :messages="selectedSession.messages"
+                                :message-index="index"
+                              />
+                            </div>
+                            <div v-else>
+                              <pre :style="messageContentStyle">{{ formatResult(message) }}</pre>
+                            </div>
+                          </el-collapse-item>
+                          <el-collapse-item v-if="(message as any).tool_calls" title="工具调用" :name="`${message.id}-tool-calls`">
+                            <pre :style="messageContentStyle">{{ formatResult((message as any).tool_calls) }}</pre>
+                          </el-collapse-item>
+                        </el-collapse>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="test-empty">
+                    暂无消息
+                  </div>
+                </el-scrollbar>
+              </el-tab-pane>
+
+              <!-- 会话元数据 -->
+              <el-tab-pane label="会话信息" name="metadata">
+                <el-descriptions :column="1" border>
+                  <el-descriptions-item label="会话ID">{{ selectedSession.id }}</el-descriptions-item>
+                  <el-descriptions-item label="标题">{{ selectedSession.title }}</el-descriptions-item>
+                  <el-descriptions-item label="描述">{{ selectedSession.description || '无' }}</el-descriptions-item>
+                  <el-descriptions-item label="Agent配置ID">{{ selectedSession.agentConfigId || '无' }}</el-descriptions-item>
+                  <el-descriptions-item label="状态">
+                    <el-tag :type="getSessionStatusTagType(selectedSession.status)">
+                      {{ selectedSession.status || 'idle' }}
+                    </el-tag>
+                  </el-descriptions-item>
+                  <el-descriptions-item label="当前执行节点">{{ selectedSession.currentExecutionNodeId || '无' }}</el-descriptions-item>
+                  <el-descriptions-item label="消息数量">{{ selectedSession.messages?.length || 0 }}</el-descriptions-item>
+                  <el-descriptions-item label="执行节点数量">{{ selectedSession.executionNodes?.length || 0 }}</el-descriptions-item>
+                  <el-descriptions-item label="引用数量">{{ selectedSession.referenceStore?.length || 0 }}</el-descriptions-item>
+                  <el-descriptions-item label="创建时间">{{ formatTime(selectedSession.createdAt) }}</el-descriptions-item>
+                  <el-descriptions-item label="更新时间">{{ formatTime(selectedSession.updatedAt) }}</el-descriptions-item>
+                </el-descriptions>
+              </el-tab-pane>
+            </el-tabs>
+          </div>
+          <div v-else class="test-empty" style="margin-top: 20px;">
+            请先选择文档和会话
+          </div>
+            </div>
+          </el-tab-pane>
+
+          <!-- 会话回放 -->
+          <el-tab-pane label="会话回放" name="replay">
+            <div class="test-panel" :style="testPanelStyle">
+              <el-form :model="sessionReplayForm" label-width="140px">
+                <el-form-item label="导入会话">
+                  <div style="display: flex; gap: 8px;">
+                    <el-button
+                      type="primary"
+                      :icon="Upload"
+                      @click="handleImportSessionForReplay"
+                    >
+                      导入会话JSON
+                    </el-button>
+                    <el-button
+                      v-if="replaySession"
+                      @click="handleClearReplaySession"
+                    >
+                      清除会话
+                    </el-button>
+                  </div>
+                </el-form-item>
+
+                <el-form-item v-if="replaySession" label="会话信息">
+                  <el-descriptions :column="1" border size="small">
+                    <el-descriptions-item label="标题">{{ replaySession.title }}</el-descriptions-item>
+                    <el-descriptions-item label="消息数量">{{ replaySession.messages?.length || 0 }}</el-descriptions-item>
+                    <el-descriptions-item label="执行节点数量">{{ replaySession.executionNodes?.length || 0 }}</el-descriptions-item>
+                  </el-descriptions>
+                </el-form-item>
+
+                <el-form-item v-if="replaySession" label="回放控制">
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- 第一行：主要控制按钮 -->
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                      <el-button
+                        type="primary"
+                        @click="handleStartReplay"
+                        :disabled="isReplaying"
+                        :loading="isReplaying"
+                      >
+                        {{ isReplaying ? '回放中...' : '开始回放' }}
+                      </el-button>
+                      <el-button
+                        @click="handleStopReplay"
+                        :disabled="!isReplaying"
+                      >
+                        停止回放
+                      </el-button>
+                      <el-button
+                        @click="handleResetReplay"
+                        :disabled="isReplaying"
+                      >
+                        重置到开头
+                      </el-button>
+                      <el-button
+                        @click="handleReplayStepBack"
+                        :disabled="isReplaying || replayCurrentIndex < 0"
+                        size="small"
+                      >
+                        后退
+                      </el-button>
+                      <el-button
+                        @click="handleReplayStepForward"
+                        :disabled="isReplaying || replayCurrentIndex >= replayDisplayMessages.length - 1"
+                        size="small"
+                      >
+                        前进
+                      </el-button>
+                      <el-slider
+                        v-model="replaySpeed"
+                        :min="0.1"
+                        :max="5"
+                        :step="0.1"
+                        style="width: 200px; margin: 0 16px;"
+                        :format-tooltip="(val: number) => `${val}x`"
+                      />
+                      <span style="min-width: 60px;">{{ replaySpeed }}x</span>
+                    </div>
+                    <!-- 第二行：起始节点选择 -->
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                      <span style="min-width: 80px;">起始节点:</span>
+                      <el-select
+                        v-model="replayStartIndex"
+                        :disabled="isReplaying"
+                        style="flex: 1;"
+                        placeholder="选择回放起始节点"
+                      >
+                        <el-option
+                          :label="`从头开始 (0)`"
+                          :value="0"
+                        />
+                        <el-option
+                          v-for="(msg, index) in replayDisplayMessages"
+                          :key="msg.id"
+                          :label="`消息 ${index + 1}: ${getMessageRoleLabel(msg.role)} - ${msg.type}`"
+                          :value="index + 1"
+                        />
+                      </el-select>
+                      <span style="min-width: 120px; font-size: 12px; color: var(--el-text-color-secondary);">
+                        当前: {{ replayCurrentIndex + 1 }} / {{ replayDisplayMessages.length }}
+                      </span>
+                    </div>
+                  </div>
+                </el-form-item>
+              </el-form>
+
+              <!-- 回放显示区域 -->
+              <div v-if="replaySession" class="replay-display" style="margin-top: 20px;">
+                <el-scrollbar height="500px">
+                  <div
+                    v-for="(message, index) in replayDisplayMessages"
+                    :key="message.id"
+                    :data-replay-message-id="message.id"
+                    class="replay-message-item"
+                    :class="{
+                      'replay-message-user': message.role === 'user',
+                      'replay-message-assistant': message.role === 'assistant',
+                      'replay-message-tool': message.role === 'tool',
+                      'replay-message-replaying': message.isReplaying,
+                      'replay-message-replayed': message.isReplayed,
+                      'replay-message-pending': index > replayCurrentIndex
+                    }"
+                    :style="getReplayMessageItemStyle(index)"
+                  >
+                    <div class="replay-message-header">
+                      <el-tag size="small" :type="getMessageRoleTagType(message.role)">
+                        {{ getMessageRoleLabel(message.role) }}
+                      </el-tag>
+                      <span class="replay-message-time">{{ formatTime(message.timestamp) }}</span>
+                      <el-tag v-if="message.isReplaying" size="small" type="warning" effect="dark">
+                        回放中
+                      </el-tag>
+                      <el-tag v-if="message.isReplayed" size="small" type="success">
+                        已回放
+                      </el-tag>
+                      <!-- 显示解析出的工具调用 -->
+                      <template v-if="getParsedToolCalls(message).length > 0">
+                        <el-tag
+                          v-for="(toolCall, idx) in getParsedToolCalls(message)"
+                          :key="idx"
+                          size="small"
+                          :type="toolCall.isValid ? 'info' : 'danger'"
+                          effect="plain"
+                          style="margin-left: 8px;"
+                          :title="toolCall.isValid ? `工具ID: ${toolCall.tool_id}` : `错误: ${toolCall.error || '未知错误'}`"
+                        >
+                          {{ toolCall.isValid ? `工具: ${toolCall.tool_id}` : `解析错误` }}
+                        </el-tag>
+                        <el-tag
+                          v-if="getParsedToolCalls(message).length > 1"
+                          size="small"
+                          type="info"
+                          effect="plain"
+                          style="margin-left: 8px;"
+                        >
+                          共 {{ getParsedToolCalls(message).length }} 个工具调用
+                        </el-tag>
+                      </template>
+                    </div>
+                    <div class="replay-message-content">
+                      <div v-if="message.type === 'chat' && message.role === 'assistant'">
+                        <!-- 回放中显示流式内容，已回放显示完整内容 -->
+                        <pre :style="messageContentStyle">{{ message.isReplaying ? (message.displayContent || '') : (message.markdown || '') }}</pre>
+                      </div>
+                      <div v-else-if="message.type === 'chat' && message.role === 'user'">
+                        <pre :style="messageContentStyle">{{ (message as any).markdown || '' }}</pre>
+                      </div>
+                      <div v-else-if="message.type === 'tool' && message.role === 'tool'">
+                        <!-- 使用 AgentToolResultCard 显示工具消息 -->
+                        <AgentToolResultCard
+                          :message="message as ToolAgentMessage"
+                          :messages="replayDisplayMessages as any"
+                          :message-index="index"
+                        />
+                      </div>
+                      <div v-else>
+                        <pre :style="messageContentStyle">{{ formatResult(message) }}</pre>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-if="replayDisplayMessages.length === 0" class="test-empty">
+                    暂无消息
+                  </div>
+                </el-scrollbar>
+              </div>
+              <div v-else class="test-empty" style="margin-top: 20px;">
+                请先导入会话JSON文件
+              </div>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
+      </el-tab-pane>
     </el-tabs>
 
     <!-- 保存配置对话框 -->
@@ -949,6 +1365,18 @@ import {
   deserializeToolExecutionSnapshot
 } from '../../utils/agent-tools/tool-serialization';
 import { createRendererLogger } from '../../utils/logger';
+import { useWorkspace } from '../../stores/workspace';
+import { agentSessionManager } from '../../utils/agent-framework/agent-session-manager';
+import { agentEngineManager } from '../../utils/agent-framework/agent-engine-manager';
+import { agentConfigManager } from '../../utils/agent-framework/agent-config-manager';
+import { AgentEngineExecutorFactory } from '../../utils/agent-framework/agent-engine-executor';
+import type { AgentSession, ToolAgentMessage } from '../../types/agent';
+import { cloneDeep } from 'lodash';
+import { ToolRunner } from '../../utils/agent-framework/tool-runner';
+import { ref as vueRef } from 'vue';
+import AgentToolResultCard from '../../components/agent/AgentToolResultCard.vue';
+import { parseToolCalls } from '../../utils/agent-framework/tool-call-processor';
+import type { ParsedToolCall } from '../../utils/agent-framework/tool-call-processor';
 
 // 组件映射
 const componentMap: Record<string, any> = {
@@ -1153,6 +1581,65 @@ const importSnapshotLoading = ref(false);
 const importedSnapshot = ref<any>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
+// Agent会话调试相关
+const workspace = useWorkspace();
+const agentSessionDebugForm = reactive({
+  tabId: '',
+  sessionId: ''
+});
+const sessionDebugActiveTab = ref('nodes');
+const agentSessionDebugActiveTab = ref('debug');
+const workspaceTabs = computed(() => workspace.tabs);
+
+// 会话回放相关
+const sessionReplayForm = reactive({});
+const replaySession = ref<AgentSession | null>(null);
+const replayDisplayMessages = ref<Array<{
+  id: string;
+  role: string;
+  type: string;
+  timestamp: string | number;
+  markdown?: string;
+  displayContent?: string;
+  isReplaying?: boolean;
+  isReplayed?: boolean;
+  [key: string]: any;
+}>>([]);
+const isReplaying = ref(false);
+const replaySpeed = ref(1); // 回放速度倍数
+const replayAbortController = ref<AbortController | null>(null);
+const replayCurrentIndex = ref(-1); // 当前回放到的消息索引
+const replayStartIndex = ref(0); // 回放起始索引
+const availableSessions = computed(() => {
+  if (!agentSessionDebugForm.tabId) {
+    return [];
+  }
+  // documents 是一个 Record<string, WorkspaceDocument>，需要通过 tabId 直接访问
+  const doc = workspace.documents[agentSessionDebugForm.tabId];
+  if (!doc || !doc.agentSessions) {
+    return [];
+  }
+  // 转换旧的AgentSession格式到新格式（如果需要）
+  return (doc.agentSessions as AgentSession[]).map(session => {
+    // 如果session已经有executionNodes，直接返回
+    // 否则，确保基本字段存在
+    return {
+      ...session,
+      executionNodes: session.executionNodes || [],
+      referenceStore: session.referenceStore || [],
+      messageQueue: session.messageQueue || [],
+      publicContext: session.publicContext || {},
+      status: session.status || 'idle'
+    };
+  });
+});
+const selectedSession = computed(() => {
+  if (!agentSessionDebugForm.sessionId) {
+    return null;
+  }
+  return availableSessions.value.find(s => s.id === agentSessionDebugForm.sessionId) || null;
+});
+
 // 更新测试相关
 const updateTestForm = reactive({
   currentVersion: '0.13.4',
@@ -1295,9 +1782,20 @@ const clearTestHistory = () => {
   refreshTestHistory();
 };
 
-// 格式化时间
-const formatTime = (timestamp: number) => {
-  const date = new Date(timestamp);
+// 格式化时间（支持number时间戳或string ISO格式）
+const formatTime = (timestamp: number | string) => {
+  let date: Date;
+  if (typeof timestamp === 'string') {
+    date = new Date(timestamp);
+  } else {
+    date = new Date(timestamp);
+  }
+  
+  // 检查日期是否有效
+  if (isNaN(date.getTime())) {
+    return '无效时间';
+  }
+  
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -3301,6 +3799,924 @@ const handleMockReset = () => {
   ElMessage.success('状态已重置');
 };
 
+// Agent会话调试相关函数
+const handleSessionDebugTabChange = () => {
+  agentSessionDebugForm.sessionId = '';
+};
+
+const handleSessionDebugSessionChange = () => {
+  // 会话切换时，刷新会话数据
+  nextTick(() => {
+    if (selectedSession.value) {
+      ElMessage.success('会话已加载');
+    }
+  });
+};
+
+// 导入会话JSON
+const handleImportSessionJson = () => {
+  if (!agentSessionDebugForm.tabId) {
+    ElMessage.warning('请先选择文档');
+    return;
+  }
+
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json';
+  input.onchange = async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      // 支持两种格式：
+      // 1. 直接是会话对象 { session: AgentSession, dependencies?: ... }
+      // 2. 直接是会话对象 AgentSession
+      let sessionData: any;
+      if (data.session) {
+        sessionData = data;
+      } else if (data.id && data.messages) {
+        // 看起来是直接的会话对象
+        sessionData = { session: data };
+      } else {
+        throw new Error('无效的会话文件格式');
+      }
+
+      const session = agentSessionManager.deserializeSession(sessionData, {
+        importDependencies: true,
+        overwriteDependencies: false
+      });
+
+      // 转换为旧格式
+      const legacySession: AgentSession = {
+        id: session.id,
+        title: session.title,
+        description: session.description,
+        createdAt: typeof session.createdAt === 'number' 
+          ? new Date(session.createdAt).toISOString() 
+          : session.createdAt,
+        updatedAt: typeof session.updatedAt === 'number' 
+          ? new Date(session.updatedAt).toISOString() 
+          : session.updatedAt,
+        messages: session.messages,
+        activeToolIds: [], // 初始状态：所有工具都不高亮，等待意图识别器判断
+        agentConfigId: session.agentConfigId,
+        messageQueue: session.messageQueue || [],
+        referenceStore: session.referenceStore || [],
+        publicContext: session.publicContext || {},
+        executionNodes: session.executionNodes || [],
+        currentExecutionNodeId: session.currentExecutionNodeId,
+        status: session.status || 'idle'
+      };
+
+      // 获取文档并添加会话
+      const doc = workspace.ensureDocument(agentSessionDebugForm.tabId);
+      if (!doc.agentSessions) {
+        doc.agentSessions = [];
+      }
+      
+      // 检查是否已存在相同ID的会话
+      const existingIndex = doc.agentSessions.findIndex(s => s.id === legacySession.id);
+      if (existingIndex !== -1) {
+        // 询问是否覆盖
+        try {
+          await ElMessageBox.confirm(
+            `会话 "${legacySession.title}" 已存在，是否覆盖？`,
+            '确认覆盖',
+            { type: 'warning' }
+          );
+          doc.agentSessions[existingIndex] = legacySession;
+        } catch {
+          // 用户取消
+          return;
+        }
+      } else {
+        doc.agentSessions.unshift(legacySession);
+      }
+
+      // 更新文档
+      workspace.updateDocumentAgentSessions(agentSessionDebugForm.tabId, doc.agentSessions, false);
+      
+      // 自动选择导入的会话
+      agentSessionDebugForm.sessionId = legacySession.id;
+      
+      ElMessage.success('会话导入成功');
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : String(error));
+    }
+  };
+  input.click();
+};
+
+// 回溯到指定节点
+const handleRevertToNode = async (nodeId: string) => {
+  if (!selectedSession.value || !agentSessionDebugForm.tabId) {
+    ElMessage.warning('请先选择会话');
+    return;
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要回溯到节点 ${nodeId.substring(0, 16)}... 吗？此操作将删除该节点之后的所有内容。`,
+      '确认回溯',
+      { type: 'warning' }
+    );
+
+    // 转换为新格式的会话
+    const session = selectedSession.value;
+    const newFormatSession: any = {
+      ...session,
+      entityType: 'agent-session',
+      createdAt: typeof session.createdAt === 'string' ? new Date(session.createdAt).getTime() : session.createdAt,
+      updatedAt: typeof session.updatedAt === 'string' ? new Date(session.updatedAt).getTime() : session.updatedAt,
+      messageQueue: session.messageQueue || [],
+      referenceStore: session.referenceStore || [],
+      publicContext: session.publicContext || {},
+      executionNodes: session.executionNodes || [],
+      status: session.status || 'idle'
+    };
+
+    // 执行回溯
+    agentSessionManager.revertToNode(newFormatSession, nodeId);
+
+    // 更新文档中的会话
+    const doc = workspace.documents[agentSessionDebugForm.tabId];
+    if (doc && doc.agentSessions) {
+      const sessions = doc.agentSessions as AgentSession[];
+      const sessionIndex = sessions.findIndex(s => s.id === session.id);
+      if (sessionIndex !== -1) {
+        // 转换回旧格式
+        const legacySession: AgentSession = {
+          id: newFormatSession.id,
+          title: newFormatSession.title,
+          description: newFormatSession.description,
+          createdAt: new Date(newFormatSession.createdAt).toISOString(),
+          updatedAt: new Date(newFormatSession.updatedAt).toISOString(),
+          messages: newFormatSession.messages,
+          activeToolIds: session.activeToolIds || [],
+          agentConfigId: newFormatSession.agentConfigId,
+          messageQueue: newFormatSession.messageQueue,
+          referenceStore: newFormatSession.referenceStore,
+          publicContext: newFormatSession.publicContext,
+          executionNodes: newFormatSession.executionNodes,
+          currentExecutionNodeId: newFormatSession.currentExecutionNodeId,
+          status: newFormatSession.status
+        };
+        sessions[sessionIndex] = legacySession;
+        workspace.updateDocumentAgentSessions(agentSessionDebugForm.tabId, sessions, false);
+      }
+    }
+
+    ElMessage.success('已回溯到指定节点');
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error instanceof Error ? error.message : String(error));
+    }
+  }
+};
+
+// 重新执行消息（真正触发Agent执行）
+const handleReplayMessage = async (messageId: string) => {
+  if (!selectedSession.value || !agentSessionDebugForm.tabId) {
+    ElMessage.warning('请先选择会话');
+    return;
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      '确定要重新执行此消息吗？此操作将删除该消息之后的所有内容，然后重新触发Agent执行。',
+      '确认重新执行',
+      { type: 'warning' }
+    );
+
+    const session = selectedSession.value;
+    const newFormatSession: any = {
+      ...session,
+      entityType: 'agent-session',
+      createdAt: typeof session.createdAt === 'string' ? new Date(session.createdAt).getTime() : session.createdAt,
+      updatedAt: typeof session.updatedAt === 'string' ? new Date(session.updatedAt).getTime() : session.updatedAt,
+      messageQueue: session.messageQueue || [],
+      referenceStore: session.referenceStore || [],
+      publicContext: session.publicContext || {},
+      executionNodes: session.executionNodes || [],
+      status: session.status || 'idle'
+    };
+
+    // 执行消息重放（会删除该消息之后的内容）
+    await agentSessionManager.replayMessage(newFormatSession, messageId);
+
+    // 找到用户消息内容
+    const userMessage = newFormatSession.messages.find((m: any) => m.id === messageId);
+    if (!userMessage || userMessage.role !== 'user' || userMessage.type !== 'chat') {
+      ElMessage.error('无法找到用户消息');
+      return;
+    }
+
+    const messageContent = (userMessage as any).markdown || '';
+
+    // 获取引擎和配置
+    const defaultEngineId = agentEngineManager.getDefaultEngine()?.id || 'default-autogpt-engine';
+    const engine = agentEngineManager.getEngine(defaultEngineId);
+    if (!engine) {
+      ElMessage.error('未找到Agent引擎');
+      return;
+    }
+
+    const agentConfig = agentConfigManager.getConfig(newFormatSession.agentConfigId);
+    if (!agentConfig) {
+      ElMessage.error('未找到Agent配置');
+      return;
+    }
+
+    // 创建执行器并执行
+    const abortController = new AbortController();
+    const executor = AgentEngineExecutorFactory.create(
+      engine,
+      newFormatSession,
+      agentConfig,
+      {
+        signal: abortController.signal,
+        onProgress: (progress) => {
+          newFormatSession.status = progress.stage as any;
+        }
+      }
+    );
+
+    ElMessage.info('开始重新执行Agent...');
+    await executor.execute(messageContent);
+
+    // 更新文档中的会话
+    const doc = workspace.documents[agentSessionDebugForm.tabId];
+    if (doc && doc.agentSessions) {
+      const sessions = doc.agentSessions as AgentSession[];
+      const sessionIndex = sessions.findIndex(s => s.id === session.id);
+      if (sessionIndex !== -1) {
+        const legacySession: AgentSession = {
+          id: newFormatSession.id,
+          title: newFormatSession.title,
+          description: newFormatSession.description,
+          createdAt: new Date(newFormatSession.createdAt).toISOString(),
+          updatedAt: new Date(newFormatSession.updatedAt).toISOString(),
+          messages: newFormatSession.messages,
+          activeToolIds: session.activeToolIds || [],
+          agentConfigId: newFormatSession.agentConfigId,
+          messageQueue: newFormatSession.messageQueue,
+          referenceStore: newFormatSession.referenceStore,
+          publicContext: newFormatSession.publicContext,
+          executionNodes: newFormatSession.executionNodes,
+          currentExecutionNodeId: newFormatSession.currentExecutionNodeId,
+          status: newFormatSession.status || 'idle'
+        };
+        sessions[sessionIndex] = legacySession;
+        workspace.updateDocumentAgentSessions(agentSessionDebugForm.tabId, sessions, false);
+      }
+    }
+
+    ElMessage.success('Agent执行完成');
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error instanceof Error ? error.message : String(error));
+    }
+  }
+};
+
+// 重新执行工具调用（从节点）
+const handleReplayToolCall = async (nodeId: string) => {
+  if (!selectedSession.value || !agentSessionDebugForm.tabId) {
+    ElMessage.warning('请先选择会话');
+    return;
+  }
+
+  const session = selectedSession.value;
+  const node = session.executionNodes?.find(n => n.id === nodeId);
+  if (!node || node.type !== 'tool-call') {
+    ElMessage.warning('节点类型错误，无法重新执行');
+    return;
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      '确定要重新执行此工具调用吗？此操作将删除该工具调用之后的所有内容。',
+      '确认重新执行',
+      { type: 'warning' }
+    );
+
+    // 从节点数据中提取toolCallId
+    const data = node.data as any;
+    const toolCallId = data?.tool_call_id || data?.id;
+    if (!toolCallId) {
+      ElMessage.error('无法找到工具调用ID');
+      return;
+    }
+
+    await handleReplayToolCallFromMessage(toolCallId);
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error instanceof Error ? error.message : String(error));
+    }
+  }
+};
+
+// 重新执行工具调用（从消息）
+const handleReplayToolCallFromMessage = async (toolCallIdOrMessageId: string) => {
+  if (!selectedSession.value || !agentSessionDebugForm.tabId) {
+    ElMessage.warning('请先选择会话');
+    return;
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      '确定要重新执行此工具调用吗？此操作将删除该工具调用之后的所有内容。',
+      '确认重新执行',
+      { type: 'warning' }
+    );
+
+    const session = selectedSession.value;
+    const newFormatSession: any = {
+      ...session,
+      entityType: 'agent-session',
+      createdAt: typeof session.createdAt === 'string' ? new Date(session.createdAt).getTime() : session.createdAt,
+      updatedAt: typeof session.updatedAt === 'string' ? new Date(session.updatedAt).getTime() : session.updatedAt,
+      messageQueue: session.messageQueue || [],
+      referenceStore: session.referenceStore || [],
+      publicContext: session.publicContext || {},
+      executionNodes: session.executionNodes || [],
+      status: session.status || 'idle'
+    };
+
+    // 先尝试从消息ID找到toolCallId
+    let toolCallId = toolCallIdOrMessageId;
+    const toolMessage = session.messages.find(msg => 
+      msg.id === toolCallIdOrMessageId && msg.role === 'tool' && msg.type === 'tool'
+    );
+    if (toolMessage) {
+      const toolMsg = toolMessage as any;
+      toolCallId = toolMsg.tool_call_id || toolCallId;
+    }
+
+    // 执行工具调用重放
+    await agentSessionManager.replayToolCall(newFormatSession, toolCallId, async (toolCallData) => {
+      // 重新执行工具
+      try {
+        await ToolRunner.runTool(
+          toolCallData.tool_id,
+          toolCallData.parameters,
+          undefined, // signal
+          newFormatSession // session
+        );
+        ElMessage.success(`工具 ${toolCallData.tool_id} 已重新执行`);
+      } catch (error) {
+        ElMessage.error(`工具执行失败: ${error instanceof Error ? error.message : String(error)}`);
+        throw error;
+      }
+    });
+
+    // 更新文档中的会话
+    const doc = workspace.documents[agentSessionDebugForm.tabId];
+    if (doc && doc.agentSessions) {
+      const sessions = doc.agentSessions as AgentSession[];
+      const sessionIndex = sessions.findIndex(s => s.id === session.id);
+      if (sessionIndex !== -1) {
+        const legacySession: AgentSession = {
+          id: newFormatSession.id,
+          title: newFormatSession.title,
+          description: newFormatSession.description,
+          createdAt: new Date(newFormatSession.createdAt).toISOString(),
+          updatedAt: new Date(newFormatSession.updatedAt).toISOString(),
+          messages: newFormatSession.messages,
+          activeToolIds: session.activeToolIds || [],
+          agentConfigId: newFormatSession.agentConfigId,
+          messageQueue: newFormatSession.messageQueue,
+          referenceStore: newFormatSession.referenceStore,
+          publicContext: newFormatSession.publicContext,
+          executionNodes: newFormatSession.executionNodes,
+          currentExecutionNodeId: newFormatSession.currentExecutionNodeId,
+          status: newFormatSession.status
+        };
+        sessions[sessionIndex] = legacySession;
+        workspace.updateDocumentAgentSessions(agentSessionDebugForm.tabId, sessions, false);
+      }
+    }
+
+    ElMessage.success('工具调用已重新执行');
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error instanceof Error ? error.message : String(error));
+    }
+  }
+};
+
+// 辅助函数：获取节点类型标签
+const getNodeTypeLabel = (type: string): string => {
+  const labels: Record<string, string> = {
+    'message': '消息',
+    'tool-call': '工具调用',
+    'workflow-call': '工作流调用',
+    'llm-call': 'LLM调用'
+  };
+  return labels[type] || type;
+};
+
+// 辅助函数：获取节点类型标签颜色
+const getNodeTypeTagType = (type: string): string => {
+  const types: Record<string, string> = {
+    'message': 'info',
+    'tool-call': 'warning',
+    'workflow-call': 'success',
+    'llm-call': 'primary'
+  };
+  return types[type] || 'info';
+};
+
+// 辅助函数：获取节点状态标签
+const getNodeStatusLabel = (status: string): string => {
+  const labels: Record<string, string> = {
+    'pending': '待执行',
+    'running': '执行中',
+    'succeeded': '成功',
+    'failed': '失败',
+    'cancelled': '已取消'
+  };
+  return labels[status] || status;
+};
+
+// 辅助函数：获取节点状态标签颜色
+const getNodeStatusTagType = (status: string): string => {
+  const types: Record<string, string> = {
+    'pending': 'info',
+    'running': 'warning',
+    'succeeded': 'success',
+    'failed': 'danger',
+    'cancelled': 'info'
+  };
+  return types[status] || 'info';
+};
+
+// 辅助函数：获取消息角色标签
+const getMessageRoleLabel = (role: string): string => {
+  const labels: Record<string, string> = {
+    'user': '用户',
+    'assistant': '助手',
+    'tool': '工具',
+    'system': '系统'
+  };
+  return labels[role] || role;
+};
+
+// 辅助函数：获取消息角色标签颜色
+const getMessageRoleTagType = (role: string): string => {
+  const types: Record<string, string> = {
+    'user': 'primary',
+    'assistant': 'success',
+    'tool': 'warning',
+    'system': 'info'
+  };
+  return types[role] || 'info';
+};
+
+// 辅助函数：获取会话状态标签颜色
+const getSessionStatusTagType = (status?: string): string => {
+  const types: Record<string, string> = {
+    'idle': 'info',
+    'thinking': 'warning',
+    'generating': 'primary',
+    'tool-calling': 'warning',
+    'workflow-executing': 'success',
+    'waiting-input': 'info',
+    'error': 'danger'
+  };
+  return types[status || 'idle'] || 'info';
+};
+
+// 样式计算属性
+const executionNodeItemStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd,
+  color: themeState.currentTheme.textColor,
+  borderColor: themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)'
+}));
+
+const messageItemStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd,
+  color: themeState.currentTheme.textColor,
+  borderColor: themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)'
+}));
+
+const replayMessageItemStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background2nd,
+  color: themeState.currentTheme.textColor,
+  borderColor: themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)'
+}));
+
+// 消息内容样式（支持换行）
+const messageContentStyle = computed(() => ({
+  ...codeBlockStyle.value,
+  whiteSpace: 'pre-wrap' as const,
+  wordWrap: 'break-word' as const,
+  wordBreak: 'break-word' as const,
+  overflowWrap: 'break-word' as const,
+  maxWidth: '100%',
+  overflow: 'hidden' as const
+}));
+
+// 导入会话用于回放（不依赖于Tab）
+const handleImportSessionForReplay = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json';
+  input.onchange = async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      // 支持两种格式
+      let sessionData: any;
+      if (data.session) {
+        sessionData = data;
+      } else if (data.id && data.messages) {
+        sessionData = { session: data };
+      } else {
+        throw new Error('无效的会话文件格式');
+      }
+
+      const session = agentSessionManager.deserializeSession(sessionData, {
+        importDependencies: true,
+        overwriteDependencies: false
+      });
+
+      // 转换为旧格式
+      const legacySession: AgentSession = {
+        id: session.id,
+        title: session.title,
+        description: session.description,
+        createdAt: typeof session.createdAt === 'number' 
+          ? new Date(session.createdAt).toISOString() 
+          : session.createdAt,
+        updatedAt: typeof session.updatedAt === 'number' 
+          ? new Date(session.updatedAt).toISOString() 
+          : session.updatedAt,
+        messages: session.messages,
+        activeToolIds: [],
+        agentConfigId: session.agentConfigId,
+        messageQueue: session.messageQueue || [],
+        referenceStore: session.referenceStore || [],
+        publicContext: session.publicContext || {},
+        executionNodes: session.executionNodes || [],
+        currentExecutionNodeId: session.currentExecutionNodeId,
+        status: session.status || 'idle'
+      };
+
+      replaySession.value = legacySession;
+      
+      // 初始化回放消息列表（按时间排序）
+      const messages = [...(legacySession.messages || [])].sort((a, b) => {
+        const timeA = typeof a.timestamp === 'string' ? new Date(a.timestamp).getTime() : a.timestamp;
+        const timeB = typeof b.timestamp === 'string' ? new Date(b.timestamp).getTime() : b.timestamp;
+        return timeA - timeB;
+      });
+
+      replayDisplayMessages.value = messages.map(msg => ({
+        ...msg,
+        displayContent: '',
+        isReplaying: false,
+        isReplayed: false
+      }));
+
+      // 重置回放状态
+      replayCurrentIndex.value = -1;
+      replayStartIndex.value = 0;
+
+      ElMessage.success('会话导入成功，可以开始回放');
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : String(error));
+    }
+  };
+  input.click();
+};
+
+// 清除回放会话
+const handleClearReplaySession = () => {
+  replaySession.value = null;
+  replayDisplayMessages.value = [];
+  if (replayAbortController.value) {
+    replayAbortController.value.abort();
+    replayAbortController.value = null;
+  }
+  isReplaying.value = false;
+  replayCurrentIndex.value = -1;
+  replayStartIndex.value = 0;
+  ElMessage.info('已清除回放会话');
+};
+
+// 开始回放
+const handleStartReplay = async () => {
+  if (!replaySession.value || replayDisplayMessages.value.length === 0) {
+    ElMessage.warning('请先导入会话');
+    return;
+  }
+
+  if (isReplaying.value) {
+    return;
+  }
+
+  isReplaying.value = true;
+  replayAbortController.value = new AbortController();
+
+  try {
+    // 确定起始索引
+    const startIndex = Math.max(0, Math.min(replayStartIndex.value - 1, replayDisplayMessages.value.length - 1));
+    
+    // 重置从起始索引开始的消息状态
+    for (let i = startIndex; i < replayDisplayMessages.value.length; i++) {
+      replayDisplayMessages.value[i].isReplaying = false;
+      replayDisplayMessages.value[i].isReplayed = false;
+      replayDisplayMessages.value[i].displayContent = '';
+    }
+    
+    // 更新当前索引
+    replayCurrentIndex.value = startIndex - 1;
+
+    // 按顺序回放每条消息（从起始索引开始）
+    for (let i = startIndex; i < replayDisplayMessages.value.length; i++) {
+      if (replayAbortController.value?.signal.aborted) {
+        break;
+      }
+
+      // 确保前一条消息已完成
+      if (i > 0) {
+        const prevMessage = replayDisplayMessages.value[i - 1];
+        prevMessage.isReplaying = false;
+        prevMessage.isReplayed = true;
+      }
+
+      const message = replayDisplayMessages.value[i];
+      
+      // 更新当前索引
+      replayCurrentIndex.value = i;
+      
+      // 使用 nextTick 确保 DOM 更新完成
+      await nextTick();
+      
+      // 标记当前消息为回放中
+      message.isReplaying = true;
+      message.isReplayed = false;
+
+      // 再次等待 DOM 更新
+      await nextTick();
+
+      // 如果是assistant的chat消息，模拟流式输出
+      if (message.role === 'assistant' && message.type === 'chat' && message.markdown) {
+        const content = message.markdown;
+        // 使用字符数组而不是直接操作字符串，避免响应式问题
+        const chars = Array.from(content);
+        let currentContent = '';
+
+        for (let j = 0; j < chars.length; j++) {
+          if (replayAbortController.value?.signal.aborted) {
+            break;
+          }
+
+          // 累积内容
+          currentContent += chars[j];
+          
+          // 使用 Vue 的响应式更新，但确保只更新当前消息
+          // 通过直接赋值而不是引用，避免多个消息同时更新
+          const messageIndex = replayDisplayMessages.value.findIndex(m => m.id === message.id);
+          if (messageIndex !== -1 && replayDisplayMessages.value[messageIndex].id === message.id) {
+            replayDisplayMessages.value[messageIndex].displayContent = currentContent;
+          }
+          
+          // 根据回放速度控制延迟
+          const delay = Math.max(10, 100 / (replaySpeed.value * 10)); // 最小延迟10ms，根据速度调整
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
+        // 确保最终内容完整
+        const messageIndex = replayDisplayMessages.value.findIndex(m => m.id === message.id);
+        if (messageIndex !== -1 && replayDisplayMessages.value[messageIndex].id === message.id) {
+          replayDisplayMessages.value[messageIndex].displayContent = content;
+        }
+      } else {
+        // 其他类型的消息直接显示
+        const content = message.markdown || JSON.stringify(message, null, 2);
+        const messageIndex = replayDisplayMessages.value.findIndex(m => m.id === message.id);
+        if (messageIndex !== -1 && replayDisplayMessages.value[messageIndex].id === message.id) {
+          replayDisplayMessages.value[messageIndex].displayContent = content;
+        }
+        // 短暂延迟以显示效果
+        await new Promise(resolve => setTimeout(resolve, Math.max(100, 300 / replaySpeed.value)));
+      }
+
+      // 标记当前消息为已完成
+      message.isReplaying = false;
+      message.isReplayed = true;
+
+      // 等待 DOM 更新
+      await nextTick();
+
+      // 滚动到当前消息位置（而不是直接跳到底部）
+      const messageElement = document.querySelector(`[data-replay-message-id="${message.id}"]`);
+      if (messageElement) {
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      
+      // 在消息之间添加短暂延迟，确保视觉上清晰
+      if (i < replayDisplayMessages.value.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 200 / replaySpeed.value));
+      }
+    }
+
+    // 确保最后一条消息也标记为完成
+    if (replayDisplayMessages.value.length > 0) {
+      const lastMessage = replayDisplayMessages.value[replayDisplayMessages.value.length - 1];
+      lastMessage.isReplaying = false;
+      lastMessage.isReplayed = true;
+      replayCurrentIndex.value = replayDisplayMessages.value.length - 1;
+    }
+
+    ElMessage.success('回放完成');
+  } catch (error) {
+    if (error !== 'cancel' && !(error instanceof Error && error.name === 'AbortError')) {
+      ElMessage.error(error instanceof Error ? error.message : String(error));
+    }
+  } finally {
+    isReplaying.value = false;
+    replayAbortController.value = null;
+  }
+};
+
+// 停止回放
+const handleStopReplay = () => {
+  if (replayAbortController.value) {
+    replayAbortController.value.abort();
+    replayAbortController.value = null;
+  }
+  isReplaying.value = false;
+  
+  // 标记当前正在回放的消息为已回放
+  replayDisplayMessages.value.forEach((msg, index) => {
+    if (msg.isReplaying) {
+      msg.isReplaying = false;
+      msg.isReplayed = true;
+    }
+    // 更新当前索引到最后一个已回放的消息
+    if (msg.isReplayed && index > replayCurrentIndex.value) {
+      replayCurrentIndex.value = index;
+    }
+  });
+
+  ElMessage.info('回放已停止');
+};
+
+// 重置回放到开头
+const handleResetReplay = () => {
+  if (isReplaying.value) {
+    ElMessage.warning('请先停止回放');
+    return;
+  }
+  
+  // 重置所有消息状态
+  replayDisplayMessages.value.forEach(msg => {
+    msg.isReplaying = false;
+    msg.isReplayed = false;
+    msg.displayContent = '';
+  });
+  
+  replayCurrentIndex.value = -1;
+  replayStartIndex.value = 0;
+  
+  ElMessage.info('已重置到开头');
+};
+
+// 后退一步
+const handleReplayStepBack = () => {
+  if (isReplaying.value) {
+    ElMessage.warning('请先停止回放');
+    return;
+  }
+  
+  if (replayCurrentIndex.value < 0) {
+    return;
+  }
+  
+  // 将当前索引的消息标记为未回放
+  const currentMsg = replayDisplayMessages.value[replayCurrentIndex.value];
+  if (currentMsg) {
+    currentMsg.isReplaying = false;
+    currentMsg.isReplayed = false;
+    currentMsg.displayContent = '';
+  }
+  
+  replayCurrentIndex.value--;
+  
+  // 将所有后续消息也标记为未回放
+  for (let i = replayCurrentIndex.value + 1; i < replayDisplayMessages.value.length; i++) {
+    replayDisplayMessages.value[i].isReplaying = false;
+    replayDisplayMessages.value[i].isReplayed = false;
+    replayDisplayMessages.value[i].displayContent = '';
+  }
+};
+
+// 前进一步
+const handleReplayStepForward = async () => {
+  if (isReplaying.value) {
+    ElMessage.warning('请先停止回放');
+    return;
+  }
+  
+  if (replayCurrentIndex.value >= replayDisplayMessages.value.length - 1) {
+    return;
+  }
+  
+  replayCurrentIndex.value++;
+  const message = replayDisplayMessages.value[replayCurrentIndex.value];
+  
+  if (!message) {
+    return;
+  }
+  
+  // 标记为正在回放
+  message.isReplaying = true;
+  await nextTick();
+  
+  // 如果是assistant的chat消息，显示完整内容
+  if (message.role === 'assistant' && message.type === 'chat' && message.markdown) {
+    message.displayContent = message.markdown;
+  } else {
+    message.displayContent = message.markdown || JSON.stringify(message, null, 2);
+  }
+  
+  await nextTick();
+  
+  // 标记为已回放
+  message.isReplaying = false;
+  message.isReplayed = true;
+  
+  // 滚动到当前消息位置
+  const messageElement = document.querySelector(`[data-replay-message-id="${message.id}"]`);
+  if (messageElement) {
+    messageElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+};
+
+// 获取回放消息的样式
+const getReplayMessageItemStyle = (index: number) => {
+  const baseStyle = replayMessageItemStyle.value;
+  
+  // 如果是未回放的消息（在当前索引之后），添加半透明效果
+  if (index > replayCurrentIndex.value) {
+    return {
+      ...baseStyle,
+      opacity: 0.4,
+      filter: 'grayscale(0.5)'
+    };
+  }
+  
+  return baseStyle;
+};
+
+// 解析消息中的工具调用
+const getParsedToolCalls = (message: AgentMessage & { displayContent?: string; isReplaying?: boolean; isReplayed?: boolean }): ParsedToolCall[] => {
+  // 只解析 assistant 的 chat 消息
+  if (message.role !== 'assistant' || message.type !== 'chat') {
+    return [];
+  }
+  
+  // 获取消息内容（回放中显示流式内容，已回放显示完整内容）
+  const content = message.isReplaying 
+    ? (message.displayContent || '') 
+    : (message.markdown || '');
+  
+  if (!content) {
+    return [];
+  }
+  
+  try {
+    // 使用宽松模式解析工具调用（因为回放时可能显示不完整的内容）
+    // parseToolCalls 会返回一个数组，包含所有解析出的工具调用（可能多个）
+    const parsed = parseToolCalls(content, {
+      loose: true, // 宽松模式，允许不完整的标记
+      validateToolId: false // 不验证工具ID是否存在
+    });
+    
+    // 确保返回数组（即使解析失败也返回空数组）
+    // parsed 可能是 null 或 ParsedToolCall[]，需要统一处理
+    if (!parsed || !Array.isArray(parsed)) {
+      return [];
+    }
+    
+    // 返回所有解析出的工具调用（可能包含多个）
+    return parsed;
+  } catch (error) {
+    console.error('解析工具调用失败:', error);
+    return [];
+  }
+};
+
 onMounted(async () => {
   modules.value = testFramework.getModules();
   refreshTestHistory();
@@ -3586,6 +5002,214 @@ onMounted(async () => {
 .debug-section :deep(.el-divider) {
   margin: 16px 0;
   flex-shrink: 0;
+}
+
+/* Agent会话调试相关样式 */
+.execution-node-item {
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.execution-node-item.current-node {
+  border-color: #409eff;
+  box-shadow: 0 0 8px rgba(64, 158, 255, 0.3);
+}
+
+.execution-node-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.node-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.node-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.node-id {
+  font-family: monospace;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.node-time {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-left: auto;
+}
+
+.node-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.node-status {
+  margin-bottom: 8px;
+}
+
+.node-data {
+  margin-top: 8px;
+}
+
+.message-item {
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.message-item.user-message {
+  border-left: 3px solid #409eff;
+}
+
+.message-item.assistant-message {
+  border-left: 3px solid #67c23a;
+}
+
+.message-item.tool-message {
+  border-left: 3px solid #e6a23c;
+}
+
+.message-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.message-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.message-type {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.message-id {
+  font-family: monospace;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.message-time {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-left: auto;
+}
+
+.message-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.message-content {
+  margin-top: 8px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.message-content pre {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+.session-debug-details {
+  margin-top: 20px;
+}
+
+/* 回放相关样式 */
+.replay-display {
+  margin-top: 20px;
+}
+
+.replay-message-item {
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.replay-message-item.replay-message-user {
+  border-left: 3px solid #409eff;
+}
+
+.replay-message-item.replay-message-assistant {
+  border-left: 3px solid #67c23a;
+}
+
+.replay-message-item.replay-message-tool {
+  border-left: 3px solid #e6a23c;
+}
+
+.replay-message-item.replay-message-replaying {
+  background-color: rgba(64, 158, 255, 0.1);
+  box-shadow: 0 0 8px rgba(64, 158, 255, 0.3);
+  animation: replay-pulse 1s ease-in-out infinite;
+}
+
+.replay-message-item.replay-message-replayed {
+  opacity: 1;
+}
+
+.replay-message-item.replay-message-pending {
+  opacity: 0.4;
+  filter: grayscale(0.5);
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+@keyframes replay-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(64, 158, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(64, 158, 255, 0.5);
+  }
+}
+
+.replay-message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.replay-message-time {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-left: auto;
+}
+
+.replay-message-content {
+  margin-top: 8px;
 }
 </style>
 

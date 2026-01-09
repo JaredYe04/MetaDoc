@@ -41,7 +41,8 @@ function generateHandle(): string {
 /** AI任务类型常量 */
 export const ai_types = {
   answer: 'answer' as const, // 回答问题
-  chat: 'chat' as const      // 多轮聊天
+  chat: 'chat' as const,     // 多轮聊天
+  tool: 'tool' as const      // 工具调用
 } as const
 
 /** 自定义LLM配置接口 */
@@ -304,6 +305,55 @@ export async function startAiTask(handle: string): Promise<void> {
       if (!task.meta?.stream && task.mirror) {
         await new Promise(resolve => setTimeout(resolve, 100))
       }
+    } else if (task.type === ai_types.tool && task.target) {
+      const logger = createRendererLogger('AiTasks')
+      
+      // 工具调用任务：执行工具
+      // task.prompt 应该是工具ID（字符串）
+      // task.meta 应该包含 toolId, parameters, tool_call_id 等信息
+      const toolId = typeof task.prompt === 'string' ? task.prompt : (task.meta?.toolId as string)
+      const parameters = (task.meta?.parameters as Record<string, unknown>) || {}
+      const session = task.meta?.session as any
+      
+      if (!toolId) {
+        throw new Error('工具调用任务缺少工具ID')
+      }
+      
+      logger.debug(`[startAiTask] 开始执行工具调用任务: handle=${handle}, toolId=${toolId}`)
+      
+      // 导入ToolRunner
+      const { ToolRunner } = await import('./agent-framework/tool-runner')
+      
+      // 执行工具
+      const observation = await ToolRunner.runTool(
+        toolId,
+        parameters,
+        controller.signal,
+        session
+      )
+      
+      // 将完整的observation保存到task.meta中，供ToolCallQueue使用
+      // 注意：必须在任务完成前保存，因为任务完成后会立即删除
+      if (task.meta) {
+        (task.meta as any).__observation = observation
+      }
+      
+      // 将结果序列化为字符串，更新到target
+      if (task.target) {
+        if (observation.status === 'succeeded') {
+          // 成功：序列化结果
+          const resultText = observation.summary || 
+            (typeof observation.result === 'string' 
+              ? observation.result 
+              : JSON.stringify(observation.result, null, 2))
+          task.target.value = resultText
+        } else {
+          // 失败：记录错误信息
+          task.target.value = `工具执行失败: ${observation.error || '未知错误'}`
+        }
+      }
+      
+      logger.debug(`[startAiTask] 工具调用任务完成: handle=${handle}, status=${observation.status}`)
     }
 
     task.status.value = ai_task_status.FINISHED as AITaskStatusValue
@@ -327,7 +377,17 @@ export async function startAiTask(handle: string): Promise<void> {
     }
     
     task.resolveDone?.()
-    deleteTask(handle)
+    
+    // 对于tool类型任务，延迟删除，确保ToolCallQueue能获取到observation
+    // 其他类型任务立即删除
+    if (task.type === ai_types.tool) {
+      // 延迟删除，给ToolCallQueue时间获取observation
+      setTimeout(() => {
+        deleteTask(handle)
+      }, 100)
+    } else {
+      deleteTask(handle)
+    }
 
     if (!isMainWindow()) {
       ipcRenderer.send('ai-task-done', handle)

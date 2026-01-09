@@ -38,7 +38,7 @@
           </div>
         </header>
         <el-scrollbar class="session-scroll">
-          <el-radio-group v-model="activeSessionId" class="session-list">
+          <el-radio-group v-model="activeSessionId" class="session-list" :disabled="isGenerating || workspace.uiLocked?.value">
             <el-radio
               v-for="session in sessionsState"
               :key="session.id"
@@ -96,6 +96,7 @@
             size="small"
             filterable
             style="width: 100%"
+            :disabled="isGenerating || workspace.uiLocked?.value"
             @change="handleEngineChange"
           >
             <el-option
@@ -394,6 +395,7 @@ import { recognizeIntent } from '../utils/agent-framework/intent-processor';
 import { ai_types, createAiTask, cancelAiTask, useAiTasks, type CustomLlmConfigForTask } from '../utils/ai_tasks';
 import { sanitizeMessages } from '../utils/llm-api.js';
 import { getLlmTemperature } from '../utils/settings.js';
+import { LlmAdapter } from '../utils/agent-framework/llm-adapter';
 import ToolCollectionManager from '../components/agent/manage/ToolCollectionManager.vue';
 import WorkflowManager from '../components/agent/manage/WorkflowManager.vue';
 import AgentConfigManager from '../components/agent/manage/AgentConfigManager.vue';
@@ -1101,15 +1103,11 @@ const handleComposerSubmit = async () => {
     const engine = agentEngineManager.getEngine(engineId);
     logger.debug(`[handleComposerSubmit] 选择的引擎: ${engineId}, 引擎类型: ${engine?.engineType}`);
     
-    // 对于SimpleChat引擎，在用户消息发送后立即创建空的assistant消息气泡（参考AIChat.vue）
+    // 对于SimpleChat引擎，在用户消息发送后立即创建空的assistant消息气泡
     if (engine?.engineType === 'simple-chat') {
       logger.debug('[handleComposerSubmit] 使用simple-chat引擎，准备创建流式输出消息气泡');
       
-      // 创建用于流式输出的ref
-      const assistantMessageRef = ref('');
-      logger.debug('[handleComposerSubmit] 创建了assistantMessageRef');
-      
-      // 创建空的assistant消息，使用reactive确保响应式更新（参考AIChat.vue的createAssistantPlaceholder）
+      // 创建空的assistant消息，使用reactive确保响应式更新
       const assistantMessage: ChatAgentMessage = reactive({
         id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         role: 'assistant',
@@ -1118,7 +1116,7 @@ const handleComposerSubmit = async () => {
         markdown: ''
       }) as ChatAgentMessage;
       
-      logger.debug(`[handleComposerSubmit] 创建了reactive assistantMessage, ID: ${assistantMessage.id}, markdown初始值: "${assistantMessage.markdown}"`);
+      logger.debug(`[handleComposerSubmit] 创建了reactive assistantMessage, ID: ${assistantMessage.id}`);
       
       // 关键：确保直接操作sessionsState中的session，而不是computed返回的session
       // 因为computed返回的是新对象，直接操作它可能不会触发响应式更新
@@ -1132,63 +1130,19 @@ const handleComposerSubmit = async () => {
       const actualSession = sessionsState.value[sessionIndex];
       actualSession.messages.push(assistantMessage);
       logger.debug(`[handleComposerSubmit] assistantMessage已添加到actualSession.messages, 当前消息数量: ${actualSession.messages.length}`);
-      logger.debug(`[handleComposerSubmit] assistantMessage对象是否为reactive: ${typeof assistantMessage === 'object' && assistantMessage !== null && 'markdown' in assistantMessage}`);
       
       touchSession(actualSession);
       
-      // 关键：不要在流式输出期间持久化，因为cloneDeep会破坏reactive对象的响应式
-      // 只在流式输出完成后持久化
-      
       // 等待Vue完成响应式更新
       await nextTick();
-      logger.debug('[handleComposerSubmit] nextTick完成，准备创建watch');
+      logger.debug('[handleComposerSubmit] nextTick完成，准备执行引擎');
       
-      // 创建watch，实时更新消息内容（参考AIChat.vue的实现方式）
-      let stopWatcher: (() => void) | null = null;
-      let watchTriggerCount = 0;
-      stopWatcher = watch(
-        assistantMessageRef,
-        (newValue) => {
-          watchTriggerCount++;
-          // logger.debug(`[handleComposerSubmit] watch触发 #${watchTriggerCount}, newValue长度: ${newValue.length}, 内容前50字符: "${newValue.substring(0, 50)}..."`);
-          
-          // 直接更新reactive对象的markdown属性，Vue会自动追踪变化
-          const oldMarkdown = assistantMessage.markdown;
-          assistantMessage.markdown = newValue;
-          logger.debug(`[handleComposerSubmit] 已更新assistantMessage.markdown, 旧长度: ${oldMarkdown.length}, 新长度: ${newValue.length}`);
-          
-          // 确保actualSession也被更新（虽然assistantMessage是reactive的，但为了保险起见）
-          const currentSessionIndex = sessionsState.value.findIndex(s => s.id === session.id);
-          if (currentSessionIndex !== -1) {
-            const currentSession = sessionsState.value[currentSessionIndex];
-            const messageIndex = currentSession.messages.findIndex(m => m.id === assistantMessage.id);
-            if (messageIndex !== -1) {
-              // 确保消息对象是同一个reactive对象
-              if (currentSession.messages[messageIndex] !== assistantMessage) {
-                currentSession.messages[messageIndex] = assistantMessage;
-                logger.debug('[handleComposerSubmit] 重新设置消息对象引用');
-              }
-            }
-          }
-          
-          // 实时滚动到底部
-          nextTick(() => {
-            const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap');
-            if (container) {
-              container.scrollTop = container.scrollHeight;
-            }
-          });
-        },
-        { immediate: true }
-      );
-      
-      logger.debug('[handleComposerSubmit] watch已创建，准备执行引擎');
-      
-      // 执行引擎，传入assistantMessageRef和stopWatcher
+      // 执行引擎，传入assistantMessage
       // 注意：使用actualSession而不是computed的session，确保响应式更新
-      await executeAgentEngine(content, assistantMessageRef, stopWatcher, assistantMessage, actualSession, shouldQueryKnowledgeBase);
+      // 注意：SimpleChat引擎现在使用LlmAdapter.callChatViaTask，它会直接更新assistantMessage.markdown
+      await executeAgentEngine(content, undefined, undefined, assistantMessage, actualSession, shouldQueryKnowledgeBase);
       
-      logger.debug(`[handleComposerSubmit] 引擎执行完成, watch共触发${watchTriggerCount}次`);
+      logger.debug('[handleComposerSubmit] 引擎执行完成');
     } else {
       logger.debug('[handleComposerSubmit] 使用其他引擎类型');
       await executeAgentEngine(content, undefined, undefined, undefined, undefined, shouldQueryKnowledgeBase);
@@ -1202,8 +1156,8 @@ const handleComposerSubmit = async () => {
 // 执行Agent引擎
 const executeAgentEngine = async (
   userMessage: string, 
-  assistantMessageRef?: Ref<string>,
-  stopWatcher?: (() => void) | null,
+  assistantMessageRef?: Ref<string>, // 保留参数以保持兼容性，但SimpleChat引擎不再使用
+  stopWatcher?: (() => void) | null, // 保留参数以保持兼容性，但SimpleChat引擎不再使用
   assistantMessage?: ChatAgentMessage,
   actualSession?: AgentSession,
   shouldQueryKnowledgeBase: boolean = false
@@ -1304,10 +1258,9 @@ const executeAgentEngine = async (
     const logger = createRendererLogger('AgentView');
     logger.debug('[executeAgentEngine] 开始执行simple-chat引擎');
     try {
-      // 如果已经传入了assistantMessageRef和assistantMessage（在handleComposerSubmit中创建），使用它们
+      // 如果已经传入了assistantMessage（在handleComposerSubmit中创建），使用它
       // 否则，在这里创建（兼容其他调用路径，如重新生成等）
-      if (!assistantMessageRef || !assistantMessage) {
-        assistantMessageRef = ref('');
+      if (!assistantMessage) {
         assistantMessage = reactive({
           id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           role: 'assistant',
@@ -1319,33 +1272,22 @@ const executeAgentEngine = async (
         // 注意：不要在流式输出期间持久化，会破坏reactive对象的响应式
         // persistSessions();
         await nextTick();
-        
-        // 注意：simple-chat引擎使用createAiTask，不是LlmAdapter.callChatViaTask
-        // 所以需要创建watch来同步assistantMessageRef到assistantMessage.markdown
-        // 但不要截断工具调用标记，让完整的markdown保留，以便后续检测工具调用
-        stopWatcher = watch(
-          assistantMessageRef,
-          (newValue) => {
-            if (assistantMessage) {
-              // 直接更新markdown，保留完整的工具调用标记
-              // AgentMessageRenderer会根据tool_calls的存在来决定是否显示markdown
-              assistantMessage.markdown = newValue;
-              nextTick(() => {
-                const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap');
-                if (container) {
-                  container.scrollTop = container.scrollHeight;
-                }
-              });
-            }
-          },
-          { immediate: true }
-        );
       }
       
-      // 确保assistantMessageRef存在
-      if (!assistantMessageRef) {
-        assistantMessageRef = ref('');
-      }
+      // 注意：simple-chat引擎现在使用LlmAdapter.callChatViaTask，它会直接更新assistantMessage.markdown
+      // 不需要watch来同步，但需要设置滚动监听
+      stopWatcher = watch(
+        () => assistantMessage?.markdown,
+        () => {
+          nextTick(() => {
+            const container = document.querySelector('.conversation-scroll .el-scrollbar__wrap');
+            if (container) {
+              container.scrollTop = container.scrollHeight;
+            }
+          });
+        },
+        { immediate: false }
+      );
       
       // 执行意图识别（用于更新activeToolIds和工具高亮）
       try {
@@ -1402,57 +1344,119 @@ const executeAgentEngine = async (
         };
       }
 
-      // 创建流式AI任务
+      // 使用LlmAdapter.callChatViaTask而不是createAiTask，以支持工具调用检测
       // 直接使用sanitizeMessages清理所有消息，确保所有content都是字符串
       // sanitizeMessages会处理所有消息格式问题，包括tool消息的content必须是字符串
       // 这确保了在发送到LLM API之前，所有消息格式都符合规范
       const formattedMessages = sanitizeMessages(contextMessages);
       logger.debug(`[executeAgentEngine] 消息已清理，消息数量: ${formattedMessages.length}`);
       
+      // 获取LLM配置
+      const llmConfig = await LlmAdapter.getLlmConfig(engine);
+      
       // 获取温度配置（优先使用engine的自定义配置，否则使用全局配置）
       const temperature = engine.customLlmConfig?.temperature ?? await getLlmTemperature();
       
-      // 构建meta对象，确保stream明确为true
-      const metaForTask = {
-        stream: true,  // 明确设置为true
-        temperature,
-        maxTokens: engine.customLlmConfig?.maxTokens,
-        customLlmConfig,
-        enableKnowledgeBase: shouldQueryKnowledgeBase
+      // 创建工具调用队列（用于执行检测到的工具调用）
+      const { ToolCallQueue } = await import('../utils/agent-framework/tool-call-queue');
+      const toolCallQueue = new ToolCallQueue(session as any, agentConfig);
+      
+      // 创建工具调用检测回调
+      const onToolCallsDetected = async (toolCalls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }>) => {
+        logger.debug('[executeAgentEngine] 检测到工具调用:', {
+          toolCallsCount: toolCalls.length,
+          toolCalls: toolCalls.map(tc => ({ id: tc.id, tool_id: tc.tool_id }))
+        });
+        
+        // 获取现有的tool_calls数组（如果存在）
+        const existingToolCalls = (assistantMessage as any).tool_calls || [];
+        const existingToolCallIds = new Set(existingToolCalls.map((tc: any) => tc.id));
+        
+        // 过滤出新的工具调用（避免重复添加）
+        const newToolCalls = toolCalls.filter(tc => !existingToolCallIds.has(tc.id));
+        
+        if (newToolCalls.length === 0) {
+          logger.debug('[executeAgentEngine] 所有工具调用都已存在，跳过添加');
+          return;
+        }
+        
+        // 合并现有的和新的工具调用
+        const toolCallsArray = [
+          ...existingToolCalls,
+          ...newToolCalls.map(tc => ({
+            id: tc.id,
+            tool_id: tc.tool_id,
+            parameters: tc.parameters
+          }))
+        ];
+        
+        // 更新assistantMessage的tool_calls
+        Object.defineProperty(assistantMessage, 'tool_calls', {
+          value: toolCallsArray,
+          writable: true,
+          enumerable: true,
+          configurable: true
+        });
+        
+        logger.info('[executeAgentEngine] 已添加tool_calls到assistantMessage（追加模式）', {
+          messageId: assistantMessage.id,
+          existingCount: existingToolCalls.length,
+          newCount: newToolCalls.length,
+          totalCount: toolCallsArray.length
+        });
+        
+        // 将工具调用添加到队列（立即开始执行）
+        for (const toolCall of newToolCalls) {
+          toolCallQueue.addTask(toolCall);
+        }
+        
+        logger.info('[executeAgentEngine] 已将新工具调用添加到队列，开始异步执行', {
+          addedCount: newToolCalls.length
+        });
       };
       
-      logger.debug('[executeAgentEngine] 准备创建AI任务，meta对象:', {
-        stream: metaForTask.stream,
-        streamType: typeof metaForTask.stream,
-        metaKeys: Object.keys(metaForTask),
-        fullMeta: JSON.stringify(metaForTask)
-      });
+      logger.debug('[executeAgentEngine] 准备调用LlmAdapter.callChatViaTask');
       
-      const { handle, done } = createAiTask(
-        'Agent对话',
+      // 调用LlmAdapter.callChatViaTask，支持工具调用检测
+      const response = await LlmAdapter.callChatViaTask(
+        llmConfig,
         formattedMessages,
-        assistantMessageRef,
-        ai_types.chat,
-        originKey,
-        metaForTask
+        {
+          temperature,
+          maxTokens: engine.customLlmConfig?.maxTokens,
+          stream: true,
+          signal: abortController.signal,
+          taskName: 'Agent对话',
+          originKey,
+          reactiveMessage: assistantMessage,
+          onTaskCreated: (handle: string) => {
+            currentAiTaskHandle.value = handle;
+            aiTaskHandles.value.add(handle);
+            logger.debug(`[executeAgentEngine] AI任务已创建，handle: ${handle}`);
+          },
+          onToolCallsDetected
+        }
       );
       
-      currentAiTaskHandle.value = handle;
-      aiTaskHandles.value.add(handle);
-      logger.debug(`[executeAgentEngine] AI任务已创建，handle: ${handle}, 开始等待流式输出`);
-
-      await done;
-      logger.debug('[executeAgentEngine] AI任务完成');
+      logger.debug('[executeAgentEngine] LlmAdapter.callChatViaTask完成');
+      
+      // 等待工具调用队列完成（如果队列中有任务）
+      // 注意：需要先标记输入完成，然后等待队列完成
+      // 这样可以确保所有在流式过程中检测到的工具调用都已添加到队列并执行完成
+      toolCallQueue.setInputComplete();
+      if (!toolCallQueue.isEmpty() || toolCallQueue.getIsRunning()) {
+        logger.debug('[executeAgentEngine] 等待工具调用队列完成...');
+        await toolCallQueue.waitForComplete();
+        logger.debug('[executeAgentEngine] 工具调用队列已完成');
+      }
       
       // 任务完成后，确保消息内容是最新的
-      // 注意：不要清理工具调用标记，因为：
-      // 1. tool_calls需要保留在markdown中供AI上下文使用
-      // 2. AgentMessageRenderer会根据tool_calls的存在来决定是否显示markdown
-      // 3. 如果消息有tool_calls，UI会显示友好的提示，而不是原始markdown
-      if (assistantMessage && assistantMessageRef) {
-        assistantMessage.markdown = assistantMessageRef.value;
-        logger.debug(`[executeAgentEngine] 任务完成，最终消息长度: ${assistantMessageRef.value.length}`);
+      // 注意：LlmAdapter.callChatViaTask已经通过reactiveMessage更新了markdown
+      // 但为了保险起见，如果response有内容且markdown为空，则使用response
+      if (assistantMessage && response && !assistantMessage.markdown) {
+        assistantMessage.markdown = response;
       }
+      logger.debug(`[executeAgentEngine] 任务完成，最终消息长度: ${assistantMessage?.markdown?.length || 0}`);
       
       session.status = 'idle';
       
@@ -1481,10 +1485,8 @@ const executeAgentEngine = async (
         // 用户手动取消，不记录为错误，只更新消息内容
         logger.debug('Agent引擎任务已取消');
         session.status = 'idle';
-        if (assistantMessage && assistantMessageRef && assistantMessageRef.value) {
-          assistantMessage.markdown = assistantMessageRef.value;
-          persistSessions();
-        }
+        // 注意：LlmAdapter.callChatViaTask已经通过reactiveMessage更新了markdown
+        persistSessions();
         // 不抛出错误，正常返回
         return;
       }
@@ -1495,10 +1497,8 @@ const executeAgentEngine = async (
       persistSessions();
       
       // 如果任务被取消或失败，也要更新消息内容
-      if (assistantMessage && assistantMessageRef && assistantMessageRef.value) {
-        assistantMessage.markdown = assistantMessageRef.value;
-        persistSessions();
-      } else if (assistantMessage && assistantMessage.id) {
+      // 注意：LlmAdapter.callChatViaTask已经通过reactiveMessage更新了markdown
+      if (assistantMessage && assistantMessage.id) {
         // 移除空的响应式消息
         const messageIndex = session.messages.findIndex(m => m.id === assistantMessage!.id);
         if (messageIndex !== -1) {

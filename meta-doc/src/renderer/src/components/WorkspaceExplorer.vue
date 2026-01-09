@@ -651,6 +651,13 @@ const handleOpenFile = async (filePath: string) => {
   const existingTab = workspace.tabs.find(tab => tab.path === filePath)
   if (existingTab) {
     workspace.activateTab(existingTab.id)
+    // 即使文件已经在 Tab 中打开，也应该更新 recent-docs
+    // 触发 open-doc-success 事件以统一处理逻辑
+    eventBus.emit('open-doc-success', {
+      tabId: existingTab.id,
+      path: filePath,
+      fileName: existingTab.subtitle || existingTab.title
+    })
     return
   }
 

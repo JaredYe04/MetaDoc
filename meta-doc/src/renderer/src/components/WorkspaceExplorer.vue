@@ -177,10 +177,12 @@ import WorkspaceTreeNode from './WorkspaceTreeNode.vue'
 import ContextMenu from './ContextMenu.vue'
 import type { ContextMenuItem } from './contextMenus/types'
 import { dirname, basename, extname, join, relative } from '../utils/path-utils'
+import { useCloseTab } from '../composables/useCloseTab'
 
 const { t } = useI18n()
 const logger = createRendererLogger('WorkspaceExplorer')
 const workspace = useWorkspace()
+const { closeTab } = useCloseTab()
 
 interface FileNode {
   name: string
@@ -768,29 +770,9 @@ onBeforeUnmount(() => {
   }
 })
 
-// 关闭文件
+// 关闭文件 - 使用公共的 closeTab composable
 const handleCloseFile = async (tabId: string) => {
-  const tab = workspace.tabs.find(t => t.id === tabId)
-  if (!tab) return
-
-  // 如果文档有未保存的更改，需要确认
-  if (tab.dirty) {
-    try {
-      await ElMessageBox.confirm(
-        t('workspaceExplorer.closeFileConfirm', { name: tab.subtitle || tab.title }),
-        t('workspaceExplorer.closeFileTitle'),
-        {
-          confirmButtonText: t('common.confirm'),
-          cancelButtonText: t('common.cancel'),
-          type: 'warning'
-        }
-      )
-    } catch {
-      return // 用户取消
-    }
-  }
-
-  workspace.removeTab(tabId)
+  await closeTab(tabId)
 }
 
 // 处理节点右键菜单

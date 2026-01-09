@@ -78,7 +78,6 @@
 
 <script setup lang="ts">
 import { computed, ref, reactive, watch, nextTick, onMounted } from 'vue'
-import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
@@ -86,6 +85,7 @@ import eventBus from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
 import { Minus, FullScreen, Close, Plus } from '@element-plus/icons-vue'
 import { mixColors, themeState } from '../utils/themes'
+import { useCloseTab } from '../composables/useCloseTab'
 
 const logger = createRendererLogger('MainTabs')
 const { t } = useI18n()
@@ -95,7 +95,7 @@ const route = useRoute()
 const workspace = useWorkspace()
 const tabsRef = ref<any>(null)
 
-const isLocked = computed(() => workspace.uiLocked?.value === true)
+const { closeTab, isLocked } = useCloseTab()
 
 // 使用mixColors生成辅助色 - 使用themeState.currentTheme的主题色
 const tabsContainerBackgroundColor = computed(() => {
@@ -270,76 +270,9 @@ const handleBeforeLeave = (nextName?: string, _currentName?: string) => {
   return true
 }
 
-// 自定义关闭Tab处理函数
+// 自定义关闭Tab处理函数 - 使用公共的 closeTab composable
 const handleCloseTab = async (tabId: string) => {
-  if (isLocked.value) return
-  
-  const tab = allTabs.value.find(t => t.id === tabId)
-  if (!tab) return
-  
-  if (!workspace.canRemoveTab(tabId)) {
-    return
-  }
-  
-  // 获取ipcRenderer
-  let ipcRenderer: any = null
-  if (window && (window as any).electron) {
-    ipcRenderer = (window as any).electron.ipcRenderer
-  }
-  
-  // 如果是文档Tab且有未保存内容，需要确认
-  if (tab.kind === 'file' || tab.kind === 'new') {
-    const doc = workspace.documents[tabId]
-    if (doc?.dirty) {
-      if (!ipcRenderer) {
-        try {
-          await ElMessageBox.confirm(
-            t('main.dialogs.closeTabMessage'),
-            t('main.dialogs.closeTabTitle'),
-            {
-              type: 'warning',
-              confirmButtonText: t('main.dialogs.closeTabConfirm'),
-              cancelButtonText: t('main.dialogs.closeTabCancel'),
-            },
-          )
-        } catch {
-          return
-        }
-      } else {
-        try {
-          ipcRenderer.send('request-close-tab', tabId)
-          const result = await new Promise<{ tabId: string; action: 'save' | 'discard' | 'cancel' }>((resolve) => {
-            const handler = (_event: any, response: { tabId: string; action: 'save' | 'discard' | 'cancel' }) => {
-              if (response.tabId === tabId) {
-                ipcRenderer.removeListener('close-tab-response', handler)
-                resolve(response)
-              }
-            }
-            ipcRenderer.on('close-tab-response', handler)
-            setTimeout(() => {
-              ipcRenderer.removeListener('close-tab-response', handler)
-              resolve({ tabId, action: 'cancel' })
-            }, 10000)
-          })
-          
-          if (result.action === 'save') {
-            const { saveDocument } = workspace
-            const saveResult = await saveDocument(tabId, { saveAs: false })
-            if (!saveResult) {
-              return
-            }
-          } else if (result.action === 'cancel') {
-            return
-          }
-        } catch (error) {
-          logger.error('关闭tab失败:', error)
-          return
-        }
-      }
-    }
-  }
-  
-  workspace.removeTab(tabId)
+  await closeTab(tabId)
 }
 
 const handleRemove = async (id: string | number) => {

@@ -50,7 +50,7 @@
                 :reverse="true"
                 sidebar-position="end"
                 :collapsible="true"
-                :auto-collapse-width="MARKDOWN_LAYOUT.editorMinWidth + MARKDOWN_LAYOUT.sidebarMinWidth + 100"
+                :auto-collapse-width="MARKDOWN_LAYOUT.editorMinWidth + MARKDOWN_LAYOUT.sidebarMinWidth + 200"
                 :collapse-button-title="$t('article.collapse_meta_panel')"
                 :expand-button-title="$t('article.expand_meta_panel')"
                 @resize="onMetaInfoResize"
@@ -207,7 +207,7 @@ const currentDialogs = computed<any[]>({
 const currentView = computed(() => {
   const view = documentRef.value.lastView ?? 'editor'
   // 兼容旧的'article'值，转换为'editor'
-  return view === 'article' ? 'editor' : view
+  return (view as string) === 'article' ? 'editor' : view
 })
 
 const currentRenderedHtml = computed<string>({
@@ -1457,6 +1457,13 @@ const refreshContextMenu = async () => {
     articleContextMenuItems.value = await getArticleContextMenuItems();
 }
 
+// 切换元信息面板显示
+const toggleMetaPanel = () => {
+    if (resizableRef.value) {
+        resizableRef.value.toggleCollapse();
+    }
+}
+
 // 编辑器初始化
 onMounted(async () => {
     if (typeof window !== "undefined") {
@@ -1612,6 +1619,14 @@ onMounted(async () => {
                     className: 'right',
                     icon: '<svg><use xlink:href="#vditor-icon-info"></use></svg>',
                     click() { eventBus.emit('search-replace') },
+                },
+                {
+                    name: 'toggle-meta-panel',
+                    tip: t('article.toggle_meta_panel'),
+                    tipPosition: 's',
+                    className: 'right',
+                    icon: '<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M832 384H576V128H192v768h640V384zm-26.496-64L640 154.496V320h165.504zM160 64h448l256 256v608a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V96a32 32 0 0 1 32-32zm160 448h384v64H320v-64zm0-192h384v64H320v-64z" fill="currentColor"/></svg>',
+                    click() { toggleMetaPanel() },
                 },
                 {
                     name: 'ai-assistant',

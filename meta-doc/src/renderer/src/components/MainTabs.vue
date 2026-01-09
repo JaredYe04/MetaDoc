@@ -774,7 +774,7 @@ watch(() => route.path, (newPath) => {
   line-height: 40px;
   transition: background-color 0.15s ease, color 0.15s ease;
   margin-bottom: 0 !important;
-  margin-top: 0 !important;
+  margin-top: 6px !important;/*确保顶部仍然有可以拖动窗口的区域 */
   border-radius: 6px 6px 0 0;
   /* 确保内容可以缩小 */
   box-sizing: border-box;

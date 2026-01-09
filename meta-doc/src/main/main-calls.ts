@@ -452,6 +452,222 @@ function bindFileHandlers(): void {
     }
   });
 
+  // 删除文件或文件夹（移到回收站）
+  ipcMain.handle('delete-file-or-folder', async (event: IpcMainInvokeEvent, filePath: string): Promise<void> => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        throw new Error('文件或文件夹不存在');
+      }
+
+      // 使用 shell.trashItem 移到回收站
+      await shell.trashItem(filePath);
+    } catch (error) {
+      logger.error('删除文件或文件夹失败:', error);
+      throw error;
+    }
+  });
+
+  // 重命名文件或文件夹
+  ipcMain.handle('rename-file-or-folder', async (event: IpcMainInvokeEvent, payload: { oldPath: string; newName: string }): Promise<string> => {
+    try {
+      const { oldPath, newName } = payload;
+      if (!fs.existsSync(oldPath)) {
+        throw new Error('文件或文件夹不存在');
+      }
+
+      // 验证新名称
+      if (!newName || newName.trim() === '') {
+        throw new Error('新名称不能为空');
+      }
+
+      // 检查非法字符（Windows: < > : " | ? * \ /）
+      const invalidChars = /[<>:"|?*\\/]/;
+      if (invalidChars.test(newName)) {
+        throw new Error('文件名包含非法字符');
+      }
+
+      const dir = path.dirname(oldPath);
+      const newPath = path.join(dir, newName);
+
+      // 检查目标路径是否已存在
+      if (fs.existsSync(newPath)) {
+        throw new Error('目标文件或文件夹已存在');
+      }
+
+      fs.renameSync(oldPath, newPath);
+      return newPath;
+    } catch (error) {
+      logger.error('重命名文件或文件夹失败:', error);
+      throw error;
+    }
+  });
+
+  // 创建文件夹
+  ipcMain.handle('create-directory', async (event: IpcMainInvokeEvent, payload: { parentPath: string; folderName: string }): Promise<string> => {
+    try {
+      const { parentPath, folderName } = payload;
+      
+      if (!fs.existsSync(parentPath)) {
+        throw new Error('父目录不存在');
+      }
+
+      // 验证文件夹名称
+      if (!folderName || folderName.trim() === '') {
+        throw new Error('文件夹名称不能为空');
+      }
+
+      // 检查非法字符
+      const invalidChars = /[<>:"|?*\\/]/;
+      if (invalidChars.test(folderName)) {
+        throw new Error('文件夹名称包含非法字符');
+      }
+
+      const newPath = path.join(parentPath, folderName);
+
+      // 检查目标路径是否已存在
+      if (fs.existsSync(newPath)) {
+        throw new Error('文件夹已存在');
+      }
+
+      fs.mkdirSync(newPath, { recursive: true });
+      return newPath;
+    } catch (error) {
+      logger.error('创建文件夹失败:', error);
+      throw error;
+    }
+  });
+
+  // 创建文件
+  ipcMain.handle('create-file', async (event: IpcMainInvokeEvent, payload: { parentPath: string; fileName: string; content?: string }): Promise<string> => {
+    try {
+      const { parentPath, fileName, content = '' } = payload;
+      
+      if (!fs.existsSync(parentPath)) {
+        throw new Error('父目录不存在');
+      }
+
+      // 验证文件名称
+      if (!fileName || fileName.trim() === '') {
+        throw new Error('文件名称不能为空');
+      }
+
+      // 检查非法字符
+      const invalidChars = /[<>:"|?*\\/]/;
+      if (invalidChars.test(fileName)) {
+        throw new Error('文件名称包含非法字符');
+      }
+
+      // 只允许 md 和 tex 文件
+      const ext = path.extname(fileName).toLowerCase();
+      if (ext !== '.md' && ext !== '.tex') {
+        throw new Error('只支持创建 .md 和 .tex 文件');
+      }
+
+      const newPath = path.join(parentPath, fileName);
+
+      // 检查目标路径是否已存在
+      if (fs.existsSync(newPath)) {
+        throw new Error('文件已存在');
+      }
+
+      fs.writeFileSync(newPath, content, 'utf-8');
+      return newPath;
+    } catch (error) {
+      logger.error('创建文件失败:', error);
+      throw error;
+    }
+  });
+
+  // 复制文件或文件夹
+  ipcMain.handle('copy-file-or-folder', async (event: IpcMainInvokeEvent, payload: { sourcePath: string; targetPath: string }): Promise<void> => {
+    try {
+      const { sourcePath, targetPath } = payload;
+      
+      if (!fs.existsSync(sourcePath)) {
+        throw new Error('源文件或文件夹不存在');
+      }
+
+      if (fs.existsSync(targetPath)) {
+        throw new Error('目标文件或文件夹已存在');
+      }
+
+      const stats = fs.statSync(sourcePath);
+      if (stats.isDirectory()) {
+        // 递归复制文件夹
+        fs.cpSync(sourcePath, targetPath, { recursive: true });
+      } else {
+        // 复制文件
+        fs.copyFileSync(sourcePath, targetPath);
+      }
+    } catch (error) {
+      logger.error('复制文件或文件夹失败:', error);
+      throw error;
+    }
+  });
+
+  // 移动文件或文件夹（剪切）
+  ipcMain.handle('move-file-or-folder', async (event: IpcMainInvokeEvent, payload: { sourcePath: string; targetPath: string }): Promise<void> => {
+    try {
+      const { sourcePath, targetPath } = payload;
+      
+      if (!fs.existsSync(sourcePath)) {
+        throw new Error('源文件或文件夹不存在');
+      }
+
+      if (fs.existsSync(targetPath)) {
+        throw new Error('目标文件或文件夹已存在');
+      }
+
+      // 确保目标目录存在
+      const targetDir = path.dirname(targetPath);
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+
+      fs.renameSync(sourcePath, targetPath);
+    } catch (error) {
+      logger.error('移动文件或文件夹失败:', error);
+      throw error;
+    }
+  });
+
+  // 在文件管理器中显示文件
+  ipcMain.handle('show-item-in-folder', async (event: IpcMainInvokeEvent, filePath: string): Promise<void> => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        throw new Error('文件或文件夹不存在');
+      }
+      shell.showItemInFolder(filePath);
+    } catch (error) {
+      logger.error('在文件管理器中显示文件失败:', error);
+      throw error;
+    }
+  });
+
+  // 检查路径是否存在（用于重名检测）
+  ipcMain.handle('check-path-exists', async (event: IpcMainInvokeEvent, filePath: string): Promise<boolean> => {
+    try {
+      return fs.existsSync(filePath);
+    } catch (error) {
+      logger.error('检查路径是否存在失败:', error);
+      return false;
+    }
+  });
+
+  // 检查路径是否为目录
+  ipcMain.handle('check-path-is-directory', async (event: IpcMainInvokeEvent, filePath: string): Promise<boolean> => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        return false;
+      }
+      const stats = fs.statSync(filePath);
+      return stats.isDirectory();
+    } catch (error) {
+      logger.error('检查路径是否为目录失败:', error);
+      return false;
+    }
+  });
+
   ipcMain.handle('write-file-content', async (event: IpcMainInvokeEvent, payload: { filePath: string; content: string; encoding?: 'utf8' | 'base64' }): Promise<void> => {
     try {
       const { filePath, content, encoding = 'utf8' } = payload;

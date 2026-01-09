@@ -353,6 +353,16 @@ onMounted(async () => {
   if (props.collapsible && props.autoCollapseWidth > 0 && containerRef.value) {
     const parentContainer = containerRef.value.parentElement
     if (parentContainer) {
+      // 检查并折叠的函数
+      const checkAndCollapse = () => {
+        const width = parentContainer.clientWidth || parentContainer.getBoundingClientRect().width
+        if (width < props.autoCollapseWidth && !isCollapsed.value) {
+          isCollapsed.value = true
+          emit('collapse', true)
+        }
+      }
+      
+      // 设置 ResizeObserver 监听后续变化
       resizeObserver = new ResizeObserver((entries) => {
         for (const entry of entries) {
           const width = entry.contentRect.width
@@ -363,6 +373,15 @@ onMounted(async () => {
         }
       })
       resizeObserver.observe(parentContainer)
+      
+      // 等待 DOM 完全渲染后立即检查一次初始宽度
+      // 使用 requestAnimationFrame 确保在下一帧渲染后检查
+      requestAnimationFrame(() => {
+        // 再等待一个 nextTick 确保所有子组件都已挂载
+        nextTick(() => {
+          checkAndCollapse()
+        })
+      })
     }
   }
   

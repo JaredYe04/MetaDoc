@@ -595,6 +595,7 @@
         "convert_to_latex_confirm":"转换后会生成tex文件，与现有的Markdown文件不同步，是否继续？",
         "collapse_meta_panel":"折叠元信息面板",
         "expand_meta_panel":"展开元信息面板",
+        "toggle_meta_panel":"切换元信息面板",
         "msgbox":{
             "tip":"提示",
             "confirm":"确定",

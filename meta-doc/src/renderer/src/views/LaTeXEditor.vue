@@ -42,6 +42,7 @@
 
             <div class="latex-layout">
                 <ResizableContainer
+                    ref="metaResizableRef"
                     direction="vertical"
                     :initial-sidebar-size="LATEX_LAYOUT.meta.initialWidth"
                     :min-size="LATEX_LAYOUT.meta.minWidth"
@@ -49,7 +50,7 @@
                     :reverse="true"
                     sidebar-position="end"
                     :collapsible="true"
-                    :auto-collapse-width="LATEX_LAYOUT.left.minWidth + LATEX_LAYOUT.meta.minWidth + 100"
+                    :auto-collapse-width="LATEX_LAYOUT.left.minWidth + LATEX_LAYOUT.meta.minWidth + LATEX_LAYOUT.pdf.minWidth + 100"
                     :collapse-button-title="$t('article.collapse_meta_panel')"
                     :expand-button-title="$t('article.expand_meta_panel')"
                 >
@@ -127,6 +128,14 @@
                                     </el-tooltip>
 
                                     <el-divider direction="vertical"></el-divider>
+
+                                    <el-tooltip :content="$t('article.toggle_meta_panel')" placement="bottom">
+                                        <div class="toolbar-icon" @click="toggleMetaPanel">
+                                            <el-icon>
+                                                <Document />
+                                            </el-icon>
+                                        </div>
+                                    </el-tooltip>
 
                                     <el-tooltip :content="$t('latexEditor.toolbar.showPdf')" placement="bottom">
                                         <div class="toolbar-icon" @click="togglePdf">
@@ -343,7 +352,7 @@ const LATEX_LAYOUT = {
         maxRatio: 0.7,
     },
     pdf: {
-        minWidth: 360,
+        minWidth: 660,
         maxRatio: 0.55,
     },
 };
@@ -576,6 +585,7 @@ const editorEl = ref<HTMLElement | null>(null);
 const editorKey = ref(Date.now());
 const mainContainerRef = ref<HTMLElement | null>(null);
 const pdfResizableRef = ref<any>(null);
+const metaResizableRef = ref<InstanceType<typeof ResizableContainer> | null>(null);
 const mainWidth = ref(0);
 let mainObserver: ResizeObserver | null = null;
 
@@ -612,6 +622,8 @@ const handlePdfResize = (size: number) => {
     if (clamped !== size && pdfResizableRef.value?.setSidebarSize) {
         pdfResizableRef.value.setSidebarSize(clamped);
     }
+    // 在 PDF 面板大小变化时，暂时禁用 minimap 避免闪烁
+    temporarilyDisableMinimap();
 };
 
 const editorDomId = computed(() => props.editorDomId || 'latex-editor');
@@ -674,6 +686,38 @@ const toggleMinimap = () => {
         minimap: { enabled: enableMinimap }
     });
 }
+
+// Minimap 防抖处理：在窗口或组件大小变化时暂时禁用 minimap，避免闪烁
+let isMinimapTemporarilyDisabled = false;
+
+// 重新启用 minimap 的防抖函数
+const reenableMinimap = debounce(() => {
+    if (!editor.value || !enableMinimap) return;
+    
+    // 如果 minimap 原本是启用的，重新启用它
+    if (isMinimapTemporarilyDisabled) {
+        editor.value.updateOptions({
+            minimap: { enabled: true }
+        });
+        isMinimapTemporarilyDisabled = false;
+    }
+}, 300); // 300ms 防抖延迟
+
+// 暂时禁用 minimap（在 resize 开始时调用）
+const temporarilyDisableMinimap = () => {
+    if (!editor.value || !enableMinimap) return;
+    
+    // 如果 minimap 当前是启用的，暂时禁用它
+    if (!isMinimapTemporarilyDisabled) {
+        editor.value.updateOptions({
+            minimap: { enabled: false }
+        });
+        isMinimapTemporarilyDisabled = true;
+    }
+    
+    // 触发防抖重新启用
+    reenableMinimap();
+}
 const toggleRowNumber = () => {
     if (!editor.value) return;
     enableRowNumber = !enableRowNumber;
@@ -682,7 +726,7 @@ const toggleRowNumber = () => {
     });
 }
 
-const showPdfPanel = ref(true)
+const showPdfPanel = ref(false)  // 默认不显示，只有在存在 PDF 文件时才显示
 const showConsole = ref(false)  // 默认隐藏终端
 const pdfUrl = ref('')
 
@@ -822,7 +866,15 @@ async function initPdfJs() {
     // 等待容器准备好后加载PDF
     await nextTick();
     if (pdfUrl.value) {
-        loadPdf(pdfUrl.value);
+        // 尝试加载 PDF，如果成功则显示面板
+        const loaded = await loadPdf(pdfUrl.value);
+        if (loaded) {
+            showPdfPanel.value = true;
+        } else {
+            showPdfPanel.value = false;
+        }
+    } else {
+        showPdfPanel.value = false;
     }
     
     // 绑定wheel事件到容器（用于Ctrl+滚轮缩放）
@@ -1216,8 +1268,9 @@ watch(
             return;
         }
         if (pdfUrl.value && pdfInitialized) {
-            nextTick(() => {
-                loadPdf(pdfUrl.value);
+            nextTick(async () => {
+                const loaded = await loadPdf(pdfUrl.value);
+                showPdfPanel.value = loaded;
             });
         }
     },
@@ -1226,10 +1279,11 @@ watch(
 
 watch(
     currentPath,
-    (path) => {
+    async (path) => {
         //logger.debug("LaTeXEditor currentPath changed", { path })
         if (!path || !path.toLowerCase().endsWith('.tex')) {
             pdfUrl.value = '';
+            showPdfPanel.value = false;
             return;
         }
         const pdfPath = path.toLowerCase().replace('.tex', '.pdf');
@@ -1237,7 +1291,9 @@ watch(
         pdfUrl.value = nextUrl;
         if (!isActive.value) return;
         if (pdfInitialized) {
-            loadPdf(nextUrl);
+            // 尝试加载 PDF，根据结果设置面板显示状态
+            const loaded = await loadPdf(nextUrl);
+            showPdfPanel.value = loaded;
         }
     },
 );
@@ -1645,10 +1701,11 @@ function handlePdfLoaded(pdf: any) {
 }
 
 // 在加载 PDF 后初始化
-async function loadPdf(url: string, preservePage = false) {
+// 返回 true 表示加载成功，false 表示加载失败（文件不存在等）
+async function loadPdf(url: string, preservePage = false): Promise<boolean> {
     if (!url || url.trim() === '') {
         // 如果 URL 为空，不加载 PDF
-        return;
+        return false;
     }
     
     // 保存当前页码（如果要求保留）
@@ -1681,6 +1738,8 @@ async function loadPdf(url: string, preservePage = false) {
         
         // 异步建立映射关系
         buildPdfToSourceMapping();
+        
+        return true; // 加载成功
     } catch (error: any) {
         // 捕获 PDF 加载错误，避免未处理的 rejection
         const errorMessage = error?.message || String(error);
@@ -1710,11 +1769,20 @@ async function loadPdf(url: string, preservePage = false) {
         
         // 清空 PDF URL，避免重复尝试加载
         pdfUrl.value = '';
+        
+        return false; // 加载失败
     }
 }
 // 切换 PDF 显示
 function togglePdf() {
     showPdfPanel.value = !showPdfPanel.value
+}
+
+// 切换元信息面板显示
+const toggleMetaPanel = () => {
+    if (metaResizableRef.value) {
+        metaResizableRef.value.toggleCollapse();
+    }
 }
 
 const compile = async () => {
@@ -1792,7 +1860,11 @@ const compile = async () => {
             pdfUrl.value = encodeFilePathToUrl(compileResult.pdfPath);
             
             // 重新加载PDF并建立映射
-            await loadPdf(pdfUrl.value);
+            const loaded = await loadPdf(pdfUrl.value);
+            // 编译成功后，如果 PDF 加载成功，自动显示 PDF 面板
+            if (loaded) {
+                showPdfPanel.value = true;
+            }
         }
         else{
             eventBus.emit("show-error",t("latexEditor.notification.compileFailed",{ code:compileResult?.exitCode || compileResult?.code }));
@@ -2946,9 +3018,21 @@ onMounted(async () => {
                 if (width !== mainWidth.value) {
                     mainWidth.value = width;
                     ensurePdfWithinBounds();
+                    // 在组件大小变化时，暂时禁用 minimap 避免闪烁
+                    temporarilyDisableMinimap();
                 }
             });
             mainObserver.observe(mainContainerRef.value);
+        }
+        
+        // 监听窗口大小变化，暂时禁用 minimap 避免闪烁
+        const handleWindowResize = () => {
+            temporarilyDisableMinimap();
+        };
+        if (typeof window !== 'undefined') {
+            window.addEventListener('resize', handleWindowResize);
+            // 保存清理函数
+            (window as any)._latexEditorResizeHandler = handleWindowResize;
         }
     }
     catch (e) {
@@ -3026,6 +3110,19 @@ onUnmounted(() => {
     
     if (typeof window !== 'undefined') {
         window.removeEventListener('resize', updateSearchMenuPosition);
+        // 移除窗口 resize 监听器
+        if ((window as any)._latexEditorResizeHandler) {
+            window.removeEventListener('resize', (window as any)._latexEditorResizeHandler);
+            delete (window as any)._latexEditorResizeHandler;
+        }
+    }
+    
+    // 如果 minimap 被暂时禁用，恢复它
+    if (isMinimapTemporarilyDisabled && editor.value && enableMinimap) {
+        editor.value.updateOptions({
+            minimap: { enabled: true }
+        });
+        isMinimapTemporarilyDisabled = false;
     }
     
     // 移除AI分析开关监听器

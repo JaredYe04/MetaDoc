@@ -17,6 +17,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
+import { mixColors, themeState } from '../../utils/themes'
 
 interface Props {
   /** 拖拽方向 */
@@ -38,7 +39,6 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   direction: 'vertical',
   size: 5,
-  backgroundColor: '#55555555',
   hoverColor: '#55555566',
   minValue: 100,
   maxValue: 1000,
@@ -57,16 +57,18 @@ const isResizing = ref(false)
 // 起始位置
 let startX = 0
 let startY = 0
-
+const hoverColor = computed(() => {
+  return mixColors(themeState.currentTheme.background, props.hoverColor, 0.5)
+})
 // 分割线样式
 const dividerStyle = computed(() => {
   // 默认透明，拖拽时显示hoverColor
   const baseStyle = {
-    backgroundColor: isResizing.value ? props.hoverColor : 'transparent',
+    backgroundColor: isResizing.value ? props.hoverColor : themeState.currentTheme.background,
     cursor: props.direction === 'horizontal' ? 'row-resize' : 'col-resize',
     // 将原始背景色和悬停色传递给 CSS 变量，用于 hover 状态
-    '--divider-bg-color': props.backgroundColor,
-    '--divider-hover-color': props.hoverColor
+    '--divider-bg-color': themeState.currentTheme.background,
+    '--divider-hover-color': hoverColor.value
   }
 
   if (props.direction === 'horizontal') {

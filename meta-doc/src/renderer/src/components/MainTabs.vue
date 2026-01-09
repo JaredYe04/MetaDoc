@@ -774,7 +774,8 @@ watch(() => route.path, (newPath) => {
   line-height: 40px;
   transition: background-color 0.15s ease, color 0.15s ease;
   margin-bottom: 0 !important;
-  margin-top: 6px !important;/*确保顶部仍然有可以拖动窗口的区域 */
+  /* margin-top: 2px !important;确保顶部仍然有可以拖动窗口的区域 */
+  margin-top: 0 !important;
   border-radius: 6px 6px 0 0;
   /* 确保内容可以缩小 */
   box-sizing: border-box;
@@ -966,7 +967,7 @@ watch(() => route.path, (newPath) => {
   -moz-user-select: none;
   -ms-user-select: none;
   flex-shrink: 0;
-  margin-left: 4px;
+  margin-left: 20px;/*确保永远有空白区域，可以用于拖动窗口 */
   margin-right: 0; /* 移除右侧margin，紧贴窗口控制按钮 */
   background-color: v-bind('tabItemBackgroundColor');
   -webkit-app-region: no-drag;

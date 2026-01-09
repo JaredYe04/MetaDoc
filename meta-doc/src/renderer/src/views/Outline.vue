@@ -1,5 +1,5 @@
 <template>
-  <div class="outline-page" :data-direction="direction">
+  <div class="outline-page" :data-direction="direction" :class="{ 'is-dragging': isDraggingNode }">
   <div class="container">
     <el-scrollbar class="aero-div generate-preview" v-if="generating || pendingAccept" :style="{
       backgroundColor: themeState.currentTheme.background, top: position.top + 'px',
@@ -54,6 +54,7 @@
     <vue-tree
       ref="treeRef"
       class="outline-tree-container"
+      :class="{ 'is-dragging': isDraggingNode }"
       style="width: 100%; height: 100%; border: 1px solid gray; border-radius: 12px;"
       :style="{ backgroundColor: themeState.currentTheme.background }"
       :dataset="treeData"
@@ -820,6 +821,8 @@ function onNodeDragStart(node: DocumentOutlineNode) {
     clearTimeout(commitOutlineTimer);
     commitOutlineTimer = null;
   }
+  // 在拖拽时给 body 添加 class，防止其他组件受影响
+  document.body.classList.add('outline-dragging');
 }
 type DropMode = 'before' | 'after' | 'inside' | 'parent';
 const dropPreview = reactive<{ targetPath: string | null; mode: DropMode | null }>({
@@ -1113,6 +1116,8 @@ function onNodeDragEnd() {
   dropPreview.targetPath = null;
   dropPreview.mode = null;
   isDraggingNode.value = false;
+  // 移除 body 上的 class
+  document.body.classList.remove('outline-dragging');
   // 拖动结束时恢复同步并提交更改
   if (suppressDocumentSync) {
     suppressDocumentSync = false;
@@ -1157,6 +1162,9 @@ const toggleLayout = async () => {
     direction.value = 'vertical';
     treeConfig.layout = 'vertical';
   }
+  // 切换布局时重置缩放
+  currentScale.value = 1.0;
+
   // 保存设置
   await setSetting('outlineLayoutDirection', direction.value);
 };
@@ -1422,68 +1430,36 @@ const changeNodeValue = () => {
 };
 
 const resetScale = () => {
+  currentScale.value = 1.0;
   treeRef.value?.restoreScale();
 };
 
-// 缩放限制：最小5%，最大1000%
-const MIN_SCALE = 0.05;
-const MAX_SCALE = 10.0; // 1000% = 10.0
+// 缩放限制：最小30%，最大200%
+const MIN_SCALE = 0.3;
+const MAX_SCALE = 2.0; // 
+// 缩放步长：每次缩放10%
+const ZOOM_STEP = 0.1;
 
-// 获取当前缩放比例
-const getCurrentScale = (): number => {
-  const treeElement = document.querySelector('.outline-tree-container') as HTMLElement;
-  if (!treeElement || !(treeElement instanceof Element)) return 1.0;
-  
-  // 查找应用 transform scale 的元素
-  const svg = treeElement.querySelector('svg');
-  if (svg && svg instanceof Element) {
-    try {
-      const transform = svg.style.transform || window.getComputedStyle(svg).transform;
-      if (transform && transform !== 'none') {
-        const match = transform.match(/scale\(([\d.]+)\)/);
-        if (match) {
-          return parseFloat(match[1]);
-        }
-      }
-    } catch (error) {
-      // 如果getComputedStyle失败，忽略错误
-      console.warn('Failed to get computed style for svg:', error);
-    }
-  }
-  
-  // 如果找不到，尝试查找其他可能应用 scale 的元素
-  const scaledElement = treeElement.querySelector('[style*="transform"]');
-  if (scaledElement && scaledElement instanceof Element) {
-    try {
-      const transform = (scaledElement as HTMLElement).style.transform || window.getComputedStyle(scaledElement).transform;
-      if (transform && transform !== 'none') {
-        const match = transform.match(/scale\(([\d.]+)\)/);
-        if (match) {
-          return parseFloat(match[1]);
-        }
-      }
-    } catch (error) {
-      // 如果getComputedStyle失败，忽略错误
-      console.warn('Failed to get computed style for scaledElement:', error);
-    }
-  }
-  
-  return 1.0; // 默认缩放比例
-};
+// 维护当前的缩放比例
+const currentScale = ref<number>(1.0);
 
 const zoomIn = () => {
-  const currentScale = getCurrentScale();
-  if (currentScale >= MAX_SCALE) {
+  if (currentScale.value >= MAX_SCALE) {
     return; // 已达到最大缩放，不执行
   }
+  // 计算新的缩放比例，但不超过最大值
+  const newScale = Math.min(currentScale.value + ZOOM_STEP, MAX_SCALE);
+  currentScale.value = newScale;
   treeRef.value?.zoomIn();
 };
 
 const zoomOut = () => {
-  const currentScale = getCurrentScale();
-  if (currentScale <= MIN_SCALE) {
+  if (currentScale.value <= MIN_SCALE) {
     return; // 已达到最小缩放，不执行
   }
+  // 计算新的缩放比例，但不低于最小值
+  const newScale = Math.max(currentScale.value - ZOOM_STEP, MIN_SCALE);
+  currentScale.value = newScale;
   treeRef.value?.zoomOut();
 };
 
@@ -1536,11 +1512,10 @@ const zoomAtPoint = (deltaY: number, clientX: number, clientY: number) => {
     const isZoomIn = deltaY < 0;
     
     // 检查缩放限制
-    const currentScale = getCurrentScale();
-    if (isZoomIn && currentScale >= MAX_SCALE) {
+    if (isZoomIn && currentScale.value >= MAX_SCALE) {
       return; // 已达到最大缩放，不执行
     }
-    if (!isZoomIn && currentScale <= MIN_SCALE) {
+    if (!isZoomIn && currentScale.value <= MIN_SCALE) {
       return; // 已达到最小缩放，不执行
     }
     
@@ -1833,6 +1808,20 @@ onUnmounted(() => {
   height: 100%;
   /* 设置主题背景色 */
   background-color: v-bind('themeState.currentTheme.background');
+  /* 创建新的层叠上下文，隔离渲染，防止影响其他组件 */
+  isolation: isolate;
+  /* 使用 containment 限制重绘范围 */
+  contain: layout style;
+}
+
+/* 拖拽时进一步优化，防止影响其他组件 */
+.outline-page.is-dragging {
+  /* 禁用所有过渡效果 */
+  --transition-disabled: none;
+  /* 提示浏览器优化 */
+  will-change: contents;
+  /* 更严格的 containment */
+  contain: strict layout style paint;
 }
 
 .outline-page > .container {
@@ -1843,6 +1832,10 @@ onUnmounted(() => {
   flex-direction: column;
   width: 100%;
   height: 100%;
+  /* 使用 containment 限制重绘范围 */
+  contain: layout style;
+  /* 创建新的层叠上下文 */
+  isolation: isolate;
 }
 
 .outline-tree-container {
@@ -1853,7 +1846,23 @@ onUnmounted(() => {
   min-width: 0;
   min-height: 0;
   overflow: auto;
+  /* 使用严格的 CSS containment，限制重绘和重排范围，防止影响其他组件 */
+  contain: strict;
+  /* 创建新的层叠上下文，隔离渲染 */
+  isolation: isolate;
+  /* 使用 GPU 加速 */
+  transform: translateZ(0);
+  will-change: scroll-position;
+}
 
+/* 拖拽时进一步优化性能 */
+.outline-tree-container.is-dragging {
+  /* 拖拽时禁用所有过渡效果 */
+  --transition-disabled: none;
+  /* 提示浏览器优化滚动和重绘 */
+  will-change: scroll-position, transform;
+  /* 使用更激进的 containment */
+  contain: strict layout style paint;
 }
 
 .el-scrollbar__wrap {
@@ -1932,23 +1941,47 @@ onUnmounted(() => {
   /* 隐藏溢出内容 */
   box-sizing: border-box;
   /* 包含 padding 在宽度计算中 */
+  /* 使用 containment 限制重绘范围 */
+  contain: layout style paint;
+  /* 创建新的层叠上下文 */
+  isolation: isolate;
+}
+
+/* 拖拽时禁用所有过渡和动画，减少重绘 */
+.outline-page.is-dragging .tree-node,
+.outline-tree-container.is-dragging .tree-node {
+  transition: none !important;
+  animation: none !important;
+  /* 使用 GPU 加速 */
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 
 /* 纵向布局的拖拽高亮样式 */
 .tree-node.drop-before {
   box-shadow: inset 4px 0 0 #409eff;
+  /* 使用 GPU 加速 */
+  transform: translateZ(0);
+  will-change: box-shadow;
 }
 .tree-node.drop-after {
   box-shadow: inset -4px 0 0 #67c23a;
+  transform: translateZ(0);
+  will-change: box-shadow;
 }
 .tree-node.drop-inside {
   outline: 2px dashed rgba(103, 194, 58, 0.6);
   border-radius: 10px;
+  /* outline 不会触发重排，性能较好 */
+  transform: translateZ(0);
+  will-change: outline;
 }
 .tree-node.drop-parent {
   box-shadow: inset 0 4px 0 #e6a23c;
   border-radius: 10px;
+  transform: translateZ(0);
+  will-change: box-shadow;
 }
 
 /* 横向布局的拖拽高亮样式 */
@@ -2019,4 +2052,23 @@ onUnmounted(() => {
   }
 }
 
+</style>
+
+<!-- 全局样式：拖拽时优化性能，防止影响其他组件 -->
+<style lang="less">
+/* 拖拽时禁用其他组件的动画，防止画面撕裂 */
+body.outline-dragging * {
+  /* 禁用所有过渡和动画，减少重绘 */
+  transition: none !important;
+  animation: none !important;
+  /* 提示浏览器优化渲染 */
+  will-change: auto;
+}
+
+/* 但保留必要的交互元素 */
+body.outline-dragging input,
+body.outline-dragging textarea,
+body.outline-dragging button:not(.tree-node) {
+  transition: background-color 0.1s, border-color 0.1s;
+}
 </style>

@@ -795,8 +795,28 @@ const handleCloseFile = async (tabId: string) => {
 
 // 处理节点右键菜单
 const handleContextMenu = (event: { node: FileNode; x: number; y: number }) => {
-  contextMenuNode.value = event.node
-  contextMenuTargetPath.value = event.node.path
+  const node = event.node
+  
+  // 如果右键的是文件，且当前没有选中文档或只选中一个文档，则取消选中，选中当前右键的文档
+  if (node.type === 'file') {
+    const selectedFilePaths = Array.from(selectedPaths.value).filter(path => {
+      const foundNode = getAllNodes().find(n => n.path === path && n.type === 'file')
+      return foundNode !== undefined
+    })
+    
+    // 如果没有选中文档或只选中一个文档，则选中当前右键的文档
+    if (selectedFilePaths.length <= 1) {
+      selectedPaths.value.clear()
+      selectedPaths.value.add(node.path)
+      // 更新 lastSelectedIndex
+      const allNodes = getAllNodes()
+      const currentIndex = allNodes.findIndex(n => n.path === node.path)
+      lastSelectedIndex.value = currentIndex >= 0 ? currentIndex : -1
+    }
+  }
+  
+  contextMenuNode.value = node
+  contextMenuTargetPath.value = node.path
   contextMenuPosition.value = { x: event.x, y: event.y }
   contextMenuVisible.value = true
 }
@@ -1418,6 +1438,7 @@ const handleSelectAll = () => {
 
 .workspace-explorer-title {
   color: v-bind('themeState.currentTheme.SideTextColor');
+  user-select: none;
 }
 
 .workspace-explorer-actions {
@@ -1488,6 +1509,7 @@ const handleSelectAll = () => {
   color: v-bind('themeState.currentTheme.SideTextColor');
   background-color: v-bind('themeState.currentTheme.background2nd');
   border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0);
+  user-select: none;
 }
 
 .opened-files-list {

@@ -72,7 +72,6 @@ const handleLogoClick = () => {
   width: 64px; /* 与LeftMenu折叠状态宽度一致 */
   min-width: 64px;
   flex-shrink: 0;
-  border-right: 1px solid var(--el-border-color-lighter, #f0f0f0);
   position: relative;
   z-index: 1;
   -webkit-app-region: no-drag;

@@ -337,10 +337,14 @@ const vditorEl = ref<HTMLElement | null>(null);
 const lastAppliedContent = ref('');
 const isEditorInteracting = ref(false);
 let pendingExternalUpdate: { value: string; clearHistory?: boolean } | undefined;
+// 关键修复：保存时抑制 watch 的 setValue，避免不必要的回写导致闪烁
+// 保存时内容是从编辑器读取的，编辑器已经有最新内容，不需要回写
+let isSavingFromEditor = false;
 
 type SetValueOptions = {
     clearHistory?: boolean;
     timeoutMs?: number;
+    preserveTheme?: boolean; // 是否在设置值后保留主题（防止主题被重置）
 };
 
 const flushPendingExternalUpdate = () => {
@@ -373,34 +377,94 @@ const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
     }
     if (normalized === lastAppliedContent.value) return;
 
-    const run = () => {
-        if (!vditor.value) return;
-        // 再次检查是否已初始化
-        if (!vditor.value.vditor || !vditor.value.vditor.ir) {
-            // 如果仍未初始化，延迟执行
-            setTimeout(() => {
-                scheduleSetValue(normalized, options);
-            }, 100);
-            return;
-        }
-        if (isEditorInteracting.value) {
-            pendingExternalUpdate = { value: normalized, clearHistory: options.clearHistory };
-            return;
-        }
-        try {
-            vditor.value.setValue(normalized, options.clearHistory ?? true);
-            lastAppliedContent.value = normalized;
-        } catch (error) {
-            logger.warn('设置 Vditor 值失败，可能未完全初始化:', error);
-        }
-    };
-
+    // 检查用户是否正在交互，如果是则缓存更新请求（避免打断用户输入）
     if (isEditorInteracting.value) {
         pendingExternalUpdate = { value: normalized, clearHistory: options.clearHistory };
         return;
     }
 
-    if (typeof requestIdleCallback !== 'undefined') {
+    const run = async () => {
+        // 再次检查（因为 run 是异步执行的，可能在执行时用户已经开始输入）
+        if (isEditorInteracting.value) {
+            pendingExternalUpdate = { value: normalized, clearHistory: options.clearHistory };
+            return;
+        }
+        try {
+            // 如果设置了 preserveTheme 选项，则跳过主题重新应用（由调用者控制）
+            // 否则，在 setValue 前先准备主题设置，准备在 setValue 后立即应用
+            // 关键优化：直接从 themeState 获取主题（同步），避免 await getSetting 的延迟
+            // 如果用户设置了具体值（非 auto），在 requestAnimationFrame 双重保障中会使用完整逻辑获取
+            let themeToApply: { vditorTheme: string; contentTheme: string; codeTheme: string } | null = null;
+            if (!options.preserveTheme && vditor.value) {
+                // 直接从 themeState 获取主题（同步，避免延迟）
+                // 大多数情况下，contentTheme 和 codeTheme 都是 'auto'，所以直接从 themeState 获取是正确的
+                // 如果用户设置了具体值（非 auto），会在 requestAnimationFrame 双重保障中处理
+                const vditorTheme = themeState.currentTheme.vditorTheme;
+                // contentTheme 默认从 themeState 获取（auto 模式下的值）
+                const contentTheme = vditorTheme === 'dark' ? 'dark' : 'light';
+                // codeTheme 默认从 themeState 获取
+                const codeTheme = themeState.currentTheme.codeTheme;
+                
+                themeToApply = {
+                    vditorTheme: vditorTheme,
+                    contentTheme: contentTheme,
+                    codeTheme: codeTheme
+                };
+            }
+            
+            // 执行 setValue（这可能会重置主题）
+            // 关键修复：不要在 setValue 前应用主题，因为 setValue 会重置它，浪费性能
+            // 只在 setValue 后立即应用主题，使用同步方式避免闪烁
+            vditor.value?.setValue(normalized, options.clearHistory ?? true);
+            lastAppliedContent.value = normalized;
+            
+            // 关键修复：setValue 后立即（同步）重新应用主题，避免闪烁
+            // 使用同步方式应用主题，不要延迟，确保在浏览器渲染前主题已经正确
+            if (themeToApply && vditor.value && isActive.value) {
+                try {
+                    // 立即同步应用主题（不等待异步操作，使用已准备好的主题设置）
+                    // 使用同步方式，确保在浏览器渲染前主题已经正确，避免闪烁
+                    vditor.value.setTheme(
+                        themeToApply.vditorTheme as any,
+                        themeToApply.contentTheme as any,
+                        themeToApply.codeTheme as any
+                    );
+                    logger.debug('Vditor 主题已同步（setValue后立即）', {
+                        vditorTheme: themeToApply.vditorTheme,
+                        contentTheme: themeToApply.contentTheme,
+                        codeTheme: themeToApply.codeTheme
+                    });
+                    
+                    // 使用 requestAnimationFrame 双重保障，确保主题在浏览器渲染后仍然正确
+                    // 延迟到下一帧后再次验证和应用主题，处理可能的异步渲染导致的主题丢失
+                    // 注意：使用双重 requestAnimationFrame 确保在浏览器完成渲染后执行
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(async () => {
+                            if (vditor.value && isActive.value) {
+                                // 再次确保主题正确（因为 setValue 可能会触发异步渲染，导致主题丢失）
+                                // 这里使用完整的 handleSyncEditorTheme，确保主题设置是最新的
+                                await handleSyncEditorTheme();
+                            }
+                        });
+                    });
+                } catch (error) {
+                    logger.warn('setValue 后同步主题失败，尝试异步应用:', error);
+                    // 如果同步应用失败，回退到异步方式
+                    await handleSyncEditorTheme();
+                }
+            }
+        } catch (error) {
+            logger.warn('设置 Vditor 值失败，可能未完全初始化:', error);
+        }
+    };
+
+    // 关键修复：对于保存操作（timeoutMs: 0），使用 setTimeout 立即执行，
+    // 而不是 requestIdleCallback，避免延迟导致主题应用延迟
+    // requestIdleCallback 会在浏览器空闲时执行，即使用 timeout 参数，也可能有延迟
+    if (options.timeoutMs === 0) {
+        // 立即执行，不使用 requestIdleCallback
+        setTimeout(run, 0);
+    } else if (typeof requestIdleCallback !== 'undefined') {
         requestIdleCallback(run, { timeout: options.timeoutMs ?? 300 });
     } else {
         setTimeout(run, options.timeoutMs ?? 0);
@@ -600,14 +664,11 @@ const handleClick = async (event: MouseEvent, title: string, path: string) => {
     currentTitlePath.value = path
     currentSectionInfo.value = sectionInfo
     
-    // 设置菜单位置
-    let top = event.clientY * 0.9
-    if (top > document.body.clientHeight * 0.6) {
-        top = document.body.clientHeight * 0.6
-    }
+    // 设置菜单位置：居中显示在窗口中间
+    // 使用窗口中心位置，组件会通过 transform 居中
     sectionOptimizerPosition.value = {
-        top,
-        left: event.clientX * 1.2,
+        top: window.innerHeight / 2,
+        left: window.innerWidth / 2,
     }
     
     showSectionOptimizer.value = true
@@ -619,16 +680,69 @@ const handleRefresh = async () => {
 };
 eventBus.on('refresh', handleRefresh);
 
-const handleSyncActiveEditor = (payload?: { tabId?: string }) => {
+const handleSyncActiveEditor = async (payload?: { tabId?: string }) => {
     const resolvedTabId = payload?.tabId ?? activeTabIdRef?.value;
     if (resolvedTabId !== props.tabId) return;
     if (!vditor.value) return;
-    const latest = vditor.value.getValue();
-    // 不修改视图，保持当前视图状态
-    workspace.updateDocumentMarkdown(props.tabId, latest);
-    syncOutlineFromMarkdown.cancel();
-    syncOutlineFromMarkdown();
-    flushOutlineSync();
+    
+    // 关键修复：标记正在保存，抑制 watch 的 setValue，避免不必要的回写导致闪烁
+    // 保存时内容是从编辑器读取的，编辑器已经有最新内容，不需要回写
+    isSavingFromEditor = true;
+    try {
+        const latest = vditor.value.getValue();
+        const currentContent = currentMarkdown.value;
+        
+        // 规范化函数：将 \r\n 转换为 \n（与 workspace 中的 normalizeContent 保持一致）
+        const normalizeContent = (content: string) => content.replace(/\r\n/g, '\n');
+        const normalizedLatest = normalizeContent(latest);
+        const normalizedCurrent = normalizeContent(currentContent ?? '');
+        
+        // 保存操作：从编辑器读取内容并写入文件
+        // 如果规范化后的内容相同，说明文档模型已经和编辑器内容同步，
+        // 不需要调用 updateDocumentMarkdown，避免触发不必要的 watch 和 setValue
+        if (normalizedLatest !== normalizedCurrent) {
+            // 只有内容确实变化时才更新文档模型
+            // 关键修复：在保存时，先更新 lastAppliedContent，避免 watch 触发 setValue
+            // 这样 watch 检测到 incoming === lastAppliedContent，就不会调用 scheduleSetValue
+            lastAppliedContent.value = normalizedLatest;
+            // 然后调用 updateDocumentMarkdown 更新文档模型（会触发 watch，但 watch 会跳过 setValue）
+            workspace.updateDocumentMarkdown(props.tabId, latest);
+            // 注意：updateDocumentMarkdown 会触发 watch(currentMarkdown)，
+            // 但由于我们已经设置了 isSavingFromEditor = true，watch 会跳过 setValue
+            // 而且我们已经更新了 lastAppliedContent，即使 watch 执行，也会检测到 incoming === lastAppliedContent
+            // 所以不会调用 scheduleSetValue，也就不会触发 setValue，不会闪烁
+            
+            // 为了确保主题正确，我们也在这里主动应用主题（双重保障）
+            await nextTick();
+            await handleSyncEditorTheme();
+            requestAnimationFrame(async () => {
+                await handleSyncEditorTheme();
+            });
+        } else {
+            // 即使内容相同，也确保大纲是最新的（避免大纲提取算法的差异导致不一致）
+            // 但只有在编辑器视图时才同步，避免在outline视图时触发
+            const currentView = documentRef.value.lastView ?? 'editor';
+            if (currentView === 'editor' || (currentView as string) === 'article') {
+                syncOutlineFromMarkdown.cancel();
+                syncOutlineFromMarkdown();
+                flushOutlineSync();
+            }
+            
+            // 关键修复：即使内容相同，也确保主题正确（防止之前的操作导致主题异常）
+            await nextTick();
+            await handleSyncEditorTheme();
+            requestAnimationFrame(async () => {
+                await handleSyncEditorTheme();
+            });
+        }
+    } finally {
+        // 关键修复：等待下一个 tick，确保 watch 已经处理完，再清除标志位
+        // 这样 watch 在检查 isSavingFromEditor 时，标志位仍然是 true
+        await nextTick();
+        // 再等待一个 tick，确保所有 reactivity 更新都已完成
+        await nextTick();
+        isSavingFromEditor = false;
+    }
 };
 eventBus.on('sync-active-editor', handleSyncActiveEditor as (payload?: unknown) => void);
 
@@ -928,10 +1042,11 @@ const openSectionOptimizerFromContext = async () => {
         currentSectionInfo.value = sectionInfo
     }
 
-    // 设置菜单位置
+    // 设置菜单位置：居中显示在窗口中间
+    // 使用窗口中心位置，组件会通过 transform 居中
     sectionOptimizerPosition.value = {
-        top: menuY.value,
-        left: menuX.value
+        top: window.innerHeight / 2,
+        left: window.innerWidth / 2
     }
 
     showSectionOptimizer.value = true
@@ -1045,18 +1160,9 @@ const bindTitleMenu = async () => {
     dfsOutlineTree(outlineTree);
     treeNodeQueue.shift(); // 移除 'dummy' 节点
 
-    // 先移除所有旧的事件监听器
-    sections.forEach((section) => {
-        if ((section as any)._titleMousedownHandler) {
-            section.removeEventListener('mousedown', (section as any)._titleMousedownHandler, true);
-            section.removeEventListener('mouseup', (section as any)._titleMouseupHandler, true);
-            section.removeEventListener('mouseleave', (section as any)._titleMouseleaveHandler, true);
-            (section as any)._titleMousedownHandler = null;
-            (section as any)._titleMouseupHandler = null;
-            (section as any)._titleMouseleaveHandler = null;
-        }
-    });
-
+    // 移除编辑器 DOM 的长按事件绑定，用户只能通过右键菜单优化段落
+    // 只建立标题索引和设置 path 属性（用于搜索替换等功能）
+    
     // 建立标题索引（用于优化查找替换性能）
     const titleElements: HTMLElement[] = [];
     sections.forEach((section, i) => {
@@ -1086,7 +1192,8 @@ const bindTitleMenu = async () => {
         }
         
         try {
-            // 对于WYSIWYG模式，标题直接在.vditor-reset下，直接设置path
+            // 只设置 path 属性（用于搜索替换等功能），不绑定长按事件
+            // 用户需要通过右键菜单或大纲面板来优化段落
             if (currentMode === 'wysiwyg') {
                 // 检查是否是H1-H6标签
                 if (['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes((section as Element).tagName)) {
@@ -1113,36 +1220,8 @@ const bindTitleMenu = async () => {
                     (section as Element).setAttribute('path', node.path);
                 }
             }
-            
-            // 只有在元素仍在DOM中时才添加事件监听器
-            if (section.isConnected) {
-                // 创建事件处理函数并保存引用，以便后续移除
-                const handleMousedown = (event: Event) => {
-                    // 在WYSIWYG模式下，可能需要阻止默认行为，但允许事件传播
-                    mouseDownEvent(event as MouseEvent, section as HTMLElement);
-                };
-                const handleMouseup = (event: Event) => {
-                    mouseUpEvent(event as MouseEvent, section as HTMLElement);
-                };
-                const handleMouseleave = (event: Event) => {
-                    mouseLeaveEvent(event as MouseEvent, section as HTMLElement);
-                };
-                
-                // 保存处理函数引用以便后续移除
-                (section as any)._titleMousedownHandler = handleMousedown;
-                (section as any)._titleMouseupHandler = handleMouseup;
-                (section as any)._titleMouseleaveHandler = handleMouseleave;
-                
-                // 添加事件监听器，使用capture模式确保能捕获到事件（特别是在WYSIWYG模式下）
-                section.addEventListener('mousedown', handleMousedown, true);
-                section.addEventListener('mouseup', handleMouseup, true);
-                section.addEventListener('mouseleave', handleMouseleave, true);
-                
-                //添加tooltip
-                (section as Element).setAttribute('title', t('article.long_press_optimize'));
-            }
         } catch (error) {
-            logger.warn('绑定标题事件失败', { error, section, node, isConnected: section.isConnected });
+            logger.warn('设置标题 path 属性失败', { error, section, node, isConnected: section.isConnected });
         }
     });
     
@@ -1657,6 +1736,8 @@ onMounted(async () => {
                 // currentMarkdown.value = value;
                 // 不修改视图，保持当前视图状态
                 workspace.updateDocumentMarkdown(props.tabId, value);
+                // 注意：workspace.updateDocumentMarkdown 内部已经自动同步大纲树，
+                // 所以不需要再调用 syncOutlineFromMarkdown，避免重复计算
                 
                 // 确保适配器已设置（如果还没有设置）
                 if (!aiCompletionService.getAdapter() && vditor.value) {
@@ -1674,7 +1755,8 @@ onMounted(async () => {
                 // 触发AI补全（使用双层防抖，自动检测关键字符）
                 aiCompletionService.triggerCompletion('input');
 
-                syncOutlineFromMarkdown();
+                // 移除 syncOutlineFromMarkdown 调用，因为 workspace.updateDocumentMarkdown 已经自动同步大纲
+                // 只在需要重新绑定标题菜单时调用 bindTitleMenu（延迟执行，避免频繁调用）
                 bindTitleMenu();
 
 
@@ -1683,6 +1765,9 @@ onMounted(async () => {
 
                 //logger.log(themeState);
                 try {
+                    // 确保初始化后应用正确的主题
+                    await handleSyncEditorTheme();
+                    
                     // 确保初始化后同步内容（特别是对于新创建的tab）
                     // 如果当前tab是激活的，确保内容正确显示
                     if (isActive.value && vditor.value) {
@@ -1692,15 +1777,20 @@ onMounted(async () => {
                             lastAppliedContent.value = desired;
                         }
                         // 如果内容不一致，同步到编辑器
+                        // 注意：scheduleSetValue 内部会在 setValue 后自动重新应用主题
                         if (desired !== lastAppliedContent.value) {
                             await nextTick();
-                            scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0 });
+                            scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0, preserveTheme: false });
                         } else {
                             // 即使内容相同，也确保编辑器显示正确的内容
                             const currentValue = vditor.value.getValue();
                             if (currentValue !== desired) {
                                 await nextTick();
-                                scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0 });
+                                scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0, preserveTheme: false });
+                            } else {
+                                // 内容已经正确，确保主题也正确（可能初始化时主题未正确应用）
+                                await nextTick();
+                                await handleSyncEditorTheme();
                             }
                         }
                     }
@@ -1971,19 +2061,54 @@ onBeforeUnmount(() => {
 });
 
 const handleSyncEditorTheme = async () => {
-    if (!isActive.value) return;
+    if (!isActive.value || !vditor.value) return;
+    
+    // 确保 Vditor 完全初始化
+    if (!vditor.value.vditor) {
+        // 如果未完全初始化，延迟执行
+        setTimeout(() => {
+            handleSyncEditorTheme();
+        }, 100);
+        return;
+    }
+    
+    // 获取主题设置（等待完成，确保获取到正确的值）
     let contentTheme = await getSetting('contentTheme');
     if (contentTheme === 'auto') {
-        contentTheme = themeState.currentTheme.vditorTheme;
+        // contentTheme应该是'light'或'dark'，根据vditorTheme来判断
+        contentTheme = themeState.currentTheme.vditorTheme === 'dark' ? 'dark' : 'light';
     }
+    
     let codeTheme = await getSetting('codeTheme');
     if (codeTheme === 'auto') {
-        codeTheme = themeState.currentTheme.vditorTheme;
+        // codeTheme是代码高亮主题（hljs样式），应该使用themeState中的codeTheme
+        codeTheme = themeState.currentTheme.codeTheme;
     }
 
-    vditor.value?.setTheme(themeState.currentTheme.vditorTheme as any, contentTheme as any, codeTheme as any);
-    scheduleSetValue(currentMarkdown.value, { clearHistory: true, timeoutMs: 0 });
-
+    try {
+        // 应用主题（setTheme的第一个参数是工具栏主题，第二个是内容预览主题，第三个是代码高亮主题）
+        // 根据 Vditor API 文档：setTheme(theme: 'classic' | 'dark', contentTheme?: 'light' | 'dark', codeTheme?: string)
+        vditor.value.setTheme(
+            themeState.currentTheme.vditorTheme as any, 
+            contentTheme as any, 
+            codeTheme as any
+        );
+        
+        logger.debug('Vditor 主题已同步', {
+            vditorTheme: themeState.currentTheme.vditorTheme,
+            contentTheme,
+            codeTheme,
+            isActive: isActive.value,
+            timestamp: Date.now()
+        });
+    } catch (error) {
+        logger.warn('同步 Vditor 主题失败:', error);
+    }
+    
+    // 注意：不要在这里调用scheduleSetValue，因为：
+    // 1. setTheme本身不会改变内容，不需要重新设置内容
+    // 2. scheduleSetValue可能会触发Vditor内部重新渲染，导致主题丢失
+    // 3. 如果确实需要重新渲染（比如内容已改变），应该由其他逻辑（如watch）来触发
 };
 eventBus.on('sync-editor-theme', handleSyncEditorTheme);
 
@@ -1991,9 +2116,20 @@ watch(
     () => currentMarkdown.value,
     (content) => {
         if (!isActive.value) return;
+        // 关键修复：保存时不触发 setValue，避免不必要的回写导致闪烁
+        // 保存时内容是从编辑器读取的，编辑器已经有最新内容，不需要回写
+        if (isSavingFromEditor) {
+            // 保存操作：只是同步 lastAppliedContent，不调用 setValue
+            const incoming = content ?? '';
+            lastAppliedContent.value = incoming;
+            return;
+        }
         const incoming = content ?? '';
         if (incoming !== lastAppliedContent.value) {
-            scheduleSetValue(incoming, { clearHistory: true });
+            // 注意：scheduleSetValue 内部会在 setValue 后自动重新应用主题
+            // 关键修复：使用 timeoutMs: 0 立即执行，避免 requestIdleCallback 延迟导致主题应用延迟
+            // 这里才是真正的"外部更新"（如打开文件、大纲同步、Tab 切换等），需要回写到编辑器
+            scheduleSetValue(incoming, { clearHistory: true, timeoutMs: 0 });
             bindTitleMenu();
         }
     },
@@ -2060,6 +2196,10 @@ watch(
                 logger.warn('获取 Vditor 当前值失败:', error);
             }
         }
+        // 确保主题正确（Tab 激活时可能主题未同步）
+        await nextTick();
+        await handleSyncEditorTheme();
+        
         // 延迟执行 bindTitleMenu，确保 Vditor 完全准备好
         await nextTick();
         setTimeout(() => {
@@ -2086,6 +2226,17 @@ watch(
             logger.warn('更新 Vditor linkBase 失败', error);
         }
     },
+);
+
+// 监听 themeState 变化，确保 Vditor 主题同步
+watch(
+    () => [themeState.currentTheme.vditorTheme, themeState.currentTheme.codeTheme, themeState.currentTheme.type],
+    () => {
+        if (!isActive.value || !vditor.value) return;
+        // 当主题变化时，触发主题同步
+        handleSyncEditorTheme();
+    },
+    { deep: false }
 );
 
 </script>

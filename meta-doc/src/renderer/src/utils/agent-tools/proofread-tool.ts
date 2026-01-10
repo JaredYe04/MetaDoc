@@ -263,7 +263,8 @@ function checkSpellingLocally(text: string, format: 'text' | 'markdown' | 'latex
 async function proofreadWithLLM(
   text: string,
   format: 'text' | 'markdown' | 'latex',
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onUpdate?: (data: ToolCallbackData, progress?: ToolProgress) => void
 ): Promise<ProofreadError[]> {
   const formatName = format === 'latex' ? 'LaTeX' : format === 'markdown' ? 'Markdown' : '纯文本'
   
@@ -327,6 +328,22 @@ ${text}
     originKey,
     { stream: true }
   )
+
+  // 立即通过 onUpdate 传递流式输出信息（在 await done 之前）
+  if (onUpdate) {
+    onUpdate({
+      content: {
+        stage: 'proofreading-streaming',
+        format,
+        proofreadTargetRef: target,
+        proofreadDonePromise: done
+      },
+      format: 'json'
+    }, {
+      percentage: 30,
+      message: '正在校对文本（流式输出）...'
+    })
+  }
 
   if (signal) {
     signal.addEventListener('abort', () => {
@@ -813,7 +830,7 @@ async function performProofread(
     let isTimeout = false
     try {
       llmErrors = await retryLLMCall(
-        () => proofreadWithLLM(content, format, signal),
+        () => proofreadWithLLM(content, format, signal, onUpdate),
         {
           maxRetries: 3,
           retryDelay: 3000,

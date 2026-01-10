@@ -610,37 +610,30 @@ ${context ? `上下文信息：${context}` : ''}`
     { stream: true }
   )
 
-  if (signal) {
-    signal.addEventListener('abort', () => {
-      cancelAiTask(handle, false)
-    })
-  }
-
-  if (retryCount > 0) {
+  // 立即通过 onUpdate 传递流式输出信息（在 await done 之前）
+  if (onUpdate) {
     onUpdate({
       content: {
-        stage: 'retrying',
+        stage: retryCount > 0 ? 'retrying-streaming' : 'generating-streaming',
         input,
         context,
         retryCount,
-        lastError
+        lastError,
+        todoListTargetRef: target,
+        todoListDonePromise: done
       },
       format: 'json'
     }, {
-      percentage: 40 + (retryCount * 10),
-      message: i18n.global.t('agent.tool.todolist.progress.retrying', `正在重试生成任务列表（${retryCount}/${maxRetries}）...`)
+      percentage: retryCount > 0 ? (40 + (retryCount * 10)) : 40,
+      message: retryCount > 0 
+        ? i18n.global.t('agent.tool.todolist.progress.retrying', `正在重试生成任务列表（${retryCount}/${maxRetries}）...（流式输出）`)
+        : i18n.global.t('agent.tool.todolist.progress.generating', '正在生成任务列表...（流式输出）')
     })
-  } else {
-    onUpdate({
-      content: {
-        stage: 'generating',
-        input,
-        context
-      },
-      format: 'json'
-    }, {
-      percentage: 40,
-      message: i18n.global.t('agent.tool.todolist.progress.generating', '正在生成任务列表...')
+  }
+
+  if (signal) {
+    signal.addEventListener('abort', () => {
+      cancelAiTask(handle, false)
     })
   }
 

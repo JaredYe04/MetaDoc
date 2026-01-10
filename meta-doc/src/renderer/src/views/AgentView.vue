@@ -840,37 +840,16 @@ watch(
         }
       }
       
-      // 如果没有handle在管理，再检查任务列表中是否有相关任务在运行
-      // 根据session.id找到所有相关的任务（通过origin_key前缀匹配）
-      const sessionPrefix = `agent-${sessionId}-`;
-      const allRelatedTasks = allTasks.value.filter(task => 
-        task.origin_key && task.origin_key.startsWith(sessionPrefix)
-      );
-      
-      // 检查是否有任何相关任务还在运行中或就绪
-      const runningTasks = allRelatedTasks.filter(task => 
-        task.status.value === '运行中' || task.status.value === '就绪'
-      );
-      
-      // 如果还有任务在运行，不应该解锁
-      if (runningTasks.length > 0) {
-        unlockCheckTimer = null;
-        return;
-      }
-      
-      // 如果确实没有任何相关任务在运行，且isGenerating仍然为true，才解锁UI
-      if (isGenerating.value) {
-        isGenerating.value = false;
-        workspace.unlockUI?.();
-        
-        const session = activeSession.value;
-        if (session) {
-          session.status = 'idle';
-          persistSessions();
-        }
-      }
-      
+      // 关键修复：如果没有handle在管理，说明主任务可能还没有创建（或者已经完成并被清理）
+      // 在这种情况下，不应该通过检查origin_key来判断是否解锁，因为：
+      // 1. 意图识别等辅助任务（schema-task-开头）不匹配 agent-${sessionId}- 前缀，不会被包含
+      // 2. 主任务可能还没有创建（在执行意图识别之前）
+      // 3. 如果主任务已经完成，finally块会正确处理解锁
+      // 因此，当没有handle在管理时，直接返回，不进行后续检查，避免误判
+      // 只有在主任务已经创建（有handle）且所有handle的任务都已完成的情况下，才应该解锁
+      // 如果主任务确实已经创建并完成，finally块会正确处理解锁
       unlockCheckTimer = null;
+      return;
     }, 500); // 增加延迟到500ms，确保任务已经创建并添加到列表中
   },
   { deep: true }
@@ -1162,6 +1141,11 @@ const executeAgentEngine = async (
   actualSession?: AgentSession,
   shouldQueryKnowledgeBase: boolean = false
 ) => {
+  // 重要：在函数开始时就立即锁定UI并设置生成状态
+  // 这样可以防止用户在异步验证之前发送新消息或切换会话
+  workspace.lockUI?.();
+  isGenerating.value = true;
+  
   // 使用传入的actualSession，如果没有则使用computed的session
   const session = actualSession || activeSession.value;
   if (!session || !session.agentConfigId) {
@@ -1240,9 +1224,8 @@ const executeAgentEngine = async (
   //   }
   // }
 
-  // 启动UI锁
-  workspace.lockUI?.();
-  isGenerating.value = true;
+  // 注意：UI锁和isGenerating状态已经在函数开始时设置（第1167-1168行）
+  // 这里不需要重复设置
 
   // 创建AbortController用于取消
   const abortController = new AbortController();

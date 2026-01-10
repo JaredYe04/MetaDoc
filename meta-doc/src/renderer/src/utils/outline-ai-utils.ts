@@ -12,6 +12,7 @@ import { removeTextFromOutline } from './document/outline'
 import { extractOuterJsonString } from './regex-utils'
 import { createRendererLogger } from './logger'
 import type { AIDialogMessage } from '../../../types'
+import type { ToolCallbackData, ToolProgress } from '../../types/agent-tool'
 
 // 懒加载logger，避免初始化顺序问题
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
@@ -191,6 +192,7 @@ export function cleanRawContent(raw: string): string {
 /**
  * 生成节点的子节点（使用对话模式）
  * @param rawContentRef 可选的原始内容ref，用于实时显示流式输出内容
+ * @param onUpdate 可选的更新回调，用于传递流式输出信息
  */
 export async function generateChildNodes(
   node: DocumentOutlineNode,
@@ -198,7 +200,8 @@ export async function generateChildNodes(
   userPrompt: string,
   signal?: AbortSignal,
   docFormat: 'md' | 'tex' = 'md',
-  rawContentRef?: Ref<string>
+  rawContentRef?: Ref<string>,
+  onUpdate?: (data: ToolCallbackData, progress?: ToolProgress) => void
 ): Promise<DocumentOutlineNode[]> {
   const basePrompt = expandTreeNodePrompt(
     JSON.stringify(removeTextFromOutline(outlineTree)),
@@ -230,6 +233,21 @@ export async function generateChildNodes(
     'outline-children-' + node.title,
     { stream: true }
   )
+
+  // Immediately pass streaming output info via onUpdate
+  if (onUpdate) {
+    onUpdate({
+      content: {
+        stage: 'generating-children-streaming',
+        rawContentRef: rawStringRef,
+        rawContentDonePromise: done
+      },
+      format: 'json'
+    }, {
+      percentage: 30,
+      message: '正在生成子节点（流式输出）...'
+    })
+  }
 
   if (signal) {
     signal.addEventListener('abort', () => {
@@ -285,6 +303,7 @@ export async function generateChildNodes(
 /**
  * 生成节点内容（使用对话模式）
  * @param rawContentRef 可选的原始内容ref，用于实时显示流式输出内容
+ * @param onUpdate 可选的更新回调，用于传递流式输出信息
  */
 export async function generateNodeContent(
   node: DocumentOutlineNode,
@@ -292,7 +311,8 @@ export async function generateNodeContent(
   userPrompt: string,
   signal?: AbortSignal,
   docFormat: 'md' | 'tex' = 'md',
-  rawContentRef?: Ref<string>
+  rawContentRef?: Ref<string>,
+  onUpdate?: (data: ToolCallbackData, progress?: ToolProgress) => void
 ): Promise<string> {
   const hasChildren = node.children && node.children.length > 0
 
@@ -332,6 +352,21 @@ export async function generateNodeContent(
     'outline-content-' + node.title,
     { stream: true }
   )
+
+  // Immediately pass streaming output info via onUpdate
+  if (onUpdate) {
+    onUpdate({
+      content: {
+        stage: 'generating-content-streaming',
+        rawContentRef: rawStringRef,
+        rawContentDonePromise: done
+      },
+      format: 'json'
+    }, {
+      percentage: 30,
+      message: '正在生成节点内容（流式输出）...'
+    })
+  }
 
   if (signal) {
     signal.addEventListener('abort', () => {

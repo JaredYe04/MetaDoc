@@ -574,6 +574,7 @@ async function generateChartCodeWithLLM(
   chartType: string,
   target: Ref<string>,
   signal?: AbortSignal,
+  onUpdate?: (data: ToolCallbackData, progress?: ToolProgress) => void,
   retryCount: number = 0,
   maxRetries: number = 3,
   lastError?: string
@@ -645,6 +646,21 @@ async function generateChartCodeWithLLM(
     { stream: true }
   )
 
+  // 立即通过 onUpdate 传递流式输出信息（在 await done 之前）
+  if (onUpdate) {
+    onUpdate({
+      content: {
+        stage: 'generating-code-streaming',
+        codeTargetRef: target,
+        codeDonePromise: done
+      },
+      format: 'json'
+    }, {
+      percentage: 30,
+      message: '正在生成图表代码（流式输出）...'
+    })
+  }
+
   // 如果提供了signal，监听取消事件
   if (signal) {
     signal.addEventListener('abort', () => {
@@ -690,6 +706,7 @@ async function generateChartCodeWithLLM(
           chartType,
           target,
           signal,
+          onUpdate,
           retryCount + 1,
           maxRetries,
           validation.error
@@ -807,7 +824,7 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
         const codeTarget = ref('')
         // 使用retryLLMCall包装，处理返回空的情况
         finalChartCode = await retryLLMCall(
-          () => generateChartCodeWithLLM(prompt, normalizedChartType, codeTarget, signal),
+          () => generateChartCodeWithLLM(prompt, normalizedChartType, codeTarget, signal, onUpdate),
           {
             maxRetries: 3,
             retryDelay: 3000,
@@ -928,6 +945,7 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
               normalizedChartType,
               codeTarget,
               signal,
+              onUpdate,
               0,
               3,
               `ECharts配置解析失败。JSON错误: ${parseError.message}，Eval错误: ${evalErrorMsg}`
@@ -983,6 +1001,7 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
                 normalizedChartType,
                 codeTarget,
                 signal,
+                onUpdate,
                 0,
                 3,
                 `ECharts渲染失败: ${renderErrorMsg}`
@@ -1045,6 +1064,7 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
             normalizedChartType,
             codeTarget,
             signal,
+            onUpdate,
             0,
             3,
             `PlantUML渲染失败: ${renderErrorMsg}`
@@ -1103,6 +1123,7 @@ ${currentCode}
                 normalizedChartType,
                 codeTarget,
                 signal,
+                onUpdate,
                 0,
                 3,
                 renderErrorMsg
@@ -1162,6 +1183,7 @@ ${currentCode}
             normalizedChartType,
             codeTarget,
             signal,
+            onUpdate,
             0,
             3,
             `${normalizedChartType}渲染失败: ${renderErrorMsg}`

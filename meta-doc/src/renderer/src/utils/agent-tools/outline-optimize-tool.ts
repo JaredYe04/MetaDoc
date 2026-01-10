@@ -223,7 +223,8 @@ async function convertTextToJsonChapters(
   outlineTree: DocumentOutlineNode,
   userPrompt: string,
   docFormat: 'md' | 'tex' = 'md',
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onUpdate?: (data: ToolCallbackData, progress?: ToolProgress) => void
 ): Promise<DocumentOutlineNode[]> {
   const formatInstruction = docFormat === 'tex' 
     ? '**重要：文档格式是LaTeX，生成的节点标题应该使用LaTeX格式（例如：\\section{标题}），不要使用Markdown的#、##等标记。**'
@@ -294,6 +295,21 @@ ${text.substring(0, 2000)}${text.length > 2000 ? '...' : ''}
       stream: true,
     }
   )
+
+  // Immediately pass streaming output info via onUpdate
+  if (onUpdate) {
+    onUpdate({
+      content: {
+        stage: 'converting-text-streaming',
+        rawContentRef: rawStringRef,
+        rawContentDonePromise: done
+      },
+      format: 'json'
+    }, {
+      percentage: 50,
+      message: '正在转换文本为章节列表（流式输出）...'
+    })
+  }
 
   if (signal) {
     signal.addEventListener('abort', () => {
@@ -404,11 +420,12 @@ async function generateChildNodes(
   outlineTree: DocumentOutlineNode,
   userPrompt: string,
   docFormat: 'md' | 'tex' = 'md',
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onUpdate?: (data: ToolCallbackData, progress?: ToolProgress) => void
 ): Promise<DocumentOutlineNode[]> {
   // 先尝试使用工具函数生成（使用对话模式）
   try {
-    return await generateChildNodesUtil(node, outlineTree, userPrompt, signal, docFormat)
+    return await generateChildNodesUtil(node, outlineTree, userPrompt, signal, docFormat, undefined, onUpdate)
   } catch (error) {
     // 如果基础生成失败，尝试自然语言转换（fallback）
     logger.warn('基础生成失败，尝试自然语言转换', error)
@@ -451,6 +468,21 @@ async function generateChildNodes(
       stream: true,
     }
   )
+
+  // Immediately pass streaming output info via onUpdate (fallback path)
+  if (onUpdate) {
+    onUpdate({
+      content: {
+        stage: 'generating-children-streaming-fallback',
+        rawContentRef: rawStringRef,
+        rawContentDonePromise: done
+      },
+      format: 'json'
+    }, {
+      percentage: 30,
+      message: '正在生成子节点（流式输出，备用路径）...'
+    })
+  }
 
   if (signal) {
     signal.addEventListener('abort', () => {
@@ -628,7 +660,7 @@ async function generateChildNodes(
   if (!newChildren || !Array.isArray(newChildren) || newChildren.length === 0) {
     logger.info('检测到自然语言输入，使用LLM生成符合schema规范的JSON格式章节列表')
     try {
-      newChildren = await convertTextToJsonChapters(rawContent, node, outlineTree, userPrompt, docFormat, signal)
+      newChildren = await convertTextToJsonChapters(rawContent, node, outlineTree, userPrompt, docFormat, signal, onUpdate)
       if (newChildren && newChildren.length > 0) {
         logger.info(`LLM转换成功，生成 ${newChildren.length} 个符合schema规范的章节`)
       } else {
@@ -667,10 +699,11 @@ async function generateNodeContent(
   outlineTree: DocumentOutlineNode,
   userPrompt: string,
   docFormat: 'md' | 'tex' = 'md',
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onUpdate?: (data: ToolCallbackData, progress?: ToolProgress) => void
 ): Promise<string> {
   // 直接使用工具函数（已支持 docFormat 参数和对话模式）
-  return await generateNodeContentUtil(node, outlineTree, userPrompt, signal, docFormat)
+  return await generateNodeContentUtil(node, outlineTree, userPrompt, signal, docFormat, undefined, onUpdate)
 }
 
 /**
@@ -908,7 +941,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
           message: i18n.global.t('agent.tool.outlineOptimize.progress.generatingChildren', `正在为节点 "${workingNode.title}" 生成子节点...`)
         })
 
-        const newChildren = await generateChildNodes(workingNode, workingOutline, userPrompt, doc.format, signal)
+        const newChildren = await generateChildNodes(workingNode, workingOutline, userPrompt, doc.format, signal, onUpdate)
         if (!workingNode.children) {
           workingNode.children = []
         }
@@ -939,7 +972,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
           message: i18n.global.t('agent.tool.outlineOptimize.progress.generatingContent', `正在为节点 "${workingNode.title}" 生成内容...`)
         })
 
-        const content = await generateNodeContent(workingNode, workingOutline, userPrompt, doc.format, signal)
+        const content = await generateNodeContent(workingNode, workingOutline, userPrompt, doc.format, signal, onUpdate)
         workingNode.text = content
         
         // 记录生成的内容信息
@@ -982,7 +1015,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
 
           // 叶子节点，生成子节点
           try {
-            const newChildren = await generateChildNodes(curNode, workingOutline, userPrompt, doc.format, signal)
+            const newChildren = await generateChildNodes(curNode, workingOutline, userPrompt, doc.format, signal, onUpdate)
             if (!curNode.children) {
               curNode.children = []
             }
@@ -1027,7 +1060,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
           // 生成当前节点的内容（只处理非根节点）
           if (curNode.path !== 'dummy') {
             try {
-              const content = await generateNodeContent(curNode, workingOutline, userPrompt, doc.format, signal)
+              const content = await generateNodeContent(curNode, workingOutline, userPrompt, doc.format, signal, onUpdate)
               curNode.text = content || ''
             } catch (error) {
               logger.error(`为节点 ${curNode.path} 生成内容失败:`, error)

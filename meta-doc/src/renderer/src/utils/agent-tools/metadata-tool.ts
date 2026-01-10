@@ -131,7 +131,8 @@ function parseKeywordsResult(raw: string): string[] {
  */
 async function generateTitleWithLLM(
   outlineJson: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onUpdate?: (data: ToolCallbackData, progress?: ToolProgress) => void
 ): Promise<string> {
   return await retryLLMCall(async () => {
   const prompt = generateTitlePrompt(outlineJson)
@@ -152,6 +153,21 @@ async function generateTitleWithLLM(
     { stream: true }
   )
   logger.debug(`[generateTitleWithLLM] 任务已创建，handle=${handle}, originKey=${originKey}`)
+
+  // 立即通过 onUpdate 传递流式输出信息（在 await done 之前）
+  if (onUpdate) {
+    onUpdate({
+      content: {
+        stage: 'generating-title-streaming',
+        titleTargetRef: target,
+        titleDonePromise: done
+      },
+      format: 'json'
+    }, {
+      percentage: 30,
+      message: '正在生成标题（流式输出）...'
+    })
+  }
 
   if (signal) {
     signal.addEventListener('abort', () => {
@@ -230,7 +246,8 @@ async function generateTitleWithLLM(
  */
 async function generateDescriptionWithLLM(
   outlineJson: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onUpdate?: (data: ToolCallbackData, progress?: ToolProgress) => void
 ): Promise<string> {
   return await retryLLMCall(async () => {
   const prompt = generateDescriptionPrompt(outlineJson)
@@ -251,6 +268,21 @@ async function generateDescriptionWithLLM(
     { stream: true }
   )
   logger.debug(`[generateDescriptionWithLLM] 任务已创建，handle=${handle}, originKey=${originKey}`)
+
+  // 立即通过 onUpdate 传递流式输出信息（在 await done 之前）
+  if (onUpdate) {
+    onUpdate({
+      content: {
+        stage: 'generating-description-streaming',
+        descriptionTargetRef: target,
+        descriptionDonePromise: done
+      },
+      format: 'json'
+    }, {
+      percentage: 30,
+      message: '正在生成描述（流式输出）...'
+    })
+  }
 
   if (signal) {
     signal.addEventListener('abort', () => {
@@ -329,7 +361,8 @@ async function generateDescriptionWithLLM(
  */
 async function generateKeywordsWithLLM(
   outlineJson: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onUpdate?: (data: ToolCallbackData, progress?: ToolProgress) => void
 ): Promise<string[]> {
   return await retryLLMCall(async () => {
   const prompt = generateKeywordsPrompt(outlineJson)
@@ -350,6 +383,21 @@ async function generateKeywordsWithLLM(
     { stream: true }
   )
   logger.debug(`[generateKeywordsWithLLM] 任务已创建，handle=${handle}, originKey=${originKey}`)
+
+  // 立即通过 onUpdate 传递流式输出信息（在 await done 之前）
+  if (onUpdate) {
+    onUpdate({
+      content: {
+        stage: 'generating-keywords-streaming',
+        keywordsTargetRef: target,
+        keywordsDonePromise: done
+      },
+      format: 'json'
+    }, {
+      percentage: 30,
+      message: '正在生成关键词（流式输出）...'
+    })
+  }
 
   if (signal) {
     signal.addEventListener('abort', () => {
@@ -746,7 +794,7 @@ const metadataToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       let updatedMeta: ArticleMetaData
 
       if (field === 'title') {
-        generatedValue = await generateTitleWithLLM(outlineJson, signal)
+        generatedValue = await generateTitleWithLLM(outlineJson, signal, onUpdate)
         if (windowType === 'setting') {
           // 在设置窗口中，更新本地doc对象
           doc.meta.title = normalizeStringValue(generatedValue as string)
@@ -760,7 +808,7 @@ const metadataToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         }
 
       } else if (field === 'description') {
-        generatedValue = await generateDescriptionWithLLM(outlineJson, signal)
+        generatedValue = await generateDescriptionWithLLM(outlineJson, signal, onUpdate)
         if (windowType === 'setting') {
           // 在设置窗口中，更新本地doc对象
           doc.meta.description = normalizeStringValue(generatedValue as string)
@@ -774,7 +822,7 @@ const metadataToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         }
 
       } else if (field === 'keywords') {
-        generatedValue = await generateKeywordsWithLLM(outlineJson, signal)
+        generatedValue = await generateKeywordsWithLLM(outlineJson, signal, onUpdate)
         if (windowType === 'setting') {
           // 在设置窗口中，更新本地doc对象
           doc.meta.keywords = sanitizeKeywords(generatedValue as string[])
@@ -802,7 +850,7 @@ const metadataToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           message: i18n.global.t('agent.tool.metadata.progress.generatingTitle', '正在生成标题...')
         })
 
-        const title = await generateTitleWithLLM(outlineJson, signal)
+        const title = await generateTitleWithLLM(outlineJson, signal, onUpdate)
 
         onUpdate({
           content: {
@@ -817,7 +865,7 @@ const metadataToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           message: i18n.global.t('agent.tool.metadata.progress.generatingDescription', '正在生成描述...')
         })
 
-        const description = await generateDescriptionWithLLM(outlineJson, signal)
+        const description = await generateDescriptionWithLLM(outlineJson, signal, onUpdate)
 
         onUpdate({
           content: {
@@ -832,7 +880,7 @@ const metadataToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           message: i18n.global.t('agent.tool.metadata.progress.generatingKeywords', '正在生成关键词...')
         })
 
-        const keywords = await generateKeywordsWithLLM(outlineJson, signal)
+        const keywords = await generateKeywordsWithLLM(outlineJson, signal, onUpdate)
 
         // 更新所有字段
         if (windowType === 'setting') {

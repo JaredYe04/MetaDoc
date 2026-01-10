@@ -271,7 +271,9 @@ async function analyzeOutput(
   command: string,
   stdout: string,
   stderr: string,
-  exitCode: number
+  exitCode: number,
+  signal?: AbortSignal,
+  onUpdate?: (data: ToolCallbackData, progress?: ToolProgress) => void
 ): Promise<string> {
   const prompt = `分析以下终端命令的执行结果：
 
@@ -299,13 +301,45 @@ ${stderr ? `标准错误:\n${stderr}` : ''}
     { stream: true }
   )
 
+  // 立即通过 onUpdate 传递流式输出信息（在 await done 之前）
+  if (onUpdate) {
+    onUpdate({
+      content: {
+        stage: 'analyzing-streaming',
+        command,
+        analysisTargetRef: target,
+        analysisDonePromise: done
+      },
+      format: 'json'
+    }, {
+      percentage: 70,
+      message: '正在分析命令输出（流式输出）...'
+    })
+  }
+
+  if (signal) {
+    signal.addEventListener('abort', () => {
+      cancelAiTask(handle, false)
+    })
+  }
+
   try {
     await done
   } catch (error) {
-    // 重新抛出原始错误，让调用者知道任务失败
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    logger.error('分析终端输出失败:', error)
-    throw new Error(`AI任务失败: ${errorMessage}`)
+    // 检查是否是取消错误，保留已生成的内容
+    const isCancelled = error instanceof Error && (
+      error.message === '任务已取消' || 
+      error.message.includes('任务已取消') ||
+      (error as any).name === 'AbortError'
+    )
+    
+    if (!isCancelled) {
+      // 重新抛出原始错误，让调用者知道任务失败
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      logger.error('分析终端输出失败:', error)
+      throw new Error(`AI任务失败: ${errorMessage}`)
+    }
+    // 取消时继续执行，使用已生成的内容
   }
 
   return target.value.trim()
@@ -462,7 +496,7 @@ const terminalToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     let summary: string | undefined
     if (analyze) {
       try {
-        summary = await analyzeOutput(command, stdout, stderr, exitCode)
+        summary = await analyzeOutput(command, finalStdout, finalStderr, exitCode, signal, onUpdate)
       } catch (error) {
         logger.warn('LLM分析输出失败:', error)
       }

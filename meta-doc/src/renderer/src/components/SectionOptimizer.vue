@@ -504,9 +504,10 @@ const handleKeydown = (event: KeyboardEvent) => {
 }
 
 const menuStyles = computed(() => ({
-  position: 'absolute' as const,
+  position: 'fixed' as const,
   top: `${menuPosition.value.top}px`,
   left: `${menuPosition.value.left}px`,
+  transform: 'translate(-50%, -50%)', // 使用 transform 实现真正的居中
   border: '1px solid #ccc',
   padding: '10px',
   boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.2)',

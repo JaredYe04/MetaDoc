@@ -1017,6 +1017,8 @@ function markDocumentSaved(tabId: string, newPath?: string): void {
   doc.savedMeta = structuredCloneFallback(doc.meta);
   doc.savedAiDialogs = structuredCloneFallback(doc.aiDialogs);
   doc.savedAgentSessions = structuredCloneFallback(doc.agentSessions);
+  // 关键修复：立即设置 dirty 为 false，不等待 updateDocumentDirty
+  // 因为我们已经设置了 savedMarkdown/savedTex 等，内容应该是同步的
   doc.dirty = false;
 
   const tab = tabs.find((item) => item.id === tabId);
@@ -1024,6 +1026,7 @@ function markDocumentSaved(tabId: string, newPath?: string): void {
     if (typeof newPath === 'string') {
       tab.path = newPath;
     }
+    // 关键修复：立即设置 tab.dirty 为 false，立即消除脏标记
     tab.dirty = false;
   }
 
@@ -1033,8 +1036,34 @@ function markDocumentSaved(tabId: string, newPath?: string): void {
     eventBus.emit('is-need-save', false);
   }
   
-  // 重新计算dirty状态以确保一致性
-  updateDocumentDirty(tabId);
+  // 关键修复：在 markDocumentSaved 中，我们已经设置了 savedMarkdown/savedTex 等，内容应该是同步的
+  // 为了性能和用户体验，不调用 updateDocumentDirty（避免延迟）
+  // 如果内容确实同步了，dirty 应该是 false；如果不同，可能是异步更新导致
+  // 如果后续有异步更新导致内容不同，会在下次 updateDocumentMarkdown 时重新计算 dirty
+  // 这里直接验证内容是否相同，如果相同就不调用 updateDocumentDirty（避免延迟）
+  // 如果不同，可能是异步更新导致，但也可能是保存前的状态，我们已经在上面设置为 false 了
+  // 为了保险，如果内容确实不同，我们重新计算 dirty 状态（但这种情况应该很少）
+  const markdownDiff = doc.format === 'md' && doc.markdown !== doc.savedMarkdown;
+  const texDiff = doc.format === 'tex' && doc.tex !== doc.savedTex;
+  const metaDiff = JSON.stringify(doc.meta) !== JSON.stringify(doc.savedMeta);
+  const aiDialogsDiff = JSON.stringify(doc.aiDialogs) !== JSON.stringify(doc.savedAiDialogs);
+  const agentSessionsDiff = JSON.stringify(doc.agentSessions) !== JSON.stringify(doc.savedAgentSessions);
+  
+  // 如果内容确实不同（可能是异步更新导致），重新计算 dirty 状态
+  // 但这种情况应该很少，因为 sync-active-editor 已经同步了内容
+  if (markdownDiff || texDiff || metaDiff || aiDialogsDiff || agentSessionsDiff) {
+    getLogger().warn('markDocumentSaved 后内容仍然不同，重新计算 dirty 状态', {
+      tabId,
+      markdownDiff,
+      texDiff,
+      metaDiff,
+      aiDialogsDiff,
+      agentSessionsDiff
+    });
+    // 如果内容确实不同，可能是异步更新导致，重新计算 dirty 状态
+    updateDocumentDirty(tabId);
+  }
+  // 如果内容已经同步，dirty 已经是 false 了，不需要再次设置或调用 updateDocumentDirty
   
   // 如果路径发生变化，更新文件监听
   if (typeof newPath === 'string' && newPath !== oldPath && newPath) {

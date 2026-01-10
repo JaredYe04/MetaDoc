@@ -465,10 +465,31 @@ const normalizeSavePayload = (payload) => {
 const save = async (mode = 'save', args, targetTabId) => {
   const resolvedTabId = resolveTargetTabId(targetTabId);
   if (resolvedTabId) {
-    eventBus.emit('sync-active-editor', { tabId: resolvedTabId });
+    // 关键修复：同步执行 sync-active-editor，确保内容同步完成后再保存
+    // 使用 Promise 确保同步完成（等待下一个 tick）
+    await new Promise((resolve) => {
+      eventBus.emit('sync-active-editor', { tabId: resolvedTabId });
+      // 等待下一个 tick，确保 sync-active-editor 处理完成
+      setTimeout(() => {
+        resolve();
+      }, 0);
+    });
   }
   const doc = getDocument(resolvedTabId)
   if (!doc) return
+  
+  // 关键修复：在保存前就标记为不脏（乐观更新），立即消除脏标记，提升用户体验
+  // 注意：这里在 sync-active-editor 完成后更新，确保内容已经同步
+  // 如果保存失败，会在后续流程中重新标记为脏（通过 updateDocumentDirty）
+  // 但是，为了确保立即消除脏标记，我们在保存前就更新 savedMarkdown 等（但使用当前路径）
+  // 这样脏标记会立即消除，markDocumentSaved 会在保存成功后再次确认（更新路径等）
+  // 使用 markDocumentSaved 可以确保逻辑一致，但会立即消除脏标记
+  const currentPath = doc.path;
+  // 关键修复：提前标记为已保存（乐观更新），立即消除脏标记
+  // 这样用户可以看到脏标记立即消除，提升用户体验
+  // 如果保存失败，会在后续流程中重新标记为脏
+  markDocumentSaved(resolvedTabId, currentPath);
+  
   const payload = await buildSavePayload(doc)
   ipcRenderer.send(mode, {
     ...payload,

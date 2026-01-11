@@ -25,6 +25,7 @@ import { initializeAgentTools } from './utils/agent-tools';
 import { initializeWorkspaceBroadcastListeners } from './stores/workspace';
 import { registerAllAdapters } from './services/export-adapters';
 import { registerUnitTests } from './utils/unit-tests-register.ts';
+import { initializeFormats } from './utils/format-initializer';
 
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
@@ -35,6 +36,9 @@ const app = createApp(App);
 const pinia = createPinia();
 
 initServiceStatusWatcher();
+
+// 初始化格式注册系统（必须在其他模块使用格式之前）
+initializeFormats();
 
 // 注册导出适配器（异步执行，不阻塞）
 registerAllAdapters();

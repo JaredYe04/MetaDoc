@@ -83,6 +83,7 @@ import { fileWatcherService } from './utils/file-watcher-service';
 import { directoryWatcherService } from './utils/directory-watcher-service';
 import { convertSvgToPdf, convertSvgStringToPngFile, convertSvgStringToPdfFile } from './utils/svg-to-pdf';
 import { queryOne, transaction } from './database/database';
+import { isSupportedFormat } from './utils/supported-formats';
 
 // ============ 取消令牌管理 ============
 // 维护requestId到AbortController的映射，用于取消异步任务
@@ -453,6 +454,24 @@ function bindFileHandlers(): void {
     }
   });
 
+  // 获取文件统计信息（创建时间、修改时间等）
+  ipcMain.handle('get-file-stats', async (event: IpcMainInvokeEvent, filePath: string): Promise<{ birthtime: number; mtime: number; size: number } | null> => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        return null;
+      }
+      const stats = fs.statSync(filePath);
+      return {
+        birthtime: stats.birthtimeMs, // 创建时间（毫秒时间戳）
+        mtime: stats.mtimeMs, // 修改时间（毫秒时间戳）
+        size: stats.size // 文件大小（字节）
+      };
+    } catch (error) {
+      logger.error('获取文件统计信息失败:', error);
+      return null;
+    }
+  });
+
   // 删除文件或文件夹（移到回收站）
   ipcMain.handle('delete-file-or-folder', async (event: IpcMainInvokeEvent, filePath: string): Promise<void> => {
     try {
@@ -558,10 +577,10 @@ function bindFileHandlers(): void {
         throw new Error('文件名称包含非法字符');
       }
 
-      // 只允许 md 和 tex 文件
+      // 检查文件扩展名是否在支持的格式列表中
       const ext = path.extname(fileName).toLowerCase();
-      if (ext !== '.md' && ext !== '.tex') {
-        throw new Error('只支持创建 .md 和 .tex 文件');
+      if (!isSupportedFormat(ext)) {
+        throw new Error(`不支持创建 ${ext} 格式的文件。支持的格式包括：.md, .tex, .txt, .json 等`);
       }
 
       const newPath = path.join(parentPath, fileName);
@@ -1922,10 +1941,27 @@ function bindUtilityHandlers(): void {
 }
 
 /**
- * 根据平台解码Buffer为字符串
- * Windows上cmd.exe使用GBK编码，其他平台使用UTF-8
+ * 根据平台和终端设置解码Buffer为字符串
+ * @param data 要解码的 Buffer
+ * @param consoleKey 终端标识符（可选，用于获取该终端的字符集设置）
  */
-function decodeBuffer(data: Buffer): string {
+function decodeBuffer(data: Buffer, consoleKey?: string): string {
+  // 如果有 consoleKey，尝试使用该终端的字符集设置
+  if (consoleKey && terminalEncodings.has(consoleKey)) {
+    const encoding = terminalEncodings.get(consoleKey)!;
+    try {
+      if (encoding === 'utf8' || encoding === 'utf-8') {
+        return data.toString('utf8');
+      } else {
+        return iconv.decode(data, encoding);
+      }
+    } catch (error) {
+      // 如果解码失败，回退到平台默认编码
+      console.warn(`使用编码 ${encoding} 解码失败，回退到平台默认编码:`, error);
+    }
+  }
+  
+  // 回退到平台默认编码
   if (process.platform === 'win32') {
     // Windows上使用GBK编码解码
     return iconv.decode(data, 'gbk');
@@ -1938,104 +1974,262 @@ function decodeBuffer(data: Buffer): string {
 /**
  * 绑定终端命令执行处理器
  */
+// 维护活动的终端进程映射（invocationId -> process）
+const terminalProcesses = new Map<string, ReturnType<typeof spawn>>();
+// 维护每个终端的当前工作目录（consoleKey -> cwd）
+const terminalCwds = new Map<string, string>();
+// 维护每个终端的字符集编码（consoleKey -> encoding）
+const terminalEncodings = new Map<string, string>();
+
 function bindTerminalHandlers(): void {
+  // 获取或设置终端的当前工作目录
+  ipcMain.handle('terminal-get-cwd', async (
+    event: IpcMainInvokeEvent,
+    options: { consoleKey: string; initialCwd?: string }
+  ): Promise<string> => {
+    const { consoleKey, initialCwd } = options;
+    if (terminalCwds.has(consoleKey)) {
+      return terminalCwds.get(consoleKey)!;
+    }
+    const cwd = initialCwd || process.cwd();
+    terminalCwds.set(consoleKey, cwd);
+    return cwd;
+  });
+
+  // 设置终端的字符集编码
+  ipcMain.handle('terminal-set-encoding', async (
+    event: IpcMainInvokeEvent,
+    options: { consoleKey: string; encoding: string }
+  ): Promise<{ success: boolean; error?: string }> => {
+    const { consoleKey, encoding } = options;
+    const logger = createMainLogger('TerminalCommand');
+    try {
+      // 验证编码是否有效
+      const validEncodings = [
+        'utf8', 'utf-8',
+        'gbk', 'gb2312',
+        'big5',
+        'shift_jis', 'shift-jis',
+        'euc-kr', 'euckr',
+        'iso-8859-1', 'latin1',
+        'windows-1252', 'cp1252',
+        'iso-8859-2', 'latin2',
+        'iso-8859-5',
+        'iso-8859-7',
+        'windows-1251', 'cp1251',
+        'koi8-r',
+        'windows-1250', 'cp1250',
+        'iso-8859-15'
+      ];
+      
+      const normalizedEncoding = encoding.toLowerCase().replace(/_/g, '-');
+      if (!validEncodings.includes(normalizedEncoding)) {
+        return { success: false, error: `不支持的字符集: ${encoding}` };
+      }
+      
+      terminalEncodings.set(consoleKey, normalizedEncoding);
+      logger.info(`终端 ${consoleKey} 字符集已设置为: ${normalizedEncoding}`);
+      return { success: true };
+    } catch (error) {
+      logger.error('设置终端字符集失败:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  });
+
+  // 设置终端的当前工作目录（用于cd命令）
+  ipcMain.handle('terminal-set-cwd', async (
+    event: IpcMainInvokeEvent,
+    options: { consoleKey: string; cwd: string }
+  ): Promise<{ success: boolean; error?: string; resolvedPath?: string }> => {
+    const { consoleKey, cwd } = options;
+    const logger = createMainLogger('TerminalCommand');
+    try {
+      // 获取当前终端的 cwd（如果不存在，使用 process.cwd()）
+      const currentCwd = terminalCwds.get(consoleKey) || process.cwd();
+      
+      // 解析路径：相对路径基于当前 cwd，绝对路径直接使用
+      const resolvedPath = path.isAbsolute(cwd) ? cwd : path.resolve(currentCwd, cwd);
+      
+      // 验证路径是否存在且是目录
+      const fs = require('fs');
+      if (!fs.existsSync(resolvedPath)) {
+        return { success: false, error: '路径不存在' };
+      }
+      const stat = fs.statSync(resolvedPath);
+      if (!stat.isDirectory()) {
+        return { success: false, error: '不是一个目录' };
+      }
+      
+      // 更新 cwd
+      terminalCwds.set(consoleKey, resolvedPath);
+      logger.info(`终端 ${consoleKey} 工作目录已更新为: ${resolvedPath}`);
+      return { success: true, resolvedPath };
+    } catch (error) {
+      logger.error('设置终端工作目录失败:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  });
+
+  // 执行终端命令（不等待完成，支持交互式输入）
   ipcMain.handle('execute-terminal-command', async (
     event: IpcMainInvokeEvent,
-    options: { command: string; cwd?: string; timeout?: number; invocationId?: string }
-  ): Promise<{ exitCode: number; stdout: string; stderr: string }> => {
+    options: { command: string; cwd?: string; invocationId?: string; consoleKey?: string }
+  ): Promise<{ success: boolean; invocationId: string; error?: string }> => {
     const logger = createMainLogger('TerminalCommand');
-    const { command, cwd, timeout = 30000 } = options;
+    const { command, cwd, consoleKey } = options;
+    const invocationId = options.invocationId || `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    return new Promise((resolve, reject) => {
-      logger.info(`执行命令: ${command} (cwd: ${cwd || process.cwd()}, timeout: ${timeout}ms)`);
+    try {
+      // 确定工作目录：优先使用传入的cwd，否则使用该终端维护的cwd，最后使用进程cwd
+      let workingDir = cwd;
+      if (!workingDir && consoleKey) {
+        workingDir = terminalCwds.get(consoleKey);
+      }
+      if (!workingDir) {
+        workingDir = process.cwd();
+      }
+
+      logger.info(`执行命令: ${command} (cwd: ${workingDir}, invocationId: ${invocationId}, consoleKey: ${consoleKey || 'none'})`);
 
       // 根据平台选择shell
       const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/sh';
       const shellArgs = process.platform === 'win32' ? ['/c'] : ['-c'];
 
-      // 创建超时定时器
-      let timeoutId: NodeJS.Timeout | null = null;
-      let childProcess: ReturnType<typeof spawn> | null = null;
+      // 创建子进程（不设置 timeout，支持长时间运行）
+      const childProcess = spawn(shell, [...shellArgs, command], {
+        cwd: workingDir,
+        env: process.env,
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
 
-      const cleanup = () => {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          timeoutId = null;
-        }
-        if (childProcess && !childProcess.killed) {
-          childProcess.kill('SIGTERM');
-          // 如果SIGTERM无效，强制kill
-          setTimeout(() => {
-            if (childProcess && !childProcess.killed) {
-              childProcess.kill('SIGKILL');
-            }
-          }, 1000);
-        }
+      // 保存进程到映射中
+      terminalProcesses.set(invocationId, childProcess);
+
+      // 实时发送 stdout 到渲染进程
+      childProcess.stdout?.on('data', (data: Buffer) => {
+        const text = decodeBuffer(data, consoleKey);
+        event.sender.send('terminal-stdout-stream', {
+          invocationId,
+          data: text
+        });
+      });
+
+      // 实时发送 stderr 到渲染进程
+      childProcess.stderr?.on('data', (data: Buffer) => {
+        const text = decodeBuffer(data, consoleKey);
+        event.sender.send('terminal-stderr-stream', {
+          invocationId,
+          data: text
+        });
+      });
+
+      // 进程关闭时清理
+      childProcess.on('close', (code: number | null) => {
+        terminalProcesses.delete(invocationId);
+        const exitCode = code ?? 1;
+        logger.info(`命令执行完成: exitCode=${exitCode}, invocationId: ${invocationId}`);
+        
+        event.sender.send('terminal-close', {
+          invocationId,
+          exitCode,
+          command
+        });
+      });
+
+      // 进程错误时清理
+      childProcess.on('error', (error: Error) => {
+        terminalProcesses.delete(invocationId);
+        logger.error('命令执行错误:', error);
+        event.sender.send('terminal-error', {
+          invocationId,
+          error: error.message
+        });
+      });
+
+      return { success: true, invocationId };
+    } catch (error) {
+      logger.error('启动命令失败:', error);
+      return { 
+        success: false, 
+        invocationId,
+        error: error instanceof Error ? error.message : String(error)
       };
+    }
+  });
 
-      try {
-        childProcess = spawn(shell, [...shellArgs, command], {
-          cwd: cwd || process.cwd(),
-          env: process.env,
-          stdio: ['pipe', 'pipe', 'pipe']
-        });
+  // 发送输入到终端进程（stdin）
+  ipcMain.handle('terminal-send-input', async (
+    event: IpcMainInvokeEvent,
+    options: { invocationId: string; input: string }
+  ): Promise<{ success: boolean; error?: string }> => {
+    const logger = createMainLogger('TerminalCommand');
+    const { invocationId, input } = options;
 
-        let stdout = '';
-        let stderr = '';
-        const invocationId = options.invocationId || `terminal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-
-        childProcess.stdout?.on('data', (data: Buffer) => {
-          const text = decodeBuffer(data)
-          stdout += text
-          // 实时发送 stdout 到渲染进程
-          event.sender.send('terminal-stdout-stream', {
-            invocationId,
-            data: text,
-            command
-          })
-        });
-
-        childProcess.stderr?.on('data', (data: Buffer) => {
-          const text = decodeBuffer(data)
-          stderr += text
-          // 实时发送 stderr 到渲染进程
-          event.sender.send('terminal-stderr-stream', {
-            invocationId,
-            data: text,
-            command
-          })
-        });
-
-        childProcess.on('close', (code: number | null) => {
-          cleanup();
-          const exitCode = code ?? 1;
-          logger.info(`命令执行完成: exitCode=${exitCode}`);
-          resolve({
-            exitCode,
-            stdout: stdout.trim(),
-            stderr: stderr.trim()
-          });
-        });
-
-        childProcess.on('error', (error: Error) => {
-          cleanup();
-          logger.error('命令执行错误:', error);
-          reject(error);
-        });
-
-        // 设置超时
-        timeoutId = setTimeout(() => {
-          logger.warn(`命令执行超时: ${command}`);
-          cleanup();
-          reject(new Error(`命令执行超时 (${timeout}ms)`));
-        }, timeout);
-
-      } catch (error) {
-        cleanup();
-        logger.error('启动命令失败:', error);
-        reject(error);
+    try {
+      const childProcess = terminalProcesses.get(invocationId);
+      if (!childProcess || childProcess.killed) {
+        return { success: false, error: '进程不存在或已终止' };
       }
-    });
+
+      // 发送输入到进程的 stdin
+      if (childProcess.stdin && !childProcess.stdin.destroyed) {
+        // Windows 使用 GBK 编码，其他平台使用 UTF-8
+        const buffer = process.platform === 'win32' 
+          ? iconv.encode(input, 'gbk')
+          : Buffer.from(input, 'utf8');
+        
+        childProcess.stdin.write(buffer);
+        logger.debug(`发送输入到进程 ${invocationId}: ${input.substring(0, 50)}`);
+        return { success: true };
+      } else {
+        return { success: false, error: '进程 stdin 不可用' };
+      }
+    } catch (error) {
+      logger.error('发送输入失败:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  });
+
+  // 发送中断信号到终端进程（Ctrl+C）
+  ipcMain.handle('terminal-send-interrupt', async (
+    event: IpcMainInvokeEvent,
+    options: { invocationId: string }
+  ): Promise<{ success: boolean; error?: string }> => {
+    const logger = createMainLogger('TerminalCommand');
+    const { invocationId } = options;
+
+    try {
+      const childProcess = terminalProcesses.get(invocationId);
+      if (!childProcess || childProcess.killed) {
+        return { success: false, error: '进程不存在或已终止' };
+      }
+
+      // 发送 SIGINT 信号（Ctrl+C）
+      if (process.platform === 'win32') {
+        // Windows 上使用 SIGTERM，因为 Windows 不支持 SIGINT
+        childProcess.kill('SIGTERM');
+      } else {
+        childProcess.kill('SIGINT');
+      }
+      
+      logger.info(`发送中断信号到进程 ${invocationId}`);
+      return { success: true };
+    } catch (error) {
+      logger.error('发送中断信号失败:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
   });
 }
 
@@ -2457,7 +2651,22 @@ const saveInternal = async (
     return null;
   }
 
-  filePath = ensureFileNameExtension(filePath, format);
+  // 对于 plaintext 格式（txt），如果文件路径已经有扩展名，保留原始扩展名
+  // 因为 plaintext 格式包括多种文件类型（.js, .json, .py 等），应该保留原始扩展名
+  if (format === 'txt') {
+    const existingExt = path.extname(filePath);
+    // 如果文件路径已经有扩展名，保留它（不强制改为 .txt）
+    if (existingExt && existingExt.length > 1) {
+      // 保持原始扩展名，不调用 ensureFileNameExtension
+      // 这样 .js 文件保存后仍然是 .js，而不是 .txt
+    } else {
+      // 如果没有扩展名，才使用默认的 .txt 扩展名
+      filePath = ensureFileNameExtension(filePath, format);
+    }
+  } else {
+    // 对于其他格式（md, tex 等），确保扩展名正确
+    filePath = ensureFileNameExtension(filePath, format);
+  }
 
   switch (format) {
     case 'md':
@@ -2469,8 +2678,13 @@ const saveInternal = async (
     case 'tex':
       content = data.tex;
       break;
+    case 'txt':
+      // 纯文本格式使用 md 字段存储（与渲染进程一致）
+      content = data.md || '';
+      break;
     default:
-      return null;
+      // 未知格式，尝试使用 md 字段（向后兼容）
+      content = data.md || '';
   }
 
   // 标记文件正在保存，避免触发文件监听
@@ -2524,10 +2738,12 @@ export const openDoc = async (filePath?: string): Promise<void> => {
   const result: OpenDialogReturnValue = await dialog.showOpenDialog(mainWindow!, {
     title: t('main.dialogs.openFileTitle'),
     filters: [
-      { name: supportedFilterName, extensions: ['md', 'tex', 'json'] },
+      { name: supportedFilterName, extensions: ['md', 'tex', 'txt', 'json', 'js', 'ts', 'py', 'java', 'cpp', 'c', 'h', 'html', 'css', 'xml', 'yaml', 'yml'] },
       { name: t('main.dialogs.filters.markdown'), extensions: ['md'] },
       { name: t('main.dialogs.filters.latex'), extensions: ['tex'] },
       { name: t('main.dialogs.filters.json'), extensions: ['json'] },
+      { name: 'Text Files', extensions: ['txt', 'text'] },
+      { name: 'Code Files', extensions: ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'h', 'hpp', 'cs', 'go', 'rs'] },
       { name: t('main.dialogs.filters.all'), extensions: ['*'] },
     ],
   });
@@ -2560,6 +2776,8 @@ const getSaveFilterByFormat = (format: DocumentFormat): Electron.FileFilter => {
       return { name: t('main.dialogs.filters.latex'), extensions: ['tex'] };
     case 'json':
       return { name: t('main.dialogs.filters.json'), extensions: ['json'] };
+    case 'txt':
+      return { name: 'Text Files', extensions: ['txt'] };
     default:
       return { name: t('main.dialogs.filters.all'), extensions: ['*'] };
   }
@@ -2576,6 +2794,13 @@ const ensureFileNameExtension = (input: string, format: DocumentFormat): string 
   const existingExt = path.extname(normalized).toLowerCase();
 
   if (existingExt === expectedExt) {
+    return normalized;
+  }
+
+  // 对于 plaintext 格式（txt），如果已经有其他扩展名，保留它
+  // 因为 plaintext 格式包括多种文件类型（.js, .json, .py 等）
+  if (format === 'txt' && existingExt && existingExt.length > 1) {
+    // 保留原始扩展名，不强制改为 .txt
     return normalized;
   }
 
@@ -2603,13 +2828,19 @@ function extractTitleFromSaveData(data: SaveData): string | null {
     const format = data.format || 'md';
     let content = '';
     
-    if (format === 'md') {
+    if (format === 'md' || format === 'txt') {
+      // 纯文本格式也使用 md 字段存储
       content = data.md || '';
     } else if (format === 'tex') {
       content = data.tex || '';
     }
     
     if (!content) {
+      return null;
+    }
+    
+    // 纯文本格式不提取标题，返回 null
+    if (format === 'txt') {
       return null;
     }
     

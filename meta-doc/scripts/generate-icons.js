@@ -286,6 +286,36 @@ async function main() {
     // 确保文档图标已合成
     ensureDocIconsComposed(versionDir);
 
+    // 生成 base-doc.svg 的黑白版本（如果不存在）
+    const baseDocPath = path.join(versionDir, 'base-doc.svg');
+    if (fs.existsSync(baseDocPath)) {
+      const baseDocWhitePath = path.join(assetsIconsDir, 'base-doc-white.svg');
+      const baseDocBlackPath = path.join(assetsIconsDir, 'base-doc-black.svg');
+      
+      if (!fs.existsSync(baseDocWhitePath) || !fs.existsSync(baseDocBlackPath)) {
+        console.log('正在生成 base-doc 黑白版本...');
+        const baseDocContent = fs.readFileSync(baseDocPath, 'utf-8');
+        
+        // 确保输出目录存在
+        if (!fs.existsSync(assetsIconsDir)) {
+          fs.mkdirSync(assetsIconsDir, { recursive: true });
+          console.log(`✓ 创建输出目录: ${assetsIconsDir}`);
+        }
+        
+        // 生成白色版本
+        const baseDocWhiteSvg = convertToColorVersion(baseDocContent, false);
+        fs.writeFileSync(baseDocWhitePath, baseDocWhiteSvg, 'utf-8');
+        console.log(`✓ 已生成: ${path.basename(baseDocWhitePath)}`);
+
+        // 生成黑色版本
+        const baseDocBlackSvg = convertToColorVersion(baseDocContent, true);
+        fs.writeFileSync(baseDocBlackPath, baseDocBlackSvg, 'utf-8');
+        console.log(`✓ 已生成: ${path.basename(baseDocBlackPath)}`);
+      } else {
+        console.log('✓ base-doc 黑白版本已存在，跳过生成');
+      }
+    }
+
     // 生成 icon.ico（从 logo.svg）
     const logoPath = path.join(versionDir, 'logo.svg');
     if (!fs.existsSync(logoPath)) {

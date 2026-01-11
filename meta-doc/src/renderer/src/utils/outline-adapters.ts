@@ -5,7 +5,7 @@ import {
   generateLatexFromOutlineTree,
 } from './latex-utils';
 
-export type OutlineTextAdapterFormat = 'md' | 'tex';
+export type OutlineTextAdapterFormat = 'md' | 'tex' | string;
 
 export interface OutlineTextAdapter {
   toText(outline: DocumentOutlineNode, existingText?: string): Promise<string>;
@@ -68,6 +68,7 @@ class LatexOutlineAdapter implements OutlineTextAdapter {
 
 export function getOutlineAdapter(format: OutlineTextAdapterFormat): OutlineTextAdapter {
   if (format === 'tex') return new LatexOutlineAdapter();
+  // 默认使用Markdown适配器（包括'md'和其他格式）
   return new MarkdownOutlineAdapter();
 }
 

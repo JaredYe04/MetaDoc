@@ -178,11 +178,61 @@ import ContextMenu from './ContextMenu.vue'
 import type { ContextMenuItem } from './contextMenus/types'
 import { dirname, basename, extname, join, relative } from '../utils/path-utils'
 import { useCloseTab } from '../composables/useCloseTab'
+import { formatRegistry } from '../utils/format-registry'
 
 const { t } = useI18n()
 const logger = createRendererLogger('WorkspaceExplorer')
 const workspace = useWorkspace()
 const { closeTab } = useCloseTab()
+
+// 并发池工具：控制并发数量，避免同时发起过多请求
+class ConcurrencyPool {
+  private queue: Array<() => Promise<any>> = []
+  private running = 0
+  private maxConcurrency: number
+
+  constructor(maxConcurrency: number = 15) {
+    this.maxConcurrency = maxConcurrency
+  }
+
+  async execute<T>(task: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.queue.push(async () => {
+        try {
+          const result = await task()
+          resolve(result)
+        } catch (error) {
+          reject(error)
+        } finally {
+          this.running--
+          this.processQueue()
+        }
+      })
+      this.processQueue()
+    })
+  }
+
+  private processQueue() {
+    while (this.running < this.maxConcurrency && this.queue.length > 0) {
+      const task = this.queue.shift()
+      if (task) {
+        this.running++
+        task()
+      }
+    }
+  }
+
+  getQueueLength(): number {
+    return this.queue.length
+  }
+
+  getRunningCount(): number {
+    return this.running
+  }
+}
+
+// 创建并发池实例（15 个并发）
+const directoryLoadPool = new ConcurrencyPool(15)
 
 interface FileNode {
   name: string
@@ -251,6 +301,34 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
   }
 
   // 节点右键菜单
+
+  // 工作文件夹根节点菜单：新建文件、新建文件夹、粘贴
+  if (node.isWorkspaceRoot) {
+    // 粘贴（如果有剪贴板内容）
+    if (clipboardPaths.value.length > 0) {
+      items.push({
+        type: 'action',
+        value: 'paste',
+        label: 'workspaceExplorer.contextMenu.paste'
+      })
+      items.push({
+        type: 'divider'
+      })
+    }
+    // 新建文件
+    items.push({
+      type: 'action',
+      value: 'newFile',
+      label: 'workspaceExplorer.contextMenu.newFile'
+    })
+    // 新建文件夹
+    items.push({
+      type: 'action',
+      value: 'newFolder',
+      label: 'workspaceExplorer.contextMenu.newFolder'
+    })
+    return items
+  }
 
   // 文件相关菜单
   if (node.type === 'file') {
@@ -490,47 +568,66 @@ const createWorkspaceRootNode = async (folderPath: string) => {
   }
 }
 
-// 加载工作文件夹的子目录
+// 加载目录内容（懒加载：只加载直接子项，不递归）
+const loadDirectoryContent = async (nodePath: string): Promise<FileNode[]> => {
+  const ipcRenderer = getIpcRenderer()
+  if (!ipcRenderer) return []
+
+  // 使用并发池执行目录读取
+  return directoryLoadPool.execute(async () => {
+    try {
+      const entries = await ipcRenderer.invoke('read-directory', nodePath) as Array<{ name: string; path: string; isDirectory: boolean }>
+      
+      const dirs: FileNode[] = []
+      const files: FileNode[] = []
+
+      // 快速处理：只做简单的字符串操作，不进行 I/O
+      for (const entry of entries) {
+        if (entry.isDirectory) {
+          dirs.push({
+            name: entry.name,
+            path: entry.path,
+            type: 'directory',
+            children: undefined // 懒加载：不在这里加载子目录
+          })
+        } else {
+          // 只显示支持的文档格式文件
+          const fileExt = extname(entry.path)
+          const formatId = formatRegistry.getFormatByExtension(fileExt)
+          if (formatId) {
+            files.push({
+              name: entry.name,
+              path: entry.path,
+              type: 'file'
+            })
+          }
+        }
+      }
+
+      // 排序：目录在前，文件在后
+      dirs.sort((a, b) => a.name.localeCompare(b.name))
+      files.sort((a, b) => a.name.localeCompare(b.name))
+      
+      return [...dirs, ...files]
+    } catch (err) {
+      logger.error('加载目录内容失败:', { path: nodePath, error: err })
+      return []
+    }
+  })
+}
+
+// 加载工作文件夹的子目录（懒加载：只加载直接子项）
 const loadWorkspaceFolderChildren = async (rootNode: FileNode) => {
   if (!rootNode.path) return
 
-  const ipcRenderer = getIpcRenderer()
-  if (!ipcRenderer) return
-
-  try {
-    const entries = await ipcRenderer.invoke('read-directory', rootNode.path) as Array<{ name: string; path: string; isDirectory: boolean }>
-    
-    const children: FileNode[] = []
-    const dirs: FileNode[] = []
-    const files: FileNode[] = []
-
-    for (const entry of entries) {
-      const child: FileNode = {
-        name: entry.name,
-        path: entry.path,
-        type: entry.isDirectory ? 'directory' : 'file'
-      }
-
-      // 只显示 md 和 tex 文件
-      if (entry.isDirectory) {
-        dirs.push(child)
-      } else {
-        const ext = entry.name.split('.').pop()?.toLowerCase()
-        if (ext === 'md' || ext === 'tex') {
-          files.push(child)
-        }
-      }
-    }
-
-    // 排序：目录在前，文件在后，都按名称排序
-    dirs.sort((a, b) => a.name.localeCompare(b.name))
-    files.sort((a, b) => a.name.localeCompare(b.name))
-    children.push(...dirs, ...files)
-
-    rootNode.children = children
-  } catch (err) {
-    logger.error('加载工作文件夹子目录失败:', err)
-  }
+  // 先初始化为空数组，立即更新 UI
+  rootNode.children = []
+  
+  // 异步加载目录内容
+  const children = await loadDirectoryContent(rootNode.path)
+  
+  // 更新节点子项（Vue 会自动响应式更新）
+  rootNode.children = children
 }
 
 // 刷新指定工作文件夹
@@ -546,84 +643,85 @@ const saveWorkspaceFolders = () => {
   localStorage.setItem('workspaceFolders', JSON.stringify(workspaceFolders.value))
 }
 
-// 加载保存的工作文件夹列表
+// 加载保存的工作文件夹列表（并发处理，但根节点创建是同步的）
 const loadWorkspaceFolders = async () => {
   const saved = localStorage.getItem('workspaceFolders')
   if (saved) {
     try {
       const folders = JSON.parse(saved) as string[]
       
-      // 先为每个工作文件夹创建根节点
+      // 先同步创建所有根节点（不加载内容，避免阻塞）
+      const successfulFolders: string[] = []
       for (const folderPath of folders) {
         try {
-          await createWorkspaceRootNode(folderPath)
+          // 创建根节点（不立即加载内容，懒加载）
+          const folderName = basename(folderPath)
+          const rootNode: FileNode = {
+            name: folderName,
+            path: folderPath,
+            type: 'workspaceRoot',
+            isWorkspaceRoot: true,
+            children: [] // 懒加载：不在这里加载子目录
+          }
+          
+          workspaceFolderNodes.value.set(folderPath, rootNode)
+          
+          // 默认展开，但延迟加载内容
+          expandedPaths.value.add(folderPath)
+          
+          // 启动目录监听
           startDirectoryWatcher(folderPath)
+          
+          successfulFolders.push(folderPath)
         } catch (err) {
-          logger.error(`加载工作文件夹失败: ${folderPath}`, err)
-          // 如果某个文件夹加载失败，继续加载其他文件夹
+          logger.error(`创建工作文件夹根节点失败: ${folderPath}`, err)
         }
       }
       
-      // 所有节点创建完成后再添加到列表（只添加成功创建的）
-      workspaceFolders.value = folders.filter(folderPath => workspaceFolderNodes.value.has(folderPath))
+      // 更新工作文件夹列表（只包含成功创建的）
+      workspaceFolders.value = successfulFolders
       
       // 如果列表有变化，保存
       if (workspaceFolders.value.length !== folders.length) {
         saveWorkspaceFolders()
       }
+      
+      // 并发加载所有已展开的根节点的内容（使用并发池控制并发数量）
+      await Promise.all(
+        successfulFolders.map(folderPath => {
+          const rootNode = workspaceFolderNodes.value.get(folderPath)
+          if (rootNode && expandedPaths.value.has(folderPath)) {
+            return loadWorkspaceFolderChildren(rootNode)
+          }
+          return Promise.resolve()
+        })
+      )
     } catch (err) {
       logger.error('加载工作文件夹列表失败:', err)
     }
   }
 }
 
-// 刷新所有工作文件夹
+// 刷新所有工作文件夹（并发处理）
 const refreshAllWorkspaceFolders = async () => {
-  for (const folderPath of workspaceFolders.value) {
-    await refreshWorkspaceFolder(folderPath)
-  }
+  // 使用 Promise.all 并发处理所有工作文件夹
+  await Promise.all(
+    workspaceFolders.value.map(folderPath => refreshWorkspaceFolder(folderPath))
+  )
 }
 
-// 加载子目录（递归查找节点）
+// 加载子目录（懒加载：只加载直接子项，不递归）
 const loadSubDirectory = async (node: FileNode) => {
   if (!node.path || (node.type !== 'directory' && node.type !== 'workspaceRoot')) return
 
-  try {
-    const ipcRenderer = getIpcRenderer()
-    if (!ipcRenderer) {
-      throw new Error(t('workspaceExplorer.ipcNotAvailable'))
-    }
-
-    const entries = await ipcRenderer.invoke('read-directory', node.path) as Array<{ name: string; path: string; isDirectory: boolean }>
-    const children: FileNode[] = []
-    const dirs: FileNode[] = []
-    const files: FileNode[] = []
-
-    for (const entry of entries) {
-      const child: FileNode = {
-        name: entry.name,
-        path: entry.path,
-        type: entry.isDirectory ? 'directory' : 'file'
-      }
-
-      if (entry.isDirectory) {
-        dirs.push(child)
-      } else {
-        const ext = entry.name.split('.').pop()?.toLowerCase()
-        if (ext === 'md' || ext === 'tex') {
-          files.push(child)
-        }
-      }
-    }
-
-    dirs.sort((a, b) => a.name.localeCompare(b.name))
-    files.sort((a, b) => a.name.localeCompare(b.name))
-    children.push(...dirs, ...files)
-
-    node.children = children
-  } catch (err) {
-    logger.error('加载子目录失败:', err)
-  }
+  // 先初始化为空数组，立即更新 UI
+  node.children = []
+  
+  // 使用并发池异步加载目录内容
+  const children = await loadDirectoryContent(node.path)
+  
+  // 更新节点子项（Vue 会自动响应式更新）
+  node.children = children
 }
 
 // 切换展开/折叠
@@ -661,7 +759,7 @@ const handleOpenFile = async (filePath: string) => {
     return
   }
 
-  // 读取文件内容并通过事件总线打开文件
+  // 通过扩展名检测格式并打开文件（不读取文件内容进行检测）
   try {
     const ipcRenderer = getIpcRenderer()
     if (!ipcRenderer) {
@@ -669,19 +767,16 @@ const handleOpenFile = async (filePath: string) => {
       return
     }
 
-    const content = await ipcRenderer.invoke('read-file-content', filePath) as string | null
-    if (content === null) {
-      error.value = t('workspaceExplorer.fileNotFound')
-      return
-    }
-
-    const format = filePath.endsWith('.tex') ? 'tex' : 'md'
+    // 只通过扩展名检测格式，不读取文件内容进行检测
+    const fileExt = extname(filePath)
+    const formatId = formatRegistry.getFormatByExtension(fileExt) || 'txt'
     
-    // 通过事件总线打开文件
+    // 通过事件总线打开文件（让接收方负责读取文件内容）
+    // 这样避免在这里读取文件内容，减少开销
     eventBus.emit('workspace-open-document', {
       path: filePath,
-      format,
-      content
+      format: formatId,
+      content: '' // 不在这里读取内容，让接收方读取
     })
   } catch (err) {
     logger.error('打开文件失败:', err)
@@ -916,7 +1011,13 @@ const handleContextMenuCommand = async (command: string) => {
         break
       case 'paste':
         if (clipboardPaths.value.length === 0 || !clipboardOperation.value) return
-        const pasteTargetPath = contextMenuTargetPath.value || (workspaceFolders.value.length > 0 ? workspaceFolders.value[0] : null)
+        // 如果右键的是工作文件夹节点，使用该节点的路径；否则使用 contextMenuTargetPath 或第一个工作文件夹
+        let pasteTargetPath: string | null = null
+        if (node && node.isWorkspaceRoot) {
+          pasteTargetPath = node.path
+        } else {
+          pasteTargetPath = contextMenuTargetPath.value || (workspaceFolders.value.length > 0 ? workspaceFolders.value[0] : null)
+        }
         if (!pasteTargetPath) return
         await handlePaste(pasteTargetPath)
         break
@@ -952,12 +1053,22 @@ const handleContextMenuCommand = async (command: string) => {
         }
         break
       case 'newFile':
-        newFileParentPath.value = contextMenuTargetPath.value || (workspaceFolders.value.length > 0 ? workspaceFolders.value[0] : null)
+        // 如果右键的是工作文件夹节点或目录节点，使用该节点的路径；否则使用 contextMenuTargetPath 或第一个工作文件夹
+        if (node && (node.isWorkspaceRoot || node.type === 'directory')) {
+          newFileParentPath.value = node.path
+        } else {
+          newFileParentPath.value = contextMenuTargetPath.value || (workspaceFolders.value.length > 0 ? workspaceFolders.value[0] : null)
+        }
         newFileName.value = ''
         newFileDialogVisible.value = true
         break
       case 'newFolder':
-        newFolderParentPath.value = contextMenuTargetPath.value || (workspaceFolders.value.length > 0 ? workspaceFolders.value[0] : null)
+        // 如果右键的是工作文件夹节点或目录节点，使用该节点的路径；否则使用 contextMenuTargetPath 或第一个工作文件夹
+        if (node && (node.isWorkspaceRoot || node.type === 'directory')) {
+          newFolderParentPath.value = node.path
+        } else {
+          newFolderParentPath.value = contextMenuTargetPath.value || (workspaceFolders.value.length > 0 ? workspaceFolders.value[0] : null)
+        }
         newFolderName.value = ''
         newFolderDialogVisible.value = true
         break
@@ -1237,8 +1348,11 @@ const handleNewFileConfirm = async () => {
   try {
     // 确保文件名有扩展名
     let fileName = newFileName.value.trim()
-    if (!fileName.endsWith('.md') && !fileName.endsWith('.tex')) {
-      fileName = fileName + '.md' // 默认使用 .md
+    if (!fileName.includes('.')) {
+      // 如果没有扩展名，使用 Markdown 格式的默认扩展名（从 formatRegistry 获取）
+      const mdFormat = formatRegistry.getFormat('md')
+      const defaultExtension = mdFormat?.defaultExtension || '.md'
+      fileName = fileName + defaultExtension
     }
 
     const filePath = await ipcRenderer.invoke('create-file', {

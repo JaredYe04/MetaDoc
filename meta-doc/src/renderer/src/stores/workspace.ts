@@ -13,6 +13,7 @@ import { extractOutlineTreeFromMarkdown } from '../utils/md-utils.js';
 import { convertLatexToMarkdown } from '../utils/latex-utils.js';
 import { findFormatById, findFormatTemplate, getSupportedFormats } from '../constants/supported-formats';
 import type { SupportedFormat } from '../types/formats';
+import { formatRegistry } from '../utils/format-registry';
 import { saveWorkspaceDocument } from '../services/document-save';
 import {
   DEFAULT_ARTICLE_META,
@@ -23,7 +24,9 @@ import {
 import { isElectronEnv } from '../utils/event-bus';
 
 export type WorkspaceTabKind = 'new' | 'file' | 'tool' | 'system';
-export type WorkspaceTabFormat = 'md' | 'tex';
+// WorkspaceTabFormat 现在支持动态格式，但为了向后兼容，保留 'md' | 'tex' 作为基础类型
+// 实际使用时应从 formatRegistry 获取所有支持的格式
+export type WorkspaceTabFormat = 'md' | 'tex' | 'txt' | string;
 
 export type ToolTabType = 'ocr' | 'graph' | 'attachment' | 'dataAnalysis' | 'formulaRecognition' | 'aiChat' | 'setting';
 
@@ -478,49 +481,20 @@ function activateTab(id: string): void {
 }
 
 /**
- * 检测内容格式（LaTeX或Markdown）
+ * 检测内容格式（使用格式注册系统）
  * @param content 文档内容
- * @returns 'tex' | 'md' 检测到的格式
+ * @param filePath 文件路径（可选，用于基于扩展名的检测）
+ * @returns 检测到的格式ID，如果无法检测则返回'md'
  */
-export function detectDocumentFormat(content: string): 'tex' | 'md' {
-  if (!content || content.trim().length === 0) {
-    return 'md' // 空内容默认Markdown
+export function detectDocumentFormat(content: string, filePath?: string): string {
+  // 使用格式注册系统的检测功能
+  const detected = formatRegistry.detectFormat(content, filePath);
+  if (detected) {
+    return detected;
   }
   
-  // LaTeX特征检测
-  const latexPatterns = [
-    /\\documentclass/i,           // \documentclass
-    /\\begin\{document\}/i,        // \begin{document}
-    /\\section\{/i,                // \section{
-    /\\subsection\{/i,            // \subsection{
-    /\\subsubsection\{/i,          // \subsubsection{
-    /\\chapter\{/i,                // \chapter{
-    /\\part\{/i,                   // \part{
-    /\\usepackage\{/i,             // \usepackage{
-    /\\newcommand/i,               // \newcommand
-    /\\def\s+\\/i,                 // \def \
-    /\\title\{/i,                  // \title{
-    /\\author\{/i,                 // \author{
-    /\\maketitle/i,                // \maketitle
-    /\\begin\{equation\}/i,        // \begin{equation}
-    /\\begin\{align\}/i,           // \begin{align}
-    /\\begin\{figure\}/i,          // \begin{figure}
-    /\\begin\{table\}/i,           // \begin{table}
-    /\\includegraphics/i,          // \includegraphics
-    /\\ref\{/i,                    // \ref{
-    /\\cite\{/i,                   // \cite{
-    /\\label\{/i,                  // \label{
-  ]
-  
-  // 检查是否包含LaTeX特征
-  for (const pattern of latexPatterns) {
-    if (pattern.test(content)) {
-      return 'tex'
-    }
-  }
-  
-  // 默认返回Markdown
-  return 'md'
+  // 如果无法检测，默认返回Markdown（向后兼容）
+  return 'md';
 }
 
 /**
@@ -578,15 +552,11 @@ function updateDocumentMarkdown(tabId: string, markdown: string): void {
     // 自动检测并设置格式（如果格式未确定或内容明显是LaTeX）
     if (tab && tab.kind === 'new' && !tab.path) {
       // 新建文档且未保存，可以自动检测格式
-      const detectedFormat = detectDocumentFormat(normalized)
-      if (detectedFormat === 'tex' && doc.format !== 'tex') {
-        // 检测到LaTeX格式，更新格式
-        doc.format = 'tex'
-        tab.format = 'tex'
-      } else if (detectedFormat === 'md' && doc.format !== 'md' && normalized.trim().length > 0) {
-        // 检测到Markdown格式（且内容不为空），更新格式
-        doc.format = 'md'
-        tab.format = 'md'
+      const detectedFormat = detectDocumentFormat(normalized, doc.path || undefined)
+      if (detectedFormat && detectedFormat !== doc.format && normalized.trim().length > 0) {
+        // 检测到格式且与当前格式不同，更新格式
+        doc.format = detectedFormat as WorkspaceTabFormat
+        tab.format = detectedFormat as WorkspaceTabFormat
       }
     }
     
@@ -651,15 +621,11 @@ function updateDocumentTex(tabId: string, tex: string): void {
     // 自动检测并设置格式（如果格式未确定）
     if (tab && tab.kind === 'new' && !tab.path) {
       // 新建文档且未保存，可以自动检测格式
-      const detectedFormat = detectDocumentFormat(normalized)
-      if (detectedFormat === 'tex' && doc.format !== 'tex') {
-        // 检测到LaTeX格式，更新格式
-        doc.format = 'tex'
-        tab.format = 'tex'
-      } else if (detectedFormat === 'md' && doc.format !== 'md' && normalized.trim().length > 0) {
-        // 检测到Markdown格式（且内容不为空），更新格式
-        doc.format = 'md'
-        tab.format = 'md'
+      const detectedFormat = detectDocumentFormat(normalized, doc.path || undefined)
+      if (detectedFormat && detectedFormat !== doc.format && normalized.trim().length > 0) {
+        // 检测到格式且与当前格式不同，更新格式
+        doc.format = detectedFormat as WorkspaceTabFormat
+        tab.format = detectedFormat as WorkspaceTabFormat
       }
     }
     
@@ -866,7 +832,8 @@ function updateDocumentDirty(tabId: string): void {
     // 
     // 对于md文件：只检查markdown和元信息，不检查tex（tex是自动转换的内部状态）
     // 对于tex文件：只检查tex和元信息，不检查markdown（markdown是自动转换的内部状态）
-    const markdownDiff = doc.format === 'md' && doc.markdown !== doc.savedMarkdown;
+    // 对于txt文件：只检查markdown和元信息（txt文件的内容存储在markdown字段中）
+    const markdownDiff = (doc.format === 'md' || doc.format === 'txt') && doc.markdown !== doc.savedMarkdown;
     const texDiff = doc.format === 'tex' && doc.tex !== doc.savedTex;
     const metaDiff = JSON.stringify(doc.meta) !== JSON.stringify(doc.savedMeta);
     const aiDialogsDiff = JSON.stringify(doc.aiDialogs) !== JSON.stringify(doc.savedAiDialogs);

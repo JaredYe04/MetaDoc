@@ -162,7 +162,7 @@
                                         <div class="console-panel" :style="{
                                             background: themeState.currentTheme.background
                                         }">
-                                            <Console console-key="latex" />
+                                            <ConsoleOutput console-key="latex" />
                                         </div>
                                     </div>
                                 </div>
@@ -317,7 +317,7 @@ import ResizableContainer from "../components/base/ResizableContainer.vue";
 import { getArticleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
 import ContextMenu from "../components/ContextMenu.vue";
 import MetaInfoPanel from "../components/MetaInfoPanel.vue";
-import Console from "../components/Console.vue";
+import ConsoleOutput from "../components/ConsoleOutput.vue";
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import { createRendererLogger } from '../utils/logger.ts'
 import { waitForService } from "../utils/service-status.ts";

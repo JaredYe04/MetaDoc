@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { createMainLogger } from '../logger';
 import { WebContents } from 'electron';
+import { isPlainTextFormat, detectFileFormatFromPath } from './supported-formats';
 
 const logger = createMainLogger('FileWatcherService');
 
@@ -23,9 +24,8 @@ export interface FileWatcherInfo {
 /**
  * 根据文件路径判断文件格式
  */
-function detectFileFormat(filePath: string): 'md' | 'tex' {
-  const ext = path.extname(filePath).toLowerCase();
-  return ext === '.tex' ? 'tex' : 'md';
+function detectFileFormat(filePath: string): string {
+  return detectFileFormatFromPath(filePath);
 }
 
 /**
@@ -56,8 +56,20 @@ function removeMetaInfoFromLatex(content: string): string {
 
 /**
  * 根据文件格式移除 meta-info
+ * 纯文本格式（txt, json等）不包含元信息，直接返回原内容
  */
 function removeMetaInfo(content: string, filePath: string): string {
+  if (!content || typeof content !== 'string') {
+    return content || '';
+  }
+  
+  const ext = path.extname(filePath).toLowerCase();
+  
+  // 纯文本格式不包含元信息，直接返回
+  if (isPlainTextFormat(ext)) {
+    return content;
+  }
+  
   const format = detectFileFormat(filePath);
   if (format === 'tex') {
     return removeMetaInfoFromLatex(content);

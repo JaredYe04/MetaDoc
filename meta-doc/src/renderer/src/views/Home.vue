@@ -14,14 +14,64 @@
 
     <!-- 如果已选择格式，显示文档预览 -->
     <div v-else-if="showDocumentPreview" class="home-panel" :style="panelStyle">
-      <el-scrollbar class="home-panel-scrollbar">
+      <!-- 纯文本格式：不使用滚动条，让Monaco编辑器占满高度 -->
+      <div v-if="isPlainTextFormat" class="home-panel-content-plaintext">
         <div class="home-panel-content">
           <!-- 文档元信息区域 -->
           <div class="document-meta-section">
             <div class="meta-header">
+              <!-- 标题：所有格式都显示 -->
+              <h1 class="document-title" :style="{ color: themeState.currentTheme.textColor }">
+                {{ fileName }}
+              </h1>
+              
+              <!-- 纯文本格式：显示文件格式、创建日期、修改日期 -->
+              <div class="meta-info-row">
+                <div class="meta-item" v-if="fileFormat">
+                  <span class="meta-label">{{ $t('home.fileFormatLabel') }}</span>
+                  <span class="meta-value" :style="{ color: themeState.currentTheme.textColor }">
+                    {{ fileFormat }}
+                  </span>
+                </div>
+                <div class="meta-item" v-if="creationDate">
+                  <span class="meta-label">{{ $t('home.creationDateLabel') }}</span>
+                  <span class="meta-value" :style="{ color: themeState.currentTheme.textColor }">
+                    {{ creationDate }}
+                  </span>
+                </div>
+                <div class="meta-item" v-if="modificationDate">
+                  <span class="meta-label">{{ $t('home.modificationDateLabel') }}</span>
+                  <span class="meta-value" :style="{ color: themeState.currentTheme.textColor }">
+                    {{ modificationDate }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 文档内容预览区域 -->
+          <div class="document-content-section">
+            <!-- 纯文本格式：使用Monaco编辑器预览（替换原来的 Vditor preview 容器） -->
+            <div 
+              ref="monacoPreviewRef" 
+              class="content-preview monaco-preview"
+              v-loading="isRendering"
+            ></div>
+          </div>
+        </div>
+      </div>
+      <!-- 其他格式：使用滚动条 -->
+      <el-scrollbar v-else class="home-panel-scrollbar">
+        <div class="home-panel-content">
+          <!-- 文档元信息区域 -->
+          <div class="document-meta-section">
+            <div class="meta-header">
+              <!-- 标题：所有格式都显示 -->
               <h1 class="document-title" :style="{ color: themeState.currentTheme.textColor }">
                 {{ metaTitle || $t('article.no_title') }}
               </h1>
+              
+              <!-- 其他格式（Markdown/LaTeX）：显示作者和摘要 -->
               <div class="meta-info-row">
                 <div class="meta-item" v-if="metaAuthor">
                   <span class="meta-label">{{ $t('home.authorLabel') }}</span>
@@ -41,6 +91,7 @@
 
           <!-- 文档内容预览区域 -->
           <div class="document-content-section">
+            <!-- 其他格式：使用Markdown预览 -->
             <div 
               ref="previewContainerRef" 
               class="content-preview" 
@@ -62,13 +113,15 @@ import NewDocumentWorkspace from './NewDocumentWorkspace.vue'
 import eventBus, { getWindowType } from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
 import { getSetting } from '../utils/settings'
-import { themeState } from '../utils/themes'
+import { themeState, mixColors } from '../utils/themes'
 import { useWorkspace } from '../stores/workspace'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { convertLatexToMarkdown } from '../utils/latex-utils'
-// 移除粒子效果相关导入，Home.vue 不再使用
 import { renderMarkdownPreview } from '../utils/md-utils'
-import { preRenderAllCharts } from '../utils/chart-pre-renderer'
+import { formatRegistry } from '../utils/format-registry'
+import { getMonacoLanguage } from '../utils/format-initializer'
+import { setupMonacoWorker } from '../utils/monaco-worker-config'
+import * as monaco from 'monaco-editor'
 
 const { t } = useI18n()
 
@@ -80,6 +133,111 @@ const currentFilePath = computed(() => activeDocument.value?.path ?? '')
 const metaTitle = computed(() => activeDocument.value?.meta?.title ?? '')
 const metaAuthor = computed(() => activeDocument.value?.meta?.author ?? '')
 const metaDescription = computed(() => activeDocument.value?.meta?.description ?? '')
+
+// 纯文本格式的文件信息
+const fileName = computed(() => {
+  if (!currentFilePath.value) return ''
+  const parts = currentFilePath.value.split(/[/\\]/)
+  return parts[parts.length - 1] || ''
+})
+
+const fileFormat = computed(() => {
+  if (!currentFilePath.value) return ''
+  
+  // 获取文件扩展名
+  const lastDotIndex = currentFilePath.value.lastIndexOf('.')
+  const ext = lastDotIndex >= 0 ? currentFilePath.value.substring(lastDotIndex).toLowerCase() : ''
+  
+  // 尝试从格式注册表获取格式信息
+  const formatId = activeDocument.value?.format || formatRegistry.getFormatByExtension(ext) || 'txt'
+  const formatConfig = formatRegistry.getFormat(formatId)
+  
+  if (formatConfig) {
+    // 如果有扩展名，显示扩展名，否则显示格式标签
+    if (ext) {
+      return ext.toUpperCase().substring(1) // 移除点号
+    }
+    return formatConfig.label || 'TXT'
+  }
+  
+  // 回退：显示扩展名或默认格式
+  if (ext) {
+    return ext.toUpperCase().substring(1) // 移除点号
+  }
+  return 'TXT'
+})
+
+const fileStats = ref<{ birthtime: number; mtime: number; size: number } | null>(null)
+
+const creationDate = computed(() => {
+  if (!fileStats.value) return ''
+  try {
+    const date = new Date(fileStats.value.birthtime)
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch (error) {
+    logger.warn('格式化创建日期失败', error)
+    return ''
+  }
+})
+
+const modificationDate = computed(() => {
+  if (!fileStats.value) return ''
+  try {
+    const date = new Date(fileStats.value.mtime)
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch (error) {
+    logger.warn('格式化修改日期失败', error)
+    return ''
+  }
+})
+
+// 加载文件统计信息
+const loadFileStats = async () => {
+  if (!isPlainTextFormat.value || !currentFilePath.value) {
+    fileStats.value = null
+    return
+  }
+  
+  try {
+    const ipcRenderer = getIpcRenderer()
+    if (!ipcRenderer) {
+      logger.warn('IPC renderer 不可用，无法获取文件统计信息')
+      return
+    }
+    
+    const stats = await ipcRenderer.invoke('get-file-stats', currentFilePath.value) as { birthtime: number; mtime: number; size: number } | null
+    fileStats.value = stats
+  } catch (error) {
+    logger.error('获取文件统计信息失败', error)
+    fileStats.value = null
+  }
+}
+
+// 判断是否为纯文本格式
+const isPlainTextFormat = computed(() => {
+  const format = activeDocument.value?.format
+  return format === 'txt'
+})
+
+// 获取 IPC renderer
+const getIpcRenderer = () => {
+  if (window && (window as any).electron) {
+    return (window as any).electron.ipcRenderer
+  }
+  return null
+}
 
 // 判断是否需要显示格式选择界面
 const needsFormatSelection = computed(() => {
@@ -105,9 +263,10 @@ const previewMarkdown = computed(() => {
 })
 
 const previewContainerRef = ref<HTMLElement | null>(null)
+const monacoPreviewRef = ref<HTMLElement | null>(null)
 const isRendering = ref(false)
-
-// 移除粒子效果相关代码
+let monacoPreviewEditor: monaco.editor.IStandaloneCodeEditor | null = null
+let monacoPreviewEditorId: string | null = null
 
 // 是否显示文档预览：只有当真正打开了已存在的文档或已选择格式的文档时才显示
 const showDocumentPreview = computed(() => {
@@ -148,9 +307,173 @@ const preventNavigate = () => {
   })
 }
 
-// 渲染预览内容
+// 初始化Monaco预览编辑器（用于纯文本格式）
+const initMonacoPreview = async () => {
+  if (!monacoPreviewRef.value || !isPlainTextFormat.value) return
+
+  // 优化：如果编辑器已存在且容器相同，不需要重新创建
+  if (monacoPreviewEditor && monacoPreviewEditorId) {
+    // 检查编辑器是否仍然有效
+    try {
+      const editors = monaco.editor.getEditors();
+      const existingEditor = editors.find(e => e.getId() === monacoPreviewEditorId);
+      if (existingEditor && existingEditor.getContainerDomNode() === monacoPreviewRef.value) {
+        // 编辑器仍然有效，只需要更新内容和主题，不需要重新创建
+        updateMonacoPreview();
+        syncMonacoPreviewTheme();
+        return;
+      }
+    } catch (e) {
+      logger.warn('检查Monaco预览编辑器状态失败', e);
+    }
+  }
+
+  try {
+    isRendering.value = true
+    
+    setupMonacoWorker()
+    
+    // 如果已存在编辑器，先销毁
+    if (monacoPreviewEditor || monacoPreviewEditorId) {
+      try {
+        if (monacoPreviewEditor) {
+          monacoPreviewEditor.dispose()
+        } else if (monacoPreviewEditorId) {
+          // 如果只有 ID，从全局获取并销毁
+          const editors = monaco.editor.getEditors();
+          const existingEditor = editors.find(e => e.getId() === monacoPreviewEditorId);
+          if (existingEditor) {
+            existingEditor.dispose();
+          }
+        }
+      } catch (e) {
+        logger.warn('销毁Monaco预览编辑器失败', e)
+      }
+      monacoPreviewEditor = null
+      monacoPreviewEditorId = null
+    }
+
+    // 对于纯文本格式，内容存储在 markdown 字段中
+    const content = activeDocument.value?.format === 'txt' 
+      ? (activeDocument.value?.markdown ?? '') 
+      : ''
+    const language = getMonacoLanguage('txt', currentFilePath.value)
+    const isDark = themeState.currentTheme.type === 'dark'
+    
+    // 从用户设置中读取行号显示偏好
+    let showLineNumbers = true
+    try {
+      const lineNumberSetting = await getSetting('lineNumber')
+      if (typeof lineNumberSetting === 'boolean') {
+        showLineNumbers = lineNumberSetting
+      } else if (typeof lineNumberSetting === 'string') {
+        showLineNumbers = lineNumberSetting === 'on' || lineNumberSetting === 'true'
+      }
+    } catch (error) {
+      logger.warn('读取行号设置失败，使用默认值', error)
+    }
+    
+    const editor = monaco.editor.create(monacoPreviewRef.value, {
+      value: content,
+      language: language,
+      theme: isDark ? 'vs-dark' : 'vs',
+      readOnly: true,
+      automaticLayout: true, // 自动适应容器大小
+      fontSize: 14,
+      wordWrap: 'on',
+      lineNumbers: showLineNumbers ? 'on' : 'off',
+      minimap: { enabled: false },
+      contextmenu: false,
+      scrollBeyondLastLine: false,
+      fontFamily: "'JetBrains Mono', 'Consolas', monospace"
+    })
+    
+    monacoPreviewEditor = editor
+    monacoPreviewEditorId = editor.getId()
+    
+    // 确保编辑器布局正确（等待 DOM 更新）
+    nextTick(() => {
+      if (monacoPreviewEditor) {
+        monacoPreviewEditor.layout()
+      }
+    })
+    
+    // 同步主题
+    syncMonacoPreviewTheme()
+    
+  } catch (error) {
+    logger.error('初始化Monaco预览编辑器失败', error)
+  } finally {
+    isRendering.value = false
+  }
+}
+
+// 同步Monaco预览编辑器主题
+const syncMonacoPreviewTheme = () => {
+  if (!monacoPreviewEditor) return
+  
+  const isDark = themeState.currentTheme.type === 'dark'
+  const themeName = isDark ? 'vs-dark' : 'vs'
+  const toMonacoColor = (color: string) => color.replace('#', '') || 'FFFFFF'
+  const deeperColor = (color: string) => {
+    if (isDark) return mixColors(color, '#000000', 0.3)
+    else return mixColors(color, '#FFFFFF', 0.3)
+  }
+  
+  monaco.editor.defineTheme('homePreviewTheme', {
+    base: themeName,
+    inherit: true,
+    rules: [
+      {
+        token: '',
+        background: toMonacoColor(deeperColor(themeState.currentTheme.background)),
+        fontStyle: ''
+      }
+    ],
+    colors: {
+      'editor.background': deeperColor(themeState.currentTheme.background),
+    }
+  })
+  monaco.editor.setTheme('homePreviewTheme')
+}
+
+// 更新Monaco预览编辑器内容
+const updateMonacoPreview = () => {
+  if (!monacoPreviewEditor || !isPlainTextFormat.value) return
+  
+  try {
+    // 对于纯文本格式，内容存储在 markdown 字段中
+    const content = activeDocument.value?.format === 'txt' 
+      ? (activeDocument.value?.markdown ?? '') 
+      : ''
+    const currentValue = monacoPreviewEditor.getValue()
+    if (currentValue !== content) {
+      monacoPreviewEditor.setValue(content)
+    }
+    
+    // 如果路径变化，可能需要更新语言
+    if (currentFilePath.value) {
+      const language = getMonacoLanguage('txt', currentFilePath.value)
+      const model = monacoPreviewEditor.getModel()
+      if (model) {
+        monaco.editor.setModelLanguage(model, language)
+      }
+    }
+    
+    // 确保编辑器布局正确
+    nextTick(() => {
+      if (monacoPreviewEditor) {
+        monacoPreviewEditor.layout()
+      }
+    })
+  } catch (error) {
+    logger.error('更新Monaco预览编辑器内容失败', error)
+  }
+}
+
+// 渲染预览内容（Markdown格式）
 const renderPreview = async () => {
-  if (!previewContainerRef.value) return
+  if (!previewContainerRef.value || isPlainTextFormat.value) return
 
   const container = previewContainerRef.value as HTMLDivElement
   const markdown = previewMarkdown.value
@@ -162,13 +485,8 @@ const renderPreview = async () => {
   }
 
   try {
-    // 开始渲染，显示loading
     isRendering.value = true
-
-    // 获取当前文档的 linkBase
     const linkBase = currentLinkBase.value;
-
-    // 使用统一的 Markdown 预览渲染函数
     await renderMarkdownPreview(container, markdown, {
       linkBase: linkBase,
       renderCode: false,
@@ -178,33 +496,84 @@ const renderPreview = async () => {
     logger.error('渲染预览失败', error)
     container.innerHTML = `<p style="color: var(--console-err, #fe8771);">渲染失败: ${error instanceof Error ? error.message : String(error)}</p>`
   } finally {
-    // 渲染完成，隐藏loading
     isRendering.value = false
   }
 }
 
-// 监听预览内容变化，只在需要显示文档预览时渲染
-watch([previewMarkdown, () => themeState.currentTheme.type, showDocumentPreview], () => {
+// 监听预览内容变化
+watch([previewMarkdown, () => themeState.currentTheme.type, showDocumentPreview, isPlainTextFormat], () => {
   if (!showDocumentPreview.value) return
   nextTick(() => {
+    if (isPlainTextFormat.value) {
+      // 纯文本格式：使用Monaco预览
+      if (monacoPreviewEditor) {
+        updateMonacoPreview()
+      } else {
+        initMonacoPreview()
+      }
+      // 同步主题
+      syncMonacoPreviewTheme()
+      // 加载文件统计信息
+      loadFileStats()
+    } else {
+      // 其他格式：使用Markdown预览
     renderPreview()
+    }
   })
 }, { immediate: false })
+
+// 监听文件路径变化，重新加载文件统计信息
+watch([currentFilePath, isPlainTextFormat], () => {
+  if (isPlainTextFormat.value && currentFilePath.value) {
+    loadFileStats()
+  } else {
+    fileStats.value = null
+  }
+}, { immediate: true })
+
+// 监听文档内容变化（纯文本格式）
+watch([() => activeDocument.value?.markdown, currentFilePath, isPlainTextFormat], () => {
+  if (isPlainTextFormat.value && monacoPreviewEditor) {
+    updateMonacoPreview()
+  }
+})
 
 
 onMounted(() => {
   preventNavigate()
 
+  // 监听主题变化，同步Monaco编辑器主题
+  eventBus.on('sync-editor-theme', () => {
+    syncMonacoPreviewTheme()
+  })
+
   // 初始渲染（只在需要显示文档预览时）
   nextTick(() => {
     if (showDocumentPreview.value) {
-      renderPreview()
+      if (isPlainTextFormat.value) {
+        initMonacoPreview()
+        // 加载文件统计信息
+        loadFileStats()
+      } else {
+        renderPreview()
+      }
     }
   })
 })
 
 onBeforeUnmount(() => {
-  // 无需清理粒子效果，因为 Home.vue 不再使用
+  // 清理Monaco预览编辑器
+  if (monacoPreviewEditor) {
+    try {
+      monacoPreviewEditor.dispose()
+    } catch (e) {
+      logger.warn('清理Monaco预览编辑器失败', e)
+    }
+    monacoPreviewEditor = null
+    monacoPreviewEditorId = null
+  }
+  
+  eventBus.off('sync-editor-theme')
 })
 
 </script>
@@ -248,6 +617,15 @@ onBeforeUnmount(() => {
   flex-direction: column;
 }
 
+/* 纯文本格式的容器：不使用滚动条，直接使用 flex 布局 */
+.home-panel-content-plaintext {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
 .home-panel-scrollbar {
   flex: 1;
   width: 100%;
@@ -262,7 +640,8 @@ onBeforeUnmount(() => {
 .home-panel-content {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0; /* 允许缩小，配合 flex 布局使用 */
   padding: 32px 40px;
   box-sizing: border-box;
   gap: 24px;
@@ -345,9 +724,10 @@ onBeforeUnmount(() => {
 /* 文档内容预览区域 */
 .document-content-section {
   flex: 1;
-  min-height: 0;
+  min-height: 0; /* 允许缩小，配合 flex: 1 使用 */
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* 防止内容溢出 */
 }
 
 .content-preview {
@@ -359,6 +739,16 @@ onBeforeUnmount(() => {
   overflow-wrap: break-word;
   line-height: 1.7;
   font-size: 15px;
+  min-height: 0; /* 允许缩小 */
+}
+
+.monaco-preview {
+  flex: 1;
+  width: 100%;
+  min-height: 0; /* 允许缩小，配合 flex: 1 使用 */
+  padding: 0; /* Monaco 编辑器内部有 padding */
+  box-sizing: border-box;
+  overflow: hidden; /* 防止内容溢出 */
 }
 
 /* 响应式设计 */
@@ -382,6 +772,11 @@ onBeforeUnmount(() => {
   .content-preview {
     padding: 16px;
     font-size: 14px;
+  }
+
+  /* 纯文本格式的 Monaco 预览在移动设备上也要占满高度 */
+  .monaco-preview {
+    padding: 0;
   }
 }
 

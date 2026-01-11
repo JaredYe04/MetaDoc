@@ -91,12 +91,15 @@ import {
   loadDocumentFromJson,
   loadDocumentFromMarkdown,
   loadDocumentFromTex,
+  loadDocumentFromPlainText,
   type LoadedDocumentData,
 } from '../services/document-loader'
 import type { WorkspaceDocument, WorkspaceTab, DocumentView } from '../stores/workspace'
 import { convertMarkdownBodyToLatex } from '../utils/latex-utils'
 import { verifyToken } from '../utils/web-utils.ts'
 import { createRendererLogger } from '../utils/logger.ts'
+import { extname } from '../utils/path-utils'
+import { formatRegistry } from '../utils/format-registry'
 
 // ============================================================================
 // 初始化和基础设置
@@ -141,7 +144,7 @@ const fileConflictData = ref<{
   externalContent: string
   currentContent: string
   savedContent: string
-  format: 'md' | 'tex'
+  format: 'md' | 'tex' | 'txt' | string
   mergeResult?: {
     hasConflict: boolean
     conflictRanges?: Array<{
@@ -239,8 +242,8 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     return
   }
 
-  const format = (payload.format || '').toLowerCase()
-  const content = payload.content ?? ''
+  let format = (payload.format || '').toLowerCase()
+  let content = payload.content ?? ''
   const resolvedPath = typeof payload.path === 'string' ? payload.path : ''
 
   const getDisplayName = (doc: WorkspaceDocument | null | undefined, filePath: string): string => {
@@ -269,6 +272,30 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     }
   }
 
+  // 如果内容为空但有路径，读取文件内容（但不用于格式检测）
+  if (!content && resolvedPath) {
+    try {
+      const ipcRenderer = window.electron?.ipcRenderer || (await import('../utils/web-adapter/local-ipc-renderer')).localIpcRenderer
+      if (ipcRenderer?.invoke) {
+        content = await ipcRenderer.invoke('read-file-content', resolvedPath) as string || ''
+      }
+    } catch (err) {
+      logger.error('读取文件内容失败:', err)
+      content = ''
+    }
+  }
+
+  // 如果格式未指定，只通过扩展名检测格式（不读取文件内容进行检测）
+  if (!format && resolvedPath) {
+    const ext = extname(resolvedPath)
+    format = formatRegistry.getFormatByExtension(ext) || 'txt'
+  }
+
+  // 如果仍然没有格式，使用默认格式
+  if (!format) {
+    format = 'txt'
+  }
+
   let snapshot = null
   let activated = false
 
@@ -276,16 +303,25 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     let loaded: LoadedDocumentData
     switch (format) {
       case 'json':
+        // JSON 文件当作纯文本处理（历史遗留格式会特殊处理）
         loaded = loadDocumentFromJson(content)
         break
+      case 'txt':
+      case 'text':
+        // 纯文本格式
+        loaded = loadDocumentFromPlainText(content)
+        break
       case 'md':
+      case 'markdown':
         loaded = await loadDocumentFromMarkdown(content)
         break
       case 'tex':
+      case 'latex':
         loaded = await loadDocumentFromTex(content)
         break
       default:
-        throw new Error(`Unsupported document format: ${format}`)
+        // 其他格式，默认当作纯文本处理（不再使用内容检测）
+            loaded = loadDocumentFromPlainText(content)
     }
 
     snapshot = createSnapshotFromLoadedData(loaded)
@@ -597,7 +633,7 @@ function initMainEventListeners() {
       externalContent: string
       currentContent: string
       savedContent: string
-      format: 'md' | 'tex'
+      format: 'md' | 'tex' | 'txt' | string
       mergeResult?: {
         hasConflict: boolean
         conflictRanges?: Array<{
@@ -709,7 +745,12 @@ function initMainEventListeners() {
       }
 
     try {
-      if (doc.format === 'md') {
+      if (doc.format === 'txt') {
+        // 纯文本格式，直接追加
+        const currentContent = doc.markdown || ''
+        const newContent = currentContent + (currentContent ? '\n\n' : '') + data.content
+        workspace.updateDocumentMarkdown(targetTabId, newContent)
+      } else if (doc.format === 'md') {
         // Markdown格式，直接追加
         const currentContent = doc.markdown || ''
         const newContent = currentContent + (currentContent ? '\n\n' : '') + data.content
@@ -920,11 +961,12 @@ const handleFileConflictUseExternal = () => {
   const doc = ensureDocument(tabId)
   
   if (doc) {
-    // 注意：externalContent 已经是移除 meta-info 后的内容
-    // MetaDoc 会在下次保存时自动注入自己的 meta-info，所以这里不需要额外处理
+    // 纯文本格式（txt, json等）和 markdown 格式都使用 markdown 字段存储
+    // 只有 LaTeX 格式使用 tex 字段
     if (format === 'tex') {
       updateDocumentTex(tabId, externalContent)
     } else {
+      // md, txt, json 等格式都使用 markdown 字段
       updateDocumentMarkdown(tabId, externalContent)
     }
     markDocumentSaved(tabId, filePath)
@@ -951,9 +993,11 @@ const handleFileConflictMerge = (mergedContent: string) => {
   
   if (doc) {
     // 应用合并后的内容
+    // 纯文本格式（txt, json等）和 markdown 格式都使用 markdown 字段存储
     if (format === 'tex') {
       updateDocumentTex(tabId, mergedContent)
     } else {
+      // md, txt, json 等格式都使用 markdown 字段
       updateDocumentMarkdown(tabId, mergedContent)
     }
     // 注意：不调用 markDocumentSaved，因为合并后的内容可能仍然与外部文件不同

@@ -68,7 +68,7 @@
 
     <div class="logger-console">
       <h4>{{ t('setting.loggerConsoleTitle') }}</h4>
-      <Console console-key="logger" :history="logHistory" />
+      <ConsoleOutput console-key="logger" :history="logHistory" />
     </div>
   </el-form>
 </template>
@@ -83,7 +83,7 @@ import { fetchLoggerHistory, getRendererLoggerConfig } from '../../utils/logger.
 import type { LoggerHistoryEntry } from '../../utils/logger.ts';
 import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer.ts';
 import { webMainCalls } from '../../utils/web-adapter/web-main-calls.js';
-import Console from '../../components/Console.vue';
+import ConsoleOutput from '../../components/ConsoleOutput.vue';
 
 declare global {
   interface Window {

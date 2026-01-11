@@ -56,6 +56,22 @@ const composeTexWithMeta = async (doc: WorkspaceDocument, texContent: string): P
 };
 
 export const serializeDocument = async (doc: WorkspaceDocument): Promise<SaveDataPayload> => {
+  // 对于纯文本格式（txt），不添加 meta-info，直接返回纯文本内容
+  if (doc.format === 'txt') {
+    const plainText = doc.markdown ?? '';
+    const normalizedText = normalizeLineEndings(plainText);
+    
+    return {
+      path: doc.path,
+      md: normalizedText, // 纯文本，不添加 meta-info
+      json: JSON.stringify({ current_article_meta_data: doc.meta, current_agent_sessions: doc.agentSessions }),
+      tex: '', // txt 格式不需要 tex
+      format: doc.format,
+      args: {
+        format: doc.format,
+      },
+    };
+  }
 
   const isTex = doc.format === 'tex';
   const markdownSource = isTex ? convertLatexToMarkdown(doc.tex ?? '') : doc.markdown ?? '';

@@ -4,6 +4,9 @@
     :content="tooltip" 
     placement="right"
     :disabled="hasOpenSubMenu"
+    transition=""
+    :show-after="0"
+    :hide-after="0"
   >
     <div
       class="ui-menu-item"

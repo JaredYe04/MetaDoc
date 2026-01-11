@@ -26,9 +26,11 @@
         :level="1"
       >
         <template #title>
-          <el-icon>
-            <Document />
-          </el-icon>
+          <div class="icon-wrapper">
+            <el-icon>
+              <Document />
+            </el-icon>
+          </div>
           <span>{{ $t('leftMenu.file') }}</span>
         </template>
 
@@ -101,7 +103,9 @@
         :level="1"
       >
         <template #title>
-          <img :src="themeState.currentTheme.AiLogo" alt="AI" class="ai-logo-icon" />
+          <div class="icon-wrapper">
+            <img :src="themeState.currentTheme.AiLogo" alt="AI" class="ai-logo-icon" />
+          </div>
           <span>{{ $t('leftMenu.aiAssistant') }}</span>
         </template>
 
@@ -148,9 +152,11 @@
         :level="1"
       >
         <template #title>
-          <el-icon>
-            <Setting />
-          </el-icon>
+          <div class="icon-wrapper">
+            <el-icon>
+              <Setting />
+            </el-icon>
+          </div>
           <span>{{ $t('leftMenu.settings') }}</span>
         </template>
 
@@ -181,9 +187,11 @@
         @open="refreshRecentDocs"
       >
         <template #title>
-          <el-icon class="recent-files-icon">
-            <Clock />
-          </el-icon>
+          <div class="icon-wrapper">
+            <el-icon class="recent-files-icon">
+              <Clock />
+            </el-icon>
+          </div>
           <span class="recent-files-text">{{ $t('leftMenu.recentFiles') }}</span>
         </template>
 
@@ -217,9 +225,11 @@
         :level="1"
       >
         <template #title>
-          <el-icon>
-            <EarthIcon />
-          </el-icon>
+          <div class="icon-wrapper">
+            <el-icon>
+              <EarthIcon />
+            </el-icon>
+          </div>
           <span>{{ $t('leftMenu.langTooltip') }}</span>
         </template>
 
@@ -288,6 +298,8 @@
       <!-- 用户资料 -->
       <UIMenuItem
         v-if="menuId === 'user-profile' && isMenuItemVisible('user-profile')"
+        :label="$t('leftMenu.userProfileTooltip', '用户资料')"
+        :tooltip="$t('leftMenu.userProfileTooltip', '用户资料')"
         class="bottom-menu"
         @click="toggleUserProfile"
       >
@@ -319,9 +331,11 @@
         :level="1"
       >
         <template #title>
-          <el-icon>
-            <Grid />
-          </el-icon>
+          <div class="icon-wrapper">
+            <el-icon>
+              <Grid />
+            </el-icon>
+          </div>
           <span>{{ $t('leftMenu.moreFeatures', '更多功能') }}</span>
         </template>
 
@@ -360,9 +374,11 @@
         class="bottom-menu"
       >
         <template #title>
-          <el-icon>
-            <SwitchButton />
-          </el-icon>
+          <div class="icon-wrapper">
+            <el-icon>
+              <SwitchButton />
+            </el-icon>
+          </div>
           <span>{{ $t('leftMenu.exit') }}</span>
         </template>
 
@@ -416,9 +432,11 @@
         class="bottom-menu"
       >
         <template #title>
-          <el-icon>
-            <Document />
-          </el-icon>
+          <div class="icon-wrapper">
+            <el-icon>
+              <Document />
+            </el-icon>
+          </div>
           <span>{{ $t('leftMenu.file') }}</span>
         </template>
 
@@ -492,7 +510,9 @@
         class="bottom-menu"
       >
         <template #title>
-          <img :src="themeState.currentTheme.AiLogo" alt="AI" class="ai-logo-icon" />
+          <div class="icon-wrapper">
+            <img :src="themeState.currentTheme.AiLogo" alt="AI" class="ai-logo-icon" />
+          </div>
           <span>{{ $t('leftMenu.aiAssistant') }}</span>
         </template>
 
@@ -540,9 +560,11 @@
         class="bottom-menu"
       >
         <template #title>
-          <el-icon>
-            <Setting />
-          </el-icon>
+          <div class="icon-wrapper">
+            <el-icon>
+              <Setting />
+            </el-icon>
+          </div>
           <span>{{ $t('leftMenu.settings') }}</span>
         </template>
 
@@ -573,9 +595,11 @@
         @open="refreshRecentDocs"
       >
         <template #title>
-          <el-icon class="recent-files-icon">
-            <Clock />
-          </el-icon>
+          <div class="icon-wrapper">
+            <el-icon class="recent-files-icon">
+              <Clock />
+            </el-icon>
+          </div>
           <span class="recent-files-text">{{ $t('leftMenu.recentFiles') }}</span>
         </template>
 
@@ -610,9 +634,11 @@
         class="bottom-menu"
       >
         <template #title>
-          <el-icon>
-            <EarthIcon />
-          </el-icon>
+          <div class="icon-wrapper">
+            <el-icon>
+              <EarthIcon />
+            </el-icon>
+          </div>
           <span>{{ $t('leftMenu.langTooltip') }}</span>
         </template>
 
@@ -684,6 +710,8 @@
       <!-- 用户资料 -->
       <UIMenuItem
         v-if="menuId === 'user-profile' && isMenuItemVisible('user-profile')"
+        :label="$t('leftMenu.userProfileTooltip', '用户资料')"
+        :tooltip="$t('leftMenu.userProfileTooltip', '用户资料')"
         class="bottom-menu"
         @click="toggleUserProfile"
       >
@@ -717,9 +745,11 @@
         class="bottom-menu"
       >
         <template #title>
-          <el-icon>
-            <Grid />
-          </el-icon>
+          <div class="icon-wrapper">
+            <el-icon>
+              <Grid />
+            </el-icon>
+          </div>
           <span>{{ $t('leftMenu.moreFeatures', '更多功能') }}</span>
         </template>
 
@@ -758,9 +788,11 @@
         class="bottom-menu"
       >
         <template #title>
-          <el-icon>
-            <SwitchButton />
-          </el-icon>
+          <div class="icon-wrapper">
+            <el-icon>
+              <SwitchButton />
+            </el-icon>
+          </div>
           <span>{{ $t('leftMenu.exit') }}</span>
         </template>
 
@@ -1192,14 +1224,25 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   margin-top: auto;
 }
 
-/* AI Logo 图标样式 */
-.ai-logo-icon {
+/* 图标容器 - 固定尺寸的正方形 */
+.icon-wrapper {
   width: 18px;
   height: 18px;
-  margin-right: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+/* AI Logo 图标样式 - 在容器内自适应 */
+.ai-logo-icon {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin: 0;
 }
 
 .menu-title-icon {
@@ -1234,9 +1277,22 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
 }
 
 
-/* 图标左对齐 */
-.modern-sidebar-menu :deep(.el-menu-item .el-icon),
-.modern-sidebar-menu :deep(.el-sub-menu__title .el-icon) {
+/* 图标左对齐 - 图标容器内的图标 */
+.modern-sidebar-menu :deep(.el-menu-item .icon-wrapper .el-icon),
+.modern-sidebar-menu :deep(.el-sub-menu__title .icon-wrapper .el-icon) {
+  margin: 0;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 兼容旧样式 - 没有容器的图标 */
+.modern-sidebar-menu :deep(.el-menu-item .el-icon:not(.icon-wrapper .el-icon)),
+.modern-sidebar-menu :deep(.el-sub-menu__title .el-icon:not(.icon-wrapper .el-icon)) {
   margin-right: 8px;
   font-size: 18px;
   width: 18px;
@@ -1264,15 +1320,15 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   width: auto;
 }
 
-/* AI Logo 图标居中 */
-.modern-sidebar-menu .ai-logo-icon {
-  width: 18px;
-  height: 18px;
-  margin-right: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* 折叠hover时，recent-files-text应该正常显示，不使用absolute定位 */
+.modern-sidebar-menu.el-menu--collapse :deep(.recent-files-menu.is-hovered .recent-files-text) {
+  position: static !important;
+  left: auto !important;
+  transform: none !important;
+  width: 100% !important;
 }
+
+/* AI Logo 图标居中 - 已在容器内，不需要额外样式 */
 
 /* 悬停效果 - 圆角背景框（与 HeadMenu 保持一致） */
 .modern-sidebar-menu :deep(.el-menu-item:hover),
@@ -1407,10 +1463,18 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   align-items: center;
 }
 
-.modern-sidebar-menu.el-menu--collapse :deep(.el-menu-item .el-icon),
-.modern-sidebar-menu.el-menu--collapse :deep(.el-sub-menu__title .el-icon),
-.modern-sidebar-menu.el-menu--collapse :deep(.ai-logo-icon) {
+.modern-sidebar-menu.el-menu--collapse :deep(.el-menu-item .icon-wrapper),
+.modern-sidebar-menu.el-menu--collapse :deep(.el-sub-menu__title .icon-wrapper) {
   margin: 0 auto !important;
+}
+
+.modern-sidebar-menu.el-menu--collapse :deep(.el-menu-item .icon-wrapper .el-icon),
+.modern-sidebar-menu.el-menu--collapse :deep(.el-sub-menu__title .icon-wrapper .el-icon) {
+  margin: 0 !important;
+}
+
+.modern-sidebar-menu.el-menu--collapse :deep(.ai-logo-icon) {
+  margin: 0 !important;
 }
 
 /* 非折叠状态下，确保所有菜单项和图标左对齐 */
@@ -1419,8 +1483,8 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   justify-content: flex-start !important;
 }
 
-.modern-sidebar-menu:not(.el-menu--collapse) :deep(.el-menu-item .el-icon),
-.modern-sidebar-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title .el-icon) {
+.modern-sidebar-menu:not(.el-menu--collapse) :deep(.el-menu-item .icon-wrapper),
+.modern-sidebar-menu:not(.el-menu--collapse) :deep(.el-sub-menu__title .icon-wrapper) {
   margin-right: 8px !important;
   margin-left: 0 !important;
 }

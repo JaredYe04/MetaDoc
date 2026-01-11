@@ -7,14 +7,6 @@
   >
     <!-- 顶部菜单项 -->
     <template v-for="menuId in getMenuOrder().top" :key="menuId">
-      <!-- 主页 -->
-      <UIMenuItem
-        v-if="menuId === 'home' && isMenuItemVisible('home')"
-        :label="$t('leftMenu.home', '主页')"
-        :tooltip="$t('leftMenu.home', '主页')"
-        :icon="House"
-        @click="openGlobalHome"
-      />
 
       <!-- 文件菜单 -->
       <UISubMenu
@@ -139,35 +131,13 @@
       </UISubMenu>
 
       <!-- 设置菜单 -->
-      <UISubMenu
+      <UIMenuItem
         v-if="menuId === 'settings' && isMenuItemVisible('settings')"
-        :title="$t('leftMenu.settings')"
+        :label="$t('leftMenu.settings')"
         :tooltip="$t('leftMenu.settings')"
         :icon="Setting"
-        trigger="click"
-        :level="1"
-      >
-        <template #title>
-          <el-icon>
-            <Setting />
-          </el-icon>
-          <span>{{ $t('leftMenu.settings') }}</span>
-        </template>
-
-        <!-- 标题项 -->
-        <UISubMenuItem :is-title="true" :disabled="true">
-          <template #icon>
-            <el-icon>
-              <Setting />
-            </el-icon>
-          </template>
-          {{ $t('leftMenu.settingsTooltip') }}
-        </UISubMenuItem>
-
-        <UISubMenuItem :icon="Setting" @click="eventBus.emit('setting')">
-          {{ $t('leftMenu.settingsPanel') }}
-        </UISubMenuItem>
-      </UISubMenu>
+        @click="eventBus.emit('setting')"
+      />
 
       <!-- 最近文件菜单 -->
       <UISubMenu
@@ -348,6 +318,15 @@
           {{ $t('leftMenu.menuConfig.title', '菜单配置') }}
         </UISubMenuItem>
       </UISubMenu>
+      <!-- 主页 -->
+      <UIMenuItem
+        v-if="menuId === 'home' && isMenuItemVisible('home')"
+        :label="$t('leftMenu.home', '主页')"
+        :tooltip="$t('leftMenu.home', '主页')"
+        :icon="House"
+        class="bottom-menu"
+        @click="openGlobalHome"
+      />
 
       <!-- 退出菜单 -->
       <UISubMenu
@@ -530,36 +509,14 @@
       </UISubMenu>
 
       <!-- 设置菜单 -->
-      <UISubMenu
+      <UIMenuItem
         v-if="menuId === 'settings' && isMenuItemVisible('settings')"
-        :title="$t('leftMenu.settings')"
+        :label="$t('leftMenu.settings')"
         :tooltip="$t('leftMenu.settings')"
         :icon="Setting"
-        trigger="click"
-        :level="1"
         class="bottom-menu"
-      >
-        <template #title>
-          <el-icon>
-            <Setting />
-          </el-icon>
-          <span>{{ $t('leftMenu.settings') }}</span>
-        </template>
-
-        <!-- 标题项 -->
-        <UISubMenuItem :is-title="true" :disabled="true">
-          <template #icon>
-            <el-icon>
-              <Setting />
-            </el-icon>
-          </template>
-          {{ $t('leftMenu.settingsTooltip') }}
-        </UISubMenuItem>
-
-        <UISubMenuItem :icon="Setting" @click="eventBus.emit('setting')">
-          {{ $t('leftMenu.settingsPanel') }}
-        </UISubMenuItem>
-      </UISubMenu>
+        @click="eventBus.emit('setting')"
+      />
 
       <!-- 最近文件菜单 -->
       <UISubMenu
@@ -873,7 +830,6 @@ const isDev = ref(false)
 // 菜单配置项定义
 const menuConfigItems = computed<MenuConfigItem[]>(() => {
   return [
-    { id: 'home', label: t('leftMenu.home', '主页'), icon: House, visible: true, isCore: true, position: 'top' },
     { id: 'file', label: t('leftMenu.file'), icon: Document, visible: true, isCore: true, position: 'top' },
     { id: 'ai-assistant', label: t('leftMenu.aiAssistant'), iconImage: themeState.currentTheme.AiLogo, visible: true, isCore: false, position: 'top' },
     { id: 'settings', label: t('leftMenu.settings'), icon: Setting, visible: true, isCore: true, position: 'top' },
@@ -884,6 +840,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     { id: 'debug', label: t('leftMenu.debugTools', '调试工具'), icon: Tools, visible: isDev.value, isCore: false, position: 'top' },
     { id: 'more-features', label: t('leftMenu.moreFeatures', '更多功能'), icon: Grid, visible: true, isCore: true, position: 'top' },
     { id: 'llm-statistics', label: t('bottomMenu.llmStatistics', 'LLM统计'), icon: DataAnalysis, visible: false, isCore: false, position: 'top' },
+    { id: 'home', label: t('leftMenu.home', '主页'), icon: House, visible: true, isCore: true, position: 'bottom' },
     { id: 'user-profile', label: t('leftMenu.userProfileTooltip', '用户资料'), icon: UserFilled, visible: true, isCore: true, position: 'bottom' },
     { id: 'exit', label: t('leftMenu.exit'), icon: SwitchButton, visible: true, isCore: true, position: 'bottom' },
   ]
@@ -1528,6 +1485,8 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
 
 /* 确保 tooltip 不受影响，恢复默认样式 */
 /* tooltip 应该保持 Element Plus 的默认样式 */
+/* 禁用 tooltip 的所有动画效果，瞬间显示和消失 */
+.el-tooltip__popper,
 .el-tooltip__popper[data-popper-placement^="right"],
 .el-tooltip__popper[data-popper-placement^="top"],
 .el-tooltip__popper[data-popper-placement^="bottom"],
@@ -1543,6 +1502,49 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   margin-bottom: 0 !important;
   background-color: var(--el-bg-color-overlay) !important;
   z-index: 3000 !important;
+  /* 禁用 tooltip 的淡入淡出动画，瞬间显示和消失 */
+  transition: none !important;
+  animation: none !important;
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+  opacity: 1 !important;
+}
+
+/* 禁用 tooltip 内部所有元素的动画效果 */
+.el-tooltip__popper *,
+.el-tooltip__popper[data-popper-placement^="right"] *,
+.el-tooltip__popper[data-popper-placement^="top"] *,
+.el-tooltip__popper[data-popper-placement^="bottom"] *,
+.el-tooltip__popper[data-popper-placement^="left"] * {
+  transition: none !important;
+  animation: none !important;
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+}
+
+/* 确保 tooltip 在所有 Vue transition 状态下都是完全不透明的，瞬间显示和消失 */
+.el-tooltip__popper.el-fade-in-linear-enter-active,
+.el-tooltip__popper.el-fade-in-linear-leave-active,
+.el-tooltip__popper.el-fade-in-linear-enter-from,
+.el-tooltip__popper.el-fade-in-linear-leave-to,
+.el-tooltip__popper.el-fade-in-enter-active,
+.el-tooltip__popper.el-fade-in-leave-active,
+.el-tooltip__popper.el-fade-in-enter-from,
+.el-tooltip__popper.el-fade-in-leave-to,
+.el-tooltip__popper[class*="enter-active"],
+.el-tooltip__popper[class*="leave-active"],
+.el-tooltip__popper[class*="enter-from"],
+.el-tooltip__popper[class*="leave-to"],
+.el-tooltip__popper[class*="enter-to"],
+.el-tooltip__popper[class*="leave-from"] {
+  transition: none !important;
+  animation: none !important;
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+  opacity: 1 !important;
 }
 
 /* 确保嵌套子菜单可以显示 */

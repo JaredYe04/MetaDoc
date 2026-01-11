@@ -21,6 +21,8 @@ import MdDocIconBlack from "../assets/icons/md-doc-black.svg";
 import MdDocIconWhite from "../assets/icons/md-doc-white.svg";
 import TexDocIconBlack from "../assets/icons/tex-doc-black.svg";
 import TexDocIconWhite from "../assets/icons/tex-doc-white.svg";
+import BaseDocIconBlack from "../assets/icons/base-doc-black.svg";
+import BaseDocIconWhite from "../assets/icons/base-doc-white.svg";
 // theme.js
 export const contentThemes = [
   { label: 'Ant Design', value: 'ant-design' },
@@ -149,6 +151,7 @@ const generateThemeIcons = (isDarkMode) => {
     ProofreadIcon: selectIconByTheme(isDarkMode, { light: ProofreadIconBlack, dark: ProofreadIconWhite }),
     MdDocIcon: selectIconByTheme(isDarkMode, { light: MdDocIconBlack, dark: MdDocIconWhite }),
     TexDocIcon: selectIconByTheme(isDarkMode, { light: TexDocIconBlack, dark: TexDocIconWhite }),
+    BaseDocIcon: selectIconByTheme(isDarkMode, { light: BaseDocIconBlack, dark: BaseDocIconWhite }),
   };
 };
 

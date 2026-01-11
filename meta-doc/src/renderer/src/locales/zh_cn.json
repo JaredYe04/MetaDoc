@@ -123,7 +123,32 @@
         "saveLog": "保存日志",
         "copiedToClipboard": "已复制到剪贴板",
         "logSaved": "日志已保存",
-        "logSaveFailed": "保存日志失败"
+        "logSaveFailed": "保存日志失败",
+        "encoding": {
+            "unicode": "Unicode",
+            "chinese": "中文",
+            "japanese": "日文",
+            "korean": "韩文",
+            "western": "西欧",
+            "centralEastern": "中欧/东欧",
+            "russian": "俄文",
+            "greek": "希腊文",
+            "utf8": "UTF-8",
+            "gbk": "GBK",
+            "gb2312": "GB2312",
+            "big5": "Big5 (繁体)",
+            "shiftJis": "Shift_JIS",
+            "eucKr": "EUC-KR",
+            "iso88591": "ISO-8859-1 (Latin1)",
+            "windows1252": "Windows-1252",
+            "iso885915": "ISO-8859-15",
+            "iso88592": "ISO-8859-2 (Latin2)",
+            "windows1250": "Windows-1250",
+            "koi8r": "KOI8-R",
+            "windows1251": "Windows-1251",
+            "iso88595": "ISO-8859-5",
+            "iso88597": "ISO-8859-7"
+        }
     },
     "searchReplace": {
         "title": "查找与替换",
@@ -659,6 +684,9 @@
       },
         "authorLabel": "作者",
         "abstractLabel": "摘要",
+        "fileFormatLabel": "文件格式",
+        "creationDateLabel": "创建日期",
+        "modificationDateLabel": "修改日期",
         "quickStartTitle": "快速开始",
         "quickStartFormatTitle": "选择快速开始格式",
         "quickStartFormatDescriptionMarkdown": "使用 Markdown 语法快速编写并即时预览内容。",
@@ -802,6 +830,10 @@
             "latex": {
                 "label": "LaTeX",
                 "description": "专业排版格式，适用于学术论文、报告与技术文档。"
+            },
+            "plaintext": {
+                "label": "纯文本",
+                "description": "纯文本或代码文件，支持多种编程语言的语法高亮。"
             }
         },
         "templates": {
@@ -1373,7 +1405,19 @@
         "generating": "AI正在生成建议...",
         "generatingTooltip": "按 Tab 接受，按 Esc 取消"
     },
-    "latexEditor": {
+    "plaintextEditor": {
+        "toolbar": {
+            "undo": "撤销 (Ctrl+Z)",
+            "redo": "重做 (Ctrl+Y)",
+            "zoomIn": "放大 (Ctrl +)",
+            "zoomOut": "缩小 (Ctrl -)",
+            "toggleLineNumbers": "切换行号显示",
+            "toggleMinimap": "切换小地图",
+            "showConsole": "显示终端"
+        },
+        "init_failed": "纯文本编辑器初始化失败: "
+    },
+  "latexEditor": {
         "toolbar": {
         "undo": "撤销 (Ctrl+Z)",
         "redo": "重做 (Ctrl+Y)",
@@ -2236,7 +2280,7 @@
         "newFileDialog": {
             "title": "新建文件",
             "name": "文件名",
-            "placeholder": "请输入文件名（.md 或 .tex）"
+            "placeholder": "请输入文件名（包含扩展名，如 .md、.tex、.txt 等）"
         },
         "newFileSuccess": "文件创建成功",
         "newFolderDialog": {

@@ -6,6 +6,7 @@
       <span class="console-title">{{ $t('console.title') }}</span>
       <div class="console-actions">
         <el-switch
+          v-if="showAiAnalysis"
           v-model="enableAiAnalysis"
           :active-text="$t('console.enableAiAnalysis')"
           size="small"
@@ -31,11 +32,9 @@ import { webMainCalls } from '../utils/web-adapter/web-main-calls.js';
 let ipcRenderer: typeof localIpcRenderer | null = null
 if (window && window.electron) {
     ipcRenderer = window.electron.ipcRenderer as typeof localIpcRenderer
-
 } else {
     webMainCalls();
     ipcRenderer = localIpcRenderer
-    //todo 说明当前环境不是electron环境，需要另外适配
 }
 import eventBus from '../utils/event-bus';
 import { themeState } from '../utils/themes';
@@ -57,7 +56,7 @@ interface ConsolePayload {
   message?: string;
   text?: string;
   type?: string;
-  append?: boolean; // 是否追加到当前行（而不是创建新行）
+  append?: boolean;
 }
 
 interface ConsoleLine {
@@ -74,6 +73,10 @@ const props = defineProps({
   history: {
     type: Array as PropType<HistoryLine[]>,
     default: () => []
+  },
+  showAiAnalysis: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -101,34 +104,26 @@ const normalizeType = (type?: string, fallback: ConsoleLineType = 'out'): Consol
   return fallback;
 };
 
-// 根据消息内容自动检测类型（检测 "warning" 或 "error" 开头）
-// 兜底判断：开头是 warning 的显示黄色，开头是 error 的显示红色，其余白色
 const detectTypeFromContent = (content: string): ConsoleLineType | null => {
   if (!content || typeof content !== 'string') return null;
   const trimmed = content.trim();
   if (!trimmed) return null;
   const lowerContent = trimmed.toLowerCase();
   
-  // 兜底判断：如果消息开头是 "error"（不区分大小写），返回 'err'（红色）
   if (lowerContent.startsWith('error')) {
     return 'err';
   }
-  // 兜底判断：如果消息开头是 "warning"（不区分大小写），返回 'warn'（黄色）
   if (lowerContent.startsWith('warning')) {
     return 'warn';
   }
-  // 其余情况返回 null，将使用 fallbackType（通常是 'out'，显示白色）
   return null;
 };
 
 const lines = ref<ConsoleLine[]>([]);
 
-// AI分析开关（默认开启）
 const enableAiAnalysis = ref(true);
 
-// 处理AI分析开关变化
 const handleAiAnalysisToggle = (value: boolean) => {
-  // 通过eventBus通知LaTeXEditor组件
   eventBus.emit('console-ai-analysis-toggle', {
     key: props.consoleKey,
     enabled: value
@@ -159,7 +154,7 @@ const ensureConsoleFont = async () => {
     document.fonts?.add(fontFace);
     consoleFontLoaded = true;
   } catch (error) {
-    console.warn('[Console] 加载 consola 字体失败', error);
+    console.warn('[ConsoleOutput] 加载 consola 字体失败', error);
   }
 };
 
@@ -170,16 +165,12 @@ const applyConsoleTheme = () => {
   const bg = themeState.currentTheme.editorPanelBackgroundColor || (isDark ? '#1e1e1e' : '#ffffff');
   const fg = themeState.currentTheme.textColor2 || (isDark ? '#d4d4d4' : '#333333');
 
-  // 规范化颜色格式（用于colors对象，带#的6位hex）
   const normalizeColor = (color: string) => {
     if (!color) return '#FFFFFF';
-    // 如果已经有#，移除它
     let hex = color.replace('#', '');
-    // 如果是3位hex（如 fff），转换为6位（ffffff）
     if (hex.length === 3) {
       hex = hex.split('').map(c => c + c).join('');
     }
-    // 确保是6位hex，如果不是则返回默认值
     return hex.length === 6 ? '#' + hex.toUpperCase() : '#FFFFFF';
   };
 
@@ -222,11 +213,26 @@ const applyDecorations = (editor: monaco.editor.IStandaloneCodeEditor) => {
 const renderConsole = () => {
   const editor = getEditor();
   if (!editor) return;
+  
   const text = lines.value.map(l => l.content).join('\n');
-  if (editor.getValue() !== text) {
+  const currentValue = editor.getValue();
+  const position = editor.getPosition();
+  const wasAtEnd = position && position.lineNumber === editor.getModel()?.getLineCount();
+  
+  if (currentValue !== text) {
     editor.setValue(text);
+    
+    if (wasAtEnd) {
+      const lineCount = lines.value.length;
+      if (lineCount > 0) {
+        editor.revealLine(lineCount, monaco.editor.ScrollType.Immediate);
+      }
+    }
   }
+  
   applyDecorations(editor);
+  
+  // 自动滚动到底部
   const lineCount = lines.value.length;
   if (lineCount > 0) {
     editor.revealLine(lineCount, monaco.editor.ScrollType.Immediate);
@@ -248,7 +254,7 @@ const createEditor = async () => {
     scrollBeyondLastLine: false,
     wordWrap: 'on',
     automaticLayout: true,
-    contextmenu: true,
+    contextmenu: false,
     fontSize: 13,
     fontFamily: 'ConsoleAscii, "JetBrains Mono", Consolas, monospace',
     renderLineHighlight: 'none',
@@ -289,53 +295,41 @@ eventBus.on('sync-editor-theme', async () => {
 });
 
 const addLine = (content: string, type: ConsoleLineType = 'out') => {
-  // 如果内容包含换行符，需要分割成多行
   if (content.includes('\n')) {
     const parts = content.split('\n');
-    // 添加所有部分（包括空行）
     for (const part of parts) {
       lines.value.push({ id: lineId++, content: part, type });
     }
   } else {
-    // 没有换行符，直接添加一行
     lines.value.push({ id: lineId++, content, type });
   }
   renderConsole();
 };
 
-// 追加内容到当前行（如果内容包含换行符，会分割成多行）
 const appendToLastLine = (content: string, type: ConsoleLineType = 'out') => {
   if (lines.value.length === 0) {
-    // 如果没有行，创建第一行
     addLine(content, type);
     return;
   }
   
-  // 检查内容是否包含换行符
   const hasNewline = content.includes('\n');
   if (!hasNewline) {
-    // 没有换行符，直接追加到最后一行
     const lastLine = lines.value[lines.value.length - 1];
     lastLine.content += content;
     renderConsole();
   } else {
-    // 包含换行符，需要分割处理
     const parts = content.split('\n');
-    // 第一部分追加到当前行
     if (parts[0]) {
       const lastLine = lines.value[lines.value.length - 1];
       lastLine.content += parts[0];
     }
-    // 中间部分创建新行
     for (let i = 1; i < parts.length - 1; i++) {
       if (parts[i]) {
         lines.value.push({ id: lineId++, content: parts[i], type });
       } else {
-        // 空行
         lines.value.push({ id: lineId++, content: '', type });
       }
     }
-    // 最后一部分作为新行的开始（如果存在）
     if (parts.length > 1 && parts[parts.length - 1]) {
       lines.value.push({ id: lineId++, content: parts[parts.length - 1], type });
     }
@@ -364,7 +358,6 @@ const saveConsole = async () => {
   
   try {
     if (!ipcRenderer) {
-      // 如果没有IPC，使用浏览器下载方式（降级方案）
       const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -378,20 +371,18 @@ const saveConsole = async () => {
       return;
     }
     
-    // 使用IPC调用保存对话框
     const result = await ipcRenderer.invoke('save-file-dialog', {
       defaultName: `console-${props.consoleKey}.log`,
       filters: [
         { name: 'Log Files', extensions: ['log', 'txt'] },
         { name: 'All Files', extensions: ['*'] }
       ]
-    });
+    }) as { canceled?: boolean; filePath?: string };
     
     if (result.canceled || !result.filePath) {
-      return; // 用户取消了保存
+      return;
     }
     
-    // 写入文件（使用write-file-content IPC handler）
     await ipcRenderer.invoke('write-file-content', {
       filePath: result.filePath,
       content: text,
@@ -450,20 +441,15 @@ const handleOutPayload = (payload: unknown, fallbackType: ConsoleLineType) => {
   const resolved = resolvePayload(payload, fallbackType);
   if (!resolved) return;
   
-  // 优先根据消息内容检测类型（兜底判断：开头是 error 或 warning）
   const detectedType = detectTypeFromContent(resolved.content);
   
-  // 如果内容检测到类型，使用检测到的类型；否则使用 payload 中的类型或 fallbackType
   let finalType: ConsoleLineType;
   if (detectedType !== null) {
-    // 内容检测到类型，优先使用
     finalType = detectedType;
   } else {
-    // 内容未检测到，使用 payload 中的类型或 fallbackType
     finalType = normalizeType(resolved.type, fallbackType);
   }
   
-  // 根据 append 标志决定是追加还是新建行
   if (resolved.append) {
     appendToLastLine(resolved.content, finalType);
   } else {
@@ -478,7 +464,6 @@ const handleClearPayload = (payload: unknown) => {
   }
   const resolved = resolvePayload(payload, 'out', false);
   if (!resolved) {
-    // 如果 key 不匹配则忽略
     return;
   }
   clearConsole();
@@ -570,3 +555,4 @@ onBeforeUnmount(() => {
   color: var(--console-warn) !important;
 }
 </style>
+

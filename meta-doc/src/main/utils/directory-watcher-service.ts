@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { createMainLogger } from '../logger';
 import { WebContents } from 'electron';
+import { isSupportedFormat } from './supported-formats';
 
 const logger = createMainLogger('DirectoryWatcherService');
 
@@ -57,21 +58,43 @@ class DirectoryWatcherService {
 
     try {
       // 创建目录监听器
-      // 只监听 .md 和 .tex 文件的变化
+      // 优化：使用函数过滤器，避免同步 I/O，只做快速字符串操作
       const watcher = chokidar.watch(normalizedPath, {
         persistent: true,
         ignoreInitial: true, // 忽略初始事件
         ignored: (filePath: string) => {
-          // 忽略 node_modules、.git 等常见目录
+          // 快速路径检查：只做字符串操作，不调用任何 I/O 操作
           const basename = path.basename(filePath);
-          if (basename === 'node_modules' || basename === '.git' || basename === '.vscode') {
+          
+          // 忽略常见目录（通过路径名判断，不需要 stat）
+          if (basename === 'node_modules' || basename === '.git' || basename === '.vscode' || 
+              basename === '.idea' || basename === 'dist' || basename === 'build' || 
+              basename === '.next' || basename === '.nuxt' || basename === 'coverage') {
             return true;
           }
-          // 只监听 .md 和 .tex 文件
+          
+          // 忽略系统特殊目录（Windows 系统中可能没有权限的目录）
+          // 这些目录通常包含在 Documents 目录中，但用户可能没有访问权限
+          if (basename === 'My Music' || basename === 'My Pictures' || basename === 'My Videos' ||
+              basename === 'My Documents' || basename === 'Desktop' || basename === 'Downloads' ||
+              filePath.includes('\\My Music\\') || filePath.includes('\\My Pictures\\') ||
+              filePath.includes('\\My Videos\\') || filePath.includes('/My Music/') ||
+              filePath.includes('/My Pictures/') || filePath.includes('/My Videos/')) {
+            return true;
+          }
+          
+          // 快速扩展名检查：只处理文件，目录会在 addDir/unlinkDir 事件中处理
+          // chokidar 会自动区分文件和目录，这里我们只通过扩展名过滤文件
           const ext = path.extname(filePath).toLowerCase();
-          if (ext !== '.md' && ext !== '.tex') {
+          
+          // 如果有扩展名但不在支持列表中，直接忽略
+          // 注意：没有扩展名的文件/目录也会被检查，但这是可以接受的
+          // 因为目录会在 addDir/unlinkDir 事件中处理，不会影响性能
+          if (ext && ext !== '.' && !isSupportedFormat(ext)) {
             return true;
           }
+          
+          // 允许通过：支持的扩展名文件或目录（目录会在事件系统中正确处理）
           return false;
         },
         awaitWriteFinish: {
@@ -107,7 +130,13 @@ class DirectoryWatcherService {
       });
 
       // 监听错误
-      watcher.on('error', (error) => {
+      watcher.on('error', (error: any) => {
+        // 如果是权限错误（EPERM），只是警告并跳过，不影响用户体验
+        if (error.code === 'EPERM' || error.errno === -4048) {
+          logger.warn('目录监听权限错误，跳过该目录', { directoryPath: normalizedPath, path: error.path || error.filename, error: error.code || error.errno });
+          return;
+        }
+        // 其他错误才记录为错误
         logger.error('目录监听错误', { directoryPath: normalizedPath, error });
       });
 

@@ -189,6 +189,17 @@ function main() {
     const mdContent = readSvgFile(mdPath);
     const texContent = readSvgFile(texPath);
 
+    // 生成 base-doc.svg 的黑白版本
+    const baseDocWhitePath = path.join(assetsIconsDir, 'base-doc-white.svg');
+    const baseDocWhiteSvg = convertToColorVersion(baseDocContent, false);
+    fs.writeFileSync(baseDocWhitePath, baseDocWhiteSvg, 'utf-8');
+    console.log(`✓ 已生成: ${path.basename(baseDocWhitePath)}`);
+
+    const baseDocBlackPath = path.join(assetsIconsDir, 'base-doc-black.svg');
+    const baseDocBlackSvg = convertToColorVersion(baseDocContent, true);
+    fs.writeFileSync(baseDocBlackPath, baseDocBlackSvg, 'utf-8');
+    console.log(`✓ 已生成: ${path.basename(baseDocBlackPath)}`);
+
     // 合成 md-doc.svg（生成黑白两个版本）
     const mdDocBasePath = path.join(assetsIconsDir, 'md-doc.svg');
     composeDocIcon(baseDocContent, mdContent, mdDocBasePath);

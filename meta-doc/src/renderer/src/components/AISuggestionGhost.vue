@@ -18,7 +18,7 @@ const logger = createRendererLogger('AISuggestionGhost', {
 
 const props = defineProps<{
   editorId?: string | null
-  format: 'md' | 'tex'
+  format: 'md' | 'tex' | 'txt'
   targetEl?: HTMLElement | null
   rootNodeClass?: string
 }>()
@@ -1019,7 +1019,7 @@ function handleTextUpdate(event: { request: any; text: string }) {
     return
   }
   
-  if (props.format === 'tex') {
+  if (props.format === 'tex' || props.format === 'txt') {
     updateMonacoGhostText(event.text)
   } else if (props.format === 'md') {
     updateVditorGhostText(event.text)
@@ -1030,7 +1030,7 @@ function handleTextUpdate(event: { request: any; text: string }) {
  * 处理补全取消
  */
 function handleCancelled() {
-  if (props.format === 'tex') {
+  if (props.format === 'tex' || props.format === 'txt') {
     // 不传递editor参数，让函数内部重新获取
     cancelMonacoGhostText()
   } else if (props.format === 'md') {
@@ -1043,8 +1043,8 @@ function handleCancelled() {
  */
 function handleTabKey(e: KeyboardEvent) {
   if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
-    if (props.format === 'tex') {
-      // 对于tex格式，使用Monaco命令系统，这里不需要处理
+    if (props.format === 'tex' || props.format === 'txt') {
+      // 对于tex和txt格式，使用Monaco命令系统，这里不需要处理
       // 但为了兼容，如果ghostRange存在，也从model读取
       if (ghostRange) {
         const currentEditor = getEditor()
@@ -1116,8 +1116,8 @@ onMounted(() => {
     // 使用capture阶段确保在MarkdownEditor的handleTab之前处理
     window.addEventListener('keydown', handleTabKey, true)
     window.addEventListener('keydown', handleEscapeKey, true)
-  } else if (props.format === 'tex') {
-    // 注册键盘命令的函数
+  } else if (props.format === 'tex' || props.format === 'txt') {
+    // 注册键盘命令的函数（tex和txt都使用Monaco编辑器）
     const registerKeyboardCommands = (editor: monaco.editor.IStandaloneCodeEditor) => {
       editor.addCommand(monaco.KeyCode.Tab, () => {
         // 如果ghostRange存在，说明文本已经在model中了

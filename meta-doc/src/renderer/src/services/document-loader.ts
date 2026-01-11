@@ -10,7 +10,7 @@ import {
   DEFAULT_AGENT_SESSIONS,
 } from '../constants/document';
 
-export type LoadedDocumentFormat = 'md' | 'tex';
+export type LoadedDocumentFormat = 'md' | 'tex' | 'txt';
 
 export interface LoadedDocumentData {
   format: LoadedDocumentFormat;
@@ -163,44 +163,64 @@ export const loadDocumentFromTex = async (content: string): Promise<LoadedDocume
   };
 };
 
+/**
+ * 加载纯文本文档（txt, json 等）
+ * 纯文本格式不包含元信息，只存储文本内容
+ */
+export const loadDocumentFromPlainText = (content: string): LoadedDocumentData => {
+  const normalized = normalizeLineEndings(content ?? '');
+  
+  // 纯文本格式不支持元信息、大纲等，使用默认值
+  return {
+    format: 'txt',
+    markdown: normalized, // 纯文本内容存储在 markdown 字段中（作为普通文本处理）
+    tex: '',
+    outline: cloneOutline(DEFAULT_OUTLINE_TREE),
+    meta: cloneMeta(DEFAULT_ARTICLE_META),
+    aiDialogs: cloneDialogs(DEFAULT_AI_DIALOGS),
+    agentSessions: cloneAgentSessions(DEFAULT_AGENT_SESSIONS),
+    lastView: 'editor',
+  };
+};
+
+/**
+ * 加载 JSON 文档（历史遗留格式，现在当作纯文本处理）
+ * 为了向后兼容，如果 JSON 包含特定的 MetaDoc 格式，仍然尝试解析
+ * 否则当作普通 JSON 文本处理
+ */
 export const loadDocumentFromJson = (content: string): LoadedDocumentData => {
   try {
     const data = JSON.parse(content ?? '{}') as Record<string, unknown>;
-    // JSON 格式现在只包含 meta 和 agent_sessions
-    // 为了向后兼容，如果没有 markdown，使用空字符串
-    const markdown = normalizeLineEndings((data.current_article as string) ?? '');
-    // outline 从 markdown 内容提取（不再从 JSON 加载）
-    const outline = deriveMarkdownOutline(markdown);
-    const meta = cloneMeta(
-      (data.current_article_meta_data as ArticleMetaData | undefined) ?? DEFAULT_ARTICLE_META,
-    );
-    // dialogs 不再从 JSON 加载，使用默认值
-    const dialogs = cloneDialogs(DEFAULT_AI_DIALOGS);
-    // agent_sessions 从 JSON 加载（如果存在）
-    const sessions = ensureArrayAgentSessions(data.current_agent_sessions);
+    
+    // 检查是否是 MetaDoc 的 JSON 格式（包含 current_article 字段）
+    if ('current_article' in data || 'current_article_meta_data' in data) {
+      // 历史遗留的 MetaDoc JSON 格式，尝试解析
+      const markdown = normalizeLineEndings((data.current_article as string) ?? '');
+      const outline = deriveMarkdownOutline(markdown);
+      const meta = cloneMeta(
+        (data.current_article_meta_data as ArticleMetaData | undefined) ?? DEFAULT_ARTICLE_META,
+      );
+      const dialogs = cloneDialogs(DEFAULT_AI_DIALOGS);
+      const sessions = ensureArrayAgentSessions(data.current_agent_sessions);
 
-    return {
-      format: 'md',
-      markdown,
-      tex: '',
-      outline,
-      meta: autoGenerateTitle(meta, markdown),
-      aiDialogs: dialogs,
-      agentSessions: sessions,
-      lastView: 'editor',
-    };
+      return {
+        format: 'md', // 历史格式仍当作 markdown 处理
+        markdown,
+        tex: '',
+        outline,
+        meta: autoGenerateTitle(meta, markdown),
+        aiDialogs: dialogs,
+        agentSessions: sessions,
+        lastView: 'editor',
+      };
+    } else {
+      // 普通 JSON 文件，当作纯文本处理
+      return loadDocumentFromPlainText(content);
+    }
   } catch (error) {
-    console.error('[DocumentLoader] 解析 JSON 文档失败', error);
-    return {
-      format: 'md',
-      markdown: '',
-      tex: '',
-      outline: cloneOutline(DEFAULT_OUTLINE_TREE),
-      meta: cloneMeta(DEFAULT_ARTICLE_META),
-      aiDialogs: cloneDialogs(DEFAULT_AI_DIALOGS),
-      agentSessions: cloneAgentSessions(DEFAULT_AGENT_SESSIONS),
-      lastView: 'editor',
-    };
+    // JSON 解析失败，当作普通文本处理
+    console.warn('[DocumentLoader] JSON 解析失败，当作纯文本处理', error);
+    return loadDocumentFromPlainText(content);
   }
 };
 

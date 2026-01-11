@@ -36,7 +36,7 @@
           </template>
         </el-input>
       </div>
-      <Console console-key="logger" :history="filteredLogHistory" />
+      <ConsoleOutput console-key="logger" :history="filteredLogHistory" />
     </div>
   </ResizablePanel>
 </template>
@@ -46,7 +46,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n';
 import { Search } from '@element-plus/icons-vue';
 import ResizablePanel from './base/ResizablePanel.vue';
-import Console from './Console.vue';
+import ConsoleOutput from './ConsoleOutput.vue';
 import eventBus from '../utils/event-bus';
 import { themeState } from '../utils/themes';
 import { fetchLoggerHistory } from '../utils/logger.ts';

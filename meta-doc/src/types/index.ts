@@ -34,7 +34,7 @@ export interface ArticleMetaData {
 }
 
 /** 文档格式类型 */
-export type DocumentFormat = 'md' | 'tex' | 'json';
+export type DocumentFormat = 'md' | 'tex' | 'json' | 'txt';
 
 /** 导出格式类型 */
 export type ExportFormat = 'md' | 'html' | 'docx' | 'pdf' | 'tex' | 'json';

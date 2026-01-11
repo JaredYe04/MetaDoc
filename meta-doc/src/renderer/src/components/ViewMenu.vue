@@ -38,56 +38,60 @@
         <span>{{ $t('headMenu.editor') }}</span>
       </el-menu-item>
       
-      <el-tooltip v-if="isCollapsed" :content="$t('headMenu.outline')" placement="right">
+      <!-- 大纲树：纯文本格式不显示 -->
+      <el-tooltip v-if="isCollapsed && !isPlainTextFormat" :content="$t('headMenu.outline')" placement="right">
         <el-menu-item index="outline">
           <div class="icon-wrapper">
             <img :src="themeState.currentTheme.OutlineIcon" class="menu-icon" alt="outline" />
           </div>
         </el-menu-item>
       </el-tooltip>
-      <el-menu-item v-if="!isCollapsed" index="outline">
+      <el-menu-item v-if="!isCollapsed && !isPlainTextFormat" index="outline">
         <div class="icon-wrapper">
           <img :src="themeState.currentTheme.OutlineIcon" class="menu-icon" alt="outline" />
         </div>
         <span>{{ $t('headMenu.outline') }}</span>
       </el-menu-item>
       
-      <el-tooltip v-if="isCollapsed" :content="$t('headMenu.visualize')" placement="right">
+      <!-- 可视化：纯文本格式不显示 -->
+      <el-tooltip v-if="isCollapsed && !isPlainTextFormat" :content="$t('headMenu.visualize')" placement="right">
         <el-menu-item index="visualize">
           <div class="icon-wrapper">
             <img :src="themeState.currentTheme.VisualIcon" class="menu-icon" alt="visualize" />
           </div>
         </el-menu-item>
       </el-tooltip>
-      <el-menu-item v-if="!isCollapsed" index="visualize">
+      <el-menu-item v-if="!isCollapsed && !isPlainTextFormat" index="visualize">
         <div class="icon-wrapper">
           <img :src="themeState.currentTheme.VisualIcon" class="menu-icon" alt="visualize" />
         </div>
         <span>{{ $t('headMenu.visualize') }}</span>
       </el-menu-item>
       
-      <el-tooltip v-if="isCollapsed" :content="$t('headMenu.agent')" placement="right">
+      <!-- Agent：纯文本格式不显示 -->
+      <el-tooltip v-if="isCollapsed && !isPlainTextFormat" :content="$t('headMenu.agent')" placement="right">
         <el-menu-item index="agent">
           <div class="icon-wrapper">
             <img :src="themeState.currentTheme.AgentIcon" class="menu-icon" alt="agent" />
           </div>
         </el-menu-item>
       </el-tooltip>
-      <el-menu-item v-if="!isCollapsed" index="agent">
+      <el-menu-item v-if="!isCollapsed && !isPlainTextFormat" index="agent">
         <div class="icon-wrapper">
           <img :src="themeState.currentTheme.AgentIcon" class="menu-icon" alt="agent" />
         </div>
         <span>{{ $t('headMenu.agent') }}</span>
       </el-menu-item>
       
-      <el-tooltip v-if="isCollapsed && activeDocument" :content="$t('headMenu.proofread')" placement="right">
+      <!-- 文章校对：纯文本格式不显示 -->
+      <el-tooltip v-if="isCollapsed && activeDocument && !isPlainTextFormat" :content="$t('headMenu.proofread')" placement="right">
         <el-menu-item index="proofread">
           <div class="icon-wrapper">
             <img :src="themeState.currentTheme.ProofreadIcon" class="menu-icon" alt="proofread" />
           </div>
         </el-menu-item>
       </el-tooltip>
-      <el-menu-item v-if="!isCollapsed && activeDocument" index="proofread">
+      <el-menu-item v-if="!isCollapsed && activeDocument && !isPlainTextFormat" index="proofread">
         <div class="icon-wrapper">
           <img :src="themeState.currentTheme.ProofreadIcon" class="menu-icon" alt="proofread" />
         </div>
@@ -116,6 +120,11 @@ import '../assets/modern-side-menu.css'
 const { activeDocument } = useActiveDocument()
 const workspace = useWorkspace()
 const isLocked = computed(() => workspace.uiLocked?.value === true)
+
+// 判断是否为纯文本格式
+const isPlainTextFormat = computed(() => {
+  return activeDocument.value?.format === 'txt'
+})
 
 // 折叠状态 - 默认折叠
 const isCollapsed = ref(false)

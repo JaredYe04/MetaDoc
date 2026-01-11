@@ -72,6 +72,8 @@ import { ArrowRight, ArrowDown, Close } from '@element-plus/icons-vue'
 import { ElIcon, ElButton } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { themeState, mixColors } from '../utils/themes'
+import { formatRegistry } from '../utils/format-registry'
+import { extname } from '../utils/path-utils'
 
 const { t } = useI18n()
 
@@ -179,9 +181,10 @@ const handleClick = (event: MouseEvent) => {
 }
 
 const handleContextMenu = (event: MouseEvent) => {
-  // 工作文件夹根节点没有右键菜单
-  if (props.node.isWorkspaceRoot) {
-    return
+  // 检查是否点击在关闭按钮上
+  const target = event.target as HTMLElement
+  if (target.closest('.workspace-tree-node-close')) {
+    return // 关闭按钮不触发右键菜单
   }
   event.preventDefault()
   event.stopPropagation()
@@ -197,12 +200,22 @@ const handleCloseWorkspace = () => {
 }
 
 const getFileIcon = (fileName: string): string => {
-  const ext = fileName.split('.').pop()?.toLowerCase()
   const theme = themeState.currentTheme as any
-  if (ext === 'tex') {
+  const fileExt = extname(fileName)
+  const formatId = formatRegistry.getFormatByExtension(fileExt)
+  
+  // 根据格式ID选择图标
+  if (formatId === 'tex') {
     return theme.TexDocIcon || ''
+  } else if (formatId === 'txt' || formatId === 'plaintext') {
+    // plaintext 文件显示 base-doc 图标
+    return theme.BaseDocIcon || ''
+  } else if (formatId === 'md') {
+    return theme.MdDocIcon || ''
   }
-  return theme.MdDocIcon || ''
+  
+  // 默认使用 base-doc 图标（用于其他格式）
+  return theme.BaseDocIcon || theme.MdDocIcon || ''
 }
 
 // 计算悬停颜色

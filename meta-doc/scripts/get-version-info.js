@@ -3,10 +3,16 @@
  * 用于在 Windows 本地环境和 GitHub Actions 中替代 bash 脚本
  * 
  * 用法:
- *   node scripts/get-version-info.js [version]
+ *   node scripts/get-version-info.js [version] [version_bump]
  * 
- * 如果提供了 version 参数，则使用该版本
- * 否则先运行 version-manager.js update 更新版本，然后从 version.json 或 package.json 读取
+ * 参数:
+ *   version: 可选，直接指定版本号
+ *   version_bump: 可选，版本升级类型 (major/minor/patch/rebuild)
+ * 
+ * 逻辑:
+ *   1. 如果提供了 version 参数，直接使用该版本
+ *   2. 如果提供了 version_bump 参数，根据当前版本进行升级
+ *   3. 否则，从 version.json 或 package.json 读取当前版本（不升级）
  */
 
 const fs = require('fs');
@@ -18,29 +24,10 @@ const versionJsonPath = path.join(rootDir, 'version.json');
 const packageJsonPath = path.join(rootDir, 'package.json');
 const versionManagerPath = path.join(__dirname, 'version-manager.js');
 
-function updateVersion() {
-  try {
-    // 先运行 version-manager.js update 来更新版本信息
-    execSync(`node "${versionManagerPath}" update`, {
-      cwd: rootDir,
-      stdio: 'inherit'
-    });
-  } catch (error) {
-    console.warn('警告: 运行 version-manager.js update 失败，将使用现有版本信息');
-    // 不抛出错误，继续使用现有版本信息
-  }
-}
+// 引入版本管理模块
+const versionManager = require('./version-manager.js');
 
-function getVersion() {
-  // 如果提供了命令行参数且不为空，使用它
-  const args = process.argv.slice(2);
-  if (args.length > 0 && args[0] && args[0].trim() !== '') {
-    return args[0].trim();
-  }
-
-  // 如果没有提供版本参数，先更新版本信息
-  updateVersion();
-
+function getCurrentVersionFromFile() {
   // 尝试从 version.json 读取
   if (fs.existsSync(versionJsonPath)) {
     try {
@@ -70,6 +57,60 @@ function getVersion() {
 
   // 默认版本
   return 'Beta0.0.1';
+}
+
+function getVersionFromTag(ref) {
+  // 从 git ref 中提取版本号
+  // refs/tags/v1.2.3 -> Beta1.2.3
+  // refs/tags/dev-1.2.3 -> Beta1.2.3
+  if (ref) {
+    const match = ref.match(/refs\/tags\/(?:dev-)?v?(\d+\.\d+\.\d+)/);
+    if (match) {
+      return `Beta${match[1]}`;
+    }
+  }
+  return null;
+}
+
+function getVersion() {
+  const args = process.argv.slice(2);
+  // 处理命令行参数：如果参数是空字符串，当作 null 处理
+  const versionArg = (args[0] && args[0].trim() !== '') ? args[0].trim() : null;
+  const versionBumpArg = (args[1] && args[1].trim() !== '') ? args[1].trim() : null;
+  
+  // 优先从环境变量获取 version_bump（GitHub Actions）
+  const versionBump = process.env.INPUT_VERSION_BUMP || versionBumpArg || null;
+  
+  // 如果是 push tags 触发，从标签中提取版本号
+  const eventName = process.env.GITHUB_EVENT_NAME;
+  const ref = process.env.GITHUB_REF;
+  if (eventName === 'push' && ref) {
+    const tagVersion = getVersionFromTag(ref);
+    if (tagVersion) {
+      return tagVersion;
+    }
+  }
+
+  // 1. 如果提供了版本号参数（且不是升级类型关键词），直接使用
+  if (versionArg && !['major', 'minor', 'patch', 'rebuild'].includes(versionArg)) {
+    return versionArg;
+  }
+
+  // 2. 如果提供了升级类型，根据当前版本进行升级
+  if (versionBump && ['major', 'minor', 'patch', 'rebuild'].includes(versionBump)) {
+    try {
+      const newVersion = versionManager.manualBumpVersion(versionBump);
+      // 同时更新 package.json
+      versionManager.updatePackageJson(newVersion);
+      return newVersion;
+    } catch (error) {
+      console.warn('警告: 版本升级失败，使用当前版本:', error.message);
+      return getCurrentVersionFromFile();
+    }
+  }
+
+  // 3. 否则，直接读取当前版本（不升级）
+  return getCurrentVersionFromFile();
 }
 
 try {

@@ -538,6 +538,7 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const contextLines = (params.contextLines as number) || 3
   const scope = (params.scope as string[]) || ['document', 'metadata']
   const tabId = params.tabId as string | undefined
+  const verbose = params.verbose === true  // 是否返回完整内容（默认false，节省token）
   
   // 替换相关参数
   const replaceText = params.replaceText as string | undefined
@@ -780,7 +781,8 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       }
     }
 
-    const result: GrepResult = {
+    // 根据verbose参数决定是否包含完整内容（用于Display组件）
+    const resultForDisplay: GrepResult = {
       matches: allMatches,
       totalMatches: allMatches.length,
       searchPattern: pattern,
@@ -788,17 +790,34 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       isFuzzy,
       similarityThreshold: isFuzzy ? similarityThreshold : undefined,
       scope,
-      originalContent,
       language,
       replacedCount: replacedCount > 0 ? replacedCount : undefined,
       replacementText: replaceText,
-      replacedContent: newContent
+      // 只有在verbose模式下才包含完整内容（节省token）
+      ...(verbose ? {
+        originalContent,
+        replacedContent: newContent
+      } : {})
+    }
+
+    // 简化的搜索结果（不包含完整内容，用于发送给AI，节省token）
+    const resultForAI: Omit<GrepResult, 'originalContent' | 'replacedContent'> = {
+      matches: allMatches,
+      totalMatches: allMatches.length,
+      searchPattern: pattern,
+      isRegex,
+      isFuzzy,
+      similarityThreshold: isFuzzy ? similarityThreshold : undefined,
+      scope,
+      language,
+      replacedCount: replacedCount > 0 ? replacedCount : undefined,
+      replacementText: replaceText
     }
 
     onUpdate({
       content: {
         stage: 'completed',
-        result
+        result: resultForDisplay  // Display组件根据verbose参数决定是否包含完整内容
       },
       format: 'json',
       componentName: 'GrepDisplay'
@@ -814,12 +833,12 @@ const grepToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       data: {
         content: {
           stage: 'completed',
-          result
+          result: resultForDisplay  // Display组件根据verbose参数决定是否包含完整内容
         },
         format: 'json',
         componentName: 'GrepDisplay'
       },
-      result
+      result: resultForAI  // AI使用简化版本（不包含originalContent和replacedContent，节省token）
     }
   } catch (error) {
     logger.error('Grep搜索失败:', error)
@@ -1126,6 +1145,7 @@ Returns array of matches with line numbers, positions, and context.`
   - 替换操作只支持文档内容，不支持替换metadata
   - 正则表达式替换支持捕获组引用：\`$1\`, \`$2\` 等表示捕获组，\`$$\` 表示字面量 \`$\`
   - 替换文本中的捕获组引用会在替换时自动展开为实际的捕获组内容
+- \`verbose\` 参数可选，默认false。如果设置为true，会在结果中包含完整的原始内容和替换后内容（originalContent和replacedContent），用于Display组件显示完整的文档对比。**默认不包含完整内容以节省token**，只有在需要查看完整文档内容时才设置为true。
 `,
   callback: grepToolCallback,
   displayComponent: GrepDisplay,
@@ -1190,6 +1210,11 @@ Returns array of matches with line numbers, positions, and context.`
           type: 'number'
         },
         description: '要替换的匹配项索引数组（0-based，可选）。与replaceAll互斥，如果提供则只替换指定索引的匹配项'
+      },
+      verbose: {
+        type: 'boolean',
+        description: '是否返回完整内容（originalContent和replacedContent）用于Display组件显示对比。默认false，节省token。只有在需要查看完整文档内容时才设置为true。',
+        default: false
       }
     },
     required: ['pattern']

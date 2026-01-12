@@ -516,8 +516,11 @@
         "noErrors": "未发现错误",
         "errorsFound": "发现 {count} 个错误",
         "fixAll": "一键修复全部",
+        "ignoreAll": "一键忽略全部",
         "fix": "修复",
         "ignore": "忽略",
+        "ignoreSuccess": "已忽略",
+        "ignoreAllSuccess": "已忽略 {count} 个错误",
         "errorTypes": {
             "grammar": "语法错误",
             "spelling": "拼写错误",
@@ -2146,7 +2149,9 @@
         "replacementText": "替换文本",
         "showOriginal": "显示原始内容",
         "showReplaced": "显示替换后内容",
-        "match": "匹配文本"
+        "match": "匹配文本",
+        "summaryMode": "概要模式",
+        "summaryDescription": "搜索操作已成功完成。由于verbose模式未启用，未包含完整文档内容以节省空间。"
       },
       "webCrawler": {
         "title": "网页访问结果",
@@ -2176,6 +2181,9 @@
         "newContent": "新内容",
         "operations": "编辑操作",
         "operation": "操作",
+        "summaryMode": "概要模式",
+        "summaryDescription": "编辑操作已成功完成。由于verbose模式未启用，未包含完整内容以节省空间。",
+        "noDetails": "编辑操作已成功完成",
         "type": {
           "insert": "插入",
           "replace": "替换",
@@ -2211,6 +2219,7 @@
         "location": "位置: 行 {line}, 列 {column}",
         "errorText": "错误文本",
         "suggestion": "修改建议",
+        "suggestions": "修改建议",
         "noErrors": "未发现错误",
         "error": "校对失败",
         "fixed": "已修复",
@@ -2323,6 +2332,37 @@
     "loadFailed": "加载统计数据失败",
     "exportSuccess": "导出成功",
     "exportFailed": "导出失败",
+    "exportFormatTitle": "选择导出格式",
+    "exportFormatMessage": "请选择要导出的文件格式：",
+    "exportFormatInvalid": "请输入有效的数字 (1-3)",
+    "formatJson": "JSON",
+    "formatCsv": "CSV",
+    "formatXlsx": "Excel (XLSX)",
+    "csvHeaders": {
+      "timestamp": "时间戳",
+      "date": "日期",
+      "model": "模型",
+      "type": "类型",
+      "promptTokens": "输入Token",
+      "completionTokens": "输出Token",
+      "totalTokens": "总Token",
+      "summary": "汇总"
+    },
+    "xlsxHeaders": {
+      "metric": "指标",
+      "value": "数值",
+      "timestamp": "时间戳",
+      "date": "日期",
+      "model": "模型",
+      "type": "类型",
+      "promptTokens": "输入Token",
+      "completionTokens": "输出Token",
+      "totalTokens": "总Token"
+    },
+    "xlsxSheetNames": {
+      "summary": "汇总",
+      "details": "详细数据"
+    },
     "clearConfirm": "确定要清空所有统计数据吗？此操作不可恢复！",
     "clearConfirmAgain": "请再次确认：此操作将永久删除所有统计数据，无法恢复！",
     "clearConfirmTitle": "确认清空",

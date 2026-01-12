@@ -79,10 +79,113 @@ export function cleanJsonString(jsonStr: string): string {
 }
 
 /**
- * 尝试解析JSON，如果失败则尝试清理后解析
+ * 尝试部分解析JSON数组（当JSON不完整时）
+ * 从字符串中提取所有完整的JSON对象，组成数组
+ */
+export function parsePartialJsonArray(jsonStr: string): { success: boolean; data?: any[]; error?: string; partial?: boolean } {
+  if (!jsonStr || !jsonStr.trim()) {
+    return { success: false, error: '输入为空' }
+  }
+
+  // 确保以 [ 开头
+  const startIndex = jsonStr.indexOf('[')
+  if (startIndex === -1) {
+    return { success: false, error: '未找到数组开始标记' }
+  }
+
+  let jsonPart = jsonStr.substring(startIndex)
+  const objects: any[] = []
+  
+  // 提取所有完整的JSON对象
+  let i = 1 // 跳过开头的 [
+  let currentObject = ''
+  let braceCount = 0
+  let inString = false
+  let escapeNext = false
+  
+  while (i < jsonPart.length) {
+    const char = jsonPart[i]
+    
+    if (escapeNext) {
+      escapeNext = false
+      currentObject += char
+      i++
+      continue
+    }
+    
+    if (char === '\\') {
+      escapeNext = true
+      currentObject += char
+      i++
+      continue
+    }
+    
+    if (char === '"' && !escapeNext) {
+      inString = !inString
+      currentObject += char
+      i++
+      continue
+    }
+    
+    if (inString) {
+      currentObject += char
+      i++
+      continue
+    }
+    
+    if (char === '{') {
+      braceCount++
+      currentObject += char
+    } else if (char === '}') {
+      braceCount--
+      currentObject += char
+      if (braceCount === 0) {
+        // 找到一个完整的对象
+        try {
+          const obj = JSON.parse(currentObject)
+          objects.push(obj)
+          currentObject = ''
+          // 跳过逗号、空白和换行
+          i++
+          while (i < jsonPart.length && (jsonPart[i] === ',' || jsonPart[i] === ' ' || jsonPart[i] === '\n' || jsonPart[i] === '\r' || jsonPart[i] === '\t')) {
+            i++
+          }
+          continue
+        } catch (e) {
+          // 解析失败，清空当前对象，继续寻找下一个
+          currentObject = ''
+          braceCount = 0
+        }
+      } else {
+        currentObject += char
+      }
+    } else if (char === ']' && braceCount === 0) {
+      // 找到数组结束，但可能还有未解析的对象（在流式输出中，]可能还没出现）
+      // 如果已经解析到对象，返回它们；否则继续等待
+      if (objects.length > 0) {
+        break
+      }
+      // 如果没有解析到对象，继续等待更多内容
+      break
+    } else {
+      currentObject += char
+    }
+    
+    i++
+  }
+  
+  if (objects.length > 0) {
+    return { success: true, data: objects, partial: true }
+  }
+  
+  return { success: false, error: '无法提取完整的JSON对象', partial: true }
+}
+
+/**
+ * 尝试解析JSON，如果失败则尝试清理后解析，如果还是失败则尝试部分解析
  * 首先使用 extractOuterJsonString 提取JSON部分，避免LLM返回的文本中包含其他文字
  */
-export function parseJsonWithClean<T = any>(jsonStr: string): { success: boolean; data?: T; error?: string } {
+export function parseJsonWithClean<T = any>(jsonStr: string): { success: boolean; data?: T; error?: string; partial?: boolean } {
   // 首先尝试提取JSON字符串（处理LLM返回的文本中包含其他文字的情况）
   let extractedJson = extractOuterJsonString(jsonStr)
   
@@ -104,6 +207,14 @@ export function parseJsonWithClean<T = any>(jsonStr: string): { success: boolean
       const data = JSON.parse(cleanedExtracted) as T
       return { success: true, data }
     } catch (cleanError) {
+      // 如果清理后还是失败，尝试部分解析（对于数组类型）
+      if (Array.isArray(extractedJson) || extractedJson.trim().startsWith('[')) {
+        const partialResult = parsePartialJsonArray(extractedJson)
+        if (partialResult.success) {
+          return { success: true, data: partialResult.data as T, partial: partialResult.partial }
+        }
+      }
+      
       const errorMessage = cleanError instanceof Error ? cleanError.message : String(cleanError)
       return { success: false, error: errorMessage }
     }

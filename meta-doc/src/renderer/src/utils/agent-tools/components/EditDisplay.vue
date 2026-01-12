@@ -5,14 +5,14 @@
       <span>{{ getStageMessage(displayData.stage) }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed' && resultData" class="completed-state" :style="completedStateStyle">
-      <div class="edit-header" :style="headerStyle">
+    <div v-else-if="displayData.stage === 'completed'" class="completed-state" :style="completedStateStyle">
+      <div v-if="resultData" class="edit-header" :style="headerStyle">
         <h3 class="edit-title" :style="titleStyle">{{ $t('agent.display.edit.title') }}</h3>
         <div class="edit-stats" :style="statsStyle">
           <el-tag type="success" size="small">{{ $t('agent.display.edit.appliedEdits') }}: {{ resultData.appliedEdits }}</el-tag>
           <el-tag v-if="resultData.failedEdits > 0" type="danger" size="small">{{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}</el-tag>
           <el-tag type="info" size="small">{{ $t('agent.display.edit.totalOperations') }}: {{ resultData.operations.length }}</el-tag>
-          <el-button-group class="mode-switch">
+          <el-button-group v-if="hasFullContent" class="mode-switch">
             <el-button 
               :type="viewMode === 'unified' ? 'primary' : 'default'" 
               size="small"
@@ -31,8 +31,37 @@
         </div>
       </div>
 
+      <!-- 如果没有完整内容（verbose模式），只显示概要 -->
+      <div v-if="resultData && !hasFullContent" class="summary-view" :style="summaryViewStyle">
+        <el-alert
+          type="info"
+          :closable="false"
+          :title="$t('agent.display.edit.summaryMode') || '概要模式'"
+        >
+          <template #default>
+            <div class="summary-content">
+              <p>{{ $t('agent.display.edit.summaryDescription') || '编辑操作已成功完成。由于verbose模式未启用，未包含完整内容以节省空间。' }}</p>
+              <ul class="summary-list">
+                <li>{{ $t('agent.display.edit.appliedEdits') }}: {{ resultData.appliedEdits }}</li>
+                <li v-if="resultData.failedEdits > 0">{{ $t('agent.display.edit.failedEdits') }}: {{ resultData.failedEdits }}</li>
+                <li>{{ $t('agent.display.edit.totalOperations') }}: {{ resultData.operations.length }}</li>
+              </ul>
+            </div>
+          </template>
+        </el-alert>
+      </div>
+
+      <!-- 如果没有resultData，显示成功消息 -->
+      <div v-else-if="!resultData" class="no-data-message" :style="noDataMessageStyle">
+        <el-result
+          icon="success"
+          :title="$t('agent.display.edit.completed') || '编辑完成'"
+          :sub-title="$t('agent.display.edit.noDetails') || '编辑操作已成功完成'"
+        />
+      </div>
+
       <!-- 统一视图（操作列表） -->
-      <div v-if="viewMode === 'unified'">
+      <div v-else-if="resultData && hasFullContent && viewMode === 'unified'">
         <el-scrollbar max-height="500px">
           <div class="operations-list">
             <div
@@ -65,7 +94,7 @@
       </div>
 
       <!-- 分列视图（Monaco 编辑器对比） -->
-      <div v-else class="split-view-container">
+      <div v-else-if="resultData && hasFullContent" class="split-view-container">
         <div class="split-view-layout">
           <!-- 左侧：操作列表 -->
           <div class="operations-panel" :style="{ width: leftPanelWidth + '%' }">
@@ -172,18 +201,24 @@ const isResizing = ref(false)
 const workspace = useWorkspace()
 
 const displayData = computed(() => {
+  // 优先使用实时数据（通过onUpdate发送的），这是工具主动发送的，更可靠
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
   
+  // 优先使用实时状态（通过eventBus更新的）
+  const currentStatus = realtimeStatus.value !== 'running' ? realtimeStatus.value : props.status
+  
   if (parsed && typeof parsed === 'object') {
     const getStage = (): 'loading' | 'applying' | 'updating' | 'completed' | 'error' => {
+      // 优先使用parsed中的stage（来自onUpdate）
       if (parsed.stage) {
         return parsed.stage
       }
-      if (props.status === 'succeeded') {
+      // 其次使用实时状态
+      if (currentStatus === 'succeeded') {
         return 'completed'
       }
-      if (props.status === 'failed') {
+      if (currentStatus === 'failed') {
         return 'error'
       }
       return 'loading'
@@ -195,7 +230,8 @@ const displayData = computed(() => {
     }
   }
   
-  const defaultStage = props.status === 'succeeded' ? 'completed' : (props.status === 'failed' ? 'error' : 'loading')
+  // 如果没有解析到数据，根据状态推断stage
+  const defaultStage = currentStatus === 'succeeded' ? 'completed' : (currentStatus === 'failed' ? 'error' : 'loading')
   return {
     stage: defaultStage,
     result: undefined,
@@ -206,31 +242,24 @@ const displayData = computed(() => {
 const resultData = computed((): EditResult | null => {
   const data = displayData.value
   if (data && typeof data === 'object') {
-    const result = data.result || data.content?.result || data
-    if (result && result.operations && Array.isArray(result.operations)) {
+    // 尝试多种路径提取result
+    // 1. 直接从data.result获取（最直接）
+    // 2. 从data.content.result获取（ToolCallbackData格式）
+    // 3. 从data.content获取（如果content本身就是result）
+    // 4. 如果data本身就有operations，说明data就是result
+    let result = data.result || data.content?.result || data.content || data
+    
+    // 如果result有operations字段，说明它是EditResult
+    if (result && typeof result === 'object' && 'operations' in result && Array.isArray(result.operations)) {
       return result as EditResult
     }
   }
   return null
 })
 
-// 获取原始文档内容（用于显示编辑前的状态）
-const originalContent = computed(() => {
-  // 从编辑操作中还原原始内容
-  if (!resultData.value || !resultData.value.newContent) return ''
-  
-  // 尝试从 workspace 获取当前文档
-  const activeTabId = workspace.activeTabId.value
-  if (activeTabId) {
-    const doc = workspace.ensureDocument(activeTabId)
-    if (doc) {
-      // 从新内容反向计算原始内容
-      // 这里简化处理：从 operations 中提取删除的内容
-      // 实际应该存储原始内容，这里先返回空字符串
-      return ''
-    }
-  }
-  return ''
+// 检查是否有完整内容（verbose模式）
+const hasFullContent = computed(() => {
+  return !!(resultData.value?.originalContent && resultData.value?.newContent)
 })
 
 const oldContent = computed(() => {
@@ -665,6 +694,17 @@ const editorContainerStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   height: '500px'
 }))
+
+const noDataMessageStyle = computed(() => ({
+  padding: '40px 20px',
+  textAlign: 'center',
+  color: themeState.currentTheme.textColor
+}))
+
+const summaryViewStyle = computed(() => ({
+  padding: '20px',
+  color: themeState.currentTheme.textColor
+}))
 </script>
 
 <style scoped>
@@ -835,6 +875,15 @@ const editorContainerStyle = computed(() => ({
   to {
     transform: rotate(360deg);
   }
+}
+
+.summary-content {
+  margin-top: 12px;
+}
+
+.summary-list {
+  margin-top: 12px;
+  padding-left: 20px;
 }
 </style>
 

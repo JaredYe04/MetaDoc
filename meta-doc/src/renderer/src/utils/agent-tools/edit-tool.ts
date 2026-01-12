@@ -75,6 +75,8 @@ export interface EditResult {
   appliedEdits: number
   failedEdits: number
   operations: EditOperation[]
+  originalContent?: string  // 编辑前的原始内容（用于显示对比）
+  newContent?: string       // 编辑后的新内容（用于显示对比）
 }
 
 /**
@@ -376,6 +378,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const operations = params.operations as AnyEditOperation[] | undefined
   const operation = params.operation as AnyEditOperation | undefined
   const tabId = params.tabId as string | undefined
+  const verbose = params.verbose === true  // 是否返回完整内容（默认false，节省token）
 
   // 支持单个操作或多个操作
   const rawEdits: AnyEditOperation[] = operations || (operation ? [operation] : [])
@@ -411,9 +414,13 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       }
     }
     
+    // 类型断言：此时edit已经确认是对象类型
+    const editObj = edit as AnyEditOperation
+    
     // 检查type字段是否存在且为字符串
-    if (!edit.type || typeof edit.type !== 'string') {
-      const invalidType = edit.type ? String(edit.type).substring(0, 50) : 'undefined'
+    const editType = editObj.type
+    if (!editType || typeof editType !== 'string') {
+      const invalidType = editType ? String(editType).substring(0, 50) : 'undefined'
       return {
         status: 'failed',
         error: createDetailedError(
@@ -429,8 +436,8 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     }
     
     // 验证查找替换操作
-    if (edit.type === 'findReplace') {
-      const findReplace = edit as FindReplaceOperation
+    if (editObj.type === 'findReplace') {
+      const findReplace = editObj as FindReplaceOperation
       const hasRange = findReplace.range && findReplace.range.start && findReplace.range.end
       const hasOldText = findReplace.oldText !== undefined && findReplace.oldText !== null
       const newTextValue = findReplace.newText ?? findReplace.content
@@ -481,8 +488,8 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       }
     }
     // 验证基于位置的操作
-    else if (['insert', 'replace', 'delete'].includes(edit.type)) {
-      const posEdit = edit as EditOperation
+    else if (['insert', 'replace', 'delete'].includes(editObj.type)) {
+      const posEdit = editObj as EditOperation
       if (!posEdit.range || !posEdit.range.start || !posEdit.range.end) {
         return {
           status: 'failed',
@@ -513,7 +520,7 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       return {
         status: 'failed',
         error: createDetailedError(
-          `无效的编辑类型: ${edit.type}`,
+          `无效的编辑类型: ${editObj.type}`,
           [
             '支持的类型：findReplace, insert, replace, delete',
             '推荐使用findReplace：{"type": "findReplace", "oldText": "旧文本", "newText": "新文本", "all": true}'
@@ -697,16 +704,29 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       workspace.updateDocumentTex(targetTabId, newContent)
     }
 
-    const result: EditResult = {
+    // 根据verbose参数决定是否包含完整内容
+    const resultForDisplay: EditResult = {
       appliedEdits: appliedCount,
       failedEdits: failedCount,
-      operations: edits  // 注意：这里保存的是转换后的EditOperation，不是原始的AnyEditOperation
+      operations: edits,  // 注意：这里保存的是转换后的EditOperation，不是原始的AnyEditOperation
+      // 只有在verbose模式下才包含完整内容（节省token）
+      ...(verbose ? {
+        originalContent: currentContent,  // 编辑前的原始内容（用于显示对比）
+        newContent: newContent             // 编辑后的新内容（用于显示对比）
+      } : {})
+    }
+
+    // 简化的编辑结果（不包含完整内容，用于发送给AI，节省token）
+    const resultForAI: Omit<EditResult, 'originalContent' | 'newContent'> = {
+      appliedEdits: appliedCount,
+      failedEdits: failedCount,
+      operations: edits
     }
 
     onUpdate({
       content: {
         stage: 'completed',
-        result
+        result: resultForDisplay  // Display组件根据verbose参数决定是否包含完整内容
       },
       format: 'json',
       componentName: 'EditDisplay'
@@ -720,12 +740,12 @@ const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       data: {
         content: {
           stage: 'completed',
-          result
+          result: resultForDisplay  // Display组件根据verbose参数决定是否包含完整内容
         },
         format: 'json',
         componentName: 'EditDisplay'
       },
-      result
+      result: resultForAI  // AI使用简化版本（不包含originalContent和newContent，节省token）
     }
   } catch (error) {
     logger.error('编辑失败:', error)
@@ -768,6 +788,7 @@ export const editToolConfig: AgentToolConfig = {
   name: editToolLocales,
   description: editToolLocales,
   origin: 'internal',
+  instruction: '直接对当前活动文档进行编辑，支持查找替换（全局/单个）和基于位置的编辑（insert/replace/delete），支持一次调用执行多个编辑操作。推荐使用findReplace进行文本替换，无需知道精确位置。',
   spec: {
     name: 'edit',
     brief: 'Edit the current document with incremental diff editing. Supports insert, replace, delete operations based on position or text search.',
@@ -1357,6 +1378,7 @@ export const editToolConfig: AgentToolConfig = {
 - 如果某个编辑操作失败（例如找不到匹配文本、位置超出范围），其他操作仍会继续执行
 - 查找替换如果找不到匹配文本，该操作会失败但不影响其他操作
 - \`tabId\` 参数可选，默认使用当前活动的文档标签页
+- \`verbose\` 参数可选，默认false。如果设置为true，会在结果中包含完整的原始内容和新内容（originalContent和newContent），用于Display组件显示完整的编辑对比。**默认不包含完整内容以节省token**，只有在需要查看完整编辑对比时才设置为true。
 `
   },
   callback: editToolCallback,
@@ -1447,6 +1469,11 @@ export const editToolConfig: AgentToolConfig = {
       tabId: {
         type: 'string',
         description: '文档标签页ID（可选，默认使用当前活动标签页）'
+      },
+      verbose: {
+        type: 'boolean',
+        description: '是否返回完整内容（originalContent和newContent）用于Display组件显示对比。默认false，节省token。只有在需要查看完整编辑对比时才设置为true。',
+        default: false
       }
     }
   },

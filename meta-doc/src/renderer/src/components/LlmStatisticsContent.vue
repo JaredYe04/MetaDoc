@@ -92,6 +92,8 @@ import { getStatistics, exportStatistics, clearStatistics } from '../utils/llm-s
 import * as echarts from 'echarts';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { createRendererLogger } from '../utils/logger';
+import * as XLSX from 'xlsx';
+import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer';
 
 const { t } = useI18n();
 const logger = createRendererLogger('LlmStatisticsContent');
@@ -452,9 +454,169 @@ function updateTokenUsageChart() {
   tokenUsageChart.setOption(option);
 }
 
+// 获取 IPC Renderer
+function getIpcRenderer() {
+  if (window && (window as any).electron?.ipcRenderer) {
+    return (window as any).electron.ipcRenderer;
+  }
+  return localIpcRenderer;
+}
+
+// 将数据转换为 CSV 格式
+function convertToCSV(data: any): string {
+  const { requests } = data;
+  
+  // CSV 表头
+  const headers = [
+    t('llmStatistics.csvHeaders.timestamp'),
+    t('llmStatistics.csvHeaders.date'),
+    t('llmStatistics.csvHeaders.model'),
+    t('llmStatistics.csvHeaders.type'),
+    t('llmStatistics.csvHeaders.promptTokens'),
+    t('llmStatistics.csvHeaders.completionTokens'),
+    t('llmStatistics.csvHeaders.totalTokens'),
+  ];
+  
+  // 转义 CSV 字段（处理包含逗号、引号或换行符的值）
+  const escapeCSV = (value: any): string => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    const str = String(value);
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+  
+  // 构建 CSV 内容
+  const rows = [headers.map(escapeCSV).join(',')];
+  
+  // 添加汇总行
+  rows.push([
+    t('llmStatistics.csvHeaders.summary'),
+    '',
+    '',
+    '',
+    data.totalPromptTokens || 0,
+    data.totalCompletionTokens || 0,
+    data.totalTokens || 0,
+  ].map(escapeCSV).join(','));
+  
+  rows.push(''); // 空行分隔
+  
+  // 添加详细数据
+  requests.forEach((req: any) => {
+    rows.push([
+      req.timestamp || '',
+      req.date || '',
+      req.model || '',
+      req.type || '',
+      req.prompt_tokens || 0,
+      req.completion_tokens || 0,
+      req.total_tokens || 0,
+    ].map(escapeCSV).join(','));
+  });
+  
+  return rows.join('\n');
+}
+
+// 将数据转换为 XLSX 格式
+function convertToXLSX(data: any): ArrayBuffer {
+  const { requests } = data;
+  
+  // 创建工作簿
+  const wb = XLSX.utils.book_new();
+  
+  // 创建汇总表
+  const summaryData = [
+    [t('llmStatistics.xlsxHeaders.metric'), t('llmStatistics.xlsxHeaders.value')],
+    [t('llmStatistics.totalRequests'), data.totalRequests || 0],
+    [t('llmStatistics.totalPromptTokens'), data.totalPromptTokens || 0],
+    [t('llmStatistics.totalCompletionTokens'), data.totalCompletionTokens || 0],
+    [t('llmStatistics.totalTokens'), data.totalTokens || 0],
+  ];
+  const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+  XLSX.utils.book_append_sheet(wb, summaryWs, t('llmStatistics.xlsxSheetNames.summary'));
+  
+  // 创建详细数据表
+  const detailData = [
+    [
+      t('llmStatistics.xlsxHeaders.timestamp'),
+      t('llmStatistics.xlsxHeaders.date'),
+      t('llmStatistics.xlsxHeaders.model'),
+      t('llmStatistics.xlsxHeaders.type'),
+      t('llmStatistics.xlsxHeaders.promptTokens'),
+      t('llmStatistics.xlsxHeaders.completionTokens'),
+      t('llmStatistics.xlsxHeaders.totalTokens'),
+    ],
+  ];
+  
+  requests.forEach((req: any) => {
+    detailData.push([
+      req.timestamp || '',
+      req.date || '',
+      req.model || '',
+      req.type || '',
+      req.prompt_tokens || 0,
+      req.completion_tokens || 0,
+      req.total_tokens || 0,
+    ]);
+  });
+  
+  const detailWs = XLSX.utils.aoa_to_sheet(detailData);
+  // 设置列宽
+  detailWs['!cols'] = [
+    { wch: 20 }, // timestamp
+    { wch: 12 }, // date
+    { wch: 20 }, // model
+    { wch: 12 }, // type
+    { wch: 15 }, // prompt_tokens
+    { wch: 15 }, // completion_tokens
+    { wch: 15 }, // total_tokens
+  ];
+  XLSX.utils.book_append_sheet(wb, detailWs, t('llmStatistics.xlsxSheetNames.details'));
+  
+  // 转换为 ArrayBuffer
+  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+}
+
 // 导出统计（暴露给父组件使用）
 async function handleExport() {
   try {
+    // 显示格式选择对话框
+    const formatOptions = [
+      { label: t('llmStatistics.formatJson'), value: 'json' },
+      { label: t('llmStatistics.formatCsv'), value: 'csv' },
+      { label: t('llmStatistics.formatXlsx'), value: 'xlsx' },
+    ];
+    
+    // 使用 ElMessageBox.prompt 让用户选择格式
+    const formatChoice = await ElMessageBox.prompt(
+      `${t('llmStatistics.exportFormatMessage')}\n\n1. ${formatOptions[0].label}\n2. ${formatOptions[1].label}\n3. ${formatOptions[2].label}`,
+      t('llmStatistics.exportFormatTitle'),
+      {
+        confirmButtonText: t('llmStatistics.confirm'),
+        cancelButtonText: t('llmStatistics.cancel'),
+        inputPattern: /^[1-3]$/,
+        inputErrorMessage: t('llmStatistics.exportFormatInvalid'),
+        inputPlaceholder: '1-3',
+      }
+    ).catch(() => null);
+    
+    if (!formatChoice || !formatChoice.value) {
+      return; // 用户取消
+    }
+    
+    const choice = parseInt(formatChoice.value.trim());
+    if (choice < 1 || choice > 3) {
+      ElMessage.warning(t('llmStatistics.exportFormatInvalid'));
+      return;
+    }
+    
+    const format = formatOptions[choice - 1].value;
+    
+    // 执行导出
     let startDate: Date | undefined = undefined;
     let endDate: Date | undefined = undefined;
 
@@ -463,23 +625,82 @@ async function handleExport() {
       endDate = new Date(dateRange.value[1]);
     }
 
-    const json = await exportStatistics(startDate, endDate);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
+    const stats = await getStatistics(startDate, endDate);
     const dateStr = dateRange.value
       ? `${dateRange.value[0].split(' ')[0]}_${dateRange.value[1].split(' ')[0]}`
       : 'all';
-    a.download = `llm-statistics-${dateStr}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    
+    // 获取 IPC Renderer
+    const ipcRenderer = getIpcRenderer();
+    
+    // 根据格式确定文件扩展名和过滤器
+    let filters: Array<{ name: string; extensions: string[] }> = [];
+    let defaultFileName = '';
+    let fileContent: string | ArrayBuffer = '';
+    
+    switch (format) {
+      case 'json':
+        filters = [{ name: 'JSON Files', extensions: ['json'] }];
+        defaultFileName = `llm-statistics-${dateStr}.json`;
+        fileContent = JSON.stringify(stats, null, 2);
+        break;
+      case 'csv':
+        filters = [{ name: 'CSV Files', extensions: ['csv'] }];
+        defaultFileName = `llm-statistics-${dateStr}.csv`;
+        fileContent = convertToCSV(stats);
+        break;
+      case 'xlsx':
+        filters = [{ name: 'Excel Files', extensions: ['xlsx'] }];
+        defaultFileName = `llm-statistics-${dateStr}.xlsx`;
+        fileContent = convertToXLSX(stats);
+        break;
+      default:
+        throw new Error('不支持的导出格式');
+    }
+    
+    // 使用 Electron 的保存对话框
+    const dialogResult = await ipcRenderer.invoke('save-file-dialog', {
+      defaultName: defaultFileName,
+      filters: filters,
+    });
+    
+    if (dialogResult.canceled || !dialogResult.filePath) {
+      return; // 用户取消
+    }
+    
+    // 写入文件
+    if (format === 'xlsx') {
+      // XLSX 是二进制文件，需要特殊处理
+      const buffer = fileContent as ArrayBuffer;
+      const uint8Array = new Uint8Array(buffer);
+      // 使用更安全的方式将 ArrayBuffer 转换为 base64
+      let binary = '';
+      const chunkSize = 8192; // 分块处理，避免堆栈溢出
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, Array.from(chunk) as any);
+      }
+      const base64 = btoa(binary);
+      await ipcRenderer.invoke('write-file-content', {
+        filePath: dialogResult.filePath,
+        content: base64,
+        encoding: 'base64',
+      });
+    } else {
+      // JSON 和 CSV 是文本文件
+      await ipcRenderer.invoke('write-file-content', {
+        filePath: dialogResult.filePath,
+        content: fileContent as string,
+        encoding: 'utf8',
+      });
+    }
+    
     ElMessage.success(t('llmStatistics.exportSuccess'));
-  } catch (error) {
-    logger.error('导出统计数据失败:', error);
-    ElMessage.error(t('llmStatistics.exportFailed'));
+  } catch (error: any) {
+    if (error !== 'cancel' && error !== 'close') {
+      logger.error('导出统计数据失败:', error);
+      ElMessage.error(t('llmStatistics.exportFailed'));
+    }
   }
 }
 

@@ -177,6 +177,21 @@ const multilineThreshold = 6
 const autoResize = () => {
   if (!textareaRef.value) return
   const el = textareaRef.value
+  const content = el.value || props.modelValue || ''
+  
+  // 如果内容为空，强制设置为单行模式
+  if (!content.trim()) {
+    el.style.height = 'auto'
+    isMultiline.value = false
+    if (singleLineHeight.value) {
+      el.style.height = `${singleLineHeight.value}px`
+    }
+    nextTick(() => {
+      scrollbarRef.value?.update()
+    })
+    return
+  }
+  
   el.style.height = 'auto'
   if (!singleLineHeight.value) {
     const style = window.getComputedStyle(el)
@@ -341,7 +356,11 @@ const checkKnowledgeBaseEnabled = async () => {
 onMounted(async () => {
   updateMaxScrollHeight()
   window.addEventListener('resize', updateMaxScrollHeight)
-  nextTick(autoResize)
+  // 确保初始状态为单行模式
+  isMultiline.value = false
+  nextTick(() => {
+    autoResize()
+  })
   if (typeof window !== 'undefined') {
     const stored = window.localStorage.getItem(SEND_PREF_KEY)
     if (stored !== null) {

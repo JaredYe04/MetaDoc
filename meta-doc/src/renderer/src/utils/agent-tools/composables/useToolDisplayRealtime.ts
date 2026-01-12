@@ -89,7 +89,7 @@ export function useToolDisplayRealtime(
     logger.debug(`[useToolDisplayRealtime] 初始化，invocationId: ${invocationId}, initialStatus: ${initialStatus}`)
     setupListeners(invocationId)
   } else {
-    logger.warn(`[useToolDisplayRealtime] 没有 invocationId，无法设置事件监听器。props:`, { invocationId, initialData, initialStatus, initialProgress })
+    //logger.warn(`[useToolDisplayRealtime] 没有 invocationId，无法设置事件监听器。props:`, { invocationId, initialData, initialStatus, initialProgress })
   }
 
   // 清理监听器

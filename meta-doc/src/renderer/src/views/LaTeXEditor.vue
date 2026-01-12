@@ -50,7 +50,7 @@
                     :reverse="true"
                     sidebar-position="end"
                     :collapsible="true"
-                    :auto-collapse-width="LATEX_LAYOUT.left.minWidth + LATEX_LAYOUT.meta.minWidth + LATEX_LAYOUT.pdf.minWidth + 100"
+                    :auto-collapse-width="LATEX_LAYOUT.left.minWidth + LATEX_LAYOUT.meta.minWidth + LATEX_LAYOUT.pdf.minWidth + 400"
                     :collapse-button-title="$t('article.collapse_meta_panel')"
                     :expand-button-title="$t('article.expand_meta_panel')"
                 >
@@ -65,13 +65,11 @@
                                     mainWidth > 0
                                         ? Math.max(
                                             LATEX_LAYOUT.pdf.minWidth,
-                                            Math.min(
-                                                mainWidth * LATEX_LAYOUT.pdf.maxRatio,
-                                                mainWidth - LATEX_LAYOUT.left.minWidth
-                                            )
+                                            mainWidth - LATEX_LAYOUT.left.minWidth
                                         )
                                         : LATEX_LAYOUT.pdf.minWidth
                                 "
+                                :divider-size="8"
                                 sidebar-position="end"
                                 :show-sidebar="showPdfPanel"
                                 @resize="handlePdfResize"
@@ -154,11 +152,13 @@
                                         </div>
                                     </el-tooltip>
                                 </div>
-                                <div class="editor-console-container">
-                                    <div class="editor" :key="editorKey" :id="editorDomId" ref="editorEl"
-                                        @contextmenu.prevent="openContextMenu($event)"></div>
+                                <div class="editor-console-container" ref="editorConsoleContainerRef">
+                                    <div class="editor-wrapper" :class="{ 'console-visible': showConsole }">
+                                        <div class="editor" :key="editorKey" :id="editorDomId" ref="editorEl"
+                                            @contextmenu.prevent="openContextMenu($event)"></div>
+                                    </div>
+                                    <div v-if="showConsole" class="console-resizer" @mousedown="startResizeConsole"></div>
                                     <div v-show="showConsole" class="console-wrapper" :style="{ height: consoleHeight + 'px' }">
-                                        <div class="editor-resizer" @mousedown="startResizeConsole"></div>
                                         <div class="console-panel" :style="{
                                             background: themeState.currentTheme.background
                                         }">
@@ -215,39 +215,39 @@
                                                 </el-tooltip>
                                             </div>
 
-                                            <div class="pdf-preview-container"
+                                            <el-scrollbar
+                                                ref="pdfScrollbarRef"
+                                                v-if="isValidPdfUrl && totalPdfPages > 0"
+                                                class="pdf-preview-container"
                                                 :style="{ background: themeState.currentTheme.background }"
                                                 @contextmenu.prevent="openPdfContextMenu($event)">
-                                                <el-scrollbar
-                                                    ref="pdfScrollbarRef"
-                                                    v-if="isValidPdfUrl && totalPdfPages > 0"
-                                                    class="pdf-scrollbar">
-                                                    <div 
-                                                        ref="pdfPagesContainer"
-                                                        class="pdf-pages-container"
-                                                        :style="pdfContainerStyle"
-                                                        @wheel="handlePdfScroll">
-                                                        <div
-                                                            v-for="pageNum in totalPdfPages"
-                                                            :key="`pdf-page-${pageNum}-${pdfUrl}-${pdfRenderKey}`"
-                                                            :ref="el => setPageRef(el, pageNum)"
-                                                            class="pdf-page-wrapper"
-                                                            :data-page-number="pageNum">
-                                                            <VuePdf
-                                                                :key="`vue-pdf-${pageNum}-${zoomScale}`"
-                                                                :src="pdfUrl"
-                                                                :page="pageNum"
-                                                                :scale="zoomScale"
-                                                                :enable-text-selection="true"
-                                                                :enable-annotations="false"
-                                                                @total-pages="handleNumPages"
-                                                                @pdf-loaded="pageNum === 1 ? handlePdfLoaded($event) : undefined"
-                                                                class="vue-pdf-wrapper"
-                                                            />
-                                                        </div>
+                                                <div 
+                                                    ref="pdfPagesContainer"
+                                                    class="pdf-pages-container"
+                                                    :style="pdfContainerStyle"
+                                                    @wheel="handlePdfScroll">
+                                                    <div
+                                                        v-for="pageNum in totalPdfPages"
+                                                        :key="`pdf-page-${pageNum}-${pdfUrl}-${pdfRenderKey}`"
+                                                        :ref="el => setPageRef(el, pageNum)"
+                                                        class="pdf-page-wrapper"
+                                                        :data-page-number="pageNum">
+                                                        <VuePdf
+                                                            :key="`vue-pdf-${pageNum}-${zoomScale}`"
+                                                            :src="pdfUrl"
+                                                            :page="pageNum"
+                                                            :scale="zoomScale"
+                                                            :enable-text-selection="true"
+                                                            :enable-annotations="false"
+                                                            @total-pages="handleNumPages"
+                                                            @pdf-loaded="pageNum === 1 ? handlePdfLoaded($event) : undefined"
+                                                            class="vue-pdf-wrapper"
+                                                        />
                                                     </div>
-                                                </el-scrollbar>
-                                                <h3 v-else class="pdf-empty-text">
+                                                </div>
+                                            </el-scrollbar>
+                                            <div v-else class="pdf-preview-container" :style="{ background: themeState.currentTheme.background }">
+                                                <h3 class="pdf-empty-text">
                                                     {{ $t('latexEditor.pdfEmpty') }}
                                                 </h3>
                                             </div>
@@ -352,7 +352,7 @@ const LATEX_LAYOUT = {
         maxRatio: 0.7,
     },
     pdf: {
-        minWidth: 660,
+        minWidth: 400,  // 降低最小宽度，允许更灵活的调整
         maxRatio: 0.55,
     },
 };
@@ -595,9 +595,12 @@ const clampPdfWidth = (size: number) => {
     if (!showPdfPanel.value) return LATEX_LAYOUT.pdf.minWidth;
     const width = mainWidth.value || size + LATEX_LAYOUT.left.minWidth;
     const minAllowed = LATEX_LAYOUT.pdf.minWidth;
+    // 允许 PDF 面板占据更多空间，但至少保留 left 的最小宽度
     const maxByEditor = width - LATEX_LAYOUT.left.minWidth;
+    // 可选：仍然应用 maxRatio 作为软限制，但不强制
     const maxByRatio = width * LATEX_LAYOUT.pdf.maxRatio;
-    const maxAllowed = Math.max(minAllowed, Math.min(maxByEditor, maxByRatio));
+    // 使用更大的值作为上限，允许更灵活的调整
+    const maxAllowed = Math.max(maxByEditor, maxByRatio);
     return clamp(size, minAllowed, maxAllowed);
 };
 
@@ -618,8 +621,11 @@ const ensurePdfWithinBounds = () => {
 };
 
 const handlePdfResize = (size: number) => {
+    // 只在超出边界时才进行限制，允许在正常范围内自由拖动
     const clamped = clampPdfWidth(size);
-    if (clamped !== size && pdfResizableRef.value?.setSidebarSize) {
+    // 只有当被限制的值与输入值不同时才更新（说明超出了边界）
+    // 这样可以避免在正常拖动时频繁调用 setSidebarSize，影响拖动流畅性
+    if (Math.abs(clamped - size) > 1 && pdfResizableRef.value?.setSidebarSize) {
         pdfResizableRef.value.setSidebarSize(clamped);
     }
     // 在 PDF 面板大小变化时，暂时禁用 minimap 避免闪烁
@@ -2780,30 +2786,94 @@ watch(isActive, (active) => {
 
 
 const consoleHeight = ref(200);
+const editorConsoleContainerRef = ref<HTMLElement | null>(null);
 let isResizingConsole = false;
+let resizeStartY = 0;
+let resizeStartHeight = 0;
 
 function startResizeConsole(e: MouseEvent) {
-  if (!showConsole.value) return;
+  if (!showConsole.value || !editorConsoleContainerRef.value) return;
+  
+  // 检查事件目标，确保是在 console-resizer 上
+  const target = e.target as HTMLElement;
+  if (!target || !target.classList.contains('console-resizer')) {
+    return; // 如果不是在 console-resizer 上，不处理，让事件继续冒泡
+  }
+  
+  // 阻止默认行为和事件冒泡，因为这是我们的 resize bar
+  e.preventDefault();
+  e.stopPropagation();
+  
   isResizingConsole = true;
+  resizeStartY = e.clientY;
+  resizeStartHeight = consoleHeight.value;
+  // 确保初始高度有效
+  if (resizeStartHeight < 100) {
+    resizeStartHeight = 200;
+    consoleHeight.value = 200;
+  }
   document.addEventListener('mousemove', onResizingConsole);
   document.addEventListener('mouseup', stopResizeConsole);
+  // 防止文本选择
+  document.body.style.userSelect = 'none';
+  document.body.style.cursor = 'row-resize';
 }
 
 function onResizingConsole(e: MouseEvent) {
-  if (!isResizingConsole) return;
-  const container = document.querySelector('.editor-console-container');
-  if (!container) return;
-  const containerRect = container.getBoundingClientRect();
-
-  // 底部向上拖拽调整高度
-  const newHeight = containerRect.bottom - e.clientY;
-  consoleHeight.value = Math.min(Math.max(newHeight, 100), containerRect.height - 50);
+  if (!isResizingConsole || !editorConsoleContainerRef.value) return;
+  // 阻止默认行为和事件冒泡
+  e.preventDefault();
+  e.stopPropagation();
+  
+  // 计算新的高度：从初始高度减去鼠标移动的距离（向上拖拽增加高度，向下拖拽减少高度）
+  const deltaY = resizeStartY - e.clientY; // 向上为正，向下为负
+  const newHeight = resizeStartHeight + deltaY;
+  
+  // 获取容器尺寸
+  const containerRect = editorConsoleContainerRef.value.getBoundingClientRect();
+  const containerHeight = containerRect.height;
+  
+  // 限制高度范围：最小100px，最大为容器高度的80%
+  const minHeight = 100;
+  const maxHeight = Math.max(containerHeight * 0.8, minHeight);
+  
+  // 确保高度在有效范围内
+  const clampedHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
+  
+  // 只有当新高度有效时才更新
+  if (clampedHeight >= minHeight && clampedHeight <= maxHeight) {
+    consoleHeight.value = clampedHeight;
+    
+    // 在 resize 过程中，确保 Console 滚动到底部
+    nextTick(() => {
+      scrollConsoleToBottom();
+    });
+  }
 }
 
 function stopResizeConsole() {
+  if (!isResizingConsole) return;
   isResizingConsole = false;
   document.removeEventListener('mousemove', onResizingConsole);
   document.removeEventListener('mouseup', stopResizeConsole);
+  document.body.style.userSelect = '';
+  document.body.style.cursor = '';
+  
+  // 确保最终高度有效
+  if (consoleHeight.value < 100) {
+    consoleHeight.value = 200;
+  }
+  
+  // resize 结束后，确保 Console 滚动到底部
+  nextTick(() => {
+    scrollConsoleToBottom();
+  });
+}
+
+// 滚动 Console 到底部
+function scrollConsoleToBottom() {
+  // 通过 eventBus 通知 ConsoleOutput 组件滚动到底部
+  eventBus.emit('console-scroll-to-bottom', { key: 'latex' });
 }
 
 const refreshContextMenu = async () => {
@@ -3179,6 +3249,8 @@ function onCancelSuggestion() {
     min-width: 360px;
     border-right: 1px solid var(--el-border-color-lighter);
     flex: 1 1 auto;
+    overflow: hidden;
+    position: relative;
 }
 
 .pdf-column {
@@ -3240,42 +3312,62 @@ function onCancelSuggestion() {
 }
 
 .editor-console-container {
-    position: relative;
+    display: flex;
+    flex-direction: column;
     flex: 1;
     min-height: 0;
     background: var(--el-bg-color-page);
 }
 
+.editor-wrapper {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-wrapper.console-visible {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
 .editor {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+}
+
+.console-resizer {
+    height: 4px;
+    cursor: row-resize;
+    background: var(--el-border-color-lighter);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    transition: background-color 0.2s;
+}
+
+.console-resizer:hover {
+    background: var(--el-color-primary);
 }
 
 .console-wrapper {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  background: var(--console-background);
-  box-shadow: 0 -2px 6px rgba(0,0,0,0.3);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--console-background);
+    border-top: 1px solid var(--el-border-color-lighter);
+    overflow: hidden;
 }
 
 .console-panel {
-  flex: 1;
-  overflow: auto;
-  z-index: 1000;
-}
-
-.editor-resizer {
-  height: 2px;
-  cursor: row-resize;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .pdf-toolbar {
@@ -3346,15 +3438,9 @@ function onCancelSuggestion() {
     border-left: 1px solid var(--el-border-color-lighter);
 }
 
-.pdf-scrollbar {
-    flex: 1;
-    height: 100%;
-    width: 100%;
-    min-height: 0;
-}
-
-.pdf-scrollbar :deep(.el-scrollbar__wrap) {
-    overflow-x: hidden;
+/* el-scrollbar 作为 pdf-preview-container 时的样式 */
+.pdf-preview-container :deep(.el-scrollbar__wrap) {
+    overflow-x: auto;
     overflow-y: auto;
 }
 
@@ -3365,8 +3451,9 @@ function onCancelSuggestion() {
     padding: 20px;
     gap: 20px;
     min-height: 100%;
-    width: 100%;
+    min-width: 100%;  /* 允许内容横向扩展，触发横向滚动 */
     box-sizing: border-box;
+    overflow: visible;  /* 内层直接 visible，让内容自然溢出 */
     /* 优化渲染质量 */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -3381,8 +3468,9 @@ function onCancelSuggestion() {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     /* 容器大小自动匹配内容，不设置固定宽度 */
     width: fit-content;
-    max-width: 100%;
+    /* 移除 max-width 限制，允许页面在缩放后超出容器宽度，触发横向滚动 */
     margin: 0 auto;
+    flex-shrink: 0;  /* 防止页面被压缩 */
 }
 
 .vue-pdf-wrapper {

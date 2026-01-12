@@ -475,11 +475,36 @@ const onEventBusConsoleOut = (data: unknown) => handleOutPayload(data, 'out');
 const onEventBusConsoleErr = (data: unknown) => handleOutPayload(data, 'err');
 const onEventBusClear = (data: unknown) => handleClearPayload(data);
 
+// 滚动到底部
+const scrollToBottom = () => {
+  const editor = getEditor();
+  if (!editor) return;
+  const lineCount = lines.value.length;
+  if (lineCount > 0) {
+    editor.revealLine(lineCount, monaco.editor.ScrollType.Immediate);
+  }
+};
+
+// 处理滚动到底部事件
+const handleScrollToBottom = (payload: unknown) => {
+  if (typeof payload === 'object' && payload !== null) {
+    const obj = payload as { key?: string; consoleKey?: string };
+    const key = obj.key ?? obj.consoleKey ?? props.consoleKey;
+    if (key === props.consoleKey) {
+      scrollToBottom();
+    }
+  } else if (payload === undefined || payload === null) {
+    // 如果没有指定 key，也执行滚动（兼容性）
+    scrollToBottom();
+  }
+};
+
 onMounted(() => {
   createEditor();
   eventBus.on('console-out', onEventBusConsoleOut);
   eventBus.on('console-err', onEventBusConsoleErr);
   eventBus.on('clear-console', onEventBusClear);
+  eventBus.on('console-scroll-to-bottom', handleScrollToBottom);
   if (ipcRenderer) {
     ipcRenderer.on('console-out', onConsoleOut);
     ipcRenderer.on('console-err', onConsoleErr);
@@ -490,6 +515,7 @@ onBeforeUnmount(() => {
   eventBus.off('console-out', onEventBusConsoleOut);
   eventBus.off('console-err', onEventBusConsoleErr);
   eventBus.off('clear-console', onEventBusClear);
+  eventBus.off('console-scroll-to-bottom', handleScrollToBottom);
   const editor = getEditor();
   if (editor) {
     editor.dispose();

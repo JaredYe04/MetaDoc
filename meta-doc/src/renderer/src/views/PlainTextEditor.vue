@@ -86,16 +86,18 @@
                             </div>
                         </el-tooltip>
                     </div>
-                    <div class="editor-console-container">
-                        <div 
-                            class="editor" 
-                            :key="editorKey" 
-                            :id="editorDomId" 
-                            ref="editorEl"
-                            @contextmenu.prevent="openContextMenu($event)"
-                        ></div>
+                    <div class="editor-console-container" ref="editorConsoleContainerRef">
+                        <div class="editor-wrapper" :class="{ 'console-visible': showConsole }">
+                            <div 
+                                class="editor" 
+                                :key="editorKey" 
+                                :id="editorDomId" 
+                                ref="editorEl"
+                                @contextmenu.prevent="openContextMenu($event)"
+                            ></div>
+                        </div>
+                        <div v-if="showConsole" class="console-resizer" @mousedown="startResizeConsole"></div>
                         <div v-show="showConsole" class="console-wrapper" :style="{ height: consoleHeight + 'px' }">
-                            <div class="editor-resizer" @mousedown="startResizeConsole"></div>
                             <div class="console-panel" :style="{
                                 background: themeState.currentTheme.background
                             }">
@@ -298,28 +300,91 @@ const toggleRowNumber = async () => {
 
 const showConsole = ref(false);
 const consoleHeight = ref(200);
+const editorConsoleContainerRef = ref<HTMLElement | null>(null);
 let isResizingConsole = false;
+let resizeStartY = 0;
+let resizeStartHeight = 0;
 
 function startResizeConsole(e: MouseEvent) {
-  if (!showConsole.value) return;
+  if (!showConsole.value || !editorConsoleContainerRef.value) return;
+  
+  // 检查事件目标，确保是在 console-resizer 上
+  const target = e.target as HTMLElement;
+  if (!target || !target.classList.contains('console-resizer')) {
+    return; // 如果不是在 console-resizer 上，不处理，让事件继续冒泡
+  }
+  
+  e.preventDefault();
+  e.stopPropagation();
   isResizingConsole = true;
+  resizeStartY = e.clientY;
+  resizeStartHeight = consoleHeight.value;
+  // 确保初始高度有效
+  if (resizeStartHeight < 100) {
+    resizeStartHeight = 200;
+    consoleHeight.value = 200;
+  }
   document.addEventListener('mousemove', onResizingConsole);
   document.addEventListener('mouseup', stopResizeConsole);
+  // 防止文本选择
+  document.body.style.userSelect = 'none';
+  document.body.style.cursor = 'row-resize';
 }
 
 function onResizingConsole(e: MouseEvent) {
-  if (!isResizingConsole) return;
-  const container = document.querySelector('.editor-console-container');
-  if (!container) return;
-  const containerRect = container.getBoundingClientRect();
-  const newHeight = containerRect.bottom - e.clientY;
-  consoleHeight.value = Math.min(Math.max(newHeight, 100), containerRect.height - 50);
+  if (!isResizingConsole || !editorConsoleContainerRef.value) return;
+  e.preventDefault();
+  e.stopPropagation();
+  
+  // 计算新的高度：从初始高度减去鼠标移动的距离（向上拖拽增加高度，向下拖拽减少高度）
+  const deltaY = resizeStartY - e.clientY; // 向上为正，向下为负
+  const newHeight = resizeStartHeight + deltaY;
+  
+  // 获取容器尺寸
+  const containerRect = editorConsoleContainerRef.value.getBoundingClientRect();
+  const containerHeight = containerRect.height;
+  
+  // 限制高度范围：最小100px，最大为容器高度的80%
+  const minHeight = 100;
+  const maxHeight = Math.max(containerHeight * 0.8, minHeight);
+  
+  // 确保高度在有效范围内
+  const clampedHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
+  
+  // 只有当新高度有效时才更新
+  if (clampedHeight >= minHeight && clampedHeight <= maxHeight) {
+    consoleHeight.value = clampedHeight;
+    
+    // 在 resize 过程中，确保 Console 滚动到底部
+    nextTick(() => {
+      scrollConsoleToBottom();
+    });
+  }
 }
 
 function stopResizeConsole() {
+  if (!isResizingConsole) return;
   isResizingConsole = false;
   document.removeEventListener('mousemove', onResizingConsole);
   document.removeEventListener('mouseup', stopResizeConsole);
+  document.body.style.userSelect = '';
+  document.body.style.cursor = '';
+  
+  // 确保最终高度有效
+  if (consoleHeight.value < 100) {
+    consoleHeight.value = 200;
+  }
+  
+  // resize 结束后，确保 Console 滚动到底部
+  nextTick(() => {
+    scrollConsoleToBottom();
+  });
+}
+
+// 滚动 Console 到底部
+function scrollConsoleToBottom() {
+  // 通过 eventBus 通知 ConsoleTerminal 组件滚动到底部
+  eventBus.emit('console-scroll-to-bottom', { key: 'plaintext' });
 }
 
 const toggleConsole = async () => {
@@ -881,42 +946,62 @@ function onCancelSuggestion() {
 }
 
 .editor-console-container {
-    position: relative;
+    display: flex;
+    flex-direction: column;
     flex: 1;
     min-height: 0;
     background: var(--el-bg-color-page);
 }
 
+.editor-wrapper {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-wrapper.console-visible {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
 .editor {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+}
+
+.console-resizer {
+    height: 4px;
+    cursor: row-resize;
+    background: var(--el-border-color-lighter);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+    transition: background-color 0.2s;
+}
+
+.console-resizer:hover {
+    background: var(--el-color-primary);
 }
 
 .console-wrapper {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  background: var(--console-background);
-  box-shadow: 0 -2px 6px rgba(0,0,0,0.3);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--console-background);
+    border-top: 1px solid var(--el-border-color-lighter);
+    overflow: hidden;
 }
 
 .console-panel {
-  flex: 1;
-  overflow: auto;
-  z-index: 1000;
-}
-
-.editor-resizer {
-  height: 2px;
-  cursor: row-resize;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .context-menu {

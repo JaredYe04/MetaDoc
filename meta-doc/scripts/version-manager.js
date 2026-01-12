@@ -255,7 +255,32 @@ function writeVersionFile(version, lastCommitHash, commitCount = 0) {
 }
 
 /**
+ * 手动升级版本到指定级别
+ * @param {string} level - 升级级别: 'major', 'minor', 'patch', 或 'rebuild'（版本号不变）
+ * @returns {string} - 更新后的版本号
+ */
+function manualBumpVersion(level) {
+  if (level === 'rebuild') {
+    // rebuild 不改变版本号
+    const currentData = readVersionFile();
+    const currentCommitHash = getCurrentCommitHash();
+    writeVersionFile(currentData.version, currentCommitHash, currentData.commitCount);
+    console.log(`版本号保持不变: ${currentData.version} (rebuild)`);
+    return currentData.version;
+  }
+  
+  const currentData = readVersionFile();
+  const newVersion = incrementVersionByLevel(currentData.version, level);
+  const currentCommitHash = getCurrentCommitHash();
+  writeVersionFile(newVersion, currentCommitHash, currentData.commitCount);
+  
+  console.log(`版本已手动升级: ${currentData.version} -> ${newVersion} (${level})`);
+  return newVersion;
+}
+
+/**
  * 自动更新版本（基于 Conventional Commits）
+ * @deprecated 此函数已废弃，不再使用自动版本升级。请使用 manualBumpVersion 进行手动版本升级。
  * @param {boolean} force - 是否强制更新（即使没有新 commits）
  * @returns {string} - 更新后的版本号
  */
@@ -443,15 +468,32 @@ if (require.main === module) {
       console.log(`版本已递增: ${currentVersion} -> ${incrementedVersion}`);
       break;
       
+    case 'bump':
+      const bumpLevel = args[1];
+      if (!bumpLevel || !['major', 'minor', 'patch', 'rebuild'].includes(bumpLevel)) {
+        console.error('错误: 请提供有效的升级级别 (major/minor/patch/rebuild)');
+        console.error('例如: node version-manager.js bump minor');
+        process.exit(1);
+      }
+      try {
+        const bumpedVersion = manualBumpVersion(bumpLevel);
+        updatePackageJson(bumpedVersion);
+      } catch (error) {
+        console.error('错误:', error.message);
+        process.exit(1);
+      }
+      break;
+      
     default:
       console.log('版本管理工具 - 基于 Conventional Commits 规范');
       console.log('');
       console.log('用法:');
       console.log('  node version-manager.js get              - 获取当前版本号');
       console.log('  node version-manager.js set <version>    - 手动设置版本号（如: Beta0.1.0）');
-      console.log('  node version-manager.js update           - 根据 Conventional Commits 自动更新版本');
-      console.log('  node version-manager.js update --force    - 强制更新版本（即使没有新 commits）');
+      console.log('  node version-manager.js update           - 根据 Conventional Commits 自动更新版本（已废弃）');
+      console.log('  node version-manager.js update --force    - 强制更新版本（即使没有新 commits）（已废弃）');
       console.log('  node version-manager.js increment         - 手动递增 patch 版本号');
+      console.log('  node version-manager.js bump <level>      - 手动升级版本 (major/minor/patch/rebuild)');
       console.log('');
       console.log('版本升级规则（基于 Conventional Commits）:');
       console.log('  feat:          → MINOR +1');
@@ -470,7 +512,8 @@ if (require.main === module) {
 module.exports = {
   getCurrentVersion,
   setVersion,
-  autoUpdateVersion,
+  autoUpdateVersion, // 已废弃，保留用于兼容
+  manualBumpVersion,
   incrementVersionByLevel,
   updatePackageJson,
   parseVersion,

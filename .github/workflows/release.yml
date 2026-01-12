@@ -10,8 +10,17 @@ on:
         options:
           - prod
           - dev
+      version_bump:
+        description: '版本升级类型'
+        required: true
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+          - rebuild
       version:
-        description: '版本号（可选，留空则使用当前版本）'
+        description: '版本号（可选，留空则使用当前版本或根据升级类型自动计算）'
         required: false
         type: string
       release_notes:
@@ -50,10 +59,11 @@ jobs:
       - name: 读取版本信息
         id: version_info
         working-directory: meta-doc
-        run: node scripts/get-version-info.js "${{ github.event.inputs.version }}"
+        run: node scripts/get-version-info.js "${{ github.event.inputs.version }}" "${{ github.event.inputs.version_bump }}"
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_REF: ${{ github.ref }}
+          INPUT_VERSION_BUMP: ${{ github.event.inputs.version_bump }}
       
       - name: 确定发布类型
         id: release_type

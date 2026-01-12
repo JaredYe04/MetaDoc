@@ -15,7 +15,7 @@
     "start": "electron-vite preview",
     "dev": "concurrently \"electron-vite dev\" \"vite\"",
     "open-test": "concurrently \"electron-vite dev -- c:\\Users\\tange\\Documents\\软件工程概述和流程.md\" \"vite\"",
-    "prebuild": "node scripts/copy-env.js && node scripts/version-manager.js update",
+    "prebuild": "node scripts/copy-env.js",
     "build": "npm run prebuild && electron-vite build",
     "temp-build": "electron-vite build",
     "build:sequential": "npm run prebuild && node scripts/build-sequential.js",

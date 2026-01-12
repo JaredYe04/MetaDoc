@@ -15,7 +15,7 @@
       </div>
     </div>
     <!-- 否则显示正常的AgentView内容 -->
-    <div v-else class="agent-view">
+    <div v-else class="agent-view" :style="agentViewStyle">
       <section class="session-pane" :style="panelStyle">
         <header class="pane-header">
           <h2>{{ t('agent.sessions.title') }}</h2>
@@ -126,9 +126,16 @@
             <el-tag size="small" effect="plain">
               {{ t('agent.conversation.messages', { count: messageCount }) }}
             </el-tag>
-            <el-tag size="small" effect="plain">
-              {{ t('agent.conversation.tools', { count: activeToolCount }) }}
-            </el-tag>
+            <el-tooltip :content="showToolPane ? t('agent.conversation.hideTools', '点击隐藏工具面板') : t('agent.conversation.showTools', '点击显示工具面板')" placement="top">
+              <el-tag 
+                size="small" 
+                effect="plain"
+                style="cursor: pointer;"
+                @click="toggleToolPane"
+              >
+                {{ t('agent.conversation.tools', { count: activeToolCount }) }}
+              </el-tag>
+            </el-tooltip>
             <el-tooltip :content="t('agent.conversation.referencesTooltip', '点击管理引用')" placement="top">
               <el-tag 
                 size="small" 
@@ -190,7 +197,7 @@
       </div>
       </section>
 
-      <section class="tool-pane" :style="panelStyle">
+      <section v-if="showToolPane" class="tool-pane" :style="panelStyle">
         <header class="pane-header">
           <div class="tool-header-title">
             <h2>{{ t('agent.tools.title') }}</h2>
@@ -448,6 +455,10 @@ const dialogStyle = computed(() => ({
   color: themeState.currentTheme.textColor,
 }));
 
+const agentViewStyle = computed(() => ({
+  gridTemplateColumns: showToolPane.value ? '280px 1fr 360px' : '280px 1fr',
+}));
+
 const sampleTools: AgentTool[] = [
   {
     id: 'web-search',
@@ -578,6 +589,7 @@ const isGenerating = ref(false);
 const showEditMessageDialog = ref(false);
 const editingMessage = ref<ChatAgentMessage | null>(null);
 const editingMessageContent = ref('');
+const showToolPane = ref(false); // 默认隐藏工具面板
 // 判断是否需要显示格式选择界面
 const needsFormatSelection = computed(() => {
   const doc = activeDocument.value;
@@ -856,7 +868,7 @@ watch(
 );
 
 const messageCount = computed(() => activeSession.value?.messages.length ?? 0);
-const activeToolCount = computed(() => activeSession.value?.activeToolIds.length ?? 0);
+const activeToolCount = computed(() => tools.value.length ?? 0); // 计算所有可用工具的数量
 const referenceCount = computed(() => activeSession.value?.referenceStore?.length ?? 0);
 
 // 工具选择功能已移除，工具列表现在为只读模式
@@ -2021,6 +2033,10 @@ const handleEngineChange = () => {
 
 const handleDocumentClick = () => {
   openSessionMenuId.value = null;
+};
+
+const toggleToolPane = () => {
+  showToolPane.value = !showToolPane.value;
 };
 
 const handleSelectAgentConfig = (config: any) => {

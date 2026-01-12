@@ -987,6 +987,129 @@
         "assertions": {
           "totalErrorsShouldBeGreaterThanOrEqual": 0
         }
+      },
+      {
+        "id": "proofread::english-spelling-001",
+        "name": "校对英文拼写错误（常见错误）",
+        "params": {
+          "text": "This is a test with common spelling errors.\nI recieved your message.\nThe wrod is misspelled.\nPlease check the grammer.",
+          "source": "text",
+          "format": "text"
+        },
+        "assertions": {
+          "totalErrorsShouldBeGreaterThan": 0,
+          "errorsShouldContainText": ["recieved", "wrod", "grammer"]
+        }
+      },
+      {
+        "id": "proofread::english-spelling-002",
+        "name": "校对英文拼写错误（常见错误teh）",
+        "params": {
+          "text": "I want teh book.\nTeh cat is sleeping.\nPlease give me teh pen.",
+          "source": "text",
+          "format": "text"
+        },
+        "assertions": {
+          "totalErrorsShouldBeGreaterThan": 0,
+          "errorsShouldContainText": ["teh"]
+        }
+      },
+      {
+        "id": "proofread::mixed-language-001",
+        "name": "校对中英文混合文本",
+        "params": {
+          "text": "这是一个测试。\nThis is a test with teh error.\n这里有一个错误：teh（应该是the）。\nPlease check teh spelling.",
+          "source": "text",
+          "format": "text"
+        },
+        "assertions": {
+          "totalErrorsShouldBeGreaterThan": 0,
+          "errorsShouldContainText": ["teh"]
+        }
+      },
+      {
+        "id": "proofread::markdown-code-blocks-001",
+        "name": "校对Markdown文档（代码块应该被跳过）",
+        "params": {
+          "text": "# 标题\n\n这是正常文本，包含一个拼写错误：teh。\n\n```javascript\nfunction teh() {\n  return 'this should not be checked';\n}\n```\n\n更多文本。",
+          "source": "text",
+          "format": "markdown"
+        },
+        "assertions": {
+          "totalErrorsShouldBeGreaterThan": 0
+        }
+      },
+      {
+        "id": "proofread::latex-commands-001",
+        "name": "校对LaTeX文档（命令应该被跳过）",
+        "params": {
+          "text": "\\section{Introduction}\n\nThis is normal text with a spelling error: teh.\n\n\\begin{verbatim}\nteh code should not be checked\n\\end{verbatim}\n\nMore text.",
+          "source": "text",
+          "format": "latex"
+        },
+        "assertions": {
+          "totalErrorsShouldBeGreaterThan": 0
+        }
+      },
+      {
+        "id": "proofread::technical-terms-001",
+        "name": "校对包含技术术语的文本（应该使用内置词典）",
+        "params": {
+          "text": "This project uses Vue, React, and Node.js.\nWe use Docker for containerization.\nThe API is built with REST.\nWe use GraphQL for data fetching.",
+          "source": "text",
+          "format": "text"
+        },
+        "assertions": {
+          "totalErrorsShouldBeGreaterThanOrEqual": 0
+        }
+      },
+      {
+        "id": "proofread::camelcase-001",
+        "name": "校对包含CamelCase和PascalCase的文本（应该被忽略）",
+        "params": {
+          "text": "This code uses getValue() and setValue().\nThe class is called UserManager.\nWe use ReactComponent for rendering.",
+          "source": "text",
+          "format": "text"
+        },
+        "assertions": {
+          "totalErrorsShouldBeGreaterThanOrEqual": 0
+        }
+      },
+      {
+        "id": "proofread::allcaps-001",
+        "name": "校对包含ALL_CAPS的文本（应该被忽略）",
+        "params": {
+          "text": "The API_KEY is stored in environment variables.\nWe use HTTP and REST protocols.\nThe JSON format is used for data exchange.",
+          "source": "text",
+          "format": "text"
+        },
+        "assertions": {
+          "totalErrorsShouldBeGreaterThanOrEqual": 0
+        }
+      },
+      {
+        "id": "proofread::no-errors-001",
+        "name": "校对没有错误的文本",
+        "params": {
+          "text": "This is a correct sentence.\nAll words are spelled correctly.\nThe grammar is also correct.",
+          "source": "text",
+          "format": "text"
+        },
+        "assertions": {
+          "totalErrorsShouldBe": 0
+        }
+      },
+      {
+        "id": "proofread::long-text-001",
+        "name": "校对长文本（性能测试）",
+        "params": {
+          "text": "This is a long text with multiple paragraphs.\n\nFirst paragraph contains some text.\nSecond paragraph has more content.\nThird paragraph includes additional information.\nFourth paragraph provides more details.\nFifth paragraph concludes the text.\n\nEach paragraph should be checked for spelling errors.\nThe system should handle long texts efficiently.\nPerformance is important for user experience.",
+          "source": "text",
+          "format": "text"
+        },
+        "assertions": {
+          "totalErrorsShouldBeGreaterThanOrEqual": 0
+        }
       }
     ]
   },

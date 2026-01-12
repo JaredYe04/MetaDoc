@@ -326,6 +326,47 @@ export function webMainCalls() {
     }
   });
 
+  // 拼写检查相关处理器（web 环境后备方案）
+  // 注意：在 web 环境下，这些操作会保存到 localStorage
+  localIpcMain.handle('spell-check-add-word', async (event, word) => {
+    try {
+      // 在 web 环境下，将单词保存到 localStorage
+      const key = 'spell-check-dictionary'
+      const existing = localStorage.getItem(key)
+      const words = existing ? JSON.parse(existing) : []
+      const wordLower = word.toLowerCase().trim()
+      if (wordLower && !words.includes(wordLower)) {
+        words.push(wordLower)
+        words.sort()
+        localStorage.setItem(key, JSON.stringify(words))
+      }
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  });
 
+  localIpcMain.handle('spell-check-add-words', async (event, words) => {
+    try {
+      // 在 web 环境下，将单词保存到 localStorage
+      const key = 'spell-check-dictionary'
+      const existing = localStorage.getItem(key)
+      const existingWords = existing ? JSON.parse(existing) : []
+      const newWords = words.map(w => w.toLowerCase().trim()).filter(w => w && !existingWords.includes(w))
+      if (newWords.length > 0) {
+        const allWords = [...existingWords, ...newWords].sort()
+        localStorage.setItem(key, JSON.stringify(allWords))
+      }
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  });
 
 }

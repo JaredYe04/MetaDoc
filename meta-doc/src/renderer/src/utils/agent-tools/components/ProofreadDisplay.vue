@@ -10,11 +10,8 @@
       <div class="proofread-header" :style="headerStyle">
         <h3 class="proofread-title" :style="titleStyle">{{ $t('agent.display.proofread.title') }}</h3>
         <div class="error-stats" :style="statsStyle">
-          <el-tag type="danger" size="small">{{ $t('agent.display.proofread.totalErrors', { count: resultData.totalErrors }) }}</el-tag>
-          <el-tag v-if="resultData.fixedCount && resultData.fixedCount > 0" type="success" size="small">
-            {{ $t('agent.display.proofread.fixed') }}: {{ resultData.fixedCount }}
-          </el-tag>
-          <el-tag v-for="(count, type) in resultData.errorCounts" :key="type" :type="getErrorTypeTag(type)" size="small">
+          <el-tag type="danger" size="small">{{ $t('agent.display.proofread.totalErrors', { count: resultData.totalErrors || 0 }) }}</el-tag>
+          <el-tag v-for="(count, type) in resultData.errorCounts" :key="type" :type="getErrorTypeTag(type)" size="small" v-if="count > 0">
             {{ getErrorTypeLabel(type) }}: {{ count }}
           </el-tag>
           <el-button-group class="mode-switch">
@@ -40,8 +37,12 @@
       <div v-if="viewMode === 'unified'">
         <el-scrollbar max-height="500px">
           <div class="errors-list">
+            <div v-if="!resultData.errors || resultData.errors.length === 0" class="no-errors-message">
+              <p>{{ $t('agent.display.proofread.noErrors') }}</p>
+            </div>
             <div
-              v-for="(error, index) in resultData.errors"
+              v-for="(error, index) in (resultData.errors || [])"
+              v-else
               :key="index"
               class="error-item"
               :class="[`severity-${error.severity}`, { 'error-fixed': error.fixed }]"
@@ -60,9 +61,20 @@
                   <span class="label">{{ $t('agent.display.proofread.errorText') }}:</span>
                   <code>{{ error.text }}</code>
                 </div>
-                <div class="error-suggestion">
-                  <span class="label">{{ $t('agent.display.proofread.suggestion') }}:</span>
-                  <code class="suggestion-text">{{ error.suggestion }}</code>
+                <div class="error-suggestions">
+                  <span class="label">{{ $t('agent.display.proofread.suggestions', '修改建议') }}:</span>
+                  <div class="suggestions-list">
+                    <el-tag
+                      v-for="(suggestion, sugIndex) in (error.suggestions || [error.suggestion])"
+                      :key="sugIndex"
+                      type="info"
+                      class="suggestion-tag"
+                      size="small"
+                      effect="plain"
+                    >
+                      {{ suggestion }}
+                    </el-tag>
+                  </div>
                 </div>
                 <div v-if="error.message" class="error-message" :style="messageStyle">
                   {{ error.message }}
@@ -92,7 +104,7 @@
       </div>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed' && (!resultData || !resultData.errors || resultData.errors.length === 0)" class="no-errors" :style="noErrorsStyle">
+    <div v-else-if="displayData.stage === 'completed' && resultData && (!resultData.errors || resultData.errors.length === 0)" class="no-errors" :style="noErrorsStyle">
       <el-result icon="success" :title="$t('agent.display.proofread.noErrors')" />
     </div>
 
@@ -157,7 +169,7 @@ const displayData = computed(() => {
     }
   }
   
-  const defaultStage = props.status === 'succeeded' ? 'completed' : (props.status === 'failed' ? 'error' : 'checking')
+  const defaultStage = props.status === 'succeeded' ? 'completed' : (props.status === 'failed' ? 'error' : 'proofreading')
   return {
     stage: defaultStage,
     result: undefined,
@@ -168,8 +180,34 @@ const displayData = computed(() => {
 const resultData = computed((): ProofreadResult | null => {
   const data = displayData.value
   if (data && typeof data === 'object') {
-    const result = data.result || data.content?.result || data
-    if (result && result.errors && Array.isArray(result.errors)) {
+    // 尝试多种路径获取 result
+    // 1. 直接从 data.result 获取（如果 parseToolData 已经提取了 content）
+    // 2. 从 data.content.result 获取（如果 data 是 ToolCallbackData 格式）
+    // 3. 从 data 本身获取（如果 data 就是 ProofreadResult）
+    // 4. 从 props.data 中获取（fallback）
+    let result = data.result || data.content?.result
+    
+    // 如果 result 不是 ProofreadResult 格式，尝试从 props.data 获取
+    if (!result || !result.errors || !Array.isArray(result.errors)) {
+      const propsData = props.data as any
+      if (propsData) {
+        // 尝试从 props.data.content.result 获取
+        if (propsData.content?.result) {
+          result = propsData.content.result
+        } 
+        // 尝试从 props.data.result 获取
+        else if (propsData.result) {
+          result = propsData.result
+        } 
+        // 如果 props.data 本身就是 ProofreadResult
+        else if (propsData.errors && Array.isArray(propsData.errors)) {
+          result = propsData
+        }
+      }
+    }
+    
+    // 验证 result 是否是有效的 ProofreadResult
+    if (result && typeof result === 'object' && result.errors && Array.isArray(result.errors)) {
       return result as ProofreadResult
     }
   }
@@ -204,7 +242,9 @@ const correctedText = computed(() => {
       if (error.column > 0 && error.column <= line.length) {
         const before = line.substring(0, error.column - 1)
         const after = line.substring(error.column - 1 + error.length)
-        lines[lineIndex] = before + (error.suggestion || '') + after
+        // 使用选中的建议或第一个建议
+        const selectedSuggestion = error.selectedSuggestion || error.suggestion || ''
+        lines[lineIndex] = before + selectedSuggestion + after
       }
     }
   }
@@ -348,7 +388,7 @@ const highlightErrors = () => {
         range,
         options: {
           inlineClassName: 'proofread-error-highlight',
-          hoverMessage: { value: `${error.message || ''}\n建议: ${error.suggestion || ''}` },
+          hoverMessage: { value: `${error.message || ''}\n建议: ${error.selectedSuggestion || error.suggestion || ''}` },
           minimap: {
             color: 'rgba(245, 108, 108, 0.5)',
             position: monaco.editor.MinimapPosition.Inline
@@ -368,19 +408,20 @@ const highlightErrors = () => {
     }
     
     // 在修正编辑器中高亮修正（绿色）
-    if (error.line > 0 && error.suggestion) {
+    const selectedSuggestion = error.selectedSuggestion || error.suggestion
+    if (error.line > 0 && selectedSuggestion) {
       // 计算修正后的位置（简化处理）
       const range = new monaco.Range(
         error.line,
         error.column,
         error.line,
-        error.column + error.suggestion.length
+        error.column + selectedSuggestion.length
       )
       correctedDecorations.push({
         range,
         options: {
           inlineClassName: 'proofread-suggestion-highlight',
-          hoverMessage: { value: `修正: ${error.suggestion}` },
+          hoverMessage: { value: `修正: ${selectedSuggestion}` },
           minimap: {
             color: 'rgba(103, 194, 58, 0.5)',
             position: monaco.editor.MinimapPosition.Inline
@@ -580,11 +621,22 @@ const editorContainerStyle = computed(() => ({
 }
 
 .error-text,
-.error-suggestion {
+.error-suggestions {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+
+.suggestion-tag {
+  user-select: none;
 }
 
 .label {

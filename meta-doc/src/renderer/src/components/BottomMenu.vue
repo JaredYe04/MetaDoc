@@ -16,7 +16,7 @@
           {{ currentVersion }}
         </span>
       </el-tooltip>
-      <span class="status-divider">|</span>
+      <!-- <span class="status-divider">|</span>
       <el-tooltip :content="$t('llmStatistics.tooltip')" placement="top">
         <span
           class="status-item status-llm-statistics"
@@ -24,7 +24,7 @@
         >
           {{ $t('bottomMenu.llmStatistics') }}
         </span>
-      </el-tooltip>
+      </el-tooltip> -->
       <span class="status-divider">|</span>
       <el-tooltip :content="$t('wordCountDialog.tooltip')" placement="top">
         <span

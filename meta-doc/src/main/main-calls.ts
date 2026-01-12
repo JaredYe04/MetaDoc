@@ -71,6 +71,8 @@ import {
   searchSimilarVectors
 } from './database/knowledge-db';
 import ocrService from './utils/ocr-service';
+import { performSpellCheck, type SpellCheckParams } from './utils/spell-check-service';
+import { addWordToDictionary, addWordsToDictionary } from './utils/spell-check-dictionary';
 import type { LaTeXCompileResult } from '../types/utils';
 import type { DocumentFormat } from '../types';
 import { performExportRequest, type RendererExportPayload, abortExportTask } from './export/export-manager';
@@ -202,6 +204,7 @@ export function mainCalls(): void {
   bindDatabaseTestHandlers();
   bindDatabaseHandlers();
   bindMathHandlers();
+  bindSpellCheckHandlers();
   
   initBroadcastChannel();
 }
@@ -1270,6 +1273,56 @@ function bindLoggerHandlers(): void {
   ipcMain.handle('get-service-status', async () => {
     return getServiceStatus();
   });
+}
+
+/**
+ * 绑定拼写检查处理器
+ */
+function bindSpellCheckHandlers(): void {
+  ipcMain.handle('spell-check', async (
+    _event: IpcMainInvokeEvent,
+    params: SpellCheckParams
+  ) => {
+    try {
+      logger.info('[spell-check] 收到拼写检查请求，文本长度:', params.text?.length || 0)
+      const result = await performSpellCheck(params)
+      logger.info('[spell-check] 拼写检查完成，发现', result.issues.length, '个问题')
+      return result
+    } catch (error) {
+      logger.error('[spell-check] 拼写检查失败:', error)
+      throw error
+    }
+  })
+  
+  // 添加单词到词典
+  ipcMain.handle('spell-check-add-word', async (
+    _event: IpcMainInvokeEvent,
+    word: string
+  ) => {
+    try {
+      logger.info('[spell-check-add-word] 添加单词到词典:', word)
+      addWordToDictionary(word)
+      return { success: true }
+    } catch (error) {
+      logger.error('[spell-check-add-word] 添加单词失败:', error)
+      throw error
+    }
+  })
+  
+  // 批量添加单词到词典
+  ipcMain.handle('spell-check-add-words', async (
+    _event: IpcMainInvokeEvent,
+    words: string[]
+  ) => {
+    try {
+      logger.info('[spell-check-add-words] 批量添加单词到词典，数量:', words.length)
+      addWordsToDictionary(words)
+      return { success: true }
+    } catch (error) {
+      logger.error('[spell-check-add-words] 批量添加单词失败:', error)
+      throw error
+    }
+  })
 }
 
 function bindExportHandlers(): void {

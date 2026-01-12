@@ -20,7 +20,60 @@
         </div>
       </div>
 
-      <div class="grep-content">
+      <!-- 如果没有完整内容（verbose模式），只显示概要 -->
+      <div v-if="!hasFullContent" class="summary-view" :style="summaryViewStyle">
+        <el-alert
+          type="info"
+          :closable="false"
+          :title="$t('agent.display.grep.summaryMode') || '概要模式'"
+        >
+          <template #default>
+            <div class="summary-content">
+              <p>{{ $t('agent.display.grep.summaryDescription') || '搜索操作已成功完成。由于verbose模式未启用，未包含完整文档内容以节省空间。' }}</p>
+              <ul class="summary-list">
+                <li>{{ $t('agent.display.grep.matchesCount', { count: resultData.totalMatches }) }}</li>
+                <li v-if="resultData.replacedCount && resultData.replacedCount > 0">
+                  {{ $t('agent.display.grep.replacedCount', { count: resultData.replacedCount }) }}
+                </li>
+              </ul>
+            </div>
+          </template>
+        </el-alert>
+      </div>
+
+      <!-- 匹配列表（始终显示） -->
+      <div v-if="!hasFullContent" class="matches-only-view">
+        <div class="panel-header" :style="panelHeaderStyle">
+          <span>{{ $t('agent.display.grep.matchesList') }} ({{ resultData.matches.length }})</span>
+        </div>
+        <el-scrollbar height="400px">
+          <div class="matches-list">
+            <div
+              v-for="(match, index) in resultData.matches"
+              :key="index"
+              class="match-item"
+              :style="getMatchItemStyle(index)"
+            >
+              <div class="match-header">
+                <el-tag :type="getMatchScopeTag(match)" size="small">
+                  {{ getMatchScopeLabel(match) }}
+                </el-tag>
+                <span class="match-location" :style="locationStyle">
+                  {{ $t('agent.display.grep.line') }} {{ match.line }}, {{ $t('agent.display.grep.column') }} {{ match.column }}
+                </span>
+              </div>
+              <div class="match-text" :style="matchTextStyle">
+                <code>{{ match.match }}</code>
+              </div>
+              <div v-if="match.context" class="match-context" :style="matchContextStyle">
+                <pre>{{ match.context }}</pre>
+              </div>
+            </div>
+          </div>
+        </el-scrollbar>
+      </div>
+
+      <div v-else class="grep-content">
         <!-- 左侧：搜索结果列表 -->
         <div class="matches-panel">
           <div class="panel-header" :style="panelHeaderStyle">
@@ -154,6 +207,11 @@ const resultData = computed((): GrepResult | null => {
     }
   }
   return null
+})
+
+// 检查是否有完整内容（verbose模式）
+const hasFullContent = computed(() => {
+  return !!(resultData.value?.originalContent)
 })
 
 // 检查是否有替换后的内容
@@ -609,6 +667,23 @@ const noResultsStyle = computed(() => ({
   padding: '40px 20px',
   textAlign: 'center'
 }))
+
+const summaryViewStyle = computed(() => ({
+  padding: '20px',
+  color: themeState.currentTheme.textColor,
+  marginBottom: '16px'
+}))
+
+const matchContextStyle = computed(() => ({
+  marginTop: '8px',
+  padding: '8px',
+  backgroundColor: themeState.currentTheme.background2nd,
+  borderRadius: '4px',
+  fontSize: '12px',
+  fontFamily: 'monospace',
+  maxHeight: '100px',
+  overflow: 'auto'
+}))
 </script>
 
 <style scoped>
@@ -717,6 +792,29 @@ code {
 
 .grep-match-glyph {
   background-color: rgba(64, 158, 255, 0.5) !important;
+}
+
+.matches-only-view {
+  margin-top: 16px;
+  border: 1px solid v-bind('themeState.currentTheme.borderColor');
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: v-bind('themeState.currentTheme.background');
+}
+
+.summary-content {
+  margin-top: 12px;
+}
+
+.summary-list {
+  margin-top: 12px;
+  padding-left: 20px;
+}
+
+.match-context pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>
 

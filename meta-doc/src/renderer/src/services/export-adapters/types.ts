@@ -121,6 +121,8 @@ export interface LatexExportOptions extends BaseExportOptions {
   showPageNumbers?: boolean;
   // 是否显示页眉
   showHeader?: boolean;
+  // 是否自动去除标题前缀
+  removeTitlePrefixes?: boolean;
 }
 
 /**

@@ -33,6 +33,8 @@ export const TECH_DICTIONARY: string[] = [
     'chartjs',
     'visjs',
     'cytoscape',
+    'graphviz','plantuml','mermaid','flowchart','mindmap','markmap','smiles',
+    'omml','abc','dot','gv','mathml',
   
     /* ========= Backend Frameworks ========= */
     'node', 'nodejs', 'node.js',

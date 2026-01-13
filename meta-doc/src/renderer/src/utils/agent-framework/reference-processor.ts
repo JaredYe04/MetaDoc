@@ -181,7 +181,7 @@ export async function processFileUpload(file: File, abortSignal?: AbortSignal, r
             throw new Error(`保存文件失败: ${error instanceof Error ? error.message : String(error)}`)
           }
         } else {
-          if (format === 'pdf' || format === 'docx' || format === 'pptx') {
+          if (format === 'pdf' || format === 'docx' || format === 'doc' || format === 'pptx' || format === 'ppt') {
             throw new Error(`格式 ${format} 在Web环境中需要Electron环境支持`)
           }
           throwIfCancelled()
@@ -498,10 +498,9 @@ const formatToAccept: Record<string, { extensions: string[], mimeTypes: string[]
   'json': { extensions: ['.json'], mimeTypes: ['application/json'] },
   'pdf': { extensions: ['.pdf'], mimeTypes: ['application/pdf'] },
   'docx': { extensions: ['.docx'], mimeTypes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'] },
-  // 暂时不支持doc和ppt格式，因为需要安装libreoffice，但是支持xls格式，因为可以转换为csv格式
-  // 'doc': { extensions: ['.doc'], mimeTypes: ['application/msword'] },
-  // 'ppt': { extensions: ['.ppt'], mimeTypes: ['application/vnd.ms-powerpoint'] },
+  'doc': { extensions: ['.doc'], mimeTypes: ['application/msword'] },
   'pptx': { extensions: ['.pptx'], mimeTypes: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'] },
+  'ppt': { extensions: ['.ppt'], mimeTypes: ['application/vnd.ms-powerpoint'] },
   'xlsx': { extensions: ['.xlsx'], mimeTypes: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] },
   'xls': { extensions: ['.xls'], mimeTypes: ['application/vnd.ms-excel'] },
   'csv': { extensions: ['.csv'], mimeTypes: ['text/csv'] },
@@ -523,7 +522,7 @@ const formatToAccept: Record<string, { extensions: string[], mimeTypes: string[]
 const fileTypeCategories: Record<FileTypeCategory, string[]> = {
   'all': [], // 所有格式，将在函数中动态填充
   'text': ['txt', 'text', 'md', 'markdown', 'json', 'xml'],
-  'document': ['pdf', 'docx', 'pptx'],
+  'document': ['pdf', 'docx', 'doc', 'pptx', 'ppt'],
   'data': ['csv', 'xlsx', 'xls'],
   'image': ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'image'],
   'web': ['html', 'htm', 'xml']

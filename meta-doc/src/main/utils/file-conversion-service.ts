@@ -10,6 +10,10 @@ import mammoth from 'mammoth';
 import JSZip from 'jszip';
 import * as XLSX from 'xlsx';
 import Store from 'electron-store';
+import WordExtractor from 'word-extractor';
+import PPT from 'ppt';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import type { 
   FilePath, 
   SupportedFileType, 
@@ -20,6 +24,8 @@ import { createMainLogger } from '../logger';
 import ocrService from './ocr-service';
 import os from 'os';
 import type { BrowserWindow } from 'electron';
+
+const execAsync = promisify(exec);
 const logger = createMainLogger('FileConversionService');
 
 /**
@@ -40,7 +46,7 @@ class FileConversionServiceImpl implements FileConversionService {
   /**
    * 支持的文件类型列表
    */
-  public readonly supportedTypes: readonly SupportedFileType[] = ['txt', 'md', 'pdf', 'docx', 'pptx', 'xlsx', 'xls'] as SupportedFileType[];
+  public readonly supportedTypes: readonly SupportedFileType[] = ['txt', 'md', 'pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls'] as SupportedFileType[];
   private readonly settingStore = new Store();
 
   /**
@@ -92,8 +98,12 @@ class FileConversionServiceImpl implements FileConversionService {
         text = await this.convertPdfToText(filePath, progressCallback, abortSignal, requestId);
       } else if (ext === 'docx') {
         text = await this.convertDocxToText(filePath, progressCallback, abortSignal, requestId);
+      } else if (ext === 'doc') {
+        text = await this.convertDocToText(filePath, progressCallback, abortSignal, requestId);
       } else if (ext === 'pptx') {
         text = await this.convertPptxToText(filePath, progressCallback, abortSignal, requestId);
+      } else if (ext === 'ppt') {
+        text = await this.convertPptToText(filePath, progressCallback, abortSignal, requestId);
       } else if (ext === 'xlsx' || ext === 'xls') {
         text = await this.convertExcelToText(filePath);
       } else {
@@ -182,7 +192,7 @@ class FileConversionServiceImpl implements FileConversionService {
    * 检查文件类型是否受支持
    */
   private isSupported(extension: string): extension is SupportedFileType {
-    const supportedExtensions: string[] = ['txt', 'md', 'pdf', 'docx', 'pptx', 'xlsx', 'xls'];
+    const supportedExtensions: string[] = ['txt', 'md', 'pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls'];
     return supportedExtensions.includes(extension);
   }
 
@@ -690,6 +700,101 @@ class FileConversionServiceImpl implements FileConversionService {
   }
 
   /**
+   * 将DOC文件转换为文本
+   * @param filePath 文件路径
+   * @param progressCallback 进度回调函数（可选）
+   * @param abortSignal 取消信号（可选）
+   * @param requestId 请求ID，用于管理OCR任务池（可选）
+   */
+  private async convertDocToText(filePath: FilePath, progressCallback?: ProgressCallback, abortSignal?: AbortSignal, requestId?: string): Promise<string> {
+    try {
+      // 检查是否已取消
+      if (abortSignal?.aborted) {
+        throw new Error('操作已取消');
+      }
+      
+      progressCallback?.({
+        message: 'agent.reference.progress.parsingFile',
+        subMessage: 'agent.reference.progress.extractingText',
+        percentage: 10,
+        params: { filename: path.basename(filePath) }
+      });
+      
+      // 检查文件是否存在
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`文件不存在: ${filePath}`);
+      }
+      
+      // 检查是否已取消
+      if (abortSignal?.aborted) {
+        throw new Error('操作已取消');
+      }
+      
+      // 使用 word-extractor 提取文本
+      const extractor = new WordExtractor();
+      let document;
+      try {
+        document = await extractor.extract(filePath);
+      } catch (extractError) {
+        logger.error('WordExtractor提取文本失败:', extractError);
+        const errorDetails = extractError instanceof Error 
+          ? `${extractError.message}${extractError.stack ? `\n${extractError.stack}` : ''}` 
+          : String(extractError);
+        throw new Error(`Word解析失败: ${errorDetails}`);
+      }
+      
+      // 检查是否已取消
+      if (abortSignal?.aborted) {
+        throw new Error('操作已取消');
+      }
+      
+      // 获取正文内容
+      let text = document.getBody() || '';
+      
+      // 可选：获取其他部分（脚注、尾注、页眉页脚等）
+      // 注意：DOC格式可能不支持所有方法，需要根据实际情况调整
+      try {
+        const footnotes = document.getFootnotes();
+        if (footnotes && footnotes.trim()) {
+          text += '\n\n[脚注]\n' + footnotes;
+        }
+      } catch (error) {
+        // 忽略脚注提取失败
+        logger.debug('提取脚注失败:', error);
+      }
+      
+      try {
+        const endnotes = document.getEndnotes();
+        if (endnotes && endnotes.trim()) {
+          text += '\n\n[尾注]\n' + endnotes;
+        }
+      } catch (error) {
+        // 忽略尾注提取失败
+        logger.debug('提取尾注失败:', error);
+      }
+      
+      try {
+        const headers = document.getHeaders();
+        if (headers && headers.trim()) {
+          text += '\n\n[页眉页脚]\n' + headers;
+        }
+      } catch (error) {
+        // 忽略页眉页脚提取失败
+        logger.debug('提取页眉页脚失败:', error);
+      }
+      
+      // 注意：DOC格式通常不支持图片OCR，因为它是二进制格式
+      // 如果需要图片OCR，建议用户使用DOCX格式
+      
+      return text;
+    } catch (error) {
+      logger.error('Error parsing DOC:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to parse DOC file';
+      throw new Error(`DOC转换失败: ${errorMessage}`);
+    }
+  }
+
+  /**
    * 从DOCX中提取图片并进行OCR（并行处理）
    * @param docxBuffer DOCX文件Buffer
    * @param progressCallback 进度回调函数（可选）
@@ -1009,6 +1114,249 @@ class FileConversionServiceImpl implements FileConversionService {
     } catch (error) {
       logger.error('Error parsing PPTX:', error);
       throw new Error('Failed to parse PPTX file');
+    }
+  }
+
+  /**
+   * 将PPT文件转换为文本
+   * @param filePath 文件路径
+   * @param progressCallback 进度回调函数（可选）
+   * @param abortSignal 取消信号（可选）
+   * @param requestId 请求ID，用于管理OCR任务池（可选）
+   */
+  private async convertPptToText(filePath: FilePath, progressCallback?: ProgressCallback, abortSignal?: AbortSignal, requestId?: string): Promise<string> {
+    try {
+      // 检查是否已取消
+      if (abortSignal?.aborted) {
+        throw new Error('操作已取消');
+      }
+      
+      progressCallback?.({
+        message: 'agent.reference.progress.parsingFile',
+        subMessage: 'agent.reference.progress.extractingText',
+        percentage: 10,
+        params: { filename: path.basename(filePath) }
+      });
+      
+      // 检查文件是否存在
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`文件不存在: ${filePath}`);
+      }
+      
+      // 检查是否已取消
+      if (abortSignal?.aborted) {
+        throw new Error('操作已取消');
+      }
+      
+      // 检查是否已取消
+      if (abortSignal?.aborted) {
+        throw new Error('操作已取消');
+      }
+      
+      // 使用 ppt 库解析PPT文件
+      // 注意：需要手动修复 CFB 对象，因为新版本的 CFB 库返回的对象没有 find 方法
+      let presentation;
+      try {
+        // 导入 CFB 库
+        const CFB = require('cfb');
+        
+        // 读取 CFB 对象
+        const cfb = CFB.read(filePath, { type: 'file' });
+        
+        // 检查是否已取消
+        if (abortSignal?.aborted) {
+          throw new Error('操作已取消');
+        }
+        
+        // 验证 CFB 对象是否有效
+        if (!cfb || !cfb.FullPaths || !cfb.FileIndex) {
+          throw new Error('CFB对象无效：缺少必要的属性');
+        }
+        
+        // 给 CFB 对象添加 find 方法（因为 process_ppt 期望它有这个方法）
+        // CFB.find 是一个独立函数，需要绑定到对象上
+        // 使用 bind 或者直接创建包装函数
+        if (!cfb.find) {
+          if (CFB.find) {
+            // 创建一个绑定到当前 cfb 对象的 find 方法
+            cfb.find = function(path: string) {
+              return CFB.find(cfb, path);
+            };
+          } else {
+            throw new Error('CFB库没有find函数');
+          }
+        }
+        
+        // 使用 parse_pptcfb 解析
+        // 注意：某些PPT文件可能包含ppt库不支持的记录类型
+        // 我们需要修改 parsenoop 函数来跳过未知记录而不是抛出错误
+        try {
+          // 尝试通过 require.cache 访问 ppt 模块并修改 parsenoop
+          const pptModulePath = require.resolve('ppt');
+          const pptModule = require.cache[pptModulePath];
+          
+          if (pptModule && pptModule.exports) {
+            // 查找 parsenoop 函数并临时替换它
+            // 由于 parsenoop 是在模块内部定义的，我们需要通过其他方式访问
+            // 尝试修改 RecordEnum[0x6969] 的处理函数
+            const pptExports = pptModule.exports as any;
+            
+            // 如果可以直接访问 RecordEnum，修改它
+            if (pptExports.RecordEnum && pptExports.RecordEnum[0x6969]) {
+              const originalFn = pptExports.RecordEnum[0x6969].f;
+              // 使用 parsenoop2 的行为：跳过记录而不是抛出错误
+              pptExports.RecordEnum[0x6969].f = function(blob: any, length: number) {
+                blob.l += length; // 跳过记录
+              };
+              
+              try {
+                presentation = PPT.parse_pptcfb(cfb, { WTF: false });
+              } finally {
+                // 恢复原始函数
+                pptExports.RecordEnum[0x6969].f = originalFn;
+              }
+            } else {
+              // 如果无法修改，直接调用
+              presentation = PPT.parse_pptcfb(cfb, { WTF: false });
+            }
+          } else {
+            // 如果无法访问模块，直接调用
+            presentation = PPT.parse_pptcfb(cfb, { WTF: false });
+          }
+        } catch (parseErr) {
+          // 检查是否是未知记录类型的错误
+          if (parseErr instanceof Error && parseErr.message === 'n') {
+            logger.warn('PPT文件包含不支持的记录类型');
+            throw new Error(
+              'PPT文件包含ppt库不支持的记录类型，无法完整解析。' +
+              '\n建议：请将PPT文件转换为PPTX格式后重试。' +
+              '\n或者：使用Microsoft PowerPoint打开并另存为PPTX格式。'
+            );
+          }
+          // 其他错误直接抛出
+          throw parseErr;
+        }
+      } catch (parseError) {
+        logger.error('PPT解析失败:', parseError);
+        const errorDetails = parseError instanceof Error 
+          ? `${parseError.message}${parseError.stack ? `\n${parseError.stack}` : ''}` 
+          : String(parseError);
+        throw new Error(`PPT解析失败: ${errorDetails}`);
+      }
+      
+      // 检查是否已取消
+      if (abortSignal?.aborted) {
+        throw new Error('操作已取消');
+      }
+      
+      if (!presentation) {
+        throw new Error('PPT解析返回空结果');
+      }
+      
+      // 使用ppt库的工具函数提取文本
+      let textParts: string[] = [];
+      try {
+        const textArray = PPT.utils.to_text(presentation);
+        if (textArray && textArray.length > 0) {
+          // 计算幻灯片数量（通过文本数组长度估算，或从presentation对象获取）
+          const totalSlides = textArray.length;
+          logger.info(`PPT中找到 ${totalSlides} 张幻灯片`);
+          
+          progressCallback?.({
+            message: 'agent.reference.progress.parsingFile',
+            subMessage: 'agent.reference.progress.foundSlides',
+            percentage: 20,
+            params: { count: totalSlides }
+          });
+          
+          // 将文本数组转换为格式化的文本
+          textArray.forEach((text, index) => {
+            // 检查是否已取消
+            if (abortSignal?.aborted) {
+              throw new Error('操作已取消');
+            }
+            
+            const slideIndex = index + 1;
+            
+            progressCallback?.({
+              message: 'agent.reference.progress.processingSlide',
+              subMessage: 'agent.reference.progress.extractingText',
+              percentage: 20 + Math.round((index / totalSlides) * 70),
+              params: { current: slideIndex, total: totalSlides }
+            });
+            
+            if (text && text.trim()) {
+              textParts.push(`幻灯片 ${slideIndex}:\n${text}`);
+            } else {
+              textParts.push(`幻灯片 ${slideIndex}: (无文本内容)`);
+            }
+          });
+        } else {
+          // 如果没有提取到文本，尝试手动解析
+          const slides = presentation.slides || presentation.docs?.[0]?.slideList || [];
+          const totalSlides = slides.length || 0;
+          
+          logger.info(`PPT中找到 ${totalSlides} 张幻灯片（手动解析模式）`);
+          
+          if (totalSlides > 0) {
+            progressCallback?.({
+              message: 'agent.reference.progress.parsingFile',
+              subMessage: 'agent.reference.progress.foundSlides',
+              percentage: 20,
+              params: { count: totalSlides }
+            });
+            
+            slides.forEach((slide: any, index: number) => {
+              // 检查是否已取消
+              if (abortSignal?.aborted) {
+                throw new Error('操作已取消');
+              }
+              
+              const slideIndex = index + 1;
+              
+              progressCallback?.({
+                message: 'agent.reference.progress.processingSlide',
+                subMessage: 'agent.reference.progress.extractingText',
+                percentage: 20 + Math.round((index / totalSlides) * 70),
+                params: { current: slideIndex, total: totalSlides }
+              });
+              
+              // 尝试从slide对象中提取文本
+              let slideText = '';
+              if (slide.drawing?.groupShape) {
+                const texts: string[] = [];
+                slide.drawing.groupShape.forEach((shape: any) => {
+                  if (shape.clientTextbox?.t) {
+                    texts.push(shape.clientTextbox.t);
+                  }
+                });
+                slideText = texts.join('\n');
+              }
+              
+              if (slideText.trim()) {
+                textParts.push(`幻灯片 ${slideIndex}:\n${slideText}`);
+              } else {
+                textParts.push(`幻灯片 ${slideIndex}: (无文本内容)`);
+              }
+            });
+          }
+        }
+      } catch (textError) {
+        logger.warn('使用工具函数提取文本失败，尝试备用方法:', textError);
+        // 如果工具函数失败，尝试备用方法
+        textParts = ['PPT文件内容提取失败，请尝试转换为PPTX格式'];
+      }
+      
+      const result = textParts.join('\n\n') || 'PPT文件无文本内容';
+      
+      // 注意：PPT格式通常不支持图片OCR，因为它是二进制格式
+      // 如果需要图片OCR，建议用户使用PPTX格式
+      
+      return result;
+    } catch (error) {
+      logger.error('Error parsing PPT:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to parse PPT file';
+      throw new Error(`PPT转换失败: ${errorMessage}`);
     }
   }
 

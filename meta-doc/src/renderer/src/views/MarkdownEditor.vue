@@ -498,6 +498,41 @@ const insertText = (text: string) => {
     textEditorAdapter.value?.insertText(text);
 };
 
+// 使用 document.execCommand 来触发复制粘贴剪切操作（Vditor 会自动处理）
+const executeEditorCommand = (command: string) => {
+    const editorRoot = getEditorRoot();
+    if (!editorRoot || !vditor.value) return;
+    
+    // 获取可编辑元素（Vditor的内容区域）
+    const editableElement = editorRoot.querySelector('.vditor-content') || 
+                           editorRoot.querySelector('.vditor-ir') || 
+                           editorRoot.querySelector('.vditor-wysiwyg') || 
+                           editorRoot.querySelector('.vditor-sv') ||
+                           editorRoot;
+    
+    if (!editableElement) return;
+    
+    // 确保元素获得焦点
+    (editableElement as HTMLElement).focus();
+    
+    // 使用 document.execCommand，Vditor 会自动处理这些命令
+    // 对于 Vditor，execCommand 会触发其内部的粘贴处理逻辑（包括图片）
+    try {
+        const success = document.execCommand(command);
+        if (!success && command === 'paste') {
+            // 如果 execCommand 失败，尝试使用 Vditor 的 API
+            // Vditor 会自动处理粘贴事件，包括图片上传
+            const pasteEvent = new ClipboardEvent('paste', {
+                bubbles: true,
+                cancelable: true,
+            });
+            editableElement.dispatchEvent(pasteEvent);
+        }
+    } catch (error) {
+        logger.warn('执行编辑器命令失败', { command, error });
+    }
+};
+
 // 菜单项点击事件处理
 const handleMenuClick = async (item: string) => {
     switch (item) {
@@ -534,13 +569,16 @@ const handleMenuClick = async (item: string) => {
             await handleInsertGraph();
             break;
         case 'cut':
-            await textEditorAdapter.value?.cut();
+            // 使用 document.execCommand，让 Vditor 自己处理剪切操作
+            executeEditorCommand('cut');
             break;
         case 'copy':
-            await textEditorAdapter.value?.copy();
+            // 使用 document.execCommand，让 Vditor 自己处理复制操作
+            executeEditorCommand('copy');
             break;
         case 'paste':
-            await textEditorAdapter.value?.paste();
+            // 使用 document.execCommand，让 Vditor 自己处理粘贴操作（包括图片）
+            executeEditorCommand('paste');
             break;
         case 'selectAll':
             textEditorAdapter.value?.selectAll();

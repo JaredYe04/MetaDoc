@@ -2342,6 +2342,123 @@ const insertText = (text: string) => {
   }
 };
 
+// 处理粘贴图片（用于LaTeX编辑器）
+const handlePasteImage = async () => {
+    try {
+        // 获取IPC渲染器
+        let ipcRenderer: any = null;
+        if (window && (window as any).electron) {
+            ipcRenderer = (window as any).electron.ipcRenderer;
+        } else {
+            const { localIpcRenderer } = await import("../utils/web-adapter/local-ipc-renderer");
+            ipcRenderer = localIpcRenderer;
+        }
+        
+        if (!ipcRenderer) {
+            logger.warn('IPC渲染器不可用，无法读取剪切板图片');
+            return false;
+        }
+        
+        // 读取剪切板图片
+        const clipboardImage = await ipcRenderer.invoke('read-clipboard-image') as string | null;
+        if (!clipboardImage) {
+            return false; // 没有图片，返回false让后续处理文本粘贴
+        }
+        
+        // 将base64图片转换为Blob
+        const base64Data = clipboardImage.includes(',') ? clipboardImage.split(',')[1] : clipboardImage;
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'image/png' });
+        
+        // 创建FormData上传图片
+        const formData = new FormData();
+        const fileName = `clipboard-${Date.now()}.png`;
+        const file = new File([blob], fileName, { type: 'image/png' });
+        formData.append('file[]', file, fileName);
+        
+        // 上传图片
+        const response = await fetch('http://localhost:52521/api/image/upload', {
+            method: 'POST',
+            body: formData,
+        });
+        
+        if (!response.ok) {
+            throw new Error(`上传失败: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        if (result.code === 0 && result.data && result.data.succMap) {
+            const filePaths = result.data.succMap;
+            const imagePath = Object.values(filePaths)[0] as string;
+            
+            // 生成LaTeX图片嵌入代码
+            // 使用本地路径，统一转换为正斜杠（LaTeX使用正斜杠）
+            let normalizedPath = imagePath.replace(/\\/g, '/');
+            
+            // 转义LaTeX特殊字符（#、%、&、{}、_等）
+            // 注意：转义顺序很重要，先转义反斜杠，再转义其他字符
+            const escapedPath = normalizedPath.replace(/([#%&{}_])/g, '\\$1');
+            
+            // 使用标准的 includegraphics 格式，带宽度选项
+            const latexCode = `\\includegraphics[width=0.8\\textwidth]{${escapedPath}}`;
+            
+            // 插入到编辑器
+            insertText(latexCode);
+            
+            logger.debug('图片已上传并插入LaTeX代码', { imagePath, normalizedPath, latexCode });
+            return true; // 成功处理图片
+        } else {
+            throw new Error(result.msg || '上传失败');
+        }
+    } catch (error) {
+        logger.error('粘贴图片失败', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        eventBus.emit('show-error', t('latexEditor.notification.pasteImageFailed') || `粘贴图片失败: ${errorMessage}`);
+        return false;
+    }
+};
+
+// 使用textEditorAdapter来触发复制粘贴剪切操作（更可靠）
+const executeMonacoCommand = async (command: string) => {
+    if (!editor.value || !textEditorAdapter.value) return;
+    
+    // 确保编辑器获得焦点
+    editor.value.focus();
+    
+    // 对于粘贴操作，先检查是否有图片
+    if (command === 'editor.action.clipboardPasteAction') {
+        const imageHandled = await handlePasteImage();
+        if (imageHandled) {
+            // 图片已处理，不需要执行文本粘贴
+            return;
+        }
+        // 没有图片，使用 textEditorAdapter 的 paste 方法
+        if (textEditorAdapter.value && typeof textEditorAdapter.value.paste === 'function') {
+            await textEditorAdapter.value.paste();
+            return;
+        }
+    }
+    
+    // 对于复制和剪切，使用 textEditorAdapter 的方法
+    try {
+        if (command === 'editor.action.clipboardCutAction') {
+            if (textEditorAdapter.value && typeof textEditorAdapter.value.cut === 'function') {
+                await textEditorAdapter.value.cut();
+            }
+        } else if (command === 'editor.action.clipboardCopyAction') {
+            if (textEditorAdapter.value && typeof textEditorAdapter.value.copy === 'function') {
+                await textEditorAdapter.value.copy();
+            }
+        }
+    } catch (error) {
+        logger.warn('执行编辑器命令失败', { command, error });
+    }
+};
 
 // 菜单项点击事件处理
 const handleMenuClick = async (item: string) => {
@@ -2372,19 +2489,16 @@ const handleMenuClick = async (item: string) => {
             eventBus.emit('ai-chat')
             break;
         case 'cut':
-            if (textEditorAdapter.value && typeof textEditorAdapter.value.cut === 'function') {
-                await (textEditorAdapter.value as any).cut();
-            }
+            // 使用命令API处理剪切操作
+            await executeMonacoCommand('editor.action.clipboardCutAction');
             break;
         case 'copy':
-            if (textEditorAdapter.value && typeof textEditorAdapter.value.copy === 'function') {
-                await (textEditorAdapter.value as any).copy();
-            }
+            // 使用命令API处理复制操作
+            await executeMonacoCommand('editor.action.clipboardCopyAction');
             break;
         case 'paste':
-            if (textEditorAdapter.value && typeof textEditorAdapter.value.paste === 'function') {
-                await (textEditorAdapter.value as any).paste();
-            }
+            // executeMonacoCommand 内部会先检查图片，然后处理文本粘贴
+            await executeMonacoCommand('editor.action.clipboardPasteAction');
             break;
         case 'selectAll':
             if (textEditorAdapter.value && typeof textEditorAdapter.value.selectAll === 'function') {
@@ -2992,6 +3106,72 @@ const initEditor = () => {
         }
     });
     
+    // 拦截 Monaco 的粘贴命令（处理 Ctrl+V 粘贴图片）
+    // 使用 addCommand 来拦截粘贴命令，这样可以在 Monaco 处理之前检查图片
+    if (editor.value) {
+        editor.value.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, async () => {
+            // 先尝试 IPC 读取图片（更可靠）
+            const imageHandled = await handlePasteImage();
+            if (imageHandled) {
+                // 图片已处理，阻止默认粘贴行为（不执行任何操作）
+                return;
+            }
+            
+            // 如果没有图片，执行默认的粘贴命令
+            if (editor.value) {
+                editor.value.trigger('keyboard', 'editor.action.clipboardPasteAction', null);
+            }
+        });
+    }
+    
+    // 同时监听 DOM 粘贴事件（作为备用，处理某些边缘情况）
+    if (editorEl.value) {
+        const handlePasteEvent = async (e: ClipboardEvent) => {
+            // 先快速检查 clipboardData.items 是否有图片（同步检查，立即决定是否阻止）
+            const items = e.clipboardData?.items;
+            let hasImageInClipboard = false;
+            if (items) {
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    if (item.type.indexOf('image') !== -1) {
+                        hasImageInClipboard = true;
+                        break;
+                    }
+                }
+            }
+            
+            // 如果有图片，立即阻止默认粘贴行为，然后异步处理图片
+            if (hasImageInClipboard) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // 异步处理图片（使用 IPC 读取，更可靠）
+                const imageHandled = await handlePasteImage();
+                if (!imageHandled) {
+                    logger.warn('检测到图片但处理失败');
+                }
+                return;
+            }
+            
+            // 如果没有在 clipboardData 中检测到图片，也尝试使用 IPC 读取（作为备用检查）
+            // 这适用于某些情况下 clipboardData 不可用的情况
+            const imageHandled = await handlePasteImage();
+            if (imageHandled) {
+                // IPC 检测到图片并已处理，阻止默认粘贴行为
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+            
+            // 如果没有图片，不阻止事件，让 Monaco 正常处理文本粘贴
+        };
+        
+        editorEl.value.addEventListener('paste', handlePasteEvent, true); // 使用 capture 阶段确保优先处理
+        
+        // 保存清理函数
+        (editor.value as any)._pasteHandler = handlePasteEvent;
+    }
+    
     // 监听键盘事件，检测Enter、Space等触发按键
     editor.value.onKeyDown((e: monaco.IKeyboardEvent) => {
         // 注意：Ctrl+F 和 Ctrl+H 现在由 App.vue 全局监听，这里不再处理
@@ -3160,6 +3340,12 @@ onUnmounted(() => {
     }
     
     eventBus.emit('is-need-save', true)
+    
+    // 清理粘贴事件监听器
+    if (editorEl.value && (editor.value as any)?._pasteHandler) {
+        editorEl.value.removeEventListener('paste', (editor.value as any)._pasteHandler);
+        delete (editor.value as any)._pasteHandler;
+    }
     
     if (editorId.value) {
         try {

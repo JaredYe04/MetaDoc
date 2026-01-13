@@ -1411,6 +1411,44 @@
       "imageLabelDefaultName": {
         "label": "Image",
         "description": "Default image name (used when image has no name)"
+      },
+      "documentClass": {
+        "label": "Document Class",
+        "description": "LaTeX document class"
+      },
+      "includePackages": {
+        "label": "Include Common Packages",
+        "description": "Whether to automatically include common LaTeX packages"
+      },
+      "imageProcessing": {
+        "label": "Image Processing",
+        "description": "Choose how to process images: keep original links or save to folder",
+        "original": "Keep Original Links",
+        "folder": "Save to Folder"
+      },
+      "generateCover": {
+        "label": "Generate Cover",
+        "description": "Display document title, author, abstract and keywords on the first page"
+      },
+      "generateToc": {
+        "label": "Generate Table of Contents",
+        "description": "Generate table of contents after cover (or at document start)"
+      },
+      "processFormula": {
+        "label": "Process Formulas",
+        "description": "Whether to automatically process LaTeX formulas"
+      },
+      "showPageNumbers": {
+        "label": "Show Page Numbers",
+        "description": "Display page numbers in footer"
+      },
+      "showHeader": {
+        "label": "Show Header",
+        "description": "Display document title and page number information in header"
+      },
+      "removeTitlePrefixes": {
+        "label": "Auto Remove Title Prefixes",
+        "description": "LaTeX automatically numbers each section. If titles already have numbering prefixes, it will cause duplication. Enabling this option will automatically remove all numbering and dots at the beginning of titles (e.g., \"1.1\", \"一、\", etc.)"
       }
     }
   },

@@ -2517,6 +2517,10 @@
         "label": "处理公式",
         "description": "是否自动处理 LaTeX 公式"
       },
+      "removeTitlePrefixes": {
+        "label": "自动去除标题前缀",
+        "description": "LaTeX会自动为每个章节添加编号，如果标题中已有编号前缀会导致重复。启用此选项将自动去除所有标题开头的编号和点号（如\"1.1\"、\"一、\"等）"
+      },
       "tabs": {
         "basic": "基本设置",
         "style": "样式设置"

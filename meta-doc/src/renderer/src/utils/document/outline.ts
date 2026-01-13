@@ -3,6 +3,7 @@
  * 从 md-utils.js 中提取并优化
  */
 import type { DocumentOutlineNode } from '../../../../types'
+import { removeTitleIndex } from '../regex-utils'
 
 const CHUNK_SIZE = 500
 
@@ -293,4 +294,34 @@ export function extractOutlineTreeFromMarkdownLight(
   const outlineTree = extractOutlineTreeFromMarkdown(md, true)
   // 转换为精简的Markdown大纲
   return generateLightMarkdownFromOutlineTree(outlineTree)
+}
+
+/**
+ * 移除大纲树中所有节点的标题前缀
+ * 用于在导出为LaTeX时去除标题编号，因为LaTeX会自动编号
+ * @param outlineTree 大纲树
+ * @returns 移除前缀后的大纲树（深拷贝）
+ */
+export function removeAllTitlePrefixes(outlineTree: DocumentOutlineNode): DocumentOutlineNode {
+  const node = JSON.parse(JSON.stringify(outlineTree)) as DocumentOutlineNode
+  
+  function dfs(n: DocumentOutlineNode): void {
+    if (n.title) {
+      n.title = removeTitleIndex(n.title)
+    }
+    
+    for (const child of n.children) {
+      dfs(child)
+    }
+  }
+  
+  if (node.path === 'dummy') {
+    for (const child of node.children) {
+      dfs(child)
+    }
+  } else {
+    dfs(node)
+  }
+  
+  return node
 }

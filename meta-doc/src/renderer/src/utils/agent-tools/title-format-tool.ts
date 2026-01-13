@@ -15,9 +15,9 @@ import { useWorkspace } from '../../stores/workspace'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
 import type { DocumentOutlineNode } from '@/types'
-import { adjustTitleLevel } from '../document/outline'
+import { adjustTitleLevel, removeAllTitlePrefixes } from '../document/outline'
 import { adjustTitleIndex } from '../md-utils'
-import { removeTitleIndex, convertNumberToChinese } from '../regex-utils'
+import { convertNumberToChinese } from '../regex-utils'
 import { getOutlineAdapter } from '../outline-adapters'
 import { getActiveDocumentInfoViaBroadcast } from './document-broadcast-helper'
 import { getWindowType } from '../event-bus'
@@ -25,33 +25,6 @@ import TitleFormatDisplay from './components/TitleFormatDisplay.vue'
 
 const logger = createRendererLogger('TitleFormatTool')
 const workspace = useWorkspace()
-
-/**
- * 移除大纲树中所有节点的标题前缀
- */
-function removeAllTitlePrefixes(outlineTree: DocumentOutlineNode): DocumentOutlineNode {
-  const node = JSON.parse(JSON.stringify(outlineTree)) as DocumentOutlineNode
-  
-  function dfs(n: DocumentOutlineNode): void {
-    if (n.title) {
-      n.title = removeTitleIndex(n.title)
-    }
-    
-    for (const child of n.children) {
-      dfs(child)
-    }
-  }
-  
-  if (node.path === 'dummy') {
-    for (const child of node.children) {
-      dfs(child)
-    }
-  } else {
-    dfs(node)
-  }
-  
-  return node
-}
 
 /**
  * 标题格式化回调函数

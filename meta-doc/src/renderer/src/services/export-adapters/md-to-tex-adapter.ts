@@ -20,6 +20,7 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
       generateToc: false,
       showPageNumbers: true, // LaTeX 默认显示页码
       showHeader: true, // LaTeX 默认显示页眉
+      removeTitlePrefixes: true, // 默认自动去除标题前缀
     };
   }
   
@@ -96,6 +97,15 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
         default: true,
         description: '在页眉显示文档标题和页码信息',
         descriptionKey: 'export.options.showHeader.description',
+      },
+      {
+        key: 'removeTitlePrefixes',
+        label: '自动去除标题前缀',
+        labelKey: 'export.options.removeTitlePrefixes.label',
+        type: 'boolean',
+        default: true,
+        description: 'LaTeX会自动为每个章节添加编号，如果标题中已有编号前缀会导致重复。启用此选项将自动去除所有标题开头的编号和点号（如"1.1"、"一、"等）',
+        descriptionKey: 'export.options.removeTitlePrefixes.description',
       },
     ];
   }

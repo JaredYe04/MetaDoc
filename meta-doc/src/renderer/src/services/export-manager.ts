@@ -322,6 +322,7 @@ const convertMarkdownToLatexWithOptions = async (
   exportOptions: ExportOptions,
 ): Promise<string> => {
   const { convertMarkdownToLatex } = await import('../utils/latex-utils');
+  const { removeAllTitlePrefixes, generateMarkdownFromOutlineTree } = await import('../utils/document/outline');
   const title = doc.meta?.title || 'Generated Document';
   
   // 提取文档元信息
@@ -333,8 +334,18 @@ const convertMarkdownToLatexWithOptions = async (
     // 忽略解析错误
   }
   
+  // 如果启用了自动去除标题前缀选项，则处理大纲树
+  let processedMarkdown = markdown;
+  const latexOptions = exportOptions as any;
+  if (latexOptions?.removeTitlePrefixes !== false && doc.outline) {
+    // 深拷贝大纲树并移除标题前缀
+    const modifiedOutline = removeAllTitlePrefixes(doc.outline);
+    // 从修改后的大纲树重新生成 Markdown
+    processedMarkdown = generateMarkdownFromOutlineTree(modifiedOutline);
+  }
+  
   // 传递导出选项和元信息
-  const latexOptions = {
+  const finalLatexOptions = {
     ...exportOptions,
     meta: {
       title: meta.title || title,
@@ -344,7 +355,7 @@ const convertMarkdownToLatexWithOptions = async (
     },
   };
   
-  return await convertMarkdownToLatex(markdown, title, latexOptions);
+  return await convertMarkdownToLatex(processedMarkdown, title, finalLatexOptions);
 };
 
 /**

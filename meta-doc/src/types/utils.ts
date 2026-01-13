@@ -128,7 +128,7 @@ export interface LaTeXCompileConfig {
 // ============ 文件转换相关类型 ============
 
 /** 支持的文件类型 */
-export type SupportedFileType = 'txt' | 'md' | 'pdf' | 'docx' | 'pptx' | 'xlsx' | 'xls';
+export type SupportedFileType = 'txt' | 'md' | 'pdf' | 'docx' | 'doc' | 'pptx' | 'ppt' | 'xlsx' | 'xls';
 
 /** 文件转换结果 */
 export interface FileConversionResult {

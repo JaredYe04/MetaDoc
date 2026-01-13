@@ -1,0 +1,74 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "dictionaries": [
+    "latex",
+    "markdown",
+    "fr-fr",
+    "es-es",
+    "de-de",
+    "ru-ru"
+  ],
+  "dictionaryDefinitions": [
+    {
+      "name": "latex",
+      "path": "@cspell/dict-latex/cspell-ext.json",
+      "addWords": true
+    },
+    {
+      "name": "markdown",
+      "path": "@cspell/dict-markdown/cspell-ext.json",
+      "addWords": true
+    },
+    {
+      "name": "fr-fr",
+      "path": "@cspell/dict-fr-fr/cspell-ext.json",
+      "addWords": true
+    },
+    {
+      "name": "es-es",
+      "path": "@cspell/dict-es-es/cspell-ext.json",
+      "addWords": true
+    },
+    {
+      "name": "de-de",
+      "path": "@cspell/dict-de-de/cspell-ext.json",
+      "addWords": true
+    },
+    {
+      "name": "ru-ru",
+      "path": "@cspell/dict-ru-ru/cspell-ext.json",
+      "addWords": true
+    }
+  ],
+  "languageSettings": [
+    {
+      "languageId": "markdown",
+      "dictionaries": ["markdown"]
+    },
+    {
+      "languageId": "latex",
+      "dictionaries": ["latex"]
+    }
+  ],
+  "overrides": [
+    {
+      "filename": "**/*.md",
+      "language": "en",
+      "dictionaries": ["markdown"]
+    },
+    {
+      "filename": "**/*.tex",
+      "language": "en",
+      "dictionaries": ["latex"]
+    }
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    "dist/**",
+    "out/**",
+    "build/**"
+  ],
+  "words": []
+}
+

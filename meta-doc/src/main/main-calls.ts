@@ -1113,9 +1113,9 @@ function bindFileHandlers(): void {
       case 'all':
         // 所有支持的格式，按类别分组显示
         filters.push(
-          { name: i18nT('agent.reference.fileTypeCategory.all', 'All Supported Formats'), extensions: ['txt', 'md', 'json', 'xml', 'pdf', 'docx', 'pptx', 'xlsx', 'xls', 'csv', 'html', 'htm', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] },
+          { name: i18nT('agent.reference.fileTypeCategory.all', 'All Supported Formats'), extensions: ['txt', 'md', 'json', 'xml', 'pdf', 'docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv', 'html', 'htm', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] },
           { name: i18nT('agent.reference.fileTypeCategory.text', 'Text Files'), extensions: ['txt', 'md', 'json', 'xml'] },
-          { name: i18nT('agent.reference.fileTypeCategory.document', 'Document Files'), extensions: ['pdf', 'docx', 'pptx'] },
+          { name: i18nT('agent.reference.fileTypeCategory.document', 'Document Files'), extensions: ['pdf', 'docx', 'doc', 'pptx', 'ppt'] },
           { name: i18nT('agent.reference.fileTypeCategory.data', 'Data Files'), extensions: ['csv', 'xlsx', 'xls'] },
           { name: i18nT('agent.reference.fileTypeCategory.image', 'Image Files'), extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] },
           { name: i18nT('agent.reference.fileTypeCategory.web', 'Web Files'), extensions: ['html', 'htm', 'xml'] },

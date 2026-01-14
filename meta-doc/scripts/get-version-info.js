@@ -91,9 +91,25 @@ function getVersion() {
     }
   }
 
-  // 1. 如果提供了版本号参数（且不是升级类型关键词），直接使用
+  // 1. 如果提供了版本号参数（且不是升级类型关键词），设置该版本号
   if (versionArg && !['major', 'minor', 'patch', 'rebuild'].includes(versionArg)) {
-    return versionArg;
+    try {
+      // 确保版本号格式正确（如果有 Beta 前缀则保留，否则添加）
+      let targetVersion = versionArg.trim();
+      if (!targetVersion.startsWith('Beta')) {
+        // 如果版本号是纯数字格式（如 0.17.0），添加 Beta 前缀
+        if (/^\d+\.\d+\.\d+/.test(targetVersion)) {
+          targetVersion = `Beta${targetVersion}`;
+        }
+      }
+      // 使用 versionManager 设置版本号，这会更新 version.json 和 package.json
+      versionManager.setVersion(targetVersion);
+      versionManager.updatePackageJson(targetVersion);
+      return targetVersion;
+    } catch (error) {
+      console.warn('警告: 设置版本号失败，使用提供的版本号:', error.message);
+      return versionArg;
+    }
   }
 
   // 2. 如果提供了升级类型，根据当前版本进行升级

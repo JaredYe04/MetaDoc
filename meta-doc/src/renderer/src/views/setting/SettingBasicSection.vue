@@ -1,5 +1,5 @@
 <template>
-  <el-form label-width="160px" class="settings-form">
+  <el-form label-width="200px" class="settings-form">
     <el-form-item :label="t('setting.startupOption')">
       <el-select v-model="settings.startupOption" @change="saveSetting('startupOption', settings.startupOption)">
         <el-option :label="t('setting.openNewFile')" value="newFile" />
@@ -14,14 +14,18 @@
         @change="saveSetting('alwaysAskSave', settings.alwaysAskSave)" />
     </el-form-item>
 
-    <el-tooltip :content="t('setting.particleEffectHint')" placement="bottom">
-      <el-form-item :label="t('setting.particleEffect')">
-        <el-switch v-model="settings.particleEffect" class="mb-2"
-          style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-          :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
-          @change="handleParticleToggle" />
-      </el-form-item>
-    </el-tooltip>
+    <el-form-item>
+      <template #label>
+        <span>{{ t('setting.particleEffect') }}</span>
+        <el-tooltip :content="t('setting.particleEffectHint')" placement="top">
+          <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
+        </el-tooltip>
+      </template>
+      <el-switch v-model="settings.particleEffect" class="mb-2"
+        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+        :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
+        @change="handleParticleToggle" />
+    </el-form-item>
 
     <el-form-item :label="t('setting.autoSave')">
       <el-select v-model="settings.autoSave" @change="saveSetting('autoSave', settings.autoSave)">
@@ -34,37 +38,75 @@
       </el-select>
     </el-form-item>
 
-    <el-form-item :label="t('setting.microphoneTest')">
+    <!-- <el-form-item :label="t('setting.microphoneTest')">
       <el-tooltip :content="t('setting.microphoneHint')" placement="bottom">
         <MicrophoneTest />
       </el-tooltip>
+    </el-form-item> -->
+
+    <el-form-item>
+      <template #label>
+        <span>{{ t('setting.excludeCodeBlocks') }}</span>
+        <el-tooltip :content="t('setting.excludeCodeHint')" placement="top">
+          <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
+        </el-tooltip>
+      </template>
+      <el-switch v-model="settings.bypassCodeBlock" class="mb-2"
+        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+        :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
+        @change="saveSetting('bypassCodeBlock', settings.bypassCodeBlock)" />
     </el-form-item>
 
-    <el-form-item :label="t('setting.excludeCodeBlocks')">
-      <el-tooltip :content="t('setting.excludeCodeHint')" placement="bottom">
-        <el-switch v-model="settings.bypassCodeBlock" class="mb-2"
-          style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-          :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
-          @change="saveSetting('bypassCodeBlock', settings.bypassCodeBlock)" />
-      </el-tooltip>
+    <el-form-item>
+      <template #label>
+        <span>{{ t('setting.autoDownloadImage') }}</span>
+        <el-tooltip :content="t('setting.autoDownloadHint')" placement="top">
+          <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
+        </el-tooltip>
+      </template>
+      <el-switch v-model="settings.autoSaveExternalImage" class="mb-2"
+        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+        :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
+        @change="saveSetting('autoSaveExternalImage', settings.autoSaveExternalImage)" />
     </el-form-item>
 
-    <el-form-item :label="t('setting.autoDownloadImage')">
-      <el-tooltip :content="t('setting.autoDownloadHint')" placement="bottom">
-        <el-switch v-model="settings.autoSaveExternalImage" class="mb-2"
-          style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-          :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
-          @change="saveSetting('autoSaveExternalImage', settings.autoSaveExternalImage)" />
-      </el-tooltip>
+    <el-form-item>
+      <template #label>
+        <span>{{ t('setting.parseEmbeddedImages') }}</span>
+        <el-tooltip :content="t('setting.parseEmbeddedImagesHint')" placement="top">
+          <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
+        </el-tooltip>
+      </template>
+      <el-switch v-model="settings.parseEmbeddedImages" class="mb-2"
+        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+        :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
+        @change="saveSetting('parseEmbeddedImages', settings.parseEmbeddedImages)" />
     </el-form-item>
 
-    <el-form-item :label="t('setting.parseEmbeddedImages')">
-      <el-tooltip :content="t('setting.parseEmbeddedImagesHint')" placement="bottom">
-        <el-switch v-model="settings.parseEmbeddedImages" class="mb-2"
-          style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-          :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
-          @change="saveSetting('parseEmbeddedImages', settings.parseEmbeddedImages)" />
-      </el-tooltip>
+    <el-form-item>
+      <template #label>
+        <span>{{ t('setting.metadataSaveMode') }}</span>
+        <el-tooltip :content="t('setting.metadataInfoHint')" placement="top">
+          <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
+        </el-tooltip>
+      </template>
+      <el-select v-model="settings.metadataSaveMode" @change="saveSetting('metadataSaveMode', settings.metadataSaveMode)">
+        <el-option value="sidecar">
+          <el-tooltip :content="t('setting.metadataSaveModeSidecarHint')" placement="right" :show-after="300">
+            <span>{{ t('setting.metadataSaveModeSidecar') }}</span>
+          </el-tooltip>
+        </el-option>
+        <el-option value="embed">
+          <el-tooltip :content="t('setting.metadataSaveModeEmbedHint')" placement="right" :show-after="300">
+            <span>{{ t('setting.metadataSaveModeEmbed') }}</span>
+          </el-tooltip>
+        </el-option>
+        <el-option value="none">
+          <el-tooltip :content="t('setting.metadataSaveModeNoneHint')" placement="right" :show-after="300">
+            <span>{{ t('setting.metadataSaveModeNone') }}</span>
+          </el-tooltip>
+        </el-option>
+      </el-select>
     </el-form-item>
 
     <el-form-item :label="t('setting.referenceDirManagement', '引用文件目录管理')">
@@ -93,8 +135,10 @@
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { QuestionFilled } from '@element-plus/icons-vue';
 import MicrophoneTest from '../../components/MicrophoneTest.vue';
 import { settings, setSetting } from '../../utils/settings.js';
+import eventBus from '../../utils/event-bus';
 // 单窗口多Tab架构：不再需要sendBroadcast，直接使用eventBus
 
 const { t } = useI18n();
@@ -249,6 +293,17 @@ onMounted(() => {
 .reference-dir-actions {
   display: flex;
   gap: 8px;
+}
+
+.metadata-info-icon {
+  margin-left: 4px;
+  color: var(--el-text-color-secondary);
+  cursor: help;
+  font-size: 14px;
+}
+
+.metadata-info-icon:hover {
+  color: var(--el-color-primary);
 }
 </style>
 

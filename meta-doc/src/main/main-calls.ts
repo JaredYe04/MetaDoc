@@ -125,6 +125,7 @@ interface SaveData {
   json: string;
   tex: string;
   format: DocumentFormat;
+  sidecarMetadata?: Buffer | Uint8Array | number[]; // Sidecar文件的元信息（二进制，渲染进程传递Uint8Array，主进程转换为Buffer）
   args?: {
     format: string;
   };
@@ -688,6 +689,61 @@ function bindFileHandlers(): void {
     } catch (error) {
       logger.error('检查路径是否为目录失败:', error);
       return false;
+    }
+  });
+
+  // 读取Sidecar文件
+  // 注意：Electron IPC会自动将Buffer序列化为ArrayBuffer，在渲染进程中会变成Uint8Array
+  ipcMain.handle('read-sidecar-file', async (event: IpcMainInvokeEvent, payload: { path: string }): Promise<Buffer | null> => {
+    try {
+      const { path: filePath } = payload;
+      
+      if (!filePath) {
+        logger.warn('[read-sidecar-file] 文件路径为空');
+        return null;
+      }
+      
+      if (!fs.existsSync(filePath)) {
+        return null;
+      }
+      
+      // 读取二进制文件
+      const buffer = fs.readFileSync(filePath);
+      
+      // 验证文件完整性：检查是否有有效的数据
+      if (buffer.length === 0) {
+        logger.warn('[read-sidecar-file] 文件为空', { filePath });
+        return null;
+      }
+      
+      // 验证第一个字节是否是有效的标记（0x00 或 0x01）
+      const firstByte = buffer[0];
+      if (firstByte !== 0x00 && firstByte !== 0x01) {
+        logger.warn('[read-sidecar-file] 文件格式无效（第一个字节不是有效标记）', { 
+          filePath, 
+          firstByte, 
+          firstByteHex: '0x' + firstByte.toString(16).padStart(2, '0')
+        });
+        // 不返回null，让渲染进程尝试处理（可能是旧格式）
+      }
+      
+      logger.info('[read-sidecar-file] 文件读取成功', { 
+        filePath, 
+        bufferLength: buffer.length,
+        firstByte: buffer[0],
+        firstByteHex: '0x' + buffer[0].toString(16).padStart(2, '0')
+      });
+      
+      // Electron IPC会自动将Buffer转换为ArrayBuffer/Uint8Array
+      // 直接返回Buffer即可，渲染进程会收到Uint8Array
+      return buffer;
+    } catch (error) {
+      logger.error('[read-sidecar-file] 读取Sidecar文件失败', { 
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        filePath: payload?.path
+      });
+      return null;
     }
   });
 
@@ -2747,11 +2803,89 @@ const saveInternal = async (
   // 写入文件
   fs.writeFileSync(filePath, content);
   
+  // 如果存在Sidecar元信息，写入Sidecar文件
+  if (data.sidecarMetadata && (format === 'md' || format === 'tex')) {
+    try {
+      const sidecarPath = getSidecarPath(filePath);
+      // 将渲染进程传递的Uint8Array转换为Buffer
+      let buffer: Buffer;
+      if (Buffer.isBuffer(data.sidecarMetadata)) {
+        buffer = data.sidecarMetadata;
+      } else if (data.sidecarMetadata instanceof Uint8Array) {
+        buffer = Buffer.from(data.sidecarMetadata);
+      } else if (Array.isArray(data.sidecarMetadata)) {
+        buffer = Buffer.from(data.sidecarMetadata);
+      } else {
+        throw new Error('不支持的sidecarMetadata类型');
+      }
+      
+      // 如果文件已存在，先删除（避免权限问题）
+      if (fs.existsSync(sidecarPath)) {
+        try {
+          // 先尝试移除隐藏属性（如果存在），以便删除
+          if (process.platform === 'win32') {
+            const { execSync } = require('child_process');
+            try {
+              execSync(`attrib -h "${sidecarPath}"`, { stdio: 'ignore' });
+            } catch (err) {
+              // 忽略移除隐藏属性失败的错误
+            }
+          }
+          fs.unlinkSync(sidecarPath);
+        } catch (unlinkError) {
+          logger.warn('删除旧Sidecar文件失败，尝试直接覆盖:', unlinkError);
+          // 如果删除失败，尝试直接覆盖（某些情况下可能成功）
+        }
+      }
+      
+      // 写入二进制文件（同步写入，确保数据完全写入）
+      fs.writeFileSync(sidecarPath, buffer, { flag: 'w' }); // 明确指定写入模式
+      
+      // 同步刷新文件系统缓存，确保数据写入磁盘
+      const fd = fs.openSync(sidecarPath, 'r+');
+      fs.fsyncSync(fd);
+      fs.closeSync(fd);
+      
+      // 在Windows上设置隐藏属性
+      if (process.platform === 'win32') {
+        const { execSync } = require('child_process');
+        try {
+          execSync(`attrib +h "${sidecarPath}"`, { stdio: 'ignore' });
+        } catch (err) {
+          // 忽略设置隐藏属性失败的错误
+          logger.warn('设置Sidecar文件隐藏属性失败:', err);
+        }
+      }
+      
+      logger.debug('[saveInternal] Sidecar文件写入成功', { 
+        sidecarPath, 
+        bufferLength: buffer.length,
+        firstByte: buffer[0],
+        firstByteHex: '0x' + buffer[0].toString(16).padStart(2, '0')
+      });
+    } catch (error) {
+      logger.error('写入Sidecar文件失败:', error);
+      // 不抛出错误，避免影响主文件的保存，但记录错误
+    }
+  }
+  
   return {
     path: filePath,
     format,
   };
 };
+
+/**
+ * 生成Sidecar文件路径
+ * 使用path模块（主进程环境）
+ * @param filePath 原始文件路径
+ * @returns Sidecar文件路径
+ */
+function getSidecarPath(filePath: string): string {
+  const dir = path.dirname(filePath);
+  const basename = path.basename(filePath);
+  return path.join(dir, `.${basename}.meta`);
+}
 
 const save = async (data: SaveData, saveAs: boolean): Promise<void> => {
   const result = await saveInternal(data, saveAs);

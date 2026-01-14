@@ -49,6 +49,9 @@ export const saveWorkspaceDocument = async (
   }
 
   const payload = await serializeDocument(doc);
+  
+  // 确保保存操作完全完成（包括Sidecar文件写入）
+  // workspace-save-document 是同步的，会等待所有文件写入完成（包括fsync）
   const result = await ipcRenderer.invoke('workspace-save-document', {
     data: payload,
     saveAs: options?.saveAs ?? doc.path === '',
@@ -63,6 +66,8 @@ export const saveWorkspaceDocument = async (
     return null;
   }
 
+  // 保存操作已完成，包括Sidecar文件（如果使用sidecar模式）
+  // fsync确保数据已写入磁盘
   return {
     path,
     format: format ?? doc.format,

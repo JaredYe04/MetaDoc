@@ -48,6 +48,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: true
+          # 注意：如果 checkout 卡住，可能是网络问题
+          # 解决方案：
+          # 1. 检查 self-hosted runner 的网络连接
+          # 2. 检查 GitHub 访问是否正常
+          # 3. 如果仓库很大，可以考虑使用 fetch-depth: 100 减少克隆时间
+      
+      - name: 验证 Git 仓库
+        run: |
+          git --version
+          git rev-parse --git-dir
+          echo "✅ Git 仓库验证成功"
       
       - name: 设置 Node.js
         uses: actions/setup-node@v4

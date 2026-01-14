@@ -252,7 +252,29 @@ async function proofreadWithCSpell(
     }
     
     // 获取当前用户选择的语言
-    const currentLocale = getLocale()
+    // 确保使用正确的格式（下划线格式，如 'fr_FR', 'zh_CN'）
+    let currentLocale = getLocale()
+    
+    // 标准化语言格式：将连字符转换为下划线，确保格式一致
+    // i18n 使用下划线格式（zh_CN, fr_FR），但某些地方可能使用连字符（zh-CN, fr-FR）
+    if (currentLocale && typeof currentLocale === 'string') {
+      currentLocale = currentLocale.replace('-', '_')
+    }
+    
+    // 如果获取失败，尝试从 localStorage 获取
+    if (!currentLocale || currentLocale === 'zh_CN') {
+      const savedLang = localStorage.getItem('lang')
+      if (savedLang) {
+        currentLocale = savedLang.replace('-', '_')
+      }
+    }
+    
+    // 确保有默认值
+    if (!currentLocale) {
+      currentLocale = 'zh_CN'
+    }
+    
+    getLogger().debug('[proofreadWithCSpell] 使用语言:', currentLocale, '格式:', format)
     
     // 通过 IPC 调用主进程的拼写检查服务
     const result = await ipcRenderer.invoke('spell-check', {

@@ -1,0 +1,69 @@
+{
+  "version": "0.2",
+  "language": "en,fr,es,de,ru,latex,markdown,en_US,fr_FR,es_ES,de_DE,ru_RU",
+  "import": [
+    "@cspell/dict-fr-fr/cspell-ext.json",
+    "@cspell/dict-es-es/cspell-ext.json",
+    "@cspell/dict-de-de/cspell-ext.json",
+    "@cspell/dict-ru_ru/cspell-ext.json",
+    "@cspell/dict-markdown/cspell-ext.json",
+    "@cspell/dict-latex/cspell-ext.json"
+  ],
+  "dictionaries": [
+    "fr-fr",
+    "es-es",
+    "de-de",
+    "ru-ru",
+    "markdown",
+    "latex"
+  ],
+  "dictionaryDefinitions": [
+    {
+      "name": "fr-fr",
+      "path": "@cspell/dict-fr-fr/cspell-ext.json",
+      "addWords": true
+    },
+    {
+      "name": "es-es",
+      "path": "@cspell/dict-es-es/cspell-ext.json",
+      "addWords": true
+    },
+    {
+      "name": "de-de",
+      "path": "@cspell/dict-de-de/cspell-ext.json",
+      "addWords": true
+    },
+    {
+      "name": "ru-ru",
+      "path": "@cspell/dict-ru_ru/cspell-ext.json",
+      "addWords": true
+    },
+    {
+      "name": "markdown",
+      "path": "@cspell/dict-markdown/cspell-ext.json",
+      "addWords": true
+    },
+    {
+      "name": "latex",
+      "path": "@cspell/dict-latex/cspell-ext.json",
+      "addWords": true
+    }
+  ],
+  "languageSettings": [
+    {
+      "languageId": "markdown",
+      "dictionaries": ["markdown"]
+    },
+    {
+      "languageId": "latex",
+      "dictionaries": ["latex"]
+    }
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    "dist/**",
+    "out/**",
+    "build/**"
+  ],
+  "words": []
+}

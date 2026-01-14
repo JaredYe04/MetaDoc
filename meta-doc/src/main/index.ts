@@ -133,8 +133,16 @@ function createWindow(): void {
 
   // 窗口准备好显示时
   mainWindow.on('ready-to-show', () => {
-    mainWindow?.show();
+    // 先绑定快捷键监听器，确保能捕获后续的 show 和 focus 事件
     bindShortcuts();
+    // 显示窗口
+    mainWindow?.show();
+    // 强制 focus 一次，确保窗口获得焦点，从而正确绑定快捷键
+    // 这样可以避免在窗口还没显示时就注册快捷键，导致在其他软件时快捷键被拦截
+    mainWindow?.focus();
+    // 显式调用一次 registerShortcuts，确保快捷键被正确注册
+    // 虽然 focus 事件会触发 registerShortcuts，但显式调用可以确保万无一失
+    registerShortcuts();
     broadcastServiceStatus();
     
     // 初始化工具服务（包括知识库服务）
@@ -645,8 +653,19 @@ function registerShortcuts(): void {
 
     const success = globalShortcut.register(accelerator, () => {
       if (isShortcutPressed) return;
+      
+      // 检查窗口是否存在且可见
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        return;
+      }
+      
+      // 检查窗口是否聚焦，如果没有聚焦则不触发
+      if (!mainWindow.isFocused()) {
+        return;
+      }
+      
       isShortcutPressed = true;
-      mainWindow?.webContents.send(channel);
+      mainWindow.webContents.send(channel);
       setTimeout(() => {
         isShortcutPressed = false;
       }, 1000);

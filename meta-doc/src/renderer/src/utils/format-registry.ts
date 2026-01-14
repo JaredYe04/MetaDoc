@@ -120,6 +120,13 @@ class FormatRegistry {
   }
 
   /**
+   * 获取扩展名映射表（用于传递给 Worker）
+   */
+  getExtensionMap(): Map<string, string> {
+    return new Map(this.extensionMap);
+  }
+
+  /**
    * 检测文档格式（仅通过扩展名，不读取文件内容）
    * 注意：此函数不再进行内容检测，只通过文件扩展名判断格式，避免读取文件内容造成开销
    */

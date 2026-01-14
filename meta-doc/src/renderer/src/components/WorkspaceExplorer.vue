@@ -43,10 +43,11 @@
           class="workspace-explorer-content"
           @contextmenu.prevent="handleContentContextMenu"
         >
-          <template v-for="folderPath in workspaceFolders" :key="folderPath">
+          <template v-for="(folderPath, index) in workspaceFolders" :key="folderPath">
             <WorkspaceTreeNode
               v-if="workspaceFolderNodes.get(folderPath)"
               :node="workspaceFolderNodes.get(folderPath)!"
+              :sibling-index="index"
               :expanded-paths="expandedPaths"
               :workspace-folder="folderPath"
               :selected-paths="selectedPaths"
@@ -179,6 +180,8 @@ import type { ContextMenuItem } from './contextMenus/types'
 import { dirname, basename, extname, join, relative } from '../utils/path-utils'
 import { useCloseTab } from '../composables/useCloseTab'
 import { formatRegistry } from '../utils/format-registry'
+import * as Comlink from 'comlink'
+import type { DirectoryProcessorWorker } from '../utils/workers/directory-processor.worker'
 
 const { t } = useI18n()
 const logger = createRendererLogger('WorkspaceExplorer')
@@ -233,6 +236,60 @@ class ConcurrencyPool {
 
 // 创建并发池实例（15 个并发）
 const directoryLoadPool = new ConcurrencyPool(15)
+
+// Worker 相关
+let directoryProcessorWorker: Comlink.Remote<DirectoryProcessorWorker> | null = null
+let workerInstance: Worker | null = null
+
+// 缓存 extensionMap 对象，避免重复转换
+let cachedExtensionMap: Record<string, string> | null = null
+
+// 获取 extensionMap（带缓存）
+const getExtensionMapObj = (): Record<string, string> => {
+  if (!cachedExtensionMap) {
+    cachedExtensionMap = Object.fromEntries(formatRegistry.getExtensionMap())
+  }
+  return cachedExtensionMap
+}
+
+// 初始化 Worker
+const initWorker = async () => {
+  if (directoryProcessorWorker) {
+    return directoryProcessorWorker
+  }
+
+  try {
+    // 创建 Worker 实例
+    // 使用 ?worker 后缀让 Vite 正确处理 Worker
+    workerInstance = new Worker(
+      new URL('../utils/workers/directory-processor.worker.ts?worker', import.meta.url),
+      { type: 'module' }
+    )
+    
+    // 使用 Comlink 包装 Worker
+    directoryProcessorWorker = Comlink.wrap<DirectoryProcessorWorker>(workerInstance)
+    
+    logger.debug('目录处理 Worker 初始化成功')
+    return directoryProcessorWorker
+  } catch (err) {
+    logger.error('初始化目录处理 Worker 失败:', err)
+    return null
+  }
+}
+
+// 清理 Worker
+const cleanupWorker = () => {
+  if (directoryProcessorWorker) {
+    directoryProcessorWorker[Comlink.releaseProxy]()
+    directoryProcessorWorker = null
+  }
+  if (workerInstance) {
+    workerInstance.terminate()
+    workerInstance = null
+  }
+  // 清理缓存
+  cachedExtensionMap = null
+}
 
 interface FileNode {
   name: string
@@ -576,44 +633,73 @@ const loadDirectoryContent = async (nodePath: string): Promise<FileNode[]> => {
   // 使用并发池执行目录读取
   return directoryLoadPool.execute(async () => {
     try {
+      // 读取目录内容
       const entries = await ipcRenderer.invoke('read-directory', nodePath) as Array<{ name: string; path: string; isDirectory: boolean }>
       
-      const dirs: FileNode[] = []
-      const files: FileNode[] = []
-
-      // 快速处理：只做简单的字符串操作，不进行 I/O
-      for (const entry of entries) {
-        if (entry.isDirectory) {
-          dirs.push({
-            name: entry.name,
-            path: entry.path,
-            type: 'directory',
-            children: undefined // 懒加载：不在这里加载子目录
-          })
-        } else {
-          // 只显示支持的文档格式文件
-          const fileExt = extname(entry.path)
-          const formatId = formatRegistry.getFormatByExtension(fileExt)
-          if (formatId) {
-            files.push({
-              name: entry.name,
-              path: entry.path,
-              type: 'file'
-            })
-          }
-        }
+      // 初始化 Worker（如果还没有初始化）
+      const worker = await initWorker()
+      if (!worker) {
+        // Worker 初始化失败，回退到主线程处理
+        logger.warn('Worker 不可用，回退到主线程处理')
+        return processDirectoryContentInMainThread(entries)
       }
 
-      // 排序：目录在前，文件在后
-      dirs.sort((a, b) => a.name.localeCompare(b.name))
-      files.sort((a, b) => a.name.localeCompare(b.name))
+      // 获取扩展名映射表（使用缓存，避免重复转换）
+      const extensionMapObj = getExtensionMapObj()
       
-      return [...dirs, ...files]
+      // 在 Worker 中处理目录内容（不会阻塞主线程）
+      const result = await worker.processDirectoryContent({
+        entries,
+        extensionMap: extensionMapObj
+      })
+      
+      return result
     } catch (err) {
       logger.error('加载目录内容失败:', { path: nodePath, error: err })
-      return []
+      // 如果 Worker 处理失败，回退到主线程处理
+      try {
+        const entries = await ipcRenderer.invoke('read-directory', nodePath) as Array<{ name: string; path: string; isDirectory: boolean }>
+        return processDirectoryContentInMainThread(entries)
+      } catch (fallbackErr) {
+        logger.error('主线程回退处理也失败:', fallbackErr)
+        return []
+      }
     }
   })
+}
+
+// 主线程处理目录内容（作为回退方案）
+const processDirectoryContentInMainThread = (entries: Array<{ name: string; path: string; isDirectory: boolean }>): FileNode[] => {
+  const dirs: FileNode[] = []
+  const files: FileNode[] = []
+
+  for (const entry of entries) {
+    if (entry.isDirectory) {
+      dirs.push({
+        name: entry.name,
+        path: entry.path,
+        type: 'directory',
+        children: undefined
+      })
+    } else {
+      // 只显示支持的文档格式文件
+      const fileExt = extname(entry.path)
+      const formatId = formatRegistry.getFormatByExtension(fileExt)
+      if (formatId) {
+        files.push({
+          name: entry.name,
+          path: entry.path,
+          type: 'file'
+        })
+      }
+    }
+  }
+
+  // 排序：目录在前，文件在后
+  dirs.sort((a, b) => a.name.localeCompare(b.name))
+  files.sort((a, b) => a.name.localeCompare(b.name))
+  
+  return [...dirs, ...files]
 }
 
 // 加载工作文件夹的子目录（懒加载：只加载直接子项）
@@ -870,6 +956,9 @@ onBeforeUnmount(() => {
   if (ipcRenderer) {
     ipcRenderer.removeListener('directory-changed', handleDirectoryChange)
   }
+
+  // 清理 Worker
+  cleanupWorker()
 })
 
 // 关闭文件 - 使用公共的 closeTab composable
@@ -883,8 +972,10 @@ const handleContextMenu = (event: { node: FileNode; x: number; y: number }) => {
   
   // 如果右键的是文件，且当前没有选中文档或只选中一个文档，则取消选中，选中当前右键的文档
   if (node.type === 'file') {
+    // 使用同步版本，因为这里只是简单的过滤操作
+    const allNodesSync = getAllNodesSync()
     const selectedFilePaths = Array.from(selectedPaths.value).filter(path => {
-      const foundNode = getAllNodes().find(n => n.path === path && n.type === 'file')
+      const foundNode = allNodesSync.find(n => n.path === path && n.type === 'file')
       return foundNode !== undefined
     })
     
@@ -893,8 +984,7 @@ const handleContextMenu = (event: { node: FileNode; x: number; y: number }) => {
       selectedPaths.value.clear()
       selectedPaths.value.add(node.path)
       // 更新 lastSelectedIndex
-      const allNodes = getAllNodes()
-      const currentIndex = allNodes.findIndex(n => n.path === node.path)
+      const currentIndex = allNodesSync.findIndex(n => n.path === node.path)
       lastSelectedIndex.value = currentIndex >= 0 ? currentIndex : -1
     }
   }
@@ -929,7 +1019,8 @@ const handleContentContextMenu = (event: MouseEvent) => {
 // 处理节点点击（支持多选）
 const handleNodeClick = async (event: { node: FileNode; ctrlKey: boolean; shiftKey: boolean }) => {
   const { node, ctrlKey, shiftKey } = event
-  const allNodes = getAllNodes()
+  // 使用同步版本，因为这里需要立即获取索引
+  const allNodes = getAllNodesSync()
   const currentIndex = allNodes.findIndex(n => n.path === node.path)
 
   if (shiftKey && lastSelectedIndex.value >= 0) {
@@ -986,8 +1077,9 @@ const handleContextMenuCommand = async (command: string) => {
       case 'open':
         if (node && node.type === 'file') {
           // 检查是否有选中的文件列表
+          const allNodesSync = getAllNodesSync()
           const selectedFilePaths = Array.from(selectedPaths.value).filter(path => {
-            const foundNode = getAllNodes().find(n => n.path === path && n.type === 'file')
+            const foundNode = allNodesSync.find(n => n.path === path && n.type === 'file')
             return foundNode !== undefined
           })
           
@@ -1134,34 +1226,47 @@ const handlePaste = async (targetPathParam: string | null) => {
       }
     }
 
-    // 批量粘贴
-    for (const sourcePath of clipboardPaths.value) {
-      // 获取源文件/文件夹名称
-      const sourceName = basename(sourcePath)
-      let finalTargetPath = join(targetDir, sourceName)
+    // 批量粘贴 - 分批处理，避免一次性操作太多文件
+    const BATCH_SIZE = 10 // 每批处理 10 个文件
+    const pathsToPaste = clipboardPaths.value
+    
+    for (let i = 0; i < pathsToPaste.length; i += BATCH_SIZE) {
+      const batch = pathsToPaste.slice(i, i + BATCH_SIZE)
+      
+      // 并发处理当前批次
+      await Promise.all(batch.map(async (sourcePath) => {
+        // 获取源文件/文件夹名称
+        const sourceName = basename(sourcePath)
+        let finalTargetPath = join(targetDir, sourceName)
 
-      // 检查目标路径是否存在，如果存在则添加序号
-      let counter = 1
-      while (await ipcRenderer.invoke('check-path-exists', finalTargetPath) as boolean) {
-        const ext = extname(sourceName)
-        const baseNameWithoutExt = sourceName.substring(0, sourceName.length - ext.length)
-        const newName = `${baseNameWithoutExt} (${counter})${ext}`
-        finalTargetPath = join(targetDir, newName)
-        counter++
-      }
+        // 检查目标路径是否存在，如果存在则添加序号
+        let counter = 1
+        while (await ipcRenderer.invoke('check-path-exists', finalTargetPath) as boolean) {
+          const ext = extname(sourceName)
+          const baseNameWithoutExt = sourceName.substring(0, sourceName.length - ext.length)
+          const newName = `${baseNameWithoutExt} (${counter})${ext}`
+          finalTargetPath = join(targetDir, newName)
+          counter++
+        }
 
-      if (clipboardOperation.value === 'cut') {
-        // 移动
-        await ipcRenderer.invoke('move-file-or-folder', {
-          sourcePath,
-          targetPath: finalTargetPath
-        })
-      } else {
-        // 复制
-        await ipcRenderer.invoke('copy-file-or-folder', {
-          sourcePath,
-          targetPath: finalTargetPath
-        })
+        if (clipboardOperation.value === 'cut') {
+          // 移动
+          await ipcRenderer.invoke('move-file-or-folder', {
+            sourcePath,
+            targetPath: finalTargetPath
+          })
+        } else {
+          // 复制
+          await ipcRenderer.invoke('copy-file-or-folder', {
+            sourcePath,
+            targetPath: finalTargetPath
+          })
+        }
+      }))
+      
+      // 如果不是最后一批，让出执行权，允许 UI 更新
+      if (i + BATCH_SIZE < pathsToPaste.length) {
+        await new Promise(resolve => setTimeout(resolve, 0))
       }
     }
 
@@ -1183,24 +1288,114 @@ const handlePaste = async (targetPathParam: string | null) => {
   }
 }
 
-// 获取所有节点（包括子节点）
-const getAllNodes = (): FileNode[] => {
-  const allNodes: FileNode[] = []
+// 序列化节点树为普通对象（用于传递给 Worker）
+// 只序列化已展开的文件夹，折叠的文件夹不序列化其子节点（即使已加载）
+// 优化：避免递归调用，使用迭代方式减少函数调用开销
+const serializeNodeTree = (node: FileNode, expandedPathsSet: Set<string>): FileNode => {
+  const isExpanded = expandedPathsSet.has(node.path)
+  const isFolder = node.type === 'directory' || node.type === 'workspaceRoot'
   
-  const traverse = (nodes: FileNode[]) => {
-    for (const node of nodes) {
-      allNodes.push(node)
-      if (node.children) {
-        traverse(node.children)
+  // 如果节点没有子节点或者是文件，直接返回
+  if (!node.children || (!isFolder && !isExpanded)) {
+    return {
+      name: node.name,
+      path: node.path,
+      type: node.type,
+      isWorkspaceRoot: node.isWorkspaceRoot,
+      children: undefined
+    }
+  }
+  
+  // 对于文件夹：只有展开时才序列化其子节点
+  if (isExpanded && isFolder && node.children) {
+    const serializedChildren: FileNode[] = []
+    
+    // 使用 for 循环而不是 map，减少函数调用开销
+    for (let i = 0; i < node.children.length; i++) {
+      const child = node.children[i]
+      const childIsFolder = child.type === 'directory' || child.type === 'workspaceRoot'
+      const childIsExpanded = expandedPathsSet.has(child.path)
+      
+      if (childIsFolder && !childIsExpanded) {
+        // 折叠的文件夹：只序列化本身，不序列化子节点
+        serializedChildren.push({
+          name: child.name,
+          path: child.path,
+          type: child.type,
+          isWorkspaceRoot: child.isWorkspaceRoot,
+          children: undefined
+        })
+      } else {
+        // 文件或展开的文件夹：递归序列化
+        serializedChildren.push(serializeNodeTree(child, expandedPathsSet))
+      }
+    }
+    
+    return {
+      name: node.name,
+      path: node.path,
+      type: node.type,
+      isWorkspaceRoot: node.isWorkspaceRoot,
+      children: serializedChildren
+    }
+  }
+  
+  // 折叠的文件夹：只返回本身
+  return {
+    name: node.name,
+    path: node.path,
+    type: node.type,
+    isWorkspaceRoot: node.isWorkspaceRoot,
+    children: undefined
+  }
+}
+
+// 获取所有节点（包括子节点）- 优化：直接使用同步版本，避免序列化和 Worker 通信开销
+// 对于300个节点，同步遍历非常快，使用 Worker 反而会增加开销
+const getAllNodes = async (): Promise<FileNode[]> => {
+  // 直接使用同步版本，因为：
+  // 1. 只遍历已展开的节点，数量通常不会太多
+  // 2. 同步遍历很快，不会造成明显卡顿
+  // 3. 避免序列化和 Worker 通信的开销
+  return getAllNodesSync()
+}
+
+// 同步版本的 getAllNodes（用于简单场景，如果节点数量少）
+// 只遍历已展开的文件夹，折叠的文件夹不遍历其子节点
+// 优化：使用迭代而不是递归，减少函数调用开销
+const getAllNodesSync = (): FileNode[] => {
+  const allNodes: FileNode[] = []
+  const expandedPathsSet = expandedPaths.value
+  
+  // 使用栈进行迭代遍历，避免递归调用开销
+  const stack: FileNode[] = []
+  
+  // 将所有根节点加入栈
+  for (const rootNode of workspaceFolderNodes.value.values()) {
+    allNodes.push(rootNode)
+    const rootIsExpanded = expandedPathsSet.has(rootNode.path)
+    if (rootIsExpanded && rootNode.children) {
+      // 将子节点逆序加入栈（这样遍历时是正序）
+      for (let i = rootNode.children.length - 1; i >= 0; i--) {
+        stack.push(rootNode.children[i])
       }
     }
   }
   
-  // 遍历所有工作文件夹根节点
-  for (const rootNode of workspaceFolderNodes.value.values()) {
-    allNodes.push(rootNode)
-    if (rootNode.children) {
-      traverse(rootNode.children)
+  // 迭代处理栈中的节点
+  while (stack.length > 0) {
+    const node = stack.pop()!
+    allNodes.push(node)
+    
+    // 只有文件夹节点且展开时，才处理其子节点
+    const isFolder = node.type === 'directory' || node.type === 'workspaceRoot'
+    const isExpanded = expandedPathsSet.has(node.path)
+    
+    if (isFolder && isExpanded && node.children) {
+      // 将子节点逆序加入栈
+      for (let i = node.children.length - 1; i >= 0; i--) {
+        stack.push(node.children[i])
+      }
     }
   }
   
@@ -1232,8 +1427,9 @@ const handleDelete = async (node: FileNode | null) => {
 
   if (selectedPaths.value.size > 0) {
     // 批量删除选中的项
+    const allNodesSync = getAllNodesSync()
     for (const path of selectedPaths.value) {
-      const foundNode = getAllNodes().find(n => n.path === path)
+      const foundNode = allNodesSync.find(n => n.path === path)
       if (foundNode) {
         pathsToDelete.push(path)
         namesToDelete.push(foundNode.name)
@@ -1445,7 +1641,7 @@ const handleKeyDown = async (event: KeyboardEvent) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
     event.preventDefault()
     event.stopPropagation()
-    handleSelectAll()
+    await handleSelectAll()
     return
   }
 
@@ -1496,16 +1692,23 @@ const handleKeyDown = async (event: KeyboardEvent) => {
   }
 }
 
-// 全选
-const handleSelectAll = () => {
-  selectedPaths.value.clear()
-  const allNodes = getAllNodes()
+// 全选 - 优化：批量添加，减少 Vue 响应式更新开销
+const handleSelectAll = async () => {
+  // 先收集所有路径，然后一次性更新，减少响应式更新次数
+  const allNodes = getAllNodesSync()
+  const pathsToSelect = new Set<string>()
+  
+  // 收集所有需要选中的路径
   for (const node of allNodes) {
     // 工作文件夹根节点不可选中
     if (!node.isWorkspaceRoot) {
-      selectedPaths.value.add(node.path)
+      pathsToSelect.add(node.path)
     }
   }
+  
+  // 一次性更新选中状态，只触发一次响应式更新
+  selectedPaths.value = pathsToSelect
+  
   if (allNodes.length > 0) {
     const lastNode = allNodes[allNodes.length - 1]
     lastSelectedIndex.value = allNodes.findIndex(n => n.path === lastNode.path)
@@ -1568,6 +1771,13 @@ const handleSelectAll = () => {
 .workspace-explorer-tree {
   flex: 1;
   min-height: 0;
+  position: relative;
+  z-index: 1; /* 确保 el-scrollbar 容器有 z-index，sticky 元素在其内部 */
+}
+
+/* 确保 el-scrollbar 的滚动条在 sticky 元素之上 */
+.workspace-explorer-tree :deep(.el-scrollbar__bar) {
+  z-index: 10; /* 滚动条的 z-index 应该高于所有 sticky 元素 */
 }
 
 .workspace-explorer-loading,

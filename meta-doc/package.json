@@ -80,6 +80,7 @@
     "axios": "^1.7.7",
     "better-sqlite3": "^12.5.0",
     "body-parser": "^2.2.0",
+    "comlink": "^4.4.2",
     "concurrently": "^9.2.1",
     "core-js": "^3.42.0",
     "cors": "^2.8.5",

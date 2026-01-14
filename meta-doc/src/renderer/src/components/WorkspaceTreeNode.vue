@@ -49,10 +49,11 @@
     </div>
     <div v-if="isExpanded && node.children" class="workspace-tree-node-children">
       <WorkspaceTreeNode
-        v-for="child in node.children"
+        v-for="(child, index) in node.children"
         :key="child.path"
         :node="child"
         :depth="depth + 1"
+        :sibling-index="index"
         :expanded-paths="expandedPaths"
         :workspace-folder="workspaceFolder"
         :selected-paths="selectedPaths"
@@ -92,10 +93,12 @@ interface Props {
   workspaceFolder?: string | null
   selectedPaths?: Set<string>
   lastSelectedIndex?: number
+  siblingIndex?: number // 同级节点中的索引（从上到下，从0开始）
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  depth: 0
+  depth: 0,
+  siblingIndex: 0
 })
 
 const emit = defineEmits<{
@@ -137,17 +140,36 @@ const getStickyTop = () => {
 }
 
 // 计算sticky定位的z-index值
+// 规则：
+// 1. 深度越浅（depth 越小），z-index 越高（位于前台，第一层盖在第二层上面）
+// 2. 同级节点，前面的（siblingIndex 小）z-index 更高（前面的盖在后面的上面）
+// 3. 所有 z-index 必须小于 el-scrollbar 的滚动条（z-index = 10）
+// 策略：
+// - 使用 z-index 范围 1-9（确保小于滚动条的 10）
+// - 主要根据 depth 区分层级：depth 越小，z-index 越高
+// - 对于同级节点，使用一个很小的偏移量（每 100 个同级节点递减 1）
+//   这样可以确保即使有很多同级节点，也能正确区分
 const getStickyZIndex = () => {
   if (props.node.type === 'workspaceRoot') {
-    // 工作文件夹使用较高的z-index，确保在普通文件夹上方
-    return 2
+    // 工作文件夹（depth=0）：z-index = 9（最高层级）
+    // 如果有多个工作文件夹，前面的比后面的高
+    // 但通常工作文件夹不会重叠，所以使用固定值 9
+    // 如果确实需要区分，可以使用：9 - Math.min(siblingIndex, 8)
+    return 9
   }
   if (props.node.type === 'directory') {
-    // 普通文件夹使用较低的z-index
-    // 使用较小的z-index值，确保不会覆盖滚动条
-    // 工作文件夹：z-index = 2
-    // 普通文件夹：z-index = 1
-    return 1
+    // 普通文件夹：
+    // - 基础 z-index = 9 - depth（深度越浅，z-index 越高）
+    //   depth 1 -> 8, depth 2 -> 7, depth 3 -> 6, ...
+    // - 对于同级节点，前面的比后面的高
+    //   使用 siblingIndex 的分数影响：每 100 个同级节点递减 1
+    //   这样可以确保即使有很多同级节点，也能正确区分
+    const baseZIndex = 9 - props.depth // depth 越小，z-index 越高
+    // 同级节点：前面的比后面的高，但差异很小
+    // 每 100 个同级节点递减 1，确保不会影响主要层级区分
+    const siblingOffset = Math.floor(props.siblingIndex / 100)
+    const finalZIndex = baseZIndex - siblingOffset
+    return Math.max(1, finalZIndex) // 确保至少为 1，但小于 10
   }
   return 0
 }

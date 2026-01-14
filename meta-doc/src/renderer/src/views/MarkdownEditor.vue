@@ -1712,11 +1712,11 @@ onMounted(async () => {
                     tip: t('article.toolbar.preview'),
                     tipPosition: 's',
                 },
-                {
-                    name: 'fullscreen',
-                    tip: t('article.toolbar.fullscreen'),
-                    tipPosition: 's',
-                },
+                // {
+                //     name: 'fullscreen',
+                //     tip: t('article.toolbar.fullscreen'),
+                //     tipPosition: 's',
+                // },
                 {
                     name: "quote",
                     tip: t('article.toolbar.quote'),

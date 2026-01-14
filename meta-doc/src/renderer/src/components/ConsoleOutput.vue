@@ -318,21 +318,26 @@ const appendToLastLine = (content: string, type: ConsoleLineType = 'out') => {
     lastLine.content += content;
     renderConsole();
   } else {
+    // 处理包含换行符的内容
     const parts = content.split('\n');
-    if (parts[0]) {
+    
+    // 第一部分追加到最后一行
+    if (parts[0] !== undefined) {
       const lastLine = lines.value[lines.value.length - 1];
       lastLine.content += parts[0];
     }
-    for (let i = 1; i < parts.length - 1; i++) {
-      if (parts[i]) {
-        lines.value.push({ id: lineId++, content: parts[i], type });
-      } else {
-        lines.value.push({ id: lineId++, content: '', type });
-      }
+    
+    // 中间部分（如果有）创建新行
+    // 注意：split('\n') 会在每个换行符处分割，所以如果有 n 个换行符，会有 n+1 个部分
+    // 例如 "a\nb\nc" 会分割成 ["a", "b", "c"]
+    // 如果内容以 \n 开头，第一个元素会是空字符串 ""
+    // 如果内容以 \n 结尾，最后一个元素会是空字符串 ""
+    for (let i = 1; i < parts.length; i++) {
+      // 对于每个换行符后的部分，都创建新行
+      // 即使是空字符串也创建新行（表示空行）
+      lines.value.push({ id: lineId++, content: parts[i] || '', type });
     }
-    if (parts.length > 1 && parts[parts.length - 1]) {
-      lines.value.push({ id: lineId++, content: parts[parts.length - 1], type });
-    }
+    
     renderConsole();
   }
 };

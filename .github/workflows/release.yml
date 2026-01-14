@@ -79,6 +79,23 @@ jobs:
         working-directory: meta-doc
         run: node scripts/get-release-info.js "${{ steps.release_type.outputs.type }}" "${{ steps.version_info.outputs.clean_version }}"
       
+      - name: 提交版本更改到仓库
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: meta-doc
+        run: node scripts/commit-version-changes.js "${{ steps.version_info.outputs.version }}"
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      
+      - name: 创建 Git 标签（如果不存在）
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: meta-doc
+        run: node scripts/create-release-tag.js "${{ steps.release_info.outputs.tag }}" "${{ steps.release_info.outputs.release_name }}"
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      
       - name: 检查版本是否已发布
         id: check_release
         run: node meta-doc/scripts/check-release-exists.js "${{ steps.release_info.outputs.tag }}"

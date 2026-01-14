@@ -49,16 +49,19 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
-          # 注意：如果 checkout 卡住，可能是网络问题
-          # 解决方案：
-          # 1. 检查 self-hosted runner 的网络连接
-          # 2. 检查 GitHub 访问是否正常
-          # 3. 如果仓库很大，可以考虑使用 fetch-depth: 100 减少克隆时间
+          # 优化：对于 self-hosted runner，可以设置 clean: false 来避免每次都重新克隆
+          # 但需要注意：这可能导致工作目录不干净，建议在关键步骤前手动清理
+          clean: false  # 保留现有仓库，使用增量更新（提高效率）
+      
+      - name: 更新仓库到最新状态
+        run: node meta-doc/scripts/update-repo.js "${{ github.ref }}" "${{ github.ref_name }}"
+        continue-on-error: true
       
       - name: 验证 Git 仓库
         run: |
           git --version
           git rev-parse --git-dir
+          git rev-parse HEAD
           echo "✅ Git 仓库验证成功"
       
       - name: 设置 Node.js

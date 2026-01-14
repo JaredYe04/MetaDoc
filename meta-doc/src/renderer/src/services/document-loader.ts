@@ -1,6 +1,8 @@
 import { extractOutlineTreeFromMarkdown, filterMetaDataFromMd } from '../utils/md-utils';
 import { convertLatexToMarkdown } from '../utils/latex-utils';
 import { deserializeMetadataFromBase64 } from '../utils/metadata-serializer';
+import { deserializeMetadataFromBuffer, getSidecarPath } from '../utils/metadata-sidecar';
+import { createRendererLogger } from '../utils/logger';
 import type { ArticleMetaData, AIDialog, AIDialogMessage, DocumentOutlineNode } from '../../../types';
 import type { AgentSession } from '../types/agent';
 import {
@@ -9,6 +11,8 @@ import {
   DEFAULT_OUTLINE_TREE,
   DEFAULT_AGENT_SESSIONS,
 } from '../constants/document';
+
+const logger = createRendererLogger('DocumentLoader');
 
 export type LoadedDocumentFormat = 'md' | 'tex' | 'txt';
 
@@ -79,7 +83,74 @@ const ensureArrayAgentSessions = (value: unknown): AgentSession[] => {
   return cloneAgentSessions(DEFAULT_AGENT_SESSIONS);
 };
 
-export const loadDocumentFromMarkdown = async (content: string): Promise<LoadedDocumentData> => {
+/**
+ * 尝试从Sidecar文件读取元信息
+ * @param filePath 文件路径
+ * @returns 元信息对象，如果读取失败返回null
+ */
+async function tryLoadMetadataFromSidecar(filePath: string): Promise<any | null> {
+  try {
+    let ipcRenderer: any = null;
+    if (typeof window !== 'undefined') {
+      if ((window as any).electron?.ipcRenderer) {
+        ipcRenderer = (window as any).electron.ipcRenderer;
+      } else {
+        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer');
+        ipcRenderer = localIpcRenderer;
+      }
+    }
+    
+    if (!ipcRenderer) {
+      logger.warn('[tryLoadMetadataFromSidecar] ipcRenderer不可用');
+      return null;
+    }
+    
+    const sidecarPath = getSidecarPath(filePath);
+    const buffer = await ipcRenderer.invoke('read-sidecar-file', { path: sidecarPath });
+    
+    if (!buffer || (Array.isArray(buffer) && buffer.length === 0)) {
+      logger.warn('[tryLoadMetadataFromSidecar] Buffer为空或长度为0', { 
+        buffer: buffer,
+        isNull: buffer === null,
+        isUndefined: buffer === undefined,
+        isArray: Array.isArray(buffer),
+        length: buffer?.length
+      });
+      return null;
+    }
+    
+    // 将Buffer转换为Uint8Array（渲染进程兼容）
+    // 在渲染进程中，Buffer可能被序列化为ArrayBuffer、Uint8Array或数组
+    let uint8Buffer: Uint8Array;
+    if (buffer instanceof Uint8Array) {
+      uint8Buffer = buffer;
+    } else if (Array.isArray(buffer)) {
+      uint8Buffer = new Uint8Array(buffer);
+    } else if (buffer instanceof ArrayBuffer) {
+      uint8Buffer = new Uint8Array(buffer);
+    } else {
+      // 尝试从其他类型转换（包括Buffer，在渲染进程中会被序列化）
+      uint8Buffer = new Uint8Array(buffer as any);
+    }
+    
+    const metadata = await deserializeMetadataFromBuffer(uint8Buffer);
+    logger.info('[tryLoadMetadataFromSidecar] 成功从Sidecar文件读取元信息', { 
+      hasMeta: !!metadata?.current_article_meta_data,
+      hasSessions: !!metadata?.current_agent_sessions
+    });
+    return metadata;
+  } catch (error) {
+    // Sidecar文件不存在或读取失败，返回null（不抛出错误，继续尝试其他方式）
+    logger.warn('[tryLoadMetadataFromSidecar] 读取Sidecar文件失败', { 
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      filePath
+    });
+    return null;
+  }
+}
+
+export const loadDocumentFromMarkdown = async (content: string, filePath?: string): Promise<LoadedDocumentData> => {
   const normalized = normalizeLineEndings(content ?? '');
   const metaMatch = normalized.match(META_INFO_COMMENT_PATTERN);
   const pureMarkdown = filterMetaDataFromMd(normalized);
@@ -89,7 +160,49 @@ export const loadDocumentFromMarkdown = async (content: string): Promise<LoadedD
   let dialogs = cloneDialogs(DEFAULT_AI_DIALOGS);
   let sessions = cloneAgentSessions(DEFAULT_AGENT_SESSIONS);
 
-  if (metaMatch && metaMatch[1]) {
+  // 优先尝试从Sidecar文件读取元信息
+  if (filePath) {
+    logger.debug('[loadDocumentFromMarkdown] 尝试从Sidecar文件读取元信息', { filePath });
+    const sidecarMetadata = await tryLoadMetadataFromSidecar(filePath);
+    if (sidecarMetadata && typeof sidecarMetadata === 'object') {
+      logger.info('[loadDocumentFromMarkdown] 成功从Sidecar文件读取元信息，使用Sidecar数据');
+      if (sidecarMetadata.current_article_meta_data) {
+        meta = cloneMeta(sidecarMetadata.current_article_meta_data as ArticleMetaData);
+        logger.debug('[loadDocumentFromMarkdown] 已加载元信息', { title: meta.title });
+      }
+      if (sidecarMetadata.current_agent_sessions) {
+        sessions = ensureArrayAgentSessions(sidecarMetadata.current_agent_sessions);
+        logger.debug('[loadDocumentFromMarkdown] 已加载Agent会话', { sessionCount: sessions.length });
+      }
+    } else {
+      logger.debug('[loadDocumentFromMarkdown] Sidecar文件读取失败或为空，尝试从注释中解析', { 
+        hasSidecarMetadata: !!sidecarMetadata,
+        sidecarMetadataType: typeof sidecarMetadata,
+        hasCommentMeta: !!metaMatch
+      });
+      // 如果没有Sidecar文件，尝试从注释中解析（向后兼容）
+      if (metaMatch && metaMatch[1]) {
+        try {
+          const metadata = await deserializeMetadataFromBase64(metaMatch[1]);
+          if (metadata && typeof metadata === 'object') {
+            if (metadata.current_article_meta_data) {
+              meta = cloneMeta(metadata.current_article_meta_data as ArticleMetaData);
+            }
+            if (metadata.current_agent_sessions) {
+              sessions = ensureArrayAgentSessions(metadata.current_agent_sessions);
+            }
+          }
+        } catch (error) {
+          logger.warn('[loadDocumentFromMarkdown] 解析 Markdown 注释中的元信息失败', error);
+          outline = deriveMarkdownOutline(pureMarkdown);
+          meta = cloneMeta(DEFAULT_ARTICLE_META);
+          dialogs = cloneDialogs(DEFAULT_AI_DIALOGS);
+        }
+      }
+    }
+  } else if (metaMatch && metaMatch[1]) {
+    logger.debug('[loadDocumentFromMarkdown] 没有文件路径，从注释中解析元信息');
+    // 如果没有文件路径，只能从注释中解析
     try {
       const metadata = await deserializeMetadataFromBase64(metaMatch[1]);
       if (metadata && typeof metadata === 'object') {
@@ -101,11 +214,13 @@ export const loadDocumentFromMarkdown = async (content: string): Promise<LoadedD
         }
       }
     } catch (error) {
-      console.warn('[DocumentLoader] 解析 Markdown 元信息失败', error);
+      logger.warn('[loadDocumentFromMarkdown] 解析 Markdown 注释中的元信息失败', error);
       outline = deriveMarkdownOutline(pureMarkdown);
       meta = cloneMeta(DEFAULT_ARTICLE_META);
       dialogs = cloneDialogs(DEFAULT_AI_DIALOGS);
     }
+  } else {
+    logger.debug('[loadDocumentFromMarkdown] 没有找到元信息（既没有Sidecar文件也没有注释）');
   }
 
   meta = autoGenerateTitle(meta, pureMarkdown);
@@ -122,7 +237,7 @@ export const loadDocumentFromMarkdown = async (content: string): Promise<LoadedD
   };
 };
 
-export const loadDocumentFromTex = async (content: string): Promise<LoadedDocumentData> => {
+export const loadDocumentFromTex = async (content: string, filePath?: string): Promise<LoadedDocumentData> => {
   const normalized = normalizeLineEndings(content ?? '');
   const metaMatch = normalized.match(META_INFO_TEX_PATTERN);
   let pureTex = normalized.replace(META_INFO_TEX_PATTERN, '');
@@ -131,7 +246,46 @@ export const loadDocumentFromTex = async (content: string): Promise<LoadedDocume
   let meta = cloneMeta(DEFAULT_ARTICLE_META);
   let dialogs = cloneDialogs(DEFAULT_AI_DIALOGS);
 
-  if (metaMatch && metaMatch[1]) {
+  // 优先尝试从Sidecar文件读取元信息
+  if (filePath) {
+    logger.debug('[loadDocumentFromTex] 尝试从Sidecar文件读取元信息', { filePath });
+    const sidecarMetadata = await tryLoadMetadataFromSidecar(filePath);
+    if (sidecarMetadata && typeof sidecarMetadata === 'object') {
+      logger.info('[loadDocumentFromTex] 成功从Sidecar文件读取元信息，使用Sidecar数据');
+      if (sidecarMetadata.current_article_meta_data) {
+        meta = cloneMeta(sidecarMetadata.current_article_meta_data as ArticleMetaData);
+        logger.debug('[loadDocumentFromTex] 已加载元信息', { title: meta.title });
+      }
+      if (sidecarMetadata.current_agent_sessions) {
+        agentSessions = ensureArrayAgentSessions(sidecarMetadata.current_agent_sessions);
+        logger.debug('[loadDocumentFromTex] 已加载Agent会话', { sessionCount: agentSessions.length });
+      }
+    } else {
+      logger.debug('[loadDocumentFromTex] Sidecar文件读取失败或为空，尝试从注释中解析', { 
+        hasSidecarMetadata: !!sidecarMetadata,
+        sidecarMetadataType: typeof sidecarMetadata,
+        hasCommentMeta: !!metaMatch
+      });
+      // 如果没有Sidecar文件，尝试从注释中解析（向后兼容）
+      if (metaMatch && metaMatch[1]) {
+        try {
+          const metadata = await deserializeMetadataFromBase64(metaMatch[1]);
+          if (metadata && typeof metadata === 'object') {
+            if (metadata.current_article_meta_data) {
+              meta = cloneMeta(metadata.current_article_meta_data as ArticleMetaData);
+            }
+            if (metadata.current_agent_sessions) {
+              agentSessions = ensureArrayAgentSessions(metadata.current_agent_sessions);
+            }
+          }
+        } catch (error) {
+          logger.warn('[loadDocumentFromTex] 解析 LaTeX 注释中的元信息失败', error);
+        }
+      }
+    }
+  } else if (metaMatch && metaMatch[1]) {
+    logger.debug('[loadDocumentFromTex] 没有文件路径，从注释中解析元信息');
+    // 如果没有文件路径，只能从注释中解析
     try {
       const metadata = await deserializeMetadataFromBase64(metaMatch[1]);
       if (metadata && typeof metadata === 'object') {
@@ -143,8 +297,10 @@ export const loadDocumentFromTex = async (content: string): Promise<LoadedDocume
         }
       }
     } catch (error) {
-      console.warn('[DocumentLoader] 解析 LaTeX 元信息失败', error);
+      logger.warn('[loadDocumentFromTex] 解析 LaTeX 注释中的元信息失败', error);
     }
+  } else {
+    logger.debug('[loadDocumentFromTex] 没有找到元信息（既没有Sidecar文件也没有注释）');
   }
 
   const markdown = convertLatexToMarkdown(pureTex ?? '');

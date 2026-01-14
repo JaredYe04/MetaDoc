@@ -918,7 +918,7 @@ function updateDocumentDirty(tabId: string): void {
  */
 function updateDocumentLastView(tabId: string, view: DocumentView): void {
   const logger = getLogger()
-  logger.info('[Workspace] updateDocumentLastView 被调用', { tabId, view, stack: new Error().stack })
+  //logger.info('[Workspace] updateDocumentLastView 被调用', { tabId, view, stack: new Error().stack })
   const doc = ensureDocument(tabId);
   if (doc.lastView !== view) {
     doc.lastView = view;

@@ -313,11 +313,11 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
         break
       case 'md':
       case 'markdown':
-        loaded = await loadDocumentFromMarkdown(content)
+        loaded = await loadDocumentFromMarkdown(content, resolvedPath)
         break
       case 'tex':
       case 'latex':
-        loaded = await loadDocumentFromTex(content)
+        loaded = await loadDocumentFromTex(content, resolvedPath)
         break
       default:
         // 其他格式，默认当作纯文本处理（不再使用内容检测）

@@ -483,14 +483,136 @@ function bindFileHandlers(): void {
       // 读取PDF文件
       const pdfBuffer = fs.readFileSync(filePath);
 
-      // 导入 pdf2md-ts（CommonJS 方式）
-      const pdf2md = require('pdf2md-ts');
+      // 导入 node-pdf-to-markdown
+      const pdf2md = require('node-pdf-to-markdown');
       
-      // 转换PDF为Markdown
-      const markdownPages = await pdf2md(pdfBuffer);
+      // 获取PDF文件名（不含扩展名）并转换为base64编码的前16位字符
+      // 这样可以避免特殊字符（空格、箭头等）导致图片路径解析失败
+      const originalFileName = path.basename(filePath, path.extname(filePath));
+      const pdfTitle = Buffer.from(originalFileName, 'utf8').toString('base64').substring(0, 16);
+      
+      // 转换PDF为Markdown，使用 relative 模式获取图片映射表
+      const result = await pdf2md(pdfBuffer, {
+        imageMode: 'relative',
+        pdfTitle: pdfTitle
+      });
+
+      // result.markdown: string[] - Markdown 文本数组
+      // result.images: Map<string, Buffer> - 图片名称到图片 Buffer 的映射
+      const markdownPages = result.markdown;
+      const images = result.images;
+
+      // 确保图片上传目录存在
+      if (!fs.existsSync(imageUploadDir)) {
+        fs.mkdirSync(imageUploadDir, { recursive: true });
+      }
+
+      // 上传图片并构建图片名称到URL的映射
+      const imageUrlMap = new Map<string, string>();
+      
+      // 导入 form-data 用于文件上传
+      const FormData = require('form-data');
+      
+      for (const [imageName, imageBuffer] of images.entries()) {
+        try {
+          // 使用 form-data 创建上传请求
+          const formData = new FormData();
+          formData.append('file[]', imageBuffer, {
+            filename: imageName,
+            contentType: imageName.endsWith('.png') ? 'image/png' : 
+                        imageName.endsWith('.jpg') || imageName.endsWith('.jpeg') ? 'image/jpeg' :
+                        imageName.endsWith('.gif') ? 'image/gif' :
+                        imageName.endsWith('.svg') ? 'image/svg+xml' :
+                        'application/octet-stream'
+          });
+
+          // 通过 HTTP 接口上传图片
+          // 使用 keepName=1 参数保持原始文件名（避免时间戳前缀）
+          const uploadResult = await new Promise<{ success: boolean; fileName?: string; error?: string }>((resolve) => {
+            const options = {
+              hostname: 'localhost',
+              port: 52521,
+              path: '/api/image/upload?keepName=1',
+              method: 'POST',
+              headers: formData.getHeaders()
+            };
+
+            const req = http.request(options, (res) => {
+              let data = '';
+              res.on('data', (chunk) => {
+                data += chunk;
+              });
+              res.on('end', () => {
+                try {
+                  const result = JSON.parse(data);
+                  if (result.code === 0 && result.data && result.data.succMap) {
+                    const uploadedFileName = Object.keys(result.data.succMap)[0];
+                    resolve({ success: true, fileName: uploadedFileName });
+                  } else {
+                    resolve({ success: false, error: result.msg || '上传失败' });
+                  }
+                } catch (error) {
+                  resolve({ success: false, error: '解析响应失败' });
+                }
+              });
+            });
+
+            req.on('error', (error) => {
+              resolve({ success: false, error: error.message });
+            });
+
+            formData.pipe(req);
+          });
+
+          if (uploadResult.success && uploadResult.fileName) {
+            // 构造图片URL
+            const imageUrl = `http://localhost:52521/images/${uploadResult.fileName}`;
+            // 使用原始图片名称作为 key，URL 作为 value
+            // 这样可以在后续替换 Markdown 时使用原始名称匹配
+            imageUrlMap.set(imageName, imageUrl);
+          } else {
+            logger.error(`上传图片 ${imageName} 失败:`, uploadResult.error);
+            // 即使上传失败，也尝试使用原始名称构造 URL（降级处理）
+            const fallbackUrl = `http://localhost:52521/images/${imageName}`;
+            imageUrlMap.set(imageName, fallbackUrl);
+          }
+        } catch (error) {
+          logger.error(`上传图片 ${imageName} 失败:`, error);
+        }
+      }
 
       // 将所有页面的 Markdown 合并
-      const markdownContent = markdownPages.join('\n\n');
+      let markdownContent = markdownPages.join('\n\n');
+
+      // 替换 Markdown 中的相对路径为上传后的 URL
+      // 图片路径格式: ./document_image1_p1.png 或 document_image1_p1.png
+      for (const [imageName, imageUrl] of imageUrlMap.entries()) {
+        // 转义特殊字符用于正则表达式
+        const escapedImageName = imageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        // 匹配各种可能的路径格式：
+        // 1. ![alt](./image.png)
+        // 2. ![alt](image.png)
+        // 3. ![alt](./image.png) 在行尾
+        const patterns = [
+          new RegExp(`!\\[([^\\]]*)\\]\\(\\./${escapedImageName}\\)`, 'g'),
+          new RegExp(`!\\[([^\\]]*)\\]\\(${escapedImageName}\\)`, 'g'),
+        ];
+        
+        for (const pattern of patterns) {
+          markdownContent = markdownContent.replace(pattern, `![$1](${imageUrl})`);
+        }
+      }
+
+      // 最后一步：将 URL 替换为本地路径（类似 image2local 的逻辑）
+      // 将 http://localhost:52521/images/ 替换为本地路径
+      const localImagePath = imageUploadDir.replace(/\\/g, '/');
+      markdownContent = markdownContent.replace(
+        /http:\/\/localhost:52521\/images\/([^\s\)]+)/g,
+        (match: string, imageName: string) => {
+          return `${localImagePath}/${imageName}`;
+        }
+      );
 
       return { success: true, markdown: markdownContent };
     } catch (error) {

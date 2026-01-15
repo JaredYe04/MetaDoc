@@ -464,6 +464,14 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
       },
       {
         type: 'action',
+        value: 'refresh',
+        label: 'workspaceExplorer.contextMenu.refresh'
+      },
+      {
+        type: 'divider'
+      },
+      {
+        type: 'action',
         value: 'newFile',
         label: 'workspaceExplorer.contextMenu.newFile'
       },
@@ -473,6 +481,18 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
         label: 'workspaceExplorer.contextMenu.newFolder'
       }
     )
+  }
+
+  // 工作文件夹根节点也添加刷新选项
+  if (node.isWorkspaceRoot) {
+    items.push({
+      type: 'divider'
+    })
+    items.push({
+      type: 'action',
+      value: 'refresh',
+      label: 'workspaceExplorer.contextMenu.refresh'
+    })
   }
 
   return items
@@ -724,6 +744,17 @@ const refreshWorkspaceFolder = async (folderPath: string) => {
   }
 }
 
+// 刷新指定目录节点（用于子目录）
+const refreshDirectoryNode = async (directoryPath: string) => {
+  // 在所有节点中查找对应的目录节点
+  const allNodes = getAllNodesSync()
+  const targetNode = allNodes.find(n => n.path === directoryPath && (n.type === 'directory' || n.type === 'workspaceRoot'))
+  
+  if (targetNode) {
+    await loadSubDirectory(targetNode)
+  }
+}
+
 // 保存工作文件夹列表
 const saveWorkspaceFolders = () => {
   localStorage.setItem('workspaceFolders', JSON.stringify(workspaceFolders.value))
@@ -777,6 +808,8 @@ const loadWorkspaceFolders = async () => {
         successfulFolders.map(folderPath => {
           const rootNode = workspaceFolderNodes.value.get(folderPath)
           if (rootNode && expandedPaths.value.has(folderPath)) {
+            // 确保已展开的目录启动监听
+            startDirectoryWatcher(folderPath)
             return loadWorkspaceFolderChildren(rootNode)
           }
           return Promise.resolve()
@@ -815,9 +848,13 @@ const handleToggle = async (node: FileNode) => {
   if (node.type !== 'directory' && node.type !== 'workspaceRoot') return
 
   if (expandedPaths.value.has(node.path)) {
+    // 折叠：停止目录监听
     expandedPaths.value.delete(node.path)
+    stopDirectoryWatcher(node.path)
   } else {
+    // 展开：启动目录监听
     expandedPaths.value.add(node.path)
+    startDirectoryWatcher(node.path)
     // 如果还没有加载子节点，则加载
     if (!node.children || node.children.length === 0) {
       if (node.isWorkspaceRoot) {
@@ -911,8 +948,10 @@ const stopDirectoryWatcher = (folderPath: string) => {
 const handleDirectoryChange = async (payload: { directoryPath: string; eventType: string; filePath: string }) => {
   const { directoryPath, eventType, filePath } = payload
   
-  // 检查是否是某个工作文件夹的变化
-  if (!workspaceFolders.value.includes(directoryPath)) {
+  // 检查是否是已展开的目录（包括工作文件夹根目录和子目录）
+  const isExpanded = expandedPaths.value.has(directoryPath)
+  if (!isExpanded) {
+    // 如果目录未展开，不需要刷新
     return
   }
 
@@ -925,7 +964,13 @@ const handleDirectoryChange = async (payload: { directoryPath: string; eventType
 
   // 延迟刷新，给文件系统一些时间稳定
   setTimeout(async () => {
-    await refreshWorkspaceFolder(directoryPath)
+    // 如果是工作文件夹根目录，使用 refreshWorkspaceFolder
+    if (workspaceFolders.value.includes(directoryPath)) {
+      await refreshWorkspaceFolder(directoryPath)
+    } else {
+      // 否则刷新对应的目录节点
+      await refreshDirectoryNode(directoryPath)
+    }
   }, 300)
 }
 
@@ -944,9 +989,14 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  // 停止所有目录监听
+  // 停止所有目录监听（包括工作文件夹和已展开的子目录）
   for (const folderPath of workspaceFolders.value) {
     stopDirectoryWatcher(folderPath)
+  }
+  
+  // 停止所有已展开目录的监听
+  for (const expandedPath of expandedPaths.value) {
+    stopDirectoryWatcher(expandedPath)
   }
 
   // 移除事件监听
@@ -1163,6 +1213,18 @@ const handleContextMenuCommand = async (command: string) => {
         }
         newFolderName.value = ''
         newFolderDialogVisible.value = true
+        break
+      case 'refresh':
+        if (node) {
+          // 如果是工作文件夹根节点，使用 refreshWorkspaceFolder
+          if (node.isWorkspaceRoot) {
+            await refreshWorkspaceFolder(node.path)
+          } else if (node.type === 'directory') {
+            // 如果是普通目录，刷新该目录
+            await refreshDirectoryNode(node.path)
+          }
+          ElMessage.success(t('workspaceExplorer.refreshSuccess'))
+        }
         break
     }
   } catch (err) {

@@ -183,18 +183,20 @@ const handleIconClick = (event: MouseEvent) => {
 }
 
 const handleClick = (event: MouseEvent) => {
-  // 工作文件夹根节点：点击整个节点可以展开/折叠
-  if (props.node.isWorkspaceRoot) {
-    // 检查是否点击在关闭按钮上
-    const target = event.target as HTMLElement
-    if (target.closest('.workspace-tree-node-close')) {
-      return // 关闭按钮点击已单独处理
-    }
+  // 检查是否点击在关闭按钮上
+  const target = event.target as HTMLElement
+  if (target.closest('.workspace-tree-node-close')) {
+    return // 关闭按钮点击已单独处理
+  }
+  
+  // 工作文件夹根节点或普通目录节点：点击整个节点可以展开/折叠
+  if (props.node.isWorkspaceRoot || props.node.type === 'directory') {
     // 点击节点其他部分，切换展开/折叠
     emit('toggle', props.node)
     return
   }
-  // 所有点击都触发选中逻辑（图标点击已单独处理）
+  
+  // 文件节点：点击节点触发选中逻辑（图标点击已单独处理）
   emit('node-click', {
     node: props.node,
     ctrlKey: event.ctrlKey || event.metaKey,

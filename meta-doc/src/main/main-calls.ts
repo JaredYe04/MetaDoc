@@ -458,6 +458,48 @@ function bindFileHandlers(): void {
     }
   });
 
+  // 读取二进制文件内容（用于PDF等二进制文件）
+  ipcMain.handle('read-file-buffer', async (event: IpcMainInvokeEvent, filePath: string): Promise<Buffer | null> => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        // 文件不存在时返回 null，而不是抛出错误
+        return null;
+      }
+      const buffer = fs.readFileSync(filePath);
+      return buffer;
+    } catch (error) {
+      logger.error('读取二进制文件失败:', error);
+      throw error;
+    }
+  });
+
+  // 将PDF文件转换为Markdown
+  ipcMain.handle('convert-pdf-to-markdown', async (event: IpcMainInvokeEvent, filePath: string): Promise<{ success: boolean; markdown?: string; error?: string }> => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        return { success: false, error: '文件不存在' };
+      }
+
+      // 读取PDF文件
+      const pdfBuffer = fs.readFileSync(filePath);
+
+      // 导入 pdf2md-ts（CommonJS 方式）
+      const pdf2md = require('pdf2md-ts');
+      
+      // 转换PDF为Markdown
+      const markdownPages = await pdf2md(pdfBuffer);
+
+      // 将所有页面的 Markdown 合并
+      const markdownContent = markdownPages.join('\n\n');
+
+      return { success: true, markdown: markdownContent };
+    } catch (error) {
+      logger.error('PDF转Markdown失败:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, error: errorMessage };
+    }
+  });
+
   // 获取文件统计信息（创建时间、修改时间等）
   ipcMain.handle('get-file-stats', async (event: IpcMainInvokeEvent, filePath: string): Promise<{ birthtime: number; mtime: number; size: number } | null> => {
     try {
@@ -2925,10 +2967,11 @@ export const openDoc = async (filePath?: string): Promise<void> => {
   const result: OpenDialogReturnValue = await dialog.showOpenDialog(mainWindow!, {
     title: t('main.dialogs.openFileTitle'),
     filters: [
-      { name: supportedFilterName, extensions: ['md', 'tex', 'txt', 'json', 'js', 'ts', 'py', 'java', 'cpp', 'c', 'h', 'html', 'css', 'xml', 'yaml', 'yml'] },
+      { name: supportedFilterName, extensions: ['md', 'tex', 'txt', 'json', 'pdf', 'js', 'ts', 'py', 'java', 'cpp', 'c', 'h', 'html', 'css', 'xml', 'yaml', 'yml'] },
       { name: t('main.dialogs.filters.markdown'), extensions: ['md'] },
       { name: t('main.dialogs.filters.latex'), extensions: ['tex'] },
       { name: t('main.dialogs.filters.json'), extensions: ['json'] },
+      { name: t('main.dialogs.filters.pdf'), extensions: ['pdf'] },
       { name: 'Text Files', extensions: ['txt', 'text'] },
       { name: 'Code Files', extensions: ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'h', 'hpp', 'cs', 'go', 'rs'] },
       { name: t('main.dialogs.filters.all'), extensions: ['*'] },
@@ -2937,18 +2980,33 @@ export const openDoc = async (filePath?: string): Promise<void> => {
 
   if (!result.canceled && result.filePaths.length > 0) {
     const selectedPath = result.filePaths[0];
-    const content = fs.readFileSync(selectedPath, 'utf-8');
     const format = path.extname(selectedPath).slice(1).toLowerCase();
     
-    const payload = {
-      content,
-      format,
-      path: selectedPath,
-      fileName: path.basename(selectedPath),
-    };
-    
-    mainWindow?.webContents.send('open-doc-success', payload);
-    mainWindow?.webContents.send('update-current-path', selectedPath);
+    // PDF文件是二进制文件，不需要读取内容，让渲染进程处理
+    if (format === 'pdf') {
+      const payload = {
+        content: '', // PDF文件不在这里读取内容
+        format: 'pdf',
+        path: selectedPath,
+        fileName: path.basename(selectedPath),
+      };
+      
+      mainWindow?.webContents.send('open-doc-success', payload);
+      mainWindow?.webContents.send('update-current-path', selectedPath);
+    } else {
+      // 其他文本文件正常读取
+      const content = fs.readFileSync(selectedPath, 'utf-8');
+      
+      const payload = {
+        content,
+        format,
+        path: selectedPath,
+        fileName: path.basename(selectedPath),
+      };
+      
+      mainWindow?.webContents.send('open-doc-success', payload);
+      mainWindow?.webContents.send('update-current-path', selectedPath);
+    }
   }
 };
 

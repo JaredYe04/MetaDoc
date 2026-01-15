@@ -1165,6 +1165,25 @@ function initializeDocumentFromTemplate(
     format.templates[0];
 
   const doc = ensureDocument(tabId);
+  
+  // 检查文档是否已有内容（避免覆盖已有内容）
+  const hasContent = (doc.markdown && doc.markdown.trim().length > 0) || 
+                     (doc.tex && doc.tex.trim().length > 0);
+  
+  if (hasContent) {
+    // 如果文档已有内容，只更新格式和元信息，不覆盖内容
+    doc.format = formatId;
+    if (targetView) {
+      doc.lastView = targetView;
+    }
+    tab.format = formatId;
+    tab.kind = 'file';
+    refreshActiveTabMetadata();
+    updateDocumentDirty(tabId);
+    return;
+  }
+
+  // 如果文档没有内容，使用模板初始化
   const snapshot = createDocumentSnapshotFromTemplate(formatId, template?.content ?? '');
   snapshot.id = tabId;
   snapshot.tabId = tabId;

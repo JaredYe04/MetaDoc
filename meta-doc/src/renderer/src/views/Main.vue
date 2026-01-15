@@ -272,6 +272,80 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     }
   }
 
+  // 如果格式未指定，只通过扩展名检测格式（不读取文件内容进行检测）
+  if (!format && resolvedPath) {
+    const ext = extname(resolvedPath)
+    format = formatRegistry.getFormatByExtension(ext) || 'txt'
+  }
+
+  // 如果仍然没有格式，使用默认格式
+  if (!format) {
+    format = 'txt'
+  }
+
+  // PDF 文件特殊处理：转换为 Markdown 并在新标签页打开（不保存文件）
+  if (format === 'pdf' || (resolvedPath && extname(resolvedPath).toLowerCase() === '.pdf')) {
+    try {
+      const ipcRenderer = window.electron?.ipcRenderer || (await import('../utils/web-adapter/local-ipc-renderer')).localIpcRenderer
+      if (!ipcRenderer?.invoke) {
+        throw new Error('IPC 渲染器不可用')
+      }
+
+      // 在主进程中转换PDF为Markdown
+      const result = await ipcRenderer.invoke('convert-pdf-to-markdown', resolvedPath) as { success: boolean; markdown?: string; error?: string }
+      
+      if (!result.success || !result.markdown) {
+        throw new Error(result.error || 'PDF转换失败')
+      }
+
+      const markdownContent = result.markdown
+
+      // 作为新的 Markdown 文档在新标签页打开（不保存文件，path为空）
+      const loaded = await loadDocumentFromMarkdown(markdownContent, undefined)
+      const snapshot = createSnapshotFromLoadedData(loaded)
+      snapshot.path = '' // 不保存文件
+      snapshot.dirty = true // 标记为未保存
+
+      // 创建新标签页
+      const tab = addDocumentTab(snapshot, {
+        kind: 'file', // 使用 'file' 而不是 'new'，避免显示格式选择界面
+        dirty: true,
+        path: '', // 不保存文件
+        format: 'md', // 格式为 Markdown
+      })
+      const doc = ensureDocument(tab.id)
+      doc.path = '' // 确保路径为空
+      doc.format = 'md'
+      
+      // 设置标签页标题为PDF文件名
+      const pdfFileName = extractFileName(resolvedPath)
+      if (pdfFileName) {
+        doc.meta.title = pdfFileName.replace(/\.pdf$/i, '')
+      }
+      
+      // 初始化模板（使用空白模板，确保格式已确定，不会显示格式选择界面）
+      // 由于文档已有内容，initializeDocumentFromTemplate 不会覆盖内容
+      workspace.initializeDocumentFromTemplate(tab.id, 'md', 'blank', 'editor')
+      
+      refreshActiveTabMetadata()
+      activateTab(tab.id)
+
+      eventBus.emit('open-doc-success', {
+        tabId: tab.id,
+        path: '', // 不保存文件
+        fileName: getDisplayName(doc, '')
+      })
+      eventBus.emit('is-need-save', true) // 标记为需要保存（虽然不会保存原PDF）
+      
+      return // 提前返回，不执行后续的文件打开逻辑
+    } catch (error) {
+      logger.error('PDF转换失败:', error)
+      const message = error instanceof Error ? error.message : String(error)
+      eventBus.emit('show-error', `PDF转换失败: ${message}`)
+      return
+    }
+  }
+
   // 如果内容为空但有路径，读取文件内容（但不用于格式检测）
   if (!content && resolvedPath) {
     try {
@@ -283,17 +357,6 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       logger.error('读取文件内容失败:', err)
       content = ''
     }
-  }
-
-  // 如果格式未指定，只通过扩展名检测格式（不读取文件内容进行检测）
-  if (!format && resolvedPath) {
-    const ext = extname(resolvedPath)
-    format = formatRegistry.getFormatByExtension(ext) || 'txt'
-  }
-
-  // 如果仍然没有格式，使用默认格式
-  if (!format) {
-    format = 'txt'
   }
 
   let snapshot = null

@@ -229,6 +229,37 @@ export function initializeFormats(): void {
     },
     detector: detectPlainText,
   });
+
+  // 注册 PDF 格式（仅用于文件浏览器显示，实际打开时会转换为 Markdown）
+  formatRegistry.register({
+    id: 'pdf',
+    label: 'PDF',
+    labelKey: 'newDocument.formats.pdf.label',
+    description: 'PDF 文档（将转换为 Markdown）',
+    descriptionKey: 'newDocument.formats.pdf.description',
+    extensions: ['.pdf'],
+    defaultExtension: '.pdf',
+    monacoLanguage: 'plaintext',
+    supportsMetadata: false,
+    supportsOutline: false,
+    supportsAiCompletion: false,
+    defaultTemplateId: 'blank',
+    editorComponent: PlainTextEditor, // PDF不会直接编辑，但需要占位组件
+    contentAdapter: {
+      toMarkdown: (content: string) => content,
+      fromMarkdown: (markdown: string) => markdown,
+    },
+    detector: (content: string, filePath?: string) => {
+      // PDF格式只通过扩展名检测
+      if (filePath) {
+        const ext = extname(filePath).toLowerCase();
+        if (ext === '.pdf') {
+          return 'pdf';
+        }
+      }
+      return null;
+    },
+  });
 }
 
 /**

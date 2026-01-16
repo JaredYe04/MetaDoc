@@ -6,16 +6,25 @@
         'is-expanded': isExpanded,
         'is-file': node.type === 'file',
         'is-selected': isSelected,
+        'is-focused': isFocused,
         'is-workspace-root': node.isWorkspaceRoot,
-        'is-directory': node.type === 'directory' || node.type === 'workspaceRoot'
+        'is-directory': node.type === 'directory' || node.type === 'workspaceRoot',
+        'is-drag-target': isDragTarget
       }"
       :style="{
         paddingLeft: `${depth * 12 + 8}px`,
         top: node.type === 'directory' || node.type === 'workspaceRoot' ? `${getStickyTop()}px` : undefined,
         zIndex: node.type === 'directory' || node.type === 'workspaceRoot' ? getStickyZIndex() : undefined
       }"
+      :draggable="canDrag"
+      :data-path="node.path"
       @click="handleClick"
       @contextmenu="handleContextMenu"
+      @dragstart="handleDragStart"
+      @dragover="handleDragOver"
+      @dragleave="handleDragLeave"
+      @drop="handleDrop"
+      @dragend="handleDragEnd"
     >
       <el-icon
         v-if="node.type === 'directory' || node.type === 'workspaceRoot'"
@@ -47,21 +56,34 @@
         <el-icon><Close /></el-icon>
       </el-button>
     </div>
-    <div v-if="isExpanded && node.children" class="workspace-tree-node-children">
+    <div 
+      v-if="isExpanded && node.children" 
+      class="workspace-tree-node-children"
+      :class="{ 'is-drag-target-area': isDragTargetArea }"
+      @dragover="handleChildrenDragOver"
+      @dragleave="handleChildrenDragLeave"
+      @drop="handleChildrenDrop"
+    >
       <WorkspaceTreeNode
         v-for="(child, index) in node.children"
         :key="child.path"
         :node="child"
         :depth="depth + 1"
         :sibling-index="index"
-        :expanded-paths="expandedPaths"
-        :workspace-folder="workspaceFolder"
-        :selected-paths="selectedPaths"
-        :last-selected-index="lastSelectedIndex"
+              :expanded-paths="expandedPaths"
+              :workspace-folder="workspaceFolder"
+              :selected-paths="selectedPaths"
+              :focused-path="focusedPath"
+              :last-selected-index="lastSelectedIndex"
+              :drag-target-path="dragTargetPath"
         @toggle="$emit('toggle', $event)"
         @open-file="$emit('open-file', $event)"
         @context-menu="$emit('context-menu', $event)"
         @node-click="$emit('node-click', $event)"
+        @drag-start="$emit('drag-start', $event)"
+        @drag-over="$emit('drag-over', $event)"
+        @drag-leave="$emit('drag-leave', $event)"
+        @drop="$emit('drop', $event)"
       />
     </div>
   </div>
@@ -92,8 +114,10 @@ interface Props {
   expandedPaths: Set<string>
   workspaceFolder?: string | null
   selectedPaths?: Set<string>
+  focusedPath?: string | null
   lastSelectedIndex?: number
   siblingIndex?: number // 同级节点中的索引（从上到下，从0开始）
+  dragTargetPath?: string | null // 拖拽目标路径（用于高亮显示）
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -107,6 +131,11 @@ const emit = defineEmits<{
   'context-menu': [event: { node: FileNode; x: number; y: number }]
   'node-click': [event: { node: FileNode; ctrlKey: boolean; shiftKey: boolean }]
   'close-workspace': [path: string]
+  'drag-start': [event: { node: FileNode; event: DragEvent }]
+  'drag-over': [event: { node: FileNode; event: DragEvent }]
+  'drag-leave': [event: { node: FileNode; event: DragEvent }]
+  'drop': [event: { node: FileNode; event: DragEvent }]
+  'drag-end': [event: DragEvent]
 }>()
 
 const isExpanded = computed(() => {
@@ -119,6 +148,48 @@ const isSelected = computed(() => {
     return false
   }
   return props.selectedPaths?.has(props.node.path) || false
+})
+
+const isFocused = computed(() => {
+  // 工作文件夹根节点不可聚焦
+  if (props.node.isWorkspaceRoot) {
+    return false
+  }
+  return props.focusedPath === props.node.path
+})
+
+// 是否可以拖拽（只有选中的节点才能拖拽）
+const canDrag = computed(() => {
+  // 工作文件夹根节点不可拖拽
+  if (props.node.isWorkspaceRoot) {
+    return false
+  }
+  // 只有选中的节点才能拖拽
+  return isSelected.value
+})
+
+// 是否是拖拽目标（用于高亮显示）
+const isDragTarget = computed(() => {
+  if (!props.dragTargetPath) {
+    return false
+  }
+  // 目录节点可以作为拖拽目标
+  if (props.node.type === 'directory' || props.node.isWorkspaceRoot) {
+    return props.dragTargetPath === props.node.path
+  }
+  return false
+})
+
+// 是否是拖拽目标区域（展开目录的文件区域）
+const isDragTargetArea = computed(() => {
+  if (!props.dragTargetPath) {
+    return false
+  }
+  // 展开的目录的文件区域可以作为拖拽目标
+  if (isExpanded.value && (props.node.type === 'directory' || props.node.isWorkspaceRoot)) {
+    return props.dragTargetPath === props.node.path
+  }
+  return false
 })
 
 // 计算sticky定位的top值
@@ -189,19 +260,23 @@ const handleClick = (event: MouseEvent) => {
     return // 关闭按钮点击已单独处理
   }
   
-  // 工作文件夹根节点或普通目录节点：点击整个节点可以展开/折叠
-  if (props.node.isWorkspaceRoot || props.node.type === 'directory') {
-    // 点击节点其他部分，切换展开/折叠
-    emit('toggle', props.node)
-    return
+  // 如果是目录节点，点击图标切换展开/折叠（不触发选中）
+  if (target.closest('.workspace-tree-node-icon')) {
+    return // 图标点击已单独处理
   }
   
-  // 文件节点：点击节点触发选中逻辑（图标点击已单独处理）
+  // 所有节点点击都触发 focus 和 selection 逻辑
+  // 工作文件夹根节点不可选中，但也会触发事件（由父组件处理）
   emit('node-click', {
     node: props.node,
     ctrlKey: event.ctrlKey || event.metaKey,
     shiftKey: event.shiftKey
   })
+  
+  // 如果是目录节点，点击节点其他部分也切换展开/折叠
+  if (props.node.isWorkspaceRoot || props.node.type === 'directory') {
+    emit('toggle', props.node)
+  }
 }
 
 const handleContextMenu = (event: MouseEvent) => {
@@ -212,6 +287,10 @@ const handleContextMenu = (event: MouseEvent) => {
   }
   event.preventDefault()
   event.stopPropagation()
+  
+  // 右键菜单只触发 context-menu 事件，不触发 node-click（避免打开文件和高亮）
+  // selection 和 focus 的处理在 handleContextMenu 中完成
+  
   emit('context-menu', {
     node: props.node,
     x: event.clientX,
@@ -251,11 +330,94 @@ const hoverColor = computed(() => {
 const selectedColor = computed(() => {
   return mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.primaryColor || '#409eff', 0.3)
 })
+
+// 计算拖拽目标高亮颜色
+const dragTargetColor = computed(() => {
+  return mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.primaryColor || '#409eff', 0.2)
+})
+
+// 处理拖拽开始
+const handleDragStart = (event: DragEvent) => {
+  // 只有选中的节点才能拖拽
+  if (!canDrag.value) {
+    event.preventDefault()
+    return
+  }
+  
+  // 设置拖拽数据
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', props.node.path)
+  }
+  
+  emit('drag-start', { node: props.node, event })
+}
+
+// 处理拖拽悬停（在节点上）
+const handleDragOver = (event: DragEvent) => {
+  // 只有目录节点可以作为拖拽目标
+  if (props.node.type === 'directory' || props.node.isWorkspaceRoot) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move'
+    }
+    emit('drag-over', { node: props.node, event })
+  }
+}
+
+// 处理拖拽离开（从节点上）
+const handleDragLeave = (event: DragEvent) => {
+  emit('drag-leave', { node: props.node, event })
+}
+
+// 处理拖拽释放（在节点上）
+const handleDrop = (event: DragEvent) => {
+  // 只有目录节点可以作为拖拽目标
+  if (props.node.type === 'directory' || props.node.isWorkspaceRoot) {
+    event.preventDefault()
+    event.stopPropagation()
+    emit('drop', { node: props.node, event })
+  }
+}
+
+// 处理拖拽悬停（在展开目录的文件区域）
+const handleChildrenDragOver = (event: DragEvent) => {
+  if (isExpanded.value && (props.node.type === 'directory' || props.node.isWorkspaceRoot)) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move'
+    }
+    emit('drag-over', { node: props.node, event })
+  }
+}
+
+// 处理拖拽离开（从展开目录的文件区域）
+const handleChildrenDragLeave = (event: DragEvent) => {
+  emit('drag-leave', { node: props.node, event })
+}
+
+// 处理拖拽释放（在展开目录的文件区域）
+const handleChildrenDrop = (event: DragEvent) => {
+  if (isExpanded.value && (props.node.type === 'directory' || props.node.isWorkspaceRoot)) {
+    event.preventDefault()
+    event.stopPropagation()
+    emit('drop', { node: props.node, event })
+  }
+}
+
+// 处理拖拽结束
+const handleDragEnd = (event: DragEvent) => {
+  emit('drag-end', event)
+}
 </script>
 
 <style scoped>
 .workspace-tree-node {
   user-select: none;
+  margin: 0;
+  padding: 0;
 }
 
 .workspace-tree-node-item {
@@ -270,6 +432,8 @@ const selectedColor = computed(() => {
   height: 20px;
   box-sizing: border-box;
   position: relative;
+  margin: 0;
+  line-height: 20px;
 }
 
 .workspace-tree-node-item.is-directory {
@@ -287,12 +451,40 @@ const selectedColor = computed(() => {
   background-color: v-bind('hoverColor');
 }
 
+.workspace-tree-node-item.is-focused {
+  outline: 1px solid v-bind('themeState.currentTheme.primaryColor || "#409eff"');
+  outline-offset: -1px;
+}
+
 .workspace-tree-node-item.is-selected {
   background-color: v-bind('selectedColor');
 }
 
 .workspace-tree-node-item.is-selected:hover {
   background-color: v-bind('selectedColor');
+}
+
+.workspace-tree-node-item.is-focused.is-selected {
+  /* Focus 和 Selection 同时存在时，显示选中背景色 + focus 边框 */
+  background-color: v-bind('selectedColor');
+  outline: 1px solid v-bind('themeState.currentTheme.primaryColor || "#409eff"');
+  outline-offset: -1px;
+}
+
+.workspace-tree-node-item.is-drag-target {
+  /* 拖拽目标高亮 */
+  background-color: v-bind('dragTargetColor');
+  outline: 1px dashed #999;
+  outline-offset: -1px;
+}
+
+.workspace-tree-node-children.is-drag-target-area {
+  /* 展开目录的文件区域拖拽目标高亮 */
+  background-color: v-bind('dragTargetColor');
+  border: 1px dashed #999;
+  border-radius: 4px;
+  margin: 0;
+  min-height: 20px;
 }
 
 .workspace-tree-node-icon {
@@ -343,6 +535,8 @@ const selectedColor = computed(() => {
 
 .workspace-tree-node-children {
   margin-left: 0;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 </style>
 

@@ -151,7 +151,7 @@ function ensureDocument(tabId: string): WorkspaceDocument {
     // 工具Tab和系统Tab不应该有文档上下文
     if (tabInfo && (tabInfo.kind === 'tool' || tabInfo.kind === 'system')) {
       const logger = createRendererLogger('Workspace');
-      logger.warn(`尝试为工具/系统Tab创建文档: ${tabId} (${tabInfo.kind})`);
+      //logger.warn(`尝试为工具/系统Tab创建文档: ${tabId} (${tabInfo.kind})`);
       throw new Error(`工具Tab或系统Tab (${tabInfo.kind}) 不应该有文档上下文`);
     }
     

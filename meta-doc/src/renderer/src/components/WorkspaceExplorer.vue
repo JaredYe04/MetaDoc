@@ -18,7 +18,7 @@
           @click="refreshAllWorkspaceFolders"
           :title="$t('workspaceExplorer.refresh')"
         >
-          <el-icon><Refresh /></el-icon>
+          <img :src="(themeState.currentTheme as any).RefreshIcon" class="workspace-action-icon" alt="refresh" />
         </el-button>
         <el-button
           text
@@ -26,7 +26,7 @@
           @click="addWorkspaceFolder"
           :title="$t('workspaceExplorer.addFolder')"
         >
-          <el-icon><FolderOpened /></el-icon>
+          <img :src="(themeState.currentTheme as any).FolderAddIcon" class="workspace-action-icon" alt="add folder" />
         </el-button>
       </div>
     </div>
@@ -38,10 +38,13 @@
       </el-empty>
     </div>
     <div v-else class="workspace-explorer-main">
-      <el-scrollbar class="workspace-explorer-tree" @contextmenu.prevent="handleContentContextMenu">
+      <el-scrollbar ref="treeScrollbarRef" class="workspace-explorer-tree" @contextmenu.prevent="handleContentContextMenu">
         <div
           class="workspace-explorer-content"
           @contextmenu.prevent="handleContentContextMenu"
+          @dragover="handleContentDragOver"
+          @dragleave="handleContentDragLeave"
+          @drop="handleContentDrop"
         >
           <template v-for="(folderPath, index) in workspaceFolders" :key="folderPath">
             <WorkspaceTreeNode
@@ -51,12 +54,19 @@
               :expanded-paths="expandedPaths"
               :workspace-folder="folderPath"
               :selected-paths="selectedPaths"
+              :focused-path="focusedPath"
               :last-selected-index="lastSelectedIndex"
+              :drag-target-path="dragTargetPath"
               @toggle="handleToggle"
               @open-file="handleOpenFile"
               @context-menu="handleContextMenu"
               @node-click="handleNodeClick"
               @close-workspace="removeWorkspaceFolder"
+              @drag-start="handleDragStart"
+              @drag-over="handleDragOver"
+              @drag-leave="handleDragLeave"
+              @drop="handleDrop"
+              @drag-end="handleDragEnd"
             />
           </template>
         </div>
@@ -168,8 +178,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Refresh, FolderOpened, Loading, Warning, Close } from '@element-plus/icons-vue'
-import { ElButton, ElIcon, ElEmpty, ElScrollbar, ElMessageBox, ElMessage } from 'element-plus'
+import { Loading, Warning, Close } from '@element-plus/icons-vue'
+import { ElButton, ElIcon, ElEmpty, ElScrollbar, ElMessageBox } from 'element-plus'
 import eventBus from '../utils/event-bus'
 import { useWorkspace } from '../stores/workspace'
 import { createRendererLogger } from '../utils/logger'
@@ -182,11 +192,28 @@ import { useCloseTab } from '../composables/useCloseTab'
 import { formatRegistry } from '../utils/format-registry'
 import * as Comlink from 'comlink'
 import type { DirectoryProcessorWorker } from '../utils/workers/directory-processor.worker'
+import { useWorkspaceOperations } from '../composables/useWorkspaceOperations'
+import { URIUtils, type URI } from '../utils/workspace/fs-models'
+import { RefreshService } from '../utils/workspace/refresh-service'
 
 const { t } = useI18n()
 const logger = createRendererLogger('WorkspaceExplorer')
 const workspace = useWorkspace()
 const { closeTab } = useCloseTab()
+
+// 获取 IPC renderer
+const getIpcRenderer = () => {
+  if (window && (window as any).electron) {
+    return (window as any).electron.ipcRenderer
+  }
+  return null
+}
+
+const ipcRenderer = getIpcRenderer()
+
+// 使用新的操作模型
+const operations = ipcRenderer ? useWorkspaceOperations(ipcRenderer) : null
+const refreshService = ipcRenderer ? new RefreshService(ipcRenderer) : null
 
 // 并发池工具：控制并发数量，避免同时发起过多请求
 class ConcurrencyPool {
@@ -316,13 +343,59 @@ const contextMenuVisible = ref(false)
 const contextMenuPosition = ref({ x: 0, y: 0 })
 const contextMenuNode = ref<FileNode | null>(null)
 const contextMenuTargetPath = ref<string | null>(null) // 空白位置右键时的目标路径
-const clipboardPaths = ref<string[]>([]) // 支持批量复制/剪切
-const clipboardOperation = ref<'cut' | 'copy' | null>(null)
 const isFocused = ref(false) // 组件是否获得焦点
 
-// 多选相关
-const selectedPaths = ref<Set<string>>(new Set())
-const lastSelectedIndex = ref<number>(-1) // 上次选中的节点在 treeNodes 中的索引
+// 剪贴板状态（兼容旧代码，实际使用 ClipboardService）
+const clipboardPaths = computed(() => {
+  if (operations) {
+    return operations.hasClipboardContent() 
+      ? operations.selection.value.uris.map(uri => URIUtils.uriToPath(uri))
+      : []
+  }
+  return []
+})
+const clipboardOperation = computed(() => {
+  if (operations) {
+    return operations.getClipboardOperationType()
+  }
+  return null
+})
+
+// Focus 状态（当前聚焦的节点，只有一个）
+const focusedPath = ref<string | null>(null)
+
+// 拖拽状态
+const dragTargetPath = ref<string | null>(null) // 当前拖拽目标路径（用于高亮显示）
+const draggingURIs = ref<URI[]>([]) // 正在拖拽的 URI 列表
+
+// Selection 状态（选中的节点，可以多个）
+const selectedPaths = computed({
+  get: () => {
+    // 从新的 selection 模型转换为旧的 Set<string>
+    const set = new Set<string>()
+    if (operations) {
+      operations.selection.value.uris.forEach(uri => {
+        set.add(URIUtils.uriToPath(uri))
+      })
+    }
+    return set
+  },
+  set: (value: Set<string>) => {
+    // 从旧的 Set<string> 转换为新的 selection 模型
+    if (operations) {
+      const uris = Array.from(value).map(path => URIUtils.pathToURI(path))
+      operations.updateSelection(uris)
+    }
+  }
+})
+const lastSelectedIndex = computed({
+  get: () => operations?.lastSelectedIndex.value ?? -1,
+  set: (value: number) => {
+    if (operations) {
+      operations.lastSelectedIndex.value = value
+    }
+  }
+})
 
 // 构建右键菜单项
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
@@ -332,7 +405,7 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
   // 空白位置右键菜单（没有选中节点）
   if (!node) {
     // 粘贴
-    if (clipboardPaths.value.length > 0) {
+    if (operations && operations.hasClipboardContent()) {
       items.push({
         type: 'action',
         value: 'paste',
@@ -359,10 +432,10 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
 
   // 节点右键菜单
 
-  // 工作文件夹根节点菜单：新建文件、新建文件夹、粘贴
+  // 工作文件夹根节点菜单：新建文件、新建文件夹、粘贴、打开文件夹、刷新
   if (node.isWorkspaceRoot) {
     // 粘贴（如果有剪贴板内容）
-    if (clipboardPaths.value.length > 0) {
+    if (operations && operations.hasClipboardContent()) {
       items.push({
         type: 'action',
         value: 'paste',
@@ -383,6 +456,21 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
       type: 'action',
       value: 'newFolder',
       label: 'workspaceExplorer.contextMenu.newFolder'
+    })
+    items.push({
+      type: 'divider'
+    })
+    // 打开文件夹
+    items.push({
+      type: 'action',
+      value: 'openFolder',
+      label: 'workspaceExplorer.contextMenu.openFolder'
+    })
+    // 刷新
+    items.push({
+      type: 'action',
+      value: 'refresh',
+      label: 'workspaceExplorer.contextMenu.refresh'
     })
     return items
   }
@@ -411,7 +499,7 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
   )
 
   // 粘贴（如果有剪贴板内容）
-  if (clipboardPaths.value.length > 0) {
+  if (operations && operations.hasClipboardContent()) {
     items.push({
       type: 'action',
       value: 'paste',
@@ -464,6 +552,14 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
       },
       {
         type: 'action',
+        value: 'openFolder',
+        label: 'workspaceExplorer.contextMenu.openFolder'
+      },
+      {
+        type: 'divider'
+      },
+      {
+        type: 'action',
         value: 'refresh',
         label: 'workspaceExplorer.contextMenu.refresh'
       },
@@ -481,18 +577,6 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
         label: 'workspaceExplorer.contextMenu.newFolder'
       }
     )
-  }
-
-  // 工作文件夹根节点也添加刷新选项
-  if (node.isWorkspaceRoot) {
-    items.push({
-      type: 'divider'
-    })
-    items.push({
-      type: 'action',
-      value: 'refresh',
-      label: 'workspaceExplorer.contextMenu.refresh'
-    })
   }
 
   return items
@@ -513,13 +597,25 @@ const newFolderParentPath = ref<string | null>(null)
 
 // 组件引用
 const workspaceExplorerRef = ref<HTMLElement | null>(null)
+const treeScrollbarRef = ref<any>(null) // el-scrollbar 组件引用
 
-// 处理容器点击，确保获得焦点
+// 处理容器点击，确保获得焦点，并清空 focus 和 selection
 const handleContainerClick = (event: MouseEvent) => {
-  // 如果点击的不是按钮或输入框，让组件获得焦点
   const target = event.target as HTMLElement
+  
+  // 如果点击在节点上，不处理（由节点点击处理）
+  if (target.closest('.workspace-tree-node-item')) {
+    return
+  }
+  
+  // 如果点击的不是按钮或输入框，让组件获得焦点，并清空 focus 和 selection
   if (!target.closest('button') && !target.closest('input') && !target.closest('.el-dialog')) {
     workspaceExplorerRef.value?.focus()
+    // 清空 focus 和 selection
+    focusedPath.value = null
+    if (operations) {
+      operations.clearSelection()
+    }
   }
 }
 
@@ -534,14 +630,6 @@ const activeTabBackgroundColor = computed(() => {
   const baseBg = themeState.currentTheme.editorToolbarBackgroundColor || themeState.currentTheme.background2nd
   return mixColors(baseBg, '#777777', 0.3)
 })
-
-// 获取 IPC renderer
-const getIpcRenderer = () => {
-  if (window && (window as any).electron) {
-    return (window as any).electron.ipcRenderer
-  }
-  return null
-}
 
 // 添加工作文件夹
 const addWorkspaceFolder = async () => {
@@ -562,7 +650,7 @@ const addWorkspaceFolder = async () => {
       
       // 检查是否已存在
       if (workspaceFolders.value.includes(newFolder)) {
-        ElMessage.warning(t('workspaceExplorer.folderAlreadyAdded'))
+        eventBus.emit('show-warning', { message: t('workspaceExplorer.folderAlreadyAdded') })
         return
       }
 
@@ -738,20 +826,171 @@ const loadWorkspaceFolderChildren = async (rootNode: FileNode) => {
 
 // 刷新指定工作文件夹
 const refreshWorkspaceFolder = async (folderPath: string) => {
-  const rootNode = workspaceFolderNodes.value.get(folderPath)
-  if (rootNode) {
-    await loadWorkspaceFolderChildren(rootNode)
+  // 保存当前状态
+  const scrollPosition = saveScrollPosition()
+  const savedExpandedPaths = new Set(expandedPaths.value)
+  
+  // 设置 loading 状态（用于防抖）
+  loading.value.set(folderPath, true)
+  
+  try {
+    const rootNode = workspaceFolderNodes.value.get(folderPath)
+    if (rootNode) {
+      await loadWorkspaceFolderChildren(rootNode)
+    }
+    
+    // 恢复展开状态（使用 Set 的方法更新，保持响应式）
+    const currentExpanded = expandedPaths.value
+    // 先清除所有，再添加保存的
+    currentExpanded.clear()
+    savedExpandedPaths.forEach(path => currentExpanded.add(path))
+    
+    // 恢复滚动位置
+    restoreScrollPosition(scrollPosition)
+  } finally {
+    // 清除 loading 状态
+    loading.value.set(folderPath, false)
   }
+}
+
+// 保存滚动位置
+const saveScrollPosition = () => {
+  if (!treeScrollbarRef.value) return null
+  try {
+    const scrollbar = treeScrollbarRef.value
+    const wrap = scrollbar.wrapRef
+    if (wrap) {
+      return {
+        scrollTop: wrap.scrollTop,
+        scrollLeft: wrap.scrollLeft
+      }
+    }
+  } catch (err) {
+    logger.warn('保存滚动位置失败:', err)
+  }
+  return null
+}
+
+// 恢复滚动位置
+const restoreScrollPosition = (position: { scrollTop: number; scrollLeft: number } | null) => {
+  if (!position || !treeScrollbarRef.value) return
+  try {
+    // 使用 nextTick 确保 DOM 已更新
+    setTimeout(() => {
+      const scrollbar = treeScrollbarRef.value
+      if (scrollbar && scrollbar.wrapRef) {
+        scrollbar.wrapRef.scrollTop = position.scrollTop
+        scrollbar.wrapRef.scrollLeft = position.scrollLeft
+      }
+    }, 0)
+  } catch (err) {
+    logger.warn('恢复滚动位置失败:', err)
+  }
+}
+
+// 递归查找节点（包括未展开的节点）
+const findNodeByPath = (node: FileNode, targetPath: string): FileNode | null => {
+  if (node.path === targetPath) {
+    return node
+  }
+  
+  if (node.children) {
+    for (const child of node.children) {
+      const found = findNodeByPath(child, targetPath)
+      if (found) {
+        return found
+      }
+    }
+  }
+  
+  return null
 }
 
 // 刷新指定目录节点（用于子目录）
 const refreshDirectoryNode = async (directoryPath: string) => {
-  // 在所有节点中查找对应的目录节点
-  const allNodes = getAllNodesSync()
-  const targetNode = allNodes.find(n => n.path === directoryPath && (n.type === 'directory' || n.type === 'workspaceRoot'))
+  logger.info('refreshDirectoryNode 开始', { directoryPath })
   
-  if (targetNode) {
-    await loadSubDirectory(targetNode)
+  // 保存当前状态
+  const scrollPosition = saveScrollPosition()
+  const savedExpandedPaths = new Set(expandedPaths.value)
+  
+  // 设置 loading 状态（用于防抖）
+  loading.value.set(directoryPath, true)
+  
+  try {
+    // 规范化路径格式：Windows 路径统一使用反斜杠，Unix 路径使用正斜杠
+    // 判断是否为 Windows 路径（以盘符开头）
+    const normalizedPath = /^[A-Za-z]:/.test(directoryPath)
+      ? directoryPath.replace(/\//g, '\\')
+      : directoryPath
+    
+    // 先检查是否是工作文件夹根目录（需要规范化比较）
+    const isWorkspaceRoot = workspaceFolders.value.some(folder => {
+      // 规范化工作文件夹路径
+      const normalizedFolder = /^[A-Za-z]:/.test(folder)
+        ? folder.replace(/\//g, '\\')
+        : folder
+      return normalizedFolder === normalizedPath
+    })
+    
+    if (isWorkspaceRoot) {
+      logger.info('刷新工作文件夹根目录', { directoryPath, normalizedPath })
+      // 找到匹配的工作文件夹路径（使用原始格式）
+      const matchingFolder = workspaceFolders.value.find(folder => {
+        const normalizedFolder = /^[A-Za-z]:/.test(folder)
+          ? folder.replace(/\//g, '\\')
+          : folder
+        return normalizedFolder === normalizedPath
+      })
+      if (matchingFolder) {
+        const rootNode = workspaceFolderNodes.value.get(matchingFolder)
+        if (rootNode) {
+          await loadWorkspaceFolderChildren(rootNode)
+        } else {
+          logger.warn('工作文件夹根节点不存在', { directoryPath, matchingFolder })
+        }
+      }
+    } else {
+      // 在所有工作文件夹根节点中递归查找目标目录节点
+      logger.info('查找目录节点', { directoryPath, normalizedPath })
+      let targetNode: FileNode | null = null
+      for (const rootNode of workspaceFolderNodes.value.values()) {
+        // 使用规范化路径查找
+        targetNode = findNodeByPath(rootNode, normalizedPath)
+        if (!targetNode) {
+          // 如果找不到，尝试使用原始路径格式查找
+          targetNode = findNodeByPath(rootNode, directoryPath)
+        }
+        if (targetNode) {
+          logger.info('找到目录节点', { directoryPath, normalizedPath, nodePath: targetNode.path })
+          break
+        }
+      }
+      
+      if (targetNode && (targetNode.type === 'directory' || targetNode.type === 'workspaceRoot')) {
+        logger.info('加载子目录', { directoryPath, normalizedPath, nodePath: targetNode.path })
+        await loadSubDirectory(targetNode)
+      } else {
+        logger.warn('未找到目录节点或节点类型不正确', { directoryPath, normalizedPath, targetNode: targetNode ? targetNode.type : null })
+      }
+    }
+    
+    // 恢复展开状态（使用 Set 的方法更新，保持响应式）
+    const currentExpanded = expandedPaths.value
+    // 先清除所有，再添加保存的
+    currentExpanded.clear()
+    savedExpandedPaths.forEach(path => currentExpanded.add(path))
+    
+    // 恢复滚动位置
+    restoreScrollPosition(scrollPosition)
+    
+    logger.info('refreshDirectoryNode 完成', { directoryPath })
+  } catch (err) {
+    logger.error('refreshDirectoryNode 失败', { directoryPath, error: err })
+    throw err
+  } finally {
+    // 清除 loading 状态
+    loading.value.set(directoryPath, false)
   }
 }
 
@@ -948,30 +1187,26 @@ const stopDirectoryWatcher = (folderPath: string) => {
 const handleDirectoryChange = async (payload: { directoryPath: string; eventType: string; filePath: string }) => {
   const { directoryPath, eventType, filePath } = payload
   
-  // 检查是否是已展开的目录（包括工作文件夹根目录和子目录）
-  const isExpanded = expandedPaths.value.has(directoryPath)
-  if (!isExpanded) {
-    // 如果目录未展开，不需要刷新
-    return
-  }
+  if (!refreshService) return
 
-  logger.debug('目录变化', { directoryPath, eventType, filePath })
-
-  // 防抖：延迟刷新，避免频繁刷新
-  if (loading.value.get(directoryPath)) {
-    return
-  }
-
-  // 延迟刷新，给文件系统一些时间稳定
-  setTimeout(async () => {
-    // 如果是工作文件夹根目录，使用 refreshWorkspaceFolder
-    if (workspaceFolders.value.includes(directoryPath)) {
-      await refreshWorkspaceFolder(directoryPath)
-    } else {
-      // 否则刷新对应的目录节点
-      await refreshDirectoryNode(directoryPath)
+  // 使用刷新服务处理目录变化
+  const expandedURIs = new Set(Array.from(expandedPaths.value).map(path => URIUtils.pathToURI(path)))
+  await refreshService.handleDirectoryChange(
+    directoryPath,
+    eventType,
+    filePath,
+    expandedURIs,
+    async (dirURI: URI) => {
+      const dirPath = URIUtils.uriToPath(dirURI)
+      // 如果是工作文件夹根目录，使用 refreshWorkspaceFolder
+      if (workspaceFolders.value.includes(dirPath)) {
+        await refreshWorkspaceFolder(dirPath)
+      } else {
+        // 否则刷新对应的目录节点
+        await refreshDirectoryNode(dirPath)
+      }
     }
-  }, 300)
+  )
 }
 
 onMounted(async () => {
@@ -1018,21 +1253,22 @@ const handleCloseFile = async (tabId: string) => {
 
 // 处理节点右键菜单
 const handleContextMenu = (event: { node: FileNode; x: number; y: number }) => {
+  if (!operations) return
   const node = event.node
   
-  // 如果右键的是文件，且当前没有选中文档或只选中一个文档，则取消选中，选中当前右键的文档
-  if (node.type === 'file') {
+  // 右键菜单只触发 focus 和 selection，不打开文件
+  if (!node.isWorkspaceRoot) {
+    // 设置 focus（右键只 focus，不打开文件）
+    focusedPath.value = node.path
+    
     // 使用同步版本，因为这里只是简单的过滤操作
     const allNodesSync = getAllNodesSync()
-    const selectedFilePaths = Array.from(selectedPaths.value).filter(path => {
-      const foundNode = allNodesSync.find(n => n.path === path && n.type === 'file')
-      return foundNode !== undefined
-    })
+    const nodeURI = URIUtils.pathToURI(node.path)
+    const isCurrentlySelected = operations.selection.value.uris.includes(nodeURI)
     
-    // 如果没有选中文档或只选中一个文档，则选中当前右键的文档
-    if (selectedFilePaths.length <= 1) {
-      selectedPaths.value.clear()
-      selectedPaths.value.add(node.path)
+    // 如果当前节点不在选中列表中，或者选中列表只有1个或0个项，则选中当前节点
+    if (!isCurrentlySelected || operations.selection.value.uris.length <= 1) {
+      operations.updateSelection([nodeURI])
       // 更新 lastSelectedIndex
       const currentIndex = allNodesSync.findIndex(n => n.path === node.path)
       lastSelectedIndex.value = currentIndex >= 0 ? currentIndex : -1
@@ -1059,6 +1295,13 @@ const handleContentContextMenu = (event: MouseEvent) => {
   
   event.preventDefault()
   event.stopPropagation()
+  
+  // 空白位置右键时，清空 focus 和 selection
+  focusedPath.value = null
+  if (operations) {
+    operations.clearSelection()
+  }
+  
   contextMenuNode.value = null
   // 空白位置右键时，使用第一个工作文件夹作为目标路径
   contextMenuTargetPath.value = workspaceFolders.value.length > 0 ? workspaceFolders.value[0] : null
@@ -1066,49 +1309,69 @@ const handleContentContextMenu = (event: MouseEvent) => {
   contextMenuVisible.value = true
 }
 
-// 处理节点点击（支持多选）
+// 处理节点点击（支持多选，实现 selection/focus 分离）
 const handleNodeClick = async (event: { node: FileNode; ctrlKey: boolean; shiftKey: boolean }) => {
+  if (!operations) return
   const { node, ctrlKey, shiftKey } = event
+  
+  // 工作文件夹根节点不可选中，但可以展开/折叠
+  if (node.isWorkspaceRoot) {
+    return
+  }
+  
+  // 左键点击时同时设置 focus 和 selection
+  // focus 表示当前聚焦的节点（显示边框），selection 表示选中的节点（显示高亮）
+  
   // 使用同步版本，因为这里需要立即获取索引
   const allNodes = getAllNodesSync()
   const currentIndex = allNodes.findIndex(n => n.path === node.path)
+  const nodeURI = URIUtils.pathToURI(node.path)
+
+  let shouldOpenFile = false // 是否应该打开文件
 
   if (shiftKey && lastSelectedIndex.value >= 0) {
-    // Shift 范围选择
+    // Shift 范围选择：不打开文件，但设置 focus
+    focusedPath.value = node.path
     const start = Math.min(lastSelectedIndex.value, currentIndex)
     const end = Math.max(lastSelectedIndex.value, currentIndex)
+    const urisToAdd: URI[] = []
     for (let i = start; i <= end; i++) {
       if (allNodes[i] && !allNodes[i].isWorkspaceRoot) {
-        selectedPaths.value.add(allNodes[i].path)
+        urisToAdd.push(URIUtils.pathToURI(allNodes[i].path))
       }
     }
+    // 添加所有范围内的节点到选择中
+    urisToAdd.forEach(uri => operations.addSelection(uri))
     lastSelectedIndex.value = currentIndex
   } else if (ctrlKey) {
-    // Ctrl 多选（切换选中状态）
-    if (selectedPaths.value.has(node.path)) {
-      selectedPaths.value.delete(node.path)
-    } else {
-      selectedPaths.value.add(node.path)
-    }
-    lastSelectedIndex.value = currentIndex
-  } else {
-    // 单选：如果点击的是已选中的节点，则取消选择；否则选中并执行操作
-    if (selectedPaths.value.has(node.path)) {
-      // 如果当前节点已选中，取消选择
-      selectedPaths.value.delete(node.path)
-      lastSelectedIndex.value = -1
-    } else {
-      // 清除原先的选择，选中当前节点
-      selectedPaths.value.clear()
-      selectedPaths.value.add(node.path)
-      lastSelectedIndex.value = currentIndex
-      
-      // 执行默认操作：文件打开，目录只选中不展开/折叠（展开/折叠由图标点击处理）
-      if (node.type === 'file') {
-        await handleOpenFile(node.path)
+    // Ctrl 多选：不打开文件，但设置 focus
+    focusedPath.value = node.path
+    if (operations.selection.value.uris.includes(nodeURI)) {
+      operations.removeSelection(nodeURI)
+      // 如果清空了所有选择，重置 lastSelectedIndex 和 focus
+      if (operations.selection.value.uris.length === 0) {
+        lastSelectedIndex.value = -1
+        focusedPath.value = null
       }
-      // 目录点击只选中，不展开/折叠（展开/折叠由图标点击处理）
+    } else {
+      operations.addSelection(nodeURI)
+      lastSelectedIndex.value = currentIndex
     }
+  } else {
+    // 单选：清空原来的选择，选中当前节点，并设置 focus
+    focusedPath.value = node.path
+    operations.updateSelection([nodeURI])
+    lastSelectedIndex.value = currentIndex
+    
+    // 只有左键点击文件（非 Ctrl/Shift）时才打开
+    if (node.type === 'file') {
+      shouldOpenFile = true
+    }
+  }
+  
+  // 只有左键点击文件（非 Ctrl/Shift）时才打开
+  if (shouldOpenFile) {
+    await handleOpenFile(node.path)
   }
 }
 
@@ -1152,7 +1415,7 @@ const handleContextMenuCommand = async (command: string) => {
         await handleCopy(node)
         break
       case 'paste':
-        if (clipboardPaths.value.length === 0 || !clipboardOperation.value) return
+        if (!operations || !operations.hasClipboardContent()) return
         // 如果右键的是工作文件夹节点，使用该节点的路径；否则使用 contextMenuTargetPath 或第一个工作文件夹
         let pasteTargetPath: string | null = null
         if (node && node.isWorkspaceRoot) {
@@ -1176,7 +1439,7 @@ const handleContextMenuCommand = async (command: string) => {
       case 'copyPath':
         if (node) {
           await navigator.clipboard.writeText(node.path)
-          ElMessage.success(t('workspaceExplorer.copyPathSuccess'))
+          eventBus.emit('show-success', { message: t('workspaceExplorer.copyPathSuccess') })
         }
         break
       case 'copyRelativePath':
@@ -1185,12 +1448,17 @@ const handleContextMenuCommand = async (command: string) => {
           if (workspacePath) {
             const relativePath = relative(workspacePath, node.path)
             await navigator.clipboard.writeText(relativePath)
-            ElMessage.success(t('workspaceExplorer.copyRelativePathSuccess'))
+            eventBus.emit('show-success', { message: t('workspaceExplorer.copyRelativePathSuccess') })
           }
         }
         break
       case 'showInFolder':
         if (node) {
+          await ipcRenderer.invoke('show-item-in-folder', node.path)
+        }
+        break
+      case 'openFolder':
+        if (node && (node.type === 'directory' || node.isWorkspaceRoot)) {
           await ipcRenderer.invoke('show-item-in-folder', node.path)
         }
         break
@@ -1223,49 +1491,51 @@ const handleContextMenuCommand = async (command: string) => {
             // 如果是普通目录，刷新该目录
             await refreshDirectoryNode(node.path)
           }
-          ElMessage.success(t('workspaceExplorer.refreshSuccess'))
+          eventBus.emit('show-success', { message: t('workspaceExplorer.refreshSuccess') })
         }
         break
     }
   } catch (err) {
     logger.error('执行右键菜单命令失败:', err)
-    ElMessage.error(err instanceof Error ? err.message : String(err))
+    eventBus.emit('show-error', { message: err instanceof Error ? err.message : String(err) })
   }
 }
 
 // 处理复制
 const handleCopy = async (node: FileNode | null) => {
+  if (!operations) return
+  
   if (selectedPaths.value.size > 0) {
     // 批量复制选中的项
-    clipboardPaths.value = Array.from(selectedPaths.value)
-    clipboardOperation.value = 'copy'
+    const uris = Array.from(selectedPaths.value).map(path => URIUtils.pathToURI(path))
+    operations.copy(uris)
   } else if (node) {
     // 单个复制
-    clipboardPaths.value = [node.path]
-    clipboardOperation.value = 'copy'
+    const uri = URIUtils.pathToURI(node.path)
+    operations.copy([uri])
   }
 }
 
 // 处理剪切
 const handleCut = async (node: FileNode | null) => {
+  if (!operations) return
+  
   if (selectedPaths.value.size > 0) {
     // 批量剪切选中的项
-    clipboardPaths.value = Array.from(selectedPaths.value)
-    clipboardOperation.value = 'cut'
+    const uris = Array.from(selectedPaths.value).map(path => URIUtils.pathToURI(path))
+    operations.cut(uris)
   } else if (node) {
     // 单个剪切
-    clipboardPaths.value = [node.path]
-    clipboardOperation.value = 'cut'
+    const uri = URIUtils.pathToURI(node.path)
+    operations.cut([uri])
   }
 }
 
 // 处理粘贴（支持批量）
 const handlePaste = async (targetPathParam: string | null) => {
-  if (clipboardPaths.value.length === 0 || !clipboardOperation.value) return
+  if (!operations || !ipcRenderer) return
+  if (!operations.hasClipboardContent()) return
   if (!targetPathParam && workspaceFolders.value.length === 0) return
-
-  const ipcRenderer = getIpcRenderer()
-  if (!ipcRenderer) return
 
   try {
     let targetDir = targetPathParam || workspaceFolders.value[0]
@@ -1274,13 +1544,15 @@ const handlePaste = async (targetPathParam: string | null) => {
     const exists = await ipcRenderer.invoke('check-path-exists', targetDir) as boolean
     if (exists) {
       // 检查是否为目录
-      const isDir = await ipcRenderer.invoke('check-path-is-directory', targetDir) as boolean
-      if (!isDir) {
-        // 如果是文件，使用其父目录
+      try {
+        await ipcRenderer.invoke('read-directory', targetDir)
+        // 是目录，直接使用
+      } catch {
+        // 不是目录，使用其父目录
         targetDir = dirname(targetDir)
       }
     } else {
-      // 如果路径不存在（空白位置右键或传入的是不存在的路径），使用第一个工作文件夹
+      // 如果路径不存在，使用第一个工作文件夹
       if (workspaceFolders.value.length > 0) {
         targetDir = workspaceFolders.value[0]
       } else {
@@ -1288,65 +1560,27 @@ const handlePaste = async (targetPathParam: string | null) => {
       }
     }
 
-    // 批量粘贴 - 分批处理，避免一次性操作太多文件
-    const BATCH_SIZE = 10 // 每批处理 10 个文件
-    const pathsToPaste = clipboardPaths.value
+    const targetDirURI = URIUtils.pathToURI(targetDir)
     
-    for (let i = 0; i < pathsToPaste.length; i += BATCH_SIZE) {
-      const batch = pathsToPaste.slice(i, i + BATCH_SIZE)
-      
-      // 并发处理当前批次
-      await Promise.all(batch.map(async (sourcePath) => {
-        // 获取源文件/文件夹名称
-        const sourceName = basename(sourcePath)
-        let finalTargetPath = join(targetDir, sourceName)
-
-        // 检查目标路径是否存在，如果存在则添加序号
-        let counter = 1
-        while (await ipcRenderer.invoke('check-path-exists', finalTargetPath) as boolean) {
-          const ext = extname(sourceName)
-          const baseNameWithoutExt = sourceName.substring(0, sourceName.length - ext.length)
-          const newName = `${baseNameWithoutExt} (${counter})${ext}`
-          finalTargetPath = join(targetDir, newName)
-          counter++
-        }
-
-        if (clipboardOperation.value === 'cut') {
-          // 移动
-          await ipcRenderer.invoke('move-file-or-folder', {
-            sourcePath,
-            targetPath: finalTargetPath
-          })
-        } else {
-          // 复制
-          await ipcRenderer.invoke('copy-file-or-folder', {
-            sourcePath,
-            targetPath: finalTargetPath
-          })
-        }
-      }))
-      
-      // 如果不是最后一批，让出执行权，允许 UI 更新
-      if (i + BATCH_SIZE < pathsToPaste.length) {
-        await new Promise(resolve => setTimeout(resolve, 0))
+    // 使用新的操作模型执行粘贴
+    const pastedURIs = await operations.paste(targetDirURI)
+    
+    // 刷新目标目录
+    await refreshDirectoryNode(targetDir)
+    
+    // 选中粘贴后生成的文件（已在 operations.paste 中处理）
+    if (pastedURIs.length > 0) {
+      // 更新 lastSelectedIndex
+      const allNodes = getAllNodesSync()
+      const lastPastedPath = URIUtils.uriToPath(pastedURIs[pastedURIs.length - 1])
+      const lastIndex = allNodes.findIndex(n => n.path === lastPastedPath)
+      if (operations) {
+        operations.lastSelectedIndex.value = lastIndex >= 0 ? lastIndex : -1
       }
     }
-
-    // 如果是剪切操作，清空剪贴板
-    if (clipboardOperation.value === 'cut') {
-      clipboardPaths.value = []
-      clipboardOperation.value = null
-    }
-
-    // 清除选中状态
-    selectedPaths.value.clear()
-    lastSelectedIndex.value = -1
-
-    // 刷新相关的工作文件夹
-    await refreshWorkspaceFolderForPath(targetDir)
   } catch (err) {
     logger.error('粘贴失败:', err)
-    throw err
+    // 错误已在 operations.paste 中处理
   }
 }
 
@@ -1474,119 +1708,106 @@ const findWorkspaceFolderForPath = (filePath: string): string | null => {
   return null
 }
 
-// 刷新包含指定路径的工作文件夹
+// 刷新包含指定路径的目录（只刷新受影响的目录，而不是整个工作文件夹）
 const refreshWorkspaceFolderForPath = async (filePath: string) => {
-  const workspacePath = findWorkspaceFolderForPath(filePath)
-  if (workspacePath) {
-    await refreshWorkspaceFolder(workspacePath)
-  }
+  // 找到文件/文件夹所在的目录
+  const targetDir = dirname(filePath)
+  
+  // 刷新该目录（refreshDirectoryNode 内部已经处理了状态保存和恢复）
+  await refreshDirectoryNode(targetDir)
 }
 
 // 处理删除（支持单个或批量）
 const handleDelete = async (node: FileNode | null) => {
-  const pathsToDelete: string[] = []
-  const namesToDelete: string[] = []
+  if (!operations || !ipcRenderer) return
+
+  let urisToDelete: string[] = []
 
   if (selectedPaths.value.size > 0) {
     // 批量删除选中的项
-    const allNodesSync = getAllNodesSync()
-    for (const path of selectedPaths.value) {
-      const foundNode = allNodesSync.find(n => n.path === path)
-      if (foundNode) {
-        pathsToDelete.push(path)
-        namesToDelete.push(foundNode.name)
-      }
-    }
+    urisToDelete = Array.from(selectedPaths.value).map(path => URIUtils.pathToURI(path))
   } else if (node) {
     // 单个删除
-    pathsToDelete.push(node.path)
-    namesToDelete.push(node.name)
+    urisToDelete = [URIUtils.pathToURI(node.path)]
   } else {
     return
   }
 
-  try {
-    const nameList = namesToDelete.length > 1 
-      ? `${namesToDelete.slice(0, 3).join('、')}${namesToDelete.length > 3 ? ` 等 ${namesToDelete.length} 项` : ''}`
-      : namesToDelete[0]
+  // 收集需要刷新的目录（在删除前收集）
+  const directoriesToRefresh = new Set<string>()
+  for (const uri of urisToDelete) {
+    const path = URIUtils.uriToPath(uri)
+    // 获取目录路径（dirname 返回正斜杠，需要转换为 Windows 格式）
+    const dirPath = dirname(path)
+    // 规范化路径格式：Windows 路径统一使用反斜杠，Unix 路径使用正斜杠
+    // 判断是否为 Windows 路径（以盘符开头）
+    const normalizedDirPath = /^[A-Za-z]:/.test(dirPath) 
+      ? dirPath.replace(/\//g, '\\') 
+      : dirPath
+    directoriesToRefresh.add(normalizedDirPath)
     
-    await ElMessageBox.confirm(
-      t('workspaceExplorer.deleteConfirm', { name: nameList }),
-      t('workspaceExplorer.deleteTitle'),
-      {
-        confirmButtonText: t('common.confirm'),
-        cancelButtonText: t('common.cancel'),
-        type: 'warning'
-      }
-    )
-
-    const ipcRenderer = getIpcRenderer()
-    if (!ipcRenderer) return
-
-    // 批量删除
-    for (const path of pathsToDelete) {
-      await ipcRenderer.invoke('delete-file-or-folder', path)
-      
-      // 如果删除的是当前打开的文件，关闭对应的标签
-      const tab = workspace.tabs.find(t => t.path === path)
-      if (tab) {
-        workspace.removeTab(tab.id)
-      }
-    }
-
-    // 清除选中状态
-    selectedPaths.value.clear()
-    lastSelectedIndex.value = -1
-
-    // 刷新相关的工作文件夹
-    for (const path of pathsToDelete) {
-      await refreshWorkspaceFolderForPath(path)
-    }
-
-    ElMessage.success(t('workspaceExplorer.deleteSuccess'))
-  } catch (err) {
-    if (err !== 'cancel') {
-      logger.error('删除失败:', err)
-      ElMessage.error(err instanceof Error ? err.message : String(err))
+    // 如果删除的是当前打开的文件，关闭对应的标签
+    const tab = workspace.tabs.find(t => t.path === path)
+    if (tab) {
+      workspace.removeTab(tab.id)
     }
   }
+
+  // 使用新的操作模型执行删除
+  const success = await operations.deleteItems(urisToDelete, async () => {
+    // 删除前回调：可以在这里做额外处理
+  })
+
+  logger.info('删除操作完成', { success, directoriesToRefresh: Array.from(directoriesToRefresh) })
+
+  // 无论删除成功与否，都尝试刷新受影响的目录（确保 UI 同步）
+  // 因为即使部分删除失败，已删除的项目也应该从 UI 中移除
+  // 注意：删除操作是异步的，executor.execute 会等待所有步骤完成，所以这里可以直接刷新
+  // 使用与粘贴操作相同的刷新方式，确保一致性（粘贴操作没有延迟，直接刷新）
+  const refreshPromises = Array.from(directoriesToRefresh).map(async (dirPath) => {
+    try {
+      logger.info('开始刷新目录', { dirPath })
+      // 直接刷新目录节点（与粘贴操作使用相同的方法，不延迟）
+      await refreshDirectoryNode(dirPath)
+      logger.info('目录刷新完成', { dirPath })
+    } catch (err) {
+      logger.error(`刷新目录失败: ${dirPath}`, err)
+    }
+  })
+  await Promise.all(refreshPromises)
+  logger.info('所有目录刷新完成')
 }
 
 // 处理重命名
 const handleRenameConfirm = async () => {
   if (!renameTargetPath.value || !renameName.value.trim()) return
-
-  const ipcRenderer = getIpcRenderer()
-  if (!ipcRenderer) return
+  if (!operations || !ipcRenderer) return
 
   try {
-    const newPath = await ipcRenderer.invoke('rename-file-or-folder', {
-      oldPath: renameTargetPath.value,
-      newName: renameName.value.trim()
-    })
+    const oldURI = URIUtils.pathToURI(renameTargetPath.value)
+    const newURI = await operations.rename(oldURI, renameName.value.trim())
 
-    // 如果重命名的是当前打开的文件，更新标签路径
-    const tab = workspace.tabs.find(t => t.path === renameTargetPath.value)
-    if (tab) {
-      tab.path = newPath
-      const doc = workspace.documents[tab.id]
-      if (doc) {
-        doc.path = newPath
+    if (newURI) {
+      const newPath = URIUtils.uriToPath(newURI)
+
+      // 如果重命名的是当前打开的文件，更新标签路径
+      const tab = workspace.tabs.find(t => t.path === renameTargetPath.value)
+      if (tab) {
+        tab.path = newPath
+        const doc = workspace.documents[tab.id]
+        if (doc) {
+          doc.path = newPath
+        }
       }
+
+      // 刷新相关的工作文件夹
+      await refreshWorkspaceFolderForPath(renameTargetPath.value)
+
+      handleRenameDialogClose()
     }
-
-    // 清除选中状态
-    selectedPaths.value.clear()
-    lastSelectedIndex.value = -1
-
-    // 刷新相关的工作文件夹
-    await refreshWorkspaceFolderForPath(renameTargetPath.value)
-
-    handleRenameDialogClose()
-    ElMessage.success(t('workspaceExplorer.renameSuccess'))
   } catch (err) {
     logger.error('重命名失败:', err)
-    ElMessage.error(err instanceof Error ? err.message : String(err))
+    // 错误已在 operations.rename 中处理
   }
 }
 
@@ -1627,13 +1848,13 @@ const handleNewFileConfirm = async () => {
     lastSelectedIndex.value = -1
 
     handleNewFileDialogClose()
-    ElMessage.success(t('workspaceExplorer.newFileSuccess'))
+    eventBus.emit('show-success', { message: t('workspaceExplorer.newFileSuccess') })
 
     // 自动打开新文件
     await handleOpenFile(filePath)
   } catch (err) {
     logger.error('新建文件失败:', err)
-    ElMessage.error(err instanceof Error ? err.message : String(err))
+    eventBus.emit('show-error', { message: err instanceof Error ? err.message : String(err) })
   }
 }
 
@@ -1664,10 +1885,10 @@ const handleNewFolderConfirm = async () => {
     lastSelectedIndex.value = -1
 
     handleNewFolderDialogClose()
-    ElMessage.success(t('workspaceExplorer.newFolderSuccess'))
+    eventBus.emit('show-success', { message: t('workspaceExplorer.newFolderSuccess') })
   } catch (err) {
     logger.error('新建文件夹失败:', err)
-    ElMessage.error(err instanceof Error ? err.message : String(err))
+    eventBus.emit('show-error', { message: err instanceof Error ? err.message : String(err) })
   }
 }
 
@@ -1684,6 +1905,391 @@ const handleFocus = () => {
 
 const handleBlur = () => {
   isFocused.value = false
+  // 失去焦点时不清空选择（保持 selection 状态）
+  // 只有在点击空白处时才清空选择
+}
+
+// 处理拖拽开始
+const handleDragStart = (event: { node: FileNode; event: DragEvent }) => {
+  if (!operations) return
+  
+  const { node } = event
+  
+  // 收集要拖拽的 URI（选中的项，如果没有选中则拖拽当前节点）
+  const urisToDrag: URI[] = []
+  if (selectedPaths.value.size > 0) {
+    // 批量拖拽选中的项
+    urisToDrag.push(...Array.from(selectedPaths.value).map(path => URIUtils.pathToURI(path)))
+  } else if (!node.isWorkspaceRoot) {
+    // 单个拖拽
+    urisToDrag.push(URIUtils.pathToURI(node.path))
+  }
+  
+  if (urisToDrag.length === 0) {
+    event.event.preventDefault()
+    return
+  }
+  
+  // 保存拖拽的 URI
+  draggingURIs.value = urisToDrag
+  
+  // 设置拖拽数据
+  if (event.event.dataTransfer) {
+    event.event.dataTransfer.effectAllowed = 'move'
+    event.event.dataTransfer.setData('application/json', JSON.stringify(urisToDrag))
+  }
+  
+  logger.info('开始拖拽', { uris: urisToDrag })
+}
+
+// 处理拖拽悬停（在节点上）
+const handleDragOver = (event: { node: FileNode; event: DragEvent }) => {
+  if (!operations || draggingURIs.value.length === 0) return
+  
+  const { node, event: dragEvent } = event
+  
+  // 只有目录节点可以作为拖拽目标
+  if (node.type === 'directory' || node.isWorkspaceRoot) {
+    dragEvent.preventDefault()
+    dragEvent.stopPropagation()
+    
+    if (dragEvent.dataTransfer) {
+      dragEvent.dataTransfer.dropEffect = 'move'
+    }
+    
+    // 检查是否可以将源移动到目标（不能移动到自己的子目录）
+    const targetURI = URIUtils.pathToURI(node.path)
+    const canDrop = draggingURIs.value.every(sourceURI => {
+      // 不能移动到自己的子目录
+      if (URIUtils.isSubPath(sourceURI, targetURI)) {
+        return false
+      }
+      // 如果目标就是源所在的目录，直接取消操作（不报错）
+      const sourceDirURI = URIUtils.dirname(sourceURI)
+      if (sourceDirURI === targetURI) {
+        return false
+      }
+      // 不能移动到源目录本身
+      return sourceURI !== targetURI
+    })
+    
+    if (canDrop) {
+      dragTargetPath.value = node.path
+    } else {
+      dragTargetPath.value = null
+      if (dragEvent.dataTransfer) {
+        dragEvent.dataTransfer.dropEffect = 'none'
+      }
+    }
+  }
+}
+
+// 处理拖拽离开（从节点上）
+const handleDragLeave = (event: { node: FileNode; event: DragEvent }) => {
+  // 延迟清除高亮，避免快速移动时闪烁
+  // 检查 relatedTarget 是否还在树节点内，如果是则不清除
+  const relatedTarget = event.event.relatedTarget as HTMLElement | null
+  if (relatedTarget && relatedTarget.closest('.workspace-tree-node')) {
+    return // 如果移动到另一个节点，不清除高亮
+  }
+  
+  setTimeout(() => {
+    // 再次检查，确保没有移动到其他节点
+    if (dragTargetPath.value === event.node.path) {
+      dragTargetPath.value = null
+    }
+  }, 100)
+}
+
+// 处理拖拽释放（在节点上）
+const handleDrop = async (event: { node: FileNode; event: DragEvent }) => {
+  if (!operations || !ipcRenderer || draggingURIs.value.length === 0) return
+  
+  const { node, event: dragEvent } = event
+  
+  dragEvent.preventDefault()
+  dragEvent.stopPropagation()
+  
+  // 只有目录节点可以作为拖拽目标
+  if (node.type !== 'directory' && !node.isWorkspaceRoot) {
+    dragTargetPath.value = null
+    draggingURIs.value = []
+    return
+  }
+  
+  const targetURI = URIUtils.pathToURI(node.path)
+  
+  // 检查是否可以将源移动到目标
+  const canDrop = draggingURIs.value.every(sourceURI => {
+    // 不能移动到自己的子目录
+    if (URIUtils.isSubPath(sourceURI, targetURI)) {
+      return false
+    }
+    // 如果目标就是源所在的目录，直接取消操作（不报错）
+    const sourceDirURI = URIUtils.dirname(sourceURI)
+    if (sourceDirURI === targetURI) {
+      return false
+    }
+    // 不能移动到源目录本身
+    return sourceURI !== targetURI
+  })
+  
+  if (!canDrop) {
+    // 检查是否是移动到当前目录（如果是，静默取消，不显示警告）
+    const isMovingToCurrentDir = draggingURIs.value.every(sourceURI => {
+      const sourceDirURI = URIUtils.dirname(sourceURI)
+      return sourceDirURI === targetURI
+    })
+    
+    if (!isMovingToCurrentDir) {
+      eventBus.emit('show-warning', { message: '不能将文件/文件夹移动到自己的子目录中' })
+    }
+    dragTargetPath.value = null
+    draggingURIs.value = []
+    return
+  }
+  
+  // 执行移动操作
+  try {
+    await performMoveOperation(draggingURIs.value, targetURI)
+  } catch (err) {
+    logger.error('拖拽移动失败:', err)
+    eventBus.emit('show-error', { message: err instanceof Error ? err.message : String(err) })
+  } finally {
+    dragTargetPath.value = null
+    draggingURIs.value = []
+  }
+}
+
+// 处理拖拽悬停（在展开目录的文件区域）
+const handleContentDragOver = (event: DragEvent) => {
+  if (!operations || draggingURIs.value.length === 0) return
+  
+  // 检查是否在展开目录的文件区域
+  const target = event.target as HTMLElement
+  const treeNode = target.closest('.workspace-tree-node') as HTMLElement | null
+  if (!treeNode) return
+  
+  // 查找最近的展开目录节点（向上遍历）
+  let currentNode: HTMLElement | null = treeNode
+  while (currentNode) {
+    const nodeItem = currentNode.querySelector('.workspace-tree-node-item') as HTMLElement | null
+    if (nodeItem) {
+      const nodePath = nodeItem.getAttribute('data-path')
+      if (nodePath) {
+        // 检查是否是展开的目录
+        const isExpanded = expandedPaths.value.has(nodePath)
+        const nodeType = nodeItem.classList.contains('is-directory') || nodeItem.classList.contains('is-workspace-root')
+        
+        if (isExpanded && nodeType) {
+          event.preventDefault()
+          event.stopPropagation()
+          
+          if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move'
+          }
+          
+          // 检查是否可以移动
+          const targetURI = URIUtils.pathToURI(nodePath)
+          const canDrop = draggingURIs.value.every(sourceURI => {
+            // 不能移动到自己的子目录
+            if (URIUtils.isSubPath(sourceURI, targetURI)) {
+              return false
+            }
+            // 如果目标就是源所在的目录，直接取消操作（不报错）
+            const sourceDirURI = URIUtils.dirname(sourceURI)
+            if (sourceDirURI === targetURI) {
+              return false
+            }
+            // 不能移动到源目录本身
+            return sourceURI !== targetURI
+          })
+          
+          if (canDrop) {
+            dragTargetPath.value = nodePath
+          } else {
+            dragTargetPath.value = null
+            if (event.dataTransfer) {
+              event.dataTransfer.dropEffect = 'none'
+            }
+          }
+          return
+        }
+      }
+    }
+    // 向上查找父节点
+    currentNode = currentNode.parentElement?.closest('.workspace-tree-node') as HTMLElement | null
+  }
+}
+
+// 处理拖拽离开（从展开目录的文件区域）
+const handleContentDragLeave = (event: DragEvent) => {
+  // 延迟清除高亮，避免快速移动时闪烁
+  const relatedTarget = event.relatedTarget as HTMLElement | null
+  if (relatedTarget && relatedTarget.closest('.workspace-tree-node')) {
+    return // 如果移动到另一个节点，不清除高亮
+  }
+  
+  setTimeout(() => {
+    // 再次检查，确保没有移动到其他节点
+    const finalRelatedTarget = event.relatedTarget as HTMLElement | null
+    if (!finalRelatedTarget || !finalRelatedTarget.closest('.workspace-tree-node')) {
+      dragTargetPath.value = null
+    }
+  }, 100)
+}
+
+// 处理拖拽释放（在展开目录的文件区域）
+const handleContentDrop = async (event: DragEvent) => {
+  if (!operations || !ipcRenderer || draggingURIs.value.length === 0) return
+  
+  event.preventDefault()
+  event.stopPropagation()
+  
+  // 查找最近的展开目录节点（向上遍历）
+  const target = event.target as HTMLElement
+  const treeNode = target.closest('.workspace-tree-node') as HTMLElement | null
+  if (!treeNode) {
+    dragTargetPath.value = null
+    draggingURIs.value = []
+    return
+  }
+  
+  let currentNode: HTMLElement | null = treeNode
+  while (currentNode) {
+    const nodeItem = currentNode.querySelector('.workspace-tree-node-item') as HTMLElement | null
+    if (nodeItem) {
+      const nodePath = nodeItem.getAttribute('data-path')
+      if (nodePath) {
+        const isExpanded = expandedPaths.value.has(nodePath)
+        const nodeType = nodeItem.classList.contains('is-directory') || nodeItem.classList.contains('is-workspace-root')
+        
+        if (isExpanded && nodeType) {
+          const targetURI = URIUtils.pathToURI(nodePath)
+          
+          // 检查是否可以移动
+          const canDrop = draggingURIs.value.every(sourceURI => {
+            if (URIUtils.isSubPath(sourceURI, targetURI)) {
+              return false
+            }
+            return sourceURI !== targetURI
+          })
+          
+          if (!canDrop) {
+            eventBus.emit('show-warning', { message: '不能将文件/文件夹移动到自己的子目录中' })
+            dragTargetPath.value = null
+            draggingURIs.value = []
+            return
+          }
+          
+          // 执行移动操作
+          try {
+            await performMoveOperation(draggingURIs.value, targetURI)
+          } catch (err) {
+            logger.error('拖拽移动失败:', err)
+            eventBus.emit('show-error', { message: err instanceof Error ? err.message : String(err) })
+          } finally {
+            dragTargetPath.value = null
+            draggingURIs.value = []
+          }
+          return
+        }
+      }
+    }
+    // 向上查找父节点
+    currentNode = currentNode.parentElement?.closest('.workspace-tree-node') as HTMLElement | null
+  }
+  
+  dragTargetPath.value = null
+  draggingURIs.value = []
+}
+
+// 执行移动操作
+const performMoveOperation = async (sourceURIs: URI[], targetDirURI: URI) => {
+  if (!operations || !ipcRenderer) return
+  
+  try {
+    // 动态导入 FSPlanner 和 FSExecutor
+    const { FSPlanner } = await import('../utils/workspace/fs-planner')
+    const { FSExecutor } = await import('../utils/workspace/fs-executor')
+    
+    const planner = new FSPlanner(ipcRenderer)
+    const executor = new FSExecutor(ipcRenderer)
+    
+    // 为每个源生成移动步骤
+    const steps: Array<{ type: 'move'; from: URI; to: URI }> = []
+    
+    for (const sourceURI of sourceURIs) {
+      const sourcePath = URIUtils.uriToPath(sourceURI)
+      const sourceName = URIUtils.basename(sourceURI)
+      
+      // 构建目标 URI
+      const targetURI = URIUtils.join(targetDirURI, sourceName)
+      
+      // 检查是否可以将源移动到目标
+      if (URIUtils.isSubPath(sourceURI, targetDirURI)) {
+        throw new Error(`不能将目录移动到自己的子目录中: ${sourcePath}`)
+      }
+      
+      // 如果目标就是源所在的目录，直接跳过（不报错）
+      const sourceDirURI = URIUtils.dirname(sourceURI)
+      if (sourceDirURI === targetDirURI) {
+        logger.info('目标目录就是源目录，跳过移动', { sourceURI, targetDirURI })
+        continue
+      }
+      
+      steps.push({
+        type: 'move',
+        from: sourceURI,
+        to: targetURI
+      })
+    }
+    
+    const plan = { steps }
+    
+    // 执行移动计划
+    const result = await executor.execute(plan)
+    
+    if (!result.success) {
+      const errorMsg = result.errors?.[0]?.error.message || '移动失败'
+      eventBus.emit('show-error', { message: errorMsg })
+      return
+    }
+    
+    // 更新选择（选中移动后的文件）
+    if (result.createdURIs && result.createdURIs.length > 0) {
+      operations.updateSelection(result.createdURIs)
+    }
+    
+    // 刷新目标目录
+    const targetPath = URIUtils.uriToPath(targetDirURI)
+    await refreshDirectoryNode(targetPath)
+    
+    // 刷新源目录（如果源和目标不在同一目录）
+    const sourceDirs = new Set<string>()
+    for (const sourceURI of sourceURIs) {
+      const sourcePath = URIUtils.uriToPath(sourceURI)
+      sourceDirs.add(dirname(sourcePath))
+    }
+    
+    for (const sourceDir of sourceDirs) {
+      if (sourceDir !== targetPath) {
+        await refreshDirectoryNode(sourceDir)
+      }
+    }
+    
+    eventBus.emit('show-success', { message: `已移动 ${sourceURIs.length} 项` })
+  } catch (error) {
+    logger.error('移动操作失败:', error)
+    throw error
+  }
+}
+
+// 处理拖拽结束
+const handleDragEnd = (event: DragEvent) => {
+  // 清除拖拽状态
+  dragTargetPath.value = null
+  draggingURIs.value = []
 }
 
 // 处理键盘快捷键
@@ -1713,7 +2319,7 @@ const handleKeyDown = async (event: KeyboardEvent) => {
     event.stopPropagation()
     if (selectedPaths.value.size > 0) {
       await handleCopy(null)
-      ElMessage.success(t('workspaceExplorer.copySuccess', { count: selectedPaths.value.size }))
+      // 成功消息已在 operations.copy 中显示
     }
     return
   }
@@ -1724,7 +2330,7 @@ const handleKeyDown = async (event: KeyboardEvent) => {
     event.stopPropagation()
     if (selectedPaths.value.size > 0) {
       await handleCut(null)
-      ElMessage.success(t('workspaceExplorer.cutSuccess', { count: selectedPaths.value.size }))
+      // 成功消息已在 operations.cut 中显示
     }
     return
   }
@@ -1733,11 +2339,43 @@ const handleKeyDown = async (event: KeyboardEvent) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') {
     event.preventDefault()
     event.stopPropagation()
-    if (clipboardPaths.value.length > 0 && clipboardOperation.value) {
-      const targetPath = workspaceFolders.value.length > 0 ? workspaceFolders.value[0] : null
+    if (operations && operations.hasClipboardContent()) {
+      // 如果没有选中文件夹，使用剪贴板中源文件所在的目录作为目标目录
+      let targetPath: string | null = null
+      
+      // 检查是否有选中的文件夹节点
+      if (selectedPaths.value.size > 0) {
+        const allNodes = getAllNodesSync()
+        const selectedNode = allNodes.find(n => 
+          selectedPaths.value.has(n.path) && 
+          (n.type === 'directory' || n.isWorkspaceRoot)
+        )
+        if (selectedNode) {
+          targetPath = selectedNode.path
+        }
+      }
+      
+      // 如果没有选中文件夹，使用剪贴板中第一个源文件所在的目录
+      if (!targetPath) {
+        // 通过 clipboardService 直接获取 payload
+        const { ClipboardService } = await import('../utils/workspace/clipboard-service')
+        const clipboardService = ClipboardService.getInstance()
+        const clipboardPayload = clipboardService.getPayload()
+        if (clipboardPayload && clipboardPayload.sources.length > 0) {
+          const firstSourceURI = clipboardPayload.sources[0]
+          const firstSourcePath = URIUtils.uriToPath(firstSourceURI)
+          targetPath = dirname(firstSourcePath)
+        }
+      }
+      
+      // 如果还是没有目标路径，使用第一个工作文件夹
+      if (!targetPath && workspaceFolders.value.length > 0) {
+        targetPath = workspaceFolders.value[0]
+      }
+      
       if (targetPath) {
         await handlePaste(targetPath)
-        ElMessage.success(t('workspaceExplorer.pasteSuccess', { count: clipboardPaths.value.length }))
+        // 成功消息已在 operations.paste 中显示
       }
     }
     return
@@ -1756,25 +2394,16 @@ const handleKeyDown = async (event: KeyboardEvent) => {
 
 // 全选 - 优化：批量添加，减少 Vue 响应式更新开销
 const handleSelectAll = async () => {
-  // 先收集所有路径，然后一次性更新，减少响应式更新次数
+  if (!operations) return
+  
+  // 先收集所有节点
   const allNodes = getAllNodesSync()
-  const pathsToSelect = new Set<string>()
   
-  // 收集所有需要选中的路径
-  for (const node of allNodes) {
-    // 工作文件夹根节点不可选中
-    if (!node.isWorkspaceRoot) {
-      pathsToSelect.add(node.path)
-    }
-  }
-  
-  // 一次性更新选中状态，只触发一次响应式更新
-  selectedPaths.value = pathsToSelect
-  
-  if (allNodes.length > 0) {
-    const lastNode = allNodes[allNodes.length - 1]
-    lastSelectedIndex.value = allNodes.findIndex(n => n.path === lastNode.path)
-  }
+  // 使用新的操作模型
+  operations.selectAll(allNodes.map(node => ({
+    uri: URIUtils.pathToURI(node.path),
+    isWorkspaceRoot: node.isWorkspaceRoot
+  })))
 }
 </script>
 
@@ -1812,6 +2441,12 @@ const handleSelectAll = async () => {
 .workspace-explorer-actions {
   display: flex;
   gap: 4px;
+}
+
+.workspace-action-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .workspace-explorer-empty {
@@ -1854,7 +2489,7 @@ const handleSelectAll = async () => {
 }
 
 .workspace-explorer-content {
-  padding: 4px 0;
+  padding: 0;
   min-height: 100%;
 }
 
@@ -1946,4 +2581,5 @@ const handleSelectAll = async () => {
   opacity: 1;
 }
 </style>
+
 

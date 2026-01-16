@@ -13,23 +13,19 @@
         v-if="menuId === 'file' && isMenuItemVisible('file')"
         :title="$t('leftMenu.file')"
         :tooltip="$t('leftMenu.file')"
-        :icon="Document"
+        :icon-image="(themeState.currentTheme as any).FileIcon"
         trigger="click"
         :level="1"
       >
         <template #title>
-          <el-icon>
-            <Document />
-          </el-icon>
+          <img :src="(themeState.currentTheme as any).FileIcon" class="menu-icon-image" alt="file" />
           <span>{{ $t('leftMenu.file') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <el-icon>
-              <Document />
-            </el-icon>
+            <img :src="(themeState.currentTheme as any).FileIcon" class="menu-title-icon" alt="file" />
           </template>
           {{ $t('leftMenu.fileTooltip') }}
         </UISubMenuItem>
@@ -135,7 +131,7 @@
         v-if="menuId === 'settings' && isMenuItemVisible('settings')"
         :label="$t('leftMenu.settings')"
         :tooltip="$t('leftMenu.settings')"
-        :icon="Setting"
+        :icon-image="(themeState.currentTheme as any).SettingIcon"
         @click="eventBus.emit('setting')"
       />
 
@@ -144,7 +140,7 @@
         v-if="menuId === 'recent-files' && isMenuItemVisible('recent-files')"
         :title="$t('leftMenu.recentFiles')"
         :tooltip="$t('leftMenu.recentFiles')"
-        :icon="Clock"
+        :icon-image="(themeState.currentTheme as any).RecentIcon"
         trigger="click"
         :level="1"
         class="recent-files-menu"
@@ -182,23 +178,19 @@
         v-if="menuId === 'language' && isMenuItemVisible('language')"
         :title="$t('leftMenu.langTooltip')"
         :tooltip="$t('leftMenu.langTooltip')"
-        :icon="EarthIcon as any"
+        :icon-image="(themeState.currentTheme as any).LanguageIcon"
         trigger="click"
         :level="1"
       >
         <template #title>
-          <el-icon>
-            <EarthIcon />
-          </el-icon>
+          <img :src="(themeState.currentTheme as any).LanguageIcon" class="menu-icon-image" alt="language" />
           <span>{{ $t('leftMenu.langTooltip') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <el-icon>
-              <EarthIcon />
-            </el-icon>
+            <img :src="(themeState.currentTheme as any).LanguageIcon" class="menu-title-icon" alt="language" />
           </template>
           {{ $t('leftMenu.langTooltip') }}
         </UISubMenuItem>
@@ -233,7 +225,7 @@
         v-if="menuId === 'knowledge-base' && isMenuItemVisible('knowledge-base')"
         :label="$t('leftMenu.knowledgeBase', '知识库')"
         :tooltip="$t('leftMenu.knowledgeBase', '知识库')"
-        :icon="Collection"
+        :icon-image="(themeState.currentTheme as any).KnowledgeIcon"
         @click="openKnowledgeBase"
       />
 
@@ -242,7 +234,7 @@
         v-if="menuId === 'workspace-explorer' && isMenuItemVisible('workspace-explorer')"
         :label="$t('leftMenu.workspaceExplorer', '工作目录')"
         :tooltip="$t('leftMenu.workspaceExplorer', '工作目录')"
-        :icon="FolderOpened"
+        :icon-image="(themeState.currentTheme as any).FolderIcon"
         @click="toggleWorkspaceExplorer"
       />
 
@@ -275,7 +267,7 @@
         v-if="menuId === 'debug' && isDev && isMenuItemVisible('debug')"
         :label="$t('leftMenu.debugTools', '调试工具')"
         :tooltip="$t('leftMenu.debugTools', '调试工具')"
-        :icon="Tools"
+        :icon-image="(themeState.currentTheme as any).DebugIcon"
         @click="openDebugTools"
       />
 
@@ -284,23 +276,19 @@
         v-if="menuId === 'more-features' && isMenuItemVisible('more-features')"
         :title="$t('leftMenu.moreFeatures', '更多功能')"
         :tooltip="$t('leftMenu.moreFeatures', '更多功能')"
-        :icon="Grid"
+        :icon-image="(themeState.currentTheme as any).MoreIcon"
         trigger="click"
         :level="1"
       >
         <template #title>
-          <el-icon>
-            <Grid />
-          </el-icon>
+          <img :src="(themeState.currentTheme as any).MoreIcon" class="menu-icon-image" alt="more" />
           <span>{{ $t('leftMenu.moreFeatures', '更多功能') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <el-icon>
-              <Grid />
-            </el-icon>
+            <img :src="(themeState.currentTheme as any).MoreIcon" class="menu-title-icon" alt="more" />
           </template>
           {{ $t('leftMenu.moreFeatures', '更多功能') }}
         </UISubMenuItem>
@@ -389,24 +377,20 @@
         v-if="menuId === 'file' && isMenuItemVisible('file')"
         :title="$t('leftMenu.file')"
         :tooltip="$t('leftMenu.file')"
-        :icon="Document"
+        :icon-image="(themeState.currentTheme as any).FileIcon"
         trigger="click"
         :level="1"
         class="bottom-menu"
       >
         <template #title>
-          <el-icon>
-            <Document />
-          </el-icon>
+          <img :src="(themeState.currentTheme as any).FileIcon" class="menu-icon-image" alt="file" />
           <span>{{ $t('leftMenu.file') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <el-icon>
-              <Document />
-            </el-icon>
+            <img :src="(themeState.currentTheme as any).FileIcon" class="menu-title-icon" alt="file" />
           </template>
           {{ $t('leftMenu.fileTooltip') }}
         </UISubMenuItem>
@@ -523,25 +507,21 @@
         v-if="menuId === 'recent-files' && isMenuItemVisible('recent-files')"
         :title="$t('leftMenu.recentFiles')"
         :tooltip="$t('leftMenu.recentFiles')"
-        :icon="Clock"
+        :icon-image="(themeState.currentTheme as any).RecentIcon"
         trigger="click"
         :level="1"
         class="recent-files-menu bottom-menu"
         @open="refreshRecentDocs"
       >
         <template #title>
-          <el-icon class="recent-files-icon">
-            <Clock />
-          </el-icon>
+          <img :src="(themeState.currentTheme as any).RecentIcon" class="recent-files-icon" alt="recent" />
           <span class="recent-files-text">{{ $t('leftMenu.recentFiles') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <el-icon>
-              <Clock />
-            </el-icon>
+            <img :src="(themeState.currentTheme as any).RecentIcon" class="menu-title-icon" alt="recent" />
           </template>
           {{ $t('leftMenu.recentFilesTooltip') }}
         </UISubMenuItem>
@@ -561,24 +541,20 @@
         v-if="menuId === 'language' && isMenuItemVisible('language')"
         :title="$t('leftMenu.langTooltip')"
         :tooltip="$t('leftMenu.langTooltip')"
-        :icon="EarthIcon as any"
+        :icon-image="(themeState.currentTheme as any).LanguageIcon"
         trigger="click"
         :level="1"
         class="bottom-menu"
       >
         <template #title>
-          <el-icon>
-            <EarthIcon />
-          </el-icon>
+          <img :src="(themeState.currentTheme as any).LanguageIcon" class="menu-icon-image" alt="language" />
           <span>{{ $t('leftMenu.langTooltip') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <el-icon>
-              <EarthIcon />
-            </el-icon>
+            <img :src="(themeState.currentTheme as any).LanguageIcon" class="menu-title-icon" alt="language" />
           </template>
           {{ $t('leftMenu.langTooltip') }}
         </UISubMenuItem>
@@ -613,7 +589,7 @@
         v-if="menuId === 'knowledge-base' && isMenuItemVisible('knowledge-base')"
         :label="$t('leftMenu.knowledgeBase', '知识库')"
         :tooltip="$t('leftMenu.knowledgeBase', '知识库')"
-        :icon="Collection"
+        :icon-image="(themeState.currentTheme as any).KnowledgeIcon"
         class="bottom-menu"
         @click="openKnowledgeBase"
       />
@@ -623,7 +599,7 @@
         v-if="menuId === 'workspace-explorer' && isMenuItemVisible('workspace-explorer')"
         :label="$t('leftMenu.workspaceExplorer', '工作目录')"
         :tooltip="$t('leftMenu.workspaceExplorer', '工作目录')"
-        :icon="FolderOpened"
+        :icon-image="(themeState.currentTheme as any).FolderIcon"
         class="bottom-menu"
         @click="toggleWorkspaceExplorer"
       />
@@ -658,7 +634,7 @@
         v-if="menuId === 'debug' && isDev && isMenuItemVisible('debug')"
         :label="$t('leftMenu.debugTools', '调试工具')"
         :tooltip="$t('leftMenu.debugTools', '调试工具')"
-        :icon="Tools"
+        :icon-image="(themeState.currentTheme as any).DebugIcon"
         class="bottom-menu"
         @click="openDebugTools"
       />
@@ -668,24 +644,20 @@
         v-if="menuId === 'more-features' && isMenuItemVisible('more-features')"
         :title="$t('leftMenu.moreFeatures', '更多功能')"
         :tooltip="$t('leftMenu.moreFeatures', '更多功能')"
-        :icon="Grid"
+        :icon-image="(themeState.currentTheme as any).MoreIcon"
         trigger="click"
         :level="1"
         class="bottom-menu"
       >
         <template #title>
-          <el-icon>
-            <Grid />
-          </el-icon>
+          <img :src="(themeState.currentTheme as any).MoreIcon" class="menu-icon-image" alt="more" />
           <span>{{ $t('leftMenu.moreFeatures', '更多功能') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <el-icon>
-              <Grid />
-            </el-icon>
+            <img :src="(themeState.currentTheme as any).MoreIcon" class="menu-title-icon" alt="more" />
           </template>
           {{ $t('leftMenu.moreFeatures', '更多功能') }}
         </UISubMenuItem>
@@ -830,15 +802,15 @@ const isDev = ref(false)
 // 菜单配置项定义
 const menuConfigItems = computed<MenuConfigItem[]>(() => {
   return [
-    { id: 'file', label: t('leftMenu.file'), icon: Document, visible: true, isCore: true, position: 'top' },
+    { id: 'file', label: t('leftMenu.file'), iconImage: (themeState.currentTheme as any).FileIcon, visible: true, isCore: true, position: 'top' },
     { id: 'ai-assistant', label: t('leftMenu.aiAssistant'), iconImage: themeState.currentTheme.AiLogo, visible: true, isCore: false, position: 'top' },
-    { id: 'settings', label: t('leftMenu.settings'), icon: Setting, visible: true, isCore: true, position: 'top' },
-    { id: 'recent-files', label: t('leftMenu.recentFiles'), icon: Clock, visible: true, isCore: false, position: 'top' },
-    { id: 'language', label: t('leftMenu.langTooltip'), icon: EarthIcon as any, visible: true, isCore: true, position: 'top' },
-    { id: 'knowledge-base', label: t('leftMenu.knowledgeBase', '知识库'), icon: Collection, visible: true, isCore: false, position: 'top' },
-    { id: 'workspace-explorer', label: t('leftMenu.workspaceExplorer', '工作目录'), icon: FolderOpened, visible: true, isCore: true, position: 'top' },
-    { id: 'debug', label: t('leftMenu.debugTools', '调试工具'), icon: Tools, visible: isDev.value, isCore: false, position: 'top' },
-    { id: 'more-features', label: t('leftMenu.moreFeatures', '更多功能'), icon: Grid, visible: true, isCore: true, position: 'top' },
+    { id: 'settings', label: t('leftMenu.settings'), iconImage: (themeState.currentTheme as any).SettingIcon, visible: true, isCore: true, position: 'top' },
+    { id: 'recent-files', label: t('leftMenu.recentFiles'), iconImage: (themeState.currentTheme as any).RecentIcon, visible: true, isCore: false, position: 'top' },
+    { id: 'language', label: t('leftMenu.langTooltip'), iconImage: (themeState.currentTheme as any).LanguageIcon, visible: true, isCore: true, position: 'top' },
+    { id: 'knowledge-base', label: t('leftMenu.knowledgeBase', '知识库'), iconImage: (themeState.currentTheme as any).KnowledgeIcon, visible: true, isCore: false, position: 'top' },
+    { id: 'workspace-explorer', label: t('leftMenu.workspaceExplorer', '工作目录'), iconImage: (themeState.currentTheme as any).FolderIcon, visible: true, isCore: true, position: 'top' },
+    { id: 'debug', label: t('leftMenu.debugTools', '调试工具'), iconImage: (themeState.currentTheme as any).DebugIcon, visible: isDev.value, isCore: false, position: 'top' },
+    { id: 'more-features', label: t('leftMenu.moreFeatures', '更多功能'), iconImage: (themeState.currentTheme as any).MoreIcon, visible: true, isCore: true, position: 'top' },
     { id: 'llm-statistics', label: t('bottomMenu.llmStatistics', 'LLM统计'), icon: DataAnalysis, visible: false, isCore: false, position: 'top' },
     { id: 'home', label: t('leftMenu.home', '主页'), icon: House, visible: true, isCore: true, position: 'bottom' },
     { id: 'user-profile', label: t('leftMenu.userProfileTooltip', '用户资料'), icon: UserFilled, visible: true, isCore: true, position: 'bottom' },

@@ -23,102 +23,121 @@
 
     <el-divider />
 
-    <div class="update-settings">
-      <h3 class="section-title">{{ $t('setting.about.updateSettings') }}</h3>
-      
-      <el-form label-width="200px" class="settings-form">
-        <el-form-item :label="$t('setting.about.autoCheckUpdates')">
-          <el-switch
-            v-model="autoCheckUpdates"
-            :active-text="$t('setting.enabled')"
-            :inactive-text="$t('setting.disabled')"
-            @change="handleAutoCheckChange"
-          />
-        </el-form-item>
+    <!-- 使用标签页组织更新设置、开源许可证和第三方资产 -->
+    <el-tabs v-model="activeTab" class="about-tabs">
+      <el-tab-pane :label="$t('setting.about.updateSettings')" name="updates">
+        <div class="update-settings">
+          <el-form label-width="200px" class="settings-form">
+            <el-form-item :label="$t('setting.about.autoCheckUpdates')">
+              <el-switch
+                v-model="autoCheckUpdates"
+                :active-text="$t('setting.enabled')"
+                :inactive-text="$t('setting.disabled')"
+                @change="handleAutoCheckChange"
+              />
+            </el-form-item>
 
-        <el-form-item :label="$t('setting.about.updateChannel')">
-          <el-radio-group v-model="updateChannel" @change="handleChannelChange">
-            <el-radio label="release">{{ $t('setting.about.channelRelease') }}</el-radio>
-            <el-radio label="dev">{{ $t('setting.about.channelDev') }}</el-radio>
-          </el-radio-group>
-        </el-form-item>
+            <el-form-item :label="$t('setting.about.updateChannel')">
+              <el-radio-group v-model="updateChannel" @change="handleChannelChange">
+                <el-radio label="release">{{ $t('setting.about.channelRelease') }}</el-radio>
+                <el-radio label="dev">{{ $t('setting.about.channelDev') }}</el-radio>
+              </el-radio-group>
+            </el-form-item>
 
-        <el-form-item>
-          <el-button
-            type="primary"
-            :loading="checking"
-            :disabled="checking"
-            @click="handleCheckUpdate"
-          >
-            {{ checking ? $t('setting.about.checking') : $t('setting.about.checkUpdate') }}
-          </el-button>
-        </el-form-item>
-      </el-form>
+            <el-form-item>
+              <el-button
+                type="primary"
+                :loading="checking"
+                :disabled="checking"
+                @click="handleCheckUpdate"
+              >
+                {{ checking ? $t('setting.about.checking') : $t('setting.about.checkUpdate') }}
+              </el-button>
+            </el-form-item>
+          </el-form>
 
-      <!-- 更新状态提示 -->
-      <div v-if="updateStatus" class="update-status">
-        <el-alert
-          v-if="updateStatus.updateAvailable"
-          type="success"
-          :title="$t('setting.about.updateAvailable')"
-          :description="updateStatus.updateInfo ? $t('setting.about.updateAvailableDesc', { version: updateStatus.updateInfo.version }) : ''"
-          show-icon
-          :closable="false"
-        />
-        <el-alert
-          v-else-if="updateStatus.updateNotAvailable"
-          type="info"
-          :title="$t('setting.about.noUpdate')"
-          :description="$t('setting.about.noUpdateDesc')"
-          show-icon
-          :closable="false"
-        />
-        <el-alert
-          v-else-if="updateStatus.error"
-          type="error"
-          :title="$t('setting.about.checkUpdateError')"
-          :description="updateStatus.error"
-          show-icon
-          :closable="false"
-        />
-      </div>
+          <!-- 更新状态提示 -->
+          <div v-if="updateStatus" class="update-status">
+            <el-alert
+              v-if="updateStatus.updateAvailable"
+              type="success"
+              :title="$t('setting.about.updateAvailable')"
+              :description="updateStatus.updateInfo ? $t('setting.about.updateAvailableDesc', { version: updateStatus.updateInfo.version }) : ''"
+              show-icon
+              :closable="false"
+            />
+            <el-alert
+              v-else-if="updateStatus.updateNotAvailable"
+              type="info"
+              :title="$t('setting.about.noUpdate')"
+              :description="$t('setting.about.noUpdateDesc')"
+              show-icon
+              :closable="false"
+            />
+            <el-alert
+              v-else-if="updateStatus.error"
+              type="error"
+              :title="$t('setting.about.checkUpdateError')"
+              :description="updateStatus.error"
+              show-icon
+              :closable="false"
+            />
+          </div>
 
-      <!-- 下载和安装按钮 -->
-      <div v-if="updateStatus?.updateAvailable" class="update-actions">
-        <el-button
-          v-if="!downloaded && !downloading"
-          type="primary"
-          @click="handleDownloadUpdate"
-        >
-          {{ $t('setting.about.downloadUpdate') }}
-        </el-button>
-        <el-button
-          v-if="downloading"
-          type="primary"
-          :loading="true"
-          disabled
-        >
-          {{ $t('setting.about.downloading') }} ({{ downloadProgress }}%)
-        </el-button>
-        <el-button
-          v-if="downloaded"
-          type="success"
-          @click="handleInstallUpdate"
-        >
-          {{ $t('setting.about.installAndRestart') }}
-        </el-button>
-        <el-alert
-          v-if="downloadError"
-          type="error"
-          :title="$t('setting.about.downloadError')"
-          :description="downloadError"
-          show-icon
-          :closable="true"
-          @close="downloadError = null"
-          style="margin-top: 16px;"
-        />
-      </div>
-    </div>
+          <!-- 下载和安装按钮 -->
+          <div v-if="updateStatus?.updateAvailable" class="update-actions">
+            <el-button
+              v-if="!downloaded && !downloading"
+              type="primary"
+              @click="handleDownloadUpdate"
+            >
+              {{ $t('setting.about.downloadUpdate') }}
+            </el-button>
+            <el-button
+              v-if="downloading"
+              type="primary"
+              :loading="true"
+              disabled
+            >
+              {{ $t('setting.about.downloading') }} ({{ downloadProgress }}%)
+            </el-button>
+            <el-button
+              v-if="downloaded"
+              type="success"
+              @click="handleInstallUpdate"
+            >
+              {{ $t('setting.about.installAndRestart') }}
+            </el-button>
+            <el-alert
+              v-if="downloadError"
+              type="error"
+              :title="$t('setting.about.downloadError')"
+              :description="downloadError"
+              show-icon
+              :closable="true"
+              @close="downloadError = null"
+              style="margin-top: 16px;"
+            />
+          </div>
+        </div>
+      </el-tab-pane>
+
+      <el-tab-pane :label="$t('setting.about.openSourceLicenses')" name="licenses">
+        <div class="licenses-section">
+          <div class="content-container">
+            <pre class="license-content">{{ openSourceLicenses }}</pre>
+          </div>
+        </div>
+      </el-tab-pane>
+
+      <el-tab-pane :label="$t('setting.about.thirdPartyAssets')" name="assets">
+        <div class="assets-section">
+          <div class="content-container">
+            <pre class="assets-content">{{ thirdPartyAssets }}</pre>
+          </div>
+        </div>
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
@@ -130,6 +149,8 @@ import { setSetting, getSetting } from '../../utils/settings';
 import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer';
 import { isDevEnvironment } from '../../utils/dev-env';
 import logo from '../../assets/logo.svg';
+import openSourceLicensesText from '../../assets/open-source-licenses.txt?raw';
+import thirdPartyAssetsText from '../../assets/third-party-assets.txt?raw';
 const { t } = useI18n();
 
 let ipcRenderer: any = null;
@@ -156,6 +177,9 @@ const downloading = ref<boolean>(false);
 const downloaded = ref<boolean>(false);
 const downloadProgress = ref<number>(0);
 const downloadError = ref<string | null>(null);
+const openSourceLicenses = ref<string>('');
+const thirdPartyAssets = ref<string>('');
+const activeTab = ref<string>('updates');
 
 
 
@@ -309,10 +333,23 @@ const handleUpdateDownloaded = (event: any, data: { version: string }) => {
   }
 };
 
+// 加载许可证和资产信息
+const loadLicenseAndAssets = async () => {
+  try {
+    openSourceLicenses.value = openSourceLicensesText;
+    thirdPartyAssets.value = thirdPartyAssetsText;
+  } catch (error) {
+    console.error('加载许可证和资产信息失败:', error);
+    openSourceLicenses.value = '加载失败，请稍后重试。';
+    thirdPartyAssets.value = '加载失败，请稍后重试。';
+  }
+};
+
 onMounted(async () => {
   await Promise.all([
     loadVersionInfo(),
     loadSettings(),
+    loadLicenseAndAssets(),
   ]);
 
   // 监听自动下载完成事件
@@ -335,7 +372,6 @@ onMounted(async () => {
 });
 
 // 组件卸载时清理监听器
-import { onUnmounted } from 'vue';
 onUnmounted(() => {
   if (ipcRenderer && ipcRenderer.removeListener) {
     ipcRenderer.removeListener('update-downloaded', handleUpdateDownloaded);
@@ -407,8 +443,12 @@ onUnmounted(() => {
   color: var(--el-text-color-primary);
 }
 
-.update-settings {
+.about-tabs {
   margin-top: 32px;
+}
+
+.update-settings {
+  margin-top: 0;
 }
 
 .section-title {
@@ -438,5 +478,31 @@ onUnmounted(() => {
 
 .update-actions {
   margin-top: 24px;
+}
+
+.licenses-section,
+.assets-section {
+  margin-top: 0;
+}
+
+.content-container {
+  background-color: var(--el-bg-color-page);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  padding: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.license-content,
+.assets-content {
+  margin: 0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  user-select: text;
 }
 </style>

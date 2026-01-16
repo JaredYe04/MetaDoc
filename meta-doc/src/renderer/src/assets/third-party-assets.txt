@@ -1,0 +1,10 @@
+Third-party Assets
+
+This application uses the following third-party assets:
+
+AI Icon (noun-ai-8071289.svg)
+- Source: The Noun Project
+- Creator: Mol Media
+- License: Used under The Noun Project license
+- Usage: Modified version (text removed) used in ai-black.svg and ai-white.svg icons
+- Original file: res/noun-ai-8071289.svg

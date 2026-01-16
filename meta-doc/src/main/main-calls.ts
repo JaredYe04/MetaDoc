@@ -643,12 +643,31 @@ function bindFileHandlers(): void {
   // 删除文件或文件夹（移到回收站）
   ipcMain.handle('delete-file-or-folder', async (event: IpcMainInvokeEvent, filePath: string): Promise<void> => {
     try {
-      if (!fs.existsSync(filePath)) {
+      // 规范化路径（确保使用正确的路径分隔符）
+      const normalizedPath = path.normalize(filePath)
+      
+      if (!fs.existsSync(normalizedPath)) {
         throw new Error('文件或文件夹不存在');
       }
 
-      // 使用 shell.trashItem 移到回收站
-      await shell.trashItem(filePath);
+      // 先尝试使用 shell.trashItem 移到回收站（推荐方式）
+      try {
+        await shell.trashItem(normalizedPath);
+        return; // 成功则直接返回
+      } catch (trashError) {
+        // 如果 shell.trashItem 失败（可能是权限问题或路径问题），使用直接删除作为回退
+        logger.warn('使用 shell.trashItem 删除失败，尝试直接删除:', { path: normalizedPath, error: trashError });
+        
+        const stats = fs.statSync(normalizedPath);
+        if (stats.isDirectory()) {
+          // 删除目录（递归删除）
+          fs.rmSync(normalizedPath, { recursive: true, force: true });
+        } else {
+          // 删除文件
+          fs.unlinkSync(normalizedPath);
+        }
+        logger.info('使用直接删除方式成功删除:', normalizedPath);
+      }
     } catch (error) {
       logger.error('删除文件或文件夹失败:', error);
       throw error;

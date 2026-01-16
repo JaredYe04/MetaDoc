@@ -2277,6 +2277,7 @@
             "copyPath": "复制路径",
             "copyRelativePath": "复制相对路径",
             "showInFolder": "在文件夹中显示",
+            "openFolder": "打开文件夹",
             "newFile": "新建文件",
             "newFolder": "新建文件夹",
             "refresh": "刷新"

@@ -23,6 +23,28 @@ import TexDocIconBlack from "../assets/icons/tex-doc-black.svg";
 import TexDocIconWhite from "../assets/icons/tex-doc-white.svg";
 import BaseDocIconBlack from "../assets/icons/base-doc-black.svg";
 import BaseDocIconWhite from "../assets/icons/base-doc-white.svg";
+// 工作区图标导入
+import RefreshIconBlack from "../assets/icons/refresh-black.svg";
+import RefreshIconWhite from "../assets/icons/refresh-white.svg";
+import FolderAddIconBlack from "../assets/icons/folder-add-black.svg";
+import FolderAddIconWhite from "../assets/icons/folder-add-white.svg";
+// 菜单图标导入（新增）
+import SettingIconBlack from "../assets/icons/setting-black.svg";
+import SettingIconWhite from "../assets/icons/setting-white.svg";
+import RecentIconBlack from "../assets/icons/recent-black.svg";
+import RecentIconWhite from "../assets/icons/recent-white.svg";
+import KnowledgeIconBlack from "../assets/icons/knowledge-black.svg";
+import KnowledgeIconWhite from "../assets/icons/knowledge-white.svg";
+import FolderIconBlack from "../assets/icons/folder-black.svg";
+import FolderIconWhite from "../assets/icons/folder-white.svg";
+import DebugIconBlack from "../assets/icons/debug-black.svg";
+import DebugIconWhite from "../assets/icons/debug-white.svg";
+import MoreIconBlack from "../assets/icons/more-black.svg";
+import MoreIconWhite from "../assets/icons/more-white.svg";
+import LanguageIconBlack from "../assets/icons/language-black.svg";
+import LanguageIconWhite from "../assets/icons/language-white.svg";
+import FileIconBlack from "../assets/icons/file-black.svg";
+import FileIconWhite from "../assets/icons/file-white.svg";
 // theme.js
 export const contentThemes = [
   { label: 'Ant Design', value: 'ant-design' },
@@ -152,6 +174,16 @@ const generateThemeIcons = (isDarkMode) => {
     MdDocIcon: selectIconByTheme(isDarkMode, { light: MdDocIconBlack, dark: MdDocIconWhite }),
     TexDocIcon: selectIconByTheme(isDarkMode, { light: TexDocIconBlack, dark: TexDocIconWhite }),
     BaseDocIcon: selectIconByTheme(isDarkMode, { light: BaseDocIconBlack, dark: BaseDocIconWhite }),
+    RefreshIcon: selectIconByTheme(isDarkMode, { light: RefreshIconBlack, dark: RefreshIconWhite }),
+    FolderAddIcon: selectIconByTheme(isDarkMode, { light: FolderAddIconBlack, dark: FolderAddIconWhite }),
+    SettingIcon: selectIconByTheme(isDarkMode, { light: SettingIconBlack, dark: SettingIconWhite }),
+    RecentIcon: selectIconByTheme(isDarkMode, { light: RecentIconBlack, dark: RecentIconWhite }),
+    KnowledgeIcon: selectIconByTheme(isDarkMode, { light: KnowledgeIconBlack, dark: KnowledgeIconWhite }),
+    FolderIcon: selectIconByTheme(isDarkMode, { light: FolderIconBlack, dark: FolderIconWhite }),
+    DebugIcon: selectIconByTheme(isDarkMode, { light: DebugIconBlack, dark: DebugIconWhite }),
+    MoreIcon: selectIconByTheme(isDarkMode, { light: MoreIconBlack, dark: MoreIconWhite }),
+    LanguageIcon: selectIconByTheme(isDarkMode, { light: LanguageIconBlack, dark: LanguageIconWhite }),
+    FileIcon: selectIconByTheme(isDarkMode, { light: FileIconBlack, dark: FileIconWhite }),
   };
 };
 

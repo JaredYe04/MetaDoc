@@ -881,7 +881,7 @@ export async function local2image(md, docPath = ''){
                     const { getLinkBase } = await import('../stores/workspace');
                     const linkBase = getLinkBase(docPath);
                     resolvedImagePath = resolvePathWithLinkBase(image_path, linkBase || docPath);
-                    getLogger().debug(`路径解析结果: ${image_path} -> ${resolvedImagePath}`, { docPath, linkBase });
+                    //getLogger().debug(`路径解析结果: ${image_path} -> ${resolvedImagePath}`, { docPath, linkBase });
                 }
                 
                 // 本地路径处理

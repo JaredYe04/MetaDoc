@@ -1,6 +1,9 @@
 import { reactive } from "vue";
-import AiLogo from "../assets/ai-logo.svg";
-import AiLogoWhite from "../assets/ai-logo-white.svg";
+// import AiLogo from "../assets/ai-logo.svg";
+// import AiLogoWhite from "../assets/ai-logo-white.svg";
+
+import AiLogo from "../assets/icons/ai-black.svg";
+import AiLogoWhite from "../assets/icons/ai-white.svg";
 import ToolBlack from "../assets/tool-black.svg";
 import ToolWhite from "../assets/tool-white.svg";
 // 菜单图标导入

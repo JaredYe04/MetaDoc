@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
+	<g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="miter" stroke-width="1.2">
+		<!-- Base pattern: modern geometric design with sharp polyline angles -->
+		<!-- Pattern: from center outward with precise geometric lines for tech aesthetic -->
+		<path id="pattern" d="M11.217 19.384L14 18L18 21L18 13L12 9.65" />
+		<!-- Rotate pattern 5 times (60 degrees each) to complete the 6-fold symmetry -->
+		<use href="#pattern" transform="rotate(60 12 12)" />
+		<use href="#pattern" transform="rotate(120 12 12)" />
+		<use href="#pattern" transform="rotate(180 12 12)" />
+		<use href="#pattern" transform="rotate(240 12 12)" />
+		<use href="#pattern" transform="rotate(300 12 12)" />
+	</g>
+</svg>

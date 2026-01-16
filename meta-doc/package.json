@@ -37,7 +37,8 @@
     "release:dev": "node scripts/release-dev.js",
     "release:prod": "node scripts/release-prod.js",
     "release:rollback": "node scripts/release-rollback.js",
-    "changelog": "node scripts/generate-changelog.js"
+    "changelog": "node scripts/generate-changelog.js",
+    "update:licenses": "node scripts/update-open-source-licenses.js"
   },
   "fileAssociations": [
     {
@@ -107,6 +108,7 @@
     "jsdom": "^27.0.1",
     "jszip": "^3.10.1",
     "latex-to-omml": "^2.1.0",
+    "license-checker-rseidelsohn": "^4.4.2",
     "lodash": "^4.17.21",
     "mammoth": "^1.10.0",
     "markdown-it": "^14.1.0",

@@ -45,9 +45,7 @@ files:
   - '!node_modules/**/CONTRIBUTORS*'
 asarUnpack:
   - resources/**
-  # 解包 node-plantuml 整个目录，因为 Java 进程无法访问 asar 中的 jar 文件
-  # node-plantuml 需要访问其 jar 文件来执行 PlantUML 渲染
-  - node_modules/node-plantuml/**
+  # node-plantuml-2 使用 WebAssembly，无需解包
 win:
   executableName: meta-doc
   icon: build/icon.ico  # 主应用程序图标（用于可执行文件和"打开方式"对话框）

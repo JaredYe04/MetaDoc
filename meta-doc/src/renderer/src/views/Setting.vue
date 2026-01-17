@@ -44,7 +44,7 @@ import SettingLlmSection from './setting/SettingLlmSection.vue';
 import SettingKnowledgeBaseSection from './setting/SettingKnowledgeBaseSection.vue';
 import SettingThemeSection from './setting/SettingThemeSection.vue';
 import SettingLoggerSection from './setting/SettingLoggerSection.vue';
-import SettingDebugSection from './setting/SettingDebugSection.vue';
+// import SettingDebugSection from './setting/SettingDebugSection.vue';
 import SettingAboutSection from './setting/SettingAboutSection.vue';
 import { isDevEnvironment } from '../utils/dev-env';
 import '../assets/aero-btn.css';
@@ -60,7 +60,7 @@ const componentMap: Record<string, any> = {
   knowledgeBase: SettingKnowledgeBaseSection,
   themes: SettingThemeSection,
   logs: SettingLoggerSection,
-  debug: SettingDebugSection,
+  // debug: SettingDebugSection,
   about: SettingAboutSection
 };
 
@@ -74,10 +74,10 @@ const menuItems = computed(() => {
     { key: 'about', label: 'setting.about.title' }
   ];
   
-  // 仅在开发环境显示调试菜单
-  if (isDev.value) {
-    items.push({ key: 'debug', label: 'setting.debug.title' });
-  }
+  // // 仅在开发环境显示调试菜单
+  // if (isDev.value) {
+  //   items.push({ key: 'debug', label: 'setting.debug.title' });
+  // }
   
   return items;
 });
@@ -175,9 +175,9 @@ onMounted(async () => {
   min-height: 0;
 }
 
-.setting-section.debug-section {
+/* .setting-section.debug-section {
   padding: 0;
-}
+} */
 
 ::deep(.menu-logs-item) {
   margin-top: auto !important;

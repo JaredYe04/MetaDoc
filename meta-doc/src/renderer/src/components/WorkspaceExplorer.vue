@@ -2458,6 +2458,7 @@ const handleSelectAll = async () => {
 }
 
 .workspace-explorer-main {
+  background-color: v-bind('themeState.currentTheme.background2nd');
   flex: 1;
   display: flex;
   flex-direction: column;

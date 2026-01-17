@@ -871,9 +871,12 @@ export async function local2image(md, docPath = ''){
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
         //把local_path替换成'http://localhost:52521/images/'
-        const match = line.match(/!\[.*?\]\((.*?)\)/)
+        // 改进正则表达式，确保正确处理嵌套链接和 URL
+        // 匹配格式: ![alt](url) 或 ![alt text](url)
+        // 使用更精确的匹配，避免匹配到嵌套链接中的内容
+        const match = line.match(/!\[([^\]]*)\]\(([^)]+)\)/)
         if (match) {
-            let image_path = match[1]
+            let image_path = match[2].trim() // 提取 URL 并去除首尾空格
             
             // 处理不同的路径格式：
             // 1. HTTP URL：http://localhost:52521/images/filename（已经是正确的，不需要转换）
@@ -944,6 +947,13 @@ export async function local2image(md, docPath = ''){
                         });
                         
                         if (!response.ok) {
+                            // 如果是 404 错误，说明文件不存在，保持原路径
+                            if (response.status === 404) {
+                                getLogger().warn(`图片文件不存在，保持原路径: ${resolvedImagePath}`, { originalPath: image_path });
+                                // 保持原路径，不进行转换
+                                new_md += line + '\n';
+                                continue;
+                            }
                             throw new Error(`上传失败: ${response.status}`);
                         }
                         
@@ -958,11 +968,18 @@ export async function local2image(md, docPath = ''){
                             throw new Error(result.error || '上传失败');
                         }
                     } catch (error) {
+                        // 如果是 404 错误（文件不存在），保持原路径
+                        if (error.message && error.message.includes('404')) {
+                            getLogger().warn(`图片文件不存在，保持原路径: ${resolvedImagePath}`, { originalPath: image_path, error: error.message });
+                            // 保持原路径，不进行转换
+                            new_md += line + '\n';
+                            continue;
+                        }
                         getLogger().error(`图片上传失败: ${resolvedImagePath}`, error);
                         eventBus.emit('show-error', `图片上传失败: ${resolvedImagePath} - ${error.message}`);
-                        // 上传失败时，尝试直接使用原路径的文件名（作为回退方案）
-                        const fileName = resolvedImagePath.split(/[/\\]/).pop() || resolvedImagePath;
-                        server_url = 'http://localhost:52521/images/' + fileName;
+                        // 上传失败时，保持原路径（不再尝试使用文件名作为回退方案，因为文件可能不存在）
+                        new_md += line + '\n';
+                        continue;
                     }
                 }
             }

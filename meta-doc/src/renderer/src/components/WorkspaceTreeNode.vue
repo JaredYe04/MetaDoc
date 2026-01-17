@@ -426,6 +426,7 @@ const handleDragEnd = (event: DragEvent) => {
   gap: 4px;
   padding: 2px 8px;
   font-size: 13px;
+  background-color: v-bind('themeState.currentTheme.background2nd');
   color: v-bind('themeState.currentTheme.SideTextColor');
   cursor: pointer;
   min-height: 20px;
@@ -438,13 +439,11 @@ const handleDragEnd = (event: DragEvent) => {
 
 .workspace-tree-node-item.is-directory {
   position: sticky;
-  background-color: v-bind('themeState.currentTheme.editorToolbarBackgroundColor');
 }
 
 .workspace-tree-node-item.is-workspace-root {
   position: sticky;
   top: 0;
-  background-color: v-bind('themeState.currentTheme.editorToolbarBackgroundColor');
 }
 
 .workspace-tree-node-item:hover {

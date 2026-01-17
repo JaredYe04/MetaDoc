@@ -179,6 +179,21 @@ const autoResize = () => {
   const el = textareaRef.value
   const content = el.value || props.modelValue || ''
   
+  // 先计算单行高度（如果还没有计算）
+  if (!singleLineHeight.value) {
+    // 临时设置内容为空，计算单行高度
+    const originalValue = el.value
+    el.value = ''
+    el.style.height = 'auto'
+    const style = window.getComputedStyle(el)
+    const lineHeight = parseFloat(style.lineHeight || '0')
+    const padding = parseFloat(style.paddingTop || '0') + parseFloat(style.paddingBottom || '0')
+    const base = Math.ceil(lineHeight + padding)
+    singleLineHeight.value = base > 0 ? base : el.scrollHeight
+    // 恢复原始值
+    el.value = originalValue
+  }
+  
   // 如果内容为空，强制设置为单行模式
   if (!content.trim()) {
     el.style.height = 'auto'
@@ -193,13 +208,6 @@ const autoResize = () => {
   }
   
   el.style.height = 'auto'
-  if (!singleLineHeight.value) {
-    const style = window.getComputedStyle(el)
-    const lineHeight = parseFloat(style.lineHeight || '0')
-    const padding = parseFloat(style.paddingTop || '0') + parseFloat(style.paddingBottom || '0')
-    const base = Math.ceil(lineHeight + padding)
-    singleLineHeight.value = base > 0 ? base : el.scrollHeight
-  }
   el.style.height = `${el.scrollHeight}px`
   if (singleLineHeight.value) {
     const lines = Math.round(el.scrollHeight / singleLineHeight.value)
@@ -358,6 +366,21 @@ onMounted(async () => {
   window.addEventListener('resize', updateMaxScrollHeight)
   // 确保初始状态为单行模式
   isMultiline.value = false
+  // 等待 DOM 完全渲染后再调整大小
+  await nextTick()
+  // 强制设置为单行高度
+  if (textareaRef.value) {
+    const el = textareaRef.value
+    el.style.height = 'auto'
+    // 先计算单行高度
+    const style = window.getComputedStyle(el)
+    const lineHeight = parseFloat(style.lineHeight || '0') || 24
+    const padding = parseFloat(style.paddingTop || '0') + parseFloat(style.paddingBottom || '0')
+    singleLineHeight.value = Math.ceil(lineHeight + padding) || 24
+    el.style.height = `${singleLineHeight.value}px`
+    isMultiline.value = false
+  }
+  // 然后再调用 autoResize 确保状态正确
   nextTick(() => {
     autoResize()
   })

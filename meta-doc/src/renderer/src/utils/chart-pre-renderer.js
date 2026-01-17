@@ -1088,7 +1088,8 @@ export async function preRenderAllCharts(md, cdn, format = '', progressCallback)
     // 计算每张图表的进度增量
     // 预渲染占用0-80%的进度范围
     const progressPerChart = allMatches.length > 0 ? 75 / allMatches.length : 0;
-    let completedCount = 0;
+    // 使用对象来保证原子性更新
+    const progressState = { completedCount: 0 };
     
     progressCallback?.({
         message: 'agent.reference.progress.preRenderingCharts',
@@ -1102,13 +1103,21 @@ export async function preRenderAllCharts(md, cdn, format = '', progressCallback)
     
     // 并发渲染所有图表，完成后统一替换
     const targetFormat = format === 'bitmap' ? 'png' : 'svg';
-    const renderTasks = allMatches.map(async ({ chartType, fullMatch, code, config }) => {
+    const renderTasks = allMatches.map(async ({ chartType, fullMatch, code, config }, index) => {
         if (!code) {
             logger.warn(`${chartType} 代码块为空，跳过`);
+            // 即使跳过也要更新进度
+            progressState.completedCount++;
+            progressCallback?.({
+                message: 'agent.reference.progress.preRenderingCharts',
+                subMessage: 'agent.reference.progress.renderingChart',
+                percentage: 5 + Math.round(progressState.completedCount * progressPerChart),
+                params: { current: progressState.completedCount, total: allMatches.length }
+            });
             return { fullMatch, replacement: null, chartType };
         }
         try {
-            logger.debug(`开始渲染 ${chartType} 图表，代码长度: ${code.length}`);
+            logger.debug(`开始渲染 ${chartType} 图表 ${index + 1}/${allMatches.length}，代码长度: ${code.length}`);
             let imageUrl;
             if (config.useIpc) {
                 if (chartType === 'echarts') {
@@ -1142,27 +1151,32 @@ export async function preRenderAllCharts(md, cdn, format = '', progressCallback)
             }
             logger.debug(`${chartType} 图表渲染完成，URL: ${imageUrl}`);
             
-            // 每完成一张图表，更新进度
-            completedCount++;
-            progressCallback?.({
-                message: 'agent.reference.progress.preRenderingCharts',
-                subMessage: 'agent.reference.progress.renderingChart',
-                percentage: 5 + Math.round(completedCount * progressPerChart),
-                params: { current: completedCount, total: allMatches.length }
-            });
+            // 每完成一张图表，更新进度（使用原子更新）
+            progressState.completedCount++;
+            // 使用 requestAnimationFrame 或 setTimeout 确保进度更新不会阻塞
+            setTimeout(() => {
+                progressCallback?.({
+                    message: 'agent.reference.progress.preRenderingCharts',
+                    subMessage: 'agent.reference.progress.renderingChart',
+                    percentage: 5 + Math.round(progressState.completedCount * progressPerChart),
+                    params: { current: progressState.completedCount, total: allMatches.length }
+                });
+            }, 0);
             
             return { fullMatch, replacement: `![${chartType} Diagram](${imageUrl})`, chartType };
         } catch (error) {
             logger.error(`${chartType} 图表渲染失败:`, error);
             
-            // 即使失败也要更新进度
-            completedCount++;
-            progressCallback?.({
-                message: 'agent.reference.progress.preRenderingCharts',
-                subMessage: 'agent.reference.progress.renderingChartFailed',
-                percentage: 5 + Math.round(completedCount * progressPerChart),
-                params: { current: completedCount, total: allMatches.length }
-            });
+            // 即使失败也要更新进度（使用原子更新）
+            progressState.completedCount++;
+            setTimeout(() => {
+                progressCallback?.({
+                    message: 'agent.reference.progress.preRenderingCharts',
+                    subMessage: 'agent.reference.progress.renderingChartFailed',
+                    percentage: 5 + Math.round(progressState.completedCount * progressPerChart),
+                    params: { current: progressState.completedCount, total: allMatches.length }
+                });
+            }, 0);
             
             return { fullMatch, replacement: null, chartType };
         }

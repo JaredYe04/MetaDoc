@@ -743,10 +743,35 @@ export async function embedImagesInline(md){
                     getLogger().debug(`SVG 转换为 data URL 成功，长度: ${dataUrl.length}`)
                 } else {
                     // 位图：使用 base64 编码的 data URL
-                    const blob = await response.blob()
-                    if (!blob || blob.size === 0) {
-                        throw new Error('图片数据为空')
+                    // 添加重试机制，因为文件可能还没完全写入
+                    let blob = await response.blob()
+                    let retryCount = 0
+                    const maxRetries = 3
+                    const retryDelay = 200 // 200ms
+                    
+                    // 如果 blob 为空，尝试重试
+                    while ((!blob || blob.size === 0) && retryCount < maxRetries) {
+                        retryCount++
+                        if (retryCount <= maxRetries) {
+                            getLogger().warn(`图片数据为空，重试 ${retryCount}/${maxRetries}: ${image_path}`)
+                            // 等待一段时间让文件完全写入
+                            await new Promise(resolve => setTimeout(resolve, retryDelay * retryCount))
+                            // 重新 fetch
+                            try {
+                                const retryResponse = await fetch(image_path)
+                                if (retryResponse.ok) {
+                                    blob = await retryResponse.blob()
+                                }
+                            } catch (retryError) {
+                                getLogger().warn(`重试 fetch 失败: ${image_path}`, retryError)
+                            }
+                        }
                     }
+                    
+                    if (!blob || blob.size === 0) {
+                        throw new Error(`图片数据为空（已重试 ${retryCount} 次）: ${image_path}`)
+                    }
+                    
                     const reader = new FileReader()
                     reader.readAsDataURL(blob)
                     dataUrl = await new Promise((resolve, reject) => {
@@ -759,7 +784,7 @@ export async function embedImagesInline(md){
                         }
                         reader.onerror = () => reject(new Error('FileReader 错误'))
                     })
-                    getLogger().debug(`位图转换为 data URL 成功，长度: ${dataUrl.length}`)
+                    getLogger().debug(`位图转换为 data URL 成功，长度: ${dataUrl.length}, 原始大小: ${blob.size} bytes`)
                 }
                 
                 // 验证 data URL 格式

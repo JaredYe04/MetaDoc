@@ -237,9 +237,7 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         referenceInactiveBg: mixColors(themeColor, '#3a3a3a', 0.7),
         referenceInactiveText: adjustSaturation(mixColors(themeColor, '#cccccc', 0.85), 0.7),
         // 引用容器边框颜色
-        referenceContainerBorderColor: mixColors(themeColor, '#404040', 0.5),
-        // Handsontable 主题名称
-        handsontableTheme: 'ht-theme-horizon-dark'
+        referenceContainerBorderColor: mixColors(themeColor, '#404040', 0.5)
       };
       // 应用覆盖值
       return { ...baseColors, ...overrides };
@@ -280,9 +278,7 @@ export const customTheme = (themeColor = '#000000', overrides = {}) => {
         referenceInactiveBg: mixColors(themeColor, '#f5f5f5', 0.8),
         referenceInactiveText: adjustSaturation(mixColors(themeColor, '#666666', 0.7), 0.8),
         // 引用容器边框颜色
-        referenceContainerBorderColor: mixColors(themeColor, '#e0e0e0', 0.5),
-        // Handsontable 主题名称
-        handsontableTheme: 'ht-theme-horizon'
+        referenceContainerBorderColor: mixColors(themeColor, '#e0e0e0', 0.5)
       };
       // 应用覆盖值
       return { ...baseColors, ...overrides };
@@ -335,9 +331,7 @@ export const lightTheme = customTheme('#ffffff', {
   referenceInactiveBg: '#f5f5f5',
   referenceInactiveText: '#666666',
     // 引用容器边框颜色
-    referenceContainerBorderColor: '#e0e0e0',
-    // Handsontable 主题名称
-    handsontableTheme: 'ht-theme-horizon'
+    referenceContainerBorderColor: '#e0e0e0'
   ,...generateThemeIcons(false)
 });
 
@@ -377,9 +371,7 @@ export const darkTheme = customTheme('#2c2c2c', {
   referenceInactiveBg: '#3a3a3a',
   referenceInactiveText: '#cccccc',
     // 引用容器边框颜色
-    referenceContainerBorderColor: '#404040',
-    // Handsontable 主题名称
-    handsontableTheme: 'ht-theme-horizon-dark'
+    referenceContainerBorderColor: '#404040'
     ,...generateThemeIcons(true)
 });
 

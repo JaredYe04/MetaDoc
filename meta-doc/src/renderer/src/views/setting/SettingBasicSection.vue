@@ -1,5 +1,7 @@
 <template>
-  <el-form label-width="200px" class="settings-form">
+  <div class="basic-settings">
+    <h3 class="section-title">{{ t('setting.basic') }}</h3>
+    <el-form label-width="200px" class="settings-form">
     <el-form-item :label="t('setting.startupOption')">
       <el-select v-model="settings.startupOption" @change="saveSetting('startupOption', settings.startupOption)">
         <el-option :label="t('setting.openNewFile')" value="newFile" />
@@ -128,7 +130,8 @@
         </div>
       </div>
     </el-form-item>
-  </el-form>
+    </el-form>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -254,6 +257,19 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.basic-settings {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.section-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
 .settings-form {
   width: 100%;
   max-width: 100%;

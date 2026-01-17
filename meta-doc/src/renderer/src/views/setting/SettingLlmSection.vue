@@ -2,7 +2,7 @@
   <div class="llm-settings">
     <!-- 全局设置（不依赖配置） -->
     <div class="global-settings-section">
-      <h3 class="section-title">{{ t('setting.globalSettings') }}</h3>
+      <h3 class="section-title">{{ t('setting.llmSettings') }}</h3>
       <el-form label-width="200px" class="settings-form">
         <el-form-item :label="t('setting.enableLlm')">
     <el-switch v-model="settings.llmEnabled" class="mb-2"

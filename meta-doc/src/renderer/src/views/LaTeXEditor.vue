@@ -3017,7 +3017,15 @@ const initEditor = () => {
         wrappingIndent: "same", // 缩进方式，"none" | "same" | "indent" | "deepIndent"
         lineNumbers: enableRowNumber ? 'on' : 'off',
         minimap: { enabled: enableMinimap },
-        contextmenu: false
+        contextmenu: false,
+        quickSuggestions: {
+            other: true,  // 在其他字符后自动显示补全建议
+            comments: false,  // 在注释中不显示
+            strings: false   // 在字符串中不显示
+        },
+        suggestOnTriggerCharacters: true,  // 在触发字符（如 \）后自动显示补全
+        acceptSuggestionOnCommitCharacter: true,  // 在输入提交字符时接受补全
+        acceptSuggestionOnEnter: 'on'  // 按 Enter 时接受补全
     })
     editorId.value = editor.value.getId();
     textEditorAdapter.value = createMonacoAdapter(editorId.value);

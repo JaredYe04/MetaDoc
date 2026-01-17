@@ -13,7 +13,8 @@ export default defineConfig({
         external: [
           'node-llama-cpp',
           /^@node-llama-cpp\/./,
-          'cspell-lib'
+          'cspell-lib',
+          'dotenv'
         ]
       },
       chunkSizeWarningLimit: 1000 // 增大警告阈值，因为monaco-editor等库本身就很大

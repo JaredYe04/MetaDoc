@@ -1,5 +1,7 @@
 <template>
-  <el-form label-width="160px" class="settings-form">
+  <div class="logger-settings">
+    <h3 class="section-title">{{ t('setting.loggingSettings') }}</h3>
+    <el-form label-width="160px" class="settings-form">
     <el-form-item :label="t('setting.loggingEnabled')">
       <el-switch v-model="settings.loggingEnabled" class="mb-2"
         style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
@@ -70,7 +72,8 @@
       <h4>{{ t('setting.loggerConsoleTitle') }}</h4>
       <ConsoleOutput console-key="logger" :history="logHistory" />
     </div>
-  </el-form>
+    </el-form>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -203,6 +206,19 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.logger-settings {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.section-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
 .settings-form {
   width: 100%;
   max-width: 100%;

@@ -1,5 +1,6 @@
 <template>
   <div class="knowledge-base-settings">
+    <h3 class="section-title">{{ t('setting.knowledgeBaseSettings') }}</h3>
     <el-form label-width="200px" class="settings-form">
       <el-form-item :label="t('setting.enableKnowledgeBase')">
         <el-tooltip :content="t('setting.knowledgeBaseTooltip')" placement="bottom">
@@ -99,6 +100,13 @@ const handleEmbeddingModeChange = async () => {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+.section-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 .settings-form {

@@ -124,17 +124,21 @@
 
       <el-tab-pane :label="$t('setting.about.openSourceLicenses')" name="licenses">
         <div class="licenses-section">
-          <div class="content-container">
-            <pre class="license-content">{{ openSourceLicenses }}</pre>
-          </div>
+          <el-scrollbar class="content-scrollbar">
+            <div class="content-container">
+              <pre class="license-content">{{ openSourceLicenses }}</pre>
+            </div>
+          </el-scrollbar>
         </div>
       </el-tab-pane>
 
       <el-tab-pane :label="$t('setting.about.thirdPartyAssets')" name="assets">
         <div class="assets-section">
-          <div class="content-container">
-            <pre class="assets-content">{{ thirdPartyAssets }}</pre>
-          </div>
+          <el-scrollbar class="content-scrollbar">
+            <div class="content-container">
+              <pre class="assets-content">{{ thirdPartyAssets }}</pre>
+            </div>
+          </el-scrollbar>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -445,6 +449,22 @@ onUnmounted(() => {
 
 .about-tabs {
   margin-top: 32px;
+  height: calc(100% - 32px);
+  display: flex;
+  flex-direction: column;
+}
+
+.about-tabs :deep(.el-tabs__content) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.about-tabs :deep(.el-tab-pane) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .update-settings {
@@ -483,15 +503,24 @@ onUnmounted(() => {
 .licenses-section,
 .assets-section {
   margin-top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-scrollbar {
+  flex: 1;
+  height: 100%;
+}
+
+.content-scrollbar :deep(.el-scrollbar__wrap) {
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  background-color: var(--el-bg-color-page);
 }
 
 .content-container {
-  background-color: var(--el-bg-color-page);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
   padding: 16px;
-  max-height: 400px;
-  overflow-y: auto;
 }
 
 .license-content,

@@ -421,6 +421,10 @@
         "analyzeFailed": "分析失败",
         "noFile": "请先上传数据文件",
         "generateReport": "生成分析报告",
+        "autoGroupBy": "自动聚合分析",
+        "noAnalysisResult": "暂无分析结果，请在\"数据预览\"标签页中开始分析",
+        "analysisRequest": "分析需求（可选）",
+        "analysisRequestPlaceholder": "描述您的分析需求...",
         "headerRowIndex": "表头行数（从0开始）",
         "headerPreview": "当前表头预览：",
         "currentHeader": "当前表头",
@@ -1103,7 +1107,12 @@
         "configCreated": "配置已创建",
         "configDeleted": "配置已删除",
         "manualConfigHint": "手动模式：通过Express服务器的模拟接口手动输入API响应",
+        "llmSettings": "LLM设置",
         "globalSettings": "全局设置",
+        "knowledgeBaseSettings": "知识库设置",
+        "themeSettings": "主题设置",
+        "loggingSettings": "日志设置",
+        
         "enableLlm": "启用LLM",
         "temporaryConfig": "(临时)",
         "configModifiedSuffix": "(已修改)",
@@ -1947,6 +1956,13 @@
         "sampleValues": "示例值",
         "groupBy": "按 {field} 分组",
         "analysisFailed": "分析失败",
+        "numeric": "数值",
+        "string": "字符串",
+        "rows": "行",
+        "groupCount": "组内行数",
+        "uniqueCount": "唯一值数量",
+        "totalCount": "总数量",
+        "topValues": "常见值",
         "stats": {
           "count": "数量",
           "mean": "均值",
@@ -1957,7 +1973,9 @@
           "min": "最小值",
           "max": "最大值",
           "q25": "第一四分位数",
-          "q75": "第三四分位数"
+          "q75": "第三四分位数",
+          "sum": "总和",
+          "avg": "平均值"
         }
       },
       "chartGeneration": {

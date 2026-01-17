@@ -1,5 +1,6 @@
 <template>
   <div class="theme-settings">
+    <h3 class="section-title">{{ t('setting.themeSettings') }}</h3>
     <!-- 主题卡片网格 -->
     <div class="theme-cards-container">
       <div
@@ -760,6 +761,13 @@ onMounted(async () => {
 <style scoped>
 .theme-settings {
   width: 100%;
+}
+
+.section-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 .theme-cards-container {

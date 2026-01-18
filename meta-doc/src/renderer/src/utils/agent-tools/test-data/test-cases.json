@@ -1899,6 +1899,296 @@
         }
       }
     ]
+  },
+  "workspace": {
+    "description": "工作区文件读取工具测试用例",
+    "testCases": [
+      {
+        "id": "workspace::read-single-file-001",
+        "name": "读取单个文件（完整文件）",
+        "params": {
+          "paths": "README.md"
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1,
+          "filesShouldHaveContent": true
+        }
+      },
+      {
+        "id": "workspace::read-single-file-line-range-001",
+        "name": "读取单个文件（指定行范围）",
+        "params": {
+          "paths": "README.md:L10-L20"
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1,
+          "filesShouldHaveStartLine": 10,
+          "filesShouldHaveEndLine": 20
+        }
+      },
+      {
+        "id": "workspace::read-single-file-single-line-001",
+        "name": "读取单个文件（单行）",
+        "params": {
+          "paths": "README.md:L5"
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1,
+          "filesShouldHaveStartLine": 5,
+          "filesShouldHaveEndLine": 5
+        }
+      },
+      {
+        "id": "workspace::read-multiple-files-001",
+        "name": "批量读取多个文件",
+        "params": {
+          "paths": ["README.md", "package.json", "package-lock.json"]
+        },
+        "assertions": {
+          "totalFilesShouldBeGreaterThanOrEqual": 2
+        }
+      },
+      {
+        "id": "workspace::read-multiple-files-mixed-001",
+        "name": "批量读取多个文件（混合行范围）",
+        "params": {
+          "paths": ["README.md:L1-L10", "package.json", "src/index.ts:L20-L30"]
+        },
+        "assertions": {
+          "totalFilesShouldBeGreaterThanOrEqual": 2
+        }
+      },
+      {
+        "id": "workspace::read-directory-tree-001",
+        "name": "读取目录树（不提供paths参数）",
+        "params": {},
+        "assertions": {
+          "treeShouldNotBeEmpty": true
+        }
+      },
+      {
+        "id": "workspace::read-with-summarized-001",
+        "name": "读取文件并使用AI摘要",
+        "params": {
+          "paths": "README.md",
+          "summarized": true
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1,
+          "filesShouldBeSummarized": true,
+          "filesShouldHaveSummary": true
+        }
+      },
+      {
+        "id": "workspace::read-multiple-with-summarized-001",
+        "name": "批量读取多个文件并使用AI摘要",
+        "params": {
+          "paths": ["README.md", "package.json"],
+          "summarized": true
+        },
+        "assertions": {
+          "totalFilesShouldBeGreaterThanOrEqual": 2,
+          "filesShouldBeSummarized": true,
+          "filesShouldHaveSummary": true
+        }
+      },
+      {
+        "id": "workspace::read-line-range-out-of-bounds-001",
+        "name": "读取行范围超出文件总行数（应自动截断）",
+        "params": {
+          "paths": "README.md:L1-L1000"
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1,
+          "filesShouldHaveContent": true
+        }
+      },
+      {
+        "id": "workspace::read-single-line-out-of-bounds-001",
+        "name": "读取单行超出文件总行数（应忽略）",
+        "params": {
+          "paths": "README.md:L9999"
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1
+        }
+      },
+      {
+        "id": "workspace::read-file-in-subdirectory-001",
+        "name": "读取子目录中的文件",
+        "params": {
+          "paths": "src/index.ts"
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1,
+          "filesShouldHaveContent": true
+        }
+      },
+      {
+        "id": "workspace::read-file-in-subdirectory-line-range-001",
+        "name": "读取子目录中的文件（指定行范围）",
+        "params": {
+          "paths": "src/index.ts:L10-L50"
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1,
+          "filesShouldHaveStartLine": 10,
+          "filesShouldHaveEndLine": 50
+        }
+      },
+      {
+        "id": "workspace::read-code-file-001",
+        "name": "读取代码文件（TypeScript）",
+        "params": {
+          "paths": "src/renderer/src/utils/agent-tools/workspace-tool.ts:L1-L100"
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1,
+          "filesShouldHaveContent": true
+        }
+      },
+      {
+        "id": "workspace::read-code-file-summarized-001",
+        "name": "读取代码文件并使用AI摘要",
+        "params": {
+          "paths": "src/renderer/src/utils/agent-tools/workspace-tool.ts",
+          "summarized": true
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1,
+          "filesShouldBeSummarized": true,
+          "filesShouldHaveSummary": true
+        }
+      },
+      {
+        "id": "workspace::read-json-file-001",
+        "name": "读取JSON配置文件",
+        "params": {
+          "paths": "package.json"
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1,
+          "filesShouldHaveContent": true
+        }
+      },
+      {
+        "id": "workspace::read-markdown-file-001",
+        "name": "读取Markdown文档",
+        "params": {
+          "paths": "README.md"
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1,
+          "filesShouldHaveContent": true
+        }
+      },
+      {
+        "id": "workspace::read-multiple-types-001",
+        "name": "批量读取不同类型的文件",
+        "params": {
+          "paths": ["README.md", "package.json", "tsconfig.json"]
+        },
+        "assertions": {
+          "totalFilesShouldBeGreaterThanOrEqual": 2
+        }
+      },
+      {
+        "id": "workspace::read-multiple-types-summarized-001",
+        "name": "批量读取不同类型文件并使用AI摘要",
+        "params": {
+          "paths": ["README.md", "package.json"],
+          "summarized": true
+        },
+        "assertions": {
+          "totalFilesShouldBeGreaterThanOrEqual": 2,
+          "filesShouldBeSummarized": true,
+          "filesShouldHaveSummary": true
+        }
+      },
+      {
+        "id": "workspace::read-with-workspace-folder-001",
+        "name": "指定工作区文件夹路径读取文件",
+        "params": {
+          "paths": "README.md",
+          "workspaceFolder": "."
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1,
+          "filesShouldHaveContent": true
+        }
+      },
+      {
+        "id": "workspace::read-non-existent-file-001",
+        "name": "读取不存在的文件（应跳过并继续处理其他文件）",
+        "params": {
+          "paths": ["README.md", "non-existent-file.txt", "package.json"]
+        },
+        "assertions": {
+          "totalFilesShouldBeGreaterThanOrEqual": 2
+        }
+      },
+      {
+        "id": "workspace::read-empty-file-001",
+        "name": "读取空文件",
+        "params": {
+          "paths": ".gitignore"
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1
+        }
+      },
+      {
+        "id": "workspace::read-large-file-line-range-001",
+        "name": "读取大文件的指定行范围（节省上下文）",
+        "params": {
+          "paths": "src/renderer/src/views/LaTeXEditor.vue:L100-L200"
+        },
+        "assertions": {
+          "totalFilesShouldBe": 1,
+          "filesShouldHaveStartLine": 100,
+          "filesShouldHaveEndLine": 200
+        }
+      },
+      {
+        "id": "workspace::read-multiple-large-files-summarized-001",
+        "name": "批量读取大文件并使用AI摘要（节省上下文空间）",
+        "params": {
+          "paths": [
+            "src/renderer/src/views/LaTeXEditor.vue",
+            "src/renderer/src/views/PlainTextEditor.vue"
+          ],
+          "summarized": true
+        },
+        "assertions": {
+          "totalFilesShouldBeGreaterThanOrEqual": 2,
+          "filesShouldBeSummarized": true,
+          "filesShouldHaveSummary": true
+        }
+      },
+      {
+        "id": "workspace::read-config-files-001",
+        "name": "批量读取配置文件",
+        "params": {
+          "paths": ["package.json", "tsconfig.json", "package-lock.json"]
+        },
+        "assertions": {
+          "totalFilesShouldBeGreaterThanOrEqual": 2
+        }
+      },
+      {
+        "id": "workspace::read-source-files-001",
+        "name": "批量读取源代码文件",
+        "params": {
+          "paths": [
+            "src/renderer/src/utils/agent-tools/workspace-tool.ts",
+            "src/renderer/src/utils/agent-tools/grep-tool.ts"
+          ]
+        },
+        "assertions": {
+          "totalFilesShouldBeGreaterThanOrEqual": 2
+        }
+      }
+    ]
   }
 }
 

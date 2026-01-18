@@ -559,7 +559,14 @@
     "cannotDeleteRoot": "Cannot delete root chapter",
     "deleteSuccess": "Chapter deleted successfully!",
     "userPromptPlaceholder": "Please enter your hint.",
-    "cancelTasks": "Cancel Task"
+    "cancelTasks": "Cancel Task",
+    "nodeAgent": "Node Agent",
+    "noNodeSelected": "No node selected",
+    "nodeAgentAlreadyRunning": "Node Agent is already running",
+    "nodeAgentConfirm": "Are you sure you want to start Node Agent for node \"{title}\"?",
+    "nodeAgentSuccess": "Node Agent execution completed",
+    "nodeAgentFail": "Node Agent execution failed: {error}",
+    "nodeAgentCancelled": "Node Agent execution cancelled"
   },
   "setting": {
     "auto": "Auto",

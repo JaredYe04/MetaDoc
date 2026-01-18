@@ -943,7 +943,14 @@
         "error": "错误",
         "message": "消息",
         "cannotDeleteRoot": "不能删除根章节",
-        "deleteSuccess": "删除章节成功！"
+        "deleteSuccess": "删除章节成功！",
+        "nodeAgent": "节点智能体",
+        "noNodeSelected": "未选择节点",
+        "nodeAgentAlreadyRunning": "节点智能体正在执行中",
+        "nodeAgentConfirm": "确定要为节点 \"{title}\" 启动节点智能体吗？",
+        "nodeAgentSuccess": "节点智能体执行完成",
+        "nodeAgentFail": "节点智能体执行失败: {error}",
+        "nodeAgentCancelled": "节点智能体执行已取消"
     },
     "setting": {
         "auto": "自动",
@@ -1802,6 +1809,20 @@
           "completed": "搜索完成，找到 {count} 个匹配",
           "completedWithReplace": "搜索完成，找到 {count} 个匹配，已替换 {replaced} 处"
         }
+      },
+      "workspace": {
+        "progress": {
+          "loadingTree": "正在加载目录树...",
+          "reading": "正在读取文件...",
+          "readingFile": "正在读取文件 {index}/{total}: {path}",
+          "completed": "读取完成，共 {count} 个文件"
+        }
+      },
+      "nodeAgent": {
+        "progress": {
+          "syncing": "正在同步文档内容...",
+          "completed": "节点智能体执行完成"
+        }
       }
     },
     "sessions": {
@@ -2399,8 +2420,9 @@
         "generating": "正在生成...",
         "syncing": "正在同步文档内容...",
         "processing": "正在处理...",
-        "completed": "大纲优化完成",
-        "error": "大纲优化失败",
+        "completed": "扩写完成",
+        "error": "扩写失败",
+        "tooltip": "快速生成文档大纲和内容。⚠️ 注意：此工具不能保证内容质量，但可以快速生成文章草稿",
         "operationLabel": "操作类型",
         "nodePath": "节点路径",
         "nodeTitle": "节点标题",
@@ -2420,6 +2442,31 @@
           "generateChildrenChildren": "为所有子节点生成子节点",
           "generateChildrenContent": "为所有子节点生成内容"
         }
+      },
+      "nodeAgent": {
+        "loading": "正在加载文档...",
+        "traversing": "正在遍历节点...",
+        "syncing": "正在同步文档内容...",
+        "processing": "正在处理...",
+        "completed": "节点智能体执行完成",
+        "error": "节点智能体执行失败",
+        "currentNode": "当前节点",
+        "nodePath": "节点路径",
+        "nodeTitle": "节点标题",
+        "activeNodes": "活动节点",
+        "executedNodes": "已完成节点",
+        "executedNodesCount": "已完成 {count} 个节点",
+        "totalNodesProcessed": "共处理 {count} 个节点",
+        "generatedContent": "生成内容",
+        "startNodePath": "起始节点路径",
+        "startNodeTitle": "起始节点标题"
+      },
+      "outlineReorder": {
+        "loading": "正在加载文档...",
+        "reordering": "正在重新排列节点...",
+        "syncing": "正在同步文档内容...",
+        "completed": "大纲优化完成",
+        "error": "大纲优化失败"
       },
       "grep": {
         "searching": "正在搜索...",
@@ -2454,6 +2501,23 @@
         "processing": "正在处理响应...",
         "loading": "正在加载...",
         "error": "网页访问失败"
+      },
+      "workspace": {
+        "loadingTree": "正在加载目录树...",
+        "reading": "正在读取文件...",
+        "processing": "正在处理...",
+        "directoryTree": "目录树",
+        "workspaceFolder": "工作区文件夹",
+        "filesTitle": "文件内容",
+        "filesCount": "共 {count} 个文件",
+        "summarized": "已摘要",
+        "summary": "摘要",
+        "content": "内容",
+        "showContent": "显示完整内容",
+        "hideContent": "隐藏完整内容",
+        "linesRange": "行 {start}-{end} (共 {total} 行)",
+        "totalLines": "共 {count} 行",
+        "error": "工作区文件读取失败"
       },
       "edit": {
         "completed": "编辑完成",

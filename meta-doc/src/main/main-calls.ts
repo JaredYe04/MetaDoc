@@ -3360,6 +3360,19 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
   const logger = createMainLogger('PlantUML');
   const crypto = require('crypto');
   
+  // 在打包环境中，修复 node-plantuml-2 的 JAR 文件路径问题
+  // node-plantuml-2 使用 __dirname 查找 JAR，但在打包环境中路径可能不正确
+  if (app.isPackaged) {
+    const plantumlJarPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'node-plantuml-2', 'vendor', 'plantuml.jar');
+    if (fs.existsSync(plantumlJarPath)) {
+      // 设置 PLANTUML_HOME 环境变量，让 node-plantuml-2 使用正确的 JAR 路径
+      process.env.PLANTUML_HOME = plantumlJarPath;
+      logger.debug('打包环境：设置 PLANTUML_HOME =', plantumlJarPath);
+    } else {
+      logger.warn('打包环境：未找到 PlantUML JAR 文件:', plantumlJarPath);
+    }
+  }
+  
   // 加载 node-plantuml-2 模块（无需任何环境配置）
   // @ts-ignore
   const plantuml = require('node-plantuml-2');

@@ -51,6 +51,62 @@
       </div>
     </el-scrollbar>
 
+    <!-- NodeAgent执行进度窗口 -->
+    <el-scrollbar class="aero-div node-agent-preview" v-if="nodeAgentExecuting" :style="{
+      backgroundColor: nodeAgentPreviewBackgroundColor, top: nodeAgentPosition.top + 'px',
+      left: nodeAgentPosition.left + 'px',
+    }" @mousedown.stop="startNodeAgentDrag">
+      <div class="noselect-display">
+        <h2>
+          {{ $t('outline.writingAgent') }}
+          <el-tooltip :content="$t('outline.cancelTasks')" placement="top">
+            <el-button type="danger" plain circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
+              @click.stop="cancelNodeAgent">
+              <el-icon style="font-size: 14px">
+                <CloseBold />
+              </el-icon>
+            </el-button>
+          </el-tooltip>
+        </h2>
+        <div v-if="currentExecutingNode" class="node-agent-status">
+          <p><strong>{{ $t('outline.currentNode') }}:</strong> {{ currentExecutingNode.title }} ({{ currentExecutingNode.path }})</p>
+        </div>
+        <div v-if="activeNodeAgentPaths.size > 0" class="active-nodes">
+          <p><strong>{{ $t('outline.activeNodes') }}:</strong></p>
+          <el-tag
+            v-for="path in Array.from(activeNodeAgentPaths)"
+            :key="path"
+            type="warning"
+            effect="dark"
+            style="margin-right: 6px; margin-bottom: 6px;"
+          >
+            {{ path }}
+          </el-tag>
+        </div>
+        <div v-if="executedNodeAgentPaths.size > 0" class="executed-nodes">
+          <p><strong>{{ $t('outline.executedNodes') }} ({{ executedNodeAgentPaths.size }}):</strong></p>
+          <el-scrollbar max-height="150px">
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <el-tag
+                v-for="path in Array.from(executedNodeAgentPaths)"
+                :key="path"
+                type="success"
+                style="margin-bottom: 6px;"
+              >
+                {{ path }}
+              </el-tag>
+            </div>
+          </el-scrollbar>
+        </div>
+        <div v-if="nodeAgentRawContent" class="raw-content-section">
+          <p><strong>{{ $t('outline.rawContent') }}:</strong></p>
+          <el-scrollbar max-height="200px" style="margin-top: 8px;">
+            <pre style="white-space: pre-wrap; word-wrap: break-word; font-size: 12px; padding: 8px; background-color: v-bind('themeState.currentTheme.background2nd'); border-radius: 4px;">{{ nodeAgentRawContent }}</pre>
+          </el-scrollbar>
+        </div>
+      </div>
+    </el-scrollbar>
+
     <vue-tree
       ref="treeRef"
       class="outline-tree-container"
@@ -76,7 +132,11 @@
           <div
             class="tree-node"
             :style="{ backgroundColor: themeState.currentTheme.outlineNode }"
-            :class="dropPreview.targetPath === node.path ? ('drop-' + dropPreview.mode) : ''"
+            :class="[
+              dropPreview.targetPath === node.path ? ('drop-' + dropPreview.mode) : '',
+              activeNodeAgentPaths.has(node.path) ? 'node-agent-active' : '',
+              executedNodeAgentPaths.has(node.path) ? 'node-agent-executed' : ''
+            ]"
             draggable="true"
             @dragstart.stop="onNodeDragStart(node)"
             @dragover.prevent="onNodeDragOver($event, node)"
@@ -89,7 +149,16 @@
             <span class="tree-node-text" :ref="el => setTextElementRef(el, node.path)">{{ node.title }}</span>
           </div>
         </el-tooltip>
-        <el-tooltip :content="$t('outline.editNode')" placement="top">
+        <!-- 写作智能体开启时显示执行按钮，否则显示菜单按钮 -->
+        <el-tooltip v-if="writingAgentEnabled" :content="$t('outline.executeWritingAgent')" placement="top">
+          <el-button size="small" type="text" class="aero-btn" circle @click.stop="executeWritingAgentForNode(node)"
+            v-if="node.path !== 'dummy'" :disabled="pendingAccept || generating || nodeAgentExecuting" :loading="nodeAgentExecuting">
+            <el-icon v-if="!nodeAgentExecuting">
+              <Right />
+            </el-icon>
+          </el-button>
+        </el-tooltip>
+        <el-tooltip v-else :content="$t('outline.editNode')" placement="top">
           <el-button size="small" type="text" class="aero-btn" circle @click.stop="handleNodeButtonClick(node)"
             v-if="node.path !== 'dummy'" :disabled="pendingAccept || generating">
             <el-icon>
@@ -100,7 +169,7 @@
         <div v-if="dialogVisible[node.path]" class="aero-div node-edit-box" @click.stop @mousemove.stop @mousedown.stop
           @mouseup.stop>
           <div>
-            <div class="button-group" v-if="!nodeMenuToggle">
+            <div class="button-group" v-if="!writingAgentEnabled">
               <el-tooltip :content="direction === 'vertical' ? $t('outline.moveLeft') : $t('outline.moveUp')" placement="top">
                 <el-button type="info" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
                   @click.stop="move2Left">
@@ -146,51 +215,6 @@
               </el-tooltip>
 
             </div>
-            <div class="button-group" v-if="nodeMenuToggle && !pendingAccept">
-              <el-tooltip :content="$t('outline.generateContent')" placement="top">
-                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-                  :loading="generateContentLoading" @click.stop="generateContent" :disabled="generating">
-                  <el-icon style="font-size: 14px" v-if="!generateContentLoading">
-                    <EditPen />
-                  </el-icon>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip :content="$t('outline.generateChildChapter')" placement="top">
-                <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-                  @click.stop="generateChildChapter" :loading="generateChildChapterLoading" :disabled="generating">
-                  <el-icon style="font-size: 14px" v-if="!generateChildChapterLoading">
-                    <Finished />
-                  </el-icon>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip :content="$t('outline.generateChildrenContent')" placement="top">
-                <el-button type="success" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-                  @click.stop="generateChildrenContent" :loading="generateChildrenContentLoading"
-                  :disabled="generating">
-                  <el-icon style="font-size: 14px" v-if="!generateChildrenContentLoading">
-                    <Download />
-                  </el-icon>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip :content="$t('outline.generateChildrenChildren')" placement="top">
-                <el-button type="primary" circle class="aero-btn" style="font-size: 12px; padding: 2px 6px"
-                  @click.stop="generateChildrenChildren" :loading="generateChildrenChildrenLoading"
-                  :disabled="generating">
-                  <el-icon style="font-size: 14px" v-if="!generateChildrenChildrenLoading">
-                    <Rank />
-                  </el-icon>
-                </el-button>
-              </el-tooltip>
-            </div>
-            <AutoResizeTextarea 
-              v-if="nodeMenuToggle && !pendingAccept"
-              v-model="userPrompt"
-              :disabled="generating"
-              :placeholder="t('outline.userPromptPlaceholder')"
-              :autosize="{ minRows: 3 }"
-              max-height="10vh"
-              height="8vh"
-            />
 
             <div class="button-group" v-if="pendingAccept">
               <el-tooltip :content="$t('outline.accept')" placement="top">
@@ -275,6 +299,60 @@
       </el-form>
       <el-button type="primary" @click="changeNodeValue">{{ $t('outline.confirm') }}</el-button>
     </el-dialog>
+    <!-- 写作智能体提示词输入对话框 -->
+    <el-dialog v-model="showPromptDialog" :title="$t('outline.writingAgentPromptTitle')" width="50%">
+      <el-form>
+        <el-form-item :label="$t('outline.promptInput')">
+          <el-autocomplete
+            v-model="dialogPromptInput"
+            :fetch-suggestions="queryPromptSuggestions"
+            clearable
+            :placeholder="t('outline.userPromptPlaceholder')"
+            class="aero-input"
+            style="width: 100%"
+            :autosize="{ minRows: 4, maxRows: 8 }"
+            type="textarea"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showPromptDialog = false">{{ $t('outline.cancel') }}</el-button>
+          <el-button type="primary" @click="confirmExecuteWritingAgent" :disabled="!dialogPromptInput.trim()">
+            {{ $t('outline.confirm') }}
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
+    <!-- 节点Agent执行详情对话框 -->
+    <el-dialog 
+      v-model="showNodeAgentDetailDialog" 
+      :title="selectedNodeAgentSession?.metadata?.nodeTitle ? `${$t('outline.nodeAgentExecutionDetail')}: ${selectedNodeAgentSession.metadata.nodeTitle}` : $t('outline.nodeAgentExecutionDetail')" 
+      width="80%"
+      :close-on-click-modal="false"
+    >
+      <div v-if="selectedNodeAgentSession" class="node-agent-detail-content">
+        <el-scrollbar style="height: 600px;">
+          <AgentMessageRenderer
+            v-for="(message, index) in selectedNodeAgentSession.messages || []"
+            :key="message.id || index"
+            :message="message"
+            :messages="selectedNodeAgentSession.messages || []"
+            :message-index="Number(index)"
+            :user-name="'用户'"
+            :session-references="selectedNodeAgentSession.referenceStore || []"
+          />
+        </el-scrollbar>
+      </div>
+      <div v-else class="node-agent-detail-empty">
+        {{ $t('outline.noExecutionDetail') }}
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showNodeAgentDetailDialog = false">{{ $t('outline.close') }}</el-button>
+        </span>
+      </template>
+    </el-dialog>
     <div class="bottom-menu aero-div">
       <el-tooltip :content="direction === 'horizontal' ? $t('outline.switchToVertical') : $t('outline.switchToHorizontal')" placement="top">
         <el-button type="info" circle @click="toggleLayout">
@@ -311,13 +389,14 @@
           </el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip :content="$t('outline.openAiAssistant')" placement="top">
-        <el-button :type="nodeMenuToggle ? 'primary' : 'danger'" circle @click="nodeMenuToggle = !nodeMenuToggle"
-          :disabled="generating || pendingAccept">
-          <el-icon style="width: 1em; height: 1em;">
-            AI
-          </el-icon>
-
+      <!-- 写作智能体开关 -->
+      <el-tooltip :content="$t('outline.writingAgent')" placement="top">
+        <el-button 
+          :type="writingAgentEnabled ? 'primary' : 'default'" 
+          circle 
+          @click="writingAgentEnabled = !writingAgentEnabled"
+          :disabled="generating || pendingAccept || nodeAgentExecuting">
+          <img :src="(themeState.currentTheme as any).AiLogo" alt="AI" style="width: 1.5em; height: 1.5em;" />
         </el-button>
       </el-tooltip>
     </div>
@@ -335,15 +414,15 @@ import '../assets/aero-div.css';
 import '../assets/aero-btn.css';
 import "../assets/aero-input.css";
 import { MdEditor, type Themes } from 'md-editor-v3';
-import { Plus, Edit, Delete, More, Minus, ArrowLeftBold, ArrowRightBold, ArrowUpBold, ArrowDownBold, Finished, EditPen, Checked, Close, Check, Download, Rank, CloseBold, Sort } from '@element-plus/icons-vue';
+import { Plus, Edit, Delete, More, Minus, ArrowLeftBold, ArrowRightBold, ArrowUpBold, ArrowDownBold, Finished, EditPen, Checked, Close, Check, Download, Rank, CloseBold, Sort, Pointer, ChatDotRound, Right } from '@element-plus/icons-vue';
 import type { DocumentOutlineNode } from '../../../types';
 import { TREE_NODE_SCHEMA, DEFAULT_OUTLINE_TREE } from '../constants/document';
 import { searchNode, searchParentNode } from '../utils/outline-helpers';
 import { adjustTitleIndex, adjustTitleLevel, removeTextFromOutline, generateMarkdownFromOutlineTree } from '../utils/md-utils.js';
 import { removeTitleIndex } from '../utils/regex-utils.js';
-import { expandTreeNodePrompt, generateContentPrompt, generateParentNodeContentPrompt, outlineChangePrompt } from '../utils/prompts';
+import { expandTreeNodePrompt, generateContentPrompt, generateParentNodeContentPrompt, outlineChangePrompt, getCurrentLocalePrompts } from '../utils/prompts';
 
-import { themeState } from '../utils/themes.js';
+import { themeState, mixColors } from '../utils/themes.js';
 import { extractOuterJsonString } from '../utils/regex-utils.js';
 import { getOutlineAdapter } from '../utils/outline-adapters';
 import { 
@@ -357,6 +436,8 @@ import { useI18n } from 'vue-i18n'
 import { ai_types, createAiTask, clearAiTasks } from '../utils/ai_tasks.ts';
 import { getSetting, setSetting } from '../utils/settings.js';
 import { createRendererLogger } from '../utils/logger.ts';
+import { agentToolManager } from '../utils/agent-tool-manager';
+import AgentMessageRenderer from '../components/agent/AgentMessageRenderer.vue';
 
 const { t } = useI18n()
 const logger = createRendererLogger('Outline', {
@@ -390,6 +471,12 @@ const activeDocument = computed(() => {
 const treeData = ref<DocumentOutlineNode>(cloneOutline(activeDocument.value?.outline));
 const dialogVisible = ref<Record<string, boolean>>({});
 const editorTheme = computed<Themes | undefined>(() => themeState.currentTheme.vditorTheme as Themes | undefined);
+
+// NodeAgent进度窗口背景色（使用mixColors与#777777混色，避免与大纲树背景色冲突）
+const nodeAgentPreviewBackgroundColor = computed(() => {
+  const outlineBackground = themeState.currentTheme.outlineBackground || '#4c78a8';
+  return mixColors(outlineBackground, '#777777', 0.2);
+});
 const selectedNode = ref<DocumentOutlineNode | null>(null);
 const generated = ref(false);
 const generating = ref(false);
@@ -449,6 +536,40 @@ const generateChildrenContentLoading = ref(false);
 const generateChildrenChildrenLoading = ref(false);
 const parallelChildren = ref<Array<Ref<string>>>([]); // 用于存储并行生成的子节点
 const userPrompt = ref(''); // 用户输入的提示词
+
+// 写作智能体开关
+const writingAgentEnabled = ref(false); // 写作智能体是否启用
+
+// 写作智能体（原NodeAgent）相关状态
+const nodeAgentExecuting = ref(false);
+const activeNodeAgentPaths = ref<Set<string>>(new Set()); // 正在执行的节点路径
+const executedNodeAgentPaths = ref<Set<string>>(new Set()); // 已完成的节点路径
+const nodeAgentAbortController = ref<AbortController | null>(null); // 用于取消NodeAgent执行
+const currentExecutingNode = ref<{ path: string; title: string } | null>(null); // 当前正在执行的节点
+const nodeAgentPosition = ref({ top: 150, left: 150 }); // NodeAgent进度窗口位置
+const nodeAgentRawContent = ref<string>(''); // 当前节点的AI原始输出内容
+let isDraggingNodeAgent = false;
+let nodeAgentOffset: { x: number; y: number } = { x: 0, y: 0 };
+// 节点路径到Agent Session的映射，用于查看执行详情
+const nodeAgentSessions = ref<Map<string, any>>(new Map());
+// 显示节点Agent执行详情的对话框
+const showNodeAgentDetailDialog = ref(false);
+const selectedNodeAgentSession = ref<any>(null);
+
+// 提示词预设查询函数
+const queryPromptSuggestions = (queryString: string, cb: (results: Array<{ value: string }>) => void) => {
+  const presetList = getWritingAgentPresets();
+  const results = queryString
+    ? presetList.filter((preset: { value: string }) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
+    : presetList;
+  cb(results);
+};
+
+// 获取写作智能体预设提示词
+const getWritingAgentPresets = () => {
+  const prompts = getCurrentLocalePrompts();
+  return prompts.writingAgentPresets || [];
+};
 //const nodeBeingProcessed = ref(''); // 用于显示正在处理的节点名称
 const generateChildrenChildren = async () => {
   // 暂停文档同步，避免并发写入时 treeData 被替换导致后续引用失效
@@ -525,7 +646,8 @@ const generateChildrenChildren = async () => {
   }
 };
 
-const generateChildrenContent = async () => {
+// 为所有叶子节点生成内容（只处理叶子节点，不处理有子节点的节点）
+const generateLeafContent = async () => {
   // 暂停文档同步，避免并发写入期间 treeData 被替换
   workspace.lockUI?.();
   const prevSync = suppressDocumentSync;
@@ -548,10 +670,14 @@ const generateChildrenContent = async () => {
   const traverseAndGenerate = async (curNode: DocumentOutlineNode | null): Promise<void> => {
     if (!curNode) return;
 
+    // 先递归处理所有子节点
     if (curNode.children && curNode.children.length > 0) {
       await Promise.all(curNode.children.map(child => traverseAndGenerate(child)));
+      // 有子节点，跳过当前节点（只处理叶子节点）
+      return;
     }
 
+    // 只处理叶子节点（没有子节点的节点）
     const docFormat = (activeDocument.value?.format ?? 'md') as 'md' | 'tex'
     // 为每个节点创建一个独立的ref用于显示原始内容
     const nodeRawContentRef = ref('')
@@ -660,6 +786,39 @@ function stopDrag() {
   document.removeEventListener('mousemove', onDrag);
   document.removeEventListener('mouseup', stopDrag);
 }
+
+// NodeAgent进度窗口拖动
+function startNodeAgentDrag(e: MouseEvent) {
+  isDraggingNodeAgent = true;
+  nodeAgentOffset.x = e.clientX - nodeAgentPosition.value.left;
+  nodeAgentOffset.y = e.clientY - nodeAgentPosition.value.top;
+  document.addEventListener('mousemove', onNodeAgentDrag);
+  document.addEventListener('mouseup', stopNodeAgentDrag);
+}
+function onNodeAgentDrag(e: MouseEvent) {
+  if (!isDraggingNodeAgent) return;
+  nodeAgentPosition.value.left = e.clientX - nodeAgentOffset.x;
+  nodeAgentPosition.value.top = e.clientY - nodeAgentOffset.y;
+}
+function stopNodeAgentDrag() {
+  isDraggingNodeAgent = false;
+  document.removeEventListener('mousemove', onNodeAgentDrag);
+  document.removeEventListener('mouseup', stopNodeAgentDrag);
+}
+
+// 取消NodeAgent执行
+const cancelNodeAgent = () => {
+  if (nodeAgentAbortController.value) {
+    nodeAgentAbortController.value.abort();
+    nodeAgentAbortController.value = null;
+  }
+  nodeAgentExecuting.value = false;
+  activeNodeAgentPaths.value.clear();
+  executedNodeAgentPaths.value.clear();
+  currentExecutingNode.value = null;
+  workspace.unlockUI?.();
+  eventBus.emit('show-warning', t('outline.nodeAgentCancelled'));
+};
 
 
 
@@ -1126,6 +1285,50 @@ function onNodeDragEnd() {
 }
 const handleNodeClick = (node: DocumentOutlineNode) => {
   selectedNode.value = node;
+  
+  // 如果节点有Session（正在执行或已执行），显示Agent执行详情
+  // 不检查nodeAgentExecuting，因为执行完成后也应该能查看
+  const session = nodeAgentSessions.value.get(node.path);
+  if (session) {
+    selectedNodeAgentSession.value = session;
+    showNodeAgentDetailDialog.value = true;
+    return;
+  }
+  
+  // 如果写作智能体开启，直接执行
+  if (writingAgentEnabled.value) {
+    executeWritingAgentForNode(node);
+  } else {
+    // 否则显示菜单（原有逻辑）
+    handleNodeButtonClick(node);
+  }
+};
+
+// 执行写作智能体
+// 提示词输入对话框状态
+const showPromptDialog = ref(false);
+const dialogPromptInput = ref('');
+
+const executeWritingAgentForNode = async (node: DocumentOutlineNode) => {
+  if (!node || node.path === 'dummy') return;
+  
+  selectedNode.value = node;
+  
+  // 显示提示词输入对话框
+  dialogPromptInput.value = '';
+  showPromptDialog.value = true;
+};
+
+// 确认执行写作智能体
+const confirmExecuteWritingAgent = async () => {
+  if (!selectedNode.value) return;
+  
+  showPromptDialog.value = false;
+  
+  // 将对话框中的提示词赋值给userPrompt
+  userPrompt.value = dialogPromptInput.value;
+  
+  await triggerNodeAgent();
 };
 
 // 初始化方向，使用默认值
@@ -1227,20 +1430,25 @@ const recheckTextTruncation = () => {
 const lastKnownView = ref<DocumentView | null>(null);
 
 // 同步大纲树到treeData的函数
-const syncOutlineToTreeData = (outline?: DocumentOutlineNode) => {
-  if (suppressDocumentSync) return;
+const syncOutlineToTreeData = (outline?: DocumentOutlineNode, force: boolean = false) => {
+  // 如果force为true，强制同步，不受suppressDocumentSync影响
+  if (!force && suppressDocumentSync) return;
   const doc = activeDocument.value;
   if (!doc) return;
   
+  const prevSuppress = suppressDocumentSync;
   suppressDocumentSync = true;
   try {
-    treeData.value = cloneOutline(outline ?? doc.outline);
-    dialogVisible.value = {};
-    selectedNode.value = null;
-    generated.value = false;
-    generatedText.value = '';
+    const outlineToSync = outline ?? doc.outline;
+    if (outlineToSync) {
+      treeData.value = cloneOutline(outlineToSync);
+      dialogVisible.value = {};
+      selectedNode.value = null;
+      generated.value = false;
+      generatedText.value = '';
+    }
   } finally {
-    suppressDocumentSync = false;
+    suppressDocumentSync = prevSuppress;
   }
 };
 
@@ -1257,10 +1465,10 @@ watch(
       if (!directionLoaded.value) {
         await loadLayoutDirection();
       }
-      // 从文档同步大纲树
+      // 从文档同步大纲树（强制同步，不受suppressDocumentSync影响）
       const doc = activeDocument.value;
-      if (doc) {
-        syncOutlineToTreeData(doc.outline);
+      if (doc && doc.outline) {
+        syncOutlineToTreeData(doc.outline, true); // 强制同步
       }
     }
     
@@ -1288,7 +1496,7 @@ watch(
 // 监听文档outline变化：只在outline视图时同步到treeData
 watch(
   () => activeDocument.value?.outline,
-  async (outline) => {
+  async (outline, oldOutline) => {
     if (suppressDocumentSync) return;
     
     // 只在当前视图是outline时才从文档同步大纲树
@@ -1303,12 +1511,19 @@ watch(
       return;
     }
     
+    // 如果outline没有变化，不进行同步（避免不必要的更新）
+    // 注意：使用JSON比较，因为对象引用可能不同但内容相同
+    if (outline && oldOutline && JSON.stringify(outline) === JSON.stringify(oldOutline)) {
+      return;
+    }
+    
     // 确保方向已加载
     if (!directionLoaded.value) {
       await loadLayoutDirection();
     }
     
-    syncOutlineToTreeData(outline);
+    // 强制同步，确保从文档获取最新的大纲树
+    syncOutlineToTreeData(outline, true);
   },
   { deep: true, immediate: true },
 );
@@ -1569,7 +1784,6 @@ const handleWheelZoom = (event: WheelEvent) => {
   }
 };
 
-const nodeMenuToggle = ref(false);//false为普通节点，true为AI辅助节点
 const handleNodeButtonClick = (node: DocumentOutlineNode) => {
   selectedNode.value = node;
   if (dialogVisible.value[node.path] != null) {
@@ -1700,6 +1914,125 @@ const generateChildChapter = async () => {
   }
 }
 
+// 触发NodeAgent执行
+const triggerNodeAgent = async () => {
+  const node = selectedNode.value;
+  if (!node) {
+    eventBus.emit('show-warning', t('outline.noNodeSelected'));
+    return;
+  }
+
+  if (nodeAgentExecuting.value) {
+    eventBus.emit('show-warning', t('outline.nodeAgentAlreadyRunning'));
+    return;
+  }
+
+  // 不需要确认对话框，用户已经点击了执行按钮
+
+  // 保存执行开始时的 tabId，确保整个执行过程使用固定的 tabId
+  const fixedTabId = activeTabId.value;
+  if (!fixedTabId) {
+    eventBus.emit('show-error', t('outline.noActiveTab'));
+    return;
+  }
+
+  // 创建AbortController
+  const abortController = new AbortController();
+  nodeAgentAbortController.value = abortController;
+
+  // 重置状态
+  nodeAgentExecuting.value = true;
+  activeNodeAgentPaths.value.clear();
+  executedNodeAgentPaths.value.clear();
+  currentExecutingNode.value = { path: node.path, title: node.title };
+
+  try {
+    // 调用NodeAgent Tool（使用固定的 tabId）
+    const result = await agentToolManager.invokeTool(
+      'node-agent',
+      {
+        nodePath: node.path === 'dummy' ? 'dummy' : node.path,
+        userPrompt: userPrompt.value || '',
+        tabId: fixedTabId  // 使用固定的 tabId
+      },
+      (status, data, progress) => {
+        // 更新执行状态
+        if (data && typeof data === 'object' && 'content' in data) {
+          const content = (data as any).content;
+          if (content) {
+            // 更新当前正在执行的节点
+            if (content.nodePath && content.nodeTitle) {
+              currentExecutingNode.value = {
+                path: content.nodePath,
+                title: content.nodeTitle
+              };
+            } else if (content.currentNodePath && content.currentNodeTitle) {
+              // 兼容旧格式
+              currentExecutingNode.value = {
+                path: content.currentNodePath,
+                title: content.currentNodeTitle
+              };
+            }
+            // 更新活动节点路径
+            if (content.activeNodePaths && Array.isArray(content.activeNodePaths)) {
+              activeNodeAgentPaths.value = new Set(content.activeNodePaths);
+            }
+            // 更新已完成节点路径
+            if (content.executedNodePaths && Array.isArray(content.executedNodePaths)) {
+              executedNodeAgentPaths.value = new Set(content.executedNodePaths);
+            }
+            // 更新原始AI输出内容（实时流式输出）
+            if (content.rawContent !== undefined) {
+              nodeAgentRawContent.value = content.rawContent;
+            }
+            // 保存节点的Session信息（如果存在）- 在执行过程中和完成时都保存
+            if (content.session && (content.nodePath || content.currentNodePath)) {
+              const nodePath = content.nodePath || content.currentNodePath;
+              nodeAgentSessions.value.set(nodePath, content.session);
+            }
+            // 如果当前节点执行完成，将其从活动节点中移除并添加到已完成节点
+            if (content.stage === 'node-completed' && (content.nodePath || content.currentNodePath)) {
+              const nodePath = content.nodePath || content.currentNodePath;
+              activeNodeAgentPaths.value.delete(nodePath);
+              executedNodeAgentPaths.value.add(nodePath);
+              // 保存Session（如果存在，确保是最新的）
+              if (content.session) {
+                nodeAgentSessions.value.set(nodePath, content.session);
+              }
+            }
+          }
+        }
+      }
+    );
+
+    if (result.status === 'succeeded') {
+      eventBus.emit('show-success', t('outline.nodeAgentSuccess'));
+      
+      // 刷新大纲树（从文档同步）
+      const doc = activeDocument.value;
+      if (doc) {
+        syncOutlineToTreeData(doc.outline);
+      }
+    } else if (result.status === 'failed') {
+      eventBus.emit('show-error', t('outline.nodeAgentFail', { error: result.error || '未知错误' }));
+    } else if (result.status === 'cancelled') {
+      eventBus.emit('show-warning', t('outline.nodeAgentCancelled'));
+    }
+  } catch (error) {
+    logger.error('NodeAgent执行失败:', error);
+    eventBus.emit('show-error', t('outline.nodeAgentFail', { error: error instanceof Error ? error.message : String(error) }));
+  } finally {
+    nodeAgentExecuting.value = false;
+    activeNodeAgentPaths.value.clear();
+    executedNodeAgentPaths.value.clear(); // 清空已完成节点状态，避免一直显示绿色
+    currentExecutingNode.value = null;
+    nodeAgentRawContent.value = ''; // 清空原始内容
+    nodeAgentAbortController.value = null;
+    // 注意：不清空 nodeAgentSessions，保留以便后续查看
+    workspace.unlockUI?.();
+  }
+};
+
 const closeDialog = () => {
   const node = selectedNode.value;
   if (!node) return;
@@ -1766,7 +2099,8 @@ onMounted(async () => {
     const currentView = doc.lastView ?? 'editor';
     if (currentView === 'outline') {
       lastKnownView.value = currentView;
-      syncOutlineToTreeData(doc.outline);
+      // 强制同步，确保从文档获取最新的大纲树
+      syncOutlineToTreeData(doc.outline, true);
     }
   }
   
@@ -1877,6 +2211,32 @@ onUnmounted(() => {
   opacity: 0.9;
   z-index: 10000;
   overflow: auto;
+}
+
+.node-agent-preview {
+  position: absolute;
+  max-width: 500px;
+  width: 500px;
+  max-height: 500px;
+  opacity: 0.9;
+  z-index: 10000;
+  overflow: auto;
+}
+
+.node-agent-status,
+.active-nodes,
+.executed-nodes {
+  margin-top: 12px;
+  padding: 8px;
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  border-radius: 6px;
+}
+
+.node-agent-status p,
+.active-nodes p,
+.executed-nodes p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
 }
 
 .node-edit-box {
@@ -2000,6 +2360,30 @@ onUnmounted(() => {
   border-radius: 10px;
 }
 
+/* NodeAgent执行状态高亮样式 */
+.tree-node.node-agent-active {
+  background-color: rgba(255, 193, 7, 0.3) !important;
+  border: 2px solid rgba(255, 193, 7, 0.8);
+  animation: node-agent-pulse 1.5s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+}
+
+.tree-node.node-agent-executed {
+  background-color: rgba(103, 194, 58, 0.2) !important;
+  border: 1px solid rgba(103, 194, 58, 0.5);
+}
+
+@keyframes node-agent-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
 .tree-node-text {
   display: -webkit-box;
   /* 使用 webkit 的 box 模型以支持多行截断 */
@@ -2050,6 +2434,32 @@ onUnmounted(() => {
   &:hover {
     transform: translateX(-50%) !important;
   }
+}
+
+.tool-selector-group {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 0 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.prompt-input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prompt-input {
+  width: 300px;
+  min-width: 200px;
+  max-width: 500px;
+}
+
+.writing-agent-hint {
+  padding: 4px 8px;
+  margin-left: 8px;
 }
 
 </style>

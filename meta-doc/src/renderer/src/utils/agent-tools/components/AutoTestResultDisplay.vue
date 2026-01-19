@@ -162,6 +162,7 @@ import MetadataDisplay from './MetadataDisplay.vue'
 import OutlineTreeDisplay from './OutlineTreeDisplay.vue'
 import OutlineOptimizeDisplay from './OutlineOptimizeDisplay.vue'
 import ColorDisplay from './ColorDisplay.vue'
+import WorkspaceDisplay from './WorkspaceDisplay.vue'
 import { createRendererLogger } from '../../logger'
 
 const { t } = useI18n()
@@ -180,7 +181,8 @@ const displayComponentMap: Record<string, any> = {
   'MetadataDisplay': MetadataDisplay,
   'OutlineTreeDisplay': OutlineTreeDisplay,
   'OutlineOptimizeDisplay': OutlineOptimizeDisplay,
-  'ColorDisplay': ColorDisplay
+  'ColorDisplay': ColorDisplay,
+  'WorkspaceDisplay': WorkspaceDisplay
 }
 
 // 获取Tool的Display组件

@@ -72,7 +72,7 @@ export function extractOutlineTreeFromMarkdown(
 /**
  * 为大纲树生成路径编号
  */
-function generateOutlinePaths(root: DocumentOutlineNode): void {
+export function generateOutlinePaths(root: DocumentOutlineNode): void {
   // 为根节点的子节点分配编号
   for (let i = 0; i < root.children.length; i++) {
     root.children[i].path = `${i + 1}`

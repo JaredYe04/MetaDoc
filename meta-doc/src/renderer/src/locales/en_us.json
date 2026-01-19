@@ -561,12 +561,20 @@
     "userPromptPlaceholder": "Please enter your hint.",
     "cancelTasks": "Cancel Task",
     "nodeAgent": "Node Agent",
+    "writingAgent": "Writing Agent",
+    "executeWritingAgent": "Execute Writing Agent",
+    "writingAgentPromptTitle": "Enter Prompt",
+    "promptInput": "Prompt",
     "noNodeSelected": "No node selected",
     "nodeAgentAlreadyRunning": "Node Agent is already running",
     "nodeAgentConfirm": "Are you sure you want to start Node Agent for node \"{title}\"?",
-    "nodeAgentSuccess": "Node Agent execution completed",
-    "nodeAgentFail": "Node Agent execution failed: {error}",
-    "nodeAgentCancelled": "Node Agent execution cancelled"
+        "nodeAgentSuccess": "Node Agent execution completed",
+        "nodeAgentFail": "Node Agent execution failed: {error}",
+        "nodeAgentCancelled": "Node Agent execution cancelled",
+        "rawContent": "AI Raw Output",
+        "currentNode": "Current Node",
+        "activeNodes": "Active Nodes",
+        "executedNodes": "Executed Nodes"
   },
   "setting": {
     "auto": "Auto",

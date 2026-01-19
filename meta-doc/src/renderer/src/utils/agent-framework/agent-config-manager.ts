@@ -76,6 +76,15 @@ class AgentConfigManager {
   }
 
   /**
+   * 获取默认Agent配置
+   */
+  async getDefaultConfig(): Promise<AgentConfig | undefined> {
+    // 确保默认配置已初始化
+    const defaultConfig = this.getConfig('default-agent-config')
+    return defaultConfig
+  }
+
+  /**
    * 获取所有Agent配置
    */
   getAllConfigs(): AgentConfig[] {

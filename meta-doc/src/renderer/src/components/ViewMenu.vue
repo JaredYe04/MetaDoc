@@ -3,7 +3,7 @@
     <el-menu
       :class="['modern-side-menu', 'sub-view-menu', { 'is-locked': isLocked, 'is-collapsed': isCollapsed }]"
       mode="vertical"
-      :menu-trigger="isLocked ? 'manual' : 'hover'"
+      :menu-trigger="isLocked ? 'click' : 'hover'"
       @select="handleSelect"
       :default-active="activeMenuIndex"
       :background-color="themeState.currentTheme.background"

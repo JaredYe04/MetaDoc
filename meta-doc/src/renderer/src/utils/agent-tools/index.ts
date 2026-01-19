@@ -18,6 +18,8 @@ import { diffToolConfig } from './diff-tool'
 import { grepToolConfig } from './grep-tool'
 import { proofreadToolConfig } from './proofread-tool'
 import { outlineOptimizeToolConfig } from './outline-optimize-tool'
+import { nodeAgentToolConfig } from './node-agent-tool'
+import { outlineReorderToolConfig } from './outline-reorder-tool'
 import { editToolConfig } from './edit-tool'
 import { metadataToolConfig } from './metadata-tool'
 import { titleFormatToolConfig } from './title-format-tool'
@@ -68,8 +70,14 @@ export async function initializeAgentTools(): Promise<void> {
   // 注册文本校对Tool
   agentToolManager.registerTool(proofreadToolConfig)
 
-  // 注册大纲优化Tool
+  // 注册扩写工具（原大纲优化工具，已重命名）
   agentToolManager.registerTool(outlineOptimizeToolConfig)
+
+  // 注册节点智能体Tool
+  agentToolManager.registerTool(nodeAgentToolConfig)
+
+  // 注册大纲优化Tool（节点顺序调整）
+  agentToolManager.registerTool(outlineReorderToolConfig)
 
   // 注册文档编辑Tool
   agentToolManager.registerTool(editToolConfig)

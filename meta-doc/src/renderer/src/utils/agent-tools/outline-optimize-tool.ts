@@ -1228,28 +1228,28 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
 
 const outlineOptimizeToolLocales: ToolLocales = {
   zh_cn: {
-    name: '大纲优化',
-    description: '使用AI生成/优化文档大纲，包括生成子节点、生成内容等功能，并自动同步到文档'
+    name: '扩写工具',
+    description: '快速生成文档大纲和内容。包括生成子节点、生成内容等功能，并自动同步到文档。⚠️ 注意：此工具不能保证内容质量，但可以快速生成文章草稿'
   },
   en_us: {
-    name: 'Outline Optimization',
-    description: 'Use AI to generate/optimize document outline, including generating child nodes and content, and automatically sync to document'
+    name: 'Expand Tool',
+    description: 'Quickly generate document outline and content. Including generating child nodes and content, and automatically sync to document. ⚠️ Note: This tool does not guarantee content quality, but can quickly generate article drafts'
   },
   de_DE: {
-    name: 'Gliederungsoptimierung',
-    description: 'Verwenden Sie KI, um Dokumentengliederungen zu generieren/optimieren, einschließlich Generierung von Unterknoten und Inhalten, und automatisch mit dem Dokument synchronisieren'
+    name: 'Erweiterungs-Tool',
+    description: 'Dokumentengliederung und Inhalte schnell generieren. Einschließlich Generierung von Unterknoten und Inhalten, und automatisch mit dem Dokument synchronisieren. ⚠️ Hinweis: Dieses Tool garantiert keine Inhaltsqualität, kann aber schnell Artikelentwürfe generieren'
   },
   fr_FR: {
-    name: 'Optimisation de l\'arborescence',
-    description: 'Utiliser l\'IA pour générer/optimiser l\'arborescence du document, y compris la génération de nœuds enfants et de contenu, et synchroniser automatiquement avec le document'
+    name: 'Outil d\'expansion',
+    description: 'Générer rapidement l\'arborescence et le contenu du document. Y compris la génération de nœuds enfants et de contenu, et synchroniser automatiquement avec le document. ⚠️ Note: Cet outil ne garantit pas la qualité du contenu, mais peut rapidement générer des brouillons d\'articles'
   },
   ja_JP: {
-    name: 'アウトライン最適化',
-    description: 'AIを使用してドキュメントアウトラインを生成/最適化し、子ノードとコンテンツの生成を含め、ドキュメントに自動同期'
+    name: '拡張ツール',
+    description: 'ドキュメントアウトラインとコンテンツを迅速に生成。子ノードとコンテンツの生成を含め、ドキュメントに自動同期。⚠️ 注意: このツールはコンテンツ品質を保証しませんが、記事の下書きを迅速に生成できます'
   },
   ko_KR: {
-    name: '개요 최적화',
-    description: 'AI를 사용하여 문서 개요 생성/최적화, 하위 노드 및 콘텐츠 생성 포함, 문서에 자동 동기화'
+    name: '확장 도구',
+    description: '문서 개요 및 콘텐츠를 빠르게 생성합니다. 하위 노드 및 콘텐츠 생성 포함, 문서에 자동 동기화. ⚠️ 참고: 이 도구는 콘텐츠 품질을 보장하지 않지만 기사 초안을 빠르게 생성할 수 있습니다'
   }
 }
 
@@ -1260,11 +1260,13 @@ export const outlineOptimizeToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'outline-optimize',
-    brief: 'Generate and optimize document outline using AI. Supports multiple operation modes with concurrent processing for efficient batch content generation.',
-    fullSpec: `# Outline Optimization Tool
+    brief: 'Quickly generate document outline and content using AI. Supports multiple operation modes with concurrent processing. ⚠️ Note: Does not guarantee content quality, but can quickly generate article drafts.',
+    fullSpec: `# Expand Tool
 
 ## Description
-Uses AI to generate and optimize document outline, supports multiple operation modes. After generation, automatically syncs to document content. **Uses concurrent processing mechanism for efficient batch generation of large amounts of content**.
+Uses AI to quickly generate document outline and content, supports multiple operation modes. After generation, automatically syncs to document content. **Uses concurrent processing mechanism for efficient batch generation of large amounts of content**.
+
+⚠️ **Important Note**: This tool is primarily for **quickly generating article drafts** and **does not guarantee content quality**. Suitable for scenarios requiring rapid draft generation, generated content requires manual review and optimization.
 
 **⭐ Smart Parsing**: This tool supports multiple AI response formats:
 - ✅ JSON format (recommended): [{"title": "Section 1", "children": []}, ...]
@@ -1308,10 +1310,12 @@ This tool uses **concurrent AI processing mechanism**, can generate content for 
 4. Use outline-tree tool to view document outline structure and get node paths`
   },
   instruction: `
-# 大纲优化工具
+# 扩写工具
 
 ## 功能描述
-使用AI生成和优化文档大纲，支持多种操作模式，生成后自动同步到文档内容。**采用并发处理机制，可以高效批量生成大量内容**。
+使用AI快速生成文档大纲和内容，支持多种操作模式，生成后自动同步到文档内容。**采用并发处理机制，可以高效批量生成大量内容**。
+
+⚠️ **重要提示**：此工具主要用于**快速生成文章草稿**，**不能保证内容质量**。适用于需要快速产出初稿的场景，生成后需要人工审核和优化。
 
 **⭐ 智能解析**：此工具支持多种AI响应格式，包括：
 - ✅ JSON格式（推荐）：[{"title": "章节1", "children": []}, ...]

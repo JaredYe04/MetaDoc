@@ -245,11 +245,26 @@ export class AIContextManager {
     agentConfig: AgentConfig,
     override?: string
   ): string {
+    // 优先级：override > session.messages中的系统消息 > agentConfig.llmConfig.systemPrompt
+    
     if (override) {
       return override
     }
 
-    let prompt = ''
+    let basePrompt = ''
+    
+    // 检查 session.messages 中是否有系统消息（支持自定义系统提示词，如写作智能体）
+    // 如果消息列表中有 role='system' 的消息，优先使用
+    const systemMessages = session.messages?.filter((msg: any) => msg.role === 'system' && msg.type === 'chat')
+    if (systemMessages && systemMessages.length > 0) {
+      // 合并所有系统消息的内容作为基础提示词
+      basePrompt = systemMessages.map((msg: any) => msg.markdown || msg.content || '').join('\n\n')
+    } else if (agentConfig.llmConfig?.systemPrompt) {
+      // AgentConfig的系统提示词
+      basePrompt = agentConfig.llmConfig.systemPrompt + '\n\n'
+    }
+
+    let prompt = basePrompt
 
     // AgentConfig的系统提示词
     if (agentConfig.llmConfig?.systemPrompt) {
@@ -638,6 +653,29 @@ export class AIContextManager {
     }
 
     return llmMessages
+  }
+
+  /**
+   * 添加系统消息
+   */
+  static addSystemMessage(session: AgentSession | LegacyAgentSession, content: string): AgentMessage {
+    const message: AgentMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      role: 'system',
+      type: 'chat',
+      timestamp: new Date().toISOString(),
+      markdown: content
+    }
+
+    session.messages.push(message)
+    // 兼容新旧格式的updatedAt
+    if (typeof session.updatedAt === 'string') {
+      session.updatedAt = new Date().toISOString()
+    } else {
+      session.updatedAt = Date.now()
+    }
+
+    return message
   }
 
   /**

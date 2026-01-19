@@ -1515,7 +1515,45 @@ onMounted(async () => {
         else {
             cdn = vditorCDN;
         }
-        const autoSaveExternalImage = await getSetting('autoSaveExternalImage');
+        // 读取图片上传配置
+        const imageUploadConfig = await getSetting('imageUpload');
+        // 如果 action 是 'none' 或未设置，fallback 到 'upload'
+        const action = (imageUploadConfig?.action === 'none' || !imageUploadConfig?.action) ? 'upload' : imageUploadConfig.action;
+        const uploadService = imageUploadConfig?.uploadService || 'local';
+        
+        // 根据配置决定上传 URL
+        // 如果 action === 'upload'，使用配置的上传服务
+        // 如果 action === 'saveToDocumentDir' 或 'saveToAssetsDir'，使用本地服务并传递 targetDir
+        let uploadUrl: string | undefined;
+        if (action === 'upload') {
+            if (uploadService === 'custom' && imageUploadConfig?.customUploadApiUrl) {
+                uploadUrl = imageUploadConfig.customUploadApiUrl;
+            } else {
+                // 本地服务：如果设置了 localImageDir，通过 targetDir 参数传递
+                const localImageDir = imageUploadConfig?.localImageDir;
+                if (localImageDir) {
+                    uploadUrl = `http://localhost:52521/api/image/upload?targetDir=${encodeURIComponent(localImageDir)}`;
+                } else {
+                    uploadUrl = 'http://localhost:52521/api/image/upload';
+                }
+            }
+        } else if (action === 'saveToDocumentDir' || action === 'saveToAssetsDir') {
+            // 保存到文档目录，需要传递 targetDir
+            // 注意：这里使用当前文档路径，如果文档未保存，会在 success 回调中处理
+            const docPath = documentRef.value.path;
+            if (docPath) {
+                const { dirname, join } = await import('../utils/path-utils.js');
+                const docDir = dirname(docPath);
+                const targetDir = action === 'saveToDocumentDir' 
+                    ? docDir 
+                    : join(docDir, 'assets');
+                uploadUrl = `http://localhost:52521/api/image/upload?targetDir=${encodeURIComponent(targetDir)}`;
+            } else {
+                // 文档未保存，使用默认上传目录
+                uploadUrl = 'http://localhost:52521/api/image/upload';
+            }
+        }
+        
         // 读取Vditor模式设置，如果不存在则使用默认值'ir'，并保存默认值
         let vditorMode = await getSetting('vditorMode');
         if (!vditorMode || !['wysiwyg', 'ir', 'sv'].includes(vditorMode)) {
@@ -1525,6 +1563,10 @@ onMounted(async () => {
         const supportedLang = ["en_US", "fr_FR", "pt_BR", "ja_JP", "ko_KR", "ru_RU", "sv_SE", "zh_CN", "zh_TW"]
         // 获取当前文档的目录路径作为 linkBase
         const linkBase = currentLinkBase.value;
+        
+        // 导入图片上传服务
+        const { uploadImage, processImagePath } = await import('../utils/image-upload-service');
+        
         vditor.value = new Vditor(props.editorDomId, {
             lang: supportedLang.includes(t('lang') as string) ? (t('lang') as any) : 'en_US',
             mode: vditorMode as 'wysiwyg' | 'ir' | 'sv',
@@ -1542,21 +1584,102 @@ onMounted(async () => {
                     linkBase: linkBase,
                 },
             },
-            upload: {
-                url: 'http://localhost:52521/api/image/upload',
-                linkToImgUrl: autoSaveExternalImage ? 'http://localhost:52521/api/image/url-upload' : undefined,
-                success: (editor, msg) => {
-                    const data = JSON.parse(msg);
-                    const filePaths = data.data.succMap;
-                    for (const key in filePaths) {
-                        const imageUrl = filePaths[key]; // 直接使用返回的路径
-                        vditor.value?.insertValue(`![](${imageUrl})`);  // 插入图片链接
+            upload: uploadUrl ? {
+                url: uploadUrl,
+
+                linkToImgUrl: !imageUploadConfig?.keepNetworkImageUrl
+                    ? (uploadService === 'custom' && imageUploadConfig?.customUploadApiUrl
+                        ? imageUploadConfig.customUploadApiUrl
+                        : 'http://localhost:52521/api/image/url-upload')
+                    : undefined,
+                success: async (editor, msg) => {
+                    try {
+                        // 重新读取配置，确保获取最新的设置（因为用户可能在运行时修改了设置）
+                        const currentImageUploadConfig = await getSetting('imageUpload');
+                        const currentAction = (currentImageUploadConfig?.action === 'none' || !currentImageUploadConfig?.action) ? 'upload' : currentImageUploadConfig.action;
+                        
+                        const data = JSON.parse(msg);
+                        const filePaths = data.data.succMap;
+                        for (const key in filePaths) {
+                            const imageUrl = filePaths[key]; // 服务器返回的绝对路径
+                            
+                            // 检查图片是否在正确的位置
+                            // 1. 如果 action === 'saveToDocumentDir' 或 'saveToAssetsDir'，检查是否在文档目录
+                            // 2. 如果 action === 'upload' 且设置了 localImageDir，检查是否在设置的目录
+                            let needReupload = false;
+                            let expectedDir: string | null = null;
+                            
+                            if ((currentAction === 'saveToDocumentDir' || currentAction === 'saveToAssetsDir') && documentRef.value.path) {
+                                // 检查是否在文档目录
+                                const { dirname, join } = await import('../utils/path-utils.js');
+                                const docDir = dirname(documentRef.value.path);
+                                expectedDir = currentAction === 'saveToDocumentDir' ? docDir : join(docDir, 'assets');
+                                
+                                const imagePathNormalized = imageUrl.replace(/\\/g, '/');
+                                const expectedDirNormalized = expectedDir.replace(/\\/g, '/');
+                                
+                                if (!imagePathNormalized.startsWith(expectedDirNormalized)) {
+                                    needReupload = true;
+                                }
+                            } else if (currentAction === 'upload' && currentImageUploadConfig?.localImageDir) {
+                                // 检查是否在设置的本地图片目录
+                                const localImageDir = currentImageUploadConfig.localImageDir;
+                                const imagePathNormalized = imageUrl.replace(/\\/g, '/');
+                                const localImageDirNormalized = localImageDir.replace(/\\/g, '/');
+                                
+                                if (!imagePathNormalized.startsWith(localImageDirNormalized)) {
+                                    needReupload = true;
+                                    expectedDir = localImageDir;
+                                }
+                            }
+                            
+                            if (needReupload) {
+                                // 图片不在正确位置，需要重新上传到正确位置
+                                logger.debug('图片不在预期位置，重新上传到正确位置', {
+                                    currentPath: imageUrl,
+                                    expectedDir: expectedDir,
+                                    action: currentAction
+                                });
+                                
+                                const uploadResult = await uploadImage({
+                                    url: imageUrl,
+                                    documentPath: documentRef.value.path,
+                                });
+                                
+                                if (uploadResult.success && uploadResult.imagePath) {
+                                    vditor.value?.insertValue(`![](${uploadResult.imagePath})`);
+                                    continue;
+                                } else {
+                                    logger.warn('重新上传失败，使用原始路径', uploadResult.error);
+                                }
+                            }
+                            
+                            // 使用 processImagePath 处理路径（会根据 action 和配置处理相对路径、URL转义等）
+                            const processedPath = await processImagePath(
+                                imageUrl,
+                                documentRef.value.path
+                            );
+                            vditor.value?.insertValue(`![](${processedPath})`);
+                        }
+                    } catch (error) {
+                        logger.error('Process image path failed:', error);
+                        // 如果处理失败，使用原始路径
+                        try {
+                        const data = JSON.parse(msg);
+                        const filePaths = data.data.succMap;
+                        for (const key in filePaths) {
+                            const imageUrl = filePaths[key];
+                            vditor.value?.insertValue(`![](${imageUrl})`);
+                            }
+                        } catch (e) {
+                            logger.error('Failed to parse upload response:', e);
+                        }
                     }
                 },
                 error: (msg) => {
                     logger.error('Upload Error:', msg);
                 },
-            },
+            } : undefined,
             toolbar: [
                 {
                     name: 'undo',

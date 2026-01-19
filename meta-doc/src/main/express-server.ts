@@ -295,7 +295,19 @@ function setupImageAPI(): void {
   
   const storage = multer.diskStorage({
     destination: (req: any, file: any, cb: any) => {
-      cb(null, imageUploadDir);
+      // 支持通过查询参数 targetDir 指定目标目录
+      // 如果指定了 targetDir，使用该目录；否则使用默认的 imageUploadDir
+      const targetDir = req?.query?.targetDir;
+      if (targetDir && typeof targetDir === 'string') {
+        // 确保目录存在
+        const decodedDir = decodeURIComponent(targetDir);
+        if (!fs.existsSync(decodedDir)) {
+          fs.mkdirSync(decodedDir, { recursive: true });
+        }
+        cb(null, decodedDir);
+      } else {
+        cb(null, imageUploadDir);
+      }
     },
     filename: (req: any, file: any, cb: any) => {
       // 允许通过查询参数 keepName=1 强制使用原始文件名（用于图表哈希命名的去重）
@@ -351,9 +363,16 @@ function handleImageUpload(req: ImageUploadRequest, res: Response): void {
   const errFiles: string[] = [];
   const succMap: Record<string, string> = {};
 
+  // 获取目标目录（如果通过查询参数指定）
+  const targetDir = req?.query?.targetDir;
+  const actualDir = targetDir && typeof targetDir === 'string' 
+    ? decodeURIComponent(targetDir) 
+    : imageUploadDir;
+
   if (req.files && req.files.length > 0) {
     req.files.forEach((file) => {
-      const filePath = path.join(imageUploadDir, file.filename);
+      // 文件已经保存在目标目录中（multer已经处理）
+      const filePath = path.join(actualDir, file.filename);
       succMap[file.filename] = filePath;
     });
 
@@ -378,10 +397,20 @@ function handleImageUpload(req: ImageUploadRequest, res: Response): void {
  * 处理URL上传
  */
 function handleUrlUpload(req: UrlUploadRequest, res: Response): void {
-  const { url } = req.body;
+  const { url, targetDir } = req.body;
   
   if (!url) {
     return res.status(400).json({ error: 'No URL provided' });
+  }
+
+  // 获取目标目录（如果指定）
+  const actualDir = targetDir && typeof targetDir === 'string'
+    ? targetDir
+    : imageUploadDir;
+  
+  // 确保目录存在
+  if (!fs.existsSync(actualDir)) {
+    fs.mkdirSync(actualDir, { recursive: true });
   }
 
   // 检测是否是本地文件路径
@@ -407,7 +436,7 @@ function handleUrlUpload(req: UrlUploadRequest, res: Response): void {
       
       // 生成目标文件名
       const fileName = `${Date.now()}${ext}`;
-      const targetPath = path.join(imageUploadDir, fileName);
+      const targetPath = path.join(actualDir, fileName);
       
       // 复制文件
       fs.copyFileSync(localFilePath, targetPath);
@@ -437,7 +466,7 @@ function handleUrlUpload(req: UrlUploadRequest, res: Response): void {
     }
 
     const fileName = `${Date.now()}${ext}`;
-    const filePath = path.join(imageUploadDir, fileName);
+    const filePath = path.join(actualDir, fileName);
     const fileStream = fs.createWriteStream(filePath);
     
     const https = require('https');

@@ -48,6 +48,8 @@ import LanguageIconBlack from "../assets/icons/language-black.svg";
 import LanguageIconWhite from "../assets/icons/language-white.svg";
 import FileIconBlack from "../assets/icons/file-black.svg";
 import FileIconWhite from "../assets/icons/file-white.svg";
+import MetaIconBlack from "../assets/icons/meta-black.svg";
+import MetaIconWhite from "../assets/icons/meta-white.svg";
 // theme.js
 export const contentThemes = [
   { label: 'Ant Design', value: 'ant-design' },
@@ -187,6 +189,7 @@ const generateThemeIcons = (isDarkMode) => {
     MoreIcon: selectIconByTheme(isDarkMode, { light: MoreIconBlack, dark: MoreIconWhite }),
     LanguageIcon: selectIconByTheme(isDarkMode, { light: LanguageIconBlack, dark: LanguageIconWhite }),
     FileIcon: selectIconByTheme(isDarkMode, { light: FileIconBlack, dark: FileIconWhite }),
+    MetaIcon: selectIconByTheme(isDarkMode, { light: MetaIconBlack, dark: MetaIconWhite }),
   };
 };
 

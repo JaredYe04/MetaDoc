@@ -26,7 +26,20 @@ export async function getSetting(key) {
 }
 
 export async function setSetting(key, value) {
-  ipcRenderer.invoke('set-setting', { key: key, value: value });
+  // 对于对象类型，需要确保可以被序列化（Electron IPC 需要可序列化的数据）
+  // 使用 JSON 序列化/反序列化来确保对象可以被克隆
+  let serializableValue = value;
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    // 对象类型，使用深拷贝确保可序列化
+    try {
+      serializableValue = JSON.parse(JSON.stringify(value));
+    } catch (e) {
+      console.error(`Error serializing setting "${key}":`, e);
+      // 如果序列化失败，尝试使用浅拷贝
+      serializableValue = { ...value };
+    }
+  }
+  await ipcRenderer.invoke('set-setting', { key: key, value: serializableValue });
 }
 
 export async function updateRecentDocs(filePath) {
@@ -66,8 +79,20 @@ export const settings = reactive({
   //exportImageMode: "none", // 导出图片选项
   autoRemoveThinkTag: true,//自动去除推理过程
   bypassCodeBlock: true, // 统计文字信息时排除代码块
-  autoSaveExternalImage: true, // 自动保存外部图片
+  autoSaveExternalImage: true, // 自动保存外部图片（已废弃，保留用于兼容）
   parseEmbeddedImages: true, // 是否解析文档内嵌图片进行OCR
+  // 图片上传配置
+  imageUpload: {
+    action: 'upload', // 插入图片时的操作：'upload'（上传到本地图片目录）、'saveToDocumentDir'（保存在文档同目录）、'saveToAssetsDir'（保存在文档目录/assets/）
+    keepNetworkImageUrl: false,
+    addDotSlashForRelativePath: false, // 为相对路径添加./
+    autoEscapeImageUrl: true, // 插入时自动转义图片 URL
+    uploadService: 'local', // 上传服务：'none'（无）、'local'（本地服务）、'custom'（自定义API）
+    customUploadApiUrl: '', // 自定义上传API URL
+    customUploadApiMethod: 'POST', // 自定义上传API方法
+    customUploadApiFieldName: 'file', // 自定义上传API字段名
+    localImageDir: '', // 本地图片目录（空字符串表示使用默认路径，用于新文档或未保存的文档）
+  },
   loggingEnabled: true, // 是否写入日志
   loggingLevel: 'info', // 日志等级
   loggingFilter: '', // 日志过滤条件（按scope过滤）
@@ -131,9 +156,6 @@ const CRITICAL_SETTINGS = [
 
 // 加载单个设置的辅助函数
 async function loadSetting(key) {
-    if (settings[key] && typeof settings[key] === 'object' && !Array.isArray(settings[key])) {
-      return; // 如果是对象，则不处理
-    }
   try {
     const value = await ipcRenderer.invoke('get-setting', { key: key });
       if (value === undefined) {
@@ -147,13 +169,24 @@ async function loadSetting(key) {
             themeColor: item.themeColor,
             isDefault: item.isDefault
           }));
-        await setSetting(key, serializable);
+          await setSetting(key, serializable);
         } else {
-        await setSetting(key, settings[key]);
+          // 对于对象类型，确保可以被序列化
+          await setSetting(key, settings[key]);
         }
       } else {
         //如果有设置，则更新settings
-        settings[key] = value;
+        // 只有当默认值和存储的值都是对象（且不是数组）时，才进行合并
+        const defaultIsObject = settings[key] && typeof settings[key] === 'object' && !Array.isArray(settings[key]);
+        const valueIsObject = value && typeof value === 'object' && !Array.isArray(value);
+        
+        if (defaultIsObject && valueIsObject) {
+          // 合并默认值和保存的值（确保新添加的字段有默认值）
+          settings[key] = { ...settings[key], ...value };
+        } else {
+          // 类型不匹配或不是对象，直接使用存储的值
+          settings[key] = value;
+        }
       }
   } catch (error) {
     console.error(`Error initializing setting "${key}":`, error);

@@ -44,6 +44,7 @@ import SettingLlmSection from './setting/SettingLlmSection.vue';
 import SettingKnowledgeBaseSection from './setting/SettingKnowledgeBaseSection.vue';
 import SettingThemeSection from './setting/SettingThemeSection.vue';
 import SettingLoggerSection from './setting/SettingLoggerSection.vue';
+import SettingImageSection from './setting/SettingImageSection.vue';
 // import SettingDebugSection from './setting/SettingDebugSection.vue';
 import SettingAboutSection from './setting/SettingAboutSection.vue';
 import { isDevEnvironment } from '../utils/dev-env';
@@ -59,6 +60,7 @@ const componentMap: Record<string, any> = {
   llm: SettingLlmSection,
   knowledgeBase: SettingKnowledgeBaseSection,
   themes: SettingThemeSection,
+  images: SettingImageSection,
   logs: SettingLoggerSection,
   // debug: SettingDebugSection,
   about: SettingAboutSection
@@ -70,6 +72,7 @@ const menuItems = computed(() => {
     { key: 'llm', label: 'setting.llm' },
     { key: 'knowledgeBase', label: 'setting.knowledgeBase' },
     { key: 'themes', label: 'setting.themes' },
+    { key: 'images', label: 'setting.image.title' },
     { key: 'logs', label: 'setting.logs' },
     { key: 'about', label: 'setting.about.title' }
   ];

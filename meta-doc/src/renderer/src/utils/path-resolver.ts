@@ -125,6 +125,20 @@ export function resolveRelativePath(
   // 移除 basePath 的 file:/// 前缀（如果存在）
   let normalizedBase = basePath.replace(/^file:\/\/\//, '');
   
+  // 如果路径包含 URL 编码（%XX 格式），先解码
+  try {
+    // 检查是否包含 URL 编码字符
+    if (normalizedBase.includes('%')) {
+      normalizedBase = decodeURIComponent(normalizedBase);
+    }
+    if (relativePath.includes('%')) {
+      relativePath = decodeURIComponent(relativePath);
+    }
+  } catch (e) {
+    // 如果解码失败（可能是无效的编码），保持原样
+    logger.debug('URL 解码失败，保持原路径', { basePath, relativePath, error: e });
+  }
+  
   // 规范化路径分隔符（统一使用 /）
   normalizedBase = normalizeSeparator(normalizedBase);
   const normalizedRelative = normalizeSeparator(relativePath);
@@ -224,7 +238,16 @@ export function resolvePathWithLinkBase(
   // 因为 resolveRelativePath 需要完整的文件路径来计算目录
   if (linkBase.startsWith('file:///')) {
     // 移除 file:/// 前缀
-    const pathWithoutPrefix = linkBase.replace(/^file:\/\/\//, '');
+    let pathWithoutPrefix = linkBase.replace(/^file:\/\/\//, '');
+    // 如果路径包含 URL 编码（%XX 格式），先解码
+    try {
+      if (pathWithoutPrefix.includes('%')) {
+        pathWithoutPrefix = decodeURIComponent(pathWithoutPrefix);
+      }
+    } catch (e) {
+      // 如果解码失败（可能是无效的编码），保持原样
+      logger.debug('URL 解码失败，保持原路径', { linkBase, error: e });
+    }
     // 添加虚拟文件名（用于计算目录）
     basePath = pathWithoutPrefix + 'document.md';
   } else if (!linkBase.endsWith('/') && !linkBase.endsWith('\\')) {

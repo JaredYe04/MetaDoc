@@ -2318,46 +2318,50 @@ const handlePasteImage = async () => {
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: 'image/png' });
         
-        // 创建FormData上传图片
-        const formData = new FormData();
+        // 使用图片上传服务上传图片
+        const { uploadImage } = await import("../utils/image-upload-service");
         const fileName = `clipboard-${Date.now()}.png`;
         const file = new File([blob], fileName, { type: 'image/png' });
-        formData.append('file[]', file, fileName);
         
-        // 上传图片
-        const response = await fetch('http://localhost:52521/api/image/upload', {
-            method: 'POST',
-            body: formData,
+        // 获取文档路径（用于相对路径计算）
+        const documentPath = workspace.ensureDocument(props.tabId).path;
+        
+        const uploadResult = await uploadImage({
+            file: file,
+            fileName: fileName,
+            documentPath: documentPath,
         });
         
-        if (!response.ok) {
-            throw new Error(`上传失败: ${response.status}`);
+        if (!uploadResult.success || !uploadResult.imagePath) {
+            throw new Error(uploadResult.error || '上传失败');
         }
         
-        const result = await response.json();
-        if (result.code === 0 && result.data && result.data.succMap) {
-            const filePaths = result.data.succMap;
-            const imagePath = Object.values(filePaths)[0] as string;
-            
-            // 生成LaTeX图片嵌入代码
-            // 使用本地路径，统一转换为正斜杠（LaTeX使用正斜杠）
-            let normalizedPath = imagePath.replace(/\\/g, '/');
-            
-            // 转义LaTeX特殊字符（#、%、&、{}、_等）
-            // 注意：转义顺序很重要，先转义反斜杠，再转义其他字符
-            const escapedPath = normalizedPath.replace(/([#%&{}_])/g, '\\$1');
-            
-            // 使用标准的 includegraphics 格式，带宽度选项
-            const latexCode = `\\includegraphics[width=0.8\\textwidth]{${escapedPath}}`;
-            
-            // 插入到编辑器
-            insertText(latexCode);
-            
-            logger.debug('图片已上传并插入LaTeX代码', { imagePath, normalizedPath, latexCode });
-            return true; // 成功处理图片
+        // 生成LaTeX图片嵌入代码
+        // 使用处理后的路径，统一转换为正斜杠（LaTeX使用正斜杠）
+        let normalizedPath = uploadResult.imagePath.replace(/\\/g, '/');
+        
+        // 转义LaTeX特殊字符（#、%、&、{}、_等）
+        // 注意：转义顺序很重要，先转义反斜杠，再转义其他字符
+        // 注意：如果配置中已经启用了URL转义，这里可能需要调整
+        const imageUploadConfig = await getSetting('imageUpload');
+        let escapedPath: string;
+        if (imageUploadConfig?.autoEscapeImageUrl) {
+            // 如果已经转义过，只需要转义LaTeX特殊字符（但需要先解码）
+            // 这里简化处理：直接转义LaTeX特殊字符
+            escapedPath = normalizedPath.replace(/([#%&{}_])/g, '\\$1');
         } else {
-            throw new Error(result.msg || '上传失败');
+            // 如果未转义，先转义LaTeX特殊字符
+            escapedPath = normalizedPath.replace(/([#%&{}_])/g, '\\$1');
         }
+        
+        // 使用标准的 includegraphics 格式，带宽度选项
+        const latexCode = `\\includegraphics[width=0.8\\textwidth]{${escapedPath}}`;
+        
+        // 插入到编辑器
+        insertText(latexCode);
+        
+        logger.debug('图片已上传并插入LaTeX代码', { imagePath: uploadResult.imagePath, normalizedPath, latexCode });
+        return true; // 成功处理图片
     } catch (error) {
         logger.error('粘贴图片失败', error);
         const errorMessage = error instanceof Error ? error.message : String(error);

@@ -162,9 +162,9 @@
         <el-form label-width="100px">
           <el-form-item :label="$t('aigraph.exportFormat')">
             <el-radio-group v-model="exportFormat">
-              <el-radio label="svg">{{ $t('aigraph.vectorImage') }}</el-radio>
-              <el-radio label="png">{{ $t('aigraph.bitmapImage') }}</el-radio>
-              <el-radio label="pdf">{{ $t('aigraph.pdfDocument') }}</el-radio>
+              <el-radio value="svg">{{ $t('aigraph.vectorImage') }}</el-radio>
+              <el-radio value="png">{{ $t('aigraph.bitmapImage') }}</el-radio>
+              <el-radio value="pdf">{{ $t('aigraph.pdfDocument') }}</el-radio>
             </el-radio-group>
           </el-form-item>
         </el-form>

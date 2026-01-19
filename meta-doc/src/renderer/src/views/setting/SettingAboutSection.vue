@@ -39,8 +39,8 @@
 
             <el-form-item :label="$t('setting.about.updateChannel')">
               <el-radio-group v-model="updateChannel" @change="handleChannelChange">
-                <el-radio label="release">{{ $t('setting.about.channelRelease') }}</el-radio>
-                <el-radio label="dev">{{ $t('setting.about.channelDev') }}</el-radio>
+                <el-radio value="release">{{ $t('setting.about.channelRelease') }}</el-radio>
+                <el-radio value="dev">{{ $t('setting.about.channelDev') }}</el-radio>
               </el-radio-group>
             </el-form-item>
 

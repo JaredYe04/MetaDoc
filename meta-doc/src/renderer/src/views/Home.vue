@@ -117,7 +117,7 @@ import { themeState, mixColors } from '../utils/themes'
 import { useWorkspace } from '../stores/workspace'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { convertLatexToMarkdown } from '../utils/latex-utils'
-import { renderMarkdownPreview, local2image } from '../utils/md-utils'
+import { renderMarkdownPreview, local2fileProtocol, local2httpProtocol } from '../utils/md-utils'
 import { formatRegistry } from '../utils/format-registry'
 import { getMonacoLanguage } from '../utils/format-initializer'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
@@ -563,13 +563,13 @@ const renderPreview = async () => {
 
   try {
     isRendering.value = true
-    // 关键修复：在渲染前将本地图片路径转换为 HTTP URL
-    // 这样浏览器才能正确加载本地图片资源
+    // 将本地图片路径转换为 file:// 协议，以便浏览器能够加载本地图片
     const docPath = currentFilePath.value
-    markdown = await local2image(markdown, docPath)
+    markdown = await local2httpProtocol(markdown, docPath)
+    const processedMarkdown = await local2fileProtocol(markdown, docPath)
     
     const linkBase = currentLinkBase.value;
-    await renderMarkdownPreview(container, markdown, {
+    await renderMarkdownPreview(container, processedMarkdown, {
       linkBase: linkBase,
       renderCode: false,
       renderMath: false

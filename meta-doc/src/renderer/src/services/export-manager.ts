@@ -8,8 +8,9 @@ import {
   ConvertMarkdownToHtmlManually,
   ConvertMarkdownToHtmlVditor,
   filterMetaDataFromMd,
-  image2base64,
-  local2image,
+  embedImagesInline,
+  local2fileProtocol,
+  local2httpProtocol,
 } from '../utils/md-utils';
 import { preRenderAllCharts } from '../utils/chart-pre-renderer';
 import type { WorkspaceDocument } from '../stores/workspace';
@@ -142,7 +143,7 @@ export const prepareExportPayload = async (
       // 根据目标格式生成HTML或LaTeX
       if (targetFormat === 'docx') {
         // DOCX导出需要将图片转换为base64格式，以便内嵌到文档中
-        let markdownWithBase64Images = await image2base64(markdown);
+        let markdownWithBase64Images = await embedImagesInline(markdown);
         // 调整图片尺寸以适应页面大小
         markdownWithBase64Images = await resizeImagesForDocx(markdownWithBase64Images);
         html = await ConvertMarkdownToHtmlVditor(markdownWithBase64Images);
@@ -174,10 +175,11 @@ export const prepareExportPayload = async (
       const markdownFromTex = convertLatexToMarkdown(doc.tex ?? base.data.tex ?? '');
       let processedMarkdown = markdownFromTex;
       if (['html', 'docx', 'pdf'].includes(targetFormat)) {
-        processedMarkdown = await local2image(processedMarkdown, doc.path);
+        processedMarkdown = await local2httpProtocol(processedMarkdown, doc.path);
+        processedMarkdown = await local2fileProtocol(processedMarkdown, doc.path);
       }
       if (['html', 'docx'].includes(targetFormat)) {
-        processedMarkdown = await image2base64(processedMarkdown);
+        processedMarkdown = await embedImagesInline(processedMarkdown);
       }
       if (targetFormat === 'docx') {
         html = await ConvertMarkdownToHtmlVditor(processedMarkdown);
@@ -256,8 +258,8 @@ const prepareMarkdownForExport = async (
   }
 
   // 处理图片路径（转换为HTTP URL格式，以便后续处理）
-  processedMarkdown = await local2image(processedMarkdown, doc.path);
-
+  processedMarkdown = await local2httpProtocol(processedMarkdown, doc.path);
+  processedMarkdown = await local2fileProtocol(processedMarkdown, doc.path);
   return processedMarkdown;
 };
 

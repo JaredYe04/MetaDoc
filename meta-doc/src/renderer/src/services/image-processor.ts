@@ -6,7 +6,7 @@
  * 3. folder - 保存到文件夹并更新链接
  */
 
-import { image2base64, local2image } from '../utils/md-utils';
+import { embedImagesInline, local2httpProtocol } from '../utils/md-utils';
 import { createRendererLogger } from '../utils/logger';
 
 // 懒加载logger，避免初始化顺序问题
@@ -54,9 +54,9 @@ export async function processMarkdownImages(
     }
     
     // 先确保图片是 HTTP URL 格式（传入文档路径以支持相对路径解析）
-    let processed = await local2image(markdown, docPath);
+    let processed = await local2httpProtocol(markdown, docPath);
     // 然后转换为 Base64
-    processed = await image2base64(processed);
+    processed = await embedImagesInline(processed);
     return processed;
   }
 
@@ -64,7 +64,7 @@ export async function processMarkdownImages(
     // 文件夹模式：在导出时由 main 进程处理
     // 这里只确保图片是 HTTP URL 格式，实际保存到文件夹的逻辑在 main 进程
     // 传入文档路径以支持相对路径解析
-    return await local2image(markdown, docPath);
+    return await local2httpProtocol(markdown, docPath);
   }
 
   return markdown;

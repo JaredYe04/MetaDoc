@@ -17,9 +17,9 @@ import {
   ConvertMarkdownToHtmlManually,
   ConvertMarkdownToHtmlVditor,
   filterMetaDataFromMd,
-  image2base64,
+  embedImagesInline,
   image2local,
-  local2image,
+  local2httpProtocol,
 } from '../utils/md-utils';
 import { preRenderAllCharts } from '../utils/chart-pre-renderer';
 import { createRendererLogger } from '../utils/logger';
@@ -165,10 +165,10 @@ const prepareMarkdownExports = async (
   if (targetFormat === 'tex') {
     markdown = await image2local(markdown);
   } else {
-    markdown = await local2image(markdown, doc.path);
+    markdown = await local2httpProtocol(markdown, doc.path);
   }
   if (targetFormat === 'docx') {
-    markdown = await image2base64(markdown);
+    markdown = await embedImagesInline(markdown);
   }
 
   let html = '';
@@ -258,11 +258,11 @@ const prepareLatexExports = async (
 
   let markdown = markdownFromTex;
   if (['html', 'docx', 'pdf'].includes(targetFormat)) {
-    markdown = await local2image(markdown, doc.path);
+    markdown = await local2httpProtocol(markdown, doc.path);
   }
 
   if (['html', 'docx'].includes(targetFormat)) {
-    markdown = await image2base64(markdown);
+    markdown = await embedImagesInline(markdown);
   }
 
   let html = '';

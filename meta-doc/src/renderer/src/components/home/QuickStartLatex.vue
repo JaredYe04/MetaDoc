@@ -36,153 +36,157 @@
 
           <!-- 文档信息面板 -->
           <div class="control-panel" v-if="tab === segmentOptions[1]">
-            <div class="panel-section">
-              <h3 class="section-title">{{ $t('home.documentInfoLabel') }}</h3>
-              <div class="form-fields">
-                <div class="form-field">
-                  <label class="field-label">{{ $t('home.label.title') }}</label>
-                  <el-input v-model="metaTitle" :placeholder="$t('home.placeholder.title')" />
+            <el-scrollbar class="panel-scrollbar">
+              <div class="panel-section">
+                <h3 class="section-title">{{ $t('home.documentInfoLabel') }}</h3>
+                <div class="form-fields">
+                  <div class="form-field">
+                    <label class="field-label">{{ $t('home.label.title') }}</label>
+                    <el-input v-model="metaTitle" :placeholder="$t('home.placeholder.title')" />
+                  </div>
+                  <div class="form-field">
+                    <label class="field-label">{{ $t('home.label.author') }}</label>
+                    <el-input v-model="metaAuthor" :placeholder="$t('home.placeholder.author')" />
+                  </div>
+                  <div class="form-field">
+                    <label class="field-label">{{ $t('home.label.abstract') }}</label>
+                    <el-input
+                      v-model="metaDescription"
+                      type="textarea"
+                      :placeholder="$t('home.placeholder.abstract')"
+                      :autosize="{ minRows: 3, maxRows: 4 }"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label class="field-label">{{ $t('article.keywords') }}</label>
+                    <KeywordInput
+                      v-model="metaKeywords"
+                      :placeholder="$t('article.keywords_placeholder')"
+                    />
+                  </div>
                 </div>
-                <div class="form-field">
-                  <label class="field-label">{{ $t('home.label.author') }}</label>
-                  <el-input v-model="metaAuthor" :placeholder="$t('home.placeholder.author')" />
-                </div>
-                <div class="form-field">
-                  <label class="field-label">{{ $t('home.label.abstract') }}</label>
-                  <el-input
-                    v-model="metaDescription"
-                    type="textarea"
-                    :placeholder="$t('home.placeholder.abstract')"
-                    :autosize="{ minRows: 3, maxRows: 4 }"
-                  />
-                </div>
-                <div class="form-field">
-                  <label class="field-label">{{ $t('article.keywords') }}</label>
-                  <KeywordInput
-                    v-model="metaKeywords"
-                    :placeholder="$t('article.keywords_placeholder')"
-                  />
+                <div class="panel-actions">
+                  <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
+                    <el-button type="success" @click="allSet" :icon="Check">
+                      {{ $t('home.tooltip.ready') }}
+                    </el-button>
+                  </el-tooltip>
                 </div>
               </div>
-              <div class="panel-actions">
-                <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
-                  <el-button type="success" @click="allSet" :icon="Check">
-                    {{ $t('home.tooltip.ready') }}
-                  </el-button>
-                </el-tooltip>
-              </div>
-            </div>
+            </el-scrollbar>
           </div>
 
           <!-- AI 助手面板 -->
           <div class="control-panel" v-if="tab === segmentOptions[0]">
-            <div class="panel-section">
-              <h3 class="section-title">{{ $t('home.aiAssistantLabel') }}</h3>
-              <!-- 温度滑块 -->
-              <div class="control-item">
-                <div class="control-item-header">
-                  <span class="control-label">{{ $t('home.tooltip.selectTemperature') }}</span>
+            <el-scrollbar class="panel-scrollbar">
+              <div class="panel-section">
+                <h3 class="section-title">{{ $t('home.aiAssistantLabel') }}</h3>
+                <!-- 温度滑块 -->
+                <div class="control-item">
+                  <div class="control-item-header">
+                    <span class="control-label">{{ $t('home.tooltip.selectTemperature') }}</span>
+                  </div>
+                  <el-slider
+                    v-model="temperature"
+                    :marks="marks"
+                    :min="0"
+                    :max="100"
+                    :disabled="generating || generated"
+                    class="temperature-slider"
+                  />
                 </div>
-                <el-slider
-                  v-model="temperature"
-                  :marks="marks"
-                  :min="0"
-                  :max="100"
-                  :disabled="generating || generated"
-                  class="temperature-slider"
-                />
-              </div>
 
-              <!-- 风格选择 -->
-              <div class="control-item">
-                <div class="control-item-header">
-                  <span class="control-label">{{ $t('home.tooltip.selectMood') }}</span>
+                <!-- 风格选择 -->
+                <div class="control-item">
+                  <div class="control-item-header">
+                    <span class="control-label">{{ $t('home.tooltip.selectMood') }}</span>
+                  </div>
+                  <el-select
+                    v-model="mood"
+                    multiple
+                    filterable
+                    allow-create
+                    :placeholder="$t('home.tooltip.selectMood')"
+                    :disabled="generating || generated"
+                    class="mood-select"
+                  >
+                    <el-option
+                      v-for="option in moodOptions"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value"
+                    >
+                      <template #prefix>
+                        <el-icon :size="14">
+                          <component :is="option.icon" />
+                        </el-icon>
+                      </template>
+                    </el-option>
+                  </el-select>
                 </div>
-                <el-select
-                  v-model="mood"
-                  multiple
-                  filterable
-                  allow-create
-                  :placeholder="$t('home.tooltip.selectMood')"
-                  :disabled="generating || generated"
-                  class="mood-select"
-                >
-                  <el-option
-                    v-for="option in moodOptions"
-                    :key="option.value"
-                    :label="option.label"
-                    :value="option.value"
-                  >
-                    <template #prefix>
-                      <el-icon :size="14">
-                        <component :is="option.icon" />
-                      </el-icon>
-                    </template>
-                  </el-option>
-                </el-select>
-              </div>
 
-              <!-- 提示词输入 -->
-              <div class="control-item">
-                <div class="control-item-header">
-                  <span class="control-label">{{ $t('home.tooltip.inputPrompt') }}</span>
+                <!-- 提示词输入 -->
+                <div class="control-item">
+                  <div class="control-item-header">
+                    <span class="control-label">{{ $t('home.tooltip.inputPrompt') }}</span>
+                  </div>
+                  <AutoResizeTextarea
+                    v-model="userPrompt"
+                    :autosize="{ minRows: 4, maxRows: 8 }"
+                    max-height="200px"
+                    height="200px"
+                    :placeholder="$t('home.tooltip.inputPrompt')"
+                    :disabled="generating || generated"
+                    class="prompt-input"
+                  />
                 </div>
-                <AutoResizeTextarea
-                  v-model="userPrompt"
-                  :autosize="{ minRows: 4, maxRows: 8 }"
-                  max-height="200px"
-                  height="200px"
-                  :placeholder="$t('home.tooltip.inputPrompt')"
-                  :disabled="generating || generated"
-                  class="prompt-input"
-                />
-              </div>
 
-              <!-- 建议标签 -->
-              <div class="control-item suggestions-item">
-                <SuggestionTags
-                  :tags="buttons"
-                  :title="$t('home.suggestionLabel')"
-                  :disabled="generating || generated"
-                  @select="handleAcceptSuggestion"
-                  @refresh="refreshButtons"
-                />
-              </div>
+                <!-- 建议标签 -->
+                <div class="control-item suggestions-item">
+                  <SuggestionTags
+                    :tags="buttons"
+                    :title="$t('home.suggestionLabel')"
+                    :disabled="generating || generated"
+                    @select="handleAcceptSuggestion"
+                    @refresh="refreshButtons"
+                  />
+                </div>
 
-              <!-- 操作按钮 -->
-              <div class="panel-actions" @mousedown.stop>
-                <el-tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
-                  <el-button
-                    type="primary"
-                    :disabled="generating || userPrompt.length === 0"
-                    @click="generate"
-                    :icon="Promotion"
-                    :loading="generating"
-                  >
-                    {{ $t('home.tooltip.generateArticle') }}
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
-                  <el-button 
-                    v-if="generated" 
-                    @click="reset"
-                    :icon="RefreshLeft"
-                  >
-                    {{ $t('home.tooltip.reset') }}
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
-                  <el-button 
-                    v-if="generated" 
-                    type="success"
-                    @click="accept"
-                    :icon="Check"
-                  >
-                    {{ $t('home.tooltip.accept') }}
-                  </el-button>
-                </el-tooltip>
+                <!-- 操作按钮 -->
+                <div class="panel-actions" @mousedown.stop>
+                  <el-tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
+                    <el-button
+                      type="primary"
+                      :disabled="generating || userPrompt.length === 0"
+                      @click="generate"
+                      :icon="Promotion"
+                      :loading="generating"
+                    >
+                      {{ $t('home.tooltip.generateArticle') }}
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
+                    <el-button 
+                      v-if="generated" 
+                      @click="reset"
+                      :icon="RefreshLeft"
+                    >
+                      {{ $t('home.tooltip.reset') }}
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
+                    <el-button 
+                      v-if="generated" 
+                      type="success"
+                      @click="accept"
+                      :icon="Check"
+                    >
+                      {{ $t('home.tooltip.accept') }}
+                    </el-button>
+                  </el-tooltip>
+                </div>
               </div>
-            </div>
+            </el-scrollbar>
           </div>
         </div>
       </div>
@@ -820,13 +824,16 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.panel-section {
+.panel-scrollbar {
   flex: 1;
+  min-height: 0;
+}
+
+.panel-section {
   display: flex;
   flex-direction: column;
   padding: 24px;
   gap: 20px;
-  overflow-y: auto;
   min-height: 0;
 }
 
@@ -903,7 +910,7 @@ onBeforeUnmount(() => {
 }
 
 /* 滚动条样式 */
-.panel-section :deep(.el-scrollbar__wrap) {
+.panel-scrollbar :deep(.el-scrollbar__wrap) {
   overflow-x: hidden;
 }
 </style>

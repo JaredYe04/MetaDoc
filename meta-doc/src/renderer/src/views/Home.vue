@@ -126,7 +126,7 @@ import * as monaco from 'monaco-editor'
 const { t } = useI18n()
 
 const workspace = useWorkspace()
-const { activeTabId } = workspace
+const { activeTabId, openSystemTab } = workspace
 const { activeDocument, activeTab } = useActiveDocument()
 
 const currentFilePath = computed(() => activeDocument.value?.path ?? '')
@@ -274,6 +274,8 @@ const showDocumentPreview = computed(() => {
   if (!tab) return false
   // 如果是文件类型且有路径，显示预览
   if (tab.kind === 'file' && currentFilePath.value) return true
+  // 如果是文件类型但路径为空（新建文档已选择格式但未保存），且已选择格式，显示预览
+  if (tab.kind === 'file' && !currentFilePath.value && activeDocument.value?.format) return true
   // 如果是新建文档但已选择格式，显示预览
   if (tab.kind === 'new' && activeDocument.value?.format) return true
   return false
@@ -478,8 +480,83 @@ const renderPreview = async () => {
   const container = previewContainerRef.value as HTMLDivElement
   let markdown = previewMarkdown.value
 
-  if (!markdown) {
-    container.innerHTML = ''
+  // 修复：即使内容为空，也显示空内容提示，而不是清空容器
+  if (!markdown || markdown.trim() === '') {
+    const primaryColor = themeState.currentTheme.primaryColor || '#6366f1'
+    const emptyContentHtml = `
+      <div style="
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 200px;
+        color: ${themeState.currentTheme.textColor};
+        opacity: 0.5;
+        font-size: 14px;
+        text-align: center;
+        padding: 24px;
+        gap: 16px;
+      ">
+        <p style="margin: 0;">${t('home.emptyContent') || '文档内容为空'}</p>
+        <button 
+          class="quick-start-button"
+          style="
+            margin-top: 8px;
+            padding: 10px 20px;
+            background-color: ${primaryColor};
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          "
+        >
+          ${t('home.quickStartButton') || '快速生成内容'}
+        </button>
+      </div>
+    `
+    container.innerHTML = emptyContentHtml
+    
+    // 添加按钮点击事件和悬停效果
+    nextTick(() => {
+      const button = container.querySelector('.quick-start-button') as HTMLButtonElement
+      if (button) {
+        // 悬停效果
+        button.addEventListener('mouseenter', () => {
+          button.style.opacity = '0.9'
+          button.style.transform = 'translateY(-1px)'
+          button.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)'
+        })
+        button.addEventListener('mouseleave', () => {
+          button.style.opacity = '1'
+          button.style.transform = 'translateY(0)'
+          button.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)'
+        })
+        
+        // 点击事件：切换到或创建 GlobalHome tab，并打开快速开始面板
+        button.addEventListener('click', () => {
+          // 切换到或创建 GlobalHome tab
+          const homeTab = openSystemTab('/global-home', t('headMenu.home') || '主页')
+          
+          // 等待 tab 切换和组件挂载完成后再触发快速开始
+          // 使用多次 nextTick 和延迟确保 GlobalHome 组件已完全挂载并注册了事件监听器
+          nextTick(() => {
+            nextTick(() => {
+              // 延迟一下，确保 GlobalHome 组件的 onMounted 已执行
+              setTimeout(() => {
+                // 触发快速开始事件（GlobalHome 会监听此事件并打开快速开始面板）
+                eventBus.emit('open-quickstart')
+              }, 150)
+            })
+          })
+        })
+      }
+    })
+    
     isRendering.value = false
     return
   }

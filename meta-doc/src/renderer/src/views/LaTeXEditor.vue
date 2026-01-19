@@ -41,21 +41,7 @@
             />
 
             <div class="latex-layout">
-                <ResizableContainer
-                    ref="metaResizableRef"
-                    direction="vertical"
-                    :initial-sidebar-size="LATEX_LAYOUT.meta.initialWidth"
-                    :min-size="LATEX_LAYOUT.meta.minWidth"
-                    :max-size="LATEX_LAYOUT.meta.maxWidth"
-                    :reverse="true"
-                    sidebar-position="end"
-                    :collapsible="true"
-                    :auto-collapse-width="LATEX_LAYOUT.left.minWidth + LATEX_LAYOUT.meta.minWidth + LATEX_LAYOUT.pdf.minWidth + 400"
-                    :collapse-button-title="$t('article.collapse_meta_panel')"
-                    :expand-button-title="$t('article.expand_meta_panel')"
-                >
-                    <template #main>
-                        <div class="latex-main" ref="mainContainerRef">
+                <div class="latex-main" ref="mainContainerRef">
                             <ResizableContainer
                                 ref="pdfResizableRef"
                                 direction="vertical"
@@ -126,14 +112,6 @@
                                     </el-tooltip>
 
                                     <el-divider direction="vertical"></el-divider>
-
-                                    <el-tooltip :content="$t('article.toggle_meta_panel')" placement="bottom">
-                                        <div class="toolbar-icon" @click="toggleMetaPanel">
-                                            <el-icon>
-                                                <Document />
-                                            </el-icon>
-                                        </div>
-                                    </el-tooltip>
 
                                     <el-tooltip :content="$t('latexEditor.toolbar.showPdf')" placement="bottom">
                                         <div class="toolbar-icon" @click="togglePdf">
@@ -264,22 +242,6 @@
                                 </template>
                             </ResizableContainer>
                         </div>
-                    </template>
-
-                    <template #sidebar>
-                        <div
-                            class="latex-column meta-column"
-                            :style="{ backgroundColor: themeState.currentTheme.background2nd }"
-                        >
-                            <MetaInfoPanel
-                                :meta="currentMeta"
-                                :latex="currentTex"
-                                :outline-json="currentOutlineJson"
-                                @update-meta="handleMetaPatch"
-                            />
-                        </div>
-                    </template>
-                </ResizableContainer>
             </div>
         </div>
     </div>
@@ -316,7 +278,6 @@ import "../assets/ai-suggestion.css";
 import ResizableContainer from "../components/base/ResizableContainer.vue";
 import { getArticleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
 import ContextMenu from "../components/ContextMenu.vue";
-import MetaInfoPanel from "../components/MetaInfoPanel.vue";
 import ConsoleOutput from "../components/ConsoleOutput.vue";
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import { createRendererLogger } from '../utils/logger.ts'
@@ -383,8 +344,6 @@ const currentTex = computed({
         workspace.updateDocumentTex(props.tabId, val);
     },
 });
-
-const currentMeta = computed(() => documentRef.value.meta);
 
 const currentOutline = computed({
     get: () => documentRef.value.outline,
@@ -525,15 +484,6 @@ const handleSearchReplaceClose = () => {
     searchReplaceDialogVisible.value = false;
 };
 
-const updateMeta = (updater: (meta: any) => void) => {
-    if (typeof updater === 'function') {
-        workspace.updateDocumentMeta(props.tabId, updater);
-    }
-};
-
-const handleMetaPatch = (patch: any) => {
-    updateMeta((meta) => Object.assign(meta, patch));
-};
 
 const replaceDialogs = (builder: (dialogs: any[]) => any[]) => {
     const base = [...currentDialogs.value];
@@ -585,7 +535,6 @@ const editorEl = ref<HTMLElement | null>(null);
 const editorKey = ref(Date.now());
 const mainContainerRef = ref<HTMLElement | null>(null);
 const pdfResizableRef = ref<any>(null);
-const metaResizableRef = ref<InstanceType<typeof ResizableContainer> | null>(null);
 const mainWidth = ref(0);
 let mainObserver: ResizeObserver | null = null;
 
@@ -1784,12 +1733,6 @@ function togglePdf() {
     showPdfPanel.value = !showPdfPanel.value
 }
 
-// 切换元信息面板显示
-const toggleMetaPanel = () => {
-    if (metaResizableRef.value) {
-        metaResizableRef.value.toggleCollapse();
-    }
-}
 
 const compile = async () => {
     if (!editor.value || !ipcRenderer) return;

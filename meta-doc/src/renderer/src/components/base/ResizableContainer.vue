@@ -26,7 +26,18 @@
       @resize="handleResize"
       @resize-start="handleResizeStart"
       @resize-end="handleResizeEnd"
-    />
+    >
+      <!-- 折叠按钮（在分割线上显示） -->
+      <div 
+        v-if="collapsible && showCollapseButton"
+        class="collapse-button"
+        :class="collapseButtonClass"
+        @click.stop="toggleCollapse"
+        :title="collapseButtonTitle"
+      >
+        <el-icon><ArrowRight v-if="sidebarPosition === 'start'" /><ArrowLeft v-else /></el-icon>
+      </div>
+    </ResizableDivider>
 
     <!-- 侧边内容区域 -->
     <div 
@@ -35,16 +46,6 @@
       :class="sidebarClass"
       :style="sidebarStyle"
     >
-      <!-- 折叠按钮（紧贴分割线左侧，当展开时显示） -->
-      <div 
-        v-if="collapsible && showCollapseButton"
-        class="collapse-button"
-        :class="collapseButtonClass"
-        @click="toggleCollapse"
-        :title="collapseButtonTitle"
-      >
-        <el-icon><ArrowLeft v-if="sidebarPosition === 'start'" /><ArrowRight v-else /></el-icon>
-      </div>
       <div class="sidebar-inner">
         <slot name="sidebar"></slot>
       </div>
@@ -60,7 +61,7 @@
       @mouseleave="handleExpandButtonLeave"
       :title="expandButtonTitle"
     >
-      <el-icon><ArrowRight v-if="sidebarPosition === 'start'" /><ArrowLeft v-else /></el-icon>
+      <el-icon><ArrowLeft v-if="sidebarPosition === 'start'" /><ArrowRight v-else /></el-icon>
     </div>
   </div>
 </template>
@@ -204,7 +205,10 @@ const expandButtonClass = computed(() => {
   if (props.direction === 'horizontal') {
     return `${base} expand-button-horizontal`
   } else {
-    return `${base} expand-button-vertical ${props.sidebarPosition === 'start' ? 'expand-button-left' : 'expand-button-right'}`
+    // 当侧边栏折叠后，展开按钮应该显示在主内容区一侧（与侧边栏相对的一侧）
+    // 如果侧边栏在左侧（start），展开按钮应该在右侧（right）
+    // 如果侧边栏在右侧（end），展开按钮应该在左侧（left）
+    return `${base} expand-button-vertical ${props.sidebarPosition === 'start' ? 'expand-button-right' : 'expand-button-left'}`
   }
 })
 
@@ -219,8 +223,8 @@ function handleMouseMove(event: MouseEvent) {
   if (!container) return
   
   const rect = container.getBoundingClientRect()
-  const x = event.clientX - rect.left
-  const y = event.clientY - rect.top
+  const windowX = event.clientX
+  const windowY = event.clientY
   const edgeThreshold = 30 // 边缘检测阈值（像素）
   
   // 检测是否在边缘区域
@@ -229,20 +233,23 @@ function handleMouseMove(event: MouseEvent) {
   if (props.direction === 'vertical') {
     // 垂直布局：检测左右边缘
     if (props.sidebarPosition === 'end') {
-      // 侧边栏在右侧，检测右边缘
-      isInEdgeZone = x >= rect.width - edgeThreshold
+      // 侧边栏在右侧，展开按钮在左侧，检测容器左边缘
+      const x = windowX - rect.left
+      isInEdgeZone = x >= -edgeThreshold && x <= edgeThreshold
     } else {
-      // 侧边栏在左侧，检测左边缘
-      isInEdgeZone = x <= edgeThreshold
+      // 侧边栏在左侧，展开按钮在右侧，检测容器右边缘
+      const x = windowX - rect.right
+      isInEdgeZone = x >= -edgeThreshold && x <= edgeThreshold
     }
   } else {
     // 水平布局：检测上下边缘
     if (props.sidebarPosition === 'end') {
-      // 侧边栏在下侧，检测下边缘
-      isInEdgeZone = y >= rect.height - edgeThreshold
+      // 侧边栏在下侧，检测窗口下边缘
+      isInEdgeZone = windowY >= window.innerHeight - edgeThreshold
     } else {
-      // 侧边栏在上侧，检测上边缘
-      isInEdgeZone = y <= edgeThreshold
+      // 侧边栏在上侧，检测容器上边缘
+      const y = windowY - rect.top
+      isInEdgeZone = y >= -edgeThreshold && y <= edgeThreshold
     }
   }
   
@@ -294,35 +301,25 @@ function handleExpandButtonLeave() {
       const rect = container.getBoundingClientRect()
       const mouseX = (window as any).lastMouseX || 0
       const mouseY = (window as any).lastMouseY || 0
-      
-      // 检查鼠标是否还在容器内
-      if (
-        mouseX < rect.left ||
-        mouseX > rect.right ||
-        mouseY < rect.top ||
-        mouseY > rect.bottom
-      ) {
-        showExpandButton.value = false
-        return
-      }
-      
-      // 检查是否还在边缘区域
-      const x = mouseX - rect.left
-      const y = mouseY - rect.top
       const edgeThreshold = 30
       
       let isInEdgeZone = false
       if (props.direction === 'vertical') {
         if (props.sidebarPosition === 'end') {
-          isInEdgeZone = x >= rect.width - edgeThreshold
+          // 侧边栏在右侧，展开按钮在左侧，检测容器左边缘
+          const x = mouseX - rect.left
+          isInEdgeZone = x >= -edgeThreshold && x <= edgeThreshold
         } else {
-          isInEdgeZone = x <= edgeThreshold
+          // 侧边栏在左侧，展开按钮在右侧，检测容器右边缘
+          const x = mouseX - rect.right
+          isInEdgeZone = x >= -edgeThreshold && x <= edgeThreshold
         }
       } else {
         if (props.sidebarPosition === 'end') {
-          isInEdgeZone = y >= rect.height - edgeThreshold
+          isInEdgeZone = mouseY >= window.innerHeight - edgeThreshold
         } else {
-          isInEdgeZone = y <= edgeThreshold
+          const y = mouseY - rect.top
+          isInEdgeZone = y >= -edgeThreshold && y <= edgeThreshold
         }
       }
       
@@ -385,10 +382,15 @@ onMounted(async () => {
     }
   }
   
-  // 监听全局鼠标移动，记录鼠标位置
+  // 监听全局鼠标移动，记录鼠标位置并检测边缘
   handleGlobalMouseMove = (event: MouseEvent) => {
     ;(window as any).lastMouseX = event.clientX
     ;(window as any).lastMouseY = event.clientY
+    
+    // 如果侧边栏已折叠，也在全局范围内检测边缘
+    if (isCollapsed.value && props.collapsible && props.showCollapseButton) {
+      handleMouseMove(event)
+    }
   }
   window.addEventListener('mousemove', handleGlobalMouseMove)
 })
@@ -499,7 +501,7 @@ defineExpose({
   height: 100%;
 }
 
-/* 折叠按钮样式 */
+/* 折叠按钮样式 - 在 ResizableDivider 内部 */
 .collapse-button {
   position: absolute;
   z-index: 100;
@@ -528,13 +530,12 @@ defineExpose({
   transform: translateY(-50%);
 }
 
-/* 当侧边栏在左侧时，按钮在分割线右侧（相对于侧边栏） */
+/* 当侧边栏在左侧时，按钮在分割线右侧（相对于分割线，紧贴分割线右侧） */
 .collapse-button-left {
-  left: 100%;
-  margin-left: -12px;
+  right: -12px;
 }
 
-/* 当侧边栏在右侧时，按钮在分割线左侧（相对于侧边栏，紧贴分割线） */
+/* 当侧边栏在右侧时，按钮在分割线左侧（相对于分割线，紧贴分割线左侧） */
 .collapse-button-right {
   left: -12px;
 }

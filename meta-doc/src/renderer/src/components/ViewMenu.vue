@@ -116,7 +116,8 @@ import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace, type DocumentView } from '../stores/workspace'
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import '../assets/modern-side-menu.css'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const { activeDocument } = useActiveDocument()
 const workspace = useWorkspace()
 const isLocked = computed(() => workspace.uiLocked?.value === true)
@@ -171,6 +172,20 @@ const activeTextColor = computed(() => themeState.currentTheme.textColor)
 
 const handleSelect = (key: string): void => {
   if (isLocked.value) return
+  
+  // 如果点击的是"主页"，且当前文档是新文档且尚未选择格式，切换到 GlobalHome 标签页
+  if (key === 'home') {
+    const activeTab = workspace.activeTab.value
+    const doc = activeDocument.value
+    
+    // 检查是否是新文档且尚未选择格式
+    if (activeTab?.kind === 'new') {
+      // 切换到 GlobalHome 标签页（如果不存在则创建）
+      workspace.openSystemTab('/global-home', t('leftMenu.home', '主页'))
+      return
+    }
+  }
+  
   // 切换文档视图，不改变路由
   const activeTabId = workspace.activeTabId.value
   if (activeTabId && (workspace.activeTab.value?.kind === 'file' || workspace.activeTab.value?.kind === 'new')) {

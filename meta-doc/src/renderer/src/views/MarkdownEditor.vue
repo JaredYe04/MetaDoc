@@ -41,50 +41,16 @@
                 @cancelled="onCancelSuggestion"
             />
 
-            <ResizableContainer
-                ref="resizableRef"
-                direction="vertical"
-                :initial-sidebar-size="MARKDOWN_LAYOUT.initialSidebarWidth"
-                :min-size="MARKDOWN_LAYOUT.sidebarMinWidth"
-                :max-size="MARKDOWN_LAYOUT.sidebarMaxWidth"
-                :reverse="true"
-                sidebar-position="end"
-                :collapsible="true"
-                :auto-collapse-width="MARKDOWN_LAYOUT.editorMinWidth + MARKDOWN_LAYOUT.sidebarMinWidth + 200"
-                :collapse-button-title="$t('article.collapse_meta_panel')"
-                :expand-button-title="$t('article.expand_meta_panel')"
-                @resize="onMetaInfoResize"
-            >
-                <template #main>
-                    <!-- 主编辑器区域 -->
-                    <div :id="props.editorDomId" ref="vditorEl" class="editor" @keydown="handleTab"
-                        @contextmenu.prevent="openContextMenu($event)" :style="{
-                            '--panel-background-color': themeState.currentTheme.editorPanelBackgroundColor,
-                            '--toolbar-background-color': themeState.currentTheme.editorToolbarBackgroundColor,
-                            '--textarea-background-color': themeState.currentTheme.editorTextareaBackgroundColor,
-                            '--editor-min-width': MARKDOWN_LAYOUT.editorMinWidth + 'px',
-                            '--editor-text-color': themeState.currentTheme.textColor,
-                            color: themeState.currentTheme.textColor,
-                        }"></div>
-                </template>
-                
-                <template #sidebar>
-                    <!-- 右边：元信息显示 -->
-                    <div class="meta-info"
-                        :style="{
-                            backgroundColor: themeState.currentTheme.background2nd,
-                            minWidth: MARKDOWN_LAYOUT.sidebarMinWidth + 'px',
-                            maxWidth: MARKDOWN_LAYOUT.sidebarMaxWidth + 'px'
-                        }">
-                    <MetaInfoPanel
-                        :meta="currentMeta"
-                        :markdown="currentMarkdown"
-                        :outline-json="currentOutlineJson"
-                        @update-meta="handleMetaPatch"
-                    />
-                    </div>
-                </template>
-            </ResizableContainer>
+            <!-- 主编辑器区域 -->
+            <div :id="props.editorDomId" ref="vditorEl" class="editor" @keydown="handleTab"
+                @contextmenu.prevent="openContextMenu($event)" :style="{
+                    '--panel-background-color': themeState.currentTheme.editorPanelBackgroundColor,
+                    '--toolbar-background-color': themeState.currentTheme.editorToolbarBackgroundColor,
+                    '--textarea-background-color': themeState.currentTheme.editorTextareaBackgroundColor,
+                    '--editor-min-width': MARKDOWN_LAYOUT.editorMinWidth + 'px',
+                    '--editor-text-color': themeState.currentTheme.textColor,
+                    color: themeState.currentTheme.textColor,
+                }"></div>
 
         </div>
     </div>
@@ -93,7 +59,6 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed, toRef, watch, shallowRef } from "vue";
-import ResizableContainer from '../components/base/ResizableContainer.vue';
 import { ElButton, ElDialog, ElLoading } from 'element-plus';
 import Vditor from "vditor";
 import "vditor/dist/index.css";
@@ -121,7 +86,6 @@ import { aiCompletionService } from "../utils/ai-completion-service";
 import { VditorEditorAdapter } from "../utils/editor-adapters";
 import { getArticleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
 import ContextMenu from "../components/ContextMenu.vue";
-import MetaInfoPanel from "../components/MetaInfoPanel.vue";
 import { useWorkspace } from '../stores/workspace';
 import type { ArticleMetaData, DocumentOutlineNode } from '../../../types';
 import { debounce } from "lodash";
@@ -169,8 +133,6 @@ const currentLinkBase = computed(() => {
   if (!path) return '';
   return workspace.getLinkBase(path);
 })
-
-const currentMeta = computed<ArticleMetaData>(() => documentRef.value.meta)
 
 const currentOutline = computed<DocumentOutlineNode>({
   get: () => documentRef.value.outline,
@@ -229,13 +191,6 @@ function findNodeByPath(node: DocumentOutlineNode, targetPath: string): Document
   return null;
 }
 
-function updateMeta(updater: (meta: ArticleMetaData) => void) {
-  workspace.updateDocumentMeta(props.tabId, updater)
-}
-
-const handleMetaPatch = (patch: Partial<ArticleMetaData>) => {
-  updateMeta((meta) => Object.assign(meta, patch));
-};
 
 function replaceDialogs(builder: (dialogs: any[]) => any[]) {
   const next = builder([...currentDialogs.value])
@@ -300,7 +255,6 @@ const vditor = ref<Vditor | null>(null); // Vditor 实例
 const articleContextMenuItems = ref<any[]>([]);//右键菜单项
 const textEditorAdapter = shallowRef<TextEditorAdapter | null>(null);
 const titleIndex = ref<TitleIndex | null>(null);
-const resizableRef = ref<InstanceType<typeof ResizableContainer> | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
 const containerWidth = ref(0);
 let layoutObserver: ResizeObserver | null = null;
@@ -1531,55 +1485,10 @@ const handleTab = (event: KeyboardEvent) => {
     }
 };
 
-
-
-const logMetaResize = debounce((size: number) => {
-    logger.debug('元信息面板宽度调整', { size });
-}, 100);
-
-const clampSidebarSize = (size: number): number => {
-    const width = containerWidth.value;
-    const rawMin = MARKDOWN_LAYOUT.sidebarMinWidth;
-    const rawMax = MARKDOWN_LAYOUT.sidebarMaxWidth;
-    if (!width) {
-        return Math.min(Math.max(size, rawMin), rawMax);
-    }
-    const maxByMainMin = width - MARKDOWN_LAYOUT.editorMinWidth;
-    const maxAllowed = Math.min(rawMax, Math.max(rawMin, maxByMainMin));
-    return Math.min(Math.max(size, rawMin), maxAllowed);
-};
-
-function onMetaInfoResize(size: number, event: MouseEvent) {
-    const clamped = clampSidebarSize(size);
-    if (clamped !== size) {
-        resizableRef.value?.setSidebarSize(clamped);
-    }
-    logMetaResize(clamped);
-}
-
-const ensureSidebarWithinBounds = () => {
-    const sidebarSize = resizableRef.value?.getSidebarSize?.();
-    if (typeof sidebarSize === 'number') {
-        const clamped = clampSidebarSize(sidebarSize);
-        if (clamped !== sidebarSize) {
-            resizableRef.value?.setSidebarSize(clamped);
-        }
-    } else {
-        const fallback = clampSidebarSize(MARKDOWN_LAYOUT.initialSidebarWidth);
-        resizableRef.value?.setSidebarSize(fallback);
-    }
-};
-
 const refreshContextMenu = async () => {
     articleContextMenuItems.value = await getArticleContextMenuItems();
 }
 
-// 切换元信息面板显示
-const toggleMetaPanel = () => {
-    if (resizableRef.value) {
-        resizableRef.value.toggleCollapse();
-    }
-}
 
 // 编辑器初始化
 onMounted(async () => {
@@ -1592,11 +1501,9 @@ onMounted(async () => {
             if (!entries.length) return;
             const width = entries[0].contentRect.width;
             containerWidth.value = width;
-            ensureSidebarWithinBounds();
         });
         layoutObserver.observe(containerRef.value);
         containerWidth.value = containerRef.value.clientWidth;
-        ensureSidebarWithinBounds();
     }
     try {
         await waitForService('express');
@@ -1736,14 +1643,6 @@ onMounted(async () => {
                     className: 'right',
                     icon: '<svg><use xlink:href="#vditor-icon-info"></use></svg>',
                     click() { eventBus.emit('search-replace') },
-                },
-                {
-                    name: 'toggle-meta-panel',
-                    tip: t('article.toggle_meta_panel'),
-                    tipPosition: 's',
-                    className: 'right',
-                    icon: '<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M832 384H576V128H192v768h640V384zm-26.496-64L640 154.496V320h165.504zM160 64h448l256 256v608a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V96a32 32 0 0 1 32-32zm160 448h384v64H320v-64zm0-192h384v64H320v-64z" fill="currentColor"/></svg>',
-                    click() { toggleMetaPanel() },
                 },
                 {
                     name: 'ai-assistant',

@@ -2408,32 +2408,37 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
           params: { format: 'HTML' }
         });
         
-        // 提取所有图片 URL
+        // 提取所有图片 URL（包括本地和网络图片）
         const imageUrls: string[] = [];
         const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
         const matches = Array.from(finalHtml.matchAll(imgRegex));
         for (const match of matches) {
           const src = match[1];
-          if (src.startsWith('http://localhost:52521/images/')) {
+          // 收集所有图片URL：localhost:52521、http(s)网络链接、file://协议
+          // 排除 data URL（已经是内嵌的）
+          if (!src.startsWith('data:')) {
             imageUrls.push(src);
           }
         }
         
         if (imageUrls.length > 0) {
-          // 创建图片文件夹
-          const docName = path.basename(targetPath, path.extname(targetPath));
-          const imagesFolder = path.join(path.dirname(targetPath), `${docName}_images`);
+          // 创建图片文件夹：xxx.html.images
+          const imagesFolder = `${targetPath}.images`;
           
           // 保存图片
           const results = await saveImagesToFolder(imageUrls, imagesFolder);
           
-          // 创建 URL 到相对路径的映射
+          // 创建 URL 到相对路径的映射（使用相对路径）
           const imageMappings = new Map<string, string>();
+          const imagesFolderName = path.basename(imagesFolder);
           for (const result of results) {
-            imageMappings.set(result.originalUrl, result.relativePath);
+            const fileName = path.basename(result.savedPath);
+            // 使用相对路径：xxx.html.images/filename
+            const relativePath = `${imagesFolderName}/${fileName}`;
+            imageMappings.set(result.originalUrl, relativePath);
           }
           
-          // 更新 HTML 中的图片链接
+          // 更新 HTML 中的图片链接（使用相对路径）
           finalHtml = updateHtmlImageLinks(finalHtml, imageMappings);
         }
       }
@@ -2660,7 +2665,367 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
       percentage: 50,
       params: { format: 'LaTeX' }
     });
-    await writeTextFile(targetPath, payload.data.tex);
+    
+    let finalTex = payload.data.tex;
+    
+    // 处理图片（根据模式）
+    const imageProcessing = payload.exportOptions?.imageProcessing;
+    
+    if (imageProcessing === 'folder') {
+      // 保存到文件夹模式
+      sendProgress(mainWindow, {
+        message: 'agent.reference.progress.exporting',
+        subMessage: 'agent.reference.progress.savingImages',
+        percentage: 60,
+        params: { format: 'LaTeX' }
+      });
+      
+      // 提取所有图片和 PDF 文件 URL（包括网络图片、本地图片和 PDF 文件）
+      // 同时保存原始路径（用于映射）和解析后的路径（用于保存）
+      // 注意：PDF 文件通常是从 SVG 转换来的，也需要保存到 images 文件夹
+      const imageUrlPairs: Array<{ original: string; resolved: string }> = [];
+      
+      // 辅助函数：提取大括号中的内容（处理嵌套）
+      const extractBraceContent = (str: string, startIdx: number): { content: string; endPos: number } | null => {
+        if (str[startIdx] !== '{') return null;
+        let depth = 0;
+        let i = startIdx;
+        while (i < str.length) {
+          if (str[i] === '{') depth++;
+          else if (str[i] === '}') {
+            depth--;
+            if (depth === 0) {
+              return { content: str.substring(startIdx + 1, i), endPos: i };
+            }
+          }
+          i++;
+        }
+        return null;
+      };
+      
+      // 使用更精确的方法提取 \includegraphics{...} 中的路径
+      // 先找到所有 \includegraphics 命令，然后提取大括号内容
+      const graphicsRegex = /\\includegraphics(?:\[[^\]]*\])?\{/g;
+      let match;
+      const texDir = path.dirname(targetPath); // TEX 文件所在目录，用于解析相对路径
+      
+      while ((match = graphicsRegex.exec(finalTex)) !== null) {
+        const braceStart = match.index + match[0].length - 1; // 大括号 { 的位置
+        const braceContent = extractBraceContent(finalTex, braceStart);
+        
+        if (!braceContent) {
+          logger.warn(`无法提取大括号内容，位置: ${braceStart}`);
+          continue;
+        }
+        
+        let imagePath = braceContent.content; // 原始路径（可能包含转义字符和 \detokenize）
+        const originalPath = imagePath; // 保存完整的原始路径用于映射（包含 \detokenize 格式）
+        
+        // 检查是否使用了 \detokenize{...}
+        // 使用更宽松的正则表达式，处理可能不完整的情况
+        let detokenizeMatch = imagePath.match(/\\detokenize\{([^}]*)\}/);
+        if (!detokenizeMatch && imagePath.includes('\\detokenize')) {
+          // 如果标准匹配失败，尝试匹配到行尾（处理不完整的情况）
+          detokenizeMatch = imagePath.match(/\\detokenize\{([^}]*)/);
+        }
+        
+        if (detokenizeMatch) {
+          // 提取 \detokenize 内的路径用于解析
+          imagePath = detokenizeMatch[1];
+          logger.debug(`提取 \detokenize 内的路径: ${imagePath}`);
+        }
+        
+        // 还原 LaTeX 转义的字符（如 \_ -> _，\# -> # 等）
+        // 但要注意，URL 中的转义字符不应该被还原
+        let resolvedPath = imagePath;
+        if (!imagePath.startsWith('http://') && 
+            !imagePath.startsWith('https://') && 
+            !imagePath.startsWith('file://')) {
+          // 只对本地路径还原转义字符
+          resolvedPath = imagePath.replace(/\\([#%&{}_$])/g, '$1');
+        }
+        
+        // 多次清理：移除任何残留的 \detokenize（使用多种方式确保完全清理）
+        // 方式1：标准匹配
+        resolvedPath = resolvedPath.replace(/\\detokenize\{([^}]+)\}/g, '$1');
+        // 方式2：处理不完整的情况（缺少闭合括号）
+        resolvedPath = resolvedPath.replace(/\\detokenize\{([^}]*)/g, '$1');
+        // 方式3：移除任何残留的 \detokenize 关键字
+        if (resolvedPath.includes('\\detokenize')) {
+          resolvedPath = resolvedPath.replace(/\\detokenize/g, '');
+          resolvedPath = resolvedPath.replace(/^\{+/, '').replace(/\}+$/, ''); // 移除可能残留的大括号
+        }
+        
+        // 调试日志：记录提取的路径
+        logger.debug(`提取图片/PDF路径 - originalPath: ${originalPath}, resolvedPath: ${resolvedPath}, 文件类型: ${resolvedPath.endsWith('.pdf') ? 'PDF' : '图片'}`);
+        
+        // 收集所有图片URL：localhost:52521、http(s)网络链接、file://协议、本地路径
+        // 排除 data URL（已经是内嵌的）
+        if (!resolvedPath.startsWith('data:')) {
+          // 如果是本地路径（不是 URL），需要解析为绝对路径
+          if (!resolvedPath.startsWith('http://') && 
+              !resolvedPath.startsWith('https://') && 
+              !resolvedPath.startsWith('file://')) {
+            // 尝试解析相对路径为绝对路径
+            try {
+              // 如果是绝对路径，直接使用
+              if (path.isAbsolute(resolvedPath)) {
+                imageUrlPairs.push({ original: originalPath, resolved: resolvedPath });
+              } else {
+                // 如果是相对路径，相对于 TEX 文件所在目录解析
+                const absolutePath = path.resolve(texDir, resolvedPath);
+                imageUrlPairs.push({ original: originalPath, resolved: absolutePath });
+                logger.debug(`解析相对路径: ${resolvedPath} -> ${absolutePath}`);
+              }
+            } catch (error) {
+              // 如果解析失败，使用原始路径
+              logger.warn(`解析图片路径失败: ${resolvedPath}`, error);
+              imageUrlPairs.push({ original: originalPath, resolved: resolvedPath });
+            }
+          } else {
+            // URL 格式，直接使用
+            imageUrlPairs.push({ original: originalPath, resolved: resolvedPath });
+          }
+        }
+      }
+      
+      // 提取解析后的路径用于保存
+      // 确保所有路径都被清理，不包含任何 LaTeX 命令
+      const imageUrls = imageUrlPairs.map(pair => {
+        let cleaned = pair.resolved;
+        // 最终清理：移除任何残留的 \detokenize
+        cleaned = cleaned.replace(/\\detokenize\{([^}]+)\}/g, '$1');
+        // 确保路径是干净的
+        if (cleaned !== pair.resolved) {
+          logger.debug(`清理路径: ${pair.resolved} -> ${cleaned}`);
+        }
+        return cleaned;
+      });
+      
+      if (imageUrls.length > 0) {
+        // 创建图片文件夹：在 TEX 文件所在目录下创建 xxx.tex.images 文件夹
+        const texDir = path.dirname(targetPath);
+        const texBaseName = path.basename(targetPath, path.extname(targetPath));
+        const imagesFolder = path.join(texDir, `${texBaseName}.tex.images`);
+        
+        // 保存图片和 PDF 文件（包括网络图片、本地图片和 PDF 文件）
+        // 注意：saveImagesToFolder 函数可以处理任何文件类型，包括 PDF
+        const results = await saveImagesToFolder(imageUrls, imagesFolder);
+        
+        // 创建 URL 到相对路径的映射（使用相对路径）
+        const imageMappings = new Map<string, string>();
+        const imagesFolderName = path.basename(imagesFolder);
+        
+        // 创建 resolved URL 到 original URL 的映射
+        // 注意：需要规范化路径（统一使用正斜杠）以确保匹配
+        const resolvedToOriginal = new Map<string, string>();
+        for (let i = 0; i < imageUrlPairs.length && i < results.length; i++) {
+          // 规范化路径：统一使用正斜杠，并规范化路径格式
+          const normalizedResolved = path.normalize(imageUrlPairs[i].resolved).replace(/\\/g, '/');
+          resolvedToOriginal.set(normalizedResolved, imageUrlPairs[i].original);
+          // 也保存原始格式，以防路径格式不同
+          resolvedToOriginal.set(imageUrlPairs[i].resolved, imageUrlPairs[i].original);
+        }
+        
+        for (const result of results) {
+          const fileName = path.basename(result.savedPath);
+          // LaTeX 路径使用正斜杠，移除扩展名（如果存在）
+          const latexFileName = fileName.replace(/\.[^.]+$/, '');
+          // 使用相对路径：./xxx.tex.images/filename（不含扩展名）
+          // 使用正斜杠（LaTeX 标准），以 ./ 开头
+          const relativePath = `./${imagesFolderName}/${latexFileName}`;
+          
+          // 找到对应的原始路径（LaTeX 中的路径，可能包含转义字符）
+          // 规范化 result.originalUrl 以确保匹配
+          const normalizedOriginalUrl = path.normalize(result.originalUrl).replace(/\\/g, '/');
+          let originalPath = resolvedToOriginal.get(normalizedOriginalUrl);
+          if (!originalPath) {
+            // 如果规范化后没找到，尝试原始格式
+            originalPath = resolvedToOriginal.get(result.originalUrl);
+          }
+          if (originalPath) {
+            // 使用原始路径（可能包含转义字符）作为键
+            imageMappings.set(originalPath, relativePath);
+            
+            // 同时处理可能的 \detokenize{...} 格式
+            // 注意：如果 originalPath 已经包含 \detokenize{...}，就不需要再添加
+            const hasDetokenize = originalPath.includes('\\detokenize{');
+            if (!hasDetokenize) {
+              // 只有当 originalPath 不包含 \detokenize 时，才添加 \detokenize 格式的键
+              const detokenizeKey = `\\detokenize{${originalPath}}`;
+              imageMappings.set(detokenizeKey, relativePath);
+            }
+            
+            // 规范化路径格式（统一使用正斜杠），并添加到映射
+            if (!originalPath.startsWith('http://') && 
+                !originalPath.startsWith('https://') && 
+                !originalPath.startsWith('file://')) {
+              // 规范化路径：统一使用正斜杠
+              const normalizedPath = originalPath.replace(/\\/g, '/');
+              if (normalizedPath !== originalPath) {
+                imageMappings.set(normalizedPath, relativePath);
+                const detokenizeKeyNormalized = `\\detokenize{${normalizedPath}}`;
+                imageMappings.set(detokenizeKeyNormalized, relativePath);
+              }
+              
+              // 也处理还原转义字符后的路径（以防万一）
+              const unescapedPath = originalPath.replace(/\\([#%&{}_$])/g, '$1');
+              if (unescapedPath !== originalPath) {
+                imageMappings.set(unescapedPath, relativePath);
+                const detokenizeKeyUnescaped = `\\detokenize{${unescapedPath}}`;
+                imageMappings.set(detokenizeKeyUnescaped, relativePath);
+                
+                // 也规范化转义后的路径
+                const normalizedUnescapedPath = unescapedPath.replace(/\\/g, '/');
+                if (normalizedUnescapedPath !== unescapedPath) {
+                  imageMappings.set(normalizedUnescapedPath, relativePath);
+                  const detokenizeKeyNormalizedUnescaped = `\\detokenize{${normalizedUnescapedPath}}`;
+                  imageMappings.set(detokenizeKeyNormalizedUnescaped, relativePath);
+                }
+              }
+            }
+          } else {
+            // 如果找不到原始路径，使用 result.originalUrl（已经还原转义字符的）
+            imageMappings.set(result.originalUrl, relativePath);
+            // 只有当 result.originalUrl 不包含 \detokenize 时，才添加 \detokenize 格式的键
+            if (!result.originalUrl.includes('\\detokenize{')) {
+              const detokenizeKey = `\\detokenize{${result.originalUrl}}`;
+              imageMappings.set(detokenizeKey, relativePath);
+            }
+            
+            // 也规范化 result.originalUrl
+            if (!result.originalUrl.startsWith('http://') &&
+                !result.originalUrl.startsWith('https://') &&
+                !result.originalUrl.startsWith('file://')) {
+              const normalizedOriginalUrl = result.originalUrl.replace(/\\/g, '/');
+              if (normalizedOriginalUrl !== result.originalUrl) {
+                imageMappings.set(normalizedOriginalUrl, relativePath);
+                // 只有当 normalizedOriginalUrl 不包含 \detokenize 时，才添加 \detokenize 格式的键
+                if (!normalizedOriginalUrl.includes('\\detokenize{')) {
+                  const detokenizeKeyNormalized = `\\detokenize{${normalizedOriginalUrl}}`;
+                  imageMappings.set(detokenizeKeyNormalized, relativePath);
+                }
+              }
+            }
+          }
+        }
+        
+        // 更新 LaTeX 中的图片链接（使用相对路径）
+        finalTex = updateLatexImageLinks(finalTex, imageMappings);
+      }
+    } else if (imageProcessing === 'original') {
+      // original 模式：需要确保网络图片已经被下载并上传到本地服务
+      // 同时需要将 localhost:52521 的 URL 转换为本地文件路径，因为 LaTeX 无法直接读取 HTTP URL
+      const imageRegex = /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g;
+      const imageMappings = new Map<string, string>();
+      let match;
+      
+      while ((match = imageRegex.exec(finalTex)) !== null) {
+        let imagePath = match[1];
+        // 检查是否使用了 \detokenize{...}
+        const detokenizeMatch = imagePath.match(/\\detokenize\{([^}]+)\}/);
+        if (detokenizeMatch) {
+          imagePath = detokenizeMatch[1];
+        }
+        
+        // 检查是否是 localhost:52521 的 URL，需要转换为本地路径
+        if (imagePath.startsWith('http://localhost:52521/images/')) {
+          const fileName = imagePath.replace('http://localhost:52521/images/', '');
+          const localPath = path.join(imageUploadDir, fileName);
+          
+          // 检查文件是否存在
+          if (fs.existsSync(localPath)) {
+            // 使用绝对路径，LaTeX 需要绝对路径或相对于工作目录的路径
+            // 使用正斜杠（LaTeX 标准）
+            const normalizedPath = localPath.replace(/\\/g, '/');
+            imageMappings.set(match[1], normalizedPath);
+            // 如果使用了 \detokenize，也添加映射
+            if (detokenizeMatch) {
+              imageMappings.set(`\\detokenize{${match[1]}}`, normalizedPath);
+            }
+          } else {
+            logger.warn(`图片文件不存在: ${localPath}`);
+          }
+        }
+        // 检查是否是网络图片（http(s)但不是localhost:52521）
+        else if ((imagePath.startsWith('http://') && !imagePath.startsWith('http://localhost:52521/')) || 
+                  imagePath.startsWith('https://')) {
+          // 如果还有网络图片，尝试在 main 进程中下载并上传
+          try {
+            logger.warn(`LaTeX 中仍然存在网络图片: ${imagePath}，尝试在 main 进程中处理`);
+            const http = require('http');
+            const https = require('https');
+            const { URL } = require('url');
+            
+            const uploadUrl = 'http://localhost:52521/api/image/url-upload';
+            const urlObj = new URL(uploadUrl);
+            const protocol = urlObj.protocol === 'https:' ? https : http;
+            
+            const postData = JSON.stringify({ url: imagePath });
+            const options = {
+              hostname: urlObj.hostname,
+              port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
+              path: urlObj.pathname,
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postData),
+              },
+            };
+            
+            const result = await new Promise<any>((resolve, reject) => {
+              const req = protocol.request(options, (res: any) => {
+                let data = '';
+                res.on('data', (chunk: any) => {
+                  data += chunk;
+                });
+                res.on('end', () => {
+                  try {
+                    resolve(JSON.parse(data));
+                  } catch (e) {
+                    reject(e);
+                  }
+                });
+              });
+              
+              req.on('error', reject);
+              req.write(postData);
+              req.end();
+            });
+            
+            if (result.code === 0 && result.data && result.data.url) {
+              const serverPath = result.data.url;
+              const fileName = serverPath.split(/[/\\]/).pop();
+              const localPath = path.join(imageUploadDir, fileName);
+              
+              if (fs.existsSync(localPath)) {
+                const normalizedPath = localPath.replace(/\\/g, '/');
+                imageMappings.set(match[1], normalizedPath);
+                if (detokenizeMatch) {
+                  imageMappings.set(`\\detokenize{${match[1]}}`, normalizedPath);
+                }
+                logger.info(`网络图片已下载并上传: ${imagePath} -> ${localPath}`);
+              }
+            }
+          } catch (error) {
+            logger.error(`在 main 进程中处理网络图片失败: ${imagePath}`, error);
+          }
+        }
+      }
+      
+      // 如果有需要转换的图片，更新 LaTeX 中的链接
+      if (imageMappings.size > 0) {
+        finalTex = updateLatexImageLinks(finalTex, imageMappings);
+      }
+    }
+    
+    sendProgress(mainWindow, {
+      message: 'agent.reference.progress.exporting',
+      subMessage: 'agent.reference.progress.generatingFile',
+      percentage: 80,
+      params: { format: 'LaTeX' }
+    });
+    await writeTextFile(targetPath, finalTex);
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exportComplete',
       percentage: 100,
@@ -2707,20 +3072,25 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       }
       
       if (imageUrls.length > 0) {
-        // 创建图片文件夹
-        const docName = path.basename(targetPath, path.extname(targetPath));
-        const imagesFolder = path.join(path.dirname(targetPath), `${docName}_images`);
+        // 创建图片文件夹：xxx.tex.images
+        const imagesFolder = `${targetPath}.images`;
         
         // 保存图片
         const results = await saveImagesToFolder(imageUrls, imagesFolder);
         
-        // 创建 URL 到相对路径的映射
+        // 创建 URL 到相对路径的映射（使用相对路径）
         const imageMappings = new Map<string, string>();
+        const imagesFolderName = path.basename(imagesFolder);
         for (const result of results) {
-          imageMappings.set(result.originalUrl, result.relativePath);
+          const fileName = path.basename(result.savedPath);
+          // LaTeX 路径使用正斜杠，移除扩展名（如果存在）
+          const latexFileName = fileName.replace(/\.[^.]+$/, '');
+          // 使用相对路径：xxx.tex.images/filename（不含扩展名）
+          const relativePath = `${imagesFolderName}/${latexFileName}`;
+          imageMappings.set(result.originalUrl, relativePath);
         }
         
-        // 更新 LaTeX 中的图片链接
+        // 更新 LaTeX 中的图片链接（使用相对路径）
         finalTex = updateLatexImageLinks(finalTex, imageMappings);
       }
     }

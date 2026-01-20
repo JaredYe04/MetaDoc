@@ -368,7 +368,7 @@ export async function uploadImage(options: ImageUploadOptions): Promise<ImageUpl
     });
   }
 
-  // 检查网络图片是否需要保留URL（逻辑已取反：autoDownloadNetworkImages 现在表示"保留URL"）
+
   if (options.url && isNetworkPath(options.url)) {
     if (config.keepNetworkImageUrl) {
       // 保留网络图片URL，不下载，直接返回原URL

@@ -28,6 +28,7 @@ import { initMonacoEnvironment } from './utils/monaco-worker-config';
 import { aiCompletionService } from './utils/ai-completion-service';
 import { autoMigrateAIChatSessions } from './utils/db/migrate-ai-chat';
 import { useWorkspace } from './stores/workspace';
+import './assets/hide-native-scrollbar.css';
 
 type IpcRenderer = typeof localIpcRenderer | (typeof window extends { electron: { ipcRenderer: infer T } } ? T : never)
 

@@ -126,8 +126,15 @@ export const prepareExportPayload = async (
     let imageUrls: string[] = [];
 
     if (sourceFormat === 'md') {
+      // 对于 tex 格式，检查是否会从大纲树重新生成 Markdown
+      // 如果会，则跳过 prepareMarkdownForExport 中的图表预渲染，在 convertMarkdownToLatexWithOptions 中统一处理
+      const latexOptions = finalOptions as any;
+      const willRegenerateFromOutline = targetFormat === 'tex' && 
+                                        latexOptions?.removeTitlePrefixes !== false && 
+                                        !!doc.outline;
+      
       // 预处理Markdown：过滤元数据、预渲染图表、转换数学公式
-      markdown = await prepareMarkdownForExport(markdown, targetFormat, handle, doc);
+      markdown = await prepareMarkdownForExport(markdown, targetFormat, handle, doc, willRegenerateFromOutline);
       
       // 收集原始markdown中的图片URL（用于区分原始图片和预渲染生成的图片）
       const originalImageUrls = collectOriginalImageUrls(base.data.md);
@@ -143,6 +150,8 @@ export const prepareExportPayload = async (
       // 根据目标格式生成HTML或LaTeX
       if (targetFormat === 'docx') {
         // DOCX导出需要将图片转换为base64格式，以便内嵌到文档中
+        // 注意：markdown 已经通过 prepareMarkdownForExport 转换为 HTTP URL 格式
+        // embedImagesInline 可以处理 HTTP URL，直接转换为 base64 data URL
         let markdownWithBase64Images = await embedImagesInline(markdown);
         // 调整图片尺寸以适应页面大小
         markdownWithBase64Images = await resizeImagesForDocx(markdownWithBase64Images);
@@ -150,9 +159,14 @@ export const prepareExportPayload = async (
       } else if (targetFormat === 'pdf') {
         html = await ConvertHtmlForPdf(markdown);
       } else if (targetFormat === 'html') {
-        html = await ConvertMarkdownToHtmlManually(markdown);
-        // 对于 HTML，如果选择 Base64 模式，需要处理 HTML 中的图片
+        // 对于 HTML 导出，根据图片处理模式决定是否转换为 base64
         const imageProcessing = (finalOptions as any)?.imageProcessing as ImageProcessingMode | undefined;
+        // 只有在 base64 模式下才在 ConvertMarkdownToHtmlManually 中转换为 base64
+        // original 和 folder 模式保持原始 URL
+        const convertToBase64 = imageProcessing === 'base64';
+        html = await ConvertMarkdownToHtmlManually(markdown, convertToBase64);
+        // 如果选择 Base64 模式，processHtmlImages 已经在 ConvertMarkdownToHtmlManually 中处理了
+        // 但为了确保所有图片都被处理（包括预渲染的图表），我们再次处理
         if (imageProcessing === 'base64') {
           html = await processHtmlImages(html, 'base64');
         }
@@ -174,10 +188,16 @@ export const prepareExportPayload = async (
       // LaTeX转其他格式：先转为Markdown，然后按照Markdown导出流程处理
       const markdownFromTex = convertLatexToMarkdown(doc.tex ?? base.data.tex ?? '');
       let processedMarkdown = markdownFromTex;
+      
+      // 对于需要图片的格式，统一转换为 HTTP URL
+      // 注意：embedImagesInline 可以直接处理 HTTP URL，不需要先转 file://
       if (['html', 'docx', 'pdf'].includes(targetFormat)) {
+        // 转换为 HTTP URL 格式，便于后续处理
         processedMarkdown = await local2httpProtocol(processedMarkdown, doc.path);
-        processedMarkdown = await local2fileProtocol(processedMarkdown, doc.path);
       }
+      
+      // 对于需要内嵌图片的格式（DOCX 和部分 HTML），转换为 base64
+      // embedImagesInline 可以处理 HTTP URL，不需要先转 file://
       if (['html', 'docx'].includes(targetFormat)) {
         processedMarkdown = await embedImagesInline(processedMarkdown);
       }
@@ -209,18 +229,28 @@ export const prepareExportPayload = async (
 
 /**
  * 准备Markdown用于导出（预处理：过滤元数据、预渲染图表、转换数学公式）
+ * 
+ * 图片路径转换策略：
+ * - 对于需要 HTTP URL 的格式（html/docx/pdf）：统一转换为 HTTP URL
+ * - 对于需要 file:// 协议的格式（预览）：不在此处处理，由调用方处理
+ * - 对于 LaTeX 格式：不在此处处理，由后续流程处理
+ * 
+ * 注意：避免重复转换，后续的 processMarkdownImages 会根据需要再次转换
  */
 const prepareMarkdownForExport = async (
   markdown: string,
   targetFormat: ExportFormat,
   handle: any,
   doc: WorkspaceDocument,
+  skipChartPreRender: boolean = false,
 ): Promise<string> => {
   const logger = createRendererLogger('ExportManager');
   let processedMarkdown = filterMetaDataFromMd(markdown);
 
   // 预渲染图表
-  if (['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
+  // 注意：对于 tex 格式，如果可能会从大纲树重新生成 Markdown，则跳过这里的预渲染
+  // 在 convertMarkdownToLatexWithOptions 中统一处理
+  if (!skipChartPreRender && ['html', 'docx', 'pdf', 'tex'].includes(targetFormat)) {
     const chartFormat = (targetFormat === 'docx') ? 'bitmap' : 'svg';
     try {
       logger.debug(`preRenderAllCharts start`);
@@ -246,7 +276,6 @@ const prepareMarkdownForExport = async (
     }
   }
 
-
   const mathToImageFormats=['html'];//只转换html，docx和pdf已经转换
   // 将数学公式转换为图片
   if (mathToImageFormats.includes(targetFormat)) {
@@ -257,9 +286,17 @@ const prepareMarkdownForExport = async (
     }
   }
 
-  // 处理图片路径（转换为HTTP URL格式，以便后续处理）
-  processedMarkdown = await local2httpProtocol(processedMarkdown, doc.path);
-  processedMarkdown = await local2fileProtocol(processedMarkdown, doc.path);
+  // 根据目标格式决定图片路径转换策略
+  // 对于需要 HTTP URL 的格式，统一转换为 HTTP URL（后续 processMarkdownImages 会根据配置再次处理）
+  // 对于 LaTeX，不在此处转换，由后续流程处理
+  if (['html', 'docx', 'pdf'].includes(targetFormat)) {
+    // 统一转换为 HTTP URL，便于后续处理（processMarkdownImages 会检查格式，避免重复转换）
+    processedMarkdown = await local2httpProtocol(processedMarkdown, doc.path);
+  }
+  // 注意：不在此处调用 local2fileProtocol，因为：
+  // 1. 预览场景需要 file://，但不在导出流程中
+  // 2. embedImagesInline 可以直接处理 HTTP URL，不需要先转 file://
+  
   return processedMarkdown;
 };
 
@@ -323,9 +360,11 @@ const convertMarkdownToLatexWithOptions = async (
   jsonData: string,
   exportOptions: ExportOptions,
 ): Promise<string> => {
+  const logger = createRendererLogger('ExportManager');
   const { convertMarkdownToLatex } = await import('../utils/latex-utils');
   const { removeAllTitlePrefixes, generateMarkdownFromOutlineTree } = await import('../utils/document/outline');
   const title = doc.meta?.title || 'Generated Document';
+  const targetFormat = 'tex'; // 这个函数只用于 tex 格式
   
   // 提取文档元信息
   let meta: any = {};
@@ -339,11 +378,31 @@ const convertMarkdownToLatexWithOptions = async (
   // 如果启用了自动去除标题前缀选项，则处理大纲树
   let processedMarkdown = markdown;
   const latexOptions = exportOptions as any;
-  if (latexOptions?.removeTitlePrefixes !== false && doc.outline) {
+  const needsChartPreRender = latexOptions?.removeTitlePrefixes !== false && doc.outline;
+  
+  if (needsChartPreRender) {
     // 深拷贝大纲树并移除标题前缀
     const modifiedOutline = removeAllTitlePrefixes(doc.outline);
     // 从修改后的大纲树重新生成 Markdown
     processedMarkdown = generateMarkdownFromOutlineTree(modifiedOutline);
+  }
+  
+  // 统一在这里执行图表预渲染（确保只执行一次，且是在 Markdown 确定之后）
+  // 如果从大纲树重新生成了 Markdown，需要重新预渲染图表
+  // 如果没有从大纲树重新生成，但 prepareMarkdownForExport 中跳过了预渲染（tex 格式），也需要在这里执行
+  // 检查 Markdown 中是否包含图表代码块（需要预渲染）
+  const hasChartCodeBlocks = /```(?:plantuml|mermaid|echarts|flowchart|graphviz|vega-lite|ditaa)/i.test(processedMarkdown);
+  const shouldPreRenderCharts = needsChartPreRender || 
+                                 (targetFormat === 'tex' && hasChartCodeBlocks && !processedMarkdown.includes('http://localhost:52521/images/'));
+  
+  if (shouldPreRenderCharts) {
+    const { preRenderAllCharts } = await import('../utils/chart-pre-renderer');
+    try {
+      logger.debug('在 Markdown 确定后，执行图表预渲染');
+      processedMarkdown = await preRenderAllCharts(processedMarkdown, '', 'svg', () => {});
+    } catch (error) {
+      logger.warn('图表预渲染失败:', error);
+    }
   }
   
   // 传递导出选项和元信息

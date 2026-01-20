@@ -50,6 +50,11 @@ import FileIconBlack from "../assets/icons/file-black.svg";
 import FileIconWhite from "../assets/icons/file-white.svg";
 import MetaIconBlack from "../assets/icons/meta-black.svg";
 import MetaIconWhite from "../assets/icons/meta-white.svg";
+// PDF查看模式图标导入
+import CursorIconBlack from "../assets/icons/cursor-black.svg";
+import CursorIconWhite from "../assets/icons/cursor-white.svg";
+import HandIconBlack from "../assets/icons/hand-black.svg";
+import HandIconWhite from "../assets/icons/hand-white.svg";
 // theme.js
 export const contentThemes = [
   { label: 'Ant Design', value: 'ant-design' },
@@ -190,6 +195,8 @@ const generateThemeIcons = (isDarkMode) => {
     LanguageIcon: selectIconByTheme(isDarkMode, { light: LanguageIconBlack, dark: LanguageIconWhite }),
     FileIcon: selectIconByTheme(isDarkMode, { light: FileIconBlack, dark: FileIconWhite }),
     MetaIcon: selectIconByTheme(isDarkMode, { light: MetaIconBlack, dark: MetaIconWhite }),
+    CursorIcon: selectIconByTheme(isDarkMode, { light: CursorIconBlack, dark: CursorIconWhite }),
+    HandIcon: selectIconByTheme(isDarkMode, { light: HandIconBlack, dark: HandIconWhite }),
   };
 };
 

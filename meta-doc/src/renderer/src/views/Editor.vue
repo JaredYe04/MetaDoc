@@ -71,9 +71,11 @@ const handleSaveAllRequest = async () => {
 
 const handleSaveAllAndQuit = async () => {
   const result = await performSaveAll();
+  // 如果没有失败的保存，就退出（包括没有文档tab的情况：saved和failed都为空数组）
   if (result.failed.length === 0) {
     eventBus.emit('quit');
   }
+  // 如果有失败的保存，不退出，让用户知道保存失败
 };
 
 // close-active-tab 事件已在 Main.vue 中统一处理，这里不再需要

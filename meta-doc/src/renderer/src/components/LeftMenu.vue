@@ -1075,6 +1075,17 @@ const saveAndQuit = () => {
   eventBus.emit('save-and-quit')
 }
 const saveAllAndQuit = () => {
+  // 检查是否有需要保存的文档tab
+  const hasFileTabs = workspace.tabs && workspace.tabs.length > 0 && 
+    workspace.tabs.some(tab => tab.kind === 'file')
+  
+  // 如果没有文档tab，直接退出
+  if (!hasFileTabs) {
+    eventBus.emit('quit')
+    return
+  }
+  
+  // 有文档tab，执行保存全部并退出
   eventBus.emit('save-all-and-quit')
 }
 const quitWithoutSave = () => {

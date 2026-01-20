@@ -23,7 +23,12 @@ const renderMarkdown = async () => {
     // 设置容器文字颜色
     containerRef.value.style.color = themeState.currentTheme.textColor
 
-    // 将本地图片路径转换为 file:// 协议，以便浏览器能够加载本地图片
+    // 预览组件需要 file:// 协议，以便浏览器能够加载本地图片
+    // local2fileProtocol 可以处理：
+    // - 相对路径（通过 docPath 解析）
+    // - 绝对路径
+    // - HTTP URL（会保持原样，但预览时可能无法加载，建议先转本地路径）
+    // 注意：如果输入包含 HTTP URL（如预渲染的图表），可能需要先转换为本地路径
     const processedMarkdown = await local2fileProtocol(props.markdown, props.docPath)
 
     // 使用统一的 Markdown 预览渲染函数

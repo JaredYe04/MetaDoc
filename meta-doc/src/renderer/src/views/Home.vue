@@ -563,7 +563,12 @@ const renderPreview = async () => {
 
   try {
     isRendering.value = true
-    // 将本地图片路径转换为 file:// 协议，以便浏览器能够加载本地图片
+    // 预览渲染需要 file:// 协议，以便浏览器能够加载本地图片
+    // 转换策略：
+    // 1. 先转换为 HTTP URL（统一格式，处理相对路径和预渲染的图表）
+    // 2. 再转换为 file:// 协议（浏览器预览需要）
+    // 注意：虽然 local2fileProtocol 可以处理相对路径，但为了统一处理预渲染的图表（HTTP URL），
+    // 我们采用两步转换的方式
     const docPath = currentFilePath.value
     markdown = await local2httpProtocol(markdown, docPath)
     const processedMarkdown = await local2fileProtocol(markdown, docPath)

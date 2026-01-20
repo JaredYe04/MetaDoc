@@ -202,7 +202,7 @@
                                                 <div 
                                                     ref="pdfPagesContainer"
                                                     class="pdf-pages-container"
-                                                    :style="pdfContainerStyle"
+                                                    :style="{ ...pdfContainerStyle, transform: `scale(${zoomScale / PDF_RENDER_SCALE})`, transformOrigin: 'top center' }"
                                                     @wheel="handlePdfScroll">
                                                     <div
                                                         v-for="pageNum in totalPdfPages"
@@ -211,14 +211,15 @@
                                                         class="pdf-page-wrapper"
                                                         :data-page-number="pageNum">
                                                         <VuePdf
-                                                            :key="`vue-pdf-${pageNum}-${zoomScale}`"
+                                                            :key="`vue-pdf-${pageNum}-${pdfUrl}-${pdfRenderKey}`"
                                                             :src="pdfUrl"
                                                             :page="pageNum"
-                                                            :scale="zoomScale"
+                                                            :scale="PDF_RENDER_SCALE"
                                                             :enable-text-selection="true"
                                                             :enable-annotations="false"
                                                             @total-pages="handleNumPages"
                                                             @pdf-loaded="pageNum === 1 ? handlePdfLoaded($event) : undefined"
+                                                            @error="(error: any) => handlePdfError(error, pageNum)"
                                                             class="vue-pdf-wrapper"
                                                         />
                                                     </div>
@@ -736,13 +737,23 @@ function calculateOptimalScale(baseScale: number): number {
 }
 
 // PDF缩放比例（用于VuePdf组件的scale属性，动态调整以优化渲染质量）
-const zoomScale = ref(1.0); // 默认缩放比例
+const zoomScale = ref(1.0); // 默认缩放比例（用户可见的缩放比例）
 
-// 容器样式（不需要CSS transform，因为VuePdf的scale已经处理了缩放）
+// PDF 渲染分辨率倍数（提高初始 DPI，确保放大时清晰）
+// 设置为 2.5，这样即使放大到最大 5 倍，实际分辨率也是 2.5，足够清晰
+const PDF_RENDER_SCALE = 2.5;
+
+// 标志：组件是否已卸载（用于防止在卸载后触发渲染）
+let isComponentUnmounted = false;
+
+// 容器样式（使用 CSS transform 实现缩放，保持原始 DPI）
+// 注意：transform scale 现在应用到整个容器上，所以 gap 使用固定值即可
+// 因为整个容器（包括 gap）会一起缩放
 const pdfContainerStyle = computed(() => {
     return {
-        // 不需要transform，VuePdf的scale已经处理了缩放
-        // 容器大小会自动匹配PDF的渲染尺寸
+        // gap 使用固定值，因为整个容器会通过 transform scale 一起缩放
+        // 这样 gap 也会自动按比例缩放
+        gap: '20px'
     };
 });
 
@@ -792,6 +803,9 @@ function setPageRef(el: any, pageNum: number) {
 // 处理PDF滚动事件（用于Ctrl+滚轮缩放）
 function handlePdfScroll(event?: WheelEvent) {
     if (event && (event.ctrlKey || event.metaKey)) {
+        // 检查 PDF 容器是否准备好
+        if (!isPdfContainerReady()) return;
+        
         // Ctrl/Cmd + 滚轮：缩放
         event.preventDefault();
         event.stopPropagation();
@@ -802,8 +816,8 @@ function handlePdfScroll(event?: WheelEvent) {
         
         // 只有当optimalScale与currentValue不同时才更新，避免无效更新
         if (Math.abs(optimalScale - currentValue) > 0.05) {
-            zoomScale.value = optimalScale;
-            console.log('handlePdfScroll: zoomScale changed to', optimalScale);
+            // 直接更新，不使用防抖（CSS transform 性能很好）
+            safeUpdateZoomScale(optimalScale);
         }
     }
 }
@@ -842,20 +856,44 @@ async function initPdfJs() {
     await nextTick();
     setupScrollListener();
 }
+// 检查 PDF 容器是否准备好
+const isPdfContainerReady = () => {
+    if (isComponentUnmounted) return false;
+    if (!showPdfPanel.value || !isValidPdfUrl.value) return false;
+    if (!pdfPagesContainer.value) return false;
+    // 检查是否有至少一个页面元素存在
+    const firstPage = pageRefs.get(1);
+    return firstPage !== undefined && firstPage !== null;
+}
+
+// 安全更新缩放比例（带检查）
+const safeUpdateZoomScale = (newScale: number) => {
+    if (isComponentUnmounted || !isPdfContainerReady()) return;
+    const oldScale = zoomScale.value;
+    zoomScale.value = newScale;
+    // 调试：检查 scale 是否真的更新了
+    if (process.env.NODE_ENV === 'development') {
+        //logger.debug('缩放比例更新', { oldScale, newScale });
+    }
+}
+
 const pdfZoomIn = () => {
+    if (!isPdfContainerReady()) return;
     const currentValue = zoomScale.value;
     const newScale = Math.min(Math.max(currentValue + 0.1, 0.2), 5);
     const optimalScale = calculateOptimalScale(newScale);
-    zoomScale.value = optimalScale;
+    safeUpdateZoomScale(optimalScale);
 }
 const pdfZoomOut = () => {
+    if (!isPdfContainerReady()) return;
     const currentValue = zoomScale.value;
     const newScale = Math.min(Math.max(currentValue - 0.1, 0.2), 5);
     const optimalScale = calculateOptimalScale(newScale);
-    zoomScale.value = optimalScale;
+    safeUpdateZoomScale(optimalScale);
 }
 const pdfZoomReset = () => {
-    zoomScale.value = calculateOptimalScale(1.0);
+    if (!isPdfContainerReady()) return;
+    safeUpdateZoomScale(calculateOptimalScale(1.0));
 }
 let pdfDoc: any = null;        // pdfjs document
 const currentPdfPage = ref(1);
@@ -1277,6 +1315,18 @@ watch(
     },
 );
 
+// 监听 zoomScale 变化，用于调试
+watch(
+    () => zoomScale.value,
+    (newScale, oldScale) => {
+        if (process.env.NODE_ENV === 'development') {
+            //logger.debug('zoomScale 变化', { oldScale, newScale });
+        }
+        // VuePdf 组件应该会自动响应 scale prop 的变化
+        // 如果 VuePdf 不支持动态更新，可能需要使用其他方法（如 CSS transform）
+    }
+);
+
 function goPrevPage() {
     if (currentPdfPage.value > 1) {
         currentPdfPage.value--;
@@ -1638,6 +1688,34 @@ async function buildPdfToSourceMapping() {
     } finally {
         isMappingInProgress = false;
     }
+}
+
+// 处理 PDF 渲染错误
+function handlePdfError(error: any, pageNum: number) {
+    // 如果组件已卸载，忽略所有错误
+    if (isComponentUnmounted) return;
+    
+    // 忽略常见的 DOM 相关错误（通常是因为组件卸载或 DOM 未准备好）
+    const errorMessage = error?.message || String(error);
+    const errorStack = error?.stack || String(error);
+    
+    // 检查是否是 getComputedStyle 相关的错误
+    const isGetComputedStyleError = 
+        errorMessage.includes('getComputedStyle') || 
+        errorMessage.includes('not of type') ||
+        errorMessage.includes('Element') ||
+        errorStack.includes('getComputedStyle') ||
+        errorStack.includes('scaleCanvas2') ||
+        errorStack.includes('renderPage2');
+    
+    if (isGetComputedStyleError) {
+        // 这是预期的错误，当组件卸载或 DOM 未准备好时会发生
+        // 完全忽略，不记录日志，避免日志污染
+        return;
+    }
+    
+    // 其他错误正常记录
+    logger.warn('PDF 渲染错误', { pageNum, error: errorMessage, stack: errorStack });
 }
 
 // 处理 PDF 总页数事件
@@ -3168,8 +3246,40 @@ const initEditor = () => {
 
 onMounted(async () => {
     try {
+        // 重置卸载标志
+        isComponentUnmounted = false;
+        
+        // 添加全局错误处理，捕获未处理的 Promise rejection（特别是 vue3-pdfjs 的错误）
+        const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+            const error = event.reason;
+            const errorMessage = error?.message || String(error);
+            const errorStack = error?.stack || String(error);
+            
+            // 检查是否是 getComputedStyle 相关的错误（vue3-pdfjs 的常见错误）
+            const isGetComputedStyleError = 
+                errorMessage.includes('getComputedStyle') || 
+                errorMessage.includes('not of type') ||
+                errorMessage.includes('Element') ||
+                errorStack?.includes('getComputedStyle') ||
+                errorStack?.includes('scaleCanvas2') ||
+                errorStack?.includes('renderPage2') ||
+                errorStack?.includes('vue3-pdfjs');
+            
+            if (isGetComputedStyleError) {
+                // 这是预期的错误，当组件卸载或 DOM 未准备好时会发生
+                // 阻止错误传播，避免在控制台显示
+                event.preventDefault();
+                return;
+            }
+            
+            // 其他错误正常处理（不阻止，让默认处理程序处理）
+        };
+        
         if (typeof window !== 'undefined') {
             window.addEventListener('resize', updateSearchMenuPosition);
+            window.addEventListener('unhandledrejection', handleUnhandledRejection);
+            // 保存清理函数
+            (window as any)._latexEditorUnhandledRejectionHandler = handleUnhandledRejection;
         }
         //logger.debug("LaTeXEditor onMounted")
         await waitForService('express');
@@ -3254,6 +3364,9 @@ onMounted(async () => {
 // 清理资源
 onUnmounted(() => {
     //logger.debug("LaTeXEditor onUnmounted")
+    // 设置卸载标志，防止后续操作
+    isComponentUnmounted = true;
+    
     if (mainObserver) {
         mainObserver.disconnect();
         mainObserver = null;
@@ -3325,6 +3438,11 @@ onUnmounted(() => {
         if ((window as any)._latexEditorResizeHandler) {
             window.removeEventListener('resize', (window as any)._latexEditorResizeHandler);
             delete (window as any)._latexEditorResizeHandler;
+        }
+        // 移除未处理的 Promise rejection 监听器
+        if ((window as any)._latexEditorUnhandledRejectionHandler) {
+            window.removeEventListener('unhandledrejection', (window as any)._latexEditorUnhandledRejectionHandler);
+            delete (window as any)._latexEditorUnhandledRejectionHandler;
         }
     }
     
@@ -3590,7 +3708,9 @@ function onCancelSuggestion() {
     flex-direction: column;
     align-items: center;
     padding: 20px;
-    gap: 20px;
+    /* gap 使用固定值，因为整个容器会通过 transform scale 一起缩放 */
+    /* gap 会随着容器的缩放自动按比例调整 */
+    /* transform scale 通过内联样式动态设置在容器上 */
     min-height: 100%;
     min-width: 100%;  /* 允许内容横向扩展，触发横向滚动 */
     box-sizing: border-box;
@@ -3612,6 +3732,8 @@ function onCancelSuggestion() {
     /* 移除 max-width 限制，允许页面在缩放后超出容器宽度，触发横向滚动 */
     margin: 0 auto;
     flex-shrink: 0;  /* 防止页面被压缩 */
+    /* transform scale 现在应用到父容器 .pdf-pages-container 上 */
+    /* 这样整个容器（包括 gap）会一起缩放，保持布局一致性 */
 }
 
 .vue-pdf-wrapper {
@@ -3636,12 +3758,11 @@ function onCancelSuggestion() {
 .pdf-page-wrapper canvas {
     background-color: #ffffff;
     /* 优化缩放时的渲染质量 */
+    /* 注意：不要在这里设置 transform，因为缩放是在 .pdf-page-wrapper 上应用的 */
     image-rendering: auto; /* 使用默认渲染，避免crisp-edges导致的锯齿 */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* 启用硬件加速 */
-    transform: translateZ(0);
-    will-change: transform;
+    /* 保持原始分辨率，不损失 DPI */
 }
 
 /* 优化文本层渲染 */

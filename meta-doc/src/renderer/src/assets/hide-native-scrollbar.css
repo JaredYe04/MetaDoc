@@ -1,0 +1,86 @@
+/* 
+ * 全局强制隐藏所有原生滚动条，只使用 el-scrollbar
+ * 注意：el-scrollbar 使用自定义滚动条 UI，不受此影响
+ */
+
+/* 隐藏 body 滚动条 */
+body {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+body::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+/* 隐藏 html 滚动条 */
+html {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+/* 隐藏 #app 滚动条 */
+#app {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+#app::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+/* 隐藏所有元素的滚动条（包括 el-scrollbar 内部的，因为 el-scrollbar 有自己的滚动条 UI） */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+/* 修复 el-dialog 打开时全局出现滚动条的问题 */
+/* 当 dialog 打开时，Element Plus 会给 body 添加 el-popup-parent--hidden 类 */
+body.el-popup-parent--hidden {
+  /* 移除可能导致滚动条的 padding-right */
+  padding-right: 0 !important;
+  /* 确保宽度不会因为滚动条而改变 */
+  width: 100% !important;
+}
+
+/* 对于 html 元素也做同样处理 */
+html.el-popup-parent--hidden {
+  padding-right: 0 !important;
+  width: 100% !important;
+}
+
+/* 确保 el-scrollbar 组件的滚动条可以正常显示 */
+.el-scrollbar__bar {
+  /* 确保 el-scrollbar 的滚动条可以正常显示，不受全局隐藏滚动条样式影响 */
+  z-index: 10;
+}
+

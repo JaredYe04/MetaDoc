@@ -2012,11 +2012,11 @@ async function buildPdfToSourceMapping() {
         // 异步处理每一页，避免阻塞
         for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
             try {
-                logger.debug(`处理页面 ${pageNum}/${totalPages}`);
+                //logger.debug(`处理页面 ${pageNum}/${totalPages}`);
                 const page = await pdfDoc.getPage(pageNum);
                 const textContent = await page.getTextContent();
                 const textItems = textContent.items;
-                logger.debug(`页面 ${pageNum} 文本项数量`, { textItemsCount: textItems.length });
+                //logger.debug(`页面 ${pageNum} 文本项数量`, { textItemsCount: textItems.length });
                 
                 // 获取标准viewport（scale=1）用于坐标转换
                 const standardViewport = page.getViewport({ scale: 1 });
@@ -2421,31 +2421,81 @@ const analyzeCompileError = async (compileResult: any) => {
         
         // 收集完整的控制台输出（stdout + stderr）
         // 这是最重要的信息，包含了完整的编译输出，包括行号等关键信息
+        
+        // 如果 compileConsoleOutput 为空，尝试从 ConsoleOutput 组件获取所有已显示的内容
+        let actualConsoleOutput = { ...compileConsoleOutput };
+        if ((!actualConsoleOutput.stderr || actualConsoleOutput.stderr.trim().length === 0) &&
+            (!actualConsoleOutput.stdout || actualConsoleOutput.stdout.trim().length === 0)) {
+            // 等待一小段时间，确保控制台内容已更新
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // 通过 eventBus 请求获取控制台内容
+            const consoleContentPromise = new Promise<{ stdout: string; stderr: string }>((resolve) => {
+                const timeout = setTimeout(() => {
+                    resolve({ stdout: '', stderr: '' });
+                }, 1000);
+                
+                const handler = (data: unknown) => {
+                    if (typeof data === 'object' && data !== null) {
+                        const obj = data as { key?: string; content?: { stdout?: string; stderr?: string } };
+                        if (obj.key === 'latex' && obj.content) {
+                            clearTimeout(timeout);
+                            eventBus.off('console-content-response', handler);
+                            resolve({
+                                stdout: obj.content.stdout || '',
+                                stderr: obj.content.stderr || ''
+                            });
+                        }
+                    }
+                };
+                
+                eventBus.on('console-content-response', handler);
+                
+                // 发送请求
+                eventBus.emit('get-console-content', {
+                    key: 'latex',
+                    consoleKey: 'latex'
+                });
+            });
+            
+            const consoleContent = await consoleContentPromise;
+            if (consoleContent.stdout || consoleContent.stderr) {
+                actualConsoleOutput = {
+                    stdout: consoleContent.stdout || actualConsoleOutput.stdout || '',
+                    stderr: consoleContent.stderr || actualConsoleOutput.stderr || ''
+                };
+                logger.info('从 ConsoleOutput 组件获取到控制台内容', {
+                    stdoutLength: actualConsoleOutput.stdout.length,
+                    stderrLength: actualConsoleOutput.stderr.length
+                });
+            }
+        }
+        
         const fullConsoleOutput: string[] = [];
         
         // 添加 stderr（错误输出）
-        if (compileConsoleOutput.stderr && compileConsoleOutput.stderr.trim().length > 0) {
+        if (actualConsoleOutput.stderr && actualConsoleOutput.stderr.trim().length > 0) {
             fullConsoleOutput.push('=== 标准错误输出 (stderr) ===');
-            fullConsoleOutput.push(compileConsoleOutput.stderr);
+            fullConsoleOutput.push(actualConsoleOutput.stderr);
         }
         
         // 添加 stdout（标准输出，可能也包含错误信息）
-        if (compileConsoleOutput.stdout && compileConsoleOutput.stdout.trim().length > 0) {
+        if (actualConsoleOutput.stdout && actualConsoleOutput.stdout.trim().length > 0) {
             fullConsoleOutput.push('=== 标准输出 (stdout) ===');
-            fullConsoleOutput.push(compileConsoleOutput.stdout);
+            fullConsoleOutput.push(actualConsoleOutput.stdout);
         }
         
         // 组合完整的控制台输出
         const completeConsoleOutput = fullConsoleOutput.join('\n\n');
         
         // 提取错误输出（用于简要显示，但完整输出更重要）
-        let errorOutput = compileConsoleOutput.stderr || '';
+        let errorOutput = actualConsoleOutput.stderr || '';
         
         // 如果 stderr 为空，尝试从 stdout 中提取错误行
         if (!errorOutput || errorOutput.trim().length === 0) {
-            if (compileConsoleOutput.stdout) {
+            if (actualConsoleOutput.stdout) {
                 // 从 stdout 中提取包含 "error" 或 "Error" 的行（不区分大小写）
-                const stdoutLines = compileConsoleOutput.stdout.split('\n');
+                const stdoutLines = actualConsoleOutput.stdout.split('\n');
                 const errorLines = stdoutLines.filter((line: string) => {
                     const lowerLine = line.toLowerCase().trim();
                     return lowerLine.includes('error') || 
@@ -2466,15 +2516,18 @@ const analyzeCompileError = async (compileResult: any) => {
         // 获取退出代码
         const exitCode = compileResult?.exitCode || compileResult?.code;
         
-        logger.debug('AI错误分析 - 收集到的错误信息', {
-            hasStderr: !!compileConsoleOutput.stderr,
-            hasStdout: !!compileConsoleOutput.stdout,
-            stderrLength: compileConsoleOutput.stderr?.length || 0,
-            stdoutLength: compileConsoleOutput.stdout?.length || 0,
+        logger.info('AI错误分析 - 收集到的错误信息', {
+            hasStderr: !!actualConsoleOutput.stderr,
+            hasStdout: !!actualConsoleOutput.stdout,
+            stderrLength: actualConsoleOutput.stderr?.length || 0,
+            stdoutLength: actualConsoleOutput.stdout?.length || 0,
             completeConsoleOutputLength: completeConsoleOutput.length,
             compileResultStatus: compileResult?.status,
             compileResultExitCode: exitCode,
-            errorOutputLength: errorOutput.length
+            errorOutputLength: errorOutput.length,
+            source: (actualConsoleOutput.stderr || actualConsoleOutput.stdout) ? 
+                (compileConsoleOutput.stderr || compileConsoleOutput.stdout ? 'event-listener' : 'console-component') : 
+                'none'
         });
         
         // 如果完全没有控制台输出，使用备用信息
@@ -2490,13 +2543,186 @@ const analyzeCompileError = async (compileResult: any) => {
             }
         }
         
-        // 获取 LaTeX 原文并添加行号
+        // 获取 LaTeX 原文
         const rawLatexSource = currentTex.value || '';
-        // 在每一行前面添加行号，格式为 "1: xxx\n2: xxx\n3: xxx"
-        const latexSourceWithLineNumbers = rawLatexSource
-            .split('\n')
-            .map((line, index) => `${index + 1}: ${line}`)
-            .join('\n');
+        const latexLines = rawLatexSource.split('\n');
+        const totalLines = latexLines.length;
+        
+        // 从控制台输出中智能提取行号
+        // LaTeX 错误信息中行号的常见格式：
+        // 1. "error: filename.tex:123: message" 或 "warning: filename.tex:123: message"
+        // 2. "l.123 ..." (LaTeX 错误标记)
+        // 3. "filename.tex:123" (文件名:行号)
+        // 4. "line 123" 或 "Line 123"
+        const allNumbers = new Set<number>();
+        const matchedByPattern: Record<string, number[]> = {
+            pattern1: [],
+            pattern2: [],
+            pattern3: [],
+            pattern4: [],
+            fallback: []
+        };
+        
+        // 模式1: error/warning: filename.tex:行号: 或 filename.tex:行号:
+        const pattern1 = /(?:error|warning|Error|Warning):\s*[^:]+:(\d+):/gi;
+        let match;
+        while ((match = pattern1.exec(completeConsoleOutput)) !== null) {
+            const num = parseInt(match[1], 10);
+            if (num >= 1 && num <= totalLines) {
+                allNumbers.add(num);
+                matchedByPattern.pattern1.push(num);
+            }
+        }
+        
+        // 模式2: l.行号 (LaTeX 标准错误格式)
+        const pattern2 = /^l\.(\d+)\s/mg;
+        while ((match = pattern2.exec(completeConsoleOutput)) !== null) {
+            const num = parseInt(match[1], 10);
+            if (num >= 1 && num <= totalLines) {
+                allNumbers.add(num);
+                matchedByPattern.pattern2.push(num);
+            }
+        }
+        
+        // 模式3: 文件名.tex:行号 (不含 error/warning 前缀)
+        const pattern3 = /\.tex:(\d+)(?::|$)/g;
+        while ((match = pattern3.exec(completeConsoleOutput)) !== null) {
+            const num = parseInt(match[1], 10);
+            if (num >= 1 && num <= totalLines) {
+                allNumbers.add(num);
+                matchedByPattern.pattern3.push(num);
+            }
+        }
+        
+        // 模式4: "line 123" 或 "Line 123" (大小写不敏感)
+        const pattern4 = /\b(?:line|Line)\s+(\d+)\b/gi;
+        while ((match = pattern4.exec(completeConsoleOutput)) !== null) {
+            const num = parseInt(match[1], 10);
+            if (num >= 1 && num <= totalLines) {
+                allNumbers.add(num);
+                matchedByPattern.pattern4.push(num);
+            }
+        }
+        
+        // 如果以上模式都没找到，尝试提取所有在合理范围内的数字
+        // 但只考虑在错误相关上下文中的数字
+        if (allNumbers.size === 0) {
+            const errorContextPattern = /(?:error|Error|warning|Warning|!|l\.)[\s\S]{0,200}?\b(\d+)\b/g;
+            while ((match = errorContextPattern.exec(completeConsoleOutput)) !== null) {
+                const num = parseInt(match[1], 10);
+                // 更严格的过滤：只保留在合理范围内的数字
+                if (num >= 1 && num <= totalLines && num <= 100000) {
+                    allNumbers.add(num);
+                    matchedByPattern.fallback.push(num);
+                }
+            }
+        }
+        
+        // 转换为排序后的数组
+        const relevantLineNumbers = Array.from(allNumbers).sort((a, b) => a - b);
+        
+        // 详细日志：记录提取到的行号
+        logger.info('=== 行号提取调试信息 ===', {
+            totalLines,
+            completeConsoleOutputLength: completeConsoleOutput.length,
+            completeConsoleOutputPreview: completeConsoleOutput.substring(0, 1000), // 前1000个字符
+            matchedByPattern: {
+                pattern1_error_warning: matchedByPattern.pattern1,
+                pattern2_l_dot: matchedByPattern.pattern2,
+                pattern3_tex_colon: matchedByPattern.pattern3,
+                pattern4_line_keyword: matchedByPattern.pattern4,
+                fallback: matchedByPattern.fallback
+            },
+            extractedLineNumbers: relevantLineNumbers,
+            extractedLineNumbersCount: relevantLineNumbers.length
+        });
+        
+        // 智能提取：只提取相关行号的内容（包括上下文）
+        // 上下文范围：前后各 5 行
+        const contextLines = 5;
+        let latexSourceWithLineNumbers: string;
+        
+        if (relevantLineNumbers.length > 0 && totalLines > 100) {
+            // 如果文档很长且找到了相关行号，只提取相关部分
+            const extractedRanges: Array<{ start: number; end: number }> = [];
+            let currentRange: { start: number; end: number } | null = null;
+            
+            for (const lineNum of relevantLineNumbers) {
+                const start = Math.max(1, lineNum - contextLines);
+                const end = Math.min(totalLines, lineNum + contextLines);
+                
+                if (!currentRange) {
+                    currentRange = { start, end };
+                } else if (start <= currentRange.end + contextLines) {
+                    // 如果范围重叠或接近，合并范围
+                    currentRange.end = Math.max(currentRange.end, end);
+                } else {
+                    // 保存当前范围，开始新范围
+                    extractedRanges.push(currentRange);
+                    currentRange = { start, end };
+                }
+            }
+            
+            if (currentRange) {
+                extractedRanges.push(currentRange);
+            }
+            
+            // 构建提取后的源码（用省略号连接不同范围）
+            const extractedParts: string[] = [];
+            let lastEnd = 0;
+            
+            for (const range of extractedRanges) {
+                // 如果当前范围之前有内容被跳过，添加省略号
+                if (range.start > lastEnd + 1 && lastEnd > 0) {
+                    extractedParts.push(`... (省略 ${range.start - lastEnd - 1} 行) ...`);
+                }
+                
+                // 添加当前范围的内容
+                for (let i = range.start; i <= range.end; i++) {
+                    const lineIndex = i - 1; // 转换为 0-based 索引
+                    extractedParts.push(`${i}: ${latexLines[lineIndex] || ''}`);
+                }
+                
+                lastEnd = range.end;
+            }
+            
+            // 如果最后还有内容被跳过，添加省略号
+            if (lastEnd < totalLines) {
+                extractedParts.push(`... (省略 ${totalLines - lastEnd} 行) ...`);
+            }
+            
+            latexSourceWithLineNumbers = extractedParts.join('\n');
+            
+            logger.info('=== 智能提取 LaTeX 源码 ===', {
+                totalLines,
+                relevantLineNumbers: relevantLineNumbers,
+                relevantLineNumbersCount: relevantLineNumbers.length,
+                extractedRanges: extractedRanges.map(r => `${r.start}-${r.end}`),
+                extractedRangesCount: extractedRanges.length,
+                originalLength: rawLatexSource.length,
+                extractedLength: latexSourceWithLineNumbers.length,
+                compressionRatio: (latexSourceWithLineNumbers.length / rawLatexSource.length * 100).toFixed(2) + '%',
+                extractedPreview: latexSourceWithLineNumbers.substring(0, 500) // 前500个字符预览
+            });
+        } else {
+            // 如果文档不长或没找到相关行号，使用完整源码
+            latexSourceWithLineNumbers = rawLatexSource
+                .split('\n')
+                .map((line, index) => `${index + 1}: ${line}`)
+                .join('\n');
+            
+            if (relevantLineNumbers.length === 0) {
+                logger.info('未从控制台输出中找到行号，使用完整源码', {
+                    totalLines,
+                    completeConsoleOutputPreview: completeConsoleOutput.substring(0, 1000)
+                });
+            } else {
+                logger.info('文档较短，使用完整源码', { 
+                    totalLines,
+                    relevantLineNumbers: relevantLineNumbers
+                });
+            }
+        }
         
         // 获取提示词模板
         const prompts = getCurrentLocalePrompts();
@@ -2513,9 +2739,14 @@ const analyzeCompileError = async (compileResult: any) => {
                 .replace(/{exitCode}/g, exitCode !== undefined && exitCode !== null ? String(exitCode) : '未知');
         } else {
             // 回退提示词
+            const isExtracted = relevantLineNumbers.length > 0 && totalLines > 100;
+            const extractionNote = isExtracted 
+                ? `\n**注意：** 由于 LaTeX 文档较长，这里只显示了控制台输出中提到的相关行号及其上下文（前后各 5 行）。省略的部分用 "... (省略 X 行) ..." 标记。请重点关注显示的行号。`
+                : '';
+            
             prompt = `你是一个专业的LaTeX编译错误分析助手。请仔细分析以下编译错误：
 
-**重要提示：请务必参考完整的控制台输出，特别是其中的行号信息！控制台输出中已经明确指出了错误所在的行号，请严格按照控制台输出中的行号信息进行分析。**
+**重要提示：请务必参考完整的控制台输出，特别是其中的行号信息！控制台输出中已经明确指出了错误所在的行号，请严格按照控制台输出中的行号信息进行分析。**${extractionNote}
 
 **完整控制台输出（包含所有编译信息，这是最重要的参考信息）：**
 \`\`\`
@@ -2529,7 +2760,7 @@ ${errorOutput}
 
 **退出代码：** ${exitCode !== undefined && exitCode !== null ? exitCode : '未知'}
 
-**LaTeX 原文（已标注行号）：**
+**LaTeX 原文（已标注行号${isExtracted ? '，仅显示相关行号及其上下文' : ''}）：**
 \`\`\`latex
 ${latexSourceWithLineNumbers}
 \`\`\`

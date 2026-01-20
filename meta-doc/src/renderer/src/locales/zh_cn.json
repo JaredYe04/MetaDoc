@@ -1584,6 +1584,7 @@
         "prevPage":"上一页",
         "nextPage":"下一页",
         "pages":"页",
+        "pagesPerRow":"每行页数",
         "commandDocs": {
           "documentclass": "设置文档类。示例：\\documentclass{article} 或 \\documentclass[12pt]{report}",
           "usepackage": "加载 LaTeX 包。示例：\\usepackage{graphicx} 或 \\usepackage[utf8]{inputenc}",

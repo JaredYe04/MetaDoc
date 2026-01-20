@@ -154,14 +154,21 @@
                                                 :style="{
                                                     backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor
                                                 }">
-                                                <el-button size="small" @click="goPrevPage" :disabled="currentPdfPage <= 1">
-                                                    {{ $t('latexEditor.prevPage') }}
-                                                </el-button>
+                                                <el-tooltip :content="$t('latexEditor.prevPage')" placement="bottom">
+                                                    <div class="pdf-toolbar-icon" :class="{ 'disabled': currentPdfPage <= 1 }" @click="currentPdfPage > 1 && goPrevPage()">
+                                                        <el-icon>
+                                                            <ArrowLeft />
+                                                        </el-icon>
+                                                    </div>
+                                                </el-tooltip>
 
-                                                <el-button size="small" @click="goNextPage"
-                                                    :disabled="currentPdfPage >= totalPdfPages">
-                                                    {{ $t('latexEditor.nextPage') }}
-                                                </el-button>
+                                                <el-tooltip :content="$t('latexEditor.nextPage')" placement="bottom">
+                                                    <div class="pdf-toolbar-icon" :class="{ 'disabled': currentPdfPage >= totalPdfPages }" @click="currentPdfPage < totalPdfPages && goNextPage()">
+                                                        <el-icon>
+                                                            <ArrowRight />
+                                                        </el-icon>
+                                                    </div>
+                                                </el-tooltip>
 
                                                 <span class="pdf-toolbar__page" :title="`${inputPdfPage} / ${totalPdfPages} ${$t('latexEditor.pages')}`">
                                                     <input type="number" v-model.number="inputPdfPage" @change="jumpToPage" :min="1"
@@ -191,37 +198,77 @@
                                                         </el-icon>
                                                     </div>
                                                 </el-tooltip>
+                                                <el-divider direction="vertical"></el-divider>
+                                                <span class="pdf-toolbar__pages-per-row">
+                                                    <span class="pdf-toolbar__pages-per-row-label">{{ $t('latexEditor.pagesPerRow') || '每行页数' }}:</span>
+                                                    <el-select 
+                                                        v-model="pagesPerRow" 
+                                                        size="small" 
+                                                        style="width: 80px;"
+                                                        @change="handlePagesPerRowChange">
+                                                        <el-option
+                                                            v-for="num in 10"
+                                                            :key="num"
+                                                            :label="num"
+                                                            :value="num"
+                                                        />
+                                                    </el-select>
+                                                </span>
+                                                <el-divider direction="vertical"></el-divider>
+                                                <el-tooltip :content="$t('latexEditor.toolbar.pointerMode')" placement="bottom">
+                                                    <div class="pdf-toolbar-icon" :class="{ 'active': pdfViewMode === 'pointer' }" @click="setPdfViewMode('pointer')">
+                                                        <img :src="(themeState.currentTheme as any).CursorIcon" alt="pointer" style="width: 16px; height: 16px;" />
+                                                    </div>
+                                                </el-tooltip>
+                                                <el-tooltip :content="$t('latexEditor.toolbar.handMode')" placement="bottom">
+                                                    <div class="pdf-toolbar-icon" :class="{ 'active': pdfViewMode === 'hand' }" @click="setPdfViewMode('hand')">
+                                                        <img :src="(themeState.currentTheme as any).HandIcon" alt="hand" style="width: 16px; height: 16px;" />
+                                                    </div>
+                                                </el-tooltip>
                                             </div>
 
                                             <el-scrollbar
                                                 ref="pdfScrollbarRef"
                                                 v-if="isValidPdfUrl && totalPdfPages > 0"
                                                 class="pdf-preview-container"
+                                                :class="{ 'hand-mode': pdfViewMode === 'hand', 'pointer-mode': pdfViewMode === 'pointer' }"
                                                 :style="{ background: themeState.currentTheme.background }"
                                                 @contextmenu.prevent="openPdfContextMenu($event)">
                                                 <div 
-                                                    ref="pdfPagesContainer"
-                                                    class="pdf-pages-container"
-                                                    :style="{ ...pdfContainerStyle, transform: `scale(${zoomScale / PDF_RENDER_SCALE})`, transformOrigin: 'top center' }"
-                                                    @wheel="handlePdfScroll">
-                                                    <div
-                                                        v-for="pageNum in totalPdfPages"
-                                                        :key="`pdf-page-${pageNum}-${pdfUrl}-${pdfRenderKey}`"
-                                                        :ref="el => setPageRef(el, pageNum)"
-                                                        class="pdf-page-wrapper"
-                                                        :data-page-number="pageNum">
-                                                        <VuePdf
-                                                            :key="`vue-pdf-${pageNum}-${pdfUrl}-${pdfRenderKey}`"
-                                                            :src="pdfUrl"
-                                                            :page="pageNum"
-                                                            :scale="PDF_RENDER_SCALE"
-                                                            :enable-text-selection="true"
-                                                            :enable-annotations="false"
-                                                            @total-pages="handleNumPages"
-                                                            @pdf-loaded="pageNum === 1 ? handlePdfLoaded($event) : undefined"
-                                                            @error="(error: any) => handlePdfError(error, pageNum)"
-                                                            class="vue-pdf-wrapper"
-                                                        />
+                                                    ref="pdfPagesWrapper"
+                                                    class="pdf-pages-wrapper"
+                                                    :style="pdfWrapperStyle"
+                                                    @mousedown="handleHandModeMouseDown"
+                                                    @mousemove="handleHandModeMouseMove"
+                                                    @mouseup="handleHandModeMouseUp"
+                                                    @mouseleave="handleHandModeMouseUp"
+                                                    @wheel="handlePdfWheel"
+                                                    @touchstart="handleTouchStart"
+                                                    @touchmove="handleTouchMove"
+                                                    @touchend="handleTouchEnd">
+                                                    <div 
+                                                        ref="pdfPagesContainer"
+                                                        class="pdf-pages-container"
+                                                        :style="{ ...pdfContainerStyle, transform: `scale(${zoomScale / PDF_RENDER_SCALE})`, transformOrigin: 'top left' }">
+                                                        <div
+                                                            v-for="pageNum in totalPdfPages"
+                                                            :key="`pdf-page-${pageNum}-${pdfUrl}-${pdfRenderKey}`"
+                                                            :ref="el => setPageRef(el, pageNum)"
+                                                            class="pdf-page-wrapper"
+                                                            :data-page-number="pageNum">
+                                                            <VuePdf
+                                                                :key="`vue-pdf-${pageNum}-${pdfUrl}-${pdfRenderKey}`"
+                                                                :src="pdfUrl"
+                                                                :page="pageNum"
+                                                                :scale="PDF_RENDER_SCALE"
+                                                                :enable-text-selection="true"
+                                                                :enable-annotations="false"
+                                                                @total-pages="handleNumPages"
+                                                                @pdf-loaded="pageNum === 1 ? handlePdfLoaded($event) : undefined"
+                                                                @error="(error: any) => handlePdfError(error, pageNum)"
+                                                                class="vue-pdf-wrapper"
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </el-scrollbar>
@@ -251,7 +298,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick, computed, watch, onUnmounted, shallowRef } from "vue";
-import { ElButton, ElDialog, ElLoading, ElScrollbar } from 'element-plus';
+import { ElButton, ElDialog, ElLoading, ElScrollbar, ElSelect, ElOption } from 'element-plus';
 import { Icon } from 'tdesign-icons-vue-next';
 
 import "../assets/aero-div.css";
@@ -288,7 +335,7 @@ import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import { useWorkspace } from '../stores/workspace';
 
 import 'monaco-latex';
-import { ArrowLeft, ArrowRight, Document, Refresh, ZoomIn, ZoomOut, Rank } from "@element-plus/icons-vue";
+import { ArrowLeft, ArrowRight, Refresh, ZoomIn, ZoomOut } from "@element-plus/icons-vue";
 import { debounce } from 'lodash';
 import localIpcRenderer from "../utils/web-adapter/local-ipc-renderer";
 import { webMainCalls } from "../utils/web-adapter/web-main-calls";
@@ -538,6 +585,7 @@ const mainContainerRef = ref<HTMLElement | null>(null);
 const pdfResizableRef = ref<any>(null);
 const mainWidth = ref(0);
 let mainObserver: ResizeObserver | null = null;
+let pdfContainerObserver: ResizeObserver | null = null;
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
@@ -685,6 +733,8 @@ const toggleRowNumber = () => {
 const showPdfPanel = ref(false)  // 默认不显示，只有在存在 PDF 文件时才显示
 const showConsole = ref(false)  // 默认隐藏终端
 const pdfUrl = ref('')
+const pagesPerRow = ref(1)  // 每行显示的页数，默认1，最大10
+const pdfViewMode = ref<'pointer' | 'hand'>('pointer')  // PDF查看模式：pointer=指针模式，hand=手型模式
 
 // AI 错误分析相关
 const aiErrorAnalysisOutput = ref('')
@@ -709,6 +759,7 @@ const isValidPdfUrl = computed(() => {
 })
 const pdfScrollbarRef = ref<InstanceType<typeof ElScrollbar> | null>(null);
 const pdfPagesContainer = ref<HTMLElement | null>(null);
+const pdfPagesWrapper = ref<HTMLElement | null>(null);
 // 存储每个页面的DOM引用，用于跳转定位
 const pageRefs = new Map<number, HTMLElement>();
 
@@ -747,13 +798,125 @@ const PDF_RENDER_SCALE = 2.5;
 let isComponentUnmounted = false;
 
 // 容器样式（使用 CSS transform 实现缩放，保持原始 DPI）
-// 注意：transform scale 现在应用到整个容器上，所以 gap 使用固定值即可
-// 因为整个容器（包括 gap）会一起缩放
+// 使用grid布局，根据用户选择的每行页数设置列数
 const pdfContainerStyle = computed(() => {
     return {
-        // gap 使用固定值，因为整个容器会通过 transform scale 一起缩放
-        // 这样 gap 也会自动按比例缩放
-        gap: '20px'
+        display: 'grid',
+        gridTemplateColumns: `repeat(${pagesPerRow.value}, 1fr)`,
+        gap: '20px',
+        gridAutoRows: 'min-content',
+        justifyItems: 'start'
+    };
+});
+
+// 处理每行页数变化
+const handlePagesPerRowChange = () => {
+    // 重新计算包装器大小
+    nextTick(() => {
+        updateWrapperSize();
+    });
+};
+
+// 包装器大小：直接等于 pdf-pages-container 的布局大小（scrollHeight/scrollWidth）
+// 因为 transform: scale() 不改变布局大小，所以 scrollHeight 就是正确的包装器高度
+const pdfWrapperHeight = ref<number | string>('auto');
+const pdfWrapperWidth = ref<number | string>('auto');
+
+// 更新包装器大小：通过子元素的实际大小计算，更可靠
+const updateWrapperSize = () => {
+    if (!pdfPagesContainer.value || !pdfPagesWrapper.value) return;
+    
+    nextTick(() => {
+        if (!pdfPagesContainer.value || !pdfPagesWrapper.value) return;
+        
+        // 使用双重 requestAnimationFrame 确保浏览器完成所有渲染
+        requestAnimationFrame(() => {
+            if (!pdfPagesContainer.value || !pdfPagesWrapper.value) return;
+            
+            requestAnimationFrame(() => {
+                if (!pdfPagesContainer.value || !pdfPagesWrapper.value) return;
+                
+                let containerHeight = 0;
+                let containerWidth = 0;
+                
+                // 方法1：优先使用页面引用计算（最准确，只计算实际内容）
+                if (pageRefs.size > 0 && totalPdfPages.value > 0) {
+                    // Grid布局：计算总行数和总列数
+                    const columns = pagesPerRow.value;
+                    const rows = Math.ceil(totalPdfPages.value / columns);
+                    
+                    // 获取第一页的宽度和高度（所有页面尺寸相同）
+                    const firstPageEl = pageRefs.get(1);
+                    if (firstPageEl) {
+                        const pageWidth = firstPageEl.offsetWidth;
+                        const pageHeight = firstPageEl.offsetHeight;
+                        const gap = 20;
+                        const padding = 40;
+                        
+                        // 计算总宽度：列数 * 页面宽度 + (列数 - 1) * gap + padding
+                        containerWidth = columns * pageWidth + (columns - 1) * gap + padding;
+                        
+                        // 计算总高度：行数 * 页面高度 + (行数 - 1) * gap + padding
+                        containerHeight = rows * pageHeight + (rows - 1) * gap + padding;
+                    }
+                }
+                
+                // 方法2：如果页面引用方法失败，使用容器的 scrollHeight（作为后备）
+                if (containerHeight === 0 || containerWidth === 0) {
+                    containerHeight = pdfPagesContainer.value.scrollHeight;
+                    containerWidth = pdfPagesContainer.value.scrollWidth;
+                }
+                
+                // 方法3：如果 scrollHeight 也为 0，使用 offsetHeight（最后的后备）
+                if (containerHeight === 0 || containerWidth === 0) {
+                    containerHeight = pdfPagesContainer.value.offsetHeight;
+                    containerWidth = pdfPagesContainer.value.offsetWidth;
+                }
+                
+                if (containerHeight > 0 && containerWidth > 0) {
+                    pdfWrapperHeight.value = containerHeight;
+                    pdfWrapperWidth.value = containerWidth;
+                    
+                    if (process.env.NODE_ENV === 'development') {
+                        logger.debug('updateWrapperSize', {
+                            method: pageRefs.size > 0 ? 'pageRefs' : (pdfPagesContainer.value.scrollHeight > 0 ? 'scrollHeight' : 'offsetHeight'),
+                            containerHeight,
+                            containerWidth,
+                            totalPdfPages: totalPdfPages.value,
+                            pageRefsSize: pageRefs.size,
+                            scrollHeight: pdfPagesContainer.value.scrollHeight,
+                            scrollWidth: pdfPagesContainer.value.scrollWidth,
+                            offsetHeight: pdfPagesContainer.value.offsetHeight,
+                            offsetWidth: pdfPagesContainer.value.offsetWidth
+                        });
+                    }
+                } else {
+                    // 如果所有方法都失败，使用 auto 让浏览器自动计算
+                    pdfWrapperHeight.value = 'auto';
+                    pdfWrapperWidth.value = 'auto';
+                    
+                    if (process.env.NODE_ENV === 'development') {
+                        logger.warn('updateWrapperSize: 所有方法都失败，使用 auto', {
+                            scrollHeight: pdfPagesContainer.value.scrollHeight,
+                            scrollWidth: pdfPagesContainer.value.scrollWidth,
+                            offsetHeight: pdfPagesContainer.value.offsetHeight,
+                            offsetWidth: pdfPagesContainer.value.offsetWidth,
+                            pageRefsSize: pageRefs.size
+                        });
+                    }
+                }
+            });
+        });
+    });
+};
+
+// 包装器样式
+const pdfWrapperStyle = computed(() => {
+    return {
+        position: 'relative' as const,
+        height: typeof pdfWrapperHeight.value === 'number' ? `${pdfWrapperHeight.value}px` : pdfWrapperHeight.value,
+        width: typeof pdfWrapperWidth.value === 'number' ? `${pdfWrapperWidth.value}px` : pdfWrapperWidth.value,
+        display: 'block'
     };
 });
 
@@ -800,13 +963,191 @@ function setPageRef(el: any, pageNum: number) {
     }
 }
 
-// 处理PDF滚动事件（用于Ctrl+滚轮缩放）
-function handlePdfScroll(event?: WheelEvent) {
-    if (event && (event.ctrlKey || event.metaKey)) {
-        // 检查 PDF 容器是否准备好
-        if (!isPdfContainerReady()) return;
-        
-        // Ctrl/Cmd + 滚轮：缩放
+// 设置PDF查看模式
+const setPdfViewMode = (mode: 'pointer' | 'hand') => {
+    pdfViewMode.value = mode;
+    // 更新滚动条显示状态和光标样式
+    nextTick(() => {
+        if (pdfPagesWrapper.value) {
+            if (mode === 'hand') {
+                pdfPagesWrapper.value.style.cursor = 'grab';
+                pdfPagesWrapper.value.style.userSelect = 'none';
+            } else {
+                pdfPagesWrapper.value.style.cursor = 'default';
+                pdfPagesWrapper.value.style.userSelect = 'text';
+            }
+        }
+    });
+};
+
+// 手型模式拖拽状态
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let scrollStartX = 0;
+let scrollStartY = 0;
+
+// 手型模式鼠标按下
+const handleHandModeMouseDown = (e: MouseEvent) => {
+    if (pdfViewMode.value !== 'hand') return;
+    if (!pdfScrollbarRef.value) return;
+    
+    const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null;
+    const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null;
+    if (!scrollbarWrap) return;
+    
+    // 只处理左键
+    if (e.button !== 0) return;
+    
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    scrollStartX = scrollbarWrap.scrollLeft;
+    scrollStartY = scrollbarWrap.scrollTop;
+    
+    // 设置光标样式
+    if (pdfPagesWrapper.value) {
+        pdfPagesWrapper.value.style.cursor = 'grabbing';
+    }
+    
+    // 添加全局事件监听器
+    document.addEventListener('mousemove', handleHandModeMouseMoveGlobal);
+    document.addEventListener('mouseup', handleHandModeMouseUpGlobal);
+    document.body.style.userSelect = 'none'; // 防止拖拽时选中文本
+    
+    e.preventDefault();
+    e.stopPropagation();
+};
+
+// 手型模式鼠标移动（全局处理，确保鼠标移出元素时也能继续拖拽）
+const handleHandModeMouseMoveGlobal = (e: MouseEvent) => {
+    if (pdfViewMode.value !== 'hand' || !isDragging) return;
+    if (!pdfScrollbarRef.value) return;
+    
+    const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null;
+    const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null;
+    if (!scrollbarWrap) return;
+    
+    const deltaX = dragStartX - e.clientX;
+    const deltaY = dragStartY - e.clientY;
+    
+    scrollbarWrap.scrollLeft = scrollStartX + deltaX;
+    scrollbarWrap.scrollTop = scrollStartY + deltaY;
+    
+    e.preventDefault();
+    e.stopPropagation();
+};
+
+// 手型模式鼠标移动（元素内）
+const handleHandModeMouseMove = (e: MouseEvent) => {
+    handleHandModeMouseMoveGlobal(e);
+};
+
+// 手型模式鼠标释放（全局）
+const handleHandModeMouseUpGlobal = () => {
+    if (pdfViewMode.value !== 'hand') return;
+    
+    isDragging = false;
+    
+    // 移除全局事件监听器
+    document.removeEventListener('mousemove', handleHandModeMouseMoveGlobal);
+    document.removeEventListener('mouseup', handleHandModeMouseUpGlobal);
+    document.body.style.userSelect = ''; // 恢复文本选择
+    
+    // 恢复光标样式
+    if (pdfPagesWrapper.value) {
+        pdfPagesWrapper.value.style.cursor = pdfViewMode.value === 'hand' ? 'grab' : 'default';
+    }
+};
+
+// 手型模式鼠标释放（元素内）
+const handleHandModeMouseUp = () => {
+    handleHandModeMouseUpGlobal();
+};
+
+// 触摸事件状态
+let touchStartDistance = 0;
+let touchStartScale = 1;
+let touchStartScrollX = 0;
+let touchStartScrollY = 0;
+let touchStartX = 0;
+let touchStartY = 0;
+let isPinching = false;
+
+// 计算两点间距离
+const getTouchDistance = (touch1: Touch, touch2: Touch): number => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+};
+
+// 触摸开始
+const handleTouchStart = (e: TouchEvent) => {
+    if (pdfViewMode.value !== 'hand') return;
+    if (!pdfScrollbarRef.value) return;
+    
+    const touches = e.touches;
+    if (touches.length === 2) {
+        // 二指缩放
+        isPinching = true;
+        touchStartDistance = getTouchDistance(touches[0], touches[1]);
+        touchStartScale = zoomScale.value;
+        e.preventDefault();
+    } else if (touches.length === 1) {
+        // 单指拖拽
+        const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null;
+        const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null;
+        if (scrollbarWrap) {
+            isDragging = true;
+            touchStartX = touches[0].clientX;
+            touchStartY = touches[0].clientY;
+            touchStartScrollX = scrollbarWrap.scrollLeft;
+            touchStartScrollY = scrollbarWrap.scrollTop;
+        }
+    }
+};
+
+// 触摸移动
+const handleTouchMove = (e: TouchEvent) => {
+    if (pdfViewMode.value !== 'hand') return;
+    if (!pdfScrollbarRef.value) return;
+    
+    const touches = e.touches;
+    const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null;
+    const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null;
+    
+    if (touches.length === 2 && isPinching && scrollbarWrap) {
+        // 二指缩放
+        const currentDistance = getTouchDistance(touches[0], touches[1]);
+        const scaleRatio = currentDistance / touchStartDistance;
+        const newScale = Math.min(Math.max(touchStartScale * scaleRatio, 0.2), 5);
+        const optimalScale = calculateOptimalScale(newScale);
+        safeUpdateZoomScale(optimalScale);
+        e.preventDefault();
+    } else if (touches.length === 1 && isDragging && scrollbarWrap) {
+        // 单指拖拽
+        const deltaX = touchStartX - touches[0].clientX;
+        const deltaY = touchStartY - touches[0].clientY;
+        scrollbarWrap.scrollLeft = touchStartScrollX + deltaX;
+        scrollbarWrap.scrollTop = touchStartScrollY + deltaY;
+        e.preventDefault();
+    }
+};
+
+// 触摸结束
+const handleTouchEnd = () => {
+    if (pdfViewMode.value !== 'hand') return;
+    
+    isPinching = false;
+    isDragging = false;
+};
+
+// 处理PDF滚轮事件（指针模式：Ctrl+滚轮缩放；手型模式：直接缩放）
+function handlePdfWheel(event: WheelEvent) {
+    if (!isPdfContainerReady()) return;
+    
+    if (pdfViewMode.value === 'hand') {
+        // 手型模式：直接使用滚轮缩放（不需要Ctrl）
         event.preventDefault();
         event.stopPropagation();
         const currentValue = zoomScale.value;
@@ -814,10 +1155,22 @@ function handlePdfScroll(event?: WheelEvent) {
         const newScale = Math.min(Math.max(currentValue + delta, 0.2), 5);
         const optimalScale = calculateOptimalScale(newScale);
         
-        // 只有当optimalScale与currentValue不同时才更新，避免无效更新
         if (Math.abs(optimalScale - currentValue) > 0.05) {
-            // 直接更新，不使用防抖（CSS transform 性能很好）
             safeUpdateZoomScale(optimalScale);
+        }
+    } else {
+        // 指针模式：Ctrl+滚轮缩放
+        if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            event.stopPropagation();
+            const currentValue = zoomScale.value;
+            const delta = event.deltaY > 0 ? -0.1 : 0.1;
+            const newScale = Math.min(Math.max(currentValue + delta, 0.2), 5);
+            const optimalScale = calculateOptimalScale(newScale);
+            
+            if (Math.abs(optimalScale - currentValue) > 0.05) {
+                safeUpdateZoomScale(optimalScale);
+            }
         }
     }
 }
@@ -849,7 +1202,7 @@ async function initPdfJs() {
     // 绑定wheel事件到容器（用于Ctrl+滚轮缩放）
     await nextTick();
     if (pdfPagesContainer.value) {
-        pdfPagesContainer.value.addEventListener('wheel', handlePdfScroll as any, { passive: false });
+        pdfPagesContainer.value.addEventListener('wheel', handlePdfWheel as any, { passive: false });
     }
     
     // 设置滚动监听器（用于自动检测当前页面）
@@ -899,8 +1252,10 @@ let pdfDoc: any = null;        // pdfjs document
 const currentPdfPage = ref(1);
 const totalPdfPages = ref(0);
 const inputPdfPage = ref(1);
+// 跟踪当前已加载的PDF URL，避免重复加载
+let loadedPdfUrl: string | null = null;
 
-// 滚动到指定页面
+// 滚动到指定页面（横向和纵向都居中）
 async function scrollToPage(pageNumber: number) {
     await nextTick();
     const pageElement = pageRefs.get(pageNumber);
@@ -910,10 +1265,24 @@ async function scrollToPage(pageNumber: number) {
         if (scrollbarWrap && pageElement) {
             const containerRect = scrollbarWrap.getBoundingClientRect();
             const pageRect = pageElement.getBoundingClientRect();
+            
+            // 计算纵向居中位置
             const scrollTop = scrollbarWrap.scrollTop;
-            const targetScrollTop = scrollTop + pageRect.top - containerRect.top - 20; // 20px 顶部边距
+            const pageTopInScrollContent = scrollTop + pageRect.top - containerRect.top;
+            const viewportHeight = containerRect.height;
+            const pageHeight = pageRect.height;
+            const targetScrollTop = pageTopInScrollContent - (viewportHeight - pageHeight) / 2;
+            
+            // 计算横向居中位置
+            const scrollLeft = scrollbarWrap.scrollLeft;
+            const pageLeftInScrollContent = scrollLeft + pageRect.left - containerRect.left;
+            const viewportWidth = containerRect.width;
+            const pageWidth = pageRect.width;
+            const targetScrollLeft = pageLeftInScrollContent - (viewportWidth - pageWidth) / 2;
+            
             scrollbarWrap.scrollTo({
                 top: Math.max(0, targetScrollTop),
+                left: Math.max(0, targetScrollLeft),
                 behavior: 'smooth'
             });
         }
@@ -933,7 +1302,7 @@ watch(
     }
 );
 
-// 检测当前视口显示的页面
+// 检测当前视口显示的页面（横向和纵向都在中心）
 function detectCurrentPage() {
     if (!pdfScrollbarRef.value || !pdfPagesContainer.value || totalPdfPages.value === 0) {
         return;
@@ -944,9 +1313,10 @@ function detectCurrentPage() {
     if (!scrollbarWrap) return;
     
     const containerRect = scrollbarWrap.getBoundingClientRect();
-    const viewportCenter = containerRect.top + containerRect.height / 2;
+    const viewportCenterX = containerRect.left + containerRect.width / 2;
+    const viewportCenterY = containerRect.top + containerRect.height / 2;
     
-    // 查找视口中心对应的页面
+    // 查找视口中心（横向和纵向）对应的页面
     let currentPage = 1;
     let minDistance = Infinity;
     
@@ -955,17 +1325,27 @@ function detectCurrentPage() {
         if (!pageElement) continue;
         
         const pageRect = pageElement.getBoundingClientRect();
-        const pageCenter = pageRect.top + pageRect.height / 2;
-        const distance = Math.abs(viewportCenter - pageCenter);
+        const pageCenterX = pageRect.left + pageRect.width / 2;
+        const pageCenterY = pageRect.top + pageRect.height / 2;
         
-        // 如果页面在视口内，优先选择
-        if (pageRect.top <= viewportCenter && pageRect.bottom >= viewportCenter) {
+        // 计算到视口中心的距离（欧几里得距离）
+        const distanceX = Math.abs(viewportCenterX - pageCenterX);
+        const distanceY = Math.abs(viewportCenterY - pageCenterY);
+        const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+        
+        // 如果页面中心在视口中心附近（容差范围内），优先选择
+        const toleranceX = pageRect.width / 2;
+        const toleranceY = pageRect.height / 2;
+        const isInCenter = distanceX <= toleranceX && distanceY <= toleranceY;
+        
+        if (isInCenter) {
+            // 在中心范围内的页面，选择距离最近的
             if (distance < minDistance) {
                 minDistance = distance;
                 currentPage = pageNum;
             }
         } else if (minDistance === Infinity) {
-            // 如果还没有找到在视口内的页面，记录最近的页面
+            // 如果还没有找到在中心范围内的页面，记录最近的页面
             if (distance < minDistance) {
                 minDistance = distance;
                 currentPage = pageNum;
@@ -1260,11 +1640,22 @@ watch(
             textBuffer = currentTex.value ?? '';
             return;
         }
+        // 如果PDF已经加载过且URL相同，不需要重新加载，只需要显示面板
         if (pdfUrl.value && pdfInitialized) {
-            nextTick(async () => {
-                const loaded = await loadPdf(pdfUrl.value);
-                showPdfPanel.value = loaded;
-            });
+            if (pdfDoc && loadedPdfUrl === pdfUrl.value) {
+                // PDF已经加载过，只需要显示面板
+                showPdfPanel.value = true;
+                // 更新包装器大小
+                nextTick(() => {
+                    updateWrapperSize();
+                });
+            } else {
+                // PDF未加载或URL变化，需要加载
+                nextTick(async () => {
+                    const loaded = await loadPdf(pdfUrl.value);
+                    showPdfPanel.value = loaded;
+                });
+            }
         }
     },
     { immediate: true },
@@ -1276,11 +1667,19 @@ watch(
         //logger.debug("LaTeXEditor currentPath changed", { path })
         if (!path || !path.toLowerCase().endsWith('.tex')) {
             pdfUrl.value = '';
+            loadedPdfUrl = null;
             showPdfPanel.value = false;
             return;
         }
         const pdfPath = path.toLowerCase().replace('.tex', '.pdf');
         const nextUrl = encodeFilePathToUrl(pdfPath);
+        
+        // 如果URL没有变化，不需要重新加载
+        if (pdfUrl.value === nextUrl && pdfDoc && loadedPdfUrl === nextUrl) {
+            // URL相同且已加载，不需要重新加载
+            return;
+        }
+        
         pdfUrl.value = nextUrl;
         if (!isActive.value) return;
         if (pdfInitialized) {
@@ -1298,12 +1697,17 @@ watch(
         nextTick(() => {
             if (visible) {
                 ensurePdfWithinBounds();
-                // 如果PDF URL存在且已初始化，重新加载PDF
-                if (pdfUrl.value && pdfInitialized && pdfDoc) {
-                    // PDF文档已存在，VuePdf 组件会自动响应 page 和 scale 变化
-                } else if (pdfUrl.value && pdfInitialized) {
-                    // PDF文档不存在，需要重新加载
-                    loadPdf(pdfUrl.value, true); // 保留当前页码
+                // 如果PDF URL存在且已初始化
+                if (pdfUrl.value && pdfInitialized) {
+                    // 如果PDF已经加载过且URL相同，不需要重新加载
+                    if (pdfDoc && loadedPdfUrl === pdfUrl.value) {
+                        // PDF文档已存在，VuePdf 组件会自动响应 page 和 scale 变化
+                        // 更新包装器大小
+                        updateWrapperSize();
+                    } else {
+                        // PDF文档不存在或URL变化，需要重新加载
+                        loadPdf(pdfUrl.value, true); // 保留当前页码
+                    }
                 }
             } else {
                 // 当PDF面板隐藏时，调整面板大小
@@ -1315,15 +1719,41 @@ watch(
     },
 );
 
-// 监听 zoomScale 变化，用于调试
+// 移除 zoomScale 的监听
+// 因为 transform: scale() 不改变布局大小，所以 pdf-pages-wrapper 的大小在缩放时不应该改变
+// 只在 PDF 加载完成时计算一次大小即可
+
+// 监听 PDF 页面数量变化，更新包装器大小
+watch(
+    () => totalPdfPages.value,
+    () => {
+        nextTick(() => {
+            updateWrapperSize();
+        });
+    }
+);
+
+// 监听 zoomScale 变化，更新布局
 watch(
     () => zoomScale.value,
     (newScale, oldScale) => {
         if (process.env.NODE_ENV === 'development') {
             //logger.debug('zoomScale 变化', { oldScale, newScale });
         }
-        // VuePdf 组件应该会自动响应 scale prop 的变化
-        // 如果 VuePdf 不支持动态更新，可能需要使用其他方法（如 CSS transform）
+        // 缩放变化时，重新计算包装器大小
+        nextTick(() => {
+            updateWrapperSize();
+        });
+    }
+);
+
+// 监听 pagesPerRow 变化，更新布局
+watch(
+    () => pagesPerRow.value,
+    () => {
+        nextTick(() => {
+            updateWrapperSize();
+        });
     }
 );
 
@@ -1731,14 +2161,45 @@ function handlePdfLoaded(pdf: any) {
     if (pdf && pdf.numPages) {
         totalPdfPages.value = pdf.numPages;
     }
+    // PDF 加载完成后，更新包装器大小
+    nextTick(() => {
+        updateWrapperSize();
+    });
 }
 
 // 在加载 PDF 后初始化
 // 返回 true 表示加载成功，false 表示加载失败（文件不存在等）
-async function loadPdf(url: string, preservePage = false): Promise<boolean> {
+async function loadPdf(url: string, preservePage = false, forceReload = false): Promise<boolean> {
     if (!url || url.trim() === '') {
         // 如果 URL 为空，不加载 PDF
+        loadedPdfUrl = null;
         return false;
+    }
+    
+    // 如果PDF已经加载过且URL相同，且不强制重新加载，则跳过重新加载
+    if (!forceReload && pdfDoc && loadedPdfUrl === url) {
+        // PDF已经加载过，只需要恢复显示状态
+        logger.debug('PDF已加载，跳过重新加载', { url });
+        
+        // 恢复页码（如果要求保留）
+        if (preservePage) {
+            const savedPage = currentPdfPage.value;
+            const targetPage = Math.min(Math.max(savedPage, 1), totalPdfPages.value);
+            currentPdfPage.value = targetPage;
+            inputPdfPage.value = targetPage;
+            await nextTick();
+            scrollToPage(targetPage);
+        }
+        
+        // 确保滚动监听器已设置
+        await nextTick();
+        setupScrollListener();
+        
+        // 更新包装器大小
+        await nextTick();
+        updateWrapperSize();
+        
+        return true; // 已加载，返回成功
     }
     
     // 保存当前页码（如果要求保留）
@@ -1749,6 +2210,9 @@ async function loadPdf(url: string, preservePage = false): Promise<boolean> {
         const loadingTask = createLoadingTask(url);
         pdfDoc = await loadingTask.promise;
         totalPdfPages.value = pdfDoc.numPages;
+        
+        // 记录已加载的URL
+        loadedPdfUrl = url;
         
         // 恢复或设置页码
         const targetPage = preservePage ? Math.min(Math.max(savedPage, 1), pdfDoc.numPages) : 1;
@@ -1771,6 +2235,10 @@ async function loadPdf(url: string, preservePage = false): Promise<boolean> {
         
         // 异步建立映射关系
         buildPdfToSourceMapping();
+        
+        // PDF 加载完成后，更新包装器大小
+        await nextTick();
+        updateWrapperSize();
         
         return true; // 加载成功
     } catch (error: any) {
@@ -1802,6 +2270,7 @@ async function loadPdf(url: string, preservePage = false): Promise<boolean> {
         
         // 清空 PDF URL，避免重复尝试加载
         pdfUrl.value = '';
+        loadedPdfUrl = null;
         
         return false; // 加载失败
     }
@@ -1884,10 +2353,14 @@ const compile = async () => {
             compileConsoleListeners = {};
             
             eventBus.emit("show-success",t("latexEditor.notification.compileSuccess"));
-            pdfUrl.value = encodeFilePathToUrl(compileResult.pdfPath);
+            const newPdfUrl = encodeFilePathToUrl(compileResult.pdfPath);
             
-            // 重新加载PDF并建立映射
-            const loaded = await loadPdf(pdfUrl.value);
+            // 如果URL变化了，需要强制重新加载
+            const forceReload = pdfUrl.value !== newPdfUrl;
+            pdfUrl.value = newPdfUrl;
+            
+            // 重新加载PDF并建立映射（如果URL变化了，强制重新加载）
+            const loaded = await loadPdf(pdfUrl.value, false, forceReload);
             // 编译成功后，如果 PDF 加载成功，自动显示 PDF 面板
             if (loaded) {
                 showPdfPanel.value = true;
@@ -1895,9 +2368,6 @@ const compile = async () => {
         }
         else{
             eventBus.emit("show-error",t("latexEditor.notification.compileFailed",{ code:compileResult?.exitCode || compileResult?.code }));
-            
-            // 等待一小段时间，确保所有异步的 console 输出都被收集到
-            await new Promise(resolve => setTimeout(resolve, 200));
             
             // 如果编译失败，使用AI分析错误（在移除监听器之前调用，确保能收集到所有输出）
             await analyzeCompileError(compileResult);
@@ -1949,10 +2419,27 @@ const analyzeCompileError = async (compileResult: any) => {
         aiErrorAnalysisOutput.value = '';
         lastOutputLength = 0;
         
-        // 提取错误输出（只包含错误部分，即红色部分）
-        // 优先使用 stderr（这应该是错误输出）
-        let errorOutput = compileConsoleOutput.stderr || 
-                           compileResult?.errorOutput || compileResult?.stderr || '';
+        // 收集完整的控制台输出（stdout + stderr）
+        // 这是最重要的信息，包含了完整的编译输出，包括行号等关键信息
+        const fullConsoleOutput: string[] = [];
+        
+        // 添加 stderr（错误输出）
+        if (compileConsoleOutput.stderr && compileConsoleOutput.stderr.trim().length > 0) {
+            fullConsoleOutput.push('=== 标准错误输出 (stderr) ===');
+            fullConsoleOutput.push(compileConsoleOutput.stderr);
+        }
+        
+        // 添加 stdout（标准输出，可能也包含错误信息）
+        if (compileConsoleOutput.stdout && compileConsoleOutput.stdout.trim().length > 0) {
+            fullConsoleOutput.push('=== 标准输出 (stdout) ===');
+            fullConsoleOutput.push(compileConsoleOutput.stdout);
+        }
+        
+        // 组合完整的控制台输出
+        const completeConsoleOutput = fullConsoleOutput.join('\n\n');
+        
+        // 提取错误输出（用于简要显示，但完整输出更重要）
+        let errorOutput = compileConsoleOutput.stderr || '';
         
         // 如果 stderr 为空，尝试从 stdout 中提取错误行
         if (!errorOutput || errorOutput.trim().length === 0) {
@@ -1971,40 +2458,31 @@ const analyzeCompileError = async (compileResult: any) => {
             }
         }
         
-        // 如果还是没有错误输出，尝试从 compileResult.stdout 中提取
+        // 如果还是没有错误输出，使用完整的控制台输出
         if (!errorOutput || errorOutput.trim().length === 0) {
-            if (compileResult?.stdout) {
-                const stdoutLines = compileResult.stdout.split('\n');
-                const errorLines = stdoutLines.filter((line: string) => {
-                    const lowerLine = line.toLowerCase().trim();
-                    return lowerLine.includes('error') || 
-                           lowerLine.startsWith('!') ||
-                           /error:\s/i.test(line);
-                });
-                if (errorLines.length > 0) {
-                    errorOutput = errorLines.join('\n');
-                }
-            }
+            errorOutput = completeConsoleOutput || '编译失败，但未收集到错误信息';
         }
+        
+        // 获取退出代码
+        const exitCode = compileResult?.exitCode || compileResult?.code;
         
         logger.debug('AI错误分析 - 收集到的错误信息', {
             hasStderr: !!compileConsoleOutput.stderr,
             hasStdout: !!compileConsoleOutput.stdout,
             stderrLength: compileConsoleOutput.stderr?.length || 0,
             stdoutLength: compileConsoleOutput.stdout?.length || 0,
+            completeConsoleOutputLength: completeConsoleOutput.length,
             compileResultStatus: compileResult?.status,
-            compileResultExitCode: compileResult?.exitCode || compileResult?.code,
+            compileResultExitCode: exitCode,
             errorOutputLength: errorOutput.length
         });
         
-        // 如果错误输出为空，使用备用信息
-        if (!errorOutput || errorOutput.trim().length === 0) {
-            const exitCode = compileResult?.exitCode || compileResult?.code;
+        // 如果完全没有控制台输出，使用备用信息
+        if (!completeConsoleOutput || completeConsoleOutput.trim().length === 0) {
             if (exitCode !== undefined && exitCode !== null) {
-                errorOutput = `编译失败，退出代码: ${exitCode}`;
                 logger.info('使用备用错误信息进行AI分析', { exitCode });
             } else {
-                logger.warn('没有错误输出信息，跳过AI分析', {
+                logger.warn('没有控制台输出信息，跳过AI分析', {
                     compileResult: compileResult,
                     compileConsoleOutput: compileConsoleOutput
                 });
@@ -2026,18 +2504,30 @@ const analyzeCompileError = async (compileResult: any) => {
         
         let prompt = '';
         if (template) {
+            // 替换模板中的占位符
             prompt = template
                 .replace(/{errorOutput}/g, errorOutput)
+                .replace(/{completeConsoleOutput}/g, completeConsoleOutput || errorOutput)
                 .replace(/{texPath}/g, currentPath.value || '未知路径')
-                .replace(/{latexSource}/g, latexSourceWithLineNumbers);
+                .replace(/{latexSource}/g, latexSourceWithLineNumbers)
+                .replace(/{exitCode}/g, exitCode !== undefined && exitCode !== null ? String(exitCode) : '未知');
         } else {
             // 回退提示词
-            prompt = `你是一个专业的LaTeX编译错误分析助手。请简洁精炼地分析以下编译错误：
+            prompt = `你是一个专业的LaTeX编译错误分析助手。请仔细分析以下编译错误：
 
-**编译错误输出：**
+**重要提示：请务必参考完整的控制台输出，特别是其中的行号信息！控制台输出中已经明确指出了错误所在的行号，请严格按照控制台输出中的行号信息进行分析。**
+
+**完整控制台输出（包含所有编译信息，这是最重要的参考信息）：**
+\`\`\`
+${completeConsoleOutput || errorOutput}
+\`\`\`
+
+**编译错误摘要：**
 \`\`\`
 ${errorOutput}
 \`\`\`
+
+**退出代码：** ${exitCode !== undefined && exitCode !== null ? exitCode : '未知'}
 
 **LaTeX 原文（已标注行号）：**
 \`\`\`latex
@@ -2046,10 +2536,11 @@ ${latexSourceWithLineNumbers}
 
 **请分析并输出：**
 1. **错误原因**：一句话说明错误原因
-2. **错误位置**：指出具体行号或命令
+2. **错误位置**：**必须参考控制台输出中的行号信息**，指出具体行号或命令
 3. **解决方法**：提供简洁的修复方案（如需要添加的包、修改的代码等）
 
 **输出要求：**
+- **必须参考完整控制台输出中的行号信息**，不要猜测或忽略控制台已经指出的错误位置
 - 语言精炼，直击要害，不要过于详细
 - 直接输出分析结果，从第一行开始就是分析内容
 - 避免冗长的解释和前缀，只输出必要的分析和建议`;
@@ -2159,8 +2650,8 @@ const handlePdfMenuClick = async (item: string) => {
     switch (item) {
         case 'refresh':
             if (pdfUrl.value) {
-                // 刷新时保留当前页码
-                await loadPdf(pdfUrl.value, true);
+                // 刷新时保留当前页码，强制重新加载
+                await loadPdf(pdfUrl.value, true, true);
                 eventBus.emit("show-success", t("latexEditor.notification.refreshSuccess"));
             }
             break;
@@ -3141,69 +3632,61 @@ const initEditor = () => {
     
     // 拦截 Monaco 的粘贴命令（处理 Ctrl+V 粘贴图片）
     // 使用 addCommand 来拦截粘贴命令，这样可以在 Monaco 处理之前检查图片
-    if (editor.value) {
-        editor.value.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, async () => {
-            // 先尝试 IPC 读取图片（更可靠）
-            const imageHandled = await handlePasteImage();
-            if (imageHandled) {
-                // 图片已处理，阻止默认粘贴行为（不执行任何操作）
-                return;
-            }
-            
-            // 如果没有图片，执行默认的粘贴命令
-            if (editor.value) {
-                editor.value.trigger('keyboard', 'editor.action.clipboardPasteAction', null);
-            }
-        });
-    }
-    
-    // 同时监听 DOM 粘贴事件（作为备用，处理某些边缘情况）
-    if (editorEl.value) {
-        const handlePasteEvent = async (e: ClipboardEvent) => {
-            // 先快速检查 clipboardData.items 是否有图片（同步检查，立即决定是否阻止）
-            const items = e.clipboardData?.items;
-            let hasImageInClipboard = false;
-            if (items) {
-                for (let i = 0; i < items.length; i++) {
-                    const item = items[i];
-                    if (item.type.indexOf('image') !== -1) {
-                        hasImageInClipboard = true;
-                        break;
+    // 注意：必须在编辑器完全初始化后注册，使用 nextTick 确保 DOM 和 Monaco 都准备好
+    // 这样可以避免快捷键失效的问题（DOM 事件监听器可能会干扰 Monaco 的内部处理）
+    nextTick(() => {
+        if (editor.value) {
+            editor.value.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, async () => {
+                // 确保编辑器有焦点（快捷键需要焦点才能工作）
+                if (editor.value && !editor.value.hasTextFocus()) {
+                    editor.value.focus();
+                }
+                
+                // 先尝试 IPC 读取图片（更可靠）
+                // 使用 Promise.race 确保不会阻塞太久，减少超时时间以提高响应速度
+                const imageHandled = await Promise.race([
+                    handlePasteImage(),
+                    new Promise<boolean>(resolve => setTimeout(() => resolve(false), 50)) // 50ms 超时，更快响应
+                ]);
+                
+                if (imageHandled) {
+                    // 图片已处理，阻止默认粘贴行为（不执行任何操作）
+                    return;
+                }
+                
+                // 如果没有图片，使用 textEditorAdapter 的 paste 方法执行文本粘贴
+                // 这和使用右键菜单的方式一致，确保行为统一
+                if (textEditorAdapter.value && typeof textEditorAdapter.value.paste === 'function') {
+                    try {
+                        await textEditorAdapter.value.paste();
+                    } catch (error) {
+                        logger.warn('粘贴文本失败', error);
+                        // 如果 textEditorAdapter 失败，尝试使用 Monaco 的原生命令
+                        if (editor.value) {
+                            try {
+                                editor.value.trigger('keyboard', 'editor.action.clipboardPasteAction', null);
+                            } catch (triggerError) {
+                                logger.warn('Monaco Editor 粘贴命令失败', triggerError);
+                            }
+                        }
+                    }
+                } else {
+                    // 如果 textEditorAdapter 不可用，使用 Monaco 的原生命令
+                    if (editor.value) {
+                        try {
+                            editor.value.trigger('keyboard', 'editor.action.clipboardPasteAction', null);
+                        } catch (error) {
+                            logger.warn('Monaco Editor 粘贴命令失败', error);
+                        }
                     }
                 }
-            }
-            
-            // 如果有图片，立即阻止默认粘贴行为，然后异步处理图片
-            if (hasImageInClipboard) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // 异步处理图片（使用 IPC 读取，更可靠）
-                const imageHandled = await handlePasteImage();
-                if (!imageHandled) {
-                    logger.warn('检测到图片但处理失败');
-                }
-                return;
-            }
-            
-            // 如果没有在 clipboardData 中检测到图片，也尝试使用 IPC 读取（作为备用检查）
-            // 这适用于某些情况下 clipboardData 不可用的情况
-            const imageHandled = await handlePasteImage();
-            if (imageHandled) {
-                // IPC 检测到图片并已处理，阻止默认粘贴行为
-                e.preventDefault();
-                e.stopPropagation();
-                return;
-            }
-            
-            // 如果没有图片，不阻止事件，让 Monaco 正常处理文本粘贴
-        };
-        
-        editorEl.value.addEventListener('paste', handlePasteEvent, true); // 使用 capture 阶段确保优先处理
-        
-        // 保存清理函数
-        (editor.value as any)._pasteHandler = handlePasteEvent;
-    }
+            });
+        }
+    });
+    
+    // 注意：不再使用 DOM paste 事件监听器，完全依赖 Monaco 的 addCommand
+    // 这样可以避免事件冲突和时序问题，确保快捷键正常工作
+    // DOM 事件监听器可能会在 Monaco 内部处理之前拦截事件，导致快捷键失效
     
     // 监听键盘事件，检测Enter、Space等触发按键
     editor.value.onKeyDown((e: monaco.IKeyboardEvent) => {
@@ -3349,6 +3832,15 @@ onMounted(async () => {
             // 保存清理函数
             (window as any)._latexEditorResizeHandler = handleWindowResize;
         }
+        
+        // 监听 PDF 容器大小变化，更新包装器大小
+        await nextTick();
+        if (pdfPagesContainer.value) {
+            pdfContainerObserver = new ResizeObserver(() => {
+                updateWrapperSize();
+            });
+            pdfContainerObserver.observe(pdfPagesContainer.value);
+        }
     }
     catch (e) {
         logger.error(e);
@@ -3372,6 +3864,12 @@ onUnmounted(() => {
         mainObserver = null;
     }
     
+    // 清理 PDF 容器观察器
+    if (pdfContainerObserver) {
+        pdfContainerObserver.disconnect();
+        pdfContainerObserver = null;
+    }
+    
     // 停止错误分析监听
     if (errorAnalysisWatchStop) {
         errorAnalysisWatchStop();
@@ -3392,8 +3890,13 @@ onUnmounted(() => {
     
     // 移除wheel事件监听器
     if (pdfPagesContainer.value) {
-        pdfPagesContainer.value.removeEventListener('wheel', handlePdfScroll as any);
+        pdfPagesContainer.value.removeEventListener('wheel', handlePdfWheel as any);
     }
+    
+    // 清理手型模式全局事件监听器
+    document.removeEventListener('mousemove', handleHandModeMouseMoveGlobal);
+    document.removeEventListener('mouseup', handleHandModeMouseUpGlobal);
+    document.body.style.userSelect = '';
     
     // 移除滚动监听器
     removeScrollListener();
@@ -3409,11 +3912,8 @@ onUnmounted(() => {
     
     eventBus.emit('is-need-save', true)
     
-    // 清理粘贴事件监听器
-    if (editorEl.value && (editor.value as any)?._pasteHandler) {
-        editorEl.value.removeEventListener('paste', (editor.value as any)._pasteHandler);
-        delete (editor.value as any)._pasteHandler;
-    }
+    // 注意：不再需要清理 paste 事件监听器，因为我们已经移除了 DOM 事件监听器
+    // 现在完全依赖 Monaco 的 addCommand，它会自动清理
     
     if (editorId.value) {
         try {
@@ -3456,6 +3956,10 @@ onUnmounted(() => {
     
     // 移除AI分析开关监听器
     eventBus.off('console-ai-analysis-toggle');
+    
+    // 清理PDF加载状态
+    loadedPdfUrl = null;
+    pdfDoc = null;
 });
 
 function onAcceptSuggestion(text: string) {
@@ -3663,6 +4167,21 @@ function onCancelSuggestion() {
     text-overflow: ellipsis;
 }
 
+.pdf-toolbar__pages-per-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: 4px;
+}
+
+.pdf-toolbar__pages-per-row-label {
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--el-text-color-regular);
+}
+
 .pdf-toolbar-icon {
     display: flex;
     align-items: center;
@@ -3676,11 +4195,11 @@ function onCancelSuggestion() {
 }
 
 .pdf-toolbar-icon:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: rgba(66, 66, 66, 0.35);
 }
 
 .pdf-toolbar-icon.active {
-    background-color: rgba(0, 0, 0, 0.15);
+    background-color: rgba(99, 99, 99, 0.45);
     color: var(--el-color-primary);
 }
 
@@ -3703,16 +4222,48 @@ function onCancelSuggestion() {
     overflow-y: auto;
 }
 
+/* 手型模式：隐藏滚动条 */
+.pdf-preview-container.hand-mode :deep(.el-scrollbar__wrap) {
+    overflow: hidden;
+}
+
+.pdf-preview-container.hand-mode :deep(.el-scrollbar__bar) {
+    display: none;
+}
+
+/* 手型模式：设置光标 */
+.pdf-preview-container.hand-mode .pdf-pages-wrapper {
+    cursor: grab;
+    user-select: none;
+}
+
+.pdf-preview-container.hand-mode .pdf-pages-wrapper:active {
+    cursor: grabbing;
+}
+
+/* 指针模式：允许文本选择 */
+.pdf-preview-container.pointer-mode .pdf-pages-wrapper {
+    cursor: default;
+    user-select: text;
+}
+
+/* 包装器：根据缩放比例动态调整大小，避免滚动条过长和底部空白 */
+.pdf-pages-wrapper {
+    position: relative;
+    display: block;
+    /* 高度和宽度通过内联样式动态设置，直接等于 pdf-pages-container 的布局大小 */
+    /* 确保左对齐 */
+    text-align: left;
+}
+
 .pdf-pages-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    /* grid布局通过内联样式动态设置 */
     padding: 20px;
     /* gap 使用固定值，因为整个容器会通过 transform scale 一起缩放 */
     /* gap 会随着容器的缩放自动按比例调整 */
     /* transform scale 通过内联样式动态设置在容器上 */
-    min-height: 100%;
-    min-width: 100%;  /* 允许内容横向扩展，触发横向滚动 */
+    /* 移除 min-height 和 min-width，让容器根据实际内容大小自适应 */
+    /* 包装器会根据缩放比例动态调整大小 */
     box-sizing: border-box;
     overflow: visible;  /* 内层直接 visible，让内容自然溢出 */
     /* 优化渲染质量 */
@@ -3723,14 +4274,14 @@ function onCancelSuggestion() {
 
 .pdf-page-wrapper {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;  /* 左对齐，不要居中 */
     align-items: flex-start;
     background-color: #ffffff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     /* 容器大小自动匹配内容，不设置固定宽度 */
     width: fit-content;
     /* 移除 max-width 限制，允许页面在缩放后超出容器宽度，触发横向滚动 */
-    margin: 0 auto;
+    margin: 0;  /* 移除 auto，确保左对齐 */
     flex-shrink: 0;  /* 防止页面被压缩 */
     /* transform scale 现在应用到父容器 .pdf-pages-container 上 */
     /* 这样整个容器（包括 gap）会一起缩放，保持布局一致性 */
@@ -3803,3 +4354,4 @@ function onCancelSuggestion() {
     z-index: 1000;
 }
 </style>
+

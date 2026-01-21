@@ -100,13 +100,6 @@ class PathServiceImpl implements PathService {
   }
 
   /**
-   * 获取tectonic可执行文件路径
-   */
-  getTectonicPath(): FilePath {
-    return this.getResourceFile('tectonic.exe');
-  }
-
-  /**
    * 获取Tesseract训练数据文件夹路径
    */
   getTesseractDataPath(): FilePath {

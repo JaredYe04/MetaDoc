@@ -222,6 +222,8 @@ export interface FileConversionService {
 /** LaTeX编译服务接口 */
 export interface LaTeXService {
   compileLatexToPDF(config: LaTeXCompileConfig): Promise<LaTeXCompileResult>;
+  isTectonicAvailable(): boolean;
+  getTectonicVersion(): Promise<string | null>;
 }
 
 /** 路径服务接口 */

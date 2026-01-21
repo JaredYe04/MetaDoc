@@ -1,12 +1,12 @@
 /**
  * LaTeX 编译服务 - TypeScript 重构版本
  * 将 LaTeX 代码编译为 PDF 文档
+ * 使用 node-latex-compiler 库进行跨平台编译
  */
 
-import { exec, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs';
-import pathService from './path-service';
+import { compile, isAvailable, getVersion } from 'node-latex-compiler';
 import type { 
   FilePath, 
   LaTeXCompileResult, 
@@ -16,16 +16,14 @@ import type {
 import type { BrowserWindow } from 'electron';
 import { createMainLogger } from '../logger';
 
-const logger=createMainLogger("latex-service");
+const logger = createMainLogger("latex-service");
 
 /**
  * LaTeX 编译服务实现类
  */
 class LaTeXServiceImpl implements LaTeXService {
-  private readonly tectonicPath: FilePath;
-
   constructor() {
-    this.tectonicPath = pathService.getTectonicPath();
+    // 不再需要 tectonicPath，由 node-latex-compiler 自动管理
   }
 
   /**
@@ -42,39 +40,85 @@ class LaTeXServiceImpl implements LaTeXService {
       customPdfFileName
     } = config;
 
-    return new Promise((resolve) => {
-      try {
-        // 验证输入
-        if (!tex || tex.trim() === '') {
-          return resolve({ status: 'failed', exitCode: -1 });
-        }
-
-        // 设置输出目录
-        const actualOutputDir = outputDir || path.dirname(texFilePath);
-        this.ensureDirectoryExists(actualOutputDir);
-
-        // 创建临时 tex 文件
-        const tempTexPath = this.createTempTexFile(actualOutputDir, tex);
-
-        // 确定输出 PDF 路径
-        const pdfFileName = customPdfFileName || 
-          path.basename(texFilePath, path.extname(texFilePath)) + '.pdf';
-        const pdfPath = path.join(actualOutputDir, pdfFileName);
-
-        // 执行编译
-        this.executeCompilation(
-          tempTexPath,
-          actualOutputDir,
-          pdfPath,
-          mainWindow,
-          resolve
-        );
-
-      } catch (error) {
-        logger.error('LaTeX compilation setup error:', error);
-        resolve({ status: 'failed', exitCode: -1 });
+    try {
+      // 验证输入
+      if (!tex || tex.trim() === '') {
+        return { status: 'failed', exitCode: -1 };
       }
-    });
+
+      // 设置输出目录
+      const actualOutputDir = outputDir || (texFilePath ? path.dirname(texFilePath) : process.cwd());
+      this.ensureDirectoryExists(actualOutputDir);
+
+      // 确定输出 PDF 路径
+      const pdfFileName = customPdfFileName || 
+        (texFilePath ? path.basename(texFilePath, path.extname(texFilePath)) + '.pdf' : 'output.pdf');
+      const outputFile = path.join(actualOutputDir, pdfFileName);
+
+      // 准备输出流处理器
+      const stdoutBuffer: string[] = [];
+      const stderrBuffer: string[] = [];
+
+      // 调用 node-latex-compiler 进行编译
+      const result = await compile({
+        tex: tex,
+        outputDir: actualOutputDir,
+        outputFile: outputFile,
+        onStdout: (data: string) => {
+          stdoutBuffer.push(data);
+          if (mainWindow) {
+            mainWindow.webContents.send('console-out', {
+              key: 'latex',
+              content: data,
+              type: 'out'
+            });
+          }
+        },
+        onStderr: (data: string) => {
+          stderrBuffer.push(data);
+          if (mainWindow) {
+            mainWindow.webContents.send('console-err', {
+              key: 'latex',
+              content: data,
+              type: 'err'
+            });
+          }
+        }
+      });
+
+      // 转换结果格式以匹配我们的接口
+      if (result.status === 'success' && result.pdfPath) {
+        // node-latex-compiler 可能生成的文件名与预期不同，需要重命名
+        if (result.pdfPath !== outputFile && fs.existsSync(result.pdfPath)) {
+          // 如果生成的 PDF 文件名不同，重命名
+          if (fs.existsSync(outputFile)) {
+            fs.unlinkSync(outputFile); // 删除旧文件
+          }
+          fs.renameSync(result.pdfPath, outputFile);
+        }
+        return {
+          status: 'success',
+          pdfPath: outputFile
+        };
+      } else {
+        return {
+          status: 'failed',
+          exitCode: result.exitCode || -1
+        };
+      }
+
+    } catch (error) {
+      logger.error('LaTeX compilation error:', error);
+      if (mainWindow) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        mainWindow.webContents.send('console-err', {
+          key: 'latex',
+          content: errorMessage,
+          type: 'err'
+        });
+      }
+      return { status: 'failed', exitCode: -1 };
+    }
   }
 
   /**
@@ -87,169 +131,24 @@ class LaTeXServiceImpl implements LaTeXService {
   }
 
   /**
-   * 创建临时 tex 文件
-   */
-  private createTempTexFile(outputDir: FilePath, tex: string): FilePath {
-    const tempTexPath = path.join(outputDir, `__temp_compile_${Date.now()}.tex`);
-    fs.writeFileSync(tempTexPath, tex, 'utf-8');
-    return tempTexPath;
-  }
-
-  /**
-   * 执行编译命令
-   */
-  private executeCompilation(
-    tempTexPath: FilePath,
-    outputDir: FilePath,
-    finalPdfPath: FilePath,
-    mainWindow: BrowserWindow | undefined,
-    resolve: (result: LaTeXCompileResult) => void
-  ): void {
-    const cmd = `"${this.tectonicPath}" "${tempTexPath}" --outdir="${outputDir}"`;
-    const child: ChildProcess = exec(cmd);
-
-    // 处理标准输出
-    if (child.stdout) {
-      child.stdout.on('data', (data: Buffer) => {
-        if (mainWindow) {
-          mainWindow.webContents.send('console-out', {
-            key: 'latex',
-            content: data.toString(),
-            type: 'out'
-          });
-        }
-      });
-    }
-
-    // 处理错误输出
-    if (child.stderr) {
-      child.stderr.on('data', (data: Buffer) => {
-        if (mainWindow) {
-          mainWindow.webContents.send('console-err', {
-            key: 'latex',
-            content: data.toString(),
-            type: 'err'
-          });
-        }
-      });
-    }
-
-    // 处理编译完成
-    child.on('close', (code: number | null) => {
-      this.handleCompilationComplete(
-        code,
-        tempTexPath,
-        outputDir,
-        finalPdfPath,
-        resolve
-      );
-    });
-
-    // 处理进程错误
-    child.on('error', (error) => {
-      logger.error('LaTeX compilation process error:', error);
-      this.cleanupTempFile(tempTexPath);
-      if (mainWindow) {
-        mainWindow.webContents.send('console-err', {
-          key: 'latex',
-          content: String(error),
-          type: 'err'
-        });
-      }
-      resolve({ status: 'failed', exitCode: -1 });
-    });
-  }
-
-  /**
-   * 处理编译完成事件
-   */
-  private handleCompilationComplete(
-    exitCode: number | null,
-    tempTexPath: FilePath,
-    outputDir: FilePath,
-    finalPdfPath: FilePath,
-    resolve: (result: LaTeXCompileResult) => void
-  ): void {
-    try {
-      // 清理临时文件
-      this.cleanupTempFile(tempTexPath);
-
-      // 处理临时 PDF 文件
-      const tempPdfPath = this.getTempPdfPath(tempTexPath, outputDir);
-      
-      if (fs.existsSync(tempPdfPath)) {
-        // 重命名为最终 PDF 文件
-        fs.renameSync(tempPdfPath, finalPdfPath);
-      }
-
-      // 检查编译结果
-      if (exitCode === 0 && fs.existsSync(finalPdfPath)) {
-        resolve({ status: 'success', pdfPath: finalPdfPath });
-      } else {
-        resolve({ status: 'failed', exitCode: exitCode || -1 });
-      }
-
-    } catch (error) {
-      logger.warn('Error during compilation cleanup:', error);
-      resolve({ status: 'failed', exitCode: exitCode || -1 });
-    }
-  }
-
-  /**
-   * 获取临时 PDF 文件路径
-   */
-  private getTempPdfPath(tempTexPath: FilePath, outputDir: FilePath): FilePath {
-    const tempBaseName = path.basename(tempTexPath, '.tex');
-    return path.join(outputDir, tempBaseName + '.pdf');
-  }
-
-  /**
-   * 清理临时文件
-   */
-  private cleanupTempFile(tempTexPath: FilePath): void {
-    try {
-      if (fs.existsSync(tempTexPath)) {
-        fs.unlinkSync(tempTexPath);
-      }
-    } catch (error) {
-      logger.warn('Failed to cleanup temp file:', tempTexPath, error);
-    }
-  }
-
-  /**
-   * 检查 tectonic 是否可用
+   * 检查 Tectonic 是否可用
+   * 使用 node-latex-compiler 的 isAvailable 方法
    */
   isTectonicAvailable(): boolean {
-    return fs.existsSync(this.tectonicPath);
+    return isAvailable();
   }
 
   /**
-   * 获取 tectonic 版本信息
+   * 获取 Tectonic 版本信息
+   * 使用 node-latex-compiler 的 getVersion 方法
    */
   async getTectonicVersion(): Promise<string | null> {
-    return new Promise((resolve) => {
-      if (!this.isTectonicAvailable()) {
-        resolve(null);
-        return;
-      }
-
-      const child = exec(`"${this.tectonicPath}" --version`);
-      let output = '';
-
-      if (child.stdout) {
-        child.stdout.on('data', (data: Buffer) => {
-          output += data.toString();
-        });
-      }
-
-      child.on('close', () => {
-        resolve(output.trim() || null);
-      });
-
-      child.on('error', () => {
-        resolve(null);
-      });
-    });
+    try {
+      return await getVersion();
+    } catch (error) {
+      logger.warn('Failed to get Tectonic version:', error);
+      return null;
+    }
   }
 
   /**

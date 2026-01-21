@@ -823,6 +823,9 @@ const pdfWrapperHeight = ref<number | string>('auto');
 const pdfWrapperWidth = ref<number | string>('auto');
 
 // 更新包装器大小：通过子元素的实际大小计算，更可靠
+// 注意：由于 pdf-pages-container 使用了 transform: scale()，其布局大小不会改变
+// 但视觉大小会改变，所以 wrapper 应该使用布局大小（不需要乘以缩放因子）
+// 因为 wrapper 只是作为一个滚动容器，它的内容区域大小应该匹配 container 的布局大小
 const updateWrapperSize = () => {
     if (!pdfPagesContainer.value || !pdfPagesWrapper.value) return;
     
@@ -846,8 +849,12 @@ const updateWrapperSize = () => {
                     const rows = Math.ceil(totalPdfPages.value / columns);
                     
                     // 获取第一页的宽度和高度（所有页面尺寸相同）
+                    // 注意：pageRefs 中的元素是页面 DOM，它们的大小已经考虑了 PDF_RENDER_SCALE
+                    // 但由于 transform scale 不改变布局大小，我们需要使用布局大小
                     const firstPageEl = pageRefs.get(1);
                     if (firstPageEl) {
+                        // 使用 offsetWidth/offsetHeight 获取布局大小（未缩放）
+                        // 因为 transform scale 只影响视觉大小，不影响布局大小
                         const pageWidth = firstPageEl.offsetWidth;
                         const pageHeight = firstPageEl.offsetHeight;
                         const gap = 20;
@@ -862,6 +869,7 @@ const updateWrapperSize = () => {
                 }
                 
                 // 方法2：如果页面引用方法失败，使用容器的 scrollHeight（作为后备）
+                // scrollHeight/scrollWidth 返回的是布局大小，不受 transform scale 影响
                 if (containerHeight === 0 || containerWidth === 0) {
                     containerHeight = pdfPagesContainer.value.scrollHeight;
                     containerWidth = pdfPagesContainer.value.scrollWidth;
@@ -874,14 +882,22 @@ const updateWrapperSize = () => {
                 }
                 
                 if (containerHeight > 0 && containerWidth > 0) {
-                    pdfWrapperHeight.value = containerHeight;
-                    pdfWrapperWidth.value = containerWidth;
+                    // 关键修复：wrapper 的大小应该等于 container 的视觉大小（缩放后）
+                    // 因为 container 使用 transform scale，其布局大小不变，但视觉大小会改变
+                    // wrapper 作为滚动容器，应该匹配 container 的视觉大小，避免多余的滚动空间
+                    const scaleFactor = zoomScale.value / PDF_RENDER_SCALE;
+                    pdfWrapperHeight.value = containerHeight * scaleFactor;
+                    pdfWrapperWidth.value = containerWidth * scaleFactor;
                     
                     if (process.env.NODE_ENV === 'development') {
                         logger.debug('updateWrapperSize', {
                             method: pageRefs.size > 0 ? 'pageRefs' : (pdfPagesContainer.value.scrollHeight > 0 ? 'scrollHeight' : 'offsetHeight'),
                             containerHeight,
                             containerWidth,
+                            wrapperHeight: pdfWrapperHeight.value,
+                            wrapperWidth: pdfWrapperWidth.value,
+                            zoomScale: zoomScale.value,
+                            scaleFactor: zoomScale.value / PDF_RENDER_SCALE,
                             totalPdfPages: totalPdfPages.value,
                             pageRefsSize: pageRefs.size,
                             scrollHeight: pdfPagesContainer.value.scrollHeight,
@@ -1719,9 +1735,9 @@ watch(
     },
 );
 
-// 移除 zoomScale 的监听
-// 因为 transform: scale() 不改变布局大小，所以 pdf-pages-wrapper 的大小在缩放时不应该改变
-// 只在 PDF 加载完成时计算一次大小即可
+// 监听 zoomScale 变化，更新包装器大小
+// 因为 transform: scale() 不改变布局大小，但会改变视觉大小
+// wrapper 需要匹配 container 的视觉大小（布局大小 * 缩放因子）
 
 // 监听 PDF 页面数量变化，更新包装器大小
 watch(
@@ -2355,12 +2371,12 @@ const compile = async () => {
             eventBus.emit("show-success",t("latexEditor.notification.compileSuccess"));
             const newPdfUrl = encodeFilePathToUrl(compileResult.pdfPath);
             
-            // 如果URL变化了，需要强制重新加载
-            const forceReload = pdfUrl.value !== newPdfUrl;
+            // 编译成功后，无论URL是否变化，都应该强制重新加载PDF
+            // 因为PDF文件内容已经更新了
             pdfUrl.value = newPdfUrl;
             
-            // 重新加载PDF并建立映射（如果URL变化了，强制重新加载）
-            const loaded = await loadPdf(pdfUrl.value, false, forceReload);
+            // 强制重新加载PDF并建立映射（编译后PDF内容已更新）
+            const loaded = await loadPdf(pdfUrl.value, false, true);
             // 编译成功后，如果 PDF 加载成功，自动显示 PDF 面板
             if (loaded) {
                 showPdfPanel.value = true;

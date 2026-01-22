@@ -191,9 +191,9 @@
         </el-form-item>
         <el-form-item :label="t('agent.reference.inputType')" required>
           <el-radio-group v-model="formData.inputType" :disabled="parsing">
-            <el-radio label="file">{{ t('agent.reference.type.file') }}</el-radio>
-            <el-radio label="url">{{ t('agent.reference.type.url') }}</el-radio>
-            <el-radio label="text">{{ t('agent.reference.type.custom') }}</el-radio>
+            <el-radio value="file">{{ t('agent.reference.type.file') }}</el-radio>
+            <el-radio value="url">{{ t('agent.reference.type.url') }}</el-radio>
+            <el-radio value="text">{{ t('agent.reference.type.custom') }}</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item :label="t('agent.reference.url')" required v-if="formData.inputType === 'url'">

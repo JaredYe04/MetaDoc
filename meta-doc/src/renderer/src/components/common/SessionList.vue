@@ -18,7 +18,7 @@
     <el-scrollbar class="menu-scrollbar">
       <el-menu class="side-menu" :default-active="activeIndex?.toString()">
         <template v-for="group in groupedItems" :key="group.label">
-          <el-menu-item disabled class="group-header">
+          <el-menu-item disabled class="group-header" :class="{ 'is-ui-locked': disabled }">
             <span class="group-label">{{ group.label }}</span>
           </el-menu-item>
           <el-menu-item 
@@ -359,13 +359,24 @@ const finishRename = () => {
   background-color: rgba(0, 0, 0, 0.08);
 }
 
-.group-header {
+/* group-header正常情况下的样式 */
+.side-menu :deep(.group-header) {
   padding: 8px 16px !important;
   height: auto !important;
-  opacity: 0.6;
+  opacity: 0.6 !important;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
+}
+
+/* UI锁启用时，group-header应该和disabled的item一样 */
+.side-menu :deep(.group-header.is-ui-locked) {
+  opacity: 0.5 !important;
+}
+
+/* disabled的item样式（排除group-header） */
+.side-menu :deep(.el-menu-item.is-disabled:not(.group-header)) {
+  opacity: 0.5 !important;
 }
 
 .menu-item-wrapper {

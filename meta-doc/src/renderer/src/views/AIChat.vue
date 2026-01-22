@@ -93,7 +93,7 @@
         <el-scrollbar class="menu-scrollbar">
           <el-menu class="side-menu" :default-active="activeDialogIndex.toString()" :style="menuStyle">
             <template v-for="group in groupedDialogs" :key="group.label">
-              <el-menu-item disabled class="group-header">
+              <el-menu-item disabled class="group-header" :class="{ 'is-ui-locked': responding }">
                 <span class="group-label">{{ group.label }}</span>
               </el-menu-item>
               <el-menu-item 
@@ -1407,12 +1407,24 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
   z-index: 200;
 }
 
-.group-header {
+/* group-header正常情况下的样式 */
+.side-menu :deep(.group-header) {
   opacity: 1 !important;
   cursor: default !important;
   height: auto !important;
   padding: 8px 20px !important;
   line-height: 1.5 !important;
+}
+
+/* UI锁启用时，group-header应该和disabled的item一样 */
+.side-menu :deep(.group-header.is-ui-locked) {
+  opacity: 0.5 !important;
+  background-color: var(--menu-item-bg, transparent) !important;
+}
+
+/* disabled的item样式（排除group-header） */
+.side-menu :deep(.el-menu-item.is-disabled:not(.group-header)) {
+  opacity: 0.5 !important;
 }
 
 .group-label {

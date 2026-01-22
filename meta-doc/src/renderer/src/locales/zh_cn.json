@@ -19,12 +19,12 @@
         "tooltip": "一款基于AI Agent的智能文字处理软件",
         "title": "MetaDoc",
         "home": "主页",
-        "outline": "大纲树",
+        "outline": "大纲",
         "editor": "编辑器",
         "visualize": "可视化",
         "knowledgeBase": "知识库",
         "agent": "Agent",
-        "proofread": "文章校对"
+        "proofread": "校对"
     },
     "mainTabs": {
         "version": "版本 {version}",

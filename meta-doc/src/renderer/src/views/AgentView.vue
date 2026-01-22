@@ -42,7 +42,7 @@
             <el-radio
               v-for="session in sessionsState"
               :key="session.id"
-              :label="session.id"
+              :value="session.id"
               class="session-item"
             >
               <div class="session-item__content">

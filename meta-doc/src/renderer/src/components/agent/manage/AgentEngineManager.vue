@@ -74,8 +74,8 @@
         </el-form-item>
         <el-form-item :label="t('agent.manage.agentEngine.llmConfigMode')" required>
           <el-radio-group v-model="formData.llmConfigMode" :disabled="editingEngine?.isBuiltIn">
-            <el-radio label="global">{{ t('agent.manage.agentEngine.useGlobalLLM') }}</el-radio>
-            <el-radio label="custom">{{ t('agent.manage.agentEngine.useCustomLLM') }}</el-radio>
+            <el-radio value="global">{{ t('agent.manage.agentEngine.useGlobalLLM') }}</el-radio>
+            <el-radio value="custom">{{ t('agent.manage.agentEngine.useCustomLLM') }}</el-radio>
           </el-radio-group>
           <div class="form-hint">
             {{ t('agent.manage.agentEngine.llmConfigModeHint') }}

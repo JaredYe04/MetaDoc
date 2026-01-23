@@ -93,16 +93,16 @@
 
             <el-form-item label="更新渠道">
               <el-radio-group v-model="updateTestForm.channel">
-                <el-radio label="release">正式版</el-radio>
-                <el-radio label="dev">内测版</el-radio>
+                <el-radio value="release">正式版</el-radio>
+                <el-radio value="dev">内测版</el-radio>
               </el-radio-group>
             </el-form-item>
 
             <el-form-item label="测试场景">
               <el-radio-group v-model="updateTestForm.scenario">
-                <el-radio label="hasUpdate">有更新可用</el-radio>
-                <el-radio label="noUpdate">已是最新版本</el-radio>
-                <el-radio label="error">模拟网络错误</el-radio>
+                <el-radio value="hasUpdate">有更新可用</el-radio>
+                <el-radio value="noUpdate">已是最新版本</el-radio>
+                <el-radio value="error">模拟网络错误</el-radio>
               </el-radio-group>
             </el-form-item>
 

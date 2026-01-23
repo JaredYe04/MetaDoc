@@ -49,7 +49,7 @@
               <el-radio
                 v-for="config in llmConfigs"
                 :key="config.id"
-                :label="config.id"
+                :value="config.id"
                 class="config-item"
                 :data-config-id="config.id"
               >
@@ -387,10 +387,10 @@
         <!-- 测试场景选择 -->
         <el-form-item :label="t('setting.testScenario')">
           <el-radio-group v-model="testScenario">
-            <el-radio label="completion-stream">{{ t('setting.testCompletionStream') }}</el-radio>
-            <el-radio label="completion-nonstream">{{ t('setting.testCompletionNonStream') }}</el-radio>
-            <el-radio label="chat-stream">{{ t('setting.testChatStream') }}</el-radio>
-            <el-radio label="chat-nonstream">{{ t('setting.testChatNonStream') }}</el-radio>
+            <el-radio value="completion-stream">{{ t('setting.testCompletionStream') }}</el-radio>
+            <el-radio value="completion-nonstream">{{ t('setting.testCompletionNonStream') }}</el-radio>
+            <el-radio value="chat-stream">{{ t('setting.testChatStream') }}</el-radio>
+            <el-radio value="chat-nonstream">{{ t('setting.testChatNonStream') }}</el-radio>
           </el-radio-group>
         </el-form-item>
 

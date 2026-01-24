@@ -75,8 +75,9 @@
     "vectorImage": "Vector Chart (SVG)"
   },
   "article": {
-    "ai_analyze_title": "AI analysiert den ganzen Artikel.",
-    "ai_understood": "Ich habe den ganzen Artikel gelesen. Kann ich Ihnen helfen?",
+    "ai_analyze_title": "KI analysiert „{title}“",
+    "ai_understood": "Ich habe den Artikel „{title}“ gelesen. Kann ich Ihnen helfen?",
+    "untitled_document": "Unbenanntes Dokument",
     "author": "Autor",
     "click_jump_long_press_optimize": "Klicken Sie, um den Absatz zu springen und zu drücken, um mit verfügbaren KI-Assistenten zu optimieren",
     "click_to_edit_author": "Klicken Sie auf den Autor zu ändern",

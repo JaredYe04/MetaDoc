@@ -496,6 +496,16 @@ const handleMenuClick = async (item: string) => {
             if (bypassCodeBlock) {
                 text = text.replace(/```[\s\S]*?```/g, '');
             }
+            // 获取文章标题：优先使用 meta.title，如果没有则从内容中提取
+            let articleTitle = documentRef.value.meta?.title?.trim() || '';
+            if (!articleTitle) {
+                const { extractTitleFromContent } = await import('../utils/title-extractor');
+                const extractedTitle = extractTitleFromContent(currentMarkdown.value, 'md');
+                articleTitle = extractedTitle || '';
+            }
+            // 如果没有标题，使用默认文本
+            const titleDisplay = articleTitle || t('article.untitled_document', '未命名文档');
+            
             let messages: any[] = []
             messages.push({
                 role: 'system',
@@ -503,10 +513,10 @@ const handleMenuClick = async (item: string) => {
             })
             messages.push({
                 role: 'assistant',
-                content: t('article.ai_understood')
+                content: t('article.ai_understood', { title: titleDisplay })
             })
             const newDialog = {
-                title: t('article.ai_analyze_title'),
+                title: t('article.ai_analyze_title', { title: titleDisplay }),
                 messages: messages
             };
             //logger.log(newDialog)

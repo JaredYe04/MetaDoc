@@ -52,15 +52,83 @@ jobs:
       contents: write
     
     steps:
-      - name: 安装 Git（如果未安装）
+      - name: 安装 Git 和构建工具（如果未安装）
         run: |
+          # 检测系统类型
+          if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            OS=$ID
+          else
+            echo "⚠️  无法检测系统类型，尝试使用通用方法"
+            OS="unknown"
+          fi
+          
+          echo "📋 检测到系统: $OS"
+          
+          # 安装 Git
           if ! command -v git &> /dev/null; then
             echo "📦 Git 未安装，正在安装..."
-            sudo apt-get update
-            sudo apt-get install -y git
+            case $OS in
+              ubuntu|debian)
+                sudo apt-get update
+                sudo apt-get install -y git
+                ;;
+              fedora|rhel|centos)
+                sudo dnf install -y git
+                ;;
+              arch|manjaro)
+                sudo pacman -S --noconfirm git
+                ;;
+              *)
+                echo "⚠️  未知系统类型，请手动安装 Git"
+                exit 1
+                ;;
+            esac
             echo "✅ Git 安装完成"
           else
             echo "✅ Git 已安装: $(git --version)"
+          fi
+          
+          # 安装构建工具（用于 electron-builder 构建 deb 包）
+          echo "📦 检查并安装构建工具..."
+          case $OS in
+            ubuntu|debian)
+              if ! command -v ar &> /dev/null || ! command -v fakeroot &> /dev/null; then
+                sudo apt-get update
+                sudo apt-get install -y binutils fakeroot
+              fi
+              ;;
+            fedora|rhel|centos)
+              if ! command -v ar &> /dev/null; then
+                sudo dnf install -y binutils
+              fi
+              # Fedora 上构建 deb 包需要额外的工具
+              if ! command -v fakeroot &> /dev/null; then
+                # 尝试从 EPEL 或直接安装
+                sudo dnf install -y fakeroot || echo "⚠️  fakeroot 安装失败，可能需要 EPEL 仓库"
+              fi
+              ;;
+            arch|manjaro)
+              if ! command -v ar &> /dev/null || ! command -v fakeroot &> /dev/null; then
+                sudo pacman -S --noconfirm binutils fakeroot
+              fi
+              ;;
+            *)
+              echo "⚠️  未知系统类型，请手动安装 binutils 和 fakeroot"
+              ;;
+          esac
+          
+          # 验证工具是否可用
+          if command -v ar &> /dev/null; then
+            echo "✅ ar 工具已安装: $(ar --version | head -n1)"
+          else
+            echo "❌ ar 工具未安装，构建 deb 包可能会失败"
+          fi
+          
+          if command -v fakeroot &> /dev/null; then
+            echo "✅ fakeroot 工具已安装: $(fakeroot --version | head -n1)"
+          else
+            echo "⚠️  fakeroot 工具未安装，某些构建步骤可能会失败"
           fi
       
       - name: 检出代码

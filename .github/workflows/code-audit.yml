@@ -2,8 +2,8 @@ name: 代码审计报告
 
 on:
   schedule:
-    # 每天 UTC 时间 02:00 执行（北京时间 10:00）
-    - cron: '0 2 * * *'
+    # 每周一 UTC 02:00（北京时间 UTC+8 10:00）
+    - cron: '0 2 * * 1'
   workflow_dispatch: # 允许手动触发
 
 env:

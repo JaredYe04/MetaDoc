@@ -221,8 +221,27 @@ jobs:
           PLATFORM: linux
         continue-on-error: true
       
+      - name: 确定是否需要构建
+        id: should_build
+        run: |
+          # rebuild 模式强制构建，即使文件已存在
+          if [ "${{ github.event.inputs.version_bump }}" == "rebuild" ]; then
+            echo "should_build=true" >> $GITHUB_OUTPUT
+            echo "force_rebuild=true" >> $GITHUB_OUTPUT
+            echo "🔨 rebuild 模式：强制重新构建"
+          elif [ "${{ steps.check_platform_release.outputs.has_platform_files }}" == "true" ]; then
+            echo "should_build=false" >> $GITHUB_OUTPUT
+            echo "force_rebuild=false" >> $GITHUB_OUTPUT
+            echo "✅ 平台文件已存在，跳过构建"
+          else
+            echo "should_build=true" >> $GITHUB_OUTPUT
+            echo "force_rebuild=false" >> $GITHUB_OUTPUT
+            echo "📦 需要构建"
+          fi
+      
       - name: 确定用于检查的版本号
         id: check_version
+        if: steps.should_build.outputs.should_build == 'true' && steps.should_build.outputs.force_rebuild != 'true'
         run: |
           if [ "${{ github.event.inputs.release_mode }}" == "reuse_latest" ] && [ -n "${{ steps.latest_release.outputs.latest_version }}" ]; then
             echo "check_version=${{ steps.latest_release.outputs.latest_version }}" >> $GITHUB_OUTPUT
@@ -234,18 +253,18 @@ jobs:
       
       - name: 检查本地构建产物
         id: check_local_build
-        if: steps.check_platform_release.outputs.has_platform_files != 'true'
+        if: steps.should_build.outputs.should_build == 'true' && steps.should_build.outputs.force_rebuild != 'true'
         working-directory: meta-doc
         run: node scripts/check-local-build.js "${{ steps.check_version.outputs.check_version }}"
         continue-on-error: true
       
       - name: 安装依赖
-        if: steps.check_platform_release.outputs.has_platform_files != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
+        if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: npm ci
       
       - name: 生成 Linux 图标（如果不存在）
-        if: steps.check_platform_release.outputs.has_platform_files != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
+        if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: |
           if [ ! -f "build/icon.png" ]; then
@@ -256,7 +275,7 @@ jobs:
           fi
       
       - name: 重建 sharp 模块（Linux x64）
-        if: steps.check_platform_release.outputs.has_platform_files != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
+        if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: |
           echo "📦 重建 sharp 模块以确保正确的平台支持..."
@@ -270,7 +289,7 @@ jobs:
           echo "✅ sharp 模块重建完成"
       
       - name: 构建项目
-        if: steps.check_platform_release.outputs.has_platform_files != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
+        if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: npm run build
         env:
@@ -278,7 +297,7 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
       
       - name: 打包 Linux x64 版本
-        if: steps.check_platform_release.outputs.has_platform_files != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
+        if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
         run: npx electron-builder --linux --x64 --publish never
         env:
@@ -287,11 +306,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
       
       - name: 跳过构建（当前平台文件已发布）
-        if: steps.check_platform_release.outputs.has_platform_files == 'true'
+        if: steps.should_build.outputs.should_build == 'false'
         run: echo "✅ 版本 ${{ steps.release_info.outputs.tag }} 已包含 Linux 平台的文件，跳过构建步骤"
       
       - name: 使用本地构建产物
-        if: steps.check_platform_release.outputs.has_platform_files != 'true' && steps.check_local_build.outputs.local_build_exists == 'true'
+        if: steps.should_build.outputs.should_build == 'true' && steps.should_build.outputs.force_rebuild != 'true' && steps.check_local_build.outputs.local_build_exists == 'true'
         run: echo "✅ 发现本地构建产物，跳过构建步骤，直接使用现有文件"
       
       - name: 生成发布日志

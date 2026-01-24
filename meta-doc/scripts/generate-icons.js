@@ -18,6 +18,9 @@ const assetsIconsDir = path.resolve(__dirname, '../src/renderer/src/assets/icons
 // ICO 文件需要的尺寸（Windows 标准尺寸）
 const icoSizes = [16, 32, 48, 64, 128, 256];
 
+// ICNS 文件需要的尺寸（macOS 标准尺寸）
+const icnsSizes = [16, 32, 64, 128, 256, 512, 1024];
+
 /**
  * 获取最新的 logo 版本目录
  */
@@ -217,6 +220,111 @@ function ensureDocIconsComposed(versionDir) {
 }
 
 /**
+ * 将 SVG 转换为 ICNS 文件（macOS 图标格式）
+ * 使用 macOS 的 iconutil 命令或 png2icons 库
+ */
+async function convertSvgToIcns(svgPath, outputPath) {
+  try {
+    const { execSync } = require('child_process');
+    const os = require('os');
+    const tmpDir = path.join(os.tmpdir(), `icon-${Date.now()}`);
+    
+    // 创建临时目录
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true });
+    }
+    
+    console.log('正在生成多个尺寸的 PNG...');
+    // 生成多个尺寸的 PNG 文件
+    const pngFiles = [];
+    for (const size of icnsSizes) {
+      const pngPath = path.join(tmpDir, `icon_${size}x${size}.png`);
+      await sharp(svgPath)
+        .resize(size, size, {
+          fit: 'contain',
+          background: { r: 255, g: 255, b: 255, alpha: 0 }
+        })
+        .png()
+        .toFile(pngPath);
+      pngFiles.push(pngPath);
+    }
+    
+    // 尝试使用 macOS 的 iconutil 命令（如果可用）
+    if (process.platform === 'darwin') {
+      try {
+        const iconsetPath = outputPath.replace('.icns', '.iconset');
+        if (fs.existsSync(iconsetPath)) {
+          fs.rmSync(iconsetPath, { recursive: true, force: true });
+        }
+        fs.mkdirSync(iconsetPath, { recursive: true });
+        
+        // 复制 PNG 文件到 iconset 目录，使用 macOS 命名规范
+        const iconMapping = {
+          16: ['icon_16x16.png', 'icon_16x16@2x.png'],
+          32: ['icon_32x32.png', 'icon_32x32@2x.png'],
+          64: ['icon_64x64.png'],
+          128: ['icon_128x128.png', 'icon_128x128@2x.png'],
+          256: ['icon_256x256.png', 'icon_256x256@2x.png'],
+          512: ['icon_512x512.png', 'icon_512x512@2x.png'],
+          1024: ['icon_1024x1024@2x.png']
+        };
+        
+        for (const [size, names] of Object.entries(iconMapping)) {
+          const sizeNum = parseInt(size);
+          for (let i = 0; i < names.length; i++) {
+            const srcPath = path.join(tmpDir, `icon_${sizeNum}x${sizeNum}.png`);
+            const destPath = path.join(iconsetPath, names[i]);
+            if (fs.existsSync(srcPath)) {
+              fs.copyFileSync(srcPath, destPath);
+            }
+          }
+        }
+        
+        // 使用 iconutil 转换为 icns
+        execSync(`iconutil -c icns "${iconsetPath}" -o "${outputPath}"`, { stdio: 'inherit' });
+        
+        // 清理临时文件
+        fs.rmSync(iconsetPath, { recursive: true, force: true });
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+        
+        console.log(`✓ 已生成 ICNS 文件: ${path.basename(outputPath)}`);
+        return;
+      } catch (error) {
+        console.warn(`⚠️  iconutil 失败，尝试使用 png2icons: ${error.message}`);
+      }
+    }
+    
+    // 备用方法：使用 png2icons 库
+    let png2icons;
+    try {
+      png2icons = require('png2icons');
+    } catch (e) {
+      console.warn('⚠️  png2icons 未安装，跳过 ICNS 生成');
+      console.warn('   在 macOS 上，ICNS 文件可以通过 iconutil 命令生成');
+      console.warn('   或者安装 png2icons: npm install --save-dev png2icons');
+      // 清理临时文件
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      return;
+    }
+    
+    // 读取最大的 PNG 文件（1024x1024）用于生成 ICNS
+    const largestPng = path.join(tmpDir, 'icon_1024x1024.png');
+    if (fs.existsSync(largestPng)) {
+      const pngBuffer = fs.readFileSync(largestPng);
+      const icnsBuffer = png2icons.createICNS(pngBuffer, png2icons.BILINEAR, 0);
+      fs.writeFileSync(outputPath, icnsBuffer);
+      console.log(`✓ 已生成 ICNS 文件: ${path.basename(outputPath)}`);
+    }
+    
+    // 清理临时文件
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  } catch (error) {
+    console.error(`✗ 转换 ICNS 失败:`, error.message);
+    throw error;
+  }
+}
+
+/**
  * 将 SVG 转换为 ICO 文件
  * 由于 sharp 不直接支持 ICO 输出，我们需要生成多个尺寸的 PNG，然后使用 to-ico 库
  */
@@ -339,6 +447,68 @@ async function main() {
     }
     const texIconPath = path.join(buildDir, 'tex-icon.ico');
     await convertSvgToIco(texDocWhitePath, texIconPath);
+
+    // 生成 macOS 图标（ICNS 格式）
+    console.log('\n正在生成 macOS 图标（ICNS 格式）...');
+    const iconIcnsPath = path.join(buildDir, 'icon.icns');
+    if (!fs.existsSync(iconIcnsPath)) {
+      await convertSvgToIcns(logoPath, iconIcnsPath);
+    } else {
+      console.log(`✓ ${path.basename(iconIcnsPath)} 已存在，跳过生成`);
+    }
+
+    // 生成 macOS 文件关联图标
+    console.log('\n正在生成 macOS 文件关联图标...');
+    const mdIconIcnsPath = path.join(buildDir, 'md-icon.icns');
+    if (!fs.existsSync(mdIconIcnsPath)) {
+      await convertSvgToIcns(mdDocWhitePath, mdIconIcnsPath);
+    } else {
+      console.log(`✓ ${path.basename(mdIconIcnsPath)} 已存在，跳过生成`);
+    }
+    
+    const texIconIcnsPath = path.join(buildDir, 'tex-icon.icns');
+    if (!fs.existsSync(texIconIcnsPath)) {
+      await convertSvgToIcns(texDocWhitePath, texIconIcnsPath);
+    } else {
+      console.log(`✓ ${path.basename(texIconIcnsPath)} 已存在，跳过生成`);
+    }
+
+    // 生成 Linux 图标（PNG 格式，512x512）
+    console.log('\n正在生成 Linux 图标（PNG 格式）...');
+    const iconPngPath = path.join(buildDir, 'icon.png');
+    if (!fs.existsSync(iconPngPath)) {
+      await sharp(logoPath)
+        .resize(512, 512, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+        .png()
+        .toFile(iconPngPath);
+      console.log(`✓ 已生成: ${path.basename(iconPngPath)}`);
+    } else {
+      console.log(`✓ ${path.basename(iconPngPath)} 已存在，跳过生成`);
+    }
+
+    // 生成 Linux 文件关联图标（PNG 格式）
+    console.log('\n正在生成 Linux 文件关联图标（PNG 格式）...');
+    const mdIconPngPath = path.join(buildDir, 'md-icon.png');
+    if (!fs.existsSync(mdIconPngPath)) {
+      await sharp(mdDocWhitePath)
+        .resize(512, 512, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+        .png()
+        .toFile(mdIconPngPath);
+      console.log(`✓ 已生成: ${path.basename(mdIconPngPath)}`);
+    } else {
+      console.log(`✓ ${path.basename(mdIconPngPath)} 已存在，跳过生成`);
+    }
+    
+    const texIconPngPath = path.join(buildDir, 'tex-icon.png');
+    if (!fs.existsSync(texIconPngPath)) {
+      await sharp(texDocWhitePath)
+        .resize(512, 512, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+        .png()
+        .toFile(texIconPngPath);
+      console.log(`✓ 已生成: ${path.basename(texIconPngPath)}`);
+    } else {
+      console.log(`✓ ${path.basename(texIconPngPath)} 已存在，跳过生成`);
+    }
 
     console.log('\n✓ 所有图标文件生成完成！');
   } catch (error) {

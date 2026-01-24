@@ -221,11 +221,22 @@ jobs:
           PLATFORM: linux
         continue-on-error: true
       
+      - name: 确定用于检查的版本号
+        id: check_version
+        run: |
+          if [ "${{ github.event.inputs.release_mode }}" == "reuse_latest" ] && [ -n "${{ steps.latest_release.outputs.latest_version }}" ]; then
+            echo "check_version=${{ steps.latest_release.outputs.latest_version }}" >> $GITHUB_OUTPUT
+            echo "使用最新版本号: ${{ steps.latest_release.outputs.latest_version }}"
+          else
+            echo "check_version=${{ steps.version_info.outputs.clean_version }}" >> $GITHUB_OUTPUT
+            echo "使用当前版本号: ${{ steps.version_info.outputs.clean_version }}"
+          fi
+      
       - name: 检查本地构建产物
         id: check_local_build
         if: steps.check_platform_release.outputs.has_platform_files != 'true'
         working-directory: meta-doc
-        run: node scripts/check-local-build.js "${{ steps.version_info.outputs.clean_version }}"
+        run: node scripts/check-local-build.js "${{ steps.check_version.outputs.check_version }}"
         continue-on-error: true
       
       - name: 安装依赖
@@ -280,7 +291,6 @@ jobs:
             meta-doc/dist/*.deb
             meta-doc/dist/*.snap
           draft: false
-          overwrite: ${{ github.event.inputs.release_mode == 'reuse_latest' }}
       
       - name: 保存发布日志
         working-directory: meta-doc

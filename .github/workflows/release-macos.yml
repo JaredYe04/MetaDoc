@@ -120,6 +120,7 @@ jobs:
           GITHUB_REF: ${{ github.ref }}
           INPUT_VERSION_BUMP: ${{ github.event.inputs.version_bump }}
           LATEST_VERSION: ${{ steps.latest_release.outputs.latest_version }}
+          RELEASE_MODE: ${{ github.event.inputs.release_mode }}
       
       - name: 确定标签和 Release 名称
         id: release_info
@@ -215,7 +216,6 @@ jobs:
             meta-doc/dist/*.dmg
             meta-doc/dist/*.zip
           draft: false
-          overwrite: ${{ github.event.inputs.release_mode == 'reuse_latest' }}
       
       - name: 保存发布日志
         working-directory: meta-doc

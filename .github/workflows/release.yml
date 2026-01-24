@@ -69,7 +69,7 @@ jobs:
           } else {
             Write-Host "✅ Git 已安装: $(git --version)"
           }
-        shell: pwsh
+        shell: powershell
       
       - name: 检出代码
         uses: actions/checkout@v4

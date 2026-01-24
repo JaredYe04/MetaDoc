@@ -1,4 +1,4 @@
-name: 发布到 Releases 仓库 (Windows)
+name: 发布到 Releases 仓库 (macOS ARM64)
 
 on:
   workflow_dispatch:
@@ -57,9 +57,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
-          # 优化：对于 self-hosted runner，可以设置 clean: false 来避免每次都重新克隆
-          # 但需要注意：这可能导致工作目录不干净，建议在关键步骤前手动清理
-          clean: false  # 保留现有仓库，使用增量更新（提高效率）
+          clean: false
       
       - name: 更新仓库到最新状态
         run: node meta-doc/scripts/update-repo.js "${{ github.ref }}" "${{ github.ref_name }}"
@@ -162,10 +160,10 @@ jobs:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
       
-      - name: 打包 Windows 版本
+      - name: 打包 macOS ARM64 版本
         if: steps.check_release.outputs.release_exists != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
         working-directory: meta-doc
-        run: npx electron-builder --win --publish never
+        run: npx electron-builder --mac --arm64 --publish never
         env:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
@@ -197,9 +195,8 @@ jobs:
           body_path: final-notes.txt
           prerelease: ${{ steps.release_info.outputs.is_prerelease == 'true' }}
           files: |
-            meta-doc/dist/*.exe
-            meta-doc/dist/*.yml
-            meta-doc/dist/*.blockmap
+            meta-doc/dist/*.dmg
+            meta-doc/dist/*.zip
           draft: false
           overwrite: ${{ github.event.inputs.release_mode == 'reuse_latest' }}
       
@@ -213,6 +210,7 @@ jobs:
       - name: 上传发布日志
         uses: actions/upload-artifact@v4
         with:
-          name: release-log-${{ steps.release_info.outputs.tag }}
+          name: release-log-${{ steps.release_info.outputs.tag }}-macos
           path: .github/release-logs/release_${{ steps.release_info.outputs.tag }}_*.json
           retention-days: 90
+

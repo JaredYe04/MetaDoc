@@ -92,15 +92,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: meta-doc/package-lock.json
       
-      - name: 读取版本信息
-        id: version_info
-        working-directory: meta-doc
-        run: node scripts/get-version-info.js "${{ github.event.inputs.version }}" "${{ github.event.inputs.version_bump }}"
-        env:
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          GITHUB_REF: ${{ github.ref }}
-          INPUT_VERSION_BUMP: ${{ github.event.inputs.version_bump }}
-      
       - name: 确定发布类型
         id: release_type
         working-directory: meta-doc
@@ -119,6 +110,16 @@ jobs:
           RELEASE_REPO: ${{ env.RELEASE_REPO }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         continue-on-error: true
+      
+      - name: 读取版本信息
+        id: version_info
+        working-directory: meta-doc
+        run: node scripts/get-version-info.js "${{ github.event.inputs.version }}" "${{ github.event.inputs.version_bump }}"
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF: ${{ github.ref }}
+          INPUT_VERSION_BUMP: ${{ github.event.inputs.version_bump }}
+          LATEST_VERSION: ${{ steps.latest_release.outputs.latest_version }}
       
       - name: 确定标签和 Release 名称
         id: release_info

@@ -18,6 +18,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 const icon = undefined; // 暂时禁用icon导入
 import fs from 'fs';
 import http from 'http';
+import os from 'os';
 import { mainCalls, refreshMainWindowTitle, openDoc } from './main-calls';
 import { initUpdateService, checkForUpdates, downloadUpdate, setUpdateChannel, type UpdateChannel } from './utils/update-service';
 import { registerExternalOpenHandler, registerFocusRequestHandler, runExpressServer, refreshKnowledgeItems } from './express-server';
@@ -53,6 +54,37 @@ if (!process.env.JAVA_OPTS || !process.env.JAVA_OPTS.includes('-Dfile.encoding')
 }
 if (!process.env._JAVA_OPTIONS || !process.env._JAVA_OPTIONS.includes('-Dfile.encoding')) {
   process.env._JAVA_OPTIONS = (process.env._JAVA_OPTIONS || '') + ' -Dfile.encoding=UTF-8';
+}
+
+// GPU 兼容性检测：根据环境自动决定是否禁用 GPU 硬件加速
+// 这必须在 app.whenReady() 之前执行
+function shouldDisableGPU(): boolean {
+  // 无显示器 / CI / Linux server / WSL
+  if (process.env.CI) return true;
+  if (process.env.WSL_DISTRO_NAME) return true;
+  if (os.platform() === 'linux' && !process.env.DISPLAY) return true;
+  
+  // Windows 系统：检查是否明确指定禁用 GPU（通过环境变量）
+  if (process.env.DISABLE_GPU === '1' || process.env.DISABLE_GPU === 'true') {
+    return true;
+  }
+  
+  return false;
+}
+
+if (shouldDisableGPU()) {
+  const logger = createMainLogger('MainProcess');
+  logger.info('GPU Acceleration Disabled');
+  app.disableHardwareAcceleration();
+  // 同时设置命令行参数，确保完全禁用 GPU
+  app.commandLine.appendSwitch('disable-gpu');
+  app.commandLine.appendSwitch('disable-gpu-compositing');
+} else {
+  // 对于有 GPU 的系统，允许 GPU 进程崩溃后继续运行，自动回退到软件渲染
+  // 这样可以避免在没有 GPU 或 GPU 驱动不兼容时应用直接崩溃
+  const logger = createMainLogger('MainProcess');
+  logger.info('GPU Acceleration Enabled');
+  app.commandLine.appendSwitch('disable-gpu-process-crash-limit');
 }
 
 initLogger();

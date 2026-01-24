@@ -81,6 +81,27 @@ function getVersion() {
   // 优先从环境变量获取 version_bump（GitHub Actions）
   const versionBump = process.env.INPUT_VERSION_BUMP || versionBumpArg || null;
   
+  // 如果提供了 LATEST_VERSION 环境变量（复用最新版本模式），直接使用该版本号
+  const latestVersion = process.env.LATEST_VERSION || null;
+  if (latestVersion && latestVersion.trim() !== '') {
+    try {
+      let targetVersion = latestVersion.trim();
+      if (!targetVersion.startsWith('Beta')) {
+        // 如果版本号是纯数字格式（如 0.17.9），添加 Beta 前缀
+        if (/^\d+\.\d+\.\d+/.test(targetVersion)) {
+          targetVersion = `Beta${targetVersion}`;
+        }
+      }
+      // 使用 versionManager 设置版本号，这会更新 version.json 和 package.json
+      versionManager.setVersion(targetVersion);
+      versionManager.updatePackageJson(targetVersion);
+      return targetVersion;
+    } catch (error) {
+      console.warn('警告: 设置版本号失败，使用提供的版本号:', error.message);
+      return latestVersion;
+    }
+  }
+  
   // 如果是 push tags 触发，从标签中提取版本号
   const eventName = process.env.GITHUB_EVENT_NAME;
   const ref = process.env.GITHUB_REF;

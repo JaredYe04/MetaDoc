@@ -46,7 +46,7 @@ env:
 
 jobs:
   release:
-    runs-on: self-hosted
+    runs-on: [self-hosted, macOS, ARM64]
     
     permissions:
       contents: write
@@ -131,29 +131,30 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
       
-      - name: 检查版本是否已发布
-        id: check_release
-        run: node meta-doc/scripts/check-release-exists.js "${{ steps.release_info.outputs.tag }}"
+      - name: 检查当前平台文件是否已发布
+        id: check_platform_release
+        run: node meta-doc/scripts/check-platform-release.js "${{ steps.release_info.outputs.tag }}" "macos"
         env:
           RELEASE_REPO_OWNER: ${{ env.RELEASE_REPO_OWNER }}
           RELEASE_REPO: ${{ env.RELEASE_REPO }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PLATFORM: macos
         continue-on-error: true
       
       - name: 检查本地构建产物
         id: check_local_build
-        if: steps.check_release.outputs.release_exists != 'true'
+        if: steps.check_platform_release.outputs.has_platform_files != 'true'
         working-directory: meta-doc
         run: node scripts/check-local-build.js "${{ steps.version_info.outputs.clean_version }}"
         continue-on-error: true
       
       - name: 安装依赖
-        if: steps.check_release.outputs.release_exists != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
+        if: steps.check_platform_release.outputs.has_platform_files != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
         working-directory: meta-doc
         run: npm ci
       
       - name: 构建项目
-        if: steps.check_release.outputs.release_exists != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
+        if: steps.check_platform_release.outputs.has_platform_files != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
         working-directory: meta-doc
         run: npm run build
         env:
@@ -161,7 +162,7 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
       
       - name: 打包 macOS ARM64 版本
-        if: steps.check_release.outputs.release_exists != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
+        if: steps.check_platform_release.outputs.has_platform_files != 'true' && steps.check_local_build.outputs.local_build_exists != 'true'
         working-directory: meta-doc
         run: npx electron-builder --mac --arm64 --publish never
         env:
@@ -169,12 +170,12 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
       
-      - name: 跳过构建（版本已发布）
-        if: steps.check_release.outputs.release_exists == 'true'
-        run: echo "✅ 版本 ${{ steps.release_info.outputs.tag }} 已在 Releases 中发布，跳过构建步骤"
+      - name: 跳过构建（当前平台文件已发布）
+        if: steps.check_platform_release.outputs.has_platform_files == 'true'
+        run: echo "✅ 版本 ${{ steps.release_info.outputs.tag }} 已包含 macOS 平台的文件，跳过构建步骤"
       
       - name: 使用本地构建产物
-        if: steps.check_release.outputs.release_exists != 'true' && steps.check_local_build.outputs.local_build_exists == 'true'
+        if: steps.check_platform_release.outputs.has_platform_files != 'true' && steps.check_local_build.outputs.local_build_exists == 'true'
         run: echo "✅ 发现本地构建产物，跳过构建步骤，直接使用现有文件"
       
       - name: 生成发布日志

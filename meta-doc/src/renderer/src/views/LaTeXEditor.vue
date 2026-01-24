@@ -3227,11 +3227,18 @@ const executeMonacoCommand = async (command: string) => {
 const handleMenuClick = async (item: string) => {
     switch (item) {
         case 'ai-assistant':
-            let text = currentMarkdown.value;
-            const bypassCodeBlock = await getSetting('bypassCodeBlock');
-            if (bypassCodeBlock) {
-                text = text.replace(/```[\s\S]*?```/g, '');
+            let text = currentTex.value;
+            // LaTeX 文档不需要移除代码块，因为 LaTeX 本身就是代码格式
+            // 获取文章标题：优先使用 meta.title，如果没有则从内容中提取
+            let articleTitle = documentRef.value.meta?.title?.trim() || '';
+            if (!articleTitle) {
+                const { extractTitleFromContent } = await import('../utils/title-extractor');
+                const extractedTitle = extractTitleFromContent(currentTex.value, 'tex');
+                articleTitle = extractedTitle || '';
             }
+            // 如果没有标题，使用默认文本
+            const titleDisplay = articleTitle || t('article.untitled_document', '未命名文档');
+            
             let messages: any[] = []
             messages.push({
                 role: 'system' as const,
@@ -3239,10 +3246,10 @@ const handleMenuClick = async (item: string) => {
             })
             messages.push({
                 role: 'assistant' as const,
-                content: t('article.ai_understood')
+                content: t('article.ai_understood', { title: titleDisplay })
             })
             const newDialog = {
-                title: t('article.ai_analyze_title'),
+                title: t('article.ai_analyze_title', { title: titleDisplay }),
                 messages: messages
             };
             addDialogEntry(newDialog, true)

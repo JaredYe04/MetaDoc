@@ -75,8 +75,9 @@
     "vectorImage": "Graphique vectoriel (SVG)"
   },
   "article": {
-    "ai_analyze_title": "L'IA analyse tout l'article.",
-    "ai_understood": "J'ai lu tout l'article. Je peux vous aider ?",
+    "ai_analyze_title": "L'IA analyse « {title} »",
+    "ai_understood": "J'ai lu l'article « {title} ». Je peux vous aider ?",
+    "untitled_document": "Document sans titre",
     "author": "Auteur",
     "click_jump_long_press_optimize": "Cliquez pour sauter et appuyez sur le paragraphe pour optimiser avec les assistants AI disponibles",
     "click_to_edit_author": "Cliquez pour modifier l'auteur",

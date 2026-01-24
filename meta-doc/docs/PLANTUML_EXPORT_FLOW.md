@@ -315,3 +315,6 @@ const chartFormat = (targetFormat === 'docx') ? 'bitmap' : 'svg';
 
 建议统一使用 SVG，并在必要时在 DOCX 生成阶段转换为 PNG，以保持一致性。
 
+
+
+

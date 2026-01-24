@@ -1,7 +1,7 @@
 import { createI18n } from 'vue-i18n'
 
-import en_US from './locales/en_US.json'
-import zh_CN from './locales/zh_CN.json'
+import en_US from './locales/en_us.json'
+import zh_CN from './locales/zh_cn.json'
 import ja_JP from './locales/ja_JP.json'
 import ko_KR from './locales/ko_KR.json'
 import de_DE from './locales/de_DE.json'

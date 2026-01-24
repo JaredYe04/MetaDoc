@@ -52,6 +52,25 @@ jobs:
       contents: write
     
     steps:
+      - name: 安装 Git（如果未安装）
+        run: |
+          if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+            Write-Host "📦 Git 未安装，正在安装..."
+            # 尝试使用 Chocolatey 安装
+            if (Get-Command choco -ErrorAction SilentlyContinue) {
+              choco install git -y
+            } elseif (Get-Command winget -ErrorAction SilentlyContinue) {
+              winget install --id Git.Git -e --source winget
+            } else {
+              Write-Host "⚠️  未找到包管理器，请手动安装 Git"
+              exit 1
+            }
+            Write-Host "✅ Git 安装完成"
+          } else {
+            Write-Host "✅ Git 已安装: $(git --version)"
+          }
+        shell: pwsh
+      
       - name: 检出代码
         uses: actions/checkout@v4
         with:

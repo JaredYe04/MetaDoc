@@ -52,6 +52,17 @@ jobs:
       contents: write
     
     steps:
+      - name: 安装 Git（如果未安装）
+        run: |
+          if ! command -v git &> /dev/null; then
+            echo "📦 Git 未安装，正在安装..."
+            sudo apt-get update
+            sudo apt-get install -y git
+            echo "✅ Git 安装完成"
+          else
+            echo "✅ Git 已安装: $(git --version)"
+          fi
+      
       - name: 检出代码
         uses: actions/checkout@v4
         with:

@@ -82,6 +82,7 @@ function getVersion() {
   const versionBump = process.env.INPUT_VERSION_BUMP || versionBumpArg || null;
   
   // 如果提供了 LATEST_VERSION 环境变量（复用最新版本模式），直接使用该版本号
+  // 注意：在复用最新版本模式下，不应该进行版本升级
   const latestVersion = process.env.LATEST_VERSION || null;
   if (latestVersion && latestVersion.trim() !== '') {
     try {
@@ -95,11 +96,20 @@ function getVersion() {
       // 使用 versionManager 设置版本号，这会更新 version.json 和 package.json
       versionManager.setVersion(targetVersion);
       versionManager.updatePackageJson(targetVersion);
+      console.log(`✅ 复用最新版本模式: 使用版本号 ${targetVersion}`);
       return targetVersion;
     } catch (error) {
       console.warn('警告: 设置版本号失败，使用提供的版本号:', error.message);
       return latestVersion;
     }
+  }
+  
+  // 如果 LATEST_VERSION 为空但在复用最新版本模式下，不应该执行版本升级
+  // 这种情况下，应该使用当前版本号，而不是升级
+  const isReuseLatestMode = process.env.RELEASE_MODE === 'reuse_latest';
+  if (isReuseLatestMode && (!latestVersion || latestVersion.trim() === '')) {
+    console.warn('⚠️  复用最新版本模式但未获取到最新版本号，使用当前版本号（不升级）');
+    return getCurrentVersionFromFile();
   }
   
   // 如果是 push tags 触发，从标签中提取版本号

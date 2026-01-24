@@ -76,22 +76,52 @@ nsis:
   # 包含自定义 NSIS 脚本来刷新图标缓存
   include: build/installer.nsh
 mac:
+  icon: build/icon.icns
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+  # macOS 文件关联配置
+  fileAssociations:
+    - ext: md
+      name: Markdown Document
+      description: Markdown 文件
+      role: Editor
+      mimeType: text/markdown
+      icon: md-icon.icns  # 相对于 buildResources (build) 目录
+    - ext: tex
+      name: LaTeX Document
+      description: LaTeX 文件
+      role: Editor
+      mimeType: text/latex
+      icon: tex-icon.icns  # 相对于 buildResources (build) 目录
   notarize: false
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
+  icon: build/icon.png
   target:
     - AppImage
     - snap
     - deb
   maintainer: electronjs.org
   category: Utility
+  # Linux 文件关联配置
+  fileAssociations:
+    - ext: md
+      name: Markdown Document
+      description: Markdown 文件
+      role: Editor
+      mimeType: text/markdown
+      icon: md-icon.png  # 相对于 buildResources (build) 目录
+    - ext: tex
+      name: LaTeX Document
+      description: LaTeX 文件
+      role: Editor
+      mimeType: text/latex
+      icon: tex-icon.png  # 相对于 buildResources (build) 目录
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false

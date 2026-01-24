@@ -168,19 +168,23 @@ jobs:
         id: should_build
         run: |
           # rebuild 模式强制构建，即使文件已存在
-          if [ "${{ github.event.inputs.version_bump }}" == "rebuild" ]; then
-            echo "should_build=true" >> $GITHUB_OUTPUT
-            echo "force_rebuild=true" >> $GITHUB_OUTPUT
-            echo "🔨 rebuild 模式：强制重新构建"
-          elif [ "${{ steps.check_platform_release.outputs.has_platform_files }}" == "true" ]; then
-            echo "should_build=false" >> $GITHUB_OUTPUT
-            echo "force_rebuild=false" >> $GITHUB_OUTPUT
-            echo "✅ 平台文件已存在，跳过构建"
-          else
-            echo "should_build=true" >> $GITHUB_OUTPUT
-            echo "force_rebuild=false" >> $GITHUB_OUTPUT
-            echo "📦 需要构建"
-          fi
+          $versionBump = "${{ github.event.inputs.version_bump }}"
+          $hasPlatformFiles = "${{ steps.check_platform_release.outputs.has_platform_files }}"
+          
+          if ($versionBump -eq "rebuild") {
+            Write-Host "🔨 rebuild 模式：强制重新构建"
+            Write-Output "should_build=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Output "force_rebuild=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } elseif ($hasPlatformFiles -eq "true") {
+            Write-Host "✅ 平台文件已存在，跳过构建"
+            Write-Output "should_build=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Output "force_rebuild=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "📦 需要构建"
+            Write-Output "should_build=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Output "force_rebuild=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+        shell: powershell
       
       - name: 检查本地构建产物
         id: check_local_build

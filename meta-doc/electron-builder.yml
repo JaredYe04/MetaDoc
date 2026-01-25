@@ -47,6 +47,12 @@ asarUnpack:
   - resources/**
 
   - node_modules/node-plantuml-2/**
+  # sharp 包含原生模块，需要解包以确保在 Mac/Linux 上正常工作
+  # 参考: https://github.com/lovell/sharp/issues/4001
+  # sharp 及其所有平台特定的原生依赖都需要解包
+  - node_modules/sharp/**
+  - node_modules/@img/sharp-*/**
+  - node_modules/@img/sharp-libvips-*/**
 win:
   executableName: meta-doc
   icon: build/icon.ico  # 主应用程序图标（用于可执行文件和"打开方式"对话框）

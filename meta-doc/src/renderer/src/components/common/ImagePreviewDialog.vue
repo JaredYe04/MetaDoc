@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ZoomIn, ZoomOut } from '@element-plus/icons-vue'
 import { themeState } from '../../utils/themes'
@@ -106,11 +106,46 @@ const handleUpdateModelValue = (value: boolean) => {
   }
 }
 
-// 监听 imageUrl 变化，重置状态
+// 计算适合容器的缩放比例
+const calculateFitScale = (img: HTMLImageElement): number => {
+  // 获取容器尺寸（使用对话框的 body 区域）
+  const dialogBody = document.querySelector('.image-preview-dialog .el-dialog__body') as HTMLElement
+  if (!dialogBody) {
+    return 1
+  }
+  
+  const containerWidth = dialogBody.clientWidth - 40 // 减去 padding
+  const containerHeight = dialogBody.clientHeight - 40
+  
+  // 计算适合的缩放比例（保持宽高比，完整显示）
+  const scaleX = containerWidth / img.width
+  const scaleY = containerHeight / img.height
+  const fitScale = Math.min(scaleX, scaleY, 1) // 不超过原始大小
+  
+  return fitScale
+}
+
+// 监听 imageUrl 变化，重置状态并计算适合的缩放
 watch(() => props.imageUrl, () => {
   if (props.imageUrl) {
-    imageScale.value = 1
     imagePosition.value = { x: 0, y: 0 }
+    // 等待图片加载完成后计算适合的缩放比例
+    nextTick(() => {
+      const img = document.querySelector('.preview-image') as HTMLImageElement
+      if (img) {
+        if (img.complete) {
+          // 图片已加载完成
+          imageScale.value = calculateFitScale(img)
+        } else {
+          // 等待图片加载
+          img.onload = () => {
+            imageScale.value = calculateFitScale(img)
+          }
+        }
+      } else {
+        imageScale.value = 1
+      }
+    })
   }
 })
 

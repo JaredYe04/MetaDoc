@@ -2347,9 +2347,61 @@ watch(
     min-width: var(--editor-min-width, 360px);
     height: 100%;
     overflow: auto;
-    scrollbar-color: #888 #63636300;
-    scrollbar-width: thin;
+    /* 恢复滚动条显示（覆盖全局隐藏滚动条样式） */
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(0, 0, 0, 0.3) rgba(0, 0, 0, 0.05) !important;
+    -ms-overflow-style: auto !important;
     color: var(--editor-text-color, inherit);
+}
+
+/* 确保 vditor 内部容器也显示滚动条 */
+.editor :deep(.vditor-content),
+.editor :deep(.vditor-ir),
+.editor :deep(.vditor-wysiwyg),
+.editor :deep(.vditor-sv),
+.editor :deep(.vditor-reset) {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(0, 0, 0, 0.3) rgba(0, 0, 0, 0.05) !important;
+    -ms-overflow-style: auto !important;
+}
+
+/* WebKit 浏览器滚动条样式 */
+.editor :deep(.vditor-content::-webkit-scrollbar),
+.editor :deep(.vditor-ir::-webkit-scrollbar),
+.editor :deep(.vditor-wysiwyg::-webkit-scrollbar),
+.editor :deep(.vditor-sv::-webkit-scrollbar),
+.editor :deep(.vditor-reset::-webkit-scrollbar) {
+    display: block !important;
+    width: 8px !important;
+    height: 8px !important;
+    background: transparent !important;
+    appearance: auto !important;
+    -webkit-appearance: auto !important;
+}
+
+.editor :deep(.vditor-content::-webkit-scrollbar-track),
+.editor :deep(.vditor-ir::-webkit-scrollbar-track),
+.editor :deep(.vditor-wysiwyg::-webkit-scrollbar-track),
+.editor :deep(.vditor-sv::-webkit-scrollbar-track),
+.editor :deep(.vditor-reset::-webkit-scrollbar-track) {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.editor :deep(.vditor-content::-webkit-scrollbar-thumb),
+.editor :deep(.vditor-ir::-webkit-scrollbar-thumb),
+.editor :deep(.vditor-wysiwyg::-webkit-scrollbar-thumb),
+.editor :deep(.vditor-sv::-webkit-scrollbar-thumb),
+.editor :deep(.vditor-reset::-webkit-scrollbar-thumb) {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+.editor :deep(.vditor-content::-webkit-scrollbar-thumb:hover),
+.editor :deep(.vditor-ir::-webkit-scrollbar-thumb:hover),
+.editor :deep(.vditor-wysiwyg::-webkit-scrollbar-thumb:hover),
+.editor :deep(.vditor-sv::-webkit-scrollbar-thumb:hover),
+.editor :deep(.vditor-reset::-webkit-scrollbar-thumb:hover) {
+    background: rgba(0, 0, 0, 0.5);
 }
 
 /* 强制覆盖 Vditor 的文字颜色 */

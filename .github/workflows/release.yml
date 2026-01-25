@@ -196,7 +196,7 @@ jobs:
       - name: 安装依赖
         if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
-        run: npm ci --include=optional
+        run: npm ci
       
       - name: 构建项目
         if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')

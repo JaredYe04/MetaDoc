@@ -2,7 +2,7 @@ Open Source Licenses
 
 This application uses the following open source software:
 
-Total packages: 101
+Total packages: 103
 
 Package: @babel/core@7.28.5
 License: MIT
@@ -34,7 +34,7 @@ Repository: https://github.com/ionic-team/capacitor
 Publisher: Ionic Team <hi@ionic.io>
 
 
-Package: @capacitor/cli@7.2.0
+Package: @capacitor/cli@7.4.4
 License: MIT
 Repository: https://github.com/ionic-team/capacitor
 Publisher: Ionic Team <hi@ionic.io>
@@ -195,6 +195,11 @@ Repository: https://github.com/tsayen/dom-to-image
 Publisher: Anatolii Saienko <anatoly.sayenko@gmail.com>
 
 
+Package: dotenv@16.6.1
+License: BSD-2-Clause
+Repository: https://github.com/motdotla/dotenv
+
+
 Package: echarts@5.6.0
 License: Apache-2.0
 Repository: https://github.com/apache/echarts
@@ -264,6 +269,12 @@ License: ISC
 Repository: https://github.com/bluelovers/jieba-js
 
 
+Package: jimp@0.22.12
+License: MIT
+Repository: https://github.com/jimp-dev/jimp
+Publisher: Oliver Moran <oliver.moran@gmail.com>
+
+
 Package: js-cookie@3.0.5
 License: MIT
 Repository: https://github.com/js-cookie/js-cookie
@@ -298,7 +309,7 @@ Repository: https://github.com/lodash/lodash
 Publisher: John-David Dalton <john.david.dalton@gmail.com>
 
 
-Package: mammoth@1.10.0
+Package: mammoth@1.11.0
 License: BSD-2-Clause
 Repository: https://github.com/mwilliamson/mammoth.js
 Publisher: Michael Williamson <mike@zwobble.org>
@@ -325,7 +336,7 @@ License: MIT
 Repository: https://github.com/markdown-it/markdown-it
 
 
-Package: marked@15.0.1
+Package: marked@15.0.12
 License: MIT
 Repository: https://github.com/markedjs/marked
 Publisher: Christopher Jeffrey
@@ -354,7 +365,7 @@ Repository: https://github.com/mermaid-js/mermaid
 Publisher: Knut Sveidqvist
 
 
-Package: meta-doc@0.17.3
+Package: meta-doc@0.17.10
 License: UNKNOWN
 Repository: https://github.com/JaredYe04/MetaDoc
 Publisher: ByteLight
@@ -405,15 +416,20 @@ Repository: https://github.com/nock/nock
 Publisher: Pedro Teixeira <pedro.teixeira@gmail.com>
 
 
-Package: node-pdf-to-markdown@1.2.2
+Package: node-latex-compiler@1.0.1
+License: MIT
+Repository: https://github.com/JaredYe04/node-latex-compiler
+
+
+Package: node-pdf-to-markdown@1.2.5
 License: MIT
 Repository: https://github.com/JaredYe04/node-pdf-to-markdown
 Publisher: devilyouwei
 
 
-Package: node-plantuml@0.9.0
+Package: node-plantuml-2@1.1.0
 License: MIT
-Repository: https://github.com/markushedvall/node-plantuml
+Repository: https://github.com/JaredYe04/node-plantuml-2
 Publisher: Markus Hedvall <mackanhedvall@gmail.com>
 
 
@@ -472,12 +488,6 @@ Package: segment@0.1.3
 License: MIT*
 Repository: https://github.com/leizongmin/node-segment
 Publisher: Zongmin Lei <leizongmin@gmail.com>
-
-
-Package: sharp@0.34.5
-License: Apache-2.0
-Repository: https://github.com/lovell/sharp
-Publisher: Lovell Fuller <npm@lovell.info>
 
 
 Package: slice-ansi@7.1.2
@@ -588,12 +598,12 @@ Publisher: jindw <jindw@xidea.org>
 License Summary
 ============================================================
 
-MIT: 75 package(s)
-Apache-2.0: 11 package(s)
+MIT: 77 package(s)
+Apache-2.0: 10 package(s)
 ISC: 6 package(s)
 UNKNOWN: 2 package(s)
 BSD-3-Clause: 2 package(s)
+BSD-2-Clause: 2 package(s)
 MIT*: 2 package(s)
 Custom: LICENSE: 1 package(s)
 MPL-2.0: 1 package(s)
-BSD-2-Clause: 1 package(s)

@@ -3,21 +3,47 @@
  * 根据配置类型创建对应的适配器实例
  */
 
-import { OpenAiAdapter } from "./openai-adapter.ts";
-import { GeminiAdapter } from "./gemini-adapter.ts";
-import { OllamaAdapter } from "./ollama-adapter.ts";
 import { BaseLlmAdapter } from "./base-adapter.ts";
 import { LlmError, LlmErrorType } from "../llm-errors.js";
 import { getSetting } from "../settings.js";
 import { getMetaDocLlmConfig, verifyToken } from "../web-utils.ts";
 import type { LlmConfig, CustomLlmConfig } from "./types.ts";
 
+// 懒加载适配器类，避免初始化顺序问题
+let OpenAiAdapterClass: typeof import("./openai-adapter.ts").OpenAiAdapter | null = null;
+let GeminiAdapterClass: typeof import("./gemini-adapter.ts").GeminiAdapter | null = null;
+let OllamaAdapterClass: typeof import("./ollama-adapter.ts").OllamaAdapter | null = null;
+
+async function getOpenAiAdapter() {
+  if (!OpenAiAdapterClass) {
+    const module = await import("./openai-adapter.ts");
+    OpenAiAdapterClass = module.OpenAiAdapter;
+  }
+  return OpenAiAdapterClass;
+}
+
+async function getGeminiAdapter() {
+  if (!GeminiAdapterClass) {
+    const module = await import("./gemini-adapter.ts");
+    GeminiAdapterClass = module.GeminiAdapter;
+  }
+  return GeminiAdapterClass;
+}
+
+async function getOllamaAdapter() {
+  if (!OllamaAdapterClass) {
+    const module = await import("./ollama-adapter.ts");
+    OllamaAdapterClass = module.OllamaAdapter;
+  }
+  return OllamaAdapterClass;
+}
+
 /**
  * 创建适配器实例
  * @param {LlmConfig} config - LLM配置对象
- * @returns {BaseLlmAdapter} 适配器实例
+ * @returns {Promise<BaseLlmAdapter>} 适配器实例
  */
-export function createAdapter(config: LlmConfig): BaseLlmAdapter {
+export async function createAdapter(config: LlmConfig): Promise<BaseLlmAdapter> {
   if (!config || !config.type) {
     throw new LlmError(
       LlmErrorType.INVALID_CONFIG,
@@ -25,25 +51,26 @@ export function createAdapter(config: LlmConfig): BaseLlmAdapter {
     );
   }
 
+  // 延迟加载适配器类，避免初始化顺序问题
   switch (config.type) {
     case "openai":
     case "openai-official":
     case "deepseek":
-      return new OpenAiAdapter(config);
+      return new (await getOpenAiAdapter())(config);
     
     case "gemini":
-      return new GeminiAdapter(config);
+      return new (await getGeminiAdapter())(config);
     
     case "ollama":
-      return new OllamaAdapter(config);
+      return new (await getOllamaAdapter())(config);
     
     case "manual":
       // manual类型也使用OpenAI适配器（因为使用模拟接口）
-      return new OpenAiAdapter(config);
+      return new (await getOpenAiAdapter())(config);
     
     case "metadoc":
       // metadoc类型也使用OpenAI适配器（兼容OpenAI格式）
-      return new OpenAiAdapter(config);
+      return new (await getOpenAiAdapter())(config);
     
     default:
       throw new LlmError(
@@ -194,7 +221,7 @@ export async function createAdapterFromSettings(customConfig: CustomLlmConfig | 
   }
 
   // 创建适配器并验证配置
-  const adapter = createAdapter(config);
+  const adapter = await createAdapter(config);
   adapter.validate();
   
   return adapter;

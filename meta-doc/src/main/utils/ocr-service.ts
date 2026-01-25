@@ -9,7 +9,7 @@ import zlib from 'zlib';
 import { pathToFileURL } from 'url';
 import fs from 'fs';
 import path from 'path';
-import sharp from 'sharp';
+import Jimp from 'jimp';
 import { createMainLogger } from '../logger';
 import pathService from './path-service';
 import { getLocale } from '../i18n';
@@ -309,41 +309,49 @@ class OCRServiceImpl {
    */
   private async preprocessImage(imageBuffer: Buffer): Promise<Buffer> {
     try {
-      // 获取图片元数据
-      const metadata = await sharp(imageBuffer).metadata();
+      // 读取图片
+      let image = await Jimp.read(imageBuffer);
+      
+      // 获取图片尺寸
+      const width = image.getWidth();
+      const height = image.getHeight();
       
       // 如果图片太小，先放大以提高识别精度
       const minSize = 300; // 最小尺寸
-      let pipeline = sharp(imageBuffer);
-      
-      if (metadata.width && metadata.height) {
-        const needsResize = metadata.width < minSize || metadata.height < minSize;
-        if (needsResize) {
-          const scale = Math.max(minSize / metadata.width, minSize / metadata.height);
-          pipeline = pipeline.resize(
-            Math.round(metadata.width * scale),
-            Math.round(metadata.height * scale),
-            { kernel: sharp.kernel.lanczos3 } // 使用高质量缩放算法
-          );
-        }
+      if (width < minSize || height < minSize) {
+        const scale = Math.max(minSize / width, minSize / height);
+        const newWidth = Math.round(width * scale);
+        const newHeight = Math.round(height * scale);
+        logger.debug(`放大图片: ${width}x${height} -> ${newWidth}x${newHeight}`);
+        image = image.contain(newWidth, newHeight);
       }
       
       // 图片预处理流程
-      const processedBuffer = await pipeline
-        .greyscale() // 转为灰度图（OCR通常只需要灰度信息）
-        .normalize() // 归一化（增强对比度，使图片更清晰）
-        .sharpen(1, 1, 2) // 锐化（提高边缘清晰度）
-        .png({ quality: 100, compressionLevel: 9 }) // 转换为高质量PNG格式（确保格式正确）
-        .toBuffer();
+      // 转为灰度图（OCR通常只需要灰度信息）
+      image = image.greyscale();
+      
+      // 归一化（增强对比度，使图片更清晰）
+      image = image.normalize();
+      
+      // 锐化（提高边缘清晰度）
+      // 使用卷积核进行锐化
+      const sharpenKernel = [
+        [0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0]
+      ];
+      image = image.convolute(sharpenKernel);
+      
+      // 转换为高质量PNG格式（确保格式正确）
+      const processedBuffer = await image.quality(100).getBufferAsync(Jimp.MIME_PNG);
       
       return processedBuffer;
     } catch (error) {
       logger.warn('图片预处理失败，尝试简单转换:', error);
       // 如果预处理失败，尝试至少转换为PNG格式
       try {
-        return await sharp(imageBuffer)
-          .png()
-          .toBuffer();
+        const image = await Jimp.read(imageBuffer);
+        return await image.quality(100).getBufferAsync(Jimp.MIME_PNG);
       } catch (convertError) {
         logger.warn('图片格式转换失败，使用原始Buffer:', convertError);
         return imageBuffer; // 如果都失败，返回原始Buffer
@@ -358,9 +366,11 @@ class OCRServiceImpl {
    */
   private async validateImageBuffer(imageBuffer: Buffer): Promise<boolean> {
     try {
-      // 使用sharp验证图片格式
-      const metadata = await sharp(imageBuffer).metadata();
-      return metadata.width !== undefined && metadata.height !== undefined && metadata.width > 0 && metadata.height > 0;
+      // 使用Jimp验证图片格式
+      const image = await Jimp.read(imageBuffer);
+      const width = image.getWidth();
+      const height = image.getHeight();
+      return width > 0 && height > 0;
     } catch (error) {
       logger.warn('图片验证失败:', error);
       return false;

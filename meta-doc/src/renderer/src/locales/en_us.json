@@ -1508,8 +1508,18 @@
         "fixedText": "Fixed Text",
         "viewMode": "View Mode",
         "singleView": "Single View",
-        "diffView": "Diff View"
-      },
+        "diffView": "Diff View",
+        "imagePreprocessing": "Image Preprocessing",
+        "brightness": "Brightness",
+        "contrast": "Contrast",
+        "saturation": "Saturation",
+        "sharpness": "Sharpness",
+        "grayscale": "Grayscale",
+        "normalize": "Normalize",
+        "resetParams": "Reset Parameters",
+        "defaultParams": "Recommended Settings",
+        "preprocessingParams": "Preprocessing Parameters"
+    },
       "chartGeneration": {
         "generating": "Generating chart code...",
         "rendering": "Rendering chart...",

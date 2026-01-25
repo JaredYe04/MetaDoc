@@ -441,6 +441,139 @@ export const generateParentNodeContentPrompt = (
 - 如果确实需要说明，请保持简洁，优先输出正文内容`;
 };
 
+/**
+ * 扩写内容提示词
+ */
+export const expandContentPrompt = (
+  treeJson: string,
+  nodeJson: string,
+  currentContent: string,
+  userPrompt = '',
+  wordCount?: number,
+): string => {
+  const wordCountText = wordCount ? `目标字数约为${wordCount}字。` : '';
+  const userPromptText = userPrompt ? `用户额外要求：${userPrompt}。` : '';
+  const template = getPromptTemplate('expandContentPrompt', { 
+    treeJson, 
+    nodeJson, 
+    currentContent, 
+    userPrompt: userPromptText,
+    wordCount: wordCountText
+  });
+  return template || `你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构：${treeJson}。当前需要处理的章节是：${nodeJson}。
+
+当前章节的现有内容如下：
+${currentContent}
+
+请对以上内容进行扩写，使其更加丰富翔实。${wordCountText}${userPromptText}扩写时请注意：
+1. 保持原有内容的主题和核心观点不变
+2. 增加细节描述、案例分析、数据支撑等
+3. 保持文章风格和语气一致
+4. 扩写后的内容应该更加深入和全面
+
+**输出要求：**
+- 请直接输出扩写后的完整内容，建议从第一行开始就是正文
+- 优先输出正文内容，避免添加不必要的前缀或解释
+- 如果确实需要说明，请保持简洁，优先输出正文内容`;
+};
+
+/**
+ * 略写内容提示词
+ */
+export const abridgeContentPrompt = (
+  treeJson: string,
+  nodeJson: string,
+  currentContent: string,
+  userPrompt = '',
+  wordCount?: number,
+): string => {
+  const wordCountText = wordCount ? `目标字数约为${wordCount}字。` : '';
+  const userPromptText = userPrompt ? `用户额外要求：${userPrompt}。` : '';
+  const template = getPromptTemplate('abridgeContentPrompt', { 
+    treeJson, 
+    nodeJson, 
+    currentContent, 
+    userPrompt: userPromptText,
+    wordCount: wordCountText
+  });
+  return template || `你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构：${treeJson}。当前需要处理的章节是：${nodeJson}。
+
+当前章节的现有内容如下：
+${currentContent}
+
+请对以上内容进行略写，使其更加简洁精炼。${wordCountText}${userPromptText}略写时请注意：
+1. 保留核心观点和关键信息
+2. 删除冗余描述和重复内容
+3. 保持文章风格和语气一致
+4. 确保略写后的内容仍然完整和连贯
+
+**输出要求：**
+- 请直接输出略写后的完整内容，建议从第一行开始就是正文
+- 优先输出正文内容，避免添加不必要的前缀或解释
+- 如果确实需要说明，请保持简洁，优先输出正文内容`;
+};
+
+/**
+ * OCR修复提示词
+ */
+export const generateOcrFixPrompt = (ocrText: string): string => {
+  const template = getPromptTemplate('ocrFixPrompt', { ocrText });
+  
+  if (template) {
+    return template;
+  }
+  
+  // Fallback
+  return `你是一个专业的文本修复助手。以下是通过OCR（光学字符识别）技术从图片中识别出的文本内容。由于OCR识别可能存在错误，文本中可能包含错别字、格式混乱、标点符号错误等问题。
+
+**原始OCR识别文本：**
+${ocrText}
+
+**修复要求：**
+1. 修正所有错别字和识别错误
+2. 整理混乱的格式（如多余的空格、换行等）
+3. 修正标点符号错误
+4. 保持文本的原始语义和结构
+5. 如果文本包含特殊格式（如列表、表格等），请尽量保持原有格式
+6. 不要添加原文中没有的内容，只修复识别错误
+
+**输出要求：**
+- 请直接输出修复后的完整文本，建议从第一行开始就是修复后的内容
+- 优先输出修复后的文本内容，避免添加不必要的前缀或解释
+- 如果确实需要说明，请保持简洁，优先输出修复后的文本`;
+};
+
+export const polishContentPrompt = (
+  treeJson: string,
+  nodeJson: string,
+  currentContent: string,
+  userPrompt = '',
+): string => {
+  const userPromptText = userPrompt ? `用户额外要求：${userPrompt}。` : '';
+  const template = getPromptTemplate('polishContentPrompt', { 
+    treeJson, 
+    nodeJson, 
+    currentContent, 
+    userPrompt: userPromptText
+  });
+  return template || `你是一个文笔出色的编辑，以下是一篇文章大纲的树形json结构：${treeJson}。当前需要处理的章节是：${nodeJson}。
+
+当前章节的现有内容如下：
+${currentContent}
+
+请对以上内容进行润色，提升其表达质量和可读性。${userPromptText}润色时请注意：
+1. 保持原有内容的主题和核心观点不变
+2. 优化语言表达，使其更加流畅自然
+3. 修正语法错误和表达不当之处
+4. 保持文章风格和语气一致
+5. 不改变内容的长度和结构
+
+**输出要求：**
+- 请直接输出润色后的完整内容，建议从第一行开始就是正文
+- 优先输出正文内容，避免添加不必要的前缀或解释
+- 如果确实需要说明，请保持简洁，优先输出正文内容`;
+};
+
 export const updateTitlePrompt = (conversationSummary: string): string => {
   const prompts = getCurrentLocalePrompts();
   const template = prompts.prompts?.updateTitlePrompt;

@@ -482,7 +482,17 @@
         "fixedText": "修复后文本",
         "viewMode": "视图模式",
         "singleView": "单视图",
-        "diffView": "对比视图"
+        "diffView": "对比视图",
+        "imagePreprocessing": "图片预处理",
+        "brightness": "亮度",
+        "contrast": "对比度",
+        "saturation": "饱和度",
+        "sharpness": "锐化",
+        "grayscale": "灰度化",
+        "normalize": "归一化",
+        "resetParams": "重置参数",
+        "defaultParams": "推荐设置",
+        "preprocessingParams": "预处理参数"
     },
     "attachment": {
         "attachmentsTitle": "附件解析",

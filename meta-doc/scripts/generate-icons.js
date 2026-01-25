@@ -8,7 +8,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const sharp = require('sharp');
+const { Resvg } = require('@resvg/resvg-js');
+const Jimp = require('jimp');
 
 // 路径配置
 const logosDir = path.resolve(__dirname, '../../logos');
@@ -20,6 +21,58 @@ const icoSizes = [16, 32, 48, 64, 128, 256];
 
 // ICNS 文件需要的尺寸（macOS 标准尺寸）
 const icnsSizes = [16, 32, 64, 128, 256, 512, 1024];
+
+/**
+ * 将 SVG 转换为 PNG Buffer（使用 @resvg/resvg-js + Jimp）
+ * 使用高分辨率渲染 + 高质量缩放算法，确保边缘清晰
+ */
+async function svgToPngBuffer(svgPath, width, height) {
+  const svgContent = fs.readFileSync(svgPath, 'utf-8');
+  
+  // 提高渲染分辨率：使用更高的倍数（至少4倍），然后高质量缩放
+  // 这样可以获得更清晰的边缘，避免锯齿，接近 sharp 的质量
+  // 对于小尺寸（16-64），使用更高倍数；对于大尺寸（128-256），使用4倍
+  const baseScale = Math.max(width, height) <= 64 ? 6 : 4;
+  const renderSize = Math.max(width, height) * baseScale;
+  
+  const resvg = new Resvg(svgContent, {
+    fitTo: {
+      mode: 'width',
+      value: renderSize
+    },
+    background: 'transparent'
+  });
+  
+  const pngData = resvg.render();
+  const pngBuffer = pngData.asPng();
+  
+  // 使用 Jimp 高质量缩放算法
+  // RESIZE_HERMITE: 最高质量的缩放算法，提供最清晰的边缘
+  const image = await Jimp.read(pngBuffer);
+  const resized = image.resize(width, height, Jimp.RESIZE_HERMITE);
+  
+  // 验证尺寸
+  if (resized.bitmap.width !== width || resized.bitmap.height !== height) {
+    throw new Error(`尺寸调整失败: 期望 ${width}x${height}，实际 ${resized.bitmap.width}x${resized.bitmap.height}`);
+  }
+  
+  // 使用最高质量 PNG 输出
+  return await resized.quality(100).getBufferAsync(Jimp.MIME_PNG);
+}
+
+/**
+ * 将 SVG 转换为 PNG 文件（使用 @resvg/resvg-js + Jimp）
+ */
+async function svgToPngFile(svgPath, outputPath, width, height) {
+  const pngBuffer = await svgToPngBuffer(svgPath, width, height);
+  fs.writeFileSync(outputPath, pngBuffer);
+  
+  // 验证输出文件尺寸
+  const image = await Jimp.read(outputPath);
+  if (image.bitmap.width !== width || image.bitmap.height !== height) {
+    throw new Error(`输出文件尺寸不正确: 期望 ${width}x${height}，实际 ${image.bitmap.width}x${image.bitmap.height}`);
+  }
+}
 
 /**
  * 获取最新的 logo 版本目录
@@ -239,13 +292,7 @@ async function convertSvgToIcns(svgPath, outputPath) {
     const pngFiles = [];
     for (const size of icnsSizes) {
       const pngPath = path.join(tmpDir, `icon_${size}x${size}.png`);
-      await sharp(svgPath)
-        .resize(size, size, {
-          fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 0 }
-        })
-        .png()
-        .toFile(pngPath);
+      await svgToPngFile(svgPath, pngPath, size, size);
       pngFiles.push(pngPath);
     }
     
@@ -326,7 +373,7 @@ async function convertSvgToIcns(svgPath, outputPath) {
 
 /**
  * 将 SVG 转换为 ICO 文件
- * 由于 sharp 不直接支持 ICO 输出，我们需要生成多个尺寸的 PNG，然后使用 to-ico 库
+ * 使用 @resvg/resvg-js 生成多个尺寸的 PNG，然后使用 to-ico 库组合为 ICO 格式
  */
 async function convertSvgToIco(svgPath, outputPath) {
   try {
@@ -345,13 +392,7 @@ async function convertSvgToIco(svgPath, outputPath) {
     // 生成多个尺寸的 PNG 缓冲区
     const pngBuffers = await Promise.all(
       icoSizes.map(async (size) => {
-        const buffer = await sharp(svgPath)
-          .resize(size, size, {
-            fit: 'contain',
-            background: { r: 255, g: 255, b: 255, alpha: 0 }
-          })
-          .png()
-          .toBuffer();
+        const buffer = await svgToPngBuffer(svgPath, size, size);
         return { size, buffer };
       })
     );
@@ -477,10 +518,7 @@ async function main() {
     console.log('\n正在生成 Linux 图标（PNG 格式）...');
     const iconPngPath = path.join(buildDir, 'icon.png');
     if (!fs.existsSync(iconPngPath)) {
-      await sharp(logoPath)
-        .resize(512, 512, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
-        .png()
-        .toFile(iconPngPath);
+      await svgToPngFile(logoPath, iconPngPath, 512, 512);
       console.log(`✓ 已生成: ${path.basename(iconPngPath)}`);
     } else {
       console.log(`✓ ${path.basename(iconPngPath)} 已存在，跳过生成`);
@@ -490,10 +528,7 @@ async function main() {
     console.log('\n正在生成 Linux 文件关联图标（PNG 格式）...');
     const mdIconPngPath = path.join(buildDir, 'md-icon.png');
     if (!fs.existsSync(mdIconPngPath)) {
-      await sharp(mdDocWhitePath)
-        .resize(512, 512, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
-        .png()
-        .toFile(mdIconPngPath);
+      await svgToPngFile(mdDocWhitePath, mdIconPngPath, 512, 512);
       console.log(`✓ 已生成: ${path.basename(mdIconPngPath)}`);
     } else {
       console.log(`✓ ${path.basename(mdIconPngPath)} 已存在，跳过生成`);
@@ -501,10 +536,7 @@ async function main() {
     
     const texIconPngPath = path.join(buildDir, 'tex-icon.png');
     if (!fs.existsSync(texIconPngPath)) {
-      await sharp(texDocWhitePath)
-        .resize(512, 512, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
-        .png()
-        .toFile(texIconPngPath);
+      await svgToPngFile(texDocWhitePath, texIconPngPath, 512, 512);
       console.log(`✓ 已生成: ${path.basename(texIconPngPath)}`);
     } else {
       console.log(`✓ ${path.basename(texIconPngPath)} 已存在，跳过生成`);

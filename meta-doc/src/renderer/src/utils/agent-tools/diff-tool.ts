@@ -19,7 +19,15 @@ import axios from 'axios'
 import DiffDisplay from './components/DiffDisplay.vue'
 import { createDetailedError } from './tool-utils'
 
-const logger = createRendererLogger('DiffTool')
+// 懒加载logger，避免初始化顺序问题
+let loggerInstance: ReturnType<typeof createRendererLogger> | null = null
+
+function getLogger() {
+  if (!loggerInstance) {
+    loggerInstance = createRendererLogger('DiffTool')
+  }
+  return loggerInstance
+}
 
 // 获取IPC渲染器
 let ipcRenderer: typeof localIpcRenderer | null = null
@@ -81,7 +89,7 @@ async function loadTextFromFile(filePath: string, signal?: AbortSignal): Promise
     const content = await ipcRenderer.invoke('read-file-content', filePath)
     return content
   } catch (error) {
-    logger.error('读取文件失败:', error)
+    getLogger().error('读取文件失败:', error)
     throw new Error(`读取文件失败: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
@@ -107,7 +115,7 @@ async function loadTextFromUrl(url: string, signal?: AbortSignal): Promise<strin
         return response.content
       } catch (error) {
         // 如果主进程请求失败，尝试使用axios
-        logger.warn('主进程HTTP请求失败，尝试使用axios:', error)
+        getLogger().warn('主进程HTTP请求失败，尝试使用axios:', error)
       }
     }
 
@@ -131,7 +139,7 @@ async function loadTextFromUrl(url: string, signal?: AbortSignal): Promise<strin
       }
       throw new Error(`从URL获取数据失败: ${error.message}`)
     }
-    logger.error('从URL获取数据失败:', error)
+    getLogger().error('从URL获取数据失败:', error)
     throw error
   }
 }
@@ -412,7 +420,7 @@ const diffToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       result: diffResult
     }
   } catch (error) {
-    logger.error('Diff计算失败:', error)
+    getLogger().error('Diff计算失败:', error)
     return {
       status: 'failed',
       error: error instanceof Error ? error.message : String(error)

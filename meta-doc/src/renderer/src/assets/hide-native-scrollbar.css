@@ -84,3 +84,57 @@ html.el-popup-parent--hidden {
   z-index: 10;
 }
 
+/* 允许 vditor 编辑器显示滚动条 */
+.editor,
+.editor *,
+.editor .vditor-content,
+.editor .vditor-ir,
+.editor .vditor-wysiwyg,
+.editor .vditor-sv,
+.editor .vditor-reset {
+  scrollbar-width: thin !important;
+  -ms-overflow-style: auto !important;
+}
+
+.editor ::-webkit-scrollbar,
+.editor .vditor-content::-webkit-scrollbar,
+.editor .vditor-ir::-webkit-scrollbar,
+.editor .vditor-wysiwyg::-webkit-scrollbar,
+.editor .vditor-sv::-webkit-scrollbar,
+.editor .vditor-reset::-webkit-scrollbar {
+  display: block !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: transparent !important;
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+}
+
+.editor ::-webkit-scrollbar-track,
+.editor .vditor-content::-webkit-scrollbar-track,
+.editor .vditor-ir::-webkit-scrollbar-track,
+.editor .vditor-wysiwyg::-webkit-scrollbar-track,
+.editor .vditor-sv::-webkit-scrollbar-track,
+.editor .vditor-reset::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.editor ::-webkit-scrollbar-thumb,
+.editor .vditor-content::-webkit-scrollbar-thumb,
+.editor .vditor-ir::-webkit-scrollbar-thumb,
+.editor .vditor-wysiwyg::-webkit-scrollbar-thumb,
+.editor .vditor-sv::-webkit-scrollbar-thumb,
+.editor .vditor-reset::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.editor ::-webkit-scrollbar-thumb:hover,
+.editor .vditor-content::-webkit-scrollbar-thumb:hover,
+.editor .vditor-ir::-webkit-scrollbar-thumb:hover,
+.editor .vditor-wysiwyg::-webkit-scrollbar-thumb:hover,
+.editor .vditor-sv::-webkit-scrollbar-thumb:hover,
+.editor .vditor-reset::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+

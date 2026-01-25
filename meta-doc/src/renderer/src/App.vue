@@ -261,6 +261,14 @@ onMounted(async () => {
       return;
     }
     
+    // 过滤 Monaco Editor 的 "Canceled" 错误（编辑器销毁时的正常行为）
+    if (e.reason?.name === 'Canceled' || 
+        e.reason?.message === 'Canceled' ||
+        (e.reason?.stack && e.reason.stack.includes('Delayer.cancel'))) {
+      // 这是 Monaco Editor 在 dispose 时取消内部延迟操作的正常行为，静默忽略
+      return;
+    }
+    
     logger.error('Unhandled rejection', errorInfo);
   });
   // const windowType=route.query.windowType

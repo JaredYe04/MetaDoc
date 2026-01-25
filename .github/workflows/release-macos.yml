@@ -199,20 +199,6 @@ jobs:
             echo "✅ macOS 图标已存在"
           fi
       
-      - name: 重建 sharp 模块（macOS ARM64）
-        if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
-        working-directory: meta-doc
-        run: |
-          echo "📦 重建 sharp 模块以确保正确的平台支持..."
-          # 使用 electron-rebuild 重建 sharp（推荐方法）
-          npx electron-rebuild -f -w sharp || {
-            echo "⚠️  electron-rebuild 失败，尝试直接重建..."
-            # 备用方法：删除并重新安装 sharp
-            rm -rf node_modules/sharp
-            npm install sharp --platform=darwin --arch=arm64 --force
-          }
-          echo "✅ sharp 模块重建完成"
-      
       - name: 构建项目
         if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc

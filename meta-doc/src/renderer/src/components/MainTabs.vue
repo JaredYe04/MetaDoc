@@ -1,5 +1,7 @@
 <template>
   <div class="main-tabs-wrapper" :class="{ 'is-locked': isLocked }" @dblclick="handleDoubleClick">
+    <!-- macOS 平台：左边预留空间给原生按钮 -->
+    <div v-if="isMac" class="macos-traffic-lights-spacer"></div>
     <div class="tabs-container">
       <el-tabs
         ref="tabsRef"
@@ -61,8 +63,8 @@
       </div>
     </div>
     
-    <!-- 窗口控制按钮 (最右侧) -->
-    <div class="window-controls">
+    <!-- 窗口控制按钮 (最右侧) - 仅在非 macOS 平台显示 -->
+    <div v-if="!isMac" class="window-controls">
       <div class="window-control-btn" @click="handleMinimize">
         <el-icon><Minus /></el-icon>
       </div>
@@ -96,6 +98,13 @@ const workspace = useWorkspace()
 const tabsRef = ref<any>(null)
 
 const { closeTab, isLocked } = useCloseTab()
+
+// 检测是否为 macOS
+const isMac = computed(() => {
+  // //debug
+  // return true
+  return typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/i.test(navigator.platform)
+})
 
 // 使用mixColors生成辅助色 - 使用themeState.currentTheme的主题色
 const tabsContainerBackgroundColor = computed(() => {
@@ -587,6 +596,15 @@ watch(() => route.path, (newPath) => {
   min-width: 0;
   position: relative;
   gap: 0; /* 确保没有间隙 */
+}
+
+/* macOS 平台：左边预留空间给原生交通灯按钮 */
+.macos-traffic-lights-spacer {
+  width: 78px; /* macOS 原生按钮区域宽度 */
+  min-width: 78px;
+  flex-shrink: 0;
+  height: 40px;
+  -webkit-app-region: drag;
 }
 
 .main-tabs {

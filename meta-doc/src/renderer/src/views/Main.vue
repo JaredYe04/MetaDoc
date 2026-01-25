@@ -1,11 +1,13 @@
 <template>
   <div class="common-layout">
     <!-- 顶部区域：Logo + MainTabs -->
-    <div class="top-header-container">
-      <LogoTab />
+    <!-- macOS: LogoTab 在右边；其他平台: LogoTab 在左边 -->
+    <div class="top-header-container" :class="{ 'is-mac': isMac }">
+      <LogoTab v-if="!isMac" />
       <el-header class="top-header">
         <MainTabs />
       </el-header>
+      <LogoTab v-if="isMac" />
     </div>
     <!-- 主内容区域：左边LeftMenu，中间ViewMenuContainer，右边内容 -->
     <el-container class="main-shell">
@@ -87,6 +89,13 @@ import { ElNotification, ElMessageBox } from 'element-plus'
 import { getSetting, updateRecentDocs } from '../utils/settings.js'
 import eventBus, { getWindowType } from '../utils/event-bus.js'
 import { useWorkspace, hasDocumentContent as checkDocumentContent } from '../stores/workspace'
+
+// 检测是否为 macOS
+const isMac = computed(() => {
+  // //debug
+  // return true
+  return typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/i.test(navigator.platform)
+})
 import {
   loadDocumentFromJson,
   loadDocumentFromMarkdown,
@@ -1108,6 +1117,11 @@ onBeforeUnmount(() => {
   background-color: var(--el-bg-color, #ffffff);
   border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0);
   z-index: 100;
+}
+
+/* macOS 平台：调整布局顺序 */
+.top-header-container.is-mac {
+  flex-direction: row;
 }
 
 /* 顶部Header - MainTabs */

@@ -141,6 +141,7 @@ export const settings = reactive({
   llmTemperature: 1.3, // LLM 全局温度配置
   vditorMode: 'ir', // Vditor编辑模式：'wysiwyg'、'ir'、'sv'，默认'ir'
   metadataSaveMode: 'sidecar', // 元信息保存模式：'sidecar'（隐藏伴生文件，默认）、'embed'（嵌入注释）、'none'（不保存）
+  mathInlineDigit: true, // 内联数学公式起始 $ 后是否允许数字，默认 true
 });
 
 // 关键设置列表：需要在窗口显示前加载的设置（影响UI渲染）

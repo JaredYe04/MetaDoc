@@ -5,6 +5,7 @@ import Vditor from 'vditor';
 import { createRendererLogger } from './logger.ts';
 import { isElectronEnv } from './event-bus';
 import { localVditorCDN, vditorCDN } from './vditor-cdn';
+import { getSetting } from './settings';
 //import mermaid from 'mermaid';
 // mermaid 改为动态导入，实现按需加载
 // 移除 dom-to-image 依赖，避免通过 DOM 截图导出路径
@@ -363,6 +364,9 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
     // 预先计算稳定哈希，作为目标文件名的一部分
     const ext = targetFormat === 'png' ? 'png' : 'svg';
     const hashBase = await computeHash(String(code) + ':' + chartType + ':' + ext);
+    
+    // 获取数学公式配置（在 Promise 外部获取，因为函数本身是 async）
+    const mathInlineDigit = await getSetting('mathInlineDigit') ?? true;
 
     return new Promise((resolve, reject) => {
         // 创建一个隐藏的容器用于渲染
@@ -382,6 +386,9 @@ export async function renderChartViaVditor(chartType, code, cdn, config, targetF
         Vditor.preview(container, codeBlock, {
             cdn: cdn,
             mode: 'light',
+            math: {
+                inlineDigit: mathInlineDigit
+            }
         });
         
             // 等待 preview 完成后再调用对应的渲染方法

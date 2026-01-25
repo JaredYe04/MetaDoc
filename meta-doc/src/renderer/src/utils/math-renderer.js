@@ -7,6 +7,7 @@ import Vditor from 'vditor';
 import domtoimage from 'dom-to-image-more';
 import { convertSvgToPng as convertSvgToPngInternal } from './chart-pre-renderer.js';
 import { createRendererLogger } from './logger.ts';
+import { getSetting } from './settings';
 
 
 function getCdn() {
@@ -36,8 +37,17 @@ async function renderTexToElement(texSource, displayMode = false) {
   const md = buildMathMarkdown(texSource, displayMode);
   const cdn = getCdn();
 
+  // 获取数学公式配置
+  const mathInlineDigit = await getSetting('mathInlineDigit') ?? true;
+
   // 先将 Markdown 渲染为 HTML，再调用 mathRender 处理公式
-  await Vditor.preview(container, md, { cdn, mode: 'light' });
+  await Vditor.preview(container, md, { 
+    cdn, 
+    mode: 'light',
+    math: {
+      inlineDigit: mathInlineDigit
+    }
+  });
   if (typeof Vditor.mathRender === 'function') {
     Vditor.mathRender(container, cdn);
   }

@@ -27,6 +27,21 @@ class LaTeXServiceImpl implements LaTeXService {
   }
 
   /**
+   * 清理文件路径，移除 file:// 前缀并规范化路径
+   */
+  private normalizeFilePath(filePath: FilePath): string {
+    if (!filePath) return '';
+    
+    // 移除 file:/// 前缀（如果存在）
+    let normalized = filePath.replace(/^file:\/\/\//, '');
+    
+    // 规范化路径（处理 .. 和 . 等）
+    normalized = path.normalize(normalized);
+    
+    return normalized;
+  }
+
+  /**
    * 编译 LaTeX 文件生成 PDF
    * @param config 编译配置
    * @returns 编译结果
@@ -46,13 +61,26 @@ class LaTeXServiceImpl implements LaTeXService {
         return { status: 'failed', exitCode: -1 };
       }
 
+      // 规范化 texFilePath（移除 file:// 前缀）
+      const normalizedTexPath = texFilePath ? this.normalizeFilePath(texFilePath) : null;
+
       // 设置输出目录
-      const actualOutputDir = outputDir || (texFilePath ? path.dirname(texFilePath) : process.cwd());
+      // 如果 outputDir 是空字符串或未定义，使用 texFilePath 的目录
+      let actualOutputDir: string;
+      if (outputDir && outputDir.trim() !== '') {
+        actualOutputDir = this.normalizeFilePath(outputDir);
+      } else if (normalizedTexPath) {
+        actualOutputDir = path.dirname(normalizedTexPath);
+      } else {
+        actualOutputDir = process.cwd();
+      }
+
+      // 确保输出目录存在且是目录
       this.ensureDirectoryExists(actualOutputDir);
 
       // 确定输出 PDF 路径
       const pdfFileName = customPdfFileName || 
-        (texFilePath ? path.basename(texFilePath, path.extname(texFilePath)) + '.pdf' : 'output.pdf');
+        (normalizedTexPath ? path.basename(normalizedTexPath, path.extname(normalizedTexPath)) + '.pdf' : 'output.pdf');
       const outputFile = path.join(actualOutputDir, pdfFileName);
 
       // 准备输出流处理器
@@ -123,10 +151,33 @@ class LaTeXServiceImpl implements LaTeXService {
 
   /**
    * 确保目录存在
+   * 如果路径已存在但不是目录，会抛出错误
    */
   private ensureDirectoryExists(dirPath: FilePath): void {
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
+    if (!dirPath || dirPath.trim() === '') {
+      throw new Error('Directory path is empty');
+    }
+
+    // 规范化路径
+    const normalizedPath = path.normalize(dirPath);
+
+    // 检查路径是否存在
+    if (fs.existsSync(normalizedPath)) {
+      // 如果存在，检查是否是目录
+      const stats = fs.statSync(normalizedPath);
+      if (!stats.isDirectory()) {
+        throw new Error(`Path exists but is not a directory: ${normalizedPath}`);
+      }
+    } else {
+      // 如果不存在，创建目录
+      try {
+        fs.mkdirSync(normalizedPath, { recursive: true });
+        logger.debug(`Created directory: ${normalizedPath}`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error(`Failed to create directory: ${normalizedPath}`, error);
+        throw new Error(`Failed to create directory: ${normalizedPath}. ${errorMessage}`);
+      }
     }
   }
 

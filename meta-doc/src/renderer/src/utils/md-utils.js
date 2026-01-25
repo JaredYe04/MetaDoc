@@ -1709,6 +1709,7 @@ export async function renderMarkdownPreview(container, markdown, options = {}) {
     }
     const codeTheme = themeState.currentTheme.codeTheme;
     const lineNumber = await getSetting('lineNumber') ?? true;
+    const mathInlineDigit = await getSetting('mathInlineDigit') ?? true;
     
     // 清空容器
     container.innerHTML = '';
@@ -1726,6 +1727,9 @@ export async function renderMarkdownPreview(container, markdown, options = {}) {
         hljs: {
             style: codeTheme,
             lineNumber: lineNumber
+        },
+        math: {
+            inlineDigit: mathInlineDigit
         }
     };
     
@@ -2058,6 +2062,7 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
             
             // 使用 Vditor.preview 进行完整的渲染（包括代码高亮和数学公式）
             // 如果 md 中已经包含 data URL，Vditor 应该能正确处理
+            const mathInlineDigit = await getSetting('mathInlineDigit') ?? true;
             const previewOptions = {
                 cdn: cdn,
                 markdown: {
@@ -2066,6 +2071,9 @@ export async function ConvertMarkdownToHtmlManually(md, convertImagesToBase64 = 
                 hljs: {
                     style: codeTheme,
                     lineNumber: lineNumber
+                },
+                math: {
+                    inlineDigit: mathInlineDigit
                 }
             };
             
@@ -2289,7 +2297,8 @@ export const ConvertHtmlForPdf = async (md) => {
     const contentTheme = await getSetting('contentTheme');
     const codeTheme = await getSetting('codeTheme');
     const lineNumber = await getSetting('lineNumber');
-    getLogger().info(`主题设置: contentTheme=${contentTheme}, codeTheme=${codeTheme}, lineNumber=${lineNumber}`);
+    const mathInlineDigit = await getSetting('mathInlineDigit') ?? true;
+    getLogger().info(`主题设置: contentTheme=${contentTheme}, codeTheme=${codeTheme}, lineNumber=${lineNumber}, mathInlineDigit=${mathInlineDigit}`);
 
     const html=`<!DOCTYPE html>
 <html lang="zh">
@@ -2313,6 +2322,9 @@ export const ConvertHtmlForPdf = async (md) => {
                     hljs: {
                         style: "${codeTheme}",
                         lineNumber: ${lineNumber}
+                    },
+                    math: {
+                        inlineDigit: ${mathInlineDigit}
                     }
                 });
                 // 图表已经预渲染为图片，不需要再次渲染

@@ -75,6 +75,19 @@
 
     <el-form-item>
       <template #label>
+        <span>{{ t('setting.mathInlineDigit') }}</span>
+        <el-tooltip :content="t('setting.mathInlineDigitHint')" placement="top">
+          <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>
+        </el-tooltip>
+      </template>
+      <el-switch v-model="settings.mathInlineDigit" class="mb-2"
+        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+        :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
+        @change="saveSetting('mathInlineDigit', settings.mathInlineDigit)" />
+    </el-form-item>
+
+    <el-form-item>
+      <template #label>
         <span>{{ t('setting.metadataSaveMode') }}</span>
         <el-tooltip :content="t('setting.metadataInfoHint')" placement="top">
           <el-icon class="metadata-info-icon"><QuestionFilled /></el-icon>

@@ -1574,6 +1574,9 @@ onMounted(async () => {
         // 获取当前文档的目录路径作为 linkBase
         const linkBase = currentLinkBase.value;
         
+        // 读取数学公式配置
+        const mathInlineDigit = await getSetting('mathInlineDigit') ?? true;
+        
         // 导入图片上传服务
         const { uploadImage, processImagePath } = await import('../utils/image-upload-service');
         
@@ -1592,6 +1595,9 @@ onMounted(async () => {
                 },
                 markdown: {
                     linkBase: linkBase,
+                },
+                math: {
+                    inlineDigit: mathInlineDigit,
                 },
             },
             upload: uploadUrl ? {

@@ -32,7 +32,22 @@
     </div>
     <div v-if="workspaceFolders.length === 0" class="workspace-explorer-empty">
       <el-empty :description="$t('workspaceExplorer.noWorkspaceFolder')" :image-size="80">
-        <el-button type="primary" @click="addWorkspaceFolder">
+        <template #image>
+          <div 
+            class="logo-container" 
+            :class="{ 'shake': isShaking }"
+            @click="handleLogoClick"
+          >
+            <div class="logo-animation-wrapper">
+              <img 
+                :src="logoPath" 
+                alt="Logo" 
+                class="logo-image"
+              />
+            </div>
+          </div>
+        </template>
+        <el-button @click="addWorkspaceFolder">
           {{ $t('workspaceExplorer.addFolder') }}
         </el-button>
       </el-empty>
@@ -195,11 +210,22 @@ import type { DirectoryProcessorWorker } from '../utils/workers/directory-proces
 import { useWorkspaceOperations } from '../composables/useWorkspaceOperations'
 import { URIUtils, type URI } from '../utils/workspace/fs-models'
 import { RefreshService } from '../utils/workspace/refresh-service'
+import logoPath from '../assets/logo.svg'
 
 const { t } = useI18n()
 const logger = createRendererLogger('WorkspaceExplorer')
 const workspace = useWorkspace()
 const { closeTab } = useCloseTab()
+
+// Logo 动画相关
+const isShaking = ref(false)
+
+const handleLogoClick = () => {
+  isShaking.value = true
+  setTimeout(() => {
+    isShaking.value = false
+  }, 1500) // 动画持续时间
+}
 
 // 获取 IPC renderer
 const getIpcRenderer = () => {
@@ -2580,6 +2606,58 @@ const handleSelectAll = async () => {
 
 .opened-file-item.is-active .opened-file-close {
   opacity: 1;
+}
+
+/* Logo 容器样式 */
+.logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+  margin: 0 auto;
+}
+
+.logo-container:hover {
+  transform: scale(1.2);
+}
+
+/* 摇晃时也应用 scale(1.2)，transition 会平滑过渡 */
+.logo-container.shake {
+  transform: scale(1.2);
+}
+
+.logo-container.shake:hover {
+  transform: scale(1.2);
+}
+
+.logo-animation-wrapper {
+  display: inline-block;
+}
+
+.logo-image {
+  width: 80px;
+  height: 80px;
+  display: block;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
+}
+
+/* 摇晃动画 - 只包含位移和旋转，scale 由外层容器处理 */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-10px) rotate(-5deg);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(10px) rotate(5deg);
+  }
+}
+
+/* 摇晃时内层容器应用动画 */
+.logo-container.shake .logo-animation-wrapper {
+  animation: shake 1.5s ease-in-out;
 }
 </style>
 

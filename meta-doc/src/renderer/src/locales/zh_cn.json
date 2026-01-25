@@ -1128,6 +1128,8 @@
         "autoDownloadHint": "若开启，在导入外部图片时，会自动保存到本地，否则离线时外部图片无法显示。需重新打开编辑器界面生效。",
         "parseEmbeddedImages": "解析文档内嵌图片",
         "parseEmbeddedImagesHint": "自动对文档内嵌图片进行OCR识别，关闭后，上传附件时不对其中的图片做OCR，但是单独上传图片仍会识别。",
+        "mathInlineDigit": "内联数学公式允许数字",
+        "mathInlineDigitHint": "启用后，内联数学公式起始 $ 后允许数字，例如 $123$ 会被识别为数学公式。关闭后，只有 $x$ 这样的公式才会被识别。",
         "image": {
             "title":"图片设置",
             "titleHint": "图片上传设置，重新打开文件后生效",

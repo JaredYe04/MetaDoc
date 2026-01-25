@@ -130,7 +130,7 @@
     "mxgraph": "^4.2.2",
     "natural": "^8.1.0",
     "nock": "^13.5.6",
-    "node-latex-compiler": "^1.0.1",
+    "node-latex-compiler": "^1.0.3",
     "node-pdf-to-markdown": "^1.2.5",
     "node-plantuml-2": "^1.0.3",
     "office-to-pdf": "^4.0.0",

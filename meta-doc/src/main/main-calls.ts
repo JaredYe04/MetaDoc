@@ -1229,13 +1229,13 @@ function bindFileHandlers(): void {
   });
 
   // OCR识别图片（从文件路径）
-  ipcMain.handle('ocr-recognize-file', async (event: IpcMainInvokeEvent, payload: { imagePath: string; languages?: string[] }): Promise<string> => {
+  ipcMain.handle('ocr-recognize-file', async (event: IpcMainInvokeEvent, payload: { imagePath: string; languages?: string[]; preprocessingParams?: any }): Promise<string> => {
     try {
-      const { imagePath, languages } = payload;
+      const { imagePath, languages, preprocessingParams } = payload;
       if (!imagePath) {
         throw new Error('图片路径不能为空');
       }
-      return await ocrService.recognizeFromFile(imagePath, languages);
+      return await ocrService.recognizeFromFile(imagePath, languages, preprocessingParams);
     } catch (error) {
       logger.error('OCR识别失败:', error);
       throw error;

@@ -119,8 +119,84 @@
                 </template>
                 <div class="ocr-result-item">
                   <div class="image-section">
-                    <div class="image-preview" @click="handleImageClick(result.imageUrl)">
-                      <img :src="getImageDataUrlSync(result.imageUrl)" :alt="`Image ${index + 1}`" @error="handleImageError($event, result.imageUrl)" />
+                    <div class="image-preview" @click="handleImageClick(result.imageUrl, index)">
+                      <img :src="getProcessedImageUrl(index)" :alt="`Image ${index + 1}`" @error="handleImageError($event, result.imageUrl)" />
+                    </div>
+                    <!-- 预处理面板 -->
+                    <div class="preprocessing-panel">
+                      <div class="panel-header">
+                        <div class="panel-title">{{ t('ocr.imagePreprocessing') }}</div>
+                      </div>
+                      <div class="panel-actions">
+                        <el-button size="small" @click="resetPreprocessingParams(index)">
+                          {{ t('ocr.resetParams') }}
+                        </el-button>
+                        <el-button size="small" @click="applyDefaultPreprocessingParams(index)">
+                          {{ t('ocr.defaultParams') }}
+                        </el-button>
+                      </div>
+                      <div class="params-list">
+                        <div class="param-item">
+                          <label>{{ t('ocr.brightness') }}</label>
+                          <el-slider
+                            :model-value="getPreprocessingParams(index).brightness"
+                            @update:model-value="(val: number) => updatePreprocessingParam(index, 'brightness', val)"
+                            :min="-100"
+                            :max="100"
+                            :step="1"
+                          />
+                          <span class="param-value">{{ getPreprocessingParams(index).brightness }}</span>
+                        </div>
+                        <div class="param-item">
+                          <label>{{ t('ocr.contrast') }}</label>
+                          <el-slider
+                            :model-value="getPreprocessingParams(index).contrast"
+                            @update:model-value="(val: number) => updatePreprocessingParam(index, 'contrast', val)"
+                            :min="-100"
+                            :max="100"
+                            :step="1"
+                          />
+                          <span class="param-value">{{ getPreprocessingParams(index).contrast }}</span>
+                        </div>
+                        <div class="param-item">
+                          <label>{{ t('ocr.saturation') }}</label>
+                          <el-slider
+                            :model-value="getPreprocessingParams(index).saturation"
+                            @update:model-value="(val: number) => updatePreprocessingParam(index, 'saturation', val)"
+                            :min="-100"
+                            :max="100"
+                            :step="1"
+                          />
+                          <span class="param-value">{{ getPreprocessingParams(index).saturation }}</span>
+                        </div>
+                        <div class="param-item">
+                          <label>{{ t('ocr.sharpness') }}</label>
+                          <el-slider
+                            :model-value="getPreprocessingParams(index).sharpness"
+                            @update:model-value="(val: number) => updatePreprocessingParam(index, 'sharpness', val)"
+                            :min="0"
+                            :max="100"
+                            :step="1"
+                          />
+                          <span class="param-value">{{ getPreprocessingParams(index).sharpness }}</span>
+                        </div>
+                        <div class="param-item">
+                          <el-checkbox
+                            :model-value="getPreprocessingParams(index).grayscale"
+                            @update:model-value="(val: boolean) => updatePreprocessingParam(index, 'grayscale', val)"
+                          >
+                            {{ t('ocr.grayscale') }}
+                          </el-checkbox>
+                        </div>
+                        <div class="param-item">
+                          <el-checkbox
+                            :model-value="getPreprocessingParams(index).normalize"
+                            @update:model-value="(val: boolean) => updatePreprocessingParam(index, 'normalize', val)"
+                          >
+                            {{ t('ocr.normalize') }}
+                          </el-checkbox>
+                        </div>
+                      </div>
                     </div>
                     <div class="image-actions" v-if="result.recognized">
                       <el-dropdown 
@@ -256,7 +332,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, ArrowDown, Delete } from '@element-plus/icons-vue'
 import SessionList from '../components/common/SessionList.vue'
-import ImagePreviewDialog from '../components/common/ImagePreviewDialog.vue'
+import ImagePreviewDialog, { type ImagePreprocessingParams } from '../components/common/ImagePreviewDialog.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { ocrSessionsDb, type OcrSession } from '../utils/db/tool-sessions-db'
 import { i18n } from '../i18n'
@@ -282,7 +358,7 @@ const uploadRef = ref<any>(null)
 const selectedLanguages = ref<string[]>(['eng'])
 const processing = ref(false)
 const loadingSession = ref(false)
-const ocrResults = ref<Array<{ imageUrl: string; text: string; recognized: boolean; aiFixedText?: string }>>([])
+const ocrResults = ref<Array<{ imageUrl: string; text: string; recognized: boolean; aiFixedText?: string; preprocessingParams?: ImagePreprocessingParams }>>([])
 const recognizingIndex = ref<Set<number>>(new Set())
 const activeTab = ref('image-0')
 const imageDataUrlCache = ref<Map<string, string>>(new Map())
@@ -296,9 +372,21 @@ const viewModes = ref<Map<number, 'single' | 'diff'>>(new Map())
 // 图片预览对话框相关
 const imagePreviewVisible = ref(false)
 const previewImageUrl = ref<string>('')
+const previewImageIndex = ref<number>(-1)
+const previewPreprocessingParams = ref<ImagePreprocessingParams>({
+  brightness: 0,
+  contrast: 0,
+  saturation: 0,
+  sharpness: 0,
+  grayscale: false,
+  normalize: false
+})
 const thumbnailVisible = ref(false)
 const thumbnailPosition = ref({ top: 0, left: 0 })
 const thumbnailImageUrl = ref<string>('')
+
+// 处理后的图片缓存（每个图片索引对应处理后的 data URL）
+const processedImageCache = ref<Map<number, string>>(new Map())
 
 // 编辑器头部样式
 const editorHeaderStyle = computed(() => ({
@@ -647,6 +735,7 @@ const handleCreateSession = async () => {
     aiFixedTexts.value.clear()
     viewModes.value.clear()
     recognizingIndex.value.clear()
+    processedImageCache.value.clear()
   } catch (error) {
     ElMessage.error('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
   }
@@ -666,6 +755,7 @@ const handleSelectSession = async (item: SessionListItem) => {
     aiFixedTexts.value.clear()
     viewModes.value.clear()
     recognizingIndex.value.clear()
+    processedImageCache.value.clear()
     
     // 清理所有编辑器
     textEditorRefs.value.forEach((_, index) => {
@@ -723,7 +813,9 @@ const handleSelectSession = async (item: SessionListItem) => {
         const parsedResults = JSON.parse(session.ocr_results)
         ocrResults.value = parsedResults.map((r: any) => ({
           ...r,
-          recognized: r.recognized !== undefined ? r.recognized : !!r.text
+          recognized: r.recognized !== undefined ? r.recognized : !!r.text,
+          // 确保预处理参数被正确保留（如果存在）
+          preprocessingParams: r.preprocessingParams || undefined
         }))
         
         // 恢复AI修复后的文本和视图模式
@@ -906,10 +998,36 @@ const handleImageChange = async (file: any, fileList: any[]) => {
         status: 'success' as const
       }))
       
+      // 同步更新 ocrResults，确保新上传的图片有对应的结果项
+      const newImages = imageList.value
+      const currentOcrResults = ocrResults.value
+      
+      // 如果 ocrResults 长度小于 imageList，需要添加新的结果项
+      if (currentOcrResults.length < newImages.length) {
+        const missingCount = newImages.length - currentOcrResults.length
+        for (let i = 0; i < missingCount; i++) {
+          const imgIndex = currentOcrResults.length + i
+          const img = newImages[imgIndex]
+          if (img) {
+            const imageUrl = img.url || img.path
+            const url = imageUrl.startsWith('file://') ? imageUrl : 
+              (imageUrl.replace(/\\/g, '/').startsWith('/') ? 'file://' + imageUrl.replace(/\\/g, '/') : 
+              'file:///' + imageUrl.replace(/\\/g, '/'))
+            ocrResults.value.push({
+              imageUrl: url,
+              text: '',
+              recognized: false
+              // 新上传的图片默认没有预处理参数
+            })
+          }
+        }
+      }
+      
       // 保存到数据库
       const currentImages = imageList.value.map(img => img.url || img.path).filter(Boolean)
       await ocrSessionsDb.update(activeSessionId.value, {
-        images: JSON.stringify(currentImages)
+        images: JSON.stringify(currentImages),
+        ocr_results: JSON.stringify(ocrResults.value)
       })
     }
   } catch (error) {
@@ -1102,9 +1220,22 @@ const handleRecognizeSingle = async (index: number) => {
       ? [...selectedLanguages.value] // 创建新数组避免引用问题
       : []
     
+    // 获取预处理参数，确保是可序列化的纯对象
+    const preprocessingParams = result.preprocessingParams 
+      ? {
+          brightness: Number(result.preprocessingParams.brightness) || 0,
+          contrast: Number(result.preprocessingParams.contrast) || 0,
+          saturation: Number(result.preprocessingParams.saturation) || 0,
+          sharpness: Number(result.preprocessingParams.sharpness) || 0,
+          grayscale: Boolean(result.preprocessingParams.grayscale) || false,
+          normalize: Boolean(result.preprocessingParams.normalize) || false
+        }
+      : undefined
+    
     const ocrText = await ipcRenderer.invoke('ocr-recognize-file', {
       imagePath: String(imagePath), // 确保是字符串，使用实际路径
-      languages: languages // 传递可序列化的数组
+      languages: languages, // 传递可序列化的数组
+      preprocessingParams: preprocessingParams // 传递可序列化的预处理参数
     }) as string
     
     // 更新结果（保留AI修复后的文本）
@@ -1113,7 +1244,8 @@ const handleRecognizeSingle = async (index: number) => {
       ...result,
       text: ocrText,
       recognized: true,
-      aiFixedText: existingAiFixedText // 保留AI修复后的内容
+      aiFixedText: existingAiFixedText, // 保留AI修复后的内容
+      preprocessingParams: preprocessingParams // 保留预处理参数
     }
     
     // 保存结果到数据库
@@ -1195,18 +1327,33 @@ const handleReRecognizeSingle = async (index: number) => {
       ? [...selectedLanguages.value] // 创建新数组避免引用问题
       : []
     
+    // 获取预处理参数，确保是可序列化的纯对象
+    const preprocessingParams = result.preprocessingParams 
+      ? {
+          brightness: Number(result.preprocessingParams.brightness) || 0,
+          contrast: Number(result.preprocessingParams.contrast) || 0,
+          saturation: Number(result.preprocessingParams.saturation) || 0,
+          sharpness: Number(result.preprocessingParams.sharpness) || 0,
+          grayscale: Boolean(result.preprocessingParams.grayscale) || false,
+          normalize: Boolean(result.preprocessingParams.normalize) || false
+        }
+      : undefined
+    
     const ocrText = await ipcRenderer.invoke('ocr-recognize-file', {
       imagePath: String(imagePath), // 确保是字符串，使用实际路径
-      languages: languages // 传递可序列化的数组
+      languages: languages, // 传递可序列化的数组
+      preprocessingParams: preprocessingParams // 传递可序列化的预处理参数
     }) as string
     
-    // 只更新原始OCR文本，保留AI修复后的内容
+    // 只更新原始OCR文本，保留AI修复后的内容和预处理参数
     const existingAiFixedText = result.aiFixedText || aiFixedTexts.value.get(index)
+    const existingPreprocessingParams = result.preprocessingParams || undefined
     ocrResults.value[index] = {
       ...result,
       text: ocrText,
       recognized: true,
-      aiFixedText: existingAiFixedText // 保留AI修复后的内容
+      aiFixedText: existingAiFixedText, // 保留AI修复后的内容
+      preprocessingParams: existingPreprocessingParams // 保留预处理参数
     }
     // 注意：不清除 aiFixedTexts.value.get(index)，保留AI修复后的内容
     
@@ -1311,19 +1458,33 @@ const handleOcr = async () => {
           }
         }
         
-        const ocrText = await ipcRenderer.invoke('ocr-recognize-file', {
-          imagePath: String(imagePath), // 确保是字符串，使用实际路径
-          languages: languages // 传递可序列化的数组
-        }) as string
-        
-        // 更新结果（保留AI修复后的文本）
-        const existingAiFixedText = result.aiFixedText || aiFixedTexts.value.get(index)
-        ocrResults.value[index] = {
-          ...result,
-          text: ocrText,
-          recognized: true,
-          aiFixedText: existingAiFixedText // 保留AI修复后的内容
+    // 获取预处理参数，确保是可序列化的纯对象
+    const preprocessingParams = result.preprocessingParams 
+      ? {
+          brightness: Number(result.preprocessingParams.brightness) || 0,
+          contrast: Number(result.preprocessingParams.contrast) || 0,
+          saturation: Number(result.preprocessingParams.saturation) || 0,
+          sharpness: Number(result.preprocessingParams.sharpness) || 0,
+          grayscale: Boolean(result.preprocessingParams.grayscale) || false,
+          normalize: Boolean(result.preprocessingParams.normalize) || false
         }
+      : undefined
+    
+    const ocrText = await ipcRenderer.invoke('ocr-recognize-file', {
+      imagePath: String(imagePath), // 确保是字符串，使用实际路径
+      languages: languages, // 传递可序列化的数组
+      preprocessingParams: preprocessingParams // 传递可序列化的预处理参数
+    }) as string
+    
+    // 更新结果（保留AI修复后的文本）
+    const existingAiFixedText = result.aiFixedText || aiFixedTexts.value.get(index)
+    ocrResults.value[index] = {
+      ...result,
+      text: ocrText,
+      recognized: true,
+      aiFixedText: existingAiFixedText, // 保留AI修复后的内容
+      preprocessingParams: preprocessingParams // 保留预处理参数
+    }
         
         // 更新编辑器
         await nextTick()
@@ -1396,6 +1557,7 @@ const handleDeleteImage = async (index: number) => {
     aiFixing.value.delete(index)
     viewModes.value.delete(index)
     recognizingIndex.value.delete(index)
+    processedImageCache.value.delete(index)
     
     // 重新索引（因为删除了一个元素，后面的索引都要减1）
     // 这里简化处理，直接清理所有编辑器，让它们重新初始化
@@ -1476,17 +1638,575 @@ const handleTabLeave = () => {
 }
 
 // 图片点击处理
-const handleImageClick = async (imageUrl: string) => {
+const handleImageClick = async (imageUrl: string, index: number) => {
   try {
-    // 获取完整的图片 data URL
-    const dataUrl = await getImageDataUrl(imageUrl)
-    previewImageUrl.value = dataUrl
+    // 获取预处理后的图片 URL（使用处理后的图片）
+    const processedUrl = getProcessedImageUrl(index)
+    
+    // 如果有缓存，直接使用；否则等待处理完成
+    if (processedImageCache.value.has(index)) {
+      previewImageUrl.value = processedImageCache.value.get(index)!
+    } else {
+      // 先显示原始图片，然后异步处理
+      const originalUrl = await getImageDataUrl(imageUrl)
+      previewImageUrl.value = originalUrl
+      
+      // 异步处理图片
+      await applyPreprocessingToImage(index)
+      if (processedImageCache.value.has(index)) {
+        previewImageUrl.value = processedImageCache.value.get(index)!
+      }
+    }
+    
+    previewImageIndex.value = index
+    
+    // 加载该图片的预处理参数
+    const result = ocrResults.value[index]
+    if (result?.preprocessingParams) {
+      previewPreprocessingParams.value = { ...result.preprocessingParams }
+    } else {
+      previewPreprocessingParams.value = {
+        brightness: 0,
+        contrast: 0,
+        saturation: 0,
+        sharpness: 0,
+        grayscale: false,
+        normalize: false
+      }
+    }
+    
     imagePreviewVisible.value = true
   } catch (error) {
     console.error('打开图片预览失败:', error)
     ElMessage.error('打开图片预览失败')
   }
 }
+
+// 获取预处理参数（带默认值）
+const getPreprocessingParams = (index: number): ImagePreprocessingParams => {
+  const result = ocrResults.value[index]
+  if (result?.preprocessingParams) {
+    return { ...result.preprocessingParams }
+  }
+  return {
+    brightness: 0,
+    contrast: 0,
+    saturation: 0,
+    sharpness: 0,
+    grayscale: false,
+    normalize: false
+  }
+}
+
+// 更新预处理参数
+const updatePreprocessingParam = async (index: number, key: keyof ImagePreprocessingParams, value: number | boolean) => {
+  if (!ocrResults.value[index]) {
+    return
+  }
+  
+  const currentParams = getPreprocessingParams(index)
+  const newParams: ImagePreprocessingParams = {
+    ...currentParams,
+    [key]: value
+  }
+  
+  ocrResults.value[index] = {
+    ...ocrResults.value[index],
+    preprocessingParams: newParams
+  }
+  
+  // 立即应用预处理并更新图片
+  await applyPreprocessingToImage(index)
+  
+  // 保存到数据库
+  if (activeSessionId.value) {
+    ocrSessionsDb.update(activeSessionId.value, {
+      ocr_results: JSON.stringify(ocrResults.value)
+    }).catch(err => {
+      console.error('保存预处理参数失败:', err)
+    })
+  }
+}
+
+// 重置预处理参数
+const resetPreprocessingParams = async (index: number) => {
+  const defaultParams: ImagePreprocessingParams = {
+    brightness: 0,
+    contrast: 0,
+    saturation: 0,
+    sharpness: 0,
+    grayscale: false,
+    normalize: false
+  }
+  
+  if (!ocrResults.value[index]) {
+    return
+  }
+  
+  ocrResults.value[index] = {
+    ...ocrResults.value[index],
+    preprocessingParams: defaultParams
+  }
+  
+  // 清除缓存并重新处理
+  processedImageCache.value.delete(index)
+  await applyPreprocessingToImage(index)
+  
+  // 保存到数据库
+  if (activeSessionId.value) {
+    ocrSessionsDb.update(activeSessionId.value, {
+      ocr_results: JSON.stringify(ocrResults.value)
+    }).catch(err => {
+      console.error('保存预处理参数失败:', err)
+    })
+  }
+}
+
+// 分析图片特征
+const analyzeImageCharacteristics = async (index: number): Promise<{
+  averageBrightness: number // 0-255
+  contrast: number // 0-1
+  saturation: number // 0-1
+  clarity: number // 0-1 (基于边缘检测)
+}> => {
+  const result = ocrResults.value[index]
+  if (!result) {
+    throw new Error('图片不存在')
+  }
+  
+  try {
+    // 获取原始图片 URL
+    const originalImageUrl = await getImageDataUrl(result.imageUrl)
+    
+    // 加载原始图片
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = reject
+      img.src = originalImageUrl
+    })
+    
+    // 创建 Canvas
+    const canvas = document.createElement('canvas')
+    canvas.width = img.width
+    canvas.height = img.height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      throw new Error('无法创建 Canvas 上下文')
+    }
+    
+    // 绘制原始图片
+    ctx.drawImage(img, 0, 0)
+    
+    // 获取图像数据
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    const data = imageData.data
+    
+    // 计算平均亮度
+    let totalBrightness = 0
+    let minBrightness = 255
+    let maxBrightness = 0
+    
+    // 计算饱和度和对比度
+    let totalSaturation = 0
+    let pixelCount = 0
+    
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i]
+      const g = data[i + 1]
+      const b = data[i + 2]
+      
+      // 计算亮度（使用加权平均）
+      const brightness = 0.299 * r + 0.587 * g + 0.114 * b
+      totalBrightness += brightness
+      minBrightness = Math.min(minBrightness, brightness)
+      maxBrightness = Math.max(maxBrightness, brightness)
+      
+      // 计算饱和度
+      const max = Math.max(r, g, b)
+      const min = Math.min(r, g, b)
+      const saturation = max === 0 ? 0 : (max - min) / max
+      totalSaturation += saturation
+      
+      pixelCount++
+    }
+    
+    const averageBrightness = totalBrightness / pixelCount
+    const contrast = (maxBrightness - minBrightness) / 255
+    const avgSaturation = totalSaturation / pixelCount
+    
+    // 计算清晰度（基于拉普拉斯算子的方差）
+    let claritySum = 0
+    let clarityCount = 0
+    const laplacianKernel = [
+      [0, -1, 0],
+      [-1, 4, -1],
+      [0, -1, 0]
+    ]
+    
+    for (let y = 1; y < canvas.height - 1; y++) {
+      for (let x = 1; x < canvas.width - 1; x++) {
+        let laplacian = 0
+        for (let ky = -1; ky <= 1; ky++) {
+          for (let kx = -1; kx <= 1; kx++) {
+            const idx = ((y + ky) * canvas.width + (x + kx)) * 4
+            const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2]
+            laplacian += gray * laplacianKernel[ky + 1][kx + 1]
+          }
+        }
+        claritySum += Math.abs(laplacian)
+        clarityCount++
+      }
+    }
+    
+    const clarity = Math.min(1, claritySum / clarityCount / 255)
+    
+    return {
+      averageBrightness,
+      contrast,
+      saturation: avgSaturation,
+      clarity
+    }
+  } catch (error) {
+    console.error('分析图片特征失败:', error)
+    // 返回默认值
+    return {
+      averageBrightness: 128,
+      contrast: 0.5,
+      saturation: 0.5,
+      clarity: 0.5
+    }
+  }
+}
+
+// 根据图片特征生成推荐参数
+const generateRecommendedParams = (characteristics: {
+  averageBrightness: number
+  contrast: number
+  saturation: number
+  clarity: number
+}): ImagePreprocessingParams => {
+  const { averageBrightness, contrast, saturation, clarity } = characteristics
+  
+  // 亮度标准化：将图片亮度调整到标准值（约 60，适合OCR的亮度）
+  // 计算需要调整的亮度值
+  const targetBrightness = 60
+  const brightnessDiff = targetBrightness - averageBrightness
+  // 将差值转换为亮度调整值（-100 到 100）
+  // 如果图片太暗，需要增加亮度；如果太亮，需要降低亮度
+  const brightness = Math.max(-50, Math.min(50, brightnessDiff * 0.5))
+  
+  // 对比度调整：始终增强对比度，让文字更明显
+  // 基础对比度增强 + 根据原图对比度调整
+  let contrastAdjust = 30 // 基础增强
+  if (contrast < 0.4) {
+    // 对比度很低，需要大幅增强
+    contrastAdjust = 40 + (0.4 - contrast) * 30
+  } else if (contrast < 0.6) {
+    // 对比度中等，适度增强
+    contrastAdjust = 30 + (0.6 - contrast) * 20
+  } else {
+    // 对比度已经较高，保持基础增强
+    contrastAdjust = 25
+  }
+  contrastAdjust = Math.min(60, contrastAdjust) // 限制最大值
+  
+  // 饱和度调整：保持原图饱和度，不刻意降低
+  const saturationAdjust = 0
+  
+  // 锐化调整：始终增强锐化，让文字边缘更清晰
+  // 基础锐化 + 根据清晰度调整
+  let sharpness = 15 // 基础锐化值
+  if (clarity < 0.4) {
+    // 图片模糊，需要更多锐化
+    sharpness = 20 + (0.4 - clarity) * 30
+  } else if (clarity < 0.6) {
+    // 清晰度中等，适度锐化
+    sharpness = 15 + (0.6 - clarity) * 15
+  } else {
+    // 已经很清晰，保持基础锐化
+    sharpness = 12
+  }
+  sharpness = Math.min(35, sharpness) // 限制最大值，避免过度锐化
+  
+  // 归一化：默认不启用
+  const normalize = false
+  
+  return {
+    brightness: Math.round(brightness),
+    contrast: Math.round(contrastAdjust),
+    saturation: Math.round(saturationAdjust),
+    sharpness: Math.round(sharpness),
+    grayscale: false, // 默认不进行灰度化
+    normalize
+  }
+}
+
+// 应用推荐预处理参数（根据图片特征动态生成）
+const applyDefaultPreprocessingParams = async (index: number) => {
+  if (!ocrResults.value[index]) {
+    return
+  }
+  
+  try {
+    // 分析图片特征
+    const characteristics = await analyzeImageCharacteristics(index)
+    
+    // 生成推荐参数
+    const recommendedParams = generateRecommendedParams(characteristics)
+    
+    ocrResults.value[index] = {
+      ...ocrResults.value[index],
+      preprocessingParams: recommendedParams
+    }
+    
+    // 清除缓存并重新处理
+    processedImageCache.value.delete(index)
+    await applyPreprocessingToImage(index)
+    
+    // 保存到数据库
+    if (activeSessionId.value) {
+      ocrSessionsDb.update(activeSessionId.value, {
+        ocr_results: JSON.stringify(ocrResults.value)
+      }).catch(err => {
+        console.error('保存预处理参数失败:', err)
+      })
+    }
+  } catch (error) {
+    console.error('生成推荐参数失败:', error)
+    ElMessage.warning('分析图片特征失败，使用默认参数')
+    
+    // 使用保守的默认参数
+    const defaultParams: ImagePreprocessingParams = {
+      brightness: 0,
+      contrast: 15,
+      saturation: 0,
+      sharpness: 5,
+      grayscale: false,
+      normalize: false
+    }
+    
+    ocrResults.value[index] = {
+      ...ocrResults.value[index],
+      preprocessingParams: defaultParams
+    }
+    
+    processedImageCache.value.delete(index)
+    await applyPreprocessingToImage(index)
+  }
+}
+
+// 应用图片预处理
+const applyPreprocessingToImage = async (index: number): Promise<void> => {
+  const result = ocrResults.value[index]
+  if (!result) {
+    return
+  }
+  
+  try {
+    // 获取原始图片 URL
+    const originalImageUrl = await getImageDataUrl(result.imageUrl)
+    
+    // 加载原始图片
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = reject
+      img.src = originalImageUrl
+    })
+    
+    // 创建 Canvas
+    const canvas = document.createElement('canvas')
+    canvas.width = img.width
+    canvas.height = img.height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      return
+    }
+    
+    // 绘制原始图片
+    ctx.drawImage(img, 0, 0)
+    
+    // 获取图像数据
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    const data = imageData.data
+    
+    // 获取预处理参数
+    const params = getPreprocessingParams(index)
+    
+    // 应用预处理（与 ImagePreviewDialog 中的逻辑相同）
+    // 亮度调整
+    if (params.brightness !== 0) {
+      const brightness = params.brightness / 100
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = Math.max(0, Math.min(255, data[i] + brightness * 255)) // R
+        data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + brightness * 255)) // G
+        data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + brightness * 255)) // B
+      }
+    }
+    
+    // 对比度调整（修正算法）
+    if (params.contrast !== 0) {
+      // 将 -100 到 100 的对比度值转换为 -1 到 1 的因子
+      // contrast = -100 时，factor = 0（完全无对比度，灰色）
+      // contrast = 0 时，factor = 1（无变化）
+      // contrast = 100 时，factor = 2（最大对比度）
+      const factor = (params.contrast + 100) / 100
+      for (let i = 0; i < data.length; i += 4) {
+        // 使用标准的对比度调整公式：newValue = (oldValue - 128) * factor + 128
+        data[i] = Math.max(0, Math.min(255, (data[i] - 128) * factor + 128)) // R
+        data[i + 1] = Math.max(0, Math.min(255, (data[i + 1] - 128) * factor + 128)) // G
+        data[i + 2] = Math.max(0, Math.min(255, (data[i + 2] - 128) * factor + 128)) // B
+      }
+    }
+    
+    // 饱和度调整
+    if (params.saturation !== 0 || params.grayscale) {
+      const saturation = params.grayscale ? -100 : params.saturation
+      const sat = (saturation + 100) / 100
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i]
+        const g = data[i + 1]
+        const b = data[i + 2]
+        const gray = 0.299 * r + 0.587 * g + 0.114 * b
+        data[i] = Math.max(0, Math.min(255, gray + sat * (r - gray))) // R
+        data[i + 1] = Math.max(0, Math.min(255, gray + sat * (g - gray))) // G
+        data[i + 2] = Math.max(0, Math.min(255, gray + sat * (b - gray))) // B
+      }
+    }
+    
+    // 归一化
+    if (params.normalize) {
+      let minR = 255, maxR = 0
+      let minG = 255, maxG = 0
+      let minB = 255, maxB = 0
+      
+      for (let i = 0; i < data.length; i += 4) {
+        minR = Math.min(minR, data[i])
+        maxR = Math.max(maxR, data[i])
+        minG = Math.min(minG, data[i + 1])
+        maxG = Math.max(maxG, data[i + 1])
+        minB = Math.min(minB, data[i + 2])
+        maxB = Math.max(maxB, data[i + 2])
+      }
+      
+      const rangeR = maxR - minR || 1
+      const rangeG = maxG - minG || 1
+      const rangeB = maxB - minB || 1
+      
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = Math.max(0, Math.min(255, ((data[i] - minR) / rangeR) * 255)) // R
+        data[i + 1] = Math.max(0, Math.min(255, ((data[i + 1] - minG) / rangeG) * 255)) // G
+        data[i + 2] = Math.max(0, Math.min(255, ((data[i + 2] - minB) / rangeB) * 255)) // B
+      }
+    }
+    
+    // 锐化（修正算法，使用安全的锐化方法）
+    if (params.sharpness > 0) {
+      // 将 0-100 的锐化值转换为 0-1 的强度
+      const sharpness = params.sharpness / 100
+      const tempData = new Uint8ClampedArray(data)
+      const width = canvas.width
+      const height = canvas.height
+      
+      // 使用 Unsharp Masking 方法：原图 + (原图 - 模糊图) * 强度
+      // 这里使用简单的拉普拉斯算子来模拟边缘检测
+      const laplacianKernel = [
+        [0, -1, 0],
+        [-1, 4, -1],
+        [0, -1, 0]
+      ]
+      
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          for (let c = 0; c < 3; c++) {
+            const original = tempData[(y * width + x) * 4 + c]
+            
+            // 计算拉普拉斯算子（边缘检测）
+            let laplacian = 0
+            for (let ky = -1; ky <= 1; ky++) {
+              for (let kx = -1; kx <= 1; kx++) {
+                const idx = ((y + ky) * width + (x + kx)) * 4 + c
+                const kernelValue = laplacianKernel[ky + 1][kx + 1]
+                laplacian += tempData[idx] * kernelValue
+              }
+            }
+            
+            // 锐化公式：newValue = original + laplacian * sharpness
+            // 拉普拉斯算子的和应该接近 0（因为核的总和为 0），所以直接加上拉普拉斯值
+            const sharpened = original + laplacian * sharpness
+            
+            const idx = (y * width + x) * 4 + c
+            // 确保值在 0-255 范围内
+            data[idx] = Math.max(0, Math.min(255, Math.round(sharpened)))
+          }
+        }
+      }
+    }
+    
+    // 写回图像数据
+    ctx.putImageData(imageData, 0, 0)
+    
+    // 转换为 data URL 并缓存
+    const processedDataUrl = canvas.toDataURL('image/png')
+    processedImageCache.value.set(index, processedDataUrl)
+  } catch (error) {
+    console.error('图片预处理失败:', error)
+    // 如果预处理失败，使用原始图片
+    processedImageCache.value.delete(index)
+  }
+}
+
+// 获取处理后的图片 URL
+const getProcessedImageUrl = (index: number): string => {
+  // 如果有缓存，直接返回
+  if (processedImageCache.value.has(index)) {
+    return processedImageCache.value.get(index)!
+  }
+  
+  // 如果没有预处理参数，返回原始图片
+  const params = getPreprocessingParams(index)
+  const hasParams = params.brightness !== 0 || params.contrast !== 0 || 
+                    params.saturation !== 0 || params.sharpness !== 0 || 
+                    params.grayscale || params.normalize
+  
+  if (!hasParams) {
+    return getImageDataUrlSync(ocrResults.value[index]?.imageUrl || '')
+  }
+  
+  // 异步处理图片
+  applyPreprocessingToImage(index).catch(err => {
+    console.error('预处理图片失败:', err)
+  })
+  
+  // 暂时返回原始图片
+  return getImageDataUrlSync(ocrResults.value[index]?.imageUrl || '')
+}
+
+// 监听预处理参数变化，自动重新处理图片
+watch(() => ocrResults.value, async (newResults) => {
+  // 当预处理参数变化时，清除缓存并重新处理所有图片
+  for (let i = 0; i < newResults.length; i++) {
+    const params = getPreprocessingParams(i)
+    const hasParams = params.brightness !== 0 || params.contrast !== 0 || 
+                      params.saturation !== 0 || params.sharpness !== 0 || 
+                      params.grayscale || params.normalize
+    if (hasParams) {
+      // 延迟处理，避免频繁触发
+      setTimeout(() => {
+        processedImageCache.value.delete(i)
+        applyPreprocessingToImage(i)
+      }, 100)
+    } else {
+      // 如果没有参数，清除缓存
+      processedImageCache.value.delete(i)
+    }
+  }
+}, { deep: true })
 
 // AI修复处理（可以多次修复）
 const handleAiFix = async (index: number) => {
@@ -2156,6 +2876,71 @@ const preStyle = computed(() => ({
   height: auto;
   object-fit: contain;
   border-radius: 8px;
+}
+
+.preprocessing-panel {
+  flex-shrink: 0;
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  border: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.18)" : "rgba(0, 0, 0, 0.12)"');
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.panel-header {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.18)" : "rgba(0, 0, 0, 0.12)"');
+}
+
+.panel-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: v-bind('themeState.currentTheme.textColor');
+  text-align: center;
+  width: 100%;
+}
+
+.panel-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.params-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.param-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.param-item label {
+  font-size: 12px;
+  color: v-bind('themeState.currentTheme.textColor');
+  font-weight: 500;
+}
+
+.param-item .el-slider {
+  flex: 1;
+}
+
+.param-value {
+  font-size: 11px;
+  color: v-bind('themeState.currentTheme.textColor2');
+  min-width: 35px;
+  text-align: right;
+}
+
+.param-item .el-checkbox {
+  margin-top: 2px;
 }
 
 .image-actions {

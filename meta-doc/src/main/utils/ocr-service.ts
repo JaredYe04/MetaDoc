@@ -305,9 +305,10 @@ class OCRServiceImpl {
   /**
    * 预处理图片以提高OCR精度
    * @param imageBuffer 原始图片Buffer
+   * @param preprocessingParams 预处理参数（可选）
    * @returns 处理后的图片Buffer
    */
-  private async preprocessImage(imageBuffer: Buffer): Promise<Buffer> {
+  private async preprocessImage(imageBuffer: Buffer, preprocessingParams?: any): Promise<Buffer> {
     try {
       // 读取图片
       let image = await Jimp.read(imageBuffer);
@@ -327,20 +328,63 @@ class OCRServiceImpl {
       }
       
       // 图片预处理流程
-      // 转为灰度图（OCR通常只需要灰度信息）
-      image = image.greyscale();
-      
-      // 归一化（增强对比度，使图片更清晰）
-      image = image.normalize();
-      
-      // 锐化（提高边缘清晰度）
-      // 使用卷积核进行锐化
-      const sharpenKernel = [
-        [0, -1, 0],
-        [-1, 5, -1],
-        [0, -1, 0]
-      ];
-      image = image.convolute(sharpenKernel);
+      // 如果提供了预处理参数，使用用户自定义参数；否则使用默认参数
+      if (preprocessingParams) {
+        // 亮度调整 (Jimp brightness: -1 to 1)
+        if (preprocessingParams.brightness !== undefined && preprocessingParams.brightness !== 0) {
+          const brightness = preprocessingParams.brightness / 100;
+          image = image.brightness(brightness);
+        }
+        
+        // 对比度调整 (Jimp contrast: -1 to 1, 0 = no change)
+        if (preprocessingParams.contrast !== undefined && preprocessingParams.contrast !== 0) {
+          // 将 -100 to 100 转换为 -1 to 1
+          const contrast = preprocessingParams.contrast / 100;
+          image = image.contrast(contrast);
+        }
+        
+        // 饱和度调整（或灰度化）
+        if (preprocessingParams.grayscale || (preprocessingParams.saturation !== undefined && preprocessingParams.saturation < 0)) {
+          image = image.greyscale();
+        } else if (preprocessingParams.saturation !== undefined && preprocessingParams.saturation !== 0) {
+          const saturation = (preprocessingParams.saturation + 100) / 100;
+          image = image.color([
+            { apply: 'saturate', params: [saturation] }
+          ]);
+        }
+        
+        // 归一化（增强对比度）
+        if (preprocessingParams.normalize) {
+          image = image.normalize();
+        }
+        
+        // 锐化
+        if (preprocessingParams.sharpness !== undefined && preprocessingParams.sharpness > 0) {
+          const sharpness = preprocessingParams.sharpness / 100;
+          const sharpenKernel = [
+            [0, -sharpness, 0],
+            [-sharpness, 1 + 4 * sharpness, -sharpness],
+            [0, -sharpness, 0]
+          ];
+          image = image.convolute(sharpenKernel);
+        }
+      } else {
+        // 默认预处理流程
+        // 转为灰度图（OCR通常只需要灰度信息）
+        image = image.greyscale();
+        
+        // 归一化（增强对比度，使图片更清晰）
+        image = image.normalize();
+        
+        // 锐化（提高边缘清晰度）
+        // 使用卷积核进行锐化
+        const sharpenKernel = [
+          [0, -1, 0],
+          [-1, 5, -1],
+          [0, -1, 0]
+        ];
+        image = image.convolute(sharpenKernel);
+      }
       
       // 转换为高质量PNG格式（确保格式正确）
       const processedBuffer = await image.quality(100).getBufferAsync(Jimp.MIME_PNG);
@@ -381,25 +425,46 @@ class OCRServiceImpl {
    * 从图片文件路径进行OCR识别
    * @param imagePath 图片文件路径
    * @param languages 语言列表，如果不指定则使用默认语言（英语 + 当前用户语言）
+   * @param preprocessingParams 预处理参数（可选）
    * @returns OCR识别结果文本
    */
-  async recognizeFromFile(imagePath: string, languages?: string[]): Promise<string> {
+  async recognizeFromFile(imagePath: string, languages?: string[], preprocessingParams?: any): Promise<string> {
     try {
       if (!fs.existsSync(imagePath)) {
         throw new Error(`图片文件不存在: ${imagePath}`);
       }
 
       const langList = languages || this.getDefaultLanguages();
-      const worker = await this.getWorker(langList);
-      logger.debug(`开始OCR识别: ${imagePath}`);
       
-      const { data: { text } } = await worker.recognize(imagePath);
-      
-      // 智能清理OCR文本
-      const cleanedText = cleanOcrText(text);
-      
-      logger.debug(`OCR识别完成，原始文本长度: ${text.length}，清理后长度: ${cleanedText.length}`);
-      return cleanedText;
+      // 如果提供了预处理参数，需要先读取文件、应用预处理，然后使用处理后的Buffer进行OCR
+      let imageBuffer: Buffer;
+      if (preprocessingParams) {
+        // 读取原始图片
+        imageBuffer = fs.readFileSync(imagePath);
+        // 应用预处理
+        imageBuffer = await this.preprocessImage(imageBuffer, preprocessingParams);
+        // 使用处理后的Buffer进行OCR
+        const result = await this.recognizeFromBufferWithWorker(imageBuffer, langList);
+        const text = await result.promise;
+        // 清理worker
+        result.worker.terminate();
+        // 智能清理OCR文本
+        const cleanedText = cleanOcrText(text);
+        logger.debug(`OCR识别完成（使用预处理参数），原始文本长度: ${text.length}，清理后长度: ${cleanedText.length}`);
+        return cleanedText;
+      } else {
+        // 没有预处理参数，直接使用文件路径进行OCR（更快）
+        const worker = await this.getWorker(langList);
+        logger.debug(`开始OCR识别: ${imagePath}`);
+        
+        const { data: { text } } = await worker.recognize(imagePath);
+        
+        // 智能清理OCR文本
+        const cleanedText = cleanOcrText(text);
+        
+        logger.debug(`OCR识别完成，原始文本长度: ${text.length}，清理后长度: ${cleanedText.length}`);
+        return cleanedText;
+      }
     } catch (error) {
       logger.error('OCR识别失败:', error);
       throw new Error(`OCR识别失败: ${error instanceof Error ? error.message : String(error)}`);

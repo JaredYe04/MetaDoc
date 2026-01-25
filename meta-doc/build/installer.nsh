@@ -46,33 +46,23 @@
   StrCpy $1 "$0\${PRODUCT_FILENAME}"
   
   ; 查找应用程序主图标文件（icon.ico）
-  ; electron-builder 会将图标嵌入到可执行文件中，但我们也需要查找独立的图标文件
-  StrCpy $4 ""  ; 主图标路径
+  ; electron-builder 会将图标嵌入到可执行文件中，这是最可靠的方法
+  ; Windows 的"打开方式"对话框会从注册表中读取图标路径
+  ; 优先使用可执行文件中嵌入的图标（资源索引 0）
+  StrCpy $4 "$1,0"  ; 使用可执行文件中嵌入的图标（最可靠）
   
-  ; 优先查找独立的图标文件（最可靠的方法）
+  ; 备用方案：查找独立的图标文件（如果嵌入失败）
   ; electron-builder 会复制 resources 目录到安装目录
-  ; 图标文件应该位于 resources 目录中
   IfFileExists "$0\resources\icon.ico" 0 +3
     StrCpy $4 "$0\resources\icon.ico"
-    Goto +10
+    Goto +8
   
   ; 如果 resources 目录中没有，尝试其他可能的路径
   IfFileExists "$0\icon.ico" 0 +3
     StrCpy $4 "$0\icon.ico"
-    Goto +7
-  IfFileExists "$0\resources\build\icon.ico" 0 +3
-    StrCpy $4 "$0\resources\build\icon.ico"
     Goto +4
-  
-  ; 如果找不到独立的图标文件，使用可执行文件中嵌入的图标
-  ; electron-builder 会将图标嵌入到可执行文件中
-  ; 使用资源索引 0（第一个图标资源）
-  IfFileExists "$1" 0 +2
-    StrCpy $4 "$1,0"
-  
-  ; 如果所有方法都失败，使用可执行文件的默认图标（不带资源索引）
-  StrCmp $4 "" 0 +2
-    StrCpy $4 "$1"
+  IfFileExists "$0\resources\build\icon.ico" 0 +2
+    StrCpy $4 "$0\resources\build\icon.ico"
   
   ; 注册应用程序到注册表，使"打开方式"能找到应用
   ; 这是关键：确保应用程序在注册表中正确注册，并使用正确的图标
@@ -81,33 +71,40 @@
   WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}\shell\open\command" "" '"$1" "%1"'
   WriteRegStr HKLM "Software\Classes\Applications\${PRODUCT_FILENAME}\FriendlyAppName" "" "${PRODUCT_NAME}"
   
-  ; 查找图标文件（buildResources 中的文件会被复制到安装目录）
-  ; electron-builder 会将 buildResources 中的文件复制到安装目录的根目录或 resources 目录
+  ; 查找文件关联图标文件
+  ; electron-builder 会将图标文件复制到安装目录
+  ; 优先查找 resources 目录（electron-builder 的标准位置）
   StrCpy $2 ""  ; md-icon.ico 路径
   StrCpy $3 ""  ; tex-icon.ico 路径
   
-  ; 尝试多个可能的图标路径
-  IfFileExists "$0\md-icon.ico" 0 +2
-    StrCpy $2 "$0\md-icon.ico"
+  ; 尝试多个可能的图标路径（按优先级排序）
+  ; 1. resources 目录（electron-builder 的标准位置）
+  IfFileExists "$0\resources\md-icon.ico" 0 +2
+    StrCpy $2 "$0\resources\md-icon.ico"
   StrCmp $2 "" 0 +3
-    IfFileExists "$0\resources\md-icon.ico" 0 +2
-      StrCpy $2 "$0\resources\md-icon.ico"
+    ; 2. 安装目录根目录
+    IfFileExists "$0\md-icon.ico" 0 +2
+      StrCpy $2 "$0\md-icon.ico"
   StrCmp $2 "" 0 +3
+    ; 3. resources\build 目录
     IfFileExists "$0\resources\build\md-icon.ico" 0 +2
       StrCpy $2 "$0\resources\build\md-icon.ico"
   
-  IfFileExists "$0\tex-icon.ico" 0 +2
-    StrCpy $3 "$0\tex-icon.ico"
+  ; 如果找不到图标文件，使用可执行文件中嵌入的图标（备用方案）
+  StrCmp $2 "" 0 +2
+    StrCpy $2 "$1,0"
+  
+  ; 同样的逻辑查找 tex-icon.ico
+  IfFileExists "$0\resources\tex-icon.ico" 0 +2
+    StrCpy $3 "$0\resources\tex-icon.ico"
   StrCmp $3 "" 0 +3
-    IfFileExists "$0\resources\tex-icon.ico" 0 +2
-      StrCpy $3 "$0\resources\tex-icon.ico"
+    IfFileExists "$0\tex-icon.ico" 0 +2
+      StrCpy $3 "$0\tex-icon.ico"
   StrCmp $3 "" 0 +3
     IfFileExists "$0\resources\build\tex-icon.ico" 0 +2
       StrCpy $3 "$0\resources\build\tex-icon.ico"
   
-  ; 如果找不到图标文件，使用可执行文件的图标
-  StrCmp $2 "" 0 +2
-    StrCpy $2 "$1,0"
+  ; 如果找不到图标文件，使用可执行文件中嵌入的图标（备用方案）
   StrCmp $3 "" 0 +2
     StrCpy $3 "$1,0"
   

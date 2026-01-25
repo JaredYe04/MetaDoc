@@ -7,6 +7,10 @@ files:
   - 'resources/**/*'  # 明确包含 resources 目录
   # 注意：buildResources 中的文件不会自动复制到安装目录
   # 图标文件需要通过其他方式包含（如通过 resources 目录或嵌入到可执行文件中）
+  # 确保图标文件被包含（electron-builder 会自动嵌入到可执行文件中）
+  - 'build/*.ico'  # Windows 图标文件
+  - 'build/*.icns'  # macOS 图标文件
+  - 'build/*.png'  # Linux 图标文件
   - '!**/.vscode/*'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
@@ -49,7 +53,7 @@ asarUnpack:
   - node_modules/node-plantuml-2/**
 win:
   executableName: meta-doc
-  icon: build/icon.ico  # 主应用程序图标（用于可执行文件和"打开方式"对话框）
+  icon: icon.ico  # 主应用程序图标（相对于 buildResources (build) 目录）
   # Windows 文件关联配置
   # 注意：图标路径应该是相对于 buildResources 目录的
   fileAssociations:
@@ -76,7 +80,7 @@ nsis:
   # 包含自定义 NSIS 脚本来刷新图标缓存
   include: build/installer.nsh
 mac:
-  icon: build/icon.icns
+  icon: icon.icns  # 主应用程序图标（相对于 buildResources (build) 目录）
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
@@ -101,7 +105,7 @@ mac:
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
-  icon: build/icon.png
+  icon: icon.png  # 主应用程序图标（相对于 buildResources (build) 目录）
   target:
     - AppImage
     - snap

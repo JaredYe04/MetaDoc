@@ -40,25 +40,59 @@
             <h3>{{ t('setting.llmConfigList') }}</h3>
             <div class="actions">
               <el-tooltip :content="t('setting.newConfig')">
-                <el-button size="small" type="primary" :icon="Plus" circle @click="handleCreateConfig" />
+                <el-button 
+                  size="small" 
+                  type="primary" 
+                  :icon="Plus" 
+                  circle 
+                  @click="handleCreateConfig"
+                  :disabled="settings.selectedLlm === 'manual'"
+                />
+              </el-tooltip>
+              <el-tooltip :content="t('setting.importConfig')">
+                <el-button size="small" :icon="DocumentCopy" circle @click="importDialogVisible = true" />
+              </el-tooltip>
+              <el-tooltip :content="t('setting.exportAllConfigs')">
+                <el-button size="small" :icon="Download" circle @click="handleExportAllConfigs" />
               </el-tooltip>
             </div>
           </header>
           <el-scrollbar class="config-scroll">
-            <el-radio-group v-model="currentConfigId" class="config-list" @change="handleConfigSwitch">
+            <el-radio-group 
+              v-model="currentConfigId" 
+              class="config-list" 
+              @change="handleConfigSwitch"
+              @dragover.prevent="handleListDragOver"
+              @drop.prevent="handleListDrop"
+            >
               <el-radio
                 v-for="config in llmConfigs"
                 :key="config.id"
                 :value="config.id"
                 class="config-item"
+                :class="{ 
+                  'dragging': draggingConfigId === config.id,
+                  'drop-before': dropPreview.targetId === config.id && dropPreview.mode === 'before',
+                  'drop-after': dropPreview.targetId === config.id && dropPreview.mode === 'after'
+                }"
                 :data-config-id="config.id"
+                @dragover.prevent="handleDragOver(config.id, $event)"
+                @drop.prevent="handleDrop(config.id, $event)"
               >
                 <template #default>
-                  <div class="config-item-wrapper">
+                  <div 
+                    class="config-item-wrapper"
+                    draggable="true"
+                    @dragstart.stop="handleDragStart(config.id, $event)"
+                    @dragover.prevent="handleDragOver(config.id, $event)"
+                    @dragleave="handleDragLeave($event)"
+                    @drop.stop.prevent="handleDrop(config.id, $event)"
+                    @dragend.stop="handleDragEnd"
+                  >
                     <div class="config-item__content">
-                      <span class="config-title">{{ config.name }}</span>
-                      <el-tag v-if="config.isTemporary" size="small" type="warning" effect="plain">
-                        {{ t('setting.temporaryConfig') }}
+                      <span class="config-title">{{ getConfigDisplayName(config) }}</span>
+                      <el-tag v-if="currentConfigId === config.id && hasUnsavedChanges" size="small" type="warning" effect="plain">
+                        {{ t('setting.unsavedChanges') }}
                       </el-tag>
                     </div>
                     <div class="config-item__actions">
@@ -77,10 +111,13 @@
                           class="config-menu"
                           @click.stop
                         >
-                          <button type="button" class="config-menu__item" @click="handleConfigMenuAction('duplicate', config)">
-                            {{ t('setting.saveCurrentAsConfig') }}
+                          <button type="button" class="config-menu__item" @click="handleConfigMenuAction('export', config)">
+                            {{ t('setting.exportConfig') }}
                           </button>
-                          <button type="button" class="config-menu__item danger" @click="handleConfigMenuAction('delete', config)" :disabled="llmConfigs.length <= 1">
+                          <button v-if="config.isDefault" type="button" class="config-menu__item" @click="handleConfigMenuAction('reset', config)">
+                            {{ t('setting.resetConfig') }}
+                          </button>
+                          <button v-if="!config.isDefault" type="button" class="config-menu__item danger" @click="handleConfigMenuAction('delete', config)" :disabled="llmConfigs.length <= 1">
                             {{ t('setting.deleteConfig') }}
                           </button>
                         </div>
@@ -95,6 +132,23 @@
 
         <!-- 右侧：配置项表单 -->
         <section class="config-form-pane">
+          <!-- 工作区操作栏 -->
+          <div v-if="currentConfigId" class="workspace-toolbar">
+            <div class="workspace-status">
+              <el-tag v-if="hasUnsavedChanges" type="warning" size="small">
+                {{ t('setting.hasUnsavedChanges') }}
+              </el-tag>
+              <span v-else class="workspace-status-text">{{ t('setting.allChangesSaved') }}</span>
+            </div>
+            <div class="workspace-actions">
+              <el-button size="small" @click="handleDiscardChanges" :disabled="!hasUnsavedChanges">
+                {{ t('setting.discardChanges') }}
+              </el-button>
+              <el-button size="small" type="primary" @click="handleSaveChanges" :disabled="!hasUnsavedChanges">
+                {{ t('setting.saveChanges') }}
+              </el-button>
+            </div>
+          </div>
           <el-scrollbar class="config-form-scroll">
       <el-form label-width="160px" class="settings-form">
         <el-form-item :label="t('setting.llmType')">
@@ -411,6 +465,30 @@
         </div>
     </div>
 
+    <!-- 导入配置对话框 -->
+    <el-dialog
+      v-model="importDialogVisible"
+      :title="t('setting.importConfig')"
+      width="600px"
+    >
+      <el-form label-width="120px">
+        <el-form-item :label="t('setting.importConfigJson')">
+          <el-input
+            v-model="importJsonText"
+            type="textarea"
+            :rows="10"
+            :placeholder="t('setting.importConfigJsonPlaceholder')"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="importDialogVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="handleImportConfig" :disabled="!importJsonText.trim()">
+          {{ t('setting.importConfig') }}
+        </el-button>
+      </template>
+    </el-dialog>
+
     <!-- 手动LLM界面对话框 -->
     <el-dialog
       v-model="manualLLMDialogVisible"
@@ -463,7 +541,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import axios from 'axios';
 import { useI18n } from 'vue-i18n';
 import { settings, setSetting, getSetting } from '../../utils/settings.js';
@@ -481,12 +559,20 @@ import {
   deleteConfig,
   switchConfig,
   createConfigFromCurrentSettings,
-  createTemporaryConfigAsync,
-  createDefaultTemporaryConfig,
-  isCurrentConfigModified,
+  updateWorkspaceModifiedState,
+  saveWorkspace,
+  discardWorkspace,
+  getWorkspaceState,
+  exportConfig,
+  exportAllConfigs,
+  importConfig,
+  importConfigs,
+  resetDefaultConfig,
+  loadLlmConfigs,
+  updateConfigOrder,
   type LlmConfigItem
 } from '../../utils/llm-config-manager';
-import { Plus, Edit, Delete, DocumentCopy, MoreFilled } from '@element-plus/icons-vue';
+import { Plus, Edit, Delete, DocumentCopy, MoreFilled, Download } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ai_types, createAiTask } from '../../utils/ai_tasks.ts';
 
@@ -531,6 +617,14 @@ const pendingManualRequestId = ref<string>('');
 const manualLLMDialogVisible = ref(false);
 const pendingRequests = ref<Array<{ requestId: string; type: string; stream: boolean }>>([]);
 const selectedRequestId = ref<string>('');
+const hasUnsavedChanges = ref(false);
+const importDialogVisible = ref(false);
+const importJsonText = ref('');
+const draggingConfigId = ref<string | null>(null);
+const dropPreview = ref<{ targetId: string | null; mode: 'before' | 'after' | null }>({
+  targetId: null,
+  mode: null
+});
 
 const sliderMarks = computed(() => ({
   0.3: {
@@ -557,9 +651,53 @@ const saveSetting = (key: string, value: unknown) => {
   setSetting(key, value);
 };
 
+/**
+ * 获取配置的显示名称（支持 i18n）
+ */
+const getConfigDisplayName = (config: LlmConfigItem): string => {
+  // 如果是默认配置，使用 i18n 翻译
+  if (config.isDefault) {
+    const typeKeyMap: Record<string, string> = {
+      'ollama': 'setting.defaultConfigOllama',
+      'openai': 'setting.defaultConfigOpenai',
+      'openai-official': 'setting.defaultConfigOpenaiOfficial',
+      'deepseek': 'setting.defaultConfigDeepseek',
+      'gemini': 'setting.defaultConfigGemini',
+      'metadoc': 'setting.defaultConfigMetadoc',
+      'manual': 'setting.defaultConfigManual'
+    };
+    const i18nKey = typeKeyMap[config.type];
+    if (i18nKey) {
+      return t(i18nKey);
+    }
+  }
+  // 否则返回原始名称
+  return config.name;
+};
+
 const fetchLlmSettings = async () => {
   // 先更新selectedLlm，这样UI会正确显示对应的配置字段
   settings.selectedLlm = await getSetting('selectedLlm') || '';
+  
+  // 确保所有配置对象都是对象类型（防止旧数据导致类型错误）
+  if (typeof settings.metadoc !== 'object' || settings.metadoc === null) {
+    settings.metadoc = { selectedModel: '', enableMaxTokens: false, maxTokens: 4096 };
+  }
+  if (typeof settings.ollama !== 'object' || settings.ollama === null) {
+    settings.ollama = { apiUrl: 'http://localhost:11434/api', selectedModel: '', enableMaxTokens: false, maxTokens: 4096 };
+  }
+  if (typeof settings.openai !== 'object' || settings.openai === null) {
+    settings.openai = { apiUrl: 'https://api.openai.com/v1', apiKey: '', selectedModel: '', completionSuffix: '', chatSuffix: '', enableMaxTokens: false, maxTokens: 4096 };
+  }
+  if (typeof settings['openai-official'] !== 'object' || settings['openai-official'] === null) {
+    settings['openai-official'] = { apiKey: '', selectedModel: '', enableMaxTokens: false, maxTokens: 4096 };
+  }
+  if (typeof settings.deepseek !== 'object' || settings.deepseek === null) {
+    settings.deepseek = { apiKey: '', selectedModel: '', enableMaxTokens: false, maxTokens: 4096 };
+  }
+  if (typeof settings.gemini !== 'object' || settings.gemini === null) {
+    settings.gemini = { apiKey: '', selectedModel: '', enableMaxTokens: false, maxTokens: 4096 };
+  }
   
   settings.metadoc.selectedModel = await getSetting('metadocSelectedModel') || '';
   settings.metadoc.enableMaxTokens = await getSetting('metadocEnableMaxTokens') ?? false;
@@ -623,10 +761,11 @@ const updateLlmInfo = () => {
   eventBus.emit('llm-api-updated');
 };
 
-// 处理字段变化：保存设置并检查是否需要创建临时配置
+// 处理字段变化：保存设置并更新工作区状态
 const handleFieldChange = async () => {
   updateLlmInfo();
-  await handleConfigModification();
+  await updateWorkspaceModifiedState();
+  hasUnsavedChanges.value = getWorkspaceState().hasUnsavedChanges;
 };
 
 const fetchMetaDocModels = async () => {
@@ -757,71 +896,50 @@ const handleLlmTypeChange = async () => {
     loadManualTokenFromCache();
     fetchPendingRequests();
   }
-  // 检查当前配置是否被修改，如果是已保存配置，创建临时配置
-  await handleConfigModification();
-};
-
-// 处理配置修改：如果是已保存配置，自动创建临时配置
-const handleConfigModification = async () => {
-  if (!currentConfigId.value) return;
-  
-  const currentConfig = llmConfigs.value.find(c => c.id === currentConfigId.value);
-  if (!currentConfig) return;
-  
-  // 如果是临时配置，不需要创建新配置
-  if (currentConfig.isTemporary) return;
-  
-  // 检查是否被修改
-  const isModified = await isCurrentConfigModified(currentConfigId.value);
-  if (isModified) {
-    // 创建临时配置并切换过去（使用i18n字符串）
-    const modifiedSuffix = t('setting.configModifiedSuffix', '(已修改)');
-    const tempConfig = await createTemporaryConfigAsync(currentConfig, modifiedSuffix);
-    currentConfigId.value = tempConfig.id;
-    await switchConfig(tempConfig.id);
-    await fetchLlmSettings();
-    loadConfigs(); // 重新加载配置列表
-  }
+  // 更新工作区状态
+  await updateWorkspaceModifiedState();
+  hasUnsavedChanges.value = getWorkspaceState().hasUnsavedChanges;
 };
 
 // 监听所有配置字段的变化
 const watchConfigChanges = () => {
   // 使用watch监听settings的变化，延迟执行避免初始化时触发
   let modificationTimer: NodeJS.Timeout | null = null;
-  const debouncedHandleModification = () => {
+  const debouncedUpdateState = async () => {
     if (modificationTimer) clearTimeout(modificationTimer);
-    modificationTimer = setTimeout(() => {
-      handleConfigModification();
-    }, 500); // 500ms防抖
+    modificationTimer = setTimeout(async () => {
+      await updateWorkspaceModifiedState();
+      hasUnsavedChanges.value = getWorkspaceState().hasUnsavedChanges;
+    }, 300); // 300ms防抖
   };
   
-  watch(() => settings.selectedLlm, debouncedHandleModification);
-  watch(() => settings.ollama?.apiUrl, debouncedHandleModification);
-  watch(() => settings.ollama?.selectedModel, debouncedHandleModification);
-  watch(() => settings.openai?.apiUrl, debouncedHandleModification);
-  watch(() => settings.openai?.apiKey, debouncedHandleModification);
-  watch(() => settings.openai?.selectedModel, debouncedHandleModification);
-  watch(() => settings.openai?.completionSuffix, debouncedHandleModification);
-  watch(() => settings.openai?.chatSuffix, debouncedHandleModification);
-  watch(() => settings['openai-official']?.apiKey, debouncedHandleModification);
-  watch(() => settings['openai-official']?.selectedModel, debouncedHandleModification);
-  watch(() => settings.deepseek?.apiKey, debouncedHandleModification);
-  watch(() => settings.deepseek?.selectedModel, debouncedHandleModification);
-  watch(() => settings.gemini?.apiKey, debouncedHandleModification);
-  watch(() => settings.gemini?.selectedModel, debouncedHandleModification);
-  watch(() => settings.gemini?.enableMaxTokens, debouncedHandleModification);
-  watch(() => settings.gemini?.maxTokens, debouncedHandleModification);
-  watch(() => settings.metadoc?.selectedModel, debouncedHandleModification);
-  watch(() => settings.metadoc?.enableMaxTokens, debouncedHandleModification);
-  watch(() => settings.metadoc?.maxTokens, debouncedHandleModification);
-  watch(() => settings.ollama?.enableMaxTokens, debouncedHandleModification);
-  watch(() => settings.ollama?.maxTokens, debouncedHandleModification);
-  watch(() => settings.openai?.enableMaxTokens, debouncedHandleModification);
-  watch(() => settings.openai?.maxTokens, debouncedHandleModification);
-  watch(() => settings['openai-official']?.enableMaxTokens, debouncedHandleModification);
-  watch(() => settings['openai-official']?.maxTokens, debouncedHandleModification);
-  watch(() => settings.deepseek?.enableMaxTokens, debouncedHandleModification);
-  watch(() => settings.deepseek?.maxTokens, debouncedHandleModification);
+  watch(() => settings.selectedLlm, debouncedUpdateState);
+  watch(() => settings.ollama?.apiUrl, debouncedUpdateState);
+  watch(() => settings.ollama?.selectedModel, debouncedUpdateState);
+  watch(() => settings.ollama?.enableMaxTokens, debouncedUpdateState);
+  watch(() => settings.ollama?.maxTokens, debouncedUpdateState);
+  watch(() => settings.openai?.apiUrl, debouncedUpdateState);
+  watch(() => settings.openai?.apiKey, debouncedUpdateState);
+  watch(() => settings.openai?.selectedModel, debouncedUpdateState);
+  watch(() => settings.openai?.completionSuffix, debouncedUpdateState);
+  watch(() => settings.openai?.chatSuffix, debouncedUpdateState);
+  watch(() => settings.openai?.enableMaxTokens, debouncedUpdateState);
+  watch(() => settings.openai?.maxTokens, debouncedUpdateState);
+  watch(() => settings['openai-official']?.apiKey, debouncedUpdateState);
+  watch(() => settings['openai-official']?.selectedModel, debouncedUpdateState);
+  watch(() => settings['openai-official']?.enableMaxTokens, debouncedUpdateState);
+  watch(() => settings['openai-official']?.maxTokens, debouncedUpdateState);
+  watch(() => settings.deepseek?.apiKey, debouncedUpdateState);
+  watch(() => settings.deepseek?.selectedModel, debouncedUpdateState);
+  watch(() => settings.deepseek?.enableMaxTokens, debouncedUpdateState);
+  watch(() => settings.deepseek?.maxTokens, debouncedUpdateState);
+  watch(() => settings.gemini?.apiKey, debouncedUpdateState);
+  watch(() => settings.gemini?.selectedModel, debouncedUpdateState);
+  watch(() => settings.gemini?.enableMaxTokens, debouncedUpdateState);
+  watch(() => settings.gemini?.maxTokens, debouncedUpdateState);
+  watch(() => settings.metadoc?.selectedModel, debouncedUpdateState);
+  watch(() => settings.metadoc?.enableMaxTokens, debouncedUpdateState);
+  watch(() => settings.metadoc?.maxTokens, debouncedUpdateState);
 };
 
 const loadConfigs = () => {
@@ -835,10 +953,34 @@ const loadConfigs = () => {
 };
 
 const handleConfigSwitch = async (id: string) => {
+  // 如果有未保存的修改，提示用户
+  if (hasUnsavedChanges.value) {
+    try {
+      await ElMessageBox.confirm(
+        t('setting.unsavedChangesConfirm'),
+        t('setting.unsavedChanges'),
+        {
+          confirmButtonText: t('setting.saveChanges'),
+          cancelButtonText: t('setting.discardChanges'),
+          distinguishCancelAndClose: true,
+          type: 'warning'
+        }
+      );
+      // 用户选择保存
+      await handleSaveChanges();
+    } catch {
+      // 用户选择放弃或取消
+      await handleDiscardChanges();
+    }
+  }
+  
   await switchConfig(id);
   currentConfigId.value = id;
   // 重新加载设置以更新UI显示
   await fetchLlmSettings();
+  // 更新工作区状态
+  await updateWorkspaceModifiedState();
+  hasUnsavedChanges.value = getWorkspaceState().hasUnsavedChanges;
   // 根据配置类型加载对应的模型列表
   if (settings.selectedLlm === 'metadoc') {
     fetchMetaDocModels();
@@ -860,16 +1002,35 @@ const handleConfigSwitch = async (id: string) => {
 
 const handleCreateConfig = async () => {
   try {
-    // 直接创建默认临时配置并切换
-    const tempConfig = await createDefaultTemporaryConfig();
-    await switchConfig(tempConfig.id);
-    currentConfigId.value = tempConfig.id;
+    // 检查当前类型是否为 manual（开发模式专用）
+    if (settings.selectedLlm === 'manual') {
+      ElMessage.warning(t('setting.cannotCreateManualConfig'));
+      return;
+    }
+    
+    // 从当前设置创建新配置
+    const { value: name } = await ElMessageBox.prompt(
+      t('setting.enterConfigName'),
+      t('setting.newConfig'),
+      {
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
+        inputPattern: /.+/,
+        inputErrorMessage: t('setting.configNameRequired')
+      }
+    );
+    
+    const newConfig = await createConfigFromCurrentSettings(name);
+    await switchConfig(newConfig.id);
+    currentConfigId.value = newConfig.id;
     await fetchLlmSettings();
     loadConfigs();
     ElMessage.success(t('setting.configCreated'));
   } catch (error) {
-    logger.error('创建配置失败', error);
-    ElMessage.error(t('setting.configCreateFailed') || '创建配置失败');
+    if (error !== 'cancel') {
+      logger.error('创建配置失败', error);
+      ElMessage.error(t('setting.configCreateFailed') || '创建配置失败');
+    }
   }
 };
 
@@ -888,10 +1049,12 @@ const getConfigMenuStyle = () => {
 
 const handleConfigMenuAction = async (action: string, config: LlmConfigItem) => {
   openConfigMenuId.value = '';
-  if (action === 'duplicate') {
-    await handleSaveCurrentAsConfig();
+  if (action === 'export') {
+    await handleExportConfig(config.id);
   } else if (action === 'delete') {
     await handleDeleteConfig(config.id);
+  } else if (action === 'reset') {
+    await handleResetConfig(config.id);
   }
 };
 
@@ -1043,6 +1206,12 @@ const handleDeleteConfig = async (configId?: string) => {
   const targetId = configId || currentConfigId.value;
   if (!targetId) return;
   
+  const config = llmConfigs.value.find(c => c.id === targetId);
+  if (config?.isDefault) {
+    ElMessage.warning(t('setting.cannotDeleteDefaultConfig'));
+    return;
+  }
+  
   try {
     await ElMessageBox.confirm(
       t('setting.confirmDeleteConfig'),
@@ -1057,41 +1226,324 @@ const handleDeleteConfig = async (configId?: string) => {
     await deleteConfig(targetId);
     loadConfigs();
     ElMessage.success(t('setting.configDeleted'));
+  } catch (error) {
+    if (error instanceof Error && error.message === '不能删除默认配置') {
+      ElMessage.warning(t('setting.cannotDeleteDefaultConfig'));
+    }
+    // 用户取消或其他错误
+  }
+};
+
+const handleResetConfig = async (configId: string) => {
+  try {
+    await ElMessageBox.confirm(
+      t('setting.confirmResetConfig'),
+      t('setting.resetConfig'),
+      {
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
+        type: 'warning'
+      }
+    );
+    
+    const success = await resetDefaultConfig(configId);
+    if (success) {
+      await fetchLlmSettings();
+      loadConfigs();
+      ElMessage.success(t('setting.configReset'));
+    } else {
+      ElMessage.error(t('setting.resetFailed') || '重置失败');
+    }
   } catch {
     // 用户取消
   }
 };
 
-const handleSaveCurrentAsConfig = async () => {
+// 拖拽排序相关函数
+const handleDragStart = (configId: string, event: DragEvent) => {
+  draggingConfigId.value = configId;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', configId);
+  }
+};
+
+const handleDragOver = (targetId: string, event: DragEvent) => {
+  if (!draggingConfigId.value || draggingConfigId.value === targetId) {
+    dropPreview.value.targetId = null;
+    dropPreview.value.mode = null;
+    return;
+  }
+  
+  event.preventDefault();
+  event.stopPropagation();
+  
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move';
+  }
+  
+  // 获取目标元素（config-item-wrapper）
+  const targetElement = event.currentTarget as HTMLElement;
+  if (!targetElement) {
+    logger.warn('handleDragOver: targetElement 为空');
+    return;
+  }
+  
+  // 找到对应的 .config-item 元素（父级）
+  let configItemElement: HTMLElement | null = targetElement.closest('.config-item');
+  if (!configItemElement) {
+    // 如果找不到，尝试向上查找
+    let parent = targetElement.parentElement;
+    while (parent && !parent.classList.contains('config-item')) {
+      parent = parent.parentElement;
+    }
+    configItemElement = parent as HTMLElement | null;
+  }
+  
+  if (!configItemElement) {
+    logger.warn('handleDragOver: configItemElement 为空');
+    return;
+  }
+  
+  const rect = configItemElement.getBoundingClientRect();
+  const midPoint = rect.top + rect.height / 2;
+  const mode = event.clientY < midPoint ? 'before' : 'after';
+  
+  // 直接更新响应式数据，Vue 会自动更新 DOM
+  dropPreview.value.targetId = targetId;
+  dropPreview.value.mode = mode;
+  
+  //logger.debug('拖拽经过', { targetId, mode, clientY: event.clientY, midPoint });
+};
+
+const handleDragLeave = (event: DragEvent) => {
+  // 检查是否真的离开了整个配置项区域
+  const relatedTarget = event.relatedTarget as HTMLElement | null;
+  if (relatedTarget) {
+    const configItem = (event.currentTarget as HTMLElement)?.closest('.config-item');
+    if (configItem && configItem.contains(relatedTarget)) {
+      // 还在配置项内部，不清除预览
+      return;
+    }
+  }
+  // 离开了配置项，清除预览
+  dropPreview.value.targetId = null;
+  dropPreview.value.mode = null;
+};
+
+const handleDrop = (targetId: string, event: DragEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  //logger.debug('拖拽放置', { targetId, draggingConfigId: draggingConfigId.value, dropPreview: dropPreview.value });
+  
+  const fromId = draggingConfigId.value;
+  const mode = dropPreview.value.mode;
+  
+  if (!fromId || fromId === targetId || !mode) {
+    //logger.debug('拖拽放置：无效条件', { fromId, targetId, mode });
+    draggingConfigId.value = null;
+    dropPreview.value.targetId = null;
+    dropPreview.value.mode = null;
+    return;
+  }
+  
+  const fromIndex = llmConfigs.value.findIndex(c => c.id === fromId);
+  const targetIndex = llmConfigs.value.findIndex(c => c.id === targetId);
+  
+  if (fromIndex === -1 || targetIndex === -1 || fromIndex === targetIndex) {
+    //logger.debug('拖拽放置：索引无效', { fromIndex, targetIndex });
+    draggingConfigId.value = null;
+    dropPreview.value.targetId = null;
+    dropPreview.value.mode = null;
+    return;
+  }
+  
+  // 计算插入位置
+  let insertIndex = targetIndex;
+  if (mode === 'after') {
+    insertIndex = targetIndex + 1;
+  }
+  
+  // 如果从源位置拖到目标位置，需要调整插入索引
+  if (fromIndex < insertIndex) {
+    insertIndex -= 1;
+  }
+  
+  insertIndex = Math.max(0, Math.min(insertIndex, llmConfigs.value.length));
+  
+  //logger.debug('拖拽放置：执行移动', { fromIndex, targetIndex, insertIndex, mode });
+  
+  // 执行移动
+  if (fromIndex !== insertIndex) {
+    const [config] = llmConfigs.value.splice(fromIndex, 1);
+    llmConfigs.value.splice(insertIndex, 0, config);
+    
+    // 保存新顺序
+    const newOrder = llmConfigs.value.map(c => c.id);
+    updateConfigOrder(newOrder);
+    
+    //logger.debug('拖拽放置：移动完成', { newOrder });
+  }
+  
+  draggingConfigId.value = null;
+  dropPreview.value.targetId = null;
+  dropPreview.value.mode = null;
+};
+
+const handleDragEnd = () => {
+  draggingConfigId.value = null;
+  dropPreview.value.targetId = null;
+  dropPreview.value.mode = null;
+};
+
+// 处理列表容器的 dragover 事件（作为后备）
+const handleListDragOver = (event: DragEvent) => {
+  if (!draggingConfigId.value) return;
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move';
+  }
+};
+
+// 处理列表容器的 drop 事件（作为后备）
+const handleListDrop = (event: DragEvent) => {
+  // 如果已经在具体项上处理了 drop，这里不需要处理
+  // 这个主要是为了允许 drop 事件能够触发
+  event.preventDefault();
+};
+
+const handleSaveChanges = async () => {
   try {
-    const { value: name } = await ElMessageBox.prompt(
-      t('setting.enterConfigName'),
-      t('setting.saveCurrentAsConfig'),
+    const success = await saveWorkspace();
+    if (success) {
+      hasUnsavedChanges.value = false;
+      await fetchLlmSettings();
+      loadConfigs();
+      ElMessage.success(t('setting.changesSaved'));
+    } else {
+      ElMessage.error(t('setting.saveFailed') || '保存失败');
+    }
+  } catch (error) {
+    logger.error('保存配置失败', error);
+    ElMessage.error(t('setting.saveFailed') || '保存失败');
+  }
+};
+
+const handleDiscardChanges = async () => {
+  try {
+    await ElMessageBox.confirm(
+      t('setting.confirmDiscardChanges'),
+      t('setting.discardChanges'),
       {
         confirmButtonText: t('common.confirm'),
         cancelButtonText: t('common.cancel'),
-        inputPattern: /.+/,
-        inputErrorMessage: t('setting.configNameRequired')
+        type: 'warning'
       }
     );
     
-    // 保存当前配置
-    const config = await createConfigFromCurrentSettings(name);
-    
-    // 如果当前是临时配置，删除它
-    const currentConfig = llmConfigs.value.find(c => c.id === currentConfigId.value);
-    if (currentConfig?.isTemporary) {
-      deleteConfig(currentConfig.id);
+    const success = await discardWorkspace();
+    if (success) {
+      hasUnsavedChanges.value = false;
+      // 重新加载设置以确保UI正确更新
+      await fetchLlmSettings();
+      // 根据配置类型加载对应的模型列表
+      if (settings.selectedLlm === 'metadoc') {
+        fetchMetaDocModels();
+      } else if (settings.selectedLlm === 'ollama' && settings.ollama.apiUrl) {
+        fetchOllamaModels();
+      } else if (settings.selectedLlm === 'openai' && settings.openai.apiUrl && settings.openai.apiKey) {
+        fetchOpenAIModels();
+      } else if (settings.selectedLlm === 'openai-official' && settings['openai-official'].apiKey) {
+        fetchOpenAIOfficialModels();
+      } else if (settings.selectedLlm === 'gemini' && settings.gemini.apiKey) {
+        fetchGeminiModels();
+      }
+      ElMessage.success(t('setting.changesDiscarded'));
+    } else {
+      ElMessage.error(t('setting.discardFailed') || '放弃失败');
     }
-    
-    // 切换到新保存的配置
-    await switchConfig(config.id);
-    currentConfigId.value = config.id;
-    await fetchLlmSettings();
-    loadConfigs();
-    ElMessage.success(t('setting.configSaved'));
   } catch {
     // 用户取消
+  }
+};
+
+const handleExportConfig = async (configId: string) => {
+  try {
+    const jsonString = exportConfig(configId);
+    if (!jsonString) {
+      ElMessage.error(t('setting.exportFailed') || '导出失败');
+      return;
+    }
+    
+    // 创建下载链接
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const config = llmConfigs.value.find(c => c.id === configId);
+    const filename = `${config?.name || 'config'}-${Date.now()}.json`;
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    ElMessage.success(t('setting.exportSuccess') || '导出成功');
+  } catch (error) {
+    logger.error('导出配置失败', error);
+    ElMessage.error(t('setting.exportFailed') || '导出失败');
+  }
+};
+
+const handleImportConfig = async () => {
+  try {
+    if (!importJsonText.value.trim()) {
+      ElMessage.warning(t('setting.importConfigJsonRequired') || '请输入配置JSON');
+      return;
+    }
+    
+    const result = importConfigs(importJsonText.value);
+    if (result.success) {
+      loadConfigs();
+      importDialogVisible.value = false;
+      importJsonText.value = '';
+      ElMessage.success(
+        t('setting.importSuccess', { count: result.imported }) || 
+        `成功导入 ${result.imported} 个配置`
+      );
+      if (result.errors.length > 0) {
+        ElMessage.warning(result.errors.join('; '));
+      }
+    } else {
+      ElMessage.error(result.errors.join('; ') || t('setting.importFailed') || '导入失败');
+    }
+  } catch (error) {
+    logger.error('导入配置失败', error);
+    ElMessage.error(t('setting.importFailed') || '导入失败');
+  }
+};
+
+const handleExportAllConfigs = async () => {
+  try {
+    const jsonString = exportAllConfigs();
+    
+    // 创建下载链接
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const filename = `llm-configs-${Date.now()}.json`;
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    ElMessage.success(t('setting.exportSuccess') || '导出成功');
+  } catch (error) {
+    logger.error('导出所有配置失败', error);
+    ElMessage.error(t('setting.exportFailed') || '导出失败');
   }
 };
 
@@ -1177,8 +1629,16 @@ const testLlmApi = async () => {
 
 onMounted(async () => {
   isDev.value = await isDevEnvironment();
+  // 确保配置已加载
+  await loadLlmConfigs();
   loadConfigs();
   await fetchLlmSettings();
+  
+  // 初始化工作区状态
+  if (currentConfigId.value) {
+    await updateWorkspaceModifiedState();
+    hasUnsavedChanges.value = getWorkspaceState().hasUnsavedChanges;
+  }
   
   if (settings.selectedLlm === 'metadoc') {
     fetchMetaDocModels();
@@ -1352,6 +1812,38 @@ onMounted(async () => {
 
 .config-item {
   width: 100%;
+  position: relative;
+  transition: opacity 0.2s;
+}
+
+.config-item.dragging {
+  opacity: 0.5;
+}
+
+.config-item.drop-before::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--el-color-primary);
+  border-radius: 2px;
+  z-index: 10;
+  box-shadow: 0 0 4px rgba(64, 158, 255, 0.5);
+}
+
+.config-item.drop-after::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--el-color-primary);
+  border-radius: 2px;
+  z-index: 10;
+  box-shadow: 0 0 4px rgba(64, 158, 255, 0.5);
 }
 
 .config-item-wrapper {
@@ -1360,6 +1852,20 @@ onMounted(async () => {
   justify-content: space-between;
   width: 100%;
   gap: 8px;
+  cursor: grab;
+  user-select: none;
+}
+
+.config-item-wrapper:active {
+  cursor: grabbing;
+}
+
+.config-item-wrapper .config-item__actions {
+  cursor: default;
+}
+
+.config-item-wrapper .config-item__actions * {
+  cursor: pointer;
 }
 
 .config-item__content {
@@ -1440,6 +1946,32 @@ onMounted(async () => {
   overflow: hidden;
   min-width: 0;
   width: 0; /* 配合 flex: 1 使用，确保能够正确收缩 */
+}
+
+.workspace-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"');
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  flex-shrink: 0;
+}
+
+.workspace-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workspace-status-text {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.workspace-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .config-form-scroll {

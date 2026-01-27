@@ -3360,22 +3360,64 @@ async function renderPlantUMLToLocalImage(plantumlCode: string, format: string =
   const logger = createMainLogger('PlantUML');
   const crypto = require('crypto');
   
-  // 在打包环境中，修复 node-plantuml-2 的 JAR 文件路径问题
-  // node-plantuml-2 使用 __dirname 查找 JAR，但在打包环境中路径可能不正确
+  // 在打包环境中，修复 node-plantuml-2 的模块路径问题
+  // node-plantuml-2 在打包环境中需要从解包位置加载，避免在 asar 内部创建文件导致 ENOTDIR 错误
+  let plantuml: any;
   if (app.isPackaged) {
-    const plantumlJarPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'node-plantuml-2', 'vendor', 'plantuml.jar');
-    if (fs.existsSync(plantumlJarPath)) {
-      // 设置 PLANTUML_HOME 环境变量，让 node-plantuml-2 使用正确的 JAR 路径
-      process.env.PLANTUML_HOME = plantumlJarPath;
-      logger.debug('打包环境：设置 PLANTUML_HOME =', plantumlJarPath);
+    // 打包环境：从解包位置加载模块
+    const unpackedNodeModulesPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules');
+    const plantumlModulePath = path.join(unpackedNodeModulesPath, 'node-plantuml-2');
+    if (fs.existsSync(plantumlModulePath)) {
+      // 临时修改模块解析路径，确保依赖也能从解包位置加载
+      const Module = require('module');
+      const originalResolveFilename = Module._resolveFilename;
+      
+      // 创建一个包装函数，优先从解包位置查找模块
+      Module._resolveFilename = function(request: string, parent: any, isMain: boolean, options: any) {
+        // 如果是 node-plantuml-2 的依赖，优先从解包位置查找
+        if (request === 'node-nailgun-server' || request === 'node-nailgun-client' || request === 'plantuml-encoder') {
+          const unpackedPath = path.join(unpackedNodeModulesPath, request);
+          if (fs.existsSync(unpackedPath)) {
+            try {
+              return originalResolveFilename.call(this, unpackedPath, parent, isMain, options);
+            } catch (e) {
+              // 如果解包路径失败，回退到默认解析
+            }
+          }
+        }
+        // 其他模块使用默认解析
+        return originalResolveFilename.call(this, request, parent, isMain, options);
+      };
+      
+      try {
+        // 使用绝对路径加载解包后的模块
+        // @ts-ignore
+        plantuml = require(plantumlModulePath);
+        logger.debug('打包环境：从解包位置加载 node-plantuml-2:', plantumlModulePath);
+        
+        // 设置 PLANTUML_HOME 环境变量，让 node-plantuml-2 使用正确的 JAR 路径
+        const plantumlJarPath = path.join(plantumlModulePath, 'vendor', 'plantuml.jar');
+        if (fs.existsSync(plantumlJarPath)) {
+          process.env.PLANTUML_HOME = plantumlJarPath;
+          logger.debug('打包环境：设置 PLANTUML_HOME =', plantumlJarPath);
+        } else {
+          logger.warn('打包环境：未找到 PlantUML JAR 文件:', plantumlJarPath);
+        }
+      } finally {
+        // 恢复原始的模块解析函数
+        Module._resolveFilename = originalResolveFilename;
+      }
     } else {
-      logger.warn('打包环境：未找到 PlantUML JAR 文件:', plantumlJarPath);
+      logger.warn('打包环境：未找到解包后的 node-plantuml-2 模块:', plantumlModulePath);
+      // 回退到默认 require
+      // @ts-ignore
+      plantuml = require('node-plantuml-2');
     }
+  } else {
+    // 开发环境：正常加载模块
+    // @ts-ignore
+    plantuml = require('node-plantuml-2');
   }
-  
-  // 加载 node-plantuml-2 模块（无需任何环境配置）
-  // @ts-ignore
-  const plantuml = require('node-plantuml-2');
   
   try {
     // 清理代码：移除 BOM，保留 !theme 指令（node-plantuml-2 会自动处理）

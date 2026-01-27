@@ -28,7 +28,7 @@ export type WorkspaceTabKind = 'new' | 'file' | 'tool' | 'system';
 // 实际使用时应从 formatRegistry 获取所有支持的格式
 export type WorkspaceTabFormat = 'md' | 'tex' | 'txt' | string;
 
-export type ToolTabType = 'ocr' | 'graph' | 'attachment' | 'dataAnalysis' | 'formulaRecognition' | 'aiChat' | 'setting';
+export type ToolTabType = 'ocr' | 'graph' | 'attachment' | 'dataAnalysis' | 'formulaRecognition' | 'aiChat' | 'setting' | 'aigcDetection';
 
 export interface WorkspaceTab {
   id: string;
@@ -1616,7 +1616,8 @@ const TOOL_TAB_TITLES: Record<ToolTabType, string> = {
   dataAnalysis: '数据分析',
   formulaRecognition: '公式识别',
   aiChat: 'AI对话',
-  setting: '设置'
+  setting: '设置',
+  aigcDetection: 'AIGC检测'
 };
 
 // 工具Tab的路由映射
@@ -1627,7 +1628,8 @@ const TOOL_TAB_ROUTES: Record<ToolTabType, string> = {
   dataAnalysis: '/data-analysis',
   formulaRecognition: '/fomula-recognition',
   aiChat: '/ai-chat',
-  setting: '/setting'
+  setting: '/setting',
+  aigcDetection: '/aigc-detection'
 };
 
 /**

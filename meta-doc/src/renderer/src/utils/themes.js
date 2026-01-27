@@ -50,6 +50,8 @@ import FileIconBlack from "../assets/icons/file-black.svg";
 import FileIconWhite from "../assets/icons/file-white.svg";
 import MetaIconBlack from "../assets/icons/meta-black.svg";
 import MetaIconWhite from "../assets/icons/meta-white.svg";
+import PenAiIconBlack from "../assets/icons/pen-ai-black.svg";
+import PenAiIconWhite from "../assets/icons/pen-ai-white.svg";
 // PDF查看模式图标导入
 import CursorIconBlack from "../assets/icons/cursor-black.svg";
 import CursorIconWhite from "../assets/icons/cursor-white.svg";
@@ -197,6 +199,7 @@ const generateThemeIcons = (isDarkMode) => {
     MetaIcon: selectIconByTheme(isDarkMode, { light: MetaIconBlack, dark: MetaIconWhite }),
     CursorIcon: selectIconByTheme(isDarkMode, { light: CursorIconBlack, dark: CursorIconWhite }),
     HandIcon: selectIconByTheme(isDarkMode, { light: HandIconBlack, dark: HandIconWhite }),
+    PenAiIcon: selectIconByTheme(isDarkMode, { light: PenAiIconBlack, dark: PenAiIconWhite }),
   };
 };
 

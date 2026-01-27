@@ -681,6 +681,10 @@ eventBus.on('attachment', () => {
 eventBus.on('graph', () => {
   ipcRenderer.send('graph')
 })
+eventBus.on('aigc-detection', () => {
+  const workspace = useWorkspace()
+  workspace.openToolTab('aigcDetection')
+})
 
 eventBus.on('system-notification', (data) => {
   //console.log(data)

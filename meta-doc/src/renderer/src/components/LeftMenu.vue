@@ -124,6 +124,13 @@
         <UISubMenuItem :icon="Paperclip" @click="eventBus.emit('attachment')">
           {{ $t('leftMenu.attachment') }}
         </UISubMenuItem>
+
+        <UISubMenuItem @click="eventBus.emit('aigc-detection')">
+          <template #icon>
+            <img :src="(themeState.currentTheme as any).PenAiIcon" class="menu-title-icon" alt="Pen AI" />
+          </template>
+          {{ $t('leftMenu.aigcDetection') }}
+        </UISubMenuItem>
       </UISubMenu>
 
       <!-- 设置菜单 -->
@@ -489,6 +496,10 @@
 
         <UISubMenuItem :icon="Paperclip" @click="eventBus.emit('attachment')">
           {{ $t('leftMenu.attachment') }}
+        </UISubMenuItem>
+
+        <UISubMenuItem :icon="DataAnalysis" @click="eventBus.emit('aigc-detection')">
+          {{ $t('leftMenu.aigcDetection') }}
         </UISubMenuItem>
       </UISubMenu>
 

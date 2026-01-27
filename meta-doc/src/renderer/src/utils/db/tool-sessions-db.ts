@@ -80,6 +80,23 @@ export interface FormulaRecognitionSession {
   updated_at: string
 }
 
+export interface AigcDetectionSession {
+  id: string
+  title: string
+  description?: string
+  article_content?: string // 文章内容
+  content_source?: string // 内容来源：'file' | 'document'
+  source_file_path?: string // 如果是文件上传，保存文件路径
+  source_tab_id?: string // 如果是从文档tab获取，保存tab id
+  overall_analysis?: string // 总体分析结果（JSON格式）
+  paragraph_analyses?: string // 分段分析结果（JSON数组格式）
+  report_markdown?: string // 生成的报告（Markdown格式）
+  language?: string // 语言：'zh' | 'en' 等
+  domain?: string // 领域：'academic' | 'general' 等
+  created_at: string
+  updated_at: string
+}
+
 export interface AIChatSession {
   id: string
   title: string
@@ -612,6 +629,118 @@ export const formulaRecognitionSessionsDb = {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     await ipcRenderer.invoke('db-execute', {
       sql: 'DELETE FROM formula_recognition_sessions WHERE id = ?',
+      params: [id]
+    })
+  }
+}
+
+/**
+ * AIGC检测会话CRUD
+ */
+export const aigcDetectionSessionsDb = {
+  async getAll(): Promise<AigcDetectionSession[]> {
+    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
+    return await ipcRenderer.invoke('db-query', {
+      sql: 'SELECT * FROM aigc_detection_sessions ORDER BY updated_at DESC',
+      params: []
+    }) as AigcDetectionSession[]
+  },
+
+  async getById(id: string): Promise<AigcDetectionSession | null> {
+    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
+    const results = await ipcRenderer.invoke('db-query', {
+      sql: 'SELECT * FROM aigc_detection_sessions WHERE id = ?',
+      params: [id]
+    }) as AigcDetectionSession[]
+    return results[0] || null
+  },
+
+  async create(session: Omit<AigcDetectionSession, 'created_at' | 'updated_at'>): Promise<void> {
+    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
+    await ipcRenderer.invoke('db-execute', {
+      sql: `INSERT INTO aigc_detection_sessions 
+            (id, title, description, article_content, content_source, source_file_path, source_tab_id, overall_analysis, paragraph_analyses, report_markdown, language, domain, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      params: [
+        session.id,
+        session.title,
+        session.description || null,
+        session.article_content || null,
+        session.content_source || null,
+        session.source_file_path || null,
+        session.source_tab_id || null,
+        session.overall_analysis || null,
+        session.paragraph_analyses || null,
+        session.report_markdown || null,
+        session.language || 'zh',
+        session.domain || 'academic'
+      ]
+    })
+  },
+
+  async update(id: string, updates: Partial<Omit<AigcDetectionSession, 'id' | 'created_at'>>): Promise<void> {
+    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
+    const fields: string[] = []
+    const params: any[] = []
+    
+    if (updates.title !== undefined) {
+      fields.push('title = ?')
+      params.push(updates.title)
+    }
+    if (updates.description !== undefined) {
+      fields.push('description = ?')
+      params.push(updates.description || null)
+    }
+    if (updates.article_content !== undefined) {
+      fields.push('article_content = ?')
+      params.push(updates.article_content || null)
+    }
+    if (updates.content_source !== undefined) {
+      fields.push('content_source = ?')
+      params.push(updates.content_source || null)
+    }
+    if (updates.source_file_path !== undefined) {
+      fields.push('source_file_path = ?')
+      params.push(updates.source_file_path || null)
+    }
+    if (updates.source_tab_id !== undefined) {
+      fields.push('source_tab_id = ?')
+      params.push(updates.source_tab_id || null)
+    }
+    if (updates.overall_analysis !== undefined) {
+      fields.push('overall_analysis = ?')
+      params.push(updates.overall_analysis || null)
+    }
+    if (updates.paragraph_analyses !== undefined) {
+      fields.push('paragraph_analyses = ?')
+      params.push(updates.paragraph_analyses || null)
+    }
+    if (updates.report_markdown !== undefined) {
+      fields.push('report_markdown = ?')
+      params.push(updates.report_markdown || null)
+    }
+    if (updates.language !== undefined) {
+      fields.push('language = ?')
+      params.push(updates.language || 'zh')
+    }
+    if (updates.domain !== undefined) {
+      fields.push('domain = ?')
+      params.push(updates.domain || 'academic')
+    }
+    
+    fields.push('updated_at = CURRENT_TIMESTAMP')
+    params.push(id)
+    
+    await ipcRenderer.invoke('db-execute', {
+      sql: `UPDATE aigc_detection_sessions SET ${fields.join(', ')} WHERE id = ?`,
+      params
+    })
+  },
+
+  async delete(id: string): Promise<void> {
+    if (!ipcRenderer) throw new Error('IPC渲染器不可用')
+    await ipcRenderer.invoke('db-execute', {
+      sql: 'DELETE FROM aigc_detection_sessions WHERE id = ?',
       params: [id]
     })
   }

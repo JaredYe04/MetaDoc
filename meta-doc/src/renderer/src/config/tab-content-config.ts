@@ -16,6 +16,7 @@ import OcrWindow from '../views/OcrWindow.vue'
 import AttachmentWindow from '../views/AttachmentWindow.vue'
 import GraphWindow from '../views/GraphWindow.vue'
 import LlmStatisticsView from '../views/LlmStatisticsView.vue'
+import AigcDetectionWindow from '../views/AigcDetectionWindow.vue'
 
 /**
  * 系统 Tab 路由到组件的映射
@@ -41,6 +42,7 @@ export const TOOL_TAB_COMPONENTS: Record<string, Component> = {
   '/ai-graph': GraphWindow,
   '/smart-drawing-assistant': GraphWindow,
   '/llm-statistics': LlmStatisticsView,
+  '/aigc-detection': AigcDetectionWindow,
 }
 
 /**

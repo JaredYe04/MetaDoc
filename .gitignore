@@ -23,3 +23,5 @@ meta-doc/version.json
 meta-doc/package.json
 /.test-release
 /.test-workflow
+issues.md
+.issues.md.meta

@@ -6,7 +6,7 @@
 
 import path from 'path';
 import fs from 'fs';
-import { compile, isAvailable, getVersion } from 'node-latex-compiler';
+import { app } from 'electron';
 import type { 
   FilePath, 
   LaTeXCompileResult, 
@@ -17,6 +17,34 @@ import type { BrowserWindow } from 'electron';
 import { createMainLogger } from '../logger';
 
 const logger = createMainLogger("latex-service");
+
+/**
+ * 在打包环境中从解包位置加载 node-latex-compiler 模块
+ * 避免在 asar 内部创建文件导致 ENOTDIR 错误
+ */
+function loadLatexCompilerModule() {
+  if (app.isPackaged) {
+    // 打包环境：从解包位置加载模块
+    const latexCompilerModulePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'node-latex-compiler');
+    if (fs.existsSync(latexCompilerModulePath)) {
+      // 使用绝对路径加载解包后的模块
+      const latexCompiler = require(latexCompilerModulePath);
+      logger.debug('打包环境：从解包位置加载 node-latex-compiler:', latexCompilerModulePath);
+      return latexCompiler;
+    } else {
+      logger.warn('打包环境：未找到解包后的 node-latex-compiler 模块:', latexCompilerModulePath);
+      // 回退到默认 require
+      return require('node-latex-compiler');
+    }
+  } else {
+    // 开发环境：正常加载模块
+    return require('node-latex-compiler');
+  }
+}
+
+// 动态加载模块
+const latexCompiler = loadLatexCompilerModule();
+const { compile, isAvailable, getVersion } = latexCompiler;
 
 /**
  * LaTeX 编译服务实现类

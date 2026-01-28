@@ -354,7 +354,9 @@
       "pen": "Pen",
       "eraser": "Eraser",
       "pointer": "Pointer"
-    }
+    },
+    "simpletexHint": "This feature is powered by SimpleTex with limited capacity. For bulk formula conversion, please visit",
+    "simpletexLinkText": "SimpleTex LaTeX OCR"
   },
   "home": {
     "metaDoc": "MetaDoc - AI Document Editor",

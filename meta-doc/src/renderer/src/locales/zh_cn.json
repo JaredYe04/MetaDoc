@@ -558,6 +558,12 @@
         "noSessionSelected": "请选择一个会话或创建新会话",
         "uploadFile": "上传文件",
         "selectFromDocument": "从文档选择",
+        "selectDocumentTitle": "选择要分析的文档",
+        "pleaseSelectDocument": "请选择要分析的文档",
+        "selectedOneDocument": "已选择 1 个文档",
+        "documentNotFound": "文档不存在",
+        "unsupportedFormat": "不支持的文档格式",
+        "noDocuments": "没有打开的文档",
         "selectLanguage": "选择语言",
         "selectDomain": "选择领域",
         "domainAcademic": "学术",
@@ -582,7 +588,16 @@
         "reportGenerated": "报告生成成功",
         "paraphraseAll": "改写全部",
         "paraphrasing": "正在改写...",
-        "paraphraseSuccess": "改写成功"
+        "paraphraseSuccess": "改写成功",
+        "splitAtCursor": "在光标处拆分",
+        "mergeWithNext": "与下一段合并",
+        "rePreprocess": "重新划分段落",
+        "paragraphCount": "共 {n} 段",
+        "exportReport": "导出报告",
+        "exportReportSuccess": "已导出到新文档",
+        "analyzing": "正在分析中...",
+        "backToTop": "回到顶端",
+        "modified": "已改动"
     },
     "proofread": {
         "title": "文章校对",
@@ -731,7 +746,9 @@
             "pen": "画笔",
             "eraser": "橡皮擦",
             "pointer": "箭头"
-        }
+        },
+        "simpletexHint": "本功能基于 SimpleTex 实现，承载容量有限。如需大批量转换公式，请直接访问",
+        "simpletexLinkText": "SimpleTex 公式识别"
     },
     "home": {
       "recentDocuments":"最近文档",

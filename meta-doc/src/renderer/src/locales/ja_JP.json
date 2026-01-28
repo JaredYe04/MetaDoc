@@ -345,7 +345,9 @@
       "pen": "ペン",
       "eraser": "消しゴム",
       "pointer": "矢印"
-    }
+    },
+    "simpletexHint": "本機能は SimpleTex を利用しており、容量に制限があります。大量の数式変換が必要な場合は、直接",
+    "simpletexLinkText": "SimpleTex 数式認識"
   },
   "home": {
     "metaDoc": "MetaDocスマート文書処理ソフトウェア",

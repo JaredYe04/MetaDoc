@@ -143,6 +143,13 @@
           </div>
         </div>
       </div>
+      
+          <!-- SimpleTex 说明提示 -->
+          <el-alert type="info" :closable="false" show-icon class="simpletex-hint">
+            <span>{{ t('formulaRecognition.simpletexHint') }} </span>
+            <a :href="SIMPLETEX_OCR_URL" target="_blank" rel="noopener noreferrer">{{ t('formulaRecognition.simpletexLinkText') }}</a>
+          </el-alert>
+
         </div>
       </div>
     </div>
@@ -198,6 +205,8 @@ import { formulaRecognitionSessionsDb, type FormulaRecognitionSession } from '..
 
 const { t } = useI18n()
 const logger = createRendererLogger('FormulaRecognition')
+
+const SIMPLETEX_OCR_URL = 'https://simpletex.cn/ai/latex_ocr'
 
 // 会话管理
 const sessions = ref<SessionListItem[]>([])
@@ -1133,6 +1142,17 @@ const toolbarGroupStyle = computed(() => ({
 
     gap: 5px;
 
+}
+
+.simpletex-hint {
+  flex-shrink: 0;
+}
+.simpletex-hint a {
+  color: var(--el-color-primary);
+  text-decoration: none;
+}
+.simpletex-hint a:hover {
+  text-decoration: underline;
 }
 
 

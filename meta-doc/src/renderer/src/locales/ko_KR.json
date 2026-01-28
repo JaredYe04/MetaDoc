@@ -345,7 +345,9 @@
       "pen": "펜",
       "eraser": "지우개",
       "pointer": "포인터"
-    }
+    },
+    "simpletexHint": "이 기능은 SimpleTex 기반이며 용량이 제한됩니다. 대량 수식 변환이 필요하면 직접",
+    "simpletexLinkText": "SimpleTex 수식 인식"
   },
   "home": {
     "metaDoc": "MetaDoc 스마트 문서 처리 소프트웨어",

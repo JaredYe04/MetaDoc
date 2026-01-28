@@ -14,6 +14,7 @@ const props = withDefaults(defineProps<{
   docPath: ''
 })
 
+const emit = defineEmits<{ rendered: [] }>()
 const containerRef = ref<HTMLElement | null>(null)
 
 const renderMarkdown = async () => {
@@ -33,6 +34,7 @@ const renderMarkdown = async () => {
 
     // 使用统一的 Markdown 预览渲染函数
     await renderMarkdownPreview(containerRef.value as HTMLDivElement, processedMarkdown)
+    emit('rendered')
   } catch (error) {
     console.error('渲染 Markdown 失败:', error)
     if (containerRef.value) {

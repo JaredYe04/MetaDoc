@@ -217,7 +217,9 @@
     "recognize_formula": "Reconnaissance de la formule",
     "redo": "Refaire",
     "reset": "Réinitialiser",
-    "undo": "Annuler"
+    "undo": "Annuler",
+    "simpletexHint": "Cette fonction est basée sur SimpleTex, capacité limitée. Pour la conversion en masse de formules, veuillez visiter",
+    "simpletexLinkText": "SimpleTex LaTeX OCR"
   },
   "headMenu": {
     "editor": "Éditeur",

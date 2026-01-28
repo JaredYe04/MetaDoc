@@ -217,7 +217,9 @@
     "recognize_formula": "Formel Anerkennung",
     "redo": "Rot",
     "reset": "Zurück zur Übersicht",
-    "undo": "Und"
+    "undo": "Und",
+    "simpletexHint": "Diese Funktion basiert auf SimpleTex, Kapazität begrenzt. Für Massen-Formelumwandlung besuchen Sie bitte",
+    "simpletexLinkText": "SimpleTex LaTeX OCR"
   },
   "headMenu": {
     "editor": "Herausgeber",

@@ -151,22 +151,46 @@
                   >
                     {{ overallAnalysis ? t('aigc.reAnalyze') : t('aigc.startAnalysis') }}
                   </el-button>
-                  <el-button 
+                  <el-dropdown
                     v-if="overallAnalysis && paragraphAnalyses.length > 0 && reportMarkdown"
-                    @click="handleExportReport"
+                    trigger="click"
+                    popper-class="aigc-export-dropdown-menu"
+                    @command="handleExportCommand"
                   >
-                    {{ t('aigc.exportReport') }}
-                  </el-button>
+                    <el-button>
+                      {{ t('aigc.export', '导出') }}
+                      <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item command="report">{{ t('aigc.exportReport') }}</el-dropdown-item>
+                        <el-dropdown-item v-if="hasAnyParaphrase" divided @click.prevent.stop>
+                          <el-dropdown trigger="hover" placement="right-start" popper-class="aigc-export-dropdown-menu" @command="handleExportParaphrasedCommand" style="width: 100%;">
+                            <span class="aigc-export-submenu-trigger">
+                              {{ t('aigc.exportParaphrased', '导出改写后的文章') }}
+                              <el-icon class="el-icon--right"><ArrowRight /></el-icon>
+                            </span>
+                            <template #dropdown>
+                              <el-dropdown-menu>
+                                <el-dropdown-item command="doc">{{ t('aigc.exportAsNewDoc', '作为新文档') }}</el-dropdown-item>
+                                <el-dropdown-item command="session">{{ t('aigc.exportAndDetect', '进行AIGC率检测') }}</el-dropdown-item>
+                              </el-dropdown-menu>
+                            </template>
+                          </el-dropdown>
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
                 </div>
               </div>
             </el-scrollbar>
           </div>
           
-          <!-- 主内容区域 -->
-          <div v-if="articleContent" class="main-content">
+          <!-- 主内容区域：无报告时 Monaco 70% / 报告 30%，有报告时 Monaco 30% / 报告 70% -->
+          <div v-if="articleContent" ref="mainContentWrapRef" class="main-content">
             <ResizableContainer
               direction="vertical"
-              :initial-sidebar-size="400"
+              :initial-sidebar-size="initialReportPanelWidth"
               :min-size="200"
               :max-size="800"
               :show-sidebar="true"
@@ -225,7 +249,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { UploadFilled, Document, Folder } from '@element-plus/icons-vue'
+import { UploadFilled, Document, Folder, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { aigcDetectionSessionsDb, type AigcDetectionSession } from '../utils/db/tool-sessions-db'
@@ -234,7 +258,7 @@ import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import * as monaco from 'monaco-editor'
 import { createAiTask, ai_types } from '../utils/ai_tasks'
 import type { AIDialogMessage } from '@/types'
-import { buildSchemaPrompt, parseSchemaJson, AIGC_ANALYSIS_SCHEMA, type AigcAnalysisResult, type AigcDimensionScore } from '../utils/schemas'
+import { buildSchemaPrompt, parseSchemaJson, AIGC_ANALYSIS_SCHEMA, AIGC_DIMENSION_WEIGHTS, AIGC_POWER_MEAN_P, AIGC_VETO_THRESHOLD, AIGC_VETO_BONUS_FACTOR, type AigcAnalysisResult, type AigcDimensionScore } from '../utils/schemas'
 import { referenceAdapterManager } from '../utils/agent-framework/reference-adapters'
 import { preprocessParagraphs, MIN_PARAGRAPH_CHARS, DEFAULT_MIN_SEGMENTS, DEFAULT_MAX_SEGMENTS, type ContentFormat } from '../utils/aigc-paragraph-utils'
 import { useActiveDocument } from '../composables/useActiveDocument'
@@ -245,7 +269,109 @@ import eventBus from '../utils/event-bus'
 import { renderMarkdownPreview } from '../utils/md-utils'
 import { ref as vueRef } from 'vue'
 
+/** 维度显示顺序与中文标签（与 schemas.AigcDimensionScore 一致） */
+/** 维度标签：统一方向为「分数越高 AIGC 风险越大」，名称与方向一致 */
+const AIGC_DIMENSION_LABELS: Record<keyof AigcDimensionScore, string> = {
+  sentence_uniformity: '句式统一性',
+  lexical_diversity: '词汇重复度',
+  reasoning_smoothness: '逻辑平滑度',
+  personal_trace: '个人痕迹缺失度',
+  stylistic_risk: '风格风险',
+  over_explanation: '过度解释',
+  hedging_pattern: '模糊限定',
+  opening_transition_pattern: '过渡语模板',
+  structural_repetition: '结构重复',
+  abstractness: '抽象空洞',
+  emotional_flatness: '情感平淡',
+  formulaic_closure: '套路化收尾'
+}
+const AIGC_DIMENSION_KEYS = Object.keys(AIGC_DIMENSION_LABELS) as (keyof AigcDimensionScore)[]
+/** 从分析结果中安全取维度分（兼容旧数据缺字段） */
+function getDimensionScore(result: AigcAnalysisResult, key: keyof AigcDimensionScore): number {
+  const v = result[key]
+  return typeof v === 'number' ? v : 0
+}
+
+/** 构建 AIGC 雷达图 ECharts 配置（留足边距避免轴标签被截断） */
+function buildAigcRadarEchartsOption(radarData: { indicator: Array<{ name: string; max: number }>; series: Array<{ name: string; value: number[] }> }): Record<string, unknown> {
+  return {
+    backgroundColor: 'transparent',
+    radar: {
+      indicator: radarData.indicator,
+      radius: '58%',
+      center: ['50%', '50%'],
+      axisName: { margin: 14, fontSize: 12 }
+    },
+    series: [{ type: 'radar', data: radarData.series, areaStyle: { opacity: 0.3 } }]
+  }
+}
+
+/** 风险来源权重饼图：单独展示占比前 K 名，其余合并为「不显著风险」（避免一刀切忽视 8%、9% 等仍有意义的项） */
+const AIGC_WEIGHT_PIE_TOP_K = 6
+/** 保底：占比不低于此值的维度即使不在前 K 也单独展示，避免「有意义但排名靠后」被合并 */
+const AIGC_WEIGHT_PIE_MIN_VISIBLE = 0.05
+
+/** 根据加权幂次贡献构建风险来源权重饼图 ECharts 配置（背景透明、居中），文案通过 t 做 i18n */
+function buildAigcWeightPieEchartsOption(overall: AigcAnalysisResult, t: (key: string) => string): Record<string, unknown> {
+  const p = AIGC_POWER_MEAN_P
+  const items: { key: keyof AigcDimensionScore; name: string; value: number }[] = AIGC_DIMENSION_KEYS.map(k => {
+    const score = getDimensionScore(overall, k)
+    const contribution = AIGC_DIMENSION_WEIGHTS[k] * Math.pow(Math.max(0, score), p)
+    return { key: k, name: t(`aigc.dimensions.${k}`), value: contribution }
+  })
+  const total = items.reduce((s, x) => s + x.value, 0) || 1
+  const withShare = items.map(x => ({ ...x, share: x.value / total }))
+  const sorted = [...withShare].sort((a, b) => b.share - a.share)
+  const main: { name: string; value: number }[] = []
+  let otherSum = 0
+  sorted.forEach((x, i) => {
+    const inTopK = i < AIGC_WEIGHT_PIE_TOP_K
+    const aboveMin = x.share >= AIGC_WEIGHT_PIE_MIN_VISIBLE
+    if (inTopK || aboveMin) {
+      main.push({ name: x.name, value: Math.round(x.share * 1000) / 10 })
+    } else {
+      otherSum += x.share
+    }
+  })
+  if (otherSum > 0) {
+    main.push({ name: t('aigc.nonSignificantRisk'), value: Math.round(otherSum * 1000) / 10 })
+  }
+  main.sort((a, b) => b.value - a.value)
+  return {
+    backgroundColor: 'transparent',
+    title: { text: t('aigc.chartWeightTitle'), left: 'center', top: 8, textStyle: { fontSize: 14 } },
+    tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
+    series: [{
+      type: 'pie',
+      radius: ['42%', '68%'],
+      center: ['50%', '55%'],
+      data: main,
+      label: { fontSize: 11 },
+      emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.2)' } }
+    }]
+  }
+}
+/** 各维度「高/中/低」说明文案，用于报告表格 */
+const AIGC_DIM_DESCRIPTIONS: Record<keyof AigcDimensionScore, [string, string, string]> = {
+  sentence_uniformity: ['句式过于统一', '句式较为统一', '句式变化丰富'],
+  lexical_diversity: ['词汇重复、保守', '词汇使用较为保守', '词汇使用多样'],
+  reasoning_smoothness: ['逻辑过于平滑', '逻辑较为平滑', '逻辑自然'],
+  personal_trace: ['缺乏个人思考痕迹', '个人痕迹较少', '个人思考痕迹明显'],
+  stylistic_risk: ['高度符合AIGC模板', '部分符合AIGC模板', '风格自然'],
+  over_explanation: ['教科书式解释', '解释较为详细', '解释适度'],
+  hedging_pattern: ['大量使用模糊限定词', '使用较多模糊限定词', '模糊限定词使用适度'],
+  opening_transition_pattern: ['过渡语高度模板化', '过渡语较为模板化', '过渡自然'],
+  structural_repetition: ['结构过于规整', '结构较为规整', '结构自然'],
+  abstractness: ['过于抽象空洞', '略显抽象', '具体有据'],
+  emotional_flatness: ['情感过于平淡', '情感较平淡', '情感自然'],
+  formulaic_closure: ['收尾高度套路化', '收尾较套路', '收尾自然']
+}
+
 const { t, locale } = useI18n()
+/** 维度标签 i18n（雷达图、饼图、报告表格等） */
+function getDimensionLabel(k: keyof AigcDimensionScore): string {
+  return t(`aigc.dimensions.${k}`)
+}
 const { activeDocument, activeTab } = useActiveDocument()
 const workspace = useWorkspace()
 
@@ -270,6 +396,17 @@ const paragraphAnalyses = ref<Array<{ index: number; text: string; analysis: Aig
 const reportMarkdown = ref<string>('')
 /** 各段落报告块，按索引存储；分析完成时及时追加并按顺序刷新 reportMarkdown */
 const segmentBlocks = ref<(string | null)[]>([])
+
+/** 主内容区容器 ref（Monaco + 报告），用于测量宽度以计算报告面板默认占比） */
+const mainContentWrapRef = ref<HTMLElement | null>(null)
+/** 主内容区当前宽度（用于 30% / 70% 默认布局） */
+const mainContentWidth = ref(1000)
+/** 报告面板默认宽度：无报告时 30%，有报告时 70%，限制在 [200, 800] */
+const initialReportPanelWidth = computed(() => {
+  const w = mainContentWidth.value
+  const ratio = reportMarkdown.value ? 0.7 : 0.3
+  return Math.round(Math.max(200, Math.min(800, w * ratio)))
+})
 
 /** 每段改写后的文本，与段落一一对应；null 表示未改写。不修改原文，由用户决定是否采用。 */
 const paragraphParaphrases = ref<(string | null)[]>([])
@@ -391,6 +528,11 @@ const hasAllParaphrases = computed(() => {
     const p = paragraphParaphrases.value[i]
     return p != null && (p ?? '').trim() !== ''
   })
+})
+
+/** 是否至少有一段已改写（用于「拼成新文章」按钮） */
+const hasAnyParaphrase = computed(() => {
+  return paragraphParaphrases.value.some(p => p != null && (p ?? '').trim() !== '')
 })
 
 // 设置编辑器引用
@@ -765,7 +907,30 @@ watch(() => themeState.currentTheme.type, (newType) => {
 })
 
 // 清理编辑器
+let mainContentResizeObserver: ResizeObserver | null = null
+watch(
+  mainContentWrapRef,
+  (el) => {
+    if (mainContentResizeObserver) {
+      mainContentResizeObserver.disconnect()
+      mainContentResizeObserver = null
+    }
+    if (!el) return
+    mainContentResizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry?.contentRect?.width) mainContentWidth.value = entry.contentRect.width
+    })
+    mainContentResizeObserver.observe(el)
+    mainContentWidth.value = el.offsetWidth || el.getBoundingClientRect().width || 1000
+  },
+  { immediate: true }
+)
+
 onBeforeUnmount(() => {
+  if (mainContentResizeObserver && mainContentWrapRef.value) {
+    mainContentResizeObserver.disconnect()
+    mainContentResizeObserver = null
+  }
   if (editorInstance) {
     editorInstance.dispose()
     editorInstance = null
@@ -1334,40 +1499,38 @@ const analyzeOverall = async (
     personal_trace: 0,
     stylistic_risk: 0,
     over_explanation: 0,
-    hedging_pattern: 0
+    hedging_pattern: 0,
+    opening_transition_pattern: 0,
+    structural_repetition: 0,
+    abstractness: 0,
+    emotional_flatness: 0,
+    formulaic_closure: 0
   }
   
-  // 计算各维度的段落平均值
+  const count = paragraphAnalyses.length || 1
   paragraphAnalyses.forEach(pa => {
-    dimensionScores.sentence_uniformity += pa.analysis.sentence_uniformity
-    dimensionScores.lexical_diversity += pa.analysis.lexical_diversity
-    dimensionScores.reasoning_smoothness += pa.analysis.reasoning_smoothness
-    dimensionScores.personal_trace += pa.analysis.personal_trace
-    dimensionScores.stylistic_risk += pa.analysis.stylistic_risk
-    dimensionScores.over_explanation += pa.analysis.over_explanation
-    dimensionScores.hedging_pattern += pa.analysis.hedging_pattern
+    AIGC_DIMENSION_KEYS.forEach(key => {
+      dimensionScores[key] += getDimensionScore(pa.analysis, key)
+    })
+  })
+  AIGC_DIMENSION_KEYS.forEach(key => {
+    dimensionScores[key] /= count
   })
   
-  const count = paragraphAnalyses.length || 1
-  dimensionScores.sentence_uniformity /= count
-  dimensionScores.lexical_diversity /= count
-  dimensionScores.reasoning_smoothness /= count
-  dimensionScores.personal_trace /= count
-  dimensionScores.stylistic_risk /= count
-  dimensionScores.over_explanation /= count
-  dimensionScores.hedging_pattern /= count
-  
-  // 总体风险分：七维度的平均分 × 10，范围 0–100。各维度均为「高分=更偏 AI 风格」。
-  // 评判标准从严：55 及以上为高，35–55 为中，35 以下为低（纯 AI 文易被判高）。
-  const sum =
-    dimensionScores.sentence_uniformity +
-    dimensionScores.lexical_diversity +
-    dimensionScores.reasoning_smoothness +
-    dimensionScores.personal_trace +
-    dimensionScores.stylistic_risk +
-    dimensionScores.over_explanation +
-    dimensionScores.hedging_pattern
-  let overallRisk = Math.max(0, Math.min(100, (sum / 7) * 10))
+  const weightTotal = AIGC_DIMENSION_KEYS.reduce((s, k) => s + AIGC_DIMENSION_WEIGHTS[k], 0)
+  // 基础分：加权幂次平均（p>1 时高分维度放大），再 ×10 得到 0–100
+  const weightedPowerSum = AIGC_DIMENSION_KEYS.reduce(
+    (s, k) => s + AIGC_DIMENSION_WEIGHTS[k] * Math.pow(Math.max(0, dimensionScores[k]), AIGC_POWER_MEAN_P),
+    0
+  )
+  const baseRaw = Math.pow(weightedPowerSum / weightTotal, 1 / AIGC_POWER_MEAN_P)
+  let baseScore = Math.max(0, Math.min(100, baseRaw * 10))
+  // 一票否决：任一维度 ≥ 阈值时按 (max - threshold)^2 加分，使总分明显升高
+  const maxDim = Math.max(...AIGC_DIMENSION_KEYS.map(k => dimensionScores[k]))
+  const vetoBonus = maxDim >= AIGC_VETO_THRESHOLD
+    ? AIGC_VETO_BONUS_FACTOR * Math.pow(maxDim - AIGC_VETO_THRESHOLD, 2)
+    : 0
+  const overallRisk = Math.max(0, Math.min(100, Math.round(baseScore + vetoBonus)))
   const riskLevel = getRiskLevelFromScore(overallRisk)
   
   // 收集所有建议
@@ -1395,14 +1558,19 @@ const buildAigcAnalysisPrompt = (text: string, language: string, isParagraph: bo
 评估目标：
 判断${scope}中是否存在明显的 AIGC 风格风险特征。
 
-请从以下维度进行 0-10 打分（10 表示高度符合 AI 风格）：
-- sentence_uniformity: 句式是否过于统一
-- lexical_diversity: 词汇是否重复、保守
-- reasoning_smoothness: 逻辑是否过于平滑
-- personal_trace: 是否存在个人思考痕迹（10表示缺乏个人痕迹）
-- stylistic_risk: 是否符合常见 AIGC 模板
-- over_explanation: 是否"教科书式解释"
-- hedging_pattern: 是否大量使用模糊限定词
+请从以下维度进行 0-10 打分（所有维度统一方向：10 表示该维度上越像 AIGC、风险越高）：
+- sentence_uniformity: 句式是否过于统一（10=高度统一=高风险）
+- lexical_diversity: 词汇是否重复、保守（10=越重复保守=高风险）
+- reasoning_smoothness: 逻辑是否过于平滑（10=过于平滑=高风险）
+- personal_trace: 是否缺乏个人思考痕迹（10=缺乏个人痕迹=高风险）
+- stylistic_risk: 是否符合常见 AIGC 模板（10=高度符合=高风险）
+- over_explanation: 是否"教科书式解释"（10=过度解释=高风险）
+- hedging_pattern: 是否大量使用模糊限定词（10=大量使用=高风险）
+- opening_transition_pattern: 是否大量使用模板化过渡语（10=大量使用=高风险）
+- structural_repetition: 段落/句式结构是否过于规整（10=过于规整=高风险）
+- abstractness: 是否泛泛而谈、缺乏具体例证（10=越抽象空洞=高风险）
+- emotional_flatness: 是否缺乏情绪起伏、过于中性客观（10=越平淡=高风险）
+- formulaic_closure: 结尾是否套路化（10=高度套路化=高风险）
 
 语言：${langName}
 
@@ -1427,26 +1595,10 @@ function buildParagraphReportBlock(para: { index: number; text: string; analysis
   const paraLevel = getRiskLevelFromScore(para.analysis.overall_aigc_risk)
   const paraRiskColor = paraLevel === 'HIGH' ? '#f56c6c' : paraLevel === 'MEDIUM' ? '#e6a23c' : '#67c23a'
   const radarData = {
-    indicator: [
-      { name: '句式统一性', max: 10 },
-      { name: '词汇多样性', max: 10 },
-      { name: '逻辑平滑度', max: 10 },
-      { name: '个人痕迹', max: 10 },
-      { name: '风格风险', max: 10 },
-      { name: '过度解释', max: 10 },
-      { name: '模糊限定', max: 10 }
-    ],
+    indicator: AIGC_DIMENSION_KEYS.map(k => ({ name: getDimensionLabel(k), max: 10 })),
     series: [{
       name: `段落 ${para.index + 1} 评分`,
-      value: [
-        para.analysis.sentence_uniformity,
-        para.analysis.lexical_diversity,
-        para.analysis.reasoning_smoothness,
-        para.analysis.personal_trace,
-        para.analysis.stylistic_risk,
-        para.analysis.over_explanation,
-        para.analysis.hedging_pattern
-      ]
+      value: AIGC_DIMENSION_KEYS.map(k => getDimensionScore(para.analysis, k))
     }]
   }
   let block = `### 段落 ${para.index + 1} {#paragraph-${para.index}}\n\n`
@@ -1471,20 +1623,14 @@ function buildParagraphReportBlock(para: { index: number; text: string; analysis
   }
   block += `**各维度雷达图：**\n\n`
   block += `\`\`\`echarts\n`
-  block += JSON.stringify({
-    backgroundColor: 'transparent',
-    radar: { indicator: radarData.indicator },
-    series: [{ type: 'radar', data: radarData.series, areaStyle: { opacity: 0.3 } }]
-  }, null, 2)
+  block += JSON.stringify(buildAigcRadarEchartsOption(radarData), null, 2)
   block += `\n\`\`\`\n\n`
   block += `**维度评分：**\n\n`
-  block += `- 句式统一性：${para.analysis.sentence_uniformity.toFixed(1)}\n`
-  block += `- 词汇多样性：${para.analysis.lexical_diversity.toFixed(1)}\n`
-  block += `- 逻辑平滑度：${para.analysis.reasoning_smoothness.toFixed(1)}\n`
-  block += `- 个人痕迹：${para.analysis.personal_trace.toFixed(1)}\n`
-  block += `- 风格风险：${para.analysis.stylistic_risk.toFixed(1)}\n`
-  block += `- 过度解释：${para.analysis.over_explanation.toFixed(1)}\n`
-  block += `- 模糊限定：${para.analysis.hedging_pattern.toFixed(1)}\n\n`
+  AIGC_DIMENSION_KEYS.forEach(k => {
+    const v = getDimensionScore(para.analysis, k)
+    block += `- ${getDimensionLabel(k)}：${v.toFixed(1)}\n`
+  })
+  block += `\n`
   if (para.analysis.concise_suggestions.length > 0) {
     block += `**修改建议：**\n\n`
     para.analysis.concise_suggestions.forEach((s, i) => { block += `${i + 1}. ${s}\n` })
@@ -1496,69 +1642,40 @@ function buildParagraphReportBlock(para: { index: number; text: string; analysis
 
 /** 构建总体报告块（不含标题与分段分析），供 refreshReportMarkdown 使用 */
 function buildOverallReportBlock(overall: AigcAnalysisResult): string {
-  // 生成雷达图数据
   const radarData = {
-    indicator: [
-      { name: '句式统一性', max: 10 },
-      { name: '词汇多样性', max: 10 },
-      { name: '逻辑平滑度', max: 10 },
-      { name: '个人痕迹', max: 10 },
-      { name: '风格风险', max: 10 },
-      { name: '过度解释', max: 10 },
-      { name: '模糊限定', max: 10 }
-    ],
+    indicator: AIGC_DIMENSION_KEYS.map(k => ({ name: getDimensionLabel(k), max: 10 })),
     series: [{
       name: '总体评分',
-      value: [
-        overall.sentence_uniformity,
-        overall.lexical_diversity,
-        overall.reasoning_smoothness,
-        overall.personal_trace,
-        overall.stylistic_risk,
-        overall.over_explanation,
-        overall.hedging_pattern
-      ]
+      value: AIGC_DIMENSION_KEYS.map(k => getDimensionScore(overall, k))
     }]
   }
-  
-  // 生成风险等级颜色
   const riskColor = overall.risk_level === 'HIGH' ? '#f56c6c' : 
                     overall.risk_level === 'MEDIUM' ? '#e6a23c' : '#67c23a'
-  
+  const dimDesc = (v: number, high: string, mid: string, low: string) =>
+    v >= 7 ? `⚠️ ${high}` : v >= 4 ? `⚠️ ${mid}` : `✓ ${low}`
   let overallBlock = `## 总体分析\n\n`
   overallBlock += `### 风险评分\n\n`
   overallBlock += `<div style="text-align: center; margin: 20px 0;">\n`
   overallBlock += `<div style="font-size: 48px; font-weight: bold; color: ${riskColor};">${overall.overall_aigc_risk}</div>\n`
   overallBlock += `<div style="font-size: 18px; color: ${riskColor}; margin-top: 10px;">风险等级：${overall.risk_level === 'HIGH' ? '高' : overall.risk_level === 'MEDIUM' ? '中' : '低'}</div>\n`
   overallBlock += `</div>\n\n`
-  
   overallBlock += `### 各维度雷达图\n\n`
   overallBlock += `\`\`\`echarts\n`
-  overallBlock += JSON.stringify({
-    backgroundColor: 'transparent',
-    radar: {
-      indicator: radarData.indicator
-    },
-    series: [{
-      type: 'radar',
-      data: radarData.series,
-      areaStyle: {
-        opacity: 0.3
-      }
-    }]
-  }, null, 2)
+  overallBlock += JSON.stringify(buildAigcRadarEchartsOption(radarData), null, 2)
   overallBlock += `\n\`\`\`\n\n`
-  
+  overallBlock += `### 风险来源权重（加权幂次贡献占比）\n\n`
+  overallBlock += `\`\`\`echarts\n`
+  overallBlock += JSON.stringify(buildAigcWeightPieEchartsOption(overall, t), null, 2)
+  overallBlock += `\n\`\`\`\n\n`
   overallBlock += `### 维度评分详情\n\n`
   overallBlock += `| 维度 | 评分 | 说明 |\n`
   overallBlock += `|------|------|------|\n`
-  overallBlock += `| 句式统一性 | ${overall.sentence_uniformity.toFixed(1)} | ${overall.sentence_uniformity >= 7 ? '⚠️ 句式过于统一' : overall.sentence_uniformity >= 4 ? '⚠️ 句式较为统一' : '✓ 句式变化丰富'} |\n`
-  overallBlock += `| 词汇多样性 | ${overall.lexical_diversity.toFixed(1)} | ${overall.lexical_diversity >= 7 ? '⚠️ 词汇重复、保守' : overall.lexical_diversity >= 4 ? '⚠️ 词汇使用较为保守' : '✓ 词汇使用多样'} |\n`
-  overallBlock += `| 逻辑平滑度 | ${overall.reasoning_smoothness.toFixed(1)} | ${overall.reasoning_smoothness >= 7 ? '⚠️ 逻辑过于平滑' : overall.reasoning_smoothness >= 4 ? '⚠️ 逻辑较为平滑' : '✓ 逻辑自然'} |\n`
-  overallBlock += `| 个人痕迹 | ${overall.personal_trace.toFixed(1)} | ${overall.personal_trace >= 7 ? '⚠️ 缺乏个人思考痕迹' : overall.personal_trace >= 4 ? '⚠️ 个人痕迹较少' : '✓ 个人思考痕迹明显'} |\n`
-  overallBlock += `| 风格风险 | ${overall.stylistic_risk.toFixed(1)} | ${overall.stylistic_risk >= 7 ? '⚠️ 高度符合AIGC模板' : overall.stylistic_risk >= 4 ? '⚠️ 部分符合AIGC模板' : '✓ 风格自然'} |\n`
-  overallBlock += `| 过度解释 | ${overall.over_explanation.toFixed(1)} | ${overall.over_explanation >= 7 ? '⚠️ 教科书式解释' : overall.over_explanation >= 4 ? '⚠️ 解释较为详细' : '✓ 解释适度'} |\n`
-  overallBlock += `| 模糊限定 | ${overall.hedging_pattern.toFixed(1)} | ${overall.hedging_pattern >= 7 ? '⚠️ 大量使用模糊限定词' : overall.hedging_pattern >= 4 ? '⚠️ 使用较多模糊限定词' : '✓ 模糊限定词使用适度'} |\n\n`
+  AIGC_DIMENSION_KEYS.forEach(k => {
+    const v = getDimensionScore(overall, k)
+    const [high, mid, low] = AIGC_DIM_DESCRIPTIONS[k]
+    overallBlock += `| ${getDimensionLabel(k)} | ${v.toFixed(1)} | ${dimDesc(v, high, mid, low)} |\n`
+  })
+  overallBlock += `\n`
   
   overallBlock += `### 修改建议\n\n`
   overall.concise_suggestions.forEach((suggestion, index) => {
@@ -1588,11 +1705,82 @@ const handleExportReport = () => {
     ElMessage.warning(t('aigc.noAnalysisData'))
     return
   }
-  
   eventBus.emit('ai-chat-export-to-document', {
     content: reportMarkdown.value
   })
   ElMessage.success(t('aigc.exportReportSuccess', '已导出到新文档'))
+}
+
+/** 导出下拉菜单：report=导出报告；二级菜单由 handleExportParaphrasedCommand 处理 */
+const handleExportCommand = (command: string) => {
+  if (command === 'report') handleExportReport()
+}
+
+/** 导出改写后的文章 二级菜单：doc=作为新文档，session=进行AIGC率检测 */
+const handleExportParaphrasedCommand = (command: string) => {
+  if (command === 'doc') handleExportParaphrasedArticle()
+  else if (command === 'session') handleAssembleAsNewArticle()
+}
+
+/** 导出改写后的文章到新文档（与拼成新文章相同的拼文逻辑，不创建新会话） */
+const handleExportParaphrasedArticle = () => {
+  if (!paragraphs.value.length) {
+    ElMessage.warning(t('aigc.noContent'))
+    return
+  }
+  const newParagraphs = paragraphs.value.map((p, i) => {
+    const par = paragraphParaphrases.value[i]
+    return par != null && String(par).trim() !== '' ? String(par).trim() : p
+  })
+  const newContent = newParagraphs.join('\n\n')
+  eventBus.emit('ai-chat-export-to-document', {
+    content: newContent
+  })
+  ElMessage.success(t('aigc.exportParaphrasedSuccess', '已导出改写后的文章到新文档'))
+}
+
+/** 将改写后的内容拼成新文章并在新会话中打开（已改写段落用改写文，未改写的保留原文） */
+const handleAssembleAsNewArticle = async () => {
+  if (!paragraphs.value.length) {
+    ElMessage.warning(t('aigc.noContent'))
+    return
+  }
+  const newParagraphs = paragraphs.value.map((p, i) => {
+    const par = paragraphParaphrases.value[i]
+    return par != null && String(par).trim() !== '' ? String(par).trim() : p
+  })
+  const newContent = newParagraphs.join('\n\n')
+  try {
+    const id = `aigc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    const title = t('aigc.assembleNewTitle', '改写后文章')
+    await aigcDetectionSessionsDb.create({
+      id,
+      title,
+      description: '',
+      article_content: newContent,
+      content_source: undefined,
+      source_file_path: undefined,
+      source_tab_id: undefined,
+      overall_analysis: undefined,
+      paragraph_analyses: undefined,
+      report_markdown: undefined,
+      paragraph_texts: JSON.stringify(newParagraphs),
+      paragraph_paraphrases: undefined,
+      language: aigcLanguage.value,
+      domain: 'general'
+    })
+    await loadSessions()
+    const newItem = sessions.value.find(s => s.id === id)
+    if (newItem) {
+      activeSessionId.value = id
+      await handleSelectSession(newItem)
+    } else {
+      activeSessionId.value = id
+    }
+    ElMessage.success(t('aigc.assembleSuccess', '已拼成新文章并打开'))
+  } catch (error) {
+    ElMessage.error('拼成新文章失败: ' + (error instanceof Error ? error.message : String(error)))
+  }
 }
 
 // 生成Markdown报告
@@ -1600,73 +1788,41 @@ const generateReportMarkdown = (
   overall: AigcAnalysisResult,
   paragraphs: Array<{ index: number; text: string; analysis: AigcAnalysisResult }>
 ): string => {
-  // 生成雷达图数据
   const radarData = {
-    indicator: [
-      { name: '句式统一性', max: 10 },
-      { name: '词汇多样性', max: 10 },
-      { name: '逻辑平滑度', max: 10 },
-      { name: '个人痕迹', max: 10 },
-      { name: '风格风险', max: 10 },
-      { name: '过度解释', max: 10 },
-      { name: '模糊限定', max: 10 }
-    ],
+    indicator: AIGC_DIMENSION_KEYS.map(k => ({ name: getDimensionLabel(k), max: 10 })),
     series: [{
       name: '总体评分',
-      value: [
-        overall.sentence_uniformity,
-        overall.lexical_diversity,
-        overall.reasoning_smoothness,
-        overall.personal_trace,
-        overall.stylistic_risk,
-        overall.over_explanation,
-        overall.hedging_pattern
-      ]
+      value: AIGC_DIMENSION_KEYS.map(k => getDimensionScore(overall, k))
     }]
   }
-  
-  // 生成风险等级颜色
   const riskColor = overall.risk_level === 'HIGH' ? '#f56c6c' : 
                     overall.risk_level === 'MEDIUM' ? '#e6a23c' : '#67c23a'
-  
+  const dimDesc = (v: number, high: string, mid: string, low: string) =>
+    v >= 7 ? `⚠️ ${high}` : v >= 4 ? `⚠️ ${mid}` : `✓ ${low}`
   let markdown = `# AIGC 风格风险评估报告\n\n`
-  
-  // 总体分析
   markdown += `## 总体分析\n\n`
   markdown += `### 风险评分\n\n`
   markdown += `<div style="text-align: center; margin: 20px 0;">\n`
   markdown += `<div style="font-size: 48px; font-weight: bold; color: ${riskColor};">${overall.overall_aigc_risk}</div>\n`
   markdown += `<div style="font-size: 18px; color: ${riskColor}; margin-top: 10px;">风险等级：${overall.risk_level === 'HIGH' ? '高' : overall.risk_level === 'MEDIUM' ? '中' : '低'}</div>\n`
   markdown += `</div>\n\n`
-  
-  // 雷达图
   markdown += `### 各维度雷达图\n\n`
   markdown += `\`\`\`echarts\n`
-  markdown += JSON.stringify({
-    radar: {
-      indicator: radarData.indicator
-    },
-    series: [{
-      type: 'radar',
-      data: radarData.series,
-      areaStyle: {
-        opacity: 0.3
-      }
-    }]
-  }, null, 2)
+  markdown += JSON.stringify(buildAigcRadarEchartsOption(radarData), null, 2)
   markdown += `\n\`\`\`\n\n`
-  
-  // 维度评分表格
+  markdown += `### 风险来源权重（加权幂次贡献占比）\n\n`
+  markdown += `\`\`\`echarts\n`
+  markdown += JSON.stringify(buildAigcWeightPieEchartsOption(overall, t), null, 2)
+  markdown += `\n\`\`\`\n\n`
   markdown += `### 维度评分详情\n\n`
   markdown += `| 维度 | 评分 | 说明 |\n`
   markdown += `|------|------|------|\n`
-  markdown += `| 句式统一性 | ${overall.sentence_uniformity.toFixed(1)} | ${overall.sentence_uniformity >= 7 ? '⚠️ 句式过于统一' : overall.sentence_uniformity >= 4 ? '⚠️ 句式较为统一' : '✓ 句式变化丰富'} |\n`
-  markdown += `| 词汇多样性 | ${overall.lexical_diversity.toFixed(1)} | ${overall.lexical_diversity >= 7 ? '⚠️ 词汇重复、保守' : overall.lexical_diversity >= 4 ? '⚠️ 词汇使用较为保守' : '✓ 词汇使用多样'} |\n`
-  markdown += `| 逻辑平滑度 | ${overall.reasoning_smoothness.toFixed(1)} | ${overall.reasoning_smoothness >= 7 ? '⚠️ 逻辑过于平滑' : overall.reasoning_smoothness >= 4 ? '⚠️ 逻辑较为平滑' : '✓ 逻辑自然'} |\n`
-  markdown += `| 个人痕迹 | ${overall.personal_trace.toFixed(1)} | ${overall.personal_trace >= 7 ? '⚠️ 缺乏个人思考痕迹' : overall.personal_trace >= 4 ? '⚠️ 个人痕迹较少' : '✓ 个人思考痕迹明显'} |\n`
-  markdown += `| 风格风险 | ${overall.stylistic_risk.toFixed(1)} | ${overall.stylistic_risk >= 7 ? '⚠️ 高度符合AIGC模板' : overall.stylistic_risk >= 4 ? '⚠️ 部分符合AIGC模板' : '✓ 风格自然'} |\n`
-  markdown += `| 过度解释 | ${overall.over_explanation.toFixed(1)} | ${overall.over_explanation >= 7 ? '⚠️ 教科书式解释' : overall.over_explanation >= 4 ? '⚠️ 解释较为详细' : '✓ 解释适度'} |\n`
-  markdown += `| 模糊限定 | ${overall.hedging_pattern.toFixed(1)} | ${overall.hedging_pattern >= 7 ? '⚠️ 大量使用模糊限定词' : overall.hedging_pattern >= 4 ? '⚠️ 使用较多模糊限定词' : '✓ 模糊限定词使用适度'} |\n\n`
+  AIGC_DIMENSION_KEYS.forEach(k => {
+    const v = getDimensionScore(overall, k)
+    const [high, mid, low] = AIGC_DIM_DESCRIPTIONS[k]
+    markdown += `| ${getDimensionLabel(k)} | ${v.toFixed(1)} | ${dimDesc(v, high, mid, low)} |\n`
+  })
+  markdown += `\n`
   
   // 修改建议
   markdown += `### 修改建议\n\n`
@@ -1686,13 +1842,10 @@ const generateReportMarkdown = (
     markdown += `**段落内容：**\n\n`
     markdown += `> ${para.text.split('\n').join('\n> ')}\n\n`
     markdown += `**维度评分：**\n\n`
-    markdown += `- 句式统一性：${para.analysis.sentence_uniformity.toFixed(1)}\n`
-    markdown += `- 词汇多样性：${para.analysis.lexical_diversity.toFixed(1)}\n`
-    markdown += `- 逻辑平滑度：${para.analysis.reasoning_smoothness.toFixed(1)}\n`
-    markdown += `- 个人痕迹：${para.analysis.personal_trace.toFixed(1)}\n`
-    markdown += `- 风格风险：${para.analysis.stylistic_risk.toFixed(1)}\n`
-    markdown += `- 过度解释：${para.analysis.over_explanation.toFixed(1)}\n`
-    markdown += `- 模糊限定：${para.analysis.hedging_pattern.toFixed(1)}\n\n`
+    AIGC_DIMENSION_KEYS.forEach(k => {
+      markdown += `- ${getDimensionLabel(k)}：${getDimensionScore(para.analysis, k).toFixed(1)}\n`
+    })
+    markdown += `\n`
     
     if (para.analysis.concise_suggestions.length > 0) {
       markdown += `**修改建议：**\n\n`
@@ -1722,13 +1875,17 @@ const generateReportMarkdown = (
   return markdown
 }
 
-/** 对单段做同义转述（参考报告修改建议），不修改原文，结果存入 paragraphParaphrases */
-async function paraphraseOneSegment(index: number): Promise<void> {
+/** 对单段做同义转述（参考报告修改建议），不修改原文，结果存入 paragraphParaphrases
+ * @param skipDbSave 为 true 时不写库（由调用方在全部完成后统一保存）
+ */
+async function paraphraseOneSegment(index: number, skipDbSave = false): Promise<void> {
   const text = paragraphs.value[index]
   const pa = paragraphAnalyses.value[index]
   if (!text?.trim() || !pa) return
   const suggestions = pa.analysis.concise_suggestions ?? []
-  const prompt = buildParaphraseSegmentPrompt(text.trim(), aigcLanguage.value, suggestions)
+  const riskLevel = pa.analysis.risk_level ?? 'MEDIUM'
+  const overallRisk = pa.analysis.overall_aigc_risk ?? 50
+  const prompt = buildParaphraseSegmentPrompt(text.trim(), aigcLanguage.value, suggestions, riskLevel, overallRisk)
   const resultRef = vueRef('')
   const originKey = `aigc-paraphrase-seg-${index}-${Date.now()}`
   const messages: AIDialogMessage[] = [{ role: 'user', content: prompt }]
@@ -1743,14 +1900,13 @@ async function paraphraseOneSegment(index: number): Promise<void> {
   await done
   const paraphrased = resultRef.value.trim()
   if (!paraphrased) return
-  // 保证数组长度
   while (paragraphParaphrases.value.length <= index) {
     paragraphParaphrases.value.push(null)
   }
   paragraphParaphrases.value[index] = paraphrased
   segmentBlocks.value[index] = buildParagraphReportBlock(pa, paraphrased)
   refreshReportMarkdown()
-  if (activeSessionId.value) {
+  if (!skipDbSave && activeSessionId.value) {
     await aigcDetectionSessionsDb.update(activeSessionId.value, {
       paragraph_paraphrases: JSON.stringify(paragraphParaphrases.value),
       report_markdown: reportMarkdown.value
@@ -1758,7 +1914,7 @@ async function paraphraseOneSegment(index: number): Promise<void> {
   }
 }
 
-/** 改写全部：对每一段做同义转述（参考该段报告建议），不修改原文，结果展示在报告内 */
+/** 改写全部：并发对各段做同义转述（与开始分析类似，同时改写各段），每完成一段即更新报告 */
 const handleParaphraseAll = async () => {
   if (!paragraphAnalyses.value.length || !paragraphs.value.length) {
     ElMessage.warning(t('aigc.noContent'))
@@ -1767,8 +1923,14 @@ const handleParaphraseAll = async () => {
   paraphrasing.value = true
   try {
     const n = Math.min(paragraphAnalyses.value.length, paragraphs.value.length)
-    for (let i = 0; i < n; i++) {
-      await paraphraseOneSegment(i)
+    await Promise.all(
+      Array.from({ length: n }, (_, i) => paraphraseOneSegment(i, true))
+    )
+    if (activeSessionId.value) {
+      await aigcDetectionSessionsDb.update(activeSessionId.value, {
+        paragraph_paraphrases: JSON.stringify(paragraphParaphrases.value),
+        report_markdown: reportMarkdown.value
+      })
     }
     await nextTick()
     onReportRendered()
@@ -1796,20 +1958,32 @@ const handleParaphraseOne = async (index: number) => {
   }
 }
 
-/** 构建单段改写提示词：同义转述 + 参考报告修改建议 */
-function buildParaphraseSegmentPrompt(text: string, language: string, suggestions: string[]): string {
+/** 构建单段改写提示词：目标为一次性改写至低 AIGC 风险，非仅做轻微降低 */
+function buildParaphraseSegmentPrompt(
+  text: string,
+  language: string,
+  suggestions: string[],
+  riskLevel: string = 'MEDIUM',
+  overallRisk: number = 50
+): string {
   const langName = language === 'zh' ? '中文' : language === 'en' ? 'English' : language === 'ja' ? '日本語' : language === 'ko' ? '한국어' : language
-  let block = `请对下列段落进行同义转述（paraphrase），要求：
-- 不改变原意，仅换一种说法
-- 适当参考下方「修改建议」优化表达（句式、词汇、逻辑等），降低 AIGC 风格风险
-- 语言：${langName}
-- 只输出改写后的段落正文，不要加解释
+  const riskLabel = riskLevel === 'HIGH' ? '高' : riskLevel === 'MEDIUM' ? '中' : '低'
+  let block = `你是一位擅长「去 AIGC 化」的改写专家。请对下列段落进行改写。
+
+【当前状态】本段 AIGC 风险评分约 ${overallRisk}，风险等级：${riskLabel}。
+
+【改写目标】在一次改写中直接达到「低 AIGC 风险、读起来像人写」的效果，而不是只做轻微降低。要求：
+1. 不改变原意，但要在句式、用词、衔接、个人化表达上明显改观，避免仅做同义词替换。
+2. 务必逐条落实下方「修改建议」，从结构和风格上脱胎换骨，而非点到为止。
+3. 具体可做：长短句交错、减少模板化过渡语（如首先/其次/综上所述）、增加具体细节或个人判断、适度保留语气起伏、结尾避免套路化总结/展望/建议三板斧。
+4. 语言：${langName}。
+5. 只输出改写后的段落正文，不要加任何解释或前缀。
 
 <<<段落>>>
 ${text}
 <<<段落>>>`
   if (suggestions.length > 0) {
-    block += `\n\n修改建议（供参考）：\n`
+    block += `\n\n【修改建议】（请务必在改写中落实）：\n`
     suggestions.forEach((s, i) => { block += `${i + 1}. ${s}\n` })
   }
   return block
@@ -1950,6 +2124,13 @@ onMounted(() => {
   gap: 12px;
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.aigc-export-submenu-trigger {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  justify-content: space-between;
 }
 
 /* 主内容区域 */
@@ -2096,12 +2277,21 @@ onMounted(() => {
 .report-scrollbar :deep(.aigc-paraphrase-one-btn:hover) {
   opacity: 0.9;
 }
-/* 雷达图容器居中；避免 width:fit-content 在 ECharts 未绘制时坍缩为 0 导致图表不显示 */
+/* 雷达图容器：加大宽度与内边距，避免 12 维轴标签左右被截断 */
 .report-scrollbar :deep(.language-echarts),
 .report-scrollbar :deep(pre:has(code.language-echarts)) {
   margin-left: auto;
   margin-right: auto;
-  min-width: 380px;
+  min-width: 640px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 8px 12px;
+  box-sizing: border-box;
+}
+/* 报告内表格与雷达图一致居中 */
+.report-scrollbar :deep(table) {
+  margin-left: auto;
+  margin-right: auto;
   width: fit-content;
   max-width: 100%;
 }
@@ -2349,6 +2539,10 @@ onMounted(() => {
 
 <!-- 段落高亮：非 scoped，确保 Monaco 内部装饰元素也能被命中 -->
 <style>
+/* 导出下拉菜单（含二级）文字不可选中 */
+.aigc-export-dropdown-menu {
+  user-select: none;
+}
 .aigc-detection-window .aigc-para-odd,
 .aigc-detection-window .monaco-editor .aigc-para-odd {
   background-color: rgba(64, 158, 255, 0.18) !important;

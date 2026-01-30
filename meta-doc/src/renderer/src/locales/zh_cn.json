@@ -604,11 +604,35 @@
         "mergeWithNext": "与下一段合并",
         "rePreprocess": "重新划分段落",
         "paragraphCount": "共 {n} 段",
+        "export": "导出",
         "exportReport": "导出报告",
         "exportReportSuccess": "已导出到新文档",
+        "exportParaphrased": "导出改写后的文章",
+        "exportParaphrasedSuccess": "已导出改写后的文章到新文档",
+        "exportAsNewDoc": "作为新文档",
+        "exportAndDetect": "进行AIGC率检测",
+        "assembleAsNewArticle": "拼成新文章",
+        "assembleNewTitle": "改写后文章",
+        "assembleSuccess": "已拼成新文章并打开",
         "analyzing": "正在分析中...",
         "backToTop": "回到顶端",
-        "modified": "已改动"
+        "modified": "已改动",
+        "chartWeightTitle": "风险来源权重（加权幂次贡献占比）",
+        "nonSignificantRisk": "不显著风险",
+        "dimensions": {
+            "sentence_uniformity": "句式统一性",
+            "lexical_diversity": "词汇重复度",
+            "reasoning_smoothness": "逻辑平滑度",
+            "personal_trace": "个人痕迹缺失度",
+            "stylistic_risk": "风格风险",
+            "over_explanation": "过度解释",
+            "hedging_pattern": "模糊限定",
+            "opening_transition_pattern": "过渡语模板",
+            "structural_repetition": "结构重复",
+            "abstractness": "抽象空洞",
+            "emotional_flatness": "情感平淡",
+            "formulaic_closure": "套路化收尾"
+        }
     },
     "proofread": {
         "title": "文章校对",
@@ -731,6 +755,12 @@
         }
     },
     "formulaRecognition": {
+        "sessionsTitle": "公式识别会话",
+        "newSession": "新建会话",
+        "defaultTitle": "新公式识别会话",
+        "renameTitle": "重命名会话",
+        "renamePlaceholder": "请输入会话名称",
+        "noSessionSelected": "请选择一个会话或创建新会话",
         "undo": "撤销",
         "redo": "重做",
         "reset": "重置",
@@ -761,7 +791,8 @@
         "simpletexHint": "本功能基于 SimpleTex 实现，承载容量有限。如需大批量转换公式，请直接访问",
         "simpletexLinkText": "SimpleTex 公式识别",
         "expandCanvas": "扩大画布",
-        "expandCanvasNoNeed": "画布已不小于视口，无需扩大"
+        "expandCanvasNoNeed": "画布已不小于视口，无需扩大",
+        "resultTitle": "识别结果"
     },
     "home": {
       "recentDocuments":"最近文档",

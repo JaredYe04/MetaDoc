@@ -25,3 +25,5 @@ meta-doc/package.json
 /.test-workflow
 issues.md
 .issues.md.meta
+.开发进度.md.meta
+开发进度.md

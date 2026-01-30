@@ -31,7 +31,7 @@
           <!-- 顶部工具栏：工具选择、撤销/重做、重置、图片导入与粘贴、笔刷粗细调节 -->
           <div class="toolbar-group" :style="toolbarGroupStyle">
       <div class="flex flex-col items-start tool-group">
-        <el-segmented v-model="tool" :options="options" size="default">
+        <el-segmented v-model="tool" :options="toolOptions" size="default">
           <template #default="scope">
             <div :class="[
               'flex',
@@ -39,9 +39,7 @@
               'gap-2',
               'flex-col',
             ]">
-              <el-icon size="20">
-                <component :is="scope.item.icon" />
-              </el-icon>
+              <img :src="scope.item.icon" alt="" class="formula-tool-icon" />
               <div>{{ $t(scope.item.label) }}</div>
             </div>
           </template>
@@ -51,17 +49,17 @@
       <div class="undo-redo-group tool-group">
         <el-tooltip :content="$t('formulaRecognition.undo')" placement="top">
           <el-button size="large" @click="undo" circle>
-            <el-icon><RefreshLeft /></el-icon>
+            <img :src="(themeState.currentTheme as unknown as Record<string, string>).UndoIcon" alt="" class="formula-toolbar-icon" />
           </el-button>
         </el-tooltip>
         <el-tooltip :content="$t('formulaRecognition.redo')" placement="top">
           <el-button size="large" circle @click="redo">
-            <el-icon><RefreshRight /></el-icon>
+            <img :src="(themeState.currentTheme as unknown as Record<string, string>).RedoIcon" alt="" class="formula-toolbar-icon" />
           </el-button>
         </el-tooltip>
         <el-tooltip :content="$t('formulaRecognition.reset')" placement="top">
           <el-button size="large" circle @click="resetCanvas">
-            <el-icon><Refresh /></el-icon>
+            <img :src="(themeState.currentTheme as unknown as Record<string, string>).ClearIcon" alt="" class="formula-toolbar-icon" />
           </el-button>
         </el-tooltip>
       </div>
@@ -98,20 +96,44 @@
           border: tool === 'eraser' ? '1px solid #ccc' : 'none'
         }"></div>
       </div>
+
+      <!-- 公式识别按钮（在笔刷粗细右侧） -->
+      <div class="tool-group">
+        <el-button type="primary" @click="recognizeFormula" :loading="processing">
+          {{ $t('formulaRecognition.recognize_formula') }}
+        </el-button>
+      </div>
           </div>
 
-          <!-- 中间内容区域 -->
-          <div class="content">
-      <!-- 左侧：画板（固定尺寸画布 + 滚动视口） -->
-      <div class="left-panel display-panel" id="canvasContainer" ref="canvasContainerRef">
+          <!-- 上下结构：上方画布 70%，下方公式 30%，宽度占满 -->
+          <div class="content content-vertical">
+      <!-- 上方：画布区域 70% -->
+      <div class="content-top display-panel" id="canvasContainer" ref="canvasContainerRef">
         <el-scrollbar>
           <div class="canvas-wrapper" :style="canvasWrapperStyle">
             <canvas
               ref="drawingCanvas"
               class="drawing-canvas"
+              :class="{ 'cursor-default': tool === 'pointer', 'cursor-none': tool === 'pen' || tool === 'eraser' }"
               :width="canvasWidth"
               :height="canvasHeight"
             ></canvas>
+            <!-- 画笔/橡皮擦时跟随鼠标的圆形光标（直径与笔刷/橡皮擦一致） -->
+            <div
+              v-show="showCursorCircle"
+              class="canvas-cursor-circle"
+              :class="{ 'cursor-circle-eraser': tool === 'eraser' }"
+              :style="cursorCircleStyle"
+            ></div>
+            <!-- 拖动时虚线预览：即将变成的画布大小 -->
+            <div
+              v-show="isResizingCanvas"
+              class="canvas-resize-preview"
+              :style="{
+                width: resizeTargetW + 'px',
+                height: resizeTargetH + 'px'
+              }"
+            ></div>
             <!-- 右下角拖动调整画布大小（类似 Windows 画图） -->
             <div
               class="canvas-resize-handle"
@@ -122,28 +144,11 @@
         </el-scrollbar>
       </div>
 
-      <!-- 中间：箭头和公式识别按钮 -->
-      <div class="middle-panel">
-        <div class="arrow">→</div>
-        <el-button type="primary" @click="recognizeFormula">
-          {{ $t('formulaRecognition.recognize_formula') }}
-        </el-button>
-      </div>
-
-      <!-- 右侧：公式显示 -->
-      <div class="right-panel display-panel">
-        <MdPreview
-          :modelValue="latexResult"
-          class="latex-container"
-          previewTheme="github"
-          codeStyleReverse
-          :style="{ color: themeState.currentTheme.textColor }"
-          :class="themeState.currentTheme.mdeditorClass"
-          :codeFold="false"
-          :autoFoldThreshold="300"
-        />
-        <div class="fomula-toolbar">
-          <div class="tool-group">
+      <!-- 下方：公式面板 30% -->
+      <div class="content-bottom display-panel">
+        <div class="formula-panel-header">
+          <span class="formula-panel-title">{{ $t('formulaRecognition.resultTitle', '识别结果') }}</span>
+          <div class="fomula-toolbar">
             <el-tooltip :content="$t('formulaRecognition.edit_formula')" placement="top">
               <el-button type="primary" :icon="Edit" circle @click="openEditDialog" />
             </el-tooltip>
@@ -154,8 +159,20 @@
               <el-button type="primary" :icon="Picture" circle @click="openExportDialog" />
             </el-tooltip>
           </div>
-          </div>
         </div>
+        <div class="formula-panel-body">
+          <MdPreview
+            :modelValue="latexResult"
+            class="latex-container"
+            previewTheme="github"
+            codeStyleReverse
+            :style="{ color: themeState.currentTheme.textColor }"
+            :class="themeState.currentTheme.mdeditorClass"
+            :codeFold="false"
+            :autoFoldThreshold="300"
+          />
+        </div>
+      </div>
       </div>
       
           <!-- SimpleTex 说明提示：同一会话第二次识别后才显示 -->
@@ -205,7 +222,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
 import { ElNotification, ElMessage } from 'element-plus'
-import { CircleClose, CopyDocument, DocumentCopy, Edit, EditPen, Picture, Pointer, Refresh, RefreshLeft, RefreshRight, Upload } from '@element-plus/icons-vue'
+import { CopyDocument, DocumentCopy, Edit, Picture, Upload } from '@element-plus/icons-vue'
 import { convertBase64ToBlob, toBase64 } from '../utils/image-utils'
 import { simpletexOcr } from '../utils/simpletex-utils'
 import { themeState } from '../utils/themes'
@@ -241,13 +258,16 @@ const activeSession = computed(() => {
 const loadingSession = ref(false)
 const processing = ref(false)
 
-// 当前工具：'pen'、'eraser' 或 'pointer'
+// 当前工具：'pointer'、'pen'、'eraser'（顺序：指针、画笔、橡皮擦，图标来自 themes）
 const tool = ref('pen')
-const options = [
-    { label: t('formulaRecognition.options.pen'), value: 'pen', icon: EditPen },
-    { label: t('formulaRecognition.options.eraser'), value: 'eraser', icon: CircleClose },
-    { label: t('formulaRecognition.options.pointer'), value: 'pointer', icon: Pointer }
-]
+const toolOptions = computed(() => {
+  const theme = themeState.currentTheme as unknown as Record<string, string>
+  return [
+    { label: 'formulaRecognition.options.pointer', value: 'pointer', icon: theme.CursorIcon },
+    { label: 'formulaRecognition.options.pen', value: 'pen', icon: theme.BrushIcon },
+    { label: 'formulaRecognition.options.eraser', value: 'eraser', icon: theme.EraserIcon }
+  ]
+})
 // 编辑对话框显示状态
 const editDialogVisible = ref(false)
 // 公式识别得到的 LaTeX 公式
@@ -267,8 +287,27 @@ const canvasWrapperStyle = computed(() => ({
 }))
 let canvasContext: CanvasRenderingContext2D | null = null
 let isDrawing = false
+// 上一帧的 canvas 坐标，用于插值画圆
+let lastCanvasX = 0
+let lastCanvasY = 0
 // 笔刷粗细（画笔模式下有效），范围1~20，默认2
 const brushSize = ref(2)
+// 画布上圆形光标（画笔/橡皮擦时）：是否在画布内、位置、直径（屏幕像素）
+const isMouseOverCanvas = ref(false)
+const cursorCircleX = ref(0)
+const cursorCircleY = ref(0)
+const cursorCircleDiameter = ref(20)
+const showCursorCircle = computed(() => (tool.value === 'pen' || tool.value === 'eraser') && isMouseOverCanvas.value)
+const cursorCircleStyle = computed(() => {
+  const r = cursorCircleDiameter.value / 2
+  return {
+    position: 'fixed' as const,
+    left: (cursorCircleX.value - r) + 'px',
+    top: (cursorCircleY.value - r) + 'px',
+    width: cursorCircleDiameter.value + 'px',
+    height: cursorCircleDiameter.value + 'px'
+  }
+})
 // 导出
 const exportDialogVisible = ref(false)
 const exportFormat = ref('svg')
@@ -290,8 +329,10 @@ const redoStack: ImageData[] = []
 // 画布最小尺寸（拖动缩小不低于此值）
 const MIN_CANVAS_SIZE = 100
 
-// 右下角拖动调整画布大小
+// 右下角拖动调整画布大小（拖动过程中不改画布，松开时再应用，避免内容丢失）
 const isResizingCanvas = ref(false)
+const resizeTargetW = ref(0)
+const resizeTargetH = ref(0)
 let resizeStartX = 0
 let resizeStartY = 0
 let resizeStartW = 0
@@ -304,6 +345,8 @@ function startCanvasResize(e: MouseEvent) {
   resizeStartY = e.clientY
   resizeStartW = canvasWidth.value
   resizeStartH = canvasHeight.value
+  resizeTargetW.value = resizeStartW
+  resizeTargetH.value = resizeStartH
   document.addEventListener('mousemove', onCanvasResizeMove)
   document.addEventListener('mouseup', onCanvasResizeEnd)
 }
@@ -312,20 +355,20 @@ function onCanvasResizeMove(e: MouseEvent) {
   if (!isResizingCanvas.value) return
   const dx = e.clientX - resizeStartX
   const dy = e.clientY - resizeStartY
-  const newW = Math.max(MIN_CANVAS_SIZE, Math.floor(resizeStartW + dx))
-  const newH = Math.max(MIN_CANVAS_SIZE, Math.floor(resizeStartH + dy))
-  // 先只更新尺寸显示，在 mouseup 时再提交并重绘（避免拖动过程中频繁重绘）
-  canvasWidth.value = newW
-  canvasHeight.value = newH
+  resizeTargetW.value = Math.max(MIN_CANVAS_SIZE, Math.floor(resizeStartW + dx))
+  resizeTargetH.value = Math.max(MIN_CANVAS_SIZE, Math.floor(resizeStartH + dy))
 }
 
 function onCanvasResizeEnd() {
   if (!isResizingCanvas.value) return
+  const targetW = resizeTargetW.value
+  const targetH = resizeTargetH.value
   isResizingCanvas.value = false
   document.removeEventListener('mousemove', onCanvasResizeMove)
   document.removeEventListener('mouseup', onCanvasResizeEnd)
-  // 提交尺寸并重绘：保留当前内容（扩大补白，缩小裁剪左上角）
-  applyCanvasResize(canvasWidth.value, canvasHeight.value)
+  if (targetW !== canvasWidth.value || targetH !== canvasHeight.value) {
+    applyCanvasResize(targetW, targetH)
+  }
 }
 
 // 应用画布尺寸变化：保存当前内容后重设尺寸并重绘（扩大补白，缩小则裁剪）
@@ -575,16 +618,20 @@ const initCanvas = () => {
   // 移除旧的事件监听器（如果存在）
   if (drawingCanvas.value) {
     drawingCanvas.value.removeEventListener('mousedown', startDrawing)
+    drawingCanvas.value.removeEventListener('mouseenter', updateCursorPosition)
     drawingCanvas.value.removeEventListener('mousemove', draw)
     drawingCanvas.value.removeEventListener('mouseup', stopDrawing)
     drawingCanvas.value.removeEventListener('mouseout', stopDrawing)
+    drawingCanvas.value.removeEventListener('mouseout', onCanvasMouseOut)
   }
   
   // 监听绘图事件
   drawingCanvas.value.addEventListener('mousedown', startDrawing)
+  drawingCanvas.value.addEventListener('mouseenter', updateCursorPosition)
   drawingCanvas.value.addEventListener('mousemove', draw)
   drawingCanvas.value.addEventListener('mouseup', stopDrawing)
   drawingCanvas.value.addEventListener('mouseout', stopDrawing)
+  drawingCanvas.value.addEventListener('mouseout', onCanvasMouseOut)
   
   // 触摸事件支持
   drawingCanvas.value.addEventListener('touchstart', (e) => {
@@ -623,6 +670,7 @@ onMounted(async () => {
     initCanvas()
   }, 100)
   window.addEventListener('paste', handlePaste)
+  window.addEventListener('keydown', handleUndoRedoKeydown)
 })
 
 onBeforeUnmount(() => {
@@ -630,13 +678,16 @@ onBeforeUnmount(() => {
     saveCurrentSession()
   }
   window.removeEventListener('paste', handlePaste)
+  window.removeEventListener('keydown', handleUndoRedoKeydown)
   
   // 清理事件监听器
   if (drawingCanvas.value) {
     drawingCanvas.value.removeEventListener('mousedown', startDrawing)
+    drawingCanvas.value.removeEventListener('mouseenter', updateCursorPosition)
     drawingCanvas.value.removeEventListener('mousemove', draw)
     drawingCanvas.value.removeEventListener('mouseup', stopDrawing)
     drawingCanvas.value.removeEventListener('mouseout', stopDrawing)
+    drawingCanvas.value.removeEventListener('mouseout', onCanvasMouseOut)
   }
 })
 
@@ -663,29 +714,102 @@ function getCanvasCoordinates(e: MouseEvent) {
     }
 }
 
-// 绘图开始
-function startDrawing(e: MouseEvent) {
-    if (tool.value === 'pointer' || !canvasContext) return
-    isDrawing = true
-    const { x, y } = getCanvasCoordinates(e)
-    canvasContext.beginPath()
-    canvasContext.moveTo(x, y)
+// 更新画布上圆形光标位置与直径（画笔/橡皮擦时）
+function updateCursorPosition(e: MouseEvent) {
+  isMouseOverCanvas.value = true
+  cursorCircleX.value = e.clientX
+  cursorCircleY.value = e.clientY
+  if (!drawingCanvas.value) return
+  const rect = drawingCanvas.value.getBoundingClientRect()
+  if (rect.width <= 0) return
+  const scale = rect.width / drawingCanvas.value.width
+  // 与绘制一致：画笔直径 = brushSize，橡皮擦直径 = 2*brushSize
+  const diameter = tool.value === 'eraser'
+    ? brushSize.value * 2 * scale
+    : brushSize.value * scale
+  cursorCircleDiameter.value = Math.max(2, Math.min(200, diameter))
 }
 
-// 绘制过程
-function draw(e: MouseEvent) {
-    if (!isDrawing || tool.value === 'pointer' || !canvasContext) return
-    const { x, y } = getCanvasCoordinates(e)
-    if (tool.value === 'eraser') {
-        canvasContext.strokeStyle = '#fff'
-        // 橡皮擦的实际粗细按 brushSize 放大
-        canvasContext.lineWidth = brushSize.value * 5
+function onCanvasMouseOut() {
+  isMouseOverCanvas.value = false
+}
+
+// 系统快捷键：Ctrl/Cmd+Z 撤销，Ctrl/Cmd+Shift+Z 或 Ctrl/Cmd+Y 重做
+function handleUndoRedoKeydown(e: KeyboardEvent) {
+  const target = e.target as HTMLElement
+  const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+  if (isInput) return
+  const mod = e.ctrlKey || e.metaKey
+  if (!mod) return
+  if (e.key === 'z' || e.key === 'Z') {
+    if (e.shiftKey) {
+      e.preventDefault()
+      redo()
     } else {
-        canvasContext.strokeStyle = '#000'
-        canvasContext.lineWidth = brushSize.value
+      e.preventDefault()
+      undo()
     }
-    canvasContext.lineTo(x, y)
-    canvasContext.stroke()
+  } else if (e.key === 'y' || e.key === 'Y') {
+    e.preventDefault()
+    redo()
+  }
+}
+
+// 在 canvas 上画一个圆（画笔：黑色填充；橡皮擦：destination-out 擦除）
+function stampCircle(cx: number, cy: number, radius: number, isEraser: boolean) {
+  if (!canvasContext) return
+  canvasContext.beginPath()
+  canvasContext.arc(cx, cy, radius, 0, Math.PI * 2)
+  if (isEraser) {
+    canvasContext.save()
+    canvasContext.globalCompositeOperation = 'destination-out'
+    canvasContext.fillStyle = 'rgba(0,0,0,1)'
+    canvasContext.fill()
+    canvasContext.restore()
+  } else {
+    canvasContext.fillStyle = '#000'
+    canvasContext.fill()
+  }
+}
+
+// 绘图开始
+function startDrawing(e: MouseEvent) {
+  if (tool.value === 'pointer' || !canvasContext) return
+  isDrawing = true
+  const { x, y } = getCanvasCoordinates(e)
+  lastCanvasX = x
+  lastCanvasY = y
+  const penRadius = brushSize.value / 2
+  const eraserRadius = brushSize.value // 与光标一致：直径 2*brushSize
+  const r = tool.value === 'eraser' ? eraserRadius : penRadius
+  stampCircle(x, y, r, tool.value === 'eraser')
+}
+
+// 绘制过程：沿路径插值画圆，轨迹与光标圆完全一致
+function draw(e: MouseEvent) {
+  updateCursorPosition(e)
+  if (!isDrawing || tool.value === 'pointer' || !canvasContext) return
+  const { x, y } = getCanvasCoordinates(e)
+  const penRadius = brushSize.value / 2
+  const eraserRadius = brushSize.value
+  const r = tool.value === 'eraser' ? eraserRadius : penRadius
+  const dx = x - lastCanvasX
+  const dy = y - lastCanvasY
+  const dist = Math.sqrt(dx * dx + dy * dy)
+  if (dist <= 0) {
+    stampCircle(x, y, r, tool.value === 'eraser')
+  } else {
+    const step = Math.max(r * 0.6, 1)
+    const numSteps = Math.ceil(dist / step)
+    for (let i = 1; i <= numSteps; i++) {
+      const t = i / numSteps
+      const px = lastCanvasX + t * dx
+      const py = lastCanvasY + t * dy
+      stampCircle(px, py, r, tool.value === 'eraser')
+    }
+  }
+  lastCanvasX = x
+  lastCanvasY = y
 }
 
 // 绘图结束
@@ -765,40 +889,6 @@ function resetCanvas() {
     undoStack.length = 0
     redoStack.length = 0
     pushState()
-}
-
-// 扩大画布至至少覆盖当前视口（窗口缩小后可通过滚动查看，内容不丢失）
-function expandCanvasToViewport() {
-  const container = canvasContainerRef.value || document.getElementById('canvasContainer')
-  if (!container || !drawingCanvas.value || !canvasContext) return
-  const rect = container.getBoundingClientRect()
-  const viewportW = Math.max(1, Math.floor(rect.width))
-  const viewportH = Math.max(1, Math.floor(rect.height))
-  const curW = canvasWidth.value
-  const curH = canvasHeight.value
-  const newW = Math.max(curW, viewportW)
-  const newH = Math.max(curH, viewportH)
-  if (newW <= curW && newH <= curH) {
-    ElMessage.info(t('formulaRecognition.expandCanvasNoNeed'))
-    return
-  }
-  const savedImage = drawingCanvas.value.toDataURL('image/png')
-  canvasWidth.value = newW
-  canvasHeight.value = newH
-  nextTick(() => {
-    if (!drawingCanvas.value || !canvasContext) return
-    const img = new Image()
-    img.onload = () => {
-      if (!drawingCanvas.value || !canvasContext) return
-      canvasContext.fillStyle = '#fff'
-      canvasContext.fillRect(0, 0, newW, newH)
-      canvasContext.drawImage(img, 0, 0, curW, curH, 0, 0, curW, curH)
-      undoStack.length = 0
-      redoStack.length = 0
-      pushState()
-    }
-    img.src = savedImage
-  })
 }
 
 // 触发文件上传
@@ -904,6 +994,20 @@ async function recognizeFormula() {
     if (sid) {
       const prev = recognitionCountBySession.value[sid] || 0
       recognitionCountBySession.value = { ...recognitionCountBySession.value, [sid]: prev + 1 }
+    }
+    
+    // 若当前会话标题仍是默认，则改为「时间戳 + 识别公式（过长截断）」
+    const defaultTitle = t('formulaRecognition.defaultTitle', '新公式识别会话')
+    const session = activeSession.value
+    if (session && session.title === defaultTitle && sid) {
+      const now = new Date()
+      const dateStr = `${now.getFullYear()}.${now.getMonth() + 1}.${now.getDate()}`
+      const formulaPart = (res || '').replace(/\s+/g, ' ').trim()
+      const maxLen = 28
+      const truncated = formulaPart.length > maxLen ? formulaPart.slice(0, maxLen) + '…' : formulaPart
+      const newTitle = truncated ? `${dateStr} - ${truncated}` : `${dateStr} - `
+      await formulaRecognitionSessionsDb.update(sid, { title: newTitle })
+      await loadSessions()
     }
     
     // 保存结果
@@ -1162,6 +1266,19 @@ const toolbarGroupStyle = computed(() => ({
   flex-shrink: 0;
 }
 
+.formula-tool-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.formula-toolbar-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+}
+
 /* 笔刷粗细设置 */
 .brush-size {
     display: flex;
@@ -1169,36 +1286,70 @@ const toolbarGroupStyle = computed(() => ({
     gap: 5px;
 }
 
-/* 中间内容区域 */
+/* 中间内容区域：上下结构，上方 70% 画布，下方 30% 公式，宽度占满 */
 .content {
-  display: flex;
-  gap: 20px;
   width: 100%;
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-/* 左侧画板：滚动视口，画布固定尺寸不随窗口变化 */
-.left-panel {
-    flex: 1;
-    position: relative;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+.content.content-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
 }
 
-.left-panel .el-scrollbar {
-    flex: 1;
-    min-height: 0;
+/* 上方：画布区域 70% */
+.content-top {
+  flex: 0 0 70%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
 }
 
-.left-panel .el-scrollbar__wrap {
-    overflow-x: auto;
-    overflow-y: auto;
+.content-top .el-scrollbar {
+  flex: 1;
+  min-height: 0;
+}
+
+.content-top .el-scrollbar__wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+/* 下方：公式面板 30% */
+.content-bottom {
+  flex: 0 0 30%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.formula-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  flex-shrink: 0;
+  border-bottom: 1px solid v-bind('borderColor');
+}
+
+.formula-panel-title {
+  font-weight: 500;
+}
+
+.formula-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 0;
 }
 
 .canvas-wrapper {
@@ -1206,40 +1357,66 @@ const toolbarGroupStyle = computed(() => ({
     flex-shrink: 0;
 }
 
+/* 拖动时虚线框：即将变成的画布大小预览 */
+.canvas-resize-preview {
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  border: 2px dashed rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 画布右下角拖动调整大小手柄（类似 Windows 画图） */
+.canvas-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, rgba(0, 0, 0, 0.2) 50%);
+  border-radius: 0 0 2px 0;
+  z-index: 2;
+}
+.canvas-resize-handle:hover,
+.canvas-resize-handle.is-dragging {
+  background: linear-gradient(135deg, transparent 50%, rgba(0, 0, 0, 0.35) 50%);
+}
+
 .drawing-canvas {
-    background-color: #fff;
-    display: block;
-    width: 100%;
-    height: 100%;
-    cursor: crosshair;
-    touch-action: none;
+  background-color: #fff;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.drawing-canvas.cursor-default {
+  cursor: default;
+}
+.drawing-canvas.cursor-none {
+  cursor: none;
 }
 
-/* 中间区域 */
-.middle-panel {
-    flex: 0.3;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+/* 画笔/橡皮擦时跟随鼠标的圆形光标 */
+.canvas-cursor-circle {
+  pointer-events: none;
+  border-radius: 50%;
+  border: 1px solid #000;
+  background: transparent;
+  position: fixed;
+  z-index: 10;
+  box-sizing: border-box;
 }
-
-.arrow {
-    font-size: 36px;
-    margin-bottom: 10px;
-}
-
-/* 右侧公式显示 */
-.right-panel {
-    flex: 1;
-
-    padding: 10px;
-    overflow: auto;
+.canvas-cursor-circle.cursor-circle-eraser {
+  border-color: #666;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .latex-container {
-    width: 100%;
-    height: 100%;
+  width: 100%;
+  min-height: 100%;
 }
 
 .display-panel {
@@ -1252,13 +1429,11 @@ const toolbarGroupStyle = computed(() => ({
   background-color: v-bind('themeState.currentTheme.background');
 }
 
-/* 底部工具栏 */
+/* 公式面板内工具栏 */
 .fomula-toolbar {
-    position: absolute;
-    display: flex;
-    justify-content: flex-end;
-    transition: all 0.3s;
-    gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .undo-redo-group {

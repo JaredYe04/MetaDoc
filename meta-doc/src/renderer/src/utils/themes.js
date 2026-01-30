@@ -57,6 +57,17 @@ import CursorIconBlack from "../assets/icons/cursor-black.svg";
 import CursorIconWhite from "../assets/icons/cursor-white.svg";
 import HandIconBlack from "../assets/icons/hand-black.svg";
 import HandIconWhite from "../assets/icons/hand-white.svg";
+// 公式识别画布工具图标
+import BrushIconBlack from "../assets/icons/brush-black.svg";
+import BrushIconWhite from "../assets/icons/brush-white.svg";
+import EraserIconBlack from "../assets/icons/eraser-black.svg";
+import EraserIconWhite from "../assets/icons/eraser-white.svg";
+import UndoIconBlack from "../assets/icons/undo-black.svg";
+import UndoIconWhite from "../assets/icons/undo-white.svg";
+import RedoIconBlack from "../assets/icons/redo-black.svg";
+import RedoIconWhite from "../assets/icons/redo-white.svg";
+import ClearIconBlack from "../assets/icons/clear-black.svg";
+import ClearIconWhite from "../assets/icons/clear-white.svg";
 // theme.js
 export const contentThemes = [
   { label: 'Ant Design', value: 'ant-design' },
@@ -200,6 +211,11 @@ const generateThemeIcons = (isDarkMode) => {
     CursorIcon: selectIconByTheme(isDarkMode, { light: CursorIconBlack, dark: CursorIconWhite }),
     HandIcon: selectIconByTheme(isDarkMode, { light: HandIconBlack, dark: HandIconWhite }),
     PenAiIcon: selectIconByTheme(isDarkMode, { light: PenAiIconBlack, dark: PenAiIconWhite }),
+    BrushIcon: selectIconByTheme(isDarkMode, { light: BrushIconBlack, dark: BrushIconWhite }),
+    EraserIcon: selectIconByTheme(isDarkMode, { light: EraserIconBlack, dark: EraserIconWhite }),
+    UndoIcon: selectIconByTheme(isDarkMode, { light: UndoIconBlack, dark: UndoIconWhite }),
+    RedoIcon: selectIconByTheme(isDarkMode, { light: RedoIconBlack, dark: RedoIconWhite }),
+    ClearIcon: selectIconByTheme(isDarkMode, { light: ClearIconBlack, dark: ClearIconWhite }),
   };
 };
 

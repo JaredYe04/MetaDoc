@@ -535,12 +535,14 @@ const finishRename = () => {
   transform: translateX(-4px);
 }
 
-/* 右键菜单：固定定位 */
+/* 右键菜单：固定定位，宽度按内容，不撑满 */
 .item-menu-context {
   position: fixed;
   z-index: 1002;
   top: auto;
   right: auto;
+  width: max-content;
+  max-width: 280px;
 }
 
 .menu-scrollbar {
@@ -615,6 +617,8 @@ const finishRename = () => {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   min-width: 140px;
+  width: max-content;
+  max-width: 280px;
   border: 1px solid v-bind('menuStyle.borderColor');
   display: flex;
   flex-direction: column;

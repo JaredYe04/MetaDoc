@@ -1,7 +1,7 @@
 <template>
   <div class="ocr-window">
     <div class="main-container">
-      <!-- 左侧会话列表 -->
+      <!-- 左侧会话列表（含右侧 resize 与折叠，主内容通过默认 slot 传入） -->
       <SessionList
         :title="t('ocr.sessionsTitle')"
         :items="sessions"
@@ -20,8 +20,7 @@
         @rename="handleRenameSession"
         @duplicate="handleDuplicateSession"
         @delete="handleDeleteSession"
-      />
-
+      >
       <!-- 右侧内容区域 -->
       <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
         <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
@@ -304,6 +303,7 @@
           </div>
         </div>
       </div>
+      </SessionList>
     </div>
 
     <!-- 图片预览对话框 -->

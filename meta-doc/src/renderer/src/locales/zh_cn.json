@@ -586,9 +586,20 @@
         "analyzingParagraph": "正在分析段落 {index}/{total}",
         "analysisComplete": "分析完成",
         "reportGenerated": "报告生成成功",
+        "paragraphContent": "段落内容",
+        "viewOriginal": "A 原文",
+        "viewParaphrased": "B 改写",
         "paraphraseAll": "改写全部",
+        "reParaphraseAll": "重新改写全部",
+        "paraphraseOne": "改写",
+        "reParaphraseOne": "重新改写",
         "paraphrasing": "正在改写...",
         "paraphraseSuccess": "改写成功",
+        "paraphrasedContent": "改写后的内容",
+        "copyOneClick": "一键复制",
+        "copy": "复制",
+        "copySuccess": "已复制",
+        "copyFailed": "复制失败",
         "splitAtCursor": "在光标处拆分",
         "mergeWithNext": "与下一段合并",
         "rePreprocess": "重新划分段落",
@@ -748,7 +759,9 @@
             "pointer": "箭头"
         },
         "simpletexHint": "本功能基于 SimpleTex 实现，承载容量有限。如需大批量转换公式，请直接访问",
-        "simpletexLinkText": "SimpleTex 公式识别"
+        "simpletexLinkText": "SimpleTex 公式识别",
+        "expandCanvas": "扩大画布",
+        "expandCanvasNoNeed": "画布已不小于视口，无需扩大"
     },
     "home": {
       "recentDocuments":"最近文档",

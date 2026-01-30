@@ -59,12 +59,12 @@
     </el-dialog>
 
     <div class="main-container">
-      <!-- 左侧会话列表 -->
+      <!-- 左侧会话列表（含右侧 resize 与折叠，主内容通过默认 slot 传入） -->
       <SessionList
         :title="t('aigc.sessionsTitle')"
         :items="sessions"
         :active-index="activeSessionId || undefined"
-        :disabled="analyzing || loadingSession || paraphrasing"
+        :disabled="analyzing || loadingSession || paraphrasing || paraphrasingOneIndex !== null"
         :create-button-tooltip="t('aigc.newSession')"
         :rename-label="t('common.rename')"
         :duplicate-label="t('common.duplicate')"
@@ -78,8 +78,7 @@
         @rename="handleRenameSession"
         @duplicate="handleDuplicateSession"
         @delete="handleDeleteSession"
-      />
-
+      >
       <!-- 右侧内容区域 -->
       <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
         <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
@@ -92,27 +91,29 @@
             <el-scrollbar class="toolbar-scrollbar" always>
               <div class="toolbar-content">
                 <div class="toolbar-left">
-                  <el-upload
-                    ref="uploadRef"
-                    :file-list="[]"
-                    :auto-upload="false"
-                    :on-change="handleFileChange"
-                    :show-file-list="false"
-                    :accept="acceptedFileTypes"
-                  >
-                    <template #trigger>
-                      <el-button :icon="UploadFilled" :disabled="!!articleContent">
-                        {{ t('aigc.uploadFile') }}
-                      </el-button>
-                    </template>
-                  </el-upload>
-                  <el-button 
-                    :icon="Document" 
-                    :disabled="!!articleContent || !hasActiveDocument"
-                    @click="handleSelectFromDocument"
-                  >
-                    {{ t('aigc.selectFromDocument') }}
-                  </el-button>
+                  <template v-if="!articleContent">
+                    <el-upload
+                      ref="uploadRef"
+                      :file-list="[]"
+                      :auto-upload="false"
+                      :on-change="handleFileChange"
+                      :show-file-list="false"
+                      :accept="acceptedFileTypes"
+                    >
+                      <template #trigger>
+                        <el-button :icon="UploadFilled">
+                          {{ t('aigc.uploadFile') }}
+                        </el-button>
+                      </template>
+                    </el-upload>
+                    <el-button 
+                      :icon="Document" 
+                      :disabled="!hasActiveDocument"
+                      @click="handleSelectFromDocument"
+                    >
+                      {{ t('aigc.selectFromDocument') }}
+                    </el-button>
+                  </template>
                   <el-button 
                     :disabled="!articleContent || !paragraphs.length || analyzing" 
                     @click="handleSplitAtCursor"
@@ -137,7 +138,7 @@
                     :loading="paraphrasing"
                     @click="handleParaphraseAll"
                   >
-                    {{ t('aigc.paraphraseAll') }}
+                    {{ hasAllParaphrases ? t('aigc.reParaphraseAll') : t('aigc.paraphraseAll') }}
                   </el-button>
                 </div>
                 
@@ -172,7 +173,7 @@
               sidebar-position="end"
             >
               <template #main>
-                <!-- 左侧：Monaco编辑器显示文章内容 -->
+                <!-- 左侧：Monaco 编辑器（main 用 order -1 保证在左） -->
                 <div class="editor-section">
                   <div class="editor-header">
                     <span>{{ t('aigc.articleContent') }}<template v-if="paragraphs.length">（{{ t('aigc.paragraphCount', { n: paragraphs.length }) }}）</template></span>
@@ -184,7 +185,7 @@
                 </div>
               </template>
               <template #sidebar>
-                <!-- 右侧：报告预览 -->
+                <!-- 右侧：报告预览（sidebar 用 order 1 保证在右） -->
                 <div ref="reportSectionRef" class="report-section">
                   <div class="report-header">
                     <span>{{ t('aigc.analysisReport') }}</span>
@@ -197,7 +198,7 @@
                       {{ t('aigc.backToTop', '回到顶端') }}
                     </el-button>
                   </div>
-                  <el-scrollbar class="report-scrollbar" v-if="reportMarkdown" always>
+                  <el-scrollbar class="report-scrollbar" v-if="reportMarkdown" always @click="onReportAreaClick">
                     <VditorPreview :markdown="reportMarkdown" @rendered="onReportRendered" />
                   </el-scrollbar>
                   <div v-else class="report-placeholder">
@@ -215,6 +216,7 @@
           </div>
         </div>
       </div>
+      </SessionList>
     </div>
   </div>
 </template>
@@ -240,6 +242,7 @@ import { useWorkspace } from '../stores/workspace'
 import VditorPreview from '../components/VditorPreview.vue'
 import ResizableContainer from '../components/base/ResizableContainer.vue'
 import eventBus from '../utils/event-bus'
+import { renderMarkdownPreview } from '../utils/md-utils'
 import { ref as vueRef } from 'vue'
 
 const { t, locale } = useI18n()
@@ -268,6 +271,15 @@ const reportMarkdown = ref<string>('')
 /** 各段落报告块，按索引存储；分析完成时及时追加并按顺序刷新 reportMarkdown */
 const segmentBlocks = ref<(string | null)[]>([])
 
+/** 每段改写后的文本，与段落一一对应；null 表示未改写。不修改原文，由用户决定是否采用。 */
+const paragraphParaphrases = ref<(string | null)[]>([])
+
+/** 总体报告块（标题后、分段分析前），用于刷新 reportMarkdown */
+const overallReportBlock = ref<string>('')
+
+/** 当前正在改写单段的段落索引，用于「改写」按钮 loading */
+const paraphrasingOneIndex = ref<number | null>(null)
+
 /** 拆分/合并/重新划分后受影响的报告段落索引；对应 summary 显示「已改动」标记，不重置整篇报告 */
 const modifiedParagraphIndices = ref<Set<number>>(new Set())
 
@@ -293,7 +305,7 @@ function localeToAigcLanguage(loc: string): string {
 const aigcLanguage = computed(() => localeToAigcLanguage(locale.value))
 
 // 接受的文件类型
-const acceptedFileTypes = '.pdf,.doc,.docx,.txt,.md,.html,.htm'
+const acceptedFileTypes = '.pdf,.doc,.docx,.txt,.md,.tex,.html,.htm'
 
 /** 根据文件扩展名得到内容格式 */
 function formatFromFileExtension(ext: string): ContentFormat {
@@ -369,6 +381,16 @@ function getParagraphIndexByLine(lineNumber: number): number {
 const canMergeWithNext = computed(() => {
   const i = currentCursorParagraphIndex.value
   return i >= 0 && i < paragraphs.value.length - 1
+})
+
+/** 是否所有段落都已改写（用于工具栏「改写全部」→「重新改写全部」） */
+const hasAllParaphrases = computed(() => {
+  const n = paragraphAnalyses.value.length
+  if (n === 0) return false
+  return paragraphAnalyses.value.every((_, i) => {
+    const p = paragraphParaphrases.value[i]
+    return p != null && (p ?? '').trim() !== ''
+  })
 })
 
 // 设置编辑器引用
@@ -565,14 +587,78 @@ const handleEditorClick = (lineNumber: number) => {
   if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-/** 报告渲染完成后：对段落块做 DOM 后处理，支持折叠与「已改动」标记 */
-function onReportRendered() {
-  nextTick(() => {
-    const container = reportSectionRef.value?.querySelector('.vditor-preview-container')
-    if (container) {
-      applyReportParagraphCollapse(container as HTMLElement)
-      updateModificationMarkers()
+/** 报告渲染完成后：对段落块做 DOM 后处理，支持折叠与「已改动」标记；A/B 内容用 Vditor 渲染 */
+async function onReportRendered() {
+  await nextTick()
+  const container = reportSectionRef.value?.querySelector('.vditor-preview-container') as HTMLElement | null
+  if (!container) return
+  applyReportParagraphCollapse(container)
+  updateModificationMarkers()
+  await renderAigcContentSwitcherMarkdown(container)
+}
+
+/** 将 A/B 切换块内的原文与改写内容用 Vditor.preview 渲染（支持 Markdown）；渲染到容器内层，保留容器边缘与背景 */
+async function renderAigcContentSwitcherMarkdown(container: HTMLElement) {
+  const nodes = container.querySelectorAll('.aigc-original-content, .aigc-paraphrased-content-block')
+  for (const el of Array.from(nodes)) {
+    const pre = el.querySelector('pre')
+    if (!pre) continue
+    const text = (pre.textContent ?? '').trim()
+    if (!text) continue
+    try {
+      pre.remove()
+      const inner = document.createElement('div')
+      inner.className = 'aigc-content-inner'
+      el.appendChild(inner)
+      await renderMarkdownPreview(inner, text)
+    } catch (err) {
+      console.error('AIGC 段落内容 Markdown 渲染失败:', err)
     }
+  }
+}
+
+/** 报告区点击委托：一键复制改写内容 */
+function onReportAreaClick(e: MouseEvent) {
+  const target = e.target as HTMLElement
+  // A|B 切换：原文 / 改写
+  const abBtn = target.closest?.('.aigc-ab-btn') as HTMLElement | null
+  if (abBtn) {
+    e.preventDefault()
+    e.stopPropagation()
+    const switcher = abBtn.closest('.aigc-paragraph-content-switcher')
+    if (!switcher) return
+    const showOriginal = abBtn.classList.contains('aigc-ab-original')
+    switcher.querySelectorAll('.aigc-ab-btn').forEach((btn) => btn.classList.remove('active'))
+    abBtn.classList.add('active')
+    const origDiv = switcher.querySelector('.aigc-original-content') as HTMLElement | null
+    const parDiv = switcher.querySelector('.aigc-paraphrased-content-block') as HTMLElement | null
+    if (origDiv && parDiv) {
+      if (showOriginal) {
+        origDiv.style.display = ''
+        parDiv.style.display = 'none'
+      } else {
+        origDiv.style.display = 'none'
+        parDiv.style.display = ''
+      }
+    }
+    return
+  }
+  // 复制：根据当前 A/B 视图复制原文或改写内容
+  const copyBtn = target.closest?.('.aigc-copy-paraphrase-btn') as HTMLElement | null
+  if (!copyBtn) return
+  const switcher = copyBtn.closest('.aigc-paragraph-content-switcher')
+  if (!switcher) return
+  const idx = copyBtn.getAttribute('data-paragraph-index')
+  if (idx == null) return
+  const showOriginal = switcher.querySelector('.aigc-ab-original.active') != null
+  const contentDiv = showOriginal
+    ? switcher.querySelector('.aigc-original-content') as HTMLElement | null
+    : switcher.querySelector('.aigc-paraphrased-content-block') as HTMLElement | null
+  if (!contentDiv?.textContent?.trim()) return
+  navigator.clipboard.writeText(contentDiv.textContent.trim()).then(() => {
+    ElMessage.success(t('aigc.copySuccess', '已复制'))
+  }).catch(() => {
+    ElMessage.error(t('aigc.copyFailed', '复制失败'))
   })
 }
 
@@ -636,6 +722,18 @@ function applyReportParagraphCollapse(container: HTMLElement) {
       badge.textContent = t('aigc.modified')
       summary.appendChild(badge)
     }
+    summary.appendChild(document.createTextNode(' '))
+    const paraphraseBtn = document.createElement('button')
+    paraphraseBtn.type = 'button'
+    paraphraseBtn.className = 'aigc-paraphrase-one-btn'
+    paraphraseBtn.setAttribute('data-paragraph-index', String(index))
+    paraphraseBtn.textContent = paragraphParaphrases.value[index] != null ? t('aigc.reParaphraseOne') : t('aigc.paraphraseOne')
+    paraphraseBtn.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      handleParaphraseOne(index)
+    })
+    summary.appendChild(paraphraseBtn)
     details.appendChild(summary)
     const body = document.createElement('div')
     body.className = 'aigc-paragraph-block-body'
@@ -650,6 +748,15 @@ function applyReportParagraphCollapse(container: HTMLElement) {
 function scrollReportToTop() {
   const wrap = reportSectionRef.value?.querySelector('.report-scrollbar .el-scrollbar__wrap') as HTMLElement | null
   if (wrap) wrap.scrollTop = 0
+}
+
+const REPORT_TITLE = `# AIGC 风格风险评估报告\n\n`
+const SEGMENT_HEAD = `## 分段分析\n\n`
+
+/** 根据当前 segmentBlocks 与 overallReportBlock 刷新 reportMarkdown */
+function refreshReportMarkdown() {
+  const mid = overallReportBlock.value ? overallReportBlock.value + `\n` : ``
+  reportMarkdown.value = REPORT_TITLE + mid + SEGMENT_HEAD + segmentBlocks.value.map((b) => b ?? '').join('')
 }
 
 // 监听主题变化
@@ -709,6 +816,8 @@ const handleCreateSession = async () => {
     paragraphAnalyses.value = []
     reportMarkdown.value = ''
     segmentBlocks.value = []
+    paragraphParaphrases.value = []
+    overallReportBlock.value = ''
     modifiedParagraphIndices.value = new Set()
   } catch (error) {
     ElMessage.error('创建会话失败: ' + (error instanceof Error ? error.message : String(error)))
@@ -765,7 +874,29 @@ const handleSelectSession = async (item: SessionListItem) => {
         paragraphAnalyses.value = []
       }
       
-      reportMarkdown.value = session.report_markdown || ''
+      if (session.paragraph_paraphrases) {
+        try {
+          paragraphParaphrases.value = JSON.parse(session.paragraph_paraphrases) as (string | null)[]
+          if (!Array.isArray(paragraphParaphrases.value)) paragraphParaphrases.value = []
+        } catch {
+          paragraphParaphrases.value = []
+        }
+      } else {
+        paragraphParaphrases.value = []
+      }
+      // 若有分段分析，从分析结果与改写结果重建 segmentBlocks 与 overallReportBlock，保证报告含「改写后的内容」
+      if (paragraphAnalyses.value.length > 0) {
+        const overall = overallAnalysis.value
+        overallReportBlock.value = overall ? buildOverallReportBlock(overall) : ''
+        segmentBlocks.value = paragraphAnalyses.value.map((pa, i) =>
+          buildParagraphReportBlock(pa, paragraphParaphrases.value[i] ?? null)
+        )
+        refreshReportMarkdown()
+      } else {
+        overallReportBlock.value = ''
+        segmentBlocks.value = []
+        reportMarkdown.value = session.report_markdown || ''
+      }
       modifiedParagraphIndices.value = new Set()
       
       await nextTick()
@@ -807,6 +938,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
       overall_analysis: session.overall_analysis,
       paragraph_analyses: session.paragraph_analyses,
       report_markdown: session.report_markdown,
+      paragraph_paraphrases: session.paragraph_paraphrases,
       language: session.language || 'zh',
       domain: session.domain || 'academic'
     })
@@ -832,6 +964,8 @@ const handleDeleteSession = async (item: SessionListItem) => {
       paragraphAnalyses.value = []
       reportMarkdown.value = ''
       segmentBlocks.value = []
+      paragraphParaphrases.value = []
+      overallReportBlock.value = ''
       modifiedParagraphIndices.value = new Set()
     }
     ElMessage.success(t('common.deleteSuccess'))
@@ -840,6 +974,9 @@ const handleDeleteSession = async (item: SessionListItem) => {
   }
 }
 
+/** 可直接读取的文本格式：不保存临时 reference 文件，直接 file.text() 解析 */
+const DIRECT_READ_EXTS = ['md', 'tex', 'txt', 'html', 'htm']
+
 // 处理文件上传
 const handleFileChange = async (file: any) => {
   if (!activeSessionId.value) {
@@ -847,53 +984,51 @@ const handleFileChange = async (file: any) => {
   }
   
   try {
-    const fileContent = await file.raw.arrayBuffer()
     const fileName = file.name
     const fileExt = fileName.split('.').pop()?.toLowerCase() || ''
     
-    // 获取 IPC 渲染器
-    let ipcRenderer: any = null
-    if (typeof window !== 'undefined') {
-      if ((window as any).electron?.ipcRenderer) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
+    let parsedContent: string
+    let sourceFilePath: string
+
+    if (DIRECT_READ_EXTS.includes(fileExt)) {
+      // md/tex/txt/html/htm：直接读取文件内容，不保存临时 reference
+      parsedContent = await file.raw.text()
+      sourceFilePath = fileName
+    } else {
+      // pdf/doc/docx：保存到 reference 后通过 adapter 解析
+      const fileContent = await file.raw.arrayBuffer()
+      let ipcRenderer: any = null
+      if (typeof window !== 'undefined') {
+        if ((window as any).electron?.ipcRenderer) {
+          ipcRenderer = (window as any).electron.ipcRenderer
+        } else {
+          const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
+          ipcRenderer = localIpcRenderer
+        }
       }
+      if (!ipcRenderer) throw new Error('IPC渲染器不可用')
+      const uint8Array = new Uint8Array(fileContent)
+      const chunkSize = 8192
+      let base64 = ''
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.slice(i, i + chunkSize)
+        base64 += String.fromCharCode.apply(null, Array.from(chunk))
+      }
+      base64 = btoa(base64)
+      const filePath = await ipcRenderer.invoke('save-reference-file', {
+        filename: fileName,
+        content: base64
+      }) as string
+      if (!filePath) throw new Error('保存文件失败')
+      const adapter = referenceAdapterManager.getAdapter(fileExt)
+      if (!adapter) {
+        ElMessage.error(t('aigc.unsupportedFileType'))
+        return
+      }
+      parsedContent = await adapter.parse(filePath, fileExt)
+      sourceFilePath = filePath
     }
-    
-    if (!ipcRenderer) {
-      throw new Error('IPC渲染器不可用')
-    }
-    
-    // 先将文件保存到 reference 目录（因为某些 adapter 需要文件路径）
-    const uint8Array = new Uint8Array(fileContent)
-    const chunkSize = 8192 // 8KB chunks
-    let base64 = ''
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.slice(i, i + chunkSize)
-      base64 += String.fromCharCode.apply(null, Array.from(chunk))
-    }
-    base64 = btoa(base64)
-    
-    const filePath = await ipcRenderer.invoke('save-reference-file', {
-      filename: fileName,
-      content: base64
-    }) as string
-    
-    if (!filePath) {
-      throw new Error('保存文件失败')
-    }
-    
-    // 使用 reference adapter 解析文件（使用文件路径）
-    const adapter = referenceAdapterManager.getAdapter(fileExt)
-    if (!adapter) {
-      ElMessage.error(t('aigc.unsupportedFileType'))
-      return
-    }
-    
-    // 使用文件路径解析（adapter 会处理文件路径）
-    const parsedContent = await adapter.parse(filePath, fileExt)
+
     contentFormat.value = formatFromFileExtension(fileExt)
     paragraphs.value = preprocessParagraphs(parsedContent, { format: contentFormat.value, minChars: MIN_PARAGRAPH_CHARS, minSegments: DEFAULT_MIN_SEGMENTS, maxSegments: DEFAULT_MAX_SEGMENTS })
     articleContent.value = paragraphs.value.join('\n\n')
@@ -903,7 +1038,7 @@ const handleFileChange = async (file: any) => {
         title: fileName,
         article_content: articleContent.value,
         content_source: 'file',
-        source_file_path: filePath,
+        source_file_path: sourceFilePath,
         paragraph_texts: JSON.stringify(paragraphs.value)
       })
       await loadSessions()
@@ -1093,26 +1228,22 @@ const handleAnalyze = async () => {
   reportMarkdown.value = ''
   paragraphAnalyses.value = []
   overallAnalysis.value = null
-  const title = `# AIGC 风格风险评估报告\n\n`
-  const segmentHead = `## 分段分析\n\n`
-  reportMarkdown.value = title + segmentHead
+  paragraphParaphrases.value = list.map(() => null)
+  overallReportBlock.value = ''
   segmentBlocks.value = list.map(() => null)
+  refreshReportMarkdown()
 
   try {
     const total = list.length
     const analyses: Array<{ index: number; text: string; analysis: AigcAnalysisResult }> = []
-    
-    const refreshSegmentSection = () => {
-      reportMarkdown.value = title + segmentHead + segmentBlocks.value.map((b) => b ?? '').join('')
-    }
 
     // 并行分析，每完成一个立即按索引插入到正确位置并刷新
     const promises = list.map(async (text, i) => {
       const analysis = await analyzeParagraph(text.trim(), i + 1, total)
       const result = { index: i, text: text.trim(), analysis }
       analyses.push(result)
-      segmentBlocks.value[result.index] = buildParagraphReportBlock(result)
-      refreshSegmentSection()
+      segmentBlocks.value[result.index] = buildParagraphReportBlock(result, paragraphParaphrases.value[result.index] ?? null)
+      refreshReportMarkdown()
       return result
     })
     
@@ -1126,13 +1257,15 @@ const handleAnalyze = async () => {
     overallAnalysis.value = overall
     
     // 生成并追加总体报告
-    appendOverallReport(overall)
+    overallReportBlock.value = buildOverallReportBlock(overall)
+    refreshReportMarkdown()
 
     if (activeSessionId.value) {
       await aigcDetectionSessionsDb.update(activeSessionId.value, {
         overall_analysis: JSON.stringify(overall),
         paragraph_analyses: JSON.stringify(analyses),
         paragraph_texts: JSON.stringify(paragraphs.value),
+        paragraph_paraphrases: JSON.stringify(paragraphParaphrases.value),
         report_markdown: reportMarkdown.value
       })
     }
@@ -1280,8 +1413,17 @@ ${text}
 <<<TEXT>>>`
 }
 
-/** 构建单个段落的报告块（不追加，供按索引插入用） */
-function buildParagraphReportBlock(para: { index: number; text: string; analysis: AigcAnalysisResult }): string {
+/** 转义 HTML 以便放入属性或标签内容 */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/** 构建单个段落的报告块（不追加，供按索引插入用）；paraphrased 有值时追加「改写后的内容」与一键复制 */
+function buildParagraphReportBlock(para: { index: number; text: string; analysis: AigcAnalysisResult }, paraphrased: string | null = null): string {
   const paraLevel = getRiskLevelFromScore(para.analysis.overall_aigc_risk)
   const paraRiskColor = paraLevel === 'HIGH' ? '#f56c6c' : paraLevel === 'MEDIUM' ? '#e6a23c' : '#67c23a'
   const radarData = {
@@ -1309,11 +1451,28 @@ function buildParagraphReportBlock(para: { index: number; text: string; analysis
   }
   let block = `### 段落 ${para.index + 1} {#paragraph-${para.index}}\n\n`
   block += `**风险评分：** <span style="color: ${paraRiskColor}; font-weight: bold;">${para.analysis.overall_aigc_risk}</span> (${paraLevel === 'HIGH' ? '高' : paraLevel === 'MEDIUM' ? '中' : '低'})\n\n`
-  block += `**段落内容：**\n\n`
-  block += `> ${para.text.split('\n').join('\n> ')}\n\n`
+  // 有改写时：主显示改写内容，A|B 切换查看原文/改写对比
+  if (paraphrased != null && paraphrased.trim()) {
+    const origEscaped = escapeHtml(para.text.trim())
+    const parEscaped = escapeHtml(paraphrased.trim())
+    block += `**${t('aigc.paragraphContent')}：**\n\n`
+    block += `<div class="aigc-paragraph-content-switcher" data-paragraph-index="${para.index}">\n`
+    block += `<span class="aigc-ab-btns">\n`
+    block += `<button type="button" class="aigc-ab-btn aigc-ab-original" data-paragraph-index="${para.index}">${t('aigc.viewOriginal')}</button>\n`
+    block += `<button type="button" class="aigc-ab-btn aigc-ab-paraphrased active" data-paragraph-index="${para.index}">${t('aigc.viewParaphrased')}</button>\n`
+    block += `<button type="button" class="aigc-copy-paraphrase-btn" data-paragraph-index="${para.index}">${t('aigc.copy')}</button>\n`
+    block += `</span>\n`
+    block += `<div class="aigc-original-content" data-paragraph-index="${para.index}" style="display:none"><pre class="aigc-original-pre">${origEscaped}</pre></div>\n`
+    block += `<div class="aigc-paraphrased-content-block" data-paragraph-index="${para.index}"><pre class="aigc-paraphrased-content" data-paragraph-index="${para.index}">${parEscaped}</pre></div>\n`
+    block += `</div>\n\n`
+  } else {
+    block += `**${t('aigc.paragraphContent')}：**\n\n`
+    block += `> ${para.text.split('\n').join('\n> ')}\n\n`
+  }
   block += `**各维度雷达图：**\n\n`
   block += `\`\`\`echarts\n`
   block += JSON.stringify({
+    backgroundColor: 'transparent',
     radar: { indicator: radarData.indicator },
     series: [{ type: 'radar', data: radarData.series, areaStyle: { opacity: 0.3 } }]
   }, null, 2)
@@ -1335,12 +1494,8 @@ function buildParagraphReportBlock(para: { index: number; text: string; analysis
   return block
 }
 
-// 追加总体报告（插入到标题后、分段分析前）
-const appendOverallReport = (overall: AigcAnalysisResult) => {
-  const title = `# AIGC 风格风险评估报告\n\n`
-  // 当前 reportMarkdown = title + "## 分段分析\n\n" + 各段落块，将总体分析插在 title 与 分段分析 之间
-  const afterTitle = reportMarkdown.value.slice(title.length)
-  
+/** 构建总体报告块（不含标题与分段分析），供 refreshReportMarkdown 使用 */
+function buildOverallReportBlock(overall: AigcAnalysisResult): string {
   // 生成雷达图数据
   const radarData = {
     indicator: [
@@ -1380,6 +1535,7 @@ const appendOverallReport = (overall: AigcAnalysisResult) => {
   overallBlock += `### 各维度雷达图\n\n`
   overallBlock += `\`\`\`echarts\n`
   overallBlock += JSON.stringify({
+    backgroundColor: 'transparent',
     radar: {
       indicator: radarData.indicator
     },
@@ -1423,8 +1579,7 @@ const appendOverallReport = (overall: AigcAnalysisResult) => {
     overallBlock += `${index + 1}. ${suggestion}\n`
   })
   
-  // 插入到标题后、分段分析前
-  reportMarkdown.value = title + overallBlock + `\n` + afterTitle
+  return overallBlock
 }
 
 // 导出报告到新文档
@@ -1567,49 +1722,56 @@ const generateReportMarkdown = (
   return markdown
 }
 
-// Paraphrase全部内容
+/** 对单段做同义转述（参考报告修改建议），不修改原文，结果存入 paragraphParaphrases */
+async function paraphraseOneSegment(index: number): Promise<void> {
+  const text = paragraphs.value[index]
+  const pa = paragraphAnalyses.value[index]
+  if (!text?.trim() || !pa) return
+  const suggestions = pa.analysis.concise_suggestions ?? []
+  const prompt = buildParaphraseSegmentPrompt(text.trim(), aigcLanguage.value, suggestions)
+  const resultRef = vueRef('')
+  const originKey = `aigc-paraphrase-seg-${index}-${Date.now()}`
+  const messages: AIDialogMessage[] = [{ role: 'user', content: prompt }]
+  const { done } = createAiTask(
+    t('aigc.paraphrasing'),
+    messages,
+    resultRef,
+    ai_types.chat,
+    originKey,
+    { stream: true }
+  )
+  await done
+  const paraphrased = resultRef.value.trim()
+  if (!paraphrased) return
+  // 保证数组长度
+  while (paragraphParaphrases.value.length <= index) {
+    paragraphParaphrases.value.push(null)
+  }
+  paragraphParaphrases.value[index] = paraphrased
+  segmentBlocks.value[index] = buildParagraphReportBlock(pa, paraphrased)
+  refreshReportMarkdown()
+  if (activeSessionId.value) {
+    await aigcDetectionSessionsDb.update(activeSessionId.value, {
+      paragraph_paraphrases: JSON.stringify(paragraphParaphrases.value),
+      report_markdown: reportMarkdown.value
+    })
+  }
+}
+
+/** 改写全部：对每一段做同义转述（参考该段报告建议），不修改原文，结果展示在报告内 */
 const handleParaphraseAll = async () => {
-  if (!articleContent.value.trim()) {
+  if (!paragraphAnalyses.value.length || !paragraphs.value.length) {
     ElMessage.warning(t('aigc.noContent'))
     return
   }
-  
   paraphrasing.value = true
-  
   try {
-    const prompt = buildParaphrasePrompt(articleContent.value, aigcLanguage.value)
-    const resultRef = vueRef('')
-    const originKey = `aigc-paraphrase-${Date.now()}`
-    
-    const messages: AIDialogMessage[] = [{
-      role: 'user',
-      content: prompt
-    }]
-    
-    const { done } = createAiTask(
-      t('aigc.paraphrasing'),
-      messages,
-      resultRef,
-      ai_types.chat,
-      originKey,
-      { stream: true }
-    )
-    
-    await done
-    
-    articleContent.value = resultRef.value.trim()
-    
-    // 更新编辑器
-    await nextTick()
-    updateEditorContent()
-    
-    // 保存到数据库
-    if (activeSessionId.value) {
-      await aigcDetectionSessionsDb.update(activeSessionId.value, {
-        article_content: articleContent.value
-      })
+    const n = Math.min(paragraphAnalyses.value.length, paragraphs.value.length)
+    for (let i = 0; i < n; i++) {
+      await paraphraseOneSegment(i)
     }
-    
+    await nextTick()
+    onReportRendered()
     ElMessage.success(t('aigc.paraphraseSuccess'))
   } catch (error) {
     ElMessage.error('改写失败: ' + (error instanceof Error ? error.message : String(error)))
@@ -1618,29 +1780,39 @@ const handleParaphraseAll = async () => {
   }
 }
 
-// 构建Paraphrase提示词（语言由当前 i18n locale 决定，不区分学术/通用）
-const buildParaphrasePrompt = (text: string, language: string): string => {
+/** 对本段改写（首次或重新），在 summary 旁按钮触发 */
+const handleParaphraseOne = async (index: number) => {
+  if (paraphrasingOneIndex.value != null || paraphrasing.value) return
+  paraphrasingOneIndex.value = index
+  try {
+    await paraphraseOneSegment(index)
+    await nextTick()
+    onReportRendered()
+    ElMessage.success(t('aigc.paraphraseSuccess'))
+  } catch (error) {
+    ElMessage.error('改写失败: ' + (error instanceof Error ? error.message : String(error)))
+  } finally {
+    paraphrasingOneIndex.value = null
+  }
+}
+
+/** 构建单段改写提示词：同义转述 + 参考报告修改建议 */
+function buildParaphraseSegmentPrompt(text: string, language: string, suggestions: string[]): string {
   const langName = language === 'zh' ? '中文' : language === 'en' ? 'English' : language === 'ja' ? '日本語' : language === 'ko' ? '한국어' : language
-  return `请对下列文本进行改写，目标不是降重，而是降低 AIGC 风格风险：
+  let block = `请对下列段落进行同义转述（paraphrase），要求：
+- 不改变原意，仅换一种说法
+- 适当参考下方「修改建议」优化表达（句式、词汇、逻辑等），降低 AIGC 风格风险
+- 语言：${langName}
+- 只输出改写后的段落正文，不要加解释
 
-要求：
-- 改变句式结构与语序
-- 引入更具体或局部的推理表达
-- 保留严谨性，但避免模板化语句
-- 允许句子长短不均
-- 不要使用"本文将…"、"因此可以看出"等常见 AI 过渡语
-- 增加个人思考痕迹和具体判断
-- 减少模糊限定词的使用
-
-语言：${langName}
-
-输出改写后的完整文本。
-
-文本如下：
-
-<<<TEXT>>>
+<<<段落>>>
 ${text}
-<<<TEXT>>>`
+<<<段落>>>`
+  if (suggestions.length > 0) {
+    block += `\n\n修改建议（供参考）：\n`
+    suggestions.forEach((s, i) => { block += `${i + 1}. ${s}\n` })
+  }
+  return block
 }
 
 // 主题样式
@@ -1910,6 +2082,88 @@ onMounted(() => {
   color: var(--el-color-warning-dark-2, #b88230);
   background-color: var(--el-color-warning-light-9, #fdf6ec);
   border-radius: 4px;
+}
+.report-scrollbar :deep(.aigc-paraphrase-one-btn) {
+  margin-left: 8px;
+  padding: 2px 10px;
+  font-size: 12px;
+  border: 1px solid v-bind('borderColor');
+  border-radius: 4px;
+  background: v-bind('themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.textColor');
+  cursor: pointer;
+}
+.report-scrollbar :deep(.aigc-paraphrase-one-btn:hover) {
+  opacity: 0.9;
+}
+/* 雷达图容器居中；避免 width:fit-content 在 ECharts 未绘制时坍缩为 0 导致图表不显示 */
+.report-scrollbar :deep(.language-echarts),
+.report-scrollbar :deep(pre:has(code.language-echarts)) {
+  margin-left: auto;
+  margin-right: auto;
+  min-width: 380px;
+  width: fit-content;
+  max-width: 100%;
+}
+.report-scrollbar :deep(.aigc-paragraph-content-switcher) {
+  margin-top: 8px;
+}
+.report-scrollbar :deep(.aigc-ab-btns) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.report-scrollbar :deep(.aigc-ab-btn) {
+  padding: 4px 12px;
+  font-size: 12px;
+  border: 1px solid v-bind('borderColor');
+  border-radius: 4px;
+  background: v-bind('themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.textColor');
+  cursor: pointer;
+}
+.report-scrollbar :deep(.aigc-ab-btn:hover) {
+  opacity: 0.9;
+}
+.report-scrollbar :deep(.aigc-ab-btn.active) {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, rgba(64, 158, 255, 0.1));
+  color: var(--el-color-primary);
+}
+/* A/B 容器：保留边缘与背景，仅内部用 Vditor 渲染 */
+.report-scrollbar :deep(.aigc-original-content),
+.report-scrollbar :deep(.aigc-paraphrased-content-block) {
+  padding: 10px;
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.report-scrollbar :deep(.aigc-original-content .aigc-original-pre),
+.report-scrollbar :deep(.aigc-paraphrased-content-block .aigc-paraphrased-content) {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+.report-scrollbar :deep(.aigc-content-inner) {
+  word-break: break-word;
+}
+.report-scrollbar :deep(.aigc-paraphrased-block) {
+  margin-top: 8px;
+}
+.report-scrollbar :deep(.aigc-copy-paraphrase-btn) {
+  padding: 4px 12px;
+  font-size: 12px;
+  border: 1px solid v-bind('borderColor');
+  border-radius: 4px;
+  background: v-bind('themeState.currentTheme.background2nd');
+  color: v-bind('themeState.currentTheme.textColor');
+  cursor: pointer;
+}
+.report-scrollbar :deep(.aigc-copy-paraphrase-btn:hover) {
+  opacity: 0.9;
 }
 
 .empty-content {

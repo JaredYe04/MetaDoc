@@ -1,7 +1,7 @@
 <template>
   <div class="graph-window" :style="containerStyle">
     <div class="main-container">
-      <!-- 左侧会话列表 -->
+      <!-- 左侧会话列表（含右侧 resize 与折叠，主内容通过默认 slot 传入） -->
       <SessionList
         :title="t('graph.sessionsTitle', '绘图会话')"
         :items="sessions"
@@ -20,8 +20,7 @@
         @rename="handleRenameSession"
         @duplicate="handleDuplicateSession"
         @delete="handleDeleteSession"
-      />
-
+      >
       <!-- 右侧内容区域 -->
       <div class="content-area" :style="panelStyle" v-loading="loadingSession">
         <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
@@ -59,6 +58,7 @@
           </div>
         </div>
       </div>
+      </SessionList>
     </div>
   </div>
 </template>

@@ -1,7 +1,7 @@
 <template>
   <div class="attachment-window">
     <div class="main-container">
-      <!-- 左侧附件列表 -->
+      <!-- 左侧附件列表（含右侧 resize 与折叠，主内容通过默认 slot 传入） -->
       <SessionList
         :title="t('attachment.attachmentsTitle', '附件解析')"
         :items="attachments"
@@ -20,8 +20,7 @@
         @select="handleSelectAttachment"
         @rename="handleRenameAttachment"
         @delete="handleDeleteAttachment"
-      />
-
+      >
       <!-- 右侧内容区域 -->
       <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
         <div v-if="!activeAttachment" class="empty-state" :style="emptyStateStyle">
@@ -92,6 +91,7 @@
           </div>
         </div>
       </div>
+      </SessionList>
     </div>
   </div>
 </template>

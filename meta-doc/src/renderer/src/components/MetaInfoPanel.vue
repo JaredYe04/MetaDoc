@@ -335,7 +335,6 @@ const commitForm = () => {
   width: 100%;
   height: 100%;
   padding: 14px;
-  border-radius: 10px;
   color: var(--meta-text-color);
   box-sizing: border-box;
   margin: 0;

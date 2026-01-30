@@ -356,7 +356,9 @@
       "pointer": "Pointer"
     },
     "simpletexHint": "This feature is powered by SimpleTex with limited capacity. For bulk formula conversion, please visit",
-    "simpletexLinkText": "SimpleTex LaTeX OCR"
+    "simpletexLinkText": "SimpleTex LaTeX OCR",
+    "expandCanvas": "Expand Canvas",
+    "expandCanvasNoNeed": "Canvas is already not smaller than viewport"
   },
   "home": {
     "metaDoc": "MetaDoc - AI Document Editor",

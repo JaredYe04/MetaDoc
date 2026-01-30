@@ -282,6 +282,12 @@ jobs:
           NODE_ENV: production
           NODE_OPTIONS: --max-old-space-size=4096 --expose-gc
       
+      - name: 清理 dist 中的旧 Linux 产物（避免混入上一版本导致同一 Release 出现两个版本）
+        if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
+        run: |
+          rm -f meta-doc/dist/*.AppImage meta-doc/dist/*.deb meta-doc/dist/*.snap
+          echo "✅ 已清理旧 Linux 产物"
+      
       - name: 打包 Linux x64 版本
         if: steps.should_build.outputs.should_build == 'true' && (steps.should_build.outputs.force_rebuild == 'true' || steps.check_local_build.outputs.local_build_exists != 'true')
         working-directory: meta-doc
@@ -307,6 +313,16 @@ jobs:
         id: release_notes
         run: node meta-doc/scripts/prepare-release-notes.js "${{ github.event.inputs.release_notes }}" release-notes.txt final-notes.txt
       
+      - name: 准备待上传的 Linux 产物列表（仅在有构建时上传，避免找不到文件）
+        id: release_files
+        if: steps.should_build.outputs.should_build == 'true'
+        run: |
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "meta-doc/dist/meta-doc-${{ steps.version_info.outputs.clean_version }}.AppImage" >> $GITHUB_OUTPUT
+          echo "meta-doc/dist/meta-doc_${{ steps.version_info.outputs.clean_version }}_amd64.deb" >> $GITHUB_OUTPUT
+          echo "meta-doc/dist/meta-doc_${{ steps.version_info.outputs.clean_version }}_amd64.snap" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
       - name: 发布到 Releases 仓库
         uses: softprops/action-gh-release@v1
         with:
@@ -316,10 +332,7 @@ jobs:
           name: ${{ steps.release_info.outputs.release_name }}
           body_path: final-notes.txt
           prerelease: ${{ steps.release_info.outputs.is_prerelease == 'true' }}
-          files: |
-            meta-doc/dist/*.AppImage
-            meta-doc/dist/*.deb
-            meta-doc/dist/*.snap
+          files: ${{ steps.release_files.outputs.files }}
           draft: false
       
       - name: 保存发布日志

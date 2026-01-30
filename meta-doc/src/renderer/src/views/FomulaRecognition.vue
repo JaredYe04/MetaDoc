@@ -1,7 +1,7 @@
 <template>
   <div class="formula-recognition-window">
     <div class="main-container">
-      <!-- 左侧会话列表 -->
+      <!-- 左侧会话列表（含右侧 resize 与折叠，主内容通过默认 slot 传入） -->
       <SessionList
         :title="t('formulaRecognition.sessionsTitle', '公式识别会话')"
         :items="sessions"
@@ -20,8 +20,7 @@
         @rename="handleRenameSession"
         @duplicate="handleDuplicateSession"
         @delete="handleDeleteSession"
-      />
-
+      >
       <!-- 右侧内容区域 -->
       <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
         <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
@@ -103,9 +102,24 @@
 
           <!-- 中间内容区域 -->
           <div class="content">
-      <!-- 左侧：画板 -->
-      <div class="left-panel display-panel" id="canvasContainer">
-        <canvas ref="drawingCanvas" class="drawing-canvas"></canvas>
+      <!-- 左侧：画板（固定尺寸画布 + 滚动视口） -->
+      <div class="left-panel display-panel" id="canvasContainer" ref="canvasContainerRef">
+        <el-scrollbar>
+          <div class="canvas-wrapper" :style="canvasWrapperStyle">
+            <canvas
+              ref="drawingCanvas"
+              class="drawing-canvas"
+              :width="canvasWidth"
+              :height="canvasHeight"
+            ></canvas>
+            <!-- 右下角拖动调整画布大小（类似 Windows 画图） -->
+            <div
+              class="canvas-resize-handle"
+              :class="{ 'is-dragging': isResizingCanvas }"
+              @mousedown.prevent="startCanvasResize"
+            ></div>
+          </div>
+        </el-scrollbar>
       </div>
 
       <!-- 中间：箭头和公式识别按钮 -->
@@ -144,14 +158,15 @@
         </div>
       </div>
       
-          <!-- SimpleTex 说明提示 -->
-          <el-alert type="info" :closable="false" show-icon class="simpletex-hint">
+          <!-- SimpleTex 说明提示：同一会话第二次识别后才显示 -->
+          <el-alert v-if="showSimpletexHint" type="info" :closable="false" show-icon class="simpletex-hint">
             <span>{{ t('formulaRecognition.simpletexHint') }} </span>
             <a :href="SIMPLETEX_OCR_URL" target="_blank" rel="noopener noreferrer">{{ t('formulaRecognition.simpletexLinkText') }}</a>
           </el-alert>
 
         </div>
       </div>
+      </SessionList>
     </div>
 
     <!-- 编辑公式对话框 -->
@@ -208,6 +223,14 @@ const logger = createRendererLogger('FormulaRecognition')
 
 const SIMPLETEX_OCR_URL = 'https://simpletex.cn/ai/latex_ocr'
 
+// 每个会话已发起识别的次数，用于第二次识别后才显示 SimpleTex 提示
+const recognitionCountBySession = ref<Record<string, number>>({})
+const showSimpletexHint = computed(() => {
+  const sid = activeSessionId.value
+  if (!sid) return false
+  return (recognitionCountBySession.value[sid] || 0) >= 2
+})
+
 // 会话管理
 const sessions = ref<SessionListItem[]>([])
 const activeSessionId = ref<string | null>(null)
@@ -232,6 +255,16 @@ const latexResult = ref('')
 // 文件上传和 canvas 引用
 const fileInput = ref<HTMLInputElement | null>(null)
 const drawingCanvas = ref<HTMLCanvasElement | null>(null)
+const canvasContainerRef = ref<HTMLElement | null>(null)
+// 画布固定尺寸（像素），不随窗口变化；窗口缩小时通过滚动条查看
+const canvasWidth = ref(0)
+const canvasHeight = ref(0)
+const canvasWrapperStyle = computed(() => ({
+  width: canvasWidth.value + 'px',
+  height: canvasHeight.value + 'px',
+  minWidth: canvasWidth.value + 'px',
+  minHeight: canvasHeight.value + 'px'
+}))
 let canvasContext: CanvasRenderingContext2D | null = null
 let isDrawing = false
 // 笔刷粗细（画笔模式下有效），范围1~20，默认2
@@ -254,9 +287,75 @@ const brushPreviewSize = computed(() => {
 const undoStack: ImageData[] = []
 const redoStack: ImageData[] = []
 
-// 窗口resize处理函数
-let resizeHandler: (() => void) | null = null
+// 画布最小尺寸（拖动缩小不低于此值）
+const MIN_CANVAS_SIZE = 100
 
+// 右下角拖动调整画布大小
+const isResizingCanvas = ref(false)
+let resizeStartX = 0
+let resizeStartY = 0
+let resizeStartW = 0
+let resizeStartH = 0
+
+function startCanvasResize(e: MouseEvent) {
+  if (!drawingCanvas.value) return
+  isResizingCanvas.value = true
+  resizeStartX = e.clientX
+  resizeStartY = e.clientY
+  resizeStartW = canvasWidth.value
+  resizeStartH = canvasHeight.value
+  document.addEventListener('mousemove', onCanvasResizeMove)
+  document.addEventListener('mouseup', onCanvasResizeEnd)
+}
+
+function onCanvasResizeMove(e: MouseEvent) {
+  if (!isResizingCanvas.value) return
+  const dx = e.clientX - resizeStartX
+  const dy = e.clientY - resizeStartY
+  const newW = Math.max(MIN_CANVAS_SIZE, Math.floor(resizeStartW + dx))
+  const newH = Math.max(MIN_CANVAS_SIZE, Math.floor(resizeStartH + dy))
+  // 先只更新尺寸显示，在 mouseup 时再提交并重绘（避免拖动过程中频繁重绘）
+  canvasWidth.value = newW
+  canvasHeight.value = newH
+}
+
+function onCanvasResizeEnd() {
+  if (!isResizingCanvas.value) return
+  isResizingCanvas.value = false
+  document.removeEventListener('mousemove', onCanvasResizeMove)
+  document.removeEventListener('mouseup', onCanvasResizeEnd)
+  // 提交尺寸并重绘：保留当前内容（扩大补白，缩小裁剪左上角）
+  applyCanvasResize(canvasWidth.value, canvasHeight.value)
+}
+
+// 应用画布尺寸变化：保存当前内容后重设尺寸并重绘（扩大补白，缩小则裁剪）
+function applyCanvasResize(newW: number, newH: number) {
+  if (!drawingCanvas.value || !canvasContext) return
+  const curW = drawingCanvas.value.width
+  const curH = drawingCanvas.value.height
+  if (newW === curW && newH === curH) return
+  const savedImage = drawingCanvas.value.toDataURL('image/png')
+  canvasWidth.value = newW
+  canvasHeight.value = newH
+  nextTick(() => {
+    if (!drawingCanvas.value || !canvasContext) return
+    const img = new Image()
+    img.onload = () => {
+      if (!drawingCanvas.value || !canvasContext) return
+      const w = drawingCanvas.value!.width
+      const h = drawingCanvas.value!.height
+      canvasContext!.fillStyle = '#fff'
+      canvasContext!.fillRect(0, 0, w, h)
+      const drawW = Math.min(img.naturalWidth, w)
+      const drawH = Math.min(img.naturalHeight, h)
+      canvasContext!.drawImage(img, 0, 0, drawW, drawH, 0, 0, drawW, drawH)
+      undoStack.length = 0
+      redoStack.length = 0
+      pushState()
+    }
+    img.src = savedImage
+  })
+}
 
 // 加载会话列表
 const loadSessions = async () => {
@@ -289,6 +388,9 @@ const handleCreateSession = async () => {
     
     await loadSessions()
     activeSessionId.value = id
+    // 新会话画布尺寸在 initCanvas 中从视口获取
+    canvasWidth.value = 0
+    canvasHeight.value = 0
     // 等待 DOM 更新
     await nextTick()
     // 确保画布已初始化
@@ -328,6 +430,14 @@ const handleSelectSession = async (item: SessionListItem) => {
       if (session.canvas_image) {
         await restoreCanvas(session.canvas_image)
       } else {
+        // 无保存内容时，画布尺寸设为当前视口
+        const container = canvasContainerRef.value || document.getElementById('canvasContainer')
+        if (container) {
+          const rect = container.getBoundingClientRect()
+          canvasWidth.value = Math.max(1, Math.floor(rect.width))
+          canvasHeight.value = Math.max(1, Math.floor(rect.height))
+        }
+        await nextTick()
         resetCanvas()
       }
       // 恢复公式
@@ -407,25 +517,30 @@ const saveCurrentSession = async () => {
   }
 }
 
-// 恢复画布
+// 恢复画布（从保存的图片恢复，画布尺寸取图片尺寸以保持内容不丢失）
 const restoreCanvas = async (canvasImage: string) => {
-  if (!drawingCanvas.value || !canvasContext) return
-  
   const img = new Image()
   img.onload = () => {
-    if (!drawingCanvas.value || !canvasContext) return
-    canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-    canvasContext.drawImage(img, 0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-    pushState()
+    const w = img.naturalWidth
+    const h = img.naturalHeight
+    if (w <= 0 || h <= 0) return
+    canvasWidth.value = w
+    canvasHeight.value = h
+    nextTick(() => {
+      if (!drawingCanvas.value || !canvasContext) return
+      canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
+      canvasContext.drawImage(img, 0, 0, w, h)
+      pushState()
+    })
   }
   img.src = canvasImage
 }
 
-// 初始化画布
+// 初始化画布（画布尺寸仅在未设置时从视口取一次，之后不随窗口变化）
 const initCanvas = () => {
   if (!drawingCanvas.value) return
   
-  const container = document.getElementById('canvasContainer')
+  const container = canvasContainerRef.value || document.getElementById('canvasContainer')
   if (!container) return
   
   canvasContext = drawingCanvas.value.getContext('2d')
@@ -435,50 +550,27 @@ const initCanvas = () => {
   canvasContext.lineWidth = brushSize.value
   canvasContext.lineCap = 'round'
   canvasContext.lineJoin = 'round'
-  // 填充背景为白色
   canvasContext.fillStyle = '#fff'
   
-  // 设置画布尺寸 - 使用容器的实际尺寸
-  const updateCanvasSize = () => {
-    if (!drawingCanvas.value || !container || !canvasContext) return
+  // 仅当画布尺寸尚未设置时，从视口取初始尺寸（新会话或首次进入）
+  if (canvasWidth.value <= 0 || canvasHeight.value <= 0) {
     const rect = container.getBoundingClientRect()
-    const width = rect.width
-    const height = rect.height
-    
-    if (width > 0 && height > 0) {
-      // 检查是否是首次初始化（画布尺寸为0或未设置）
-      const isFirstInit = drawingCanvas.value.width === 0 || drawingCanvas.value.height === 0
-      
-      // 如果不是首次初始化，保存当前内容
-      let imgData: ImageData | null = null
-      if (!isFirstInit && drawingCanvas.value.width > 0 && drawingCanvas.value.height > 0) {
-        try {
-          imgData = canvasContext.getImageData(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-        } catch (e) {
-          // 如果获取失败，忽略
-        }
-      }
-      
-      // 设置新尺寸
-      drawingCanvas.value.width = width
-      drawingCanvas.value.height = height
-      
-      // 恢复内容或填充白色背景
-      if (imgData && imgData.width > 0 && imgData.height > 0) {
-        canvasContext.putImageData(imgData, 0, 0)
-      } else {
-        // 如果是首次初始化或没有内容，填充白色背景
-        canvasContext.fillStyle = '#fff'
-        canvasContext.fillRect(0, 0, width, height)
-      }
-    }
+    const w = Math.max(1, Math.floor(rect.width))
+    const h = Math.max(1, Math.floor(rect.height))
+    canvasWidth.value = w
+    canvasHeight.value = h
   }
   
-  // 初始设置尺寸
-  updateCanvasSize()
-  
-  // 保存初始状态
-  pushState()
+  nextTick(() => {
+    if (!drawingCanvas.value || !canvasContext) return
+    const w = drawingCanvas.value.width
+    const h = drawingCanvas.value.height
+    if (w > 0 && h > 0) {
+      canvasContext.fillStyle = '#fff'
+      canvasContext.fillRect(0, 0, w, h)
+      pushState()
+    }
+  })
   
   // 移除旧的事件监听器（如果存在）
   if (drawingCanvas.value) {
@@ -520,22 +612,6 @@ const initCanvas = () => {
     const mouseEvent = new MouseEvent('mouseup', {})
     drawingCanvas.value?.dispatchEvent(mouseEvent)
   })
-  
-  // 监听窗口resize
-  resizeHandler = () => {
-    if (!drawingCanvas.value || !canvasContext || !container) return
-    updateCanvasSize()
-  }
-  window.addEventListener('resize', resizeHandler)
-  
-  // 使用 ResizeObserver 监听容器尺寸变化
-  const resizeObserver = new ResizeObserver(() => {
-    updateCanvasSize()
-  })
-  resizeObserver.observe(container)
-  
-  // 保存 observer 以便清理
-  ;(drawingCanvas.value as any).__resizeObserver = resizeObserver
 }
 
 onMounted(async () => {
@@ -553,9 +629,6 @@ onBeforeUnmount(() => {
   if (activeSessionId.value) {
     saveCurrentSession()
   }
-  if (resizeHandler) {
-    window.removeEventListener('resize', resizeHandler)
-  }
   window.removeEventListener('paste', handlePaste)
   
   // 清理事件监听器
@@ -564,12 +637,6 @@ onBeforeUnmount(() => {
     drawingCanvas.value.removeEventListener('mousemove', draw)
     drawingCanvas.value.removeEventListener('mouseup', stopDrawing)
     drawingCanvas.value.removeEventListener('mouseout', stopDrawing)
-    
-    // 清理 ResizeObserver
-    const observer = (drawingCanvas.value as any).__resizeObserver
-    if (observer) {
-      observer.disconnect()
-    }
   }
 })
 
@@ -587,6 +654,7 @@ watch([() => latexResult.value, () => brushSize.value], () => {
 function getCanvasCoordinates(e: MouseEvent) {
     if (!drawingCanvas.value) return { x: 0, y: 0 }
     const rect = drawingCanvas.value.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 }
     const scaleX = drawingCanvas.value.width / rect.width
     const scaleY = drawingCanvas.value.height / rect.height
     return {
@@ -699,6 +767,40 @@ function resetCanvas() {
     pushState()
 }
 
+// 扩大画布至至少覆盖当前视口（窗口缩小后可通过滚动查看，内容不丢失）
+function expandCanvasToViewport() {
+  const container = canvasContainerRef.value || document.getElementById('canvasContainer')
+  if (!container || !drawingCanvas.value || !canvasContext) return
+  const rect = container.getBoundingClientRect()
+  const viewportW = Math.max(1, Math.floor(rect.width))
+  const viewportH = Math.max(1, Math.floor(rect.height))
+  const curW = canvasWidth.value
+  const curH = canvasHeight.value
+  const newW = Math.max(curW, viewportW)
+  const newH = Math.max(curH, viewportH)
+  if (newW <= curW && newH <= curH) {
+    ElMessage.info(t('formulaRecognition.expandCanvasNoNeed'))
+    return
+  }
+  const savedImage = drawingCanvas.value.toDataURL('image/png')
+  canvasWidth.value = newW
+  canvasHeight.value = newH
+  nextTick(() => {
+    if (!drawingCanvas.value || !canvasContext) return
+    const img = new Image()
+    img.onload = () => {
+      if (!drawingCanvas.value || !canvasContext) return
+      canvasContext.fillStyle = '#fff'
+      canvasContext.fillRect(0, 0, newW, newH)
+      canvasContext.drawImage(img, 0, 0, curW, curH, 0, 0, curW, curH)
+      undoStack.length = 0
+      redoStack.length = 0
+      pushState()
+    }
+    img.src = savedImage
+  })
+}
+
 // 触发文件上传
 function triggerImport() {
     fileInput.value && fileInput.value.click()
@@ -796,6 +898,13 @@ async function recognizeFormula() {
     const imageData = drawingCanvas.value.toDataURL('image/png')
     const res = await simpletexOcr(imageData)
     latexResult.value = '$$\n' + res + '\n$$'
+    
+    // 同一会话第二次识别后显示 SimpleTex 提示
+    const sid = activeSessionId.value
+    if (sid) {
+      const prev = recognitionCountBySession.value[sid] || 0
+      recognitionCountBySession.value = { ...recognitionCountBySession.value, [sid]: prev + 1 }
+    }
     
     // 保存结果
     if (activeSessionId.value) {
@@ -1070,7 +1179,7 @@ const toolbarGroupStyle = computed(() => ({
   overflow: hidden;
 }
 
-/* 左侧画板 */
+/* 左侧画板：滚动视口，画布固定尺寸不随窗口变化 */
 .left-panel {
     flex: 1;
     position: relative;
@@ -1078,14 +1187,28 @@ const toolbarGroupStyle = computed(() => ({
     height: 100%;
     min-height: 0;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.left-panel .el-scrollbar {
+    flex: 1;
+    min-height: 0;
+}
+
+.left-panel .el-scrollbar__wrap {
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+.canvas-wrapper {
+    position: relative;
+    flex-shrink: 0;
 }
 
 .drawing-canvas {
     background-color: #fff;
     display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
     width: 100%;
     height: 100%;
     cursor: crosshair;

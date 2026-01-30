@@ -1,114 +1,164 @@
 <template>
-  <div class="session-list-wrapper" :style="panelStyle">
-    <header class="pane-header">
-      <h2>{{ title }}</h2>
-      <div class="actions">
-        <el-tooltip :content="createButtonTooltip">
-          <el-button 
-            size="small" 
-            type="info" 
-            :icon="AddIcon" 
-            circle 
-            @click="handleCreate" 
-            :disabled="disabled"
-          />
-        </el-tooltip>
-      </div>
-    </header>
-    <el-scrollbar class="menu-scrollbar">
-      <el-menu class="side-menu" :default-active="activeIndex?.toString()">
-        <template v-for="group in groupedItems" :key="group.label">
-          <el-menu-item disabled class="group-header" :class="{ 'is-ui-locked': disabled }">
-            <span class="group-label">{{ group.label }}</span>
-          </el-menu-item>
-          <el-menu-item 
-            v-for="item in group.items" 
-            :key="item.id" 
-            :index="item.id"
-            @click="handleSelect(item)" 
-            :disabled="disabled"
-            :class="{ 'menu-item-open': openMenuId === item.id }"
-          >
-            <div class="menu-item-wrapper">
-              <span class="item-title">{{ item.title }}</span>
-              <div class="menu-item-actions">
-                <el-button
-                  text
-                  circle
-                  size="small"
-                  class="more-btn"
-                  :disabled="disabled"
-                  @click.stop="toggleMenu(item.id)"
+  <div class="session-list-root">
+  <ResizableContainer
+    class="session-list-resizable"
+    direction="vertical"
+    :initial-sidebar-size="sidebarSize"
+    :min-size="160"
+    :max-size="400"
+    :divider-size="5"
+    :show-sidebar="true"
+    :sidebar-position="'start'"
+    :sidebar-on-left="true"
+    :collapsible="true"
+    :show-collapse-button="true"
+    :auto-collapse-width="0"
+    :collapsed-width="48"
+    :collapse-button-title="$t('viewMenuContainer.collapse')"
+    :expand-button-title="$t('viewMenuContainer.expand')"
+    @resize="handleResize"
+    @collapse="isCollapsed = $event"
+  >
+    <template #sidebar>
+      <div class="session-list-wrapper" :style="panelStyle" :class="{ 'is-collapsed': isCollapsed }">
+        <header class="pane-header">
+          <h2 v-if="!isCollapsed" class="pane-title">{{ title }}</h2>
+          <div class="actions">
+            <el-tooltip :content="createButtonTooltip">
+              <el-button 
+                size="small" 
+                type="info" 
+                :icon="AddIcon" 
+                circle 
+                @click="handleCreate" 
+                :disabled="disabled"
+              />
+            </el-tooltip>
+          </div>
+        </header>
+        <el-scrollbar class="menu-scrollbar">
+          <!-- 折叠态：圆角小方块，hover 展开显示标题 -->
+          <template v-if="isCollapsed">
+            <div class="collapsed-list">
+              <template v-for="group in groupedItems" :key="group.label">
+                <div 
+                  v-for="item in group.items" 
+                  :key="item.id" 
+                  class="collapsed-item"
+                  :class="{ 'is-active': activeIndex?.toString() === item.id }"
+                  :title="item.title"
+                  @click="handleSelect(item)"
+                  @contextmenu.prevent="openContextMenu($event, item)"
+                  @mouseenter="setHoveredItem(item, $event)"
+                  @mouseleave="clearHoveredItem"
                 >
-                  <el-icon><More /></el-icon>
-                </el-button>
-                <transition name="fade">
-                  <div
-                    v-if="openMenuId === item.id && !disabled"
-                    class="item-menu"
-                    :style="menuStyle"
-                    @click.stop
-                  >
-                    <button 
-                      type="button" 
-                      class="item-menu__item" 
-                      @click="handleMenuAction('rename', item)"
-                    >
-                      {{ renameLabel }}
-                    </button>
-                    <button 
-                      type="button" 
-                      class="item-menu__item" 
-                      @click="handleMenuAction('duplicate', item)"
-                      v-if="showDuplicate"
-                    >
-                      {{ duplicateLabel }}
-                    </button>
-                    <button 
-                      type="button" 
-                      class="item-menu__item danger" 
-                      @click="handleMenuAction('delete', item)"
-                    >
-                      {{ deleteLabel }}
-                    </button>
-                  </div>
-                </transition>
-              </div>
+                  <span class="collapsed-dot">{{ (item.title || ' ')[0] }}</span>
+                </div>
+              </template>
             </div>
-          </el-menu-item>
-        </template>
-      </el-menu>
-    </el-scrollbar>
-    
-    <!-- 重命名对话框 -->
-    <el-dialog 
-      v-model="renameDialogVisible" 
-      :title="renameDialogTitle" 
-      width="500"
-    >
-      <el-input 
-        v-model="editingTitle" 
-        style="width: 100%" 
-        :placeholder="renamePlaceholder" 
-      />
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="renameDialogVisible = false">{{ cancelLabel }}</el-button>
-          <el-button type="primary" @click="finishRename">
-            {{ confirmLabel }}
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
+            <!-- hover 时右侧浮出的标题面板 -->
+            <transition name="panel-fade">
+              <div 
+                v-if="hoveredItem && isCollapsed"
+                class="collapsed-hover-panel"
+                :style="[menuStyle, hoverPanelStyle]"
+                @mouseenter="cancelClearHover"
+                @mouseleave="clearHoveredItem"
+              >
+                {{ hoveredItem.title }}
+              </div>
+            </transition>
+          </template>
+          <!-- 展开态：原有列表 -->
+          <el-menu v-else class="side-menu" :default-active="activeIndex?.toString()">
+            <template v-for="group in groupedItems" :key="group.label">
+              <el-menu-item disabled class="group-header" :class="{ 'is-ui-locked': disabled }">
+                <span class="group-label">{{ group.label }}</span>
+              </el-menu-item>
+              <el-menu-item 
+                v-for="item in group.items" 
+                :key="item.id" 
+                :index="item.id"
+                @click="handleSelect(item)" 
+                @contextmenu.prevent="openContextMenu($event, item)"
+                :disabled="disabled"
+                :class="{ 'menu-item-open': openMenuId === item.id }"
+              >
+                <div class="menu-item-wrapper">
+                  <span class="item-title">{{ item.title }}</span>
+                </div>
+              </el-menu-item>
+            </template>
+          </el-menu>
+        </el-scrollbar>
+        <!-- 右键菜单（固定定位，展开/折叠态共用） -->
+        <transition name="fade">
+          <div
+            v-if="openMenuId && contextMenuPosition"
+            class="item-menu item-menu-context"
+            :style="{ ...menuStyle, ...contextMenuStyle }"
+            @click.stop
+          >
+            <button 
+              type="button" 
+              class="item-menu__item" 
+              @click="handleMenuAction('rename', contextMenuItem)"
+            >
+              {{ renameLabel }}
+            </button>
+            <button 
+              type="button" 
+              class="item-menu__item" 
+              @click="handleMenuAction('duplicate', contextMenuItem)"
+              v-if="showDuplicate"
+            >
+              {{ duplicateLabel }}
+            </button>
+            <button 
+              type="button" 
+              class="item-menu__item danger" 
+              @click="handleMenuAction('delete', contextMenuItem)"
+            >
+              {{ deleteLabel }}
+            </button>
+          </div>
+        </transition>
+      </div>
+    </template>
+    <template #main>
+      <slot></slot>
+    </template>
+  </ResizableContainer>
+  
+  <!-- 重命名对话框 -->
+  <el-dialog 
+    v-model="renameDialogVisible" 
+    :title="renameDialogTitle" 
+    width="500"
+  >
+    <el-input 
+      v-model="editingTitle" 
+      style="width: 100%" 
+      :placeholder="renamePlaceholder" 
+    />
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="renameDialogVisible = false">{{ cancelLabel }}</el-button>
+        <el-button type="primary" @click="finishRename">
+          {{ confirmLabel }}
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import ResizableContainer from '../base/ResizableContainer.vue'
 import { ElMessageBox } from 'element-plus'
 import { AddIcon } from 'tdesign-icons-vue-next'
-import { More } from '@element-plus/icons-vue'
-import { themeState, mixColors } from '../../utils/themes'
+import { themeState } from '../../utils/themes'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -163,9 +213,43 @@ const emit = defineEmits<{
 }>()
 
 const openMenuId = ref<string | null>(null)
+const contextMenuPosition = ref<{ x: number; y: number } | null>(null)
+const contextMenuItem = ref<SessionListItem | null>(null)
 const renameDialogVisible = ref(false)
 const editingItem = ref<SessionListItem | null>(null)
 const editingTitle = ref('')
+
+// 折叠状态（由 ResizableContainer @collapse 同步）
+const isCollapsed = ref(false)
+
+// 折叠态 hover 展开：当前 hover 的 item 与浮层位置
+const hoveredItem = ref<SessionListItem | null>(null)
+const hoverPanelRect = ref<{ top: number; left: number; height: number } | null>(null)
+let hoverClearTimer: ReturnType<typeof setTimeout> | null = null
+
+const hoverPanelStyle = computed(() => {
+  if (!hoverPanelRect.value) return {}
+  return {
+    top: hoverPanelRect.value.top + 'px',
+    left: hoverPanelRect.value.left + 'px',
+    minHeight: hoverPanelRect.value.height + 'px'
+  }
+})
+
+const contextMenuStyle = computed(() => {
+  if (!contextMenuPosition.value) return {}
+  return {
+    position: 'fixed' as const,
+    left: contextMenuPosition.value.x + 'px',
+    top: contextMenuPosition.value.y + 'px'
+  }
+})
+
+// 列表宽度（默认 220，比原 280 略窄）
+const sidebarSize = ref(220)
+const handleResize = (size: number) => {
+  sidebarSize.value = size
+}
 
 const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
@@ -183,12 +267,48 @@ const menuStyle = computed(() => ({
     : 'rgba(0, 0, 0, 0.08)'
 }))
 
-// 点击外部区域关闭菜单
+// 点击外部区域关闭右键菜单
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement
-  // 检查点击是否在菜单内部
-  if (openMenuId.value && !target.closest('.item-menu') && !target.closest('.more-btn')) {
+  if (openMenuId.value && !target.closest('.item-menu')) {
     openMenuId.value = null
+    contextMenuPosition.value = null
+    contextMenuItem.value = null
+  }
+}
+
+// 右键打开菜单（展开/折叠态共用）
+const openContextMenu = (e: MouseEvent, item: SessionListItem) => {
+  if (props.disabled) return
+  openMenuId.value = item.id
+  contextMenuPosition.value = { x: e.clientX, y: e.clientY }
+  contextMenuItem.value = item
+}
+
+// 折叠态 hover 展开
+const setHoveredItem = (item: SessionListItem, e: MouseEvent) => {
+  if (hoverClearTimer) {
+    clearTimeout(hoverClearTimer)
+    hoverClearTimer = null
+  }
+  const el = e.currentTarget as HTMLElement
+  const rect = el.getBoundingClientRect()
+  hoveredItem.value = item
+  hoverPanelRect.value = { top: rect.top, left: rect.right + 6, height: rect.height }
+}
+
+const clearHoveredItem = () => {
+  hoverClearTimer = setTimeout(() => {
+    hoveredItem.value = null
+    hoverPanelRect.value = null
+    hoverClearTimer = null
+  }, 100)
+}
+
+const cancelClearHover = () => {
+  if (hoverClearTimer) {
+    clearTimeout(hoverClearTimer)
+    hoverClearTimer = null
   }
 }
 
@@ -198,6 +318,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  if (hoverClearTimer) clearTimeout(hoverClearTimer)
 })
 
 // 按日期分组
@@ -267,17 +388,15 @@ const handleSelect = (item: SessionListItem) => {
   emit('select', item)
 }
 
-const toggleMenu = (id: string) => {
-  if (props.disabled) return
-  openMenuId.value = openMenuId.value === id ? null : id
-}
-
 const handleMenuAction = async (
   action: 'rename' | 'duplicate' | 'delete',
-  item: SessionListItem
+  item: SessionListItem | null
 ) => {
+  if (!item) return
   openMenuId.value = null
-  
+  contextMenuPosition.value = null
+  contextMenuItem.value = null
+
   if (action === 'rename') {
     editingItem.value = item
     editingTitle.value = item.title
@@ -309,8 +428,21 @@ const finishRename = () => {
 </script>
 
 <style scoped>
+.session-list-root {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.session-list-resizable {
+  flex: 1;
+  min-width: 0;
+}
+
 .session-list-wrapper {
-  width: 280px;
+  width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -325,10 +457,90 @@ const finishRename = () => {
   border-bottom: 1px solid v-bind('panelStyle.borderColor');
 }
 
-.pane-header h2 {
+.session-list-wrapper.is-collapsed .pane-header {
+  padding: 8px;
+  justify-content: center;
+}
+
+.pane-header h2.pane-title {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+}
+
+/* 折叠态：圆角小方块列表 */
+.collapsed-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px;
+}
+
+.collapsed-item {
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  flex-shrink: 0;
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.collapsed-item:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.collapsed-item.is-active {
+  background-color: rgba(64, 158, 255, 0.25);
+}
+
+.collapsed-dot {
+  font-size: 12px;
+  font-weight: 600;
+  color: inherit;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+/* 折叠态 hover 浮层：右侧圆角面板显示标题 */
+.collapsed-hover-panel {
+  position: fixed;
+  z-index: 1001;
+  min-width: 160px;
+  max-width: 240px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid v-bind('menuStyle.borderColor');
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.panel-fade-enter-active,
+.panel-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.panel-fade-enter-from,
+.panel-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-4px);
+}
+
+/* 右键菜单：固定定位 */
+.item-menu-context {
+  position: fixed;
+  z-index: 1002;
+  top: auto;
+  right: auto;
 }
 
 .menu-scrollbar {
@@ -392,13 +604,6 @@ const finishRename = () => {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 14px;
-}
-
-.menu-item-actions {
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin-left: 8px;
 }
 
 .item-menu {

@@ -68,15 +68,46 @@ export function parseSchemaJson<T>(
 }
 
 // AIGC 检测相关 Schema
+// 统一方向：所有维度均为 0-10，分数越高表示该维度上越像 AIGC、风险越大（无反向指标）
 export interface AigcDimensionScore {
-  sentence_uniformity: number; // 0-10
-  lexical_diversity: number; // 0-10
-  reasoning_smoothness: number; // 0-10
-  personal_trace: number; // 0-10
-  stylistic_risk: number; // 0-10
-  over_explanation: number; // 0-10
-  hedging_pattern: number; // 0-10
+  sentence_uniformity: number;
+  /** 词汇重复/保守程度，10=重复保守=高 AIGC 风险（勿与“多样性”混淆：高分=低多样性=风险） */
+  lexical_diversity: number;
+  reasoning_smoothness: number;
+  personal_trace: number;
+  stylistic_risk: number;
+  over_explanation: number;
+  hedging_pattern: number;
+  // 新增：更细致地判断 AIGC 可能性
+  opening_transition_pattern: number;  // 开头与过渡语模板化（首先、其次、综上所述等）
+  structural_repetition: number;        // 结构重复（段落/句式过于规整）
+  abstractness: number;                // 抽象与空洞（缺乏具体例证）
+  emotional_flatness: number;          // 情感平淡（缺乏情绪起伏）
+  formulaic_closure: number;           // 套路化收尾（总结/展望/建议三板斧）
 }
+
+/** 各维度权重（用于加权计算总体风险），权重越高该维度对 AIGC 判定的影响越大 */
+export const AIGC_DIMENSION_WEIGHTS: Record<keyof AigcDimensionScore, number> = {
+  sentence_uniformity: 1.0,
+  lexical_diversity: 1.0,
+  reasoning_smoothness: 1.0,
+  personal_trace: 1.15,
+  stylistic_risk: 1.2,
+  over_explanation: 1.2,
+  hedging_pattern: 1.0,
+  opening_transition_pattern: 1.15,
+  structural_repetition: 1.1,
+  abstractness: 1.1,
+  emotional_flatness: 1.05,
+  formulaic_closure: 1.15
+}
+
+/** 高分放大：幂次（>1 时高分维度对基础分放大更明显） */
+export const AIGC_POWER_MEAN_P = 1.5
+/** 一票否决阈值：任一维度 ≥ 该值时触发额外加分 */
+export const AIGC_VETO_THRESHOLD = 7
+/** 一票否决加分系数：bonus = AIGC_VETO_BONUS_FACTOR * (max - threshold)^2 */
+export const AIGC_VETO_BONUS_FACTOR = 5
 
 export interface AigcAnalysisResult extends AigcDimensionScore {
   overall_aigc_risk: number; // 0-100
@@ -85,8 +116,8 @@ export interface AigcAnalysisResult extends AigcDimensionScore {
 }
 
 export const AIGC_ANALYSIS_SCHEMA: SchemaDefinition<AigcAnalysisResult> = {
-  name: 'aigc_analysis_schema_v1',
-  description: 'AIGC风格风险评估结果',
+  name: 'aigc_analysis_schema_v2',
+  description: 'AIGC风格风险评估结果（多维度加权）',
   schema: {
     type: 'object',
     required: [
@@ -97,6 +128,11 @@ export const AIGC_ANALYSIS_SCHEMA: SchemaDefinition<AigcAnalysisResult> = {
       'stylistic_risk',
       'over_explanation',
       'hedging_pattern',
+      'opening_transition_pattern',
+      'structural_repetition',
+      'abstractness',
+      'emotional_flatness',
+      'formulaic_closure',
       'overall_aigc_risk',
       'risk_level',
       'concise_suggestions'
@@ -104,43 +140,73 @@ export const AIGC_ANALYSIS_SCHEMA: SchemaDefinition<AigcAnalysisResult> = {
     properties: {
       sentence_uniformity: {
         type: 'number',
-        description: '句式统一性评分（0-10，10表示高度统一）',
+        description: '句式统一性评分（0-10，10表示越统一，AIGC风险越高）',
         minimum: 0,
         maximum: 10
       },
       lexical_diversity: {
         type: 'number',
-        description: '词汇多样性评分（0-10，10表示词汇重复、保守）',
+        description: '词汇重复/保守程度评分（0-10，10表示词汇越重复、保守，AIGC风险越高）',
         minimum: 0,
         maximum: 10
       },
       reasoning_smoothness: {
         type: 'number',
-        description: '逻辑平滑度评分（0-10，10表示过于平滑）',
+        description: '逻辑平滑度评分（0-10，10表示越平滑，AIGC风险越高）',
         minimum: 0,
         maximum: 10
       },
       personal_trace: {
         type: 'number',
-        description: '个人思考痕迹评分（0-10，10表示缺乏个人痕迹）',
+        description: '个人思考痕迹缺失程度（0-10，10表示越缺乏个人痕迹，AIGC风险越高）',
         minimum: 0,
         maximum: 10
       },
       stylistic_risk: {
         type: 'number',
-        description: '风格风险评分（0-10，10表示高度符合AIGC模板）',
+        description: '风格风险评分（0-10，10表示越符合AIGC模板，风险越高）',
         minimum: 0,
         maximum: 10
       },
       over_explanation: {
         type: 'number',
-        description: '过度解释评分（0-10，10表示教科书式解释）',
+        description: '过度解释评分（0-10，10表示越教科书式解释，AIGC风险越高）',
         minimum: 0,
         maximum: 10
       },
       hedging_pattern: {
         type: 'number',
-        description: '模糊限定词使用评分（0-10，10表示大量使用）',
+        description: '模糊限定词使用评分（0-10，10表示使用越多，AIGC风险越高）',
+        minimum: 0,
+        maximum: 10
+      },
+      opening_transition_pattern: {
+        type: 'number',
+        description: '过渡语模板化评分（0-10，10表示模板化过渡越多，AIGC风险越高）',
+        minimum: 0,
+        maximum: 10
+      },
+      structural_repetition: {
+        type: 'number',
+        description: '结构重复评分（0-10，10表示结构越规整重复，AIGC风险越高）',
+        minimum: 0,
+        maximum: 10
+      },
+      abstractness: {
+        type: 'number',
+        description: '抽象与空洞评分（0-10，10表示越泛泛而谈、缺乏例证，AIGC风险越高）',
+        minimum: 0,
+        maximum: 10
+      },
+      emotional_flatness: {
+        type: 'number',
+        description: '情感平淡评分（0-10，10表示越缺乏情绪起伏，AIGC风险越高）',
+        minimum: 0,
+        maximum: 10
+      },
+      formulaic_closure: {
+        type: 'number',
+        description: '套路化收尾评分（0-10，10表示结尾越套路化，AIGC风险越高）',
         minimum: 0,
         maximum: 10
       },
@@ -172,7 +238,12 @@ export const AIGC_ANALYSIS_SCHEMA: SchemaDefinition<AigcAnalysisResult> = {
     stylistic_risk: 8,
     over_explanation: 7,
     hedging_pattern: 6,
-    overall_aigc_risk: 78,
+    opening_transition_pattern: 7,
+    structural_repetition: 6,
+    abstractness: 5,
+    emotional_flatness: 7,
+    formulaic_closure: 8,
+    overall_aigc_risk: 72,
     risk_level: 'HIGH',
     concise_suggestions: [
       '增加具体研究背景或个人判断',

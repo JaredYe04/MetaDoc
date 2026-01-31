@@ -2795,12 +2795,14 @@ function bindSystemHandlers(): void {
           ? buildAttachmentHtml(att.filename, att.mime, att.content_base64)
           : Buffer.from(att.content_base64, 'base64').toString('utf8');
         const gistFilename = isImageMime(att.mime) || !isTextMime(att.mime) ? 'view.html' : att.filename;
-        const url = await createGist(
+        const rawUrl = await createGist(
           gistToken,
           { [gistFilename]: { content } },
           `MetaDoc feedback attachment: ${att.filename}`
         );
-        attachmentUrls.push(url.slice(0, WORKFLOW_INPUT_MAX));
+        // 使用 raw.githack.com 代理，使 HTML 以 text/html 返回，点击链接时浏览器会渲染页面（图片或下载页）
+        const displayUrl = rawUrl.replace('https://gist.githubusercontent.com/', 'https://raw.githack.com/');
+        attachmentUrls.push(displayUrl.slice(0, WORKFLOW_INPUT_MAX));
         sender.send('feedback-attachment-uploaded', i);
       }
     } catch (e) {

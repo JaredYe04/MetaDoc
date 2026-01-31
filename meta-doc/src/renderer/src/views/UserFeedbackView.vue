@@ -68,6 +68,7 @@
                   :alt="att.filename"
                 />
                 <span v-else class="attachment-name">{{ att.filename }}</span>
+                <el-icon v-if="uploadedAttachmentIndices.includes(index)" class="attachment-uploaded-check" title="已上传到 Gist"><Check /></el-icon>
                 <el-icon v-if="isImageMime(att.mime)" class="attachment-preview-hint"><View /></el-icon>
                 <el-icon
                   v-show="!submitting"
@@ -122,7 +123,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import type { UploadFile, UploadInstance } from 'element-plus'
-import { View, CircleClose } from '@element-plus/icons-vue'
+import { View, CircleClose, Check } from '@element-plus/icons-vue'
 import * as monaco from 'monaco-editor'
 import { themeState } from '../utils/themes'
 import { getAppVersion } from '../utils/version'
@@ -158,6 +159,8 @@ const uploadRef = ref<UploadInstance>()
 const bodyFromEditor = ref('')
 const showImagePreview = ref(false)
 const previewImageUrl = ref('')
+/** 提交过程中已成功上传到 Gist 的附件索引，用于显示打勾 */
+const uploadedAttachmentIndices = ref<number[]>([])
 
 const containerStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
@@ -421,6 +424,7 @@ async function handleSubmit() {
     return
   }
   submitting.value = true
+  uploadedAttachmentIndices.value = []
   try {
     const ipc = (window as any).electron?.ipcRenderer ?? (window as any).ipcRenderer
     if (!ipc?.invoke) {
@@ -451,7 +455,16 @@ async function handleSubmit() {
   }
 }
 
+let feedbackAttachmentUploadedHandler: ((_e: any, index: number) => void) | null = null
+
 onMounted(async () => {
+  const ipc = (window as any).electron?.ipcRenderer ?? (window as any).ipcRenderer
+  if (ipc?.on) {
+    feedbackAttachmentUploadedHandler = (_e: any, index: number) => {
+      uploadedAttachmentIndices.value = [...uploadedAttachmentIndices.value, index]
+    }
+    ipc.on('feedback-attachment-uploaded', feedbackAttachmentUploadedHandler)
+  }
   setupMonacoWorker()
   if (!editorContainer.value) return
   const template = await buildBodyTemplate()
@@ -488,6 +501,11 @@ watch(submitting, (v) => {
 })
 
 onBeforeUnmount(() => {
+  const ipc = (window as any).electron?.ipcRenderer ?? (window as any).ipcRenderer
+  if (ipc?.removeListener && feedbackAttachmentUploadedHandler) {
+    ipc.removeListener('feedback-attachment-uploaded', feedbackAttachmentUploadedHandler)
+    feedbackAttachmentUploadedHandler = null
+  }
   if (editor) {
     editor.dispose()
     editor = null
@@ -641,5 +659,11 @@ onBeforeUnmount(() => {
 
 .attachment-remove:hover {
   color: var(--el-color-danger);
+}
+
+.attachment-uploaded-check {
+  font-size: 16px;
+  margin-left: 4px;
+  color: var(--el-color-success);
 }
 </style>

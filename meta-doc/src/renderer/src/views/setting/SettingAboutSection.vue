@@ -18,6 +18,11 @@
           <span class="env-label">{{ $t('setting.about.buildEnvironment') }}:</span>
           <span class="env-value">{{ buildEnvironment }}</span>
         </div>
+        <div class="feedback-entry">
+          <el-button type="primary" plain @click="openFeedbackTab">
+            {{ $t('setting.about.feedback') }}
+          </el-button>
+        </div>
       </div>
     </div>
 
@@ -149,6 +154,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getAppVersion } from '../../utils/version';
+import { useWorkspace } from '../../stores/workspace';
 import { setSetting, getSetting } from '../../utils/settings';
 import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer';
 import { isDevEnvironment } from '../../utils/dev-env';
@@ -156,6 +162,11 @@ import logo from '../../assets/logo.svg';
 import openSourceLicensesText from '../../assets/open-source-licenses.txt?raw';
 import thirdPartyAssetsText from '../../assets/third-party-assets.txt?raw';
 const { t } = useI18n();
+const workspace = useWorkspace();
+
+function openFeedbackTab() {
+  workspace.openSystemTab('/user-feedback', t('leftMenu.userFeedback') || t('userFeedback.title') || '用户反馈');
+}
 
 let ipcRenderer: any = null;
 if (window && window.electron) {
@@ -445,6 +456,10 @@ onUnmounted(() => {
 .env-value {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   color: var(--el-text-color-primary);
+}
+
+.feedback-entry {
+  margin-top: 16px;
 }
 
 .about-tabs {

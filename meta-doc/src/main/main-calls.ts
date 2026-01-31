@@ -2640,6 +2640,229 @@ function bindSystemHandlers(): void {
     }
   });
 
+  // 获取系统信息（用于用户反馈模板）
+  ipcMain.handle('get-system-info', async (event: IpcMainInvokeEvent): Promise<{ os: string; cpu: string; gpu: string; ram: string }> => {
+    try {
+      const platform = process.platform;
+      const release = os.release();
+      let osStr = `${platform} ${release}`;
+      if (platform === 'win32') osStr = `Windows ${release}`;
+      else if (platform === 'darwin') osStr = `macOS ${release}`;
+      else if (platform === 'linux') osStr = `Linux ${release}`;
+
+      const cpus = os.cpus();
+      const cpuModel = cpus.length > 0 ? cpus[0].model : 'Unknown';
+      const cpuStr = `${cpuModel} (${cpus.length} cores)`;
+
+      const totalBytes = os.totalmem();
+      const ramStr = `${(totalBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+
+      let gpuStr = 'N/A';
+      try {
+        if (platform === 'win32') {
+          const { execSync } = require('child_process');
+          const out = execSync('wmic path win32_VideoController get Name', { encoding: 'utf8', maxBuffer: 1024 * 1024 });
+          const lines = out.split('\n').map((l: string) => l.trim()).filter((l: string) => l && l !== 'Name');
+          if (lines.length > 0) gpuStr = lines[0];
+        }
+      } catch (_) {
+        // keep N/A
+      }
+
+      return { os: osStr, cpu: cpuStr, gpu: gpuStr, ram: ramStr };
+    } catch (error) {
+      logger.error('获取系统信息失败:', error);
+      return { os: 'Unknown', cpu: 'Unknown', gpu: 'N/A', ram: 'N/A' };
+    }
+  });
+
+  // workflow_dispatch 每个 input 最大 1024 字符，故正文和附件先上传到 Gist，再传 URL
+  const WORKFLOW_INPUT_MAX = 1024;
+
+  async function createGist(token: string, files: Record<string, { content: string }>, description: string): Promise<string> {
+    const body = JSON.stringify({ description, public: false, files });
+    return new Promise((resolve, reject) => {
+      const req = https.request(
+        'https://api.github.com/gists',
+        {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': `Bearer ${token}`,
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'MetaDoc-Feedback/1.0',
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(body, 'utf8')
+          }
+        },
+        (res) => {
+          let data = '';
+          res.on('data', (chunk) => { data += chunk; });
+          res.on('end', () => {
+            if (res.statusCode === 201) {
+              try {
+                const json = JSON.parse(data);
+                const firstFile = json.files && Object.values(json.files)[0] as { raw_url?: string };
+                resolve(firstFile?.raw_url || '');
+              } catch {
+                reject(new Error('Gist 响应解析失败'));
+              }
+            } else {
+              reject(new Error(`Gist API ${res.statusCode}: ${data || res.statusMessage}`));
+            }
+          });
+        }
+      );
+      req.on('error', reject);
+      req.write(body, 'utf8');
+      req.end();
+    });
+  }
+
+  // 触发用户反馈工作流（先上传正文/附件到 Gist，再 workflow_dispatch 传 URL）
+  ipcMain.handle('trigger-feedback-workflow', async (
+    event: IpcMainInvokeEvent,
+    payload: { title: string; type: string; body: string; attachments: string }
+  ): Promise<void> => {
+    const token = process.env.GITHUB_FEEDBACK_TOKEN;
+    const gistToken = process.env.GITHUB_FEEDBACK_GIST_TOKEN;
+    const owner = process.env.GITHUB_FEEDBACK_REPO_OWNER || process.env.UPDATE_GITHUB_OWNER;
+    const repo = process.env.GITHUB_FEEDBACK_REPO || 'MetaDoc';
+    if (!token) {
+      throw new Error('GITHUB_FEEDBACK_TOKEN is not configured. Please add it to .env.');
+    }
+    if (!gistToken) {
+      throw new Error('GITHUB_FEEDBACK_GIST_TOKEN is not configured. Please add it to .env (Gist 专用，仅需 gist 权限).');
+    }
+    if (!owner) {
+      throw new Error('GITHUB_FEEDBACK_REPO_OWNER or UPDATE_GITHUB_OWNER is not set.');
+    }
+
+    const title = payload.title.slice(0, WORKFLOW_INPUT_MAX);
+    const type = payload.type;
+
+    let bodyUrl = '';
+    try {
+      bodyUrl = await createGist(
+        gistToken,
+        { 'feedback-body.md': { content: payload.body } },
+        'MetaDoc feedback body'
+      );
+    } catch (e) {
+      logger.error('上传反馈正文到 Gist 失败', e);
+      throw new Error('上传反馈正文失败，请检查 GITHUB_FEEDBACK_GIST_TOKEN 是否有效且具备 gist 权限。');
+    }
+    bodyUrl = bodyUrl.slice(0, WORKFLOW_INPUT_MAX);
+
+    const attachmentUrls: string[] = [];
+    const sender = event.sender;
+    const isImageMime = (m: string) => /^image\//.test(m);
+    function escapeHtml(s: string): string {
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+    function buildAttachmentHtml(filename: string, mime: string, contentBase64: string): string {
+      const safeName = escapeHtml(filename);
+      const dataUrl = `data:${mime};base64,${contentBase64}`;
+      if (isImageMime(mime)) {
+        return [
+          '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + safeName + '</title>',
+          '<meta name="viewport" content="width=device-width,initial-scale=1">',
+          '</head><body style="margin:0;background:#1e1e1e;min-height:100vh;display:flex;align-items:center;justify-content:center;">',
+          '<img src="' + dataUrl + '" style="max-width:100%;max-height:100vh;object-fit:contain;" alt="' + safeName + '"/>',
+          '</body></html>'
+        ].join('');
+      }
+      const downloadAttr = filename.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      return [
+        '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + safeName + '</title>',
+        '</head><body style="font-family:sans-serif;padding:1rem;">',
+        '<p><a href="' + dataUrl + '" download="' + downloadAttr + '" style="font-size:1.1rem;">下载 ' + safeName + '</a></p>',
+        '<p style="color:#666;font-size:0.9rem;">若未自动下载，请右键链接选择“另存为”。</p>',
+        '</body></html>'
+      ].join('');
+    }
+    try {
+      const attachments = JSON.parse(payload.attachments || '[]') as Array<{ filename: string; mime: string; content_base64: string }>;
+      const isTextMime = (m: string) => /^text\//.test(m) || m === 'application/json' || m === 'application/xml';
+      for (let i = 0; i < Math.min(5, attachments.length); i++) {
+        const att = attachments[i];
+        const content = isImageMime(att.mime) || !isTextMime(att.mime)
+          ? buildAttachmentHtml(att.filename, att.mime, att.content_base64)
+          : Buffer.from(att.content_base64, 'base64').toString('utf8');
+        const gistFilename = isImageMime(att.mime) || !isTextMime(att.mime) ? 'view.html' : att.filename;
+        const url = await createGist(
+          gistToken,
+          { [gistFilename]: { content } },
+          `MetaDoc feedback attachment: ${att.filename}`
+        );
+        attachmentUrls.push(url.slice(0, WORKFLOW_INPUT_MAX));
+        sender.send('feedback-attachment-uploaded', i);
+      }
+    } catch (e) {
+      logger.warn('上传部分附件到 Gist 失败', e);
+    }
+
+    const workflowId = 'user-feedback.yml';
+    const url = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches`;
+    const inputs: Record<string, string> = {
+      title,
+      type,
+      body_url: bodyUrl,
+      attachment_url_1: attachmentUrls[0] || '',
+      attachment_url_2: attachmentUrls[1] || '',
+      attachment_url_3: attachmentUrls[2] || '',
+      attachment_url_4: attachmentUrls[3] || '',
+      attachment_url_5: attachmentUrls[4] || ''
+    };
+    const body = JSON.stringify({ ref: 'main', inputs });
+    return new Promise((resolve, reject) => {
+      const req = https.request(
+        url,
+        {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': `Bearer ${token}`,
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'MetaDoc-Feedback/1.0',
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(body, 'utf8')
+          }
+        },
+        (res) => {
+          if (res.statusCode === 204) {
+            resolve();
+          } else {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+              const msg = data || res.statusMessage || '';
+              if (res.statusCode === 403 && msg.includes('personal access token')) {
+                reject(new Error(
+                  'GITHUB_FEEDBACK_TOKEN 权限不足。请使用具有 workflow 权限的 Classic PAT。详见：https://docs.github.com/rest/actions/workflows#create-a-workflow-dispatch-event'
+                ));
+              } else if (res.statusCode === 422 && msg.includes('inputs are too large')) {
+                reject(new Error(
+                  '反馈内容或附件过大，已改为通过 Gist 上传。若仍报错，请检查 GITHUB_FEEDBACK_GIST_TOKEN 是否已配置且具备 gist 权限。'
+                ));
+              } else {
+                reject(new Error(`GitHub API ${res.statusCode}: ${msg}`));
+              }
+            });
+          }
+        }
+      );
+      req.on('error', reject);
+      req.write(body, 'utf8');
+      req.end();
+    });
+  });
+
   // 获取资源路径
   ipcMain.handle('get-resources-path', async (event: IpcMainInvokeEvent): Promise<string> => {
     return getResourcesPath();

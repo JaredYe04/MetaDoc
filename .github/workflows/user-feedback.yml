@@ -1,0 +1,133 @@
+# 用户反馈：由客户端触发，正文与附件先上传到 Gist，此处只接收 URL（workflow_dispatch 单 input 限 1024 字符）
+name: User Feedback (Create Issue)
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: "Issue title"
+        required: true
+        type: string
+      type:
+        description: "bug | feature | security | other"
+        required: true
+        type: choice
+        options:
+          - bug
+          - feature
+          - security
+          - other
+      body_url:
+        description: "Raw URL of feedback body (Gist)"
+        required: true
+        type: string
+      attachment_url_1:
+        description: "Attachment URL 1 (optional)"
+        required: false
+        type: string
+        default: ""
+      attachment_url_2:
+        description: "Attachment URL 2 (optional)"
+        required: false
+        type: string
+        default: ""
+      attachment_url_3:
+        description: "Attachment URL 3 (optional)"
+        required: false
+        type: string
+        default: ""
+      attachment_url_4:
+        description: "Attachment URL 4 (optional)"
+        required: false
+        type: string
+        default: ""
+      attachment_url_5:
+        description: "Attachment URL 5 (optional)"
+        required: false
+        type: string
+        default: ""
+
+env:
+  RELEASE_REPO_OWNER: ${{ github.repository_owner }}
+  RELEASE_REPO: MetaDoc-Releases
+
+jobs:
+  create-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Fetch body from Gist
+        id: fetch_body
+        run: |
+          BODY_URL="${{ github.event.inputs.body_url }}"
+          if [ -z "$BODY_URL" ]; then
+            echo 'body_content<<ENDBODY' >> $GITHUB_OUTPUT
+            echo "*(正文 URL 为空)*" >> $GITHUB_OUTPUT
+            echo 'ENDBODY' >> $GITHUB_OUTPUT
+          else
+            BODY=$(curl -sL "$BODY_URL" || echo "*(获取正文失败)*")
+            echo 'body_content<<ENDBODY' >> $GITHUB_OUTPUT
+            echo "$BODY" >> $GITHUB_OUTPUT
+            echo 'ENDBODY' >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build attachment links
+        id: attachments
+        run: |
+          LINKS=""
+          U1="${{ github.event.inputs.attachment_url_1 }}"
+          U2="${{ github.event.inputs.attachment_url_2 }}"
+          U3="${{ github.event.inputs.attachment_url_3 }}"
+          U4="${{ github.event.inputs.attachment_url_4 }}"
+          U5="${{ github.event.inputs.attachment_url_5 }}"
+          n=1
+          for url in "$U1" "$U2" "$U3" "$U4" "$U5"; do
+            if [ -n "$url" ]; then
+              LINKS="${LINKS}- [附件 $n]($url)
+"
+              n=$((n+1))
+            fi
+          done
+          if [ -n "$LINKS" ]; then
+            echo 'attachment_section<<ENDSEC' >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "### 附件" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "$LINKS" >> $GITHUB_OUTPUT
+            echo 'ENDSEC' >> $GITHUB_OUTPUT
+          else
+            echo "attachment_section=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Issue in MetaDoc-Releases
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GH_TOKEN }}
+          script: |
+            const labels = {
+              bug: ['bug'],
+              feature: ['enhancement'],
+              security: ['security'],
+              other: ['feedback']
+            }
+            const type = core.getInput('type') || 'other'
+            const owner = process.env.RELEASE_REPO_OWNER
+            const repo = process.env.RELEASE_REPO
+            const bodyContent = process.env.BODY_CONTENT || ''
+            const attachmentSection = process.env.ATTACHMENT_SECTION || ''
+            const body = (bodyContent + '\n\n' + attachmentSection).trim() || '(无正文)'
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title: core.getInput('title'),
+              body,
+              labels: labels[type] || ['feedback']
+            })
+        env:
+          RELEASE_REPO_OWNER: ${{ env.RELEASE_REPO_OWNER }}
+          RELEASE_REPO: ${{ env.RELEASE_REPO }}
+          BODY_CONTENT: ${{ steps.fetch_body.outputs.body_content }}
+          ATTACHMENT_SECTION: ${{ steps.attachments.outputs.attachment_section }}

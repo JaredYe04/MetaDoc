@@ -85,7 +85,8 @@
             "hidden": "隐藏",
             "reset": "重置",
             "save": "保存"
-        }
+        },
+        "userFeedback": "用户反馈"
     },
     "llmDialog": {
         "aiAssistant": "AI助手",
@@ -1438,6 +1439,7 @@
             "buildEnvironment": "构建环境",
             "buildEnvironmentDev": "开发版",
             "buildEnvironmentRelease": "正式版",
+            "feedback": "用户反馈",
             "updateSettings": "更新设置",
             "autoCheckUpdates": "自动检查更新",
             "updateChannel": "更新渠道",
@@ -2985,6 +2987,52 @@
     "clearFailed": "清空统计数据失败",
     "confirm": "确认",
     "cancel": "取消"
+  },
+  "userFeedback": {
+    "title": "用户反馈",
+    "feedbackType": "反馈类型",
+    "selectType": "请选择类型",
+    "types": {
+      "bug": "BUG 反馈",
+      "feature": "功能建议",
+      "security": "安全性反馈",
+      "other": "其他"
+    },
+    "titleLabel": "标题",
+    "titlePlaceholder": "请简要描述问题或建议",
+    "bodyLabel": "详细描述",
+    "attachments": "附件 / 截图",
+    "addAttachment": "添加附件",
+    "attachmentRules": "单个附件 ≤ 10 MB，总大小 ≤ 50 MB，最多 5 个。类型不限，以 Gist 能力为准。",
+    "submit": "提交反馈",
+    "submitting": "提交中…",
+    "submitSuccess": "反馈已提交，感谢您的反馈！",
+    "submitFailed": "提交失败",
+    "footerHint": "您也可以通过以下方式反馈：",
+    "emailHint": "发送邮件至：",
+    "qqGroupHint": "加入 QQ 群：",
+    "copied": "已复制到剪贴板",
+    "copyFailed": "复制失败",
+    "template": {
+      "systemInfo": "系统信息",
+      "describeProblemTitle": "描述问题",
+      "describeProblem": "请尽量清晰精准地描述你碰到的问题。",
+      "expectedResultTitle": "期待的结果",
+      "expectedResult": "请尽量清晰精准地描述你所期待的结果。",
+      "otherInfoTitle": "其他信息",
+      "otherInfo": "请提供其他附加信息帮助我们诊断问题。",
+      "contactTitle": "您的联系方式（可选）",
+      "contactOptional": "请提供您的联系方式，方便我们后续跟进。"
+    },
+    "errors": {
+      "titleRequired": "请填写标题",
+      "bodyRequired": "请填写详细描述",
+      "tooManyFiles": "最多上传 {max} 个附件",
+      "singleFileTooLarge": "单个附件不能超过 {max}",
+      "totalTooLarge": "附件总大小不能超过 {max}",
+      "invalidFile": "文件无效",
+      "noIpc": "当前环境无法提交反馈"
+    }
   },
   "export": {
     "options": {

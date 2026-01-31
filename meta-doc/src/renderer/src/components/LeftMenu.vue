@@ -309,6 +309,15 @@
           {{ $t('bottomMenu.llmStatistics', 'LLM统计') }}
         </UISubMenuItem>
 
+        <!-- 用户反馈：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
+        <UISubMenuItem 
+          v-if="!isMenuItemVisible('user-feedback')"
+          :iconImage="(themeState.currentTheme as any).FeedbackIcon"
+          @click="openUserFeedback"
+        >
+          {{ $t('leftMenu.userFeedback', '用户反馈') }}
+        </UISubMenuItem>
+
         <UISubMenuItem :icon="Grid" @click="openMenuConfigDialog">
           {{ $t('leftMenu.menuConfig.title', '菜单配置') }}
         </UISubMenuItem>
@@ -682,6 +691,15 @@
           {{ $t('bottomMenu.llmStatistics', 'LLM统计') }}
         </UISubMenuItem>
 
+        <!-- 用户反馈：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
+        <UISubMenuItem 
+          v-if="!isMenuItemVisible('user-feedback')"
+          :iconImage="(themeState.currentTheme as any).FeedbackIcon"
+          @click="openUserFeedback"
+        >
+          {{ $t('leftMenu.userFeedback', '用户反馈') }}
+        </UISubMenuItem>
+
         <UISubMenuItem :icon="Grid" @click="openMenuConfigDialog">
           {{ $t('leftMenu.menuConfig.title', '菜单配置') }}
         </UISubMenuItem>
@@ -823,6 +841,7 @@ const menuConfigItems = computed<MenuConfigItem[]>(() => {
     { id: 'debug', label: t('leftMenu.debugTools', '调试工具'), iconImage: (themeState.currentTheme as any).DebugIcon, visible: isDev.value, isCore: false, position: 'top' },
     { id: 'more-features', label: t('leftMenu.moreFeatures', '更多功能'), iconImage: (themeState.currentTheme as any).MoreIcon, visible: true, isCore: true, position: 'top' },
     { id: 'llm-statistics', label: t('bottomMenu.llmStatistics', 'LLM统计'), icon: DataAnalysis, visible: false, isCore: false, position: 'top' },
+    { id: 'user-feedback', label: t('leftMenu.userFeedback', '用户反馈'), iconImage: (themeState.currentTheme as any).FeedbackIcon, visible: false, isCore: false, position: 'top' },
     { id: 'home', label: t('leftMenu.home', '主页'), icon: House, visible: true, isCore: true, position: 'bottom' },
     { id: 'user-profile', label: t('leftMenu.userProfileTooltip', '用户资料'), icon: UserFilled, visible: true, isCore: true, position: 'bottom' },
     { id: 'exit', label: t('leftMenu.exit'), icon: SwitchButton, visible: true, isCore: true, position: 'bottom' },
@@ -1023,6 +1042,11 @@ const openDebugTools = () => {
 // 打开 LLM 统计
 const openLlmStatistics = () => {
   workspace.openSystemTab('/llm-statistics', t('bottomMenu.llmStatistics', 'LLM统计'))
+}
+
+// 打开用户反馈
+const openUserFeedback = () => {
+  workspace.openSystemTab('/user-feedback', t('leftMenu.userFeedback', '用户反馈'))
 }
 
 // 更新全局 CSS 变量以匹配 active 背景色

@@ -43,15 +43,16 @@
               ref="uploadRef"
               :auto-upload="false"
               :limit="5"
+              multiple
               :show-file-list="false"
-              :disabled="submitting"
+              :disabled="submitting || attachmentBase64List.length >= MAX_ATTACHMENTS"
               :on-change="handleFileChange"
               :on-exceed="handleExceed"
               :on-remove="handleRemove"
               :file-list="fileList"
-              accept="image/*,.png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.md,.log"
+              accept="*/*"
             >
-              <el-button type="primary" plain :disabled="submitting">{{ $t('userFeedback.addAttachment') }}</el-button>
+              <el-button type="primary" plain :disabled="submitting || attachmentBase64List.length >= MAX_ATTACHMENTS">{{ $t('userFeedback.addAttachment') }}</el-button>
             </el-upload>
             <div v-if="attachmentBase64List.length > 0" class="attachment-list">
               <div
@@ -130,9 +131,12 @@ import { getAppVersion } from '../utils/version'
 import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import ImagePreviewDialog from '../components/common/ImagePreviewDialog.vue'
 
-const SINGLE_FILE_MAX_BYTES = 1 * 1024 * 1024   // 1 MB
-const TOTAL_ATTACHMENTS_MAX_BYTES = 4 * 1024 * 1024  // 4 MB
+// 与 Gist 能力一致：单文件 raw 可至约 10 MB，最多 5 个附件
+const SINGLE_FILE_MAX_BYTES = 10 * 1024 * 1024   // 10 MB
+const TOTAL_ATTACHMENTS_MAX_BYTES = 50 * 1024 * 1024  // 50 MB (5 × 10 MB)
 const MAX_ATTACHMENTS = 5
+const SINGLE_FILE_MAX_LABEL = '10 MB'
+const TOTAL_MAX_LABEL = '50 MB'
 
 const { t } = useI18n()
 
@@ -191,14 +195,12 @@ async function buildBodyTemplate(): Promise<string> {
   const sysBlockWithVersion = sysBlock + metaVersion + '\n\n'
   const desc = t('userFeedback.template.describeProblem')
   const expected = t('userFeedback.template.expectedResult')
-  const screenshot = t('userFeedback.template.screenshotOrVideo')
   const other = t('userFeedback.template.otherInfo')
   const contact = t('userFeedback.template.contactOptional')
   return (
     sysBlockWithVersion +
     `### ${t('userFeedback.template.describeProblemTitle')}\n\n<!-- ${desc} -->\n\n` +
     `### ${t('userFeedback.template.expectedResultTitle')}\n\n<!-- ${expected} -->\n\n` +
-    `### ${t('userFeedback.template.screenshotTitle')}\n\n<!-- ${screenshot} -->\n\n` +
     `### ${t('userFeedback.template.otherInfoTitle')}\n\n<!-- ${other} -->\n\n` +
     `### ${t('userFeedback.template.contactTitle')}\n\n<!-- ${contact} -->`
   )
@@ -258,7 +260,6 @@ async function injectSystemInfoFromMain(): Promise<void> {
   const tail = [
     `### ${t('userFeedback.template.describeProblemTitle')}\n\n<!-- ${t('userFeedback.template.describeProblem')} -->\n\n`,
     `### ${t('userFeedback.template.expectedResultTitle')}\n\n<!-- ${t('userFeedback.template.expectedResult')} -->\n\n`,
-    `### ${t('userFeedback.template.screenshotTitle')}\n\n<!-- ${t('userFeedback.template.screenshotOrVideo')} -->\n\n`,
     `### ${t('userFeedback.template.otherInfoTitle')}\n\n<!-- ${t('userFeedback.template.otherInfo')} -->\n\n`,
     `### ${t('userFeedback.template.contactTitle')}\n\n<!-- ${t('userFeedback.template.contactOptional')} -->`
   ].join('')
@@ -286,7 +287,7 @@ function validateAttachments(): boolean {
     try {
       const bin = atob(a.content_base64)
       if (bin.length > SINGLE_FILE_MAX_BYTES) {
-        attachmentsError.value = t('userFeedback.errors.singleFileTooLarge', { max: '1 MB' })
+        attachmentsError.value = t('userFeedback.errors.singleFileTooLarge', { max: SINGLE_FILE_MAX_LABEL })
         return false
       }
     } catch {
@@ -296,7 +297,7 @@ function validateAttachments(): boolean {
   }
   const total = totalAttachmentBytes()
   if (total > TOTAL_ATTACHMENTS_MAX_BYTES) {
-    attachmentsError.value = t('userFeedback.errors.totalTooLarge', { max: '4 MB' })
+    attachmentsError.value = t('userFeedback.errors.totalTooLarge', { max: TOTAL_MAX_LABEL })
     return false
   }
   return true
@@ -335,7 +336,7 @@ async function handleFileChange(uploadFile: UploadFile) {
   const raw = uploadFile.raw
   if (!raw) return
   if (raw.size > SINGLE_FILE_MAX_BYTES) {
-    ElMessage.warning(t('userFeedback.errors.singleFileTooLarge', { max: '1 MB' }))
+    ElMessage.warning(t('userFeedback.errors.singleFileTooLarge', { max: SINGLE_FILE_MAX_LABEL }))
     fileList.value = fileList.value.filter(f => f.uid !== uploadFile.uid)
     return
   }
@@ -356,7 +357,7 @@ async function handleFileChange(uploadFile: UploadFile) {
   }
   const total = totalAttachmentBytes()
   if (total > TOTAL_ATTACHMENTS_MAX_BYTES) {
-    attachmentsError.value = t('userFeedback.errors.totalTooLarge', { max: '4 MB' })
+    attachmentsError.value = t('userFeedback.errors.totalTooLarge', { max: TOTAL_MAX_LABEL })
   } else {
     attachmentsError.value = ''
   }

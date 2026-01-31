@@ -12,6 +12,7 @@
             :placeholder="$t('userFeedback.selectType')"
             style="width: 100%"
             :style="{ color: themeState.currentTheme.textColor }"
+            :disabled="submitting"
           >
             <el-option
               v-for="opt in feedbackTypeOptions"
@@ -28,6 +29,7 @@
             :placeholder="$t('userFeedback.titlePlaceholder')"
             maxlength="200"
             show-word-limit
+            :disabled="submitting"
           />
         </el-form-item>
 
@@ -42,13 +44,14 @@
               :auto-upload="false"
               :limit="5"
               :show-file-list="false"
+              :disabled="submitting"
               :on-change="handleFileChange"
               :on-exceed="handleExceed"
               :on-remove="handleRemove"
               :file-list="fileList"
               accept="image/*,.png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.md,.log"
             >
-              <el-button type="primary" plain>{{ $t('userFeedback.addAttachment') }}</el-button>
+              <el-button type="primary" plain :disabled="submitting">{{ $t('userFeedback.addAttachment') }}</el-button>
             </el-upload>
             <div v-if="attachmentBase64List.length > 0" class="attachment-list">
               <div
@@ -67,6 +70,7 @@
                 <span v-else class="attachment-name">{{ att.filename }}</span>
                 <el-icon v-if="isImageMime(att.mime)" class="attachment-preview-hint"><View /></el-icon>
                 <el-icon
+                  v-show="!submitting"
                   class="attachment-remove"
                   @click.stop="removeAttachment(att.filename)"
                 >
@@ -474,6 +478,12 @@ onMounted(async () => {
 watch(() => themeState.currentTheme.type, (type) => {
   if (editor) {
     monaco.editor.setTheme(type === 'dark' ? 'vs-dark' : 'vs')
+  }
+})
+
+watch(submitting, (v) => {
+  if (editor) {
+    editor.updateOptions({ readOnly: v })
   }
 })
 

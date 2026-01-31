@@ -113,7 +113,9 @@ jobs:
               security: ['security'],
               other: ['feedback']
             }
-            const type = core.getInput('type') || 'other'
+            const inputs = github.event.inputs || {}
+            const type = inputs.type || 'other'
+            const title = inputs.title || '(无标题)'
             const owner = process.env.RELEASE_REPO_OWNER
             const repo = process.env.RELEASE_REPO
             const bodyContent = process.env.BODY_CONTENT || ''
@@ -122,7 +124,7 @@ jobs:
             await github.rest.issues.create({
               owner,
               repo,
-              title: core.getInput('title'),
+              title,
               body,
               labels: labels[type] || ['feedback']
             })

@@ -63,7 +63,8 @@
     "discard": "Abandon",
     "tip": "Hint",
     "saveAll": "Save All",
-    "saveAllAndExit": "Save All and Exit"
+    "saveAllAndExit": "Save All and Exit",
+    "userFeedback": "User Feedback"
   },
   "llmDialog": {
     "aiAssistant": "AI Assistant",
@@ -651,6 +652,9 @@
     "customThemeColor": "Custom Theme Color",
     "enabled": "Enabled",
     "disabled": "Disabled",
+    "about": {
+      "feedback": "User Feedback"
+    },
     "microphoneTest": "Microphone Test",
     "microphoneHint": "Check if microphone is working.",
     "excludeCodeBlocks": "Exclude Code Blocks When Counting Text",
@@ -1813,6 +1817,52 @@
     "title": "Word Statistics",
     "tooltip": "Click to see detailed word count",
     "words": "Number of words"
+  },
+  "userFeedback": {
+    "title": "User Feedback",
+    "feedbackType": "Feedback Type",
+    "selectType": "Select type",
+    "types": {
+      "bug": "Bug Report",
+      "feature": "Feature Suggestion",
+      "security": "Security Feedback",
+      "other": "Other"
+    },
+    "titleLabel": "Title",
+    "titlePlaceholder": "Brief description of the issue or suggestion",
+    "bodyLabel": "Details",
+    "attachments": "Attachments / Screenshots",
+    "addAttachment": "Add attachment",
+    "attachmentRules": "Single file ≤ 10 MB, total ≤ 50 MB, max 5 files. Any type (Gist limits).",
+    "submit": "Submit Feedback",
+    "submitting": "Submitting…",
+    "submitSuccess": "Feedback submitted. Thank you!",
+    "submitFailed": "Submit failed",
+    "footerHint": "You can also reach us at:",
+    "emailHint": "Email:",
+    "qqGroupHint": "QQ Group:",
+    "copied": "Copied to clipboard",
+    "copyFailed": "Copy failed",
+    "template": {
+      "systemInfo": "System Information",
+      "describeProblemTitle": "Describe the Problem",
+      "describeProblem": "Please describe the issue as clearly as possible.",
+      "expectedResultTitle": "Expected Result",
+      "expectedResult": "Please describe the expected result.",
+      "otherInfoTitle": "Other Information",
+      "otherInfo": "Any other information that might help.",
+      "contactTitle": "Your Contact (Optional)",
+      "contactOptional": "Contact info for follow-up."
+    },
+    "errors": {
+      "titleRequired": "Please enter a title",
+      "bodyRequired": "Please enter details",
+      "tooManyFiles": "Maximum {max} attachments",
+      "singleFileTooLarge": "Single file must be ≤ {max}",
+      "totalTooLarge": "Total attachments must be ≤ {max}",
+      "invalidFile": "Invalid file",
+      "noIpc": "Feedback not available in this environment"
+    }
   },
   "export": {
     "options": {

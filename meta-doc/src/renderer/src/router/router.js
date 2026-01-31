@@ -20,6 +20,7 @@ import GraphWindow from '../views/GraphWindow.vue'
 import ProofreadView from '../views/ProofreadView.vue'
 import DummyView from '../views/DummyView.vue'
 import LlmStatisticsView from '../views/LlmStatisticsView.vue'
+import UserFeedbackView from '../views/UserFeedbackView.vue'
 
 // 所有页面组件集中管理
 const pages = {
@@ -111,6 +112,12 @@ const routes = [
     path:'/llm-statistics',
     name:'LlmStatistics',
     component: LlmStatisticsView,
+    meta: { requiresLayout: true }
+  },
+  {
+    path:'/user-feedback',
+    name:'UserFeedback',
+    component: UserFeedbackView,
     meta: { requiresLayout: true }
   },
     // 动态生成特殊页面的两种访问路径

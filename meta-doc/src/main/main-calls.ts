@@ -2800,8 +2800,8 @@ function bindSystemHandlers(): void {
           { [gistFilename]: { content } },
           `MetaDoc feedback attachment: ${att.filename}`
         );
-        // 使用 raw.githack.com 代理，使 HTML 以 text/html 返回，点击链接时浏览器会渲染页面（图片或下载页）
-        const displayUrl = rawUrl.replace('https://gist.githubusercontent.com/', 'https://raw.githack.com/');
+        // 使用 gist.githack.com 代理（Gist 专用），使 HTML 以 text/html 返回，点击链接时浏览器会渲染页面（图片或下载页）
+        const displayUrl = rawUrl.replace('https://gist.githubusercontent.com/', 'https://gist.githack.com/');
         attachmentUrls.push(displayUrl.slice(0, WORKFLOW_INPUT_MAX));
         sender.send('feedback-attachment-uploaded', i);
       }

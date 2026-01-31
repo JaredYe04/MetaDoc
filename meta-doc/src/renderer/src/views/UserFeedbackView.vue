@@ -243,7 +243,7 @@ async function injectSystemInfoFromMain(): Promise<void> {
       ].join('\n')
       const before = full.slice(0, idx)
       const newFull = before + newSystem + (rest ? '\n' + rest : '')
-      editor.setValue(newFull)
+      editor?.setValue(newFull)
       return
     }
   }

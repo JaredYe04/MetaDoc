@@ -112,7 +112,7 @@ jobs:
               security: ['security'],
               other: ['feedback']
             }
-            const inputs = github.event.inputs || {}
+            const inputs = context.payload.inputs || {}
             const type = inputs.type || 'other'
             const title = inputs.title || '(无标题)'
             const owner = process.env.RELEASE_REPO_OWNER

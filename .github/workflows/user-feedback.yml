@@ -86,8 +86,7 @@ jobs:
           n=1
           for url in "$U1" "$U2" "$U3" "$U4" "$U5"; do
             if [ -n "$url" ]; then
-              LINKS="${LINKS}- [附件 $n]($url)
-"
+              LINKS="${LINKS}- [附件 $n]($url)"$'\n'
               n=$((n+1))
             fi
           done

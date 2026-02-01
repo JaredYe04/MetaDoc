@@ -653,7 +653,8 @@
     "enabled": "Enabled",
     "disabled": "Disabled",
     "about": {
-      "feedback": "User Feedback"
+      "feedback": "User Feedback",
+      "officialQQGroup": "Official QQ Group"
     },
     "microphoneTest": "Microphone Test",
     "microphoneHint": "Check if microphone is working.",

@@ -317,13 +317,15 @@ jobs:
         id: release_files
         if: steps.should_build.outputs.should_build == 'true'
         run: |
+          # 先上传 AppImage 和 deb，snap 单独上传以避免大文件导致 API 返回 HTML 错误页（invalid json）
           echo "files<<EOF" >> $GITHUB_OUTPUT
           echo "meta-doc/dist/meta-doc-${{ steps.version_info.outputs.clean_version }}.AppImage" >> $GITHUB_OUTPUT
           echo "meta-doc/dist/meta-doc_${{ steps.version_info.outputs.clean_version }}_amd64.deb" >> $GITHUB_OUTPUT
-          echo "meta-doc/dist/meta-doc_${{ steps.version_info.outputs.clean_version }}_amd64.snap" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+          echo "snap_file=meta-doc/dist/meta-doc_${{ steps.version_info.outputs.clean_version }}_amd64.snap" >> $GITHUB_OUTPUT
       
-      - name: 发布到 Releases 仓库
+      - name: 发布到 Releases 仓库（AppImage + deb）
+        id: release
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GH_TOKEN }}
@@ -334,6 +336,38 @@ jobs:
           prerelease: ${{ steps.release_info.outputs.is_prerelease == 'true' }}
           files: ${{ steps.release_files.outputs.files }}
           draft: false
+      
+      - name: 上传 Snap 包（可选，失败不影响发布）
+        if: steps.should_build.outputs.should_build == 'true' && steps.release.outcome == 'success'
+        run: |
+          SNAP_FILE="${{ steps.release_files.outputs.snap_file }}"
+          if [ ! -f "$SNAP_FILE" ]; then
+            echo "⚠️ Snap 文件不存在，跳过上传"
+            exit 0
+          fi
+          # GitHub API 可能对大文件返回 HTML 错误页导致 invalid json，单独上传并允许失败
+          UPLOAD_URL="${{ steps.release.outputs.upload_url }}"
+          # upload_url 可能含 {?name,label} 模板，替换为实际文件名
+          UPLOAD_URL="${UPLOAD_URL%%\{*}"
+          if [[ "$UPLOAD_URL" == *"?"* ]]; then
+            ASSET_URL="${UPLOAD_URL}&name=$(basename "$SNAP_FILE")"
+          else
+            ASSET_URL="${UPLOAD_URL}?name=$(basename "$SNAP_FILE")"
+          fi
+          echo "⬆️ 上传 Snap: $SNAP_FILE"
+          HTTP_CODE=$(curl -sL -o /tmp/snap_upload_resp -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary "@$SNAP_FILE" \
+            "$ASSET_URL")
+          if [ "$HTTP_CODE" = "201" ]; then
+            echo "✅ Snap 上传成功"
+          else
+            echo "⚠️ Snap 上传返回 HTTP $HTTP_CODE，可能因大小/限流导致，Release 已包含 AppImage 与 deb"
+            cat /tmp/snap_upload_resp | head -5
+          fi
+        continue-on-error: true
       
       - name: 保存发布日志
         working-directory: meta-doc

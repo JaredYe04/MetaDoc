@@ -1439,6 +1439,7 @@
             "buildEnvironment": "构建环境",
             "buildEnvironmentDev": "开发版",
             "buildEnvironmentRelease": "正式版",
+            "officialQQGroup": "官方 QQ 群",
             "feedback": "用户反馈",
             "updateSettings": "更新设置",
             "autoCheckUpdates": "自动检查更新",

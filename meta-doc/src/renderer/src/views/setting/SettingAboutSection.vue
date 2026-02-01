@@ -18,6 +18,10 @@
           <span class="env-label">{{ $t('setting.about.buildEnvironment') }}:</span>
           <span class="env-value">{{ buildEnvironment }}</span>
         </div>
+        <div class="qq-group">
+          <span class="qq-label">{{ $t('setting.about.officialQQGroup') }}:</span>
+          <span class="qq-value">1079841705</span>
+        </div>
         <div class="feedback-entry">
           <el-button type="primary" plain @click="openFeedbackTab">
             {{ $t('setting.about.feedback') }}
@@ -436,7 +440,8 @@ onUnmounted(() => {
 
 .version-info,
 .release-date,
-.build-environment {
+.build-environment,
+.qq-group {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -447,13 +452,15 @@ onUnmounted(() => {
 
 .version-label,
 .date-label,
-.env-label {
+.env-label,
+.qq-label {
   font-weight: 500;
 }
 
 .version-value,
 .date-value,
-.env-value {
+.env-value,
+.qq-value {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   color: var(--el-text-color-primary);
 }

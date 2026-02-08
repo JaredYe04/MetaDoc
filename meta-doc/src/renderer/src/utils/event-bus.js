@@ -464,6 +464,13 @@ const normalizeSavePayload = (payload) => {
 }
 
 const save = async (mode = 'save', args, targetTabId) => {
+  const { isSaveInProgress } = await import('./save-guard');
+  isSaveInProgress.value = true;
+  // 保存触发时立即同步编辑器主题，并等待同步完成后再继续，避免保存流程中主题变浅
+  await new Promise((resolve) => {
+    eventBus.emit('sync-editor-theme', { resolve });
+  });
+  try {
   const resolvedTabId = resolveTargetTabId(targetTabId);
   if (resolvedTabId) {
     // 关键修复：同步执行 sync-active-editor，确保内容同步完成后再保存
@@ -496,6 +503,11 @@ const save = async (mode = 'save', args, targetTabId) => {
     ...payload,
     args,
   })
+  } finally {
+    isSaveInProgress.value = false;
+    // 保存完成后显式同步编辑器主题，恢复因保存流程可能导致的主题错误
+    eventBus.emit('sync-editor-theme');
+  }
 }
 //监听save事件
 eventBus.on('save', async (payload) => {

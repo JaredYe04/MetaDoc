@@ -27,23 +27,25 @@
       @resize-start="handleResizeStart"
       @resize-end="handleResizeEnd"
     >
-      <!-- 折叠按钮（在分割线上显示） -->
+      <!-- 折叠按钮（在分割线上显示，仅在鼠标靠近 divider 中心时显示） -->
       <div 
         v-if="collapsible && showCollapseButton"
         class="collapse-button"
-        :class="collapseButtonClass"
+        :class="[collapseButtonClass, { 'collapse-button-visible': showCollapseButtonHover }]"
         @click.stop="toggleCollapse"
+        @mouseenter="handleCollapseButtonEnter"
+        @mouseleave="handleCollapseButtonLeave"
         :title="collapseButtonTitle"
       >
-        <el-icon><ArrowRight v-if="sidebarPosition === 'start'" /><ArrowLeft v-else /></el-icon>
+        <el-icon><ArrowLeft v-if="sidebarOnLeft" /><ArrowRight v-else-if="sidebarPosition === 'start'" /><ArrowLeft v-else /></el-icon>
       </div>
     </ResizableDivider>
 
-    <!-- 侧边内容区域 -->
+    <!-- 侧边内容区域（未折叠时显示，或折叠且 collapsedWidth>0 时显示为窄条） -->
     <div 
-      v-if="showSidebar && !isCollapsed"
+      v-if="showSidebar && (!isCollapsed || collapsedWidth > 0)"
       class="sidebar-content" 
-      :class="sidebarClass"
+      :class="[sidebarClass, { 'sidebar-collapsed-narrow': isCollapsed && collapsedWidth > 0 }]"
       :style="sidebarStyle"
     >
       <div class="sidebar-inner">
@@ -56,12 +58,13 @@
       v-if="showSidebar && isCollapsed && collapsible && showCollapseButton"
       class="expand-button"
       :class="[expandButtonClass, { 'expand-button-visible': showExpandButton }]"
+      :style="expandButtonStyle"
       @click="toggleCollapse"
       @mouseenter="handleExpandButtonEnter"
       @mouseleave="handleExpandButtonLeave"
       :title="expandButtonTitle"
     >
-      <el-icon><ArrowLeft v-if="sidebarPosition === 'start'" /><ArrowRight v-else /></el-icon>
+      <el-icon><ArrowRight v-if="sidebarOnLeft" /><ArrowLeft v-else-if="sidebarPosition === 'start'" /><ArrowRight v-else /></el-icon>
     </div>
   </div>
 </template>
@@ -99,6 +102,10 @@ interface Props {
   collapseButtonTitle?: string
   /** 展开按钮标题 */
   expandButtonTitle?: string
+  /** 折叠时的侧边栏宽度（>0 时折叠为窄条而不完全隐藏；0 则折叠时完全隐藏侧边栏） */
+  collapsedWidth?: number
+  /** 是否将侧边栏放在左侧（仅 vertical + sidebarPosition start 时有效；false 时保持 DOM 顺序：主内容左、侧边栏右） */
+  sidebarOnLeft?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -114,7 +121,9 @@ const props = withDefaults(defineProps<Props>(), {
   showCollapseButton: true,
   autoCollapseWidth: 0,
   collapseButtonTitle: '折叠',
-  expandButtonTitle: '展开'
+  expandButtonTitle: '展开',
+  collapsedWidth: 0,
+  sidebarOnLeft: false
 })
 
 const emit = defineEmits<{
@@ -128,21 +137,40 @@ const emit = defineEmits<{
 const sidebarSize = ref(props.initialSidebarSize)
 const startSidebarSize = ref(props.initialSidebarSize)
 
+// 父组件更新 initialSidebarSize 时同步到内部（用于按比例切换默认布局等）
+watch(
+  () => props.initialSidebarSize,
+  (val) => {
+    if (val != null && !Number.isNaN(val)) {
+      const clamped = Math.max(props.minSize, Math.min(props.maxSize, val))
+      sidebarSize.value = clamped
+      startSidebarSize.value = clamped
+    }
+  }
+)
+
 // 折叠状态
 const isCollapsed = ref(false)
 
 // 是否显示展开按钮
 const showExpandButton = ref(false)
 
-// 是否显示分割线
-const showDivider = computed(() => props.showSidebar && !isCollapsed.value)
+// 是否显示折叠按钮（仅当鼠标靠近 divider 中心时为 true）
+const showCollapseButtonHover = ref(false)
+
+// 是否显示分割线（折叠且使用 collapsedWidth 时不显示）
+const showDivider = computed(() => {
+  if (!props.showSidebar || isCollapsed.value) return false
+  return true
+})
 
 // 容器类名
 const containerClass = computed(() => ({
   'horizontal-layout': props.direction === 'horizontal',
   'vertical-layout': props.direction === 'vertical',
   'sidebar-start': props.sidebarPosition === 'start',
-  'sidebar-end': props.sidebarPosition === 'end'
+  'sidebar-end': props.sidebarPosition === 'end',
+  'sidebar-on-left': props.sidebarOnLeft && props.sidebarPosition === 'start' && props.direction === 'vertical'
 }))
 
 // 主内容区样式
@@ -168,23 +196,25 @@ const sidebarClass = computed(() => ({
 
 // 侧边栏样式
 const sidebarStyle = computed(() => {
-  if (isCollapsed.value) {
+  const collapsedNarrow = isCollapsed.value && props.collapsedWidth > 0
+  if (isCollapsed.value && !collapsedNarrow) {
     return { display: 'none' }
   }
-  
-  const size = sidebarSize.value + 'px'
-  
+
+  const size = collapsedNarrow ? props.collapsedWidth : sidebarSize.value
+  const sizePx = size + 'px'
+
   if (props.direction === 'horizontal') {
     return {
-      height: size,
-      minHeight: props.minSize + 'px',
-      maxHeight: props.maxSize + 'px'
+      height: sizePx,
+      minHeight: collapsedNarrow ? sizePx : props.minSize + 'px',
+      maxHeight: collapsedNarrow ? sizePx : props.maxSize + 'px'
     }
   } else {
     return {
-      width: size,
-      minWidth: props.minSize + 'px',
-      maxWidth: props.maxSize + 'px'
+      width: sizePx,
+      minWidth: collapsedNarrow ? sizePx : props.minSize + 'px',
+      maxWidth: collapsedNarrow ? sizePx : props.maxSize + 'px'
     }
   }
 })
@@ -212,47 +242,112 @@ const expandButtonClass = computed(() => {
   }
 })
 
-// 处理鼠标移动，检测是否在边缘区域
+// 展开按钮样式（折叠且 collapsedWidth>0 时，按钮定位在窄条右边缘）
+const expandButtonStyle = computed(() => {
+  if (!isCollapsed.value || props.collapsedWidth <= 0) return {}
+  if (props.direction === 'vertical' && props.sidebarPosition === 'start') {
+    return { left: props.collapsedWidth + 'px', right: 'auto' }
+  }
+  if (props.direction === 'vertical' && props.sidebarPosition === 'end') {
+    return { right: props.collapsedWidth + 'px', left: 'auto' }
+  }
+  return {}
+})
+
+// 检测鼠标是否在 divider 中心附近（用于折叠按钮的 hover 显示）
+const DIVIDER_CENTER_THRESHOLD = 60   // 沿 divider 方向中心区域半宽（像素）
+const DIVIDER_SIDE_THRESHOLD = 35     // 垂直于 divider 方向的半宽（像素）
+
+// 只取本容器直接子元素中的 divider，避免嵌套时误匹配到内层 ResizableContainer 的 divider
+function getOwnDividerElement(container: HTMLElement): HTMLElement | null {
+  for (let i = 0; i < container.children.length; i++) {
+    const el = container.children[i] as HTMLElement
+    if (el.classList && el.classList.contains('resizable-divider')) return el
+  }
+  return null
+}
+
+function isMouseNearDividerCenter(mouseX: number, mouseY: number): boolean {
+  if (isCollapsed.value) return false
+  const container = containerRef.value
+  if (!container) return false
+  const divider = getOwnDividerElement(container)
+  if (!divider) return false
+  const dr = divider.getBoundingClientRect()
+  const centerX = dr.left + dr.width / 2
+  const centerY = dr.top + dr.height / 2
+  if (props.direction === 'vertical') {
+    // 垂直分割线：鼠标 X 靠近分割线，Y 靠近分割线垂直中心
+    const xNear = mouseX >= dr.left - DIVIDER_SIDE_THRESHOLD && mouseX <= dr.right + DIVIDER_SIDE_THRESHOLD
+    const yNear = Math.abs(mouseY - centerY) <= DIVIDER_CENTER_THRESHOLD
+    // 仅当鼠标在「侧边栏一侧」时显示：start=侧边在左，要求鼠标在分割线左或分割条上；end=侧边在右，要求鼠标在分割线右或分割条上
+    const dividerPad = Math.min(props.dividerSize || 5, DIVIDER_SIDE_THRESHOLD)
+    const onSidebarSide = props.sidebarPosition === 'start'
+      ? mouseX <= dr.right + dividerPad
+      : mouseX >= dr.left - dividerPad
+    return xNear && yNear && onSidebarSide
+  } else {
+    // 水平分割线：鼠标 Y 靠近分割线，X 靠近分割线水平中心
+    const yNear = mouseY >= dr.top - DIVIDER_SIDE_THRESHOLD && mouseY <= dr.bottom + DIVIDER_SIDE_THRESHOLD
+    const xNear = Math.abs(mouseX - centerX) <= DIVIDER_CENTER_THRESHOLD
+    const dividerPad = Math.min(props.dividerSize || 5, DIVIDER_SIDE_THRESHOLD)
+    const onSidebarSide = props.sidebarPosition === 'start'
+      ? mouseY <= dr.bottom + dividerPad
+      : mouseY >= dr.top - dividerPad
+    return yNear && xNear && onSidebarSide
+  }
+}
+
+// 计算展开按钮边缘 X（用于 hover 显示/隐藏）
+function getExpandEdgeX(rect: DOMRect): number {
+  if (props.direction !== 'vertical') return 0
+  if (props.sidebarPosition === 'start' && props.collapsedWidth > 0) {
+    return rect.left + props.collapsedWidth
+  }
+  return props.sidebarPosition === 'start' ? rect.right : rect.left
+}
+
+// 处理鼠标移动，检测是否在边缘区域（展开按钮）或 divider 中心附近（折叠按钮）
 function handleMouseMove(event: MouseEvent) {
+  const container = containerRef.value
+  const windowX = event.clientX
+  const windowY = event.clientY
+
+  // 折叠按钮：未折叠时，仅当鼠标靠近 divider 中心时显示
+  if (!isCollapsed.value && props.collapsible && props.showCollapseButton) {
+    showCollapseButtonHover.value = isMouseNearDividerCenter(windowX, windowY)
+  } else {
+    showCollapseButtonHover.value = false
+  }
+
+  // 展开按钮：已折叠时，仅当鼠标在边缘区域时显示
   if (!isCollapsed.value || !props.collapsible || !props.showCollapseButton) {
     showExpandButton.value = false
     return
   }
-  
-  const container = containerRef.value
   if (!container) return
-  
+
   const rect = container.getBoundingClientRect()
-  const windowX = event.clientX
-  const windowY = event.clientY
   const edgeThreshold = 30 // 边缘检测阈值（像素）
-  
-  // 检测是否在边缘区域
+  const edgeX = getExpandEdgeX(rect)
+
   let isInEdgeZone = false
-  
   if (props.direction === 'vertical') {
-    // 垂直布局：检测左右边缘
     if (props.sidebarPosition === 'end') {
-      // 侧边栏在右侧，展开按钮在左侧，检测容器左边缘
       const x = windowX - rect.left
       isInEdgeZone = x >= -edgeThreshold && x <= edgeThreshold
     } else {
-      // 侧边栏在左侧，展开按钮在右侧，检测容器右边缘
-      const x = windowX - rect.right
+      const x = windowX - edgeX
       isInEdgeZone = x >= -edgeThreshold && x <= edgeThreshold
     }
   } else {
-    // 水平布局：检测上下边缘
     if (props.sidebarPosition === 'end') {
-      // 侧边栏在下侧，检测窗口下边缘
       isInEdgeZone = windowY >= window.innerHeight - edgeThreshold
     } else {
-      // 侧边栏在上侧，检测容器上边缘
       const y = windowY - rect.top
       isInEdgeZone = y >= -edgeThreshold && y <= edgeThreshold
     }
   }
-  
   showExpandButton.value = isInEdgeZone
 }
 
@@ -260,18 +355,30 @@ function handleMouseMove(event: MouseEvent) {
 function handleMouseLeave() {
   // 延迟隐藏，给按钮 hover 留出时间
   setTimeout(() => {
-    if (!showExpandButton.value) return
-    
-    // 检查鼠标是否在按钮上
     const container = containerRef.value
-    if (container) {
+    const mouseX = (window as any).lastMouseX || 0
+    const mouseY = (window as any).lastMouseY || 0
+
+    // 折叠按钮：若已显示，检查鼠标是否在按钮上或仍在 divider 中心附近
+    if (showCollapseButtonHover.value && container) {
+      const collapseButton = container.querySelector('.collapse-button') as HTMLElement
+      const stillNearDivider = isMouseNearDividerCenter(mouseX, mouseY)
+      const onCollapseButton = collapseButton && (
+        mouseX >= collapseButton.getBoundingClientRect().left &&
+        mouseX <= collapseButton.getBoundingClientRect().right &&
+        mouseY >= collapseButton.getBoundingClientRect().top &&
+        mouseY <= collapseButton.getBoundingClientRect().bottom
+      )
+      if (!stillNearDivider && !onCollapseButton) {
+        showCollapseButtonHover.value = false
+      }
+    }
+
+    // 展开按钮：若已显示，检查鼠标是否在按钮上
+    if (showExpandButton.value && container) {
       const expandButton = container.querySelector('.expand-button') as HTMLElement
       if (expandButton) {
         const buttonRect = expandButton.getBoundingClientRect()
-        const mouseX = (window as any).lastMouseX || 0
-        const mouseY = (window as any).lastMouseY || 0
-        
-        // 如果鼠标不在按钮上，才隐藏
         if (
           mouseX < buttonRect.left ||
           mouseX > buttonRect.right ||
@@ -283,6 +390,22 @@ function handleMouseLeave() {
       } else {
         showExpandButton.value = false
       }
+    }
+  }, 100)
+}
+
+// 处理折叠按钮鼠标进入
+function handleCollapseButtonEnter() {
+  showCollapseButtonHover.value = true
+}
+
+// 处理折叠按钮鼠标离开
+function handleCollapseButtonLeave() {
+  setTimeout(() => {
+    const mouseX = (window as any).lastMouseX || 0
+    const mouseY = (window as any).lastMouseY || 0
+    if (!isMouseNearDividerCenter(mouseX, mouseY)) {
+      showCollapseButtonHover.value = false
     }
   }, 100)
 }
@@ -302,6 +425,7 @@ function handleExpandButtonLeave() {
       const mouseX = (window as any).lastMouseX || 0
       const mouseY = (window as any).lastMouseY || 0
       const edgeThreshold = 30
+      const edgeX = getExpandEdgeX(rect)
       
       let isInEdgeZone = false
       if (props.direction === 'vertical') {
@@ -310,8 +434,7 @@ function handleExpandButtonLeave() {
           const x = mouseX - rect.left
           isInEdgeZone = x >= -edgeThreshold && x <= edgeThreshold
         } else {
-          // 侧边栏在左侧，展开按钮在右侧，检测容器右边缘
-          const x = mouseX - rect.right
+          const x = mouseX - edgeX
           isInEdgeZone = x >= -edgeThreshold && x <= edgeThreshold
         }
       } else {
@@ -382,13 +505,13 @@ onMounted(async () => {
     }
   }
   
-  // 监听全局鼠标移动，记录鼠标位置并检测边缘
+  // 监听全局鼠标移动，记录鼠标位置并检测边缘/divider 中心
   handleGlobalMouseMove = (event: MouseEvent) => {
     ;(window as any).lastMouseX = event.clientX
     ;(window as any).lastMouseY = event.clientY
-    
-    // 如果侧边栏已折叠，也在全局范围内检测边缘
-    if (isCollapsed.value && props.collapsible && props.showCollapseButton) {
+
+    // 未折叠时检测 divider 中心附近（折叠按钮）；已折叠时检测边缘（展开按钮）
+    if (props.collapsible && props.showCollapseButton) {
       handleMouseMove(event)
     }
   }
@@ -406,9 +529,33 @@ onBeforeUnmount(() => {
 })
 
 // 处理尺寸调整
+// 使用鼠标绝对位置计算宽度，使分割线严格跟随鼠标（在 min/max 内），避免 delta 与容器 scale/坐标系不一致导致变化幅度异常
 function handleResize(delta: number, event: MouseEvent) {
-  const directionSign = props.reverse ? 1 : -1
-  let newSize = startSidebarSize.value + directionSign * delta
+  const container = containerRef.value
+  if (!container) return
+
+  let newSize: number
+  if (props.direction === 'vertical') {
+    const rect = container.getBoundingClientRect()
+    const containerWidth = container.clientWidth
+    const scale = rect.width > 0 ? containerWidth / rect.width : 1
+    const sidebarOnRight = props.sidebarPosition === 'end' || (props.sidebarPosition === 'start' && !props.sidebarOnLeft)
+    if (sidebarOnRight) {
+      newSize = (rect.right - event.clientX) * scale
+    } else {
+      newSize = (event.clientX - rect.left) * scale
+    }
+  } else {
+    const rect = container.getBoundingClientRect()
+    const containerHeight = container.clientHeight
+    const scale = rect.height > 0 ? containerHeight / rect.height : 1
+    const sidebarOnBottom = props.sidebarPosition === 'end' || (props.sidebarPosition === 'start' && !props.sidebarOnLeft)
+    if (sidebarOnBottom) {
+      newSize = (rect.bottom - event.clientY) * scale
+    } else {
+      newSize = (event.clientY - rect.top) * scale
+    }
+  }
 
   newSize = Math.max(props.minSize, Math.min(props.maxSize, newSize))
   sidebarSize.value = newSize
@@ -471,8 +618,47 @@ defineExpose({
   flex-direction: row;
 }
 
+/* sidebar-end（如 session-content-panel）：main 左（order -1）、sidebar 右（order 1），保证 Monaco 左、报告右 */
+.sidebar-end.vertical-layout .main-content {
+  order: -1 !important;
+}
+
+.sidebar-end.vertical-layout .sidebar-content {
+  order: 1 !important;
+}
+
+.sidebar-end.vertical-layout :deep(.resizable-divider) {
+  order: 0;
+}
+
 .sidebar-end.vertical-layout {
   flex-direction: row;
+}
+
+/* sidebar-start 且未传 sidebarOnLeft 时，保持 DOM 顺序（main 左、sidebar 右） */
+.sidebar-start.vertical-layout .main-content {
+  order: 0;
+}
+
+.sidebar-start.vertical-layout .sidebar-content {
+  order: 0;
+}
+
+.sidebar-start.vertical-layout :deep(.resizable-divider) {
+  order: 0;
+}
+
+/* 仅当 sidebarOnLeft 为 true 时把侧边栏放左侧（仅 SessionList 传此 prop） */
+.sidebar-on-left.vertical-layout .main-content {
+  order: 1;
+}
+
+.sidebar-on-left.vertical-layout .sidebar-content {
+  order: -1;
+}
+
+.sidebar-on-left.vertical-layout :deep(.resizable-divider) {
+  order: 0;
 }
 
 .main-content {
@@ -501,7 +687,11 @@ defineExpose({
   height: 100%;
 }
 
-/* 折叠按钮样式 - 在 ResizableDivider 内部 */
+.sidebar-collapsed-narrow .sidebar-inner {
+  overflow: hidden;
+}
+
+/* 折叠按钮样式 - 在 ResizableDivider 内部，默认隐藏，仅 hover 到 divider 中心附近时显示 */
 .collapse-button {
   position: absolute;
   z-index: 100;
@@ -513,8 +703,16 @@ defineExpose({
   align-items: center;
   justify-content: center;
   padding: 4px;
-  transition: all 0.2s;
+  transition: opacity 0.2s, visibility 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.collapse-button.collapse-button-visible {
+  opacity: 1;
+  visibility: visible;
   pointer-events: auto;
 }
 

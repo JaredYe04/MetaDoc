@@ -77,6 +77,7 @@ import SearchReplaceMenu from "../components/SearchReplaceMenu.vue";
 import AiLogo from "../assets/ai-logo.svg";
 import AiLogoWhite from "../assets/ai-logo-white.svg";
 import { themeState } from "../utils/themes";
+import { isSaveInProgress } from "../utils/save-guard";
 import { getSetting, setSetting } from "../utils/settings";
 import { localVditorCDN, vditorCDN } from "../utils/vditor-cdn";
 import { waitForService } from "../utils/service-status.ts";
@@ -294,6 +295,9 @@ let pendingExternalUpdate: { value: string; clearHistory?: boolean } | undefined
 // 关键修复：保存时抑制 watch 的 setValue，避免不必要的回写导致闪烁
 // 保存时内容是从编辑器读取的，编辑器已经有最新内容，不需要回写
 let isSavingFromEditor = false;
+// 当 updateDocumentMarkdown 由 sync-active-editor 调用时，watch 必须跳过 scheduleSetValue。
+// 使用 ref 确保 watch 运行时（无论何时 flush）都能读到，避免 isSavingFromEditor 的时序竞态。
+const skipNextWatchFromSync = ref(false);
 
 type SetValueOptions = {
     clearHistory?: boolean;
@@ -319,6 +323,11 @@ const markEditorInteraction = () => {
 };
 
 const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:scheduleSetValue',message:'scheduleSetValue CALLED',data:{stack:(new Error()).stack?.split('\n').slice(1,5).join('|'),valueLen:value?.length},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    // 保存流程期间禁止任何 Vditor 写操作
+    if (isSaveInProgress.value) return;
     const normalized = value ?? '';
     if (!vditor.value) return;
     // 检查 Vditor 实例是否已完全初始化（是否有 vditor 内部实例）
@@ -367,8 +376,9 @@ const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
             }
             
             // 执行 setValue（这可能会重置主题）
-            // 关键修复：不要在 setValue 前应用主题，因为 setValue 会重置它，浪费性能
-            // 只在 setValue 后立即应用主题，使用同步方式避免闪烁
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:vditor.setValue',message:'vditor.setValue EXECUTING',data:{normalizedLen:normalized.length},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
             vditor.value?.setValue(normalized, options.clearHistory ?? true);
             lastAppliedContent.value = normalized;
             
@@ -677,12 +687,18 @@ const handleClick = async (event: MouseEvent, title: string, path: string) => {
 };
 
 const handleRefresh = async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:handleRefresh',message:'handleRefresh CALLED (will scheduleSetValue)',data:{},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     if (!isActive.value) return;
     scheduleSetValue(currentMarkdown.value, { clearHistory: true, timeoutMs: 0 });
 };
 eventBus.on('refresh', handleRefresh);
 
 const handleSyncActiveEditor = async (payload?: { tabId?: string }) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:handleSyncActiveEditor',message:'handleSyncActiveEditor ENTRY',data:{tabId:payload?.tabId,propsTabId:props.tabId},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     const resolvedTabId = payload?.tabId ?? activeTabIdRef?.value;
     if (resolvedTabId !== props.tabId) return;
     if (!vditor.value) return;
@@ -703,39 +719,19 @@ const handleSyncActiveEditor = async (payload?: { tabId?: string }) => {
         // 如果规范化后的内容相同，说明文档模型已经和编辑器内容同步，
         // 不需要调用 updateDocumentMarkdown，避免触发不必要的 watch 和 setValue
         if (normalizedLatest !== normalizedCurrent) {
-            // 只有内容确实变化时才更新文档模型
-            // 关键修复：在保存时，先更新 lastAppliedContent，避免 watch 触发 setValue
-            // 这样 watch 检测到 incoming === lastAppliedContent，就不会调用 scheduleSetValue
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:handleSyncActiveEditor',message:'content CHANGED, setting skipNextWatchFromSync=true',data:{},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
             lastAppliedContent.value = normalizedLatest;
-            // 然后调用 updateDocumentMarkdown 更新文档模型（会触发 watch，但 watch 会跳过 setValue）
+            skipNextWatchFromSync.value = true;
             workspace.updateDocumentMarkdown(props.tabId, latest);
-            // 注意：updateDocumentMarkdown 会触发 watch(currentMarkdown)，
-            // 但由于我们已经设置了 isSavingFromEditor = true，watch 会跳过 setValue
-            // 而且我们已经更新了 lastAppliedContent，即使 watch 执行，也会检测到 incoming === lastAppliedContent
-            // 所以不会调用 scheduleSetValue，也就不会触发 setValue，不会闪烁
-            
-            // 为了确保主题正确，我们也在这里主动应用主题（双重保障）
-            await nextTick();
-            await handleSyncEditorTheme();
-            requestAnimationFrame(async () => {
-                await handleSyncEditorTheme();
-            });
         } else {
-            // 即使内容相同，也确保大纲是最新的（避免大纲提取算法的差异导致不一致）
-            // 但只有在编辑器视图时才同步，避免在outline视图时触发
             const currentView = documentRef.value.lastView ?? 'editor';
             if (currentView === 'editor' || (currentView as string) === 'article') {
                 syncOutlineFromMarkdown.cancel();
                 syncOutlineFromMarkdown();
                 flushOutlineSync();
             }
-            
-            // 关键修复：即使内容相同，也确保主题正确（防止之前的操作导致主题异常）
-            await nextTick();
-            await handleSyncEditorTheme();
-            requestAnimationFrame(async () => {
-                await handleSyncEditorTheme();
-            });
         }
     } finally {
         // 关键修复：等待下一个 tick，确保 watch 已经处理完，再清除标志位
@@ -2136,8 +2132,14 @@ onBeforeUnmount(() => {
     }
 });
 
-const handleSyncEditorTheme = async () => {
+const handleSyncEditorTheme = async (payload?: unknown) => {
+    const resolve = (payload as { resolve?: () => void })?.resolve;
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:handleSyncEditorTheme',message:'handleSyncEditorTheme ENTRY (calls setTheme)',data:{},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    try {
     if (!isActive.value || !vditor.value) return;
+    // 不在此处阻止：保存后需调用 setTheme 恢复主题，由调用方确保仅在适当时机调用
     
     // 确保 Vditor 完全初始化
     if (!vditor.value.vditor) {
@@ -2180,6 +2182,9 @@ const handleSyncEditorTheme = async () => {
     } catch (error) {
         logger.warn('同步 Vditor 主题失败:', error);
     }
+    } finally {
+        resolve?.();
+    }
     
     // 注意：不要在这里调用scheduleSetValue，因为：
     // 1. setTheme本身不会改变内容，不需要重新设置内容
@@ -2192,16 +2197,27 @@ watch(
     () => currentMarkdown.value,
     (content) => {
         if (!isActive.value) return;
-        // 关键修复：保存时不触发 setValue，避免不必要的回写导致闪烁
-        // 保存时内容是从编辑器读取的，编辑器已经有最新内容，不需要回写
-        if (isSavingFromEditor) {
-            // 保存操作：只是同步 lastAppliedContent，不调用 setValue
-            const incoming = content ?? '';
+        const incoming = content ?? '';
+        // #region agent log
+        const skipVal = skipNextWatchFromSync.value;
+        const saveVal = isSavingFromEditor;
+        const sameContent = incoming === lastAppliedContent.value;
+        fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:watch(currentMarkdown)',message:'watch fired',data:{skipNextWatchFromSync:skipVal,isSavingFromEditor:saveVal,incomingEqLast:sameContent,incomingLen:incoming.length},timestamp:Date.now(),hypothesisId:'A,B'})}).catch(()=>{});
+        // #endregion
+        // 由 sync-active-editor 触发的 updateDocumentMarkdown 导致的变化：不写回 Vditor，编辑器已有该内容
+        if (skipNextWatchFromSync.value) {
+            skipNextWatchFromSync.value = false;
             lastAppliedContent.value = incoming;
             return;
         }
-        const incoming = content ?? '';
+        if (isSavingFromEditor) {
+            lastAppliedContent.value = incoming;
+            return;
+        }
         if (incoming !== lastAppliedContent.value) {
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:watch->scheduleSetValue',message:'watch CALLING scheduleSetValue',data:{},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
             // 注意：scheduleSetValue 内部会在 setValue 后自动重新应用主题
             // 关键修复：使用 timeoutMs: 0 立即执行，避免 requestIdleCallback 延迟导致主题应用延迟
             // 这里才是真正的"外部更新"（如打开文件、大纲同步、Tab 切换等），需要回写到编辑器
@@ -2214,6 +2230,9 @@ watch(
 watch(
     isActive,
     async (active) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:watch(isActive)',message:'isActive watch fired',data:{active},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
         if (!active) return;
         // 如果Vditor还未初始化，等待初始化完成
         if (!vditor.value) {
@@ -2259,13 +2278,20 @@ watch(
         // 确保DOM已经更新
         await nextTick();
         const desired = currentMarkdown.value ?? '';
+        // 保存期间禁止 scheduleSetValue，由 isSaveInProgress 统一控制
+        if (isSaveInProgress.value) return;
         if (desired !== lastAppliedContent.value) {
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:watch(isActive)->scheduleSetValue',message:'isActive watch CALLING scheduleSetValue (desired!==lastApplied)',data:{desiredLen:desired?.length},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
+            // #endregion
             scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0 });
         } else if (vditor.value && vditor.value.vditor && vditor.value.vditor.ir) {
-            // 即使内容相同，也检查Vditor内部的值是否一致
             try {
                 const currentValue = vditor.value.getValue();
                 if (currentValue !== desired) {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:watch(isActive)->scheduleSetValue',message:'isActive watch CALLING scheduleSetValue (currentValue!==desired)',data:{},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
+                    // #endregion
                     scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0 });
                 }
             } catch (error) {
@@ -2273,9 +2299,10 @@ watch(
             }
         }
         // 确保主题正确（Tab 激活时可能主题未同步）
-        await nextTick();
-        await handleSyncEditorTheme();
-        
+        if (!isSaveInProgress.value) {
+            await nextTick();
+            await handleSyncEditorTheme();
+        }
         // 延迟执行 bindTitleMenu，确保 Vditor 完全准备好
         await nextTick();
         setTimeout(() => {

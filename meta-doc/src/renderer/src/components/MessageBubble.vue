@@ -287,7 +287,6 @@ onBeforeMount(() => {
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
   >
-    <el-avatar class="avatar-with-mask" v-if="role !== 'user'" :src="themeState.currentTheme.AiLogo"></el-avatar>
     <!-- 用户消息的操作按钮（在左侧） -->
     <transition name="fade">
       <el-dropdown 
@@ -340,7 +339,7 @@ onBeforeMount(() => {
     </transition>
     <div 
       ref="bubbleContentRef" 
-      class="bubble-content response-container" 
+      :class="['bubble-content', 'response-container', { 'ai-flat-content': role !== 'user' }]"
       style="max-height: none;"
     >
       <MdPreview
@@ -354,53 +353,38 @@ onBeforeMount(() => {
       />
       <!-- <markdown-it :source="content" /> -->
     </div>
-    <!-- AI消息的操作按钮（在右侧） -->
-    <transition name="fade">
-      <el-dropdown 
-        v-if="role !== 'user' && showActions"
-        @command="handleActionCommand" 
-        trigger="click" 
-        @click.stop 
-        @visible-change="handleDropdownVisibleChange"
-        class="side-button"
-        @mouseenter="handleActionsMouseEnter"
-        @mouseleave="handleActionsMouseLeave"
-      >
-        <el-button
-          circle
-          size="small"
-          :icon="More"
-        />
-        <template #dropdown>
-          <el-dropdown-menu 
-            @mouseenter="handleDropdownMouseEnter" 
-            @mouseleave="handleDropdownMouseLeave"
-          >
-            <el-dropdown-item command="copy">
-              <el-icon style="margin-right: 8px;"><CopyDocument /></el-icon>
-              {{ t('common.copy', '复制') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="insert-to-document">
-              <el-icon style="margin-right: 8px;"><DocumentAdd /></el-icon>
-              {{ t('aiChat.insertToDocument', '插入到文档') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="export-to-document">
-              <el-icon style="margin-right: 8px;"><FolderAdd /></el-icon>
-              {{ t('aiChat.exportToDocument', '导出到新文档') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="edit">
-              <el-icon style="margin-right: 8px;"><Edit /></el-icon>
-              {{ t('messageBubble.edit', '编辑') }}
-            </el-dropdown-item>
-            <el-dropdown-item command="delete" divided>
-              <el-icon style="margin-right: 8px;"><Delete /></el-icon>
-              {{ t('common.delete', '删除') }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-    </transition>
     <el-avatar class="avatar-fallback" v-if="role === 'user'" :icon="User"></el-avatar>
+  </div>
+  <!-- AI消息的操作按钮（平铺在消息下方，始终显示） -->
+  <div 
+    v-if="role !== 'user'"
+    class="ai-message-actions"
+  >
+    <el-tooltip :content="t('common.copy', '复制')" placement="bottom">
+      <el-button text size="small" class="ai-action-btn" @click.stop="copyContent">
+        <el-icon><CopyDocument /></el-icon>
+      </el-button>
+    </el-tooltip>
+    <el-tooltip :content="t('aiChat.insertToDocument', '插入到文档')" placement="bottom">
+      <el-button text size="small" class="ai-action-btn" @click.stop="requestInsertToDocument">
+        <el-icon><DocumentAdd /></el-icon>
+      </el-button>
+    </el-tooltip>
+    <el-tooltip :content="t('aiChat.exportToDocument', '导出到新文档')" placement="bottom">
+      <el-button text size="small" class="ai-action-btn" @click.stop="exportToNewDocument">
+        <el-icon><FolderAdd /></el-icon>
+      </el-button>
+    </el-tooltip>
+    <el-tooltip :content="t('messageBubble.edit', '编辑')" placement="bottom">
+      <el-button text size="small" class="ai-action-btn" @click.stop="onMsgEdit">
+        <el-icon><Edit /></el-icon>
+      </el-button>
+    </el-tooltip>
+    <el-tooltip :content="t('common.delete', '删除')" placement="bottom">
+      <el-button text size="small" class="ai-action-btn" @click.stop="onMsgDelete">
+        <el-icon><Delete /></el-icon>
+      </el-button>
+    </el-tooltip>
   </div>
   <!-- 引用显示（只读模式，只显示用户消息的引用） -->
   <div 
@@ -473,6 +457,22 @@ onBeforeMount(() => {
   box-shadow: 0 0 8px rgba(83, 109, 254, 0.46); /* 加入阴影 */
 }
 
+/* AI消息：平铺展示，无气泡效果 */
+.bubble-content.ai-flat-content {
+  box-shadow: none;
+  border-radius: 0;
+  border: none;
+  background: transparent !important;
+  margin: 0;
+  padding: 0 8px;
+  max-width: 100%;
+}
+
+.bubble-content.ai-flat-content:hover {
+  border-color: transparent;
+  box-shadow: none;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
@@ -516,8 +516,25 @@ onBeforeMount(() => {
   /* 宽度由 JavaScript 动态设置，与消息气泡宽度一致 */
 }
 
+/* AI消息底部操作按钮 */
+.ai-message-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 38px;
+  margin-bottom: 8px;
+  padding: 2px 0;
+}
 
+.ai-action-btn {
+  padding: 4px 6px;
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+}
 
+.ai-action-btn:hover {
+  color: var(--el-color-primary);
+}
 
 </style>
 

@@ -305,10 +305,7 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 
-.auto-switch {
-  --el-switch-on-color: #13ce66;
-  --el-switch-off-color: #ff4949;
-}
+/* 开关配色使用全局 element-plus-theme-override.css */
 
 .empty-state {
   text-align: center;

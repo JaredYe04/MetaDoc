@@ -18,6 +18,7 @@ import "@ssthouse/vue3-tree-chart/dist/vue3-tree-chart.css";
 import './assets/interactive-text.css'
 import './assets/wordcloud-text.css'
 import './assets/editor-search.css'
+import { initInputContextMenuHandler } from './utils/input-context-menu-handler'
 import { themeState, applyTheme } from './utils/themes.js';
 import { initServiceStatusWatcher } from './utils/service-status';
 import { i18n } from './i18n.js';
@@ -28,9 +29,14 @@ import { registerUnitTests } from './utils/unit-tests-register.ts';
 import { initializeFormats } from './utils/format-initializer';
 
 import 'element-plus/theme-chalk/dark/css-vars.css'
+/* Element Plus 极简主题覆盖（主色由蓝改为炭灰等） */
+import './assets/element-plus-theme-override.css'
 
 // 在挂载 Vue app 之前初始化主题（从持久化存储加载）
 await applyTheme()
+
+// 尽早注册输入框右键菜单监听器，确保优先于其他 contextmenu 处理
+initInputContextMenuHandler()
 
 const app = createApp(App);
 const pinia = createPinia();

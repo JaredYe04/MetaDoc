@@ -4,7 +4,6 @@
     <el-form label-width="160px" class="settings-form">
     <el-form-item :label="t('setting.loggingEnabled')">
       <el-switch v-model="settings.loggingEnabled" class="mb-2"
-        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
         :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
         @change="handleEnabledChange" />
     </el-form-item>
@@ -70,7 +69,7 @@
 
     <div class="logger-console">
       <h4>{{ t('setting.loggerConsoleTitle') }}</h4>
-      <ConsoleOutput console-key="logger" :history="logHistory" />
+      <ConsoleOutput console-key="logger" :history="logHistory" :show-ai-analysis="false" />
     </div>
     </el-form>
   </div>

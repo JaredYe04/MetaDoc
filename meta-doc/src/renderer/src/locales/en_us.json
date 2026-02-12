@@ -6,6 +6,8 @@
     "copy": "Copy",
     "paste": "Paste",
     "selectAll": "Select All",
+    "undo": "Undo",
+    "redo": "Redo",
     "closeAutoCompletion": "Disable AI Completion",
     "closeKnowledgeBase": "Disable Knowledge Retrieval Library",
     "openAutoCompletion": "Enable AI Completion",
@@ -368,6 +370,7 @@
     "recentDocuments": "Recent Documents",
     "tooltip": {
       "quickStart": "Quick Start: Generate a document fast",
+      "newDoc": "Create a new document",
       "openFile": "Open an existing document",
       "close": "Close Quick Start",
       "ready": "Ready",
@@ -380,6 +383,7 @@
     },
     "button": {
       "quickStart": "Quick Start",
+      "newDoc": "New Document",
       "openFile": "Open Document",
       "refresh": "Refresh"
     },

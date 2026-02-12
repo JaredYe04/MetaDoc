@@ -45,6 +45,7 @@
                             <ResizableContainer
                                 ref="pdfResizableRef"
                                 direction="vertical"
+                                storage-key="latex-pdf-panel"
                                 :initial-sidebar-size="LATEX_LAYOUT.pdf.minWidth"
                                 :min-size="LATEX_LAYOUT.pdf.minWidth"
                                 :max-size="
@@ -741,7 +742,7 @@ const aiErrorAnalysisOutput = ref('')
 let lastOutputLength = 0 // 用于增量输出
 let errorAnalysisWatchStop: (() => void) | null = null
 let currentAiTaskHandle: string | null = null // 当前AI任务的handle
-const enableAiAnalysis = ref(true) // AI分析开关（默认开启）
+const enableAiAnalysis = ref(false) // AI分析开关（默认关闭）
 
 // 收集编译过程中的 console 输出
 let compileConsoleOutput: { stdout: string; stderr: string } = { stdout: '', stderr: '' }
@@ -4264,7 +4265,6 @@ function onCancelSuggestion() {
 
 .left-column {
     min-width: 360px;
-    border-right: 1px solid var(--el-border-color-lighter);
     flex: 1 1 auto;
     overflow: hidden;
     position: relative;
@@ -4272,7 +4272,6 @@ function onCancelSuggestion() {
 
 .pdf-column {
     min-width: 360px;
-    border-right: 1px solid var(--el-border-color-lighter);
     background-color: var(--el-bg-color-page);
     position: relative;
     flex: 0 0 auto;

@@ -553,9 +553,9 @@ const contentBorderColor = computed(() =>
 )
 
 const cardStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background2nd,
+  backgroundColor: 'transparent',
   color: themeState.currentTheme.textColor,
-  borderColor: cardBorderColor.value,
+  borderColor: 'transparent',
 }))
 
 const outputBodyStyle = computed(() => ({
@@ -751,10 +751,11 @@ const exportSnapshot = async () => {
 
 <style scoped>
 .tool-result-card {
-  border-radius: 12px;
-  padding: 16px;
-  border: 1px solid;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  border-radius: 0;
+  padding: 4px 0;
+  border: none;
+  background-color: transparent;
+  transition: none;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -767,15 +768,15 @@ const exportSnapshot = async () => {
 }
 
 .tool-result-card:hover {
-  border-color: rgba(64, 158, 255, 0.6);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .tool-result-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .header-actions {
@@ -929,13 +930,13 @@ const exportSnapshot = async () => {
 }
 
 .status-failed {
-  border-color: rgba(245, 108, 108, 0.4);
+  border-color: transparent;
 }
 .status-running {
-  border-color: rgba(230, 162, 60, 0.4);
+  border-color: transparent;
 }
 .status-succeeded {
-  border-color: rgba(103, 194, 58, 0.4);
+  border-color: transparent;
 }
 
 .progress-container {

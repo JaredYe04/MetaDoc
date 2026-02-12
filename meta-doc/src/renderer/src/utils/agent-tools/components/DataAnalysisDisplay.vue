@@ -445,7 +445,7 @@ const buildAggregationTree = (agg: { groupBy: string; aggregations: Record<strin
 
 // 主题样式
 const containerStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background,
+  backgroundColor: 'transparent',
   color: themeState.currentTheme.textColor
 }))
 

@@ -112,7 +112,6 @@
         </div>
 
         <MetaFieldAssistant
-          v-if="titleAssistantVisible"
           :visible="titleAssistantVisible"
           :prompt="generateTitlePrompt(outlineJson)"
           :title="$t('article.edit_title')"
@@ -123,7 +122,6 @@
         />
 
         <MetaFieldAssistant
-          v-if="authorAssistantVisible"
           :visible="authorAssistantVisible"
           :prompt="''"
           :title="$t('article.modify_author')"
@@ -136,7 +134,6 @@
         />
 
         <MetaFieldAssistant
-          v-if="descriptionAssistantVisible"
           :visible="descriptionAssistantVisible"
           :prompt="generateDescriptionPrompt(outlineJson)"
           :title="$t('article.edit_description')"

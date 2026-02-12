@@ -237,6 +237,7 @@
     "authorLabel": "Autor",
     "button": {
       "openFile": "Dokument öffnen",
+      "newDoc": "Neues Dokument",
       "quickStart": "Schneller Start.",
       "refresh": "Refreshing"
     },
@@ -291,6 +292,7 @@
       "close": "Schneller Start",
       "generateArticle": "Artikel generieren",
       "inputPrompt": "Geben Sie Ihren Hinweis",
+      "newDoc": "Ein neues Dokument erstellen",
       "openFile": "Öffne ein bestehendes Dokument",
       "quickStart": "Quick Start: Schnell ein Dokument erstellen",
       "ready": "Fertig.",

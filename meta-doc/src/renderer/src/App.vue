@@ -8,6 +8,8 @@
     <Main v-if="requiresLayout" />
     <!-- 如果不需要布局，则直接渲染路由页面 -->
     <router-view v-else />
+    <!-- Element Plus 输入框全局右键菜单（剪切/复制/粘贴/全选） -->
+    <InputContextMenu />
   </div>
 </template>
 
@@ -15,6 +17,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import Main from './views/Main.vue'
+import InputContextMenu from './components/common/InputContextMenu.vue'
 
 import eventBus, { getWindowType, initWindowType } from './utils/event-bus';
 import { getRecentDocs, getSetting, initCriticalSettings, initNonCriticalSettings } from './utils/settings';

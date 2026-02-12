@@ -2,6 +2,7 @@
   <div 
     class="resizable-container" 
     :class="containerClass" 
+    :style="seamlessDivider ? { '--seamless-divider-half': (dividerSize / 2) + 'px' } : undefined"
     ref="containerRef"
     @mousemove="handleMouseMove"
     @mouseleave="handleMouseLeave"
@@ -106,6 +107,10 @@ interface Props {
   collapsedWidth?: number
   /** 是否将侧边栏放在左侧（仅 vertical + sidebarPosition start 时有效；false 时保持 DOM 顺序：主内容左、侧边栏右） */
   sidebarOnLeft?: boolean
+  /** localStorage 持久化 key，设置后侧边栏尺寸和折叠状态会自动保存/恢复 */
+  storageKey?: string
+  /** 无缝分割线模式：透明背景 + 负边距重叠，使分割线默认不可见，仅 hover 时显示 */
+  seamlessDivider?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -123,7 +128,9 @@ const props = withDefaults(defineProps<Props>(), {
   collapseButtonTitle: '折叠',
   expandButtonTitle: '展开',
   collapsedWidth: 0,
-  sidebarOnLeft: false
+  sidebarOnLeft: false,
+  storageKey: undefined,
+  seamlessDivider: false
 })
 
 const emit = defineEmits<{
@@ -133,9 +140,35 @@ const emit = defineEmits<{
   collapse: [collapsed: boolean]
 }>()
 
+// localStorage 持久化工具
+const STORAGE_PREFIX = 'metadoc-resize-'
+
+function loadFromStorage(): { size?: number; collapsed?: boolean } | null {
+  if (!props.storageKey) return null
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + props.storageKey)
+    if (raw) return JSON.parse(raw)
+  } catch { /* ignore */ }
+  return null
+}
+
+function saveToStorage() {
+  if (!props.storageKey) return
+  try {
+    localStorage.setItem(STORAGE_PREFIX + props.storageKey, JSON.stringify({
+      size: sidebarSize.value,
+      collapsed: isCollapsed.value
+    }))
+  } catch { /* ignore */ }
+}
+
+// 从 localStorage 恢复初始值
+const savedState = loadFromStorage()
+const resolvedInitialSize = savedState?.size ?? props.initialSidebarSize
+
 // 当前侧边栏尺寸
-const sidebarSize = ref(props.initialSidebarSize)
-const startSidebarSize = ref(props.initialSidebarSize)
+const sidebarSize = ref(resolvedInitialSize)
+const startSidebarSize = ref(resolvedInitialSize)
 
 // 父组件更新 initialSidebarSize 时同步到内部（用于按比例切换默认布局等）
 watch(
@@ -149,8 +182,8 @@ watch(
   }
 )
 
-// 折叠状态
-const isCollapsed = ref(false)
+// 折叠状态（从 localStorage 恢复，如果有的话）
+const isCollapsed = ref(savedState?.collapsed ?? false)
 
 // 是否显示展开按钮
 const showExpandButton = ref(false)
@@ -170,7 +203,8 @@ const containerClass = computed(() => ({
   'vertical-layout': props.direction === 'vertical',
   'sidebar-start': props.sidebarPosition === 'start',
   'sidebar-end': props.sidebarPosition === 'end',
-  'sidebar-on-left': props.sidebarOnLeft && props.sidebarPosition === 'start' && props.direction === 'vertical'
+  'sidebar-on-left': props.sidebarOnLeft && props.sidebarPosition === 'start' && props.direction === 'vertical',
+  'seamless-divider-mode': props.seamlessDivider
 }))
 
 // 主内容区样式
@@ -459,6 +493,7 @@ const containerRef = ref<HTMLElement | null>(null)
 // 切换折叠状态
 function toggleCollapse() {
   isCollapsed.value = !isCollapsed.value
+  saveToStorage()
   emit('collapse', isCollapsed.value)
 }
 
@@ -571,6 +606,7 @@ function handleResizeStart(event: MouseEvent) {
 
 // 处理调整结束
 function handleResizeEnd(event: MouseEvent) {
+  saveToStorage()
   emit('resizeEnd', event)
 }
 
@@ -579,10 +615,12 @@ defineExpose({
   setSidebarSize: (size: number) => {
     sidebarSize.value = Math.max(props.minSize, Math.min(props.maxSize, size))
     startSidebarSize.value = sidebarSize.value
+    saveToStorage()
   },
   getSidebarSize: () => sidebarSize.value,
   setCollapsed: (collapsed: boolean) => {
     isCollapsed.value = collapsed
+    saveToStorage()
     emit('collapse', collapsed)
   },
   getCollapsed: () => isCollapsed.value,
@@ -783,5 +821,33 @@ defineExpose({
 
 .expand-button-right {
   right: 0;
+}
+
+/* === 无缝分割线模式 === */
+/* 分割线默认透明，使用负边距使其重叠在相邻内容之上，消除可见间隙 */
+.seamless-divider-mode :deep(.resizable-divider) {
+  background-color: transparent !important;
+}
+
+.seamless-divider-mode.vertical-layout :deep(.resizable-divider) {
+  margin-left: calc(-1 * var(--seamless-divider-half, 2.5px));
+  margin-right: calc(-1 * var(--seamless-divider-half, 2.5px));
+}
+
+.seamless-divider-mode.horizontal-layout :deep(.resizable-divider) {
+  margin-top: calc(-1 * var(--seamless-divider-half, 2.5px));
+  margin-bottom: calc(-1 * var(--seamless-divider-half, 2.5px));
+}
+
+/* hover 时显示半透明高亮，覆盖在内容之上；重置 opacity 以避免基础样式的 0.8 干扰 */
+.seamless-divider-mode :deep(.resizable-divider:hover) {
+  background-color: var(--divider-hover-color, rgba(128, 128, 128, 0.2)) !important;
+  opacity: 1 !important;
+}
+
+/* 拖拽时显示更明显的高亮 */
+.seamless-divider-mode :deep(.resizable-divider.divider-resizing) {
+  background-color: var(--divider-hover-color, rgba(128, 128, 128, 0.3)) !important;
+  opacity: 1 !important;
 }
 </style>

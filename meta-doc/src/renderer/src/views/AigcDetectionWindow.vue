@@ -190,6 +190,7 @@
           <div v-if="articleContent" ref="mainContentWrapRef" class="main-content">
             <ResizableContainer
               direction="vertical"
+              storage-key="aigc-report-panel"
               :initial-sidebar-size="initialReportPanelWidth"
               :min-size="200"
               :max-size="800"

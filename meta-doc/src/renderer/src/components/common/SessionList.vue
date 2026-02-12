@@ -16,6 +16,7 @@
     :collapsed-width="48"
     :collapse-button-title="$t('viewMenuContainer.collapse')"
     :expand-button-title="$t('viewMenuContainer.expand')"
+    storage-key="session-list-sidebar"
     @resize="handleResize"
     @collapse="isCollapsed = $event"
   >
@@ -91,6 +92,7 @@
             </template>
           </el-menu>
         </el-scrollbar>
+        <slot name="sidebar-footer"></slot>
         <!-- 右键菜单（固定定位，展开/折叠态共用） -->
         <transition name="fade">
           <div
@@ -158,7 +160,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import ResizableContainer from '../base/ResizableContainer.vue'
 import { ElMessageBox } from 'element-plus'
 import { AddIcon } from 'tdesign-icons-vue-next'
-import { themeState } from '../../utils/themes'
+import { themeState, mixColors } from '../../utils/themes'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -252,7 +254,7 @@ const handleResize = (size: number) => {
 }
 
 const panelStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background2nd,
+  backgroundColor: mixColors(themeState.currentTheme.background2nd, '#000000', 0.02),
   color: themeState.currentTheme.textColor,
   borderColor: themeState.currentTheme.type === 'dark' 
     ? 'rgba(255, 255, 255, 0.18)' 

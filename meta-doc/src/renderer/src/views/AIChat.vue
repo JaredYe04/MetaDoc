@@ -1,17 +1,5 @@
 <template>
   <div class="ai-chat-container" :style="containerStyle">
-    <el-dialog v-model="renameDialogVisible" :title="t('aiChat.renameTitle')" width="500">
-      <el-input v-model="editingTitle" style="width: 100%" :placeholder="t('aiChat.renamePlaceholder')" />
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="renameDialogVisible = false">{{ t('common.cancel') }}</el-button>
-          <el-button type="primary" @click="finishRename">
-            {{ t('common.confirm') }}
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
-
     <!-- 选择文档对话框 -->
     <el-dialog 
       v-model="selectDocumentDialogVisible" 
@@ -80,68 +68,27 @@
     </el-dialog>
 
     <div class="main-container">
-      <!-- 左侧菜单 -->
-      <div class="side-menu-wrapper" :style="panelStyle">
-        <header class="pane-header">
-          <h2>{{ t('aiChat.sessionsTitle', 'AI会话') }}</h2>
-          <div class="actions">
-            <el-tooltip :content="t('aiChat.newDialog')">
-              <el-button size="small" type="info" :icon="AddIcon" circle @click="addNewDialog" :disabled="responding"></el-button>
-            </el-tooltip>
-          </div>
-        </header>
-        <el-scrollbar class="menu-scrollbar">
-          <el-menu class="side-menu" :default-active="activeDialogIndex.toString()" :style="menuStyle">
-            <template v-for="group in groupedDialogs" :key="group.label">
-              <el-menu-item disabled class="group-header" :class="{ 'is-ui-locked': responding }">
-                <span class="group-label">{{ group.label }}</span>
-              </el-menu-item>
-              <el-menu-item 
-                v-for="item in group.dialogs" 
-                :key="item.originalIndex" 
-                :index="item.originalIndex.toString()"
-                @click="loadDialog(item.originalIndex)" 
-                :disabled="responding"
-                :class="{ 'menu-item-open': openDialogMenuId === item.originalIndex }">
-                <div class="menu-item-wrapper">
-                  <span class="dialog-title">{{ item.dialog.title }}</span>
-                  <div class="menu-item-actions">
-                    <el-button
-                      text
-                      circle
-                      size="small"
-                      class="more-btn"
-                      :disabled="responding"
-                      @click.stop="toggleDialogMenu(item.originalIndex)"
-                    >
-                      <el-icon><More /></el-icon>
-                    </el-button>
-                    <transition name="fade">
-                      <div
-                        v-if="openDialogMenuId === item.originalIndex && !responding"
-                        class="dialog-menu"
-                        :style="dialogMenuStyle"
-                        @click.stop
-                      >
-                        <button type="button" class="dialog-menu__item" @click="handleDialogMenuAction('rename', item.originalIndex)">
-                          {{ t('aiChat.rename') }}
-                        </button>
-                        <button type="button" class="dialog-menu__item" @click="handleDialogMenuAction('duplicate', item.originalIndex)">
-                          {{ t('aiChat.duplicate') }}
-                        </button>
-                        <button type="button" class="dialog-menu__item danger" @click="handleDialogMenuAction('delete', item.originalIndex)">
-                          {{ t('aiChat.delete') }}
-                        </button>
-                      </div>
-                    </transition>
-                  </div>
-                </div>
-              </el-menu-item>
-            </template>
-          </el-menu>
-        </el-scrollbar>
-      </div>
-
+      <SessionList
+        :title="t('aiChat.sessionsTitle', 'AI会话')"
+        :items="sessionListItems"
+        :active-index="activeDialogIndex.toString()"
+        :disabled="responding"
+        :create-button-tooltip="t('aiChat.newDialog')"
+        :rename-label="t('aiChat.rename')"
+        :duplicate-label="t('aiChat.duplicate')"
+        :delete-label="t('aiChat.delete')"
+        :rename-dialog-title="t('aiChat.renameTitle')"
+        :rename-placeholder="t('aiChat.renamePlaceholder')"
+        :cancel-label="t('common.cancel')"
+        :confirm-label="t('common.confirm')"
+        :show-duplicate="true"
+        :group-by-date="true"
+        @create="addNewDialog"
+        @select="handleSessionSelect"
+        @rename="handleSessionRename"
+        @duplicate="handleSessionDuplicate"
+        @delete="handleSessionDelete"
+      >
       <!-- 右侧内容 -->
       <div class="content-area" :style="panelStyle">
         <header class="conversation-header">
@@ -201,6 +148,7 @@
         </div>
 
       </div>
+      </SessionList>
     </div>
 
     <!-- 引用管理对话框 -->
@@ -226,8 +174,8 @@
           publicContext: {},
           executionNodes: [],
           status: 'idle'
-        } as AgentSession"
-        @update="handleReferenceUpdate"
+        }"
+        @update = "handleReferenceUpdate"
       />
       <template #footer>
         <el-button @click="showReferenceDialog = false">{{ t('common.close') }}</el-button>
@@ -241,15 +189,15 @@
 import { computed, onMounted, onBeforeUnmount, reactive, ref, watch, type Ref, type WatchStopHandle } from 'vue';
 import MessageBubble from "../components/MessageBubble.vue";
 //import { bindCode } from "../assets/aichat_legacy/utils";
-import { ChatSquare, Delete, Edit } from "@element-plus/icons-vue/global";
-import { More, Document, Folder } from '@element-plus/icons-vue';
+import { Document, Folder } from '@element-plus/icons-vue';
+import SessionList from '../components/common/SessionList.vue';
+import type { SessionListItem } from '../components/common/SessionList.vue';
 import "../assets/input-box.css"
 import "../assets/title.css"
 
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus";
 import eventBus from '../utils/event-bus.js';
 import { themeState } from "../utils/themes.js";
-import { AddIcon } from 'tdesign-icons-vue-next';
 import { answerQuestion } from '../utils/llm-api.js';
 import '../assets/tool-group.css'
 import { updateTitlePrompt } from '../utils/prompts';
@@ -448,17 +396,7 @@ const deleteDialog = (index: number) => {
     addNewDialog();
   }
   persistDialogsToStorage();
-  openDialogMenuId.value = null;
 };
-const renameDialog = (index: number) => {
-  editingIndex.value = index;
-  renameDialogVisible.value = true;
-  editingTitle.value = dialogs.value[index]?.title ?? '';
-};
-const renameDialogVisible = ref(false);
-const editingTitle = ref('');
-const editingIndex = ref<number>(0);
-const openDialogMenuId = ref<number | null>(null);
 
 // 选择文档对话框相关
 const selectDocumentDialogVisible = ref(false);
@@ -579,58 +517,15 @@ const confirmInsertToDocument = () => {
   }
 };
 
-const borderColor = computed(() =>
-  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)',
-);
-
-const subtleBorderColor = computed(() =>
-  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
-);
-
 const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
   color: themeState.currentTheme.textColor,
-  borderColor: borderColor.value,
-}));
-
-const dialogMenuStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background,
-  color: themeState.currentTheme.textColor,
-  borderColor: subtleBorderColor.value,
 }));
 
 const containerStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor,
 }));
-
-const menuStyle = computed(() => ({
-  '--menu-item-bg': themeState.currentTheme.background2nd,
-  '--menu-item-hover-bg': themeState.currentTheme.type === 'dark' 
-    ? 'rgba(255, 255, 255, 0.08)' 
-    : 'rgba(0, 0, 0, 0.04)',
-  '--menu-item-active-bg': themeState.currentTheme.type === 'dark'
-    ? 'rgba(64, 158, 255, 0.2)'
-    : 'rgba(64, 158, 255, 0.1)',
-}));
-
-const finishRename = () => {
-  const index = editingIndex.value;
-  if (index < 0 || index >= dialogs.value.length) {
-    renameDialogVisible.value = false;
-    return;
-  }
-  const existingDialog = dialogs.value[index];
-  dialogs.value[index] = {
-    ...existingDialog,
-    title: editingTitle.value,
-  };
-  if (activeDialogIndex.value === editingIndex.value) {
-    title.value = editingTitle.value;
-  }
-  renameDialogVisible.value = false;
-  persistDialogsToStorage();
-};
 
 const duplicateDialog = (index: number) => {
   const dialog = dialogs.value[index];
@@ -648,39 +543,7 @@ const duplicateDialog = (index: number) => {
   activeDialogIndex.value = 0;
   loadDialog(0);
   persistDialogsToStorage();
-  openDialogMenuId.value = null;
   ElMessage.success(t('aiChat.duplicateSuccess', '对话已复制'));
-};
-
-const toggleDialogMenu = (index: number) => {
-  if (responding.value) {
-    return; // 生成时禁用菜单
-  }
-  openDialogMenuId.value = openDialogMenuId.value === index ? null : index;
-};
-
-const handleDialogMenuAction = async (
-  action: 'rename' | 'duplicate' | 'delete',
-  index: number,
-) => {
-  openDialogMenuId.value = null;
-  if (action === 'rename') {
-    renameDialog(index);
-  } else if (action === 'duplicate') {
-    duplicateDialog(index);
-  } else if (action === 'delete') {
-    try {
-      await ElMessageBox.confirm(
-        t('aiChat.confirmDelete', { title: dialogs.value[index]?.title || '' }, `确定要删除"${dialogs.value[index]?.title || ''}"吗？`),
-        t('aiChat.delete'),
-        { type: 'warning' },
-      );
-      deleteDialog(index);
-      ElMessage.success(t('aiChat.deleteSuccess', '删除成功'));
-    } catch {
-      // canceled
-    }
-  }
 };
 
 const title = ref(defaultTitle);
@@ -1169,23 +1032,17 @@ const handleExternalDialogsUpdate = () => {
   initCurrentDialog();
 };
 
-const handleDocumentClick = () => {
-  openDialogMenuId.value = null;
-};
-
 onMounted(() => {
   initCurrentDialog();
   eventBus.on('ai-dialogs-loaded', initCurrentDialog);
   eventBus.on('ai-chat-dialogs-updated', handleExternalDialogsUpdate);
   eventBus.on('ai-chat-request-insert-to-document', handleRequestInsertToDocument);
-  document.addEventListener('click', handleDocumentClick);
 });
 
 onBeforeUnmount(() => {
   eventBus.off('ai-dialogs-loaded', initCurrentDialog);
   eventBus.off('ai-chat-dialogs-updated', handleExternalDialogsUpdate);
   eventBus.off('ai-chat-request-insert-to-document', handleRequestInsertToDocument);
-  document.removeEventListener('click', handleDocumentClick);
 });
 
 watch([messages], () => {
@@ -1280,56 +1137,40 @@ const onMsgEdit = async (data: MessageEditPayload) => {
 
 }
 
-// 分组逻辑
-type DialogGroup = {
-  label: string;
-  dialogs: Array<{ dialog: AIDialog; originalIndex: number }>;
+// SessionList 集成
+const sessionListItems = computed<SessionListItem[]>(() =>
+  dialogs.value.map((dialog, index) => ({
+    id: index.toString(),
+    title: dialog.title,
+    updatedAt: dialog.updatedAt || dialog.createdAt || Date.now(),
+  }))
+);
+
+const handleSessionSelect = (item: SessionListItem) => {
+  loadDialog(parseInt(item.id));
 };
 
-const getDialogTime = (dialog: AIDialog): number => {
-  // 使用 updatedAt（AI最后一次回复时间）进行排序
-  return dialog.updatedAt || dialog.createdAt || 0;
-};
-
-const groupDialogs = (dialogsList: AIDialog[]): DialogGroup[] => {
-  const now = Date.now();
-  const todayStart = new Date().setHours(0, 0, 0, 0);
-  const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
-  const lastWeekStart = todayStart - 7 * 24 * 60 * 60 * 1000;
-  const lastMonthStart = todayStart - 30 * 24 * 60 * 60 * 1000;
-
-  const groups: DialogGroup[] = [
-    { label: t('aiChat.today'), dialogs: [] },
-    { label: t('aiChat.yesterday'), dialogs: [] },
-    { label: t('aiChat.lastWeek'), dialogs: [] },
-    { label: t('aiChat.lastMonth'), dialogs: [] },
-    { label: t('aiChat.earlier'), dialogs: [] },
-  ];
-
-  // 保持原始顺序，不进行排序（只在AI生成新回复时通过更新dialogs数组顺序来改变）
-  // 按时间分组，但保持每个分组内的原始顺序
-  dialogsList.forEach((dialog, originalIndex) => {
-    const time = getDialogTime(dialog);
-    if (time >= todayStart) {
-      groups[0].dialogs.push({ dialog, originalIndex });
-    } else if (time >= yesterdayStart) {
-      groups[1].dialogs.push({ dialog, originalIndex });
-    } else if (time >= lastWeekStart) {
-      groups[2].dialogs.push({ dialog, originalIndex });
-    } else if (time >= lastMonthStart) {
-      groups[3].dialogs.push({ dialog, originalIndex });
-    } else {
-      groups[4].dialogs.push({ dialog, originalIndex });
+const handleSessionRename = (item: SessionListItem, newTitle: string) => {
+  const index = parseInt(item.id);
+  if (index >= 0 && index < dialogs.value.length) {
+    dialogs.value[index] = {
+      ...dialogs.value[index],
+      title: newTitle,
+    };
+    if (activeDialogIndex.value === index) {
+      title.value = newTitle;
     }
-  });
-
-  // 只返回有对话的分组
-  return groups.filter(group => group.dialogs.length > 0);
+    persistDialogsToStorage();
+  }
 };
 
-const groupedDialogs = computed(() => groupDialogs(dialogs.value));
+const handleSessionDuplicate = (item: SessionListItem) => {
+  duplicateDialog(parseInt(item.id));
+};
 
-// 样式部分添加左侧菜单
+const handleSessionDelete = (item: SessionListItem) => {
+  deleteDialog(parseInt(item.id));
+};
 
 
 
@@ -1349,108 +1190,8 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
   display: flex;
   flex: 1;
   min-height: 0;
-  gap: 18px;
-  padding: 16px;
   box-sizing: border-box;
   overflow: hidden;
-}
-
-.side-menu-wrapper {
-  width: 250px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  border-radius: 16px;
-  border: 1px solid;
-  padding: 16px;
-  box-sizing: border-box;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-  overflow: hidden;
-}
-
-.menu-scrollbar {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-  z-index: 0;
-}
-
-.menu-scrollbar :deep(.el-scrollbar__bar) {
-  z-index: 10;
-}
-
-.side-menu {
-  width: 100%;
-  border-right: none;
-}
-
-.side-menu :deep(.el-menu-item) {
-  overflow: visible;
-  position: relative;
-  background-color: var(--menu-item-bg, transparent) !important;
-}
-
-.side-menu :deep(.el-menu-item:not(.is-disabled):hover) {
-  background-color: var(--menu-item-hover-bg, rgba(64, 158, 255, 0.1)) !important;
-}
-
-.side-menu :deep(.el-menu-item.is-active) {
-  background-color: var(--menu-item-active-bg, rgba(64, 158, 255, 0.15)) !important;
-}
-
-.side-menu :deep(.el-menu-item:hover),
-.side-menu :deep(.el-menu-item.is-active) {
-  z-index: 1;
-}
-
-.side-menu :deep(.el-menu-item.menu-item-open) {
-  z-index: 200;
-}
-
-/* group-header正常情况下的样式 */
-.side-menu :deep(.group-header) {
-  opacity: 1 !important;
-  cursor: default !important;
-  height: auto !important;
-  padding: 8px 20px !important;
-  line-height: 1.5 !important;
-}
-
-/* UI锁启用时，group-header应该和disabled的item一样 */
-.side-menu :deep(.group-header.is-ui-locked) {
-  opacity: 0.5 !important;
-  background-color: var(--menu-item-bg, transparent) !important;
-}
-
-/* disabled的item样式（排除group-header） */
-.side-menu :deep(.el-menu-item.is-disabled:not(.group-header)) {
-  opacity: 0.5 !important;
-}
-
-.group-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--el-text-color-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.pane-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding: 0 4px;
-}
-
-.pane-header h2 {
-  font-size: 16px;
-  margin: 0;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
 }
 
 .content-area {
@@ -1460,8 +1201,6 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
   min-width: 0; /* 允许收缩 */
   min-height: 0; /* 允许收缩 */
   overflow: hidden; /* 防止内容溢出 */
-  border-radius: 16px;
-  border: 1px solid;
   padding: 16px;
   box-sizing: border-box;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
@@ -1488,9 +1227,6 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
 .dialog-container {
   flex: 1;
   background-color: rgba(170, 221, 255, 0.11);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: #606060 1px solid;
-  border-radius: 20px;
   padding: 20px;
   margin: 0;
   min-height: 0;
@@ -1547,35 +1283,6 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
   max-width: min(960px, 100%);
   min-width: 0;
   box-sizing: border-box;
-}
-
-.menu-item-wrapper {
-  position: relative;
-  /* 让子元素绝对定位时以该元素为参考 */
-  width: 100%;
-  /* 占满整个菜单项 */
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  box-sizing: border-box;
-  /* 允许菜单溢出显示 */
-  overflow: visible;
-}
-
-.dialog-title {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-
-.menu-item-actions {
-  display: flex;
-  align-items: center;
-  position: relative;
-  flex-shrink: 0;
 }
 
 /* 选择文档对话框样式 */
@@ -1743,55 +1450,4 @@ const groupedDialogs = computed(() => groupDialogs(dialogs.value));
   }
 }
 
-.more-btn {
-  margin-left: 6px;
-}
-
-.dialog-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  border: 1px solid;
-  border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  min-width: 140px;
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  z-index: 100;
-}
-
-.dialog-menu__item {
-  background: transparent;
-  border: none;
-  padding: 8px 10px;
-  text-align: left;
-  color: inherit;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background-color 0.2s ease;
-}
-
-.dialog-menu__item:hover {
-  background-color: rgba(64, 158, 255, 0.16);
-}
-
-.dialog-menu__item.danger {
-  color: #f56c6c;
-}
-
-.dialog-menu__item.danger:hover {
-  background-color: rgba(245, 108, 108, 0.18);
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.12s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
 </style>

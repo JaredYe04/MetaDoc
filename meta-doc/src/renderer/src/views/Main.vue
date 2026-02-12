@@ -400,90 +400,19 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     snapshot.path = resolvedPath
     snapshot.dirty = false
 
-    // 关键修复：在打开文档之前，先查找并准备替换的新建文档Tab
-    // 这样可以避免启动时出现多余的新建文档Tab
-    let tabToReplace: WorkspaceTab | null = null
-    if (resolvedPath) {
-      // 优先查找当前活动的Tab是否可以替换
-      const currentTab = workspaceTabs.find(tab => tab.id === activeTabId.value)
-      const isSystemOrToolTab = currentTab && (currentTab.kind === 'system' || currentTab.kind === 'tool')
-      const canUseCurrentTab = currentTab && 
-        !isSystemOrToolTab && // 不是系统tab或工具tab（包括主页）
-        currentTab.kind === 'new' && // 只能是新建文档tab
-        (!currentTab.path || currentTab.path === '') && // 没有路径
-        !currentTab.dirty // 没有未保存的更改
-      
-      if (canUseCurrentTab) {
-        tabToReplace = currentTab
-      } else {
-        // 如果当前Tab不能替换，查找第一个可用的新建文档Tab
-        tabToReplace = workspaceTabs.find(t => 
-          t.kind === 'new' && 
-          (!t.path || t.path === '') &&
-          !t.dirty
-        ) || null
-      }
-      
-      // 如果找到了可替换的Tab，先删除所有其他多余的新建文档Tab
-      if (tabToReplace) {
-        const newDocTabs = workspaceTabs.filter(t => 
-          t.kind === 'new' && 
-          t.id !== tabToReplace!.id && // 不包括要替换的tab
-          (!t.path || t.path === '') &&
-          !t.dirty
-        )
-        // 删除所有多余的新建文档tab
-        newDocTabs.forEach(newTab => {
-          removeTab(newTab.id)
-        })
-      } else {
-        // 如果找不到可替换的Tab，删除所有多余的新建文档Tab
-        const newDocTabs = workspaceTabs.filter(t => 
-          t.kind === 'new' && 
-          (!t.path || t.path === '') &&
-          !t.dirty
-        )
-        newDocTabs.forEach(newTab => {
-          removeTab(newTab.id)
-        })
-      }
-    }
-
-    let tab: WorkspaceTab
-    if (tabToReplace && resolvedPath) {
-      // 在找到的tab中打开文档，替换新建文档
-      const replaceDoc = ensureDocument(tabToReplace.id)
-      // 更新文档的内容
-      Object.assign(replaceDoc, snapshot)
-      replaceDoc.id = tabToReplace.id
-      replaceDoc.tabId = tabToReplace.id
-      
-      // 更新tab信息（先更新kind，这样refreshActiveTabMetadata才能正确工作）
-      tabToReplace.kind = 'file'
-      tabToReplace.path = resolvedPath
-      tabToReplace.format = loaded.format
-      tabToReplace.dirty = false
-      
-      markDocumentSaved(tabToReplace.id, resolvedPath || undefined)
-      // 更新tab标题和副标题（现在kind已经是'file'了，refreshActiveTabMetadata会正确工作）
-      refreshActiveTabMetadata()
-      tab = tabToReplace
-    } else {
-      // 创建新tab（包括从主页打开文档的情况）
-      tab = addDocumentTab(snapshot, {
-        kind: 'file',
-        dirty: false,
-        path: resolvedPath,
-        format: loaded.format,
-      })
-      const doc = ensureDocument(tab.id)
-      doc.path = resolvedPath
-      doc.format = loaded.format
-      markDocumentSaved(tab.id, resolvedPath || undefined)
-      // 更新tab标题和副标题
-      refreshActiveTabMetadata()
-    }
-    
+    // 多 Tab 会话模式：从「最近文档」或「打开文档」打开文件时，始终在新 Tab 中打开，
+    // 不替换当前未初始化的「新文档」Tab，避免原 Tab 标题被错误改为打开的文件名。
+    // （原单会话逻辑会“替换”当前空 Tab，导致唯一的新建文档 Tab 标题变成 aaa.md 的 bug）
+    const tab: WorkspaceTab = addDocumentTab(snapshot, {
+      kind: 'file',
+      dirty: false,
+      path: resolvedPath,
+      format: loaded.format,
+    })
+    const doc = ensureDocument(tab.id)
+    doc.path = resolvedPath
+    doc.format = loaded.format
+    markDocumentSaved(tab.id, resolvedPath || undefined)
     activateTab(tab.id)
     activated = true
 
@@ -1115,7 +1044,8 @@ onBeforeUnmount(() => {
   display: flex;
   height: 40px;
   background-color: var(--el-bg-color, #ffffff);
-  border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0);
+  border:none;
+  /* border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0); */
   z-index: 100;
 }
 
@@ -1179,8 +1109,9 @@ onBeforeUnmount(() => {
 .side-menu {
   width: fit-content;
   min-width: 64px;
-  background-color: var(--el-bg-color, #ffffff);
-  border-right: 1px solid var(--el-border-color-lighter, #f0f0f0);
+  width: 64px;
+  /* background-color: var(--el-bg-color, #ffffff); */
+  /* border-right: 1px solid var(--el-border-color-lighter, #f0f0f0); */
   overflow: hidden;
 }
 

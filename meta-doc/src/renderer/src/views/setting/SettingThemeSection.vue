@@ -124,7 +124,6 @@
 
     <el-form-item :label="t('setting.lineNumber')">
       <el-switch v-model="settings.lineNumber" class="mb-2"
-        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
         :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
         @change="saveSetting('lineNumber', settings.lineNumber)" />
     </el-form-item>

@@ -1,0 +1,137 @@
+/**
+ * Element Plus 极简风格主题覆盖
+ * 将默认蓝色 primary 改为炭灰/中性色，整体偏极简
+ */
+
+/* ========== 亮色模式 ========== */
+:root {
+  /* 主色：炭灰替代蓝色，极简克制 */
+  --el-color-primary-rgb: 55, 65, 81;
+  --el-color-primary: #374151;
+  --el-color-primary-light-3: #6b7280;
+  --el-color-primary-light-5: #9ca3af;
+  --el-color-primary-light-7: #d1d5db;
+  --el-color-primary-light-8: #e5e7eb;
+  --el-color-primary-light-9: #f3f4f6;
+  --el-color-primary-dark-2: #1f2937;
+
+  /* 功能色：略微收敛，保持可读性 */
+  /* --el-color-success: #059669;
+  --el-color-success-light-3: #34d399;
+  --el-color-success-light-5: #6ee7b7;
+  --el-color-success-light-7: #a7f3d0;
+  --el-color-success-light-8: #d1fae5;
+  --el-color-success-light-9: #ecfdf5;
+  --el-color-success-dark-2: #047857;
+
+  --el-color-warning: #b45309;
+  --el-color-warning-light-3: #d97706;
+  --el-color-warning-light-5: #f59e0b;
+  --el-color-warning-light-7: #fcd34d;
+  --el-color-warning-light-8: #fde68a;
+  --el-color-warning-light-9: #fef3c7;
+  --el-color-warning-dark-2: #92400e;
+
+  --el-color-danger: #dc2626;
+  --el-color-danger-light-3: #ef4444;
+  --el-color-danger-light-5: #f87171;
+  --el-color-danger-light-7: #fca5a5;
+  --el-color-danger-light-8: #fecaca;
+  --el-color-danger-light-9: #fee2e2;
+  --el-color-danger-dark-2: #b91c1c; */
+
+  --el-color-error: var(--el-color-danger);
+  --el-color-error-light-3: var(--el-color-danger-light-3);
+  --el-color-error-light-5: var(--el-color-danger-light-5);
+  --el-color-error-light-7: var(--el-color-danger-light-7);
+  --el-color-error-light-8: var(--el-color-danger-light-8);
+  --el-color-error-light-9: var(--el-color-danger-light-9);
+  --el-color-error-dark-2: var(--el-color-danger-dark-2);
+
+  /* 信息色与主色统一为中性灰 */
+  --el-color-info: #6b7280;
+  --el-color-info-light-3: #9ca3af;
+  --el-color-info-light-5: #d1d5db;
+  --el-color-info-light-7: #e5e7eb;
+  --el-color-info-light-8: #f3f4f6;
+  --el-color-info-light-9: #f9fafb;
+  --el-color-info-dark-2: #4b5563;
+
+  /* 页面与背景：更干净的浅灰 */
+  --el-bg-color-page: #fafafa;
+  --el-fill-color: #f4f4f5;
+  --el-fill-color-light: #f5f5f5;
+  --el-fill-color-lighter: #fafafa;
+  --el-fill-color-extra-light: #fafafa;
+
+  /* 边框：极简浅灰 */
+  --el-border-color: #e5e7eb;
+  --el-border-color-light: #e5e7eb;
+  --el-border-color-lighter: #f3f4f6;
+  --el-border-color-extra-light: #f9fafb;
+
+  /* 阴影：轻微，减少干扰 */
+  --el-box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  --el-box-shadow-light: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --el-box-shadow-lighter: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+
+  /* 开关：柔和绿/灰红，替代鲜艳红绿 */
+  --el-switch-on-color: #4d7c5a;
+  --el-switch-off-color: #b07d7d;
+}
+
+/* ========== 暗色模式 ========== */
+html.dark {
+  --el-color-primary-rgb: 156, 163, 175;
+  --el-color-primary: #9ca3af;
+  --el-color-primary-light-3: #6b7280;
+  --el-color-primary-light-5: #4b5563;
+  --el-color-primary-light-7: #374151;
+  --el-color-primary-light-8: #1f2937;
+  --el-color-primary-light-9: #111827;
+  --el-color-primary-dark-2: #d1d5db;
+
+  --el-color-success: #10b981;
+  --el-color-success-light-3: #059669;
+  --el-color-success-light-5: #047857;
+  --el-color-success-light-7: #065f46;
+  --el-color-success-light-8: #064e3b;
+  --el-color-success-light-9: #022c22;
+  --el-color-success-dark-2: #34d399;
+
+  --el-color-warning: #d97706;
+  --el-color-warning-light-3: #b45309;
+  --el-color-warning-light-5: #92400e;
+  --el-color-warning-light-7: #78350f;
+  --el-color-warning-light-8: #451a03;
+  --el-color-warning-light-9: #431407;
+  --el-color-warning-dark-2: #fbbf24;
+
+  --el-color-danger: #ef4444;
+  --el-color-danger-light-3: #dc2626;
+  --el-color-danger-light-5: #b91c1c;
+  --el-color-danger-light-7: #991b1b;
+  --el-color-danger-light-8: #7f1d1d;
+  --el-color-danger-light-9: #450a0a;
+  --el-color-danger-dark-2: #f87171;
+
+  --el-color-error: var(--el-color-danger);
+  --el-color-error-light-3: var(--el-color-danger-light-3);
+  --el-color-error-light-5: var(--el-color-danger-light-5);
+  --el-color-error-light-7: var(--el-color-danger-light-7);
+  --el-color-error-light-8: var(--el-color-danger-light-8);
+  --el-color-error-light-9: var(--el-color-danger-light-9);
+  --el-color-error-dark-2: var(--el-color-danger-dark-2);
+
+  --el-color-info: #9ca3af;
+  --el-color-info-light-3: #6b7280;
+  --el-color-info-light-5: #4b5563;
+  --el-color-info-light-7: #374151;
+  --el-color-info-light-8: #1f2937;
+  --el-color-info-light-9: #111827;
+  --el-color-info-dark-2: #d1d5db;
+
+  /* 开关：暗色下柔和绿/灰红 */
+  --el-switch-on-color: #5a9a6e;
+  --el-switch-off-color: #a67c7c;
+}

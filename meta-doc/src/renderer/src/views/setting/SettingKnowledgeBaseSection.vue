@@ -5,7 +5,6 @@
       <el-form-item :label="t('setting.enableKnowledgeBase')">
         <el-tooltip :content="t('setting.knowledgeBaseTooltip')" placement="bottom">
           <el-switch v-model="settings.enableKnowledgeBase" class="mb-2"
-            style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
             :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
             @change="handleKnowledgeBaseToggleChange" />
         </el-tooltip>

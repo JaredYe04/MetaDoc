@@ -1,27 +1,25 @@
 <template>
   <div id="particle-bg" class="homepage">
-    <!-- 渐变背景叠加层 -->
-    <div class="gradient-overlay"></div>
+    <!-- 极简网格装饰 -->
+    <div class="grid-decoration"></div>
     
     <el-scrollbar class="center-content">
       <div class="center-content-wrapper">
-        <!-- 主标题区域 -->
+        <!-- METADOC 扭曲文字 Banner -->
         <div v-if="showWelcome" class="hero-section">
-          <div class="title-container">
-            <h1 class="main-title" @mouseover="highlightM" @mouseleave="resetM">
-              {{ $t('home.metaDoc') }}
-            </h1>
-            <p class="subtitle" :style="{ color: themeState.currentTheme.textColor2 || 'rgba(0, 0, 0, 0.6)' }">
-              {{ $t('home.subtitle') || '现代文档编辑与创作工具' }}
-            </p>
+          <div class="distortion-wrapper">
+            <DistortionBanner />
           </div>
+          <p class="subtitle">
+            {{ $t('home.subtitle') || '现代文档编辑与创作工具' }}
+          </p>
         </div>
 
         <!-- 操作按钮区域 -->
         <div v-if="showWelcome" class="action-section">
-          <div class="action-card aero-div" @click="openQuickStart">
-            <div class="action-icon primary">
-              <el-icon :size="32">
+          <div class="action-card" @click="openQuickStart">
+            <div class="action-icon">
+              <el-icon :size="22">
                 <InfoFilled />
               </el-icon>
             </div>
@@ -29,14 +27,29 @@
               <h3 class="action-title">{{ $t('home.button.quickStart') }}</h3>
               <p class="action-desc">{{ $t('home.tooltip.quickStart') || '快速开始使用' }}</p>
             </div>
-            <el-icon class="action-arrow" :size="20">
+            <el-icon class="action-arrow" :size="16">
               <ArrowRight />
             </el-icon>
           </div>
 
-          <div class="action-card aero-div" @click="openFile">
-            <div class="action-icon success">
-              <el-icon :size="32">
+          <div class="action-card" @click="openNewDoc">
+            <div class="action-icon">
+              <el-icon :size="22">
+                <DocumentAdd />
+              </el-icon>
+            </div>
+            <div class="action-content">
+              <h3 class="action-title">{{ $t('home.button.newDoc') }}</h3>
+              <p class="action-desc">{{ $t('home.tooltip.newDoc') || '创建一篇新文档' }}</p>
+            </div>
+            <el-icon class="action-arrow" :size="16">
+              <ArrowRight />
+            </el-icon>
+          </div>
+
+          <div class="action-card" @click="openFile">
+            <div class="action-icon">
+              <el-icon :size="22">
                 <FolderOpened />
               </el-icon>
             </div>
@@ -44,7 +57,7 @@
               <h3 class="action-title">{{ $t('home.button.openFile') }}</h3>
               <p class="action-desc">{{ $t('home.tooltip.openFile') || '打开现有文档' }}</p>
             </div>
-            <el-icon class="action-arrow" :size="20">
+            <el-icon class="action-arrow" :size="16">
               <ArrowRight />
             </el-icon>
           </div>
@@ -53,30 +66,24 @@
         <!-- 最近文档列表 -->
         <div v-if="showWelcome && recentDocs.length > 0" class="recent-section">
           <div class="recent-header">
-            <h3 class="recent-title" :style="{ color: themeState.currentTheme.textColor }">
+            <h3 class="recent-title">
               <el-icon class="recent-title-icon"><Document /></el-icon>
               {{ $t('home.recentDocuments') || '最近文档' }}
             </h3>
           </div>
-          <div class="recent-docs-grid">
+          <div class="recent-docs-container">
+            <div class="recent-docs-grid">
             <div 
               v-for="(docPath, index) in recentDocs.slice(0, 12)" 
               :key="docPath" 
-              class="recent-doc-card aero-div"
-              :style="{ 
-                animationDelay: `${index * 0.025}s`,
-                borderColor: themeState.currentTheme.borderColor || 'rgba(0, 0, 0, 0.1)'
-              }"
+              class="recent-doc-card"
+              :style="{ animationDelay: `${index * 0.03}s` }"
               @click="openRecentDoc(docPath)"
             >
-              <div class="doc-card-icon">
-                <el-icon :size="24"><Document /></el-icon>
-              </div>
-              <div class="doc-card-content">
-                <span class="doc-card-name" :style="{ color: themeState.currentTheme.textColor }">
-                  {{ getFileName(docPath) }}
-                </span>
-              </div>
+              <div class="doc-card-indicator"></div>
+              <span class="doc-card-name">
+                {{ getFileName(docPath) }}
+              </span>
               <el-button
                 class="doc-card-delete-btn"
                 circle
@@ -84,10 +91,9 @@
                 :icon="Close"
                 text
                 @click.stop="removeRecentDoc(docPath)"
-                :style="{ color: themeState.currentTheme.textColor }"
               />
-              <div class="doc-card-hover-effect"></div>
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -101,6 +107,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, onActivated } from 'vue'
 import { useI18n } from 'vue-i18n'
 import QuickStartPanel from '../components/home/QuickStartPanel.vue'
+import DistortionBanner from '../components/home/DistortionBanner.vue'
 import '../assets/aero-div.css'
 import '../assets/aero-btn.css'
 import '../assets/aero-input.css'
@@ -114,77 +121,22 @@ import { ParticleEffect } from '../utils/particle-effect'
 import type { IpcRendererLike } from '../utils/particle-effect'
 import { extractPlainTextFromLatex } from '../utils/latex-utils'
 import { getRecentDocs, removeRecentDoc as removeRecentDocFromStorage } from '../utils/settings'
-import { Document, InfoFilled, FolderOpened, ArrowRight, Close } from '@element-plus/icons-vue'
+import { Document, InfoFilled, FolderOpened, ArrowRight, Close, DocumentAdd } from '@element-plus/icons-vue'
 import { basename } from '../utils/path-utils'
 
 const { t } = useI18n()
 
-// 计算主页背景色：与themeState.background混合
+// 计算主页背景色：极简干净
 const homepageBackgroundColor = computed(() => {
   const baseBackground = themeState.currentTheme.background
   const isDark = themeState.currentTheme.type === 'dark'
   
-  // 检查 baseBackground 是否接近纯白色（用于亮色模式）
-  const isNearWhite = (color: string) => {
-    try {
-      const rgb = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color)
-      if (rgb) {
-        const r = parseInt(rgb[1], 16)
-        const g = parseInt(rgb[2], 16)
-        const b = parseInt(rgb[3], 16)
-        // 如果 RGB 值都大于 250，认为是接近白色
-        return r > 250 && g > 250 && b > 250
-      }
-    } catch {
-      // 解析失败，返回 false
-    }
-    return false
-  }
-  
   if (isDark) {
-    // 暗色模式：混合白色，让背景稍微提亮但保持暗色特征
-    // 使用较小的权重，避免过亮
-    return mixColors(baseBackground, '#ffffff', 0.12)
+    return mixColors(baseBackground, '#111111', 0.3)
   } else {
-    // 亮色模式
-    if (isNearWhite(baseBackground)) {
-      // 如果背景接近白色，使用主题的 primaryColor 或其他颜色与白色混合
-      // 这样可以确保有主题色特征
-      const themeColor = themeState.currentTheme.primaryColor || themeState.currentTheme.textColor || '#6366f1'
-      // 先将主题色与白色混合（让主题色变淡），然后再与背景色混合
-      const lightThemeColor = mixColors(themeColor, '#ffffff', 0.85)
-      return mixColors(baseBackground, lightThemeColor, 0.3)
-    } else {
-      // 如果背景已经有颜色，直接与白色混合
-      return mixColors(baseBackground, '#ffffff', 0.25)
-    }
+    return mixColors(baseBackground, '#fafafa', 0.5)
   }
 })
-
-// 根据主题类型计算标题渐变色
-const titleGradient = computed(() => {
-  const isDark = themeState.currentTheme.type === 'dark'
-  
-  if (isDark) {
-    // 暗色主题：使用更亮的渐变色，确保在暗色背景下足够明显
-    return 'linear-gradient(135deg, rgb(100, 150, 255) 0%, rgb(120, 140, 255) 50%, rgb(160, 120, 255) 100%)'
-  } else {
-    // 亮色主题：使用原有的渐变色
-    return 'linear-gradient(135deg, rgb(65, 105, 225) 0%, rgb(99, 102, 241) 50%, rgb(139, 92, 246) 100%)'
-  }
-})
-
-// 根据主题类型计算标题阴影效果
-const titleTextShadow = computed(() => {
-  const isDark = themeState.currentTheme.type === 'dark'
-  if (isDark) {
-    // 暗色主题：使用更深的阴影，增强对比度
-    return '0 4px 8px rgba(0, 0, 0, 0.25), 0 8px 16px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(99, 102, 241, 0.3)'
-  }
-  //亮色主题不使用阴影
-  return 'none'
-})
-
 
 const maybeWindow =
   typeof window !== 'undefined'
@@ -195,16 +147,6 @@ const quickStartStage = ref<'inactive' | 'format' | 'markdown' | 'latex'>('inact
 const recentDocs = ref<string[]>([])
 const showWelcome = computed(() => quickStartStage.value === 'inactive')
 
-const highlightM = () => {
-  const el = document.querySelector('.main-title') as HTMLElement | null
-  if (el) el.style.color = 'rgb(50, 150, 250)'
-}
-
-const resetM = () => {
-  const el = document.querySelector('.main-title') as HTMLElement | null
-  if (el) el.style.color = 'rgb(65,105,225)'
-}
-
 const openQuickStart = () => {
   eventBus.emit('reset-quickstart')
   eventBus.emit('open-quickstart')
@@ -214,6 +156,10 @@ const openQuickStart = () => {
 const handleQuickStartClose = () => {
   quickStartStage.value = 'inactive'
   eventBus.emit('reset-quickstart')
+}
+
+const openNewDoc = () => {
+  eventBus.emit('new-doc')
 }
 
 const openFile = () => {
@@ -410,13 +356,13 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* ===== 基础布局 ===== */
 #particle-bg {
   position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
   z-index: 0;
-  /* 背景色设置在 .homepage 上，这里不设置避免覆盖 */
 }
 
 .homepage {
@@ -426,15 +372,31 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* 背景色直接设置在这里，确保优先级 */
   background-color: v-bind('homepageBackgroundColor');
 }
 
-/* 确保 #particle-bg 也应用背景色（因为它是同一个元素） */
 #particle-bg.homepage {
   background-color: v-bind('homepageBackgroundColor');
 }
 
+/* 极简网格装饰：淡淡的背景网格增加科技感 */
+.grid-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    linear-gradient(v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"') 1px, transparent 1px),
+    linear-gradient(90deg, v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"') 1px, transparent 1px);
+  background-size: 64px 64px;
+  z-index: 0;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 10%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 10%, transparent 70%);
+}
+
+/* QuickStart 面板层级 */
 .homepage :deep(.quick-start-panel-wrapper) {
   position: absolute;
   top: 0;
@@ -444,11 +406,9 @@ onBeforeUnmount(() => {
   z-index: 10;
   pointer-events: none;
 }
-
 .homepage :deep(.quick-start-panel-wrapper > *) {
   pointer-events: auto;
 }
-
 .homepage :deep(.quick-start-panel),
 .homepage :deep(.quick-start-markdown),
 .homepage :deep(.quick-start-latex) {
@@ -456,21 +416,8 @@ onBeforeUnmount(() => {
   z-index: 10;
 }
 
-/* 渐变背景叠加层 */
-.gradient-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
-              radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-              radial-gradient(circle at 40% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
-  z-index: 1;
-  pointer-events: none;
-}
-
-#particle-bg canvas {
+/* 粒子画布（排除 DistortionBanner 的 canvas） */
+#particle-bg > canvas {
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;
@@ -481,6 +428,7 @@ onBeforeUnmount(() => {
   background: transparent !important;
 }
 
+/* ===== 内容容器 ===== */
 .center-content {
   width: 100%;
   height: 100%;
@@ -488,166 +436,135 @@ onBeforeUnmount(() => {
   z-index: 2;
 }
 
-.center-content-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: clamp(24px, 4vh, 48px);
-  min-height: 100%;
-  padding: clamp(24px, 5vh, 64px) clamp(20px, 4vw, 48px);
-  box-sizing: border-box;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
-}
-
 .center-content :deep(.el-scrollbar__wrap) {
   overflow-x: hidden;
   overflow-y: auto;
 }
 
-/* 主标题区域 */
-.hero-section {
-  width: 100%;
-  text-align: center;
-  margin-bottom: clamp(16px, 3vh, 32px);
-  animation: fadeInUp 0.4s ease-out;
-}
-
-.title-container {
+.center-content-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  justify-content: flex-start;
+  gap: clamp(20px, 3vh, 36px);
+  min-height: 100%;
+  padding: clamp(16px, 3vh, 40px) clamp(24px, 5vw, 64px);
+  box-sizing: border-box;
+  width: 100%;
 }
 
-.main-title {
-  font-size: clamp(42px, 8vw, 72px);
-  font-weight: 700;
-  background: v-bind('titleGradient');
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
-  padding: 0;
-  transition: transform 0.3s ease, filter 0.3s ease;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  text-shadow: v-bind('titleTextShadow');
+/* ===== DistortionBanner 区域 ===== */
+.hero-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  animation: fadeIn 0.5s ease-out;
 }
 
-.main-title:hover {
-  transform: scale(1.02);
-  filter: brightness(1.1);
-  text-shadow: v-bind('titleTextShadow');
+.distortion-wrapper {
+  width: 100%;
+  max-width: 1400px;
+  height: clamp(110px, 20vh, 200px);
 }
 
 .subtitle {
-  font-size: clamp(16px, 2.5vw, 20px);
-  font-weight: 400;
+  font-size: clamp(16px, 2.5vw, 22px);
+  font-weight: 500;
   margin: 0;
   padding: 0;
-  opacity: 0.8;
-  letter-spacing: 0.01em;
+  color: v-bind('themeState.currentTheme.textColor');
+  opacity: 0.45;
+  letter-spacing: 0.1em;
   user-select: none;
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
 }
 
-/* 操作按钮区域 */
+/* ===== 操作卡片区域 ===== */
 .action-section {
   width: 100%;
-  max-width: 700px;
+  max-width: 820px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-  margin-bottom: clamp(16px, 3vh, 32px);
-  animation: fadeInUp 0.4s ease-out 0.1s both;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  animation: fadeIn 0.5s ease-out 0.08s both;
 }
 
 .action-card {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 24px;
-  border-radius: 16px;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid v-bind('themeState.currentTheme.borderColor || "rgba(0, 0, 0, 0.1)"');
-  background: v-bind('themeState.currentTheme.background2nd || "rgba(255, 255, 255, 0.6)"');
-  overflow: hidden;
+  transition: all 0.2s ease;
+  border: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"');
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.6)"');
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   user-select: none;
+  overflow: hidden;
 }
 
-.action-card::before {
+.action-card::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border-radius: 10px;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)"');
   pointer-events: none;
 }
 
 .action-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)"');
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px v-bind('themeState.currentTheme.type === "dark" ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.06)"');
 }
 
-.action-card:hover::before {
+.action-card:hover::after {
   opacity: 1;
 }
 
 .action-card:active {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .action-icon {
   flex-shrink: 0;
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.action-icon.primary {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
-  color: rgb(59, 130, 246);
-}
-
-.action-icon.success {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%);
-  color: rgb(34, 197, 94);
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
+  color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.45)"');
+  transition: all 0.2s ease;
 }
 
 .action-card:hover .action-icon {
-  transform: scale(1.1) rotate(5deg);
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"');
+  color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.6)"');
 }
 
 .action-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
 .action-title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   margin: 0;
   padding: 0;
   color: v-bind('themeState.currentTheme.textColor');
@@ -655,11 +572,11 @@ onBeforeUnmount(() => {
 }
 
 .action-desc {
-  font-size: 14px;
+  font-size: 12px;
   margin: 0;
   padding: 0;
-  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0, 0, 0, 0.6)"');
-  opacity: 0.8;
+  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.5)"');
+  opacity: 0.6;
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -668,32 +585,31 @@ onBeforeUnmount(() => {
 
 .action-arrow {
   flex-shrink: 0;
-  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0, 0, 0, 0.4)"');
-  transition: all 0.3s ease;
-  opacity: 0.6;
+  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.3)"');
+  transition: all 0.2s ease;
+  opacity: 0;
 }
 
 .action-card:hover .action-arrow {
-  transform: translateX(4px);
-  opacity: 1;
+  transform: translateX(3px);
+  opacity: 0.5;
 }
 
-/* 最近文档区域 */
+/* ===== 最近文档区域 ===== */
 .recent-section {
   width: 100%;
-  max-width: 1200px;
-  animation: fadeInUp 0.4s ease-out 0.2s both;
+  max-width: 820px;
+  animation: fadeIn 0.5s ease-out 0.15s both;
 }
 
 .recent-header {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
 }
 
 .recent-title {
-  font-size: clamp(18px, 2.5vw, 22px);
+  font-size: 16px;
   font-weight: 600;
   margin: 0;
   padding: 0;
@@ -703,18 +619,28 @@ onBeforeUnmount(() => {
   color: v-bind('themeState.currentTheme.textColor');
   user-select: none;
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
 }
 
 .recent-title-icon {
-  font-size: 20px;
+  font-size: 18px;
+  opacity: 0.7;
+}
+
+/* 列表容器 */
+.recent-docs-container {
+  border-radius: 10px;
+  border: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"');
+  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(40,40,42,0.85)" : "rgba(255,255,255,0.75)"');
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  box-shadow: v-bind('themeState.currentTheme.type === "dark" ? "0 2px 8px rgba(0,0,0,0.3)" : "0 1px 4px rgba(0,0,0,0.04)"');
+  overflow: hidden;
 }
 
 .recent-docs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .recent-doc-card {
@@ -722,135 +648,89 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
-  border-radius: 12px;
+  padding: 11px 16px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid;
-  background: v-bind('themeState.currentTheme.background2nd || "rgba(255, 255, 255, 0.6)"');
-  overflow: visible;
+  transition: all 0.05s ease;
+  background: transparent;
   user-select: none;
-  animation: fadeInScale 0.25s ease-out both;
+  animation: fadeIn 0.3s ease-out both;
+  border-bottom: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)"');
+}
+
+.recent-doc-card:last-child {
+  border-bottom: none;
 }
 
 .recent-doc-card:hover {
-  transform: translateY(-2px);
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)"');
 }
 
-.doc-card-icon {
+.recent-doc-card:active {
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
+}
+
+/* 文档卡片左侧小竖线指示器 */
+.doc-card-indicator {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
-  color: rgb(99, 102, 241);
-  transition: all 0.3s ease;
+  width: 3px;
+  height: 16px;
+  border-radius: 1.5px;
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"');
+  transition: all 0.05s ease;
 }
 
-.recent-doc-card:hover .doc-card-icon {
-  transform: scale(1.1);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
-}
-
-.doc-card-content {
-  flex: 1;
-  min-width: 0;
+.recent-doc-card:hover .doc-card-indicator {
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)"');
+  height: 20px;
 }
 
 .doc-card-name {
-  font-size: 14px;
-  font-weight: 500;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  display: block;
   color: v-bind('themeState.currentTheme.textColor');
+  opacity: 0.75;
+  transition: opacity 0.05s ease;
+}
+
+.recent-doc-card:hover .doc-card-name {
+  opacity: 1;
 }
 
 .doc-card-delete-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.05s ease;
   z-index: 10;
   flex-shrink: 0;
+  color: v-bind('themeState.currentTheme.textColor2 || "rgba(0,0,0,0.3)"') !important;
 }
 
 .recent-doc-card:hover .doc-card-delete-btn {
-  opacity: 0.7;
+  opacity: 0.5;
 }
 
 .doc-card-delete-btn:hover {
   opacity: 1 !important;
 }
 
-.doc-card-hover-effect {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-  transition: transform 0.5s ease;
-  pointer-events: none;
-  
+/* ===== 动画 ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* 动画 */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-
-  }
-  to {
-    opacity: 1;
-
-  }
-}
-
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* 响应式设计 */
+/* ===== 响应式 ===== */
 @media (max-width: 768px) {
   .action-section {
     grid-template-columns: 1fr;
   }
-  
-  .recent-docs-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .action-card {
-    padding: 20px;
-  }
 }
-
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .center-content-wrapper {
-    padding: 20px 16px;
-  }
-  
-  .action-icon {
-    width: 56px;
-    height: 56px;
-  }
-  
-  .action-icon svg {
-    width: 28px;
-    height: 28px;
+    padding: 32px 20px;
   }
 }
 </style>

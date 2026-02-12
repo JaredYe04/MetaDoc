@@ -353,6 +353,7 @@
     "metaDoc": "MetaDoc 스마트 문서 처리 소프트웨어",
     "tooltip": {
       "quickStart": "빠른 시작: 빠르게 문서 생성",
+      "newDoc": "새 문서 만들기",
       "openFile": "기존 문서 열기",
       "close": "빠른 시작 닫기",
       "ready": "준비 완료",
@@ -365,6 +366,7 @@
     },
     "button": {
       "quickStart": "빠른 시작",
+      "newDoc": "새 문서",
       "openFile": "문서 열기",
       "refresh": "새로 고침"
     },

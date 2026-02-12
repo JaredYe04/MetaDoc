@@ -278,6 +278,8 @@ onMounted(() => {
     padding: 4px 6px;
     border-radius: 6px;
     transition: background-color 0.2s ease;
+    min-height: 24px;
+    line-height: 1;
 }
 
 .status-notification:hover {
@@ -333,7 +335,10 @@ onMounted(() => {
 }
 
 .status-icon {
-    display: flex;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .status-text {
@@ -341,6 +346,9 @@ onMounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
 }
 
 .status-badge {
@@ -348,11 +356,14 @@ onMounted(() => {
     height: 16px;
     border-radius: 8px;
     font-size: 10px;
-    display: flex;
+    line-height: 1;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
     color: #fff;
     padding: 0 4px;
+    box-sizing: border-box;
 }
 
 .actions-group {
@@ -414,7 +425,10 @@ onMounted(() => {
   100% { transform: translateX(0); }
 }
 .status-icon {
-    display: flex;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .status-text {
@@ -422,6 +436,9 @@ onMounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
 }
 
 .status-badge {
@@ -429,11 +446,14 @@ onMounted(() => {
     height: 16px;
     border-radius: 8px;
     font-size: 10px;
-    display: flex;
+    line-height: 1;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
     color: #fff;
     padding: 0 4px;
+    box-sizing: border-box;
 }
 
 .actions-group {

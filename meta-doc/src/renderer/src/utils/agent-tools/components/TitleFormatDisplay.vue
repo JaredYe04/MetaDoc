@@ -102,8 +102,8 @@ const getStageMessage = (stage: string) => {
 
 const containerStyle = computed(() => ({
   padding: '16px',
-  backgroundColor: themeState.currentTheme.background2nd,
-  borderRadius: '8px',
+  backgroundColor: 'transparent',
+  borderRadius: '0',
   color: themeState.currentTheme.textColor
 }))
 

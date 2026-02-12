@@ -544,38 +544,38 @@ watch(() => route.path, (newPath) => {
 <style scoped>
 .main-tabs-wrapper {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   height: 40px;
+  max-height: 40px;
   background-color: v-bind('tabsContainerBackgroundColor');
-  border-bottom: 1px solid v-bind('borderColor');
   user-select: none;
   -webkit-user-select: none;
-  /* 整个容器支持拖拽窗口 */
-  -webkit-app-region: drag;
+  /* -webkit-app-region: drag; */
   position: relative;
+  box-sizing: border-box;
 }
 
 /* 可交互元素需要禁用拖拽窗口功能 */
 .main-tabs-wrapper .window-controls,
-.main-tabs-wrapper .window-controls *,
-.main-tabs-wrapper .main-tab-label,
-.main-tabs-wrapper .main-tab-label *,
-.main-tabs-wrapper .main-tab-label__close,
 .main-tabs-wrapper .window-control-btn,
-.main-tabs-wrapper .el-tooltip,
-.main-tabs-wrapper .el-tabs__item,
-.main-tabs-wrapper .el-tabs__item *,
-.main-tabs-wrapper .el-tabs__nav,
-.main-tabs-wrapper .el-tabs__nav *,
-.main-tabs-wrapper .el-tabs__header,
-.main-tabs-wrapper .el-tabs__header *,
-.main-tabs-wrapper .el-tabs__nav-wrap,
-.main-tabs-wrapper .el-tabs__nav-wrap *,
-.main-tabs-wrapper .el-tabs__active-bar,
 .main-tabs-wrapper .new-tab-button {
   -webkit-app-region: no-drag !important;
   position: relative;
   z-index: 10 !important;
+}
+
+/* Tab 项及其内部元素使用 :deep() 穿透 scoped 作用域设置 no-drag，
+   注意：不要给 .el-tabs__header / .el-tabs__nav 等容器设 no-drag，
+   否则 tab 间的空白区域也无法拖拽窗口 */
+.main-tabs :deep(.el-tabs__item) {
+  -webkit-app-region: no-drag !important;
+}
+
+.main-tab-label,
+.main-tab-label__close {
+  -webkit-app-region: no-drag !important;
+  position: relative;
+  z-index: 10;
 }
 
 .main-tabs-wrapper.is-locked {
@@ -594,8 +594,14 @@ watch(() => route.path, (newPath) => {
   display: flex;
   align-items: center;
   min-width: 0;
+  min-height: 0;
+  max-height: 40px;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
   position: relative;
-  gap: 0; /* 确保没有间隙 */
+  gap: 0;
+  box-sizing: border-box;
 }
 
 /* macOS 平台：左边预留空间给原生交通灯按钮 */
@@ -609,17 +615,22 @@ watch(() => route.path, (newPath) => {
 
 .main-tabs {
   flex: 1;
-  border-bottom: none;
-  min-width: 0; /* 允许flex收缩 */
-  max-width: 100%; /* 确保不会超出容器 */
-  --tab-count: v-bind('tabCount'); /* CSS变量：Tab数量 */
+  height: 100%;
+  max-height: 40px;
+  border:none;
+  height: 40px;
+  min-height: 40px;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+  --tab-count: v-bind('tabCount');
   background-color: v-bind('tabsContainerBackgroundColor');
   position: relative;
   z-index: 1;
-  /* 确保tabs容器本身可以拖动（空白区域） */
   -webkit-app-region: drag;
-  margin-right: 0; /* 确保没有右侧margin */
-  padding-right: 0; /* 确保没有右侧padding */
+  margin: 0;
+  padding: 0;
+
 }
 
 /* Chrome样式的Tab宽度 */
@@ -725,9 +736,9 @@ watch(() => route.path, (newPath) => {
   line-height: 40px;
   transition: background-color 0.15s ease, color 0.15s ease;
   margin-bottom: 0 !important;
-  /* margin-top: 2px !important;确保顶部仍然有可以拖动窗口的区域 */
-  margin-top: 0 !important;
-  border-radius: 6px 6px 0 0;
+  margin-top: 0px !important;
+  /* margin-top: 0 !important;确保顶部仍然有可以拖动窗口的区域 */
+  /* border-radius: 6px 6px 0 0; */
   /* 确保内容可以缩小 */
   box-sizing: border-box;
   overflow: hidden; /* 确保内容不会溢出 */
@@ -742,16 +753,15 @@ watch(() => route.path, (newPath) => {
   height: 40px;
 }
 
-/* 确保Tab下方没有缝隙 */
+/* 确保Tab下方没有缝隙，且不产生额外 1px（无 border、无溢出） */
 .main-tabs :deep(.el-tabs__header) {
-  margin-bottom: 0 !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  padding-bottom: 0 !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  height: 40px;
-  padding-top: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 40px !important;
+  max-height: 40px !important;
+  border: none !important;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .main-tabs :deep(.el-tabs__nav-scroll) {
@@ -767,6 +777,11 @@ watch(() => route.path, (newPath) => {
   padding-left: 0 !important;
   padding-right: 0 !important;
   height: 40px;
+  /* 移除 Element Plus card tabs 默认的 border-top（1px），
+     该 border 会在 tab 顶部形成一个属于 drag 区域的死区，
+     导致最大化时点击屏幕最顶部无法选中 tab */
+  border: none !important;
+  border-radius: 0 !important;
 }
 
 .main-tabs :deep(.el-tabs__item) {
@@ -776,7 +791,7 @@ watch(() => route.path, (newPath) => {
 .main-tabs :deep(.el-tabs__item.is-active) {
   background-color: v-bind('tabItemActiveBackgroundColor');
   color: var(--el-color-primary);
-  border-radius: 6px 6px 0 0;
+  /* border-radius: 6px 6px 0 0; */
   font-weight: 600;
 }
 
@@ -795,10 +810,8 @@ watch(() => route.path, (newPath) => {
   justify-content: center;
   width: 18px;
   height: 18px;
-  position: absolute;
-  right: 2px; 
-  top: 0;
-  bottom: 0;
+  /* 使用 relative 定位，让关闭按钮参与父容器 flex 布局实现垂直居中 */
+  position: relative;
   margin: 0;
   border-radius: 3px;
   cursor: pointer;
@@ -821,9 +834,9 @@ watch(() => route.path, (newPath) => {
 }
 
 .main-tab-label__close:hover {
-  background-color: var(--el-fill-color-light, rgba(0, 0, 0, 0.06));
+  background-color: var(--el-fill-color-light, rgba(0, 0, 0, 0.1));
   color: var(--el-text-color-primary);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  /* box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); */
 }
 
 .main-tab-label__close .el-icon {
@@ -844,7 +857,7 @@ watch(() => route.path, (newPath) => {
   width: 3px;
   background-color: var(--el-color-primary);
   z-index: 10;
-  border-radius: 0 2px 2px 0;
+  /* border-radius: 0 2px 2px 0; */
 }
 
 .main-tabs :deep(.el-tabs__item.drop-after) {
@@ -860,25 +873,39 @@ watch(() => route.path, (newPath) => {
   width: 3px;
   background-color: var(--el-color-primary);
   z-index: 10;
-  border-radius: 2px 0 0 2px;
+  /* border-radius: 2px 0 0 2px; */
 }
 
-/* 窗口控制按钮样式 */
+/* 窗口控制按钮样式 - 与 tabs 区域同高，严禁底部凸出 */
 .window-controls {
   display: flex;
   align-items: center;
+  align-self: stretch;
   height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  margin: 0;
   padding: 0 4px;
-  border-left: 1px solid v-bind('borderColor');
+  border: none;
+  border-left: 1px solid color-mix(in srgb, v-bind('borderColor') 12%, transparent);
   gap: 4px;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  line-height: 0;
 }
 
 .window-control-btn {
   width: 32px;
   height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  margin: 0;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s ease;
@@ -887,6 +914,8 @@ watch(() => route.path, (newPath) => {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  box-sizing: border-box;
+  line-height: 0;
 }
 
 .window-control-btn:hover {
@@ -900,15 +929,22 @@ watch(() => route.path, (newPath) => {
 
 .window-control-btn .el-icon {
   font-size: 16px;
+  line-height: 0;
+  display: block;
 }
 
-/* 新建文档按钮样式 */
+/* 新建文档按钮样式 - 严禁底部凸出 */
 .new-tab-button {
   width: 32px;
   height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  margin: 0 0 0 20px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s ease;
@@ -918,14 +954,13 @@ watch(() => route.path, (newPath) => {
   -moz-user-select: none;
   -ms-user-select: none;
   flex-shrink: 0;
-  margin-left: 20px;/*确保永远有空白区域，可以用于拖动窗口 */
-  margin-right: 0; /* 移除右侧margin，紧贴窗口控制按钮 */
   background-color: v-bind('tabItemBackgroundColor');
   -webkit-app-region: no-drag;
   position: relative;
   z-index: 10;
-  /* 确保按钮紧贴 Tabs 列表，没有间隙 */
-  padding: 0;
+  box-sizing: border-box;
+  line-height: 0;
+  overflow: hidden;
 }
 
 .new-tab-button:hover:not(.is-locked) {
@@ -940,6 +975,8 @@ watch(() => route.path, (newPath) => {
 .new-tab-button .el-icon {
   font-size: 16px;
   font-weight: 600;
+  line-height: 0;
+  display: block;
 }
 </style>
 

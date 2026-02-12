@@ -11,7 +11,6 @@
 
     <el-form-item :label="t('setting.askBeforeSave')">
       <el-switch v-model="settings.alwaysAskSave" class="mb-2"
-        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
         :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
         @change="saveSetting('alwaysAskSave', settings.alwaysAskSave)" />
     </el-form-item>
@@ -24,7 +23,6 @@
         </el-tooltip>
       </template>
       <el-switch v-model="settings.particleEffect" class="mb-2"
-        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
         :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
         @change="handleParticleToggle" />
     </el-form-item>
@@ -54,7 +52,6 @@
         </el-tooltip>
       </template>
       <el-switch v-model="settings.bypassCodeBlock" class="mb-2"
-        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
         :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
         @change="saveSetting('bypassCodeBlock', settings.bypassCodeBlock)" />
     </el-form-item>
@@ -68,7 +65,6 @@
         </el-tooltip>
       </template>
       <el-switch v-model="settings.parseEmbeddedImages" class="mb-2"
-        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
         :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
         @change="saveSetting('parseEmbeddedImages', settings.parseEmbeddedImages)" />
     </el-form-item>
@@ -81,7 +77,6 @@
         </el-tooltip>
       </template>
       <el-switch v-model="settings.mathInlineDigit" class="mb-2"
-        style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
         :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
         @change="saveSetting('mathInlineDigit', settings.mathInlineDigit)" />
     </el-form-item>

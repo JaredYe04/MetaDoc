@@ -74,8 +74,6 @@ import TitleMenu from '../components/TitleMenu.vue';
 import SectionOptimizer from '../components/SectionOptimizer.vue';
 import { MarkdownSectionAdapter } from '../components/section-optimizer/adapters/markdown-adapter';
 import SearchReplaceMenu from "../components/SearchReplaceMenu.vue";
-import AiLogo from "../assets/ai-logo.svg";
-import AiLogoWhite from "../assets/ai-logo-white.svg";
 import { themeState } from "../utils/themes";
 import { isSaveInProgress } from "../utils/save-guard";
 import { getSetting, setSetting } from "../utils/settings";
@@ -100,7 +98,31 @@ const MARKDOWN_LAYOUT = {
   sidebarMinWidth: 200,
   sidebarMaxWidth: 600,
   initialSidebarWidth: 300,
+  outlineMinWidth: 100,
+  outlineMaxWidth: 500,
+  outlineDefaultWidth: 250,
 };
+
+// 大纲宽度（用户可拖拽调整，从 localStorage 恢复）
+const OUTLINE_STORAGE_KEY = 'metadoc-resize-outline-width';
+function loadOutlineWidth(): number {
+    try {
+        const raw = localStorage.getItem(OUTLINE_STORAGE_KEY);
+        if (raw) {
+            const val = JSON.parse(raw);
+            if (typeof val === 'number' && val >= MARKDOWN_LAYOUT.outlineMinWidth && val <= MARKDOWN_LAYOUT.outlineMaxWidth) {
+                return val;
+            }
+        }
+    } catch { /* ignore */ }
+    return MARKDOWN_LAYOUT.outlineDefaultWidth;
+}
+function saveOutlineWidth() {
+    try {
+        localStorage.setItem(OUTLINE_STORAGE_KEY, JSON.stringify(outlineWidth.value));
+    } catch { /* ignore */ }
+}
+const outlineWidth = ref(loadOutlineWidth());
 
 const { t } = useI18n()
 const logger = createRendererLogger('MarkdownEditor', {
@@ -240,6 +262,65 @@ function syncMarkdownFromOutline() {
   } finally {
     suppressOutlineSync = false;
   }
+}
+
+/**
+ * 为 vditor 大纲面板注入可拖拽调整宽度的分割线
+ * 在大纲面板的右侧添加一个拖拽手柄，允许用户自由调整大纲宽度
+ */
+function setupOutlineResizer() {
+    const editorElement = vditor.value?.vditor?.element;
+    if (!editorElement) return;
+
+    const outlineEl = editorElement.querySelector('.vditor-outline') as HTMLElement;
+    if (!outlineEl) return;
+
+    // 始终应用保存的宽度（即使 handle 已存在，切换显示/隐藏后也需要重新应用）
+    outlineEl.style.width = outlineWidth.value + 'px';
+    outlineEl.style.position = 'relative';
+
+    // 如果 handle 已存在，无需重复创建
+    if (outlineEl.querySelector('.outline-resize-handle')) return;
+
+    // 创建拖拽手柄
+    const handle = document.createElement('div');
+    handle.className = 'outline-resize-handle';
+    outlineEl.appendChild(handle);
+
+    // 拖拽逻辑
+    let startX = 0;
+    let startWidth = 0;
+
+    const onMouseMove = (e: MouseEvent) => {
+        const delta = e.clientX - startX;
+        const newWidth = Math.min(
+            MARKDOWN_LAYOUT.outlineMaxWidth,
+            Math.max(MARKDOWN_LAYOUT.outlineMinWidth, startWidth + delta)
+        );
+        outlineWidth.value = newWidth;
+        outlineEl.style.width = newWidth + 'px';
+    };
+
+    const onMouseUp = () => {
+        handle.classList.remove('outline-resize-handle--active');
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        saveOutlineWidth();
+    };
+
+    handle.addEventListener('mousedown', (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        startX = e.clientX;
+        startWidth = outlineEl.offsetWidth;
+        handle.classList.add('outline-resize-handle--active');
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    });
 }
 
 function getEditorRoot(): HTMLElement | null {
@@ -1784,7 +1865,7 @@ onMounted(async () => {
                     tip: t('article.toolbar.ai_assistant'),
                     tipPosition: 's',
                     className: 'right',
-                    icon: `<img src="${currentAiLogo.value}" style="width: 20px; height: 20px; " />`,
+                    icon: `<svg width="20" height="20" viewBox="0 0 100 100" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" fill-rule="evenodd" d="m76.91 56.516c-2.5586 3.8086-5.6523 7.582-9.2344 11.16-5.1484 5.1523-10.699 9.3008-16.168 12.305-7.5703 4.1562-15.02 6.125-21.129 5.7188-4.5664-0.30078-8.4453-1.8945-11.316-4.7656-3.7188-3.7188-5.3047-9.1836-4.6836-15.605 0.16406-1.7148 1.6953-2.9805 3.4102-2.8164 1.7148 0.16406 2.9805 1.6953 2.8086 3.4141-0.41797 4.3242 0.37891 8.082 2.8867 10.59 2.3516 2.3516 5.8164 3.1914 9.8125 2.9453 4.6016-0.28516 9.8516-2.0234 15.199-4.9609 4.9922-2.7461 10.059-6.5391 14.762-11.242 4.2305-4.2305 7.7266-8.7539 10.383-13.258-2.6562-4.5039-6.1523-9.0273-10.383-13.258-1.1016-1.1016-2.2188-2.1484-3.3516-3.1484-1.293-1.1367-1.4219-3.1172-0.28125-4.4102 1.1406-1.2891 3.1211-1.418 4.4102-0.27734 1.2344 1.0859 2.4492 2.2227 3.6406 3.4141 5.1484 5.1484 9.293 10.703 12.297 16.168l0.003906 0.003907c4.1602 7.5742 6.1289 15.02 5.7188 21.129-0.30078 4.5664-1.8945 8.4492-4.7617 11.312-3.7188 3.7227-9.1875 5.3047-15.609 4.6875-1.7148-0.16406-2.9727-1.6914-2.8125-3.4102 0.16797-1.7188 1.6953-2.9805 3.4141-2.8086 4.3242 0.41016 8.0859-0.37891 10.59-2.8867 2.3555-2.3516 3.1914-5.8203 2.9414-9.8125-0.19141-3.1523-1.0664-6.6055-2.5469-10.188zm-56.887-5.0078c-4.1602-7.5742-6.1289-15.02-5.7188-21.129 0.30078-4.5664 1.8906-8.4492 4.7578-11.316 3.7227-3.7188 9.1875-5.3008 15.609-4.6836 1.7188 0.16406 2.9766 1.6914 2.8164 3.4102-0.16797 1.7188-1.6953 2.9766-3.4141 2.8086-4.3242-0.41406-8.0859 0.375-10.594 2.8828-2.3516 2.3555-3.1875 5.8203-2.9414 9.8164 0.19531 3.1523 1.0703 6.6055 2.5469 10.184 2.5625-3.8047 5.6562-7.5781 9.2383-11.156 5.1484-5.1523 10.699-9.3008 16.168-12.305 7.5703-4.1562 15.02-6.125 21.129-5.7188 4.5664 0.30078 8.4453 1.8945 11.312 4.7617 3.7227 3.7227 5.3047 9.1875 4.6875 15.609-0.16797 1.7148-1.6953 2.9805-3.4102 2.8164-1.7148-0.16797-2.9805-1.6953-2.8125-3.4141 0.42187-4.3242-0.375-8.0859-2.8828-10.59-2.3516-2.3516-5.8203-3.1914-9.8164-2.9453-4.5977 0.28516-9.8477 2.0234-15.195 4.9609-4.9922 2.7461-10.062 6.5391-14.762 11.242-4.2344 4.2305-7.7305 8.7539-10.383 13.258 2.6523 4.5039 6.1523 9.0273 10.383 13.258 1.0977 1.1016 2.2148 2.1445 3.3516 3.1445 1.293 1.1406 1.4219 3.1172 0.28125 4.4141-1.1445 1.2891-3.1211 1.4141-4.4141 0.27734-1.2305-1.0859-2.4492-2.2266-3.6406-3.418-5.1445-5.1445-9.2891-10.699-12.293-16.164zm31.867-11.762s1.8672 4.1602 3.0273 5.3242c1.1641 1.1641 5.3398 3.043 5.3398 3.043 0.73047 0.33984 1.2031 1.0781 1.1992 1.8867 0.003907 0.8125-0.46875 1.5508-1.2031 1.8906 0 0-4.1562 1.8672-5.3281 3.0234-1.1641 1.168-3.0391 5.3438-3.0391 5.3438-0.33594 0.73047-1.0781 1.1992-1.8906 1.1992-0.80469 0.003907-1.543-0.46875-1.8828-1.1992 0 0-1.8789-4.1758-3.043-5.3398-1.1641-1.1602-5.3242-3.0273-5.3242-3.0273-0.73438-0.34375-1.207-1.082-1.207-1.8906 0.003907-0.80859 0.47266-1.5508 1.207-1.8906 0 0 4.1562-1.8672 5.3242-3.0273 1.168-1.1641 3.0391-5.3398 3.0391-5.3398 0.33984-0.73047 1.082-1.1992 1.8906-1.2031 0.80859 0 1.5469 0.47266 1.8906 1.207z"/></svg>`,
                     click() { handleMenuClick('ai-assistant') },
                 },
             ],
@@ -1948,6 +2029,7 @@ onMounted(async () => {
                                         // 等待大纲显示/隐藏动画完成
                                         await new Promise(resolve => setTimeout(resolve, 300));
                                         await nextTick();
+                                        setupOutlineResizer();
                                         bindTitleMenu();
                                     });
                                 }
@@ -1965,6 +2047,7 @@ onMounted(async () => {
                                         // 等待DOM更新完成
                                         await nextTick();
                                         await new Promise(resolve => setTimeout(resolve, 100));
+                                        setupOutlineResizer();
                                         bindTitleMenu();
                                     }
                                 });
@@ -1979,6 +2062,9 @@ onMounted(async () => {
                                 // 保存observer以便清理
                                 (vditor.value as any)._outlineObserver = outlineObserver;
                             }
+
+                            // 初始化时设置大纲宽度拖拽
+                            setupOutlineResizer();
                         }
                     }
 
@@ -2092,10 +2178,6 @@ onMounted(async () => {
     finally {
         loadingInstance.close();
     }
-});
-const currentAiLogo = computed(() => {
-
-    return themeState.currentTheme.type === 'dark' ? AiLogoWhite : AiLogo;
 });
 // 清理资源
 onBeforeUnmount(() => {
@@ -2375,7 +2457,6 @@ watch(
 /* 左边的编辑器样式 */
 .editor {
     flex: 1 1 auto;
-    border-right: 1px solid rgba(128, 128, 128, 0.3);
     width: 100%;
     min-width: var(--editor-min-width, 360px);
     height: 100%;
@@ -2495,5 +2576,29 @@ watch(
 .context-menu {
     position: fixed;
     z-index: 1000;
+}
+
+/* 大纲宽度拖拽手柄 */
+.editor :deep(.outline-resize-handle) {
+    position: absolute;
+    top: 0;
+    right: -2px;
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+    background: transparent;
+    transition: background-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.editor :deep(.outline-resize-handle:hover) {
+    background-color: rgba(128, 128, 128, 0.3);
+    transition: background-color 0.2s ease 0.3s;
+}
+
+.editor :deep(.outline-resize-handle--active) {
+    background-color: rgba(128, 128, 128, 0.5) !important;
+    transition: none;
 }
 </style>

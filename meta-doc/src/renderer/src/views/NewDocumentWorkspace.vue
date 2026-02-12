@@ -256,7 +256,7 @@ function confirmTemplate(templateId?: string) {
 .template-card {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid rgba(77,77,77,0.5);
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
@@ -265,12 +265,12 @@ function confirmTemplate(templateId?: string) {
 }
 
 .template-card:hover {
-  border-color: var(--el-color-primary);
+  border-color: rgba(128,128,128,0.5);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 
 .template-card.active {
-  border-color: var(--el-color-primary);
+  border-color: rgba(128,128,128,0.5);
   box-shadow: 0 8px 24px rgba(64, 158, 255, 0.2);
 }
 

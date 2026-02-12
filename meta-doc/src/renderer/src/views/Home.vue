@@ -829,6 +829,18 @@ onBeforeUnmount(() => {
   min-height: 0; /* 允许缩小 */
 }
 
+/* Vditor 渲染的 md 内容：限制 img 和 svg 不超过容器宽度（小图不放大） */
+.content-preview :deep(img) {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+.content-preview :deep(svg) {
+  max-width: 100%;
+  height: auto;
+}
+
 .monaco-preview {
   flex: 1;
   width: 100%;

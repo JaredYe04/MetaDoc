@@ -1,24 +1,10 @@
 <template>
   <div :class="['agent-message', alignmentClass]">
     <div class="agent-message__main">
-    <!-- AI/Assistant/Tool消息：头像在左边 -->
-    <div v-if="message.role !== 'user'" class="agent-message__avatar agent-message__avatar--left">
-      <el-avatar 
-        v-if="message.role === 'assistant'"
-        :src="themeState.currentTheme.AiLogo" 
-        class="avatar-with-mask"
-      />
-      <el-avatar 
-        v-else-if="message.type === 'tool'"
-        :src="themeState.currentTheme.ToolLogo" 
-        class="avatar-with-mask"
-      />
-      <el-avatar v-else :icon="Avatar" class="avatar-fallback" />
-    </div>
 
-    <!-- 消息气泡 -->
+    <!-- 消息气泡（用户消息保持气泡样式，AI消息平铺） -->
     <div 
-      class="agent-message__body" 
+      :class="['agent-message__body', { 'agent-message__body--flat': message.role !== 'user' }]"
       :style="bubbleStyle"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
@@ -37,20 +23,15 @@
         </div>
       </transition>
 
-      <!-- 消息操作按钮（hover时显示） -->
+      <!-- 用户消息操作按钮（hover时显示，保持原有下拉菜单方式） -->
       <transition name="fade">
         <div 
-          v-if="showActions && (message.role === 'user' || (message.role === 'assistant' && message.type === 'chat'))" 
-          class="agent-message__actions"
-          :class="{
-            'agent-message__actions--left': message.role === 'user',
-            'agent-message__actions--right': message.role !== 'user'
-          }"
+          v-if="showActions && message.role === 'user'" 
+          class="agent-message__actions agent-message__actions--left"
           @mouseenter="handleActionsMouseEnter"
           @mouseleave="handleActionsMouseLeave"
         >
-          <!-- 用户消息：显示编辑按钮 -->
-          <el-tooltip v-if="message.role === 'user'" :content="t('agent.message.edit')" placement="top">
+          <el-tooltip :content="t('agent.message.edit')" placement="top">
             <el-button
               circle
               size="small"
@@ -67,7 +48,7 @@
             <template #dropdown>
               <el-dropdown-menu @mouseenter="handleDropdownMouseEnter" @mouseleave="handleDropdownMouseLeave">
                 <el-dropdown-item command="regenerate">{{ t('agent.message.regenerate') }}</el-dropdown-item>
-                <el-dropdown-item v-if="message.role === 'user'" command="duplicate">{{ t('agent.message.duplicateSession') }}</el-dropdown-item>
+                <el-dropdown-item command="duplicate">{{ t('agent.message.duplicateSession') }}</el-dropdown-item>
                 <el-dropdown-item command="delete" divided>{{ t('agent.message.delete') }}</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -180,6 +161,23 @@
     </div>
     </div>
 
+    <!-- AI消息操作按钮（平铺在消息下方，始终显示） -->
+    <div 
+      v-if="message.role === 'assistant' && message.type === 'chat'"
+      class="ai-message-actions"
+    >
+      <el-tooltip :content="t('agent.message.regenerate')" placement="bottom">
+        <el-button text size="small" class="ai-action-btn" @click.stop="emit('regenerate', message)">
+          <el-icon><Refresh /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="t('agent.message.delete')" placement="bottom">
+        <el-button text size="small" class="ai-action-btn" @click.stop="emit('delete', message)">
+          <el-icon><Delete /></el-icon>
+        </el-button>
+      </el-tooltip>
+    </div>
+
     <!-- 引用显示（只读模式，只显示用户消息的引用，放在气泡外面） -->
     <ReferenceDisplay
       v-if="message.role === 'user' && message.type === 'chat' && (message as ChatAgentMessage).referenceIds && (message as ChatAgentMessage).referenceIds!.length > 0 && sessionReferences && sessionReferences.length > 0"
@@ -195,7 +193,7 @@
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { MdPreview } from 'md-editor-v3'
 import { useI18n } from 'vue-i18n'
-import { Avatar, User, Edit, More, Loading, Check, Search } from '@element-plus/icons-vue'
+import { Avatar, User, Edit, More, Loading, Check, Search, Refresh, Delete } from '@element-plus/icons-vue'
 import type { AgentMessage, ChatAgentMessage, ToolAgentMessage, IntentRecognitionAgentMessage } from '../../types/agent'
 import AgentToolResultCard from './AgentToolResultCard.vue'
 import ReferenceDisplay from './ReferenceDisplay.vue'
@@ -363,9 +361,10 @@ const bubbleStyle = computed(() => {
       color: themeState.currentTheme.textColor
     }
   }
+  // AI消息：透明背景，无边框
   return {
-    backgroundColor: themeState.currentTheme.background2nd,
-    borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
     color: themeState.currentTheme.textColor
   }
 })
@@ -783,6 +782,22 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 }
 
+/* AI/tool messages: tight spacing between consecutive ones */
+.agent-message.align-left {
+  margin-bottom: 4px;
+  gap: 4px;
+}
+
+/* Add breathing room before a user message that follows AI/tool messages */
+.agent-message.align-left + .agent-message.align-right {
+  margin-top: 24px;
+}
+
+/* Add breathing room before AI/tool messages that follow a user message */
+.agent-message.align-right + .agent-message.align-left {
+  margin-top: 24px;
+}
+
 .agent-message__main {
   display: flex;
   align-items: flex-start;
@@ -861,15 +876,9 @@ onBeforeUnmount(() => {
 
 .agent-message__body {
   position: relative;
-  /* 使用 min() 函数确保不会溢出父容器，同时保持合理的宽度 */
-  /* 策略：主要依赖父容器宽度的百分比（75%），实现等比例缩放，在宽屏上使用固定最大值（750px）限制 */
-  /* 不使用视口宽度（vw），因为它会导致在窄屏上溢出 */
   width: min(75%, 750px);
-  /* 双重保险：确保绝对不超过父容器可用宽度（考虑头像40px + 间距12px + 安全边距） */
   max-width: calc(100% - 60px);
-  /* 设置合理的最小宽度，但也要考虑父容器宽度，确保在小屏幕上可读 */
   min-width: min(250px, 50%);
-  /* 确保最小高度至少等于头像高度，以保证垂直居中对齐 */
   min-height: 40px;
   display: flex;
   flex-direction: column;
@@ -885,6 +894,41 @@ onBeforeUnmount(() => {
 
 .agent-message__body:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* AI消息：平铺展示，无气泡效果，无头像，占满宽度 */
+.agent-message__body--flat {
+  width: 100%;
+  max-width: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent !important;
+  padding: 8px 4px;
+  border-color: transparent !important;
+}
+
+.agent-message__body--flat:hover {
+  box-shadow: none;
+}
+
+/* AI消息底部操作按钮 */
+.ai-message-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  margin-bottom: 4px;
+}
+
+.ai-action-btn {
+  padding: 4px 6px;
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+}
+
+.ai-action-btn:hover {
+  color: var(--el-color-primary);
 }
 
 .agent-message__timestamp {
@@ -969,16 +1013,17 @@ onBeforeUnmount(() => {
 .tool-calls-indicator {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background-color: rgba(64, 158, 255, 0.1);
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: rgba(64, 158, 255, 0.08);
   border-radius: 8px;
   color: var(--el-color-primary);
-  font-size: 14px;
+  font-size: 13px;
+  margin: 2px 0;
 }
 
 .tool-calls-indicator.tool-calls-completed {
-  background-color: rgba(103, 194, 58, 0.1);
+  background-color: rgba(103, 194, 58, 0.08);
   color: var(--el-color-success);
 }
 
@@ -988,38 +1033,54 @@ onBeforeUnmount(() => {
 
 .tool-call-checkmark {
   color: var(--el-color-success);
-}
-
-.tool-message-collapse {
-  width: 100%;
+  font-size: 14px;
 }
 
 .tool-message-wrapper {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  margin: 0;
+  border: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.1)"');
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .tool-message-collapse {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  border: none !important;
 }
 
-/* 设置折叠菜单栏的背景色 */
+.tool-message-collapse :deep(.el-collapse-item) {
+  margin-bottom: 0;
+}
+
+.tool-message-collapse :deep(.el-collapse-item__wrap) {
+  border: none;
+}
+
+/* 折叠头部：紧凑、带内边距 */
 .tool-message-collapse :deep(.el-collapse-item__header) {
-  background-color: v-bind('themeState.currentTheme.background2nd');
+  background-color: transparent;
   color: v-bind('themeState.currentTheme.textColor');
+  border-bottom: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)"');
+  height: 32px;
+  line-height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
 }
 
-/* 设置折叠内容区域的背景色 */
+/* 折叠内容区域 */
 .tool-message-collapse :deep(.el-collapse-item__content) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: auto;
-  background-color: v-bind('themeState.currentTheme.background2nd');
-  padding: 0;
+  background-color: transparent;
+  padding: 6px 12px 8px 12px;
+  border-bottom: none;
 }
 
 /* 确保 AgentToolResultCard 不会超出父容器 */
@@ -1027,25 +1088,40 @@ onBeforeUnmount(() => {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  background-color: transparent !important;
+  border-radius: 0 !important;
+  border: none !important;
+  padding: 4px 0 !important;
+  box-shadow: none !important;
 }
 
 .tool-message-header-preview {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 500;
+  font-weight: 600;
   width: 100%;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+}
+
+.tool-message-header-preview::before {
+  content: '⚙';
+  font-size: 13px;
+  opacity: 0.6;
 }
 
 .tool-message-title {
-  font-size: 14px;
-  color: v-bind('themeState.currentTheme.textColor');
+  font-size: 13px;
+  color: var(--el-color-primary);
+  font-weight: 600;
 }
 
 .tool-message-timestamp {
   margin-left: auto;
-  opacity: 0.65;
-  font-size: 12px;
+  opacity: 0.5;
+  font-size: 11px;
   color: v-bind('themeState.currentTheme.textColor2');
 }
 

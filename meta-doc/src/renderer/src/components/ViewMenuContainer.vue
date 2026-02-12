@@ -3,6 +3,7 @@
     <ResizableContainer
       v-if="hasVisibleMenus"
       direction="vertical"
+      storage-key="view-menu-sidebar"
       :initial-sidebar-size="sidebarSize"
       :min-size="200"
       :max-size="600"
@@ -14,6 +15,7 @@
       :auto-collapse-width="0"
       :collapse-button-title="$t('viewMenuContainer.collapse')"
       :expand-button-title="$t('viewMenuContainer.expand')"
+      :seamless-divider="true"
       @collapse="handleCollapse"
       @resize="handleResize"
     >

@@ -1171,14 +1171,11 @@ const containerStyle = computed(() => ({
 const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
   color: themeState.currentTheme.textColor,
-  borderColor: borderColor.value,
   flex: 1,
   display: 'flex',
   flexDirection: 'column' as const,
   minHeight: 0,
   overflow: 'hidden' as const,
-  borderRadius: '16px',
-  border: '1px solid',
   padding: 0,
   boxSizing: 'border-box' as const,
   transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
@@ -1365,8 +1362,6 @@ onMounted(() => {
   display: flex;
   flex: 1;
   min-height: 0;
-  gap: 18px;
-  padding: 16px;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -1390,9 +1385,6 @@ onMounted(() => {
 .dialog-container {
   flex: 1;
   background-color: rgba(170, 221, 255, 0.11);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: #606060 1px solid;
-  border-radius: 20px;
   padding: 20px;
   margin: 0;
   min-height: 0;

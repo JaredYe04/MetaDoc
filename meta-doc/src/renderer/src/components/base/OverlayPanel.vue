@@ -44,6 +44,8 @@ interface Props {
   boxShadow?: string
   /** z-index */
   zIndex?: number
+  /** localStorage 持久化 key，设置后面板尺寸会自动保存/恢复 */
+  storageKey?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -55,7 +57,8 @@ const props = withDefaults(defineProps<Props>(), {
   dividerSize: 2,
   backgroundColor: '#ffffff',
   boxShadow: '0 -2px 6px rgba(0,0,0,0.3)',
-  zIndex: 10
+  zIndex: 10,
+  storageKey: undefined
 })
 
 const emit = defineEmits<{
@@ -64,8 +67,31 @@ const emit = defineEmits<{
   resizeEnd: [event: MouseEvent]
 }>()
 
-// 当前面板尺寸
-const panelSize = ref(props.initialSize)
+// localStorage 持久化工具
+const STORAGE_PREFIX = 'metadoc-resize-'
+
+function loadFromStorage(): number | null {
+  if (!props.storageKey) return null
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + props.storageKey)
+    if (raw) {
+      const val = JSON.parse(raw)
+      if (typeof val === 'number') return val
+      if (val && typeof val.size === 'number') return val.size
+    }
+  } catch { /* ignore */ }
+  return null
+}
+
+function saveToStorage() {
+  if (!props.storageKey) return
+  try {
+    localStorage.setItem(STORAGE_PREFIX + props.storageKey, JSON.stringify({ size: panelSize.value }))
+  } catch { /* ignore */ }
+}
+
+// 当前面板尺寸（从 localStorage 恢复，如果有的话）
+const panelSize = ref(loadFromStorage() ?? props.initialSize)
 
 // 位置相关的类
 const positionClass = computed(() => `panel-${props.position}`)
@@ -135,6 +161,7 @@ function onResizeStart(event: MouseEvent) {
 
 // 调整结束
 function onResizeEnd(event: MouseEvent) {
+  saveToStorage()
   emit('resizeEnd', event)
 }
 
@@ -142,6 +169,7 @@ function onResizeEnd(event: MouseEvent) {
 defineExpose({
   setSize: (size: number) => {
     panelSize.value = Math.max(props.minSize, Math.min(props.maxSize, size))
+    saveToStorage()
   },
   getSize: () => panelSize.value
 })

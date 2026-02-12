@@ -147,6 +147,7 @@
                     :manual-column-resize="true"
                     :stretch-h="'none'"
                     table-class="preview-table"
+                    @selection-changed="handleSelectionChanged"
                   />
                 </div>
                 
@@ -160,15 +161,23 @@
 
                 <!-- 分析按钮（固定在底部） -->
                 <div v-if="currentFile" class="analyze-button-container" :style="analyzeButtonContainerStyle">
-                  <el-button 
-                    type="primary" 
-                    size="large"
-                    :loading="analyzing"
-                    :disabled="!currentFile"
-                    @click="handleAnalyze"
-                  >
-                    {{ analyzing ? t('dataAnalysis.analyzing', '分析中...') : t('dataAnalysis.analyze', '开始分析') }}
-                  </el-button>
+                  <div class="analyze-button-row">
+                    <el-button 
+                      type="primary" 
+                      size="large"
+                      :loading="analyzing"
+                      :disabled="!currentFile"
+                      @click="handleAnalyze"
+                    >
+                      {{ analyzing ? t('dataAnalysis.analyzing', '分析中...') : t('dataAnalysis.analyze', '开始分析') }}
+                    </el-button>
+                    <span v-if="selectedRowCount > 0" class="selection-hint" :style="selectionHintStyle">
+                      {{ t('dataAnalysis.selectedRowsHint', `已选中 ${selectedRowCount} 行，将仅分析选中数据`, { count: selectedRowCount }) }}
+                    </span>
+                    <span v-else-if="previewData.length > 1" class="selection-hint selection-hint-dim" :style="selectionHintDimStyle">
+                      {{ t('dataAnalysis.noSelectionHint', '提示：可在表格中勾选行来仅分析部分数据') }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </el-tab-pane>
@@ -278,6 +287,9 @@ const dataTableRef = ref<InstanceType<typeof DataTable> | null>(null)
 const tableContainerRef = ref<HTMLElement | null>(null)
 const previewData = ref<any[][]>([])
 
+// 选中行数
+const selectedRowCount = ref(0)
+
 // 分析参数
 const analysisParams = ref({
   autoGroupBy: true,
@@ -337,6 +349,7 @@ const handleCreateSession = async () => {
     analysisResult.value = null
     reportMarkdown.value = ''
     previewData.value = []
+    selectedRowCount.value = 0
     analysisParams.value = {
       autoGroupBy: true,
       generateReport: true,
@@ -368,6 +381,7 @@ const handleSelectSession = async (item: SessionListItem) => {
     }
     
     activeSessionId.value = item.id
+    selectedRowCount.value = 0
     const session = await dataAnalysisSessionsDb.getById(item.id)
     if (session) {
       activeSessionData.value = session
@@ -428,6 +442,7 @@ const handleSelectSession = async (item: SessionListItem) => {
         detectedHeaderRowIndex.value = 0
         headerPreview.value = []
         previewData.value = []
+        selectedRowCount.value = 0
       }
       
       // 加载分析参数（数据库存储为0/1，需要转换为boolean）
@@ -494,6 +509,7 @@ const handleDeleteSession = async (item: SessionListItem) => {
       reportMarkdown.value = ''
       currentFile.value = null
       previewData.value = []
+      selectedRowCount.value = 0
       analysisParams.value = {
         autoGroupBy: true,
         generateReport: true,
@@ -1043,6 +1059,7 @@ const handleFileRemove = async () => {
     detectedHeaderRowIndex.value = 0
     headerPreview.value = []
     previewData.value = []
+    selectedRowCount.value = 0
     analysisResult.value = null
     reportMarkdown.value = ''
     
@@ -1052,6 +1069,33 @@ const handleFileRemove = async () => {
       activeSessionData.value.header_row_index = undefined
     }
   }
+}
+
+// 选择变化事件处理
+const handleSelectionChanged = (count: number) => {
+  selectedRowCount.value = count
+}
+
+// 将选中行数据转换为CSV字符串
+const convertSelectedRowsToCsv = (): string | null => {
+  if (!dataTableRef.value) return null
+  
+  const selectedData = dataTableRef.value.getSelectedRowsData()
+  if (!selectedData || selectedData.length <= 1) return null // 仅有表头行或无数据
+  
+  // 将二维数组转为CSV字符串
+  const csvLines = selectedData.map(row => 
+    row.map((cell: any) => {
+      const str = String(cell ?? '')
+      // 如果包含逗号、换行、双引号，需要用双引号包裹
+      if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+        return `"${str.replace(/"/g, '""')}"`
+      }
+      return str
+    }).join(',')
+  )
+  
+  return csvLines.join('\n')
 }
 
 // 执行分析
@@ -1137,17 +1181,37 @@ const handleAnalyze = async () => {
       }
     }
     
+    // 检查是否有选中的行
+    const selectedCsv = convertSelectedRowsToCsv()
+    const hasSelectedRows = selectedCsv !== null
+    
     // 调用数据分析工具
     const abortController = new AbortController()
-    const result = await dataAnalysisToolCallback({
-      data: session.data_file_path!,
-      format: session.data_format || 'csv',
-      dataSource: 'file',
-      headerRowIndex: (isCsvFile.value || isExcelFile.value) ? headerRowIndex.value : undefined,
-      autoGroupBy: analysisParams.value.autoGroupBy,
-      generateReport: analysisParams.value.generateReport === true, // 明确传递generateReport参数
-      analysisRequest: analysisParams.value.analysisRequest || undefined
-    }, abortController.signal, onProgress)
+    const result = await dataAnalysisToolCallback(
+      hasSelectedRows
+        ? {
+            // 使用选中行的数据（内联CSV），表头行固定为第0行
+            data: selectedCsv,
+            format: 'csv',
+            dataSource: 'inline',
+            headerRowIndex: 0,
+            autoGroupBy: analysisParams.value.autoGroupBy,
+            generateReport: analysisParams.value.generateReport === true,
+            analysisRequest: analysisParams.value.analysisRequest || undefined
+          }
+        : {
+            // 使用完整文件
+            data: session.data_file_path!,
+            format: session.data_format || 'csv',
+            dataSource: 'file',
+            headerRowIndex: (isCsvFile.value || isExcelFile.value) ? headerRowIndex.value : undefined,
+            autoGroupBy: analysisParams.value.autoGroupBy,
+            generateReport: analysisParams.value.generateReport === true,
+            analysisRequest: analysisParams.value.analysisRequest || undefined
+          },
+      abortController.signal,
+      onProgress
+    )
     
     if (result.status === 'succeeded' && result.result) {
       const analysisResultData = result.result as any
@@ -1525,6 +1589,18 @@ const noReportStyle = computed(() => ({
   padding: '40px'
 }))
 
+const selectionHintStyle = computed(() => ({
+  color: themeState.currentTheme.type === 'dark' ? '#67c23a' : '#409eff',
+  fontSize: '13px',
+  fontWeight: '500'
+}))
+
+const selectionHintDimStyle = computed(() => ({
+  color: themeState.currentTheme.textColor,
+  opacity: 0.45,
+  fontSize: '12px'
+}))
+
 const emptyResultStyle = computed(() => ({
   color: themeState.currentTheme.textColor,
   opacity: 0.6,
@@ -1786,6 +1862,21 @@ onUnmounted(() => {
   z-index: 10;
   margin-top: auto;
   margin-bottom: 0;
+}
+
+.analyze-button-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.selection-hint {
+  white-space: nowrap;
+}
+
+.selection-hint-dim {
+  font-style: italic;
 }
 
 .result-tab-scrollbar {

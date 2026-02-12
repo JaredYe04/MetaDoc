@@ -264,9 +264,9 @@ const getColorSwatchStyle = (color: string) => {
 // 样式计算
 const containerStyle = computed(() => ({
   padding: '16px',
-  borderRadius: '8px',
-  backgroundColor: themeState.currentTheme.background2nd,
-  border: `1px solid ${themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`
+  borderRadius: '0',
+  backgroundColor: 'transparent',
+  border: 'none'
 }))
 
 const statusMessageStyle = computed(() => ({

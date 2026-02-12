@@ -6,7 +6,6 @@
       <el-form label-width="200px" class="settings-form">
         <el-form-item :label="t('setting.enableLlm')">
     <el-switch v-model="settings.llmEnabled" class="mb-2"
-      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
       :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
       @change="handleLlmToggle" />
         </el-form-item>
@@ -25,7 +24,6 @@
         </el-form-item>
         <el-form-item :label="t('setting.removeThinkTag')">
           <el-switch v-model="settings.autoRemoveThinkTag" class="mb-2"
-            style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
             :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
             @change="saveSetting('autoRemoveThinkTag', settings.autoRemoveThinkTag)" />
         </el-form-item>
@@ -191,7 +189,6 @@
           </el-form-item>
           <el-form-item :label="t('setting.enableMaxTokens')">
             <el-switch v-model="settings.ollama.enableMaxTokens" class="mb-2"
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
               :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
               @change="handleFieldChange" />
           </el-form-item>
@@ -232,7 +229,6 @@
           </el-form-item>
           <el-form-item :label="t('setting.enableMaxTokens')">
             <el-switch v-model="settings.openai.enableMaxTokens" class="mb-2"
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
               :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
               @change="handleFieldChange" />
           </el-form-item>
@@ -262,7 +258,6 @@
           </el-form-item>
           <el-form-item :label="t('setting.enableMaxTokens')">
             <el-switch v-model="settings['openai-official'].enableMaxTokens" class="mb-2"
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
               :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
               @change="handleFieldChange" />
           </el-form-item>
@@ -293,7 +288,6 @@
           </el-form-item>
           <el-form-item :label="t('setting.enableMaxTokens')">
             <el-switch v-model="settings.deepseek.enableMaxTokens" class="mb-2"
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
               :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
               @change="handleFieldChange" />
           </el-form-item>
@@ -323,7 +317,6 @@
           </el-form-item>
           <el-form-item :label="t('setting.enableMaxTokens')">
             <el-switch v-model="settings.gemini.enableMaxTokens" class="mb-2"
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
               :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
               @change="handleFieldChange" />
           </el-form-item>
@@ -349,7 +342,6 @@
           </el-form-item>
           <el-form-item :label="t('setting.enableMaxTokens')">
             <el-switch v-model="settings.metadoc.enableMaxTokens" class="mb-2"
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
               :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
               @change="handleFieldChange" />
           </el-form-item>
@@ -403,7 +395,6 @@
 
         <el-form-item :label="t('setting.autoCompletion')">
           <el-switch v-model="settings.autoCompletion" class="mb-2"
-            style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
             :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
             @change="saveSetting('autoCompletion', settings.autoCompletion)" />
         </el-form-item>

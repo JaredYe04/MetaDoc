@@ -15,12 +15,31 @@
       </div>
     </div>
     <!-- 否则显示正常的AgentView内容 -->
-    <div v-else class="agent-view" :style="agentViewStyle">
-      <section class="session-pane" :style="panelStyle">
-        <header class="pane-header">
-          <h2>{{ t('agent.sessions.title') }}</h2>
-          <div class="actions">
-            <el-dropdown @command="handleManageCommand">
+    <div v-else class="agent-view">
+      <SessionList
+        :title="t('agent.sessions.title')"
+        :items="sessionListItems"
+        :active-index="activeSessionId || ''"
+        :disabled="isGenerating || workspace.uiLocked?.value"
+        :create-button-tooltip="t('agent.sessions.new')"
+        :rename-label="t('agent.sessions.rename')"
+        :duplicate-label="t('agent.sessions.duplicate')"
+        :delete-label="t('agent.sessions.delete')"
+        :rename-dialog-title="t('agent.sessions.rename')"
+        :rename-placeholder="t('agent.sessions.renamePlaceholder')"
+        :cancel-label="t('common.cancel')"
+        :confirm-label="t('common.confirm')"
+        :show-duplicate="true"
+        :group-by-date="true"
+        @create="showCreateSessionDialog = true"
+        @select="handleSessionListSelect"
+        @rename="handleSessionListRename"
+        @duplicate="handleSessionListDuplicate"
+        @delete="handleSessionListDelete"
+      >
+        <template #sidebar-footer>
+          <div class="sidebar-footer-content">
+            <el-dropdown @command="handleManageCommand" style="flex-shrink: 0;">
               <el-button size="small" type="info" :icon="Setting" circle/>
               <template #dropdown>
                 <el-dropdown-menu>
@@ -32,90 +51,32 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-            <el-tooltip :content="t('agent.sessions.new')">
-              <el-button size="small" type="info" :icon="Plus" @click="showCreateSessionDialog = true" circle/> 
-            </el-tooltip>
+            <el-select
+              v-model="selectedEngineId"
+              :placeholder="t('agent.sessions.selectEngine')"
+              size="small"
+              filterable
+              style="flex: 1; min-width: 0;"
+              :disabled="isGenerating || workspace.uiLocked?.value"
+              @change="handleEngineChange"
+            >
+              <el-option
+                v-for="engine in availableEngines"
+                :key="engine.id"
+                :label="getEngineLabel(engine)"
+                :value="engine.id"
+              >
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span>{{ getEngineLabel(engine) }}</span>
+                  <el-tag v-if="engine.isBuiltIn" size="small" type="info" effect="plain">
+                    {{ t('agent.manage.agentEngine.builtIn') }}
+                  </el-tag>
+                </div>
+              </el-option>
+            </el-select>
           </div>
-        </header>
-        <el-scrollbar class="session-scroll">
-          <el-radio-group v-model="activeSessionId" class="session-list" :disabled="isGenerating || workspace.uiLocked?.value">
-            <el-radio
-              v-for="session in sessionsState"
-              :key="session.id"
-              :value="session.id"
-              class="session-item"
-            >
-              <div class="session-item__content">
-                <span class="session-title">{{ session.title }}</span>
-              </div>
-              <div class="session-item__actions">
-                <el-button
-                  text
-                  circle
-                  size="small"
-                  class="more-btn"
-                  @click.stop="toggleSessionMenu(session.id)"
-                >
-                  <el-icon><More /></el-icon>
-                </el-button>
-                <transition name="fade">
-                  <div
-                    v-if="openSessionMenuId === session.id"
-                    class="session-menu"
-                    :style="sessionMenuStyle"
-                    @click.stop
-                  >
-                    <button type="button" class="session-menu__item" @click="handleSessionMenuAction('rename', session)">
-                      {{ t('agent.sessions.rename') }}
-                    </button>
-                    <button type="button" class="session-menu__item" @click="handleSessionMenuAction('retry', session)">
-                      {{ t('agent.sessions.retry') }}
-                    </button>
-                    <button type="button" class="session-menu__item" @click="handleSessionMenuAction('duplicate', session)">
-                      {{ t('agent.sessions.duplicate') }}
-                    </button>
-                    <button type="button" class="session-menu__item" @click="handleSessionMenuAction('export', session)">
-                      {{ t('agent.sessions.export') }}
-                    </button>
-                    <button type="button" class="session-menu__item" @click="handleSessionMenuAction('references', session)">
-                      {{ t('agent.sessions.references') }}
-                    </button>
-                    <button type="button" class="session-menu__item danger" @click="handleSessionMenuAction('delete', session)">
-                      {{ t('agent.sessions.delete') }}
-                    </button>
-                  </div>
-                </transition>
-              </div>
-            </el-radio>
-          </el-radio-group>
-        </el-scrollbar>
-        <div class="engine-selector-wrapper">
-          <el-select
-            v-model="selectedEngineId"
-            :placeholder="t('agent.sessions.selectEngine')"
-            size="small"
-            filterable
-            style="width: 100%"
-            :disabled="isGenerating || workspace.uiLocked?.value"
-            @change="handleEngineChange"
-          >
-            <el-option
-              v-for="engine in availableEngines"
-              :key="engine.id"
-              :label="getEngineLabel(engine)"
-              :value="engine.id"
-            >
-              <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span>{{ getEngineLabel(engine) }}</span>
-                <el-tag v-if="engine.isBuiltIn" size="small" type="info" effect="plain">
-                  {{ t('agent.manage.agentEngine.builtIn') }}
-                </el-tag>
-              </div>
-            </el-option>
-          </el-select>
-        </div>
-      </section>
-
+        </template>
+      <div class="agent-content">
       <section class="conversation-pane" :style="panelStyle">
         <header class="pane-header conversation-header">
           <div>
@@ -146,6 +107,15 @@
                 {{ t('agent.conversation.references', { count: referenceCount }) }}
               </el-tag>
             </el-tooltip>
+            <el-dropdown @command="handleSessionAction" size="small">
+              <el-button text size="small" :icon="More" circle />
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="retry">{{ t('agent.sessions.retry') }}</el-dropdown-item>
+                  <el-dropdown-item command="export">{{ t('agent.sessions.export') }}</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </header>
 
@@ -197,7 +167,15 @@
       </div>
       </section>
 
-      <section v-if="showToolPane" class="tool-pane" :style="panelStyle">
+      <ResizableDivider
+        v-if="showToolPane"
+        direction="vertical"
+        :size="5"
+        @resize-start="handleToolPaneResizeStart"
+        @resize="handleToolPaneResize"
+        @resize-end="handleToolPaneResizeEnd"
+      />
+      <section v-if="showToolPane" class="tool-pane" :style="[panelStyle, { width: toolPaneWidth + 'px', flexShrink: 0 }]">
         <header class="pane-header">
           <div class="tool-header-title">
             <h2>{{ t('agent.tools.title') }}</h2>
@@ -284,6 +262,8 @@
           </el-scrollbar>
         </div>
       </section>
+      </div>
+    </SessionList>
     </div>
 
     <!-- 创建会话对话框 -->
@@ -388,7 +368,7 @@ import { ElMessage, ElMessageBox, ElLoading } from 'element-plus';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { Plus, More, Setting } from '@element-plus/icons-vue';
-import { themeState } from '../utils/themes';
+import { themeState, mixColors } from '../utils/themes';
 import AgentMessageRenderer from '../components/agent/AgentMessageRenderer.vue';
 import ChatComposer from '../components/chat/ChatComposer.vue';
 import ReferenceDisplay from '../components/agent/ReferenceDisplay.vue';
@@ -409,6 +389,9 @@ import AgentConfigManager from '../components/agent/manage/AgentConfigManager.vu
 import AgentEngineManager from '../components/agent/manage/AgentEngineManager.vue';
 import ReferenceManager from '../components/agent/ReferenceManager.vue';
 import CardGrid from '../components/common/CardGrid.vue';
+import SessionList from '../components/common/SessionList.vue';
+import type { SessionListItem } from '../components/common/SessionList.vue';
+import ResizableDivider from '../components/base/ResizableDivider.vue';
 import NewDocumentWorkspace from './NewDocumentWorkspace.vue';
 import eventBus from '../utils/event-bus';
 import type { Reference } from '../types/agent-framework';
@@ -434,6 +417,12 @@ const pageStyle = computed(() => ({
 
 const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
+  color: themeState.currentTheme.textColor,
+  borderColor: borderColor.value,
+}));
+
+const sessionPaneStyle = computed(() => ({
+  backgroundColor: mixColors(themeState.currentTheme.background2nd, '#000000', 0.02),
   color: themeState.currentTheme.textColor,
   borderColor: borderColor.value,
 }));
@@ -2031,6 +2020,92 @@ const handleEngineChange = () => {
   ElMessage.success(t('agent.sessions.engineChanged', { engine: getEngineLabel(agentEngineManager.getEngine(selectedEngineId.value)!) }));
 };
 
+// === SessionList 集成 ===
+const sessionListItems = computed<SessionListItem[]>(() =>
+  sessionsState.value.map(session => ({
+    id: session.id,
+    title: session.title,
+    updatedAt: session.updatedAt || session.createdAt || new Date().toISOString(),
+  }))
+);
+
+const handleSessionListSelect = (item: SessionListItem) => {
+  activeSessionId.value = item.id;
+  openSessionMenuId.value = null;
+};
+
+const handleSessionListRename = (item: SessionListItem, newTitle: string) => {
+  const session = sessionsState.value.find(s => s.id === item.id);
+  if (session) {
+    session.title = newTitle;
+    touchSession(session);
+    persistSessions();
+    ElMessage.success(t('agent.sessions.renameSuccess'));
+  }
+};
+
+const handleSessionListDuplicate = (item: SessionListItem) => {
+  const session = sessionsState.value.find(s => s.id === item.id);
+  if (session) {
+    handleDuplicateSession(session);
+  }
+};
+
+const handleSessionListDelete = (item: SessionListItem) => {
+  // SessionList 已经显示了确认对话框，直接删除即可
+  const session = sessionsState.value.find(s => s.id === item.id);
+  if (!session) return;
+
+  if (sessionsState.value.length <= 1) {
+    ElMessage.warning(t('agent.sessions.atLeastOneRequired'));
+    return;
+  }
+
+  sessionsState.value = sessionsState.value.filter(s => s.id !== session.id);
+  ensureActiveSessionId();
+  persistSessions();
+  ElMessage.success(t('agent.sessions.deleteSuccess'));
+
+  if (sessionsState.value.length === 0) {
+    createDefaultSession();
+  }
+};
+
+// 对话头部的会话操作（retry / export）
+const handleSessionAction = (command: string) => {
+  const session = activeSession.value;
+  if (!session) return;
+  if (command === 'retry') {
+    handleRetrySession(session);
+  } else if (command === 'export') {
+    handleExportSession(session);
+  }
+};
+
+// === ResizableDivider 工具面板宽度 ===
+const TOOL_PANE_WIDTH_KEY = 'agent-view-tool-pane-width';
+const DEFAULT_TOOL_PANE_WIDTH = 360;
+const MIN_TOOL_PANE_WIDTH = 240;
+const MAX_TOOL_PANE_WIDTH = 600;
+const toolPaneWidth = ref(
+  parseInt(localStorage.getItem(TOOL_PANE_WIDTH_KEY) || String(DEFAULT_TOOL_PANE_WIDTH))
+);
+let toolPaneWidthAtStart = DEFAULT_TOOL_PANE_WIDTH;
+
+const handleToolPaneResizeStart = () => {
+  toolPaneWidthAtStart = toolPaneWidth.value;
+};
+
+const handleToolPaneResize = (delta: number) => {
+  // delta > 0 = 向右拖动 → 工具面板缩小; delta < 0 = 向左拖动 → 工具面板放大
+  const newWidth = Math.max(MIN_TOOL_PANE_WIDTH, Math.min(MAX_TOOL_PANE_WIDTH, toolPaneWidthAtStart - delta));
+  toolPaneWidth.value = newWidth;
+};
+
+const handleToolPaneResizeEnd = () => {
+  localStorage.setItem(TOOL_PANE_WIDTH_KEY, String(toolPaneWidth.value));
+};
+
 const handleDocumentClick = () => {
   openSessionMenuId.value = null;
 };
@@ -2386,15 +2461,21 @@ onBeforeUnmount(() => {
 }
 
 .agent-view {
-  display: grid;
-  grid-template-columns: 280px 1fr 360px;
-  gap: 18px;
   flex: 1;
   min-height: 0;
-  padding: 12px;
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.agent-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
   min-width: 0;
   overflow: hidden;
 }
@@ -2416,11 +2497,8 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
-.session-pane,
 .conversation-pane,
 .tool-pane {
-  border-radius: 16px;
-  border: 1px solid;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -2433,127 +2511,17 @@ onBeforeUnmount(() => {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-.session-scroll {
-  flex: 1;
-  min-height: 0;
-}
-
-.engine-selector-wrapper {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid;
-  border-color: var(--el-border-color-lighter);
-  position: sticky;
-  bottom: 0;
-  background-color: inherit;
-  z-index: 10;
-}
-
-.session-scroll :deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
-}
-
-.session-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-
-.session-list :deep(.el-radio) {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  margin: 0;
-  padding: 8px 10px;
-  box-sizing: border-box;
-  border-radius: 10px;
-  transition: background-color 0.2s ease;
-}
-
-.session-list :deep(.el-radio):hover {
-  background-color: rgba(0, 0, 0, 0.06);
-}
-
-.session-list :deep(.el-radio.is-checked) {
-  background-color: rgba(64, 158, 255, 0.18);
-}
-
-.session-list :deep(.el-radio__label) {
-  flex: 1;
+/* sidebar-footer 区域（管理按钮 + 引擎选择器） */
+.sidebar-footer-content {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0;
-  min-width: 0;
+  padding: 10px 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 
-.session-list :deep(.el-radio__input) {
-  margin-right: 8px;
-}
-
-.session-item__content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
-.session-title {
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.session-item__actions {
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-.more-btn {
-  margin-left: 6px;
-}
-
-.session-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  border: 1px solid;
-  border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  min-width: 140px;
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  z-index: 10;
-}
-
-.session-menu__item {
-  background: transparent;
-  border: none;
-  padding: 8px 10px;
-  text-align: left;
-  color: inherit;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background-color 0.2s ease;
-}
-
-.session-menu__item:hover {
-  background-color: rgba(64, 158, 255, 0.16);
-}
-
-.session-menu__item.danger {
-  color: #f56c6c;
-}
-
-.session-menu__item.danger:hover {
-  background-color: rgba(245, 108, 108, 0.18);
+.tool-pane {
+  border-left: none; /* 由 .tool-pane 主样式中的 border-left 控制 */
 }
 
 .fade-enter-active,
@@ -2568,6 +2536,9 @@ onBeforeUnmount(() => {
 
 .conversation-pane {
   padding: 16px 16px 0;
+  border: none;
+  flex: 1;
+  min-width: 0;
 }
 
 .conversation-header {
@@ -2655,11 +2626,12 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 12px;
-  width: 100%;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
   overflow: hidden;
+  flex-shrink: 0;
+  border-left: 1px solid var(--el-border-color-lighter);
 }
 
 .tool-header-title {
@@ -2824,30 +2796,6 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
 }
 
-/* 在较小屏幕上，稍微缩小面板宽度，但始终保持左中右布局 */
-@media (max-width: 1440px) {
-  .agent-view {
-    grid-template-columns: 240px 1fr 320px;
-  }
-}
-
-/* 在更小屏幕上，进一步缩小面板宽度，但仍然保持左中右布局 */
-@media (max-width: 1200px) {
-  .agent-view {
-    grid-template-columns: 200px 1fr 280px;
-    gap: 12px;
-    padding: 0 12px 12px;
-  }
-}
-
-/* 在极小屏幕上，继续缩小但保持左中右布局 */
-@media (max-width: 900px) {
-  .agent-view {
-    grid-template-columns: 180px 1fr 240px;
-    gap: 8px;
-    padding: 0 8px 8px;
-  }
-}
 /* 格式选择容器样式 */
 .format-selection-container {
   flex: 1;

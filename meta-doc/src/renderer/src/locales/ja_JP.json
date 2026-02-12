@@ -353,6 +353,7 @@
     "metaDoc": "MetaDocスマート文書処理ソフトウェア",
     "tooltip": {
       "quickStart": "クイックスタート：迅速にドキュメントを生成",
+      "newDoc": "新しいドキュメントを作成",
       "openFile": "既存のドキュメントを開く",
       "close": "クイックスタートを閉じる",
       "ready": "準備完了",
@@ -365,6 +366,7 @@
     },
     "button": {
       "quickStart": "クイックスタート",
+      "newDoc": "新規ドキュメント",
       "openFile": "ドキュメントを開く",
       "refresh": "リフレッシュ"
     },

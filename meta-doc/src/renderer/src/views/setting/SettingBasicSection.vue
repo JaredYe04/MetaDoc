@@ -9,10 +9,14 @@
       </el-select>
     </el-form-item>
 
-    <el-form-item :label="t('setting.askBeforeSave')">
-      <el-switch v-model="settings.alwaysAskSave" class="mb-2"
-        :active-text="t('setting.enabled')" :inactive-text="t('setting.disabled')"
-        @change="saveSetting('alwaysAskSave', settings.alwaysAskSave)" />
+    <el-form-item :label="t('setting.autoOpenHomeOnStartup', '启动时自动打开主页')">
+      <el-switch
+        v-model="settings.autoOpenHomeOnStartup"
+        class="mb-2"
+        :active-text="t('setting.enabled')"
+        :inactive-text="t('setting.disabled')"
+        @change="saveSetting('autoOpenHomeOnStartup', settings.autoOpenHomeOnStartup)"
+      />
     </el-form-item>
 
     <el-form-item>

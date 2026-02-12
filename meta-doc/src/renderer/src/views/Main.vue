@@ -949,6 +949,8 @@ onMounted(async () => {
     localStorage.setItem('loginToken', token)
     await verifyToken(token)
   }
+  // 注意：自动打开主页的逻辑已移至 App.vue 的 autoOpenDoc 函数中处理
+  // 这样可以确保在启动流程的早期阶段就处理，避免时序问题
   await autoSave()
 })
 

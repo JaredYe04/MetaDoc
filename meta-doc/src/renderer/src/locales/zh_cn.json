@@ -1138,7 +1138,7 @@
         "basic": "基本设置",
         "llm": "LLM设置",
         "themes": "主题设置",
-
+        "autoOpenHomeOnStartup": "启动时自动打开主页",
         "logs": "日志设置",
         "startupOption": "启动选项",
         "openNewFile": "打开新文件",

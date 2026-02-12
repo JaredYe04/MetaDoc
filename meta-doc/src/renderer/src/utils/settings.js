@@ -60,6 +60,7 @@ export async function getImagePath() {
 
 export const settings = reactive({
   startupOption: "newFile", // 启动选项
+  autoOpenHomeOnStartup: false, // 启动时是否自动打开主页Tab
   autoSave: "never", // 自动保存
   globalTheme: "light", // 主题
   contentTheme: "auto", // 内容主题
@@ -135,7 +136,6 @@ export const settings = reactive({
     enableMaxTokens: false, // 是否启用 max_tokens 限制
     maxTokens: 4096, // max_tokens 最大值
   },
-  alwaysAskSave: true, // 是否总是询问保存,
   particleEffect: true, // 是否启用粒子效果
   outlineLayoutDirection: 'vertical', // 大纲树布局方向：'vertical' 或 'horizontal'
   llmTemperature: 1.3, // LLM 全局温度配置

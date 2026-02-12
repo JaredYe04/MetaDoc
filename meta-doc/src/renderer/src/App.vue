@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import Main from './views/Main.vue'
 import InputContextMenu from './components/common/InputContextMenu.vue'
@@ -36,7 +36,7 @@ import './assets/hide-native-scrollbar.css';
 type IpcRenderer = typeof localIpcRenderer | (typeof window extends { electron: { ipcRenderer: infer T } } ? T : never)
 
 const route = useRoute()
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 const logger = createRendererLogger('App', {
   windowTypeProvider: () => getWindowType()
 });
@@ -148,27 +148,30 @@ const autoOpenDoc = async () => {
   //console.log("当前窗口类型是：", windowType);
   if (windowType !== 'home') return; // 如果不是主窗口，则不执行自动打开文档
 
-
-
+  // 检查是否通过外部参数打开文件（URL中的file参数）
   const hash = window.location.hash; // e.g. "#/home?file=xxx.md"
   const [path, query] = hash.split('?');
   const queryParams = query ? Object.fromEntries(new URLSearchParams(query)) : {};
   const file = queryParams.file || '';
-  // const params = new URLSearchParams(window.location.search);
-  // console.log('当前查询参数:', params.toString());
-  // const file = params.get('file');
+  
+  let hasExternalFileParam = false;
   if (file) {
-    // 如果有文件参数，直接打开该文件
+    // 如果有文件参数，直接打开该文件（这是外部启动）
     eventBus.emit('open-doc', file);
     initialLoad.value = false;
+    hasExternalFileParam = true;
+    // 外部参数启动时，不打开主页
     return;
   }
 
+  // 处理启动选项（打开最近文档等）
+  let willOpenDocument = false
   const enabled = (await getSetting('startupOption')) === 'lastFile'
   if (enabled) {
     const recentDocs = await getRecentDocs()
 
     if (recentDocs.length > 0 && initialLoad.value) {
+      willOpenDocument = true
       // 在打开最近文档之前，先删除所有新文档Tab
       // 这样可以确保只有一个Tab，并且是最近文档
       const workspace = useWorkspace()
@@ -185,6 +188,53 @@ const autoOpenDoc = async () => {
       // 然后打开最近文档
       eventBus.emit('open-doc', recentDocs[0])
       initialLoad.value = false
+    }
+  }
+
+  // 检查是否需要自动打开主页
+  // 只有在非外部参数启动的情况下才打开主页（即使打开了最近文档也要打开主页）
+  if (!hasExternalFileParam) {
+    const autoOpenHomeOnStartup = await getSetting('autoOpenHomeOnStartup')
+    if (autoOpenHomeOnStartup) {
+      const workspace = useWorkspace()
+      
+      // 如果打开了文档，等待文档打开完成后再打开主页
+      if (willOpenDocument) {
+        // 使用 Promise 等待 open-doc-success 事件
+        const openHomeAfterDocOpen = () => {
+          const existingHomeTab = workspace.tabs.find(
+            (tab) => tab.kind === 'system' && tab.route === '/global-home'
+          )
+          if (existingHomeTab) {
+            workspace.activateTab(existingHomeTab.id)
+          } else {
+            workspace.openSystemTab('/global-home', t('leftMenu.home', '主页'))
+          }
+        }
+        
+        // 监听一次 open-doc-success 事件
+        const handler = () => {
+          eventBus.off('open-doc-success', handler)
+          // 使用 nextTick 确保在下一个事件循环中执行，让文档 tab 完全创建完成
+          nextTick(() => {
+            openHomeAfterDocOpen()
+          })
+        }
+        eventBus.on('open-doc-success', handler)
+      } else {
+        // 如果没有打开文档，直接打开主页
+        // 使用 nextTick 确保 workspace 已经初始化
+        nextTick(() => {
+          const existingHomeTab = workspace.tabs.find(
+            (tab) => tab.kind === 'system' && tab.route === '/global-home'
+          )
+          if (existingHomeTab) {
+            workspace.activateTab(existingHomeTab.id)
+          } else {
+            workspace.openSystemTab('/global-home', t('leftMenu.home', '主页'))
+          }
+        })
+      }
     }
   }
 }

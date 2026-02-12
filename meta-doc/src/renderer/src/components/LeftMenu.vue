@@ -1068,28 +1068,8 @@ const refreshRecentDocs = async () => {
 }
 
 const askSave = async (callBack:any) => {
-  const alwaysAskSave = await getSetting('alwaysAskSave');
-  //console.log(alwaysAskSave)
-  if (alwaysAskSave === false) {
-    callBack()
-    return
-  }
-  ElMessageBox.confirm(
-    t('leftMenu.askSave'),
-    t('leftMenu.tip'),
-    {
-      confirmButtonText: t('leftMenu.save'),
-      cancelButtonText: t('leftMenu.discard'),
-      type: 'info',
-    }
-  )
-    .then(() => {
-      eventBus.emit('save')
-    })
-    .catch(() => {
-    }).finally(() => {
-      callBack()
-    })
+  // 永远不询问保存，直接执行回调
+  callBack()
 }
 const newDoc = () => {
   askSave(() => {

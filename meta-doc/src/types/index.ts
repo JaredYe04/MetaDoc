@@ -207,8 +207,6 @@ export interface AppSettings {
   ollama: OllamaSettings;
   /** MetaDoc设置 */
   metadoc: MetaDocSettings;
-  /** 是否总是询问保存 */
-  alwaysAskSave: boolean;
   /** 是否启用粒子效果 */
   particleEffect: boolean;
 }

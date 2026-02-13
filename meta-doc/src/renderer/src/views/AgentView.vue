@@ -399,7 +399,7 @@ dayjs.extend(relativeTime);
 
 const { t } = useI18n();
 const workspace = useWorkspace();
-const { activeDocument, activeTabId, removeTab, moveTab, activateTab, updateDocumentAgentSessions } =
+const { activeDocument, activeTabId, removeTab, moveTab, activateTab, updateDocumentAgentSessions, updateDocumentActiveAgentSessionId } =
   workspace;
 
 const borderColor = computed(() =>
@@ -734,9 +734,15 @@ watch(
     }
     
     sessionsState.value = source;
-    ensureActiveSessionId();
+    // 恢复迁移/保存的当前会话（文档 activeAgentSessionId）
+    const savedId = doc.activeAgentSessionId;
+    if (savedId && source.some((s: AgentSession) => s.id === savedId)) {
+      activeSessionId.value = savedId;
+    } else {
+      ensureActiveSessionId();
+    }
     openSessionMenuId.value = null;
-    
+
     // 如果有会话变更，持久化
     if (source.length > 0) {
       applySessionsToDocument(source);
@@ -747,10 +753,13 @@ watch(
 
 watch(
   () => activeSessionId.value,
-  () => {
+  (newId) => {
     activeToolId.value = null;
     composerInput.value = '';
     openSessionMenuId.value = null;
+    if (activeTabId.value && newId) {
+      updateDocumentActiveAgentSessionId(activeTabId.value, newId);
+    }
     // 切换会话时，重置激活的引用ID列表，默认激活所有引用
     if (activeSession.value?.referenceStore) {
       activeReferenceIds.value = activeSession.value.referenceStore.map(ref => ref.id);
@@ -2032,6 +2041,9 @@ const sessionListItems = computed<SessionListItem[]>(() =>
 const handleSessionListSelect = (item: SessionListItem) => {
   activeSessionId.value = item.id;
   openSessionMenuId.value = null;
+  if (activeTabId.value) {
+    updateDocumentActiveAgentSessionId(activeTabId.value, item.id);
+  }
 };
 
 const handleSessionListRename = (item: SessionListItem, newTitle: string) => {

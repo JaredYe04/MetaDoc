@@ -45,6 +45,12 @@ export interface WorkspaceTab {
 
 export type DocumentView = 'home' | 'outline' | 'editor' | 'visualize' | 'agent' | 'proofread';
 
+/** 工具 Tab 迁移时需保留的 UI 状态（如当前选中的会话/对话索引） */
+export interface TabToolState {
+  activeSessionId?: string;
+  activeDialogIndex?: number;
+}
+
 export interface WorkspaceDocument {
   id: string;
   tabId: string;
@@ -57,6 +63,8 @@ export interface WorkspaceDocument {
   aiDialogs: AIDialog[];
   agentSessions: AgentSession[];
   lastView: DocumentView;
+  /** 文档 Agent 视图中当前选中的会话 ID，用于窗口迁移时恢复 */
+  activeAgentSessionId?: string;
   renderedHtml: string;
   dirty: boolean;
   savedMarkdown: string;
@@ -75,6 +83,9 @@ export const tabs = reactive<WorkspaceTab[]>([]);
 export const activeTabId = ref<string>('');
 
 const documents = reactive<Record<string, WorkspaceDocument>>({});
+
+/** 工具 Tab 的 UI 状态（当前选中的会话/对话索引），用于窗口迁移时恢复 */
+const tabToolState = reactive<Record<string, TabToolState>>({});
 
 // 懒加载logger，避免初始化顺序问题和循环依赖
 let loggerInstance: ReturnType<typeof createRendererLogger> | null = null;
@@ -169,6 +180,7 @@ function ensureDocument(tabId: string): WorkspaceDocument {
     doc.agentSessions = structuredCloneFallback(snapshot.agentSessions);
     doc.renderedHtml = snapshot.renderedHtml;
     doc.lastView = snapshot.lastView;
+    doc.activeAgentSessionId = snapshot.activeAgentSessionId;
     doc.savedMarkdown = snapshot.markdown;
     doc.savedTex = snapshot.tex;
     doc.savedMeta = structuredCloneFallback(snapshot.meta);
@@ -437,6 +449,7 @@ function removeTab(id: string): void {
   
   tabs.splice(index, 1);
   delete documents[id];
+  delete tabToolState[id];
 
   // 如果关闭后没有Tab了，创建一个系统Tab显示Dummy组件
   if (!tabs.length) {
@@ -923,6 +936,37 @@ function updateDocumentLastView(tabId: string, view: DocumentView): void {
   if (doc.lastView !== view) {
     doc.lastView = view;
   }
+}
+
+/**
+ * 更新文档 Agent 视图中当前选中的会话 ID（用于窗口迁移时保留）
+ */
+function updateDocumentActiveAgentSessionId(tabId: string, sessionId: string | null | undefined): void {
+  const doc = documents[tabId];
+  if (!doc) return;
+  if (sessionId !== undefined && sessionId !== null) {
+    doc.activeAgentSessionId = sessionId;
+  } else {
+    delete doc.activeAgentSessionId;
+  }
+}
+
+/**
+ * 获取工具 Tab 的 UI 状态（用于窗口迁移时恢复当前会话/对话）
+ */
+function getTabToolState(tabId: string): TabToolState {
+  return tabToolState[tabId] ?? {};
+}
+
+/**
+ * 设置工具 Tab 的 UI 状态（由工具视图在切换会话/对话时写入，迁移时序列化）
+ */
+function setTabToolState(tabId: string, state: TabToolState): void {
+  if (!state || (state.activeSessionId === undefined && state.activeDialogIndex === undefined)) {
+    delete tabToolState[tabId];
+    return;
+  }
+  tabToolState[tabId] = { ...state };
 }
 
 /**
@@ -1735,6 +1779,9 @@ export function useWorkspace() {
     updateDocumentAgentSessions,
     updateDocumentDirty,
     updateDocumentLastView,
+    updateDocumentActiveAgentSessionId,
+    getTabToolState,
+    setTabToolState,
     updateDocumentRenderedHtml,
     markDocumentSaved,
     initializeDocumentFromTemplate,

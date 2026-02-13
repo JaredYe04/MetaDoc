@@ -655,6 +655,7 @@ const serializeTabData = (tabId: string): any => {
         aiDialogs: JSON.parse(JSON.stringify(doc.aiDialogs)),
         agentSessions: JSON.parse(JSON.stringify(doc.agentSessions)),
         lastView: doc.lastView,
+        activeAgentSessionId: doc.activeAgentSessionId,
         renderedHtml: doc.renderedHtml,
         dirty: doc.dirty,
         savedMarkdown: doc.savedMarkdown,
@@ -666,6 +667,14 @@ const serializeTabData = (tabId: string): any => {
       }
     } catch (error) {
       logger.warn('序列化文档数据失败:', error)
+    }
+  }
+
+  // 工具 Tab：包含当前选中的会话/对话索引，迁移后恢复
+  if (tab.kind === 'tool') {
+    const toolState = workspace.getTabToolState(tab.id)
+    if (toolState && (toolState.activeSessionId !== undefined || toolState.activeDialogIndex !== undefined)) {
+      tabData.toolState = { ...toolState }
     }
   }
 
@@ -716,10 +725,6 @@ const handleDragStart = async (id: string, event: DragEvent) => {
   draggingTab = tab
   dragStartPosition = { x: event.clientX, y: event.clientY }
   isDraggingToNewWindow = false
-
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:handleDragStart',message:'drag started',data:{tabId:id,tabCount:allTabs.value.length,canDragToOtherWindow:canDragToOtherWindow(tab)},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-  // #endregion
 
   // 序列化Tab数据
   const tabData = serializeTabData(id)
@@ -897,9 +902,6 @@ let singleTabMergeTimer: ReturnType<typeof setTimeout> | null = null
 let singleTabMergeDone = false
 let windowCreationInProgress = false // 防止多次创建窗口
 const handleGlobalDragOver = async (event: DragEvent) => {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:handleGlobalDragOver',message:'dragover fired',data:{draggingId,hasIpc:!!ipcRenderer,types:event.dataTransfer?.types,clientY:event.clientY},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-  // #endregion
   if (!ipcRenderer) return
 
   // 情形1：作为目标窗口，收到来自其他窗口的Tab（单Tab窗口需立即合并，不等drop）
@@ -994,10 +996,7 @@ const checkAndCreateWindow = async (tabsWrapperEl: HTMLElement, event: DragEvent
     mouseY < tabsRect.top ||
     mouseY > tabsRect.bottom
 
-  // #region agent log
   const tabCount = allTabs.value.length
-  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:checkAndCreateWindow',message:'check',data:{mouseX,mouseY,tabsRect:{l:tabsRect.left,r:tabsRect.right,t:tabsRect.top,b:tabsRect.bottom},isOutsideTabs,tabCount,canDrag:canDragToOtherWindow(draggingTab!)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
-  // #endregion
 
   // 重要：当前窗口只有1个Tab时，绝不创建新窗口（应合并到目标窗口）
   if (tabCount <= 1) {
@@ -1018,10 +1017,6 @@ const checkAndCreateWindow = async (tabsWrapperEl: HTMLElement, event: DragEvent
         if (isDraggingToNewWindow || windowCreationInProgress) return
         windowCreationInProgress = true
         isDraggingToNewWindow = true
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:createWindowTimer',message:'creating new window',data:{draggingId},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
-        // #endregion
         
         const currentDraggingId = draggingId
       if (!currentDraggingId) {
@@ -1139,9 +1134,6 @@ const handleGlobalDrop = async (event: DragEvent) => {
 
 // 从拖拽添加Tab
 const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:addTabFromDrag',message:'addTabFromDrag enter',data:{hasTab:!!tabTransferData?.tab,insertIndex},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
-  // #endregion
   try {
     const { tab, document } = tabTransferData
 
@@ -1201,6 +1193,9 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
         doc.aiDialogs = document.aiDialogs || doc.aiDialogs
         doc.agentSessions = document.agentSessions || doc.agentSessions
         doc.lastView = document.lastView || doc.lastView
+        if (document.activeAgentSessionId !== undefined) {
+          doc.activeAgentSessionId = document.activeAgentSessionId
+        }
         doc.renderedHtml = document.renderedHtml || ''
         // 重要：保持dirty状态
         doc.dirty = document.dirty !== undefined ? document.dirty : false
@@ -1227,13 +1222,15 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
       }
     }
 
+    // 工具 Tab：恢复当前选中的会话/对话索引
+    if (tab.kind === 'tool' && tabTransferData.toolState) {
+      workspace.setTabToolState(tab.id, tabTransferData.toolState)
+    }
+
     // 激活Tab
     await nextTick()
     workspace.activateTab(tab.id)
     
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:addTabFromDrag',message:'addTabFromDrag success',data:{tabId:tab.id},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
-    // #endregion
     logger.info('成功添加并激活Tab:', tab.id, { kind: tab.kind, dirty: tab.dirty })
   } catch (error) {
     fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:addTabFromDrag',message:'addTabFromDrag error',data:{error:String(error)},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
@@ -1243,9 +1240,6 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
 
 // 拖拽后移除Tab
 const removeTabAfterDrag = async (tabId: string, windowId: number) => {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:removeTabAfterDrag',message:'removeTab enter',data:{tabId,beforeCount:workspace.tabs.length},timestamp:Date.now(),hypothesisId:'H8'})}).catch(()=>{});
-  // #endregion
   try {
     const tabIndex = workspace.tabs.findIndex(t => t.id === tabId)
     const wasActive = workspace.activeTabId.value === tabId
@@ -1268,9 +1262,6 @@ const removeTabAfterDrag = async (tabId: string, windowId: number) => {
     if (ipcRenderer) {
       const { canClose, tabCount } = await ipcRenderer.invoke('check-window-can-close')
       if (canClose && tabCount === 0) {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:removeTabAfterDrag',message:'closing window',data:{tabCount,canClose},timestamp:Date.now(),hypothesisId:'H8'})}).catch(()=>{});
-        // #endregion
         // 窗口可以关闭
         ipcRenderer.send('close-window')
       }

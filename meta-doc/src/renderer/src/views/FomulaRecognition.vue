@@ -234,9 +234,13 @@ import { exportSingleFormula } from '../utils/math-renderer.js'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { formulaRecognitionSessionsDb, type FormulaRecognitionSession } from '../utils/db/tool-sessions-db'
+import { useWorkspace } from '../stores/workspace'
 
 const { t } = useI18n()
 const logger = createRendererLogger('FormulaRecognition')
+const workspace = useWorkspace()
+
+const ourTabId = computed(() => workspace.tabs.find(tab => tab.kind === 'tool' && tab.route === '/fomula-recognition')?.id ?? null)
 
 const SIMPLETEX_OCR_URL = 'https://simpletex.cn/ai/latex_ocr'
 
@@ -431,6 +435,8 @@ const handleCreateSession = async () => {
     
     await loadSessions()
     activeSessionId.value = id
+    const tid = ourTabId.value
+    if (tid) workspace.setTabToolState(tid, { activeSessionId: id })
     // 新会话画布尺寸在 initCanvas 中从视口获取
     canvasWidth.value = 0
     canvasHeight.value = 0
@@ -460,6 +466,8 @@ const handleSelectSession = async (item: SessionListItem) => {
     }
     
     activeSessionId.value = item.id
+    const tid = ourTabId.value
+    if (tid) workspace.setTabToolState(tid, { activeSessionId: item.id })
     const session = await formulaRecognitionSessionsDb.getById(item.id)
     if (session) {
       // 等待 DOM 更新
@@ -660,6 +668,23 @@ const initCanvas = () => {
     drawingCanvas.value?.dispatchEvent(mouseEvent)
   })
 }
+
+// 窗口迁移后恢复当前选中的会话
+watch(
+  [() => workspace.activeTabId.value, ourTabId, () => sessions.value],
+  () => {
+    const tid = ourTabId.value
+    if (!tid || workspace.activeTabId.value !== tid || sessions.value.length === 0) return
+    const state = workspace.getTabToolState(tid)
+    const savedId = state.activeSessionId
+    if (!savedId || !sessions.value.some(s => s.id === savedId)) return
+    if (activeSessionId.value === savedId) return
+    const item = sessions.value.find(s => s.id === savedId)!
+    activeSessionId.value = savedId
+    handleSelectSession(item)
+  },
+  { immediate: true, deep: true }
+)
 
 onMounted(async () => {
   await loadSessions()

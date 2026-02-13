@@ -343,8 +343,12 @@ import { generateOcrFixPrompt } from '../utils/prompts'
 import { ai_types, createAiTask } from '../utils/ai_tasks'
 import type { AIDialogMessage } from '@/types'
 import { computeDiff } from '../utils/agent-tools/diff-tool'
+import { useWorkspace } from '../stores/workspace'
 
 const { t } = useI18n()
+const workspace = useWorkspace()
+
+const ourTabId = computed(() => workspace.tabs.find(tab => tab.kind === 'tool' && tab.route === '/ocr')?.id ?? null)
 
 const sessions = ref<SessionListItem[]>([])
 const activeSessionId = ref<string | null>(null)
@@ -675,6 +679,23 @@ const availableLanguages = [
   { value: 'por', label: 'Português' }
 ]
 
+// 窗口迁移后恢复当前选中的会话
+watch(
+  [() => workspace.activeTabId.value, ourTabId, () => sessions.value],
+  () => {
+    const tid = ourTabId.value
+    if (!tid || workspace.activeTabId.value !== tid || sessions.value.length === 0) return
+    const state = workspace.getTabToolState(tid)
+    const savedId = state.activeSessionId
+    if (!savedId || !sessions.value.some(s => s.id === savedId)) return
+    if (activeSessionId.value === savedId) return
+    const item = sessions.value.find(s => s.id === savedId)!
+    activeSessionId.value = savedId
+    handleSelectSession(item)
+  },
+  { immediate: true, deep: true }
+)
+
 // 初始化默认语言（eng + 当前语言）
 onMounted(() => {
   const locale = (i18n.global.locale as any).value || 'zh_CN'
@@ -729,6 +750,8 @@ const handleCreateSession = async () => {
     
     await loadSessions()
     activeSessionId.value = id
+    const tid = ourTabId.value
+    if (tid) workspace.setTabToolState(tid, { activeSessionId: id })
     imageList.value = []
     ocrResults.value = []
     // 清空所有状态
@@ -783,6 +806,8 @@ const handleSelectSession = async (item: SessionListItem) => {
     newEditorRefs.value.clear()
     
     activeSessionId.value = item.id
+    const tid = ourTabId.value
+    if (tid) workspace.setTabToolState(tid, { activeSessionId: item.id })
     const session = await ocrSessionsDb.getById(item.id)
     if (session) {
       if (session.images) {

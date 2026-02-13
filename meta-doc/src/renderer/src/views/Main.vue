@@ -245,6 +245,9 @@ type OpenDocumentPayload = {
   tabId?: string
 }
 
+// 防止同一文件被并发打开的锁
+const openingFiles = new Set<string>()
+
 const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
   if (!payload || typeof payload !== 'object') {
     eventBus.emit('show-error', t('main.notification.error.title'))
@@ -281,6 +284,15 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       return
     }
 
+    // 检查是否正在打开该文件（防止并发打开）
+    if (openingFiles.has(resolvedPath)) {
+      logger.warn(`文件 ${resolvedPath} 正在打开中，跳过重复请求`)
+      return
+    }
+    
+    // 标记文件正在打开
+    openingFiles.add(resolvedPath)
+
     // 检查文件是否在其他窗口打开
     try {
       let ipcRenderer: any = null
@@ -298,6 +310,8 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
           // 文件已在其他窗口打开，切换到该窗口
           // 主进程会处理窗口切换和Tab激活
           logger.info(`文件 ${resolvedPath} 已在窗口 ${result.windowId} 的Tab ${result.tabId} 中打开，将切换到该窗口`)
+          // 清除打开标记
+          openingFiles.delete(resolvedPath)
           return
         }
       }
@@ -372,6 +386,11 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       })
       eventBus.emit('is-need-save', true) // 标记为需要保存（虽然不会保存原PDF）
       
+      // 清除打开标记（PDF文件的path为空，但使用resolvedPath作为标记）
+      if (resolvedPath) {
+        openingFiles.delete(resolvedPath)
+      }
+      
       return // 提前返回，不执行后续的文件打开逻辑
     } catch (error) {
       logger.error('PDF转换失败:', error)
@@ -426,6 +445,24 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     snapshot.path = resolvedPath
     snapshot.dirty = false
 
+    // 再次检查文件是否已打开（可能在异步操作期间已被打开）
+    if (resolvedPath) {
+      const existingAfterCheck = workspaceTabs.find((tab) => tab.path === resolvedPath)
+      if (existingAfterCheck) {
+        // 文件已在异步操作期间被打开，激活现有Tab并返回
+        openingFiles.delete(resolvedPath)
+        activateTab(existingAfterCheck.id)
+        const existingDoc = ensureDocument(existingAfterCheck.id)
+        eventBus.emit('open-doc-success', {
+          tabId: existingAfterCheck.id,
+          path: resolvedPath,
+          fileName: getDisplayName(existingDoc, resolvedPath)
+        })
+        eventBus.emit('is-need-save', false)
+        return
+      }
+    }
+
     // 多 Tab 会话模式：从「最近文档」或「打开文档」打开文件时，始终在新 Tab 中打开，
     // 不替换当前未初始化的「新文档」Tab，避免原 Tab 标题被错误改为打开的文件名。
     // （原单会话逻辑会“替换”当前空 Tab，导致唯一的新建文档 Tab 标题变成 aaa.md 的 bug）
@@ -453,6 +490,10 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     const message = error instanceof Error ? error.message : String(error)
     eventBus.emit('show-error', `${t('main.notification.error.title')}: ${message}`)
   } finally {
+    // 清除打开标记
+    if (resolvedPath) {
+      openingFiles.delete(resolvedPath)
+    }
   }
 }
 

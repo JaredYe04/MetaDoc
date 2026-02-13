@@ -3395,6 +3395,37 @@ export const openDoc = async (filePath?: string, targetWindowId?: number): Promi
       return;
     }
 
+    // 检查目标窗口是否已打开该文件（避免重复打开）
+    if (targetWin) {
+      const targetResult = await new Promise<{ tabId: string | null }>((resolve) => {
+        const handler = (_event: IpcMainEvent, response: { tabId: string | null } | null) => {
+          ipcMain.removeListener('file-exists-in-window-response', handler);
+          resolve(response || { tabId: null });
+        };
+        
+        ipcMain.once('file-exists-in-window-response', handler);
+        targetWin!.webContents.send('check-file-exists-in-window', filePath);
+        
+        // 超时处理
+        setTimeout(() => {
+          ipcMain.removeListener('file-exists-in-window-response', handler);
+          resolve({ tabId: null });
+        }, 1000);
+      });
+      
+      if (targetResult.tabId) {
+        // 文件已在目标窗口打开，激活对应的Tab
+        targetWin.webContents.send('activate-tab-by-id', targetResult.tabId);
+        // 显示并focus窗口
+        if (targetWin.isMinimized()) {
+          targetWin.restore();
+        }
+        targetWin.show();
+        targetWin.focus();
+        return;
+      }
+    }
+
     const format = path.extname(filePath).slice(1).toLowerCase();
     
     // PDF文件是二进制文件，不需要读取内容，让渲染进程处理

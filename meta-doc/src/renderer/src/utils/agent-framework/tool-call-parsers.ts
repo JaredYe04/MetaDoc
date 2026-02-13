@@ -121,9 +121,9 @@ class StandardToolCallParser implements ToolCallParser {
     index: number
   ): ParsedToolCall | null {
     try {
-      // 检查是否包含嵌套的DSML格式（<｜DSML｜invoke 或 <｜DSML｜function_calls>）
+      // 检查是否包含嵌套的DSML格式（<｜DSML｜invoke、<｜DSML｜function_calls> 或 <｜DSML｜call>）
       // 如果包含，委托给DSML解析器处理
-      if (/<｜DSML｜invoke/i.test(toolCallContent) || /<｜DSML｜function_calls>/i.test(toolCallContent)) {
+      if (/<｜DSML｜invoke/i.test(toolCallContent) || /<｜DSML｜function_calls>/i.test(toolCallContent) || /<｜DSML｜call/i.test(toolCallContent)) {
         getLogger().debug('[StandardToolCallParser] 检测到嵌套的DSML格式，委托给DSML解析器')
         const dsmlParser = new DeepSeekDSMLParser()
         const dsmlResults = dsmlParser.parse(toolCallContent, {})
@@ -399,7 +399,7 @@ class DeepSeekDSMLParser implements ToolCallParser {
   name = 'deepseek-dsml'
   
   detect(content: string): boolean {
-    return /<｜DSML｜function_calls>/i.test(content) || /<｜DSML｜invoke/i.test(content)
+    return /<｜DSML｜function_calls>/i.test(content) || /<｜DSML｜invoke/i.test(content) || /<｜DSML｜call/i.test(content)
   }
   
   parse(
@@ -413,6 +413,25 @@ class DeepSeekDSMLParser implements ToolCallParser {
     const { validateToolId = false, toolIdValidator } = options
     
     try {
+      // 首先匹配完整的 call 块（优先级最高，因为它是外层容器）
+      const callPattern = /<｜DSML｜call>([\s\S]*?)<\/｜DSML｜call>/i
+      const callMatch = content.match(callPattern)
+      
+      if (callMatch) {
+        const callContent = callMatch[1]
+        // call块内部可能包含function_calls或invoke标签
+        const functionCallsPattern = /<｜DSML｜function_calls>([\s\S]*?)<\/｜DSML｜function_calls>/i
+        const functionCallsMatch = callContent.match(functionCallsPattern)
+        
+        if (functionCallsMatch) {
+          const functionCallsContent = functionCallsMatch[1]
+          return this.parseInvokeTags(functionCallsContent, validateToolId, toolIdValidator)
+        } else {
+          // 如果没有function_calls，尝试直接解析invoke标签
+          return this.parseInvokeTags(callContent, validateToolId, toolIdValidator)
+        }
+      }
+      
       // 匹配完整的 function_calls 块
       const functionCallsPattern = /<｜DSML｜function_calls>([\s\S]*?)<\/｜DSML｜function_calls>/i
       const functionCallsMatch = content.match(functionCallsPattern)
@@ -707,11 +726,15 @@ class DeepSeekDSMLParser implements ToolCallParser {
   }
   
   cleanMarkers(content: string): string {
+    // 清除完整的 call 块（优先级最高，因为它是外层容器）
+    let cleaned = content.replace(/<｜DSML｜call>[\s\S]*?<\/｜DSML｜call>/gi, '').trim()
     // 清除完整的 function_calls 块
-    let cleaned = content.replace(/<｜DSML｜function_calls>[\s\S]*?<\/｜DSML｜function_calls>/gi, '').trim()
-    // 清除单独的 invoke 标签（如果没有被 function_calls 包裹）
+    cleaned = cleaned.replace(/<｜DSML｜function_calls>[\s\S]*?<\/｜DSML｜function_calls>/gi, '').trim()
+    // 清除单独的 invoke 标签（如果没有被 function_calls 或 call 包裹）
     cleaned = cleaned.replace(/<｜DSML｜invoke[\s\S]*?<\/｜DSML｜invoke>/gi, '').trim()
     // 清除不完整的标记
+    cleaned = cleaned.replace(/<｜DSML｜call>/gi, '').trim()
+    cleaned = cleaned.replace(/<\/｜DSML｜call>/gi, '').trim()
     cleaned = cleaned.replace(/<｜DSML｜function_calls>/gi, '').trim()
     cleaned = cleaned.replace(/<\/｜DSML｜function_calls>/gi, '').trim()
     cleaned = cleaned.replace(/<｜DSML｜invoke/gi, '').trim()
@@ -720,7 +743,7 @@ class DeepSeekDSMLParser implements ToolCallParser {
   }
   
   getMarkerPattern(): RegExp {
-    return /<｜DSML｜function_calls>[\s\S]*?<\/｜DSML｜function_calls>|<｜DSML｜invoke[\s\S]*?<\/｜DSML｜invoke>/gi
+    return /<｜DSML｜call>[\s\S]*?<\/｜DSML｜call>|<｜DSML｜function_calls>[\s\S]*?<\/｜DSML｜function_calls>|<｜DSML｜invoke[\s\S]*?<\/｜DSML｜invoke>/gi
   }
 }
 

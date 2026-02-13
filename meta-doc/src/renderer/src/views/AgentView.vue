@@ -416,7 +416,7 @@ const pageStyle = computed(() => ({
 }));
 
 const panelStyle = computed(() => ({
-  backgroundColor: themeState.currentTheme.background2nd,
+  backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor,
   borderColor: borderColor.value,
 }));

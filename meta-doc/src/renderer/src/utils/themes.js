@@ -54,6 +54,13 @@ import PenAiIconBlack from "../assets/icons/pen-ai-black.svg";
 import PenAiIconWhite from "../assets/icons/pen-ai-white.svg";
 import FeedbackIconBlack from "../assets/icons/feedback-black.svg";
 import FeedbackIconWhite from "../assets/icons/feedback-white.svg";
+// 窗口控制图标（标题栏最小化/最大化/还原）
+import MinimizeIconBlack from "../assets/icons/minimize-black.svg";
+import MinimizeIconWhite from "../assets/icons/minimize-white.svg";
+import MaximizeIconBlack from "../assets/icons/maximize-black.svg";
+import MaximizeIconWhite from "../assets/icons/maximize-white.svg";
+import RestoreIconBlack from "../assets/icons/restore-black.svg";
+import RestoreIconWhite from "../assets/icons/restore-white.svg";
 // PDF查看模式图标导入
 import CursorIconBlack from "../assets/icons/cursor-black.svg";
 import CursorIconWhite from "../assets/icons/cursor-white.svg";
@@ -219,6 +226,9 @@ const generateThemeIcons = (isDarkMode) => {
     RedoIcon: selectIconByTheme(isDarkMode, { light: RedoIconBlack, dark: RedoIconWhite }),
     ClearIcon: selectIconByTheme(isDarkMode, { light: ClearIconBlack, dark: ClearIconWhite }),
     FeedbackIcon: selectIconByTheme(isDarkMode, { light: FeedbackIconBlack, dark: FeedbackIconWhite }),
+    MinimizeIcon: selectIconByTheme(isDarkMode, { light: MinimizeIconBlack, dark: MinimizeIconWhite }),
+    MaximizeIcon: selectIconByTheme(isDarkMode, { light: MaximizeIconBlack, dark: MaximizeIconWhite }),
+    RestoreIcon: selectIconByTheme(isDarkMode, { light: RestoreIconBlack, dark: RestoreIconWhite }),
   };
 };
 

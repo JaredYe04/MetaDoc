@@ -267,6 +267,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
   }
 
   if (resolvedPath) {
+    // 先检查当前窗口是否已打开该文件
     const existing = workspaceTabs.find((tab) => tab.path === resolvedPath)
     if (existing) {
       activateTab(existing.id)
@@ -278,6 +279,31 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       })
       eventBus.emit('is-need-save', false)
       return
+    }
+
+    // 检查文件是否在其他窗口打开
+    try {
+      let ipcRenderer: any = null
+      if (window && (window as any).electron) {
+        ipcRenderer = (window as any).electron.ipcRenderer
+      } else {
+        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
+        ipcRenderer = localIpcRenderer
+      }
+
+      if (ipcRenderer && typeof ipcRenderer.invoke === 'function') {
+        const result = await ipcRenderer.invoke('find-window-with-file', resolvedPath) as { windowId: number | null; tabId: string | null }
+        
+        if (result.windowId && result.tabId) {
+          // 文件已在其他窗口打开，切换到该窗口
+          // 主进程会处理窗口切换和Tab激活
+          logger.info(`文件 ${resolvedPath} 已在窗口 ${result.windowId} 的Tab ${result.tabId} 中打开，将切换到该窗口`)
+          return
+        }
+      }
+    } catch (error) {
+      logger.warn('检查文件是否在其他窗口打开失败:', error)
+      // 继续在当前窗口打开文件
     }
   }
 

@@ -192,8 +192,9 @@ const autoOpenDoc = async () => {
   }
 
   // 检查是否需要自动打开主页
-  // 只有在非外部参数启动的情况下才打开主页（即使打开了最近文档也要打开主页）
-  if (!hasExternalFileParam) {
+  // 由 Tab 拖出创建的新窗口（skipAutoHome=1）不执行，避免多出主页 Tab
+  const skipAutoHome = route.query.skipAutoHome === '1'
+  if (!hasExternalFileParam && !skipAutoHome) {
     const autoOpenHomeOnStartup = await getSetting('autoOpenHomeOnStartup')
     if (autoOpenHomeOnStartup) {
       const workspace = useWorkspace()

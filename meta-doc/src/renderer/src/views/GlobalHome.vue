@@ -630,9 +630,7 @@ onBeforeUnmount(() => {
 .recent-docs-container {
   border-radius: 10px;
   border: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"');
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(40,40,42,0.85)" : "rgba(255,255,255,0.75)"');
-  backdrop-filter: blur(20px) saturate(1.2);
-  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgb(40,40,42)" : "rgb(255,255,255)"');
   box-shadow: v-bind('themeState.currentTheme.type === "dark" ? "0 2px 8px rgba(0,0,0,0.3)" : "0 1px 4px rgba(0,0,0,0.04)"');
   overflow: hidden;
 }
@@ -651,10 +649,10 @@ onBeforeUnmount(() => {
   padding: 11px 16px;
   cursor: pointer;
   transition: all 0.05s ease;
-  background: transparent;
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgb(40,40,42)" : "rgb(255,255,255)"');
   user-select: none;
   animation: fadeIn 0.3s ease-out both;
-  border-bottom: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)"');
+  border-bottom: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"');
 }
 
 .recent-doc-card:last-child {
@@ -662,11 +660,11 @@ onBeforeUnmount(() => {
 }
 
 .recent-doc-card:hover {
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)"');
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgb(50,50,52)" : "rgb(245,245,245)"');
 }
 
 .recent-doc-card:active {
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
+  background: v-bind('themeState.currentTheme.type === "dark" ? "rgb(55,55,57)" : "rgb(238,238,238)"');
 }
 
 /* 文档卡片左侧小竖线指示器 */

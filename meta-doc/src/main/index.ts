@@ -116,6 +116,14 @@ export function registerMainWindow(win: BrowserWindow): void {
   mainWindows.set(id, win);
   logger.debug(`注册主窗口: ${id}`);
   
+  // 最大化/还原时通知渲染进程，用于切换标题栏图标（含 Aero 贴边等系统操作）
+  win.on('maximize', () => {
+    if (!win.isDestroyed()) win.webContents.send('window-maximized-changed', true);
+  });
+  win.on('unmaximize', () => {
+    if (!win.isDestroyed()) win.webContents.send('window-maximized-changed', false);
+  });
+
   // 窗口关闭时自动移除，释放引用，防止内存泄漏
   win.on('closed', () => {
     mainWindows.delete(id);

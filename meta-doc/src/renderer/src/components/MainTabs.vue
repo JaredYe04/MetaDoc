@@ -64,16 +64,23 @@
       </div>
     </div>
     
-    <!-- 窗口控制按钮 (最右侧) - 仅在非 macOS 平台显示 -->
+    <!-- 窗口控制按钮 (最右侧) - 仅在非 macOS 平台显示，使用主题图标 -->
     <div v-if="!isMac" class="window-controls">
       <div class="window-control-btn" @click="handleMinimize">
-        <el-icon><Minus /></el-icon>
+        <img class="window-control-icon" :src="windowControlIcons.minimize" alt="" aria-hidden="true" />
       </div>
       <div class="window-control-btn" @click="handleMaximize">
-        <el-icon><FullScreen /></el-icon>
+        <img
+          class="window-control-icon"
+          :src="isMaximized ? windowControlIcons.restore : windowControlIcons.maximize"
+          alt=""
+          aria-hidden="true"
+        />
       </div>
       <div class="window-control-btn window-control-btn--close" @click="handleClose">
-        <el-icon><Close /></el-icon>
+        <svg class="window-control-icon window-control-icon--close" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" aria-hidden="true">
+          <path d="M2 2l8 8M10 2L2 10"/>
+        </svg>
       </div>
     </div>
 
@@ -161,9 +168,15 @@ import { useRouter, useRoute } from 'vue-router'
 import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
 import eventBus from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
-import { Minus, FullScreen, Close, Plus, ArrowRight } from '@element-plus/icons-vue'
+import { Close, Plus, ArrowRight } from '@element-plus/icons-vue'
 import { mixColors, themeState } from '../utils/themes'
 import { useCloseTab } from '../composables/useCloseTab'
+
+// 主题中的窗口控制图标（themes.js 中注册，TS 无类型声明故用 Record 访问）
+const windowControlIcons = computed(() => {
+  const t = themeState.currentTheme as unknown as Record<string, string>
+  return { minimize: t.MinimizeIcon, maximize: t.MaximizeIcon, restore: t.RestoreIcon }
+})
 
 const logger = createRendererLogger('MainTabs')
 const { t } = useI18n()
@@ -183,6 +196,9 @@ const tabContextMenuTab = ref<WorkspaceTab | null>(null)
 const showMoveToWindowSubmenu = ref(false)
 const otherWindowsList = ref<Array<{ id: number; title: string }>>([])
 let moveToWindowLeaveTimer: ReturnType<typeof setTimeout> | null = null
+
+// 窗口是否最大化（用于标题栏最大化/还原图标切换）
+const isMaximized = ref(false)
 
 const tabContextMenuStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
@@ -1233,7 +1249,6 @@ const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
     
     logger.info('成功添加并激活Tab:', tab.id, { kind: tab.kind, dirty: tab.dirty })
   } catch (error) {
-    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:addTabFromDrag',message:'addTabFromDrag error',data:{error:String(error)},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
     logger.error('添加Tab失败:', error)
   }
 }
@@ -1267,15 +1282,26 @@ const removeTabAfterDrag = async (tabId: string, windowId: number) => {
       }
     }
   } catch (error) {
-    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:removeTabAfterDrag',message:'removeTab error',data:{error:String(error)},timestamp:Date.now(),hypothesisId:'H8'})}).catch(()=>{});
     logger.error('移除Tab失败:', error)
   }
 }
 
 // 在 Tab 项上添加拖拽事件监听（扩大拖拽区域）
-onMounted(() => {
+onMounted(async () => {
   // 获取当前窗口ID
   getCurrentWindowId()
+
+  // 获取当前窗口最大化状态并监听变化（用于标题栏最大化/还原图标）
+  if (ipcRenderer) {
+    try {
+      isMaximized.value = await ipcRenderer.invoke('get-window-maximized')
+    } catch {
+      isMaximized.value = false
+    }
+    ipcRenderer.on('window-maximized-changed', (_e: any, maximized: boolean) => {
+      isMaximized.value = maximized
+    })
+  }
 
   // Tab 右键菜单：点击外部关闭
   document.addEventListener('click', handleTabContextMenuClickOutside)
@@ -1422,6 +1448,7 @@ onUnmounted(() => {
     ipcRenderer.removeAllListeners('add-tab-from-drag')
     ipcRenderer.removeAllListeners('remove-tab-from-drag')
     ipcRenderer.removeAllListeners('request-tab-count')
+    ipcRenderer.removeAllListeners('window-maximized-changed')
   }
 })
 </script>
@@ -1816,6 +1843,20 @@ onUnmounted(() => {
   font-size: 16px;
   line-height: 0;
   display: block;
+}
+
+/* 标准窗口控制 SVG 图标 */
+.window-control-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.window-control-btn--close .window-control-icon--close {
+  width: 14px;
+  height: 14px;
 }
 
 /* 新建文档按钮样式 - 严禁底部凸出 */

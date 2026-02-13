@@ -245,23 +245,26 @@ function bindBasicHandlers(): void {
     await openDoc(filePath, sourceWindowId);
   });
   
-  // 窗口控制
-  ipcMain.on('window-minimize', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.minimize();
+  // 窗口控制（使用发送请求的窗口，支持多窗口）
+  ipcMain.on('window-minimize', (event: IpcMainEvent) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win && !win.isDestroyed()) {
+      win.minimize();
     }
   });
-  
-  ipcMain.on('window-maximize', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.isMaximized()) {
-        mainWindow.unmaximize();
+
+  ipcMain.on('window-maximize', (event: IpcMainEvent) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win && !win.isDestroyed()) {
+      if (win.isMaximized()) {
+        win.unmaximize();
       } else {
-        mainWindow.maximize();
+        win.maximize();
       }
+      // 通知渲染进程当前窗口的最大化状态，用于切换最大化/还原图标
+      win.webContents.send('window-maximized-changed', win.isMaximized());
     }
   });
-  
 }
 
 /**
@@ -4439,6 +4442,12 @@ function bindWindowManagementHandlers(): void {
   // 获取当前窗口ID
   ipcMain.handle('get-window-id', (event: IpcMainInvokeEvent): number => {
     return event.sender.id;
+  });
+
+  // 获取当前窗口是否最大化（用于标题栏最大化/还原图标切换）
+  ipcMain.handle('get-window-maximized', (event: IpcMainInvokeEvent): boolean => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    return !!(win && !win.isDestroyed() && win.isMaximized());
   });
 
   // 获取所有已显示的主窗口列表（用于“移至另一个窗口”菜单，排除窗口池中未显示的窗口）

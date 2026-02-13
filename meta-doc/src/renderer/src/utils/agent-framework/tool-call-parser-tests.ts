@@ -657,6 +657,56 @@ const testDSMLStringFalse: TestFunction = createTestFunction(
   }
 )
 
+/**
+ * 测试用例28.1: DSML格式-call标签包裹
+ */
+const testDSMLCallTag: TestFunction = createTestFunction(
+  'tool-call-parser.dsml-call-tag',
+  'DSML格式-call标签包裹',
+  '测试DSML格式的call标签包裹（应正确解析并清除结尾标签）',
+  '<｜DSML｜call>\n<｜DSML｜invoke name="chart-generation">\n<｜DSML｜parameter name="prompt" string="true">生成图表</｜DSML｜parameter>\n<｜DSML｜parameter name="type" string="true">line</｜DSML｜parameter>\n</｜DSML｜invoke>\n</｜DSML｜call>',
+  {
+    tool_id: 'chart-generation',
+    parameters: {
+      prompt: '生成图表',
+      type: 'line'
+    }
+  }
+)
+
+/**
+ * 测试用例28.2: DSML格式-call标签包裹function_calls
+ */
+const testDSMLCallWithFunctionCalls: TestFunction = createTestFunction(
+  'tool-call-parser.dsml-call-with-function-calls',
+  'DSML格式-call标签包裹function_calls',
+  '测试DSML格式的call标签包裹function_calls（应正确解析并清除结尾标签）',
+  '<｜DSML｜call>\n<｜DSML｜function_calls>\n<｜DSML｜invoke name="grep">\n<｜DSML｜parameter name="pattern" string="true">test</｜DSML｜parameter>\n</｜DSML｜invoke>\n</｜DSML｜function_calls>\n</｜DSML｜call>',
+  {
+    tool_id: 'grep',
+    parameters: {
+      pattern: 'test'
+    }
+  }
+)
+
+/**
+ * 测试用例28.3: DSML格式-call标签嵌套在tool_call中
+ */
+const testDSMLCallNestedInToolCall: TestFunction = createTestFunction(
+  'tool-call-parser.dsml-call-nested-in-tool-call',
+  'DSML格式-call标签嵌套在tool_call中',
+  '测试DSML格式的call标签嵌套在tool_call中（应正确解析并清除结尾标签）',
+  '<tool_call>\n<｜DSML｜call>\n<｜DSML｜invoke name="chart-generation">\n<｜DSML｜parameter name="prompt" string="true">生成图表</｜DSML｜parameter>\n<｜DSML｜parameter name="type" string="true">line</｜DSML｜parameter>\n</｜DSML｜invoke>\n</｜DSML｜call>\n</tool_call>',
+  {
+    tool_id: 'chart-generation',
+    parameters: {
+      prompt: '生成图表',
+      type: 'line'
+    }
+  }
+)
+
 // ========== XML格式 ==========
 
 /**
@@ -1199,6 +1249,9 @@ export function registerToolCallParserTests() {
   testFramework.register(testDSMLSelfClosing)
   testFramework.register(testDSMLNoStringAttr)
   testFramework.register(testDSMLStringFalse)
+  testFramework.register(testDSMLCallTag)
+  testFramework.register(testDSMLCallWithFunctionCalls)
+  testFramework.register(testDSMLCallNestedInToolCall)
   
   // XML格式
   testFramework.register(testXMLBasic)

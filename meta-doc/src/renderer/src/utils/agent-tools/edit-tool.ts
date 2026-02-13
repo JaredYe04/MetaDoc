@@ -69,6 +69,19 @@ export interface FindReplaceOperation {
 export type AnyEditOperation = EditOperation | FindReplaceOperation
 
 /**
+ * Unified diff hunk（一个编辑块）
+ */
+export interface UnifiedDiffHunk {
+  oldStart: number      // 旧文本起始行号（1-based）
+  oldCount: number     // 旧文本行数
+  newStart: number     // 新文本起始行号（1-based）
+  newCount: number     // 新文本行数
+  oldLines: string[]   // 要删除的行（去除-前缀）
+  newLines: string[]   // 要添加的行（去除+前缀）
+  contextLines: string[] // 上下文行（不变的行，用于匹配）
+}
+
+/**
  * 编辑结果
  */
 export interface EditResult {
@@ -77,6 +90,7 @@ export interface EditResult {
   operations: EditOperation[]
   originalContent?: string  // 编辑前的原始内容（用于显示对比）
   newContent?: string       // 编辑后的新内容（用于显示对比）
+  hunks?: UnifiedDiffHunk[] // Unified diff hunks（如果使用diff格式）
 }
 
 /**
@@ -345,6 +359,508 @@ function applyEditToText(text: string, edit: EditOperation): string {
 }
 
 /**
+ * 解析 Unified diff 格式字符串
+ * @param diff Unified diff 格式的字符串
+ * @returns 解析后的 hunk 数组
+ */
+function parseUnifiedDiff(diff: string): UnifiedDiffHunk[] {
+  if (!diff || !diff.trim()) {
+    throw new Error('Diff 字符串不能为空')
+  }
+
+  const lines = diff.split(/\r?\n/)
+  const hunks: UnifiedDiffHunk[] = []
+  let currentHunk: UnifiedDiffHunk | null = null
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+
+    // 匹配 hunk 头部：@@ -oldStart,oldCount +newStart,newCount @@
+    const hunkHeaderMatch = line.match(/^@@\s+-(\d+)(?:,(\d+))?\s+\+(\d+)(?:,(\d+))?\s+@@/)
+    if (hunkHeaderMatch) {
+      // 保存之前的 hunk
+      if (currentHunk) {
+        hunks.push(currentHunk)
+      }
+
+      // 创建新的 hunk
+      const oldStart = parseInt(hunkHeaderMatch[1], 10)
+      const oldCount = hunkHeaderMatch[2] ? parseInt(hunkHeaderMatch[2], 10) : 1
+      const newStart = parseInt(hunkHeaderMatch[3], 10)
+      const newCount = hunkHeaderMatch[4] ? parseInt(hunkHeaderMatch[4], 10) : 1
+
+      currentHunk = {
+        oldStart,
+        oldCount,
+        newStart,
+        newCount,
+        oldLines: [],
+        newLines: [],
+        contextLines: []
+      }
+      i++
+      continue
+    }
+
+    // 如果没有当前 hunk，跳过
+    if (!currentHunk) {
+      i++
+      continue
+    }
+
+    // 解析 diff 行
+    if (line.startsWith('-')) {
+      // 删除的行（去除-前缀）
+      currentHunk.oldLines.push(line.substring(1))
+    } else if (line.startsWith('+')) {
+      // 新增的行（去除+前缀）
+      currentHunk.newLines.push(line.substring(1))
+    } else if (line.startsWith('\\')) {
+      // 忽略 \ No newline at end of file
+      // 不做处理
+    } else {
+      // 上下文行（不变的行）
+      currentHunk.contextLines.push(line)
+    }
+
+    i++
+  }
+
+  // 保存最后一个 hunk
+  if (currentHunk) {
+    hunks.push(currentHunk)
+  }
+
+  if (hunks.length === 0) {
+    throw new Error('未找到有效的 diff hunk')
+  }
+
+  return hunks
+}
+
+/**
+ * 使用上下文行查找位置
+ * @param text 文档内容
+ * @param contextLines 上下文行数组
+ * @param preferredLine 首选行号（1-based）
+ * @returns 匹配的位置范围，如果未找到返回 null
+ */
+function findPositionByContext(
+  text: string,
+  contextLines: string[],
+  preferredLine?: number
+): { start: { line: number; column: number }; end: { line: number; column: number } } | null {
+  if (!contextLines || contextLines.length === 0) {
+    return null
+  }
+
+  const textLines = text.split(/\r?\n/)
+  const textLineCount = textLines.length
+  
+  // 如果行号明显超出文档范围（超过文档行数的2倍），忽略preferredLine的限制
+  const shouldIgnorePreferredLine = preferredLine !== undefined && preferredLine > textLineCount * 2
+  
+  // 构建上下文模式（至少需要2行上下文才能匹配）
+  if (contextLines.length < 2) {
+    // 如果上下文太少，尝试使用单行匹配
+    const contextText = contextLines[0]
+    if (!contextText) return null
+    
+    const index = text.indexOf(contextText)
+    if (index === -1) return null
+    
+    const startPos = offsetToPosition(text, index)
+    const endPos = offsetToPosition(text, index + contextText.length)
+    
+    // 如果提供了 preferredLine，检查是否在合理范围内（如果行号明显超出范围则忽略此检查）
+    if (!shouldIgnorePreferredLine && preferredLine !== undefined) {
+      const lineDiff = Math.abs(startPos.line - preferredLine)
+      const tolerance = Math.max(20, Math.floor(textLineCount * 0.5))
+      if (lineDiff > tolerance) {
+        return null // 差异太大，可能不是正确的匹配
+      }
+    }
+    
+    return { start: startPos, end: endPos }
+  }
+
+  // 使用多行上下文匹配
+  // 构建上下文字符串（使用换行符连接）
+  const contextText = contextLines.join('\n')
+  
+  // 查找所有匹配位置
+  const matches: number[] = []
+  let searchIndex = 0
+  
+  while (true) {
+    const index = text.indexOf(contextText, searchIndex)
+    if (index === -1) {
+      break
+    }
+    matches.push(index)
+    searchIndex = index + 1
+  }
+
+  if (matches.length === 0) {
+    // 如果精确匹配失败，尝试模糊匹配（逐行匹配）
+    return findPositionByContextFuzzy(text, contextLines, preferredLine)
+  }
+
+  // 如果找到多个匹配，选择最接近 preferredLine 的位置（如果行号明显超出范围则使用第一个匹配）
+  if (!shouldIgnorePreferredLine && preferredLine !== undefined && matches.length > 1) {
+    let bestMatch = matches[0]
+    let bestLineDiff = Infinity
+
+    for (const matchIndex of matches) {
+      const matchPos = offsetToPosition(text, matchIndex)
+      const lineDiff = Math.abs(matchPos.line - preferredLine)
+      if (lineDiff < bestLineDiff) {
+        bestLineDiff = lineDiff
+        bestMatch = matchIndex
+      }
+    }
+
+    const startPos = offsetToPosition(text, bestMatch)
+    const endPos = offsetToPosition(text, bestMatch + contextText.length)
+    return { start: startPos, end: endPos }
+  }
+
+  // 使用第一个匹配
+  const matchIndex = matches[0]
+  const startPos = offsetToPosition(text, matchIndex)
+  const endPos = offsetToPosition(text, matchIndex + contextText.length)
+  return { start: startPos, end: endPos }
+}
+
+/**
+ * 模糊匹配上下文（逐行匹配）
+ */
+function findPositionByContextFuzzy(
+  text: string,
+  contextLines: string[],
+  preferredLine?: number
+): { start: { line: number; column: number }; end: { line: number; column: number } } | null {
+  const textLines = text.split(/\r?\n/)
+  const textLineCount = textLines.length
+  
+  // 如果行号明显超出文档范围（超过文档行数的2倍），忽略preferredLine的限制
+  const shouldIgnorePreferredLine = preferredLine !== undefined && preferredLine > textLineCount * 2
+  
+  // 尝试找到连续匹配的上下文行
+  for (let i = 0; i < textLines.length - contextLines.length + 1; i++) {
+    let matched = true
+    for (let j = 0; j < contextLines.length; j++) {
+      if (textLines[i + j] !== contextLines[j]) {
+        matched = false
+        break
+      }
+    }
+    
+    if (matched) {
+      // 检查是否在 preferredLine 的合理范围内（如果行号明显超出范围则忽略此检查）
+      if (!shouldIgnorePreferredLine && preferredLine !== undefined) {
+        const lineDiff = Math.abs((i + 1) - preferredLine)
+        // 放宽容差范围：如果文档较短，使用文档长度的50%作为容差；否则使用20行
+        const tolerance = Math.max(20, Math.floor(textLineCount * 0.5))
+        if (lineDiff > tolerance) {
+          continue // 差异太大，跳过
+        }
+      }
+      
+      // 找到匹配位置
+      const startLine = i + 1
+      const startColumn = 1
+      const endLine = i + contextLines.length
+      const endColumn = textLines[endLine - 1]?.length + 1 || 1
+      
+      return {
+        start: { line: startLine, column: startColumn },
+        end: { line: endLine, column: endColumn }
+      }
+    }
+  }
+  
+  return null
+}
+
+/**
+ * 将 Unified diff hunk 转换为 EditOperation
+ * @param hunk Unified diff hunk
+ * @param text 文档内容（用于定位）
+ * @returns EditOperation 或 null（如果无法定位）
+ */
+function convertHunkToEditOperation(
+  hunk: UnifiedDiffHunk,
+  text: string
+): EditOperation | null {
+  const lines = text.split(/\r?\n/)
+  
+  // 确定操作类型
+  let type: 'insert' | 'replace' | 'delete'
+  if (hunk.oldLines.length === 0 && hunk.newLines.length > 0) {
+    type = 'insert'
+  } else if (hunk.oldLines.length > 0 && hunk.newLines.length === 0) {
+    type = 'delete'
+  } else {
+    type = 'replace'
+  }
+
+  // 尝试使用行号定位
+  let startLine = hunk.oldStart
+  let endLine = hunk.oldStart + hunk.oldCount - 1
+  
+  // 验证行号范围
+  if (startLine < 1 || startLine > lines.length + 1) {
+    // 行号超出范围，尝试使用上下文匹配
+    let contextPos = findPositionByContext(text, hunk.contextLines, hunk.oldStart)
+    
+    // 如果上下文匹配失败，尝试使用oldLines来定位（如果oldLines存在）
+    if (!contextPos && hunk.oldLines.length > 0) {
+      const oldLinesPos = findPositionByContext(text, hunk.oldLines, hunk.oldStart)
+      if (oldLinesPos) {
+        // 使用oldLines的位置
+        startLine = oldLinesPos.start.line
+        endLine = oldLinesPos.end.line
+        logger.info('使用 oldLines 定位 hunk（上下文匹配失败）', {
+          originalLine: hunk.oldStart,
+          matchedLine: startLine
+        })
+        // 继续后续处理
+        contextPos = oldLinesPos
+      }
+    }
+    
+    if (!contextPos) {
+      // 如果上下文行和oldLines都不存在，尝试使用部分匹配
+      // 尝试匹配上下文行的部分内容
+      if (hunk.contextLines.length > 0) {
+        // 尝试匹配单个上下文行
+        for (const contextLine of hunk.contextLines) {
+          if (contextLine.trim()) {
+            const singleLinePos = findPositionByContext(text, [contextLine], hunk.oldStart)
+            if (singleLinePos) {
+              contextPos = singleLinePos
+              logger.info('使用单个上下文行定位 hunk', {
+                originalLine: hunk.oldStart,
+                matchedLine: contextPos.start.line,
+                contextLine: contextLine.substring(0, 50)
+              })
+              break
+            }
+          }
+        }
+      }
+      
+      if (!contextPos) {
+        logger.warn('无法定位 hunk 位置', {
+          hunk: hunk,
+          reason: '行号超出范围且上下文匹配失败',
+          contextLines: hunk.contextLines,
+          oldLines: hunk.oldLines
+        })
+        return null
+      }
+    }
+    
+    // 如果contextPos是通过oldLines找到的，已经设置了startLine和endLine，跳过后续处理
+    const isOldLinesMatch = hunk.oldLines.length > 0 && contextPos && contextPos.start.line === startLine && contextPos.end.line === endLine
+    
+    if (!isOldLinesMatch) {
+      // 使用上下文匹配的位置
+      // 如果上下文行在oldLines之前，编辑位置应该在上下文行之后
+      // 如果上下文行在oldLines之后，编辑位置应该在上下文行之前
+      if (hunk.oldLines.length > 0) {
+      // 有oldLines，尝试在上下文行附近查找oldLines
+      const contextEndLine = contextPos.end.line
+      const searchStartLine = Math.max(1, contextEndLine)
+      const searchEndLine = Math.min(lines.length, contextEndLine + hunk.oldLines.length + 10)
+      
+      let foundOldLines = false
+      for (let i = searchStartLine - 1; i <= searchEndLine - hunk.oldLines.length; i++) {
+        let allMatch = true
+        for (let j = 0; j < hunk.oldLines.length; j++) {
+          if (lines[i + j] !== hunk.oldLines[j]) {
+            allMatch = false
+            break
+          }
+        }
+        if (allMatch) {
+          startLine = i + 1
+          endLine = startLine + hunk.oldLines.length - 1
+          foundOldLines = true
+          break
+        }
+      }
+      
+      // 如果没找到，尝试在上下文行之前查找
+      if (!foundOldLines) {
+        const searchStartLine2 = Math.max(1, contextPos.start.line - hunk.oldLines.length - 10)
+        const searchEndLine2 = Math.min(lines.length, contextPos.start.line)
+        
+        for (let i = searchStartLine2 - 1; i <= searchEndLine2 - hunk.oldLines.length; i++) {
+          let allMatch = true
+          for (let j = 0; j < hunk.oldLines.length; j++) {
+            if (lines[i + j] !== hunk.oldLines[j]) {
+              allMatch = false
+              break
+            }
+          }
+          if (allMatch) {
+            startLine = i + 1
+            endLine = startLine + hunk.oldLines.length - 1
+            foundOldLines = true
+            break
+          }
+        }
+      }
+      
+      // 如果还是没找到oldLines，使用上下文行的位置作为参考（假设oldLines在上下文行之后）
+      if (!foundOldLines) {
+        startLine = contextPos.end.line + 1
+        endLine = startLine + hunk.oldLines.length - 1
+        
+        // 确保位置有效
+        if (startLine > lines.length + 1) {
+          startLine = lines.length + 1
+          endLine = startLine + hunk.oldLines.length - 1
+        }
+      }
+    } else {
+      // 纯插入操作，位置在上下文行之后
+      startLine = contextPos.end.line + 1
+      endLine = startLine
+      
+      // 确保位置有效
+      if (startLine > lines.length + 1) {
+        startLine = lines.length + 1
+        endLine = startLine
+      }
+      }
+      
+      logger.info('使用上下文匹配定位 hunk', {
+        originalLine: hunk.oldStart,
+        matchedLine: startLine,
+        contextMatchedLine: contextPos.start.line
+      })
+    }
+  } else {
+    // 验证行号位置的内容是否匹配
+    if (hunk.oldLines.length > 0) {
+      const actualLines = lines.slice(startLine - 1, endLine)
+      const expectedLines = hunk.oldLines
+      
+      // 检查是否匹配（允许部分匹配，因为可能有上下文行）
+      let matched = false
+      for (let i = 0; i <= actualLines.length - expectedLines.length; i++) {
+        let allMatch = true
+        for (let j = 0; j < expectedLines.length; j++) {
+          if (actualLines[i + j] !== expectedLines[j]) {
+            allMatch = false
+            break
+          }
+        }
+        if (allMatch) {
+          matched = true
+          startLine = startLine + i
+          endLine = startLine + expectedLines.length - 1
+          break
+        }
+      }
+      
+      if (!matched && hunk.contextLines.length > 0) {
+        // 内容不匹配，尝试使用上下文匹配
+        const contextPos = findPositionByContext(text, hunk.contextLines, hunk.oldStart)
+        if (contextPos) {
+          // 找到上下文位置后，尝试在上下文行附近查找oldLines
+          // 首先尝试在上下文行之后查找
+          const contextEndLine = contextPos.end.line
+          const searchStartLine = Math.max(1, contextEndLine)
+          const searchEndLine = Math.min(lines.length, contextEndLine + hunk.oldLines.length + 5)
+          
+          let foundOldLines = false
+          for (let i = searchStartLine - 1; i <= searchEndLine - hunk.oldLines.length; i++) {
+            let allMatch = true
+            for (let j = 0; j < hunk.oldLines.length; j++) {
+              if (lines[i + j] !== hunk.oldLines[j]) {
+                allMatch = false
+                break
+              }
+            }
+            if (allMatch) {
+              startLine = i + 1
+              endLine = startLine + hunk.oldLines.length - 1
+              foundOldLines = true
+              break
+            }
+          }
+          
+          // 如果没找到，尝试在上下文行之前查找
+          if (!foundOldLines) {
+            const searchStartLine2 = Math.max(1, contextPos.start.line - hunk.oldLines.length - 5)
+            const searchEndLine2 = Math.min(lines.length, contextPos.start.line)
+            
+            for (let i = searchStartLine2 - 1; i <= searchEndLine2 - hunk.oldLines.length; i++) {
+              let allMatch = true
+              for (let j = 0; j < hunk.oldLines.length; j++) {
+                if (lines[i + j] !== hunk.oldLines[j]) {
+                  allMatch = false
+                  break
+                }
+              }
+              if (allMatch) {
+                startLine = i + 1
+                endLine = startLine + hunk.oldLines.length - 1
+                foundOldLines = true
+                break
+              }
+            }
+          }
+          
+          // 如果还是没找到，使用上下文行的位置作为参考（假设oldLines在上下文行之后）
+          if (!foundOldLines) {
+            startLine = contextPos.end.line + 1
+            endLine = startLine + hunk.oldLines.length - 1
+          }
+          
+          logger.info('使用上下文匹配定位 hunk（内容不匹配）', {
+            originalLine: hunk.oldStart,
+            matchedLine: startLine,
+            foundOldLines
+          })
+        } else {
+          logger.warn('行号位置内容不匹配且上下文匹配失败', {
+            hunk: hunk,
+            actualLines: actualLines.slice(0, 3)
+          })
+          return null
+        }
+      }
+    }
+  }
+
+  // 构建 EditOperation
+  // 对于插入操作，endLine 应该等于 startLine
+  if (type === 'insert') {
+    endLine = startLine
+  }
+
+  const operation: EditOperation = {
+    type,
+    range: {
+      start: { line: startLine, column: 1 },
+      end: { line: endLine, column: lines[endLine - 1]?.length + 1 || 1 }
+    },
+    content: hunk.newLines.join('\n'),
+    anchor: hunk.contextLines.length > 0 ? {
+      context: hunk.contextLines.join('\n')
+    } : undefined
+  }
+
+  return operation
+}
+
+/**
  * 应用多个编辑操作（从后往前应用，避免位置偏移）
  * 注意：此函数已被内联到回调函数中，保留仅用于向后兼容
  * @deprecated 请直接在回调函数中处理编辑操作
@@ -377,22 +893,278 @@ function applyEditsToText(text: string, edits: EditOperation[]): string {
 const editToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const operations = params.operations as AnyEditOperation[] | undefined
   const operation = params.operation as AnyEditOperation | undefined
+  const diff = params.diff as string | undefined
   const tabId = params.tabId as string | undefined
   const verbose = params.verbose === true  // 是否返回完整内容（默认false，节省token）
 
-  // 支持单个操作或多个操作
+  // 优先处理 diff 格式（如果提供）
+  if (diff !== undefined) {
+    // 检查空 diff
+    if (!diff || !diff.trim()) {
+      return {
+        status: 'failed',
+        error: createDetailedError(
+          'Diff 字符串不能为空',
+          [
+            '请提供有效的 Unified diff 格式字符串',
+            '示例：{"diff": "@@ -5,2 +5,2 @@\\n-旧文本\\n+新文本"}'
+          ],
+          []
+        )
+      }
+    }
+
+    try {
+      onUpdate({
+        content: {
+          stage: 'loading',
+          editCount: 0
+        },
+        format: 'json',
+        componentName: 'EditDisplay'
+      }, {
+        percentage: 10,
+        message: i18n.global.t('agent.tool.edit.progress.loading', '正在解析 diff...')
+      })
+
+      // 解析 Unified diff
+      const hunks = parseUnifiedDiff(diff)
+
+      // 获取文档
+      const targetTabId = tabId || workspace.activeTabId.value
+      if (!targetTabId) {
+        return {
+          status: 'failed',
+          error: createDetailedError(
+            '没有活动的文档标签页',
+            [
+              '请先打开一个文档，然后再执行编辑操作',
+              '或者指定tabId参数：{"diff": "...", "tabId": "文档ID"}'
+            ],
+            []
+          )
+        }
+      }
+
+      const doc = workspace.ensureDocument(targetTabId)
+      if (!doc) {
+        return {
+          status: 'failed',
+          error: createDetailedError(
+            '文档不存在',
+            [
+              '请确认文档已正确打开',
+              '检查tabId参数是否正确：{"diff": "...", "tabId": "正确的文档ID"}'
+            ],
+            []
+          )
+        }
+      }
+
+      // 获取当前文档内容
+      let currentFormat = doc.format
+      if (!currentFormat || (doc.markdown.trim().length === 0 && doc.tex.trim().length === 0)) {
+        if (doc.markdown.trim().length > 0) {
+          const latexPatterns = [
+            /\\documentclass/i,
+            /\\begin\{document\}/i,
+            /\\section\{/i,
+            /\\usepackage\{/i
+          ]
+          const isLatex = latexPatterns.some(pattern => pattern.test(doc.markdown))
+          currentFormat = isLatex ? 'tex' : 'md'
+        } else if (doc.tex.trim().length > 0) {
+          currentFormat = 'tex'
+        } else {
+          currentFormat = 'md'
+        }
+      }
+      const currentContent = currentFormat === 'md' ? doc.markdown : doc.tex
+
+      onUpdate({
+        content: {
+          stage: 'applying',
+          editCount: hunks.length,
+          currentEdit: 0
+        },
+        format: 'json',
+        componentName: 'EditDisplay'
+      }, {
+        percentage: 30,
+        message: i18n.global.t('agent.tool.edit.progress.applying', '正在应用编辑...')
+      })
+
+      // 将 hunks 转换为 EditOperation
+      const edits: EditOperation[] = []
+      for (const hunk of hunks) {
+        const edit = convertHunkToEditOperation(hunk, currentContent)
+        if (edit) {
+          edits.push(edit)
+        } else {
+          logger.warn('无法转换 hunk 为 EditOperation', hunk)
+        }
+      }
+
+      if (edits.length === 0) {
+        return {
+          status: 'failed',
+          error: createDetailedError(
+            '无法定位任何编辑位置',
+            [
+              '请检查 diff 中的行号是否正确',
+              '或者确保文档中包含足够的上下文行用于匹配'
+            ],
+            []
+          )
+        }
+      }
+
+      // 应用编辑（从后往前排序，避免位置偏移）
+      let appliedCount = 0
+      let failedCount = 0
+      let newContent = currentContent
+
+      const sortedEdits = [...edits].sort((a, b) => {
+        const aStart = positionToOffset(newContent, a.range.start.line, a.range.start.column)
+        const bStart = positionToOffset(newContent, b.range.start.line, b.range.start.column)
+        return bStart - aStart  // 降序
+      })
+
+      for (const edit of sortedEdits) {
+        try {
+          newContent = applyEditToText(newContent, edit)
+          appliedCount++
+        } catch (error) {
+          logger.warn('应用编辑失败:', error, edit)
+          failedCount++
+        }
+      }
+
+      if (signal?.aborted) {
+        return {
+          status: 'cancelled'
+        }
+      }
+
+      // 更新文档内容
+      onUpdate({
+        content: {
+          stage: 'updating',
+          editCount: edits.length,
+          appliedCount,
+          failedCount
+        },
+        format: 'json',
+        componentName: 'EditDisplay'
+      }, {
+        percentage: 80,
+        message: i18n.global.t('agent.tool.edit.progress.updating', '正在更新文档...')
+      })
+
+      // 根据检测到的格式更新内容
+      if (currentFormat === 'md') {
+        workspace.updateDocumentMarkdown(targetTabId, newContent)
+      } else {
+        workspace.updateDocumentTex(targetTabId, newContent)
+      }
+
+      // 构建结果
+      const resultForDisplay: EditResult = {
+        appliedEdits: appliedCount,
+        failedEdits: failedCount,
+        operations: edits,
+        hunks: hunks,
+        ...(verbose ? {
+          originalContent: currentContent,
+          newContent: newContent
+        } : {})
+      }
+
+      const resultForAI: Omit<EditResult, 'originalContent' | 'newContent'> = {
+        appliedEdits: appliedCount,
+        failedEdits: failedCount,
+        operations: edits,
+        hunks: hunks
+      }
+
+      onUpdate({
+        content: {
+          stage: 'completed',
+          result: resultForDisplay
+        },
+        format: 'json',
+        componentName: 'EditDisplay'
+      }, {
+        percentage: 100,
+        message: i18n.global.t('agent.tool.edit.progress.completed', `编辑完成，成功应用 ${appliedCount} 个编辑`)
+      })
+
+      return {
+        status: 'succeeded',
+        data: {
+          content: {
+            stage: 'completed',
+            result: resultForDisplay
+          },
+          format: 'json',
+          componentName: 'EditDisplay'
+        },
+        result: resultForAI
+      }
+    } catch (error) {
+      logger.error('处理 diff 失败:', error)
+      
+      // 提供更详细的错误信息
+      if (error instanceof Error) {
+        if (error.message === '未找到有效的 diff hunk') {
+          return {
+            status: 'failed',
+            error: createDetailedError(
+              '未找到有效的 diff hunk',
+              [
+                '请检查 diff 格式是否正确',
+                '正确的格式示例：{"diff": "@@ -5,2 +5,2 @@\\n-旧文本\\n+新文本"}',
+                '确保 diff 中包含至少一个 hunk 头部（以 @@ 开头）'
+              ],
+              []
+            )
+          }
+        } else if (error.message === 'Diff 字符串不能为空') {
+          return {
+            status: 'failed',
+            error: createDetailedError(
+              'Diff 字符串不能为空',
+              [
+                '请提供有效的 Unified diff 格式字符串',
+                '示例：{"diff": "@@ -5,2 +5,2 @@\\n-旧文本\\n+新文本"}'
+              ],
+              []
+            )
+          }
+        }
+      }
+      
+      return {
+        status: 'failed',
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  }
+
+  // 支持单个操作或多个操作（向后兼容）
   const rawEdits: AnyEditOperation[] = operations || (operation ? [operation] : [])
 
   if (!rawEdits || rawEdits.length === 0) {
     return {
       status: 'failed',
       error: createDetailedError(
-        '缺少必需参数: operations 或 operation',
+        '缺少必需参数: diff、operations 或 operation',
         [
+          '{"diff": "@@ -5,2 +5,2 @@\\n-旧文本\\n+新文本"}',
           '{"operations": [{"type": "findReplace", "oldText": "前端", "newText": "前台", "all": true}]}',
           '{"operation": {"type": "findReplace", "oldText": "前端", "newText": "前台", "all": true}}'
         ],
-        ['可以一次调用中包含多个替换操作', '使用"all": true可以全局替换所有匹配项', '推荐使用findReplace，无需知道精确位置']
+        ['可以使用 diff 参数提供 Unified diff 格式', '也可以使用 operations 或 operation 参数', '推荐使用 diff 格式，AI 更容易生成']
       )
     }
   }
@@ -788,15 +1560,21 @@ export const editToolConfig: AgentToolConfig = {
   name: editToolLocales,
   description: editToolLocales,
   origin: 'internal',
-  instruction: '直接对当前活动文档进行编辑，支持查找替换（全局/单个）和基于位置的编辑（insert/replace/delete），支持一次调用执行多个编辑操作。推荐使用findReplace进行文本替换，无需知道精确位置。',
+  instruction: '直接对当前活动文档进行编辑。强烈推荐使用 Unified diff 格式（diff 参数），AI 可以直接输出 -xxxx 和 +yyyy 格式的 diff，工具自动解析并定位应用编辑。也支持查找替换（全局/单个）和基于位置的编辑（insert/replace/delete），支持一次调用执行多个编辑操作。',
   spec: {
     name: 'edit',
-    brief: 'Edit the current document with incremental diff editing. Supports insert, replace, delete operations based on position or text search.',
+    brief: 'Edit the current document with Unified diff format (recommended) or incremental diff editing. Supports Unified diff format (like Git diff), insert, replace, delete operations based on position or text search.',
     fullSpec: `
 # 文档编辑工具
 
 ## 功能描述
-直接对当前活动文档进行编辑，支持多处编辑操作。采用**增量diff编辑框架**（类似Cursor/Claude），确保编辑稳定、高效、可控。
+直接对当前活动文档进行编辑，支持多处编辑操作。采用**Unified diff 格式**（类似 Git diff）和**增量diff编辑框架**（类似Cursor/Claude），确保编辑稳定、高效、可控。
+
+### 核心特性：Unified Diff 格式 ⭐⭐⭐ 强烈推荐AI使用
+- **标准格式**：使用类似 Git diff 的 Unified diff 格式，AI 模型非常熟悉
+- **直观易读**：\`-xxxx\` 和 \`+yyyy\` 格式，人类可读性强
+- **智能定位**：行号优先，上下文匹配 fallback，即使行号失效也能准确定位
+- **上下文支持**：支持上下文行，提高匹配准确性
 
 ### 核心特性：增量diff编辑 ⭐
 - **只生成变化部分**：不重写整篇文档，只生成需要修改的部分（diff）
@@ -804,7 +1582,8 @@ export const editToolConfig: AgentToolConfig = {
 - **智能fallback机制**：行号匹配 → 锚点匹配 → fuzzy匹配，确保编辑成功
 - **分块编辑**：支持将大范围编辑拆分为多个小范围编辑，提高稳定性
 
-支持三种编辑方式：
+支持四种编辑方式：
+0. **Unified Diff 格式**：使用类似 Git diff 的标准格式（**强烈推荐AI使用**）
 1. **基于位置的插入**：只需指定行号和列号位置即可插入文本（**高效，推荐AI使用，无需查找文本，节省token**）
 2. **基于位置的替换/删除**：需要指定精确的行号和列号位置（适合已知位置的编辑）
 3. **查找替换编辑**：基于文本内容查找并替换（适合需要替换特定文本的场景）
@@ -820,6 +1599,61 @@ export const editToolConfig: AgentToolConfig = {
 - AI辅助的文档编辑
 
 ## 输入格式
+
+### 方式0：Unified Diff 格式 ⭐⭐⭐ 强烈推荐AI使用
+使用类似 Git diff 的标准 Unified diff 格式，AI 可以直接输出 \`-xxxx\` 和 \`+yyyy\` 格式的 diff，工具自动解析并定位应用编辑。
+
+**格式说明**：
+- \`@@ -start,count +start,count @@\`：hunk 头部，指定旧文本和新文本的行号范围
+- \`-行内容\`：要删除的行（以 \`-\` 开头）
+- \`+行内容\`：要新增的行（以 \`+\` 开头）
+- 普通行：上下文行（不变的行，用于匹配定位）
+
+**优势**：
+- AI 模型（Claude、GPT）非常熟悉，容易生成
+- 人类可读性强，直观易懂
+- 支持上下文匹配，即使行号失效也能准确定位
+- 业界标准格式，兼容性好
+
+**示例1**：简单替换
+\`\`\`json
+{
+  "diff": "@@ -5,2 +5,2 @@\\n-旧文本1\\n-旧文本2\\n+新文本1\\n+新文本2"
+}
+\`\`\`
+
+**示例2**：带上下文行的替换（推荐，更准确）
+\`\`\`json
+{
+  "diff": "@@ -10,3 +10,3 @@\\n 上下文行1\\n-要删除的行\\n+要添加的行\\n 上下文行2"
+}
+\`\`\`
+
+**示例3**：多个 hunk（批量编辑）
+\`\`\`json
+{
+  "diff": "@@ -10,1 +10,1 @@\\n-旧内容1\\n+新内容1\\n@@ -20,1 +20,1 @@\\n-旧内容2\\n+新内容2"
+}
+\`\`\`
+
+**示例4**：插入操作
+\`\`\`json
+{
+  "diff": "@@ -5,0 +5,2 @@\\n+插入的行1\\n+插入的行2"
+}
+\`\`\`
+
+**示例5**：删除操作
+\`\`\`json
+{
+  "diff": "@@ -5,2 +5,0 @@\\n-删除的行1\\n-删除的行2"
+}
+\`\`\`
+
+**定位机制**：
+1. **优先使用行号**：如果 diff 中提供的行号有效，直接使用行号定位
+2. **上下文匹配 fallback**：如果行号失效（文档被修改），自动提取上下文行，在文档中查找匹配位置
+3. **智能容错**：支持模糊匹配，即使部分上下文不匹配也能找到正确位置
 
 ### 方式1：单个查找替换操作
 替换文档中的第一个匹配项：
@@ -1465,6 +2299,10 @@ export const editToolConfig: AgentToolConfig = {
       operation: {
         type: 'object',
         description: '单个编辑操作（与operations二选一），支持查找替换和基于位置的编辑'
+      },
+      diff: {
+        type: 'string',
+        description: 'Unified diff 格式字符串（与operations/operation二选一）。格式类似 Git diff：@@ -start,count +start,count @@，后跟-行（删除）、+行（新增）和上下文行。推荐AI使用此格式，更直观易读。'
       },
       tabId: {
         type: 'string',

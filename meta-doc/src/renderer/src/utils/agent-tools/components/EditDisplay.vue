@@ -60,6 +60,65 @@
         />
       </div>
 
+      <!-- Unified Diff 视图（如果有 hunks） -->
+      <div v-if="resultData && hasHunks && viewMode === 'unified'" class="diff-view">
+        <el-scrollbar max-height="500px">
+          <div class="diff-content">
+            <div
+              v-for="(hunk, hunkIndex) in hunks"
+              :key="`hunk-${hunkIndex}`"
+              class="diff-chunk"
+              :style="diffChunkStyle"
+            >
+              <div class="chunk-header" :style="chunkHeaderStyle">
+                <span class="chunk-info" :style="chunkInfoStyle">
+                  @@ -{{ hunk.oldStart }},{{ hunk.oldCount }} +{{ hunk.newStart }},{{ hunk.newCount }} @@
+                </span>
+                <el-tag :type="getHunkTypeTag(hunk)" size="small">
+                  {{ getHunkTypeLabel(hunk) }}
+                </el-tag>
+              </div>
+              <!-- 显示删除的行 -->
+              <div v-if="hunk.oldLines && hunk.oldLines.length > 0" class="diff-lines old-lines">
+                <div
+                  v-for="(line, lineIndex) in hunk.oldLines"
+                  :key="`old-${hunkIndex}-${lineIndex}`"
+                  class="diff-line diff-delete"
+                  :style="getDiffLineStyle('delete')"
+                >
+                  <span class="line-number" :style="lineNumberStyle">{{ hunk.oldStart + lineIndex }}</span>
+                  <span class="line-content">- {{ line }}</span>
+                </div>
+              </div>
+              <!-- 显示新增的行 -->
+              <div v-if="hunk.newLines && hunk.newLines.length > 0" class="diff-lines new-lines">
+                <div
+                  v-for="(line, lineIndex) in hunk.newLines"
+                  :key="`new-${hunkIndex}-${lineIndex}`"
+                  class="diff-line diff-insert"
+                  :style="getDiffLineStyle('insert')"
+                >
+                  <span class="line-number" :style="lineNumberStyle">{{ hunk.newStart + lineIndex }}</span>
+                  <span class="line-content">+ {{ line }}</span>
+                </div>
+              </div>
+              <!-- 显示上下文行 -->
+              <div v-if="hunk.contextLines && hunk.contextLines.length > 0" class="diff-lines context-lines">
+                <div
+                  v-for="(line, lineIndex) in hunk.contextLines"
+                  :key="`context-${hunkIndex}-${lineIndex}`"
+                  class="diff-line diff-context"
+                  :style="getDiffLineStyle('context')"
+                >
+                  <span class="line-number" :style="lineNumberStyle"></span>
+                  <span class="line-content">  {{ line }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-scrollbar>
+      </div>
+
       <!-- 统一视图（操作列表） -->
       <div v-else-if="resultData && hasFullContent && viewMode === 'unified'">
         <el-scrollbar max-height="500px">
@@ -172,7 +231,7 @@ import type { ToolDisplayComponentProps } from '../../../types/agent-tool'
 import { useToolDisplayRealtime, parseToolData } from '../composables/useToolDisplayRealtime'
 import { themeState } from '../../themes'
 import * as monaco from 'monaco-editor'
-import type { EditResult, EditOperation } from '../edit-tool'
+import type { EditResult, EditOperation, UnifiedDiffHunk } from '../edit-tool'
 import { useWorkspace } from '../../../stores/workspace'
 import { setupMonacoWorker } from '../../monaco-worker-config'
 
@@ -262,6 +321,16 @@ const hasFullContent = computed(() => {
   return !!(resultData.value?.originalContent && resultData.value?.newContent)
 })
 
+// 检查是否有 hunks（Unified diff 格式）
+const hasHunks = computed(() => {
+  return !!(resultData.value?.hunks && resultData.value.hunks.length > 0)
+})
+
+// 获取 hunks
+const hunks = computed((): UnifiedDiffHunk[] => {
+  return resultData.value?.hunks || []
+})
+
 const oldContent = computed(() => {
   return resultData.value?.originalContent || ''
 })
@@ -329,6 +398,66 @@ const getOperationTypeLabel = (type: string) => {
     delete: t('agent.display.edit.type.delete')
   }
   return map[type] || type
+}
+
+// Diff hunk 相关函数
+const getHunkTypeTag = (hunk: UnifiedDiffHunk) => {
+  if (hunk.oldLines.length === 0 && hunk.newLines.length > 0) {
+    return 'success' // 插入
+  } else if (hunk.oldLines.length > 0 && hunk.newLines.length === 0) {
+    return 'danger' // 删除
+  } else {
+    return 'warning' // 替换
+  }
+}
+
+const getHunkTypeLabel = (hunk: UnifiedDiffHunk) => {
+  if (hunk.oldLines.length === 0 && hunk.newLines.length > 0) {
+    return t('agent.display.edit.type.insert') || '插入'
+  } else if (hunk.oldLines.length > 0 && hunk.newLines.length === 0) {
+    return t('agent.display.edit.type.delete') || '删除'
+  } else {
+    return t('agent.display.edit.type.replace') || '替换'
+  }
+}
+
+const getDiffLineStyle = (type: 'insert' | 'delete' | 'context') => {
+  const baseStyle = {
+    padding: '4px 8px',
+    fontFamily: 'JetBrains Mono, Consolas, monospace',
+    fontSize: '13px',
+    lineHeight: '1.5',
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '8px'
+  }
+
+  if (type === 'delete') {
+    return {
+      ...baseStyle,
+      backgroundColor: themeState.currentTheme.type === 'dark' 
+        ? 'rgba(245, 108, 108, 0.15)' 
+        : 'rgba(245, 108, 108, 0.1)',
+      color: themeState.currentTheme.type === 'dark'
+        ? '#f56c6c'
+        : '#c45656'
+    }
+  } else if (type === 'insert') {
+    return {
+      ...baseStyle,
+      backgroundColor: themeState.currentTheme.type === 'dark'
+        ? 'rgba(103, 194, 58, 0.15)'
+        : 'rgba(103, 194, 58, 0.1)',
+      color: themeState.currentTheme.type === 'dark'
+        ? '#67c23a'
+        : '#529b2e'
+    }
+  } else {
+    return {
+      ...baseStyle,
+      color: themeState.currentTheme.textColor2
+    }
+  }
 }
 
 // 截断文本
@@ -705,6 +834,40 @@ const summaryViewStyle = computed(() => ({
   padding: '20px',
   color: themeState.currentTheme.textColor
 }))
+
+// Diff 视图样式
+const diffChunkStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  border: `1px solid ${themeState.currentTheme.textColor2}20`,
+  borderRadius: '6px',
+  padding: '12px',
+  marginBottom: '12px'
+}))
+
+const chunkHeaderStyle = computed(() => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: '8px',
+  paddingBottom: '8px',
+  borderBottom: `1px solid ${themeState.currentTheme.textColor2}20`
+}))
+
+const chunkInfoStyle = computed(() => ({
+  color: themeState.currentTheme.textColor2,
+  fontSize: '12px',
+  fontFamily: 'JetBrains Mono, Consolas, monospace',
+  fontWeight: '500'
+}))
+
+const lineNumberStyle = computed(() => ({
+  color: themeState.currentTheme.textColor2,
+  fontSize: '12px',
+  fontFamily: 'JetBrains Mono, Consolas, monospace',
+  minWidth: '40px',
+  textAlign: 'right',
+  userSelect: 'none'
+}))
 </script>
 
 <style scoped>
@@ -884,6 +1047,52 @@ const summaryViewStyle = computed(() => ({
 .summary-list {
   margin-top: 12px;
   padding-left: 20px;
+}
+
+/* Diff 视图样式 */
+.diff-view {
+  width: 100%;
+}
+
+.diff-content {
+  padding: 8px;
+}
+
+.diff-chunk {
+  transition: all 0.2s;
+}
+
+.diff-chunk:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chunk-header {
+  flex-shrink: 0;
+}
+
+.diff-lines {
+  margin-top: 4px;
+}
+
+.diff-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-line .line-content {
+  flex: 1;
+}
+
+.diff-delete .line-content {
+  text-decoration: line-through;
+}
+
+.diff-insert .line-content {
+  font-weight: 500;
+}
+
+.diff-context {
+  opacity: 0.7;
 }
 </style>
 

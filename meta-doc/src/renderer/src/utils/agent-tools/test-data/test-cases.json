@@ -1246,6 +1246,186 @@
           "newContentShouldContain": "## 新增章节",
           "newContentShouldContain2": "修改后的"
         }
+      },
+      {
+        "id": "edit::diff-basic-001",
+        "name": "Unified diff 格式 - 简单替换",
+        "params": {
+          "diff": "@@ -5,2 +5,2 @@\n-旧文本1\n-旧文本2\n+新文本1\n+新文本2"
+        },
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-multiple-hunks-001",
+        "name": "Unified diff 格式 - 多个 hunk",
+        "params": {
+          "diff": "@@ -10,1 +10,1 @@\n-旧内容1\n+新内容1\n@@ -20,1 +20,1 @@\n-旧内容2\n+新内容2"
+        },
+        "assertions": {
+          "appliedEdits": 2,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-context-match-001",
+        "name": "Unified diff 格式 - 上下文匹配",
+        "expectError": true,
+        "params": {
+          "diff": "@@ -10,3 +10,3 @@\n 上下文行1\n-要删除的行\n+要添加的行\n 上下文行2"
+        },
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-insert-001",
+        "name": "Unified diff 格式 - 插入",
+        "params": {
+          "diff": "@@ -5,0 +5,2 @@\n+插入的行1\n+插入的行2"
+        },
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-delete-001",
+        "name": "Unified diff 格式 - 删除",
+        "params": {
+          "diff": "@@ -5,2 +5,0 @@\n-删除的行1\n-删除的行2"
+        },
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-replace-001",
+        "name": "Unified diff 格式 - 替换",
+        "params": {
+          "diff": "@@ -5,2 +5,3 @@\n-旧行1\n-旧行2\n+新行1\n+新行2\n+新行3"
+        },
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-edge-case-001",
+        "name": "Unified diff 格式 - 行号超出范围（应使用上下文匹配）",
+        "expectError": true,
+        "params": {
+          "diff": "@@ -9999,2 +9999,2 @@\n 上下文行\n-要删除的行\n+要添加的行\n 上下文行"
+        },
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-edge-case-002",
+        "name": "Unified diff 格式 - 空 diff（应返回错误）",
+        "expectError": true,
+        "params": {
+          "diff": ""
+        },
+        "assertions": {
+          "appliedEdits": 0,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-edge-case-003",
+        "name": "Unified diff 格式 - 格式错误的 diff（应返回错误）",
+        "expectError": true,
+        "params": {
+          "diff": "这不是一个有效的 diff 格式"
+        },
+        "assertions": {
+          "appliedEdits": 0,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-edge-case-004",
+        "name": "Unified diff 格式 - 没有上下文行的 diff（仅依赖行号）",
+        "params": {
+          "diff": "@@ -5,1 +5,1 @@\n-旧文本\n+新文本"
+        },
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-edge-case-005",
+        "name": "Unified diff 格式 - 跨多行的替换",
+        "params": {
+          "diff": "@@ -10,3 +10,4 @@\n-第一行旧内容\n-第二行旧内容\n-第三行旧内容\n+第一行新内容\n+第二行新内容\n+第三行新内容\n+第四行新内容"
+        },
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-mixed-001",
+        "name": "Unified diff 格式 - diff 和 operations 同时提供（应优先使用 diff）",
+        "params": {
+          "diff": "@@ -5,1 +5,1 @@\n-旧文本\n+新文本",
+          "operations": [
+            {
+              "type": "replace",
+              "range": {
+                "start": { "line": 10, "column": 1 },
+                "end": { "line": 10, "column": 10 }
+              },
+              "content": "其他内容"
+            }
+          ]
+        },
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-complex-001",
+        "name": "Unified diff 格式 - 大范围替换（多行）",
+        "expectError": true,
+        "params": {
+          "diff": "@@ -10,5 +10,7 @@\n 上下文行\n-删除行1\n-删除行2\n-删除行3\n-删除行4\n-删除行5\n+新增行1\n+新增行2\n+新增行3\n+新增行4\n+新增行5\n+新增行6\n+新增行7\n 上下文行"
+        },
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-complex-002",
+        "name": "Unified diff 格式 - 多个不连续的编辑位置",
+        "params": {
+          "diff": "@@ -5,1 +5,1 @@\n-第一个位置旧内容\n+第一个位置新内容\n@@ -15,1 +15,1 @@\n-第二个位置旧内容\n+第二个位置新内容\n@@ -25,1 +25,1 @@\n-第三个位置旧内容\n+第三个位置新内容"
+        },
+        "assertions": {
+          "appliedEdits": 3,
+          "failedEdits": 0
+        }
+      },
+      {
+        "id": "edit::diff-complex-003",
+        "name": "Unified diff 格式 - 包含特殊字符的 diff",
+        "params": {
+          "diff": "@@ -5,2 +5,2 @@\n-包含\\t制表符的行\n-包含\\n换行符的行\n+包含\\t制表符的新行\n+包含\\n换行符的新行"
+        },
+        "assertions": {
+          "appliedEdits": 1,
+          "failedEdits": 0
+        }
       }
     ]
   },

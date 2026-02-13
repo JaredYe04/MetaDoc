@@ -1,11 +1,61 @@
 <template>
   <div class="debug-section">
-    <el-tabs v-model="activeTab" type="border-card" tab-position="top">
-      <!-- EventBus 事件（合并 EventBus 和广播事件） -->
-      <el-tab-pane :label="$t('setting.debug.eventBus')" name="eventbus">
-        <el-tabs v-model="eventBusActiveTab" type="border-card" tab-position="top" style="height: 100%;">
-          <!-- EventBus 事件测试 -->
-          <el-tab-pane :label="$t('setting.debug.eventBus')" name="eventbus">
+    <div class="debug-layout">
+      <!-- 侧边栏导航 -->
+      <div class="debug-sidebar">
+        <el-menu
+          :default-active="activeTab"
+          @select="handleMenuSelect"
+          class="debug-menu"
+          :collapse="false"
+        >
+          <el-menu-item index="eventbus">
+            <el-icon><Connection /></el-icon>
+            <template #title>{{ $t('setting.debug.eventBus') }}</template>
+          </el-menu-item>
+          <el-menu-item index="updatetest">
+            <el-icon><Refresh /></el-icon>
+            <template #title>更新测试</template>
+          </el-menu-item>
+          <el-menu-item index="agenttool">
+            <el-icon><Tools /></el-icon>
+            <template #title>Agent Tool测试</template>
+          </el-menu-item>
+          <el-menu-item index="importsnapshot">
+            <el-icon><Document /></el-icon>
+            <template #title>{{ $t('setting.debug.importSnapshot') }}</template>
+          </el-menu-item>
+          <el-menu-item index="autotest">
+            <el-icon><Setting /></el-icon>
+            <template #title>Tool自动测试</template>
+          </el-menu-item>
+          <el-menu-item index="unittest">
+            <el-icon><Tools /></el-icon>
+            <template #title>{{ $t('setting.debug.unitTest.title') }}</template>
+          </el-menu-item>
+          <el-menu-item index="agentsessiondebug">
+            <el-icon><ChatDotRound /></el-icon>
+            <template #title>Agent会话调试</template>
+          </el-menu-item>
+        </el-menu>
+      </div>
+      
+      <!-- 内容区域 -->
+      <div class="debug-content">
+        <el-card class="debug-card" shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <span class="card-title">{{ getCurrentTabTitle() }}</span>
+            </div>
+          </template>
+          
+          <transition name="fade" mode="out-in">
+            <div :key="activeTab" class="tab-content-wrapper">
+              <!-- EventBus 事件 -->
+              <div v-if="activeTab === 'eventbus'" class="tab-content">
+                <el-tabs v-model="eventBusActiveTab" type="border-card" tab-position="top" style="height: 100%;">
+                  <!-- EventBus 事件测试 -->
+                  <el-tab-pane :label="$t('setting.debug.eventBus')" name="eventbus">
             <div class="test-panel" :style="testPanelStyle">
               <el-form :model="eventBusForm" label-width="140px">
                 <el-form-item :label="$t('setting.debug.eventName')">
@@ -67,883 +117,946 @@
                 </el-form-item>
               </el-form>
             </div>
-          </el-tab-pane>
-        </el-tabs>
-      </el-tab-pane>
-
-      <!-- 更新测试 -->
-      <el-tab-pane label="更新测试" name="updatetest">
-        <div class="test-panel" :style="testPanelStyle">
-          <el-form :model="updateTestForm" label-width="140px">
-            <el-form-item label="当前版本">
-              <el-input
-                v-model="updateTestForm.currentVersion"
-                placeholder="例如: 0.13.4"
-                style="width: 200px"
-              />
-            </el-form-item>
-
-            <el-form-item label="模拟更新版本">
-              <el-input
-                v-model="updateTestForm.mockUpdateVersion"
-                placeholder="例如: 0.14.0"
-                style="width: 200px"
-              />
-            </el-form-item>
-
-            <el-form-item label="更新渠道">
-              <el-radio-group v-model="updateTestForm.channel">
-                <el-radio value="release">正式版</el-radio>
-                <el-radio value="dev">内测版</el-radio>
-              </el-radio-group>
-            </el-form-item>
-
-            <el-form-item label="测试场景">
-              <el-radio-group v-model="updateTestForm.scenario">
-                <el-radio value="hasUpdate">有更新可用</el-radio>
-                <el-radio value="noUpdate">已是最新版本</el-radio>
-                <el-radio value="error">模拟网络错误</el-radio>
-              </el-radio-group>
-            </el-form-item>
-
-            <el-form-item>
-              <el-button
-                type="primary"
-                :loading="updateTestChecking"
-                :disabled="updateTestChecking"
-                @click="handleMockCheckUpdate"
-              >
-                {{ updateTestChecking ? '检查中...' : '检查更新' }}
-              </el-button>
-              <el-button
-                @click="handleMockReset"
-              >
-                重置状态
-              </el-button>
-            </el-form-item>
-          </el-form>
-
-          <!-- 更新状态显示 -->
-          <div v-if="updateTestStatus" class="update-test-status" style="margin-top: 20px;">
-            <el-divider style="margin-top: 0;">更新状态</el-divider>
-            <el-alert
-              v-if="updateTestStatus.updateAvailable"
-              type="success"
-              :title="`发现新版本: ${updateTestStatus.updateInfo?.version || ''}`"
-              :description="updateTestStatus.updateInfo?.releaseNotes || ''"
-              show-icon
-              :closable="false"
-              style="margin-bottom: 16px;"
-            />
-            <el-alert
-              v-else-if="updateTestStatus.updateNotAvailable"
-              type="info"
-              title="已是最新版本"
-              :description="`当前版本: ${updateTestStatus.updateInfo?.version || ''}`"
-              show-icon
-              :closable="false"
-              style="margin-bottom: 16px;"
-            />
-            <el-alert
-              v-else-if="updateTestStatus.error"
-              type="error"
-              title="检查更新失败"
-              :description="updateTestStatus.error"
-              show-icon
-              :closable="false"
-              style="margin-bottom: 16px;"
-            />
-
-            <!-- 下载和安装按钮 -->
-            <div v-if="updateTestStatus?.updateAvailable" class="update-test-actions">
-              <el-button
-                v-if="!updateTestDownloaded && !updateTestDownloading"
-                type="primary"
-                @click="handleMockDownloadUpdate"
-              >
-                下载更新
-              </el-button>
-              <el-button
-                v-if="updateTestDownloading"
-                type="primary"
-                :loading="true"
-                disabled
-              >
-                正在下载 ({{ updateTestDownloadProgress }}%)
-              </el-button>
-              <el-button
-                v-if="updateTestDownloaded"
-                type="success"
-                @click="handleMockInstallUpdate"
-              >
-                安装并重启
-              </el-button>
-              <el-button
-                v-if="updateTestDownloading"
-                @click="handleMockCancelDownload"
-              >
-                取消下载
-              </el-button>
-              <el-alert
-                v-if="updateTestDownloadError"
-                type="error"
-                :title="updateTestDownloadError"
-                show-icon
-                :closable="true"
-                @close="updateTestDownloadError = null"
-                style="margin-top: 16px;"
-              />
-            </div>
-          </div>
-
-          <!-- 测试历史 -->
-          <div v-if="updateTestHistory.length > 0" class="update-test-history" style="margin-top: 20px;">
-            <el-divider>测试历史</el-divider>
-            <el-scrollbar height="200px">
-              <div
-                v-for="(entry, index) in updateTestHistory"
-                :key="index"
-                class="test-history-item"
-                :style="testHistoryItemStyle"
-              >
-                <div class="test-history-header">
-                  <span class="test-name">{{ entry.action }}</span>
-                  <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
-                </div>
-                <div v-if="entry.result" class="test-result-data" :style="{ color: themeState.currentTheme.textColor }">
-                  <pre :style="codeBlockStyle">{{ JSON.stringify(entry.result, null, 2) }}</pre>
-                </div>
-                <div v-if="entry.error" class="test-error-message" :style="{ color: themeState.currentTheme.textColor }">
-                  <strong>错误:</strong>
-                  <pre :style="{ ...codeBlockStyle, backgroundColor: themeState.currentTheme.type === 'dark' ? 'rgba(245, 108, 108, 0.15)' : '#fef0f0', color: '#f56c6c' }">{{ entry.error }}</pre>
-                </div>
+                  </el-tab-pane>
+                </el-tabs>
               </div>
-            </el-scrollbar>
-          </div>
-        </div>
-      </el-tab-pane>
-
-      <!-- Agent Tool测试 -->
-      <el-tab-pane label="Agent Tool测试" name="agenttool">
-        <div class="test-panel" :style="testPanelStyle">
-          <el-form :model="toolTestForm" label-width="140px">
-            <!-- 从test-cases.json选择测试用例 - 移到最顶部 -->
-            <el-form-item label="测试用例">
-              <div style="display: flex; gap: 8px; flex-direction: column;">
-                <div style="display: flex; gap: 8px;">
-                  <el-input
-                    v-model="testCaseIdInput"
-                    placeholder="输入测试用例ID（如：color-processing::mix-001）"
-                    style="flex: 1"
-                    clearable
-                    @keyup.enter="loadTestCaseById"
-                  >
-                    <template #append>
-                      <el-button :icon="Search" @click="loadTestCaseById">加载</el-button>
-                    </template>
-                  </el-input>
-                </div>
-                <el-select
-                  v-model="selectedTestCase"
-                  placeholder="从test-cases.json选择测试用例"
-                  style="flex: 1"
-                  @change="loadTestCase"
-                  clearable
-                  filterable
-                >
-                  <el-option-group
-                    v-for="(testCases, toolId) in availableTestCases"
-                    :key="toolId"
-                    :label="getToolDisplayName(agentToolManager.getTool(toolId)?.config || { id: toolId })"
-                  >
-                    <el-option
-                      v-for="testCase in testCases.testCases"
-                      :key="`${toolId}-${testCase.name}`"
-                      :label="testCase.name"
-                      :value="`${toolId}::${testCase.name}`"
-                    >
-                      <span>{{ testCase.name }}</span>
-                      <span v-if="testCase.id" style="color: var(--el-text-color-secondary); font-size: 12px; margin-left: 8px;">
-                        (ID: {{ testCase.id }})
-                      </span>
-                      <span v-else style="color: var(--el-text-color-secondary); font-size: 12px; margin-left: 8px;">
-                        ({{ toolId }})
-                      </span>
-                    </el-option>
-                  </el-option-group>
-                </el-select>
-              </div>
-            </el-form-item>
-
-            <el-form-item label="选择Tool">
-              <el-select
-                v-model="toolTestForm.toolId"
-                placeholder="选择要测试的Tool"
-                style="width: 100%"
-                @change="handleToolChange"
-              >
-                <el-option
-                  v-for="tool in availableTools"
-                  :key="tool.config.id"
-                  :label="getToolDisplayName(tool?.config || { id: tool?.config?.id || '' })"
-                  :value="tool?.config?.id || ''"
-                />
-              </el-select>
-            </el-form-item>
-
-            <!-- 保存的配置列表 -->
-            <el-form-item label="保存的配置">
-              <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                <el-select
-                  v-model="selectedConfigId"
-                  placeholder="选择已保存的配置"
-                  style="flex: 1"
-                  @change="loadSavedConfig"
-                  clearable
-                >
-                  <el-option
-                    v-for="config in savedConfigs"
-                    :key="config.id"
-                    :label="config.name"
-                    :value="config.id"
-                  />
-                </el-select>
-                <el-button
-                  type="success"
-                  size="small"
-                  :icon="Plus"
-                  @click="handleSaveConfigClick"
-                >
-                  新建配置
-                </el-button>
-                <el-button
-                  type="primary"
-                  size="small"
-                  :icon="Edit"
-                  :disabled="!selectedConfigId"
-                  @click="handleEditConfigClick"
-                >
-                  编辑
-                </el-button>
-                <el-button
-                  type="danger"
-                  size="small"
-                  :icon="Delete"
-                  :disabled="!selectedConfigId"
-                  @click="deleteSavedConfig"
-                >
-                  删除
-                </el-button>
-              </div>
-            </el-form-item>
-
-            <!-- 参数编辑区域 -->
-            <el-divider>参数配置</el-divider>
-            <el-form-item label="工具说明">
-              <el-input
-                :value="currentToolInstruction"
-                type="textarea"
-                :rows="6"
-                readonly
-                placeholder="请先选择一个Tool查看说明"
-                style="font-family: 'JetBrains Mono', 'Consolas', monospace; font-size: 12px;"
-              />
-              <div style="margin-top: 4px; font-size: 12px; color: var(--el-text-color-secondary);">
-                <el-icon><InfoFilled /></el-icon>
-                <span>这是工具的详细说明，包含参数格式、使用场景等信息</span>
-              </div>
-            </el-form-item>
-            <el-form-item label="参数JSON">
-              <el-input
-                v-model="toolTestForm.paramsJson"
-                type="textarea"
-                :rows="8"
-                placeholder='请输入JSON格式的参数，例如: {"prompt": "生成一个流程图", "chartType": "mermaid"}'
-              />
-            </el-form-item>
-
-            <el-form-item>
-              <el-button type="primary" @click="executeToolTest" :loading="toolTestExecuting">
-                执行Tool
-              </el-button>
-              <el-button @click="clearToolTestHistory">
-                清空历史
-              </el-button>
-            </el-form-item>
-          </el-form>
-
-          <!-- 测试结果 -->
-          <div class="test-result" :style="{ ...testResultStyle, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginTop: '20px' }">
-            <el-divider style="margin-top: 0;">执行结果</el-divider>
-            <el-scrollbar style="flex: 1; height: 0;">
-                <div
-                v-for="(entry, index) in toolTestHistory"
-                :key="index"
-                class="test-history-item"
-                :class="{ 'test-error': entry.error }"
-                :style="entry.error ? testHistoryItemErrorStyle : testHistoryItemStyle"
-              >
-                <div class="test-history-header">
-                  <span class="test-name">{{ entry.toolName }}</span>
-                  <div class="test-header-right">
-                    <el-button
-                      text
-                      size="small"
-                      :icon="Download"
-                      @click="exportEntrySnapshot(entry)"
-                      :title="$t('agent.tool.exportSnapshot')"
-                    >
-                      {{ $t('agent.tool.exportSnapshot') }}
-                    </el-button>
-                    <el-tag 
-                      v-if="entry.status === 'running'" 
-                      type="warning" 
-                      size="small"
-                      effect="dark"
-                    >
-                      执行中
-                    </el-tag>
-                    <el-tag 
-                      v-else-if="entry.status === 'succeeded'" 
-                      type="success" 
-                      size="small"
-                    >
-                      成功
-                    </el-tag>
-                    <el-tag 
-                      v-else-if="entry.status === 'failed'" 
-                      type="danger" 
-                      size="small"
-                    >
-                      失败
-                    </el-tag>
-                    <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
-                  </div>
-                </div>
-                
-                <!-- 进度条 -->
-                <div v-if="entry.progress && entry.progress.percentage > 0" class="test-progress">
-                  <el-progress
-                    :percentage="entry.progress.percentage"
-                    :status="entry.status === 'failed' ? 'exception' : undefined"
-                    :stroke-width="6"
-                  >
-                    <template #default="{ percentage }">
-                      <span class="progress-text">{{ percentage }}%</span>
-                      <span v-if="entry.progress?.message" class="progress-message">
-                        {{ entry.progress.message }}
-                      </span>
-                    </template>
-                  </el-progress>
-                </div>
-                
-                <div v-if="entry.params" class="test-params" :style="{ color: themeState.currentTheme.textColor }">
-                  <strong>参数:</strong>
-                  <pre :style="codeBlockStyle">{{ typeof entry.params === 'string' ? entry.params : JSON.stringify(entry.params, null, 2) }}</pre>
-                </div>
-                <div v-if="entry.error" class="test-error-message" :style="{ color: themeState.currentTheme.textColor }">
-                  <strong>错误:</strong>
-                  <pre :style="{ ...codeBlockStyle, backgroundColor: themeState.currentTheme.type === 'dark' ? 'rgba(245, 108, 108, 0.15)' : '#fef0f0', color: '#f56c6c' }">{{ entry.error }}</pre>
-                </div>
-                
-                <!-- 如果有显示组件，展示渲染卡片 -->
-                <div v-if="entry.displayComponent && entry.outputs && entry.outputs.length > 0" class="test-display-component">
-                  <el-divider>渲染结果</el-divider>
-                  <el-collapse :model-value="getActivePanels(entry)" accordion>
-                    <el-collapse-item
-                      v-for="output in entry.outputs"
-                      :key="output.id"
-                      :name="output.id"
-                    >
-                      <template #title>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                          <span>{{ output.label }}</span>
-                          <el-tag size="small" effect="light">{{ output.format }}</el-tag>
-                        </div>
-                      </template>
-                      <div class="output-body">
-                        <!-- 如果有渲染组件，使用组件渲染 -->
-                        <component
-                          v-if="getDisplayComponent(output.renderer || entry.displayComponent)"
-                          :is="getDisplayComponent(output.renderer || entry.displayComponent)"
-                          :data="output.data"
-                          :status="entry.error ? 'failed' : (entry.status || 'succeeded')"
-                          :progress="entry.progress"
-                          :error="entry.error"
-                          :tool-config="entry.toolConfig"
-                          :invocation-id="entry.invocationId"
-                        />
-                        <!-- 否则使用纯文本渲染 -->
-                        <pre v-else class="raw-text" :style="codeBlockStyle">{{ formatResult(output.data) }}</pre>
-                      </div>
-                    </el-collapse-item>
-                  </el-collapse>
-                </div>
-                
-                <!-- 原始结果数据 -->
-                <div v-if="entry.result !== undefined" class="test-result-data" :style="{ color: themeState.currentTheme.textColor }">
-                  <el-divider>原始结果</el-divider>
-                  <pre :style="codeBlockStyle">{{ formatResult(entry.result) }}</pre>
-                </div>
-              </div>
-              <div v-if="toolTestHistory.length === 0" class="test-empty" :style="testEmptyStyle">
-                暂无测试历史
-              </div>
-            </el-scrollbar>
-          </div>
-        </div>
-      </el-tab-pane>
-
-      <!-- 导入工具执行快照 -->
-      <el-tab-pane :label="$t('setting.debug.importSnapshot')" name="importsnapshot">
-        <div class="test-panel" :style="testPanelStyle">
-          <el-form :model="importSnapshotForm" label-width="140px">
-            <el-form-item :label="$t('setting.debug.importSnapshotTitle')">
-              <p style="color: var(--el-text-color-secondary); font-size: 13px; margin: 0;">
-                {{ $t('setting.debug.importSnapshotDescription') }}
-              </p>
-            </el-form-item>
-            <el-form-item :label="$t('setting.debug.snapshotFile')">
-              <el-input
-                v-model="importSnapshotForm.snapshotContent"
-                type="textarea"
-                :rows="12"
-                :placeholder="$t('setting.debug.snapshotFilePlaceholder')"
-              />
-              <div style="margin-top: 8px;">
-                <el-button
-                  type="primary"
-                  size="small"
-                  :icon="Upload"
-                  @click="selectSnapshotFile"
-                >
-                  {{ $t('setting.debug.selectSnapshotFile') }}
-                </el-button>
-                <input
-                  ref="fileInputRef"
-                  type="file"
-                  accept=".json"
-                  style="display: none"
-                  @change="handleFileSelect"
-                />
-              </div>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="importSnapshot" :loading="importSnapshotLoading">
-                {{ $t('setting.debug.importButton') }}
-              </el-button>
-              <el-button @click="clearImportForm">
-                {{ $t('common.cancel') }}
-              </el-button>
-            </el-form-item>
-          </el-form>
-
-          <!-- 导入后的渲染结果 -->
-          <div v-if="importedSnapshot" class="imported-snapshot-display" style="margin-top: 20px;">
-            <el-divider style="margin-top: 0;">{{ $t('setting.debug.importSuccess') }}</el-divider>
-            <div class="test-history-item" :style="testHistoryItemStyle">
-              <div class="test-history-header">
-                <span class="test-name">{{ importedSnapshot.toolName }}</span>
-                <div class="test-header-right">
-                  <el-tag 
-                    v-if="importedSnapshot.status === 'running'" 
-                    type="warning" 
-                    size="small"
-                    effect="dark"
-                  >
-                    {{ $t('agent.tool.status.running') }}
-                  </el-tag>
-                  <el-tag 
-                    v-else-if="importedSnapshot.status === 'succeeded'" 
-                    type="success" 
-                    size="small"
-                  >
-                    {{ $t('agent.tool.status.success') }}
-                  </el-tag>
-                  <el-tag 
-                    v-else-if="importedSnapshot.status === 'failed'" 
-                    type="danger" 
-                    size="small"
-                  >
-                    {{ $t('agent.tool.status.failed') }}
-                  </el-tag>
-                  <span class="test-time">{{ formatTime(importedSnapshot.timestamp) }}</span>
-                </div>
-              </div>
-              
-              <div v-if="importedSnapshot.params" class="test-params" :style="{ color: themeState.currentTheme.textColor }">
-                <strong>{{ $t('setting.debug.parameters') }}:</strong>
-                <pre :style="codeBlockStyle">{{ typeof importedSnapshot.params === 'string' ? importedSnapshot.params : JSON.stringify(importedSnapshot.params, null, 2) }}</pre>
-              </div>
-              
-              <div v-if="importedSnapshot.error" class="test-error-message" :style="{ color: themeState.currentTheme.textColor }">
-                <strong>{{ $t('setting.debug.error') }}:</strong>
-                <pre :style="{ ...codeBlockStyle, backgroundColor: themeState.currentTheme.type === 'dark' ? 'rgba(245, 108, 108, 0.15)' : '#fef0f0', color: '#f56c6c' }">{{ importedSnapshot.error }}</pre>
-              </div>
-              
-              <!-- 如果有显示组件，展示渲染卡片 -->
-              <div v-if="importedSnapshot.displayComponent && importedSnapshot.outputs && importedSnapshot.outputs.length > 0" class="test-display-component">
-                <el-divider>{{ $t('setting.debug.renderResult') }}</el-divider>
-                <el-collapse :model-value="getActivePanels(importedSnapshot)" accordion>
-                  <el-collapse-item
-                    v-for="output in importedSnapshot.outputs"
-                    :key="output.id"
-                    :name="output.id"
-                  >
-                    <template #title>
-                      <div style="display: flex; align-items: center; gap: 8px;">
-                        <span>{{ output.label }}</span>
-                        <el-tag size="small" effect="light">{{ output.format }}</el-tag>
-                      </div>
-                    </template>
-                    <div class="output-body">
-                      <!-- 如果有渲染组件，使用组件渲染 -->
-                      <component
-                        v-if="getDisplayComponent(output.renderer || importedSnapshot.displayComponent)"
-                        :is="getDisplayComponent(output.renderer || importedSnapshot.displayComponent)"
-                        :data="output.data"
-                        :status="importedSnapshot.error ? 'failed' : (importedSnapshot.status || 'succeeded')"
-                        :progress="importedSnapshot.progress"
-                        :error="importedSnapshot.error"
-                        :tool-config="importedSnapshot.toolConfig"
-                        :invocation-id="importedSnapshot.invocationId"
+              <div v-else-if="activeTab === 'updatetest'" class="tab-content">
+                <div class="test-panel" :style="testPanelStyle">
+                  <el-form :model="updateTestForm" label-width="140px">
+                    <el-form-item label="当前版本">
+                      <el-input
+                        v-model="updateTestForm.currentVersion"
+                        placeholder="例如: 0.13.4"
+                        style="width: 200px"
                       />
-                      <!-- 否则使用纯文本渲染 -->
-                      <pre v-else class="raw-text" :style="codeBlockStyle">{{ formatResult(output.data && typeof output.data === 'object' && 'content' in output.data ? output.data.content : output.data) }}</pre>
+                    </el-form-item>
+
+                    <el-form-item label="模拟更新版本">
+                      <el-input
+                        v-model="updateTestForm.mockUpdateVersion"
+                        placeholder="例如: 0.14.0"
+                        style="width: 200px"
+                      />
+                    </el-form-item>
+
+                    <el-form-item label="更新渠道">
+                      <el-radio-group v-model="updateTestForm.channel">
+                        <el-radio value="release">正式版</el-radio>
+                        <el-radio value="dev">内测版</el-radio>
+                      </el-radio-group>
+                    </el-form-item>
+
+                    <el-form-item label="测试场景">
+                      <el-radio-group v-model="updateTestForm.scenario">
+                        <el-radio value="hasUpdate">有更新可用</el-radio>
+                        <el-radio value="noUpdate">已是最新版本</el-radio>
+                        <el-radio value="error">模拟网络错误</el-radio>
+                      </el-radio-group>
+                    </el-form-item>
+
+                    <el-form-item>
+                      <el-button
+                        type="primary"
+                        :loading="updateTestChecking"
+                        :disabled="updateTestChecking"
+                        @click="handleMockCheckUpdate"
+                      >
+                        {{ updateTestChecking ? '检查中...' : '检查更新' }}
+                      </el-button>
+                      <el-button
+                        @click="handleMockReset"
+                      >
+                        重置状态
+                      </el-button>
+                    </el-form-item>
+                  </el-form>
+
+                  <!-- 更新状态显示 -->
+                  <div v-if="updateTestStatus" class="update-test-status" style="margin-top: 20px;">
+                    <el-divider style="margin-top: 0;">更新状态</el-divider>
+                    <el-alert
+                      v-if="updateTestStatus.updateAvailable"
+                      type="success"
+                      :title="`发现新版本: ${updateTestStatus.updateInfo?.version || ''}`"
+                      :description="updateTestStatus.updateInfo?.releaseNotes || ''"
+                      show-icon
+                      :closable="false"
+                      style="margin-bottom: 16px;"
+                    />
+                    <el-alert
+                      v-else-if="updateTestStatus.updateNotAvailable"
+                      type="info"
+                      title="已是最新版本"
+                      :description="`当前版本: ${updateTestStatus.updateInfo?.version || ''}`"
+                      show-icon
+                      :closable="false"
+                      style="margin-bottom: 16px;"
+                    />
+                    <el-alert
+                      v-else-if="updateTestStatus.error"
+                      type="error"
+                      title="检查更新失败"
+                      :description="updateTestStatus.error"
+                      show-icon
+                      :closable="false"
+                      style="margin-bottom: 16px;"
+                    />
+
+                    <!-- 下载和安装按钮 -->
+                    <div v-if="updateTestStatus?.updateAvailable" class="update-test-actions">
+                      <el-button
+                        v-if="!updateTestDownloaded && !updateTestDownloading"
+                        type="primary"
+                        @click="handleMockDownloadUpdate"
+                      >
+                        下载更新
+                      </el-button>
+                      <el-button
+                        v-if="updateTestDownloading"
+                        type="primary"
+                        :loading="true"
+                        disabled
+                      >
+                        正在下载 ({{ updateTestDownloadProgress }}%)
+                      </el-button>
+                      <el-button
+                        v-if="updateTestDownloaded"
+                        type="success"
+                        @click="handleMockInstallUpdate"
+                      >
+                        安装并重启
+                      </el-button>
+                      <el-button
+                        v-if="updateTestDownloading"
+                        @click="handleMockCancelDownload"
+                      >
+                        取消下载
+                      </el-button>
+                      <el-alert
+                        v-if="updateTestDownloadError"
+                        type="error"
+                        :title="updateTestDownloadError"
+                        show-icon
+                        :closable="true"
+                        @close="updateTestDownloadError = null"
+                        style="margin-top: 16px;"
+                      />
                     </div>
-                  </el-collapse-item>
-                </el-collapse>
-              </div>
-              
-              <!-- 原始结果数据 -->
-              <div v-if="importedSnapshot.result !== undefined" class="test-result-data" :style="{ color: themeState.currentTheme.textColor }">
-                <el-divider>{{ $t('setting.debug.rawResult') }}</el-divider>
-                <pre :style="codeBlockStyle">{{ formatResult(importedSnapshot.result) }}</pre>
-              </div>
-            </div>
-          </div>
-        </div>
-      </el-tab-pane>
-
-      <!-- Agent Tool自动测试 -->
-      <el-tab-pane label="Tool自动测试" name="autotest">
-        <div class="test-panel" :style="testPanelStyle">
-          <el-form :model="autoTestForm" label-width="140px">
-            <el-form-item label="选择要测试的Tool">
-              <el-select
-                v-model="autoTestForm.selectedTools"
-                multiple
-                placeholder="选择要测试的Tool（留空则测试所有）"
-                style="width: 100%"
-                filterable
-              >
-                <el-option
-                  v-for="tool in availableTools"
-                  :key="tool.config.id"
-                  :label="getToolDisplayName(tool?.config || { id: tool?.config?.id || '' })"
-                  :value="tool?.config?.id || ''"
-                />
-              </el-select>
-            </el-form-item>
-
-            <el-form-item>
-              <el-button 
-                type="primary" 
-                @click="runAutoTests" 
-                :loading="autoTestRunning"
-                :disabled="autoTestRunning"
-              >
-                {{ autoTestRunning ? '测试中...' : '开始自动测试' }}
-              </el-button>
-              <el-button 
-                @click="stopAutoTests" 
-                :disabled="!autoTestRunning"
-              >
-                停止测试
-              </el-button>
-            </el-form-item>
-          </el-form>
-
-          <!-- 测试结果 -->
-          <div v-if="autoTestResults.length > 0 || autoTestRunning" class="auto-test-results" style="margin-top: 20px;">
-            <el-divider style="margin-top: 0;">测试结果</el-divider>
-            <AutoTestResultDisplay
-              v-if="autoTestResults.length > 0"
-              :test-results="autoTestResults"
-              :summary="autoTestSummary"
-              :markdown-summary="autoTestMarkdown"
-            />
-            <div v-else-if="autoTestRunning" class="test-progress-info">
-              <el-progress
-                :percentage="autoTestProgress"
-                :status="autoTestRunning ? undefined : 'success'"
-              >
-                <template #default="{ percentage }">
-                  <span>{{ autoTestCurrentTest }}</span>
-                  <span style="margin-left: 8px;">{{ percentage }}%</span>
-                </template>
-              </el-progress>
-            </div>
-          </div>
-        </div>
-      </el-tab-pane>
-
-      <!-- 单元测试 -->
-      <el-tab-pane :label="$t('setting.debug.unitTest.title')" name="unittest">
-        <el-tabs v-model="unitTestActiveTab" type="border-card" tab-position="top" style="height: 100%;">
-          <!-- 单个测试 -->
-          <el-tab-pane :label="$t('setting.debug.unitTest.singleTest')" name="single">
-          <div class="test-panel" :style="testPanelStyle">
-            <el-form :model="testForm" label-width="140px">
-              <el-form-item :label="$t('setting.debug.module')">
-                <el-select
-                  v-model="testForm.module"
-                  :placeholder="$t('setting.debug.selectModule')"
-                  style="width: 100%"
-                  @change="handleModuleChange"
-                >
-                  <el-option
-                    v-for="module in modules"
-                    :key="module"
-                    :label="module"
-                    :value="module"
-                  />
-                </el-select>
-              </el-form-item>
-              <el-form-item :label="$t('setting.debug.testFunction')">
-                <el-select
-                  v-model="testForm.testId"
-                  :placeholder="$t('setting.debug.selectTestFunction')"
-                  style="width: 100%"
-                  @change="handleTestChange"
-                >
-                  <el-option
-                    v-for="test in availableTests"
-                    :key="test.id"
-                    :label="`${test.name}${test.description ? ' - ' + test.description : ''}`"
-                    :value="test.id"
-                  />
-                </el-select>
-              </el-form-item>
-
-              <!-- 参数编辑区域 -->
-              <template v-if="selectedTest && selectedTest.params && selectedTest.params.length > 0">
-                <el-divider>{{ $t('setting.debug.parameters') }}</el-divider>
-                <el-form-item
-                  v-for="param in selectedTest.params"
-                  :key="param.name"
-                  :label="`${param.name} (${param.type})`"
-                >
-                  <template v-if="param.type === 'string' || param.type === 'number' || param.type === 'boolean'">
-                    <el-input
-                      v-if="param.type === 'string'"
-                      v-model="testForm.params[param.name]"
-                      :placeholder="param.description || param.name"
-                    />
-                    <el-input-number
-                      v-else-if="param.type === 'number'"
-                      v-model="testForm.params[param.name]"
-                      style="width: 100%"
-                    />
-                    <el-switch
-                      v-else-if="param.type === 'boolean'"
-                      v-model="testForm.params[param.name]"
-                    />
-                  </template>
-                  <el-input
-                    v-else
-                    v-model="testForm.params[param.name]"
-                    type="textarea"
-                    :rows="4"
-                    :placeholder="$t('setting.debug.jsonPlaceholder')"
-                  />
-                </el-form-item>
-              </template>
-
-              <el-form-item>
-                <el-button type="primary" @click="executeTest" :loading="testExecuting">
-                  {{ $t('setting.debug.executeTest') }}
-                </el-button>
-                <el-button @click="clearTestHistory">
-                  {{ $t('setting.debug.clearHistory') }}
-                </el-button>
-              </el-form-item>
-            </el-form>
-
-            <!-- 测试结果 -->
-            <el-divider>{{ $t('setting.debug.testResult') }}</el-divider>
-            <div class="test-result">
-              <el-scrollbar height="300px">
-                <div
-                  v-for="(entry, index) in testHistory"
-                  :key="index"
-                  class="test-history-item"
-                  :class="{ 'test-error': entry.error }"
-                  :style="entry.error ? testHistoryItemErrorStyle : testHistoryItemStyle"
-                >
-                  <div class="test-history-header">
-                    <span class="test-name">{{ entry.name }}</span>
-                    <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
                   </div>
-                  <div v-if="entry.params && entry.params.length > 0" class="test-params">
-                    <strong>{{ $t('setting.debug.parameters') }}:</strong>
-                    <pre>{{ JSON.stringify(entry.params, null, 2) }}</pre>
-                  </div>
-                  <div v-if="entry.error" class="test-error-message">
-                    <strong>{{ $t('setting.debug.error') }}:</strong>
-                    <pre>{{ entry.error }}</pre>
-                  </div>
-                  <div v-else-if="entry.result !== undefined" class="test-result-data">
-                    <strong>{{ $t('setting.debug.result') }}:</strong>
-                    <pre>{{ formatResult(entry.result) }}</pre>
+
+                  <!-- 测试历史 -->
+                  <div v-if="updateTestHistory.length > 0" class="update-test-history" style="margin-top: 20px;">
+                    <el-divider>测试历史</el-divider>
+                    <el-scrollbar height="200px">
+                      <div
+                        v-for="(entry, index) in updateTestHistory"
+                        :key="index"
+                        class="test-history-item"
+                        :style="testHistoryItemStyle"
+                      >
+                        <div class="test-history-header">
+                          <span class="test-name">{{ entry.action }}</span>
+                          <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
+                        </div>
+                        <div v-if="entry.result" class="test-result-data" :style="{ color: themeState.currentTheme.textColor }">
+                          <pre :style="codeBlockStyle">{{ JSON.stringify(entry.result, null, 2) }}</pre>
+                        </div>
+                        <div v-if="entry.error" class="test-error-message" :style="{ color: themeState.currentTheme.textColor }">
+                          <strong>错误:</strong>
+                          <pre :style="{ ...codeBlockStyle, backgroundColor: themeState.currentTheme.type === 'dark' ? 'rgba(245, 108, 108, 0.15)' : '#fef0f0', color: '#f56c6c' }">{{ entry.error }}</pre>
+                        </div>
+                      </div>
+                    </el-scrollbar>
                   </div>
                 </div>
-                <div v-if="testHistory.length === 0" class="test-empty">
-                  {{ $t('setting.debug.noHistory') }}
+              </div>
+              <div v-else-if="activeTab === 'agenttool'" class="tab-content">
+                <div class="test-panel" :style="testPanelStyle">
+                  <el-form :model="toolTestForm" label-width="140px">
+                    <!-- 从test-cases.json选择测试用例 - 移到最顶部 -->
+                    <el-form-item label="测试用例">
+                      <div style="display: flex; gap: 8px; flex-direction: column;">
+                        <div style="display: flex; gap: 8px;">
+                          <el-input
+                            v-model="testCaseIdInput"
+                            placeholder="输入测试用例ID（如：color-processing::mix-001）"
+                            style="flex: 1"
+                            clearable
+                            @keyup.enter="loadTestCaseById"
+                          >
+                            <template #append>
+                              <el-button :icon="Search" @click="loadTestCaseById">加载</el-button>
+                            </template>
+                          </el-input>
+                        </div>
+                        <el-select
+                          v-model="selectedTestCase"
+                          placeholder="从test-cases.json选择测试用例"
+                          style="flex: 1"
+                          @change="loadTestCase"
+                          clearable
+                          filterable
+                        >
+                          <el-option-group
+                            v-for="(testCases, toolId) in availableTestCases"
+                            :key="toolId"
+                            :label="getToolDisplayName(agentToolManager.getTool(toolId)?.config || { id: toolId })"
+                          >
+                            <el-option
+                              v-for="testCase in testCases.testCases"
+                              :key="`${toolId}-${testCase.name}`"
+                              :label="testCase.name"
+                              :value="`${toolId}::${testCase.name}`"
+                            >
+                              <span>{{ testCase.name }}</span>
+                              <span v-if="testCase.id" style="color: var(--el-text-color-secondary); font-size: 12px; margin-left: 8px;">
+                                (ID: {{ testCase.id }})
+                              </span>
+                              <span v-else style="color: var(--el-text-color-secondary); font-size: 12px; margin-left: 8px;">
+                                ({{ toolId }})
+                              </span>
+                            </el-option>
+                          </el-option-group>
+                        </el-select>
+                      </div>
+                    </el-form-item>
+
+                    <el-form-item label="选择Tool">
+                      <el-select
+                        v-model="toolTestForm.toolId"
+                        placeholder="选择要测试的Tool"
+                        style="width: 100%"
+                        @change="handleToolChange"
+                      >
+                        <el-option
+                          v-for="tool in availableTools"
+                          :key="tool.config.id"
+                          :label="getToolDisplayName(tool?.config || { id: tool?.config?.id || '' })"
+                          :value="tool?.config?.id || ''"
+                        />
+                      </el-select>
+                    </el-form-item>
+
+                    <!-- 保存的配置列表 -->
+                    <el-form-item label="保存的配置">
+                      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <el-select
+                          v-model="selectedConfigId"
+                          placeholder="选择已保存的配置"
+                          style="flex: 1"
+                          @change="loadSavedConfig"
+                          clearable
+                        >
+                          <el-option
+                            v-for="config in savedConfigs"
+                            :key="config.id"
+                            :label="config.name"
+                            :value="config.id"
+                          />
+                        </el-select>
+                        <el-button
+                          type="success"
+                          size="small"
+                          :icon="Plus"
+                          @click="handleSaveConfigClick"
+                        >
+                          新建配置
+                        </el-button>
+                        <el-button
+                          type="primary"
+                          size="small"
+                          :icon="Edit"
+                          :disabled="!selectedConfigId"
+                          @click="handleEditConfigClick"
+                        >
+                          编辑
+                        </el-button>
+                        <el-button
+                          type="danger"
+                          size="small"
+                          :icon="Delete"
+                          :disabled="!selectedConfigId"
+                          @click="deleteSavedConfig"
+                        >
+                          删除
+                        </el-button>
+                      </div>
+                    </el-form-item>
+
+                    <!-- 上下文Tab选择 -->
+                    <el-form-item label="上下文Tab">
+                      <el-select
+                        v-model="toolTestForm.contextTabId"
+                        placeholder="选择上下文Tab（用于模拟文档环境，可选）"
+                        style="width: 100%"
+                        clearable
+                      >
+                        <el-option
+                          label="（不指定，使用当前活动Tab）"
+                          value=""
+                        />
+                        <el-option
+                          v-for="tab in documentTabs"
+                          :key="tab.id"
+                          :label="`${tab.title || tab.subtitle || '未命名'} (${tab.id})`"
+                          :value="tab.id"
+                        />
+                      </el-select>
+                      <div style="margin-top: 4px; font-size: 12px; color: var(--el-text-color-secondary);">
+                        <el-icon><InfoFilled /></el-icon>
+                        <span>选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span>
+                      </div>
+                    </el-form-item>
+
+                    <!-- 参数编辑区域 -->
+                    <el-divider>参数配置</el-divider>
+                    <el-form-item label="工具说明">
+                      <el-input
+                        :value="currentToolInstruction"
+                        type="textarea"
+                        :rows="6"
+                        readonly
+                        placeholder="请先选择一个Tool查看说明"
+                        style="font-family: 'JetBrains Mono', 'Consolas', monospace; font-size: 12px;"
+                      />
+                      <div style="margin-top: 4px; font-size: 12px; color: var(--el-text-color-secondary);">
+                        <el-icon><InfoFilled /></el-icon>
+                        <span>这是工具的详细说明，包含参数格式、使用场景等信息</span>
+                      </div>
+                    </el-form-item>
+                    <el-form-item label="参数JSON">
+                      <el-input
+                        v-model="toolTestForm.paramsJson"
+                        type="textarea"
+                        :rows="8"
+                        placeholder='请输入JSON格式的参数，例如: {"prompt": "生成一个流程图", "chartType": "mermaid"}'
+                      />
+                    </el-form-item>
+
+                    <el-form-item>
+                      <el-button type="primary" @click="executeToolTest" :loading="toolTestExecuting">
+                        执行Tool
+                      </el-button>
+                      <el-button @click="clearToolTestHistory">
+                        清空历史
+                      </el-button>
+                    </el-form-item>
+                  </el-form>
+
+                  <!-- 测试结果 -->
+                  <div class="test-result" :style="{ ...testResultStyle, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginTop: '20px' }">
+                    <el-divider style="margin-top: 0;">执行结果</el-divider>
+                    <el-scrollbar style="flex: 1; height: 0;">
+                      <div
+                        v-for="(entry, index) in toolTestHistory"
+                        :key="index"
+                        class="test-history-item"
+                        :class="{ 'test-error': entry.error }"
+                        :style="entry.error ? testHistoryItemErrorStyle : testHistoryItemStyle"
+                      >
+                        <div class="test-history-header">
+                          <span class="test-name">{{ entry.toolName }}</span>
+                          <div class="test-header-right">
+                            <el-button
+                              text
+                              size="small"
+                              :icon="Download"
+                              @click="exportEntrySnapshot(entry)"
+                              :title="$t('agent.tool.exportSnapshot')"
+                            >
+                              {{ $t('agent.tool.exportSnapshot') }}
+                            </el-button>
+                            <el-tag 
+                              v-if="entry.status === 'running'" 
+                              type="warning" 
+                              size="small"
+                              effect="dark"
+                            >
+                              执行中
+                            </el-tag>
+                            <el-tag 
+                              v-else-if="entry.status === 'succeeded'" 
+                              type="success" 
+                              size="small"
+                            >
+                              成功
+                            </el-tag>
+                            <el-tag 
+                              v-else-if="entry.status === 'failed'" 
+                              type="danger" 
+                              size="small"
+                            >
+                              失败
+                            </el-tag>
+                            <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
+                          </div>
+                        </div>
+                        
+                        <!-- 进度条 -->
+                        <div v-if="entry.progress && entry.progress.percentage > 0" class="test-progress">
+                          <el-progress
+                            :percentage="entry.progress.percentage"
+                            :status="entry.status === 'failed' ? 'exception' : undefined"
+                            :stroke-width="6"
+                          >
+                            <template #default="{ percentage }">
+                              <span class="progress-text">{{ percentage }}%</span>
+                              <span v-if="entry.progress?.message" class="progress-message">
+                                {{ entry.progress.message }}
+                              </span>
+                            </template>
+                          </el-progress>
+                        </div>
+                        
+                        <div v-if="entry.params" class="test-params" :style="{ color: themeState.currentTheme.textColor }">
+                          <strong>参数:</strong>
+                          <pre :style="codeBlockStyle">{{ typeof entry.params === 'string' ? entry.params : JSON.stringify(entry.params, null, 2) }}</pre>
+                        </div>
+                        <div v-if="entry.error" class="test-error-message" :style="{ color: themeState.currentTheme.textColor }">
+                          <strong>错误:</strong>
+                          <pre :style="{ ...codeBlockStyle, backgroundColor: themeState.currentTheme.type === 'dark' ? 'rgba(245, 108, 108, 0.15)' : '#fef0f0', color: '#f56c6c' }">{{ entry.error }}</pre>
+                        </div>
+                        
+                        <!-- 如果有显示组件，展示渲染卡片 -->
+                        <div v-if="entry.displayComponent && entry.outputs && entry.outputs.length > 0" class="test-display-component">
+                          <el-divider>渲染结果</el-divider>
+                          <el-collapse :model-value="getActivePanels(entry)" accordion>
+                            <el-collapse-item
+                              v-for="output in entry.outputs"
+                              :key="output.id"
+                              :name="output.id"
+                            >
+                              <template #title>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                  <span>{{ output.label }}</span>
+                                  <el-tag size="small" effect="light">{{ output.format }}</el-tag>
+                                </div>
+                              </template>
+                              <div class="output-body">
+                                <!-- 如果有渲染组件，使用组件渲染 -->
+                                <component
+                                  v-if="getDisplayComponent(output.renderer || entry.displayComponent)"
+                                  :is="getDisplayComponent(output.renderer || entry.displayComponent)"
+                                  :data="output.data"
+                                  :status="entry.error ? 'failed' : (entry.status || 'succeeded')"
+                                  :progress="entry.progress"
+                                  :error="entry.error"
+                                  :tool-config="entry.toolConfig"
+                                  :invocation-id="entry.invocationId"
+                                />
+                                <!-- 否则使用纯文本渲染 -->
+                                <pre v-else class="raw-text" :style="codeBlockStyle">{{ formatResult(output.data) }}</pre>
+                              </div>
+                            </el-collapse-item>
+                          </el-collapse>
+                        </div>
+                        
+                        <!-- 原始结果数据 -->
+                        <div v-if="entry.result !== undefined" class="test-result-data" :style="{ color: themeState.currentTheme.textColor }">
+                          <el-divider>原始结果</el-divider>
+                          <pre :style="codeBlockStyle">{{ formatResult(entry.result) }}</pre>
+                        </div>
+                      </div>
+                      <div v-if="toolTestHistory.length === 0" class="test-empty" :style="testEmptyStyle">
+                        暂无测试历史
+                      </div>
+                    </el-scrollbar>
+                  </div>
                 </div>
-              </el-scrollbar>
-            </div>
-          </div>
-        </el-tab-pane>
-
-        <!-- 批量测试 -->
-        <el-tab-pane :label="$t('setting.debug.unitTest.batchTest')" name="batch">
-          <div class="test-panel" :style="testPanelStyle">
-            <el-form :model="unitTestBatchForm" label-width="140px">
-              <el-form-item :label="$t('setting.debug.unitTest.selectModules')">
-                <el-select
-                  v-model="unitTestBatchForm.selectedModules"
-                  multiple
-                  placeholder="选择要测试的模块（留空则测试所有）"
-                  style="width: 100%"
-                  filterable
-                >
-                  <el-option
-                    v-for="module in modules"
-                    :key="module"
-                    :label="module"
-                    :value="module"
-                  />
-                </el-select>
-              </el-form-item>
-
-              <el-form-item>
-                <el-button 
-                  type="primary" 
-                  @click="runUnitTestBatch" 
-                  :loading="unitTestBatchRunning"
-                  :disabled="unitTestBatchRunning"
-                >
-                  {{ unitTestBatchRunning ? '测试中...' : '开始批量测试' }}
-                </el-button>
-                <el-button 
-                  @click="stopUnitTestBatch" 
-                  :disabled="!unitTestBatchRunning"
-                >
-                  停止测试
-                </el-button>
-              </el-form-item>
-            </el-form>
-
-            <!-- 测试结果 -->
-            <div v-if="unitTestBatchResults.length > 0 || unitTestBatchRunning" class="unit-test-batch-results" style="margin-top: 20px;">
-              <el-divider style="margin-top: 0;">测试结果</el-divider>
-              <UnitTestResultDisplay
-                v-if="unitTestBatchResults.length > 0"
-                :test-results="unitTestBatchResults"
-                :summary="unitTestBatchSummary"
-                :markdown-summary="unitTestBatchMarkdown"
-              />
-              <div v-else-if="unitTestBatchRunning" class="test-progress-info">
-                <el-progress
-                  :percentage="unitTestBatchProgress"
-                  :status="unitTestBatchRunning ? undefined : 'success'"
-                >
-                  <template #default="{ percentage }">
-                    <span>{{ unitTestBatchCurrentTest }}</span>
-                    <span style="margin-left: 8px;">{{ percentage }}%</span>
-                  </template>
-                </el-progress>
               </div>
-            </div>
-          </div>
-        </el-tab-pane>
-        </el-tabs>
-      </el-tab-pane>
+              <div v-else-if="activeTab === 'importsnapshot'" class="tab-content">
+                <div class="test-panel" :style="testPanelStyle">
+                  <el-form :model="importSnapshotForm" label-width="140px">
+                    <el-form-item :label="$t('setting.debug.importSnapshotTitle')">
+                      <p style="color: var(--el-text-color-secondary); font-size: 13px; margin: 0;">
+                        {{ $t('setting.debug.importSnapshotDescription') }}
+                      </p>
+                    </el-form-item>
+                    <el-form-item :label="$t('setting.debug.snapshotFile')">
+                      <el-input
+                        v-model="importSnapshotForm.snapshotContent"
+                        type="textarea"
+                        :rows="12"
+                        :placeholder="$t('setting.debug.snapshotFilePlaceholder')"
+                      />
+                      <div style="margin-top: 8px;">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          :icon="Upload"
+                          @click="selectSnapshotFile"
+                        >
+                          {{ $t('setting.debug.selectSnapshotFile') }}
+                        </el-button>
+                        <input
+                          ref="fileInputRef"
+                          type="file"
+                          accept=".json"
+                          style="display: none"
+                          @change="handleFileSelect"
+                        />
+                      </div>
+                    </el-form-item>
+                    <el-form-item>
+                      <el-button type="primary" @click="importSnapshot" :loading="importSnapshotLoading">
+                        {{ $t('setting.debug.importButton') }}
+                      </el-button>
+                      <el-button @click="clearImportForm">
+                        {{ $t('common.cancel') }}
+                      </el-button>
+                    </el-form-item>
+                  </el-form>
 
-      <!-- Agent会话调试 -->
-      <el-tab-pane label="Agent会话调试" name="agentsessiondebug">
-        <el-tabs v-model="agentSessionDebugActiveTab" type="border-card" tab-position="top">
-          <!-- 会话调试 -->
-          <el-tab-pane label="会话调试" name="debug">
-            <div class="test-panel" :style="testPanelStyle">
-              <el-form :model="agentSessionDebugForm" label-width="140px">
-                <el-form-item label="选择文档">
-                  <el-select
-                    v-model="agentSessionDebugForm.tabId"
-                    placeholder="选择要调试的文档"
-                    style="width: 100%"
-                    @change="handleSessionDebugTabChange"
-                    filterable
-                  >
-                    <el-option
-                      v-for="tab in workspaceTabs"
-                      :key="tab.id"
-                      :label="tab.title || tab.path || '未命名文档'"
-                      :value="tab.id"
-                    />
-                  </el-select>
-                </el-form-item>
-
-            <el-form-item label="选择会话" v-if="agentSessionDebugForm.tabId">
-              <div style="display: flex; gap: 8px;">
-                <el-select
-                  v-model="agentSessionDebugForm.sessionId"
-                  placeholder="选择要调试的会话"
-                  style="flex: 1"
-                  @change="handleSessionDebugSessionChange"
-                  filterable
-                >
-                  <el-option
-                    v-for="session in availableSessions"
-                    :key="session.id"
-                    :label="session.title || session.id"
-                    :value="session.id"
-                  >
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                      <span>{{ session.title || session.id }}</span>
-                      <el-tag size="small" type="info" style="margin-left: 8px;">
-                        {{ session.messages?.length || 0 }} 条消息
-                      </el-tag>
+                  <!-- 导入后的渲染结果 -->
+                  <div v-if="importedSnapshot" class="imported-snapshot-display" style="margin-top: 20px;">
+                    <el-divider style="margin-top: 0;">{{ $t('setting.debug.importSuccess') }}</el-divider>
+                    <div class="test-history-item" :style="testHistoryItemStyle">
+                      <div class="test-history-header">
+                        <span class="test-name">{{ importedSnapshot.toolName }}</span>
+                        <div class="test-header-right">
+                          <el-tag 
+                            v-if="importedSnapshot.status === 'running'" 
+                            type="warning" 
+                            size="small"
+                            effect="dark"
+                          >
+                            {{ $t('agent.tool.status.running') }}
+                          </el-tag>
+                          <el-tag 
+                            v-else-if="importedSnapshot.status === 'succeeded'" 
+                            type="success" 
+                            size="small"
+                          >
+                            {{ $t('agent.tool.status.success') }}
+                          </el-tag>
+                          <el-tag 
+                            v-else-if="importedSnapshot.status === 'failed'" 
+                            type="danger" 
+                            size="small"
+                          >
+                            {{ $t('agent.tool.status.failed') }}
+                          </el-tag>
+                          <span class="test-time">{{ formatTime(importedSnapshot.timestamp) }}</span>
+                        </div>
+                      </div>
+                      
+                      <div v-if="importedSnapshot.params" class="test-params" :style="{ color: themeState.currentTheme.textColor }">
+                        <strong>{{ $t('setting.debug.parameters') }}:</strong>
+                        <pre :style="codeBlockStyle">{{ typeof importedSnapshot.params === 'string' ? importedSnapshot.params : JSON.stringify(importedSnapshot.params, null, 2) }}</pre>
+                      </div>
+                      
+                      <div v-if="importedSnapshot.error" class="test-error-message" :style="{ color: themeState.currentTheme.textColor }">
+                        <strong>{{ $t('setting.debug.error') }}:</strong>
+                        <pre :style="{ ...codeBlockStyle, backgroundColor: themeState.currentTheme.type === 'dark' ? 'rgba(245, 108, 108, 0.15)' : '#fef0f0', color: '#f56c6c' }">{{ importedSnapshot.error }}</pre>
+                      </div>
+                      
+                      <!-- 如果有显示组件，展示渲染卡片 -->
+                      <div v-if="importedSnapshot.displayComponent && importedSnapshot.outputs && importedSnapshot.outputs.length > 0" class="test-display-component">
+                        <el-divider>{{ $t('setting.debug.renderResult') }}</el-divider>
+                        <el-collapse :model-value="getActivePanels(importedSnapshot)" accordion>
+                          <el-collapse-item
+                            v-for="output in importedSnapshot.outputs"
+                            :key="output.id"
+                            :name="output.id"
+                          >
+                            <template #title>
+                              <div style="display: flex; align-items: center; gap: 8px;">
+                                <span>{{ output.label }}</span>
+                                <el-tag size="small" effect="light">{{ output.format }}</el-tag>
+                              </div>
+                            </template>
+                            <div class="output-body">
+                              <!-- 如果有渲染组件，使用组件渲染 -->
+                              <component
+                                v-if="getDisplayComponent(output.renderer || importedSnapshot.displayComponent)"
+                                :is="getDisplayComponent(output.renderer || importedSnapshot.displayComponent)"
+                                :data="output.data"
+                                :status="importedSnapshot.error ? 'failed' : (importedSnapshot.status || 'succeeded')"
+                                :progress="importedSnapshot.progress"
+                                :error="importedSnapshot.error"
+                                :tool-config="importedSnapshot.toolConfig"
+                                :invocation-id="importedSnapshot.invocationId"
+                              />
+                              <!-- 否则使用纯文本渲染 -->
+                              <pre v-else class="raw-text" :style="codeBlockStyle">{{ formatResult(output.data && typeof output.data === 'object' && 'content' in output.data ? output.data.content : output.data) }}</pre>
+                            </div>
+                          </el-collapse-item>
+                        </el-collapse>
+                      </div>
+                      
+                      <!-- 原始结果数据 -->
+                      <div v-if="importedSnapshot.result !== undefined" class="test-result-data" :style="{ color: themeState.currentTheme.textColor }">
+                        <el-divider>{{ $t('setting.debug.rawResult') }}</el-divider>
+                        <pre :style="codeBlockStyle">{{ formatResult(importedSnapshot.result) }}</pre>
+                      </div>
                     </div>
-                  </el-option>
-                </el-select>
-                <el-button
-                  type="primary"
-                  :icon="Upload"
-                  @click="handleImportSessionJson"
-                  :disabled="!agentSessionDebugForm.tabId"
-                >
-                  导入会话
-                </el-button>
+                  </div>
+                </div>
               </div>
-            </el-form-item>
-          </el-form>
+              <div v-else-if="activeTab === 'autotest'" class="tab-content">
+                <div class="test-panel" :style="testPanelStyle">
+                  <el-form :model="autoTestForm" label-width="140px">
+                    <el-form-item label="选择要测试的Tool">
+                      <el-select
+                        v-model="autoTestForm.selectedTools"
+                        multiple
+                        placeholder="选择要测试的Tool（留空则测试所有）"
+                        style="width: 100%"
+                        filterable
+                      >
+                        <el-option
+                          v-for="tool in availableTools"
+                          :key="tool.config.id"
+                          :label="getToolDisplayName(tool?.config || { id: tool?.config?.id || '' })"
+                          :value="tool?.config?.id || ''"
+                        />
+                      </el-select>
+                    </el-form-item>
 
-          <!-- 会话详情 -->
-          <div v-if="selectedSession" class="session-debug-details" style="margin-top: 20px;">
-            <el-tabs v-model="sessionDebugActiveTab" type="border-card" tab-position="top">
-              <!-- 执行节点列表 -->
-              <el-tab-pane label="执行节点" name="nodes">
-                <el-scrollbar height="400px">
-                  <div v-if="selectedSession.executionNodes && selectedSession.executionNodes.length > 0">
-                    <div
-                      v-for="(node, index) in selectedSession.executionNodes"
-                      :key="node.id"
-                      class="execution-node-item"
-                      :class="{ 'current-node': node.id === selectedSession.currentExecutionNodeId }"
-                      :style="executionNodeItemStyle"
-                    >
+                    <!-- 上下文Tab选择 -->
+                    <el-form-item label="上下文Tab">
+                      <el-select
+                        v-model="autoTestForm.contextTabId"
+                        placeholder="选择上下文Tab（用于模拟文档环境，可选）"
+                        style="width: 100%"
+                        clearable
+                      >
+                        <el-option
+                          label="（不指定，使用当前活动Tab）"
+                          value=""
+                        />
+                        <el-option
+                          v-for="tab in documentTabs"
+                          :key="tab.id"
+                          :label="`${tab.title || tab.subtitle || '未命名'} (${tab.id})`"
+                          :value="tab.id"
+                        />
+                      </el-select>
+                      <div style="margin-top: 4px; font-size: 12px; color: var(--el-text-color-secondary);">
+                        <el-icon><InfoFilled /></el-icon>
+                        <span>选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span>
+                      </div>
+                    </el-form-item>
+
+                    <el-form-item>
+                      <el-button 
+                        type="primary" 
+                        @click="runAutoTests" 
+                        :loading="autoTestRunning"
+                        :disabled="autoTestRunning"
+                      >
+                        {{ autoTestRunning ? '测试中...' : '开始自动测试' }}
+                      </el-button>
+                      <el-button 
+                        @click="stopAutoTests" 
+                        :disabled="!autoTestRunning"
+                      >
+                        停止测试
+                      </el-button>
+                    </el-form-item>
+                  </el-form>
+
+                  <!-- 测试结果 -->
+                  <div v-if="autoTestResults.length > 0 || autoTestRunning" class="auto-test-results" style="margin-top: 20px;">
+                    <el-divider style="margin-top: 0;">测试结果</el-divider>
+                    <AutoTestResultDisplay
+                      v-if="autoTestResults.length > 0"
+                      :test-results="autoTestResults"
+                      :summary="autoTestSummary"
+                      :markdown-summary="autoTestMarkdown"
+                    />
+                    <div v-else-if="autoTestRunning" class="test-progress-info">
+                      <el-progress
+                        :percentage="autoTestProgress"
+                        :status="autoTestRunning ? undefined : 'success'"
+                      >
+                        <template #default="{ percentage }">
+                          <span>{{ autoTestCurrentTest }}</span>
+                          <span style="margin-left: 8px;">{{ percentage }}%</span>
+                        </template>
+                      </el-progress>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-else-if="activeTab === 'unittest'" class="tab-content">
+                <el-tabs v-model="unitTestActiveTab" type="border-card" tab-position="top" style="height: 100%;">
+                  <!-- 单个测试 -->
+                  <el-tab-pane :label="$t('setting.debug.unitTest.singleTest')" name="single">
+                    <div class="test-panel" :style="testPanelStyle">
+                      <el-form :model="testForm" label-width="140px">
+                        <el-form-item :label="$t('setting.debug.module')">
+                          <el-select
+                            v-model="testForm.module"
+                            :placeholder="$t('setting.debug.selectModule')"
+                            style="width: 100%"
+                            @change="handleModuleChange"
+                          >
+                            <el-option
+                              v-for="module in modules"
+                              :key="module"
+                              :label="module"
+                              :value="module"
+                            />
+                          </el-select>
+                        </el-form-item>
+                        <el-form-item :label="$t('setting.debug.testFunction')">
+                          <el-select
+                            v-model="testForm.testId"
+                            :placeholder="$t('setting.debug.selectTestFunction')"
+                            style="width: 100%"
+                            @change="handleTestChange"
+                          >
+                            <el-option
+                              v-for="test in availableTests"
+                              :key="test.id"
+                              :label="`${test.name}${test.description ? ' - ' + test.description : ''}`"
+                              :value="test.id"
+                            />
+                          </el-select>
+                        </el-form-item>
+
+                        <!-- 参数编辑区域 -->
+                        <template v-if="selectedTest && selectedTest.params && selectedTest.params.length > 0">
+                          <el-divider>{{ $t('setting.debug.parameters') }}</el-divider>
+                          <el-form-item
+                            v-for="param in selectedTest.params"
+                            :key="param.name"
+                            :label="`${param.name} (${param.type})`"
+                          >
+                            <template v-if="param.type === 'string' || param.type === 'number' || param.type === 'boolean'">
+                              <el-input
+                                v-if="param.type === 'string'"
+                                v-model="testForm.params[param.name]"
+                                :placeholder="param.description || param.name"
+                              />
+                              <el-input-number
+                                v-else-if="param.type === 'number'"
+                                v-model="testForm.params[param.name]"
+                                style="width: 100%"
+                              />
+                              <el-switch
+                                v-else-if="param.type === 'boolean'"
+                                v-model="testForm.params[param.name]"
+                              />
+                            </template>
+                            <el-input
+                              v-else
+                              v-model="testForm.params[param.name]"
+                              type="textarea"
+                              :rows="4"
+                              :placeholder="$t('setting.debug.jsonPlaceholder')"
+                            />
+                          </el-form-item>
+                        </template>
+
+                        <el-form-item>
+                          <el-button type="primary" @click="executeTest" :loading="testExecuting">
+                            {{ $t('setting.debug.executeTest') }}
+                          </el-button>
+                          <el-button @click="clearTestHistory">
+                            {{ $t('setting.debug.clearHistory') }}
+                          </el-button>
+                        </el-form-item>
+                      </el-form>
+
+                      <!-- 测试结果 -->
+                      <el-divider>{{ $t('setting.debug.testResult') }}</el-divider>
+                      <div class="test-result">
+                        <el-scrollbar height="300px">
+                          <div
+                            v-for="(entry, index) in testHistory"
+                            :key="index"
+                            class="test-history-item"
+                            :class="{ 'test-error': entry.error }"
+                            :style="entry.error ? testHistoryItemErrorStyle : testHistoryItemStyle"
+                          >
+                            <div class="test-history-header">
+                              <span class="test-name">{{ entry.name }}</span>
+                              <span class="test-time">{{ formatTime(entry.timestamp) }}</span>
+                            </div>
+                            <div v-if="entry.params && entry.params.length > 0" class="test-params">
+                              <strong>{{ $t('setting.debug.parameters') }}:</strong>
+                              <pre>{{ JSON.stringify(entry.params, null, 2) }}</pre>
+                            </div>
+                            <div v-if="entry.error" class="test-error-message">
+                              <strong>{{ $t('setting.debug.error') }}:</strong>
+                              <pre>{{ entry.error }}</pre>
+                            </div>
+                            <div v-else-if="entry.result !== undefined" class="test-result-data">
+                              <strong>{{ $t('setting.debug.result') }}:</strong>
+                              <pre>{{ formatResult(entry.result) }}</pre>
+                            </div>
+                          </div>
+                          <div v-if="testHistory.length === 0" class="test-empty">
+                            {{ $t('setting.debug.noHistory') }}
+                          </div>
+                        </el-scrollbar>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+
+                  <!-- 批量测试 -->
+                  <el-tab-pane :label="$t('setting.debug.unitTest.batchTest')" name="batch">
+                    <div class="test-panel" :style="testPanelStyle">
+                      <el-form :model="unitTestBatchForm" label-width="140px">
+                        <el-form-item :label="$t('setting.debug.unitTest.selectModules')">
+                          <el-select
+                            v-model="unitTestBatchForm.selectedModules"
+                            multiple
+                            placeholder="选择要测试的模块（留空则测试所有）"
+                            style="width: 100%"
+                            filterable
+                          >
+                            <el-option
+                              v-for="module in modules"
+                              :key="module"
+                              :label="module"
+                              :value="module"
+                            />
+                          </el-select>
+                        </el-form-item>
+
+                        <!-- 上下文Tab选择 -->
+                        <el-form-item label="上下文Tab">
+                          <el-select
+                            v-model="unitTestBatchForm.contextTabId"
+                            placeholder="选择上下文Tab（用于模拟文档环境，可选）"
+                            style="width: 100%"
+                            clearable
+                          >
+                            <el-option
+                              label="（不指定，使用当前活动Tab）"
+                              value=""
+                            />
+                            <el-option
+                              v-for="tab in documentTabs"
+                              :key="tab.id"
+                              :label="`${tab.title || tab.subtitle || '未命名'} (${tab.id})`"
+                              :value="tab.id"
+                            />
+                          </el-select>
+                          <div style="margin-top: 4px; font-size: 12px; color: var(--el-text-color-secondary);">
+                            <el-icon><InfoFilled /></el-icon>
+                            <span>选择文档Tab作为上下文，所有工具操作都会在该Tab中进行。如果不选择，将使用当前活动的Tab。</span>
+                          </div>
+                        </el-form-item>
+
+                        <el-form-item>
+                          <el-button 
+                            type="primary" 
+                            @click="runUnitTestBatch" 
+                            :loading="unitTestBatchRunning"
+                            :disabled="unitTestBatchRunning"
+                          >
+                            {{ unitTestBatchRunning ? '测试中...' : '开始批量测试' }}
+                          </el-button>
+                          <el-button 
+                            @click="stopUnitTestBatch" 
+                            :disabled="!unitTestBatchRunning"
+                          >
+                            停止测试
+                          </el-button>
+                        </el-form-item>
+                      </el-form>
+
+                      <!-- 测试结果 -->
+                      <div v-if="unitTestBatchResults.length > 0 || unitTestBatchRunning" class="unit-test-batch-results" style="margin-top: 20px;">
+                        <el-divider style="margin-top: 0;">测试结果</el-divider>
+                        <UnitTestResultDisplay
+                          v-if="unitTestBatchResults.length > 0"
+                          :test-results="unitTestBatchResults"
+                          :summary="unitTestBatchSummary"
+                          :markdown-summary="unitTestBatchMarkdown"
+                        />
+                        <div v-else-if="unitTestBatchRunning" class="test-progress-info">
+                          <el-progress
+                            :percentage="unitTestBatchProgress"
+                            :status="unitTestBatchRunning ? undefined : 'success'"
+                          >
+                            <template #default="{ percentage }">
+                              <span>{{ unitTestBatchCurrentTest }}</span>
+                              <span style="margin-left: 8px;">{{ percentage }}%</span>
+                            </template>
+                          </el-progress>
+                        </div>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+                </el-tabs>
+              </div>
+              <div v-else-if="activeTab === 'agentsessiondebug'" class="tab-content">
+                <el-tabs v-model="agentSessionDebugActiveTab" type="border-card" tab-position="top">
+                  <!-- 会话调试 -->
+                  <el-tab-pane label="会话调试" name="debug">
+                    <div class="test-panel" :style="testPanelStyle">
+                      <el-form :model="agentSessionDebugForm" label-width="140px">
+                        <el-form-item label="选择文档">
+                          <el-select
+                            v-model="agentSessionDebugForm.tabId"
+                            placeholder="选择要调试的文档"
+                            style="width: 100%"
+                            @change="handleSessionDebugTabChange"
+                            filterable
+                          >
+                            <el-option
+                              v-for="tab in workspaceTabs"
+                              :key="tab.id"
+                              :label="tab.title || tab.path || '未命名文档'"
+                              :value="tab.id"
+                            />
+                          </el-select>
+                        </el-form-item>
+
+                        <el-form-item label="选择会话" v-if="agentSessionDebugForm.tabId">
+                          <div style="display: flex; gap: 8px;">
+                            <el-select
+                              v-model="agentSessionDebugForm.sessionId"
+                              placeholder="选择要调试的会话"
+                              style="flex: 1"
+                              @change="handleSessionDebugSessionChange"
+                              filterable
+                            >
+                              <el-option
+                                v-for="session in availableSessions"
+                                :key="session.id"
+                                :label="session.title || session.id"
+                                :value="session.id"
+                              >
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                  <span>{{ session.title || session.id }}</span>
+                                  <el-tag size="small" type="info" style="margin-left: 8px;">
+                                    {{ session.messages?.length || 0 }} 条消息
+                                  </el-tag>
+                                </div>
+                              </el-option>
+                            </el-select>
+                            <el-button
+                              type="primary"
+                              :icon="Upload"
+                              @click="handleImportSessionJson"
+                              :disabled="!agentSessionDebugForm.tabId"
+                            >
+                              导入会话
+                            </el-button>
+                          </div>
+                        </el-form-item>
+                      </el-form>
+
+                      <!-- 会话详情 -->
+                      <div v-if="selectedSession" class="session-debug-details" style="margin-top: 20px;">
+                        <el-tabs v-model="sessionDebugActiveTab" type="border-card" tab-position="top">
+                          <!-- 执行节点列表 -->
+                          <el-tab-pane label="执行节点" name="nodes">
+                            <el-scrollbar height="400px">
+                              <div v-if="selectedSession.executionNodes && selectedSession.executionNodes.length > 0">
+                                <div
+                                  v-for="(node, index) in selectedSession.executionNodes"
+                                  :key="node.id"
+                                  class="execution-node-item"
+                                  :class="{ 'current-node': node.id === selectedSession.currentExecutionNodeId }"
+                                  :style="executionNodeItemStyle"
+                                >
                       <div class="node-header">
                         <div class="node-info">
                           <el-tag size="small" :type="getNodeTypeTagType(node.type)">
@@ -974,319 +1087,323 @@
                         <el-tag size="small" :type="getNodeStatusTagType(node.status)">
                           {{ getNodeStatusLabel(node.status) }}
                         </el-tag>
-                      </div>
-                      <div class="node-data">
-                        <el-collapse>
-                          <el-collapse-item title="节点数据" :name="node.id">
-                            <pre :style="messageContentStyle">{{ formatResult(node.data) }}</pre>
-                          </el-collapse-item>
-                          <el-collapse-item v-if="node.result" title="执行结果" :name="`${node.id}-result`">
-                            <pre :style="messageContentStyle">{{ formatResult(node.result) }}</pre>
-                          </el-collapse-item>
-                          <el-collapse-item v-if="node.error" title="错误信息" :name="`${node.id}-error`">
-                            <pre :style="{ ...messageContentStyle, color: '#f56c6c' }">{{ node.error }}</pre>
-                          </el-collapse-item>
-                        </el-collapse>
-                      </div>
+                                </div>
+                                <div class="node-data">
+                                  <el-collapse>
+                                    <el-collapse-item title="节点数据" :name="node.id">
+                                      <pre :style="messageContentStyle">{{ formatResult(node.data) }}</pre>
+                                    </el-collapse-item>
+                                    <el-collapse-item v-if="node.result" title="执行结果" :name="`${node.id}-result`">
+                                      <pre :style="messageContentStyle">{{ formatResult(node.result) }}</pre>
+                                    </el-collapse-item>
+                                    <el-collapse-item v-if="node.error" title="错误信息" :name="`${node.id}-error`">
+                                      <pre :style="{ ...messageContentStyle, color: '#f56c6c' }">{{ node.error }}</pre>
+                                    </el-collapse-item>
+                                  </el-collapse>
+                                </div>
+                              </div>
+                            </div>
+                            <div v-else class="test-empty">
+                              暂无执行节点
+                            </div>
+                          </el-scrollbar>
+                        </el-tab-pane>
+
+                        <!-- 消息列表 -->
+                        <el-tab-pane label="消息列表" name="messages">
+                          <el-scrollbar height="400px">
+                            <div v-if="selectedSession.messages && selectedSession.messages.length > 0">
+                              <div
+                                v-for="(message, index) in selectedSession.messages"
+                                :key="message.id"
+                                class="message-item"
+                                :class="{ 'user-message': message.role === 'user', 'assistant-message': message.role === 'assistant', 'tool-message': message.role === 'tool' }"
+                                :style="messageItemStyle"
+                              >
+                                <div class="message-header">
+                                  <div class="message-info">
+                                    <el-tag size="small" :type="getMessageRoleTagType(message.role)">
+                                      {{ getMessageRoleLabel(message.role) }}
+                                    </el-tag>
+                                    <span class="message-type">{{ message.type }}</span>
+                                    <span class="message-id">{{ message.id.substring(0, 16) }}...</span>
+                                    <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+                                  </div>
+                                  <div class="message-actions">
+                                    <el-button
+                                      v-if="message.role === 'user' && message.type === 'chat'"
+                                      size="small"
+                                      type="primary"
+                                      @click="handleReplayMessage(message.id)"
+                                    >
+                                      重新执行消息
+                                    </el-button>
+                                    <el-button
+                                      v-if="message.role === 'tool' && message.type === 'tool'"
+                                      size="small"
+                                      type="warning"
+                                      @click="handleReplayToolCallFromMessage(message.id)"
+                                    >
+                                      重新执行工具
+                                    </el-button>
+                                  </div>
+                                </div>
+                                <div class="message-content">
+                                  <el-collapse>
+                                    <el-collapse-item title="消息内容" :name="message.id">
+                                      <div v-if="message.type === 'chat'">
+                                        <pre :style="messageContentStyle">{{ (message as any).markdown || (message as any).content || '' }}</pre>
+                                      </div>
+                                      <div v-else-if="message.type === 'tool' && message.role === 'tool'">
+                                        <!-- 使用 AgentToolResultCard 显示工具消息 -->
+                                        <AgentToolResultCard
+                                          :message="message as ToolAgentMessage"
+                                          :messages="selectedSession.messages"
+                                          :message-index="index"
+                                        />
+                                      </div>
+                                      <div v-else>
+                                        <pre :style="messageContentStyle">{{ formatResult(message) }}</pre>
+                                      </div>
+                                    </el-collapse-item>
+                                    <el-collapse-item v-if="(message as any).tool_calls" title="工具调用" :name="`${message.id}-tool-calls`">
+                                      <pre :style="messageContentStyle">{{ formatResult((message as any).tool_calls) }}</pre>
+                                    </el-collapse-item>
+                                  </el-collapse>
+                                </div>
+                              </div>
+                            </div>
+                            <div v-else class="test-empty">
+                              暂无消息
+                            </div>
+                          </el-scrollbar>
+                        </el-tab-pane>
+
+                        <!-- 会话元数据 -->
+                        <el-tab-pane label="会话信息" name="metadata">
+                          <el-descriptions :column="1" border>
+                            <el-descriptions-item label="会话ID">{{ selectedSession.id }}</el-descriptions-item>
+                            <el-descriptions-item label="标题">{{ selectedSession.title }}</el-descriptions-item>
+                            <el-descriptions-item label="描述">{{ selectedSession.description || '无' }}</el-descriptions-item>
+                            <el-descriptions-item label="Agent配置ID">{{ selectedSession.agentConfigId || '无' }}</el-descriptions-item>
+                            <el-descriptions-item label="状态">
+                              <el-tag :type="getSessionStatusTagType(selectedSession.status)">
+                                {{ selectedSession.status || 'idle' }}
+                              </el-tag>
+                            </el-descriptions-item>
+                            <el-descriptions-item label="当前执行节点">{{ selectedSession.currentExecutionNodeId || '无' }}</el-descriptions-item>
+                            <el-descriptions-item label="消息数量">{{ selectedSession.messages?.length || 0 }}</el-descriptions-item>
+                            <el-descriptions-item label="执行节点数量">{{ selectedSession.executionNodes?.length || 0 }}</el-descriptions-item>
+                            <el-descriptions-item label="引用数量">{{ selectedSession.referenceStore?.length || 0 }}</el-descriptions-item>
+                            <el-descriptions-item label="创建时间">{{ formatTime(selectedSession.createdAt) }}</el-descriptions-item>
+                            <el-descriptions-item label="更新时间">{{ formatTime(selectedSession.updatedAt) }}</el-descriptions-item>
+                          </el-descriptions>
+                        </el-tab-pane>
+                      </el-tabs>
+                    </div>
+                    <div v-else class="test-empty" style="margin-top: 20px;">
+                      请先选择文档和会话
                     </div>
                   </div>
-                  <div v-else class="test-empty">
-                    暂无执行节点
-                  </div>
-                </el-scrollbar>
-              </el-tab-pane>
+                </el-tab-pane>
 
-              <!-- 消息列表 -->
-              <el-tab-pane label="消息列表" name="messages">
-                <el-scrollbar height="400px">
-                  <div v-if="selectedSession.messages && selectedSession.messages.length > 0">
-                    <div
-                      v-for="(message, index) in selectedSession.messages"
-                      :key="message.id"
-                      class="message-item"
-                      :class="{ 'user-message': message.role === 'user', 'assistant-message': message.role === 'assistant', 'tool-message': message.role === 'tool' }"
-                      :style="messageItemStyle"
-                    >
-                      <div class="message-header">
-                        <div class="message-info">
-                          <el-tag size="small" :type="getMessageRoleTagType(message.role)">
-                            {{ getMessageRoleLabel(message.role) }}
-                          </el-tag>
-                          <span class="message-type">{{ message.type }}</span>
-                          <span class="message-id">{{ message.id.substring(0, 16) }}...</span>
-                          <span class="message-time">{{ formatTime(message.timestamp) }}</span>
-                        </div>
-                        <div class="message-actions">
+                <!-- 会话回放 -->
+                <el-tab-pane label="会话回放" name="replay">
+                  <div class="test-panel" :style="testPanelStyle">
+                    <el-form :model="sessionReplayForm" label-width="140px">
+                      <el-form-item label="导入会话">
+                        <div style="display: flex; gap: 8px;">
                           <el-button
-                            v-if="message.role === 'user' && message.type === 'chat'"
-                            size="small"
                             type="primary"
-                            @click="handleReplayMessage(message.id)"
+                            :icon="Upload"
+                            @click="handleImportSessionForReplay"
                           >
-                            重新执行消息
+                            导入会话JSON
                           </el-button>
                           <el-button
-                            v-if="message.role === 'tool' && message.type === 'tool'"
-                            size="small"
-                            type="warning"
-                            @click="handleReplayToolCallFromMessage(message.id)"
+                            v-if="replaySession"
+                            @click="handleClearReplaySession"
                           >
-                            重新执行工具
+                            清除会话
                           </el-button>
                         </div>
-                      </div>
-                      <div class="message-content">
-                        <el-collapse>
-                          <el-collapse-item title="消息内容" :name="message.id">
-                            <div v-if="message.type === 'chat'">
-                              <pre :style="messageContentStyle">{{ (message as any).markdown || (message as any).content || '' }}</pre>
+                      </el-form-item>
+
+                      <el-form-item v-if="replaySession" label="会话信息">
+                        <el-descriptions :column="1" border size="small">
+                          <el-descriptions-item label="标题">{{ replaySession.title }}</el-descriptions-item>
+                          <el-descriptions-item label="消息数量">{{ replaySession.messages?.length || 0 }}</el-descriptions-item>
+                          <el-descriptions-item label="执行节点数量">{{ replaySession.executionNodes?.length || 0 }}</el-descriptions-item>
+                        </el-descriptions>
+                      </el-form-item>
+
+                      <el-form-item v-if="replaySession" label="回放控制">
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                          <!-- 第一行：主要控制按钮 -->
+                          <div style="display: flex; gap: 8px; align-items: center;">
+                            <el-button
+                              type="primary"
+                              @click="handleStartReplay"
+                              :disabled="isReplaying"
+                              :loading="isReplaying"
+                            >
+                              {{ isReplaying ? '回放中...' : '开始回放' }}
+                            </el-button>
+                            <el-button
+                              @click="handleStopReplay"
+                              :disabled="!isReplaying"
+                            >
+                              停止回放
+                            </el-button>
+                            <el-button
+                              @click="handleResetReplay"
+                              :disabled="isReplaying"
+                            >
+                              重置到开头
+                            </el-button>
+                            <el-button
+                              @click="handleReplayStepBack"
+                              :disabled="isReplaying || replayCurrentIndex < 0"
+                              size="small"
+                            >
+                              后退
+                            </el-button>
+                            <el-button
+                              @click="handleReplayStepForward"
+                              :disabled="isReplaying || replayCurrentIndex >= replayDisplayMessages.length - 1"
+                              size="small"
+                            >
+                              前进
+                            </el-button>
+                            <el-slider
+                              v-model="replaySpeed"
+                              :min="0.1"
+                              :max="5"
+                              :step="0.1"
+                              style="width: 200px; margin: 0 16px;"
+                              :format-tooltip="(val: number) => `${val}x`"
+                            />
+                            <span style="min-width: 60px;">{{ replaySpeed }}x</span>
+                          </div>
+                          <!-- 第二行：起始节点选择 -->
+                          <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="min-width: 80px;">起始节点:</span>
+                            <el-select
+                              v-model="replayStartIndex"
+                              :disabled="isReplaying"
+                              style="flex: 1;"
+                              placeholder="选择回放起始节点"
+                            >
+                              <el-option
+                                :label="`从头开始 (0)`"
+                                :value="0"
+                              />
+                              <el-option
+                                v-for="(msg, index) in replayDisplayMessages"
+                                :key="msg.id"
+                                :label="`消息 ${index + 1}: ${getMessageRoleLabel(msg.role)} - ${msg.type}`"
+                                :value="index + 1"
+                              />
+                            </el-select>
+                            <span style="min-width: 120px; font-size: 12px; color: var(--el-text-color-secondary);">
+                              当前: {{ replayCurrentIndex + 1 }} / {{ replayDisplayMessages.length }}
+                            </span>
+                          </div>
+                        </div>
+                      </el-form-item>
+                    </el-form>
+
+                    <!-- 回放显示区域 -->
+                    <div v-if="replaySession" class="replay-display" style="margin-top: 20px;">
+                      <el-scrollbar height="500px">
+                        <div
+                          v-for="(message, index) in replayDisplayMessages"
+                          :key="message.id"
+                          :data-replay-message-id="message.id"
+                          class="replay-message-item"
+                          :class="{
+                            'replay-message-user': message.role === 'user',
+                            'replay-message-assistant': message.role === 'assistant',
+                            'replay-message-tool': message.role === 'tool',
+                            'replay-message-replaying': message.isReplaying,
+                            'replay-message-replayed': message.isReplayed,
+                            'replay-message-pending': index > replayCurrentIndex
+                          }"
+                          :style="getReplayMessageItemStyle(index)"
+                        >
+                          <div class="replay-message-header">
+                            <el-tag size="small" :type="getMessageRoleTagType(message.role)">
+                              {{ getMessageRoleLabel(message.role) }}
+                            </el-tag>
+                            <span class="replay-message-time">{{ formatTime(message.timestamp) }}</span>
+                            <el-tag v-if="message.isReplaying" size="small" type="warning" effect="dark">
+                              回放中
+                            </el-tag>
+                            <el-tag v-if="message.isReplayed" size="small" type="success">
+                              已回放
+                            </el-tag>
+                            <!-- 显示解析出的工具调用 -->
+                            <template v-if="getParsedToolCalls(message).length > 0">
+                              <el-tag
+                                v-for="(toolCall, idx) in getParsedToolCalls(message)"
+                                :key="idx"
+                                size="small"
+                                :type="toolCall.isValid ? 'info' : 'danger'"
+                                effect="plain"
+                                style="margin-left: 8px;"
+                                :title="toolCall.isValid ? `工具ID: ${toolCall.tool_id}` : `错误: ${toolCall.error || '未知错误'}`"
+                              >
+                                {{ toolCall.isValid ? `工具: ${toolCall.tool_id}` : `解析错误` }}
+                              </el-tag>
+                              <el-tag
+                                v-if="getParsedToolCalls(message).length > 1"
+                                size="small"
+                                type="info"
+                                effect="plain"
+                                style="margin-left: 8px;"
+                              >
+                                共 {{ getParsedToolCalls(message).length }} 个工具调用
+                              </el-tag>
+                            </template>
+                          </div>
+                          <div class="replay-message-content">
+                            <div v-if="message.type === 'chat' && message.role === 'assistant'">
+                              <!-- 回放中显示流式内容，已回放显示完整内容 -->
+                              <pre :style="messageContentStyle">{{ message.isReplaying ? (message.displayContent || '') : (message.markdown || '') }}</pre>
+                            </div>
+                            <div v-else-if="message.type === 'chat' && message.role === 'user'">
+                              <pre :style="messageContentStyle">{{ (message as any).markdown || '' }}</pre>
                             </div>
                             <div v-else-if="message.type === 'tool' && message.role === 'tool'">
                               <!-- 使用 AgentToolResultCard 显示工具消息 -->
                               <AgentToolResultCard
                                 :message="message as ToolAgentMessage"
-                                :messages="selectedSession.messages"
+                                :messages="replayDisplayMessages as any"
                                 :message-index="index"
                               />
                             </div>
                             <div v-else>
                               <pre :style="messageContentStyle">{{ formatResult(message) }}</pre>
                             </div>
-                          </el-collapse-item>
-                          <el-collapse-item v-if="(message as any).tool_calls" title="工具调用" :name="`${message.id}-tool-calls`">
-                            <pre :style="messageContentStyle">{{ formatResult((message as any).tool_calls) }}</pre>
-                          </el-collapse-item>
-                        </el-collapse>
-                      </div>
+                          </div>
+                        </div>
+                        <div v-if="replayDisplayMessages.length === 0" class="test-empty">
+                          暂无消息
+                        </div>
+                      </el-scrollbar>
+                    </div>
+                    <div v-else class="test-empty" style="margin-top: 20px;">
+                      请先导入会话JSON文件
                     </div>
                   </div>
-                  <div v-else class="test-empty">
-                    暂无消息
-                  </div>
-                </el-scrollbar>
-              </el-tab-pane>
-
-              <!-- 会话元数据 -->
-              <el-tab-pane label="会话信息" name="metadata">
-                <el-descriptions :column="1" border>
-                  <el-descriptions-item label="会话ID">{{ selectedSession.id }}</el-descriptions-item>
-                  <el-descriptions-item label="标题">{{ selectedSession.title }}</el-descriptions-item>
-                  <el-descriptions-item label="描述">{{ selectedSession.description || '无' }}</el-descriptions-item>
-                  <el-descriptions-item label="Agent配置ID">{{ selectedSession.agentConfigId || '无' }}</el-descriptions-item>
-                  <el-descriptions-item label="状态">
-                    <el-tag :type="getSessionStatusTagType(selectedSession.status)">
-                      {{ selectedSession.status || 'idle' }}
-                    </el-tag>
-                  </el-descriptions-item>
-                  <el-descriptions-item label="当前执行节点">{{ selectedSession.currentExecutionNodeId || '无' }}</el-descriptions-item>
-                  <el-descriptions-item label="消息数量">{{ selectedSession.messages?.length || 0 }}</el-descriptions-item>
-                  <el-descriptions-item label="执行节点数量">{{ selectedSession.executionNodes?.length || 0 }}</el-descriptions-item>
-                  <el-descriptions-item label="引用数量">{{ selectedSession.referenceStore?.length || 0 }}</el-descriptions-item>
-                  <el-descriptions-item label="创建时间">{{ formatTime(selectedSession.createdAt) }}</el-descriptions-item>
-                  <el-descriptions-item label="更新时间">{{ formatTime(selectedSession.updatedAt) }}</el-descriptions-item>
-                </el-descriptions>
-              </el-tab-pane>
-            </el-tabs>
-          </div>
-          <div v-else class="test-empty" style="margin-top: 20px;">
-            请先选择文档和会话
-          </div>
+                </el-tab-pane>
+              </el-tabs>
             </div>
-          </el-tab-pane>
-
-          <!-- 会话回放 -->
-          <el-tab-pane label="会话回放" name="replay">
-            <div class="test-panel" :style="testPanelStyle">
-              <el-form :model="sessionReplayForm" label-width="140px">
-                <el-form-item label="导入会话">
-                  <div style="display: flex; gap: 8px;">
-                    <el-button
-                      type="primary"
-                      :icon="Upload"
-                      @click="handleImportSessionForReplay"
-                    >
-                      导入会话JSON
-                    </el-button>
-                    <el-button
-                      v-if="replaySession"
-                      @click="handleClearReplaySession"
-                    >
-                      清除会话
-                    </el-button>
-                  </div>
-                </el-form-item>
-
-                <el-form-item v-if="replaySession" label="会话信息">
-                  <el-descriptions :column="1" border size="small">
-                    <el-descriptions-item label="标题">{{ replaySession.title }}</el-descriptions-item>
-                    <el-descriptions-item label="消息数量">{{ replaySession.messages?.length || 0 }}</el-descriptions-item>
-                    <el-descriptions-item label="执行节点数量">{{ replaySession.executionNodes?.length || 0 }}</el-descriptions-item>
-                  </el-descriptions>
-                </el-form-item>
-
-                <el-form-item v-if="replaySession" label="回放控制">
-                  <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <!-- 第一行：主要控制按钮 -->
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                      <el-button
-                        type="primary"
-                        @click="handleStartReplay"
-                        :disabled="isReplaying"
-                        :loading="isReplaying"
-                      >
-                        {{ isReplaying ? '回放中...' : '开始回放' }}
-                      </el-button>
-                      <el-button
-                        @click="handleStopReplay"
-                        :disabled="!isReplaying"
-                      >
-                        停止回放
-                      </el-button>
-                      <el-button
-                        @click="handleResetReplay"
-                        :disabled="isReplaying"
-                      >
-                        重置到开头
-                      </el-button>
-                      <el-button
-                        @click="handleReplayStepBack"
-                        :disabled="isReplaying || replayCurrentIndex < 0"
-                        size="small"
-                      >
-                        后退
-                      </el-button>
-                      <el-button
-                        @click="handleReplayStepForward"
-                        :disabled="isReplaying || replayCurrentIndex >= replayDisplayMessages.length - 1"
-                        size="small"
-                      >
-                        前进
-                      </el-button>
-                      <el-slider
-                        v-model="replaySpeed"
-                        :min="0.1"
-                        :max="5"
-                        :step="0.1"
-                        style="width: 200px; margin: 0 16px;"
-                        :format-tooltip="(val: number) => `${val}x`"
-                      />
-                      <span style="min-width: 60px;">{{ replaySpeed }}x</span>
-                    </div>
-                    <!-- 第二行：起始节点选择 -->
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                      <span style="min-width: 80px;">起始节点:</span>
-                      <el-select
-                        v-model="replayStartIndex"
-                        :disabled="isReplaying"
-                        style="flex: 1;"
-                        placeholder="选择回放起始节点"
-                      >
-                        <el-option
-                          :label="`从头开始 (0)`"
-                          :value="0"
-                        />
-                        <el-option
-                          v-for="(msg, index) in replayDisplayMessages"
-                          :key="msg.id"
-                          :label="`消息 ${index + 1}: ${getMessageRoleLabel(msg.role)} - ${msg.type}`"
-                          :value="index + 1"
-                        />
-                      </el-select>
-                      <span style="min-width: 120px; font-size: 12px; color: var(--el-text-color-secondary);">
-                        当前: {{ replayCurrentIndex + 1 }} / {{ replayDisplayMessages.length }}
-                      </span>
-                    </div>
-                  </div>
-                </el-form-item>
-              </el-form>
-
-              <!-- 回放显示区域 -->
-              <div v-if="replaySession" class="replay-display" style="margin-top: 20px;">
-                <el-scrollbar height="500px">
-                  <div
-                    v-for="(message, index) in replayDisplayMessages"
-                    :key="message.id"
-                    :data-replay-message-id="message.id"
-                    class="replay-message-item"
-                    :class="{
-                      'replay-message-user': message.role === 'user',
-                      'replay-message-assistant': message.role === 'assistant',
-                      'replay-message-tool': message.role === 'tool',
-                      'replay-message-replaying': message.isReplaying,
-                      'replay-message-replayed': message.isReplayed,
-                      'replay-message-pending': index > replayCurrentIndex
-                    }"
-                    :style="getReplayMessageItemStyle(index)"
-                  >
-                    <div class="replay-message-header">
-                      <el-tag size="small" :type="getMessageRoleTagType(message.role)">
-                        {{ getMessageRoleLabel(message.role) }}
-                      </el-tag>
-                      <span class="replay-message-time">{{ formatTime(message.timestamp) }}</span>
-                      <el-tag v-if="message.isReplaying" size="small" type="warning" effect="dark">
-                        回放中
-                      </el-tag>
-                      <el-tag v-if="message.isReplayed" size="small" type="success">
-                        已回放
-                      </el-tag>
-                      <!-- 显示解析出的工具调用 -->
-                      <template v-if="getParsedToolCalls(message).length > 0">
-                        <el-tag
-                          v-for="(toolCall, idx) in getParsedToolCalls(message)"
-                          :key="idx"
-                          size="small"
-                          :type="toolCall.isValid ? 'info' : 'danger'"
-                          effect="plain"
-                          style="margin-left: 8px;"
-                          :title="toolCall.isValid ? `工具ID: ${toolCall.tool_id}` : `错误: ${toolCall.error || '未知错误'}`"
-                        >
-                          {{ toolCall.isValid ? `工具: ${toolCall.tool_id}` : `解析错误` }}
-                        </el-tag>
-                        <el-tag
-                          v-if="getParsedToolCalls(message).length > 1"
-                          size="small"
-                          type="info"
-                          effect="plain"
-                          style="margin-left: 8px;"
-                        >
-                          共 {{ getParsedToolCalls(message).length }} 个工具调用
-                        </el-tag>
-                      </template>
-                    </div>
-                    <div class="replay-message-content">
-                      <div v-if="message.type === 'chat' && message.role === 'assistant'">
-                        <!-- 回放中显示流式内容，已回放显示完整内容 -->
-                        <pre :style="messageContentStyle">{{ message.isReplaying ? (message.displayContent || '') : (message.markdown || '') }}</pre>
-                      </div>
-                      <div v-else-if="message.type === 'chat' && message.role === 'user'">
-                        <pre :style="messageContentStyle">{{ (message as any).markdown || '' }}</pre>
-                      </div>
-                      <div v-else-if="message.type === 'tool' && message.role === 'tool'">
-                        <!-- 使用 AgentToolResultCard 显示工具消息 -->
-                        <AgentToolResultCard
-                          :message="message as ToolAgentMessage"
-                          :messages="replayDisplayMessages as any"
-                          :message-index="index"
-                        />
-                      </div>
-                      <div v-else>
-                        <pre :style="messageContentStyle">{{ formatResult(message) }}</pre>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-if="replayDisplayMessages.length === 0" class="test-empty">
-                    暂无消息
-                  </div>
-                </el-scrollbar>
-              </div>
-              <div v-else class="test-empty" style="margin-top: 20px;">
-                请先导入会话JSON文件
-              </div>
-            </div>
-          </el-tab-pane>
-        </el-tabs>
-      </el-tab-pane>
-    </el-tabs>
+          </div>
+          </transition>
+        </el-card>
+      </div>
+    </div>
 
     <!-- 保存配置对话框 -->
     <el-dialog
@@ -1329,7 +1446,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, reactive, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus, Delete, Edit, InfoFilled, Search, Download, Upload } from '@element-plus/icons-vue';
+import { Plus, Delete, Edit, InfoFilled, Search, Download, Upload, Connection, Refresh, Tools, Document, Setting, VideoPlay, ChatDotRound } from '@element-plus/icons-vue';
 import eventBus, { sendBroadcast } from '../../utils/event-bus';
 import { testFramework, type TestFunction } from '../../utils/test-framework';
 // 移除 dayjs 导入，改用原生 Date 格式化
@@ -1371,6 +1488,7 @@ import { agentEngineManager } from '../../utils/agent-framework/agent-engine-man
 import { agentConfigManager } from '../../utils/agent-framework/agent-config-manager';
 import { AgentEngineExecutorFactory } from '../../utils/agent-framework/agent-engine-executor';
 import type { AgentSession, ToolAgentMessage } from '../../types/agent';
+import type { AgentMessage } from '../../types/agent';
 import { cloneDeep } from 'lodash';
 import { ToolRunner } from '../../utils/agent-framework/tool-runner';
 import { ref as vueRef } from 'vue';
@@ -1447,6 +1565,25 @@ if (typeof window !== 'undefined') {
 }
 
 const activeTab = ref('eventbus');
+
+// 处理菜单选择
+const handleMenuSelect = (key: string) => {
+  activeTab.value = key;
+};
+
+// 获取当前Tab标题
+const getCurrentTabTitle = () => {
+  const titles: Record<string, string> = {
+    'eventbus': t('setting.debug.eventBus'),
+    'updatetest': '更新测试',
+    'agenttool': 'Agent Tool测试',
+    'importsnapshot': t('setting.debug.importSnapshot'),
+    'autotest': 'Tool自动测试',
+    'unittest': t('setting.debug.unitTest.title'),
+    'agentsessiondebug': 'Agent会话调试'
+  };
+  return titles[activeTab.value] || '调试工具';
+};
 const eventBusActiveTab = ref('eventbus');
 
 // EventBus 表单
@@ -1486,7 +1623,8 @@ const testHistory = ref<Array<{
 // 单元测试批量测试相关
 const unitTestActiveTab = ref('single');
 const unitTestBatchForm = reactive({
-  selectedModules: [] as string[]
+  selectedModules: [] as string[],
+  contextTabId: '' // 上下文Tab ID（用于模拟文档上下文）
 });
 
 const unitTestBatchRunning = ref(false);
@@ -1498,7 +1636,8 @@ const unitTestBatchAbortController = ref<AbortController | null>(null);
 // Agent Tool测试相关
 const toolTestForm = reactive({
   toolId: '',
-  paramsJson: '{}'
+  paramsJson: '{}',
+  contextTabId: '' // 上下文Tab ID（用于模拟文档上下文）
 });
 
 const toolTestExecuting = ref(false);
@@ -1564,7 +1703,8 @@ const availableTestCases = computed(() => {
 
 // 自动测试相关
 const autoTestForm = reactive({
-  selectedTools: [] as string[]
+  selectedTools: [] as string[],
+  contextTabId: '' // 上下文Tab ID（用于模拟文档上下文）
 });
 
 const autoTestRunning = ref(false);
@@ -1590,6 +1730,14 @@ const agentSessionDebugForm = reactive({
 const sessionDebugActiveTab = ref('nodes');
 const agentSessionDebugActiveTab = ref('debug');
 const workspaceTabs = computed(() => workspace.tabs);
+
+// 获取文档类型的tabs（用于上下文选择）
+const documentTabs = computed(() => {
+  return workspace.tabs.filter(tab => {
+    // 只返回文档类型的tabs（不是tool或system类型）
+    return tab.kind !== 'tool' && tab.kind !== 'system';
+  });
+});
 
 // 会话回放相关
 const sessionReplayForm = reactive({});
@@ -2201,6 +2349,15 @@ const executeToolTest = async () => {
   }
 
   toolTestExecuting.value = true;
+  
+  // 保存原始活动Tab ID，用于恢复
+  const originalActiveTabId = workspace.activeTabId.value;
+  let shouldRestoreTab = false;
+  
+  // 创建当前执行项的时间戳（在try块外部定义，以便在catch块中使用）
+  const entryTimestamp = Date.now();
+  let invocationId: string | undefined = undefined;
+  
   try {
     // 解析参数
     let params: Record<string, any> = {};
@@ -2208,7 +2365,32 @@ const executeToolTest = async () => {
       params = JSON.parse(toolTestForm.paramsJson || '{}');
     } catch (error) {
       ElMessage.error('参数JSON格式错误');
-      return;
+      throw error; // 抛出错误而不是return，确保finally块执行
+    }
+
+    // 如果指定了上下文Tab，临时激活它
+    if (toolTestForm.contextTabId) {
+      // 检查tab是否存在
+      const contextTab = workspace.tabs.find(tab => tab.id === toolTestForm.contextTabId);
+      if (!contextTab) {
+        ElMessage.error(`指定的上下文Tab不存在: ${toolTestForm.contextTabId}`);
+        throw new Error(`指定的上下文Tab不存在: ${toolTestForm.contextTabId}`);
+      }
+      
+      // 如果tab不是文档类型，提示错误
+      if (contextTab.kind === 'tool' || contextTab.kind === 'system') {
+        ElMessage.error('上下文Tab必须是文档类型的Tab，不能是工具Tab或系统Tab');
+        throw new Error('上下文Tab必须是文档类型的Tab，不能是工具Tab或系统Tab');
+      }
+      
+      // 临时激活上下文Tab
+      workspace.activateTab(toolTestForm.contextTabId);
+      shouldRestoreTab = true;
+      
+      // 如果params中没有tabId，也添加tabId参数（某些工具可能需要）
+      if (!params.tabId) {
+        params.tabId = toolTestForm.contextTabId;
+      }
     }
 
     const tool = agentToolManager.getTool(toolTestForm.toolId);
@@ -2217,8 +2399,6 @@ const executeToolTest = async () => {
     }
 
     // 创建当前执行项，实时更新
-    let invocationId: string | undefined = undefined;
-    const entryTimestamp = Date.now();
     
     const currentEntry: {
       toolId: string;
@@ -2588,19 +2768,43 @@ const executeToolTest = async () => {
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    ElMessage.error(`Tool执行失败: ${errorMessage}`);
+    ElMessage.error(`执行失败: ${errorMessage}`);
     
-    const tool = agentToolManager.getTool(toolTestForm.toolId);
-    if (tool) {
-      toolTestHistory.value.unshift({
-        toolId: toolTestForm.toolId,
-        toolName: getToolDisplayName(tool.config),
-        timestamp: Date.now(),
-        params: JSON.parse(toolTestForm.paramsJson || '{}'),
+    // 更新当前项为失败状态
+    const errorIndex = toolTestHistory.value.findIndex(entry => 
+      entry.toolId === toolTestForm.toolId && entry.timestamp === entryTimestamp
+    );
+    if (errorIndex !== -1) {
+      const oldEntry = toolTestHistory.value[errorIndex];
+      toolTestHistory.value.splice(errorIndex, 1, {
+        ...oldEntry,
+        status: 'failed' as any,
         error: errorMessage
       });
+    } else {
+      // 如果找不到entry，创建一个新的失败记录
+      const tool = agentToolManager.getTool(toolTestForm.toolId);
+      if (tool) {
+        toolTestHistory.value.unshift({
+          toolId: toolTestForm.toolId,
+          toolName: getToolDisplayName(tool.config),
+          timestamp: Date.now(),
+          status: 'failed' as any,
+          params: JSON.parse(toolTestForm.paramsJson || '{}'),
+          error: errorMessage
+        });
+      }
     }
   } finally {
+    // 恢复原始活动Tab（如果之前临时激活了上下文Tab）
+    if (shouldRestoreTab && originalActiveTabId) {
+      // 检查原始tab是否还存在
+      const originalTab = workspace.tabs.find(tab => tab.id === originalActiveTabId);
+      if (originalTab) {
+        workspace.activateTab(originalActiveTabId);
+      }
+    }
+    
     toolTestExecuting.value = false;
   }
 };
@@ -2729,6 +2933,11 @@ const runTestWithConcurrency = async function(
   // 处理测试用例参数中的占位符
   const processTestParams = (params: Record<string, any>): Record<string, any> => {
     const processed = JSON.parse(JSON.stringify(params)); // 深拷贝
+    
+    // 如果指定了上下文Tab，且params中没有tabId，则添加tabId
+    if (autoTestForm.contextTabId && !processed.tabId) {
+      processed.tabId = autoTestForm.contextTabId;
+    }
     
     // 获取测试数据目录路径
     // 在 Electron 环境中，路径会在主进程中解析
@@ -2924,7 +3133,12 @@ const runTestWithConcurrency = async function(
       testResult.duration = duration;
       
       // 断言：判断状态是否为成功
-      if (result.status === 'succeeded') {
+      // 若用例标记为 expectError（应返回错误），则工具返回 failed 时视为通过
+      const expectError = !!(testCase as { expectError?: boolean }).expectError;
+      if (expectError && result.status === 'failed') {
+        testResult.passed = true;
+        testResult.result = result.data || result.result;
+      } else if (result.status === 'succeeded') {
         // 对于终端执行工具，需要额外检查执行结果
         if (toolId === 'terminal-execution' && result.result) {
           const terminalResult = result.result as {
@@ -3047,6 +3261,27 @@ const runAutoTests = async () => {
     return;
   }
   
+  // 保存原始活动Tab ID，用于恢复
+  const originalActiveTabId = workspace.activeTabId.value;
+  let shouldRestoreTab = false;
+  
+  // 如果指定了上下文Tab，验证并临时激活
+  if (autoTestForm.contextTabId) {
+    const contextTab = workspace.tabs.find(tab => tab.id === autoTestForm.contextTabId);
+    if (!contextTab) {
+      ElMessage.error(`指定的上下文Tab不存在: ${autoTestForm.contextTabId}`);
+      return;
+    }
+    
+    if (contextTab.kind === 'tool' || contextTab.kind === 'system') {
+      ElMessage.error('上下文Tab必须是文档类型的Tab，不能是工具Tab或系统Tab');
+      return;
+    }
+    
+    workspace.activateTab(autoTestForm.contextTabId);
+    shouldRestoreTab = true;
+  }
+  
   autoTestResults.value = [];
   autoTestRunning.value = true;
   autoTestProgress.value = 0;
@@ -3115,6 +3350,14 @@ const runAutoTests = async () => {
   } catch (error) {
     ElMessage.error(`自动测试失败: ${error instanceof Error ? error.message : String(error)}`);
   } finally {
+    // 恢复原始活动Tab（如果之前临时激活了上下文Tab）
+    if (shouldRestoreTab && originalActiveTabId) {
+      const originalTab = workspace.tabs.find(tab => tab.id === originalActiveTabId);
+      if (originalTab) {
+        workspace.activateTab(originalActiveTabId);
+      }
+    }
+    
     autoTestRunning.value = false;
     autoTestAbortController.value = null;
   }
@@ -3366,6 +3609,27 @@ const runUnitTestBatch = async () => {
     return;
   }
   
+  // 保存原始活动Tab ID，用于恢复
+  const originalActiveTabId = workspace.activeTabId.value;
+  let shouldRestoreTab = false;
+  
+  // 如果指定了上下文Tab，验证并临时激活
+  if (unitTestBatchForm.contextTabId) {
+    const contextTab = workspace.tabs.find(tab => tab.id === unitTestBatchForm.contextTabId);
+    if (!contextTab) {
+      ElMessage.error(`指定的上下文Tab不存在: ${unitTestBatchForm.contextTabId}`);
+      return;
+    }
+    
+    if (contextTab.kind === 'tool' || contextTab.kind === 'system') {
+      ElMessage.error('上下文Tab必须是文档类型的Tab，不能是工具Tab或系统Tab');
+      return;
+    }
+    
+    workspace.activateTab(unitTestBatchForm.contextTabId);
+    shouldRestoreTab = true;
+  }
+  
   unitTestBatchResults.value = [];
   unitTestBatchRunning.value = true;
   unitTestBatchProgress.value = 0;
@@ -3418,6 +3682,14 @@ const runUnitTestBatch = async () => {
   } catch (error) {
     ElMessage.error(`批量测试失败: ${error instanceof Error ? error.message : String(error)}`);
   } finally {
+    // 恢复原始活动Tab（如果之前临时激活了上下文Tab）
+    if (shouldRestoreTab && originalActiveTabId) {
+      const originalTab = workspace.tabs.find(tab => tab.id === originalActiveTabId);
+      if (originalTab) {
+        workspace.activateTab(originalActiveTabId);
+      }
+    }
+    
     unitTestBatchRunning.value = false;
     unitTestBatchAbortController.value = null;
   }
@@ -4680,7 +4952,7 @@ const getReplayMessageItemStyle = (index: number) => {
 };
 
 // 解析消息中的工具调用
-const getParsedToolCalls = (message: AgentMessage & { displayContent?: string; isReplaying?: boolean; isReplayed?: boolean }): ParsedToolCall[] => {
+const getParsedToolCalls = (message: any): ParsedToolCall[] => {
   // 只解析 assistant 的 chat 消息
   if (message.role !== 'assistant' || message.type !== 'chat') {
     return [];
@@ -4753,6 +5025,112 @@ onMounted(async () => {
   flex-direction: column;
   overflow: hidden;
   box-sizing: border-box;
+  background-color: v-bind('themeState.currentTheme.background');
+}
+
+.debug-layout {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.debug-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background-color: v-bind('themeState.currentTheme.background2nd');
+  border-right: 1px solid v-bind('themeState.currentTheme.borderColor');
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.debug-menu {
+  border-right: none;
+  background-color: transparent;
+}
+
+.debug-menu :deep(.el-menu-item) {
+  height: 48px;
+  line-height: 48px;
+  margin: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.debug-menu :deep(.el-menu-item:hover) {
+  background-color: v-bind('themeState.currentTheme.background');
+}
+
+.debug-menu :deep(.el-menu-item.is-active) {
+  background-color: v-bind('themeState.currentTheme.primaryColor');
+  color: #fff;
+}
+
+.debug-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  min-width: 0;
+}
+
+.debug-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s ease;
+}
+
+.debug-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.debug-card :deep(.el-card__body) {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.tab-content-wrapper {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-content {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: v-bind('themeState.currentTheme.textColor');
+}
+
+/* 过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 .debug-section :deep(.el-tabs) {

@@ -266,7 +266,7 @@ function syncMarkdownFromOutline() {
 
 /**
  * 为 vditor 大纲面板注入可拖拽调整宽度的分割线
- * 在大纲面板的右侧添加一个拖拽手柄，允许用户自由调整大纲宽度
+ * 用 wrapper 包裹大纲，手柄放在大纲右侧（滚动条右边），始终可见、易操作
  */
 function setupOutlineResizer() {
     const editorElement = vditor.value?.vditor?.element;
@@ -275,17 +275,37 @@ function setupOutlineResizer() {
     const outlineEl = editorElement.querySelector('.vditor-outline') as HTMLElement;
     if (!outlineEl) return;
 
-    // 始终应用保存的宽度（即使 handle 已存在，切换显示/隐藏后也需要重新应用）
+    // 始终应用保存的宽度
     outlineEl.style.width = outlineWidth.value + 'px';
-    outlineEl.style.position = 'relative';
 
-    // 如果 handle 已存在，无需重复创建
-    if (outlineEl.querySelector('.outline-resize-handle')) return;
+    let wrapper = outlineEl.parentElement?.classList.contains('outline-resize-wrapper')
+        ? outlineEl.parentElement as HTMLElement
+        : null;
+    let handle = wrapper?.querySelector('.outline-resize-handle') as HTMLElement | null;
 
-    // 创建拖拽手柄
-    const handle = document.createElement('div');
-    handle.className = 'outline-resize-handle';
-    outlineEl.appendChild(handle);
+    if (wrapper && handle) {
+        // 已存在 wrapper 和 handle，只更新宽度并同步显示状态
+        outlineEl.style.width = outlineWidth.value + 'px';
+        wrapper.style.display = outlineEl.style.display === 'none' ? 'none' : 'flex';
+        return;
+    }
+
+    if (!wrapper) {
+        // 用 wrapper 包裹大纲，手柄作为兄弟节点放在大纲右侧（在滚动条右边）
+        wrapper = document.createElement('div');
+        wrapper.className = 'outline-resize-wrapper';
+        const parent = outlineEl.parentElement!;
+        parent.insertBefore(wrapper, outlineEl);
+        wrapper.appendChild(outlineEl);
+    }
+
+    if (!handle) {
+        handle = document.createElement('div');
+        handle.className = 'outline-resize-handle';
+        wrapper.appendChild(handle);
+    }
+
+    wrapper.style.display = outlineEl.style.display === 'none' ? 'none' : 'flex';
 
     // 拖拽逻辑
     let startX = 0;
@@ -404,9 +424,6 @@ const markEditorInteraction = () => {
 };
 
 const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:scheduleSetValue',message:'scheduleSetValue CALLED',data:{stack:(new Error()).stack?.split('\n').slice(1,5).join('|'),valueLen:value?.length},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     // 保存流程期间禁止任何 Vditor 写操作
     if (isSaveInProgress.value) return;
     const normalized = value ?? '';
@@ -457,9 +474,6 @@ const scheduleSetValue = (value: string, options: SetValueOptions = {}) => {
             }
             
             // 执行 setValue（这可能会重置主题）
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:vditor.setValue',message:'vditor.setValue EXECUTING',data:{normalizedLen:normalized.length},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
             vditor.value?.setValue(normalized, options.clearHistory ?? true);
             lastAppliedContent.value = normalized;
             
@@ -768,18 +782,12 @@ const handleClick = async (event: MouseEvent, title: string, path: string) => {
 };
 
 const handleRefresh = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:handleRefresh',message:'handleRefresh CALLED (will scheduleSetValue)',data:{},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     if (!isActive.value) return;
     scheduleSetValue(currentMarkdown.value, { clearHistory: true, timeoutMs: 0 });
 };
 eventBus.on('refresh', handleRefresh);
 
 const handleSyncActiveEditor = async (payload?: { tabId?: string }) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:handleSyncActiveEditor',message:'handleSyncActiveEditor ENTRY',data:{tabId:payload?.tabId,propsTabId:props.tabId},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const resolvedTabId = payload?.tabId ?? activeTabIdRef?.value;
     if (resolvedTabId !== props.tabId) return;
     if (!vditor.value) return;
@@ -800,9 +808,6 @@ const handleSyncActiveEditor = async (payload?: { tabId?: string }) => {
         // 如果规范化后的内容相同，说明文档模型已经和编辑器内容同步，
         // 不需要调用 updateDocumentMarkdown，避免触发不必要的 watch 和 setValue
         if (normalizedLatest !== normalizedCurrent) {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:handleSyncActiveEditor',message:'content CHANGED, setting skipNextWatchFromSync=true',data:{},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
             lastAppliedContent.value = normalizedLatest;
             skipNextWatchFromSync.value = true;
             workspace.updateDocumentMarkdown(props.tabId, latest);
@@ -2049,6 +2054,12 @@ onMounted(async () => {
                                         await new Promise(resolve => setTimeout(resolve, 100));
                                         setupOutlineResizer();
                                         bindTitleMenu();
+                                    } else {
+                                        // 大纲隐藏时同步隐藏 wrapper，避免残留一条 resize 条
+                                        const w = (outlineContainer as HTMLElement).parentElement;
+                                        if (w?.classList.contains('outline-resize-wrapper')) {
+                                            (w as HTMLElement).style.display = 'none';
+                                        }
                                     }
                                 });
                                 
@@ -2216,9 +2227,6 @@ onBeforeUnmount(() => {
 
 const handleSyncEditorTheme = async (payload?: unknown) => {
     const resolve = (payload as { resolve?: () => void })?.resolve;
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:handleSyncEditorTheme',message:'handleSyncEditorTheme ENTRY (calls setTheme)',data:{},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     try {
     if (!isActive.value || !vditor.value) return;
     // 不在此处阻止：保存后需调用 setTheme 恢复主题，由调用方确保仅在适当时机调用
@@ -2280,12 +2288,6 @@ watch(
     (content) => {
         if (!isActive.value) return;
         const incoming = content ?? '';
-        // #region agent log
-        const skipVal = skipNextWatchFromSync.value;
-        const saveVal = isSavingFromEditor;
-        const sameContent = incoming === lastAppliedContent.value;
-        fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:watch(currentMarkdown)',message:'watch fired',data:{skipNextWatchFromSync:skipVal,isSavingFromEditor:saveVal,incomingEqLast:sameContent,incomingLen:incoming.length},timestamp:Date.now(),hypothesisId:'A,B'})}).catch(()=>{});
-        // #endregion
         // 由 sync-active-editor 触发的 updateDocumentMarkdown 导致的变化：不写回 Vditor，编辑器已有该内容
         if (skipNextWatchFromSync.value) {
             skipNextWatchFromSync.value = false;
@@ -2297,9 +2299,6 @@ watch(
             return;
         }
         if (incoming !== lastAppliedContent.value) {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:watch->scheduleSetValue',message:'watch CALLING scheduleSetValue',data:{},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
             // 注意：scheduleSetValue 内部会在 setValue 后自动重新应用主题
             // 关键修复：使用 timeoutMs: 0 立即执行，避免 requestIdleCallback 延迟导致主题应用延迟
             // 这里才是真正的"外部更新"（如打开文件、大纲同步、Tab 切换等），需要回写到编辑器
@@ -2312,9 +2311,6 @@ watch(
 watch(
     isActive,
     async (active) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:watch(isActive)',message:'isActive watch fired',data:{active},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
         if (!active) return;
         // 如果Vditor还未初始化，等待初始化完成
         if (!vditor.value) {
@@ -2363,17 +2359,11 @@ watch(
         // 保存期间禁止 scheduleSetValue，由 isSaveInProgress 统一控制
         if (isSaveInProgress.value) return;
         if (desired !== lastAppliedContent.value) {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:watch(isActive)->scheduleSetValue',message:'isActive watch CALLING scheduleSetValue (desired!==lastApplied)',data:{desiredLen:desired?.length},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
-            // #endregion
             scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0 });
         } else if (vditor.value && vditor.value.vditor && vditor.value.vditor.ir) {
             try {
                 const currentValue = vditor.value.getValue();
                 if (currentValue !== desired) {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MarkdownEditor.vue:watch(isActive)->scheduleSetValue',message:'isActive watch CALLING scheduleSetValue (currentValue!==desired)',data:{},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
-                    // #endregion
                     scheduleSetValue(desired, { clearHistory: true, timeoutMs: 0 });
                 }
             } catch (error) {
@@ -2578,16 +2568,25 @@ watch(
     z-index: 1000;
 }
 
-/* 大纲宽度拖拽手柄 */
+/* 大纲 + 右侧 resize 条：wrapper 让手柄在滚动条右边，始终可见 */
+.editor :deep(.outline-resize-wrapper) {
+    display: flex;
+    flex-direction: row;
+    flex-shrink: 0;
+}
+
+.editor :deep(.outline-resize-wrapper .vditor-outline) {
+    flex-shrink: 0;
+}
+
+/* 默认与大纲面板同色，不显条；hover 才显示灰色条 */
 .editor :deep(.outline-resize-handle) {
-    position: absolute;
-    top: 0;
-    right: -2px;
-    width: 5px;
-    height: 100%;
+    flex: 0 0 8px;
+    width: 8px;
+    min-width: 8px;
+    align-self: stretch;
     cursor: col-resize;
-    z-index: 10;
-    background: transparent;
+    background-color: var(--panel-background-color);
     transition: background-color 0.2s ease;
     box-sizing: border-box;
 }

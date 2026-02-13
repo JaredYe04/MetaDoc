@@ -251,8 +251,12 @@ import { renderMarkdownPreview } from '../utils/md-utils'
 import { parseCSV } from '../utils/agent-tools/data-analysis-tool'
 import StreamingContentDisplay from '../components/common/StreamingContentDisplay.vue'
 import type { Ref } from 'vue'
+import { useWorkspace } from '../stores/workspace'
 
 const { t } = useI18n()
+const workspace = useWorkspace()
+
+const ourTabId = computed(() => workspace.tabs.find(tab => tab.kind === 'tool' && tab.route === '/data-analysis')?.id ?? null)
 
 const sessions = ref<SessionListItem[]>([])
 const activeSessionId = ref<string | null>(null)
@@ -340,6 +344,8 @@ const handleCreateSession = async () => {
     
     await loadSessions()
     activeSessionId.value = id
+    const tid = ourTabId.value
+    if (tid) workspace.setTabToolState(tid, { activeSessionId: id })
     activeSessionData.value = {
       ...newSession,
       created_at: new Date().toISOString(),
@@ -381,6 +387,8 @@ const handleSelectSession = async (item: SessionListItem) => {
     }
     
     activeSessionId.value = item.id
+    const tid = ourTabId.value
+    if (tid) workspace.setTabToolState(tid, { activeSessionId: item.id })
     selectedRowCount.value = 0
     const session = await dataAnalysisSessionsDb.getById(item.id)
     if (session) {
@@ -1607,6 +1615,23 @@ const emptyResultStyle = computed(() => ({
   textAlign: 'center' as const,
   padding: '40px'
 }))
+
+// 窗口迁移后恢复当前选中的会话
+watch(
+  [() => workspace.activeTabId.value, ourTabId, () => sessions.value],
+  () => {
+    const tid = ourTabId.value
+    if (!tid || workspace.activeTabId.value !== tid || sessions.value.length === 0) return
+    const state = workspace.getTabToolState(tid)
+    const savedId = state.activeSessionId
+    if (!savedId || !sessions.value.some(s => s.id === savedId)) return
+    if (activeSessionId.value === savedId) return
+    const item = sessions.value.find(s => s.id === savedId)!
+    activeSessionId.value = savedId
+    handleSelectSession(item)
+  },
+  { immediate: true, deep: true }
+)
 
 onMounted(() => {
   loadSessions()

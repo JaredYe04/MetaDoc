@@ -376,6 +376,8 @@ function getDimensionLabel(k: keyof AigcDimensionScore): string {
 const { activeDocument, activeTab } = useActiveDocument()
 const workspace = useWorkspace()
 
+const ourTabId = computed(() => workspace.tabs.find(tab => tab.kind === 'tool' && tab.route === '/aigc-detection')?.id ?? null)
+
 const sessions = ref<SessionListItem[]>([])
 const activeSessionId = ref<string | null>(null)
 const activeSession = computed(() => {
@@ -975,6 +977,8 @@ const handleCreateSession = async () => {
     
     await loadSessions()
     activeSessionId.value = id
+    const tid = ourTabId.value
+    if (tid) workspace.setTabToolState(tid, { activeSessionId: id })
     articleContent.value = ''
     paragraphs.value = []
     contentFormat.value = 'plain'
@@ -998,6 +1002,8 @@ const handleSelectSession = async (item: SessionListItem) => {
   
   try {
     activeSessionId.value = item.id
+    const tid = ourTabId.value
+    if (tid) workspace.setTabToolState(tid, { activeSessionId: item.id })
     const session = await aigcDetectionSessionsDb.getById(item.id)
     if (session) {
       // 从会话来源推断内容格式，便于「重新划分段落」时使用
@@ -2022,6 +2028,23 @@ const emptyStateStyle = computed(() => ({
   justifyContent: 'center',
   height: '100%'
 }))
+
+// 窗口迁移后恢复当前选中的会话
+watch(
+  [() => workspace.activeTabId.value, ourTabId, () => sessions.value],
+  () => {
+    const tid = ourTabId.value
+    if (!tid || workspace.activeTabId.value !== tid || sessions.value.length === 0) return
+    const state = workspace.getTabToolState(tid)
+    const savedId = state.activeSessionId
+    if (!savedId || !sessions.value.some(s => s.id === savedId)) return
+    if (activeSessionId.value === savedId) return
+    const item = sessions.value.find(s => s.id === savedId)!
+    activeSessionId.value = savedId
+    handleSelectSession(item)
+  },
+  { immediate: true, deep: true }
+)
 
 onMounted(() => {
   loadSessions()

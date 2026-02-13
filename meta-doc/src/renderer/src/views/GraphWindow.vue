@@ -83,9 +83,14 @@ import { updateTitlePrompt } from '../utils/prompts'
 import { parseSchemaJson, DOCUMENT_TITLE_SCHEMA, type DocumentTitleSchemaResult } from '../utils/schemas'
 import { getSetting } from '../utils/settings'
 import { ai_types } from '../utils/ai_tasks'
+import { useWorkspace } from '../stores/workspace'
 
 const { t } = useI18n()
 const logger = createRendererLogger('GraphWindow')
+const workspace = useWorkspace()
+
+const GRAPH_ROUTES = ['/graph', '/ai-graph', '/smart-drawing-assistant']
+const ourTabId = computed(() => workspace.tabs.find(tab => tab.kind === 'tool' && GRAPH_ROUTES.includes(tab.route ?? ''))?.id ?? null)
 
 const sessions = ref<SessionListItem[]>([])
 const activeSessionId = ref<string | null>(null)
@@ -409,6 +414,8 @@ const handleCreateSession = async () => {
     
     await loadSessions()
     activeSessionId.value = id
+    const tid = ourTabId.value
+    if (tid) workspace.setTabToolState(tid, { activeSessionId: id })
     messages.value = []
     currentPrompt.value = ''
     lastGeneratedChartCode.value = null
@@ -430,6 +437,8 @@ const handleSelectSession = async (item: SessionListItem) => {
   
   try {
     activeSessionId.value = item.id
+    const tid = ourTabId.value
+    if (tid) workspace.setTabToolState(tid, { activeSessionId: item.id })
     const session = await graphSessionsDb.getById(item.id)
     if (session) {
       if (session.conversation_history) {
@@ -1343,6 +1352,23 @@ const updateTitle = async (seedText?: string) => {
     }
   }
 }
+
+// 窗口迁移后恢复当前选中的会话
+watch(
+  [() => workspace.activeTabId.value, ourTabId, () => sessions.value],
+  () => {
+    const tid = ourTabId.value
+    if (!tid || workspace.activeTabId.value !== tid || sessions.value.length === 0) return
+    const state = workspace.getTabToolState(tid)
+    const savedId = state.activeSessionId
+    if (!savedId || !sessions.value.some(s => s.id === savedId)) return
+    if (activeSessionId.value === savedId) return
+    const item = sessions.value.find(s => s.id === savedId)!
+    activeSessionId.value = savedId
+    handleSelectSession(item)
+  },
+  { immediate: true, deep: true }
+)
 
 onMounted(() => {
   loadSessions()

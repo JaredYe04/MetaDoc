@@ -222,6 +222,8 @@ const workspace = useWorkspace();
 const responding = ref(false);
 const activeDialogIndex = ref<number>(0);
 
+const ourTabId = computed(() => workspace.tabs.find(tab => tab.kind === 'tool' && tab.route === '/ai-chat')?.id ?? null);
+
 import { createRendererLogger } from '../utils/logger.ts';
 const logger = createRendererLogger('AIChat');
 
@@ -1032,6 +1034,21 @@ const handleExternalDialogsUpdate = () => {
   initCurrentDialog();
 };
 
+// 窗口迁移后恢复当前选中的对话索引
+watch(
+  [() => workspace.activeTabId.value, ourTabId, () => dialogs.value.length],
+  () => {
+    const tid = ourTabId.value;
+    if (!tid || workspace.activeTabId.value !== tid || dialogs.value.length === 0) return;
+    const state = workspace.getTabToolState(tid);
+    const savedIndex = state.activeDialogIndex;
+    if (savedIndex == null || savedIndex < 0 || savedIndex >= dialogs.value.length) return;
+    if (activeDialogIndex.value === savedIndex) return;
+    loadDialog(savedIndex);
+  },
+  { immediate: true }
+);
+
 onMounted(() => {
   initCurrentDialog();
   eventBus.on('ai-dialogs-loaded', initCurrentDialog);
@@ -1147,7 +1164,10 @@ const sessionListItems = computed<SessionListItem[]>(() =>
 );
 
 const handleSessionSelect = (item: SessionListItem) => {
-  loadDialog(parseInt(item.id));
+  const index = parseInt(item.id);
+  loadDialog(index);
+  const tid = ourTabId.value;
+  if (tid != null) workspace.setTabToolState(tid, { activeDialogIndex: index });
 };
 
 const handleSessionRename = (item: SessionListItem, newTitle: string) => {

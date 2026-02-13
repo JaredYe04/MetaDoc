@@ -19,7 +19,8 @@ const icon = undefined; // 暂时禁用icon导入
 import fs from 'fs';
 import http from 'http';
 import os from 'os';
-import { mainCalls, refreshMainWindowTitle, openDoc } from './main-calls';
+import { mainCalls, refreshMainWindowTitle, openDoc, findWindowWithToolTab } from './main-calls';
+import { initWindowPool } from './window-pool';
 import { initUpdateService, checkForUpdates, downloadUpdate, setUpdateChannel, type UpdateChannel } from './utils/update-service';
 import { registerExternalOpenHandler, registerFocusRequestHandler, runExpressServer, refreshKnowledgeItems } from './express-server';
 import { initializeUtils } from './utils';
@@ -104,6 +105,71 @@ export let mainWindow: BrowserWindow | null = null;
 export let dirname: string;
 export let is_need_save: boolean = false;
 
+// 窗口管理：维护所有主窗口实例
+export const mainWindows = new Map<number, BrowserWindow>();
+
+/**
+ * 注册主窗口
+ */
+export function registerMainWindow(win: BrowserWindow): void {
+  const id = win.webContents.id;
+  mainWindows.set(id, win);
+  logger.debug(`注册主窗口: ${id}`);
+  
+  // 窗口关闭时自动移除，释放引用，防止内存泄漏
+  win.on('closed', () => {
+    mainWindows.delete(id);
+    logger.debug(`移除主窗口: ${id}`);
+
+    // 若已关闭的是 mainWindow 指向的窗口，立即更新引用，避免持有已销毁窗口导致内存泄漏
+    if (mainWindow === win) {
+      mainWindow = null;
+      const visible = getVisibleMainWindows();
+      if (visible.length > 0) {
+        mainWindow = visible[0];
+      }
+    }
+
+    if (!isAppQuitting) {
+      const visible = getVisibleMainWindows();
+      if (visible.length === 0) {
+        logger.debug('无已显示窗口，退出应用');
+        isAppQuitting = true; // 立即标记，防止 activate 事件创建新窗口
+        app.quit();
+      }
+    }
+  });
+}
+
+/**
+ * 获取窗口ID
+ */
+export function getWindowId(win: BrowserWindow): number {
+  return win.webContents.id;
+}
+
+/**
+ * 根据窗口ID获取窗口实例（已销毁的返回 undefined，避免持有陈旧引用）
+ */
+export function getWindowById(windowId: number): BrowserWindow | undefined {
+  const win = mainWindows.get(windowId);
+  return win && !win.isDestroyed() ? win : undefined;
+}
+
+/**
+ * 获取所有主窗口（已过滤已销毁的，避免持有陈旧引用）
+ */
+export function getAllMainWindows(): BrowserWindow[] {
+  return Array.from(mainWindows.values()).filter(win => !win.isDestroyed());
+}
+
+/**
+ * 获取所有已显示的主窗口（排除窗口池中未显示的预加载窗口）
+ */
+export function getVisibleMainWindows(): BrowserWindow[] {
+  return getAllMainWindows().filter(win => !win.isDestroyed() && win.isVisible());
+}
+
 let isShortcutPressed: boolean = false;
 let isAppQuitting = false;
 const SHORTCUT_CONFIG = [
@@ -114,8 +180,14 @@ const SHORTCUT_CONFIG = [
 ] as const;
 
 function focusMainApplicationWindow(): void {
-  if (!mainWindow || mainWindow.isDestroyed()) {
-    return;
+  // 仅操作已显示的窗口，避免误显示窗口池中的备用窗口
+  if (!mainWindow || mainWindow.isDestroyed() || !mainWindow.isVisible()) {
+    const visible = getVisibleMainWindows();
+    if (visible.length > 0) {
+      mainWindow = visible[0];
+    } else {
+      return;
+    }
   }
 
   if (mainWindow.isMinimized()) {
@@ -156,6 +228,9 @@ function createWindow(): void {
       webSecurity: false,
     }
   });
+
+  // 注册主窗口
+  registerMainWindow(mainWindow);
 
   initWindowManager(() => mainWindow);
 
@@ -386,7 +461,13 @@ function createWindow(): void {
   mainWindow.on('closed', () => {
     mainWindow = null;
     if (!isAppQuitting) {
-      app.quit();
+      // 仅从已显示的窗口中选下一个 mainWindow，排除窗口池中未显示的备用窗口
+      const visibleRemaining = getVisibleMainWindows();
+      if (visibleRemaining.length > 0) {
+        mainWindow = visibleRemaining[0];
+      } else {
+        app.quit();
+      }
     }
   });
 
@@ -471,8 +552,67 @@ function createWindow(): void {
   registerExternalOpenHandler(async ({ path }) => {
     try {
       if (!path) return;
-      focusMainApplicationWindow();
-      await openDoc(path);
+      
+      // 只在已显示的窗口中查找（排除窗口池中未显示的备用窗口）
+      const windows = getVisibleMainWindows();
+      let foundWindow: BrowserWindow | null = null;
+      let foundTabId: string | null = null;
+      
+      // 查询所有窗口
+      for (const win of windows) {
+        const result = await new Promise<{ tabId: string | null }>((resolve) => {
+          const handler = (_event: IpcMainEvent, response: { tabId: string | null } | null) => {
+            ipcMain.removeListener('file-exists-in-window-response', handler);
+            resolve(response || { tabId: null });
+          };
+          
+          ipcMain.once('file-exists-in-window-response', handler);
+          win.webContents.send('check-file-exists-in-window', path);
+          
+          // 超时处理
+          setTimeout(() => {
+            ipcMain.removeListener('file-exists-in-window-response', handler);
+            resolve({ tabId: null });
+          }, 1000);
+        });
+        
+        if (result.tabId) {
+          foundWindow = win;
+          foundTabId = result.tabId;
+          break;
+        }
+      }
+      
+      // 如果文件已在某个窗口打开，切换到该窗口
+      if (foundWindow && foundTabId) {
+        foundWindow.webContents.send('activate-tab-by-id', foundTabId);
+        if (foundWindow.isMinimized()) {
+          foundWindow.restore();
+        }
+        foundWindow.show();
+        foundWindow.focus();
+        return;
+      }
+      
+      // 如果文件未打开，选择当前 focus 的窗口或第一个已显示窗口（不选池中备用窗口）
+      const focusedWindow = BrowserWindow.getFocusedWindow();
+      let targetWindow: BrowserWindow | null = null;
+      
+      if (focusedWindow && !focusedWindow.isDestroyed() && focusedWindow.isVisible()) {
+        targetWindow = focusedWindow;
+      } else if (windows.length > 0) {
+        targetWindow = windows[0];
+      } else if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
+        targetWindow = mainWindow;
+      }
+      
+      if (targetWindow) {
+        await openDoc(path, getWindowId(targetWindow));
+      } else {
+        // 如果没有窗口，focus主窗口
+        focusMainApplicationWindow();
+        await openDoc(path);
+      }
     } catch (error) {
       logger.error('处理外部打开文件请求失败', error as Error);
     }
@@ -533,7 +673,8 @@ app.whenReady().then(async () => {
 
   createWindow();
   mainCalls();
-  
+  initWindowPool();
+
   // 初始化更新服务
   initUpdateService();
   
@@ -543,7 +684,11 @@ app.whenReady().then(async () => {
   }, 5000); // 延迟5秒后检查更新
 
   app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    // 若正在退出（如关闭最后一个窗口触发 quit），则不要创建新窗口
+    if (isAppQuitting) return;
+    // 使用 getAllMainWindows：启动时主窗口可能尚未 show，getVisibleMainWindows 会误判为 0 导致重复创建窗口
+    const allWindows = getAllMainWindows().filter(w => !w.isDestroyed());
+    if (allWindows.length === 0) {
       createWindow();
     }
   });
@@ -562,11 +707,15 @@ ipcMain.on('is-need-save', (event: IpcMainEvent, arg: boolean) => {
 });
 
 /**
- * 所有窗口关闭时
+ * 所有窗口关闭时（由 Electron 触发，当 BrowserWindow.getAllWindows() 为空时）
+ * 仅当无已显示窗口时退出；实际退出逻辑由 registerMainWindow 的 closed 处理器负责
  */
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+  if (process.platform !== 'darwin' && !isAppQuitting) {
+    const visible = getVisibleMainWindows();
+    if (visible.length === 0) {
+      app.quit();
+    }
   }
 });
 
@@ -729,79 +878,70 @@ const WINDOW_IDS = {
   aiGraph: 'aiGraph'
 } as const;
 
-export const openSettingDialog = async (): Promise<void> => {
-  // 改为在主窗口Tab中打开
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('receive-broadcast', {
-      eventName: 'open-tool-tab',
-      data: { toolType: 'setting' }
-    });
-    focusMainApplicationWindow();
+/** 在触发窗口打开工具 Tab；若其它窗口已打开则 focus 到该窗口 */
+async function openToolTabInWindow(toolType: string, senderWebContents?: Electron.WebContents): Promise<void> {
+  const { windowId: existingWindowId, tabId } = await findWindowWithToolTab({ toolType });
+  const senderWindow = senderWebContents ? BrowserWindow.fromWebContents(senderWebContents) : null;
+  const focusedWindow = BrowserWindow.getFocusedWindow();
+  const targetWindow = senderWindow || focusedWindow || mainWindow;
+
+  if (existingWindowId != null && tabId) {
+    const win = getWindowById(existingWindowId);
+    if (win && !win.isDestroyed()) {
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+      // 先 focus 再激活 Tab；略微延迟确保窗口已聚焦
+      setTimeout(() => {
+        if (!win.isDestroyed()) {
+          win.webContents.send('activate-tab-by-id', tabId);
+        }
+      }, 50);
+      return;
+    }
   }
+
+  if (targetWindow && !targetWindow.isDestroyed()) {
+    targetWindow.webContents.send('receive-broadcast', {
+      eventName: 'open-tool-tab',
+      data: { toolType }
+    });
+    if (targetWindow.isMinimized()) targetWindow.restore();
+    targetWindow.show();
+    targetWindow.focus();
+  }
+}
+
+export const openSettingDialog = async (event?: IpcMainEvent): Promise<void> => {
+  openToolTabInWindow('setting', event?.sender);
 };
 
-export const openAiChatDialog = async (): Promise<void> => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('receive-broadcast', {
-      eventName: 'open-tool-tab',
-      data: { toolType: 'aiChat' }
-    });
-    focusMainApplicationWindow();
-  }
+export const openAiChatDialog = async (event?: IpcMainEvent): Promise<void> => {
+  openToolTabInWindow('aiChat', event?.sender);
 };
 
-export const openFomulaRecognitionDialog = async (): Promise<void> => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('receive-broadcast', {
-      eventName: 'open-tool-tab',
-      data: { toolType: 'formulaRecognition' }
-    });
-    focusMainApplicationWindow();
-  }
+export const openFomulaRecognitionDialog = async (event?: IpcMainEvent): Promise<void> => {
+  openToolTabInWindow('formulaRecognition', event?.sender);
 };
 
-export const openDataAnalysisDialog = async (): Promise<void> => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('receive-broadcast', {
-      eventName: 'open-tool-tab',
-      data: { toolType: 'dataAnalysis' }
-    });
-    focusMainApplicationWindow();
-  }
+export const openDataAnalysisDialog = async (event?: IpcMainEvent): Promise<void> => {
+  openToolTabInWindow('dataAnalysis', event?.sender);
 };
 
-export const openOcrDialog = async (): Promise<void> => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('receive-broadcast', {
-      eventName: 'open-tool-tab',
-      data: { toolType: 'ocr' }
-    });
-    focusMainApplicationWindow();
-  }
+export const openOcrDialog = async (event?: IpcMainEvent): Promise<void> => {
+  openToolTabInWindow('ocr', event?.sender);
 };
 
-export const openAttachmentDialog = async (): Promise<void> => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('receive-broadcast', {
-      eventName: 'open-tool-tab',
-      data: { toolType: 'attachment' }
-    });
-    focusMainApplicationWindow();
-  }
+export const openAttachmentDialog = async (event?: IpcMainEvent): Promise<void> => {
+  openToolTabInWindow('attachment', event?.sender);
 };
 
-export const openGraphDialog = async (): Promise<void> => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('receive-broadcast', {
-      eventName: 'open-tool-tab',
-      data: { toolType: 'graph' }
-    });
-    focusMainApplicationWindow();
-  }
+export const openGraphDialog = async (event?: IpcMainEvent): Promise<void> => {
+  openToolTabInWindow('graph', event?.sender);
 };
 
-export const openAiGraphDialog = async (): Promise<void> => {
-  openGraphDialog();
+export const openAiGraphDialog = async (event?: IpcMainEvent): Promise<void> => {
+  openGraphDialog(event);
 };
 
 // ============ 广播频道管理 ============

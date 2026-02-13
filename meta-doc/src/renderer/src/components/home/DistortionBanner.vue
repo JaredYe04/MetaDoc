@@ -18,25 +18,25 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 const isDark = computed(() => themeState.currentTheme.type === 'dark')
 
-const COLS_A = 24
+const COLS_A = 12
 const ROWS_A = 10
-const COLS_B = 13
-const ROWS_B = 6
-const COLS_C = 32
-const ROWS_C = 24
-const PULL_NEAR_MOUSE = 0.012
-const PULL_FAR_FROM_MOUSE = 0.11
-const PULL_FACTOR_RECOVER = 0.065
-const DAMPING = 0.78
+const COLS_B = 24
+const ROWS_B = 16
+const COLS_C = 16
+const ROWS_C = 12
+const PULL_NEAR_MOUSE = 0.0027
+const PULL_FAR_FROM_MOUSE = 0.023
+const PULL_FACTOR_RECOVER = 0.013
+const DAMPING = 0.93
 const IMPULSE_SCALE = 0.9
 const JITTER_RANGE_INVERSE_DENSITY = 1
 const JITTER_RANDOM_SPREAD_BY_DENSITY = 0.4
 const MAX_DISPLACE = 120
-const INFLUENCE_RADIUS = 80
+const INFLUENCE_RADIUS = 30
 const DISPLACE_SCALE_MIN = 0.6
 const DISPLACE_SCALE_MAX = 1.4
-const SPEED_SCALE_MIN = 1.2
-const SPEED_SCALE_MAX = 2.8
+const SPEED_SCALE_MIN = 0.8
+const SPEED_SCALE_MAX = 1.4
 
 interface Cell {
   x: number

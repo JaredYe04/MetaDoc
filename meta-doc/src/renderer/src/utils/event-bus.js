@@ -60,7 +60,7 @@ function getLogger() {
 }
 
 const workspace = useWorkspace();
-const { activeTabId, ensureDocument, markDocumentSaved, updateDocumentDirty, tabs, saveDocument, removeTab } = workspace;
+const { activeTabId, activateTab, ensureDocument, markDocumentSaved, updateDocumentDirty, tabs, saveDocument, removeTab } = workspace;
 
 const cloneDeep = (value) => JSON.parse(JSON.stringify(value));
 
@@ -256,6 +256,53 @@ ipcRenderer.on('request-tab-info', (_event, tabId) => {
   } catch (error) {
     getLogger().error('获取tab信息失败:', error);
     ipcRenderer.send('tab-info-response', null);
+  }
+})
+
+// 检查文件是否在当前窗口打开
+ipcRenderer.on('check-file-exists-in-window', (_event, filePath) => {
+  try {
+    const tab = tabs.find(t => t.path === filePath && (t.kind === 'file' || t.kind === 'new'));
+    if (tab) {
+      ipcRenderer.send('file-exists-in-window-response', { tabId: tab.id });
+    } else {
+      ipcRenderer.send('file-exists-in-window-response', { tabId: null });
+    }
+  } catch (error) {
+    getLogger().error('检查文件是否在当前窗口打开失败:', error);
+    ipcRenderer.send('file-exists-in-window-response', { tabId: null });
+  }
+})
+
+// 检查工具/系统 Tab 是否在当前窗口打开（toolType 或 route）
+ipcRenderer.on('check-tool-tab-in-window', (_event, payload) => {
+  try {
+    const { toolType, route } = payload || {};
+    const tab = tabs.find(t => {
+      if (toolType && t.kind === 'tool' && t.toolType === toolType) return true;
+      if (route && t.kind === 'system' && t.route === route) return true;
+      return false;
+    });
+    if (tab) {
+      ipcRenderer.send('tool-tab-exists-in-window-response', { tabId: tab.id });
+    } else {
+      ipcRenderer.send('tool-tab-exists-in-window-response', { tabId: null });
+    }
+  } catch (error) {
+    getLogger().error('检查工具Tab是否在当前窗口打开失败:', error);
+    ipcRenderer.send('tool-tab-exists-in-window-response', { tabId: null });
+  }
+})
+
+// 激活指定的Tab
+ipcRenderer.on('activate-tab-by-id', (_event, tabId) => {
+  try {
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab) {
+      activateTab(tabId);
+    }
+  } catch (error) {
+    getLogger().error('激活Tab失败:', error);
   }
 })
 

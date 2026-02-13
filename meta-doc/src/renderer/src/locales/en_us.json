@@ -97,7 +97,22 @@
     "close": "Close",
     "copy": "Copy",
     "copySuccess": "Copied to clipboard",
-    "copyFailed": "Copy failed"
+    "copyFailed": "Copy failed",
+    "noOtherWindow": "No other windows"
+  },
+  "mainTabs": {
+    "contextMenu": {
+      "closeTab": "Close Tab",
+      "closeOtherTabs": "Close Other Tabs",
+      "openInNewWindow": "Open in New Window",
+      "moveToWindow": "Move Tab to Another Window",
+      "copyPath": "Copy Path",
+      "copyTitle": "Copy Title",
+      "copyFilename": "Copy Filename",
+      "showInFolder": "Show in File Explorer",
+      "moveLeft": "Move Left",
+      "moveRight": "Move Right"
+    }
   },
   "searchReplace": {
     "title": "Search and Replace",

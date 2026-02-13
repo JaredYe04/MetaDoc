@@ -1,5 +1,5 @@
 <template>
-  <div class="main-tabs-wrapper" :class="{ 'is-locked': isLocked }" @dblclick="handleDoubleClick">
+  <div ref="tabsWrapperRef" class="main-tabs-wrapper" :class="{ 'is-locked': isLocked }" @dblclick="handleDoubleClick">
     <!-- macOS 平台：左边预留空间给原生按钮 -->
     <div v-if="isMac" class="macos-traffic-lights-spacer"></div>
     <div class="tabs-container">
@@ -22,7 +22,8 @@
             <div
               class="main-tab-label"
               :title="getTabTooltip(tab)"
-              @mousedown.stop
+              @mousedown="handleTabMouseDown($event, tab)"
+              @contextmenu.prevent="openTabContextMenu($event, tab)"
               :draggable="canDragTab(tab)"
               @dragstart.stop="handleDragStart(tab.id, $event)"
               @dragover.prevent="handleDragOver(tab.id, $event)"
@@ -75,17 +76,92 @@
         <el-icon><Close /></el-icon>
       </div>
     </div>
+
+    <!-- Tab 右键菜单 -->
+    <transition name="fade">
+      <div
+        v-if="tabContextMenuVisible && tabContextMenuPosition"
+        class="tab-context-menu"
+        :style="{ ...tabContextMenuStyle, ...tabContextMenuPositionStyle }"
+        @click.stop
+      >
+        <button type="button" class="tab-context-menu__item" @click="handleContextMenuAction('closeTab')">
+          {{ t('mainTabs.contextMenu.closeTab') }}
+        </button>
+        <button type="button" class="tab-context-menu__item" @click="handleContextMenuAction('closeOtherTabs')">
+          {{ t('mainTabs.contextMenu.closeOtherTabs') }}
+        </button>
+        <button
+          v-if="canMoveToOtherWindow(tabContextMenuTab)"
+          type="button"
+          class="tab-context-menu__item"
+          @click="handleContextMenuAction('openInNewWindow')"
+        >
+          {{ t('mainTabs.contextMenu.openInNewWindow') }}
+        </button>
+        <div
+          v-if="canMoveToOtherWindow(tabContextMenuTab)"
+          class="tab-context-menu__item tab-context-menu__submenu-trigger"
+          @mouseenter="showMoveToWindowSubmenu = true"
+          @mouseleave="handleMoveToWindowMouseLeave"
+        >
+          <span>{{ t('mainTabs.contextMenu.moveToWindow') }}</span>
+          <el-icon class="arrow-icon"><ArrowRight /></el-icon>
+          <div
+            v-if="showMoveToWindowSubmenu"
+            class="tab-context-menu__submenu"
+            @mouseenter="handleMoveToWindowSubmenuEnter"
+            @mouseleave="showMoveToWindowSubmenu = false"
+          >
+            <button
+              v-for="w in otherWindowsList"
+              :key="w.id"
+              type="button"
+              class="tab-context-menu__item"
+              @click="handleMoveToWindow(w.id)"
+            >
+              {{ w.title }}
+            </button>
+            <div v-if="otherWindowsList.length === 0" class="tab-context-menu__empty">
+              {{ t('common.noOtherWindow', '无其他窗口') }}
+            </div>
+          </div>
+        </div>
+        <template v-if="hasFileTabPath(tabContextMenuTab)">
+          <div class="tab-context-menu__divider"></div>
+          <button type="button" class="tab-context-menu__item" @click="handleContextMenuAction('copyPath')">
+            {{ t('mainTabs.contextMenu.copyPath') }}
+          </button>
+          <button type="button" class="tab-context-menu__item" @click="handleContextMenuAction('copyTitle')">
+            {{ t('mainTabs.contextMenu.copyTitle') }}
+          </button>
+          <button type="button" class="tab-context-menu__item" @click="handleContextMenuAction('copyFilename')">
+            {{ t('mainTabs.contextMenu.copyFilename') }}
+          </button>
+          <button type="button" class="tab-context-menu__item" @click="handleContextMenuAction('showInFolder')">
+            {{ t('mainTabs.contextMenu.showInFolder') }}
+          </button>
+        </template>
+        <div class="tab-context-menu__divider"></div>
+        <button type="button" class="tab-context-menu__item" @click="handleContextMenuAction('moveLeft')">
+          {{ t('mainTabs.contextMenu.moveLeft') }}
+        </button>
+        <button type="button" class="tab-context-menu__item" @click="handleContextMenuAction('moveRight')">
+          {{ t('mainTabs.contextMenu.moveRight') }}
+        </button>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, reactive, watch, nextTick, onMounted } from 'vue'
+import { computed, ref, reactive, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { useWorkspace, type WorkspaceTab } from '../stores/workspace'
 import eventBus from '../utils/event-bus'
 import { createRendererLogger } from '../utils/logger'
-import { Minus, FullScreen, Close, Plus } from '@element-plus/icons-vue'
+import { Minus, FullScreen, Close, Plus, ArrowRight } from '@element-plus/icons-vue'
 import { mixColors, themeState } from '../utils/themes'
 import { useCloseTab } from '../composables/useCloseTab'
 
@@ -96,8 +172,202 @@ const route = useRoute()
 
 const workspace = useWorkspace()
 const tabsRef = ref<any>(null)
+const tabsWrapperRef = ref<HTMLElement | null>(null)
 
 const { closeTab, isLocked } = useCloseTab()
+
+// Tab 右键菜单
+const tabContextMenuVisible = ref(false)
+const tabContextMenuPosition = ref<{ x: number; y: number } | null>(null)
+const tabContextMenuTab = ref<WorkspaceTab | null>(null)
+const showMoveToWindowSubmenu = ref(false)
+const otherWindowsList = ref<Array<{ id: number; title: string }>>([])
+let moveToWindowLeaveTimer: ReturnType<typeof setTimeout> | null = null
+
+const tabContextMenuStyle = computed(() => ({
+  backgroundColor: themeState.currentTheme.background,
+  color: themeState.currentTheme.textColor,
+  borderColor: themeState.currentTheme.type === 'dark'
+    ? 'rgba(255, 255, 255, 0.1)'
+    : 'rgba(0, 0, 0, 0.08)'
+}))
+
+const tabContextMenuPositionStyle = computed(() => {
+  if (!tabContextMenuPosition.value) return {}
+  return {
+    position: 'fixed' as const,
+    left: tabContextMenuPosition.value.x + 'px',
+    top: tabContextMenuPosition.value.y + 'px'
+  }
+})
+
+const hasFileTabPath = (tab: WorkspaceTab | null): boolean => {
+  if (!tab) return false
+  return tab.kind === 'file' && !!tab.path?.trim()
+}
+
+const canMoveToOtherWindow = (tab: WorkspaceTab | null): boolean => {
+  return !!tab
+}
+
+const openTabContextMenu = async (e: MouseEvent, tab: WorkspaceTab) => {
+  if (isLocked.value) return
+  tabContextMenuVisible.value = true
+  tabContextMenuPosition.value = { x: e.clientX, y: e.clientY }
+  tabContextMenuTab.value = tab
+  showMoveToWindowSubmenu.value = false
+  try {
+    if (ipcRenderer && canMoveToOtherWindow(tab)) {
+      otherWindowsList.value = await ipcRenderer.invoke('get-all-windows')
+    } else {
+      otherWindowsList.value = []
+    }
+  } catch (err) {
+    logger.warn('获取窗口列表失败:', err)
+    otherWindowsList.value = []
+  }
+}
+
+const handleMoveToWindowMouseLeave = () => {
+  moveToWindowLeaveTimer = setTimeout(() => {
+    moveToWindowLeaveTimer = null
+    showMoveToWindowSubmenu.value = false
+  }, 150)
+}
+
+const handleMoveToWindowSubmenuEnter = () => {
+  if (moveToWindowLeaveTimer) {
+    clearTimeout(moveToWindowLeaveTimer)
+    moveToWindowLeaveTimer = null
+  }
+  showMoveToWindowSubmenu.value = true
+}
+
+const closeTabContextMenu = () => {
+  tabContextMenuVisible.value = false
+  tabContextMenuPosition.value = null
+  tabContextMenuTab.value = null
+  showMoveToWindowSubmenu.value = false
+  if (moveToWindowLeaveTimer) {
+    clearTimeout(moveToWindowLeaveTimer)
+    moveToWindowLeaveTimer = null
+  }
+}
+
+const handleContextMenuAction = async (action: string) => {
+  const tab = tabContextMenuTab.value
+  if (!tab) return
+  closeTabContextMenu()
+
+  switch (action) {
+    case 'closeTab':
+      await handleCloseTab(tab.id)
+      break
+    case 'closeOtherTabs':
+      const otherIds = allTabs.value.filter(t => t.id !== tab.id).map(t => t.id)
+      for (const id of otherIds) {
+        await handleCloseTab(id)
+      }
+      break
+    case 'openInNewWindow':
+      await handleOpenInNewWindow(tab)
+      break
+    case 'copyPath':
+      if (hasFileTabPath(tab) && tab.path) {
+        await navigator.clipboard.writeText(tab.path)
+        eventBus.emit('show-success', { message: t('workspaceExplorer.copyPathSuccess') })
+      }
+      break
+    case 'copyTitle':
+      if (hasFileTabPath(tab)) {
+        const title = tab.subtitle?.trim() || tab.title?.trim() || ''
+        await navigator.clipboard.writeText(title)
+        eventBus.emit('show-success', { message: t('common.copySuccess') })
+      }
+      break
+    case 'copyFilename':
+      if (hasFileTabPath(tab) && tab.path) {
+        const filename = tab.path.split(/[/\\]/).filter(Boolean).pop() || ''
+        await navigator.clipboard.writeText(filename)
+        eventBus.emit('show-success', { message: t('common.copySuccess') })
+      }
+      break
+    case 'showInFolder':
+      if (hasFileTabPath(tab) && tab.path && ipcRenderer) {
+        await ipcRenderer.invoke('show-item-in-folder', tab.path)
+      }
+      break
+    case 'moveLeft': {
+      const fromIdx = workspace.tabs.findIndex(t => t.id === tab.id)
+      if (fromIdx > 0) {
+        const [tabItem] = workspace.tabs.splice(fromIdx, 1)
+        workspace.tabs.splice(fromIdx - 1, 0, tabItem)
+        nextTick(() => workspace.activateTab(tab.id))
+      }
+      break
+    }
+    case 'moveRight': {
+      const fromIdx = workspace.tabs.findIndex(t => t.id === tab.id)
+      if (fromIdx >= 0 && fromIdx < workspace.tabs.length - 1) {
+        const [tabItem] = workspace.tabs.splice(fromIdx, 1)
+        workspace.tabs.splice(fromIdx + 1, 0, tabItem)
+        nextTick(() => workspace.activateTab(tab.id))
+      }
+      break
+    }
+  }
+}
+
+const handleOpenInNewWindow = async (tab: WorkspaceTab) => {
+  if (!canMoveToOtherWindow(tab) || !ipcRenderer) return
+  const tabData = serializeTabData(tab.id)
+  if (!tabData) return
+
+  const myWindowId = await getCurrentWindowId()
+  // 新窗口位置：当前窗口中心偏右下方
+  const position = {
+    x: window.screenX + window.innerWidth / 2 + 40,
+    y: window.screenY + window.innerHeight / 2 + 40
+  }
+
+  try {
+    await ipcRenderer.invoke('create-window-with-tab', { tabData, position })
+    await removeTabAfterDrag(tab.id, myWindowId)
+    logger.info(`Tab ${tab.id} 已在新窗口中打开`)
+  } catch (error) {
+    logger.error('在新窗口中打开失败:', error)
+  }
+}
+
+const handleMoveToWindow = async (targetWindowId: number) => {
+  const tab = tabContextMenuTab.value
+  if (!tab || !canMoveToOtherWindow(tab)) return
+  closeTabContextMenu()
+
+  const tabData = serializeTabData(tab.id)
+  if (!tabData || !ipcRenderer) return
+
+  const myWindowId = await getCurrentWindowId()
+  if (targetWindowId === myWindowId) return
+
+  try {
+    ipcRenderer.send('transfer-tab-to-window', {
+      targetWindowId,
+      tabData: { ...tabData, sourceWindowId: myWindowId },
+      insertIndex: 0
+    })
+    await removeTabAfterDrag(tab.id, myWindowId)
+  } catch (error) {
+    logger.error('移至其他窗口失败:', error)
+  }
+}
+
+const handleTabContextMenuClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  if (tabContextMenuVisible.value && !target.closest('.tab-context-menu')) {
+    closeTabContextMenu()
+  }
+}
 
 // 检测是否为 macOS
 const isMac = computed(() => {
@@ -198,7 +468,12 @@ const handleDoubleClick = (event: MouseEvent) => {
 }
 
 const handleClose = () => {
-  eventBus.emit('quit')
+  // 关闭当前窗口，而非退出整个应用；主进程根据可见窗口数量决定是否退出
+  if (ipcRenderer) {
+    ipcRenderer.send('close-window')
+  } else {
+    eventBus.emit('quit')
+  }
 }
 
 // 点击新建文档按钮
@@ -256,8 +531,31 @@ const canCloseTab = (tab: WorkspaceTab): boolean => {
 }
 
 const canDragTab = (tab: WorkspaceTab): boolean => {
-  // 所有Tab都可以拖拽来改变顺序
+  // 所有Tab都可以拖拽来改变顺序（在本窗口内）
+  // 但系统Tab和工具Tab不允许拖拽到其他窗口
   return !isLocked.value
+}
+
+// 检查Tab是否可以拖拽到其他窗口（工具、系统 Tab 也可迁移）
+const canDragToOtherWindow = (_tab: WorkspaceTab): boolean => {
+  return true
+}
+
+// 在 mousedown 时立即切换 tab（而非 click）
+const handleTabMouseDown = (event: MouseEvent, tab: WorkspaceTab) => {
+  if (isLocked.value) return
+  // 如果点在关闭按钮上，不切换 tab（让关闭按钮处理）
+  const target = event.target as HTMLElement
+  if (target.closest('.main-tab-label__close')) return
+  event.stopPropagation()
+  if (tab.id === workspace.activeTabId.value) return
+  workspace.activateTab(tab.id)
+  if (tab.kind === 'system' || tab.kind === 'tool') {
+    const toRoute = tab.route
+    if (toRoute && toRoute !== route.path) {
+      nextTick(() => router.push(toRoute))
+    }
+  }
 }
 
 const handleTabClick = (tab: any) => {
@@ -291,11 +589,88 @@ const handleRemove = async (id: string | number) => {
 
 // 拖拽相关
 let draggingId: string | null = null
+let draggingTab: WorkspaceTab | null = null
+let currentWindowId: number | null = null
+let isDraggingToNewWindow = false
+let dragStartPosition: { x: number; y: number } | null = null
 type DropMode = 'before' | 'after'
 const dropPreview = reactive<{ targetId: string | null; mode: DropMode | null }>({
   targetId: null,
   mode: null,
 })
+
+// 获取IPC渲染器
+let ipcRenderer: any = null
+if (window && (window as any).electron) {
+  ipcRenderer = (window as any).electron.ipcRenderer
+}
+
+// 获取当前窗口ID
+const getCurrentWindowId = async (): Promise<number> => {
+  if (!ipcRenderer) return -1
+  if (currentWindowId !== null) return currentWindowId
+  try {
+    const id = await ipcRenderer.invoke('get-window-id') as number
+    currentWindowId = id
+    return id
+  } catch (error) {
+    logger.error('获取窗口ID失败:', error)
+    return -1
+  }
+}
+
+// 序列化Tab数据（包含文档内容）
+const serializeTabData = (tabId: string): any => {
+  const tab = allTabs.value.find(t => t.id === tabId)
+  if (!tab) return null
+
+  const tabData: any = {
+    tab: {
+      id: tab.id,
+      kind: tab.kind,
+      title: tab.title,
+      subtitle: tab.subtitle,
+      path: tab.path,
+      format: tab.format,
+      dirty: tab.dirty,
+      readonly: tab.readonly,
+      toolType: tab.toolType,
+      route: tab.route,
+    }
+  }
+
+  // 如果是文档Tab，包含文档内容
+  if (tab.kind === 'file' || tab.kind === 'new') {
+    try {
+      const doc = workspace.ensureDocument(tab.id)
+      tabData.document = {
+        id: doc.id,
+        tabId: doc.tabId,
+        path: doc.path,
+        format: doc.format,
+        markdown: doc.markdown,
+        tex: doc.tex,
+        outline: JSON.parse(JSON.stringify(doc.outline)),
+        meta: JSON.parse(JSON.stringify(doc.meta)),
+        aiDialogs: JSON.parse(JSON.stringify(doc.aiDialogs)),
+        agentSessions: JSON.parse(JSON.stringify(doc.agentSessions)),
+        lastView: doc.lastView,
+        renderedHtml: doc.renderedHtml,
+        dirty: doc.dirty,
+        savedMarkdown: doc.savedMarkdown,
+        savedTex: doc.savedTex,
+        savedOutline: JSON.parse(JSON.stringify(doc.savedOutline)),
+        savedMeta: JSON.parse(JSON.stringify(doc.savedMeta)),
+        savedAiDialogs: JSON.parse(JSON.stringify(doc.savedAiDialogs)),
+        savedAgentSessions: JSON.parse(JSON.stringify(doc.savedAgentSessions)),
+      }
+    } catch (error) {
+      logger.warn('序列化文档数据失败:', error)
+    }
+  }
+
+  return tabData
+}
 
 const computeDropMode = (e: DragEvent, tabItemEl: HTMLElement): DropMode => {
   const rect = tabItemEl.getBoundingClientRect()
@@ -303,6 +678,15 @@ const computeDropMode = (e: DragEvent, tabItemEl: HTMLElement): DropMode => {
   const w = rect.width
   const midPoint = w / 2
   return x < midPoint ? 'before' : 'after'
+}
+
+// 归一化：同一缝隙只显示一条高亮线。当 "插在B前" 时，统一改为 "插在A后"（A为B的前一个tab）
+const normalizeDropPreview = (targetId: string, mode: DropMode): { targetId: string; mode: DropMode } => {
+  if (mode === 'after') return { targetId, mode }
+  const idx = allTabs.value.findIndex(t => t.id === targetId)
+  if (idx <= 0) return { targetId, mode }
+  const prevTab = allTabs.value[idx - 1]
+  return { targetId: prevTab.id, mode: 'after' }
 }
 
 const findTabItemElement = (labelElement: HTMLElement): HTMLElement | null => {
@@ -316,14 +700,38 @@ const findTabItemElement = (labelElement: HTMLElement): HTMLElement | null => {
   return null
 }
 
-const handleDragStart = (id: string, event: DragEvent) => {
+const handleDragStart = async (id: string, event: DragEvent) => {
   if (isLocked.value) {
     event.preventDefault()
     return
   }
+  
+  const tab = allTabs.value.find(t => t.id === id)
+  if (!tab) {
+    event.preventDefault()
+    return
+  }
+
   draggingId = id
-  event.dataTransfer?.setData('text/plain', id)
-  if (event.dataTransfer) {
+  draggingTab = tab
+  dragStartPosition = { x: event.clientX, y: event.clientY }
+  isDraggingToNewWindow = false
+
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:handleDragStart',message:'drag started',data:{tabId:id,tabCount:allTabs.value.length,canDragToOtherWindow:canDragToOtherWindow(tab)},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+  // #endregion
+
+  // 序列化Tab数据
+  const tabData = serializeTabData(id)
+  if (tabData && event.dataTransfer) {
+    const sourceWindowId = await getCurrentWindowId()
+    event.dataTransfer.setData('text/plain', id)
+    event.dataTransfer.setData('application/x-metadoc-tab', JSON.stringify({
+      ...tabData,
+      sourceWindowId,
+      sourceTabCount: allTabs.value.length, // 用于判断单Tab窗口合并
+      canDragToOtherWindow: canDragToOtherWindow(tab)
+    }))
     event.dataTransfer.effectAllowed = 'move'
   }
 }
@@ -375,8 +783,9 @@ const handleDragOver = (targetId: string, event: DragEvent) => {
   if (!tabItemEl) return
   // 扩大拖拽区域：使用整个 Tab 项来计算，而不仅仅是 label
   const mode = computeDropMode(event, tabItemEl)
-  dropPreview.targetId = targetId
-  dropPreview.mode = mode
+  const { targetId: normId, mode: normMode } = normalizeDropPreview(targetId, mode)
+  dropPreview.targetId = normId
+  dropPreview.mode = normMode
   updateDropPreviewClasses()
 }
 
@@ -390,9 +799,10 @@ const handleDrop = (targetId: string, event: DragEvent) => {
   event.stopPropagation()
   
   const fromId = draggingId
+  const previewTargetId = dropPreview.targetId
   const mode = dropPreview.mode
   
-  if (!fromId || fromId === targetId || !mode) {
+  if (!fromId || fromId === targetId || !mode || !previewTargetId) {
     draggingId = null
     dropPreview.targetId = null
     dropPreview.mode = null
@@ -401,7 +811,8 @@ const handleDrop = (targetId: string, event: DragEvent) => {
   }
   
   const fromIndex = allTabs.value.findIndex((tab) => tab.id === fromId)
-  const targetIndex = allTabs.value.findIndex((tab) => tab.id === targetId)
+  // 使用 dropPreview 的 targetId 计算插入位置（已归一化，避免多处高亮）
+  const targetIndex = allTabs.value.findIndex((tab) => tab.id === previewTargetId)
   
   if (fromIndex === -1 || targetIndex === -1 || fromIndex === targetIndex) {
     draggingId = null
@@ -441,15 +852,480 @@ const handleDrop = (targetId: string, event: DragEvent) => {
   updateDropPreviewClasses()
 }
 
-const handleDragEnd = () => {
+const handleDragEnd = async () => {
+  // 重置单Tab合并标记
+  singleTabMergeDone = false
+  
+  // 清除防抖定时器
+  if (dragOverTimer) {
+    clearTimeout(dragOverTimer)
+    dragOverTimer = null
+  }
+  if (singleTabMergeTimer) {
+    clearTimeout(singleTabMergeTimer)
+    singleTabMergeTimer = null
+  }
+
+  // 如果正在拖拽到新窗口，不执行清理（新窗口创建逻辑会处理）
+  if (isDraggingToNewWindow) {
+    // 延迟清理，确保新窗口创建完成
+    setTimeout(() => {
+      draggingId = null
+      draggingTab = null
+      dragStartPosition = null
+      isDraggingToNewWindow = false
+      windowCreationInProgress = false
+      dropPreview.targetId = null
+      dropPreview.mode = null
+      updateDropPreviewClasses()
+    }, 500)
+    return
+  }
+
+  windowCreationInProgress = false
   draggingId = null
+  draggingTab = null
+  dragStartPosition = null
   dropPreview.targetId = null
   dropPreview.mode = null
   updateDropPreviewClasses()
 }
 
+// 全局拖拽事件处理
+let dragOverTimer: ReturnType<typeof setTimeout> | null = null
+let singleTabMergeTimer: ReturnType<typeof setTimeout> | null = null
+let singleTabMergeDone = false
+let windowCreationInProgress = false // 防止多次创建窗口
+const handleGlobalDragOver = async (event: DragEvent) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:handleGlobalDragOver',message:'dragover fired',data:{draggingId,hasIpc:!!ipcRenderer,types:event.dataTransfer?.types,clientY:event.clientY},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+  // #endregion
+  if (!ipcRenderer) return
+
+  // 情形1：作为目标窗口，收到来自其他窗口的Tab（单Tab窗口需立即合并，不等drop）
+  if (!draggingId && event.dataTransfer?.types?.includes('application/x-metadoc-tab')) {
+    const tabsWrapperEl = tabsWrapperRef.value || document.querySelector('.main-tabs-wrapper') as HTMLElement
+    if (!tabsWrapperEl) return
+
+    const tabsRect = tabsWrapperEl.getBoundingClientRect()
+    const mouseX = event.clientX
+    const mouseY = event.clientY
+    
+    const isOverTabs = mouseX >= tabsRect.left && mouseX <= tabsRect.right &&
+                      mouseY >= tabsRect.top && mouseY <= tabsRect.bottom
+
+    if (isOverTabs && !singleTabMergeDone) {
+      try {
+        const dataStr = event.dataTransfer.getData('application/x-metadoc-tab')
+        if (dataStr) {
+          const tabTransferData = JSON.parse(dataStr)
+          const sourceTabCount = tabTransferData.sourceTabCount ?? 0
+          const sourceWindowId = tabTransferData.sourceWindowId
+          const currentWindowId = await getCurrentWindowId()
+
+          if (sourceWindowId && sourceWindowId !== currentWindowId && 
+              sourceTabCount === 1 && tabTransferData.canDragToOtherWindow) {
+            event.preventDefault()
+            event.dataTransfer.dropEffect = 'move'
+            
+            if (singleTabMergeTimer) {
+              clearTimeout(singleTabMergeTimer)
+            }
+            singleTabMergeTimer = setTimeout(() => {
+              singleTabMergeTimer = null
+              singleTabMergeDone = true
+              try {
+                const insertIndex = allTabs.value.length
+                ipcRenderer.send('transfer-tab-to-window', {
+                  targetWindowId: currentWindowId,
+                  tabData: tabTransferData,
+                  insertIndex
+                })
+                logger.info('单Tab窗口已合并到当前窗口')
+              } catch (error) {
+                logger.error('单Tab合并失败:', error)
+              }
+            }, 50)
+          }
+        }
+      } catch (error) {
+        logger.warn('解析拖拽数据失败:', error)
+      }
+      return
+    } else if (!isOverTabs) {
+      if (singleTabMergeTimer) {
+        clearTimeout(singleTabMergeTimer)
+        singleTabMergeTimer = null
+      }
+    }
+  }
+
+  // 情形2：作为源窗口，拖拽自己的Tab
+  if (!draggingId || !draggingTab || !ipcRenderer) return
+
+  if (!canDragToOtherWindow(draggingTab)) {
+    return
+  }
+
+  const tabsWrapperEl = tabsWrapperRef.value || 
+                        document.querySelector('.main-tabs-wrapper') as HTMLElement
+  
+  if (!tabsWrapperEl) {
+    await nextTick()
+    const el = tabsWrapperRef.value || document.querySelector('.main-tabs-wrapper') as HTMLElement
+    if (!el) return
+    checkAndCreateWindow(el, event)
+    return
+  }
+
+  checkAndCreateWindow(tabsWrapperEl, event)
+}
+
+// 检查是否超出MainTabs并创建新窗口
+const checkAndCreateWindow = async (tabsWrapperEl: HTMLElement, event: DragEvent) => {
+  const tabsRect = tabsWrapperEl.getBoundingClientRect()
+  const mouseX = event.clientX
+  const mouseY = event.clientY
+
+  // 检查鼠标是否超出MainTabs区域（包括下方内容区、窗口内任何非MainTabs区域）
+  const isOutsideTabs = 
+    mouseX < tabsRect.left ||
+    mouseX > tabsRect.right ||
+    mouseY < tabsRect.top ||
+    mouseY > tabsRect.bottom
+
+  // #region agent log
+  const tabCount = allTabs.value.length
+  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:checkAndCreateWindow',message:'check',data:{mouseX,mouseY,tabsRect:{l:tabsRect.left,r:tabsRect.right,t:tabsRect.top,b:tabsRect.bottom},isOutsideTabs,tabCount,canDrag:canDragToOtherWindow(draggingTab!)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+  // #endregion
+
+  // 重要：当前窗口只有1个Tab时，绝不创建新窗口（应合并到目标窗口）
+  if (tabCount <= 1) {
+    if (dragOverTimer) {
+      clearTimeout(dragOverTimer)
+      dragOverTimer = null
+    }
+    isDraggingToNewWindow = false
+    return
+  }
+
+  // 如果拖拽超出MainTabs区域（含本窗口内下方内容区），立即创建新窗口
+  if (isOutsideTabs && !isDraggingToNewWindow && !windowCreationInProgress) {
+    // 不重置定时器：首次进入外部区域时设置，后续 dragover 不重置
+    if (!dragOverTimer) {
+      dragOverTimer = setTimeout(async () => {
+        dragOverTimer = null
+        if (isDraggingToNewWindow || windowCreationInProgress) return
+        windowCreationInProgress = true
+        isDraggingToNewWindow = true
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:createWindowTimer',message:'creating new window',data:{draggingId},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+        // #endregion
+        
+        const currentDraggingId = draggingId
+      if (!currentDraggingId) {
+        isDraggingToNewWindow = false
+        windowCreationInProgress = false
+        return
+      }
+
+      // 再次检查Tab数量（可能已变化）
+      if (allTabs.value.length <= 1) {
+        isDraggingToNewWindow = false
+        windowCreationInProgress = false
+        return
+      }
+
+      // 序列化Tab数据（包括所有状态：dirty、新文档等）
+      const tabData = serializeTabData(currentDraggingId)
+      if (!tabData) {
+        isDraggingToNewWindow = false
+        windowCreationInProgress = false
+        return
+      }
+
+      try {
+        const windowId = await getCurrentWindowId()
+        
+        // 创建新窗口（仅此一次，windowCreationInProgress 已阻止重复）
+        const newWindowId = await ipcRenderer.invoke('create-window-with-tab', {
+          tabData,
+          position: { x: mouseX, y: mouseY }
+        })
+
+        // 从当前窗口移除Tab
+        await removeTabAfterDrag(currentDraggingId, windowId)
+
+        logger.info(`Tab ${currentDraggingId} 已移动到新窗口 ${newWindowId}`)
+      } catch (error) {
+        logger.error('创建新窗口失败:', error)
+        isDraggingToNewWindow = false
+      } finally {
+        windowCreationInProgress = false
+      }
+      }, 50) // 50ms 后触发，不因后续 dragover 重置
+    }
+  } else if (!isOutsideTabs) {
+    // 如果拖拽回到MainTabs区域内，取消创建并重置
+    if (dragOverTimer) {
+      clearTimeout(dragOverTimer)
+      dragOverTimer = null
+    }
+    if (isDraggingToNewWindow) {
+      isDraggingToNewWindow = false
+    }
+  }
+}
+
+const handleGlobalDrop = async (event: DragEvent) => {
+  // 检查是否是来自其他窗口的Tab拖拽
+  if (!event.dataTransfer) return
+
+  try {
+    const tabDataStr = event.dataTransfer.getData('application/x-metadoc-tab')
+    if (!tabDataStr) return
+
+    const tabTransferData = JSON.parse(tabDataStr)
+    const sourceWindowId = tabTransferData.sourceWindowId
+    const currentWindowId = await getCurrentWindowId()
+
+    // 如果是来自其他窗口的Tab
+    if (sourceWindowId && sourceWindowId !== currentWindowId) {
+      // 检查是否可以拖拽到其他窗口
+      if (!tabTransferData.canDragToOtherWindow) {
+        logger.warn('系统Tab或工具Tab不允许拖拽到其他窗口')
+        return
+      }
+
+      // 计算插入位置
+      const tabsEl = tabsRef.value?.$el || tabsRef.value
+      let insertIndex = allTabs.value.length
+      
+      if (tabsEl && tabsEl instanceof HTMLElement) {
+        const allItems = tabsEl.querySelectorAll('.el-tabs__item')
+        
+        for (let i = 0; i < allItems.length; i++) {
+          const item = allItems[i]
+          if (!(item instanceof HTMLElement)) continue
+          const rect = item.getBoundingClientRect()
+          if (event.clientX < rect.left + rect.width / 2) {
+            const ariaControls = item.getAttribute('aria-controls')
+            if (ariaControls) {
+              const paneId = ariaControls.replace(/^pane-/, '')
+              const targetIndex = allTabs.value.findIndex(t => t.id === paneId)
+              if (targetIndex !== -1) {
+                insertIndex = targetIndex
+                break
+              }
+            }
+          }
+        }
+      }
+
+      // 通过主进程转发Tab到当前窗口
+      if (ipcRenderer) {
+        ipcRenderer.send('transfer-tab-to-window', {
+          targetWindowId: currentWindowId,
+          tabData: tabTransferData,
+          insertIndex
+        })
+      }
+    }
+  } catch (error) {
+    logger.error('处理窗口间Tab拖拽失败:', error)
+  }
+}
+
+// 从拖拽添加Tab
+const addTabFromDrag = async (tabTransferData: any, insertIndex?: number) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:addTabFromDrag',message:'addTabFromDrag enter',data:{hasTab:!!tabTransferData?.tab,insertIndex},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
+  // #endregion
+  try {
+    const { tab, document } = tabTransferData
+
+    if (!tab) {
+      logger.error('Tab数据无效:', tabTransferData)
+      return
+    }
+
+    // 检查Tab是否已存在（避免重复添加）
+    const existingTab = workspace.tabs.find(t => t.id === tab.id)
+    if (existingTab) {
+      logger.warn('Tab已存在，直接激活:', tab.id)
+      workspace.activateTab(tab.id)
+      return
+    }
+
+    // 工具/系统 Tab：若目标窗口已有相同 toolType 或 route，激活而非重复添加
+    if (tab.kind === 'tool' && tab.toolType) {
+      const sameTool = workspace.tabs.find(t => t.kind === 'tool' && t.toolType === tab.toolType)
+      if (sameTool) {
+        workspace.activateTab(sameTool.id)
+        return
+      }
+    }
+    if (tab.kind === 'system' && tab.route) {
+      const sameSystem = workspace.tabs.find(t => t.kind === 'system' && t.route === tab.route)
+      if (sameSystem) {
+        workspace.activateTab(sameSystem.id)
+        return
+      }
+    }
+
+    // 由 Tab 拖出创建的新窗口：移除 ensureInitialTab 创建的空白“新建文档”Tab
+    const emptyNewTabs = workspace.tabs.filter(
+      t => t.kind === 'new' && (!t.path || t.path === '') && !t.dirty
+    )
+    emptyNewTabs.forEach(t => workspace.removeTab(t.id))
+
+    // 添加Tab
+    if (insertIndex !== undefined && insertIndex >= 0 && insertIndex < allTabs.value.length) {
+      workspace.tabs.splice(insertIndex, 0, tab)
+    } else {
+      workspace.tabs.push(tab)
+    }
+
+    // 如果是文档Tab，恢复文档内容（包括新文档和未保存的文档）
+    if ((tab.kind === 'file' || tab.kind === 'new') && document) {
+      try {
+        // 确保文档存在
+        const doc = workspace.ensureDocument(tab.id)
+        
+        // 恢复文档内容（包括所有状态）
+        doc.markdown = document.markdown || ''
+        doc.tex = document.tex || ''
+        doc.outline = document.outline || doc.outline
+        doc.meta = document.meta || doc.meta
+        doc.aiDialogs = document.aiDialogs || doc.aiDialogs
+        doc.agentSessions = document.agentSessions || doc.agentSessions
+        doc.lastView = document.lastView || doc.lastView
+        doc.renderedHtml = document.renderedHtml || ''
+        // 重要：保持dirty状态
+        doc.dirty = document.dirty !== undefined ? document.dirty : false
+        doc.savedMarkdown = document.savedMarkdown !== undefined ? document.savedMarkdown : doc.markdown
+        doc.savedTex = document.savedTex !== undefined ? document.savedTex : doc.tex
+        doc.savedOutline = document.savedOutline || doc.outline
+        doc.savedMeta = document.savedMeta || doc.meta
+        doc.savedAiDialogs = document.savedAiDialogs || doc.aiDialogs
+        doc.savedAgentSessions = document.savedAgentSessions || doc.agentSessions
+        // 关键：恢复 path 和 format，否则保存会无反应（会当作“新文件”）
+        doc.path = document.path ?? doc.path ?? ''
+        doc.format = document.format ?? doc.format ?? tab.format
+        tab.path = doc.path
+        tab.format = doc.format
+        if (doc.path) {
+          tab.subtitle = doc.path.split(/[/\\]/).filter(Boolean).pop() || tab.subtitle || ''
+        }
+        
+        // 确保Tab的dirty状态也同步
+        tab.dirty = doc.dirty
+      } catch (error) {
+        logger.warn('恢复文档内容失败，可能是新文档:', error)
+        // 对于新文档，即使ensureDocument失败也要继续
+      }
+    }
+
+    // 激活Tab
+    await nextTick()
+    workspace.activateTab(tab.id)
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:addTabFromDrag',message:'addTabFromDrag success',data:{tabId:tab.id},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
+    // #endregion
+    logger.info('成功添加并激活Tab:', tab.id, { kind: tab.kind, dirty: tab.dirty })
+  } catch (error) {
+    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:addTabFromDrag',message:'addTabFromDrag error',data:{error:String(error)},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
+    logger.error('添加Tab失败:', error)
+  }
+}
+
+// 拖拽后移除Tab
+const removeTabAfterDrag = async (tabId: string, windowId: number) => {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:removeTabAfterDrag',message:'removeTab enter',data:{tabId,beforeCount:workspace.tabs.length},timestamp:Date.now(),hypothesisId:'H8'})}).catch(()=>{});
+  // #endregion
+  try {
+    const tabIndex = workspace.tabs.findIndex(t => t.id === tabId)
+    const wasActive = workspace.activeTabId.value === tabId
+    
+    // 移除Tab
+    if (tabIndex !== -1) {
+      workspace.tabs.splice(tabIndex, 1)
+    }
+    
+    // 若移除的是当前激活Tab，需激活其他Tab，避免黑屏
+    if (wasActive && workspace.tabs.length > 0) {
+      const nextIndex = Math.min(tabIndex, workspace.tabs.length - 1)
+      const nextTab = workspace.tabs[nextIndex >= 0 ? nextIndex : 0]
+      if (nextTab) {
+        workspace.activateTab(nextTab.id)
+      }
+    }
+
+    // 检查窗口是否可以关闭
+    if (ipcRenderer) {
+      const { canClose, tabCount } = await ipcRenderer.invoke('check-window-can-close')
+      if (canClose && tabCount === 0) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:removeTabAfterDrag',message:'closing window',data:{tabCount,canClose},timestamp:Date.now(),hypothesisId:'H8'})}).catch(()=>{});
+        // #endregion
+        // 窗口可以关闭
+        ipcRenderer.send('close-window')
+      }
+    }
+  } catch (error) {
+    fetch('http://127.0.0.1:7243/ingest/6fd0e682-9ecb-4304-ab32-e4e6c2b34c32',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainTabs.vue:removeTabAfterDrag',message:'removeTab error',data:{error:String(error)},timestamp:Date.now(),hypothesisId:'H8'})}).catch(()=>{});
+    logger.error('移除Tab失败:', error)
+  }
+}
+
 // 在 Tab 项上添加拖拽事件监听（扩大拖拽区域）
 onMounted(() => {
+  // 获取当前窗口ID
+  getCurrentWindowId()
+
+  // Tab 右键菜单：点击外部关闭
+  document.addEventListener('click', handleTabContextMenuClickOutside)
+
+  // 添加全局拖拽事件监听（使用 capture 确保在内容区也能收到事件）
+  document.addEventListener('dragover', handleGlobalDragOver, true)
+  document.addEventListener('drop', handleGlobalDrop, true)
+
+  // 监听来自主进程的Tab添加请求
+  if (ipcRenderer) {
+    ipcRenderer.on('add-tab-from-drag', async (_event: any, data: any) => {
+      try {
+        // 确保workspace已初始化
+        await nextTick()
+        
+        const tabData = data.tabData || data
+        const insertIndex = data.insertIndex
+        
+        if (!tabData || !tabData.tab) {
+          logger.error('接收到的Tab数据无效:', data)
+          return
+        }
+        
+        await addTabFromDrag(tabData, insertIndex)
+        logger.info('成功添加Tab到新窗口:', tabData.tab.id)
+      } catch (error) {
+        logger.error('添加Tab失败:', error)
+      }
+    })
+
+    ipcRenderer.on('remove-tab-from-drag', async (_event: any, tabId: string) => {
+      await removeTabAfterDrag(tabId, await getCurrentWindowId())
+    })
+
+    ipcRenderer.on('request-tab-count', () => {
+      if (ipcRenderer) {
+        ipcRenderer.send('window-tab-count-response', { tabCount: allTabs.value.length })
+      }
+    })
+  }
+
   // 延迟执行，确保 DOM 已渲染
   nextTick(() => {
     const tabsEl = tabsRef.value?.$el || tabsRef.value
@@ -485,8 +1361,9 @@ onMounted(() => {
           }
           // 使用整个 Tab 项来计算拖拽位置
           const mode = computeDropMode(e, item)
-          dropPreview.targetId = tabId
-          dropPreview.mode = mode
+          const { targetId: normId, mode: normMode } = normalizeDropPreview(tabId, mode)
+          dropPreview.targetId = normId
+          dropPreview.mode = normMode
           updateDropPreviewClasses()
         }
         
@@ -537,6 +1414,23 @@ watch(() => route.path, (newPath) => {
     if (matchingTab) {
       workspace.activateTab(matchingTab.id)
     }
+  }
+})
+
+// 清理事件监听器
+onUnmounted(() => {
+  document.removeEventListener('click', handleTabContextMenuClickOutside)
+  document.removeEventListener('dragover', handleGlobalDragOver, true)
+  document.removeEventListener('drop', handleGlobalDrop, true)
+  if (moveToWindowLeaveTimer) {
+    clearTimeout(moveToWindowLeaveTimer)
+    moveToWindowLeaveTimer = null
+  }
+
+  if (ipcRenderer) {
+    ipcRenderer.removeAllListeners('add-tab-from-drag')
+    ipcRenderer.removeAllListeners('remove-tab-from-drag')
+    ipcRenderer.removeAllListeners('request-tab-count')
   }
 })
 </script>
@@ -977,6 +1871,95 @@ watch(() => route.path, (newPath) => {
   font-weight: 600;
   line-height: 0;
   display: block;
+}
+
+/* Tab 右键菜单 - 参考 SessionList.item-menu 样式 */
+.tab-context-menu {
+  position: fixed;
+  z-index: 1002;
+  padding: 4px;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  min-width: 140px;
+  width: max-content;
+  max-width: 280px;
+  border: 1px solid v-bind('tabContextMenuStyle.borderColor');
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-context-menu__item {
+  background: transparent;
+  border: none;
+  padding: 8px 10px;
+  text-align: left;
+  color: v-bind('tabContextMenuStyle.color');
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.2;
+  transition: background-color 0.2s ease;
+  width: 100%;
+}
+
+.tab-context-menu__item:hover {
+  background-color: rgba(64, 158, 255, 0.16);
+}
+
+.tab-context-menu__divider {
+  height: 1px;
+  margin: 4px 0;
+  background-color: v-bind('tabContextMenuStyle.borderColor');
+  opacity: 0.5;
+}
+
+.tab-context-menu__submenu-trigger {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.tab-context-menu__submenu-trigger .arrow-icon {
+  margin-left: 8px;
+  font-size: 12px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.tab-context-menu__submenu {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  margin-left: 4px;
+  min-width: 160px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid v-bind('tabContextMenuStyle.borderColor');
+  background-color: v-bind('tabContextMenuStyle.backgroundColor');
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-context-menu__empty {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: v-bind('tabContextMenuStyle.color');
+  opacity: 0.6;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
 

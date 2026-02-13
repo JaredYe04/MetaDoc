@@ -32,7 +32,19 @@
         "version": "版本 {version}",
         "minimize": "最小化",
         "maximize": "最大化",
-        "close": "关闭"
+        "close": "关闭",
+        "contextMenu": {
+            "closeTab": "关闭标签页",
+            "closeOtherTabs": "关闭其他标签页",
+            "openInNewWindow": "在新窗口中打开",
+            "moveToWindow": "将标签页移至另一个窗口",
+            "copyPath": "复制路径",
+            "copyTitle": "复制标题",
+            "copyFilename": "复制文件名",
+            "showInFolder": "在文件资源管理器中显示",
+            "moveLeft": "左移",
+            "moveRight": "右移"
+        }
     },
     "leftMenu": {
         "metaDocTooltip": "MetaDoc ;-)",
@@ -686,7 +698,8 @@
         "yesterday": "昨天",
         "thisWeek": "本周",
         "thisMonth": "本月",
-        "older": "更早"
+        "older": "更早",
+        "noOtherWindow": "无其他窗口"
     },
     "article": {
         "drag_to_resize": "拖动以改变宽度",

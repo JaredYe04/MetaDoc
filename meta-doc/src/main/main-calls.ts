@@ -22,6 +22,7 @@ import { join } from 'path';
 import { is } from '@electron-toolkit/utils';
 import path from 'path';
 import fs from 'fs';
+import { pathToFileURL } from 'url';
 
 // 第三方模块
 import os from 'os';
@@ -41,8 +42,14 @@ import {
   openOcrDialog,
   openAttachmentDialog,
   openGraphDialog,
-  initBroadcastChannel 
+  initBroadcastChannel,
+  getAllMainWindows,
+  getVisibleMainWindows,
+  getWindowById,
+  registerMainWindow,
+  getWindowId
 } from './index';
+import { acquirePoolWindow } from './window-pool';
 import { dirname } from './index';
 import { imageUploadDir } from './express-server';
 import { queryKnowledgeBase, getResourcesPath, compileLatexToPDF, setEmbeddingMode, getEmbeddingMode, fileConversionService } from './utils';
@@ -206,6 +213,7 @@ export function mainCalls(): void {
   bindDatabaseHandlers();
   bindMathHandlers();
   bindSpellCheckHandlers();
+  bindWindowManagementHandlers();
   
   initBroadcastChannel();
 }
@@ -233,7 +241,8 @@ function bindBasicHandlers(): void {
   });
   
   ipcMain.on('open-doc', async (event: IpcMainEvent, filePath: string) => {
-    await openDoc(filePath);
+    const sourceWindowId = event.sender.id;
+    await openDoc(filePath, sourceWindowId);
   });
   
   // 窗口控制
@@ -259,40 +268,40 @@ function bindBasicHandlers(): void {
  * 绑定对话框事件处理器
  */
 function bindDialogHandlers(): void {
-  ipcMain.on('setting', () => {
-    openSettingDialog();
+  ipcMain.on('setting', (event: IpcMainEvent) => {
+    openSettingDialog(event);
   });
   
-  ipcMain.on('ai-chat', () => {
-    openAiChatDialog();
+  ipcMain.on('ai-chat', (event: IpcMainEvent) => {
+    openAiChatDialog(event);
   });
   
-  ipcMain.on('ai-graph', () => {
-    openGraphDialog();
+  ipcMain.on('ai-graph', (event: IpcMainEvent) => {
+    openGraphDialog(event);
   });
   
-  ipcMain.on('smart-drawing-assistant', () => {
-    openGraphDialog();
+  ipcMain.on('smart-drawing-assistant', (event: IpcMainEvent) => {
+    openGraphDialog(event);
   });
   
-  ipcMain.on('fomula-recognition', () => {
-    openFomulaRecognitionDialog();
+  ipcMain.on('fomula-recognition', (event: IpcMainEvent) => {
+    openFomulaRecognitionDialog(event);
   });
   
-  ipcMain.on('data-analysis', () => {
-    openDataAnalysisDialog();
+  ipcMain.on('data-analysis', (event: IpcMainEvent) => {
+    openDataAnalysisDialog(event);
   });
   
-  ipcMain.on('ocr', () => {
-    openOcrDialog();
+  ipcMain.on('ocr', (event: IpcMainEvent) => {
+    openOcrDialog(event);
   });
   
-  ipcMain.on('attachment', () => {
-    openAttachmentDialog();
+  ipcMain.on('attachment', (event: IpcMainEvent) => {
+    openAttachmentDialog(event);
   });
   
-  ipcMain.on('graph', () => {
-    openGraphDialog();
+  ipcMain.on('graph', (event: IpcMainEvent) => {
+    openGraphDialog(event);
   });
 }
 
@@ -3311,20 +3320,112 @@ const save = async (data: SaveData, saveAs: boolean): Promise<void> => {
 /**
  * 打开文档
  */
-export const openDoc = async (filePath?: string): Promise<void> => {
+export const openDoc = async (filePath?: string, targetWindowId?: number): Promise<void> => {
   if (filePath) {
-    const content = fs.readFileSync(filePath, 'utf-8');
+    // 只在已显示的窗口中查找（排除窗口池中未显示的备用窗口）
+    const windows = getVisibleMainWindows();
+    let foundWindow: BrowserWindow | null = null;
+    let foundTabId: string | null = null;
+    
+    // 查询所有窗口（排除目标窗口，如果指定了的话）
+    for (const win of windows) {
+      const winId = getWindowId(win);
+      // 如果指定了目标窗口，跳过它（因为我们要在当前窗口打开）
+      if (targetWindowId && winId === targetWindowId) {
+        continue;
+      }
+      
+      const result = await new Promise<{ tabId: string | null }>((resolve) => {
+        const handler = (_event: IpcMainEvent, response: { tabId: string | null } | null) => {
+          ipcMain.removeListener('file-exists-in-window-response', handler);
+          resolve(response || { tabId: null });
+        };
+        
+        ipcMain.once('file-exists-in-window-response', handler);
+        win.webContents.send('check-file-exists-in-window', filePath);
+        
+        // 超时处理
+        setTimeout(() => {
+          ipcMain.removeListener('file-exists-in-window-response', handler);
+          resolve({ tabId: null });
+        }, 1000);
+      });
+      
+      if (result.tabId) {
+        foundWindow = win;
+        foundTabId = result.tabId;
+        break;
+      }
+    }
+
+    // 如果文件已在某个窗口打开，切换到该窗口
+    if (foundWindow && foundTabId) {
+      // 激活对应的Tab
+      foundWindow.webContents.send('activate-tab-by-id', foundTabId);
+      // 显示并focus窗口
+      if (foundWindow.isMinimized()) {
+        foundWindow.restore();
+      }
+      foundWindow.show();
+      foundWindow.focus();
+      return;
+    }
+
+    // 确定目标窗口（仅从已显示的窗口中选择，不选池中备用窗口）
+    let targetWin: BrowserWindow | null = null;
+    if (targetWindowId) {
+      const byId = getWindowById(targetWindowId);
+      targetWin = byId && byId.isVisible() ? byId : null;
+    }
+    if (!targetWin) {
+      const focusedWindow = BrowserWindow.getFocusedWindow();
+      if (focusedWindow && !focusedWindow.isDestroyed() && focusedWindow.isVisible()) {
+        targetWin = focusedWindow;
+      } else {
+        const visibleWindows = getVisibleMainWindows();
+        targetWin = visibleWindows.length > 0 ? visibleWindows[0] : (mainWindow && mainWindow.isVisible() ? mainWindow : null);
+      }
+    }
+
+    if (!targetWin || targetWin.isDestroyed()) {
+      logger.error('无法找到目标窗口');
+      return;
+    }
+
     const format = path.extname(filePath).slice(1).toLowerCase();
     
-    const payload = {
-      content,
-      format,
-      path: filePath,
-      fileName: path.basename(filePath),
-    };
+    // PDF文件是二进制文件，不需要读取内容，让渲染进程处理
+    if (format === 'pdf') {
+      const payload = {
+        content: '', // PDF文件不在这里读取内容
+        format: 'pdf',
+        path: filePath,
+        fileName: path.basename(filePath),
+      };
+      
+      targetWin.webContents.send('open-doc-success', payload);
+      targetWin.webContents.send('update-current-path', filePath);
+    } else {
+      // 其他文本文件正常读取
+      const content = fs.readFileSync(filePath, 'utf-8');
+      
+      const payload = {
+        content,
+        format,
+        path: filePath,
+        fileName: path.basename(filePath),
+      };
+      
+      targetWin.webContents.send('open-doc-success', payload);
+      targetWin.webContents.send('update-current-path', filePath);
+    }
     
-    mainWindow?.webContents.send('open-doc-success', payload);
-    mainWindow?.webContents.send('update-current-path', filePath);
+    // 显示并focus窗口
+    if (targetWin.isMinimized()) {
+      targetWin.restore();
+    }
+    targetWin.show();
+    targetWin.focus();
     return;
   }
 
@@ -4301,6 +4402,325 @@ function bindMathHandlers(): void {
       logger.error('LaTeX 转 OMML 失败:', error);
       return null;
     }
+  });
+}
+
+/**
+ * 查找包含指定工具/系统 Tab 的窗口（供主进程 open*Dialog 使用）
+ */
+export async function findWindowWithToolTab(payload: { toolType?: string; route?: string }): Promise<{ windowId: number | null; tabId: string | null }> {
+  const { toolType, route } = payload || {};
+  if (!toolType && !route) return { windowId: null, tabId: null };
+  const windows = getVisibleMainWindows();
+  for (const win of windows) {
+    const result = await new Promise<{ tabId: string | null }>((resolve) => {
+      const handler = (_ev: IpcMainEvent, response: { tabId: string | null } | null) => {
+        ipcMain.removeListener('tool-tab-exists-in-window-response', handler);
+        resolve(response || { tabId: null });
+      };
+      ipcMain.once('tool-tab-exists-in-window-response', handler);
+      win.webContents.send('check-tool-tab-in-window', payload);
+      setTimeout(() => {
+        ipcMain.removeListener('tool-tab-exists-in-window-response', handler);
+        resolve({ tabId: null });
+      }, 1000);
+    });
+    if (result.tabId) return { windowId: getWindowId(win), tabId: result.tabId };
+  }
+  return { windowId: null, tabId: null };
+}
+
+/**
+ * 绑定窗口管理处理器
+ */
+function bindWindowManagementHandlers(): void {
+  const logger = createMainLogger('WindowManagement');
+
+  // 获取当前窗口ID
+  ipcMain.handle('get-window-id', (event: IpcMainInvokeEvent): number => {
+    return event.sender.id;
+  });
+
+  // 获取所有已显示的主窗口列表（用于“移至另一个窗口”菜单，排除窗口池中未显示的窗口）
+  ipcMain.handle('get-all-windows', (event: IpcMainInvokeEvent): Array<{ id: number; title: string }> => {
+    const currentWindowId = event.sender.id;
+    const windows = getAllMainWindows().filter(win => !win.isDestroyed() && win.isVisible());
+    return windows.map(win => ({
+      id: getWindowId(win),
+      title: win.getTitle() || `窗口 ${getWindowId(win)}`
+    })).filter(w => w.id !== currentWindowId); // 排除当前窗口
+  });
+
+  // 创建新窗口并传递Tab数据
+  ipcMain.handle('create-window-with-tab', async (
+    event: IpcMainInvokeEvent,
+    { tabData, position }: { tabData: any; position: { x: number; y: number } }
+  ): Promise<number> => {
+    try {
+      const sourceWindow = BrowserWindow.fromWebContents(event.sender);
+      if (!sourceWindow) {
+        throw new Error('无法获取源窗口');
+      }
+
+      // 获取源窗口的大小（非最大化状态）
+      const sourceBounds = sourceWindow.getBounds();
+      const isMaximized = sourceWindow.isMaximized();
+      
+      // 如果源窗口是最大化的，使用默认大小
+      const width = isMaximized ? 1366 : sourceBounds.width;
+      const height = isMaximized ? 768 : sourceBounds.height;
+
+      // 优先使用窗口池中的预加载窗口（瞬间显示）
+      const poolWindow = acquirePoolWindow({
+        tabData,
+        position,
+        width,
+        height,
+      });
+
+      if (poolWindow) {
+        const windowId = getWindowId(poolWindow);
+        logger.info(`创建新窗口（池）: ${windowId}, Tab: ${tabData.tab?.id || 'unknown'}`);
+        return windowId;
+      }
+
+      // 池为空时回退：创建新窗口
+      const x = Math.max(0, position.x - width / 2);
+      const y = Math.max(0, position.y - height / 2);
+
+      const newWindow = new BrowserWindow({
+        width,
+        height,
+        minWidth: 800,
+        minHeight: 600,
+        x,
+        y,
+        show: true,
+        autoHideMenuBar: true,
+        frame: false,
+        titleBarStyle: 'hidden',
+        ...(process.platform === 'linux' ? { icon: undefined } : {}),
+        webPreferences: {
+          preload: join(__dirname, '../preload/index.js'),
+          sandbox: false,
+          nodeIntegration: true,
+          webSecurity: false,
+        }
+      });
+
+      // 注册新窗口
+      registerMainWindow(newWindow);
+
+      // 加载URL（show: true 已使窗口立即显示）
+      // skipAutoHome=1：由 Tab 拖出创建，不执行“启动时自动显示主页”
+      let url: string;
+      if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+        url = process.env['ELECTRON_RENDERER_URL'] + '/#/home?windowType=home&skipAutoHome=1';
+      } else {
+        const indexPath = join(__dirname, '../renderer/index.html');
+        const fileURL = pathToFileURL(indexPath).toString();
+        url = `${fileURL}#/home?windowType=home&skipAutoHome=1`;
+      }
+      
+      newWindow.loadURL(url);
+
+      // 等待首帧加载（ready-to-show 已触发显示）
+      await new Promise<void>((resolve) => {
+        newWindow.webContents.once('did-finish-load', () => resolve());
+        setTimeout(() => resolve(), 3000);
+      });
+
+      // 快速轮询等待 MainTabs 挂载（无额外延迟，50ms 间隔）
+      await new Promise<void>((resolve) => {
+        const checkVueReady = async () => {
+          try {
+            const isReady = await newWindow.webContents.executeJavaScript(`
+              (function() {
+                return typeof document !== 'undefined' &&
+                       document.querySelector('.main-tabs-wrapper') !== null;
+              })();
+            `);
+            if (isReady) {
+              // 仅等待 nextTick 级别，确保 IPC 监听已注册
+              setTimeout(() => resolve(), 16);
+            } else {
+              setTimeout(checkVueReady, 50);
+            }
+          } catch {
+            setTimeout(() => resolve(), 100);
+          }
+        };
+        checkVueReady();
+        setTimeout(() => resolve(), 3000);
+      });
+
+      // 传递Tab数据到新窗口
+      newWindow.webContents.send('add-tab-from-drag', { tabData, insertIndex: 0 });
+
+      newWindow.focus();
+
+      const windowId = getWindowId(newWindow);
+      logger.info(`创建新窗口: ${windowId}, Tab: ${tabData.tab?.id || 'unknown'}`);
+      
+      return windowId;
+    } catch (error) {
+      logger.error('创建新窗口失败:', error as Error);
+      throw error;
+    }
+  });
+
+  // 窗口间Tab传递（由目标窗口发起，tabData 含 sourceWindowId）
+  ipcMain.on('transfer-tab-to-window', (
+    _event: IpcMainEvent,
+    { targetWindowId, tabData, insertIndex }: { targetWindowId: number; tabData: any; insertIndex?: number }
+  ) => {
+    try {
+      const sourceWindowId = tabData?.sourceWindowId ?? null;
+      const targetWindow = getWindowById(targetWindowId);
+      if (!targetWindow || targetWindow.isDestroyed()) {
+        logger.error(`目标窗口不存在或已销毁: ${targetWindowId}`);
+        return;
+      }
+
+      // 发送Tab数据到目标窗口
+      targetWindow.webContents.send('add-tab-from-drag', { tabData, insertIndex });
+      
+      // 通知源窗口移除Tab（必须用 tabData.sourceWindowId，event.sender 是目标窗口）
+      if (sourceWindowId != null) {
+        const sourceWindow = getWindowById(sourceWindowId);
+        if (sourceWindow && !sourceWindow.isDestroyed()) {
+          sourceWindow.webContents.send('remove-tab-from-drag', tabData.tab?.id);
+        }
+      }
+      
+      logger.debug(`Tab传递: ${tabData.tab?.id || 'unknown'} from 窗口 ${sourceWindowId} -> 窗口 ${targetWindowId}`);
+    } catch (error) {
+      logger.error('Tab传递失败:', error as Error);
+    }
+  });
+
+  // 从窗口移除Tab
+  ipcMain.on('remove-tab-from-window', (
+    event: IpcMainEvent,
+    { windowId, tabId }: { windowId: number; tabId: string }
+  ) => {
+    try {
+      const win = getWindowById(windowId);
+      if (!win || win.isDestroyed()) {
+        logger.error(`窗口不存在或已销毁: ${windowId}`);
+        return;
+      }
+
+      // 发送移除Tab请求到窗口
+      win.webContents.send('remove-tab-from-drag', tabId);
+      
+      logger.debug(`移除Tab: ${tabId} from 窗口 ${windowId}`);
+    } catch (error) {
+      logger.error('移除Tab失败:', error as Error);
+    }
+  });
+
+  // 检查窗口是否可以关闭（Tab数量）
+  ipcMain.handle('check-window-can-close', async (
+    event: IpcMainInvokeEvent
+  ): Promise<{ canClose: boolean; tabCount: number }> => {
+    try {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (!win || win.isDestroyed()) {
+        return { canClose: true, tabCount: 0 };
+      }
+
+      // 请求窗口返回Tab数量
+      return new Promise((resolve) => {
+        const handler = (_event: IpcMainEvent, result: { tabCount: number }) => {
+          ipcMain.removeListener('window-tab-count-response', handler);
+          const canClose = result.tabCount <= 1;
+          resolve({ canClose, tabCount: result.tabCount });
+        };
+        
+        ipcMain.once('window-tab-count-response', handler);
+        event.sender.send('request-tab-count');
+        
+        // 超时处理
+        setTimeout(() => {
+          ipcMain.removeListener('window-tab-count-response', handler);
+          resolve({ canClose: true, tabCount: 0 });
+        }, 1000);
+      });
+    } catch (error) {
+      logger.error('检查窗口关闭状态失败:', error as Error);
+      return { canClose: true, tabCount: 0 };
+    }
+  });
+
+  // 关闭窗口
+  ipcMain.on('close-window', (event: IpcMainEvent) => {
+    try {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (win && !win.isDestroyed()) {
+        win.close();
+        logger.debug(`关闭窗口: ${getWindowId(win)}`);
+      }
+    } catch (error) {
+      logger.error('关闭窗口失败:', error as Error);
+    }
+  });
+
+  // 获取所有窗口ID列表
+  ipcMain.handle('get-all-window-ids', (): number[] => {
+    return getAllMainWindows()
+      .filter(win => !win.isDestroyed())
+      .map(win => getWindowId(win));
+  });
+
+  ipcMain.handle('find-window-with-tool-tab', (_event: IpcMainInvokeEvent, payload: { toolType?: string; route?: string }) =>
+    findWindowWithToolTab(payload)
+  );
+
+  // 查询文件是否在某个窗口打开
+  ipcMain.handle('find-window-with-file', async (
+    event: IpcMainInvokeEvent,
+    filePath: string
+  ): Promise<{ windowId: number | null; tabId: string | null }> => {
+    try {
+      const windows = getVisibleMainWindows();
+
+      for (const win of windows) {
+        const result = await new Promise<{ tabId: string | null }>((resolve) => {
+          const handler = (_event: IpcMainEvent, response: { tabId: string | null } | null) => {
+            ipcMain.removeListener('file-exists-in-window-response', handler);
+            resolve(response || { tabId: null });
+          };
+          
+          ipcMain.once('file-exists-in-window-response', handler);
+          win.webContents.send('check-file-exists-in-window', filePath);
+          
+          // 超时处理
+          setTimeout(() => {
+            ipcMain.removeListener('file-exists-in-window-response', handler);
+            resolve({ tabId: null });
+          }, 1000);
+        });
+        
+        if (result.tabId) {
+          return { windowId: getWindowId(win), tabId: result.tabId };
+        }
+      }
+      
+      return { windowId: null, tabId: null };
+    } catch (error) {
+      logger.error('查找文件所在窗口失败:', error as Error);
+      return { windowId: null, tabId: null };
+    }
+  });
+
+  // 获取当前focus的窗口ID
+  ipcMain.handle('get-focused-window-id', (): number | null => {
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    if (!focusedWindow || focusedWindow.isDestroyed()) {
+      return null;
+    }
+    return getWindowId(focusedWindow);
   });
 }
 

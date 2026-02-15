@@ -21,8 +21,10 @@
           <template #label>
             <div
               class="main-tab-label"
+              :class="{ 'is-preview': tab.preview }"
               :title="getTabTooltip(tab)"
               @mousedown="handleTabMouseDown($event, tab)"
+              @dblclick.stop="handleTabLabelDblclick(tab)"
               @contextmenu.prevent="openTabContextMenu($event, tab)"
               :draggable="canDragTab(tab)"
               @dragstart.stop="handleDragStart(tab.id, $event)"
@@ -598,6 +600,12 @@ const handleCloseTab = async (tabId: string) => {
   await closeTab(tabId)
 }
 
+const handleTabLabelDblclick = (tab: WorkspaceTab) => {
+  if (tab.preview) {
+    workspace.pinTab(tab.id)
+  }
+}
+
 const handleRemove = async (id: string | number) => {
   // 这个函数保留用于兼容，但实际使用handleCloseTab
   await handleCloseTab(String(id))
@@ -650,6 +658,7 @@ const serializeTabData = (tabId: string): any => {
       format: tab.format,
       dirty: tab.dirty,
       readonly: tab.readonly,
+      preview: tab.preview,
       toolType: tab.toolType,
       route: tab.route,
     }
@@ -1612,8 +1621,8 @@ onUnmounted(() => {
 
 .main-tab-label__text {
   font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-weight: 400;
+  color: var(--el-text-color-secondary);
   overflow: hidden !important; /* 确保溢出隐藏 */
   text-overflow: ellipsis !important; /* 确保显示省略号 */
   white-space: nowrap !important; /* 确保不换行 */
@@ -1622,6 +1631,18 @@ onUnmounted(() => {
   max-width: 100%;
   /* 确保文本元素有明确的宽度限制，text-overflow 才能生效 */
   width: 0; /* 设置为 0，让 flex: 1 来控制宽度 */
+}
+
+/* 活跃 Tab：斜体、正色 */
+/* 活跃 Tab：正色 */
+.main-tabs :deep(.el-tabs__item.is-active .main-tab-label__text) {
+  font-weight: 400;
+  color: var(--el-text-color-primary);
+}
+
+/* 预览 Tab：斜体（与是否活跃无关） */
+.main-tab-label.is-preview .main-tab-label__text {
+  font-style: italic;
 }
 
 .main-tab-label__dot {
@@ -1702,9 +1723,7 @@ onUnmounted(() => {
 
 .main-tabs :deep(.el-tabs__item.is-active) {
   background-color: v-bind('tabItemActiveBackgroundColor');
-  color: var(--el-color-primary);
-  /* border-radius: 6px 6px 0 0; */
-  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 .main-tabs :deep(.el-tabs__item:not(.is-active):hover) {

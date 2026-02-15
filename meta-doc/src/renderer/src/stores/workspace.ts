@@ -39,6 +39,8 @@ export interface WorkspaceTab {
   format: WorkspaceTabFormat;
   dirty: boolean;
   readonly?: boolean;
+  /** 预览模式（单机打开）：不显示在“已打开文件”，仅一个预览 tab；双击/编辑/切换视图后变为正式打开 */
+  preview?: boolean;
   toolType?: ToolTabType; // 工具Tab类型
   route?: string; // 路由路径（用于工具Tab）
 }
@@ -385,6 +387,7 @@ function addDocumentTab(
     format: clonedSnapshot.format,
     dirty: overrides.dirty !== undefined ? overrides.dirty : clonedSnapshot.dirty,
     readonly: overrides.readonly !== undefined ? overrides.readonly : false,
+    preview: overrides.preview !== undefined ? overrides.preview : false,
   });
 
   tabs.push(tab);
@@ -597,7 +600,27 @@ function updateDocumentMarkdown(tabId: string, markdown: string): void {
     }
     
     updateDocumentDirty(tabId);
+    if (tab?.preview) {
+      pinTab(tabId);
+    }
   }
+}
+
+/**
+ * 将预览 Tab 固定为正式打开（取消预览状态）
+ */
+function pinTab(tabId: string): void {
+  const tab = tabs.find((t) => t.id === tabId);
+  if (tab) {
+    tab.preview = false;
+  }
+}
+
+/**
+ * 获取当前唯一的预览 Tab（若有）
+ */
+function getPreviewTab(): WorkspaceTab | null {
+  return tabs.find((t) => t.preview === true) ?? null;
 }
 
 /**
@@ -668,6 +691,9 @@ function updateDocumentTex(tabId: string, tex: string): void {
     }
     
     updateDocumentDirty(tabId);
+    if (tab?.preview) {
+      pinTab(tabId);
+    }
   }
 }
 
@@ -1801,6 +1827,8 @@ export function useWorkspace() {
     createDocumentSnapshotFromTemplate,
     hasDocumentContent,
     refreshActiveTabMetadata,
+    pinTab,
+    getPreviewTab,
   };
 }
 

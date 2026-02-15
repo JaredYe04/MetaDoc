@@ -19,6 +19,7 @@
       :draggable="canDrag"
       :data-path="node.path"
       @click="handleClick"
+      @dblclick="handleDblclick"
       @contextmenu="handleContextMenu"
       @dragstart="handleDragStart"
       @dragover="handleDragOver"
@@ -78,6 +79,7 @@
               :drag-target-path="dragTargetPath"
         @toggle="$emit('toggle', $event)"
         @open-file="$emit('open-file', $event)"
+        @open-file-permanent="$emit('open-file-permanent', $event)"
         @context-menu="$emit('context-menu', $event)"
         @node-click="$emit('node-click', $event)"
         @drag-start="$emit('drag-start', $event)"
@@ -128,6 +130,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   toggle: [node: FileNode]
   'open-file': [path: string]
+  'open-file-permanent': [path: string]
   'context-menu': [event: { node: FileNode; x: number; y: number }]
   'node-click': [event: { node: FileNode; ctrlKey: boolean; shiftKey: boolean }]
   'close-workspace': [path: string]
@@ -276,6 +279,16 @@ const handleClick = (event: MouseEvent) => {
   // 如果是目录节点，点击节点其他部分也切换展开/折叠
   if (props.node.isWorkspaceRoot || props.node.type === 'directory') {
     emit('toggle', props.node)
+  }
+}
+
+const handleDblclick = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  if (target.closest('.workspace-tree-node-close') || target.closest('.workspace-tree-node-icon')) {
+    return
+  }
+  if (props.node.type === 'file') {
+    emit('open-file-permanent', props.node.path)
   }
 }
 

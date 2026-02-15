@@ -14,8 +14,12 @@
 
     <!-- 如果已选择格式，显示文档预览 -->
     <div v-else-if="showDocumentPreview" class="home-panel" :style="panelStyle">
+      <!-- PDF 格式：显示 PDF 预览组件 -->
+      <div v-if="isPdfTab" class="home-panel-pdf">
+        <PdfPreviewPanel :pdf-url="pdfUrlForHome" :default-pages-per-row="2" />
+      </div>
       <!-- 纯文本格式：不使用滚动条，让Monaco编辑器占满高度 -->
-      <div v-if="isPlainTextFormat" class="home-panel-content-plaintext">
+      <div v-else-if="isPlainTextFormat" class="home-panel-content-plaintext">
         <div class="home-panel-content">
           <!-- 文档元信息区域 -->
           <div class="document-meta-section">
@@ -117,6 +121,7 @@ import { themeState, mixColors } from '../utils/themes'
 import { useWorkspace } from '../stores/workspace'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { convertLatexToMarkdown } from '../utils/latex-utils'
+import PdfPreviewPanel from '../components/PdfPreviewPanel.vue'
 import { renderMarkdownPreview, local2fileProtocol, local2httpProtocol } from '../utils/md-utils'
 import { formatRegistry } from '../utils/format-registry'
 import { getMonacoLanguage } from '../utils/format-initializer'
@@ -229,6 +234,34 @@ const loadFileStats = async () => {
 const isPlainTextFormat = computed(() => {
   const format = activeDocument.value?.format
   return format === 'txt'
+})
+
+// 将文件路径编码为 file:// URL（与 LaTeXEditor 一致）
+function encodeFilePathToUrl(filePath: string): string {
+  if (!filePath) return ''
+  let path = filePath.replace(/^file:\/\/\//, '')
+  path = path.replace(/\\/g, '/')
+  const parts = path.split('/')
+  const encodedParts = parts.map((part: string, index: number) => {
+    if (index === 0 && part.endsWith(':')) return part
+    return encodeURIComponent(part).replace(/%2F/g, '/')
+  })
+  return `file:///${encodedParts.join('/')}`
+}
+
+// 当前 Tab 是否为 PDF（预览用）
+const isPdfTab = computed(() => {
+  const tab = activeTab.value
+  if (!tab || (tab.kind !== 'file' && tab.kind !== 'new')) return false
+  const path = currentFilePath.value
+  const format = (tab.format || activeDocument.value?.format || '').toLowerCase()
+  return format === 'pdf' || (path && path.toLowerCase().endsWith('.pdf'))
+})
+
+const pdfUrlForHome = computed(() => {
+  const path = currentFilePath.value
+  if (!path || !isPdfTab.value) return ''
+  return encodeFilePathToUrl(path)
 })
 
 // 获取 IPC renderer
@@ -475,6 +508,7 @@ const updateMonacoPreview = () => {
 
 // 渲染预览内容（Markdown格式）
 const renderPreview = async () => {
+  if (isPdfTab.value) return
   if (!previewContainerRef.value || isPlainTextFormat.value) return
 
   const container = previewContainerRef.value as HTMLDivElement
@@ -711,6 +745,15 @@ onBeforeUnmount(() => {
   height: 100%;
   width: 100%;
   overflow: hidden;
+}
+
+.home-panel-pdf {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .home-panel-scrollbar {

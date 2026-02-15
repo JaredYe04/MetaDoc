@@ -130,6 +130,8 @@ const {
   ensureDocument,
   markDocumentSaved,
   removeTab,
+  getPreviewTab,
+  createDocumentSnapshotFromTemplate,
   updateDocumentTex,
   updateDocumentMarkdown,
   refreshActiveTabMetadata,
@@ -243,6 +245,8 @@ type OpenDocumentPayload = {
   content?: string
   path?: string
   tabId?: string
+  /** 预览模式：不列入“已打开文件”，仅一个预览 tab */
+  preview?: boolean
 }
 
 // 防止同一文件被并发打开的锁
@@ -269,29 +273,43 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     return t('workspace.untitledDocument')
   }
 
+  const isPreview = payload.preview === true
+
+  const normalizePathForCompare = (p: string) => (p || '').replace(/\\/g, '/')
+  const resolvedPathNorm = normalizePathForCompare(resolvedPath)
+
   if (resolvedPath) {
-    // 先检查当前窗口是否已打开该文件
-    const existing = workspaceTabs.find((tab) => tab.path === resolvedPath)
+    // 先检查当前窗口是否已打开该文件（路径规范化后比较，避免 D:\ 与 D:/ 等导致误判）
+    const existing = workspaceTabs.find((tab) => normalizePathForCompare(tab.path || '') === resolvedPathNorm)
     if (existing) {
       activateTab(existing.id)
       const existingDoc = ensureDocument(existing.id)
       eventBus.emit('open-doc-success', {
         tabId: existing.id,
         path: resolvedPath,
-        fileName: getDisplayName(existingDoc, resolvedPath)
+        fileName: getDisplayName(existingDoc, resolvedPath),
+        isPreview: existing.preview === true
       })
       eventBus.emit('is-need-save', false)
       return
     }
 
-    // 检查是否正在打开该文件（防止并发打开）
-    if (openingFiles.has(resolvedPath)) {
+    // 预览模式：若已有预览 tab 则先关闭（保证仅一个预览 tab）
+    if (isPreview) {
+      const previewTab = getPreviewTab()
+      if (previewTab) {
+        removeTab(previewTab.id)
+      }
+    }
+
+    // 检查是否正在打开该文件（防止并发打开，用规范化路径）
+    if (openingFiles.has(resolvedPathNorm)) {
       logger.warn(`文件 ${resolvedPath} 正在打开中，跳过重复请求`)
       return
     }
     
     // 标记文件正在打开
-    openingFiles.add(resolvedPath)
+    openingFiles.add(resolvedPathNorm)
 
     // 检查文件是否在其他窗口打开
     try {
@@ -311,7 +329,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
           // 主进程会处理窗口切换和Tab激活
           logger.info(`文件 ${resolvedPath} 已在窗口 ${result.windowId} 的Tab ${result.tabId} 中打开，将切换到该窗口`)
           // 清除打开标记
-          openingFiles.delete(resolvedPath)
+          openingFiles.delete(resolvedPathNorm)
           return
         }
       }
@@ -332,70 +350,78 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     format = 'txt'
   }
 
-  // PDF 文件特殊处理：转换为 Markdown 并在新标签页打开（不保存文件）
-  if (format === 'pdf' || (resolvedPath && extname(resolvedPath).toLowerCase() === '.pdf')) {
+  // PDF 文件：预览模式仅建 PDF tab 不转换；正式打开则转换为 Markdown 编辑
+  const isPdf = format === 'pdf' || (resolvedPath && extname(resolvedPath).toLowerCase() === '.pdf')
+  if (isPdf && isPreview) {
+    // 预览 PDF：不转换，创建 PDF 预览 tab，Home 中显示 PDF 组件
+    const pdfFileName = extractFileName(resolvedPath) || ''
+    const snapshot = createDocumentSnapshotFromTemplate('md', '')
+    snapshot.path = resolvedPath
+    snapshot.format = 'pdf'
+    const tab = addDocumentTab(snapshot, {
+      kind: 'file',
+      path: resolvedPath,
+      format: 'pdf',
+      preview: true,
+      title: pdfFileName.replace(/\.pdf$/i, '') || pdfFileName,
+      subtitle: pdfFileName,
+      dirty: false,
+    })
+    const doc = ensureDocument(tab.id)
+    doc.path = resolvedPath
+    doc.format = 'pdf'
+    doc.lastView = 'home'
+    if (pdfFileName) {
+      doc.meta.title = pdfFileName.replace(/\.pdf$/i, '')
+    }
+    // 不要调用 initializeDocumentFromTemplate：它会用模板覆盖 doc.path/doc.format/tab 导致标题变成「未命名文档」、Home 无法识别 PDF
+    refreshActiveTabMetadata()
+    activateTab(tab.id)
+    eventBus.emit('open-doc-success', { tabId: tab.id, path: resolvedPath, fileName: getDisplayName(doc, resolvedPath), isPreview: true })
+    eventBus.emit('is-need-save', false)
+    if (resolvedPath) openingFiles.delete(resolvedPathNorm)
+    return
+  }
+  if (isPdf && !isPreview) {
     try {
       const ipcRenderer = window.electron?.ipcRenderer || (await import('../utils/web-adapter/local-ipc-renderer')).localIpcRenderer
       if (!ipcRenderer?.invoke) {
         throw new Error('IPC 渲染器不可用')
       }
-
-      // 在主进程中转换PDF为Markdown
       const result = await ipcRenderer.invoke('convert-pdf-to-markdown', resolvedPath) as { success: boolean; markdown?: string; error?: string }
-      
       if (!result.success || !result.markdown) {
         throw new Error(result.error || 'PDF转换失败')
       }
-
-      const markdownContent = result.markdown
-
-      // 作为新的 Markdown 文档在新标签页打开（不保存文件，path为空）
-      const loaded = await loadDocumentFromMarkdown(markdownContent, undefined)
+      const loaded = await loadDocumentFromMarkdown(result.markdown, undefined)
       const snapshot = createSnapshotFromLoadedData(loaded)
-      snapshot.path = '' // 不保存文件
-      snapshot.dirty = true // 标记为未保存
-
-      // 创建新标签页
+      snapshot.path = ''
+      snapshot.dirty = true
       const tab = addDocumentTab(snapshot, {
-        kind: 'file', // 使用 'file' 而不是 'new'，避免显示格式选择界面
+        kind: 'file',
         dirty: true,
-        path: '', // 不保存文件
-        format: 'md', // 格式为 Markdown
+        path: '',
+        format: 'md',
+        preview: false,
       })
       const doc = ensureDocument(tab.id)
-      doc.path = '' // 确保路径为空
+      doc.path = ''
       doc.format = 'md'
-      
-      // 设置标签页标题为PDF文件名
       const pdfFileName = extractFileName(resolvedPath)
       if (pdfFileName) {
         doc.meta.title = pdfFileName.replace(/\.pdf$/i, '')
       }
-      
-      // 初始化模板（使用空白模板，确保格式已确定，不会显示格式选择界面）
-      // 由于文档已有内容，initializeDocumentFromTemplate 不会覆盖内容
       workspace.initializeDocumentFromTemplate(tab.id, 'md', 'blank', 'editor')
-      
       refreshActiveTabMetadata()
       activateTab(tab.id)
-
-      eventBus.emit('open-doc-success', {
-        tabId: tab.id,
-        path: '', // 不保存文件
-        fileName: getDisplayName(doc, '')
-      })
-      eventBus.emit('is-need-save', true) // 标记为需要保存（虽然不会保存原PDF）
-      
-      // 清除打开标记（PDF文件的path为空，但使用resolvedPath作为标记）
-      if (resolvedPath) {
-        openingFiles.delete(resolvedPath)
-      }
-      
-      return // 提前返回，不执行后续的文件打开逻辑
+      eventBus.emit('open-doc-success', { tabId: tab.id, path: '', fileName: getDisplayName(doc, '') })
+      eventBus.emit('is-need-save', true)
+      if (resolvedPath) openingFiles.delete(resolvedPathNorm)
+      return
     } catch (error) {
       logger.error('PDF转换失败:', error)
       const message = error instanceof Error ? error.message : String(error)
       eventBus.emit('show-error', `PDF转换失败: ${message}`)
+      if (resolvedPath) openingFiles.delete(resolvedPathNorm)
       return
     }
   }
@@ -445,12 +471,12 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     snapshot.path = resolvedPath
     snapshot.dirty = false
 
-    // 再次检查文件是否已打开（可能在异步操作期间已被打开）
+    // 再次检查文件是否已打开（可能在异步操作期间已被打开，路径规范化比较）
     if (resolvedPath) {
-      const existingAfterCheck = workspaceTabs.find((tab) => tab.path === resolvedPath)
+      const existingAfterCheck = workspaceTabs.find((tab) => normalizePathForCompare(tab.path || '') === resolvedPathNorm)
       if (existingAfterCheck) {
         // 文件已在异步操作期间被打开，激活现有Tab并返回
-        openingFiles.delete(resolvedPath)
+        openingFiles.delete(resolvedPathNorm)
         activateTab(existingAfterCheck.id)
         const existingDoc = ensureDocument(existingAfterCheck.id)
         eventBus.emit('open-doc-success', {
@@ -463,14 +489,12 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       }
     }
 
-    // 多 Tab 会话模式：从「最近文档」或「打开文档」打开文件时，始终在新 Tab 中打开，
-    // 不替换当前未初始化的「新文档」Tab，避免原 Tab 标题被错误改为打开的文件名。
-    // （原单会话逻辑会“替换”当前空 Tab，导致唯一的新建文档 Tab 标题变成 aaa.md 的 bug）
     const tab: WorkspaceTab = addDocumentTab(snapshot, {
       kind: 'file',
       dirty: false,
       path: resolvedPath,
       format: loaded.format,
+      preview: payload.preview ?? false,
     })
     const doc = ensureDocument(tab.id)
     doc.path = resolvedPath
@@ -492,7 +516,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
   } finally {
     // 清除打开标记
     if (resolvedPath) {
-      openingFiles.delete(resolvedPath)
+      openingFiles.delete(resolvedPathNorm)
     }
   }
 }
@@ -588,9 +612,12 @@ function initMainEventListeners() {
     // 启动文件监听（如果文件路径存在）
     if (payload && typeof payload === 'object' && 'path' in payload && payload.path) {
       const filePath = payload.path as string
-      
-      // 更新最近文档列表（只要打开文件就更新，无论从哪个路径打开）
-      await updateRecentDocs(filePath)
+      const isPreview = !!(payload as any).isPreview
+
+      // 临时 tab 或仅打开 PDF 预览时不更新 recent-docs
+      if (!isPreview) {
+        await updateRecentDocs(filePath)
+      }
       
       // 获取 ipcRenderer
       let ipcRenderer: any = null
@@ -612,6 +639,19 @@ function initMainEventListeners() {
     // 这里不需要再修改，保持逻辑清晰
   }
   eventBus.on('open-doc-success', handleOpenDocSuccess)
+
+  // PDF 临时 tab 在 ViewMenu 切到非 Home 时：先关掉临时 tab，再按「双击」流程转 PDF→MD 并新建正式 tab
+  const handleConvertPdfPreviewTabToMd = (payload: unknown) => {
+    const tabId = payload && typeof payload === 'object' && 'tabId' in payload ? (payload as { tabId: string }).tabId : ''
+    if (!tabId) return
+    const tab = workspaceTabs.find((t) => t.id === tabId)
+    if (!tab || tab.kind !== 'file' || !tab.preview) return
+    const path = tab.path || ensureDocument(tabId).path || ''
+    if (!path || !path.toLowerCase().endsWith('.pdf')) return
+    removeTab(tabId)
+    eventBus.emit('workspace-open-document', { path, format: 'pdf', content: '', preview: false })
+  }
+  eventBus.on('convert-pdf-preview-tab-to-md', handleConvertPdfPreviewTabToMd)
 
   // 新建文档请求 - 在 Main.vue 中监听，因为 Main.vue 总是被挂载
   // 而 Editor.vue 只在 /editor 路由下才挂载，在其他页面（如 Home）时无法响应事件
@@ -978,6 +1018,7 @@ function initMainEventListeners() {
   cleanupMainListeners.push(
     () => eventBus.off('refresh', handleRefresh),
     () => eventBus.off('workspace-open-document', workspaceOpenDocumentHandler),
+    () => eventBus.off('convert-pdf-preview-tab-to-md', handleConvertPdfPreviewTabToMd),
     () => eventBus.off('toggle-user-profile', handleToggleUserProfile),
     () => eventBus.off('save-success', handleSaveSuccess),
     () => eventBus.off('open-doc-success', handleOpenDocSuccess),

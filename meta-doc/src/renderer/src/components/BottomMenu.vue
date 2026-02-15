@@ -232,8 +232,6 @@ onMounted(() => {
     height: 30px;
     width: 100%;
     border: 1px solid #cccccc44;
-    /*字体加粗 */
-    font-weight: bold;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -413,7 +411,7 @@ onMounted(() => {
 }
 
 .ai-task-count {
-    font-weight: bold;
+    font-weight: 500;
 }
 
 @keyframes bottom-menu-shake {
@@ -490,6 +488,6 @@ onMounted(() => {
 }
 
 .ai-task-count {
-    font-weight: bold;
+    font-weight: 500;
 }
 </style>

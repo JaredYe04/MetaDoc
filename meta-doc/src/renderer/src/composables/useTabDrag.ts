@@ -468,7 +468,7 @@ export const useTabDrag = (options: UseTabDragOptions = {}) => {
   const findTabItemElement = (labelElement: HTMLElement): HTMLElement | null => {
     let current: HTMLElement | null = labelElement
     while (current) {
-      if (current.classList.contains('el-tabs__item')) {
+      if (current.classList.contains('tab-item')) {
         return current
       }
       current = current.parentElement

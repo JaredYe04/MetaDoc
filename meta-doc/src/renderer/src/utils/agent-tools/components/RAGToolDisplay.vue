@@ -1,11 +1,19 @@
 <template>
   <div class="rag-tool-display" :style="containerStyle">
-    <div v-if="displayData.stage === 'searching'" class="searching-state" :style="statusMessageStyle">
+    <div
+      v-if="displayData.stage === 'searching'"
+      class="searching-state"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ $t('agent.display.ragTool.searching') }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed'" class="completed-state" :style="completedStateStyle">
+    <div
+      v-else-if="displayData.stage === 'completed'"
+      class="completed-state"
+      :style="completedStateStyle"
+    >
       <div class="result-header" :style="resultHeaderStyle">
         <el-tag type="success" size="small">
           {{ displayData.resultCount || 0 }}{{ $t('agent.display.ragTool.results') }}
@@ -51,7 +59,7 @@
       :percentage="effectiveProgress.percentage"
       :status="progressStatus"
       :stroke-width="6"
-      style="margin-top: 12px;"
+      style="margin-top: 12px"
     />
   </div>
 </template>
@@ -80,7 +88,7 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
 const displayData = computed(() => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data)
-  
+
   if (typeof parsed === 'object' && parsed !== null) {
     return parsed as {
       stage: 'searching' | 'completed' | 'error'
@@ -125,9 +133,8 @@ const completedStateStyle = computed(() => ({
 }))
 
 const resultHeaderStyle = computed(() => ({
-  borderBottomColor: themeState.currentTheme.type === 'dark' 
-    ? 'rgba(255, 255, 255, 0.1)' 
-    : 'rgba(0, 0, 0, 0.08)'
+  borderBottomColor:
+    themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'
 }))
 
 const questionTextStyle = computed(() => ({
@@ -146,9 +153,8 @@ const hintStyle = computed(() => ({
 const cardStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
   color: themeState.currentTheme.textColor,
-  borderColor: themeState.currentTheme.type === 'dark'
-    ? 'rgba(255, 255, 255, 0.1)'
-    : 'rgba(0, 0, 0, 0.08)'
+  borderColor:
+    themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'
 }))
 </script>
 
@@ -188,7 +194,9 @@ const cardStyle = computed(() => ({
 
 .result-card {
   margin-bottom: 8px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .result-card:hover {
@@ -223,4 +231,3 @@ const cardStyle = computed(() => ({
   padding: 12px;
 }
 </style>
-

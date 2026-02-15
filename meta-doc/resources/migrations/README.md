@@ -11,10 +11,12 @@ NNN_description.sql
 ```
 
 其中：
+
 - `NNN` 是3位数字的顺序号（001, 002, 003, ...），用于确定迁移的执行顺序
 - `description` 是迁移的描述性名称（使用小写字母、数字、下划线和连字符）
 
 **示例**：
+
 - `001_initial_schema.sql` - 初始数据库表结构
 - `002_add_embedding_model_column.sql` - 添加 embedding_model 字段
 - `003_add_tool_sessions_tables.sql` - 添加工具会话表
@@ -75,6 +77,7 @@ ALTER TABLE data_chunks ADD COLUMN embedding_model TEXT DEFAULT 'bce-embedding-b
 迁移文件按顺序号（或时间戳）升序执行，确保数据库结构变更的顺序性。
 
 迁移系统会：
+
 1. 扫描所有迁移文件（包括内置目录和用户数据目录）
 2. 按顺序号排序
 3. 检查哪些迁移尚未执行（通过 `_migrations` 表记录）
@@ -106,14 +109,15 @@ CREATE TABLE IF NOT EXISTS _migrations (
 使用迁移系统提供的 `createMigration` 函数可以自动创建新的迁移文件：
 
 ```typescript
-import { createMigration } from './database/migration';
+import { createMigration } from './database/migration'
 
 // 创建新的迁移文件
-const filePath = createMigration('add_user_preferences_table');
+const filePath = createMigration('add_user_preferences_table')
 // 返回: /path/to/migrations/004_add_user_preferences_table.sql
 ```
 
 系统会自动：
+
 - 计算下一个顺序号
 - 清理描述文本（转换为小写，移除特殊字符）
 - 创建空的迁移文件模板
@@ -126,8 +130,7 @@ const filePath = createMigration('add_user_preferences_table');
 2. **数据库初始化时**：在 `ensureInitialized()` 中执行，确保数据库结构是最新的
 
 迁移系统会确保：
+
 - 每个迁移只执行一次
 - 迁移按正确顺序执行
 - 迁移失败时会停止后续迁移并记录错误
-
-

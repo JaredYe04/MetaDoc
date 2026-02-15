@@ -18,12 +18,12 @@ declare module 'ppt-to-text' {
     extractText(
       input: string | Buffer,
       options?: {
-        outputPath?: string;
-        separator?: string;
-        encoding?: string;
-        readOpts?: any;
+        outputPath?: string
+        separator?: string
+        encoding?: string
+        readOpts?: any
       }
-    ): string;
+    ): string
 
     /**
      * 从文件路径读取PPT文件
@@ -31,7 +31,7 @@ declare module 'ppt-to-text' {
      * @param opts 选项
      * @returns 解析后的演示文稿对象
      */
-    readFile(filename: string, opts?: any): Presentation;
+    readFile(filename: string, opts?: any): Presentation
 
     /**
      * 从Buffer读取PPT文件
@@ -39,7 +39,7 @@ declare module 'ppt-to-text' {
      * @param opts 选项
      * @returns 解析后的演示文稿对象
      */
-    readBuffer(buffer: Buffer, opts?: any): Presentation;
+    readBuffer(buffer: Buffer, opts?: any): Presentation
 
     /**
      * 解析PPT CFB对象
@@ -47,7 +47,7 @@ declare module 'ppt-to-text' {
      * @param opts 选项
      * @returns 解析后的演示文稿对象
      */
-    parse_pptcfb(cfb: any, opts?: any): Presentation;
+    parse_pptcfb(cfb: any, opts?: any): Presentation
 
     /**
      * 工具函数
@@ -58,7 +58,7 @@ declare module 'ppt-to-text' {
        * @param pres 演示文稿对象
        * @returns 文本数组
        */
-      to_text(pres: Presentation): string[];
+      to_text(pres: Presentation): string[]
 
       /**
        * 将演示文稿转换为文本字符串
@@ -66,7 +66,7 @@ declare module 'ppt-to-text' {
        * @param separator 分隔符，默认为 '\n'
        * @returns 文本字符串
        */
-      toTextString(pres: Presentation, separator?: string): string;
+      toTextString(pres: Presentation, separator?: string): string
 
       /**
        * 将文本写入文件
@@ -75,8 +75,8 @@ declare module 'ppt-to-text' {
        * @param encoding 文件编码，默认为 'utf8'
        * @returns 文件路径
        */
-      writeTextFile(text: string, outputPath: string, encoding?: string): string;
-    };
+      writeTextFile(text: string, outputPath: string, encoding?: string): string
+    }
   }
 
   /**
@@ -86,17 +86,17 @@ declare module 'ppt-to-text' {
     /**
      * 文档数组
      */
-    docs?: Document[];
+    docs?: Document[]
 
     /**
      * 幻灯片数组
      */
-    slides?: Slide[];
+    slides?: Slide[]
 
     /**
      * 其他可能的属性
      */
-    [key: string]: any;
+    [key: string]: any
   }
 
   /**
@@ -106,12 +106,12 @@ declare module 'ppt-to-text' {
     /**
      * 幻灯片列表
      */
-    slideList?: Slide[];
+    slideList?: Slide[]
 
     /**
      * 其他可能的属性
      */
-    [key: string]: any;
+    [key: string]: any
   }
 
   /**
@@ -121,7 +121,7 @@ declare module 'ppt-to-text' {
     /**
      * 文本内容
      */
-    text?: string;
+    text?: string
 
     /**
      * 绘图组形状
@@ -129,18 +129,17 @@ declare module 'ppt-to-text' {
     drawing?: {
       groupShape?: Array<{
         clientTextbox?: {
-          t?: string;
-        };
-      }>;
-    };
+          t?: string
+        }
+      }>
+    }
 
     /**
      * 其他可能的属性
      */
-    [key: string]: any;
+    [key: string]: any
   }
 
-  const PPT: PPT;
-  export = PPT;
+  const PPT: PPT
+  export = PPT
 }
-

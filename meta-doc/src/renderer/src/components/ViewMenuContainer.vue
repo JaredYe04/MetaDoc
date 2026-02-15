@@ -28,13 +28,17 @@
               :content="$t('viewMenuContainer.workspace')"
               placement="top"
             >
-              <div 
-                class="sidebar-tab" 
-                :class="{ 'active': activeTab === 'workspace' }"
+              <div
+                class="sidebar-tab"
+                :class="{ active: activeTab === 'workspace' }"
                 @click="activeTab = 'workspace'"
               >
                 <div class="icon-wrapper">
-                  <img :src="(themeState.currentTheme as any).FolderIcon" class="menu-icon" alt="workspace" />
+                  <img
+                    :src="(themeState.currentTheme as any).FolderIcon"
+                    class="menu-icon"
+                    alt="workspace"
+                  />
                 </div>
               </div>
             </el-tooltip>
@@ -43,18 +47,22 @@
               :content="$t('viewMenuContainer.metaInfo')"
               placement="top"
             >
-              <div 
-                class="sidebar-tab" 
-                :class="{ 'active': activeTab === 'meta' }"
+              <div
+                class="sidebar-tab"
+                :class="{ active: activeTab === 'meta' }"
                 @click="activeTab = 'meta'"
               >
                 <div class="icon-wrapper">
-                  <img :src="(themeState.currentTheme as any).MetaIcon" class="menu-icon" alt="meta" />
+                  <img
+                    :src="(themeState.currentTheme as any).MetaIcon"
+                    class="menu-icon"
+                    alt="meta"
+                  />
                 </div>
               </div>
             </el-tooltip>
           </div>
-          
+
           <!-- Tab 内容 -->
           <div class="sidebar-content">
             <WorkspaceExplorer v-if="activeTab === 'workspace'" />
@@ -123,8 +131,9 @@ const hasVisibleMenus = computed(() => {
 // 计算当前大纲 JSON（用于 MetaInfoPanel）
 const currentOutlineJson = computed(() => {
   const doc = activeDocument.value
-  if (!doc) return JSON.stringify({ path: 'dummy', title: '', text: '', title_level: 0, children: [] })
-  
+  if (!doc)
+    return JSON.stringify({ path: 'dummy', title: '', text: '', title_level: 0, children: [] })
+
   try {
     const format = doc.format?.toLowerCase()
     if (format === 'md') {
@@ -148,11 +157,17 @@ const handleMetaPatch = (patch: any) => {
 }
 
 // 计算选中状态的背景色（参考 ViewMenu.vue 的配色方案）
-const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3))
+const activeBackgroundColor = computed(() =>
+  mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)
+)
 const activeTextColor = computed(() => themeState.currentTheme.textColor)
-const hoverBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.15))
+const hoverBackgroundColor = computed(() =>
+  mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.15)
+)
 // Tab 选择栏的背景色：background2nd 和 #777777 进行 0.3 混合
-const tabBarBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, '#777777', 0.1))
+const tabBarBackgroundColor = computed(() =>
+  mixColors(themeState.currentTheme.background2nd, '#777777', 0.1)
+)
 
 // 监听活动文档变化，自动切换到合适的 Tab
 watch([showMetaInfoTab, showWorkspaceExplorer], ([showMeta, showWorkspace]) => {
@@ -168,7 +183,7 @@ watch([showMetaInfoTab, showWorkspaceExplorer], ([showMeta, showWorkspace]) => {
       activeTab.value = 'meta'
     }
   }
-  
+
   // 如果两个都不可用，保持当前值（hasVisibleMenus 会处理整体显示）
 })
 
@@ -300,4 +315,3 @@ onBeforeUnmount(() => {
   flex-direction: column;
 }
 </style>
-

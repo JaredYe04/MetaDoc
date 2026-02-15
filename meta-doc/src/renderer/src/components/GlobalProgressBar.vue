@@ -75,13 +75,13 @@ const handleProgressEvent = (event: ProgressEvent | unknown) => {
   const evt = event as ProgressEvent
   const isVisible = evt.visible !== false
   const requestId = evt.requestId
-  
+
   // 如果事件有requestId，检查是否已完成或已取消
   if (requestId && completedRequestIds.has(requestId)) {
     // 忽略已完成或已取消任务的进度更新
     return
   }
-  
+
   // 如果事件没有requestId，但当前有requestId，且事件是隐藏，则标记当前requestId为已完成
   if (!isVisible && currentRequestId.value) {
     completedRequestIds.add(currentRequestId.value)
@@ -89,15 +89,15 @@ const handleProgressEvent = (event: ProgressEvent | unknown) => {
     if (completedRequestIds.size > 10) {
       const idsArray = Array.from(completedRequestIds)
       const toRemove = idsArray.slice(0, idsArray.length - 10)
-      toRemove.forEach(id => completedRequestIds.delete(id))
+      toRemove.forEach((id) => completedRequestIds.delete(id))
     }
   }
-  
+
   // 如果事件有新的requestId，且与当前不同，说明新任务开始，清理旧任务标记
   if (requestId && requestId !== currentRequestId.value) {
     // 新任务开始，清理旧任务标记（可选，因为已经有Set管理）
   }
-  
+
   // 管理UI锁：显示进度条时锁定，隐藏时解锁
   if (isVisible && !uiLocked.value) {
     workspace.lockUI?.()
@@ -106,7 +106,7 @@ const handleProgressEvent = (event: ProgressEvent | unknown) => {
     workspace.unlockUI?.()
     uiLocked.value = false
   }
-  
+
   if (!isVisible) {
     // 隐藏进度条
     visible.value = false
@@ -126,15 +126,15 @@ const handleProgressEvent = (event: ProgressEvent | unknown) => {
     const msg = evt.message || ''
     const subMsg = evt.subMessage || ''
     const params = evt.params || {}
-    
+
     // 如果message是i18n key，使用t函数翻译，否则直接使用
     message.value = msg.includes('.') && msg.startsWith('agent.') ? t(msg, params) : msg
-    subMessage.value = subMsg.includes('.') && subMsg.startsWith('agent.') ? t(subMsg, params) : subMsg
-    
+    subMessage.value =
+      subMsg.includes('.') && subMsg.startsWith('agent.') ? t(subMsg, params) : subMsg
+
     // 确保百分比是数字类型，并在 0-100 范围内
-    const percent = typeof evt.percentage === 'number' 
-      ? Math.max(0, Math.min(100, evt.percentage)) 
-      : 0
+    const percent =
+      typeof evt.percentage === 'number' ? Math.max(0, Math.min(100, evt.percentage)) : 0
     percentage.value = Math.round(percent * 100) / 100 // 保留两位小数，避免浮点误差
     status.value = evt.status || ''
     showPercentage.value = evt.showPercentage !== false
@@ -150,10 +150,10 @@ const handleCancel = () => {
   if (currentRequestId.value) {
     completedRequestIds.add(currentRequestId.value)
   }
-  
+
   // 发送取消事件
   eventBus.emit('cancel-progress', { requestId: currentRequestId.value })
-  
+
   // 通过发送 visible: false 事件来统一处理隐藏和解锁
   handleProgressEvent({ visible: false })
 }
@@ -221,7 +221,9 @@ onUnmounted(() => {
 
 .progress-fade-enter-active,
 .progress-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 
 .progress-fade-enter-from {
@@ -234,4 +236,3 @@ onUnmounted(() => {
   transform: translateY(100%);
 }
 </style>
-

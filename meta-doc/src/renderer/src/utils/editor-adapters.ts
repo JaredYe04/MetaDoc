@@ -8,7 +8,6 @@ import * as monaco from 'monaco-editor'
 import eventBus, { getWindowType } from './event-bus'
 import { createRendererLogger } from './logger'
 
-
 /**
  * Monaco编辑器适配器（用于LaTeX）
  * 注意：不能保存editor实例，每次使用时都需要重新获取
@@ -16,72 +15,76 @@ import { createRendererLogger } from './logger'
 export class MonacoEditorAdapter implements EditorAdapter {
   private editorId: string | null = null
   private isActiveRef: () => boolean
-  
+
   constructor(editorId: string, isActiveRef: () => boolean) {
     this.editorId = editorId
     this.isActiveRef = isActiveRef
   }
-  
+
   /**
    * 获取编辑器实例（每次都重新获取，不保存）
    */
   private getEditor(): monaco.editor.IStandaloneCodeEditor | null {
     if (!this.editorId) return null
-    
+
     const editors = monaco.editor.getEditors() || []
-    const editor = editors.find(e => e.getId?.() === this.editorId) as monaco.editor.IStandaloneCodeEditor | null
-    
+    const editor = editors.find(
+      (e) => e.getId?.() === this.editorId
+    ) as monaco.editor.IStandaloneCodeEditor | null
+
     return editor || null
   }
-  
+
   getEditorId(): string | null {
     return this.editorId
   }
-  
+
   getCursorPosition(): { line: number; column: number } | null {
     const editor = this.getEditor()
     if (!editor) return null
-    
+
     const position = editor.getPosition()
     if (!position) return null
-    
+
     return {
       line: position.lineNumber,
       column: position.column
     }
   }
-  
-  getContextAroundCursor(contextSize: number = 1000): { preContext: string; postContext: string } | null {
+
+  getContextAroundCursor(
+    contextSize: number = 1000
+  ): { preContext: string; postContext: string } | null {
     const editor = this.getEditor()
     if (!editor) return null
-    
+
     const model = editor.getModel()
     if (!model) return null
-    
+
     const position = editor.getPosition()
     if (!position) return null
-    
+
     // 转换为offset
     const caretOffset = model.getOffsetAt(position)
     const fullLength = model.getOffsetAt(model.getFullModelRange().getEndPosition())
-    
+
     const startOffset = Math.max(0, caretOffset - contextSize)
     const endOffset = Math.min(fullLength, caretOffset + contextSize)
-    
+
     const fullText = model.getValue()
     const preContext = fullText.slice(startOffset, caretOffset)
     const postContext = fullText.slice(caretOffset, endOffset)
-    
+
     // 记录上下文获取的详细信息，用于调试位置偏差
     const logger = createRendererLogger('MonacoEditorAdapter', {
       windowTypeProvider: () => getWindowType()
     })
-    
+
     // 计算光标所在行的内容
     const lineContent = model.getLineContent(position.lineNumber)
     const lineStartOffset = model.getOffsetAt(new monaco.Position(position.lineNumber, 1))
     const columnInLine = position.column - 1
-    
+
     logger.debug('Monaco获取上下文', {
       cursorPosition: {
         line: position.lineNumber,
@@ -114,97 +117,100 @@ export class MonacoEditorAdapter implements EditorAdapter {
       // },
       surroundingText: {
         beforeCursor: lineContent.slice(Math.max(0, columnInLine - 20), columnInLine),
-        afterCursor: lineContent.slice(columnInLine, Math.min(lineContent.length, columnInLine + 20)),
+        afterCursor: lineContent.slice(
+          columnInLine,
+          Math.min(lineContent.length, columnInLine + 20)
+        ),
         fullLine: lineContent
       }
     })
-    
+
     return { preContext, postContext }
   }
-  
+
   getFullText(): string {
     const editor = this.getEditor()
     if (!editor) return ''
-    
+
     const model = editor.getModel()
     return model?.getValue() || ''
   }
-  
+
   isActive(): boolean {
     return this.isActiveRef()
   }
-  
+
   /**
    * 检查光标是否在行尾或块尾
    */
   isCursorAtLineEnd(): boolean {
     const editor = this.getEditor()
     if (!editor) return false
-    
+
     const model = editor.getModel()
     if (!model) return false
-    
+
     const position = editor.getPosition()
     if (!position) return false
-    
+
     // 检查是否有选择（如果有选择，不是行尾）
     const selection = editor.getSelection()
     if (selection && !selection.isEmpty()) {
       return false
     }
-    
+
     // 获取当前行内容
     const lineContent = model.getLineContent(position.lineNumber)
     const lineLength = lineContent.length
-    
+
     // 检查光标是否在行尾
     if (position.column > lineLength + 1) {
       return false
     }
-    
+
     // 光标在行尾（考虑行尾可能有空格）
     return position.column >= lineLength
   }
-  
+
   /**
    * 获取当前行的内容
    */
   getCurrentLineContent(): string | null {
     const editor = this.getEditor()
     if (!editor) return null
-    
+
     const model = editor.getModel()
     if (!model) return null
-    
+
     const position = editor.getPosition()
     if (!position) return null
-    
+
     return model.getLineContent(position.lineNumber)
   }
-  
+
   /**
    * 获取最后一个输入的字符
    */
   getLastChar(): string | null {
     const editor = this.getEditor()
     if (!editor) return null
-    
+
     const model = editor.getModel()
     if (!model) return null
-    
+
     const position = editor.getPosition()
     if (!position) return null
-    
+
     const lineContent = model.getLineContent(position.lineNumber)
     const column = position.column - 1
-    
+
     if (column <= 0 || column > lineContent.length) {
       return null
     }
-    
+
     return lineContent[column - 1] || null
   }
-  
+
   /**
    * 应用编辑请求（Monaco特有）
    * 注意：通过editor操作，不直接操作model
@@ -212,20 +218,26 @@ export class MonacoEditorAdapter implements EditorAdapter {
   applyEdit(request: EditRequest, content: string) {
     const editor = this.getEditor()
     if (!editor) return
-    
+
     const range = new monaco.Range(
       request.range.start.line,
       request.range.start.column,
       request.range.end.line,
       request.range.end.column
     )
-    
+
     // 使用editor.executeEdits而不是model.applyEdits
     // 第三个参数应该是undefined，而不是空数组，避免Monaco内部错误
-    editor.executeEdits('ai-completion-apply', [{
-      range,
-      text: content,
-    }], undefined)
+    editor.executeEdits(
+      'ai-completion-apply',
+      [
+        {
+          range,
+          text: content
+        }
+      ],
+      undefined
+    )
   }
 }
 
@@ -236,26 +248,26 @@ export class VditorEditorAdapter implements EditorAdapter {
   private vditorInstance: any | null = null
   private rootNodeClass: string
   private isActiveRef: () => boolean
-  
+
   constructor(vditorInstance: any, rootNodeClass: string, isActiveRef?: () => boolean) {
     this.vditorInstance = vditorInstance
     this.rootNodeClass = rootNodeClass
     this.isActiveRef = isActiveRef || (() => false)
   }
-  
+
   getEditorId(): string | null {
     return 'vditor'
   }
-  
+
   getCursorPosition(): { line: number; column: number } | null {
     // Vditor使用DOM选择，需要从Selection获取位置
     // 参考AISuggestion.vue和MarkdownEditor.vue的实现
     const sel = window.getSelection()
     if (!sel || sel.rangeCount === 0) return null
-    
+
     const range = sel.getRangeAt(0)
     if (!range) return null
-    
+
     // 获取Vditor的编辑器内容区域
     // Vditor不同模式的实际编辑器位置：
     // - IR模式: vditorInstance.ir.element
@@ -263,10 +275,10 @@ export class VditorEditorAdapter implements EditorAdapter {
     // - SV模式: vditorInstance.sv.element
     const vditorInstance = this.vditorInstance?.vditor
     if (!vditorInstance) return null
-    
+
     // 获取当前模式
     const currentMode = vditorInstance.currentMode || 'ir'
-    
+
     // 根据模式获取编辑器元素
     let editorElement: HTMLElement | null = null
     if (currentMode === 'ir') {
@@ -276,12 +288,12 @@ export class VditorEditorAdapter implements EditorAdapter {
     } else if (currentMode === 'sv') {
       editorElement = vditorInstance.sv?.element || null
     }
-    
+
     // 如果没找到，尝试通用方法
     if (!editorElement) {
       editorElement = vditorInstance.element || null
     }
-    
+
     if (!editorElement) {
       const logger = createRendererLogger('VditorEditorAdapter', {
         windowTypeProvider: () => getWindowType()
@@ -297,11 +309,11 @@ export class VditorEditorAdapter implements EditorAdapter {
       })
       return null
     }
-    
+
     // 获取完整的markdown文本
     const fullText = this.getFullText()
     if (!fullText) return null
-    
+
     // 计算光标在文本中的位置
     // 使用Range API计算从根元素到光标位置的文本长度
     try {
@@ -327,7 +339,7 @@ export class VditorEditorAdapter implements EditorAdapter {
           }
         }
       )
-      
+
       // 辅助函数：获取元素中的第一个文本节点
       const getFirstTextNode = (element: Node): Node | null => {
         if (element.nodeType === Node.TEXT_NODE) {
@@ -345,7 +357,7 @@ export class VditorEditorAdapter implements EditorAdapter {
         }
         return null
       }
-      
+
       // 辅助函数：获取元素中的最后一个文本节点
       const getLastTextNode = (element: Node): Node | null => {
         if (element.nodeType === Node.TEXT_NODE) {
@@ -363,17 +375,17 @@ export class VditorEditorAdapter implements EditorAdapter {
         }
         return null
       }
-      
+
       // 如果range.startContainer是元素节点，需要找到其中的文本节点
       // 如果range.startContainer是文本节点，直接使用
       let targetNode: Node | null = range.startContainer
       let targetOffset = range.startOffset
-      
+
       if (range.startContainer.nodeType === Node.ELEMENT_NODE) {
         // 如果光标在元素节点内，需要找到对应的文本节点
         const element = range.startContainer as Element
         const childNodes = element.childNodes
-        
+
         // 如果offset指向某个子节点
         if (targetOffset < childNodes.length) {
           const childNode = childNodes[targetOffset]
@@ -408,7 +420,7 @@ export class VditorEditorAdapter implements EditorAdapter {
         targetNode = range.startContainer
         targetOffset = range.startOffset
       }
-      
+
       let node: Node | null
       let found = false
       while ((node = walker.nextNode())) {
@@ -425,7 +437,7 @@ export class VditorEditorAdapter implements EditorAdapter {
           // 对于SV模式，需要处理各种特殊元素
           const el = node as Element
           const dataType = el.getAttribute('data-type')
-          
+
           if (dataType === 'newline') {
             // 换行符在markdown文本中占1个字符
             offset += 1
@@ -441,14 +453,14 @@ export class VditorEditorAdapter implements EditorAdapter {
           // 注意：对于其他元素，我们不计算，因为它们的内容已经通过子文本节点计算了
         }
       }
-      
+
       // 如果没找到目标节点，尝试使用Range.toString()作为fallback
       if (!found) {
         try {
           const measureRange = document.createRange()
           measureRange.setStart(editorElement, 0)
           measureRange.setEnd(range.startContainer, range.startOffset)
-          
+
           // 对于SV模式，Range.toString()可能无法正确处理换行符
           // 所以我们需要手动计算
           if (currentMode === 'sv') {
@@ -461,11 +473,11 @@ export class VditorEditorAdapter implements EditorAdapter {
             let node2: Node | null
             let offset2 = 0
             let found2 = false
-            
+
             // 如果range.startContainer是元素节点，需要找到对应的文本节点
             let targetNode2: Node | null = range.startContainer
             let targetOffset2 = range.startOffset
-            
+
             if (range.startContainer.nodeType === Node.ELEMENT_NODE) {
               const element = range.startContainer as Element
               const childNodes = element.childNodes
@@ -489,7 +501,7 @@ export class VditorEditorAdapter implements EditorAdapter {
                 }
               }
             }
-            
+
             while ((node2 = walker2.nextNode())) {
               if (node2 === targetNode2) {
                 offset2 += targetOffset2
@@ -526,7 +538,7 @@ export class VditorEditorAdapter implements EditorAdapter {
           // 如果Range操作失败，使用之前计算的offset
         }
       }
-      
+
       // 转换为行号和列号
       // 确保offset不超过文本长度
       const safeOffset = Math.min(offset, fullText.length)
@@ -544,22 +556,28 @@ export class VditorEditorAdapter implements EditorAdapter {
       return null
     }
   }
-  
-  getContextFromCursor(range: Range, contextSize: number = 1000): { preContext: string; postContext: string } {
+
+  getContextFromCursor(
+    range: Range,
+    contextSize: number = 1000
+  ): { preContext: string; postContext: string } {
     let preContext = ''
     let postContext = ''
-    
+
     if (!range) return { preContext, postContext }
-    
+
     // 向前收集
     let preRange = range.cloneRange()
     preRange.collapse(true)
     let chars = 0
     let node = preRange.startContainer
     let offset = preRange.startOffset
-    
+
     while (node && chars < contextSize) {
-      if (node.nodeType === Node.ELEMENT_NODE && (node as Element).classList?.contains(this.rootNodeClass)) {
+      if (
+        node.nodeType === Node.ELEMENT_NODE &&
+        (node as Element).classList?.contains(this.rootNodeClass)
+      ) {
         break
       }
       if (node.nodeType === Node.TEXT_NODE) {
@@ -571,16 +589,19 @@ export class VditorEditorAdapter implements EditorAdapter {
       node = this.getPreviousTextNode(node) as Node
       if (node) offset = (node.textContent || '').length
     }
-    
+
     // 向后收集
     let postRange = range.cloneRange()
     postRange.collapse(false)
     chars = 0
     node = postRange.startContainer
     offset = postRange.startOffset
-    
+
     while (node && chars < contextSize) {
-      if (node.nodeType === Node.ELEMENT_NODE && (node as Element).classList?.contains(this.rootNodeClass)) {
+      if (
+        node.nodeType === Node.ELEMENT_NODE &&
+        (node as Element).classList?.contains(this.rootNodeClass)
+      ) {
         break
       }
       if (node.nodeType === Node.TEXT_NODE) {
@@ -591,11 +612,13 @@ export class VditorEditorAdapter implements EditorAdapter {
       }
       node = this.getNextTextNode(node) as Node
     }
-    
+
     return { preContext, postContext }
   }
-  
-  getContextAroundCursor(contextSize: number = 1000): { preContext: string; postContext: string } | null {
+
+  getContextAroundCursor(
+    contextSize: number = 1000
+  ): { preContext: string; postContext: string } | null {
     // 对于所有模式，都使用DOM遍历方法获取上下文，这样更可靠
     // 参考AISuggestion.vue中的getContextFromCursor实现
     const sel = window.getSelection()
@@ -603,109 +626,124 @@ export class VditorEditorAdapter implements EditorAdapter {
     const range = sel.getRangeAt(0)
     return this.getContextFromCursor(range, contextSize)
   }
-  
+
   getFullText(): string {
     if (!this.vditorInstance) return ''
     return this.vditorInstance.getValue() || ''
   }
-  
+
   isActive(): boolean {
     return this.isActiveRef()
   }
-  
+
   /**
    * 检查光标是否在行尾或块尾
    */
   isCursorAtLineEnd(): boolean {
     const sel = window.getSelection()
     if (!sel || sel.rangeCount === 0) return false
-    
+
     const range = sel.getRangeAt(0)
     if (!range) return false
-    
+
     // 检查是否有选择（如果有选择，不是行尾）
     if (!range.collapsed) {
       return false
     }
-    
+
     // 获取当前文本节点
     const textNode = range.startContainer
     if (textNode.nodeType !== Node.TEXT_NODE) {
       return false
     }
-    
+
     const text = textNode.textContent || ''
     const offset = range.startOffset
-    
+
     // 检查是否在文本节点末尾
     if (offset < text.length) {
       return false
     }
-    
+
     // 检查是否在行尾（检查下一个字符是否是换行符或不存在）
     const nextSibling = textNode.nextSibling
     if (nextSibling) {
       // 如果有下一个节点，检查是否是块级元素
       if (nextSibling.nodeType === Node.ELEMENT_NODE) {
         const element = nextSibling as Element
-        const blockElements = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'PRE', 'CODE']
+        const blockElements = [
+          'P',
+          'DIV',
+          'H1',
+          'H2',
+          'H3',
+          'H4',
+          'H5',
+          'H6',
+          'UL',
+          'OL',
+          'LI',
+          'BLOCKQUOTE',
+          'PRE',
+          'CODE'
+        ]
         if (blockElements.includes(element.tagName)) {
           return true
         }
       }
     }
-    
+
     // 检查文本节点末尾是否有换行符
     return text.endsWith('\n') || offset === text.length
   }
-  
+
   /**
    * 获取当前行的内容
    */
   getCurrentLineContent(): string | null {
     const sel = window.getSelection()
     if (!sel || sel.rangeCount === 0) return null
-    
+
     const range = sel.getRangeAt(0)
     if (!range) return null
-    
+
     // 向上查找包含当前行的元素
     let node: Node | null = range.startContainer
     while (node && node.nodeType !== Node.ELEMENT_NODE) {
       node = node.parentNode
     }
-    
+
     if (!node) return null
-    
+
     const element = node as Element
     return element.textContent || null
   }
-  
+
   /**
    * 获取最后一个输入的字符
    */
   getLastChar(): string | null {
     const sel = window.getSelection()
     if (!sel || sel.rangeCount === 0) return null
-    
+
     const range = sel.getRangeAt(0)
     if (!range) return null
-    
+
     const textNode = range.startContainer
     if (textNode.nodeType !== Node.TEXT_NODE) {
       return null
     }
-    
+
     const text = textNode.textContent || ''
     const offset = range.startOffset
-    
+
     if (offset <= 0) {
       return null
     }
-    
+
     return text[offset - 1] || null
   }
-  
+
   /**
    * 获取前一个文本节点
    */
@@ -721,7 +759,7 @@ export class VditorEditorAdapter implements EditorAdapter {
     }
     return node.parentNode
   }
-  
+
   /**
    * 获取下一个文本节点
    */
@@ -737,16 +775,15 @@ export class VditorEditorAdapter implements EditorAdapter {
     }
     return node.parentNode
   }
-  
+
   /**
    * 应用编辑请求（Vditor特有）
    */
   applyEdit(request: EditRequest, content: string) {
     if (!this.vditorInstance) return
-    
+
     // Vditor使用insertValue方法插入文本
     // 注意：这里简化实现，实际应该根据range定位插入位置
     this.vditorInstance.insertValue(content)
   }
 }
-

@@ -8,7 +8,7 @@
     :style="{
       '--el-dialog-bg-color': themeState.currentTheme.background,
       '--el-text-color-primary': themeState.currentTheme.textColor,
-      '--el-border-color': themeState.currentTheme.textColor + '33',
+      '--el-border-color': themeState.currentTheme.textColor + '33'
     }"
     class="word-count-dialog"
   >
@@ -56,7 +56,7 @@
           @change="handleCheckboxChange"
           :style="{
             '--el-checkbox-text-color': themeState.currentTheme.textColor,
-            '--el-checkbox-checked-bg-color': themeState.currentTheme.textColor,
+            '--el-checkbox-checked-bg-color': themeState.currentTheme.textColor
           }"
         >
           {{ $t('wordCountDialog.includeTextBoxesFootnotesEndnotes') }}
@@ -91,7 +91,7 @@ const emit = defineEmits<{
 
 const visible = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value),
+  set: (value) => emit('update:modelValue', value)
 })
 
 const includeTextBoxesFootnotesEndnotes = ref(true)
@@ -108,7 +108,7 @@ const stats = computed<WordCountStats>(() => {
       paragraphs: 0,
       lines: 0,
       nonChineseWords: 0,
-      chineseAndKoreanChars: 0,
+      chineseAndKoreanChars: 0
     }
   }
   return adapter.value.count(props.content, includeTextBoxesFootnotesEndnotes.value)
@@ -118,7 +118,7 @@ watch(
   () => props.content,
   () => {
     // 内容变化时重新计算（computed 会自动更新）
-  },
+  }
 )
 
 function handleCheckboxChange() {
@@ -185,7 +185,9 @@ function handleClose() {
 }
 
 :deep(.el-dialog__header) {
-  background-color: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
+  background-color: v-bind(
+    'themeState.currentTheme.background2nd || themeState.currentTheme.background'
+  );
   border-bottom: 1px solid;
   border-color: v-bind('themeState.currentTheme.textColor + "33"');
   padding: 16px 20px;
@@ -203,7 +205,9 @@ function handleClose() {
 }
 
 :deep(.el-dialog__footer) {
-  background-color: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
+  background-color: v-bind(
+    'themeState.currentTheme.background2nd || themeState.currentTheme.background'
+  );
   border-top: 1px solid;
   border-color: v-bind('themeState.currentTheme.textColor + "33"');
   padding: 12px 20px;
@@ -228,4 +232,3 @@ function handleClose() {
   border-color: v-bind('themeState.currentTheme.textColor + "99"');
 }
 </style>
-

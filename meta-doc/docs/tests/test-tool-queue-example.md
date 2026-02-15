@@ -5,6 +5,7 @@
 ## 测试场景说明
 
 这个示例会按顺序调用以下工具：
+
 1. `timestamp` - 获取当前时间戳（用于记录开始时间）
 2. `data-calculation` - 执行数学计算
 3. `chart-generation` - 生成图表
@@ -47,7 +48,7 @@
 </tool_call>
 
 <tool_call>
-{"name": "data-calculation", "arguments": {"expression": "(15 * 23) / 3 - 42", "variables": {}, "precision": 4}}
+{"name": "data-calculation", "arguments": {"expression": "(15 \* 23) / 3 - 42", "variables": {}, "precision": 4}}
 </tool_call>
 
 <tool_call>
@@ -55,7 +56,7 @@
 </tool_call>
 
 <tool_call>
-{"name": "data-calculation", "arguments": {"expression": "Math.sin(Math.PI / 2) * 100", "precision": 6}}
+{"name": "data-calculation", "arguments": {"expression": "Math.sin(Math.PI / 2) \* 100", "precision": 6}}
 </tool_call>
 
 <tool_call>
@@ -68,4 +69,3 @@
 - JSON 格式必须正确（注意引号和逗号）
 - 工具ID必须与已注册的工具ID完全匹配
 - 参数必须符合每个工具定义的 inputSchema
-

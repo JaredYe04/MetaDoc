@@ -17,7 +17,7 @@
 .modern-side-menu .el-menu-item {
   height: 40px !important;
   line-height: 40px !important;
-  margin: 4px 8px !important;  /* 上下 4px，左右 8px 边距 */
+  margin: 4px 8px !important; /* 上下 4px，左右 8px 边距 */
   padding: 0 12px !important;
   border-radius: 6px !important;
   transition: all 0.2s ease !important;
@@ -41,10 +41,10 @@
 /* 折叠状态的菜单项样式 */
 .modern-side-menu.is-collapsed .el-menu-item {
   padding: 0 !important;
-  margin: 4px 8px !important;  /* 保持左右边距 */
+  margin: 4px 8px !important; /* 保持左右边距 */
   justify-content: center !important;
   align-items: center !important;
-  width: auto !important;  /* 改为 auto，配合 margin 实现边距 */
+  width: auto !important; /* 改为 auto，配合 margin 实现边距 */
   text-align: center !important;
   border-radius: 6px !important;
 }
@@ -108,4 +108,3 @@
   cursor: not-allowed !important;
   opacity: 0.6 !important;
 }
-

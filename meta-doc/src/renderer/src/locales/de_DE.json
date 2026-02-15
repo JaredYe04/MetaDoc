@@ -302,6 +302,12 @@
     },
     "defaultLatexText": "\\\\documentclass{article}\n\\\\begin{document}\n\\\\title{Willkommen bei MetaDoc}\n\\\\author{AI-Assistent}\n\\\\maketitle\n\n\\\\section{Einleitung}\nDies ist eine LaTeX-Schnellstartvorlage, die von MetaDoc erzeugt wurde.\n\n\\\\end{document}"
   },
+  "mainTabs": {
+    "contextMenu": {
+      "pinTab": "Tab anheften",
+      "unpinTab": "Tab lösen"
+    }
+  },
   "lang": "Zh_CN",
   "leftMenu": {
     "aiAssistant": "AI-Assistent",

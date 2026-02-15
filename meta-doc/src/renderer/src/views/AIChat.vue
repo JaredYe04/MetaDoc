@@ -1,23 +1,22 @@
 <template>
   <div class="ai-chat-container" :style="containerStyle">
     <!-- 选择文档对话框 -->
-    <el-dialog 
-      v-model="selectDocumentDialogVisible" 
-      :title="t('aiChat.selectDocumentTitle', '选择要插入的文档')" 
+    <el-dialog
+      v-model="selectDocumentDialogVisible"
+      :title="t('aiChat.selectDocumentTitle', '选择要插入的文档')"
       width="600"
       class="select-document-dialog"
     >
       <div class="select-document-content">
         <div class="select-document-header">
           <span class="selected-count">
-            {{ selectedTabIds.length > 0 ? `已选择 ${selectedTabIds.length} 个文档` : '请选择要插入的文档' }}
+            {{
+              selectedTabIds.length > 0
+                ? `已选择 ${selectedTabIds.length} 个文档`
+                : '请选择要插入的文档'
+            }}
           </span>
-          <el-button 
-            text 
-            size="small" 
-            @click="toggleSelectAll"
-            v-if="documentTabs.length > 0"
-          >
+          <el-button text size="small" @click="toggleSelectAll" v-if="documentTabs.length > 0">
             {{ selectedTabIds.length === documentTabs.length ? '取消全选' : '全选' }}
           </el-button>
         </div>
@@ -27,11 +26,11 @@
               v-for="tab in documentTabs"
               :key="tab.id"
               class="document-card"
-              :class="{ 'selected': selectedTabIds.includes(tab.id) }"
+              :class="{ selected: selectedTabIds.includes(tab.id) }"
               @click="toggleTabSelection(tab.id)"
             >
               <div class="document-card-checkbox">
-                <el-checkbox 
+                <el-checkbox
                   :model-value="selectedTabIds.includes(tab.id)"
                   @click.stop="toggleTabSelection(tab.id)"
                 />
@@ -55,10 +54,12 @@
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="selectDocumentDialogVisible = false">{{ t('common.cancel') }}</el-button>
-          <el-button 
-            type="primary" 
-            @click="confirmInsertToDocument" 
+          <el-button @click="selectDocumentDialogVisible = false">{{
+            t('common.cancel')
+          }}</el-button>
+          <el-button
+            type="primary"
+            @click="confirmInsertToDocument"
             :disabled="selectedTabIds.length === 0"
           >
             {{ t('common.confirm') }} ({{ selectedTabIds.length }})
@@ -89,65 +90,67 @@
         @duplicate="handleSessionDuplicate"
         @delete="handleSessionDelete"
       >
-      <!-- 右侧内容 -->
-      <div class="content-area" :style="panelStyle">
-        <header class="conversation-header">
-          <h1 class="title">{{ title }}</h1>
-          <div class="conversation-stats">
-            <el-tooltip :content="t('agent.conversation.referencesTooltip', '点击管理引用')" placement="top">
-              <el-tag 
-                size="small" 
-                effect="plain" 
-                style="cursor: pointer;"
-                @click="handleOpenReferenceDialog"
+        <!-- 右侧内容 -->
+        <div class="content-area" :style="panelStyle">
+          <header class="conversation-header">
+            <h1 class="title">{{ title }}</h1>
+            <div class="conversation-stats">
+              <el-tooltip
+                :content="t('agent.conversation.referencesTooltip', '点击管理引用')"
+                placement="top"
               >
-                {{ t('agent.conversation.references', { count: referenceStore.length }) }}
-              </el-tag>
-            </el-tooltip>
-          </div>
-        </header>
-        <div class="dialog-container">
-          <el-scrollbar class="conversation-scroll">
-            <MessageBubble 
-              v-for="(message, index) in messages.filter(item => item.role !== 'system')" 
-              :key="index"
-              :message="message" 
-              :session-references="referenceStore"
-              @delete="onMsgDelete" 
-              @edit="onMsgEdit" 
-              @regenerate="regenerate" 
-              :index="index" 
-            />
-            <div 
-              class="conversation-bottom-spacer" 
-              :class="{ 'has-references': referenceStore && referenceStore.length > 0 }"
-            />
-          </el-scrollbar>
-          <div class="composer-wrapper">
-            <ReferenceDisplay
-              v-if="referenceStore.length > 0"
-              :references="referenceStore"
-              :active-reference-ids="activeReferenceIds"
-              @toggle="handleToggleReference"
-            />
-            <ChatComposer
-              v-model="promptInput"
-              :loading="responding"
-              :disabled="false"
-              :placeholder="t('aiChat.inputPlaceholder')"
-              :show-voice="false"
-              :show-attach="true"
-              :show-knowledge-base="true"
-              v-model:enable-knowledge-base-query="enableKnowledgeBaseQuery"
-              @submit="onMsgSend"
-              @reset="reset"
-              @attach="handleAttach"
-              @cancel="handleCancel"
-            />
+                <el-tag
+                  size="small"
+                  effect="plain"
+                  style="cursor: pointer"
+                  @click="handleOpenReferenceDialog"
+                >
+                  {{ t('agent.conversation.references', { count: referenceStore.length }) }}
+                </el-tag>
+              </el-tooltip>
+            </div>
+          </header>
+          <div class="dialog-container">
+            <el-scrollbar class="conversation-scroll">
+              <MessageBubble
+                v-for="(message, index) in messages.filter((item) => item.role !== 'system')"
+                :key="index"
+                :message="message"
+                :session-references="referenceStore"
+                @delete="onMsgDelete"
+                @edit="onMsgEdit"
+                @regenerate="regenerate"
+                :index="index"
+              />
+              <div
+                class="conversation-bottom-spacer"
+                :class="{ 'has-references': referenceStore && referenceStore.length > 0 }"
+              />
+            </el-scrollbar>
+            <div class="composer-wrapper">
+              <ReferenceDisplay
+                v-if="referenceStore.length > 0"
+                :references="referenceStore"
+                :active-reference-ids="activeReferenceIds"
+                @toggle="handleToggleReference"
+              />
+              <ChatComposer
+                v-model="promptInput"
+                :loading="responding"
+                :disabled="false"
+                :placeholder="t('aiChat.inputPlaceholder')"
+                :show-voice="false"
+                :show-attach="true"
+                :show-knowledge-base="true"
+                v-model:enable-knowledge-base-query="enableKnowledgeBaseQuery"
+                @submit="onMsgSend"
+                @reset="reset"
+                @attach="handleAttach"
+                @cancel="handleCancel"
+              />
+            </div>
           </div>
         </div>
-
-      </div>
       </SessionList>
     </div>
 
@@ -156,10 +159,17 @@
       v-model="showReferenceDialog"
       :title="t('agent.reference.title')"
       width="800px"
-      :body-style="{ flex: '1', minHeight: '0', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0' }"
-      style="height: 80vh; display: flex; flex-direction: column;"
+      :body-style="{
+        flex: '1',
+        minHeight: '0',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        padding: '0'
+      }"
+      style="height: 80vh; display: flex; flex-direction: column"
     >
-      <ReferenceManager 
+      <ReferenceManager
         :session="{
           id: `ai-chat-${activeDialogIndex}`,
           title: title,
@@ -175,585 +185,605 @@
           executionNodes: [],
           status: 'idle'
         }"
-        @update = "handleReferenceUpdate"
+        @update="handleReferenceUpdate"
       />
       <template #footer>
         <el-button @click="showReferenceDialog = false">{{ t('common.close') }}</el-button>
       </template>
     </el-dialog>
   </div>
-
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, reactive, ref, watch, type Ref, type WatchStopHandle } from 'vue';
-import MessageBubble from "../components/MessageBubble.vue";
+import {
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  reactive,
+  ref,
+  watch,
+  type Ref,
+  type WatchStopHandle
+} from 'vue'
+import MessageBubble from '../components/MessageBubble.vue'
 //import { bindCode } from "../assets/aichat_legacy/utils";
-import { Document, Folder } from '@element-plus/icons-vue';
-import SessionList from '../components/common/SessionList.vue';
-import type { SessionListItem } from '../components/common/SessionList.vue';
-import "../assets/input-box.css"
-import "../assets/title.css"
+import { Document, Folder } from '@element-plus/icons-vue'
+import SessionList from '../components/common/SessionList.vue'
+import type { SessionListItem } from '../components/common/SessionList.vue'
+import '../assets/input-box.css'
+import '../assets/title.css'
 
-import { ElMessage } from "element-plus";
-import eventBus from '../utils/event-bus.js';
-import { themeState } from "../utils/themes.js";
-import { answerQuestion } from '../utils/llm-api.js';
+import { ElMessage } from 'element-plus'
+import eventBus from '../utils/event-bus.js'
+import { themeState } from '../utils/themes.js'
+import { answerQuestion } from '../utils/llm-api.js'
 import '../assets/tool-group.css'
-import { updateTitlePrompt } from '../utils/prompts';
+import { updateTitlePrompt } from '../utils/prompts'
 import { useI18n } from 'vue-i18n'
-import { ai_types, createAiTask, cancelAiTask } from '../utils/ai_tasks.ts';
-import { getSetting } from '../utils/settings.js';
+import { ai_types, createAiTask, cancelAiTask } from '../utils/ai_tasks.ts'
+import { getSetting } from '../utils/settings.js'
 // import { useActiveDocument } from '../composables/useActiveDocument';
-import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document';
-import { useWorkspace } from '../stores/workspace';
-import type { AIDialog, AIDialogMessage } from '../../../types';
-import type { AgentSession } from '../types/agent';
-import ChatComposer from '../components/chat/ChatComposer.vue';
-import { readAiChatDialogs, writeAiChatDialogs } from '../utils/ai-chat-storage';
-import { parseSchemaJson, DOCUMENT_TITLE_SCHEMA, type DocumentTitleSchemaResult } from '../utils/schemas';
-import ReferenceDisplay from '../components/agent/ReferenceDisplay.vue';
-import ReferenceManager from '../components/agent/ReferenceManager.vue';
-import type { Reference } from '../types/agent-framework';
-import { processFileUpload, processUrlReference } from '../utils/agent-framework/reference-processor';
-import { ElLoading } from 'element-plus';
+import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document'
+import { useWorkspace } from '../stores/workspace'
+import type { AIDialog, AIDialogMessage } from '../../../types'
+import type { AgentSession } from '../types/agent'
+import ChatComposer from '../components/chat/ChatComposer.vue'
+import { readAiChatDialogs, writeAiChatDialogs } from '../utils/ai-chat-storage'
+import {
+  parseSchemaJson,
+  DOCUMENT_TITLE_SCHEMA,
+  type DocumentTitleSchemaResult
+} from '../utils/schemas'
+import ReferenceDisplay from '../components/agent/ReferenceDisplay.vue'
+import ReferenceManager from '../components/agent/ReferenceManager.vue'
+import type { Reference } from '../types/agent-framework'
+import {
+  processFileUpload,
+  processUrlReference
+} from '../utils/agent-framework/reference-processor'
+import { ElLoading } from 'element-plus'
 const { t } = useI18n()
-const workspace = useWorkspace();
-const responding = ref(false);
-const activeDialogIndex = ref<number>(0);
+const workspace = useWorkspace()
+const responding = ref(false)
+const activeDialogIndex = ref<number>(0)
 
-const ourTabId = computed(() => workspace.tabs.find(tab => tab.kind === 'tool' && tab.route === '/ai-chat')?.id ?? null);
+const ourTabId = computed(
+  () => workspace.tabs.find((tab) => tab.kind === 'tool' && tab.route === '/ai-chat')?.id ?? null
+)
 
-import { createRendererLogger } from '../utils/logger.ts';
-const logger = createRendererLogger('AIChat');
+import { createRendererLogger } from '../utils/logger.ts'
+const logger = createRendererLogger('AIChat')
 
 const props = defineProps({
   id: String
 })
 
-const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+const cloneDeep = <T,>(value: T): T => JSON.parse(JSON.stringify(value))
 
 const createDefaultMessages = (): AIDialogMessage[] =>
-  DEFAULT_AI_CHAT_MESSAGES.map((message) => ({ ...message }));
+  DEFAULT_AI_CHAT_MESSAGES.map((message) => ({ ...message }))
 
 const createDefaultDialog = (title: string): AIDialog => {
-  const now = Date.now();
+  const now = Date.now()
   return {
     title,
     messages: createDefaultMessages(),
     createdAt: now,
     updatedAt: now,
-    referenceStore: [],
-  };
-};
+    referenceStore: []
+  }
+}
 
-const messages = ref<AIDialogMessage[]>(createDefaultMessages());
+const messages = ref<AIDialogMessage[]>(createDefaultMessages())
 const cur_resp = ref('')
-const promptInput = ref('');
-const currentAiTaskHandle = ref<string | null>(null);
+const promptInput = ref('')
+const currentAiTaskHandle = ref<string | null>(null)
 const createAssistantPlaceholder = (): AIDialogMessage =>
   reactive({
     role: 'assistant',
-    content: '',
-  }) as AIDialogMessage;
-const defaultTitle = t('aiChat.defaultTitle');
+    content: ''
+  }) as AIDialogMessage
+const defaultTitle = t('aiChat.defaultTitle')
 
 // const { workspace, activeDocument } = useActiveDocument();
 // const targetTabId = computed(() => props.id || workspace.activeTabId.value);
 
-const dialogs = ref<AIDialog[]>([]);
+const dialogs = ref<AIDialog[]>([])
 
 const loadDialogsFromStorage = () => {
-  const stored = readAiChatDialogs();
+  const stored = readAiChatDialogs()
   if (!stored.length) {
-    dialogs.value = [createDefaultDialog(defaultTitle)];
-    persistDialogsToStorage();
-    return;
+    dialogs.value = [createDefaultDialog(defaultTitle)]
+    persistDialogsToStorage()
+    return
   }
   // 为没有时间戳的对话添加时间戳
-  const now = Date.now();
-  dialogs.value = stored.map(dialog => {
+  const now = Date.now()
+  dialogs.value = stored.map((dialog) => {
     if (!dialog.createdAt) {
-      dialog.createdAt = now;
+      dialog.createdAt = now
     }
     if (!dialog.updatedAt) {
-      dialog.updatedAt = now;
+      dialog.updatedAt = now
     }
-    return dialog;
-  });
-  persistDialogsToStorage();
-};
+    return dialog
+  })
+  persistDialogsToStorage()
+}
 
 const persistDialogsToStorage = () => {
-  writeAiChatDialogs(dialogs.value);
-};
+  writeAiChatDialogs(dialogs.value)
+}
 
 // 初始化当前对话
 const initCurrentDialog = () => {
-  loadDialogsFromStorage();
+  loadDialogsFromStorage()
   if (dialogs.value && dialogs.value.length > 0) {
-    loadDialog(0);
+    loadDialog(0)
   } else {
-    addNewDialog();
-    loadDialog(0);
+    addNewDialog()
+    loadDialog(0)
   }
-};
+}
 
 const addNewDialog = () => {
-  const newDialog = createDefaultDialog(defaultTitle);
-  dialogs.value.unshift(newDialog); // 新建的会话排在第一位
-  activeDialogIndex.value = 0;
-  messages.value = cloneDeep(newDialog.messages);
-  title.value = newDialog.title;
+  const newDialog = createDefaultDialog(defaultTitle)
+  dialogs.value.unshift(newDialog) // 新建的会话排在第一位
+  activeDialogIndex.value = 0
+  messages.value = cloneDeep(newDialog.messages)
+  title.value = newDialog.title
   // 新建会话时清空引用
-  referenceStore.value = [];
-  activeReferenceIds.value = [];
-  updateCurrentDialog();
-};
+  referenceStore.value = []
+  activeReferenceIds.value = []
+  updateCurrentDialog()
+}
 
 const updateCurrentDialog = (index: number | null = null, shouldMoveToTop: boolean = false) => {
   if (dialogs.value.length === 0) {
-    dialogs.value.push(createDefaultDialog(defaultTitle));
+    dialogs.value.push(createDefaultDialog(defaultTitle))
   }
-  const targetIndex = index == null ? activeDialogIndex.value : index;
-  const existingDialog = dialogs.value[targetIndex];
-  
+  const targetIndex = index == null ? activeDialogIndex.value : index
+  const existingDialog = dialogs.value[targetIndex]
+
   // 计算AI最后一次回复时间（用于排序）
-  const lastAssistantMessage = messages.value
-    .filter(msg => msg.role === 'assistant')
-    .slice(-1)[0];
-  const lastAssistantTime = lastAssistantMessage?.timestamp 
-    ? (typeof lastAssistantMessage.timestamp === 'string' 
-        ? new Date(lastAssistantMessage.timestamp).getTime() 
-        : lastAssistantMessage.timestamp)
-    : null;
-  
+  const lastAssistantMessage = messages.value.filter((msg) => msg.role === 'assistant').slice(-1)[0]
+  const lastAssistantTime = lastAssistantMessage?.timestamp
+    ? typeof lastAssistantMessage.timestamp === 'string'
+      ? new Date(lastAssistantMessage.timestamp).getTime()
+      : lastAssistantMessage.timestamp
+    : null
+
   // 优先使用AI最后一次回复时间，如果没有则使用原有对话的updatedAt，最后才使用当前时间
-  const updatedAt = lastAssistantTime ?? existingDialog?.updatedAt ?? Date.now();
-  
+  const updatedAt = lastAssistantTime ?? existingDialog?.updatedAt ?? Date.now()
+
   const dialog: AIDialog = {
     title: title.value,
     messages: cloneDeep(messages.value),
     createdAt: existingDialog?.createdAt || Date.now(),
     updatedAt: updatedAt, // 使用AI最后一次回复时间，如果没有则保持原有的updatedAt
-    referenceStore: cloneDeep(referenceStore.value), // 保存引用
-  };
-  
+    referenceStore: cloneDeep(referenceStore.value) // 保存引用
+  }
+
   if (index == null) {
-    const currentIndex = activeDialogIndex.value;
-    dialogs.value[currentIndex] = dialog;
-    
+    const currentIndex = activeDialogIndex.value
+    dialogs.value[currentIndex] = dialog
+
     // 如果AI生成了新回复（shouldMoveToTop为true），将该会话移到最前面
     if (shouldMoveToTop && currentIndex > 0) {
-      dialogs.value.splice(currentIndex, 1);
-      dialogs.value.unshift(dialog);
-      activeDialogIndex.value = 0;
+      dialogs.value.splice(currentIndex, 1)
+      dialogs.value.unshift(dialog)
+      activeDialogIndex.value = 0
     }
   } else {
-    dialogs.value[index] = dialog;
-    
+    dialogs.value[index] = dialog
+
     // 如果AI生成了新回复（shouldMoveToTop为true），将该会话移到最前面
     if (shouldMoveToTop && index > 0) {
-      dialogs.value.splice(index, 1);
-      dialogs.value.unshift(dialog);
-      activeDialogIndex.value = 0;
+      dialogs.value.splice(index, 1)
+      dialogs.value.unshift(dialog)
+      activeDialogIndex.value = 0
     }
   }
-  persistDialogsToStorage();
-};
+  persistDialogsToStorage()
+}
 
 const loadDialog = (index: number) => {
-  activeDialogIndex.value = index;
-  const dialog = dialogs.value[index];
-  messages.value = cloneDeep(dialog.messages);
-  title.value = dialog.title;
+  activeDialogIndex.value = index
+  const dialog = dialogs.value[index]
+  messages.value = cloneDeep(dialog.messages)
+  title.value = dialog.title
   // 加载对话的引用（会话级别持久化）
   if (dialog.referenceStore && Array.isArray(dialog.referenceStore)) {
-    referenceStore.value = cloneDeep(dialog.referenceStore) as Reference[];
+    referenceStore.value = cloneDeep(dialog.referenceStore) as Reference[]
     // 默认激活所有引用
-    activeReferenceIds.value = referenceStore.value.map(ref => ref.id);
+    activeReferenceIds.value = referenceStore.value.map((ref) => ref.id)
   } else {
-    referenceStore.value = [];
-    activeReferenceIds.value = [];
+    referenceStore.value = []
+    activeReferenceIds.value = []
   }
   // 注意：加载对话时不应该更新updatedAt，只有AI生成新回复时才更新
   //logger.log(dialogs.value[index])
-};
+}
 
 const deleteDialog = (index: number) => {
-  if (dialogs.value.length === 0) return;
-  
+  if (dialogs.value.length === 0) return
+
   // 如果删除后没有对话了，不允许删除（需要至少保留一个）
   if (dialogs.value.length <= 1) {
-    ElMessage.warning(t('aiChat.atLeastOneRequired', '至少需要保留一个对话'));
-    return;
+    ElMessage.warning(t('aiChat.atLeastOneRequired', '至少需要保留一个对话'))
+    return
   }
-  
-  dialogs.value.splice(index, 1);
+
+  dialogs.value.splice(index, 1)
   if (dialogs.value.length > 0) {
-    const nextIndex = Math.min(index, dialogs.value.length - 1);
-    activeDialogIndex.value = Math.max(nextIndex, 0);
-    loadDialog(activeDialogIndex.value);
+    const nextIndex = Math.min(index, dialogs.value.length - 1)
+    activeDialogIndex.value = Math.max(nextIndex, 0)
+    loadDialog(activeDialogIndex.value)
   } else {
-    addNewDialog();
+    addNewDialog()
   }
-  persistDialogsToStorage();
-};
+  persistDialogsToStorage()
+}
 
 // 选择文档对话框相关
-const selectDocumentDialogVisible = ref(false);
-const selectedTabIds = ref<string[]>([]);
-const pendingInsertContent = ref<string>('');
+const selectDocumentDialogVisible = ref(false)
+const selectedTabIds = ref<string[]>([])
+const pendingInsertContent = ref<string>('')
 
 // 获取文档tabs列表
 interface DocumentTabItem {
-  id: string;
-  displayName: string;
-  path: string;
+  id: string
+  displayName: string
+  path: string
 }
 
 const documentTabs = computed<DocumentTabItem[]>(() => {
   return workspace.tabs
-    .filter(tab => (tab.kind === 'file' || tab.kind === 'new') && tab.id)
-    .map(tab => {
-      let displayName = '';
+    .filter((tab) => (tab.kind === 'file' || tab.kind === 'new') && tab.id)
+    .map((tab) => {
+      let displayName = ''
       if (tab.title && tab.title.trim() && tab.title !== '未命名文档') {
-        displayName = tab.title.trim();
+        displayName = tab.title.trim()
       } else if (tab.path) {
-        const segments = tab.path.split(/[/\\]+/).filter(Boolean);
-        displayName = segments[segments.length - 1] || tab.path;
+        const segments = tab.path.split(/[/\\]+/).filter(Boolean)
+        displayName = segments[segments.length - 1] || tab.path
       } else {
-        displayName = t('workspace.untitledDocument', '未命名文档');
+        displayName = t('workspace.untitledDocument', '未命名文档')
       }
       return {
         id: String(tab.id),
         displayName,
         path: tab.path || ''
-      };
-    });
-});
+      }
+    })
+})
 
 // 处理插入到文档请求
 const handleRequestInsertToDocument = (payload: unknown) => {
-  const data = payload as { content: string };
-  if (!data || !data.content) return;
-  
+  const data = payload as { content: string }
+  if (!data || !data.content) return
+
   // 如果没有文档，直接创建新文档
   if (documentTabs.value.length === 0) {
     eventBus.emit('ai-chat-export-to-document', {
       content: data.content
-    });
-    ElMessage.success(t('aiChat.exportToDocumentSuccess', '已导出到新文档'));
-    return;
+    })
+    ElMessage.success(t('aiChat.exportToDocumentSuccess', '已导出到新文档'))
+    return
   }
-  
+
   // 显示选择对话框
-  pendingInsertContent.value = data.content;
-  selectedTabIds.value = [];
-  selectDocumentDialogVisible.value = true;
-};
+  pendingInsertContent.value = data.content
+  selectedTabIds.value = []
+  selectDocumentDialogVisible.value = true
+}
 
 // 切换文档选择状态
 const toggleTabSelection = (tabId: string) => {
-  const index = selectedTabIds.value.indexOf(tabId);
+  const index = selectedTabIds.value.indexOf(tabId)
   if (index > -1) {
-    selectedTabIds.value.splice(index, 1);
+    selectedTabIds.value.splice(index, 1)
   } else {
-    selectedTabIds.value.push(tabId);
+    selectedTabIds.value.push(tabId)
   }
-};
+}
 
 // 全选/取消全选
 const toggleSelectAll = () => {
   if (selectedTabIds.value.length === documentTabs.value.length) {
-    selectedTabIds.value = [];
+    selectedTabIds.value = []
   } else {
-    selectedTabIds.value = documentTabs.value.map(tab => tab.id);
+    selectedTabIds.value = documentTabs.value.map((tab) => tab.id)
   }
-};
+}
 
 // 确认插入到选中的文档
 const confirmInsertToDocument = () => {
-  if (selectedTabIds.value.length === 0 || !pendingInsertContent.value) return;
-  
-  const content = pendingInsertContent.value;
-  const tabIds = [...selectedTabIds.value]; // 复制数组，避免在循环中修改
-  
+  if (selectedTabIds.value.length === 0 || !pendingInsertContent.value) return
+
+  const content = pendingInsertContent.value
+  const tabIds = [...selectedTabIds.value] // 复制数组，避免在循环中修改
+
   // 关闭对话框
-  selectDocumentDialogVisible.value = false;
-  pendingInsertContent.value = '';
-  selectedTabIds.value = [];
-  
+  selectDocumentDialogVisible.value = false
+  pendingInsertContent.value = ''
+  selectedTabIds.value = []
+
   // 如果只选择了一个文档，直接插入
   if (tabIds.length === 1) {
     eventBus.emit('ai-chat-insert-to-document', {
       content: content,
       tabId: tabIds[0]
-    });
-    ElMessage.success(t('aiChat.insertToDocumentSuccess', '内容已插入到文档'));
+    })
+    ElMessage.success(t('aiChat.insertToDocumentSuccess', '内容已插入到文档'))
   } else {
     // 多个文档，依次插入（使用延迟确保每个插入都能被处理）
     // 先显示一个加载提示
     const loadingMessage = ElMessage({
       message: `正在插入到 ${tabIds.length} 个文档...`,
       type: 'info',
-      duration: 0, // 不自动关闭
-    });
-    
-    let completedCount = 0;
+      duration: 0 // 不自动关闭
+    })
+
+    let completedCount = 0
     tabIds.forEach((tabId, index) => {
       setTimeout(() => {
         eventBus.emit('ai-chat-insert-to-document', {
           content: content,
           tabId: tabId
-        });
-        completedCount++;
-        
+        })
+        completedCount++
+
         // 所有插入完成后显示成功消息
         if (completedCount === tabIds.length) {
-          loadingMessage.close();
-          ElMessage.success(t('aiChat.insertToDocumentsSuccess', '内容已插入到所选文档'));
+          loadingMessage.close()
+          ElMessage.success(t('aiChat.insertToDocumentsSuccess', '内容已插入到所选文档'))
         }
-      }, index * 200); // 每个插入间隔200ms，确保前一个完成
-    });
+      }, index * 200) // 每个插入间隔200ms，确保前一个完成
+    })
   }
-};
+}
 
 const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
-  color: themeState.currentTheme.textColor,
-}));
+  color: themeState.currentTheme.textColor
+}))
 
 const containerStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
-  color: themeState.currentTheme.textColor,
-}));
+  color: themeState.currentTheme.textColor
+}))
 
 const duplicateDialog = (index: number) => {
-  const dialog = dialogs.value[index];
-  if (!dialog) return;
-  
+  const dialog = dialogs.value[index]
+  if (!dialog) return
+
   const duplicated: AIDialog = {
     title: dialog.title + ' (副本)',
     messages: cloneDeep(dialog.messages),
     createdAt: Date.now(),
     updatedAt: Date.now(),
-    referenceStore: cloneDeep(dialog.referenceStore || []),
-  };
-  
-  dialogs.value.unshift(duplicated);
-  activeDialogIndex.value = 0;
-  loadDialog(0);
-  persistDialogsToStorage();
-  ElMessage.success(t('aiChat.duplicateSuccess', '对话已复制'));
-};
+    referenceStore: cloneDeep(dialog.referenceStore || [])
+  }
 
-const title = ref(defaultTitle);
-const enableKnowledgeBaseQuery = ref(false);
+  dialogs.value.unshift(duplicated)
+  activeDialogIndex.value = 0
+  loadDialog(0)
+  persistDialogsToStorage()
+  ElMessage.success(t('aiChat.duplicateSuccess', '对话已复制'))
+}
+
+const title = ref(defaultTitle)
+const enableKnowledgeBaseQuery = ref(false)
 
 const reset = () => {
-  promptInput.value = '';
+  promptInput.value = ''
 }
 
 const handleCancel = () => {
   if (currentAiTaskHandle.value) {
-    cancelAiTask(currentAiTaskHandle.value, false);
-    currentAiTaskHandle.value = null;
+    cancelAiTask(currentAiTaskHandle.value, false)
+    currentAiTaskHandle.value = null
   }
-  responding.value = false;
+  responding.value = false
   // 不清空cur_resp，保留已生成的内容
   // 如果当前有placeholder消息，将其替换为实际内容
   if (messages.value.length > 0) {
-    const lastMessage = messages.value[messages.value.length - 1];
+    const lastMessage = messages.value[messages.value.length - 1]
     if (lastMessage.role === 'assistant' && lastMessage.content === '') {
       // 这是一个placeholder，用cur_resp的内容替换它
-      lastMessage.content = cur_resp.value;
+      lastMessage.content = cur_resp.value
       if (cur_resp.value.trim()) {
         // 如果有内容，更新对话
-        updateCurrentDialog(null, true);
+        updateCurrentDialog(null, true)
       } else {
         // 如果没有内容，移除placeholder消息
-        messages.value.pop();
+        messages.value.pop()
       }
     }
   }
-  ElMessage.info(t('aiChat.generationCancelled'));
-};
+  ElMessage.info(t('aiChat.generationCancelled'))
+}
 
 // 引用管理（临时存储，不持久化）
-const referenceStore = ref<Reference[]>([]);
-const activeReferenceIds = ref<string[]>([]);
-const showReferenceDialog = ref(false);
+const referenceStore = ref<Reference[]>([])
+const activeReferenceIds = ref<string[]>([])
+const showReferenceDialog = ref(false)
 
 // 监听引用变化，自动激活新添加的引用
 watch(
   () => referenceStore.value,
   (newStore) => {
     if (newStore && newStore.length > 0) {
-      const allReferenceIds = newStore.map(ref => ref.id);
-      if (activeReferenceIds.value.length === 0 || !activeReferenceIds.value.some(id => allReferenceIds.includes(id))) {
-        activeReferenceIds.value = [...allReferenceIds];
+      const allReferenceIds = newStore.map((ref) => ref.id)
+      if (
+        activeReferenceIds.value.length === 0 ||
+        !activeReferenceIds.value.some((id) => allReferenceIds.includes(id))
+      ) {
+        activeReferenceIds.value = [...allReferenceIds]
       } else {
-        activeReferenceIds.value = activeReferenceIds.value.filter(id => allReferenceIds.includes(id));
+        activeReferenceIds.value = activeReferenceIds.value.filter((id) =>
+          allReferenceIds.includes(id)
+        )
       }
     } else {
-      activeReferenceIds.value = [];
+      activeReferenceIds.value = []
     }
   },
   { deep: true }
-);
+)
 
 // 切换引用激活状态
 const handleToggleReference = (referenceId: string) => {
-  const index = activeReferenceIds.value.indexOf(referenceId);
+  const index = activeReferenceIds.value.indexOf(referenceId)
   if (index > -1) {
-    activeReferenceIds.value.splice(index, 1);
+    activeReferenceIds.value.splice(index, 1)
   } else {
-    activeReferenceIds.value.push(referenceId);
+    activeReferenceIds.value.push(referenceId)
   }
-};
+}
 
 // 处理附件上传
 const handleAttach = async (fileOrFiles?: File | File[]) => {
   try {
     // 检查输入框中是否是URL（用户可能粘贴了URL）
-    const inputText = promptInput.value.trim();
-    const isUrl = /^https?:\/\//.test(inputText);
-    
-    const files = Array.isArray(fileOrFiles) ? fileOrFiles : (fileOrFiles ? [fileOrFiles] : []);
-    
+    const inputText = promptInput.value.trim()
+    const isUrl = /^https?:\/\//.test(inputText)
+
+    const files = Array.isArray(fileOrFiles) ? fileOrFiles : fileOrFiles ? [fileOrFiles] : []
+
     if (isUrl && files.length === 0) {
       // 处理URL（用户输入了URL但没有选择文件）
-      const reference = await processUrlReference(inputText);
-      promptInput.value = ''; // 清空输入框
-      
-      referenceStore.value.push(reference);
-      ElMessage.success(t('agent.reference.addSuccess'));
+      const reference = await processUrlReference(inputText)
+      promptInput.value = '' // 清空输入框
+
+      referenceStore.value.push(reference)
+      ElMessage.success(t('agent.reference.addSuccess'))
       // 同步更新对话持久化
-      updateCurrentDialog();
+      updateCurrentDialog()
     } else if (files.length > 0) {
       // 批量处理文件上传
       const loading = ElLoading.service({
         lock: true,
         text: files.length > 1 ? `正在处理 ${files.length} 个文件...` : '正在处理文件...',
         background: 'rgba(0, 0, 0, 0.7)'
-      });
-      
+      })
+
       try {
-        const references: Reference[] = [];
-        let successCount = 0;
-        let failCount = 0;
-        
+        const references: Reference[] = []
+        let successCount = 0
+        let failCount = 0
+
         // 逐个处理文件
         for (let i = 0; i < files.length; i++) {
-          const file = files[i];
+          const file = files[i]
           try {
-            loading.setText(files.length > 1 ? `正在处理文件 ${i + 1}/${files.length}: ${file.name}` : `正在处理: ${file.name}`);
-            const reference = await processFileUpload(file);
-            references.push(reference);
-            successCount++;
+            loading.setText(
+              files.length > 1
+                ? `正在处理文件 ${i + 1}/${files.length}: ${file.name}`
+                : `正在处理: ${file.name}`
+            )
+            const reference = await processFileUpload(file)
+            references.push(reference)
+            successCount++
           } catch (error) {
-            failCount++;
-            console.error(`处理文件 ${file.name} 失败:`, error);
+            failCount++
+            console.error(`处理文件 ${file.name} 失败:`, error)
             // 继续处理其他文件
           }
         }
-        
+
         // 批量添加到引用列表
         if (references.length > 0) {
-          referenceStore.value.push(...references);
-          
+          referenceStore.value.push(...references)
+
           // 同步更新对话持久化
-          updateCurrentDialog();
-          
+          updateCurrentDialog()
+
           // 显示成功消息
           if (failCount === 0) {
             ElMessage.success(
-              files.length > 1 
-                ? `成功添加 ${successCount} 个引用`
-                : t('agent.reference.addSuccess')
-            );
+              files.length > 1 ? `成功添加 ${successCount} 个引用` : t('agent.reference.addSuccess')
+            )
           } else {
-            ElMessage.warning(
-              `成功添加 ${successCount} 个引用，${failCount} 个失败`
-            );
+            ElMessage.warning(`成功添加 ${successCount} 个引用，${failCount} 个失败`)
           }
         } else {
-          ElMessage.error('所有文件处理失败');
+          ElMessage.error('所有文件处理失败')
         }
       } finally {
-        loading.close();
+        loading.close()
       }
     } else {
       // 既没有文件也没有URL，不处理（ChatComposer 会处理文件选择）
-      return;
+      return
     }
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : String(error));
+    ElMessage.error(error instanceof Error ? error.message : String(error))
   }
-};
+}
 
 // 打开引用管理对话框
 const handleOpenReferenceDialog = () => {
-  showReferenceDialog.value = true;
-};
+  showReferenceDialog.value = true
+}
 
 // 处理引用更新（从 ReferenceManager 触发）
 const handleReferenceUpdate = () => {
   // ReferenceManager 会直接修改传入的 session.referenceStore
   // 由于我们传入的是 referenceStore，所以会自动同步
   // 同步更新对话持久化（包括添加、删除、清空等操作）
-  updateCurrentDialog();
-};
+  updateCurrentDialog()
+}
 
 // 创建一个简单的引用管理器，直接操作 referenceStore
 const aiChatReferenceManager = {
   addReference: (reference: Reference) => {
-    referenceStore.value.push(reference);
+    referenceStore.value.push(reference)
   },
   removeReference: (referenceId: string) => {
-    const index = referenceStore.value.findIndex(ref => ref.id === referenceId);
+    const index = referenceStore.value.findIndex((ref) => ref.id === referenceId)
     if (index > -1) {
-      referenceStore.value.splice(index, 1);
+      referenceStore.value.splice(index, 1)
     }
   },
   updateReference: (referenceId: string, updates: { name?: string; description?: string }) => {
-    const reference = referenceStore.value.find(ref => ref.id === referenceId);
+    const reference = referenceStore.value.find((ref) => ref.id === referenceId)
     if (reference) {
       if (updates.name !== undefined) {
-        reference.name = updates.name;
+        reference.name = updates.name
       }
       if (updates.description !== undefined) {
-        reference.description = updates.description;
+        reference.description = updates.description
       }
     }
   },
   clearAll: () => {
-    referenceStore.value = [];
-    activeReferenceIds.value = [];
+    referenceStore.value = []
+    activeReferenceIds.value = []
   }
-};
+}
 
 /**
  * 构建引用内容（类似 AIContextManager.buildReferencesContent）
  */
 function buildReferencesContent(references: Reference[]): string {
-  if (references.length === 0) return '';
+  if (references.length === 0) return ''
 
-  let content = '=== 引用素材 ===\n\n';
+  let content = '=== 引用素材 ===\n\n'
   for (const ref of references) {
-    content += `[${ref.name}] (格式: ${ref.format}, 来源: ${ref.origin})\n`;
+    content += `[${ref.name}] (格式: ${ref.format}, 来源: ${ref.origin})\n`
     if (ref.description) {
-      content += `描述: ${ref.description}\n`;
+      content += `描述: ${ref.description}\n`
     }
     // 添加解析后的内容（供AI直接参考，上传时已解析）
     if (ref.parsedContent) {
-      content += `\n解析后的内容（已进行数据分析/文本提取）:\n\`\`\`\n${ref.parsedContent}\n\`\`\`\n`;
+      content += `\n解析后的内容（已进行数据分析/文本提取）:\n\`\`\`\n${ref.parsedContent}\n\`\`\`\n`
     }
-    content += '\n';
+    content += '\n'
   }
 
-  return content;
+  return content
 }
 
 async function generateNextResponse(
@@ -762,239 +792,242 @@ async function generateNextResponse(
   afterGeneration: () => void | Promise<void>,
   shouldQueryKnowledgeBase: boolean = false
 ) {
-  responding.value = true;
-  await Promise.resolve(beforeGeneration());
+  responding.value = true
+  await Promise.resolve(beforeGeneration())
   //logger.log(messages.value)
-  const messageCopy: AIDialogMessage[] = JSON.parse(JSON.stringify(messages.value));// 深拷贝消息列表，因为Proxy不能直接拷贝
-  
+  const messageCopy: AIDialogMessage[] = JSON.parse(JSON.stringify(messages.value)) // 深拷贝消息列表，因为Proxy不能直接拷贝
+
   // 构建包含引用信息的消息数组
   // 1. 如果有激活的引用，构建引用内容作为系统消息
-  const activeReferences = referenceStore.value.filter(ref => activeReferenceIds.value.includes(ref.id));
+  const activeReferences = referenceStore.value.filter((ref) =>
+    activeReferenceIds.value.includes(ref.id)
+  )
   if (activeReferences.length > 0) {
-    const referencesContent = buildReferencesContent(activeReferences);
+    const referencesContent = buildReferencesContent(activeReferences)
     // 在消息数组开头插入系统消息（如果还没有系统消息）
-    const hasSystemMessage = messageCopy.some(msg => msg.role === 'system');
+    const hasSystemMessage = messageCopy.some((msg) => msg.role === 'system')
     if (!hasSystemMessage) {
       messageCopy.unshift({
         role: 'system',
         content: referencesContent
-      });
+      })
     } else {
       // 如果有系统消息，将引用内容追加到第一个系统消息
-      const firstSystemIndex = messageCopy.findIndex(msg => msg.role === 'system');
+      const firstSystemIndex = messageCopy.findIndex((msg) => msg.role === 'system')
       if (firstSystemIndex !== -1) {
-        messageCopy[firstSystemIndex].content = (messageCopy[firstSystemIndex].content || '') + '\n\n' + referencesContent;
+        messageCopy[firstSystemIndex].content =
+          (messageCopy[firstSystemIndex].content || '') + '\n\n' + referencesContent
       }
     }
   }
-  
+
   //logger.log(messageCopy)
   const { handle, done } = createAiTask(
-    messageCopy[messageCopy.length - 2].content ?? "AI Chat", 
-    messageCopy, 
-    cur_resp, 
-    ai_types.chat, 
+    messageCopy[messageCopy.length - 2].content ?? 'AI Chat',
+    messageCopy,
+    cur_resp,
+    ai_types.chat,
     'ai-chat',
     { stream: true, enableKnowledgeBase: shouldQueryKnowledgeBase }
-  );
-  currentAiTaskHandle.value = handle;
-  let wasCancelled = false;
+  )
+  currentAiTaskHandle.value = handle
+  let wasCancelled = false
   try {
-    await done;
+    await done
   } catch (err) {
-    wasCancelled = true;
-    logger.warn('任务失败或取消：', err);
+    wasCancelled = true
+    logger.warn('任务失败或取消：', err)
     // 如果取消，不清空cur_resp，保留已生成的内容
     // afterGeneration会处理placeholder的替换
   } finally {
-    currentAiTaskHandle.value = null;
-    await Promise.resolve(afterGeneration());
-    responding.value = false;
+    currentAiTaskHandle.value = null
+    await Promise.resolve(afterGeneration())
+    responding.value = false
   }
-
-
-
 }
 
 const onMsgSend = async (enableKnowledgeBaseQueryParam?: boolean) => {
   const userMessage: AIDialogMessage & { referenceIds?: string[] } = {
     role: 'user',
     content: promptInput.value,
-    referenceIds: [...activeReferenceIds.value], // 保存当前激活的引用ID
-  };
-  messages.value.push(userMessage);
+    referenceIds: [...activeReferenceIds.value] // 保存当前激活的引用ID
+  }
+  messages.value.push(userMessage)
   updateTitle(userMessage.content).catch((error) => {
-    logger.debug('update title failed', error);
-  });
+    logger.debug('update title failed', error)
+  })
   //logger.log(messages.value);
-  promptInput.value = '';
-  cur_resp.value = '';
+  promptInput.value = ''
+  cur_resp.value = ''
 
   // 使用传入的参数或当前状态
-  const shouldQueryKnowledgeBase = enableKnowledgeBaseQueryParam !== undefined 
-    ? enableKnowledgeBaseQueryParam 
-    : enableKnowledgeBaseQuery.value;
+  const shouldQueryKnowledgeBase =
+    enableKnowledgeBaseQueryParam !== undefined
+      ? enableKnowledgeBaseQueryParam
+      : enableKnowledgeBaseQuery.value
 
-  let stopStream: WatchStopHandle | undefined;
+  let stopStream: WatchStopHandle | undefined
   await generateNextResponse(
     () => {
-      const placeholder = createAssistantPlaceholder();
-      messages.value.push(placeholder);
+      const placeholder = createAssistantPlaceholder()
+      messages.value.push(placeholder)
       stopStream = watch(
         cur_resp,
         (value) => {
-          placeholder.content = value;
+          placeholder.content = value
         },
-        { immediate: true },
-      );
+        { immediate: true }
+      )
     },
     cur_resp,
     async () => {
-      stopStream?.();
+      stopStream?.()
       // 如果最后一个消息是placeholder（空内容），用实际内容替换它
       if (messages.value.length > 0) {
-        const lastMessage = messages.value[messages.value.length - 1];
+        const lastMessage = messages.value[messages.value.length - 1]
         if (lastMessage.role === 'assistant' && lastMessage.content === '') {
           // 这是一个placeholder，用cur_resp的内容替换它
-          lastMessage.content = cur_resp.value;
+          lastMessage.content = cur_resp.value
           if (!cur_resp.value.trim()) {
             // 如果没有内容，移除placeholder消息
-            messages.value.pop();
+            messages.value.pop()
           }
         } else {
           // 不是placeholder，正常处理（这种情况不应该发生，但为了安全起见）
-          messages.value.pop();
+          messages.value.pop()
           const assistantMessage: AIDialogMessage = {
             role: 'assistant',
-            content: cur_resp.value,
-          };
-          messages.value.push(assistantMessage);
+            content: cur_resp.value
+          }
+          messages.value.push(assistantMessage)
         }
       }
 
       //bindCode(false);
       //logger.log(messages.value);
       if (cur_resp.value.trim()) {
-        updateCurrentDialog(null, true); // AI生成新回复时，移到最前面
-        updateTitle();
+        updateCurrentDialog(null, true) // AI生成新回复时，移到最前面
+        updateTitle()
       }
-
     },
     shouldQueryKnowledgeBase
-  );
-
-
-};
+  )
+}
 
 // 其余方法保持原有实现，只需将localStorage操作替换为updateCurrentDialog()
 
-const MAX_TITLE_LENGTH = 20;
-const TITLE_CONTEXT_LIMIT = 6;
+const MAX_TITLE_LENGTH = 20
+const TITLE_CONTEXT_LIMIT = 6
 
 const buildTitleSource = (seedText?: string): string => {
   // 获取最近的对话消息（不包括系统消息）
   const recentMessages = messages.value
     .filter((msg) => msg.role !== 'system')
-    .slice(-TITLE_CONTEXT_LIMIT);
-  
+    .slice(-TITLE_CONTEXT_LIMIT)
+
   // 如果传入了 seedText（用户刚发送的消息），确保它包含在上下文中
   // 由于 messages.value.push(userMessage) 是同步的，最后一条消息应该就是用户刚发送的消息
   if (seedText && seedText.trim()) {
     // 检查最后一条消息是否是用户消息，且内容匹配 seedText
-    const lastMessage = recentMessages[recentMessages.length - 1];
-    if (lastMessage && lastMessage.role === 'user' && lastMessage.content.trim() === seedText.trim()) {
+    const lastMessage = recentMessages[recentMessages.length - 1]
+    if (
+      lastMessage &&
+      lastMessage.role === 'user' &&
+      lastMessage.content.trim() === seedText.trim()
+    ) {
       // 如果最后一条消息就是用户刚发送的消息，使用完整的对话上下文（包括用户消息）
-      return recentMessages
-        .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
-        .join('\n');
+      return recentMessages.map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`).join('\n')
     }
     // 如果最后一条消息不匹配（理论上不应该发生），仍然使用 seedText 和之前的消息
-    const previousMessages = recentMessages.slice(0, -1);
-    const contextMessages = previousMessages.length > 0 
-      ? [...previousMessages, { role: 'user', content: seedText.trim() }]
-      : [{ role: 'user', content: seedText.trim() }];
-    return contextMessages
-      .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
-      .join('\n');
+    const previousMessages = recentMessages.slice(0, -1)
+    const contextMessages =
+      previousMessages.length > 0
+        ? [...previousMessages, { role: 'user', content: seedText.trim() }]
+        : [{ role: 'user', content: seedText.trim() }]
+    return contextMessages.map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`).join('\n')
   }
-  
+
   // 如果没有传入 seedText，使用最近的对话消息
-  return recentMessages
-    .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
-    .join('\n');
-};
+  return recentMessages.map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`).join('\n')
+}
 
 const sanitizeGeneratedTitle = (raw: string): string => {
-  let next = raw.trim();
+  let next = raw.trim()
   while (next.startsWith('#')) {
-    next = next.slice(1).trim();
+    next = next.slice(1).trim()
   }
-  next = next.replace(/\s+/g, ' ');
+  next = next.replace(/\s+/g, ' ')
   if (next.length > MAX_TITLE_LENGTH) {
-    next = next.slice(0, MAX_TITLE_LENGTH).replace(/[，。,;:!?、．…-]+$/, '').trim();
+    next = next
+      .slice(0, MAX_TITLE_LENGTH)
+      .replace(/[，。,;:!?、．…-]+$/, '')
+      .trim()
   }
   if (!next) {
-    next = defaultTitle;
+    next = defaultTitle
   }
-  return next;
-};
+  return next
+}
 
 const updateTitle = async (seedText?: string) => {
-  const titleSource = buildTitleSource(seedText);
-  const prompt = updateTitlePrompt(JSON.stringify(titleSource));
+  const titleSource = buildTitleSource(seedText)
+  const prompt = updateTitlePrompt(JSON.stringify(titleSource))
   //备注：因为标题撰写需要一定时间，而用户可能在这个时间切换到其他对话，因此首先要保存索引
-  const index = activeDialogIndex.value;//当前对话索引
+  const index = activeDialogIndex.value //当前对话索引
 
   // 构建消息数组，将 prompt 转换为对话格式
-  const messages: AIDialogMessage[] = [];
+  const messages: AIDialogMessage[] = []
   messages.push({
     role: 'user',
-    content: prompt,
-  });
+    content: prompt
+  })
 
-  const generatedText = ref('');
-  const enableKnowledgeBase=await getSetting("enableKnowledgeBase")
+  const generatedText = ref('')
+  const enableKnowledgeBase = await getSetting('enableKnowledgeBase')
   const { handle, done } = createAiTask(
-    title.value || defaultTitle, 
-    messages, 
-    generatedText, 
-    ai_types.chat, 
+    title.value || defaultTitle,
+    messages,
+    generatedText,
+    ai_types.chat,
     'ai-chat-generate-title',
     { stream: true, enableKnowledgeBase: Boolean(enableKnowledgeBase) }
-  );
+  )
   try {
-    await done;
+    await done
   } catch (err) {
-    logger.error('生成标题失败', err);
+    logger.error('生成标题失败', err)
     // 如果生成失败，使用默认标题或保留原标题
-    return;
+    return
   }
 
-  let schemaTitle: string | undefined;
-  let fallbackTitle: string | undefined;
+  let schemaTitle: string | undefined
+  let fallbackTitle: string | undefined
 
   try {
     const parsed = parseSchemaJson<DocumentTitleSchemaResult>(
       generatedText.value,
-      DOCUMENT_TITLE_SCHEMA,
-    );
-    schemaTitle = parsed.title;
+      DOCUMENT_TITLE_SCHEMA
+    )
+    schemaTitle = parsed.title
   } catch (error) {
-    logger.warn('解析标题JSON失败，尝试从文本中提取', error, generatedText.value);
-    
+    logger.warn('解析标题JSON失败，尝试从文本中提取', error, generatedText.value)
+
     // 尝试从生成的文本中提取标题
     // 1. 尝试提取 JSON 中的 title 字段（即使整体解析失败）
-    const titleMatch = generatedText.value.match(/"title"\s*:\s*"([^"]+)"/);
+    const titleMatch = generatedText.value.match(/"title"\s*:\s*"([^"]+)"/)
     if (titleMatch) {
-      fallbackTitle = titleMatch[1];
+      fallbackTitle = titleMatch[1]
     } else {
       // 2. 尝试提取引号中的文本（可能是标题）
-      const quotedMatch = generatedText.value.match(/"([^"]{4,40})"/);
+      const quotedMatch = generatedText.value.match(/"([^"]{4,40})"/)
       if (quotedMatch) {
-        fallbackTitle = quotedMatch[1];
+        fallbackTitle = quotedMatch[1]
       } else {
         // 3. 尝试提取第一行非空文本
-        const lines = generatedText.value.split('\n').map(l => l.trim()).filter(l => l);
+        const lines = generatedText.value
+          .split('\n')
+          .map((l) => l.trim())
+          .filter((l) => l)
         if (lines.length > 0) {
           // 移除可能的 JSON 标记和多余字符
           const firstLine = lines[0]
@@ -1002,9 +1035,9 @@ const updateTitle = async (seedText?: string) => {
             .replace(/[}\]]$/, '')
             .replace(/^"title"\s*:\s*"?/, '')
             .replace(/^"|"$/g, '')
-            .trim();
+            .trim()
           if (firstLine.length >= 2 && firstLine.length <= 40) {
-            fallbackTitle = firstLine;
+            fallbackTitle = firstLine
           }
         }
       }
@@ -1014,144 +1047,141 @@ const updateTitle = async (seedText?: string) => {
   // 优先使用 schema 解析的标题，其次使用回退标题，最后使用原始文本或种子文本
   let newTitle = sanitizeGeneratedTitle(
     schemaTitle ?? fallbackTitle ?? generatedText.value ?? titleSource
-  );
-  
+  )
+
   // 确保标题不为空
   if (!newTitle || newTitle.trim() === '') {
-    newTitle = defaultTitle;
+    newTitle = defaultTitle
   }
 
   if (dialogs.value[index] && dialogs.value[index].title === title.value) {
-    title.value = newTitle;
+    title.value = newTitle
   }
   if (dialogs.value[index]) {
-    dialogs.value[index].title = newTitle;
+    dialogs.value[index].title = newTitle
   }
-  updateCurrentDialog(index);
-};
+  updateCurrentDialog(index)
+}
 
 const handleExternalDialogsUpdate = () => {
-  initCurrentDialog();
-};
+  initCurrentDialog()
+}
 
 // 窗口迁移后恢复当前选中的对话索引
 watch(
   [() => workspace.activeTabId.value, ourTabId, () => dialogs.value.length],
   () => {
-    const tid = ourTabId.value;
-    if (!tid || workspace.activeTabId.value !== tid || dialogs.value.length === 0) return;
-    const state = workspace.getTabToolState(tid);
-    const savedIndex = state.activeDialogIndex;
-    if (savedIndex == null || savedIndex < 0 || savedIndex >= dialogs.value.length) return;
-    if (activeDialogIndex.value === savedIndex) return;
-    loadDialog(savedIndex);
+    const tid = ourTabId.value
+    if (!tid || workspace.activeTabId.value !== tid || dialogs.value.length === 0) return
+    const state = workspace.getTabToolState(tid)
+    const savedIndex = state.activeDialogIndex
+    if (savedIndex == null || savedIndex < 0 || savedIndex >= dialogs.value.length) return
+    if (activeDialogIndex.value === savedIndex) return
+    loadDialog(savedIndex)
   },
   { immediate: true }
-);
+)
 
 onMounted(() => {
-  initCurrentDialog();
-  eventBus.on('ai-dialogs-loaded', initCurrentDialog);
-  eventBus.on('ai-chat-dialogs-updated', handleExternalDialogsUpdate);
-  eventBus.on('ai-chat-request-insert-to-document', handleRequestInsertToDocument);
-});
+  initCurrentDialog()
+  eventBus.on('ai-dialogs-loaded', initCurrentDialog)
+  eventBus.on('ai-chat-dialogs-updated', handleExternalDialogsUpdate)
+  eventBus.on('ai-chat-request-insert-to-document', handleRequestInsertToDocument)
+})
 
 onBeforeUnmount(() => {
-  eventBus.off('ai-dialogs-loaded', initCurrentDialog);
-  eventBus.off('ai-chat-dialogs-updated', handleExternalDialogsUpdate);
-  eventBus.off('ai-chat-request-insert-to-document', handleRequestInsertToDocument);
-});
+  eventBus.off('ai-dialogs-loaded', initCurrentDialog)
+  eventBus.off('ai-chat-dialogs-updated', handleExternalDialogsUpdate)
+  eventBus.off('ai-chat-request-insert-to-document', handleRequestInsertToDocument)
+})
 
 watch([messages], () => {
   //bindCode(false);
   // 注意：这里不移动会话到最前面，只有AI生成新回复时才移动
-  updateCurrentDialog();
-});
+  updateCurrentDialog()
+})
 
 watch([title], () => {
   // 注意：这里不移动会话到最前面，只有AI生成新回复时才移动
-  updateCurrentDialog();
-});
+  updateCurrentDialog()
+})
 
 const onMsgDelete = (index: number) => {
-  let targetIndex = index + 1;//有偏移量
-  if (targetIndex < 0 || targetIndex >= messages.value.length) return;
-  messages.value.splice(targetIndex, 1);
+  let targetIndex = index + 1 //有偏移量
+  if (targetIndex < 0 || targetIndex >= messages.value.length) return
+  messages.value.splice(targetIndex, 1)
   //bindCode(false);
   ElMessage({
     type: 'success',
-    message: t('common.deleteSuccess'),
+    message: t('common.deleteSuccess')
   })
-  updateCurrentDialog();
+  updateCurrentDialog()
 }
 const regenerate = async (index: number) => {
-  messages.value.splice(index + 1);
-  cur_resp.value = '';
-  let stopStream: WatchStopHandle | undefined;
+  messages.value.splice(index + 1)
+  cur_resp.value = ''
+  let stopStream: WatchStopHandle | undefined
   await generateNextResponse(
     () => {
-      const placeholder = createAssistantPlaceholder();
-      messages.value.push(placeholder);
+      const placeholder = createAssistantPlaceholder()
+      messages.value.push(placeholder)
       stopStream = watch(
         cur_resp,
         (value) => {
-          placeholder.content = value;
+          placeholder.content = value
         },
-        { immediate: true },
-      );
+        { immediate: true }
+      )
     },
     cur_resp,
     () => {
-      stopStream?.();
+      stopStream?.()
       // 如果最后一个消息是placeholder（空内容），用实际内容替换它
       if (messages.value.length > 0) {
-        const lastMessage = messages.value[messages.value.length - 1];
+        const lastMessage = messages.value[messages.value.length - 1]
         if (lastMessage.role === 'assistant' && lastMessage.content === '') {
           // 这是一个placeholder，用cur_resp的内容替换它
-          lastMessage.content = cur_resp.value;
+          lastMessage.content = cur_resp.value
           if (!cur_resp.value.trim()) {
             // 如果没有内容，移除placeholder消息
-            messages.value.pop();
+            messages.value.pop()
           }
         } else {
           // 不是placeholder，正常处理（这种情况不应该发生，但为了安全起见）
-          messages.value.pop();
+          messages.value.pop()
           const assistantMessage: AIDialogMessage = {
             role: 'assistant',
             content: cur_resp.value,
-            timestamp: Date.now(), // 记录AI回复时间
-          };
-          messages.value.push(assistantMessage);
+            timestamp: Date.now() // 记录AI回复时间
+          }
+          messages.value.push(assistantMessage)
         }
       }
       if (cur_resp.value.trim()) {
-        updateCurrentDialog(null, true); // AI生成新回复时，移到最前面
+        updateCurrentDialog(null, true) // AI生成新回复时，移到最前面
       }
     },
     enableKnowledgeBaseQuery.value
-  );
+  )
   //await updateTitle();
-
 }
 type MessageEditPayload = {
-  index: number;
-  message: string;
-};
+  index: number
+  message: string
+}
 
 const onMsgEdit = async (data: MessageEditPayload) => {
-  let index = data.index + 1;//有偏移量
-  const newText = data.message;
-  const message = messages.value[index];
-  if (!message) return;
-  message.content = newText;
+  let index = data.index + 1 //有偏移量
+  const newText = data.message
+  const message = messages.value[index]
+  if (!message) return
+  message.content = newText
   //logger.log(message)
-
 
   if (message.role === 'user') {
     await regenerate(index)
   }
-  updateCurrentDialog();
-
+  updateCurrentDialog()
 }
 
 // SessionList 集成
@@ -1159,42 +1189,38 @@ const sessionListItems = computed<SessionListItem[]>(() =>
   dialogs.value.map((dialog, index) => ({
     id: index.toString(),
     title: dialog.title,
-    updatedAt: dialog.updatedAt || dialog.createdAt || Date.now(),
+    updatedAt: dialog.updatedAt || dialog.createdAt || Date.now()
   }))
-);
+)
 
 const handleSessionSelect = (item: SessionListItem) => {
-  const index = parseInt(item.id);
-  loadDialog(index);
-  const tid = ourTabId.value;
-  if (tid != null) workspace.setTabToolState(tid, { activeDialogIndex: index });
-};
+  const index = parseInt(item.id)
+  loadDialog(index)
+  const tid = ourTabId.value
+  if (tid != null) workspace.setTabToolState(tid, { activeDialogIndex: index })
+}
 
 const handleSessionRename = (item: SessionListItem, newTitle: string) => {
-  const index = parseInt(item.id);
+  const index = parseInt(item.id)
   if (index >= 0 && index < dialogs.value.length) {
     dialogs.value[index] = {
       ...dialogs.value[index],
-      title: newTitle,
-    };
-    if (activeDialogIndex.value === index) {
-      title.value = newTitle;
+      title: newTitle
     }
-    persistDialogsToStorage();
+    if (activeDialogIndex.value === index) {
+      title.value = newTitle
+    }
+    persistDialogsToStorage()
   }
-};
+}
 
 const handleSessionDuplicate = (item: SessionListItem) => {
-  duplicateDialog(parseInt(item.id));
-};
+  duplicateDialog(parseInt(item.id))
+}
 
 const handleSessionDelete = (item: SessionListItem) => {
-  deleteDialog(parseInt(item.id));
-};
-
-
-
-
+  deleteDialog(parseInt(item.id))
+}
 </script>
 
 <style scoped>
@@ -1223,7 +1249,10 @@ const handleSessionDelete = (item: SessionListItem) => {
   overflow: hidden; /* 防止内容溢出 */
   padding: 16px;
   box-sizing: border-box;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .conversation-header {
@@ -1460,14 +1489,13 @@ const handleSessionDelete = (item: SessionListItem) => {
   .document-card {
     background: var(--el-bg-color);
   }
-  
+
   .document-card:hover {
     background: var(--el-bg-color-page);
   }
-  
+
   .document-card.selected {
     background: linear-gradient(135deg, rgba(64, 158, 255, 0.12) 0%, rgba(64, 158, 255, 0.05) 100%);
   }
 }
-
 </style>

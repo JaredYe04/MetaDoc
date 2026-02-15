@@ -88,4 +88,3 @@ const newURI = await operations.rename(oldURI, 'newName')
 - 操作进度条显示
 - 批量操作取消功能
 - 更细粒度的错误处理和回滚
-

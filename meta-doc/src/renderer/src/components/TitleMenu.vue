@@ -1,20 +1,20 @@
 <template>
   <div class="aero-div" :style="menuStyles" @mousedown.prevent="onMouseDown">
-
-    <div style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px;">
+    <div style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px">
       <el-button
-        circle plain
+        circle
+        plain
         size="small"
         type="danger"
         @click="$emit('close')"
         class="aero-btn"
-        style="float: inline-start;"
+        style="float: inline-start"
         @mousedown.prevent
       >
       </el-button>
     </div>
 
-    <p style="font-weight: bold;" @mousedown.stop>
+    <p style="font-weight: bold" @mousedown.stop>
       {{ props.title ? props.title : t('titleMenu.defaultTitle') }}
     </p>
 
@@ -38,18 +38,24 @@
       clearable
       class="inline-input"
       resize="none"
-      style="color: black; opacity: 1;"
+      style="color: black; opacity: 1"
       :placeholder="t('titleMenu.inputPlaceholder')"
       @mousedown.stop
     />
 
-    <div @mousedown.stop style="align-items: center; margin-top: 20px;">
+    <div @mousedown.stop style="align-items: center; margin-top: 20px">
       <el-slider
         v-model="context_mode"
         :step="1"
         :min="0"
         :max="2"
-        style="width: 60%; display: inline-block; align-self: center; margin-left: 20%; margin-right: 20%;"
+        style="
+          width: 60%;
+          display: inline-block;
+          align-self: center;
+          margin-left: 20%;
+          margin-right: 20%;
+        "
         show-stops
         :marks="{
           0: t('titleMenu.contextMarks.none'),
@@ -96,36 +102,35 @@
         </el-button>
       </el-tooltip>
     </div>
-
   </div>
 </template>
 
 <script setup>
 import { ElButton, ElDialog } from 'element-plus' // 引入 Element Plus 按钮和弹框组件
-import MarkdownItEditor from 'vue3-markdown-it';
-import { computed, onMounted, ref, watch } from 'vue';
-import { sectionChangePrompt } from '../utils/prompts';
+import MarkdownItEditor from 'vue3-markdown-it'
+import { computed, onMounted, ref, watch } from 'vue'
+import { sectionChangePrompt } from '../utils/prompts'
 
-import eventBus from '../utils/event-bus';
-import { generateMarkdownFromOutlineTree } from '../utils/md-utils';
-import { themeState } from '../utils/themes';
-import { Plus } from '@element-plus/icons-vue';
+import eventBus from '../utils/event-bus'
+import { generateMarkdownFromOutlineTree } from '../utils/md-utils'
+import { themeState } from '../utils/themes'
+import { Plus } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
-import { ai_types, createAiTask } from '../utils/ai_tasks';
-import { getSetting } from '../utils/settings';
-import { useWorkspace } from '../stores/workspace';
-import { useActiveDocument } from '../composables/useActiveDocument';
-import { searchNode } from '../utils/outline-helpers';
-import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document';
+import { ai_types, createAiTask } from '../utils/ai_tasks'
+import { getSetting } from '../utils/settings'
+import { useWorkspace } from '../stores/workspace'
+import { useActiveDocument } from '../composables/useActiveDocument'
+import { searchNode } from '../utils/outline-helpers'
+import { DEFAULT_AI_CHAT_MESSAGES } from '../constants/document'
 
 const { t } = useI18n()
 
-const workspace = useWorkspace();
-const { activeTabId, updateDocumentAiDialogs } = workspace;
-const { activeDocument } = useActiveDocument();
+const workspace = useWorkspace()
+const { activeTabId, updateDocumentAiDialogs } = workspace
+const { activeDocument } = useActiveDocument()
 
-const currentOutline = computed(() => props.tree ?? activeDocument.value?.outline ?? null);
-const currentMarkdown = computed(() => activeDocument.value?.markdown ?? '');
+const currentOutline = computed(() => props.tree ?? activeDocument.value?.outline ?? null)
+const currentMarkdown = computed(() => activeDocument.value?.markdown ?? '')
 
 function formatTooltip(val) {
   if (val === 0) {
@@ -145,7 +150,7 @@ const props = defineProps({
   },
   position: {
     type: Object,
-    required: true,
+    required: true
   },
   path: {
     type: String,
@@ -156,7 +161,7 @@ const props = defineProps({
     required: true
   }
 })
-const context_mode = ref(1);
+const context_mode = ref(1)
 const presetPrompts = ref([
   {
     value: '扩写这段文字',
@@ -186,44 +191,43 @@ const presetPrompts = ref([
   }
 ])
 
-const emit = defineEmits(["accept"]);
+const emit = defineEmits(['accept'])
 
 const pushDialogToDocument = (dialog) => {
-  const doc = activeDocument.value;
-  const tabId = activeTabId.value;
-  if (!doc || !tabId) return;
-  const existing = Array.isArray(doc.aiDialogs) ? doc.aiDialogs : [];
-  const nextDialogs = [dialog, ...existing];
-  updateDocumentAiDialogs(tabId, nextDialogs);
-};
+  const doc = activeDocument.value
+  const tabId = activeTabId.value
+  if (!doc || !tabId) return
+  const existing = Array.isArray(doc.aiDialogs) ? doc.aiDialogs : []
+  const nextDialogs = [dialog, ...existing]
+  updateDocumentAiDialogs(tabId, nextDialogs)
+}
 
-const accept = (append=false) => {
+const accept = (append = false) => {
   //searchNode(props.path, current_outline_tree.value).text=generatedText.value;
   // latest_view.value='outline';
   // sync();
   //如果最后一位不是换行符，加上换行符
   if (generatedText.value[generatedText.value.length - 1] !== '\n') {
-    generatedText.value += '\n';
+    generatedText.value += '\n'
   }
 
   //如果第一行是标题，去掉标题
   if (generatedText.value.startsWith('#')) {
-    generatedText.value = generatedText.value.split('\n').slice(1).join('\n');
+    generatedText.value = generatedText.value.split('\n').slice(1).join('\n')
   }
-  articleContent.value = generatedText.value;
-  emit('accept',{
+  articleContent.value = generatedText.value
+  emit('accept', {
     append: append,
-    content: generatedText.value,
-  });
-  reset();
-
+    content: generatedText.value
+  })
+  reset()
 }
 
 const generate = async () => {
-  const outlineNode = currentOutline.value;
-  if (!outlineNode) return;
-  generating.value = true;
-  const outlineMarkdown = generateMarkdownFromOutlineTree(outlineNode);
+  const outlineNode = currentOutline.value
+  if (!outlineNode) return
+  generating.value = true
+  const outlineMarkdown = generateMarkdownFromOutlineTree(outlineNode)
 
   const prompt = sectionChangePrompt(
     outlineMarkdown,
@@ -231,38 +235,40 @@ const generate = async () => {
     props.title,
     userPrompt.value,
     context_mode.value,
-    currentMarkdown.value,
-  );
-  const messages = [{
-    role: 'user',
-    content: prompt,
-  }]
-  const { done } = createAiTask(props.title, messages, generatedText, ai_types.chat, 'title-menu');
-  generating.value = true;
-  generated.value = false;
+    currentMarkdown.value
+  )
+  const messages = [
+    {
+      role: 'user',
+      content: prompt
+    }
+  ]
+  const { done } = createAiTask(props.title, messages, generatedText, ai_types.chat, 'title-menu')
+  generating.value = true
+  generated.value = false
 
   try {
-    await done;
+    await done
   } catch (err) {
     //console.warn('任务失败或取消：', err);
   } finally {
-    generated.value = true;
-    generating.value = false;
+    generated.value = true
+    generating.value = false
   }
 }
 const chat = async () => {
-  const outlineNode = currentOutline.value;
-  if (!outlineNode) return;
-  const outlineMarkdown = generateMarkdownFromOutlineTree(outlineNode);
+  const outlineNode = currentOutline.value
+  if (!outlineNode) return
+  const outlineMarkdown = generateMarkdownFromOutlineTree(outlineNode)
   const prompt = sectionChangePrompt(
     outlineMarkdown,
     articleContent.value,
     props.title,
     userPrompt.value,
     context_mode.value,
-    currentMarkdown.value,
-  );
-  const messages = JSON.parse(JSON.stringify(DEFAULT_AI_CHAT_MESSAGES));
+    currentMarkdown.value
+  )
+  const messages = JSON.parse(JSON.stringify(DEFAULT_AI_CHAT_MESSAGES))
   messages.push({
     role: 'user',
     content: prompt
@@ -273,10 +279,10 @@ const chat = async () => {
   })
   const newDialog = {
     title: props.title,
-    messages,
-  };
-  pushDialogToDocument(newDialog);
-  eventBus.emit('ai-chat');//触发开始长对话事件
+    messages
+  }
+  pushDialogToDocument(newDialog)
+  eventBus.emit('ai-chat') //触发开始长对话事件
 }
 
 const querySearch = (queryString, cb) => {
@@ -294,15 +300,15 @@ const querySearch = (queryString, cb) => {
   cb(results)
 }
 const reset = () => {
-  generated.value = false;
-  generatedText.value = '';
+  generated.value = false
+  generatedText.value = ''
 }
-const generating = ref(false);
-const userPrompt = ref('');
-const generatedText = ref('');
-const generated = ref(false);
+const generating = ref(false)
+const userPrompt = ref('')
+const generatedText = ref('')
+const generated = ref(false)
 // 定义计算属性 menuStyles
-const articleContent = ref(''); // 定义 articleContent 变量
+const articleContent = ref('') // 定义 articleContent 变量
 const menuStyles = computed(() => ({
   position: 'absolute',
   top: `${menuPosition.value.top}px`,
@@ -315,59 +321,61 @@ const menuStyles = computed(() => ({
   zIndex: 1000, // 保证层级
   color: themeState.currentTheme.textColor2,
   backdropFilter: 'blur(5px)',
-  background: themeState.currentTheme.titleMenuBackground,
-}));
+  background: themeState.currentTheme.titleMenuBackground
+}))
 const refreshContent = () => {
-  const outlineNode = currentOutline.value;
+  const outlineNode = currentOutline.value
   if (!outlineNode) {
-    articleContent.value = '';
-    return;
+    articleContent.value = ''
+    return
   }
-  const node = searchNode(props.path, outlineNode);
-  articleContent.value = node?.text ?? '';
+  const node = searchNode(props.path, outlineNode)
+  articleContent.value = node?.text ?? ''
 }
 
-const menuPosition = ref({ top: props.position.top, left: props.position.left });
-const isDragging = ref(false);
-const dragStart = ref({ x: 0, y: 0 });
+const menuPosition = ref({ top: props.position.top, left: props.position.left })
+const isDragging = ref(false)
+const dragStart = ref({ x: 0, y: 0 })
 const onMouseDown = (event) => {
-  isDragging.value = true;
+  isDragging.value = true
   dragStart.value = {
     x: event.clientX - menuPosition.value.left,
-    y: event.clientY - menuPosition.value.top,
-  };
-  document.addEventListener("mousemove", onMouseMove);
-  document.addEventListener("mouseup", onMouseUp);
-};
+    y: event.clientY - menuPosition.value.top
+  }
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+}
 
 const onMouseMove = (event) => {
-  if (!isDragging.value) return;
+  if (!isDragging.value) return
   menuPosition.value = {
     top: event.clientY - dragStart.value.y,
-    left: event.clientX - dragStart.value.x,
-  };
-};
+    left: event.clientX - dragStart.value.x
+  }
+}
 
 const onMouseUp = () => {
-  isDragging.value = false;
-  document.removeEventListener("mousemove", onMouseMove);
-  document.removeEventListener("mouseup", onMouseUp);
-};
+  isDragging.value = false
+  document.removeEventListener('mousemove', onMouseMove)
+  document.removeEventListener('mouseup', onMouseUp)
+}
 onMounted(() => {
-  refreshContent();
+  refreshContent()
 })
-watch(() => props.path, (newVal, oldVal) => {
-  refreshContent();
-})
+watch(
+  () => props.path,
+  (newVal, oldVal) => {
+    refreshContent()
+  }
+)
 
 watch(
   currentOutline,
   () => {
-    refreshContent();
+    refreshContent()
   },
-  { deep: true },
-);
-
+  { deep: true }
+)
 </script>
 
 <style>
@@ -379,7 +387,6 @@ watch(
   backdrop-filter: blur(20px) brightness(1.05);
   /*圆角边框 */
   border-radius: 10px;
-
 }
 
 .aero-div:hover {

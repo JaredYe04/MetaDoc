@@ -26,7 +26,7 @@ export function loadCustomDictionary(): Set<string> {
       const content = fs.readFileSync(dictPath, 'utf-8')
       const words = JSON.parse(content) as string[]
       logger.info('[loadCustomDictionary] 加载自定义词典，包含', words.length, '个单词')
-      return new Set(words.map(w => w.toLowerCase()))
+      return new Set(words.map((w) => w.toLowerCase()))
     }
   } catch (error) {
     logger.warn('[loadCustomDictionary] 加载自定义词典失败:', error)
@@ -41,16 +41,16 @@ export function addWordToDictionary(word: string): void {
   try {
     const dictPath = getDictionaryPath()
     const words = loadCustomDictionary()
-    
+
     // 添加新单词（转换为小写）
     const wordLower = word.toLowerCase().trim()
     if (wordLower && wordLower.length > 0) {
       words.add(wordLower)
-      
+
       // 保存到文件
       const wordsArray = Array.from(words).sort()
       fs.writeFileSync(dictPath, JSON.stringify(wordsArray, null, 2), 'utf-8')
-      
+
       logger.info('[addWordToDictionary] 已添加单词到词典:', wordLower)
     }
   } catch (error) {
@@ -66,7 +66,7 @@ export function addWordsToDictionary(words: string[]): void {
   try {
     const dictPath = getDictionaryPath()
     const existingWords = loadCustomDictionary()
-    
+
     // 添加所有新单词
     for (const word of words) {
       const wordLower = word.toLowerCase().trim()
@@ -74,11 +74,11 @@ export function addWordsToDictionary(words: string[]): void {
         existingWords.add(wordLower)
       }
     }
-    
+
     // 保存到文件
     const wordsArray = Array.from(existingWords).sort()
     fs.writeFileSync(dictPath, JSON.stringify(wordsArray, null, 2), 'utf-8')
-    
+
     logger.info('[addWordsToDictionary] 已批量添加', words.length, '个单词到词典')
   } catch (error) {
     logger.error('[addWordsToDictionary] 批量添加单词失败:', error)
@@ -93,4 +93,3 @@ export function isWordInDictionary(word: string): boolean {
   const words = loadCustomDictionary()
   return words.has(word.toLowerCase().trim())
 }
-

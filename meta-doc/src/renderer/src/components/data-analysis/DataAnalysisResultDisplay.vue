@@ -4,15 +4,21 @@
       <div class="analysis-header" :style="headerStyle">
         <div class="header-stats">
           <div class="stat-item" :style="statItemStyle">
-            <span class="stat-label" :style="statLabelStyle">{{ t('agent.display.dataAnalysis.totalRows') }}</span>
+            <span class="stat-label" :style="statLabelStyle">{{
+              t('agent.display.dataAnalysis.totalRows')
+            }}</span>
             <span class="stat-value" :style="statValueStyle">{{ result.rowCount }}</span>
           </div>
           <div class="stat-item" :style="statItemStyle">
-            <span class="stat-label" :style="statLabelStyle">{{ t('agent.display.dataAnalysis.totalColumns') }}</span>
+            <span class="stat-label" :style="statLabelStyle">{{
+              t('agent.display.dataAnalysis.totalColumns')
+            }}</span>
             <span class="stat-value" :style="statValueStyle">{{ result.columnCount }}</span>
           </div>
           <div class="stat-item" :style="statItemStyle">
-            <span class="stat-label" :style="statLabelStyle">{{ t('agent.display.dataAnalysis.fieldCount') }}</span>
+            <span class="stat-label" :style="statLabelStyle">{{
+              t('agent.display.dataAnalysis.fieldCount')
+            }}</span>
             <span class="stat-value" :style="statValueStyle">{{ result.fields.length }}</span>
           </div>
         </div>
@@ -34,11 +40,22 @@
                   <el-tag :type="getTypeTagType(field.type)" size="small">
                     {{ field.type }}
                   </el-tag>
-                  <el-tag v-if="field.nullable" type="warning" size="small">{{ t('agent.display.dataAnalysis.nullable') }}</el-tag>
-                  <span class="field-unique" :style="fieldUniqueStyle">{{ t('agent.display.dataAnalysis.uniqueValues') }}: {{ field.uniqueCount }}</span>
+                  <el-tag v-if="field.nullable" type="warning" size="small">{{
+                    t('agent.display.dataAnalysis.nullable')
+                  }}</el-tag>
+                  <span class="field-unique" :style="fieldUniqueStyle"
+                    >{{ t('agent.display.dataAnalysis.uniqueValues') }}:
+                    {{ field.uniqueCount }}</span
+                  >
                 </div>
-                <div v-if="field.sampleValues && field.sampleValues.length > 0" class="field-samples" :style="fieldSamplesStyle">
-                  <span class="samples-label" :style="samplesLabelStyle">{{ t('agent.display.dataAnalysis.sampleValues') }}:</span>
+                <div
+                  v-if="field.sampleValues && field.sampleValues.length > 0"
+                  class="field-samples"
+                  :style="fieldSamplesStyle"
+                >
+                  <span class="samples-label" :style="samplesLabelStyle"
+                    >{{ t('agent.display.dataAnalysis.sampleValues') }}:</span
+                  >
                   <div class="samples-list">
                     <el-tag
                       v-for="(value, index) in field.sampleValues"
@@ -68,7 +85,12 @@
               <template #default="{ node, data }">
                 <div class="tree-node">
                   <span class="node-label" :style="nodeLabelStyle">{{ data.label }}</span>
-                  <span v-if="data.value !== undefined" class="node-value" :style="nodeValueStyle">{{ formatValue(data.value) }}</span>
+                  <span
+                    v-if="data.value !== undefined"
+                    class="node-value"
+                    :style="nodeValueStyle"
+                    >{{ formatValue(data.value) }}</span
+                  >
                 </div>
               </template>
             </el-tree>
@@ -85,17 +107,22 @@
                 class="aggregation-item"
                 :style="aggregationItemStyle"
               >
-                <div 
-                  class="aggregation-header" 
+                <div
+                  class="aggregation-header"
                   :style="aggregationHeaderStyle"
                   @click="toggleAggregation(index)"
                 >
-                  <el-icon class="collapse-icon" :class="{ 'collapsed': !aggregationExpanded[index] }">
+                  <el-icon
+                    class="collapse-icon"
+                    :class="{ collapsed: !aggregationExpanded[index] }"
+                  >
                     <ArrowRight v-if="!aggregationExpanded[index]" />
                     <ArrowDown v-else />
                   </el-icon>
                   <el-icon><Connection /></el-icon>
-                  <span class="aggregation-title" :style="aggregationTitleStyle">{{ t('agent.display.dataAnalysis.groupBy', { field: agg.groupBy }) }}</span>
+                  <span class="aggregation-title" :style="aggregationTitleStyle">{{
+                    t('agent.display.dataAnalysis.groupBy', { field: agg.groupBy })
+                  }}</span>
                 </div>
                 <el-tree
                   v-show="aggregationExpanded[index]"
@@ -106,7 +133,12 @@
                   <template #default="{ node, data }">
                     <div class="tree-node">
                       <span class="node-label" :style="nodeLabelStyle">{{ data.label }}</span>
-                      <span v-if="data.value !== undefined" class="node-value" :style="nodeValueStyle">{{ formatValue(data.value) }}</span>
+                      <span
+                        v-if="data.value !== undefined"
+                        class="node-value"
+                        :style="nodeValueStyle"
+                        >{{ formatValue(data.value) }}</span
+                      >
                     </div>
                   </template>
                 </el-tree>
@@ -178,7 +210,7 @@ watch(
 
 const statsTreeData = computed(() => {
   if (!props.result?.descriptiveStats) return []
-  
+
   const stats = props.result.descriptiveStats
   return Object.entries(stats as Record<string, any>).map(([fieldName, stat]) => ({
     label: fieldName,
@@ -234,21 +266,22 @@ const buildAggregationTree = (agg: { groupBy: string; aggregations: Record<strin
   // 检查是否是旧格式（aggregations 的键是字段名）
   const firstKey = Object.keys(agg.aggregations)[0]
   const firstValue = agg.aggregations[firstKey]
-  
+
   // 如果第一个值有 numericFields/stringFields 等字段，说明是新格式
-  const isNewFormat = firstValue && typeof firstValue === 'object' && (
-    firstValue.numericFields !== undefined ||
-    firstValue.stringFields !== undefined ||
-    firstValue.booleanFields !== undefined ||
-    firstValue.dateFields !== undefined ||
-    firstValue.count !== undefined
-  )
-  
+  const isNewFormat =
+    firstValue &&
+    typeof firstValue === 'object' &&
+    (firstValue.numericFields !== undefined ||
+      firstValue.stringFields !== undefined ||
+      firstValue.booleanFields !== undefined ||
+      firstValue.dateFields !== undefined ||
+      firstValue.count !== undefined)
+
   if (isNewFormat) {
     // 新格式：按组显示统计信息
     return Object.entries(agg.aggregations).map(([groupKey, groupStats]: [string, any]) => {
       const children: any[] = []
-      
+
       // 添加组的基本信息（行数）
       if (groupStats.count !== undefined) {
         children.push({
@@ -256,17 +289,37 @@ const buildAggregationTree = (agg: { groupBy: string; aggregations: Record<strin
           value: groupStats.count
         })
       }
-      
+
       // 数值字段统计
       if (groupStats.numericFields) {
         Object.entries(groupStats.numericFields).forEach(([fieldName, stats]: [string, any]) => {
           const fieldChildren: any[] = []
-          if (stats.sum !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.sum', '总和'), value: stats.sum })
-          if (stats.avg !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.avg', '平均值'), value: stats.avg })
-          if (stats.count !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.count', '数量'), value: stats.count })
-          if (stats.min !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.min', '最小值'), value: stats.min })
-          if (stats.max !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.max', '最大值'), value: stats.max })
-          
+          if (stats.sum !== undefined)
+            fieldChildren.push({
+              label: t('agent.display.dataAnalysis.stats.sum', '总和'),
+              value: stats.sum
+            })
+          if (stats.avg !== undefined)
+            fieldChildren.push({
+              label: t('agent.display.dataAnalysis.stats.avg', '平均值'),
+              value: stats.avg
+            })
+          if (stats.count !== undefined)
+            fieldChildren.push({
+              label: t('agent.display.dataAnalysis.stats.count', '数量'),
+              value: stats.count
+            })
+          if (stats.min !== undefined)
+            fieldChildren.push({
+              label: t('agent.display.dataAnalysis.stats.min', '最小值'),
+              value: stats.min
+            })
+          if (stats.max !== undefined)
+            fieldChildren.push({
+              label: t('agent.display.dataAnalysis.stats.max', '最大值'),
+              value: stats.max
+            })
+
           children.push({
             label: `${fieldName} (${t('agent.display.dataAnalysis.numeric', '数值')})`,
             value: undefined,
@@ -274,18 +327,24 @@ const buildAggregationTree = (agg: { groupBy: string; aggregations: Record<strin
           })
         })
       }
-      
+
       // 字符串字段统计
       if (groupStats.stringFields) {
         Object.entries(groupStats.stringFields).forEach(([fieldName, stats]: [string, any]) => {
           const fieldChildren: any[] = []
           if (stats.uniqueCount !== undefined) {
-            fieldChildren.push({ label: t('agent.display.dataAnalysis.uniqueCount', '唯一值数量'), value: stats.uniqueCount })
+            fieldChildren.push({
+              label: t('agent.display.dataAnalysis.uniqueCount', '唯一值数量'),
+              value: stats.uniqueCount
+            })
           }
           if (stats.totalCount !== undefined) {
-            fieldChildren.push({ label: t('agent.display.dataAnalysis.totalCount', '总数量'), value: stats.totalCount })
+            fieldChildren.push({
+              label: t('agent.display.dataAnalysis.totalCount', '总数量'),
+              value: stats.totalCount
+            })
           }
-          
+
           // 显示前几个最常见的值
           if (stats.topValues && stats.topValues.length > 0) {
             const topValuesChildren = stats.topValues.map((item: any) => ({
@@ -298,7 +357,7 @@ const buildAggregationTree = (agg: { groupBy: string; aggregations: Record<strin
               children: topValuesChildren
             })
           }
-          
+
           children.push({
             label: `${fieldName} (${t('agent.display.dataAnalysis.string', '字符串')})`,
             value: undefined,
@@ -306,24 +365,24 @@ const buildAggregationTree = (agg: { groupBy: string; aggregations: Record<strin
           })
         })
       }
-      
+
       // 布尔字段统计
       if (groupStats.booleanFields) {
         Object.entries(groupStats.booleanFields).forEach(([fieldName, stats]: [string, any]) => {
           const fieldChildren: any[] = []
           if (stats.trueCount !== undefined) {
-            fieldChildren.push({ 
-              label: `True: ${stats.trueCount} (${(stats.trueRatio * 100).toFixed(2)}%)`, 
-              value: undefined 
+            fieldChildren.push({
+              label: `True: ${stats.trueCount} (${(stats.trueRatio * 100).toFixed(2)}%)`,
+              value: undefined
             })
           }
           if (stats.falseCount !== undefined) {
-            fieldChildren.push({ 
-              label: `False: ${stats.falseCount} (${(stats.falseRatio * 100).toFixed(2)}%)`, 
-              value: undefined 
+            fieldChildren.push({
+              label: `False: ${stats.falseCount} (${(stats.falseRatio * 100).toFixed(2)}%)`,
+              value: undefined
             })
           }
-          
+
           children.push({
             label: `${fieldName} (${t('agent.display.dataAnalysis.boolean', '布尔')})`,
             value: undefined,
@@ -331,16 +390,32 @@ const buildAggregationTree = (agg: { groupBy: string; aggregations: Record<strin
           })
         })
       }
-      
+
       // 日期字段统计
       if (groupStats.dateFields) {
         Object.entries(groupStats.dateFields).forEach(([fieldName, stats]: [string, any]) => {
           const fieldChildren: any[] = []
-          if (stats.min !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.min', '最小值'), value: stats.min })
-          if (stats.max !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.stats.max', '最大值'), value: stats.max })
-          if (stats.uniqueCount !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.uniqueCount', '唯一值数量'), value: stats.uniqueCount })
-          if (stats.totalCount !== undefined) fieldChildren.push({ label: t('agent.display.dataAnalysis.totalCount', '总数量'), value: stats.totalCount })
-          
+          if (stats.min !== undefined)
+            fieldChildren.push({
+              label: t('agent.display.dataAnalysis.stats.min', '最小值'),
+              value: stats.min
+            })
+          if (stats.max !== undefined)
+            fieldChildren.push({
+              label: t('agent.display.dataAnalysis.stats.max', '最大值'),
+              value: stats.max
+            })
+          if (stats.uniqueCount !== undefined)
+            fieldChildren.push({
+              label: t('agent.display.dataAnalysis.uniqueCount', '唯一值数量'),
+              value: stats.uniqueCount
+            })
+          if (stats.totalCount !== undefined)
+            fieldChildren.push({
+              label: t('agent.display.dataAnalysis.totalCount', '总数量'),
+              value: stats.totalCount
+            })
+
           children.push({
             label: `${fieldName} (${t('agent.display.dataAnalysis.date', '日期')})`,
             value: undefined,
@@ -348,7 +423,7 @@ const buildAggregationTree = (agg: { groupBy: string; aggregations: Record<strin
           })
         })
       }
-      
+
       return {
         label: `${groupKey} (${groupStats.count || 0} ${t('agent.display.dataAnalysis.rows', '行')})`,
         value: undefined,
@@ -380,9 +455,8 @@ const completedStateStyle = computed(() => ({
 }))
 
 const headerStyle = computed(() => ({
-  borderBottomColor: themeState.currentTheme.type === 'dark' 
-    ? 'rgba(255, 255, 255, 0.1)' 
-    : 'rgba(0, 0, 0, 0.08)'
+  borderBottomColor:
+    themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'
 }))
 
 const statItemStyle = computed(() => ({
@@ -399,9 +473,8 @@ const statValueStyle = computed(() => ({
 }))
 
 const fieldItemStyle = computed(() => ({
-  borderColor: themeState.currentTheme.type === 'dark' 
-    ? 'rgba(255, 255, 255, 0.1)' 
-    : 'rgba(0, 0, 0, 0.08)'
+  borderColor:
+    themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'
 }))
 
 const fieldNameStyle = computed(() => ({
@@ -414,9 +487,8 @@ const fieldUniqueStyle = computed(() => ({
 }))
 
 const fieldSamplesStyle = computed(() => ({
-  borderTopColor: themeState.currentTheme.type === 'dark' 
-    ? 'rgba(255, 255, 255, 0.1)' 
-    : 'rgba(0, 0, 0, 0.08)'
+  borderTopColor:
+    themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'
 }))
 
 const samplesLabelStyle = computed(() => ({
@@ -426,15 +498,13 @@ const samplesLabelStyle = computed(() => ({
 
 const aggregationItemStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background,
-  borderColor: themeState.currentTheme.type === 'dark' 
-    ? 'rgba(255, 255, 255, 0.1)' 
-    : 'rgba(0, 0, 0, 0.08)'
+  borderColor:
+    themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'
 }))
 
 const aggregationHeaderStyle = computed(() => ({
-  borderBottomColor: themeState.currentTheme.type === 'dark' 
-    ? 'rgba(255, 255, 255, 0.1)' 
-    : 'rgba(0, 0, 0, 0.08)'
+  borderBottomColor:
+    themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'
 }))
 
 const aggregationTitleStyle = computed(() => ({
@@ -618,4 +688,3 @@ const emptyAggregationsStyle = computed(() => ({
   font-size: 15px;
 }
 </style>
-

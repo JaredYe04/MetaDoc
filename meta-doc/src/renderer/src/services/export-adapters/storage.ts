@@ -2,16 +2,16 @@
  * 导出选项的localStorage持久化
  */
 
-import type { ExportOptions } from './types';
-import type { DocumentFormat, ExportFormat } from '../../../types';
+import type { ExportOptions } from './types'
+import type { DocumentFormat, ExportFormat } from '../../../types'
 
-const STORAGE_PREFIX = 'export-options-';
+const STORAGE_PREFIX = 'export-options-'
 
 /**
  * 获取存储键
  */
 function getStorageKey(sourceFormat: DocumentFormat, targetFormat: ExportFormat): string {
-  return `${STORAGE_PREFIX}${sourceFormat}-${targetFormat}`;
+  return `${STORAGE_PREFIX}${sourceFormat}-${targetFormat}`
 }
 
 /**
@@ -23,11 +23,11 @@ export function saveExportOptions(
   options: ExportOptions
 ): void {
   try {
-    const key = getStorageKey(sourceFormat, targetFormat);
-    const serialized = JSON.stringify(options);
-    localStorage.setItem(key, serialized);
+    const key = getStorageKey(sourceFormat, targetFormat)
+    const serialized = JSON.stringify(options)
+    localStorage.setItem(key, serialized)
   } catch (error) {
-    console.warn('Failed to save export options to localStorage:', error);
+    console.warn('Failed to save export options to localStorage:', error)
   }
 }
 
@@ -39,30 +39,27 @@ export function loadExportOptions(
   targetFormat: ExportFormat
 ): Partial<ExportOptions> | null {
   try {
-    const key = getStorageKey(sourceFormat, targetFormat);
-    const serialized = localStorage.getItem(key);
+    const key = getStorageKey(sourceFormat, targetFormat)
+    const serialized = localStorage.getItem(key)
     if (!serialized) {
-      return null;
+      return null
     }
-    return JSON.parse(serialized) as Partial<ExportOptions>;
+    return JSON.parse(serialized) as Partial<ExportOptions>
   } catch (error) {
-    console.warn('Failed to load export options from localStorage:', error);
-    return null;
+    console.warn('Failed to load export options from localStorage:', error)
+    return null
   }
 }
 
 /**
  * 清除导出选项
  */
-export function clearExportOptions(
-  sourceFormat: DocumentFormat,
-  targetFormat: ExportFormat
-): void {
+export function clearExportOptions(sourceFormat: DocumentFormat, targetFormat: ExportFormat): void {
   try {
-    const key = getStorageKey(sourceFormat, targetFormat);
-    localStorage.removeItem(key);
+    const key = getStorageKey(sourceFormat, targetFormat)
+    localStorage.removeItem(key)
   } catch (error) {
-    console.warn('Failed to clear export options from localStorage:', error);
+    console.warn('Failed to clear export options from localStorage:', error)
   }
 }
 
@@ -74,28 +71,31 @@ export function mergeExportOptions<T extends ExportOptions>(
   savedOptions: Partial<T> | null
 ): T {
   if (!savedOptions) {
-    return defaultOptions;
+    return defaultOptions
   }
-  
+
   // 深度合并对象
   const merge = (target: any, source: any): any => {
     if (typeof source !== 'object' || source === null || Array.isArray(source)) {
-      return source !== undefined ? source : target;
+      return source !== undefined ? source : target
     }
-    
-    const result = { ...target };
+
+    const result = { ...target }
     for (const key in source) {
       if (source.hasOwnProperty(key)) {
-        if (typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
-          result[key] = merge(target[key] || {}, source[key]);
+        if (
+          typeof source[key] === 'object' &&
+          source[key] !== null &&
+          !Array.isArray(source[key])
+        ) {
+          result[key] = merge(target[key] || {}, source[key])
         } else {
-          result[key] = source[key];
+          result[key] = source[key]
         }
       }
     }
-    return result;
-  };
-  
-  return merge(defaultOptions, savedOptions) as T;
-}
+    return result
+  }
 
+  return merge(defaultOptions, savedOptions) as T
+}

@@ -33,16 +33,19 @@ const outlineTreeToolCallback: ToolCallback = async (params, signal, onUpdate) =
   const tabId = params.tabId as string | undefined // 可选，指定tabId，默认使用当前活动tab
 
   try {
-    onUpdate({
-      content: {
-        stage: 'retrieving',
-        includeText
+    onUpdate(
+      {
+        content: {
+          stage: 'retrieving',
+          includeText
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 10,
-      message: i18n.global.t('agent.tool.outlineTree.progress.loading', '正在加载文档...')
-    })
+      {
+        percentage: 10,
+        message: i18n.global.t('agent.tool.outlineTree.progress.loading', '正在加载文档...')
+      }
+    )
 
     // 获取文档（支持跨窗口）
     const windowType = getWindowType()
@@ -84,17 +87,20 @@ const outlineTreeToolCallback: ToolCallback = async (params, signal, onUpdate) =
       }
     }
 
-    onUpdate({
-      content: {
-        stage: 'retrieving',
-        format: doc.format,
-        includeText
+    onUpdate(
+      {
+        content: {
+          stage: 'retrieving',
+          format: doc.format,
+          includeText
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 50,
-      message: i18n.global.t('agent.tool.outlineTree.progress.extracting', '正在提取大纲树...')
-    })
+      {
+        percentage: 50,
+        message: i18n.global.t('agent.tool.outlineTree.progress.extracting', '正在提取大纲树...')
+      }
+    )
 
     // 根据文档格式提取大纲树
     let outlineTree: DocumentOutlineNode
@@ -109,7 +115,10 @@ const outlineTreeToolCallback: ToolCallback = async (params, signal, onUpdate) =
     } else {
       return {
         status: 'failed',
-        error: i18n.global.t('agent.tool.outlineTree.error.unsupportedFormat', `不支持的文档格式: ${doc.format}`)
+        error: i18n.global.t(
+          'agent.tool.outlineTree.error.unsupportedFormat',
+          `不支持的文档格式: ${doc.format}`
+        )
       }
     }
 
@@ -118,20 +127,23 @@ const outlineTreeToolCallback: ToolCallback = async (params, signal, onUpdate) =
       outlineTree = removeTextFromOutline(outlineTree)
     }
 
-    onUpdate({
-      content: {
-        stage: 'completed',
-        outlineTree,
-        includeText,
-        format: doc.format,
-        tabId: targetTabId,
-        path: doc.path
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          outlineTree,
+          includeText,
+          format: doc.format,
+          tabId: targetTabId,
+          path: doc.path
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 100,
-      message: i18n.global.t('agent.tool.outlineTree.progress.completed', '大纲树提取完成')
-    })
+      {
+        percentage: 100,
+        message: i18n.global.t('agent.tool.outlineTree.progress.completed', '大纲树提取完成')
+      }
+    )
 
     return {
       status: 'succeeded',
@@ -170,19 +182,23 @@ const outlineTreeToolLocales: ToolLocales = {
   },
   en_us: {
     name: 'Outline Tree',
-    description: 'Get the outline tree structure of the current document, with option to include text content'
+    description:
+      'Get the outline tree structure of the current document, with option to include text content'
   },
   de_DE: {
     name: 'Gliederungsbaum',
-    description: 'Abrufen der Gliederungsstruktur des aktuellen Dokuments mit Option zum Einbeziehen von Textinhalten'
+    description:
+      'Abrufen der Gliederungsstruktur des aktuellen Dokuments mit Option zum Einbeziehen von Textinhalten'
   },
   fr_FR: {
     name: 'Arborescence',
-    description: 'Obtenir la structure de l\'arborescence du document actuel, avec option d\'inclure le contenu texte'
+    description:
+      "Obtenir la structure de l'arborescence du document actuel, avec option d'inclure le contenu texte"
   },
   ja_JP: {
     name: 'アウトライン tree',
-    description: '現在のドキュメントのアウトライン構造を取得し、テキストコンテンツを含めるオプション'
+    description:
+      '現在のドキュメントのアウトライン構造を取得し、テキストコンテンツを含めるオプション'
   },
   ko_KR: {
     name: '개요 트리',
@@ -197,7 +213,8 @@ export const outlineTreeToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'outline-tree',
-    brief: 'Get the outline tree structure of the current document. Returns hierarchical structure with titles, paths, and optional text content.',
+    brief:
+      'Get the outline tree structure of the current document. Returns hierarchical structure with titles, paths, and optional text content.',
     fullSpec: `# Outline Tree Tool
 
 ## Description
@@ -393,4 +410,3 @@ When using \`edit\` tool to insert content, you can use the following methods:
     }
   }
 }
-

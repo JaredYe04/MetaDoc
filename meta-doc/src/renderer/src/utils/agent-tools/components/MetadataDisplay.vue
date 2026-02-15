@@ -1,11 +1,23 @@
 <template>
   <div class="metadata-display" :style="containerStyle">
-    <div v-if="displayData.stage === 'loading' || displayData.stage === 'generating' || displayData.stage === 'updating'" class="status-message" :style="statusMessageStyle">
+    <div
+      v-if="
+        displayData.stage === 'loading' ||
+        displayData.stage === 'generating' ||
+        displayData.stage === 'updating'
+      "
+      class="status-message"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ getStageMessage(displayData.stage) }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed' && displayData.metadata" class="completed-state" :style="completedStateStyle">
+    <div
+      v-else-if="displayData.stage === 'completed' && displayData.metadata"
+      class="completed-state"
+      :style="completedStateStyle"
+    >
       <el-result icon="success" :title="$t('agent.display.metadata.completed')" />
       <div class="metadata-info" :style="metadataInfoStyle">
         <div class="metadata-item" v-if="displayData.metadata.title">
@@ -20,10 +32,18 @@
           <strong>{{ $t('agent.display.metadata.description') }}:</strong>
           <span>{{ displayData.metadata.description }}</span>
         </div>
-        <div class="metadata-item" v-if="displayData.metadata.keywords && displayData.metadata.keywords.length > 0">
+        <div
+          class="metadata-item"
+          v-if="displayData.metadata.keywords && displayData.metadata.keywords.length > 0"
+        >
           <strong>{{ $t('agent.display.metadata.keywords') }}:</strong>
           <div class="keywords-list">
-            <el-tag v-for="(keyword, index) in displayData.metadata.keywords" :key="index" size="small" style="margin-right: 4px;">
+            <el-tag
+              v-for="(keyword, index) in displayData.metadata.keywords"
+              :key="index"
+              size="small"
+              style="margin-right: 4px"
+            >
               {{ keyword }}
             </el-tag>
           </div>
@@ -62,7 +82,7 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
 const displayData = computed(() => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
-  
+
   if (parsed && typeof parsed === 'object') {
     // 根据status确定stage，优先使用数据中的stage，如果没有则根据status推断
     const getStage = (): 'loading' | 'generating' | 'completed' | 'error' => {
@@ -78,15 +98,16 @@ const displayData = computed(() => {
       }
       return 'loading'
     }
-    
+
     return {
       ...parsed,
       stage: getStage()
     }
   }
-  
+
   // 如果没有数据，根据status设置默认stage
-  const defaultStage = props.status === 'succeeded' ? 'completed' : (props.status === 'failed' ? 'error' : 'loading')
+  const defaultStage =
+    props.status === 'succeeded' ? 'completed' : props.status === 'failed' ? 'error' : 'loading'
   return {
     stage: defaultStage,
     metadata: undefined,
@@ -179,4 +200,3 @@ const metadataItemStyle = computed(() => ({
   }
 }
 </style>
-

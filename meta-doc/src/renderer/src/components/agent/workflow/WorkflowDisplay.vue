@@ -17,7 +17,9 @@
             :class="{
               'node-completed': executionState.completedNodeIds.includes(node.id),
               'node-current': executionState.currentNodeId === node.id,
-              'node-pending': !executionState.completedNodeIds.includes(node.id) && executionState.currentNodeId !== node.id
+              'node-pending':
+                !executionState.completedNodeIds.includes(node.id) &&
+                executionState.currentNodeId !== node.id
             }"
           >
             <div class="node-icon">
@@ -99,7 +101,9 @@ const workflowName = computed(() => {
   if (workflowId.value) {
     const workflow = workflowManager.getWorkflow(workflowId.value)
     if (workflow) {
-      return typeof workflow.name === 'string' ? workflow.name : workflow.name['zh_cn']?.name || workflow.id
+      return typeof workflow.name === 'string'
+        ? workflow.name
+        : workflow.name['zh_cn']?.name || workflow.id
     }
   }
   return '工作流'
@@ -131,7 +135,9 @@ const error = computed(() => {
 
 const result = computed(() => {
   const data = props.data as any
-  return data?.result || executionState.value?.nodeResults.get(executionState.value?.currentNodeId || '')
+  return (
+    data?.result || executionState.value?.nodeResults.get(executionState.value?.currentNodeId || '')
+  )
 })
 
 const containerStyle = computed(() => ({
@@ -305,7 +311,8 @@ const getNodeTypeLabel = (node: any): string => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -313,4 +320,3 @@ const getNodeTypeLabel = (node: any): string => {
   }
 }
 </style>
-

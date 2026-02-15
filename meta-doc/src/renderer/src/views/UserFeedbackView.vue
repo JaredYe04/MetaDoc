@@ -52,7 +52,12 @@
               :file-list="fileList"
               accept="*/*"
             >
-              <el-button type="primary" plain :disabled="submitting || attachmentBase64List.length >= MAX_ATTACHMENTS">{{ $t('userFeedback.addAttachment') }}</el-button>
+              <el-button
+                type="primary"
+                plain
+                :disabled="submitting || attachmentBase64List.length >= MAX_ATTACHMENTS"
+                >{{ $t('userFeedback.addAttachment') }}</el-button
+              >
             </el-upload>
             <div v-if="attachmentBase64List.length > 0" class="attachment-list">
               <div
@@ -69,8 +74,15 @@
                   :alt="att.filename"
                 />
                 <span v-else class="attachment-name">{{ att.filename }}</span>
-                <el-icon v-if="uploadedAttachmentIndices.includes(index)" class="attachment-uploaded-check" title="已上传到 Gist"><Check /></el-icon>
-                <el-icon v-if="isImageMime(att.mime)" class="attachment-preview-hint"><View /></el-icon>
+                <el-icon
+                  v-if="uploadedAttachmentIndices.includes(index)"
+                  class="attachment-uploaded-check"
+                  title="已上传到 Gist"
+                  ><Check
+                /></el-icon>
+                <el-icon v-if="isImageMime(att.mime)" class="attachment-preview-hint"
+                  ><View
+                /></el-icon>
                 <el-icon
                   v-show="!submitting"
                   class="attachment-remove"
@@ -91,7 +103,9 @@
           <div class="footer-hint">{{ $t('userFeedback.footerHint') }}</div>
           <div class="footer-contact">
             {{ $t('userFeedback.emailHint') }}
-            <span class="footer-copy" @click="copyToClipboard('1010268129@outlook.com')">1010268129@outlook.com</span>
+            <span class="footer-copy" @click="copyToClipboard('1010268129@outlook.com')"
+              >1010268129@outlook.com</span
+            >
           </div>
           <div class="footer-contact">
             {{ $t('userFeedback.qqGroupHint') }}
@@ -102,20 +116,12 @@
     </div>
 
     <div class="feedback-submit-bar">
-      <el-button
-        type="primary"
-        :loading="submitting"
-        :disabled="!canSubmit"
-        @click="handleSubmit"
-      >
+      <el-button type="primary" :loading="submitting" :disabled="!canSubmit" @click="handleSubmit">
         {{ submitting ? $t('userFeedback.submitting') : $t('userFeedback.submit') }}
       </el-button>
     </div>
 
-    <ImagePreviewDialog
-      v-model="showImagePreview"
-      :image-url="previewImageUrl"
-    />
+    <ImagePreviewDialog v-model="showImagePreview" :image-url="previewImageUrl" />
   </div>
 </template>
 
@@ -132,8 +138,8 @@ import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import ImagePreviewDialog from '../components/common/ImagePreviewDialog.vue'
 
 // 与 Gist 能力一致：单文件 raw 可至约 10 MB，最多 5 个附件
-const SINGLE_FILE_MAX_BYTES = 10 * 1024 * 1024   // 10 MB
-const TOTAL_ATTACHMENTS_MAX_BYTES = 50 * 1024 * 1024  // 50 MB (5 × 10 MB)
+const SINGLE_FILE_MAX_BYTES = 10 * 1024 * 1024 // 10 MB
+const TOTAL_ATTACHMENTS_MAX_BYTES = 50 * 1024 * 1024 // 50 MB (5 × 10 MB)
 const MAX_ATTACHMENTS = 5
 const SINGLE_FILE_MAX_LABEL = '10 MB'
 const TOTAL_MAX_LABEL = '50 MB'
@@ -157,7 +163,9 @@ const editorContainer = ref<HTMLElement>()
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
 const submitting = ref(false)
 const fileList = ref<UploadFile[]>([])
-const attachmentBase64List = ref<Array<{ filename: string; mime: string; content_base64: string }>>([])
+const attachmentBase64List = ref<Array<{ filename: string; mime: string; content_base64: string }>>(
+  []
+)
 const attachmentsError = ref('')
 const uploadRef = ref<UploadInstance>()
 const bodyFromEditor = ref('')
@@ -173,9 +181,10 @@ const containerStyle = computed(() => ({
 
 function getSystemInfoBlock(): string {
   const os = typeof navigator !== 'undefined' ? `${navigator.platform || 'Unknown'}` : 'Unknown'
-  const cpu = typeof navigator !== 'undefined' && (navigator as any).hardwareConcurrency
-    ? `${(navigator as any).hardwareConcurrency} cores`
-    : 'Unknown'
+  const cpu =
+    typeof navigator !== 'undefined' && (navigator as any).hardwareConcurrency
+      ? `${(navigator as any).hardwareConcurrency} cores`
+      : 'Unknown'
   const ram = 'N/A'
   const gpu = 'N/A'
   const version = 'MetaDoc Version'
@@ -249,14 +258,15 @@ async function injectSystemInfoFromMain(): Promise<void> {
       return
     }
   }
-  const sysBlock = [
-    '### ' + t('userFeedback.template.systemInfo'),
-    `- OS: ${os}`,
-    `- CPU: ${cpu}`,
-    `- GPU: ${gpu}`,
-    `- RAM: ${ram}`,
-    `- MetaDoc Version: ${version}`
-  ].join('\n') + '\n\n'
+  const sysBlock =
+    [
+      '### ' + t('userFeedback.template.systemInfo'),
+      `- OS: ${os}`,
+      `- CPU: ${cpu}`,
+      `- GPU: ${gpu}`,
+      `- RAM: ${ram}`,
+      `- MetaDoc Version: ${version}`
+    ].join('\n') + '\n\n'
   const tail = [
     `### ${t('userFeedback.template.describeProblemTitle')}\n\n<!-- ${t('userFeedback.template.describeProblem')} -->\n\n`,
     `### ${t('userFeedback.template.expectedResultTitle')}\n\n<!-- ${t('userFeedback.template.expectedResult')} -->\n\n`,
@@ -287,7 +297,9 @@ function validateAttachments(): boolean {
     try {
       const bin = atob(a.content_base64)
       if (bin.length > SINGLE_FILE_MAX_BYTES) {
-        attachmentsError.value = t('userFeedback.errors.singleFileTooLarge', { max: SINGLE_FILE_MAX_LABEL })
+        attachmentsError.value = t('userFeedback.errors.singleFileTooLarge', {
+          max: SINGLE_FILE_MAX_LABEL
+        })
         return false
       }
     } catch {
@@ -337,11 +349,11 @@ async function handleFileChange(uploadFile: UploadFile) {
   if (!raw) return
   if (raw.size > SINGLE_FILE_MAX_BYTES) {
     ElMessage.warning(t('userFeedback.errors.singleFileTooLarge', { max: SINGLE_FILE_MAX_LABEL }))
-    fileList.value = fileList.value.filter(f => f.uid !== uploadFile.uid)
+    fileList.value = fileList.value.filter((f) => f.uid !== uploadFile.uid)
     return
   }
   const base64 = await readFileAsBase64(raw)
-  const existing = attachmentBase64List.value.findIndex(a => a.filename === raw.name)
+  const existing = attachmentBase64List.value.findIndex((a) => a.filename === raw.name)
   if (existing >= 0) {
     attachmentBase64List.value[existing] = {
       filename: raw.name,
@@ -377,8 +389,8 @@ function handleRemove(uploadFile: UploadFile) {
 }
 
 function removeAttachment(filename: string) {
-  fileList.value = fileList.value.filter(f => f.name !== filename)
-  attachmentBase64List.value = attachmentBase64List.value.filter(a => a.filename !== filename)
+  fileList.value = fileList.value.filter((f) => f.name !== filename)
+  attachmentBase64List.value = attachmentBase64List.value.filter((a) => a.filename !== filename)
   attachmentsError.value = ''
 }
 
@@ -402,11 +414,7 @@ async function copyToClipboard(text: string) {
 
 const canSubmit = computed(() => {
   const body = bodyFromEditor.value.trim()
-  return (
-    !!form.value.title.trim() &&
-    !!body &&
-    !attachmentsError.value
-  )
+  return !!form.value.title.trim() && !!body && !attachmentsError.value
 })
 
 async function handleSubmit() {
@@ -489,11 +497,14 @@ onMounted(async () => {
   await injectSystemInfoFromMain()
 })
 
-watch(() => themeState.currentTheme.type, (type) => {
-  if (editor) {
-    monaco.editor.setTheme(type === 'dark' ? 'vs-dark' : 'vs')
+watch(
+  () => themeState.currentTheme.type,
+  (type) => {
+    if (editor) {
+      monaco.editor.setTheme(type === 'dark' ? 'vs-dark' : 'vs')
+    }
   }
-})
+)
 
 watch(submitting, (v) => {
   if (editor) {

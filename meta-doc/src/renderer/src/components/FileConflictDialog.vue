@@ -11,12 +11,7 @@
   >
     <div class="conflict-content">
       <div class="conflict-message">
-        <el-alert
-          :title="conflictMessage"
-          type="warning"
-          :closable="false"
-          show-icon
-        />
+        <el-alert :title="conflictMessage" type="warning" :closable="false" show-icon />
       </div>
 
       <div class="diff-container">
@@ -60,7 +55,12 @@
               >
                 <div class="conflict-header">
                   <span class="conflict-label">
-                    {{ t('main.dialogs.conflictBlock', { index: conflictIndex + 1, defaultValue: `冲突 ${conflictIndex + 1}` }) }}
+                    {{
+                      t('main.dialogs.conflictBlock', {
+                        index: conflictIndex + 1,
+                        defaultValue: `冲突 ${conflictIndex + 1}`
+                      })
+                    }}
                     ({{ conflict.start + 1 }}-{{ conflict.end + 1 }})
                   </span>
                   <div class="conflict-actions">
@@ -72,7 +72,9 @@
                       {{ t('main.dialogs.useCurrentVersion', { defaultValue: '使用 MetaDoc' }) }}
                     </el-button>
                     <el-button
-                      :type="getConflictChoice(conflictIndex) === 'external' ? 'primary' : 'default'"
+                      :type="
+                        getConflictChoice(conflictIndex) === 'external' ? 'primary' : 'default'
+                      "
                       size="small"
                       @click="chooseConflictVersion(conflictIndex, 'external')"
                     >
@@ -82,11 +84,15 @@
                 </div>
                 <div class="conflict-content-split">
                   <div class="conflict-version current-version">
-                    <div class="version-label">{{ t('main.dialogs.currentVersion', '当前版本（MetaDoc）') }}</div>
+                    <div class="version-label">
+                      {{ t('main.dialogs.currentVersion', '当前版本（MetaDoc）') }}
+                    </div>
                     <pre class="conflict-text">{{ conflict.currentText }}</pre>
                   </div>
                   <div class="conflict-version external-version">
-                    <div class="version-label">{{ t('main.dialogs.externalVersion', '外部版本（磁盘）') }}</div>
+                    <div class="version-label">
+                      {{ t('main.dialogs.externalVersion', '外部版本（磁盘）') }}
+                    </div>
                     <pre class="conflict-text">{{ conflict.externalText }}</pre>
                   </div>
                 </div>
@@ -101,13 +107,18 @@
               >
                 <div class="chunk-header">
                   <span class="chunk-info">
-                    {{ chunk.oldStart }}-{{ chunk.oldEnd }} → {{ chunk.newStart }}-{{ chunk.newEnd }}
+                    {{ chunk.oldStart }}-{{ chunk.oldEnd }} → {{ chunk.newStart }}-{{
+                      chunk.newEnd
+                    }}
                   </span>
                   <el-tag :type="getChunkTagType(chunk.type)" size="small">
                     {{ getTypeLabel(chunk.type) }}
                   </el-tag>
                 </div>
-                <div v-if="chunk.oldLines && chunk.oldLines.length > 0" class="diff-lines old-lines">
+                <div
+                  v-if="chunk.oldLines && chunk.oldLines.length > 0"
+                  class="diff-lines old-lines"
+                >
                   <div
                     v-for="(line, lineIndex) in chunk.oldLines"
                     :key="`old-${chunkIndex}-${lineIndex}`"
@@ -117,7 +128,10 @@
                     <span class="line-content">- {{ line }}</span>
                   </div>
                 </div>
-                <div v-if="chunk.newLines && chunk.newLines.length > 0" class="diff-lines new-lines">
+                <div
+                  v-if="chunk.newLines && chunk.newLines.length > 0"
+                  class="diff-lines new-lines"
+                >
                   <div
                     v-for="(line, lineIndex) in chunk.newLines"
                     :key="`new-${chunkIndex}-${lineIndex}`"
@@ -140,13 +154,17 @@
           <div class="split-editors">
             <div class="editor-panel old-panel">
               <div class="editor-header">
-                <span class="editor-label">{{ t('main.dialogs.currentVersion', '当前版本（MetaDoc）') }}</span>
+                <span class="editor-label">{{
+                  t('main.dialogs.currentVersion', '当前版本（MetaDoc）')
+                }}</span>
               </div>
               <div :id="oldEditorId" class="monaco-editor-container"></div>
             </div>
             <div class="editor-panel new-panel">
               <div class="editor-header">
-                <span class="editor-label">{{ t('main.dialogs.externalVersion', '外部版本（磁盘）') }}</span>
+                <span class="editor-label">{{
+                  t('main.dialogs.externalVersion', '外部版本（磁盘）')
+                }}</span>
               </div>
               <div :id="newEditorId" class="monaco-editor-container"></div>
             </div>
@@ -154,7 +172,15 @@
           <!-- 如果有冲突，在底部显示冲突列表（可折叠） -->
           <div v-if="hasConflicts && conflictRanges.length > 0" class="conflicts-panel">
             <el-collapse v-model="activeConflicts" class="conflicts-collapse">
-              <el-collapse-item name="conflicts" :title="t('main.dialogs.conflictsList', { count: conflictRanges.length, defaultValue: `冲突列表 (${conflictRanges.length})` })">
+              <el-collapse-item
+                name="conflicts"
+                :title="
+                  t('main.dialogs.conflictsList', {
+                    count: conflictRanges.length,
+                    defaultValue: `冲突列表 (${conflictRanges.length})`
+                  })
+                "
+              >
                 <el-scrollbar max-height="200px" class="conflicts-scrollbar">
                   <div class="conflicts-list">
                     <div
@@ -163,26 +189,41 @@
                       class="conflict-item"
                       :class="{ 'conflict-resolved': isConflictResolved(conflictIndex) }"
                       :style="{
-                        borderColor: isConflictResolved(conflictIndex) ? conflictColors.resolved.border : conflictColors.unresolved.border,
-                        backgroundColor: isConflictResolved(conflictIndex) ? conflictColors.resolved.background : conflictColors.unresolved.background
+                        borderColor: isConflictResolved(conflictIndex)
+                          ? conflictColors.resolved.border
+                          : conflictColors.unresolved.border,
+                        backgroundColor: isConflictResolved(conflictIndex)
+                          ? conflictColors.resolved.background
+                          : conflictColors.unresolved.background
                       }"
                     >
                       <div class="conflict-item-header">
                         <span class="conflict-item-label">
-                          {{ t('main.dialogs.conflictBlock', { index: conflictIndex + 1, defaultValue: `冲突 ${conflictIndex + 1}` }) }}
+                          {{
+                            t('main.dialogs.conflictBlock', {
+                              index: conflictIndex + 1,
+                              defaultValue: `冲突 ${conflictIndex + 1}`
+                            })
+                          }}
                           ({{ conflict.start + 1 }}-{{ conflict.end + 1 }})
                         </span>
                       </div>
                       <div class="conflict-item-actions">
                         <el-button
-                          :type="getConflictChoice(conflictIndex) === 'current' ? 'primary' : 'default'"
+                          :type="
+                            getConflictChoice(conflictIndex) === 'current' ? 'primary' : 'default'
+                          "
                           size="small"
                           @click="chooseConflictVersion(conflictIndex, 'current')"
                         >
-                          {{ t('main.dialogs.useCurrentVersion', { defaultValue: '使用 MetaDoc' }) }}
+                          {{
+                            t('main.dialogs.useCurrentVersion', { defaultValue: '使用 MetaDoc' })
+                          }}
                         </el-button>
                         <el-button
-                          :type="getConflictChoice(conflictIndex) === 'external' ? 'primary' : 'default'"
+                          :type="
+                            getConflictChoice(conflictIndex) === 'external' ? 'primary' : 'default'
+                          "
                           size="small"
                           @click="chooseConflictVersion(conflictIndex, 'external')"
                         >
@@ -266,7 +307,7 @@ const emit = defineEmits<{
   'update:visible': [value: boolean]
   'use-external': []
   'keep-current': []
-  'merge': [mergedContent: string]
+  merge: [mergedContent: string]
 }>()
 
 const viewMode = ref<'unified' | 'split'>('unified')
@@ -335,7 +376,8 @@ const getTypeLabel = (type: string) => {
 
 const conflictMessage = computed(() => {
   if (hasConflicts.value) {
-    const unresolvedCount = (props.mergeResult?.conflictRanges?.length || 0) - conflictChoices.value.size
+    const unresolvedCount =
+      (props.mergeResult?.conflictRanges?.length || 0) - conflictChoices.value.size
     if (unresolvedCount > 0) {
       return t('main.dialogs.fileConflictMessageWithConflicts', {
         fileName: props.fileName,
@@ -380,21 +422,21 @@ const generateMergedContent = (): string => {
   const externalLines = externalContentWithoutMeta.value.split('\n')
   const savedLines = props.savedContent.split('\n')
   const mergedLines: string[] = []
-  
+
   const conflicts = conflictRanges.value
   let lineIndex = 0
   const maxLines = Math.max(currentLines.length, externalLines.length, savedLines.length)
-  
+
   for (let conflictIndex = 0; conflictIndex < conflicts.length; conflictIndex++) {
     const conflict = conflicts[conflictIndex]
     const choice = conflictChoices.value.get(conflictIndex)
-    
+
     // 添加冲突前的行（自动合并非冲突部分）
     while (lineIndex < conflict.start && lineIndex < maxLines) {
       const savedLine = lineIndex < savedLines.length ? savedLines[lineIndex] : ''
       const currentLine = lineIndex < currentLines.length ? currentLines[lineIndex] : ''
       const externalLine = lineIndex < externalLines.length ? externalLines[lineIndex] : ''
-      
+
       // 决定使用哪一行的内容（优先使用有改动的版本）
       if (currentLine !== savedLine) {
         mergedLines.push(currentLine)
@@ -405,7 +447,7 @@ const generateMergedContent = (): string => {
       }
       lineIndex++
     }
-    
+
     // 处理冲突区域（根据用户选择）
     if (choice === 'current') {
       // 使用 MetaDoc 版本
@@ -423,16 +465,16 @@ const generateMergedContent = (): string => {
         mergedLines.push(currentLines[i])
       }
     }
-    
+
     lineIndex = conflict.end + 1
   }
-  
+
   // 添加剩余的行（自动合并非冲突部分）
   while (lineIndex < maxLines) {
     const savedLine = lineIndex < savedLines.length ? savedLines[lineIndex] : ''
     const currentLine = lineIndex < currentLines.length ? currentLines[lineIndex] : ''
     const externalLine = lineIndex < externalLines.length ? externalLines[lineIndex] : ''
-    
+
     if (currentLine !== savedLine) {
       mergedLines.push(currentLine)
     } else if (externalLine !== savedLine) {
@@ -442,7 +484,7 @@ const generateMergedContent = (): string => {
     }
     lineIndex++
   }
-  
+
   return mergedLines.join('\n')
 }
 
@@ -455,9 +497,13 @@ const handleMerge = () => {
 }
 
 // 监听冲突变化，重置选择
-watch(() => props.mergeResult, () => {
-  conflictChoices.value.clear()
-}, { deep: true })
+watch(
+  () => props.mergeResult,
+  () => {
+    conflictChoices.value.clear()
+  },
+  { deep: true }
+)
 
 // 计算基于主题的冲突颜色
 const conflictColors = computed(() => {
@@ -491,12 +537,12 @@ const conflictColors = computed(() => {
 // 初始化 Monaco 编辑器（分列视图）
 const initMonacoEditors = async () => {
   if (viewMode.value !== 'split') return
-  
+
   await nextTick()
-  
+
   const oldContainer = document.getElementById(oldEditorId.value)
   const newContainer = document.getElementById(newEditorId.value)
-  
+
   if (!oldContainer || !newContainer) {
     console.warn('Monaco编辑器容器未找到')
     return
@@ -513,9 +559,9 @@ const initMonacoEditors = async () => {
 
   // 清理已存在的编辑器
   const editors = monaco.editor.getEditors()
-  const oldEditor = editors.find(e => e.getId?.() === oldEditorId.value)
-  const newEditor = editors.find(e => e.getId?.() === newEditorId.value)
-  
+  const oldEditor = editors.find((e) => e.getId?.() === oldEditorId.value)
+  const newEditor = editors.find((e) => e.getId?.() === newEditorId.value)
+
   if (oldEditor) oldEditor.dispose()
   if (newEditor) newEditor.dispose()
 
@@ -531,7 +577,7 @@ const initMonacoEditors = async () => {
     wordWrap: 'on',
     automaticLayout: true,
     fontSize: 13,
-    fontFamily: 'JetBrains Mono, Consolas, monospace',
+    fontFamily: 'JetBrains Mono, Consolas, monospace'
   })
 
   const newMonacoEditor = monaco.editor.create(newContainer, {
@@ -545,7 +591,7 @@ const initMonacoEditors = async () => {
     wordWrap: 'on',
     automaticLayout: true,
     fontSize: 13,
-    fontFamily: 'JetBrains Mono, Consolas, monospace',
+    fontFamily: 'JetBrains Mono, Consolas, monospace'
   })
 
   // 同步滚动
@@ -675,9 +721,9 @@ const initMonacoEditors = async () => {
 
 const disposeMonacoEditors = () => {
   const editors = monaco.editor.getEditors()
-  const oldEditor = editors.find(e => e.getId?.() === oldEditorId.value)
-  const newEditor = editors.find(e => e.getId?.() === newEditorId.value)
-  
+  const oldEditor = editors.find((e) => e.getId?.() === oldEditorId.value)
+  const newEditor = editors.find((e) => e.getId?.() === newEditorId.value)
+
   if (oldEditor) oldEditor.dispose()
   if (newEditor) newEditor.dispose()
 }
@@ -701,12 +747,15 @@ watch(viewMode, async (newMode) => {
   }
 })
 
-watch(() => props.visible, async (newVisible) => {
-  if (newVisible && viewMode.value === 'split') {
-    await nextTick()
-    initMonacoEditors()
+watch(
+  () => props.visible,
+  async (newVisible) => {
+    if (newVisible && viewMode.value === 'split') {
+      await nextTick()
+      initMonacoEditors()
+    }
   }
-})
+)
 
 watch([currentContentWithoutMeta, externalContentWithoutMeta], async () => {
   if (props.visible && viewMode.value === 'split') {
@@ -716,50 +765,61 @@ watch([currentContentWithoutMeta, externalContentWithoutMeta], async () => {
 })
 
 // 监听冲突选择变化，更新编辑器装饰
-watch([conflictChoices, conflictRanges], async () => {
-  if (props.visible && viewMode.value === 'split') {
-    await nextTick()
-    // 重新初始化编辑器以更新装饰
-    const editors = monaco.editor.getEditors()
-    const oldEditor = editors.find(e => e.getId?.() === oldEditorId.value)
-    const newEditor = editors.find(e => e.getId?.() === newEditorId.value)
-    
-    if (oldEditor && newEditor) {
-      // 重新应用装饰
-      initMonacoEditors()
+watch(
+  [conflictChoices, conflictRanges],
+  async () => {
+    if (props.visible && viewMode.value === 'split') {
+      await nextTick()
+      // 重新初始化编辑器以更新装饰
+      const editors = monaco.editor.getEditors()
+      const oldEditor = editors.find((e) => e.getId?.() === oldEditorId.value)
+      const newEditor = editors.find((e) => e.getId?.() === newEditorId.value)
+
+      if (oldEditor && newEditor) {
+        // 重新应用装饰
+        initMonacoEditors()
+      }
+    }
+  },
+  { deep: true }
+)
+
+watch(
+  () => themeState.currentTheme.type,
+  async () => {
+    if (props.visible && viewMode.value === 'split') {
+      const editors = monaco.editor.getEditors()
+      const oldEditor = editors.find((e) => e.getId?.() === oldEditorId.value)
+      const newEditor = editors.find((e) => e.getId?.() === newEditorId.value)
+
+      const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
+      if (oldEditor) monaco.editor.setTheme(theme)
+      if (newEditor) monaco.editor.setTheme(theme)
+
+      // 更新 CSS 变量
+      const root = document.documentElement
+      root.style.setProperty('--conflict-delete-bg', conflictColors.value.delete.background)
+      root.style.setProperty('--conflict-insert-bg', conflictColors.value.insert.background)
+      root.style.setProperty('--conflict-unresolved-bg', conflictColors.value.unresolved.background)
+      root.style.setProperty('--conflict-unresolved-border', conflictColors.value.unresolved.border)
     }
   }
-}, { deep: true })
-
-watch(() => themeState.currentTheme.type, async () => {
-  if (props.visible && viewMode.value === 'split') {
-    const editors = monaco.editor.getEditors()
-    const oldEditor = editors.find(e => e.getId?.() === oldEditorId.value)
-    const newEditor = editors.find(e => e.getId?.() === newEditorId.value)
-    
-    const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
-    if (oldEditor) monaco.editor.setTheme(theme)
-    if (newEditor) monaco.editor.setTheme(theme)
-    
-    // 更新 CSS 变量
-    const root = document.documentElement
-    root.style.setProperty('--conflict-delete-bg', conflictColors.value.delete.background)
-    root.style.setProperty('--conflict-insert-bg', conflictColors.value.insert.background)
-    root.style.setProperty('--conflict-unresolved-bg', conflictColors.value.unresolved.background)
-    root.style.setProperty('--conflict-unresolved-border', conflictColors.value.unresolved.border)
-  }
-})
+)
 
 // 监听冲突颜色变化，更新 CSS 变量
-watch(conflictColors, () => {
-  if (props.visible && viewMode.value === 'split') {
-    const root = document.documentElement
-    root.style.setProperty('--conflict-delete-bg', conflictColors.value.delete.background)
-    root.style.setProperty('--conflict-insert-bg', conflictColors.value.insert.background)
-    root.style.setProperty('--conflict-unresolved-bg', conflictColors.value.unresolved.background)
-    root.style.setProperty('--conflict-unresolved-border', conflictColors.value.unresolved.border)
-  }
-}, { deep: true })
+watch(
+  conflictColors,
+  () => {
+    if (props.visible && viewMode.value === 'split') {
+      const root = document.documentElement
+      root.style.setProperty('--conflict-delete-bg', conflictColors.value.delete.background)
+      root.style.setProperty('--conflict-insert-bg', conflictColors.value.insert.background)
+      root.style.setProperty('--conflict-unresolved-bg', conflictColors.value.unresolved.background)
+      root.style.setProperty('--conflict-unresolved-border', conflictColors.value.unresolved.border)
+    }
+  },
+  { deep: true }
+)
 
 onMounted(async () => {
   if (props.visible && viewMode.value === 'split') {
@@ -1124,4 +1184,3 @@ onBeforeUnmount(() => {
   background-color: var(--conflict-unresolved-border, rgba(245, 108, 108, 0.8)) !important;
 }
 </style>
-

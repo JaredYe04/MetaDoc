@@ -31,7 +31,7 @@
           />
         </div>
       </div>
-      
+
       <!-- 延迟控制区域 -->
       <div v-if="settings.autoCompletion" class="delay-control">
         <div class="delay-info">
@@ -52,12 +52,7 @@
           >
             {{ t('aiTaskQueue.cancelDelay') }}
           </el-button>
-          <el-button
-            size="small"
-            type="primary"
-            @click="delayCompletion(5)"
-            class="delay-button"
-          >
+          <el-button size="small" type="primary" @click="delayCompletion(5)" class="delay-button">
             {{ t('aiTaskQueue.delayButton', { minutes: 5 }) }}
           </el-button>
         </div>
@@ -165,7 +160,7 @@ function startDelayCheck() {
 }
 
 // 类型断言以解决类型问题
-type TaskType = typeof tasks.value[0]
+type TaskType = (typeof tasks.value)[0]
 
 // 面板尺寸限制
 const maxWidth = computed(() => Math.floor(window.innerWidth * 0.3))
@@ -206,29 +201,29 @@ function closePanel() {
 
 // 处理点击外部区域关闭面板
 function handleClickOutside(event: MouseEvent) {
-  if (!visible.value) return;
-  
-  const target = event.target as HTMLElement;
-  
+  if (!visible.value) return
+
+  const target = event.target as HTMLElement
+
   // 获取面板DOM元素
-  const panelElement = panelRef.value?.$el as HTMLElement | undefined;
-  
+  const panelElement = panelRef.value?.$el as HTMLElement | undefined
+
   // 如果点击的是面板内部，不关闭
   if (panelElement && panelElement.contains(target)) {
-    return;
+    return
   }
-  
+
   // 如果点击的是BottomMenu中的按钮，不关闭（让toggle处理）
-  const bottomMenu = target.closest('.bottom-menu');
+  const bottomMenu = target.closest('.bottom-menu')
   if (bottomMenu) {
-    const isToggleButton = target.closest('.status-logger, .status-notification, .ai-task-menu');
+    const isToggleButton = target.closest('.status-logger, .status-notification, .ai-task-menu')
     if (isToggleButton) {
-      return; // 让toggle事件处理
+      return // 让toggle事件处理
     }
   }
-  
+
   // 点击外部区域，关闭面板
-  closePanel();
+  closePanel()
 }
 
 // 监听visible变化，添加/移除点击外部区域监听器
@@ -236,12 +231,12 @@ watch(visible, (isVisible) => {
   if (isVisible) {
     // 使用nextTick确保DOM已更新
     nextTick(() => {
-      document.addEventListener('click', handleClickOutside, true);
-    });
+      document.addEventListener('click', handleClickOutside, true)
+    })
   } else {
-    document.removeEventListener('click', handleClickOutside, true);
+    document.removeEventListener('click', handleClickOutside, true)
   }
-});
+})
 
 // 组件挂载后设置事件监听
 onMounted(() => {
@@ -254,7 +249,7 @@ onMounted(() => {
     aiCompletionService.cancelDelay()
     updateRemainingDelay()
   })
-  
+
   // 开始检查延迟时间
   startDelayCheck()
 })
@@ -264,8 +259,8 @@ onBeforeUnmount(() => {
   eventBus.off('close-ai-task-queue', closePanel)
   eventBus.off('ai-completion-delay-updated')
   eventBus.off('ai-completion-cancel-delay')
-  document.removeEventListener('click', handleClickOutside, true);
-  
+  document.removeEventListener('click', handleClickOutside, true)
+
   if (delayCheckInterval) {
     clearInterval(delayCheckInterval)
     delayCheckInterval = null

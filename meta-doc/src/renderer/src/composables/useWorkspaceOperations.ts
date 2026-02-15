@@ -63,9 +63,7 @@ export function useWorkspaceOperations(ipcRenderer: any) {
    * 全选
    */
   const selectAll = (allNodes: Array<{ uri: URI; isWorkspaceRoot?: boolean }>) => {
-    const uris = allNodes
-      .filter(node => !node.isWorkspaceRoot)
-      .map(node => node.uri)
+    const uris = allNodes.filter((node) => !node.isWorkspaceRoot).map((node) => node.uri)
     updateSelection(uris)
     if (uris.length > 0) {
       lastSelectedIndex.value = allNodes.length - 1
@@ -81,7 +79,9 @@ export function useWorkspaceOperations(ipcRenderer: any) {
       return
     }
     clipboard.setCopy(sources)
-    eventBus.emit('show-success', { message: t('workspaceExplorer.copySuccess', { count: sources.length }) })
+    eventBus.emit('show-success', {
+      message: t('workspaceExplorer.copySuccess', { count: sources.length })
+    })
   }
 
   /**
@@ -93,7 +93,9 @@ export function useWorkspaceOperations(ipcRenderer: any) {
       return
     }
     clipboard.setCut(sources)
-    eventBus.emit('show-success', { message: t('workspaceExplorer.cutSuccess', { count: sources.length }) })
+    eventBus.emit('show-success', {
+      message: t('workspaceExplorer.cutSuccess', { count: sources.length })
+    })
   }
 
   /**
@@ -129,14 +131,18 @@ export function useWorkspaceOperations(ipcRenderer: any) {
       // 选中新创建的文件
       if (result.createdURIs && result.createdURIs.length > 0) {
         updateSelection(result.createdURIs)
-        eventBus.emit('show-success', { message: t('workspaceExplorer.pasteSuccess', { count: result.createdURIs.length }) })
+        eventBus.emit('show-success', {
+          message: t('workspaceExplorer.pasteSuccess', { count: result.createdURIs.length })
+        })
         return result.createdURIs
       }
 
       return []
     } catch (error) {
       logger.error('粘贴失败:', error)
-      eventBus.emit('show-error', { message: error instanceof Error ? error.message : String(error) })
+      eventBus.emit('show-error', {
+        message: error instanceof Error ? error.message : String(error)
+      })
       return []
     }
   }
@@ -144,10 +150,7 @@ export function useWorkspaceOperations(ipcRenderer: any) {
   /**
    * 删除
    */
-  const deleteItems = async (
-    uris?: URI[],
-    onConfirm?: () => void
-  ): Promise<boolean> => {
+  const deleteItems = async (uris?: URI[], onConfirm?: () => void): Promise<boolean> => {
     const targets = uris || selection.value.uris
     if (targets.length === 0) {
       return false
@@ -178,7 +181,9 @@ export function useWorkspaceOperations(ipcRenderer: any) {
       return true
     } catch (error) {
       logger.error('删除失败:', error)
-      eventBus.emit('show-error', { message: error instanceof Error ? error.message : String(error) })
+      eventBus.emit('show-error', {
+        message: error instanceof Error ? error.message : String(error)
+      })
       return false
     }
   }
@@ -186,10 +191,7 @@ export function useWorkspaceOperations(ipcRenderer: any) {
   /**
    * 重命名
    */
-  const rename = async (
-    uri: URI,
-    newName: string
-  ): Promise<URI | null> => {
+  const rename = async (uri: URI, newName: string): Promise<URI | null> => {
     try {
       const plan = await planner.createRenamePlan(uri, newName)
       const result = await executor.execute(plan)
@@ -211,7 +213,9 @@ export function useWorkspaceOperations(ipcRenderer: any) {
       return null
     } catch (error) {
       logger.error('重命名失败:', error)
-      eventBus.emit('show-error', { message: error instanceof Error ? error.message : String(error) })
+      eventBus.emit('show-error', {
+        message: error instanceof Error ? error.message : String(error)
+      })
       return null
     }
   }
@@ -246,18 +250,17 @@ export function useWorkspaceOperations(ipcRenderer: any) {
     removeSelection,
     clearSelection,
     selectAll,
-    
+
     // 操作
     copy,
     cut,
     paste,
     deleteItems,
     rename,
-    
+
     // 剪贴板
     hasClipboardContent,
     getClipboardOperationType,
     getClipboardPayload
   }
 }
-

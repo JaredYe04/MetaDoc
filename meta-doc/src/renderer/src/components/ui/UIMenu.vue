@@ -1,9 +1,5 @@
 <template>
-  <div 
-    class="ui-menu" 
-    :class="{ 'is-collapsed': collapse }"
-    :style="menuStyle"
-  >
+  <div class="ui-menu" :class="{ 'is-collapsed': collapse }" :style="menuStyle">
     <slot />
   </div>
 </template>
@@ -12,15 +8,18 @@
 import { computed, ref, provide } from 'vue'
 import { themeState } from '../../utils/themes'
 
-const props = withDefaults(defineProps<{
-  collapse?: boolean
-  backgroundColor?: string
-  textColor?: string
-}>(), {
-  collapse: true,
-  backgroundColor: '',
-  textColor: ''
-})
+const props = withDefaults(
+  defineProps<{
+    collapse?: boolean
+    backgroundColor?: string
+    textColor?: string
+  }>(),
+  {
+    collapse: true,
+    backgroundColor: '',
+    textColor: ''
+  }
+)
 
 const menuStyle = computed(() => ({
   '--menu-bg': props.backgroundColor || themeState.currentTheme.background2nd,
@@ -40,7 +39,7 @@ const hasOpenSubMenu = computed(() => openSubMenus.value.size > 0)
 // 关闭所有 click 触发的子菜单
 const closeAllClickSubMenus = () => {
   // 先调用所有关闭函数，它们会自动从 openSubMenus 中注销
-  openClickSubMenus.value.forEach(closeFn => closeFn())
+  openClickSubMenus.value.forEach((closeFn) => closeFn())
   openClickSubMenus.value.clear()
   // 注意：不需要手动清理 openSubMenus，因为 closeFn 会调用 unregisterSubMenu
 }

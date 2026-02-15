@@ -3,7 +3,11 @@
  * 负责工作流的CRUD操作、持久化和执行管理
  */
 
-import type { Workflow, SerializedEntity, WorkflowExecutionState } from '../../types/agent-framework'
+import type {
+  Workflow,
+  SerializedEntity,
+  WorkflowExecutionState
+} from '../../types/agent-framework'
 import type { LocalizedText } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
 import { agentToolManager } from '../agent-tool-manager'
@@ -65,7 +69,7 @@ class WorkflowManager {
     this.workflows.set(id, workflow)
     this.saveToStorage()
     this.getLogger().info(`工作流已创建: ${id}`)
-    
+
     // 自动注册为Tool
     if (workflow.enabled !== false) {
       try {
@@ -75,7 +79,7 @@ class WorkflowManager {
         this.getLogger().warn(`工作流 ${id} 注册为Tool失败:`, error)
       }
     }
-    
+
     return workflow
   }
 
@@ -97,7 +101,7 @@ class WorkflowManager {
    * 获取启用的工作流
    */
   getEnabledWorkflows(): Workflow[] {
-    return Array.from(this.workflows.values()).filter(w => w.enabled !== false)
+    return Array.from(this.workflows.values()).filter((w) => w.enabled !== false)
   }
 
   /**
@@ -120,7 +124,7 @@ class WorkflowManager {
     this.workflows.set(id, updated)
     this.saveToStorage()
     this.getLogger().info(`工作流已更新: ${id}`)
-    
+
     // 更新Tool注册
     try {
       const { registerWorkflowAsTool, unregisterWorkflowTool } = await import('./workflow-tool')
@@ -150,7 +154,7 @@ class WorkflowManager {
 
     // 检查是否有正在执行的实例
     const hasRunningExecution = Array.from(this.executions.values()).some(
-      exec => exec.workflowId === id && exec.status === 'running'
+      (exec) => exec.workflowId === id && exec.status === 'running'
     )
 
     if (hasRunningExecution) {
@@ -160,7 +164,7 @@ class WorkflowManager {
     this.workflows.delete(id)
     this.saveToStorage()
     this.getLogger().info(`工作流已删除: ${id}`)
-    
+
     // 注销Tool
     try {
       const { unregisterWorkflowTool } = await import('./workflow-tool')
@@ -177,10 +181,9 @@ class WorkflowManager {
     const errors: string[] = []
 
     // 检查入口节点是否存在
-    const entryNode = [
-      ...workflow.artifactNodes,
-      ...workflow.controlFlowNodes
-    ].find(n => n.id === workflow.entryNodeId)
+    const entryNode = [...workflow.artifactNodes, ...workflow.controlFlowNodes].find(
+      (n) => n.id === workflow.entryNodeId
+    )
 
     if (!entryNode) {
       errors.push(`入口节点 ${workflow.entryNodeId} 不存在`)
@@ -188,10 +191,9 @@ class WorkflowManager {
 
     // 检查出口节点是否存在
     for (const exitId of workflow.exitNodeIds) {
-      const exitNode = [
-        ...workflow.artifactNodes,
-        ...workflow.controlFlowNodes
-      ].find(n => n.id === exitId)
+      const exitNode = [...workflow.artifactNodes, ...workflow.controlFlowNodes].find(
+        (n) => n.id === exitId
+      )
 
       if (!exitNode) {
         errors.push(`出口节点 ${exitId} 不存在`)
@@ -200,8 +202,8 @@ class WorkflowManager {
 
     // 检查边的有效性
     const allNodeIds = new Set([
-      ...workflow.artifactNodes.map(n => n.id),
-      ...workflow.controlFlowNodes.map(n => n.id)
+      ...workflow.artifactNodes.map((n) => n.id),
+      ...workflow.controlFlowNodes.map((n) => n.id)
     ])
 
     for (const edge of workflow.edges) {
@@ -215,8 +217,8 @@ class WorkflowManager {
 
     // 检查节点ID唯一性
     const nodeIds = [
-      ...workflow.artifactNodes.map(n => n.id),
-      ...workflow.controlFlowNodes.map(n => n.id)
+      ...workflow.artifactNodes.map((n) => n.id),
+      ...workflow.controlFlowNodes.map((n) => n.id)
     ]
     const duplicateIds = nodeIds.filter((id, index) => nodeIds.indexOf(id) !== index)
     if (duplicateIds.length > 0) {
@@ -234,18 +236,19 @@ class WorkflowManager {
 
     for (const nodeId of allNodeIds) {
       const node =
-        workflow.artifactNodes.find(n => n.id === nodeId) ||
-        workflow.controlFlowNodes.find(n => n.id === nodeId)
+        workflow.artifactNodes.find((n) => n.id === nodeId) ||
+        workflow.controlFlowNodes.find((n) => n.id === nodeId)
       if (!node) continue
 
       const outgoing = edgeBySource.get(nodeId) || []
 
-      const isCondition =
-        'type' in node && (node as any).type === 'condition'
+      const isCondition = 'type' in node && (node as any).type === 'condition'
 
       if (isCondition) {
         if (outgoing.length !== 2) {
-          errors.push(`条件节点 ${nodeId} 必须有且仅有两个出度（true/false 分支），当前为 ${outgoing.length}`)
+          errors.push(
+            `条件节点 ${nodeId} 必须有且仅有两个出度（true/false 分支），当前为 ${outgoing.length}`
+          )
         }
       } else {
         if (outgoing.length > 1) {
@@ -411,7 +414,7 @@ class WorkflowManager {
    * 根据工作流ID获取执行状态
    */
   getExecutionsByWorkflowId(workflowId: string): WorkflowExecutionState[] {
-    return Array.from(this.executions.values()).filter(e => e.workflowId === workflowId)
+    return Array.from(this.executions.values()).filter((e) => e.workflowId === workflowId)
   }
 
   /**
@@ -466,7 +469,7 @@ class WorkflowManager {
     try {
       const { getAllBuiltinWorkflows } = await import('./builtin-workflows')
       const builtinWorkflows = getAllBuiltinWorkflows()
-      
+
       for (const workflow of builtinWorkflows) {
         // 如果工作流已存在，检查是否是内置工作流
         const existing = this.workflows.get(workflow.id)
@@ -487,10 +490,10 @@ class WorkflowManager {
           this.getLogger().info(`内置工作流已初始化: ${workflow.id}`)
         }
       }
-      
+
       // 保存到存储
       this.saveToStorage()
-      
+
       // 注册为Tool
       for (const workflow of builtinWorkflows) {
         if (workflow.enabled !== false) {
@@ -510,4 +513,3 @@ class WorkflowManager {
 
 // 导出单例
 export const workflowManager = new WorkflowManager()
-

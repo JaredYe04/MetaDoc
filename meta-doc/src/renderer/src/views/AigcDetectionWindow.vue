@@ -1,16 +1,20 @@
 <template>
   <div class="aigc-detection-window">
     <!-- 选择文档对话框 -->
-    <el-dialog 
-      v-model="selectDocumentDialogVisible" 
-      :title="t('aigc.selectDocumentTitle')" 
+    <el-dialog
+      v-model="selectDocumentDialogVisible"
+      :title="t('aigc.selectDocumentTitle')"
       width="600"
       class="select-document-dialog"
     >
       <div class="select-document-content">
         <div class="select-document-header">
           <span class="selected-count">
-            {{ selectedTabId ? t('aigc.selectedOneDocument', '已选择 1 个文档') : t('aigc.pleaseSelectDocument') }}
+            {{
+              selectedTabId
+                ? t('aigc.selectedOneDocument', '已选择 1 个文档')
+                : t('aigc.pleaseSelectDocument')
+            }}
           </span>
         </div>
         <el-scrollbar height="400px" class="document-list-scrollbar">
@@ -19,7 +23,7 @@
               v-for="tab in documentTabs"
               :key="tab.id"
               class="document-card"
-              :class="{ 'selected': selectedTabId === tab.id }"
+              :class="{ selected: selectedTabId === tab.id }"
               @click="selectedTabId = tab.id"
             >
               <div class="document-card-content">
@@ -46,12 +50,10 @@
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="selectDocumentDialogVisible = false">{{ t('common.cancel') }}</el-button>
-          <el-button 
-            type="primary" 
-            @click="confirmSelectDocument" 
-            :disabled="!selectedTabId"
-          >
+          <el-button @click="selectDocumentDialogVisible = false">{{
+            t('common.cancel')
+          }}</el-button>
+          <el-button type="primary" @click="confirmSelectDocument" :disabled="!selectedTabId">
             {{ t('common.confirm') }}
           </el-button>
         </div>
@@ -79,168 +81,185 @@
         @duplicate="handleDuplicateSession"
         @delete="handleDeleteSession"
       >
-      <!-- 右侧内容区域 -->
-      <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
-        <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
-          <p>{{ t('aigc.noSessionSelected') }}</p>
-        </div>
-        
-        <div v-else class="session-content-panel" :style="panelStyle">
-          <!-- 顶部工具栏 -->
-          <div class="toolbar-section">
-            <el-scrollbar class="toolbar-scrollbar" always>
-              <div class="toolbar-content">
-                <div class="toolbar-left">
-                  <template v-if="!articleContent">
-                    <el-upload
-                      ref="uploadRef"
-                      :file-list="[]"
-                      :auto-upload="false"
-                      :on-change="handleFileChange"
-                      :show-file-list="false"
-                      :accept="acceptedFileTypes"
-                    >
-                      <template #trigger>
-                        <el-button :icon="UploadFilled">
-                          {{ t('aigc.uploadFile') }}
-                        </el-button>
-                      </template>
-                    </el-upload>
-                    <el-button 
-                      :icon="Document" 
-                      :disabled="!hasActiveDocument"
-                      @click="handleSelectFromDocument"
-                    >
-                      {{ t('aigc.selectFromDocument') }}
-                    </el-button>
-                  </template>
-                  <el-button 
-                    :disabled="!articleContent || !paragraphs.length || analyzing" 
-                    @click="handleSplitAtCursor"
-                  >
-                    {{ t('aigc.splitAtCursor') }}
-                  </el-button>
-                  <el-button 
-                    :disabled="!articleContent || !canMergeWithNext || analyzing" 
-                    @click="handleMergeWithNext"
-                  >
-                    {{ t('aigc.mergeWithNext') }}
-                  </el-button>
-                  <el-button 
-                    :disabled="!articleContent || !articleContent.trim() || analyzing" 
-                    @click="handleRePreprocess"
-                  >
-                    {{ t('aigc.rePreprocess') }}
-                  </el-button>
-                  <el-button 
-                    v-if="overallAnalysis"
-                    :disabled="!articleContent || analyzing"
-                    :loading="paraphrasing"
-                    @click="handleParaphraseAll"
-                  >
-                    {{ hasAllParaphrases ? t('aigc.reParaphraseAll') : t('aigc.paraphraseAll') }}
-                  </el-button>
-                </div>
-                
-                <div class="toolbar-right">
-                  <el-button 
-                    v-if="articleContent"
-                    type="primary" 
-                    :loading="analyzing"
-                    @click="handleAnalyze"
-                  >
-                    {{ overallAnalysis ? t('aigc.reAnalyze') : t('aigc.startAnalysis') }}
-                  </el-button>
-                  <el-dropdown
-                    v-if="overallAnalysis && paragraphAnalyses.length > 0 && reportMarkdown"
-                    trigger="click"
-                    popper-class="aigc-export-dropdown-menu"
-                    @command="handleExportCommand"
-                  >
-                    <el-button>
-                      {{ t('aigc.export', '导出') }}
-                      <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                    </el-button>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item command="report">{{ t('aigc.exportReport') }}</el-dropdown-item>
-                        <el-dropdown-item v-if="hasAnyParaphrase" divided @click.prevent.stop>
-                          <el-dropdown trigger="hover" placement="right-start" popper-class="aigc-export-dropdown-menu" @command="handleExportParaphrasedCommand" style="width: 100%;">
-                            <span class="aigc-export-submenu-trigger">
-                              {{ t('aigc.exportParaphrased', '导出改写后的文章') }}
-                              <el-icon class="el-icon--right"><ArrowRight /></el-icon>
-                            </span>
-                            <template #dropdown>
-                              <el-dropdown-menu>
-                                <el-dropdown-item command="doc">{{ t('aigc.exportAsNewDoc', '作为新文档') }}</el-dropdown-item>
-                                <el-dropdown-item command="session">{{ t('aigc.exportAndDetect', '进行AIGC率检测') }}</el-dropdown-item>
-                              </el-dropdown-menu>
-                            </template>
-                          </el-dropdown>
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
+        <!-- 右侧内容区域 -->
+        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+          <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
+            <p>{{ t('aigc.noSessionSelected') }}</p>
+          </div>
+
+          <div v-else class="session-content-panel" :style="panelStyle">
+            <!-- 顶部工具栏 -->
+            <div class="toolbar-section">
+              <el-scrollbar class="toolbar-scrollbar" always>
+                <div class="toolbar-content">
+                  <div class="toolbar-left">
+                    <template v-if="!articleContent">
+                      <el-upload
+                        ref="uploadRef"
+                        :file-list="[]"
+                        :auto-upload="false"
+                        :on-change="handleFileChange"
+                        :show-file-list="false"
+                        :accept="acceptedFileTypes"
+                      >
+                        <template #trigger>
+                          <el-button :icon="UploadFilled">
+                            {{ t('aigc.uploadFile') }}
+                          </el-button>
+                        </template>
+                      </el-upload>
+                      <el-button
+                        :icon="Document"
+                        :disabled="!hasActiveDocument"
+                        @click="handleSelectFromDocument"
+                      >
+                        {{ t('aigc.selectFromDocument') }}
+                      </el-button>
                     </template>
-                  </el-dropdown>
-                </div>
-              </div>
-            </el-scrollbar>
-          </div>
-          
-          <!-- 主内容区域：无报告时 Monaco 70% / 报告 30%，有报告时 Monaco 30% / 报告 70% -->
-          <div v-if="articleContent" ref="mainContentWrapRef" class="main-content">
-            <ResizableContainer
-              direction="vertical"
-              storage-key="aigc-report-panel"
-              :initial-sidebar-size="initialReportPanelWidth"
-              :min-size="200"
-              :max-size="800"
-              :show-sidebar="true"
-              sidebar-position="end"
-            >
-              <template #main>
-                <!-- 左侧：Monaco 编辑器（main 用 order -1 保证在左） -->
-                <div class="editor-section">
-                  <div class="editor-header">
-                    <span>{{ t('aigc.articleContent') }}<template v-if="paragraphs.length">（{{ t('aigc.paragraphCount', { n: paragraphs.length }) }}）</template></span>
-                  </div>
-                  <div 
-                    :ref="el => setEditorRef(el as HTMLElement | null)" 
-                    class="monaco-editor-container"
-                  ></div>
-                </div>
-              </template>
-              <template #sidebar>
-                <!-- 右侧：报告预览（sidebar 用 order 1 保证在右） -->
-                <div ref="reportSectionRef" class="report-section">
-                  <div class="report-header">
-                    <span>{{ t('aigc.analysisReport') }}</span>
                     <el-button
-                      v-if="reportMarkdown"
-                      size="small"
-                      text
-                      @click="scrollReportToTop"
+                      :disabled="!articleContent || !paragraphs.length || analyzing"
+                      @click="handleSplitAtCursor"
                     >
-                      {{ t('aigc.backToTop', '回到顶端') }}
+                      {{ t('aigc.splitAtCursor') }}
+                    </el-button>
+                    <el-button
+                      :disabled="!articleContent || !canMergeWithNext || analyzing"
+                      @click="handleMergeWithNext"
+                    >
+                      {{ t('aigc.mergeWithNext') }}
+                    </el-button>
+                    <el-button
+                      :disabled="!articleContent || !articleContent.trim() || analyzing"
+                      @click="handleRePreprocess"
+                    >
+                      {{ t('aigc.rePreprocess') }}
+                    </el-button>
+                    <el-button
+                      v-if="overallAnalysis"
+                      :disabled="!articleContent || analyzing"
+                      :loading="paraphrasing"
+                      @click="handleParaphraseAll"
+                    >
+                      {{ hasAllParaphrases ? t('aigc.reParaphraseAll') : t('aigc.paraphraseAll') }}
                     </el-button>
                   </div>
-                  <el-scrollbar class="report-scrollbar" v-if="reportMarkdown" always @click="onReportAreaClick">
-                    <VditorPreview :markdown="reportMarkdown" @rendered="onReportRendered" />
-                  </el-scrollbar>
-                  <div v-else class="report-placeholder">
-                    <p v-if="!overallAnalysis">{{ t('aigc.noAnalysisYet') }}</p>
-                    <p v-else>{{ t('aigc.analyzing') }}</p>
+
+                  <div class="toolbar-right">
+                    <el-button
+                      v-if="articleContent"
+                      type="primary"
+                      :loading="analyzing"
+                      @click="handleAnalyze"
+                    >
+                      {{ overallAnalysis ? t('aigc.reAnalyze') : t('aigc.startAnalysis') }}
+                    </el-button>
+                    <el-dropdown
+                      v-if="overallAnalysis && paragraphAnalyses.length > 0 && reportMarkdown"
+                      trigger="click"
+                      popper-class="aigc-export-dropdown-menu"
+                      @command="handleExportCommand"
+                    >
+                      <el-button>
+                        {{ t('aigc.export', '导出') }}
+                        <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                      </el-button>
+                      <template #dropdown>
+                        <el-dropdown-menu>
+                          <el-dropdown-item command="report">{{
+                            t('aigc.exportReport')
+                          }}</el-dropdown-item>
+                          <el-dropdown-item v-if="hasAnyParaphrase" divided @click.prevent.stop>
+                            <el-dropdown
+                              trigger="hover"
+                              placement="right-start"
+                              popper-class="aigc-export-dropdown-menu"
+                              @command="handleExportParaphrasedCommand"
+                              style="width: 100%"
+                            >
+                              <span class="aigc-export-submenu-trigger">
+                                {{ t('aigc.exportParaphrased', '导出改写后的文章') }}
+                                <el-icon class="el-icon--right"><ArrowRight /></el-icon>
+                              </span>
+                              <template #dropdown>
+                                <el-dropdown-menu>
+                                  <el-dropdown-item command="doc">{{
+                                    t('aigc.exportAsNewDoc', '作为新文档')
+                                  }}</el-dropdown-item>
+                                  <el-dropdown-item command="session">{{
+                                    t('aigc.exportAndDetect', '进行AIGC率检测')
+                                  }}</el-dropdown-item>
+                                </el-dropdown-menu>
+                              </template>
+                            </el-dropdown>
+                          </el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
                   </div>
                 </div>
-              </template>
-            </ResizableContainer>
-          </div>
-          
-          <!-- 空状态：提示上传或选择内容 -->
-          <div v-else class="empty-content">
-            <p>{{ t('aigc.pleaseUploadOrSelect') }}</p>
+              </el-scrollbar>
+            </div>
+
+            <!-- 主内容区域：无报告时 Monaco 70% / 报告 30%，有报告时 Monaco 30% / 报告 70% -->
+            <div v-if="articleContent" ref="mainContentWrapRef" class="main-content">
+              <ResizableContainer
+                direction="vertical"
+                storage-key="aigc-report-panel"
+                :initial-sidebar-size="initialReportPanelWidth"
+                :min-size="200"
+                :max-size="800"
+                :show-sidebar="true"
+                sidebar-position="end"
+              >
+                <template #main>
+                  <!-- 左侧：Monaco 编辑器（main 用 order -1 保证在左） -->
+                  <div class="editor-section">
+                    <div class="editor-header">
+                      <span
+                        >{{ t('aigc.articleContent')
+                        }}<template v-if="paragraphs.length"
+                          >（{{ t('aigc.paragraphCount', { n: paragraphs.length }) }}）</template
+                        ></span
+                      >
+                    </div>
+                    <div
+                      :ref="(el) => setEditorRef(el as HTMLElement | null)"
+                      class="monaco-editor-container"
+                    ></div>
+                  </div>
+                </template>
+                <template #sidebar>
+                  <!-- 右侧：报告预览（sidebar 用 order 1 保证在右） -->
+                  <div ref="reportSectionRef" class="report-section">
+                    <div class="report-header">
+                      <span>{{ t('aigc.analysisReport') }}</span>
+                      <el-button v-if="reportMarkdown" size="small" text @click="scrollReportToTop">
+                        {{ t('aigc.backToTop', '回到顶端') }}
+                      </el-button>
+                    </div>
+                    <el-scrollbar
+                      class="report-scrollbar"
+                      v-if="reportMarkdown"
+                      always
+                      @click="onReportAreaClick"
+                    >
+                      <VditorPreview :markdown="reportMarkdown" @rendered="onReportRendered" />
+                    </el-scrollbar>
+                    <div v-else class="report-placeholder">
+                      <p v-if="!overallAnalysis">{{ t('aigc.noAnalysisYet') }}</p>
+                      <p v-else>{{ t('aigc.analyzing') }}</p>
+                    </div>
+                  </div>
+                </template>
+              </ResizableContainer>
+            </div>
+
+            <!-- 空状态：提示上传或选择内容 -->
+            <div v-else class="empty-content">
+              <p>{{ t('aigc.pleaseUploadOrSelect') }}</p>
+            </div>
           </div>
         </div>
-      </div>
       </SessionList>
     </div>
   </div>
@@ -259,9 +278,25 @@ import { setupMonacoWorker } from '../utils/monaco-worker-config'
 import * as monaco from 'monaco-editor'
 import { createAiTask, ai_types } from '../utils/ai_tasks'
 import type { AIDialogMessage } from '@/types'
-import { buildSchemaPrompt, parseSchemaJson, AIGC_ANALYSIS_SCHEMA, AIGC_DIMENSION_WEIGHTS, AIGC_POWER_MEAN_P, AIGC_VETO_THRESHOLD, AIGC_VETO_BONUS_FACTOR, type AigcAnalysisResult, type AigcDimensionScore } from '../utils/schemas'
+import {
+  buildSchemaPrompt,
+  parseSchemaJson,
+  AIGC_ANALYSIS_SCHEMA,
+  AIGC_DIMENSION_WEIGHTS,
+  AIGC_POWER_MEAN_P,
+  AIGC_VETO_THRESHOLD,
+  AIGC_VETO_BONUS_FACTOR,
+  type AigcAnalysisResult,
+  type AigcDimensionScore
+} from '../utils/schemas'
 import { referenceAdapterManager } from '../utils/agent-framework/reference-adapters'
-import { preprocessParagraphs, MIN_PARAGRAPH_CHARS, DEFAULT_MIN_SEGMENTS, DEFAULT_MAX_SEGMENTS, type ContentFormat } from '../utils/aigc-paragraph-utils'
+import {
+  preprocessParagraphs,
+  MIN_PARAGRAPH_CHARS,
+  DEFAULT_MIN_SEGMENTS,
+  DEFAULT_MAX_SEGMENTS,
+  type ContentFormat
+} from '../utils/aigc-paragraph-utils'
 import { useActiveDocument } from '../composables/useActiveDocument'
 import { useWorkspace } from '../stores/workspace'
 import VditorPreview from '../components/VditorPreview.vue'
@@ -294,7 +329,10 @@ function getDimensionScore(result: AigcAnalysisResult, key: keyof AigcDimensionS
 }
 
 /** 构建 AIGC 雷达图 ECharts 配置（留足边距避免轴标签被截断） */
-function buildAigcRadarEchartsOption(radarData: { indicator: Array<{ name: string; max: number }>; series: Array<{ name: string; value: number[] }> }): Record<string, unknown> {
+function buildAigcRadarEchartsOption(radarData: {
+  indicator: Array<{ name: string; max: number }>
+  series: Array<{ name: string; value: number[] }>
+}): Record<string, unknown> {
   return {
     backgroundColor: 'transparent',
     radar: {
@@ -313,15 +351,19 @@ const AIGC_WEIGHT_PIE_TOP_K = 6
 const AIGC_WEIGHT_PIE_MIN_VISIBLE = 0.05
 
 /** 根据加权幂次贡献构建风险来源权重饼图 ECharts 配置（背景透明、居中），文案通过 t 做 i18n */
-function buildAigcWeightPieEchartsOption(overall: AigcAnalysisResult, t: (key: string) => string): Record<string, unknown> {
+function buildAigcWeightPieEchartsOption(
+  overall: AigcAnalysisResult,
+  t: (key: string) => string
+): Record<string, unknown> {
   const p = AIGC_POWER_MEAN_P
-  const items: { key: keyof AigcDimensionScore; name: string; value: number }[] = AIGC_DIMENSION_KEYS.map(k => {
-    const score = getDimensionScore(overall, k)
-    const contribution = AIGC_DIMENSION_WEIGHTS[k] * Math.pow(Math.max(0, score), p)
-    return { key: k, name: t(`aigc.dimensions.${k}`), value: contribution }
-  })
+  const items: { key: keyof AigcDimensionScore; name: string; value: number }[] =
+    AIGC_DIMENSION_KEYS.map((k) => {
+      const score = getDimensionScore(overall, k)
+      const contribution = AIGC_DIMENSION_WEIGHTS[k] * Math.pow(Math.max(0, score), p)
+      return { key: k, name: t(`aigc.dimensions.${k}`), value: contribution }
+    })
   const total = items.reduce((s, x) => s + x.value, 0) || 1
-  const withShare = items.map(x => ({ ...x, share: x.value / total }))
+  const withShare = items.map((x) => ({ ...x, share: x.value / total }))
   const sorted = [...withShare].sort((a, b) => b.share - a.share)
   const main: { name: string; value: number }[] = []
   let otherSum = 0
@@ -340,16 +382,25 @@ function buildAigcWeightPieEchartsOption(overall: AigcAnalysisResult, t: (key: s
   main.sort((a, b) => b.value - a.value)
   return {
     backgroundColor: 'transparent',
-    title: { text: t('aigc.chartWeightTitle'), left: 'center', top: 8, textStyle: { fontSize: 14 } },
+    title: {
+      text: t('aigc.chartWeightTitle'),
+      left: 'center',
+      top: 8,
+      textStyle: { fontSize: 14 }
+    },
     tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
-    series: [{
-      type: 'pie',
-      radius: ['42%', '68%'],
-      center: ['50%', '55%'],
-      data: main,
-      label: { fontSize: 11 },
-      emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.2)' } }
-    }]
+    series: [
+      {
+        type: 'pie',
+        radius: ['42%', '68%'],
+        center: ['50%', '55%'],
+        data: main,
+        label: { fontSize: 11 },
+        emphasis: {
+          itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.2)' }
+        }
+      }
+    ]
   }
 }
 /** 各维度「高/中/低」说明文案，用于报告表格 */
@@ -376,13 +427,16 @@ function getDimensionLabel(k: keyof AigcDimensionScore): string {
 const { activeDocument, activeTab } = useActiveDocument()
 const workspace = useWorkspace()
 
-const ourTabId = computed(() => workspace.tabs.find(tab => tab.kind === 'tool' && tab.route === '/aigc-detection')?.id ?? null)
+const ourTabId = computed(
+  () =>
+    workspace.tabs.find((tab) => tab.kind === 'tool' && tab.route === '/aigc-detection')?.id ?? null
+)
 
 const sessions = ref<SessionListItem[]>([])
 const activeSessionId = ref<string | null>(null)
 const activeSession = computed(() => {
   if (!activeSessionId.value) return null
-  return sessions.value.find(s => s.id === activeSessionId.value) as any
+  return sessions.value.find((s) => s.id === activeSessionId.value) as any
 })
 
 const uploadRef = ref<any>(null)
@@ -395,7 +449,9 @@ const generatingReport = ref(false)
 const paraphrasing = ref(false)
 
 const overallAnalysis = ref<AigcAnalysisResult | null>(null)
-const paragraphAnalyses = ref<Array<{ index: number; text: string; analysis: AigcAnalysisResult }>>([])
+const paragraphAnalyses = ref<Array<{ index: number; text: string; analysis: AigcAnalysisResult }>>(
+  []
+)
 const reportMarkdown = ref<string>('')
 /** 各段落报告块，按索引存储；分析完成时及时追加并按顺序刷新 reportMarkdown */
 const segmentBlocks = ref<(string | null)[]>([])
@@ -469,14 +525,14 @@ interface DocumentTabItem {
 
 const documentTabs = computed<DocumentTabItem[]>(() => {
   return workspace.tabs
-    .filter(tab => (tab.kind === 'file' || tab.kind === 'new') && tab.id)
-    .map(tab => {
+    .filter((tab) => (tab.kind === 'file' || tab.kind === 'new') && tab.id)
+    .map((tab) => {
       try {
         const doc = workspace.ensureDocument(tab.id)
         if (!doc || (doc.format !== 'md' && doc.format !== 'tex')) {
           return null
         }
-        
+
         let displayName = ''
         if (tab.title && tab.title.trim() && tab.title !== '未命名文档') {
           displayName = tab.title.trim()
@@ -486,7 +542,7 @@ const documentTabs = computed<DocumentTabItem[]>(() => {
         } else {
           displayName = t('workspace.untitledDocument', '未命名文档')
         }
-        
+
         return {
           id: String(tab.id),
           displayName,
@@ -535,7 +591,7 @@ const hasAllParaphrases = computed(() => {
 
 /** 是否至少有一段已改写（用于「拼成新文章」按钮） */
 const hasAnyParaphrase = computed(() => {
-  return paragraphParaphrases.value.some(p => p != null && (p ?? '').trim() !== '')
+  return paragraphParaphrases.value.some((p) => p != null && (p ?? '').trim() !== '')
 })
 
 // 设置编辑器引用
@@ -557,24 +613,24 @@ const setEditorRef = (el: HTMLElement | null) => {
 // 初始化Monaco编辑器
 const initEditor = async () => {
   if (!editorRef.value) return
-  
+
   await nextTick()
   await nextTick()
-  
+
   if (!editorRef.value || editorRef.value.offsetWidth === 0 || editorRef.value.offsetHeight === 0) {
     setTimeout(() => {
       initEditor()
     }, 100)
     return
   }
-  
+
   if (editorInstance) {
     editorInstance.dispose()
   }
-  
+
   try {
     setupMonacoWorker()
-    
+
     const isDark = themeState.currentTheme.type === 'dark'
     editorInstance = monaco.editor.create(editorRef.value, {
       value: articleContent.value || '',
@@ -589,14 +645,14 @@ const initEditor = async () => {
       scrollBeyondLastLine: false,
       fontFamily: "'JetBrains Mono', 'Consolas', monospace"
     })
-    
+
     // 监听内容变化
     editorInstance.onDidChangeModelContent(() => {
       if (editorInstance) {
         articleContent.value = editorInstance.getValue()
       }
     })
-    
+
     // 光标移动时更新“当前段落”索引（用于“与下一段合并”等）
     editorInstance.onDidChangeCursorPosition((e) => {
       currentCursorParagraphIndex.value = getParagraphIndexByLine(e.position.lineNumber)
@@ -634,16 +690,23 @@ const syncContentFromParagraphs = () => {
 }
 
 // 监听 paragraphs 变化：同步到正文并更新装饰
-watch(() => paragraphs.value, () => {
-  syncContentFromParagraphs()
-  nextTick(() => updateEditorDecorations())
-}, { deep: true })
+watch(
+  () => paragraphs.value,
+  () => {
+    syncContentFromParagraphs()
+    nextTick(() => updateEditorDecorations())
+  },
+  { deep: true }
+)
 
 // 监听文章内容变化（来自编辑器输入等）
-watch(() => articleContent.value, () => {
-  updateEditorContent()
-  updateEditorDecorations()
-})
+watch(
+  () => articleContent.value,
+  () => {
+    updateEditorContent()
+    updateEditorDecorations()
+  }
+)
 
 /** 根据当前 paragraphs 计算每个段落在全文中的起止行号 [startLine, endLine]（1-based），仅依 paragraphs 推导，不依赖 articleContent 一致 */
 function getParagraphLineRanges(): Array<[number, number]> {
@@ -683,8 +746,18 @@ const updateEditorDecorations = () => {
     if (hasAnalysis && paragraphAnalyses.value[index]) {
       const score = paragraphAnalyses.value[index].analysis.overall_aigc_risk
       const riskLevel = getRiskLevelFromScore(score)
-      className = riskLevel === 'HIGH' ? 'aigc-high-risk' : riskLevel === 'MEDIUM' ? 'aigc-medium-risk' : 'aigc-low-risk'
-      minimapColor = riskLevel === 'HIGH' ? 'rgba(245, 108, 108, 0.3)' : riskLevel === 'MEDIUM' ? 'rgba(230, 162, 60, 0.3)' : 'rgba(103, 194, 58, 0.3)'
+      className =
+        riskLevel === 'HIGH'
+          ? 'aigc-high-risk'
+          : riskLevel === 'MEDIUM'
+            ? 'aigc-medium-risk'
+            : 'aigc-low-risk'
+      minimapColor =
+        riskLevel === 'HIGH'
+          ? 'rgba(245, 108, 108, 0.3)'
+          : riskLevel === 'MEDIUM'
+            ? 'rgba(230, 162, 60, 0.3)'
+            : 'rgba(103, 194, 58, 0.3)'
     } else {
       className = index % 2 === 0 ? 'aigc-para-even' : 'aigc-para-odd'
       minimapColor = index % 2 === 0 ? 'rgba(64, 158, 255, 0.12)' : 'rgba(64, 158, 255, 0.06)'
@@ -720,7 +793,9 @@ const handleEditorClick = (lineNumber: number) => {
     }
   }
   if (paragraphIndex < 0 || paragraphIndex >= paragraphAnalyses.value.length) return
-  const reportEl = reportSectionRef.value?.querySelector('.report-scrollbar') ?? document.querySelector('.report-scrollbar')
+  const reportEl =
+    reportSectionRef.value?.querySelector('.report-scrollbar') ??
+    document.querySelector('.report-scrollbar')
   if (!reportEl) return
   const blocks = reportEl.querySelectorAll('.aigc-paragraph-block')
   blocks.forEach((el) => {
@@ -735,7 +810,9 @@ const handleEditorClick = (lineNumber: number) => {
 /** 报告渲染完成后：对段落块做 DOM 后处理，支持折叠与「已改动」标记；A/B 内容用 Vditor 渲染 */
 async function onReportRendered() {
   await nextTick()
-  const container = reportSectionRef.value?.querySelector('.vditor-preview-container') as HTMLElement | null
+  const container = reportSectionRef.value?.querySelector(
+    '.vditor-preview-container'
+  ) as HTMLElement | null
   if (!container) return
   applyReportParagraphCollapse(container)
   updateModificationMarkers()
@@ -744,7 +821,9 @@ async function onReportRendered() {
 
 /** 将 A/B 切换块内的原文与改写内容用 Vditor.preview 渲染（支持 Markdown）；渲染到容器内层，保留容器边缘与背景 */
 async function renderAigcContentSwitcherMarkdown(container: HTMLElement) {
-  const nodes = container.querySelectorAll('.aigc-original-content, .aigc-paraphrased-content-block')
+  const nodes = container.querySelectorAll(
+    '.aigc-original-content, .aigc-paraphrased-content-block'
+  )
   for (const el of Array.from(nodes)) {
     const pre = el.querySelector('pre')
     if (!pre) continue
@@ -797,14 +876,17 @@ function onReportAreaClick(e: MouseEvent) {
   if (idx == null) return
   const showOriginal = switcher.querySelector('.aigc-ab-original.active') != null
   const contentDiv = showOriginal
-    ? switcher.querySelector('.aigc-original-content') as HTMLElement | null
-    : switcher.querySelector('.aigc-paraphrased-content-block') as HTMLElement | null
+    ? (switcher.querySelector('.aigc-original-content') as HTMLElement | null)
+    : (switcher.querySelector('.aigc-paraphrased-content-block') as HTMLElement | null)
   if (!contentDiv?.textContent?.trim()) return
-  navigator.clipboard.writeText(contentDiv.textContent.trim()).then(() => {
-    ElMessage.success(t('aigc.copySuccess', '已复制'))
-  }).catch(() => {
-    ElMessage.error(t('aigc.copyFailed', '复制失败'))
-  })
+  navigator.clipboard
+    .writeText(contentDiv.textContent.trim())
+    .then(() => {
+      ElMessage.success(t('aigc.copySuccess', '已复制'))
+    })
+    .catch(() => {
+      ElMessage.error(t('aigc.copyFailed', '复制失败'))
+    })
 }
 
 /** 根据 modifiedParagraphIndices 更新各段落 summary 上的「已改动」标记 */
@@ -872,7 +954,10 @@ function applyReportParagraphCollapse(container: HTMLElement) {
     paraphraseBtn.type = 'button'
     paraphraseBtn.className = 'aigc-paraphrase-one-btn'
     paraphraseBtn.setAttribute('data-paragraph-index', String(index))
-    paraphraseBtn.textContent = paragraphParaphrases.value[index] != null ? t('aigc.reParaphraseOne') : t('aigc.paraphraseOne')
+    paraphraseBtn.textContent =
+      paragraphParaphrases.value[index] != null
+        ? t('aigc.reParaphraseOne')
+        : t('aigc.paraphraseOne')
     paraphraseBtn.addEventListener('click', (e) => {
       e.preventDefault()
       e.stopPropagation()
@@ -891,7 +976,9 @@ function applyReportParagraphCollapse(container: HTMLElement) {
 
 /** 报告区回到顶端 */
 function scrollReportToTop() {
-  const wrap = reportSectionRef.value?.querySelector('.report-scrollbar .el-scrollbar__wrap') as HTMLElement | null
+  const wrap = reportSectionRef.value?.querySelector(
+    '.report-scrollbar .el-scrollbar__wrap'
+  ) as HTMLElement | null
   if (wrap) wrap.scrollTop = 0
 }
 
@@ -901,13 +988,17 @@ const SEGMENT_HEAD = `## 分段分析\n\n`
 /** 根据当前 segmentBlocks 与 overallReportBlock 刷新 reportMarkdown */
 function refreshReportMarkdown() {
   const mid = overallReportBlock.value ? overallReportBlock.value + `\n` : ``
-  reportMarkdown.value = REPORT_TITLE + mid + SEGMENT_HEAD + segmentBlocks.value.map((b) => b ?? '').join('')
+  reportMarkdown.value =
+    REPORT_TITLE + mid + SEGMENT_HEAD + segmentBlocks.value.map((b) => b ?? '').join('')
 }
 
 // 监听主题变化
-watch(() => themeState.currentTheme.type, (newType) => {
-  monaco.editor.setTheme(newType === 'dark' ? 'vs-dark' : 'vs')
-})
+watch(
+  () => themeState.currentTheme.type,
+  (newType) => {
+    monaco.editor.setTheme(newType === 'dark' ? 'vs-dark' : 'vs')
+  }
+)
 
 // 清理编辑器
 let mainContentResizeObserver: ResizeObserver | null = null
@@ -944,7 +1035,7 @@ onBeforeUnmount(() => {
 const loadSessions = async () => {
   try {
     const dbSessions = await aigcDetectionSessionsDb.getAll()
-    sessions.value = dbSessions.map(s => ({
+    sessions.value = dbSessions.map((s) => ({
       id: s.id,
       title: s.title,
       updatedAt: s.updated_at
@@ -959,7 +1050,7 @@ const handleCreateSession = async () => {
   try {
     const id = `aigc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const title = t('aigc.defaultTitle')
-    
+
     await aigcDetectionSessionsDb.create({
       id,
       title,
@@ -974,7 +1065,7 @@ const handleCreateSession = async () => {
       language: aigcLanguage.value,
       domain: 'general'
     })
-    
+
     await loadSessions()
     activeSessionId.value = id
     const tid = ourTabId.value
@@ -997,9 +1088,9 @@ const handleCreateSession = async () => {
 // 选择会话
 const handleSelectSession = async (item: SessionListItem) => {
   if (loadingSession.value) return
-  
+
   loadingSession.value = true
-  
+
   try {
     activeSessionId.value = item.id
     const tid = ourTabId.value
@@ -1010,7 +1101,9 @@ const handleSelectSession = async (item: SessionListItem) => {
       if (session.content_source === 'document' && session.source_tab_id) {
         try {
           const doc = workspace.ensureDocument(session.source_tab_id)
-          contentFormat.value = (doc?.format === 'tex' ? 'tex' : doc?.format === 'md' ? 'md' : 'plain') as ContentFormat
+          contentFormat.value = (
+            doc?.format === 'tex' ? 'tex' : doc?.format === 'md' ? 'md' : 'plain'
+          ) as ContentFormat
         } catch {
           contentFormat.value = 'plain'
         }
@@ -1021,7 +1114,12 @@ const handleSelectSession = async (item: SessionListItem) => {
         contentFormat.value = 'plain'
       }
       const raw = session.article_content || ''
-      const opts = { format: contentFormat.value, minChars: MIN_PARAGRAPH_CHARS, minSegments: DEFAULT_MIN_SEGMENTS, maxSegments: DEFAULT_MAX_SEGMENTS }
+      const opts = {
+        format: contentFormat.value,
+        minChars: MIN_PARAGRAPH_CHARS,
+        minSegments: DEFAULT_MIN_SEGMENTS,
+        maxSegments: DEFAULT_MAX_SEGMENTS
+      }
       if (session.paragraph_texts) {
         try {
           paragraphs.value = JSON.parse(session.paragraph_texts) as string[]
@@ -1033,22 +1131,25 @@ const handleSelectSession = async (item: SessionListItem) => {
         paragraphs.value = preprocessParagraphs(raw, opts)
       }
       articleContent.value = paragraphs.value.length ? paragraphs.value.join('\n\n') : raw
-      
+
       if (session.overall_analysis) {
         overallAnalysis.value = JSON.parse(session.overall_analysis)
       } else {
         overallAnalysis.value = null
       }
-      
+
       if (session.paragraph_analyses) {
         paragraphAnalyses.value = JSON.parse(session.paragraph_analyses)
       } else {
         paragraphAnalyses.value = []
       }
-      
+
       if (session.paragraph_paraphrases) {
         try {
-          paragraphParaphrases.value = JSON.parse(session.paragraph_paraphrases) as (string | null)[]
+          paragraphParaphrases.value = JSON.parse(session.paragraph_paraphrases) as (
+            | string
+            | null
+          )[]
           if (!Array.isArray(paragraphParaphrases.value)) paragraphParaphrases.value = []
         } catch {
           paragraphParaphrases.value = []
@@ -1070,7 +1171,7 @@ const handleSelectSession = async (item: SessionListItem) => {
         reportMarkdown.value = session.report_markdown || ''
       }
       modifiedParagraphIndices.value = new Set()
-      
+
       await nextTick()
       updateEditorContent()
       updateEditorDecorations()
@@ -1097,7 +1198,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
   try {
     const session = await aigcDetectionSessionsDb.getById(item.id)
     if (!session) return
-    
+
     const id = `aigc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     await aigcDetectionSessionsDb.create({
       id,
@@ -1114,7 +1215,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
       language: session.language || 'zh',
       domain: session.domain || 'academic'
     })
-    
+
     await loadSessions()
     ElMessage.success(t('common.duplicateSuccess'))
   } catch (error) {
@@ -1154,11 +1255,11 @@ const handleFileChange = async (file: any) => {
   if (!activeSessionId.value) {
     await handleCreateSession()
   }
-  
+
   try {
     const fileName = file.name
     const fileExt = fileName.split('.').pop()?.toLowerCase() || ''
-    
+
     let parsedContent: string
     let sourceFilePath: string
 
@@ -1187,10 +1288,10 @@ const handleFileChange = async (file: any) => {
         base64 += String.fromCharCode.apply(null, Array.from(chunk))
       }
       base64 = btoa(base64)
-      const filePath = await ipcRenderer.invoke('save-reference-file', {
+      const filePath = (await ipcRenderer.invoke('save-reference-file', {
         filename: fileName,
         content: base64
-      }) as string
+      })) as string
       if (!filePath) throw new Error('保存文件失败')
       const adapter = referenceAdapterManager.getAdapter(fileExt)
       if (!adapter) {
@@ -1202,9 +1303,14 @@ const handleFileChange = async (file: any) => {
     }
 
     contentFormat.value = formatFromFileExtension(fileExt)
-    paragraphs.value = preprocessParagraphs(parsedContent, { format: contentFormat.value, minChars: MIN_PARAGRAPH_CHARS, minSegments: DEFAULT_MIN_SEGMENTS, maxSegments: DEFAULT_MAX_SEGMENTS })
+    paragraphs.value = preprocessParagraphs(parsedContent, {
+      format: contentFormat.value,
+      minChars: MIN_PARAGRAPH_CHARS,
+      minSegments: DEFAULT_MIN_SEGMENTS,
+      maxSegments: DEFAULT_MAX_SEGMENTS
+    })
     articleContent.value = paragraphs.value.join('\n\n')
-    
+
     if (activeSessionId.value) {
       await aigcDetectionSessionsDb.update(activeSessionId.value, {
         title: fileName,
@@ -1215,11 +1321,11 @@ const handleFileChange = async (file: any) => {
       })
       await loadSessions()
     }
-    
+
     await nextTick()
     updateEditorContent()
     updateEditorDecorations()
-    
+
     ElMessage.success(t('aigc.fileUploaded'))
   } catch (error) {
     ElMessage.error('上传文件失败: ' + (error instanceof Error ? error.message : String(error)))
@@ -1231,13 +1337,13 @@ const handleSelectFromDocument = async () => {
   if (!activeSessionId.value) {
     await handleCreateSession()
   }
-  
+
   // 检查是否有可用的文档
   if (documentTabs.value.length === 0) {
     ElMessage.warning(t('aigc.noActiveDocument'))
     return
   }
-  
+
   // 显示选择对话框
   selectedTabId.value = null
   selectDocumentDialogVisible.value = true
@@ -1261,20 +1367,20 @@ const confirmSelectDocument = async () => {
     ElMessage.warning(t('aigc.pleaseSelectDocument'))
     return
   }
-  
+
   try {
-    const tab = workspace.tabs.find(t => String(t.id) === selectedTabId.value)
+    const tab = workspace.tabs.find((t) => String(t.id) === selectedTabId.value)
     if (!tab) {
       ElMessage.error(t('aigc.documentNotFound'))
       return
     }
-    
+
     const doc = workspace.ensureDocument(tab.id)
     if (!doc || (doc.format !== 'md' && doc.format !== 'tex')) {
       ElMessage.error(t('aigc.unsupportedFormat'))
       return
     }
-    
+
     // 获取文档内容
     let content = ''
     if (doc.format === 'md') {
@@ -1282,16 +1388,23 @@ const confirmSelectDocument = async () => {
     } else if (doc.format === 'tex') {
       content = doc.tex || ''
     }
-    
+
     if (!content.trim()) {
       ElMessage.warning(t('aigc.documentEmpty'))
       return
     }
-    
-    contentFormat.value = (doc.format === 'tex' ? 'tex' : doc.format === 'md' ? 'md' : 'plain') as ContentFormat
-    paragraphs.value = preprocessParagraphs(content, { format: contentFormat.value, minChars: MIN_PARAGRAPH_CHARS, minSegments: DEFAULT_MIN_SEGMENTS, maxSegments: DEFAULT_MAX_SEGMENTS })
+
+    contentFormat.value = (
+      doc.format === 'tex' ? 'tex' : doc.format === 'md' ? 'md' : 'plain'
+    ) as ContentFormat
+    paragraphs.value = preprocessParagraphs(content, {
+      format: contentFormat.value,
+      minChars: MIN_PARAGRAPH_CHARS,
+      minSegments: DEFAULT_MIN_SEGMENTS,
+      maxSegments: DEFAULT_MAX_SEGMENTS
+    })
     articleContent.value = paragraphs.value.join('\n\n')
-    
+
     const displayName = getDisplayNameFromTab(tab)
     if (activeSessionId.value) {
       await aigcDetectionSessionsDb.update(activeSessionId.value, {
@@ -1303,14 +1416,14 @@ const confirmSelectDocument = async () => {
       })
       await loadSessions()
     }
-    
+
     selectDocumentDialogVisible.value = false
     selectedTabId.value = null
-    
+
     await nextTick()
     updateEditorContent()
     updateEditorDecorations()
-    
+
     ElMessage.success(t('aigc.contentSelected'))
   } catch (error) {
     ElMessage.error('选择内容失败: ' + (error instanceof Error ? error.message : String(error)))
@@ -1333,7 +1446,12 @@ const handleSplitAtCursor = () => {
   const before = lines.slice(0, lineOffset).join('\n').trimEnd()
   const after = lines.slice(lineOffset).join('\n').trimStart()
   if (!before || !after) return
-  const next = [...paragraphs.value.slice(0, idx), before, after, ...paragraphs.value.slice(idx + 1)]
+  const next = [
+    ...paragraphs.value.slice(0, idx),
+    before,
+    after,
+    ...paragraphs.value.slice(idx + 1)
+  ]
   paragraphs.value = next
   modifiedParagraphIndices.value = new Set([...modifiedParagraphIndices.value, idx])
   saveParagraphTexts()
@@ -1364,7 +1482,12 @@ const handleMergeWithNext = () => {
 const handleRePreprocess = () => {
   const raw = (editorInstance && editorInstance.getValue()) || articleContent.value
   if (!raw || !raw.trim()) return
-  paragraphs.value = preprocessParagraphs(raw, { format: contentFormat.value, minChars: MIN_PARAGRAPH_CHARS, minSegments: DEFAULT_MIN_SEGMENTS, maxSegments: DEFAULT_MAX_SEGMENTS })
+  paragraphs.value = preprocessParagraphs(raw, {
+    format: contentFormat.value,
+    minChars: MIN_PARAGRAPH_CHARS,
+    minSegments: DEFAULT_MIN_SEGMENTS,
+    maxSegments: DEFAULT_MAX_SEGMENTS
+  })
   const n = paragraphAnalyses.value.length
   if (n) modifiedParagraphIndices.value = new Set(Array.from({ length: n }, (_, j) => j))
   saveParagraphTexts()
@@ -1376,10 +1499,12 @@ const handleRePreprocess = () => {
 
 function saveParagraphTexts() {
   if (activeSessionId.value) {
-    aigcDetectionSessionsDb.update(activeSessionId.value, {
-      paragraph_texts: JSON.stringify(paragraphs.value),
-      article_content: paragraphs.value.join('\n\n')
-    }).catch(() => {})
+    aigcDetectionSessionsDb
+      .update(activeSessionId.value, {
+        paragraph_texts: JSON.stringify(paragraphs.value),
+        article_content: paragraphs.value.join('\n\n')
+      })
+      .catch(() => {})
   }
 }
 
@@ -1389,7 +1514,7 @@ const handleAnalyze = async () => {
     ElMessage.warning(t('aigc.noContent'))
     return
   }
-  const list = paragraphs.value.filter(p => p.trim())
+  const list = paragraphs.value.filter((p) => p.trim())
   if (list.length === 0) {
     ElMessage.warning(t('aigc.noContent'))
     return
@@ -1414,20 +1539,23 @@ const handleAnalyze = async () => {
       const analysis = await analyzeParagraph(text.trim(), i + 1, total)
       const result = { index: i, text: text.trim(), analysis }
       analyses.push(result)
-      segmentBlocks.value[result.index] = buildParagraphReportBlock(result, paragraphParaphrases.value[result.index] ?? null)
+      segmentBlocks.value[result.index] = buildParagraphReportBlock(
+        result,
+        paragraphParaphrases.value[result.index] ?? null
+      )
       refreshReportMarkdown()
       return result
     })
-    
+
     await Promise.all(promises)
-    
+
     analyses.sort((a, b) => a.index - b.index)
     paragraphAnalyses.value = analyses
-    
+
     // 计算总体分析
     const overall = await analyzeOverall(list, analyses)
     overallAnalysis.value = overall
-    
+
     // 生成并追加总体报告
     overallReportBlock.value = buildOverallReportBlock(overall)
     refreshReportMarkdown()
@@ -1458,21 +1586,23 @@ const handleReAnalyze = async () => {
 
 // 分析单个段落
 const analyzeParagraph = async (
-  text: string, 
-  paragraphIndex: number, 
+  text: string,
+  paragraphIndex: number,
   totalParagraphs: number
 ): Promise<AigcAnalysisResult> => {
   const prompt = buildAigcAnalysisPrompt(text, aigcLanguage.value, true)
   const schemaPrompt = buildSchemaPrompt(AIGC_ANALYSIS_SCHEMA, prompt)
-  
+
   const resultRef = vueRef('')
   const originKey = `aigc-paragraph-${paragraphIndex}-${Date.now()}`
-  
-  const messages: AIDialogMessage[] = [{
-    role: 'user',
-    content: schemaPrompt
-  }]
-  
+
+  const messages: AIDialogMessage[] = [
+    {
+      role: 'user',
+      content: schemaPrompt
+    }
+  ]
+
   const { done } = createAiTask(
     t('aigc.analyzingParagraph', { index: paragraphIndex, total: totalParagraphs }),
     messages,
@@ -1481,9 +1611,9 @@ const analyzeParagraph = async (
     originKey,
     { stream: true }
   )
-  
+
   await done
-  
+
   return parseSchemaJson<AigcAnalysisResult>(resultRef.value, AIGC_ANALYSIS_SCHEMA)
 }
 
@@ -1513,39 +1643,41 @@ const analyzeOverall = async (
     emotional_flatness: 0,
     formulaic_closure: 0
   }
-  
+
   const count = paragraphAnalyses.length || 1
-  paragraphAnalyses.forEach(pa => {
-    AIGC_DIMENSION_KEYS.forEach(key => {
+  paragraphAnalyses.forEach((pa) => {
+    AIGC_DIMENSION_KEYS.forEach((key) => {
       dimensionScores[key] += getDimensionScore(pa.analysis, key)
     })
   })
-  AIGC_DIMENSION_KEYS.forEach(key => {
+  AIGC_DIMENSION_KEYS.forEach((key) => {
     dimensionScores[key] /= count
   })
-  
+
   const weightTotal = AIGC_DIMENSION_KEYS.reduce((s, k) => s + AIGC_DIMENSION_WEIGHTS[k], 0)
   // 基础分：加权幂次平均（p>1 时高分维度放大），再 ×10 得到 0–100
   const weightedPowerSum = AIGC_DIMENSION_KEYS.reduce(
-    (s, k) => s + AIGC_DIMENSION_WEIGHTS[k] * Math.pow(Math.max(0, dimensionScores[k]), AIGC_POWER_MEAN_P),
+    (s, k) =>
+      s + AIGC_DIMENSION_WEIGHTS[k] * Math.pow(Math.max(0, dimensionScores[k]), AIGC_POWER_MEAN_P),
     0
   )
   const baseRaw = Math.pow(weightedPowerSum / weightTotal, 1 / AIGC_POWER_MEAN_P)
   let baseScore = Math.max(0, Math.min(100, baseRaw * 10))
   // 一票否决：任一维度 ≥ 阈值时按 (max - threshold)^2 加分，使总分明显升高
-  const maxDim = Math.max(...AIGC_DIMENSION_KEYS.map(k => dimensionScores[k]))
-  const vetoBonus = maxDim >= AIGC_VETO_THRESHOLD
-    ? AIGC_VETO_BONUS_FACTOR * Math.pow(maxDim - AIGC_VETO_THRESHOLD, 2)
-    : 0
+  const maxDim = Math.max(...AIGC_DIMENSION_KEYS.map((k) => dimensionScores[k]))
+  const vetoBonus =
+    maxDim >= AIGC_VETO_THRESHOLD
+      ? AIGC_VETO_BONUS_FACTOR * Math.pow(maxDim - AIGC_VETO_THRESHOLD, 2)
+      : 0
   const overallRisk = Math.max(0, Math.min(100, Math.round(baseScore + vetoBonus)))
   const riskLevel = getRiskLevelFromScore(overallRisk)
-  
+
   // 收集所有建议
   const allSuggestions = new Set<string>()
-  paragraphAnalyses.forEach(pa => {
-    pa.analysis.concise_suggestions.forEach(s => allSuggestions.add(s))
+  paragraphAnalyses.forEach((pa) => {
+    pa.analysis.concise_suggestions.forEach((s) => allSuggestions.add(s))
   })
-  
+
   return {
     ...dimensionScores,
     overall_aigc_risk: Math.round(overallRisk),
@@ -1555,8 +1687,21 @@ const analyzeOverall = async (
 }
 
 // 构建AIGC分析提示词（语言由当前 i18n locale 决定，不区分学术/通用）
-const buildAigcAnalysisPrompt = (text: string, language: string, isParagraph: boolean = false): string => {
-  const langName = language === 'zh' ? '中文' : language === 'en' ? 'English' : language === 'ja' ? '日本語' : language === 'ko' ? '한국어' : language
+const buildAigcAnalysisPrompt = (
+  text: string,
+  language: string,
+  isParagraph: boolean = false
+): string => {
+  const langName =
+    language === 'zh'
+      ? '中文'
+      : language === 'en'
+        ? 'English'
+        : language === 'ja'
+          ? '日本語'
+          : language === 'ko'
+            ? '한국어'
+            : language
   const scope = isParagraph ? '段落' : '全文'
   return `你是一个学术写作分析 agent。
 
@@ -1598,15 +1743,21 @@ function escapeHtml(s: string): string {
 }
 
 /** 构建单个段落的报告块（不追加，供按索引插入用）；paraphrased 有值时追加「改写后的内容」与一键复制 */
-function buildParagraphReportBlock(para: { index: number; text: string; analysis: AigcAnalysisResult }, paraphrased: string | null = null): string {
+function buildParagraphReportBlock(
+  para: { index: number; text: string; analysis: AigcAnalysisResult },
+  paraphrased: string | null = null
+): string {
   const paraLevel = getRiskLevelFromScore(para.analysis.overall_aigc_risk)
-  const paraRiskColor = paraLevel === 'HIGH' ? '#f56c6c' : paraLevel === 'MEDIUM' ? '#e6a23c' : '#67c23a'
+  const paraRiskColor =
+    paraLevel === 'HIGH' ? '#f56c6c' : paraLevel === 'MEDIUM' ? '#e6a23c' : '#67c23a'
   const radarData = {
-    indicator: AIGC_DIMENSION_KEYS.map(k => ({ name: getDimensionLabel(k), max: 10 })),
-    series: [{
-      name: `段落 ${para.index + 1} 评分`,
-      value: AIGC_DIMENSION_KEYS.map(k => getDimensionScore(para.analysis, k))
-    }]
+    indicator: AIGC_DIMENSION_KEYS.map((k) => ({ name: getDimensionLabel(k), max: 10 })),
+    series: [
+      {
+        name: `段落 ${para.index + 1} 评分`,
+        value: AIGC_DIMENSION_KEYS.map((k) => getDimensionScore(para.analysis, k))
+      }
+    ]
   }
   let block = `### 段落 ${para.index + 1} {#paragraph-${para.index}}\n\n`
   block += `**风险评分：** <span style="color: ${paraRiskColor}; font-weight: bold;">${para.analysis.overall_aigc_risk}</span> (${paraLevel === 'HIGH' ? '高' : paraLevel === 'MEDIUM' ? '中' : '低'})\n\n`
@@ -1633,14 +1784,16 @@ function buildParagraphReportBlock(para: { index: number; text: string; analysis
   block += JSON.stringify(buildAigcRadarEchartsOption(radarData), null, 2)
   block += `\n\`\`\`\n\n`
   block += `**维度评分：**\n\n`
-  AIGC_DIMENSION_KEYS.forEach(k => {
+  AIGC_DIMENSION_KEYS.forEach((k) => {
     const v = getDimensionScore(para.analysis, k)
     block += `- ${getDimensionLabel(k)}：${v.toFixed(1)}\n`
   })
   block += `\n`
   if (para.analysis.concise_suggestions.length > 0) {
     block += `**修改建议：**\n\n`
-    para.analysis.concise_suggestions.forEach((s, i) => { block += `${i + 1}. ${s}\n` })
+    para.analysis.concise_suggestions.forEach((s, i) => {
+      block += `${i + 1}. ${s}\n`
+    })
     block += `\n`
   }
   block += `---\n\n`
@@ -1650,14 +1803,20 @@ function buildParagraphReportBlock(para: { index: number; text: string; analysis
 /** 构建总体报告块（不含标题与分段分析），供 refreshReportMarkdown 使用 */
 function buildOverallReportBlock(overall: AigcAnalysisResult): string {
   const radarData = {
-    indicator: AIGC_DIMENSION_KEYS.map(k => ({ name: getDimensionLabel(k), max: 10 })),
-    series: [{
-      name: '总体评分',
-      value: AIGC_DIMENSION_KEYS.map(k => getDimensionScore(overall, k))
-    }]
+    indicator: AIGC_DIMENSION_KEYS.map((k) => ({ name: getDimensionLabel(k), max: 10 })),
+    series: [
+      {
+        name: '总体评分',
+        value: AIGC_DIMENSION_KEYS.map((k) => getDimensionScore(overall, k))
+      }
+    ]
   }
-  const riskColor = overall.risk_level === 'HIGH' ? '#f56c6c' : 
-                    overall.risk_level === 'MEDIUM' ? '#e6a23c' : '#67c23a'
+  const riskColor =
+    overall.risk_level === 'HIGH'
+      ? '#f56c6c'
+      : overall.risk_level === 'MEDIUM'
+        ? '#e6a23c'
+        : '#67c23a'
   const dimDesc = (v: number, high: string, mid: string, low: string) =>
     v >= 7 ? `⚠️ ${high}` : v >= 4 ? `⚠️ ${mid}` : `✓ ${low}`
   let overallBlock = `## 总体分析\n\n`
@@ -1677,19 +1836,19 @@ function buildOverallReportBlock(overall: AigcAnalysisResult): string {
   overallBlock += `### 维度评分详情\n\n`
   overallBlock += `| 维度 | 评分 | 说明 |\n`
   overallBlock += `|------|------|------|\n`
-  AIGC_DIMENSION_KEYS.forEach(k => {
+  AIGC_DIMENSION_KEYS.forEach((k) => {
     const v = getDimensionScore(overall, k)
     const [high, mid, low] = AIGC_DIM_DESCRIPTIONS[k]
     overallBlock += `| ${getDimensionLabel(k)} | ${v.toFixed(1)} | ${dimDesc(v, high, mid, low)} |\n`
   })
   overallBlock += `\n`
-  
+
   overallBlock += `### 修改建议\n\n`
   overall.concise_suggestions.forEach((suggestion, index) => {
     overallBlock += `${index + 1}. ${suggestion}\n`
   })
   overallBlock += `\n`
-  
+
   overallBlock += `## 结论\n\n`
   if (overall.risk_level === 'HIGH') {
     overallBlock += `本文存在较高的 AIGC 风格风险。建议进行较大幅度的改写，特别是：\n\n`
@@ -1698,11 +1857,11 @@ function buildOverallReportBlock(overall: AigcAnalysisResult): string {
   } else {
     overallBlock += `本文的 AIGC 风格风险较低，但仍有改进空间。建议：\n\n`
   }
-  
+
   overall.concise_suggestions.slice(0, 3).forEach((suggestion, index) => {
     overallBlock += `${index + 1}. ${suggestion}\n`
   })
-  
+
   return overallBlock
 }
 
@@ -1777,7 +1936,7 @@ const handleAssembleAsNewArticle = async () => {
       domain: 'general'
     })
     await loadSessions()
-    const newItem = sessions.value.find(s => s.id === id)
+    const newItem = sessions.value.find((s) => s.id === id)
     if (newItem) {
       activeSessionId.value = id
       await handleSelectSession(newItem)
@@ -1796,14 +1955,20 @@ const generateReportMarkdown = (
   paragraphs: Array<{ index: number; text: string; analysis: AigcAnalysisResult }>
 ): string => {
   const radarData = {
-    indicator: AIGC_DIMENSION_KEYS.map(k => ({ name: getDimensionLabel(k), max: 10 })),
-    series: [{
-      name: '总体评分',
-      value: AIGC_DIMENSION_KEYS.map(k => getDimensionScore(overall, k))
-    }]
+    indicator: AIGC_DIMENSION_KEYS.map((k) => ({ name: getDimensionLabel(k), max: 10 })),
+    series: [
+      {
+        name: '总体评分',
+        value: AIGC_DIMENSION_KEYS.map((k) => getDimensionScore(overall, k))
+      }
+    ]
   }
-  const riskColor = overall.risk_level === 'HIGH' ? '#f56c6c' : 
-                    overall.risk_level === 'MEDIUM' ? '#e6a23c' : '#67c23a'
+  const riskColor =
+    overall.risk_level === 'HIGH'
+      ? '#f56c6c'
+      : overall.risk_level === 'MEDIUM'
+        ? '#e6a23c'
+        : '#67c23a'
   const dimDesc = (v: number, high: string, mid: string, low: string) =>
     v >= 7 ? `⚠️ ${high}` : v >= 4 ? `⚠️ ${mid}` : `✓ ${low}`
   let markdown = `# AIGC 风格风险评估报告\n\n`
@@ -1824,36 +1989,40 @@ const generateReportMarkdown = (
   markdown += `### 维度评分详情\n\n`
   markdown += `| 维度 | 评分 | 说明 |\n`
   markdown += `|------|------|------|\n`
-  AIGC_DIMENSION_KEYS.forEach(k => {
+  AIGC_DIMENSION_KEYS.forEach((k) => {
     const v = getDimensionScore(overall, k)
     const [high, mid, low] = AIGC_DIM_DESCRIPTIONS[k]
     markdown += `| ${getDimensionLabel(k)} | ${v.toFixed(1)} | ${dimDesc(v, high, mid, low)} |\n`
   })
   markdown += `\n`
-  
+
   // 修改建议
   markdown += `### 修改建议\n\n`
   overall.concise_suggestions.forEach((suggestion, index) => {
     markdown += `${index + 1}. ${suggestion}\n`
   })
   markdown += `\n`
-  
+
   // 分段分析
   markdown += `## 分段分析\n\n`
   paragraphs.forEach((para, index) => {
-    const paraRiskColor = para.analysis.risk_level === 'HIGH' ? '#f56c6c' : 
-                          para.analysis.risk_level === 'MEDIUM' ? '#e6a23c' : '#67c23a'
-    
+    const paraRiskColor =
+      para.analysis.risk_level === 'HIGH'
+        ? '#f56c6c'
+        : para.analysis.risk_level === 'MEDIUM'
+          ? '#e6a23c'
+          : '#67c23a'
+
     markdown += `### 段落 ${index + 1} {#paragraph-${index}}\n\n`
     markdown += `**风险评分：** <span style="color: ${paraRiskColor}; font-weight: bold;">${para.analysis.overall_aigc_risk}</span> (${para.analysis.risk_level === 'HIGH' ? '高' : para.analysis.risk_level === 'MEDIUM' ? '中' : '低'})\n\n`
     markdown += `**段落内容：**\n\n`
     markdown += `> ${para.text.split('\n').join('\n> ')}\n\n`
     markdown += `**维度评分：**\n\n`
-    AIGC_DIMENSION_KEYS.forEach(k => {
+    AIGC_DIMENSION_KEYS.forEach((k) => {
       markdown += `- ${getDimensionLabel(k)}：${getDimensionScore(para.analysis, k).toFixed(1)}\n`
     })
     markdown += `\n`
-    
+
     if (para.analysis.concise_suggestions.length > 0) {
       markdown += `**修改建议：**\n\n`
       para.analysis.concise_suggestions.forEach((suggestion, i) => {
@@ -1861,10 +2030,10 @@ const generateReportMarkdown = (
       })
       markdown += `\n`
     }
-    
+
     markdown += `---\n\n`
   })
-  
+
   // 结论
   markdown += `## 结论\n\n`
   if (overall.risk_level === 'HIGH') {
@@ -1874,11 +2043,11 @@ const generateReportMarkdown = (
   } else {
     markdown += `本文的 AIGC 风格风险较低，但仍有改进空间。建议：\n\n`
   }
-  
+
   overall.concise_suggestions.slice(0, 3).forEach((suggestion, index) => {
     markdown += `${index + 1}. ${suggestion}\n`
   })
-  
+
   return markdown
 }
 
@@ -1892,7 +2061,13 @@ async function paraphraseOneSegment(index: number, skipDbSave = false): Promise<
   const suggestions = pa.analysis.concise_suggestions ?? []
   const riskLevel = pa.analysis.risk_level ?? 'MEDIUM'
   const overallRisk = pa.analysis.overall_aigc_risk ?? 50
-  const prompt = buildParaphraseSegmentPrompt(text.trim(), aigcLanguage.value, suggestions, riskLevel, overallRisk)
+  const prompt = buildParaphraseSegmentPrompt(
+    text.trim(),
+    aigcLanguage.value,
+    suggestions,
+    riskLevel,
+    overallRisk
+  )
   const resultRef = vueRef('')
   const originKey = `aigc-paraphrase-seg-${index}-${Date.now()}`
   const messages: AIDialogMessage[] = [{ role: 'user', content: prompt }]
@@ -1930,9 +2105,7 @@ const handleParaphraseAll = async () => {
   paraphrasing.value = true
   try {
     const n = Math.min(paragraphAnalyses.value.length, paragraphs.value.length)
-    await Promise.all(
-      Array.from({ length: n }, (_, i) => paraphraseOneSegment(i, true))
-    )
+    await Promise.all(Array.from({ length: n }, (_, i) => paraphraseOneSegment(i, true)))
     if (activeSessionId.value) {
       await aigcDetectionSessionsDb.update(activeSessionId.value, {
         paragraph_paraphrases: JSON.stringify(paragraphParaphrases.value),
@@ -1973,7 +2146,16 @@ function buildParaphraseSegmentPrompt(
   riskLevel: string = 'MEDIUM',
   overallRisk: number = 50
 ): string {
-  const langName = language === 'zh' ? '中文' : language === 'en' ? 'English' : language === 'ja' ? '日本語' : language === 'ko' ? '한국어' : language
+  const langName =
+    language === 'zh'
+      ? '中文'
+      : language === 'en'
+        ? 'English'
+        : language === 'ja'
+          ? '日本語'
+          : language === 'ko'
+            ? '한국어'
+            : language
   const riskLabel = riskLevel === 'HIGH' ? '高' : riskLevel === 'MEDIUM' ? '中' : '低'
   let block = `你是一位擅长「去 AIGC 化」的改写专家。请对下列段落进行改写。
 
@@ -1991,20 +2173,22 @@ ${text}
 <<<段落>>>`
   if (suggestions.length > 0) {
     block += `\n\n【修改建议】（请务必在改写中落实）：\n`
-    suggestions.forEach((s, i) => { block += `${i + 1}. ${s}\n` })
+    suggestions.forEach((s, i) => {
+      block += `${i + 1}. ${s}\n`
+    })
   }
   return block
 }
 
 // 主题样式
 const borderColor = computed(() =>
-  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)',
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)'
 )
 
 const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
   color: themeState.currentTheme.textColor,
-  borderColor: borderColor.value,
+  borderColor: borderColor.value
 }))
 
 const contentAreaStyle = computed(() => ({
@@ -2037,9 +2221,9 @@ watch(
     if (!tid || workspace.activeTabId.value !== tid || sessions.value.length === 0) return
     const state = workspace.getTabToolState(tid)
     const savedId = state.activeSessionId
-    if (!savedId || !sessions.value.some(s => s.id === savedId)) return
+    if (!savedId || !sessions.value.some((s) => s.id === savedId)) return
     if (activeSessionId.value === savedId) return
-    const item = sessions.value.find(s => s.id === savedId)!
+    const item = sessions.value.find((s) => s.id === savedId)!
     activeSessionId.value = savedId
     handleSelectSession(item)
   },
@@ -2098,14 +2282,19 @@ onMounted(() => {
   overflow: hidden;
   margin: 0;
   height: 100%;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
   gap: 0;
 }
 
 /* 工具栏区域 */
 .toolbar-section {
   margin-bottom: 16px;
-  background-color: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
+  background-color: v-bind(
+    'themeState.currentTheme.background2nd || themeState.currentTheme.background'
+  );
   border-radius: 8px;
   border: 1px solid v-bind('borderColor');
   flex-shrink: 0;
@@ -2234,11 +2423,15 @@ onMounted(() => {
   width: 8px;
   right: 2px;
   border-radius: 4px;
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"'
+  );
 }
 .report-scrollbar :deep(.el-scrollbar__thumb) {
   border-radius: 4px;
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.2)"');
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.2)"'
+  );
 }
 
 .report-placeholder {
@@ -2350,7 +2543,9 @@ onMounted(() => {
 .report-scrollbar :deep(.aigc-original-content),
 .report-scrollbar :deep(.aigc-paraphrased-content-block) {
   padding: 10px;
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
+  background: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"'
+  );
   border-radius: 6px;
   font-size: 13px;
   margin-bottom: 8px;
@@ -2588,4 +2783,3 @@ onMounted(() => {
   background-color: rgba(103, 194, 58, 0.12) !important;
 }
 </style>
-

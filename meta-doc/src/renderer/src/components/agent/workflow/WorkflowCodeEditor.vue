@@ -6,7 +6,9 @@
       </div>
       <div class="header-right" v-if="!props.readOnly">
         <el-button size="small" @click="handleFormat">{{ t('common.format') }}</el-button>
-        <el-button size="small" type="primary" @click="handleApply">{{ t('common.apply') }}</el-button>
+        <el-button size="small" type="primary" @click="handleApply">{{
+          t('common.apply')
+        }}</el-button>
       </div>
     </div>
     <div ref="editorContainer" class="code-editor-content"></div>
@@ -30,7 +32,10 @@ import { ElMessage } from 'element-plus'
 import * as monaco from 'monaco-editor'
 import { themeState } from '../../../utils/themes'
 import type { Workflow } from '../../../types/agent-framework'
-import { workflowToPseudoCode, pseudoCodeToWorkflow } from '../../../utils/agent-framework/workflow-pseudo-code'
+import {
+  workflowToPseudoCode,
+  pseudoCodeToWorkflow
+} from '../../../utils/agent-framework/workflow-pseudo-code'
 
 const props = defineProps<{
   workflow: Workflow
@@ -58,12 +63,12 @@ const containerStyle = computed(() => ({
 // 初始化Monaco编辑器
 const initEditor = async () => {
   if (!editorContainer.value) return
-  
+
   try {
     // 确保Monaco Worker已配置
     const { setupMonacoWorker } = await import('../../../utils/monaco-worker-config')
     setupMonacoWorker()
-    
+
     // 创建编辑器（使用JavaScript语言）
     editor = monaco.editor.create(editorContainer.value, {
       value: workflowToPseudoCode(props.workflow),
@@ -77,7 +82,7 @@ const initEditor = async () => {
       wordWrap: 'on',
       readOnly: props.readOnly || false
     })
-    
+
     // 监听内容变化，实时解析
     let parseTimer: number | null = null
     editor.onDidChangeModelContent(() => {
@@ -88,14 +93,16 @@ const initEditor = async () => {
         validateCode()
       }, 500)
     })
-    
+
     // 监听主题变化
-    watch(() => themeState.currentTheme.type, (newType) => {
-      if (editor) {
-        monaco.editor.setTheme(newType === 'dark' ? 'vs-dark' : 'vs')
+    watch(
+      () => themeState.currentTheme.type,
+      (newType) => {
+        if (editor) {
+          monaco.editor.setTheme(newType === 'dark' ? 'vs-dark' : 'vs')
+        }
       }
-    })
-    
+    )
   } catch (error) {
     console.error('Failed to initialize code editor:', error)
   }
@@ -104,19 +111,19 @@ const initEditor = async () => {
 // 验证代码
 const validateCode = () => {
   if (!editor) return
-  
+
   const code = editor.getValue()
   const result = pseudoCodeToWorkflow(code)
-  
+
   parseErrors.value = result.errors
-  
+
   // 显示语法错误标记
   if (editor && result.errors.length > 0) {
     const model = editor.getModel()
     if (model) {
       // 清除之前的标记
       monaco.editor.removeAllMarkers('workflow-pseudo')
-      
+
       // 添加错误标记（简化版）
       result.errors.forEach((error, index) => {
         monaco.editor.setModelMarkers(model, 'workflow-pseudo', [
@@ -137,10 +144,10 @@ const validateCode = () => {
 // 格式化代码
 const handleFormat = () => {
   if (!editor) return
-  
+
   const code = editor.getValue()
   const result = pseudoCodeToWorkflow(code)
-  
+
   if (result.workflow) {
     const formatted = workflowToPseudoCode(result.workflow)
     editor.setValue(formatted)
@@ -154,10 +161,10 @@ const handleFormat = () => {
 // 应用更改
 const handleApply = () => {
   if (!editor) return
-  
+
   const code = editor.getValue()
   const result = pseudoCodeToWorkflow(code)
-  
+
   if (result.workflow && result.errors.length === 0) {
     emit('workflowChanged', result.workflow)
     parseErrors.value = []
@@ -171,17 +178,21 @@ const handleApply = () => {
 // 转换到图形视图的功能已移除，由视图切换自动处理
 
 // 监听工作流变化，更新编辑器内容
-watch(() => props.workflow, (newWorkflow) => {
-  if (editor && newWorkflow) {
-    const currentCode = editor.getValue()
-    const newCode = workflowToPseudoCode(newWorkflow)
-    
-    // 只在内容不同时更新，避免光标位置丢失
-    if (currentCode !== newCode) {
-      editor.setValue(newCode)
+watch(
+  () => props.workflow,
+  (newWorkflow) => {
+    if (editor && newWorkflow) {
+      const currentCode = editor.getValue()
+      const newCode = workflowToPseudoCode(newWorkflow)
+
+      // 只在内容不同时更新，避免光标位置丢失
+      if (currentCode !== newCode) {
+        editor.setValue(newCode)
+      }
     }
-  }
-}, { deep: true })
+  },
+  { deep: true }
+)
 
 onMounted(() => {
   nextTick(() => {
@@ -236,4 +247,3 @@ onBeforeUnmount(() => {
   overflow-y: auto;
 }
 </style>
-

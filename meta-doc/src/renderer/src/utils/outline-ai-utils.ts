@@ -6,7 +6,14 @@
 import { ref, type Ref } from 'vue'
 import type { DocumentOutlineNode } from '../../../types'
 import { createAiTask, ai_types, cancelAiTask } from './ai_tasks'
-import { expandTreeNodePrompt, generateContentPrompt, generateParentNodeContentPrompt, expandContentPrompt, abridgeContentPrompt, polishContentPrompt } from './prompts'
+import {
+  expandTreeNodePrompt,
+  generateContentPrompt,
+  generateParentNodeContentPrompt,
+  expandContentPrompt,
+  abridgeContentPrompt,
+  polishContentPrompt
+} from './prompts'
 import { TREE_NODE_SCHEMA } from '../constants/document'
 import { removeTextFromOutline } from './document/outline'
 import { extractOuterJsonString } from './regex-utils'
@@ -31,23 +38,26 @@ export function cleanTitleMarkers(title: string): string {
   if (!title || typeof title !== 'string') {
     return title
   }
-  
+
   let cleaned = title.trim()
-  
+
   // 1. 移除Markdown标题标记（#、##、###等）
   cleaned = cleaned.replace(/^#+\s+/, '')
-  
+
   // 2. 移除LaTeX标题命令标记
-  const extractBracedContent = (str: string, startPos: number): { content: string; endPos: number } | null => {
+  const extractBracedContent = (
+    str: string,
+    startPos: number
+  ): { content: string; endPos: number } | null => {
     if (str[startPos] !== '{') return null
-    
+
     let depth = 0
     let i = startPos
     let content = ''
-    
+
     while (i < str.length) {
       const char = str[i]
-      
+
       if (char === '\\' && i + 1 < str.length) {
         const nextChar = str[i + 1]
         if (nextChar === '{' || nextChar === '}' || nextChar === '\\') {
@@ -58,7 +68,7 @@ export function cleanTitleMarkers(title: string): string {
           continue
         }
       }
-      
+
       if (char === '{') {
         depth++
         if (depth > 1) {
@@ -78,22 +88,28 @@ export function cleanTitleMarkers(title: string): string {
       }
       i++
     }
-    
+
     return null
   }
-  
+
   const latexTitleCommands = [
-    'part', 'chapter', 'section', 'subsection', 'subsubsection',
-    'paragraph', 'subparagraph', 'title'
+    'part',
+    'chapter',
+    'section',
+    'subsection',
+    'subsubsection',
+    'paragraph',
+    'subparagraph',
+    'title'
   ]
-  
+
   for (const cmd of latexTitleCommands) {
     const cmdPattern = new RegExp(`^\\\\${cmd}\\*?`, 'i')
     const match = cleaned.match(cmdPattern)
-    
+
     if (match) {
       const afterCmd = cleaned.substring(match[0].length).trim()
-      
+
       if (afterCmd.startsWith('{')) {
         const result = extractBracedContent(afterCmd, 0)
         if (result) {
@@ -103,7 +119,7 @@ export function cleanTitleMarkers(title: string): string {
       }
     }
   }
-  
+
   return cleaned.trim()
 }
 
@@ -114,7 +130,7 @@ export function cleanNodeTitleMarkers(node: DocumentOutlineNode): void {
   if (node.title) {
     node.title = cleanTitleMarkers(node.title)
   }
-  
+
   if (node.children && Array.isArray(node.children)) {
     for (const child of node.children) {
       cleanNodeTitleMarkers(child)
@@ -127,13 +143,13 @@ export function cleanNodeTitleMarkers(node: DocumentOutlineNode): void {
  */
 export function cleanRawContent(raw: string): string {
   if (!raw) return ''
-  
+
   let cleaned = raw.trim()
-  
+
   // 去除代码块标记
   cleaned = cleaned.replace(/^```(?:json|markdown|text)?\s*\n?/i, '')
   cleaned = cleaned.replace(/\n?```\s*$/i, '')
-  
+
   // 去除常见的说明文字段落
   const instructionPatterns = [
     /^请严格按照示例格式输出[，,，。.]?\s*不要添加任何其他内容[。.]?\s*[\n\r]+/i,
@@ -154,25 +170,27 @@ export function cleanRawContent(raw: string): string {
     /^明白了[，,]\s*/i,
     /^以下是[：:]\s*/i,
     /^内容如下[：:]\s*/i,
-    /^生成的内容[：:]\s*/i,
+    /^生成的内容[：:]\s*/i
   ]
-  
+
   for (const pattern of instructionPatterns) {
     cleaned = cleaned.replace(pattern, '')
   }
-  
+
   cleaned = cleaned.replace(/^[\s\n\r]+/, '')
-  
+
   if (!cleaned.trim()) {
     const lines = raw.split('\n')
     const contentLines: string[] = []
     let foundContent = false
-    
+
     for (const line of lines) {
       const trimmedLine = line.trim()
       if (!trimmedLine) continue
-      if (/^(请|现在|输出|根据|我将|好的|明白了)/i.test(trimmedLine) && 
-          /(格式|输出|示例|不要|添加)/i.test(trimmedLine)) {
+      if (
+        /^(请|现在|输出|根据|我将|好的|明白了)/i.test(trimmedLine) &&
+        /(格式|输出|示例|不要|添加)/i.test(trimmedLine)
+      ) {
         continue
       }
       if (trimmedLine.length > 10 || foundContent) {
@@ -180,12 +198,12 @@ export function cleanRawContent(raw: string): string {
         contentLines.push(line)
       }
     }
-    
+
     if (contentLines.length > 0) {
       cleaned = contentLines.join('\n').trim()
     }
   }
-  
+
   return cleaned.trim()
 }
 
@@ -193,21 +211,26 @@ export function cleanRawContent(raw: string): string {
  * 从自然语言文本中提取章节列表
  * 支持多种格式：列表、标题、编号等
  */
-function extractChaptersFromText(text: string, docFormat: 'md' | 'tex' = 'md'): DocumentOutlineNode[] | null {
+function extractChaptersFromText(
+  text: string,
+  docFormat: 'md' | 'tex' = 'md'
+): DocumentOutlineNode[] | null {
   if (!text || !text.trim()) {
     return null
   }
 
   const chapters: DocumentOutlineNode[] = []
   const lines = text.split('\n')
-  
+
   // 尝试多种格式匹配（按优先级排序）
   for (const line of lines) {
     const trimmedLine = line.trim()
     if (!trimmedLine) continue
 
     // 跳过明显的说明文字
-    if (trimmedLine.match(/^(以下是|生成|包括|包含|建议|推荐|可以|应该|注意|提示|说明|例如|比如)/i)) {
+    if (
+      trimmedLine.match(/^(以下是|生成|包括|包含|建议|推荐|可以|应该|注意|提示|说明|例如|比如)/i)
+    ) {
       continue
     }
 
@@ -233,13 +256,17 @@ function extractChaptersFromText(text: string, docFormat: 'md' | 'tex' = 'md'): 
     }
     // 2. 匹配中文编号格式：第一章 标题、第一节 标题
     else {
-      const chineseNumberMatch = trimmedLine.match(/^(第[一二三四五六七八九十\d百千万]+[章节部分])\s*(.+)$/)
+      const chineseNumberMatch = trimmedLine.match(
+        /^(第[一二三四五六七八九十\d百千万]+[章节部分])\s*(.+)$/
+      )
       if (chineseNumberMatch) {
         title = chineseNumberMatch[2].trim() || chineseNumberMatch[1].trim()
       }
       // 3. 匹配编号列表：1. 标题、1) 标题、一、标题
       else {
-        const numberedListMatch = trimmedLine.match(/^[\d一二三四五六七八九十]+[\.、：：）)]\s*(.+)$/)
+        const numberedListMatch = trimmedLine.match(
+          /^[\d一二三四五六七八九十]+[\.、：：）)]\s*(.+)$/
+        )
         if (numberedListMatch) {
           title = numberedListMatch[1].trim()
         }
@@ -324,9 +351,10 @@ async function convertTextToJsonChapters(
   signal?: AbortSignal,
   onUpdate?: (data: ToolCallbackData, progress?: ToolProgress) => void
 ): Promise<DocumentOutlineNode[]> {
-  const formatInstruction = docFormat === 'tex' 
-    ? '**重要：文档格式是LaTeX，生成的节点标题应该使用LaTeX格式（例如：\\section{标题}），不要使用Markdown的#、##等标记。**'
-    : '**重要：文档格式是Markdown，生成的节点标题应该使用Markdown格式（例如：# 标题、## 标题），不要使用LaTeX的\\section{}等命令。**'
+  const formatInstruction =
+    docFormat === 'tex'
+      ? '**重要：文档格式是LaTeX，生成的节点标题应该使用LaTeX格式（例如：\\section{标题}），不要使用Markdown的#、##等标记。**'
+      : '**重要：文档格式是Markdown，生成的节点标题应该使用Markdown格式（例如：# 标题、## 标题），不要使用LaTeX的\\section{}等命令。**'
 
   // 计算当前节点的title_level，子节点的title_level应该是父节点+1
   const parentTitleLevel = node.title_level || 0
@@ -379,7 +407,7 @@ ${text.substring(0, 2000)}${text.length > 2000 ? '...' : ''}
   const messages: AIDialogMessage[] = []
   messages.push({
     role: 'user',
-    content: conversionPrompt,
+    content: conversionPrompt
   })
 
   const rawStringRef = ref('')
@@ -389,24 +417,27 @@ ${text.substring(0, 2000)}${text.length > 2000 ? '...' : ''}
     rawStringRef,
     ai_types.chat,
     `outline-convert-${node.path}-${Date.now()}`,
-    { 
-      stream: true,
+    {
+      stream: true
     }
   )
 
   // Immediately pass streaming output info via onUpdate
   if (onUpdate) {
-    onUpdate({
-      content: {
-        stage: 'converting-text-streaming',
-        rawContentRef: rawStringRef,
-        rawContentDonePromise: done
+    onUpdate(
+      {
+        content: {
+          stage: 'converting-text-streaming',
+          rawContentRef: rawStringRef,
+          rawContentDonePromise: done
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 50,
-      message: '正在转换文本为章节列表（流式输出）...'
-    })
+      {
+        percentage: 50,
+        message: '正在转换文本为章节列表（流式输出）...'
+      }
+    )
   }
 
   if (signal) {
@@ -437,8 +468,12 @@ ${text.substring(0, 2000)}${text.length > 2000 ? '...' : ''}
 
   // 检查内容是否太短（可能是AI提前停止）
   if (convertedContent.length < 50) {
-    getLogger().warn(`AI返回内容过短（${convertedContent.length}字符），可能是提前停止: ${convertedContent.substring(0, 100)}`)
-    throw new Error(`AI返回内容过短（${convertedContent.length}字符），可能未完成生成。返回内容：${convertedContent.substring(0, 200)}。请确保AI返回完整的JSON数组格式。`)
+    getLogger().warn(
+      `AI返回内容过短（${convertedContent.length}字符），可能是提前停止: ${convertedContent.substring(0, 100)}`
+    )
+    throw new Error(
+      `AI返回内容过短（${convertedContent.length}字符），可能未完成生成。返回内容：${convertedContent.substring(0, 200)}。请确保AI返回完整的JSON数组格式。`
+    )
   }
 
   // 使用extractOuterJsonString提取JSON
@@ -453,7 +488,9 @@ ${text.substring(0, 2000)}${text.length > 2000 ? '...' : ''}
 
   if (!json) {
     getLogger().error(`无法提取JSON，原始内容前500字符: ${convertedContent.substring(0, 500)}`)
-    throw new Error(`AI转换后仍无法提取JSON格式。请确保AI返回有效的JSON数组格式。返回内容前200字符：${convertedContent.substring(0, 200)}`)
+    throw new Error(
+      `AI转换后仍无法提取JSON格式。请确保AI返回有效的JSON数组格式。返回内容前200字符：${convertedContent.substring(0, 200)}`
+    )
   }
 
   try {
@@ -461,7 +498,7 @@ ${text.substring(0, 2000)}${text.length > 2000 ? '...' : ''}
     if (!Array.isArray(parsed)) {
       throw new Error('解析结果不是有效的数组')
     }
-    
+
     if (parsed.length === 0) {
       throw new Error('解析结果为空数组')
     }
@@ -535,17 +572,18 @@ export async function generateChildNodes(
   )
 
   // 根据文档格式调整提示词（子节点的title也需要使用正确的格式）
-  const formatInstruction = docFormat === 'tex' 
-    ? '**重要：文档格式是LaTeX，生成的节点标题应该使用LaTeX格式（例如：\\section{标题}），不要使用Markdown的#、##等标记。**'
-    : '**重要：文档格式是Markdown，生成的节点标题应该使用Markdown格式（例如：# 标题、## 标题），不要使用LaTeX的\\section{}等命令。**'
-  
+  const formatInstruction =
+    docFormat === 'tex'
+      ? '**重要：文档格式是LaTeX，生成的节点标题应该使用LaTeX格式（例如：\\section{标题}），不要使用Markdown的#、##等标记。**'
+      : '**重要：文档格式是Markdown，生成的节点标题应该使用Markdown格式（例如：# 标题、## 标题），不要使用LaTeX的\\section{}等命令。**'
+
   const prompt = formatInstruction + '\n\n' + basePrompt
 
   // 构建消息数组，将 prompt 转换为对话格式
   const messages: AIDialogMessage[] = []
   messages.push({
     role: 'user',
-    content: prompt,
+    content: prompt
   })
 
   const rawStringRef = rawContentRef || ref('')
@@ -564,17 +602,20 @@ export async function generateChildNodes(
 
   // Immediately pass streaming output info via onUpdate
   if (onUpdate) {
-    onUpdate({
-      content: {
-        stage: 'generating-children-streaming',
-        rawContentRef: rawStringRef,
-        rawContentDonePromise: done
+    onUpdate(
+      {
+        content: {
+          stage: 'generating-children-streaming',
+          rawContentRef: rawStringRef,
+          rawContentDonePromise: done
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 30,
-      message: '正在生成子节点（流式输出）...'
-    })
+      {
+        percentage: 30,
+        message: '正在生成子节点（流式输出）...'
+      }
+    )
   }
 
   if (signal) {
@@ -605,7 +646,7 @@ export async function generateChildNodes(
 
   // 尝试提取JSON
   let json = extractOuterJsonString(rawContent)
-  
+
   // 如果第一次提取失败，尝试清理内容后再提取
   if (!json) {
     const cleaned = rawContent
@@ -658,10 +699,10 @@ export async function generateChildNodes(
         return bracket === ']' ? ']' : '}'
       })
       .trim()
-    
+
     // 尝试提取修复后的JSON
     json = extractOuterJsonString(cleaned)
-    
+
     // 如果还是失败，尝试直接解析修复后的内容
     if (!json) {
       try {
@@ -677,16 +718,14 @@ export async function generateChildNodes(
 
   // 如果JSON提取成功，尝试解析
   let newChildren: DocumentOutlineNode[] | null = null
-  
+
   if (json) {
     try {
       newChildren = JSON.parse(json) as DocumentOutlineNode[]
       if (Array.isArray(newChildren) && newChildren.length > 0) {
         // 验证节点结构是否符合schema
-        const isValid = newChildren.every(child => 
-          child && 
-          typeof child.title === 'string' && 
-          Array.isArray(child.children)
+        const isValid = newChildren.every(
+          (child) => child && typeof child.title === 'string' && Array.isArray(child.children)
         )
         if (isValid) {
           getLogger().info('成功解析JSON格式的子节点数据')
@@ -700,7 +739,7 @@ export async function generateChildNodes(
     } catch (parseError) {
       const errorMsg = parseError instanceof Error ? parseError.message : String(parseError)
       getLogger().warn('解析子节点JSON失败，尝试修复:', errorMsg)
-      
+
       // 尝试修复JSON格式问题（补全缺失的括号）
       try {
         let fixedJson = json
@@ -714,14 +753,12 @@ export async function generateChildNodes(
         if (openBrackets > closeBrackets) {
           fixedJson += ']'.repeat(openBrackets - closeBrackets)
         }
-        
+
         newChildren = JSON.parse(fixedJson) as DocumentOutlineNode[]
         if (Array.isArray(newChildren) && newChildren.length > 0) {
           // 验证节点结构是否符合schema
-          const isValid = newChildren.every(child => 
-            child && 
-            typeof child.title === 'string' && 
-            Array.isArray(child.children)
+          const isValid = newChildren.every(
+            (child) => child && typeof child.title === 'string' && Array.isArray(child.children)
           )
           if (isValid) {
             getLogger().info('修复JSON格式后成功解析')
@@ -749,9 +786,17 @@ export async function generateChildNodes(
         getLogger().info(`从文本中直接提取到 ${extractedChapters.length} 个章节`)
         return extractedChapters
       }
-      
+
       // 如果直接提取失败，使用AI转换
-      newChildren = await convertTextToJsonChapters(rawContent, node, outlineTree, userPrompt, docFormat, signal, onUpdate)
+      newChildren = await convertTextToJsonChapters(
+        rawContent,
+        node,
+        outlineTree,
+        userPrompt,
+        docFormat,
+        signal,
+        onUpdate
+      )
       if (newChildren && newChildren.length > 0) {
         getLogger().info(`LLM转换成功，生成 ${newChildren.length} 个符合schema规范的章节`)
       } else {
@@ -759,14 +804,18 @@ export async function generateChildNodes(
       }
     } catch (convertError) {
       getLogger().error('LLM转换失败:', convertError)
-      throw new Error(`无法从AI响应中提取有效的子节点数据。请确保AI返回有效的JSON格式或清晰的章节列表。错误：${convertError instanceof Error ? convertError.message : String(convertError)}`)
+      throw new Error(
+        `无法从AI响应中提取有效的子节点数据。请确保AI返回有效的JSON格式或清晰的章节列表。错误：${convertError instanceof Error ? convertError.message : String(convertError)}`
+      )
     }
   }
 
   // 如果所有方法都失败，抛出错误
   if (!newChildren || !Array.isArray(newChildren) || newChildren.length === 0) {
     getLogger().warn('所有解析方法都失败，原始内容前500字符:', rawContent.substring(0, 500))
-    throw new Error('未能从AI响应中提取有效的子节点数据。请确保AI返回符合大纲schema规范的JSON格式。')
+    throw new Error(
+      '未能从AI响应中提取有效的子节点数据。请确保AI返回符合大纲schema规范的JSON格式。'
+    )
   }
 
   // 清理所有子节点标题中的Markdown/LaTeX标记
@@ -802,10 +851,11 @@ export async function generateNodeContent(
   }
 
   // 根据文档格式调整提示词
-  const formatInstruction = docFormat === 'tex' 
-    ? '**重要：文档格式是LaTeX，请使用LaTeX语法生成内容（使用\\section{}, \\subsection{}等命令，不要使用Markdown的#、##等标记）。**'
-    : '**重要：文档格式是Markdown，请使用Markdown语法生成内容（使用#、##等标题标记）。**'
-  
+  const formatInstruction =
+    docFormat === 'tex'
+      ? '**重要：文档格式是LaTeX，请使用LaTeX语法生成内容（使用\\section{}, \\subsection{}等命令，不要使用Markdown的#、##等标记）。**'
+      : '**重要：文档格式是Markdown，请使用Markdown语法生成内容（使用#、##等标题标记）。**'
+
   const basePrompt = hasChildren
     ? generateParentNodeContentPrompt(
         JSON.stringify(removeTextFromOutline(outlineTree)),
@@ -817,7 +867,7 @@ export async function generateNodeContent(
         JSON.stringify(node),
         enhancedUserPrompt
       )
-  
+
   // 在提示词开头添加格式说明
   const prompt = formatInstruction + '\n\n' + basePrompt
 
@@ -825,7 +875,7 @@ export async function generateNodeContent(
   const messages: AIDialogMessage[] = []
   messages.push({
     role: 'user',
-    content: prompt,
+    content: prompt
   })
 
   const rawStringRef = rawContentRef || ref('')
@@ -844,17 +894,20 @@ export async function generateNodeContent(
 
   // Immediately pass streaming output info via onUpdate
   if (onUpdate) {
-    onUpdate({
-      content: {
-        stage: 'generating-content-streaming',
-        rawContentRef: rawStringRef,
-        rawContentDonePromise: done
+    onUpdate(
+      {
+        content: {
+          stage: 'generating-content-streaming',
+          rawContentRef: rawStringRef,
+          rawContentDonePromise: done
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 30,
-      message: '正在生成节点内容（流式输出）...'
-    })
+      {
+        percentage: 30,
+        message: '正在生成节点内容（流式输出）...'
+      }
+    )
   }
 
   if (signal) {
@@ -929,7 +982,7 @@ export async function generateChildrenChildren(
 
     // 如果当前节点有子节点，先递归处理子节点
     if (curNode.children && curNode.children.length > 0) {
-      await Promise.all(curNode.children.map(child => traverseAndGenerate(child)))
+      await Promise.all(curNode.children.map((child) => traverseAndGenerate(child)))
       return
     }
 
@@ -939,7 +992,7 @@ export async function generateChildrenChildren(
       if (onNodeProgress) {
         onNodeProgress(curNode, nodeRawContentRef)
       }
-      
+
       const newChildren = await generateChildNodes(
         curNode,
         outlineTree,
@@ -951,7 +1004,7 @@ export async function generateChildrenChildren(
         true, // 启用fallback
         temperature // 传递温度参数
       )
-      
+
       if (!curNode.children) {
         curNode.children = []
       }
@@ -994,7 +1047,7 @@ export async function generateChildrenContent(
 
     // 如果当前节点有子节点，先递归处理子节点
     if (curNode.children && curNode.children.length > 0) {
-      await Promise.all(curNode.children.map(child => traverseAndGenerate(child)))
+      await Promise.all(curNode.children.map((child) => traverseAndGenerate(child)))
     }
 
     // 生成当前节点的内容（只处理非根节点）
@@ -1004,13 +1057,13 @@ export async function generateChildrenContent(
         if (onNodeProgress) {
           onNodeProgress(curNode, nodeRawContentRef)
         }
-        
+
         // 构建增强的用户提示词（包含字数要求）
         let enhancedUserPrompt = userPrompt
         if (wordCount) {
           enhancedUserPrompt += `\n目标字数：约${wordCount}字`
         }
-        
+
         const content = await generateNodeContent(
           curNode,
           outlineTree,
@@ -1061,10 +1114,11 @@ export async function expandContent(
     throw new Error('节点内容为空，无法扩写')
   }
 
-  const formatInstruction = docFormat === 'tex' 
-    ? '**重要：文档格式是LaTeX，请使用LaTeX语法生成内容（使用\\section{}, \\subsection{}等命令，不要使用Markdown的#、##等标记）。**'
-    : '**重要：文档格式是Markdown，请使用Markdown语法生成内容（使用#、##等标题标记）。**'
-  
+  const formatInstruction =
+    docFormat === 'tex'
+      ? '**重要：文档格式是LaTeX，请使用LaTeX语法生成内容（使用\\section{}, \\subsection{}等命令，不要使用Markdown的#、##等标记）。**'
+      : '**重要：文档格式是Markdown，请使用Markdown语法生成内容（使用#、##等标题标记）。**'
+
   const basePrompt = expandContentPrompt(
     JSON.stringify(removeTextFromOutline(outlineTree)),
     JSON.stringify(node),
@@ -1072,13 +1126,15 @@ export async function expandContent(
     userPrompt,
     wordCount
   )
-  
+
   const prompt = formatInstruction + '\n\n' + basePrompt
 
-  const messages: AIDialogMessage[] = [{
-    role: 'user',
-    content: prompt,
-  }]
+  const messages: AIDialogMessage[] = [
+    {
+      role: 'user',
+      content: prompt
+    }
+  ]
 
   const rawStringRef = rawContentRef || ref('')
   const meta: any = { stream: true }
@@ -1096,17 +1152,20 @@ export async function expandContent(
   )
 
   if (onUpdate) {
-    onUpdate({
-      content: {
-        stage: 'expanding-content-streaming',
-        rawContentRef: rawStringRef,
-        rawContentDonePromise: done
+    onUpdate(
+      {
+        content: {
+          stage: 'expanding-content-streaming',
+          rawContentRef: rawStringRef,
+          rawContentDonePromise: done
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 30,
-      message: '正在扩写内容（流式输出）...'
-    })
+      {
+        percentage: 30,
+        message: '正在扩写内容（流式输出）...'
+      }
+    )
   }
 
   if (signal) {
@@ -1179,10 +1238,11 @@ export async function abridgeContent(
     throw new Error('节点内容为空，无法略写')
   }
 
-  const formatInstruction = docFormat === 'tex' 
-    ? '**重要：文档格式是LaTeX，请使用LaTeX语法生成内容（使用\\section{}, \\subsection{}等命令，不要使用Markdown的#、##等标记）。**'
-    : '**重要：文档格式是Markdown，请使用Markdown语法生成内容（使用#、##等标题标记）。**'
-  
+  const formatInstruction =
+    docFormat === 'tex'
+      ? '**重要：文档格式是LaTeX，请使用LaTeX语法生成内容（使用\\section{}, \\subsection{}等命令，不要使用Markdown的#、##等标记）。**'
+      : '**重要：文档格式是Markdown，请使用Markdown语法生成内容（使用#、##等标题标记）。**'
+
   const basePrompt = abridgeContentPrompt(
     JSON.stringify(removeTextFromOutline(outlineTree)),
     JSON.stringify(node),
@@ -1190,13 +1250,15 @@ export async function abridgeContent(
     userPrompt,
     wordCount
   )
-  
+
   const prompt = formatInstruction + '\n\n' + basePrompt
 
-  const messages: AIDialogMessage[] = [{
-    role: 'user',
-    content: prompt,
-  }]
+  const messages: AIDialogMessage[] = [
+    {
+      role: 'user',
+      content: prompt
+    }
+  ]
 
   const rawStringRef = rawContentRef || ref('')
   const meta: any = { stream: true }
@@ -1214,17 +1276,20 @@ export async function abridgeContent(
   )
 
   if (onUpdate) {
-    onUpdate({
-      content: {
-        stage: 'abridging-content-streaming',
-        rawContentRef: rawStringRef,
-        rawContentDonePromise: done
+    onUpdate(
+      {
+        content: {
+          stage: 'abridging-content-streaming',
+          rawContentRef: rawStringRef,
+          rawContentDonePromise: done
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 30,
-      message: '正在略写内容（流式输出）...'
-    })
+      {
+        percentage: 30,
+        message: '正在略写内容（流式输出）...'
+      }
+    )
   }
 
   if (signal) {
@@ -1295,23 +1360,26 @@ export async function polishContent(
     throw new Error('节点内容为空，无法润色')
   }
 
-  const formatInstruction = docFormat === 'tex' 
-    ? '**重要：文档格式是LaTeX，请使用LaTeX语法生成内容（使用\\section{}, \\subsection{}等命令，不要使用Markdown的#、##等标记）。**'
-    : '**重要：文档格式是Markdown，请使用Markdown语法生成内容（使用#、##等标题标记）。**'
-  
+  const formatInstruction =
+    docFormat === 'tex'
+      ? '**重要：文档格式是LaTeX，请使用LaTeX语法生成内容（使用\\section{}, \\subsection{}等命令，不要使用Markdown的#、##等标记）。**'
+      : '**重要：文档格式是Markdown，请使用Markdown语法生成内容（使用#、##等标题标记）。**'
+
   const basePrompt = polishContentPrompt(
     JSON.stringify(removeTextFromOutline(outlineTree)),
     JSON.stringify(node),
     node.text,
     userPrompt
   )
-  
+
   const prompt = formatInstruction + '\n\n' + basePrompt
 
-  const messages: AIDialogMessage[] = [{
-    role: 'user',
-    content: prompt,
-  }]
+  const messages: AIDialogMessage[] = [
+    {
+      role: 'user',
+      content: prompt
+    }
+  ]
 
   const rawStringRef = rawContentRef || ref('')
   const meta: any = { stream: true }
@@ -1329,17 +1397,20 @@ export async function polishContent(
   )
 
   if (onUpdate) {
-    onUpdate({
-      content: {
-        stage: 'polishing-content-streaming',
-        rawContentRef: rawStringRef,
-        rawContentDonePromise: done
+    onUpdate(
+      {
+        content: {
+          stage: 'polishing-content-streaming',
+          rawContentRef: rawStringRef,
+          rawContentDonePromise: done
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 30,
-      message: '正在润色内容（流式输出）...'
-    })
+      {
+        percentage: 30,
+        message: '正在润色内容（流式输出）...'
+      }
+    )
   }
 
   if (signal) {

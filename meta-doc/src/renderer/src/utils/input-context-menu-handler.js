@@ -3,7 +3,8 @@
  * 通过 CustomEvent 通知 InputContextMenu 组件显示菜单
  */
 
-const EXCLUDE_SELECTORS = '.monaco-editor, .vditor, .vditor-toolbar, [data-editor], .ql-editor, .tox-edit-area, .cm-editor, .CodeMirror, .ace_editor'
+const EXCLUDE_SELECTORS =
+  '.monaco-editor, .vditor, .vditor-toolbar, [data-editor], .ql-editor, .tox-edit-area, .cm-editor, .CodeMirror, .ace_editor'
 
 function getEditableElement(target) {
   if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
@@ -17,7 +18,12 @@ function getEditableElement(target) {
 function shouldShowInputMenu(target) {
   if (!target || typeof target.closest !== 'function') return false
   if (target.closest(EXCLUDE_SELECTORS)) return false
-  if (target.closest('.el-input') || target.closest('.el-textarea') || target.closest('.el-input-number')) return true
+  if (
+    target.closest('.el-input') ||
+    target.closest('.el-textarea') ||
+    target.closest('.el-input-number')
+  )
+    return true
   if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return true
   return false
 }
@@ -31,13 +37,15 @@ export function initInputContextMenuHandler() {
     e.preventDefault()
     e.stopPropagation()
 
-    window.dispatchEvent(new CustomEvent('input-context-menu-show', {
-      detail: {
-        target: editable,
-        x: e.clientX,
-        y: e.clientY
-      }
-    }))
+    window.dispatchEvent(
+      new CustomEvent('input-context-menu-show', {
+        detail: {
+          target: editable,
+          x: e.clientX,
+          y: e.clientY
+        }
+      })
+    )
   }
 
   // 尽早注册，使用 capture 阶段

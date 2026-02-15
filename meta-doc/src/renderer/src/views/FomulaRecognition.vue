@@ -21,177 +21,221 @@
         @duplicate="handleDuplicateSession"
         @delete="handleDeleteSession"
       >
-      <!-- 右侧内容区域 -->
-      <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
-        <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
-          <p>{{ t('formulaRecognition.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
-        </div>
-        
-        <div v-else class="session-content-panel" :style="panelStyle">
-          <!-- 顶部工具栏：工具选择、撤销/重做、重置、图片导入与粘贴、笔刷粗细调节 -->
-          <div class="toolbar-group" :style="toolbarGroupStyle">
-      <div class="flex flex-col items-start tool-group">
-        <el-segmented v-model="tool" :options="toolOptions" size="default">
-          <template #default="scope">
-            <div :class="[
-              'flex',
-              'items-center',
-              'gap-2',
-              'flex-col',
-            ]">
-              <img :src="scope.item.icon" alt="" class="formula-tool-icon" />
-              <div>{{ $t(scope.item.label) }}</div>
+        <!-- 右侧内容区域 -->
+        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+          <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
+            <p>{{ t('formulaRecognition.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
+          </div>
+
+          <div v-else class="session-content-panel" :style="panelStyle">
+            <!-- 顶部工具栏：工具选择、撤销/重做、重置、图片导入与粘贴、笔刷粗细调节 -->
+            <div class="toolbar-group" :style="toolbarGroupStyle">
+              <div class="flex flex-col items-start tool-group">
+                <el-segmented v-model="tool" :options="toolOptions" size="default">
+                  <template #default="scope">
+                    <div :class="['flex', 'items-center', 'gap-2', 'flex-col']">
+                      <img :src="scope.item.icon" alt="" class="formula-tool-icon" />
+                      <div>{{ $t(scope.item.label) }}</div>
+                    </div>
+                  </template>
+                </el-segmented>
+              </div>
+
+              <div class="undo-redo-group tool-group">
+                <el-tooltip :content="$t('formulaRecognition.undo')" placement="top">
+                  <el-button size="large" @click="undo" circle>
+                    <img
+                      :src="(themeState.currentTheme as unknown as Record<string, string>).UndoIcon"
+                      alt=""
+                      class="formula-toolbar-icon"
+                    />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip :content="$t('formulaRecognition.redo')" placement="top">
+                  <el-button size="large" circle @click="redo">
+                    <img
+                      :src="(themeState.currentTheme as unknown as Record<string, string>).RedoIcon"
+                      alt=""
+                      class="formula-toolbar-icon"
+                    />
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip :content="$t('formulaRecognition.reset')" placement="top">
+                  <el-button size="large" circle @click="resetCanvas">
+                    <img
+                      :src="
+                        (themeState.currentTheme as unknown as Record<string, string>).ClearIcon
+                      "
+                      alt=""
+                      class="formula-toolbar-icon"
+                    />
+                  </el-button>
+                </el-tooltip>
+              </div>
+
+              <div class="tool-group">
+                <el-tooltip :content="$t('formulaRecognition.import_image')" placement="top">
+                  <el-button @click="triggerImport">
+                    <el-icon><Upload /></el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-icon size="large" style="padding: 10px">
+                  <Picture />
+                </el-icon>
+                <el-tooltip :content="$t('formulaRecognition.copy_image')" placement="top">
+                  <el-button @click="copyImage">
+                    <el-icon><CopyDocument /></el-icon>
+                  </el-button>
+                </el-tooltip>
+              </div>
+
+              <!-- 隐藏的文件上传 -->
+              <input
+                type="file"
+                ref="fileInput"
+                style="display: none"
+                @change="handleFileChange"
+                accept="image/*"
+              />
+
+              <!-- 笔刷粗细调节 -->
+              <div class="brush-size tool-group" style="width: 240px">
+                <span>{{ $t('formulaRecognition.brush_size') }}</span>
+                <el-slider
+                  v-model="brushSize"
+                  :min="1"
+                  :max="20"
+                  :step="1"
+                  show-tooltip
+                  style="width: 120px"
+                />
+                <div
+                  class="brush-preview"
+                  :style="{
+                    marginLeft: '10px',
+                    width: brushPreviewSize + 'px',
+                    height: brushPreviewSize + 'px',
+                    borderRadius: '50%',
+                    backgroundColor: tool === 'eraser' ? '#fff' : '#000',
+                    border: tool === 'eraser' ? '1px solid #ccc' : 'none'
+                  }"
+                ></div>
+              </div>
+
+              <!-- 公式识别按钮（在笔刷粗细右侧） -->
+              <div class="tool-group">
+                <el-button type="primary" @click="recognizeFormula" :loading="processing">
+                  {{ $t('formulaRecognition.recognize_formula') }}
+                </el-button>
+              </div>
             </div>
-          </template>
-        </el-segmented>
-      </div>
 
-      <div class="undo-redo-group tool-group">
-        <el-tooltip :content="$t('formulaRecognition.undo')" placement="top">
-          <el-button size="large" @click="undo" circle>
-            <img :src="(themeState.currentTheme as unknown as Record<string, string>).UndoIcon" alt="" class="formula-toolbar-icon" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip :content="$t('formulaRecognition.redo')" placement="top">
-          <el-button size="large" circle @click="redo">
-            <img :src="(themeState.currentTheme as unknown as Record<string, string>).RedoIcon" alt="" class="formula-toolbar-icon" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip :content="$t('formulaRecognition.reset')" placement="top">
-          <el-button size="large" circle @click="resetCanvas">
-            <img :src="(themeState.currentTheme as unknown as Record<string, string>).ClearIcon" alt="" class="formula-toolbar-icon" />
-          </el-button>
-        </el-tooltip>
-      </div>
+            <!-- 上下结构：上方画布 70%，下方公式 30%，宽度占满 -->
+            <div class="content content-vertical">
+              <!-- 上方：画布区域 70% -->
+              <div class="content-top display-panel" id="canvasContainer" ref="canvasContainerRef">
+                <el-scrollbar>
+                  <div class="canvas-wrapper" :style="canvasWrapperStyle">
+                    <canvas
+                      ref="drawingCanvas"
+                      class="drawing-canvas"
+                      :class="{
+                        'cursor-default': tool === 'pointer',
+                        'cursor-none': tool === 'pen' || tool === 'eraser'
+                      }"
+                      :width="canvasWidth"
+                      :height="canvasHeight"
+                    ></canvas>
+                    <!-- 画笔/橡皮擦时跟随鼠标的圆形光标（直径与笔刷/橡皮擦一致） -->
+                    <div
+                      v-show="showCursorCircle"
+                      class="canvas-cursor-circle"
+                      :class="{ 'cursor-circle-eraser': tool === 'eraser' }"
+                      :style="cursorCircleStyle"
+                    ></div>
+                    <!-- 拖动时虚线预览：即将变成的画布大小 -->
+                    <div
+                      v-show="isResizingCanvas"
+                      class="canvas-resize-preview"
+                      :style="{
+                        width: resizeTargetW + 'px',
+                        height: resizeTargetH + 'px'
+                      }"
+                    ></div>
+                    <!-- 右下角拖动调整画布大小（类似 Windows 画图） -->
+                    <div
+                      class="canvas-resize-handle"
+                      :class="{ 'is-dragging': isResizingCanvas }"
+                      @mousedown.prevent="startCanvasResize"
+                    ></div>
+                  </div>
+                </el-scrollbar>
+              </div>
 
-      <div class="tool-group">
-        <el-tooltip :content="$t('formulaRecognition.import_image')" placement="top">
-          <el-button @click="triggerImport">
-            <el-icon><Upload /></el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-icon size="large" style="padding: 10px;">
-          <Picture />
-        </el-icon>
-        <el-tooltip :content="$t('formulaRecognition.copy_image')" placement="top">
-          <el-button @click="copyImage">
-            <el-icon><CopyDocument /></el-icon>
-          </el-button>
-        </el-tooltip>
-      </div>
+              <!-- 下方：公式面板 30% -->
+              <div class="content-bottom display-panel">
+                <div class="formula-panel-header">
+                  <span class="formula-panel-title">{{
+                    $t('formulaRecognition.resultTitle', '识别结果')
+                  }}</span>
+                  <div class="fomula-toolbar">
+                    <el-tooltip :content="$t('formulaRecognition.edit_formula')" placement="top">
+                      <el-button type="primary" :icon="Edit" circle @click="openEditDialog" />
+                    </el-tooltip>
+                    <el-tooltip :content="$t('formulaRecognition.copy_formula')" placement="top">
+                      <el-button type="primary" :icon="DocumentCopy" circle @click="copyResult" />
+                    </el-tooltip>
+                    <el-tooltip :content="$t('aigraph.exportImage')" placement="top">
+                      <el-button type="primary" :icon="Picture" circle @click="openExportDialog" />
+                    </el-tooltip>
+                  </div>
+                </div>
+                <div class="formula-panel-body">
+                  <MdPreview
+                    :modelValue="latexResult"
+                    class="latex-container"
+                    previewTheme="github"
+                    codeStyleReverse
+                    :style="{ color: themeState.currentTheme.textColor }"
+                    :class="themeState.currentTheme.mdeditorClass"
+                    :codeFold="false"
+                    :autoFoldThreshold="300"
+                  />
+                </div>
+              </div>
+            </div>
 
-      <!-- 隐藏的文件上传 -->
-      <input type="file" ref="fileInput" style="display: none" @change="handleFileChange" accept="image/*" />
-      
-      <!-- 笔刷粗细调节 -->
-      <div class="brush-size tool-group" style="width: 240px;">
-        <span>{{ $t('formulaRecognition.brush_size') }}</span>
-        <el-slider v-model="brushSize" :min="1" :max="20" :step="1" show-tooltip style="width: 120px" />
-        <div class="brush-preview" :style="{
-          marginLeft: '10px',
-          width: brushPreviewSize + 'px',
-          height: brushPreviewSize + 'px',
-          borderRadius: '50%',
-          backgroundColor: tool === 'eraser' ? '#fff' : '#000',
-          border: tool === 'eraser' ? '1px solid #ccc' : 'none'
-        }"></div>
-      </div>
-
-      <!-- 公式识别按钮（在笔刷粗细右侧） -->
-      <div class="tool-group">
-        <el-button type="primary" @click="recognizeFormula" :loading="processing">
-          {{ $t('formulaRecognition.recognize_formula') }}
-        </el-button>
-      </div>
-          </div>
-
-          <!-- 上下结构：上方画布 70%，下方公式 30%，宽度占满 -->
-          <div class="content content-vertical">
-      <!-- 上方：画布区域 70% -->
-      <div class="content-top display-panel" id="canvasContainer" ref="canvasContainerRef">
-        <el-scrollbar>
-          <div class="canvas-wrapper" :style="canvasWrapperStyle">
-            <canvas
-              ref="drawingCanvas"
-              class="drawing-canvas"
-              :class="{ 'cursor-default': tool === 'pointer', 'cursor-none': tool === 'pen' || tool === 'eraser' }"
-              :width="canvasWidth"
-              :height="canvasHeight"
-            ></canvas>
-            <!-- 画笔/橡皮擦时跟随鼠标的圆形光标（直径与笔刷/橡皮擦一致） -->
-            <div
-              v-show="showCursorCircle"
-              class="canvas-cursor-circle"
-              :class="{ 'cursor-circle-eraser': tool === 'eraser' }"
-              :style="cursorCircleStyle"
-            ></div>
-            <!-- 拖动时虚线预览：即将变成的画布大小 -->
-            <div
-              v-show="isResizingCanvas"
-              class="canvas-resize-preview"
-              :style="{
-                width: resizeTargetW + 'px',
-                height: resizeTargetH + 'px'
-              }"
-            ></div>
-            <!-- 右下角拖动调整画布大小（类似 Windows 画图） -->
-            <div
-              class="canvas-resize-handle"
-              :class="{ 'is-dragging': isResizingCanvas }"
-              @mousedown.prevent="startCanvasResize"
-            ></div>
-          </div>
-        </el-scrollbar>
-      </div>
-
-      <!-- 下方：公式面板 30% -->
-      <div class="content-bottom display-panel">
-        <div class="formula-panel-header">
-          <span class="formula-panel-title">{{ $t('formulaRecognition.resultTitle', '识别结果') }}</span>
-          <div class="fomula-toolbar">
-            <el-tooltip :content="$t('formulaRecognition.edit_formula')" placement="top">
-              <el-button type="primary" :icon="Edit" circle @click="openEditDialog" />
-            </el-tooltip>
-            <el-tooltip :content="$t('formulaRecognition.copy_formula')" placement="top">
-              <el-button type="primary" :icon="DocumentCopy" circle @click="copyResult" />
-            </el-tooltip>
-            <el-tooltip :content="$t('aigraph.exportImage')" placement="top">
-              <el-button type="primary" :icon="Picture" circle @click="openExportDialog" />
-            </el-tooltip>
+            <!-- SimpleTex 说明提示：同一会话第二次识别后才显示 -->
+            <el-alert
+              v-if="showSimpletexHint"
+              type="info"
+              :closable="false"
+              show-icon
+              class="simpletex-hint"
+            >
+              <span>{{ t('formulaRecognition.simpletexHint') }} </span>
+              <a :href="SIMPLETEX_OCR_URL" target="_blank" rel="noopener noreferrer">{{
+                t('formulaRecognition.simpletexLinkText')
+              }}</a>
+            </el-alert>
           </div>
         </div>
-        <div class="formula-panel-body">
-          <MdPreview
-            :modelValue="latexResult"
-            class="latex-container"
-            previewTheme="github"
-            codeStyleReverse
-            :style="{ color: themeState.currentTheme.textColor }"
-            :class="themeState.currentTheme.mdeditorClass"
-            :codeFold="false"
-            :autoFoldThreshold="300"
-          />
-        </div>
-      </div>
-      </div>
-      
-          <!-- SimpleTex 说明提示：同一会话第二次识别后才显示 -->
-          <el-alert v-if="showSimpletexHint" type="info" :closable="false" show-icon class="simpletex-hint">
-            <span>{{ t('formulaRecognition.simpletexHint') }} </span>
-            <a :href="SIMPLETEX_OCR_URL" target="_blank" rel="noopener noreferrer">{{ t('formulaRecognition.simpletexLinkText') }}</a>
-          </el-alert>
-
-        </div>
-      </div>
       </SessionList>
     </div>
 
     <!-- 编辑公式对话框 -->
-    <el-dialog :title="$t('formulaRecognition.edit_formula_dialog_title')" v-model="editDialogVisible">
+    <el-dialog
+      :title="$t('formulaRecognition.edit_formula_dialog_title')"
+      v-model="editDialogVisible"
+    >
       <el-input type="textarea" v-model="latexResult" rows="4" />
       <template #footer>
-        <el-button @click="editDialogVisible = false">{{ $t('formulaRecognition.cancel') }}</el-button>
-        <el-button type="primary" @click="editDialogVisible = false">{{ $t('formulaRecognition.confirm') }}</el-button>
+        <el-button @click="editDialogVisible = false">{{
+          $t('formulaRecognition.cancel')
+        }}</el-button>
+        <el-button type="primary" @click="editDialogVisible = false">{{
+          $t('formulaRecognition.confirm')
+        }}</el-button>
       </template>
     </el-dialog>
 
@@ -218,7 +262,6 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
 import { ElNotification, ElMessage } from 'element-plus'
@@ -233,14 +276,21 @@ import { createRendererLogger } from '../utils/logger.ts'
 import { exportSingleFormula } from '../utils/math-renderer.js'
 import SessionList from '../components/common/SessionList.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
-import { formulaRecognitionSessionsDb, type FormulaRecognitionSession } from '../utils/db/tool-sessions-db'
+import {
+  formulaRecognitionSessionsDb,
+  type FormulaRecognitionSession
+} from '../utils/db/tool-sessions-db'
 import { useWorkspace } from '../stores/workspace'
 
 const { t } = useI18n()
 const logger = createRendererLogger('FormulaRecognition')
 const workspace = useWorkspace()
 
-const ourTabId = computed(() => workspace.tabs.find(tab => tab.kind === 'tool' && tab.route === '/fomula-recognition')?.id ?? null)
+const ourTabId = computed(
+  () =>
+    workspace.tabs.find((tab) => tab.kind === 'tool' && tab.route === '/fomula-recognition')?.id ??
+    null
+)
 
 const SIMPLETEX_OCR_URL = 'https://simpletex.cn/ai/latex_ocr'
 
@@ -257,7 +307,7 @@ const sessions = ref<SessionListItem[]>([])
 const activeSessionId = ref<string | null>(null)
 const activeSession = computed(() => {
   if (!activeSessionId.value) return null
-  return sessions.value.find(s => s.id === activeSessionId.value) as any
+  return sessions.value.find((s) => s.id === activeSessionId.value) as any
 })
 const loadingSession = ref(false)
 const processing = ref(false)
@@ -301,13 +351,15 @@ const isMouseOverCanvas = ref(false)
 const cursorCircleX = ref(0)
 const cursorCircleY = ref(0)
 const cursorCircleDiameter = ref(20)
-const showCursorCircle = computed(() => (tool.value === 'pen' || tool.value === 'eraser') && isMouseOverCanvas.value)
+const showCursorCircle = computed(
+  () => (tool.value === 'pen' || tool.value === 'eraser') && isMouseOverCanvas.value
+)
 const cursorCircleStyle = computed(() => {
   const r = cursorCircleDiameter.value / 2
   return {
     position: 'fixed' as const,
-    left: (cursorCircleX.value - r) + 'px',
-    top: (cursorCircleY.value - r) + 'px',
+    left: cursorCircleX.value - r + 'px',
+    top: cursorCircleY.value - r + 'px',
     width: cursorCircleDiameter.value + 'px',
     height: cursorCircleDiameter.value + 'px'
   }
@@ -318,12 +370,12 @@ const exportFormat = ref('svg')
 
 // 根据 canvas 缩放比例动态计算预览笔刷的显示尺寸
 const brushPreviewSize = computed(() => {
-    if (drawingCanvas.value) {
-        const rect = drawingCanvas.value.getBoundingClientRect()
-        const scaleX = rect.width / drawingCanvas.value.width
-        return brushSize.value * scaleX
-    }
-    return brushSize.value
+  if (drawingCanvas.value) {
+    const rect = drawingCanvas.value.getBoundingClientRect()
+    const scaleX = rect.width / drawingCanvas.value.width
+    return brushSize.value * scaleX
+  }
+  return brushSize.value
 })
 
 // 撤销与重做栈（保存 canvas ImageData 对象）
@@ -408,7 +460,7 @@ function applyCanvasResize(newW: number, newH: number) {
 const loadSessions = async () => {
   try {
     const dbSessions = await formulaRecognitionSessionsDb.getAll()
-    sessions.value = dbSessions.map(s => ({
+    sessions.value = dbSessions.map((s) => ({
       id: s.id,
       title: s.title,
       updatedAt: s.updated_at
@@ -423,7 +475,7 @@ const handleCreateSession = async () => {
   try {
     const id = `formula-recognition-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const title = t('formulaRecognition.defaultTitle', '新公式识别会话')
-    
+
     await formulaRecognitionSessionsDb.create({
       id,
       title,
@@ -432,7 +484,7 @@ const handleCreateSession = async () => {
       latex_result: undefined,
       brush_size: 2
     })
-    
+
     await loadSessions()
     activeSessionId.value = id
     const tid = ourTabId.value
@@ -457,14 +509,14 @@ const handleCreateSession = async () => {
 // 选择会话
 const handleSelectSession = async (item: SessionListItem) => {
   if (loadingSession.value) return
-  
+
   loadingSession.value = true
   try {
     // 保存当前会话
     if (activeSessionId.value) {
       await saveCurrentSession()
     }
-    
+
     activeSessionId.value = item.id
     const tid = ourTabId.value
     if (tid) workspace.setTabToolState(tid, { activeSessionId: item.id })
@@ -518,7 +570,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
   try {
     const session = await formulaRecognitionSessionsDb.getById(item.id)
     if (!session) return
-    
+
     const id = `formula-recognition-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     await formulaRecognitionSessionsDb.create({
       id,
@@ -528,7 +580,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
       latex_result: session.latex_result,
       brush_size: session.brush_size
     })
-    
+
     await loadSessions()
     ElMessage.success(t('common.duplicateSuccess', '复制成功'))
   } catch (error) {
@@ -555,7 +607,7 @@ const handleDeleteSession = async (item: SessionListItem) => {
 // 保存当前会话
 const saveCurrentSession = async () => {
   if (!activeSessionId.value || !drawingCanvas.value) return
-  
+
   try {
     const canvasImage = drawingCanvas.value.toDataURL('image/png')
     await formulaRecognitionSessionsDb.update(activeSessionId.value, {
@@ -590,19 +642,19 @@ const restoreCanvas = async (canvasImage: string) => {
 // 初始化画布（画布尺寸仅在未设置时从视口取一次，之后不随窗口变化）
 const initCanvas = () => {
   if (!drawingCanvas.value) return
-  
+
   const container = canvasContainerRef.value || document.getElementById('canvasContainer')
   if (!container) return
-  
+
   canvasContext = drawingCanvas.value.getContext('2d')
   if (!canvasContext) return
-  
+
   // 设置默认绘图参数
   canvasContext.lineWidth = brushSize.value
   canvasContext.lineCap = 'round'
   canvasContext.lineJoin = 'round'
   canvasContext.fillStyle = '#fff'
-  
+
   // 仅当画布尺寸尚未设置时，从视口取初始尺寸（新会话或首次进入）
   if (canvasWidth.value <= 0 || canvasHeight.value <= 0) {
     const rect = container.getBoundingClientRect()
@@ -611,7 +663,7 @@ const initCanvas = () => {
     canvasWidth.value = w
     canvasHeight.value = h
   }
-  
+
   nextTick(() => {
     if (!drawingCanvas.value || !canvasContext) return
     const w = drawingCanvas.value.width
@@ -622,7 +674,7 @@ const initCanvas = () => {
       pushState()
     }
   })
-  
+
   // 移除旧的事件监听器（如果存在）
   if (drawingCanvas.value) {
     drawingCanvas.value.removeEventListener('mousedown', startDrawing)
@@ -632,7 +684,7 @@ const initCanvas = () => {
     drawingCanvas.value.removeEventListener('mouseout', stopDrawing)
     drawingCanvas.value.removeEventListener('mouseout', onCanvasMouseOut)
   }
-  
+
   // 监听绘图事件
   drawingCanvas.value.addEventListener('mousedown', startDrawing)
   drawingCanvas.value.addEventListener('mouseenter', updateCursorPosition)
@@ -640,7 +692,7 @@ const initCanvas = () => {
   drawingCanvas.value.addEventListener('mouseup', stopDrawing)
   drawingCanvas.value.addEventListener('mouseout', stopDrawing)
   drawingCanvas.value.addEventListener('mouseout', onCanvasMouseOut)
-  
+
   // 触摸事件支持
   drawingCanvas.value.addEventListener('touchstart', (e) => {
     e.preventDefault()
@@ -651,7 +703,7 @@ const initCanvas = () => {
     })
     drawingCanvas.value?.dispatchEvent(mouseEvent)
   })
-  
+
   drawingCanvas.value.addEventListener('touchmove', (e) => {
     e.preventDefault()
     const touch = e.touches[0]
@@ -661,7 +713,7 @@ const initCanvas = () => {
     })
     drawingCanvas.value?.dispatchEvent(mouseEvent)
   })
-  
+
   drawingCanvas.value.addEventListener('touchend', (e) => {
     e.preventDefault()
     const mouseEvent = new MouseEvent('mouseup', {})
@@ -677,9 +729,9 @@ watch(
     if (!tid || workspace.activeTabId.value !== tid || sessions.value.length === 0) return
     const state = workspace.getTabToolState(tid)
     const savedId = state.activeSessionId
-    if (!savedId || !sessions.value.some(s => s.id === savedId)) return
+    if (!savedId || !sessions.value.some((s) => s.id === savedId)) return
     if (activeSessionId.value === savedId) return
-    const item = sessions.value.find(s => s.id === savedId)!
+    const item = sessions.value.find((s) => s.id === savedId)!
     activeSessionId.value = savedId
     handleSelectSession(item)
   },
@@ -704,7 +756,7 @@ onBeforeUnmount(() => {
   }
   window.removeEventListener('paste', handlePaste)
   window.removeEventListener('keydown', handleUndoRedoKeydown)
-  
+
   // 清理事件监听器
   if (drawingCanvas.value) {
     drawingCanvas.value.removeEventListener('mousedown', startDrawing)
@@ -728,15 +780,15 @@ watch([() => latexResult.value, () => brushSize.value], () => {
 
 // 计算 canvas 内部的实际坐标（考虑缩放偏移）
 function getCanvasCoordinates(e: MouseEvent) {
-    if (!drawingCanvas.value) return { x: 0, y: 0 }
-    const rect = drawingCanvas.value.getBoundingClientRect()
-    if (rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 }
-    const scaleX = drawingCanvas.value.width / rect.width
-    const scaleY = drawingCanvas.value.height / rect.height
-    return {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY
-    }
+  if (!drawingCanvas.value) return { x: 0, y: 0 }
+  const rect = drawingCanvas.value.getBoundingClientRect()
+  if (rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 }
+  const scaleX = drawingCanvas.value.width / rect.width
+  const scaleY = drawingCanvas.value.height / rect.height
+  return {
+    x: (e.clientX - rect.left) * scaleX,
+    y: (e.clientY - rect.top) * scaleY
+  }
 }
 
 // 更新画布上圆形光标位置与直径（画笔/橡皮擦时）
@@ -749,9 +801,7 @@ function updateCursorPosition(e: MouseEvent) {
   if (rect.width <= 0) return
   const scale = rect.width / drawingCanvas.value.width
   // 与绘制一致：画笔直径 = brushSize，橡皮擦直径 = 2*brushSize
-  const diameter = tool.value === 'eraser'
-    ? brushSize.value * 2 * scale
-    : brushSize.value * scale
+  const diameter = tool.value === 'eraser' ? brushSize.value * 2 * scale : brushSize.value * scale
   cursorCircleDiameter.value = Math.max(2, Math.min(200, diameter))
 }
 
@@ -762,7 +812,8 @@ function onCanvasMouseOut() {
 // 系统快捷键：Ctrl/Cmd+Z 撤销，Ctrl/Cmd+Shift+Z 或 Ctrl/Cmd+Y 重做
 function handleUndoRedoKeydown(e: KeyboardEvent) {
   const target = e.target as HTMLElement
-  const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
+  const isInput =
+    target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
   if (isInput) return
   const mod = e.ctrlKey || e.metaKey
   if (!mod) return
@@ -839,188 +890,199 @@ function draw(e: MouseEvent) {
 
 // 绘图结束
 function stopDrawing() {
-    if (!isDrawing || !canvasContext) return
-    isDrawing = false
-    canvasContext.closePath()
-    pushState()
-    redoStack.length = 0
+  if (!isDrawing || !canvasContext) return
+  isDrawing = false
+  canvasContext.closePath()
+  pushState()
+  redoStack.length = 0
 }
 
 // 保存当前 canvas 状态到撤销栈
 function pushState() {
-    if (!drawingCanvas.value || !canvasContext) return
-    const canvas = drawingCanvas.value
-    const imgData = canvasContext.getImageData(0, 0, canvas.width, canvas.height)
-    undoStack.push(imgData)
+  if (!drawingCanvas.value || !canvasContext) return
+  const canvas = drawingCanvas.value
+  const imgData = canvasContext.getImageData(0, 0, canvas.width, canvas.height)
+  undoStack.push(imgData)
 }
 
 // 撤销操作
 function undo() {
-    if (!canvasContext) return
-    if (undoStack.length <= 1) {
-        ElNotification({
-            title: t('formulaRecognition.notification.title_info'),
-            message: t('formulaRecognition.notification.undo_fail'),
-            type: 'warning'
-        })
-        return
+  if (!canvasContext) return
+  if (undoStack.length <= 1) {
+    ElNotification({
+      title: t('formulaRecognition.notification.title_info'),
+      message: t('formulaRecognition.notification.undo_fail'),
+      type: 'warning'
+    })
+    return
+  }
+  const currentState = undoStack.pop()
+  if (currentState) {
+    redoStack.push(currentState)
+    const previousState = undoStack[undoStack.length - 1]
+    if (previousState) {
+      canvasContext.putImageData(previousState, 0, 0)
     }
-    const currentState = undoStack.pop()
-    if (currentState) {
-        redoStack.push(currentState)
-        const previousState = undoStack[undoStack.length - 1]
-        if (previousState) {
-            canvasContext.putImageData(previousState, 0, 0)
-        }
-    }
+  }
 }
 
 // 重做操作
 function redo() {
-    if (!canvasContext || redoStack.length === 0) {
-        if (redoStack.length === 0) {
-            ElNotification({
-                title: t('formulaRecognition.notification.title_info'),
-                message: t('formulaRecognition.notification.redo_fail'),
-                type: 'warning'
-            })
-        }
-        return
+  if (!canvasContext || redoStack.length === 0) {
+    if (redoStack.length === 0) {
+      ElNotification({
+        title: t('formulaRecognition.notification.title_info'),
+        message: t('formulaRecognition.notification.redo_fail'),
+        type: 'warning'
+      })
     }
-    const state = redoStack.pop()
-    if (state) {
-        undoStack.push(state)
-        canvasContext.putImageData(state, 0, 0)
-    } else {
-ElNotification({
-  title: t('formulaRecognition.notification.title_info'),
-  message: t('formulaRecognition.notification.redo_fail'),
-  type: 'warning'
-})
-    }
+    return
+  }
+  const state = redoStack.pop()
+  if (state) {
+    undoStack.push(state)
+    canvasContext.putImageData(state, 0, 0)
+  } else {
+    ElNotification({
+      title: t('formulaRecognition.notification.title_info'),
+      message: t('formulaRecognition.notification.redo_fail'),
+      type: 'warning'
+    })
+  }
 }
 
 // 工具选择
 function selectTool(selected: string) {
-    tool.value = selected
+  tool.value = selected
 }
 
 // 重置画布，清空内容并保存初始状态
 function resetCanvas() {
-    if (!canvasContext || !drawingCanvas.value) return
-    canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-    canvasContext.fillStyle = '#fff'
-    canvasContext.fillRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-    undoStack.length = 0
-    redoStack.length = 0
-    pushState()
+  if (!canvasContext || !drawingCanvas.value) return
+  canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
+  canvasContext.fillStyle = '#fff'
+  canvasContext.fillRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
+  undoStack.length = 0
+  redoStack.length = 0
+  pushState()
 }
 
 // 触发文件上传
 function triggerImport() {
-    fileInput.value && fileInput.value.click()
+  fileInput.value && fileInput.value.click()
 }
 
 // 处理上传的图片文件
 function handleFileChange(e: Event) {
-    const target = e.target as HTMLInputElement
-    const file = target.files?.[0]
-    if (file && file.type.startsWith('image/') && canvasContext && drawingCanvas.value) {
-        const reader = new FileReader()
-        reader.onload = (event) => {
-            const result = event.target?.result
-            if (typeof result === 'string') {
-                const img = new Image()
-                img.onload = () => {
-                    if (canvasContext && drawingCanvas.value) {
-                        canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-                        canvasContext.drawImage(img, 0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-                        pushState()
-                    }
-                }
-                img.src = result
-            }
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (file && file.type.startsWith('image/') && canvasContext && drawingCanvas.value) {
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const result = event.target?.result
+      if (typeof result === 'string') {
+        const img = new Image()
+        img.onload = () => {
+          if (canvasContext && drawingCanvas.value) {
+            canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
+            canvasContext.drawImage(
+              img,
+              0,
+              0,
+              drawingCanvas.value.width,
+              drawingCanvas.value.height
+            )
+            pushState()
+          }
         }
-        reader.readAsDataURL(file)
+        img.src = result
+      }
     }
+    reader.readAsDataURL(file)
+  }
 }
 
 // 复制图片到剪切板
 async function copyImage() {
-    if (!drawingCanvas.value) return
-    // 将 canvas 转为图片
-    const imgData = drawingCanvas.value.toDataURL('image/png')
-    // 将图片转为Base64格式，然后转换成Blob对象
-    let base64Data = await toBase64(imgData);
-    //console.log(base64Data);
-    const blobInput = convertBase64ToBlob(base64Data, "image/png");
-    const clipboardItemInput = new ClipboardItem({
-        "image/png": blobInput,
-    });
+  if (!drawingCanvas.value) return
+  // 将 canvas 转为图片
+  const imgData = drawingCanvas.value.toDataURL('image/png')
+  // 将图片转为Base64格式，然后转换成Blob对象
+  let base64Data = await toBase64(imgData)
+  //console.log(base64Data);
+  const blobInput = convertBase64ToBlob(base64Data, 'image/png')
+  const clipboardItemInput = new ClipboardItem({
+    'image/png': blobInput
+  })
 
-    if (navigator.clipboard) {
-        navigator.clipboard.write([clipboardItemInput]);
-    }
-ElNotification({
-  title: t('formulaRecognition.notification.title_success'),
-  message: t('formulaRecognition.notification.copy_image_success'),
-  type: 'success'
-})
-
+  if (navigator.clipboard) {
+    navigator.clipboard.write([clipboardItemInput])
+  }
+  ElNotification({
+    title: t('formulaRecognition.notification.title_success'),
+    message: t('formulaRecognition.notification.copy_image_success'),
+    type: 'success'
+  })
 }
 // 处理剪切板粘贴的图片
 function handlePaste(e: ClipboardEvent, items_?: DataTransferItemList | null) {
-    let items: DataTransferItemList
-    if (items_) {
-        items = items_
-    } else {
-        items = (e.clipboardData || (e as any).originalEvent?.clipboardData)?.items
-        if (!items) return
-    }
+  let items: DataTransferItemList
+  if (items_) {
+    items = items_
+  } else {
+    items = (e.clipboardData || (e as any).originalEvent?.clipboardData)?.items
+    if (!items) return
+  }
 
-    for (let index in items) {
-        const item = items[index]
-        if (item.kind === 'file' && canvasContext && drawingCanvas.value) {
-            const blob = item.getAsFile()
-            if (!blob) continue
-            const reader = new FileReader()
-            reader.onload = (event) => {
-                const result = event.target?.result
-                if (typeof result === 'string') {
-                    const img = new Image()
-                    img.onload = () => {
-                        if (canvasContext && drawingCanvas.value) {
-                            canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-                            canvasContext.drawImage(img, 0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
-                            pushState()
-                        }
-                    }
-                    img.src = result
-                }
+  for (let index in items) {
+    const item = items[index]
+    if (item.kind === 'file' && canvasContext && drawingCanvas.value) {
+      const blob = item.getAsFile()
+      if (!blob) continue
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const result = event.target?.result
+        if (typeof result === 'string') {
+          const img = new Image()
+          img.onload = () => {
+            if (canvasContext && drawingCanvas.value) {
+              canvasContext.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
+              canvasContext.drawImage(
+                img,
+                0,
+                0,
+                drawingCanvas.value.width,
+                drawingCanvas.value.height
+              )
+              pushState()
             }
-            reader.readAsDataURL(blob)
-            break
+          }
+          img.src = result
         }
+      }
+      reader.readAsDataURL(blob)
+      break
     }
+  }
 }
 
 // 模拟调用公式识别 API
 async function recognizeFormula() {
   if (!drawingCanvas.value) return
-  
+
   processing.value = true
   try {
     const imageData = drawingCanvas.value.toDataURL('image/png')
     const res = await simpletexOcr(imageData)
     latexResult.value = '$$\n' + res + '\n$$'
-    
+
     // 同一会话第二次识别后显示 SimpleTex 提示
     const sid = activeSessionId.value
     if (sid) {
       const prev = recognitionCountBySession.value[sid] || 0
       recognitionCountBySession.value = { ...recognitionCountBySession.value, [sid]: prev + 1 }
     }
-    
+
     // 若当前会话标题仍是默认，则改为「时间戳 + 识别公式（过长截断）」
     const defaultTitle = t('formulaRecognition.defaultTitle', '新公式识别会话')
     const session = activeSession.value
@@ -1029,12 +1091,13 @@ async function recognizeFormula() {
       const dateStr = `${now.getFullYear()}.${now.getMonth() + 1}.${now.getDate()}`
       const formulaPart = (res || '').replace(/\s+/g, ' ').trim()
       const maxLen = 28
-      const truncated = formulaPart.length > maxLen ? formulaPart.slice(0, maxLen) + '…' : formulaPart
+      const truncated =
+        formulaPart.length > maxLen ? formulaPart.slice(0, maxLen) + '…' : formulaPart
       const newTitle = truncated ? `${dateStr} - ${truncated}` : `${dateStr} - `
       await formulaRecognitionSessionsDb.update(sid, { title: newTitle })
       await loadSessions()
     }
-    
+
     // 保存结果
     if (activeSessionId.value) {
       await saveCurrentSession()
@@ -1053,152 +1116,186 @@ async function recognizeFormula() {
 
 // 打开编辑对话框
 function openEditDialog() {
-    editDialogVisible.value = true
+  editDialogVisible.value = true
 }
 
 // 复制公式到剪切板
 function copyResult() {
-    navigator.clipboard.writeText(latexResult.value).then(() => {
-  ElNotification({
-    title: t('formulaRecognition.notification.title_success'),
-    message: t('formulaRecognition.notification.copy_formula_success'),
-    type: 'success'
-  })
-    }).catch(() => {
-  ElNotification({
-    title: t('formulaRecognition.notification.title_error'),
-    message: t('formulaRecognition.notification.copy_formula_fail'),
-    type: 'error'
-  })
+  navigator.clipboard
+    .writeText(latexResult.value)
+    .then(() => {
+      ElNotification({
+        title: t('formulaRecognition.notification.title_success'),
+        message: t('formulaRecognition.notification.copy_formula_success'),
+        type: 'success'
+      })
+    })
+    .catch(() => {
+      ElNotification({
+        title: t('formulaRecognition.notification.title_error'),
+        message: t('formulaRecognition.notification.copy_formula_fail'),
+        type: 'error'
+      })
     })
 }
 
 function openExportDialog() {
-    exportDialogVisible.value = true
+  exportDialogVisible.value = true
 }
 
 function normalizeTex(src: string) {
-    // 去掉外围 ```latex 或者 $$ 包裹
-    let s = (src || '').trim()
-    // 去除 markdown 代码围栏
-    s = s.replace(/^```(?:latex|tex)\s*\n/, '').replace(/\n```\s*$/, '').trim()
-    // 去除块公式 $$...$$ 或 \[...\]
-    if (/^\$\$[\s\S]*\$\$$/m.test(s)) {
-        s = s.replace(/^\$\$\s*/, '').replace(/\s*\$\$$/, '')
-    } else if (/^\\\[[\s\S]*\\\]$/.test(s)) {
-        s = s.replace(/^\\\[\s*/, '').replace(/\s*\\\]$/, '')
-    } else if (/^\$[\s\S]*\$$/.test(s)) {
-        // 去除行内公式 $...$
-        s = s.replace(/^\$\s*/, '').replace(/\s*\$$/, '')
-    } else if (/^\\\([\s\S]*\\\)$/.test(s)) {
-        // 行内 \(...\)
-        s = s.replace(/^\\\(\s*/, '').replace(/\s*\\\)$/, '')
-    }
-    return s
+  // 去掉外围 ```latex 或者 $$ 包裹
+  let s = (src || '').trim()
+  // 去除 markdown 代码围栏
+  s = s
+    .replace(/^```(?:latex|tex)\s*\n/, '')
+    .replace(/\n```\s*$/, '')
+    .trim()
+  // 去除块公式 $$...$$ 或 \[...\]
+  if (/^\$\$[\s\S]*\$\$$/m.test(s)) {
+    s = s.replace(/^\$\$\s*/, '').replace(/\s*\$\$$/, '')
+  } else if (/^\\\[[\s\S]*\\\]$/.test(s)) {
+    s = s.replace(/^\\\[\s*/, '').replace(/\s*\\\]$/, '')
+  } else if (/^\$[\s\S]*\$$/.test(s)) {
+    // 去除行内公式 $...$
+    s = s.replace(/^\$\s*/, '').replace(/\s*\$$/, '')
+  } else if (/^\\\([\s\S]*\\\)$/.test(s)) {
+    // 行内 \(...\)
+    s = s.replace(/^\\\(\s*/, '').replace(/\s*\\\)$/, '')
+  }
+  return s
 }
 
 async function confirmExport() {
-    exportDialogVisible.value = false
-    const tex = normalizeTex(latexResult.value)
-    if (!tex) {
-        ElNotification({ title: t('formulaRecognition.notification.title_error'), message: t('aigraph.error.no_code_to_export') || '无可导出的公式', type: 'error' })
-        return
+  exportDialogVisible.value = false
+  const tex = normalizeTex(latexResult.value)
+  if (!tex) {
+    ElNotification({
+      title: t('formulaRecognition.notification.title_error'),
+      message: t('aigraph.error.no_code_to_export') || '无可导出的公式',
+      type: 'error'
+    })
+    return
+  }
+  try {
+    // 获取 IPC 渲染器
+    let ipcRenderer = null
+    if (window && window.electron) {
+      ipcRenderer = window.electron.ipcRenderer
+    } else {
+      const localIpcRenderer = (await import('../utils/web-adapter/local-ipc-renderer.ts')).default
+      ipcRenderer = localIpcRenderer
     }
-    try {
-        // 获取 IPC 渲染器
-        let ipcRenderer = null
-        if (window && window.electron) {
-            ipcRenderer = window.electron.ipcRenderer
-        } else {
-            const localIpcRenderer = (await import('../utils/web-adapter/local-ipc-renderer.ts')).default
-            ipcRenderer = localIpcRenderer
-        }
-        if (!ipcRenderer) {
-            throw new Error('无法获取 IPC 渲染器')
-        }
-
-        if (exportFormat.value === 'svg') {
-            // 按照 PDF 的前半段链路：生成 SVG -> 上传 -> 保存
-            const svgDataUrl = await exportSingleFormula(tex, 'svg')
-            // Data URL -> Blob
-            const res = await fetch(svgDataUrl)
-            const blob = await res.blob()
-            const fileName = `formula_${Date.now()}.svg`
-            const formData = new FormData()
-            const file = new File([blob], fileName, { type: 'image/svg+xml' })
-            formData.append('file[]', file, fileName)
-            const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', { method: 'POST', body: formData })
-            if (!resp.ok) throw new Error('上传 SVG 失败')
-            const json = await resp.json()
-            const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
-            const imageUrl = `http://localhost:52521/images/${uploaded}`
-
-            const saveResult = await ipcRenderer.invoke('save-image-file', imageUrl, 'formula.svg') as { success: boolean; error?: string }
-            if (!saveResult.success) throw new Error(saveResult.error || '保存失败')
-        } else if (exportFormat.value === 'png') {
-            // 矢量生成后再转位图
-            const svgDataUrl = await exportSingleFormula(tex, 'svg')
-            const svgBlob = await (await fetch(svgDataUrl)).blob()
-            const svgText = await svgBlob.text()
-            const { convertSvgToPng } = await import('../utils/chart-pre-renderer.js')
-            const pngBlob = await convertSvgToPng(svgText)
-            // Blob -> data URL
-            const dataUrl = await new Promise((resolve, reject) => {
-                const reader = new FileReader()
-                reader.onload = () => resolve(String(reader.result || ''))
-                reader.onerror = reject
-                reader.readAsDataURL(pngBlob)
-            })
-            
-            const result = await ipcRenderer.invoke('save-image-file', dataUrl, 'formula.png') as { success: boolean; error?: string }
-            if (!result.success) throw new Error(result.error || '保存失败')
-        } else if (exportFormat.value === 'pdf') {
-            // 先拿到 SVG data URL，再转 PDF（上传到本地再转换）
-            const svgDataUrl = await exportSingleFormula(tex, 'svg')
-            // Data URL -> Blob
-            const res = await fetch(svgDataUrl)
-            const blob = await res.blob()
-            const fileName = `formula_${Date.now()}.svg`
-            const formData = new FormData()
-            const file = new File([blob], fileName, { type: 'image/svg+xml' })
-            formData.append('file[]', file, fileName)
-            const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', { method: 'POST', body: formData })
-            if (!resp.ok) throw new Error('上传 SVG 失败')
-            const json = await resp.json()
-            const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
-            const imageUrl = `http://localhost:52521/images/${uploaded}`
-
-            // 转本地路径
-            const { image2local } = await import('../utils/md-utils.js')
-            const mdTmp = `![x](${imageUrl})`
-            const converted = await image2local(mdTmp)
-            const m = converted.match(/!\[.*?\]\((.+?)\)/)
-            const svgPath = m ? m[1] : imageUrl
-
-            const convertResult = await ipcRenderer.invoke('convert-svg-to-pdf', svgPath) as { success: boolean; pdfPath?: string; error?: string }
-            if (!convertResult.success || !convertResult.pdfPath) {
-                throw new Error(convertResult.error || 'SVG 转 PDF 失败')
-            }
-            const saveResult = await ipcRenderer.invoke('save-image-file', convertResult.pdfPath, 'formula.pdf') as { success: boolean; error?: string }
-            if (!saveResult.success) throw new Error(saveResult.error || '保存失败')
-        }
-        ElNotification({ title: t('aigraph.success.export_succeeded'), message: '', type: 'success' })
-    } catch (error) {
-        logger.error('导出公式失败:', error)
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        ElNotification({ title: t('aigraph.error.export_failed'), message: errorMessage, type: 'error' })
+    if (!ipcRenderer) {
+      throw new Error('无法获取 IPC 渲染器')
     }
+
+    if (exportFormat.value === 'svg') {
+      // 按照 PDF 的前半段链路：生成 SVG -> 上传 -> 保存
+      const svgDataUrl = await exportSingleFormula(tex, 'svg')
+      // Data URL -> Blob
+      const res = await fetch(svgDataUrl)
+      const blob = await res.blob()
+      const fileName = `formula_${Date.now()}.svg`
+      const formData = new FormData()
+      const file = new File([blob], fileName, { type: 'image/svg+xml' })
+      formData.append('file[]', file, fileName)
+      const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', {
+        method: 'POST',
+        body: formData
+      })
+      if (!resp.ok) throw new Error('上传 SVG 失败')
+      const json = await resp.json()
+      const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
+      const imageUrl = `http://localhost:52521/images/${uploaded}`
+
+      const saveResult = (await ipcRenderer.invoke('save-image-file', imageUrl, 'formula.svg')) as {
+        success: boolean
+        error?: string
+      }
+      if (!saveResult.success) throw new Error(saveResult.error || '保存失败')
+    } else if (exportFormat.value === 'png') {
+      // 矢量生成后再转位图
+      const svgDataUrl = await exportSingleFormula(tex, 'svg')
+      const svgBlob = await (await fetch(svgDataUrl)).blob()
+      const svgText = await svgBlob.text()
+      const { convertSvgToPng } = await import('../utils/chart-pre-renderer.js')
+      const pngBlob = await convertSvgToPng(svgText)
+      // Blob -> data URL
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result || ''))
+        reader.onerror = reject
+        reader.readAsDataURL(pngBlob)
+      })
+
+      const result = (await ipcRenderer.invoke('save-image-file', dataUrl, 'formula.png')) as {
+        success: boolean
+        error?: string
+      }
+      if (!result.success) throw new Error(result.error || '保存失败')
+    } else if (exportFormat.value === 'pdf') {
+      // 先拿到 SVG data URL，再转 PDF（上传到本地再转换）
+      const svgDataUrl = await exportSingleFormula(tex, 'svg')
+      // Data URL -> Blob
+      const res = await fetch(svgDataUrl)
+      const blob = await res.blob()
+      const fileName = `formula_${Date.now()}.svg`
+      const formData = new FormData()
+      const file = new File([blob], fileName, { type: 'image/svg+xml' })
+      formData.append('file[]', file, fileName)
+      const resp = await fetch('http://localhost:52521/api/image/upload?keepName=1', {
+        method: 'POST',
+        body: formData
+      })
+      if (!resp.ok) throw new Error('上传 SVG 失败')
+      const json = await resp.json()
+      const uploaded = json?.data?.succMap ? Object.keys(json.data.succMap)[0] : fileName
+      const imageUrl = `http://localhost:52521/images/${uploaded}`
+
+      // 转本地路径
+      const { image2local } = await import('../utils/md-utils.js')
+      const mdTmp = `![x](${imageUrl})`
+      const converted = await image2local(mdTmp)
+      const m = converted.match(/!\[.*?\]\((.+?)\)/)
+      const svgPath = m ? m[1] : imageUrl
+
+      const convertResult = (await ipcRenderer.invoke('convert-svg-to-pdf', svgPath)) as {
+        success: boolean
+        pdfPath?: string
+        error?: string
+      }
+      if (!convertResult.success || !convertResult.pdfPath) {
+        throw new Error(convertResult.error || 'SVG 转 PDF 失败')
+      }
+      const saveResult = (await ipcRenderer.invoke(
+        'save-image-file',
+        convertResult.pdfPath,
+        'formula.pdf'
+      )) as { success: boolean; error?: string }
+      if (!saveResult.success) throw new Error(saveResult.error || '保存失败')
+    }
+    ElNotification({ title: t('aigraph.success.export_succeeded'), message: '', type: 'success' })
+  } catch (error) {
+    logger.error('导出公式失败:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    ElNotification({
+      title: t('aigraph.error.export_failed'),
+      message: errorMessage,
+      type: 'error'
+    })
+  }
 }
 
 // 主题样式
 const borderColor = computed(() =>
-  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)',
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)'
 )
 
 const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
   color: themeState.currentTheme.textColor,
-  borderColor: borderColor.value,
+  borderColor: borderColor.value
 }))
 
 const contentAreaStyle = computed(() => ({
@@ -1276,7 +1373,10 @@ const toolbarGroupStyle = computed(() => ({
   overflow: hidden;
   margin: 0;
   height: 100%;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
   gap: 16px;
 }
 
@@ -1306,9 +1406,9 @@ const toolbarGroupStyle = computed(() => ({
 
 /* 笔刷粗细设置 */
 .brush-size {
-    display: flex;
-    align-items: center;
-    gap: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 /* 中间内容区域：上下结构，上方 70% 画布，下方 30% 公式，宽度占满 */
@@ -1378,8 +1478,8 @@ const toolbarGroupStyle = computed(() => ({
 }
 
 .canvas-wrapper {
-    position: relative;
-    flex-shrink: 0;
+  position: relative;
+  flex-shrink: 0;
 }
 
 /* 拖动时虚线框：即将变成的画布大小预览 */
@@ -1462,9 +1562,7 @@ const toolbarGroupStyle = computed(() => ({
 }
 
 .undo-redo-group {
-
-    gap: 5px;
-
+  gap: 5px;
 }
 
 .simpletex-hint {
@@ -1477,6 +1575,4 @@ const toolbarGroupStyle = computed(() => ({
 .simpletex-hint a:hover {
   text-decoration: underline;
 }
-
-
 </style>

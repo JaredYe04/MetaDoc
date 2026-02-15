@@ -54,7 +54,7 @@ export class FSPlanner {
     // 为每个源生成操作步骤
     for (const sourceURI of sources) {
       const sourcePath = URIUtils.uriToPath(sourceURI)
-      
+
       // 检查源是否存在
       const sourceExists = await this.checkPathExists(sourcePath)
       if (!sourceExists) {
@@ -83,11 +83,7 @@ export class FSPlanner {
         )
       } else {
         // 处理单个文件
-        const targetURI = await this.resolveTargetURI(
-          targetDirURI,
-          sourceName,
-          conflictResolution
-        )
+        const targetURI = await this.resolveTargetURI(targetDirURI, sourceName, conflictResolution)
 
         if (type === 'cut' || type === 'move') {
           steps.push({
@@ -116,15 +112,12 @@ export class FSPlanner {
   /**
    * 生成删除操作计划
    */
-  async createDeletePlan(
-    uris: URI[],
-    config: PlannerConfig = {}
-  ): Promise<FSOpPlan> {
+  async createDeletePlan(uris: URI[], config: PlannerConfig = {}): Promise<FSOpPlan> {
     // 去重和折叠：如果父目录在列表中，忽略子节点
     const normalizedURIs = this.normalizeDeleteTargets(uris)
-    
+
     const steps: FSOpStep[] = []
-    
+
     for (const uri of normalizedURIs) {
       const path = URIUtils.uriToPath(uri)
       const exists = await this.checkPathExists(path)
@@ -150,11 +143,7 @@ export class FSPlanner {
   /**
    * 生成重命名操作计划
    */
-  async createRenamePlan(
-    uri: URI,
-    newName: string,
-    config: PlannerConfig = {}
-  ): Promise<FSOpPlan> {
+  async createRenamePlan(uri: URI, newName: string, config: PlannerConfig = {}): Promise<FSOpPlan> {
     const oldPath = URIUtils.uriToPath(uri)
     const dirURI = URIUtils.dirname(uri)
     const newURI = URIUtils.join(dirURI, newName)
@@ -199,7 +188,7 @@ export class FSPlanner {
 
     const sourcePath = URIUtils.uriToPath(sourceDirURI)
     const sourceName = URIUtils.basename(sourceDirURI)
-    
+
     // 创建目标目录 URI
     const targetSubDirURI = await this.resolveTargetURI(
       targetDirURI,
@@ -274,9 +263,7 @@ export class FSPlanner {
       while (await this.checkPathExists(targetPath)) {
         const ext = this.getExtension(sourceName)
         const baseName = ext ? sourceName.slice(0, -ext.length) : sourceName
-        const newName = ext 
-          ? `${baseName} (${counter})${ext}`
-          : `${baseName} (${counter})`
+        const newName = ext ? `${baseName} (${counter})${ext}` : `${baseName} (${counter})`
         targetURI = URIUtils.join(targetDirURI, newName)
         targetPath = URIUtils.uriToPath(targetURI)
         counter++
@@ -297,13 +284,11 @@ export class FSPlanner {
     })
 
     const result: URI[] = []
-    
+
     for (const uri of sorted) {
       // 检查是否已经是某个已包含路径的子路径
-      const isSubPath = result.some(parentURI => 
-        URIUtils.isSubPath(parentURI, uri)
-      )
-      
+      const isSubPath = result.some((parentURI) => URIUtils.isSubPath(parentURI, uri))
+
       if (!isSubPath) {
         result.push(uri)
       }
@@ -325,7 +310,7 @@ export class FSPlanner {
    */
   private async checkPathExists(path: string): Promise<boolean> {
     try {
-      return await this.ipcRenderer.invoke('check-path-exists', path) as boolean
+      return (await this.ipcRenderer.invoke('check-path-exists', path)) as boolean
     } catch (err) {
       logger.error('检查路径是否存在失败:', err)
       return false
@@ -342,14 +327,16 @@ export class FSPlanner {
     }
   }
 
-  private async readDirectory(path: string): Promise<Array<{ name: string; isDirectory: boolean }>> {
+  private async readDirectory(
+    path: string
+  ): Promise<Array<{ name: string; isDirectory: boolean }>> {
     try {
-      const entries = await this.ipcRenderer.invoke('read-directory', path) as Array<{
+      const entries = (await this.ipcRenderer.invoke('read-directory', path)) as Array<{
         name: string
         path: string
         isDirectory: boolean
       }>
-      return entries.map(e => ({
+      return entries.map((e) => ({
         name: e.name,
         isDirectory: e.isDirectory
       }))
@@ -359,4 +346,3 @@ export class FSPlanner {
     }
   }
 }
-

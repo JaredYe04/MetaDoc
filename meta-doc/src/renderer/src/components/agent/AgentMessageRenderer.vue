@@ -1,173 +1,197 @@
 <template>
   <div :class="['agent-message', alignmentClass]">
     <div class="agent-message__main">
-
-    <!-- 消息气泡（用户消息保持气泡样式，AI消息平铺） -->
-    <div 
-      :class="['agent-message__body', { 'agent-message__body--flat': message.role !== 'user' }]"
-      :style="bubbleStyle"
-      @mouseenter="handleMouseEnter"
-      @mouseleave="handleMouseLeave"
-    >
-      <!-- 时间戳（用户消息显示在左边，AI消息显示在右边） -->
-      <transition name="fade">
-        <div 
-          v-if="showTimestamp" 
-          class="agent-message__timestamp"
-          :class="{
-            'agent-message__timestamp--left': message.role === 'user',
-            'agent-message__timestamp--right': message.role !== 'user'
-          }"
-        >
-          {{ formatTimestamp(message.timestamp) }}
-        </div>
-      </transition>
-
-      <!-- 用户消息操作按钮（hover时显示，保持原有下拉菜单方式） -->
-      <transition name="fade">
-        <div 
-          v-if="showActions && message.role === 'user'" 
-          class="agent-message__actions agent-message__actions--left"
-          @mouseenter="handleActionsMouseEnter"
-          @mouseleave="handleActionsMouseLeave"
-        >
-          <el-tooltip :content="t('agent.message.edit')" placement="top">
-            <el-button
-              circle
-              size="small"
-              :icon="Edit"
-              @click.stop="handleEdit"
-            />
-          </el-tooltip>
-          <el-dropdown @command="handleActionCommand" trigger="click" @click.stop @visible-change="handleDropdownVisibleChange">
-            <el-button
-              circle
-              size="small"
-              :icon="More"
-            />
-            <template #dropdown>
-              <el-dropdown-menu @mouseenter="handleDropdownMouseEnter" @mouseleave="handleDropdownMouseLeave">
-                <el-dropdown-item command="regenerate">{{ t('agent.message.regenerate') }}</el-dropdown-item>
-                <el-dropdown-item command="duplicate">{{ t('agent.message.duplicateSession') }}</el-dropdown-item>
-                <el-dropdown-item command="delete" divided>{{ t('agent.message.delete') }}</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </transition>
-
-      <!-- 意图识别消息 -->
-      <div v-if="message.type === 'intent-recognition'" class="intent-recognition-message">
-        <div class="intent-recognition-header">
-          <el-icon class="intent-icon"><Search /></el-icon>
-          <span class="intent-title">{{ t('agent.message.intentRecognition') }}</span>
-        </div>
-        <div class="intent-content">
-          <div v-if="(message as IntentRecognitionAgentMessage).toolIds.length > 0" class="intent-tools">
-            <div class="intent-tools-label">{{ t('agent.message.selectedTools') }}</div>
-            <div class="intent-tools-list">
-              <el-tag
-                v-for="toolId in (message as IntentRecognitionAgentMessage).toolIds"
-                :key="toolId"
-                size="small"
-                type="info"
-                effect="plain"
-                class="intent-tool-tag"
-              >
-                {{ getToolName(toolId) }}
-              </el-tag>
-            </div>
+      <!-- 消息气泡（用户消息保持气泡样式，AI消息平铺） -->
+      <div
+        :class="['agent-message__body', { 'agent-message__body--flat': message.role !== 'user' }]"
+        :style="bubbleStyle"
+        @mouseenter="handleMouseEnter"
+        @mouseleave="handleMouseLeave"
+      >
+        <!-- 时间戳（用户消息显示在左边，AI消息显示在右边） -->
+        <transition name="fade">
+          <div
+            v-if="showTimestamp"
+            class="agent-message__timestamp"
+            :class="{
+              'agent-message__timestamp--left': message.role === 'user',
+              'agent-message__timestamp--right': message.role !== 'user'
+            }"
+          >
+            {{ formatTimestamp(message.timestamp) }}
           </div>
-          <div v-else class="intent-no-tools">
-            {{ t('agent.message.noToolsNeeded') }}
-          </div>
-          <div v-if="(message as IntentRecognitionAgentMessage).reasoning" class="intent-reasoning">
-            <div class="intent-reasoning-label">{{ t('agent.message.reasoning') }}</div>
-            <div class="intent-reasoning-text">{{ (message as IntentRecognitionAgentMessage).reasoning }}</div>
-          </div>
-        </div>
-      </div>
+        </transition>
 
-      <!-- Tool结果 -->
-      <div v-else-if="message.type === 'tool'" class="tool-message-wrapper">
-        <el-collapse 
-          v-model="toolMessageCollapseActive"
-          class="tool-message-collapse"
-        >
-          <el-collapse-item :name="message.id">
-            <template #title>
-              <div class="tool-message-header-preview" >
-                <span class="tool-message-title">{{ (message as ToolAgentMessage).tool.name }}</span>
-                <el-tag size="small" :type="getToolStatusTagType((message as ToolAgentMessage).status)">
-                  {{ getToolStatusLabel((message as ToolAgentMessage).status) }}
+        <!-- 用户消息操作按钮（hover时显示，保持原有下拉菜单方式） -->
+        <transition name="fade">
+          <div
+            v-if="showActions && message.role === 'user'"
+            class="agent-message__actions agent-message__actions--left"
+            @mouseenter="handleActionsMouseEnter"
+            @mouseleave="handleActionsMouseLeave"
+          >
+            <el-tooltip :content="t('agent.message.edit')" placement="top">
+              <el-button circle size="small" :icon="Edit" @click.stop="handleEdit" />
+            </el-tooltip>
+            <el-dropdown
+              @command="handleActionCommand"
+              trigger="click"
+              @click.stop
+              @visible-change="handleDropdownVisibleChange"
+            >
+              <el-button circle size="small" :icon="More" />
+              <template #dropdown>
+                <el-dropdown-menu
+                  @mouseenter="handleDropdownMouseEnter"
+                  @mouseleave="handleDropdownMouseLeave"
+                >
+                  <el-dropdown-item command="regenerate">{{
+                    t('agent.message.regenerate')
+                  }}</el-dropdown-item>
+                  <el-dropdown-item command="duplicate">{{
+                    t('agent.message.duplicateSession')
+                  }}</el-dropdown-item>
+                  <el-dropdown-item command="delete" divided>{{
+                    t('agent.message.delete')
+                  }}</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
+        </transition>
+
+        <!-- 意图识别消息 -->
+        <div v-if="message.type === 'intent-recognition'" class="intent-recognition-message">
+          <div class="intent-recognition-header">
+            <el-icon class="intent-icon"><Search /></el-icon>
+            <span class="intent-title">{{ t('agent.message.intentRecognition') }}</span>
+          </div>
+          <div class="intent-content">
+            <div
+              v-if="(message as IntentRecognitionAgentMessage).toolIds.length > 0"
+              class="intent-tools"
+            >
+              <div class="intent-tools-label">{{ t('agent.message.selectedTools') }}</div>
+              <div class="intent-tools-list">
+                <el-tag
+                  v-for="toolId in (message as IntentRecognitionAgentMessage).toolIds"
+                  :key="toolId"
+                  size="small"
+                  type="info"
+                  effect="plain"
+                  class="intent-tool-tag"
+                >
+                  {{ getToolName(toolId) }}
                 </el-tag>
-                <small class="tool-message-timestamp">{{ formatTimestamp((message as ToolAgentMessage).timestamp) }}</small>
               </div>
-            </template>
-            <component
-              :is="AgentToolResultCard"
-              :message="message as ToolAgentMessage"
-              :messages="messages"
-              :message-index="messageIndex"
-            />
-          </el-collapse-item>
-        </el-collapse>
-      </div>
-
-      <!-- 文本内容 -->
-      <div v-else class="agent-message__content">
-        <!-- 如果消息包含tool_calls，需要将工具调用标记替换为指示器 -->
-        <template v-if="hasToolCalls && processedContentParts.length > 0">
-          <template v-for="(part, index) in processedContentParts" :key="index">
-            <!-- 如果是工具调用指示器 -->
-            <div v-if="part.type === 'tool-call'" class="tool-calls-indicator tool-calls-completed">
-              <el-icon class="tool-call-checkmark"><Check /></el-icon>
-              <span>{{ part.text }}</span>
             </div>
-            <!-- 如果是markdown内容 -->
-            <MdPreview
-              v-else-if="part.type === 'markdown' && part.content"
-              :modelValue="part.content"
-              previewTheme="github"
-              :codeFold="false"
-              :autoFoldThreshold="300"
-              :style="{
-                color: themeState.currentTheme.textColor
-              }"
-              :class="themeState.currentTheme.mdeditorClass"
-            />
-          </template>
-        </template>
-        <!-- 如果没有tool_calls，正常显示markdown -->
-        <MdPreview
-          v-else-if="messageMarkdown"
-          :modelValue="messageMarkdown"
-          previewTheme="github"
-          :codeFold="false"
-          :autoFoldThreshold="300"
-          :style="{
-            color: themeState.currentTheme.textColor
-          }"
-          :class="themeState.currentTheme.mdeditorClass"
-        />
-      </div>
-    </div>
+            <div v-else class="intent-no-tools">
+              {{ t('agent.message.noToolsNeeded') }}
+            </div>
+            <div
+              v-if="(message as IntentRecognitionAgentMessage).reasoning"
+              class="intent-reasoning"
+            >
+              <div class="intent-reasoning-label">{{ t('agent.message.reasoning') }}</div>
+              <div class="intent-reasoning-text">
+                {{ (message as IntentRecognitionAgentMessage).reasoning }}
+              </div>
+            </div>
+          </div>
+        </div>
 
-    <!-- 用户消息：头像在右边 -->
-    <div v-if="message.role === 'user'" class="agent-message__avatar agent-message__avatar--right">
-      <el-tooltip :content="userName" placement="left" :disabled="!userName">
-        <el-avatar :icon="User" class="avatar-fallback" />
-      </el-tooltip>
-    </div>
+        <!-- Tool结果 -->
+        <div v-else-if="message.type === 'tool'" class="tool-message-wrapper">
+          <el-collapse v-model="toolMessageCollapseActive" class="tool-message-collapse">
+            <el-collapse-item :name="message.id">
+              <template #title>
+                <div class="tool-message-header-preview">
+                  <span class="tool-message-title">{{
+                    (message as ToolAgentMessage).tool.name
+                  }}</span>
+                  <el-tag
+                    size="small"
+                    :type="getToolStatusTagType((message as ToolAgentMessage).status)"
+                  >
+                    {{ getToolStatusLabel((message as ToolAgentMessage).status) }}
+                  </el-tag>
+                  <small class="tool-message-timestamp">{{
+                    formatTimestamp((message as ToolAgentMessage).timestamp)
+                  }}</small>
+                </div>
+              </template>
+              <component
+                :is="AgentToolResultCard"
+                :message="message as ToolAgentMessage"
+                :messages="messages"
+                :message-index="messageIndex"
+              />
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+
+        <!-- 文本内容 -->
+        <div v-else class="agent-message__content">
+          <!-- 如果消息包含tool_calls，需要将工具调用标记替换为指示器 -->
+          <template v-if="hasToolCalls && processedContentParts.length > 0">
+            <template v-for="(part, index) in processedContentParts" :key="index">
+              <!-- 如果是工具调用指示器 -->
+              <div
+                v-if="part.type === 'tool-call'"
+                class="tool-calls-indicator tool-calls-completed"
+              >
+                <el-icon class="tool-call-checkmark"><Check /></el-icon>
+                <span>{{ part.text }}</span>
+              </div>
+              <!-- 如果是markdown内容 -->
+              <MdPreview
+                v-else-if="part.type === 'markdown' && part.content"
+                :modelValue="part.content"
+                previewTheme="github"
+                :codeFold="false"
+                :autoFoldThreshold="300"
+                :style="{
+                  color: themeState.currentTheme.textColor
+                }"
+                :class="themeState.currentTheme.mdeditorClass"
+              />
+            </template>
+          </template>
+          <!-- 如果没有tool_calls，正常显示markdown -->
+          <MdPreview
+            v-else-if="messageMarkdown"
+            :modelValue="messageMarkdown"
+            previewTheme="github"
+            :codeFold="false"
+            :autoFoldThreshold="300"
+            :style="{
+              color: themeState.currentTheme.textColor
+            }"
+            :class="themeState.currentTheme.mdeditorClass"
+          />
+        </div>
+      </div>
+
+      <!-- 用户消息：头像在右边 -->
+      <div
+        v-if="message.role === 'user'"
+        class="agent-message__avatar agent-message__avatar--right"
+      >
+        <el-tooltip :content="userName" placement="left" :disabled="!userName">
+          <el-avatar :icon="User" class="avatar-fallback" />
+        </el-tooltip>
+      </div>
     </div>
 
     <!-- AI消息操作按钮（平铺在消息下方，始终显示） -->
-    <div 
-      v-if="message.role === 'assistant' && message.type === 'chat'"
-      class="ai-message-actions"
-    >
+    <div v-if="message.role === 'assistant' && message.type === 'chat'" class="ai-message-actions">
       <el-tooltip :content="t('agent.message.regenerate')" placement="bottom">
-        <el-button text size="small" class="ai-action-btn" @click.stop="emit('regenerate', message)">
+        <el-button
+          text
+          size="small"
+          class="ai-action-btn"
+          @click.stop="emit('regenerate', message)"
+        >
           <el-icon><Refresh /></el-icon>
         </el-button>
       </el-tooltip>
@@ -180,7 +204,14 @@
 
     <!-- 引用显示（只读模式，只显示用户消息的引用，放在气泡外面） -->
     <ReferenceDisplay
-      v-if="message.role === 'user' && message.type === 'chat' && (message as ChatAgentMessage).referenceIds && (message as ChatAgentMessage).referenceIds!.length > 0 && sessionReferences && sessionReferences.length > 0"
+      v-if="
+        message.role === 'user' &&
+        message.type === 'chat' &&
+        (message as ChatAgentMessage).referenceIds &&
+        (message as ChatAgentMessage).referenceIds!.length > 0 &&
+        sessionReferences &&
+        sessionReferences.length > 0
+      "
       :references="sessionReferences"
       :active-reference-ids="(message as ChatAgentMessage).referenceIds || []"
       readonly
@@ -193,8 +224,23 @@
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { MdPreview } from 'md-editor-v3'
 import { useI18n } from 'vue-i18n'
-import { Avatar, User, Edit, More, Loading, Check, Search, Refresh, Delete } from '@element-plus/icons-vue'
-import type { AgentMessage, ChatAgentMessage, ToolAgentMessage, IntentRecognitionAgentMessage } from '../../types/agent'
+import {
+  Avatar,
+  User,
+  Edit,
+  More,
+  Loading,
+  Check,
+  Search,
+  Refresh,
+  Delete
+} from '@element-plus/icons-vue'
+import type {
+  AgentMessage,
+  ChatAgentMessage,
+  ToolAgentMessage,
+  IntentRecognitionAgentMessage
+} from '../../types/agent'
 import AgentToolResultCard from './AgentToolResultCard.vue'
 import ReferenceDisplay from './ReferenceDisplay.vue'
 import { themeState } from '../../utils/themes'
@@ -231,14 +277,14 @@ const isLatestToolMessage = computed(() => {
   if (props.message.type !== 'tool' || !props.messages || props.messageIndex === undefined) {
     return true // 如果不是tool消息，默认展开
   }
-  
+
   // 查找当前消息之后是否还有其他tool消息
   for (let i = props.messageIndex + 1; i < props.messages.length; i++) {
     if (props.messages[i].type === 'tool') {
       return false // 后面还有tool消息，说明不是最新的
     }
   }
-  
+
   return true // 没有其他tool消息，说明是最新的
 })
 
@@ -266,12 +312,12 @@ watch(
     if (!newMessages || props.messageIndex === undefined || props.message.type !== 'tool') {
       return
     }
-    
+
     // 检查是否有新的tool消息出现在当前消息之后
     if (oldMessages && newMessages.length > oldMessages.length) {
       const currentIndex = props.messageIndex
       const currentMsgId = props.message.id
-      
+
       // 查找当前消息之后是否有新的tool消息
       let hasNewToolAfter = false
       for (let i = currentIndex + 1; i < newMessages.length; i++) {
@@ -280,13 +326,13 @@ watch(
           break
         }
       }
-      
+
       // 如果有新的tool消息在当前消息之后，折叠当前消息（强制折叠，因为这是自动行为）
       if (hasNewToolAfter) {
         toolMessageCollapseActive.value = []
       }
     }
-    
+
     // 如果还未初始化，进行初始化
     if (!collapseInitialized.value) {
       initToolMessageCollapse()
@@ -378,7 +424,7 @@ const cleanIncompleteToolCallTags = (content: string): string => {
   // 使用占位符保护完整的标记对
   const placeholders: Array<{ placeholder: string; original: string }> = []
   let placeholderIndex = 0
-  
+
   // 1. 使用解析器管理器获取所有格式的完整标记，并替换为占位符
   const allPatterns = toolCallParserManager.getAllMarkerPatterns()
   for (const pattern of allPatterns) {
@@ -389,22 +435,25 @@ const cleanIncompleteToolCallTags = (content: string): string => {
       return placeholder
     })
   }
-  
+
   // 2. 替换完整的旧格式标记为占位符（兼容性）
-  content = content.replace(/\<\|redacted_tool_calls_begin\|>[\s\S]*?\<\|redacted_tool_calls_end\|>/gi, (match) => {
-    const placeholder = `__TOOL_CALL_COMPLETE_${placeholderIndex}__`
-    placeholders.push({ placeholder, original: match })
-    placeholderIndex++
-    return placeholder
-  })
-  
+  content = content.replace(
+    /\<\|redacted_tool_calls_begin\|>[\s\S]*?\<\|redacted_tool_calls_end\|>/gi,
+    (match) => {
+      const placeholder = `__TOOL_CALL_COMPLETE_${placeholderIndex}__`
+      placeholders.push({ placeholder, original: match })
+      placeholderIndex++
+      return placeholder
+    }
+  )
+
   content = content.replace(/\<｜tools▁call▁begin｜>[\s\S]*?<｜tools▁call▁end｜>/gi, (match) => {
     const placeholder = `__TOOL_CALL_COMPLETE_${placeholderIndex}__`
     placeholders.push({ placeholder, original: match })
     placeholderIndex++
     return placeholder
   })
-  
+
   // 3. 清理剩余的单独标记（不完整的标记）
   // 标准格式
   content = content.replace(/<tool_call>/gi, '')
@@ -419,36 +468,38 @@ const cleanIncompleteToolCallTags = (content: string): string => {
   content = content.replace(/\<\|redacted_tool_calls_end\|>/gi, '')
   content = content.replace(/\<｜tools▁call▁begin｜>/gi, '')
   content = content.replace(/<｜tools▁call▁end｜>/gi, '')
-  
+
   // 4. 恢复占位符（完整的标记）
   placeholders.forEach(({ placeholder, original }) => {
     content = content.replace(placeholder, original)
   })
-  
+
   return content
 }
 
 const messageMarkdown = computed(() => {
   if (props.message.type === 'chat' || props.message.type === 'thought') {
-    let content = props.message.markdown || '';
-    
+    let content = props.message.markdown || ''
+
     // 如果没有tool_calls，清理所有标记（包括完整的和不完整的）
     if (!hasToolCalls.value) {
       // 使用解析器管理器清理所有格式的完整标记
       content = toolCallParserManager.cleanAllMarkers(content)
-      
+
       // 清理旧的标记格式（兼容性）
-      content = content.replace(/\<\|redacted_tool_calls_begin\|>[\s\S]*?\<\|redacted_tool_calls_end\|>/gi, '').trim()
+      content = content
+        .replace(/\<\|redacted_tool_calls_begin\|>[\s\S]*?\<\|redacted_tool_calls_end\|>/gi, '')
+        .trim()
       content = content.replace(/\<｜tools▁call▁begin｜>[\s\S]*?<｜tools▁call▁end｜>/gi, '').trim()
-      
+
       // 清理不完整的标记
       content = cleanIncompleteToolCallTags(content)
     } else {
       // 如果有tool_calls，只清理不完整的标记（完整的标记会在processedContentParts中处理）
       content = cleanIncompleteToolCallTags(content)
     }
-    
-    return content;
+
+    return content
   }
   return ''
 })
@@ -458,7 +509,7 @@ const processedContentParts = computed(() => {
   if (props.message.type !== 'chat' && props.message.type !== 'thought') {
     return []
   }
-  
+
   if (!hasToolCalls.value) {
     // 如果没有tool_calls，只返回markdown内容
     if (messageMarkdown.value) {
@@ -466,25 +517,23 @@ const processedContentParts = computed(() => {
     }
     return []
   }
-  
+
   const chatMsg = props.message as ChatAgentMessage
   if (!chatMsg.tool_calls || chatMsg.tool_calls.length === 0) {
     return []
   }
-  
+
   // 获取原始markdown内容
   let content = props.message.markdown || ''
-  
+
   // 先清理不完整的工具调用标记
   content = cleanIncompleteToolCallTags(content)
-  
+
   // 创建工具调用映射（按在markdown中出现的顺序）
   const toolCallMap = new Map<string, { id: string; tool_id: string; text: string }>()
   for (const toolCall of chatMsg.tool_calls) {
     const tool = agentToolManager.getTool(toolCall.tool_id)
-    const toolName = tool 
-      ? agentToolManager.getLocalizedText(tool.config.name)
-      : toolCall.tool_id
+    const toolName = tool ? agentToolManager.getLocalizedText(tool.config.name) : toolCall.tool_id
     const text = t('agent.message.toolCallInitiated', { tool: toolName })
     toolCallMap.set(toolCall.id, {
       id: toolCall.id,
@@ -492,20 +541,21 @@ const processedContentParts = computed(() => {
       text
     })
   }
-  
+
   // 解析markdown，找到工具调用标记的位置
   const parts: Array<{ type: 'tool-call' | 'markdown'; content?: string; text?: string }> = []
-  
+
   // 使用解析器管理器获取所有格式的标记模式
   // 优先匹配标准格式（因为processedContentParts主要用于显示标准格式）
   const toolCallRegex = /<tool_call>[\s\S]*?<\/tool_call>/gi
   // 也匹配DSML格式
-  const dsmlRegex = /<｜DSML｜function_calls>[\s\S]*?<\/｜DSML｜function_calls>|<｜DSML｜invoke[\s\S]*?<\/｜DSML｜invoke>/gi
-  
+  const dsmlRegex =
+    /<｜DSML｜function_calls>[\s\S]*?<\/｜DSML｜function_calls>|<｜DSML｜invoke[\s\S]*?<\/｜DSML｜invoke>/gi
+
   let lastIndex = 0
   let match
   let toolCallIndex = 0
-  
+
   // 先匹配标准格式
   while ((match = toolCallRegex.exec(content)) !== null) {
     // 添加标记前的markdown内容
@@ -515,7 +565,7 @@ const processedContentParts = computed(() => {
         parts.push({ type: 'markdown', content: markdownPart })
       }
     }
-    
+
     // 尝试从工具调用标记中提取tool_call_id（如果可能）
     // 但通常我们按顺序匹配
     const toolCallIds = Array.from(toolCallMap.keys())
@@ -527,10 +577,10 @@ const processedContentParts = computed(() => {
       }
       toolCallIndex++
     }
-    
+
     lastIndex = match.index + match[0].length
   }
-  
+
   // 添加剩余的markdown内容
   if (lastIndex < content.length) {
     const markdownPart = content.substring(lastIndex).trim()
@@ -538,7 +588,7 @@ const processedContentParts = computed(() => {
       parts.push({ type: 'markdown', content: markdownPart })
     }
   }
-  
+
   // 如果还有未匹配的工具调用，在末尾添加
   while (toolCallIndex < toolCallMap.size) {
     const toolCallIds = Array.from(toolCallMap.keys())
@@ -549,7 +599,7 @@ const processedContentParts = computed(() => {
     }
     toolCallIndex++
   }
-  
+
   // 如果没有找到任何工具调用标记，但消息有tool_calls，在开头添加所有工具调用指示器
   if (parts.length === 0 && toolCallMap.size > 0) {
     for (const toolCallInfo of toolCallMap.values()) {
@@ -560,7 +610,7 @@ const processedContentParts = computed(() => {
       parts.push({ type: 'markdown', content: content.trim() })
     }
   }
-  
+
   return parts
 })
 
@@ -578,15 +628,15 @@ const toolCallsCompleted = computed(() => {
   if (!hasToolCalls.value || !props.messages || props.messageIndex === undefined) {
     return false
   }
-  
+
   const chatMsg = props.message as ChatAgentMessage
   if (!chatMsg.tool_calls || chatMsg.tool_calls.length === 0) {
     return false
   }
-  
+
   // 获取所有tool_call的id
-  const toolCallIds = new Set(chatMsg.tool_calls.map(tc => tc.id))
-  
+  const toolCallIds = new Set(chatMsg.tool_calls.map((tc) => tc.id))
+
   // 检查当前消息之后是否有对应的tool消息
   // 找到第一个tool消息，检查它的tool_call_id是否匹配
   for (let i = props.messageIndex + 1; i < props.messages.length; i++) {
@@ -603,7 +653,7 @@ const toolCallsCompleted = computed(() => {
       return true
     }
   }
-  
+
   return false
 })
 
@@ -612,24 +662,27 @@ const toolCallsText = computed(() => {
   if (!hasToolCalls.value) return ''
   const chatMsg = props.message as ChatAgentMessage
   if (!chatMsg.tool_calls || chatMsg.tool_calls.length === 0) return ''
-  
-  const toolNames = chatMsg.tool_calls.map(tc => {
+
+  const toolNames = chatMsg.tool_calls.map((tc) => {
     const tool = agentToolManager.getTool(tc.tool_id)
     if (tool) {
       return agentToolManager.getLocalizedText(tool.config.name)
     }
     return tc.tool_id
   })
-  
+
   // 如果已完成，显示"AI发起了xxx的调用"
   if (toolCallsCompleted.value) {
     if (toolNames.length === 1) {
       return t('agent.message.toolCallInitiated', { tool: toolNames[0] })
     } else {
-      return t('agent.message.toolCallsInitiated', { count: toolNames.length, tools: toolNames.join('、') })
+      return t('agent.message.toolCallsInitiated', {
+        count: toolNames.length,
+        tools: toolNames.join('、')
+      })
     }
   }
-  
+
   // 如果未完成，显示"正在调用xxx"
   if (toolNames.length === 1) {
     return t('agent.message.callingTool', { tool: toolNames[0] })
@@ -654,7 +707,12 @@ const HIDE_DELAY = 500
 
 // 检查是否应该显示按钮
 const shouldShow = computed(() => {
-  return isHoveringMessage.value || isHoveringActions.value || isHoveringDropdown.value || dropdownVisible.value
+  return (
+    isHoveringMessage.value ||
+    isHoveringActions.value ||
+    isHoveringDropdown.value ||
+    dropdownVisible.value
+  )
 })
 
 // 清除隐藏定时器
@@ -670,7 +728,10 @@ const showActionsAndTimestamp = () => {
   clearHideTimer()
   showTimestamp.value = true
   // 用户消息和AI聊天消息都可以显示操作按钮
-  if (props.message.role === 'user' || (props.message.role === 'assistant' && props.message.type === 'chat')) {
+  if (
+    props.message.role === 'user' ||
+    (props.message.role === 'assistant' && props.message.type === 'chat')
+  ) {
     showActions.value = true
   }
 }
@@ -888,7 +949,9 @@ onBeforeUnmount(() => {
   padding: 16px 18px;
   box-sizing: border-box;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.2s ease, width 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    width 0.2s ease;
   order: 1;
 }
 
@@ -1041,7 +1104,10 @@ onBeforeUnmount(() => {
   max-width: 100%;
   box-sizing: border-box;
   margin: 0;
-  border: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.1)"');
+  border: 1px solid
+    v-bind(
+      'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.1)"'
+    );
   border-radius: 8px;
   overflow: hidden;
 }
@@ -1065,7 +1131,10 @@ onBeforeUnmount(() => {
 .tool-message-collapse :deep(.el-collapse-item__header) {
   background-color: transparent;
   color: v-bind('themeState.currentTheme.textColor');
-  border-bottom: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)"');
+  border-bottom: 1px solid
+    v-bind(
+      'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)"'
+    );
   height: 32px;
   line-height: 32px;
   padding: 0 12px;

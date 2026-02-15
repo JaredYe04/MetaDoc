@@ -3,6 +3,7 @@
 ## Overview
 
 To optimize AI context space, we've introduced a `ToolSpec` interface that separates tool documentation into:
+
 - **brief**: Short description (always included in System Prompt, used for intent recognition)
 - **fullSpec**: Complete specification (injected on-demand when tools are needed)
 
@@ -57,7 +58,7 @@ Complete description of the tool, including all features, use cases, input/outpu
 `
   },
   instruction: `...`, // Keep existing instruction for backward compatibility
-  callback: myToolCallback,
+  callback: myToolCallback
   // ... other fields
 }
 ```
@@ -65,17 +66,20 @@ Complete description of the tool, including all features, use cases, input/outpu
 ### Step 2: Guidelines
 
 #### Brief (Required)
+
 - **Length**: Keep under 150 characters
 - **Language**: English only
 - **Content**: One-line description that helps AI understand when to use this tool
 - **Purpose**: Used in intent recognition and always included in System Prompt
 
 Example:
+
 ```typescript
 brief: 'Edit the current document with incremental diff editing. Supports insert, replace, delete operations based on position or text search.'
 ```
 
 #### FullSpec (Required)
+
 - **Language**: English only
 - **Content**: Complete tool documentation including:
   - Description
@@ -133,4 +137,3 @@ All tools in `meta-doc/src/renderer/src/utils/agent-tools/` need to be migrated:
 - The `fullSpec` should be comprehensive but not excessively verbose
 - All spec content should be in English for consistency
 - The system automatically handles the lifecycle of `activeToolSpecs`
-

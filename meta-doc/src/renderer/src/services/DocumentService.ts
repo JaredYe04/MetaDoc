@@ -2,21 +2,21 @@
  * 文档服务层
  * 统一管理文档的加载、保存、导出等操作
  */
-import type { 
-  DocumentFormat, 
-  ExportFormat, 
-  ArticleMetaData, 
+import type {
+  DocumentFormat,
+  ExportFormat,
+  ArticleMetaData,
   DocumentOutlineNode,
   SaveOptions,
   ExportOptions
 } from '../../../types'
 import eventBus from '../utils/event-bus'
-import { createRendererLogger } from '../utils/logger';
-import { useWorkspace } from '../stores/workspace';
-import { DEFAULT_ARTICLE_META, DEFAULT_OUTLINE_TREE } from '../constants/document';
+import { createRendererLogger } from '../utils/logger'
+import { useWorkspace } from '../stores/workspace'
+import { DEFAULT_ARTICLE_META, DEFAULT_OUTLINE_TREE } from '../constants/document'
 
-const logger = createRendererLogger('DocumentService');
-const workspace = useWorkspace();
+const logger = createRendererLogger('DocumentService')
+const workspace = useWorkspace()
 
 /** 文档数据接口 */
 export interface DocumentData {
@@ -34,44 +34,51 @@ export class DocumentService {
    * 获取当前文档数据
    */
   static getCurrentDocument(): DocumentData {
-    const doc = workspace.activeDocument.value;
+    const doc = workspace.activeDocument.value
     if (!doc) {
-      const meta = JSON.parse(JSON.stringify(DEFAULT_ARTICLE_META)) as ArticleMetaData;
-      const outline = JSON.parse(JSON.stringify(DEFAULT_OUTLINE_TREE)) as DocumentOutlineNode;
+      const meta = JSON.parse(JSON.stringify(DEFAULT_ARTICLE_META)) as ArticleMetaData
+      const outline = JSON.parse(JSON.stringify(DEFAULT_OUTLINE_TREE)) as DocumentOutlineNode
       return {
         filePath: '',
         format: 'md',
         article: '',
         texArticle: '',
         metaData: meta,
-        outlineTree: outline,
-      };
+        outlineTree: outline
+      }
     }
-    const meta = JSON.parse(JSON.stringify(doc.meta)) as ArticleMetaData;
-    const outline = JSON.parse(JSON.stringify(doc.outline)) as DocumentOutlineNode;
+    const meta = JSON.parse(JSON.stringify(doc.meta)) as ArticleMetaData
+    const outline = JSON.parse(JSON.stringify(doc.outline)) as DocumentOutlineNode
     return {
       filePath: doc.path,
       format: doc.format as DocumentFormat,
       article: doc.markdown,
       texArticle: doc.tex,
       metaData: meta,
-      outlineTree: outline,
+      outlineTree: outline
     }
   }
 
   /**
    * 加载文档
    */
-  static async loadDocument(content: string, format: DocumentFormat, filePath?: string): Promise<void> {
+  static async loadDocument(
+    content: string,
+    format: DocumentFormat,
+    filePath?: string
+  ): Promise<void> {
     try {
       eventBus.emit('workspace-open-document', {
         content,
         format,
-        path: filePath ?? '',
+        path: filePath ?? ''
       })
     } catch (error) {
       logger.error('文档加载失败:', error)
-      eventBus.emit('show-error', `文档加载失败: ${error instanceof Error ? error.message : String(error)}`)
+      eventBus.emit(
+        'show-error',
+        `文档加载失败: ${error instanceof Error ? error.message : String(error)}`
+      )
       throw error
     }
   }
@@ -94,7 +101,10 @@ export class DocumentService {
       eventBus.emit('is-need-save', false)
     } catch (error) {
       logger.error('文档保存失败:', error)
-      eventBus.emit('show-error', `文档保存失败: ${error instanceof Error ? error.message : String(error)}`)
+      eventBus.emit(
+        'show-error',
+        `文档保存失败: ${error instanceof Error ? error.message : String(error)}`
+      )
       throw error
     }
   }
@@ -111,7 +121,10 @@ export class DocumentService {
       eventBus.emit('export', options)
     } catch (error) {
       logger.error('文档导出失败:', error)
-      eventBus.emit('show-error', `文档导出失败: ${error instanceof Error ? error.message : String(error)}`)
+      eventBus.emit(
+        'show-error',
+        `文档导出失败: ${error instanceof Error ? error.message : String(error)}`
+      )
       throw error
     }
   }
@@ -125,7 +138,10 @@ export class DocumentService {
       eventBus.emit('is-need-save', false)
     } catch (error) {
       logger.error('新建文档失败:', error)
-      eventBus.emit('show-error', `新建文档失败: ${error instanceof Error ? error.message : String(error)}`)
+      eventBus.emit(
+        'show-error',
+        `新建文档失败: ${error instanceof Error ? error.message : String(error)}`
+      )
       throw error
     }
   }
@@ -139,7 +155,10 @@ export class DocumentService {
       eventBus.emit('is-need-save', false)
     } catch (error) {
       logger.error('关闭文档失败:', error)
-      eventBus.emit('show-error', `关闭文档失败: ${error instanceof Error ? error.message : String(error)}`)
+      eventBus.emit(
+        'show-error',
+        `关闭文档失败: ${error instanceof Error ? error.message : String(error)}`
+      )
       throw error
     }
   }
@@ -148,8 +167,8 @@ export class DocumentService {
    * 检查文档是否需要保存
    */
   static needsSaving(): boolean {
-    const doc = workspace.activeDocument.value;
-    return Boolean(doc?.dirty);
+    const doc = workspace.activeDocument.value
+    return Boolean(doc?.dirty)
   }
 
   /**
@@ -160,10 +179,10 @@ export class DocumentService {
     wordCount: number
     lineCount: number
   } {
-    const content = workspace.activeDocument.value?.markdown ?? '';
+    const content = workspace.activeDocument.value?.markdown ?? ''
     return {
       characterCount: content.length,
-      wordCount: content.split(/\s+/).filter(word => word.length > 0).length,
+      wordCount: content.split(/\s+/).filter((word) => word.length > 0).length,
       lineCount: content.split('\n').length
     }
   }

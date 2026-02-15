@@ -78,6 +78,12 @@
   "microphoneTest": {
     "cannotAccessMic": "マイクにアクセスできません。権限設定を確認してください"
   },
+  "mainTabs": {
+    "contextMenu": {
+      "pinTab": "タブを固定",
+      "unpinTab": "タブの固定を解除"
+    }
+  },
   "common": {
     "confirm": "確認",
     "cancel": "キャンセル",

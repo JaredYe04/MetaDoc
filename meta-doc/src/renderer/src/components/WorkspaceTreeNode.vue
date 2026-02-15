@@ -13,8 +13,12 @@
       }"
       :style="{
         paddingLeft: `${depth * 12 + 8}px`,
-        top: node.type === 'directory' || node.type === 'workspaceRoot' ? `${getStickyTop()}px` : undefined,
-        zIndex: node.type === 'directory' || node.type === 'workspaceRoot' ? getStickyZIndex() : undefined
+        top:
+          node.type === 'directory' || node.type === 'workspaceRoot'
+            ? `${getStickyTop()}px`
+            : undefined,
+        zIndex:
+          node.type === 'directory' || node.type === 'workspaceRoot' ? getStickyZIndex() : undefined
       }"
       :draggable="canDrag"
       :data-path="node.path"
@@ -45,7 +49,8 @@
       <span
         class="workspace-tree-node-name"
         :class="{ 'is-workspace-root': node.isWorkspaceRoot }"
-      >{{ node.name }}</span>
+        >{{ node.name }}</span
+      >
       <el-button
         v-if="node.isWorkspaceRoot"
         text
@@ -57,8 +62,8 @@
         <el-icon><Close /></el-icon>
       </el-button>
     </div>
-    <div 
-      v-if="isExpanded && node.children" 
+    <div
+      v-if="isExpanded && node.children"
       class="workspace-tree-node-children"
       :class="{ 'is-drag-target-area': isDragTargetArea }"
       @dragover="handleChildrenDragOver"
@@ -71,12 +76,12 @@
         :node="child"
         :depth="depth + 1"
         :sibling-index="index"
-              :expanded-paths="expandedPaths"
-              :workspace-folder="workspaceFolder"
-              :selected-paths="selectedPaths"
-              :focused-path="focusedPath"
-              :last-selected-index="lastSelectedIndex"
-              :drag-target-path="dragTargetPath"
+        :expanded-paths="expandedPaths"
+        :workspace-folder="workspaceFolder"
+        :selected-paths="selectedPaths"
+        :focused-path="focusedPath"
+        :last-selected-index="lastSelectedIndex"
+        :drag-target-path="dragTargetPath"
         @toggle="$emit('toggle', $event)"
         @open-file="$emit('open-file', $event)"
         @open-file-permanent="$emit('open-file-permanent', $event)"
@@ -137,12 +142,15 @@ const emit = defineEmits<{
   'drag-start': [event: { node: FileNode; event: DragEvent }]
   'drag-over': [event: { node: FileNode; event: DragEvent }]
   'drag-leave': [event: { node: FileNode; event: DragEvent }]
-  'drop': [event: { node: FileNode; event: DragEvent }]
+  drop: [event: { node: FileNode; event: DragEvent }]
   'drag-end': [event: DragEvent]
 }>()
 
 const isExpanded = computed(() => {
-  return (props.node.type === 'directory' || props.node.type === 'workspaceRoot') && props.expandedPaths.has(props.node.path)
+  return (
+    (props.node.type === 'directory' || props.node.type === 'workspaceRoot') &&
+    props.expandedPaths.has(props.node.path)
+  )
 })
 
 const isSelected = computed(() => {
@@ -262,12 +270,12 @@ const handleClick = (event: MouseEvent) => {
   if (target.closest('.workspace-tree-node-close')) {
     return // 关闭按钮点击已单独处理
   }
-  
+
   // 如果是目录节点，点击图标切换展开/折叠（不触发选中）
   if (target.closest('.workspace-tree-node-icon')) {
     return // 图标点击已单独处理
   }
-  
+
   // 所有节点点击都触发 focus 和 selection 逻辑
   // 工作文件夹根节点不可选中，但也会触发事件（由父组件处理）
   emit('node-click', {
@@ -275,7 +283,7 @@ const handleClick = (event: MouseEvent) => {
     ctrlKey: event.ctrlKey || event.metaKey,
     shiftKey: event.shiftKey
   })
-  
+
   // 如果是目录节点，点击节点其他部分也切换展开/折叠
   if (props.node.isWorkspaceRoot || props.node.type === 'directory') {
     emit('toggle', props.node)
@@ -300,10 +308,10 @@ const handleContextMenu = (event: MouseEvent) => {
   }
   event.preventDefault()
   event.stopPropagation()
-  
+
   // 右键菜单只触发 context-menu 事件，不触发 node-click（避免打开文件和高亮）
   // selection 和 focus 的处理在 handleContextMenu 中完成
-  
+
   emit('context-menu', {
     node: props.node,
     x: event.clientX,
@@ -319,7 +327,7 @@ const getFileIcon = (fileName: string): string => {
   const theme = themeState.currentTheme as any
   const fileExt = extname(fileName)
   const formatId = formatRegistry.getFormatByExtension(fileExt)
-  
+
   // 根据格式ID选择图标
   if (formatId === 'tex') {
     return theme.TexDocIcon || ''
@@ -329,24 +337,36 @@ const getFileIcon = (fileName: string): string => {
   } else if (formatId === 'md') {
     return theme.MdDocIcon || ''
   }
-  
+
   // 默认使用 base-doc 图标（用于其他格式）
   return theme.BaseDocIcon || theme.MdDocIcon || ''
 }
 
 // 计算悬停颜色
 const hoverColor = computed(() => {
-  return mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.SideTextColor, 0.15)
+  return mixColors(
+    themeState.currentTheme.background2nd,
+    themeState.currentTheme.SideTextColor,
+    0.15
+  )
 })
 
 // 计算选中颜色
 const selectedColor = computed(() => {
-  return mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.primaryColor || '#409eff', 0.3)
+  return mixColors(
+    themeState.currentTheme.background2nd,
+    themeState.currentTheme.primaryColor || '#409eff',
+    0.3
+  )
 })
 
 // 计算拖拽目标高亮颜色
 const dragTargetColor = computed(() => {
-  return mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.primaryColor || '#409eff', 0.2)
+  return mixColors(
+    themeState.currentTheme.background2nd,
+    themeState.currentTheme.primaryColor || '#409eff',
+    0.2
+  )
 })
 
 // 处理拖拽开始
@@ -356,13 +376,13 @@ const handleDragStart = (event: DragEvent) => {
     event.preventDefault()
     return
   }
-  
+
   // 设置拖拽数据
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
     event.dataTransfer.setData('text/plain', props.node.path)
   }
-  
+
   emit('drag-start', { node: props.node, event })
 }
 
@@ -551,4 +571,3 @@ const handleDragEnd = (event: DragEvent) => {
   margin-bottom: 0;
 }
 </style>
-

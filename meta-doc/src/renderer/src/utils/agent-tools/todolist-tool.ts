@@ -18,7 +18,12 @@ import { ref } from 'vue'
 import TodoListDisplay from './components/TodoListDisplay.vue'
 import { createRendererLogger } from '../logger'
 import { i18n } from '../../i18n'
-import { parseJsonWithClean, isJsonParseError, createDetailedError, retryLLMCall } from './tool-utils'
+import {
+  parseJsonWithClean,
+  isJsonParseError,
+  createDetailedError,
+  retryLLMCall
+} from './tool-utils'
 import { agentSessionManager } from '../agent-framework/agent-session-manager'
 import type { AgentSession } from '../../types/agent-framework'
 
@@ -33,13 +38,13 @@ function getTodoListKey(session: AgentSession | undefined): string | null {
   if (!session) {
     return null
   }
-  
+
   // 从publicContext中获取document.id（即tabId）
   const tabId = session.publicContext?.document?.id
   if (tabId) {
     return `todolist-${tabId}-${session.id}`
   }
-  
+
   // 如果没有tabId，使用session.id作为fallback
   return `todolist-${session.id}`
 }
@@ -54,13 +59,13 @@ function getTodoListFromSession(session: AgentSession | undefined): TodoList | n
       logger.debug('[getTodoListFromSession] session为空')
       return null
     }
-    
+
     const key = getTodoListKey(session)
     if (!key) {
       logger.warn('[getTodoListFromSession] 无法生成key')
       return null
     }
-    
+
     // 调试信息：检查publicContext的结构
     // logger.debug('[getTodoListFromSession] 调试信息:', {
     //   sessionId: session.id,
@@ -70,13 +75,20 @@ function getTodoListFromSession(session: AgentSession | undefined): TodoList | n
     //   customKeys: session.publicContext?.custom ? Object.keys(session.publicContext.custom) : [],
     //   documentId: session.publicContext?.document?.id
     // })
-    
+
     const todoList = agentSessionManager.readFromPublicContext(session, key) as TodoList | undefined
     if (todoList && typeof todoList === 'object' && 'items' in todoList) {
-      logger.info('[getTodoListFromSession] 从session中读取到todolist:', todoList.id, '任务数:', todoList.items?.length || 0, 'key:', key)
+      logger.info(
+        '[getTodoListFromSession] 从session中读取到todolist:',
+        todoList.id,
+        '任务数:',
+        todoList.items?.length || 0,
+        'key:',
+        key
+      )
       return todoList as TodoList
     }
-    
+
     // logger.debug('[getTodoListFromSession] 未找到todolist，key:', key, 'readFromPublicContext返回:', todoList)
     return null
   } catch (error) {
@@ -95,13 +107,13 @@ function saveTodoListToSession(session: AgentSession | undefined, todoList: Todo
       logger.debug('[saveTodoListToSession] 没有session，跳过保存')
       return
     }
-    
+
     const key = getTodoListKey(session)
     if (!key) {
       logger.warn('[saveTodoListToSession] 无法生成key，跳过保存')
       return
     }
-    
+
     // 调试信息：检查保存前的状态
     // logger.debug('[saveTodoListToSession] 保存前调试信息:', {
     //   sessionId: session.id,
@@ -111,9 +123,9 @@ function saveTodoListToSession(session: AgentSession | undefined, todoList: Todo
     //   customKeysBefore: session.publicContext?.custom ? Object.keys(session.publicContext.custom) : [],
     //   documentId: session.publicContext?.document?.id
     // })
-    
+
     agentSessionManager.writeToPublicContext(session, key, todoList)
-    
+
     // 验证保存是否成功：立即读取一次，确保数据被正确保存
     const verifyValue = agentSessionManager.readFromPublicContext(session, key)
     if (!verifyValue) {
@@ -124,7 +136,7 @@ function saveTodoListToSession(session: AgentSession | undefined, todoList: Todo
         customKeys: session.publicContext?.custom ? Object.keys(session.publicContext.custom) : []
       })
     }
-    
+
     // 调试信息：检查保存后的状态
     // logger.debug('[saveTodoListToSession] 保存后调试信息:', {
     //   sessionId: session.id,
@@ -134,8 +146,17 @@ function saveTodoListToSession(session: AgentSession | undefined, todoList: Todo
     //   savedValue: verifyValue ? '存在' : '不存在',
     //   verifySuccess: !!verifyValue
     // })
-    
-    logger.info('[saveTodoListToSession] Todolist已保存到session:', session.id, '任务数:', todoList.items?.length || 0, 'key:', key, '验证:', verifyValue ? '成功' : '失败')
+
+    logger.info(
+      '[saveTodoListToSession] Todolist已保存到session:',
+      session.id,
+      '任务数:',
+      todoList.items?.length || 0,
+      'key:',
+      key,
+      '验证:',
+      verifyValue ? '成功' : '失败'
+    )
   } catch (error) {
     logger.warn('[saveTodoListToSession] 保存todolist到session失败:', error)
   }
@@ -149,12 +170,12 @@ function updateTodoItemStatus(
   itemId: string,
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
 ): boolean {
-  const item = todoList.items.find(i => i.id === itemId)
+  const item = todoList.items.find((i) => i.id === itemId)
   if (!item) {
     logger.warn('[updateTodoItemStatus] 任务不存在:', itemId)
     return false
   }
-  
+
   item.status = status
   todoList.updatedAt = new Date().toISOString()
   logger.info('[updateTodoItemStatus] 任务状态已更新:', itemId, '->', status)
@@ -166,17 +187,17 @@ function updateTodoItemStatus(
  * 简化设计：大多数字段都是可选的，只有title是必需的
  */
 export interface TodoItem {
-  id?: string  // 可选，自动生成
-  title: string  // 必需
+  id?: string // 可选，自动生成
+  title: string // 必需
   description?: string
-  status?: 'pending' | 'in_progress' | 'completed' | 'cancelled'  // 可选，默认为pending
-  priority?: 'low' | 'medium' | 'high' | 'urgent'  // 可选
+  status?: 'pending' | 'in_progress' | 'completed' | 'cancelled' // 可选，默认为pending
+  priority?: 'low' | 'medium' | 'high' | 'urgent' // 可选
   dueDate?: string // ISO 8601格式，可选
-  tags?: string[]  // 可选
+  tags?: string[] // 可选
   dependencies?: string[] // 依赖的其他任务ID，可选
   estimatedTime?: string // 预估时间，如 "2h", "30m"，可选
-  assignee?: string  // 可选
-  metadata?: Record<string, unknown>  // 可选
+  assignee?: string // 可选
+  metadata?: Record<string, unknown> // 可选
 }
 
 /**
@@ -188,7 +209,7 @@ export type FlexibleTodoItem = string | TodoItem
  * 灵活的TodoList输入类型：支持多种格式
  */
 export interface FlexibleTodoListInput {
-  items?: FlexibleTodoItem[]  // 可以是字符串列表或混合列表
+  items?: FlexibleTodoItem[] // 可以是字符串列表或混合列表
   title?: string
   description?: string
   id?: string
@@ -597,10 +618,12 @@ ${context ? `上下文信息：${context}` : ''}`
   const target = ref('')
   const originKey = `todolist-${Date.now()}-${Math.random().toString(36).slice(2)}`
   // 温度配置将在llm-api.js中从全局配置读取
-  const messages: AIDialogMessage[] = [{
-    role: 'user',
-    content: systemPrompt,
-  }]
+  const messages: AIDialogMessage[] = [
+    {
+      role: 'user',
+      content: systemPrompt
+    }
+  ]
   const { handle, done } = createAiTask(
     retryCount > 0 ? `重新生成任务列表（重试 ${retryCount}/${maxRetries}）` : '生成任务列表',
     messages,
@@ -612,23 +635,33 @@ ${context ? `上下文信息：${context}` : ''}`
 
   // 立即通过 onUpdate 传递流式输出信息（在 await done 之前）
   if (onUpdate) {
-    onUpdate({
-      content: {
-        stage: retryCount > 0 ? 'retrying-streaming' : 'generating-streaming',
-        input,
-        context,
-        retryCount,
-        lastError,
-        todoListTargetRef: target,
-        todoListDonePromise: done
+    onUpdate(
+      {
+        content: {
+          stage: retryCount > 0 ? 'retrying-streaming' : 'generating-streaming',
+          input,
+          context,
+          retryCount,
+          lastError,
+          todoListTargetRef: target,
+          todoListDonePromise: done
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: retryCount > 0 ? (40 + (retryCount * 10)) : 40,
-      message: retryCount > 0 
-        ? i18n.global.t('agent.tool.todolist.progress.retrying', `正在重试生成任务列表（${retryCount}/${maxRetries}）...（流式输出）`)
-        : i18n.global.t('agent.tool.todolist.progress.generating', '正在生成任务列表...（流式输出）')
-    })
+      {
+        percentage: retryCount > 0 ? 40 + retryCount * 10 : 40,
+        message:
+          retryCount > 0
+            ? i18n.global.t(
+                'agent.tool.todolist.progress.retrying',
+                `正在重试生成任务列表（${retryCount}/${maxRetries}）...（流式输出）`
+              )
+            : i18n.global.t(
+                'agent.tool.todolist.progress.generating',
+                '正在生成任务列表...（流式输出）'
+              )
+      }
+    )
   }
 
   if (signal) {
@@ -660,11 +693,11 @@ ${context ? `上下文信息：${context}` : ''}`
 
   // 尝试解析JSON（带清理）
   const parseResult = parseJsonWithClean<TodoList>(target.value)
-  
+
   if (!parseResult.success || !parseResult.data) {
     const errorMessage = parseResult.error || 'JSON解析失败'
     logger.error(`解析TodoList JSON失败 (重试 ${retryCount}/${maxRetries}):`, errorMessage)
-    
+
     // 如果还有重试次数，递归重试
     if (retryCount < maxRetries && isJsonParseError(parseResult.error)) {
       logger.info(`准备重试生成TodoList (${retryCount + 1}/${maxRetries})`)
@@ -678,7 +711,7 @@ ${context ? `上下文信息：${context}` : ''}`
         errorMessage
       )
     }
-    
+
     throw new Error(errorMessage)
   }
 
@@ -703,7 +736,7 @@ function normalizeTodoItem(item: FlexibleTodoItem, index: number): TodoItem {
     // 如果是对象，保留已有字段，补充缺失字段
     return {
       id: item.id || `task-${index + 1}`,
-      title: item.title || `任务 ${index + 1}`,  // title必需，如果没有则生成
+      title: item.title || `任务 ${index + 1}`, // title必需，如果没有则生成
       description: item.description,
       status: item.status || 'pending',
       priority: item.priority,
@@ -729,7 +762,7 @@ function normalizeTodoItem(item: FlexibleTodoItem, index: number): TodoItem {
  */
 function normalizeTodoList(input: FlexibleTodoListInput | TodoList | FlexibleTodoItem[]): TodoList {
   const now = new Date().toISOString()
-  
+
   // 如果输入是数组（字符串列表或混合列表），转换为TodoList格式
   if (Array.isArray(input)) {
     return {
@@ -742,12 +775,12 @@ function normalizeTodoList(input: FlexibleTodoListInput | TodoList | FlexibleTod
       metadata: {}
     }
   }
-  
+
   // 如果输入是FlexibleTodoListInput或TodoList对象
   if (input && typeof input === 'object') {
     const items = input.items || []
     const normalizedItems = items.map((item, index) => normalizeTodoItem(item, index))
-    
+
     return {
       id: input.id || `todolist-${Date.now()}`,
       title: input.title || '任务列表',
@@ -758,7 +791,7 @@ function normalizeTodoList(input: FlexibleTodoListInput | TodoList | FlexibleTod
       metadata: input.metadata || {}
     }
   }
-  
+
   // 无效输入，返回空列表
   return {
     id: `todolist-${Date.now()}`,
@@ -774,11 +807,17 @@ function normalizeTodoList(input: FlexibleTodoListInput | TodoList | FlexibleTod
 const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   const input = params.input as string
   const context = params.context as string | undefined
-  const todoList = params.todoList as TodoList | FlexibleTodoListInput | FlexibleTodoItem[] | undefined
-  const items = params.items as FlexibleTodoItem[] | undefined  // 支持直接传入items数组
-  const session = params._session as AgentSession | undefined  // 从agent-engine-executor自动注入
-  const updateStatus = params.updateStatus as { itemId: string; status: 'pending' | 'in_progress' | 'completed' | 'cancelled' } | undefined  // 更新任务状态
-  const markComplete = params.markComplete as string | string[] | boolean | undefined  // 标记任务为完成（任务ID、ID数组、或true/"true"自动标记下一个）
+  const todoList = params.todoList as
+    | TodoList
+    | FlexibleTodoListInput
+    | FlexibleTodoItem[]
+    | undefined
+  const items = params.items as FlexibleTodoItem[] | undefined // 支持直接传入items数组
+  const session = params._session as AgentSession | undefined // 从agent-engine-executor自动注入
+  const updateStatus = params.updateStatus as
+    | { itemId: string; status: 'pending' | 'in_progress' | 'completed' | 'cancelled' }
+    | undefined // 更新任务状态
+  const markComplete = params.markComplete as string | string[] | boolean | undefined // 标记任务为完成（任务ID、ID数组、或true/"true"自动标记下一个）
 
   // 调试：检查session是否被正确传递
   // logger.info('[todolistToolCallback] 开始执行，参数检查:', {
@@ -799,12 +838,20 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     // logger.debug('[todolistToolCallback] 准备读取todolist，key:', key)
     existingTodoList = getTodoListFromSession(session)
     if (existingTodoList) {
-      logger.info('[todolistToolCallback] 从session中读取到现有todolist，任务数:', existingTodoList.items.length, 'key:', key)
+      logger.info(
+        '[todolistToolCallback] 从session中读取到现有todolist，任务数:',
+        existingTodoList.items.length,
+        'key:',
+        key
+      )
     } else {
       logger.debug('[todolistToolCallback] 当前tab和session下没有todolist，key:', key)
     }
   } else {
-    logger.warn('[todolistToolCallback] ⚠️ session为空！无法读取或保存todolist。params._session:', params._session)
+    logger.warn(
+      '[todolistToolCallback] ⚠️ session为空！无法读取或保存todolist。params._session:',
+      params._session
+    )
   }
 
   // 如果提供了updateStatus，更新任务状态
@@ -879,9 +926,9 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         )
       }
     }
-    
+
     // 特殊处理：如果markComplete是"true"字符串或布尔值true，标记最后一条已完成任务的下一条任务
-    const isAutoMark = (markComplete === 'true' || markComplete === true)
+    const isAutoMark = markComplete === 'true' || markComplete === true
     if (isAutoMark) {
       // 找到最后一条已完成的任务
       let lastCompletedIndex = -1
@@ -891,7 +938,7 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           break
         }
       }
-      
+
       // 如果找到了已完成的任务，且还有下一条任务，标记下一条为完成
       if (lastCompletedIndex >= 0 && lastCompletedIndex < existingTodoList.items.length - 1) {
         const nextItem = existingTodoList.items[lastCompletedIndex + 1]
@@ -948,7 +995,7 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
         }
       }
     }
-    
+
     // 普通处理：markComplete是任务ID或任务ID数组
     const itemIds = Array.isArray(markComplete) ? markComplete : [markComplete]
     let anyUpdated = false
@@ -1006,16 +1053,18 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 
   // 优先级：items > todoList > input（自动生成）
-  
+
   // 方式1：直接传入items数组（最简化的方式）
   if (items && Array.isArray(items)) {
     try {
       let normalized: TodoList
-      
+
       // 如果session中已有todolist，合并新任务
       if (existingTodoList) {
         logger.info('[todolistToolCallback] 合并新任务到现有todolist')
-        const newItems = items.map((item, index) => normalizeTodoItem(item, existingTodoList.items.length + index))
+        const newItems = items.map((item, index) =>
+          normalizeTodoItem(item, existingTodoList.items.length + index)
+        )
         normalized = {
           ...existingTodoList,
           items: [...existingTodoList.items, ...newItems],
@@ -1024,23 +1073,26 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       } else {
         normalized = normalizeTodoList(items)
       }
-      
+
       // 保存到session
       if (session) {
         saveTodoListToSession(session, normalized)
       }
-      
-      onUpdate({
-        content: {
-          stage: 'completed',
-          todoList: normalized
+
+      onUpdate(
+        {
+          content: {
+            stage: 'completed',
+            todoList: normalized
+          },
+          format: 'json',
+          componentName: 'TodoListDisplay'
         },
-        format: 'json',
-        componentName: 'TodoListDisplay'
-      }, {
-        percentage: 100,
-        message: i18n.global.t('agent.tool.todolist.progress.completed', '任务列表创建完成')
-      })
+        {
+          percentage: 100,
+          message: i18n.global.t('agent.tool.todolist.progress.completed', '任务列表创建完成')
+        }
+      )
 
       return {
         status: 'succeeded',
@@ -1080,13 +1132,15 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   if (todoList) {
     try {
       let normalized: TodoList
-      
+
       // 如果todoList是数组，直接标准化
       if (Array.isArray(todoList)) {
         // 如果session中已有todolist，合并新任务
         if (existingTodoList) {
           logger.info('[todolistToolCallback] 合并新任务到现有todolist')
-          const newItems = todoList.map((item, index) => normalizeTodoItem(item, existingTodoList.items.length + index))
+          const newItems = todoList.map((item, index) =>
+            normalizeTodoItem(item, existingTodoList.items.length + index)
+          )
           normalized = {
             ...existingTodoList,
             items: [...existingTodoList.items, ...newItems],
@@ -1104,8 +1158,8 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
           normalized = {
             ...existingTodoList,
             ...normalizeTodoList(inputTodoList),
-            id: existingTodoList.id,  // 保持原有ID
-            createdAt: existingTodoList.createdAt,  // 保持原有创建时间
+            id: existingTodoList.id, // 保持原有ID
+            createdAt: existingTodoList.createdAt, // 保持原有创建时间
             updatedAt: new Date().toISOString()
           }
         } else {
@@ -1114,23 +1168,26 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       } else {
         throw new Error('todoList参数格式无效，必须是数组或对象')
       }
-      
+
       // 保存到session
       if (session) {
         saveTodoListToSession(session, normalized)
       }
-      
-      onUpdate({
-        content: {
-          stage: 'completed',
-          todoList: normalized
+
+      onUpdate(
+        {
+          content: {
+            stage: 'completed',
+            todoList: normalized
+          },
+          format: 'json',
+          componentName: 'TodoListDisplay'
         },
-        format: 'json',
-        componentName: 'TodoListDisplay'
-      }, {
-        percentage: 100,
-        message: i18n.global.t('agent.tool.todolist.progress.completed', '任务列表创建完成')
-      })
+        {
+          percentage: 100,
+          message: i18n.global.t('agent.tool.todolist.progress.completed', '任务列表创建完成')
+        }
+      )
 
       return {
         status: 'succeeded',
@@ -1171,7 +1228,11 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   if (!input && !items && !todoList && !markComplete && !updateStatus) {
     // 如果session中有todolist，直接返回（使用新的key逻辑自动识别当前tab和session）
     if (existingTodoList) {
-      logger.info('[todolistToolCallback] 返回session中的现有todolist（使用key:', getTodoListKey(session), ')')
+      logger.info(
+        '[todolistToolCallback] 返回session中的现有todolist（使用key:',
+        getTodoListKey(session),
+        ')'
+      )
       return {
         status: 'succeeded',
         data: {
@@ -1188,7 +1249,11 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     // 如果没有todolist，返回友好的提示信息（而不是错误）
     // 说明当前tab和session下还没有任务列表，需要先创建
     const key = getTodoListKey(session)
-    logger.info('[todolistToolCallback] 当前tab和session下没有todolist（key:', key, '），返回提示信息')
+    logger.info(
+      '[todolistToolCallback] 当前tab和session下没有todolist（key:',
+      key,
+      '），返回提示信息'
+    )
     return {
       status: 'succeeded',
       data: {
@@ -1220,11 +1285,7 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       logger.error('[todolistToolCallback] 逻辑错误：markComplete或updateStatus应该已经处理')
       return {
         status: 'failed',
-        error: createDetailedError(
-          '内部错误：状态更新处理失败',
-          [],
-          ['请重试操作']
-        )
+        error: createDetailedError('内部错误：状态更新处理失败', [], ['请重试操作'])
       }
     }
     return {
@@ -1249,17 +1310,20 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 
   try {
-    onUpdate({
-      content: {
-        stage: 'analyzing',
-        input,
-        context
+    onUpdate(
+      {
+        content: {
+          stage: 'analyzing',
+          input,
+          context
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 10,
-      message: i18n.global.t('agent.tool.todolist.progress.analyzing', '正在分析用户意图...')
-    })
+      {
+        percentage: 10,
+        message: i18n.global.t('agent.tool.todolist.progress.analyzing', '正在分析用户意图...')
+      }
+    )
 
     // 调用LLM生成TodoList（带自动重试）
     let todoList: TodoList
@@ -1292,7 +1356,7 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
             '如果JSON解析失败，请检查LLM响应格式',
             '可以尝试提供更清晰的input描述',
             '添加context参数可能有助于生成更准确的结果'
-        ]
+          ]
         )
       }
     }
@@ -1347,17 +1411,20 @@ const todolistToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       saveTodoListToSession(session, todoList)
     }
 
-    onUpdate({
-      content: {
-        stage: 'completed',
-        todoList
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          todoList
+        },
+        format: 'json',
+        componentName: 'TodoListDisplay'
       },
-      format: 'json',
-      componentName: 'TodoListDisplay'
-    }, {
-      percentage: 100,
-      message: i18n.global.t('agent.tool.todolist.progress.completed', '任务列表生成完成')
-    })
+      {
+        percentage: 100,
+        message: i18n.global.t('agent.tool.todolist.progress.completed', '任务列表生成完成')
+      }
+    )
 
     return {
       status: 'succeeded',
@@ -1401,7 +1468,8 @@ export const todolistToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'todolist-planning',
-    brief: 'Analyze user intent and decompose complex tasks into structured todo lists. Supports automatic generation and manual creation.',
+    brief:
+      'Analyze user intent and decompose complex tasks into structured todo lists. Supports automatic generation and manual creation.',
     fullSpec: `# Intent Recognition & Task Planning Tool
 
 ## Description
@@ -1477,15 +1545,13 @@ Returns the created or updated todo list with all items and their status.`
         type: 'array',
         description: '任务列表数组，支持字符串列表或混合列表（字符串+对象），最简单的方式',
         items: {
-          oneOf: [
-            { type: 'string' },
-            { type: 'object' }
-          ]
+          oneOf: [{ type: 'string' }, { type: 'object' }]
         }
       },
       todoList: {
         type: 'object',
-        description: '手动创建的任务列表对象（手动创建模式使用），如果提供了items或todoList，input可以为空'
+        description:
+          '手动创建的任务列表对象（手动创建模式使用），如果提供了items或todoList，input可以为空'
       },
       markComplete: {
         oneOf: [
@@ -1493,11 +1559,13 @@ Returns the created or updated todo list with all items and their status.`
           { type: 'array', items: { type: 'string' } },
           { type: 'boolean' }
         ],
-        description: '标记任务为完成。可以是：1) 单个任务ID（字符串），如 "task-1"；2) 多个任务ID（字符串数组），如 ["task-1", "task-2"]；3) 布尔值 true 或字符串 "true"，自动标记最后一条已完成任务的下一条任务为完成'
+        description:
+          '标记任务为完成。可以是：1) 单个任务ID（字符串），如 "task-1"；2) 多个任务ID（字符串数组），如 ["task-1", "task-2"]；3) 布尔值 true 或字符串 "true"，自动标记最后一条已完成任务的下一条任务为完成'
       },
       updateStatus: {
         type: 'object',
-        description: '更新任务状态，包含itemId（任务ID）和status（状态：pending|in_progress|completed|cancelled）',
+        description:
+          '更新任务状态，包含itemId（任务ID）和status（状态：pending|in_progress|completed|cancelled）',
         properties: {
           itemId: {
             type: 'string',
@@ -1545,4 +1613,3 @@ Returns the created or updated todo list with all items and their status.`
   },
   locales: todolistToolLocales
 }
-

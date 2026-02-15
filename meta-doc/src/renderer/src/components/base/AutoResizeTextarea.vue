@@ -1,7 +1,5 @@
 <template>
-  <el-scrollbar 
-    class="auto-resize-textarea-scrollbar"
-    :style="scrollbarStyle">
+  <el-scrollbar class="auto-resize-textarea-scrollbar" :style="scrollbarStyle">
     <textarea
       ref="textareaRef"
       :value="modelValue"
@@ -65,13 +63,16 @@ const minRows = computed(() => {
 })
 
 // 监听 modelValue 变化，自动调整高度
-watch(() => props.modelValue, () => {
-  nextTick(() => {
-    if (textareaRef.value) {
-      adjustHeight(textareaRef.value)
-    }
-  })
-})
+watch(
+  () => props.modelValue,
+  () => {
+    nextTick(() => {
+      if (textareaRef.value) {
+        adjustHeight(textareaRef.value)
+      }
+    })
+  }
+)
 
 onMounted(() => {
   nextTick(() => {
@@ -85,7 +86,7 @@ const scrollbarStyle = computed(() => {
   return {
     maxHeight: props.maxHeight,
     height: props.height,
-    borderRadius: '8px',
+    borderRadius: '8px'
   }
 })
 
@@ -157,4 +158,3 @@ const inputStyle = computed(() => {
   opacity: 0.6;
 }
 </style>
-

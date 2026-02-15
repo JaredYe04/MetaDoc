@@ -1,7 +1,7 @@
 <template>
-  <el-tooltip 
-    v-if="tooltip && collapse" 
-    :content="tooltip" 
+  <el-tooltip
+    v-if="tooltip && collapse"
+    :content="tooltip"
     placement="right"
     :disabled="hasOpenSubMenu"
     transition=""
@@ -55,20 +55,25 @@ import { inject, computed, type ComputedRef } from 'vue'
 import { themeState, mixColors } from '../../utils/themes'
 
 // 计算与 HeadMenu 一致的 active 背景色
-const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3))
+const activeBackgroundColor = computed(() =>
+  mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)
+)
 const activeTextColor = computed(() => themeState.currentTheme.textColor)
 
-const props = withDefaults(defineProps<{
-  label?: string
-  tooltip?: string
-  icon?: any
-  iconImage?: string
-  disabled?: boolean
-}>(), {
-  label: '',
-  tooltip: '',
-  disabled: false
-})
+const props = withDefaults(
+  defineProps<{
+    label?: string
+    tooltip?: string
+    icon?: any
+    iconImage?: string
+    disabled?: boolean
+  }>(),
+  {
+    label: '',
+    tooltip: '',
+    disabled: false
+  }
+)
 
 const emit = defineEmits<{
   (e: 'click'): void
@@ -77,7 +82,10 @@ const emit = defineEmits<{
 }>()
 
 const collapse = inject<boolean>('menuCollapse', false)
-const hasOpenSubMenu = inject<ComputedRef<boolean>>('hasOpenSubMenu', computed(() => false))
+const hasOpenSubMenu = inject<ComputedRef<boolean>>(
+  'hasOpenSubMenu',
+  computed(() => false)
+)
 
 const handleClick = () => {
   if (!props.disabled) {

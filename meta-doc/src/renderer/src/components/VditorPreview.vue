@@ -7,12 +7,15 @@ import { ref, watch, onMounted, nextTick } from 'vue'
 import { themeState } from '../utils/themes'
 import { renderMarkdownPreview, local2fileProtocol } from '../utils/md-utils'
 
-const props = withDefaults(defineProps<{
-  markdown: string
-  docPath?: string
-}>(), {
-  docPath: ''
-})
+const props = withDefaults(
+  defineProps<{
+    markdown: string
+    docPath?: string
+  }>(),
+  {
+    docPath: ''
+  }
+)
 
 const emit = defineEmits<{ rendered: [] }>()
 const containerRef = ref<HTMLElement | null>(null)
@@ -68,4 +71,3 @@ onMounted(() => {
   padding: 16px;
 }
 </style>
-

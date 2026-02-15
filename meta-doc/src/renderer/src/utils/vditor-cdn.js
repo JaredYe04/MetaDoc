@@ -1,5 +1,4 @@
-import { isElectronEnv } from "./event-bus"
-
+import { isElectronEnv } from './event-bus'
 
 // export const getVditorCDN=()=>{
 //     if (isElectronEnv){
@@ -17,5 +16,5 @@ import { isElectronEnv } from "./event-bus"
 //     }
 // }
 
-export const localVditorCDN= "http://localhost:52521/vditor";
-export const vditorCDN="https://unpkg.com/vditor@latest";
+export const localVditorCDN = 'http://localhost:52521/vditor'
+export const vditorCDN = 'https://unpkg.com/vditor@latest'

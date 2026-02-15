@@ -43,27 +43,29 @@ let textUpdateHandler: ((event: unknown) => void) | null = null
  */
 function getEditor(): monaco.editor.IStandaloneCodeEditor | null {
   const editors = monaco.editor.getEditors() || []
-  
+
   // 如果提供了editorId，优先使用它
   if (props.editorId) {
-    const found = editors.find(e => e.getId?.() === props.editorId) as monaco.editor.IStandaloneCodeEditor | null
+    const found = editors.find(
+      (e) => e.getId?.() === props.editorId
+    ) as monaco.editor.IStandaloneCodeEditor | null
     if (found) {
       return found
     }
   }
-  
+
   // 如果没有editorId或找不到，尝试获取当前聚焦的编辑器
   for (const editor of editors) {
     if (editor.hasTextFocus && editor.hasTextFocus()) {
       return editor as monaco.editor.IStandaloneCodeEditor
     }
   }
-  
+
   // 如果找不到聚焦的编辑器，返回第一个（向后兼容）
   if (editors.length > 0) {
     return editors[0] as monaco.editor.IStandaloneCodeEditor
   }
-  
+
   return null
 }
 
@@ -77,25 +79,25 @@ function updateMonacoGhostText(text: string) {
   if (!currentEditor) {
     return
   }
-  
+
   const currentPosition = currentEditor.getPosition()
   if (!currentPosition) {
     return
   }
-  
+
   // 如果起始位置不存在，则初始化
   if (!ghostStartPosition) {
     ghostStartPosition = currentPosition
   }
-  
+
   const startLine = ghostStartPosition.lineNumber
   const startColumn = ghostStartPosition.column
   const lines = text.split('\n')
-  
+
   // 计算结束位置（正确处理多行，包括空行）
   const endLine = startLine + lines.length - 1
   let endColumn: number
-  
+
   if (lines.length === 1) {
     // 单行：结束列 = 起始列 + 文本长度
     endColumn = startColumn + lines[0].length
@@ -105,7 +107,7 @@ function updateMonacoGhostText(text: string) {
     const lastLineLength = lines[lines.length - 1].length
     endColumn = lastLineLength > 0 ? lastLineLength + 1 : 1
   }
-  
+
   // 确保范围有效
   const model = currentEditor.getModel()
   if (model) {
@@ -121,9 +123,9 @@ function updateMonacoGhostText(text: string) {
       endColumn = Math.min(endColumn, actualLineLength + 1)
     }
   }
-  
+
   const newRange = new monaco.Range(startLine, startColumn, endLine, endColumn)
-  
+
   logger.debug('Ghost Text范围（多行支持）', {
     startLine,
     startColumn,
@@ -135,48 +137,45 @@ function updateMonacoGhostText(text: string) {
     lastLineLength: lines[lines.length - 1].length,
     hasExistingRange: !!ghostRange
   })
-  
+
   // 保存光标原始位置
   const originalPosition = ghostStartPosition
-  
+
   try {
     // 通知LaTeXEditor开始更新ghost text（通过事件总线）
     eventBus.emit('ai-ghost-text-updating', true)
-    
+
     const model = currentEditor.getModel()
     if (!model) {
       eventBus.emit('ai-ghost-text-updating', false)
       return
     }
-    
+
     let editRange: monaco.Range
     const isFirstInsert = !ghostRange
-    
+
     if (ghostRange) {
       // 更新：使用之前插入的文本范围来替换
       editRange = ghostRange
     } else {
       // 第一次插入：使用光标位置作为插入点（单点范围，start = end）
-      editRange = new monaco.Range(
-        startLine,
-        startColumn,
-        startLine,
-        startColumn
-      )
+      editRange = new monaco.Range(startLine, startColumn, startLine, startColumn)
     }
-    
+
     // 只在第一次插入时创建撤销停止点，后续更新不创建（避免撤销堆栈混乱）
     if (isFirstInsert) {
       currentEditor.pushUndoStop()
     }
-    
+
     // 使用model.applyEdits，与AISuggestion.vue保持一致
-    model.applyEdits([{
-      range: editRange,
-      text: text,
-      forceMoveMarkers: true,
-    }])
-    
+    model.applyEdits([
+      {
+        range: editRange,
+        text: text,
+        forceMoveMarkers: true
+      }
+    ])
+
     // 重要：立即计算ghostRange，不等待setTimeout
     // 这样Tab命令触发时ghostRange已经存在
     const lines = text.split('\n')
@@ -184,7 +183,7 @@ function updateMonacoGhostText(text: string) {
     const actualStartColumn = startColumn
     const actualEndLine = actualStartLine + lines.length - 1
     let actualEndColumn: number
-    
+
     if (lines.length === 1) {
       // 单行：结束列 = 起始列 + 文本长度
       actualEndColumn = actualStartColumn + lines[0].length
@@ -193,18 +192,20 @@ function updateMonacoGhostText(text: string) {
       const lastLineLength = lines[lines.length - 1].length
       actualEndColumn = lastLineLength > 0 ? lastLineLength + 1 : 1
     }
-    
+
     // 验证范围（确保在model范围内）
-    const validatedStart = model.validatePosition(new monaco.Position(actualStartLine, actualStartColumn))
+    const validatedStart = model.validatePosition(
+      new monaco.Position(actualStartLine, actualStartColumn)
+    )
     let validatedEnd = model.validatePosition(new monaco.Position(actualEndLine, actualEndColumn))
-    
+
     // 如果结束行超出了model范围，使用model的最后一行
     if (validatedEnd.lineNumber > model.getLineCount()) {
       const lastLine = model.getLineCount()
       const lastLineLength = model.getLineContent(lastLine).length
       validatedEnd = new monaco.Position(lastLine, Math.min(actualEndColumn, lastLineLength + 1))
     }
-    
+
     // 立即设置ghostRange，不等待setTimeout
     ghostRange = new monaco.Range(
       validatedStart.lineNumber,
@@ -212,40 +213,41 @@ function updateMonacoGhostText(text: string) {
       validatedEnd.lineNumber,
       validatedEnd.column
     )
-    
+
     logger.debug('Ghost Range已立即设置', {
       range: ghostRange.toString(),
       textLength: text.length,
       stackTrace: new Error().stack?.split('\n').slice(1, 4).join('\n')
     })
-    
+
     // 应用装饰到插入的文本范围
-    const className = themeState.currentTheme.type === 'dark'
-      ? 'ai-suggestion-insert-dark'
-      : 'ai-suggestion-insert'
-    
+    const className =
+      themeState.currentTheme.type === 'dark' ? 'ai-suggestion-insert-dark' : 'ai-suggestion-insert'
+
     try {
-      ghostDecoration = currentEditor.deltaDecorations(ghostDecoration || [], [{
-        range: ghostRange,
-        options: {
-          inlineClassName: className,
-          stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
-        },
-      }])
+      ghostDecoration = currentEditor.deltaDecorations(ghostDecoration || [], [
+        {
+          range: ghostRange,
+          options: {
+            inlineClassName: className,
+            stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges
+          }
+        }
+      ])
     } catch (error) {
       logger.error('应用装饰时出错', error)
     }
-    
+
     // 通知LaTeXEditor完成更新ghost text
     setTimeout(() => {
       eventBus.emit('ai-ghost-text-updating', false)
     }, 0)
-    
+
     // 装饰将在executeEdits完成后在setTimeout中应用（见上面）
-    
+
     // 显示提示信息
     showTooltip(originalPosition)
-    
+
     // 强制锁定光标在原始位置（确保用户输入不受影响）
     currentEditor.setPosition(originalPosition)
     currentEditor.revealPositionInCenterIfOutsideViewport(originalPosition)
@@ -259,28 +261,27 @@ function updateMonacoGhostText(text: string) {
  */
 function showTooltip(position: monaco.Position) {
   hideTooltip()
-  
+
   const currentEditor = getEditor()
   if (!currentEditor) return
-  
+
   const domNode = currentEditor.getDomNode()
   if (!domNode) return
-  
+
   tooltipEl = document.createElement('div')
   tooltipEl.className = 'ai-suggestion-tooltip'
   tooltipEl.textContent = '按 Tab 接受，按 ESC 取消'
   tooltipEl.style.position = 'fixed'
   tooltipEl.style.padding = '4px 8px'
-  tooltipEl.style.background = themeState.currentTheme.type === 'dark' 
-    ? 'rgba(0, 0, 0, 0.8)' 
-    : 'rgba(0, 0, 0, 0.7)'
+  tooltipEl.style.background =
+    themeState.currentTheme.type === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)'
   tooltipEl.style.color = '#fff'
   tooltipEl.style.borderRadius = '4px'
   tooltipEl.style.fontSize = '12px'
   tooltipEl.style.pointerEvents = 'none'
   tooltipEl.style.whiteSpace = 'nowrap'
   tooltipEl.style.zIndex = '10000'
-  
+
   // 获取光标位置（使用getScrolledVisiblePosition）
   try {
     const coords = currentEditor.getScrolledVisiblePosition(position)
@@ -307,7 +308,7 @@ function showTooltip(position: monaco.Position) {
     tooltipEl.style.left = `${editorCoords.left + 20}px`
     tooltipEl.style.top = `${editorCoords.top + 20}px`
   }
-  
+
   document.body.appendChild(tooltipEl)
 }
 
@@ -327,25 +328,27 @@ function hideTooltip() {
  */
 function cancelMonacoGhostText() {
   if (!ghostRange) return
-  
+
   // 获取editor实例
   const currentEditor = getEditor()
   if (!currentEditor) return
-  
+
   // 通知LaTeXEditor开始更新ghost text（防止触发新的补全）
   eventBus.emit('ai-ghost-text-updating', true)
-  
+
   try {
     // 删除已插入的ghost text（使用model.applyEdits，与AISuggestion.vue保持一致）
     const model = currentEditor.getModel()
     if (model) {
-      model.applyEdits([{
-        range: ghostRange,
-        text: '',
-        forceMoveMarkers: true,
-      }])
+      model.applyEdits([
+        {
+          range: ghostRange,
+          text: '',
+          forceMoveMarkers: true
+        }
+      ])
     }
-    
+
     // 清理装饰
     if (ghostDecoration && ghostDecoration.length > 0) {
       currentEditor.deltaDecorations(ghostDecoration, [])
@@ -353,7 +356,7 @@ function cancelMonacoGhostText() {
     ghostDecoration = []
     ghostRange = null
     ghostStartPosition = null
-    
+
     // 通知LaTeXEditor完成更新ghost text
     setTimeout(() => {
       eventBus.emit('ai-ghost-text-updating', false)
@@ -366,7 +369,7 @@ function cancelMonacoGhostText() {
     ghostStartPosition = null
     eventBus.emit('ai-ghost-text-updating', false)
   }
-  
+
   // 隐藏提示
   hideTooltip()
 }
@@ -377,39 +380,39 @@ function cancelMonacoGhostText() {
  */
 function acceptMonacoGhostText(text: string) {
   if (!ghostRange) return
-  
+
   // 获取editor实例
   const currentEditor = getEditor()
   if (!currentEditor) return
-  
+
   // 保存ghostRange的结束位置，用于移动光标
   const endPosition = new monaco.Position(ghostRange.endLineNumber, ghostRange.endColumn)
-  
+
   // 通知LaTeXEditor开始更新ghost text（防止触发新的补全）
   eventBus.emit('ai-ghost-text-updating', true)
-  
+
   try {
     // 重要：在接受补全时创建撤销停止点，确保撤销操作可以正确撤销整个补全
     // 这样用户撤销时会撤销整个补全内容，而不是部分内容
     currentEditor.pushUndoStop()
-    
+
     // 清理ghost text装饰（文本已经在model中，移除装饰后自然显示）
     if (ghostDecoration && ghostDecoration.length > 0) {
       currentEditor.deltaDecorations(ghostDecoration, [])
     }
     ghostDecoration = []
-    
+
     // 移动光标到补全内容的末尾
     currentEditor.setPosition(endPosition)
     currentEditor.revealPositionInCenterIfOutsideViewport(endPosition)
-    
+
     // 清理状态
     ghostRange = null
     ghostStartPosition = null
-    
+
     // 隐藏提示
     hideTooltip()
-    
+
     // 延迟重置标志
     setTimeout(() => {
       eventBus.emit('ai-ghost-text-updating', false)
@@ -434,7 +437,7 @@ function updateVditorGhostText(text: string) {
     hasTargetEl: !!props.targetEl,
     rootNodeClass: props.rootNodeClass
   })
-  
+
   if (!props.targetEl || !props.rootNodeClass) {
     logger.warn('缺少targetEl或rootNodeClass', {
       hasTargetEl: !!props.targetEl,
@@ -442,37 +445,43 @@ function updateVditorGhostText(text: string) {
     })
     return
   }
-  
+
   const sel = window.getSelection()
   if (!sel || sel.rangeCount === 0) {
     logger.warn('无法获取选择范围')
     return
   }
-  
+
   const range = sel.getRangeAt(0).cloneRange()
-  
+
   // 检查是否在预览区域或大纲区域，如果是，需要找到编辑器区域
   let startContainer = range.startContainer
-  const previewElement = startContainer.nodeType === Node.ELEMENT_NODE 
-    ? (startContainer as Element).closest('.vditor-preview')
-    : startContainer.parentElement?.closest('.vditor-preview')
-  
-  const outlineElement = startContainer.nodeType === Node.ELEMENT_NODE 
-    ? (startContainer as Element).closest('.vditor-outline')
-    : startContainer.parentElement?.closest('.vditor-outline')
-  
+  const previewElement =
+    startContainer.nodeType === Node.ELEMENT_NODE
+      ? (startContainer as Element).closest('.vditor-preview')
+      : startContainer.parentElement?.closest('.vditor-preview')
+
+  const outlineElement =
+    startContainer.nodeType === Node.ELEMENT_NODE
+      ? (startContainer as Element).closest('.vditor-outline')
+      : startContainer.parentElement?.closest('.vditor-outline')
+
   // 检查是否在编辑器内容区域
   // 对于分屏模式，需要检查 .vditor-sv.vditor-reset 或 .vditor-sv
   // 对于其他模式，检查 .vditor-reset, .vditor-ir, .vditor-wysiwyg
   let isInEditorContent = false
   if (startContainer.nodeType === Node.ELEMENT_NODE) {
-    const closest = (startContainer as Element).closest('.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg')
+    const closest = (startContainer as Element).closest(
+      '.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg'
+    )
     isInEditorContent = !!closest
   } else {
-    const closest = startContainer.parentElement?.closest('.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg')
+    const closest = startContainer.parentElement?.closest(
+      '.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg'
+    )
     isInEditorContent = !!closest
   }
-  
+
   // 如果不在编辑器内容区域，或者在预览/大纲区域，需要切换到编辑器区域
   if (previewElement || outlineElement || !isInEditorContent) {
     // 如果在预览区域或大纲区域，需要找到编辑器区域
@@ -481,12 +490,12 @@ function updateVditorGhostText(text: string) {
       // 查找编辑器内容区域（根据不同的模式）
       // 优先查找.vditor-reset（所有模式都有），然后根据模式查找特定区域
       let editorContent = editorRoot.querySelector('.vditor-reset')
-      
+
       // 如果没找到，尝试查找特定模式的内容区域
       if (!editorContent) {
         editorContent = editorRoot.querySelector('.vditor-ir, .vditor-wysiwyg, .vditor-sv')
       }
-      
+
       // 对于WYSIWYG模式，需要查找.vditor-wysiwyg .vditor-reset
       if (!editorContent) {
         const wysiwygContainer = editorRoot.querySelector('.vditor-wysiwyg')
@@ -494,7 +503,7 @@ function updateVditorGhostText(text: string) {
           editorContent = wysiwygContainer.querySelector('.vditor-reset') || wysiwygContainer
         }
       }
-      
+
       // 对于SV模式，需要查找.vditor-sv.vditor-reset（注意：这是两个类名，不是后代选择器）
       if (!editorContent) {
         // 先尝试查找同时包含两个类的元素
@@ -510,31 +519,37 @@ function updateVditorGhostText(text: string) {
           editorContent = editorRoot.querySelector('.vditor-sv')
         }
       }
-      
+
       if (editorContent) {
         // 尝试在编辑器内容区域创建range
         try {
           const newRange = document.createRange()
-          
+
           // 对于分屏模式，需要找到当前光标在编辑器中的实际位置
           // 分屏模式的DOM结构：<pre class="vditor-sv vditor-reset"><div data-block="0"><span data-type="text">...</span></div></pre>
           let targetNode: Node | null = null
           let targetOffset = 0
-          
+
           // 尝试从当前range找到在编辑器内容区域内的对应位置
           const currentContainer = range.startContainer
           const currentOffset = range.startOffset
-          
+
           // 检查当前容器是否在编辑器内容区域内
           let currentInEditor = false
           if (currentContainer.nodeType === Node.ELEMENT_NODE) {
-            currentInEditor = editorContent.contains(currentContainer) && 
-              (currentContainer as Element).closest('.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg') === editorContent
+            currentInEditor =
+              editorContent.contains(currentContainer) &&
+              (currentContainer as Element).closest(
+                '.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg'
+              ) === editorContent
           } else {
-            currentInEditor = editorContent.contains(currentContainer) && 
-              currentContainer.parentElement?.closest('.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg') === editorContent
+            currentInEditor =
+              editorContent.contains(currentContainer) &&
+              currentContainer.parentElement?.closest(
+                '.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg'
+              ) === editorContent
           }
-          
+
           if (currentInEditor) {
             // 如果当前容器在编辑器内容区域内，直接使用
             targetNode = currentContainer
@@ -542,32 +557,31 @@ function updateVditorGhostText(text: string) {
           } else {
             // 否则，找到编辑器内容区域内的最后一个文本节点
             // 对于分屏模式，优先查找 <span data-type="text"> 内的文本节点
-            const walker = document.createTreeWalker(
-              editorContent,
-              NodeFilter.SHOW_TEXT,
-              {
-                acceptNode: (node) => {
-                  // 排除预览区域和大纲区域
-                  const parent = node.parentElement
-                  if (parent) {
-                    if (parent.closest('.vditor-preview') || parent.closest('.vditor-outline')) {
-                      return NodeFilter.FILTER_REJECT
-                    }
-                    // 对于分屏模式，优先选择在 <span data-type="text"> 内的文本节点
-                    if (parent.hasAttribute('data-type') && parent.getAttribute('data-type') === 'text') {
-                      return NodeFilter.FILTER_ACCEPT
-                    }
+            const walker = document.createTreeWalker(editorContent, NodeFilter.SHOW_TEXT, {
+              acceptNode: (node) => {
+                // 排除预览区域和大纲区域
+                const parent = node.parentElement
+                if (parent) {
+                  if (parent.closest('.vditor-preview') || parent.closest('.vditor-outline')) {
+                    return NodeFilter.FILTER_REJECT
                   }
-                  return NodeFilter.FILTER_ACCEPT
+                  // 对于分屏模式，优先选择在 <span data-type="text"> 内的文本节点
+                  if (
+                    parent.hasAttribute('data-type') &&
+                    parent.getAttribute('data-type') === 'text'
+                  ) {
+                    return NodeFilter.FILTER_ACCEPT
+                  }
                 }
+                return NodeFilter.FILTER_ACCEPT
               }
-            )
-            
+            })
+
             let lastTextNode: Node | null = null
             while (walker.nextNode()) {
               lastTextNode = walker.currentNode
             }
-            
+
             if (lastTextNode && lastTextNode.nodeType === Node.TEXT_NODE) {
               targetNode = lastTextNode
               targetOffset = lastTextNode.textContent?.length || 0
@@ -591,7 +605,7 @@ function updateVditorGhostText(text: string) {
               }
             }
           }
-          
+
           if (targetNode) {
             if (targetNode.nodeType === Node.TEXT_NODE) {
               newRange.setStart(targetNode, targetOffset)
@@ -608,14 +622,14 @@ function updateVditorGhostText(text: string) {
               newRange.setStart(targetNode, targetOffset)
               newRange.collapse(true)
             }
-            
+
             range.setStart(newRange.startContainer, newRange.startOffset)
             range.setEnd(newRange.endContainer, newRange.endOffset)
-            
+
             // 更新selection
             sel.removeAllRanges()
             sel.addRange(range)
-            
+
             logger.debug('已切换到编辑器区域', {
               editorContent: editorContent.className,
               targetNode: targetNode.nodeName,
@@ -638,7 +652,7 @@ function updateVditorGhostText(text: string) {
       return
     }
   }
-  
+
   logger.debug('选择范围', {
     startContainer: range.startContainer.nodeName,
     startOffset: range.startOffset,
@@ -646,22 +660,24 @@ function updateVditorGhostText(text: string) {
     endOffset: range.endOffset,
     inPreview: !!previewElement
   })
-  
+
   // 检查是否已经存在ghost text元素（避免重复创建）
-  const existingGhostText = props.targetEl?.querySelector('.ai-suggestion-insert, .ai-suggestion-insert-dark')
+  const existingGhostText = props.targetEl?.querySelector(
+    '.ai-suggestion-insert, .ai-suggestion-insert-dark'
+  )
   if (existingGhostText && existingGhostText !== suggestionEl) {
     // 如果存在旧的ghost text但不是当前的，先移除它
     existingGhostText.remove()
     suggestionEl = null
   }
-  
+
   // 如果suggestionEl不存在，创建它
   if (!suggestionEl) {
     logger.debug('创建新的suggestionEl')
     suggestionEl = document.createElement('span')
     // 使用setElTheme函数设置样式（参考AISuggestion.vue）
     setElTheme(suggestionEl)
-    
+
     // 添加点击事件来接受补全
     suggestionEl.addEventListener('click', (e) => {
       e.preventDefault()
@@ -673,22 +689,25 @@ function updateVditorGhostText(text: string) {
         emits('accepted', text)
       }
     })
-    
+
     try {
       // 确保插入到编辑器区域，而不是预览区域或大纲区域
-      const container = range.startContainer.nodeType === Node.ELEMENT_NODE
-        ? range.startContainer as Element
-        : range.startContainer.parentElement
-      
+      const container =
+        range.startContainer.nodeType === Node.ELEMENT_NODE
+          ? (range.startContainer as Element)
+          : range.startContainer.parentElement
+
       // 检查是否在预览区域或大纲区域，或者是否在编辑器内容区域
       const isInPreview = container?.closest('.vditor-preview')
       const isInOutline = container?.closest('.vditor-outline')
       let isInEditorContent = false
       if (container) {
-        const closest = container.closest('.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg')
+        const closest = container.closest(
+          '.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg'
+        )
         isInEditorContent = !!closest
       }
-      
+
       // 如果不在编辑器内容区域，或者在预览/大纲区域，需要找到编辑器区域并插入
       if (isInPreview || isInOutline || !isInEditorContent) {
         // 如果在预览区域或大纲区域，或者不在编辑器内容区域，找到编辑器区域并插入
@@ -696,12 +715,12 @@ function updateVditorGhostText(text: string) {
         if (editorRoot) {
           // 优先查找.vditor-reset（所有模式都有）
           let editorContent = editorRoot.querySelector('.vditor-reset')
-          
+
           // 如果没找到，尝试查找特定模式的内容区域
           if (!editorContent) {
             editorContent = editorRoot.querySelector('.vditor-ir, .vditor-wysiwyg, .vditor-sv')
           }
-          
+
           // 对于WYSIWYG模式，需要查找.vditor-wysiwyg .vditor-reset
           if (!editorContent) {
             const wysiwygContainer = editorRoot.querySelector('.vditor-wysiwyg')
@@ -709,7 +728,7 @@ function updateVditorGhostText(text: string) {
               editorContent = wysiwygContainer.querySelector('.vditor-reset') || wysiwygContainer
             }
           }
-          
+
           // 对于SV模式，需要查找同时包含.vditor-sv和.vditor-reset的元素
           if (!editorContent) {
             const svElements = editorRoot.querySelectorAll('.vditor-sv')
@@ -723,7 +742,7 @@ function updateVditorGhostText(text: string) {
               editorContent = editorRoot.querySelector('.vditor-sv')
             }
           }
-          
+
           if (editorContent) {
             // 尝试在编辑器内容区域的当前光标位置插入，如果无法确定，则在末尾插入
             try {
@@ -734,32 +753,31 @@ function updateVditorGhostText(text: string) {
               } else {
                 // 否则，找到编辑器内容区域的最后一个文本节点或末尾插入
                 // 对于分屏模式，优先查找 <span data-type="text"> 内的文本节点
-                const walker = document.createTreeWalker(
-                  editorContent,
-                  NodeFilter.SHOW_TEXT,
-                  {
-                    acceptNode: (node) => {
-                      // 排除预览区域和大纲区域
-                      const parent = node.parentElement
-                      if (parent) {
-                        if (parent.closest('.vditor-preview') || parent.closest('.vditor-outline')) {
-                          return NodeFilter.FILTER_REJECT
-                        }
-                        // 对于分屏模式，优先选择在 <span data-type="text"> 内的文本节点
-                        if (parent.hasAttribute('data-type') && parent.getAttribute('data-type') === 'text') {
-                          return NodeFilter.FILTER_ACCEPT
-                        }
+                const walker = document.createTreeWalker(editorContent, NodeFilter.SHOW_TEXT, {
+                  acceptNode: (node) => {
+                    // 排除预览区域和大纲区域
+                    const parent = node.parentElement
+                    if (parent) {
+                      if (parent.closest('.vditor-preview') || parent.closest('.vditor-outline')) {
+                        return NodeFilter.FILTER_REJECT
                       }
-                      return NodeFilter.FILTER_ACCEPT
+                      // 对于分屏模式，优先选择在 <span data-type="text"> 内的文本节点
+                      if (
+                        parent.hasAttribute('data-type') &&
+                        parent.getAttribute('data-type') === 'text'
+                      ) {
+                        return NodeFilter.FILTER_ACCEPT
+                      }
                     }
+                    return NodeFilter.FILTER_ACCEPT
                   }
-                )
-                
+                })
+
                 let lastTextNode: Node | null = null
                 while (walker.nextNode()) {
                   lastTextNode = walker.currentNode
                 }
-                
+
                 if (lastTextNode && lastTextNode.nodeType === Node.TEXT_NODE) {
                   // 在最后一个文本节点后插入
                   const newRange = document.createRange()
@@ -810,36 +828,39 @@ function updateVditorGhostText(text: string) {
         }
       } else {
         // 正常插入，但需要确保在编辑器内容区域内
-        const finalContainer = range.startContainer.nodeType === Node.ELEMENT_NODE
-          ? range.startContainer as Element
-          : range.startContainer.parentElement
+        const finalContainer =
+          range.startContainer.nodeType === Node.ELEMENT_NODE
+            ? (range.startContainer as Element)
+            : range.startContainer.parentElement
         const finalIsInPreview = finalContainer?.closest('.vditor-preview')
         const finalIsInOutline = finalContainer?.closest('.vditor-outline')
-        
+
         if (finalIsInPreview || finalIsInOutline) {
           logger.warn('插入位置在预览或大纲区域，跳过')
           return
         }
-        
+
         // 检查是否在编辑器内容区域内（.vditor-reset或特定模式的内容区域）
         let isInEditorContent = false
         if (finalContainer) {
-          const closest = finalContainer.closest('.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg')
+          const closest = finalContainer.closest(
+            '.vditor-sv.vditor-reset, .vditor-sv, .vditor-reset, .vditor-ir, .vditor-wysiwyg'
+          )
           isInEditorContent = !!closest
         }
-        
+
         if (!isInEditorContent) {
           // 如果不在编辑器内容区域，尝试找到正确的区域
           const editorRoot = props.targetEl
           if (editorRoot) {
             // 优先查找.vditor-reset（所有模式都有）
             let editorContent = editorRoot.querySelector('.vditor-reset')
-            
+
             // 如果没找到，尝试查找特定模式的内容区域
             if (!editorContent) {
               editorContent = editorRoot.querySelector('.vditor-ir, .vditor-wysiwyg, .vditor-sv')
             }
-            
+
             // 对于WYSIWYG模式，需要查找.vditor-wysiwyg .vditor-reset
             if (!editorContent) {
               const wysiwygContainer = editorRoot.querySelector('.vditor-wysiwyg')
@@ -847,7 +868,7 @@ function updateVditorGhostText(text: string) {
                 editorContent = wysiwygContainer.querySelector('.vditor-reset') || wysiwygContainer
               }
             }
-            
+
             // 对于SV模式，需要查找同时包含.vditor-sv和.vditor-reset的元素
             if (!editorContent) {
               const svElements = editorRoot.querySelectorAll('.vditor-sv')
@@ -861,7 +882,7 @@ function updateVditorGhostText(text: string) {
                 editorContent = editorRoot.querySelector('.vditor-sv')
               }
             }
-            
+
             if (editorContent) {
               // 在编辑器内容末尾插入
               editorContent.appendChild(suggestionEl)
@@ -886,7 +907,7 @@ function updateVditorGhostText(text: string) {
           // 在编辑器内容区域内，正常插入
           range.insertNode(suggestionEl)
           logger.debug('suggestionEl已插入DOM')
-          
+
           // 恢复选择
           sel.removeAllRanges()
           sel.addRange(range)
@@ -897,13 +918,13 @@ function updateVditorGhostText(text: string) {
       return
     }
   }
-  
+
   // 更新文本
   suggestionEl.textContent = text
-  
+
   // 显示提示信息（参考AISuggestion.vue的实现）
   showVditorTooltip()
-  
+
   logger.info('Vditor Ghost Text已更新', {
     textLength: text.length,
     elementExists: !!suggestionEl.parentNode
@@ -915,28 +936,27 @@ function updateVditorGhostText(text: string) {
  */
 function showVditorTooltip() {
   hideTooltip()
-  
+
   if (!suggestionEl) return
-  
+
   tooltipEl = document.createElement('div')
   tooltipEl.textContent = '按 Tab 接受，按 ESC 取消'
   tooltipEl.style.position = 'absolute'
   tooltipEl.style.padding = '4px 8px'
-  tooltipEl.style.background = themeState.currentTheme.type === 'dark' 
-    ? 'rgba(0, 0, 0, 0.8)' 
-    : 'rgba(0, 0, 0, 0.7)'
+  tooltipEl.style.background =
+    themeState.currentTheme.type === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)'
   tooltipEl.style.color = '#fff'
   tooltipEl.style.borderRadius = '4px'
   tooltipEl.style.fontSize = '12px'
   tooltipEl.style.pointerEvents = 'none'
   tooltipEl.style.whiteSpace = 'nowrap'
   tooltipEl.style.zIndex = '10000'
-  
+
   // 定位到suggestionEl附近
   const rect = suggestionEl.getBoundingClientRect()
   tooltipEl.style.left = `${rect.left}px`
   tooltipEl.style.top = `${rect.top - 25}px`
-  
+
   document.body.appendChild(tooltipEl)
 }
 
@@ -963,7 +983,7 @@ function acceptVditorGhostText(text: string) {
       hideTooltip()
       return
     }
-    
+
     // 在suggestionEl之前插入文本节点
     const textNode = document.createTextNode(text)
     try {
@@ -973,7 +993,7 @@ function acceptVditorGhostText(text: string) {
       hideTooltip()
       return
     }
-    
+
     // 移动光标到新插入文本的末尾
     const sel = window.getSelection()
     if (sel && textNode.parentNode) {
@@ -999,7 +1019,7 @@ function acceptVditorGhostText(text: string) {
         // 即使设置光标失败，也继续移除suggestionEl
       }
     }
-    
+
     // 移除suggestionEl
     try {
       suggestionEl.remove()
@@ -1018,7 +1038,7 @@ function handleTextUpdate(event: { request: any; text: string }) {
   if (!event || !event.text) {
     return
   }
-  
+
   if (props.format === 'tex' || props.format === 'txt') {
     updateMonacoGhostText(event.text)
   } else if (props.format === 'md') {
@@ -1106,10 +1126,10 @@ onMounted(() => {
     const typedEvent = event as { request?: any; text?: string }
     handleTextUpdate(typedEvent as { request: any; text: string })
   }
-  
+
   eventBus.on('ai-completion-text-updated', textUpdateHandler)
   eventBus.on('ai-completion-cancelled', handleCancelled)
-  
+
   // 监听键盘事件
   if (props.format === 'md') {
     // 对于md格式，使用window.addEventListener（参考AISuggestion.vue）
@@ -1133,14 +1153,14 @@ onMounted(() => {
           }
         }
       })
-      
+
       editor.addCommand(monaco.KeyCode.Escape, () => {
         handleCancelled()
         aiCompletionService.rejectCompletion()
         emits('cancelled')
       })
     }
-    
+
     // 尝试立即获取编辑器
     const editor = getEditor()
     if (editor) {
@@ -1154,9 +1174,9 @@ onMounted(() => {
           eventBus.off('monaco-ready', monacoReadyHandler)
         }
       }
-      
+
       eventBus.on('monaco-ready', monacoReadyHandler)
-      
+
       // 清理函数
       onBeforeUnmount(() => {
         eventBus.off('monaco-ready', monacoReadyHandler)
@@ -1169,15 +1189,15 @@ onBeforeUnmount(() => {
   // 使用通配符移除所有监听器，因为mitt的类型系统限制
   eventBus.off('ai-completion-text-updated', textUpdateHandler as any)
   eventBus.off('ai-completion-cancelled', handleCancelled as any)
-  
+
   if (props.format === 'md') {
     window.removeEventListener('keydown', handleTabKey, true)
     window.removeEventListener('keydown', handleEscapeKey, true)
   }
-  
+
   // 清理ghost text
   handleCancelled()
-  
+
   // 清理提示
   hideTooltip()
 })
@@ -1193,7 +1213,7 @@ function setElTheme(element: HTMLElement) {
   } else {
     element.className = 'ai-suggestion-insert'
   }
-  
+
   element.contentEditable = 'false'
   // 允许pointer事件以便点击接受，但不允许文本选择
   element.style.pointerEvents = 'auto'
@@ -1206,12 +1226,15 @@ function setElTheme(element: HTMLElement) {
 }
 
 // 监听主题变化
-watch(() => themeState.currentTheme?.type, () => {
-  if (suggestionEl) {
-    setElTheme(suggestionEl)
-  }
-}, { immediate: true })
+watch(
+  () => themeState.currentTheme?.type,
+  () => {
+    if (suggestionEl) {
+      setElTheme(suggestionEl)
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped></style>
-

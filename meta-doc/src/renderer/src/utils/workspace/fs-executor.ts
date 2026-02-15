@@ -46,10 +46,7 @@ export class FSExecutor {
   /**
    * 执行操作计划
    */
-  async execute(
-    plan: FSOpPlan,
-    onProgress?: ProgressCallback
-  ): Promise<ExecutionResult> {
+  async execute(plan: FSOpPlan, onProgress?: ProgressCallback): Promise<ExecutionResult> {
     this.abortController = new AbortController()
     const { steps } = plan
     const result: ExecutionResult = {
@@ -70,7 +67,7 @@ export class FSExecutor {
         }
 
         const step = steps[i]
-        
+
         // 报告进度
         if (onProgress) {
           onProgress({
@@ -84,7 +81,7 @@ export class FSExecutor {
         try {
           await this.executeStep(step)
           result.executedSteps++
-          
+
           // 记录创建的新 URI（用于后续选中）
           if (step.to) {
             result.createdURIs?.push(step.to)
@@ -96,7 +93,7 @@ export class FSExecutor {
             step,
             error: error instanceof Error ? error : new Error(String(error))
           })
-          
+
           // 根据策略决定是否继续执行
           // 这里我们选择继续执行，但记录错误
           // 可以根据需要改为遇到错误就停止
@@ -106,10 +103,12 @@ export class FSExecutor {
       logger.error('执行计划失败:', error)
       result.success = false
       if (result.errors && result.errors.length === 0) {
-        result.errors = [{
-          step: steps[0] || { type: 'delete', target: '' as URI },
-          error: error instanceof Error ? error : new Error(String(error))
-        }]
+        result.errors = [
+          {
+            step: steps[0] || { type: 'delete', target: '' as URI },
+            error: error instanceof Error ? error : new Error(String(error))
+          }
+        ]
       }
     } finally {
       this.abortController = null
@@ -256,7 +255,7 @@ export class FSExecutor {
     // 为了简化，我们直接调用 IPC
     const parentPath = this.getDirname(dirPath)
     const dirName = this.getBasename(dirPath)
-    
+
     await this.ipcRenderer.invoke('create-directory', {
       parentPath,
       folderName: dirName
@@ -284,7 +283,7 @@ export class FSExecutor {
    */
   private async checkPathExists(path: string): Promise<boolean> {
     try {
-      return await this.ipcRenderer.invoke('check-path-exists', path) as boolean
+      return (await this.ipcRenderer.invoke('check-path-exists', path)) as boolean
     } catch (err) {
       logger.error('检查路径是否存在失败:', err)
       return false
@@ -305,4 +304,3 @@ export class FSExecutor {
     return parts.length > 0 ? parts[parts.length - 1] : ''
   }
 }
-

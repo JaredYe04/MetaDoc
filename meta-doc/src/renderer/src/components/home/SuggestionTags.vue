@@ -119,9 +119,16 @@ const handleRefresh = () => {
   align-items: center;
   padding: 8px 16px;
   border-radius: 20px;
-  background: v-bind('themeState.currentTheme.suggestionTagBg || (themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.12)" : "rgba(64, 158, 255, 0.08)")');
-  border: 1px solid v-bind('themeState.currentTheme.suggestionTagBorder || (themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.25)" : "rgba(64, 158, 255, 0.2)")');
-  color: v-bind('themeState.currentTheme.suggestionTagColor || (themeState.currentTheme.type === "dark" ? "rgba(100, 180, 255, 0.95)" : "rgb(64, 158, 255)")');
+  background: v-bind(
+    'themeState.currentTheme.suggestionTagBg || (themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.12)" : "rgba(64, 158, 255, 0.08)")'
+  );
+  border: 1px solid
+    v-bind(
+      'themeState.currentTheme.suggestionTagBorder || (themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.25)" : "rgba(64, 158, 255, 0.2)")'
+    );
+  color: v-bind(
+    'themeState.currentTheme.suggestionTagColor || (themeState.currentTheme.type === "dark" ? "rgba(100, 180, 255, 0.95)" : "rgb(64, 158, 255)")'
+  );
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -148,9 +155,15 @@ const handleRefresh = () => {
 }
 
 .suggestion-tag:hover:not(.disabled) {
-  background: v-bind('themeState.currentTheme.suggestionTagHoverBg || (themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.22)" : "rgba(64, 158, 255, 0.15)")');
-  border-color: v-bind('themeState.currentTheme.suggestionTagHoverBorder || (themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.4)" : "rgba(64, 158, 255, 0.35)")');
-  color: v-bind('themeState.currentTheme.suggestionTagHoverColor || (themeState.currentTheme.type === "dark" ? "rgba(120, 200, 255, 1)" : "rgb(64, 158, 255)")');
+  background: v-bind(
+    'themeState.currentTheme.suggestionTagHoverBg || (themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.22)" : "rgba(64, 158, 255, 0.15)")'
+  );
+  border-color: v-bind(
+    'themeState.currentTheme.suggestionTagHoverBorder || (themeState.currentTheme.type === "dark" ? "rgba(64, 158, 255, 0.4)" : "rgba(64, 158, 255, 0.35)")'
+  );
+  color: v-bind(
+    'themeState.currentTheme.suggestionTagHoverColor || (themeState.currentTheme.type === "dark" ? "rgba(120, 200, 255, 1)" : "rgb(64, 158, 255)")'
+  );
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 6px 16px rgba(64, 158, 255, 0.25);
 }
@@ -167,9 +180,15 @@ const handleRefresh = () => {
 .suggestion-tag.disabled {
   opacity: 0.45;
   cursor: not-allowed;
-  background: v-bind('themeState.currentTheme.suggestionTagDisabledBg || (themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.04)")');
-  border-color: v-bind('themeState.currentTheme.suggestionTagDisabledBorder || (themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)")');
-  color: v-bind('themeState.currentTheme.suggestionTagDisabledColor || (themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.35)")');
+  background: v-bind(
+    'themeState.currentTheme.suggestionTagDisabledBg || (themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.04)")'
+  );
+  border-color: v-bind(
+    'themeState.currentTheme.suggestionTagDisabledBorder || (themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)")'
+  );
+  color: v-bind(
+    'themeState.currentTheme.suggestionTagDisabledColor || (themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.35)")'
+  );
   transform: none;
   box-shadow: none;
 }
@@ -205,4 +224,3 @@ const handleRefresh = () => {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>
-

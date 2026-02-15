@@ -5,12 +5,7 @@
     width="800px"
     :before-close="handleClose"
   >
-    <el-form
-      ref="formRef"
-      :model="formData"
-      :rules="rules"
-      label-width="120px"
-    >
+    <el-form ref="formRef" :model="formData" :rules="rules" label-width="120px">
       <el-form-item label="Tool ID" prop="id">
         <el-input
           v-model="formData.id"
@@ -20,10 +15,7 @@
       </el-form-item>
 
       <el-form-item label="Tool名称" prop="name">
-        <el-input
-          v-model="formData.name"
-          placeholder="Tool显示名称"
-        />
+        <el-input v-model="formData.name" placeholder="Tool显示名称" />
       </el-form-item>
 
       <el-form-item label="描述" prop="description">
@@ -42,11 +34,7 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item
-        v-if="formData.origin === 'mcp'"
-        label="MCP配置"
-        prop="mcpConfig"
-      >
+      <el-form-item v-if="formData.origin === 'mcp'" label="MCP配置" prop="mcpConfig">
         <el-form :model="formData.mcpConfig" label-width="100px" v-if="formData.mcpConfig">
           <el-form-item label="服务器名称" prop="serverName">
             <el-input v-model="formData.mcpConfig.serverName" />
@@ -70,19 +58,8 @@
       </el-form-item>
 
       <el-form-item label="标签">
-        <el-select
-          v-model="formData.tags"
-          multiple
-          filterable
-          allow-create
-          placeholder="添加标签"
-        >
-          <el-option
-            v-for="tag in commonTags"
-            :key="tag"
-            :label="tag"
-            :value="tag"
-          />
+        <el-select v-model="formData.tags" multiple filterable allow-create placeholder="添加标签">
+          <el-option v-for="tag in commonTags" :key="tag" :label="tag" :value="tag" />
         </el-select>
       </el-form-item>
     </el-form>
@@ -111,7 +88,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  'saved': [toolId: string]
+  saved: [toolId: string]
 }>()
 
 const formRef = ref<FormInstance>()
@@ -159,14 +136,17 @@ const rules: FormRules = {
   origin: [{ required: true, message: '请选择来源', trigger: 'change' }]
 }
 
-watch(() => props.modelValue, (val) => {
-  visible.value = val
-  if (val && props.toolId) {
-    loadToolConfig(props.toolId)
-  } else if (val) {
-    resetForm()
+watch(
+  () => props.modelValue,
+  (val) => {
+    visible.value = val
+    if (val && props.toolId) {
+      loadToolConfig(props.toolId)
+    } else if (val) {
+      resetForm()
+    }
   }
-})
+)
 
 watch(visible, (val) => {
   emit('update:modelValue', val)
@@ -181,18 +161,18 @@ const loadToolConfig = (toolId: string) => {
     if (typeof instruction === 'object' && instruction !== null) {
       instruction = getLocalizedInstruction(instruction)
     }
-    
+
     // 处理name和description
     let name = config.name
     if (typeof name === 'object' && name !== null) {
       name = agentToolManager.getLocalizedText(name)
     }
-    
+
     let description = config.description
     if (typeof description === 'object' && description !== null) {
       description = agentToolManager.getLocalizedText(description)
     }
-    
+
     Object.assign(formData, {
       ...config,
       instruction: instruction || '',
@@ -277,4 +257,3 @@ const handleExport = () => {
 <style scoped>
 /* 样式可以根据需要添加 */
 </style>
-

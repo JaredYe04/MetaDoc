@@ -50,10 +50,10 @@ export type DiffType = 'equal' | 'insert' | 'delete' | 'replace'
  */
 export interface DiffChunk {
   type: DiffType
-  oldStart: number  // 旧文本起始行号（1-based）
-  oldEnd: number    // 旧文本结束行号（1-based）
-  newStart: number  // 新文本起始行号（1-based）
-  newEnd: number    // 新文本结束行号（1-based）
+  oldStart: number // 旧文本起始行号（1-based）
+  oldEnd: number // 旧文本结束行号（1-based）
+  newStart: number // 新文本起始行号（1-based）
+  newEnd: number // 新文本结束行号（1-based）
   oldLines: string[] // 旧文本行
   newLines: string[] // 新文本行
 }
@@ -155,7 +155,9 @@ export function computeDiff(oldText: string, newText: string): DiffResult {
   // 计算最长公共子序列（LCS）
   const m = oldLines.length
   const n = newLines.length
-  const dp: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0))
+  const dp: number[][] = Array(m + 1)
+    .fill(null)
+    .map(() => Array(n + 1).fill(0))
 
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
@@ -252,7 +254,11 @@ export function computeDiff(oldText: string, newText: string): DiffResult {
         } else {
           mergedChunks.push(chunk)
         }
-      } else if (last.type === chunk.type && last.oldEnd === chunk.oldStart && last.newEnd === chunk.newStart) {
+      } else if (
+        last.type === chunk.type &&
+        last.oldEnd === chunk.oldStart &&
+        last.newEnd === chunk.newStart
+      ) {
         // 合并相同类型的相邻块
         mergedChunks[mergedChunks.length - 1] = {
           ...last,
@@ -327,17 +333,20 @@ const diffToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 
   try {
-    onUpdate({
-      content: {
-        stage: 'loading',
-        source1,
-        source2
+    onUpdate(
+      {
+        content: {
+          stage: 'loading',
+          source1,
+          source2
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 10,
-      message: i18n.global.t('agent.tool.diff.progress.loading', '正在加载文本...')
-    })
+      {
+        percentage: 10,
+        message: i18n.global.t('agent.tool.diff.progress.loading', '正在加载文本...')
+      }
+    )
 
     // 加载第一段文本
     let content1: string
@@ -349,18 +358,21 @@ const diffToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       content1 = text1
     }
 
-    onUpdate({
-      content: {
-        stage: 'loading',
-        source1,
-        source2,
-        loaded1: true
+    onUpdate(
+      {
+        content: {
+          stage: 'loading',
+          source1,
+          source2,
+          loaded1: true
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 40,
-      message: i18n.global.t('agent.tool.diff.progress.loading2', '正在加载第二段文本...')
-    })
+      {
+        percentage: 40,
+        message: i18n.global.t('agent.tool.diff.progress.loading2', '正在加载第二段文本...')
+      }
+    )
 
     // 加载第二段文本
     let content2: string
@@ -378,33 +390,39 @@ const diffToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       }
     }
 
-    onUpdate({
-      content: {
-        stage: 'computing',
-        source1,
-        source2
+    onUpdate(
+      {
+        content: {
+          stage: 'computing',
+          source1,
+          source2
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 70,
-      message: i18n.global.t('agent.tool.diff.progress.computing', '正在计算差异...')
-    })
+      {
+        percentage: 70,
+        message: i18n.global.t('agent.tool.diff.progress.computing', '正在计算差异...')
+      }
+    )
 
     // 计算差异
     const diffResult = computeDiff(content1, content2)
 
-    onUpdate({
-      content: {
-        stage: 'completed',
-        diffResult,
-        source1,
-        source2
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          diffResult,
+          source1,
+          source2
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 100,
-      message: i18n.global.t('agent.tool.diff.progress.completed', '差异计算完成')
-    })
+      {
+        percentage: 100,
+        message: i18n.global.t('agent.tool.diff.progress.completed', '差异计算完成')
+      }
+    )
 
     return {
       status: 'succeeded',
@@ -439,11 +457,13 @@ const diffToolLocales: ToolLocales = {
   },
   de_DE: {
     name: 'Text-Vergleich',
-    description: 'Vergleichen Sie zwei Texte, URLs oder Dateien und geben Sie detaillierte Diff-Ergebnisse zurück'
+    description:
+      'Vergleichen Sie zwei Texte, URLs oder Dateien und geben Sie detaillierte Diff-Ergebnisse zurück'
   },
   fr_FR: {
     name: 'Comparaison de texte',
-    description: 'Comparer deux textes, URLs ou fichiers et retourner des résultats de diff détaillés'
+    description:
+      'Comparer deux textes, URLs ou fichiers et retourner des résultats de diff détaillés'
   },
   ja_JP: {
     name: 'テキスト差分',
@@ -462,7 +482,8 @@ export const diffToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'diff',
-    brief: 'Compare two text contents, URLs, or local files and generate a diff showing additions, deletions, and modifications.',
+    brief:
+      'Compare two text contents, URLs, or local files and generate a diff showing additions, deletions, and modifications.',
     fullSpec: `# Text Comparison Tool (Diff)
 
 ## Description
@@ -622,4 +643,3 @@ Compares two text contents, URLs, or local files and generates a detailed diff r
     }
   }
 }
-

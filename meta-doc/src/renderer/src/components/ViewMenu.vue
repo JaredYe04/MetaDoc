@@ -1,7 +1,11 @@
 <template>
   <div class="view-menu-container" :class="{ 'is-collapsed': isCollapsed }">
     <el-menu
-      :class="['modern-side-menu', 'sub-view-menu', { 'is-locked': isLocked, 'is-collapsed': isCollapsed }]"
+      :class="[
+        'modern-side-menu',
+        'sub-view-menu',
+        { 'is-locked': isLocked, 'is-collapsed': isCollapsed }
+      ]"
       mode="vertical"
       :menu-trigger="isLocked ? 'manual' : 'hover'"
       @select="handleSelect"
@@ -23,7 +27,7 @@
         </div>
         <span>{{ $t('headMenu.home') }}</span>
       </el-menu-item>
-      
+
       <el-tooltip v-if="isCollapsed" :content="$t('headMenu.editor')" placement="right">
         <el-menu-item index="editor">
           <div class="icon-wrapper">
@@ -37,9 +41,13 @@
         </div>
         <span>{{ $t('headMenu.editor') }}</span>
       </el-menu-item>
-      
+
       <!-- 大纲树：纯文本格式不显示 -->
-      <el-tooltip v-if="isCollapsed && !isPlainTextFormat" :content="$t('headMenu.outline')" placement="right">
+      <el-tooltip
+        v-if="isCollapsed && !isPlainTextFormat"
+        :content="$t('headMenu.outline')"
+        placement="right"
+      >
         <el-menu-item index="outline">
           <div class="icon-wrapper">
             <img :src="themeState.currentTheme.OutlineIcon" class="menu-icon" alt="outline" />
@@ -52,9 +60,13 @@
         </div>
         <span>{{ $t('headMenu.outline') }}</span>
       </el-menu-item>
-      
+
       <!-- 可视化：纯文本格式不显示 -->
-      <el-tooltip v-if="isCollapsed && !isPlainTextFormat" :content="$t('headMenu.visualize')" placement="right">
+      <el-tooltip
+        v-if="isCollapsed && !isPlainTextFormat"
+        :content="$t('headMenu.visualize')"
+        placement="right"
+      >
         <el-menu-item index="visualize">
           <div class="icon-wrapper">
             <img :src="themeState.currentTheme.VisualIcon" class="menu-icon" alt="visualize" />
@@ -67,9 +79,13 @@
         </div>
         <span>{{ $t('headMenu.visualize') }}</span>
       </el-menu-item>
-      
+
       <!-- Agent：纯文本格式不显示 -->
-      <el-tooltip v-if="isCollapsed && !isPlainTextFormat" :content="$t('headMenu.agent')" placement="right">
+      <el-tooltip
+        v-if="isCollapsed && !isPlainTextFormat"
+        :content="$t('headMenu.agent')"
+        placement="right"
+      >
         <el-menu-item index="agent">
           <div class="icon-wrapper">
             <img :src="themeState.currentTheme.AgentIcon" class="menu-icon" alt="agent" />
@@ -82,9 +98,13 @@
         </div>
         <span>{{ $t('headMenu.agent') }}</span>
       </el-menu-item>
-      
+
       <!-- 文章校对：纯文本格式不显示 -->
-      <el-tooltip v-if="isCollapsed && activeDocument && !isPlainTextFormat" :content="$t('headMenu.proofread')" placement="right">
+      <el-tooltip
+        v-if="isCollapsed && activeDocument && !isPlainTextFormat"
+        :content="$t('headMenu.proofread')"
+        placement="right"
+      >
         <el-menu-item index="proofread">
           <div class="icon-wrapper">
             <img :src="themeState.currentTheme.ProofreadIcon" class="menu-icon" alt="proofread" />
@@ -167,17 +187,19 @@ const activeMenuIndex = computed(() => {
 })
 
 // 计算选中状态的背景色（使用辅助背景色）
-const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3))
+const activeBackgroundColor = computed(() =>
+  mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)
+)
 const activeTextColor = computed(() => themeState.currentTheme.textColor)
 
 const handleSelect = (key: string): void => {
   if (isLocked.value) return
-  
+
   // 如果点击的是"主页"，且当前文档是新文档且尚未选择格式，切换到 GlobalHome 标签页
   if (key === 'home') {
     const activeTab = workspace.activeTab.value
     const doc = activeDocument.value
-    
+
     // 检查是否是新文档且尚未选择格式
     if (activeTab?.kind === 'new') {
       // 切换到 GlobalHome 标签页（如果不存在则创建）
@@ -185,14 +207,16 @@ const handleSelect = (key: string): void => {
       return
     }
   }
-  
+
   // 切换文档视图，不改变路由
   const activeTabId = workspace.activeTabId.value
   const activeTab = workspace.activeTab.value
   if (activeTabId && (activeTab?.kind === 'file' || activeTab?.kind === 'new')) {
     if (activeTab.preview && key !== 'home') {
       const path = (activeTab.path || activeDocument.value?.path || '').toLowerCase()
-      const isPdfPreview = path.endsWith('.pdf') && (activeTab.format || activeDocument.value?.format || '').toLowerCase() === 'pdf'
+      const isPdfPreview =
+        path.endsWith('.pdf') &&
+        (activeTab.format || activeDocument.value?.format || '').toLowerCase() === 'pdf'
       if (isPdfPreview) {
         // PDF 临时 tab：与双击一致，转为 PDF→MD 的正式新文件 tab（临时 tab 关闭，新建带 MD 内容的 tab）
         eventBus.emit('convert-pdf-preview-tab-to-md', { tabId: activeTabId })
@@ -314,4 +338,3 @@ onBeforeUnmount((): void => {
   margin-right: 8px;
 }
 </style>
-

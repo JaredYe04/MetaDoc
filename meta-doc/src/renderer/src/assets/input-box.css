@@ -1,6 +1,5 @@
-
 .input-box {
-    font-family: "Microsoft YaHei", system-ui;
+  font-family: 'Microsoft YaHei', system-ui;
   width: 50%;
 
   max-width: 50%;
@@ -12,7 +11,9 @@
   align-self: center;
   overflow: hidden;
   outline: none;
-  transition: border-color 0.3s, box-shadow 0.3s; /* �ӳ�Ч�� */
+  transition:
+    border-color 0.3s,
+    box-shadow 0.3s; /* �ӳ�Ч�� */
   box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); /* ��ʼ����Ӱ */
 }
 
@@ -28,8 +29,11 @@
   box-shadow: 0 0 12px rgba(67, 10, 241, 0.5); /* ������ӰЧ�� */
 }
 
-el-input{
+el-input {
   border-radius: 30px;
-  font-family: "Microsoft YaHei", system-ui;
-  transition: border-color 0.3s, box-shadow 0.3s, color 0.3s;
+  font-family: 'Microsoft YaHei', system-ui;
+  transition:
+    border-color 0.3s,
+    box-shadow 0.3s,
+    color 0.3s;
 }

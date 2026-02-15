@@ -1,5 +1,5 @@
-import type { DocumentTemplate, SupportedFormat } from '../types/formats';
-import { getTemplatesByFormat } from './templates';
+import type { DocumentTemplate, SupportedFormat } from '../types/formats'
+import { getTemplatesByFormat } from './templates'
 
 export const SUPPORTED_FORMATS: SupportedFormat[] = [
   {
@@ -10,7 +10,7 @@ export const SUPPORTED_FORMATS: SupportedFormat[] = [
     descriptionKey: 'newDocument.formats.markdown.description',
     extension: '.md',
     defaultTemplateId: 'blank',
-    templates: getTemplatesByFormat('md'),
+    templates: getTemplatesByFormat('md')
   },
   {
     id: 'tex',
@@ -20,24 +20,25 @@ export const SUPPORTED_FORMATS: SupportedFormat[] = [
     descriptionKey: 'newDocument.formats.latex.description',
     extension: '.tex',
     defaultTemplateId: 'article',
-    templates: getTemplatesByFormat('tex'),
-  },
-];
+    templates: getTemplatesByFormat('tex')
+  }
+]
 
-export const getSupportedFormats = (): SupportedFormat[] => SUPPORTED_FORMATS;
+export const getSupportedFormats = (): SupportedFormat[] => SUPPORTED_FORMATS
 
 export const findFormatById = (id: string): SupportedFormat | undefined =>
-  SUPPORTED_FORMATS.find((format) => format.id === id);
+  SUPPORTED_FORMATS.find((format) => format.id === id)
 
 export const findFormatTemplate = (
   formatId: string,
-  templateId?: string,
+  templateId?: string
 ): DocumentTemplate | undefined => {
-  const format = findFormatById(formatId);
-  if (!format) return undefined;
+  const format = findFormatById(formatId)
+  if (!format) return undefined
   if (!templateId) {
-    return format.templates.find((tpl) => tpl.id === format.defaultTemplateId) ?? format.templates[0];
+    return (
+      format.templates.find((tpl) => tpl.id === format.defaultTemplateId) ?? format.templates[0]
+    )
   }
-  return format.templates.find((tpl) => tpl.id === templateId);
-};
-
+  return format.templates.find((tpl) => tpl.id === templateId)
+}

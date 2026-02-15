@@ -1,25 +1,27 @@
 .aero-div {
-    /* 创建新的层叠上下文，确保子元素不受模糊影响 */
-    isolation: isolate;
-    /* 只模糊背景，不影响子元素 */
-    backdrop-filter: blur(10px); /* 毛玻璃效果 */
-    -webkit-backdrop-filter: blur(10px); /* 兼容Safari */
-    border-radius: 12px;
-    padding: 20px;
-    transition: backdrop-filter 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; /* 过渡动画 */
+  /* 创建新的层叠上下文，确保子元素不受模糊影响 */
+  isolation: isolate;
+  /* 只模糊背景，不影响子元素 */
+  backdrop-filter: blur(10px); /* 毛玻璃效果 */
+  -webkit-backdrop-filter: blur(10px); /* 兼容Safari */
+  border-radius: 12px;
+  padding: 20px;
+  transition:
+    backdrop-filter 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease; /* 过渡动画 */
 }
 
 /* 确保所有子元素不受父元素的 filter 影响（backdrop-filter 本身不影响子元素） */
 .aero-div > *,
 .aero-div * {
-    /* 只重置 filter，允许子元素使用自己的 backdrop-filter */
-    /* backdrop-filter 本身只会模糊背景，不会模糊子元素内容 */
-    filter: none !important;
+  /* 只重置 filter，允许子元素使用自己的 backdrop-filter */
+  /* backdrop-filter 本身只会模糊背景，不会模糊子元素内容 */
+  filter: none !important;
 }
 
 /* 悬停效果 */
 .aero-div:hover {
-    backdrop-filter: blur(15px); /* 增加模糊和亮度 */
-    -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px); /* 增加模糊和亮度 */
+  -webkit-backdrop-filter: blur(15px);
 }
-  

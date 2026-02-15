@@ -68,7 +68,10 @@ const INTENT_RECOGNITION_SCHEMA: SchemaDefinition<IntentRecognitionResult> = {
 /**
  * 获取可用工具的简短说明列表（用于意图识别）
  */
-function getAvailableToolBriefs(session: AgentSession, agentConfig: AgentConfig): Array<{ id: string; brief: string }> {
+function getAvailableToolBriefs(
+  session: AgentSession,
+  agentConfig: AgentConfig
+): Array<{ id: string; brief: string }> {
   const toolIds = agentConfigManager.getAvailableToolIds(agentConfig.id)
   const toolBriefs: Array<{ id: string; brief: string }> = []
 
@@ -82,14 +85,15 @@ function getAvailableToolBriefs(session: AgentSession, agentConfig: AgentConfig)
         brief = tool.config.spec.brief
       } else {
         // 从 description 提取简短说明
-        const description = typeof tool.config.description === 'string'
-          ? tool.config.description
-          : tool.config.description['zh_cn']?.description || 
-            tool.config.description['en_us']?.description || 
-            ''
+        const description =
+          typeof tool.config.description === 'string'
+            ? tool.config.description
+            : tool.config.description['zh_cn']?.description ||
+              tool.config.description['en_us']?.description ||
+              ''
         brief = description.length > 100 ? description.substring(0, 100) + '...' : description
       }
-      
+
       toolBriefs.push({
         id: toolId,
         brief
@@ -99,17 +103,22 @@ function getAvailableToolBriefs(session: AgentSession, agentConfig: AgentConfig)
 
   // 添加Workflow工具
   const workflows = workflowManager.getAllWorkflows()
-  const addedToolIds = new Set(toolBriefs.map(t => t.id))
+  const addedToolIds = new Set(toolBriefs.map((t) => t.id))
   for (const workflow of workflows) {
-    if (workflow.enabled !== false && toolIds.includes(workflow.id) && !addedToolIds.has(workflow.id)) {
+    if (
+      workflow.enabled !== false &&
+      toolIds.includes(workflow.id) &&
+      !addedToolIds.has(workflow.id)
+    ) {
       // 从 workflow 提取简短说明
-      const description = typeof workflow.description === 'string'
-        ? workflow.description
-        : workflow.description['zh_cn']?.description || 
-          workflow.description['en_us']?.description || 
-          ''
+      const description =
+        typeof workflow.description === 'string'
+          ? workflow.description
+          : workflow.description['zh_cn']?.description ||
+            workflow.description['en_us']?.description ||
+            ''
       const brief = description.length > 100 ? description.substring(0, 100) + '...' : description
-      
+
       toolBriefs.push({
         id: workflow.id,
         brief
@@ -122,7 +131,7 @@ function getAvailableToolBriefs(session: AgentSession, agentConfig: AgentConfig)
 
 /**
  * 识别用户意图并确定需要使用的工具
- * 
+ *
  * @param session - Agent会话
  * @param agentConfig - Agent配置
  * @param userMessage - 用户消息
@@ -147,7 +156,7 @@ export async function recognizeIntent(
 
   // 获取可用工具的简短说明
   const availableToolBriefs = getAvailableToolBriefs(session, agentConfig)
-  
+
   if (availableToolBriefs.length === 0) {
     getLogger().warn('[recognizeIntent] 没有可用的工具，返回空结果')
     return { toolIds: [] }
@@ -155,7 +164,7 @@ export async function recognizeIntent(
 
   // 构建工具列表文本（用于提示词）
   const toolListText = availableToolBriefs
-    .map(tool => `- **${tool.id}**: ${tool.brief}`)
+    .map((tool) => `- **${tool.id}**: ${tool.brief}`)
     .join('\n')
 
   // 构建意图识别提示词
@@ -227,4 +236,3 @@ Important:
     return { toolIds: [] }
   }
 }
-

@@ -18,7 +18,10 @@
           class="workflow-card"
           @click="handleEdit(workflow)"
         >
-          <div class="workflow-card__image" :class="{ 'is-placeholder': !workflowThumbnails[workflow.id] }">
+          <div
+            class="workflow-card__image"
+            :class="{ 'is-placeholder': !workflowThumbnails[workflow.id] }"
+          >
             <img
               v-if="workflowThumbnails[workflow.id]"
               :src="workflowThumbnails[workflow.id]"
@@ -39,14 +42,19 @@
                 {{ workflow.version }}
               </el-tag>
               <el-tag size="small" effect="plain">
-                {{ workflow.artifactNodes.length + workflow.controlFlowNodes.length }} {{ t('agent.manage.workflow.nodes') }}
+                {{ workflow.artifactNodes.length + workflow.controlFlowNodes.length }}
+                {{ t('agent.manage.workflow.nodes') }}
               </el-tag>
               <el-tag
                 size="small"
                 :type="workflow.enabled !== false ? 'success' : 'info'"
                 effect="plain"
               >
-                {{ workflow.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled') }}
+                {{
+                  workflow.enabled !== false
+                    ? t('agent.manage.enabled')
+                    : t('agent.manage.disabled')
+                }}
               </el-tag>
             </div>
           </div>
@@ -67,7 +75,12 @@
                   <el-dropdown-item command="export">
                     {{ t('agent.manage.export') }}
                   </el-dropdown-item>
-                  <el-dropdown-item divided command="delete" :disabled="workflow.isBuiltIn" class="danger">
+                  <el-dropdown-item
+                    divided
+                    command="delete"
+                    :disabled="workflow.isBuiltIn"
+                    class="danger"
+                  >
                     {{ t('agent.manage.delete') }}
                   </el-dropdown-item>
                 </el-dropdown-menu>
@@ -222,7 +235,7 @@ const handleDelete = async (workflow: Workflow) => {
     ElMessage.warning(t('agent.manage.workflow.cannotDeleteBuiltIn'))
     return
   }
-  
+
   try {
     await ElMessageBox.confirm(
       t('agent.manage.workflow.confirmDelete', { name: getLocalizedText(workflow.name) }),
@@ -244,7 +257,9 @@ const handleValidate = (workflow: Workflow) => {
   if (validation.valid) {
     ElMessage.success(t('agent.manage.workflow.validationSuccess'))
   } else {
-    ElMessage.error(t('agent.manage.workflow.validationFailed') + ': ' + validation.errors.join(', '))
+    ElMessage.error(
+      t('agent.manage.workflow.validationFailed') + ': ' + validation.errors.join(', ')
+    )
   }
 }
 
@@ -282,9 +297,7 @@ const handleDuplicate = async (workflow: Workflow) => {
             ...workflow.name,
             zh_cn: { name: newNameZh },
             en_us: {
-              name:
-                (workflow.name['en_us']?.name || baseName) +
-                ' - Copy'
+              name: (workflow.name['en_us']?.name || baseName) + ' - Copy'
             }
           }
 
@@ -336,9 +349,13 @@ const handleImport = () => {
   input.click()
 }
 
-watch(() => workflows.value, () => {
-  loadThumbnails()
-}, { deep: true })
+watch(
+  () => workflows.value,
+  () => {
+    loadThumbnails()
+  },
+  { deep: true }
+)
 
 onMounted(() => {
   loadWorkflows()
@@ -382,7 +399,9 @@ onMounted(() => {
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   background-color: var(--el-fill-color-blank);
   position: relative;
 }

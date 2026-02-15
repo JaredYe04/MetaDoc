@@ -1,6 +1,6 @@
 /**
  * 基于 AI Task 的 Schema 驱动 JSON 生成工具
- * 
+ *
  * 该模块提供了一个可复用的函数，用于根据 JSON Schema 和用户提示词，
  * 通过 AI 生成符合规范的 JSON 数据，并实时展示输出过程。
  */
@@ -29,18 +29,18 @@ export interface SchemaTaskOptions {
 
 /**
  * 执行基于 Schema 的 AI Task
- * 
+ *
  * @param schema - JSON Schema 定义，用于约束 AI 输出格式
  * @param userPrompt - 用户提示词，描述需要生成的内容
  * @param outputRef - 用于实时展示 AI 输出的 ref（会在开始前清空）
  * @param options - 可选的配置项
  * @returns Promise，解析后返回符合 Schema 的数据
- * 
+ *
  * @example
  * ```typescript
  * import { ref } from 'vue'
  * import { generateWithSchema, DOCUMENT_TITLE_SCHEMA } from './utils/ai-schema-task'
- * 
+ *
  * const outputRef = ref('')
  * const result = await generateWithSchema(
  *   DOCUMENT_TITLE_SCHEMA,
@@ -77,7 +77,7 @@ export async function generateWithSchema<T = unknown>(
 
   // 构建 meta 配置
   const meta: any = {
-    stream: options.stream !== false, // 默认启用流式输出
+    stream: options.stream !== false // 默认启用流式输出
   }
 
   if (options.temperature !== undefined) {
@@ -107,7 +107,7 @@ export async function generateWithSchema<T = unknown>(
 
   // 使用 extractOuterJsonString 提取 JSON（符合用户要求）
   const jsonString = extractOuterJsonString(outputRef.value)
-  
+
   if (!jsonString) {
     throw new Error(
       `未能从 AI 输出中提取出符合 ${schema.name} 的 JSON 结果。输出内容：${outputRef.value.substring(0, 200)}...`
@@ -124,4 +124,3 @@ export async function generateWithSchema<T = unknown>(
     )
   }
 }
-

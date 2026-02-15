@@ -18,12 +18,12 @@ export const i18n = createI18n({
 export const getLocale = () => {
   // 获取当前语言，确保格式正确（下划线格式）
   let locale = i18n.global.locale.value || 'zh_CN'
-  
+
   // 标准化格式：将连字符转换为下划线（如 'zh-CN' -> 'zh_CN'）
   if (typeof locale === 'string') {
     locale = locale.replace('-', '_')
   }
-  
+
   // 如果 i18n 中没有值，尝试从 localStorage 获取
   if (!locale || locale === 'zh_CN') {
     const savedLang = localStorage.getItem('lang')
@@ -31,7 +31,6 @@ export const getLocale = () => {
       locale = savedLang.replace('-', '_')
     }
   }
-  
+
   return locale || 'zh_CN'
 }
-

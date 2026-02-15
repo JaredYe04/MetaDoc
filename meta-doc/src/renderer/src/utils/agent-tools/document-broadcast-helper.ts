@@ -21,7 +21,7 @@ export async function getActiveDocumentInfoViaBroadcast(): Promise<{
   hasContent: boolean
 } | null> {
   const windowType = getWindowType()
-  
+
   // 如果不在设置窗口，直接返回null（应该使用workspace直接获取）
   if (windowType !== 'setting') {
     console.warn('getActiveDocumentInfoViaBroadcast 只能在设置窗口中使用')
@@ -56,7 +56,7 @@ export async function getActiveDocumentInfoViaBroadcast(): Promise<{
     }
 
     eventBus.on('response-active-document-info', handler)
-    
+
     // 发送请求到主窗口
     // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
     eventBus.emit('request-active-document-info', requestId)
@@ -73,7 +73,7 @@ export async function getDocumentContentViaBroadcast(): Promise<{
   format: 'md' | 'tex'
 } | null> {
   const windowType = getWindowType()
-  
+
   if (windowType !== 'setting') {
     console.warn('getDocumentContentViaBroadcast 只能在设置窗口中使用')
     return null
@@ -106,9 +106,8 @@ export async function getDocumentContentViaBroadcast(): Promise<{
     }
 
     eventBus.on('response-document-content', handler)
-    
+
     // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
     eventBus.emit('request-document-content', requestId)
   })
 }
-

@@ -10,19 +10,18 @@ export const PROTOCOL_DICTIONARY: string[] = [
   'GraphQL',
   'gRPC',
   'WebSocket',
-  
+
   // 认证和授权
   'OAuth',
   'JWT',
-  
+
   // API 标准
   'OpenAPI',
   'Swagger',
-  
+
   // 数据格式
   'JSON',
   'XML',
   'YAML',
   'TOML'
 ]
-

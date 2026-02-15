@@ -4,13 +4,7 @@
       <!-- 头部 -->
       <div class="panel-header">
         <h2 class="panel-title">{{ $t('home.quickStartTitle') }} · Markdown</h2>
-        <el-button 
-          @click="emitClose" 
-          class="close-button"
-          circle
-          size="small"
-          :icon="Close"
-        />
+        <el-button @click="emitClose" class="close-button" circle size="small" :icon="Close" />
       </div>
 
       <!-- 主内容区域 -->
@@ -22,7 +16,7 @@
           </div>
           <el-scrollbar class="preview-container">
             <div class="preview-content">
-              <MarkdownItEditor :source="generatedText" @mousedown.stop style="box-shadow: none;" />
+              <MarkdownItEditor :source="generatedText" @mousedown.stop style="box-shadow: none" />
             </div>
           </el-scrollbar>
         </div>
@@ -168,21 +162,12 @@
                     </el-button>
                   </el-tooltip>
                   <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
-                    <el-button 
-                      v-if="generated" 
-                      @click="reset"
-                      :icon="RefreshLeft"
-                    >
+                    <el-button v-if="generated" @click="reset" :icon="RefreshLeft">
                       {{ $t('home.tooltip.reset') }}
                     </el-button>
                   </el-tooltip>
                   <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
-                    <el-button 
-                      v-if="generated" 
-                      type="success"
-                      @click="accept"
-                      :icon="Check"
-                    >
+                    <el-button v-if="generated" type="success" @click="accept" :icon="Check">
                       {{ $t('home.tooltip.accept') }}
                     </el-button>
                   </el-tooltip>
@@ -227,7 +212,11 @@ import SuggestionTags from './SuggestionTags.vue'
 import AutoResizeTextarea from '../base/AutoResizeTextarea.vue'
 import KeywordInput from '../KeywordInput.vue'
 import { loggedIn, user } from '../../stores/user'
-import { generateTitlePrompt, generateDescriptionPrompt, generateKeywordsPrompt } from '../../utils/prompts'
+import {
+  generateTitlePrompt,
+  generateDescriptionPrompt,
+  generateKeywordsPrompt
+} from '../../utils/prompts'
 import { extractOuterJsonString } from '../../utils/regex-utils'
 import { ElMessage } from 'element-plus'
 
@@ -242,7 +231,7 @@ const {
   updateDocumentLastView,
   initializeDocumentFromTemplate,
   openNewDocumentTab,
-  activateTab,
+  activateTab
 } = workspace
 
 const logger = createRendererLogger('QuickStartMarkdown', {
@@ -317,13 +306,13 @@ const onSpeechRecognized = (text: string) => {
   userPrompt.value = text
 }
 
-  const querySearch = (queryString: string, cb: (results: { value: string }[]) => void) => {
-    const presetList = getPresets()
-    const results = queryString
-      ? presetList.filter((preset) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
-      : presetList
-    cb(results)
-  }
+const querySearch = (queryString: string, cb: (results: { value: string }[]) => void) => {
+  const presetList = getPresets()
+  const results = queryString
+    ? presetList.filter((preset) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
+    : presetList
+  cb(results)
+}
 
 const generate = async () => {
   workspace.lockUI?.()
@@ -333,10 +322,12 @@ const generate = async () => {
   const prompt = generateMarkdownPrompt(mood.value, userPrompt.value)
   // 清空内容，准备接收流式数据
   generatedText.value = ''
-  const messages: AIDialogMessage[] = [{
-    role: 'user',
-    content: prompt,
-  }]
+  const messages: AIDialogMessage[] = [
+    {
+      role: 'user',
+      content: prompt
+    }
+  ]
   const { done } = createAiTask(
     userPrompt.value,
     messages,
@@ -349,10 +340,10 @@ const generate = async () => {
   try {
     await done
     generated.value = true
-    
+
     // 自动生成标题、摘要、关键词
     await autoGenerateMetaInfo()
-    
+
     // 设置作者
     if (loggedIn.value && user.value?.username) {
       metaAuthor.value = user.value.username
@@ -370,18 +361,20 @@ const generate = async () => {
 // 自动生成元信息（标题、摘要、关键词）
 const autoGenerateMetaInfo = async () => {
   if (!generatedText.value) return
-  
+
   try {
     // 提取大纲
     const outline = extractOutlineTreeFromMarkdown(generatedText.value) ?? DEFAULT_OUTLINE_TREE
     const outlineJson = JSON.stringify(outline)
-    
+
     // 生成标题
     const titleResult = ref('')
-    const titleMessages: AIDialogMessage[] = [{
-      role: 'user',
-      content: generateTitlePrompt(outlineJson),
-    }]
+    const titleMessages: AIDialogMessage[] = [
+      {
+        role: 'user',
+        content: generateTitlePrompt(outlineJson)
+      }
+    ]
     const { done: titleDone } = createAiTask(
       t('article.generate_title'),
       titleMessages,
@@ -397,13 +390,15 @@ const autoGenerateMetaInfo = async () => {
       const titleMatch = titleText.match(/^[^\n]+/)
       metaTitle.value = titleMatch ? titleMatch[0].trim() : titleText
     }
-    
+
     // 生成摘要
     const descResult = ref('')
-    const descMessages: AIDialogMessage[] = [{
-      role: 'user',
-      content: generateDescriptionPrompt(outlineJson),
-    }]
+    const descMessages: AIDialogMessage[] = [
+      {
+        role: 'user',
+        content: generateDescriptionPrompt(outlineJson)
+      }
+    ]
     const { done: descDone } = createAiTask(
       t('article.generate_description'),
       descMessages,
@@ -417,13 +412,15 @@ const autoGenerateMetaInfo = async () => {
     if (descText) {
       metaDescription.value = descText
     }
-    
+
     // 生成关键词
     const keywordsResult = ref('')
-    const keywordsMessages: AIDialogMessage[] = [{
-      role: 'user',
-      content: generateKeywordsPrompt(outlineJson),
-    }]
+    const keywordsMessages: AIDialogMessage[] = [
+      {
+        role: 'user',
+        content: generateKeywordsPrompt(outlineJson)
+      }
+    ]
     const { done: keywordsDone } = createAiTask(
       t('article.generate_keywords'),
       keywordsMessages,
@@ -487,7 +484,7 @@ const reset = () => {
 
 const accept = () => {
   logger.info('[QuickStartMarkdown] accept 开始')
-  
+
   if (generatedText.value.length && !generatedText.value.endsWith('\n')) {
     generatedText.value += '\n'
   }

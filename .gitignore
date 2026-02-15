@@ -27,3 +27,18 @@ issues.md
 .issues.md.meta
 .开发进度.md.meta
 开发进度.md
+
+# IDE 配置文件
+.idea/
+.vscode/
+
+# Eclipse IDE 配置
+*.project
+*.settings/
+
+# Dev Container
+.devcontainer/
+
+# OS 生成的文件
+.DS_Store
+Thumbs.db

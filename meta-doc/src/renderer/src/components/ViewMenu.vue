@@ -188,7 +188,18 @@ const handleSelect = (key: string): void => {
   
   // 切换文档视图，不改变路由
   const activeTabId = workspace.activeTabId.value
-  if (activeTabId && (workspace.activeTab.value?.kind === 'file' || workspace.activeTab.value?.kind === 'new')) {
+  const activeTab = workspace.activeTab.value
+  if (activeTabId && (activeTab?.kind === 'file' || activeTab?.kind === 'new')) {
+    if (activeTab.preview && key !== 'home') {
+      const path = (activeTab.path || activeDocument.value?.path || '').toLowerCase()
+      const isPdfPreview = path.endsWith('.pdf') && (activeTab.format || activeDocument.value?.format || '').toLowerCase() === 'pdf'
+      if (isPdfPreview) {
+        // PDF 临时 tab：与双击一致，转为 PDF→MD 的正式新文件 tab（临时 tab 关闭，新建带 MD 内容的 tab）
+        eventBus.emit('convert-pdf-preview-tab-to-md', { tabId: activeTabId })
+        return
+      }
+      workspace.pinTab(activeTabId)
+    }
     workspace.updateDocumentLastView(activeTabId, key as DocumentView)
   }
 }

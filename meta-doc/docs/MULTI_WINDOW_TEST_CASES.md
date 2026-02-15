@@ -1,0 +1,162 @@
+# 多窗口状态测试用例
+
+用于验证 MetaDoc 在多窗口场景下的打开文件、保存文件、Tab 拖拽等行为的正确性。
+
+## 前置条件
+
+- 启动应用，至少存在 2 个主窗口（可通过拖拽 Tab 出窗口创建）
+- 每个窗口拥有独立的 Tab 列表和文档状态
+
+---
+
+## 1. 打开文件
+
+### 1.1 文件已在某窗口打开X
+
+| 用例 | 步骤 | 预期结果 |
+|------|------|----------|
+| TC-OPEN-001 | 窗口 A 打开 `doc1.md`，从文件管理器双击 `doc1.md` | 聚焦到窗口 A 并激活该 Tab |
+| TC-OPEN-002 | 窗口 A 打开 `doc1.md`，窗口 B 为焦点窗口，从文件管理器双击 `doc1.md` | 聚焦到窗口 A 并激活该 Tab |
+| TC-OPEN-003 | 窗口 A 打开 `doc1.md`，窗口 B 打开 `doc2.md`，从文件管理器双击 `doc1.md` | 聚焦到窗口 A 并激活该 Tab |
+| TC-OPEN-004 | 窗口 A 打开 `doc1.md`，命令 `metadoc doc1.md` 启动 | 聚焦到窗口 A 并激活该 Tab |
+
+### 1.2 文件未打开X
+
+| 用例 | 步骤 | 预期结果 |
+|------|------|----------|
+| TC-OPEN-005 | 窗口 A 焦点，从文件管理器双击 `doc1.md` | 在窗口 A 新开 Tab 打开 `doc1.md` |
+| TC-OPEN-006 | 窗口 A 无焦点，窗口 B 焦点，从文件管理器双击 `doc1.md` | 在窗口 B 新开 Tab 打开 `doc1.md` |
+| TC-OPEN-007 | 窗口 A 焦点，Ctrl+O 选择 `doc1.md` | 在窗口 A 新开 Tab 打开 `doc1.md` |
+| TC-OPEN-008 | 窗口 B 焦点，Ctrl+O 选择 `doc1.md` | 在窗口 B 新开 Tab 打开 `doc1.md` |
+
+### 1.3 外部打开（API / 关联）
+
+| 用例 | 步骤 | 预期结果 |
+|------|------|----------|
+| TC-OPEN-009 | 窗口 A 打开 `doc1.md`，调用 `/api/runtime/open-document` 请求打开 `doc1.md` | 聚焦到窗口 A 并激活该 Tab |
+| TC-OPEN-010 | 窗口 B 焦点，调用 `/api/runtime/open-document` 请求打开 `doc1.md` | 在窗口 B 新开 Tab 打开 `doc1.md` |
+
+---
+
+## 2. 保存文件
+
+### 2.1 普通保存
+
+| 用例 | 步骤 | 预期结果 |
+|------|------|----------|
+| TC-SAVE-001 | 窗口 A 编辑 `doc1.md`（有 path），Ctrl+S | 保存到 `doc1.md`，dirty 清除 |
+| TC-SAVE-002 | 窗口 B 编辑 `doc2.md`，Ctrl+S | 保存到 `doc2.md`，dirty 清除 |
+| TC-SAVE-003 | 窗口 A 编辑 `doc1.md`，窗口 B 编辑 `doc2.md`，依次在 A、B 按 Ctrl+S | 各自保存到对应文件 |
+| TC-SAVE-004 | 窗口 A 编辑新建文档（无 path），Ctrl+S | 弹出另存为对话框 |
+
+### 2.2 另存为
+
+| 用例 | 步骤 | 预期结果 |
+|------|------|----------|
+| TC-SAVE-005 | 窗口 A 编辑 `doc1.md`，另存为 `doc1_copy.md` | 新 Tab 打开 `doc1_copy.md`，原 Tab 可关闭或保留 |
+| TC-SAVE-006 | 窗口 B 编辑新建文档，另存为 `new.md` | 文件保存到 `new.md`，Tab 显示新路径 |
+
+### 2.3 多窗口同一文件
+
+| 用例 | 步骤 | 预期结果 |
+|------|------|----------|
+| TC-SAVE-007 | 窗口 A、B 同时打开 `doc1.md`，A 修改并保存 | A 保存成功；B 若开启文件监控，应提示外部修改 |
+| TC-SAVE-008 | 窗口 A、B 同时打开 `doc1.md`，B 修改并保存 | B 保存成功；A 若开启文件监控，应提示外部修改 |
+
+---
+
+## 3. Tab 拖拽
+
+### 3.1 拖出创建新窗口
+
+| 用例 | 步骤 | 预期结果 |
+|------|------|----------|
+| TC-DRAG-001 | 窗口 A 有 2+ Tab，拖拽 Tab 到 MainTabs 下方内容区 | 约 50ms 内新窗口出现，Tab 在新窗口，源窗口移除该 Tab |
+| TC-DRAG-002 | 窗口 A 有 2+ Tab，拖拽 Tab 到窗口外 | 新窗口出现，Tab 在新窗口，源窗口移除该 Tab |
+| TC-DRAG-003 | 窗口 A 仅 1 个 Tab，拖拽到内容区 | 不创建新窗口（单 Tab 不拆分） |
+| TC-DRAG-004 | 拖拽系统 Tab（设置、首页等）到内容区 | 不创建新窗口（禁止拖拽） |
+
+### 3.2 窗口间合并
+
+| 用例 | 步骤 | 预期结果 |
+|------|------|----------|
+| TC-DRAG-005 | 窗口 A 有 2 Tab，窗口 B 有 2 Tab，从 A 拖 Tab 到 B 的 Tab 栏 | Tab 出现在 B，A 剩 1 Tab |
+| TC-DRAG-006 | 窗口 A 仅 1 Tab，拖到窗口 B 的 Tab 栏 | Tab 合并到 B，窗口 A 自动关闭 |
+| TC-DRAG-007 | 拖拽未保存文档 Tab 到另一窗口 | 目标窗口显示该 Tab，内容与 dirty 状态正确 |
+| TC-DRAG-008 | 拖拽新建文档 Tab 到另一窗口 | 目标窗口显示该 Tab，内容与 dirty 状态正确 |
+
+---
+
+## 4. 窗口关闭
+
+### 4.1 未保存提示
+
+| 用例 | 步骤 | 预期结果 |
+|------|------|----------|
+| TC-CLOSE-001 | 窗口 A 有未保存 Tab，关闭窗口 A |  prompt 是否保存/放弃 |
+| TC-CLOSE-002 | 窗口 A 有未保存 Tab，窗口 B 无，关闭窗口 A | 仅 A 提示，B 不受影响 |
+| TC-CLOSE-003 | 窗口 A、B 均有未保存 Tab，依次关闭 | 各自独立提示 |
+| TC-CLOSE-004 | 窗口 A 仅 1 个未保存 Tab，选择放弃 | 窗口关闭，不影响其他窗口 |
+
+### 4.2 单窗口与多窗口
+
+| 用例 | 步骤 | 预期结果 |
+|------|------|----------|
+| TC-CLOSE-005 | 存在窗口 A、B，关闭 A | A 关闭，B 继续运行 |
+| TC-CLOSE-006 | 存在窗口 A、B，关闭 B | B 关闭，A 继续运行 |
+| TC-CLOSE-007 | 仅剩 1 窗口，关闭 | 应用退出 |
+
+---
+
+## 5. 文件监控与外部修改
+
+### 5.1 外部修改检测
+
+| 用例 | 步骤 | 预期结果 |
+|------|------|----------|
+| TC-FILE-001 | 窗口 A 打开 `doc1.md`，外部编辑器修改并保存 | 若启用监控，A 提示文件已修改 |
+| TC-FILE-002 | 窗口 A 打开 `doc1.md`，窗口 B 打开 `doc2.md`，外部修改 `doc1.md` | 仅 A 受影响 |
+| TC-FILE-003 | 窗口 A、B 同时打开 `doc1.md`，外部修改 `doc1.md` | 两个窗口都应收到修改提示 |
+
+---
+
+## 6. 快捷键与焦点
+
+### 6.1 快捷键作用范围
+
+| 用例 | 步骤 | 预期结果 |
+|------|------|----------|
+| TC-KEY-001 | 窗口 A 焦点，Ctrl+O | 在 A 打开文件 |
+| TC-KEY-002 | 窗口 B 焦点，Ctrl+S | 保存 B 当前 Tab |
+| TC-KEY-003 | 窗口 A 焦点，Ctrl+W | 关闭 A 当前 Tab |
+| TC-KEY-004 | 窗口 A 焦点，Ctrl+N | 在 A 新建文档 |
+| TC-KEY-005 | 窗口 B 焦点，Ctrl+Tab | 在 B 切换 Tab |
+
+---
+
+## 7. 拖拽创建新窗口的瞬时反馈
+
+### 7.1 体感与时延
+
+| 用例 | 步骤 | 预期结果 |
+|------|------|----------|
+| TC-INSTANT-001 | 拖拽 Tab 到 MainTabs 下方 | 约 50–200ms 内新窗口可见 |
+| TC-INSTANT-002 | 拖拽 Tab 到窗口外 | 新窗口立即出现 |
+| TC-INSTANT-003 | 新窗口出现时 | 窗口框架与 Tab 栏先显示，Tab 内容随后加载 |
+
+---
+
+## 回归测试建议
+
+1. **自动化**：对 `openDoc`、`check-file-exists-in-window`、`activate-tab-by-id` 等 IPC 相关逻辑做单元/集成测试。
+2. **手动**：按上述用例逐条执行，记录通过/失败。
+3. **性能**：TC-INSTANT-001/002 可用秒表或录屏测量时延。
+
+---
+
+## 相关代码位置
+
+- 主进程：`src/main/main-calls.ts`（openDoc、create-window-with-tab、transfer-tab-to-window）
+- 主进程：`src/main/index.ts`（registerExternalOpenHandler、窗口管理）
+- 渲染进程：`src/renderer/src/components/MainTabs.vue`（拖拽、add-tab-from-drag、remove-tab-from-drag）
+- 渲染进程：`src/renderer/src/utils/event-bus.js`（check-file-exists-in-window、activate-tab-by-id、save-tab）

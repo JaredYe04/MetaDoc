@@ -74,6 +74,7 @@
               :drag-target-path="dragTargetPath"
               @toggle="handleToggle"
               @open-file="handleOpenFile"
+              @open-file-permanent="handleOpenFilePermanent"
               @context-menu="handleContextMenu"
               @node-click="handleNodeClick"
               @close-workspace="removeWorkspaceFolder"
@@ -359,9 +360,9 @@ const expandedPaths = ref<Set<string>>(new Set())
 const loading = ref<Map<string, boolean>>(new Map()) // 每个工作文件夹的加载状态
 const error = ref<string | null>(null)
 
-// 已打开文件列表
+// 已打开文件列表（仅正式打开的文件，不含预览 tab）
 const openedFiles = computed(() => {
-  return workspace.tabs.filter(tab => tab.kind === 'file' && tab.path)
+  return workspace.tabs.filter(tab => tab.kind === 'file' && tab.path && !tab.preview)
 })
 
 // 右键菜单相关
@@ -1131,14 +1132,26 @@ const handleToggle = async (node: FileNode) => {
   }
 }
 
-// 打开文件
-const handleOpenFile = async (filePath: string) => {
-  // 检查文件是否已经在 Tab 中打开
+// 单机打开预览用的延迟定时器（避免与双击冲突）
+let previewOpenTimer: ReturnType<typeof setTimeout> | null = null
+
+const handleOpenFilePermanent = (filePath: string) => {
+  if (previewOpenTimer) {
+    clearTimeout(previewOpenTimer)
+    previewOpenTimer = null
+  }
+  handleOpenFile(filePath, { preview: false })
+}
+
+// 打开文件（preview: true 为预览模式，仅一个预览 tab；preview: false 为正式打开）
+const handleOpenFile = async (filePath: string, options?: { preview?: boolean }) => {
+  const isPreview = options?.preview === true
   const existingTab = workspace.tabs.find(tab => tab.path === filePath)
   if (existingTab) {
     workspace.activateTab(existingTab.id)
-    // 即使文件已经在 Tab 中打开，也应该更新 recent-docs
-    // 触发 open-doc-success 事件以统一处理逻辑
+    if (!isPreview) {
+      workspace.pinTab(existingTab.id)
+    }
     eventBus.emit('open-doc-success', {
       tabId: existingTab.id,
       path: filePath,
@@ -1147,24 +1160,26 @@ const handleOpenFile = async (filePath: string) => {
     return
   }
 
-  // 通过扩展名检测格式并打开文件（不读取文件内容进行检测）
+  if (isPreview) {
+    const previewTab = workspace.getPreviewTab()
+    if (previewTab) {
+      await closeTab(previewTab.id)
+    }
+  }
+
   try {
     const ipcRenderer = getIpcRenderer()
     if (!ipcRenderer) {
       error.value = t('workspaceExplorer.ipcNotAvailable')
       return
     }
-
-    // 只通过扩展名检测格式，不读取文件内容进行检测
     const fileExt = extname(filePath)
     const formatId = formatRegistry.getFormatByExtension(fileExt) || 'txt'
-    
-    // 通过事件总线打开文件（让接收方负责读取文件内容）
-    // 这样避免在这里读取文件内容，减少开销
     eventBus.emit('workspace-open-document', {
       path: filePath,
       format: formatId,
-      content: '' // 不在这里读取内容，让接收方读取
+      content: '',
+      preview: isPreview
     })
   } catch (err) {
     logger.error('打开文件失败:', err)
@@ -1389,15 +1404,21 @@ const handleNodeClick = async (event: { node: FileNode; ctrlKey: boolean; shiftK
     operations.updateSelection([nodeURI])
     lastSelectedIndex.value = currentIndex
     
-    // 只有左键点击文件（非 Ctrl/Shift）时才打开
     if (node.type === 'file') {
       shouldOpenFile = true
     }
   }
   
-  // 只有左键点击文件（非 Ctrl/Shift）时才打开
+  // 单机打开文件：延迟执行预览打开，以便双击时可取消并改为正式打开
   if (shouldOpenFile) {
-    await handleOpenFile(node.path)
+    if (previewOpenTimer) {
+      clearTimeout(previewOpenTimer)
+      previewOpenTimer = null
+    }
+    previewOpenTimer = setTimeout(() => {
+      previewOpenTimer = null
+      handleOpenFile(node.path, { preview: true })
+    }, 280)
   }
 }
 

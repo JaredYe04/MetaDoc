@@ -150,134 +150,8 @@
 
                                 <template #sidebar>
                                     <keep-alive>
-                                        <div class="latex-column pdf-column" v-show="showPdfPanel">
-                                            <div class="pdf-toolbar" v-if="isValidPdfUrl"
-                                                :style="{
-                                                    backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor
-                                                }">
-                                                <el-tooltip :content="$t('latexEditor.prevPage')" placement="bottom">
-                                                    <div class="pdf-toolbar-icon" :class="{ 'disabled': currentPdfPage <= 1 }" @click="currentPdfPage > 1 && goPrevPage()">
-                                                        <el-icon>
-                                                            <ArrowLeft />
-                                                        </el-icon>
-                                                    </div>
-                                                </el-tooltip>
-
-                                                <el-tooltip :content="$t('latexEditor.nextPage')" placement="bottom">
-                                                    <div class="pdf-toolbar-icon" :class="{ 'disabled': currentPdfPage >= totalPdfPages }" @click="currentPdfPage < totalPdfPages && goNextPage()">
-                                                        <el-icon>
-                                                            <ArrowRight />
-                                                        </el-icon>
-                                                    </div>
-                                                </el-tooltip>
-
-                                                <span class="pdf-toolbar__page" :title="`${inputPdfPage} / ${totalPdfPages} ${$t('latexEditor.pages')}`">
-                                                    <input type="number" v-model.number="inputPdfPage" @change="jumpToPage" :min="1"
-                                                        :max="totalPdfPages"
-                                                    />
-                                                    <span class="pdf-toolbar__page-label">/ {{ totalPdfPages }} {{ $t('latexEditor.pages') }}</span>
-                                                </span>
-                                                <el-tooltip :content="$t('latexEditor.toolbar.zoomIn')" placement="bottom">
-                                                    <div class="pdf-toolbar-icon" @click="pdfZoomIn">
-                                                        <el-icon>
-                                                            <ZoomIn />
-                                                        </el-icon>
-                                                    </div>
-                                                </el-tooltip>
-
-                                                <el-tooltip :content="$t('latexEditor.toolbar.zoomOut')" placement="bottom">
-                                                    <div class="pdf-toolbar-icon" @click="pdfZoomOut">
-                                                        <el-icon>
-                                                            <ZoomOut />
-                                                        </el-icon>
-                                                    </div>
-                                                </el-tooltip>
-                                                <el-tooltip :content="$t('latexEditor.toolbar.zoomReset')" placement="bottom">
-                                                    <div class="pdf-toolbar-icon" @click="pdfZoomReset">
-                                                        <el-icon>
-                                                            <Refresh />
-                                                        </el-icon>
-                                                    </div>
-                                                </el-tooltip>
-                                                <el-divider direction="vertical"></el-divider>
-                                                <span class="pdf-toolbar__pages-per-row">
-                                                    <span class="pdf-toolbar__pages-per-row-label">{{ $t('latexEditor.pagesPerRow') || '每行页数' }}:</span>
-                                                    <el-select 
-                                                        v-model="pagesPerRow" 
-                                                        size="small" 
-                                                        style="width: 80px;"
-                                                        @change="handlePagesPerRowChange">
-                                                        <el-option
-                                                            v-for="num in 10"
-                                                            :key="num"
-                                                            :label="num"
-                                                            :value="num"
-                                                        />
-                                                    </el-select>
-                                                </span>
-                                                <el-divider direction="vertical"></el-divider>
-                                                <el-tooltip :content="$t('latexEditor.toolbar.pointerMode')" placement="bottom">
-                                                    <div class="pdf-toolbar-icon" :class="{ 'active': pdfViewMode === 'pointer' }" @click="setPdfViewMode('pointer')">
-                                                        <img :src="(themeState.currentTheme as any).CursorIcon" alt="pointer" style="width: 16px; height: 16px;" />
-                                                    </div>
-                                                </el-tooltip>
-                                                <el-tooltip :content="$t('latexEditor.toolbar.handMode')" placement="bottom">
-                                                    <div class="pdf-toolbar-icon" :class="{ 'active': pdfViewMode === 'hand' }" @click="setPdfViewMode('hand')">
-                                                        <img :src="(themeState.currentTheme as any).HandIcon" alt="hand" style="width: 16px; height: 16px;" />
-                                                    </div>
-                                                </el-tooltip>
-                                            </div>
-
-                                            <el-scrollbar
-                                                ref="pdfScrollbarRef"
-                                                v-if="isValidPdfUrl && totalPdfPages > 0"
-                                                class="pdf-preview-container"
-                                                :class="{ 'hand-mode': pdfViewMode === 'hand', 'pointer-mode': pdfViewMode === 'pointer' }"
-                                                :style="{ background: themeState.currentTheme.background }"
-                                                @contextmenu.prevent="openPdfContextMenu($event)">
-                                                <div 
-                                                    ref="pdfPagesWrapper"
-                                                    class="pdf-pages-wrapper"
-                                                    :style="pdfWrapperStyle"
-                                                    @mousedown="handleHandModeMouseDown"
-                                                    @mousemove="handleHandModeMouseMove"
-                                                    @mouseup="handleHandModeMouseUp"
-                                                    @mouseleave="handleHandModeMouseUp"
-                                                    @wheel="handlePdfWheel"
-                                                    @touchstart="handleTouchStart"
-                                                    @touchmove="handleTouchMove"
-                                                    @touchend="handleTouchEnd">
-                                                    <div 
-                                                        ref="pdfPagesContainer"
-                                                        class="pdf-pages-container"
-                                                        :style="{ ...pdfContainerStyle, transform: `scale(${zoomScale / PDF_RENDER_SCALE})`, transformOrigin: 'top left' }">
-                                                        <div
-                                                            v-for="pageNum in totalPdfPages"
-                                                            :key="`pdf-page-${pageNum}-${pdfUrl}-${pdfRenderKey}`"
-                                                            :ref="el => setPageRef(el, pageNum)"
-                                                            class="pdf-page-wrapper"
-                                                            :data-page-number="pageNum">
-                                                            <VuePdf
-                                                                :key="`vue-pdf-${pageNum}-${pdfUrl}-${pdfRenderKey}`"
-                                                                :src="pdfUrl"
-                                                                :page="pageNum"
-                                                                :scale="PDF_RENDER_SCALE"
-                                                                :enable-text-selection="true"
-                                                                :enable-annotations="false"
-                                                                @total-pages="handleNumPages"
-                                                                @pdf-loaded="pageNum === 1 ? handlePdfLoaded($event) : undefined"
-                                                                @error="(error: any) => handlePdfError(error, pageNum)"
-                                                                class="vue-pdf-wrapper"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </el-scrollbar>
-                                            <div v-else class="pdf-preview-container" :style="{ background: themeState.currentTheme.background }">
-                                                <h3 class="pdf-empty-text">
-                                                    {{ $t('latexEditor.pdfEmpty') }}
-                                                </h3>
-                                            </div>
+                                        <div class="latex-column pdf-column" v-show="showPdfPanel" @contextmenu.prevent="openPdfContextMenu($event)">
+                                            <PdfPreviewPanel ref="pdfPreviewPanelRef" :pdf-url="pdfUrl" />
                                             <ContextMenu 
                                                 :x="pdfMenuX" 
                                                 :y="pdfMenuY" 
@@ -327,6 +201,7 @@ import "../assets/ai-suggestion.css";
 import ResizableContainer from "../components/base/ResizableContainer.vue";
 import { getArticleContextMenuItems } from "../components/contextMenus/ArticleContextMenu";
 import ContextMenu from "../components/ContextMenu.vue";
+import PdfPreviewPanel from "../components/PdfPreviewPanel.vue";
 import ConsoleOutput from "../components/ConsoleOutput.vue";
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import { createRendererLogger } from '../utils/logger.ts'
@@ -734,8 +609,9 @@ const toggleRowNumber = () => {
 const showPdfPanel = ref(false)  // 默认不显示，只有在存在 PDF 文件时才显示
 const showConsole = ref(false)  // 默认隐藏终端
 const pdfUrl = ref('')
-const pagesPerRow = ref(1)  // 每行显示的页数，默认1，最大10
-const pdfViewMode = ref<'pointer' | 'hand'>('pointer')  // PDF查看模式：pointer=指针模式，hand=手型模式
+const pdfPreviewPanelRef = ref<InstanceType<typeof PdfPreviewPanel> | null>(null)
+const pagesPerRow = ref(1)  // 保留供 LaTeXEditor 内仍引用的 watch/updateWrapperSize 使用（实际 UI 在 PdfPreviewPanel）
+const pdfViewMode = ref<'pointer' | 'hand'>('pointer')  // 保留供 setPdfViewMode / 手型拖拽等逻辑使用
 
 // AI 错误分析相关
 const aiErrorAnalysisOutput = ref('')
@@ -1193,24 +1069,24 @@ function handlePdfWheel(event: WheelEvent) {
 }
 
 async function initPdfJs() {
-    if(currentPath.value && currentPath.value.toLowerCase().endsWith(".tex")){
-        const pdfPath = currentPath.value.toLowerCase().replace('.tex','.pdf');
+    if (currentPath.value && currentPath.value.toLowerCase().endsWith('.tex')) {
+        const normalized = (currentPath.value || '').replace(/\\/g, '/');
+        const pdfPath = normalized.toLowerCase().replace(/\.tex$/i, '.pdf');
         pdfUrl.value = encodeFilePathToUrl(pdfPath);
-    }else{
-        pdfUrl.value="";
+    } else {
+        pdfUrl.value = '';
     }
     
     pdfInitialized = true;
     
-    // 等待容器准备好后加载PDF
     await nextTick();
-    if (pdfUrl.value) {
-        // 尝试加载 PDF，如果成功则显示面板
-        const loaded = await loadPdf(pdfUrl.value);
-        if (loaded) {
-            showPdfPanel.value = true;
-        } else {
-            showPdfPanel.value = false;
+    if (pdfUrl.value && pdfUrl.value !== 'file:///' && pdfUrl.value.trim() !== '') {
+        // 有有效 URL 就显示面板，PdfPreviewPanel 会自行加载；再尝试 loadPdf 做映射等
+        showPdfPanel.value = true;
+        try {
+            await loadPdf(pdfUrl.value);
+        } catch (_) {
+            // 忽略，面板已显示
         }
     } else {
         showPdfPanel.value = false;
@@ -1681,28 +1557,32 @@ watch(
 watch(
     currentPath,
     async (path) => {
-        //logger.debug("LaTeXEditor currentPath changed", { path })
         if (!path || !path.toLowerCase().endsWith('.tex')) {
             pdfUrl.value = '';
             loadedPdfUrl = null;
             showPdfPanel.value = false;
             return;
         }
-        const pdfPath = path.toLowerCase().replace('.tex', '.pdf');
+        const normalized = (path || '').replace(/\\/g, '/');
+        const pdfPath = normalized.toLowerCase().replace(/\.tex$/i, '.pdf');
         const nextUrl = encodeFilePathToUrl(pdfPath);
         
-        // 如果URL没有变化，不需要重新加载
         if (pdfUrl.value === nextUrl && pdfDoc && loadedPdfUrl === nextUrl) {
-            // URL相同且已加载，不需要重新加载
             return;
         }
         
         pdfUrl.value = nextUrl;
+        const urlValid = nextUrl && nextUrl !== 'file:///' && nextUrl.trim() !== '';
+        if (urlValid) {
+            showPdfPanel.value = true;
+        }
         if (!isActive.value) return;
-        if (pdfInitialized) {
-            // 尝试加载 PDF，根据结果设置面板显示状态
-            const loaded = await loadPdf(nextUrl);
-            showPdfPanel.value = loaded;
+        if (pdfInitialized && urlValid) {
+            try {
+                await loadPdf(nextUrl);
+            } catch (_) {
+                // 面板已显示，PdfPreviewPanel 会自行加载
+            }
         }
     },
 );
@@ -2370,17 +2250,22 @@ const compile = async () => {
             compileConsoleListeners = {};
             
             eventBus.emit("show-success",t("latexEditor.notification.compileSuccess"));
-            const newPdfUrl = encodeFilePathToUrl(compileResult.pdfPath);
+            const newPdfUrl = encodeFilePathToUrl((compileResult.pdfPath || '').replace(/\\/g, '/'));
             
             // 编译成功后，无论URL是否变化，都应该强制重新加载PDF
-            // 因为PDF文件内容已经更新了
             pdfUrl.value = newPdfUrl;
-            
-            // 强制重新加载PDF并建立映射（编译后PDF内容已更新）
-            const loaded = await loadPdf(pdfUrl.value, false, true);
-            // 编译成功后，如果 PDF 加载成功，自动显示 PDF 面板
-            if (loaded) {
+            // 有有效 PDF URL 就显示面板，让 PdfPreviewPanel 自己加载；不依赖 loadPdf 返回值（loadPdf 可能因 ref 在子组件而失败）
+            if (newPdfUrl && newPdfUrl !== 'file:///' && newPdfUrl.trim() !== '') {
                 showPdfPanel.value = true;
+            }
+            
+            try {
+                const loaded = await loadPdf(pdfUrl.value, false, true);
+                if (loaded) {
+                    showPdfPanel.value = true;
+                }
+            } catch (_) {
+                // 忽略 loadPdf 错误，面板已显示，PdfPreviewPanel 会自行加载
             }
         }
         else{
@@ -2907,13 +2792,13 @@ const handlePdfMenuClick = async (item: string) => {
             await locateToCodeFromPdf();
             break;
         case 'zoom-in':
-            await pdfZoomIn();
+            pdfPreviewPanelRef.value?.pdfZoomIn();
             break;
         case 'zoom-out':
-            await pdfZoomOut();
+            pdfPreviewPanelRef.value?.pdfZoomOut();
             break;
         case 'zoom-reset':
-            await pdfZoomReset();
+            pdfPreviewPanelRef.value?.pdfZoomReset();
             break;
         case 'open-directory':
             await openPdfDirectory();
@@ -2963,14 +2848,15 @@ async function locateToCodeFromPdfCenter() {
     }
     
     try {
-        // 获取当前页面的DOM元素
-        const currentPageElement = pageRefs.get(currentPdfPage.value);
+        const currentPage = pdfPreviewPanelRef.value?.getCurrentPage() ?? 1;
+        const panelPageRefs = pdfPreviewPanelRef.value?.getPageRefs();
+        const currentPageElement = panelPageRefs?.get(currentPage);
         if (!currentPageElement) {
             eventBus.emit("show-info", t("latexEditor.notification.noCodeMapping"));
             return;
         }
         
-        const page = await pdfDoc.getPage(currentPdfPage.value);
+        const page = await pdfDoc.getPage(currentPage);
         const viewport = page.getViewport({ scale: 1 }); // 使用标准viewport（scale=1）用于坐标转换
         
         // 获取当前页面的canvas元素
@@ -2997,7 +2883,7 @@ async function locateToCodeFromPdfCenter() {
         const relativeY = 1 - (canvasY / canvasStyleHeight);
         
         // 查找映射
-        const pageMappings = pdfToSourceMap.get(currentPdfPage.value);
+        const pageMappings = pdfToSourceMap.get(currentPage);
         if (pageMappings && pageMappings.length > 0) {
             // 使用页面中心的映射（选择最接近中心的映射）
             let closestMapping = null;
@@ -3350,24 +3236,9 @@ async function locateToPdf() {
         }
         
         if (pdfLocation) {
-            // 设置标志，避免自动更新页码时触发跳转
-            isAutoUpdatingPage = true;
-            
-            // 更新页码
-            currentPdfPage.value = pdfLocation.pageNumber;
-            inputPdfPage.value = pdfLocation.pageNumber;
-            
-            // 等待DOM更新后，滚动到页面内的具体位置
+            pdfPreviewPanelRef.value?.scrollToPage(pdfLocation.pageNumber);
             await nextTick();
-            
-            // 滚动到页面内的具体位置
             await scrollToPdfLocation(pdfLocation);
-            
-            // 重置标志
-            nextTick(() => {
-                isAutoUpdatingPage = false;
-            });
-            
         } else {
             eventBus.emit("show-info", t("latexEditor.notification.noPdfMapping"));
         }

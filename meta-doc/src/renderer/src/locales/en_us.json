@@ -102,6 +102,8 @@
   },
   "mainTabs": {
     "contextMenu": {
+      "pinTab": "Pin Tab",
+      "unpinTab": "Unpin Tab",
       "closeTab": "Close Tab",
       "closeOtherTabs": "Close Other Tabs",
       "openInNewWindow": "Open in New Window",
@@ -648,7 +650,7 @@
     "basic": "Basic Settings",
     "llm": "LLM Settings",
     "themes": "Theme Settings",
-    
+
     "startupOption": "Startup Option",
     "openNewFile": "Open New File",
     "openLastFile": "Open Last Edited File",
@@ -684,7 +686,7 @@
     "parseEmbeddedImages": "Parse Embedded Document Images (OCR)",
     "parseEmbeddedImagesHint": "When disabled, images inside uploaded docx/pptx/pdf files are not OCRed; direct image uploads are still OCRed.",
     "image": {
-      "title":"Image Settings",
+      "title": "Image Settings",
       "titleHint": "Image upload settings, takes effect after reopening the file",
       "insertAction": "When inserting images",
       "insertActionNone": "No special operation",
@@ -1548,7 +1550,7 @@
         "resetParams": "Reset Parameters",
         "defaultParams": "Recommended Settings",
         "preprocessingParams": "Preprocessing Parameters"
-    },
+      },
       "chartGeneration": {
         "generating": "Generating chart code...",
         "rendering": "Rendering chart...",

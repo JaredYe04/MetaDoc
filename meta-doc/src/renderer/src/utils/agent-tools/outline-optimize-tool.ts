@@ -18,22 +18,22 @@ import { cancelAiTask, createAiTask, ai_types } from '../ai_tasks'
 import { getSetting } from '../settings'
 import { ref } from 'vue'
 import type { DocumentOutlineNode, AIDialogMessage } from '@/types'
-import { 
-  searchNode, 
+import {
+  searchNode,
   removeTextFromOutline,
-  generateMarkdownFromOutlineTree 
+  generateMarkdownFromOutlineTree
 } from '../document/outline'
 import { searchParentNode } from '../outline-helpers'
-import { 
-  expandTreeNodePrompt, 
-  generateContentPrompt, 
-  generateParentNodeContentPrompt 
+import {
+  expandTreeNodePrompt,
+  generateContentPrompt,
+  generateParentNodeContentPrompt
 } from '../prompts'
 import { TREE_NODE_SCHEMA } from '../../constants/document'
 import { extractOuterJsonString } from '../regex-utils'
 import { getOutlineAdapter } from '../outline-adapters'
 import { parseJsonWithClean, isJsonParseError } from './tool-utils'
-import { 
+import {
   generateChildNodes as generateChildNodesUtil,
   generateNodeContent as generateNodeContentUtil,
   generateChildrenChildren as generateChildrenChildrenUtil,
@@ -59,7 +59,7 @@ function regeneratePaths(node: DocumentOutlineNode): void {
   for (let i = 0; i < node.children.length; i++) {
     node.children[i].path = `${i + 1}`
   }
-  
+
   // 广度优先遍历，为所有子节点生成路径
   const queue = [...node.children]
   while (queue.length > 0) {
@@ -129,7 +129,15 @@ async function generateNodeContent(
   onUpdate?: (data: ToolCallbackData, progress?: ToolProgress) => void
 ): Promise<string> {
   // 直接使用工具函数（已支持 docFormat 参数和对话模式）
-  return await generateNodeContentUtil(node, outlineTree, userPrompt, signal, docFormat, undefined, onUpdate)
+  return await generateNodeContentUtil(
+    node,
+    outlineTree,
+    userPrompt,
+    signal,
+    docFormat,
+    undefined,
+    onUpdate
+  )
 }
 
 /**
@@ -143,7 +151,7 @@ async function syncOutlineToDocument(
   docTex?: string
 ): Promise<void> {
   const windowType = getWindowType()
-  
+
   // 在设置窗口中，无法直接更新文档，只能通过广播通知主窗口
   if (windowType === 'setting') {
     logger.warn('在设置窗口中无法直接同步文档，需要通过广播通知主窗口')
@@ -163,7 +171,7 @@ async function syncOutlineToDocument(
   // 使用适配器同步正文文本
   const format = docFormat || doc.format
   const adapter = getOutlineAdapter(format)
-  
+
   if (format === 'tex') {
     const currentTex = docTex || doc.tex
     const nextTex = await adapter.toText(outline, currentTex)
@@ -179,40 +187,64 @@ async function syncOutlineToDocument(
  * 大纲优化Tool回调函数
  */
 const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdate) => {
-  const operation = params.operation as 'generateChildren' | 'generateContent' | 'generateChildrenChildren' | 'generateChildrenContent' | 'moveNode' | 'deleteNodes' | 'clearOutline'
+  const operation = params.operation as
+    | 'generateChildren'
+    | 'generateContent'
+    | 'generateChildrenChildren'
+    | 'generateChildrenContent'
+    | 'moveNode'
+    | 'deleteNodes'
+    | 'clearOutline'
   const nodePath = params.nodePath as string | undefined
-  const nodePaths = params.nodePaths as string[] | undefined  // 批量操作的节点路径数组
-  const targetPath = params.targetPath as string | undefined  // 移动操作的目标路径
-  const moveMode = params.moveMode as 'before' | 'after' | 'inside' | undefined  // 移动模式
+  const nodePaths = params.nodePaths as string[] | undefined // 批量操作的节点路径数组
+  const targetPath = params.targetPath as string | undefined // 移动操作的目标路径
+  const moveMode = params.moveMode as 'before' | 'after' | 'inside' | undefined // 移动模式
   const userPrompt = (params.userPrompt as string) || ''
   const tabId = params.tabId as string | undefined
 
   if (!operation) {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.outlineOptimize.error.missingOperation', '缺少必需参数: operation')
+      error: i18n.global.t(
+        'agent.tool.outlineOptimize.error.missingOperation',
+        '缺少必需参数: operation'
+      )
     }
   }
 
-  const validOperations = ['generateChildren', 'generateContent', 'generateChildrenChildren', 'generateChildrenContent', 'moveNode', 'deleteNodes', 'clearOutline']
+  const validOperations = [
+    'generateChildren',
+    'generateContent',
+    'generateChildrenChildren',
+    'generateChildrenContent',
+    'moveNode',
+    'deleteNodes',
+    'clearOutline'
+  ]
   if (!validOperations.includes(operation)) {
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.outlineOptimize.error.invalidOperation', `无效的操作: ${operation}`)
+      error: i18n.global.t(
+        'agent.tool.outlineOptimize.error.invalidOperation',
+        `无效的操作: ${operation}`
+      )
     }
   }
 
   try {
-    onUpdate({
-      content: {
-        stage: 'loading',
-        operation
+    onUpdate(
+      {
+        content: {
+          stage: 'loading',
+          operation
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 10,
-      message: i18n.global.t('agent.tool.outlineOptimize.progress.loading', '正在加载文档...')
-    })
+      {
+        percentage: 10,
+        message: i18n.global.t('agent.tool.outlineOptimize.progress.loading', '正在加载文档...')
+      }
+    )
 
     // 获取文档（支持跨窗口）
     const windowType = getWindowType()
@@ -225,7 +257,10 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       if (!docInfo) {
         return {
           status: 'failed',
-          error: i18n.global.t('agent.tool.outlineOptimize.error.noActiveTab', '没有活动的文档标签页')
+          error: i18n.global.t(
+            'agent.tool.outlineOptimize.error.noActiveTab',
+            '没有活动的文档标签页'
+          )
         }
       }
       doc = {
@@ -242,7 +277,10 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       if (!targetTabId) {
         return {
           status: 'failed',
-          error: i18n.global.t('agent.tool.outlineOptimize.error.noActiveTab', '没有活动的文档标签页')
+          error: i18n.global.t(
+            'agent.tool.outlineOptimize.error.noActiveTab',
+            '没有活动的文档标签页'
+          )
         }
       }
       doc = workspace.ensureDocument(targetTabId)
@@ -259,7 +297,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       doc.format = 'md'
       logger.warn('文档格式未设置，默认使用Markdown格式')
     }
-    
+
     // 获取大纲树
     let outlineTree = doc.outline
     if (!outlineTree) {
@@ -281,42 +319,54 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
 
     // 查找目标节点（某些操作不需要targetNode）
     let targetNode: DocumentOutlineNode | null = null
-    const needsTargetNode = ['generateChildren', 'generateContent', 'generateChildrenChildren', 'generateChildrenContent', 'moveNode'].includes(operation)
-    
+    const needsTargetNode = [
+      'generateChildren',
+      'generateContent',
+      'generateChildrenChildren',
+      'generateChildrenContent',
+      'moveNode'
+    ].includes(operation)
+
     if (needsTargetNode) {
       // 支持nodePath为"all"的情况（用于批量操作根节点的所有子节点）
       if (nodePath === 'all' || nodePath === 'dummy') {
         // 对于"all"或"dummy"，使用根节点
         targetNode = outlineTree
       } else if (nodePath) {
-      targetNode = searchNode(nodePath, outlineTree)
-      if (!targetNode) {
-        return {
-          status: 'failed',
-            error: i18n.global.t('agent.tool.outlineOptimize.error.nodeNotFound', `找不到路径为 ${nodePath} 的节点。提示：可以使用"dummy"指定根节点，或使用outline-tree工具查看节点路径`)
+        targetNode = searchNode(nodePath, outlineTree)
+        if (!targetNode) {
+          return {
+            status: 'failed',
+            error: i18n.global.t(
+              'agent.tool.outlineOptimize.error.nodeNotFound',
+              `找不到路径为 ${nodePath} 的节点。提示：可以使用"dummy"指定根节点，或使用outline-tree工具查看节点路径`
+            )
+          }
         }
-      }
-    } else {
+      } else {
         // 如果没有指定节点路径，根据操作类型选择默认节点
         // generateChildren可以为根节点生成子节点，即使只有dummy节点
         if (operation === 'generateChildren') {
           targetNode = outlineTree
         } else if (outlineTree.children && outlineTree.children.length > 0) {
           // 其他操作使用第一个非根节点
-        targetNode = outlineTree.children[0]
-      } else {
+          targetNode = outlineTree.children[0]
+        } else {
           // 没有子节点且不是generateChildren操作，报错
-        return {
-          status: 'failed',
-            error: i18n.global.t('agent.tool.outlineOptimize.error.noTargetNode', '没有可操作的节点。提示：请先使用generateChildren为根节点生成子节点，或使用nodePath: "dummy"为根节点生成子节点')
+          return {
+            status: 'failed',
+            error: i18n.global.t(
+              'agent.tool.outlineOptimize.error.noTargetNode',
+              '没有可操作的节点。提示：请先使用generateChildren为根节点生成子节点，或使用nodePath: "dummy"为根节点生成子节点'
+            )
+          }
         }
       }
-    }
 
-    if (!targetNode) {
-      return {
-        status: 'failed',
-        error: i18n.global.t('agent.tool.outlineOptimize.error.noTargetNode', '没有可操作的节点')
+      if (!targetNode) {
+        return {
+          status: 'failed',
+          error: i18n.global.t('agent.tool.outlineOptimize.error.noTargetNode', '没有可操作的节点')
         }
       }
     }
@@ -328,15 +378,15 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       // 深拷贝大纲树（避免直接修改原对象）
       const workingOutline = JSON.parse(JSON.stringify(outlineTree)) as DocumentOutlineNode
       let workingNode: DocumentOutlineNode | null = null
-      
+
       // 对于需要workingNode的操作，查找工作副本中的节点
       if (targetNode) {
         workingNode = searchNode(targetNode.path, workingOutline)
         if (!workingNode && needsTargetNode) {
-        throw new Error('无法在工作副本中找到目标节点')
+          throw new Error('无法在工作副本中找到目标节点')
         }
       }
-      
+
       // 对于需要workingNode的操作，确保workingNode不为null
       if (needsTargetNode) {
         if (!workingNode) {
@@ -354,79 +404,107 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
         if (!workingNode) {
           throw new Error('无法找到目标节点')
         }
-        onUpdate({
-          content: {
-            stage: 'generating',
-            operation,
-            nodePath: workingNode.path,
-            nodeTitle: workingNode.title
+        onUpdate(
+          {
+            content: {
+              stage: 'generating',
+              operation,
+              nodePath: workingNode.path,
+              nodeTitle: workingNode.title
+            },
+            format: 'json'
           },
-          format: 'json'
-        }, {
-          percentage: 30,
-          message: i18n.global.t('agent.tool.outlineOptimize.progress.generatingChildren', `正在为节点 "${workingNode.title}" 生成子节点...`)
-        })
+          {
+            percentage: 30,
+            message: i18n.global.t(
+              'agent.tool.outlineOptimize.progress.generatingChildren',
+              `正在为节点 "${workingNode.title}" 生成子节点...`
+            )
+          }
+        )
 
-        const newChildren = await generateChildNodes(workingNode, workingOutline, userPrompt, doc.format, signal, onUpdate)
+        const newChildren = await generateChildNodes(
+          workingNode,
+          workingOutline,
+          userPrompt,
+          doc.format,
+          signal,
+          onUpdate
+        )
         if (!workingNode.children) {
           workingNode.children = []
         }
         workingNode.children.push(...newChildren)
         regeneratePaths(workingOutline)
-        
+
         // 记录生成的子节点信息
-        generatedChildrenInfo = newChildren.map(child => ({
+        generatedChildrenInfo = newChildren.map((child) => ({
           path: child.path,
           title: child.title
         }))
-
       } else if (operation === 'generateContent') {
         // 为指定节点生成内容
         if (!workingNode) {
           throw new Error('无法找到目标节点')
         }
-        onUpdate({
-          content: {
-            stage: 'generating',
-            operation,
-            nodePath: workingNode.path,
-            nodeTitle: workingNode.title
+        onUpdate(
+          {
+            content: {
+              stage: 'generating',
+              operation,
+              nodePath: workingNode.path,
+              nodeTitle: workingNode.title
+            },
+            format: 'json'
           },
-          format: 'json'
-        }, {
-          percentage: 30,
-          message: i18n.global.t('agent.tool.outlineOptimize.progress.generatingContent', `正在为节点 "${workingNode.title}" 生成内容...`)
-        })
+          {
+            percentage: 30,
+            message: i18n.global.t(
+              'agent.tool.outlineOptimize.progress.generatingContent',
+              `正在为节点 "${workingNode.title}" 生成内容...`
+            )
+          }
+        )
 
-        const content = await generateNodeContent(workingNode, workingOutline, userPrompt, doc.format, signal, onUpdate)
+        const content = await generateNodeContent(
+          workingNode,
+          workingOutline,
+          userPrompt,
+          doc.format,
+          signal,
+          onUpdate
+        )
         workingNode.text = content
-        
+
         // 记录生成的内容信息
         generatedContentInfo = {
           content: content,
           contentLength: content.length,
-          contentPreview: content.length > 100 
-            ? content.substring(0, 100) + '...' 
-            : content
+          contentPreview: content.length > 100 ? content.substring(0, 100) + '...' : content
         }
-
       } else if (operation === 'generateChildrenChildren') {
         // 为指定节点的所有子节点生成子节点
         if (!workingNode) {
           throw new Error('无法找到目标节点')
         }
-        onUpdate({
-          content: {
-            stage: 'generating',
-            operation,
-            nodePath: workingNode.path,
-            nodeTitle: workingNode.title
+        onUpdate(
+          {
+            content: {
+              stage: 'generating',
+              operation,
+              nodePath: workingNode.path,
+              nodeTitle: workingNode.title
+            },
+            format: 'json'
           },
-          format: 'json'
-        }, {
-          percentage: 20,
-          message: i18n.global.t('agent.tool.outlineOptimize.progress.generatingChildrenChildren', `正在为节点 "${workingNode.title}" 的所有子节点生成子节点...`)
-        })
+          {
+            percentage: 20,
+            message: i18n.global.t(
+              'agent.tool.outlineOptimize.progress.generatingChildrenChildren',
+              `正在为节点 "${workingNode.title}" 的所有子节点生成子节点...`
+            )
+          }
+        )
 
         // 使用公共工具函数
         await generateChildrenChildrenUtil(
@@ -439,24 +517,29 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
           onUpdate
         )
         regeneratePaths(workingOutline)
-
       } else if (operation === 'generateChildrenContent') {
         // 为指定节点的所有子节点生成内容
         if (!workingNode) {
           throw new Error('无法找到目标节点')
         }
-        onUpdate({
-          content: {
-            stage: 'generating',
-            operation,
-            nodePath: workingNode.path,
-            nodeTitle: workingNode.title
+        onUpdate(
+          {
+            content: {
+              stage: 'generating',
+              operation,
+              nodePath: workingNode.path,
+              nodeTitle: workingNode.title
+            },
+            format: 'json'
           },
-          format: 'json'
-        }, {
-          percentage: 20,
-          message: i18n.global.t('agent.tool.outlineOptimize.progress.generatingChildrenContent', `正在为节点 "${workingNode.title}" 的所有子节点生成内容...`)
-        })
+          {
+            percentage: 20,
+            message: i18n.global.t(
+              'agent.tool.outlineOptimize.progress.generatingChildrenContent',
+              `正在为节点 "${workingNode.title}" 的所有子节点生成内容...`
+            )
+          }
+        )
 
         // 使用公共工具函数
         await generateChildrenContentUtil(
@@ -470,17 +553,23 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
         )
       } else if (operation === 'clearOutline') {
         // 清空大纲树：保留根节点，清空所有子节点
-        onUpdate({
-          content: {
-            stage: 'clearing',
-            operation
+        onUpdate(
+          {
+            content: {
+              stage: 'clearing',
+              operation
+            },
+            format: 'json'
           },
-          format: 'json'
-        }, {
-          percentage: 30,
-          message: i18n.global.t('agent.tool.outlineOptimize.progress.clearing', '正在清空大纲树...')
-        })
-        
+          {
+            percentage: 30,
+            message: i18n.global.t(
+              'agent.tool.outlineOptimize.progress.clearing',
+              '正在清空大纲树...'
+            )
+          }
+        )
+
         // 清空所有子节点和文本
         workingOutline.children = []
         workingOutline.text = ''
@@ -493,28 +582,37 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       }
 
       // 同步大纲到文档（clearOutline操作也需要同步）
-      onUpdate({
-        content: {
-          stage: 'syncing',
-          operation
+      onUpdate(
+        {
+          content: {
+            stage: 'syncing',
+            operation
+          },
+          format: 'json'
         },
-        format: 'json'
-      }, {
-        percentage: 90,
-        message: i18n.global.t('agent.tool.outlineOptimize.progress.syncing', '正在同步文档内容...')
-      })
+        {
+          percentage: 90,
+          message: i18n.global.t(
+            'agent.tool.outlineOptimize.progress.syncing',
+            '正在同步文档内容...'
+          )
+        }
+      )
 
       await syncOutlineToDocument(targetTabId, workingOutline, doc.format, doc.markdown, doc.tex)
 
-      onUpdate({
-        content: {
-          stage: 'completed',
+      onUpdate(
+        {
+          content: {
+            stage: 'completed'
+          },
+          format: 'json'
         },
-        format: 'json'
-      }, {
-        percentage: 100,
-        message: i18n.global.t('agent.tool.outlineOptimize.progress.completed', '大纲优化完成')
-      })
+        {
+          percentage: 100,
+          message: i18n.global.t('agent.tool.outlineOptimize.progress.completed', '大纲优化完成')
+        }
+      )
 
       // 构建返回结果，包含生成的具体内容
       let resultData: any = {
@@ -523,7 +621,15 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       }
 
       // 对于需要targetNode的操作，添加节点信息
-      if (targetNode && ['generateChildren', 'generateContent', 'generateChildrenChildren', 'generateChildrenContent'].includes(operation)) {
+      if (
+        targetNode &&
+        [
+          'generateChildren',
+          'generateContent',
+          'generateChildrenChildren',
+          'generateChildrenContent'
+        ].includes(operation)
+      ) {
         resultData.nodePath = targetNode.path
         resultData.nodeTitle = targetNode.title
       }
@@ -552,9 +658,9 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
           }
         }
         if (workingNode) {
-        collectChildren(workingNode)
-        resultData.generatedChildren = allGenerated
-        resultData.totalChildrenCount = allGenerated.length
+          collectChildren(workingNode)
+          resultData.generatedChildren = allGenerated
+          resultData.totalChildrenCount = allGenerated.length
         }
       } else if (operation === 'generateChildrenContent') {
         // 统计所有生成的内容
@@ -565,9 +671,8 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
               path: node.path,
               title: node.title,
               contentLength: node.text.length,
-              contentPreview: node.text.length > 100 
-                ? node.text.substring(0, 100) + '...'
-                : node.text
+              contentPreview:
+                node.text.length > 100 ? node.text.substring(0, 100) + '...' : node.text
             })
           }
           if (node.children) {
@@ -577,7 +682,7 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
           }
         }
         if (workingNode) {
-        collectContent(workingNode)
+          collectContent(workingNode)
         }
         resultData.generatedContent = allContent
         resultData.totalContentCount = allContent.length
@@ -593,9 +698,9 @@ const outlineOptimizeToolCallback: ToolCallback = async (params, signal, onUpdat
       }
 
       const responseData: any = {
-            stage: 'completed',
-            operation,
-            ...resultData
+        stage: 'completed',
+        operation,
+        ...resultData
       }
 
       // 添加节点信息（如果存在）
@@ -631,23 +736,28 @@ const outlineOptimizeToolLocales: ToolLocales = {
   },
   en_us: {
     name: 'Outline Optimization',
-    description: 'Use AI to generate/optimize document outline, including generating child nodes and content, and automatically sync to document'
+    description:
+      'Use AI to generate/optimize document outline, including generating child nodes and content, and automatically sync to document'
   },
   de_DE: {
     name: 'Gliederungsoptimierung',
-    description: 'Verwenden Sie KI, um Dokumentengliederungen zu generieren/optimieren, einschließlich Generierung von Unterknoten und Inhalten, und automatisch mit dem Dokument synchronisieren'
+    description:
+      'Verwenden Sie KI, um Dokumentengliederungen zu generieren/optimieren, einschließlich Generierung von Unterknoten und Inhalten, und automatisch mit dem Dokument synchronisieren'
   },
   fr_FR: {
-    name: 'Optimisation de l\'arborescence',
-    description: 'Utiliser l\'IA pour générer/optimiser l\'arborescence du document, y compris la génération de nœuds enfants et de contenu, et synchroniser automatiquement avec le document'
+    name: "Optimisation de l'arborescence",
+    description:
+      "Utiliser l'IA pour générer/optimiser l'arborescence du document, y compris la génération de nœuds enfants et de contenu, et synchroniser automatiquement avec le document"
   },
   ja_JP: {
     name: 'アウトライン最適化',
-    description: 'AIを使用してドキュメントアウトラインを生成/最適化し、子ノードとコンテンツの生成を含め、ドキュメントに自動同期'
+    description:
+      'AIを使用してドキュメントアウトラインを生成/最適化し、子ノードとコンテンツの生成を含め、ドキュメントに自動同期'
   },
   ko_KR: {
     name: '개요 최적화',
-    description: 'AI를 사용하여 문서 개요 생성/최적화, 하위 노드 및 콘텐츠 생성 포함, 문서에 자동 동기화'
+    description:
+      'AI를 사용하여 문서 개요 생성/최적화, 하위 노드 및 콘텐츠 생성 포함, 문서에 자동 동기화'
   }
 }
 
@@ -658,7 +768,8 @@ export const outlineOptimizeToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'outline-optimize',
-    brief: 'Generate and optimize document outline using AI. Supports multiple operation modes with concurrent processing for efficient batch content generation.',
+    brief:
+      'Generate and optimize document outline using AI. Supports multiple operation modes with concurrent processing for efficient batch content generation.',
     fullSpec: `# Outline Optimization Tool
 
 ## Description
@@ -1003,7 +1114,15 @@ This tool uses **concurrent AI processing mechanism**, can generate content for 
     properties: {
       operation: {
         type: 'string',
-        enum: ['generateChildren', 'generateContent', 'generateChildrenChildren', 'generateChildrenContent', 'moveNode', 'deleteNodes', 'clearOutline'],
+        enum: [
+          'generateChildren',
+          'generateContent',
+          'generateChildrenChildren',
+          'generateChildrenContent',
+          'moveNode',
+          'deleteNodes',
+          'clearOutline'
+        ],
         description: '操作类型'
       },
       nodePath: {
@@ -1057,4 +1176,3 @@ This tool uses **concurrent AI processing mechanism**, can generate content for 
     }
   }
 }
-

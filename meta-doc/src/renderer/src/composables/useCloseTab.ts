@@ -32,17 +32,17 @@ export const useCloseTab = () => {
    */
   const closeTab = async (tabId: string): Promise<boolean> => {
     if (isLocked.value) return false
-    
-    const tab = workspace.tabs.find(t => t.id === tabId)
+
+    const tab = workspace.tabs.find((t) => t.id === tabId)
     if (!tab) return false
-    
+
     if (!workspace.canRemoveTab(tabId)) {
       return false
     }
-    
+
     // 获取ipcRenderer
     const ipcRenderer = getIpcRenderer()
-    
+
     // 如果是文档Tab且有未保存内容，需要确认
     if (tab.kind === 'file' || tab.kind === 'new') {
       const doc = workspace.documents[tabId]
@@ -55,8 +55,8 @@ export const useCloseTab = () => {
               {
                 type: 'warning',
                 confirmButtonText: t('main.dialogs.closeTabConfirm'),
-                cancelButtonText: t('main.dialogs.closeTabCancel'),
-              },
+                cancelButtonText: t('main.dialogs.closeTabCancel')
+              }
             )
           } catch {
             return false // 用户取消
@@ -64,8 +64,14 @@ export const useCloseTab = () => {
         } else {
           try {
             ipcRenderer.send('request-close-tab', tabId)
-            const result = await new Promise<{ tabId: string; action: 'save' | 'discard' | 'cancel' }>((resolve) => {
-              const handler = (_event: any, response: { tabId: string; action: 'save' | 'discard' | 'cancel' }) => {
+            const result = await new Promise<{
+              tabId: string
+              action: 'save' | 'discard' | 'cancel'
+            }>((resolve) => {
+              const handler = (
+                _event: any,
+                response: { tabId: string; action: 'save' | 'discard' | 'cancel' }
+              ) => {
                 if (response.tabId === tabId) {
                   ipcRenderer.removeListener('close-tab-response', handler)
                   resolve(response)
@@ -77,7 +83,7 @@ export const useCloseTab = () => {
                 resolve({ tabId, action: 'cancel' })
               }, 10000)
             })
-            
+
             if (result.action === 'save') {
               const { saveDocument } = workspace
               const saveResult = await saveDocument(tabId, { saveAs: false })
@@ -94,14 +100,13 @@ export const useCloseTab = () => {
         }
       }
     }
-    
+
     workspace.removeTab(tabId)
     return true
   }
 
   return {
     closeTab,
-    isLocked,
+    isLocked
   }
 }
-

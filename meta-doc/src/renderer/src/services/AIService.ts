@@ -2,29 +2,21 @@
  * AI服务层
  * 统一管理AI相关功能，包括LLM调用、任务管理等
  */
-import type { 
-  AITaskInfo,
-  AITaskType,
-  AIDialogMessage,
-  LLMConfig
-} from '../../../types'
-import { 
-  createAiTask, 
-  startAiTask, 
-  cancelAiTask, 
+import type { AITaskInfo, AITaskType, AIDialogMessage, LLMConfig } from '../../../types'
+import {
+  createAiTask,
+  startAiTask,
+  cancelAiTask,
   clearAiTasks,
   useAiTasks
 } from '../utils/ai_tasks'
-import { 
-  answerQuestion, 
-  continueConversation 
-} from '../utils/llm-api'
+import { answerQuestion, continueConversation } from '../utils/llm-api'
 import { getLlmTemperature } from '../utils/settings.js'
 import { getSetting } from '../utils/settings'
 import eventBus from '../utils/event-bus'
 import type { Ref } from 'vue'
-import { createRendererLogger } from '../utils/logger';
-const logger = createRendererLogger('AIService');
+import { createRendererLogger } from '../utils/logger'
+const logger = createRendererLogger('AIService')
 
 /** AI任务创建选项 */
 export interface CreateAITaskOptions {
@@ -41,21 +33,19 @@ export class AIService {
   /**
    * 创建AI任务
    */
-  static async createTask(options: CreateAITaskOptions): Promise<{ handle: string; done: Promise<any> }> {
+  static async createTask(
+    options: CreateAITaskOptions
+  ): Promise<{ handle: string; done: Promise<any> }> {
     try {
-      const {
-        name,
-        prompt,
-        target,
-        type,
-        originKey,
-        meta = { stream: true }
-      } = options
+      const { name, prompt, target, type, originKey, meta = { stream: true } } = options
 
       return createAiTask(name, prompt, target, type, originKey, meta)
     } catch (error) {
       logger.error('创建AI任务失败:', error)
-      eventBus.emit('show-error', `创建AI任务失败: ${error instanceof Error ? error.message : String(error)}`)
+      eventBus.emit(
+        'show-error',
+        `创建AI任务失败: ${error instanceof Error ? error.message : String(error)}`
+      )
       throw error
     }
   }
@@ -68,7 +58,10 @@ export class AIService {
       await startAiTask(handle)
     } catch (error) {
       logger.error('启动AI任务失败:', error)
-      eventBus.emit('show-error', `启动AI任务失败: ${error instanceof Error ? error.message : String(error)}`)
+      eventBus.emit(
+        'show-error',
+        `启动AI任务失败: ${error instanceof Error ? error.message : String(error)}`
+      )
       throw error
     }
   }
@@ -82,7 +75,10 @@ export class AIService {
     } catch (error) {
       logger.error('取消AI任务失败:', error)
       if (showWarning) {
-        eventBus.emit('show-error', `取消AI任务失败: ${error instanceof Error ? error.message : String(error)}`)
+        eventBus.emit(
+          'show-error',
+          `取消AI任务失败: ${error instanceof Error ? error.message : String(error)}`
+        )
       }
     }
   }
@@ -95,7 +91,10 @@ export class AIService {
       clearAiTasks()
     } catch (error) {
       logger.error('清空AI任务失败:', error)
-      eventBus.emit('show-error', `清空AI任务失败: ${error instanceof Error ? error.message : String(error)}`)
+      eventBus.emit(
+        'show-error',
+        `清空AI任务失败: ${error instanceof Error ? error.message : String(error)}`
+      )
     }
   }
 
@@ -123,7 +122,10 @@ export class AIService {
       await answerQuestion(prompt, target, meta, signal)
     } catch (error) {
       logger.error('AI回答问题失败:', error)
-      eventBus.emit('show-error', `AI回答问题失败: ${error instanceof Error ? error.message : String(error)}`)
+      eventBus.emit(
+        'show-error',
+        `AI回答问题失败: ${error instanceof Error ? error.message : String(error)}`
+      )
       throw error
     }
   }
@@ -145,7 +147,10 @@ export class AIService {
       await continueConversation(conversation, target, meta as any, signal)
     } catch (error) {
       logger.error('AI对话失败:', error)
-      eventBus.emit('show-error', `AI对话失败: ${error instanceof Error ? error.message : String(error)}`)
+      eventBus.emit(
+        'show-error',
+        `AI对话失败: ${error instanceof Error ? error.message : String(error)}`
+      )
       throw error
     }
   }
@@ -176,25 +181,25 @@ export class AIService {
         case 'openai':
           return {
             type: 'openai',
-            apiUrl: await getSetting('openaiApiUrl') || 'https://api.openai.com/v1',
-            apiKey: await getSetting('openaiApiKey') || '',
-            selectedModel: await getSetting('openaiSelectedModel') || 'gpt-3.5-turbo',
-            completionSuffix: await getSetting('openaiCompletionSuffix') || '',
-            chatSuffix: await getSetting('openaiChatSuffix') || ''
+            apiUrl: (await getSetting('openaiApiUrl')) || 'https://api.openai.com/v1',
+            apiKey: (await getSetting('openaiApiKey')) || '',
+            selectedModel: (await getSetting('openaiSelectedModel')) || 'gpt-3.5-turbo',
+            completionSuffix: (await getSetting('openaiCompletionSuffix')) || '',
+            chatSuffix: (await getSetting('openaiChatSuffix')) || ''
           }
 
         case 'ollama':
           return {
             type: 'ollama',
-            apiUrl: await getSetting('ollamaApiUrl') || 'http://localhost:11434/api',
-            selectedModel: await getSetting('ollamaSelectedModel') || ''
+            apiUrl: (await getSetting('ollamaApiUrl')) || 'http://localhost:11434/api',
+            selectedModel: (await getSetting('ollamaSelectedModel')) || ''
           }
 
         case 'metadoc':
           return {
             type: 'metadoc',
             apiUrl: '', // 从其他地方获取
-            selectedModel: await getSetting('metadocSelectedModel') || ''
+            selectedModel: (await getSetting('metadocSelectedModel')) || ''
           }
 
         default:
@@ -219,7 +224,7 @@ export class AIService {
     } = {}
   ): Promise<{ handle: string; done: Promise<any> }> {
     const { name = '回答问题', useRAG = false, originKey = `question_${Date.now()}` } = options
-    
+
     return this.createTask({
       name,
       prompt: question,
@@ -242,7 +247,7 @@ export class AIService {
     } = {}
   ): Promise<{ handle: string; done: Promise<any> }> {
     const { name = '多轮对话', originKey = `chat_${Date.now()}` } = options
-    
+
     return this.createTask({
       name,
       prompt: conversation,

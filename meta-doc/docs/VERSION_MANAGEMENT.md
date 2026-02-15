@@ -8,29 +8,32 @@
 
 版本升级基于 commit message 自动判断，遵循 Conventional Commits 规范：
 
-| Commit 类型 | 示例 | 升级策略 | 说明 |
-|-----------|------|---------|------|
-| `feat:` | `feat: 添加新功能` | **MINOR +1** | 新功能，如 `Beta0.4.7` → `Beta0.5.0` |
-| `fix:` | `fix: 修复bug` | **PATCH +1** | Bug 修复，如 `Beta0.4.7` → `Beta0.4.8` |
-| `refactor:` | `refactor: 重构代码` | **PATCH +1** | 重构但不改变功能 |
-| `perf:` | `perf: 性能优化` | **PATCH +1** | 性能优化 |
-| `docs:` | `docs: 更新文档` | **不升级** | 文档变化（可配置为 PATCH +1） |
-| `chore:` | `chore: 更新依赖` | **不升级** | 构建脚本等（可配置为 PATCH +1） |
-| `BREAKING CHANGE:` | `feat!: 不兼容更新` | **MAJOR +1** | 不兼容更新（0.x 时可视作 MINOR） |
-| `key feat` | `feat: 关键功能` | **MINOR +1** | 关键功能，算作两个 feat |
-| 无前缀 | `修复问题` | **PATCH +1** | 当作 fix 处理（fallback） |
+| Commit 类型        | 示例                 | 升级策略     | 说明                                   |
+| ------------------ | -------------------- | ------------ | -------------------------------------- |
+| `feat:`            | `feat: 添加新功能`   | **MINOR +1** | 新功能，如 `Beta0.4.7` → `Beta0.5.0`   |
+| `fix:`             | `fix: 修复bug`       | **PATCH +1** | Bug 修复，如 `Beta0.4.7` → `Beta0.4.8` |
+| `refactor:`        | `refactor: 重构代码` | **PATCH +1** | 重构但不改变功能                       |
+| `perf:`            | `perf: 性能优化`     | **PATCH +1** | 性能优化                               |
+| `docs:`            | `docs: 更新文档`     | **不升级**   | 文档变化（可配置为 PATCH +1）          |
+| `chore:`           | `chore: 更新依赖`    | **不升级**   | 构建脚本等（可配置为 PATCH +1）        |
+| `BREAKING CHANGE:` | `feat!: 不兼容更新`  | **MAJOR +1** | 不兼容更新（0.x 时可视作 MINOR）       |
+| `key feat`         | `feat: 关键功能`     | **MINOR +1** | 关键功能，算作两个 feat                |
+| 无前缀             | `修复问题`           | **PATCH +1** | 当作 fix 处理（fallback）              |
 
 ### 特殊规则
 
-1. **BREAKING CHANGE**: 
+1. **BREAKING CHANGE**:
+
    - 在 commit message 中包含 `BREAKING CHANGE:` 或使用 `feat!:` 格式
    - 在 0.x 版本时，默认当作 MINOR 升级（可配置）
 
-2. **Key Feat**: 
+2. **Key Feat**:
+
    - commit message 中包含 "key" 或 "关键" 关键词的 feat
    - 算作两个 feat，会额外升级一次 MINOR
 
-3. **优先级**: 
+3. **优先级**:
+
    - 如果有多个 commits，取最高升级级别
    - 优先级：MAJOR > MINOR > PATCH
 
@@ -49,6 +52,7 @@ pnpm build
 ```
 
 构建脚本会在构建前自动：
+
 1. 检测自上次版本更新以来的所有 git commits
 2. 解析每个 commit message，识别 Conventional Commits 类型
 3. 根据 commit 类型自动判断版本升级级别（MAJOR/MINOR/PATCH）
@@ -173,4 +177,3 @@ git commit -m "更新了代码"
 1. 版本文件 `version.json` 会被自动复制到 `resources` 目录，以便在打包后正确读取
 2. 每次构建时，版本号会自动更新，无需手动操作
 3. 如果需要手动修改版本，请使用版本管理工具，不要直接编辑 `version.json` 文件
-

@@ -1,7 +1,7 @@
 // electron.vite.config.mjs
-import { resolve } from "path";
-import { defineConfig, externalizeDepsPlugin } from "electron-vite";
-import vue from "@vitejs/plugin-vue";
+import { resolve } from 'path'
+import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
+import vue from '@vitejs/plugin-vue'
 var electron_vite_config_default = defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()]
@@ -12,23 +12,19 @@ var electron_vite_config_default = defineConfig({
   renderer: {
     resolve: {
       alias: {
-        "@renderer": resolve("src/renderer/src")
+        '@renderer': resolve('src/renderer/src')
       }
     },
-    plugins: [
-      vue()
-    ]
+    plugins: [vue()]
   },
   server: {
     proxy: {
       '/api': {
         target: 'https://server.simpletex.cn',
         changeOrigin: true,
-        rewrite: path => path.replace(/^\/api/, '')
+        rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
   }
-});
-export {
-  electron_vite_config_default as default
-};
+})
+export { electron_vite_config_default as default }

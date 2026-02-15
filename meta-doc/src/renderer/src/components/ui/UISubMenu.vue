@@ -1,9 +1,9 @@
 <template>
   <div class="ui-sub-menu" ref="subMenuRef">
     <!-- 菜单标题 -->
-    <el-tooltip 
-      v-if="tooltip && collapse && trigger === 'click'" 
-      :content="tooltip" 
+    <el-tooltip
+      v-if="tooltip && collapse && trigger === 'click'"
+      :content="tooltip"
       placement="right"
       :disabled="isOpen || hasOpenSubMenu"
       transition=""
@@ -12,8 +12,8 @@
     >
       <div
         class="ui-sub-menu__title"
-        :class="{ 
-          'is-collapsed': collapse && props.level === 1, 
+        :class="{
+          'is-collapsed': collapse && props.level === 1,
           'is-open': isOpen,
           'is-nested': props.level > 1
         }"
@@ -42,8 +42,8 @@
     <div
       v-else
       class="ui-sub-menu__title"
-      :class="{ 
-        'is-collapsed': collapse && props.level === 1, 
+      :class="{
+        'is-collapsed': collapse && props.level === 1,
         'is-open': isOpen,
         'is-nested': props.level > 1
       }"
@@ -91,27 +91,41 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, nextTick, onBeforeUnmount, onMounted, watch, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  inject,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  watch,
+  type ComputedRef
+} from 'vue'
 import { ArrowRight } from '@element-plus/icons-vue'
 import { themeState, mixColors } from '../../utils/themes'
 
 // 计算与 HeadMenu 一致的 active 背景色
-const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3))
+const activeBackgroundColor = computed(() =>
+  mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)
+)
 const activeTextColor = computed(() => themeState.currentTheme.textColor)
 
-const props = withDefaults(defineProps<{
-  title?: string
-  tooltip?: string
-  icon?: any
-  iconImage?: string
-  trigger?: 'click' | 'hover'
-  level?: number
-}>(), {
-  title: '',
-  tooltip: '',
-  trigger: 'click',
-  level: 1
-})
+const props = withDefaults(
+  defineProps<{
+    title?: string
+    tooltip?: string
+    icon?: any
+    iconImage?: string
+    trigger?: 'click' | 'hover'
+    level?: number
+  }>(),
+  {
+    title: '',
+    tooltip: '',
+    trigger: 'click',
+    level: 1
+  }
+)
 
 const emit = defineEmits<{
   (e: 'open'): void
@@ -119,7 +133,10 @@ const emit = defineEmits<{
 }>()
 
 const collapse = inject<boolean>('menuCollapse', false)
-const hasOpenSubMenu = inject<ComputedRef<boolean>>('hasOpenSubMenu', computed(() => false))
+const hasOpenSubMenu = inject<ComputedRef<boolean>>(
+  'hasOpenSubMenu',
+  computed(() => false)
+)
 // 对于嵌套在弹出层中的子菜单（level > 1），应该总是显示 title
 // 因为弹出层中的菜单不在主菜单的折叠状态控制范围内，collapse 可能无法正确获取
 const shouldShowTitle = computed(() => {
@@ -131,10 +148,22 @@ const shouldShowTitle = computed(() => {
   return !collapse
 })
 const closeAllClickSubMenus = inject<(() => void) | undefined>('closeAllClickSubMenus', undefined)
-const registerClickSubMenu = inject<((closeFn: () => void) => void) | undefined>('registerClickSubMenu', undefined)
-const unregisterClickSubMenu = inject<((closeFn: () => void) => void) | undefined>('unregisterClickSubMenu', undefined)
-const registerSubMenu = inject<((closeFn: () => void) => void) | undefined>('registerSubMenu', undefined)
-const unregisterSubMenu = inject<((closeFn: () => void) => void) | undefined>('unregisterSubMenu', undefined)
+const registerClickSubMenu = inject<((closeFn: () => void) => void) | undefined>(
+  'registerClickSubMenu',
+  undefined
+)
+const unregisterClickSubMenu = inject<((closeFn: () => void) => void) | undefined>(
+  'unregisterClickSubMenu',
+  undefined
+)
+const registerSubMenu = inject<((closeFn: () => void) => void) | undefined>(
+  'registerSubMenu',
+  undefined
+)
+const unregisterSubMenu = inject<((closeFn: () => void) => void) | undefined>(
+  'unregisterSubMenu',
+  undefined
+)
 
 const subMenuRef = ref<HTMLElement | null>(null)
 const popupRef = ref<HTMLElement | null>(null)
@@ -157,43 +186,43 @@ const popupStyle = computed(() => {
 
 const updatePopupPosition = async () => {
   if (!subMenuRef.value || !popupRef.value) return
-  
+
   await nextTick()
-  
+
   const titleRect = subMenuRef.value.getBoundingClientRect()
   const popupRect = popupRef.value.getBoundingClientRect()
-  
+
   let left = titleRect.right + 12
   let top = titleRect.top
-  
+
   // 确保不超出视口
   const padding = 8
   const maxLeft = window.innerWidth - popupRect.width - padding
   const maxTop = window.innerHeight - popupRect.height - padding
-  
+
   if (left > maxLeft) {
     left = titleRect.left - popupRect.width - 12
   }
-  
+
   if (top + popupRect.height > window.innerHeight - padding) {
     top = window.innerHeight - popupRect.height - padding
   }
-  
+
   if (top < padding) {
     top = padding
   }
-  
+
   popupPosition.value = { top, left }
 }
 
 const openPopup = async () => {
   if (isOpen.value) return
-  
+
   // 如果是 click 触发的，先关闭其他所有 click 触发的菜单
   if (props.trigger === 'click' && closeAllClickSubMenus) {
     closeAllClickSubMenus()
   }
-  
+
   isOpen.value = true
   await nextTick()
   // 确保 popupRef 已经渲染
@@ -204,34 +233,34 @@ const openPopup = async () => {
     await nextTick()
     updatePopupPosition()
   }
-  
+
   // 如果是 click 触发的，注册关闭函数
   if (props.trigger === 'click' && registerClickSubMenu) {
     registerClickSubMenu(closePopup)
   }
-  
+
   // 注册到所有菜单列表（用于 tooltip 控制）
   if (registerSubMenu) {
     registerSubMenu(closePopup)
   }
-  
+
   emit('open')
 }
 
 const closePopup = () => {
   if (!isOpen.value) return
   isOpen.value = false
-  
+
   // 如果是 click 触发的，注销关闭函数
   if (props.trigger === 'click' && unregisterClickSubMenu) {
     unregisterClickSubMenu(closePopup)
   }
-  
+
   // 从所有菜单列表中注销（用于 tooltip 控制）
   if (unregisterSubMenu) {
     unregisterSubMenu(closePopup)
   }
-  
+
   emit('close')
 }
 
@@ -261,8 +290,12 @@ const handleTitleMouseLeave = () => {
   if (props.trigger === 'hover') {
     // 延迟关闭，给鼠标移动到弹出层的时间
     setTimeout(() => {
-      if (popupRef.value && !popupRef.value.matches(':hover') && 
-          subMenuRef.value && !subMenuRef.value.matches(':hover')) {
+      if (
+        popupRef.value &&
+        !popupRef.value.matches(':hover') &&
+        subMenuRef.value &&
+        !subMenuRef.value.matches(':hover')
+      ) {
         closePopup()
       }
     }, 100)
@@ -284,9 +317,13 @@ const handlePopupMouseLeave = () => {
 const handleDocumentClick = (e: MouseEvent) => {
   if (props.trigger === 'click' && isOpen.value) {
     const target = e.target as Node | null
-    if (target && 
-        subMenuRef.value && !subMenuRef.value.contains(target) &&
-        popupRef.value && !popupRef.value.contains(target)) {
+    if (
+      target &&
+      subMenuRef.value &&
+      !subMenuRef.value.contains(target) &&
+      popupRef.value &&
+      !popupRef.value.contains(target)
+    ) {
       closePopup()
     }
   }

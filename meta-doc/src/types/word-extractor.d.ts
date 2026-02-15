@@ -13,7 +13,7 @@ declare module 'word-extractor' {
      * @param filePathOrBuffer 文件路径或Buffer
      * @returns Promise<Document> 文档对象
      */
-    extract(filePathOrBuffer: string | Buffer): Promise<Document>;
+    extract(filePathOrBuffer: string | Buffer): Promise<Document>
   }
 
   /**
@@ -24,47 +24,46 @@ declare module 'word-extractor' {
      * 获取文档正文内容
      * @returns 正文文本
      */
-    getBody(): string;
+    getBody(): string
 
     /**
      * 获取脚注内容
      * @returns 脚注文本
      */
-    getFootnotes(): string;
+    getFootnotes(): string
 
     /**
      * 获取尾注内容
      * @returns 尾注文本
      */
-    getEndnotes(): string;
+    getEndnotes(): string
 
     /**
      * 获取页眉页脚内容
      * @param options 选项
      * @returns 页眉页脚文本
      */
-    getHeaders(options?: { includeFooters?: boolean }): string;
+    getHeaders(options?: { includeFooters?: boolean }): string
 
     /**
      * 获取页脚内容
      * @returns 页脚文本
      */
-    getFooters(): string;
+    getFooters(): string
 
     /**
      * 获取注释内容
      * @returns 注释文本
      */
-    getAnnotations(): string;
+    getAnnotations(): string
 
     /**
      * 获取文本框内容
      * @param options 选项
      * @returns 文本框文本
      */
-    getTextboxes(options?: { includeHeadersAndFooters?: boolean; includeBody?: boolean }): string;
+    getTextboxes(options?: { includeHeadersAndFooters?: boolean; includeBody?: boolean }): string
   }
 
-  export = WordExtractor;
+  export = WordExtractor
 }
-

@@ -1,19 +1,20 @@
 <template>
   <div class="section-optimizer" :style="menuStyles" @mousedown.prevent="onMouseDown">
-    <div style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px;">
+    <div style="width: 100%; height: fit-content; align-items: end; padding-bottom: 10px">
       <el-button
-        circle plain
+        circle
+        plain
         size="small"
         type="danger"
         @click="$emit('close')"
         class="aero-btn"
-        style="float: inline-start;"
+        style="float: inline-start"
         @mousedown.prevent
       >
       </el-button>
     </div>
 
-    <p style="font-weight: bold;" @mousedown.stop>
+    <p style="font-weight: bold" @mousedown.stop>
       {{ props.title ? props.title : t('sectionOptimizer.defaultTitle') }}
     </p>
 
@@ -50,7 +51,11 @@
         }"
       >
         <div class="composer-leading">
-          <el-tooltip v-if="showPresetButton" :content="t('sectionOptimizer.showPresets')" placement="top">
+          <el-tooltip
+            v-if="showPresetButton"
+            :content="t('sectionOptimizer.showPresets')"
+            placement="top"
+          >
             <el-button
               circle
               class="composer-btn"
@@ -107,13 +112,19 @@
       </div>
     </div>
 
-    <div @mousedown.stop style="align-items: center; margin-top: 20px;">
+    <div @mousedown.stop style="align-items: center; margin-top: 20px">
       <el-slider
         v-model="context_mode"
         :step="1"
         :min="0"
         :max="2"
-        style="width: 60%; display: inline-block; align-self: center; margin-left: 20%; margin-right: 20%;"
+        style="
+          width: 60%;
+          display: inline-block;
+          align-self: center;
+          margin-left: 20%;
+          margin-right: 20%;
+        "
         show-stops
         :marks="{
           0: t('sectionOptimizer.contextMarks.none'),
@@ -148,13 +159,21 @@
         </el-button>
       </el-tooltip>
 
-      <el-tooltip :content="t('sectionOptimizer.tooltips.acceptReplace')" placement="top" v-if="generated">
+      <el-tooltip
+        :content="t('sectionOptimizer.tooltips.acceptReplace')"
+        placement="top"
+        v-if="generated"
+      >
         <el-button circle type="success" @click.prevent="accept(false)">
           <el-icon><Check /></el-icon>
         </el-button>
       </el-tooltip>
 
-      <el-tooltip :content="t('sectionOptimizer.tooltips.acceptAppend')" placement="top" v-if="generated">
+      <el-tooltip
+        :content="t('sectionOptimizer.tooltips.acceptAppend')"
+        placement="top"
+        v-if="generated"
+      >
         <el-button circle type="success" @click.prevent="accept(true)">
           <el-icon><Plus /></el-icon>
         </el-button>
@@ -225,13 +244,16 @@ function formatTooltip(val: number) {
 
 const context_mode = ref(1)
 const presetPrompts = computed(() => {
-  const prompts = props.language === 'latex' 
-    ? t('sectionOptimizer.presetPrompts.latex', { returnObjects: true })
-    : t('sectionOptimizer.presetPrompts.markdown', { returnObjects: true })
-  return Array.isArray(prompts) ? prompts.map((p: any) => ({
-    value: typeof p === 'string' ? p : p.value,
-    label: typeof p === 'string' ? p : p.label || p.value
-  })) : []
+  const prompts =
+    props.language === 'latex'
+      ? t('sectionOptimizer.presetPrompts.latex', { returnObjects: true })
+      : t('sectionOptimizer.presetPrompts.markdown', { returnObjects: true })
+  return Array.isArray(prompts)
+    ? prompts.map((p: any) => ({
+        value: typeof p === 'string' ? p : p.value,
+        label: typeof p === 'string' ? p : p.label || p.value
+      }))
+    : []
 })
 
 const pushDialogToDocument = (dialog: any) => {
@@ -253,7 +275,7 @@ const accept = async (append = false) => {
   if (props.language === 'markdown' && content.startsWith('#')) {
     content = content.split('\n').slice(1).join('\n')
   }
-  
+
   // 使用保存的sectionInfo，如果没有则尝试获取
   let sectionInfo: SectionInfo | undefined = props.sectionInfo
   if (!sectionInfo && props.adapter && props.path) {
@@ -269,7 +291,7 @@ const accept = async (append = false) => {
             const lines = fullText.split('\n')
             let sectionStart = -1
             let sectionEnd = lines.length
-            
+
             // 查找章节标题在全文中的位置
             const nodeTitle = node.title || props.title
             if (nodeTitle) {
@@ -307,15 +329,18 @@ const accept = async (append = false) => {
                 }
               }
             }
-            
+
             sectionInfo = {
               title: props.title,
               path: props.path,
               content: node.text || articleContent.value,
-              range: sectionStart >= 0 ? {
-                start: { line: sectionStart, column: 0 },
-                end: { line: sectionEnd, column: lines[sectionEnd]?.length || 0 }
-              } : undefined
+              range:
+                sectionStart >= 0
+                  ? {
+                      start: { line: sectionStart, column: 0 },
+                      end: { line: sectionEnd, column: lines[sectionEnd]?.length || 0 }
+                    }
+                  : undefined
             }
           } catch (e) {
             console.warn('Failed to get section range:', e)
@@ -331,7 +356,7 @@ const accept = async (append = false) => {
       console.warn('Failed to get section info:', e)
     }
   }
-  
+
   // 不在这里直接应用内容，而是通过事件传递给父组件
   articleContent.value = content
   emit('accept', {
@@ -360,17 +385,19 @@ const generate = async () => {
     fullText,
     props.language
   )
-  
+
   try {
-    const messages: AIDialogMessage[] = [{
-      role: 'user',
-      content: prompt,
-    }]
+    const messages: AIDialogMessage[] = [
+      {
+        role: 'user',
+        content: prompt
+      }
+    ]
     const { done } = createAiTask(
-      props.title, 
-      messages, 
-      generatedText, 
-      ai_types.chat, 
+      props.title,
+      messages,
+      generatedText,
+      ai_types.chat,
       'section-optimizer',
       { stream: true }
     )
@@ -410,7 +437,7 @@ const chat = async () => {
   })
   const newDialog = {
     title: props.title,
-    messages,
+    messages
   }
   pushDialogToDocument(newDialog)
   eventBus.emit('ai-chat')
@@ -494,7 +521,13 @@ const handleInput = (event: Event) => {
 
 const handleKeydown = (event: KeyboardEvent) => {
   if (disabled.value) return
-  if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
+  if (
+    event.key === 'Enter' &&
+    !event.shiftKey &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey
+  ) {
     // Enter键提交，Shift+Enter换行
     event.preventDefault()
     if (userPrompt.value.trim().length > 0 && !generating.value && !generated.value) {
@@ -518,7 +551,7 @@ const menuStyles = computed(() => ({
   zIndex: 1000,
   color: themeState.currentTheme.textColor2,
   backdropFilter: 'blur(5px)',
-  background: themeState.currentTheme.titleMenuBackground,
+  background: themeState.currentTheme.titleMenuBackground
 }))
 
 const refreshContent = async () => {
@@ -527,14 +560,14 @@ const refreshContent = async () => {
     articleContent.value = props.sectionInfo.content
     return
   }
-  
+
   // 其次使用大纲树中的内容
   const outlineNode = currentOutline.value
   if (!outlineNode) {
     articleContent.value = ''
     return
   }
-  
+
   // 如果有适配器，优先使用适配器获取outline
   let outline = outlineNode
   if (props.adapter) {
@@ -547,7 +580,7 @@ const refreshContent = async () => {
       console.warn('Failed to get outline from adapter:', e)
     }
   }
-  
+
   // 从大纲树中查找节点
   if (props.path) {
     const node = searchNode(props.path, outline)
@@ -563,7 +596,7 @@ const refreshContent = async () => {
       return
     }
   }
-  
+
   // 如果都没有，尝试从适配器获取当前光标位置的章节内容
   if (props.adapter) {
     try {
@@ -576,7 +609,7 @@ const refreshContent = async () => {
       console.warn('Failed to get section at cursor:', e)
     }
   }
-  
+
   articleContent.value = ''
 }
 
@@ -587,24 +620,24 @@ const onMouseDown = (event: MouseEvent) => {
   isDragging.value = true
   dragStart.value = {
     x: event.clientX - menuPosition.value.left,
-    y: event.clientY - menuPosition.value.top,
+    y: event.clientY - menuPosition.value.top
   }
-  document.addEventListener("mousemove", onMouseMove)
-  document.addEventListener("mouseup", onMouseUp)
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
 }
 
 const onMouseMove = (event: MouseEvent) => {
   if (!isDragging.value) return
   menuPosition.value = {
     top: event.clientY - dragStart.value.y,
-    left: event.clientX - dragStart.value.x,
+    left: event.clientX - dragStart.value.x
   }
 }
 
 const onMouseUp = () => {
   isDragging.value = false
-  document.removeEventListener("mousemove", onMouseMove)
-  document.removeEventListener("mouseup", onMouseUp)
+  document.removeEventListener('mousemove', onMouseMove)
+  document.removeEventListener('mouseup', onMouseUp)
 }
 
 // 初始化Monaco预览编辑器（用于LaTeX）
@@ -619,12 +652,12 @@ const initMonacoPreview = async () => {
   // 等待DOM更新和容器准备好
   await nextTick()
   await nextTick() // 再等一次，确保ref已经绑定
-  
+
   if (!previewContainerRef.value) {
     console.warn('Preview container ref is not available')
     return
   }
-  
+
   // 如果已经存在编辑器，先销毁
   if (previewEditor) {
     try {
@@ -637,7 +670,7 @@ const initMonacoPreview = async () => {
     previewEditor = null
     previewEditorId = null
   }
-  
+
   try {
     const isDark = themeState.currentTheme.type === 'dark'
     const editor = monaco.editor.create(previewContainerRef.value, {
@@ -653,24 +686,28 @@ const initMonacoPreview = async () => {
       contextmenu: false,
       scrollBeyondLastLine: false
     })
-    
+
     previewEditor = editor
     previewEditorId = editor.getId()
 
     // 监听内容变化
-    watch([() => articleContent.value, () => generatedText.value], ([content, generated]) => {
-      if (!editor) return
-      try {
-        const value = generated || content || ''
-        const currentValue = editor.getValue()
-        if (currentValue !== value) {
-          editor.setValue(value)
+    watch(
+      [() => articleContent.value, () => generatedText.value],
+      ([content, generated]) => {
+        if (!editor) return
+        try {
+          const value = generated || content || ''
+          const currentValue = editor.getValue()
+          if (currentValue !== value) {
+            editor.setValue(value)
+          }
+        } catch (e) {
+          // 编辑器可能已经被销毁
+          console.warn('Failed to update editor value:', e)
         }
-      } catch (e) {
-        // 编辑器可能已经被销毁
-        console.warn('Failed to update editor value:', e)
-      }
-    }, { immediate: true })
+      },
+      { immediate: true }
+    )
   } catch (e) {
     console.error('Failed to create Monaco editor:', e)
   }
@@ -701,16 +738,19 @@ onBeforeUnmount(() => {
   }
 })
 
-watch(() => props.path, () => {
-  refreshContent()
-})
+watch(
+  () => props.path,
+  () => {
+    refreshContent()
+  }
+)
 
 watch(
   currentOutline,
   () => {
     refreshContent()
   },
-  { deep: true },
+  { deep: true }
 )
 </script>
 
@@ -758,7 +798,10 @@ watch(
   gap: 12px;
   padding: 16px;
   align-items: flex-end;
-  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    border-color 0.2s;
   overflow: hidden;
   position: relative;
   box-sizing: border-box;
@@ -833,7 +876,9 @@ watch(
   background: rgba(0, 0, 0, 0.04);
   border: none;
   color: inherit;
-  transition: transform 0.15s ease, background 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease;
 }
 
 .composer-btn:hover:not(:disabled) {
@@ -884,4 +929,3 @@ watch(
   z-index: 1;
 }
 </style>
-

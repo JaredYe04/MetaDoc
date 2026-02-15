@@ -18,13 +18,9 @@
             :done="generationDone"
             :style="{ minHeight: '200px' }"
           />
-          
+
           <!-- 正常显示时使用VditorPreview -->
-          <VditorPreview
-            v-else
-            :markdown="node.text || ''"
-            :docPath="docPath"
-          />
+          <VditorPreview v-else :markdown="node.text || ''" :docPath="docPath" />
         </div>
       </el-scrollbar>
     </div>
@@ -33,43 +29,27 @@
     <div class="detailed-outline-node__actions">
       <!-- AI执行中 -->
       <template v-if="isGenerating">
-        <el-button
-          type="danger"
-          size="small"
-          circle
-          @click="handleCancel"
-          :loading="false"
-        >
+        <el-button type="danger" size="small" circle @click="handleCancel" :loading="false">
           <el-icon>
             <CloseBold />
           </el-icon>
         </el-button>
       </template>
-      
+
       <!-- AI执行完成，等待确认 -->
       <template v-else-if="pendingAccept">
-        <el-button
-          type="success"
-          size="small"
-          circle
-          @click="handleAccept"
-        >
+        <el-button type="success" size="small" circle @click="handleAccept">
           <el-icon>
             <Check />
           </el-icon>
         </el-button>
-        <el-button
-          type="danger"
-          size="small"
-          circle
-          @click="handleReject"
-        >
+        <el-button type="danger" size="small" circle @click="handleReject">
           <el-icon>
             <Close />
           </el-icon>
         </el-button>
       </template>
-      
+
       <!-- 正常状态：显示操作按钮 -->
       <template v-else>
         <el-tooltip :content="$t('outline.expandContent')" placement="top">
@@ -99,13 +79,7 @@
           </el-button>
         </el-tooltip>
         <el-tooltip :content="$t('outline.polish')" placement="top">
-          <el-button
-            type="info"
-            size="small"
-            circle
-            @click="handlePolish"
-            :disabled="isGenerating"
-          >
+          <el-button type="info" size="small" circle @click="handlePolish" :disabled="isGenerating">
             <el-icon>
               <Star />
             </el-icon>
@@ -125,11 +99,7 @@ import type { DocumentOutlineNode } from '../../../types'
 import { themeState } from '../../utils/themes'
 import VditorPreview from '../VditorPreview.vue'
 import StreamingContentDisplay from '../common/StreamingContentDisplay.vue'
-import {
-  expandContent,
-  abridgeContent,
-  polishContent
-} from '../../utils/outline-ai-utils'
+import { expandContent, abridgeContent, polishContent } from '../../utils/outline-ai-utils'
 
 const { t } = useI18n()
 
@@ -183,13 +153,13 @@ const handleExpand = async () => {
   if (!props.node.text) {
     return
   }
-  
+
   isGenerating.value = true
   pendingAccept.value = false
   backupContent.value = props.node.text
   streamingContentRef.value = ''
   generationDone.value = null
-  
+
   try {
     // 从父组件获取配置（通过props传递）
     const result = await expandContent(
@@ -203,7 +173,7 @@ const handleExpand = async () => {
       props.temperature, // temperature
       props.wordCount // wordCount
     )
-    
+
     // 保存生成的内容，等待用户确认
     streamingContentRef.value = result
     generationDone.value = Promise.resolve()
@@ -223,13 +193,13 @@ const handleAbridge = async () => {
   if (!props.node.text) {
     return
   }
-  
+
   isGenerating.value = true
   pendingAccept.value = false
   backupContent.value = props.node.text
   streamingContentRef.value = ''
   generationDone.value = null
-  
+
   try {
     const result = await abridgeContent(
       props.node,
@@ -242,7 +212,7 @@ const handleAbridge = async () => {
       props.temperature, // temperature
       props.wordCount // wordCount
     )
-    
+
     streamingContentRef.value = result
     generationDone.value = Promise.resolve()
     pendingAccept.value = true
@@ -260,13 +230,13 @@ const handlePolish = async () => {
   if (!props.node.text) {
     return
   }
-  
+
   isGenerating.value = true
   pendingAccept.value = false
   backupContent.value = props.node.text
   streamingContentRef.value = ''
   generationDone.value = null
-  
+
   try {
     const result = await polishContent(
       props.node,
@@ -278,7 +248,7 @@ const handlePolish = async () => {
       undefined, // onUpdate
       props.temperature // temperature
     )
-    
+
     streamingContentRef.value = result
     generationDone.value = Promise.resolve()
     pendingAccept.value = true
@@ -387,4 +357,3 @@ defineExpose({
   align-items: center;
 }
 </style>
-

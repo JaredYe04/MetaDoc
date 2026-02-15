@@ -19,9 +19,9 @@
   >
     <div class="queue-wrapper" :style="wrapperStyle">
       <div class="queue-header">
-      <h3>{{ t('notificationQueue.title') }}</h3>
-      <div class="header-actions">
-        <!-- <el-button
+        <h3>{{ t('notificationQueue.title') }}</h3>
+        <div class="header-actions">
+          <!-- <el-button
           size="small"
           type="primary" 
           text
@@ -30,69 +30,67 @@
         >
           {{ t('notificationQueue.markAllRead') }}
         </el-button> -->
-        <el-tooltip :content="t('notificationQueue.clear')" placement="right">
-          <el-button
-            size="small"
-            type="danger"
-            circle plain
-            @click="handleClear"
-          >
-            <el-icon><Minus /></el-icon>
-          </el-button>
-        </el-tooltip>
-
-      </div>
-    </div>
-
-    <el-scrollbar
-      :style="{
-        maxWidth: '100%',
-        flex: 1,
-        overflow: 'auto'
-      }"
-      min-size="5"
-    >
-      <div v-if="notifications.length === 0" class="empty-state">
-        {{ t('notificationQueue.empty') }}
-      </div>
-      <div
-        v-for="item in notifications"
-        :key="item.id"
-        class="notification-item"
-        :class="['type-' + (item.type || 'info'), { unread: !item.read }]"
-      >
-        <div class="item-header">
-          <div class="item-header-left">
-            <span
-              class="status-dot"
-              :class="'type-' + (item.type || 'info')"
-            />
-            <span class="item-title">{{ item.title }}</span>
-          </div>
-          <span class="item-time">{{ formatTimestamp(item.timestamp) }}</span>
-        </div>
-        <div class="item-message">
-          {{ item.message }}
-        </div>
-        <div class="item-actions">
-          <!-- <el-button size="small" text type="primary"  @click="handleRead(item.id)" :disabled="item.read">
-            {{ t('notificationQueue.markRead') }}
-          </el-button> -->
-          <el-tooltip :content="t('notificationQueue.remove')" placement="right">
-            <el-button size="small" circle plain type="danger"  @click="handleRemove(item.id)">
+          <el-tooltip :content="t('notificationQueue.clear')" placement="right">
+            <el-button size="small" type="danger" circle plain @click="handleClear">
               <el-icon><Minus /></el-icon>
             </el-button>
           </el-tooltip>
         </div>
       </div>
-    </el-scrollbar>
+
+      <el-scrollbar
+        :style="{
+          maxWidth: '100%',
+          flex: 1,
+          overflow: 'auto'
+        }"
+        min-size="5"
+      >
+        <div v-if="notifications.length === 0" class="empty-state">
+          {{ t('notificationQueue.empty') }}
+        </div>
+        <div
+          v-for="item in notifications"
+          :key="item.id"
+          class="notification-item"
+          :class="['type-' + (item.type || 'info'), { unread: !item.read }]"
+        >
+          <div class="item-header">
+            <div class="item-header-left">
+              <span class="status-dot" :class="'type-' + (item.type || 'info')" />
+              <span class="item-title">{{ item.title }}</span>
+            </div>
+            <span class="item-time">{{ formatTimestamp(item.timestamp) }}</span>
+          </div>
+          <div class="item-message">
+            {{ item.message }}
+          </div>
+          <div class="item-actions">
+            <!-- <el-button size="small" text type="primary"  @click="handleRead(item.id)" :disabled="item.read">
+            {{ t('notificationQueue.markRead') }}
+          </el-button> -->
+            <el-tooltip :content="t('notificationQueue.remove')" placement="right">
+              <el-button size="small" circle plain type="danger" @click="handleRemove(item.id)">
+                <el-icon><Minus /></el-icon>
+              </el-button>
+            </el-tooltip>
+          </div>
+        </div>
+      </el-scrollbar>
     </div>
   </ResizablePanel>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import { useNotificationStack, markAllNotificationsRead, markNotificationRead, removeNotification, clearNotifications, initializeNotificationListeners } from '../utils/notifications'
+import {
+  useNotificationStack,
+  markAllNotificationsRead,
+  markNotificationRead,
+  removeNotification,
+  clearNotifications,
+  initializeNotificationListeners
+} from '../utils/notifications'
 import ResizablePanel from './base/ResizablePanel.vue'
 import eventBus, { getWindowType } from '../utils/event-bus'
 import { themeState } from '../utils/themes'
@@ -147,29 +145,29 @@ function closePanel() {
 
 // 处理点击外部区域关闭面板
 function handleClickOutside(event: MouseEvent) {
-  if (!visible.value) return;
-  
-  const target = event.target as HTMLElement;
-  
+  if (!visible.value) return
+
+  const target = event.target as HTMLElement
+
   // 获取面板DOM元素
-  const panelElement = panelRef.value?.$el as HTMLElement | undefined;
-  
+  const panelElement = panelRef.value?.$el as HTMLElement | undefined
+
   // 如果点击的是面板内部，不关闭
   if (panelElement && panelElement.contains(target)) {
-    return;
+    return
   }
-  
+
   // 如果点击的是BottomMenu中的按钮，不关闭（让toggle处理）
-  const bottomMenu = target.closest('.bottom-menu');
+  const bottomMenu = target.closest('.bottom-menu')
   if (bottomMenu) {
-    const isToggleButton = target.closest('.status-logger, .status-notification, .ai-task-menu');
+    const isToggleButton = target.closest('.status-logger, .status-notification, .ai-task-menu')
     if (isToggleButton) {
-      return; // 让toggle事件处理
+      return // 让toggle事件处理
     }
   }
-  
+
   // 点击外部区域，关闭面板
-  closePanel();
+  closePanel()
 }
 
 function handleMarkAllRead() {
@@ -206,12 +204,12 @@ watch(visible, (isVisible) => {
     markAllNotificationsRead()
     // 使用nextTick确保DOM已更新
     nextTick(() => {
-      document.addEventListener('click', handleClickOutside, true);
-    });
+      document.addEventListener('click', handleClickOutside, true)
+    })
   } else {
-    document.removeEventListener('click', handleClickOutside, true);
+    document.removeEventListener('click', handleClickOutside, true)
   }
-});
+})
 
 function setupEventListeners() {
   eventBus.on('toggle-notification-queue', toggleVisibility)
@@ -229,9 +227,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   removeEventListeners()
-  document.removeEventListener('click', handleClickOutside, true);
+  document.removeEventListener('click', handleClickOutside, true)
 })
-
 </script>
 
 <style scoped>
@@ -362,4 +359,3 @@ onBeforeUnmount(() => {
   gap: 4px;
 }
 </style>
-

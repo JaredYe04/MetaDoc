@@ -105,7 +105,7 @@ async function getWorkspaceFolders(): Promise<string[]> {
   } catch (error) {
     logger.warn('从localStorage读取工作区文件夹失败:', error)
   }
-  
+
   // 如果没有找到保存的文件夹，返回空数组
   return []
 }
@@ -133,7 +133,7 @@ async function readDirectoryTree(
 
     for (const entry of entries) {
       result.push(entry)
-      
+
       // 递归读取子目录
       if (entry.isDirectory) {
         const subEntries = await readDirectoryTree(entry.path, maxDepth, currentDepth + 1)
@@ -162,7 +162,7 @@ async function readFileContent(
   }
 
   const fileContent = await ipcRenderer.invoke('read-file-content', filePath)
-  
+
   if (!fileContent) {
     throw new Error(`文件不存在或无法读取: ${filePath}`)
   }
@@ -203,33 +203,33 @@ ${content.substring(0, 10000)}  ${content.length > 10000 ? '...(已截断)' : ''
 
   const target = ref('')
   const originKey = `workspace-summary-${Date.now()}-${Math.random().toString(36).slice(2)}`
-  
-  const messages: AIDialogMessage[] = [{
-    role: 'user',
-    content: summaryPrompt
-  }]
 
-  const { handle, done } = createAiTask(
-    '总结文档内容',
-    messages,
-    target,
-    'chat',
-    originKey,
-    { stream: true }
-  )
+  const messages: AIDialogMessage[] = [
+    {
+      role: 'user',
+      content: summaryPrompt
+    }
+  ]
+
+  const { handle, done } = createAiTask('总结文档内容', messages, target, 'chat', originKey, {
+    stream: true
+  })
 
   if (onUpdate) {
-    onUpdate({
-      content: {
-        stage: 'summarizing',
-        summaryTargetRef: target,
-        summaryDonePromise: done
+    onUpdate(
+      {
+        content: {
+          stage: 'summarizing',
+          summaryTargetRef: target,
+          summaryDonePromise: done
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 50,
-      message: '正在总结文档内容...'
-    })
+      {
+        percentage: 50,
+        message: '正在总结文档内容...'
+      }
+    )
   }
 
   if (signal) {
@@ -240,7 +240,7 @@ ${content.substring(0, 10000)}  ${content.length > 10000 ? '...(已截断)' : ''
 
   try {
     await done
-    await new Promise(resolve => setTimeout(resolve, 50))
+    await new Promise((resolve) => setTimeout(resolve, 50))
   } catch (error) {
     if (signal?.aborted) {
       throw new Error('操作已取消')
@@ -271,20 +271,23 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
   // 如果没有指定paths，返回目录树
   if (!paths) {
     try {
-      onUpdate({
-        content: {
-          stage: 'loading-tree'
+      onUpdate(
+        {
+          content: {
+            stage: 'loading-tree'
+          },
+          format: 'json',
+          componentName: 'WorkspaceDisplay'
         },
-        format: 'json',
-        componentName: 'WorkspaceDisplay'
-      }, {
-        percentage: 10,
-        message: i18n.global.t('agent.tool.workspace.progress.loadingTree', '正在加载目录树...')
-      })
+        {
+          percentage: 10,
+          message: i18n.global.t('agent.tool.workspace.progress.loadingTree', '正在加载目录树...')
+        }
+      )
 
       // 获取工作区文件夹列表
       let folders: string[] = []
-      
+
       if (workspaceFolder) {
         folders = [workspaceFolder]
       } else {
@@ -315,18 +318,21 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
       const folderPath = folders[0]
       const tree = await readDirectoryTree(folderPath)
 
-      onUpdate({
-        content: {
-          stage: 'completed',
-          tree: tree,
-          workspaceFolder: folderPath
+      onUpdate(
+        {
+          content: {
+            stage: 'completed',
+            tree: tree,
+            workspaceFolder: folderPath
+          },
+          format: 'json',
+          componentName: 'WorkspaceDisplay'
         },
-        format: 'json',
-        componentName: 'WorkspaceDisplay'
-      }, {
-        percentage: 100,
-        message: i18n.global.t('agent.tool.workspace.progress.completed', '目录树加载完成')
-      })
+        {
+          percentage: 100,
+          message: i18n.global.t('agent.tool.workspace.progress.completed', '目录树加载完成')
+        }
+      )
 
       return {
         status: 'succeeded',
@@ -355,7 +361,7 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
 
   // 处理文件读取
   const pathArray = Array.isArray(paths) ? paths : [paths]
-  
+
   if (pathArray.length === 0) {
     return {
       status: 'failed',
@@ -376,21 +382,24 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
   }
 
   try {
-    onUpdate({
-      content: {
-        stage: 'reading',
-        paths: pathArray
+    onUpdate(
+      {
+        content: {
+          stage: 'reading',
+          paths: pathArray
+        },
+        format: 'json',
+        componentName: 'WorkspaceDisplay'
       },
-      format: 'json',
-      componentName: 'WorkspaceDisplay'
-    }, {
-      percentage: 10,
-      message: i18n.global.t('agent.tool.workspace.progress.reading', '正在读取文件...')
-    })
+      {
+        percentage: 10,
+        message: i18n.global.t('agent.tool.workspace.progress.reading', '正在读取文件...')
+      }
+    )
 
     const results: WorkspaceFileResult[] = []
     const workspaceFoldersList = await getWorkspaceFolders()
-    
+
     if (workspaceFoldersList.length === 0 && !workspaceFolder) {
       return {
         status: 'failed',
@@ -410,9 +419,7 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
     }
 
     // 确定要使用的工作区文件夹列表
-    const foldersToSearch = workspaceFolder 
-      ? [workspaceFolder] 
-      : workspaceFoldersList
+    const foldersToSearch = workspaceFolder ? [workspaceFolder] : workspaceFoldersList
 
     // 检查路径是否是绝对路径
     const isAbsolutePath = (path: string): boolean => {
@@ -433,7 +440,7 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
       if (isAbsolutePath(filePath)) {
         const ipcRenderer = getIpcRenderer()
         if (!ipcRenderer) return null
-        
+
         try {
           const exists = await ipcRenderer.invoke('file-exists', filePath)
           return exists ? filePath : null
@@ -449,8 +456,10 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
       for (const folderPath of foldersToSearch) {
         // 清理路径分隔符
         const cleanFilePath = filePath.replace(/^[/\\]+/, '') // 移除开头的斜杠
-        const fullPath = `${folderPath.replace(/[/\\]+$/, '')}/${cleanFilePath}`.replace(/[/\\]+/g, '/').replace(/\/+/g, '/')
-        
+        const fullPath = `${folderPath.replace(/[/\\]+$/, '')}/${cleanFilePath}`
+          .replace(/[/\\]+/g, '/')
+          .replace(/\/+/g, '/')
+
         try {
           const exists = await ipcRenderer.invoke('file-exists', fullPath)
           if (exists) {
@@ -475,25 +484,34 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
       const fullPath = await findFileInWorkspaceFolders(filePath)
 
       if (!fullPath) {
-        logger.warn(`文件未找到: ${filePath}（已在 ${foldersToSearch.length} 个工作区文件夹中搜索）`)
+        logger.warn(
+          `文件未找到: ${filePath}（已在 ${foldersToSearch.length} 个工作区文件夹中搜索）`
+        )
         // 继续处理其他文件，不中断整个过程
         continue
       }
 
-      onUpdate({
-        content: {
-          stage: 'reading',
-          paths: pathArray,
-          currentPath: fullPath,
-          currentIndex: i,
-          totalFiles: pathArray.length
+      onUpdate(
+        {
+          content: {
+            stage: 'reading',
+            paths: pathArray,
+            currentPath: fullPath,
+            currentIndex: i,
+            totalFiles: pathArray.length
+          },
+          format: 'json',
+          componentName: 'WorkspaceDisplay'
         },
-        format: 'json',
-        componentName: 'WorkspaceDisplay'
-      }, {
-        percentage: 20 + (i / pathArray.length) * 60,
-        message: i18n.global.t('agent.tool.workspace.progress.readingFile', { path: filePath, index: i + 1, total: pathArray.length })
-      })
+        {
+          percentage: 20 + (i / pathArray.length) * 60,
+          message: i18n.global.t('agent.tool.workspace.progress.readingFile', {
+            path: filePath,
+            index: i + 1,
+            total: pathArray.length
+          })
+        }
+      )
 
       try {
         const { content, totalLines } = await readFileContent(fullPath, startLine, endLine)
@@ -524,21 +542,24 @@ const workspaceToolCallback: ToolCallback = async (params, signal, onUpdate) => 
       }
     }
 
-    onUpdate({
-      content: {
-        stage: 'completed',
-        result: {
-          files: results,
-          totalFiles: results.length,
-          summarized
-        }
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          result: {
+            files: results,
+            totalFiles: results.length,
+            summarized
+          }
+        },
+        format: 'json',
+        componentName: 'WorkspaceDisplay'
       },
-      format: 'json',
-      componentName: 'WorkspaceDisplay'
-    }, {
-      percentage: 100,
-      message: i18n.global.t('agent.tool.workspace.progress.completed', { count: results.length })
-    })
+      {
+        percentage: 100,
+        message: i18n.global.t('agent.tool.workspace.progress.completed', { count: results.length })
+      }
+    )
 
     return {
       status: 'succeeded',
@@ -576,19 +597,23 @@ const workspaceToolLocales: ToolLocales = {
   },
   en_us: {
     name: 'Workspace File Reader',
-    description: 'Read files from workspace folders, supports path strings and line ranges, optional AI summarization'
+    description:
+      'Read files from workspace folders, supports path strings and line ranges, optional AI summarization'
   },
   de_DE: {
     name: 'Arbeitsbereich-Dateileser',
-    description: 'Dateien aus Arbeitsordnern lesen, unterstützt Pfadzeichenfolgen und Zeilenbereiche, optionale KI-Zusammenfassung'
+    description:
+      'Dateien aus Arbeitsordnern lesen, unterstützt Pfadzeichenfolgen und Zeilenbereiche, optionale KI-Zusammenfassung'
   },
   fr_FR: {
-    name: 'Lecteur de fichiers d\'espace de travail',
-    description: 'Lire les fichiers des dossiers d\'espace de travail, prend en charge les chaînes de chemin et les plages de lignes, résumé IA optionnel'
+    name: "Lecteur de fichiers d'espace de travail",
+    description:
+      "Lire les fichiers des dossiers d'espace de travail, prend en charge les chaînes de chemin et les plages de lignes, résumé IA optionnel"
   },
   ja_JP: {
     name: 'ワークスペースファイルリーダー',
-    description: 'ワークスペースフォルダからファイルを読み取り、パス文字列と行範囲をサポート、オプションのAI要約'
+    description:
+      'ワークスペースフォルダからファイルを読み取り、パス文字列と行範囲をサポート、オプションのAI要約'
   },
   ko_KR: {
     name: '작업 공간 파일 읽기',
@@ -603,7 +628,8 @@ export const workspaceToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'workspace',
-    brief: 'Read files from workspace folders. Supports path strings with optional line ranges (e.g., "file.txt:L123-L456"). Can read multiple files in batch. Optional AI summarization to save context space.',
+    brief:
+      'Read files from workspace folders. Supports path strings with optional line ranges (e.g., "file.txt:L123-L456"). Can read multiple files in batch. Optional AI summarization to save context space.',
     fullSpec: `# Workspace File Reader Tool
 
 ## Description
@@ -722,11 +748,9 @@ Read files from workspace folders. Supports reading single files, multiple files
     type: 'object',
     properties: {
       paths: {
-        oneOf: [
-          { type: 'string' },
-          { type: 'array', items: { type: 'string' } }
-        ],
-        description: '文件路径（字符串或字符串数组）。如果不提供，返回目录树。支持行数范围：":L123-L456" 或 ":L123"'
+        oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
+        description:
+          '文件路径（字符串或字符串数组）。如果不提供，返回目录树。支持行数范围：":L123-L456" 或 ":L123"'
       },
       summarized: {
         type: 'boolean',
@@ -757,4 +781,3 @@ Read files from workspace folders. Supports reading single files, multiple files
     }
   }
 }
-

@@ -52,7 +52,7 @@ async function convertUrlToLocalPath(imageUrl) {
 /**
  * 统一的 SVG 转 PDF 函数
  * 支持多种输入格式，自动选择最优转换方式
- * 
+ *
  * @param {string} input - SVG 输入，可以是：
  *   - HTTP URL: "http://localhost:52521/images/xxx.svg"
  *   - 本地文件路径: "C:/path/to/file.svg" 或 "/path/to/file.svg"
@@ -61,35 +61,35 @@ async function convertUrlToLocalPath(imageUrl) {
  *   - returnUrl: boolean - 是否返回 HTTP URL（默认 false，返回本地路径）
  *   - returnPath: boolean - 是否返回本地路径（默认 true）
  * @returns {Promise<string>} PDF 路径或 URL
- * 
+ *
  * @example
  * // 从 HTTP URL 转换
  * const pdfPath = await convertSvgToPdf('http://localhost:52521/images/chart.svg')
- * 
+ *
  * // 从本地路径转换
  * const pdfPath = await convertSvgToPdf('C:/images/chart.svg')
- * 
+ *
  * // 从 SVG 字符串转换
  * const pdfPath = await convertSvgToPdf('<svg>...</svg>')
- * 
+ *
  * // 返回 HTTP URL
  * const pdfUrl = await convertSvgToPdf('http://localhost:52521/images/chart.svg', { returnUrl: true })
  */
 export async function convertSvgToPdf(input, options = {}) {
   const { returnUrl = false, returnPath = true } = options
-  
+
   try {
     // 获取 IPC 渲染器
     const ipcRenderer = await getIpcRenderer()
     if (!ipcRenderer) {
       throw new Error('无法获取 IPC 渲染器')
     }
-    
+
     // 检测输入类型
     let svgPath = null
     let svgContent = null
     let useStringMethod = false
-    
+
     if (input.startsWith('http://') || input.startsWith('https://')) {
       // HTTP URL：优先使用字符串方法（更可靠，兼容浏览器环境）
       try {
@@ -118,10 +118,10 @@ export async function convertSvgToPdf(input, options = {}) {
       useStringMethod = false
       getLogger().debug('检测到本地文件路径，使用路径方法转换')
     }
-    
+
     // 执行转换
     let result
-    
+
     if (useStringMethod && svgContent) {
       // 方法1: 使用字符串方法（推荐，兼容性最好）
       result = await ipcRenderer.invoke('convert-svg-string-to-pdf', svgContent)
@@ -131,13 +131,13 @@ export async function convertSvgToPdf(input, options = {}) {
     } else {
       throw new Error('无法确定输入类型或获取 SVG 内容')
     }
-    
+
     if (!result.success || !result.pdfPath) {
       throw new Error(result.error || 'SVG 转 PDF 失败')
     }
-    
+
     const pdfPath = result.pdfPath.replace(/\\/g, '/') // 统一使用正斜杠
-    
+
     // 根据选项返回路径或 URL
     if (returnUrl) {
       // 从路径中提取文件名
@@ -159,9 +159,6 @@ export async function convertSvgToPdf(input, options = {}) {
  * @returns {Promise<string[]>} PDF 路径或 URL 数组
  */
 export async function convertSvgsToPdf(inputs, options = {}) {
-  const results = await Promise.all(
-    inputs.map(input => convertSvgToPdf(input, options))
-  )
+  const results = await Promise.all(inputs.map((input) => convertSvgToPdf(input, options)))
   return results
 }
-

@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS knowledge_files (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-`;
+`
 
 /**
  * 数据块表（存储chunk文本和向量）
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS data_chunks (
   UNIQUE(knowledge_file_id, chunk_index),
   FOREIGN KEY (knowledge_file_id) REFERENCES knowledge_files(id) ON DELETE CASCADE
 );
-`;
+`
 
 /**
  * 向量表（使用sqlite-vec扩展）
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS vectors (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (chunk_id) REFERENCES data_chunks(id) ON DELETE CASCADE
 );
-`;
+`
 
 /**
  * 创建sqlite-vec虚拟表（如果扩展可用）
@@ -63,7 +63,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS vec0_index USING vec0(
   chunk_id INTEGER,
   embedding FLOAT32[768]
 );
-`;
+`
 
 /**
  * 创建索引
@@ -74,26 +74,18 @@ export const CREATE_INDEXES = [
   `CREATE INDEX IF NOT EXISTS idx_data_chunks_file_id ON data_chunks(knowledge_file_id);`,
   `CREATE INDEX IF NOT EXISTS idx_data_chunks_file_index ON data_chunks(knowledge_file_id, chunk_index);`,
   `CREATE INDEX IF NOT EXISTS idx_vectors_chunk_id ON vectors(chunk_id);`
-];
+]
 
 /**
  * 获取所有DDL语句
  */
 export function getAllDDLStatements(): string[] {
-  return [
-    KNOWLEDGE_FILES_TABLE,
-    DATA_CHUNKS_TABLE,
-    VECTORS_TABLE,
-    ...CREATE_INDEXES
-  ];
+  return [KNOWLEDGE_FILES_TABLE, DATA_CHUNKS_TABLE, VECTORS_TABLE, ...CREATE_INDEXES]
 }
 
 /**
  * 获取sqlite-vec相关的DDL语句（需要在扩展加载后执行）
  */
 export function getVec0DDLStatements(): string[] {
-  return [
-    VEC0_VIRTUAL_TABLE
-  ];
+  return [VEC0_VIRTUAL_TABLE]
 }
-

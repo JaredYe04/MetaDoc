@@ -1,19 +1,37 @@
 <template>
   <div class="workspace-display" :style="containerStyle">
-    <div v-if="displayData.stage === 'loading-tree' || displayData.stage === 'reading'" class="status-message" :style="statusMessageStyle">
+    <div
+      v-if="displayData.stage === 'loading-tree' || displayData.stage === 'reading'"
+      class="status-message"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ getStageMessage(displayData.stage) }}</span>
     </div>
 
     <!-- 目录树显示 -->
-    <div v-else-if="displayData.stage === 'completed' && displayData.tree" class="tree-view" :style="treeViewStyle">
+    <div
+      v-else-if="displayData.stage === 'completed' && displayData.tree"
+      class="tree-view"
+      :style="treeViewStyle"
+    >
       <div class="tree-header" :style="headerStyle">
-        <h3 class="tree-title" :style="titleStyle">{{ $t('agent.display.workspace.directoryTree') }}</h3>
-        <el-tag type="info" size="small">{{ $t('agent.display.workspace.workspaceFolder') }}: {{ displayData.workspaceFolder }}</el-tag>
+        <h3 class="tree-title" :style="titleStyle">
+          {{ $t('agent.display.workspace.directoryTree') }}
+        </h3>
+        <el-tag type="info" size="small"
+          >{{ $t('agent.display.workspace.workspaceFolder') }}:
+          {{ displayData.workspaceFolder }}</el-tag
+        >
       </div>
       <el-scrollbar height="500px">
         <div class="tree-content">
-          <div v-for="(entry, index) in displayData.tree" :key="index" class="tree-entry" :style="getTreeEntryStyle(entry)">
+          <div
+            v-for="(entry, index) in displayData.tree"
+            :key="index"
+            class="tree-entry"
+            :style="getTreeEntryStyle(entry)"
+          >
             <el-icon v-if="entry.isDirectory" class="folder-icon">
               <Folder />
             </el-icon>
@@ -28,11 +46,21 @@
     </div>
 
     <!-- 文件内容显示 -->
-    <div v-else-if="displayData.stage === 'completed' && displayData.result && displayData.result.files" class="files-view" :style="filesViewStyle">
+    <div
+      v-else-if="
+        displayData.stage === 'completed' && displayData.result && displayData.result.files
+      "
+      class="files-view"
+      :style="filesViewStyle"
+    >
       <div class="files-header" :style="headerStyle">
-        <h3 class="files-title" :style="titleStyle">{{ $t('agent.display.workspace.filesTitle') }}</h3>
+        <h3 class="files-title" :style="titleStyle">
+          {{ $t('agent.display.workspace.filesTitle') }}
+        </h3>
         <div class="header-tags" :style="headerTagsStyle">
-          <el-tag type="info" size="small">{{ $t('agent.display.workspace.filesCount', { count: displayData.result.totalFiles }) }}</el-tag>
+          <el-tag type="info" size="small">{{
+            $t('agent.display.workspace.filesCount', { count: displayData.result.totalFiles })
+          }}</el-tag>
           <el-tag v-if="displayData.result.summarized" type="success" size="small">
             {{ $t('agent.display.workspace.summarized') }}
           </el-tag>
@@ -51,7 +79,13 @@
               <el-tag type="primary" size="small">{{ file.path }}</el-tag>
               <div class="file-meta" :style="fileMetaStyle">
                 <span v-if="file.startLine !== undefined && file.endLine !== undefined">
-                  {{ $t('agent.display.workspace.linesRange', { start: file.startLine, end: file.endLine, total: file.totalLines }) }}
+                  {{
+                    $t('agent.display.workspace.linesRange', {
+                      start: file.startLine,
+                      end: file.endLine,
+                      total: file.totalLines
+                    })
+                  }}
                 </span>
                 <span v-else>
                   {{ $t('agent.display.workspace.totalLines', { count: file.totalLines }) }}
@@ -60,7 +94,11 @@
             </div>
 
             <!-- 摘要显示 -->
-            <div v-if="file.summarized && file.summary" class="file-summary" :style="fileSummaryStyle">
+            <div
+              v-if="file.summarized && file.summary"
+              class="file-summary"
+              :style="fileSummaryStyle"
+            >
               <div class="summary-header" :style="summaryHeaderStyle">
                 <strong>{{ $t('agent.display.workspace.summary') }}</strong>
               </div>
@@ -68,7 +106,11 @@
             </div>
 
             <!-- 文件内容显示 -->
-            <div v-if="!file.summarized || displayFullContentMap.get(index)" class="file-content" :style="fileContentStyle">
+            <div
+              v-if="!file.summarized || displayFullContentMap.get(index)"
+              class="file-content"
+              :style="fileContentStyle"
+            >
               <div class="content-header" :style="contentHeaderStyle">
                 <strong>{{ $t('agent.display.workspace.content') }}</strong>
                 <el-button
@@ -77,7 +119,11 @@
                   :type="displayFullContentMap.get(index) ? 'default' : 'primary'"
                   @click="toggleFullContent(index)"
                 >
-                  {{ displayFullContentMap.get(index) ? $t('agent.display.workspace.hideContent') : $t('agent.display.workspace.showContent') }}
+                  {{
+                    displayFullContentMap.get(index)
+                      ? $t('agent.display.workspace.hideContent')
+                      : $t('agent.display.workspace.showContent')
+                  }}
                 </el-button>
               </div>
               <pre class="content-text" :style="contentTextStyle">{{ file.content }}</pre>
@@ -121,7 +167,7 @@ const displayFullContentMap = ref<Map<number, boolean>>(new Map())
 const displayData = computed(() => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
-  
+
   if (parsed && typeof parsed === 'object') {
     const getStage = (): 'loading-tree' | 'reading' | 'completed' | 'error' => {
       if (parsed.stage) {
@@ -135,14 +181,15 @@ const displayData = computed(() => {
       }
       return 'reading'
     }
-    
+
     return {
       ...parsed,
       stage: getStage()
     }
   }
-  
-  const defaultStage = props.status === 'succeeded' ? 'completed' : (props.status === 'failed' ? 'error' : 'reading')
+
+  const defaultStage =
+    props.status === 'succeeded' ? 'completed' : props.status === 'failed' ? 'error' : 'reading'
   return {
     stage: defaultStage,
     tree: undefined,
@@ -362,4 +409,3 @@ const contentTextStyle = computed(() => ({
   }
 }
 </style>
-

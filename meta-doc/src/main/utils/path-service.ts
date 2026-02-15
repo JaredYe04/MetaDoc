@@ -3,126 +3,126 @@
  * 统一管理应用中所有路径相关的功能
  */
 
-import path from 'path';
-import { app } from 'electron';
-import type { FilePath, PathConfig, PathService } from '../../types/utils';
+import path from 'path'
+import { app } from 'electron'
+import type { FilePath, PathConfig, PathService } from '../../types/utils'
 
 /**
  * 路径服务实现类
  */
 class PathServiceImpl implements PathService {
-  private readonly config: PathConfig;
+  private readonly config: PathConfig
 
   constructor() {
-    this.config = this.initializeConfig();
+    this.config = this.initializeConfig()
   }
 
   /**
    * 初始化路径配置
    */
   private initializeConfig(): PathConfig {
-    const isPackaged = app.isPackaged;
-    let resourcesPath: FilePath;
+    const isPackaged = app.isPackaged
+    let resourcesPath: FilePath
 
     if (!isPackaged) {
       // 开发环境：相对于当前模块的路径
-      resourcesPath = path.resolve(__dirname, '../../resources');
+      resourcesPath = path.resolve(__dirname, '../../resources')
     } else {
       // 打包环境：从 process.resourcesPath 获取
-      resourcesPath = path.join(process.resourcesPath, '/app.asar.unpacked/resources');
+      resourcesPath = path.join(process.resourcesPath, '/app.asar.unpacked/resources')
     }
 
     // 向量数据库路径迁移到 meta-doc-kb 文件夹（与知识库文件在同一目录）
-    const os = require('os');
-    const vectorDatabasePath = path.join(os.homedir(), 'Documents', 'meta-doc-kb');
+    const os = require('os')
+    const vectorDatabasePath = path.join(os.homedir(), 'Documents', 'meta-doc-kb')
 
     return {
       resourcesPath,
       vectorDatabasePath,
-      isPackaged,
-    };
+      isPackaged
+    }
   }
 
   /**
    * 获取资源根路径
    */
   getResourcesPath(): FilePath {
-    return this.config.resourcesPath;
+    return this.config.resourcesPath
   }
 
   /**
    * 获取 LLM 统计文件路径
    */
   getLlmStatisticsPath(): FilePath {
-    return path.join(this.config.resourcesPath, 'llm-statistics.json');
+    return path.join(this.config.resourcesPath, 'llm-statistics.json')
   }
 
   /**
    * 获取向量数据库路径
    */
   getVectorDatabasePath(): FilePath {
-    return this.config.vectorDatabasePath;
+    return this.config.vectorDatabasePath
   }
 
   /**
    * 获取路径配置
    */
   getConfig(): PathConfig {
-    return { ...this.config };
+    return { ...this.config }
   }
 
   /**
    * 获取指定资源文件的完整路径
    */
   getResourceFile(relativePath: string): FilePath {
-    return path.join(this.config.resourcesPath, relativePath);
+    return path.join(this.config.resourcesPath, relativePath)
   }
 
   /**
    * 获取模型文件路径
    */
   getModelPath(modelName: string): FilePath {
-    return this.getResourceFile(modelName);
+    return this.getResourceFile(modelName)
   }
 
   /**
    * 获取向量数据库文件路径
    */
   getVectorDatabaseFile(fileName: string): FilePath {
-    return path.join(this.config.vectorDatabasePath, fileName);
+    return path.join(this.config.vectorDatabasePath, fileName)
   }
 
   /**
    * 获取数据库迁移文件目录路径
    */
   getMigrationsPath(): FilePath {
-    return path.join(this.config.resourcesPath, 'migrations');
+    return path.join(this.config.resourcesPath, 'migrations')
   }
 
   /**
    * 获取Tesseract训练数据文件夹路径
    */
   getTesseractDataPath(): FilePath {
-    return this.getResourceFile('tesseract');
+    return this.getResourceFile('tesseract')
   }
 
   /**
    * 检查路径是否存在（可选的辅助方法）
    */
   exists(filePath: FilePath): boolean {
-    const fs = require('fs');
-    return fs.existsSync(filePath);
+    const fs = require('fs')
+    return fs.existsSync(filePath)
   }
 }
 
 // 创建单例实例
-const pathService = new PathServiceImpl();
+const pathService = new PathServiceImpl()
 
 // 导出单例实例和类型
-export default pathService;
-export { PathServiceImpl };
-export type { PathService };
+export default pathService
+export { PathServiceImpl }
+export type { PathService }
 
 // 向后兼容的导出（保持原有API）
-export const getResourcesPath = (): FilePath => pathService.getResourcesPath();
-export const getVectorDatabasePath = (): FilePath => pathService.getVectorDatabasePath();
+export const getResourcesPath = (): FilePath => pathService.getResourcesPath()
+export const getVectorDatabasePath = (): FilePath => pathService.getVectorDatabasePath()

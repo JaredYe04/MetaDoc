@@ -21,299 +21,342 @@
         @duplicate="handleDuplicateSession"
         @delete="handleDeleteSession"
       >
-      <!-- 右侧内容区域 -->
-      <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
-        <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
-          <p>{{ t('ocr.noSessionSelected') }}</p>
-        </div>
-        
-        <div v-else class="session-content-panel" :style="panelStyle">
-          <!-- 顶部工具栏 -->
-          <div class="toolbar-section">
-            <el-scrollbar class="toolbar-scrollbar" always>
-              <div class="toolbar-content">
-                <div class="toolbar-left">
-                  <!-- 语言包选择 -->
-                  <div class="language-select-wrapper">
-                    <el-select
-                      v-model="selectedLanguages"
+        <!-- 右侧内容区域 -->
+        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+          <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
+            <p>{{ t('ocr.noSessionSelected') }}</p>
+          </div>
+
+          <div v-else class="session-content-panel" :style="panelStyle">
+            <!-- 顶部工具栏 -->
+            <div class="toolbar-section">
+              <el-scrollbar class="toolbar-scrollbar" always>
+                <div class="toolbar-content">
+                  <div class="toolbar-left">
+                    <!-- 语言包选择 -->
+                    <div class="language-select-wrapper">
+                      <el-select
+                        v-model="selectedLanguages"
+                        multiple
+                        collapse-tags
+                        collapse-tags-tooltip
+                        :placeholder="t('ocr.selectLanguages')"
+                        size="default"
+                        style="width: 200px"
+                      >
+                        <el-option
+                          v-for="lang in availableLanguages"
+                          :key="lang.value"
+                          :label="lang.label"
+                          :value="lang.value"
+                        />
+                      </el-select>
+                    </div>
+
+                    <!-- 上传和粘贴按钮 -->
+                    <el-upload
+                      ref="uploadRef"
+                      :file-list="imageList"
+                      :auto-upload="false"
+                      :on-change="(file: any, fileList: any[]) => handleImageChange(file, fileList)"
+                      :on-remove="handleImageRemove"
+                      accept="image/*"
                       multiple
-                      collapse-tags
-                      collapse-tags-tooltip
-                      :placeholder="t('ocr.selectLanguages')"
-                      size="default"
-                      style="width: 200px"
+                      :show-file-list="false"
                     >
-                      <el-option
-                        v-for="lang in availableLanguages"
-                        :key="lang.value"
-                        :label="lang.label"
-                        :value="lang.value"
-                      />
-                    </el-select>
+                      <template #trigger>
+                        <el-button :icon="UploadFilled">
+                          {{ t('ocr.uploadHint') }}
+                        </el-button>
+                      </template>
+                    </el-upload>
+
+                    <el-button @click="handlePasteFromClipboard">
+                      {{ t('ocr.pasteFromClipboard') }}
+                    </el-button>
                   </div>
-                  
-                  <!-- 上传和粘贴按钮 -->
-                  <el-upload
-                    ref="uploadRef"
-                    :file-list="imageList"
-                    :auto-upload="false"
-                    :on-change="(file: any, fileList: any[]) => handleImageChange(file, fileList)"
-                    :on-remove="handleImageRemove"
-                    accept="image/*"
-                    multiple
-                    :show-file-list="false"
-                  >
-                    <template #trigger>
-                      <el-button :icon="UploadFilled">
-                        {{ t('ocr.uploadHint') }}
-                      </el-button>
-                    </template>
-                  </el-upload>
-                  
-                  <el-button @click="handlePasteFromClipboard">
-                    {{ t('ocr.pasteFromClipboard') }}
-                  </el-button>
-                </div>
-                
-                <div class="toolbar-right">
-                  <!-- 操作按钮 -->
-                  <el-button 
-                    v-if="ocrResults.length > 0"
-                    type="primary" 
-                    :loading="processing"
-                    @click="handleOcr"
-                  >
-                    {{ t('ocr.startOcr') }}
-                  </el-button>
-                </div>
-              </div>
-            </el-scrollbar>
-          </div>
-          
-          <!-- OCR结果展示 -->
-          <div v-if="ocrResults.length > 0" class="result-section">
-            <el-tabs v-model="activeTab" class="ocr-tabs">
-              <el-tab-pane 
-                v-for="(result, index) in ocrResults" 
-                :key="index"
-                :name="`image-${index}`"
-              >
-                <!-- Tab hover 时显示的缩略图 -->
-                <template #label>
-                  <span 
-                    class="tab-label-wrapper"
-                    @mouseenter="(e) => handleTabHover(e, index)"
-                    @mouseleave="handleTabLeave"
-                  >
-                    {{ t('ocr.image') }} {{ index + 1 }}
+
+                  <div class="toolbar-right">
+                    <!-- 操作按钮 -->
                     <el-button
-                      :icon="Delete"
-                      link
-                      size="small"
-                      class="tab-delete-btn"
-                      @click.stop="handleDeleteImage(index)"
-                    />
-                  </span>
-                </template>
-                <div class="ocr-result-item">
-                  <div class="image-section">
-                    <div class="image-preview" @click="handleImageClick(result.imageUrl, index)">
-                      <img :src="getProcessedImageUrl(index)" :alt="`Image ${index + 1}`" @error="handleImageError($event, result.imageUrl)" />
-                    </div>
-                    <!-- 预处理面板 -->
-                    <div class="preprocessing-panel">
-                      <div class="panel-header">
-                        <div class="panel-title">{{ t('ocr.imagePreprocessing') }}</div>
-                      </div>
-                      <div class="panel-actions">
-                        <el-button size="small" @click="resetPreprocessingParams(index)">
-                          {{ t('ocr.resetParams') }}
-                        </el-button>
-                        <el-button size="small" @click="applyDefaultPreprocessingParams(index)">
-                          {{ t('ocr.defaultParams') }}
-                        </el-button>
-                      </div>
-                      <div class="params-list">
-                        <div class="param-item">
-                          <label>{{ t('ocr.brightness') }}</label>
-                          <el-slider
-                            :model-value="getPreprocessingParams(index).brightness"
-                            @update:model-value="(val: number) => updatePreprocessingParam(index, 'brightness', val)"
-                            :min="-100"
-                            :max="100"
-                            :step="1"
-                          />
-                          <span class="param-value">{{ getPreprocessingParams(index).brightness }}</span>
-                        </div>
-                        <div class="param-item">
-                          <label>{{ t('ocr.contrast') }}</label>
-                          <el-slider
-                            :model-value="getPreprocessingParams(index).contrast"
-                            @update:model-value="(val: number) => updatePreprocessingParam(index, 'contrast', val)"
-                            :min="-100"
-                            :max="100"
-                            :step="1"
-                          />
-                          <span class="param-value">{{ getPreprocessingParams(index).contrast }}</span>
-                        </div>
-                        <div class="param-item">
-                          <label>{{ t('ocr.saturation') }}</label>
-                          <el-slider
-                            :model-value="getPreprocessingParams(index).saturation"
-                            @update:model-value="(val: number) => updatePreprocessingParam(index, 'saturation', val)"
-                            :min="-100"
-                            :max="100"
-                            :step="1"
-                          />
-                          <span class="param-value">{{ getPreprocessingParams(index).saturation }}</span>
-                        </div>
-                        <div class="param-item">
-                          <label>{{ t('ocr.sharpness') }}</label>
-                          <el-slider
-                            :model-value="getPreprocessingParams(index).sharpness"
-                            @update:model-value="(val: number) => updatePreprocessingParam(index, 'sharpness', val)"
-                            :min="0"
-                            :max="100"
-                            :step="1"
-                          />
-                          <span class="param-value">{{ getPreprocessingParams(index).sharpness }}</span>
-                        </div>
-                        <div class="param-item">
-                          <el-checkbox
-                            :model-value="getPreprocessingParams(index).grayscale"
-                            @update:model-value="(val: boolean) => updatePreprocessingParam(index, 'grayscale', val)"
-                          >
-                            {{ t('ocr.grayscale') }}
-                          </el-checkbox>
-                        </div>
-                        <div class="param-item">
-                          <el-checkbox
-                            :model-value="getPreprocessingParams(index).normalize"
-                            @update:model-value="(val: boolean) => updatePreprocessingParam(index, 'normalize', val)"
-                          >
-                            {{ t('ocr.normalize') }}
-                          </el-checkbox>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="image-actions" v-if="result.recognized">
-                      <el-dropdown 
-                        v-if="aiFixedTexts.get(index)"
-                        @command="(cmd: string) => handleCopyCommand(cmd, index)"
-                        trigger="click"
-                      >
-                        <el-button size="small">
-                          {{ t('ocr.copyText') }}
-                          <el-icon class="el-icon--right"><arrow-down /></el-icon>
-                        </el-button>
-                        <template #dropdown>
-                          <el-dropdown-menu>
-                            <el-dropdown-item command="original">
-                              {{ t('ocr.copyOriginalText') }}
-                            </el-dropdown-item>
-                            <el-dropdown-item command="fixed">
-                              {{ t('ocr.copyFixedText') }}
-                            </el-dropdown-item>
-                          </el-dropdown-menu>
-                        </template>
-                      </el-dropdown>
-                      <el-button 
-                        v-else
-                        size="small" 
-                        @click="handleCopyText(result.text)"
-                      >
-                        {{ t('ocr.copyText') }}
-                      </el-button>
-                      <el-button 
-                        size="small" 
-                        :loading="aiFixing.get(index)"
-                        @click="handleAiFix(index)"
-                      >
-                        <img :src="(themeState.currentTheme as any).AiLogo" alt="AI" class="ai-logo-icon-small" />
-                        {{ t('ocr.aiFix') }}
-                      </el-button>
-                      <el-button 
-                        size="small" 
-                        :loading="recognizingIndex.has(index)"
-                        @click="handleReRecognizeSingle(index)"
-                      >
-                        {{ t('ocr.reRecognize') }}
-                      </el-button>
-                    </div>
-                    <div class="image-actions" v-else>
-                      <el-button 
-                        size="small" 
-                        type="primary"
-                        :loading="recognizingIndex.has(index)"
-                        @click="handleRecognizeSingle(index)"
-                      >
-                        {{ recognizingIndex.has(index) ? t('ocr.recognizing') : t('ocr.startRecognize') }}
-                      </el-button>
-                    </div>
-                  </div>
-                  <div class="text-result">
-                    <!-- 视图切换 -->
-                    <div class="text-result-header" v-if="aiFixedTexts.get(index)">
-                      <el-radio-group 
-                        :model-value="viewModes.get(index) || 'single'"
-                        @update:model-value="(val: 'single' | 'diff') => viewModes.set(index, val)"
-                        size="small"
-                      >
-                        <el-radio-button :label="'single'">{{ t('ocr.singleView') }}</el-radio-button>
-                        <el-radio-button :label="'diff'">{{ t('ocr.diffView') }}</el-radio-button>
-                      </el-radio-group>
-                    </div>
-                    <!-- 未识别状态 -->
-                    <div class="text-content unrecognized" :style="textContentStyle" v-if="!result.recognized">
-                      <div class="unrecognized-placeholder">
-                        <p>{{ t('ocr.notRecognized') }}</p>
-                        <p class="hint">{{ t('ocr.clickRecognizeHint') }}</p>
-                      </div>
-                    </div>
-                    <!-- 已识别：单视图或diff视图 -->
-                    <div class="text-content" :style="textContentStyle" v-else-if="!aiFixedTexts.get(index) || viewModes.get(index) === 'single'">
-                      <div 
-                        :ref="el => setTextEditorRef(el as HTMLElement | null, index)" 
-                        class="text-editor-container"
-                        :key="`text-editor-${index}-${viewModes.get(index) || 'single'}`"
-                      ></div>
-                    </div>
-                    <!-- 已识别：Diff视图 -->
-                    <div class="diff-view-container" v-else-if="viewModes.get(index) === 'diff'">
-                      <div class="split-editors">
-                        <div class="editor-panel old-panel">
-                          <div class="editor-header" :style="editorHeaderStyle">
-                            <span class="editor-label">{{ t('ocr.originalText') }}</span>
-                          </div>
-                          <div :ref="el => setOldEditorRef(el as HTMLElement | null, index)" class="monaco-editor-container"></div>
-                        </div>
-                        <div class="editor-panel new-panel">
-                          <div class="editor-header" :style="editorHeaderStyle">
-                            <span class="editor-label">{{ t('ocr.fixedText') }}</span>
-                          </div>
-                          <div :ref="el => setNewEditorRef(el as HTMLElement | null, index)" class="monaco-editor-container"></div>
-                        </div>
-                      </div>
-                    </div>
+                      v-if="ocrResults.length > 0"
+                      type="primary"
+                      :loading="processing"
+                      @click="handleOcr"
+                    >
+                      {{ t('ocr.startOcr') }}
+                    </el-button>
                   </div>
                 </div>
-              </el-tab-pane>
-            </el-tabs>
+              </el-scrollbar>
+            </div>
+
+            <!-- OCR结果展示 -->
+            <div v-if="ocrResults.length > 0" class="result-section">
+              <el-tabs v-model="activeTab" class="ocr-tabs">
+                <el-tab-pane
+                  v-for="(result, index) in ocrResults"
+                  :key="index"
+                  :name="`image-${index}`"
+                >
+                  <!-- Tab hover 时显示的缩略图 -->
+                  <template #label>
+                    <span
+                      class="tab-label-wrapper"
+                      @mouseenter="(e) => handleTabHover(e, index)"
+                      @mouseleave="handleTabLeave"
+                    >
+                      {{ t('ocr.image') }} {{ index + 1 }}
+                      <el-button
+                        :icon="Delete"
+                        link
+                        size="small"
+                        class="tab-delete-btn"
+                        @click.stop="handleDeleteImage(index)"
+                      />
+                    </span>
+                  </template>
+                  <div class="ocr-result-item">
+                    <div class="image-section">
+                      <div class="image-preview" @click="handleImageClick(result.imageUrl, index)">
+                        <img
+                          :src="getProcessedImageUrl(index)"
+                          :alt="`Image ${index + 1}`"
+                          @error="handleImageError($event, result.imageUrl)"
+                        />
+                      </div>
+                      <!-- 预处理面板 -->
+                      <div class="preprocessing-panel">
+                        <div class="panel-header">
+                          <div class="panel-title">{{ t('ocr.imagePreprocessing') }}</div>
+                        </div>
+                        <div class="panel-actions">
+                          <el-button size="small" @click="resetPreprocessingParams(index)">
+                            {{ t('ocr.resetParams') }}
+                          </el-button>
+                          <el-button size="small" @click="applyDefaultPreprocessingParams(index)">
+                            {{ t('ocr.defaultParams') }}
+                          </el-button>
+                        </div>
+                        <div class="params-list">
+                          <div class="param-item">
+                            <label>{{ t('ocr.brightness') }}</label>
+                            <el-slider
+                              :model-value="getPreprocessingParams(index).brightness"
+                              @update:model-value="
+                                (val: number) => updatePreprocessingParam(index, 'brightness', val)
+                              "
+                              :min="-100"
+                              :max="100"
+                              :step="1"
+                            />
+                            <span class="param-value">{{
+                              getPreprocessingParams(index).brightness
+                            }}</span>
+                          </div>
+                          <div class="param-item">
+                            <label>{{ t('ocr.contrast') }}</label>
+                            <el-slider
+                              :model-value="getPreprocessingParams(index).contrast"
+                              @update:model-value="
+                                (val: number) => updatePreprocessingParam(index, 'contrast', val)
+                              "
+                              :min="-100"
+                              :max="100"
+                              :step="1"
+                            />
+                            <span class="param-value">{{
+                              getPreprocessingParams(index).contrast
+                            }}</span>
+                          </div>
+                          <div class="param-item">
+                            <label>{{ t('ocr.saturation') }}</label>
+                            <el-slider
+                              :model-value="getPreprocessingParams(index).saturation"
+                              @update:model-value="
+                                (val: number) => updatePreprocessingParam(index, 'saturation', val)
+                              "
+                              :min="-100"
+                              :max="100"
+                              :step="1"
+                            />
+                            <span class="param-value">{{
+                              getPreprocessingParams(index).saturation
+                            }}</span>
+                          </div>
+                          <div class="param-item">
+                            <label>{{ t('ocr.sharpness') }}</label>
+                            <el-slider
+                              :model-value="getPreprocessingParams(index).sharpness"
+                              @update:model-value="
+                                (val: number) => updatePreprocessingParam(index, 'sharpness', val)
+                              "
+                              :min="0"
+                              :max="100"
+                              :step="1"
+                            />
+                            <span class="param-value">{{
+                              getPreprocessingParams(index).sharpness
+                            }}</span>
+                          </div>
+                          <div class="param-item">
+                            <el-checkbox
+                              :model-value="getPreprocessingParams(index).grayscale"
+                              @update:model-value="
+                                (val: boolean) => updatePreprocessingParam(index, 'grayscale', val)
+                              "
+                            >
+                              {{ t('ocr.grayscale') }}
+                            </el-checkbox>
+                          </div>
+                          <div class="param-item">
+                            <el-checkbox
+                              :model-value="getPreprocessingParams(index).normalize"
+                              @update:model-value="
+                                (val: boolean) => updatePreprocessingParam(index, 'normalize', val)
+                              "
+                            >
+                              {{ t('ocr.normalize') }}
+                            </el-checkbox>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="image-actions" v-if="result.recognized">
+                        <el-dropdown
+                          v-if="aiFixedTexts.get(index)"
+                          @command="(cmd: string) => handleCopyCommand(cmd, index)"
+                          trigger="click"
+                        >
+                          <el-button size="small">
+                            {{ t('ocr.copyText') }}
+                            <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                          </el-button>
+                          <template #dropdown>
+                            <el-dropdown-menu>
+                              <el-dropdown-item command="original">
+                                {{ t('ocr.copyOriginalText') }}
+                              </el-dropdown-item>
+                              <el-dropdown-item command="fixed">
+                                {{ t('ocr.copyFixedText') }}
+                              </el-dropdown-item>
+                            </el-dropdown-menu>
+                          </template>
+                        </el-dropdown>
+                        <el-button v-else size="small" @click="handleCopyText(result.text)">
+                          {{ t('ocr.copyText') }}
+                        </el-button>
+                        <el-button
+                          size="small"
+                          :loading="aiFixing.get(index)"
+                          @click="handleAiFix(index)"
+                        >
+                          <img
+                            :src="(themeState.currentTheme as any).AiLogo"
+                            alt="AI"
+                            class="ai-logo-icon-small"
+                          />
+                          {{ t('ocr.aiFix') }}
+                        </el-button>
+                        <el-button
+                          size="small"
+                          :loading="recognizingIndex.has(index)"
+                          @click="handleReRecognizeSingle(index)"
+                        >
+                          {{ t('ocr.reRecognize') }}
+                        </el-button>
+                      </div>
+                      <div class="image-actions" v-else>
+                        <el-button
+                          size="small"
+                          type="primary"
+                          :loading="recognizingIndex.has(index)"
+                          @click="handleRecognizeSingle(index)"
+                        >
+                          {{
+                            recognizingIndex.has(index)
+                              ? t('ocr.recognizing')
+                              : t('ocr.startRecognize')
+                          }}
+                        </el-button>
+                      </div>
+                    </div>
+                    <div class="text-result">
+                      <!-- 视图切换 -->
+                      <div class="text-result-header" v-if="aiFixedTexts.get(index)">
+                        <el-radio-group
+                          :model-value="viewModes.get(index) || 'single'"
+                          @update:model-value="
+                            (val: 'single' | 'diff') => viewModes.set(index, val)
+                          "
+                          size="small"
+                        >
+                          <el-radio-button :label="'single'">{{
+                            t('ocr.singleView')
+                          }}</el-radio-button>
+                          <el-radio-button :label="'diff'">{{ t('ocr.diffView') }}</el-radio-button>
+                        </el-radio-group>
+                      </div>
+                      <!-- 未识别状态 -->
+                      <div
+                        class="text-content unrecognized"
+                        :style="textContentStyle"
+                        v-if="!result.recognized"
+                      >
+                        <div class="unrecognized-placeholder">
+                          <p>{{ t('ocr.notRecognized') }}</p>
+                          <p class="hint">{{ t('ocr.clickRecognizeHint') }}</p>
+                        </div>
+                      </div>
+                      <!-- 已识别：单视图或diff视图 -->
+                      <div
+                        class="text-content"
+                        :style="textContentStyle"
+                        v-else-if="!aiFixedTexts.get(index) || viewModes.get(index) === 'single'"
+                      >
+                        <div
+                          :ref="(el) => setTextEditorRef(el as HTMLElement | null, index)"
+                          class="text-editor-container"
+                          :key="`text-editor-${index}-${viewModes.get(index) || 'single'}`"
+                        ></div>
+                      </div>
+                      <!-- 已识别：Diff视图 -->
+                      <div class="diff-view-container" v-else-if="viewModes.get(index) === 'diff'">
+                        <div class="split-editors">
+                          <div class="editor-panel old-panel">
+                            <div class="editor-header" :style="editorHeaderStyle">
+                              <span class="editor-label">{{ t('ocr.originalText') }}</span>
+                            </div>
+                            <div
+                              :ref="(el) => setOldEditorRef(el as HTMLElement | null, index)"
+                              class="monaco-editor-container"
+                            ></div>
+                          </div>
+                          <div class="editor-panel new-panel">
+                            <div class="editor-header" :style="editorHeaderStyle">
+                              <span class="editor-label">{{ t('ocr.fixedText') }}</span>
+                            </div>
+                            <div
+                              :ref="(el) => setNewEditorRef(el as HTMLElement | null, index)"
+                              class="monaco-editor-container"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </el-tab-pane>
+              </el-tabs>
+            </div>
           </div>
         </div>
-      </div>
       </SessionList>
     </div>
 
     <!-- 图片预览对话框 -->
-    <ImagePreviewDialog
-      v-model="imagePreviewVisible"
-      :image-url="previewImageUrl"
-    />
-    
+    <ImagePreviewDialog v-model="imagePreviewVisible" :image-url="previewImageUrl" />
+
     <!-- Tab 缩略图（固定定位） -->
-    <div 
+    <div
       v-if="thumbnailVisible && thumbnailImageUrl"
       class="tab-thumbnail"
       :style="{
@@ -332,7 +375,9 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, ArrowDown, Delete } from '@element-plus/icons-vue'
 import SessionList from '../components/common/SessionList.vue'
-import ImagePreviewDialog, { type ImagePreprocessingParams } from '../components/common/ImagePreviewDialog.vue'
+import ImagePreviewDialog, {
+  type ImagePreprocessingParams
+} from '../components/common/ImagePreviewDialog.vue'
 import type { SessionListItem } from '../components/common/SessionList.vue'
 import { ocrSessionsDb, type OcrSession } from '../utils/db/tool-sessions-db'
 import { i18n } from '../i18n'
@@ -348,13 +393,15 @@ import { useWorkspace } from '../stores/workspace'
 const { t } = useI18n()
 const workspace = useWorkspace()
 
-const ourTabId = computed(() => workspace.tabs.find(tab => tab.kind === 'tool' && tab.route === '/ocr')?.id ?? null)
+const ourTabId = computed(
+  () => workspace.tabs.find((tab) => tab.kind === 'tool' && tab.route === '/ocr')?.id ?? null
+)
 
 const sessions = ref<SessionListItem[]>([])
 const activeSessionId = ref<string | null>(null)
 const activeSession = computed(() => {
   if (!activeSessionId.value) return null
-  return sessions.value.find(s => s.id === activeSessionId.value) as any
+  return sessions.value.find((s) => s.id === activeSessionId.value) as any
 })
 
 const imageList = ref<any[]>([])
@@ -362,7 +409,15 @@ const uploadRef = ref<any>(null)
 const selectedLanguages = ref<string[]>(['eng'])
 const processing = ref(false)
 const loadingSession = ref(false)
-const ocrResults = ref<Array<{ imageUrl: string; text: string; recognized: boolean; aiFixedText?: string; preprocessingParams?: ImagePreprocessingParams }>>([])
+const ocrResults = ref<
+  Array<{
+    imageUrl: string
+    text: string
+    recognized: boolean
+    aiFixedText?: string
+    preprocessingParams?: ImagePreprocessingParams
+  }>
+>([])
 const recognizingIndex = ref<Set<number>>(new Set())
 const activeTab = ref('image-0')
 const imageDataUrlCache = ref<Map<string, string>>(new Map())
@@ -396,7 +451,7 @@ const processedImageCache = ref<Map<number, string>>(new Map())
 const editorHeaderStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd || themeState.currentTheme.background,
   color: themeState.currentTheme.textColor,
-  borderColor: borderColor.value,
+  borderColor: borderColor.value
 }))
 
 // 生成编辑器容器 ID
@@ -444,13 +499,13 @@ const initTextEditor = async (index: number) => {
   // 等待多次 nextTick 确保 DOM 完全渲染
   await nextTick()
   await nextTick()
-  
+
   const container = textEditorRefs.value.get(index)
   if (!container) {
     console.warn(`编辑器容器 ${index} 未找到`)
     return
   }
-  
+
   // 检查容器是否可见且有尺寸
   if (container.offsetWidth === 0 || container.offsetHeight === 0) {
     // 如果容器还没有尺寸，延迟初始化
@@ -459,30 +514,30 @@ const initTextEditor = async (index: number) => {
     }, 100)
     return
   }
-  
+
   // 确保容器有 ID
   if (!container.id) {
     container.id = getEditorId(index)
   }
-  
+
   // 检查是否已存在编辑器，先销毁
   const existingEditor = getTextEditor(index)
   if (existingEditor) {
     existingEditor.dispose()
   }
-  
+
   const result = ocrResults.value[index]
   if (!result) return
-  
+
   try {
     // 确保Monaco Worker已配置
     setupMonacoWorker()
-    
+
     // 确定显示的内容：如果有AI修复后的文本且当前是单视图，显示修复后的文本；否则显示原始文本
     const viewMode = viewModes.value.get(index)
     const aiFixedText = aiFixedTexts.value.get(index)
-    const displayText = (viewMode === 'single' && aiFixedText) ? aiFixedText : result.text
-    
+    const displayText = viewMode === 'single' && aiFixedText ? aiFixedText : result.text
+
     // 创建编辑器
     const isDark = themeState.currentTheme.type === 'dark'
     const editor = monaco.editor.create(container, {
@@ -511,8 +566,9 @@ const updateEditorContent = (index: number): void => {
       // 确定显示的内容：如果有AI修复后的文本且当前是单视图，显示修复后的文本；否则显示原始文本
       const viewMode = viewModes.value.get(index)
       const aiFixedText = aiFixedTexts.value.get(index)
-      const displayText = (viewMode === 'single' && aiFixedText) ? aiFixedText : ocrResults.value[index].text
-      
+      const displayText =
+        viewMode === 'single' && aiFixedText ? aiFixedText : ocrResults.value[index].text
+
       const currentValue = editor.getValue()
       if (currentValue !== displayText) {
         editor.setValue(displayText || '')
@@ -525,33 +581,43 @@ const updateEditorContent = (index: number): void => {
 }
 
 // 监听OCR结果变化，更新编辑器内容
-watch(() => ocrResults.value, (newResults) => {
-  for (let i = 0; i < newResults.length; i++) {
-    updateEditorContent(i)
-  }
-}, { deep: true })
+watch(
+  () => ocrResults.value,
+  (newResults) => {
+    for (let i = 0; i < newResults.length; i++) {
+      updateEditorContent(i)
+    }
+  },
+  { deep: true }
+)
 
 // 监听活动标签页变化，初始化编辑器
-watch(() => activeTab.value, async (newTab) => {
-  if (newTab && newTab.startsWith('image-')) {
-    const index = parseInt(newTab.replace('image-', ''))
-    await nextTick()
-    await nextTick()
-    // 延迟初始化，确保容器已渲染
-    setTimeout(() => {
-      if (textEditorRefs.value.has(index)) {
-        initTextEditor(index)
-        updateEditorContent(index)
-      }
-    }, 100)
+watch(
+  () => activeTab.value,
+  async (newTab) => {
+    if (newTab && newTab.startsWith('image-')) {
+      const index = parseInt(newTab.replace('image-', ''))
+      await nextTick()
+      await nextTick()
+      // 延迟初始化，确保容器已渲染
+      setTimeout(() => {
+        if (textEditorRefs.value.has(index)) {
+          initTextEditor(index)
+          updateEditorContent(index)
+        }
+      }, 100)
+    }
   }
-})
+)
 
 // 监听主题变化，更新所有编辑器主题（参考KnowledgeBase.vue的实现）
-watch(() => themeState.currentTheme.type, (newType) => {
-  // 设置全局主题（所有编辑器会自动应用）
-  monaco.editor.setTheme(newType === 'dark' ? 'vs-dark' : 'vs')
-})
+watch(
+  () => themeState.currentTheme.type,
+  (newType) => {
+    // 设置全局主题（所有编辑器会自动应用）
+    monaco.editor.setTheme(newType === 'dark' ? 'vs-dark' : 'vs')
+  }
+)
 
 // 清理所有编辑器（参考KnowledgeBase.vue的实现）
 onBeforeUnmount(() => {
@@ -578,20 +644,24 @@ onBeforeUnmount(() => {
 // 同步获取图片data URL（从缓存）
 const getImageDataUrlSync = (imagePath: string): string => {
   // 如果已经是data URL，直接返回
-  if (imagePath.startsWith('data:') || imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+  if (
+    imagePath.startsWith('data:') ||
+    imagePath.startsWith('http://') ||
+    imagePath.startsWith('https://')
+  ) {
     return imagePath
   }
-  
+
   // 检查缓存
   if (imageDataUrlCache.value.has(imagePath)) {
     return imageDataUrlCache.value.get(imagePath)!
   }
-  
+
   // 如果缓存中没有，异步加载
-  getImageDataUrl(imagePath).catch(err => {
+  getImageDataUrl(imagePath).catch((err) => {
     console.error('异步加载图片失败:', err)
   })
-  
+
   // 返回占位符
   return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+5Lit5paH5Zu+54mH5pyq5Yqg6L295paH5Lu2PC90ZXh0Pjwvc3ZnPg=='
 }
@@ -610,15 +680,19 @@ const handleImageError = async (event: Event, imagePath: string) => {
 // 将本地文件路径转换为data URL（用于Electron中显示图片）
 const getImageDataUrl = async (imagePath: string): Promise<string> => {
   // 如果已经是data URL，直接返回
-  if (imagePath.startsWith('data:') || imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+  if (
+    imagePath.startsWith('data:') ||
+    imagePath.startsWith('http://') ||
+    imagePath.startsWith('https://')
+  ) {
     return imagePath
   }
-  
+
   // 检查缓存
   if (imageDataUrlCache.value.has(imagePath)) {
     return imageDataUrlCache.value.get(imagePath)!
   }
-  
+
   try {
     // 如果是file://协议，提取实际路径
     let localPath = imagePath
@@ -629,7 +703,7 @@ const getImageDataUrl = async (imagePath: string): Promise<string> => {
         localPath = localPath.substring(1)
       }
     }
-    
+
     // 通过IPC读取文件并转换为base64
     let ipcRenderer: any = null
     if (typeof window !== 'undefined') {
@@ -640,23 +714,23 @@ const getImageDataUrl = async (imagePath: string): Promise<string> => {
         ipcRenderer = localIpcRenderer
       }
     }
-    
+
     if (!ipcRenderer) {
       throw new Error('IPC渲染器不可用')
     }
-    
-    const fileData = await ipcRenderer.invoke('read-file-for-upload', localPath) as {
+
+    const fileData = (await ipcRenderer.invoke('read-file-for-upload', localPath)) as {
       name: string
       data: string
       mimeType: string
     }
-    
+
     // 构建data URL
     const dataUrl = `data:${fileData.mimeType};base64,${fileData.data}`
-    
+
     // 缓存结果
     imageDataUrlCache.value.set(imagePath, dataUrl)
-    
+
     return dataUrl
   } catch (error) {
     console.error('转换图片为data URL失败:', error)
@@ -687,9 +761,9 @@ watch(
     if (!tid || workspace.activeTabId.value !== tid || sessions.value.length === 0) return
     const state = workspace.getTabToolState(tid)
     const savedId = state.activeSessionId
-    if (!savedId || !sessions.value.some(s => s.id === savedId)) return
+    if (!savedId || !sessions.value.some((s) => s.id === savedId)) return
     if (activeSessionId.value === savedId) return
-    const item = sessions.value.find(s => s.id === savedId)!
+    const item = sessions.value.find((s) => s.id === savedId)!
     activeSessionId.value = savedId
     handleSelectSession(item)
   },
@@ -700,22 +774,22 @@ watch(
 onMounted(() => {
   const locale = (i18n.global.locale as any).value || 'zh_CN'
   const localeMap: Record<string, string> = {
-    'zh_CN': 'chi_sim',
-    'zh_TW': 'chi_tra',
-    'ja_JP': 'jpn',
-    'ko_KR': 'kor',
-    'de_DE': 'deu',
-    'fr_FR': 'fra',
-    'es_ES': 'spa',
-    'ru_RU': 'rus',
-    'pt_PT': 'por'
+    zh_CN: 'chi_sim',
+    zh_TW: 'chi_tra',
+    ja_JP: 'jpn',
+    ko_KR: 'kor',
+    de_DE: 'deu',
+    fr_FR: 'fra',
+    es_ES: 'spa',
+    ru_RU: 'rus',
+    pt_PT: 'por'
   }
-  
+
   const currentLang = localeMap[locale] || 'eng'
   if (currentLang !== 'eng') {
     selectedLanguages.value = ['eng', currentLang]
   }
-  
+
   loadSessions()
 })
 
@@ -723,7 +797,7 @@ onMounted(() => {
 const loadSessions = async () => {
   try {
     const dbSessions = await ocrSessionsDb.getAll()
-    sessions.value = dbSessions.map(s => ({
+    sessions.value = dbSessions.map((s) => ({
       id: s.id,
       title: s.title,
       updatedAt: s.updated_at
@@ -738,7 +812,7 @@ const handleCreateSession = async () => {
   try {
     const id = `ocr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const title = t('ocr.defaultTitle')
-    
+
     await ocrSessionsDb.create({
       id,
       title,
@@ -747,7 +821,7 @@ const handleCreateSession = async () => {
       ocr_languages: JSON.stringify(selectedLanguages.value),
       ocr_results: undefined
     })
-    
+
     await loadSessions()
     activeSessionId.value = id
     const tid = ourTabId.value
@@ -770,16 +844,16 @@ const handleSelectSession = async (item: SessionListItem) => {
   if (loadingSession.value) {
     return
   }
-  
+
   loadingSession.value = true
-  
+
   try {
     // 先清空所有状态，避免旧数据残留
     aiFixedTexts.value.clear()
     viewModes.value.clear()
     recognizingIndex.value.clear()
     processedImageCache.value.clear()
-    
+
     // 清理所有编辑器
     textEditorRefs.value.forEach((_, index) => {
       const editor = getTextEditor(index)
@@ -788,7 +862,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       }
     })
     textEditorRefs.value.clear()
-    
+
     oldEditorRefs.value.forEach((_, index) => {
       const editor = getOldEditor(index)
       if (editor) {
@@ -796,7 +870,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       }
     })
     oldEditorRefs.value.clear()
-    
+
     newEditorRefs.value.forEach((_, index) => {
       const editor = getNewEditor(index)
       if (editor) {
@@ -804,7 +878,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       }
     })
     newEditorRefs.value.clear()
-    
+
     activeSessionId.value = item.id
     const tid = ourTabId.value
     if (tid) workspace.setTabToolState(tid, { activeSessionId: item.id })
@@ -815,7 +889,13 @@ const handleSelectSession = async (item: SessionListItem) => {
         imageList.value = images.map((img: string, index: number) => {
           // 确保图片路径使用file://协议
           let imageUrl = img
-          if (img && !img.startsWith('file://') && !img.startsWith('http://') && !img.startsWith('https://') && !img.startsWith('data:')) {
+          if (
+            img &&
+            !img.startsWith('file://') &&
+            !img.startsWith('http://') &&
+            !img.startsWith('https://') &&
+            !img.startsWith('data:')
+          ) {
             imageUrl = img.replace(/\\/g, '/')
             if (!imageUrl.startsWith('/')) {
               imageUrl = '/' + imageUrl
@@ -842,7 +922,7 @@ const handleSelectSession = async (item: SessionListItem) => {
           // 确保预处理参数被正确保留（如果存在）
           preprocessingParams: r.preprocessingParams || undefined
         }))
-        
+
         // 恢复AI修复后的文本和视图模式
         parsedResults.forEach((r: any, index: number) => {
           if (r.aiFixedText) {
@@ -853,15 +933,15 @@ const handleSelectSession = async (item: SessionListItem) => {
             }
           }
         })
-        
+
         // 等待DOM更新后初始化编辑器
         await nextTick()
         await nextTick()
-        
+
         // 初始化当前活动标签页的编辑器
         if (ocrResults.value.length > 0) {
-          const currentIndex = activeTab.value.startsWith('image-') 
-            ? parseInt(activeTab.value.replace('image-', '')) 
+          const currentIndex = activeTab.value.startsWith('image-')
+            ? parseInt(activeTab.value.replace('image-', ''))
             : 0
           if (ocrResults.value[currentIndex] && ocrResults.value[currentIndex].recognized) {
             // 延迟初始化，确保容器已渲染
@@ -878,11 +958,13 @@ const handleSelectSession = async (item: SessionListItem) => {
       } else {
         // 如果没有结果，但有图片，创建未识别的结果
         if (imageList.value.length > 0) {
-          ocrResults.value = imageList.value.map(img => {
+          ocrResults.value = imageList.value.map((img) => {
             const imageUrl = img.url || img.path
-            const url = imageUrl.startsWith('file://') ? imageUrl : 
-              (imageUrl.replace(/\\/g, '/').startsWith('/') ? 'file://' + imageUrl.replace(/\\/g, '/') : 
-              'file:///' + imageUrl.replace(/\\/g, '/'))
+            const url = imageUrl.startsWith('file://')
+              ? imageUrl
+              : imageUrl.replace(/\\/g, '/').startsWith('/')
+                ? 'file://' + imageUrl.replace(/\\/g, '/')
+                : 'file:///' + imageUrl.replace(/\\/g, '/')
             return {
               imageUrl: url,
               text: '',
@@ -917,7 +999,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
   try {
     const session = await ocrSessionsDb.getById(item.id)
     if (!session) return
-    
+
     const id = `ocr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     await ocrSessionsDb.create({
       id,
@@ -927,7 +1009,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
       ocr_languages: session.ocr_languages,
       ocr_results: session.ocr_results
     })
-    
+
     await loadSessions()
     ElMessage.success(t('common.duplicateSuccess'))
   } catch (error) {
@@ -956,20 +1038,20 @@ const handleImageChange = async (file: any, fileList: any[]) => {
   // 防止递归调用：只在有新文件上传时处理
   if (!file.raw) {
     // 如果不是新上传的文件，只同步fileList到imageList，不保存
-    imageList.value = fileList.map(f => ({
+    imageList.value = fileList.map((f) => ({
       name: f.name,
       url: f.url || f.path,
       path: f.path || f.url,
       uid: f.uid,
-      status: f.status || 'success' as const
+      status: f.status || ('success' as const)
     }))
     return
   }
-  
+
   if (!activeSessionId.value) {
     await handleCreateSession()
   }
-  
+
   try {
     // 新上传的图片，保存到reference目录
     const fileContent = await file.raw.arrayBuffer()
@@ -982,7 +1064,7 @@ const handleImageChange = async (file: any, fileList: any[]) => {
       base64 += String.fromCharCode.apply(null, Array.from(chunk))
     }
     base64 = btoa(base64)
-    
+
     let ipcRenderer: any = null
     if (typeof window !== 'undefined') {
       if ((window as any).electron?.ipcRenderer) {
@@ -992,19 +1074,19 @@ const handleImageChange = async (file: any, fileList: any[]) => {
         ipcRenderer = localIpcRenderer
       }
     }
-    
+
     if (!ipcRenderer) {
       throw new Error('IPC渲染器不可用')
     }
-    
-    const filePath = await ipcRenderer.invoke('save-reference-file', {
+
+    const filePath = (await ipcRenderer.invoke('save-reference-file', {
       filename: file.name,
       content: base64
-    }) as string
-    
+    })) as string
+
     if (activeSessionId.value && filePath) {
       // 更新imageList，使用fileList但替换新文件的路径
-      const updatedFileList = fileList.map(f => {
+      const updatedFileList = fileList.map((f) => {
         if (f.uid === file.uid) {
           return {
             ...f,
@@ -1014,19 +1096,19 @@ const handleImageChange = async (file: any, fileList: any[]) => {
         }
         return f
       })
-      
-      imageList.value = updatedFileList.map(f => ({
+
+      imageList.value = updatedFileList.map((f) => ({
         name: f.name,
         url: f.url || f.path,
         path: f.path || f.url,
         uid: f.uid,
         status: 'success' as const
       }))
-      
+
       // 同步更新 ocrResults，确保新上传的图片有对应的结果项
       const newImages = imageList.value
       const currentOcrResults = ocrResults.value
-      
+
       // 如果 ocrResults 长度小于 imageList，需要添加新的结果项
       if (currentOcrResults.length < newImages.length) {
         const missingCount = newImages.length - currentOcrResults.length
@@ -1035,9 +1117,11 @@ const handleImageChange = async (file: any, fileList: any[]) => {
           const img = newImages[imgIndex]
           if (img) {
             const imageUrl = img.url || img.path
-            const url = imageUrl.startsWith('file://') ? imageUrl : 
-              (imageUrl.replace(/\\/g, '/').startsWith('/') ? 'file://' + imageUrl.replace(/\\/g, '/') : 
-              'file:///' + imageUrl.replace(/\\/g, '/'))
+            const url = imageUrl.startsWith('file://')
+              ? imageUrl
+              : imageUrl.replace(/\\/g, '/').startsWith('/')
+                ? 'file://' + imageUrl.replace(/\\/g, '/')
+                : 'file:///' + imageUrl.replace(/\\/g, '/')
             ocrResults.value.push({
               imageUrl: url,
               text: '',
@@ -1047,9 +1131,9 @@ const handleImageChange = async (file: any, fileList: any[]) => {
           }
         }
       }
-      
+
       // 保存到数据库
-      const currentImages = imageList.value.map(img => img.url || img.path).filter(Boolean)
+      const currentImages = imageList.value.map((img) => img.url || img.path).filter(Boolean)
       await ocrSessionsDb.update(activeSessionId.value, {
         images: JSON.stringify(currentImages),
         ocr_results: JSON.stringify(ocrResults.value)
@@ -1058,23 +1142,25 @@ const handleImageChange = async (file: any, fileList: any[]) => {
   } catch (error) {
     ElMessage.error('保存图片失败: ' + (error instanceof Error ? error.message : String(error)))
     // 如果保存失败，从fileList中移除这个文件
-    imageList.value = fileList.filter(f => f.uid !== file.uid).map(f => ({
-      name: f.name,
-      url: f.url || f.path,
-      path: f.path || f.url,
-      uid: f.uid,
-      status: f.status || 'success' as const
-    }))
+    imageList.value = fileList
+      .filter((f) => f.uid !== file.uid)
+      .map((f) => ({
+        name: f.name,
+        url: f.url || f.path,
+        path: f.path || f.url,
+        uid: f.uid,
+        status: f.status || ('success' as const)
+      }))
   }
 }
 
 const handleImageRemove = async (file: any) => {
   if (activeSessionId.value) {
     const currentImages = imageList.value
-      .filter(img => img.uid !== file.uid)
-      .map(img => img.url || img.path)
+      .filter((img) => img.uid !== file.uid)
+      .map((img) => img.url || img.path)
       .filter(Boolean)
-    
+
     await ocrSessionsDb.update(activeSessionId.value, {
       images: JSON.stringify(currentImages)
     })
@@ -1087,7 +1173,7 @@ const handlePasteFromClipboard = async () => {
     if (!activeSessionId.value) {
       await handleCreateSession()
     }
-    
+
     // 读取剪切板图片
     let ipcRenderer: any = null
     if (typeof window !== 'undefined') {
@@ -1098,17 +1184,17 @@ const handlePasteFromClipboard = async () => {
         ipcRenderer = localIpcRenderer
       }
     }
-    
+
     if (!ipcRenderer) {
       throw new Error('IPC渲染器不可用')
     }
-    
-    const clipboardImage = await ipcRenderer.invoke('read-clipboard-image') as string | null
+
+    const clipboardImage = (await ipcRenderer.invoke('read-clipboard-image')) as string | null
     if (!clipboardImage) {
       ElMessage.warning(t('ocr.noClipboardImage'))
       return
     }
-    
+
     // 提取 base64 内容（处理可能包含 data:image/png;base64, 前缀的情况）
     let base64Content = clipboardImage
     if (clipboardImage.includes(',')) {
@@ -1117,18 +1203,18 @@ const handlePasteFromClipboard = async () => {
       // 如果包含 data: 但没有逗号，可能是格式问题
       base64Content = clipboardImage.replace(/^data:image\/[^;]+;base64,/, '')
     }
-    
+
     // 保存图片到临时目录
     const timestamp = Date.now()
-    const filePath = await ipcRenderer.invoke('save-reference-file', {
+    const filePath = (await ipcRenderer.invoke('save-reference-file', {
       filename: `clipboard-${timestamp}.png`,
       content: base64Content
-    }) as string
-    
+    })) as string
+
     if (!filePath) {
       throw new Error('保存图片失败')
     }
-    
+
     // 添加到图片列表（使用与 handleImageChange 相同的格式）
     // 注意：el-upload 需要特定的文件格式，包括 status 属性
     const newImage = {
@@ -1138,45 +1224,47 @@ const handlePasteFromClipboard = async () => {
       uid: timestamp,
       status: 'success' as const
     }
-    
+
     // 使用响应式方式添加 - 确保创建新数组以触发响应式更新
     const updatedList = [...imageList.value]
     updatedList.push(newImage)
     imageList.value = updatedList
-    
+
     // 立即添加到结果列表（未识别状态）
-    const imageUrl = filePath.startsWith('file://') ? filePath : 
-      (filePath.replace(/\\/g, '/').startsWith('/') ? 'file://' + filePath.replace(/\\/g, '/') : 
-      'file:///' + filePath.replace(/\\/g, '/'))
-    
+    const imageUrl = filePath.startsWith('file://')
+      ? filePath
+      : filePath.replace(/\\/g, '/').startsWith('/')
+        ? 'file://' + filePath.replace(/\\/g, '/')
+        : 'file:///' + filePath.replace(/\\/g, '/')
+
     ocrResults.value.push({
       imageUrl: imageUrl,
       text: '',
       recognized: false
     })
-    
+
     // 切换到新添加的标签
     activeTab.value = `image-${ocrResults.value.length - 1}`
-    
+
     // 更新数据库
     if (activeSessionId.value) {
-      const currentImages = imageList.value.map(img => img.url || img.path).filter(Boolean)
+      const currentImages = imageList.value.map((img) => img.url || img.path).filter(Boolean)
       await ocrSessionsDb.update(activeSessionId.value, {
         images: JSON.stringify(currentImages)
       })
     }
-    
+
     // 确保 UI 更新
     await nextTick()
-    
+
     // 验证图片是否成功添加到列表
-    const addedImage = imageList.value.find(img => img.uid === timestamp)
+    const addedImage = imageList.value.find((img) => img.uid === timestamp)
     if (!addedImage) {
       console.error('图片添加失败，未在列表中找到')
       ElMessage.error('图片添加失败，请重试')
       return
     }
-    
+
     console.log('粘贴图片成功，当前图片列表长度:', imageList.value.length, '图片:', addedImage)
     ElMessage.success(t('ocr.pasteSuccess'))
   } catch (error) {
@@ -1191,32 +1279,32 @@ const handleRecognizeSingle = async (index: number) => {
     ElMessage.warning(t('ocr.noSession'))
     return
   }
-  
+
   if (selectedLanguages.value.length === 0) {
     ElMessage.warning(t('ocr.noLanguages'))
     return
   }
-  
+
   const result = ocrResults.value[index]
   if (!result || result.recognized) {
     return
   }
-  
+
   recognizingIndex.value.add(index)
-  
+
   try {
     // 找到对应的图片
     const image = imageList.value[index]
     if (!image) {
       throw new Error('找不到对应的图片')
     }
-    
+
     // 优先使用 path（实际文件路径），如果没有则使用 url
     let imagePath = image.path || image.url
     if (!imagePath) {
       throw new Error('图片路径为空')
     }
-    
+
     // 如果是 file:// 协议，需要转换为实际路径（OCR 需要实际路径）
     if (imagePath.startsWith('file://')) {
       imagePath = imagePath.replace(/^file:\/\//, '')
@@ -1225,7 +1313,7 @@ const handleRecognizeSingle = async (index: number) => {
         imagePath = imagePath.substring(1)
       }
     }
-    
+
     let ipcRenderer: any = null
     if (typeof window !== 'undefined') {
       if ((window as any).electron?.ipcRenderer) {
@@ -1235,18 +1323,18 @@ const handleRecognizeSingle = async (index: number) => {
         ipcRenderer = localIpcRenderer
       }
     }
-    
+
     if (!ipcRenderer) {
       throw new Error('IPC渲染器不可用')
     }
-    
+
     // 确保languages是数组格式，且只传递字符串数组（可序列化）
-    const languages = Array.isArray(selectedLanguages.value) 
+    const languages = Array.isArray(selectedLanguages.value)
       ? [...selectedLanguages.value] // 创建新数组避免引用问题
       : []
-    
+
     // 获取预处理参数，确保是可序列化的纯对象
-    const preprocessingParams = result.preprocessingParams 
+    const preprocessingParams = result.preprocessingParams
       ? {
           brightness: Number(result.preprocessingParams.brightness) || 0,
           contrast: Number(result.preprocessingParams.contrast) || 0,
@@ -1256,13 +1344,13 @@ const handleRecognizeSingle = async (index: number) => {
           normalize: Boolean(result.preprocessingParams.normalize) || false
         }
       : undefined
-    
-    const ocrText = await ipcRenderer.invoke('ocr-recognize-file', {
+
+    const ocrText = (await ipcRenderer.invoke('ocr-recognize-file', {
       imagePath: String(imagePath), // 确保是字符串，使用实际路径
       languages: languages, // 传递可序列化的数组
       preprocessingParams: preprocessingParams // 传递可序列化的预处理参数
-    }) as string
-    
+    })) as string
+
     // 更新结果（保留AI修复后的文本）
     const existingAiFixedText = result.aiFixedText || aiFixedTexts.value.get(index)
     ocrResults.value[index] = {
@@ -1272,17 +1360,17 @@ const handleRecognizeSingle = async (index: number) => {
       aiFixedText: existingAiFixedText, // 保留AI修复后的内容
       preprocessingParams: preprocessingParams // 保留预处理参数
     }
-    
+
     // 保存结果到数据库
     await ocrSessionsDb.update(activeSessionId.value, {
       ocr_results: JSON.stringify(ocrResults.value),
       ocr_languages: JSON.stringify(selectedLanguages.value)
     })
-    
+
     // 更新编辑器
     await nextTick()
     updateEditorContent(index)
-    
+
     ElMessage.success(t('ocr.recognizeSuccess'))
   } catch (error) {
     console.error(`图片 ${index + 1} OCR 失败:`, error)
@@ -1298,32 +1386,32 @@ const handleReRecognizeSingle = async (index: number) => {
     ElMessage.warning(t('ocr.noSession'))
     return
   }
-  
+
   if (selectedLanguages.value.length === 0) {
     ElMessage.warning(t('ocr.noLanguages'))
     return
   }
-  
+
   const result = ocrResults.value[index]
   if (!result) {
     return
   }
-  
+
   recognizingIndex.value.add(index)
-  
+
   try {
     // 找到对应的图片
     const image = imageList.value[index]
     if (!image) {
       throw new Error('找不到对应的图片')
     }
-    
+
     // 优先使用 path（实际文件路径），如果没有则使用 url
     let imagePath = image.path || image.url
     if (!imagePath) {
       throw new Error('图片路径为空')
     }
-    
+
     // 如果是 file:// 协议，需要转换为实际路径（OCR 需要实际路径）
     if (imagePath.startsWith('file://')) {
       imagePath = imagePath.replace(/^file:\/\//, '')
@@ -1332,7 +1420,7 @@ const handleReRecognizeSingle = async (index: number) => {
         imagePath = imagePath.substring(1)
       }
     }
-    
+
     let ipcRenderer: any = null
     if (typeof window !== 'undefined') {
       if ((window as any).electron?.ipcRenderer) {
@@ -1342,18 +1430,18 @@ const handleReRecognizeSingle = async (index: number) => {
         ipcRenderer = localIpcRenderer
       }
     }
-    
+
     if (!ipcRenderer) {
       throw new Error('IPC渲染器不可用')
     }
-    
+
     // 确保languages是数组格式，且只传递字符串数组（可序列化）
-    const languages = Array.isArray(selectedLanguages.value) 
+    const languages = Array.isArray(selectedLanguages.value)
       ? [...selectedLanguages.value] // 创建新数组避免引用问题
       : []
-    
+
     // 获取预处理参数，确保是可序列化的纯对象
-    const preprocessingParams = result.preprocessingParams 
+    const preprocessingParams = result.preprocessingParams
       ? {
           brightness: Number(result.preprocessingParams.brightness) || 0,
           contrast: Number(result.preprocessingParams.contrast) || 0,
@@ -1363,13 +1451,13 @@ const handleReRecognizeSingle = async (index: number) => {
           normalize: Boolean(result.preprocessingParams.normalize) || false
         }
       : undefined
-    
-    const ocrText = await ipcRenderer.invoke('ocr-recognize-file', {
+
+    const ocrText = (await ipcRenderer.invoke('ocr-recognize-file', {
       imagePath: String(imagePath), // 确保是字符串，使用实际路径
       languages: languages, // 传递可序列化的数组
       preprocessingParams: preprocessingParams // 传递可序列化的预处理参数
-    }) as string
-    
+    })) as string
+
     // 只更新原始OCR文本，保留AI修复后的内容和预处理参数
     const existingAiFixedText = result.aiFixedText || aiFixedTexts.value.get(index)
     const existingPreprocessingParams = result.preprocessingParams || undefined
@@ -1381,17 +1469,17 @@ const handleReRecognizeSingle = async (index: number) => {
       preprocessingParams: existingPreprocessingParams // 保留预处理参数
     }
     // 注意：不清除 aiFixedTexts.value.get(index)，保留AI修复后的内容
-    
+
     // 保存结果到数据库
     await ocrSessionsDb.update(activeSessionId.value, {
       ocr_results: JSON.stringify(ocrResults.value),
       ocr_languages: JSON.stringify(selectedLanguages.value)
     })
-    
+
     // 更新编辑器（只更新原始文本编辑器，不更新AI修复的编辑器）
     await nextTick()
     updateEditorContent(index)
-    
+
     // 如果当前是diff视图，更新原始文本编辑器
     const viewMode = viewModes.value.get(index)
     if (viewMode === 'diff') {
@@ -1400,7 +1488,7 @@ const handleReRecognizeSingle = async (index: number) => {
         oldEditor.setValue(ocrText)
       }
     }
-    
+
     ElMessage.success(t('ocr.reRecognizeSuccess'))
   } catch (error) {
     console.error(`图片 ${index + 1} 重新识别失败:`, error)
@@ -1416,24 +1504,24 @@ const handleOcr = async () => {
     ElMessage.warning(t('ocr.noImages'))
     return
   }
-  
+
   if (selectedLanguages.value.length === 0) {
     ElMessage.warning(t('ocr.noLanguages'))
     return
   }
-  
+
   // 找到所有未识别的图片
   const unrecognizedIndices = ocrResults.value
-    .map((r, i) => !r.recognized ? i : -1)
-    .filter(i => i !== -1)
-  
+    .map((r, i) => (!r.recognized ? i : -1))
+    .filter((i) => i !== -1)
+
   if (unrecognizedIndices.length === 0) {
     ElMessage.info(t('ocr.allRecognized'))
     return
   }
-  
+
   processing.value = true
-  
+
   try {
     let ipcRenderer: any = null
     if (typeof window !== 'undefined') {
@@ -1444,36 +1532,36 @@ const handleOcr = async () => {
         ipcRenderer = localIpcRenderer
       }
     }
-    
+
     if (!ipcRenderer) {
       throw new Error('IPC渲染器不可用')
     }
-    
+
     // 确保languages是数组格式，且只传递字符串数组（可序列化）
-    const languages = Array.isArray(selectedLanguages.value) 
+    const languages = Array.isArray(selectedLanguages.value)
       ? [...selectedLanguages.value] // 创建新数组避免引用问题
       : []
-    
+
     // 对每张未识别的图片进行OCR
     for (const index of unrecognizedIndices) {
       recognizingIndex.value.add(index)
-      
+
       try {
         const result = ocrResults.value[index]
         const image = imageList.value[index]
-        
+
         if (!image) {
           console.warn(`图片 ${index + 1} 不存在，跳过`)
           continue
         }
-        
+
         // 优先使用 path（实际文件路径），如果没有则使用 url
         let imagePath = image.path || image.url
         if (!imagePath) {
           console.warn(`图片 ${index + 1} 路径为空，跳过`)
           continue
         }
-        
+
         // 如果是 file:// 协议，需要转换为实际路径（OCR 需要实际路径）
         if (imagePath.startsWith('file://')) {
           imagePath = imagePath.replace(/^file:\/\//, '')
@@ -1482,54 +1570,56 @@ const handleOcr = async () => {
             imagePath = imagePath.substring(1)
           }
         }
-        
-    // 获取预处理参数，确保是可序列化的纯对象
-    const preprocessingParams = result.preprocessingParams 
-      ? {
-          brightness: Number(result.preprocessingParams.brightness) || 0,
-          contrast: Number(result.preprocessingParams.contrast) || 0,
-          saturation: Number(result.preprocessingParams.saturation) || 0,
-          sharpness: Number(result.preprocessingParams.sharpness) || 0,
-          grayscale: Boolean(result.preprocessingParams.grayscale) || false,
-          normalize: Boolean(result.preprocessingParams.normalize) || false
+
+        // 获取预处理参数，确保是可序列化的纯对象
+        const preprocessingParams = result.preprocessingParams
+          ? {
+              brightness: Number(result.preprocessingParams.brightness) || 0,
+              contrast: Number(result.preprocessingParams.contrast) || 0,
+              saturation: Number(result.preprocessingParams.saturation) || 0,
+              sharpness: Number(result.preprocessingParams.sharpness) || 0,
+              grayscale: Boolean(result.preprocessingParams.grayscale) || false,
+              normalize: Boolean(result.preprocessingParams.normalize) || false
+            }
+          : undefined
+
+        const ocrText = (await ipcRenderer.invoke('ocr-recognize-file', {
+          imagePath: String(imagePath), // 确保是字符串，使用实际路径
+          languages: languages, // 传递可序列化的数组
+          preprocessingParams: preprocessingParams // 传递可序列化的预处理参数
+        })) as string
+
+        // 更新结果（保留AI修复后的文本）
+        const existingAiFixedText = result.aiFixedText || aiFixedTexts.value.get(index)
+        ocrResults.value[index] = {
+          ...result,
+          text: ocrText,
+          recognized: true,
+          aiFixedText: existingAiFixedText, // 保留AI修复后的内容
+          preprocessingParams: preprocessingParams // 保留预处理参数
         }
-      : undefined
-    
-    const ocrText = await ipcRenderer.invoke('ocr-recognize-file', {
-      imagePath: String(imagePath), // 确保是字符串，使用实际路径
-      languages: languages, // 传递可序列化的数组
-      preprocessingParams: preprocessingParams // 传递可序列化的预处理参数
-    }) as string
-    
-    // 更新结果（保留AI修复后的文本）
-    const existingAiFixedText = result.aiFixedText || aiFixedTexts.value.get(index)
-    ocrResults.value[index] = {
-      ...result,
-      text: ocrText,
-      recognized: true,
-      aiFixedText: existingAiFixedText, // 保留AI修复后的内容
-      preprocessingParams: preprocessingParams // 保留预处理参数
-    }
-        
+
         // 更新编辑器
         await nextTick()
         updateEditorContent(index)
-        
+
         console.log(`图片 ${index + 1} OCR 成功`)
       } catch (error) {
         console.error(`图片 ${index + 1} OCR 失败:`, error)
-        ElMessage.warning(`图片 ${index + 1} OCR 识别失败: ${error instanceof Error ? error.message : String(error)}`)
+        ElMessage.warning(
+          `图片 ${index + 1} OCR 识别失败: ${error instanceof Error ? error.message : String(error)}`
+        )
       } finally {
         recognizingIndex.value.delete(index)
       }
     }
-    
+
     // 保存结果到数据库
     await ocrSessionsDb.update(activeSessionId.value, {
       ocr_results: JSON.stringify(ocrResults.value),
       ocr_languages: JSON.stringify(selectedLanguages.value)
     })
-    
+
     ElMessage.success(t('ocr.ocrSuccess'))
   } catch (error) {
     ElMessage.error('OCR识别失败: ' + (error instanceof Error ? error.message : String(error)))
@@ -1551,15 +1641,15 @@ const handleDeleteImage = async (index: number) => {
         type: 'warning'
       }
     )
-    
+
     // 从结果列表中移除
     ocrResults.value.splice(index, 1)
-    
+
     // 从图片列表中移除
     if (imageList.value[index]) {
       imageList.value.splice(index, 1)
     }
-    
+
     // 清理相关的编辑器
     const textEditor = getTextEditor(index)
     if (textEditor) {
@@ -1573,7 +1663,7 @@ const handleDeleteImage = async (index: number) => {
     if (newEditor) {
       newEditor.dispose()
     }
-    
+
     // 清理引用
     textEditorRefs.value.delete(index)
     oldEditorRefs.value.delete(index)
@@ -1583,27 +1673,27 @@ const handleDeleteImage = async (index: number) => {
     viewModes.value.delete(index)
     recognizingIndex.value.delete(index)
     processedImageCache.value.delete(index)
-    
+
     // 重新索引（因为删除了一个元素，后面的索引都要减1）
     // 这里简化处理，直接清理所有编辑器，让它们重新初始化
     textEditorRefs.value.clear()
     oldEditorRefs.value.clear()
     newEditorRefs.value.clear()
-    
+
     // 切换到第一个标签（如果还有的话）
     if (ocrResults.value.length > 0) {
       activeTab.value = 'image-0'
     }
-    
+
     // 更新数据库
     if (activeSessionId.value) {
-      const currentImages = imageList.value.map(img => img.url || img.path).filter(Boolean)
+      const currentImages = imageList.value.map((img) => img.url || img.path).filter(Boolean)
       await ocrSessionsDb.update(activeSessionId.value, {
         images: JSON.stringify(currentImages),
         ocr_results: JSON.stringify(ocrResults.value)
       })
     }
-    
+
     ElMessage.success(t('ocr.deleteSuccess'))
   } catch (error) {
     // 用户取消删除
@@ -1629,7 +1719,7 @@ const handleCopyText = async (text: string) => {
 const handleCopyCommand = async (command: string, index: number) => {
   const result = ocrResults.value[index]
   if (!result) return
-  
+
   if (command === 'original') {
     await handleCopyText(result.text)
   } else if (command === 'fixed') {
@@ -1643,15 +1733,15 @@ const handleCopyCommand = async (command: string, index: number) => {
 // Tab hover 处理
 const handleTabHover = async (e: MouseEvent, index: number) => {
   if (!imageList.value[index]) return
-  
+
   const target = e.currentTarget as HTMLElement
   const rect = target.getBoundingClientRect()
-  
+
   thumbnailPosition.value = {
     top: rect.bottom + 8,
     left: rect.left
   }
-  
+
   const imageUrl = imageList.value[index].url || imageList.value[index].path
   thumbnailImageUrl.value = getImageDataUrlSync(imageUrl)
   thumbnailVisible.value = true
@@ -1667,7 +1757,7 @@ const handleImageClick = async (imageUrl: string, index: number) => {
   try {
     // 获取预处理后的图片 URL（使用处理后的图片）
     const processedUrl = getProcessedImageUrl(index)
-    
+
     // 如果有缓存，直接使用；否则等待处理完成
     if (processedImageCache.value.has(index)) {
       previewImageUrl.value = processedImageCache.value.get(index)!
@@ -1675,16 +1765,16 @@ const handleImageClick = async (imageUrl: string, index: number) => {
       // 先显示原始图片，然后异步处理
       const originalUrl = await getImageDataUrl(imageUrl)
       previewImageUrl.value = originalUrl
-      
+
       // 异步处理图片
       await applyPreprocessingToImage(index)
       if (processedImageCache.value.has(index)) {
         previewImageUrl.value = processedImageCache.value.get(index)!
       }
     }
-    
+
     previewImageIndex.value = index
-    
+
     // 加载该图片的预处理参数
     const result = ocrResults.value[index]
     if (result?.preprocessingParams) {
@@ -1699,7 +1789,7 @@ const handleImageClick = async (imageUrl: string, index: number) => {
         normalize: false
       }
     }
-    
+
     imagePreviewVisible.value = true
   } catch (error) {
     console.error('打开图片预览失败:', error)
@@ -1724,32 +1814,38 @@ const getPreprocessingParams = (index: number): ImagePreprocessingParams => {
 }
 
 // 更新预处理参数
-const updatePreprocessingParam = async (index: number, key: keyof ImagePreprocessingParams, value: number | boolean) => {
+const updatePreprocessingParam = async (
+  index: number,
+  key: keyof ImagePreprocessingParams,
+  value: number | boolean
+) => {
   if (!ocrResults.value[index]) {
     return
   }
-  
+
   const currentParams = getPreprocessingParams(index)
   const newParams: ImagePreprocessingParams = {
     ...currentParams,
     [key]: value
   }
-  
+
   ocrResults.value[index] = {
     ...ocrResults.value[index],
     preprocessingParams: newParams
   }
-  
+
   // 立即应用预处理并更新图片
   await applyPreprocessingToImage(index)
-  
+
   // 保存到数据库
   if (activeSessionId.value) {
-    ocrSessionsDb.update(activeSessionId.value, {
-      ocr_results: JSON.stringify(ocrResults.value)
-    }).catch(err => {
-      console.error('保存预处理参数失败:', err)
-    })
+    ocrSessionsDb
+      .update(activeSessionId.value, {
+        ocr_results: JSON.stringify(ocrResults.value)
+      })
+      .catch((err) => {
+        console.error('保存预处理参数失败:', err)
+      })
   }
 }
 
@@ -1763,32 +1859,36 @@ const resetPreprocessingParams = async (index: number) => {
     grayscale: false,
     normalize: false
   }
-  
+
   if (!ocrResults.value[index]) {
     return
   }
-  
+
   ocrResults.value[index] = {
     ...ocrResults.value[index],
     preprocessingParams: defaultParams
   }
-  
+
   // 清除缓存并重新处理
   processedImageCache.value.delete(index)
   await applyPreprocessingToImage(index)
-  
+
   // 保存到数据库
   if (activeSessionId.value) {
-    ocrSessionsDb.update(activeSessionId.value, {
-      ocr_results: JSON.stringify(ocrResults.value)
-    }).catch(err => {
-      console.error('保存预处理参数失败:', err)
-    })
+    ocrSessionsDb
+      .update(activeSessionId.value, {
+        ocr_results: JSON.stringify(ocrResults.value)
+      })
+      .catch((err) => {
+        console.error('保存预处理参数失败:', err)
+      })
   }
 }
 
 // 分析图片特征
-const analyzeImageCharacteristics = async (index: number): Promise<{
+const analyzeImageCharacteristics = async (
+  index: number
+): Promise<{
   averageBrightness: number // 0-255
   contrast: number // 0-1
   saturation: number // 0-1
@@ -1798,21 +1898,21 @@ const analyzeImageCharacteristics = async (index: number): Promise<{
   if (!result) {
     throw new Error('图片不存在')
   }
-  
+
   try {
     // 获取原始图片 URL
     const originalImageUrl = await getImageDataUrl(result.imageUrl)
-    
+
     // 加载原始图片
     const img = new Image()
     img.crossOrigin = 'anonymous'
-    
+
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve()
       img.onerror = reject
       img.src = originalImageUrl
     })
-    
+
     // 创建 Canvas
     const canvas = document.createElement('canvas')
     canvas.width = img.width
@@ -1821,47 +1921,47 @@ const analyzeImageCharacteristics = async (index: number): Promise<{
     if (!ctx) {
       throw new Error('无法创建 Canvas 上下文')
     }
-    
+
     // 绘制原始图片
     ctx.drawImage(img, 0, 0)
-    
+
     // 获取图像数据
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
     const data = imageData.data
-    
+
     // 计算平均亮度
     let totalBrightness = 0
     let minBrightness = 255
     let maxBrightness = 0
-    
+
     // 计算饱和度和对比度
     let totalSaturation = 0
     let pixelCount = 0
-    
+
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i]
       const g = data[i + 1]
       const b = data[i + 2]
-      
+
       // 计算亮度（使用加权平均）
       const brightness = 0.299 * r + 0.587 * g + 0.114 * b
       totalBrightness += brightness
       minBrightness = Math.min(minBrightness, brightness)
       maxBrightness = Math.max(maxBrightness, brightness)
-      
+
       // 计算饱和度
       const max = Math.max(r, g, b)
       const min = Math.min(r, g, b)
       const saturation = max === 0 ? 0 : (max - min) / max
       totalSaturation += saturation
-      
+
       pixelCount++
     }
-    
+
     const averageBrightness = totalBrightness / pixelCount
     const contrast = (maxBrightness - minBrightness) / 255
     const avgSaturation = totalSaturation / pixelCount
-    
+
     // 计算清晰度（基于拉普拉斯算子的方差）
     let claritySum = 0
     let clarityCount = 0
@@ -1870,7 +1970,7 @@ const analyzeImageCharacteristics = async (index: number): Promise<{
       [-1, 4, -1],
       [0, -1, 0]
     ]
-    
+
     for (let y = 1; y < canvas.height - 1; y++) {
       for (let x = 1; x < canvas.width - 1; x++) {
         let laplacian = 0
@@ -1885,9 +1985,9 @@ const analyzeImageCharacteristics = async (index: number): Promise<{
         clarityCount++
       }
     }
-    
+
     const clarity = Math.min(1, claritySum / clarityCount / 255)
-    
+
     return {
       averageBrightness,
       contrast,
@@ -1914,7 +2014,7 @@ const generateRecommendedParams = (characteristics: {
   clarity: number
 }): ImagePreprocessingParams => {
   const { averageBrightness, contrast, saturation, clarity } = characteristics
-  
+
   // 亮度标准化：将图片亮度调整到标准值（约 60，适合OCR的亮度）
   // 计算需要调整的亮度值
   const targetBrightness = 60
@@ -1922,7 +2022,7 @@ const generateRecommendedParams = (characteristics: {
   // 将差值转换为亮度调整值（-100 到 100）
   // 如果图片太暗，需要增加亮度；如果太亮，需要降低亮度
   const brightness = Math.max(-50, Math.min(50, brightnessDiff * 0.5))
-  
+
   // 对比度调整：始终增强对比度，让文字更明显
   // 基础对比度增强 + 根据原图对比度调整
   let contrastAdjust = 30 // 基础增强
@@ -1937,10 +2037,10 @@ const generateRecommendedParams = (characteristics: {
     contrastAdjust = 25
   }
   contrastAdjust = Math.min(60, contrastAdjust) // 限制最大值
-  
+
   // 饱和度调整：保持原图饱和度，不刻意降低
   const saturationAdjust = 0
-  
+
   // 锐化调整：始终增强锐化，让文字边缘更清晰
   // 基础锐化 + 根据清晰度调整
   let sharpness = 15 // 基础锐化值
@@ -1955,10 +2055,10 @@ const generateRecommendedParams = (characteristics: {
     sharpness = 12
   }
   sharpness = Math.min(35, sharpness) // 限制最大值，避免过度锐化
-  
+
   // 归一化：默认不启用
   const normalize = false
-  
+
   return {
     brightness: Math.round(brightness),
     contrast: Math.round(contrastAdjust),
@@ -1974,35 +2074,37 @@ const applyDefaultPreprocessingParams = async (index: number) => {
   if (!ocrResults.value[index]) {
     return
   }
-  
+
   try {
     // 分析图片特征
     const characteristics = await analyzeImageCharacteristics(index)
-    
+
     // 生成推荐参数
     const recommendedParams = generateRecommendedParams(characteristics)
-    
+
     ocrResults.value[index] = {
       ...ocrResults.value[index],
       preprocessingParams: recommendedParams
     }
-    
+
     // 清除缓存并重新处理
     processedImageCache.value.delete(index)
     await applyPreprocessingToImage(index)
-    
+
     // 保存到数据库
     if (activeSessionId.value) {
-      ocrSessionsDb.update(activeSessionId.value, {
-        ocr_results: JSON.stringify(ocrResults.value)
-      }).catch(err => {
-        console.error('保存预处理参数失败:', err)
-      })
+      ocrSessionsDb
+        .update(activeSessionId.value, {
+          ocr_results: JSON.stringify(ocrResults.value)
+        })
+        .catch((err) => {
+          console.error('保存预处理参数失败:', err)
+        })
     }
   } catch (error) {
     console.error('生成推荐参数失败:', error)
     ElMessage.warning('分析图片特征失败，使用默认参数')
-    
+
     // 使用保守的默认参数
     const defaultParams: ImagePreprocessingParams = {
       brightness: 0,
@@ -2012,12 +2114,12 @@ const applyDefaultPreprocessingParams = async (index: number) => {
       grayscale: false,
       normalize: false
     }
-    
+
     ocrResults.value[index] = {
       ...ocrResults.value[index],
       preprocessingParams: defaultParams
     }
-    
+
     processedImageCache.value.delete(index)
     await applyPreprocessingToImage(index)
   }
@@ -2029,21 +2131,21 @@ const applyPreprocessingToImage = async (index: number): Promise<void> => {
   if (!result) {
     return
   }
-  
+
   try {
     // 获取原始图片 URL
     const originalImageUrl = await getImageDataUrl(result.imageUrl)
-    
+
     // 加载原始图片
     const img = new Image()
     img.crossOrigin = 'anonymous'
-    
+
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve()
       img.onerror = reject
       img.src = originalImageUrl
     })
-    
+
     // 创建 Canvas
     const canvas = document.createElement('canvas')
     canvas.width = img.width
@@ -2052,17 +2154,17 @@ const applyPreprocessingToImage = async (index: number): Promise<void> => {
     if (!ctx) {
       return
     }
-    
+
     // 绘制原始图片
     ctx.drawImage(img, 0, 0)
-    
+
     // 获取图像数据
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
     const data = imageData.data
-    
+
     // 获取预处理参数
     const params = getPreprocessingParams(index)
-    
+
     // 应用预处理（与 ImagePreviewDialog 中的逻辑相同）
     // 亮度调整
     if (params.brightness !== 0) {
@@ -2073,7 +2175,7 @@ const applyPreprocessingToImage = async (index: number): Promise<void> => {
         data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + brightness * 255)) // B
       }
     }
-    
+
     // 对比度调整（修正算法）
     if (params.contrast !== 0) {
       // 将 -100 到 100 的对比度值转换为 -1 到 1 的因子
@@ -2088,7 +2190,7 @@ const applyPreprocessingToImage = async (index: number): Promise<void> => {
         data[i + 2] = Math.max(0, Math.min(255, (data[i + 2] - 128) * factor + 128)) // B
       }
     }
-    
+
     // 饱和度调整
     if (params.saturation !== 0 || params.grayscale) {
       const saturation = params.grayscale ? -100 : params.saturation
@@ -2103,13 +2205,16 @@ const applyPreprocessingToImage = async (index: number): Promise<void> => {
         data[i + 2] = Math.max(0, Math.min(255, gray + sat * (b - gray))) // B
       }
     }
-    
+
     // 归一化
     if (params.normalize) {
-      let minR = 255, maxR = 0
-      let minG = 255, maxG = 0
-      let minB = 255, maxB = 0
-      
+      let minR = 255,
+        maxR = 0
+      let minG = 255,
+        maxG = 0
+      let minB = 255,
+        maxB = 0
+
       for (let i = 0; i < data.length; i += 4) {
         minR = Math.min(minR, data[i])
         maxR = Math.max(maxR, data[i])
@@ -2118,18 +2223,18 @@ const applyPreprocessingToImage = async (index: number): Promise<void> => {
         minB = Math.min(minB, data[i + 2])
         maxB = Math.max(maxB, data[i + 2])
       }
-      
+
       const rangeR = maxR - minR || 1
       const rangeG = maxG - minG || 1
       const rangeB = maxB - minB || 1
-      
+
       for (let i = 0; i < data.length; i += 4) {
         data[i] = Math.max(0, Math.min(255, ((data[i] - minR) / rangeR) * 255)) // R
         data[i + 1] = Math.max(0, Math.min(255, ((data[i + 1] - minG) / rangeG) * 255)) // G
         data[i + 2] = Math.max(0, Math.min(255, ((data[i + 2] - minB) / rangeB) * 255)) // B
       }
     }
-    
+
     // 锐化（修正算法，使用安全的锐化方法）
     if (params.sharpness > 0) {
       // 将 0-100 的锐化值转换为 0-1 的强度
@@ -2137,7 +2242,7 @@ const applyPreprocessingToImage = async (index: number): Promise<void> => {
       const tempData = new Uint8ClampedArray(data)
       const width = canvas.width
       const height = canvas.height
-      
+
       // 使用 Unsharp Masking 方法：原图 + (原图 - 模糊图) * 强度
       // 这里使用简单的拉普拉斯算子来模拟边缘检测
       const laplacianKernel = [
@@ -2145,12 +2250,12 @@ const applyPreprocessingToImage = async (index: number): Promise<void> => {
         [-1, 4, -1],
         [0, -1, 0]
       ]
-      
+
       for (let y = 1; y < height - 1; y++) {
         for (let x = 1; x < width - 1; x++) {
           for (let c = 0; c < 3; c++) {
             const original = tempData[(y * width + x) * 4 + c]
-            
+
             // 计算拉普拉斯算子（边缘检测）
             let laplacian = 0
             for (let ky = -1; ky <= 1; ky++) {
@@ -2160,11 +2265,11 @@ const applyPreprocessingToImage = async (index: number): Promise<void> => {
                 laplacian += tempData[idx] * kernelValue
               }
             }
-            
+
             // 锐化公式：newValue = original + laplacian * sharpness
             // 拉普拉斯算子的和应该接近 0（因为核的总和为 0），所以直接加上拉普拉斯值
             const sharpened = original + laplacian * sharpness
-            
+
             const idx = (y * width + x) * 4 + c
             // 确保值在 0-255 范围内
             data[idx] = Math.max(0, Math.min(255, Math.round(sharpened)))
@@ -2172,10 +2277,10 @@ const applyPreprocessingToImage = async (index: number): Promise<void> => {
         }
       }
     }
-    
+
     // 写回图像数据
     ctx.putImageData(imageData, 0, 0)
-    
+
     // 转换为 data URL 并缓存
     const processedDataUrl = canvas.toDataURL('image/png')
     processedImageCache.value.set(index, processedDataUrl)
@@ -2192,46 +2297,58 @@ const getProcessedImageUrl = (index: number): string => {
   if (processedImageCache.value.has(index)) {
     return processedImageCache.value.get(index)!
   }
-  
+
   // 如果没有预处理参数，返回原始图片
   const params = getPreprocessingParams(index)
-  const hasParams = params.brightness !== 0 || params.contrast !== 0 || 
-                    params.saturation !== 0 || params.sharpness !== 0 || 
-                    params.grayscale || params.normalize
-  
+  const hasParams =
+    params.brightness !== 0 ||
+    params.contrast !== 0 ||
+    params.saturation !== 0 ||
+    params.sharpness !== 0 ||
+    params.grayscale ||
+    params.normalize
+
   if (!hasParams) {
     return getImageDataUrlSync(ocrResults.value[index]?.imageUrl || '')
   }
-  
+
   // 异步处理图片
-  applyPreprocessingToImage(index).catch(err => {
+  applyPreprocessingToImage(index).catch((err) => {
     console.error('预处理图片失败:', err)
   })
-  
+
   // 暂时返回原始图片
   return getImageDataUrlSync(ocrResults.value[index]?.imageUrl || '')
 }
 
 // 监听预处理参数变化，自动重新处理图片
-watch(() => ocrResults.value, async (newResults) => {
-  // 当预处理参数变化时，清除缓存并重新处理所有图片
-  for (let i = 0; i < newResults.length; i++) {
-    const params = getPreprocessingParams(i)
-    const hasParams = params.brightness !== 0 || params.contrast !== 0 || 
-                      params.saturation !== 0 || params.sharpness !== 0 || 
-                      params.grayscale || params.normalize
-    if (hasParams) {
-      // 延迟处理，避免频繁触发
-      setTimeout(() => {
+watch(
+  () => ocrResults.value,
+  async (newResults) => {
+    // 当预处理参数变化时，清除缓存并重新处理所有图片
+    for (let i = 0; i < newResults.length; i++) {
+      const params = getPreprocessingParams(i)
+      const hasParams =
+        params.brightness !== 0 ||
+        params.contrast !== 0 ||
+        params.saturation !== 0 ||
+        params.sharpness !== 0 ||
+        params.grayscale ||
+        params.normalize
+      if (hasParams) {
+        // 延迟处理，避免频繁触发
+        setTimeout(() => {
+          processedImageCache.value.delete(i)
+          applyPreprocessingToImage(i)
+        }, 100)
+      } else {
+        // 如果没有参数，清除缓存
         processedImageCache.value.delete(i)
-        applyPreprocessingToImage(i)
-      }, 100)
-    } else {
-      // 如果没有参数，清除缓存
-      processedImageCache.value.delete(i)
+      }
     }
-  }
-}, { deep: true })
+  },
+  { deep: true }
+)
 
 // AI修复处理（可以多次修复）
 const handleAiFix = async (index: number) => {
@@ -2240,19 +2357,21 @@ const handleAiFix = async (index: number) => {
     ElMessage.warning(t('ocr.noImages'))
     return
   }
-  
+
   aiFixing.value.set(index, true)
-  
+
   try {
     // 使用最新的原始OCR文本进行修复（如果重新识别过，会使用最新的文本）
     const prompt = generateOcrFixPrompt(result.text)
     const fixedText = ref('')
-    
-    const messages: AIDialogMessage[] = [{
-      role: 'user',
-      content: prompt,
-    }]
-    
+
+    const messages: AIDialogMessage[] = [
+      {
+        role: 'user',
+        content: prompt
+      }
+    ]
+
     const { done } = createAiTask(
       t('ocr.aiFix'),
       messages,
@@ -2261,34 +2380,37 @@ const handleAiFix = async (index: number) => {
       `ocr-ai-fix-${index}`,
       { stream: true }
     )
-    
+
     // 直接切换到diff视图
     viewModes.value.set(index, 'diff')
-    
+
     // 如果之前有AI修复内容，先清除旧编辑器（让新内容覆盖）
     const existingNewEditor = getNewEditor(index)
     if (existingNewEditor) {
       existingNewEditor.setValue('')
     }
-    
+
     // 监听流式输出，实时更新编辑器
-    const stopWatcher = watch(() => fixedText.value, (newValue) => {
-      aiFixedTexts.value.set(index, newValue)
-      // 更新新编辑器
-      updateNewEditorContent(index, newValue)
-    })
-    
+    const stopWatcher = watch(
+      () => fixedText.value,
+      (newValue) => {
+        aiFixedTexts.value.set(index, newValue)
+        // 更新新编辑器
+        updateNewEditorContent(index, newValue)
+      }
+    )
+
     await done
     stopWatcher() // 停止监听
     aiFixedTexts.value.set(index, fixedText.value)
-    
+
     // 更新 ocrResults，保存 AI 修复后的文本
     if (ocrResults.value[index]) {
       ocrResults.value[index] = {
         ...ocrResults.value[index],
         aiFixedText: fixedText.value
       }
-      
+
       // 保存到数据库
       if (activeSessionId.value) {
         await ocrSessionsDb.update(activeSessionId.value, {
@@ -2296,15 +2418,17 @@ const handleAiFix = async (index: number) => {
         })
       }
     }
-    
+
     // 重新初始化diff编辑器（确保原始文本也是最新的）
     await nextTick()
     initDiffEditors(index)
-    
+
     ElMessage.success(t('ocr.aiFixSuccess'))
   } catch (error) {
     console.error('AI修复失败:', error)
-    ElMessage.error(t('ocr.aiFixFailed') + ': ' + (error instanceof Error ? error.message : String(error)))
+    ElMessage.error(
+      t('ocr.aiFixFailed') + ': ' + (error instanceof Error ? error.message : String(error))
+    )
   } finally {
     aiFixing.value.set(index, false)
   }
@@ -2377,23 +2501,23 @@ const getNewEditor = (index: number): monaco.editor.IStandaloneCodeEditor | null
 // 初始化旧编辑器
 const initOldEditor = async (index: number) => {
   await nextTick()
-  
+
   const container = oldEditorRefs.value.get(index)
   if (!container) return
-  
+
   container.id = `ocr-old-editor-${index}`
-  
+
   const existingEditor = getOldEditor(index)
   if (existingEditor) {
     existingEditor.dispose()
   }
-  
+
   const result = ocrResults.value[index]
   if (!result) return
-  
+
   try {
     setupMonacoWorker()
-    
+
     const isDark = themeState.currentTheme.type === 'dark'
     const editor = monaco.editor.create(container, {
       value: result.text || '',
@@ -2416,23 +2540,23 @@ const initOldEditor = async (index: number) => {
 // 初始化新编辑器
 const initNewEditor = async (index: number) => {
   await nextTick()
-  
+
   const container = newEditorRefs.value.get(index)
   if (!container) return
-  
+
   container.id = `ocr-new-editor-${index}`
-  
+
   const existingEditor = getNewEditor(index)
   if (existingEditor) {
     existingEditor.dispose()
   }
-  
+
   const fixedText = aiFixedTexts.value.get(index)
   if (!fixedText) return
-  
+
   try {
     setupMonacoWorker()
-    
+
     const isDark = themeState.currentTheme.type === 'dark'
     const editor = monaco.editor.create(container, {
       value: fixedText || '',
@@ -2470,28 +2594,28 @@ const updateNewEditorContent = (index: number, newValue: string): void => {
 // 初始化diff编辑器
 const initDiffEditors = async (index: number) => {
   await nextTick()
-  
+
   const result = ocrResults.value[index]
   const fixedText = aiFixedTexts.value.get(index)
   if (!result || !fixedText) return
-  
+
   // 初始化两个编辑器
   await initOldEditor(index)
   await initNewEditor(index)
-  
+
   // 计算diff并添加装饰
   const oldEditor = getOldEditor(index)
   const newEditor = getNewEditor(index)
   if (!oldEditor || !newEditor) return
-  
+
   try {
     const diffResult = computeDiff(result.text, fixedText)
     const oldDecorations: monaco.editor.IModelDeltaDecoration[] = []
     const newDecorations: monaco.editor.IModelDeltaDecoration[] = []
-    
+
     let oldLineOffset = 0
     let newLineOffset = 0
-    
+
     for (const chunk of diffResult.chunks) {
       if (chunk.type === 'delete') {
         // 删除：旧编辑器显示删除标记
@@ -2573,10 +2697,10 @@ const initDiffEditors = async (index: number) => {
         newLineOffset += chunk.newLines?.length || 0
       }
     }
-    
+
     oldEditor.deltaDecorations([], oldDecorations)
     newEditor.deltaDecorations([], newDecorations)
-    
+
     // 同步滚动
     oldEditor.onDidScrollChange((e) => {
       if (e.scrollTop !== undefined) {
@@ -2586,7 +2710,7 @@ const initDiffEditors = async (index: number) => {
         newEditor.setScrollLeft(e.scrollLeft)
       }
     })
-    
+
     newEditor.onDidScrollChange((e) => {
       if (e.scrollTop !== undefined) {
         oldEditor.setScrollTop(e.scrollTop)
@@ -2601,38 +2725,42 @@ const initDiffEditors = async (index: number) => {
 }
 
 // 监听视图模式变化
-watch(() => viewModes.value, async (newModes, oldModes) => {
-  for (const [index, mode] of newModes.entries()) {
-    const oldMode = oldModes?.get(index)
-    if (mode === 'diff') {
-      await nextTick()
-      await nextTick()
-      setTimeout(() => {
-        initDiffEditors(index)
-      }, 100)
-    } else if (mode === 'single' && oldMode !== 'single') {
-      // 切换到单视图时，重新初始化单视图编辑器
-      await nextTick()
-      await nextTick()
-      setTimeout(() => {
-        if (textEditorRefs.value.has(index)) {
-          initTextEditor(index)
-          updateEditorContent(index)
-        }
-      }, 100)
+watch(
+  () => viewModes.value,
+  async (newModes, oldModes) => {
+    for (const [index, mode] of newModes.entries()) {
+      const oldMode = oldModes?.get(index)
+      if (mode === 'diff') {
+        await nextTick()
+        await nextTick()
+        setTimeout(() => {
+          initDiffEditors(index)
+        }, 100)
+      } else if (mode === 'single' && oldMode !== 'single') {
+        // 切换到单视图时，重新初始化单视图编辑器
+        await nextTick()
+        await nextTick()
+        setTimeout(() => {
+          if (textEditorRefs.value.has(index)) {
+            initTextEditor(index)
+            updateEditorContent(index)
+          }
+        }, 100)
+      }
     }
-  }
-}, { deep: true })
+  },
+  { deep: true }
+)
 
 // 主题样式
 const borderColor = computed(() =>
-  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)',
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)'
 )
 
 const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
   color: themeState.currentTheme.textColor,
-  borderColor: borderColor.value,
+  borderColor: borderColor.value
 }))
 
 const contentAreaStyle = computed(() => ({
@@ -2715,14 +2843,19 @@ const preStyle = computed(() => ({
   overflow: hidden;
   margin: 0;
   height: 100%;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
   gap: 0;
 }
 
 /* 工具栏区域 */
 .toolbar-section {
   margin-bottom: 16px;
-  background-color: v-bind('themeState.currentTheme.background2nd || themeState.currentTheme.background');
+  background-color: v-bind(
+    'themeState.currentTheme.background2nd || themeState.currentTheme.background'
+  );
   border-radius: 8px;
   border: 1px solid v-bind('borderColor');
   flex-shrink: 0;
@@ -2909,7 +3042,10 @@ const preStyle = computed(() => ({
   border-radius: 8px;
   padding: 12px;
   margin-top: 8px;
-  border: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.18)" : "rgba(0, 0, 0, 0.12)"');
+  border: 1px solid
+    v-bind(
+      'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.18)" : "rgba(0, 0, 0, 0.12)"'
+    );
   max-height: 400px;
   overflow-y: auto;
 }
@@ -2917,7 +3053,10 @@ const preStyle = computed(() => ({
 .panel-header {
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.18)" : "rgba(0, 0, 0, 0.12)"');
+  border-bottom: 1px solid
+    v-bind(
+      'themeState.currentTheme.type === "dark" ? "rgba(255, 255, 255, 0.18)" : "rgba(0, 0, 0, 0.12)"'
+    );
 }
 
 .panel-title {
@@ -3060,7 +3199,7 @@ const preStyle = computed(() => ({
   flex: 1;
   min-height: 0;
   gap: 1px;
-   border: 1px solid v-bind('borderColor');
+  border: 1px solid v-bind('borderColor');
   border-radius: 8px;
   overflow: hidden;
 }
@@ -3111,8 +3250,4 @@ const preStyle = computed(() => ({
 :deep(.diff-glyph-insert) {
   background-color: rgba(103, 194, 58, 0.3) !important;
 }
-
 </style>
-
-
-

@@ -78,7 +78,13 @@ function randomBetween(a: number, b: number) {
 
 const REF_CELLS = COLS_A * ROWS_A
 
-function buildOneGrid(w: number, h: number, cols: number, rows: number, layerSpeedScale = 1): Cell[] {
+function buildOneGrid(
+  w: number,
+  h: number,
+  cols: number,
+  rows: number,
+  layerSpeedScale = 1
+): Cell[] {
   const cellW = w / cols
   const cellH = h / rows
   const out: Cell[] = []

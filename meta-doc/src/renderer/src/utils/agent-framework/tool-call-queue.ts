@@ -68,26 +68,28 @@ export class ToolCallQueue {
       parameters: toolCall.parameters,
       tool_call_id: toolCall.id
     }
-    
+
     this.queue.push(task)
     getLogger().debug('[ToolCallQueue] 添加工具调用任务到队列:', {
       toolId: task.tool_id,
       queueLength: this.queue.length,
       isRunning: this.isRunning
     })
-    
+
     // 如果队列未运行，立即开始执行（异步执行，不阻塞）
     if (!this.isRunning) {
       // 使用 Promise.resolve().then() 确保异步执行，不阻塞当前调用
       // 保存 Promise 以便 waitForComplete 可以等待它
-      this.runningPromise = Promise.resolve().then(() => {
-        return this.start()
-      }).catch(error => {
-        getLogger().error('[ToolCallQueue] 队列执行出错:', error)
-        this.isRunning = false
-        this.runningPromise = null
-        throw error
-      })
+      this.runningPromise = Promise.resolve()
+        .then(() => {
+          return this.start()
+        })
+        .catch((error) => {
+          getLogger().error('[ToolCallQueue] 队列执行出错:', error)
+          this.isRunning = false
+          this.runningPromise = null
+          throw error
+        })
     }
   }
 
@@ -119,32 +121,32 @@ export class ToolCallQueue {
       try {
         // 处理dummy-tool（无效的工具调用）
         if (task.tool_id === 'dummy-tool') {
-          const errorInfo = task.parameters.error as string || '工具调用格式错误'
-          const rawContent = task.parameters.rawContent as string || ''
+          const errorInfo = (task.parameters.error as string) || '工具调用格式错误'
+          const rawContent = (task.parameters.rawContent as string) || ''
           const parsed = task.parameters.parsed as any
-          
+
           // 构建详细的错误信息
           let errorMessage = `工具调用格式错误：${errorInfo}\n\n`
           errorMessage += `**原始内容：**\n\`\`\`\n${rawContent}\n\`\`\`\n\n`
-          
+
           if (parsed) {
             errorMessage += `**解析结果：**\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`\n\n`
           }
-          
+
           errorMessage += `**正确的调用格式：**\n\`\`\`\n<tool_call>\n{"name": "工具ID", "arguments": {"参数名": "参数值"}}\n</tool_call>\n\`\`\`\n\n`
           errorMessage += `**注意事项：**\n`
           errorMessage += `1. 必须包含 "name" 字段指定工具ID\n`
           errorMessage += `2. 必须包含 "arguments" 字段（对象类型）\n`
           errorMessage += `3. 标记必须完整：<tool_call>...</tool_call>\n`
           errorMessage += `4. JSON格式必须正确（注意引号、逗号等）`
-          
+
           const failedObservation: ToolObservation = {
             toolId: 'dummy-tool',
             toolName: '工具调用错误',
             status: 'failed',
             error: errorMessage
           }
-          
+
           // 添加tool消息
           AIContextManager.addToolMessage(
             this.session,
@@ -157,7 +159,7 @@ export class ToolCallQueue {
             task.tool_call_id,
             undefined
           )
-          
+
           if (this.onTaskComplete) {
             this.onTaskComplete(task, failedObservation)
           }
@@ -174,11 +176,11 @@ export class ToolCallQueue {
             status: 'failed',
             error: errorMessage
           }
-          
+
           // 获取工具配置
           const tool = agentToolManager.getTool(task.tool_id)
           const toolConfig = tool?.config
-          
+
           AIContextManager.addToolMessage(
             this.session,
             task.tool_id,
@@ -190,7 +192,7 @@ export class ToolCallQueue {
             task.tool_call_id,
             toolConfig
           )
-          
+
           if (this.onTaskComplete) {
             this.onTaskComplete(task, failedObservation)
           }
@@ -198,21 +200,22 @@ export class ToolCallQueue {
         }
 
         // 获取可以传递给工具的session对象：新类型有entityType字段，旧类型有publicContext字段
-        const sessionForTool = (this.session as any).entityType === 'agent-session' 
-          ? this.session as AgentSession 
-          : (this.session as any).publicContext 
-            ? this.session as any as AgentSession  // LegacyAgentSession也有publicContext，可以转换
-            : undefined
-        
+        const sessionForTool =
+          (this.session as any).entityType === 'agent-session'
+            ? (this.session as AgentSession)
+            : (this.session as any).publicContext
+              ? (this.session as any as AgentSession) // LegacyAgentSession也有publicContext，可以转换
+              : undefined
+
         // 获取工具配置以获取工具名称
         let tool = agentToolManager.getTool(task.tool_id)
         let toolConfig = tool?.config
-        const toolName = toolConfig 
-          ? (typeof toolConfig.name === 'string' 
-              ? toolConfig.name 
-              : toolConfig.name?.['zh_cn']?.name || toolConfig.name?.['en_us']?.name || task.tool_id)
+        const toolName = toolConfig
+          ? typeof toolConfig.name === 'string'
+            ? toolConfig.name
+            : toolConfig.name?.['zh_cn']?.name || toolConfig.name?.['en_us']?.name || task.tool_id
           : task.tool_id
-        
+
         // 为工具调用创建AI任务，让用户能在任务队列中看到工具执行过程
         const taskResultRef = ref('')
         const originKey = `tool-${task.tool_id}-${task.tool_call_id}-${Date.now()}`
@@ -230,14 +233,14 @@ export class ToolCallQueue {
             stream: false // 工具调用不是流式的
           }
         )
-        
+
         getLogger().debug('[ToolCallQueue] 已创建工具调用AI任务:', {
           handle,
           toolId: task.tool_id,
           toolName,
           originKey
         })
-        
+
         // 执行工具（通过AI任务系统）
         // 注意：createAiTask会自动启动任务（autoStart=true），所以任务会立即开始执行
         // startAiTask会执行工具并将结果更新到taskResultRef
@@ -245,14 +248,14 @@ export class ToolCallQueue {
         try {
           // 等待AI任务完成（startAiTask会执行工具）
           await done
-          
+
           // 从任务系统中获取保存的observation
           // 注意：任务可能已经完成但还未删除，我们需要在删除前获取observation
           const { getTaskMap } = await import('../ai_tasks')
           const taskMap = getTaskMap()
           const aiTask = taskMap.get(handle)
           const savedObservation = aiTask?.meta?.__observation as ToolObservation | undefined
-          
+
           if (savedObservation) {
             observation = savedObservation
             getLogger().debug('[ToolCallQueue] 从AI任务中获取observation:', {
@@ -262,11 +265,14 @@ export class ToolCallQueue {
           } else {
             // 兜底：从taskResultRef构建简单的observation
             const resultText = taskResultRef.value
-            getLogger().warn('[ToolCallQueue] 无法从AI任务获取observation，使用taskResultRef构建:', {
-              resultTextLength: resultText.length,
-              resultTextPreview: resultText.substring(0, 100)
-            })
-            
+            getLogger().warn(
+              '[ToolCallQueue] 无法从AI任务获取observation，使用taskResultRef构建:',
+              {
+                resultTextLength: resultText.length,
+                resultTextPreview: resultText.substring(0, 100)
+              }
+            )
+
             if (resultText.startsWith('工具执行失败:')) {
               observation = {
                 toolId: task.tool_id,
@@ -335,11 +341,11 @@ export class ToolCallQueue {
           status: 'failed',
           error: errorMessage
         }
-        
+
         // 获取工具配置
         const tool = agentToolManager.getTool(task.tool_id)
         const toolConfig = tool?.config
-        
+
         AIContextManager.addToolMessage(
           this.session,
           task.tool_id,
@@ -352,7 +358,7 @@ export class ToolCallQueue {
           toolConfig,
           task.parameters
         )
-        
+
         if (this.onTaskComplete) {
           this.onTaskComplete(task, failedObservation)
         }
@@ -370,7 +376,7 @@ export class ToolCallQueue {
     if (this.queue.length > 0) {
       getLogger().debug('[ToolCallQueue] 队列中还有新任务，继续执行')
       // 继续执行，保存新的 Promise
-      this.runningPromise = this.start().catch(error => {
+      this.runningPromise = this.start().catch((error) => {
         getLogger().error('[ToolCallQueue] 队列继续执行出错:', error)
         this.isRunning = false
         this.runningPromise = null
@@ -381,7 +387,7 @@ export class ToolCallQueue {
 
     // 标记 Promise 完成
     this.runningPromise = null
-    
+
     // 注意：不在这里调用 onQueueComplete()
     // 只有在 waitForComplete() 中确认 inputComplete=true 且队列为空时，才调用 onQueueComplete()
   }
@@ -429,14 +435,14 @@ export class ToolCallQueue {
     // 如果队列未运行但有任务，启动队列
     if (!this.isRunning && this.queue.length > 0) {
       getLogger().debug('[ToolCallQueue] 队列未运行但有任务，启动队列')
-      this.runningPromise = this.start().catch(error => {
+      this.runningPromise = this.start().catch((error) => {
         getLogger().error('[ToolCallQueue] 队列启动出错:', error)
         this.isRunning = false
         this.runningPromise = null
         throw error
       })
     }
-    
+
     // 如果有正在运行的 Promise，等待它完成
     if (this.runningPromise) {
       getLogger().debug('[ToolCallQueue] 等待正在运行的 Promise 完成')
@@ -447,21 +453,19 @@ export class ToolCallQueue {
         // 即使出错，也要继续检查队列状态
       }
     }
-    
+
     // 等待队列完成：只有在输入完成 AND 队列为空 AND 队列未运行时，才算真正完成
     // 使用轮询方式等待，因为：
     // 1. 在AI输出过程中，可能还有工具调用被检测到并添加到队列
     // 2. 队列执行过程中，可能有新任务被添加
     let retries = 0
     const maxRetries = 1000 // 最多等待100秒（100 * 100ms）
-    
+
     while (retries < maxRetries) {
       // 检查是否真正完成：输入完成 AND 队列为空 AND 队列未运行
-      const isTrulyComplete = this.inputComplete && 
-                             !this.isRunning && 
-                             this.queue.length === 0 && 
-                             !this.runningPromise
-      
+      const isTrulyComplete =
+        this.inputComplete && !this.isRunning && this.queue.length === 0 && !this.runningPromise
+
       if (isTrulyComplete) {
         getLogger().debug('[ToolCallQueue] 队列真正完成', {
           queueLength: this.queue.length,
@@ -475,14 +479,14 @@ export class ToolCallQueue {
         }
         break
       }
-      
+
       // 如果队列又有了任务但未运行，重新启动
       if (!this.isRunning && this.queue.length > 0 && !this.runningPromise) {
         getLogger().debug('[ToolCallQueue] 在等待过程中发现新任务，重新启动队列', {
           queueLength: this.queue.length,
           inputComplete: this.inputComplete
         })
-        this.runningPromise = this.start().catch(error => {
+        this.runningPromise = this.start().catch((error) => {
           getLogger().error('[ToolCallQueue] 重新启动队列出错:', error)
           this.isRunning = false
           this.runningPromise = null
@@ -494,11 +498,11 @@ export class ToolCallQueue {
           // 继续轮询
         }
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 100))
+
+      await new Promise((resolve) => setTimeout(resolve, 100))
       retries++
     }
-    
+
     if (retries >= maxRetries) {
       getLogger().warn('[ToolCallQueue] waitForComplete 超时，强制返回', {
         queueLength: this.queue.length,
@@ -523,4 +527,3 @@ export class ToolCallQueue {
     return this.isRunning
   }
 }
-

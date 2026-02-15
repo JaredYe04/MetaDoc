@@ -45,7 +45,7 @@ function extname(filePath: string): string {
  */
 function processDirectoryContent(params: ProcessDirectoryParams): FileNode[] {
   const { entries, extensionMap } = params
-  
+
   const dirs: FileNode[] = []
   const files: FileNode[] = []
 
@@ -75,7 +75,7 @@ function processDirectoryContent(params: ProcessDirectoryParams): FileNode[] {
   // 排序：目录在前，文件在后
   dirs.sort((a, b) => a.name.localeCompare(b.name))
   files.sort((a, b) => a.name.localeCompare(b.name))
-  
+
   return [...dirs, ...files]
 }
 
@@ -86,7 +86,7 @@ function processDirectoryContent(params: ProcessDirectoryParams): FileNode[] {
 function traverseAllNodes(params: TraverseNodesParams): FileNode[] {
   const { rootNodes } = params
   const allNodes: FileNode[] = []
-  
+
   // 递归遍历函数
   const traverse = (nodes: FileNode[]): void => {
     for (const node of nodes) {
@@ -96,7 +96,7 @@ function traverseAllNodes(params: TraverseNodesParams): FileNode[] {
       }
     }
   }
-  
+
   // 遍历所有根节点
   for (const rootNode of rootNodes) {
     allNodes.push(rootNode)
@@ -104,7 +104,7 @@ function traverseAllNodes(params: TraverseNodesParams): FileNode[] {
       traverse(rootNode.children)
     }
   }
-  
+
   return allNodes
 }
 
@@ -118,4 +118,3 @@ const workerApi = {
 Comlink.expose(workerApi)
 
 export type DirectoryProcessorWorker = typeof workerApi
-

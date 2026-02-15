@@ -4,13 +4,13 @@
  */
 import { defineStore } from 'pinia'
 import { ref, watch, computed } from 'vue'
-import type { 
-  DocumentOutlineNode, 
-  ArticleMetaData, 
+import type {
+  DocumentOutlineNode,
+  ArticleMetaData,
   DocumentFormat,
-  AIDialogMessage 
+  AIDialogMessage
 } from '../../../types'
-import { 
+import {
   generateMarkdownFromOutlineTree,
   extractOutlineTreeFromMarkdown,
   createDefaultOutlineTree
@@ -28,67 +28,68 @@ const defaultArticleMetaData: ArticleMetaData = {
 /** 默认AI对话消息 */
 const defaultAiChatMessages: AIDialogMessage[] = [
   {
-    role: "system",
-    content: "你是一个出色的AI文档编辑助手，现在你需要根据一篇现有的文档进行修改、优化，或者是撰写新的文档。按照对话的上下文来做出合适的回应。请按照用户需求进行回答。(用markdown语言）"
+    role: 'system',
+    content:
+      '你是一个出色的AI文档编辑助手，现在你需要根据一篇现有的文档进行修改、优化，或者是撰写新的文档。按照对话的上下文来做出合适的回应。请按照用户需求进行回答。(用markdown语言）'
   },
   {
-    role: "assistant", 
-    content: "### 你好！我是你的AI文档助手！\n告诉我你的任何需求，我会尝试解决。\n"
+    role: 'assistant',
+    content: '### 你好！我是你的AI文档助手！\n告诉我你的任何需求，我会尝试解决。\n'
   }
 ]
 
 export const useDocumentStore = defineStore('document', () => {
   // ========== 状态定义 ==========
-  
+
   /** 当前文件路径 */
   const currentFilePath = ref('')
-  
+
   /** 当前文档格式 */
   const currentFormat = ref<DocumentFormat>('md')
-  
+
   /** 大纲树 */
   const outlineTree = ref<DocumentOutlineNode>(createDefaultOutlineTree())
-  
+
   /** 文章内容 (Markdown) */
   const articleContent = ref('')
-  
+
   /** LaTeX文章内容 */
   const texArticleContent = ref('')
-  
+
   /** 文档元数据 */
   const articleMetaData = ref<ArticleMetaData>({ ...defaultArticleMetaData })
-  
+
   /** AI对话消息列表 */
   const aiDialogs = ref<AIDialogMessage[]>([...defaultAiChatMessages])
-  
+
   /** 最后视图类型 */
   const lastView = ref<'outline' | 'article'>('outline')
-  
+
   /** 渲染后的HTML */
   const renderedHtml = ref('')
-  
+
   /** 是否首次加载 */
   const firstLoad = ref(true)
 
   // ========== 计算属性 ==========
-  
+
   /** 文档统计信息 */
   const documentStats = computed(() => {
     const content = articleContent.value
     return {
       characterCount: content.length,
-      wordCount: content.split(/\s+/).filter(word => word.length > 0).length,
+      wordCount: content.split(/\s+/).filter((word) => word.length > 0).length,
       lineCount: content.split('\n').length
     }
   })
-  
+
   /** 是否需要保存 */
   const needsSaving = computed(() => {
     return currentFilePath.value !== '' || articleContent.value.trim() !== ''
   })
 
   // ========== 监听器 ==========
-  
+
   // 监听文档元数据变化
   watch(
     articleMetaData,
@@ -99,7 +100,7 @@ export const useDocumentStore = defineStore('document', () => {
   )
 
   // ========== 操作方法 ==========
-  
+
   /**
    * 同步大纲树和文章内容
    */
@@ -108,7 +109,7 @@ export const useDocumentStore = defineStore('document', () => {
       // TODO: 实现 LaTeX 到 Markdown 的转换
       // articleContent.value = convertLatexToMarkdown(texArticleContent.value)
     }
-    
+
     if (lastView.value === 'outline') {
       articleContent.value = generateMarkdownFromOutlineTree(outlineTree.value)
       lastView.value = 'article'
@@ -128,7 +129,7 @@ export const useDocumentStore = defineStore('document', () => {
     articleContent.value = generateMarkdownFromOutlineTree(outlineTree.value)
     articleMetaData.value = { ...defaultArticleMetaData }
     aiDialogs.value = [...defaultAiChatMessages]
-    
+
     eventBus.emit('refresh')
     eventBus.emit('reset-quickstart')
   }
@@ -140,38 +141,38 @@ export const useDocumentStore = defineStore('document', () => {
   function autoGenerateTitle(): void {
     // 如果已经有标题，不需要重新生成
     if (articleMetaData.value.title && articleMetaData.value.title.trim().length > 0) {
-      return;
+      return
     }
 
-    let extractedTitle: string | null = null;
+    let extractedTitle: string | null = null
 
     if (currentFormat.value === 'md') {
       // 从 Markdown 内容中提取第一个标题
-      const firstTitleMatch = articleContent.value.match(/^(#+)\s+(.+)$/m);
+      const firstTitleMatch = articleContent.value.match(/^(#+)\s+(.+)$/m)
       if (firstTitleMatch) {
-        const title = firstTitleMatch[2].trim();
+        const title = firstTitleMatch[2].trim()
         // 移除可能的 Markdown 格式标记
-        extractedTitle = title.replace(/\*\*|__|\*|_|`/g, '').trim();
+        extractedTitle = title.replace(/\*\*|__|\*|_|`/g, '').trim()
       }
     } else if (currentFormat.value === 'tex') {
-      const texContent = texArticleContent.value || '';
+      const texContent = texArticleContent.value || ''
 
       // 优先级：\title{} > \section{} > \subsection{} > \subsubsection{}
-      const titleMatch = texContent.match(/\\title\{([^}]+)\}/);
+      const titleMatch = texContent.match(/\\title\{([^}]+)\}/)
       if (titleMatch) {
-        extractedTitle = titleMatch[1].trim();
+        extractedTitle = titleMatch[1].trim()
       } else {
-        const sectionMatch = texContent.match(/\\section\{([^}]+)\}/);
+        const sectionMatch = texContent.match(/\\section\{([^}]+)\}/)
         if (sectionMatch) {
-          extractedTitle = sectionMatch[1].trim();
+          extractedTitle = sectionMatch[1].trim()
         } else {
-          const subsectionMatch = texContent.match(/\\subsection\{([^}]+)\}/);
+          const subsectionMatch = texContent.match(/\\subsection\{([^}]+)\}/)
           if (subsectionMatch) {
-            extractedTitle = subsectionMatch[1].trim();
+            extractedTitle = subsectionMatch[1].trim()
           } else {
-            const subsubsectionMatch = texContent.match(/\\subsubsection\{([^}]+)\}/);
+            const subsubsectionMatch = texContent.match(/\\subsubsection\{([^}]+)\}/)
             if (subsubsectionMatch) {
-              extractedTitle = subsubsectionMatch[1].trim();
+              extractedTitle = subsubsectionMatch[1].trim()
             }
           }
         }
@@ -181,10 +182,11 @@ export const useDocumentStore = defineStore('document', () => {
     // 如果提取到了标题，更新元信息
     if (extractedTitle && extractedTitle.length > 0) {
       // 限制标题长度
-      const maxLength = 100;
-      articleMetaData.value.title = extractedTitle.length > maxLength
-        ? extractedTitle.substring(0, maxLength).trim()
-        : extractedTitle;
+      const maxLength = 100
+      articleMetaData.value.title =
+        extractedTitle.length > maxLength
+          ? extractedTitle.substring(0, maxLength).trim()
+          : extractedTitle
     }
   }
 
@@ -252,7 +254,7 @@ export const useDocumentStore = defineStore('document', () => {
     eventBus.emit('is-need-save', true)
     eventBus.emit('send-broadcast', {
       to: 'home',
-      eventName: 'sync-ai-dialogs', 
+      eventName: 'sync-ai-dialogs',
       data: JSON.parse(JSON.stringify(aiDialogs.value))
     })
   }
@@ -270,11 +272,11 @@ export const useDocumentStore = defineStore('document', () => {
     lastView,
     renderedHtml,
     firstLoad,
-    
+
     // 计算属性
     documentStats,
     needsSaving,
-    
+
     // 方法
     syncDocument,
     initializeNewDocument,

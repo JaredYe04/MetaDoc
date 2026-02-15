@@ -1,24 +1,42 @@
 <template>
   <div class="web-crawler-display" :style="containerStyle">
-    <div v-if="displayData.stage === 'fetching' || displayData.stage === 'processing'" class="status-message" :style="statusMessageStyle">
+    <div
+      v-if="displayData.stage === 'fetching' || displayData.stage === 'processing'"
+      class="status-message"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ getStageMessage(displayData.stage) }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed' && resultData" class="completed-state" :style="completedStateStyle">
+    <div
+      v-else-if="displayData.stage === 'completed' && resultData"
+      class="completed-state"
+      :style="completedStateStyle"
+    >
       <div class="result-header" :style="headerStyle">
         <div class="header-info">
-          <h3 class="result-title" :style="titleStyle">{{ $t('agent.display.webCrawler.title') }}</h3>
+          <h3 class="result-title" :style="titleStyle">
+            {{ $t('agent.display.webCrawler.title') }}
+          </h3>
           <div class="result-meta" :style="metaStyle">
-            <el-tag :type="resultData.status >= 200 && resultData.status < 300 ? 'success' : 'danger'" size="small">
+            <el-tag
+              :type="resultData.status >= 200 && resultData.status < 300 ? 'success' : 'danger'"
+              size="small"
+            >
               HTTP {{ resultData.status }} {{ resultData.statusText }}
             </el-tag>
-            <el-tag type="info" size="small">{{ $t('agent.display.webCrawler.size') }}: {{ formatSize(resultData.size || 0) }}</el-tag>
+            <el-tag type="info" size="small"
+              >{{ $t('agent.display.webCrawler.size') }}:
+              {{ formatSize(resultData.size || 0) }}</el-tag
+            >
             <el-tag type="info" size="small">{{ resultData.contentType }}</el-tag>
           </div>
         </div>
         <div class="header-url" :style="urlStyle">
-          <el-link :href="resultData.url" target="_blank" type="primary">{{ resultData.url }}</el-link>
+          <el-link :href="resultData.url" target="_blank" type="primary">{{
+            resultData.url
+          }}</el-link>
         </div>
       </div>
 
@@ -29,7 +47,11 @@
             <div class="render-container">
               <!-- JSON 渲染 - 使用 Monaco 编辑器 -->
               <div v-if="isJsonContent" class="monaco-renderer" :style="rendererStyle">
-                <div :id="jsonEditorId" class="monaco-editor-container" :style="monacoEditorStyle"></div>
+                <div
+                  :id="jsonEditorId"
+                  class="monaco-editor-container"
+                  :style="monacoEditorStyle"
+                ></div>
               </div>
               <!-- HTML 渲染 -->
               <div v-else-if="isHtmlContent" class="html-renderer" :style="rendererStyle">
@@ -43,7 +65,11 @@
               </div>
               <!-- XML 渲染 - 使用 Monaco 编辑器 -->
               <div v-else-if="isXmlContent" class="monaco-renderer" :style="rendererStyle">
-                <div :id="xmlEditorId" class="monaco-editor-container" :style="monacoEditorStyle"></div>
+                <div
+                  :id="xmlEditorId"
+                  class="monaco-editor-container"
+                  :style="monacoEditorStyle"
+                ></div>
               </div>
               <!-- 纯文本渲染 -->
               <div v-else class="text-renderer" :style="rendererStyle">
@@ -79,7 +105,10 @@
       </el-tabs>
     </div>
 
-    <div v-else-if="displayData.stage === 'error' || (props.status === 'failed' && !resultData)" class="error-state">
+    <div
+      v-else-if="displayData.stage === 'error' || (props.status === 'failed' && !resultData)"
+      class="error-state"
+    >
       <el-alert
         :title="displayData.error || props.error || $t('agent.display.webCrawler.error')"
         type="error"
@@ -88,20 +117,38 @@
         <template #default>
           <div>
             <p>{{ displayData.error || props.error || $t('agent.display.webCrawler.error') }}</p>
-            <p v-if="displayData.message" style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary);">
+            <p
+              v-if="displayData.message"
+              style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary)"
+            >
               {{ displayData.message }}
             </p>
           </div>
         </template>
       </el-alert>
     </div>
-    
+
     <!-- 调试：显示原始数据（仅在开发环境） -->
-    <div v-if="!resultData && displayData.stage !== 'fetching' && displayData.stage !== 'processing' && displayData.stage !== 'error'" class="debug-info" style="padding: 16px; font-size: 12px; color: var(--el-text-color-secondary);">
+    <div
+      v-if="
+        !resultData &&
+        displayData.stage !== 'fetching' &&
+        displayData.stage !== 'processing' &&
+        displayData.stage !== 'error'
+      "
+      class="debug-info"
+      style="padding: 16px; font-size: 12px; color: var(--el-text-color-secondary)"
+    >
       <p>调试信息：无法解析结果数据</p>
       <details>
         <summary>显示原始数据</summary>
-        <pre style="margin-top: 8px; font-size: 11px; overflow: auto; max-height: 200px;">{{ JSON.stringify({ displayData, propsData: props.data, realtimeData: realtimeData.value }, null, 2) }}</pre>
+        <pre style="margin-top: 8px; font-size: 11px; overflow: auto; max-height: 200px">{{
+          JSON.stringify(
+            { displayData, propsData: props.data, realtimeData: realtimeData.value },
+            null,
+            2
+          )
+        }}</pre>
       </details>
     </div>
   </div>
@@ -128,8 +175,12 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
 )
 
 const activeTab = ref('render')
-const jsonEditorId = ref(`webcrawler-json-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
-const xmlEditorId = ref(`webcrawler-xml-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+const jsonEditorId = ref(
+  `webcrawler-json-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+)
+const xmlEditorId = ref(
+  `webcrawler-xml-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+)
 let jsonMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 let xmlMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 
@@ -146,7 +197,7 @@ interface WebCrawlerResult {
 const displayData = computed(() => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
-  
+
   if (parsed && typeof parsed === 'object') {
     const getStage = (): 'fetching' | 'processing' | 'completed' | 'error' => {
       if (parsed.stage) {
@@ -160,9 +211,9 @@ const displayData = computed(() => {
       }
       return 'fetching'
     }
-    
+
     const stage = getStage()
-    
+
     return {
       ...parsed,
       stage,
@@ -170,8 +221,9 @@ const displayData = computed(() => {
       error: parsed.error || props.error || (stage === 'error' ? '未知错误' : undefined)
     }
   }
-  
-  const defaultStage = props.status === 'succeeded' ? 'completed' : (props.status === 'failed' ? 'error' : 'fetching')
+
+  const defaultStage =
+    props.status === 'succeeded' ? 'completed' : props.status === 'failed' ? 'error' : 'fetching'
   return {
     stage: defaultStage,
     result: undefined,
@@ -182,7 +234,7 @@ const displayData = computed(() => {
 const resultData = computed((): WebCrawlerResult | null => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
-  
+
   if (parsed && typeof parsed === 'object') {
     // 尝试从多个可能的路径提取 result
     // 1. 直接从 parsed.result
@@ -190,12 +242,13 @@ const resultData = computed((): WebCrawlerResult | null => {
     // 3. 从 parsed.data.result
     // 4. 从 parsed.content (如果包含所有必需字段)
     // 5. 从 parsed.data.content (根据 web-crawler-tool.ts 的返回结构)
-    const result = parsed.result || 
-                   parsed.content?.result || 
-                   parsed.data?.result || 
-                   parsed.data?.content ||
-                   parsed.content
-    
+    const result =
+      parsed.result ||
+      parsed.content?.result ||
+      parsed.data?.result ||
+      parsed.data?.content ||
+      parsed.content
+
     if (result && typeof result === 'object') {
       // 检查是否包含必需的字段（url 和 status）
       // 注意：如果 stage === 'completed'，result 应该包含所有字段
@@ -210,7 +263,7 @@ const resultData = computed((): WebCrawlerResult | null => {
           size: result.size || (result.content ? new Blob([result.content]).size : 0)
         }
       }
-      
+
       // 如果 stage === 'completed'，即使没有 url，也可能直接包含这些字段
       if (parsed.stage === 'completed' && typeof result.status === 'number') {
         return {
@@ -224,7 +277,7 @@ const resultData = computed((): WebCrawlerResult | null => {
         }
       }
     }
-    
+
     // 如果 parsed 本身包含了必需的字段（可能在 stage === 'completed' 时）
     if (parsed.stage === 'completed' && typeof parsed.status === 'number') {
       return {
@@ -238,18 +291,24 @@ const resultData = computed((): WebCrawlerResult | null => {
       }
     }
   }
-  
+
   // 如果从实时数据无法获取，尝试从 props.data 直接解析
   if (props.data) {
     const propsParsed = parseToolData(props.data) as any
     if (propsParsed && typeof propsParsed === 'object') {
-      const result = propsParsed.result || 
-                     propsParsed.content?.result || 
-                     propsParsed.data?.result || 
-                     propsParsed.data?.content ||
-                     propsParsed.content
-      
-      if (result && typeof result === 'object' && typeof result.url === 'string' && typeof result.status === 'number') {
+      const result =
+        propsParsed.result ||
+        propsParsed.content?.result ||
+        propsParsed.data?.result ||
+        propsParsed.data?.content ||
+        propsParsed.content
+
+      if (
+        result &&
+        typeof result === 'object' &&
+        typeof result.url === 'string' &&
+        typeof result.status === 'number'
+      ) {
         return {
           url: result.url,
           status: result.status,
@@ -260,7 +319,7 @@ const resultData = computed((): WebCrawlerResult | null => {
           size: result.size || (result.content ? new Blob([result.content]).size : 0)
         }
       }
-      
+
       // 如果 propsParsed 本身包含了必需的字段
       if (propsParsed.stage === 'completed' && typeof propsParsed.status === 'number') {
         return {
@@ -275,7 +334,7 @@ const resultData = computed((): WebCrawlerResult | null => {
       }
     }
   }
-  
+
   return null
 })
 
@@ -308,9 +367,12 @@ const isHtmlContent = computed(() => {
 const isXmlContent = computed(() => {
   if (!resultData.value) return false
   const contentType = resultData.value.contentType || ''
-  return contentType.includes('application/xml') || 
-         contentType.includes('text/xml') ||
-         (resultData.value.content.trim().startsWith('<?xml') || resultData.value.content.trim().startsWith('<'))
+  return (
+    contentType.includes('application/xml') ||
+    contentType.includes('text/xml') ||
+    resultData.value.content.trim().startsWith('<?xml') ||
+    resultData.value.content.trim().startsWith('<')
+  )
 })
 
 // 获取格式化的 JSON 内容
@@ -334,7 +396,7 @@ const formattedXmlContent = computed(() => {
 const sanitizedHtmlContent = computed(() => {
   if (!resultData.value || !isHtmlContent.value) return ''
   let html = resultData.value.content || ''
-  
+
   // 为所有链接添加 target="_blank" 和禁用默认行为
   html = html.replace(/<a\s+([^>]*?)>/gi, (match, attrs) => {
     // 如果已经有 target 属性，替换它
@@ -342,7 +404,7 @@ const sanitizedHtmlContent = computed(() => {
     // 添加 target="_blank" 和 onclick 阻止默认行为
     return `<a ${attrs} target="_blank" onclick="event.preventDefault(); return false;" style="pointer-events: none; cursor: default;">`
   })
-  
+
   // 添加一个全局脚本，阻止所有链接的默认行为
   const preventNavScript = `
     <script>
@@ -363,7 +425,7 @@ const sanitizedHtmlContent = computed(() => {
       })();
     <\/script>
   `
-  
+
   // 将脚本插入到 head 或 body 开头
   if (html.includes('</head>')) {
     html = html.replace('</head>', preventNavScript + '</head>')
@@ -372,7 +434,7 @@ const sanitizedHtmlContent = computed(() => {
   } else {
     html = preventNavScript + html
   }
-  
+
   return html
 })
 
@@ -382,10 +444,14 @@ const preventIframeNavigation = (event: Event) => {
   if (iframe && iframe.contentWindow) {
     try {
       // 监听 iframe 内的链接点击
-      iframe.contentWindow.addEventListener('click', (e) => {
-        e.preventDefault()
-        e.stopPropagation()
-      }, true)
+      iframe.contentWindow.addEventListener(
+        'click',
+        (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+        },
+        true
+      )
     } catch (error) {
       // 跨域限制，无法访问 iframe 内容
       console.warn('无法阻止 iframe 导航，可能是跨域限制:', error)
@@ -504,12 +570,12 @@ const monacoEditorStyle = computed(() => ({
 // 初始化 JSON Monaco 编辑器
 const initJsonMonacoEditor = async () => {
   if (!isJsonContent.value || !resultData.value || !formattedJsonContent.value) return
-  
+
   // 确保 Monaco Worker 已配置
   setupMonacoWorker()
-  
+
   await nextTick()
-  
+
   const container = document.getElementById(jsonEditorId.value)
   if (!container) {
     console.warn('JSON Monaco编辑器容器未找到')
@@ -518,11 +584,11 @@ const initJsonMonacoEditor = async () => {
 
   // 从全局获取编辑器实例（如果已存在则先销毁）
   const editors = monaco.editor.getEditors()
-  const existingEditor = editors.find(e => {
+  const existingEditor = editors.find((e) => {
     const editorContainer = e.getContainerDomNode()
     return editorContainer && editorContainer.id === jsonEditorId.value
   })
-  
+
   if (existingEditor) {
     existingEditor.dispose()
   }
@@ -541,7 +607,7 @@ const initJsonMonacoEditor = async () => {
     fontSize: 13,
     fontFamily: 'JetBrains Mono, Consolas, monospace'
   })
-  
+
   // 确保容器有 ID
   if (container) {
     container.id = jsonEditorId.value
@@ -551,12 +617,12 @@ const initJsonMonacoEditor = async () => {
 // 初始化 XML Monaco 编辑器
 const initXmlMonacoEditor = async () => {
   if (!isXmlContent.value || !resultData.value || !formattedXmlContent.value) return
-  
+
   // 确保 Monaco Worker 已配置
   setupMonacoWorker()
-  
+
   await nextTick()
-  
+
   const container = document.getElementById(xmlEditorId.value)
   if (!container) {
     console.warn('XML Monaco编辑器容器未找到')
@@ -565,11 +631,11 @@ const initXmlMonacoEditor = async () => {
 
   // 从全局获取编辑器实例（如果已存在则先销毁）
   const editors = monaco.editor.getEditors()
-  const existingEditor = editors.find(e => {
+  const existingEditor = editors.find((e) => {
     const editorContainer = e.getContainerDomNode()
     return editorContainer && editorContainer.id === xmlEditorId.value
   })
-  
+
   if (existingEditor) {
     existingEditor.dispose()
   }
@@ -588,7 +654,7 @@ const initXmlMonacoEditor = async () => {
     fontSize: 13,
     fontFamily: 'JetBrains Mono, Consolas, monospace'
   })
-  
+
   // 确保容器有 ID
   if (container) {
     container.id = xmlEditorId.value
@@ -611,37 +677,48 @@ const disposeXmlMonacoEditor = () => {
 }
 
 // 监听内容变化，重新初始化编辑器
-watch([() => isJsonContent.value, () => formattedJsonContent.value, () => activeTab.value], async () => {
-  if (isJsonContent.value && activeTab.value === 'render') {
-    await nextTick()
-    initJsonMonacoEditor()
-  } else {
-    disposeJsonMonacoEditor()
-  }
-}, { immediate: true })
+watch(
+  [() => isJsonContent.value, () => formattedJsonContent.value, () => activeTab.value],
+  async () => {
+    if (isJsonContent.value && activeTab.value === 'render') {
+      await nextTick()
+      initJsonMonacoEditor()
+    } else {
+      disposeJsonMonacoEditor()
+    }
+  },
+  { immediate: true }
+)
 
-watch([() => isXmlContent.value, () => formattedXmlContent.value, () => activeTab.value], async () => {
-  if (isXmlContent.value && activeTab.value === 'render') {
-    await nextTick()
-    initXmlMonacoEditor()
-  } else {
-    disposeXmlMonacoEditor()
-  }
-}, { immediate: true })
+watch(
+  [() => isXmlContent.value, () => formattedXmlContent.value, () => activeTab.value],
+  async () => {
+    if (isXmlContent.value && activeTab.value === 'render') {
+      await nextTick()
+      initXmlMonacoEditor()
+    } else {
+      disposeXmlMonacoEditor()
+    }
+  },
+  { immediate: true }
+)
 
 // 监听主题变化
-watch(() => themeState.currentTheme.type, () => {
-  const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
-  monaco.editor.setTheme(theme)
-  
-  // 更新编辑器内容（如果内容变化）
-  if (jsonMonacoEditor && formattedJsonContent.value) {
-    jsonMonacoEditor.setValue(formattedJsonContent.value)
+watch(
+  () => themeState.currentTheme.type,
+  () => {
+    const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
+    monaco.editor.setTheme(theme)
+
+    // 更新编辑器内容（如果内容变化）
+    if (jsonMonacoEditor && formattedJsonContent.value) {
+      jsonMonacoEditor.setValue(formattedJsonContent.value)
+    }
+    if (xmlMonacoEditor && formattedXmlContent.value) {
+      xmlMonacoEditor.setValue(formattedXmlContent.value)
+    }
   }
-  if (xmlMonacoEditor && formattedXmlContent.value) {
-    xmlMonacoEditor.setValue(formattedXmlContent.value)
-  }
-})
+)
 
 onMounted(async () => {
   if (isJsonContent.value && activeTab.value === 'render') {
@@ -726,4 +803,3 @@ onBeforeUnmount(() => {
   background-color: v-bind('themeState.currentTheme.background');
 }
 </style>
-

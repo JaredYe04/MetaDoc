@@ -66,7 +66,7 @@ export function myFunction() {
 const logger = createRendererLogger('MyModule')
 
 export function myFunction() {
-  logger.info('消息')  // 可能出错！
+  logger.info('消息') // 可能出错！
 }
 ```
 
@@ -75,10 +75,10 @@ export function myFunction() {
 ```typescript
 // ❌ 可能导致初始化顺序问题
 class MyClass {
-  private logger = createRendererLogger('MyClass')  // 可能出错！
-  
+  private logger = createRendererLogger('MyClass') // 可能出错！
+
   constructor() {
-    this.logger.info('消息')  // 可能出错！
+    this.logger.info('消息') // 可能出错！
   }
 }
 ```
@@ -91,8 +91,8 @@ class MyClass {
   private logger: ReturnType<typeof createRendererLogger>
 
   constructor() {
-    this.logger = createRendererLogger('MyClass')  // 可能出错！
-    this.logger.info('消息')  // 可能出错！
+    this.logger = createRendererLogger('MyClass') // 可能出错！
+    this.logger.info('消息') // 可能出错！
   }
 }
 ```
@@ -100,6 +100,7 @@ class MyClass {
 ## 为什么会出错？
 
 当模块加载时，如果存在循环依赖或复杂的初始化顺序，在模块顶层或构造函数中直接创建 logger 可能会导致：
+
 1. 循环依赖问题
 2. 模块初始化顺序问题
 3. "Cannot access before initialization" 错误
@@ -117,4 +118,3 @@ class MyClass {
 
 - 渲染进程 Logger: `src/renderer/src/utils/logger.ts`
 - 主进程 Logger: `src/main/logger.ts`
-

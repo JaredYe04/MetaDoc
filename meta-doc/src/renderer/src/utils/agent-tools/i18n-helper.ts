@@ -130,4 +130,3 @@ export function getLocalizedInstruction(instruction: string | ToolLocales): stri
 
   return ''
 }
-

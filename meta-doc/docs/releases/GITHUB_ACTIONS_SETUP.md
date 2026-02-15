@@ -20,6 +20,7 @@
    这些配置用于应用程序运行时检查更新。
 
    **重要提示**：
+
    - `.env` 文件会被打包到应用程序中，用户可以看到
    - **推荐使用公开的 Releases 仓库**，这样不需要 Token，也不存在安全问题
    - `UPDATE_GITHUB_TOKEN` 不应写在 `.env` 文件中（会暴露给用户）
@@ -58,16 +59,19 @@ GitHub Actions 工作流文件位于 `.github/workflows/release.yml`，通过推
 ### 推荐使用方式：npm 命令
 
 **发布正式版：**
+
 ```bash
 npm run release:prod
 ```
 
 **发布开发版：**
+
 ```bash
 npm run release:dev
 ```
 
 这些命令会自动：
+
 1. 构建项目
 2. 打包 Windows 版本
 3. 创建并推送标签（`vX.Y.Z` 或 `dev-X.Y.Z`）
@@ -78,6 +82,7 @@ npm run release:dev
 工作流会在以下情况自动触发：
 
 1. **推送标签触发**（主要方式）
+
    - 当推送符合以下格式的标签时，会自动触发发布：
    - `v*` - 正式版（例如：`v0.13.1`）
    - `dev-*` - 开发版（例如：`dev-0.13.1`）
@@ -104,10 +109,12 @@ npm run release:dev
 3. **安装依赖**：运行 `npm ci` 安装依赖
 
 4. **读取版本信息**：
+
    - 如果手动输入了版本号，使用输入的版本
    - 否则从 `version.json` 读取当前版本
 
 5. **确定发布类型**：
+
    - 手动触发：使用输入的发布类型
    - 标签触发：根据标签格式自动判断（`v*` = prod，`dev-*` = dev）
 
@@ -116,10 +123,12 @@ npm run release:dev
 7. **打包 Windows 版本**：运行 `npm run build:win`
 
 8. **生成发布日志**：
+
    - 从 git commits 自动生成发布说明
    - 按类型分类（新功能、Bug修复、性能优化等）
 
 9. **发布到 Releases 仓库**：
+
    - 上传构建产物（`.exe`、`.yml` 等文件）
    - 使用生成的发布日志作为 Release 说明
    - 根据发布类型设置是否为预发布版本
@@ -169,6 +178,7 @@ node scripts/release-rollback.js v0.13.1 --confirm
 ```
 
 **注意：**
+
 - 回滚操作只删除 GitHub Release，不会删除 Git 标签
 - 如需删除 Git 标签，请手动执行：
   ```bash
@@ -185,6 +195,7 @@ node scripts/release-rollback.js v0.13.1 --confirm
 **原因**：GitHub Secrets 未配置。
 
 **解决方法**：
+
 - 检查是否在仓库的 Settings → Secrets and variables → Actions 中添加了 `GH_TOKEN`
 - 确认 Token 值正确
 
@@ -193,6 +204,7 @@ node scripts/release-rollback.js v0.13.1 --confirm
 **原因**：Token 没有访问目标仓库的权限。
 
 **解决方法**：
+
 - 确认 Token 有 `repo` 权限
 - 如果是私有仓库，确认 Token 有访问权限
 - 确认目标仓库名称正确（`MetaDoc-Releases`）
@@ -202,6 +214,7 @@ node scripts/release-rollback.js v0.13.1 --confirm
 **原因**：可能是依赖问题或构建脚本错误。
 
 **解决方法**：
+
 - 查看 GitHub Actions 日志，定位具体错误
 - 在本地运行 `npm run build` 和 `npm run build:win` 测试
 - 检查 Node.js 版本是否匹配
@@ -211,6 +224,7 @@ node scripts/release-rollback.js v0.13.1 --confirm
 **原因**：可能没有新的 commits，或 git 历史不完整。
 
 **解决方法**：
+
 - 确认工作流使用了 `fetch-depth: 0` 获取完整 git 历史
 - 检查是否有符合 Conventional Commits 规范的 commits
 - 可以在手动触发时输入自定义发布说明
@@ -220,6 +234,7 @@ node scripts/release-rollback.js v0.13.1 --confirm
 **原因**：文件路径或 glob 模式不正确。
 
 **解决方法**：
+
 - 检查 `release/` 目录中是否有构建产物
 - 确认文件扩展名正确（`.exe`、`.yml` 等）
 - 查看工作流日志中的文件列表
@@ -227,21 +242,25 @@ node scripts/release-rollback.js v0.13.1 --confirm
 ## 最佳实践
 
 1. **版本管理**：
+
    - 使用 Conventional Commits 规范提交代码
    - 版本号会自动根据 commits 更新
    - 发布前确认版本号正确
 
 2. **标签管理**：
+
    - 使用清晰的标签格式（`vX.Y.Z` 或 `dev-X.Y.Z`）
    - 标签一旦推送就会触发发布，请谨慎操作
    - 如需修改标签，先删除本地和远程标签，再重新创建
 
 3. **发布前检查**：
+
    - 在本地测试构建和打包
    - 确认代码已提交
    - 检查版本号是否正确
 
 4. **发布后验证**：
+
    - 检查 GitHub Releases 页面，确认文件已上传
    - 验证发布说明是否正确
    - 在应用中测试更新功能
@@ -250,4 +269,3 @@ node scripts/release-rollback.js v0.13.1 --confirm
    - 发现严重问题立即回滚
    - 回滚后尽快发布修复版本
    - 记录回滚原因，避免重复问题
-

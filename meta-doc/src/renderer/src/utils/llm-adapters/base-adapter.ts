@@ -3,29 +3,29 @@
  * 定义统一的接口，不同的LLM类型实现此接口
  */
 
-import { LlmError, LlmErrorType } from "../llm-errors.js";
-import { createRendererLogger } from "../logger.ts";
-import type { 
-  LlmConfig, 
-  Message, 
-  UnifiedResponse, 
-  RequestMeta, 
+import { LlmError, LlmErrorType } from '../llm-errors.js'
+import { createRendererLogger } from '../logger.ts'
+import type {
+  LlmConfig,
+  Message,
+  UnifiedResponse,
+  RequestMeta,
   RequestMode,
-  UsageStats 
-} from "./types.ts";
+  UsageStats
+} from './types.ts'
 
 /**
  * LLM适配器基类
  */
 export abstract class BaseLlmAdapter {
-  protected config: LlmConfig;
-  protected type: LlmConfig['type'];
-  protected logger: ReturnType<typeof createRendererLogger>;
+  protected config: LlmConfig
+  protected type: LlmConfig['type']
+  protected logger: ReturnType<typeof createRendererLogger>
 
   constructor(config: LlmConfig) {
-    this.config = config;
-    this.type = config.type;
-    this.logger = createRendererLogger(`LLM-Adapter-${config.type}`);
+    this.config = config
+    this.type = config.type
+    this.logger = createRendererLogger(`LLM-Adapter-${config.type}`)
   }
 
   /**
@@ -34,10 +34,7 @@ export abstract class BaseLlmAdapter {
    */
   validate(): void {
     if (!this.config.selectedModel || !this.config.selectedModel.trim()) {
-      throw new LlmError(
-        LlmErrorType.INVALID_CONFIG,
-        "未选择模型"
-      );
+      throw new LlmError(LlmErrorType.INVALID_CONFIG, '未选择模型')
     }
   }
 
@@ -46,7 +43,7 @@ export abstract class BaseLlmAdapter {
    * @returns {LlmConfig} 配置对象
    */
   getConfig(): LlmConfig {
-    return this.config;
+    return this.config
   }
 
   /**
@@ -56,7 +53,7 @@ export abstract class BaseLlmAdapter {
    */
   convertMessages(messages: Message[]): any[] {
     // 默认实现：直接返回（适用于OpenAI兼容的API）
-    return messages;
+    return messages
   }
 
   /**
@@ -67,17 +64,20 @@ export abstract class BaseLlmAdapter {
    */
   convertResponse(response: any, mode: RequestMode = 'chat'): UnifiedResponse {
     // 默认实现：假设已经是OpenAI格式
-    const text = mode === 'completion' 
-      ? (response.choices?.[0]?.text || response.text || "")
-      : (response.choices?.[0]?.message?.content || "");
-    
-    const usage: UsageStats | null = response.usage ? {
-      prompt_tokens: response.usage.prompt_tokens || 0,
-      completion_tokens: response.usage.completion_tokens || 0,
-      total_tokens: response.usage.total_tokens || 0,
-    } : null;
+    const text =
+      mode === 'completion'
+        ? response.choices?.[0]?.text || response.text || ''
+        : response.choices?.[0]?.message?.content || ''
 
-    return { text, usage };
+    const usage: UsageStats | null = response.usage
+      ? {
+          prompt_tokens: response.usage.prompt_tokens || 0,
+          completion_tokens: response.usage.completion_tokens || 0,
+          total_tokens: response.usage.total_tokens || 0
+        }
+      : null
+
+    return { text, usage }
   }
 
   /**
@@ -89,9 +89,9 @@ export abstract class BaseLlmAdapter {
   extractStreamDelta(chunk: any, mode: RequestMode = 'chat'): string {
     // 默认实现：OpenAI格式
     if (mode === 'completion') {
-      return chunk.choices?.[0]?.text || "";
+      return chunk.choices?.[0]?.text || ''
     } else {
-      return chunk.choices?.[0]?.delta?.content || "";
+      return chunk.choices?.[0]?.delta?.content || ''
     }
   }
 
@@ -105,23 +105,23 @@ export abstract class BaseLlmAdapter {
       return {
         prompt_tokens: chunk.usage.prompt_tokens || 0,
         completion_tokens: chunk.usage.completion_tokens || 0,
-        total_tokens: chunk.usage.total_tokens || 0,
-      };
+        total_tokens: chunk.usage.total_tokens || 0
+      }
     }
-    return null;
+    return null
   }
 
   /**
    * 构建completion请求的URL
    * @returns {string} URL
    */
-  abstract getCompletionUrl(): string;
+  abstract getCompletionUrl(): string
 
   /**
    * 构建chat请求的URL
    * @returns {string} URL
    */
-  abstract getChatUrl(): string;
+  abstract getChatUrl(): string
 
   /**
    * 构建completion请求的payload
@@ -129,7 +129,7 @@ export abstract class BaseLlmAdapter {
    * @param {RequestMeta} meta - 元数据（temperature, max_tokens等）
    * @returns {any} payload
    */
-  abstract buildCompletionPayload(prompt: string, meta?: RequestMeta): any;
+  abstract buildCompletionPayload(prompt: string, meta?: RequestMeta): any
 
   /**
    * 构建chat请求的payload
@@ -137,20 +137,20 @@ export abstract class BaseLlmAdapter {
    * @param {RequestMeta} meta - 元数据（temperature, max_tokens等）
    * @returns {any} payload
    */
-  abstract buildChatPayload(messages: any[], meta?: RequestMeta): any;
+  abstract buildChatPayload(messages: any[], meta?: RequestMeta): any
 
   /**
    * 构建请求头
    * @returns {Record<string, string>} 请求头
    */
-  abstract buildHeaders(): Record<string, string>;
+  abstract buildHeaders(): Record<string, string>
 
   /**
    * 是否支持流式请求
    * @returns {boolean}
    */
   supportsStreaming(): boolean {
-    return true;
+    return true
   }
 
   /**
@@ -159,39 +159,54 @@ export abstract class BaseLlmAdapter {
    * @returns {string | null} URL，如果与普通URL相同则返回null
    */
   getStreamUrl(mode: RequestMode = 'chat'): string | null {
-    return null; // 默认与普通URL相同
+    return null // 默认与普通URL相同
   }
 
   /**
    * 使用 SDK 进行非流式补全请求（可选实现）
    * 如果适配器使用 SDK，应该实现此方法
    */
-  async generateContentNonStream?(prompt: string, meta?: RequestMeta, signal?: AbortSignal): Promise<UnifiedResponse> {
-    throw new Error("generateContentNonStream must be implemented by subclass if using SDK");
+  async generateContentNonStream?(
+    prompt: string,
+    meta?: RequestMeta,
+    signal?: AbortSignal
+  ): Promise<UnifiedResponse> {
+    throw new Error('generateContentNonStream must be implemented by subclass if using SDK')
   }
 
   /**
    * 使用 SDK 进行流式补全请求（可选实现）
    * 如果适配器使用 SDK，应该实现此方法
    */
-  async *generateContentStream?(prompt: string, meta?: RequestMeta, signal?: AbortSignal): AsyncGenerator<{ delta: string; usage: UsageStats | null }> {
-    throw new Error("generateContentStream must be implemented by subclass if using SDK");
+  async *generateContentStream?(
+    prompt: string,
+    meta?: RequestMeta,
+    signal?: AbortSignal
+  ): AsyncGenerator<{ delta: string; usage: UsageStats | null }> {
+    throw new Error('generateContentStream must be implemented by subclass if using SDK')
   }
 
   /**
    * 使用 SDK 进行非流式对话请求（可选实现）
    * 如果适配器使用 SDK，应该实现此方法
    */
-  async generateChatNonStream?(messages: any[], meta?: RequestMeta, signal?: AbortSignal): Promise<UnifiedResponse> {
-    throw new Error("generateChatNonStream must be implemented by subclass if using SDK");
+  async generateChatNonStream?(
+    messages: any[],
+    meta?: RequestMeta,
+    signal?: AbortSignal
+  ): Promise<UnifiedResponse> {
+    throw new Error('generateChatNonStream must be implemented by subclass if using SDK')
   }
 
   /**
    * 使用 SDK 进行流式对话请求（可选实现）
    * 如果适配器使用 SDK，应该实现此方法
    */
-  async *generateChatStream?(messages: any[], meta?: RequestMeta, signal?: AbortSignal): AsyncGenerator<{ delta: string; usage: UsageStats | null }> {
-    throw new Error("generateChatStream must be implemented by subclass if using SDK");
+  async *generateChatStream?(
+    messages: any[],
+    meta?: RequestMeta,
+    signal?: AbortSignal
+  ): AsyncGenerator<{ delta: string; usage: UsageStats | null }> {
+    throw new Error('generateChatStream must be implemented by subclass if using SDK')
   }
 }
-

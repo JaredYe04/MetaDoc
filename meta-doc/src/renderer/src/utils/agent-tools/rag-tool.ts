@@ -43,17 +43,20 @@ const ragToolCallback: ToolCallback = async (params, signal, onUpdate) => {
   }
 
   // 更新状态：开始检索
-  onUpdate({
-    content: {
-      stage: 'searching',
-      question,
-      results: []
+  onUpdate(
+    {
+      content: {
+        stage: 'searching',
+        question,
+        results: []
+      },
+      format: 'json'
     },
-    format: 'json'
-  }, {
-    percentage: 10,
-    message: '正在检索知识库...'
-  })
+    {
+      percentage: 10,
+      message: '正在检索知识库...'
+    }
+  )
 
   try {
     // 检查是否启用知识库
@@ -80,10 +83,11 @@ const ragToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     let scoreThreshold: number
     if (params.scoreThreshold !== undefined && params.scoreThreshold !== null) {
       // 从参数中获取
-      scoreThreshold = typeof params.scoreThreshold === 'number' 
-        ? params.scoreThreshold 
-        : parseFloat(String(params.scoreThreshold))
-      
+      scoreThreshold =
+        typeof params.scoreThreshold === 'number'
+          ? params.scoreThreshold
+          : parseFloat(String(params.scoreThreshold))
+
       // 验证阈值范围（0-1）
       if (isNaN(scoreThreshold) || scoreThreshold < 0 || scoreThreshold > 1) {
         return {
@@ -104,22 +108,25 @@ const ragToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       }
     } else {
       // 从设置中获取
-      scoreThreshold = await getSetting('knowledgeBaseScoreThreshold') || 0.5
+      scoreThreshold = (await getSetting('knowledgeBaseScoreThreshold')) || 0.5
     }
 
     // 更新进度
-    onUpdate({
-      content: {
-        stage: 'searching',
-        question,
-        scoreThreshold,
-        results: []
+    onUpdate(
+      {
+        content: {
+          stage: 'searching',
+          question,
+          scoreThreshold,
+          results: []
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 30,
-      message: '正在计算相似度...'
-    })
+      {
+        percentage: 30,
+        message: '正在计算相似度...'
+      }
+    )
 
     // 执行检索
     const results = await queryKnowledgeBase(question, scoreThreshold as number)
@@ -132,20 +139,23 @@ const ragToolCallback: ToolCallback = async (params, signal, onUpdate) => {
     }
 
     // 更新进度和结果
-    onUpdate({
-      content: {
-        stage: 'completed',
-        question,
-        scoreThreshold,
-        results,
-        resultCount: results.length
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          question,
+          scoreThreshold,
+          results,
+          resultCount: results.length
+        },
+        format: 'json',
+        componentName: 'RAGToolDisplay'
       },
-      format: 'json',
-      componentName: 'RAGToolDisplay'
-    }, {
-      percentage: 90,
-      message: `找到 ${results.length} 条相关结果`
-    })
+      {
+        percentage: 90,
+        message: `找到 ${results.length} 条相关结果`
+      }
+    )
 
     // 返回最终结果
     return {
@@ -168,10 +178,7 @@ const ragToolCallback: ToolCallback = async (params, signal, onUpdate) => {
       status: 'failed',
       error: createDetailedError(
         `RAG检索失败: ${errorMessage}`,
-        [
-          '{"question": "要检索的问题"}',
-          '确保知识库已启用并且有文档上传'
-        ],
+        ['{"question": "要检索的问题"}', '确保知识库已启用并且有文档上传'],
         [
           '检查知识库功能是否已启用',
           '确保知识库中已有上传的文档',
@@ -235,7 +242,8 @@ const ragToolLocales: ToolLocales = {
   },
   en_us: {
     name: 'RAG Knowledge Base Retrieval',
-    description: 'Retrieve relevant document chunks from the knowledge base to enhance AI response accuracy',
+    description:
+      'Retrieve relevant document chunks from the knowledge base to enhance AI response accuracy',
     instruction: `# RAG Knowledge Base Retrieval Tool
 
 ## Description
@@ -284,11 +292,13 @@ Returns JSON array of retrieval results, each containing:
   },
   de_DE: {
     name: 'RAG-Wissensdatenbank-Abruf',
-    description: 'Ruft relevante Dokumentfragmente aus der Wissensdatenbank ab, um die Genauigkeit der KI-Antworten zu verbessern'
+    description:
+      'Ruft relevante Dokumentfragmente aus der Wissensdatenbank ab, um die Genauigkeit der KI-Antworten zu verbessern'
   },
   fr_FR: {
     name: 'Récupération de base de connaissances RAG',
-    description: 'Récupère des fragments de documents pertinents de la base de connaissances pour améliorer la précision des réponses IA'
+    description:
+      'Récupère des fragments de documents pertinents de la base de connaissances pour améliorer la précision des réponses IA'
   },
   ja_JP: {
     name: 'RAG知識ベース検索',
@@ -310,7 +320,8 @@ export const ragToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'rag-retrieval',
-    brief: 'Retrieve relevant document chunks from the knowledge base using vector similarity search and keyword matching.',
+    brief:
+      'Retrieve relevant document chunks from the knowledge base using vector similarity search and keyword matching.',
     fullSpec: `# RAG Knowledge Base Retrieval Tool
 
 ## Description
@@ -365,4 +376,3 @@ Returns JSON array of retrieval results, each containing:
   editable: false,
   locales: ragToolLocales
 }
-

@@ -1,15 +1,12 @@
 <template>
-  <el-scrollbar 
-    v-if="references.length > 0" 
+  <el-scrollbar
+    v-if="references.length > 0"
     class="reference-display-wrapper"
     :style="wrapperStyle"
   >
-    <div 
-      class="reference-display"
-      :style="containerStyle"
-    >
-      <div 
-        v-for="ref in displayReferences" 
+    <div class="reference-display" :style="containerStyle">
+      <div
+        v-for="ref in displayReferences"
         :key="ref.id"
         class="reference-tag"
         :class="{
@@ -55,21 +52,21 @@ const emit = defineEmits<{
 const displayReferences = computed<ReferenceDisplayItem[]>(() => {
   // 过滤掉内置0号reference
   const filteredReferences = props.references.filter(
-    ref => ref.id !== 'built-in-document-reference-0'
+    (ref) => ref.id !== 'built-in-document-reference-0'
   )
-  
+
   if (props.readonly) {
     // 只读模式：只显示激活的引用
     return filteredReferences
-      .filter(ref => props.activeReferenceIds.includes(ref.id))
-      .map(ref => ({
+      .filter((ref) => props.activeReferenceIds.includes(ref.id))
+      .map((ref) => ({
         id: ref.id,
         name: ref.name,
         active: true
       }))
   } else {
     // 可编辑模式：显示所有引用，根据activeReferenceIds判断是否激活
-    return filteredReferences.map(ref => ({
+    return filteredReferences.map((ref) => ({
       id: ref.id,
       name: ref.name,
       active: props.activeReferenceIds.includes(ref.id)
@@ -79,7 +76,8 @@ const displayReferences = computed<ReferenceDisplayItem[]>(() => {
 
 // 外层容器样式（el-scrollbar）
 const wrapperStyle = computed(() => {
-  const borderColor = themeState.currentTheme.referenceContainerBorderColor || themeState.currentTheme.borderColor
+  const borderColor =
+    themeState.currentTheme.referenceContainerBorderColor || themeState.currentTheme.borderColor
   const baseStyle: Record<string, string> = {
     borderRadius: '8px',
     border: borderColor ? `1px solid ${borderColor}` : 'none'
@@ -98,7 +96,7 @@ const containerStyle = computed(() => {
     width: 'fit-content', // 确保内容宽度自适应
     minWidth: '100%' // 至少占满容器宽度
   }
-  
+
   return baseStyle
 })
 
@@ -138,7 +136,8 @@ const tagStyle = (ref: ReferenceDisplayItem) => {
     if (inactiveText) {
       baseStyle.color = inactiveText
     } else {
-      baseStyle.color = themeState.currentTheme.textColor2 || themeState.currentTheme.textColor || '#666666'
+      baseStyle.color =
+        themeState.currentTheme.textColor2 || themeState.currentTheme.textColor || '#666666'
     }
     baseStyle.opacity = '0.6'
   }
@@ -206,4 +205,3 @@ const handleToggle = (ref: ReferenceDisplayItem) => {
   font-weight: 500;
 }
 </style>
-

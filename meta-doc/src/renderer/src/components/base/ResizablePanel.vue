@@ -1,8 +1,8 @@
 <template>
-  <div 
-    v-if="visible" 
-    ref="panelRef" 
-    class="resizable-panel" 
+  <div
+    v-if="visible"
+    ref="panelRef"
+    class="resizable-panel"
     :style="{
       background: backgroundColor,
       width: width + 'px',
@@ -16,30 +16,30 @@
     }"
   >
     <!-- 顶部拖拽条 -->
-    <div 
+    <div
       v-if="enableTopResize"
-      class="resize-handle resize-handle-top" 
+      class="resize-handle resize-handle-top"
       @mousedown.prevent="startResizing('top', $event)"
     ></div>
-    
+
     <!-- 左侧拖拽条 -->
-    <div 
+    <div
       v-if="enableLeftResize"
-      class="resize-handle resize-handle-left" 
+      class="resize-handle resize-handle-left"
       @mousedown.prevent="startResizing('left', $event)"
     ></div>
-    
+
     <!-- 右侧拖拽条 -->
-    <div 
+    <div
       v-if="enableRightResize"
-      class="resize-handle resize-handle-right" 
+      class="resize-handle resize-handle-right"
       @mousedown.prevent="startResizing('right', $event)"
     ></div>
-    
+
     <!-- 底部拖拽条 -->
-    <div 
+    <div
       v-if="enableBottomResize"
-      class="resize-handle resize-handle-bottom" 
+      class="resize-handle resize-handle-bottom"
       @mousedown.prevent="startResizing('bottom', $event)"
     ></div>
 
@@ -136,12 +136,12 @@ let startHeight = 0
 // 计算定位样式
 const positionStyles = computed(() => {
   const styles: Record<string, string> = {}
-  
+
   if (props.top !== undefined) styles.top = props.top + 'px'
   if (props.left !== undefined) styles.left = props.left + 'px'
   if (props.right !== undefined) styles.right = props.right + 'px'
   if (props.bottom !== undefined) styles.bottom = props.bottom + 'px'
-  
+
   return styles
 })
 
@@ -149,16 +149,16 @@ const positionStyles = computed(() => {
 function startResizing(direction: 'top' | 'left' | 'right' | 'bottom', event: MouseEvent) {
   resizing.value = true
   resizeDirection.value = direction
-  
+
   startX = event.clientX
   startY = event.clientY
   startWidth = width.value
   startHeight = height.value
-  
+
   document.addEventListener('mousemove', handleResize)
   document.addEventListener('mouseup', stopResizing)
   document.body.style.cursor = getCursor(direction)
-  
+
   // 防止选择文本
   document.body.style.userSelect = 'none'
 }
@@ -166,10 +166,10 @@ function startResizing(direction: 'top' | 'left' | 'right' | 'bottom', event: Mo
 // 处理拖拽调整大小
 function handleResize(event: MouseEvent) {
   if (!resizing.value || !resizeDirection.value) return
-  
+
   const deltaX = event.clientX - startX
   const deltaY = event.clientY - startY
-  
+
   switch (resizeDirection.value) {
     case 'top':
       const newHeight = Math.max(props.minWidth, startHeight - deltaY)
@@ -177,21 +177,21 @@ function handleResize(event: MouseEvent) {
         height.value = newHeight
       }
       break
-      
+
     case 'left':
       const newWidth = Math.max(props.minWidth, startWidth - deltaX)
       if (!props.maxWidth || newWidth <= props.maxWidth) {
         width.value = newWidth
       }
       break
-      
+
     case 'right':
       const newWidthRight = Math.max(props.minWidth, startWidth + deltaX)
       if (!props.maxWidth || newWidthRight <= props.maxWidth) {
         width.value = newWidthRight
       }
       break
-      
+
     case 'bottom':
       const newHeightBottom = Math.max(props.minHeight, startHeight + deltaY)
       if (!props.maxHeight || newHeightBottom <= props.maxHeight) {
@@ -206,12 +206,12 @@ function stopResizing() {
   if (resizing.value) {
     resizing.value = false
     resizeDirection.value = null
-    
+
     document.removeEventListener('mousemove', handleResize)
     document.removeEventListener('mouseup', stopResizing)
     document.body.style.cursor = ''
     document.body.style.userSelect = ''
-    
+
     // 发出调整大小事件
     emit('resize', width.value, height.value)
   }

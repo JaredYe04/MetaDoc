@@ -8,11 +8,7 @@
 
       <div class="new-document__formats">
         <el-radio-group v-model="selectedFormatId" class="format-group">
-          <el-radio-button
-            v-for="format in formats"
-            :key="format.id"
-            :label="format.id"
-          >
+          <el-radio-button v-for="format in formats" :key="format.id" :label="format.id">
             {{ formatLabel(format) }}
           </el-radio-button>
         </el-radio-group>
@@ -26,30 +22,35 @@
         <el-scrollbar class="template-grid-scroll">
           <div class="template-grid-wrapper" ref="templateGridWrapperRef">
             <div class="template-grid" :style="{ gridTemplateColumns: gridTemplateColumns }">
-            <div
-              v-for="template in currentTemplates"
-              :key="template.id"
-              class="template-card"
-              :class="{ active: template.id === selectedTemplateId }"
-              @click="selectTemplate(template.id)"
-              @dblclick="confirmTemplate(template.id)"
-            >
-              <div class="template-card__image" :class="{ 'is-placeholder': !template.image }">
-                <img v-if="template.image" :src="template.image" :alt="templateLabel(template)" />
-                <div v-else class="template-card__placeholder">
-                  <el-icon><Document /></el-icon>
+              <div
+                v-for="template in currentTemplates"
+                :key="template.id"
+                class="template-card"
+                :class="{ active: template.id === selectedTemplateId }"
+                @click="selectTemplate(template.id)"
+                @dblclick="confirmTemplate(template.id)"
+              >
+                <div class="template-card__image" :class="{ 'is-placeholder': !template.image }">
+                  <img v-if="template.image" :src="template.image" :alt="templateLabel(template)" />
+                  <div v-else class="template-card__placeholder">
+                    <el-icon><Document /></el-icon>
+                  </div>
+                </div>
+                <div class="template-card__body">
+                  <h3>{{ templateLabel(template) }}</h3>
+                  <p>{{ templateDescription(template) }}</p>
+                </div>
+                <div class="template-card__actions">
+                  <el-button
+                    type="primary"
+                    round
+                    size="small"
+                    @click.stop="confirmTemplate(template.id)"
+                  >
+                    {{ t('newDocument.useTemplate') }}
+                  </el-button>
                 </div>
               </div>
-              <div class="template-card__body">
-                <h3>{{ templateLabel(template) }}</h3>
-                <p>{{ templateDescription(template) }}</p>
-              </div>
-              <div class="template-card__actions">
-                <el-button type="primary" round size="small" @click.stop="confirmTemplate(template.id)">
-                  {{ t('newDocument.useTemplate') }}
-                </el-button>
-              </div>
-            </div>
             </div>
           </div>
         </el-scrollbar>
@@ -59,128 +60,127 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
-import { useWorkspace } from '../stores/workspace';
-import type { WorkspaceTabFormat } from '../stores/workspace';
-import type { SupportedFormat, DocumentTemplate } from '../types/formats';
-import { useI18n } from 'vue-i18n';
-import { Document } from '@element-plus/icons-vue';
-import { themeState } from '../utils/themes';
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useWorkspace } from '../stores/workspace'
+import type { WorkspaceTabFormat } from '../stores/workspace'
+import type { SupportedFormat, DocumentTemplate } from '../types/formats'
+import { useI18n } from 'vue-i18n'
+import { Document } from '@element-plus/icons-vue'
+import { themeState } from '../utils/themes'
 
 const props = defineProps<{
-  tabId: string;
-  active: boolean;
-}>();
+  tabId: string
+  active: boolean
+}>()
 
-const workspace = useWorkspace();
-const { t } = useI18n();
+const workspace = useWorkspace()
+const { t } = useI18n()
 
-const formats = computed<SupportedFormat[]>(() => workspace.supportedFormats);
-const selectedFormatId = ref<string>('');
-const selectedTemplateId = ref<string>('');
+const formats = computed<SupportedFormat[]>(() => workspace.supportedFormats)
+const selectedFormatId = ref<string>('')
+const selectedTemplateId = ref<string>('')
 
 const currentFormat = computed(() =>
-  formats.value.find((format) => format.id === selectedFormatId.value),
-);
+  formats.value.find((format) => format.id === selectedFormatId.value)
+)
 
-const currentTemplates = computed<DocumentTemplate[]>(() => currentFormat.value?.templates ?? []);
+const currentTemplates = computed<DocumentTemplate[]>(() => currentFormat.value?.templates ?? [])
 
 // 监听模板网格容器宽度，动态计算列数，尽量占满一行并减少换行
-const templateGridWrapperRef = ref<HTMLElement | null>(null);
-const gridContainerWidth = ref<number>(0);
-let templateGridResizeObserver: ResizeObserver | null = null;
+const templateGridWrapperRef = ref<HTMLElement | null>(null)
+const gridContainerWidth = ref<number>(0)
+let templateGridResizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
   if (templateGridWrapperRef.value) {
-    gridContainerWidth.value = templateGridWrapperRef.value.clientWidth;
+    gridContainerWidth.value = templateGridWrapperRef.value.clientWidth
     templateGridResizeObserver = new ResizeObserver((entries) => {
-      const entry = entries[0];
+      const entry = entries[0]
       if (entry) {
-        gridContainerWidth.value = entry.contentRect.width;
+        gridContainerWidth.value = entry.contentRect.width
       }
-    });
-    templateGridResizeObserver.observe(templateGridWrapperRef.value);
+    })
+    templateGridResizeObserver.observe(templateGridWrapperRef.value)
   }
-});
+})
 
 onBeforeUnmount(() => {
   if (templateGridResizeObserver && templateGridWrapperRef.value) {
-    templateGridResizeObserver.unobserve(templateGridWrapperRef.value);
-    templateGridResizeObserver.disconnect();
-    templateGridResizeObserver = null;
+    templateGridResizeObserver.unobserve(templateGridWrapperRef.value)
+    templateGridResizeObserver.disconnect()
+    templateGridResizeObserver = null
   }
-});
+})
 
 const gridTemplateColumns = computed<string>(() => {
-  const width = gridContainerWidth.value;
-  const itemCount = currentTemplates.value.length || 1;
-  const cardMin = 220; // 卡片最小理想宽度
-  const cardMax = 360; // 卡片最大理想宽度
+  const width = gridContainerWidth.value
+  const itemCount = currentTemplates.value.length || 1
+  const cardMin = 220 // 卡片最小理想宽度
+  const cardMax = 360 // 卡片最大理想宽度
   if (!width) {
-    return `repeat(auto-fit, minmax(${cardMin}px, 1fr))`;
+    return `repeat(auto-fit, minmax(${cardMin}px, 1fr))`
   }
   // 在 [ceil(width/cardMax), floor(width/cardMin)] 范围内取值，
   // 同时不超过 itemCount，优先更多列（减少换行），并让每个单元宽度处在 [cardMin, cardMax]。
-  const minColsByMax = Math.max(1, Math.ceil(width / cardMax));
-  const maxColsByMin = Math.max(1, Math.floor(width / cardMin));
-  const cols = Math.max(minColsByMax, Math.min(itemCount, maxColsByMin));
-  return `repeat(${cols}, 1fr)`;
-});
+  const minColsByMax = Math.max(1, Math.ceil(width / cardMax))
+  const maxColsByMin = Math.max(1, Math.floor(width / cardMin))
+  const cols = Math.max(minColsByMax, Math.min(itemCount, maxColsByMin))
+  return `repeat(${cols}, 1fr)`
+})
 
 const translate = (key?: string, fallback = '') => {
-  if (!key) return fallback;
-  const result = t(key);
-  return result !== key ? result : fallback || key;
-};
+  if (!key) return fallback
+  const result = t(key)
+  return result !== key ? result : fallback || key
+}
 
 watch(
   () => props.active,
   (active) => {
     if (active && !selectedFormatId.value) {
-      selectedFormatId.value = formats.value[0]?.id ?? '';
+      selectedFormatId.value = formats.value[0]?.id ?? ''
     }
   },
-  { immediate: true },
-);
+  { immediate: true }
+)
 
 watch(
   selectedFormatId,
   (formatId) => {
-    const format = formats.value.find((item) => item.id === formatId);
-    if (!format) return;
+    const format = formats.value.find((item) => item.id === formatId)
+    if (!format) return
     const template =
-      format.templates.find((tpl) => tpl.id === format.defaultTemplateId) ?? format.templates[0];
-    selectedTemplateId.value = template?.id ?? '';
+      format.templates.find((tpl) => tpl.id === format.defaultTemplateId) ?? format.templates[0]
+    selectedTemplateId.value = template?.id ?? ''
   },
-  { immediate: true },
-);
+  { immediate: true }
+)
 
 const formatLabel = (format?: SupportedFormat) =>
-  format ? translate(format.labelKey, format.label ?? '') : '';
+  format ? translate(format.labelKey, format.label ?? '') : ''
 
 const formatDescription = (format?: SupportedFormat) =>
-  format ? translate(format.descriptionKey, format.description ?? '') : '';
+  format ? translate(format.descriptionKey, format.description ?? '') : ''
 
-const templateLabel = (template: DocumentTemplate) =>
-  translate(template.labelKey, template.label);
+const templateLabel = (template: DocumentTemplate) => translate(template.labelKey, template.label)
 
 const templateDescription = (template: DocumentTemplate) =>
-  translate(template.descriptionKey, template.description ?? '');
+  translate(template.descriptionKey, template.description ?? '')
 
 function selectTemplate(templateId: string) {
-  selectedTemplateId.value = templateId;
+  selectedTemplateId.value = templateId
 }
 
 function confirmTemplate(templateId?: string) {
-  const formatId = selectedFormatId.value;
-  const template = templateId ?? selectedTemplateId.value;
-  if (!props.tabId || !formatId || !template) return;
+  const formatId = selectedFormatId.value
+  const template = templateId ?? selectedTemplateId.value
+  if (!props.tabId || !formatId || !template) return
   workspace.initializeDocumentFromTemplate(
     props.tabId,
     formatId as WorkspaceTabFormat,
     template,
-    'editor', // 指定跳转到 Editor 视图
-  );
+    'editor' // 指定跳转到 Editor 视图
+  )
 }
 </script>
 
@@ -256,21 +256,23 @@ function confirmTemplate(templateId?: string) {
 .template-card {
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(77,77,77,0.5);
+  border: 1px solid rgba(77, 77, 77, 0.5);
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   background-color: var(--el-fill-color-blank);
 }
 
 .template-card:hover {
-  border-color: rgba(128,128,128,0.5);
+  border-color: rgba(128, 128, 128, 0.5);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 
 .template-card.active {
-  border-color: rgba(128,128,128,0.5);
+  border-color: rgba(128, 128, 128, 0.5);
   box-shadow: 0 8px 24px rgba(64, 158, 255, 0.2);
 }
 
@@ -334,4 +336,3 @@ function confirmTemplate(templateId?: string) {
   width: 100%;
 }
 </style>
-

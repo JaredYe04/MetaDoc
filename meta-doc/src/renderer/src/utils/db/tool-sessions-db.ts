@@ -114,18 +114,18 @@ export interface AIChatSession {
 export const dataAnalysisSessionsDb = {
   async getAll(): Promise<DataAnalysisSession[]> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return await ipcRenderer.invoke('db-query', {
+    return (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM data_analysis_sessions ORDER BY updated_at DESC',
       params: []
-    }) as DataAnalysisSession[]
+    })) as DataAnalysisSession[]
   },
 
   async getById(id: string): Promise<DataAnalysisSession | null> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = await ipcRenderer.invoke('db-query', {
+    const results = (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM data_analysis_sessions WHERE id = ?',
       params: [id]
-    }) as DataAnalysisSession[]
+    })) as DataAnalysisSession[]
     return results[0] || null
   },
 
@@ -151,11 +151,14 @@ export const dataAnalysisSessionsDb = {
     })
   },
 
-  async update(id: string, updates: Partial<Omit<DataAnalysisSession, 'id' | 'created_at'>>): Promise<void> {
+  async update(
+    id: string,
+    updates: Partial<Omit<DataAnalysisSession, 'id' | 'created_at'>>
+  ): Promise<void> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
-    
+
     if (updates.title !== undefined) {
       fields.push('title = ?')
       params.push(updates.title)
@@ -196,10 +199,10 @@ export const dataAnalysisSessionsDb = {
       fields.push('generate_report = ?')
       params.push(updates.generate_report ? 1 : 0)
     }
-    
+
     fields.push('updated_at = CURRENT_TIMESTAMP')
     params.push(id)
-    
+
     await ipcRenderer.invoke('db-execute', {
       sql: `UPDATE data_analysis_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
@@ -221,18 +224,18 @@ export const dataAnalysisSessionsDb = {
 export const ocrSessionsDb = {
   async getAll(): Promise<OcrSession[]> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return await ipcRenderer.invoke('db-query', {
+    return (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM ocr_sessions ORDER BY updated_at DESC',
       params: []
-    }) as OcrSession[]
+    })) as OcrSession[]
   },
 
   async getById(id: string): Promise<OcrSession | null> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = await ipcRenderer.invoke('db-query', {
+    const results = (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM ocr_sessions WHERE id = ?',
       params: [id]
-    }) as OcrSession[]
+    })) as OcrSession[]
     return results[0] || null
   },
 
@@ -257,7 +260,7 @@ export const ocrSessionsDb = {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
-    
+
     if (updates.title !== undefined) {
       fields.push('title = ?')
       params.push(updates.title)
@@ -278,10 +281,10 @@ export const ocrSessionsDb = {
       fields.push('ocr_results = ?')
       params.push(updates.ocr_results)
     }
-    
+
     fields.push('updated_at = CURRENT_TIMESTAMP')
     params.push(id)
-    
+
     await ipcRenderer.invoke('db-execute', {
       sql: `UPDATE ocr_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
@@ -303,18 +306,18 @@ export const ocrSessionsDb = {
 export const attachmentSessionsDb = {
   async getAll(): Promise<AttachmentSession[]> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return await ipcRenderer.invoke('db-query', {
+    return (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM attachment_sessions ORDER BY updated_at DESC',
       params: []
-    }) as AttachmentSession[]
+    })) as AttachmentSession[]
   },
 
   async getById(id: string): Promise<AttachmentSession | null> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = await ipcRenderer.invoke('db-query', {
+    const results = (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM attachment_sessions WHERE id = ?',
       params: [id]
-    }) as AttachmentSession[]
+    })) as AttachmentSession[]
     return results[0] || null
   },
 
@@ -337,11 +340,14 @@ export const attachmentSessionsDb = {
     })
   },
 
-  async update(id: string, updates: Partial<Omit<AttachmentSession, 'id' | 'created_at'>>): Promise<void> {
+  async update(
+    id: string,
+    updates: Partial<Omit<AttachmentSession, 'id' | 'created_at'>>
+  ): Promise<void> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
-    
+
     if (updates.title !== undefined) {
       fields.push('title = ?')
       params.push(updates.title)
@@ -358,10 +364,10 @@ export const attachmentSessionsDb = {
       fields.push('ai_analysis = ?')
       params.push(updates.ai_analysis)
     }
-    
+
     fields.push('updated_at = CURRENT_TIMESTAMP')
     params.push(id)
-    
+
     await ipcRenderer.invoke('db-execute', {
       sql: `UPDATE attachment_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
@@ -383,18 +389,18 @@ export const attachmentSessionsDb = {
 export const graphSessionsDb = {
   async getAll(): Promise<GraphSession[]> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return await ipcRenderer.invoke('db-query', {
+    return (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM graph_sessions ORDER BY updated_at DESC',
       params: []
-    }) as GraphSession[]
+    })) as GraphSession[]
   },
 
   async getById(id: string): Promise<GraphSession | null> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = await ipcRenderer.invoke('db-query', {
+    const results = (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM graph_sessions WHERE id = ?',
       params: [id]
-    }) as GraphSession[]
+    })) as GraphSession[]
     return results[0] || null
   },
 
@@ -416,11 +422,14 @@ export const graphSessionsDb = {
     })
   },
 
-  async update(id: string, updates: Partial<Omit<GraphSession, 'id' | 'created_at'>>): Promise<void> {
+  async update(
+    id: string,
+    updates: Partial<Omit<GraphSession, 'id' | 'created_at'>>
+  ): Promise<void> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
-    
+
     if (updates.title !== undefined) {
       fields.push('title = ?')
       params.push(updates.title)
@@ -445,10 +454,10 @@ export const graphSessionsDb = {
       fields.push('output_path = ?')
       params.push(updates.output_path)
     }
-    
+
     fields.push('updated_at = CURRENT_TIMESTAMP')
     params.push(id)
-    
+
     await ipcRenderer.invoke('db-execute', {
       sql: `UPDATE graph_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
@@ -470,18 +479,18 @@ export const graphSessionsDb = {
 export const aiChatSessionsDb = {
   async getAll(): Promise<AIChatSession[]> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return await ipcRenderer.invoke('db-query', {
+    return (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM ai_chat_sessions ORDER BY updated_at DESC',
       params: []
-    }) as AIChatSession[]
+    })) as AIChatSession[]
   },
 
   async getById(id: string): Promise<AIChatSession | null> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = await ipcRenderer.invoke('db-query', {
+    const results = (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM ai_chat_sessions WHERE id = ?',
       params: [id]
-    }) as AIChatSession[]
+    })) as AIChatSession[]
     return results[0] || null
   },
 
@@ -502,11 +511,14 @@ export const aiChatSessionsDb = {
     })
   },
 
-  async update(id: string, updates: Partial<Omit<AIChatSession, 'id' | 'created_at'>>): Promise<void> {
+  async update(
+    id: string,
+    updates: Partial<Omit<AIChatSession, 'id' | 'created_at'>>
+  ): Promise<void> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
-    
+
     if (updates.title !== undefined) {
       fields.push('title = ?')
       params.push(updates.title)
@@ -523,9 +535,9 @@ export const aiChatSessionsDb = {
       fields.push('updated_at = ?')
       params.push(updates.updated_at)
     }
-    
+
     params.push(id)
-    
+
     await ipcRenderer.invoke('db-execute', {
       sql: `UPDATE ai_chat_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
@@ -543,10 +555,10 @@ export const aiChatSessionsDb = {
   async tableExists(): Promise<boolean> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     try {
-      const results = await ipcRenderer.invoke('db-query', {
+      const results = (await ipcRenderer.invoke('db-query', {
         sql: "SELECT name FROM sqlite_master WHERE type='table' AND name='ai_chat_sessions'",
         params: []
-      }) as Array<{ name: string }>
+      })) as Array<{ name: string }>
       return results.length > 0
     } catch {
       return false
@@ -560,22 +572,24 @@ export const aiChatSessionsDb = {
 export const formulaRecognitionSessionsDb = {
   async getAll(): Promise<FormulaRecognitionSession[]> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return await ipcRenderer.invoke('db-query', {
+    return (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM formula_recognition_sessions ORDER BY updated_at DESC',
       params: []
-    }) as FormulaRecognitionSession[]
+    })) as FormulaRecognitionSession[]
   },
 
   async getById(id: string): Promise<FormulaRecognitionSession | null> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = await ipcRenderer.invoke('db-query', {
+    const results = (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM formula_recognition_sessions WHERE id = ?',
       params: [id]
-    }) as FormulaRecognitionSession[]
+    })) as FormulaRecognitionSession[]
     return results[0] || null
   },
 
-  async create(session: Omit<FormulaRecognitionSession, 'created_at' | 'updated_at'>): Promise<void> {
+  async create(
+    session: Omit<FormulaRecognitionSession, 'created_at' | 'updated_at'>
+  ): Promise<void> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     await ipcRenderer.invoke('db-execute', {
       sql: `INSERT INTO formula_recognition_sessions 
@@ -592,11 +606,14 @@ export const formulaRecognitionSessionsDb = {
     })
   },
 
-  async update(id: string, updates: Partial<Omit<FormulaRecognitionSession, 'id' | 'created_at'>>): Promise<void> {
+  async update(
+    id: string,
+    updates: Partial<Omit<FormulaRecognitionSession, 'id' | 'created_at'>>
+  ): Promise<void> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
-    
+
     if (updates.title !== undefined) {
       fields.push('title = ?')
       params.push(updates.title)
@@ -617,10 +634,10 @@ export const formulaRecognitionSessionsDb = {
       fields.push('brush_size = ?')
       params.push(updates.brush_size)
     }
-    
+
     fields.push('updated_at = CURRENT_TIMESTAMP')
     params.push(id)
-    
+
     await ipcRenderer.invoke('db-execute', {
       sql: `UPDATE formula_recognition_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
@@ -642,18 +659,18 @@ export const formulaRecognitionSessionsDb = {
 export const aigcDetectionSessionsDb = {
   async getAll(): Promise<AigcDetectionSession[]> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    return await ipcRenderer.invoke('db-query', {
+    return (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM aigc_detection_sessions ORDER BY updated_at DESC',
       params: []
-    }) as AigcDetectionSession[]
+    })) as AigcDetectionSession[]
   },
 
   async getById(id: string): Promise<AigcDetectionSession | null> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
-    const results = await ipcRenderer.invoke('db-query', {
+    const results = (await ipcRenderer.invoke('db-query', {
       sql: 'SELECT * FROM aigc_detection_sessions WHERE id = ?',
       params: [id]
-    }) as AigcDetectionSession[]
+    })) as AigcDetectionSession[]
     return results[0] || null
   },
 
@@ -682,11 +699,14 @@ export const aigcDetectionSessionsDb = {
     })
   },
 
-  async update(id: string, updates: Partial<Omit<AigcDetectionSession, 'id' | 'created_at'>>): Promise<void> {
+  async update(
+    id: string,
+    updates: Partial<Omit<AigcDetectionSession, 'id' | 'created_at'>>
+  ): Promise<void> {
     if (!ipcRenderer) throw new Error('IPC渲染器不可用')
     const fields: string[] = []
     const params: any[] = []
-    
+
     if (updates.title !== undefined) {
       fields.push('title = ?')
       params.push(updates.title)
@@ -739,10 +759,10 @@ export const aigcDetectionSessionsDb = {
       fields.push('domain = ?')
       params.push(updates.domain || 'academic')
     }
-    
+
     fields.push('updated_at = CURRENT_TIMESTAMP')
     params.push(id)
-    
+
     await ipcRenderer.invoke('db-execute', {
       sql: `UPDATE aigc_detection_sessions SET ${fields.join(', ')} WHERE id = ?`,
       params
@@ -757,4 +777,3 @@ export const aigcDetectionSessionsDb = {
     })
   }
 }
-

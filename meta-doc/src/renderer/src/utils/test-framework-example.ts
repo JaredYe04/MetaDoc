@@ -3,7 +3,7 @@
  * 展示如何注册测试函数到测试框架中
  */
 
-import { testFramework, type TestFunction } from './test-framework';
+import { testFramework, type TestFunction } from './test-framework'
 
 // ============ 示例：注册简单的测试函数 ============
 
@@ -14,7 +14,7 @@ const testStringReverse: TestFunction = {
   description: '测试字符串反转功能',
   module: '示例模块',
   fn: (text: string) => {
-    return text.split('').reverse().join('');
+    return text.split('').reverse().join('')
   },
   params: [
     {
@@ -24,7 +24,7 @@ const testStringReverse: TestFunction = {
       description: '要反转的字符串'
     }
   ]
-};
+}
 
 // 示例 2: 带多个参数的函数
 const testMathAdd: TestFunction = {
@@ -33,7 +33,7 @@ const testMathAdd: TestFunction = {
   description: '测试两个数字相加',
   module: '示例模块',
   fn: (a: number, b: number) => {
-    return a + b;
+    return a + b
   },
   params: [
     {
@@ -49,7 +49,7 @@ const testMathAdd: TestFunction = {
       description: '第二个数字'
     }
   ]
-};
+}
 
 // 示例 3: 带对象参数的函数
 const testObjectProcess: TestFunction = {
@@ -62,7 +62,7 @@ const testObjectProcess: TestFunction = {
       ...data,
       processed: true,
       timestamp: Date.now()
-    };
+    }
   },
   params: [
     {
@@ -72,7 +72,7 @@ const testObjectProcess: TestFunction = {
       description: '要处理的对象数据（JSON 格式）'
     }
   ]
-};
+}
 
 // 示例 4: 带数组参数的函数
 const testArraySum: TestFunction = {
@@ -81,7 +81,7 @@ const testArraySum: TestFunction = {
   description: '计算数组中所有数字的和',
   module: '示例模块',
   fn: (numbers: number[]) => {
-    return numbers.reduce((sum, num) => sum + num, 0);
+    return numbers.reduce((sum, num) => sum + num, 0)
   },
   params: [
     {
@@ -91,7 +91,7 @@ const testArraySum: TestFunction = {
       description: '数字数组（JSON 格式）'
     }
   ]
-};
+}
 
 // 示例 5: 异步函数
 const testAsyncFetch: TestFunction = {
@@ -101,12 +101,12 @@ const testAsyncFetch: TestFunction = {
   module: '示例模块',
   fn: async (url: string) => {
     // 模拟异步操作
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000))
     return {
       url,
       data: { message: 'Fetched successfully' },
       timestamp: Date.now()
-    };
+    }
   },
   params: [
     {
@@ -116,7 +116,7 @@ const testAsyncFetch: TestFunction = {
       description: '要获取的 URL'
     }
   ]
-};
+}
 
 // ============ 注册所有测试函数 ============
 
@@ -125,21 +125,21 @@ const testAsyncFetch: TestFunction = {
  * 在实际使用中，各个模块可以在自己的初始化代码中调用类似的函数来注册测试
  */
 export function registerExampleTests() {
-  testFramework.register(testStringReverse);
-  testFramework.register(testMathAdd);
-  testFramework.register(testObjectProcess);
-  testFramework.register(testArraySum);
-  testFramework.register(testAsyncFetch);
+  testFramework.register(testStringReverse)
+  testFramework.register(testMathAdd)
+  testFramework.register(testObjectProcess)
+  testFramework.register(testArraySum)
+  testFramework.register(testAsyncFetch)
 }
 
 // ============ 使用说明 ============
 
 /**
  * 在其他模块中使用测试框架的步骤：
- * 
+ *
  * 1. 导入测试框架：
  *    import { testFramework, type TestFunction } from '@/utils/test-framework';
- * 
+ *
  * 2. 定义测试函数：
  *    const myTest: TestFunction = {
  *      id: 'my-module.my-test',
@@ -155,14 +155,13 @@ export function registerExampleTests() {
  *        { name: 'param2', type: 'number', defaultValue: 0 }
  *      ]
  *    };
- * 
+ *
  * 3. 注册测试函数：
  *    testFramework.register(myTest);
- * 
+ *
  * 4. 在模块初始化时调用注册函数（可选）：
  *    // 在模块的初始化代码中
  *    if (isDevEnvironment()) {
  *      registerMyModuleTests();
  *    }
  */
-

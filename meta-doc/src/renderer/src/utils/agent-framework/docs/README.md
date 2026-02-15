@@ -39,18 +39,21 @@ Agent框架
 ### ✅ 管理器实现
 
 1. **工具集管理器**（`tool-collection-manager.ts`）
+
    - CRUD操作
    - 工具添加/移除
    - 导入/导出
    - 本地存储持久化
 
 2. **工作流管理器**（`workflow-manager.ts`）
+
    - CRUD操作
    - 工作流验证
    - 执行状态管理
    - 导入/导出
 
 3. **AgentConfig管理器**（`agent-config-manager.ts`）
+
    - CRUD操作
    - 工具集交集计算
    - 配置验证
@@ -100,12 +103,14 @@ Agent框架
 需要创建以下管理界面：
 
 1. **工具集管理界面**
+
    - 工具集列表
    - 创建/编辑/删除工具集
    - 工具添加/移除
    - 工具集导入/导出
 
 2. **工作流管理界面**
+
    - 工作流列表
    - 创建工作流（打开画布）
    - 编辑工作流
@@ -120,6 +125,7 @@ Agent框架
    - 配置导入/导出
 
 **建议实现位置**：
+
 - `src/components/agent/manage/ToolCollectionManager.vue`
 - `src/components/agent/manage/WorkflowManager.vue`
 - `src/components/agent/manage/AgentConfigManager.vue`
@@ -129,14 +135,17 @@ Agent框架
 需要更新`AgentView.vue`以集成新系统：
 
 1. **会话创建**：
+
    - 从AgentConfig创建会话
    - 显示可用的AgentConfig列表
 
 2. **工具选择**：
+
    - 从AgentConfig的工具集获取可用工具
    - 显示工具集信息
 
 3. **会话管理**：
+
    - 支持重试和Duplicate
    - 支持导入/导出
    - 引用素材管理界面
@@ -198,33 +207,21 @@ import {
 } from '@/utils/agent-framework'
 
 // 1. 创建工具集
-const collection = toolCollectionManager.createCollection(
-  '数据分析工具集',
-  '数据分析相关工具',
-  ['rag-tool', 'chart-generation-tool']
-)
+const collection = toolCollectionManager.createCollection('数据分析工具集', '数据分析相关工具', [
+  'rag-tool',
+  'chart-generation-tool'
+])
 
 // 2. 创建AgentConfig
-const config = agentConfigManager.createConfig(
-  '数据分析Agent',
-  '用于数据分析和可视化',
-  [collection.id]
-)
+const config = agentConfigManager.createConfig('数据分析Agent', '用于数据分析和可视化', [
+  collection.id
+])
 
 // 3. 创建会话
-const session = agentSessionManager.createSession(
-  config.id,
-  '数据分析会话',
-  '分析用户数据'
-)
+const session = agentSessionManager.createSession(config.id, '数据分析会话', '分析用户数据')
 
 // 4. 添加引用素材
-agentSessionManager.addReference(
-  session,
-  '用户数据.csv',
-  'file',
-  '/path/to/data.csv'
-)
+agentSessionManager.addReference(session, '用户数据.csv', 'file', '/path/to/data.csv')
 
 // 5. 使用会话（需要实现Agent执行逻辑）
 ```
@@ -242,11 +239,7 @@ const configs = agentConfigManager.getAllConfigs()
 
 // 创建会话
 const createSession = (configId: string) => {
-  const session = agentSessionManager.createSession(
-    configId,
-    '新会话',
-    ''
-  )
+  const session = agentSessionManager.createSession(configId, '新会话', '')
   // 添加到文档的agentSessions
 }
 </script>
@@ -264,6 +257,7 @@ const createSession = (configId: string) => {
 ### 3. 在Agent执行中使用
 
 Agent执行时需要：
+
 1. 从AgentConfig获取可用工具
 2. 处理消息队列
 3. 访问公共上下文
@@ -272,14 +266,17 @@ Agent执行时需要：
 ## 注意事项
 
 1. **存储位置**：
+
    - Workflow、ToolCollection、AgentConfig存储在localStorage（全局）
    - AgentSession存储在文档metadata中（文档级别）
 
 2. **版本管理**：
+
    - 所有实体都有版本号字段
    - 导入时检查版本冲突
 
 3. **依赖管理**：
+
    - 导入时可以内嵌依赖或仅引用
    - 缺失依赖时会显示警告
 
@@ -302,4 +299,3 @@ Agent执行时需要：
 4. 完善控制流节点实现
 5. 实现LLM决策节点和AgentConfig节点
 6. 创建工作流Display组件
-

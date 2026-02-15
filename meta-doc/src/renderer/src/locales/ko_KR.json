@@ -78,6 +78,12 @@
   "microphoneTest": {
     "cannotAccessMic": "마이크에 접근할 수 없습니다. 권한 설정을 확인해 주세요"
   },
+  "mainTabs": {
+    "contextMenu": {
+      "pinTab": "탭 고정",
+      "unpinTab": "탭 고정 해제"
+    }
+  },
   "common": {
     "confirm": "확인",
     "cancel": "취소",

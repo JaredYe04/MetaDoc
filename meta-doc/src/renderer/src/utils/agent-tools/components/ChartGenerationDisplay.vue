@@ -1,11 +1,19 @@
 <template>
   <div class="chart-generation-display" :style="containerStyle">
-    <div v-if="displayData.stage === 'generating'" class="generating-state" :style="statusMessageStyle">
+    <div
+      v-if="displayData.stage === 'generating'"
+      class="generating-state"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ $t('agent.display.chartGeneration.generating') }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'rendering'" class="rendering-state" :style="statusMessageStyle">
+    <div
+      v-else-if="displayData.stage === 'rendering'"
+      class="rendering-state"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ $t('agent.display.chartGeneration.rendering') }}</span>
       <div v-if="displayData.chartCode" class="code-preview">
@@ -17,24 +25,27 @@
       </div>
     </div>
 
-    <div v-else-if="displayData.stage === 'converting'" class="converting-state" :style="statusMessageStyle">
+    <div
+      v-else-if="displayData.stage === 'converting'"
+      class="converting-state"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ $t('agent.display.chartGeneration.converting') }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed'" class="completed-state" :style="completedStateStyle">
+    <div
+      v-else-if="displayData.stage === 'completed'"
+      class="completed-state"
+      :style="completedStateStyle"
+    >
       <div class="result-header" :style="headerStyle">
         <div class="header-info">
           <el-tag type="success" size="small">{{ displayData.chartType }}</el-tag>
           <span class="chart-name" :style="chartNameStyle">{{ displayData.chartName }}</span>
         </div>
         <div class="header-actions">
-          <el-button
-            type="primary"
-            size="small"
-            :icon="Download"
-            @click="downloadChart"
-          >
+          <el-button type="primary" size="small" :icon="Download" @click="downloadChart">
             {{ $t('agent.display.chartGeneration.download') }}
           </el-button>
         </div>
@@ -102,7 +113,7 @@
       :percentage="effectiveProgress.percentage"
       :status="progressStatus"
       :stroke-width="6"
-      style="margin-top: 12px;"
+      style="margin-top: 12px"
     />
   </div>
 </template>
@@ -121,7 +132,10 @@ const { t } = useI18n()
 const props = defineProps<ToolDisplayComponentProps>()
 const logger = createRendererLogger('ChartGenerationDisplay')
 
-logger.debug(`[ChartGenerationDisplay] 组件初始化，invocationId: ${props.invocationId}, status: ${props.status}, data:`, props.data)
+logger.debug(
+  `[ChartGenerationDisplay] 组件初始化，invocationId: ${props.invocationId}, status: ${props.status}, data:`,
+  props.data
+)
 logger.debug(`[ChartGenerationDisplay] props 完整内容:`, props)
 
 // 使用实时通信
@@ -132,13 +146,17 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
   props.progress
 )
 
-logger.debug(`[ChartGenerationDisplay] useToolDisplayRealtime 返回:`, { realtimeData: realtimeData.value, realtimeStatus: realtimeStatus.value, realtimeProgress: realtimeProgress.value })
+logger.debug(`[ChartGenerationDisplay] useToolDisplayRealtime 返回:`, {
+  realtimeData: realtimeData.value,
+  realtimeStatus: realtimeStatus.value,
+  realtimeProgress: realtimeProgress.value
+})
 
 // 解析显示数据（优先使用实时数据）
 const displayData = computed(() => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data)
-  
+
   if (typeof parsed === 'object' && parsed !== null) {
     return parsed as {
       stage: 'generating' | 'rendering' | 'converting' | 'completed' | 'error'
@@ -149,7 +167,7 @@ const displayData = computed(() => {
       chartName?: string
       url?: string
       localPath?: string
-      svgUrl?: string  // PDF 格式时，用于显示对应的 SVG
+      svgUrl?: string // PDF 格式时，用于显示对应的 SVG
       error?: string
     }
   }
@@ -195,7 +213,9 @@ const downloadChart = async () => {
     window.URL.revokeObjectURL(url)
     ElMessage.success(t('agent.display.chartGeneration.downloadSuccess'))
   } catch (error) {
-    ElMessage.error(`${t('agent.display.chartGeneration.downloadFailed')}: ${error instanceof Error ? error.message : String(error)}`)
+    ElMessage.error(
+      `${t('agent.display.chartGeneration.downloadFailed')}: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }
 
@@ -215,9 +235,8 @@ const completedStateStyle = computed(() => ({
 }))
 
 const headerStyle = computed(() => ({
-  borderBottomColor: themeState.currentTheme.type === 'dark' 
-    ? 'rgba(255, 255, 255, 0.1)' 
-    : 'rgba(0, 0, 0, 0.08)'
+  borderBottomColor:
+    themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'
 }))
 
 const chartNameStyle = computed(() => ({
@@ -225,9 +244,8 @@ const chartNameStyle = computed(() => ({
 }))
 
 const chartPreviewStyle = computed(() => ({
-  borderColor: themeState.currentTheme.type === 'dark' 
-    ? 'rgba(255, 255, 255, 0.1)' 
-    : 'rgba(0, 0, 0, 0.08)',
+  borderColor:
+    themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
   backgroundColor: themeState.currentTheme.background2nd
 }))
 
@@ -338,4 +356,3 @@ const handleImageError = () => {
   padding: 12px;
 }
 </style>
-

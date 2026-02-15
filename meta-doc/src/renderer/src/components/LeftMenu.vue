@@ -1,5 +1,5 @@
 <template>
-  <UIMenu 
+  <UIMenu
     :collapse="isCollapse"
     :background-color="themeState.currentTheme.background2nd"
     :text-color="themeState.currentTheme.SideTextColor"
@@ -7,7 +7,6 @@
   >
     <!-- 顶部菜单项 -->
     <template v-for="menuId in getMenuOrder().top" :key="menuId">
-
       <!-- 文件菜单 -->
       <UISubMenu
         v-if="menuId === 'file' && isMenuItemVisible('file')"
@@ -18,14 +17,22 @@
         :level="1"
       >
         <template #title>
-          <img :src="(themeState.currentTheme as any).FileIcon" class="menu-icon-image" alt="file" />
+          <img
+            :src="(themeState.currentTheme as any).FileIcon"
+            class="menu-icon-image"
+            alt="file"
+          />
           <span>{{ $t('leftMenu.file') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <img :src="(themeState.currentTheme as any).FileIcon" class="menu-title-icon" alt="file" />
+            <img
+              :src="(themeState.currentTheme as any).FileIcon"
+              class="menu-title-icon"
+              alt="file"
+            />
           </template>
           {{ $t('leftMenu.fileTooltip') }}
         </UISubMenuItem>
@@ -127,7 +134,11 @@
 
         <UISubMenuItem @click="eventBus.emit('aigc-detection')">
           <template #icon>
-            <img :src="(themeState.currentTheme as any).PenAiIcon" class="menu-title-icon" alt="Pen AI" />
+            <img
+              :src="(themeState.currentTheme as any).PenAiIcon"
+              class="menu-title-icon"
+              alt="Pen AI"
+            />
           </template>
           {{ $t('leftMenu.aigcDetection') }}
         </UISubMenuItem>
@@ -174,7 +185,11 @@
           v-for="item in recentDocs.slice(0, 10)"
           :key="item"
           :icon="Document"
-          @click="askSave(() => { eventBus.emit('open-doc', item) })"
+          @click="
+            askSave(() => {
+              eventBus.emit('open-doc', item)
+            })
+          "
         >
           {{ item }}
         </UISubMenuItem>
@@ -190,43 +205,39 @@
         :level="1"
       >
         <template #title>
-          <img :src="(themeState.currentTheme as any).LanguageIcon" class="menu-icon-image" alt="language" />
+          <img
+            :src="(themeState.currentTheme as any).LanguageIcon"
+            class="menu-icon-image"
+            alt="language"
+          />
           <span>{{ $t('leftMenu.langTooltip') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <img :src="(themeState.currentTheme as any).LanguageIcon" class="menu-title-icon" alt="language" />
+            <img
+              :src="(themeState.currentTheme as any).LanguageIcon"
+              class="menu-title-icon"
+              alt="language"
+            />
           </template>
           {{ $t('leftMenu.langTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem @click="changeLang('zh_CN')">
-          中文（简体）
-        </UISubMenuItem>
+        <UISubMenuItem @click="changeLang('zh_CN')"> 中文（简体） </UISubMenuItem>
 
-        <UISubMenuItem @click="changeLang('en_US')">
-          English (US)
-        </UISubMenuItem>
+        <UISubMenuItem @click="changeLang('en_US')"> English (US) </UISubMenuItem>
 
-        <UISubMenuItem @click="changeLang('ja_JP')">
-          日本語
-        </UISubMenuItem>
+        <UISubMenuItem @click="changeLang('ja_JP')"> 日本語 </UISubMenuItem>
 
-        <UISubMenuItem @click="changeLang('ko_KR')">
-          한국어
-        </UISubMenuItem>
+        <UISubMenuItem @click="changeLang('ko_KR')"> 한국어 </UISubMenuItem>
 
-        <UISubMenuItem @click="changeLang('fr_FR')">
-          Français
-        </UISubMenuItem>
+        <UISubMenuItem @click="changeLang('fr_FR')"> Français </UISubMenuItem>
 
-        <UISubMenuItem @click="changeLang('de_DE')">
-          Deutsch
-        </UISubMenuItem>
+        <UISubMenuItem @click="changeLang('de_DE')"> Deutsch </UISubMenuItem>
       </UISubMenu>
-      
+
       <!-- 知识库 -->
       <UIMenuItem
         v-if="menuId === 'knowledge-base' && isMenuItemVisible('knowledge-base')"
@@ -261,8 +272,7 @@
         @click="toggleUserProfile"
       >
         <template #icon>
-          <img v-if="avatar" :src="avatar" width="25" height="25"
-            style="border-radius: 50%;" />
+          <img v-if="avatar" :src="avatar" width="25" height="25" style="border-radius: 50%" />
           <el-icon v-else>
             <UserFilled />
           </el-icon>
@@ -288,29 +298,37 @@
         :level="1"
       >
         <template #title>
-          <img :src="(themeState.currentTheme as any).MoreIcon" class="menu-icon-image" alt="more" />
+          <img
+            :src="(themeState.currentTheme as any).MoreIcon"
+            class="menu-icon-image"
+            alt="more"
+          />
           <span>{{ $t('leftMenu.moreFeatures', '更多功能') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <img :src="(themeState.currentTheme as any).MoreIcon" class="menu-title-icon" alt="more" />
+            <img
+              :src="(themeState.currentTheme as any).MoreIcon"
+              class="menu-title-icon"
+              alt="more"
+            />
           </template>
           {{ $t('leftMenu.moreFeatures', '更多功能') }}
         </UISubMenuItem>
 
         <!-- LLM统计：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
-        <UISubMenuItem 
+        <UISubMenuItem
           v-if="!isMenuItemVisible('llm-statistics')"
-          :icon="DataAnalysis" 
+          :icon="DataAnalysis"
           @click="openLlmStatistics"
         >
           {{ $t('bottomMenu.llmStatistics', 'LLM统计') }}
         </UISubMenuItem>
 
         <!-- 用户反馈：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
-        <UISubMenuItem 
+        <UISubMenuItem
           v-if="!isMenuItemVisible('user-feedback')"
           :iconImage="(themeState.currentTheme as any).FeedbackIcon"
           @click="openUserFeedback"
@@ -399,14 +417,22 @@
         class="bottom-menu"
       >
         <template #title>
-          <img :src="(themeState.currentTheme as any).FileIcon" class="menu-icon-image" alt="file" />
+          <img
+            :src="(themeState.currentTheme as any).FileIcon"
+            class="menu-icon-image"
+            alt="file"
+          />
           <span>{{ $t('leftMenu.file') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <img :src="(themeState.currentTheme as any).FileIcon" class="menu-title-icon" alt="file" />
+            <img
+              :src="(themeState.currentTheme as any).FileIcon"
+              class="menu-title-icon"
+              alt="file"
+            />
           </template>
           {{ $t('leftMenu.fileTooltip') }}
         </UISubMenuItem>
@@ -534,14 +560,22 @@
         @open="refreshRecentDocs"
       >
         <template #title>
-          <img :src="(themeState.currentTheme as any).RecentIcon" class="recent-files-icon" alt="recent" />
+          <img
+            :src="(themeState.currentTheme as any).RecentIcon"
+            class="recent-files-icon"
+            alt="recent"
+          />
           <span class="recent-files-text">{{ $t('leftMenu.recentFiles') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <img :src="(themeState.currentTheme as any).RecentIcon" class="menu-title-icon" alt="recent" />
+            <img
+              :src="(themeState.currentTheme as any).RecentIcon"
+              class="menu-title-icon"
+              alt="recent"
+            />
           </template>
           {{ $t('leftMenu.recentFilesTooltip') }}
         </UISubMenuItem>
@@ -550,7 +584,11 @@
           v-for="item in recentDocs.slice(0, 10)"
           :key="item"
           :icon="Document"
-          @click="askSave(() => { eventBus.emit('open-doc', item) })"
+          @click="
+            askSave(() => {
+              eventBus.emit('open-doc', item)
+            })
+          "
         >
           {{ item }}
         </UISubMenuItem>
@@ -567,43 +605,39 @@
         class="bottom-menu"
       >
         <template #title>
-          <img :src="(themeState.currentTheme as any).LanguageIcon" class="menu-icon-image" alt="language" />
+          <img
+            :src="(themeState.currentTheme as any).LanguageIcon"
+            class="menu-icon-image"
+            alt="language"
+          />
           <span>{{ $t('leftMenu.langTooltip') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <img :src="(themeState.currentTheme as any).LanguageIcon" class="menu-title-icon" alt="language" />
+            <img
+              :src="(themeState.currentTheme as any).LanguageIcon"
+              class="menu-title-icon"
+              alt="language"
+            />
           </template>
           {{ $t('leftMenu.langTooltip') }}
         </UISubMenuItem>
 
-        <UISubMenuItem @click="changeLang('zh_CN')">
-          中文（简体）
-        </UISubMenuItem>
+        <UISubMenuItem @click="changeLang('zh_CN')"> 中文（简体） </UISubMenuItem>
 
-        <UISubMenuItem @click="changeLang('en_US')">
-          English (US)
-        </UISubMenuItem>
+        <UISubMenuItem @click="changeLang('en_US')"> English (US) </UISubMenuItem>
 
-        <UISubMenuItem @click="changeLang('ja_JP')">
-          日本語
-        </UISubMenuItem>
+        <UISubMenuItem @click="changeLang('ja_JP')"> 日本語 </UISubMenuItem>
 
-        <UISubMenuItem @click="changeLang('ko_KR')">
-          한국어
-        </UISubMenuItem>
+        <UISubMenuItem @click="changeLang('ko_KR')"> 한국어 </UISubMenuItem>
 
-        <UISubMenuItem @click="changeLang('fr_FR')">
-          Français
-        </UISubMenuItem>
+        <UISubMenuItem @click="changeLang('fr_FR')"> Français </UISubMenuItem>
 
-        <UISubMenuItem @click="changeLang('de_DE')">
-          Deutsch
-        </UISubMenuItem>
+        <UISubMenuItem @click="changeLang('de_DE')"> Deutsch </UISubMenuItem>
       </UISubMenu>
-      
+
       <!-- 知识库 -->
       <UIMenuItem
         v-if="menuId === 'knowledge-base' && isMenuItemVisible('knowledge-base')"
@@ -641,8 +675,7 @@
         @click="toggleUserProfile"
       >
         <template #icon>
-          <img v-if="avatar" :src="avatar" width="25" height="25"
-            style="border-radius: 50%;" />
+          <img v-if="avatar" :src="avatar" width="25" height="25" style="border-radius: 50%" />
           <el-icon v-else>
             <UserFilled />
           </el-icon>
@@ -670,29 +703,37 @@
         class="bottom-menu"
       >
         <template #title>
-          <img :src="(themeState.currentTheme as any).MoreIcon" class="menu-icon-image" alt="more" />
+          <img
+            :src="(themeState.currentTheme as any).MoreIcon"
+            class="menu-icon-image"
+            alt="more"
+          />
           <span>{{ $t('leftMenu.moreFeatures', '更多功能') }}</span>
         </template>
 
         <!-- 标题项 -->
         <UISubMenuItem :is-title="true" :disabled="true">
           <template #icon>
-            <img :src="(themeState.currentTheme as any).MoreIcon" class="menu-title-icon" alt="more" />
+            <img
+              :src="(themeState.currentTheme as any).MoreIcon"
+              class="menu-title-icon"
+              alt="more"
+            />
           </template>
           {{ $t('leftMenu.moreFeatures', '更多功能') }}
         </UISubMenuItem>
 
         <!-- LLM统计：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
-        <UISubMenuItem 
+        <UISubMenuItem
           v-if="!isMenuItemVisible('llm-statistics')"
-          :icon="DataAnalysis" 
+          :icon="DataAnalysis"
           @click="openLlmStatistics"
         >
           {{ $t('bottomMenu.llmStatistics', 'LLM统计') }}
         </UISubMenuItem>
 
         <!-- 用户反馈：只有在菜单配置中不可见时才显示在更多功能子菜单中 -->
-        <UISubMenuItem 
+        <UISubMenuItem
           v-if="!isMenuItemVisible('user-feedback')"
           :iconImage="(themeState.currentTheme as any).FeedbackIcon"
           @click="openUserFeedback"
@@ -755,7 +796,7 @@
     :target-format="currentExportFormat || 'pdf'"
     @confirm="handleExportOptionsConfirm"
   />
-  
+
   <!-- 菜单配置对话框 -->
   <MenuConfigDialog
     v-model="showMenuConfigDialog"
@@ -764,9 +805,8 @@
   />
 </template>
 
-
 <script lang="ts" setup>
-import { updateRecentDocs, getRecentDocs, getSetting, setSetting } from '../utils/settings';
+import { updateRecentDocs, getRecentDocs, getSetting, setSetting } from '../utils/settings'
 import { computed, onMounted, ref, provide, watch } from 'vue'
 import UIMenu from './ui/UIMenu.vue'
 import UIMenuItem from './ui/UIMenuItem.vue'
@@ -801,28 +841,28 @@ import {
   View,
   Paperclip
 } from '@element-plus/icons-vue'
-import eventBus from '../utils/event-bus';
+import eventBus from '../utils/event-bus'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { themeState, mixColors } from '../utils/themes';
-import { avatar } from '../stores/user';
-import { useActiveDocument } from '../composables/useActiveDocument';
-import { EarthIcon } from 'tdesign-icons-vue-next';
-import { getExportOptions } from '../services/export-manager.ts';
-import type { DocumentFormat, ExportFormat } from '../../../types';
-import { exportAdapterRegistry } from '../services/export-adapters';
-import ExportOptionsDialog from './ExportOptionsDialog.vue';
-import type { ExportOptions } from '../services/export-adapters/types';
-import MenuConfigDialog, { type MenuConfigItem } from './MenuConfigDialog.vue';
+import { themeState, mixColors } from '../utils/themes'
+import { avatar } from '../stores/user'
+import { useActiveDocument } from '../composables/useActiveDocument'
+import { EarthIcon } from 'tdesign-icons-vue-next'
+import { getExportOptions } from '../services/export-manager.ts'
+import type { DocumentFormat, ExportFormat } from '../../../types'
+import { exportAdapterRegistry } from '../services/export-adapters'
+import ExportOptionsDialog from './ExportOptionsDialog.vue'
+import type { ExportOptions } from '../services/export-adapters/types'
+import MenuConfigDialog, { type MenuConfigItem } from './MenuConfigDialog.vue'
 const recentDocs = ref([])
 const isCollapse = ref(true)
 const showUserProfile = ref(false)
 const showMenuConfigDialog = ref(false)
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
-import { convertMarkdownToLatex } from '../utils/latex-utils';
-import { createRendererLogger } from '../utils/logger';
-import { isDevEnvironment } from '../utils/dev-env';
-import { useWorkspace } from '../stores/workspace';
+import { convertMarkdownToLatex } from '../utils/latex-utils'
+import { createRendererLogger } from '../utils/logger'
+import { isDevEnvironment } from '../utils/dev-env'
+import { useWorkspace } from '../stores/workspace'
 const { locale } = useI18n()
 const logger = createRendererLogger('LeftMenu')
 const workspace = useWorkspace()
@@ -831,20 +871,118 @@ const isDev = ref(false)
 // 菜单配置项定义
 const menuConfigItems = computed<MenuConfigItem[]>(() => {
   return [
-    { id: 'file', label: t('leftMenu.file'), iconImage: (themeState.currentTheme as any).FileIcon, visible: true, isCore: true, position: 'top' },
-    { id: 'ai-assistant', label: t('leftMenu.aiAssistant'), iconImage: themeState.currentTheme.AiLogo, visible: true, isCore: false, position: 'top' },
-    { id: 'settings', label: t('leftMenu.settings'), iconImage: (themeState.currentTheme as any).SettingIcon, visible: true, isCore: true, position: 'top' },
-    { id: 'recent-files', label: t('leftMenu.recentFiles'), iconImage: (themeState.currentTheme as any).RecentIcon, visible: true, isCore: false, position: 'top' },
-    { id: 'language', label: t('leftMenu.langTooltip'), iconImage: (themeState.currentTheme as any).LanguageIcon, visible: true, isCore: true, position: 'top' },
-    { id: 'knowledge-base', label: t('leftMenu.knowledgeBase', '知识库'), iconImage: (themeState.currentTheme as any).KnowledgeIcon, visible: true, isCore: false, position: 'top' },
-    { id: 'workspace-explorer', label: t('leftMenu.workspaceExplorer', '工作目录'), iconImage: (themeState.currentTheme as any).FolderIcon, visible: true, isCore: true, position: 'top' },
-    { id: 'debug', label: t('leftMenu.debugTools', '调试工具'), iconImage: (themeState.currentTheme as any).DebugIcon, visible: isDev.value, isCore: false, position: 'top' },
-    { id: 'more-features', label: t('leftMenu.moreFeatures', '更多功能'), iconImage: (themeState.currentTheme as any).MoreIcon, visible: true, isCore: true, position: 'top' },
-    { id: 'llm-statistics', label: t('bottomMenu.llmStatistics', 'LLM统计'), icon: DataAnalysis, visible: false, isCore: false, position: 'top' },
-    { id: 'user-feedback', label: t('leftMenu.userFeedback', '用户反馈'), iconImage: (themeState.currentTheme as any).FeedbackIcon, visible: false, isCore: false, position: 'top' },
-    { id: 'home', label: t('leftMenu.home', '主页'), icon: House, visible: true, isCore: true, position: 'bottom' },
-    { id: 'user-profile', label: t('leftMenu.userProfileTooltip', '用户资料'), icon: UserFilled, visible: true, isCore: true, position: 'bottom' },
-    { id: 'exit', label: t('leftMenu.exit'), icon: SwitchButton, visible: true, isCore: true, position: 'bottom' },
+    {
+      id: 'file',
+      label: t('leftMenu.file'),
+      iconImage: (themeState.currentTheme as any).FileIcon,
+      visible: true,
+      isCore: true,
+      position: 'top'
+    },
+    {
+      id: 'ai-assistant',
+      label: t('leftMenu.aiAssistant'),
+      iconImage: themeState.currentTheme.AiLogo,
+      visible: true,
+      isCore: false,
+      position: 'top'
+    },
+    {
+      id: 'settings',
+      label: t('leftMenu.settings'),
+      iconImage: (themeState.currentTheme as any).SettingIcon,
+      visible: true,
+      isCore: true,
+      position: 'top'
+    },
+    {
+      id: 'recent-files',
+      label: t('leftMenu.recentFiles'),
+      iconImage: (themeState.currentTheme as any).RecentIcon,
+      visible: true,
+      isCore: false,
+      position: 'top'
+    },
+    {
+      id: 'language',
+      label: t('leftMenu.langTooltip'),
+      iconImage: (themeState.currentTheme as any).LanguageIcon,
+      visible: true,
+      isCore: true,
+      position: 'top'
+    },
+    {
+      id: 'knowledge-base',
+      label: t('leftMenu.knowledgeBase', '知识库'),
+      iconImage: (themeState.currentTheme as any).KnowledgeIcon,
+      visible: true,
+      isCore: false,
+      position: 'top'
+    },
+    {
+      id: 'workspace-explorer',
+      label: t('leftMenu.workspaceExplorer', '工作目录'),
+      iconImage: (themeState.currentTheme as any).FolderIcon,
+      visible: true,
+      isCore: true,
+      position: 'top'
+    },
+    {
+      id: 'debug',
+      label: t('leftMenu.debugTools', '调试工具'),
+      iconImage: (themeState.currentTheme as any).DebugIcon,
+      visible: isDev.value,
+      isCore: false,
+      position: 'top'
+    },
+    {
+      id: 'more-features',
+      label: t('leftMenu.moreFeatures', '更多功能'),
+      iconImage: (themeState.currentTheme as any).MoreIcon,
+      visible: true,
+      isCore: true,
+      position: 'top'
+    },
+    {
+      id: 'llm-statistics',
+      label: t('bottomMenu.llmStatistics', 'LLM统计'),
+      icon: DataAnalysis,
+      visible: false,
+      isCore: false,
+      position: 'top'
+    },
+    {
+      id: 'user-feedback',
+      label: t('leftMenu.userFeedback', '用户反馈'),
+      iconImage: (themeState.currentTheme as any).FeedbackIcon,
+      visible: false,
+      isCore: false,
+      position: 'top'
+    },
+    {
+      id: 'home',
+      label: t('leftMenu.home', '主页'),
+      icon: House,
+      visible: true,
+      isCore: true,
+      position: 'bottom'
+    },
+    {
+      id: 'user-profile',
+      label: t('leftMenu.userProfileTooltip', '用户资料'),
+      icon: UserFilled,
+      visible: true,
+      isCore: true,
+      position: 'bottom'
+    },
+    {
+      id: 'exit',
+      label: t('leftMenu.exit'),
+      icon: SwitchButton,
+      visible: true,
+      isCore: true,
+      position: 'bottom'
+    }
   ]
 })
 
@@ -867,13 +1005,14 @@ const loadMenuConfig = async () => {
     if (config && Array.isArray(config) && config.length > 0) {
       // 合并保存的配置和当前定义的配置
       const configMap = new Map(config.map((item: any) => [item.id, item]))
-      const mergedItems = menuConfigItems.value.map(item => {
+      const mergedItems = menuConfigItems.value.map((item) => {
         const saved = configMap.get(item.id)
         if (saved) {
           // 将 middle 位置转换为 bottom（迁移逻辑）
           const savedPosition = (saved.position as any) || item.position || 'top'
-          let position: 'top' | 'bottom' = savedPosition === 'middle' ? 'bottom' : (savedPosition === 'top' ? 'top' : 'bottom')
-          
+          let position: 'top' | 'bottom' =
+            savedPosition === 'middle' ? 'bottom' : savedPosition === 'top' ? 'top' : 'bottom'
+
           return {
             ...item,
             // 核心菜单项强制可见
@@ -887,24 +1026,24 @@ const loadMenuConfig = async () => {
       menuConfigState.value.items = mergedItems
       // 使用保存的顺序，但确保所有项都在列表中
       const savedOrder = config.map((item: any) => item.id)
-      const allIds = menuConfigItems.value.map(item => item.id)
-      const orderedIds = [...savedOrder, ...allIds.filter(id => !savedOrder.includes(id))]
+      const allIds = menuConfigItems.value.map((item) => item.id)
+      const orderedIds = [...savedOrder, ...allIds.filter((id) => !savedOrder.includes(id))]
       menuConfigState.value.order = orderedIds
     } else {
       // 使用默认配置
-      menuConfigState.value.items = menuConfigItems.value.map(item => ({ ...item }))
-      menuConfigState.value.order = menuConfigItems.value.map(item => item.id)
+      menuConfigState.value.items = menuConfigItems.value.map((item) => ({ ...item }))
+      menuConfigState.value.order = menuConfigItems.value.map((item) => item.id)
     }
   } catch (error) {
     logger.error('加载菜单配置失败:', error)
-    menuConfigState.value.items = menuConfigItems.value.map(item => ({ ...item }))
-    menuConfigState.value.order = menuConfigItems.value.map(item => item.id)
+    menuConfigState.value.items = menuConfigItems.value.map((item) => ({ ...item }))
+    menuConfigState.value.order = menuConfigItems.value.map((item) => item.id)
   }
 }
 
 // 检查菜单项是否可见
 const isMenuItemVisible = (menuId: string) => {
-  const item = menuConfigState.value.items.find(i => i.id === menuId)
+  const item = menuConfigState.value.items.find((i) => i.id === menuId)
   if (!item) return true // 如果找不到配置，默认显示
   return item.visible
 }
@@ -912,18 +1051,18 @@ const isMenuItemVisible = (menuId: string) => {
 // 获取菜单项的顺序（用于渲染，分为 top 和 bottom）
 const getMenuOrder = () => {
   // 根据配置的顺序排列
-  const order = menuConfigState.value.order || menuConfigItems.value.map(item => item.id)
-  const visibleIds = order.filter(id => {
-    const item = menuConfigState.value.items.find(i => i.id === id)
+  const order = menuConfigState.value.order || menuConfigItems.value.map((item) => item.id)
+  const visibleIds = order.filter((id) => {
+    const item = menuConfigState.value.items.find((i) => i.id === id)
     return item ? item.visible : true
   })
-  
+
   // 分离 top 和 bottom 菜单项
   const topIds: string[] = []
   const bottomIds: string[] = []
-  
-  visibleIds.forEach(id => {
-    const item = menuConfigState.value.items.find(i => i.id === id)
+
+  visibleIds.forEach((id) => {
+    const item = menuConfigState.value.items.find((i) => i.id === id)
     const position = item?.position || 'top'
     // 将 middle 位置转换为 bottom（迁移逻辑）
     if (position === 'bottom' || (position as any) === 'middle') {
@@ -932,7 +1071,7 @@ const getMenuOrder = () => {
       topIds.push(id)
     }
   })
-  
+
   return { top: topIds, bottom: bottomIds }
 }
 
@@ -945,13 +1084,14 @@ const openMenuConfigDialog = () => {
 const handleMenuConfigSave = async (items: MenuConfigItem[]) => {
   // 合并保存的配置和当前定义的配置，保留icon等Vue组件引用
   const configMap = new Map(items.map((item: any) => [item.id, item]))
-  const mergedItems = menuConfigItems.value.map(item => {
+  const mergedItems = menuConfigItems.value.map((item) => {
     const saved = configMap.get(item.id)
     if (saved) {
       // 将 middle 位置转换为 bottom（迁移逻辑）
       const savedPosition = (saved.position as any) || item.position || 'top'
-      let position: 'top' | 'bottom' = savedPosition === 'middle' ? 'bottom' : (savedPosition === 'top' ? 'top' : 'bottom')
-      
+      let position: 'top' | 'bottom' =
+        savedPosition === 'middle' ? 'bottom' : savedPosition === 'top' ? 'top' : 'bottom'
+
       return {
         ...item,
         // 核心菜单项强制可见
@@ -962,7 +1102,7 @@ const handleMenuConfigSave = async (items: MenuConfigItem[]) => {
     }
     return item
   })
-  
+
   // 直接更新配置状态，使用保存后的顺序
   menuConfigState.value.items = mergedItems
   menuConfigState.value.order = items.map((item: any) => item.id)
@@ -972,7 +1112,9 @@ const handleMenuConfigSave = async (items: MenuConfigItem[]) => {
 // 计算弹出菜单的背景色和悬停颜色（与 HeadMenu 保持一致）
 const subMenuBackgroundColor = computed(() => themeState.currentTheme.background2nd)
 // 使用与 HeadMenu 相同的 active 背景色作为 hover 和 active 颜色
-const activeBackgroundColor = computed(() => mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3))
+const activeBackgroundColor = computed(() =>
+  mixColors(themeState.currentTheme.background2nd, themeState.currentTheme.textColor, 0.3)
+)
 const activeTextColor = computed(() => themeState.currentTheme.textColor)
 const subMenuHoverColor = computed(() => activeBackgroundColor.value)
 
@@ -1050,9 +1192,13 @@ const openUserFeedback = () => {
 }
 
 // 更新全局 CSS 变量以匹配 active 背景色
-watch(activeBackgroundColor, (newColor) => {
-  document.documentElement.style.setProperty('--sub-menu-hover', newColor)
-}, { immediate: true })
+watch(
+  activeBackgroundColor,
+  (newColor) => {
+    document.documentElement.style.setProperty('--sub-menu-hover', newColor)
+  },
+  { immediate: true }
+)
 
 onMounted(async () => {
   await refreshRecentDocs()
@@ -1067,7 +1213,7 @@ const refreshRecentDocs = async () => {
   recentDocs.value = await getRecentDocs()
 }
 
-const askSave = async (callBack:any) => {
+const askSave = async (callBack: any) => {
   // 永远不询问保存，直接执行回调
   callBack()
 }
@@ -1078,7 +1224,6 @@ const newDoc = () => {
 }
 
 const openDoc = () => {
-
   askSave(() => {
     eventBus.emit('open-doc')
   })
@@ -1091,15 +1236,15 @@ const saveAndQuit = () => {
 }
 const saveAllAndQuit = () => {
   // 检查是否有需要保存的文档tab
-  const hasFileTabs = workspace.tabs && workspace.tabs.length > 0 && 
-    workspace.tabs.some(tab => tab.kind === 'file')
-  
+  const hasFileTabs =
+    workspace.tabs && workspace.tabs.length > 0 && workspace.tabs.some((tab) => tab.kind === 'file')
+
   // 如果没有文档tab，直接退出
   if (!hasFileTabs) {
     eventBus.emit('quit')
     return
   }
-  
+
   // 有文档tab，执行保存全部并退出
   eventBus.emit('save-all-and-quit')
 }
@@ -1115,7 +1260,7 @@ const currentExportAdapter = ref<any>(null)
 const handleExportClick = (format: ExportFormat) => {
   const sourceFormat = (activeDocument.value?.format ?? 'md') as DocumentFormat
   const adapter = exportAdapterRegistry.get(sourceFormat, format)
-  
+
   if (adapter && adapter.getOptionFields().length > 0) {
     // 如果有导出选项，显示对话框
     currentExportFormat.value = format
@@ -1129,10 +1274,10 @@ const handleExportClick = (format: ExportFormat) => {
 
 const handleExportOptionsConfirm = (options: ExportOptions) => {
   if (currentExportFormat.value) {
-    eventBus.emit('export', { 
-      format: currentExportFormat.value, 
+    eventBus.emit('export', {
+      format: currentExportFormat.value,
       filename: exportTitle.value,
-      options 
+      options
     })
   }
   showExportOptionsDialog.value = false
@@ -1187,7 +1332,6 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   -ms-user-select: none;
   cursor: pointer;
 }
-
 
 /* 图标左对齐 */
 .modern-sidebar-menu :deep(.el-menu-item .el-icon),
@@ -1252,7 +1396,7 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
 
 /* 子菜单弹出框样式 - Windows 11 / QQ NT 风格圆角 */
 /* 使用全局样式覆盖 Element Plus 的弹出菜单 */
-.modern-sidebar-menu :deep(.el-popper[data-popper-placement^="right"]),
+.modern-sidebar-menu :deep(.el-popper[data-popper-placement^='right']),
 .modern-sidebar-menu :deep(.el-popper.is-pure),
 .modern-sidebar-menu :deep(.el-sub-menu__popper) {
   border-radius: 10px !important;
@@ -1459,7 +1603,6 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
     width: 160px;
   }
 }
-
 </style>
 
 <!-- 全局样式：覆盖 Element Plus 弹出菜单 - Windows 11 / QQ NT 风格 -->
@@ -1467,10 +1610,10 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
 /* 全局覆盖 Element Plus 弹出菜单样式 - Windows 11 / QQ NT 风格 */
 /* 只作用于菜单相关的 popper，不影响 tooltip */
 /* 使用类名选择器来区分菜单和 tooltip */
-.el-menu--popup-container[data-popper-placement^="right"],
-.el-sub-menu__popper[data-popper-placement^="right"],
-.el-popper[data-popper-placement^="right"]:not(.el-tooltip__popper):has(.el-menu--popup),
-.el-popper[data-popper-placement^="right"]:not(.el-tooltip__popper):has(.el-menu) {
+.el-menu--popup-container[data-popper-placement^='right'],
+.el-sub-menu__popper[data-popper-placement^='right'],
+.el-popper[data-popper-placement^='right']:not(.el-tooltip__popper):has(.el-menu--popup),
+.el-popper[data-popper-placement^='right']:not(.el-tooltip__popper):has(.el-menu) {
   border-radius: 10px !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
   border: 1px solid var(--el-border-color-light, rgba(0, 0, 0, 0.08)) !important;
@@ -1485,10 +1628,10 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
 /* tooltip 应该保持 Element Plus 的默认样式 */
 /* 禁用 tooltip 的所有动画效果，瞬间显示和消失 */
 .el-tooltip__popper,
-.el-tooltip__popper[data-popper-placement^="right"],
-.el-tooltip__popper[data-popper-placement^="top"],
-.el-tooltip__popper[data-popper-placement^="bottom"],
-.el-tooltip__popper[data-popper-placement^="left"] {
+.el-tooltip__popper[data-popper-placement^='right'],
+.el-tooltip__popper[data-popper-placement^='top'],
+.el-tooltip__popper[data-popper-placement^='bottom'],
+.el-tooltip__popper[data-popper-placement^='left'] {
   border-radius: 4px !important;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1) !important;
   border: none !important;
@@ -1511,10 +1654,10 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
 
 /* 禁用 tooltip 内部所有元素的动画效果 */
 .el-tooltip__popper *,
-.el-tooltip__popper[data-popper-placement^="right"] *,
-.el-tooltip__popper[data-popper-placement^="top"] *,
-.el-tooltip__popper[data-popper-placement^="bottom"] *,
-.el-tooltip__popper[data-popper-placement^="left"] * {
+.el-tooltip__popper[data-popper-placement^='right'] *,
+.el-tooltip__popper[data-popper-placement^='top'] *,
+.el-tooltip__popper[data-popper-placement^='bottom'] *,
+.el-tooltip__popper[data-popper-placement^='left'] * {
   transition: none !important;
   animation: none !important;
   -webkit-transition: none !important;
@@ -1531,12 +1674,12 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
 .el-tooltip__popper.el-fade-in-leave-active,
 .el-tooltip__popper.el-fade-in-enter-from,
 .el-tooltip__popper.el-fade-in-leave-to,
-.el-tooltip__popper[class*="enter-active"],
-.el-tooltip__popper[class*="leave-active"],
-.el-tooltip__popper[class*="enter-from"],
-.el-tooltip__popper[class*="leave-to"],
-.el-tooltip__popper[class*="enter-to"],
-.el-tooltip__popper[class*="leave-from"] {
+.el-tooltip__popper[class*='enter-active'],
+.el-tooltip__popper[class*='leave-active'],
+.el-tooltip__popper[class*='enter-from'],
+.el-tooltip__popper[class*='leave-to'],
+.el-tooltip__popper[class*='enter-to'],
+.el-tooltip__popper[class*='leave-from'] {
   transition: none !important;
   animation: none !important;
   -webkit-transition: none !important;
@@ -1546,21 +1689,21 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
 }
 
 /* 确保嵌套子菜单可以显示 */
-.el-popper[data-popper-placement^="right"] .el-menu--popup {
+.el-popper[data-popper-placement^='right'] .el-menu--popup {
   overflow: visible !important;
 }
 
 /* 移除外层容器的 padding 和背景 - 只作用于菜单 */
-.el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu--popup-container,
-.el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu--popup-container,
-.el-sub-menu__popper[data-popper-placement^="right"] .el-menu--popup-container {
+.el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu--popup-container,
+.el-popper[data-popper-placement^='right'].el-menu--popup-container .el-menu--popup-container,
+.el-sub-menu__popper[data-popper-placement^='right'] .el-menu--popup-container {
   padding: 0 !important;
   background-color: transparent !important;
   border-radius: 10px !important;
   overflow: visible !important;
 }
 
-.el-popper[data-popper-placement^="right"] .el-menu {
+.el-popper[data-popper-placement^='right'] .el-menu {
   border-radius: 10px !important;
   background-color: var(--sub-menu-bg, var(--el-bg-color, #ffffff)) !important;
   border: none !important;
@@ -1574,9 +1717,9 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
 }
 
 /* 全局菜单标题项样式 - 只作用于菜单 */
-.el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-item,
-.el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-item,
-.el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-item {
+.el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .menu-title-item,
+.el-popper[data-popper-placement^='right'].el-menu--popup-container .el-menu .menu-title-item,
+.el-sub-menu__popper[data-popper-placement^='right'] .el-menu .menu-title-item {
   cursor: default !important;
   opacity: 1 !important;
   margin: 4px 4px 8px 4px !important;
@@ -1588,23 +1731,25 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   background-color: transparent !important;
 }
 
-.el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-item:hover,
-.el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-item:hover,
-.el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-item:hover {
+.el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .menu-title-item:hover,
+.el-popper[data-popper-placement^='right'].el-menu--popup-container .el-menu .menu-title-item:hover,
+.el-sub-menu__popper[data-popper-placement^='right'] .el-menu .menu-title-item:hover {
   background-color: transparent !important;
 }
 
-.el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-item.is-disabled,
-.el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-item.is-disabled,
-.el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-item.is-disabled {
+.el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .menu-title-item.is-disabled,
+.el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .menu-title-item.is-disabled,
+.el-sub-menu__popper[data-popper-placement^='right'] .el-menu .menu-title-item.is-disabled {
   opacity: 1 !important;
   cursor: default !important;
   color: inherit !important;
 }
 
-.el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-content,
-.el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-content,
-.el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-content {
+.el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .menu-title-content,
+.el-popper[data-popper-placement^='right'].el-menu--popup-container .el-menu .menu-title-content,
+.el-sub-menu__popper[data-popper-placement^='right'] .el-menu .menu-title-content {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1613,35 +1758,47 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   width: 100%;
 }
 
-.el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-content .el-icon,
-.el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-content .el-icon,
-.el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-content .el-icon {
+.el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .menu-title-content .el-icon,
+.el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .menu-title-content
+  .el-icon,
+.el-sub-menu__popper[data-popper-placement^='right'] .el-menu .menu-title-content .el-icon {
   font-size: 16px;
   margin: 0;
   width: 16px;
   height: 16px;
 }
 
-.el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-content .menu-title-icon,
-.el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-content .menu-title-icon,
-.el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-content .menu-title-icon {
+.el-popper[data-popper-placement^='right']:has(.el-menu)
+  .el-menu
+  .menu-title-content
+  .menu-title-icon,
+.el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .menu-title-content
+  .menu-title-icon,
+.el-sub-menu__popper[data-popper-placement^='right'] .el-menu .menu-title-content .menu-title-icon {
   width: 16px;
   height: 16px;
   margin: 0;
 }
 
-.el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-content span,
-.el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-content span,
-.el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-content span {
+.el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .menu-title-content span,
+.el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .menu-title-content
+  span,
+.el-sub-menu__popper[data-popper-placement^='right'] .el-menu .menu-title-content span {
   font-size: 12px;
   font-weight: 500;
   text-align: center;
   opacity: 0.8;
 }
 
-.el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .el-menu-item,
-.el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .el-menu-item,
-.el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-menu-item {
+.el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .el-menu-item,
+.el-popper[data-popper-placement^='right'].el-menu--popup-container .el-menu .el-menu-item,
+.el-sub-menu__popper[data-popper-placement^='right'] .el-menu .el-menu-item {
   margin: 1px 4px !important;
   border-radius: 6px !important;
   height: 34px !important;
@@ -1653,22 +1810,25 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   -ms-user-select: none;
 }
 
-.el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .el-menu-item:hover,
-.el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .el-menu-item:hover,
-.el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-menu-item:hover {
+.el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .el-menu-item:hover,
+.el-popper[data-popper-placement^='right'].el-menu--popup-container .el-menu .el-menu-item:hover,
+.el-sub-menu__popper[data-popper-placement^='right'] .el-menu .el-menu-item:hover {
   border-radius: 6px !important;
 }
 
 /* 嵌套子菜单样式 - 确保嵌套子菜单也能正确显示 */
-.el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .el-sub-menu,
-.el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .el-sub-menu,
-.el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-sub-menu {
+.el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .el-sub-menu,
+.el-popper[data-popper-placement^='right'].el-menu--popup-container .el-menu .el-sub-menu,
+.el-sub-menu__popper[data-popper-placement^='right'] .el-menu .el-sub-menu {
   margin: 1px 4px !important;
 }
 
-.el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .el-sub-menu .el-sub-menu__title,
-.el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .el-sub-menu .el-sub-menu__title,
-.el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-sub-menu .el-sub-menu__title {
+.el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .el-sub-menu .el-sub-menu__title,
+.el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .el-sub-menu
+  .el-sub-menu__title,
+.el-sub-menu__popper[data-popper-placement^='right'] .el-menu .el-sub-menu .el-sub-menu__title {
   margin: 0 !important;
   border-radius: 6px !important;
   height: 34px !important;
@@ -1677,32 +1837,41 @@ const handleExportOptionsConfirm = (options: ExportOptions) => {
   background-color: transparent !important;
 }
 
-.el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .el-sub-menu .el-sub-menu__title:hover,
-.el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .el-sub-menu .el-sub-menu__title:hover,
-.el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-sub-menu .el-sub-menu__title:hover {
+.el-popper[data-popper-placement^='right']:has(.el-menu)
+  .el-menu
+  .el-sub-menu
+  .el-sub-menu__title:hover,
+.el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .el-sub-menu
+  .el-sub-menu__title:hover,
+.el-sub-menu__popper[data-popper-placement^='right']
+  .el-menu
+  .el-sub-menu
+  .el-sub-menu__title:hover {
   background-color: var(--sub-menu-hover, rgba(0, 0, 0, 0.06)) !important;
   border-radius: 6px !important;
 }
 
 /* 确保所有弹出菜单都有正确的 z-index - 只作用于菜单 */
-.el-popper[data-popper-placement^="right"]:has(.el-menu),
-.el-popper[data-popper-placement^="right"].el-menu--popup-container,
-.el-sub-menu__popper[data-popper-placement^="right"] {
+.el-popper[data-popper-placement^='right']:has(.el-menu),
+.el-popper[data-popper-placement^='right'].el-menu--popup-container,
+.el-sub-menu__popper[data-popper-placement^='right'] {
   z-index: 2000 !important;
 }
 
 /* 嵌套子菜单的弹出框 - 使用更通用的选择器 */
 /* Element Plus 会将所有弹出框都添加到 body 下，嵌套子菜单是独立的弹出框 */
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu),
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container,
-body > .el-sub-menu__popper[data-popper-placement^="right"] {
+body > .el-popper[data-popper-placement^='right']:has(.el-menu),
+body > .el-popper[data-popper-placement^='right'].el-menu--popup-container,
+body > .el-sub-menu__popper[data-popper-placement^='right'] {
   z-index: 3000 !important;
 }
 
 /* 确保嵌套子菜单的弹出框也有圆角和正确样式 */
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu),
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container,
-body > .el-sub-menu__popper[data-popper-placement^="right"] {
+body > .el-popper[data-popper-placement^='right']:has(.el-menu),
+body > .el-popper[data-popper-placement^='right'].el-menu--popup-container,
+body > .el-sub-menu__popper[data-popper-placement^='right'] {
   border-radius: 10px !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
   border: 1px solid var(--el-border-color-light, rgba(0, 0, 0, 0.08)) !important;
@@ -1713,9 +1882,11 @@ body > .el-sub-menu__popper[data-popper-placement^="right"] {
 }
 
 /* 移除嵌套子菜单外层容器的 padding 和背景 */
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu--popup-container,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu--popup-container,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu--popup-container {
+body > .el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu--popup-container,
+body
+  > .el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu--popup-container,
+body > .el-sub-menu__popper[data-popper-placement^='right'] .el-menu--popup-container {
   padding: 0 !important;
   background-color: transparent !important;
   border-radius: 10px !important;
@@ -1723,9 +1894,9 @@ body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu--popup-cont
 }
 
 /* 嵌套子菜单内部的 el-menu - 确保所有嵌套子菜单都应用样式 */
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu {
+body > .el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu,
+body > .el-popper[data-popper-placement^='right'].el-menu--popup-container .el-menu,
+body > .el-sub-menu__popper[data-popper-placement^='right'] .el-menu {
   border-radius: 10px !important;
   background-color: var(--sub-menu-bg, var(--el-bg-color, #ffffff)) !important;
   border: none !important;
@@ -1739,9 +1910,12 @@ body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu {
 }
 
 /* 嵌套子菜单的标题项样式 */
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-item,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-item,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-item {
+body > .el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .menu-title-item,
+body
+  > .el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .menu-title-item,
+body > .el-sub-menu__popper[data-popper-placement^='right'] .el-menu .menu-title-item {
   cursor: default !important;
   opacity: 1 !important;
   margin: 4px 4px 8px 4px !important;
@@ -1753,23 +1927,35 @@ body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title
   background-color: transparent !important;
 }
 
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-item:hover,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-item:hover,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-item:hover {
+body > .el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .menu-title-item:hover,
+body
+  > .el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .menu-title-item:hover,
+body > .el-sub-menu__popper[data-popper-placement^='right'] .el-menu .menu-title-item:hover {
   background-color: transparent !important;
 }
 
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-item.is-disabled,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-item.is-disabled,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-item.is-disabled {
+body
+  > .el-popper[data-popper-placement^='right']:has(.el-menu)
+  .el-menu
+  .menu-title-item.is-disabled,
+body
+  > .el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .menu-title-item.is-disabled,
+body > .el-sub-menu__popper[data-popper-placement^='right'] .el-menu .menu-title-item.is-disabled {
   opacity: 1 !important;
   cursor: default !important;
   color: inherit !important;
 }
 
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-content,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-content,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-content {
+body > .el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .menu-title-content,
+body
+  > .el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .menu-title-content,
+body > .el-sub-menu__popper[data-popper-placement^='right'] .el-menu .menu-title-content {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1778,35 +1964,59 @@ body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title
   width: 100%;
 }
 
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-content .el-icon,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-content .el-icon,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-content .el-icon {
+body
+  > .el-popper[data-popper-placement^='right']:has(.el-menu)
+  .el-menu
+  .menu-title-content
+  .el-icon,
+body
+  > .el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .menu-title-content
+  .el-icon,
+body > .el-sub-menu__popper[data-popper-placement^='right'] .el-menu .menu-title-content .el-icon {
   font-size: 16px;
   margin: 0;
   width: 16px;
   height: 16px;
 }
 
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-content .menu-title-icon,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-content .menu-title-icon,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-content .menu-title-icon {
+body
+  > .el-popper[data-popper-placement^='right']:has(.el-menu)
+  .el-menu
+  .menu-title-content
+  .menu-title-icon,
+body
+  > .el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .menu-title-content
+  .menu-title-icon,
+body
+  > .el-sub-menu__popper[data-popper-placement^='right']
+  .el-menu
+  .menu-title-content
+  .menu-title-icon {
   width: 16px;
   height: 16px;
   margin: 0;
 }
 
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .menu-title-content span,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .menu-title-content span,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .menu-title-content span {
+body > .el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .menu-title-content span,
+body
+  > .el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .menu-title-content
+  span,
+body > .el-sub-menu__popper[data-popper-placement^='right'] .el-menu .menu-title-content span {
   font-size: 12px;
   font-weight: 500;
   text-align: center;
   opacity: 0.8;
 }
 
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .el-menu-item,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .el-menu-item,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-menu-item {
+body > .el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .el-menu-item,
+body > .el-popper[data-popper-placement^='right'].el-menu--popup-container .el-menu .el-menu-item,
+body > .el-sub-menu__popper[data-popper-placement^='right'] .el-menu .el-menu-item {
   margin: 1px 4px !important;
   border-radius: 6px !important;
   height: 34px !important;
@@ -1819,23 +2029,38 @@ body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-menu-it
   -ms-user-select: none;
 }
 
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .el-menu-item:hover,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .el-menu-item:hover,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-menu-item:hover {
+body > .el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .el-menu-item:hover,
+body
+  > .el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .el-menu-item:hover,
+body > .el-sub-menu__popper[data-popper-placement^='right'] .el-menu .el-menu-item:hover {
   background-color: var(--sub-menu-hover, rgba(0, 0, 0, 0.06)) !important;
   border-radius: 6px !important;
 }
 
 /* 确保嵌套子菜单项也能正常显示 */
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .el-sub-menu,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .el-sub-menu,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-sub-menu {
+body > .el-popper[data-popper-placement^='right']:has(.el-menu) .el-menu .el-sub-menu,
+body > .el-popper[data-popper-placement^='right'].el-menu--popup-container .el-menu .el-sub-menu,
+body > .el-sub-menu__popper[data-popper-placement^='right'] .el-menu .el-sub-menu {
   margin: 1px 4px !important;
 }
 
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .el-sub-menu .el-sub-menu__title,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .el-sub-menu .el-sub-menu__title,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-sub-menu .el-sub-menu__title {
+body
+  > .el-popper[data-popper-placement^='right']:has(.el-menu)
+  .el-menu
+  .el-sub-menu
+  .el-sub-menu__title,
+body
+  > .el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .el-sub-menu
+  .el-sub-menu__title,
+body
+  > .el-sub-menu__popper[data-popper-placement^='right']
+  .el-menu
+  .el-sub-menu
+  .el-sub-menu__title {
   margin: 0 !important;
   border-radius: 6px !important;
   height: 34px !important;
@@ -1844,16 +2069,31 @@ body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-sub-men
   background-color: transparent !important;
 }
 
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-menu .el-sub-menu .el-sub-menu__title:hover,
-body > .el-popper[data-popper-placement^="right"].el-menu--popup-container .el-menu .el-sub-menu .el-sub-menu__title:hover,
-body > .el-sub-menu__popper[data-popper-placement^="right"] .el-menu .el-sub-menu .el-sub-menu__title:hover {
+body
+  > .el-popper[data-popper-placement^='right']:has(.el-menu)
+  .el-menu
+  .el-sub-menu
+  .el-sub-menu__title:hover,
+body
+  > .el-popper[data-popper-placement^='right'].el-menu--popup-container
+  .el-menu
+  .el-sub-menu
+  .el-sub-menu__title:hover,
+body
+  > .el-sub-menu__popper[data-popper-placement^='right']
+  .el-menu
+  .el-sub-menu
+  .el-sub-menu__title:hover {
   background-color: var(--sub-menu-hover, rgba(0, 0, 0, 0.06)) !important;
   border-radius: 6px !important;
 }
 
 /* 打开的 submenu 标题显示 active 颜色 */
 .modern-sidebar-menu :deep(.el-sub-menu.is-opened > .el-sub-menu__title),
-body > .el-popper[data-popper-placement^="right"]:has(.el-menu) .el-sub-menu.is-opened > .el-sub-menu__title {
+body
+  > .el-popper[data-popper-placement^='right']:has(.el-menu)
+  .el-sub-menu.is-opened
+  > .el-sub-menu__title {
   background-color: var(--sub-menu-hover, rgba(0, 0, 0, 0.06)) !important;
   border-radius: 6px !important;
 }

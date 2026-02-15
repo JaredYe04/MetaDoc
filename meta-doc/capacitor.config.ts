@@ -1,9 +1,9 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
   appId: 'com.byte-light.metadoc',
   appName: 'meta-doc',
-  webDir: 'out/renderer',
-};
+  webDir: 'out/renderer'
+}
 
-export default config;
+export default config

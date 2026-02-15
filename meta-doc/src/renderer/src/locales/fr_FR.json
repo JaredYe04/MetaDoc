@@ -302,6 +302,12 @@
       "selectTemperature": "Sélectionnez la température pour générer et influencer la diversité du contenu"
     }
   },
+  "mainTabs": {
+    "contextMenu": {
+      "pinTab": "Épingler l'onglet",
+      "unpinTab": "Désépingler l'onglet"
+    }
+  },
   "lang": "_NJ",
   "leftMenu": {
     "aiAssistant": "Assistant AI",

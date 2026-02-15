@@ -7,6 +7,7 @@
 ## 📋 测试覆盖
 
 ### 1. 单元测试 (`test-release-workflow.js`)
+
 - ✅ `get-version-info.js` - 版本信息读取
 - ✅ `get-release-type.js` - 发布类型判断
 - ✅ `get-release-info.js` - 标签和 Release 名称生成
@@ -19,6 +20,7 @@
 - ✅ 文件路径处理
 
 ### 2. 集成测试 (`test-workflow-integration.js`)
+
 - ✅ 完整工作流流程模拟
 - ✅ 步骤间数据传递
 - ✅ 输出变量验证
@@ -26,15 +28,18 @@
 ## 🔍 已验证的功能
 
 1. **版本信息处理**
+
    - 支持手动输入版本号
    - 支持从 package.json 自动读取
    - 正确处理 "Beta" 前缀
 
 2. **发布类型判断**
+
    - workflow_dispatch 手动触发
-   - 从 git tag 自动判断（dev-* 或 v*）
+   - 从 git tag 自动判断（dev-_ 或 v_）
 
 3. **条件构建**
+
    - 检查 Release 是否已存在
    - 检查本地构建产物是否存在
    - 智能跳过不必要的构建步骤
@@ -47,14 +52,17 @@
 ## ⚠️ 注意事项
 
 1. **GitHub API 调用**
+
    - `check-release-exists.js` 需要有效的 `GH_TOKEN`
    - 如果 token 无效，脚本会返回 `release_exists=false`（默认需要构建）
 
 2. **文件路径**
+
    - 工作流中部分脚本在根目录运行，部分在 `meta-doc` 目录运行
    - 文件路径已正确配置
 
 3. **softprops/action-gh-release@v1**
+
    - 不支持 `owner` 和 `overwrite` 参数（已移除）
    - 使用 `repository: owner/repo` 格式
 
@@ -82,7 +90,7 @@ node scripts/test-workflow-integration.js
 ## ✨ 结论
 
 所有脚本已通过测试，工作流应该可以正常运行。如果遇到问题，请检查：
+
 1. GitHub Secrets 配置（GH_TOKEN）
 2. 文件路径是否正确
 3. 构建产物是否在预期位置
-

@@ -67,7 +67,8 @@ const calculationToolLocales: ToolLocales = {
   },
   en_us: {
     name: 'Data Calculation',
-    description: 'Perform complex mathematical calculations including numerical, vector, and matrix operations',
+    description:
+      'Perform complex mathematical calculations including numerical, vector, and matrix operations',
     instruction: `
 # Data Calculation Tool
 
@@ -126,10 +127,7 @@ function safeEval(expression: string, variables: Record<string, any> = {}): any 
 
   // 使用Function构造器而不是eval，更安全
   try {
-    const func = new Function(
-      ...Object.keys(context),
-      `"use strict"; return (${expression})`
-    )
+    const func = new Function(...Object.keys(context), `"use strict"; return (${expression})`)
     return func(...Object.values(context))
   } catch (error) {
     throw new Error(`表达式求值失败: ${error instanceof Error ? error.message : String(error)}`)
@@ -150,7 +148,7 @@ function vectorOperation(operation: string, vec1: number[], vec2?: number[]): nu
       return Math.sqrt(vec1.reduce((sum, val) => sum + val * val, 0))
     case 'normalize': {
       const mag = vectorOperation('magnitude', vec1) as number
-      return vec1.map(val => val / mag)
+      return vec1.map((val) => val / mag)
     }
     default:
       throw new Error(`不支持的向量操作: ${operation}`)
@@ -160,10 +158,14 @@ function vectorOperation(operation: string, vec1: number[], vec2?: number[]): nu
 /**
  * 矩阵运算
  */
-function matrixOperation(operation: string, matrix1: number[][], matrix2?: number[][]): number | number[][] {
+function matrixOperation(
+  operation: string,
+  matrix1: number[][],
+  matrix2?: number[][]
+): number | number[][] {
   switch (operation) {
     case 'transpose':
-      return matrix1[0].map((_, colIndex) => matrix1.map(row => row[colIndex]))
+      return matrix1[0].map((_, colIndex) => matrix1.map((row) => row[colIndex]))
     case 'multiply':
       if (!matrix2) throw new Error('缺少第二个矩阵')
       // 简化的矩阵乘法实现
@@ -215,16 +217,19 @@ const calculationToolCallback: ToolCallback = async (params, signal, onUpdate) =
   }
 
   try {
-    onUpdate({
-      content: {
-        stage: 'calculating',
-        expression
+    onUpdate(
+      {
+        content: {
+          stage: 'calculating',
+          expression
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 30,
-      message: i18n.global.t('agent.tool.calculation.progress.calculating', '正在计算...')
-    })
+      {
+        percentage: 30,
+        message: i18n.global.t('agent.tool.calculation.progress.calculating', '正在计算...')
+      }
+    )
 
     let result: any
     const steps: string[] = []
@@ -254,23 +259,26 @@ const calculationToolCallback: ToolCallback = async (params, signal, onUpdate) =
     if (typeof result === 'number') {
       result = Number(result.toFixed(precision))
     } else if (Array.isArray(result)) {
-      result = result.map(item =>
+      result = result.map((item) =>
         typeof item === 'number' ? Number(item.toFixed(precision)) : item
       )
     }
 
-    onUpdate({
-      content: {
-        stage: 'completed',
-        result,
-        expression,
-        steps
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          result,
+          expression,
+          steps
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 100,
-      message: i18n.global.t('agent.tool.calculation.progress.completed', '计算完成')
-    })
+      {
+        percentage: 100,
+        message: i18n.global.t('agent.tool.calculation.progress.completed', '计算完成')
+      }
+    )
 
     return {
       status: 'succeeded',
@@ -321,7 +329,8 @@ export const calculationToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'data-calculation',
-    brief: 'Perform complex mathematical calculations including numerical, vector, and matrix operations. Supports expression evaluation.',
+    brief:
+      'Perform complex mathematical calculations including numerical, vector, and matrix operations. Supports expression evaluation.',
     fullSpec: `# Data Calculation Tool
 
 ## Description
@@ -405,4 +414,3 @@ Performs various mathematical calculations including:
   },
   locales: calculationToolLocales
 }
-

@@ -1,8 +1,11 @@
 <template>
   <div class="console-container" :style="consoleStyle">
-    <div class="console-header" :style="{
-      backgroundColor:themeState.currentTheme.editorToolbarBackgroundColor
-    }">
+    <div
+      class="console-header"
+      :style="{
+        backgroundColor: themeState.currentTheme.editorToolbarBackgroundColor
+      }"
+    >
       <span class="console-title">{{ $t('console.title') }}</span>
       <div class="console-actions">
         <el-switch
@@ -10,7 +13,7 @@
           v-model="enableAiAnalysis"
           :active-text="$t('console.enableAiAnalysis')"
           size="small"
-          style="margin-right: 8px;"
+          style="margin-right: 8px"
           @change="handleAiAnalysisToggle"
         />
         <el-button size="small" @click="clearConsole">{{ $t('console.clear') }}</el-button>
@@ -23,46 +26,46 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, PropType, nextTick } from 'vue';
-import { useI18n } from 'vue-i18n';
-import * as monaco from 'monaco-editor';
-import { setupMonacoWorker } from '../utils/monaco-worker-config';
-import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer.ts';
-import { webMainCalls } from '../utils/web-adapter/web-main-calls.js';
+import { ref, onMounted, onBeforeUnmount, watch, PropType, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
+import * as monaco from 'monaco-editor'
+import { setupMonacoWorker } from '../utils/monaco-worker-config'
+import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer.ts'
+import { webMainCalls } from '../utils/web-adapter/web-main-calls.js'
 let ipcRenderer: typeof localIpcRenderer | null = null
 if (window && window.electron) {
-    ipcRenderer = window.electron.ipcRenderer as typeof localIpcRenderer
+  ipcRenderer = window.electron.ipcRenderer as typeof localIpcRenderer
 } else {
-    webMainCalls();
-    ipcRenderer = localIpcRenderer
+  webMainCalls()
+  ipcRenderer = localIpcRenderer
 }
-import eventBus from '../utils/event-bus';
-import { themeState } from '../utils/themes';
+import eventBus from '../utils/event-bus'
+import { themeState } from '../utils/themes'
 
-const { t } = useI18n();
+const { t } = useI18n()
 
-type ConsoleLineType = 'out' | 'err' | 'warn' | 'debug';
+type ConsoleLineType = 'out' | 'err' | 'warn' | 'debug'
 
 interface HistoryLine {
-  content: string;
-  type?: ConsoleLineType | string;
+  content: string
+  type?: ConsoleLineType | string
 }
 
 interface ConsolePayload {
-  key?: string;
-  console_key?: string;
-  consoleKey?: string;
-  content?: string;
-  message?: string;
-  text?: string;
-  type?: string;
-  append?: boolean;
+  key?: string
+  console_key?: string
+  consoleKey?: string
+  content?: string
+  message?: string
+  text?: string
+  type?: string
+  append?: boolean
 }
 
 interface ConsoleLine {
-  id: number;
-  content: string;
-  type: ConsoleLineType;
+  id: number
+  content: string
+  type: ConsoleLineType
 }
 
 const props = defineProps({
@@ -78,7 +81,7 @@ const props = defineProps({
     type: Boolean,
     default: true
   }
-});
+})
 
 const consoleStyle = ref({
   '--console-bg': themeState.currentTheme.editorPanelBackgroundColor,
@@ -86,96 +89,99 @@ const consoleStyle = ref({
   '--console-err': '#fe8771',
   '--console-warn': '#e6a23c',
   '--console-debug': '#909399'
-});
+})
 
-const editorContainer = ref<HTMLDivElement | null>(null);
+const editorContainer = ref<HTMLDivElement | null>(null)
 
-let lineId = 0;
-let editorId: string | null = null;
-let decorationIds: string[] = [];
-let consoleFontLoaded = false;
+let lineId = 0
+let editorId: string | null = null
+let decorationIds: string[] = []
+let consoleFontLoaded = false
 
 const normalizeType = (type?: string, fallback: ConsoleLineType = 'out'): ConsoleLineType => {
-  if (!type) return fallback;
-  const lower = type.toLowerCase();
-  if (lower === 'error' || lower === 'err') return 'err';
-  if (lower === 'warn' || lower === 'warning') return 'warn';
-  if (lower === 'debug') return 'debug';
-  return fallback;
-};
+  if (!type) return fallback
+  const lower = type.toLowerCase()
+  if (lower === 'error' || lower === 'err') return 'err'
+  if (lower === 'warn' || lower === 'warning') return 'warn'
+  if (lower === 'debug') return 'debug'
+  return fallback
+}
 
 const detectTypeFromContent = (content: string): ConsoleLineType | null => {
-  if (!content || typeof content !== 'string') return null;
-  const trimmed = content.trim();
-  if (!trimmed) return null;
-  const lowerContent = trimmed.toLowerCase();
-  
+  if (!content || typeof content !== 'string') return null
+  const trimmed = content.trim()
+  if (!trimmed) return null
+  const lowerContent = trimmed.toLowerCase()
+
   if (lowerContent.startsWith('error')) {
-    return 'err';
+    return 'err'
   }
   if (lowerContent.startsWith('warning')) {
-    return 'warn';
+    return 'warn'
   }
-  return null;
-};
+  return null
+}
 
-const lines = ref<ConsoleLine[]>([]);
+const lines = ref<ConsoleLine[]>([])
 
-const enableAiAnalysis = ref(true);
+const enableAiAnalysis = ref(true)
 
 const handleAiAnalysisToggle = (value: boolean) => {
   eventBus.emit('console-ai-analysis-toggle', {
     key: props.consoleKey,
     enabled: value
-  });
-};
+  })
+}
 
 const getEditor = (): monaco.editor.IStandaloneCodeEditor | null => {
-  if (!editorId) return null;
-  const editors = (monaco.editor as any).getEditors?.() ?? [];
-  const found = editors.find((e: monaco.editor.IStandaloneCodeEditor) => e.getId?.() === editorId);
-  return found ?? null;
-};
+  if (!editorId) return null
+  const editors = (monaco.editor as any).getEditors?.() ?? []
+  const found = editors.find((e: monaco.editor.IStandaloneCodeEditor) => e.getId?.() === editorId)
+  return found ?? null
+}
 
 const ensureConsoleFont = async () => {
-  if (consoleFontLoaded || !ipcRenderer?.invoke) return;
+  if (consoleFontLoaded || !ipcRenderer?.invoke) return
   try {
-    const resourcesPath = await ipcRenderer.invoke('resources-path');
-    if (typeof resourcesPath !== 'string' || !resourcesPath) return;
-    const normalized = resourcesPath.replace(/\\/g, '/').replace(/^\/+/, '');
-    const fontUrl = `file:///${normalized}/consola.ttf`;
+    const resourcesPath = await ipcRenderer.invoke('resources-path')
+    if (typeof resourcesPath !== 'string' || !resourcesPath) return
+    const normalized = resourcesPath.replace(/\\/g, '/').replace(/^\/+/, '')
+    const fontUrl = `file:///${normalized}/consola.ttf`
     const fontFace = new FontFace('ConsoleAscii', `url(${fontUrl})`, {
       style: 'normal',
       weight: '400',
       display: 'swap',
       unicodeRange: 'U+0020-007E'
-    });
-    await fontFace.load();
-    document.fonts?.add(fontFace);
-    consoleFontLoaded = true;
+    })
+    await fontFace.load()
+    document.fonts?.add(fontFace)
+    consoleFontLoaded = true
   } catch (error) {
-    console.warn('[ConsoleOutput] 加载 consola 字体失败', error);
+    console.warn('[ConsoleOutput] 加载 consola 字体失败', error)
   }
-};
+}
 
 const applyConsoleTheme = () => {
-  const editor = getEditor();
-  if (!editor) return;
-  const isDark = themeState.currentTheme.type === 'dark';
-  const bg = themeState.currentTheme.editorPanelBackgroundColor || (isDark ? '#1e1e1e' : '#ffffff');
-  const fg = themeState.currentTheme.textColor2 || (isDark ? '#d4d4d4' : '#333333');
+  const editor = getEditor()
+  if (!editor) return
+  const isDark = themeState.currentTheme.type === 'dark'
+  const bg = themeState.currentTheme.editorPanelBackgroundColor || (isDark ? '#1e1e1e' : '#ffffff')
+  const fg = themeState.currentTheme.textColor2 || (isDark ? '#d4d4d4' : '#333333')
 
   const normalizeColor = (color: string) => {
-    if (!color) return '#FFFFFF';
-    let hex = color.replace('#', '');
+    if (!color) return '#FFFFFF'
+    let hex = color.replace('#', '')
     if (hex.length === 3) {
-      hex = hex.split('').map(c => c + c).join('');
+      hex = hex
+        .split('')
+        .map((c) => c + c)
+        .join('')
     }
-    return hex.length === 6 ? '#' + hex.toUpperCase() : '#FFFFFF';
-  };
+    return hex.length === 6 ? '#' + hex.toUpperCase() : '#FFFFFF'
+  }
 
-  const normalizedBg = normalizeColor(bg);
-  const normalizedFg = normalizeColor(fg);
+  const normalizedBg = normalizeColor(bg)
+  const normalizedFg = normalizeColor(fg)
 
   monaco.editor.defineTheme('console-viewer', {
     base: isDark ? 'vs-dark' : 'vs',
@@ -189,61 +195,64 @@ const applyConsoleTheme = () => {
       'scrollbarSlider.background': `${normalizedFg}33`,
       'scrollbarSlider.hoverBackground': `${normalizedFg}55`
     }
-  });
-  monaco.editor.setTheme('console-viewer');
-};
+  })
+  monaco.editor.setTheme('console-viewer')
+}
 
 const applyDecorations = (editor: monaco.editor.IStandaloneCodeEditor) => {
   const decorations = lines.value
     .map((line, idx) => {
-      let inlineClassName: string | undefined;
-      if (line.type === 'err') inlineClassName = 'console-inline-err';
-      else if (line.type === 'warn') inlineClassName = 'console-inline-warn';
-      if (!inlineClassName) return null;
+      let inlineClassName: string | undefined
+      if (line.type === 'err') inlineClassName = 'console-inline-err'
+      else if (line.type === 'warn') inlineClassName = 'console-inline-warn'
+      if (!inlineClassName) return null
       return {
         range: new monaco.Range(idx + 1, 1, idx + 1, line.content.length + 1),
-        options: { inlineClassName, stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges }
-      } as monaco.editor.IModelDeltaDecoration;
+        options: {
+          inlineClassName,
+          stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges
+        }
+      } as monaco.editor.IModelDeltaDecoration
     })
-    .filter((item): item is monaco.editor.IModelDeltaDecoration => !!item);
+    .filter((item): item is monaco.editor.IModelDeltaDecoration => !!item)
 
-  decorationIds = editor.deltaDecorations(decorationIds, decorations);
-};
+  decorationIds = editor.deltaDecorations(decorationIds, decorations)
+}
 
 const renderConsole = () => {
-  const editor = getEditor();
-  if (!editor) return;
-  
-  const text = lines.value.map(l => l.content).join('\n');
-  const currentValue = editor.getValue();
-  const position = editor.getPosition();
-  const wasAtEnd = position && position.lineNumber === editor.getModel()?.getLineCount();
-  
+  const editor = getEditor()
+  if (!editor) return
+
+  const text = lines.value.map((l) => l.content).join('\n')
+  const currentValue = editor.getValue()
+  const position = editor.getPosition()
+  const wasAtEnd = position && position.lineNumber === editor.getModel()?.getLineCount()
+
   if (currentValue !== text) {
-    editor.setValue(text);
-    
+    editor.setValue(text)
+
     if (wasAtEnd) {
-      const lineCount = lines.value.length;
+      const lineCount = lines.value.length
       if (lineCount > 0) {
-        editor.revealLine(lineCount, monaco.editor.ScrollType.Immediate);
+        editor.revealLine(lineCount, monaco.editor.ScrollType.Immediate)
       }
     }
   }
-  
-  applyDecorations(editor);
-  
+
+  applyDecorations(editor)
+
   // 自动滚动到底部
-  const lineCount = lines.value.length;
+  const lineCount = lines.value.length
   if (lineCount > 0) {
-    editor.revealLine(lineCount, monaco.editor.ScrollType.Immediate);
+    editor.revealLine(lineCount, monaco.editor.ScrollType.Immediate)
   }
-};
+}
 
 const createEditor = async () => {
-  await nextTick();
-  if (!editorContainer.value) return;
-  setupMonacoWorker();
-  await ensureConsoleFont();
+  await nextTick()
+  if (!editorContainer.value) return
+  setupMonacoWorker()
+  await ensureConsoleFont()
   const editor = monaco.editor.create(editorContainer.value, {
     value: '',
     language: 'plaintext',
@@ -260,28 +269,31 @@ const createEditor = async () => {
     renderLineHighlight: 'none',
     glyphMargin: false,
     folding: false
-  });
-  editorId = editor.getId();
-  applyConsoleTheme();
-  renderConsole();
-};
+  })
+  editorId = editor.getId()
+  applyConsoleTheme()
+  renderConsole()
+}
 
 const applyHistory = (history: HistoryLine[]) => {
-  const initialLines = history.map(historyLine => ({
+  const initialLines = history.map((historyLine) => ({
     id: lineId++,
     content: historyLine.content,
     type: normalizeType(historyLine.type, 'out')
-  }));
-  lines.value = initialLines;
-  renderConsole();
-};
+  }))
+  lines.value = initialLines
+  renderConsole()
+}
 
-applyHistory(props.history);
+applyHistory(props.history)
 
-watch(() => props.history, (newHistory) => {
-  lineId = 0;
-  applyHistory(newHistory);
-});
+watch(
+  () => props.history,
+  (newHistory) => {
+    lineId = 0
+    applyHistory(newHistory)
+  }
+)
 
 eventBus.on('sync-editor-theme', async () => {
   consoleStyle.value = {
@@ -290,43 +302,43 @@ eventBus.on('sync-editor-theme', async () => {
     '--console-err': '#fe8771',
     '--console-warn': '#e6a23c',
     '--console-debug': '#909399'
-  };
-  applyConsoleTheme();
-});
+  }
+  applyConsoleTheme()
+})
 
 const addLine = (content: string, type: ConsoleLineType = 'out') => {
   if (content.includes('\n')) {
-    const parts = content.split('\n');
+    const parts = content.split('\n')
     for (const part of parts) {
-      lines.value.push({ id: lineId++, content: part, type });
+      lines.value.push({ id: lineId++, content: part, type })
     }
   } else {
-    lines.value.push({ id: lineId++, content, type });
+    lines.value.push({ id: lineId++, content, type })
   }
-  renderConsole();
-};
+  renderConsole()
+}
 
 const appendToLastLine = (content: string, type: ConsoleLineType = 'out') => {
   if (lines.value.length === 0) {
-    addLine(content, type);
-    return;
+    addLine(content, type)
+    return
   }
-  
-  const hasNewline = content.includes('\n');
+
+  const hasNewline = content.includes('\n')
   if (!hasNewline) {
-    const lastLine = lines.value[lines.value.length - 1];
-    lastLine.content += content;
-    renderConsole();
+    const lastLine = lines.value[lines.value.length - 1]
+    lastLine.content += content
+    renderConsole()
   } else {
     // 处理包含换行符的内容
-    const parts = content.split('\n');
-    
+    const parts = content.split('\n')
+
     // 第一部分追加到最后一行
     if (parts[0] !== undefined) {
-      const lastLine = lines.value[lines.value.length - 1];
-      lastLine.content += parts[0];
+      const lastLine = lines.value[lines.value.length - 1]
+      lastLine.content += parts[0]
     }
-    
+
     // 中间部分（如果有）创建新行
     // 注意：split('\n') 会在每个换行符处分割，所以如果有 n 个换行符，会有 n+1 个部分
     // 例如 "a\nb\nc" 会分割成 ["a", "b", "c"]
@@ -335,100 +347,100 @@ const appendToLastLine = (content: string, type: ConsoleLineType = 'out') => {
     for (let i = 1; i < parts.length; i++) {
       // 对于每个换行符后的部分，都创建新行
       // 即使是空字符串也创建新行（表示空行）
-      lines.value.push({ id: lineId++, content: parts[i] || '', type });
+      lines.value.push({ id: lineId++, content: parts[i] || '', type })
     }
-    
-    renderConsole();
+
+    renderConsole()
   }
-};
+}
 
 const clearConsole = () => {
-  lines.value = [];
-  const editor = getEditor();
+  lines.value = []
+  const editor = getEditor()
   if (editor) {
-    decorationIds = editor.deltaDecorations(decorationIds, []);
-    editor.setValue('');
+    decorationIds = editor.deltaDecorations(decorationIds, [])
+    editor.setValue('')
   }
-};
+}
 
 const copyConsole = () => {
-  const text = lines.value.map(l => l.content).join('\n');
+  const text = lines.value.map((l) => l.content).join('\n')
   navigator.clipboard.writeText(text).then(() => {
-    eventBus.emit("show-success", t('console.copiedToClipboard'))
-  });
-};
+    eventBus.emit('show-success', t('console.copiedToClipboard'))
+  })
+}
 
 const saveConsole = async () => {
-  const text = lines.value.map(l => l.content).join('\n');
-  
+  const text = lines.value.map((l) => l.content).join('\n')
+
   try {
     if (!ipcRenderer) {
-      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `console-${props.consoleKey}.log`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      eventBus.emit("show-success", t('console.logSaved'));
-      return;
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `console-${props.consoleKey}.log`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      eventBus.emit('show-success', t('console.logSaved'))
+      return
     }
-    
-    const result = await ipcRenderer.invoke('save-file-dialog', {
+
+    const result = (await ipcRenderer.invoke('save-file-dialog', {
       defaultName: `console-${props.consoleKey}.log`,
       filters: [
         { name: 'Log Files', extensions: ['log', 'txt'] },
         { name: 'All Files', extensions: ['*'] }
       ]
-    }) as { canceled?: boolean; filePath?: string };
-    
+    })) as { canceled?: boolean; filePath?: string }
+
     if (result.canceled || !result.filePath) {
-      return;
+      return
     }
-    
+
     await ipcRenderer.invoke('write-file-content', {
       filePath: result.filePath,
       content: text,
       encoding: 'utf8'
-    });
-    
-    eventBus.emit("show-success", t('console.logSaved'));
+    })
+
+    eventBus.emit('show-success', t('console.logSaved'))
   } catch (error) {
-    console.error('保存日志失败:', error);
-    eventBus.emit("show-error", t('console.logSaveFailed') || '保存日志失败');
+    console.error('保存日志失败:', error)
+    eventBus.emit('show-error', t('console.logSaveFailed') || '保存日志失败')
   }
-};
+}
 
 const resolvePayload = (payload: unknown, fallbackType: ConsoleLineType, requireContent = true) => {
   if (payload === null || payload === undefined) {
-    return null;
+    return null
   }
 
   if (typeof payload === 'string') {
-    const keyMatch = props.consoleKey;
+    const keyMatch = props.consoleKey
     if (!requireContent || payload.length > 0) {
       return {
         key: keyMatch,
         content: payload,
         type: fallbackType,
         append: false
-      };
+      }
     }
-    return null;
+    return null
   }
 
   if (typeof payload === 'object') {
-    const obj = payload as ConsolePayload;
-    const key = obj.key ?? obj.console_key ?? obj.consoleKey ?? props.consoleKey;
+    const obj = payload as ConsolePayload
+    const key = obj.key ?? obj.console_key ?? obj.consoleKey ?? props.consoleKey
     if (key !== props.consoleKey) {
-      return null;
+      return null
     }
 
-    const content = obj.content ?? obj.message ?? obj.text ?? '';
+    const content = obj.content ?? obj.message ?? obj.text ?? ''
     if (requireContent && !content) {
-      return null;
+      return null
     }
 
     return {
@@ -436,160 +448,164 @@ const resolvePayload = (payload: unknown, fallbackType: ConsoleLineType, require
       content,
       type: normalizeType(obj.type, fallbackType),
       append: obj.append ?? false
-    };
+    }
   }
 
-  return null;
-};
+  return null
+}
 
 const handleOutPayload = (payload: unknown, fallbackType: ConsoleLineType) => {
-  const resolved = resolvePayload(payload, fallbackType);
-  if (!resolved) return;
-  
-  const detectedType = detectTypeFromContent(resolved.content);
-  
-  let finalType: ConsoleLineType;
+  const resolved = resolvePayload(payload, fallbackType)
+  if (!resolved) return
+
+  const detectedType = detectTypeFromContent(resolved.content)
+
+  let finalType: ConsoleLineType
   if (detectedType !== null) {
-    finalType = detectedType;
+    finalType = detectedType
   } else {
-    finalType = normalizeType(resolved.type, fallbackType);
+    finalType = normalizeType(resolved.type, fallbackType)
   }
-  
+
   if (resolved.append) {
-    appendToLastLine(resolved.content, finalType);
+    appendToLastLine(resolved.content, finalType)
   } else {
-    addLine(resolved.content, finalType);
+    addLine(resolved.content, finalType)
   }
-};
+}
 
 const handleClearPayload = (payload: unknown) => {
   if (payload === undefined || payload === null) {
-    clearConsole();
-    return;
+    clearConsole()
+    return
   }
-  const resolved = resolvePayload(payload, 'out', false);
+  const resolved = resolvePayload(payload, 'out', false)
   if (!resolved) {
-    return;
+    return
   }
-  clearConsole();
-};
+  clearConsole()
+}
 
-const onConsoleOut = (_event: unknown, data: unknown) => handleOutPayload(data, 'out');
-const onConsoleErr = (_event: unknown, data: unknown) => handleOutPayload(data, 'err');
-const onEventBusConsoleOut = (data: unknown) => handleOutPayload(data, 'out');
-const onEventBusConsoleErr = (data: unknown) => handleOutPayload(data, 'err');
-const onEventBusClear = (data: unknown) => handleClearPayload(data);
+const onConsoleOut = (_event: unknown, data: unknown) => handleOutPayload(data, 'out')
+const onConsoleErr = (_event: unknown, data: unknown) => handleOutPayload(data, 'err')
+const onEventBusConsoleOut = (data: unknown) => handleOutPayload(data, 'out')
+const onEventBusConsoleErr = (data: unknown) => handleOutPayload(data, 'err')
+const onEventBusClear = (data: unknown) => handleClearPayload(data)
 
 // 滚动到底部
 const scrollToBottom = () => {
-  const editor = getEditor();
-  if (!editor) return;
-  const lineCount = lines.value.length;
+  const editor = getEditor()
+  if (!editor) return
+  const lineCount = lines.value.length
   if (lineCount > 0) {
-    editor.revealLine(lineCount, monaco.editor.ScrollType.Immediate);
+    editor.revealLine(lineCount, monaco.editor.ScrollType.Immediate)
   }
-};
+}
 
 // 处理滚动到底部事件
 const handleScrollToBottom = (payload: unknown) => {
   if (typeof payload === 'object' && payload !== null) {
-    const obj = payload as { key?: string; consoleKey?: string };
-    const key = obj.key ?? obj.consoleKey ?? props.consoleKey;
+    const obj = payload as { key?: string; consoleKey?: string }
+    const key = obj.key ?? obj.consoleKey ?? props.consoleKey
     if (key === props.consoleKey) {
-      scrollToBottom();
+      scrollToBottom()
     }
   } else if (payload === undefined || payload === null) {
     // 如果没有指定 key，也执行滚动（兼容性）
-    scrollToBottom();
+    scrollToBottom()
   }
-};
+}
 
 // 处理获取控制台内容的请求
 const handleGetConsoleContent = (payload: unknown) => {
   if (typeof payload === 'object' && payload !== null) {
-    const obj = payload as { key?: string; consoleKey?: string; callback?: (content: { stdout: string; stderr: string }) => void };
-    const key = obj.key ?? obj.consoleKey ?? props.consoleKey;
+    const obj = payload as {
+      key?: string
+      consoleKey?: string
+      callback?: (content: { stdout: string; stderr: string }) => void
+    }
+    const key = obj.key ?? obj.consoleKey ?? props.consoleKey
     if (key === props.consoleKey) {
       // 将所有行按类型分类
-      const stdout: string[] = [];
-      const stderr: string[] = [];
-      
-      lines.value.forEach(line => {
+      const stdout: string[] = []
+      const stderr: string[] = []
+
+      lines.value.forEach((line) => {
         if (line.type === 'err') {
-          stderr.push(line.content);
+          stderr.push(line.content)
         } else {
-          stdout.push(line.content);
+          stdout.push(line.content)
         }
-      });
-      
+      })
+
       const content = {
         stdout: stdout.join('\n'),
         stderr: stderr.join('\n')
-      };
-      
+      }
+
       if (obj.callback && typeof obj.callback === 'function') {
-        obj.callback(content);
+        obj.callback(content)
       } else {
         // 通过 eventBus 返回内容
         eventBus.emit('console-content-response', {
           key: props.consoleKey,
           content
-        });
+        })
       }
     }
   } else if (payload === undefined || payload === null) {
     // 如果没有指定 key，也返回内容（兼容性）
-    const stdout: string[] = [];
-    const stderr: string[] = [];
-    
-    lines.value.forEach(line => {
+    const stdout: string[] = []
+    const stderr: string[] = []
+
+    lines.value.forEach((line) => {
       if (line.type === 'err') {
-        stderr.push(line.content);
+        stderr.push(line.content)
       } else {
-        stdout.push(line.content);
+        stdout.push(line.content)
       }
-    });
-    
+    })
+
     eventBus.emit('console-content-response', {
       key: props.consoleKey,
       content: {
         stdout: stdout.join('\n'),
         stderr: stderr.join('\n')
       }
-    });
+    })
   }
-};
+}
 
 onMounted(() => {
-  createEditor();
-  eventBus.on('console-out', onEventBusConsoleOut);
-  eventBus.on('console-err', onEventBusConsoleErr);
-  eventBus.on('clear-console', onEventBusClear);
-  eventBus.on('console-scroll-to-bottom', handleScrollToBottom);
-  eventBus.on('get-console-content', handleGetConsoleContent);
+  createEditor()
+  eventBus.on('console-out', onEventBusConsoleOut)
+  eventBus.on('console-err', onEventBusConsoleErr)
+  eventBus.on('clear-console', onEventBusClear)
+  eventBus.on('console-scroll-to-bottom', handleScrollToBottom)
+  eventBus.on('get-console-content', handleGetConsoleContent)
   if (ipcRenderer) {
-    ipcRenderer.on('console-out', onConsoleOut);
-    ipcRenderer.on('console-err', onConsoleErr);
+    ipcRenderer.on('console-out', onConsoleOut)
+    ipcRenderer.on('console-err', onConsoleErr)
   }
-});
+})
 
 onBeforeUnmount(() => {
-  eventBus.off('console-out', onEventBusConsoleOut);
-  eventBus.off('console-err', onEventBusConsoleErr);
-  eventBus.off('clear-console', onEventBusClear);
-  eventBus.off('console-scroll-to-bottom', handleScrollToBottom);
-  eventBus.off('get-console-content', handleGetConsoleContent);
-  const editor = getEditor();
+  eventBus.off('console-out', onEventBusConsoleOut)
+  eventBus.off('console-err', onEventBusConsoleErr)
+  eventBus.off('clear-console', onEventBusClear)
+  eventBus.off('console-scroll-to-bottom', handleScrollToBottom)
+  eventBus.off('get-console-content', handleGetConsoleContent)
+  const editor = getEditor()
   if (editor) {
-    editor.dispose();
+    editor.dispose()
   }
-  editorId = null;
-  decorationIds = [];
+  editorId = null
+  decorationIds = []
   if (ipcRenderer) {
-    ipcRenderer.removeListener('console-out', onConsoleOut);
-    ipcRenderer.removeListener('console-err', onConsoleErr);
+    ipcRenderer.removeListener('console-out', onConsoleOut)
+    ipcRenderer.removeListener('console-err', onConsoleErr)
   }
-});
+})
 </script>
 
 <style scoped>
@@ -644,5 +660,3 @@ onBeforeUnmount(() => {
   color: var(--console-warn) !important;
 }
 </style>
-
-

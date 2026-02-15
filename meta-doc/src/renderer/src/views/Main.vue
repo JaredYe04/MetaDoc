@@ -19,15 +19,23 @@
         <div class="content-area-wrapper">
           <el-container class="content-area">
             <!-- 子视图菜单（仅在文档相关视图显示） -->
-            <el-aside v-if="showSubViewMenu" class="sub-view-menu-aside" :class="{ 'is-collapsed': viewMenuCollapsed }">
+            <el-aside
+              v-if="showSubViewMenu"
+              class="sub-view-menu-aside"
+              :class="{ 'is-collapsed': viewMenuCollapsed }"
+            >
               <ViewMenu />
             </el-aside>
             <el-container class="content-shell">
               <el-main class="content-main">
-          <UserProfileCard v-if="showUserProfileCard" @close="showUserProfileCard = false" class="user-profile-card"
-            :position="menuPosition" />
-          <!-- Tab内容区域 - 使用TabContentRenderer组件处理所有Tab渲染 -->
-          <TabContentRenderer />
+                <UserProfileCard
+                  v-if="showUserProfileCard"
+                  @close="showUserProfileCard = false"
+                  class="user-profile-card"
+                  :position="menuPosition"
+                />
+                <!-- Tab内容区域 - 使用TabContentRenderer组件处理所有Tab渲染 -->
+                <TabContentRenderer />
               </el-main>
             </el-container>
           </el-container>
@@ -44,7 +52,8 @@
     <NotificationQueue />
     <AITaskQueue />
     <LoggerConsolePanel />
-    
+    <TabSwitcherOverlay />
+
     <!-- 文件冲突对话框 -->
     <FileConflictDialog
       v-if="fileConflictData"
@@ -101,7 +110,7 @@ import {
   loadDocumentFromMarkdown,
   loadDocumentFromTex,
   loadDocumentFromPlainText,
-  type LoadedDocumentData,
+  type LoadedDocumentData
 } from '../services/document-loader'
 import type { WorkspaceDocument, WorkspaceTab, DocumentView } from '../stores/workspace'
 import { convertMarkdownBodyToLatex } from '../utils/latex-utils'
@@ -109,6 +118,10 @@ import { verifyToken } from '../utils/web-utils.ts'
 import { createRendererLogger } from '../utils/logger.ts'
 import { extname } from '../utils/path-utils'
 import { formatRegistry } from '../utils/format-registry'
+
+import TabSwitcherOverlay from '../components/TabSwitcherOverlay.vue'
+import { useTabSwitcher } from '../composables/useTabSwitcher'
+import { useCloseTab } from '../composables/useCloseTab'
 
 // ============================================================================
 // 初始化和基础设置
@@ -118,6 +131,8 @@ const logger = createRendererLogger('Main', {
   windowTypeProvider: () => getWindowType()
 })
 const workspace = useWorkspace()
+const tabSwitcher = useTabSwitcher()
+const { closeTab } = useCloseTab()
 
 // ============================================================================
 // 计算属性和状态
@@ -134,12 +149,12 @@ const {
   createDocumentSnapshotFromTemplate,
   updateDocumentTex,
   updateDocumentMarkdown,
-  refreshActiveTabMetadata,
+  refreshActiveTabMetadata
 } = workspace
 
 // 判断是否显示子视图菜单（仅在文档相关视图显示）
 const showSubViewMenu = computed(() => {
-  const activeTab = workspace.tabs.find(t => t.id === workspace.activeTabId.value)
+  const activeTab = workspace.tabs.find((t) => t.id === workspace.activeTabId.value)
   if (!activeTab) return false
   return activeTab.kind === 'file' || activeTab.kind === 'new'
 })
@@ -171,7 +186,7 @@ const fileConflictData = ref<{
 // ============================================================================
 // 工具函数
 // ============================================================================
-const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value))
+const cloneDeep = <T,>(value: T): T => JSON.parse(JSON.stringify(value))
 
 // 规范化内容（统一换行符）
 const normalizeContent = (value: string | null | undefined): string => {
@@ -197,7 +212,7 @@ const extractFileName = (fullPath: string): string => {
 const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocument => {
   const normalizedMarkdown = normalizeContent(data.markdown)
   const normalizedTex = normalizeContent(data.tex)
-  
+
   const tempDoc: WorkspaceDocument = {
     id: '',
     tabId: '',
@@ -217,23 +232,23 @@ const createSnapshotFromLoadedData = (data: LoadedDocumentData): WorkspaceDocume
     savedOutline: cloneDeep(data.outline),
     savedMeta: { ...data.meta },
     savedAiDialogs: cloneDeep(data.aiDialogs),
-    savedAgentSessions: cloneDeep(data.agentSessions),
+    savedAgentSessions: cloneDeep(data.agentSessions)
   }
-  
+
   const hasContent = hasDocumentContent(tempDoc)
   const initialView: DocumentView = hasContent ? 'home' : 'editor'
-  
+
   logger.debug('创建文档快照', {
     format: data.format,
     markdownLength: normalizedMarkdown.length,
     texLength: normalizedTex.length,
     hasContent,
-    initialView,
+    initialView
   })
-  
+
   return {
     ...tempDoc,
-    lastView: initialView,
+    lastView: initialView
   }
 }
 
@@ -248,9 +263,6 @@ type OpenDocumentPayload = {
   /** 预览模式：不列入“已打开文件”，仅一个预览 tab */
   preview?: boolean
 }
-
-// 防止同一文件被并发打开的锁
-const openingFiles = new Set<string>()
 
 const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
   if (!payload || typeof payload !== 'object') {
@@ -278,9 +290,26 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
   const normalizePathForCompare = (p: string) => (p || '').replace(/\\/g, '/')
   const resolvedPathNorm = normalizePathForCompare(resolvedPath)
 
+  // 获取 ipcRenderer 实例
+  const getIpcRenderer = async () => {
+    let ipcRenderer: any = null
+    if (window && (window as any).electron) {
+      ipcRenderer = (window as any).electron.ipcRenderer
+    } else {
+      const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
+      ipcRenderer = localIpcRenderer
+    }
+    return ipcRenderer
+  }
+
+  // 预初始化 ipcRenderer，后续多处需要使用
+  let ipcRenderer: any = null
+
   if (resolvedPath) {
     // 先检查当前窗口是否已打开该文件（路径规范化后比较，避免 D:\ 与 D:/ 等导致误判）
-    const existing = workspaceTabs.find((tab) => normalizePathForCompare(tab.path || '') === resolvedPathNorm)
+    const existing = workspaceTabs.find(
+      (tab) => normalizePathForCompare(tab.path || '') === resolvedPathNorm
+    )
     if (existing) {
       activateTab(existing.id)
       const existingDoc = ensureDocument(existing.id)
@@ -302,40 +331,58 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       }
     }
 
-    // 检查是否正在打开该文件（防止并发打开，用规范化路径）
-    if (openingFiles.has(resolvedPathNorm)) {
-      logger.warn(`文件 ${resolvedPath} 正在打开中，跳过重复请求`)
-      return
-    }
-    
-    // 标记文件正在打开
-    openingFiles.add(resolvedPathNorm)
+    // 预占式注册：防止并发重复打开
+    ipcRenderer = await getIpcRenderer()
+    if (ipcRenderer && typeof ipcRenderer.invoke === 'function') {
+      // 生成 tabId（在预占时就需要）
+      const tempTabId = `tab-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 
-    // 检查文件是否在其他窗口打开
-    try {
-      let ipcRenderer: any = null
-      if (window && (window as any).electron) {
-        ipcRenderer = (window as any).electron.ipcRenderer
-      } else {
-        const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
-        ipcRenderer = localIpcRenderer
+      const claim = (await ipcRenderer.invoke('claim-file-open', {
+        filePath: resolvedPath,
+        tabId: tempTabId
+      })) as {
+        success: boolean
+        existingWindowId?: number
+        existingTabId?: string
+        existingState?: string
       }
 
-      if (ipcRenderer && typeof ipcRenderer.invoke === 'function') {
-        const result = await ipcRenderer.invoke('find-window-with-file', resolvedPath) as { windowId: number | null; tabId: string | null }
-        
-        if (result.windowId && result.tabId) {
-          // 文件已在其他窗口打开，切换到该窗口
-          // 主进程会处理窗口切换和Tab激活
-          logger.info(`文件 ${resolvedPath} 已在窗口 ${result.windowId} 的Tab ${result.tabId} 中打开，将切换到该窗口`)
-          // 清除打开标记
-          openingFiles.delete(resolvedPathNorm)
-          return
+      if (!claim.success) {
+        // 文件已被其他地方打开，尝试激活对应窗口
+        if (claim.existingWindowId && claim.existingTabId) {
+          // 重试一次（如果是 transferring 状态）
+          if (claim.existingState === 'transferring') {
+            await new Promise((resolve) => setTimeout(resolve, 600))
+            const retryResult = (await ipcRenderer.invoke(
+              'find-window-with-file',
+              resolvedPath
+            )) as { windowId: number | null; tabId: string | null }
+            if (retryResult.windowId && retryResult.tabId) {
+              // 主进程会处理窗口切换和Tab激活
+              logger.info(`文件 ${resolvedPath} 转移完成，将切换到窗口 ${retryResult.windowId}`)
+              return
+            }
+          }
+
+          // 如果已有窗口打开，让主进程处理窗口切换
+          logger.info(
+            `文件 ${resolvedPath} 已在窗口 ${claim.existingWindowId} 的Tab ${claim.existingTabId} 中打开`
+          )
+          // 调用 find-window-with-file 触发主进程的窗口切换逻辑
+          await ipcRenderer.invoke('find-window-with-file', resolvedPath)
         }
+        return
       }
-    } catch (error) {
-      logger.warn('检查文件是否在其他窗口打开失败:', error)
-      // 继续在当前窗口打开文件
+
+      // 预占成功，继续打开流程
+      // 在 try-catch 中确保释放预占或确认打开
+      try {
+        // 继续下面的打开逻辑...
+      } catch (error) {
+        // 打开失败，释放预占
+        await ipcRenderer.invoke('release-file-claim', resolvedPath)
+        throw error
+      }
     }
   }
 
@@ -365,7 +412,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       preview: true,
       title: pdfFileName.replace(/\.pdf$/i, '') || pdfFileName,
       subtitle: pdfFileName,
-      dirty: false,
+      dirty: false
     })
     const doc = ensureDocument(tab.id)
     doc.path = resolvedPath
@@ -377,18 +424,29 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
     // 不要调用 initializeDocumentFromTemplate：它会用模板覆盖 doc.path/doc.format/tab 导致标题变成「未命名文档」、Home 无法识别 PDF
     refreshActiveTabMetadata()
     activateTab(tab.id)
-    eventBus.emit('open-doc-success', { tabId: tab.id, path: resolvedPath, fileName: getDisplayName(doc, resolvedPath), isPreview: true })
+    eventBus.emit('open-doc-success', {
+      tabId: tab.id,
+      path: resolvedPath,
+      fileName: getDisplayName(doc, resolvedPath),
+      isPreview: true
+    })
     eventBus.emit('is-need-save', false)
-    if (resolvedPath) openingFiles.delete(resolvedPathNorm)
+    // 文件打开成功，确认注册
+    if (resolvedPath && ipcRenderer) {
+      await ipcRenderer.invoke('confirm-file-open', resolvedPath)
+    }
     return
   }
   if (isPdf && !isPreview) {
     try {
-      const ipcRenderer = window.electron?.ipcRenderer || (await import('../utils/web-adapter/local-ipc-renderer')).localIpcRenderer
       if (!ipcRenderer?.invoke) {
         throw new Error('IPC 渲染器不可用')
       }
-      const result = await ipcRenderer.invoke('convert-pdf-to-markdown', resolvedPath) as { success: boolean; markdown?: string; error?: string }
+      const result = (await ipcRenderer.invoke('convert-pdf-to-markdown', resolvedPath)) as {
+        success: boolean
+        markdown?: string
+        error?: string
+      }
       if (!result.success || !result.markdown) {
         throw new Error(result.error || 'PDF转换失败')
       }
@@ -401,7 +459,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
         dirty: true,
         path: '',
         format: 'md',
-        preview: false,
+        preview: false
       })
       const doc = ensureDocument(tab.id)
       doc.path = ''
@@ -413,15 +471,25 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       workspace.initializeDocumentFromTemplate(tab.id, 'md', 'blank', 'editor')
       refreshActiveTabMetadata()
       activateTab(tab.id)
-      eventBus.emit('open-doc-success', { tabId: tab.id, path: '', fileName: getDisplayName(doc, '') })
+      eventBus.emit('open-doc-success', {
+        tabId: tab.id,
+        path: '',
+        fileName: getDisplayName(doc, '')
+      })
       eventBus.emit('is-need-save', true)
-      if (resolvedPath) openingFiles.delete(resolvedPathNorm)
+      // 文件打开成功，确认注册
+      if (resolvedPath && ipcRenderer) {
+        await ipcRenderer.invoke('confirm-file-open', resolvedPath)
+      }
       return
     } catch (error) {
       logger.error('PDF转换失败:', error)
       const message = error instanceof Error ? error.message : String(error)
       eventBus.emit('show-error', `PDF转换失败: ${message}`)
-      if (resolvedPath) openingFiles.delete(resolvedPathNorm)
+      // PDF转换失败，释放预占
+      if (resolvedPath && ipcRenderer) {
+        await ipcRenderer.invoke('release-file-claim', resolvedPath)
+      }
       return
     }
   }
@@ -429,9 +497,11 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
   // 如果内容为空但有路径，读取文件内容（但不用于格式检测）
   if (!content && resolvedPath) {
     try {
-      const ipcRenderer = window.electron?.ipcRenderer || (await import('../utils/web-adapter/local-ipc-renderer')).localIpcRenderer
+      const ipcRenderer =
+        window.electron?.ipcRenderer ||
+        (await import('../utils/web-adapter/local-ipc-renderer')).localIpcRenderer
       if (ipcRenderer?.invoke) {
-        content = await ipcRenderer.invoke('read-file-content', resolvedPath) as string || ''
+        content = ((await ipcRenderer.invoke('read-file-content', resolvedPath)) as string) || ''
       }
     } catch (err) {
       logger.error('读取文件内容失败:', err)
@@ -464,7 +534,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
         break
       default:
         // 其他格式，默认当作纯文本处理（不再使用内容检测）
-            loaded = loadDocumentFromPlainText(content)
+        loaded = loadDocumentFromPlainText(content)
     }
 
     snapshot = createSnapshotFromLoadedData(loaded)
@@ -473,10 +543,15 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
 
     // 再次检查文件是否已打开（可能在异步操作期间已被打开，路径规范化比较）
     if (resolvedPath) {
-      const existingAfterCheck = workspaceTabs.find((tab) => normalizePathForCompare(tab.path || '') === resolvedPathNorm)
+      const existingAfterCheck = workspaceTabs.find(
+        (tab) => normalizePathForCompare(tab.path || '') === resolvedPathNorm
+      )
       if (existingAfterCheck) {
         // 文件已在异步操作期间被打开，激活现有Tab并返回
-        openingFiles.delete(resolvedPathNorm)
+        // 释放预占，让实际打开的窗口持有
+        if (resolvedPath && ipcRenderer) {
+          await ipcRenderer.invoke('release-file-claim', resolvedPath)
+        }
         activateTab(existingAfterCheck.id)
         const existingDoc = ensureDocument(existingAfterCheck.id)
         eventBus.emit('open-doc-success', {
@@ -494,7 +569,7 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       dirty: false,
       path: resolvedPath,
       format: loaded.format,
-      preview: payload.preview ?? false,
+      preview: payload.preview ?? false
     })
     const doc = ensureDocument(tab.id)
     doc.path = resolvedPath
@@ -509,14 +584,18 @@ const handleWorkspaceOpenDocument = async (payload: OpenDocumentPayload) => {
       fileName: getDisplayName(ensureDocument(tab.id), resolvedPath)
     })
     eventBus.emit('is-need-save', false)
+
+    // 文件打开成功，确认注册
+    if (resolvedPath && ipcRenderer) {
+      await ipcRenderer.invoke('confirm-file-open', resolvedPath)
+    }
   } catch (error) {
     logger.error('Failed to open document:', error)
     const message = error instanceof Error ? error.message : String(error)
     eventBus.emit('show-error', `${t('main.notification.error.title')}: ${message}`)
-  } finally {
-    // 清除打开标记
-    if (resolvedPath) {
-      openingFiles.delete(resolvedPathNorm)
+    // 打开失败，释放预占
+    if (resolvedPath && ipcRenderer) {
+      await ipcRenderer.invoke('release-file-claim', resolvedPath)
     }
   }
 }
@@ -553,7 +632,7 @@ function initMainEventListeners() {
   // 刷新事件 - 只在非 GlobalHome 时更新标题
   const handleRefresh = () => {
     // 检查当前活动的 tab 是否是 GlobalHome
-    const currentTab = workspace.tabs.find(t => t.id === workspace.activeTabId.value)
+    const currentTab = workspace.tabs.find((t) => t.id === workspace.activeTabId.value)
     if (currentTab && currentTab.route === '/global-home') {
       // 如果是 GlobalHome，不更新标题，保持主页标题
       return
@@ -562,6 +641,48 @@ function initMainEventListeners() {
     eventBus.emit('update-window-title', title)
   }
   eventBus.on('refresh', handleRefresh)
+
+  // Tab切换器快捷键
+  const handleTabNext = () => {
+    tabSwitcher.showSwitcher('next')
+  }
+  eventBus.on('tab-next', handleTabNext)
+
+  const handleTabPrev = () => {
+    tabSwitcher.showSwitcher('prev')
+  }
+  eventBus.on('tab-prev', handleTabPrev)
+
+  const handleTabClose = () => {
+    const tabId = activeTabId.value
+    if (tabId) {
+      closeTab(tabId)
+    }
+  }
+  eventBus.on('tab-close', handleTabClose)
+
+  const handleTabReopen = () => {
+    const tab = workspace.reopenLastClosedTab()
+    if (tab) {
+      tabSwitcher.flashIndicator(tab.id)
+    }
+  }
+  eventBus.on('tab-reopen', handleTabReopen)
+
+  const handleTabNew = () => {
+    const tab = workspace.openNewDocumentTab()
+    if (tab) {
+      tabSwitcher.flashIndicator(tab.id)
+    }
+  }
+  eventBus.on('tab-new', handleTabNew)
+
+  const handleTabSwitchIndicator = (tabId: unknown) => {
+    if (typeof tabId === 'string') {
+      tabSwitcher.flashIndicator(tabId)
+    }
+  }
+  eventBus.on('tab-switch-indicator', handleTabSwitchIndicator)
 
   // 工作区打开文档
   const workspaceOpenDocumentHandler = (payload: unknown) => {
@@ -578,7 +699,10 @@ function initMainEventListeners() {
   // 保存成功
   const handleSaveSuccess = (payload: unknown) => {
     const maybeTabId =
-      payload && typeof payload === 'object' && 'tabId' in payload && typeof payload.tabId === 'string'
+      payload &&
+      typeof payload === 'object' &&
+      'tabId' in payload &&
+      typeof payload.tabId === 'string'
         ? payload.tabId
         : activeTabId.value
     if (maybeTabId) {
@@ -591,16 +715,18 @@ function initMainEventListeners() {
   // 打开文档成功
   const handleOpenDocSuccess = async (payload: unknown) => {
     // 检查当前活动的 tab 是否是 GlobalHome，如果是则不更新标题
-    const currentTab = workspace.tabs.find(t => t.id === workspace.activeTabId.value)
+    const currentTab = workspace.tabs.find((t) => t.id === workspace.activeTabId.value)
     if (!currentTab || currentTab.route === '/global-home') {
       // 如果是 GlobalHome，不更新标题，保持主页标题
-      logger.debug('[Main] handleOpenDocSuccess - GlobalHome 不更新标题', { currentTabRoute: currentTab?.route })
+      logger.debug('[Main] handleOpenDocSuccess - GlobalHome 不更新标题', {
+        currentTabRoute: currentTab?.route
+      })
     } else {
       // 只在非 GlobalHome 时更新标题
       const title = workspace.activeDocument.value?.meta?.title ?? ''
       eventBus.emit('update-window-title', title)
     }
-    
+
     let tabId
     if (payload && typeof payload === 'object' && 'tabId' in payload) {
       const value = payload.tabId
@@ -608,7 +734,7 @@ function initMainEventListeners() {
         tabId = value
       }
     }
-    
+
     // 启动文件监听（如果文件路径存在）
     if (payload && typeof payload === 'object' && 'path' in payload && payload.path) {
       const filePath = payload.path as string
@@ -618,7 +744,7 @@ function initMainEventListeners() {
       if (!isPreview) {
         await updateRecentDocs(filePath)
       }
-      
+
       // 获取 ipcRenderer
       let ipcRenderer: any = null
       if (window && (window as any).electron) {
@@ -627,14 +753,14 @@ function initMainEventListeners() {
         const { localIpcRenderer } = await import('../utils/web-adapter/local-ipc-renderer')
         ipcRenderer = localIpcRenderer
       }
-      
+
       if (ipcRenderer) {
         // 启动文件监听
         ipcRenderer.send('watch-file', filePath, tabId)
         logger.debug('启动文件监听', { filePath, tabId })
       }
     }
-    
+
     // lastView 已经在 createSnapshotFromLoadedData 中根据内容正确设置了
     // 这里不需要再修改，保持逻辑清晰
   }
@@ -642,7 +768,10 @@ function initMainEventListeners() {
 
   // PDF 临时 tab 在 ViewMenu 切到非 Home 时：先关掉临时 tab，再按「双击」流程转 PDF→MD 并新建正式 tab
   const handleConvertPdfPreviewTabToMd = (payload: unknown) => {
-    const tabId = payload && typeof payload === 'object' && 'tabId' in payload ? (payload as { tabId: string }).tabId : ''
+    const tabId =
+      payload && typeof payload === 'object' && 'tabId' in payload
+        ? (payload as { tabId: string }).tabId
+        : ''
     if (!tabId) return
     const tab = workspaceTabs.find((t) => t.id === tabId)
     if (!tab || tab.kind !== 'file' || !tab.preview) return
@@ -662,19 +791,19 @@ function initMainEventListeners() {
 
   // 处理关闭当前活跃 Tab 的请求 - 使用系统对话框
   const handleCloseActiveTabRequest = async () => {
-    if (workspace.uiLocked?.value === true) return;
-    const tabId = activeTabId.value;
-    if (!tabId) return;
-    
+    if (workspace.uiLocked?.value === true) return
+    const tabId = activeTabId.value
+    if (!tabId) return
+
     // 获取ipcRenderer
-    let ipcRenderer: any = null;
+    let ipcRenderer: any = null
     if (window && (window as any).electron) {
-      ipcRenderer = (window as any).electron.ipcRenderer;
+      ipcRenderer = (window as any).electron.ipcRenderer
     }
-    
+
     if (!ipcRenderer) {
       // 如果没有ipcRenderer，回退到原来的逻辑
-      const doc = ensureDocument(tabId);
+      const doc = ensureDocument(tabId)
       if (doc?.dirty) {
         try {
           await ElMessageBox.confirm(
@@ -683,52 +812,57 @@ function initMainEventListeners() {
             {
               type: 'warning',
               confirmButtonText: t('main.dialogs.closeTabConfirm'),
-              cancelButtonText: t('main.dialogs.closeTabCancel'),
-            },
-          );
+              cancelButtonText: t('main.dialogs.closeTabCancel')
+            }
+          )
         } catch {
-          return; // 用户取消，不关闭
+          return // 用户取消，不关闭
         }
       }
-      removeTab(tabId);
-      return;
+      removeTab(tabId)
+      return
     }
-    
+
     // 使用系统对话框
     try {
       // 发送请求到主进程
-      ipcRenderer.send('request-close-tab', tabId);
-      
+      ipcRenderer.send('request-close-tab', tabId)
+
       // 等待响应
-      const result = await new Promise<{ tabId: string; action: 'save' | 'discard' | 'cancel' }>((resolve) => {
-        const handler = (_event: any, response: { tabId: string; action: 'save' | 'discard' | 'cancel' }) => {
-          if (response.tabId === tabId) {
-            ipcRenderer.removeListener('close-tab-response', handler);
-            resolve(response);
+      const result = await new Promise<{ tabId: string; action: 'save' | 'discard' | 'cancel' }>(
+        (resolve) => {
+          const handler = (
+            _event: any,
+            response: { tabId: string; action: 'save' | 'discard' | 'cancel' }
+          ) => {
+            if (response.tabId === tabId) {
+              ipcRenderer.removeListener('close-tab-response', handler)
+              resolve(response)
+            }
           }
-        };
-        ipcRenderer.on('close-tab-response', handler);
-        // 设置超时，避免无限等待
-        setTimeout(() => {
-          ipcRenderer.removeListener('close-tab-response', handler);
-          resolve({ tabId, action: 'cancel' });
-        }, 10000);
-      });
-      
+          ipcRenderer.on('close-tab-response', handler)
+          // 设置超时，避免无限等待
+          setTimeout(() => {
+            ipcRenderer.removeListener('close-tab-response', handler)
+            resolve({ tabId, action: 'cancel' })
+          }, 10000)
+        }
+      )
+
       if (result.action === 'save') {
         // 用户选择保存
-        const { saveDocument } = workspace;
-        const saveResult = await saveDocument(tabId, { saveAs: false });
+        const { saveDocument } = workspace
+        const saveResult = await saveDocument(tabId, { saveAs: false })
         if (saveResult) {
-          removeTab(tabId);
+          removeTab(tabId)
         }
       } else if (result.action === 'discard') {
         // 用户选择放弃，直接关闭tab
-        removeTab(tabId);
+        removeTab(tabId)
       }
       // 如果action是'cancel'，不做任何操作
     } catch (error) {
-      logger.error('关闭tab失败:', error);
+      logger.error('关闭tab失败:', error)
     }
   }
   eventBus.on('close-active-tab', handleCloseActiveTabRequest)
@@ -753,9 +887,10 @@ function initMainEventListeners() {
         }>
       }
     }
-    
-    const { tabId, filePath, externalContent, currentContent, savedContent, format, mergeResult } = conflictPayload
-    
+
+    const { tabId, filePath, externalContent, currentContent, savedContent, format, mergeResult } =
+      conflictPayload
+
     // 显示冲突对话框
     fileConflictData.value = {
       tabId,
@@ -775,8 +910,8 @@ function initMainEventListeners() {
     ElNotification({
       title: t('main.notification.error.title'),
       message: message as string,
-      type: 'error',
-    });
+      type: 'error'
+    })
   }
   eventBus.on('show-error', handleShowError)
 
@@ -785,8 +920,8 @@ function initMainEventListeners() {
     ElNotification({
       title: t('main.notification.warning.title'),
       message: message as string,
-      type: 'warning',
-    });
+      type: 'warning'
+    })
   }
   eventBus.on('show-warning', handleShowWarning)
 
@@ -797,33 +932,33 @@ function initMainEventListeners() {
 
     // 确定目标文档tabId
     let targetTabId: string | null = null
-    
+
     if (data.tabId) {
       // 如果指定了tabId，验证它是否是文档tab
-      const specifiedTab = workspaceTabs.find(t => t.id === data.tabId)
+      const specifiedTab = workspaceTabs.find((t) => t.id === data.tabId)
       if (specifiedTab && (specifiedTab.kind === 'file' || specifiedTab.kind === 'new')) {
         targetTabId = data.tabId
       }
     }
-    
+
     // 如果没有指定或指定的不是文档tab，查找当前活动的文档tab
     if (!targetTabId) {
-      const activeTab = workspaceTabs.find(t => t.id === activeTabId.value)
+      const activeTab = workspaceTabs.find((t) => t.id === activeTabId.value)
       if (activeTab && (activeTab.kind === 'file' || activeTab.kind === 'new')) {
         targetTabId = activeTab.id
       }
     }
-    
+
     // 如果还是没有，查找第一个文档tab（优先选择非新文档）
     if (!targetTabId) {
-      const documentTabs = workspaceTabs.filter(t => t.kind === 'file' || t.kind === 'new')
+      const documentTabs = workspaceTabs.filter((t) => t.kind === 'file' || t.kind === 'new')
       if (documentTabs.length > 0) {
         // 优先选择已保存的文档（kind === 'file'），否则选择第一个
-        const savedDoc = documentTabs.find(t => t.kind === 'file')
+        const savedDoc = documentTabs.find((t) => t.kind === 'file')
         targetTabId = savedDoc ? savedDoc.id : documentTabs[0].id
       }
     }
-    
+
     // 如果仍然没有，创建新文档
     if (!targetTabId) {
       const newTab = workspace.openNewDocumentTab()
@@ -832,25 +967,25 @@ function initMainEventListeners() {
       ElNotification({
         title: t('main.notification.success.title'),
         message: t('aiChat.insertSuccess', '内容已插入到文档'),
-        type: 'success',
+        type: 'success'
       })
       return
     }
 
     const doc = workspace.ensureDocument(targetTabId)
-    const tab = workspaceTabs.find(t => t.id === targetTabId)
-    
-      // 如果文档格式未确定，自动设置为md
-      if (!doc.format || (tab && tab.kind === 'new' && !tab.format)) {
-        doc.format = 'md'
-        if (tab) {
-          tab.format = 'md'
-        }
-        // 如果是新文档且未初始化，先初始化
-        if (tab && tab.kind === 'new') {
-          workspace.initializeDocumentFromTemplate(targetTabId, 'md', 'blank')
-        }
+    const tab = workspaceTabs.find((t) => t.id === targetTabId)
+
+    // 如果文档格式未确定，自动设置为md
+    if (!doc.format || (tab && tab.kind === 'new' && !tab.format)) {
+      doc.format = 'md'
+      if (tab) {
+        tab.format = 'md'
       }
+      // 如果是新文档且未初始化，先初始化
+      if (tab && tab.kind === 'new') {
+        workspace.initializeDocumentFromTemplate(targetTabId, 'md', 'blank')
+      }
+    }
 
     try {
       if (doc.format === 'txt') {
@@ -879,13 +1014,13 @@ function initMainEventListeners() {
               distinguishCancelAndClose: true,
               confirmButtonText: t('aiChat.insertAsLatex', '转换为LaTeX插入'),
               cancelButtonText: t('aiChat.insertAsMarkdown', '插入Markdown原文'),
-              type: 'info',
+              type: 'info'
             }
           )
           // 用户选择转换为LaTeX
           const latexBody = await convertMarkdownBodyToLatex(data.content)
           const currentTex = doc.tex || ''
-          
+
           // 找到 \end{document} 的位置，在其之前插入
           const endDocIndex = currentTex.lastIndexOf('\\end{document}')
           if (endDocIndex !== -1) {
@@ -898,7 +1033,7 @@ function initMainEventListeners() {
             const newTex = currentTex + (currentTex ? '\n\n' : '') + latexBody
             workspace.updateDocumentTex(targetTabId, newTex)
           }
-          
+
           // 不显示通知，避免多选时显示多个通知
           // ElNotification({
           //   title: t('main.notification.success.title'),
@@ -914,19 +1049,21 @@ function initMainEventListeners() {
             if (endDocIndex !== -1) {
               const beforeEnd = currentTex.slice(0, endDocIndex).trim()
               const afterEnd = currentTex.slice(endDocIndex)
-              const markdownBlock = '% Markdown原文:\n% ' + data.content.replace(/\n/g, '\n% ') + '\n'
+              const markdownBlock =
+                '% Markdown原文:\n% ' + data.content.replace(/\n/g, '\n% ') + '\n'
               const newTex = beforeEnd + (beforeEnd ? '\n\n' : '') + markdownBlock + afterEnd
               workspace.updateDocumentTex(targetTabId, newTex)
             } else {
-              const markdownBlock = '% Markdown原文:\n% ' + data.content.replace(/\n/g, '\n% ') + '\n'
+              const markdownBlock =
+                '% Markdown原文:\n% ' + data.content.replace(/\n/g, '\n% ') + '\n'
               const newTex = currentTex + (currentTex ? '\n\n' : '') + markdownBlock
               workspace.updateDocumentTex(targetTabId, newTex)
             }
-            
+
             ElNotification({
               title: t('main.notification.success.title'),
               message: t('aiChat.insertSuccess', '内容已插入到文档'),
-              type: 'success',
+              type: 'success'
             })
           }
         }
@@ -936,7 +1073,7 @@ function initMainEventListeners() {
       ElNotification({
         title: t('main.notification.error.title'),
         message: error instanceof Error ? error.message : String(error),
-        type: 'error',
+        type: 'error'
       })
     }
   }
@@ -954,18 +1091,18 @@ function initMainEventListeners() {
       workspace.initializeDocumentFromTemplate(newTab.id, 'md', 'blank')
       // 设置内容
       workspace.updateDocumentMarkdown(newTab.id, data.content)
-      
+
       ElNotification({
         title: t('main.notification.success.title'),
         message: t('aiChat.exportSuccess', '已导出到新文档'),
-        type: 'success',
+        type: 'success'
       })
     } catch (error) {
       logger.error('导出到新文档失败:', error)
       ElNotification({
         title: t('main.notification.error.title'),
         message: error instanceof Error ? error.message : String(error),
-        type: 'error',
+        type: 'error'
       })
     }
   }
@@ -973,9 +1110,18 @@ function initMainEventListeners() {
 
   // 处理工具窗口打开请求（改为在主窗口Tab中打开）
   const handleOpenToolTab = (payload: unknown) => {
-    const data = payload as { toolType: 'ocr' | 'graph' | 'attachment' | 'dataAnalysis' | 'formulaRecognition' | 'aiChat' | 'setting' }
+    const data = payload as {
+      toolType:
+        | 'ocr'
+        | 'graph'
+        | 'attachment'
+        | 'dataAnalysis'
+        | 'formulaRecognition'
+        | 'aiChat'
+        | 'setting'
+    }
     if (!data || !data.toolType) return
-    
+
     workspace.openToolTab(data.toolType)
   }
   eventBus.on('open-tool-tab', handleOpenToolTab)
@@ -985,19 +1131,18 @@ function initMainEventListeners() {
     viewMenuCollapsed.value = payload as boolean
   }
   eventBus.on('view-menu-collapse-changed', handleViewMenuCollapseChanged)
-  
+
   // 处理ViewMenu的折叠状态请求
   const handleViewMenuCollapseRequest = () => {
     eventBus.emit('view-menu-collapse-sync', viewMenuCollapsed.value)
   }
   eventBus.on('view-menu-collapse-request', handleViewMenuCollapseRequest)
-  
 
   // 处理系统窗口打开请求（主页、知识库、调试工具等）
   const handleOpenSystemTab = (payload: unknown) => {
     const data = payload as { route: string; title: string }
     if (!data || !data.route || !data.title) return
-    
+
     workspace.openSystemTab(data.route, data.title)
   }
   eventBus.on('open-system-tab', handleOpenSystemTab)
@@ -1017,6 +1162,12 @@ function initMainEventListeners() {
   // 注册清理函数
   cleanupMainListeners.push(
     () => eventBus.off('refresh', handleRefresh),
+    () => eventBus.off('tab-next', handleTabNext),
+    () => eventBus.off('tab-prev', handleTabPrev),
+    () => eventBus.off('tab-close', handleTabClose),
+    () => eventBus.off('tab-reopen', handleTabReopen),
+    () => eventBus.off('tab-new', handleTabNew),
+    () => eventBus.off('tab-switch-indicator', handleTabSwitchIndicator),
     () => eventBus.off('workspace-open-document', workspaceOpenDocumentHandler),
     () => eventBus.off('convert-pdf-preview-tab-to-md', handleConvertPdfPreviewTabToMd),
     () => eventBus.off('toggle-user-profile', handleToggleUserProfile),
@@ -1049,6 +1200,13 @@ watch(showSubViewMenu, (show) => {
   }
 })
 
+// 切换 Tab 前捕获当前页面缩略图，使切换器预览面板有内容可显示
+watch(activeTabId, (_, oldId) => {
+  if (oldId) {
+    tabSwitcher.captureCurrentThumbnail(oldId)
+  }
+})
+
 onMounted(async () => {
   initMainEventListeners()
   eventBus.emit('llm-api-updated')
@@ -1067,10 +1225,10 @@ onMounted(async () => {
 // ============================================================================
 const handleFileConflictUseExternal = () => {
   if (!fileConflictData.value) return
-  
+
   const { tabId, filePath, externalContent, format } = fileConflictData.value
   const doc = ensureDocument(tabId)
-  
+
   if (doc) {
     // 纯文本格式（txt, json等）和 markdown 格式都使用 markdown 字段存储
     // 只有 LaTeX 格式使用 tex 字段
@@ -1081,27 +1239,33 @@ const handleFileConflictUseExternal = () => {
       updateDocumentMarkdown(tabId, externalContent)
     }
     markDocumentSaved(tabId, filePath)
-    eventBus.emit('show-info', t('main.notification.fileSynced', { defaultValue: '已同步外部文件更改' }))
+    eventBus.emit(
+      'show-info',
+      t('main.notification.fileSynced', { defaultValue: '已同步外部文件更改' })
+    )
   }
-  
+
   fileConflictDialogVisible.value = false
   fileConflictData.value = null
 }
 
 const handleFileConflictKeepCurrent = () => {
   if (!fileConflictData.value) return
-  
-  eventBus.emit('show-info', t('main.notification.keptCurrentVersion', { defaultValue: '已保留当前版本' }))
+
+  eventBus.emit(
+    'show-info',
+    t('main.notification.keptCurrentVersion', { defaultValue: '已保留当前版本' })
+  )
   fileConflictDialogVisible.value = false
   fileConflictData.value = null
 }
 
 const handleFileConflictMerge = (mergedContent: string) => {
   if (!fileConflictData.value) return
-  
+
   const { tabId, filePath, format } = fileConflictData.value
   const doc = ensureDocument(tabId)
-  
+
   if (doc) {
     // 应用合并后的内容
     // 纯文本格式（txt, json等）和 markdown 格式都使用 markdown 字段存储
@@ -1112,9 +1276,12 @@ const handleFileConflictMerge = (mergedContent: string) => {
       updateDocumentMarkdown(tabId, mergedContent)
     }
     // 注意：不调用 markDocumentSaved，因为合并后的内容可能仍然与外部文件不同
-    eventBus.emit('show-info', t('main.notification.mergedConflicts', { defaultValue: '冲突已合并' }))
+    eventBus.emit(
+      'show-info',
+      t('main.notification.mergedConflicts', { defaultValue: '冲突已合并' })
+    )
   }
-  
+
   fileConflictDialogVisible.value = false
   fileConflictData.value = null
 }
@@ -1126,10 +1293,9 @@ const getConflictFileName = () => {
 
 onBeforeUnmount(() => {
   // 清理所有 Main 组件的事件监听器
-  cleanupMainListeners.forEach(cleanup => cleanup())
+  cleanupMainListeners.forEach((cleanup) => cleanup())
   cleanupMainListeners.length = 0
 })
-
 </script>
 
 <style scoped>
@@ -1154,7 +1320,7 @@ onBeforeUnmount(() => {
   display: flex;
   height: 40px;
   background-color: var(--el-bg-color, #ffffff);
-  border:none;
+  border: none;
   /* border-bottom: 1px solid var(--el-border-color-lighter, #f0f0f0); */
   z-index: 100;
 }
@@ -1167,6 +1333,7 @@ onBeforeUnmount(() => {
 /* 顶部Header - MainTabs */
 .top-header {
   flex: 1;
+  min-width: 0; /* 确保 flex item 可以收缩，防止 tab 区域溢出时顶掉 window controls */
   height: 40px;
   padding: 0;
   margin: 0;
@@ -1182,14 +1349,15 @@ onBeforeUnmount(() => {
   background-color: var(--el-bg-color, #ffffff);
   border-right: 1px solid var(--el-border-color-lighter, #f0f0f0);
   overflow: hidden;
-  transition: width 0.3s ease, min-width 0.3s ease;
+  transition:
+    width 0.3s ease,
+    min-width 0.3s ease;
 }
 
 .sub-view-menu-aside.is-collapsed {
   width: 64px;
   min-width: 64px;
 }
-
 
 .main-shell {
   flex: 1;

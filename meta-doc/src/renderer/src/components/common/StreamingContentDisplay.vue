@@ -1,9 +1,5 @@
 <template>
-  <div 
-    v-if="shouldDisplay" 
-    class="streaming-content-display"
-    :style="containerStyle"
-  >
+  <div v-if="shouldDisplay" class="streaming-content-display" :style="containerStyle">
     <el-scrollbar class="streaming-content-scrollbar">
       <div class="streaming-content-container">
         <pre class="streaming-content-text">{{ content }}</pre>
@@ -133,4 +129,3 @@ const containerStyle = computed(() => ({
   border: none;
 }
 </style>
-

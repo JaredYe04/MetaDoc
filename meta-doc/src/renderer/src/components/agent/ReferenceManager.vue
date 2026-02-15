@@ -3,9 +3,9 @@
     <div class="manager-header">
       <h3>{{ t('agent.reference.title') }}</h3>
       <div class="header-actions">
-        <el-button 
-          type="danger" 
-          size="small" 
+        <el-button
+          type="danger"
+          size="small"
           :disabled="references.length === 0"
           @click="handleClearAll"
         >
@@ -22,16 +22,21 @@
       <div class="built-in-reference-info">
         <el-icon class="info-icon"><Document /></el-icon>
         <div class="info-content">
-          <div class="info-title">{{ t('agent.reference.builtInDocument.title', '当前文档引用') }}</div>
-          <div class="info-description">{{ t('agent.reference.builtInDocument.description', '动态获取当前活动文档内容，实时更新，不占用历史消息空间') }}</div>
+          <div class="info-title">
+            {{ t('agent.reference.builtInDocument.title', '当前文档引用') }}
+          </div>
+          <div class="info-description">
+            {{
+              t(
+                'agent.reference.builtInDocument.description',
+                '动态获取当前活动文档内容，实时更新，不占用历史消息空间'
+              )
+            }}
+          </div>
         </div>
       </div>
       <div class="built-in-reference-actions">
-        <el-button 
-          size="small" 
-          :icon="View"
-          @click="handlePreviewBuiltInDocument"
-        >
+        <el-button size="small" :icon="View" @click="handlePreviewBuiltInDocument">
           {{ t('agent.reference.builtInDocument.preview', '预览') }}
         </el-button>
         <el-switch
@@ -54,65 +59,72 @@
         :row-style="{ height: 'auto' }"
         height="100%"
       >
-      <el-table-column :label="t('agent.reference.name')" min-width="150" show-overflow-tooltip>
-        <template #default="{ row }">
-          <div class="table-cell-content">{{ row.name }}</div>
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.reference.format')" width="90" align="center">
-        <template #default="{ row }">
-          <el-tag size="small">{{ row.format || 'txt' }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.reference.origin')" min-width="200" show-overflow-tooltip>
-        <template #default="{ row }">
-          <div class="table-cell-content">{{ row.origin }}</div>
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.reference.description')" min-width="150" show-overflow-tooltip>
-        <template #default="{ row }">
-          <div class="table-cell-content">{{ row.description || '-' }}</div>
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.reference.content')" min-width="200" show-overflow-tooltip>
-        <template #default="{ row }">
-          <div class="table-cell-content" v-if="row.parsedContent" :title="row.parsedContent">
-            {{ row.parsedContent.length > 100 ? row.parsedContent.substring(0, 100) + '...' : row.parsedContent }}
-          </div>
-          <div class="table-cell-content" v-else style="color: #999;">-</div>
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('agent.reference.actions')" width="120" fixed="right" align="center">
-        <template #default="{ row }">
-          <div class="action-buttons">
-            <el-tooltip :content="t('agent.reference.viewContent')" placement="top">
-              <el-button 
-                size="small" 
-                circle 
-                :icon="Document" 
-                @click="handleViewContent(row)"
-              />
-            </el-tooltip>
-            <el-tooltip :content="t('common.edit')" placement="top">
-              <el-button 
-                size="small" 
-                circle 
-                :icon="Edit" 
-                @click="handleEdit(row)"
-              />
-            </el-tooltip>
-            <el-tooltip :content="t('common.delete')" placement="top">
-              <el-button 
-                size="small" 
-                circle 
-                type="danger" 
-                :icon="Delete" 
-                @click="handleDelete(row)"
-              />
-            </el-tooltip>
-          </div>
-        </template>
-      </el-table-column>
+        <el-table-column :label="t('agent.reference.name')" min-width="150" show-overflow-tooltip>
+          <template #default="{ row }">
+            <div class="table-cell-content">{{ row.name }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('agent.reference.format')" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag size="small">{{ row.format || 'txt' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('agent.reference.origin')" min-width="200" show-overflow-tooltip>
+          <template #default="{ row }">
+            <div class="table-cell-content">{{ row.origin }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="t('agent.reference.description')"
+          min-width="150"
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">
+            <div class="table-cell-content">{{ row.description || '-' }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="t('agent.reference.content')"
+          min-width="200"
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">
+            <div class="table-cell-content" v-if="row.parsedContent" :title="row.parsedContent">
+              {{
+                row.parsedContent.length > 100
+                  ? row.parsedContent.substring(0, 100) + '...'
+                  : row.parsedContent
+              }}
+            </div>
+            <div class="table-cell-content" v-else style="color: #999">-</div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="t('agent.reference.actions')"
+          width="120"
+          fixed="right"
+          align="center"
+        >
+          <template #default="{ row }">
+            <div class="action-buttons">
+              <el-tooltip :content="t('agent.reference.viewContent')" placement="top">
+                <el-button size="small" circle :icon="Document" @click="handleViewContent(row)" />
+              </el-tooltip>
+              <el-tooltip :content="t('common.edit')" placement="top">
+                <el-button size="small" circle :icon="Edit" @click="handleEdit(row)" />
+              </el-tooltip>
+              <el-tooltip :content="t('common.delete')" placement="top">
+                <el-button
+                  size="small"
+                  circle
+                  type="danger"
+                  :icon="Delete"
+                  @click="handleDelete(row)"
+                />
+              </el-tooltip>
+            </div>
+          </template>
+        </el-table-column>
       </el-table>
     </div>
 
@@ -139,7 +151,15 @@
           </el-descriptions-item>
           <el-descriptions-item :label="t('agent.reference.content')">
             <el-scrollbar height="400px">
-              <div style="white-space: pre-wrap; word-break: break-word; padding: 8px; background: rgba(0,0,0,0.05); border-radius: 4px;">
+              <div
+                style="
+                  white-space: pre-wrap;
+                  word-break: break-word;
+                  padding: 8px;
+                  background: rgba(0, 0, 0, 0.05);
+                  border-radius: 4px;
+                "
+              >
                 {{ viewingReference.parsedContent || '-' }}
               </div>
             </el-scrollbar>
@@ -166,68 +186,90 @@
       @close="handleDialogClose"
       class="reference-dialog"
     >
-      <div style="position: relative;">
+      <div style="position: relative">
         <!-- 解析加载遮罩 -->
         <div v-if="parsing" class="parsing-overlay">
           <div class="parsing-content">
-            <el-icon class="is-loading" style="font-size: 32px; margin-bottom: 16px;">
+            <el-icon class="is-loading" style="font-size: 32px; margin-bottom: 16px">
               <Loading />
             </el-icon>
-            <div style="font-size: 14px; margin-bottom: 8px;">{{ parsingMessage }}</div>
-            <div v-if="parsingProgress" style="font-size: 12px; color: #999;">{{ parsingProgress }}</div>
-            <el-button 
-              size="small" 
-              style="margin-top: 16px;" 
-              @click="handleCancelParsing"
-            >
+            <div style="font-size: 14px; margin-bottom: 8px">{{ parsingMessage }}</div>
+            <div v-if="parsingProgress" style="font-size: 12px; color: #999">
+              {{ parsingProgress }}
+            </div>
+            <el-button size="small" style="margin-top: 16px" @click="handleCancelParsing">
               {{ t('common.cancel') }}
             </el-button>
           </div>
         </div>
 
         <el-form :model="formData" label-width="100px" :disabled="parsing">
-        <el-form-item :label="t('agent.reference.name')" required>
-          <el-input v-model="formData.name" />
-        </el-form-item>
-        <el-form-item :label="t('agent.reference.inputType')" required>
-          <el-radio-group v-model="formData.inputType" :disabled="parsing">
-            <el-radio value="file">{{ t('agent.reference.type.file') }}</el-radio>
-            <el-radio value="url">{{ t('agent.reference.type.url') }}</el-radio>
-            <el-radio value="text">{{ t('agent.reference.type.custom') }}</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item :label="t('agent.reference.url')" required v-if="formData.inputType === 'url'">
-          <el-input v-model="formData.url" :placeholder="t('agent.reference.urlPlaceholder')" @blur="handleUrlBlur" />
-        </el-form-item>
-        <el-form-item :label="t('agent.reference.file')" required v-if="formData.inputType === 'file'">
-          <el-button 
-            type="primary" 
-            :disabled="parsing"
-            @click="handleSelectFile"
+          <el-form-item :label="t('agent.reference.name')" required>
+            <el-input v-model="formData.name" />
+          </el-form-item>
+          <el-form-item :label="t('agent.reference.inputType')" required>
+            <el-radio-group v-model="formData.inputType" :disabled="parsing">
+              <el-radio value="file">{{ t('agent.reference.type.file') }}</el-radio>
+              <el-radio value="url">{{ t('agent.reference.type.url') }}</el-radio>
+              <el-radio value="text">{{ t('agent.reference.type.custom') }}</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item
+            :label="t('agent.reference.url')"
+            required
+            v-if="formData.inputType === 'url'"
           >
-            {{ t('agent.reference.selectFile') }}
-          </el-button>
-          <div v-if="selectedFile" style="margin-top: 8px; color: #666; font-size: 12px;">
-            {{ selectedFile.name }}
-          </div>
-          <div v-if="parsedReference && formData.inputType === 'file'" style="margin-top: 8px; color: #67c23a; font-size: 12px;">
-            ✓ {{ t('agent.reference.parseSuccess') }}
-          </div>
-        </el-form-item>
-        <el-form-item :label="t('agent.reference.text')" required v-if="formData.inputType === 'text'">
-          <el-input v-model="formData.text" type="textarea" :rows="5" :placeholder="t('agent.reference.textPlaceholder')" />
-        </el-form-item>
-        <el-form-item :label="t('agent.reference.description')">
-          <el-input v-model="formData.description" type="textarea" :rows="3" />
-        </el-form-item>
-      </el-form>
+            <el-input
+              v-model="formData.url"
+              :placeholder="t('agent.reference.urlPlaceholder')"
+              @blur="handleUrlBlur"
+            />
+          </el-form-item>
+          <el-form-item
+            :label="t('agent.reference.file')"
+            required
+            v-if="formData.inputType === 'file'"
+          >
+            <el-button type="primary" :disabled="parsing" @click="handleSelectFile">
+              {{ t('agent.reference.selectFile') }}
+            </el-button>
+            <div v-if="selectedFile" style="margin-top: 8px; color: #666; font-size: 12px">
+              {{ selectedFile.name }}
+            </div>
+            <div
+              v-if="parsedReference && formData.inputType === 'file'"
+              style="margin-top: 8px; color: #67c23a; font-size: 12px"
+            >
+              ✓ {{ t('agent.reference.parseSuccess') }}
+            </div>
+          </el-form-item>
+          <el-form-item
+            :label="t('agent.reference.text')"
+            required
+            v-if="formData.inputType === 'text'"
+          >
+            <el-input
+              v-model="formData.text"
+              type="textarea"
+              :rows="5"
+              :placeholder="t('agent.reference.textPlaceholder')"
+            />
+          </el-form-item>
+          <el-form-item :label="t('agent.reference.description')">
+            <el-input v-model="formData.description" type="textarea" :rows="3" />
+          </el-form-item>
+        </el-form>
       </div>
       <template #footer>
-        <el-button @click="handleDialogClose" :disabled="parsing">{{ t('common.cancel') }}</el-button>
-        <el-button 
-          type="primary" 
-          @click="handleSave" 
-          :disabled="parsing || (formData.inputType === 'file' && !parsedReference && !editingReference)"
+        <el-button @click="handleDialogClose" :disabled="parsing">{{
+          t('common.cancel')
+        }}</el-button>
+        <el-button
+          type="primary"
+          @click="handleSave"
+          :disabled="
+            parsing || (formData.inputType === 'file' && !parsedReference && !editingReference)
+          "
         >
           {{ t('common.save') }}
         </el-button>
@@ -246,7 +288,11 @@ import { themeState } from '../../utils/themes'
 import type { Reference } from '../../types/agent-framework'
 import type { AgentSession } from '../../types/agent'
 import { agentSessionManager } from '../../utils/agent-framework'
-import { processFileUpload, processUrlReference, selectReferenceFiles } from '../../utils/agent-framework/reference-processor'
+import {
+  processFileUpload,
+  processUrlReference,
+  selectReferenceFiles
+} from '../../utils/agent-framework/reference-processor'
 import localIpcRenderer from '../../utils/web-adapter/local-ipc-renderer'
 import { createRendererLogger } from '../../utils/logger'
 import { useWorkspace } from '../../stores/workspace'
@@ -321,8 +367,14 @@ const handleToggleBuiltInDocRef = (value: boolean) => {
   const newFormatSession: any = {
     ...props.session,
     entityType: 'agent-session',
-    createdAt: typeof props.session.createdAt === 'string' ? new Date(props.session.createdAt).getTime() : props.session.createdAt,
-    updatedAt: typeof props.session.updatedAt === 'string' ? new Date(props.session.updatedAt).getTime() : props.session.updatedAt,
+    createdAt:
+      typeof props.session.createdAt === 'string'
+        ? new Date(props.session.createdAt).getTime()
+        : props.session.createdAt,
+    updatedAt:
+      typeof props.session.updatedAt === 'string'
+        ? new Date(props.session.updatedAt).getTime()
+        : props.session.updatedAt,
     messageQueue: props.session.messageQueue || [],
     referenceStore: props.session.referenceStore || [],
     publicContext: props.session.publicContext || {},
@@ -330,7 +382,7 @@ const handleToggleBuiltInDocRef = (value: boolean) => {
     status: props.session.status || 'idle',
     enableBuiltInDocumentReference: value
   }
-  
+
   // 直接更新session对象
   Object.assign(props.session, { enableBuiltInDocumentReference: value } as any)
   emit('update')
@@ -339,24 +391,24 @@ const handleToggleBuiltInDocRef = (value: boolean) => {
 const handlePreviewBuiltInDocument = () => {
   try {
     const activeDoc = workspace.activeDocument.value
-    
+
     if (!activeDoc) {
       ElMessage.warning(t('agent.reference.builtInDocument.noActiveDocument', '没有活动的文档'))
       return
     }
-    
+
     // 确定文档格式
     const docFormat = activeDoc.format === 'tex' ? 'tex' : 'md'
     const formatName = docFormat === 'tex' ? 'LaTeX' : 'Markdown'
-    
+
     // 根据文档格式获取内容
     const content = docFormat === 'tex' ? activeDoc.tex : activeDoc.markdown
-    
+
     if (!content || content.trim().length === 0) {
       ElMessage.info(t('agent.reference.builtInDocument.emptyDocument', '当前文档为空'))
       return
     }
-    
+
     // 创建临时reference用于预览
     const builtInRef: Reference = {
       id: 'built-in-document-reference-0',
@@ -368,7 +420,7 @@ const handlePreviewBuiltInDocument = () => {
       createdAt: Date.now(),
       updatedAt: Date.now()
     }
-    
+
     // 显示预览对话框
     viewingReference.value = builtInRef
     contentDialogVisible.value = true
@@ -424,18 +476,18 @@ async function pathToFile(filePath: string): Promise<File> {
       ipcRenderer = localIpcRenderer
     }
   }
-  
+
   if (!ipcRenderer) {
     throw new Error('IPC渲染器不可用')
   }
-  
+
   // 通过 IPC 调用主进程读取文件
-  const result = await ipcRenderer.invoke('read-file-for-upload', filePath) as {
+  const result = (await ipcRenderer.invoke('read-file-for-upload', filePath)) as {
     name: string
     data: string
     mimeType: string
   }
-  
+
   // 将 base64 转换为 Blob
   const binaryString = atob(result.data)
   const bytes = new Uint8Array(binaryString.length)
@@ -443,34 +495,34 @@ async function pathToFile(filePath: string): Promise<File> {
     bytes[i] = binaryString.charCodeAt(i)
   }
   const blob = new Blob([bytes], { type: result.mimeType })
-  
+
   return new File([blob], result.name, { type: result.mimeType })
 }
 
 const handleSelectFile = async () => {
   if (parsing.value) return
-  
+
   try {
     // 使用主进程文件选择服务（使用 'all' 类别，对话框内部会显示所有分组）
     const filePaths = await selectReferenceFiles('all', false, t('agent.reference.selectFile'))
-    
+
     if (filePaths.length === 0) {
       return // 用户取消了选择
     }
-    
+
     const filePath = filePaths[0]
     const fileName = filePath.split(/[/\\]/).pop() || filePath
-    
+
     // 将文件路径转换为 File 对象
     const file = await pathToFile(filePath)
-    
+
     selectedFile.value = file
     // 如果名称为空，自动使用文件名
     if (!formData.value.name.trim()) {
       formData.value.name = fileName
     }
     parsedReference.value = null
-    
+
     // 立即开始解析
     await startParsingFile(file)
   } catch (error) {
@@ -488,45 +540,45 @@ const startParsingFile = async (file: File) => {
   if (parsing.value) {
     return // 如果正在解析，不重复开始
   }
-  
+
   parsing.value = true
   parsingMessage.value = t('agent.reference.parsingFile')
   parsingProgress.value = ''
   parsedReference.value = null
-  
+
   // 创建AbortController用于取消
   abortController.value = new AbortController()
-  
+
   // 生成requestId用于取消主进程任务
   const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   currentRequestId.value = requestId
-  
+
   try {
     const { processFileUpload } = await import('../../utils/agent-framework/reference-processor')
-    
+
     parsingMessage.value = t('agent.reference.parsingFile')
-    
+
     const reference = await processFileUpload(file, abortController.value.signal, requestId)
-    
+
     if (abortController.value?.signal.aborted) {
       return // 已取消，不更新结果
     }
-    
+
     parsedReference.value = reference
     parsingMessage.value = t('agent.reference.parseSuccess')
-    
+
     // 如果名称为空，自动使用文件名
     if (!formData.value.name.trim() && selectedFile.value) {
       formData.value.name = selectedFile.value.name
     }
-    
+
     // 延迟一下让用户看到成功消息
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
   } catch (error) {
     if (abortController.value?.signal.aborted) {
       return // 已取消，不显示错误
     }
-    
+
     ElMessage.error(error instanceof Error ? error.message : String(error))
     parsingMessage.value = t('agent.reference.parseFailed')
   } finally {
@@ -544,32 +596,32 @@ const startParsingUrl = async (url: string) => {
   if (parsing.value) {
     return
   }
-  
+
   parsing.value = true
   parsingMessage.value = t('agent.reference.parsingUrl')
   parsingProgress.value = ''
   parsedReference.value = null
-  
+
   abortController.value = new AbortController()
-  
+
   try {
     parsingMessage.value = t('agent.reference.downloadingUrl')
-    
+
     const reference = await processUrlReference(url, abortController.value.signal)
-    
+
     if (abortController.value?.signal.aborted) {
       return
     }
-    
+
     parsedReference.value = reference
     parsingMessage.value = t('agent.reference.parseSuccess')
-    
-    await new Promise(resolve => setTimeout(resolve, 500))
+
+    await new Promise((resolve) => setTimeout(resolve, 500))
   } catch (error) {
     if (abortController.value?.signal.aborted) {
       return
     }
-    
+
     ElMessage.error(error instanceof Error ? error.message : String(error))
     parsingMessage.value = t('agent.reference.parseFailed')
   } finally {
@@ -588,7 +640,7 @@ const handleCancelParsing = () => {
     abortController.value.abort()
     abortController.value = null
   }
-  
+
   // 如果有requestId，发送取消请求到主进程
   if (currentRequestId.value && ipcRenderer) {
     try {
@@ -598,7 +650,7 @@ const handleCancelParsing = () => {
     }
     currentRequestId.value = null
   }
-  
+
   parsing.value = false
   parsingMessage.value = ''
   parsingProgress.value = ''
@@ -661,7 +713,7 @@ const handleEdit = (reference: Reference) => {
   const isFile = /^[A-Za-z]:[\\/]/.test(reference.origin) || reference.origin.startsWith('/')
   formData.value = {
     name: reference.name,
-    inputType: isUrl ? 'url' : (isFile ? 'file' : 'text'),
+    inputType: isUrl ? 'url' : isFile ? 'file' : 'text',
     url: isUrl ? reference.origin : '',
     text: !isUrl && !isFile ? reference.parsedContent : '',
     description: reference.description || ''
@@ -697,8 +749,14 @@ const handleSave = async () => {
     const newFormatSession: any = {
       ...props.session,
       entityType: 'agent-session',
-      createdAt: typeof props.session.createdAt === 'string' ? new Date(props.session.createdAt).getTime() : props.session.createdAt,
-      updatedAt: typeof props.session.updatedAt === 'string' ? new Date(props.session.updatedAt).getTime() : props.session.updatedAt,
+      createdAt:
+        typeof props.session.createdAt === 'string'
+          ? new Date(props.session.createdAt).getTime()
+          : props.session.createdAt,
+      updatedAt:
+        typeof props.session.updatedAt === 'string'
+          ? new Date(props.session.updatedAt).getTime()
+          : props.session.updatedAt,
       messageQueue: props.session.messageQueue || [],
       referenceStore: props.session.referenceStore || [],
       publicContext: props.session.publicContext || {},
@@ -708,19 +766,15 @@ const handleSave = async () => {
 
     if (editingReference.value) {
       // 编辑模式：只更新基本信息，不重新解析
-      agentSessionManager.updateReference(
-        newFormatSession,
-        editingReference.value.id,
-        {
-          name: formData.value.name,
-          description: formData.value.description
-        }
-      )
+      agentSessionManager.updateReference(newFormatSession, editingReference.value.id, {
+        name: formData.value.name,
+        description: formData.value.description
+      })
       ElMessage.success(t('agent.reference.updateSuccess'))
     } else {
       // 添加模式：处理文件上传、URL或文本
       let reference: Reference
-      
+
       if (formData.value.inputType === 'file' && selectedFile.value) {
         // 使用已解析的引用（如果存在）
         if (parsedReference.value) {
@@ -743,11 +797,13 @@ const handleSave = async () => {
         }
       } else {
         // 处理文本引用
-        const { processTextReference } = await import('../../utils/agent-framework/reference-processor')
+        const { processTextReference } = await import(
+          '../../utils/agent-framework/reference-processor'
+        )
         reference = processTextReference(formData.value.text, formData.value.name)
         reference.description = formData.value.description
       }
-      
+
       agentSessionManager.addReferenceObject(newFormatSession, reference)
       ElMessage.success(t('agent.reference.addSuccess'))
     }
@@ -774,8 +830,14 @@ const handleDelete = async (reference: Reference) => {
     const newFormatSession: any = {
       ...props.session,
       entityType: 'agent-session',
-      createdAt: typeof props.session.createdAt === 'string' ? new Date(props.session.createdAt).getTime() : props.session.createdAt,
-      updatedAt: typeof props.session.updatedAt === 'string' ? new Date(props.session.updatedAt).getTime() : props.session.updatedAt,
+      createdAt:
+        typeof props.session.createdAt === 'string'
+          ? new Date(props.session.createdAt).getTime()
+          : props.session.createdAt,
+      updatedAt:
+        typeof props.session.updatedAt === 'string'
+          ? new Date(props.session.updatedAt).getTime()
+          : props.session.updatedAt,
       messageQueue: props.session.messageQueue || [],
       referenceStore: props.session.referenceStore || [],
       publicContext: props.session.publicContext || {},
@@ -807,8 +869,14 @@ const handleClearAll = async () => {
     const newFormatSession: any = {
       ...props.session,
       entityType: 'agent-session',
-      createdAt: typeof props.session.createdAt === 'string' ? new Date(props.session.createdAt).getTime() : props.session.createdAt,
-      updatedAt: typeof props.session.updatedAt === 'string' ? new Date(props.session.updatedAt).getTime() : props.session.updatedAt,
+      createdAt:
+        typeof props.session.createdAt === 'string'
+          ? new Date(props.session.createdAt).getTime()
+          : props.session.createdAt,
+      updatedAt:
+        typeof props.session.updatedAt === 'string'
+          ? new Date(props.session.updatedAt).getTime()
+          : props.session.updatedAt,
       messageQueue: props.session.messageQueue || [],
       referenceStore: props.session.referenceStore || [],
       publicContext: props.session.publicContext || {},
@@ -817,11 +885,11 @@ const handleClearAll = async () => {
     }
 
     // 清空所有引用
-    const refIds = references.value.map(ref => ref.id)
-    refIds.forEach(id => {
+    const refIds = references.value.map((ref) => ref.id)
+    refIds.forEach((id) => {
       agentSessionManager.removeReference(newFormatSession, id)
     })
-    
+
     ElMessage.success(t('agent.reference.clearAllSuccess'))
     emit('update')
   } catch {
@@ -951,4 +1019,3 @@ const handleClearAll = async () => {
   line-height: 1.4;
 }
 </style>
-

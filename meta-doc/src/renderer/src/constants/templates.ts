@@ -1,4 +1,4 @@
-import type { DocumentTemplate } from '../types/formats';
+import type { DocumentTemplate } from '../types/formats'
 
 /**
  * Markdown 模板
@@ -10,7 +10,7 @@ export const markdownTemplates: Record<string, DocumentTemplate> = {
     labelKey: 'newDocument.templates.markdown.blank.label',
     description: '创建一个空白的 Markdown 文档',
     descriptionKey: 'newDocument.templates.markdown.blank.description',
-    content: '',
+    content: ''
   },
   article: {
     id: 'article',
@@ -33,10 +33,10 @@ export const markdownTemplates: Record<string, DocumentTemplate> = {
       '## 结论',
       '',
       '在这里撰写结论内容。',
-      '',
-    ].join('\n'),
-  },
-};
+      ''
+    ].join('\n')
+  }
+}
 
 /**
  * LaTeX 模板
@@ -89,8 +89,8 @@ export const latexTemplates: Record<string, DocumentTemplate> = {
       '请在此处撰写结论内容。',
       '',
       '\\end{document}',
-      '',
-    ].join('\n'),
+      ''
+    ].join('\n')
   },
   report: {
     id: 'report',
@@ -139,8 +139,8 @@ export const latexTemplates: Record<string, DocumentTemplate> = {
       '请在此处撰写结论内容。',
       '',
       '\\end{document}',
-      '',
-    ].join('\n'),
+      ''
+    ].join('\n')
   },
   // 中文国标学术论文（单栏）
   gb7714_zh: {
@@ -232,8 +232,8 @@ export const latexTemplates: Record<string, DocumentTemplate> = {
       '附录内容（如有需要）。',
       '',
       '\\end{document}',
-      '',
-    ].join('\n'),
+      ''
+    ].join('\n')
   },
   // 英文标准学术论文（单栏）
   ieee_en: {
@@ -319,8 +319,8 @@ export const latexTemplates: Record<string, DocumentTemplate> = {
       '\\end{thebibliography}',
       '',
       '\\end{document}',
-      '',
-    ].join('\n'),
+      ''
+    ].join('\n')
   },
   // 中文国标学术论文（双栏）
   gb7714_zh_twocolumn: {
@@ -408,8 +408,8 @@ export const latexTemplates: Record<string, DocumentTemplate> = {
       '附录内容（如有需要）。',
       '',
       '\\end{document}',
-      '',
-    ].join('\n'),
+      ''
+    ].join('\n')
   },
   // 英文标准学术论文（双栏）
   ieee_en_twocolumn: {
@@ -495,10 +495,10 @@ export const latexTemplates: Record<string, DocumentTemplate> = {
       '\\end{thebibliography}',
       '',
       '\\end{document}',
-      '',
-    ].join('\n'),
-  },
-};
+      ''
+    ].join('\n')
+  }
+}
 
 /**
  * 获取指定格式的所有模板
@@ -506,11 +506,11 @@ export const latexTemplates: Record<string, DocumentTemplate> = {
 export function getTemplatesByFormat(formatId: string): DocumentTemplate[] {
   switch (formatId) {
     case 'md':
-      return Object.values(markdownTemplates);
+      return Object.values(markdownTemplates)
     case 'tex':
-      return Object.values(latexTemplates);
+      return Object.values(latexTemplates)
     default:
-      return [];
+      return []
   }
 }
 
@@ -520,11 +520,10 @@ export function getTemplatesByFormat(formatId: string): DocumentTemplate[] {
 export function getTemplate(formatId: string, templateId: string): DocumentTemplate | undefined {
   switch (formatId) {
     case 'md':
-      return markdownTemplates[templateId];
+      return markdownTemplates[templateId]
     case 'tex':
-      return latexTemplates[templateId];
+      return latexTemplates[templateId]
     default:
-      return undefined;
+      return undefined
   }
 }
-

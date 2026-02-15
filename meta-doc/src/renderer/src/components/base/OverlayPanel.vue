@@ -1,10 +1,5 @@
 <template>
-  <div 
-    v-show="visible" 
-    class="overlay-panel" 
-    :class="positionClass"
-    :style="panelStyle"
-  >
+  <div v-show="visible" class="overlay-panel" :class="positionClass" :style="panelStyle">
     <!-- 调整大小的分割线 -->
     <ResizableDivider
       :direction="resizeDirection"
@@ -13,7 +8,7 @@
       @resize-start="onResizeStart"
       @resize-end="onResizeEnd"
     />
-    
+
     <!-- 面板内容 -->
     <div class="panel-content" :style="contentStyle">
       <slot></slot>
@@ -79,15 +74,22 @@ function loadFromStorage(): number | null {
       if (typeof val === 'number') return val
       if (val && typeof val.size === 'number') return val.size
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return null
 }
 
 function saveToStorage() {
   if (!props.storageKey) return
   try {
-    localStorage.setItem(STORAGE_PREFIX + props.storageKey, JSON.stringify({ size: panelSize.value }))
-  } catch { /* ignore */ }
+    localStorage.setItem(
+      STORAGE_PREFIX + props.storageKey,
+      JSON.stringify({ size: panelSize.value })
+    )
+  } catch {
+    /* ignore */
+  }
 }
 
 // 当前面板尺寸（从 localStorage 恢复，如果有的话）
@@ -98,9 +100,7 @@ const positionClass = computed(() => `panel-${props.position}`)
 
 // 调整方向
 const resizeDirection = computed(() => {
-  return props.position === 'top' || props.position === 'bottom' 
-    ? 'horizontal' 
-    : 'vertical'
+  return props.position === 'top' || props.position === 'bottom' ? 'horizontal' : 'vertical'
 })
 
 // 面板样式

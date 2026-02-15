@@ -1,35 +1,35 @@
-import { BrowserWindow, dialog } from 'electron';
-import fs from 'fs';
-import path from 'path';
+import { BrowserWindow, dialog } from 'electron'
+import fs from 'fs'
+import path from 'path'
 // @ts-ignore - html-to-docx 没有类型定义
-import HTMLtoDOCX from 'html-to-docx';
-import JSZip from 'jszip';
-import { PDFDocument } from 'pdf-lib';
-import type { DocumentFormat, ExportFormat } from '../../types';
-import type { LaTeXCompileResult } from '../../types/utils';
-import { getExportTargets } from '../../common/export-rules';
-import { t, getLocale } from '../i18n';
-import { compileLatexToPDF } from '../utils';
-import { createMainLogger } from '../logger';
-import { imageUploadDir } from '../express-server';
-import { MainProgressHandle } from '../utils/progress-handle';
+import HTMLtoDOCX from 'html-to-docx'
+import JSZip from 'jszip'
+import { PDFDocument } from 'pdf-lib'
+import type { DocumentFormat, ExportFormat } from '../../types'
+import type { LaTeXCompileResult } from '../../types/utils'
+import { getExportTargets } from '../../common/export-rules'
+import { t, getLocale } from '../i18n'
+import { compileLatexToPDF } from '../utils'
+import { createMainLogger } from '../logger'
+import { imageUploadDir } from '../express-server'
+import { MainProgressHandle } from '../utils/progress-handle'
 import {
   saveImagesToFolder,
   updateMarkdownImageLinks,
   updateHtmlImageLinks,
-  updateLatexImageLinks,
-} from '../utils/image-export-service';
+  updateLatexImageLinks
+} from '../utils/image-export-service'
 import {
   DocxProcessingManager,
   OMMLInsertionProcessor,
   DocumentXmlFixProcessor,
   WordTocProcessor,
   HeaderFooterProcessor,
-  ImageNumberingProcessor,
-} from './docx-processor';
+  ImageNumberingProcessor
+} from './docx-processor'
 
-const logger = createMainLogger('PDFExport');
-let currentRequestId: string | undefined;
+const logger = createMainLogger('PDFExport')
+let currentRequestId: string | undefined
 
 /**
  * 清理中间图片文件
@@ -37,147 +37,150 @@ let currentRequestId: string | undefined;
  */
 const cleanupIntermediateImages = async (imageUrls: string[]): Promise<void> => {
   try {
-    logger.info(`开始清理 ${imageUrls.length} 个中间图片文件`);
-    let deletedCount = 0;
-    let errorCount = 0;
+    logger.info(`开始清理 ${imageUrls.length} 个中间图片文件`)
+    let deletedCount = 0
+    let errorCount = 0
 
     for (const url of imageUrls) {
       try {
         // 从 URL 中提取文件名
         // URL 格式: http://localhost:52521/images/filename
         if (url.startsWith('http://localhost:52521/images/')) {
-          const fileName = url.replace('http://localhost:52521/images/', '');
-          const filePath = path.join(imageUploadDir, fileName);
+          const fileName = url.replace('http://localhost:52521/images/', '')
+          const filePath = path.join(imageUploadDir, fileName)
 
           // 检查文件是否存在
           if (fs.existsSync(filePath)) {
-            await fs.promises.unlink(filePath);
-            deletedCount++;
-            logger.debug(`已删除中间文件: ${fileName}`);
+            await fs.promises.unlink(filePath)
+            deletedCount++
+            logger.debug(`已删除中间文件: ${fileName}`)
           } else {
-            logger.warn(`文件不存在，跳过: ${fileName}`);
+            logger.warn(`文件不存在，跳过: ${fileName}`)
           }
         }
       } catch (error) {
-        errorCount++;
-        logger.warn(`删除文件失败: ${url}`, error);
+        errorCount++
+        logger.warn(`删除文件失败: ${url}`, error)
       }
     }
 
-    logger.info(`清理完成: 成功删除 ${deletedCount} 个文件，失败 ${errorCount} 个`);
+    logger.info(`清理完成: 成功删除 ${deletedCount} 个文件，失败 ${errorCount} 个`)
   } catch (error) {
-    logger.error('清理中间图片文件时出错:', error);
+    logger.error('清理中间图片文件时出错:', error)
     // 不抛出错误，清理失败不应该影响导出结果
   }
-};
+}
 
 export interface RendererExportPayload {
-  sourceFormat: DocumentFormat;
-  targetFormat: ExportFormat;
-  suggestedName: string;
-  sourcePath?: string;
-  requestId?: string;
+  sourceFormat: DocumentFormat
+  targetFormat: ExportFormat
+  suggestedName: string
+  sourcePath?: string
+  requestId?: string
   data: {
-    md: string;
-    json: string;
-    tex: string;
-  };
-  html?: string;
-  imageUrls?: string[]; // 预渲染生成的图片 URL，用于清理
-  exportOptions?: any; // 导出选项（从适配器传递）
+    md: string
+    json: string
+    tex: string
+  }
+  html?: string
+  imageUrls?: string[] // 预渲染生成的图片 URL，用于清理
+  exportOptions?: any // 导出选项（从适配器传递）
 }
 
 export interface ExportResponse {
-  success: boolean;
-  path?: string;
-  error?: string;
+  success: boolean
+  path?: string
+  error?: string
 }
 
 interface ExportContext {
-  payload: RendererExportPayload;
-  targetPath: string;
-  mainWindow: BrowserWindow | null;
+  payload: RendererExportPayload
+  targetPath: string
+  mainWindow: BrowserWindow | null
 }
 
-type ExportHandler = (ctx: ExportContext) => Promise<void>;
+type ExportHandler = (ctx: ExportContext) => Promise<void>
 
-const exportAbortControllers = new Map<string, AbortController>();
-const exportProgressHandles = new Map<string, MainProgressHandle>();
+const exportAbortControllers = new Map<string, AbortController>()
+const exportProgressHandles = new Map<string, MainProgressHandle>()
 
 export function abortExportTask(requestId: string): boolean {
-  let aborted = false;
-  const controller = exportAbortControllers.get(requestId);
+  let aborted = false
+  const controller = exportAbortControllers.get(requestId)
   if (controller && !controller.signal.aborted) {
-    controller.abort();
-    aborted = true;
+    controller.abort()
+    aborted = true
   }
-  const handle = exportProgressHandles.get(requestId);
+  const handle = exportProgressHandles.get(requestId)
   if (handle) {
-    handle.cancel();
-    aborted = true;
+    handle.cancel()
+    aborted = true
   }
-  exportAbortControllers.delete(requestId);
-  exportProgressHandles.delete(requestId);
-  return aborted;
+  exportAbortControllers.delete(requestId)
+  exportProgressHandles.delete(requestId)
+  return aborted
 }
 
 const ensureParentDirectory = async (filePath: string): Promise<void> => {
-  await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-};
+  await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
+}
 
 const writeTextFile = async (filePath: string, content: string): Promise<void> => {
-  await ensureParentDirectory(filePath);
-  await fs.promises.writeFile(filePath, content, 'utf-8');
-};
+  await ensureParentDirectory(filePath)
+  await fs.promises.writeFile(filePath, content, 'utf-8')
+}
 
 const writeBinaryFile = async (filePath: string, buffer: Buffer): Promise<void> => {
-  await ensureParentDirectory(filePath);
-  await fs.promises.writeFile(filePath, buffer);
-};
+  await ensureParentDirectory(filePath)
+  await fs.promises.writeFile(filePath, buffer)
+}
 
-const convertHtmlToPdfBuffer = async (html: string, options?: {
-  margins?: { top: number; bottom: number; left: number; right: number };
-  pageSize?: 'A4' | 'A3' | 'Letter' | 'Legal' | 'A5' | 'B5';
-  printBackground?: boolean;
-}): Promise<Buffer> => {
-  logger.info(`开始转换 HTML 到 PDF，HTML 长度: ${html.length}`);
+const convertHtmlToPdfBuffer = async (
+  html: string,
+  options?: {
+    margins?: { top: number; bottom: number; left: number; right: number }
+    pageSize?: 'A4' | 'A3' | 'Letter' | 'Legal' | 'A5' | 'B5'
+    printBackground?: boolean
+  }
+): Promise<Buffer> => {
+  logger.info(`开始转换 HTML 到 PDF，HTML 长度: ${html.length}`)
   const win = new BrowserWindow({
     show: false,
     webPreferences: {
-      sandbox: false,
-    },
-  });
+      sandbox: false
+    }
+  })
 
   try {
-    logger.info('加载 HTML 到 BrowserWindow');
-    
+    logger.info('加载 HTML 到 BrowserWindow')
+
     // 设置超时机制
-    const loadTimeout = 30000; // 30秒超时
+    const loadTimeout = 30000 // 30秒超时
     const loadPromise = new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('页面加载超时'));
-      }, loadTimeout);
-      
+        reject(new Error('页面加载超时'))
+      }, loadTimeout)
+
       win.webContents.once('did-finish-load', () => {
-        clearTimeout(timeout);
-        logger.info('页面加载完成');
-        resolve();
-      });
-      
+        clearTimeout(timeout)
+        logger.info('页面加载完成')
+        resolve()
+      })
+
       win.webContents.once('did-fail-load', (event, errorCode, errorDescription) => {
-        clearTimeout(timeout);
-        logger.error(`页面加载失败: ${errorCode} - ${errorDescription}`);
-        reject(new Error(`页面加载失败: ${errorCode} - ${errorDescription}`));
-      });
-    });
-    
-    await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
-    await loadPromise;
-    
+        clearTimeout(timeout)
+        logger.error(`页面加载失败: ${errorCode} - ${errorDescription}`)
+        reject(new Error(`页面加载失败: ${errorCode} - ${errorDescription}`))
+      })
+    })
+
+    await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+    await loadPromise
+
     // 等待一小段时间确保资源完全加载
-    logger.info('等待资源加载...');
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
+    logger.info('等待资源加载...')
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
     // 检查图片是否加载完成
     const imagesLoaded = await win.webContents.executeJavaScript(`
       new Promise((resolve) => {
@@ -210,10 +213,10 @@ const convertHtmlToPdfBuffer = async (html: string, options?: {
           resolve(true);
         }, 5000);
       })
-    `);
-    
-    logger.info(`图片加载完成: ${imagesLoaded}`);
-    
+    `)
+
+    logger.info(`图片加载完成: ${imagesLoaded}`)
+
     // 在生成 PDF 之前，确保代码块完全展开，移除滚动限制
     await win.webContents.executeJavaScript(`
       (function() {
@@ -245,10 +248,10 @@ const convertHtmlToPdfBuffer = async (html: string, options?: {
         // 额外等待一小段时间，确保样式已应用
         return new Promise(resolve => setTimeout(resolve, 100));
       })();
-    `);
-    
-    logger.info('代码块滚动限制已移除');
-    
+    `)
+
+    logger.info('代码块滚动限制已移除')
+
     // 在生成 PDF 之前，确保内容宽度适合页面，并智能缩放超长图片
     await win.webContents.executeJavaScript(`
       (function() {
@@ -551,21 +554,21 @@ const convertHtmlToPdfBuffer = async (html: string, options?: {
           });
         });
       })();
-    `);
-    
-    logger.info(`图片智能缩放处理完成`);
-    
-    logger.info('开始生成 PDF');
+    `)
+
+    logger.info(`图片智能缩放处理完成`)
+
+    logger.info('开始生成 PDF')
     // 使用导出选项或默认值
-    const margins = options?.margins || { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 };
-    let pageSize = options?.pageSize || 'A4';
+    const margins = options?.margins || { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 }
+    let pageSize = options?.pageSize || 'A4'
     // Electron 的 printToPDF 不支持 B5，将其映射为 A4
     if (pageSize === 'B5') {
-      logger.warn('B5 纸张大小不受支持，使用 A4 代替');
-      pageSize = 'A4';
+      logger.warn('B5 纸张大小不受支持，使用 A4 代替')
+      pageSize = 'A4'
     }
-    const printBackground = options?.printBackground !== undefined ? options.printBackground : true;
-    
+    const printBackground = options?.printBackground !== undefined ? options.printBackground : true
+
     const pdfBuffer = await win.webContents.printToPDF({
       printBackground,
       margins: {
@@ -573,21 +576,21 @@ const convertHtmlToPdfBuffer = async (html: string, options?: {
         top: margins.top,
         bottom: margins.bottom,
         left: margins.left,
-        right: margins.right,
+        right: margins.right
       },
-      pageSize: pageSize as any, // 类型转换，因为我们已经处理了 B5
-    });
-    logger.info(`PDF 生成完成，大小: ${pdfBuffer.length} bytes`);
-    return pdfBuffer;
+      pageSize: pageSize as any // 类型转换，因为我们已经处理了 B5
+    })
+    logger.info(`PDF 生成完成，大小: ${pdfBuffer.length} bytes`)
+    return pdfBuffer
   } catch (error) {
-    logger.error('转换过程中出错:', error);
-    throw error;
+    logger.error('转换过程中出错:', error)
+    throw error
   } finally {
     if (!win.isDestroyed()) {
-      win.close();
+      win.close()
     }
   }
-};
+}
 
 /**
  * 将HTML中的标题和正文映射到Word样式库
@@ -597,113 +600,92 @@ const convertHtmlToPdfBuffer = async (html: string, options?: {
 const mapHtmlToWordStyles = (html: string): string => {
   // 使用正则表达式替换标题标签，添加Word样式类名和样式
   // Word在转换HTML时会识别这些类名并映射到样式库
-  let styledHtml = html;
-  
+  let styledHtml = html
+
   // 映射h1到标题1样式（Heading 1）
   // 使用Word标准样式名称，并添加相应的格式
-  styledHtml = styledHtml.replace(
-    /<h1([^>]*)>/gi,
-    (match, attrs) => {
-      // 如果已经有class属性，追加；否则添加
-      if (attrs.includes('class=')) {
-        return match.replace(/class="([^"]*)"/, 'class="$1 Heading1"');
-      }
-      return `<h1${attrs} class="Heading1">`;
+  styledHtml = styledHtml.replace(/<h1([^>]*)>/gi, (match, attrs) => {
+    // 如果已经有class属性，追加；否则添加
+    if (attrs.includes('class=')) {
+      return match.replace(/class="([^"]*)"/, 'class="$1 Heading1"')
     }
-  );
-  
+    return `<h1${attrs} class="Heading1">`
+  })
+
   // 映射h2到标题2样式（Heading 2）
-  styledHtml = styledHtml.replace(
-    /<h2([^>]*)>/gi,
-    (match, attrs) => {
-      if (attrs.includes('class=')) {
-        return match.replace(/class="([^"]*)"/, 'class="$1 Heading2"');
-      }
-      return `<h2${attrs} class="Heading2">`;
+  styledHtml = styledHtml.replace(/<h2([^>]*)>/gi, (match, attrs) => {
+    if (attrs.includes('class=')) {
+      return match.replace(/class="([^"]*)"/, 'class="$1 Heading2"')
     }
-  );
-  
+    return `<h2${attrs} class="Heading2">`
+  })
+
   // 映射h3到标题3样式（Heading 3）
-  styledHtml = styledHtml.replace(
-    /<h3([^>]*)>/gi,
-    (match, attrs) => {
-      if (attrs.includes('class=')) {
-        return match.replace(/class="([^"]*)"/, 'class="$1 Heading3"');
-      }
-      return `<h3${attrs} class="Heading3">`;
+  styledHtml = styledHtml.replace(/<h3([^>]*)>/gi, (match, attrs) => {
+    if (attrs.includes('class=')) {
+      return match.replace(/class="([^"]*)"/, 'class="$1 Heading3"')
     }
-  );
-  
+    return `<h3${attrs} class="Heading3">`
+  })
+
   // 映射h4到标题4样式（Heading 4）
-  styledHtml = styledHtml.replace(
-    /<h4([^>]*)>/gi,
-    (match, attrs) => {
-      if (attrs.includes('class=')) {
-        return match.replace(/class="([^"]*)"/, 'class="$1 Heading4"');
-      }
-      return `<h4${attrs} class="Heading4">`;
+  styledHtml = styledHtml.replace(/<h4([^>]*)>/gi, (match, attrs) => {
+    if (attrs.includes('class=')) {
+      return match.replace(/class="([^"]*)"/, 'class="$1 Heading4"')
     }
-  );
-  
+    return `<h4${attrs} class="Heading4">`
+  })
+
   // 映射p到正文样式（Normal）
   // 只处理没有class的p标签，避免覆盖已有的样式
-  styledHtml = styledHtml.replace(
-    /<p(?![^>]*class=)([^>]*)>/gi,
-    '<p$1 class="Normal">'
-  );
-  
+  styledHtml = styledHtml.replace(/<p(?![^>]*class=)([^>]*)>/gi, '<p$1 class="Normal">')
+
   // 为h5和h6也添加样式类（虽然Word样式库通常只有4级标题）
-  styledHtml = styledHtml.replace(
-    /<h5([^>]*)>/gi,
-    (match, attrs) => {
-      if (attrs.includes('class=')) {
-        return match.replace(/class="([^"]*)"/, 'class="$1 Heading5"');
-      }
-      return `<h5${attrs} class="Heading5">`;
+  styledHtml = styledHtml.replace(/<h5([^>]*)>/gi, (match, attrs) => {
+    if (attrs.includes('class=')) {
+      return match.replace(/class="([^"]*)"/, 'class="$1 Heading5"')
     }
-  );
-  
-  styledHtml = styledHtml.replace(
-    /<h6([^>]*)>/gi,
-    (match, attrs) => {
-      if (attrs.includes('class=')) {
-        return match.replace(/class="([^"]*)"/, 'class="$1 Heading6"');
-      }
-      return `<h6${attrs} class="Heading6">`;
+    return `<h5${attrs} class="Heading5">`
+  })
+
+  styledHtml = styledHtml.replace(/<h6([^>]*)>/gi, (match, attrs) => {
+    if (attrs.includes('class=')) {
+      return match.replace(/class="([^"]*)"/, 'class="$1 Heading6"')
     }
-  );
-  
-  return styledHtml;
-};
+    return `<h6${attrs} class="Heading6">`
+  })
+
+  return styledHtml
+}
 
 /**
  * 移除Markdown格式符号，提取纯文本
  * 用于目录标题的清理，去除加粗、斜体等Markdown符号
  */
 const stripMarkdownFromTitle = (title: string): string => {
-  let text = title;
-  
+  let text = title
+
   // 移除链接但保留文本 [text](url) -> text
-  text = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
-  text = text.replace(/\[([^\]]+)\]\[[^\]]+\]/g, '$1');
-  
+  text = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+  text = text.replace(/\[([^\]]+)\]\[[^\]]+\]/g, '$1')
+
   // 移除图片 ![alt](url) -> alt
-  text = text.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '$1');
-  
+  text = text.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '$1')
+
   // 移除代码标记 `code` -> code
-  text = text.replace(/`([^`]+)`/g, '$1');
-  
+  text = text.replace(/`([^`]+)`/g, '$1')
+
   // 移除粗体和斜体标记（注意顺序：先处理双星号，再处理单星号）
-  text = text.replace(/\*\*([^*]+)\*\*/g, '$1');  // **bold** -> bold
-  text = text.replace(/__([^_]+)__/g, '$1');      // __bold__ -> bold
-  text = text.replace(/\*([^*]+)\*/g, '$1');      // *italic* -> italic
-  text = text.replace(/_([^_]+)_/g, '$1');        // _italic_ -> italic
-  
+  text = text.replace(/\*\*([^*]+)\*\*/g, '$1') // **bold** -> bold
+  text = text.replace(/__([^_]+)__/g, '$1') // __bold__ -> bold
+  text = text.replace(/\*([^*]+)\*/g, '$1') // *italic* -> italic
+  text = text.replace(/_([^_]+)_/g, '$1') // _italic_ -> italic
+
   // 移除删除线 ~~text~~ -> text
-  text = text.replace(/~~([^~]+)~~/g, '$1');
-  
-  return text.trim();
-};
+  text = text.replace(/~~([^~]+)~~/g, '$1')
+
+  return text.trim()
+}
 
 // 注意：手动目录生成已移除，现在使用 Word 自动目录（WordTocProcessor）
 
@@ -713,69 +695,68 @@ const stripMarkdownFromTitle = (title: string): string => {
  * 使用表格来创建边框和背景效果
  */
 const processCodeBlocksForWord = (html: string): string => {
-  let processed = html;
-  
+  let processed = html
+
   // 辅助函数：提取纯文本内容并处理换行符
   const extractAndProcessCode = (content: string): string => {
-    
     // 先处理HTML实体，避免在移除标签时丢失信息
     let text = content
-      .replace(/&lt;/g, '\u0001LT\u0001')  // 临时标记，避免<被当作标签
-      .replace(/&gt;/g, '\u0001GT\u0001')  // 临时标记，避免>被当作标签
-      .replace(/&amp;/g, '\u0001AMP\u0001')  // 临时标记
+      .replace(/&lt;/g, '\u0001LT\u0001') // 临时标记，避免<被当作标签
+      .replace(/&gt;/g, '\u0001GT\u0001') // 临时标记，避免>被当作标签
+      .replace(/&amp;/g, '\u0001AMP\u0001') // 临时标记
       .replace(/&quot;/g, '\u0001QUOT\u0001')
       .replace(/&#39;/g, '\u0001APOS\u0001')
-      .replace(/&nbsp;/g, ' ');  // &nbsp;转换为空格
-    
+      .replace(/&nbsp;/g, ' ') // &nbsp;转换为空格
+
     // 将现有的<br>标签转换为换行符
-    text = text.replace(/<br\s*\/?>/gi, '\n');
-    
+    text = text.replace(/<br\s*\/?>/gi, '\n')
+
     // 移除所有HTML标签，但保留文本内容
     // 使用递归方式移除嵌套标签，确保正确提取文本
-    let lastText = '';
+    let lastText = ''
     while (text !== lastText) {
-      lastText = text;
-      text = text.replace(/<[^>]+>/g, '');
+      lastText = text
+      text = text.replace(/<[^>]+>/g, '')
     }
-    
+
     // 恢复HTML实体
     text = text
       .replace(/\u0001LT\u0001/g, '<')
       .replace(/\u0001GT\u0001/g, '>')
       .replace(/\u0001AMP\u0001/g, '&')
       .replace(/\u0001QUOT\u0001/g, '"')
-      .replace(/\u0001APOS\u0001/g, "'");
-    
+      .replace(/\u0001APOS\u0001/g, "'")
+
     // 统一换行符（\r\n -> \n, \r -> \n）
-    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    
+    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+
     // 分割为行
-    let lines = text.split('\n');
-    
+    let lines = text.split('\n')
+
     // 移除开头的空行（纯空白行）
     while (lines.length > 0 && lines[0].trim().length === 0) {
-      lines.shift();
+      lines.shift()
     }
-    
+
     // 移除结尾的空行（纯空白行）
     while (lines.length > 0 && lines[lines.length - 1].trim().length === 0) {
-      lines.pop();
+      lines.pop()
     }
-    
+
     // 如果所有行都被移除了，返回空字符串
     if (lines.length === 0) {
-      logger.warn('所有行都被移除了，返回空字符串');
-      return '';
+      logger.warn('所有行都被移除了，返回空字符串')
+      return ''
     }
-    
+
     // 处理第一行：移除第一行前面的多余空格（只移除前导空格，不影响代码本身的缩进）
     if (lines.length > 0) {
-      lines[0] = lines[0].replace(/^\s+/, '');
+      lines[0] = lines[0].replace(/^\s+/, '')
     }
-    
+
     // 过滤掉所有空行（行与行之间的多余空行）
-    const processedLines = lines.filter(line => line.trim().length > 0);
-    
+    const processedLines = lines.filter((line) => line.trim().length > 0)
+
     // 将每行代码用<p>标签包裹，每个<p>标签设置margin:0和padding:0，避免多余的空行
     // 这样可以确保在Word中每行代码之间没有额外的间距
     // 注意：需要先转义HTML特殊字符，因为代码可能包含<、>等字符
@@ -785,61 +766,70 @@ const processCodeBlocksForWord = (html: string): string => {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    };
-    
-    const result = processedLines.map(line => 
-      `<p style="margin: 0 !important; padding: 0 !important; line-height: 1.2 !important;">${escapeHtml(line)}</p>`
-    ).join('');
-    
-    return result;
-  };
-  
+        .replace(/'/g, '&#39;')
+    }
+
+    const result = processedLines
+      .map(
+        (line) =>
+          `<p style="margin: 0 !important; padding: 0 !important; line-height: 1.2 !important;">${escapeHtml(line)}</p>`
+      )
+      .join('')
+
+    return result
+  }
+
   // 表格样式模板（使用更明显的背景色）
   // 注意：td的padding设为6pt上下（减少上下padding），左右12pt
   // 每个代码行使用<p>标签，margin和padding都设为0，避免多余的空行
   // 表格的margin-bottom设为0，避免代码框之后有多余的换行
-  const codeTableTemplate = (content: string) => 
+  const codeTableTemplate = (content: string) =>
     `<table style="width: 100%; border: 1px solid #d0d0d0; background-color: #f5f5f5; margin: 0 0 0 0; border-collapse: collapse;" bgcolor="#f5f5f5">
       <tr>
         <td style="padding: 6pt 12pt !important; font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important; font-size: 9pt !important; color: #333333 !important; background-color: #f5f5f5 !important; line-height: 1.2 !important;" bgcolor="#f5f5f5">
           ${content}
         </td>
       </tr>
-    </table>`;
-  
+    </table>`
+
   // 1. 处理<div class="md-editor-code">包装的代码块（优先处理，因为可能包含pre和code）
-  processed = processed.replace(/<div[^>]*class="[^"]*md-editor-code[^"]*"[^>]*>([\s\S]*?)<\/div>/gi, (match, content) => {
-    // 如果content已经是表格（被上面的处理替换了），直接返回
-    if (content.includes('<table')) {
-      return match;
+  processed = processed.replace(
+    /<div[^>]*class="[^"]*md-editor-code[^"]*"[^>]*>([\s\S]*?)<\/div>/gi,
+    (match, content) => {
+      // 如果content已经是表格（被上面的处理替换了），直接返回
+      if (content.includes('<table')) {
+        return match
+      }
+      const codeContent = extractAndProcessCode(content)
+      return codeTableTemplate(codeContent)
     }
-    const codeContent = extractAndProcessCode(content);
-    return codeTableTemplate(codeContent);
-  });
-  
+  )
+
   // 2. 处理<pre>标签（可能包含<code>标签）
   processed = processed.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (match, content) => {
     // 如果content已经是表格（被上面的处理替换了），直接返回
     if (content.includes('<table')) {
-      return match;
+      return match
     }
-    const codeContent = extractAndProcessCode(content);
-    return codeTableTemplate(codeContent);
-  });
-  
+    const codeContent = extractAndProcessCode(content)
+    return codeTableTemplate(codeContent)
+  })
+
   // 3. 处理独立的<code class="hljs">代码块
-  processed = processed.replace(/<code[^>]*class="[^"]*hljs[^"]*"[^>]*>([\s\S]*?)<\/code>/gi, (match, content) => {
-    // 如果content已经是表格（被上面的处理替换了），直接返回
-    if (content.includes('<table')) {
-      return match;
+  processed = processed.replace(
+    /<code[^>]*class="[^"]*hljs[^"]*"[^>]*>([\s\S]*?)<\/code>/gi,
+    (match, content) => {
+      // 如果content已经是表格（被上面的处理替换了），直接返回
+      if (content.includes('<table')) {
+        return match
+      }
+      const codeContent = extractAndProcessCode(content)
+      return codeTableTemplate(codeContent)
     }
-    const codeContent = extractAndProcessCode(content);
-    return codeTableTemplate(codeContent);
-  });
-  
-  return processed;
-};
+  )
+
+  return processed
+}
 
 /**
  * 处理表格样式，统一表格边框，确保边框粗细一致
@@ -849,49 +839,49 @@ const processCodeBlocksForWord = (html: string): string => {
 const processTablesForWord = (html: string): string => {
   // 使用正则表达式匹配所有表格
   // 匹配 <table> 标签及其内容（包括嵌套的表格）
-  const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
-  
+  const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi
+
   return html.replace(tableRegex, (match, tableContent) => {
     // 提取原始 table 标签的属性
-    const tableTagMatch = match.match(/<table[^>]*>/i);
-    if (!tableTagMatch) return match;
-    
-    const originalTableTag = tableTagMatch[0];
-    
+    const tableTagMatch = match.match(/<table[^>]*>/i)
+    if (!tableTagMatch) return match
+
+    const originalTableTag = tableTagMatch[0]
+
     // 统一表格边框样式
     // 使用 border-collapse: collapse 确保边框合并，避免双重边框
     // 统一边框宽度为 0.5pt（Word 中常用的细边框）
-    const borderStyle = '0.5pt solid #000000';
-    
+    const borderStyle = '0.5pt solid #000000'
+
     // 更新 table 标签的样式
-    let updatedTableTag = originalTableTag;
-    
+    let updatedTableTag = originalTableTag
+
     // 移除现有的 border 相关样式
-    updatedTableTag = updatedTableTag.replace(/\s*border[^;]*;?/gi, '');
-    updatedTableTag = updatedTableTag.replace(/\s*border-collapse[^;]*;?/gi, '');
-    updatedTableTag = updatedTableTag.replace(/\s*border-spacing[^;]*;?/gi, '');
-    
+    updatedTableTag = updatedTableTag.replace(/\s*border[^;]*;?/gi, '')
+    updatedTableTag = updatedTableTag.replace(/\s*border-collapse[^;]*;?/gi, '')
+    updatedTableTag = updatedTableTag.replace(/\s*border-spacing[^;]*;?/gi, '')
+
     // 添加统一的边框样式
     if (updatedTableTag.includes('style=')) {
       // 如果已有 style 属性，追加样式
       updatedTableTag = updatedTableTag.replace(
         /style\s*=\s*["']([^"']*)["']/i,
         (_, existingStyle) => {
-          const cleanStyle = existingStyle.trim().replace(/;\s*$/, '');
-          return `style="${cleanStyle}; border: ${borderStyle}; border-collapse: collapse;"`;
+          const cleanStyle = existingStyle.trim().replace(/;\s*$/, '')
+          return `style="${cleanStyle}; border: ${borderStyle}; border-collapse: collapse;"`
         }
-      );
+      )
     } else {
       // 如果没有 style 属性，添加新的 style 属性
       updatedTableTag = updatedTableTag.replace(
         /<table([^>]*)>/i,
         `<table$1 style="border: ${borderStyle}; border-collapse: collapse;">`
-      );
+      )
     }
-    
+
     // 处理表格内容中的 th 和 td 标签
-    let processedContent = tableContent;
-    
+    let processedContent = tableContent
+
     // 处理 th 标签
     processedContent = processedContent.replace(/<th[^>]*>/gi, (thTag: string) => {
       // 移除现有的 border 相关样式
@@ -900,27 +890,27 @@ const processTablesForWord = (html: string): string => {
         .replace(/\s*border-top[^;]*;?/gi, '')
         .replace(/\s*border-right[^;]*;?/gi, '')
         .replace(/\s*border-bottom[^;]*;?/gi, '')
-        .replace(/\s*border-left[^;]*;?/gi, '');
-      
+        .replace(/\s*border-left[^;]*;?/gi, '')
+
       // 添加统一的边框样式（所有边都使用相同的边框）
       if (updatedThTag.includes('style=')) {
         updatedThTag = updatedThTag.replace(
           /style\s*=\s*["']([^"']*)["']/i,
           (_: string, existingStyle: string) => {
-            const cleanStyle = existingStyle.trim().replace(/;\s*$/, '');
-            return `style="${cleanStyle}; border: ${borderStyle}; padding: 4pt;"`;
+            const cleanStyle = existingStyle.trim().replace(/;\s*$/, '')
+            return `style="${cleanStyle}; border: ${borderStyle}; padding: 4pt;"`
           }
-        );
+        )
       } else {
         updatedThTag = updatedThTag.replace(
           /<th([^>]*)>/i,
           `<th$1 style="border: ${borderStyle}; padding: 4pt;">`
-        );
+        )
       }
-      
-      return updatedThTag;
-    });
-    
+
+      return updatedThTag
+    })
+
     // 处理 td 标签
     processedContent = processedContent.replace(/<td[^>]*>/gi, (tdTag: string) => {
       // 移除现有的 border 相关样式
@@ -929,31 +919,31 @@ const processTablesForWord = (html: string): string => {
         .replace(/\s*border-top[^;]*;?/gi, '')
         .replace(/\s*border-right[^;]*;?/gi, '')
         .replace(/\s*border-bottom[^;]*;?/gi, '')
-        .replace(/\s*border-left[^;]*;?/gi, '');
-      
+        .replace(/\s*border-left[^;]*;?/gi, '')
+
       // 添加统一的边框样式（所有边都使用相同的边框）
       if (updatedTdTag.includes('style=')) {
         updatedTdTag = updatedTdTag.replace(
           /style\s*=\s*["']([^"']*)["']/i,
           (_: string, existingStyle: string) => {
-            const cleanStyle = existingStyle.trim().replace(/;\s*$/, '');
-            return `style="${cleanStyle}; border: ${borderStyle}; padding: 4pt;"`;
+            const cleanStyle = existingStyle.trim().replace(/;\s*$/, '')
+            return `style="${cleanStyle}; border: ${borderStyle}; padding: 4pt;"`
           }
-        );
+        )
       } else {
         updatedTdTag = updatedTdTag.replace(
           /<td([^>]*)>/i,
           `<td$1 style="border: ${borderStyle}; padding: 4pt;">`
-        );
+        )
       }
-      
-      return updatedTdTag;
-    });
-    
+
+      return updatedTdTag
+    })
+
     // 返回更新后的表格
-    return `${updatedTableTag}${processedContent}</table>`;
-  });
-};
+    return `${updatedTableTag}${processedContent}</table>`
+  })
+}
 
 /**
  * 将 HTML 中的公式替换为 MathML
@@ -963,56 +953,63 @@ const processTablesForWord = (html: string): string => {
  */
 const convertFormulaToMathML = async (htmlContent: string, markdown: string): Promise<string> => {
   // 匹配公式的正则表达式（与 math-renderer.js 中的一致）
-  const mathBlockRegex = /(?<!\\)\$\$([\s\S]+?)(?<!\\)\$\$/g;
-  const mathInlineRegex = /(?<!\\)\$(?!\$)([^\n$]+?)(?<!\\)\$/g;
-  
+  const mathBlockRegex = /(?<!\\)\$\$([\s\S]+?)(?<!\\)\$\$/g
+  const mathInlineRegex = /(?<!\\)\$(?!\$)([^\n$]+?)(?<!\\)\$/g
+
   // 从 Markdown 中提取所有公式
-  const blockMatches: Array<{ content: string; index: number }> = [];
-  const inlineMatches: Array<{ content: string; index: number }> = [];
-  
-  let match;
+  const blockMatches: Array<{ content: string; index: number }> = []
+  const inlineMatches: Array<{ content: string; index: number }> = []
+
+  let match
   while ((match = mathBlockRegex.exec(markdown)) !== null) {
-    blockMatches.push({ content: match[1].trim(), index: match.index });
+    blockMatches.push({ content: match[1].trim(), index: match.index })
   }
-  
+
   while ((match = mathInlineRegex.exec(markdown)) !== null) {
-    inlineMatches.push({ content: match[1].trim(), index: match.index });
+    inlineMatches.push({ content: match[1].trim(), index: match.index })
   }
-  
+
   // 合并所有公式（块级在前，行内在后，按出现顺序排序）
   const allFormulas = [
-    ...blockMatches.map(m => ({ ...m, display: true })),
-    ...inlineMatches.map(m => ({ ...m, display: false })),
-  ].sort((a, b) => a.index - b.index);
-  
+    ...blockMatches.map((m) => ({ ...m, display: true })),
+    ...inlineMatches.map((m) => ({ ...m, display: false }))
+  ].sort((a, b) => a.index - b.index)
+
   if (allFormulas.length === 0) {
-    return htmlContent;
+    return htmlContent
   }
-  
+
   // 在 HTML 中查找公式元素
   // 公式可能是图片（_math.svg 或 _math.png）或 .language-math 类的元素
-  const formulaImageRegex = /<img[^>]+src\s*=\s*["']([^"']*_math\.(?:svg|png)[^"']*)["'][^>]*>/gi;
-  const formulaLanguageRegex = /<(span|div)[^>]*class\s*=\s*["'][^"']*language-math[^"']*["'][^>]*>([\s\S]*?)<\/(span|div)>/gi;
-  
+  const formulaImageRegex = /<img[^>]+src\s*=\s*["']([^"']*_math\.(?:svg|png)[^"']*)["'][^>]*>/gi
+  const formulaLanguageRegex =
+    /<(span|div)[^>]*class\s*=\s*["'][^"']*language-math[^"']*["'][^>]*>([\s\S]*?)<\/(span|div)>/gi
+
   // 先找出所有公式图片
-  const imageMatches: Array<{ tag: string; type: 'image'; index: number }> = [];
-  let imgMatch;
+  const imageMatches: Array<{ tag: string; type: 'image'; index: number }> = []
+  let imgMatch
   while ((imgMatch = formulaImageRegex.exec(htmlContent)) !== null) {
     imageMatches.push({
       tag: imgMatch[0],
       type: 'image',
       index: imgMatch.index
-    });
+    })
   }
-  
+
   // 再找出所有 .language-math 类的元素
-  const languageMatches: Array<{ tag: string; content: string; display: boolean; type: 'language-math'; index: number }> = [];
-  let langMatch;
+  const languageMatches: Array<{
+    tag: string
+    content: string
+    display: boolean
+    type: 'language-math'
+    index: number
+  }> = []
+  let langMatch
   while ((langMatch = formulaLanguageRegex.exec(htmlContent)) !== null) {
-    const tagName = langMatch[1].toLowerCase();
-    const isDisplay = tagName === 'div';
-    let content = langMatch[2].trim();
-    
+    const tagName = langMatch[1].toLowerCase()
+    const isDisplay = tagName === 'div'
+    let content = langMatch[2].trim()
+
     // 解码 HTML 实体（如 =3D 表示 =）
     // 使用简单的替换来处理常见的实体
     content = content
@@ -1022,54 +1019,56 @@ const convertFormulaToMathML = async (htmlContent: string, markdown: string): Pr
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
-      .replace(/&nbsp;/g, ' ');
-    
+      .replace(/&nbsp;/g, ' ')
+
     languageMatches.push({
       tag: langMatch[0],
       content: content,
       display: isDisplay,
       type: 'language-math',
       index: langMatch.index
-    });
+    })
   }
-  
+
   // 合并所有匹配，按位置排序
   // 对于 .language-math 元素，尝试通过内容匹配公式，而不是简单的顺序匹配
   const allMatches: Array<{
-    tag: string;
-    type: 'image' | 'language-math';
-    index: number;
-    formulaIndex: number;
-    content?: string;
-    display?: boolean;
-  }> = [];
-  
+    tag: string
+    type: 'image' | 'language-math'
+    index: number
+    formulaIndex: number
+    content?: string
+    display?: boolean
+  }> = []
+
   // 添加图片匹配
   for (const imgMatch of imageMatches) {
     allMatches.push({
       ...imgMatch,
       formulaIndex: -1
-    });
+    })
   }
-  
+
   // 添加 .language-math 匹配，并尝试匹配对应的公式
   for (const langMatch of languageMatches) {
     // 尝试通过内容匹配公式（允许一些差异，比如空格、换行等）
-    const normalizedContent = langMatch.content.replace(/\s+/g, ' ').trim();
-    let matchedFormulaIndex = -1;
-    
+    const normalizedContent = langMatch.content.replace(/\s+/g, ' ').trim()
+    let matchedFormulaIndex = -1
+
     for (let i = 0; i < allFormulas.length; i++) {
-      const formula = allFormulas[i];
-      const normalizedFormula = formula.content.replace(/\s+/g, ' ').trim();
+      const formula = allFormulas[i]
+      const normalizedFormula = formula.content.replace(/\s+/g, ' ').trim()
       // 检查是否匹配（允许部分匹配，因为可能有转义字符的差异）
-      if (normalizedContent === normalizedFormula || 
-          normalizedContent.includes(normalizedFormula) || 
-          normalizedFormula.includes(normalizedContent)) {
-        matchedFormulaIndex = i;
-        break;
+      if (
+        normalizedContent === normalizedFormula ||
+        normalizedContent.includes(normalizedFormula) ||
+        normalizedFormula.includes(normalizedContent)
+      ) {
+        matchedFormulaIndex = i
+        break
       }
     }
-    
+
     allMatches.push({
       tag: langMatch.tag,
       type: 'language-math',
@@ -1077,183 +1076,212 @@ const convertFormulaToMathML = async (htmlContent: string, markdown: string): Pr
       formulaIndex: matchedFormulaIndex,
       content: langMatch.content,
       display: langMatch.display
-    });
+    })
   }
-  
+
   // 按位置排序
-  allMatches.sort((a, b) => a.index - b.index);
-  
+  allMatches.sort((a, b) => a.index - b.index)
+
   // 对于没有匹配到的图片，使用顺序分配
-  let nextFormulaIndex = 0;
+  let nextFormulaIndex = 0
   for (const match of allMatches) {
     if (match.formulaIndex < 0) {
       // 找到一个未使用的公式索引
-      while (nextFormulaIndex < allFormulas.length && 
-             allMatches.some(m => m.formulaIndex === nextFormulaIndex)) {
-        nextFormulaIndex++;
+      while (
+        nextFormulaIndex < allFormulas.length &&
+        allMatches.some((m) => m.formulaIndex === nextFormulaIndex)
+      ) {
+        nextFormulaIndex++
       }
       if (nextFormulaIndex < allFormulas.length) {
-        match.formulaIndex = nextFormulaIndex;
-        nextFormulaIndex++;
+        match.formulaIndex = nextFormulaIndex
+        nextFormulaIndex++
       }
     }
   }
-  
-  logger.info(`找到 ${imageMatches.length} 个公式图片，${languageMatches.length} 个 .language-math 元素，提取了 ${allFormulas.length} 个公式`, {
-    imageCount: imageMatches.length,
-    languageMathCount: languageMatches.length,
-    formulaCount: allFormulas.length,
-    formulas: allFormulas.map(f => ({ content: f.content.substring(0, 30), display: f.display }))
-  });
-  
+
+  logger.info(
+    `找到 ${imageMatches.length} 个公式图片，${languageMatches.length} 个 .language-math 元素，提取了 ${allFormulas.length} 个公式`,
+    {
+      imageCount: imageMatches.length,
+      languageMathCount: languageMatches.length,
+      formulaCount: allFormulas.length,
+      formulas: allFormulas.map((f) => ({
+        content: f.content.substring(0, 30),
+        display: f.display
+      }))
+    }
+  )
+
   // 对于DOCX导出，我们使用占位符策略：在HTML阶段创建占位符（包含LaTeX代码），
   // 后续在document.xml处理阶段转换为OMML
   // 从后往前替换，避免索引偏移
   // 对于DOCX导出，我们使用占位符策略：在HTML阶段创建占位符（包含LaTeX代码），
   // 后续在document.xml处理阶段转换为OMML
-  let result = htmlContent;
+  let result = htmlContent
   for (let i = allMatches.length - 1; i >= 0; i--) {
-    const match = allMatches[i];
-    
+    const match = allMatches[i]
+
     // 获取LaTeX代码
-    let latexCode: string | null = null;
-    let isDisplay = false;
-    
+    let latexCode: string | null = null
+    let isDisplay = false
+
     if (match.type === 'language-math' && match.content) {
       // 对于 .language-math 元素，直接使用元素内容
-      latexCode = match.content;
-      isDisplay = match.display || false;
+      latexCode = match.content
+      isDisplay = match.display || false
     } else if (match.formulaIndex >= 0 && match.formulaIndex < allFormulas.length) {
       // 对于图片，使用从markdown中提取的公式
-      const formula = allFormulas[match.formulaIndex];
-      latexCode = formula.content;
-      isDisplay = formula.display;
+      const formula = allFormulas[match.formulaIndex]
+      latexCode = formula.content
+      isDisplay = formula.display
     }
-    
+
     if (latexCode) {
       // 创建占位符（包含LaTeX代码，而不是OMML）
-      const placeholder = convertLatexToPlaceholder(latexCode, isDisplay);
-      
+      const placeholder = convertLatexToPlaceholder(latexCode, isDisplay)
+
       if (match.type === 'language-math') {
         //logger.debug(`替换 .language-math 元素为占位符: ${latexCode}`);
-        result = result.substring(0, match.index) + placeholder + result.substring(match.index + match.tag.length);
+        result =
+          result.substring(0, match.index) +
+          placeholder +
+          result.substring(match.index + match.tag.length)
       } else if (match.type === 'image') {
-        logger.debug(`替换公式图片为占位符: ${latexCode.substring(0, 30)}...`);
-        result = result.substring(0, match.index) + placeholder + result.substring(match.index + match.tag.length);
+        logger.debug(`替换公式图片为占位符: ${latexCode.substring(0, 30)}...`)
+        result =
+          result.substring(0, match.index) +
+          placeholder +
+          result.substring(match.index + match.tag.length)
       }
     } else {
       logger.warn(`无法获取公式代码，保留原元素`, {
         matchIndex: i,
         matchType: match.type,
         formulaIndex: match.formulaIndex
-      });
+      })
     }
   }
-  
-  logger.info(`公式替换完成，共处理 ${allMatches.length} 个元素（${imageMatches.length} 个图片，${languageMatches.length} 个 .language-math）`);
-  return result;
-};
+
+  logger.info(
+    `公式替换完成，共处理 ${allMatches.length} 个元素（${imageMatches.length} 个图片，${languageMatches.length} 个 .language-math）`
+  )
+  return result
+}
 
 // 公式占位符存储（用于在document.xml处理阶段替换）
-const formulaPlaceholders = new Map<number, { latex: string; display: boolean }>();
-let formulaPlaceholderIndex = 0;
+const formulaPlaceholders = new Map<number, { latex: string; display: boolean }>()
+let formulaPlaceholderIndex = 0
 
 /**
  * 转义 LaTeX 代码中的特殊字符，避免在后续处理中被破坏
  * 这些字符在 Markdown/HTML 转换过程中可能被转义或误解析
- * 
+ *
  * @param latex LaTeX 公式代码
  * @returns 转义后的 LaTeX 代码
  */
 /**
  * 转义 LaTeX 代码中的特殊字符，避免在后续处理中被破坏
  * 只转义会影响 XML 解析的字符（< 和 >），不转义其他字符
- * 
+ *
  * @param latex LaTeX 公式代码
  * @returns 转义后的 LaTeX 代码
  */
 const escapeLatexForMarkdown = (latex: string): string => {
-  let escaped = latex;
-  
+  let escaped = latex
+
   // 只转义会影响 XML 解析的字符：< 和 >
   // 转义小于号 < 为 \lt（LaTeX 命令）
   // 注意：只转义不在反斜杠后的 <，避免破坏 LaTeX 命令
   // 注意：不要加空格，MathJax 可能无法正确解析带空格的 \lt
   // 改进：更精确的匹配，避免匹配到 LaTeX 命令中的 <（如 \langle）
-  escaped = escaped.replace(/(?<!\\)<(?![a-zA-Z\\])/g, '\\lt');
-  
+  escaped = escaped.replace(/(?<!\\)<(?![a-zA-Z\\])/g, '\\lt')
+
   // 转义大于号 > 为 \gt（LaTeX 命令）
   // 注意：不要加空格
   // 改进：更精确的匹配，避免匹配到 LaTeX 命令中的 >（如 \rangle）
-  escaped = escaped.replace(/(?<!\\)>(?![a-zA-Z\\])/g, '\\gt');
-  
+  escaped = escaped.replace(/(?<!\\)>(?![a-zA-Z\\])/g, '\\gt')
+
   // 不再转义 & 符号，因为：
   // 1. 在数学公式中，& 通常不需要转义（如 aligned 环境中的对齐符号）
   // 2. 如果确实需要转义，应该在 LaTeX 代码中手动使用 \&
   // 3. 过度转义会导致公式无法被正确解析
   // 注意：& 符号在后续的 XML 处理中会被正确转义为 &amp;，但这里我们保持原始 LaTeX 代码
-  
+
   // 不转义 % 符号，因为：
   // 1. 在 LaTeX 中，% 是注释符号，但在数学公式中可能作为普通字符使用（如 O\%）
   // 2. 如果确实需要转义，应该在 LaTeX 代码中手动使用 \%
   // 3. 保持原始 LaTeX 代码，让 MathJax 处理
-  
-  return escaped;
-};
+
+  return escaped
+}
 
 /**
  * 在 Markdown 中提取公式并替换为 XML 注释占位符
  * 这样可以避免在 HTML 转换过程中 LaTeX 代码被破坏
- * 
+ *
  * @param markdown 原始 Markdown 内容
  * @returns 处理后的 Markdown 和公式占位符 Map
  */
-const extractFormulasFromMarkdown = (markdown: string): { processedMarkdown: string; placeholders: Map<number, { latex: string; display: boolean }> } => {
-  const placeholders = new Map<number, { latex: string; display: boolean }>();
-  let index = 0;
-  let processedMarkdown = markdown;
-  
+const extractFormulasFromMarkdown = (
+  markdown: string
+): {
+  processedMarkdown: string
+  placeholders: Map<number, { latex: string; display: boolean }>
+} => {
+  const placeholders = new Map<number, { latex: string; display: boolean }>()
+  let index = 0
+  let processedMarkdown = markdown
+
   // 匹配公式的正则表达式
   // 块级公式：使用非贪婪匹配，但需要确保能匹配多行复杂公式（如 \begin{aligned}...\end{aligned}）
   // 改进：使用更精确的匹配，确保能正确处理包含 $$ 的公式内容
-  const mathBlockRegex = /(?<!\\)\$\$([\s\S]*?)(?<!\\)\$\$/g;
+  const mathBlockRegex = /(?<!\\)\$\$([\s\S]*?)(?<!\\)\$\$/g
   // 行内公式：不跨行，避免匹配到块级公式的一部分
-  const mathInlineRegex = /(?<!\\)\$(?!\$)([^\n$]+?)(?<!\\)\$/g;
-  
+  const mathInlineRegex = /(?<!\\)\$(?!\$)([^\n$]+?)(?<!\\)\$/g
+
   // 收集所有公式（块级和行内）
-  const allMatches: Array<{ match: string; content: string; index: number; display: boolean; startPos: number }> = [];
-  
+  const allMatches: Array<{
+    match: string
+    content: string
+    index: number
+    display: boolean
+    startPos: number
+  }> = []
+
   // 检查是否启用详细日志（同步导入）
-  let verbose = false;
+  let verbose = false
   try {
-    const { shouldLogVerbose } = require('../utils/formula-conversion-config');
-    verbose = shouldLogVerbose();
+    const { shouldLogVerbose } = require('../utils/formula-conversion-config')
+    verbose = shouldLogVerbose()
   } catch (error) {
     // 如果导入失败，使用默认值
-    verbose = false;
+    verbose = false
   }
-  
+
   // 提取块级公式
   // 注意：需要重置正则表达式的 lastIndex，避免全局匹配的问题
-  mathBlockRegex.lastIndex = 0;
-  let match: RegExpExecArray | null;
+  mathBlockRegex.lastIndex = 0
+  let match: RegExpExecArray | null
   while ((match = mathBlockRegex.exec(markdown)) !== null) {
-    let content = match[1];
-    
+    let content = match[1]
+
     // 对于包含 \begin{...} 和 \end{...} 的复杂公式，需要确保内容完整
     // 检查是否包含未闭合的环境（如 \begin{aligned} 但没有对应的 \end{aligned}）
     // 这种情况通常不会发生，因为正则表达式已经匹配了完整的 $$...$$ 块
     // 但为了安全，我们仍然保留原始内容，不做额外的处理
-    
+
     // 只去除首尾空白，保留内部格式（包括换行符）
-    content = content.trim();
-    
+    content = content.trim()
+
     if (verbose) {
-      logger.debug(`[提取公式-块级] 位置: ${match.index}, 长度: ${match[0].length}, 内容预览: ${content.substring(0, 100)}${content.length > 100 ? '...' : ''}`);
-      logger.debug(`[提取公式-块级] 完整内容: ${JSON.stringify(content)}`);
+      logger.debug(
+        `[提取公式-块级] 位置: ${match.index}, 长度: ${match[0].length}, 内容预览: ${content.substring(0, 100)}${content.length > 100 ? '...' : ''}`
+      )
+      logger.debug(`[提取公式-块级] 完整内容: ${JSON.stringify(content)}`)
       // 检查是否包含复杂结构
       if (content.includes('\\begin{') || content.includes('\\end{')) {
-        logger.debug(`[提取公式-块级] 检测到复杂公式结构（包含 \\begin 或 \\end）`);
+        logger.debug(`[提取公式-块级] 检测到复杂公式结构（包含 \\begin 或 \\end）`)
       }
     }
     allMatches.push({
@@ -1261,217 +1289,229 @@ const extractFormulasFromMarkdown = (markdown: string): { processedMarkdown: str
       content: content,
       index: match.index,
       display: true,
-      startPos: match.index,
-    });
+      startPos: match.index
+    })
   }
-  
+
   // 提取行内公式
   // 注意：需要重置正则表达式的 lastIndex，避免全局匹配的问题
-  mathInlineRegex.lastIndex = 0;
-  match = null;
+  mathInlineRegex.lastIndex = 0
+  match = null
   while ((match = mathInlineRegex.exec(markdown)) !== null) {
     // 检查这个行内公式是否在块级公式内部（避免重复匹配）
     // 如果匹配位置在已提取的块级公式范围内，跳过
-    const matchIndex = match.index;
-    const isInsideBlockFormula = allMatches.some(m => 
-      m.display && matchIndex >= m.startPos && matchIndex < m.startPos + m.match.length
-    );
+    const matchIndex = match.index
+    const isInsideBlockFormula = allMatches.some(
+      (m) => m.display && matchIndex >= m.startPos && matchIndex < m.startPos + m.match.length
+    )
     if (isInsideBlockFormula) {
       if (verbose) {
-        logger.debug(`[提取公式-行内] 跳过位于块级公式内部的行内公式: ${match.index}`);
+        logger.debug(`[提取公式-行内] 跳过位于块级公式内部的行内公式: ${match.index}`)
       }
-      continue;
+      continue
     }
-    
-    const content = match[1].trim();
+
+    const content = match[1].trim()
     if (verbose) {
-      logger.debug(`[提取公式-行内] 位置: ${match.index}, 长度: ${match[0].length}, 内容预览: ${content.substring(0, 100)}${content.length > 100 ? '...' : ''}`);
-      logger.debug(`[提取公式-行内] 完整内容: ${JSON.stringify(content)}`);
+      logger.debug(
+        `[提取公式-行内] 位置: ${match.index}, 长度: ${match[0].length}, 内容预览: ${content.substring(0, 100)}${content.length > 100 ? '...' : ''}`
+      )
+      logger.debug(`[提取公式-行内] 完整内容: ${JSON.stringify(content)}`)
     }
     allMatches.push({
       match: match[0],
       content: content,
       index: match.index,
       display: false,
-      startPos: match.index,
-    });
+      startPos: match.index
+    })
   }
-  
+
   // 按位置从后往前排序，避免替换时索引偏移
-  allMatches.sort((a, b) => b.startPos - a.startPos);
-  
+  allMatches.sort((a, b) => b.startPos - a.startPos)
+
   // 替换公式为文本占位符
   // 使用特殊格式的文本占位符，避免与普通文本冲突
   // 格式：__MATH_PLACEHOLDER_0__（块级）或 __MATH_PLACEHOLDER_0_INLINE__
   for (const formulaMatch of allMatches) {
     // 转义 LaTeX 代码
-    const escapedLatex = escapeLatexForMarkdown(formulaMatch.content);
-    
+    const escapedLatex = escapeLatexForMarkdown(formulaMatch.content)
+
     if (verbose) {
-      logger.debug(`[存储占位符] 索引: ${index}, 原始内容长度: ${formulaMatch.content.length}, 转义后长度: ${escapedLatex.length}`);
-      logger.debug(`[存储占位符] 原始内容: ${JSON.stringify(formulaMatch.content)}`);
-      logger.debug(`[存储占位符] 转义后内容: ${JSON.stringify(escapedLatex)}`);
+      logger.debug(
+        `[存储占位符] 索引: ${index}, 原始内容长度: ${formulaMatch.content.length}, 转义后长度: ${escapedLatex.length}`
+      )
+      logger.debug(`[存储占位符] 原始内容: ${JSON.stringify(formulaMatch.content)}`)
+      logger.debug(`[存储占位符] 转义后内容: ${JSON.stringify(escapedLatex)}`)
     }
-    
+
     // 存储到占位符 Map
-    const placeholderIndex = index++;
-    placeholders.set(placeholderIndex, { 
-      latex: escapedLatex, 
-      display: formulaMatch.display 
-    });
-    
+    const placeholderIndex = index++
+    placeholders.set(placeholderIndex, {
+      latex: escapedLatex,
+      display: formulaMatch.display
+    })
+
     // 创建文本占位符（使用特殊格式，避免与普通文本冲突和被 Markdown 渲染器处理）
     // 使用 [MATH_PLACEHOLDER_0] 格式，方括号在 Markdown 中通常用于链接，但这里我们使用特殊格式避免冲突
     const placeholderText = formulaMatch.display
       ? `[MATH_PLACEHOLDER_${placeholderIndex}]`
-      : `[MATH_PLACEHOLDER_${placeholderIndex}_INLINE]`;
-    
+      : `[MATH_PLACEHOLDER_${placeholderIndex}_INLINE]`
+
     // 替换公式
-    processedMarkdown = processedMarkdown.substring(0, formulaMatch.startPos) + 
-                       placeholderText + 
-                       processedMarkdown.substring(formulaMatch.startPos + formulaMatch.match.length);
+    processedMarkdown =
+      processedMarkdown.substring(0, formulaMatch.startPos) +
+      placeholderText +
+      processedMarkdown.substring(formulaMatch.startPos + formulaMatch.match.length)
   }
-  
+
   // 更新全局占位符 Map
-  formulaPlaceholders.clear();
+  formulaPlaceholders.clear()
   placeholders.forEach((value, key) => {
-    formulaPlaceholders.set(key, value);
-  });
-  formulaPlaceholderIndex = index;
-  
-  logger.info(`从 Markdown 中提取了 ${placeholders.size} 个公式（${allMatches.filter(m => m.display).length} 个块级，${allMatches.filter(m => !m.display).length} 个行内）`);
-  
-  return { processedMarkdown, placeholders };
-};
+    formulaPlaceholders.set(key, value)
+  })
+  formulaPlaceholderIndex = index
+
+  logger.info(
+    `从 Markdown 中提取了 ${placeholders.size} 个公式（${allMatches.filter((m) => m.display).length} 个块级，${allMatches.filter((m) => !m.display).length} 个行内）`
+  )
+
+  return { processedMarkdown, placeholders }
+}
 
 /**
  * 在 HTML 中查找并替换公式为文本占位符（用于兼容 HTML 中可能存在的公式）
  * 注意：主要处理应该在 Markdown 阶段完成，这里作为备用
  */
-const replaceFormulasInHtml = (htmlContent: string, placeholders: Map<number, { latex: string; display: boolean }>): string => {
-  let processedHtml = htmlContent;
-  let index = placeholders.size;
-  
+const replaceFormulasInHtml = (
+  htmlContent: string,
+  placeholders: Map<number, { latex: string; display: boolean }>
+): string => {
+  let processedHtml = htmlContent
+  let index = placeholders.size
+
   // 匹配公式图片和 .language-math 元素
-  const formulaImageRegex = /<img[^>]+src\s*=\s*["']([^"']*_math\.(?:svg|png)[^"']*)["'][^>]*>/gi;
-  const formulaLanguageRegex = /<(span|div)[^>]*class\s*=\s*["'][^"']*language-math[^"']*["'][^>]*>([\s\S]*?)<\/(span|div)>/gi;
-  
+  const formulaImageRegex = /<img[^>]+src\s*=\s*["']([^"']*_math\.(?:svg|png)[^"']*)["'][^>]*>/gi
+  const formulaLanguageRegex =
+    /<(span|div)[^>]*class\s*=\s*["'][^"']*language-math[^"']*["'][^>]*>([\s\S]*?)<\/(span|div)>/gi
+
   // 收集所有匹配
-  const allMatches: Array<{ match: string; index: number; isBlockLevel: boolean }> = [];
-  
-  let match;
+  const allMatches: Array<{ match: string; index: number; isBlockLevel: boolean }> = []
+
+  let match
   while ((match = formulaImageRegex.exec(htmlContent)) !== null) {
-    const tagName = match[0];
-    const isBlockLevel = tagName.includes('display') || tagName.includes('block');
-    allMatches.push({ match: tagName, index: match.index, isBlockLevel });
+    const tagName = match[0]
+    const isBlockLevel = tagName.includes('display') || tagName.includes('block')
+    allMatches.push({ match: tagName, index: match.index, isBlockLevel })
   }
-  
+
   while ((match = formulaLanguageRegex.exec(htmlContent)) !== null) {
-    const tagName = match[1].toLowerCase();
-    const isBlockLevel = tagName === 'div';
-    allMatches.push({ match: match[0], index: match.index, isBlockLevel });
+    const tagName = match[1].toLowerCase()
+    const isBlockLevel = tagName === 'div'
+    allMatches.push({ match: match[0], index: match.index, isBlockLevel })
   }
-  
+
   // 按位置从后往前排序
-  allMatches.sort((a, b) => b.index - a.index);
-  
+  allMatches.sort((a, b) => b.index - a.index)
+
   // 替换为文本占位符
   for (const formulaMatch of allMatches) {
     const placeholderText = formulaMatch.isBlockLevel
       ? `__MATH_PLACEHOLDER_${index}__`
-      : `__MATH_PLACEHOLDER_${index}_INLINE__`;
-    
-    processedHtml = processedHtml.substring(0, formulaMatch.index) + 
-                   placeholderText + 
-                   processedHtml.substring(formulaMatch.index + formulaMatch.match.length);
-    index++;
+      : `__MATH_PLACEHOLDER_${index}_INLINE__`
+
+    processedHtml =
+      processedHtml.substring(0, formulaMatch.index) +
+      placeholderText +
+      processedHtml.substring(formulaMatch.index + formulaMatch.match.length)
+    index++
   }
-  
-  return processedHtml;
-};
+
+  return processedHtml
+}
 
 /**
  * 将 LaTeX 公式转换为占位符（用于DOCX导出，保留用于向后兼容）
  * 注意：现在公式提取已提前到 Markdown 阶段，此函数主要用于 HTML 阶段的兼容处理
- * 
+ *
  * @param latex LaTeX 公式代码
  * @param displayMode 是否为块级公式
  * @returns 包含占位符的 HTML 字符串
  */
 const convertLatexToPlaceholder = (latex: string, displayMode: boolean): string => {
-  const index = formulaPlaceholderIndex++;
-  formulaPlaceholders.set(index, { latex, display: displayMode });
-  
+  const index = formulaPlaceholderIndex++
+  formulaPlaceholders.set(index, { latex, display: displayMode })
+
   // 使用文本占位符
   const placeholderText = displayMode
     ? `[MATH_PLACEHOLDER_${index}]`
-    : `[MATH_PLACEHOLDER_${index}_INLINE]`;
-  
+    : `[MATH_PLACEHOLDER_${index}_INLINE]`
+
   // 在 HTML 中使用 span 元素包装占位符文本
-  const placeholder = `<span>${placeholderText}</span>`;
-  
+  const placeholder = `<span>${placeholderText}</span>`
+
   if (displayMode) {
-    return `<p class="Normal" style="text-align: center; margin: 12pt 0;">${placeholder}</p>`;
+    return `<p class="Normal" style="text-align: center; margin: 12pt 0;">${placeholder}</p>`
   } else {
-    return placeholder;
+    return placeholder
   }
-};
+}
 
 /**
  * 获取所有公式占位符数据（用于document.xml处理）
  */
 export const getFormulaPlaceholders = (): Map<number, { latex: string; display: boolean }> => {
-  return new Map(formulaPlaceholders);
-};
+  return new Map(formulaPlaceholders)
+}
 
 /**
  * 清除公式占位符数据
  */
 export const clearFormulaPlaceholders = (): void => {
-  formulaPlaceholders.clear();
-  formulaPlaceholderIndex = 0;
-};
+  formulaPlaceholders.clear()
+  formulaPlaceholderIndex = 0
+}
 
 /**
  * 将 LaTeX 公式转换为包含 MathML 和 OOXML 的 HTML（保留用于PDF导出）
  * 使用 latex-to-omml 包进行 LaTeX 到 OMML 转换
- * 
+ *
  * @param latex LaTeX 公式代码
  * @param displayMode 是否为块级公式
  * @returns 包含 MathML 和 OOXML 的 HTML 字符串
  */
 const convertLatexToMathML = async (latex: string, displayMode: boolean): Promise<string> => {
   // 使用 latex-to-omml 包直接转换（LaTeX → MathML → OMML）
-  let omml: string;
+  let omml: string
   try {
-    const { latexToOMML } = await import('latex-to-omml');
-    omml = await latexToOMML(latex, { displayMode });
-    
+    const { latexToOMML } = await import('latex-to-omml')
+    omml = await latexToOMML(latex, { displayMode })
+
     logger.debug('LaTeX 转换为 OMML 成功', {
       ommlLength: omml.length,
       ommlPreview: omml.substring(0, 300),
       hasOMath: omml.includes('<m:oMath'),
       hasOMathPara: omml.includes('<m:oMathPara')
-    });
+    })
   } catch (error) {
-    logger.error('LaTeX 转 OMML 失败，使用后备方案:', error);
+    logger.error('LaTeX 转 OMML 失败，使用后备方案:', error)
     // 如果转换失败，使用转义的 LaTeX 作为后备
-    const escapedLatex = escapeXml(latex);
+    const escapedLatex = escapeXml(latex)
     const fallbackMathML = `<math xmlns="http://www.w3.org/1998/Math/MathML" display="${displayMode ? 'block' : 'inline'}">
   <mtext>${escapedLatex}</mtext>
-</math>`;
-    
+</math>`
+
     if (displayMode) {
-      return `<p class="Normal" style="text-align: center; margin: 12pt 0;">${fallbackMathML}</p>`;
+      return `<p class="Normal" style="text-align: center; margin: 12pt 0;">${fallbackMathML}</p>`
     } else {
-      return `<span>${fallbackMathML}</span>`;
+      return `<span>${fallbackMathML}</span>`
     }
   }
-  
+
   // latex-to-omml 返回的 OMML 通常已经包含了 <m:oMath> 标签
   // 我们需要检查并适当包装
-  let ommlContent = omml.trim();
-  
+  let ommlContent = omml.trim()
+
   // 如果返回的 OMML 不包含 <m:oMath> 或 <m:oMathPara>，需要包装
   if (!ommlContent.includes('<m:oMath')) {
     if (displayMode) {
@@ -1479,112 +1519,117 @@ const convertLatexToMathML = async (latex: string, displayMode: boolean): Promis
 <m:oMath>
 ${ommlContent}
 </m:oMath>
-</m:oMathPara>`;
+</m:oMathPara>`
     } else {
-      ommlContent = `<m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">${ommlContent}</m:oMath>`;
+      ommlContent = `<m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">${ommlContent}</m:oMath>`
     }
   } else if (displayMode && !ommlContent.includes('<m:oMathPara')) {
     // 如果是块级公式但没有 oMathPara，需要包装
-    ommlContent = `<m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">${ommlContent}</m:oMathPara>`;
+    ommlContent = `<m:oMathPara xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">${ommlContent}</m:oMathPara>`
   }
-  
+
   // 使用占位符标记，后续在 document.xml 中替换为正确的 WordprocessingML 结构
   // 将 OMML 内容进行 Base64 编码，避免特殊字符问题
-  const ommlBase64 = Buffer.from(ommlContent, 'utf-8').toString('base64');
-  const placeholder = `<span data-omml="${ommlBase64}" data-display="${displayMode}"></span>`;
-  
+  const ommlBase64 = Buffer.from(ommlContent, 'utf-8').toString('base64')
+  const placeholder = `<span data-omml="${ommlBase64}" data-display="${displayMode}"></span>`
+
   if (displayMode) {
-    return `<p class="Normal" style="text-align: center; margin: 12pt 0;">${placeholder}</p>`;
+    return `<p class="Normal" style="text-align: center; margin: 12pt 0;">${placeholder}</p>`
   } else {
-    return placeholder;
+    return placeholder
   }
-};
+}
 
 /**
  * 清理 MathML，移除 MathJax 特定的属性和 HTML 注释，使其符合 Word 的要求
  */
 function cleanMathMLForWord(mathml: string): string {
-  let cleaned = mathml;
-  
+  let cleaned = mathml
+
   // 1. 移除 HTML 注释（如 <!-- ϕ -->、<!-- − --> 等）
-  cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '');
-  
+  cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '')
+
   // 2. 移除 MathJax 特定的类名（如 class="MJX-TeXAtom-OPEN"、class="MJX-TeXAtom-ORD" 等）
-  cleaned = cleaned.replace(/\s+class="[^"]*"/g, '');
-  
+  cleaned = cleaned.replace(/\s+class="[^"]*"/g, '')
+
   // 3. 移除 scriptlevel 属性（MathJax 特定）
-  cleaned = cleaned.replace(/\s+scriptlevel="[^"]*"/g, '');
-  
+  cleaned = cleaned.replace(/\s+scriptlevel="[^"]*"/g, '')
+
   // 4. 移除 maxsize 和 minsize 属性（MathJax 特定，Word 不支持）
-  cleaned = cleaned.replace(/\s+maxsize="[^"]*"/g, '');
-  cleaned = cleaned.replace(/\s+minsize="[^"]*"/g, '');
-  
+  cleaned = cleaned.replace(/\s+maxsize="[^"]*"/g, '')
+  cleaned = cleaned.replace(/\s+minsize="[^"]*"/g, '')
+
   // 5. 移除其他 MathJax 特定的属性（如 mathvariant、mathcolor 等可能不被 Word 支持）
   // 但保留基本的 MathML 属性（如 xmlns、display 等）
-  
+
   // 6. 清理多余的空白字符（标签之间的）
-  cleaned = cleaned.replace(/>\s+</g, '><');
-  cleaned = cleaned.replace(/\s{2,}/g, ' ');
-  cleaned = cleaned.trim();
-  
+  cleaned = cleaned.replace(/>\s+</g, '><')
+  cleaned = cleaned.replace(/\s{2,}/g, ' ')
+  cleaned = cleaned.trim()
+
   logger.debug('MathML 清理完成', {
     originalLength: mathml.length,
     cleanedLength: cleaned.length,
     preview: cleaned.substring(0, 200)
-  });
-  
-  return cleaned;
+  })
+
+  return cleaned
 }
 
 // 生成封面 HTML
-const generateCoverPage = (meta: DocumentMetaInfo, styleMapping?: {
-  normal?: { fontFamily: string; fontSize: number; lineHeight: number };
-  heading1?: { fontFamily: string; fontSize: number; lineHeight: number };
-}): string => {
+const generateCoverPage = (
+  meta: DocumentMetaInfo,
+  styleMapping?: {
+    normal?: { fontFamily: string; fontSize: number; lineHeight: number }
+    heading1?: { fontFamily: string; fontSize: number; lineHeight: number }
+  }
+): string => {
   // 使用与正文相同的字体，默认使用 Microsoft YaHei
-  const fontFamily = styleMapping?.normal?.fontFamily || styleMapping?.heading1?.fontFamily || 'Microsoft YaHei';
-  const baseFontSize = styleMapping?.normal?.fontSize || 10.5;
-  
+  const fontFamily =
+    styleMapping?.normal?.fontFamily || styleMapping?.heading1?.fontFamily || 'Microsoft YaHei'
+  const baseFontSize = styleMapping?.normal?.fontSize || 10.5
+
   // 根据标题长度动态调整字体大小，确保在一行内显示
   // 使用简单的分段策略，根据字符数选择合适的字体大小
-  let titleFontSize = 28; // 默认28pt
+  let titleFontSize = 28 // 默认28pt
   if (meta.title) {
-    const titleLength = meta.title.length;
+    const titleLength = meta.title.length
     // 根据字符数分段设置字体大小
     if (titleLength <= 10) {
-      titleFontSize = 32; // 短标题使用大字体
+      titleFontSize = 32 // 短标题使用大字体
     } else if (titleLength <= 20) {
-      titleFontSize = 28; // 中等标题
+      titleFontSize = 28 // 中等标题
     } else if (titleLength <= 30) {
-      titleFontSize = 24; // 较长标题
+      titleFontSize = 24 // 较长标题
     } else if (titleLength <= 40) {
-      titleFontSize = 20; // 很长标题
+      titleFontSize = 20 // 很长标题
     } else {
-      titleFontSize = 18; // 非常长的标题，使用最小字体
+      titleFontSize = 18 // 非常长的标题，使用最小字体
     }
   }
-  
+
   // 使用简单的段落结构，合理控制间距
   // 标题：普通段落，居中，加粗，动态字号
-  const titleHtml = meta.title 
-    ? `<p style="text-align: center; font-size: ${titleFontSize}pt; font-weight: bold; margin-top: 200pt; margin-bottom: 40pt; font-family: '${fontFamily}', 'SimSun', serif;">${escapeHtml(meta.title)}</p>` 
-    : '';
-  
+  const titleHtml = meta.title
+    ? `<p style="text-align: center; font-size: ${titleFontSize}pt; font-weight: bold; margin-top: 200pt; margin-bottom: 40pt; font-family: '${fontFamily}', 'SimSun', serif;">${escapeHtml(meta.title)}</p>`
+    : ''
+
   // 作者：居中
-  const authorHtml = meta.author 
-    ? `<p style="text-align: center; font-size: ${baseFontSize + 3.5}pt; margin-bottom: 30pt; font-family: '${fontFamily}', 'SimSun', serif;">作者：${escapeHtml(meta.author)}</p>` 
-    : '';
-  
+  const authorHtml = meta.author
+    ? `<p style="text-align: center; font-size: ${baseFontSize + 3.5}pt; margin-bottom: 30pt; font-family: '${fontFamily}', 'SimSun', serif;">作者：${escapeHtml(meta.author)}</p>`
+    : ''
+
   // 摘要：加粗"摘要"标识，内容靠左对齐，使用与正文相同的字体
-  const descriptionHtml = meta.description 
-    ? `<p style="text-align: left; font-size: ${baseFontSize + 1.5}pt; margin-top: 30pt; margin-bottom: 15pt; padding: 0 100pt; font-family: '${fontFamily}', 'SimSun', serif;"><strong>摘要：</strong>${escapeHtml(meta.description)}</p>` 
-    : '';
-  
+  const descriptionHtml = meta.description
+    ? `<p style="text-align: left; font-size: ${baseFontSize + 1.5}pt; margin-top: 30pt; margin-bottom: 15pt; padding: 0 100pt; font-family: '${fontFamily}', 'SimSun', serif;"><strong>摘要：</strong>${escapeHtml(meta.description)}</p>`
+    : ''
+
   // 关键词：加粗"关键词"标识，关键词用逗号分割，使用与正文相同的字体
-  const keywordsHtml = meta.keywords.length > 0 
-    ? `<p style="text-align: left; font-size: ${baseFontSize + 1.5}pt; margin-top: 15pt; margin-bottom: 0; padding: 0 100pt; font-family: '${fontFamily}', 'SimSun', serif;"><strong>关键词：</strong>${escapeHtml(meta.keywords.join(', '))}</p>` 
-    : '';
-  
+  const keywordsHtml =
+    meta.keywords.length > 0
+      ? `<p style="text-align: left; font-size: ${baseFontSize + 1.5}pt; margin-top: 15pt; margin-bottom: 0; padding: 0 100pt; font-family: '${fontFamily}', 'SimSun', serif;"><strong>关键词：</strong>${escapeHtml(meta.keywords.join(', '))}</p>`
+      : ''
+
   // 组合封面内容，使用分页标记
   return `
     ${titleHtml}
@@ -1592,235 +1637,268 @@ const generateCoverPage = (meta: DocumentMetaInfo, styleMapping?: {
     ${descriptionHtml}
     ${keywordsHtml}
     <div class="page-break" style="page-break-after: always;"></div>
-  `;
-};
-
+  `
+}
 
 const convertMarkdownToDocxBuffer = async (
   htmlContent: string,
   markdown: string,
   options?: {
-    enableStyleMapping?: boolean;
+    enableStyleMapping?: boolean
     styleMapping?: {
-      normal?: { fontFamily: string; fontSize: number; lineHeight: number };
-      heading1?: { fontFamily: string; fontSize: number; lineHeight: number };
-      heading2?: { fontFamily: string; fontSize: number; lineHeight: number };
-      heading3?: { fontFamily: string; fontSize: number; lineHeight: number };
-      heading4?: { fontFamily: string; fontSize: number; lineHeight: number };
-    };
-    generateCover?: boolean;
-    generateToc?: boolean;
-    processFormula?: boolean;
+      normal?: { fontFamily: string; fontSize: number; lineHeight: number }
+      heading1?: { fontFamily: string; fontSize: number; lineHeight: number }
+      heading2?: { fontFamily: string; fontSize: number; lineHeight: number }
+      heading3?: { fontFamily: string; fontSize: number; lineHeight: number }
+      heading4?: { fontFamily: string; fontSize: number; lineHeight: number }
+    }
+    generateCover?: boolean
+    generateToc?: boolean
+    processFormula?: boolean
   },
   meta?: DocumentMetaInfo
 ): Promise<Buffer> => {
   // 使用导出选项或默认值
-  const enableStyleMapping = options?.enableStyleMapping !== undefined ? options.enableStyleMapping : true;
+  const enableStyleMapping =
+    options?.enableStyleMapping !== undefined ? options.enableStyleMapping : true
   const styleMapping = options?.styleMapping || {
     normal: { fontFamily: 'Microsoft YaHei', fontSize: 10.5, lineHeight: 1.15 },
     heading1: { fontFamily: 'Microsoft YaHei', fontSize: 18, lineHeight: 1.2 },
     heading2: { fontFamily: 'Microsoft YaHei', fontSize: 16, lineHeight: 1.2 },
     heading3: { fontFamily: 'Microsoft YaHei', fontSize: 14, lineHeight: 1.2 },
-    heading4: { fontFamily: 'Microsoft YaHei', fontSize: 12, lineHeight: 1.2 },
-  };
-  
+    heading4: { fontFamily: 'Microsoft YaHei', fontSize: 12, lineHeight: 1.2 }
+  }
+
   // 只有当 processFormula 不为 false 时，才在 Markdown 阶段提取公式并替换为文本占位符
   // 这样可以避免在 HTML 转换过程中 LaTeX 代码被破坏
-  let processedMarkdown = markdown;
-  let markdownPlaceholders = new Map<number, { latex: string; display: boolean }>();
+  let processedMarkdown = markdown
+  let markdownPlaceholders = new Map<number, { latex: string; display: boolean }>()
   if (options?.processFormula !== false) {
-    const result = extractFormulasFromMarkdown(markdown);
-    processedMarkdown = result.processedMarkdown;
-    markdownPlaceholders = result.placeholders;
+    const result = extractFormulasFromMarkdown(markdown)
+    processedMarkdown = result.processedMarkdown
+    markdownPlaceholders = result.placeholders
   }
-  
+
   // 只有当 processFormula 不为 false 时，才在 HTML 中查找公式元素并替换为占位符
   // 因为 HTML 是在渲染进程中生成的，公式可能已经被转换为图片或 MathML
   // 我们需要在 HTML 中找到这些公式元素，并替换为对应的占位符
-  let processedHtml = htmlContent;
-  
+  let processedHtml = htmlContent
+
   if (options?.processFormula !== false) {
     // 只匹配 .language-math 元素（不匹配图片，因为图片不是公式）
-    const formulaLanguageRegex = /<(span|div)[^>]*class\s*=\s*["'][^"']*language-math[^"']*["'][^>]*>([\s\S]*?)<\/(span|div)>/gi;
-    
+    const formulaLanguageRegex =
+      /<(span|div)[^>]*class\s*=\s*["'][^"']*language-math[^"']*["'][^>]*>([\s\S]*?)<\/(span|div)>/gi
+
     // 也匹配 MathML 元素（如果 HTML 中包含原生 MathML）
-    const mathmlRegex = /<math[^>]*>[\s\S]*?<\/math>/gi;
-    
+    const mathmlRegex = /<math[^>]*>[\s\S]*?<\/math>/gi
+
     // 收集所有公式元素（只包含 language-math 和 MathML，不包含图片）
-    const htmlFormulaMatches: Array<{ match: string; index: number; type: 'language-math'; isBlockLevel: boolean; latexContent?: string }> = [];
-    
-    let match;
+    const htmlFormulaMatches: Array<{
+      match: string
+      index: number
+      type: 'language-math'
+      isBlockLevel: boolean
+      latexContent?: string
+    }> = []
+
+    let match
     while ((match = formulaLanguageRegex.exec(htmlContent)) !== null) {
-      const tagName = match[1].toLowerCase();
-      const isBlockLevel = tagName === 'div';
-      const latexContent = match[2].trim(); // 提取 LaTeX 内容
-      htmlFormulaMatches.push({ 
-        match: match[0], 
-        index: match.index, 
+      const tagName = match[1].toLowerCase()
+      const isBlockLevel = tagName === 'div'
+      const latexContent = match[2].trim() // 提取 LaTeX 内容
+      htmlFormulaMatches.push({
+        match: match[0],
+        index: match.index,
         type: 'language-math',
         isBlockLevel,
         latexContent
-      });
+      })
     }
-    
+
     // 匹配 MathML 元素
     while ((match = mathmlRegex.exec(htmlContent)) !== null) {
       // 判断是否为块级（通过检查 display 属性或周围的标签）
-      const beforeMatch = htmlContent.substring(Math.max(0, match.index - 100), match.index);
-      const afterMatch = htmlContent.substring(match.index + match[0].length, Math.min(htmlContent.length, match.index + match[0].length + 100));
-      const isBlockLevel = match[0].includes('display="block"') || 
-                           match[0].includes('display="block"') ||
-                           beforeMatch.includes('<p') || beforeMatch.includes('<div') || 
-                           afterMatch.includes('</p>') || afterMatch.includes('</div>');
-      htmlFormulaMatches.push({ 
-        match: match[0], 
-        index: match.index, 
+      const beforeMatch = htmlContent.substring(Math.max(0, match.index - 100), match.index)
+      const afterMatch = htmlContent.substring(
+        match.index + match[0].length,
+        Math.min(htmlContent.length, match.index + match[0].length + 100)
+      )
+      const isBlockLevel =
+        match[0].includes('display="block"') ||
+        match[0].includes('display="block"') ||
+        beforeMatch.includes('<p') ||
+        beforeMatch.includes('<div') ||
+        afterMatch.includes('</p>') ||
+        afterMatch.includes('</div>')
+      htmlFormulaMatches.push({
+        match: match[0],
+        index: match.index,
         type: 'language-math', // 使用相同的类型
         isBlockLevel
         // MathML 元素没有直接的 LaTeX 内容
-      });
+      })
     }
-    
+
     // 按位置从后往前排序，避免替换时索引偏移
-    htmlFormulaMatches.sort((a, b) => b.index - a.index);
-    
-    const blockCount = htmlFormulaMatches.filter(m => m.isBlockLevel).length;
-    const inlineCount = htmlFormulaMatches.filter(m => !m.isBlockLevel).length;
-    const markdownBlockCount = Array.from(markdownPlaceholders.values()).filter(v => v.display).length;
-    const markdownInlineCount = Array.from(markdownPlaceholders.values()).filter(v => !v.display).length;
-    
-    logger.info(`在 HTML 中找到 ${htmlFormulaMatches.length} 个公式元素（块级：${blockCount}，行内：${inlineCount}），Markdown 中有 ${markdownPlaceholders.size} 个公式（块级：${markdownBlockCount}，行内：${markdownInlineCount}）`);
-    
+    htmlFormulaMatches.sort((a, b) => b.index - a.index)
+
+    const blockCount = htmlFormulaMatches.filter((m) => m.isBlockLevel).length
+    const inlineCount = htmlFormulaMatches.filter((m) => !m.isBlockLevel).length
+    const markdownBlockCount = Array.from(markdownPlaceholders.values()).filter(
+      (v) => v.display
+    ).length
+    const markdownInlineCount = Array.from(markdownPlaceholders.values()).filter(
+      (v) => !v.display
+    ).length
+
+    logger.info(
+      `在 HTML 中找到 ${htmlFormulaMatches.length} 个公式元素（块级：${blockCount}，行内：${inlineCount}），Markdown 中有 ${markdownPlaceholders.size} 个公式（块级：${markdownBlockCount}，行内：${markdownInlineCount}）`
+    )
+
     // 将 HTML 中的公式元素替换为占位符
     // 按块级和行内分别匹配
     const blockPlaceholderIndices = Array.from(markdownPlaceholders.entries())
       .filter(([_, data]) => data.display)
       .map(([index]) => index)
-      .sort((a, b) => a - b);
+      .sort((a, b) => a - b)
     const inlinePlaceholderIndices = Array.from(markdownPlaceholders.entries())
       .filter(([_, data]) => !data.display)
       .map(([index]) => index)
-      .sort((a, b) => a - b);
-    
-    let blockIndex = 0;
-    let inlineIndex = 0;
-    let replacedCount = 0;
-    const unmatchedHtmlFormulas: number[] = [];
-    const unmatchedPlaceholders: number[] = [];
-    
+      .sort((a, b) => a - b)
+
+    let blockIndex = 0
+    let inlineIndex = 0
+    let replacedCount = 0
+    const unmatchedHtmlFormulas: number[] = []
+    const unmatchedPlaceholders: number[] = []
+
     // 改进匹配策略：对于无法匹配的 HTML 公式，尝试跳过（可能是重复渲染）
     // 但需要确保所有 Markdown 公式都能被匹配
     for (let i = 0; i < htmlFormulaMatches.length; i++) {
-      const htmlMatch = htmlFormulaMatches[i];
-      let placeholderIndex: number | null = null;
-      
+      const htmlMatch = htmlFormulaMatches[i]
+      let placeholderIndex: number | null = null
+
       if (htmlMatch.isBlockLevel && blockIndex < blockPlaceholderIndices.length) {
-        placeholderIndex = blockPlaceholderIndices[blockIndex];
-        blockIndex++;
+        placeholderIndex = blockPlaceholderIndices[blockIndex]
+        blockIndex++
       } else if (!htmlMatch.isBlockLevel && inlineIndex < inlinePlaceholderIndices.length) {
-        placeholderIndex = inlinePlaceholderIndices[inlineIndex];
-        inlineIndex++;
+        placeholderIndex = inlinePlaceholderIndices[inlineIndex]
+        inlineIndex++
       } else {
         // 无法匹配的公式元素：HTML 中有但 Markdown 中没有
         // 说明 Markdown 侧解析有问题，以 HTML 为准
         // 从 HTML 中提取 LaTeX 内容，添加到占位符 Map 中
         if (htmlMatch.latexContent) {
           // 生成新的占位符索引
-          const newIndex = markdownPlaceholders.size;
+          const newIndex = markdownPlaceholders.size
           markdownPlaceholders.set(newIndex, {
             latex: htmlMatch.latexContent,
             display: htmlMatch.isBlockLevel
-          });
-          placeholderIndex = newIndex;
-          
+          })
+          placeholderIndex = newIndex
+
           // 更新占位符索引列表
           if (htmlMatch.isBlockLevel) {
-            blockPlaceholderIndices.push(newIndex);
-            blockIndex++;
+            blockPlaceholderIndices.push(newIndex)
+            blockIndex++
           } else {
-            inlinePlaceholderIndices.push(newIndex);
-            inlineIndex++;
+            inlinePlaceholderIndices.push(newIndex)
+            inlineIndex++
           }
-          
-          logger.info(`从 HTML 中提取公式并添加到占位符 ${newIndex}（${htmlMatch.isBlockLevel ? '块级' : '行内'}）: ${htmlMatch.latexContent.substring(0, 100)}`);
+
+          logger.info(
+            `从 HTML 中提取公式并添加到占位符 ${newIndex}（${htmlMatch.isBlockLevel ? '块级' : '行内'}）: ${htmlMatch.latexContent.substring(0, 100)}`
+          )
         } else {
           // 没有 LaTeX 内容（可能是 MathML），无法处理
-          unmatchedHtmlFormulas.push(i);
-          logger.warn(`无法匹配 HTML 中的公式元素 ${i}（${htmlMatch.isBlockLevel ? '块级' : '行内'}），且无法提取 LaTeX 内容。HTML 元素预览: ${htmlMatch.match.substring(0, 100)}`);
+          unmatchedHtmlFormulas.push(i)
+          logger.warn(
+            `无法匹配 HTML 中的公式元素 ${i}（${htmlMatch.isBlockLevel ? '块级' : '行内'}），且无法提取 LaTeX 内容。HTML 元素预览: ${htmlMatch.match.substring(0, 100)}`
+          )
         }
       }
-      
+
       if (placeholderIndex !== null) {
-          // 创建占位符文本
-          const placeholderText = htmlMatch.isBlockLevel
-            ? `[MATH_PLACEHOLDER_${placeholderIndex}]`
-            : `[MATH_PLACEHOLDER_${placeholderIndex}_INLINE]`;
-        
+        // 创建占位符文本
+        const placeholderText = htmlMatch.isBlockLevel
+          ? `[MATH_PLACEHOLDER_${placeholderIndex}]`
+          : `[MATH_PLACEHOLDER_${placeholderIndex}_INLINE]`
+
         // 替换公式元素为占位符
         if (htmlMatch.isBlockLevel) {
           // 块级公式：替换为段落中的占位符
-          processedHtml = processedHtml.substring(0, htmlMatch.index) + 
-                          `<p class="Normal" style="text-align: center; margin: 12pt 0;"><span>${placeholderText}</span></p>` + 
-                          processedHtml.substring(htmlMatch.index + htmlMatch.match.length);
+          processedHtml =
+            processedHtml.substring(0, htmlMatch.index) +
+            `<p class="Normal" style="text-align: center; margin: 12pt 0;"><span>${placeholderText}</span></p>` +
+            processedHtml.substring(htmlMatch.index + htmlMatch.match.length)
         } else {
           // 行内公式：替换为 span 中的占位符
-          processedHtml = processedHtml.substring(0, htmlMatch.index) + 
-                          `<span>${placeholderText}</span>` + 
-                          processedHtml.substring(htmlMatch.index + htmlMatch.match.length);
+          processedHtml =
+            processedHtml.substring(0, htmlMatch.index) +
+            `<span>${placeholderText}</span>` +
+            processedHtml.substring(htmlMatch.index + htmlMatch.match.length)
         }
-        
-        replacedCount++;
+
+        replacedCount++
       }
     }
-    
+
     // 检查未匹配的占位符
     if (blockIndex < blockPlaceholderIndices.length) {
-      const remaining = blockPlaceholderIndices.slice(blockIndex);
-      unmatchedPlaceholders.push(...remaining);
-      logger.warn(`有 ${remaining.length} 个块级占位符无法在 HTML 中找到对应的公式元素: ${remaining.slice(0, 10).join(', ')}`);
+      const remaining = blockPlaceholderIndices.slice(blockIndex)
+      unmatchedPlaceholders.push(...remaining)
+      logger.warn(
+        `有 ${remaining.length} 个块级占位符无法在 HTML 中找到对应的公式元素: ${remaining.slice(0, 10).join(', ')}`
+      )
       // 输出未匹配占位符的详细信息，便于调试
       for (const idx of remaining.slice(0, 5)) {
-        const placeholderData = markdownPlaceholders.get(idx);
+        const placeholderData = markdownPlaceholders.get(idx)
         if (placeholderData) {
-          logger.warn(`未匹配的块级占位符 ${idx} 的 LaTeX: ${placeholderData.latex}`);
+          logger.warn(`未匹配的块级占位符 ${idx} 的 LaTeX: ${placeholderData.latex}`)
         }
       }
     }
     if (inlineIndex < inlinePlaceholderIndices.length) {
-      const remaining = inlinePlaceholderIndices.slice(inlineIndex);
-      unmatchedPlaceholders.push(...remaining);
-      logger.warn(`有 ${remaining.length} 个行内占位符无法在 HTML 中找到对应的公式元素: ${remaining.slice(0, 10).join(', ')}`);
+      const remaining = inlinePlaceholderIndices.slice(inlineIndex)
+      unmatchedPlaceholders.push(...remaining)
+      logger.warn(
+        `有 ${remaining.length} 个行内占位符无法在 HTML 中找到对应的公式元素: ${remaining.slice(0, 10).join(', ')}`
+      )
       // 输出未匹配占位符的详细信息，便于调试
       for (const idx of remaining.slice(0, 5)) {
-        const placeholderData = markdownPlaceholders.get(idx);
+        const placeholderData = markdownPlaceholders.get(idx)
         if (placeholderData) {
-          logger.warn(`未匹配的行内占位符 ${idx} 的 LaTeX: ${placeholderData.latex}`);
+          logger.warn(`未匹配的行内占位符 ${idx} 的 LaTeX: ${placeholderData.latex}`)
         }
       }
     }
-    
-    logger.info(`在 HTML 中替换了 ${replacedCount} 个公式元素为占位符（块级：${blockIndex}，行内：${inlineIndex}），未匹配：HTML 公式 ${unmatchedHtmlFormulas.length} 个，占位符 ${unmatchedPlaceholders.length} 个`);
-    
+
+    logger.info(
+      `在 HTML 中替换了 ${replacedCount} 个公式元素为占位符（块级：${blockIndex}，行内：${inlineIndex}），未匹配：HTML 公式 ${unmatchedHtmlFormulas.length} 个，占位符 ${unmatchedPlaceholders.length} 个`
+    )
+
     // 验证占位符是否在 HTML 中（用于调试）
-    const placeholderCountInHtml = (processedHtml.match(/\[MATH_PLACEHOLDER_\d+(?:_INLINE)?\]/g) || []).length;
-    logger.info(`HTML 中包含 ${placeholderCountInHtml} 个占位符文本`);
+    const placeholderCountInHtml = (
+      processedHtml.match(/\[MATH_PLACEHOLDER_\d+(?:_INLINE)?\]/g) || []
+    ).length
+    logger.info(`HTML 中包含 ${placeholderCountInHtml} 个占位符文本`)
   }
-  
+
   // 将HTML中的标题和正文映射到Word样式库（如果启用）
-  let styledHtml = enableStyleMapping ? mapHtmlToWordStyles(processedHtml) : processedHtml;
-  
+  let styledHtml = enableStyleMapping ? mapHtmlToWordStyles(processedHtml) : processedHtml
+
   // 添加封面
-  let coverHtml = '';
+  let coverHtml = ''
   if (options?.generateCover && meta) {
-    coverHtml = generateCoverPage(meta, styleMapping);
+    coverHtml = generateCoverPage(meta, styleMapping)
   }
-  
+
   // 添加目录占位符（如果有封面，目录在封面后；如果没有封面，目录在正文前）
   // 目录标题在HTML阶段插入，目录内容占位符将在document.xml处理阶段替换为Word自动目录
   // 注意：目录标题不使用 h1（会被映射为 Heading1），而是使用普通的加粗居中段落，避免目录项包含"目录"
-  let tocPlaceholder = '';
+  let tocPlaceholder = ''
   if (options?.generateToc) {
-    const tocTitle = t('export.options.generateToc.title', '目录');
+    const tocTitle = t('export.options.generateToc.title', '目录')
     // 目录占位符：普通加粗居中段落 + 占位符div（将被替换为Word自动目录字段）
     // 注意：占位符div需要使用特定的data属性，以便在document.xml处理阶段识别
     // 注意：不在HTML阶段添加分页符，WordTocProcessor会在目录后自动添加分页符
@@ -1829,15 +1907,15 @@ const convertMarkdownToDocxBuffer = async (
         <span>${escapeHtml(tocTitle)}</span>
       </p>
       <div data-toc-placeholder="true" style="display: none;"></div>
-    `;
+    `
   }
 
   // 处理代码块：将换行符转换为<br>标签，并使用表格包装创建背景框
   // html-to-docx可能不支持white-space: pre和某些CSS属性（如背景色、边框）
-  styledHtml = processCodeBlocksForWord(styledHtml);
+  styledHtml = processCodeBlocksForWord(styledHtml)
 
   // 处理表格样式：统一表格边框，确保边框粗细一致
-  styledHtml = processTablesForWord(styledHtml);
+  styledHtml = processTablesForWord(styledHtml)
 
   // 如果启用了图片编号，为每个图片添加隐藏的文本节点来保存 alt 文本
   // 这样在 document.xml 处理阶段可以提取图片名称
@@ -1845,24 +1923,24 @@ const convertMarkdownToDocxBuffer = async (
     // 匹配所有图片标签，提取 alt 文本并添加隐藏文本节点
     styledHtml = styledHtml.replace(/<img([^>]*?)>/gi, (match, attrs) => {
       // 提取 alt 属性
-      const altMatch = attrs.match(/alt\s*=\s*["']([^"']*)["']/i);
-      const altText = altMatch ? altMatch[1] : '';
-      
+      const altMatch = attrs.match(/alt\s*=\s*["']([^"']*)["']/i)
+      const altText = altMatch ? altMatch[1] : ''
+
       // 如果图片有 alt 文本，在图片后添加隐藏的文本节点
       // 使用 data 属性保存，html-to-docx 可能会保留
       if (altText) {
-        return `<img${attrs} data-image-alt="${escapeHtml(altText)}"><span style="display: none;" data-image-alt-text="${escapeHtml(altText)}"></span>`;
+        return `<img${attrs} data-image-alt="${escapeHtml(altText)}"><span style="display: none;" data-image-alt-text="${escapeHtml(altText)}"></span>`
       } else {
         // 即使没有 alt 文本，也添加标记，以便处理器识别
-        return `<img${attrs} data-image-alt=""><span style="display: none;" data-image-alt-text=""></span>`;
+        return `<img${attrs} data-image-alt=""><span style="display: none;" data-image-alt-text=""></span>`
       }
-    });
+    })
   }
 
   // 注意：公式已经在 Markdown 阶段被替换为文本占位符
   // 如果 HTML 中还有公式元素，也需要替换为占位符（作为备用处理）
   // 这里不再需要 convertFormulaToMathML，因为占位符会直接传递到 document.xml
-  
+
   // 添加CSS样式表，定义Word样式库映射和代码框样式
   // Word在转换HTML时会识别这些样式类名并映射到样式库
   const wordStyles = `
@@ -1971,15 +2049,15 @@ const convertMarkdownToDocxBuffer = async (
         font-weight: bold !important;
       }
     </style>
-  `;
-  
+  `
+
   // 组合封面、目录占位符和正文（目录占位符将在document.xml处理阶段替换为Word自动目录）
-  const finalContent = coverHtml + tocPlaceholder + styledHtml;
-  
+  const finalContent = coverHtml + tocPlaceholder + styledHtml
+
   // 使用 html-to-docx 库生成 DOCX
   // 该库直接生成 document.xml，不包含 afchunk.mht
-  const htmlWrapped = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>Document</title>${wordStyles}</head><body>${finalContent}</body></html>`;
-  
+  const htmlWrapped = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>Document</title>${wordStyles}</head><body>${finalContent}</body></html>`
+
   // html-to-docx 配置选项
   // 注意：不在 html-to-docx 中传递元信息，因为该库可能不会正确转义特殊字符
   // 我们会在后续的 applyDocxMetadata 中完全控制元信息的生成和转义
@@ -1992,7 +2070,7 @@ const convertMarkdownToDocxBuffer = async (
       left: 1800,
       header: 720,
       footer: 720,
-      gutter: 0,
+      gutter: 0
     },
     // 不传递元信息，避免 html-to-docx 库生成包含未转义特殊字符的 XML
     // title: meta?.title || 'Document',
@@ -2001,52 +2079,55 @@ const convertMarkdownToDocxBuffer = async (
     // description: meta?.description || '',
     font: styleMapping.normal?.fontFamily || 'Microsoft YaHei',
     fontSize: (styleMapping.normal?.fontSize || 10.5) * 2, // html-to-docx 使用 HIP (Half of point)，所以需要乘以 2
-    lang: 'zh-CN', // 设置语言为中文，避免拼写检查错误
-  };
-  
-  const docxBuffer = await HTMLtoDOCX(htmlWrapped, null, documentOptions, null);
-  return Buffer.from(docxBuffer);
-};
+    lang: 'zh-CN' // 设置语言为中文，避免拼写检查错误
+  }
 
-// 导出公式占位符数据，供DOCX处理器使用
-export const getCurrentFormulaPlaceholders = (): Map<number, { latex: string; display: boolean }> => {
-  return getFormulaPlaceholders();
-};
-
-interface DocumentMetaInfo {
-  title: string;
-  author: string;
-  description: string;
-  keywords: string[];
+  const docxBuffer = await HTMLtoDOCX(htmlWrapped, null, documentOptions, null)
+  return Buffer.from(docxBuffer)
 }
 
-const DEFAULT_AUTHOR = 'MetaDoc';
-const DEFAULT_APPLICATION = 'MetaDoc';
+// 导出公式占位符数据，供DOCX处理器使用
+export const getCurrentFormulaPlaceholders = (): Map<
+  number,
+  { latex: string; display: boolean }
+> => {
+  return getFormulaPlaceholders()
+}
+
+interface DocumentMetaInfo {
+  title: string
+  author: string
+  description: string
+  keywords: string[]
+}
+
+const DEFAULT_AUTHOR = 'MetaDoc'
+const DEFAULT_APPLICATION = 'MetaDoc'
 
 const sanitizeMetaField = (value: unknown): string =>
-  typeof value === 'string' ? value.trim() : '';
+  typeof value === 'string' ? value.trim() : ''
 
 const extractDocumentMeta = (payload: RendererExportPayload): DocumentMetaInfo => {
   try {
-    const parsed = JSON.parse(payload.data.json || '{}');
-    const meta = parsed?.current_article_meta_data ?? {};
-    const keywordsSource = meta?.keywords;
+    const parsed = JSON.parse(payload.data.json || '{}')
+    const meta = parsed?.current_article_meta_data ?? {}
+    const keywordsSource = meta?.keywords
     const keywords = Array.isArray(keywordsSource)
       ? keywordsSource.map((item: any) => sanitizeMetaField(item)).filter(Boolean)
-      : [];
-    const title = sanitizeMetaField(meta?.title) || payload.suggestedName || 'Untitled';
-    const author = sanitizeMetaField(meta?.author) || DEFAULT_AUTHOR;
-    const description = sanitizeMetaField(meta?.description);
-    return { title, author, description, keywords };
+      : []
+    const title = sanitizeMetaField(meta?.title) || payload.suggestedName || 'Untitled'
+    const author = sanitizeMetaField(meta?.author) || DEFAULT_AUTHOR
+    const description = sanitizeMetaField(meta?.description)
+    return { title, author, description, keywords }
   } catch {
     return {
       title: payload.suggestedName || 'Untitled',
       author: DEFAULT_AUTHOR,
       description: '',
-      keywords: [],
-    };
+      keywords: []
+    }
   }
-};
+}
 
 const escapeHtml = (value: string): string =>
   value
@@ -2054,44 +2135,42 @@ const escapeHtml = (value: string): string =>
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/'/g, '&#39;')
 
 const escapeXml = (value: string | null | undefined): string => {
   if (value === null || value === undefined) {
-    return '';
+    return ''
   }
   return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-};
+    .replace(/'/g, '&apos;')
+}
 
 const wrapHtmlWithTemplate = (meta: DocumentMetaInfo, bodyContent: string): string => {
-  const title = escapeHtml(meta.title || 'Document');
-  const authorMeta = meta.author
-    ? `<meta name="author" content="${escapeHtml(meta.author)}">`
-    : '';
+  const title = escapeHtml(meta.title || 'Document')
+  const authorMeta = meta.author ? `<meta name="author" content="${escapeHtml(meta.author)}">` : ''
   const descriptionMeta = meta.description
     ? `<meta name="description" content="${escapeHtml(meta.description)}">`
-    : '';
+    : ''
   const keywordsMeta =
     meta.keywords.length > 0
       ? `<meta name="keywords" content="${escapeHtml(meta.keywords.join(', '))}">`
-      : '';
-  return `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>${title}</title>${authorMeta}${descriptionMeta}${keywordsMeta}</head><body>${bodyContent}</body></html>`;
-};
+      : ''
+  return `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>${title}</title>${authorMeta}${descriptionMeta}${keywordsMeta}</head><body>${bodyContent}</body></html>`
+}
 
 const buildCorePropertiesXml = (meta: DocumentMetaInfo): string => {
-  const now = new Date().toISOString();
+  const now = new Date().toISOString()
   // 确保所有元信息字段都被正确转义，处理 null/undefined 值
-  const title = escapeXml(meta.title || '');
-  const description = escapeXml(meta.description || '');
-  const author = escapeXml(meta.author || '');
-  const keywords = escapeXml((meta.keywords || []).join(', '));
-  const lastModifiedBy = escapeXml(DEFAULT_APPLICATION);
-  
+  const title = escapeXml(meta.title || '')
+  const description = escapeXml(meta.description || '')
+  const author = escapeXml(meta.author || '')
+  const keywords = escapeXml((meta.keywords || []).join(', '))
+  const lastModifiedBy = escapeXml(DEFAULT_APPLICATION)
+
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <dc:title>${title}</dc:title>
@@ -2102,16 +2181,16 @@ const buildCorePropertiesXml = (meta: DocumentMetaInfo): string => {
   <dc:description>${description}</dc:description>
   <dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created>
   <dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified>
-</cp:coreProperties>`;
-};
+</cp:coreProperties>`
+}
 
-const CORE_PROPERTIES_PART = '/docProps/core.xml';
-const CORE_PROPERTIES_CONTENT_TYPE = 'application/vnd.openxmlformats-package.core-properties+xml';
+const CORE_PROPERTIES_PART = '/docProps/core.xml'
+const CORE_PROPERTIES_CONTENT_TYPE = 'application/vnd.openxmlformats-package.core-properties+xml'
 const CORE_PROPERTIES_REL_TYPE =
-  'http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties';
+  'http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties'
 
 // 创建 DOCX 处理管理器实例（单例）
-let docxProcessingManager: DocxProcessingManager | null = null;
+let docxProcessingManager: DocxProcessingManager | null = null
 
 /**
  * 获取 DOCX 处理管理器
@@ -2119,180 +2198,181 @@ let docxProcessingManager: DocxProcessingManager | null = null;
  */
 const getDocxProcessingManager = (): DocxProcessingManager => {
   if (!docxProcessingManager) {
-    docxProcessingManager = new DocxProcessingManager();
+    docxProcessingManager = new DocxProcessingManager()
     // 注册 Document XML 修复处理器（首先执行，修复对齐、分页、语言等问题）
-    docxProcessingManager.register(new DocumentXmlFixProcessor());
+    docxProcessingManager.register(new DocumentXmlFixProcessor())
     // 注册 Word 自动目录处理器
-    docxProcessingManager.register(new WordTocProcessor());
+    docxProcessingManager.register(new WordTocProcessor())
     // 注册页眉页脚处理器
-    docxProcessingManager.register(new HeaderFooterProcessor());
+    docxProcessingManager.register(new HeaderFooterProcessor())
     // 注册图片编号处理器（在 OMML 之前执行，因为图片编号应该在公式之前）
-    docxProcessingManager.register(new ImageNumberingProcessor());
+    docxProcessingManager.register(new ImageNumberingProcessor())
     // 注册 OMML 插入处理器（最后执行，插入公式）
-    docxProcessingManager.register(new OMMLInsertionProcessor());
+    docxProcessingManager.register(new OMMLInsertionProcessor())
   }
-  return docxProcessingManager;
-};
+  return docxProcessingManager
+}
 
 const applyDocxMetadata = async (
-  buffer: Buffer, 
-  meta: DocumentMetaInfo, 
+  buffer: Buffer,
+  meta: DocumentMetaInfo,
   options?: {
-    generateToc?: boolean;
-    processFormula?: boolean;
-    showPageNumbers?: boolean;
-    showHeader?: boolean;
-    autoNumberImages?: boolean;
-    imageLabelFontSize?: number;
-    imageLabelFontFamily?: string;
+    generateToc?: boolean
+    processFormula?: boolean
+    showPageNumbers?: boolean
+    showHeader?: boolean
+    autoNumberImages?: boolean
+    imageLabelFontSize?: number
+    imageLabelFontFamily?: string
     styleMapping?: {
-      normal?: { fontFamily: string; fontSize: number; lineHeight: number };
-      heading1?: { fontFamily: string; fontSize: number; lineHeight: number };
-    };
-    targetPath?: string; // 用于调试文件保存
-    locale?: string; // 语言设置，用于图片编号前缀
+      normal?: { fontFamily: string; fontSize: number; lineHeight: number }
+      heading1?: { fontFamily: string; fontSize: number; lineHeight: number }
+    }
+    targetPath?: string // 用于调试文件保存
+    locale?: string // 语言设置，用于图片编号前缀
   },
   progressCallback?: (current: number, total: number, message?: string) => void
 ): Promise<Buffer> => {
   // 首先应用元数据
-  const zip = await JSZip.loadAsync(buffer);
-  zip.file('docProps/core.xml', buildCorePropertiesXml(meta));
-  await ensureCorePropsRegistered(zip);
-  let updated = await zip.generateAsync({ type: 'nodebuffer' });
-  
+  const zip = await JSZip.loadAsync(buffer)
+  zip.file('docProps/core.xml', buildCorePropertiesXml(meta))
+  await ensureCorePropsRegistered(zip)
+  let updated = await zip.generateAsync({ type: 'nodebuffer' })
+
   // 应用 DOCX 处理器（如目录、页眉页脚、OMML等）
-  const processorManager = getDocxProcessingManager();
-  
+  const processorManager = getDocxProcessingManager()
+
   // 从 options 中提取 targetPath（如果存在）
-  const targetPath = (options as any)?.targetPath;
-  
+  const targetPath = (options as any)?.targetPath
+
   // 如果 processFormula 为 true，传递公式占位符数据；否则不传递，跳过公式处理
   const processOptions: any = {
     ...options,
     title: meta.title,
     progressCallback: progressCallback, // 传递进度回调
-    targetPath: targetPath, // 传递目标路径用于调试文件保存
-  };
-  
+    targetPath: targetPath // 传递目标路径用于调试文件保存
+  }
+
   // 只有当 processFormula 不为 false 时才处理公式
   if (options?.processFormula !== false) {
-    const formulaPlaceholders = getFormulaPlaceholders();
-    processOptions.formulaPlaceholders = formulaPlaceholders;
+    const formulaPlaceholders = getFormulaPlaceholders()
+    processOptions.formulaPlaceholders = formulaPlaceholders
   }
-  
-  updated = await processorManager.process(updated, processOptions);
-  
+
+  updated = await processorManager.process(updated, processOptions)
+
   // 清除公式占位符数据
-  clearFormulaPlaceholders();
-  
-  return Buffer.from(updated);
-};
+  clearFormulaPlaceholders()
+
+  return Buffer.from(updated)
+}
 
 const applyPdfMetadata = async (buffer: Buffer, meta: DocumentMetaInfo): Promise<Buffer> => {
-  const pdfDoc = await PDFDocument.load(buffer);
+  const pdfDoc = await PDFDocument.load(buffer)
   if (meta.title) {
-    pdfDoc.setTitle(meta.title, { showInWindowTitleBar: true });
+    pdfDoc.setTitle(meta.title, { showInWindowTitleBar: true })
   }
   if (meta.author) {
-    pdfDoc.setAuthor(meta.author);
+    pdfDoc.setAuthor(meta.author)
   }
   if (meta.description) {
-    pdfDoc.setSubject(meta.description);
+    pdfDoc.setSubject(meta.description)
   }
   if (meta.keywords.length > 0) {
-    pdfDoc.setKeywords(meta.keywords);
+    pdfDoc.setKeywords(meta.keywords)
   }
-  pdfDoc.setProducer(DEFAULT_APPLICATION);
-  pdfDoc.setCreator(DEFAULT_APPLICATION);
-  const now = new Date();
-  pdfDoc.setCreationDate(now);
-  pdfDoc.setModificationDate(now);
-  const updated = await pdfDoc.save();
-  return Buffer.from(updated);
-};
+  pdfDoc.setProducer(DEFAULT_APPLICATION)
+  pdfDoc.setCreator(DEFAULT_APPLICATION)
+  const now = new Date()
+  pdfDoc.setCreationDate(now)
+  pdfDoc.setModificationDate(now)
+  const updated = await pdfDoc.save()
+  return Buffer.from(updated)
+}
 
 const ensureCorePropsRegistered = async (zip: JSZip): Promise<void> => {
-  const contentTypesFile = zip.file('[Content_Types].xml');
+  const contentTypesFile = zip.file('[Content_Types].xml')
   if (contentTypesFile) {
-    const xml = await contentTypesFile.async('string');
-    const nextXml = ensureContentTypesHasCoreProps(xml);
-    zip.file('[Content_Types].xml', nextXml);
+    const xml = await contentTypesFile.async('string')
+    const nextXml = ensureContentTypesHasCoreProps(xml)
+    zip.file('[Content_Types].xml', nextXml)
   }
 
-  const relsFile = zip.file('_rels/.rels');
+  const relsFile = zip.file('_rels/.rels')
   if (relsFile) {
-    const xml = await relsFile.async('string');
-    const nextXml = ensureRelsHasCoreProps(xml);
-    zip.file('_rels/.rels', nextXml);
+    const xml = await relsFile.async('string')
+    const nextXml = ensureRelsHasCoreProps(xml)
+    zip.file('_rels/.rels', nextXml)
   }
-};
+}
 
 const ensureContentTypesHasCoreProps = (xml: string): string => {
   if (xml.includes(CORE_PROPERTIES_PART)) {
-    return xml;
+    return xml
   }
-  const insertion = `  <Override PartName="${CORE_PROPERTIES_PART}" ContentType="${CORE_PROPERTIES_CONTENT_TYPE}"/>\n`;
+  const insertion = `  <Override PartName="${CORE_PROPERTIES_PART}" ContentType="${CORE_PROPERTIES_CONTENT_TYPE}"/>\n`
   if (xml.includes('</Types>')) {
-    return xml.replace('</Types>', `${insertion}</Types>`);
+    return xml.replace('</Types>', `${insertion}</Types>`)
   }
-  return `${xml}\n${insertion}`;
-};
+  return `${xml}\n${insertion}`
+}
 
 const ensureRelsHasCoreProps = (xml: string): string => {
   if (xml.includes('Target="docProps/core.xml"')) {
-    return xml;
+    return xml
   }
-  const nextRelationshipId = getNextRelationshipId(xml);
-  const insertion = `  <Relationship Id="${nextRelationshipId}" Type="${CORE_PROPERTIES_REL_TYPE}" Target="docProps/core.xml"/>\n`;
+  const nextRelationshipId = getNextRelationshipId(xml)
+  const insertion = `  <Relationship Id="${nextRelationshipId}" Type="${CORE_PROPERTIES_REL_TYPE}" Target="docProps/core.xml"/>\n`
   if (xml.includes('</Relationships>')) {
-    return xml.replace('</Relationships>', `${insertion}</Relationships>`);
+    return xml.replace('</Relationships>', `${insertion}</Relationships>`)
   }
-  return `${xml}\n${insertion}`;
-};
+  return `${xml}\n${insertion}`
+}
 
 const getNextRelationshipId = (xml: string): string => {
-  const matches = Array.from(xml.matchAll(/Id="rId(\d+)"/g));
+  const matches = Array.from(xml.matchAll(/Id="rId(\d+)"/g))
   const max = matches.reduce((acc, match) => {
-    const num = Number(match[1]);
+    const num = Number(match[1])
     if (!Number.isNaN(num) && num > acc) {
-      return num;
+      return num
     }
-    return acc;
-  }, 0);
-  return `rId${max + 1 || 1}`;
-};
+    return acc
+  }, 0)
+  return `rId${max + 1 || 1}`
+}
 
-const writePdfMetadataToFile = async (
-  filePath: string,
-  meta: DocumentMetaInfo,
-): Promise<void> => {
-  const buffer = await fs.promises.readFile(filePath);
-  const updated = await applyPdfMetadata(buffer, meta);
-  await writeBinaryFile(filePath, updated);
-};
+const writePdfMetadataToFile = async (filePath: string, meta: DocumentMetaInfo): Promise<void> => {
+  const buffer = await fs.promises.readFile(filePath)
+  const updated = await applyPdfMetadata(buffer, meta)
+  await writeBinaryFile(filePath, updated)
+}
 
 const enforceExtension = (fileName: string, targetFormat: ExportFormat): string => {
-  const extension = `.${targetFormat}`;
+  const extension = `.${targetFormat}`
   if (!fileName || fileName.trim().length === 0) {
-    return `Untitled${extension}`;
+    return `Untitled${extension}`
   }
 
   if (fileName.toLowerCase().endsWith(extension)) {
-    return fileName;
+    return fileName
   }
 
-  return `${fileName.replace(/\.+$/, '')}${extension}`;
-};
+  return `${fileName.replace(/\.+$/, '')}${extension}`
+}
 
-const sendProgress = (mainWindow: BrowserWindow | null, progress: {
-  visible?: boolean;
-  message?: string;
-  subMessage?: string;
-  percentage?: number;
-  status?: 'success' | 'exception' | 'warning' | '';
-  params?: Record<string, any>;
-}, requestId?: string) => {
-  const reqId = requestId ?? currentRequestId;
+const sendProgress = (
+  mainWindow: BrowserWindow | null,
+  progress: {
+    visible?: boolean
+    message?: string
+    subMessage?: string
+    percentage?: number
+    status?: 'success' | 'exception' | 'warning' | ''
+    params?: Record<string, any>
+  },
+  requestId?: string
+) => {
+  const reqId = requestId ?? currentRequestId
   if (mainWindow && !mainWindow.isDestroyed()) {
     // 正确处理 visible 属性：如果明确设置为 false，则保持 false；否则默认为 true
     const isVisible = progress.visible !== undefined ? progress.visible : true
@@ -2304,10 +2384,10 @@ const sendProgress = (mainWindow: BrowserWindow | null, progress: {
       status: progress.status || '',
       params: progress.params,
       requestId: reqId,
-      canCancel: !!reqId,
-    });
+      canCancel: !!reqId
+    })
   }
-};
+}
 
 const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
   md: async ({ payload, targetPath, mainWindow }) => {
@@ -2317,75 +2397,75 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         message: 'agent.reference.progress.exporting',
         percentage: 50,
         params: { format: 'Markdown' }
-      });
-      
-      let finalMarkdown = payload.data.md;
-      
+      })
+
+      let finalMarkdown = payload.data.md
+
       // 处理图片（如果是 folder 模式）
-      const imageProcessing = payload.exportOptions?.imageProcessing;
+      const imageProcessing = payload.exportOptions?.imageProcessing
       if (imageProcessing === 'folder') {
         sendProgress(mainWindow, {
           message: 'agent.reference.progress.exporting',
           subMessage: 'agent.reference.progress.savingImages',
           percentage: 60,
           params: { format: 'Markdown' }
-        });
-        
+        })
+
         // 提取所有图片 URL
-        const imageUrls: string[] = [];
-        const regex = /!\[.*?\]\((.*?)\)/g;
-        let match;
+        const imageUrls: string[] = []
+        const regex = /!\[.*?\]\((.*?)\)/g
+        let match
         while ((match = regex.exec(finalMarkdown)) !== null) {
-          const url = match[1];
+          const url = match[1]
           if (url.startsWith('http://localhost:52521/images/')) {
-            imageUrls.push(url);
+            imageUrls.push(url)
           }
         }
-        
+
         if (imageUrls.length > 0) {
           // 创建图片文件夹
-          const docName = path.basename(targetPath, path.extname(targetPath));
-          const imagesFolder = path.join(path.dirname(targetPath), `${docName}_images`);
-          
+          const docName = path.basename(targetPath, path.extname(targetPath))
+          const imagesFolder = path.join(path.dirname(targetPath), `${docName}_images`)
+
           // 保存图片
-          const results = await saveImagesToFolder(imageUrls, imagesFolder);
-          
+          const results = await saveImagesToFolder(imageUrls, imagesFolder)
+
           // 创建 URL 到相对路径的映射
-          const imageMappings = new Map<string, string>();
+          const imageMappings = new Map<string, string>()
           for (const result of results) {
-            imageMappings.set(result.originalUrl, result.relativePath);
+            imageMappings.set(result.originalUrl, result.relativePath)
           }
-          
+
           // 更新 Markdown 中的图片链接
-          finalMarkdown = updateMarkdownImageLinks(finalMarkdown, imageMappings);
+          finalMarkdown = updateMarkdownImageLinks(finalMarkdown, imageMappings)
         }
       }
-      
+
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.generatingFile',
         percentage: 80,
         params: { format: 'Markdown' }
-      });
-      await writeTextFile(targetPath, finalMarkdown);
+      })
+      await writeTextFile(targetPath, finalMarkdown)
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exportComplete',
         percentage: 100,
         status: 'success'
-      });
+      })
       setTimeout(() => {
-        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-      }, 1000);
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+      }, 1000)
     } finally {
       setTimeout(() => {
-        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-      }, 2000);
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+      }, 2000)
     }
   },
   html: async ({ payload, targetPath, mainWindow }) => {
     try {
       if (!payload.html) {
-        throw new Error('缺少 HTML 数据，无法导出为 HTML');
+        throw new Error('缺少 HTML 数据，无法导出为 HTML')
       }
       // 预渲染已完成（0-80%），现在从80%开始
       sendProgress(mainWindow, {
@@ -2393,82 +2473,82 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         subMessage: 'agent.reference.progress.convertingMarkdown',
         percentage: 80,
         params: { format: 'HTML' }
-      });
-      const meta = extractDocumentMeta(payload);
-      
-      let finalHtml = payload.html;
-      
+      })
+      const meta = extractDocumentMeta(payload)
+
+      let finalHtml = payload.html
+
       // 处理图片（如果是 folder 模式）
-      const imageProcessing = payload.exportOptions?.imageProcessing;
+      const imageProcessing = payload.exportOptions?.imageProcessing
       if (imageProcessing === 'folder') {
         sendProgress(mainWindow, {
           message: 'agent.reference.progress.exporting',
           subMessage: 'agent.reference.progress.savingImages',
           percentage: 85,
           params: { format: 'HTML' }
-        });
-        
+        })
+
         // 提取所有图片 URL（包括本地和网络图片）
-        const imageUrls: string[] = [];
-        const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
-        const matches = Array.from(finalHtml.matchAll(imgRegex));
+        const imageUrls: string[] = []
+        const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi
+        const matches = Array.from(finalHtml.matchAll(imgRegex))
         for (const match of matches) {
-          const src = match[1];
+          const src = match[1]
           // 收集所有图片URL：localhost:52521、http(s)网络链接、file://协议
           // 排除 data URL（已经是内嵌的）
           if (!src.startsWith('data:')) {
-            imageUrls.push(src);
+            imageUrls.push(src)
           }
         }
-        
+
         if (imageUrls.length > 0) {
           // 创建图片文件夹：xxx.html.images
-          const imagesFolder = `${targetPath}.images`;
-          
+          const imagesFolder = `${targetPath}.images`
+
           // 保存图片
-          const results = await saveImagesToFolder(imageUrls, imagesFolder);
-          
+          const results = await saveImagesToFolder(imageUrls, imagesFolder)
+
           // 创建 URL 到相对路径的映射（使用相对路径）
-          const imageMappings = new Map<string, string>();
-          const imagesFolderName = path.basename(imagesFolder);
+          const imageMappings = new Map<string, string>()
+          const imagesFolderName = path.basename(imagesFolder)
           for (const result of results) {
-            const fileName = path.basename(result.savedPath);
+            const fileName = path.basename(result.savedPath)
             // 使用相对路径：xxx.html.images/filename
-            const relativePath = `${imagesFolderName}/${fileName}`;
-            imageMappings.set(result.originalUrl, relativePath);
+            const relativePath = `${imagesFolderName}/${fileName}`
+            imageMappings.set(result.originalUrl, relativePath)
           }
-          
+
           // 更新 HTML 中的图片链接（使用相对路径）
-          finalHtml = updateHtmlImageLinks(finalHtml, imageMappings);
+          finalHtml = updateHtmlImageLinks(finalHtml, imageMappings)
         }
       }
-      
+
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.generatingFile',
         percentage: 90,
         params: { format: 'HTML' }
-      });
-      const wrapped = wrapHtmlWithTemplate(meta, finalHtml);
-      await writeTextFile(targetPath, wrapped);
+      })
+      const wrapped = wrapHtmlWithTemplate(meta, finalHtml)
+      await writeTextFile(targetPath, wrapped)
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exportComplete',
         percentage: 100,
         status: 'success'
-      });
+      })
       setTimeout(() => {
-        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-      }, 1000);
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+      }, 1000)
     } finally {
       setTimeout(() => {
-        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-      }, 2000);
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+      }, 2000)
     }
   },
   docx: async ({ payload, targetPath, mainWindow }) => {
     try {
       if (!payload.html) {
-        throw new Error('缺少 HTML 数据，无法导出为 DOCX');
+        throw new Error('缺少 HTML 数据，无法导出为 DOCX')
       }
       // 预渲染已完成（0-80%），现在从80%开始
       sendProgress(mainWindow, {
@@ -2476,187 +2556,207 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         subMessage: 'agent.reference.progress.convertingMarkdown',
         percentage: 80,
         params: { format: 'DOCX' }
-      });
-      const meta = extractDocumentMeta(payload);
+      })
+      const meta = extractDocumentMeta(payload)
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.generatingFile',
         percentage: 88,
         params: { format: 'DOCX' }
-      });
+      })
       // 从导出选项中提取DOCX选项
-      const docxOptions = payload.exportOptions ? {
-        enableStyleMapping: payload.exportOptions.enableStyleMapping,
-        styleMapping: payload.exportOptions.styleMapping,
-        generateCover: payload.exportOptions.generateCover,
-        generateToc: payload.exportOptions.generateToc,
-        processFormula: payload.exportOptions.processFormula,
-        showPageNumbers: payload.exportOptions.showPageNumbers,
-        showHeader: payload.exportOptions.showHeader,
-        autoNumberImages: payload.exportOptions.autoNumberImages,
-        imageLabelFontSize: payload.exportOptions.imageLabelFontSize,
-        imageLabelFontFamily: payload.exportOptions.imageLabelFontFamily,
-      } : undefined;
-      const buffer = await convertMarkdownToDocxBuffer(payload.html, payload.data.md, docxOptions, meta);
+      const docxOptions = payload.exportOptions
+        ? {
+            enableStyleMapping: payload.exportOptions.enableStyleMapping,
+            styleMapping: payload.exportOptions.styleMapping,
+            generateCover: payload.exportOptions.generateCover,
+            generateToc: payload.exportOptions.generateToc,
+            processFormula: payload.exportOptions.processFormula,
+            showPageNumbers: payload.exportOptions.showPageNumbers,
+            showHeader: payload.exportOptions.showHeader,
+            autoNumberImages: payload.exportOptions.autoNumberImages,
+            imageLabelFontSize: payload.exportOptions.imageLabelFontSize,
+            imageLabelFontFamily: payload.exportOptions.imageLabelFontFamily
+          }
+        : undefined
+      const buffer = await convertMarkdownToDocxBuffer(
+        payload.html,
+        payload.data.md,
+        docxOptions,
+        meta
+      )
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.addingMetadata',
         percentage: 88,
         params: { format: 'DOCX' }
-      });
-      
+      })
+
       // 创建进度回调，将公式转换进度映射到 88-95% 区间
-      const formulaPlaceholders = getFormulaPlaceholders();
-      const totalFormulas = formulaPlaceholders ? formulaPlaceholders.size : 0;
-      const formulaProgressStart = 88;
-      const formulaProgressEnd = 95;
-      const formulaProgressRange = formulaProgressEnd - formulaProgressStart;
-      
-      const formulaProgressCallback = totalFormulas > 0 
-        ? (current: number, total: number, message?: string) => {
-            // current 是 0-100 的进度值（转换阶段0-50，替换阶段50-100）
-            // 将其映射到 88-95% 区间
-            const ratio = Math.min(current / 100, 1);
-            const mappedProgress = formulaProgressStart + (ratio * formulaProgressRange);
-            
-            sendProgress(mainWindow, {
-              message: 'agent.reference.progress.exporting',
-              subMessage: message || 'agent.reference.progress.convertingFormulas',
-              percentage: Math.min(mappedProgress, formulaProgressEnd),
-              params: { format: 'DOCX' }
-            });
-          }
-        : undefined;
-      
+      const formulaPlaceholders = getFormulaPlaceholders()
+      const totalFormulas = formulaPlaceholders ? formulaPlaceholders.size : 0
+      const formulaProgressStart = 88
+      const formulaProgressEnd = 95
+      const formulaProgressRange = formulaProgressEnd - formulaProgressStart
+
+      const formulaProgressCallback =
+        totalFormulas > 0
+          ? (current: number, total: number, message?: string) => {
+              // current 是 0-100 的进度值（转换阶段0-50，替换阶段50-100）
+              // 将其映射到 88-95% 区间
+              const ratio = Math.min(current / 100, 1)
+              const mappedProgress = formulaProgressStart + ratio * formulaProgressRange
+
+              sendProgress(mainWindow, {
+                message: 'agent.reference.progress.exporting',
+                subMessage: message || 'agent.reference.progress.convertingFormulas',
+                percentage: Math.min(mappedProgress, formulaProgressEnd),
+                params: { format: 'DOCX' }
+              })
+            }
+          : undefined
+
       // 获取当前语言设置（用于图片编号前缀）
-      const locale = getLocale() || 'zh_CN';
-      
-      const bufferWithMeta = await applyDocxMetadata(buffer, meta, {
-        generateToc: docxOptions?.generateToc,
-        processFormula: docxOptions?.processFormula,
-        styleMapping: docxOptions?.styleMapping,
-        autoNumberImages: docxOptions?.autoNumberImages,
-        imageLabelFontSize: docxOptions?.imageLabelFontSize,
-        imageLabelFontFamily: docxOptions?.imageLabelFontFamily,
-        locale: locale,
-        targetPath: targetPath, // 传递目标路径用于调试
-      }, formulaProgressCallback);
-      await writeBinaryFile(targetPath, bufferWithMeta);
+      const locale = getLocale() || 'zh_CN'
+
+      const bufferWithMeta = await applyDocxMetadata(
+        buffer,
+        meta,
+        {
+          generateToc: docxOptions?.generateToc,
+          processFormula: docxOptions?.processFormula,
+          styleMapping: docxOptions?.styleMapping,
+          autoNumberImages: docxOptions?.autoNumberImages,
+          imageLabelFontSize: docxOptions?.imageLabelFontSize,
+          imageLabelFontFamily: docxOptions?.imageLabelFontFamily,
+          locale: locale,
+          targetPath: targetPath // 传递目标路径用于调试
+        },
+        formulaProgressCallback
+      )
+      await writeBinaryFile(targetPath, bufferWithMeta)
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exportComplete',
         percentage: 100,
         status: 'success'
-      });
+      })
       setTimeout(() => {
-        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-      }, 1000);
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+      }, 1000)
     } catch (error) {
-      logger.error('导出 DOCX 失败:', error);
+      logger.error('导出 DOCX 失败:', error)
       // 发送错误消息到 renderer 进程
       if (mainWindow && !mainWindow.isDestroyed()) {
-        const errorMessage = error instanceof Error 
-          ? error.message 
-          : String(error);
+        const errorMessage = error instanceof Error ? error.message : String(error)
         // 检查是否是 XML 解析错误
-        const isXmlError = errorMessage.includes('Missing equals sign') || 
-                          errorMessage.includes('XML') ||
-                          errorMessage.includes('parse');
+        const isXmlError =
+          errorMessage.includes('Missing equals sign') ||
+          errorMessage.includes('XML') ||
+          errorMessage.includes('parse')
         const userMessage = isXmlError
           ? `导出 DOCX 失败：文档元信息中包含特殊字符（如 <、>、& 等），导致 XML 解析错误。请检查文档的标题、作者、摘要等元信息。\n\n错误详情：${errorMessage}`
-          : `导出 DOCX 失败：${errorMessage}`;
-        mainWindow.webContents.send('export-error', userMessage);
+          : `导出 DOCX 失败：${errorMessage}`
+        mainWindow.webContents.send('export-error', userMessage)
       }
-      throw error;
+      throw error
     } finally {
       setTimeout(() => {
-        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-      }, 2000);
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+      }, 2000)
     }
   },
   pdf: async ({ payload, targetPath, mainWindow }) => {
     try {
-      logger.info('Markdown -> PDF 导出开始');
+      logger.info('Markdown -> PDF 导出开始')
       if (!payload.html) {
-        logger.error('缺少 HTML 数据');
-        throw new Error('缺少 HTML 数据，无法导出为 PDF');
+        logger.error('缺少 HTML 数据')
+        throw new Error('缺少 HTML 数据，无法导出为 PDF')
       }
-      logger.info(`HTML 数据长度: ${payload.html.length}`);
+      logger.info(`HTML 数据长度: ${payload.html.length}`)
       // 预渲染已完成（0-80%），现在从80%开始
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.renderingHtml',
         percentage: 80,
         params: { format: 'PDF' }
-      });
-      const meta = extractDocumentMeta(payload);
+      })
+      const meta = extractDocumentMeta(payload)
       // ConvertHtmlForPdf 已经返回完整的 HTML 文档，不需要再次包装
       // 但我们需要注入元数据到 head 中
-      let htmlDocument = payload.html;
+      let htmlDocument = payload.html
       if (!htmlDocument.includes('<!DOCTYPE html>')) {
         // 如果不是完整文档，则包装
-        htmlDocument = wrapHtmlWithTemplate(meta, payload.html);
+        htmlDocument = wrapHtmlWithTemplate(meta, payload.html)
       } else {
         // 如果是完整文档，注入元数据到 head
         const metaTags = [
           meta.title ? `<title>${escapeHtml(meta.title)}</title>` : '',
           meta.author ? `<meta name="author" content="${escapeHtml(meta.author)}">` : '',
-          meta.description ? `<meta name="description" content="${escapeHtml(meta.description)}">` : '',
-          meta.keywords.length > 0 ? `<meta name="keywords" content="${escapeHtml(meta.keywords.join(', '))}">` : '',
-        ].filter(Boolean).join('');
+          meta.description
+            ? `<meta name="description" content="${escapeHtml(meta.description)}">`
+            : '',
+          meta.keywords.length > 0
+            ? `<meta name="keywords" content="${escapeHtml(meta.keywords.join(', '))}">`
+            : ''
+        ]
+          .filter(Boolean)
+          .join('')
         if (metaTags) {
-          htmlDocument = htmlDocument.replace('</head>', `${metaTags}</head>`);
+          htmlDocument = htmlDocument.replace('</head>', `${metaTags}</head>`)
         }
       }
-      logger.info(`处理后的 HTML 长度: ${htmlDocument.length}`);
+      logger.info(`处理后的 HTML 长度: ${htmlDocument.length}`)
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.renderingHtml',
         percentage: 85,
         params: { format: 'PDF' }
-      });
+      })
       // 从导出选项中提取PDF选项
-      const pdfOptions = payload.exportOptions ? {
-        margins: payload.exportOptions.margins,
-        pageSize: payload.exportOptions.pageSize,
-        printBackground: payload.exportOptions.printBackground,
-      } : undefined;
-      const buffer = await convertHtmlToPdfBuffer(htmlDocument, pdfOptions);
-      logger.info(`PDF Buffer 生成完成，大小: ${buffer.length}`);
+      const pdfOptions = payload.exportOptions
+        ? {
+            margins: payload.exportOptions.margins,
+            pageSize: payload.exportOptions.pageSize,
+            printBackground: payload.exportOptions.printBackground
+          }
+        : undefined
+      const buffer = await convertHtmlToPdfBuffer(htmlDocument, pdfOptions)
+      logger.info(`PDF Buffer 生成完成，大小: ${buffer.length}`)
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.addingMetadata',
         percentage: 95,
         params: { format: 'PDF' }
-      });
-      const updated = await applyPdfMetadata(buffer, meta);
-      logger.info('元数据应用完成');
-      await writeBinaryFile(targetPath, updated);
-      logger.info(`PDF 文件写入完成: ${targetPath}`);
+      })
+      const updated = await applyPdfMetadata(buffer, meta)
+      logger.info('元数据应用完成')
+      await writeBinaryFile(targetPath, updated)
+      logger.info(`PDF 文件写入完成: ${targetPath}`)
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exportComplete',
         percentage: 100,
         status: 'success'
-      });
+      })
       setTimeout(() => {
-        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-      }, 1000);
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+      }, 1000)
     } catch (error) {
-      logger.error('PDF 导出过程中出错:', error);
+      logger.error('PDF 导出过程中出错:', error)
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exportError',
         subMessage: error instanceof Error ? error.message : String(error),
         percentage: 0,
         status: 'exception'
-      });
+      })
       setTimeout(() => {
-        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-      }, 2000);
-      throw error;
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+      }, 2000)
+      throw error
     } finally {
       // 确保进度条最终消失
       setTimeout(() => {
-        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-      }, 3000);
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+      }, 3000)
     }
   },
   tex: async ({ payload, targetPath, mainWindow }) => {
@@ -2664,13 +2764,13 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
       message: 'agent.reference.progress.exporting',
       percentage: 50,
       params: { format: 'LaTeX' }
-    });
-    
-    let finalTex = payload.data.tex;
-    
+    })
+
+    let finalTex = payload.data.tex
+
     // 处理图片（根据模式）
-    const imageProcessing = payload.exportOptions?.imageProcessing;
-    
+    const imageProcessing = payload.exportOptions?.imageProcessing
+
     if (imageProcessing === 'folder') {
       // 保存到文件夹模式
       sendProgress(mainWindow, {
@@ -2678,290 +2778,305 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
         subMessage: 'agent.reference.progress.savingImages',
         percentage: 60,
         params: { format: 'LaTeX' }
-      });
-      
+      })
+
       // 提取所有图片和 PDF 文件 URL（包括网络图片、本地图片和 PDF 文件）
       // 同时保存原始路径（用于映射）和解析后的路径（用于保存）
       // 注意：PDF 文件通常是从 SVG 转换来的，也需要保存到 images 文件夹
-      const imageUrlPairs: Array<{ original: string; resolved: string }> = [];
-      
+      const imageUrlPairs: Array<{ original: string; resolved: string }> = []
+
       // 辅助函数：提取大括号中的内容（处理嵌套）
-      const extractBraceContent = (str: string, startIdx: number): { content: string; endPos: number } | null => {
-        if (str[startIdx] !== '{') return null;
-        let depth = 0;
-        let i = startIdx;
+      const extractBraceContent = (
+        str: string,
+        startIdx: number
+      ): { content: string; endPos: number } | null => {
+        if (str[startIdx] !== '{') return null
+        let depth = 0
+        let i = startIdx
         while (i < str.length) {
-          if (str[i] === '{') depth++;
+          if (str[i] === '{') depth++
           else if (str[i] === '}') {
-            depth--;
+            depth--
             if (depth === 0) {
-              return { content: str.substring(startIdx + 1, i), endPos: i };
+              return { content: str.substring(startIdx + 1, i), endPos: i }
             }
           }
-          i++;
+          i++
         }
-        return null;
-      };
-      
+        return null
+      }
+
       // 使用更精确的方法提取 \includegraphics{...} 中的路径
       // 先找到所有 \includegraphics 命令，然后提取大括号内容
-      const graphicsRegex = /\\includegraphics(?:\[[^\]]*\])?\{/g;
-      let match;
-      const texDir = path.dirname(targetPath); // TEX 文件所在目录，用于解析相对路径
-      
+      const graphicsRegex = /\\includegraphics(?:\[[^\]]*\])?\{/g
+      let match
+      const texDir = path.dirname(targetPath) // TEX 文件所在目录，用于解析相对路径
+
       while ((match = graphicsRegex.exec(finalTex)) !== null) {
-        const braceStart = match.index + match[0].length - 1; // 大括号 { 的位置
-        const braceContent = extractBraceContent(finalTex, braceStart);
-        
+        const braceStart = match.index + match[0].length - 1 // 大括号 { 的位置
+        const braceContent = extractBraceContent(finalTex, braceStart)
+
         if (!braceContent) {
-          logger.warn(`无法提取大括号内容，位置: ${braceStart}`);
-          continue;
+          logger.warn(`无法提取大括号内容，位置: ${braceStart}`)
+          continue
         }
-        
-        let imagePath = braceContent.content; // 原始路径（可能包含转义字符和 \detokenize）
-        const originalPath = imagePath; // 保存完整的原始路径用于映射（包含 \detokenize 格式）
-        
+
+        let imagePath = braceContent.content // 原始路径（可能包含转义字符和 \detokenize）
+        const originalPath = imagePath // 保存完整的原始路径用于映射（包含 \detokenize 格式）
+
         // 检查是否使用了 \detokenize{...}
         // 使用更宽松的正则表达式，处理可能不完整的情况
-        let detokenizeMatch = imagePath.match(/\\detokenize\{([^}]*)\}/);
+        let detokenizeMatch = imagePath.match(/\\detokenize\{([^}]*)\}/)
         if (!detokenizeMatch && imagePath.includes('\\detokenize')) {
           // 如果标准匹配失败，尝试匹配到行尾（处理不完整的情况）
-          detokenizeMatch = imagePath.match(/\\detokenize\{([^}]*)/);
+          detokenizeMatch = imagePath.match(/\\detokenize\{([^}]*)/)
         }
-        
+
         if (detokenizeMatch) {
           // 提取 \detokenize 内的路径用于解析
-          imagePath = detokenizeMatch[1];
-          logger.debug(`提取 \detokenize 内的路径: ${imagePath}`);
+          imagePath = detokenizeMatch[1]
+          logger.debug(`提取 \detokenize 内的路径: ${imagePath}`)
         }
-        
+
         // 还原 LaTeX 转义的字符（如 \_ -> _，\# -> # 等）
         // 但要注意，URL 中的转义字符不应该被还原
-        let resolvedPath = imagePath;
-        if (!imagePath.startsWith('http://') && 
-            !imagePath.startsWith('https://') && 
-            !imagePath.startsWith('file://')) {
+        let resolvedPath = imagePath
+        if (
+          !imagePath.startsWith('http://') &&
+          !imagePath.startsWith('https://') &&
+          !imagePath.startsWith('file://')
+        ) {
           // 只对本地路径还原转义字符
-          resolvedPath = imagePath.replace(/\\([#%&{}_$])/g, '$1');
+          resolvedPath = imagePath.replace(/\\([#%&{}_$])/g, '$1')
         }
-        
+
         // 多次清理：移除任何残留的 \detokenize（使用多种方式确保完全清理）
         // 方式1：标准匹配
-        resolvedPath = resolvedPath.replace(/\\detokenize\{([^}]+)\}/g, '$1');
+        resolvedPath = resolvedPath.replace(/\\detokenize\{([^}]+)\}/g, '$1')
         // 方式2：处理不完整的情况（缺少闭合括号）
-        resolvedPath = resolvedPath.replace(/\\detokenize\{([^}]*)/g, '$1');
+        resolvedPath = resolvedPath.replace(/\\detokenize\{([^}]*)/g, '$1')
         // 方式3：移除任何残留的 \detokenize 关键字
         if (resolvedPath.includes('\\detokenize')) {
-          resolvedPath = resolvedPath.replace(/\\detokenize/g, '');
-          resolvedPath = resolvedPath.replace(/^\{+/, '').replace(/\}+$/, ''); // 移除可能残留的大括号
+          resolvedPath = resolvedPath.replace(/\\detokenize/g, '')
+          resolvedPath = resolvedPath.replace(/^\{+/, '').replace(/\}+$/, '') // 移除可能残留的大括号
         }
-        
+
         // 调试日志：记录提取的路径
-        logger.debug(`提取图片/PDF路径 - originalPath: ${originalPath}, resolvedPath: ${resolvedPath}, 文件类型: ${resolvedPath.endsWith('.pdf') ? 'PDF' : '图片'}`);
-        
+        logger.debug(
+          `提取图片/PDF路径 - originalPath: ${originalPath}, resolvedPath: ${resolvedPath}, 文件类型: ${resolvedPath.endsWith('.pdf') ? 'PDF' : '图片'}`
+        )
+
         // 收集所有图片URL：localhost:52521、http(s)网络链接、file://协议、本地路径
         // 排除 data URL（已经是内嵌的）
         if (!resolvedPath.startsWith('data:')) {
           // 如果是本地路径（不是 URL），需要解析为绝对路径
-          if (!resolvedPath.startsWith('http://') && 
-              !resolvedPath.startsWith('https://') && 
-              !resolvedPath.startsWith('file://')) {
+          if (
+            !resolvedPath.startsWith('http://') &&
+            !resolvedPath.startsWith('https://') &&
+            !resolvedPath.startsWith('file://')
+          ) {
             // 尝试解析相对路径为绝对路径
             try {
               // 如果是绝对路径，直接使用
               if (path.isAbsolute(resolvedPath)) {
-                imageUrlPairs.push({ original: originalPath, resolved: resolvedPath });
+                imageUrlPairs.push({ original: originalPath, resolved: resolvedPath })
               } else {
                 // 如果是相对路径，相对于 TEX 文件所在目录解析
-                const absolutePath = path.resolve(texDir, resolvedPath);
-                imageUrlPairs.push({ original: originalPath, resolved: absolutePath });
-                logger.debug(`解析相对路径: ${resolvedPath} -> ${absolutePath}`);
+                const absolutePath = path.resolve(texDir, resolvedPath)
+                imageUrlPairs.push({ original: originalPath, resolved: absolutePath })
+                logger.debug(`解析相对路径: ${resolvedPath} -> ${absolutePath}`)
               }
             } catch (error) {
               // 如果解析失败，使用原始路径
-              logger.warn(`解析图片路径失败: ${resolvedPath}`, error);
-              imageUrlPairs.push({ original: originalPath, resolved: resolvedPath });
+              logger.warn(`解析图片路径失败: ${resolvedPath}`, error)
+              imageUrlPairs.push({ original: originalPath, resolved: resolvedPath })
             }
           } else {
             // URL 格式，直接使用
-            imageUrlPairs.push({ original: originalPath, resolved: resolvedPath });
+            imageUrlPairs.push({ original: originalPath, resolved: resolvedPath })
           }
         }
       }
-      
+
       // 提取解析后的路径用于保存
       // 确保所有路径都被清理，不包含任何 LaTeX 命令
-      const imageUrls = imageUrlPairs.map(pair => {
-        let cleaned = pair.resolved;
+      const imageUrls = imageUrlPairs.map((pair) => {
+        let cleaned = pair.resolved
         // 最终清理：移除任何残留的 \detokenize
-        cleaned = cleaned.replace(/\\detokenize\{([^}]+)\}/g, '$1');
+        cleaned = cleaned.replace(/\\detokenize\{([^}]+)\}/g, '$1')
         // 确保路径是干净的
         if (cleaned !== pair.resolved) {
-          logger.debug(`清理路径: ${pair.resolved} -> ${cleaned}`);
+          logger.debug(`清理路径: ${pair.resolved} -> ${cleaned}`)
         }
-        return cleaned;
-      });
-      
+        return cleaned
+      })
+
       if (imageUrls.length > 0) {
         // 创建图片文件夹：在 TEX 文件所在目录下创建 xxx.tex.images 文件夹
-        const texDir = path.dirname(targetPath);
-        const texBaseName = path.basename(targetPath, path.extname(targetPath));
-        const imagesFolder = path.join(texDir, `${texBaseName}.tex.images`);
-        
+        const texDir = path.dirname(targetPath)
+        const texBaseName = path.basename(targetPath, path.extname(targetPath))
+        const imagesFolder = path.join(texDir, `${texBaseName}.tex.images`)
+
         // 保存图片和 PDF 文件（包括网络图片、本地图片和 PDF 文件）
         // 注意：saveImagesToFolder 函数可以处理任何文件类型，包括 PDF
-        const results = await saveImagesToFolder(imageUrls, imagesFolder);
-        
+        const results = await saveImagesToFolder(imageUrls, imagesFolder)
+
         // 创建 URL 到相对路径的映射（使用相对路径）
-        const imageMappings = new Map<string, string>();
-        const imagesFolderName = path.basename(imagesFolder);
-        
+        const imageMappings = new Map<string, string>()
+        const imagesFolderName = path.basename(imagesFolder)
+
         // 创建 resolved URL 到 original URL 的映射
         // 注意：需要规范化路径（统一使用正斜杠）以确保匹配
-        const resolvedToOriginal = new Map<string, string>();
+        const resolvedToOriginal = new Map<string, string>()
         for (let i = 0; i < imageUrlPairs.length && i < results.length; i++) {
           // 规范化路径：统一使用正斜杠，并规范化路径格式
-          const normalizedResolved = path.normalize(imageUrlPairs[i].resolved).replace(/\\/g, '/');
-          resolvedToOriginal.set(normalizedResolved, imageUrlPairs[i].original);
+          const normalizedResolved = path.normalize(imageUrlPairs[i].resolved).replace(/\\/g, '/')
+          resolvedToOriginal.set(normalizedResolved, imageUrlPairs[i].original)
           // 也保存原始格式，以防路径格式不同
-          resolvedToOriginal.set(imageUrlPairs[i].resolved, imageUrlPairs[i].original);
+          resolvedToOriginal.set(imageUrlPairs[i].resolved, imageUrlPairs[i].original)
         }
-        
+
         for (const result of results) {
-          const fileName = path.basename(result.savedPath);
+          const fileName = path.basename(result.savedPath)
           // LaTeX 路径使用正斜杠，移除扩展名（如果存在）
-          const latexFileName = fileName.replace(/\.[^.]+$/, '');
+          const latexFileName = fileName.replace(/\.[^.]+$/, '')
           // 使用相对路径：./xxx.tex.images/filename（不含扩展名）
           // 使用正斜杠（LaTeX 标准），以 ./ 开头
-          const relativePath = `./${imagesFolderName}/${latexFileName}`;
-          
+          const relativePath = `./${imagesFolderName}/${latexFileName}`
+
           // 找到对应的原始路径（LaTeX 中的路径，可能包含转义字符）
           // 规范化 result.originalUrl 以确保匹配
-          const normalizedOriginalUrl = path.normalize(result.originalUrl).replace(/\\/g, '/');
-          let originalPath = resolvedToOriginal.get(normalizedOriginalUrl);
+          const normalizedOriginalUrl = path.normalize(result.originalUrl).replace(/\\/g, '/')
+          let originalPath = resolvedToOriginal.get(normalizedOriginalUrl)
           if (!originalPath) {
             // 如果规范化后没找到，尝试原始格式
-            originalPath = resolvedToOriginal.get(result.originalUrl);
+            originalPath = resolvedToOriginal.get(result.originalUrl)
           }
           if (originalPath) {
             // 使用原始路径（可能包含转义字符）作为键
-            imageMappings.set(originalPath, relativePath);
-            
+            imageMappings.set(originalPath, relativePath)
+
             // 同时处理可能的 \detokenize{...} 格式
             // 注意：如果 originalPath 已经包含 \detokenize{...}，就不需要再添加
-            const hasDetokenize = originalPath.includes('\\detokenize{');
+            const hasDetokenize = originalPath.includes('\\detokenize{')
             if (!hasDetokenize) {
               // 只有当 originalPath 不包含 \detokenize 时，才添加 \detokenize 格式的键
-              const detokenizeKey = `\\detokenize{${originalPath}}`;
-              imageMappings.set(detokenizeKey, relativePath);
+              const detokenizeKey = `\\detokenize{${originalPath}}`
+              imageMappings.set(detokenizeKey, relativePath)
             }
-            
+
             // 规范化路径格式（统一使用正斜杠），并添加到映射
-            if (!originalPath.startsWith('http://') && 
-                !originalPath.startsWith('https://') && 
-                !originalPath.startsWith('file://')) {
+            if (
+              !originalPath.startsWith('http://') &&
+              !originalPath.startsWith('https://') &&
+              !originalPath.startsWith('file://')
+            ) {
               // 规范化路径：统一使用正斜杠
-              const normalizedPath = originalPath.replace(/\\/g, '/');
+              const normalizedPath = originalPath.replace(/\\/g, '/')
               if (normalizedPath !== originalPath) {
-                imageMappings.set(normalizedPath, relativePath);
-                const detokenizeKeyNormalized = `\\detokenize{${normalizedPath}}`;
-                imageMappings.set(detokenizeKeyNormalized, relativePath);
+                imageMappings.set(normalizedPath, relativePath)
+                const detokenizeKeyNormalized = `\\detokenize{${normalizedPath}}`
+                imageMappings.set(detokenizeKeyNormalized, relativePath)
               }
-              
+
               // 也处理还原转义字符后的路径（以防万一）
-              const unescapedPath = originalPath.replace(/\\([#%&{}_$])/g, '$1');
+              const unescapedPath = originalPath.replace(/\\([#%&{}_$])/g, '$1')
               if (unescapedPath !== originalPath) {
-                imageMappings.set(unescapedPath, relativePath);
-                const detokenizeKeyUnescaped = `\\detokenize{${unescapedPath}}`;
-                imageMappings.set(detokenizeKeyUnescaped, relativePath);
-                
+                imageMappings.set(unescapedPath, relativePath)
+                const detokenizeKeyUnescaped = `\\detokenize{${unescapedPath}}`
+                imageMappings.set(detokenizeKeyUnescaped, relativePath)
+
                 // 也规范化转义后的路径
-                const normalizedUnescapedPath = unescapedPath.replace(/\\/g, '/');
+                const normalizedUnescapedPath = unescapedPath.replace(/\\/g, '/')
                 if (normalizedUnescapedPath !== unescapedPath) {
-                  imageMappings.set(normalizedUnescapedPath, relativePath);
-                  const detokenizeKeyNormalizedUnescaped = `\\detokenize{${normalizedUnescapedPath}}`;
-                  imageMappings.set(detokenizeKeyNormalizedUnescaped, relativePath);
+                  imageMappings.set(normalizedUnescapedPath, relativePath)
+                  const detokenizeKeyNormalizedUnescaped = `\\detokenize{${normalizedUnescapedPath}}`
+                  imageMappings.set(detokenizeKeyNormalizedUnescaped, relativePath)
                 }
               }
             }
           } else {
             // 如果找不到原始路径，使用 result.originalUrl（已经还原转义字符的）
-            imageMappings.set(result.originalUrl, relativePath);
+            imageMappings.set(result.originalUrl, relativePath)
             // 只有当 result.originalUrl 不包含 \detokenize 时，才添加 \detokenize 格式的键
             if (!result.originalUrl.includes('\\detokenize{')) {
-              const detokenizeKey = `\\detokenize{${result.originalUrl}}`;
-              imageMappings.set(detokenizeKey, relativePath);
+              const detokenizeKey = `\\detokenize{${result.originalUrl}}`
+              imageMappings.set(detokenizeKey, relativePath)
             }
-            
+
             // 也规范化 result.originalUrl
-            if (!result.originalUrl.startsWith('http://') &&
-                !result.originalUrl.startsWith('https://') &&
-                !result.originalUrl.startsWith('file://')) {
-              const normalizedOriginalUrl = result.originalUrl.replace(/\\/g, '/');
+            if (
+              !result.originalUrl.startsWith('http://') &&
+              !result.originalUrl.startsWith('https://') &&
+              !result.originalUrl.startsWith('file://')
+            ) {
+              const normalizedOriginalUrl = result.originalUrl.replace(/\\/g, '/')
               if (normalizedOriginalUrl !== result.originalUrl) {
-                imageMappings.set(normalizedOriginalUrl, relativePath);
+                imageMappings.set(normalizedOriginalUrl, relativePath)
                 // 只有当 normalizedOriginalUrl 不包含 \detokenize 时，才添加 \detokenize 格式的键
                 if (!normalizedOriginalUrl.includes('\\detokenize{')) {
-                  const detokenizeKeyNormalized = `\\detokenize{${normalizedOriginalUrl}}`;
-                  imageMappings.set(detokenizeKeyNormalized, relativePath);
+                  const detokenizeKeyNormalized = `\\detokenize{${normalizedOriginalUrl}}`
+                  imageMappings.set(detokenizeKeyNormalized, relativePath)
                 }
               }
             }
           }
         }
-        
+
         // 更新 LaTeX 中的图片链接（使用相对路径）
-        finalTex = updateLatexImageLinks(finalTex, imageMappings);
+        finalTex = updateLatexImageLinks(finalTex, imageMappings)
       }
     } else if (imageProcessing === 'original') {
       // original 模式：需要确保网络图片已经被下载并上传到本地服务
       // 同时需要将 localhost:52521 的 URL 转换为本地文件路径，因为 LaTeX 无法直接读取 HTTP URL
-      const imageRegex = /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g;
-      const imageMappings = new Map<string, string>();
-      let match;
-      
+      const imageRegex = /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g
+      const imageMappings = new Map<string, string>()
+      let match
+
       while ((match = imageRegex.exec(finalTex)) !== null) {
-        let imagePath = match[1];
+        let imagePath = match[1]
         // 检查是否使用了 \detokenize{...}
-        const detokenizeMatch = imagePath.match(/\\detokenize\{([^}]+)\}/);
+        const detokenizeMatch = imagePath.match(/\\detokenize\{([^}]+)\}/)
         if (detokenizeMatch) {
-          imagePath = detokenizeMatch[1];
+          imagePath = detokenizeMatch[1]
         }
-        
+
         // 检查是否是 localhost:52521 的 URL，需要转换为本地路径
         if (imagePath.startsWith('http://localhost:52521/images/')) {
-          const fileName = imagePath.replace('http://localhost:52521/images/', '');
-          const localPath = path.join(imageUploadDir, fileName);
-          
+          const fileName = imagePath.replace('http://localhost:52521/images/', '')
+          const localPath = path.join(imageUploadDir, fileName)
+
           // 检查文件是否存在
           if (fs.existsSync(localPath)) {
             // 使用绝对路径，LaTeX 需要绝对路径或相对于工作目录的路径
             // 使用正斜杠（LaTeX 标准）
-            const normalizedPath = localPath.replace(/\\/g, '/');
-            imageMappings.set(match[1], normalizedPath);
+            const normalizedPath = localPath.replace(/\\/g, '/')
+            imageMappings.set(match[1], normalizedPath)
             // 如果使用了 \detokenize，也添加映射
             if (detokenizeMatch) {
-              imageMappings.set(`\\detokenize{${match[1]}}`, normalizedPath);
+              imageMappings.set(`\\detokenize{${match[1]}}`, normalizedPath)
             }
           } else {
-            logger.warn(`图片文件不存在: ${localPath}`);
+            logger.warn(`图片文件不存在: ${localPath}`)
           }
         }
         // 检查是否是网络图片（http(s)但不是localhost:52521）
-        else if ((imagePath.startsWith('http://') && !imagePath.startsWith('http://localhost:52521/')) || 
-                  imagePath.startsWith('https://')) {
+        else if (
+          (imagePath.startsWith('http://') && !imagePath.startsWith('http://localhost:52521/')) ||
+          imagePath.startsWith('https://')
+        ) {
           // 如果还有网络图片，尝试在 main 进程中下载并上传
           try {
-            logger.warn(`LaTeX 中仍然存在网络图片: ${imagePath}，尝试在 main 进程中处理`);
-            const http = require('http');
-            const https = require('https');
-            const { URL } = require('url');
-            
-            const uploadUrl = 'http://localhost:52521/api/image/url-upload';
-            const urlObj = new URL(uploadUrl);
-            const protocol = urlObj.protocol === 'https:' ? https : http;
-            
-            const postData = JSON.stringify({ url: imagePath });
+            logger.warn(`LaTeX 中仍然存在网络图片: ${imagePath}，尝试在 main 进程中处理`)
+            const http = require('http')
+            const https = require('https')
+            const { URL } = require('url')
+
+            const uploadUrl = 'http://localhost:52521/api/image/url-upload'
+            const urlObj = new URL(uploadUrl)
+            const protocol = urlObj.protocol === 'https:' ? https : http
+
+            const postData = JSON.stringify({ url: imagePath })
             const options = {
               hostname: urlObj.hostname,
               port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
@@ -2969,76 +3084,76 @@ const MARKDOWN_HANDLERS: Record<ExportFormat, ExportHandler> = {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(postData),
-              },
-            };
-            
+                'Content-Length': Buffer.byteLength(postData)
+              }
+            }
+
             const result = await new Promise<any>((resolve, reject) => {
               const req = protocol.request(options, (res: any) => {
-                let data = '';
+                let data = ''
                 res.on('data', (chunk: any) => {
-                  data += chunk;
-                });
+                  data += chunk
+                })
                 res.on('end', () => {
                   try {
-                    resolve(JSON.parse(data));
+                    resolve(JSON.parse(data))
                   } catch (e) {
-                    reject(e);
+                    reject(e)
                   }
-                });
-              });
-              
-              req.on('error', reject);
-              req.write(postData);
-              req.end();
-            });
-            
+                })
+              })
+
+              req.on('error', reject)
+              req.write(postData)
+              req.end()
+            })
+
             if (result.code === 0 && result.data && result.data.url) {
-              const serverPath = result.data.url;
-              const fileName = serverPath.split(/[/\\]/).pop();
-              const localPath = path.join(imageUploadDir, fileName);
-              
+              const serverPath = result.data.url
+              const fileName = serverPath.split(/[/\\]/).pop()
+              const localPath = path.join(imageUploadDir, fileName)
+
               if (fs.existsSync(localPath)) {
-                const normalizedPath = localPath.replace(/\\/g, '/');
-                imageMappings.set(match[1], normalizedPath);
+                const normalizedPath = localPath.replace(/\\/g, '/')
+                imageMappings.set(match[1], normalizedPath)
                 if (detokenizeMatch) {
-                  imageMappings.set(`\\detokenize{${match[1]}}`, normalizedPath);
+                  imageMappings.set(`\\detokenize{${match[1]}}`, normalizedPath)
                 }
-                logger.info(`网络图片已下载并上传: ${imagePath} -> ${localPath}`);
+                logger.info(`网络图片已下载并上传: ${imagePath} -> ${localPath}`)
               }
             }
           } catch (error) {
-            logger.error(`在 main 进程中处理网络图片失败: ${imagePath}`, error);
+            logger.error(`在 main 进程中处理网络图片失败: ${imagePath}`, error)
           }
         }
       }
-      
+
       // 如果有需要转换的图片，更新 LaTeX 中的链接
       if (imageMappings.size > 0) {
-        finalTex = updateLatexImageLinks(finalTex, imageMappings);
+        finalTex = updateLatexImageLinks(finalTex, imageMappings)
       }
     }
-    
+
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
       subMessage: 'agent.reference.progress.generatingFile',
       percentage: 80,
       params: { format: 'LaTeX' }
-    });
-    await writeTextFile(targetPath, finalTex);
+    })
+    await writeTextFile(targetPath, finalTex)
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exportComplete',
       percentage: 100,
       status: 'success'
-    });
+    })
     setTimeout(() => {
-      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-    }, 1000);
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+    }, 1000)
   },
   json: async () => {
-    throw new Error('Markdown 文档不支持导出为 JSON');
-  },
-};
+    throw new Error('Markdown 文档不支持导出为 JSON')
+  }
+}
 
 const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
   tex: async ({ payload, targetPath, mainWindow }) => {
@@ -3046,70 +3161,70 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       message: 'agent.reference.progress.exporting',
       percentage: 50,
       params: { format: 'LaTeX' }
-    });
-    
-    let finalTex = payload.data.tex;
-    
+    })
+
+    let finalTex = payload.data.tex
+
     // 处理图片（如果是 folder 模式）
-    const imageProcessing = payload.exportOptions?.imageProcessing;
+    const imageProcessing = payload.exportOptions?.imageProcessing
     if (imageProcessing === 'folder') {
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.savingImages',
         percentage: 60,
         params: { format: 'LaTeX' }
-      });
-      
+      })
+
       // 提取所有图片 URL
-      const imageUrls: string[] = [];
-      const latexRegex = /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g;
-      let match;
+      const imageUrls: string[] = []
+      const latexRegex = /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g
+      let match
       while ((match = latexRegex.exec(finalTex)) !== null) {
-        const imagePath = match[1];
+        const imagePath = match[1]
         if (imagePath.startsWith('http://localhost:52521/images/')) {
-          imageUrls.push(imagePath);
+          imageUrls.push(imagePath)
         }
       }
-      
+
       if (imageUrls.length > 0) {
         // 创建图片文件夹：xxx.tex.images
-        const imagesFolder = `${targetPath}.images`;
-        
+        const imagesFolder = `${targetPath}.images`
+
         // 保存图片
-        const results = await saveImagesToFolder(imageUrls, imagesFolder);
-        
+        const results = await saveImagesToFolder(imageUrls, imagesFolder)
+
         // 创建 URL 到相对路径的映射（使用相对路径）
-        const imageMappings = new Map<string, string>();
-        const imagesFolderName = path.basename(imagesFolder);
+        const imageMappings = new Map<string, string>()
+        const imagesFolderName = path.basename(imagesFolder)
         for (const result of results) {
-          const fileName = path.basename(result.savedPath);
+          const fileName = path.basename(result.savedPath)
           // LaTeX 路径使用正斜杠，移除扩展名（如果存在）
-          const latexFileName = fileName.replace(/\.[^.]+$/, '');
+          const latexFileName = fileName.replace(/\.[^.]+$/, '')
           // 使用相对路径：xxx.tex.images/filename（不含扩展名）
-          const relativePath = `${imagesFolderName}/${latexFileName}`;
-          imageMappings.set(result.originalUrl, relativePath);
+          const relativePath = `${imagesFolderName}/${latexFileName}`
+          imageMappings.set(result.originalUrl, relativePath)
         }
-        
+
         // 更新 LaTeX 中的图片链接（使用相对路径）
-        finalTex = updateLatexImageLinks(finalTex, imageMappings);
+        finalTex = updateLatexImageLinks(finalTex, imageMappings)
       }
     }
-    
+
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
       subMessage: 'agent.reference.progress.generatingFile',
       percentage: 80,
       params: { format: 'LaTeX' }
-    });
-    await writeTextFile(targetPath, finalTex);
+    })
+    await writeTextFile(targetPath, finalTex)
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exportComplete',
       percentage: 100,
       status: 'success'
-    });
+    })
     setTimeout(() => {
-      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-    }, 1000);
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+    }, 1000)
   },
   pdf: async ({ payload, targetPath, mainWindow }) => {
     sendProgress(mainWindow, {
@@ -3117,25 +3232,25 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       subMessage: 'agent.reference.progress.compilingLatex',
       percentage: 10,
       params: { format: 'PDF' }
-    });
-    
-    const meta = extractDocumentMeta(payload);
-    await ensureParentDirectory(targetPath);
-    
+    })
+
+    const meta = extractDocumentMeta(payload)
+    await ensureParentDirectory(targetPath)
+
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
       subMessage: 'agent.reference.progress.executingLatexCompile',
       percentage: 30,
       params: { format: 'PDF' }
-    });
-    
+    })
+
     const compileResult: LaTeXCompileResult = await compileLatexToPDF(
       payload.sourcePath || targetPath,
       payload.data.tex,
       path.dirname(targetPath),
       mainWindow ?? undefined,
-      path.basename(targetPath),
-    );
+      path.basename(targetPath)
+    )
 
     if (compileResult.status !== 'success' || !compileResult.pdfPath) {
       const message =
@@ -3143,21 +3258,21 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
           ? t(
               'main.latex.compileFailed',
               `Compilation failed, exit code: ${String(compileResult.exitCode ?? '')}`,
-              { code: String(compileResult.exitCode ?? '') },
+              { code: String(compileResult.exitCode ?? '') }
             )
-          : t('main.latex.compileFailed', 'Compilation failed, exit code: -1', { code: '-1' });
-      
+          : t('main.latex.compileFailed', 'Compilation failed, exit code: -1', { code: '-1' })
+
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exportError',
         subMessage: message,
         percentage: 0,
         status: 'exception'
-      });
+      })
       setTimeout(() => {
-        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-      }, 2000);
-      
-      throw new Error(message);
+        sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+      }, 2000)
+
+      throw new Error(message)
     }
 
     sendProgress(mainWindow, {
@@ -3165,10 +3280,10 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       subMessage: 'agent.reference.progress.copyingPdf',
       percentage: 80,
       params: { format: 'PDF' }
-    });
+    })
 
     if (compileResult.pdfPath !== targetPath) {
-      await fs.promises.copyFile(compileResult.pdfPath, targetPath);
+      await fs.promises.copyFile(compileResult.pdfPath, targetPath)
     }
 
     sendProgress(mainWindow, {
@@ -3176,182 +3291,182 @@ const LATEX_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
       subMessage: 'agent.reference.progress.addingMetadata',
       percentage: 90,
       params: { format: 'PDF' }
-    });
+    })
 
-    await writePdfMetadataToFile(targetPath, meta);
-    
+    await writePdfMetadataToFile(targetPath, meta)
+
     // 注意：LaTeX编译的PDF颜色模式需要在LaTeX文档中配置
     // 这里我们只是记录选项，实际的颜色模式需要在LaTeX源码中使用相应的包（如xcolor）来设置
     if (payload.exportOptions?.colorMode === 'grayscale') {
-      logger.info('颜色模式设置为灰度，但LaTeX编译的PDF需要在LaTeX源码中配置颜色模式');
+      logger.info('颜色模式设置为灰度，但LaTeX编译的PDF需要在LaTeX源码中配置颜色模式')
       // 如果需要，可以在这里添加PDF后处理逻辑（但pdf-lib不支持直接转换为灰度）
     }
-    
+
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exportComplete',
       percentage: 100,
       status: 'success'
-    });
-    
+    })
+
     setTimeout(() => {
-      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-    }, 1000);
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+    }, 1000)
   },
   md: async ({ payload, targetPath, mainWindow }) => {
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
       percentage: 50,
       params: { format: 'Markdown' }
-    });
-    await writeTextFile(targetPath, payload.data.md);
+    })
+    await writeTextFile(targetPath, payload.data.md)
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exportComplete',
       percentage: 100,
       status: 'success'
-    });
+    })
     setTimeout(() => {
-      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-    }, 1000);
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+    }, 1000)
   },
   html: async ({ payload, targetPath, mainWindow }) => {
     if (!payload.html) {
-      throw new Error('缺少 HTML 数据，无法导出为 HTML');
+      throw new Error('缺少 HTML 数据，无法导出为 HTML')
     }
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
       subMessage: 'agent.reference.progress.convertingMarkdown',
       percentage: 30,
       params: { format: 'HTML' }
-    });
-    const meta = extractDocumentMeta(payload);
-    
-    let finalHtml = payload.html;
-    
+    })
+    const meta = extractDocumentMeta(payload)
+
+    let finalHtml = payload.html
+
     // 处理图片（如果是 folder 模式）
-    const imageProcessing = payload.exportOptions?.imageProcessing;
+    const imageProcessing = payload.exportOptions?.imageProcessing
     if (imageProcessing === 'folder') {
       sendProgress(mainWindow, {
         message: 'agent.reference.progress.exporting',
         subMessage: 'agent.reference.progress.savingImages',
         percentage: 50,
         params: { format: 'HTML' }
-      });
-      
+      })
+
       // 提取所有图片 URL
-      const imageUrls: string[] = [];
-      const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
-      const matches = Array.from(finalHtml.matchAll(imgRegex));
+      const imageUrls: string[] = []
+      const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi
+      const matches = Array.from(finalHtml.matchAll(imgRegex))
       for (const match of matches) {
-        const src = match[1];
+        const src = match[1]
         if (src.startsWith('http://localhost:52521/images/')) {
-          imageUrls.push(src);
+          imageUrls.push(src)
         }
       }
-      
+
       if (imageUrls.length > 0) {
         // 创建图片文件夹
-        const docName = path.basename(targetPath, path.extname(targetPath));
-        const imagesFolder = path.join(path.dirname(targetPath), `${docName}_images`);
-        
+        const docName = path.basename(targetPath, path.extname(targetPath))
+        const imagesFolder = path.join(path.dirname(targetPath), `${docName}_images`)
+
         // 保存图片
-        const results = await saveImagesToFolder(imageUrls, imagesFolder);
-        
+        const results = await saveImagesToFolder(imageUrls, imagesFolder)
+
         // 创建 URL 到相对路径的映射
-        const imageMappings = new Map<string, string>();
+        const imageMappings = new Map<string, string>()
         for (const result of results) {
-          imageMappings.set(result.originalUrl, result.relativePath);
+          imageMappings.set(result.originalUrl, result.relativePath)
         }
-        
+
         // 更新 HTML 中的图片链接
-        finalHtml = updateHtmlImageLinks(finalHtml, imageMappings);
+        finalHtml = updateHtmlImageLinks(finalHtml, imageMappings)
       }
     }
-    
+
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
       subMessage: 'agent.reference.progress.generatingFile',
       percentage: 60,
       params: { format: 'HTML' }
-    });
-    const wrapped = wrapHtmlWithTemplate(meta, finalHtml);
-    await writeTextFile(targetPath, wrapped);
+    })
+    const wrapped = wrapHtmlWithTemplate(meta, finalHtml)
+    await writeTextFile(targetPath, wrapped)
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exportComplete',
       percentage: 100,
       status: 'success'
-    });
+    })
     setTimeout(() => {
-      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-    }, 1000);
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+    }, 1000)
   },
   docx: async ({ payload, targetPath, mainWindow }) => {
     if (!payload.html) {
-      throw new Error('缺少 HTML 数据，无法导出为 DOCX');
+      throw new Error('缺少 HTML 数据，无法导出为 DOCX')
     }
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
       subMessage: 'agent.reference.progress.convertingMarkdown',
       percentage: 20,
       params: { format: 'DOCX' }
-    });
-    const meta = extractDocumentMeta(payload);
+    })
+    const meta = extractDocumentMeta(payload)
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
       subMessage: 'agent.reference.progress.generatingFile',
       percentage: 50,
       params: { format: 'DOCX' }
-    });
-    const buffer = await convertMarkdownToDocxBuffer(payload.html, payload.data.md);
+    })
+    const buffer = await convertMarkdownToDocxBuffer(payload.html, payload.data.md)
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exporting',
       subMessage: 'agent.reference.progress.addingMetadata',
       percentage: 80,
       params: { format: 'DOCX' }
-    });
-    const bufferWithMeta = await applyDocxMetadata(buffer, meta);
-    await writeBinaryFile(targetPath, bufferWithMeta);
+    })
+    const bufferWithMeta = await applyDocxMetadata(buffer, meta)
+    await writeBinaryFile(targetPath, bufferWithMeta)
     sendProgress(mainWindow, {
       message: 'agent.reference.progress.exportComplete',
       percentage: 100,
       status: 'success'
-    });
+    })
     setTimeout(() => {
-      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 });
-    }, 1000);
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 })
+    }, 1000)
   },
   json: async () => {
-    throw new Error('LaTeX 文档不支持导出为 JSON');
-  },
-};
+    throw new Error('LaTeX 文档不支持导出为 JSON')
+  }
+}
 
 const JSON_HANDLERS: Partial<Record<ExportFormat, ExportHandler>> = {
   json: async ({ payload, targetPath }) => {
-    await writeTextFile(targetPath, payload.data.json);
+    await writeTextFile(targetPath, payload.data.json)
   },
   md: async () => {
-    throw new Error('JSON 文档暂不支持导出为 Markdown');
+    throw new Error('JSON 文档暂不支持导出为 Markdown')
   },
   html: async () => {
-    throw new Error('JSON 文档暂不支持导出为 HTML');
+    throw new Error('JSON 文档暂不支持导出为 HTML')
   },
   docx: async () => {
-    throw new Error('JSON 文档暂不支持导出为 DOCX');
+    throw new Error('JSON 文档暂不支持导出为 DOCX')
   },
   pdf: async () => {
-    throw new Error('JSON 文档暂不支持导出为 PDF');
+    throw new Error('JSON 文档暂不支持导出为 PDF')
   },
   tex: async () => {
-    throw new Error('JSON 文档暂不支持导出为 LaTeX');
-  },
-};
+    throw new Error('JSON 文档暂不支持导出为 LaTeX')
+  }
+}
 
 const EXPORT_HANDLER_MAP: Record<DocumentFormat, Partial<Record<ExportFormat, ExportHandler>>> = {
   md: MARKDOWN_HANDLERS,
   tex: {
-    ...LATEX_HANDLERS,
+    ...LATEX_HANDLERS
   },
-  json: JSON_HANDLERS,
-};
+  json: JSON_HANDLERS
+}
 
 const FILTER_MAP: Record<ExportFormat, Electron.FileFilter> = {
   pdf: { name: t('main.dialogs.filters.pdf'), extensions: ['pdf'] },
@@ -3359,17 +3474,17 @@ const FILTER_MAP: Record<ExportFormat, Electron.FileFilter> = {
   html: { name: t('main.dialogs.filters.html'), extensions: ['html'] },
   md: { name: t('main.dialogs.filters.markdown'), extensions: ['md'] },
   tex: { name: t('main.dialogs.filters.latex'), extensions: ['tex'] },
-  json: { name: 'JSON', extensions: ['json'] },
-};
+  json: { name: 'JSON', extensions: ['json'] }
+}
 
 export const performExportRequest = async (
   payload: RendererExportPayload,
-  mainWindow: BrowserWindow | null,
+  mainWindow: BrowserWindow | null
 ): Promise<ExportResponse> => {
-  currentRequestId = payload.requestId;
-  const abortController = payload.requestId ? new AbortController() : null;
+  currentRequestId = payload.requestId
+  const abortController = payload.requestId ? new AbortController() : null
   if (payload.requestId && abortController) {
-    exportAbortControllers.set(payload.requestId, abortController);
+    exportAbortControllers.set(payload.requestId, abortController)
   }
   const progressHandle = payload.requestId
     ? new MainProgressHandle({
@@ -3377,134 +3492,148 @@ export const performExportRequest = async (
         canCancel: true,
         send: (p) => sendProgress(mainWindow, p, payload.requestId),
         initialMessage: 'agent.reference.progress.preparingExport',
-        initialPercentage: 80,
+        initialPercentage: 80
       })
-    : null;
+    : null
   if (payload.requestId && progressHandle) {
-    exportProgressHandles.set(payload.requestId, progressHandle);
+    exportProgressHandles.set(payload.requestId, progressHandle)
   }
 
   const ensureNotCancelled = () => {
     if (abortController?.signal.aborted) {
-      throw new Error('操作已取消');
+      throw new Error('操作已取消')
     }
-  };
+  }
 
   try {
-    const availableTargets = getExportTargets(payload.sourceFormat);
+    const availableTargets = getExportTargets(payload.sourceFormat)
     if (!availableTargets.some((item) => item.format === payload.targetFormat)) {
       return {
         success: false,
-        error: t('main.dialogs.exportNotSupported', '不支持的导出格式'),
-      };
+        error: t('main.dialogs.exportNotSupported', '不支持的导出格式')
+      }
     }
 
-    const defaultFileName = enforceExtension(payload.suggestedName, payload.targetFormat);
+    const defaultFileName = enforceExtension(payload.suggestedName, payload.targetFormat)
     const filters = FILTER_MAP[payload.targetFormat]
       ? [FILTER_MAP[payload.targetFormat]]
-      : [{ name: payload.targetFormat.toUpperCase(), extensions: [payload.targetFormat] }];
+      : [{ name: payload.targetFormat.toUpperCase(), extensions: [payload.targetFormat] }]
 
     // 在弹出对话框之前，通知渲染进程恢复鼠标状态
     if (mainWindow) {
-      mainWindow.webContents.send('export-dialog-opening');
+      mainWindow.webContents.send('export-dialog-opening')
     }
-    
+
     // @ts-ignore - Electron's showSaveDialog accepts BrowserWindow | undefined
     const dialogResult = await dialog.showSaveDialog(mainWindow || undefined, {
       title: t('main.dialogs.exportDocumentTitle'),
       defaultPath: defaultFileName,
-      filters,
-    });
+      filters
+    })
 
     if (dialogResult.canceled || !dialogResult.filePath) {
       // 用户取消了对话框，取消任务并隐藏进度条
       if (progressHandle) {
-        progressHandle.cancel();
+        progressHandle.cancel()
       }
       if (abortController) {
-        abortController.abort();
+        abortController.abort()
       }
-      sendProgress(mainWindow, { visible: false }, payload.requestId);
-      return { success: false };
+      sendProgress(mainWindow, { visible: false }, payload.requestId)
+      return { success: false }
     }
 
     // 显示导出进度条
     // 预渲染已完成（0-80%），现在从80%开始
-    sendProgress(mainWindow, {
-      message: 'agent.reference.progress.exporting',
-      subMessage: 'agent.reference.progress.preparingExport',
-      percentage: 80,
-      params: { format: payload.targetFormat }
-    }, payload.requestId);
+    sendProgress(
+      mainWindow,
+      {
+        message: 'agent.reference.progress.exporting',
+        subMessage: 'agent.reference.progress.preparingExport',
+        percentage: 80,
+        params: { format: payload.targetFormat }
+      },
+      payload.requestId
+    )
 
-    const handler = EXPORT_HANDLER_MAP[payload.sourceFormat]?.[payload.targetFormat];
+    const handler = EXPORT_HANDLER_MAP[payload.sourceFormat]?.[payload.targetFormat]
     if (!handler) {
       return {
         success: false,
-        error: t('main.dialogs.exportNotSupported', '不支持的导出格式'),
-      };
+        error: t('main.dialogs.exportNotSupported', '不支持的导出格式')
+      }
     }
 
-    const targetPath = enforceExtension(dialogResult.filePath, payload.targetFormat);
-    ensureNotCancelled();
+    const targetPath = enforceExtension(dialogResult.filePath, payload.targetFormat)
+    ensureNotCancelled()
     await handler({
       payload,
       targetPath,
-      mainWindow,
-    });
-    ensureNotCancelled();
+      mainWindow
+    })
+    ensureNotCancelled()
 
     // 导出完成后，清理中间图片文件（仅对 PDF 和 DOCX）
     // HTML 和 TEX 需要保留图片文件，因为它们会引用图片地址
     if (payload.imageUrls && payload.imageUrls.length > 0) {
       if (payload.targetFormat === 'pdf' || payload.targetFormat === 'docx') {
-        sendProgress(mainWindow, {
-          message: 'agent.reference.progress.cleaningTempFiles',
-          percentage: 98
-        }, payload.requestId);
-        await cleanupIntermediateImages(payload.imageUrls);
+        sendProgress(
+          mainWindow,
+          {
+            message: 'agent.reference.progress.cleaningTempFiles',
+            percentage: 98
+          },
+          payload.requestId
+        )
+        await cleanupIntermediateImages(payload.imageUrls)
       }
     }
 
     // 清理完成后，确保进度条消失
-    sendProgress(mainWindow, {
-      message: 'agent.reference.progress.exportComplete',
-      percentage: 100,
-      status: 'success'
-    }, payload.requestId);
+    sendProgress(
+      mainWindow,
+      {
+        message: 'agent.reference.progress.exportComplete',
+        percentage: 100,
+        status: 'success'
+      },
+      payload.requestId
+    )
     setTimeout(() => {
-      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 }, payload.requestId);
-    }, 1000);
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 }, payload.requestId)
+    }, 1000)
 
     return {
       success: true,
-      path: targetPath,
-    };
+      path: targetPath
+    }
   } catch (error) {
-    sendProgress(mainWindow, {
-      message: 'agent.reference.progress.exportError',
-      subMessage: error instanceof Error ? error.message : String(error),
-      percentage: 0,
-      status: 'exception'
-    }, payload.requestId);
+    sendProgress(
+      mainWindow,
+      {
+        message: 'agent.reference.progress.exportError',
+        subMessage: error instanceof Error ? error.message : String(error),
+        percentage: 0,
+        status: 'exception'
+      },
+      payload.requestId
+    )
     setTimeout(() => {
-      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 }, payload.requestId);
-    }, 2000);
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 }, payload.requestId)
+    }, 2000)
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
+      error: error instanceof Error ? error.message : String(error)
+    }
   } finally {
     // 确保进度条最终消失
     setTimeout(() => {
-      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 }, payload.requestId);
-    }, 3000);
+      sendProgress(mainWindow, { visible: false, message: '', percentage: 0 }, payload.requestId)
+    }, 3000)
     if (payload.requestId) {
-      exportAbortControllers.delete(payload.requestId);
-      exportProgressHandles.delete(payload.requestId);
+      exportAbortControllers.delete(payload.requestId)
+      exportProgressHandles.delete(payload.requestId)
     }
-    currentRequestId = undefined;
+    currentRequestId = undefined
   }
-};
-
-
+}

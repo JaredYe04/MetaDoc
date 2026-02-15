@@ -2,17 +2,9 @@
   <div class="dummy-view">
     <el-empty :description="t('dummyView.emptyDescription')">
       <template #image>
-        <div 
-          class="logo-container" 
-          :class="{ 'shake': isShaking }"
-          @click="handleClick"
-        >
+        <div class="logo-container" :class="{ shake: isShaking }" @click="handleClick">
           <div class="logo-animation-wrapper">
-            <img 
-              :src="logoPath" 
-              alt="Logo" 
-              class="logo-image"
-            />
+            <img :src="logoPath" alt="Logo" class="logo-image" />
           </div>
         </div>
       </template>
@@ -79,13 +71,21 @@ const handleClick = () => {
 
 /* 摇晃动画 - 只包含位移和旋转，scale 由外层容器处理 */
 @keyframes shake {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0) rotate(0deg);
   }
-  10%, 30%, 50%, 70%, 90% {
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
     transform: translateX(-10px) rotate(-5deg);
   }
-  20%, 40%, 60%, 80% {
+  20%,
+  40%,
+  60%,
+  80% {
     transform: translateX(10px) rotate(5deg);
   }
 }
@@ -95,4 +95,3 @@ const handleClick = () => {
   animation: shake 1.5s ease-in-out;
 }
 </style>
-

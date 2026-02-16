@@ -72,48 +72,54 @@ export function createToolExecutionSnapshot(
 export function serializeToolExecutionSnapshot(snapshot: ToolExecutionSnapshot): string {
   try {
     // 使用JSON.stringify进行序列化，处理循环引用和特殊值
-    const serialized = JSON.stringify(snapshot, (key, value) => {
-      // 处理undefined值（JSON.stringify会忽略undefined）
-      if (value === undefined) {
-        return null
-      }
-      // 处理函数（通常不应该出现在快照中，但为了安全起见）
-      if (typeof value === 'function') {
-        return `[Function: ${value.name || 'anonymous'}]`
-      }
-      // 处理Symbol
-      if (typeof value === 'symbol') {
-        return value.toString()
-      }
-      // 处理Date对象
-      if (value instanceof Date) {
-        return {
-          __type: 'Date',
-          value: value.toISOString()
+    const serialized = JSON.stringify(
+      snapshot,
+      (key, value) => {
+        // 处理undefined值（JSON.stringify会忽略undefined）
+        if (value === undefined) {
+          return null
         }
-      }
-      // 处理RegExp对象
-      if (value instanceof RegExp) {
-        return {
-          __type: 'RegExp',
-          value: value.toString()
+        // 处理函数（通常不应该出现在快照中，但为了安全起见）
+        if (typeof value === 'function') {
+          return `[Function: ${value.name || 'anonymous'}]`
         }
-      }
-      // 处理Error对象
-      if (value instanceof Error) {
-        return {
-          __type: 'Error',
-          name: value.name,
-          message: value.message,
-          stack: value.stack
+        // 处理Symbol
+        if (typeof value === 'symbol') {
+          return value.toString()
         }
-      }
-      return value
-    }, 2) // 使用2空格缩进，便于阅读
+        // 处理Date对象
+        if (value instanceof Date) {
+          return {
+            __type: 'Date',
+            value: value.toISOString()
+          }
+        }
+        // 处理RegExp对象
+        if (value instanceof RegExp) {
+          return {
+            __type: 'RegExp',
+            value: value.toString()
+          }
+        }
+        // 处理Error对象
+        if (value instanceof Error) {
+          return {
+            __type: 'Error',
+            name: value.name,
+            message: value.message,
+            stack: value.stack
+          }
+        }
+        return value
+      },
+      2
+    ) // 使用2空格缩进，便于阅读
 
     return serialized
   } catch (error) {
-    throw new Error(`序列化工具执行快照失败: ${error instanceof Error ? error.message : String(error)}`)
+    throw new Error(
+      `序列化工具执行快照失败: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }
 
@@ -141,7 +147,9 @@ export function deserializeToolExecutionSnapshot(serialized: string): ToolExecut
 
     // 检查版本兼容性
     if (parsed.version !== SNAPSHOT_VERSION) {
-      console.warn(`快照版本不匹配：快照版本 ${parsed.version}，当前版本 ${SNAPSHOT_VERSION}。尝试继续反序列化...`)
+      console.warn(
+        `快照版本不匹配：快照版本 ${parsed.version}，当前版本 ${SNAPSHOT_VERSION}。尝试继续反序列化...`
+      )
     }
 
     // 恢复特殊类型
@@ -152,7 +160,9 @@ export function deserializeToolExecutionSnapshot(serialized: string): ToolExecut
     if (error instanceof SyntaxError) {
       throw new Error(`反序列化工具执行快照失败：JSON解析错误 - ${error.message}`)
     }
-    throw new Error(`反序列化工具执行快照失败: ${error instanceof Error ? error.message : String(error)}`)
+    throw new Error(
+      `反序列化工具执行快照失败: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }
 
@@ -171,7 +181,7 @@ function deepClone<T>(obj: T): T {
 
   // 处理Array
   if (Array.isArray(obj)) {
-    return obj.map(item => deepClone(item)) as unknown as T
+    return obj.map((item) => deepClone(item)) as unknown as T
   }
 
   // 处理普通对象
@@ -244,7 +254,7 @@ function restoreSpecialTypes(obj: any): any {
   }
 
   if (Array.isArray(obj)) {
-    return obj.map(item => restoreSpecialTypes(item))
+    return obj.map((item) => restoreSpecialTypes(item))
   }
 
   // 处理特殊类型标记
@@ -317,7 +327,10 @@ export function validateToolExecutionSnapshot(snapshot: ToolExecutionSnapshot): 
     errors.push('缺少或无效的时间戳')
   }
 
-  if (!snapshot.status || !['pending', 'running', 'succeeded', 'failed', 'cancelled'].includes(snapshot.status)) {
+  if (
+    !snapshot.status ||
+    !['pending', 'running', 'succeeded', 'failed', 'cancelled'].includes(snapshot.status)
+  ) {
     errors.push('缺少或无效的执行状态')
   }
 
@@ -372,4 +385,3 @@ export function createSnapshotFromHistoryEntry(
     toolConfigSnapshot
   )
 }
-

@@ -24,10 +24,7 @@ export class RefreshService {
   /**
    * 刷新目录（带防抖）
    */
-  async refreshDirectory(
-    dirURI: URI,
-    onRefresh: (dirURI: URI) => Promise<void>
-  ): Promise<void> {
+  async refreshDirectory(dirURI: URI, onRefresh: (dirURI: URI) => Promise<void>): Promise<void> {
     // 清除之前的定时器
     const existingTimer = this.refreshDebounceTimers.get(dirURI)
     if (existingTimer) {
@@ -87,16 +84,15 @@ export class RefreshService {
     onRefresh: (dirURI: URI) => Promise<void>
   ): Promise<void> {
     const dirURI = URIUtils.pathToURI(dirPath)
-    
+
     // 只刷新已展开的目录
     if (!expandedURIs.has(dirURI)) {
       return
     }
 
     logger.debug('目录变化', { dirPath, eventType, filePath })
-    
+
     // 使用防抖刷新
     await this.refreshDirectory(dirURI, onRefresh)
   }
 }
-

@@ -33,14 +33,17 @@
 执行实际操作的节点，包括：
 
 - **`tool`**：调用工具
+
   - 需要在`artifactId`字段指定工具ID
   - 例如：`rag-tool`、`chart-generation`、`edit-tool`
 
 - **`llm-decision`**：LLM决策节点
+
   - 使用LLM进行决策判断
   - 需要在`config.prompt`中定义决策提示词
 
 - **`workflow`**：嵌套工作流
+
   - 可以在工作流中调用其他工作流
   - 需要在`artifactId`字段指定工作流ID
 
@@ -53,22 +56,27 @@
 控制执行流程的节点，包括：
 
 - **`condition`**：条件判断
+
   - 根据条件表达式决定执行路径
   - 条件表达式在`config.condition`中定义
 
 - **`loop`**：循环
+
   - 循环执行某个节点或节点序列
   - `config.loopCondition`：循环条件
   - `config.maxIterations`：最大迭代次数
 
 - **`parallel`**：并行执行
+
   - 并行执行多个节点
   - `config.parallelCount`：并行数量
 
 - **`merge`**：合并
+
   - 合并多个并行执行的路径
 
 - **`async`**：异步执行
+
   - 异步执行某个节点，不阻塞后续执行
 
 - **`aggregate`**：汇总
@@ -80,6 +88,7 @@
 每个节点都有明确的输入和输出定义。
 
 **输入（ArtifactInput）**：
+
 ```typescript
 {
   name: 'question',          // 参数名称
@@ -95,12 +104,14 @@
 ```
 
 **输入来源类型**：
+
 - `constant`：常量值，在`sourceValue`中指定
 - `variable`：工作流变量，在`variableName`中指定变量名
 - `upstream`：上游节点的输出，需要指定`upstreamNodeId`和`upstreamField`
 - `context`：公共上下文空间，在`contextKey`中指定键名
 
 **输出（ArtifactOutput）**：
+
 - 输出字段名、类型、描述
 - Tool的输出由工具本身定义
 - LLM决策节点的输出由提示词决定
@@ -171,6 +182,7 @@ var variableName: type = defaultValue
 ```
 
 示例：
+
 ```
 var userQuestion: string = ""
 var result: object = {}
@@ -187,12 +199,14 @@ nodeId: nodeType "artifactId" {
 ```
 
 节点类型：
+
 - `tool`：工具节点
 - `llm-decision`：LLM决策节点
 - `workflow`：工作流节点
 - `agent-config`：子Agent节点
 
 示例：
+
 ```
 rag-node: tool "rag-tool" {
   label: "RAG检索"
@@ -217,6 +231,7 @@ nodeId: nodeType {
 ```
 
 控制流节点类型：
+
 - `condition`：条件判断
 - `loop`：循环
 - `parallel`：并行
@@ -225,6 +240,7 @@ nodeId: nodeType {
 - `aggregate`：汇总
 
 示例：
+
 ```
 condition-node: condition {
   label: "结果判断"
@@ -252,6 +268,7 @@ sourceNodeId -> targetNodeId {
 ```
 
 简化形式（无需额外配置）：
+
 ```
 sourceNodeId -> targetNodeId
 ```
@@ -338,10 +355,12 @@ MetaDoc提供了三个内置工作流，这些工作流无法删除，位于"默
 **功能**: 使用大纲优化工具，在合适的地方添加子章节并生成内容。
 
 **流程**:
+
 1. LLM决策节点分析文章大纲，决定扩写位置
 2. 调用`outline-optimize`工具添加子章节或生成内容
 
-**使用场景**: 
+**使用场景**:
+
 - 扩展文章内容
 - 为现有章节添加子章节
 - 生成章节详细内容
@@ -353,11 +372,13 @@ MetaDoc提供了三个内置工作流，这些工作流无法删除，位于"默
 **功能**: 阅读文章，在合适的位置生成图表。
 
 **流程**:
+
 1. LLM决策节点分析文章，决定图表类型和位置
 2. 调用`chart-generation`工具生成图表
 3. 使用`edit`工具将图表插入到文档中
 
 **使用场景**:
+
 - 为文章添加可视化内容
 - 生成数据图表
 - 创建流程图、示意图等
@@ -369,11 +390,13 @@ MetaDoc提供了三个内置工作流，这些工作流无法删除，位于"默
 **功能**: 阅读文章，在合适的位置进行文字替换、插入、删除操作。
 
 **流程**:
+
 1. LLM决策节点分析文章，决定润色策略
 2. 可选择性地使用RAG工具检索知识库（默认开启）
 3. 调用`edit`工具进行文本编辑
 
 **使用场景**:
+
 - 优化文章表达
 - 修正语法错误
 - 改进文章结构
@@ -447,4 +470,3 @@ A: 在工作流管理界面中，点击"导出"按钮可以导出工作流为JSO
 - 内置工作流: `src/utils/agent-framework/builtin-workflows.ts`
 - 画布组件: `src/components/agent/workflow/WorkflowCanvas.vue`
 - 管理界面: `src/components/agent/manage/WorkflowManager.vue`
-

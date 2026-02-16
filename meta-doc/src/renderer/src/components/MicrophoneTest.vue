@@ -7,31 +7,31 @@
     <audio ref="audioPlayer" :src="audioUrl" controls v-if="audioUrl" class="audio-player" />
   </div>
 </template>
-  <script setup>
-  import { ref } from 'vue'
-  import { ElButton, ElIcon } from 'element-plus'
-  import { Microphone, Select } from '@element-plus/icons-vue'
-import { convertWebMToWav } from '../utils/audio-convert';
-import { createRendererLogger } from '../utils/logger';
-const logger = createRendererLogger('MicrophoneTest');
-  const isRecording = ref(false)
-  const audioPlayer = ref(null)
-  let mediaRecorder = null
-  let audioChunks = []
-  const audioUrl = ref('')
+<script setup>
+import { ref } from 'vue'
+import { ElButton, ElIcon } from 'element-plus'
+import { Microphone, Select } from '@element-plus/icons-vue'
+import { convertWebMToWav } from '../utils/audio-convert'
+import { createRendererLogger } from '../utils/logger'
+const logger = createRendererLogger('MicrophoneTest')
+const isRecording = ref(false)
+const audioPlayer = ref(null)
+let mediaRecorder = null
+let audioChunks = []
+const audioUrl = ref('')
 
-  const toggleRecording = async () => {
-    if (isRecording.value) {
-      // 停止录制
-      mediaRecorder.stop()
-      isRecording.value = false
-    } else {
-      // 开始录制
-      await startRecording()
-      isRecording.value = true
-    }
+const toggleRecording = async () => {
+  if (isRecording.value) {
+    // 停止录制
+    mediaRecorder.stop()
+    isRecording.value = false
+  } else {
+    // 开始录制
+    await startRecording()
+    isRecording.value = true
   }
-  import { useI18n } from 'vue-i18n'
+}
+import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
@@ -41,7 +41,7 @@ const startRecording = async () => {
     // console.log('Microphone access granted')
     mediaRecorder = new MediaRecorder(stream, {
       mimeType: 'audio/webm',
-      audioBitsPerSecond: 16000,
+      audioBitsPerSecond: 16000
     })
 
     let audioChunks = []
@@ -63,8 +63,7 @@ const startRecording = async () => {
     logger.error('Error accessing microphone:', err)
   }
 }
-  
-  </script>
+</script>
 <style scoped>
 .microphone-test {
   display: flex;

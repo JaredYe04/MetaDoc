@@ -16,7 +16,11 @@ import type {
 } from '../types/agent-tool'
 import { createRendererLogger } from './logger'
 import { i18n } from '../i18n'
-import { emitToolUpdate, emitToolComplete, emitToolFailed } from './agent-tools/tool-display-communication'
+import {
+  emitToolUpdate,
+  emitToolComplete,
+  emitToolFailed
+} from './agent-tools/tool-display-communication'
 import eventBus from './event-bus.js'
 import {
   serializeToolExecutionSnapshot,
@@ -25,8 +29,6 @@ import {
   validateToolExecutionSnapshot
 } from './agent-tools/tool-serialization'
 import { findTaskByOriginKey } from './ai_tasks'
-
-
 
 /**
  * Agent Tool管理器类
@@ -69,7 +71,7 @@ class AgentToolManager {
     if (this.tools.has(toolId)) {
       // 检查是否有正在运行的 invocation
       const hasRunningInvocations = Array.from(this.invocations.values()).some(
-        inv => inv.toolId === toolId
+        (inv) => inv.toolId === toolId
       )
       if (hasRunningInvocations) {
         logger.warn(`Tool ${toolId} 有正在运行的调用，无法注销`)
@@ -91,7 +93,7 @@ class AgentToolManager {
    * 获取启用的Tool
    */
   getEnabledTools(): RegisteredTool[] {
-    return Array.from(this.tools.values()).filter(tool => tool.config.enabled)
+    return Array.from(this.tools.values()).filter((tool) => tool.config.enabled)
   }
 
   /**
@@ -107,7 +109,11 @@ class AgentToolManager {
   async invokeTool(
     toolId: string,
     params: Record<string, unknown>,
-    onStatusUpdate?: (status: ToolExecutionStatus, data?: ToolCallbackData, progress?: ToolProgress) => void
+    onStatusUpdate?: (
+      status: ToolExecutionStatus,
+      data?: ToolCallbackData,
+      progress?: ToolProgress
+    ) => void
   ): Promise<ToolCallbackResult> {
     const tool = this.tools.get(toolId)
     if (!tool) {
@@ -131,10 +137,10 @@ class AgentToolManager {
       startTime: new Date().toISOString(),
       controller,
       onStatusUpdate,
-      timeoutCount: 0,  // 初始化超时计数
-      lastUpdateTime: Date.now(),  // 初始化最后更新时间
-      lastRefValue: '',  // 初始化最后ref值
-      lastRefLength: 0   // 初始化最后ref长度
+      timeoutCount: 0, // 初始化超时计数
+      lastUpdateTime: Date.now(), // 初始化最后更新时间
+      lastRefValue: '', // 初始化最后ref值
+      lastRefLength: 0 // 初始化最后ref长度
     }
 
     this.invocations.set(invocationId, context)
@@ -153,7 +159,7 @@ class AgentToolManager {
     }
     console.log(`[AgentToolManager] 发送 tool-invocation-started 事件:`, startEvent)
     eventBus.emit('tool-invocation-started', startEvent)
-    
+
     // 通知状态更新
     onStatusUpdate?.('running')
 
@@ -162,7 +168,7 @@ class AgentToolManager {
       const onUpdate = (data: ToolCallbackData, progress?: ToolProgress) => {
         // 更新最后更新时间（表示有进展）
         context.lastUpdateTime = Date.now()
-        
+
         // 通过eventBus发送实时更新事件
         emitToolUpdate(invocationId, data, progress)
         // 同时调用原有的回调（保持兼容性）
@@ -174,24 +180,27 @@ class AgentToolManager {
 
       // 更新状态：检查是否还有其他正在运行的 invocation
       const hasOtherRunningInvocations = Array.from(this.invocations.values()).some(
-        inv => inv.toolId === toolId && inv.invocationId !== invocationId
+        (inv) => inv.toolId === toolId && inv.invocationId !== invocationId
       )
       if (!hasOtherRunningInvocations) {
         tool.running = false
       }
-      
+
       // 通过eventBus发送完成事件
       // 转换status为emitToolComplete期望的格式
-      const completeStatus = result.status === 'succeeded' || result.status === 'failed' || result.status === 'cancelled'
-        ? result.status
-        : result.status === 'running' ? 'succeeded' : 'failed'
+      const completeStatus =
+        result.status === 'succeeded' || result.status === 'failed' || result.status === 'cancelled'
+          ? result.status
+          : result.status === 'running'
+            ? 'succeeded'
+            : 'failed'
       emitToolComplete(invocationId, {
         status: completeStatus,
         data: result.data,
         error: result.error,
         progress: result.progress
       })
-      
+
       // 同时调用原有的回调（保持兼容性）
       onStatusUpdate?.(result.status, result.data, result.progress)
 
@@ -200,7 +209,7 @@ class AgentToolManager {
       const logger = createRendererLogger('AgentToolManager')
       // 更新状态：检查是否还有其他正在运行的 invocation
       const hasOtherRunningInvocations = Array.from(this.invocations.values()).some(
-        inv => inv.toolId === toolId && inv.invocationId !== invocationId
+        (inv) => inv.toolId === toolId && inv.invocationId !== invocationId
       )
       if (!hasOtherRunningInvocations) {
         tool.running = false
@@ -215,7 +224,7 @@ class AgentToolManager {
 
       // 通过eventBus发送失败事件
       emitToolFailed(invocationId, errorMessage)
-      
+
       // 同时调用原有的回调（保持兼容性）
       onStatusUpdate?.('failed', undefined, undefined)
       return errorResult
@@ -236,7 +245,7 @@ class AgentToolManager {
       if (tool) {
         // 检查是否还有其他正在运行的 invocation
         const hasOtherRunningInvocations = Array.from(this.invocations.values()).some(
-          inv => inv.toolId === context.toolId && inv.invocationId !== invocationId
+          (inv) => inv.toolId === context.toolId && inv.invocationId !== invocationId
         )
         if (!hasOtherRunningInvocations) {
           tool.running = false
@@ -288,9 +297,10 @@ class AgentToolManager {
       name: tool.config.name,
       description: tool.config.description,
       origin: tool.config.origin,
-      displayComponent: typeof tool.config.displayComponent === 'string'
-        ? tool.config.displayComponent
-        : tool.config.displayComponent?.name || undefined
+      displayComponent:
+        typeof tool.config.displayComponent === 'string'
+          ? tool.config.displayComponent
+          : tool.config.displayComponent?.name || undefined
     }
 
     const timestamp = new Date(context.startTime).getTime()
@@ -323,7 +333,7 @@ class AgentToolManager {
    */
   deserializeExecutionSnapshot(serialized: string): ToolExecutionSnapshot {
     const snapshot = deserializeToolExecutionSnapshot(serialized)
-    
+
     // 验证快照
     const validation = validateToolExecutionSnapshot(snapshot)
     if (!validation.valid) {
@@ -352,40 +362,41 @@ class AgentToolManager {
     if (tool.running) {
       // 检查最近的调用是否超时
       const runningInvocation = Array.from(this.invocations.values()).find(
-        inv => inv.toolId === toolId
+        (inv) => inv.toolId === toolId
       )
       if (runningInvocation) {
         // 检查是否有对应的AI任务正在运行
         let hasUpdate = false
-        
+
         // 如果有originKey，尝试查找对应的AI任务
-        let aiTask = runningInvocation.originKey 
+        let aiTask = runningInvocation.originKey
           ? findTaskByOriginKey(runningInvocation.originKey)
           : null
-          
+
         // 如果没有找到，尝试通过工具ID查找（对于proofread工具，originKey模式是proofread-xxx）
         if (!aiTask && toolId === 'proofread') {
           const { useAiTasks } = await import('./ai_tasks')
           const allTasks = useAiTasks().value
           // 查找最近创建的、正在运行的proofread任务
-          aiTask = allTasks.find(t => 
-            t.status.value === '运行中' && 
-            t.origin_key && 
-            t.origin_key.startsWith('proofread-')
+          aiTask = allTasks.find(
+            (t) =>
+              t.status.value === '运行中' && t.origin_key && t.origin_key.startsWith('proofread-')
           )
           if (aiTask) {
             // 保存originKey以便下次直接查找
             runningInvocation.originKey = aiTask.origin_key
           }
         }
-        
+
         if (aiTask && aiTask.target) {
           const currentRefValue = aiTask.target.value || ''
           const currentRefLength = currentRefValue.length
-          
+
           // 检查ref是否有更新（值变化或长度变化）
-          if (currentRefLength !== (runningInvocation.lastRefLength || 0) ||
-              currentRefValue !== (runningInvocation.lastRefValue || '')) {
+          if (
+            currentRefLength !== (runningInvocation.lastRefLength || 0) ||
+            currentRefValue !== (runningInvocation.lastRefValue || '')
+          ) {
             // ref有更新，说明正在工作
             hasUpdate = true
             runningInvocation.lastRefValue = currentRefValue
@@ -394,28 +405,36 @@ class AgentToolManager {
             logger.debug(`Tool ${toolId} ref有更新，长度=${currentRefLength}`)
           }
         }
-        
+
         // 检查是否有onUpdate调用（通过lastUpdateTime判断）
         const now = Date.now()
-        const timeSinceLastUpdate = runningInvocation.lastUpdateTime 
-          ? now - runningInvocation.lastUpdateTime 
+        const timeSinceLastUpdate = runningInvocation.lastUpdateTime
+          ? now - runningInvocation.lastUpdateTime
           : now - new Date(runningInvocation.startTime).getTime()
-        
+
         // 如果最近有更新（30秒内），认为工具还活着
         if (hasUpdate || timeSinceLastUpdate < 30000) {
           return true
         }
-        
+
         // 如果没有更新，且距离最后一次更新超过超时时间，认为超时
         if (timeSinceLastUpdate > this.ALIVE_TIMEOUT) {
-          logger.warn(`Tool ${toolId} 调用超时（${Math.round(timeSinceLastUpdate / 1000)}秒无更新）`)
+          logger.warn(
+            `Tool ${toolId} 调用超时（${Math.round(timeSinceLastUpdate / 1000)}秒无更新）`
+          )
           return false
         }
-        
+
         // 如果距离开始时间超过超时时间，也认为超时（防止初始状态就没有更新）
         const elapsed = now - new Date(runningInvocation.startTime).getTime()
-        if (elapsed > this.ALIVE_TIMEOUT && !hasUpdate && timeSinceLastUpdate > this.ALIVE_TIMEOUT) {
-          logger.warn(`Tool ${toolId} 调用超时（总运行时间${Math.round(elapsed / 1000)}秒，无更新）`)
+        if (
+          elapsed > this.ALIVE_TIMEOUT &&
+          !hasUpdate &&
+          timeSinceLastUpdate > this.ALIVE_TIMEOUT
+        ) {
+          logger.warn(
+            `Tool ${toolId} 调用超时（总运行时间${Math.round(elapsed / 1000)}秒，无更新）`
+          )
           return false
         }
       }
@@ -429,71 +448,72 @@ class AgentToolManager {
    * 启动存活检查
    */
   startAliveCheck(): void {
-    
     if (this.aliveCheckInterval !== null) {
       return
     }
 
     this.aliveCheckInterval = window.setInterval(async () => {
-      const runningTools = Array.from(this.tools.values()).filter(t => t.running)
+      const runningTools = Array.from(this.tools.values()).filter((t) => t.running)
       for (const tool of runningTools) {
         this.checkToolAlive(tool.config.id).then(async (alive) => {
           const logger = createRendererLogger('AgentToolManager')
           // 查找对应的invocation
           const runningInvocation = Array.from(this.invocations.values()).find(
-            inv => inv.toolId === tool.config.id
+            (inv) => inv.toolId === tool.config.id
           )
-          
+
           if (!runningInvocation) {
             return
           }
-          
+
           // 检查是否有对应的AI任务正在运行，并更新ref值
           // 如果没有originKey，尝试通过工具ID和任务名称模式匹配
-          let aiTask = runningInvocation.originKey 
+          let aiTask = runningInvocation.originKey
             ? findTaskByOriginKey(runningInvocation.originKey)
             : null
-            
+
           // 如果没有找到，尝试通过工具ID查找（对于proofread工具，originKey模式是proofread-xxx）
           if (!aiTask && tool.config.id === 'proofread') {
             const { useAiTasks } = await import('./ai_tasks')
             const allTasks = useAiTasks().value
             // 查找最近创建的、正在运行的proofread任务
-            aiTask = allTasks.find(t => 
-              t.status.value === '运行中' && 
-              t.origin_key && 
-              t.origin_key.startsWith('proofread-')
+            aiTask = allTasks.find(
+              (t) =>
+                t.status.value === '运行中' && t.origin_key && t.origin_key.startsWith('proofread-')
             )
             if (aiTask) {
               // 保存originKey以便下次直接查找
               runningInvocation.originKey = aiTask.origin_key
             }
           }
-          
+
           // 对于其他工具，也可以尝试类似的匹配逻辑
           if (!aiTask) {
             const { useAiTasks } = await import('./ai_tasks')
             const allTasks = useAiTasks().value
             // 查找最近创建的、正在运行的、名称匹配的任务
             const toolNamePattern = tool.config.id.toLowerCase()
-            aiTask = allTasks.find(t => 
-              t.status.value === '运行中' && 
-              t.origin_key && 
-              t.origin_key.toLowerCase().startsWith(toolNamePattern + '-')
+            aiTask = allTasks.find(
+              (t) =>
+                t.status.value === '运行中' &&
+                t.origin_key &&
+                t.origin_key.toLowerCase().startsWith(toolNamePattern + '-')
             )
             if (aiTask) {
               // 保存originKey以便下次直接查找
               runningInvocation.originKey = aiTask.origin_key
             }
           }
-          
+
           if (aiTask && aiTask.target) {
             const currentRefValue = aiTask.target.value || ''
             const currentRefLength = currentRefValue.length
-            
+
             // 检查ref是否有更新
-            if (currentRefLength !== (runningInvocation.lastRefLength || 0) ||
-                currentRefValue !== (runningInvocation.lastRefValue || '')) {
+            if (
+              currentRefLength !== (runningInvocation.lastRefLength || 0) ||
+              currentRefValue !== (runningInvocation.lastRefValue || '')
+            ) {
               // ref有更新，重置超时计数
               runningInvocation.lastRefValue = currentRefValue
               runningInvocation.lastRefLength = currentRefLength
@@ -503,12 +523,12 @@ class AgentToolManager {
               return
             }
           }
-          
+
           if (!alive) {
             // 增加超时计数
             runningInvocation.timeoutCount = (runningInvocation.timeoutCount || 0) + 1
             logger.warn(`Tool ${tool.config.id} 调用超时 (${runningInvocation.timeoutCount}/3)`)
-            
+
             // 检查是否有输出内容
             let hasContent = false
             if (aiTask && aiTask.target) {
@@ -518,12 +538,14 @@ class AgentToolManager {
                 logger.warn(`Tool ${tool.config.id} 超时但检测到有输出内容，将尝试解析已有内容`)
               }
             }
-            
+
             // 如果连续超时3次
             if (runningInvocation.timeoutCount >= 3) {
               if (hasContent) {
                 // 有内容，标记为超时但允许解析
-                logger.warn(`Tool ${tool.config.id} 连续超时3次，但检测到有输出内容，标记为超时并允许解析`)
+                logger.warn(
+                  `Tool ${tool.config.id} 连续超时3次，但检测到有输出内容，标记为超时并允许解析`
+                )
                 runningInvocation.isTimeout = true
                 // 不abort，让工具回调函数处理已有内容
                 // 设置一个标记，让工具回调知道已经超时
@@ -534,12 +556,15 @@ class AgentToolManager {
                 logger.error(`Tool ${tool.config.id} 连续超时3次且无输出内容，自动取消任务`)
                 runningInvocation.controller.abort()
                 // 发送失败事件
-                emitToolFailed(runningInvocation.invocationId, '工具调用连续超时3次且无输出内容，已自动取消')
+                emitToolFailed(
+                  runningInvocation.invocationId,
+                  '工具调用连续超时3次且无输出内容，已自动取消'
+                )
                 // 从invocations中移除
                 this.invocations.delete(runningInvocation.invocationId)
                 // 更新tool状态
                 const hasOtherRunningInvocations = Array.from(this.invocations.values()).some(
-                  inv => inv.toolId === tool.config.id
+                  (inv) => inv.toolId === tool.config.id
                 )
                 if (!hasOtherRunningInvocations) {
                   tool.running = false
@@ -557,7 +582,6 @@ class AgentToolManager {
         })
       }
     }, this.ALIVE_CHECK_INTERVAL)
-
   }
 
   /**
@@ -655,10 +679,12 @@ class AgentToolManager {
     if (typeof text !== 'object' || text === null) {
       return ''
     }
-    
-    const currentLocale = String((i18n.global.locale as any).value || 'zh_CN').replace('-', '_').toLowerCase()
+
+    const currentLocale = String((i18n.global.locale as any).value || 'zh_CN')
+      .replace('-', '_')
+      .toLowerCase()
     const locales = text as ToolLocales
-    
+
     // 1. 尝试当前语言
     if (locales[currentLocale]) {
       const localeData = locales[currentLocale]
@@ -666,7 +692,7 @@ class AgentToolManager {
         return localeData.name || localeData.description || ''
       }
     }
-    
+
     // 2. 回退到en_us
     if (locales['en_us']) {
       const localeData = locales['en_us']
@@ -674,7 +700,7 @@ class AgentToolManager {
         return localeData.name || localeData.description || ''
       }
     }
-    
+
     // 3. 回退到en_US
     if (locales['en_US']) {
       const localeData = locales['en_US']
@@ -682,7 +708,7 @@ class AgentToolManager {
         return localeData.name || localeData.description || ''
       }
     }
-    
+
     // 4. 尝试其他支持的语言
     const supportedLocales = ['zh_cn', 'de_DE', 'fr_FR', 'ja_JP', 'ko_KR']
     for (const locale of supportedLocales) {
@@ -693,7 +719,7 @@ class AgentToolManager {
         }
       }
     }
-    
+
     // 5. 返回第一个可用的值
     const values = Object.values(locales)
     if (values.length > 0) {
@@ -702,7 +728,7 @@ class AgentToolManager {
         return first.name || first.description || ''
       }
     }
-    
+
     return ''
   }
 }
@@ -714,4 +740,3 @@ export const agentToolManager = new AgentToolManager()
 if (typeof window !== 'undefined') {
   agentToolManager.startAliveCheck()
 }
-

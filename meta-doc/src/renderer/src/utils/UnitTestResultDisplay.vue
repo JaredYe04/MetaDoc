@@ -36,7 +36,7 @@
 
     <el-tabs v-model="activeTab" type="border-card" tab-position="top">
       <el-tab-pane :label="$t('setting.debug.unitTest.testResults')" name="results">
-        <el-scrollbar style="height: 100%;">
+        <el-scrollbar style="height: 100%">
           <div class="test-results-list">
             <div
               v-for="(result, index) in testResults"
@@ -60,27 +60,47 @@
                 </div>
                 <div class="test-result-actions">
                   <el-tag :type="result.passed ? 'success' : 'danger'" size="small">
-                    {{ result.passed ? $t('setting.debug.unitTest.passed') : $t('setting.debug.unitTest.failed') }}
+                    {{
+                      result.passed
+                        ? $t('setting.debug.unitTest.passed')
+                        : $t('setting.debug.unitTest.failed')
+                    }}
                   </el-tag>
                 </div>
               </div>
-              
-              <div v-if="result.params && result.params.length > 0" class="test-params" :style="testSectionStyle">
+
+              <div
+                v-if="result.params && result.params.length > 0"
+                class="test-params"
+                :style="testSectionStyle"
+              >
                 <strong :style="sectionLabelStyle">{{ $t('setting.debug.parameters') }}:</strong>
                 <pre :style="preStyle">{{ JSON.stringify(result.params, null, 2) }}</pre>
               </div>
 
-              <div v-if="!result.passed && result.error" class="test-error" :style="testSectionStyle">
+              <div
+                v-if="!result.passed && result.error"
+                class="test-error"
+                :style="testSectionStyle"
+              >
                 <strong :style="sectionLabelStyle">{{ $t('setting.debug.error') }}:</strong>
                 <pre :style="errorPreStyle">{{ result.error }}</pre>
               </div>
 
-              <div v-if="result.result !== undefined" class="test-result-data" :style="testSectionStyle">
+              <div
+                v-if="result.result !== undefined"
+                class="test-result-data"
+                :style="testSectionStyle"
+              >
                 <strong :style="sectionLabelStyle">{{ $t('setting.debug.result') }}:</strong>
                 <pre :style="preStyle">{{ formatResult(result.result) }}</pre>
               </div>
 
-              <div v-if="result.duration !== undefined" class="test-duration" :style="testDurationStyle">
+              <div
+                v-if="result.duration !== undefined"
+                class="test-duration"
+                :style="testDurationStyle"
+              >
                 {{ $t('setting.debug.unitTest.executionTime') }}: {{ result.duration }}ms
               </div>
             </div>
@@ -89,11 +109,15 @@
       </el-tab-pane>
 
       <el-tab-pane :label="$t('setting.debug.unitTest.markdownSummary')" name="markdown">
-        <el-scrollbar style="height: 100%;">
+        <el-scrollbar style="height: 100%">
           <div class="markdown-content" :style="markdownContentStyle">
-            <div ref="markdownContainerRef" class="markdown-render-container" :style="{
+            <div
+              ref="markdownContainerRef"
+              class="markdown-render-container"
+              :style="{
                 color: themeState.currentTheme.textColor
-              }"></div>
+              }"
+            ></div>
           </div>
         </el-scrollbar>
       </el-tab-pane>
@@ -160,7 +184,9 @@ const copyMarkdown = async () => {
     await navigator.clipboard.writeText(props.markdownSummary)
     ElMessage.success(t('setting.debug.unitTest.copySuccess'))
   } catch (error) {
-    ElMessage.error(`${t('setting.debug.unitTest.copyFailed')}: ${error instanceof Error ? error.message : String(error)}`)
+    ElMessage.error(
+      `${t('setting.debug.unitTest.copyFailed')}: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }
 
@@ -186,9 +212,8 @@ const containerStyle = computed(() => ({
 const getTestResultItemStyle = (passed: boolean) => {
   return {
     backgroundColor: themeState.currentTheme.background,
-    borderColor: themeState.currentTheme.type === 'dark' 
-      ? 'rgba(255, 255, 255, 0.1)' 
-      : 'rgba(0, 0, 0, 0.08)',
+    borderColor:
+      themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
     borderLeftColor: passed ? '#67c23a' : '#f56c6c'
   }
 }
@@ -429,4 +454,3 @@ onMounted(() => {
   background-color: v-bind('themeState.currentTheme.background');
 }
 </style>
-

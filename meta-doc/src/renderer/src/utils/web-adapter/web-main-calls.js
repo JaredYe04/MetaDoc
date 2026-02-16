@@ -1,18 +1,15 @@
 //所有主进程的事件处理函数
 
-
 // import { app, shell, BrowserWindow, globalShortcut, nativeTheme } from 'electron'
-
 
 //import { mainWindow, openSettingDialog, openAiChatDialog, imageUploadDir, settingWindow, aichatWindow, openFomulaRecognitionDialog,fomulaRecognitionWindow, openAiGraphDialog, aiGraphWindow } from './index'
 
-import eventBus from '../event-bus';
-import {  useRouter } from 'vue-router'
-import localIpcMain from './local-ipc-main';
-import { calc_md5 } from '../md5';
-import router from '../../router/router';
-import { local } from 'd3';
-
+import eventBus from '../event-bus'
+import { useRouter } from 'vue-router'
+import localIpcMain from './local-ipc-main'
+import { calc_md5 } from '../md5'
+import router from '../../router/router'
+import { local } from 'd3'
 
 // const Vditor = require("vditor");
 
@@ -24,11 +21,8 @@ import { local } from 'd3';
 //   });
 // };
 
-
-
-
 const getImagePath = async () => {
-  return './';
+  return './'
   //todo
 }
 const systemNotification = (title, body, path = '') => {
@@ -37,10 +31,9 @@ const systemNotification = (title, body, path = '') => {
   //     title: title,
   //     body: body
   //   });
-//   // 显示通知
-//   notification.show();
+  //   // 显示通知
+  //   notification.show();
 }
-
 
 // import { Segment } from 'segment';
 // var segment = new Segment();
@@ -76,10 +69,8 @@ const getRecentDocs = async () => {
     //   result.push(filePath)
     // }
   }
-  return result;
+  return result
 }
-
-
 
 function getSetting(key) {
   //如果没有设置，则设置为默认值
@@ -91,8 +82,6 @@ function getSetting(key) {
 function setSetting(key, value) {
   return localStorage.setItem(key, value)
 }
-
-
 
 const save = async (data, saveAs) => {
   //console.log(data);
@@ -110,10 +99,9 @@ const save = async (data, saveAs) => {
   if (path) {
     //fs.writeFileSync(path, json)
     //console.log("保存成功");
-    updateRecentDocs({path})
-    const fileName = typeof path === 'string' && path.length > 0
-      ? path.split(/[\\/]/).pop() || path
-      : 'Untitled'
+    updateRecentDocs({ path })
+    const fileName =
+      typeof path === 'string' && path.length > 0 ? path.split(/[\\/]/).pop() || path : 'Untitled'
     eventBus.emit('save-success', {
       path,
       fileName,
@@ -124,22 +112,19 @@ const save = async (data, saveAs) => {
   }
 }
 
-export const openDoc = async (path) => {
-}
-
+export const openDoc = async (path) => {}
 
 export function webMainCalls() {
   const emitter = rendererEmitter
-  localIpcMain.on('quit', async (event, data)=>{
+  localIpcMain.on('quit', async (event, data) => {
     //关闭网页
-    quit();
+    quit()
   })
   localIpcMain.on('save', async (event, data) => {
     await save(data, false)
-    is_need_save = false;
+    is_need_save = false
   })
   localIpcMain.on('save-as', async (event, data) => {
-
     await save(data, true)
     //is_need_save = false;
   })
@@ -151,9 +136,8 @@ export function webMainCalls() {
     await exportFile(event, data)
   })
 
-
   localIpcMain.on('setting', () => {
-    //console.log('setting')  
+    //console.log('setting')
     router.push('/single-page/setting')
     //openSettingDialog();
     //
@@ -162,7 +146,7 @@ export function webMainCalls() {
     router.push('/single-page/ai-chat')
     //openAiChatDialog();
   })
-  localIpcMain.on('ai-graph',() => {
+  localIpcMain.on('ai-graph', () => {
     router.push('/single-page/graph')
     //openAiGraphDialog();
   })
@@ -173,26 +157,23 @@ export function webMainCalls() {
     router.push('/single-page/fomula-recognition')
     //openFomulaRecognitionDialog();
   })
-  
+
   localIpcMain.on('data-analysis', () => {
     router.push('/single-page/data-analysis')
   })
-  
+
   localIpcMain.on('ocr', () => {
     router.push('/single-page/ocr')
   })
-  
+
   localIpcMain.on('attachment', () => {
     router.push('/single-page/attachment')
   })
-  
+
   localIpcMain.on('graph', () => {
     router.push('/single-page/graph')
   })
 
-
-
-  
   localIpcMain.on('open-link', (event, url) => {
     //console.log(url)
     shell.openExternal(url)
@@ -200,7 +181,7 @@ export function webMainCalls() {
 
   localIpcMain.on('system-notification', (event, data) => {
     //console.log(data)
-    systemNotification(data.title, data.body, data.path);
+    systemNotification(data.title, data.body, data.path)
   })
   // localIpcMain.on('request-sync-theme', () => {//渲染进程请求同步主题，主进程需要通知所有窗口
   //   eventBus.emit('sync-theme')
@@ -213,9 +194,9 @@ export function webMainCalls() {
   })
   localIpcMain.handle('workspace-save-document', async (event, payload) => {
     if (payload?.data) {
-      await save(payload.data, payload.saveAs);
+      await save(payload.data, payload.saveAs)
     }
-    return null;
+    return null
   })
   localIpcMain.handle('update-recent-docs', async (event, data) => {
     return await updateRecentDocs(data)
@@ -238,15 +219,18 @@ export function webMainCalls() {
     }
     return 'light'
   })
-  
+
   // 获取系统主题信息（包括亮暗色和主题色）
   localIpcMain.handle('get-os-theme-info', async (event, data) => {
     // Web 环境下，检测系统主题
-    const mode = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'
+    const mode =
+      window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light'
     // Web 环境下无法获取系统主题色，返回 undefined
     return { mode, accentColor: undefined }
   })
-  
+
   // 获取系统字体列表（Web 环境下返回默认字体列表）
   localIpcMain.handle('get-system-fonts', async (event, data) => {
     // Web 环境下无法获取系统字体，返回默认字体列表
@@ -265,43 +249,46 @@ export function webMainCalls() {
       { name: 'SimSun', family: 'SimSun' },
       { name: 'SimHei', family: 'SimHei' },
       { name: 'KaiTi', family: 'KaiTi' },
-      { name: 'FangSong', family: 'FangSong' },
+      { name: 'FangSong', family: 'FangSong' }
     ]
   })
-  localIpcMain.handle('simpletex-ocr', async (event, { fileName, fileType, fileBuffer, reqData, header }) => {
-    // 重新构造 FormData
-    // 重新构造 Buffer
-    const buffer = Buffer.from(fileBuffer);
+  localIpcMain.handle(
+    'simpletex-ocr',
+    async (event, { fileName, fileType, fileBuffer, reqData, header }) => {
+      // 重新构造 FormData
+      // 重新构造 Buffer
+      const buffer = Buffer.from(fileBuffer)
 
-    // 创建 Blob 对象（适用于 FormData）
-    const blob = new Blob([buffer], { type: fileType });
+      // 创建 Blob 对象（适用于 FormData）
+      const blob = new Blob([buffer], { type: fileType })
 
-    const formData = new FormData();
-    formData.append("file", blob, fileName); // 这里用 Blob
+      const formData = new FormData()
+      formData.append('file', blob, fileName) // 这里用 Blob
 
-    // 将 reqData 里的参数也加进去
-    for (const key in reqData) {
-      formData.append(key, reqData[key]);
-    }
+      // 将 reqData 里的参数也加进去
+      for (const key in reqData) {
+        formData.append(key, reqData[key])
+      }
 
-    return await fetch("https://server.simpletex.cn/api/simpletex_ocr", {
-      method: "POST",
-      headers: header,
-      body: formData
-    })
-      .then(res => res.json())
-      .then(json => {
-        return json;
+      return await fetch('https://server.simpletex.cn/api/simpletex_ocr', {
+        method: 'POST',
+        headers: header,
+        body: formData
       })
-      .catch(err => {
-        console.error(err);
-        return 'error:' + err;
-      });
-  });
+        .then((res) => res.json())
+        .then((json) => {
+          return json
+        })
+        .catch((err) => {
+          console.error(err)
+          return 'error:' + err
+        })
+    }
+  )
 
   localIpcMain.handle('compute-md5', async (event, data) => {
     return calc_md5(data)
-  });
+  })
 
   // 保存 JSON 文件（web 环境后备方案）
   localIpcMain.handle('save-json-file', async (event, jsonContent, suggestedName) => {
@@ -316,7 +303,7 @@ export function webMainCalls() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-      
+
       return { success: true }
     } catch (error) {
       return {
@@ -324,7 +311,7 @@ export function webMainCalls() {
         error: error instanceof Error ? error.message : String(error)
       }
     }
-  });
+  })
 
   // 拼写检查相关处理器（web 环境后备方案）
   // 注意：在 web 环境下，这些操作会保存到 localStorage
@@ -347,7 +334,7 @@ export function webMainCalls() {
         error: error instanceof Error ? error.message : String(error)
       }
     }
-  });
+  })
 
   localIpcMain.handle('spell-check-add-words', async (event, words) => {
     try {
@@ -355,7 +342,9 @@ export function webMainCalls() {
       const key = 'spell-check-dictionary'
       const existing = localStorage.getItem(key)
       const existingWords = existing ? JSON.parse(existing) : []
-      const newWords = words.map(w => w.toLowerCase().trim()).filter(w => w && !existingWords.includes(w))
+      const newWords = words
+        .map((w) => w.toLowerCase().trim())
+        .filter((w) => w && !existingWords.includes(w))
       if (newWords.length > 0) {
         const allWords = [...existingWords, ...newWords].sort()
         localStorage.setItem(key, JSON.stringify(allWords))
@@ -367,6 +356,5 @@ export function webMainCalls() {
         error: error instanceof Error ? error.message : String(error)
       }
     }
-  });
-
+  })
 }

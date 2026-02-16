@@ -1,15 +1,15 @@
-import { extractOuterJsonString } from './regex-utils';
+import { extractOuterJsonString } from './regex-utils'
 
 export interface SchemaDefinition<T = unknown> {
-  name: string;
-  description: string;
-  schema: Record<string, unknown>;
-  example?: string;
+  name: string
+  description: string
+  schema: Record<string, unknown>
+  example?: string
 }
 
 export interface DocumentTitleSchemaResult {
-  title: string;
-  keywords?: string[];
+  title: string
+  keywords?: string[]
 }
 
 export const DOCUMENT_TITLE_SCHEMA: SchemaDefinition<DocumentTitleSchemaResult> = {
@@ -22,68 +22,58 @@ export const DOCUMENT_TITLE_SCHEMA: SchemaDefinition<DocumentTitleSchemaResult> 
       title: {
         type: 'string',
         description: '简洁明了的对话标题，避免标点，建议 4-20 个字符',
-        maxLength: 40,
+        maxLength: 40
       },
       keywords: {
         type: 'array',
         description: '可选关键词列表',
         items: {
           type: 'string',
-          maxLength: 12,
+          maxLength: 12
         },
-        maxItems: 5,
-      },
-    },
+        maxItems: 5
+      }
+    }
   },
-  example: '{"title":"周报需求讨论","keywords":["周报","需求"]}',
-};
+  example: '{"title":"周报需求讨论","keywords":["周报","需求"]}'
+}
 
-export function buildSchemaPrompt<T>(
-  schema: SchemaDefinition<T>,
-  instruction: string,
-): string {
-  const schemaText = JSON.stringify(schema.schema, null, 2);
-  const exampleSection = schema.example
-    ? `示例输出：\n${schema.example}\n`
-    : '';
+export function buildSchemaPrompt<T>(schema: SchemaDefinition<T>, instruction: string): string {
+  const schemaText = JSON.stringify(schema.schema, null, 2)
+  const exampleSection = schema.example ? `示例输出：\n${schema.example}\n` : ''
   return `${instruction}
 请严格输出一个符合以下 JSON Schema 的结果，不要添加任何解释或多余文本：
 ${schemaText}
-${exampleSection}`.trim();
+${exampleSection}`.trim()
 }
 
-export function parseSchemaJson<T>(
-  rawText: string,
-  schema?: SchemaDefinition<T>,
-): T {
-  const jsonString = extractOuterJsonString(rawText);
+export function parseSchemaJson<T>(rawText: string, schema?: SchemaDefinition<T>): T {
+  const jsonString = extractOuterJsonString(rawText)
   if (!jsonString) {
     throw new Error(
-      schema
-        ? `未能解析出符合 ${schema.name} 的 JSON 结果`
-        : '未能解析出合法的 JSON 结果',
-    );
+      schema ? `未能解析出符合 ${schema.name} 的 JSON 结果` : '未能解析出合法的 JSON 结果'
+    )
   }
-  return JSON.parse(jsonString) as T;
+  return JSON.parse(jsonString) as T
 }
 
 // AIGC 检测相关 Schema
 // 统一方向：所有维度均为 0-10，分数越高表示该维度上越像 AIGC、风险越大（无反向指标）
 export interface AigcDimensionScore {
-  sentence_uniformity: number;
+  sentence_uniformity: number
   /** 词汇重复/保守程度，10=重复保守=高 AIGC 风险（勿与“多样性”混淆：高分=低多样性=风险） */
-  lexical_diversity: number;
-  reasoning_smoothness: number;
-  personal_trace: number;
-  stylistic_risk: number;
-  over_explanation: number;
-  hedging_pattern: number;
+  lexical_diversity: number
+  reasoning_smoothness: number
+  personal_trace: number
+  stylistic_risk: number
+  over_explanation: number
+  hedging_pattern: number
   // 新增：更细致地判断 AIGC 可能性
-  opening_transition_pattern: number;  // 开头与过渡语模板化（首先、其次、综上所述等）
-  structural_repetition: number;        // 结构重复（段落/句式过于规整）
-  abstractness: number;                // 抽象与空洞（缺乏具体例证）
-  emotional_flatness: number;          // 情感平淡（缺乏情绪起伏）
-  formulaic_closure: number;           // 套路化收尾（总结/展望/建议三板斧）
+  opening_transition_pattern: number // 开头与过渡语模板化（首先、其次、综上所述等）
+  structural_repetition: number // 结构重复（段落/句式过于规整）
+  abstractness: number // 抽象与空洞（缺乏具体例证）
+  emotional_flatness: number // 情感平淡（缺乏情绪起伏）
+  formulaic_closure: number // 套路化收尾（总结/展望/建议三板斧）
 }
 
 /** 各维度权重（用于加权计算总体风险），权重越高该维度对 AIGC 判定的影响越大 */
@@ -110,9 +100,9 @@ export const AIGC_VETO_THRESHOLD = 7
 export const AIGC_VETO_BONUS_FACTOR = 5
 
 export interface AigcAnalysisResult extends AigcDimensionScore {
-  overall_aigc_risk: number; // 0-100
-  risk_level: 'LOW' | 'MEDIUM' | 'HIGH';
-  concise_suggestions: string[];
+  overall_aigc_risk: number // 0-100
+  risk_level: 'LOW' | 'MEDIUM' | 'HIGH'
+  concise_suggestions: string[]
 }
 
 export const AIGC_ANALYSIS_SCHEMA: SchemaDefinition<AigcAnalysisResult> = {
@@ -245,11 +235,6 @@ export const AIGC_ANALYSIS_SCHEMA: SchemaDefinition<AigcAnalysisResult> = {
     formulaic_closure: 8,
     overall_aigc_risk: 72,
     risk_level: 'HIGH',
-    concise_suggestions: [
-      '增加具体研究背景或个人判断',
-      '拆分长句并调整语序',
-      '减少模板化过渡语'
-    ]
+    concise_suggestions: ['增加具体研究背景或个人判断', '拆分长句并调整语序', '减少模板化过渡语']
   })
-};
-
+}

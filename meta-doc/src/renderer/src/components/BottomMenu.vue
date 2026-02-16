@@ -8,10 +8,7 @@
   >
     <div class="status-group">
       <el-tooltip :content="$t('bottomMenu.versionTooltip')" placement="top">
-        <span
-          class="status-item status-version"
-          @click.prevent="toggleVersionInfoPanel"
-        >
+        <span class="status-item status-version" @click.prevent="toggleVersionInfoPanel">
           <!-- {{ $t('bottomMenu.versionLabel') }}  -->
           {{ currentVersion }}
         </span>
@@ -27,32 +24,26 @@
       </el-tooltip> -->
       <span class="status-divider">|</span>
       <el-tooltip :content="$t('wordCountDialog.tooltip')" placement="top">
-        <span
-          class="status-item status-word-count"
-          @click="showWordCountDialog = true"
-        >
+        <span class="status-item status-word-count" @click="showWordCountDialog = true">
           {{ $t('bottomMenu.wordCount') }} {{ wordCount }}
         </span>
       </el-tooltip>
       <span class="status-divider">|</span>
       <span class="status-item status-file">
-        {{ $t('bottomMenu.currentFile') }}{{ currentFilePath ? currentFilePath : $t('bottomMenu.newFile') }}
+        {{ $t('bottomMenu.currentFile')
+        }}{{ currentFilePath ? currentFilePath : $t('bottomMenu.newFile') }}
       </span>
-      
-
     </div>
     <WordCountDialog
       v-model="showWordCountDialog"
       :content="documentContent"
       :format="documentFormat"
     />
-    <LlmStatisticsDialog
-      v-model="showLlmStatisticsDialog"
-    />
+    <LlmStatisticsDialog v-model="showLlmStatisticsDialog" />
     <VersionInfoPanel />
     <GlobalProgressBar />
     <div class="actions-group">
-        <el-tooltip :content="$t('bottomMenu.logConsoleTooltip')" placement="top">
+      <el-tooltip :content="$t('bottomMenu.logConsoleTooltip')" placement="top">
         <span class="status-item status-logger" @click.prevent="toggleLoggerConsole">
           <el-icon class="status-icon" size="14">
             <Document />
@@ -61,7 +52,7 @@
         </span>
       </el-tooltip>
       <span class="status-divider">|</span>
-        <el-tooltip :content="notificationTooltip" placement="top">
+      <el-tooltip :content="notificationTooltip" placement="top">
         <span
           class="status-item status-notification"
           :class="{ 'is-shaking': isShaking }"
@@ -83,9 +74,9 @@
       <span class="status-divider">|</span>
       <el-tooltip :content="$t('bottomMenu.aiTaskQueueTooltip')" placement="top">
         <span class="ai-task-menu" @click.prevent="eventBus.emit('toggle-ai-task-queue')">
-          <img 
-            :src="themeState.currentTheme.AiLogo" 
-            alt="AI" 
+          <img
+            :src="themeState.currentTheme.AiLogo"
+            alt="AI"
             :class="{ 'ai-logo-rotating': hasRunningCompletionTask }"
           />
           <span class="ai-task-label">{{ $t('bottomMenu.aiTaskQueueLabel') }}</span>
@@ -121,12 +112,12 @@ const activeDocument = computed(() => workspace.activeDocument.value)
 const activeTab = computed(() => workspace.activeTab.value)
 
 const wordCount = computed(() => {
-    const doc = activeDocument.value
-    if (!doc) return 0
-    if (doc.format === 'tex') {
-        return doc.tex?.trim().length ?? 0
-    }
-    return doc.markdown?.trim().length ?? 0
+  const doc = activeDocument.value
+  if (!doc) return 0
+  if (doc.format === 'tex') {
+    return doc.tex?.trim().length ?? 0
+  }
+  return doc.markdown?.trim().length ?? 0
 })
 
 const currentFilePath = computed(() => activeDocument.value?.path ?? '')
@@ -150,18 +141,18 @@ function toggleVersionInfoPanel(): void {
 }
 
 const documentContent = computed(() => {
-    const doc = activeDocument.value
-    if (!doc) return ''
-    if (doc.format === 'tex') {
-        return doc.tex ?? ''
-    }
-    return doc.markdown ?? ''
+  const doc = activeDocument.value
+  if (!doc) return ''
+  if (doc.format === 'tex') {
+    return doc.tex ?? ''
+  }
+  return doc.markdown ?? ''
 })
 
 const documentFormat = computed(() => {
-    const doc = activeDocument.value
-    if (!doc) return 'md'
-    return doc.format
+  const doc = activeDocument.value
+  if (!doc) return 'md'
+  return doc.format
 })
 
 const { latestNotification, unreadCount } = useNotificationStack()
@@ -173,53 +164,53 @@ const hasRunningCompletionTask = computed(() => {
 })
 
 const badgeColor = computed(() => {
-    switch (notificationType.value) {
-        case 'success':
-            return '#67c23a'
-        case 'warning':
-            return '#e6a23c'
-        case 'error':
-            return '#f56c6c'
-        default:
-            return '#909399'
-    }
+  switch (notificationType.value) {
+    case 'success':
+      return '#67c23a'
+    case 'warning':
+      return '#e6a23c'
+    case 'error':
+      return '#f56c6c'
+    default:
+      return '#909399'
+  }
 })
 
 const isShaking = ref(false)
 let lastNotificationId: string | null = null
 
 watch(
-    () => latestNotification.value?.id,
-    (currentId) => {
-        if (!currentId || currentId === lastNotificationId) return
-        lastNotificationId = currentId
-        isShaking.value = true
-        setTimeout(() => {
-            isShaking.value = false
-        }, 800)
-    },
+  () => latestNotification.value?.id,
+  (currentId) => {
+    if (!currentId || currentId === lastNotificationId) return
+    lastNotificationId = currentId
+    isShaking.value = true
+    setTimeout(() => {
+      isShaking.value = false
+    }, 800)
+  }
 )
 
 const notificationSummary = computed(() => {
-    if (!latestNotification.value) {
-        return t('bottomMenu.notificationEmpty')
-    }
-    return latestNotification.value.message
+  if (!latestNotification.value) {
+    return t('bottomMenu.notificationEmpty')
+  }
+  return latestNotification.value.message
 })
 
 const notificationTooltip = computed(() => {
-    if (!latestNotification.value) {
-        return t('bottomMenu.notificationTooltip')
-    }
-    return `${latestNotification.value.title} - ${latestNotification.value.message}`
+  if (!latestNotification.value) {
+    return t('bottomMenu.notificationTooltip')
+  }
+  return `${latestNotification.value.title} - ${latestNotification.value.message}`
 })
 
 function toggleNotificationQueue(): void {
-    eventBus.emit('toggle-notification-queue')
+  eventBus.emit('toggle-notification-queue')
 }
 
 function toggleLoggerConsole(): void {
-    eventBus.emit('toggle-logger-console')
+  eventBus.emit('toggle-logger-console')
 }
 
 // 组件挂载时加载版本信息
@@ -229,265 +220,277 @@ onMounted(() => {
 </script>
 <style scoped>
 .bottom-menu {
-    height: 30px;
-    width: 100%;
-    border: 1px solid #cccccc44;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 5%;
-    font-size: 12px;
-    box-sizing: border-box;
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
+  height: 30px;
+  width: 100%;
+  border: 1px solid #cccccc44;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 5%;
+  font-size: 12px;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .status-group {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    overflow: hidden;
-    flex: 1 1 auto;
-    min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .status-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .status-file {
-    max-width: 40vw;
+  max-width: 40vw;
 }
 
 .status-divider {
-    opacity: 0.4;
-    user-select: none;
+  opacity: 0.4;
+  user-select: none;
 }
 
 .status-notification {
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
-    min-height: 24px;
-    line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+  min-height: 24px;
+  line-height: 1;
 }
 
 .status-notification:hover {
-    background-color: rgba(0, 0, 0, 0.08);
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 .status-logger {
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
 }
 
 .status-logger:hover {
-    background-color: rgba(0, 0, 0, 0.08);
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 .status-word-count {
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
 }
 
 .status-word-count:hover {
-    background-color: rgba(0, 0, 0, 0.08);
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 .status-llm-statistics {
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
 }
 
 .status-llm-statistics:hover {
-    background-color: rgba(0, 0, 0, 0.08);
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 .status-version {
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
 }
 
 .status-version:hover {
-    background-color: rgba(0, 0, 0, 0.08);
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 .status-notification.is-shaking {
-    animation: bottom-menu-shake 0.8s ease-in-out;
+  animation: bottom-menu-shake 0.8s ease-in-out;
 }
 
 .status-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .status-text {
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 
 .status-badge {
-    min-width: 16px;
-    height: 16px;
-    border-radius: 8px;
-    font-size: 10px;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: #fff;
-    padding: 0 4px;
-    box-sizing: border-box;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  padding: 0 4px;
+  box-sizing: border-box;
 }
 
 .actions-group {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 0 0 auto;
-    margin-left: 12px;
-    flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  margin-left: 12px;
+  flex-shrink: 0;
 }
 
 .ai-task-menu {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    user-select: none;
-    padding: 4px 8px;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
 }
 
 .ai-task-menu:hover {
-    background-color: rgba(0, 0, 0, 0.08);
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 .ai-task-menu img {
-    width: 18px;
-    height: 18px;
+  width: 18px;
+  height: 18px;
 }
 
 .ai-logo-rotating {
-    animation: ai-logo-rotate 2s linear infinite !important;
+  animation: ai-logo-rotate 2s linear infinite !important;
 }
 
 @keyframes ai-logo-rotate {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .ai-task-label {
-    font-weight: 500;
+  font-weight: 500;
 }
 
 .ai-task-count {
-    font-weight: 500;
+  font-weight: 500;
 }
 
 @keyframes bottom-menu-shake {
-  0% { transform: translateX(0); }
-  20% { transform: translateX(-2px); }
-  40% { transform: translateX(2px); }
-  60% { transform: translateX(-1px); }
-  80% { transform: translateX(1px); }
-  100% { transform: translateX(0); }
+  0% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-2px);
+  }
+  40% {
+    transform: translateX(2px);
+  }
+  60% {
+    transform: translateX(-1px);
+  }
+  80% {
+    transform: translateX(1px);
+  }
+  100% {
+    transform: translateX(0);
+  }
 }
 .status-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .status-text {
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 
 .status-badge {
-    min-width: 16px;
-    height: 16px;
-    border-radius: 8px;
-    font-size: 10px;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: #fff;
-    padding: 0 4px;
-    box-sizing: border-box;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  padding: 0 4px;
+  box-sizing: border-box;
 }
 
 .actions-group {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 0 0 auto;
-    margin-left: 12px;
-    flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  margin-left: 12px;
+  flex-shrink: 0;
 }
 
 .ai-task-menu {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    user-select: none;
-    padding: 4px 8px;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
 }
 
 .ai-task-menu:hover {
-    background-color: rgba(0, 0, 0, 0.08);
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 .ai-task-menu img {
-    width: 18px;
-    height: 18px;
+  width: 18px;
+  height: 18px;
 }
 
 .ai-task-label {
-    font-weight: 500;
+  font-weight: 500;
 }
 
 .ai-task-count {
-    font-weight: 500;
+  font-weight: 500;
 }
 </style>

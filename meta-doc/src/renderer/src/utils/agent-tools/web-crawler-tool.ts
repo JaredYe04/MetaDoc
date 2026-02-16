@@ -44,10 +44,10 @@ function extractPlainTextFromHtml(html: string): string {
   try {
     const parser = new DOMParser()
     const doc = parser.parseFromString(html, 'text/html')
-    
+
     // 移除script和style标签
-    doc.querySelectorAll('script, style, noscript').forEach(el => el.remove())
-    
+    doc.querySelectorAll('script, style, noscript').forEach((el) => el.remove())
+
     // 直接获取body的innerText（类似浏览器Ctrl+A复制的文本）
     const body = doc.body || doc.documentElement
     return body.innerText || body.textContent || ''
@@ -129,11 +129,13 @@ Sends HTTP request to specified URL and fetches webpage content or API response.
   },
   de_DE: {
     name: 'Web-Crawler',
-    description: 'Greift auf die angegebene URL zu und ruft HTML-Inhalt der Webseite oder API-Antwort ab'
+    description:
+      'Greift auf die angegebene URL zu und ruft HTML-Inhalt der Webseite oder API-Antwort ab'
   },
   fr_FR: {
     name: 'Explorateur Web',
-    description: 'Accède à l\'URL spécifiée et récupère le contenu HTML de la page Web ou la réponse API'
+    description:
+      "Accède à l'URL spécifiée et récupère le contenu HTML de la page Web ou la réponse API"
   },
   ja_JP: {
     name: 'ウェブクローラー',
@@ -155,7 +157,13 @@ async function executeViaProxy(
   body: string | object | undefined,
   timeout: number,
   signal?: AbortSignal
-): Promise<{ status: number; statusText: string; headers: Record<string, string>; content: string; contentType: string }> {
+): Promise<{
+  status: number
+  statusText: string
+  headers: Record<string, string>
+  content: string
+  contentType: string
+}> {
   if (!ipcRenderer) {
     throw new Error('IPC渲染器不可用，无法使用代理模式')
   }
@@ -187,7 +195,13 @@ async function executeViaProxy(
       timeout
     })
 
-    return result as { status: number; statusText: string; headers: Record<string, string>; content: string; contentType: string }
+    return result as {
+      status: number
+      statusText: string
+      headers: Record<string, string>
+      content: string
+      contentType: string
+    }
   } catch (error) {
     logger.error('代理请求失败:', error)
     throw error
@@ -204,12 +218,25 @@ async function executeAxios(
   body: string | object | undefined,
   timeout: number,
   signal?: AbortSignal
-): Promise<{ status: number; statusText: string; headers: Record<string, string>; content: string; contentType: string }> {
+): Promise<{
+  status: number
+  statusText: string
+  headers: Record<string, string>
+  content: string
+  contentType: string
+}> {
   try {
     // 过滤掉浏览器不允许设置的请求头（如 User-Agent, Referer, Host 等）
     // 这些头由浏览器自动控制，无法手动设置
     // 如果需要设置这些头，应该使用代理模式（useCurl=true）
-    const forbiddenHeaders = ['user-agent', 'referer', 'host', 'connection', 'upgrade', 'content-length']
+    const forbiddenHeaders = [
+      'user-agent',
+      'referer',
+      'host',
+      'connection',
+      'upgrade',
+      'content-length'
+    ]
     const filteredHeaders: Record<string, string> = {}
     for (const [key, value] of Object.entries(headers)) {
       const lowerKey = key.toLowerCase()
@@ -253,14 +280,14 @@ async function executeAxios(
 
     // 获取响应头
     const responseHeaders: Record<string, string> = {}
-    Object.keys(response.headers).forEach(key => {
+    Object.keys(response.headers).forEach((key) => {
       responseHeaders[key.toLowerCase()] = response.headers[key]
     })
 
     // 获取内容
     let content: string
     const contentType = responseHeaders['content-type'] || 'text/plain'
-    
+
     if (typeof response.data === 'string') {
       content = response.data
     } else if (typeof response.data === 'object') {
@@ -271,7 +298,8 @@ async function executeAxios(
 
     return {
       status: response.status,
-      statusText: response.statusText || (response.status >= 200 && response.status < 300 ? 'OK' : 'Error'),
+      statusText:
+        response.statusText || (response.status >= 200 && response.status < 300 ? 'OK' : 'Error'),
       headers: responseHeaders,
       content,
       contentType
@@ -287,28 +315,30 @@ async function executeAxios(
       if (error.response) {
         // 有响应但状态码不是2xx
         const responseHeaders: Record<string, string> = {}
-        Object.keys(error.response.headers).forEach(key => {
+        Object.keys(error.response.headers).forEach((key) => {
           responseHeaders[key.toLowerCase()] = error.response!.headers[key]
         })
         return {
           status: error.response.status,
           statusText: error.response.statusText || 'Error',
           headers: responseHeaders,
-          content: typeof error.response.data === 'string' 
-            ? error.response.data 
-            : JSON.stringify(error.response.data, null, 2),
+          content:
+            typeof error.response.data === 'string'
+              ? error.response.data
+              : JSON.stringify(error.response.data, null, 2),
           contentType: responseHeaders['content-type'] || 'text/plain'
         }
       }
       // CORS错误或其他网络错误
       const errorMessage = error.message || '未知网络错误'
-      const isCorsError = errorMessage.includes('CORS') || 
-                          errorMessage.includes('Access-Control-Allow-Origin') ||
-                          errorMessage.includes('Network Error') || 
-                          error.code === 'ERR_NETWORK' ||
-                          error.code === 'ERR_CORS' ||
-                          (!error.response && !error.request) // 如果没有响应也没有请求，可能是 CORS 阻止
-      
+      const isCorsError =
+        errorMessage.includes('CORS') ||
+        errorMessage.includes('Access-Control-Allow-Origin') ||
+        errorMessage.includes('Network Error') ||
+        error.code === 'ERR_NETWORK' ||
+        error.code === 'ERR_CORS' ||
+        (!error.response && !error.request) // 如果没有响应也没有请求，可能是 CORS 阻止
+
       if (isCorsError) {
         // 标记为 CORS 错误，让调用者知道需要切换到代理模式
         const corsError = new Error(`CORS_ERROR: ${errorMessage}`) as any
@@ -378,21 +408,33 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
 
   // 根据参数选择执行方式
   try {
-    onUpdate({
-      content: {
-        stage: 'fetching',
-        url,
-        method,
-        useProxy: useCurl
+    onUpdate(
+      {
+        content: {
+          stage: 'fetching',
+          url,
+          method,
+          useProxy: useCurl
+        },
+        format: 'json',
+        componentName: 'WebCrawlerDisplay'
       },
-      format: 'json',
-      componentName: 'WebCrawlerDisplay'
-    }, {
-      percentage: 20,
-      message: i18n.global.t('agent.tool.crawler.progress.fetching', useCurl ? '正在通过代理访问URL...' : '正在访问URL...')
-    })
+      {
+        percentage: 20,
+        message: i18n.global.t(
+          'agent.tool.crawler.progress.fetching',
+          useCurl ? '正在通过代理访问URL...' : '正在访问URL...'
+        )
+      }
+    )
 
-    let result: { status: number; statusText: string; headers: Record<string, string>; content: string; contentType: string }
+    let result: {
+      status: number
+      statusText: string
+      headers: Record<string, string>
+      content: string
+      contentType: string
+    }
     let useProxy = useCurl
 
     // 如果明确指定使用代理，直接使用
@@ -405,34 +447,41 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
       } catch (axiosError: any) {
         // 如果是CORS错误，自动切换到代理模式
         const errorMessage = axiosError?.message || ''
-        const isCorsError = axiosError?.isCorsError === true ||
-                          errorMessage.includes('CORS_ERROR') ||
-                          errorMessage.includes('CORS') ||
-                          errorMessage.includes('Access-Control-Allow-Origin') ||
-                          errorMessage.includes('Network Error') || 
-                          axiosError?.code === 'ERR_NETWORK' ||
-                          axiosError?.code === 'ERR_CORS'
-        
+        const isCorsError =
+          axiosError?.isCorsError === true ||
+          errorMessage.includes('CORS_ERROR') ||
+          errorMessage.includes('CORS') ||
+          errorMessage.includes('Access-Control-Allow-Origin') ||
+          errorMessage.includes('Network Error') ||
+          axiosError?.code === 'ERR_NETWORK' ||
+          axiosError?.code === 'ERR_CORS'
+
         if (isCorsError) {
           logger.debug('检测到CORS错误，自动切换到代理模式', { url, error: errorMessage })
           useProxy = true
-          
+
           // 通知用户正在切换到代理模式
-          onUpdate({
-            content: {
-              stage: 'fetching',
-              url,
-              method,
-              useProxy: true,
-              message: '检测到CORS限制，自动切换到代理模式...'
+          onUpdate(
+            {
+              content: {
+                stage: 'fetching',
+                url,
+                method,
+                useProxy: true,
+                message: '检测到CORS限制，自动切换到代理模式...'
+              },
+              format: 'json',
+              componentName: 'WebCrawlerDisplay'
             },
-            format: 'json',
-            componentName: 'WebCrawlerDisplay'
-          }, {
-            percentage: 30,
-            message: i18n.global.t('agent.tool.crawler.progress.fetching', '检测到CORS限制，正在通过代理访问...')
-          })
-          
+            {
+              percentage: 30,
+              message: i18n.global.t(
+                'agent.tool.crawler.progress.fetching',
+                '检测到CORS限制，正在通过代理访问...'
+              )
+            }
+          )
+
           try {
             result = await executeViaProxy(url, method, headers, body, timeout, signal)
           } catch (proxyError: any) {
@@ -445,42 +494,46 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
       }
     }
 
-    onUpdate({
-      content: {
-        stage: 'processing',
-        url,
-        status: result.status
+    onUpdate(
+      {
+        content: {
+          stage: 'processing',
+          url,
+          status: result.status
+        },
+        format: 'json',
+        componentName: 'WebCrawlerDisplay'
       },
-      format: 'json',
-      componentName: 'WebCrawlerDisplay'
-    }, {
-      percentage: 60,
-      message: i18n.global.t('agent.tool.crawler.progress.processing', '正在处理响应...')
-    })
+      {
+        percentage: 60,
+        message: i18n.global.t('agent.tool.crawler.progress.processing', '正在处理响应...')
+      }
+    )
 
     // 判断是否为HTML内容
     const isHtmlContent = result.contentType?.includes('text/html') || false
-    
+
     logger.info('[WebCrawlerTool] 开始处理响应', {
       url,
       contentType: result.contentType,
       isHtmlContent,
       contentLength: result.content?.length || 0
     })
-    
+
     // 提取纯文本（用于返回给AI，避免上下文过长）
     let plainTextContent = result.content
     if (isHtmlContent && result.content) {
       const originalContent = result.content
       plainTextContent = extractPlainTextFromHtml(result.content)
       const reduction = ((1 - plainTextContent.length / originalContent.length) * 100).toFixed(1)
-      
+
       logger.info('[WebCrawlerTool] HTML内容已提取为纯文本', {
         originalSize: originalContent.length,
         extractedSize: plainTextContent.length,
         reduction: `${reduction}%`,
         originalPreview: originalContent.substring(0, 200) + '...',
-        extractedPreview: plainTextContent.substring(0, 200) + (plainTextContent.length > 200 ? '...' : '')
+        extractedPreview:
+          plainTextContent.substring(0, 200) + (plainTextContent.length > 200 ? '...' : '')
       })
     } else {
       logger.info('[WebCrawlerTool] 非HTML内容，不提取纯文本', {
@@ -509,9 +562,11 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
       contentType: result.contentType,
       size: plainTextContent.length,
       // 如果是HTML，添加提示信息
-      ...(isHtmlContent && plainTextContent !== result.content ? {
-        note: 'HTML内容已提取为纯文本，完整HTML可在显示组件中查看'
-      } : {})
+      ...(isHtmlContent && plainTextContent !== result.content
+        ? {
+            note: 'HTML内容已提取为纯文本，完整HTML可在显示组件中查看'
+          }
+        : {})
     }
 
     // 记录最终返回给AI的内容
@@ -526,23 +581,27 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
         contentLength: aiResult.content?.length || 0,
         contentType: aiResult.contentType,
         hasNote: !!aiResult.note,
-        contentPreview: typeof aiResult.content === 'string' 
-          ? aiResult.content.substring(0, 500) + (aiResult.content.length > 500 ? '...' : '')
-          : 'N/A'
+        contentPreview:
+          typeof aiResult.content === 'string'
+            ? aiResult.content.substring(0, 500) + (aiResult.content.length > 500 ? '...' : '')
+            : 'N/A'
       }
     })
 
-    onUpdate({
-      content: {
-        stage: 'completed',
-        ...displayResult
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          ...displayResult
+        },
+        format: 'json',
+        componentName: 'WebCrawlerDisplay'
       },
-      format: 'json',
-      componentName: 'WebCrawlerDisplay'
-    }, {
-      percentage: 100,
-      message: i18n.global.t('agent.tool.crawler.progress.completed', '网页访问完成')
-    })
+      {
+        percentage: 100,
+        message: i18n.global.t('agent.tool.crawler.progress.completed', '网页访问完成')
+      }
+    )
 
     return {
       status: 'succeeded',
@@ -562,7 +621,11 @@ const webCrawlerToolCallback: ToolCallback = async (params, signal, onUpdate) =>
     logger.error('网页访问失败:', error)
     return {
       status: 'failed',
-      error: i18n.global.t('agent.tool.crawler.error.failed', { error: errorMessage }, `网页访问失败: ${errorMessage}`)
+      error: i18n.global.t(
+        'agent.tool.crawler.error.failed',
+        { error: errorMessage },
+        `网页访问失败: ${errorMessage}`
+      )
     }
   }
 }
@@ -574,7 +637,8 @@ export const webCrawlerToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'web-crawler',
-    brief: 'Access specified URL and fetch webpage HTML content or API response. Supports GET, POST, PUT, DELETE methods.',
+    brief:
+      'Access specified URL and fetch webpage HTML content or API response. Supports GET, POST, PUT, DELETE methods.',
     fullSpec: `# Web Crawler Tool
 
 ## Description
@@ -672,4 +736,3 @@ Sends HTTP request to specified URL and fetches webpage content or API response.
   },
   locales: webCrawlerToolLocales
 }
-

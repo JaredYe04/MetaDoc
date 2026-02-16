@@ -24,6 +24,7 @@
    ```
 
    **重要提示**：
+
    - `.env` 文件会被复制到 `resources/` 目录，并包含在打包后的应用中
    - 这些配置用于应用程序运行时检查更新
    - **推荐使用公开的 Releases 仓库**，这样不需要 Token，也不存在安全问题
@@ -61,6 +62,7 @@
 1. **设置 GitHub Token**
 
    在源仓库的 Settings → Secrets and variables → Actions 中添加：
+
    - Name: `GH_TOKEN`
    - Value: 一个具有 `repo` 权限的 GitHub Personal Access Token
    - 该 Token 需要有访问目标 Releases 仓库（MetaDoc-Releases）的权限
@@ -76,6 +78,7 @@ npm run release:dev
 ```
 
 该命令会自动：
+
 1. 检查 git 状态
 2. 构建项目
 3. 打包 Windows 版本
@@ -83,6 +86,7 @@ npm run release:dev
 5. 触发 GitHub Actions 自动发布到 MetaDoc-Releases 仓库
 
 **发布流程：**
+
 - 脚本会自动读取 `version.json` 中的版本号
 - 创建标签 `dev-0.13.1`（例如，版本为 `Beta0.13.1`）
 - 推送标签到 GitHub，触发 GitHub Actions 工作流
@@ -95,6 +99,7 @@ npm run release:prod
 ```
 
 该命令会自动：
+
 1. 检查 git 状态
 2. 构建项目
 3. 打包 Windows 版本
@@ -102,6 +107,7 @@ npm run release:prod
 5. 触发 GitHub Actions 自动发布到 MetaDoc-Releases 仓库
 
 **发布流程：**
+
 - 脚本会自动读取 `version.json` 中的版本号
 - 创建标签 `v0.13.1`（例如，版本为 `Beta0.13.1`）
 - 推送标签到 GitHub，触发 GitHub Actions 工作流
@@ -127,6 +133,7 @@ npm run release:dev
 ```
 
 **手动操作：**
+
 1. 查看 `version.json` 获取当前版本号（例如 `Beta0.13.1`）
 2. 生成发布日志：
    ```bash
@@ -145,6 +152,7 @@ npm run release:prod
 ```
 
 **手动操作：**
+
 1. 查看 `version.json` 获取当前版本号（例如 `Beta0.13.1`）
 2. 生成发布日志：
    ```bash
@@ -256,6 +264,7 @@ node scripts/release-rollback.js v0.13.1 --confirm
 ```
 
 **注意：**
+
 - 回滚操作只删除 GitHub Release，不会删除 Git 标签
 - 如需删除 Git 标签，请手动执行：
   ```bash
@@ -272,6 +281,7 @@ node scripts/release-rollback.js v0.13.1 --confirm
 **原因**：环境变量未正确读取。
 
 **解决方法**：
+
 - 检查 `.env` 文件是否存在且格式正确
 - 确认 `UPDATE_GITHUB_OWNER` 和 `UPDATE_GITHUB_REPO` 已设置
 - 重启应用
@@ -281,17 +291,20 @@ node scripts/release-rollback.js v0.13.1 --confirm
 **原因**：electron-updater 在开发环境默认不检查更新。
 
 **解决方法**：
+
 - 使用手动"检查更新"按钮
 - 或在打包后的应用中进行测试
 
 ### 3. 检查更新时提示"已是最新版本"，但 GitHub 上有新版本
 
 **可能原因**：
+
 - Release 标签格式不正确（应为 `vX.Y.Z` 或 `dev-X.Y.Z`）
 - Release 中缺少必要的更新文件（如 `.exe` 安装包和 `latest.yml`）
 - 更新渠道选择错误（dev 渠道需要 `dev-X.Y.Z` 标签）
 
 **解决方法**：
+
 - 确认 Release 标签格式正确
 - 确认 electron-builder 已正确生成所有文件
 - 检查更新渠道设置
@@ -299,6 +312,7 @@ node scripts/release-rollback.js v0.13.1 --confirm
 ### 4. 版本号没有自动更新
 
 **解决方法**：
+
 - 运行 `node scripts/version-manager.js update --force` 强制更新
 - 或手动设置：`node scripts/version-manager.js set Beta0.13.2`
 
@@ -309,4 +323,3 @@ node scripts/release-rollback.js v0.13.1 --confirm
 - [ ] 实现自动下载和安装更新
 - [ ] 添加更新进度显示
 - [ ] 支持增量更新
-

@@ -33,18 +33,24 @@ export function useToolDisplayRealtime(
   let failedUnsub: (() => void) | null = null
 
   const setupListeners = (id: string) => {
-    const logger = createRendererLogger('useToolDisplayRealtime');
+    const logger = createRendererLogger('useToolDisplayRealtime')
     logger.debug(`[useToolDisplayRealtime] 设置监听器，invocationId: ${id}`)
-    
+
     updateUnsub = onToolUpdate(id, (updateData) => {
-      logger.debug(`[useToolDisplayRealtime] 收到 tool-update 事件，invocationId: ${id}`, updateData)
+      logger.debug(
+        `[useToolDisplayRealtime] 收到 tool-update 事件，invocationId: ${id}`,
+        updateData
+      )
       realtimeData.value = updateData.data
       realtimeProgress.value = updateData.progress
       realtimeStatus.value = 'running' // 更新状态为运行中
     })
 
     completeUnsub = onToolComplete(id, (completeData) => {
-      logger.debug(`[useToolDisplayRealtime] 收到 tool-complete 事件，invocationId: ${id}`, completeData)
+      logger.debug(
+        `[useToolDisplayRealtime] 收到 tool-complete 事件，invocationId: ${id}`,
+        completeData
+      )
       realtimeStatus.value = completeData.status
       // 如果completeData有data，使用它；否则保留现有的realtimeData
       if (completeData.data !== undefined) {
@@ -64,29 +70,35 @@ export function useToolDisplayRealtime(
   }
 
   // 监听 invocationId 变化，重新设置监听器
-  watch(() => invocationId, (newId, oldId) => {
-    if (newId !== oldId) {
-      // 清理旧的监听器
-      if (updateUnsub) updateUnsub()
-      if (completeUnsub) completeUnsub()
-      if (failedUnsub) failedUnsub()
-      
-      // 重置数据
-      realtimeData.value = initialData
-      realtimeStatus.value = initialStatus
-      realtimeProgress.value = initialProgress
-      
-      // 设置新的监听器（如果有新的 invocationId）
-      if (newId) {
-        setupListeners(newId)
+  watch(
+    () => invocationId,
+    (newId, oldId) => {
+      if (newId !== oldId) {
+        // 清理旧的监听器
+        if (updateUnsub) updateUnsub()
+        if (completeUnsub) completeUnsub()
+        if (failedUnsub) failedUnsub()
+
+        // 重置数据
+        realtimeData.value = initialData
+        realtimeStatus.value = initialStatus
+        realtimeProgress.value = initialProgress
+
+        // 设置新的监听器（如果有新的 invocationId）
+        if (newId) {
+          setupListeners(newId)
+        }
       }
-    }
-  }, { immediate: false })
+    },
+    { immediate: false }
+  )
 
   // 如果有invocationId，设置eventBus监听器
-  const logger = createRendererLogger('useToolDisplayRealtime');
+  const logger = createRendererLogger('useToolDisplayRealtime')
   if (invocationId) {
-    logger.debug(`[useToolDisplayRealtime] 初始化，invocationId: ${invocationId}, initialStatus: ${initialStatus}`)
+    logger.debug(
+      `[useToolDisplayRealtime] 初始化，invocationId: ${invocationId}, initialStatus: ${initialStatus}`
+    )
     setupListeners(invocationId)
   } else {
     //logger.warn(`[useToolDisplayRealtime] 没有 invocationId，无法设置事件监听器。props:`, { invocationId, initialData, initialStatus, initialProgress })
@@ -114,22 +126,26 @@ export function useToolDisplayRealtime(
 export function parseToolData(data: unknown): unknown {
   if (typeof data === 'object' && data !== null) {
     const dataObj = data as any
-    
+
     // 首先检查dataObj本身是否已经是期望的内容结构（有outlineTree、stage等字段）
     // 如果是，直接返回（说明已经提取过了）
-    if (dataObj.outlineTree !== undefined || 
-        dataObj.stage !== undefined || 
-        dataObj.tree !== undefined) {
+    if (
+      dataObj.outlineTree !== undefined ||
+      dataObj.stage !== undefined ||
+      dataObj.tree !== undefined
+    ) {
       return dataObj
     }
-    
+
     // 如果data有content字段，并且content是对象
     if (dataObj.content !== undefined && typeof dataObj.content === 'object') {
       const content = dataObj.content
       // 检查content是否包含我们期望的字段（如outlineTree、stage）
-      if (content.outlineTree !== undefined || 
-          content.stage !== undefined || 
-          content.tree !== undefined) {
+      if (
+        content.outlineTree !== undefined ||
+        content.stage !== undefined ||
+        content.tree !== undefined
+      ) {
         // content是期望的结构，提取它
         return content
       }
@@ -139,10 +155,9 @@ export function parseToolData(data: unknown): unknown {
         return content
       }
     }
-    
+
     // 默认返回dataObj本身
     return dataObj
   }
   return data
 }
-

@@ -33,11 +33,11 @@ const logger = createRendererLogger('ChartGenerationTool')
 
 // 图表类型映射
 const CHART_TYPE_MAP: Record<string, string> = {
-  'mermaid': 'mermaid',
-  'echarts': 'echarts',
-  'plantuml': 'plantuml',
-  'flowchart': 'flowchart',
-  'graphviz': 'graphviz'
+  mermaid: 'mermaid',
+  echarts: 'echarts',
+  plantuml: 'plantuml',
+  flowchart: 'flowchart',
+  graphviz: 'graphviz'
 }
 
 /**
@@ -49,25 +49,45 @@ function extractMermaidCode(text: string): string {
   if (!text || !text.trim()) {
     return text
   }
-  
+
   // 首先尝试提取 ```mermaid 代码块
   const mermaidBlockRegex = /```mermaid\s*\n([\s\S]*?)```/i
   const blockMatch = text.match(mermaidBlockRegex)
   if (blockMatch && blockMatch[1]) {
     return blockMatch[1].trim()
   }
-  
+
   // 如果没有代码块标记，查找 Mermaid 图表类型关键字
   // 支持的 Mermaid 图表类型
   const mermaidTypes = [
-    'graph', 'flowchart', 'sequenceDiagram', 'classDiagram', 
-    'stateDiagram', 'erDiagram', 'gantt', 'pie', 'gitgraph', 
-    'journey', 'mindmap', 'timeline', 'zenuml', 'sankey', 
-    'block', 'packet', 'kanban', 'architecture', 'radar', 'treemap',
-    'quadrantChart', 'requirement', 'c4Context', 'c4Container', 
-    'c4Component', 'userJourney'
+    'graph',
+    'flowchart',
+    'sequenceDiagram',
+    'classDiagram',
+    'stateDiagram',
+    'erDiagram',
+    'gantt',
+    'pie',
+    'gitgraph',
+    'journey',
+    'mindmap',
+    'timeline',
+    'zenuml',
+    'sankey',
+    'block',
+    'packet',
+    'kanban',
+    'architecture',
+    'radar',
+    'treemap',
+    'quadrantChart',
+    'requirement',
+    'c4Context',
+    'c4Container',
+    'c4Component',
+    'userJourney'
   ]
-  
+
   // 查找第一个匹配的图表类型
   let bestMatch: { type: string; index: number } | null = null
   for (const type of mermaidTypes) {
@@ -80,20 +100,20 @@ function extractMermaidCode(text: string): string {
       }
     }
   }
-  
+
   if (bestMatch) {
     const startIndex = bestMatch.index
     // 从匹配位置开始提取
     let extracted = text.substring(startIndex)
-    
+
     // 提取代码部分：从图表类型开始，到遇到明显的非代码内容为止
     const lines = extracted.split('\n')
     const codeLines: string[] = []
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
       const trimmedLine = line.trim()
-      
+
       // 如果遇到空行，继续（可能是代码中的空行）
       if (!trimmedLine) {
         if (codeLines.length > 0) {
@@ -101,18 +121,18 @@ function extractMermaidCode(text: string): string {
         }
         continue
       }
-      
+
       // 检查是否是明显的说明文字（包含大量中文字符且不是注释）
       const chineseCharCount = (line.match(/[\u4e00-\u9fa5]/g) || []).length
       const totalCharCount = line.length
       const chineseRatio = totalCharCount > 0 ? chineseCharCount / totalCharCount : 0
-      
+
       // 如果是注释行（以 %% 开头），保留
       if (trimmedLine.startsWith('%%')) {
         codeLines.push(line)
         continue
       }
-      
+
       // 如果一行中中文字符占比超过 50%，且不包含代码结构特征，可能是说明文字
       const hasCodeStructure = /[\[\]{}()|:-><]/.test(line)
       if (chineseRatio > 0.5 && !hasCodeStructure) {
@@ -123,11 +143,14 @@ function extractMermaidCode(text: string): string {
         // 如果还没有代码内容，跳过这一行
         continue
       }
-      
+
       // 检查是否包含 Mermaid 语法特征
-      const hasMermaidSyntax = hasCodeStructure || 
-                              trimmedLine.match(/^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitgraph|journey|mindmap|timeline|zenuml|sankey|block|packet|kanban|architecture|radar|treemap)/i)
-      
+      const hasMermaidSyntax =
+        hasCodeStructure ||
+        trimmedLine.match(
+          /^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitgraph|journey|mindmap|timeline|zenuml|sankey|block|packet|kanban|architecture|radar|treemap)/i
+        )
+
       if (hasMermaidSyntax || codeLines.length > 0) {
         codeLines.push(line)
       } else if (codeLines.length > 0) {
@@ -135,7 +158,14 @@ function extractMermaidCode(text: string): string {
         let hasMoreCode = false
         for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
           const nextLine = lines[j]
-          if (nextLine.match(/[\[\]{}()|:-><]/) || nextLine.trim().match(/^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitgraph|journey|mindmap|timeline|zenuml|sankey|block|packet|kanban|architecture|radar|treemap)/i)) {
+          if (
+            nextLine.match(/[\[\]{}()|:-><]/) ||
+            nextLine
+              .trim()
+              .match(
+                /^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitgraph|journey|mindmap|timeline|zenuml|sankey|block|packet|kanban|architecture|radar|treemap)/i
+              )
+          ) {
             hasMoreCode = true
             break
           }
@@ -146,16 +176,16 @@ function extractMermaidCode(text: string): string {
         codeLines.push(line)
       }
     }
-    
+
     if (codeLines.length > 0) {
       return codeLines.join('\n').trim()
     }
   }
-  
+
   // 如果都找不到，尝试移除明显的中文说明，保留可能的代码部分
   // 策略：查找第一个 Mermaid 图表类型关键字，移除之前的所有内容
   let cleaned = text
-  
+
   // 查找第一个图表类型关键字的位置
   let firstTypeIndex = -1
   for (const type of mermaidTypes) {
@@ -167,7 +197,7 @@ function extractMermaidCode(text: string): string {
       }
     }
   }
-  
+
   // 如果找到了图表类型，移除之前的所有内容
   if (firstTypeIndex > 0) {
     cleaned = cleaned.substring(firstTypeIndex)
@@ -175,7 +205,7 @@ function extractMermaidCode(text: string): string {
     // 如果没有找到，尝试移除开头的中文段落（通常以句号、问号、感叹号结尾）
     cleaned = cleaned.replace(/^[\s\S]*?[。！？]\s*/g, '')
   }
-  
+
   // 移除结尾的中文段落（如果存在）
   // 查找最后一个可能的代码结束位置（通常是空行后跟中文）
   const lines = cleaned.split('\n')
@@ -183,7 +213,7 @@ function extractMermaidCode(text: string): string {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     const trimmedLine = line.trim()
-    
+
     // 如果遇到空行，检查后续是否有大量中文
     if (!trimmedLine) {
       // 检查后续几行是否主要是中文
@@ -204,29 +234,29 @@ function extractMermaidCode(text: string): string {
       codeLines.push(line)
       continue
     }
-    
+
     // 检查是否是中文说明（中文字符占比高且不包含代码特征）
     const chineseCount = (line.match(/[\u4e00-\u9fa5]/g) || []).length
     const totalCount = line.length
     const chineseRatio = totalCount > 0 ? chineseCount / totalCount : 0
-    
+
     if (chineseRatio > 0.7 && !line.match(/[\[\]{}()|:-><]/) && codeLines.length > 0) {
       // 如果主要是中文且不包含代码特征，且已有代码内容，停止提取
       break
     }
-    
+
     codeLines.push(line)
   }
-  
+
   if (codeLines.length > 0) {
     cleaned = codeLines.join('\n').trim()
   }
-  
+
   // 如果清理后还有内容，返回清理后的内容
   if (cleaned.trim().length > 0) {
     return cleaned.trim()
   }
-  
+
   // 最后返回原始文本
   return text.trim()
 }
@@ -240,27 +270,27 @@ function extractPlantUMLCode(text: string): string {
   if (!text || !text.trim()) {
     return text
   }
-  
+
   // 首先尝试提取 ```plantuml 代码块
   const plantumlBlockRegex = /```plantuml\s*\n([\s\S]*?)```/i
   const blockMatch = text.match(plantumlBlockRegex)
   if (blockMatch && blockMatch[1]) {
     return blockMatch[1].trim()
   }
-  
+
   // 查找 @startuml 或 @start 标记
   const startPattern = /@start(uml)?/i
   const startMatch = text.match(startPattern)
-  
+
   if (startMatch && startMatch.index !== undefined) {
     const startIndex = startMatch.index
     // 从 @start 开始提取
     let extracted = text.substring(startIndex)
-    
+
     // 查找 @enduml 或 @end 标记
     const endPattern = /@end(uml)?/i
     const endMatch = extracted.match(endPattern)
-    
+
     if (endMatch && endMatch.index !== undefined) {
       // 提取从 @start 到 @end 之间的内容（包含 @end）
       const endIndex = endMatch.index + endMatch[0].length
@@ -271,11 +301,23 @@ function extractPlantUMLCode(text: string): string {
       return extracted.trim()
     }
   }
-  
+
   // 如果都找不到，尝试移除明显的中文说明
   // 查找第一个可能的 PlantUML 关键字
-  const plantumlKeywords = ['@startuml', '@start', 'class ', 'interface ', 'package ', 'namespace ', 'actor ', 'usecase ', 'component ', 'state ', 'note ']
-  
+  const plantumlKeywords = [
+    '@startuml',
+    '@start',
+    'class ',
+    'interface ',
+    'package ',
+    'namespace ',
+    'actor ',
+    'usecase ',
+    'component ',
+    'state ',
+    'note '
+  ]
+
   let firstKeywordIndex = -1
   for (const keyword of plantumlKeywords) {
     const regex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i')
@@ -286,11 +328,11 @@ function extractPlantUMLCode(text: string): string {
       }
     }
   }
-  
+
   if (firstKeywordIndex > 0) {
     // 移除之前的所有内容
     let cleaned = text.substring(firstKeywordIndex)
-    
+
     // 查找 @enduml 或 @end
     const endPattern = /@end(uml)?/i
     const endMatch = cleaned.match(endPattern)
@@ -298,14 +340,14 @@ function extractPlantUMLCode(text: string): string {
       const endIndex = endMatch.index + endMatch[0].length
       cleaned = cleaned.substring(0, endIndex)
     }
-    
+
     return cleaned.trim()
   }
-  
+
   // 最后尝试移除开头的中文段落
   let cleaned = text.replace(/^[\s\S]*?[。！？]\s*/g, '')
   cleaned = cleaned.replace(/[\s\S]*?[。！？]\s*$/g, '')
-  
+
   return cleaned.trim()
 }
 
@@ -318,17 +360,17 @@ function extractGenericChartCode(text: string, chartType: string): string {
   if (!text || !text.trim()) {
     return text
   }
-  
+
   // 首先尝试提取代码块
   const codeBlockRegex = new RegExp(`\`\`\`${chartType}\\s*\\n([\\s\\S]*?)\`\`\``, 'i')
   const blockMatch = text.match(codeBlockRegex)
   if (blockMatch && blockMatch[1]) {
     return blockMatch[1].trim()
   }
-  
+
   // 根据图表类型查找特征关键字
   let keywords: string[] = []
-  
+
   if (chartType === 'flowchart') {
     // Flowchart 通常以 st=>start, op=>operation, cond=>condition 等开头
     keywords = ['st=>', 'op=>', 'cond=>', 'e=>', 'start', 'operation', 'condition', 'end']
@@ -336,7 +378,7 @@ function extractGenericChartCode(text: string, chartType: string): string {
     // Graphviz (dot) 通常以 digraph, graph 开头
     keywords = ['digraph', 'graph', 'node', 'edge', 'subgraph']
   }
-  
+
   // 查找第一个匹配的关键字
   let firstKeywordIndex = -1
   for (const keyword of keywords) {
@@ -350,20 +392,20 @@ function extractGenericChartCode(text: string, chartType: string): string {
       }
     }
   }
-  
+
   if (firstKeywordIndex > 0) {
     // 移除之前的所有内容
     let cleaned = text.substring(firstKeywordIndex)
-    
+
     // 对于 flowchart 和 graphviz，提取到遇到大量中文说明为止
     if (chartType === 'flowchart' || chartType === 'graphviz') {
       const lines = cleaned.split('\n')
       const codeLines: string[] = []
-      
+
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
         const trimmedLine = line.trim()
-        
+
         // 如果遇到空行，继续（可能是代码中的空行）
         if (!trimmedLine) {
           if (codeLines.length > 0) {
@@ -371,16 +413,17 @@ function extractGenericChartCode(text: string, chartType: string): string {
           }
           continue
         }
-        
+
         // 检查是否是明显的说明文字（包含大量中文字符且不包含代码特征）
         const chineseCharCount = (line.match(/[\u4e00-\u9fa5]/g) || []).length
         const totalCharCount = line.length
         const chineseRatio = totalCharCount > 0 ? chineseCharCount / totalCharCount : 0
-        
+
         // 检查是否包含代码特征（箭头、等号、括号等）
-        const hasCodeStructure = /[=>{}()\[\]|]/.test(line) || 
-                                trimmedLine.match(/^(st|op|cond|e|start|end|digraph|graph|node|edge|subgraph)/i)
-        
+        const hasCodeStructure =
+          /[=>{}()\[\]|]/.test(line) ||
+          trimmedLine.match(/^(st|op|cond|e|start|end|digraph|graph|node|edge|subgraph)/i)
+
         if (chineseRatio > 0.5 && !hasCodeStructure) {
           // 如果已经有代码内容，停止提取
           if (codeLines.length > 0) {
@@ -389,22 +432,22 @@ function extractGenericChartCode(text: string, chartType: string): string {
           // 如果还没有代码内容，跳过这一行
           continue
         }
-        
+
         codeLines.push(line)
       }
-      
+
       if (codeLines.length > 0) {
         return codeLines.join('\n').trim()
       }
     }
-    
+
     return cleaned.trim()
   }
-  
+
   // 如果都找不到，尝试移除开头的中文段落
   let cleaned = text.replace(/^[\s\S]*?[。！？]\s*/g, '')
   cleaned = cleaned.replace(/[\s\S]*?[。！？]\s*$/g, '')
-  
+
   return cleaned.trim()
 }
 
@@ -414,34 +457,38 @@ function extractGenericChartCode(text: string, chartType: string): string {
  */
 function cleanEChartsCode(code: string): string {
   let cleaned = code.trim()
-  
+
   // 移除markdown代码块标记
-  cleaned = cleaned.replace(/```[\w]*\n?/g, '').replace(/```$/g, '').trim()
-  
+  cleaned = cleaned
+    .replace(/```[\w]*\n?/g, '')
+    .replace(/```$/g, '')
+    .trim()
+
   // 移除可能的变量声明
   cleaned = cleaned.replace(/^(const|let|var)\s+\w+\s*=\s*/, '')
-  
+
   // 移除末尾的分号
   cleaned = cleaned.replace(/;?\s*$/, '')
-  
+
   // 移除单行注释（// ...），保留空行以维持JSON结构
-  cleaned = cleaned.split('\n')
-    .map(line => line.replace(/\/\/.*$/, ''))
+  cleaned = cleaned
+    .split('\n')
+    .map((line) => line.replace(/\/\/.*$/, ''))
     .join('\n')
-  
+
   // 移除多行注释（/* ... */）
   cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '')
-  
+
   // 替换中文标点为英文标点（JSON要求英文标点）
   cleaned = cleaned
-    .replace(/，/g, ',')  // 中文逗号 -> 英文逗号
-    .replace(/：/g, ':')  // 中文冒号 -> 英文冒号
-    .replace(/；/g, ';')  // 中文分号 -> 英文分号
-    .replace(/"/g, '"')   // 中文引号 -> 英文引号
-    .replace(/"/g, '"')   // 中文引号 -> 英文引号
-    .replace(/'/g, "'")   // 中文单引号 -> 英文单引号
-    .replace(/'/g, "'")   // 中文单引号 -> 英文单引号
-  
+    .replace(/，/g, ',') // 中文逗号 -> 英文逗号
+    .replace(/：/g, ':') // 中文冒号 -> 英文冒号
+    .replace(/；/g, ';') // 中文分号 -> 英文分号
+    .replace(/"/g, '"') // 中文引号 -> 英文引号
+    .replace(/"/g, '"') // 中文引号 -> 英文引号
+    .replace(/'/g, "'") // 中文单引号 -> 英文单引号
+    .replace(/'/g, "'") // 中文单引号 -> 英文单引号
+
   // 使用 extractOuterJsonString 提取最外层的 JSON 对象/数组
   // 这样可以去除 JSON 之前和之后的中文说明文字
   const extractedJson = extractOuterJsonString(cleaned)
@@ -457,7 +504,7 @@ function cleanEChartsCode(code: string): string {
       let jsonEndIndex = -1
       const openChar = cleaned[0]
       const closeChar = openChar === '{' ? '}' : ']'
-      
+
       for (let i = 0; i < cleaned.length; i++) {
         if (cleaned[i] === openChar) {
           depth++
@@ -469,17 +516,17 @@ function cleanEChartsCode(code: string): string {
           }
         }
       }
-      
+
       if (jsonEndIndex > 0) {
         cleaned = cleaned.substring(0, jsonEndIndex)
       }
     }
   }
-  
+
   // 移除多余的空白字符（但保留换行，因为JSON可能需要格式化）
   // 只压缩连续的空白字符为单个空格，但保留换行
   cleaned = cleaned.replace(/[ \t]+/g, ' ').trim()
-  
+
   return cleaned
 }
 
@@ -491,32 +538,32 @@ async function validateChartSyntax(
   chartType: string
 ): Promise<{ valid: boolean; error?: string }> {
   const normalizedType = chartType.toLowerCase()
-  
+
   try {
     const trimmedCode = chartCode.trim()
     if (!trimmedCode) {
       return { valid: false, error: '图表代码为空' }
     }
-    
+
     if (normalizedType === 'mermaid') {
       // Mermaid语法验证：使用官方 API
       try {
         // 动态导入 mermaid（避免在非 Mermaid 场景下加载）
         const mermaid = (await import('mermaid')).default
-        
+
         // 初始化 Mermaid
-        mermaid.initialize({ 
+        mermaid.initialize({
           startOnLoad: false,
           securityLevel: 'loose'
         })
-        
+
         // 使用 mermaid.parse 验证语法
         const parseResult = await mermaid.parse(trimmedCode, { suppressErrors: false })
         if (!parseResult || !parseResult.diagramType) {
           return { valid: false, error: 'Mermaid 语法验证失败：无法识别图表类型' }
-      }
-      
-      return { valid: true }
+        }
+
+        return { valid: true }
       } catch (parseError) {
         const errorMsg = parseError instanceof Error ? parseError.message : String(parseError)
         return { valid: false, error: `Mermaid 语法错误: ${errorMsg}` }
@@ -537,7 +584,10 @@ async function validateChartSyntax(
             new Function('return ' + jsonString)()
             return { valid: true }
           } catch (funcError) {
-            return { valid: false, error: `ECharts配置格式错误: ${funcError instanceof Error ? funcError.message : String(funcError)}` }
+            return {
+              valid: false,
+              error: `ECharts配置格式错误: ${funcError instanceof Error ? funcError.message : String(funcError)}`
+            }
           }
         }
       } catch (error) {
@@ -545,7 +595,10 @@ async function validateChartSyntax(
       }
     } else if (normalizedType === 'plantuml') {
       // PlantUML基本验证
-      if (!trimmedCode.toLowerCase().includes('@start') && !trimmedCode.toLowerCase().includes('@enduml')) {
+      if (
+        !trimmedCode.toLowerCase().includes('@start') &&
+        !trimmedCode.toLowerCase().includes('@enduml')
+      ) {
         return { valid: false, error: 'PlantUML代码缺少@start或@enduml标记' }
       }
       return { valid: true }
@@ -556,7 +609,7 @@ async function validateChartSyntax(
       }
       return { valid: true }
     }
-    
+
     // 其他类型暂不验证
     return { valid: true }
   } catch (error) {
@@ -583,13 +636,13 @@ async function generateChartCodeWithLLM(
   const isECharts = normalizedType === 'echarts'
   const isMermaid = normalizedType === 'mermaid'
   const isPlantUML = normalizedType === 'plantuml'
-  
+
   let systemPrompt = `你是一个专业的图表代码生成助手。根据用户的需求，生成${chartType}格式的图表代码。
 
 要求：
 1. 只返回图表代码，不要包含任何解释、注释或markdown代码块标记
 2. 代码必须符合${chartType}的语法规范，确保语法完全正确`
-  
+
   if (isECharts) {
     systemPrompt += `
 3. 返回有效的JSON格式配置对象（必须是有效的JSON）
@@ -614,7 +667,7 @@ async function generateChartCodeWithLLM(
 3. 确保语法完全正确，避免语法错误
 4. 仔细检查所有语法规则`
   }
-  
+
   if (retryCount > 0 && lastError) {
     systemPrompt += `
 
@@ -625,7 +678,7 @@ async function generateChartCodeWithLLM(
 - 检查是否有遗漏的括号、引号等
 - 确保代码格式完全符合${chartType}的规范`
   }
-  
+
   systemPrompt += `
 
 用户需求：${prompt}`
@@ -633,32 +686,32 @@ async function generateChartCodeWithLLM(
   // 使用createAiTask创建AI任务，设置stream: true使用流式模式
   const originKey = `chart-generation-${Date.now()}-${Math.random().toString(36).slice(2)}`
   // 温度配置将在llm-api.js中从全局配置读取
-  const messages: AIDialogMessage[] = [{
-    role: 'user',
-    content: systemPrompt,
-  }]
-  const { handle, done } = createAiTask(
-    '生成图表代码',
-    messages,
-    target,
-    'chat',
-    originKey,
-    { stream: true }
-  )
+  const messages: AIDialogMessage[] = [
+    {
+      role: 'user',
+      content: systemPrompt
+    }
+  ]
+  const { handle, done } = createAiTask('生成图表代码', messages, target, 'chat', originKey, {
+    stream: true
+  })
 
   // 立即通过 onUpdate 传递流式输出信息（在 await done 之前）
   if (onUpdate) {
-    onUpdate({
-      content: {
-        stage: 'generating-code-streaming',
-        codeTargetRef: target,
-        codeDonePromise: done
+    onUpdate(
+      {
+        content: {
+          stage: 'generating-code-streaming',
+          codeTargetRef: target,
+          codeDonePromise: done
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 30,
-      message: '正在生成图表代码（流式输出）...'
-    })
+      {
+        percentage: 30,
+        message: '正在生成图表代码（流式输出）...'
+      }
+    )
   }
 
   // 如果提供了signal，监听取消事件
@@ -671,35 +724,38 @@ async function generateChartCodeWithLLM(
   try {
     // 等待任务完成
     await done
-    
+
     // 检查结果是否为空
     if (!target.value || target.value.trim() === '') {
       throw new Error('LLM返回结果为空，请检查LLM API是否已启用并正确配置')
     }
-    
+
     let code = target.value.trim()
-    
+
     // 对于 Mermaid，使用专门的提取函数去除中文说明文字
     if (isMermaid) {
       code = extractMermaidCode(code)
     } else {
-    // 清理代码（移除可能的markdown代码块标记）
-    code = code
-      .replace(/```[\w]*\n?/g, '')
-      .replace(/```$/g, '')
-      .trim()
-    
-    // 对于ECharts，进行额外的清理
-    if (isECharts) {
-      code = cleanEChartsCode(code)
+      // 清理代码（移除可能的markdown代码块标记）
+      code = code
+        .replace(/```[\w]*\n?/g, '')
+        .replace(/```$/g, '')
+        .trim()
+
+      // 对于ECharts，进行额外的清理
+      if (isECharts) {
+        code = cleanEChartsCode(code)
       }
     }
-    
+
     // 验证语法（所有图表类型都验证，支持重试）
     if (retryCount < maxRetries) {
       const validation = await validateChartSyntax(code, chartType)
       if (!validation.valid) {
-        logger.warn(`图表代码语法验证失败 (尝试 ${retryCount + 1}/${maxRetries}):`, validation.error)
+        logger.warn(
+          `图表代码语法验证失败 (尝试 ${retryCount + 1}/${maxRetries}):`,
+          validation.error
+        )
         // 递归重试，传递错误信息
         return await generateChartCodeWithLLM(
           prompt,
@@ -713,13 +769,13 @@ async function generateChartCodeWithLLM(
         )
       }
     }
-    
+
     return code
   } catch (error) {
     // 如果LLM调用失败，抛出更详细的错误信息
     const errorMessage = error instanceof Error ? error.message : String(error)
     logger.error('LLM生成图表代码失败:', error)
-    
+
     // 检查是否是配置问题
     if (errorMessage.includes('未启用') || errorMessage.includes('NOT_ENABLED')) {
       throw new Error('LLM API未启用，请在设置中启用LLM功能')
@@ -727,10 +783,14 @@ async function generateChartCodeWithLLM(
     if (errorMessage.includes('未配置') || errorMessage.includes('INVALID_CONFIG')) {
       throw new Error('LLM配置不正确，请检查设置中的API配置')
     }
-    if (errorMessage.includes('网络') || errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    if (
+      errorMessage.includes('网络') ||
+      errorMessage.includes('network') ||
+      errorMessage.includes('fetch')
+    ) {
       throw new Error(`网络连接失败，请检查网络连接和API URL配置。错误详情: ${errorMessage}`)
     }
-    
+
     throw new Error(`LLM调用失败: ${errorMessage}`)
   }
 }
@@ -745,7 +805,7 @@ async function getLocalPathFromUrl(url: string): Promise<string> {
   try {
     const { getImagePath } = await import('../settings')
     const localImagePath = await getImagePath()
-    
+
     let imageName = ''
     if (url.startsWith('http://localhost:52521/images/')) {
       // HTTP URL，提取文件名
@@ -755,7 +815,7 @@ async function getLocalPathFromUrl(url: string): Promise<string> {
       // 其他格式，尝试提取文件名
       imageName = url.split(/[/\\]/).pop() || url
     }
-    
+
     // 拼接本地路径
     const localPath = `${localImagePath}/${imageName}`
     return localPath
@@ -804,18 +864,21 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
 
   try {
     // 步骤1: 生成图表代码
-    onUpdate({
-      content: {
-        stage: 'generating',
-        prompt,
-        chartType: normalizedChartType,
-        format
+    onUpdate(
+      {
+        content: {
+          stage: 'generating',
+          prompt,
+          chartType: normalizedChartType,
+          format
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 10,
-      message: '正在生成图表代码...'
-    })
+      {
+        percentage: 10,
+        message: '正在生成图表代码...'
+      }
+    )
 
     // 如果提供了代码，直接使用；否则调用LLM生成
     let finalChartCode = chartCode
@@ -837,15 +900,19 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
         // LLM调用失败，返回更友好的错误信息
         const errorMessage = error instanceof Error ? error.message : String(error)
         logger.error('LLM生成图表代码失败:', error)
-        
+
         // 检查是否是网络错误
-        if (errorMessage.includes('网络') || errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        if (
+          errorMessage.includes('网络') ||
+          errorMessage.includes('network') ||
+          errorMessage.includes('fetch')
+        ) {
           return {
             status: 'failed',
             error: `LLM调用失败: 请检查LLM API配置是否正确，以及网络连接是否正常。错误详情: ${errorMessage}`
           }
         }
-        
+
         return {
           status: 'failed',
           error: `LLM生成图表代码失败: ${errorMessage}`
@@ -870,8 +937,7 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
     } else if (normalizedChartType === 'echarts') {
       // 对于 ECharts，清理代码
       finalChartCode = cleanEChartsCode(finalChartCode)
-    } else if (normalizedChartType === 'flowchart' || 
-               normalizedChartType === 'graphviz') {
+    } else if (normalizedChartType === 'flowchart' || normalizedChartType === 'graphviz') {
       // 对于其他图表类型，使用通用提取函数去除中文说明文字
       finalChartCode = extractGenericChartCode(finalChartCode, normalizedChartType)
     } else {
@@ -880,7 +946,7 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
         .replace(/```[\w]*\n?/g, '')
         .replace(/```$/g, '')
         .trim()
-      
+
       // 尝试移除开头的中文段落
       finalChartCode = finalChartCode.replace(/^[\s\S]*?[。！？]\s*/g, '')
       // 尝试移除结尾的中文段落
@@ -888,18 +954,21 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
       finalChartCode = finalChartCode.trim()
     }
 
-    onUpdate({
-      content: {
-        stage: 'rendering',
-        chartCode: finalChartCode,
-        chartType: normalizedChartType,
-        format
+    onUpdate(
+      {
+        content: {
+          stage: 'rendering',
+          chartCode: finalChartCode,
+          chartType: normalizedChartType,
+          format
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 40,
-      message: '正在渲染图表...'
-    })
+      {
+        percentage: 40,
+        message: '正在渲染图表...'
+      }
+    )
 
     // 步骤2: 渲染图表
     let imageUrl: string
@@ -911,13 +980,13 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
       // 处理包含函数的JSON（LLM可能生成包含function的代码）
       let optionJson: any
       let parseError: Error | null = null
-      
+
       // 先清理代码
       let cleanedCode = cleanEChartsCode(finalChartCode)
-      
+
       // 先提取JSON字符串（处理LLM返回的文本中包含其他文字的情况）
       let jsonString = extractOuterJsonString(cleanedCode) || cleanedCode
-      
+
       try {
         // 先尝试标准JSON解析
         optionJson = JSON.parse(jsonString)
@@ -928,14 +997,18 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
           // 进一步清理：移除可能的变量声明
           let funcCode = jsonString.replace(/^(const|let|var)\s+\w+\s*=\s*/, '')
           funcCode = funcCode.replace(/;?\s*$/, '')
-          
+
           // 使用Function构造器安全地解析（避免直接eval）
           optionJson = new Function('return ' + funcCode)()
         } catch (evalError) {
           // 如果都失败了，检查是否需要重试
           const evalErrorMsg = evalError instanceof Error ? evalError.message : String(evalError)
-          logger.error('ECharts代码解析失败:', { jsonError: parseError.message, evalError: evalErrorMsg, code: cleanedCode.substring(0, 200) })
-          
+          logger.error('ECharts代码解析失败:', {
+            jsonError: parseError.message,
+            evalError: evalErrorMsg,
+            code: cleanedCode.substring(0, 200)
+          })
+
           // 如果还没有重试过，尝试重新生成
           if (!params._retryAttempted) {
             logger.info('ECharts解析失败，尝试重新生成代码...')
@@ -955,16 +1028,18 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
             // 递归调用，使用新生成的代码
             return await chartGenerationCallback({ ...params, code: retryCode }, signal, onUpdate)
           }
-          
-          throw new Error(`ECharts配置解析失败。JSON错误: ${parseError.message}，Eval错误: ${evalErrorMsg}`)
+
+          throw new Error(
+            `ECharts配置解析失败。JSON错误: ${parseError.message}，Eval错误: ${evalErrorMsg}`
+          )
         }
       }
-      
+
       // 确保optionJson是对象
       if (typeof optionJson !== 'object' || optionJson === null) {
         throw new Error('ECharts配置必须是有效的对象，当前类型: ' + typeof optionJson)
       }
-      
+
       // 将对象转换为字符串，保留函数
       const serializeWithFunctions = (obj: any): string => {
         return JSON.stringify(obj, (key, value) => {
@@ -974,26 +1049,32 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
           return value
         })
       }
-      
+
       let optionJsonString = serializeWithFunctions(optionJson)
-      
+
       // ECharts渲染重试机制（最多3次）
       let echartsRetryCount = 0
       const maxEchartsRetries = 3
       let echartsImageUrl: string | undefined = undefined
-      
+
       while (echartsRetryCount <= maxEchartsRetries) {
         try {
           echartsImageUrl = await renderEChartsViaIpc(optionJsonString, targetFormat)
           // 渲染成功，跳出循环
           break
         } catch (renderError) {
-          const renderErrorMsg = renderError instanceof Error ? renderError.message : String(renderError)
-          logger.warn(`ECharts渲染失败 (尝试 ${echartsRetryCount + 1}/${maxEchartsRetries + 1}):`, renderErrorMsg)
-          
+          const renderErrorMsg =
+            renderError instanceof Error ? renderError.message : String(renderError)
+          logger.warn(
+            `ECharts渲染失败 (尝试 ${echartsRetryCount + 1}/${maxEchartsRetries + 1}):`,
+            renderErrorMsg
+          )
+
           if (echartsRetryCount < maxEchartsRetries) {
             // 尝试重新生成代码
-            logger.info(`ECharts渲染失败，尝试重新生成代码 (${echartsRetryCount + 1}/${maxEchartsRetries})...`)
+            logger.info(
+              `ECharts渲染失败，尝试重新生成代码 (${echartsRetryCount + 1}/${maxEchartsRetries})...`
+            )
             try {
               const codeTarget = ref('')
               const retryCode = await generateChartCodeWithLLM(
@@ -1006,11 +1087,11 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
                 3,
                 `ECharts渲染失败: ${renderErrorMsg}`
               )
-              
+
               // 重新解析代码
               let retryCleanedCode = cleanEChartsCode(retryCode)
               let retryJsonString = extractOuterJsonString(retryCleanedCode) || retryCleanedCode
-              
+
               try {
                 optionJson = JSON.parse(retryJsonString)
               } catch {
@@ -1022,11 +1103,11 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
                   throw new Error('重试生成的代码仍然无法解析')
                 }
               }
-              
+
               if (typeof optionJson !== 'object' || optionJson === null) {
                 throw new Error('重试生成的代码不是有效的对象')
               }
-              
+
               optionJsonString = serializeWithFunctions(optionJson)
               echartsRetryCount++
               // 继续循环，尝试使用新生成的代码渲染
@@ -1043,20 +1124,26 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
           }
         }
       }
-      
+
       if (!echartsImageUrl) {
         throw new Error(`ECharts渲染失败：已尝试 ${echartsRetryCount} 次重试，但仍无法渲染`)
       }
-      
+
       imageUrl = echartsImageUrl
     } else if (normalizedChartType === 'plantuml') {
       // PlantUML使用IPC渲染
       try {
-        imageUrl = await renderPlantUMLViaIpc(finalChartCode, targetFormat) as string
+        imageUrl = (await renderPlantUMLViaIpc(finalChartCode, targetFormat)) as string
       } catch (renderError) {
         // 如果渲染失败，尝试重新生成
-        const renderErrorMsg = renderError instanceof Error ? renderError.message : String(renderError)
-        if (!params._retryAttempted && (renderErrorMsg.includes('syntax') || renderErrorMsg.includes('语法') || renderErrorMsg.includes('error'))) {
+        const renderErrorMsg =
+          renderError instanceof Error ? renderError.message : String(renderError)
+        if (
+          !params._retryAttempted &&
+          (renderErrorMsg.includes('syntax') ||
+            renderErrorMsg.includes('语法') ||
+            renderErrorMsg.includes('error'))
+        ) {
           logger.info('PlantUML渲染失败，尝试重新生成代码...')
           const codeTarget = ref('')
           const retryCode = await generateChartCodeWithLLM(
@@ -1080,31 +1167,38 @@ const chartGenerationCallback: ToolCallback = async (params, signal, onUpdate) =
       const maxMermaidFixes = 10
       let currentCode = finalChartCode
       let mermaidImageUrl: string | undefined = undefined
-      
+
       while (mermaidFixAttempts <= maxMermaidFixes) {
         try {
           // 先提取纯 Mermaid 代码（去除中文说明）
           currentCode = extractMermaidCode(currentCode)
-          
+
           // 尝试渲染
           mermaidImageUrl = await renderMermaidViaApi(currentCode, targetFormat)
           // 渲染成功，跳出循环
           break
         } catch (renderError) {
-          const renderErrorMsg = renderError instanceof Error ? renderError.message : String(renderError)
-          logger.warn(`Mermaid 渲染失败 (尝试 ${mermaidFixAttempts + 1}/${maxMermaidFixes + 1}):`, renderErrorMsg)
-          
+          const renderErrorMsg =
+            renderError instanceof Error ? renderError.message : String(renderError)
+          logger.warn(
+            `Mermaid 渲染失败 (尝试 ${mermaidFixAttempts + 1}/${maxMermaidFixes + 1}):`,
+            renderErrorMsg
+          )
+
           // 检查是否是语法错误，如果是则尝试修复
-          const isSyntaxError = renderErrorMsg.includes('syntax') || 
-                               renderErrorMsg.includes('语法') || 
-                               renderErrorMsg.includes('error') || 
-                               renderErrorMsg.includes('parse') ||
-                               renderErrorMsg.includes('No diagram type detected')
-          
+          const isSyntaxError =
+            renderErrorMsg.includes('syntax') ||
+            renderErrorMsg.includes('语法') ||
+            renderErrorMsg.includes('error') ||
+            renderErrorMsg.includes('parse') ||
+            renderErrorMsg.includes('No diagram type detected')
+
           if (isSyntaxError && mermaidFixAttempts < maxMermaidFixes) {
             // 尝试使用 AI 修复代码
-            logger.info(`Mermaid 语法错误，尝试使用 AI 修复 (${mermaidFixAttempts + 1}/${maxMermaidFixes})...`)
-            
+            logger.info(
+              `Mermaid 语法错误，尝试使用 AI 修复 (${mermaidFixAttempts + 1}/${maxMermaidFixes})...`
+            )
+
             try {
               const codeTarget = ref('')
               const fixPrompt = `之前的 Mermaid 代码有语法错误，请修复它。
@@ -1117,7 +1211,7 @@ ${currentCode}
 \`\`\`
 
 请修复语法错误，只返回修复后的 Mermaid 代码，不要包含任何说明文字或 markdown 代码块标记。`
-              
+
               const fixedCode = await generateChartCodeWithLLM(
                 fixPrompt,
                 normalizedChartType,
@@ -1128,7 +1222,7 @@ ${currentCode}
                 3,
                 renderErrorMsg
               )
-              
+
               if (fixedCode && fixedCode.trim() !== currentCode.trim()) {
                 currentCode = fixedCode
                 mermaidFixAttempts++
@@ -1149,12 +1243,14 @@ ${currentCode}
           }
         }
       }
-      
+
       // 如果循环结束但 mermaidImageUrl 仍未设置，说明修复失败
       if (!mermaidImageUrl) {
-        throw new Error(`Mermaid 渲染失败：已尝试 ${mermaidFixAttempts} 次修复，但仍无法修复语法错误`)
+        throw new Error(
+          `Mermaid 渲染失败：已尝试 ${mermaidFixAttempts} 次修复，但仍无法修复语法错误`
+        )
       }
-      
+
       // 更新 finalChartCode 为最终提取后的代码（可能经过修复）
       finalChartCode = currentCode
       imageUrl = mermaidImageUrl
@@ -1174,8 +1270,15 @@ ${currentCode}
         )
       } catch (renderError) {
         // 如果渲染失败（可能是语法错误），尝试重新生成
-        const renderErrorMsg = renderError instanceof Error ? renderError.message : String(renderError)
-        if (!params._retryAttempted && (renderErrorMsg.includes('syntax') || renderErrorMsg.includes('语法') || renderErrorMsg.includes('error') || renderErrorMsg.includes('parse'))) {
+        const renderErrorMsg =
+          renderError instanceof Error ? renderError.message : String(renderError)
+        if (
+          !params._retryAttempted &&
+          (renderErrorMsg.includes('syntax') ||
+            renderErrorMsg.includes('语法') ||
+            renderErrorMsg.includes('error') ||
+            renderErrorMsg.includes('parse'))
+        ) {
           logger.info(`${normalizedChartType}渲染失败，尝试重新生成代码...`)
           const codeTarget = ref('')
           const retryCode = await generateChartCodeWithLLM(
@@ -1204,23 +1307,26 @@ ${currentCode}
     if (format === 'pdf') {
       // 保存原始 SVG URL
       originalSvgUrl = imageUrl
-      onUpdate({
-        content: {
-          stage: 'converting',
-          imageUrl,
-          chartType: normalizedChartType
+      onUpdate(
+        {
+          content: {
+            stage: 'converting',
+            imageUrl,
+            chartType: normalizedChartType
+          },
+          format: 'json'
         },
-        format: 'json'
-      }, {
-        percentage: 80,
-        message: '正在转换为PDF...'
-      })
+        {
+          percentage: 80,
+          message: '正在转换为PDF...'
+        }
+      )
 
       // PDF转换：使用统一工具函数
       const { convertSvgToPdf: convertSvgToPdfUtil } = await import('../svg-to-pdf-utils.js')
       // 返回本地路径（returnUrl: false），用于 localPath
       const pdfPath = await convertSvgToPdfUtil(imageUrl, { returnUrl: false })
-      
+
       // 设置本地路径
       localPath = pdfPath
       // 将本地路径转换为 HTTP URL 用于显示和访问
@@ -1234,23 +1340,26 @@ ${currentCode}
       chartType: normalizedChartType,
       url: finalUrl,
       localPath,
-      chartCode: finalChartCode,  // 包含提取后的可直接渲染的代码
+      chartCode: finalChartCode, // 包含提取后的可直接渲染的代码
       // 如果是 PDF 格式，保存原始 SVG URL 用于显示
       svgUrl: format === 'pdf' ? originalSvgUrl : undefined
     }
 
-    onUpdate({
-      content: {
-        stage: 'completed',
-        ...result,
-        chartCode: finalChartCode
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          ...result,
+          chartCode: finalChartCode
+        },
+        format: 'json',
+        componentName: 'ChartGenerationDisplay'
       },
-      format: 'json',
-      componentName: 'ChartGenerationDisplay'
-    }, {
-      percentage: 100,
-      message: '图表生成完成'
-    })
+      {
+        percentage: 100,
+        message: '图表生成完成'
+      }
+    )
 
     return {
       status: 'succeeded',
@@ -1278,7 +1387,8 @@ ${currentCode}
 const chartGenerationToolLocales: ToolLocales = {
   zh_cn: {
     name: '图表生成',
-    description: '根据提示词生成各种类型的图表（Mermaid、ECharts、PlantUML、flowchart、graphviz等），支持导出为SVG、PNG或PDF格式',
+    description:
+      '根据提示词生成各种类型的图表（Mermaid、ECharts、PlantUML、flowchart、graphviz等），支持导出为SVG、PNG或PDF格式',
     instruction: `# 图表生成工具
 
 ## 功能描述
@@ -1443,7 +1553,8 @@ const chartGenerationToolLocales: ToolLocales = {
   },
   en_us: {
     name: 'Chart Generation',
-    description: 'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats',
+    description:
+      'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) based on prompts, supporting export to SVG, PNG, or PDF formats',
     instruction: `# Chart Generation Tool
 
 ## Description
@@ -1608,19 +1719,23 @@ Or use full path:
   },
   de_DE: {
     name: 'Diagramm-Generierung',
-    description: 'Generiert verschiedene Diagrammtypen (Mermaid, ECharts, PlantUML, Flowchart, Graphviz usw.) basierend auf Eingabeaufforderungen, unterstützt Export in SVG, PNG oder PDF'
+    description:
+      'Generiert verschiedene Diagrammtypen (Mermaid, ECharts, PlantUML, Flowchart, Graphviz usw.) basierend auf Eingabeaufforderungen, unterstützt Export in SVG, PNG oder PDF'
   },
   fr_FR: {
     name: 'Génération de graphiques',
-    description: 'Génère divers types de graphiques (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) basés sur des invites, supportant l\'export en SVG, PNG ou PDF'
+    description:
+      "Génère divers types de graphiques (Mermaid, ECharts, PlantUML, flowchart, graphviz, etc.) basés sur des invites, supportant l'export en SVG, PNG ou PDF"
   },
   ja_JP: {
     name: 'チャート生成',
-    description: 'プロンプトに基づいて様々なタイプのチャート（Mermaid、ECharts、PlantUML、flowchart、graphvizなど）を生成し、SVG、PNG、PDF形式へのエクスポートをサポート'
+    description:
+      'プロンプトに基づいて様々なタイプのチャート（Mermaid、ECharts、PlantUML、flowchart、graphvizなど）を生成し、SVG、PNG、PDF形式へのエクスポートをサポート'
   },
   ko_KR: {
     name: '차트 생성',
-    description: '프롬프트를 기반으로 다양한 유형의 차트(Mermaid, ECharts, PlantUML, flowchart, graphviz 등)를 생성하며 SVG, PNG 또는 PDF 형식으로 내보내기 지원'
+    description:
+      '프롬프트를 기반으로 다양한 유형의 차트(Mermaid, ECharts, PlantUML, flowchart, graphviz 등)를 생성하며 SVG, PNG 또는 PDF 형식으로 내보내기 지원'
   }
 }
 
@@ -1634,7 +1749,8 @@ export const chartGenerationToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'chart-generation',
-    brief: 'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz) based on prompts.',
+    brief:
+      'Generate various types of charts (Mermaid, ECharts, PlantUML, flowchart, graphviz) based on prompts.',
     fullSpec: `# Chart Generation Tool
 
 ## Description
@@ -1679,4 +1795,3 @@ Returns chart code or rendered chart URL depending on the chart type. For Mermai
   editable: false,
   locales: chartGenerationToolLocales
 }
-

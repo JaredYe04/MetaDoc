@@ -21,215 +21,287 @@
         @duplicate="handleDuplicateSession"
         @delete="handleDeleteSession"
       >
-      <!-- 右侧内容区域 -->
-      <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
-        <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
-          <p>{{ t('dataAnalysis.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
-        </div>
-        
-        <div v-else class="session-content-panel" :style="panelStyle">
-          <!-- 文件上传/显示区域（在最上方） -->
-          <div class="file-section" :style="fileSectionStyle">
-            <el-upload
-              v-if="!currentFile"
-              :file-list="[]"
-              :auto-upload="false"
-              :on-change="handleFileChange"
-              :limit="1"
-              accept=".csv,.xlsx,.xls,.json"
-              class="compact-upload"
-            >
-              <template #trigger>
-                <el-button type="primary" :icon="UploadFilled">
-                  {{ t('dataAnalysis.uploadFile', '上传文件') }}
-                </el-button>
-              </template>
-              <template #tip>
-                <div class="upload-tip" :style="tipStyle">
-                  {{ t('dataAnalysis.uploadTip', '支持 CSV、Excel、JSON 格式') }}
-                </div>
-              </template>
-            </el-upload>
-            
-            <div v-else class="file-list-item" :style="fileListItemStyle">
-              <el-icon class="file-icon"><Document /></el-icon>
-              <span class="file-name" :style="fileNameStyle">{{ currentFile.name }}</span>
-              <el-button
-                type="danger"
-                :icon="Delete"
-                circle plain
-                
-                size="small"
-                @click="handleFileRemove"
-              />
-            </div>
+        <!-- 右侧内容区域 -->
+        <div class="content-area" :style="contentAreaStyle" v-loading="loadingSession">
+          <div v-if="!activeSession" class="empty-state" :style="emptyStateStyle">
+            <p>{{ t('dataAnalysis.noSessionSelected', '请选择一个会话或创建新会话') }}</p>
           </div>
-          
-          <!-- Tab 内容 -->
-          <el-tabs v-model="activeTab" type="border-card" class="main-tabs" :style="tabsStyle">
-            <!-- Tab 1: 数据预览与参数设置 -->
-            <el-tab-pane :label="t('dataAnalysis.tabs.preview', '数据预览')" name="preview">
-              <div class="preview-tab-content">
-                <!-- 参数设置区域 - 拆分为左右两个panel -->
-                <div v-if="currentFile && (isCsvFile || isExcelFile)" class="params-section-split" :style="paramsSectionStyle">
-                  <!-- 左侧70%：参数设置 -->
-                  <div class="params-left-panel">
-                    <el-form :model="analysisParams" label-width="200px" size="default" class="centered-form">
-                      <el-form-item :label="t('dataAnalysis.headerRowIndex', '表头行数（从0开始）')">
-                        <el-input-number
-                          v-model="headerRowIndex"
-                          :min="0"
-                          :max="20"
-                          :step="1"
-                          :precision="0"
-                          controls-position="right"
-                          style="width: 200px"
-                          @change="handleHeaderRowIndexChange"
-                        />
-                        <div class="header-row-hint" :style="hintStyle">
-                          {{ t('dataAnalysis.headerRowHint', `默认值：自动检测（当前猜测：第 ${detectedHeaderRowIndex + 1} 行）`) }}
-                        </div>
-                      </el-form-item>
-                      
-                      <el-form-item :label="t('dataAnalysis.autoGroupBy', '自动聚合分析')">
-                        <el-switch v-model="analysisParams.autoGroupBy" />
-                      </el-form-item>
-                      
-                      <el-form-item :label="t('dataAnalysis.generateReport', '生成AI报告')">
-                        <el-switch v-model="analysisParams.generateReport" />
-                      </el-form-item>
-                      
-                      <el-form-item v-if="analysisParams.generateReport" :label="t('dataAnalysis.analysisRequest', '分析需求（可选）')">
-                        <el-input
-                          v-model="analysisParams.analysisRequest"
-                          type="textarea"
-                          :rows="2"
-                          :placeholder="t('dataAnalysis.analysisRequestPlaceholder', '描述您的分析需求...')"
-                        />
-                      </el-form-item>
-                    </el-form>
-                  </div>
-                  
-                  <!-- 右侧30%：当前表头显示 -->
-                  <div class="params-right-panel" :style="paramsRightPanelStyle">
-                    <div class="header-preview-title" :style="headerPreviewTitleStyle">
-                      {{ t('dataAnalysis.currentHeader', '当前表头') }}
-                    </div>
-                    <el-scrollbar class="header-preview-scrollbar" v-if="headerPreview.length > 0">
-                      <div class="header-preview-content">
-                        <el-tag
-                          v-for="(header, index) in headerPreview"
-                          :key="index"
-                          size="small"
-                          effect="plain"
-                          class="header-tag"
-                          :style="headerTagStyle"
-                        >
-                          {{ header || `列${index + 1}` }}
-                        </el-tag>
-                      </div>
-                    </el-scrollbar>
-                    <div v-else class="no-header-preview" :style="noHeaderPreviewStyle">
-                      {{ t('dataAnalysis.noHeaderPreview', '暂无表头数据') }}
-                    </div>
-                  </div>
-                </div>
 
-                <!-- 数据预览表格 -->
-                <div v-if="currentFile && previewData.length > 0" class="preview-table-container" ref="tableContainerRef">
-                  <DataTable
-                    ref="dataTableRef"
-                    :data="previewData"
-                    :read-only="true"
-                    :row-headers="true"
-                    :col-headers="true"
-                    :auto-column-size="true"
-                    :manual-column-resize="true"
-                    :stretch-h="'none'"
-                    table-class="preview-table"
-                    @selection-changed="handleSelectionChanged"
-                  />
-                </div>
-                
-                <div v-else-if="currentFile" class="no-preview-data" :style="noPreviewDataStyle">
-                  {{ t('dataAnalysis.loadingPreview', '正在加载数据预览...') }}
-                </div>
-                
-                <div v-else class="no-file-hint" :style="noFileHintStyle">
-                  {{ t('dataAnalysis.uploadFileFirst', '请先上传数据文件') }}
-                </div>
-
-                <!-- 分析按钮（固定在底部） -->
-                <div v-if="currentFile" class="analyze-button-container" :style="analyzeButtonContainerStyle">
-                  <div class="analyze-button-row">
-                    <el-button 
-                      type="primary" 
-                      size="large"
-                      :loading="analyzing"
-                      :disabled="!currentFile"
-                      @click="handleAnalyze"
-                    >
-                      {{ analyzing ? t('dataAnalysis.analyzing', '分析中...') : t('dataAnalysis.analyze', '开始分析') }}
-                    </el-button>
-                    <span v-if="selectedRowCount > 0" class="selection-hint" :style="selectionHintStyle">
-                      {{ t('dataAnalysis.selectedRowsHint', `已选中 ${selectedRowCount} 行，将仅分析选中数据`, { count: selectedRowCount }) }}
-                    </span>
-                    <span v-else-if="previewData.length > 1" class="selection-hint selection-hint-dim" :style="selectionHintDimStyle">
-                      {{ t('dataAnalysis.noSelectionHint', '提示：可在表格中勾选行来仅分析部分数据') }}
-                    </span>
+          <div v-else class="session-content-panel" :style="panelStyle">
+            <!-- 文件上传/显示区域（在最上方） -->
+            <div class="file-section" :style="fileSectionStyle">
+              <el-upload
+                v-if="!currentFile"
+                :file-list="[]"
+                :auto-upload="false"
+                :on-change="handleFileChange"
+                :limit="1"
+                accept=".csv,.xlsx,.xls,.json"
+                class="compact-upload"
+              >
+                <template #trigger>
+                  <el-button type="primary" :icon="UploadFilled">
+                    {{ t('dataAnalysis.uploadFile', '上传文件') }}
+                  </el-button>
+                </template>
+                <template #tip>
+                  <div class="upload-tip" :style="tipStyle">
+                    {{ t('dataAnalysis.uploadTip', '支持 CSV、Excel、JSON 格式') }}
                   </div>
-                </div>
+                </template>
+              </el-upload>
+
+              <div v-else class="file-list-item" :style="fileListItemStyle">
+                <el-icon class="file-icon"><Document /></el-icon>
+                <span class="file-name" :style="fileNameStyle">{{ currentFile.name }}</span>
+                <el-button
+                  type="danger"
+                  :icon="Delete"
+                  circle
+                  plain
+                  size="small"
+                  @click="handleFileRemove"
+                />
               </div>
-            </el-tab-pane>
-            
-            <!-- Tab 2: 分析结果 -->
-            <el-tab-pane :label="t('dataAnalysis.tabs.result', '分析结果')" name="result">
-              <el-scrollbar class="result-tab-scrollbar">
-                <div class="result-tab-content" :style="resultTabContentStyle">
-                <!-- 分析状态显示（仅在非报告流式生成阶段显示） -->
-                <div v-if="(analyzing || analysisStage) && !isReportStreaming" class="analysis-status" :style="analysisStatusStyle">
-                  <el-icon class="is-loading"><Loading /></el-icon>
-                  <span>{{ getStageMessage() }}</span>
-                </div>
+            </div>
 
-                <!-- 分析结果展示 -->
-                <div v-if="analysisResult" class="result-content">
-                  <DataAnalysisResultDisplay :result="analysisResult" />
-                </div>
-                
-                <!-- AI报告 -->
-                <div v-if="analysisResult || reportMarkdown || isReportStreaming" class="report-section" :style="reportSectionStyle">
-                  <div class="report-header" :style="reportHeaderStyle">
-                    <h3>{{ t('dataAnalysis.tabs.report', '分析报告') }}</h3>
+            <!-- Tab 内容 -->
+            <el-tabs v-model="activeTab" type="border-card" class="main-tabs" :style="tabsStyle">
+              <!-- Tab 1: 数据预览与参数设置 -->
+              <el-tab-pane :label="t('dataAnalysis.tabs.preview', '数据预览')" name="preview">
+                <div class="preview-tab-content">
+                  <!-- 参数设置区域 - 拆分为左右两个panel -->
+                  <div
+                    v-if="currentFile && (isCsvFile || isExcelFile)"
+                    class="params-section-split"
+                    :style="paramsSectionStyle"
+                  >
+                    <!-- 左侧70%：参数设置 -->
+                    <div class="params-left-panel">
+                      <el-form
+                        :model="analysisParams"
+                        label-width="200px"
+                        size="default"
+                        class="centered-form"
+                      >
+                        <el-form-item
+                          :label="t('dataAnalysis.headerRowIndex', '表头行数（从0开始）')"
+                        >
+                          <el-input-number
+                            v-model="headerRowIndex"
+                            :min="0"
+                            :max="20"
+                            :step="1"
+                            :precision="0"
+                            controls-position="right"
+                            style="width: 200px"
+                            @change="handleHeaderRowIndexChange"
+                          />
+                          <div class="header-row-hint" :style="hintStyle">
+                            {{
+                              t(
+                                'dataAnalysis.headerRowHint',
+                                `默认值：自动检测（当前猜测：第 ${detectedHeaderRowIndex + 1} 行）`
+                              )
+                            }}
+                          </div>
+                        </el-form-item>
+
+                        <el-form-item :label="t('dataAnalysis.autoGroupBy', '自动聚合分析')">
+                          <el-switch v-model="analysisParams.autoGroupBy" />
+                        </el-form-item>
+
+                        <el-form-item :label="t('dataAnalysis.generateReport', '生成AI报告')">
+                          <el-switch v-model="analysisParams.generateReport" />
+                        </el-form-item>
+
+                        <el-form-item
+                          v-if="analysisParams.generateReport"
+                          :label="t('dataAnalysis.analysisRequest', '分析需求（可选）')"
+                        >
+                          <el-input
+                            v-model="analysisParams.analysisRequest"
+                            type="textarea"
+                            :rows="2"
+                            :placeholder="
+                              t('dataAnalysis.analysisRequestPlaceholder', '描述您的分析需求...')
+                            "
+                          />
+                        </el-form-item>
+                      </el-form>
+                    </div>
+
+                    <!-- 右侧30%：当前表头显示 -->
+                    <div class="params-right-panel" :style="paramsRightPanelStyle">
+                      <div class="header-preview-title" :style="headerPreviewTitleStyle">
+                        {{ t('dataAnalysis.currentHeader', '当前表头') }}
+                      </div>
+                      <el-scrollbar
+                        class="header-preview-scrollbar"
+                        v-if="headerPreview.length > 0"
+                      >
+                        <div class="header-preview-content">
+                          <el-tag
+                            v-for="(header, index) in headerPreview"
+                            :key="index"
+                            size="small"
+                            effect="plain"
+                            class="header-tag"
+                            :style="headerTagStyle"
+                          >
+                            {{ header || `列${index + 1}` }}
+                          </el-tag>
+                        </div>
+                      </el-scrollbar>
+                      <div v-else class="no-header-preview" :style="noHeaderPreviewStyle">
+                        {{ t('dataAnalysis.noHeaderPreview', '暂无表头数据') }}
+                      </div>
+                    </div>
                   </div>
-                  <!-- 流式输出显示 -->
-                  <StreamingContentDisplay
-                    v-if="isReportStreaming"
-                    :content-ref="reportStreamingRefWrapper"
-                    :done="reportStreamingDoneValue"
-                    :style="{ marginBottom: '16px' }"
-                  />
-                  <div 
-                    v-else-if="reportMarkdown" 
-                    ref="reportContainerRef"
-                    class="report-markdown-container"
-                    :style="reportContainerStyle"
-                  ></div>
-                  <div v-else class="no-report" :style="noReportStyle">
-                    {{ t('dataAnalysis.noReport', '暂无分析报告') }}
+
+                  <!-- 数据预览表格 -->
+                  <div
+                    v-if="currentFile && previewData.length > 0"
+                    class="preview-table-container"
+                    ref="tableContainerRef"
+                  >
+                    <DataTable
+                      ref="dataTableRef"
+                      :data="previewData"
+                      :read-only="true"
+                      :row-headers="true"
+                      :col-headers="true"
+                      :auto-column-size="true"
+                      :manual-column-resize="true"
+                      :stretch-h="'none'"
+                      table-class="preview-table"
+                      @selection-changed="handleSelectionChanged"
+                    />
+                  </div>
+
+                  <div v-else-if="currentFile" class="no-preview-data" :style="noPreviewDataStyle">
+                    {{ t('dataAnalysis.loadingPreview', '正在加载数据预览...') }}
+                  </div>
+
+                  <div v-else class="no-file-hint" :style="noFileHintStyle">
+                    {{ t('dataAnalysis.uploadFileFirst', '请先上传数据文件') }}
+                  </div>
+
+                  <!-- 分析按钮（固定在底部） -->
+                  <div
+                    v-if="currentFile"
+                    class="analyze-button-container"
+                    :style="analyzeButtonContainerStyle"
+                  >
+                    <div class="analyze-button-row">
+                      <el-button
+                        type="primary"
+                        size="large"
+                        :loading="analyzing"
+                        :disabled="!currentFile"
+                        @click="handleAnalyze"
+                      >
+                        {{
+                          analyzing
+                            ? t('dataAnalysis.analyzing', '分析中...')
+                            : t('dataAnalysis.analyze', '开始分析')
+                        }}
+                      </el-button>
+                      <span
+                        v-if="selectedRowCount > 0"
+                        class="selection-hint"
+                        :style="selectionHintStyle"
+                      >
+                        {{
+                          t(
+                            'dataAnalysis.selectedRowsHint',
+                            `已选中 ${selectedRowCount} 行，将仅分析选中数据`,
+                            { count: selectedRowCount }
+                          )
+                        }}
+                      </span>
+                      <span
+                        v-else-if="previewData.length > 1"
+                        class="selection-hint selection-hint-dim"
+                        :style="selectionHintDimStyle"
+                      >
+                        {{
+                          t(
+                            'dataAnalysis.noSelectionHint',
+                            '提示：可在表格中勾选行来仅分析部分数据'
+                          )
+                        }}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                
-                <!-- 空状态 -->
-                <div v-if="!analyzing && !analysisResult && !reportMarkdown" class="empty-result" :style="emptyResultStyle">
-                  {{ t('dataAnalysis.noAnalysisResult', '暂无分析结果，请在"数据预览"标签页中开始分析') }}
-                </div>
-                </div>
-              </el-scrollbar>
-            </el-tab-pane>
-          </el-tabs>
+              </el-tab-pane>
+
+              <!-- Tab 2: 分析结果 -->
+              <el-tab-pane :label="t('dataAnalysis.tabs.result', '分析结果')" name="result">
+                <el-scrollbar class="result-tab-scrollbar">
+                  <div class="result-tab-content" :style="resultTabContentStyle">
+                    <!-- 分析状态显示（仅在非报告流式生成阶段显示） -->
+                    <div
+                      v-if="(analyzing || analysisStage) && !isReportStreaming"
+                      class="analysis-status"
+                      :style="analysisStatusStyle"
+                    >
+                      <el-icon class="is-loading"><Loading /></el-icon>
+                      <span>{{ getStageMessage() }}</span>
+                    </div>
+
+                    <!-- 分析结果展示 -->
+                    <div v-if="analysisResult" class="result-content">
+                      <DataAnalysisResultDisplay :result="analysisResult" />
+                    </div>
+
+                    <!-- AI报告 -->
+                    <div
+                      v-if="analysisResult || reportMarkdown || isReportStreaming"
+                      class="report-section"
+                      :style="reportSectionStyle"
+                    >
+                      <div class="report-header" :style="reportHeaderStyle">
+                        <h3>{{ t('dataAnalysis.tabs.report', '分析报告') }}</h3>
+                      </div>
+                      <!-- 流式输出显示 -->
+                      <StreamingContentDisplay
+                        v-if="isReportStreaming"
+                        :content-ref="reportStreamingRefWrapper"
+                        :done="reportStreamingDoneValue"
+                        :style="{ marginBottom: '16px' }"
+                      />
+                      <div
+                        v-else-if="reportMarkdown"
+                        ref="reportContainerRef"
+                        class="report-markdown-container"
+                        :style="reportContainerStyle"
+                      ></div>
+                      <div v-else class="no-report" :style="noReportStyle">
+                        {{ t('dataAnalysis.noReport', '暂无分析报告') }}
+                      </div>
+                    </div>
+
+                    <!-- 空状态 -->
+                    <div
+                      v-if="!analyzing && !analysisResult && !reportMarkdown"
+                      class="empty-result"
+                      :style="emptyResultStyle"
+                    >
+                      {{
+                        t(
+                          'dataAnalysis.noAnalysisResult',
+                          '暂无分析结果，请在"数据预览"标签页中开始分析'
+                        )
+                      }}
+                    </div>
+                  </div>
+                </el-scrollbar>
+              </el-tab-pane>
+            </el-tabs>
+          </div>
         </div>
-      </div>
       </SessionList>
     </div>
   </div>
@@ -256,7 +328,10 @@ import { useWorkspace } from '../stores/workspace'
 const { t } = useI18n()
 const workspace = useWorkspace()
 
-const ourTabId = computed(() => workspace.tabs.find(tab => tab.kind === 'tool' && tab.route === '/data-analysis')?.id ?? null)
+const ourTabId = computed(
+  () =>
+    workspace.tabs.find((tab) => tab.kind === 'tool' && tab.route === '/data-analysis')?.id ?? null
+)
 
 const sessions = ref<SessionListItem[]>([])
 const activeSessionId = ref<string | null>(null)
@@ -266,7 +341,7 @@ const activeSession = computed(() => {
   if (activeSessionData.value && activeSessionData.value.id === activeSessionId.value) {
     return activeSessionData.value
   }
-  return sessions.value.find(s => s.id === activeSessionId.value) as any
+  return sessions.value.find((s) => s.id === activeSessionId.value) as any
 })
 
 const currentFile = ref<{ name: string; path: string } | null>(null)
@@ -279,7 +354,9 @@ const reportMarkdown = ref<string>('')
 // 报告流式显示相关的refs
 const reportStreamingRef = ref<string>('')
 const reportStreamingDonePromise = ref<Promise<any> | null | undefined>(null)
-const isReportStreaming = computed(() => reportStreamingDonePromise.value !== null && reportStreamingDonePromise.value !== undefined)
+const isReportStreaming = computed(
+  () => reportStreamingDonePromise.value !== null && reportStreamingDonePromise.value !== undefined
+)
 const reportStreamingDoneValue = computed(() => reportStreamingDonePromise.value || undefined)
 const reportStreamingRefWrapper = computed(() => reportStreamingRef)
 const activeTab = ref('preview')
@@ -310,7 +387,7 @@ const REPORT_DEBOUNCE_MS = 3000
 const loadSessions = async () => {
   try {
     const dbSessions = await dataAnalysisSessionsDb.getAll()
-    sessions.value = dbSessions.map(s => ({
+    sessions.value = dbSessions.map((s) => ({
       id: s.id,
       title: s.title,
       updatedAt: s.updated_at
@@ -325,7 +402,7 @@ const handleCreateSession = async () => {
   try {
     const id = `data-analysis-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const title = t('dataAnalysis.defaultTitle', '新数据分析会话')
-    
+
     const newSession: Omit<DataAnalysisSession, 'created_at' | 'updated_at'> = {
       id,
       title,
@@ -339,9 +416,9 @@ const handleCreateSession = async () => {
       auto_group_by: undefined,
       generate_report: undefined
     }
-    
+
     await dataAnalysisSessionsDb.create(newSession)
-    
+
     await loadSessions()
     activeSessionId.value = id
     const tid = ourTabId.value
@@ -372,9 +449,9 @@ const handleSelectSession = async (item: SessionListItem) => {
   if (loadingSession.value) {
     return
   }
-  
+
   loadingSession.value = true
-  
+
   try {
     // 在切换会话前，先保存当前会话的参数（如果有未保存的更改）
     if (activeSessionId.value && analysisParamsSaveTimer) {
@@ -385,7 +462,7 @@ const handleSelectSession = async (item: SessionListItem) => {
       await saveAnalysisParamsImmediately(activeSessionId.value)
       pendingSessionId = null
     }
-    
+
     activeSessionId.value = item.id
     const tid = ourTabId.value
     if (tid) workspace.setTabToolState(tid, { activeSessionId: item.id })
@@ -393,7 +470,7 @@ const handleSelectSession = async (item: SessionListItem) => {
     const session = await dataAnalysisSessionsDb.getById(item.id)
     if (session) {
       activeSessionData.value = session
-      
+
       if (session.analysis_result) {
         analysisResult.value = JSON.parse(session.analysis_result)
       } else {
@@ -411,7 +488,7 @@ const handleSelectSession = async (item: SessionListItem) => {
         }
         // 加载预览数据
         await loadPreviewData()
-        
+
         // 如果是CSV或Excel文件，处理表头行数
         if (session.data_format === 'csv') {
           if (session.header_row_index !== undefined && session.header_row_index !== null) {
@@ -452,11 +529,17 @@ const handleSelectSession = async (item: SessionListItem) => {
         previewData.value = []
         selectedRowCount.value = 0
       }
-      
+
       // 加载分析参数（数据库存储为0/1，需要转换为boolean）
       analysisParams.value = {
-        autoGroupBy: session.auto_group_by !== undefined && session.auto_group_by !== null ? (session.auto_group_by === 1) : true,
-        generateReport: session.generate_report !== undefined && session.generate_report !== null ? (session.generate_report === 1) : true,
+        autoGroupBy:
+          session.auto_group_by !== undefined && session.auto_group_by !== null
+            ? session.auto_group_by === 1
+            : true,
+        generateReport:
+          session.generate_report !== undefined && session.generate_report !== null
+            ? session.generate_report === 1
+            : true,
         analysisRequest: session.analysis_request || ''
       }
     }
@@ -482,7 +565,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
   try {
     const session = await dataAnalysisSessionsDb.getById(item.id)
     if (!session) return
-    
+
     const id = `data-analysis-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     await dataAnalysisSessionsDb.create({
       id,
@@ -497,7 +580,7 @@ const handleDuplicateSession = async (item: SessionListItem) => {
       auto_group_by: session.auto_group_by,
       generate_report: session.generate_report
     })
-    
+
     await loadSessions()
     ElMessage.success(t('common.duplicateSuccess', '复制成功'))
   } catch (error) {
@@ -536,7 +619,7 @@ const loadPreviewData = async () => {
     previewData.value = []
     return
   }
-  
+
   try {
     let ipcRenderer: any = null
     if (typeof window !== 'undefined') {
@@ -547,65 +630,72 @@ const loadPreviewData = async () => {
         ipcRenderer = localIpcRenderer
       }
     }
-    
+
     if (!ipcRenderer) return
-    
+
     const filePath = activeSessionData.value.data_file_path
     const format = activeSessionData.value.data_format || 'csv'
     const finalHeaderRowIndex = headerRowIndex.value !== undefined ? headerRowIndex.value : 0
-    
+
     if (format === 'csv') {
-      const content = await ipcRenderer.invoke('read-file-content', filePath) as string
+      const content = (await ipcRenderer.invoke('read-file-content', filePath)) as string
       if (!content) {
         console.error('CSV文件不存在或无法读取:', filePath)
         previewData.value = []
         return
       }
-      const lines = content.trim().split('\n').filter(line => line.trim())
-      
+      const lines = content
+        .trim()
+        .split('\n')
+        .filter((line) => line.trim())
+
       if (lines.length === 0) {
         previewData.value = []
         return
       }
-      
+
       // 检测分隔符
       const detectDelimiter = (line: string): string => {
         const tabColumns = line.split('\t')
         const commaColumns = line.split(',')
         return tabColumns.length >= 3 && tabColumns.length > commaColumns.length ? '\t' : ','
       }
-      
+
       const delimiter = detectDelimiter(lines[Math.min(finalHeaderRowIndex, lines.length - 1)])
-      
+
       // 从表头行开始显示所有数据（包括表头行本身）
       const previewRows: any[][] = []
       // 首先添加表头行
       const headerLine = lines[finalHeaderRowIndex]
-      const headerData = headerLine.split(delimiter).map(c => c.trim())
+      const headerData = headerLine.split(delimiter).map((c) => c.trim())
       previewRows.push(headerData)
-      
+
       // 然后添加数据行（从表头行的下一行开始）
       for (let i = finalHeaderRowIndex + 1; i < lines.length; i++) {
-        const rowData = lines[i].split(delimiter).map(c => c.trim())
+        const rowData = lines[i].split(delimiter).map((c) => c.trim())
         previewRows.push(rowData)
-        
+
         // 限制预览行数（避免性能问题）
         if (previewRows.length >= 1000) break
       }
-      
+
       previewData.value = previewRows
     } else if (format === 'xlsx' || format === 'xls') {
       // 检查文件是否存在
-      const fileExists = await ipcRenderer.invoke('file-exists', filePath) as boolean
+      const fileExists = (await ipcRenderer.invoke('file-exists', filePath)) as boolean
       if (!fileExists) {
-        console.error('Excel文件不存在:', filePath, '文件可能已被删除或移动到其他位置，请重新上传文件')
+        console.error(
+          'Excel文件不存在:',
+          filePath,
+          '文件可能已被删除或移动到其他位置，请重新上传文件'
+        )
         previewData.value = []
         return
       }
-      
-      const excelText = await ipcRenderer.invoke('convert-excel-to-text', filePath) as string
-      const lines = excelText.split('\n').filter(line => line.trim())
-      
+
+      const excelText = (await ipcRenderer.invoke('convert-excel-to-text', filePath)) as string
+      const lines = excelText.split('\n').filter((line) => line.trim())
+
       let dataStartIndex = -1
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].startsWith('工作表')) {
@@ -618,41 +708,41 @@ const loadPreviewData = async () => {
           break
         }
       }
-      
+
       if (dataStartIndex === -1) {
         previewData.value = []
         return
       }
-      
+
       // 从表头行开始显示所有数据（包括表头行本身）
       const previewRows: any[][] = []
       let dataRowIndex = 0
-      
+
       // 首先找到并添加表头行
       let headerRowData: string[] | null = null
       for (let i = dataStartIndex; i < lines.length; i++) {
         const rowMatch = lines[i].match(/^行 \d+:\s*(.+)$/)
         if (!rowMatch) continue
-        
+
         if (dataRowIndex === finalHeaderRowIndex) {
-          headerRowData = rowMatch[1].split('\t').map(c => c.trim())
+          headerRowData = rowMatch[1].split('\t').map((c) => c.trim())
           previewRows.push(headerRowData)
           dataRowIndex++
           continue
         }
-        
+
         // 只显示表头行之后的数据
         if (dataRowIndex > finalHeaderRowIndex) {
-          const rowData = rowMatch[1].split('\t').map(c => c.trim())
+          const rowData = rowMatch[1].split('\t').map((c) => c.trim())
           previewRows.push(rowData)
         }
-        
+
         dataRowIndex++
-        
+
         // 限制预览行数（避免性能问题）
         if (previewRows.length >= 1000) break
       }
-      
+
       previewData.value = previewRows
     } else {
       previewData.value = []
@@ -675,16 +765,19 @@ const previewCsvHeader = async (filePath: string, rowIndex: number) => {
         ipcRenderer = localIpcRenderer
       }
     }
-    
+
     if (!ipcRenderer) return []
-    
-    const content = await ipcRenderer.invoke('read-file-content', filePath) as string
-    const lines = content.trim().split('\n').filter(line => line.trim())
+
+    const content = (await ipcRenderer.invoke('read-file-content', filePath)) as string
+    const lines = content
+      .trim()
+      .split('\n')
+      .filter((line) => line.trim())
     if (lines.length === 0 || rowIndex >= lines.length) return []
-    
+
     const headerLine = lines[rowIndex]
     const columns = headerLine.includes('\t') ? headerLine.split('\t') : headerLine.split(',')
-    return columns.map(c => c.trim())
+    return columns.map((c) => c.trim())
   } catch (error) {
     console.error('预览CSV表头失败:', error)
     return []
@@ -703,19 +796,23 @@ const previewExcelHeader = async (filePath: string, rowIndex: number) => {
         ipcRenderer = localIpcRenderer
       }
     }
-    
+
     if (!ipcRenderer) return []
-    
+
     // 检查文件是否存在
-    const fileExists = await ipcRenderer.invoke('file-exists', filePath) as boolean
+    const fileExists = (await ipcRenderer.invoke('file-exists', filePath)) as boolean
     if (!fileExists) {
-      console.error('Excel文件不存在:', filePath, '文件可能已被删除或移动到其他位置，请重新上传文件')
+      console.error(
+        'Excel文件不存在:',
+        filePath,
+        '文件可能已被删除或移动到其他位置，请重新上传文件'
+      )
       return []
     }
-    
-    const excelText = await ipcRenderer.invoke('convert-excel-to-text', filePath) as string
-    const lines = excelText.split('\n').filter(line => line.trim())
-    
+
+    const excelText = (await ipcRenderer.invoke('convert-excel-to-text', filePath)) as string
+    const lines = excelText.split('\n').filter((line) => line.trim())
+
     let dataStartIndex = -1
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].startsWith('工作表')) {
@@ -728,18 +825,18 @@ const previewExcelHeader = async (filePath: string, rowIndex: number) => {
         break
       }
     }
-    
+
     if (dataStartIndex === -1) return []
-    
+
     const targetLineIndex = dataStartIndex + rowIndex
     if (targetLineIndex >= lines.length) return []
-    
+
     const targetLine = lines[targetLineIndex]
     const rowMatch = targetLine.match(/^行 \d+:\s*(.+)$/)
     if (!rowMatch) return []
-    
+
     const rowData = rowMatch[1].split('\t')
-    return rowData.map(c => c.trim())
+    return rowData.map((c) => c.trim())
   } catch (error) {
     console.error('预览Excel表头失败:', error)
     // 如果错误信息包含文件不存在的提示，记录更详细的日志
@@ -756,10 +853,10 @@ const updateHeaderPreview = async () => {
     headerPreview.value = []
     return
   }
-  
+
   const filePath = activeSessionData.value.data_file_path
   const format = activeSessionData.value.data_format || 'csv'
-  
+
   if (format === 'csv') {
     headerPreview.value = await previewCsvHeader(filePath, headerRowIndex.value)
   } else if (format === 'xlsx' || format === 'xls') {
@@ -767,7 +864,7 @@ const updateHeaderPreview = async () => {
   } else {
     headerPreview.value = []
   }
-  
+
   // 重新加载预览数据
   await loadPreviewData()
 }
@@ -806,21 +903,24 @@ const detectCsvHeaderRow = async (filePath: string) => {
         ipcRenderer = localIpcRenderer
       }
     }
-    
+
     if (!ipcRenderer) return
-    
-    const content = await ipcRenderer.invoke('read-file-content', filePath) as string
-    const lines = content.trim().split('\n').filter(line => line.trim())
+
+    const content = (await ipcRenderer.invoke('read-file-content', filePath)) as string
+    const lines = content
+      .trim()
+      .split('\n')
+      .filter((line) => line.trim())
     if (lines.length === 0) return
-    
+
     let bestIndex = 0
     let bestScore = -1
-    
+
     for (let i = 0; i < Math.min(10, lines.length); i++) {
       const line = lines[i]
       const columns = line.includes('\t') ? line.split('\t') : line.split(',')
       if (columns.length < 3) continue
-      
+
       let consistentCount = 0
       for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
         const nextLine = lines[j]
@@ -829,14 +929,14 @@ const detectCsvHeaderRow = async (filePath: string) => {
           consistentCount++
         }
       }
-      
+
       const score = consistentCount * 10 + columns.length
       if (score > bestScore) {
         bestScore = score
         bestIndex = i
       }
     }
-    
+
     detectedHeaderRowIndex.value = bestIndex
     headerRowIndex.value = bestIndex
     await updateHeaderPreview()
@@ -864,21 +964,25 @@ const detectExcelHeaderRow = async (filePath: string) => {
         ipcRenderer = localIpcRenderer
       }
     }
-    
+
     if (!ipcRenderer) return
-    
+
     // 检查文件是否存在
-    const fileExists = await ipcRenderer.invoke('file-exists', filePath) as boolean
+    const fileExists = (await ipcRenderer.invoke('file-exists', filePath)) as boolean
     if (!fileExists) {
-      console.error('Excel文件不存在:', filePath, '文件可能已被删除或移动到其他位置，请重新上传文件')
+      console.error(
+        'Excel文件不存在:',
+        filePath,
+        '文件可能已被删除或移动到其他位置，请重新上传文件'
+      )
       detectedHeaderRowIndex.value = 0
       headerRowIndex.value = 0
       return
     }
-    
-    const excelText = await ipcRenderer.invoke('convert-excel-to-text', filePath) as string
-    const lines = excelText.split('\n').filter(line => line.trim())
-    
+
+    const excelText = (await ipcRenderer.invoke('convert-excel-to-text', filePath)) as string
+    const lines = excelText.split('\n').filter((line) => line.trim())
+
     let dataStartIndex = -1
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].startsWith('工作表')) {
@@ -891,49 +995,49 @@ const detectExcelHeaderRow = async (filePath: string) => {
         break
       }
     }
-    
+
     if (dataStartIndex === -1) {
       detectedHeaderRowIndex.value = 0
       headerRowIndex.value = 0
       return
     }
-    
+
     let bestIndex = 0
     let bestScore = -1
-    
+
     for (let i = 0; i < Math.min(10, lines.length - dataStartIndex); i++) {
       const lineIndex = dataStartIndex + i
       if (lineIndex >= lines.length) break
-      
+
       const line = lines[lineIndex]
       const rowMatch = line.match(/^行 \d+:\s*(.+)$/)
       if (!rowMatch) continue
-      
+
       const columns = rowMatch[1].split('\t')
       if (columns.length < 3) continue
-      
+
       let consistentCount = 0
       for (let j = i + 1; j < Math.min(i + 5, lines.length - dataStartIndex); j++) {
         const nextLineIndex = dataStartIndex + j
         if (nextLineIndex >= lines.length) break
-        
+
         const nextLine = lines[nextLineIndex]
         const nextRowMatch = nextLine.match(/^行 \d+:\s*(.+)$/)
         if (!nextRowMatch) continue
-        
+
         const nextColumns = nextRowMatch[1].split('\t')
         if (nextColumns.length === columns.length) {
           consistentCount++
         }
       }
-      
+
       const score = consistentCount * 10 + columns.length
       if (score > bestScore) {
         bestScore = score
         bestIndex = i
       }
     }
-    
+
     detectedHeaderRowIndex.value = bestIndex
     headerRowIndex.value = bestIndex
     await updateHeaderPreview()
@@ -950,14 +1054,14 @@ const handleFileChange = async (file: any) => {
   if (!activeSessionId.value) {
     await handleCreateSession()
   }
-  
+
   try {
     let filePath: string
-    
+
     if (file.raw) {
       const fileContent = await file.raw.arrayBuffer()
       const base64 = btoa(String.fromCharCode(...new Uint8Array(fileContent)))
-      
+
       let ipcRenderer: any = null
       if (typeof window !== 'undefined') {
         if ((window as any).electron?.ipcRenderer) {
@@ -967,44 +1071,45 @@ const handleFileChange = async (file: any) => {
           ipcRenderer = localIpcRenderer
         }
       }
-      
+
       if (!ipcRenderer) {
         throw new Error('IPC渲染器不可用')
       }
-      
-      filePath = await ipcRenderer.invoke('save-reference-file', {
+
+      filePath = (await ipcRenderer.invoke('save-reference-file', {
         filename: file.name,
         content: base64
-      }) as string
+      })) as string
     } else {
       filePath = file.url || file.path
     }
-    
+
     if (activeSessionId.value && filePath) {
       const format = file.name.split('.').pop()?.toLowerCase() || 'csv'
-      
+
       // 检查是否是首次上传（会话之前没有文件）
       const isFirstUpload = !activeSessionData.value?.data_file_path
-      
+
       // 如果是首次上传，更新会话名称为文件名（截断处理）
       let updateData: any = {
         data_file_path: filePath,
         data_format: format === 'xlsx' || format === 'xls' ? format : format
       }
-      
+
       if (isFirstUpload) {
         // 提取文件名（去掉扩展名）
         const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, '')
         // 截断文件名（最大50个字符）
         const maxLength = 50
-        const truncatedFileName = fileNameWithoutExt.length > maxLength 
-          ? fileNameWithoutExt.substring(0, maxLength) + '...' 
-          : fileNameWithoutExt
+        const truncatedFileName =
+          fileNameWithoutExt.length > maxLength
+            ? fileNameWithoutExt.substring(0, maxLength) + '...'
+            : fileNameWithoutExt
         updateData.title = truncatedFileName
       }
-      
+
       await dataAnalysisSessionsDb.update(activeSessionId.value, updateData)
-      
+
       if (activeSessionData.value) {
         activeSessionData.value.data_file_path = filePath
         activeSessionData.value.data_format = format
@@ -1012,17 +1117,17 @@ const handleFileChange = async (file: any) => {
           activeSessionData.value.title = updateData.title
         }
       }
-      
+
       // 如果是首次上传，更新会话列表中的标题
       if (isFirstUpload) {
         await loadSessions()
       }
-      
+
       currentFile.value = {
         name: file.name,
         path: filePath
       }
-      
+
       // 如果是CSV或Excel文件，检测表头行数
       if (format === 'csv') {
         await detectCsvHeaderRow(filePath)
@@ -1046,7 +1151,7 @@ const handleFileChange = async (file: any) => {
           header_row_index: undefined
         })
       }
-      
+
       // 加载预览数据
       await loadPreviewData()
     }
@@ -1070,7 +1175,7 @@ const handleFileRemove = async () => {
     selectedRowCount.value = 0
     analysisResult.value = null
     reportMarkdown.value = ''
-    
+
     if (activeSessionData.value) {
       activeSessionData.value.data_file_path = undefined
       activeSessionData.value.data_format = undefined
@@ -1087,22 +1192,24 @@ const handleSelectionChanged = (count: number) => {
 // 将选中行数据转换为CSV字符串
 const convertSelectedRowsToCsv = (): string | null => {
   if (!dataTableRef.value) return null
-  
+
   const selectedData = dataTableRef.value.getSelectedRowsData()
   if (!selectedData || selectedData.length <= 1) return null // 仅有表头行或无数据
-  
+
   // 将二维数组转为CSV字符串
-  const csvLines = selectedData.map(row => 
-    row.map((cell: any) => {
-      const str = String(cell ?? '')
-      // 如果包含逗号、换行、双引号，需要用双引号包裹
-      if (str.includes(',') || str.includes('\n') || str.includes('"')) {
-        return `"${str.replace(/"/g, '""')}"`
-      }
-      return str
-    }).join(',')
+  const csvLines = selectedData.map((row) =>
+    row
+      .map((cell: any) => {
+        const str = String(cell ?? '')
+        // 如果包含逗号、换行、双引号，需要用双引号包裹
+        if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+          return `"${str.replace(/"/g, '""')}"`
+        }
+        return str
+      })
+      .join(',')
   )
-  
+
   return csvLines.join('\n')
 }
 
@@ -1112,7 +1219,7 @@ const handleAnalyze = async () => {
     ElMessage.warning(t('dataAnalysis.noSession', '请先选择或创建会话'))
     return
   }
-  
+
   if (!activeSessionData.value) {
     const session = await dataAnalysisSessionsDb.getById(activeSessionId.value)
     if (!session) {
@@ -1121,33 +1228,33 @@ const handleAnalyze = async () => {
     }
     activeSessionData.value = session
   }
-  
+
   if (!activeSessionData.value.data_file_path) {
     ElMessage.warning(t('dataAnalysis.noFile', '请先上传数据文件'))
     return
   }
-  
+
   analyzing.value = true
   analysisStage.value = 'loading'
   analysisResult.value = null
   reportMarkdown.value = ''
-  
+
   // 切换到结果标签页
   activeTab.value = 'result'
-  
+
   try {
     const session = activeSessionData.value
-    
+
     // 清空流式显示状态
     reportStreamingRef.value = ''
     reportStreamingDonePromise.value = null
-    
+
     // 创建进度更新回调
     const onProgress = (data: any, progress?: any) => {
       if (progress?.message) {
         analysisStage.value = progress.message
       }
-      
+
       // 检查是否是报告流式输出更新
       if (data?.content?.stage === 'summarizing-streaming') {
         const content = data.content as any
@@ -1155,7 +1262,7 @@ const handleAnalyze = async () => {
           // 设置流式显示
           reportStreamingRef.value = ''
           reportStreamingDonePromise.value = content.reportDonePromise
-          
+
           // 同步targetRef到reportStreamingRef
           const syncWatcher = watch(
             () => content.reportTargetRef.value,
@@ -1164,7 +1271,7 @@ const handleAnalyze = async () => {
             },
             { immediate: true }
           )
-          
+
           // 当done完成时，清理（取消时也保留已生成的内容）
           content.reportDonePromise
             .then(() => {
@@ -1173,26 +1280,26 @@ const handleAnalyze = async () => {
             })
             .catch((error: any) => {
               // 如果是取消错误，保留已生成的内容，当作完成处理
-              const isCancelled = error instanceof Error && (
-                error.message === '任务已取消' || 
-                error.message.includes('任务已取消') ||
-                error.name === 'AbortError'
-              )
-              
+              const isCancelled =
+                error instanceof Error &&
+                (error.message === '任务已取消' ||
+                  error.message.includes('任务已取消') ||
+                  error.name === 'AbortError')
+
               // 无论是否取消，都清理流式显示状态
               syncWatcher()
               reportStreamingDonePromise.value = null
-              
+
               // 取消时保留内容，继续处理后续逻辑（不需要抛出错误）
             })
         }
       }
     }
-    
+
     // 检查是否有选中的行
     const selectedCsv = convertSelectedRowsToCsv()
     const hasSelectedRows = selectedCsv !== null
-    
+
     // 调用数据分析工具
     const abortController = new AbortController()
     const result = await dataAnalysisToolCallback(
@@ -1212,7 +1319,7 @@ const handleAnalyze = async () => {
             data: session.data_file_path!,
             format: session.data_format || 'csv',
             dataSource: 'file',
-            headerRowIndex: (isCsvFile.value || isExcelFile.value) ? headerRowIndex.value : undefined,
+            headerRowIndex: isCsvFile.value || isExcelFile.value ? headerRowIndex.value : undefined,
             autoGroupBy: analysisParams.value.autoGroupBy,
             generateReport: analysisParams.value.generateReport === true,
             analysisRequest: analysisParams.value.analysisRequest || undefined
@@ -1220,12 +1327,12 @@ const handleAnalyze = async () => {
       abortController.signal,
       onProgress
     )
-    
+
     if (result.status === 'succeeded' && result.result) {
       const analysisResultData = result.result as any
       analysisResult.value = analysisResultData
       analysisStage.value = ''
-      
+
       // 从tool返回的结果中获取报告内容
       if (analysisResultData.reportMarkdown) {
         reportMarkdown.value = analysisResultData.reportMarkdown
@@ -1235,18 +1342,18 @@ const handleAnalyze = async () => {
       } else {
         reportMarkdown.value = ''
       }
-      
+
       // 保存分析结果（包括报告）
       await dataAnalysisSessionsDb.update(activeSessionId.value, {
         analysis_result: JSON.stringify(analysisResultData),
         report_markdown: analysisResultData.reportMarkdown || undefined
       })
-      
+
       if (activeSessionData.value) {
         activeSessionData.value.analysis_result = JSON.stringify(analysisResultData)
         activeSessionData.value.report_markdown = analysisResultData.reportMarkdown || undefined
       }
-      
+
       ElMessage.success(t('dataAnalysis.analyzeSuccess', '分析完成'))
     } else {
       // 清理流式显示
@@ -1279,11 +1386,11 @@ const getStageMessage = () => {
 const debouncedRenderReport = () => {
   const now = Date.now()
   const timeSinceLastRender = now - lastReportRenderTime
-  
+
   if (reportRenderTimer) {
     clearTimeout(reportRenderTimer)
   }
-  
+
   if (timeSinceLastRender >= REPORT_DEBOUNCE_MS) {
     // 立即渲染
     renderReport()
@@ -1303,9 +1410,9 @@ const renderReport = async () => {
   if (!reportContainerRef.value || !reportMarkdown.value) {
     return
   }
-  
+
   const container = reportContainerRef.value as HTMLDivElement
-  
+
   try {
     // 使用统一的 Markdown 预览渲染函数
     await renderMarkdownPreview(container, reportMarkdown.value)
@@ -1353,7 +1460,7 @@ let pendingSessionId: string | null = null // 记录待保存的会话ID
 // 立即保存分析参数（不防抖）
 const saveAnalysisParamsImmediately = async (sessionId: string) => {
   if (!sessionId) return
-  
+
   try {
     await dataAnalysisSessionsDb.update(sessionId, {
       analysis_request: analysisParams.value.analysisRequest || undefined,
@@ -1375,16 +1482,16 @@ watch(
   () => analysisParams.value,
   (newParams) => {
     if (!activeSessionId.value) return
-    
+
     // 记录当前会话ID
     const currentSessionId = activeSessionId.value
-    
+
     // 清除之前的定时器
     if (analysisParamsSaveTimer) {
       clearTimeout(analysisParamsSaveTimer)
       analysisParamsSaveTimer = null
     }
-    
+
     // 防抖保存（500ms）
     pendingSessionId = currentSessionId
     analysisParamsSaveTimer = setTimeout(async () => {
@@ -1412,18 +1519,15 @@ const isExcelFile = computed(() => {
   return path.endsWith('.xlsx') || path.endsWith('.xls')
 })
 
-
-
-
 // 主题样式
 const borderColor = computed(() =>
-  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)',
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)'
 )
 
 const panelStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
   color: themeState.currentTheme.textColor,
-  borderColor: borderColor.value,
+  borderColor: borderColor.value
 }))
 
 const contentAreaStyle = computed(() => ({
@@ -1624,9 +1728,9 @@ watch(
     if (!tid || workspace.activeTabId.value !== tid || sessions.value.length === 0) return
     const state = workspace.getTabToolState(tid)
     const savedId = state.activeSessionId
-    if (!savedId || !sessions.value.some(s => s.id === savedId)) return
+    if (!savedId || !sessions.value.some((s) => s.id === savedId)) return
     if (activeSessionId.value === savedId) return
-    const item = sessions.value.find(s => s.id === savedId)!
+    const item = sessions.value.find((s) => s.id === savedId)!
     activeSessionId.value = savedId
     handleSelectSession(item)
   },
@@ -1635,7 +1739,7 @@ watch(
 
 onMounted(() => {
   loadSessions()
-  
+
   if (activeTab.value === 'result' && reportMarkdown.value) {
     nextTick(() => {
       renderReport()
@@ -1652,7 +1756,7 @@ onUnmounted(() => {
     saveAnalysisParamsImmediately(activeSessionId.value)
     pendingSessionId = null
   }
-  
+
   // 清理定时器
   if (analysisParamsSaveTimer) {
     clearTimeout(analysisParamsSaveTimer)
@@ -1712,7 +1816,10 @@ onUnmounted(() => {
   overflow: hidden;
   margin: 0;
   height: 100%;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .file-section {
@@ -1775,7 +1882,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
 }
-
 
 .preview-tab-content {
   display: flex;

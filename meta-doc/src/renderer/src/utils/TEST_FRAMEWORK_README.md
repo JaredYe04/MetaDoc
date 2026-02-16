@@ -3,6 +3,7 @@
 ## 概述
 
 这是一个统一的调试和测试框架，允许开发者在开发环境中：
+
 1. 发送 EventBus 事件进行测试
 2. 发送广播事件进行测试
 3. 注册和调用模块的测试函数
@@ -33,16 +34,16 @@
 在各个模块中，可以注册测试函数：
 
 ```typescript
-import { testFramework, type TestFunction } from '@/utils/test-framework';
+import { testFramework, type TestFunction } from '@/utils/test-framework'
 
 const myTest: TestFunction = {
-  id: 'my-module.my-test',  // 唯一标识
-  name: '我的测试',           // 显示名称
-  description: '测试描述',     // 可选
-  module: '我的模块',         // 模块名称
+  id: 'my-module.my-test', // 唯一标识
+  name: '我的测试', // 显示名称
+  description: '测试描述', // 可选
+  module: '我的模块', // 模块名称
   fn: async (param1: string, param2: number) => {
     // 测试逻辑
-    return { result: param1 + param2 };
+    return { result: param1 + param2 }
   },
   params: [
     {
@@ -58,10 +59,10 @@ const myTest: TestFunction = {
       description: '参数2说明'
     }
   ]
-};
+}
 
 // 注册测试函数
-testFramework.register(myTest);
+testFramework.register(myTest)
 ```
 
 #### 参数类型
@@ -90,4 +91,3 @@ testFramework.register(myTest);
 2. 测试函数应该是纯函数或异步函数
 3. 对象和数组参数需要使用有效的 JSON 格式
 4. 测试历史会保存在内存中，刷新页面后会清空
-

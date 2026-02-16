@@ -1,11 +1,19 @@
 <template>
   <div class="color-display" :style="containerStyle">
-    <div v-if="displayData.stage === 'processing'" class="status-message" :style="statusMessageStyle">
+    <div
+      v-if="displayData.stage === 'processing'"
+      class="status-message"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ $t('agent.display.color.processing') }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed' && displayData.result" class="completed-state" :style="completedStateStyle">
+    <div
+      v-else-if="displayData.stage === 'completed' && displayData.result"
+      class="completed-state"
+      :style="completedStateStyle"
+    >
       <div class="color-header" :style="headerStyle">
         <h3 class="color-title" :style="titleStyle">{{ $t('agent.display.color.title') }}</h3>
         <el-tag type="info" size="small">{{ getOperationLabel(displayData.operation) }}</el-tag>
@@ -17,19 +25,31 @@
           <div class="color-comparison" :style="colorComparisonStyle">
             <div class="color-item">
               <div class="color-swatch" :style="getColorSwatchStyle(displayData.input?.color1)">
-                <span class="color-value" :style="colorValueStyle">{{ displayData.input?.color1 }}</span>
+                <span class="color-value" :style="colorValueStyle">{{
+                  displayData.input?.color1
+                }}</span>
               </div>
-              <div class="color-label" :style="colorLabelStyle">{{ $t('agent.display.color.color1') }}</div>
+              <div class="color-label" :style="colorLabelStyle">
+                {{ $t('agent.display.color.color1') }}
+              </div>
             </div>
             <div class="mix-operator" :style="operatorStyle">
               <el-icon><Plus /></el-icon>
-              <span class="weight-info" :style="weightInfoStyle">{{ $t('agent.display.color.weight', { weight: (displayData.input?.weight || 0.5).toFixed(2) }) }}</span>
+              <span class="weight-info" :style="weightInfoStyle">{{
+                $t('agent.display.color.weight', {
+                  weight: (displayData.input?.weight || 0.5).toFixed(2)
+                })
+              }}</span>
             </div>
             <div class="color-item">
               <div class="color-swatch" :style="getColorSwatchStyle(displayData.input?.color2)">
-                <span class="color-value" :style="colorValueStyle">{{ displayData.input?.color2 }}</span>
+                <span class="color-value" :style="colorValueStyle">{{
+                  displayData.input?.color2
+                }}</span>
               </div>
-              <div class="color-label" :style="colorLabelStyle">{{ $t('agent.display.color.color2') }}</div>
+              <div class="color-label" :style="colorLabelStyle">
+                {{ $t('agent.display.color.color2') }}
+              </div>
             </div>
             <div class="mix-arrow" :style="operatorStyle">
               <el-icon><ArrowRight /></el-icon>
@@ -38,19 +58,28 @@
               <div class="color-swatch" :style="getColorSwatchStyle(displayData.result)">
                 <span class="color-value" :style="colorValueStyle">{{ displayData.result }}</span>
               </div>
-              <div class="color-label" :style="colorLabelStyle">{{ $t('agent.display.color.result') }}</div>
+              <div class="color-label" :style="colorLabelStyle">
+                {{ $t('agent.display.color.result') }}
+              </div>
             </div>
           </div>
         </div>
 
         <!-- 亮度/对比度调整操作 -->
-        <div v-else-if="displayData.operation === 'brightness' || displayData.operation === 'contrast'" class="color-adjust-section">
+        <div
+          v-else-if="displayData.operation === 'brightness' || displayData.operation === 'contrast'"
+          class="color-adjust-section"
+        >
           <div class="color-comparison" :style="colorComparisonStyle">
             <div class="color-item">
               <div class="color-swatch" :style="getColorSwatchStyle(displayData.input?.color1)">
-                <span class="color-value" :style="colorValueStyle">{{ displayData.input?.color1 }}</span>
+                <span class="color-value" :style="colorValueStyle">{{
+                  displayData.input?.color1
+                }}</span>
               </div>
-              <div class="color-label" :style="colorLabelStyle">{{ $t('agent.display.color.original') }}</div>
+              <div class="color-label" :style="colorLabelStyle">
+                {{ $t('agent.display.color.original') }}
+              </div>
             </div>
             <div class="adjust-info" :style="operatorStyle">
               <el-icon><Edit /></el-icon>
@@ -60,19 +89,28 @@
               <div class="color-swatch" :style="getColorSwatchStyle(displayData.result)">
                 <span class="color-value" :style="colorValueStyle">{{ displayData.result }}</span>
               </div>
-              <div class="color-label" :style="colorLabelStyle">{{ $t('agent.display.color.result') }}</div>
+              <div class="color-label" :style="colorLabelStyle">
+                {{ $t('agent.display.color.result') }}
+              </div>
             </div>
           </div>
         </div>
 
         <!-- 互补色操作 -->
-        <div v-else-if="displayData.operation === 'complementary'" class="color-complementary-section">
+        <div
+          v-else-if="displayData.operation === 'complementary'"
+          class="color-complementary-section"
+        >
           <div class="color-comparison" :style="colorComparisonStyle">
             <div class="color-item">
               <div class="color-swatch" :style="getColorSwatchStyle(displayData.input?.color1)">
-                <span class="color-value" :style="colorValueStyle">{{ displayData.input?.color1 }}</span>
+                <span class="color-value" :style="colorValueStyle">{{
+                  displayData.input?.color1
+                }}</span>
               </div>
-              <div class="color-label" :style="colorLabelStyle">{{ $t('agent.display.color.original') }}</div>
+              <div class="color-label" :style="colorLabelStyle">
+                {{ $t('agent.display.color.original') }}
+              </div>
             </div>
             <div class="complementary-arrow" :style="operatorStyle">
               <el-icon><RefreshRight /></el-icon>
@@ -81,7 +119,9 @@
               <div class="color-swatch" :style="getColorSwatchStyle(displayData.result)">
                 <span class="color-value" :style="colorValueStyle">{{ displayData.result }}</span>
               </div>
-              <div class="color-label" :style="colorLabelStyle">{{ $t('agent.display.color.complementary') }}</div>
+              <div class="color-label" :style="colorLabelStyle">
+                {{ $t('agent.display.color.complementary') }}
+              </div>
             </div>
           </div>
         </div>
@@ -91,25 +131,38 @@
           <div class="color-comparison" :style="colorComparisonStyle">
             <div class="color-item">
               <div class="color-swatch" :style="getColorSwatchStyle(displayData.input?.color1)">
-                <span class="color-value" :style="colorValueStyle">{{ displayData.input?.color1 }}</span>
+                <span class="color-value" :style="colorValueStyle">{{
+                  displayData.input?.color1
+                }}</span>
               </div>
-              <div class="color-label" :style="colorLabelStyle">{{ $t('agent.display.color.original') }}</div>
+              <div class="color-label" :style="colorLabelStyle">
+                {{ $t('agent.display.color.original') }}
+              </div>
             </div>
             <div class="convert-info" :style="operatorStyle">
               <el-icon><Switch /></el-icon>
-              <span>{{ $t('agent.display.color.convertTo', { format: displayData.input?.format?.toUpperCase() || 'HEX' }) }}</span>
+              <span>{{
+                $t('agent.display.color.convertTo', {
+                  format: displayData.input?.format?.toUpperCase() || 'HEX'
+                })
+              }}</span>
             </div>
             <div class="color-item result">
               <div class="color-swatch" :style="getColorSwatchStyle(displayData.result)">
                 <span class="color-value" :style="colorValueStyle">{{ displayData.result }}</span>
               </div>
-              <div class="color-label" :style="colorLabelStyle">{{ $t('agent.display.color.result') }}</div>
+              <div class="color-label" :style="colorLabelStyle">
+                {{ $t('agent.display.color.result') }}
+              </div>
             </div>
           </div>
         </div>
 
         <!-- 颜色分析操作 -->
-        <div v-else-if="displayData.operation === 'analyze' && typeof displayData.result === 'object'" class="color-analyze-section">
+        <div
+          v-else-if="displayData.operation === 'analyze' && typeof displayData.result === 'object'"
+          class="color-analyze-section"
+        >
           <div class="color-preview">
             <div class="color-swatch large" :style="getColorSwatchStyle(displayData.result.hex)">
               <span class="color-value" :style="colorValueStyle">{{ displayData.result.hex }}</span>
@@ -120,22 +173,40 @@
               <code :style="codeStyle">{{ displayData.result.hex }}</code>
             </el-descriptions-item>
             <el-descriptions-item :label="$t('agent.display.color.rgb')">
-              <code :style="codeStyle">rgb({{ displayData.result.rgb.r }}, {{ displayData.result.rgb.g }}, {{ displayData.result.rgb.b }})</code>
+              <code :style="codeStyle"
+                >rgb({{ displayData.result.rgb.r }}, {{ displayData.result.rgb.g }},
+                {{ displayData.result.rgb.b }})</code
+              >
             </el-descriptions-item>
             <el-descriptions-item :label="$t('agent.display.color.hsl')">
-              <code :style="codeStyle">hsl({{ displayData.result.hsl.h }}°, {{ displayData.result.hsl.s }}%, {{ displayData.result.hsl.l }}%)</code>
+              <code :style="codeStyle"
+                >hsl({{ displayData.result.hsl.h }}°, {{ displayData.result.hsl.s }}%,
+                {{ displayData.result.hsl.l }}%)</code
+              >
             </el-descriptions-item>
             <el-descriptions-item :label="$t('agent.display.color.alpha')">
-              {{ displayData.result.alpha !== undefined ? displayData.result.alpha.toFixed(2) : '1.00' }}
+              {{
+                displayData.result.alpha !== undefined
+                  ? displayData.result.alpha.toFixed(2)
+                  : '1.00'
+              }}
             </el-descriptions-item>
             <el-descriptions-item :label="$t('agent.display.color.isDark')">
               <el-tag :type="displayData.result.isDark ? 'dark' : 'light'" size="small">
-                {{ displayData.result.isDark ? $t('agent.display.color.yes') : $t('agent.display.color.no') }}
+                {{
+                  displayData.result.isDark
+                    ? $t('agent.display.color.yes')
+                    : $t('agent.display.color.no')
+                }}
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item :label="$t('agent.display.color.isLight')">
               <el-tag :type="displayData.result.isLight ? 'light' : 'dark'" size="small">
-                {{ displayData.result.isLight ? $t('agent.display.color.yes') : $t('agent.display.color.no') }}
+                {{
+                  displayData.result.isLight
+                    ? $t('agent.display.color.yes')
+                    : $t('agent.display.color.no')
+                }}
               </el-tag>
             </el-descriptions-item>
           </el-descriptions>
@@ -188,7 +259,7 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
 const displayData = computed(() => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
-  
+
   if (parsed && typeof parsed === 'object') {
     // 根据status确定stage，优先使用数据中的stage，如果没有则根据status推断
     const getStage = (): 'processing' | 'completed' | 'error' => {
@@ -204,15 +275,16 @@ const displayData = computed(() => {
       }
       return 'processing'
     }
-    
+
     return {
       ...parsed,
       stage: getStage()
     }
   }
-  
+
   // 如果没有数据，根据status设置默认stage
-  const defaultStage = props.status === 'succeeded' ? 'completed' : (props.status === 'failed' ? 'error' : 'processing')
+  const defaultStage =
+    props.status === 'succeeded' ? 'completed' : props.status === 'failed' ? 'error' : 'processing'
   return {
     stage: defaultStage,
     result: undefined,
@@ -250,10 +322,10 @@ const getColorSwatchStyle = (color: string) => {
   if (!color) return {}
   const tc = tinycolor(color)
   if (!tc.isValid()) return {}
-  
+
   const bgColor = tc.toHexString()
   const textColor = tc.isDark() ? '#ffffff' : '#000000'
-  
+
   return {
     backgroundColor: bgColor,
     color: textColor,
@@ -331,9 +403,10 @@ const weightInfoStyle = computed(() => ({
 
 const colorValueStyle = computed(() => {
   const bgOpacity = themeState.currentTheme.type === 'dark' ? 0.3 : 0.2
-  const bgColor = themeState.currentTheme.type === 'dark' 
-    ? `rgba(0, 0, 0, ${bgOpacity})` 
-    : `rgba(255, 255, 255, ${bgOpacity})`
+  const bgColor =
+    themeState.currentTheme.type === 'dark'
+      ? `rgba(0, 0, 0, ${bgOpacity})`
+      : `rgba(255, 255, 255, ${bgOpacity})`
   return {
     backgroundColor: bgColor
   }
@@ -352,7 +425,8 @@ const resultCodeStyle = computed(() => ({
 
 <style scoped>
 .color-display {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
 }
 
 .color-header {
@@ -490,4 +564,3 @@ const resultCodeStyle = computed(() => ({
   padding: 16px;
 }
 </style>
-

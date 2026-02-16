@@ -13,6 +13,7 @@
   - 系统启动时自动初始化
 
 **实现位置**:
+
 - `tool-collection-manager.ts`: 添加了 `initializeDefaultToolSet()` 方法
 - `agent-tools/index.ts`: 在 `initializeAgentTools()` 中调用初始化
 - `ToolCollectionManager.vue`: UI中禁用删除和编辑按钮
@@ -30,6 +31,7 @@
   - 包含系统提示词
 
 **实现位置**:
+
 - `agent-config-manager.ts`: 添加了 `initializeDefaultAgentConfig()` 方法
 - `agent-tools/index.ts`: 在 `initializeAgentTools()` 中调用初始化
 - `AgentConfigManager.vue`: UI中禁用删除和编辑按钮
@@ -37,6 +39,7 @@
 ### 3. ✅ AgentConfig管理界面更新
 
 **移除的功能**:
+
 - ❌ 场景选择（scenario）
 - ❌ LLM模型配置（llmConfig.model）
 - ❌ LLM温度配置（llmConfig.temperature）
@@ -44,10 +47,12 @@
 - ❌ 思考过程选项（enableThoughts）
 
 **新增的功能**:
+
 - ✅ 最大工具调用次数：无限制复选框
 - ✅ 工具集默认选择：默认选择 `default-tool-set`
 
 **实现位置**:
+
 - `AgentConfigManager.vue`: 更新了表单字段
 
 ### 4. ⚠️ Draw.io集成
@@ -56,12 +61,14 @@
 
 **文档位置**: `DRAWIO_INTEGRATION.md`
 
-**说明**: 
+**说明**:
+
 - 提供了三种集成方案（mxgraph、iframe、@drawio/core）
 - 推荐使用 mxgraph 库
 - 需要单独开发完成
 
-**下一步**: 
+**下一步**:
+
 1. 安装 mxgraph 依赖
 2. 封装 mxgraph 组件
 3. 集成到 WorkflowCanvas.vue
@@ -70,17 +77,20 @@
 ### 5. ✅ AgentView.vue更新
 
 **移除的功能**:
+
 - ❌ 示例会话（sampleSessions）
 - ❌ 自动生成示例会话的逻辑
 
 **新增的功能**:
+
 - ✅ 默认创建 DefaultConfig 会话
 - ✅ 没有历史会话时，自动创建默认会话
 - ✅ 删除会话时，确保至少保留一个会话
 - ✅ 如果删除后没有会话，自动创建一个默认会话
 
 **实现位置**:
-- `AgentView.vue`: 
+
+- `AgentView.vue`:
   - 更新了 `watch` 监听器，自动创建默认会话
   - 更新了 `deleteSession` 函数，确保至少保留一个会话
   - 添加了 `createDefaultSession` 函数
@@ -113,10 +123,12 @@
 ## 文件变更清单
 
 ### 新增文件
+
 - `DRAWIO_INTEGRATION.md`: Draw.io集成指南
 - `UPDATES_SUMMARY.md`: 本文档
 
 ### 修改文件
+
 - `tool-collection-manager.ts`: 添加默认工具集初始化，防止删除
 - `agent-config-manager.ts`: 添加默认AgentConfig初始化，防止删除，支持字符串参数
 - `agent-tools/index.ts`: 添加默认工具集和AgentConfig初始化调用
@@ -128,16 +140,19 @@
 ## 测试建议
 
 1. **默认工具集**:
+
    - 验证默认工具集包含所有内置工具
    - 验证无法删除默认工具集
    - 验证无法编辑默认工具集
 
 2. **默认AgentConfig**:
+
    - 验证默认AgentConfig正确初始化
    - 验证无法删除默认AgentConfig
    - 验证默认AgentConfig关联了默认工具集
 
 3. **会话管理**:
+
    - 验证打开新文档时自动创建默认会话
    - 验证删除最后一个会话时，自动创建新的默认会话
    - 验证至少保留一个会话
@@ -153,4 +168,3 @@
 2. **默认AgentConfig**的系统提示词定义了MetaDoc的核心职责
 3. **会话管理**确保用户始终至少有一个可用的会话
 4. **Draw.io集成**是一个独立的功能，需要单独开发和测试
-

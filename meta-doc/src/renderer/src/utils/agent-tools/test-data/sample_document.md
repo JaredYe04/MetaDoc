@@ -34,7 +34,7 @@
 
 ```javascript
 function hello() {
-  console.log("Hello, World!");
+  console.log('Hello, World!')
 }
 ```
 
@@ -46,8 +46,8 @@ function hello() {
 
 ## 表格示例
 
-| 列1 | 列2 | 列3 |
-|-----|-----|-----|
+| 列1   | 列2   | 列3   |
+| ----- | ----- | ----- |
 | 数据1 | 数据2 | 数据3 |
 | 数据4 | 数据5 | 数据6 |
 
@@ -66,4 +66,3 @@ function hello() {
 ## 图片示例
 
 ![示例图片](https://example.com/image.png)
-

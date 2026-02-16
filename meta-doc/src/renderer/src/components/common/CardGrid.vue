@@ -11,7 +11,11 @@
           @dblclick="handleItemDoubleClick(item)"
         >
           <!-- 卡片图片/缩略图区域 -->
-          <div v-if="showThumbnail" class="card-item__thumbnail" :class="{ 'is-placeholder': !getThumbnail(item) }">
+          <div
+            v-if="showThumbnail"
+            class="card-item__thumbnail"
+            :class="{ 'is-placeholder': !getThumbnail(item) }"
+          >
             <img
               v-if="getThumbnail(item)"
               :src="getThumbnail(item) || undefined"
@@ -21,20 +25,24 @@
               <el-icon><Document /></el-icon>
             </div>
             <div v-if="getBadge(item)" class="card-item__badge">
-              <el-tag size="small" :type="getBadgeType(item) || 'info'">{{ getBadge(item) }}</el-tag>
+              <el-tag size="small" :type="getBadgeType(item) || 'info'">{{
+                getBadge(item)
+              }}</el-tag>
             </div>
           </div>
-          
+
           <!-- 卡片文本区域（无缩略图时显示） -->
           <div v-else class="card-item__text-preview">
             <div class="text-preview-content">
               {{ getItemTitle(item) }}
             </div>
             <div v-if="getBadge(item)" class="card-item__badge">
-              <el-tag size="small" :type="getBadgeType(item) || 'info'">{{ getBadge(item) }}</el-tag>
+              <el-tag size="small" :type="getBadgeType(item) || 'info'">{{
+                getBadge(item)
+              }}</el-tag>
             </div>
           </div>
-          
+
           <!-- 卡片主体内容 -->
           <div class="card-item__body">
             <h3>{{ getItemTitle(item) || '' }}</h3>
@@ -50,7 +58,7 @@
               </el-tag>
             </div>
           </div>
-          
+
           <!-- 卡片操作按钮 -->
           <div v-if="showActions" class="card-item__actions" @click.stop>
             <el-dropdown trigger="click" @command="(cmd: string) => handleAction(cmd, item)">
@@ -331,4 +339,3 @@ const handleAction = (command: string, item: CardGridItem) => {
   }
 }
 </style>
-

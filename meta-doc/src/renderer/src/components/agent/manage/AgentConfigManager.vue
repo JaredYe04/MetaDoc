@@ -16,12 +16,26 @@
       :show-thumbnail="false"
       :get-item-id="(item) => item.id || ''"
       :get-item-title="(item) => getItemTitle(item as AgentConfig) || ''"
-      :get-item-description="(item) => (item as AgentConfig).id === 'default-agent-config' ? '' : (getLocalizedText((item as AgentConfig).description) || '')"
-      :get-item-meta="(item) => [
-        t('agent.manage.agentConfig.toolCount') + ': ' + getAvailableToolCount((item as AgentConfig).id),
-        item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
-      ]"
-      :get-badge="(item) => (item as AgentConfig).id === 'default-agent-config' ? t('agent.manage.agentConfig.default') : null"
+      :get-item-description="
+        (item) =>
+          (item as AgentConfig).id === 'default-agent-config'
+            ? ''
+            : getLocalizedText((item as AgentConfig).description) || ''
+      "
+      :get-item-meta="
+        (item) => [
+          t('agent.manage.agentConfig.toolCount') +
+            ': ' +
+            getAvailableToolCount((item as AgentConfig).id),
+          item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
+        ]
+      "
+      :get-badge="
+        (item) =>
+          (item as AgentConfig).id === 'default-agent-config'
+            ? t('agent.manage.agentConfig.default')
+            : null
+      "
       :get-actions="(item) => getActions(item as AgentConfig)"
       :is-disabled="() => false"
       @item-click="(item) => handleEdit(item as AgentConfig)"
@@ -31,16 +45,30 @@
     <!-- 创建/编辑对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="editingConfig ? (editingConfig.id === 'default-agent-config' ? t('agent.manage.agentConfig.view') : t('agent.manage.agentConfig.edit')) : t('agent.manage.agentConfig.create')"
+      :title="
+        editingConfig
+          ? editingConfig.id === 'default-agent-config'
+            ? t('agent.manage.agentConfig.view')
+            : t('agent.manage.agentConfig.edit')
+          : t('agent.manage.agentConfig.create')
+      "
       width="700px"
       :style="dialogStyle"
     >
       <el-form :model="formData" label-width="140px">
         <el-form-item :label="t('agent.manage.agentConfig.name')" required>
-          <el-input v-model="formData.name" :disabled="editingConfig?.id === 'default-agent-config'" />
+          <el-input
+            v-model="formData.name"
+            :disabled="editingConfig?.id === 'default-agent-config'"
+          />
         </el-form-item>
         <el-form-item :label="t('agent.manage.agentConfig.description')">
-          <el-input v-model="formData.description" type="textarea" :rows="3" :disabled="editingConfig?.id === 'default-agent-config'" />
+          <el-input
+            v-model="formData.description"
+            type="textarea"
+            :rows="3"
+            :disabled="editingConfig?.id === 'default-agent-config'"
+          />
         </el-form-item>
         <el-form-item :label="t('agent.manage.agentConfig.toolCollections')" required>
           <el-select
@@ -63,11 +91,11 @@
           </div>
         </el-form-item>
         <el-form-item :label="t('agent.manage.agentConfig.maxToolCalls')">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <el-input-number 
-              v-model="formData.maxToolCalls" 
-              :min="1" 
-              :max="100" 
+          <div style="display: flex; align-items: center; gap: 12px">
+            <el-input-number
+              v-model="formData.maxToolCalls"
+              :min="1"
+              :max="100"
               :disabled="formData.unlimitedToolCalls"
             />
             <el-checkbox v-model="formData.unlimitedToolCalls">
@@ -88,7 +116,10 @@
           </div>
         </el-form-item>
         <el-form-item :label="t('agent.manage.agentConfig.injectTimestamp')">
-          <el-checkbox v-model="formData.injectTimestamp" :disabled="editingConfig?.id === 'default-agent-config'">
+          <el-checkbox
+            v-model="formData.injectTimestamp"
+            :disabled="editingConfig?.id === 'default-agent-config'"
+          >
             {{ t('agent.manage.agentConfig.injectTimestampLabel') }}
           </el-checkbox>
           <div class="form-hint">
@@ -98,12 +129,16 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button 
-          type="primary" 
+        <el-button
+          type="primary"
           @click="handleSave"
           :disabled="editingConfig?.id === 'default-agent-config'"
         >
-          {{ editingConfig?.id === 'default-agent-config' ? t('agent.manage.agentConfig.viewOnly') : t('common.save') }}
+          {{
+            editingConfig?.id === 'default-agent-config'
+              ? t('agent.manage.agentConfig.viewOnly')
+              : t('common.save')
+          }}
         </el-button>
       </template>
     </el-dialog>
@@ -156,7 +191,11 @@ const getItemTitle = (item: AgentConfig): string => {
 const getActions = (item: AgentConfig): CardGridAction[] => {
   const isDefault = item.id === 'default-agent-config'
   return [
-    { command: 'view', label: isDefault ? t('agent.manage.agentConfig.view') : t('agent.manage.edit'), disabled: false },
+    {
+      command: 'view',
+      label: isDefault ? t('agent.manage.agentConfig.view') : t('agent.manage.edit'),
+      disabled: false
+    },
     { command: 'edit', label: t('agent.manage.edit'), disabled: isDefault },
     { command: 'validate', label: t('agent.manage.validate') },
     { command: 'duplicate', label: t('agent.sessions.duplicate') },
@@ -224,7 +263,10 @@ const handleView = (config: AgentConfig) => {
   editingConfig.value = config
   formData.value = {
     name: typeof config.name === 'string' ? config.name : config.name['zh_cn']?.name || '',
-    description: typeof config.description === 'string' ? config.description : config.description['zh_cn']?.description || '',
+    description:
+      typeof config.description === 'string'
+        ? config.description
+        : config.description['zh_cn']?.description || '',
     toolCollectionIds: [...config.toolCollectionIds],
     maxToolCalls: config.maxToolCalls ?? null,
     unlimitedToolCalls: config.maxToolCalls === null,
@@ -242,7 +284,10 @@ const handleEdit = (config: AgentConfig) => {
   editingConfig.value = config
   formData.value = {
     name: typeof config.name === 'string' ? config.name : config.name['zh_cn']?.name || '',
-    description: typeof config.description === 'string' ? config.description : config.description['zh_cn']?.description || '',
+    description:
+      typeof config.description === 'string'
+        ? config.description
+        : config.description['zh_cn']?.description || '',
     toolCollectionIds: [...config.toolCollectionIds],
     maxToolCalls: config.maxToolCalls ?? null,
     unlimitedToolCalls: config.maxToolCalls === null,
@@ -270,7 +315,7 @@ const handleSave = () => {
         ElMessage.warning(t('agent.manage.agentConfig.cannotEditDefault'))
         return
       }
-      
+
       agentConfigManager.updateConfig(editingConfig.value.id, {
         name: formData.value.name,
         description: formData.value.description,
@@ -312,15 +357,9 @@ const handleDuplicate = async (config: AgentConfig) => {
     const desc =
       typeof config.description === 'string'
         ? config.description
-        : config.description['zh_cn']?.description ||
-          config.description['en_us']?.description ||
-          ''
+        : config.description['zh_cn']?.description || config.description['en_us']?.description || ''
 
-    const duplicated = agentConfigManager.createConfig(
-      newName,
-      desc,
-      [...config.toolCollectionIds]
-    )
+    const duplicated = agentConfigManager.createConfig(newName, desc, [...config.toolCollectionIds])
 
     // 继承行为和LLM配置等
     agentConfigManager.updateConfig(duplicated.id, {
@@ -363,12 +402,16 @@ const handleValidate = (config: AgentConfig) => {
   const validation = agentConfigManager.validateConfig(config)
   if (validation.valid) {
     if (validation.warnings.length > 0) {
-      ElMessage.warning(t('agent.manage.agentConfig.validationWarnings') + ': ' + validation.warnings.join(', '))
+      ElMessage.warning(
+        t('agent.manage.agentConfig.validationWarnings') + ': ' + validation.warnings.join(', ')
+      )
     } else {
       ElMessage.success(t('agent.manage.agentConfig.validationSuccess'))
     }
   } else {
-    ElMessage.error(t('agent.manage.agentConfig.validationFailed') + ': ' + validation.errors.join(', '))
+    ElMessage.error(
+      t('agent.manage.agentConfig.validationFailed') + ': ' + validation.errors.join(', ')
+    )
   }
 }
 
@@ -441,4 +484,3 @@ onMounted(() => {
   margin-top: 4px;
 }
 </style>
-

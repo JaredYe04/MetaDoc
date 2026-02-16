@@ -1,32 +1,50 @@
 <template>
   <div class="diff-display" :style="containerStyle">
-    <div v-if="displayData.stage === 'fetching_content'" class="status-message" :style="statusMessageStyle">
+    <div
+      v-if="displayData.stage === 'fetching_content'"
+      class="status-message"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ $t('agent.display.diff.fetching') }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'calculating_diff'" class="status-message" :style="statusMessageStyle">
+    <div
+      v-else-if="displayData.stage === 'calculating_diff'"
+      class="status-message"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ $t('agent.display.diff.calculating') }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed' && displayData.diffResult" class="completed-state" :style="completedStateStyle">
+    <div
+      v-else-if="displayData.stage === 'completed' && displayData.diffResult"
+      class="completed-state"
+      :style="completedStateStyle"
+    >
       <div class="diff-header" :style="headerStyle">
         <h3 class="diff-title" :style="titleStyle">{{ $t('agent.display.diff.title') }}</h3>
         <div class="diff-stats" :style="statsStyle">
-          <el-tag type="success" size="small">{{ $t('agent.display.diff.insertions', { count: insertionsCount }) }}</el-tag>
-          <el-tag type="danger" size="small">{{ $t('agent.display.diff.deletions', { count: deletionsCount }) }}</el-tag>
-          <el-tag type="info" size="small">{{ $t('agent.display.diff.equal', { count: equalCount }) }}</el-tag>
+          <el-tag type="success" size="small">{{
+            $t('agent.display.diff.insertions', { count: insertionsCount })
+          }}</el-tag>
+          <el-tag type="danger" size="small">{{
+            $t('agent.display.diff.deletions', { count: deletionsCount })
+          }}</el-tag>
+          <el-tag type="info" size="small">{{
+            $t('agent.display.diff.equal', { count: equalCount })
+          }}</el-tag>
           <el-button-group class="mode-switch">
-            <el-button 
-              :type="viewMode === 'unified' ? 'primary' : 'default'" 
+            <el-button
+              :type="viewMode === 'unified' ? 'primary' : 'default'"
               size="small"
               @click="viewMode = 'unified'"
             >
               {{ $t('agent.display.diff.unifiedView', '统一视图') }}
             </el-button>
-            <el-button 
-              :type="viewMode === 'split' ? 'primary' : 'default'" 
+            <el-button
+              :type="viewMode === 'split' ? 'primary' : 'default'"
               size="small"
               @click="viewMode = 'split'"
             >
@@ -82,23 +100,23 @@
           </template>
           <!-- 如果diffResult是数组（旧格式兼容） -->
           <template v-else-if="Array.isArray(displayData.diffResult)">
-          <div
-            v-for="(item, index) in displayData.diffResult"
-            :key="index"
-            class="diff-item"
-            :class="{
-              'diff-insert': item.type === 'insert',
-              'diff-delete': item.type === 'delete',
-              'diff-equal': item.type === 'equal'
-            }"
-          >
-            <div class="diff-line-number">{{ index + 1 }}</div>
-            <div class="diff-type-badge" :class="`type-${item.type}`">
-              {{ getTypeLabel(item.type) }}
-            </div>
-            <div class="diff-text" :style="getDiffTextStyle(item.type)">
-              {{ item.value }}
-            </div>
+            <div
+              v-for="(item, index) in displayData.diffResult"
+              :key="index"
+              class="diff-item"
+              :class="{
+                'diff-insert': item.type === 'insert',
+                'diff-delete': item.type === 'delete',
+                'diff-equal': item.type === 'equal'
+              }"
+            >
+              <div class="diff-line-number">{{ index + 1 }}</div>
+              <div class="diff-type-badge" :class="`type-${item.type}`">
+                {{ getTypeLabel(item.type) }}
+              </div>
+              <div class="diff-text" :style="getDiffTextStyle(item.type)">
+                {{ item.value }}
+              </div>
             </div>
           </template>
           <!-- 如果没有差异数据 -->
@@ -115,13 +133,21 @@
             <div class="editor-header" :style="editorHeaderStyle">
               <span class="editor-label">{{ $t('agent.display.diff.oldText', '旧文本') }}</span>
             </div>
-            <div :id="oldEditorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
+            <div
+              :id="oldEditorId"
+              class="monaco-editor-container"
+              :style="editorContainerStyle"
+            ></div>
           </div>
           <div class="editor-panel new-panel">
             <div class="editor-header" :style="editorHeaderStyle">
               <span class="editor-label">{{ $t('agent.display.diff.newText', '新文本') }}</span>
             </div>
-            <div :id="newEditorId" class="monaco-editor-container" :style="editorContainerStyle"></div>
+            <div
+              :id="newEditorId"
+              class="monaco-editor-container"
+              :style="editorContainerStyle"
+            ></div>
           </div>
         </div>
       </div>
@@ -164,7 +190,7 @@ const newEditorId = ref(`diff-new-${Date.now()}-${Math.random().toString(36).sub
 const displayData = computed(() => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
-  
+
   if (parsed && typeof parsed === 'object') {
     // 根据status确定stage，优先使用数据中的stage，如果没有则根据status推断
     const getStage = (): 'loading' | 'computing' | 'completed' | 'error' => {
@@ -182,16 +208,17 @@ const displayData = computed(() => {
     }
     // 提取diffResult（可能在content中，也可能在顶层）
     let diffResult = parsed.diffResult || parsed.content?.diffResult || parsed.result
-    
+
     return {
       ...parsed,
       stage: getStage(),
       diffResult: diffResult
     }
   }
-  
+
   // 如果没有数据，根据status设置默认stage
-  const defaultStage = props.status === 'succeeded' ? 'completed' : (props.status === 'failed' ? 'error' : 'computing')
+  const defaultStage =
+    props.status === 'succeeded' ? 'completed' : props.status === 'failed' ? 'error' : 'computing'
   return {
     stage: defaultStage,
     diffResult: undefined,
@@ -206,17 +233,17 @@ const effectiveStatus = computed(() => {
 // 获取diff chunks（处理不同的数据格式）
 const diffChunks = computed(() => {
   if (!displayData.value.diffResult) return []
-  
+
   // 如果diffResult是对象，返回chunks数组
   if (displayData.value.diffResult.chunks && Array.isArray(displayData.value.diffResult.chunks)) {
     return displayData.value.diffResult.chunks
   }
-  
+
   // 如果diffResult本身就是数组，直接返回
   if (Array.isArray(displayData.value.diffResult)) {
     return displayData.value.diffResult
   }
-  
+
   return []
 })
 
@@ -269,7 +296,7 @@ const insertionsCount = computed(() => {
   }
   // 如果是数组，计算插入数量
   if (Array.isArray(displayData.value.diffResult)) {
-  return displayData.value.diffResult.filter((item: any) => item.type === 'insert').length
+    return displayData.value.diffResult.filter((item: any) => item.type === 'insert').length
   }
   // 如果是对象，从chunks计算
   if (displayData.value.diffResult.chunks && Array.isArray(displayData.value.diffResult.chunks)) {
@@ -289,7 +316,7 @@ const deletionsCount = computed(() => {
   }
   // 如果是数组，计算删除数量
   if (Array.isArray(displayData.value.diffResult)) {
-  return displayData.value.diffResult.filter((item: any) => item.type === 'delete').length
+    return displayData.value.diffResult.filter((item: any) => item.type === 'delete').length
   }
   // 如果是对象，从chunks计算
   if (displayData.value.diffResult.chunks && Array.isArray(displayData.value.diffResult.chunks)) {
@@ -304,7 +331,7 @@ const equalCount = computed(() => {
   if (!displayData.value.diffResult) return 0
   // 如果是数组，计算相同数量
   if (Array.isArray(displayData.value.diffResult)) {
-  return displayData.value.diffResult.filter((item: any) => item.type === 'equal').length
+    return displayData.value.diffResult.filter((item: any) => item.type === 'equal').length
   }
   // 如果是对象，从chunks计算
   if (displayData.value.diffResult.chunks && Array.isArray(displayData.value.diffResult.chunks)) {
@@ -403,12 +430,12 @@ const splitBorderColor = computed(() => `${themeState.currentTheme.textColor2}20
 // 初始化 Monaco 编辑器（分列视图）
 const initMonacoEditors = async () => {
   if (viewMode.value !== 'split') return
-  
+
   await nextTick()
-  
+
   const oldContainer = document.getElementById(oldEditorId.value)
   const newContainer = document.getElementById(newEditorId.value)
-  
+
   if (!oldContainer || !newContainer) {
     console.warn('Monaco编辑器容器未找到')
     return
@@ -419,9 +446,9 @@ const initMonacoEditors = async () => {
 
   // 从全局获取编辑器实例（如果已存在则先销毁）
   const editors = monaco.editor.getEditors()
-  const oldEditor = editors.find(e => e.getId?.() === oldEditorId.value)
-  const newEditor = editors.find(e => e.getId?.() === newEditorId.value)
-  
+  const oldEditor = editors.find((e) => e.getId?.() === oldEditorId.value)
+  const newEditor = editors.find((e) => e.getId?.() === newEditorId.value)
+
   if (oldEditor) {
     oldEditor.dispose()
   }
@@ -577,9 +604,9 @@ const initMonacoEditors = async () => {
 // 清理 Monaco 编辑器
 const disposeMonacoEditors = () => {
   const editors = monaco.editor.getEditors()
-  const oldEditor = editors.find(e => e.getId?.() === oldEditorId.value)
-  const newEditor = editors.find(e => e.getId?.() === newEditorId.value)
-  
+  const oldEditor = editors.find((e) => e.getId?.() === oldEditorId.value)
+  const newEditor = editors.find((e) => e.getId?.() === newEditorId.value)
+
   if (oldEditor) {
     oldEditor.dispose()
   }
@@ -607,21 +634,24 @@ watch([() => displayData.value.diffResult, oldText, newText], async () => {
 })
 
 // 监听主题变化
-watch(() => themeState.currentTheme.type, async () => {
-  if (viewMode.value === 'split') {
-    const editors = monaco.editor.getEditors()
-    const oldEditor = editors.find(e => e.getId?.() === oldEditorId.value)
-    const newEditor = editors.find(e => e.getId?.() === newEditorId.value)
-    
-    const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
-    if (oldEditor) {
-      monaco.editor.setTheme(theme)
-    }
-    if (newEditor) {
-      monaco.editor.setTheme(theme)
+watch(
+  () => themeState.currentTheme.type,
+  async () => {
+    if (viewMode.value === 'split') {
+      const editors = monaco.editor.getEditors()
+      const oldEditor = editors.find((e) => e.getId?.() === oldEditorId.value)
+      const newEditor = editors.find((e) => e.getId?.() === newEditorId.value)
+
+      const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
+      if (oldEditor) {
+        monaco.editor.setTheme(theme)
+      }
+      if (newEditor) {
+        monaco.editor.setTheme(theme)
+      }
     }
   }
-})
+)
 
 onMounted(async () => {
   if (viewMode.value === 'split') {

@@ -8,17 +8,17 @@
     :close-on-press-escape="true"
     class="image-preview-dialog"
   >
-    <div 
-      class="preview-image-container" 
-      v-if="imageUrl" 
-      @mousedown="handleContainerMouseDown" 
-      @mousemove="handleContainerMouseMove" 
-      @mouseup="handleContainerMouseUp" 
-      @mouseleave="handleContainerMouseUp" 
+    <div
+      class="preview-image-container"
+      v-if="imageUrl"
+      @mousedown="handleContainerMouseDown"
+      @mousemove="handleContainerMouseMove"
+      @mouseup="handleContainerMouseUp"
+      @mouseleave="handleContainerMouseUp"
       @wheel="handleWheelZoom"
     >
-      <img 
-        :src="imageUrl" 
+      <img
+        :src="imageUrl"
         :alt="t('ocr.previewImage')"
         class="preview-image"
         :style="previewImageStyle"
@@ -89,7 +89,6 @@ const imagePosition = ref({ x: 0, y: 0 })
 const isDragging = ref(false)
 const dragStart = ref({ x: 0, y: 0 })
 
-
 // 缩放比例百分比（与 imageScale 双向绑定）
 const imageScalePercent = computed({
   get: () => Math.round(imageScale.value * 100),
@@ -123,35 +122,35 @@ const calculateFitScale = (img: HTMLImageElement): number => {
   if (!dialogBody) {
     return 1
   }
-  
+
   // 使用 naturalWidth 和 naturalHeight 获取图片真实尺寸
   const imgWidth = img.naturalWidth || img.width || 1
   const imgHeight = img.naturalHeight || img.height || 1
-  
+
   // 如果图片尺寸无效，返回默认值
   if (imgWidth <= 0 || imgHeight <= 0) {
     return 1
   }
-  
+
   const containerWidth = dialogBody.clientWidth - 40 // 减去 padding
   const containerHeight = dialogBody.clientHeight - 40
-  
+
   // 如果容器尺寸无效，返回默认值
   if (containerWidth <= 0 || containerHeight <= 0) {
     return 1
   }
-  
+
   // 计算适合的缩放比例（保持宽高比，完整显示在容器内）
   const scaleX = containerWidth / imgWidth
   const scaleY = containerHeight / imgHeight
   // 使用较小的缩放比例，确保图片完整显示在容器内
   const fitScale = Math.min(scaleX, scaleY)
-  
+
   // 确保缩放比例在合理范围内
   if (fitScale <= 0 || !isFinite(fitScale)) {
     return 1
   }
-  
+
   return fitScale
 }
 
@@ -160,13 +159,13 @@ const calculateAndSetFitScale = () => {
   if (!props.imageUrl) {
     return
   }
-  
+
   nextTick(() => {
     const img = document.querySelector('.preview-image') as HTMLImageElement
     if (!img) {
       return
     }
-    
+
     const setFitScale = () => {
       // 确保容器已经渲染完成
       setTimeout(() => {
@@ -195,7 +194,7 @@ const calculateAndSetFitScale = () => {
         }
       }, 150)
     }
-    
+
     // 如果图片已经加载完成且有有效尺寸
     if (img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
       setFitScale()
@@ -213,7 +212,7 @@ const calculateAndSetFitScale = () => {
       }
       img.addEventListener('load', onLoad)
       img.addEventListener('error', onError)
-      
+
       // 如果图片已经加载但事件已错过，直接设置
       if (img.complete) {
         setTimeout(() => {
@@ -227,26 +226,32 @@ const calculateAndSetFitScale = () => {
 }
 
 // 监听 imageUrl 变化，重置状态并计算适合的缩放
-watch(() => props.imageUrl, () => {
-  if (props.imageUrl) {
-    imagePosition.value = { x: 0, y: 0 }
-    // 不先设置为1，直接计算目标值
-    calculateAndSetFitScale()
+watch(
+  () => props.imageUrl,
+  () => {
+    if (props.imageUrl) {
+      imagePosition.value = { x: 0, y: 0 }
+      // 不先设置为1，直接计算目标值
+      calculateAndSetFitScale()
+    }
   }
-})
+)
 
 // 监听对话框打开状态，每次打开时重新计算缩放
-watch(() => props.modelValue, (newValue) => {
-  if (newValue && props.imageUrl) {
-    // 对话框打开时，先等待对话框完全渲染，然后计算适合的缩放
-    // 不先设置为1，直接计算目标值
-    nextTick(() => {
-      setTimeout(() => {
-        calculateAndSetFitScale()
-      }, 50)
-    })
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (newValue && props.imageUrl) {
+      // 对话框打开时，先等待对话框完全渲染，然后计算适合的缩放
+      // 不先设置为1，直接计算目标值
+      nextTick(() => {
+        setTimeout(() => {
+          calculateAndSetFitScale()
+        }, 50)
+      })
+    }
   }
-})
+)
 
 // 缩放功能
 const zoomIn = () => {
@@ -334,43 +339,43 @@ const handleContainerMouseUp = (e?: MouseEvent) => {
 const handleWheelZoom = (e: WheelEvent) => {
   e.preventDefault()
   e.stopPropagation()
-  
+
   const container = e.currentTarget as HTMLElement
   const rect = container.getBoundingClientRect()
   const img = document.querySelector('.preview-image') as HTMLImageElement
   if (!img) return
-  
+
   // 获取容器中心点
   const containerCenterX = rect.width / 2
   const containerCenterY = rect.height / 2
-  
+
   // 获取鼠标相对于容器的位置
   const mouseX = e.clientX - rect.left
   const mouseY = e.clientY - rect.top
-  
+
   // 计算鼠标相对于容器中心的位置
   const offsetX = mouseX - containerCenterX
   const offsetY = mouseY - containerCenterY
-  
+
   // 计算鼠标在图片上的位置（考虑当前缩放和位置，transformOrigin是center center）
   // 图片中心在容器中心，所以需要加上当前偏移
   const imageX = (offsetX - imagePosition.value.x) / imageScale.value
   const imageY = (offsetY - imagePosition.value.y) / imageScale.value
-  
+
   // 计算新的缩放比例
   const delta = e.deltaY > 0 ? -0.1 : 0.1
   const newScale = Math.max(0.1, Math.min(5, imageScale.value + delta))
-  
+
   // 计算缩放后，鼠标位置对应的新图片位置
   const newImageX = imageX * newScale
   const newImageY = imageY * newScale
-  
+
   // 调整图片位置，使鼠标位置对应的图片点保持不变
   imagePosition.value = {
     x: offsetX - newImageX,
     y: offsetY - newImageY
   }
-  
+
   imageScale.value = newScale
 }
 
@@ -382,7 +387,7 @@ const handlePreviewImageError = (event: Event) => {
 
 // 边框颜色
 const borderColor = computed(() =>
-  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)',
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)'
 )
 </script>
 
@@ -453,4 +458,3 @@ const borderColor = computed(() =>
   background-color: v-bind('themeState.currentTheme.background');
 }
 </style>
-

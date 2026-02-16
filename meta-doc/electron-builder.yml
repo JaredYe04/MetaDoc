@@ -3,20 +3,20 @@ productName: MetaDoc
 directories:
   buildResources: build
 files:
-  - 'out/**/*'  # 明确包含 out 目录（构建输出）
-  - 'resources/**/*'  # 明确包含 resources 目录
+  - 'out/**/*' # 明确包含 out 目录（构建输出）
+  - 'resources/**/*' # 明确包含 resources 目录
   # 注意：buildResources 中的文件不会自动复制到安装目录
   # 图标文件需要通过其他方式包含（如通过 resources 目录或嵌入到可执行文件中）
   # 确保图标文件被包含（electron-builder 会自动嵌入到可执行文件中）
-  - 'build/*.ico'  # Windows 图标文件
-  - 'build/*.icns'  # macOS 图标文件
-  - 'build/*.png'  # Linux 图标文件
+  - 'build/*.ico' # Windows 图标文件
+  - 'build/*.icns' # macOS 图标文件
+  - 'build/*.png' # Linux 图标文件
   - '!**/.vscode/*'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
-  - 'resources/.env'  # 允许 resources 目录下的 .env 文件被打包
+  - 'resources/.env' # 允许 resources 目录下的 .env 文件被打包
   # 排除开发相关的 node_modules 目录和文件
   - '!node_modules/.vite/**/*'
   - '!node_modules/.pnpm/**/*'
@@ -56,7 +56,7 @@ asarUnpack:
   - node_modules/node-latex-compiler/**
 win:
   executableName: meta-doc
-  icon: icon.ico  # 主应用程序图标（相对于 buildResources (build) 目录）
+  icon: icon.ico # 主应用程序图标（相对于 buildResources (build) 目录）
   # Windows 文件关联配置
   # 注意：图标路径应该是相对于 buildResources 目录的
   fileAssociations:
@@ -65,13 +65,13 @@ win:
       description: Markdown 文件
       role: Editor
       mimeType: text/markdown
-      icon: md-icon.ico  # 相对于 buildResources (build) 目录
+      icon: md-icon.ico # 相对于 buildResources (build) 目录
     - ext: tex
       name: LaTeX Document
       description: LaTeX 文件
       role: Editor
       mimeType: text/latex
-      icon: tex-icon.ico  # 相对于 buildResources (build) 目录
+      icon: tex-icon.ico # 相对于 buildResources (build) 目录
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -83,7 +83,7 @@ nsis:
   # 包含自定义 NSIS 脚本来刷新图标缓存
   include: build/installer.nsh
 mac:
-  icon: icon.icns  # 主应用程序图标（相对于 buildResources (build) 目录）
+  icon: icon.icns # 主应用程序图标（相对于 buildResources (build) 目录）
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
@@ -97,18 +97,18 @@ mac:
       description: Markdown 文件
       role: Editor
       mimeType: text/markdown
-      icon: md-icon.icns  # 相对于 buildResources (build) 目录
+      icon: md-icon.icns # 相对于 buildResources (build) 目录
     - ext: tex
       name: LaTeX Document
       description: LaTeX 文件
       role: Editor
       mimeType: text/latex
-      icon: tex-icon.icns  # 相对于 buildResources (build) 目录
+      icon: tex-icon.icns # 相对于 buildResources (build) 目录
   notarize: false
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
-  icon: icon.png  # 主应用程序图标（相对于 buildResources (build) 目录）
+  icon: icon.png # 主应用程序图标（相对于 buildResources (build) 目录）
   target:
     - AppImage
     - snap
@@ -122,13 +122,13 @@ linux:
       description: Markdown 文件
       role: Editor
       mimeType: text/markdown
-      icon: md-icon.png  # 相对于 buildResources (build) 目录
+      icon: md-icon.png # 相对于 buildResources (build) 目录
     - ext: tex
       name: LaTeX Document
       description: LaTeX 文件
       role: Editor
       mimeType: text/latex
-      icon: tex-icon.png  # 相对于 buildResources (build) 目录
+      icon: tex-icon.png # 相对于 buildResources (build) 目录
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false

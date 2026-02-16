@@ -11,7 +11,7 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
   private workspace = useWorkspace()
   private getActiveDocument = useActiveDocument()
   private tabId: string
-  
+
   private get activeDocument() {
     return this.getActiveDocument.activeDocument.value
   }
@@ -20,11 +20,14 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
     this.tabId = tabId
   }
 
-  async getSectionAtCursor(cursorPosition: { line: number; column: number }): Promise<SectionInfo | null> {
+  async getSectionAtCursor(cursorPosition: {
+    line: number
+    column: number
+  }): Promise<SectionInfo | null> {
     const logger = createRendererLogger('MarkdownSectionAdapter')
     logger.debug('[MarkdownSectionAdapter] ========== getSectionAtCursor 开始 ==========')
     logger.debug('[MarkdownSectionAdapter] 光标位置:', cursorPosition)
-    
+
     const outline = this.getOutlineTree()
     if (!outline) {
       logger.debug('[MarkdownSectionAdapter] 大纲树为空，返回 null')
@@ -34,14 +37,14 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
     const markdown = this.getFullText()
     const lines = markdown.split('\n')
     logger.debug('[MarkdownSectionAdapter] 文档总行数:', lines.length)
-    
+
     // 从光标位置向上查找最近的标题（不管级别）
     let currentLine = cursorPosition.line
     let foundTitle: string | null = null
     let foundPath: string | null = null
 
     logger.debug('[MarkdownSectionAdapter] 开始向上查找标题，从第', currentLine, '行开始')
-    
+
     // 向上查找最近的标题（不管级别）
     let titleLine = -1
     let titleLevel = 6
@@ -61,15 +64,15 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
         break
       }
     }
-    
+
     if (!foundTitle || titleLine === -1) {
       logger.debug('[MarkdownSectionAdapter] ✗ 未找到标题')
     }
-    
+
     // 如果找到了标题，通过位置精确定位节点
     if (foundTitle && titleLine >= 0) {
       logger.debug('[MarkdownSectionAdapter] 开始收集所有节点及其位置...')
-      
+
       // 收集所有节点及其在文档中的位置
       const allNodes: Array<{ node: any; titleLine: number; title: string; level: number }> = []
       const dfs = (node: any) => {
@@ -94,25 +97,37 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
         }
       }
       dfs(outline)
-      
+
       logger.debug('[MarkdownSectionAdapter] 收集到', allNodes.length, '个节点:')
       allNodes.forEach((n, idx) => {
-        logger.debug(`  [${idx}] 行号:${n.titleLine}, 级别:${n.level}, 标题:"${n.title}", 路径:${n.node.path}`)
+        logger.debug(
+          `  [${idx}] 行号:${n.titleLine}, 级别:${n.level}, 标题:"${n.title}", 路径:${n.node.path}`
+        )
       })
-      
+
       // 找到标题行最接近光标位置的节点（且标题行在光标之前或相同）
       // 优先选择标题行最接近且不超过光标行的节点
-      const candidateNodes = allNodes.filter(n => 
-        n.titleLine <= currentLine && 
-        n.title === foundTitle &&
-        n.level === titleLevel
+      const candidateNodes = allNodes.filter(
+        (n) => n.titleLine <= currentLine && n.title === foundTitle && n.level === titleLevel
       )
-      
-      logger.debug('[MarkdownSectionAdapter] 精确匹配候选节点 (行号<=', currentLine, ', 标题="', foundTitle, '", 级别=', titleLevel, '):', candidateNodes.length, '个')
+
+      logger.debug(
+        '[MarkdownSectionAdapter] 精确匹配候选节点 (行号<=',
+        currentLine,
+        ', 标题="',
+        foundTitle,
+        '", 级别=',
+        titleLevel,
+        '):',
+        candidateNodes.length,
+        '个'
+      )
       candidateNodes.forEach((n, idx) => {
-        logger.debug(`  [${idx}] 行号:${n.titleLine}, 级别:${n.level}, 标题:"${n.title}", 路径:${n.node.path}`)
+        logger.debug(
+          `  [${idx}] 行号:${n.titleLine}, 级别:${n.level}, 标题:"${n.title}", 路径:${n.node.path}`
+        )
       })
-      
+
       if (candidateNodes.length > 0) {
         // 选择标题行最接近光标位置的节点
         const bestNode = candidateNodes.reduce((best, current) => {
@@ -127,10 +142,14 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
       } else {
         logger.debug('[MarkdownSectionAdapter] ✗ 精确匹配失败，尝试模糊匹配...')
         // 如果精确匹配失败，尝试模糊匹配
-        const fuzzyMatch = allNodes.find(n => {
+        const fuzzyMatch = allNodes.find((n) => {
           const nodeTitle = n.node.title || n.node.text?.split('\n')[0]?.replace(/^#+\s*/, '') || ''
-          return n.titleLine <= currentLine && 
-                 (nodeTitle === foundTitle || nodeTitle.includes(foundTitle) || foundTitle.includes(nodeTitle))
+          return (
+            n.titleLine <= currentLine &&
+            (nodeTitle === foundTitle ||
+              nodeTitle.includes(foundTitle) ||
+              foundTitle.includes(nodeTitle))
+          )
         })
         if (fuzzyMatch) {
           foundPath = fuzzyMatch.node.path
@@ -152,7 +171,7 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
       let firstTitle = null
       let firstTitleLevel = 6
       let firstPath = null
-      
+
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
         const match = line.match(/^(#{1,6})\s+(.+)$/)
@@ -160,7 +179,7 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
           firstTitle = match[2].trim()
           firstTitleLine = i
           firstTitleLevel = match[1].length
-          
+
           // 通过位置查找对应的路径
           const allNodes: Array<{ node: any; titleLine: number; title: string; level: number }> = []
           const dfs = (node: any) => {
@@ -179,15 +198,17 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
             }
           }
           dfs(outline)
-          
-          const matched = allNodes.find(n => n.titleLine === firstTitleLine && n.title === firstTitle)
+
+          const matched = allNodes.find(
+            (n) => n.titleLine === firstTitleLine && n.title === firstTitle
+          )
           if (matched) {
             firstPath = matched.node.path
           }
           break
         }
       }
-      
+
       if (firstTitle && firstTitleLine >= 0) {
         // 找到第一段，使用第一段
         foundTitle = firstTitle
@@ -207,7 +228,7 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
         }
       }
     }
-    
+
     // 如果找到了标题但没找到路径，尝试通过标题行号查找
     if (foundTitle && titleLine >= 0 && !foundPath) {
       const allNodes: Array<{ node: any; titleLine: number; title: string; level: number }> = []
@@ -227,8 +248,10 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
         }
       }
       dfs(outline)
-      
-      const matched = allNodes.find(n => n.titleLine === titleLine && n.title === foundTitle && n.level === titleLevel)
+
+      const matched = allNodes.find(
+        (n) => n.titleLine === titleLine && n.title === foundTitle && n.level === titleLevel
+      )
       if (matched) {
         foundPath = matched.node.path
       }
@@ -237,8 +260,13 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
     // 查找章节内容范围
     let endLine = lines.length - 1
 
-    logger.debug('[MarkdownSectionAdapter] 查找章节结束位置，从第', titleLine + 1, '行开始，标题级别:', titleLevel)
-    
+    logger.debug(
+      '[MarkdownSectionAdapter] 查找章节结束位置，从第',
+      titleLine + 1,
+      '行开始，标题级别:',
+      titleLevel
+    )
+
     // 向下查找下一个同级或更高级的标题
     for (let i = titleLine + 1; i < lines.length; i++) {
       const line = lines[i]
@@ -253,7 +281,7 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
         }
       }
     }
-    
+
     if (endLine === lines.length - 1) {
       logger.debug('[MarkdownSectionAdapter] 未找到结束位置，使用文档末尾')
     }
@@ -261,7 +289,7 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
     // 优先使用节点中的text，如果没有则从源码提取
     const node = foundPath ? searchNode(foundPath, outline) : null
     logger.debug('[MarkdownSectionAdapter] 查找节点，路径:', foundPath, '节点存在:', !!node)
-    
+
     if (node) {
       logger.debug('[MarkdownSectionAdapter] 节点信息:', {
         标题: node.title,
@@ -269,20 +297,25 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
         文本前100字符: node.text?.substring(0, 100) || ''
       })
     }
-    
+
     let finalContent = ''
-    
+
     // 先从源码提取内容作为后备
     const contentLines = titleLine >= 0 ? lines.slice(titleLine + 1, endLine + 1) : []
     const extractedContent = contentLines.join('\n').trim()
-    logger.debug('[MarkdownSectionAdapter] 从源码提取的内容，行数:', contentLines.length, '字符数:', extractedContent.length)
-    
+    logger.debug(
+      '[MarkdownSectionAdapter] 从源码提取的内容，行数:',
+      contentLines.length,
+      '字符数:',
+      extractedContent.length
+    )
+
     if (node?.text) {
       logger.debug('[MarkdownSectionAdapter] 使用节点文本提取内容...')
       // 节点的text可能包含标题，需要去掉标题部分
       const nodeLines = node.text.split('\n')
       logger.debug('[MarkdownSectionAdapter] 节点文本行数:', nodeLines.length)
-      
+
       // 查找第一个标题行
       let titleIndex = -1
       for (let i = 0; i < nodeLines.length; i++) {
@@ -290,23 +323,33 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
         if (match) {
           const nodeTitle = match[2].trim()
           logger.debug(`  [${i}] 行是标题: "${nodeTitle}"`)
-          if (nodeTitle === foundTitle || nodeTitle.includes(foundTitle) || foundTitle.includes(nodeTitle)) {
+          if (
+            nodeTitle === foundTitle ||
+            nodeTitle.includes(foundTitle) ||
+            foundTitle.includes(nodeTitle)
+          ) {
             titleIndex = i
             logger.debug('[MarkdownSectionAdapter] ✓ 找到标题行索引:', titleIndex)
             break
           }
         }
       }
-      
+
       if (titleIndex >= 0) {
         // 去掉标题行及其之前的内容
-        finalContent = nodeLines.slice(titleIndex + 1).join('\n').trim()
+        finalContent = nodeLines
+          .slice(titleIndex + 1)
+          .join('\n')
+          .trim()
         logger.debug('[MarkdownSectionAdapter] 去掉标题行后，内容长度:', finalContent.length)
       } else {
         // 如果没有找到标题行，尝试去掉第一行（可能是标题）
         if (nodeLines.length > 0 && nodeLines[0].match(/^(#{1,6})\s+/)) {
           finalContent = nodeLines.slice(1).join('\n').trim()
-          logger.debug('[MarkdownSectionAdapter] 去掉第一行（标题）后，内容长度:', finalContent.length)
+          logger.debug(
+            '[MarkdownSectionAdapter] 去掉第一行（标题）后，内容长度:',
+            finalContent.length
+          )
         } else {
           // 直接使用整个text
           finalContent = node.text.trim()
@@ -333,7 +376,7 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
       },
       content: finalContent
     }
-    
+
     logger.debug('[MarkdownSectionAdapter] ========== 最终结果 ==========')
     logger.debug('[MarkdownSectionAdapter] 标题:', result.title)
     logger.debug('[MarkdownSectionAdapter] 路径:', result.path)
@@ -341,7 +384,7 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
     logger.debug('[MarkdownSectionAdapter] 内容长度:', result.content.length)
     logger.debug('[MarkdownSectionAdapter] 内容前200字符:', result.content.substring(0, 200))
     logger.debug('[MarkdownSectionAdapter] ========== getSectionAtCursor 结束 ==========')
-    
+
     return result
   }
 
@@ -371,7 +414,7 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
         node.text = newContent
       }
       this.workspace.updateDocumentOutline(this.tabId, outline)
-      
+
       // 同步到markdown
       const { generateMarkdownFromOutlineTree } = await import('../../../utils/md-utils')
       const markdown = generateMarkdownFromOutlineTree(outline)
@@ -383,4 +426,3 @@ export class MarkdownSectionAdapter implements SectionOptimizerAdapter {
     return MarkdownItEditor
   }
 }
-

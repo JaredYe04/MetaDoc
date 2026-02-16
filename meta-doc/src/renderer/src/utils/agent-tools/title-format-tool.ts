@@ -84,17 +84,22 @@ const titleFormatCallback: ToolCallback = async (
     }
 
     // 报告进度
-    onUpdate({
-      content: { stage: 'loading', message: '正在加载文档大纲...' },
-      format: 'json'
-    }, {
-      percentage: 10,
-      message: '正在加载文档大纲...'
-    })
+    onUpdate(
+      {
+        content: { stage: 'loading', message: '正在加载文档大纲...' },
+        format: 'json'
+      },
+      {
+        percentage: 10,
+        message: '正在加载文档大纲...'
+      }
+    )
 
     // 获取大纲树
-    let outlineTree: DocumentOutlineNode = JSON.parse(JSON.stringify(doc.outline || { path: 'dummy', children: [] }))
-    
+    let outlineTree: DocumentOutlineNode = JSON.parse(
+      JSON.stringify(doc.outline || { path: 'dummy', children: [] })
+    )
+
     if (!outlineTree || outlineTree.path !== 'dummy') {
       return {
         status: 'failed',
@@ -105,20 +110,25 @@ const titleFormatCallback: ToolCallback = async (
     // 解析参数（支持缺省和完整参数）
     const operation = (params.operation as string) || 'format' // 默认操作：format
     const isRemovePrefixesOnly = operation === 'removePrefixes'
-    
+
     // 如果是单独移除前缀操作，不需要其他参数
-    const adjustMarkdown = isRemovePrefixesOnly ? false : (params.adjustMarkdown !== undefined ? Boolean(params.adjustMarkdown) : true)
-    const firstMarkdownTitleLevel = params.firstMarkdownTitleLevel !== undefined 
-      ? Number(params.firstMarkdownTitleLevel) 
-      : 1
-    const adjustTitle = isRemovePrefixesOnly ? false : (params.adjustTitle !== undefined ? Boolean(params.adjustTitle) : true)
+    const adjustMarkdown = isRemovePrefixesOnly
+      ? false
+      : params.adjustMarkdown !== undefined
+        ? Boolean(params.adjustMarkdown)
+        : true
+    const firstMarkdownTitleLevel =
+      params.firstMarkdownTitleLevel !== undefined ? Number(params.firstMarkdownTitleLevel) : 1
+    const adjustTitle = isRemovePrefixesOnly
+      ? false
+      : params.adjustTitle !== undefined
+        ? Boolean(params.adjustTitle)
+        : true
     const cover = params.cover !== undefined ? Boolean(params.cover) : true
-    const level1TitleChinese = params.level1TitleChinese !== undefined 
-      ? Boolean(params.level1TitleChinese) 
-      : true
-    const removePrefixes = params.removePrefixes !== undefined 
-      ? Boolean(params.removePrefixes) 
-      : isRemovePrefixesOnly
+    const level1TitleChinese =
+      params.level1TitleChinese !== undefined ? Boolean(params.level1TitleChinese) : true
+    const removePrefixes =
+      params.removePrefixes !== undefined ? Boolean(params.removePrefixes) : isRemovePrefixesOnly
 
     // 验证参数（仅在非单独移除前缀操作时验证）
     if (!isRemovePrefixesOnly && (firstMarkdownTitleLevel < 1 || firstMarkdownTitleLevel > 6)) {
@@ -129,20 +139,23 @@ const titleFormatCallback: ToolCallback = async (
     }
 
     // 报告进度
-    onUpdate({
-      content: { 
-        stage: 'processing', 
-        message: '正在格式化标题...',
-        operation,
-        adjustMarkdown,
-        adjustTitle,
-        removePrefixes
+    onUpdate(
+      {
+        content: {
+          stage: 'processing',
+          message: '正在格式化标题...',
+          operation,
+          adjustMarkdown,
+          adjustTitle,
+          removePrefixes
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 30,
-      message: '正在格式化标题...'
-    })
+      {
+        percentage: 30,
+        message: '正在格式化标题...'
+      }
+    )
 
     // 执行格式化操作
     let modifiedTree = outlineTree
@@ -180,17 +193,20 @@ const titleFormatCallback: ToolCallback = async (
     }
 
     // 报告进度
-    onUpdate({
-      content: { 
-        stage: 'saving', 
-        message: '正在保存文档...',
-        operations
+    onUpdate(
+      {
+        content: {
+          stage: 'saving',
+          message: '正在保存文档...',
+          operations
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 70,
-      message: '正在保存文档...'
-    })
+      {
+        percentage: 70,
+        message: '正在保存文档...'
+      }
+    )
 
     // 保存更新后的大纲
     if (windowType !== 'setting') {
@@ -199,7 +215,7 @@ const titleFormatCallback: ToolCallback = async (
       try {
         workspace.updateDocumentOutline(targetTabId!, modifiedTree)
         workspace.updateDocumentLastView(targetTabId!, 'outline')
-        
+
         // 使用适配器同步正文文本，并抑制自动大纲同步以避免死循环
         await workspace.withAutoOutlineSyncSuppressed(async () => {
           const format = doc.format ?? 'md'
@@ -224,18 +240,21 @@ const titleFormatCallback: ToolCallback = async (
     }
 
     // 报告完成
-    onUpdate({
-      content: { 
-        stage: 'completed', 
-        message: '标题格式化完成',
-        operations,
-        summary: `已执行 ${operations.length} 项操作：${operations.join('、')}`
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          message: '标题格式化完成',
+          operations,
+          summary: `已执行 ${operations.length} 项操作：${operations.join('、')}`
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 100,
-      message: '完成'
-    })
+      {
+        percentage: 100,
+        message: '完成'
+      }
+    )
 
     return {
       status: 'succeeded',
@@ -380,7 +399,8 @@ const titleFormatToolLocales: ToolLocales = {
   },
   en_us: {
     name: 'Title Formatting',
-    description: 'Format document titles: adjust title levels, add/remove title numbering, remove title prefixes, etc.',
+    description:
+      'Format document titles: adjust title levels, add/remove title numbering, remove title prefixes, etc.',
     instruction: `# Title Formatting Tool
 
 ## Description
@@ -495,7 +515,8 @@ or
   },
   ja_jp: {
     name: 'タイトルフォーマット',
-    description: 'ドキュメントタイトルをフォーマット：タイトルレベル調整、タイトル番号の追加/削除、タイトルプレフィックスの削除など'
+    description:
+      'ドキュメントタイトルをフォーマット：タイトルレベル調整、タイトル番号の追加/削除、タイトルプレフィックスの削除など'
   },
   ko_kr: {
     name: '제목 포맷팅',
@@ -503,11 +524,13 @@ or
   },
   fr_fr: {
     name: 'Formatage de titre',
-    description: 'Formater les titres de document : ajuster les niveaux de titre, ajouter/supprimer la numérotation des titres, supprimer les préfixes de titre, etc.'
+    description:
+      'Formater les titres de document : ajuster les niveaux de titre, ajouter/supprimer la numérotation des titres, supprimer les préfixes de titre, etc.'
   },
   de_de: {
     name: 'Titelformatierung',
-    description: 'Dokumenttitel formatieren: Titel-Ebenen anpassen, Titelnummerierung hinzufügen/entfernen, Titelpräfixe entfernen usw.'
+    description:
+      'Dokumenttitel formatieren: Titel-Ebenen anpassen, Titelnummerierung hinzufügen/entfernen, Titelpräfixe entfernen usw.'
   }
 }
 
@@ -521,7 +544,8 @@ export const titleFormatToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'title-format',
-    brief: 'Format document titles: adjust title levels, add/remove title numbering, remove title prefixes. Supports Markdown and LaTeX formats.',
+    brief:
+      'Format document titles: adjust title levels, add/remove title numbering, remove title prefixes. Supports Markdown and LaTeX formats.',
     fullSpec: `# Title Formatting Tool
 
 ## Description
@@ -585,4 +609,3 @@ Formats document titles with the following operations:
   editable: false,
   locales: titleFormatToolLocales
 }
-

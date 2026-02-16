@@ -30,29 +30,22 @@ RAG 服务是知识库系统的核心，提供以下功能：
 
 ```typescript
 // 初始化向量数据库
-await ragService.initVectorDatabase();
+await ragService.initVectorDatabase()
 
 // 添加文件到知识库
-await ragService.addFileToKnowledgeBase(
-  filePath,
-  progressCallback,
-  abortSignal
-);
+await ragService.addFileToKnowledgeBase(filePath, progressCallback, abortSignal)
 
 // 查询知识库
-const results = await ragService.queryKnowledgeBase(
-  question,
-  scoreThreshold
-);
+const results = await ragService.queryKnowledgeBase(question, scoreThreshold)
 
 // 从索引中移除文档
-ragService.removeFromIndex(fileBaseName);
+ragService.removeFromIndex(fileBaseName)
 
 // 重命名知识库文件
-await ragService.renameKnowledgeFile(oldName, newName);
+await ragService.renameKnowledgeFile(oldName, newName)
 
 // 清空知识库
-await ragService.clearKnowledgeBase();
+await ragService.clearKnowledgeBase()
 ```
 
 ### 2. 数据库层 (`knowledge-db.ts`)
@@ -62,6 +55,7 @@ await ragService.clearKnowledgeBase();
 #### 数据模型
 
 **knowledge_files 表**：存储知识库文件元信息
+
 - `id`: 主键
 - `filename`: 文件名（唯一）
 - `original_path`: 原始文件路径
@@ -74,6 +68,7 @@ await ragService.clearKnowledgeBase();
 - `created_at`, `updated_at`: 时间戳
 
 **data_chunks 表**：存储文档分块
+
 - `id`: 主键
 - `knowledge_file_id`: 关联的知识库文件ID
 - `chunk_index`: 块索引
@@ -83,12 +78,14 @@ await ragService.clearKnowledgeBase();
 - `created_at`: 创建时间
 
 **vectors 表**：存储向量嵌入
+
 - `id`: 主键
 - `chunk_id`: 关联的数据块ID（唯一）
 - `embedding`: 向量数据（BLOB）
 - `created_at`: 创建时间
 
 **vec0_index 虚拟表**：sqlite-vec 扩展的向量索引表（如果可用）
+
 - `chunk_id`: 数据块ID
 - `embedding`: 向量数据（FLOAT32[768]）
 
@@ -121,6 +118,7 @@ searchSimilarVectors(queryVector, topK?, threshold?, enabledOnly?)
 ### 3. 文件转换服务 (`file-conversion-service.ts`)
 
 负责将各种格式的文件转换为文本，支持：
+
 - PDF
 - Word (docx)
 - 图片（OCR）
@@ -194,15 +192,15 @@ searchSimilarVectors(queryVector, topK?, threshold?, enabledOnly?)
 - **API 模式**（默认）：使用 SiliconFlow API
   - 需要配置 `SILICONFLOW_API_KEY` 环境变量
   - 模型：`netease-youdao/bce-embedding-base_v1`
-  
 - **本地模式**：使用本地模型
   - 模型文件：`bce-embedding-base_v1-Q8_0.gguf`
   - 需要先合并模型文件
 
 切换模式：
+
 ```typescript
-ragService.setEmbeddingMode('api');  // 或 'local'
-const mode = ragService.getEmbeddingMode();
+ragService.setEmbeddingMode('api') // 或 'local'
+const mode = ragService.getEmbeddingMode()
 ```
 
 ## 数据存储位置
@@ -268,6 +266,7 @@ const mode = ragService.getEmbeddingMode();
 ### 数据备份
 
 建议定期备份：
+
 - 数据库文件：`{userData}/database/meta-doc.db`
 - 知识库文件：`~/Documents/meta-doc-kb/`
 
@@ -331,4 +330,3 @@ const mode = ragService.getEmbeddingMode();
 
 - **v2.0**：迁移到 SQLite + sqlite-vec 架构
 - **v1.0**：基于 JSON 文件的初始实现
-

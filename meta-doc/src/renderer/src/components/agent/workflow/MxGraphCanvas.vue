@@ -7,7 +7,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { themeState } from '../../../utils/themes'
-import type { Workflow, ArtifactNode, ControlFlowNode, WorkflowEdge } from '../../../types/agent-framework'
+import type {
+  Workflow,
+  ArtifactNode,
+  ControlFlowNode,
+  WorkflowEdge
+} from '../../../types/agent-framework'
 import { createRendererLogger } from '../../../utils/logger'
 // 导入mxgraph全局设置（必须在其他mxgraph导入之前）
 import '../../../utils/mxgraph-setup'
@@ -58,22 +63,22 @@ const initMxGraph = async () => {
   try {
     // 再次确保mxLoadResources已定义（在动态导入之前）
     if (typeof window !== 'undefined' && !(window as any).mxLoadResources) {
-      (window as any).mxLoadResources = () => {
+      ;(window as any).mxLoadResources = () => {
         // 空函数，禁用资源加载
       }
     }
-    
+
     // 动态导入mxgraph
     const mxgraphModule = await import('mxgraph')
-    
+
     // mxgraph 是一个工厂函数，需要调用它来获取API
     const mxgraphFactory = mxgraphModule.default || mxgraphModule
-    
+
     if (typeof mxgraphFactory === 'function') {
       // 调用工厂函数获取mxgraph API
       // 不传入任何参数，使用默认配置（资源加载已被禁用）
       mx = mxgraphFactory()
-      
+
       if (!mx || !mx.mxGraph) {
         throw new Error('mxGraph API not found after factory call')
       }
@@ -95,25 +100,27 @@ const initMxGraph = async () => {
     graph.setAllowLoops(false)
     graph.setDisconnectOnMove(false)
     graph.setDropEnabled(false)
-    
+
     // 配置拖动：使用空格键拖动画布，左键拖动节点
     graph.setPanning(true)
     graph.panningHandler.useLeftButtonForPanning = false // 禁用左键拖动画布
     graph.panningHandler.useRightButtonForPanning = false // 禁用右键拖动画布（避免右键菜单冲突）
     graph.panningHandler.usePopupTrigger = false
-    
+
     // 自定义平移处理：只有在按住空格键时才允许拖动画布
     const originalIsForcePanningEvent = graph.panningHandler.isForcePanningEvent
-    graph.panningHandler.isForcePanningEvent = function(me: any) {
+    graph.panningHandler.isForcePanningEvent = function (me: any) {
       const evt = me.getEvent()
       // 按住空格键(32)时允许拖动画布
-      return (evt && evt.keyCode === 32) || 
-             mx.mxEvent.isShiftDown(evt) ||
-             (originalIsForcePanningEvent ? originalIsForcePanningEvent.call(this, me) : false)
+      return (
+        (evt && evt.keyCode === 32) ||
+        mx.mxEvent.isShiftDown(evt) ||
+        (originalIsForcePanningEvent ? originalIsForcePanningEvent.call(this, me) : false)
+      )
     }
-    
+
     // 确保节点可以被拖动
-    graph.panningHandler.getPanningCell = function(me: any) {
+    graph.panningHandler.getPanningCell = function (me: any) {
       // 如果点击的是节点，不拖动画布
       const cell = me.getCell()
       if (cell && (cell.vertex || cell.edge)) {
@@ -122,30 +129,30 @@ const initMxGraph = async () => {
       // 点击空白处时允许拖动画布（如果按住空格键）
       return this.isForcePanningEvent(me) ? graph.getDefaultParent() : null
     }
-    
+
     // 允许节点可移动（左键拖动）
     graph.setCellsMovable(true)
     graph.setCellsResizable(true)
     graph.setCellsCloneable(true)
     graph.setCellsDisconnectable(true)
-    
+
     // 启用连接点和连接线
     graph.setConnectionConstraint(true)
     graph.setMultigraph(false)
-    
+
     // 启用连接点显示
     graph.setConnectable(true)
-    
+
     // 配置连接点样式
     if (mx.mxConstants) {
       mx.mxConstants.HANDLE_FILLCOLOR = '#00a8ff'
       mx.mxConstants.HANDLE_STROKECOLOR = '#006bb3'
       mx.mxConstants.CONNECT_HANDLE_SIZE = 8
     }
-    
+
     // 启用工具提示
     graph.setTooltips(true)
-    
+
     // 设置主题适配
     updateTheme()
 
@@ -163,11 +170,11 @@ const initMxGraph = async () => {
         connectionHandler.setCreateIcon(false) // 禁用创建图标，直接使用连接点
       }
     }
-    
+
     // 启用连接点显示：当鼠标悬停在节点上时显示连接点
     // 注意：CELL_HOVER 事件可能会导致 updateCellState 错误，改用更安全的方式
     // 连接点会在鼠标悬停时自动显示，无需手动更新状态
-    
+
     // 配置连接点样式：在节点边缘显示
     if (mx.mxConstants) {
       // 连接点大小
@@ -178,15 +185,15 @@ const initMxGraph = async () => {
       // 连接点在节点边缘
       mx.mxConstants.HANDLE_SIZE = 8
     }
-    
+
     // 启用框选工具
     if (mx.mxRubberband) {
       rubberband = new mx.mxRubberband(graph)
-      
+
       // 配置框选样式（虚线框）- 通过重写创建方法来自定义样式
       if (rubberband && typeof rubberband.createShape === 'function') {
         const originalCreateShape = rubberband.createShape.bind(rubberband)
-        rubberband.createShape = function(bounds: any) {
+        rubberband.createShape = function (bounds: any) {
           const shape = originalCreateShape(bounds)
           if (shape && shape.node) {
             // 设置虚线边框样式
@@ -200,27 +207,27 @@ const initMxGraph = async () => {
           return shape
         }
       }
-      
+
       // 设置默认颜色
       if (rubberband.defaultColors) {
         rubberband.defaultColors.stroke = '#409EFF'
         rubberband.defaultColors.fill = 'rgba(64, 158, 255, 0.2)'
       }
     }
-    
+
     // 修复 geo.clone 错误：重写 translateCell 方法以确保正确处理 geometry
     const originalTranslateCell = graph.translateCell.bind(graph)
-    graph.translateCell = function(cell: any, dx: number, dy: number) {
+    graph.translateCell = function (cell: any, dx: number, dy: number) {
       if (!cell) {
         return originalTranslateCell(cell, dx, dy)
       }
-      
+
       try {
         const geo = cell.getGeometry()
         if (!geo) {
           return originalTranslateCell(cell, dx, dy)
         }
-        
+
         // 使用mxUtils.clone来克隆geometry，或者手动创建新的geometry
         let clonedGeo: any
         if (mx.mxUtils && typeof mx.mxUtils.clone === 'function') {
@@ -229,16 +236,22 @@ const initMxGraph = async () => {
           // 手动克隆geometry的所有属性
           clonedGeo = new mx.mxGeometry(geo.x, geo.y, geo.width, geo.height)
           clonedGeo.relative = geo.relative || false
-          clonedGeo.sourcePoint = geo.sourcePoint ? new mx.mxPoint(geo.sourcePoint.x, geo.sourcePoint.y) : null
-          clonedGeo.targetPoint = geo.targetPoint ? new mx.mxPoint(geo.targetPoint.x, geo.targetPoint.y) : null
-          clonedGeo.points = geo.points ? geo.points.map((p: any) => new mx.mxPoint(p.x, p.y)) : null
+          clonedGeo.sourcePoint = geo.sourcePoint
+            ? new mx.mxPoint(geo.sourcePoint.x, geo.sourcePoint.y)
+            : null
+          clonedGeo.targetPoint = geo.targetPoint
+            ? new mx.mxPoint(geo.targetPoint.x, geo.targetPoint.y)
+            : null
+          clonedGeo.points = geo.points
+            ? geo.points.map((p: any) => new mx.mxPoint(p.x, p.y))
+            : null
           clonedGeo.offset = geo.offset ? new mx.mxPoint(geo.offset.x, geo.offset.y) : null
         }
-        
+
         // 应用平移
         clonedGeo.x += dx
         clonedGeo.y += dy
-        
+
         // 使用setGeometry更新位置
         graph.getModel().setGeometry(cell, clonedGeo)
         return cell
@@ -263,12 +276,12 @@ const initMxGraph = async () => {
         }
       }
     }
-    
+
     // 启用删除键删除选中的单元格
     graph.addListener(mx.mxEvent.CELLS_DELETED, () => {
       syncToWorkflow()
     })
-    
+
     // 启用连接创建事件
     graph.addListener(mx.mxEvent.CONNECT_CELL, () => {
       syncToWorkflow()
@@ -290,85 +303,88 @@ const initMxGraph = async () => {
           graph.startEditingAtCell(cell)
         }
       })
-      
+
       // 监听连接创建
       graph.addListener(mx.mxEvent.CONNECT_CELL, (sender: any, evt: any) => {
         const edge = evt.getProperty('edge')
         const source = evt.getProperty('source')
         const target = evt.getProperty('target')
-        
+
         if (edge && source && target && source.nodeId && target.nodeId) {
           // 为新创建的边设置edgeId
           if (!edge.edgeId) {
             edge.edgeId = `edge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
           }
-          
+
           // 存储节点关联信息
           edge.sourceNodeId = source.nodeId
           edge.targetNodeId = target.nodeId
-          
+
           // 同步到工作流
           nextTick(() => {
             syncToWorkflow()
           })
         }
       })
-      
+
       // 监听单元格移动
       graph.addListener(mx.mxEvent.MOVE_CELLS, () => {
         syncToWorkflow()
       })
-      
+
       // 监听选择变化
       graph.getSelectionModel().addListener(mx.mxEvent.CHANGE, () => {
         const cells = graph.getSelectionCells()
         const hasSelection = cells && cells.length > 0
         emit('selectionChanged', hasSelection)
-        
+
         // 发射节点选择事件
-        const selectedNode = cells && cells.length === 1 && cells[0].vertex
-          ? cells[0].nodeId || null
-          : null
+        const selectedNode =
+          cells && cells.length === 1 && cells[0].vertex ? cells[0].nodeId || null : null
         emit('nodeSelected', selectedNode)
       })
     }
-    
+
     // 添加键盘快捷键支持
     if (mx.mxKeyHandler) {
       const keyHandler = new mx.mxKeyHandler(graph)
-      
+
       // Delete键删除选中的单元格
-      keyHandler.bindKey(46, () => { // Delete key
+      keyHandler.bindKey(46, () => {
+        // Delete key
         const cells = graph.getSelectionCells()
         if (cells && cells.length > 0) {
           const cellsToRemove = cells.filter((cell: any) => {
             // 只允许删除节点和连接线
             return cell.vertex || cell.edge
           })
-          
+
           if (cellsToRemove.length > 0) {
             graph.removeCells(cellsToRemove)
             syncToWorkflow()
           }
         }
       })
-      
+
       // Ctrl+C 复制
-      keyHandler.bindControlKey(67, () => { // Ctrl+C
+      keyHandler.bindControlKey(67, () => {
+        // Ctrl+C
         const cells = graph.getSelectionCells()
         if (cells && cells.length > 0) {
           graph.copy()
         }
       })
-      
+
       // Ctrl+V 粘贴
-      keyHandler.bindControlKey(86, () => { // Ctrl+V
+      keyHandler.bindControlKey(86, () => {
+        // Ctrl+V
         graph.paste()
         syncToWorkflow()
       })
-      
+
       // Ctrl+A 全选
-      keyHandler.bindControlKey(65, (evt: KeyboardEvent) => { // Ctrl+A
+      keyHandler.bindControlKey(65, (evt: KeyboardEvent) => {
+        // Ctrl+A
         evt.preventDefault()
         graph.selectAll()
       })
@@ -424,7 +440,7 @@ const loadWorkflow = (workflow: Workflow, forceReload: boolean = false) => {
     // 保存现有单元格的状态（位置、大小、文字、样式等）
     const existingCells = new Map<string, any>()
     const existingEdges = new Map<string, any>()
-    
+
     graph.getChildCells(parent, true, true).forEach((cell: any) => {
       if (cell.vertex && cell.nodeId) {
         const geometry = cell.getGeometry()
@@ -455,11 +471,11 @@ const loadWorkflow = (workflow: Workflow, forceReload: boolean = false) => {
     } else {
       // 只删除不存在的节点和边
       const existingNodeIds = new Set([
-        ...workflow.artifactNodes.map(n => n.id),
-        ...workflow.controlFlowNodes.map(n => n.id)
+        ...workflow.artifactNodes.map((n) => n.id),
+        ...workflow.controlFlowNodes.map((n) => n.id)
       ])
-      const existingEdgeIds = new Set(workflow.edges.map(e => e.id))
-      
+      const existingEdgeIds = new Set(workflow.edges.map((e) => e.id))
+
       graph.getChildCells(parent, true, true).forEach((cell: any) => {
         if (cell.vertex && cell.nodeId && !existingNodeIds.has(cell.nodeId)) {
           graph.removeCells([cell])
@@ -475,7 +491,7 @@ const loadWorkflow = (workflow: Workflow, forceReload: boolean = false) => {
     workflow.artifactNodes.forEach((node) => {
       let cell = nodeIdToCell.get(node.id)
       const existingState = existingCells.get(node.id)
-      
+
       if (cell && existingState && !forceReload) {
         // 更新现有节点，保留位置和大小
         const geometry = existingState.geometry
@@ -510,7 +526,7 @@ const loadWorkflow = (workflow: Workflow, forceReload: boolean = false) => {
     workflow.controlFlowNodes.forEach((node) => {
       let cell = nodeIdToCell.get(node.id)
       const existingState = existingCells.get(node.id)
-      
+
       if (cell && existingState && !forceReload) {
         // 更新现有节点
         const geometry = existingState.geometry
@@ -542,24 +558,25 @@ const loadWorkflow = (workflow: Workflow, forceReload: boolean = false) => {
     workflow.edges.forEach((edge) => {
       const sourceCell = nodeIdToCell.get(edge.source)
       const targetCell = nodeIdToCell.get(edge.target)
-      
+
       if (!sourceCell || !targetCell) {
         return // 源或目标节点不存在，跳过
       }
-      
+
       // 查找现有边
-      const existingEdge = Array.from(graph.getChildCells(parent, true, true))
-        .find((cell: any) => cell.edge && (
-          cell.edgeId === edge.id ||
-          (cell.getSource()?.nodeId === edge.source && cell.getTarget()?.nodeId === edge.target)
-        ))
-      
+      const existingEdge = Array.from(graph.getChildCells(parent, true, true)).find(
+        (cell: any) =>
+          cell.edge &&
+          (cell.edgeId === edge.id ||
+            (cell.getSource()?.nodeId === edge.source && cell.getTarget()?.nodeId === edge.target))
+      )
+
       if (!existingEdge) {
         // 创建新边
         createEdgeCell(edge)
       } else if ((existingEdge as any).edgeId !== edge.id) {
         // 更新边的ID
-        (existingEdge as any).edgeId = edge.id
+        ;(existingEdge as any).edgeId = edge.id
       }
     })
   } finally {
@@ -578,20 +595,12 @@ const createArtifactNodeCell = (node: ArtifactNode): any => {
 
   const label = node.label || `${node.type}: ${node.artifactId || 'unnamed'}`
   let style = getNodeStyle(node.type, true)
-  
-  // 添加连接点配置，使节点可连接
-  style += ';portConstraint=eastwest;portConstraintRotation=0;portConstraintEw=1;portConstraintNs=1;'
 
-  const cell = graph.insertVertex(
-    parent,
-    null,
-    label,
-    x,
-    y,
-    width,
-    height,
-    style
-  )
+  // 添加连接点配置，使节点可连接
+  style +=
+    ';portConstraint=eastwest;portConstraintRotation=0;portConstraintEw=1;portConstraintNs=1;'
+
+  const cell = graph.insertVertex(parent, null, label, x, y, width, height, style)
 
   // 存储节点信息
   if (cell) {
@@ -599,7 +608,7 @@ const createArtifactNodeCell = (node: ArtifactNode): any => {
     cell.nodeType = 'artifact'
     cell.artifactType = node.type
     cell.artifactId = node.artifactId
-    
+
     // 确保节点可连接
     graph.setCellStyles('connectable', '1', [cell])
   }
@@ -618,27 +627,19 @@ const createControlFlowNodeCell = (node: ControlFlowNode): any => {
 
   const label = node.label || node.type
   let style = getNodeStyle(node.type, false)
-  
-  // 添加连接点配置，使节点可连接
-  style += ';portConstraint=eastwest;portConstraintRotation=0;portConstraintEw=1;portConstraintNs=1;'
 
-  const cell = graph.insertVertex(
-    parent,
-    null,
-    label,
-    x,
-    y,
-    width,
-    height,
-    style
-  )
+  // 添加连接点配置，使节点可连接
+  style +=
+    ';portConstraint=eastwest;portConstraintRotation=0;portConstraintEw=1;portConstraintNs=1;'
+
+  const cell = graph.insertVertex(parent, null, label, x, y, width, height, style)
 
   // 存储节点信息
   if (cell) {
     cell.nodeId = node.id
     cell.nodeType = 'control-flow'
     cell.controlFlowType = node.type
-    
+
     // 确保节点可连接
     graph.setCellStyles('connectable', '1', [cell])
   }
@@ -712,7 +713,7 @@ const syncToWorkflow = () => {
       const label = cell.getValue()?.toString() || ''
 
       if (cell.nodeType === 'artifact') {
-        const node = workflow.artifactNodes.find(n => n.id === cell.nodeId)
+        const node = workflow.artifactNodes.find((n) => n.id === cell.nodeId)
         if (node) {
           artifactNodes.push({
             ...node,
@@ -733,7 +734,7 @@ const syncToWorkflow = () => {
           })
         }
       } else if (cell.nodeType === 'control-flow') {
-        const node = workflow.controlFlowNodes.find(n => n.id === cell.nodeId)
+        const node = workflow.controlFlowNodes.find((n) => n.id === cell.nodeId)
         if (node) {
           controlFlowNodes.push({
             ...node,
@@ -760,14 +761,17 @@ const syncToWorkflow = () => {
       if (source && target) {
         const sourceNodeId = source.nodeId || cellIdToNodeId.get(source.id)
         const targetNodeId = target.nodeId || cellIdToNodeId.get(target.id)
-        
+
         if (sourceNodeId && targetNodeId) {
-          const edgeId = cell.edgeId || cell.id || `edge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-          
+          const edgeId =
+            cell.edgeId ||
+            cell.id ||
+            `edge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
           if (!cell.edgeId) {
             cell.edgeId = edgeId
           }
-          
+
           const edge: WorkflowEdge = {
             id: edgeId,
             source: sourceNodeId,
@@ -777,10 +781,13 @@ const syncToWorkflow = () => {
             condition: cell.condition,
             label: cell.getValue()?.toString() || ''
           }
-          
-          const existingEdgeIndex = edges.findIndex(e => e.id === edgeId || 
-            (e.source === sourceNodeId && e.target === targetNodeId && e.id !== edgeId))
-          
+
+          const existingEdgeIndex = edges.findIndex(
+            (e) =>
+              e.id === edgeId ||
+              (e.source === sourceNodeId && e.target === targetNodeId && e.id !== edgeId)
+          )
+
           if (existingEdgeIndex === -1) {
             edges.push(edge)
           } else {
@@ -808,7 +815,13 @@ const syncToWorkflow = () => {
 }
 
 // 添加节点
-const addNode = (nodeType: 'artifact' | 'control-flow', type: string, label: string, position: { x: number; y: number }, nodeId?: string): any => {
+const addNode = (
+  nodeType: 'artifact' | 'control-flow',
+  type: string,
+  label: string,
+  position: { x: number; y: number },
+  nodeId?: string
+): any => {
   if (!graph || !parent) return null
 
   const finalNodeId = nodeId || `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -819,11 +832,12 @@ const addNode = (nodeType: 'artifact' | 'control-flow', type: string, label: str
     const style = getNodeStyle(type, nodeType === 'artifact')
     const width = nodeType === 'artifact' ? 150 : 120
     const height = 80
-    
+
     // 添加连接点配置到样式
     let finalStyle = style
-    finalStyle += ';portConstraint=eastwest;portConstraintRotation=0;portConstraintEw=1;portConstraintNs=1;'
-    
+    finalStyle +=
+      ';portConstraint=eastwest;portConstraintRotation=0;portConstraintEw=1;portConstraintNs=1;'
+
     cell = graph.insertVertex(
       parent,
       finalNodeId, // 使用nodeId作为mxgraph的cell id
@@ -834,7 +848,7 @@ const addNode = (nodeType: 'artifact' | 'control-flow', type: string, label: str
       height,
       finalStyle
     )
-    
+
     // 设置节点信息到cell上
     if (cell) {
       cell.nodeId = finalNodeId
@@ -845,7 +859,7 @@ const addNode = (nodeType: 'artifact' | 'control-flow', type: string, label: str
       } else {
         cell.controlFlowType = type
       }
-      
+
       // 确保节点可连接
       graph.setCellStyles('connectable', '1', [cell])
 
@@ -864,23 +878,23 @@ const addNode = (nodeType: 'artifact' | 'control-flow', type: string, label: str
 // 设置工具模式
 const setToolMode = (mode: 'pointer' | 'select' | 'pan' | 'text-edit' | 'delete') => {
   if (!graph || !mx) return
-  
+
   // 重置所有模式相关配置
   graph.setPanning(false)
   graph.setCellsMovable(true)
   graph.setCellsSelectable(true)
-  
+
   // 禁用rubberband（默认）
   if (rubberband) {
     rubberband.setEnabled(false)
   }
-  
+
   // 移除之前的点击删除监听器
   if (graph._deleteClickHandler) {
     graph.removeListener(graph._deleteClickHandler)
     graph._deleteClickHandler = null
   }
-  
+
   switch (mode) {
     case 'pointer':
       // 默认模式：可以选择和移动节点
@@ -916,7 +930,7 @@ const setToolMode = (mode: 'pointer' | 'select' | 'pan' | 'text-edit' | 'delete'
       graph.setCellsMovable(false)
       graph.setCellsSelectable(true)
       graph.setPanning(false)
-      
+
       // 添加点击删除监听器
       const deleteHandler = (sender: any, evt: any) => {
         const cell = evt.getProperty('cell')
@@ -931,11 +945,14 @@ const setToolMode = (mode: 'pointer' | 'select' | 'pan' | 'text-edit' | 'delete'
 }
 
 // 监听工具模式变化
-watch(() => props.toolMode, (newMode) => {
-  if (newMode) {
-    setToolMode(newMode)
+watch(
+  () => props.toolMode,
+  (newMode) => {
+    if (newMode) {
+      setToolMode(newMode)
+    }
   }
-})
+)
 
 // 导出方法供父组件调用
 defineExpose({
@@ -950,52 +967,61 @@ defineExpose({
 // 使用 ref 来跟踪上一次的 workflow，避免不必要的重新加载
 let lastWorkflowId: string | null = null
 
-watch(() => props.workflow, (newWorkflow, oldWorkflow) => {
-  if (newWorkflow && graph && !isUpdatingFromProps) {
-    // 只在 workflow id 变化时强制重新加载，其他时候增量更新
-    const workflowId = newWorkflow.id
-    const shouldForceReload = workflowId !== lastWorkflowId || !oldWorkflow
-    
-    // 如果只是添加/删除节点，不需要重新加载
-    if (!shouldForceReload && oldWorkflow) {
-      const oldNodeIds = new Set([
-        ...oldWorkflow.artifactNodes.map(n => n.id),
-        ...oldWorkflow.controlFlowNodes.map(n => n.id)
-      ])
-      const newNodeIds = new Set([
-        ...newWorkflow.artifactNodes.map(n => n.id),
-        ...newWorkflow.controlFlowNodes.map(n => n.id)
-      ])
-      
-      // 如果只是新增节点，使用增量更新
-      const hasOnlyNewNodes = Array.from(newNodeIds).every(id => oldNodeIds.has(id) || !oldNodeIds.has(id))
-      if (hasOnlyNewNodes && newNodeIds.size >= oldNodeIds.size) {
-        // 增量更新，不触发完整重载
-        loadWorkflow(newWorkflow, false)
+watch(
+  () => props.workflow,
+  (newWorkflow, oldWorkflow) => {
+    if (newWorkflow && graph && !isUpdatingFromProps) {
+      // 只在 workflow id 变化时强制重新加载，其他时候增量更新
+      const workflowId = newWorkflow.id
+      const shouldForceReload = workflowId !== lastWorkflowId || !oldWorkflow
+
+      // 如果只是添加/删除节点，不需要重新加载
+      if (!shouldForceReload && oldWorkflow) {
+        const oldNodeIds = new Set([
+          ...oldWorkflow.artifactNodes.map((n) => n.id),
+          ...oldWorkflow.controlFlowNodes.map((n) => n.id)
+        ])
+        const newNodeIds = new Set([
+          ...newWorkflow.artifactNodes.map((n) => n.id),
+          ...newWorkflow.controlFlowNodes.map((n) => n.id)
+        ])
+
+        // 如果只是新增节点，使用增量更新
+        const hasOnlyNewNodes = Array.from(newNodeIds).every(
+          (id) => oldNodeIds.has(id) || !oldNodeIds.has(id)
+        )
+        if (hasOnlyNewNodes && newNodeIds.size >= oldNodeIds.size) {
+          // 增量更新，不触发完整重载
+          loadWorkflow(newWorkflow, false)
+          lastWorkflowId = workflowId
+          return
+        }
+      }
+
+      isUpdatingFromProps = true
+      try {
+        loadWorkflow(newWorkflow, shouldForceReload)
         lastWorkflowId = workflowId
-        return
+      } finally {
+        nextTick(() => {
+          isUpdatingFromProps = false
+        })
       }
     }
-    
-    isUpdatingFromProps = true
-    try {
-      loadWorkflow(newWorkflow, shouldForceReload)
-      lastWorkflowId = workflowId
-    } finally {
-      nextTick(() => {
-        isUpdatingFromProps = false
-      })
-    }
-  }
-}, { deep: true })
+  },
+  { deep: true }
+)
 
 // 监听主题变化
-watch(() => themeState.currentTheme.type, () => {
-  updateTheme()
-  if (graph && props.workflow) {
-    loadWorkflow(props.workflow)
+watch(
+  () => themeState.currentTheme.type,
+  () => {
+    updateTheme()
+    if (graph && props.workflow) {
+      loadWorkflow(props.workflow)
+    }
   }
-})
+)
 
 onMounted(() => {
   nextTick(() => {
@@ -1032,8 +1058,8 @@ onBeforeUnmount(() => {
 <style>
 /* 框选虚线框样式 - 全局样式 */
 .mx-rubberband {
-  stroke-dasharray: 5,5 !important;
-  stroke: #409EFF !important;
+  stroke-dasharray: 5, 5 !important;
+  stroke: #409eff !important;
   stroke-width: 2px !important;
   fill: rgba(64, 158, 255, 0.1) !important;
   fill-opacity: 0.1 !important;

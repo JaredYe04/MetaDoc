@@ -3,7 +3,13 @@
  * 将工作流注册为Tool，使其可以在Agent会话中使用
  */
 
-import type { AgentToolConfig, ToolCallback, ToolCallbackResult, ToolCallbackData, ToolProgress } from '../../types/agent-tool'
+import type {
+  AgentToolConfig,
+  ToolCallback,
+  ToolCallbackResult,
+  ToolCallbackData,
+  ToolProgress
+} from '../../types/agent-tool'
 import { workflowManager } from './workflow-manager'
 import { workflowExecutor } from './workflow-executor'
 import { agentToolManager } from '../agent-tool-manager'
@@ -37,43 +43,49 @@ export function createWorkflowToolConfig(workflowId: string): AgentToolConfig | 
   ) => {
     try {
       // 报告开始执行
-      onUpdate({
-        content: {
-          workflowId,
-          executionId: null,
-          stage: 'starting'
+      onUpdate(
+        {
+          content: {
+            workflowId,
+            executionId: null,
+            stage: 'starting'
+          },
+          format: 'json',
+          componentName: 'WorkflowDisplay'
         },
-        format: 'json',
-        componentName: 'WorkflowDisplay'
-      }, {
-        percentage: 0,
-        message: '工作流执行开始'
-      })
+        {
+          percentage: 0,
+          message: '工作流执行开始'
+        }
+      )
 
       // 执行工作流
       const result = await workflowExecutor.executeWorkflow(workflowId, params, signal)
 
       if (result.status === 'succeeded') {
-      // 获取执行状态（用于Display组件）
-      const executions = workflowManager.getAllExecutions()
-      const execution = executions
-        .filter(e => e.workflowId === workflowId)
-        .sort((a, b) => b.startTime - a.startTime)[0] // 获取最新的执行
-        
-        onUpdate({
-          content: {
-            workflowId,
-            executionId: execution?.executionId,
-            executionState: execution,
-            result: result.result,
-            stage: 'completed'
+        // 获取执行状态（用于Display组件）
+        const executions = workflowManager.getAllExecutions()
+        const execution = executions
+          .filter((e) => e.workflowId === workflowId)
+          .sort((a, b) => b.startTime - a.startTime)[0] // 获取最新的执行
+
+        onUpdate(
+          {
+            content: {
+              workflowId,
+              executionId: execution?.executionId,
+              executionState: execution,
+              result: result.result,
+              stage: 'completed'
+            },
+            format: 'json',
+            componentName: 'WorkflowDisplay'
           },
-          format: 'json',
-          componentName: 'WorkflowDisplay'
-        }, {
-          percentage: 100,
-          message: '工作流执行完成'
-        })
+          {
+            percentage: 100,
+            message: '工作流执行完成'
+          }
+        )
 
         return {
           status: 'succeeded',
@@ -105,10 +117,12 @@ export function createWorkflowToolConfig(workflowId: string): AgentToolConfig | 
     }
   }
 
-  const toolName = typeof workflow.name === 'string' ? workflow.name : workflow.name['zh_cn']?.name || workflow.id
-  const toolDescription = typeof workflow.description === 'string' 
-    ? workflow.description 
-    : workflow.description['zh_cn']?.description || ''
+  const toolName =
+    typeof workflow.name === 'string' ? workflow.name : workflow.name['zh_cn']?.name || workflow.id
+  const toolDescription =
+    typeof workflow.description === 'string'
+      ? workflow.description
+      : workflow.description['zh_cn']?.description || ''
 
   return {
     id: `workflow-${workflowId}`,
@@ -180,4 +194,3 @@ export function setupWorkflowToolAutoRegistration(): void {
   // TODO: 监听工作流变化事件，自动更新Tool注册
   // 这需要在工作流管理器中添加事件机制
 }
-

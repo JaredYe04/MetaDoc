@@ -1,32 +1,71 @@
 <template>
   <div class="outline-optimize-display" :style="containerStyle">
-    <div v-if="displayData.stage === 'loading' || displayData.stage === 'generating' || displayData.stage === 'syncing'" class="status-message" :style="statusMessageStyle">
+    <div
+      v-if="
+        displayData.stage === 'loading' ||
+        displayData.stage === 'generating' ||
+        displayData.stage === 'syncing'
+      "
+      class="status-message"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ getStageMessage(displayData.stage) }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed'" class="completed-state" :style="completedStateStyle">
+    <div
+      v-else-if="displayData.stage === 'completed'"
+      class="completed-state"
+      :style="completedStateStyle"
+    >
       <el-result icon="success" :title="$t('agent.display.outlineOptimize.completed')" />
       <div class="result-info" :style="resultInfoStyle">
-        <p><strong>{{ $t('agent.display.outlineOptimize.operationLabel') }}:</strong> {{ getOperationLabel(displayData.operation) }}</p>
-        <p v-if="displayData.nodePath"><strong>{{ $t('agent.display.outlineOptimize.nodePath') }}:</strong> {{ displayData.nodePath }}</p>
-        <p v-if="displayData.nodeTitle"><strong>{{ $t('agent.display.outlineOptimize.nodeTitle') }}:</strong> {{ displayData.nodeTitle }}</p>
+        <p>
+          <strong>{{ $t('agent.display.outlineOptimize.operationLabel') }}:</strong>
+          {{ getOperationLabel(displayData.operation) }}
+        </p>
+        <p v-if="displayData.nodePath">
+          <strong>{{ $t('agent.display.outlineOptimize.nodePath') }}:</strong>
+          {{ displayData.nodePath }}
+        </p>
+        <p v-if="displayData.nodeTitle">
+          <strong>{{ $t('agent.display.outlineOptimize.nodeTitle') }}:</strong>
+          {{ displayData.nodeTitle }}
+        </p>
         <div v-if="displayData.childrenCount !== undefined" class="result-stat">
-          <el-tag type="success">{{ $t('agent.display.outlineOptimize.generatedChildrenCount', { count: displayData.childrenCount }) }}</el-tag>
+          <el-tag type="success">{{
+            $t('agent.display.outlineOptimize.generatedChildrenCount', {
+              count: displayData.childrenCount
+            })
+          }}</el-tag>
         </div>
         <div v-if="displayData.totalChildrenCount !== undefined" class="result-stat">
-          <el-tag type="success">{{ $t('agent.display.outlineOptimize.totalChildrenCount', { count: displayData.totalChildrenCount }) }}</el-tag>
+          <el-tag type="success">{{
+            $t('agent.display.outlineOptimize.totalChildrenCount', {
+              count: displayData.totalChildrenCount
+            })
+          }}</el-tag>
         </div>
         <div v-if="displayData.contentLength !== undefined" class="result-stat">
-          <el-tag type="info">{{ $t('agent.display.outlineOptimize.contentLength', { length: displayData.contentLength }) }}</el-tag>
+          <el-tag type="info">{{
+            $t('agent.display.outlineOptimize.contentLength', { length: displayData.contentLength })
+          }}</el-tag>
         </div>
         <div v-if="displayData.totalContentCount !== undefined" class="result-stat">
-          <el-tag type="info">{{ $t('agent.display.outlineOptimize.totalContentCount', { count: displayData.totalContentCount }) }}</el-tag>
+          <el-tag type="info">{{
+            $t('agent.display.outlineOptimize.totalContentCount', {
+              count: displayData.totalContentCount
+            })
+          }}</el-tag>
         </div>
       </div>
 
       <!-- 大纲树形结构显示 -->
-      <div v-if="outlineTreeData && outlineTreeData.length > 0" class="outline-tree-section" :style="treeSectionStyle">
+      <div
+        v-if="outlineTreeData && outlineTreeData.length > 0"
+        class="outline-tree-section"
+        :style="treeSectionStyle"
+      >
         <div class="tree-header" :style="treeHeaderStyle">
           <el-icon><Document /></el-icon>
           <span>{{ $t('agent.display.outlineOptimize.outlineTree') }}</span>
@@ -45,14 +84,27 @@
                   <el-tag v-if="data.path" size="small" type="info" :style="nodeTagStyle">
                     {{ $t('agent.display.outlineOptimize.path') }}: {{ data.path }}
                   </el-tag>
-                  <el-tag v-if="data.titleLevel !== undefined" size="small" type="warning" :style="nodeTagStyle">
+                  <el-tag
+                    v-if="data.titleLevel !== undefined"
+                    size="small"
+                    type="warning"
+                    :style="nodeTagStyle"
+                  >
                     {{ $t('agent.display.outlineOptimize.level') }}: {{ data.titleLevel }}
                   </el-tag>
                   <el-tag v-if="data.hasContent" size="small" type="success" :style="nodeTagStyle">
                     {{ $t('agent.display.outlineOptimize.hasContent') }}
                   </el-tag>
-                  <el-tag v-if="data.childrenCount !== undefined" size="small" :style="nodeTagStyle">
-                    {{ $t('agent.display.outlineOptimize.childrenCount', { count: data.childrenCount }) }}
+                  <el-tag
+                    v-if="data.childrenCount !== undefined"
+                    size="small"
+                    :style="nodeTagStyle"
+                  >
+                    {{
+                      $t('agent.display.outlineOptimize.childrenCount', {
+                        count: data.childrenCount
+                      })
+                    }}
                   </el-tag>
                 </div>
               </div>
@@ -100,7 +152,7 @@ const outlineTree = ref<DocumentOutlineNode | null>(null)
 const displayData = computed(() => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
-  
+
   if (parsed && typeof parsed === 'object') {
     // 根据status确定stage，优先使用数据中的stage，如果没有则根据status推断
     const getStage = (): 'loading' | 'generating' | 'syncing' | 'completed' | 'error' => {
@@ -116,15 +168,16 @@ const displayData = computed(() => {
       }
       return 'loading'
     }
-    
+
     return {
       ...parsed,
       stage: getStage()
     }
   }
-  
+
   // 如果没有数据，根据status设置默认stage
-  const defaultStage = props.status === 'succeeded' ? 'completed' : (props.status === 'failed' ? 'error' : 'loading')
+  const defaultStage =
+    props.status === 'succeeded' ? 'completed' : props.status === 'failed' ? 'error' : 'loading'
   return {
     stage: defaultStage,
     operation: undefined,
@@ -225,18 +278,19 @@ const nodeTagStyle = computed(() => ({
 const convertNodeToTreeData = (node: DocumentOutlineNode): any => {
   const hasContent = node.text && node.text.trim().length > 0
   const childrenCount = node.children ? node.children.length : 0
-  
+
   const treeNode: any = {
     label: node.title || t('agent.display.outlineOptimize.emptyTitle'),
     path: node.path,
     titleLevel: node.title_level,
     hasContent,
     childrenCount,
-    children: node.children && node.children.length > 0 
-      ? node.children.map((child: DocumentOutlineNode) => convertNodeToTreeData(child))
-      : undefined
+    children:
+      node.children && node.children.length > 0
+        ? node.children.map((child: DocumentOutlineNode) => convertNodeToTreeData(child))
+        : undefined
   }
-  
+
   return treeNode
 }
 
@@ -272,12 +326,14 @@ const outlineTreeData = computed(() => {
   if (!outlineTree.value) {
     return []
   }
-  
+
   // 只显示根节点的子节点（不显示虚拟根节点）
   if (outlineTree.value.children && outlineTree.value.children.length > 0) {
-    return outlineTree.value.children.map((child: DocumentOutlineNode) => convertNodeToTreeData(child))
+    return outlineTree.value.children.map((child: DocumentOutlineNode) =>
+      convertNodeToTreeData(child)
+    )
   }
-  
+
   return []
 })
 
@@ -385,4 +441,3 @@ onMounted(() => {
   padding: 12px;
 }
 </style>
-

@@ -7,7 +7,6 @@ import type { ToolCollection, SerializedEntity } from '../../types/agent-framewo
 import type { LocalizedText } from '../../types/agent-tool'
 import { createRendererLogger } from '../logger'
 
-
 /**
  * 工具集管理器类
  */
@@ -79,7 +78,7 @@ class ToolCollectionManager {
    * 获取启用的工具集
    */
   getEnabledCollections(): ToolCollection[] {
-    return Array.from(this.collections.values()).filter(c => c.enabled !== false)
+    return Array.from(this.collections.values()).filter((c) => c.enabled !== false)
   }
 
   /**
@@ -147,7 +146,7 @@ class ToolCollectionManager {
       throw new Error(`工具集 ${collectionId} 未找到`)
     }
 
-    collection.toolIds = collection.toolIds.filter(id => id !== toolId)
+    collection.toolIds = collection.toolIds.filter((id) => id !== toolId)
     this.updateCollection(collectionId, { toolIds: collection.toolIds })
   }
 
@@ -160,7 +159,7 @@ class ToolCollectionManager {
     }
 
     const collections = collectionIds
-      .map(id => this.collections.get(id))
+      .map((id) => this.collections.get(id))
       .filter((c): c is ToolCollection => c !== undefined && c.enabled !== false)
 
     if (collections.length === 0) {
@@ -228,19 +227,19 @@ class ToolCollectionManager {
    */
   initializeDefaultToolSet(allToolIds: string[]): void {
     const defaultId = 'default-tool-set'
-    
+
     // 检查是否已存在
     if (this.collections.has(defaultId)) {
       // 更新工具列表（确保包含所有内置tool）
       this.updateCollection(defaultId, {
         toolIds: allToolIds,
         name: {
-          'zh_cn': { name: '默认工具集' },
-          'en_us': { name: 'Default Tool Set' }
+          zh_cn: { name: '默认工具集' },
+          en_us: { name: 'Default Tool Set' }
         },
         description: {
-          'zh_cn': { description: 'MetaDoc内置的全部Agent工具，不可删除' },
-          'en_us': { description: 'All built-in MetaDoc Agent tools, cannot be deleted' }
+          zh_cn: { description: 'MetaDoc内置的全部Agent工具，不可删除' },
+          en_us: { description: 'All built-in MetaDoc Agent tools, cannot be deleted' }
         }
       })
       return
@@ -251,12 +250,12 @@ class ToolCollectionManager {
       entityType: 'tool-collection',
       id: defaultId,
       name: {
-        'zh_cn': { name: '默认工具集' },
-        'en_us': { name: 'Default Tool Set' }
+        zh_cn: { name: '默认工具集' },
+        en_us: { name: 'Default Tool Set' }
       },
       description: {
-        'zh_cn': { description: 'MetaDoc内置的全部Agent工具，不可删除' },
-        'en_us': { description: 'All built-in MetaDoc Agent tools, cannot be deleted' }
+        zh_cn: { description: 'MetaDoc内置的全部Agent工具，不可删除' },
+        en_us: { description: 'All built-in MetaDoc Agent tools, cannot be deleted' }
       },
       version: '1.0.0',
       createdAt: Date.now(),
@@ -277,7 +276,7 @@ class ToolCollectionManager {
    */
   async initializeDefaultWorkflowCollection(workflowIds: string[]): Promise<void> {
     const defaultId = 'default-workflow-collection'
-    
+
     // 检查是否已存在
     const existing = this.collections.get(defaultId)
     if (existing) {
@@ -285,12 +284,12 @@ class ToolCollectionManager {
       this.updateCollection(defaultId, {
         toolIds: workflowIds,
         name: {
-          'zh_cn': { name: '默认工作流' },
-          'en_us': { name: 'Default Workflow Collection' }
+          zh_cn: { name: '默认工作流' },
+          en_us: { name: 'Default Workflow Collection' }
         },
         description: {
-          'zh_cn': { description: 'MetaDoc内置的全部工作流，不可删除' },
-          'en_us': { description: 'All built-in MetaDoc workflows, cannot be deleted' }
+          zh_cn: { description: 'MetaDoc内置的全部工作流，不可删除' },
+          en_us: { description: 'All built-in MetaDoc workflows, cannot be deleted' }
         },
         isBuiltIn: true
       })
@@ -302,12 +301,12 @@ class ToolCollectionManager {
       entityType: 'tool-collection',
       id: defaultId,
       name: {
-        'zh_cn': { name: '默认工作流' },
-        'en_us': { name: 'Default Workflow Collection' }
+        zh_cn: { name: '默认工作流' },
+        en_us: { name: 'Default Workflow Collection' }
       },
       description: {
-        'zh_cn': { description: 'MetaDoc内置的全部工作流，不可删除' },
-        'en_us': { description: 'All built-in MetaDoc workflows, cannot be deleted' }
+        zh_cn: { description: 'MetaDoc内置的全部工作流，不可删除' },
+        en_us: { description: 'All built-in MetaDoc workflows, cannot be deleted' }
       },
       version: '1.0.0',
       createdAt: Date.now(),
@@ -371,4 +370,3 @@ class ToolCollectionManager {
 
 // 导出单例
 export const toolCollectionManager = new ToolCollectionManager()
-

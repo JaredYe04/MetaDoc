@@ -1,21 +1,39 @@
 <template>
   <div class="title-format-display" :style="containerStyle">
-    <div v-if="displayData.stage === 'loading' || displayData.stage === 'processing' || displayData.stage === 'saving'" class="status-message" :style="statusMessageStyle">
+    <div
+      v-if="
+        displayData.stage === 'loading' ||
+        displayData.stage === 'processing' ||
+        displayData.stage === 'saving'
+      "
+      class="status-message"
+      :style="statusMessageStyle"
+    >
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ getStageMessage(displayData.stage) }}</span>
     </div>
 
-    <div v-else-if="displayData.stage === 'completed'" class="completed-state" :style="completedStateStyle">
+    <div
+      v-else-if="displayData.stage === 'completed'"
+      class="completed-state"
+      :style="completedStateStyle"
+    >
       <div class="format-header" :style="headerStyle">
         <div class="header-content">
           <el-icon><Edit /></el-icon>
-          <h3 class="format-title" :style="titleStyle">{{ $t('agent.display.titleFormat.title') }}</h3>
+          <h3 class="format-title" :style="titleStyle">
+            {{ $t('agent.display.titleFormat.title') }}
+          </h3>
         </div>
       </div>
-      
+
       <el-result icon="success" :title="$t('agent.display.titleFormat.completed')" />
-      
-      <div v-if="displayData.operations && displayData.operations.length > 0" class="operations-info" :style="operationsInfoStyle">
+
+      <div
+        v-if="displayData.operations && displayData.operations.length > 0"
+        class="operations-info"
+        :style="operationsInfoStyle"
+      >
         <div class="operations-summary" :style="summaryStyle">
           <strong>{{ $t('agent.display.titleFormat.operationsPerformed') }}:</strong>
           <ul>
@@ -23,7 +41,7 @@
           </ul>
         </div>
       </div>
-      
+
       <div v-if="displayData.summary" class="summary-info" :style="summaryInfoStyle">
         <p>{{ displayData.summary }}</p>
       </div>
@@ -60,7 +78,7 @@ const { realtimeData, realtimeStatus, realtimeProgress } = useToolDisplayRealtim
 const displayData = computed(() => {
   const data = realtimeData.value !== null ? realtimeData.value : props.data
   const parsed = parseToolData(data) as any
-  
+
   if (parsed && typeof parsed === 'object') {
     // 根据status确定stage，优先使用数据中的stage，如果没有则根据status推断
     const getStage = (): 'loading' | 'processing' | 'saving' | 'completed' | 'error' => {
@@ -76,15 +94,16 @@ const displayData = computed(() => {
       }
       return 'loading'
     }
-    
+
     return {
       ...parsed,
       stage: getStage()
     }
   }
-  
+
   // 如果没有数据，根据status设置默认stage
-  const defaultStage = props.status === 'succeeded' ? 'completed' : (props.status === 'failed' ? 'error' : 'loading')
+  const defaultStage =
+    props.status === 'succeeded' ? 'completed' : props.status === 'failed' ? 'error' : 'loading'
   return {
     stage: defaultStage,
     operations: undefined,

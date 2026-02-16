@@ -2,7 +2,7 @@
   <div id="particle-bg" class="homepage">
     <!-- 极简网格装饰 -->
     <div class="grid-decoration"></div>
-    
+
     <el-scrollbar class="center-content">
       <div class="center-content-wrapper">
         <!-- METADOC 扭曲文字 Banner -->
@@ -73,27 +73,27 @@
           </div>
           <div class="recent-docs-container">
             <div class="recent-docs-grid">
-            <div 
-              v-for="(docPath, index) in recentDocs.slice(0, 12)" 
-              :key="docPath" 
-              class="recent-doc-card"
-              :style="{ animationDelay: `${index * 0.03}s` }"
-              @click="openRecentDoc(docPath)"
-            >
-              <div class="doc-card-indicator"></div>
-              <span class="doc-card-name">
-                {{ getFileName(docPath) }}
-              </span>
-              <el-button
-                class="doc-card-delete-btn"
-                circle
-                size="small"
-                :icon="Close"
-                text
-                @click.stop="removeRecentDoc(docPath)"
-              />
+              <div
+                v-for="(docPath, index) in recentDocs.slice(0, 12)"
+                :key="docPath"
+                class="recent-doc-card"
+                :style="{ animationDelay: `${index * 0.03}s` }"
+                @click="openRecentDoc(docPath)"
+              >
+                <div class="doc-card-indicator"></div>
+                <span class="doc-card-name">
+                  {{ getFileName(docPath) }}
+                </span>
+                <el-button
+                  class="doc-card-delete-btn"
+                  circle
+                  size="small"
+                  :icon="Close"
+                  text
+                  @click.stop="removeRecentDoc(docPath)"
+                />
+              </div>
             </div>
-          </div>
           </div>
         </div>
       </div>
@@ -121,7 +121,14 @@ import { ParticleEffect } from '../utils/particle-effect'
 import type { IpcRendererLike } from '../utils/particle-effect'
 import { extractPlainTextFromLatex } from '../utils/latex-utils'
 import { getRecentDocs, removeRecentDoc as removeRecentDocFromStorage } from '../utils/settings'
-import { Document, InfoFilled, FolderOpened, ArrowRight, Close, DocumentAdd } from '@element-plus/icons-vue'
+import {
+  Document,
+  InfoFilled,
+  FolderOpened,
+  ArrowRight,
+  Close,
+  DocumentAdd
+} from '@element-plus/icons-vue'
 import { basename } from '../utils/path-utils'
 
 const { t } = useI18n()
@@ -130,7 +137,7 @@ const { t } = useI18n()
 const homepageBackgroundColor = computed(() => {
   const baseBackground = themeState.currentTheme.background
   const isDark = themeState.currentTheme.type === 'dark'
-  
+
   if (isDark) {
     return mixColors(baseBackground, '#111111', 0.3)
   } else {
@@ -236,9 +243,9 @@ const updateLastDocumentText = async () => {
     const { useWorkspace } = await import('../stores/workspace')
     const workspace = useWorkspace()
     const tabs = workspace.tabs
-    
+
     // 查找最近打开的文件类型的 tab
-    const fileTab = tabs.find(t => t.kind === 'file' && t.path)
+    const fileTab = tabs.find((t) => t.kind === 'file' && t.path)
     if (fileTab) {
       const doc = workspace.ensureDocument(fileTab.id)
       if (doc) {
@@ -251,13 +258,13 @@ const updateLastDocumentText = async () => {
         return
       }
     }
-    
+
     // 如果 workspace 中没有打开的文档，尝试从最近文档列表读取
     const docs = await getRecentDocs()
     if (docs.length > 0 && ipcRenderer?.invoke) {
       const lastDocPath = docs[0]
       try {
-        const content = await ipcRenderer.invoke('read-file-content', lastDocPath) as string
+        const content = (await ipcRenderer.invoke('read-file-content', lastDocPath)) as string
         lastDocumentText.value = content || ''
       } catch (error) {
         logger.warn('读取文档内容失败', error)
@@ -293,7 +300,9 @@ const scheduleParticleEffect = () => {
     eventBus.emit('toggle-particle-effect', {})
   }
   if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-    window.requestIdleCallback(() => runner().catch((err) => logger.warn('粒子效果初始化失败', err)))
+    window.requestIdleCallback(() =>
+      runner().catch((err) => logger.warn('粒子效果初始化失败', err))
+    )
   } else {
     setTimeout(() => runner().catch((err) => logger.warn('粒子效果初始化失败', err)), 0)
   }
@@ -386,9 +395,21 @@ onBeforeUnmount(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image:
-    linear-gradient(v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"') 1px, transparent 1px),
-    linear-gradient(90deg, v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"') 1px, transparent 1px);
+  background-image: linear-gradient(
+      v-bind(
+          'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"'
+        )
+        1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      v-bind(
+          'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"'
+        )
+        1px,
+      transparent 1px
+    );
   background-size: 64px 64px;
   z-index: 0;
   pointer-events: none;
@@ -500,8 +521,13 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"');
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.6)"');
+  border: 1px solid
+    v-bind(
+      'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"'
+    );
+  background: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.6)"'
+  );
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   user-select: none;
@@ -518,14 +544,19 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   opacity: 0;
   transition: opacity 0.2s ease;
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)"');
+  background: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)"'
+  );
   pointer-events: none;
 }
 
 .action-card:hover {
-  border-color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)"');
+  border-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)"'
+  );
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px v-bind('themeState.currentTheme.type === "dark" ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.06)"');
+  box-shadow: 0 4px 12px
+    v-bind('themeState.currentTheme.type === "dark" ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.06)"');
 }
 
 .action-card:hover::after {
@@ -544,14 +575,22 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"');
-  color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.45)"');
+  background: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"'
+  );
+  color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.45)"'
+  );
   transition: all 0.2s ease;
 }
 
 .action-card:hover .action-icon {
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"');
-  color: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.6)"');
+  background: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"'
+  );
+  color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.6)"'
+  );
 }
 
 .action-content {
@@ -629,9 +668,16 @@ onBeforeUnmount(() => {
 /* 列表容器 */
 .recent-docs-container {
   border-radius: 10px;
-  border: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"');
-  background-color: v-bind('themeState.currentTheme.type === "dark" ? "rgb(40,40,42)" : "rgb(255,255,255)"');
-  box-shadow: v-bind('themeState.currentTheme.type === "dark" ? "0 2px 8px rgba(0,0,0,0.3)" : "0 1px 4px rgba(0,0,0,0.04)"');
+  border: 1px solid
+    v-bind(
+      'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"'
+    );
+  background-color: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgb(40,40,42)" : "rgb(255,255,255)"'
+  );
+  box-shadow: v-bind(
+    'themeState.currentTheme.type === "dark" ? "0 2px 8px rgba(0,0,0,0.3)" : "0 1px 4px rgba(0,0,0,0.04)"'
+  );
   overflow: hidden;
 }
 
@@ -649,10 +695,15 @@ onBeforeUnmount(() => {
   padding: 11px 16px;
   cursor: pointer;
   transition: all 0.05s ease;
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgb(40,40,42)" : "rgb(255,255,255)"');
+  background: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgb(40,40,42)" : "rgb(255,255,255)"'
+  );
   user-select: none;
   animation: fadeIn 0.3s ease-out both;
-  border-bottom: 1px solid v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"');
+  border-bottom: 1px solid
+    v-bind(
+      'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"'
+    );
 }
 
 .recent-doc-card:last-child {
@@ -660,11 +711,15 @@ onBeforeUnmount(() => {
 }
 
 .recent-doc-card:hover {
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgb(50,50,52)" : "rgb(245,245,245)"');
+  background: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgb(50,50,52)" : "rgb(245,245,245)"'
+  );
 }
 
 .recent-doc-card:active {
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgb(55,55,57)" : "rgb(238,238,238)"');
+  background: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgb(55,55,57)" : "rgb(238,238,238)"'
+  );
 }
 
 /* 文档卡片左侧小竖线指示器 */
@@ -673,12 +728,16 @@ onBeforeUnmount(() => {
   width: 3px;
   height: 16px;
   border-radius: 1.5px;
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"');
+  background: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"'
+  );
   transition: all 0.05s ease;
 }
 
 .recent-doc-card:hover .doc-card-indicator {
-  background: v-bind('themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)"');
+  background: v-bind(
+    'themeState.currentTheme.type === "dark" ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)"'
+  );
   height: 20px;
 }
 
@@ -716,8 +775,14 @@ onBeforeUnmount(() => {
 
 /* ===== 动画 ===== */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ===== 响应式 ===== */
@@ -732,4 +797,3 @@ onBeforeUnmount(() => {
   }
 }
 </style>
-

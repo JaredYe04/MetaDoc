@@ -50,7 +50,13 @@
               v-if="updateStatus.updateAvailable"
               type="success"
               :title="$t('versionInfoPanel.updateAvailable')"
-              :description="updateStatus.updateInfo ? $t('versionInfoPanel.updateAvailableDesc', { version: updateStatus.updateInfo.version }) : ''"
+              :description="
+                updateStatus.updateInfo
+                  ? $t('versionInfoPanel.updateAvailableDesc', {
+                      version: updateStatus.updateInfo.version
+                    })
+                  : ''
+              "
               show-icon
               :closable="false"
             />
@@ -94,13 +100,7 @@
         >
           {{ $t('versionInfoPanel.downloadAndInstall') }}
         </el-button>
-        <el-button
-          v-if="downloading"
-          type="primary"
-          :loading="true"
-          disabled
-          style="width: 100%"
-        >
+        <el-button v-if="downloading" type="primary" :loading="true" disabled style="width: 100%">
           {{ $t('versionInfoPanel.downloadProgress', { progress: downloadProgress }) }}
         </el-button>
         <el-button
@@ -139,11 +139,11 @@ import localIpcRenderer from '../utils/web-adapter/local-ipc-renderer'
 
 const { t } = useI18n()
 
-let ipcRenderer: any = null;
+let ipcRenderer: any = null
 if (window && window.electron) {
-  ipcRenderer = window.electron.ipcRenderer;
+  ipcRenderer = window.electron.ipcRenderer
 } else {
-  ipcRenderer = localIpcRenderer;
+  ipcRenderer = localIpcRenderer
 }
 
 const visible = ref(false)
@@ -154,11 +154,11 @@ const releaseDate = ref<string | null>(null)
 const buildEnvironment = ref<string>('')
 const checking = ref<boolean>(false)
 const updateStatus = ref<{
-  checking: boolean;
-  updateAvailable: boolean;
-  updateNotAvailable: boolean;
-  error: string | null;
-  updateInfo: any;
+  checking: boolean
+  updateAvailable: boolean
+  updateNotAvailable: boolean
+  error: string | null
+  updateInfo: any
 } | null>(null)
 const downloading = ref<boolean>(false)
 const downloaded = ref<boolean>(false)
@@ -172,7 +172,7 @@ const wrapperStyle = computed(() => {
   const isDark = themeState.currentTheme?.type === 'dark'
   return {
     color: themeState.currentTheme.textColor,
-    '--version-border-color': isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.1)',
+    '--version-border-color': isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.1)'
   }
 })
 
@@ -180,13 +180,13 @@ const wrapperStyle = computed(() => {
 const loadVersionInfo = async () => {
   try {
     version.value = await getAppVersion()
-    
+
     // 获取构建环境信息
     const isDev = await isDevEnvironment()
-    buildEnvironment.value = isDev 
+    buildEnvironment.value = isDev
       ? t('setting.about.buildEnvironmentDev')
       : t('setting.about.buildEnvironmentRelease')
-    
+
     // 获取版本文件的详细信息（包含发布日期）
     try {
       const versionInfo = await ipcRenderer.invoke('get-version-info')
@@ -228,8 +228,8 @@ const handleCheckUpdate = async () => {
   try {
     // 获取更新渠道设置
     const channel = await getSetting('updateChannel')
-    const updateChannel = (channel === 'dev' || channel === 'release') ? channel : 'release'
-    
+    const updateChannel = channel === 'dev' || channel === 'release' ? channel : 'release'
+
     const status = await ipcRenderer.invoke('check-for-updates', updateChannel)
     updateStatus.value = status
   } catch (error) {
@@ -263,7 +263,7 @@ const handleDownloadUpdate = async () => {
     }
 
     const result = await ipcRenderer.invoke('download-update')
-    
+
     if (ipcRenderer && ipcRenderer.removeListener) {
       ipcRenderer.removeListener('update-download-progress', progressHandler)
     }
@@ -334,17 +334,17 @@ function closePanel() {
 // 处理点击外部区域关闭面板
 function handleClickOutside(event: MouseEvent) {
   if (!visible.value) return
-  
+
   const target = event.target as HTMLElement
-  
+
   // 获取面板DOM元素
   const panelElement = panelRef.value?.$el as HTMLElement | undefined
-  
+
   // 如果点击的是面板内部，不关闭
   if (panelElement && panelElement.contains(target)) {
     return
   }
-  
+
   // 如果点击的是BottomMenu中的按钮，不关闭（让toggle处理）
   const bottomMenu = target.closest('.bottom-menu')
   if (bottomMenu) {
@@ -353,7 +353,7 @@ function handleClickOutside(event: MouseEvent) {
       return // 让toggle事件处理
     }
   }
-  
+
   // 点击外部区域，关闭面板
   closePanel()
 }
@@ -387,7 +387,7 @@ watch(visible, (isVisible) => {
 function setupEventListeners() {
   eventBus.on('toggle-version-info-panel', toggleVisibility)
   eventBus.on('close-version-info-panel', closePanel)
-  
+
   // 监听更新下载完成事件
   if (ipcRenderer && ipcRenderer.on) {
     ipcRenderer.on('update-downloaded', handleUpdateDownloaded)
@@ -397,7 +397,7 @@ function setupEventListeners() {
 function removeEventListeners() {
   eventBus.off('toggle-version-info-panel', toggleVisibility)
   eventBus.off('close-version-info-panel', closePanel)
-  
+
   if (ipcRenderer && ipcRenderer.removeListener) {
     ipcRenderer.removeListener('update-downloaded', handleUpdateDownloaded)
   }
@@ -478,4 +478,3 @@ onBeforeUnmount(() => {
   padding-top: 12px;
 }
 </style>
-

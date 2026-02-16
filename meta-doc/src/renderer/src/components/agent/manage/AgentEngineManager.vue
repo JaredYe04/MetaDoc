@@ -17,12 +17,20 @@
       :get-item-id="(item) => item.id || ''"
       :get-item-title="(item) => getItemTitle(item as AgentEngine) || ''"
       :get-item-description="(item) => getLocalizedText((item as AgentEngine).description) || ''"
-      :get-item-meta="(item) => [
-        t('agent.manage.agentEngine.engineType') + ': ' + getEngineTypeLabel((item as AgentEngine).engineType),
-        t('agent.manage.agentEngine.llmMode') + ': ' + getLlmModeLabel((item as AgentEngine).llmConfigMode),
-        item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
-      ]"
-      :get-badge="(item) => (item as AgentEngine).isBuiltIn ? t('agent.manage.agentEngine.builtIn') : null"
+      :get-item-meta="
+        (item) => [
+          t('agent.manage.agentEngine.engineType') +
+            ': ' +
+            getEngineTypeLabel((item as AgentEngine).engineType),
+          t('agent.manage.agentEngine.llmMode') +
+            ': ' +
+            getLlmModeLabel((item as AgentEngine).llmConfigMode),
+          item.enabled !== false ? t('agent.manage.enabled') : t('agent.manage.disabled')
+        ]
+      "
+      :get-badge="
+        (item) => ((item as AgentEngine).isBuiltIn ? t('agent.manage.agentEngine.builtIn') : null)
+      "
       :get-actions="(item) => getActions(item as AgentEngine)"
       :is-disabled="() => false"
       @item-click="(item) => handleEdit(item as AgentEngine)"
@@ -32,7 +40,13 @@
     <!-- 创建/编辑对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="editingEngine ? (editingEngine.isBuiltIn ? t('agent.manage.agentEngine.view') : t('agent.manage.agentEngine.edit')) : t('agent.manage.agentEngine.create')"
+      :title="
+        editingEngine
+          ? editingEngine.isBuiltIn
+            ? t('agent.manage.agentEngine.view')
+            : t('agent.manage.agentEngine.edit')
+          : t('agent.manage.agentEngine.create')
+      "
       width="800px"
       :style="dialogStyle"
     >
@@ -41,7 +55,12 @@
           <el-input v-model="formData.name" :disabled="editingEngine?.isBuiltIn" />
         </el-form-item>
         <el-form-item :label="t('agent.manage.agentEngine.description')">
-          <el-input v-model="formData.description" type="textarea" :rows="3" :disabled="editingEngine?.isBuiltIn" />
+          <el-input
+            v-model="formData.description"
+            type="textarea"
+            :rows="3"
+            :disabled="editingEngine?.isBuiltIn"
+          />
         </el-form-item>
         <el-form-item :label="t('agent.manage.agentEngine.engineType')" required>
           <el-select
@@ -50,14 +69,8 @@
             :disabled="!!editingEngine"
             style="width: 100%"
           >
-            <el-option
-              :label="t('agent.manage.agentEngine.engineTypes.autogpt')"
-              value="autogpt"
-            />
-            <el-option
-              :label="t('agent.manage.agentEngine.engineTypes.react')"
-              value="react"
-            />
+            <el-option :label="t('agent.manage.agentEngine.engineTypes.autogpt')" value="autogpt" />
+            <el-option :label="t('agent.manage.agentEngine.engineTypes.react')" value="react" />
             <el-option
               :label="t('agent.manage.agentEngine.engineTypes.planExecute')"
               value="plan-execute"
@@ -163,11 +176,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button
-          type="primary"
-          @click="handleSave"
-          :disabled="editingEngine?.isBuiltIn"
-        >
+        <el-button type="primary" @click="handleSave" :disabled="editingEngine?.isBuiltIn">
           {{ editingEngine?.isBuiltIn ? t('agent.manage.agentEngine.viewOnly') : t('common.save') }}
         </el-button>
       </template>
@@ -230,17 +239,17 @@ const getItemTitle = (item: AgentEngine): string => {
 
 const getEngineTypeLabel = (type: EngineType): string => {
   const labels: Record<EngineType, string> = {
-    'autogpt': t('agent.manage.agentEngine.engineTypes.autogpt'),
-    'react': t('agent.manage.agentEngine.engineTypes.react'),
+    autogpt: t('agent.manage.agentEngine.engineTypes.autogpt'),
+    react: t('agent.manage.agentEngine.engineTypes.react'),
     'plan-execute': t('agent.manage.agentEngine.engineTypes.planExecute'),
     'simple-chat': t('agent.manage.agentEngine.engineTypes.simpleChat'),
-    'workflow': t('agent.manage.agentEngine.engineTypes.workflow')
+    workflow: t('agent.manage.agentEngine.engineTypes.workflow')
   }
   return labels[type] || type
 }
 
 const getLlmModeLabel = (mode: LlmConfigMode): string => {
-  return mode === 'global' 
+  return mode === 'global'
     ? t('agent.manage.agentEngine.useGlobalLLM')
     : t('agent.manage.agentEngine.useCustomLLM')
 }
@@ -248,7 +257,11 @@ const getLlmModeLabel = (mode: LlmConfigMode): string => {
 const getActions = (item: AgentEngine): CardGridAction[] => {
   const isBuiltIn = item.isBuiltIn === true
   return [
-    { command: 'view', label: isBuiltIn ? t('agent.manage.agentEngine.view') : t('agent.manage.edit'), disabled: false },
+    {
+      command: 'view',
+      label: isBuiltIn ? t('agent.manage.agentEngine.view') : t('agent.manage.edit'),
+      disabled: false
+    },
     { command: 'edit', label: t('agent.manage.edit'), disabled: isBuiltIn },
     { command: 'validate', label: t('agent.manage.validate') },
     { command: 'duplicate', label: t('agent.sessions.duplicate') },
@@ -324,9 +337,10 @@ const handleView = async (engine: AgentEngine) => {
   const globalTemp = await getLlmTemperature()
   formData.value = {
     name: getLocalizedText(engine.name),
-    description: typeof engine.description === 'string' 
-      ? engine.description 
-      : engine.description['zh_cn']?.description || '',
+    description:
+      typeof engine.description === 'string'
+        ? engine.description
+        : engine.description['zh_cn']?.description || '',
     engineType: engine.engineType,
     llmConfigMode: engine.llmConfigMode,
     customLlmConfig: engine.customLlmConfig || {
@@ -386,7 +400,8 @@ const handleSave = () => {
         name: formData.value.name,
         description: formData.value.description,
         llmConfigMode: formData.value.llmConfigMode,
-        customLlmConfig: formData.value.llmConfigMode === 'custom' ? formData.value.customLlmConfig : undefined,
+        customLlmConfig:
+          formData.value.llmConfigMode === 'custom' ? formData.value.customLlmConfig : undefined,
         engineConfig: formData.value.engineConfig
       })
       ElMessage.success(t('agent.manage.agentEngine.updateSuccess'))
@@ -411,9 +426,10 @@ const handleDuplicate = async (engine: AgentEngine) => {
   try {
     const baseName = getLocalizedText(engine.name) || engine.id
     const newName = `${baseName} - ${t('agent.sessions.duplicate')}`
-    const desc = typeof engine.description === 'string'
-      ? engine.description
-      : engine.description['zh_cn']?.description || engine.description['en_us']?.description || ''
+    const desc =
+      typeof engine.description === 'string'
+        ? engine.description
+        : engine.description['zh_cn']?.description || engine.description['en_us']?.description || ''
 
     const duplicated = agentEngineManager.createEngine(
       newName,
@@ -463,12 +479,16 @@ const handleValidate = (engine: AgentEngine) => {
   const validation = agentEngineManager.validateEngine(engine)
   if (validation.valid) {
     if (validation.warnings.length > 0) {
-      ElMessage.warning(t('agent.manage.agentEngine.validationWarnings') + ': ' + validation.warnings.join(', '))
+      ElMessage.warning(
+        t('agent.manage.agentEngine.validationWarnings') + ': ' + validation.warnings.join(', ')
+      )
     } else {
       ElMessage.success(t('agent.manage.agentEngine.validationSuccess'))
     }
   } else {
-    ElMessage.error(t('agent.manage.agentEngine.validationFailed') + ': ' + validation.errors.join(', '))
+    ElMessage.error(
+      t('agent.manage.agentEngine.validationFailed') + ': ' + validation.errors.join(', ')
+    )
   }
 }
 
@@ -544,4 +564,3 @@ onMounted(async () => {
   margin-top: 4px;
 }
 </style>
-

@@ -114,7 +114,8 @@ const timestampToolLocales: ToolLocales = {
   },
   en_us: {
     name: 'Timestamp',
-    description: 'Returns current timestamp and records each call time for calculating time differences',
+    description:
+      'Returns current timestamp and records each call time for calculating time differences',
     instruction: `
 # Timestamp Tool
 
@@ -232,12 +233,12 @@ const timestampToolCallback: ToolCallback = async (params, signal, onUpdate) => 
   try {
     const now = new Date()
     const timestamp = now.getTime()
-    
+
     // UTC时间
     const utcIso = now.toISOString()
     const utcDate = utcIso.split('T')[0]
     const utcTime = utcIso.split('T')[1].split('.')[0]
-    
+
     // 本地时间
     const localYear = now.getFullYear()
     const localMonth = String(now.getMonth() + 1).padStart(2, '0')
@@ -246,19 +247,19 @@ const timestampToolCallback: ToolCallback = async (params, signal, onUpdate) => 
     const localMinutes = String(now.getMinutes()).padStart(2, '0')
     const localSeconds = String(now.getSeconds()).padStart(2, '0')
     const localMs = String(now.getMilliseconds()).padStart(3, '0')
-    
+
     const localDate = `${localYear}-${localMonth}-${localDay}`
     const localTime = `${localHours}:${localMinutes}:${localSeconds}`
-    
+
     // 获取时区偏移
     const timezoneOffset = -now.getTimezoneOffset() // 注意：getTimezoneOffset返回的是UTC与本地时间的差值（分钟），需要取反
     const timezoneHours = Math.floor(Math.abs(timezoneOffset) / 60)
     const timezoneMinutes = Math.abs(timezoneOffset) % 60
     const timezoneSign = timezoneOffset >= 0 ? '+' : '-'
     const timezone = `${timezoneSign}${String(timezoneHours).padStart(2, '0')}:${String(timezoneMinutes).padStart(2, '0')}`
-    
+
     const localIso = `${localDate}T${localTime}.${localMs}${timezone}`
-    
+
     const current: TimestampRecord = {
       timestamp,
       utc: {
@@ -320,17 +321,20 @@ const timestampToolCallback: ToolCallback = async (params, signal, onUpdate) => 
         }
     }
 
-    onUpdate({
-      content: {
-        stage: 'completed',
-        result,
-        format
+    onUpdate(
+      {
+        content: {
+          stage: 'completed',
+          result,
+          format
+        },
+        format: 'json'
       },
-      format: 'json'
-    }, {
-      percentage: 100,
-      message: i18n.global.t('agent.tool.timestamp.progress.completed', '时间戳获取完成')
-    })
+      {
+        percentage: 100,
+        message: i18n.global.t('agent.tool.timestamp.progress.completed', '时间戳获取完成')
+      }
+    )
 
     return {
       status: 'succeeded',
@@ -373,7 +377,8 @@ export const timestampToolConfig: AgentToolConfig = {
   origin: 'internal',
   spec: {
     name: 'timestamp',
-    brief: 'Get current timestamp and track time differences between calls. Useful for monitoring execution time and time-based decisions.',
+    brief:
+      'Get current timestamp and track time differences between calls. Useful for monitoring execution time and time-based decisions.',
     fullSpec: `# Timestamp Tool
 
 ## Description
@@ -497,4 +502,3 @@ Returns current timestamp and persistently records each call's timestamp in the 
   },
   locales: timestampToolLocales
 }
-

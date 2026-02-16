@@ -23,17 +23,20 @@
 <script setup lang="ts">
 import { inject } from 'vue'
 
-const props = withDefaults(defineProps<{
-  label?: string
-  icon?: any
-  iconImage?: string
-  disabled?: boolean
-  isTitle?: boolean
-}>(), {
-  label: '',
-  disabled: false,
-  isTitle: false
-})
+const props = withDefaults(
+  defineProps<{
+    label?: string
+    icon?: any
+    iconImage?: string
+    disabled?: boolean
+    isTitle?: boolean
+  }>(),
+  {
+    label: '',
+    disabled: false,
+    isTitle: false
+  }
+)
 
 const emit = defineEmits<{
   (e: 'click'): void

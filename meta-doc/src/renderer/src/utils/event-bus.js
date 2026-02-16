@@ -1,4 +1,3 @@
-
 //事件总线
 
 // 使用 Vue 实例作为事件总线
@@ -17,7 +16,6 @@ import { createRendererLogger } from './logger.ts'
 import { i18n } from '../i18n.js'
 import { ElMessage } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
-
 
 const eventBus = mitt()
 
@@ -40,88 +38,97 @@ export function isMainWindow() {
 let ipcRenderer = null
 if (window && window.electron) {
   ipcRenderer = window.electron.ipcRenderer
-
 } else {
-  webMainCalls();
+  webMainCalls()
   ipcRenderer = localIpcRenderer
   //todo 说明当前环境不是electron环境，需要另外适配
 }
 
 // 懒加载logger，避免初始化顺序问题
-let loggerInstance = null;
+let loggerInstance = null
 
 function getLogger() {
   if (!loggerInstance) {
     loggerInstance = createRendererLogger('EventBus', {
       windowTypeProvider: () => getWindowType()
-    });
+    })
   }
-  return loggerInstance;
+  return loggerInstance
 }
 
-const workspace = useWorkspace();
-const { activeTabId, activateTab, ensureDocument, markDocumentSaved, updateDocumentDirty, tabs, saveDocument, removeTab } = workspace;
+const workspace = useWorkspace()
+const {
+  activeTabId,
+  activateTab,
+  ensureDocument,
+  markDocumentSaved,
+  updateDocumentDirty,
+  tabs,
+  saveDocument,
+  removeTab
+} = workspace
 
-const cloneDeep = (value) => JSON.parse(JSON.stringify(value));
+const cloneDeep = (value) => JSON.parse(JSON.stringify(value))
 
 const extractFileName = (filePath, fallbackTitle) => {
   if (fallbackTitle && typeof fallbackTitle === 'string' && fallbackTitle.trim().length > 0) {
-    return fallbackTitle.trim();
+    return fallbackTitle.trim()
   }
   if (typeof filePath === 'string' && filePath.length > 0) {
     try {
-      return basename(filePath);
+      return basename(filePath)
     } catch (error) {
-      getLogger().warn('解析文件名失败', error);
-      const parts = filePath.split(/[\\/]/);
-      return parts[parts.length - 1] || filePath;
+      getLogger().warn('解析文件名失败', error)
+      const parts = filePath.split(/[\\/]/)
+      return parts[parts.length - 1] || filePath
     }
   }
-  return i18n?.global?.t?.('workspace.untitledDocument') ?? 'Untitled';
-};
+  return i18n?.global?.t?.('workspace.untitledDocument') ?? 'Untitled'
+}
 
 const getDocument = (tabId) => {
-  const targetId = typeof tabId === 'string' ? tabId : activeTabId.value;
-  if (!targetId) return null;
+  const targetId = typeof tabId === 'string' ? tabId : activeTabId.value
+  if (!targetId) return null
   try {
-    return ensureDocument(targetId);
+    return ensureDocument(targetId)
   } catch (error) {
-    getLogger().warn('获取文档失败', error);
-    return null;
+    getLogger().warn('获取文档失败', error)
+    return null
   }
-};
+}
 
-const resolveTargetTabId = (tabId) =>
-  typeof tabId === 'string' ? tabId : activeTabId.value;
+const resolveTargetTabId = (tabId) => (typeof tabId === 'string' ? tabId : activeTabId.value)
 
 const buildSavePayload = async (doc) => {
   // 在保存前，如果元信息标题为空，尝试从内容中提取标题
   // 这对于第一次保存（没有路径）特别重要，但即使有路径，如果标题为空也应该提取
   if (!doc.meta?.title || doc.meta.title.trim().length === 0) {
-    const { extractTitleFromContent, sanitizeTitleForFilename } = await import('./title-extractor.ts');
-    const content = doc.format === 'tex' ? doc.tex ?? '' : doc.markdown ?? '';
-    const extractedTitle = extractTitleFromContent(content, doc.format);
-    
+    const { extractTitleFromContent, sanitizeTitleForFilename } = await import(
+      './title-extractor.ts'
+    )
+    const content = doc.format === 'tex' ? (doc.tex ?? '') : (doc.markdown ?? '')
+    const extractedTitle = extractTitleFromContent(content, doc.format)
+
     if (extractedTitle) {
-      const sanitizedTitle = sanitizeTitleForFilename(extractedTitle);
+      const sanitizedTitle = sanitizeTitleForFilename(extractedTitle)
       if (sanitizedTitle) {
         // 更新文档的元信息标题
-        doc.meta = { ...doc.meta, title: sanitizedTitle };
+        doc.meta = { ...doc.meta, title: sanitizedTitle }
         // 如果是第一次保存（没有路径），也更新标签页标题
         if (!doc.path) {
-          const tab = workspace.tabs.find(t => t.id === doc.tabId);
+          const tab = workspace.tabs.find((t) => t.id === doc.tabId)
           if (tab) {
-            tab.subtitle = sanitizedTitle;
+            tab.subtitle = sanitizedTitle
           }
         }
       }
     }
   }
-  
-  const serialized = await serializeDocument(doc);
+
+  const serialized = await serializeDocument(doc)
   const markdownSource =
-    doc.format === 'tex' ? convertLatexToMarkdown(doc.tex ?? '') : doc.markdown ?? '';
-  const html = await ConvertMarkdownToHtmlManually(markdownSource);
+    doc.format === 'tex' ? convertLatexToMarkdown(doc.tex ?? '') : (doc.markdown ?? '')
+  const html = await ConvertMarkdownToHtmlManually(markdownSource)
   return {
     json: serialized.json,
     md: serialized.md,
@@ -129,30 +136,33 @@ const buildSavePayload = async (doc) => {
     html,
     tex: serialized.tex,
     format: doc.format,
-    sidecarMetadata: serialized.sidecarMetadata, // 传递Sidecar元信息
-  };
-};
-
-
-export const isElectronEnv = () => {//判断是否在electron环境中
-  return navigator.userAgent.toLowerCase().includes('electron');
+    sidecarMetadata: serialized.sidecarMetadata // 传递Sidecar元信息
+  }
 }
 
-eventBus.on('sync-ai-dialogs', (dialogs) => {//ai-chat -> home，一般来说只有home窗口会监听这个事件
+export const isElectronEnv = () => {
+  //判断是否在electron环境中
+  return navigator.userAgent.toLowerCase().includes('electron')
+}
+
+eventBus.on('sync-ai-dialogs', (dialogs) => {
+  //ai-chat -> home，一般来说只有home窗口会监听这个事件
   const doc = getDocument()
   if (!doc) return
   doc.aiDialogs = cloneDeep(dialogs)
   updateDocumentDirty(doc.tabId)
 })
 
-eventBus.on('request-ai-dialogs', () => {//home -> ai-chat，主窗口请求AICHAT组件获取对话数据
+eventBus.on('request-ai-dialogs', () => {
+  //home -> ai-chat，主窗口请求AICHAT组件获取对话数据
   const doc = getDocument()
   if (!doc) return
   // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
   eventBus.emit('response-ai-dialogs', cloneDeep(doc.aiDialogs))
 })
 
-eventBus.on('response-ai-dialogs', (dialogs) => {//主进程发送给AICHAT组件对话数据
+eventBus.on('response-ai-dialogs', (dialogs) => {
+  //主进程发送给AICHAT组件对话数据
   const doc = getDocument()
   if (!doc) return
   doc.aiDialogs = cloneDeep(dialogs)
@@ -167,142 +177,141 @@ eventBus.on('shell-open', (filePath) => {
 ipcRenderer.on('os-theme-changed', (event) => {
   eventBus.emit('theme-changed')
   eventBus.emit('sync-theme')
-
 })
 // 响应主进程请求获取活动文档信息
 ipcRenderer.on('request-active-document-info', () => {
   try {
-    const doc = workspace.activeDocument.value;
+    const doc = workspace.activeDocument.value
     if (!doc) {
-      ipcRenderer.send('active-document-info-response', null);
-      return;
+      ipcRenderer.send('active-document-info-response', null)
+      return
     }
-    const path = doc.path || '';
-    const title = doc.meta?.title?.trim() || '';
+    const path = doc.path || ''
+    const title = doc.meta?.title?.trim() || ''
     // 优先使用标题，其次使用路径中的文件名，最后使用默认值
-    let fileName = title;
+    let fileName = title
     if (!fileName && path) {
-      fileName = extractFileName(path, null);
+      fileName = extractFileName(path, null)
     }
     if (!fileName) {
-      fileName = 'Untitled';
+      fileName = 'Untitled'
     }
-    ipcRenderer.send('active-document-info-response', { fileName, path });
+    ipcRenderer.send('active-document-info-response', { fileName, path })
   } catch (error) {
-    getLogger().error('获取活动文档信息失败:', error);
-    ipcRenderer.send('active-document-info-response', null);
+    getLogger().error('获取活动文档信息失败:', error)
+    ipcRenderer.send('active-document-info-response', null)
   }
 })
 
 // 响应主进程请求获取所有未保存的tabs信息
 ipcRenderer.on('request-unsaved-tabs-info', () => {
   try {
-    const unsavedTabs = [];
-    
+    const unsavedTabs = []
+
     for (const tab of tabs) {
       if (tab.dirty) {
-        const doc = ensureDocument(tab.id);
-        const path = doc.path || '';
-        const title = doc.meta?.title?.trim() || '';
+        const doc = ensureDocument(tab.id)
+        const path = doc.path || ''
+        const title = doc.meta?.title?.trim() || ''
         // 优先使用标题，其次使用路径中的文件名，最后使用默认值
-        let fileName = title;
+        let fileName = title
         if (!fileName && path) {
-          fileName = extractFileName(path, null);
+          fileName = extractFileName(path, null)
         }
         if (!fileName) {
-          fileName = 'Untitled';
+          fileName = 'Untitled'
         }
         unsavedTabs.push({
           tabId: tab.id,
           fileName,
           path
-        });
+        })
       }
     }
-    
-    ipcRenderer.send('unsaved-tabs-info-response', unsavedTabs);
+
+    ipcRenderer.send('unsaved-tabs-info-response', unsavedTabs)
   } catch (error) {
-    getLogger().error('获取未保存tabs信息失败:', error);
-    ipcRenderer.send('unsaved-tabs-info-response', []);
+    getLogger().error('获取未保存tabs信息失败:', error)
+    ipcRenderer.send('unsaved-tabs-info-response', [])
   }
 })
 
 // 响应主进程请求获取特定tab信息
 ipcRenderer.on('request-tab-info', (_event, tabId) => {
   try {
-    const tab = tabs.find(t => t.id === tabId);
+    const tab = tabs.find((t) => t.id === tabId)
     if (!tab) {
-      ipcRenderer.send('tab-info-response', null);
-      return;
+      ipcRenderer.send('tab-info-response', null)
+      return
     }
-    
-    const doc = ensureDocument(tabId);
-    const path = doc.path || '';
-    const title = doc.meta?.title?.trim() || '';
+
+    const doc = ensureDocument(tabId)
+    const path = doc.path || ''
+    const title = doc.meta?.title?.trim() || ''
     // 优先使用标题，其次使用路径中的文件名，最后使用默认值
-    let fileName = title;
+    let fileName = title
     if (!fileName && path) {
-      fileName = extractFileName(path, null);
+      fileName = extractFileName(path, null)
     }
     if (!fileName) {
-      fileName = 'Untitled';
+      fileName = 'Untitled'
     }
-    
+
     ipcRenderer.send('tab-info-response', {
       fileName,
       path,
       dirty: tab.dirty || doc.dirty
-    });
+    })
   } catch (error) {
-    getLogger().error('获取tab信息失败:', error);
-    ipcRenderer.send('tab-info-response', null);
+    getLogger().error('获取tab信息失败:', error)
+    ipcRenderer.send('tab-info-response', null)
   }
 })
 
 // 检查文件是否在当前窗口打开
 ipcRenderer.on('check-file-exists-in-window', (_event, filePath) => {
   try {
-    const tab = tabs.find(t => t.path === filePath && (t.kind === 'file' || t.kind === 'new'));
+    const tab = tabs.find((t) => t.path === filePath && (t.kind === 'file' || t.kind === 'new'))
     if (tab) {
-      ipcRenderer.send('file-exists-in-window-response', { tabId: tab.id });
+      ipcRenderer.send('file-exists-in-window-response', { tabId: tab.id })
     } else {
-      ipcRenderer.send('file-exists-in-window-response', { tabId: null });
+      ipcRenderer.send('file-exists-in-window-response', { tabId: null })
     }
   } catch (error) {
-    getLogger().error('检查文件是否在当前窗口打开失败:', error);
-    ipcRenderer.send('file-exists-in-window-response', { tabId: null });
+    getLogger().error('检查文件是否在当前窗口打开失败:', error)
+    ipcRenderer.send('file-exists-in-window-response', { tabId: null })
   }
 })
 
 // 检查工具/系统 Tab 是否在当前窗口打开（toolType 或 route）
 ipcRenderer.on('check-tool-tab-in-window', (_event, payload) => {
   try {
-    const { toolType, route } = payload || {};
-    const tab = tabs.find(t => {
-      if (toolType && t.kind === 'tool' && t.toolType === toolType) return true;
-      if (route && t.kind === 'system' && t.route === route) return true;
-      return false;
-    });
+    const { toolType, route } = payload || {}
+    const tab = tabs.find((t) => {
+      if (toolType && t.kind === 'tool' && t.toolType === toolType) return true
+      if (route && t.kind === 'system' && t.route === route) return true
+      return false
+    })
     if (tab) {
-      ipcRenderer.send('tool-tab-exists-in-window-response', { tabId: tab.id });
+      ipcRenderer.send('tool-tab-exists-in-window-response', { tabId: tab.id })
     } else {
-      ipcRenderer.send('tool-tab-exists-in-window-response', { tabId: null });
+      ipcRenderer.send('tool-tab-exists-in-window-response', { tabId: null })
     }
   } catch (error) {
-    getLogger().error('检查工具Tab是否在当前窗口打开失败:', error);
-    ipcRenderer.send('tool-tab-exists-in-window-response', { tabId: null });
+    getLogger().error('检查工具Tab是否在当前窗口打开失败:', error)
+    ipcRenderer.send('tool-tab-exists-in-window-response', { tabId: null })
   }
 })
 
 // 激活指定的Tab
 ipcRenderer.on('activate-tab-by-id', (_event, tabId) => {
   try {
-    const tab = tabs.find(t => t.id === tabId);
+    const tab = tabs.find((t) => t.id === tabId)
     if (tab) {
-      activateTab(tabId);
+      activateTab(tabId)
     }
   } catch (error) {
-    getLogger().error('激活Tab失败:', error);
+    getLogger().error('激活Tab失败:', error)
   }
 })
 
@@ -313,7 +322,7 @@ ipcRenderer.on('close-triggered', () => {
 })
 
 ipcRenderer.on('sync-theme', (event) => {
-  eventBus.emit('sync-theme')//同步主题
+  eventBus.emit('sync-theme') //同步主题
 })
 
 // 监听主进程的事件，转发给事件总线，从而可以在Vue组件中使用
@@ -323,7 +332,7 @@ ipcRenderer.on('sync-theme', (event) => {
 ipcRenderer.on('update-current-path', (_event, path) => {
   if (!path) return
 
-  const existingTab = tabs.find(tab => tab.path === path)
+  const existingTab = tabs.find((tab) => tab.path === path)
   if (!existingTab) {
     // 尚无任何 Tab 使用该 path，说明可能是「打开文档」流程，新 Tab 将由 workspace-open-document 创建，此处不更新当前 Tab
     return
@@ -358,7 +367,7 @@ ipcRenderer.on('save-success', (_event, data = {}) => {
 
   eventBus.emit('save-success', payload)
   if (data.saveAs && data.path) {
-    eventBus.emit('open-doc', data.path)//对于另存为的文件，需要重新打开
+    eventBus.emit('open-doc', data.path) //对于另存为的文件，需要重新打开
   }
 })
 
@@ -391,18 +400,35 @@ ipcRenderer.on('save-as-triggered', () => {
 })
 const searchReplaceSharedState = {
   isVisible: false,
-  expandReplace: false,
-};
+  expandReplace: false
+}
 
 ipcRenderer.on('search-replace-triggered', () => {
-  searchReplaceSharedState.isVisible = true;
+  searchReplaceSharedState.isVisible = true
   eventBus.emit('search-replace')
 })
 
 ipcRenderer.on('search-replace-expand-triggered', () => {
-  searchReplaceSharedState.isVisible = true;
-  searchReplaceSharedState.expandReplace = true;
+  searchReplaceSharedState.isVisible = true
+  searchReplaceSharedState.expandReplace = true
   eventBus.emit('search-replace', { expandReplace: true })
+})
+
+// 标签页快捷键
+ipcRenderer.on('next-tab-triggered', () => {
+  eventBus.emit('tab-next')
+})
+ipcRenderer.on('prev-tab-triggered', () => {
+  eventBus.emit('tab-prev')
+})
+ipcRenderer.on('close-tab-triggered', () => {
+  eventBus.emit('tab-close')
+})
+ipcRenderer.on('reopen-tab-triggered', () => {
+  eventBus.emit('tab-reopen')
+})
+ipcRenderer.on('new-tab-triggered', () => {
+  eventBus.emit('tab-new')
 })
 
 // 监听主进程发送的全局进度事件
@@ -411,20 +437,20 @@ ipcRenderer.on('global-progress', (_event, progressData) => {
 })
 
 eventBus.on('search-replace', (payload) => {
-  searchReplaceSharedState.isVisible = true;
+  searchReplaceSharedState.isVisible = true
   if (payload?.expandReplace) {
-    searchReplaceSharedState.expandReplace = true;
+    searchReplaceSharedState.expandReplace = true
   }
 })
 
 eventBus.on('search-replace-expand', () => {
-  if (!searchReplaceSharedState.isVisible) return;
-  searchReplaceSharedState.expandReplace = true;
+  if (!searchReplaceSharedState.isVisible) return
+  searchReplaceSharedState.expandReplace = true
 })
 
 eventBus.on('search-replace-closed', () => {
-  searchReplaceSharedState.isVisible = false;
-  searchReplaceSharedState.expandReplace = false;
+  searchReplaceSharedState.isVisible = false
+  searchReplaceSharedState.expandReplace = false
 })
 
 // 移除 Tab 切换时重新打开菜单的逻辑
@@ -452,7 +478,7 @@ ipcRenderer.on('file-changed', (event, payload) => {
     getLogger().warn('文件变化事件缺少文件路径', payload)
     return
   }
-  
+
   // 发送文件变化事件到 workspace
   eventBus.emit('external-file-changed', {
     filePath,
@@ -469,17 +495,13 @@ ipcRenderer.on('file-deleted', (event, payload) => {
   if (!filePath) {
     return
   }
-  
+
   // 发送文件删除事件到 workspace
   eventBus.emit('external-file-deleted', {
     filePath,
     tabId
   })
 })
-
-
-
-
 
 const normalizeSavePayload = (payload) => {
   if (typeof payload === 'string') {
@@ -498,49 +520,49 @@ const normalizeSavePayload = (payload) => {
 }
 
 const save = async (mode = 'save', args, targetTabId) => {
-  const { isSaveInProgress } = await import('./save-guard');
-  isSaveInProgress.value = true;
+  const { isSaveInProgress } = await import('./save-guard')
+  isSaveInProgress.value = true
   // 保存触发时立即同步编辑器主题，并等待同步完成后再继续，避免保存流程中主题变浅
   await new Promise((resolve) => {
-    eventBus.emit('sync-editor-theme', { resolve });
-  });
-  try {
-  const resolvedTabId = resolveTargetTabId(targetTabId);
-  if (resolvedTabId) {
-    // 关键修复：同步执行 sync-active-editor，确保内容同步完成后再保存
-    // 使用 Promise 确保同步完成（等待下一个 tick）
-    await new Promise((resolve) => {
-      eventBus.emit('sync-active-editor', { tabId: resolvedTabId });
-      // 等待下一个 tick，确保 sync-active-editor 处理完成
-      setTimeout(() => {
-        resolve();
-      }, 0);
-    });
-  }
-  const doc = getDocument(resolvedTabId)
-  if (!doc) return
-  
-  // 关键修复：在保存前就标记为不脏（乐观更新），立即消除脏标记，提升用户体验
-  // 注意：这里在 sync-active-editor 完成后更新，确保内容已经同步
-  // 如果保存失败，会在后续流程中重新标记为脏（通过 updateDocumentDirty）
-  // 但是，为了确保立即消除脏标记，我们在保存前就更新 savedMarkdown 等（但使用当前路径）
-  // 这样脏标记会立即消除，markDocumentSaved 会在保存成功后再次确认（更新路径等）
-  // 使用 markDocumentSaved 可以确保逻辑一致，但会立即消除脏标记
-  const currentPath = doc.path;
-  // 关键修复：提前标记为已保存（乐观更新），立即消除脏标记
-  // 这样用户可以看到脏标记立即消除，提升用户体验
-  // 如果保存失败，会在后续流程中重新标记为脏
-  markDocumentSaved(resolvedTabId, currentPath);
-  
-  const payload = await buildSavePayload(doc)
-  ipcRenderer.send(mode, {
-    ...payload,
-    args,
+    eventBus.emit('sync-editor-theme', { resolve })
   })
+  try {
+    const resolvedTabId = resolveTargetTabId(targetTabId)
+    if (resolvedTabId) {
+      // 关键修复：同步执行 sync-active-editor，确保内容同步完成后再保存
+      // 使用 Promise 确保同步完成（等待下一个 tick）
+      await new Promise((resolve) => {
+        eventBus.emit('sync-active-editor', { tabId: resolvedTabId })
+        // 等待下一个 tick，确保 sync-active-editor 处理完成
+        setTimeout(() => {
+          resolve()
+        }, 0)
+      })
+    }
+    const doc = getDocument(resolvedTabId)
+    if (!doc) return
+
+    // 关键修复：在保存前就标记为不脏（乐观更新），立即消除脏标记，提升用户体验
+    // 注意：这里在 sync-active-editor 完成后更新，确保内容已经同步
+    // 如果保存失败，会在后续流程中重新标记为脏（通过 updateDocumentDirty）
+    // 但是，为了确保立即消除脏标记，我们在保存前就更新 savedMarkdown 等（但使用当前路径）
+    // 这样脏标记会立即消除，markDocumentSaved 会在保存成功后再次确认（更新路径等）
+    // 使用 markDocumentSaved 可以确保逻辑一致，但会立即消除脏标记
+    const currentPath = doc.path
+    // 关键修复：提前标记为已保存（乐观更新），立即消除脏标记
+    // 这样用户可以看到脏标记立即消除，提升用户体验
+    // 如果保存失败，会在后续流程中重新标记为脏
+    markDocumentSaved(resolvedTabId, currentPath)
+
+    const payload = await buildSavePayload(doc)
+    ipcRenderer.send(mode, {
+      ...payload,
+      args
+    })
   } finally {
-    isSaveInProgress.value = false;
+    isSaveInProgress.value = false
     // 保存完成后显式同步编辑器主题，恢复因保存流程可能导致的主题错误
-    eventBus.emit('sync-editor-theme');
+    eventBus.emit('sync-editor-theme')
   }
 }
 //监听save事件
@@ -550,10 +572,10 @@ eventBus.on('save', async (payload) => {
   if (mode === 'auto-save') {
     const doc = getDocument()
     if (!doc || !doc.path) {
-      return//如果尝试自动保存时，没有文件路径，则不进行自动保存
+      return //如果尝试自动保存时，没有文件路径，则不进行自动保存
     }
   }
-  await save('save', args);
+  await save('save', args)
 })
 
 eventBus.on('is-need-save', (msg) => {
@@ -563,47 +585,47 @@ eventBus.on('is-need-save', (msg) => {
 
 eventBus.on('save-and-quit', async () => {
   eventBus.emit('is-need-save', false)
-  await save('save');
+  await save('save')
   ipcRenderer.send('quit')
-});
+})
 
 // 响应主进程请求保存特定tab
 ipcRenderer.on('save-tab', async (_event, tabId) => {
   try {
-    const result = await saveDocument(tabId, { saveAs: false });
-    ipcRenderer.send('save-tab-response', { tabId, success: result });
+    const result = await saveDocument(tabId, { saveAs: false })
+    ipcRenderer.send('save-tab-response', { tabId, success: result })
   } catch (error) {
-    getLogger().error('保存tab失败:', error);
-    ipcRenderer.send('save-tab-response', { tabId, success: false, error: error.message });
+    getLogger().error('保存tab失败:', error)
+    ipcRenderer.send('save-tab-response', { tabId, success: false, error: error.message })
   }
-});
+})
 
 // 响应主进程请求放弃特定tab的更改（直接关闭tab）
 ipcRenderer.on('discard-tab', (_event, tabId) => {
   try {
-    removeTab(tabId);
-    ipcRenderer.send('discard-tab-response', { tabId, success: true });
+    removeTab(tabId)
+    ipcRenderer.send('discard-tab-response', { tabId, success: true })
   } catch (error) {
-    getLogger().error('关闭tab失败:', error);
-    ipcRenderer.send('discard-tab-response', { tabId, success: false, error: error.message });
+    getLogger().error('关闭tab失败:', error)
+    ipcRenderer.send('discard-tab-response', { tabId, success: false, error: error.message })
   }
-});
+})
 
 // 响应主进程请求关闭所有剩余的tabs
 ipcRenderer.on('close-all-tabs', () => {
   try {
     // 获取所有tab的ID（需要先复制数组，因为removeTab会修改tabs数组）
-    const tabIds = tabs.map(tab => tab.id);
+    const tabIds = tabs.map((tab) => tab.id)
     // 依次关闭所有tabs
     for (const tabId of tabIds) {
-      removeTab(tabId);
+      removeTab(tabId)
     }
-    ipcRenderer.send('close-all-tabs-response', { success: true });
+    ipcRenderer.send('close-all-tabs-response', { success: true })
   } catch (error) {
-    getLogger().error('关闭所有tabs失败:', error);
-    ipcRenderer.send('close-all-tabs-response', { success: false, error: error.message });
+    getLogger().error('关闭所有tabs失败:', error)
+    ipcRenderer.send('close-all-tabs-response', { success: false, error: error.message })
   }
-});
+})
 
 eventBus.on('open-doc', async (path) => {
   //await init()
@@ -621,13 +643,13 @@ eventBus.on('quit', () => {
 eventBus.on('save-as', async (args) => {
   //eventBus.emit('nav-to', '/article');
   eventBus.emit('is-need-save', false)
-  await save('save-as', args);
+  await save('save-as', args)
   //
 })
 
 eventBus.on('close-doc', () => {
-  eventBus.emit('close-active-tab');
-});
+  eventBus.emit('close-active-tab')
+})
 
 eventBus.on('export', async ({ format, filename, options }) => {
   const doc = getDocument()
@@ -635,31 +657,31 @@ eventBus.on('export', async ({ format, filename, options }) => {
 
   // 设置鼠标等待状态
   const setCursorWaiting = () => {
-    document.body.style.cursor = 'wait';
+    document.body.style.cursor = 'wait'
     if (document.documentElement) {
-      document.documentElement.style.cursor = 'wait';
+      document.documentElement.style.cursor = 'wait'
     }
-  };
-  
-  const restoreCursor = () => {
-    document.body.style.cursor = '';
-    if (document.documentElement) {
-      document.documentElement.style.cursor = '';
-    }
-  };
+  }
 
-  setCursorWaiting();
+  const restoreCursor = () => {
+    document.body.style.cursor = ''
+    if (document.documentElement) {
+      document.documentElement.style.cursor = ''
+    }
+  }
+
+  setCursorWaiting()
 
   // 监听主进程发送的对话框打开事件，恢复鼠标状态
   const handleDialogOpening = () => {
-    restoreCursor();
-  };
-  ipcRenderer.on('export-dialog-opening', handleDialogOpening);
+    restoreCursor()
+  }
+  ipcRenderer.on('export-dialog-opening', handleDialogOpening)
 
   try {
     const payload = await prepareExportPayload(doc, format, filename, options)
     const result = await ipcRenderer.invoke('perform-export', payload)
-    
+
     // 如果用户取消了对话框（result.success === false 且没有 error），取消任务
     if (!result.success && !result.error) {
       // 用户取消了对话框，取消任务
@@ -671,26 +693,27 @@ eventBus.on('export', async ({ format, filename, options }) => {
         }
       }
     }
-    
+
     // 确保在完成后恢复鼠标状态（防止事件未触发）
-    restoreCursor();
+    restoreCursor()
   } catch (error) {
-    restoreCursor();
+    restoreCursor()
     if (error instanceof NotImplementedExportError) {
       const message =
-        i18n?.global?.t?.('export.notImplemented', '该导出组合尚未实现') ??
-        '该导出功能尚未实现'
+        i18n?.global?.t?.('export.notImplemented', '该导出组合尚未实现') ?? '该导出功能尚未实现'
       ElMessage.error(message)
       getLogger().warn(error.message)
     } else {
       const message =
-        error instanceof Error ? error.message : i18n?.global?.t?.('export.unknownError', '导出失败')
+        error instanceof Error
+          ? error.message
+          : i18n?.global?.t?.('export.unknownError', '导出失败')
       ElMessage.error(message)
       getLogger().error('导出失败', error)
     }
   } finally {
     // 清理事件监听器
-    ipcRenderer.removeListener('export-dialog-opening', handleDialogOpening);
+    ipcRenderer.removeListener('export-dialog-opening', handleDialogOpening)
   }
 })
 // eventBus.on('export-to-pdf', async (args) => {
@@ -735,7 +758,6 @@ eventBus.on('aigc-detection', () => {
 eventBus.on('system-notification', (data) => {
   //console.log(data)
   ipcRenderer.send('system-notification', data)
-
 })
 
 eventBus.on('open-log-file', () => {
@@ -748,11 +770,11 @@ eventBus.on('open-log-directory', () => {
 
 eventBus.on('theme-changed', () => {
   // 单窗口多Tab架构：直接使用eventBus，不再通过broadcast
-  eventBus.emit('sync-theme', {});
+  eventBus.emit('sync-theme', {})
 })
 eventBus.on('send-broadcast', (message) => {
   //console.log('发送广播消息:', message)
-  ipcRenderer.send('send-broadcast', message)//公共的广播信道
+  ipcRenderer.send('send-broadcast', message) //公共的广播信道
   //示例：
   //   eventBus.emit('send-broadcast', {
   //   to: 'all', // 或者指定窗口类型，如 'home' 或 'ai-chat'
@@ -769,40 +791,33 @@ eventBus.on('send-broadcast', (message) => {
 export function sendBroadcast(to, eventName, data) {
   // 单窗口多Tab架构：直接使用 eventBus，不再通过 IPC
   // 如果将来需要支持多窗口，可以在这里添加条件判断
-  eventBus.emit(eventName, data);
-  
+  eventBus.emit(eventName, data)
+
   // 可选：如果 to 不是 'all'，可以记录日志以便调试
   if (to !== 'all') {
-    getLogger().debug(`[Broadcast] ${to} -> ${eventName}`, data);
+    getLogger().debug(`[Broadcast] ${to} -> ${eventName}`, data)
   }
 }
 
-
 ipcRenderer.on('receive-broadcast', (event, message) => {
   //console.log('接收到广播消息:', message)
-  eventBus.emit('receive-broadcast', message)//接收到广播消息
+  eventBus.emit('receive-broadcast', message) //接收到广播消息
 })
 
 eventBus.on('update-window-title', (title) => {
   ipcRenderer.send('update-window-title', title)
 })
 
-
-
 //处理广播逻辑
 eventBus.on('receive-broadcast', (message) => {
   const windowType = getWindowType()
   if (message.to === 'all' || message.to === windowType) {
     //console.log('触发事件:', message.eventName, '数据:', message.data)
-    eventBus.emit(message.eventName, message.data)//如果是给所有窗口的广播，或者是给当前窗口类型的广播，就触发对应的事件
+    eventBus.emit(message.eventName, message.data) //如果是给所有窗口的广播，或者是给当前窗口类型的广播，就触发对应的事件
   }
 })
 
-
-
-
 // 这些导入已经在文件顶部处理了，这里移除重复的导入
-
 
 // window.electron.onMessageFromMain((event, message) => {
 //     console.log('收到来自主进程的消息:', message);

@@ -80,9 +80,9 @@ export class AIContextManager {
         containsFormatWarning: systemPrompt.includes('⚠️ 重要：当前文档是'),
         containsMarkdownWarning: systemPrompt.includes('Markdown 格式'),
         containsLatexWarning: systemPrompt.includes('LaTeX 格式'),
-        promptPreview: systemPrompt.substring(0, 500)  // 前500字符预览
+        promptPreview: systemPrompt.substring(0, 500) // 前500字符预览
       })
-      
+
       messages.push({
         role: 'system',
         content: systemPrompt
@@ -93,10 +93,10 @@ export class AIContextManager {
     const referenceStore = (session as any).referenceStore
     const activeReferenceIds = options.activeReferenceIds
     const enableBuiltInDocRef = (session as AgentSession).enableBuiltInDocumentReference !== false // 默认开启
-    
+
     // 构建要包含的引用列表
     let referencesToInclude: Reference[] = []
-    
+
     // 添加内置0号reference（如果启用）
     if (enableBuiltInDocRef && includeReferences) {
       const builtInRef = this.buildBuiltInDocumentReference()
@@ -104,16 +104,22 @@ export class AIContextManager {
         referencesToInclude.push(builtInRef)
       }
     }
-    
+
     // 添加用户添加的引用
-    if (includeReferences && referenceStore && Array.isArray(referenceStore) && referenceStore.length > 0) {
+    if (
+      includeReferences &&
+      referenceStore &&
+      Array.isArray(referenceStore) &&
+      referenceStore.length > 0
+    ) {
       // 如果指定了activeReferenceIds，只处理激活的引用
-      const userReferences = activeReferenceIds && activeReferenceIds.length > 0
-        ? (referenceStore as Reference[]).filter(ref => activeReferenceIds.includes(ref.id))
-        : (referenceStore as Reference[])
+      const userReferences =
+        activeReferenceIds && activeReferenceIds.length > 0
+          ? (referenceStore as Reference[]).filter((ref) => activeReferenceIds.includes(ref.id))
+          : (referenceStore as Reference[])
       referencesToInclude.push(...userReferences)
     }
-    
+
     if (referencesToInclude.length > 0) {
       const referencesContent = this.buildReferencesContent(referencesToInclude)
       if (referencesContent) {
@@ -126,10 +132,7 @@ export class AIContextManager {
 
     // 3. 历史消息
     if (includeHistory && session.messages) {
-      const historyMessages = this.buildHistoryMessages(
-        session.messages,
-        maxHistoryMessages
-      )
+      const historyMessages = this.buildHistoryMessages(session.messages, maxHistoryMessages)
       messages.push(...historyMessages)
     }
 
@@ -142,7 +145,7 @@ export class AIContextManager {
   private static getSystemInfo(): { platform: string; arch: string } {
     let platform = 'unknown'
     let arch = 'unknown'
-    
+
     try {
       // 优先使用 Electron 的 process 对象（如果可用）
       // 在 Electron 中，window.electron.process 可能包含 platform 和 arch
@@ -159,7 +162,10 @@ export class AIContextManager {
           }
         }
         // 如果 Electron process 不可用，尝试直接访问 process（如果 contextIsolation 允许）
-        if ((platform === 'unknown' || arch === 'unknown') && typeof (globalThis as any).process !== 'undefined') {
+        if (
+          (platform === 'unknown' || arch === 'unknown') &&
+          typeof (globalThis as any).process !== 'undefined'
+        ) {
           const nodeProcess = (globalThis as any).process
           if (nodeProcess.platform && platform === 'unknown') {
             platform = nodeProcess.platform
@@ -169,12 +175,12 @@ export class AIContextManager {
           }
         }
       }
-      
+
       // 如果仍未获取到信息，回退到 navigator API
       if ((platform === 'unknown' || arch === 'unknown') && typeof navigator !== 'undefined') {
         const userAgent = navigator.userAgent || ''
         const platformStr = navigator.platform || ''
-        
+
         // 解析操作系统
         if (platform === 'unknown') {
           if (userAgent.includes('Win') || platformStr.includes('Win')) {
@@ -187,10 +193,14 @@ export class AIContextManager {
             platform = platformStr.toLowerCase() || 'unknown'
           }
         }
-        
+
         // 解析处理器架构
         if (arch === 'unknown') {
-          if (userAgent.includes('x64') || userAgent.includes('x86_64') || userAgent.includes('AMD64')) {
+          if (
+            userAgent.includes('x64') ||
+            userAgent.includes('x86_64') ||
+            userAgent.includes('AMD64')
+          ) {
             arch = 'x64'
           } else if (userAgent.includes('x86') || userAgent.includes('i686')) {
             arch = 'ia32'
@@ -213,24 +223,24 @@ export class AIContextManager {
       const logger = createRendererLogger('AIContextManager')
       logger.warn('[getSystemInfo] 获取系统信息失败:', error)
     }
-    
+
     // 格式化平台名称
     const platformNames: Record<string, string> = {
-      'win32': 'Windows',
-      'darwin': 'macOS',
-      'linux': 'Linux',
-      'unknown': '未知系统'
+      win32: 'Windows',
+      darwin: 'macOS',
+      linux: 'Linux',
+      unknown: '未知系统'
     }
-    
+
     // 格式化架构名称
     const archNames: Record<string, string> = {
-      'x64': 'x64 (64位)',
-      'ia32': 'x86 (32位)',
-      'arm64': 'ARM64',
-      'arm': 'ARM',
-      'unknown': '未知架构'
+      x64: 'x64 (64位)',
+      ia32: 'x86 (32位)',
+      arm64: 'ARM64',
+      arm: 'ARM',
+      unknown: '未知架构'
     }
-    
+
     return {
       platform: platformNames[platform] || platform,
       arch: archNames[arch] || arch
@@ -261,7 +271,7 @@ export class AIContextManager {
       const now = new Date()
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
       const systemInfo = this.getSystemInfo()
-      
+
       prompt += `当前时间: ${now.toISOString()}\n`
       prompt += `当前时区: ${timeZone}\n`
       prompt += `系统环境: ${systemInfo.platform}\n`
@@ -281,7 +291,7 @@ export class AIContextManager {
         prompt += `当前文档: ${publicCtx.document.title || publicCtx.document.path}\n`
         const docFormat = publicCtx.document.format || 'md'
         prompt += `**文档格式: ${docFormat === 'tex' ? 'LaTeX' : 'Markdown'}**\n\n`
-        
+
         // 记录日志：文档格式检测和提示词注入
         const logger = createRendererLogger('AIContextManager')
         logger.info('[buildSystemPrompt] 检测到文档格式，注入格式提示词', {
@@ -290,7 +300,7 @@ export class AIContextManager {
           detectedFormat: docFormat,
           formatType: docFormat === 'tex' ? 'LaTeX' : 'Markdown'
         })
-        
+
         // 根据文档格式添加格式特定的重要提示
         if (docFormat === 'tex') {
           logger.info('[buildSystemPrompt] 注入LaTeX格式提示词')
@@ -333,22 +343,22 @@ export class AIContextManager {
     try {
       const workspace = useWorkspace()
       const activeDoc = workspace.activeDocument.value
-      
+
       if (!activeDoc) {
         return null
       }
-      
+
       // 确定文档格式
       const docFormat = activeDoc.format === 'tex' ? 'tex' : 'md'
       const formatName = docFormat === 'tex' ? 'LaTeX' : 'Markdown'
-      
+
       // 根据文档格式获取内容
       const content = docFormat === 'tex' ? activeDoc.tex : activeDoc.markdown
-      
+
       if (!content || content.trim().length === 0) {
         return null
       }
-      
+
       // 创建内置0号reference
       const reference: Reference = {
         id: 'built-in-document-reference-0',
@@ -360,7 +370,7 @@ export class AIContextManager {
         createdAt: Date.now(),
         updatedAt: Date.now()
       }
-      
+
       const logger = createRendererLogger('AIContextManager')
       logger.debug('[buildBuiltInDocumentReference] 构建内置文档引用', {
         format: docFormat,
@@ -368,7 +378,7 @@ export class AIContextManager {
         contentLength: content.length,
         hasPath: !!activeDoc.path
       })
-      
+
       return reference
     } catch (error) {
       const logger = createRendererLogger('AIContextManager')
@@ -386,7 +396,7 @@ export class AIContextManager {
     const logger = createRendererLogger('AIContextManager')
     logger.info('[buildReferencesContent] 开始构建引用素材内容', {
       referenceCount: references.length,
-      references: references.map(ref => ({
+      references: references.map((ref) => ({
         id: ref.id,
         name: ref.name,
         format: ref.format,
@@ -399,29 +409,33 @@ export class AIContextManager {
     for (const ref of references) {
       // 对于内置0号reference，使用更明确的格式说明
       const isBuiltIn = ref.id === 'built-in-document-reference-0'
-      const formatDisplay = ref.format === 'tex' ? 'LaTeX' : (ref.format === 'md' ? 'Markdown' : ref.format)
-      
+      const formatDisplay =
+        ref.format === 'tex' ? 'LaTeX' : ref.format === 'md' ? 'Markdown' : ref.format
+
       if (isBuiltIn) {
         content += `[${ref.name}] (格式: ${formatDisplay}, 来源: ${ref.origin})\n`
         content += `⚠️ 这是当前活动文档的实时内容，格式为 ${formatDisplay}。内容会在每次请求时动态获取，确保始终是最新的。\n`
       } else {
         content += `[${ref.name}] (格式: ${ref.format}, 来源: ${ref.origin})\n`
       }
-      
+
       if (ref.description) {
         content += `描述: ${ref.description}\n`
       }
-      
+
       // 添加解析后的内容（供AI直接参考，上传时已解析）
       if (ref.parsedContent) {
         // 对于内置0号reference，使用格式对应的代码块标记
-        const codeBlockLang = ref.format === 'tex' ? 'latex' : (ref.format === 'md' ? 'markdown' : 'text')
+        const codeBlockLang =
+          ref.format === 'tex' ? 'latex' : ref.format === 'md' ? 'markdown' : 'text'
         if (isBuiltIn) {
           content += `\n当前文档内容（${formatDisplay}格式）:\n\`\`\`${codeBlockLang}\n${ref.parsedContent}\n\`\`\`\n`
         } else {
           content += `\n解析后的内容（已进行数据分析/文本提取）:\n\`\`\`\n${ref.parsedContent}\n\`\`\`\n`
         }
-        logger.debug(`[buildReferencesContent] 引用 ${ref.name} 包含parsedContent，长度: ${ref.parsedContent.length}, 格式: ${ref.format}`)
+        logger.debug(
+          `[buildReferencesContent] 引用 ${ref.name} 包含parsedContent，长度: ${ref.parsedContent.length}, 格式: ${ref.format}`
+        )
       } else {
         logger.warn(`[buildReferencesContent] 引用 ${ref.name} 缺少parsedContent`)
       }
@@ -438,10 +452,7 @@ export class AIContextManager {
   /**
    * 构建历史消息
    */
-  private static buildHistoryMessages(
-    messages: AgentMessage[],
-    maxMessages: number
-  ): LlmMessage[] {
+  private static buildHistoryMessages(messages: AgentMessage[], maxMessages: number): LlmMessage[] {
     const llmMessages: LlmMessage[] = []
 
     // 只取最近的消息
@@ -450,7 +461,7 @@ export class AIContextManager {
     // 验证并修复消息顺序：确保assistant消息有tool_calls后必须紧跟tool消息
     // 记录每个assistant消息的tool_call_ids
     const pendingToolCallIds = new Set<string>()
-    
+
     for (const msg of recentMessages) {
       if (msg.role === 'user') {
         if (msg.type === 'chat') {
@@ -465,11 +476,11 @@ export class AIContextManager {
           const assistantLlmMessage: any = {
             role: msg.role
           }
-          
+
           // 如果助手消息包含tool_calls，添加到LLM消息中（OpenAI格式）
           const msgToolCalls = (msg as any).tool_calls
           const logger = createRendererLogger('AIContextManager')
-          
+
           // 记录调试信息
           logger.debug('[buildHistoryMessages] 检查assistant消息tool_calls:', {
             messageId: msg.id,
@@ -480,7 +491,7 @@ export class AIContextManager {
             messageKeys: Object.keys(msg),
             toolCallsValue: msgToolCalls
           })
-          
+
           if (msgToolCalls && Array.isArray(msgToolCalls) && msgToolCalls.length > 0) {
             assistantLlmMessage.tool_calls = msgToolCalls.map((tc: any) => {
               // 确保arguments是对象格式（OpenAI API要求）
@@ -489,7 +500,7 @@ export class AIContextManager {
               // 2. tc.function?.arguments (OpenAI格式)
               // 3. tc.arguments (其他格式)
               let functionArgs: any
-              
+
               // 优先使用function.arguments（如果已经是OpenAI格式）
               if (tc.function && typeof tc.function.arguments !== 'undefined') {
                 if (typeof tc.function.arguments === 'string') {
@@ -498,7 +509,10 @@ export class AIContextManager {
                   } catch {
                     functionArgs = {}
                   }
-                } else if (typeof tc.function.arguments === 'object' && tc.function.arguments !== null) {
+                } else if (
+                  typeof tc.function.arguments === 'object' &&
+                  tc.function.arguments !== null
+                ) {
                   functionArgs = tc.function.arguments
                 } else {
                   functionArgs = {}
@@ -532,7 +546,7 @@ export class AIContextManager {
               } else {
                 functionArgs = {}
               }
-              
+
               // 确保functionArgs是对象（用于后续序列化）
               if (typeof functionArgs === 'string') {
                 try {
@@ -543,7 +557,7 @@ export class AIContextManager {
               } else if (typeof functionArgs !== 'object' || functionArgs === null) {
                 functionArgs = {}
               }
-              
+
               // OpenAI API要求：arguments必须是JSON字符串，不是对象！
               // 将functionArgs对象序列化为JSON字符串
               let argumentsString: string
@@ -552,7 +566,7 @@ export class AIContextManager {
               } catch {
                 argumentsString = '{}'
               }
-              
+
               return {
                 id: tc.id || `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 type: 'function',
@@ -563,8 +577,8 @@ export class AIContextManager {
               }
             })
             // 如果有tool_calls，content应该为null（如果markdown为空或只包含空白字符）
-            assistantLlmMessage.content = (msg.markdown && msg.markdown.trim()) ? msg.markdown : null
-            
+            assistantLlmMessage.content = msg.markdown && msg.markdown.trim() ? msg.markdown : null
+
             // 记录所有tool_call_ids，等待对应的tool消息
             for (const tc of (msg as any).tool_calls) {
               if (tc.id) {
@@ -575,7 +589,7 @@ export class AIContextManager {
             // 没有tool_calls，使用正常的content
             assistantLlmMessage.content = msg.markdown || ''
           }
-          
+
           // 确保不包含type字段
           llmMessages.push(assistantLlmMessage)
         }
@@ -585,7 +599,7 @@ export class AIContextManager {
         // 这里直接使用，不需要转换
         const toolCallId = (msg as any).tool_call_id || msg.id
         const toolName = msg.tool?.name || msg.tool?.id || 'unknown'
-        
+
         // 使用保存的OpenAI格式content（如果存在），否则回退到markdown字段或生成默认内容
         let content: string
         if (msg.markdown && typeof msg.markdown === 'string') {
@@ -593,7 +607,7 @@ export class AIContextManager {
           content = msg.markdown
         } else {
           // 回退：如果没有保存OpenAI格式content，使用ToolRunner序列化方法生成
-          
+
           const observation = {
             toolId: msg.tool?.id || 'unknown',
             toolName,
@@ -604,37 +618,39 @@ export class AIContextManager {
           }
           content = ToolRunner.serializeToOpenAIFormat(observation)
         }
-        
+
         // 确保content是字符串（双重检查）
         if (typeof content !== 'string') {
           content = String(content || '')
         }
-        
+
         const toolLlmMessage: any = {
           role: 'tool',
           content: content, // content必须是字符串，已经在addToolMessage时序列化好了
           tool_call_id: toolCallId
         }
-        
+
         // 根据OpenAI API规范，tool消息应该包含name字段（函数名称）
         if (toolName && toolName !== 'unknown') {
           toolLlmMessage.name = toolName
         }
-        
+
         // 移除pendingToolCallIds中对应的id
         if (toolCallId && pendingToolCallIds.has(toolCallId)) {
           pendingToolCallIds.delete(toolCallId)
         }
-        
+
         llmMessages.push(toolLlmMessage)
       }
     }
-    
+
     // 验证：如果还有pendingToolCallIds，说明有assistant消息的tool_calls没有对应的tool消息
     // 这种情况不应该发送给LLM API，但为了向后兼容，我们仍然发送，只是记录警告
     if (pendingToolCallIds.size > 0) {
       const logger = createRendererLogger('AIContextManager')
-      logger.warn(`警告：发现${pendingToolCallIds.size}个tool_calls没有对应的tool消息: ${Array.from(pendingToolCallIds).join(', ')}`)
+      logger.warn(
+        `警告：发现${pendingToolCallIds.size}个tool_calls没有对应的tool消息: ${Array.from(pendingToolCallIds).join(', ')}`
+      )
     }
 
     return llmMessages
@@ -667,7 +683,7 @@ export class AIContextManager {
    * 添加助手消息
    */
   static addAssistantMessage(
-    session: AgentSession | LegacyAgentSession, 
+    session: AgentSession | LegacyAgentSession,
     content: string,
     tool_calls: Array<{ id: string; tool_id: string; parameters: Record<string, unknown> }> = []
   ): AgentMessage {
@@ -693,7 +709,7 @@ export class AIContextManager {
 
   /**
    * 添加工具消息
-   * 
+   *
    * 重要：这个方法会在保存工具消息时，同时保存OpenAI格式的content字符串。
    * 这样在buildHistoryMessages时，可以直接使用这个content，不需要转换。
    */
@@ -707,10 +723,10 @@ export class AIContextManager {
     summary?: string,
     tool_call_id?: string,
     toolConfig?: any,
-    params?: Record<string, unknown>  // 添加params参数，用于保存工具调用参数
+    params?: Record<string, unknown> // 添加params参数，用于保存工具调用参数
   ): AgentMessage {
     const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    
+
     // 构建outputs数组，支持从ToolCallbackResult.data中提取信息（用于显示和快照）
     let outputs: Array<{
       id: string
@@ -719,25 +735,31 @@ export class AIContextManager {
       data: unknown
       renderer?: string
     }> = []
-    
+
     // 检查是否是包装对象（包含result和data字段，用于区分给AI和Display的内容）
     const isWrappedResult = data && typeof data === 'object' && 'result' in data && 'data' in data
-    const displayData = isWrappedResult ? (data as any).data : data  // 用于Display组件的数据
-    
+    const displayData = isWrappedResult ? (data as any).data : data // 用于Display组件的数据
+
     // 如果displayData是ToolCallbackData格式，提取format和content
-    if (displayData && typeof displayData === 'object' && 'content' in displayData && 'format' in displayData) {
+    if (
+      displayData &&
+      typeof displayData === 'object' &&
+      'content' in displayData &&
+      'format' in displayData
+    ) {
       const callbackData = displayData as any
       const displayComponent = toolConfig?.displayComponent
-      
+
       // 提取组件名称（如果是组件对象）
       let rendererName: string | undefined = undefined
       if (displayComponent) {
         if (typeof displayComponent === 'string') {
           rendererName = displayComponent
         } else if (typeof displayComponent === 'object') {
-          rendererName = (displayComponent as any).name || 
-                         (displayComponent as any).__name || 
-                         (displayComponent as any).displayName
+          rendererName =
+            (displayComponent as any).name ||
+            (displayComponent as any).__name ||
+            (displayComponent as any).displayName
           // 如果仍然没有名称，尝试从文件路径提取
           if (!rendererName && (displayComponent as any).__file) {
             const match = String((displayComponent as any).__file).match(/([^/\\]+)\.vue$/)
@@ -747,27 +769,34 @@ export class AIContextManager {
           }
         }
       }
-      
+
       outputs.push({
         id: 'result',
         label: '结果',
-        format: (callbackData.format || 'json') as 'text' | 'json' | 'markdown' | 'html' | 'table' | 'custom',
+        format: (callbackData.format || 'json') as
+          | 'text'
+          | 'json'
+          | 'markdown'
+          | 'html'
+          | 'table'
+          | 'custom',
         data: callbackData.content,
         renderer: rendererName // 使用组件名称字符串
       })
     } else if (displayData) {
       // 兼容旧格式：直接使用displayData
       const displayComponent = toolConfig?.displayComponent
-      
+
       // 提取组件名称（如果是组件对象）
       let rendererName: string | undefined = undefined
       if (displayComponent) {
         if (typeof displayComponent === 'string') {
           rendererName = displayComponent
         } else if (typeof displayComponent === 'object') {
-          rendererName = (displayComponent as any).name || 
-                         (displayComponent as any).__name || 
-                         (displayComponent as any).displayName
+          rendererName =
+            (displayComponent as any).name ||
+            (displayComponent as any).__name ||
+            (displayComponent as any).displayName
           // 如果仍然没有名称，尝试从文件路径提取
           if (!rendererName && (displayComponent as any).__file) {
             const match = String((displayComponent as any).__file).match(/([^/\\]+)\.vue$/)
@@ -777,7 +806,7 @@ export class AIContextManager {
           }
         }
       }
-      
+
       outputs.push({
         id: 'result',
         label: '结果',
@@ -795,7 +824,7 @@ export class AIContextManager {
       toolId,
       toolName,
       status,
-      result: data,  // 传递原始data，serializeToOpenAIFormat会处理包装对象的提取
+      result: data, // 传递原始data，serializeToOpenAIFormat会处理包装对象的提取
       error,
       summary,
       toolConfig
@@ -816,8 +845,8 @@ export class AIContextManager {
       markdown: openaiContent, // 使用markdown字段保存OpenAI格式的content
       ...(tool_call_id ? { tool_call_id } : {}),
       ...(toolConfig ? { tool_config: toolConfig } : {}),
-      ...(params ? { params } : {})  // 保存工具调用参数，用于快照导出
-    } as any  // 使用as any因为params不在ToolAgentMessage接口中，但我们需要保存它
+      ...(params ? { params } : {}) // 保存工具调用参数，用于快照导出
+    } as any // 使用as any因为params不在ToolAgentMessage接口中，但我们需要保存它
 
     session.messages.push(message)
     // 兼容新旧格式的updatedAt
@@ -830,4 +859,3 @@ export class AIContextManager {
     return message
   }
 }
-

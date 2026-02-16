@@ -1,7 +1,8 @@
-# MetaDoc 多标签重构进展（截至 2025-11-09）
+# MetaDoc 多标签重构进展（截至 2026-02-16）
 
 ## 重构目标速览
 - **多标签工作流**：允许同时打开多份 Markdown / LaTeX 文档，支持跨标签切换、关闭、脏状态提示。
+- **多窗口标签页管理**：支持跨窗口拖拽标签页，实现标签页在多个窗口间的自由移动。
 - **独立编辑器实例**：Markdown（Vditor）与 LaTeX（Monaco）各自按标签实例化，互不干扰。
 - **全局事件去中心化**：将原先依赖 `common-data` 的单例状态迁移到 `workspace` store，按当前激活标签驱动工具栏 / AI / 文件操作。
 - **界面体验**：解决底部菜单遮挡、分栏尺寸异常、Tab 视觉不明显等 UI/UX 问题。
@@ -32,7 +33,39 @@
 - **`Outline.vue` / `Visualize.vue`**：顶部集成 `WorkspaceTabs`，根据 `activeTabId` 重新拉取 outline / 可视化数据，保持与编辑视图一致。
 - **`Main.vue` 布局**：采用 `el-container` 将 `BottomMenu` 放入 `el-footer`，避免遮挡主内容。
 
-### 5. IPC / 事件流调整（进行中）
+### 5. 多窗口标签页管理（新增）
+
+实现跨窗口标签页拖拽和管理功能：
+
+#### 5.1 主进程拖拽管理 (`drag-manager.ts`)
+- **跨窗口拖拽协调**：处理渲染进程间的拖拽事件转发
+- **目标窗口定位**：实时计算鼠标位置，确定拖拽目标窗口
+- **拖拽状态管理**：维护跨窗口拖拽状态，支持标签页在不同窗口间移动
+- **事件协议**：定义标准化的拖拽事件数据格式（`tab-drag-start`, `tab-drag-over`, `tab-drop`, `tab-drag-cancel`）
+
+#### 5.2 文件注册表 (`file-registry.ts`)
+- **文件-窗口关联**：维护文件路径到窗口 ID 的映射
+- **防止重复打开**：同一文件不会同时在多个窗口中打开
+- **窗口生命周期管理**：自动清理已关闭窗口的文件关联
+- **IPC 接口**：提供 `check-file-in-another-window`, `focus-file-window` 等接口
+
+#### 5.3 渲染进程拖拽 Composable (`useTabDrag.ts`)
+- **标签页拖拽排序**：支持同一窗口内标签页拖拽重新排序
+- **跨窗口拖拽**：支持将标签页拖拽到其他窗口
+- **拖拽指示器**：实时显示拖拽放置位置（左/右指示线）
+- **拖拽预览**：拖拽过程中显示标签页预览
+
+#### 5.4 标签页操作 Composable (`useTabOperations.ts`)
+- **关闭操作**：封装标签页关闭逻辑，包括脏状态检查
+- **移动到新窗口**：将当前标签页移动到新打开的窗口
+- **右键菜单**：标签页右键菜单（关闭、关闭其他、关闭右侧、移动到新窗口）
+
+#### 5.5 键盘标签切换 (`useTabSwitcher.ts` + `TabSwitcherOverlay.vue`)
+- **Ctrl+Tab 快捷键**：快速切换标签页
+- **切换浮层**：`TabSwitcherOverlay` 组件展示标签列表与预览
+- **循环切换**：支持向前/向后循环浏览标签页
+
+### 6. IPC / 事件流调整（进行中）
 - `eventBus` 仍承担保存、AI 请求等广播，但已有能力根据 `activeTabId` 提供上下文。
 - 后续需要将主进程 `open/save/export` 流程统一通过 `workspace` tab 传参（TODO#2）。
 
@@ -42,6 +75,7 @@
 - [x] 大纲 / 可视化 / 主界面适配多标签切换。
 - [x] Tab 样式增强、底部菜单定位修复、分栏拖拽稳定。
 - [x] CLI 启动携带文件时自动打开（当没有已有实例时）。
+- [x] **多窗口标签页管理**：跨窗口拖拽、文件注册表、拖拽排序、键盘切换。
 
 ## 进行中 / 待完成
 - [ ] **TODO#2**：重构保存 / 打开 / 导出管线，使其完全依赖 `workspace` 的当前标签上下文，并同步调整 `eventBus` 与主进程通信协议。
@@ -57,6 +91,13 @@
 | `views/LaTeXEditor.vue` | LaTeX 编辑器 | 三列布局、Monaco/PDF 管理、Console 拖拽 |
 | `views/Main.vue` | 主框架 | 底部菜单位置修复 |
 | `views/Outline.vue` / `views/Visualize.vue` | 辅助视图 | 通过 `workspace` 同步内容 |
+| **多窗口标签管理（新增）** | | |
+| `main/drag-manager.ts` | 跨窗口拖拽协调 | 主进程，处理拖拽事件转发与目标窗口定位 |
+| `main/file-registry.ts` | 文件-窗口关联注册表 | 防止同一文件在多窗口重复打开 |
+| `composables/useTabDrag.ts` | 标签页拖拽逻辑 | 渲染进程，支持跨窗口拖拽与排序 |
+| `composables/useTabOperations.ts` | 标签页操作封装 | 关闭、移动到新窗口、右键菜单 |
+| `composables/useTabSwitcher.ts` | 键盘标签切换 | Ctrl+Tab 快捷键切换逻辑 |
+| `components/TabSwitcherOverlay.vue` | 标签切换浮层 | 展示标签列表与预览 |
 
 ## 开发注意事项
 - **避免直接操作 `common-data`**：新功能尽量使用 `workspace` 的 API，必要时通过 `applyDocumentForActiveTab` 与遗留逻辑同步。

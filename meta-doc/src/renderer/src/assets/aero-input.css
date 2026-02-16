@@ -1,30 +1,26 @@
 /* 自定义 el-input 的毛玻璃效果 */
 .aero-input {
-
-    border-radius: 8px; /* 圆角 */
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05); /* 阴影 */
-    border: 1px solid rgba(145, 145, 145, 0.5); /* 淡白色边框 */
-    
+  border-radius: 8px; /* 圆角 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05); /* 阴影 */
+  border: 1px solid rgba(145, 145, 145, 0.5); /* 淡白色边框 */
 }
-
-
 
 /* 输入框内部文字的样式 */
 .aero-input .el-input__inner {
-    background: transparent; /* 背景透明 */
-    padding: 10px; /* 内边距 */
-    font-size: 16px; /* 字体大小 */
-    border: none; /* 去除默认边框 */
-    outline: none; /* 去掉聚焦的默认样式 */
-    caret-color: #000; /* 光标颜色 */
+  background: transparent; /* 背景透明 */
+  padding: 10px; /* 内边距 */
+  font-size: 16px; /* 字体大小 */
+  border: none; /* 去除默认边框 */
+  outline: none; /* 去掉聚焦的默认样式 */
+  caret-color: #000; /* 光标颜色 */
 }
 
 /* 禁用状态的样式 */
 .aero-input.is-disabled .el-input__inner {
-    cursor: not-allowed;
+  cursor: not-allowed;
 }
 .aero-input.is-disabled {
-    backdrop-filter: blur(10px) grayscale(50%); /* 增加灰度效果 */
-    -webkit-backdrop-filter: blur(10px) grayscale(50%);
-    box-shadow: none; /* 去掉阴影 */
+  backdrop-filter: blur(10px) grayscale(50%); /* 增加灰度效果 */
+  -webkit-backdrop-filter: blur(10px) grayscale(50%);
+  box-shadow: none; /* 去掉阴影 */
 }

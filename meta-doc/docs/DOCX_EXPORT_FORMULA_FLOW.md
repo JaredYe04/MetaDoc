@@ -7,6 +7,7 @@
 ## 整体架构
 
 导出流程分为三个阶段：
+
 1. **HTML 生成阶段**：将 Markdown 转换为 HTML，公式替换为占位符
 2. **DOCX 生成阶段**：使用 `html-to-docx` 将 HTML 转换为 DOCX
 3. **DOCX 后处理阶段**：通过处理器链处理 document.xml，插入 OMML 公式
@@ -33,13 +34,15 @@
 ```
 
 **关键数据结构**：
+
 ```typescript
 // 全局变量：formulaPlaceholders (行 1027-1028)
-const formulaPlaceholders = new Map<number, { latex: string; display: boolean }>();
-let formulaPlaceholderIndex = 0;
+const formulaPlaceholders = new Map<number, { latex: string; display: boolean }>()
+let formulaPlaceholderIndex = 0
 ```
 
 **占位符格式**：
+
 - 行内公式：`<span>MATH_PLACEHOLDER_0</span>`
 - 块级公式：`<p class="Normal" style="text-align: center; margin: 12pt 0;">MATH_PLACEHOLDER_0</p>`
 
@@ -86,11 +89,11 @@ let formulaPlaceholderIndex = 0;
 ```typescript
 // 检查哪些占位符实际存在于 document.xml 中
 for (const index of formulaPlaceholders.keys()) {
-  const placeholderText = `MATH_PLACEHOLDER_${index}`;
+  const placeholderText = `MATH_PLACEHOLDER_${index}`
   if (updatedXml.includes(placeholderText)) {
-    existingPlaceholders.add(index);
+    existingPlaceholders.add(index)
   } else {
-    missingPlaceholders.add(index);
+    missingPlaceholders.add(index)
   }
 }
 ```
@@ -100,8 +103,8 @@ for (const index of formulaPlaceholders.keys()) {
 ```typescript
 // 收集所有需要转换的公式（去重）
 // 相同 LaTeX 代码只转换一次
-const uniqueFormulas = new Map<string, Array<{ index: number; isBlockLevel: boolean }>>();
-const conversionCache = new Map<string, { wrappedContent: string; ommlContent: string }>();
+const uniqueFormulas = new Map<string, Array<{ index: number; isBlockLevel: boolean }>>()
+const conversionCache = new Map<string, { wrappedContent: string; ommlContent: string }>()
 ```
 
 ##### 步骤 3：LaTeX 预处理 (行 808-838)
@@ -124,10 +127,11 @@ const conversionCache = new Map<string, { wrappedContent: string; ommlContent: s
 // 调用：convertLatexToMathML (来自 mathml-converter.ts)
 // 使用 mathjax-node 进行转换
 
-const mathml = await convertLatexToMathML(preprocessedLatex, isBlockLevel);
+const mathml = await convertLatexToMathML(preprocessedLatex, isBlockLevel)
 ```
 
 **MathML 转换器**：`meta-doc/src/main/utils/mathml-converter.ts`
+
 - 使用 `mathjax-node` 库
 - 配置：`jax: ['input/TeX', 'output/NativeMML']`
 - 返回标准 MathML 格式
@@ -144,15 +148,15 @@ let cleanedMathml = mathml
   .replace(/\s+minsize="[^"]*"/g, '') // 移除 minsize
   .replace(/>\s+</g, '><') // 移除标签间空白
   .replace(/\s{2,}/g, ' ') // 规范化空白
-  .trim();
+  .trim()
 ```
 
 ##### 步骤 6：MathML → OMML 转换 (行 881-888)
 
 ```typescript
 // 使用 mathml2omml 库转换
-const { mml2omml } = await import('mathml2omml');
-omml = mml2omml(cleanedMathml);
+const { mml2omml } = await import('mathml2omml')
+omml = mml2omml(cleanedMathml)
 ```
 
 **OMML**：Office Math Markup Language，Word 的原生数学公式格式
@@ -180,6 +184,7 @@ const testDoc = testParser.parseFromString(testXml, 'text/xml');
 ```
 
 **字体设置模板**：
+
 ```xml
 <w:rPr xmlns:w="...">
   <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" .../>
@@ -218,7 +223,7 @@ const testDoc = testParser.parseFromString(testXml, 'text/xml');
 
 ```typescript
 // 使用并发池控制：最大10个并发
-const MAX_CONCURRENT = 10;
+const MAX_CONCURRENT = 10
 // 将任务分批处理，每批最多 MAX_CONCURRENT 个并发
 ```
 
@@ -243,22 +248,22 @@ const MAX_CONCURRENT = 10;
 
 ```typescript
 // 按索引从大到小排序，避免索引偏移问题
-locations.sort((a, b) => b.index - a.index);
+locations.sort((a, b) => b.index - a.index)
 
 // 解析新内容为 DOM 节点
-const newNode = parseNewContent(location.wrappedContent);
+const newNode = parseNewContent(location.wrappedContent)
 
 // 替换节点
-parentOfTarget.replaceChild(newNode, location.targetParent);
+parentOfTarget.replaceChild(newNode, location.targetParent)
 ```
 
 ##### 步骤 13：序列化 XML (行 1456-1460)
 
 ```typescript
 // 最后序列化一次 XML
-const serializer = new XMLSerializer();
-updatedXml = serializer.serializeToString(xmlDoc);
-context.documentXml = updatedXml;
+const serializer = new XMLSerializer()
+updatedXml = serializer.serializeToString(xmlDoc)
+context.documentXml = updatedXml
 ```
 
 ### 阶段 3：应用元数据
@@ -297,17 +302,20 @@ Map<string, { wrappedContent: string; ommlContent: string }>
 ## 关键函数说明
 
 ### convertFormulaToMathML
+
 - **位置**：`export-manager.ts:833`
 - **作用**：在 HTML 阶段将公式替换为占位符
 - **输入**：HTML 内容、Markdown 内容
 - **输出**：包含占位符的 HTML
 
 ### convertLatexToMathML
+
 - **位置**：`mathml-converter.ts:44`
 - **作用**：LaTeX → MathML 转换
 - **工具**：mathjax-node
 
 ### OMMLInsertionProcessor.process
+
 - **位置**：`docx-processor.ts:723`
 - **作用**：在 document.xml 中查找占位符并替换为 OMML
 - **流程**：验证 → 去重 → 转换 → 查找 → 替换
@@ -319,6 +327,7 @@ Map<string, { wrappedContent: string; ommlContent: string }>
 **问题**：占位符可能被分割到多个文本节点，查找逻辑复杂（多层回退）
 
 **建议**：
+
 - 考虑使用更稳定的占位符格式（如 Base64 编码）
 - 或者使用 XML 注释作为占位符标记
 
@@ -327,6 +336,7 @@ Map<string, { wrappedContent: string; ommlContent: string }>
 **当前**：最大 10 个并发转换
 
 **建议**：
+
 - 根据公式数量动态调整并发数
 - 添加重试机制
 
@@ -335,6 +345,7 @@ Map<string, { wrappedContent: string; ommlContent: string }>
 **当前**：转换失败会跳过该公式
 
 **建议**：
+
 - 记录失败的公式，提供用户反馈
 - 考虑使用后备方案（如显示 LaTeX 代码）
 
@@ -343,6 +354,7 @@ Map<string, { wrappedContent: string; ommlContent: string }>
 **问题**：OMMLInsertionProcessor 类过长（约 800 行）
 
 **建议**：
+
 - 将转换逻辑提取为独立函数
 - 将查找逻辑提取为独立函数
 - 将增强逻辑提取为独立函数
@@ -385,18 +397,20 @@ OMMLInsertionProcessor.process()
 ## 总结
 
 整个流程的核心思路是：
+
 1. **两阶段处理**：HTML 阶段创建占位符，DOCX 后处理阶段替换为 OMML
 2. **转换链**：LaTeX → MathML → OMML → WordprocessingML
 3. **性能优化**：公式去重、转换缓存、并发处理
 4. **容错处理**：多层占位符查找、XML 验证、错误日志
 
 这种设计的好处是：
+
 - 解耦了 HTML 生成和公式处理
 - 可以复用转换结果（去重和缓存）
 - 便于调试和维护（每个阶段独立）
 
 缺点是：
+
 - 占位符查找逻辑复杂
 - 代码较长，需要重构
 - 错误处理不够完善
-

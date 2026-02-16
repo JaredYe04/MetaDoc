@@ -42,7 +42,13 @@ export interface ClipboardPayload {
 /**
  * 文件系统操作类型
  */
-export type FSOperationType = 'copy' | 'move' | 'delete' | 'rename' | 'create-file' | 'create-directory'
+export type FSOperationType =
+  | 'copy'
+  | 'move'
+  | 'delete'
+  | 'rename'
+  | 'create-file'
+  | 'create-directory'
 
 /**
  * 文件系统操作步骤（最小原子操作）
@@ -95,7 +101,7 @@ export class URIUtils {
     if (!uri.startsWith('file://')) {
       return uri
     }
-    
+
     let path: string
     if (uri.startsWith('file:///')) {
       // file:/// 开头的 URI（Windows 或 Unix 都可能是这种格式）
@@ -109,14 +115,14 @@ export class URIUtils {
     } else {
       return uri
     }
-    
+
     // 解码 URL 编码的字符（处理中文路径等）
     try {
       path = decodeURIComponent(path)
     } catch {
       // 如果解码失败，使用原始路径
     }
-    
+
     // Windows 路径：将正斜杠转换为反斜杠（Node.js fs 和 shell.trashItem 需要）
     // 判断是否为 Windows 路径（以盘符开头，如 C:、D:）
     if (/^[A-Za-z]:/.test(path)) {
@@ -124,7 +130,7 @@ export class URIUtils {
       // 注意：保留盘符后的第一个斜杠（C:/ -> C:\）
       path = path.replace(/\//g, '\\')
     }
-    
+
     return path
   }
 
@@ -186,4 +192,3 @@ export class URIUtils {
     return childPath.startsWith(parentPath + '/') || childPath === parentPath
   }
 }
-

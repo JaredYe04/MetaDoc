@@ -56,7 +56,7 @@ export class MainProgressHandle {
     if (options.initialMessage !== undefined || options.initialPercentage !== undefined) {
       this.emit({
         message: options.initialMessage,
-        percentage: options.initialPercentage ?? 0,
+        percentage: options.initialPercentage ?? 0
       })
     }
   }
@@ -66,7 +66,7 @@ export class MainProgressHandle {
     this.segmentTarget = targetPercent
     this.emit({
       ...opts,
-      percentage: this.segmentStart,
+      percentage: this.segmentStart
     })
   }
 
@@ -79,14 +79,14 @@ export class MainProgressHandle {
     const percent = this.segmentStart + (this.segmentTarget - this.segmentStart) * ratio
     this.emit({
       ...opts,
-      percentage: percent,
+      percentage: percent
     })
   }
 
   mark(percent: number, opts: ProgressSegmentOptions = {}): void {
     this.emit({
       ...opts,
-      percentage: percent,
+      percentage: percent
     })
   }
 
@@ -94,7 +94,7 @@ export class MainProgressHandle {
     this.emit({
       ...opts,
       percentage: 100,
-      status: 'success',
+      status: 'success'
     })
     this.hideLater()
   }
@@ -103,7 +103,7 @@ export class MainProgressHandle {
     this.emit({
       message,
       status: 'exception',
-      percentage: 0,
+      percentage: 0
     })
     this.hideLater()
   }
@@ -137,7 +137,7 @@ export class MainProgressHandle {
       showPercentage: payload.showPercentage,
       canCancel: this.canCancel,
       params: payload.params,
-      requestId: this.requestId,
+      requestId: this.requestId
     })
   }
 }
@@ -147,9 +147,7 @@ export class MainProgressHandle {
  */
 export function registerHandle(
   map: Map<string, MainProgressHandle>,
-  handle: MainProgressHandle,
+  handle: MainProgressHandle
 ): void {
   map.set(handle.requestId, handle)
 }
-
-

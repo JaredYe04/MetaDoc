@@ -22,9 +22,21 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { AgGridVue } from 'ag-grid-vue3'
-import { ModuleRegistry, AllCommunityModule, themeAlpine, colorSchemeDark, colorSchemeLight } from 'ag-grid-community'
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  themeAlpine,
+  colorSchemeDark,
+  colorSchemeLight
+} from 'ag-grid-community'
 import { themeState } from '../../utils/themes'
-import type { GridApi, GridReadyEvent, CellValueChangedEvent, ColDef, GridOptions } from 'ag-grid-community'
+import type {
+  GridApi,
+  GridReadyEvent,
+  CellValueChangedEvent,
+  ColDef,
+  GridOptions
+} from 'ag-grid-community'
 
 // 注册 AG Grid 社区模块（AG Grid v33+ 必需）
 ModuleRegistry.registerModules([AllCommunityModule])
@@ -76,7 +88,7 @@ const props = withDefaults(defineProps<DataTableProps>(), {
   manualColumnResize: true,
   stretchH: 'none',
   tableClass: '',
-  containerStyle: () => ({}),
+  containerStyle: () => ({})
 })
 
 const emit = defineEmits<DataTableEmits>()
@@ -97,9 +109,7 @@ const gridWrapperStyle = computed(() => {
 // 根据当前主题计算 AG Grid 主题对象（使用新的 Theming API）
 const agGridTheme = computed(() => {
   const isDark = themeState.currentTheme.type === 'dark'
-  return isDark 
-    ? themeAlpine.withPart(colorSchemeDark)
-    : themeAlpine.withPart(colorSchemeLight)
+  return isDark ? themeAlpine.withPart(colorSchemeDark) : themeAlpine.withPart(colorSchemeLight)
 })
 
 // 将二维数组数据转换为 AG Grid 的行数据格式
@@ -107,24 +117,24 @@ const rowData = computed(() => {
   if (!props.data || props.data.length === 0) {
     return []
   }
-  
+
   const rows: Record<string, any>[] = []
-  
+
   // 如果第一行是表头，跳过它（AG Grid 使用 columnDefs 定义列）
   const dataStartIndex = props.colHeaders ? 1 : 0
-  
+
   for (let i = dataStartIndex; i < props.data.length; i++) {
     const row: Record<string, any> = {}
     const rowData = props.data[i]
-    
+
     for (let j = 0; j < rowData.length; j++) {
       const colKey = `col${j}`
       row[colKey] = rowData[j]
     }
-    
+
     rows.push(row)
   }
-  
+
   return rows
 })
 
@@ -133,14 +143,15 @@ const columnDefs = computed<ColDef[]>(() => {
   if (!props.data || props.data.length === 0) {
     return []
   }
-  
+
   const firstRow = props.data[0]
   const columns: ColDef[] = []
-  
+
   for (let i = 0; i < firstRow.length; i++) {
     const colKey = `col${i}`
-    const headerName = props.colHeaders && props.data[0] ? String(props.data[0][i] || `列${i + 1}`) : `列${i + 1}`
-    
+    const headerName =
+      props.colHeaders && props.data[0] ? String(props.data[0][i] || `列${i + 1}`) : `列${i + 1}`
+
     const colDef: ColDef = {
       field: colKey,
       headerName: headerName,
@@ -151,12 +162,12 @@ const columnDefs = computed<ColDef[]>(() => {
       flex: props.stretchH === 'all' ? 1 : undefined,
       minWidth: 100
     }
-    
+
     // checkboxSelection 和 headerCheckboxSelection 由 gridOptions.rowSelection 统一管理
-    
+
     columns.push(colDef)
   }
-  
+
   // 如果是 'last' 模式，只有最后一列 flex
   if (props.stretchH === 'last' && columns.length > 0) {
     columns[columns.length - 1].flex = 1
@@ -164,7 +175,7 @@ const columnDefs = computed<ColDef[]>(() => {
       delete columns[i].flex
     }
   }
-  
+
   return columns
 })
 
@@ -189,7 +200,7 @@ const gridOptions = computed<GridOptions>(() => {
     suppressColumnVirtualisation: false,
     theme: agGridTheme.value
   }
-  
+
   // 行选择（AG Grid v33+ 对象 API）
   if (props.rowHeaders) {
     options.rowSelection = {
@@ -202,7 +213,7 @@ const gridOptions = computed<GridOptions>(() => {
   } else {
     options.rowSelection = undefined
   }
-  
+
   return options
 })
 
@@ -214,28 +225,28 @@ const gridOptions = computed<GridOptions>(() => {
  */
 const autoSizeAndFitColumns = () => {
   if (!gridApi.value || columnDefs.value.length === 0) return
-  
+
   const api = gridApi.value
-  
+
   // 第一步：先重置 minWidth，让 grid 回到容器宽度
   gridWrapperMinWidth.value = 0
-  
+
   // 第二步：按内容自适应列宽
-  const allColumnIds = columnDefs.value.map(col => col.field || '').filter(Boolean) as string[]
+  const allColumnIds = columnDefs.value.map((col) => col.field || '').filter(Boolean) as string[]
   if (allColumnIds.length > 0) {
     api.autoSizeColumns(allColumnIds, false)
   }
-  
+
   // 第三步：获取所有列的实际宽度总和
   const allColumns = api.getColumns?.() || []
   let totalColWidth = 0
   allColumns.forEach((col: any) => {
     totalColWidth += col.getActualWidth?.() || 0
   })
-  
+
   // 第四步：获取容器可用宽度
   const containerWidth = containerRef.value?.clientWidth || 0
-  
+
   if (containerWidth > 0 && totalColWidth < containerWidth) {
     // 列总宽不够，均分填满容器
     gridWrapperMinWidth.value = 0
@@ -251,13 +262,13 @@ const autoSizeAndFitColumns = () => {
 // Grid 就绪事件
 const onGridReady = (params: GridReadyEvent) => {
   gridApi.value = params.api
-  
+
   if (props.autoColumnSize) {
     nextTick(() => {
       autoSizeAndFitColumns()
     })
   }
-  
+
   // 发出 ready 事件（传递 gridApi 以兼容原有接口）
   const readyInstance = {
     api: gridApi.value,
@@ -305,22 +316,22 @@ const convertToRowData = (data: any[][]): Record<string, any>[] => {
   if (!data || data.length === 0) {
     return []
   }
-  
+
   const rows: Record<string, any>[] = []
   const dataStartIndex = props.colHeaders ? 1 : 0
-  
+
   for (let i = dataStartIndex; i < data.length; i++) {
     const row: Record<string, any> = {}
     const rowData = data[i]
-    
+
     for (let j = 0; j < rowData.length; j++) {
       const colKey = `col${j}`
       row[colKey] = rowData[j]
     }
-    
+
     rows.push(row)
   }
-  
+
   return rows
 }
 
@@ -329,22 +340,22 @@ const convertToArrayData = (): any[][] => {
   if (!gridApi.value || !columnDefs.value) {
     return []
   }
-  
+
   const result: any[][] = []
-  
+
   if (props.colHeaders) {
-    const headerRow = columnDefs.value.map(col => col.headerName || '')
+    const headerRow = columnDefs.value.map((col) => col.headerName || '')
     result.push(headerRow)
   }
-  
+
   const allRowData: Record<string, any>[] = []
   gridApi.value.forEachNode((node: any) => {
     if (node.data) {
       allRowData.push(node.data)
     }
   })
-  
-  allRowData.forEach(rowData => {
+
+  allRowData.forEach((rowData) => {
     const row: any[] = []
     columnDefs.value.forEach((col, index) => {
       const colKey = `col${index}`
@@ -352,7 +363,7 @@ const convertToArrayData = (): any[][] => {
     })
     result.push(row)
   })
-  
+
   return result
 }
 
@@ -363,10 +374,10 @@ defineExpose({
   },
   updateData: (data: any[][]) => {
     if (!gridApi.value) return
-    
+
     const newRowData = convertToRowData(data)
     gridApi.value.setGridOption('rowData', newRowData)
-    
+
     if (props.autoColumnSize) {
       nextTick(() => {
         autoSizeAndFitColumns()
@@ -383,17 +394,17 @@ defineExpose({
   },
   getSelectedRowsData: (): any[][] => {
     if (!gridApi.value || !columnDefs.value) return []
-    
+
     const selectedNodes = gridApi.value.getSelectedNodes()
     if (!selectedNodes || selectedNodes.length === 0) return []
-    
+
     const result: any[][] = []
-    
+
     if (props.colHeaders) {
-      const headerRow = columnDefs.value.map(col => col.headerName || '')
+      const headerRow = columnDefs.value.map((col) => col.headerName || '')
       result.push(headerRow)
     }
-    
+
     selectedNodes.forEach((node: any) => {
       if (node.data) {
         const row: any[] = []
@@ -404,7 +415,7 @@ defineExpose({
         result.push(row)
       }
     })
-    
+
     return result
   },
   render: () => {
@@ -414,7 +425,7 @@ defineExpose({
   },
   updateSettings: (settings: Record<string, any>) => {
     if (gridApi.value) {
-      Object.keys(settings).forEach(key => {
+      Object.keys(settings).forEach((key) => {
         gridApi.value?.setGridOption(key as any, (settings as any)[key])
       })
     }
@@ -428,7 +439,7 @@ watch(
     if (gridApi.value && newData) {
       const newRowData = convertToRowData(newData)
       gridApi.value.setGridOption('rowData', newRowData)
-      
+
       if (props.autoColumnSize) {
         nextTick(() => {
           autoSizeAndFitColumns()

@@ -1,16 +1,16 @@
-import { BaseExportAdapter } from './base-adapter';
-import type { LatexExportOptions, ExportOptionField } from './types';
+import { BaseExportAdapter } from './base-adapter'
+import type { LatexExportOptions, ExportOptionField } from './types'
 
 /**
  * Markdown -> LaTeX 导出适配器
  */
 export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOptions> {
-  sourceFormat: 'md' = 'md';
-  targetFormat: 'tex' = 'tex';
-  id = 'md-to-tex';
-  name = 'Markdown to LaTeX';
-  nameKey = 'export.adapters.mdToTex.name';
-  
+  sourceFormat: 'md' = 'md'
+  targetFormat: 'tex' = 'tex'
+  id = 'md-to-tex'
+  name = 'Markdown to LaTeX'
+  nameKey = 'export.adapters.mdToTex.name'
+
   getDefaultOptions(): LatexExportOptions {
     return {
       documentClass: 'article',
@@ -20,10 +20,10 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
       generateToc: false,
       showPageNumbers: true, // LaTeX 默认显示页码
       showHeader: true, // LaTeX 默认显示页眉
-      removeTitlePrefixes: true, // 默认自动去除标题前缀
-    };
+      removeTitlePrefixes: true // 默认自动去除标题前缀
+    }
   }
-  
+
   getOptionFields(): ExportOptionField[] {
     return [
       {
@@ -37,8 +37,8 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
         options: [
           { label: 'article', value: 'article' },
           { label: 'book', value: 'book' },
-          { label: 'report', value: 'report' },
-        ],
+          { label: 'report', value: 'report' }
+        ]
       },
       {
         key: 'includePackages',
@@ -47,7 +47,7 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
         type: 'boolean',
         default: true,
         description: '是否自动包含常用的LaTeX包',
-        descriptionKey: 'export.options.includePackages.description',
+        descriptionKey: 'export.options.includePackages.description'
       },
       {
         key: 'imageProcessing',
@@ -58,9 +58,17 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
         description: '选择图片的处理方式：保留原始链接或保存到文件夹',
         descriptionKey: 'export.options.imageProcessing.description',
         options: [
-          { label: '保留原始链接', value: 'original', labelKey: 'export.options.imageProcessing.original' },
-          { label: '保存到文件夹', value: 'folder', labelKey: 'export.options.imageProcessing.folder' },
-        ],
+          {
+            label: '保留原始链接',
+            value: 'original',
+            labelKey: 'export.options.imageProcessing.original'
+          },
+          {
+            label: '保存到文件夹',
+            value: 'folder',
+            labelKey: 'export.options.imageProcessing.folder'
+          }
+        ]
       },
       {
         key: 'generateCover',
@@ -69,7 +77,7 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
         type: 'boolean',
         default: false,
         description: '在第一页显示文档标题、作者、摘要和关键词',
-        descriptionKey: 'export.options.generateCover.description',
+        descriptionKey: 'export.options.generateCover.description'
       },
       {
         key: 'generateToc',
@@ -78,7 +86,7 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
         type: 'boolean',
         default: false,
         description: '在封面后（或文档开头）生成目录',
-        descriptionKey: 'export.options.generateToc.description',
+        descriptionKey: 'export.options.generateToc.description'
       },
       {
         key: 'showPageNumbers',
@@ -87,7 +95,7 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
         type: 'boolean',
         default: true,
         description: '在页脚显示页码',
-        descriptionKey: 'export.options.showPageNumbers.description',
+        descriptionKey: 'export.options.showPageNumbers.description'
       },
       {
         key: 'showHeader',
@@ -96,7 +104,7 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
         type: 'boolean',
         default: true,
         description: '在页眉显示文档标题和页码信息',
-        descriptionKey: 'export.options.showHeader.description',
+        descriptionKey: 'export.options.showHeader.description'
       },
       {
         key: 'removeTitlePrefixes',
@@ -104,39 +112,39 @@ export class MdToTexAdapter extends BaseExportAdapter<'md', 'tex', LatexExportOp
         labelKey: 'export.options.removeTitlePrefixes.label',
         type: 'boolean',
         default: true,
-        description: 'LaTeX会自动为每个章节添加编号，如果标题中已有编号前缀会导致重复。启用此选项将自动去除所有标题开头的编号和点号（如"1.1"、"一、"等）',
-        descriptionKey: 'export.options.removeTitlePrefixes.description',
-      },
-    ];
+        description:
+          'LaTeX会自动为每个章节添加编号，如果标题中已有编号前缀会导致重复。启用此选项将自动去除所有标题开头的编号和点号（如"1.1"、"一、"等）',
+        descriptionKey: 'export.options.removeTitlePrefixes.description'
+      }
+    ]
   }
-  
+
   async prepareExportData(
     data: { md: string; json: string; tex: string },
     options: LatexExportOptions,
     context?: any
   ): Promise<{
-    md: string;
-    json: string;
-    tex: string;
-    html?: string;
-    imageUrls?: string[];
+    md: string
+    json: string
+    tex: string
+    html?: string
+    imageUrls?: string[]
   }> {
-    return { ...data };
+    return { ...data }
   }
-  
+
   async executeExport(
     preparedData: {
-      md: string;
-      json: string;
-      tex: string;
-      html?: string;
-      imageUrls?: string[];
+      md: string
+      json: string
+      tex: string
+      html?: string
+      imageUrls?: string[]
     },
     targetPath: string,
     options: LatexExportOptions,
     context?: any
   ): Promise<void> {
-    throw new Error('executeExport should be called in main process');
+    throw new Error('executeExport should be called in main process')
   }
 }
-

@@ -23,7 +23,10 @@
           <el-icon><ArrowRight /></el-icon>
         </div>
       </el-tooltip>
-      <span class="pdf-toolbar__page" :title="`${inputPdfPage} / ${totalPdfPages} ${$t('latexEditor.pages')}`">
+      <span
+        class="pdf-toolbar__page"
+        :title="`${inputPdfPage} / ${totalPdfPages} ${$t('latexEditor.pages')}`"
+      >
         <input
           v-model.number="inputPdfPage"
           type="number"
@@ -31,7 +34,9 @@
           :max="totalPdfPages"
           @change="jumpToPage"
         />
-        <span class="pdf-toolbar__page-label">/ {{ totalPdfPages }} {{ $t('latexEditor.pages') }}</span>
+        <span class="pdf-toolbar__page-label"
+          >/ {{ totalPdfPages }} {{ $t('latexEditor.pages') }}</span
+        >
       </span>
       <el-tooltip :content="$t('latexEditor.toolbar.zoomIn')" placement="bottom">
         <div class="pdf-toolbar-icon" @click="pdfZoomIn">
@@ -50,8 +55,15 @@
       </el-tooltip>
       <el-divider direction="vertical" />
       <span class="pdf-toolbar__pages-per-row">
-        <span class="pdf-toolbar__pages-per-row-label">{{ $t('latexEditor.pagesPerRow') || '每行页数' }}:</span>
-        <el-select v-model="pagesPerRow" size="small" style="width: 80px" @change="handlePagesPerRowChange">
+        <span class="pdf-toolbar__pages-per-row-label"
+          >{{ $t('latexEditor.pagesPerRow') || '每行页数' }}:</span
+        >
+        <el-select
+          v-model="pagesPerRow"
+          size="small"
+          style="width: 80px"
+          @change="handlePagesPerRowChange"
+        >
           <el-option v-for="num in 10" :key="num" :label="String(num)" :value="num" />
         </el-select>
       </span>
@@ -62,7 +74,11 @@
           :class="{ active: pdfViewMode === 'pointer' }"
           @click="setPdfViewMode('pointer')"
         >
-          <img :src="(themeState.currentTheme as any).CursorIcon" alt="pointer" class="pdf-toolbar-mode-icon" />
+          <img
+            :src="(themeState.currentTheme as any).CursorIcon"
+            alt="pointer"
+            class="pdf-toolbar-mode-icon"
+          />
         </div>
       </el-tooltip>
       <el-tooltip :content="$t('latexEditor.toolbar.handMode')" placement="bottom">
@@ -71,7 +87,11 @@
           :class="{ active: pdfViewMode === 'hand' }"
           @click="setPdfViewMode('hand')"
         >
-          <img :src="(themeState.currentTheme as any).HandIcon" alt="hand" class="pdf-toolbar-mode-icon" />
+          <img
+            :src="(themeState.currentTheme as any).HandIcon"
+            alt="hand"
+            class="pdf-toolbar-mode-icon"
+          />
         </div>
       </el-tooltip>
     </div>
@@ -124,7 +144,11 @@
         </div>
       </div>
     </el-scrollbar>
-    <div v-else class="pdf-preview-container pdf-empty" :style="{ background: themeState.currentTheme.background }">
+    <div
+      v-else
+      class="pdf-preview-container pdf-empty"
+      :style="{ background: themeState.currentTheme.background }"
+    >
       <h3 class="pdf-empty-text">{{ $t('latexEditor.pdfEmpty') }}</h3>
     </div>
   </div>
@@ -192,8 +216,14 @@ const pdfContainerStyle = computed(() => ({
 
 const pdfWrapperStyle = computed(() => ({
   position: 'relative' as const,
-  height: typeof pdfWrapperHeight.value === 'number' ? `${pdfWrapperHeight.value}px` : pdfWrapperHeight.value,
-  width: typeof pdfWrapperWidth.value === 'number' ? `${pdfWrapperWidth.value}px` : pdfWrapperWidth.value,
+  height:
+    typeof pdfWrapperHeight.value === 'number'
+      ? `${pdfWrapperHeight.value}px`
+      : pdfWrapperHeight.value,
+  width:
+    typeof pdfWrapperWidth.value === 'number'
+      ? `${pdfWrapperWidth.value}px`
+      : pdfWrapperWidth.value,
   display: 'block'
 }))
 
@@ -424,7 +454,9 @@ function detectCurrentPage() {
     )
     const toleranceX = pageRect.width / 2
     const toleranceY = pageRect.height / 2
-    const isInCenter = Math.abs(viewportCenterX - pageCenterX) <= toleranceX && Math.abs(viewportCenterY - pageCenterY) <= toleranceY
+    const isInCenter =
+      Math.abs(viewportCenterX - pageCenterX) <= toleranceX &&
+      Math.abs(viewportCenterY - pageCenterY) <= toleranceY
     if (isInCenter && distance < minDistance) {
       minDistance = distance
       currentPage = pageNum
@@ -449,7 +481,8 @@ function setupScrollListener() {
   if (!pdfScrollbarRef.value) return
   const scrollbarEl = (pdfScrollbarRef.value as any).$el as HTMLElement | null
   const scrollbarWrap = scrollbarEl?.querySelector('.el-scrollbar__wrap') as HTMLElement | null
-  if (scrollbarWrap) scrollbarWrap.addEventListener('scroll', handleScrollDebounced, { passive: true })
+  if (scrollbarWrap)
+    scrollbarWrap.addEventListener('scroll', handleScrollDebounced, { passive: true })
 }
 
 function removeScrollListener() {

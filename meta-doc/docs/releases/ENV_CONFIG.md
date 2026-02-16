@@ -75,14 +75,15 @@ GitHub 仓库的 Settings → Secrets and variables → Actions
 
 ## 配置对比表
 
-| 配置项 | 位置 | 用途 | 是否必需 | 安全说明 |
-|--------|------|------|----------|----------|
-| `UPDATE_GITHUB_OWNER` | `.env` 文件 | 应用程序检查更新 | ✅ 必需 | ✅ 公开信息，安全 |
-| `UPDATE_GITHUB_REPO` | `.env` 文件 | 应用程序检查更新 | ✅ 必需 | ✅ 公开信息，安全 |
+| 配置项                | 位置            | 用途                         | 是否必需      | 安全说明                    |
+| --------------------- | --------------- | ---------------------------- | ------------- | --------------------------- |
+| `UPDATE_GITHUB_OWNER` | `.env` 文件     | 应用程序检查更新             | ✅ 必需       | ✅ 公开信息，安全           |
+| `UPDATE_GITHUB_REPO`  | `.env` 文件     | 应用程序检查更新             | ✅ 必需       | ✅ 公开信息，安全           |
 | `UPDATE_GITHUB_TOKEN` | ❌ **不应配置** | 应用程序检查更新（私有仓库） | ❌ **不推荐** | ⚠️ **会暴露给用户，不安全** |
-| `GH_TOKEN` | GitHub Secrets | GitHub Actions 发布 | ✅ 必需 | ✅ 仅存储在 GitHub，安全 |
+| `GH_TOKEN`            | GitHub Secrets  | GitHub Actions 发布          | ✅ 必需       | ✅ 仅存储在 GitHub，安全    |
 
 **重要说明**：
+
 - `UPDATE_GITHUB_TOKEN` **不应**写在 `.env` 文件中，因为会被打包到应用程序中
 - `GH_TOKEN` 只存在于 GitHub Secrets 中，不会出现在 `.env` 文件中
 - **推荐使用公开的 Releases 仓库**，这样不需要 Token 就能检查更新
@@ -98,9 +99,10 @@ GitHub 仓库的 Settings → Secrets and variables → Actions
 
 ### Q: UPDATE_GITHUB_TOKEN 和 GH_TOKEN 的区别是什么？
 
-**A:** 
+**A:**
 
 - **`UPDATE_GITHUB_TOKEN`**：
+
   - 用于应用程序运行时检查更新
   - **不应**写在 `.env` 文件中（会被打包，用户可以看到）
   - 如果 Releases 仓库是公开的，不需要 Token
@@ -114,7 +116,8 @@ GitHub 仓库的 Settings → Secrets and variables → Actions
 
 ### Q: 如果仓库是公开的，还需要 Token 吗？
 
-**A:** 
+**A:**
+
 - **应用程序检查更新**：不需要 Token（公开仓库，任何人都可以读取 Releases）
 - **GitHub Actions 发布**：需要 `GH_TOKEN`（用于发布操作，即使是公开仓库也需要）
 
@@ -123,14 +126,16 @@ GitHub 仓库的 Settings → Secrets and variables → Actions
 **A:** 因为 `.env` 文件会被打包到应用程序中，用户安装应用程序后可以访问这些文件。如果 Token 写在 `.env` 中，用户就能看到并使用这个 Token，存在安全风险。
 
 **解决方案**：
+
 - **推荐**：使用公开的 Releases 仓库，不需要 Token
 - **如果必须使用私有仓库**：考虑使用其他更新机制，或接受安全风险（不推荐）
 
 ### Q: 如何验证配置是否正确？
 
-**A:** 
+**A:**
 
 1. **验证 `.env` 配置**：
+
    - 运行应用程序
    - 打开设置 → 关于
    - 点击"检查更新"
@@ -143,7 +148,7 @@ GitHub 仓库的 Settings → Secrets and variables → Actions
 
 ### Q: 打包后应用程序如何读取 .env 文件？
 
-**A:** 
+**A:**
 
 1. `scripts/copy-env.js` 会在构建时自动将 `.env` 文件复制到 `resources/.env`
 2. `electron-builder.yml` 配置了 `asarUnpack`，确保 `resources` 目录不被打包到 asar 中
@@ -162,6 +167,7 @@ UPDATE_GITHUB_REPO=MetaDoc-Releases
 ```
 
 **重要提示**：
+
 - **推荐使用公开的 Releases 仓库**，这样不需要 Token，也不存在安全问题
 - 如果 Releases 仓库是私有的，`UPDATE_GITHUB_TOKEN` 会被打包到应用程序中，用户可以看到，存在安全风险
 - 如果必须使用私有仓库，应该考虑其他更新机制
@@ -181,4 +187,3 @@ UPDATE_GITHUB_REPO=MetaDoc-Releases
    - `GH_TOKEN`：只授予必要的 `repo` 权限
 3. **定期轮换 Token**：定期更新 Token 以提高安全性
 4. **使用不同的 Token**：为不同用途使用不同的 Token，便于管理和撤销
-

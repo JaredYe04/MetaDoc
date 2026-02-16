@@ -7,7 +7,7 @@ export const MISC_DICTIONARY: string[] = [
   'i18n',
   'l10n',
   'a11y',
-  
+
   // 通用缩写
   'API',
   'SDK',
@@ -19,9 +19,8 @@ export const MISC_DICTIONARY: string[] = [
   'URI',
   'SEO',
   'PWA',
-  
+
   // DevOps 缩写
   'CI',
   'CD'
 ]
-

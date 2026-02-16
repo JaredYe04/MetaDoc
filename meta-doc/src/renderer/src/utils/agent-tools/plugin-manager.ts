@@ -72,7 +72,9 @@ class ToolPluginManager {
       this.importToolConfig(exported)
     } catch (error) {
       logger.error('导入Tool配置失败:', error)
-      throw new Error(`无效的Tool配置JSON: ${error instanceof Error ? error.message : String(error)}`)
+      throw new Error(
+        `无效的Tool配置JSON: ${error instanceof Error ? error.message : String(error)}`
+      )
     }
   }
 
@@ -107,7 +109,9 @@ class ToolPluginManager {
   /**
    * 导入MCP Tool
    */
-  private importMCPTool(config: Partial<AgentToolConfig> & { id: string; mcpConfig?: MCPToolConfig }): void {
+  private importMCPTool(
+    config: Partial<AgentToolConfig> & { id: string; mcpConfig?: MCPToolConfig }
+  ): void {
     if (!config.mcpConfig) {
       throw new Error('MCP Tool必须提供mcpConfig')
     }
@@ -136,7 +140,7 @@ class ToolPluginManager {
     return async (params: Record<string, unknown>, signal: AbortSignal) => {
       // MCP调用实现
       logger.info('MCP Tool调用', { mcpConfig, params })
-      
+
       // 这里需要实现实际的MCP协议调用
       // 可以参考MCP (Model Context Protocol) 规范
       throw new Error('MCP Tool调用尚未实现，需要MCP客户端支持')
@@ -171,11 +175,10 @@ class ToolPluginManager {
   getExportableTools(): string[] {
     return agentToolManager
       .getAllTools()
-      .filter(tool => tool.config.editable)
-      .map(tool => tool.config.id)
+      .filter((tool) => tool.config.editable)
+      .map((tool) => tool.config.id)
   }
 }
 
 // 导出单例
 export const toolPluginManager = new ToolPluginManager()
-

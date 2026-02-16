@@ -26,7 +26,7 @@ export const SYSTEM_TAB_COMPONENTS: Record<string, Component> = {
   '/global-home': GlobalHome,
   '/knowledge-base': KnowledgeBase,
   '/debug': DebugView,
-  '/dummy': DummyView,
+  '/dummy': DummyView
 }
 
 /**
@@ -44,7 +44,7 @@ export const TOOL_TAB_COMPONENTS: Record<string, Component> = {
   '/smart-drawing-assistant': GraphWindow,
   '/llm-statistics': LlmStatisticsView,
   '/aigc-detection': AigcDetectionWindow,
-  '/user-feedback': UserFeedbackView,
+  '/user-feedback': UserFeedbackView
 }
 
 /**

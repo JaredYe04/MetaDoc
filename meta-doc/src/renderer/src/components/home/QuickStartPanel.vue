@@ -3,8 +3,8 @@
     <div class="quick-start-panel-container" :style="formatContainerStyle">
       <div class="panel-header">
         <h2 class="panel-title">{{ $t('home.quickStartFormatTitle') }}</h2>
-        <el-button 
-          class="close-button" 
+        <el-button
+          class="close-button"
           @click="closeQuickStart"
           circle
           size="small"
@@ -20,7 +20,9 @@
         >
           <div class="format-option-icon">📝</div>
           <h3 class="format-option-title">Markdown</h3>
-          <p class="format-option-description">{{ $t('home.quickStartFormatDescriptionMarkdown') }}</p>
+          <p class="format-option-description">
+            {{ $t('home.quickStartFormatDescriptionMarkdown') }}
+          </p>
         </div>
         <div
           class="format-option-card"
@@ -35,14 +37,8 @@
     </div>
   </div>
 
-  <QuickStartMarkdown
-    v-else-if="stage === 'markdown'"
-    @close="handleQuickStartClose"
-  />
-  <QuickStartLatex
-    v-else-if="stage === 'latex'"
-    @close="handleQuickStartClose"
-  />
+  <QuickStartMarkdown v-else-if="stage === 'markdown'" @close="handleQuickStartClose" />
+  <QuickStartLatex v-else-if="stage === 'latex'" @close="handleQuickStartClose" />
 
   <!-- 原有的 QuickStartPanel 编辑器界面（保留作为备用） -->
   <div v-else class="quick-start-overlay" :style="overlayStyle">
@@ -74,7 +70,7 @@
           </el-scrollbar>
         </div>
         <div class="panel-divider" />
-      <div class="panel-body__right">
+        <div class="panel-body__right">
           <div class="tab-switch">
             <el-segmented v-model="activeTab" :options="tabOptions" />
           </div>
@@ -99,14 +95,16 @@
             </div>
             <div class="form-actions">
               <el-tooltip :content="$t('home.tooltip.ready')" placement="top">
-                <el-button circle type="success" @click="confirmDocument"><el-icon><Check /></el-icon></el-button>
+                <el-button circle type="success" @click="confirmDocument"
+                  ><el-icon><Check /></el-icon
+                ></el-button>
               </el-tooltip>
             </div>
           </div>
 
           <div v-else class="ai-assistant aero-div">
             <label class="section-title interactive-text">{{ $t('home.aiAssistantLabel') }}</label>
-            <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left" >
+            <el-tooltip :content="$t('home.tooltip.selectTemperature')" placement="left">
               <el-slider
                 v-model="temperature"
                 :marks="marks"
@@ -125,7 +123,12 @@
                 size="small"
                 :disabled="generated || generating"
               >
-                <el-option v-for="option in moodOptions" :key="option.value" :label="option.label" :value="option.value">
+                <el-option
+                  v-for="option in moodOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+                >
                   <template #prefix>
                     <el-icon :size="12"><component :is="option.icon" /></el-icon>
                   </template>
@@ -170,13 +173,19 @@
             </div>
             <div class="action-buttons" @mousedown.stop>
               <el-tooltip :content="$t('home.tooltip.generateArticle')" placement="top">
-                <el-button circle type="primary" @click="generate" :disabled="disableGenerate"><el-icon><Promotion /></el-icon></el-button>
+                <el-button circle type="primary" @click="generate" :disabled="disableGenerate"
+                  ><el-icon><Promotion /></el-icon
+                ></el-button>
               </el-tooltip>
               <el-tooltip :content="$t('home.tooltip.reset')" placement="top">
-                <el-button circle type="info" @click="reset" v-if="generated"><el-icon><RefreshLeft /></el-icon></el-button>
+                <el-button circle type="info" @click="reset" v-if="generated"
+                  ><el-icon><RefreshLeft /></el-icon
+                ></el-button>
               </el-tooltip>
               <el-tooltip :content="$t('home.tooltip.accept')" placement="top">
-                <el-button circle type="success" @click="accept" v-if="generated"><el-icon><Check /></el-icon></el-button>
+                <el-button circle type="success" @click="accept" v-if="generated"
+                  ><el-icon><Check /></el-icon
+                ></el-button>
               </el-tooltip>
             </div>
           </div>
@@ -245,17 +254,20 @@ const {
   createDocumentSnapshotFromTemplate
 } = workspace
 
-const formatOptions = computed(() => supportedFormats.map((format) => ({
-  id: format.id,
-  title: t(format.labelKey ?? ''),
-  description: t(format.descriptionKey ?? '')
-})))
+const formatOptions = computed(() =>
+  supportedFormats.map((format) => ({
+    id: format.id,
+    title: t(format.labelKey ?? ''),
+    description: t(format.descriptionKey ?? '')
+  }))
+)
 
 const overlayStyle = computed(() => ({
   color: themeState.currentTheme.textColor,
-  background: stage.value === 'editor'
-    ? themeState.currentTheme.quickStartBackground1
-    : themeState.currentTheme.quickStartBackground2
+  background:
+    stage.value === 'editor'
+      ? themeState.currentTheme.quickStartBackground1
+      : themeState.currentTheme.quickStartBackground2
 }))
 
 const formatContainerStyle = computed(() => ({
@@ -310,7 +322,9 @@ const logger = createRendererLogger('QuickStartPanel', {
   windowTypeProvider: () => getWindowType()
 })
 
-const currentMeta = computed(() => activeDocument.value?.meta ?? { title: '', author: '', description: '' })
+const currentMeta = computed(
+  () => activeDocument.value?.meta ?? { title: '', author: '', description: '' }
+)
 
 const metaTitle = computed({
   get: () => currentMeta.value?.title ?? '',
@@ -327,7 +341,9 @@ const metaDescription = computed({
   set: (val: string) => updateMetaField('description', val)
 })
 
-const disableGenerate = computed(() => generating.value || generated.value || userPrompt.value.trim().length === 0)
+const disableGenerate = computed(
+  () => generating.value || generated.value || userPrompt.value.trim().length === 0
+)
 
 function updateMetaField(field: 'title' | 'author' | 'description', value: string) {
   const tabId = activeTabId.value
@@ -367,13 +383,13 @@ function onSpeechRecognized(text: string) {
   userPrompt.value = text
 }
 
-  function querySearch(queryString: string, cb: (results: Array<{ value: string }>) => void) {
-    const presetList = getPresets()
-    const results = queryString
-      ? presetList.filter((preset) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
-      : presetList
-    cb(results)
-  }
+function querySearch(queryString: string, cb: (results: Array<{ value: string }>) => void) {
+  const presetList = getPresets()
+  const results = queryString
+    ? presetList.filter((preset) => preset.value.toLowerCase().includes(queryString.toLowerCase()))
+    : presetList
+  cb(results)
+}
 
 function reset() {
   generated.value = false
@@ -394,10 +410,12 @@ async function generate() {
     const prompt = generateArticlePrompt(mood.value, userPrompt.value)
     // 清空内容，准备接收流式数据
     generatedText.value = ''
-    const messages: AIDialogMessage[] = [{
-      role: 'user',
-      content: prompt,
-    }]
+    const messages: AIDialogMessage[] = [
+      {
+        role: 'user',
+        content: prompt
+      }
+    ]
     const { done } = createAiTask(
       userPrompt.value,
       messages,
@@ -499,7 +517,7 @@ const selectQuickStartFormat = (format: 'md' | 'tex') => {
   logger.info('[QuickStartPanel] 设置 stage', { newStage, currentStage: stage.value })
   stage.value = newStage
   logger.info('[QuickStartPanel] stage 已更新', { stage: stage.value })
-  
+
   // 通知 GlobalHome.vue 更新快速开始面板状态
   eventBus.emit('quickstart-stage-changed', newStage)
   logger.info('[QuickStartPanel] 已发送 quickstart-stage-changed 事件', { newStage })
@@ -866,7 +884,5 @@ watch(
 
 .format-card:hover {
   transform: translateY(-4px);
-  
-  
 }
 </style>

@@ -5,51 +5,51 @@
       <div class="toolbar-left">
         <!-- 工具模式切换 -->
         <el-button-group v-if="!props.readOnly">
-          <el-button 
-            size="small" 
+          <el-button
+            size="small"
             :type="toolMode === 'pointer' ? 'primary' : 'default'"
             :icon="Pointer"
             @click="toolMode = 'pointer'"
             :title="t('agent.workflow.toolbar.pointer')"
           />
-          <el-button 
-            size="small" 
+          <el-button
+            size="small"
             :type="toolMode === 'select' ? 'primary' : 'default'"
             :icon="Select"
             @click="toolMode = 'select'"
             :title="t('agent.workflow.toolbar.select')"
           />
-          <el-button 
-            size="small" 
+          <el-button
+            size="small"
             :type="toolMode === 'pan' ? 'primary' : 'default'"
             :icon="Rank"
             @click="toolMode = 'pan'"
             :title="t('agent.workflow.toolbar.pan')"
           />
-          <el-button 
-            size="small" 
+          <el-button
+            size="small"
             :type="toolMode === 'text-edit' ? 'primary' : 'default'"
             :icon="Edit"
             @click="toolMode = 'text-edit'"
             :title="t('agent.workflow.toolbar.textEdit')"
           />
-          <el-button 
-            size="small" 
+          <el-button
+            size="small"
             :type="toolMode === 'delete' ? 'primary' : 'default'"
             :icon="Delete"
             @click="toolMode = 'delete'"
             :title="t('agent.workflow.toolbar.delete')"
           />
         </el-button-group>
-        
-        <el-divider v-if="!props.readOnly" direction="vertical" style="margin: 0 8px;" />
-        
+
+        <el-divider v-if="!props.readOnly" direction="vertical" style="margin: 0 8px" />
+
         <!-- 节点创建按钮（支持拖拽） -->
         <div v-if="!props.readOnly" class="node-toolbar">
           <el-dropdown @command="handleDragNodeCreate" trigger="contextmenu">
             <el-button-group>
-              <el-button 
-                size="small" 
+              <el-button
+                size="small"
                 draggable="true"
                 @dragstart="(e) => handleNodeDragStart(e, 'tool')"
                 @dragend="handleNodeDragEnd"
@@ -57,8 +57,8 @@
               >
                 {{ t('agent.workflow.addTool') }}
               </el-button>
-              <el-button 
-                size="small" 
+              <el-button
+                size="small"
                 draggable="true"
                 @dragstart="(e) => handleNodeDragStart(e, 'llm-decision')"
                 @dragend="handleNodeDragEnd"
@@ -66,8 +66,8 @@
               >
                 {{ t('agent.workflow.addLLM') }}
               </el-button>
-              <el-button 
-                size="small" 
+              <el-button
+                size="small"
                 draggable="true"
                 @dragstart="(e) => handleNodeDragStart(e, 'workflow')"
                 @dragend="handleNodeDragEnd"
@@ -75,8 +75,8 @@
               >
                 {{ t('agent.workflow.addWorkflow') }}
               </el-button>
-              <el-button 
-                size="small" 
+              <el-button
+                size="small"
                 draggable="true"
                 @dragstart="(e) => handleNodeDragStart(e, 'agent-config')"
                 @dragend="handleNodeDragEnd"
@@ -87,8 +87,8 @@
             </el-button-group>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item 
-                  v-for="tool in availableTools" 
+                <el-dropdown-item
+                  v-for="tool in availableTools"
                   :key="tool.config.id"
                   :command="tool.config.id"
                 >
@@ -97,10 +97,10 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          
-          <el-button-group style="margin-left: 8px;">
-            <el-button 
-              size="small" 
+
+          <el-button-group style="margin-left: 8px">
+            <el-button
+              size="small"
               draggable="true"
               @dragstart="(e) => handleNodeDragStart(e, 'condition', false)"
               @dragend="handleNodeDragEnd"
@@ -108,8 +108,8 @@
             >
               {{ t('agent.workflow.addCondition') }}
             </el-button>
-            <el-button 
-              size="small" 
+            <el-button
+              size="small"
               draggable="true"
               @dragstart="(e) => handleNodeDragStart(e, 'loop', false)"
               @dragend="handleNodeDragEnd"
@@ -117,8 +117,8 @@
             >
               {{ t('agent.workflow.addLoop') }}
             </el-button>
-            <el-button 
-              size="small" 
+            <el-button
+              size="small"
               draggable="true"
               @dragstart="(e) => handleNodeDragStart(e, 'parallel', false)"
               @dragend="handleNodeDragEnd"
@@ -126,8 +126,8 @@
             >
               {{ t('agent.workflow.addParallel') }}
             </el-button>
-            <el-button 
-              size="small" 
+            <el-button
+              size="small"
               draggable="true"
               @dragstart="(e) => handleNodeDragStart(e, 'merge', false)"
               @dragend="handleNodeDragEnd"
@@ -135,8 +135,8 @@
             >
               {{ t('agent.workflow.addMerge') }}
             </el-button>
-            <el-button 
-              size="small" 
+            <el-button
+              size="small"
               draggable="true"
               @dragstart="(e) => handleNodeDragStart(e, 'async', false)"
               @dragend="handleNodeDragEnd"
@@ -144,8 +144,8 @@
             >
               {{ t('agent.workflow.addAsync') }}
             </el-button>
-            <el-button 
-              size="small" 
+            <el-button
+              size="small"
               draggable="true"
               @dragstart="(e) => handleNodeDragStart(e, 'aggregate', false)"
               @dragend="handleNodeDragEnd"
@@ -156,7 +156,7 @@
           </el-button-group>
         </div>
       </div>
-      
+
       <div class="toolbar-center">
         <!-- 视图切换 -->
         <el-radio-group v-model="viewMode" size="small">
@@ -164,71 +164,75 @@
           <el-radio-button value="code">{{ t('agent.workflow.viewMode.code') }}</el-radio-button>
         </el-radio-group>
       </div>
-      
+
       <div class="toolbar-right">
         <!-- 编辑操作 -->
         <el-button-group v-if="!props.readOnly">
-          <el-button 
-            size="small" 
+          <el-button
+            size="small"
             :icon="CopyDocument"
             @click="handleCopy"
             :disabled="!hasSelection"
             :title="t('agent.workflow.toolbar.copy')"
           />
-          <el-button 
-            size="small" 
+          <el-button
+            size="small"
             :icon="DocumentCopy"
             @click="handlePaste"
             :disabled="!clipboardData"
             :title="t('agent.workflow.toolbar.paste')"
           />
-          <el-button 
-            size="small" 
+          <el-button
+            size="small"
             :icon="Delete"
             @click="handleDelete"
             :disabled="!hasSelection"
             :title="t('agent.workflow.toolbar.delete')"
           />
         </el-button-group>
-        
-        <el-divider direction="vertical" style="margin: 0 8px;" />
-        
+
+        <el-divider direction="vertical" style="margin: 0 8px" />
+
         <!-- 缩放控制 -->
         <el-button-group>
-          <el-button 
-            size="small" 
+          <el-button
+            size="small"
             :icon="ZoomOut"
             @click="handleZoomOut"
             :title="t('agent.workflow.toolbar.zoomOut')"
           />
-          <el-button 
-            size="small" 
+          <el-button
+            size="small"
             :icon="ZoomIn"
             @click="handleZoomIn"
             :title="t('agent.workflow.toolbar.zoomIn')"
           />
-          <el-button 
-            size="small" 
+          <el-button
+            size="small"
             :icon="FullScreen"
             @click="handleZoomFit"
             :title="t('agent.workflow.toolbar.zoomFit')"
           />
         </el-button-group>
-        
-        <el-divider direction="vertical" style="margin: 0 8px;" />
-        
-        <el-button size="small" @click="handleValidate">{{ t('agent.workflow.validate') }}</el-button>
-        <el-button size="small" type="primary" @click="handleSave" :disabled="props.readOnly">{{ t('common.save') }}</el-button>
+
+        <el-divider direction="vertical" style="margin: 0 8px" />
+
+        <el-button size="small" @click="handleValidate">{{
+          t('agent.workflow.validate')
+        }}</el-button>
+        <el-button size="small" type="primary" @click="handleSave" :disabled="props.readOnly">{{
+          t('common.save')
+        }}</el-button>
         <el-button size="small" @click="$emit('cancel')">{{ t('common.cancel') }}</el-button>
       </div>
     </div>
-    
+
     <!-- 画布区域：图形视图或代码视图 -->
     <div class="canvas-content-wrapper">
       <!-- 图形视图 -->
-      <div 
+      <div
         v-show="viewMode === 'graph'"
-        class="canvas-content" 
+        class="canvas-content"
         ref="graphContainer"
         @drop="handleDrop"
         @dragover.prevent
@@ -249,7 +253,7 @@
           @selection-changed="handleSelectionChanged"
         />
       </div>
-      
+
       <!-- 代码视图 -->
       <div v-show="viewMode === 'code'" class="code-content">
         <WorkflowCodeEditor
@@ -259,7 +263,7 @@
         />
       </div>
     </div>
-    
+
     <!-- 属性面板 -->
     <div class="canvas-properties" v-if="selectedNode && viewMode === 'graph'">
       <h3>{{ t('agent.workflow.nodeProperties') }}</h3>
@@ -319,15 +323,28 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { 
-  Pointer, Rank, Edit, Delete, CopyDocument, DocumentCopy, 
-  ZoomIn, ZoomOut, FullScreen 
+import {
+  Pointer,
+  Rank,
+  Edit,
+  Delete,
+  CopyDocument,
+  DocumentCopy,
+  ZoomIn,
+  ZoomOut,
+  FullScreen
 } from '@element-plus/icons-vue'
 import { Select } from '@element-plus/icons-vue'
 import { themeState } from '../../../utils/themes'
 import { workflowManager, agentConfigManager } from '../../../utils/agent-framework'
 import { agentToolManager } from '../../../utils/agent-tool-manager'
-import type { Workflow, ArtifactNode, ControlFlowNode, WorkflowEdge, LocalizedText } from '../../../types/agent-framework'
+import type {
+  Workflow,
+  ArtifactNode,
+  ControlFlowNode,
+  WorkflowEdge,
+  LocalizedText
+} from '../../../types/agent-framework'
 import type { LocalizedText as ToolLocalizedText } from '../../../types/agent-tool'
 import MxGraphCanvas from './MxGraphCanvas.vue'
 import WorkflowCodeEditor from './WorkflowCodeEditor.vue'
@@ -380,7 +397,7 @@ const workflowData = ref<Workflow>(
 const selectedNode = computed(() => {
   if (!selectedNodeId.value) return null
   const allNodes = [...workflowData.value.artifactNodes, ...workflowData.value.controlFlowNodes]
-  return allNodes.find(n => n.id === selectedNodeId.value) || null
+  return allNodes.find((n) => n.id === selectedNodeId.value) || null
 })
 
 const selectedNodeForm = computed({
@@ -427,7 +444,7 @@ const ensureStartEndNodesForNewWorkflow = () => {
   const startId = 'start-node'
   const endId = 'end-node'
 
-  if (!workflowData.value.controlFlowNodes.find(n => n.type === 'start')) {
+  if (!workflowData.value.controlFlowNodes.find((n) => n.type === 'start')) {
     const startNode: ControlFlowNode = {
       id: startId,
       type: 'start',
@@ -438,7 +455,7 @@ const ensureStartEndNodesForNewWorkflow = () => {
     workflowData.value.controlFlowNodes.push(startNode)
   }
 
-  if (!workflowData.value.controlFlowNodes.find(n => n.type === 'end')) {
+  if (!workflowData.value.controlFlowNodes.find((n) => n.type === 'end')) {
     const endNode: ControlFlowNode = {
       id: endId,
       type: 'end',
@@ -464,7 +481,7 @@ const handleDragNodeCreate = (toolId: string) => {
   const view = graph ? graph.getView() : null
   const containerRect = graphContainer.value?.getBoundingClientRect()
   let position = { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 }
-  
+
   if (view && containerRect) {
     const scale = view.scale || 1
     const translate = view.translate || { x: 0, y: 0 }
@@ -473,13 +490,13 @@ const handleDragNodeCreate = (toolId: string) => {
       y: (containerRect.height / 2 - translate.y * scale) / scale
     }
   }
-  
+
   const nodeId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-  const tool = availableTools.value.find(t => t.config.id === toolId)
+  const tool = availableTools.value.find((t) => t.config.id === toolId)
   const label = tool ? agentToolManager.getLocalizedText(tool.config.name) : '工具节点'
-  
+
   const cell = mxGraphCanvas.value.addNode('artifact', 'tool', label, position, nodeId)
-  
+
   if (cell) {
     const node: ArtifactNode = {
       id: nodeId,
@@ -510,26 +527,26 @@ const handleNodeDragEnd = () => {
 const handleDrop = (e: DragEvent) => {
   e.preventDefault()
   if (!mxGraphCanvas.value || !draggingNodeType.value) return
-  
+
   const rect = graphContainer.value?.getBoundingClientRect()
   if (!rect) return
-  
+
   const graph = mxGraphCanvas.value.getGraph()
   const view = graph ? graph.getView() : null
   if (!graph || !view) return
-  
+
   const scale = view.scale || 1
   const translate = view.translate || { x: 0, y: 0 }
-  
+
   // 计算画布坐标
   const x = (e.clientX - rect.left - translate.x * scale) / scale
   const y = (e.clientY - rect.top - translate.y * scale) / scale
-  
+
   const { type, isArtifact } = draggingNodeType.value
   const nodeId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   const label = getNodeTypeLabelByType(type, isArtifact)
   const position = { x, y }
-  
+
   const cell = mxGraphCanvas.value.addNode(
     isArtifact ? 'artifact' : 'control-flow',
     type,
@@ -537,7 +554,7 @@ const handleDrop = (e: DragEvent) => {
     position,
     nodeId
   )
-  
+
   if (cell) {
     if (isArtifact) {
       const node: ArtifactNode = {
@@ -562,27 +579,27 @@ const handleDrop = (e: DragEvent) => {
       workflowData.value.controlFlowNodes.push(node)
     }
   }
-  
+
   draggingNodeType.value = null
 }
 
 const getNodeTypeLabelByType = (type: string, isArtifact: boolean): string => {
   if (isArtifact) {
     const labels: Record<string, string> = {
-      'tool': '工具节点',
-      'workflow': '工作流节点',
+      tool: '工具节点',
+      workflow: '工作流节点',
       'llm-decision': 'LLM决策',
       'agent-config': 'Agent配置'
     }
     return labels[type] || `新${type}节点`
   } else {
     const labels: Record<string, string> = {
-      'condition': '条件',
-      'loop': '循环',
-      'parallel': '并行',
-      'merge': '合并',
-      'async': '异步',
-      'aggregate': '汇总'
+      condition: '条件',
+      loop: '循环',
+      parallel: '并行',
+      merge: '合并',
+      async: '异步',
+      aggregate: '汇总'
     }
     return labels[type] || `新${type}节点`
   }
@@ -597,7 +614,7 @@ const handleAddArtifactNode = (type: ArtifactNode['type']) => {
   const view = graph ? graph.getView() : null
   const containerRect = graphContainer.value?.getBoundingClientRect()
   let position = { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 }
-  
+
   if (view && containerRect) {
     const scale = view.scale || 1
     const translate = view.translate || { x: 0, y: 0 }
@@ -606,9 +623,9 @@ const handleAddArtifactNode = (type: ArtifactNode['type']) => {
       y: (containerRect.height / 2 - translate.y * scale) / scale
     }
   }
-  
+
   const cell = mxGraphCanvas.value.addNode('artifact', type, label, position, nodeId)
-  
+
   if (cell) {
     const node: ArtifactNode = {
       id: nodeId,
@@ -630,9 +647,9 @@ const handleAddControlFlowNode = (type: ControlFlowNode['type']) => {
   const nodeId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   const label = getNodeTypeLabelByType(type, false)
   const position = { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 }
-  
+
   const cell = mxGraphCanvas.value.addNode('control-flow', type, label, position, nodeId)
-  
+
   if (cell) {
     const node: ControlFlowNode = {
       id: nodeId,
@@ -667,7 +684,7 @@ const handleNodeSelected = (nodeId: string | null) => {
 
 const handleNodeRemoved = (nodeId: string) => {
   // 保护入口/出口节点（start/end）不被删除
-  const controlNode = workflowData.value.controlFlowNodes.find(n => n.id === nodeId)
+  const controlNode = workflowData.value.controlFlowNodes.find((n) => n.id === nodeId)
   if (controlNode && (controlNode.type === 'start' || controlNode.type === 'end')) {
     ElMessage.warning(t('agent.workflow.cannotDeleteStartEnd'))
     // 重新加载工作流到画布，恢复被误删的节点
@@ -677,22 +694,26 @@ const handleNodeRemoved = (nodeId: string) => {
     return
   }
 
-  workflowData.value.artifactNodes = workflowData.value.artifactNodes.filter(n => n.id !== nodeId)
-  workflowData.value.controlFlowNodes = workflowData.value.controlFlowNodes.filter(n => n.id !== nodeId)
-  
+  workflowData.value.artifactNodes = workflowData.value.artifactNodes.filter((n) => n.id !== nodeId)
+  workflowData.value.controlFlowNodes = workflowData.value.controlFlowNodes.filter(
+    (n) => n.id !== nodeId
+  )
+
   if (workflowData.value.entryNodeId === nodeId) {
     workflowData.value.entryNodeId = ''
   }
-  workflowData.value.exitNodeIds = workflowData.value.exitNodeIds.filter(id => id !== nodeId)
-  workflowData.value.edges = workflowData.value.edges.filter(e => e.source !== nodeId && e.target !== nodeId)
-  
+  workflowData.value.exitNodeIds = workflowData.value.exitNodeIds.filter((id) => id !== nodeId)
+  workflowData.value.edges = workflowData.value.edges.filter(
+    (e) => e.source !== nodeId && e.target !== nodeId
+  )
+
   if (selectedNodeId.value === nodeId) {
     selectedNodeId.value = null
   }
 }
 
 const handleNodeUpdated = (nodeId: string, updates: Partial<ArtifactNode | ControlFlowNode>) => {
-  const artifactIndex = workflowData.value.artifactNodes.findIndex(n => n.id === nodeId)
+  const artifactIndex = workflowData.value.artifactNodes.findIndex((n) => n.id === nodeId)
   if (artifactIndex !== -1) {
     workflowData.value.artifactNodes[artifactIndex] = {
       ...workflowData.value.artifactNodes[artifactIndex],
@@ -701,7 +722,7 @@ const handleNodeUpdated = (nodeId: string, updates: Partial<ArtifactNode | Contr
     return
   }
 
-  const controlFlowIndex = workflowData.value.controlFlowNodes.findIndex(n => n.id === nodeId)
+  const controlFlowIndex = workflowData.value.controlFlowNodes.findIndex((n) => n.id === nodeId)
   if (controlFlowIndex !== -1) {
     workflowData.value.controlFlowNodes[controlFlowIndex] = {
       ...workflowData.value.controlFlowNodes[controlFlowIndex],
@@ -711,15 +732,15 @@ const handleNodeUpdated = (nodeId: string, updates: Partial<ArtifactNode | Contr
 }
 
 const handleEdgeAdded = (edge: WorkflowEdge) => {
-  if (!workflowData.value.edges.find(e => e.id === edge.id)) {
+  if (!workflowData.value.edges.find((e) => e.id === edge.id)) {
     workflowData.value.edges.push(edge)
 
     // 如果来自条件节点，为两条出边自动标记 true/false 语义
     const sourceNode = workflowData.value.controlFlowNodes.find(
-      n => n.id === edge.source && n.type === 'condition'
+      (n) => n.id === edge.source && n.type === 'condition'
     )
     if (sourceNode) {
-      const outgoing = workflowData.value.edges.filter(e => e.source === edge.source)
+      const outgoing = workflowData.value.edges.filter((e) => e.source === edge.source)
       const order = outgoing.length
       let label = ''
       if (order === 1) {
@@ -729,7 +750,7 @@ const handleEdgeAdded = (edge: WorkflowEdge) => {
       }
 
       if (label) {
-        const idx = workflowData.value.edges.findIndex(e => e.id === edge.id)
+        const idx = workflowData.value.edges.findIndex((e) => e.id === edge.id)
         if (idx !== -1) {
           workflowData.value.edges[idx].label = label
         }
@@ -753,11 +774,11 @@ const handleEdgeAdded = (edge: WorkflowEdge) => {
 }
 
 const handleEdgeRemoved = (edgeId: string) => {
-  workflowData.value.edges = workflowData.value.edges.filter(e => e.id !== edgeId)
+  workflowData.value.edges = workflowData.value.edges.filter((e) => e.id !== edgeId)
 }
 
 const handleEdgeUpdated = (edgeId: string, updates: Partial<WorkflowEdge>) => {
-  const index = workflowData.value.edges.findIndex(e => e.id === edgeId)
+  const index = workflowData.value.edges.findIndex((e) => e.id === edgeId)
   if (index !== -1) {
     workflowData.value.edges[index] = {
       ...workflowData.value.edges[index],
@@ -786,7 +807,7 @@ const handleCopy = () => {
   if (!mxGraphCanvas.value) return
   const graph = mxGraphCanvas.value.getGraph()
   if (!graph) return
-  
+
   const cells = graph.getSelectionCells()
   if (cells && cells.length > 0) {
     clipboardData.value = {
@@ -795,10 +816,12 @@ const handleCopy = () => {
         nodeType: cell.nodeType,
         type: cell.artifactType || cell.controlFlowType,
         label: cell.getValue()?.toString() || '',
-        position: cell.getGeometry() ? {
-          x: cell.getGeometry().x,
-          y: cell.getGeometry().y
-        } : null
+        position: cell.getGeometry()
+          ? {
+              x: cell.getGeometry().x,
+              y: cell.getGeometry().y
+            }
+          : null
       })),
       timestamp: Date.now()
     }
@@ -811,7 +834,7 @@ const handlePaste = () => {
   if (!mxGraphCanvas.value || !clipboardData.value) return
   const graph = mxGraphCanvas.value.getGraph()
   if (!graph) return
-  
+
   // 使用mxgraph的粘贴功能
   graph.paste()
   ElMessage.success(t('agent.workflow.toolbar.paste') + ' ' + t('common.success'))
@@ -821,7 +844,7 @@ const handleDelete = () => {
   if (!mxGraphCanvas.value) return
   const graph = mxGraphCanvas.value.getGraph()
   if (!graph) return
-  
+
   const cells = graph.getSelectionCells()
   if (cells && cells.length > 0) {
     graph.removeCells(cells)
@@ -868,28 +891,34 @@ const handleSave = () => {
 }
 
 // 监听工具模式变化，更新画布行为
-watch(() => toolMode.value, (newMode) => {
-  if (!mxGraphCanvas.value) return
-  mxGraphCanvas.value.setToolMode(newMode)
-})
+watch(
+  () => toolMode.value,
+  (newMode) => {
+    if (!mxGraphCanvas.value) return
+    mxGraphCanvas.value.setToolMode(newMode)
+  }
+)
 
 // 监听视图模式变化，实现图形和代码的同步
-watch(() => viewMode.value, async (newMode, oldMode) => {
-  if (oldMode === null) return // 初始化时不触发
-  
-  if (oldMode === 'graph' && newMode === 'code') {
-    // 从图形视图切换到代码视图：代码视图会从workflowData自动获取最新数据
-    // 无需额外操作，WorkflowCodeEditor会监听workflowData变化
-  } else if (oldMode === 'code' && newMode === 'graph') {
-    // 从代码视图切换到图形视图：代码视图的更改已经通过handleWorkflowChangedFromCode更新到workflowData
-    // 图形视图会通过watch自动更新
-    // 这里可以触发一次图形视图的刷新以确保同步
-    await nextTick()
-    if (mxGraphCanvas.value) {
-      mxGraphCanvas.value.loadWorkflow(workflowData.value, false)
+watch(
+  () => viewMode.value,
+  async (newMode, oldMode) => {
+    if (oldMode === null) return // 初始化时不触发
+
+    if (oldMode === 'graph' && newMode === 'code') {
+      // 从图形视图切换到代码视图：代码视图会从workflowData自动获取最新数据
+      // 无需额外操作，WorkflowCodeEditor会监听workflowData变化
+    } else if (oldMode === 'code' && newMode === 'graph') {
+      // 从代码视图切换到图形视图：代码视图的更改已经通过handleWorkflowChangedFromCode更新到workflowData
+      // 图形视图会通过watch自动更新
+      // 这里可以触发一次图形视图的刷新以确保同步
+      await nextTick()
+      if (mxGraphCanvas.value) {
+        mxGraphCanvas.value.loadWorkflow(workflowData.value, false)
+      }
     }
   }
-})
+)
 
 onMounted(() => {
   if (props.workflow) {

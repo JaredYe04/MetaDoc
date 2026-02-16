@@ -1,10 +1,7 @@
 <template>
-  <div 
-    class="resizable-divider" 
-    :class="[
-      `divider-${direction}`,
-      { 'divider-resizing': isResizing }
-    ]"
+  <div
+    class="resizable-divider"
+    :class="[`divider-${direction}`, { 'divider-resizing': isResizing }]"
     :style="dividerStyle"
     @mousedown.prevent="startResize"
   >
@@ -91,32 +88,32 @@ function startResize(event: MouseEvent) {
   isResizing.value = true
   startX = event.clientX
   startY = event.clientY
-  
+
   document.addEventListener('mousemove', handleResize)
   document.addEventListener('mouseup', stopResize)
   document.body.style.cursor = props.direction === 'horizontal' ? 'row-resize' : 'col-resize'
   document.body.style.userSelect = 'none'
-  
+
   emit('resizeStart', event)
 }
 
 // 处理拖拽
 function handleResize(event: MouseEvent) {
   if (!isResizing.value) return
-  
+
   let delta: number
-  
+
   if (props.direction === 'horizontal') {
     delta = event.clientY - startY
   } else {
     delta = event.clientX - startX
   }
-  
+
   // 如果是反向计算
   if (props.reverse) {
     delta = -delta
   }
-  
+
   emit('resize', delta, event)
 }
 
@@ -124,12 +121,12 @@ function handleResize(event: MouseEvent) {
 function stopResize(event: MouseEvent) {
   if (isResizing.value) {
     isResizing.value = false
-    
+
     document.removeEventListener('mousemove', handleResize)
     document.removeEventListener('mouseup', stopResize)
     document.body.style.cursor = ''
     document.body.style.userSelect = ''
-    
+
     emit('resizeEnd', event)
   }
 }

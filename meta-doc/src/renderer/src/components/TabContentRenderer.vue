@@ -6,33 +6,33 @@
       <template v-for="tab in workspace.tabs" :key="tab.id">
         <!-- 文档Tab：根据lastView显示不同视图 -->
         <template v-if="tab.kind === 'file' || tab.kind === 'new'">
-          <Home 
+          <Home
             v-if="shouldRenderView(tab.id, 'home')"
             v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'home'"
             :key="`home-${tab.id}`"
           />
-          <Editor 
+          <Editor
             v-if="shouldRenderView(tab.id, 'editor')"
             v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'editor'"
             :key="`editor-${tab.id}`"
             :tab-id="tab.id"
           />
-          <Outline 
+          <Outline
             v-if="shouldRenderView(tab.id, 'outline')"
             v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'outline'"
             :key="`outline-${tab.id}`"
           />
-          <Visualize 
+          <Visualize
             v-if="shouldRenderView(tab.id, 'visualize')"
             v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'visualize'"
             :key="`visualize-${tab.id}`"
           />
-          <AgentView 
+          <AgentView
             v-if="shouldRenderView(tab.id, 'agent')"
             v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'agent'"
             :key="`agent-${tab.id}`"
           />
-          <ProofreadView 
+          <ProofreadView
             v-if="shouldRenderView(tab.id, 'proofread')"
             v-show="tab.id === activeTabId && getDocumentView(tab.id) === 'proofread'"
             :key="`proofread-${tab.id}`"
@@ -48,11 +48,7 @@
             :key="`${tab.kind}-${tab.route}-${tab.id}`"
           />
           <!-- 其他系统Tab和工具Tab使用router-view作为fallback -->
-          <router-view 
-            v-else
-            v-show="tab.id === activeTabId"
-            :key="`router-${tab.id}`"
-          />
+          <router-view v-else v-show="tab.id === activeTabId" :key="`router-${tab.id}`" />
         </template>
       </template>
       <!-- 如果没有Tab，显示router-view作为fallback -->
@@ -80,7 +76,7 @@ const { tabs, activeTabId, ensureDocument } = workspace
 
 // 获取指定Tab的文档视图
 const getDocumentView = (tabId: string): string => {
-  const tab = tabs.find(t => t.id === tabId)
+  const tab = tabs.find((t) => t.id === tabId)
   if (!tab || (tab.kind !== 'file' && tab.kind !== 'new')) {
     return 'editor'
   }
@@ -96,24 +92,31 @@ const mountedViews = ref<Set<string>>(new Set())
 const shouldRenderView = (tabId: string, viewType: string): boolean => {
   const viewKey = `${tabId}-${viewType}`
   const isActive = tabId === activeTabId.value && getDocumentView(tabId) === viewType
-  
+
   if (isActive) {
     mountedViews.value.add(viewKey)
     return true
   }
-  
+
   return mountedViews.value.has(viewKey)
 }
 
 // 监听 tabs 变化，清理已移除 tab 的挂载记录
 watch(
-  () => tabs.map(t => t.id),
+  () => tabs.map((t) => t.id),
   (currentTabIds, previousTabIds) => {
     if (previousTabIds) {
-      const removedTabIds = previousTabIds.filter(id => !currentTabIds.includes(id))
-      removedTabIds.forEach(tabId => {
-        const viewTypes: DocumentView[] = ['editor', 'outline', 'visualize', 'agent', 'proofread', 'home']
-        viewTypes.forEach(viewType => {
+      const removedTabIds = previousTabIds.filter((id) => !currentTabIds.includes(id))
+      removedTabIds.forEach((tabId) => {
+        const viewTypes: DocumentView[] = [
+          'editor',
+          'outline',
+          'visualize',
+          'agent',
+          'proofread',
+          'home'
+        ]
+        viewTypes.forEach((viewType) => {
           mountedViews.value.delete(`${tabId}-${viewType}`)
         })
       })

@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory,createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import GlobalHome from '../views/GlobalHome.vue'
 import About from '../views/About.vue'
@@ -29,9 +29,9 @@ const pages = {
   'fomula-recognition': FomulaRecognition,
   'ai-graph': GraphWindow, // 已合并到GraphWindow
   'data-analysis': DataAnalysisWindow,
-  'ocr': OcrWindow,
-  'attachment': AttachmentWindow,
-  'graph': GraphWindow
+  ocr: OcrWindow,
+  attachment: AttachmentWindow,
+  graph: GraphWindow
 }
 
 const routes = [
@@ -39,89 +39,89 @@ const routes = [
     path: '/global-home',
     name: 'GlobalHome',
     component: GlobalHome,
-    meta: { requiresLayout: true } 
+    meta: { requiresLayout: true }
   },
   {
     path: '/',
     name: 'Home',
-    alias:'/home',
+    alias: '/home',
     component: Home,
-    meta: { requiresLayout: true } 
+    meta: { requiresLayout: true }
   },
   {
     path: '/outline',
     name: 'Outline',
     component: Outline,
-    meta: { requiresLayout: true } 
+    meta: { requiresLayout: true }
   },
   {
     path: '/about',
     name: 'About',
     component: About,
-    meta: { requiresLayout: true } 
+    meta: { requiresLayout: true }
   },
   {
-    path:'/markdown-editor',
-    name:'MarkdownEditor',
+    path: '/markdown-editor',
+    name: 'MarkdownEditor',
     component: MarkdownEditor,
-    meta: { requiresLayout: true } 
+    meta: { requiresLayout: true }
   },
   {
-    path:'/editor',
-    name:'Editor',
+    path: '/editor',
+    name: 'Editor',
     component: Editor,
-    meta: { requiresLayout: true } 
+    meta: { requiresLayout: true }
   },
   {
-    path:'/visualize',
-    name:'Visualize',
+    path: '/visualize',
+    name: 'Visualize',
     component: Visualize,
-    meta: { requiresLayout: true } 
+    meta: { requiresLayout: true }
   },
   {
-    path:'/knowledge-base',
-    name:'KnowledgeBase',
+    path: '/knowledge-base',
+    name: 'KnowledgeBase',
     component: KnowledgeBase,
     meta: { requiresLayout: true }
   },
   {
-    path:'/agent',
-    name:'Agent',
+    path: '/agent',
+    name: 'Agent',
     component: AgentView,
     meta: { requiresLayout: true }
   },
   {
-    path:'/proofread',
-    name:'Proofread',
+    path: '/proofread',
+    name: 'Proofread',
     component: ProofreadView,
     meta: { requiresLayout: true }
   },
   {
-    path:'/debug',
-    name:'Debug',
+    path: '/debug',
+    name: 'Debug',
     component: DebugView,
     meta: { requiresLayout: true }
   },
   {
-    path:'/dummy',
-    name:'Dummy',
+    path: '/dummy',
+    name: 'Dummy',
     component: DummyView,
     meta: { requiresLayout: true }
   },
   {
-    path:'/llm-statistics',
-    name:'LlmStatistics',
+    path: '/llm-statistics',
+    name: 'LlmStatistics',
     component: LlmStatisticsView,
     meta: { requiresLayout: true }
   },
   {
-    path:'/user-feedback',
-    name:'UserFeedback',
+    path: '/user-feedback',
+    name: 'UserFeedback',
     component: UserFeedbackView,
     meta: { requiresLayout: true }
   },
-    // 动态生成特殊页面的两种访问路径
-    // 工具Tab和设置页面现在在主窗口Tab中显示，所以需要requiresLayout: true
+  // 动态生成特殊页面的两种访问路径
+  // 工具Tab和设置页面现在在主窗口Tab中显示，所以需要requiresLayout: true
   ...Object.entries(pages).flatMap(([name, component]) => [
     {
       path: `/${name}`,
@@ -136,7 +136,6 @@ const routes = [
       meta: { requiresLayout: true }
     }
   ])
-
 ]
 
 const router = createRouter({

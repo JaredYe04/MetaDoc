@@ -1,9 +1,5 @@
 <template>
-  <div
-    class="tool-result-card"
-    :class="[`status-${message.status}`]"
-    :style="cardStyle"
-  >
+  <div class="tool-result-card" :class="[`status-${message.status}`]" :style="cardStyle">
     <header class="tool-result-header">
       <div class="title-block">
         <span class="tool-name">{{ message.tool.name }}</span>
@@ -24,9 +20,9 @@
     </header>
 
     <!-- 工具调用参数（默认折叠，仅在存在参数时显示） -->
-    <el-collapse 
-      v-if="toolCallParams !== null" 
-      v-model="paramsCollapseActive" 
+    <el-collapse
+      v-if="toolCallParams !== null"
+      v-model="paramsCollapseActive"
       class="params-collapse"
     >
       <el-collapse-item name="params">
@@ -36,14 +32,18 @@
             <el-tag size="small" effect="light">JSON</el-tag>
           </div>
         </template>
-        <div :id="paramsEditorId" class="params-editor-container" :style="paramsEditorContainerStyle"></div>
+        <div
+          :id="paramsEditorId"
+          class="params-editor-container"
+          :style="paramsEditorContainerStyle"
+        ></div>
       </el-collapse-item>
     </el-collapse>
 
     <!-- 原始结果（JSON，默认折叠） -->
-    <el-collapse 
-      v-if="rawResultJson !== null" 
-      v-model="rawResultCollapseActive" 
+    <el-collapse
+      v-if="rawResultJson !== null"
+      v-model="rawResultCollapseActive"
       class="raw-result-collapse"
     >
       <el-collapse-item name="rawResult">
@@ -53,7 +53,11 @@
             <el-tag size="small" effect="light">JSON</el-tag>
           </div>
         </template>
-        <div :id="rawResultEditorId" class="raw-result-editor-container" :style="rawResultEditorContainerStyle"></div>
+        <div
+          :id="rawResultEditorId"
+          class="raw-result-editor-container"
+          :style="rawResultEditorContainerStyle"
+        ></div>
       </el-collapse-item>
     </el-collapse>
 
@@ -76,11 +80,7 @@
 
     <div class="outputs">
       <el-collapse v-model="activePanels" accordion>
-        <el-collapse-item
-          v-for="output in message.outputs"
-          :key="output.id"
-          :name="output.id"
-        >
+        <el-collapse-item v-for="output in message.outputs" :key="output.id" :name="output.id">
           <template #title>
             <div class="output-title">
               <span>{{ output.label }}</span>
@@ -115,9 +115,23 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, defineAsyncComponent, h, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import {
+  computed,
+  ref,
+  watch,
+  defineAsyncComponent,
+  h,
+  onMounted,
+  onBeforeUnmount,
+  nextTick
+} from 'vue'
 import { dayjs, ElMessage } from 'element-plus'
-import type { ToolAgentMessage, ToolOutputDescriptor, AgentMessage, ChatAgentMessage } from '../../types/agent'
+import type {
+  ToolAgentMessage,
+  ToolOutputDescriptor,
+  AgentMessage,
+  ChatAgentMessage
+} from '../../types/agent'
 import { WarningFilled, Download } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { themeState } from '../../utils/themes'
@@ -202,12 +216,16 @@ watch(
 
 // 参数编辑器相关
 const paramsCollapseActive = ref<string[]>([]) // 默认折叠（空数组）
-const paramsEditorId = ref(`tool-params-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+const paramsEditorId = ref(
+  `tool-params-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+)
 let paramsMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 
 // 原始结果编辑器相关
 const rawResultCollapseActive = ref<string[]>([]) // 默认折叠（空数组）
-const rawResultEditorId = ref(`tool-raw-result-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+const rawResultEditorId = ref(
+  `tool-raw-result-editor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+)
 let rawResultMonacoEditor: monaco.editor.IStandaloneCodeEditor | null = null
 
 // 获取工具调用参数（通过tool_call_id查找对应的assistant消息）
@@ -227,7 +245,7 @@ const toolCallParams = computed(() => {
     if (msg.type === 'chat' && msg.role === 'assistant') {
       const chatMsg = msg as ChatAgentMessage
       if (chatMsg.tool_calls && Array.isArray(chatMsg.tool_calls)) {
-        const toolCall = chatMsg.tool_calls.find(tc => tc.id === toolMessage.tool_call_id)
+        const toolCall = chatMsg.tool_calls.find((tc) => tc.id === toolMessage.tool_call_id)
         if (toolCall && toolCall.parameters) {
           return toolCall.parameters
         }
@@ -238,7 +256,7 @@ const toolCallParams = computed(() => {
       break
     }
   }
-  
+
   return null
 })
 
@@ -281,7 +299,7 @@ const rawResultJson = computed(() => {
       }
     }
   }
-  
+
   // 如果没有outputs，检查是否有result字段
   if ((props.message as any).result) {
     try {
@@ -301,16 +319,16 @@ const rawResultJson = computed(() => {
       console.warn('[AgentToolResultCard] 无法序列化result字段:', error)
     }
   }
-  
+
   return null
 })
 
 // 初始化参数编辑器
 const initParamsEditor = async () => {
   if (paramsMonacoEditor) return
-  
+
   await nextTick()
-  
+
   const container = document.getElementById(paramsEditorId.value)
   if (!container) {
     console.warn('[AgentToolResultCard] 参数编辑器容器未找到')
@@ -322,7 +340,7 @@ const initParamsEditor = async () => {
 
   // 从全局获取编辑器实例（如果已存在则先销毁）
   const editors = monaco.editor.getEditors()
-  const existingEditor = editors.find(e => {
+  const existingEditor = editors.find((e) => {
     try {
       const editorContainer = e.getContainerDomNode()
       return editorContainer && editorContainer.id === paramsEditorId.value
@@ -330,11 +348,11 @@ const initParamsEditor = async () => {
       return false
     }
   })
-  
+
   if (existingEditor) {
     existingEditor.dispose()
   }
-  
+
   // 清理缓存（如果有）
   if (paramsMonacoEditor) {
     try {
@@ -381,9 +399,9 @@ const disposeParamsEditor = () => {
 // 初始化原始结果编辑器
 const initRawResultEditor = async () => {
   if (rawResultMonacoEditor) return
-  
+
   await nextTick()
-  
+
   const container = document.getElementById(rawResultEditorId.value)
   if (!container) {
     console.warn('[AgentToolResultCard] 原始结果编辑器容器未找到')
@@ -395,7 +413,7 @@ const initRawResultEditor = async () => {
 
   // 从全局获取编辑器实例（如果已存在则先销毁）
   const editors = monaco.editor.getEditors()
-  const existingEditor = editors.find(e => {
+  const existingEditor = editors.find((e) => {
     try {
       const editorContainer = e.getContainerDomNode()
       return editorContainer && editorContainer.id === rawResultEditorId.value
@@ -403,11 +421,11 @@ const initRawResultEditor = async () => {
       return false
     }
   })
-  
+
   if (existingEditor) {
     existingEditor.dispose()
   }
-  
+
   // 清理缓存（如果有）
   if (rawResultMonacoEditor) {
     try {
@@ -476,38 +494,47 @@ watch(rawResultCollapseActive, async (newValue) => {
 })
 
 // 监听参数内容变化
-watch(() => paramsJsonString.value, async (newValue) => {
-  if (paramsMonacoEditor && newValue) {
-    paramsMonacoEditor.setValue(newValue)
-  } else if (paramsCollapseActive.value.includes('params')) {
-    // 如果编辑器已经展开，重新初始化
-    await nextTick()
-    initParamsEditor()
+watch(
+  () => paramsJsonString.value,
+  async (newValue) => {
+    if (paramsMonacoEditor && newValue) {
+      paramsMonacoEditor.setValue(newValue)
+    } else if (paramsCollapseActive.value.includes('params')) {
+      // 如果编辑器已经展开，重新初始化
+      await nextTick()
+      initParamsEditor()
+    }
   }
-})
+)
 
 // 监听原始结果内容变化
-watch(() => rawResultJson.value, async (newValue) => {
-  if (rawResultMonacoEditor && newValue) {
-    rawResultMonacoEditor.setValue(newValue || '{}')
-  } else if (rawResultCollapseActive.value.includes('rawResult')) {
-    // 如果编辑器已经展开，重新初始化
-    await nextTick()
-    initRawResultEditor()
+watch(
+  () => rawResultJson.value,
+  async (newValue) => {
+    if (rawResultMonacoEditor && newValue) {
+      rawResultMonacoEditor.setValue(newValue || '{}')
+    } else if (rawResultCollapseActive.value.includes('rawResult')) {
+      // 如果编辑器已经展开，重新初始化
+      await nextTick()
+      initRawResultEditor()
+    }
   }
-})
+)
 
 // 监听主题变化
-watch(() => themeState.currentTheme.type, () => {
-  if (paramsMonacoEditor) {
-    const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
-    monaco.editor.setTheme(theme)
+watch(
+  () => themeState.currentTheme.type,
+  () => {
+    if (paramsMonacoEditor) {
+      const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
+      monaco.editor.setTheme(theme)
+    }
+    if (rawResultMonacoEditor) {
+      const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
+      monaco.editor.setTheme(theme)
+    }
   }
-  if (rawResultMonacoEditor) {
-    const theme = themeState.currentTheme.type === 'dark' ? 'vs-dark' : 'vs'
-    monaco.editor.setTheme(theme)
-  }
-})
+)
 
 onMounted(async () => {
   // 不自动初始化，等用户展开时才初始化
@@ -545,23 +572,23 @@ const formatOutput = (output: ToolOutputDescriptor) => {
 }
 
 const cardBorderColor = computed(() =>
-  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)',
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.12)'
 )
 
 const contentBorderColor = computed(() =>
-  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+  themeState.currentTheme.type === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'
 )
 
 const cardStyle = computed(() => ({
   backgroundColor: 'transparent',
   color: themeState.currentTheme.textColor,
-  borderColor: 'transparent',
+  borderColor: 'transparent'
 }))
 
 const outputBodyStyle = computed(() => ({
   backgroundColor: themeState.currentTheme.background2nd,
   color: themeState.currentTheme.textColor,
-  borderColor: contentBorderColor.value,
+  borderColor: contentBorderColor.value
 }))
 
 // 进度条状态
@@ -575,23 +602,21 @@ const progressStatus = computed(() => {
 // 从工具配置中提取组件名称
 const extractComponentName = (displayComponent: any): string | undefined => {
   if (!displayComponent) return undefined
-  
+
   // 如果是字符串，直接返回
   if (typeof displayComponent === 'string') {
     return displayComponent
   }
-  
+
   // 如果是组件对象，尝试提取名称
   if (typeof displayComponent === 'object') {
     // 方法1：从组件对象的name属性获取
-    const name = displayComponent.name || 
-                 displayComponent.__name || 
-                 displayComponent.displayName
-    
+    const name = displayComponent.name || displayComponent.__name || displayComponent.displayName
+
     if (name && typeof name === 'string') {
       return name
     }
-    
+
     // 方法2：尝试从组件文件的路径提取名称
     const filePath = (displayComponent as any).__file
     if (filePath && typeof filePath === 'string') {
@@ -601,41 +626,46 @@ const extractComponentName = (displayComponent: any): string | undefined => {
       }
     }
   }
-  
+
   return undefined
 }
 
 // 解析组件 - 支持字符串组件名称或组件对象
 const resolveComponent = (renderer: string | any) => {
   if (!renderer) return null
-  
+
   // 如果是字符串，尝试动态导入
   if (typeof renderer === 'string') {
     // 组件名称映射表
     const componentMap: Record<string, () => Promise<any>> = {
-      'OutlineTreeDisplay': () => import('../../utils/agent-tools/components/OutlineTreeDisplay.vue'),
+      OutlineTreeDisplay: () => import('../../utils/agent-tools/components/OutlineTreeDisplay.vue')
       // 可以添加更多组件的映射
     }
-    
+
     const componentLoader = componentMap[renderer]
     if (componentLoader) {
       return defineAsyncComponent(componentLoader)
     }
-    
+
     // 如果不在映射表中，尝试使用组件名称作为路径（假设在 components 目录下）
     try {
-      return defineAsyncComponent(() => import(`../../utils/agent-tools/components/${renderer}.vue`))
+      return defineAsyncComponent(
+        () => import(`../../utils/agent-tools/components/${renderer}.vue`)
+      )
     } catch {
       console.warn(`无法加载组件: ${renderer}`)
       return null
     }
   }
-  
+
   // 如果已经是组件对象，直接返回
-  if (typeof renderer === 'object' && ('setup' in renderer || 'render' in renderer || 'name' in renderer)) {
+  if (
+    typeof renderer === 'object' &&
+    ('setup' in renderer || 'render' in renderer || 'name' in renderer)
+  ) {
     return renderer
   }
-  
+
   return null
 }
 
@@ -645,14 +675,14 @@ const exportSnapshot = async () => {
     // 从message创建快照
     // 优先使用toolCallParams（从assistant消息的tool_calls中提取），如果没有则使用message中的params
     const params = toolCallParams.value || (props.message as any).params || {}
-    
+
     // 获取工具配置（优先使用 toolConfig.value，如果不存在则从 agentToolManager 获取）
     let effectiveToolConfig = toolConfig.value
     if (!effectiveToolConfig) {
       const tool = agentToolManager.getTool(props.message.tool.id)
       effectiveToolConfig = tool?.config
     }
-    
+
     // 获取 displayComponent（优先从 toolConfig，其次从 outputs 的 renderer）
     let displayComponentName: string | undefined = undefined
     if (effectiveToolConfig?.displayComponent) {
@@ -661,42 +691,62 @@ const exportSnapshot = async () => {
       // 如果 toolConfig 中没有，尝试从 outputs 中获取
       displayComponentName = props.message.outputs[0].renderer
     }
-    
-    const snapshot = createSnapshotFromHistoryEntry({
-      toolId: props.message.tool.id,
-      toolName: props.message.tool.name,
-      timestamp: new Date(props.message.timestamp).getTime(),
-      status: props.message.status,
-      params: params, // 确保包含输入参数
-      result: props.message.outputs?.[0]?.data,
-      data: props.message.outputs?.[0]?.data ? {
-        content: props.message.outputs?.[0]?.data,
-        format: (props.message.outputs?.[0]?.format === 'table' ? 'json' : (props.message.outputs?.[0]?.format || 'json')) as 'json' | 'text' | 'markdown' | 'xml' | 'html' | 'custom',
-        componentName: props.message.outputs?.[0]?.renderer || displayComponentName
-      } : undefined,
-      progress: props.message.progress,
-      error: props.message.error,
-      outputs: props.message.outputs?.map(output => ({
-        id: output.id,
-        label: output.label,
-        format: output.format,
-        data: output.data,
-        timestamp: new Date(props.message.timestamp).getTime()
-      })),
-      invocationId: (props.message as any).invocationId
-    }, effectiveToolConfig ? {
-      id: effectiveToolConfig.id,
-      name: effectiveToolConfig.name,
-      description: effectiveToolConfig.description,
-      origin: effectiveToolConfig.origin,
-      displayComponent: displayComponentName
-    } : (displayComponentName ? {
-      id: props.message.tool.id,
-      name: props.message.tool.name,
-      description: { zh_cn: { name: props.message.tool.name }, en_us: { name: props.message.tool.name } },
-      origin: 'internal' as const,
-      displayComponent: displayComponentName
-    } : undefined))
+
+    const snapshot = createSnapshotFromHistoryEntry(
+      {
+        toolId: props.message.tool.id,
+        toolName: props.message.tool.name,
+        timestamp: new Date(props.message.timestamp).getTime(),
+        status: props.message.status,
+        params: params, // 确保包含输入参数
+        result: props.message.outputs?.[0]?.data,
+        data: props.message.outputs?.[0]?.data
+          ? {
+              content: props.message.outputs?.[0]?.data,
+              format: (props.message.outputs?.[0]?.format === 'table'
+                ? 'json'
+                : props.message.outputs?.[0]?.format || 'json') as
+                | 'json'
+                | 'text'
+                | 'markdown'
+                | 'xml'
+                | 'html'
+                | 'custom',
+              componentName: props.message.outputs?.[0]?.renderer || displayComponentName
+            }
+          : undefined,
+        progress: props.message.progress,
+        error: props.message.error,
+        outputs: props.message.outputs?.map((output) => ({
+          id: output.id,
+          label: output.label,
+          format: output.format,
+          data: output.data,
+          timestamp: new Date(props.message.timestamp).getTime()
+        })),
+        invocationId: (props.message as any).invocationId
+      },
+      effectiveToolConfig
+        ? {
+            id: effectiveToolConfig.id,
+            name: effectiveToolConfig.name,
+            description: effectiveToolConfig.description,
+            origin: effectiveToolConfig.origin,
+            displayComponent: displayComponentName
+          }
+        : displayComponentName
+          ? {
+              id: props.message.tool.id,
+              name: props.message.tool.name,
+              description: {
+                zh_cn: { name: props.message.tool.name },
+                en_us: { name: props.message.tool.name }
+              },
+              origin: 'internal' as const,
+              displayComponent: displayComponentName
+            }
+          : undefined
+    )
 
     // 序列化快照
     const serialized = serializeToolExecutionSnapshot(snapshot)
@@ -718,12 +768,12 @@ const exportSnapshot = async () => {
 
     const logger = createRendererLogger('AgentToolResultCard')
     logger.debug('[导出快照] 开始调用保存文件对话框，文件名:', fileName)
-    
+
     // 调用保存文件对话框
     const result = await ipcRenderer.invoke('save-json-file', serialized, fileName)
-    
+
     logger.debug('[导出快照] 保存文件对话框返回结果:', result)
-    
+
     if (!result) {
       console.error('[导出快照] 保存文件调用返回空结果')
       throw new Error('保存文件调用返回空结果')
@@ -744,7 +794,9 @@ const exportSnapshot = async () => {
     }
   } catch (error) {
     console.error('导出快照失败:', error)
-    ElMessage.error(`${t('agent.tool.exportSnapshotFailed')}: ${error instanceof Error ? error.message : String(error)}`)
+    ElMessage.error(
+      `${t('agent.tool.exportSnapshotFailed')}: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }
 </script>
@@ -834,7 +886,9 @@ const exportSnapshot = async () => {
   padding: 0;
   font-size: 13px;
   border: 1px solid;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -854,7 +908,7 @@ const exportSnapshot = async () => {
 }
 
 /* 确保所有以 -display 结尾的类名的组件不会超出容器 */
-.output-body :deep([class$="-display"]) {
+.output-body :deep([class$='-display']) {
   max-width: 100%;
   width: 100%;
   box-sizing: border-box;
@@ -887,11 +941,11 @@ const exportSnapshot = async () => {
 }
 
 /* 消除display组件内部可能存在的底部间距 */
-.output-body :deep([class*="display"]) {
+.output-body :deep([class*='display']) {
   margin-bottom: 0 !important;
 }
 
-.output-body :deep([class*="display"] > *:last-child) {
+.output-body :deep([class*='display'] > *:last-child) {
   margin-bottom: 0 !important;
   padding-bottom: 0 !important;
 }
@@ -1011,4 +1065,3 @@ const exportSnapshot = async () => {
   margin: 0;
 }
 </style>
-

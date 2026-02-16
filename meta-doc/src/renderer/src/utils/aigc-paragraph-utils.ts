@@ -211,7 +211,10 @@ function splitLatexBySections(text: string): string[] {
 function splitByDoubleNewline(text: string): string[] {
   const trimmed = (text || '').trim()
   if (!trimmed) return []
-  return trimmed.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
+  return trimmed
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
 }
 
 /**
@@ -219,7 +222,7 @@ function splitByDoubleNewline(text: string): string[] {
  */
 function isTooShort(paragraph: string, minChars: number = MIN_PARAGRAPH_CHARS): boolean {
   if (!paragraph || paragraph.length >= minChars) return false
-  const sentences = paragraph.split(SENTENCE_END_RE).filter(s => s.trim().length > 0)
+  const sentences = paragraph.split(SENTENCE_END_RE).filter((s) => s.trim().length > 0)
   return sentences.length < 2
 }
 

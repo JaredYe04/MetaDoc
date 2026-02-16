@@ -65,7 +65,10 @@
           </el-button>
         </el-tooltip>
 
-        <el-tooltip :content="loading ? t('aiChat.cancelTooltip') : t('aiChat.sendTooltip')" placement="top">
+        <el-tooltip
+          :content="loading ? t('aiChat.cancelTooltip') : t('aiChat.sendTooltip')"
+          placement="top"
+        >
           <el-button
             circle
             class="composer-btn primary"
@@ -77,13 +80,17 @@
             <el-icon v-if="!loading"><ArrowUp /></el-icon>
             <el-icon v-else class="stop-icon">
               <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                <rect x="6" y="6" width="12" height="12" rx="2"/>
+                <rect x="6" y="6" width="12" height="12" rx="2" />
               </svg>
             </el-icon>
           </el-button>
         </el-tooltip>
 
-        <el-tooltip v-if="showKnowledgeBase" :content="t('aiChat.knowledgeBaseTooltip')" placement="top">
+        <el-tooltip
+          v-if="showKnowledgeBase"
+          :content="t('aiChat.knowledgeBaseTooltip')"
+          placement="top"
+        >
           <el-button
             circle
             class="composer-btn"
@@ -119,27 +126,30 @@ import { themeState } from '../../utils/themes'
 import type { ScrollbarInstance } from 'element-plus'
 import { selectReferenceFiles } from '../../utils/agent-framework/reference-processor'
 
-const props = withDefaults(defineProps<{
-  modelValue: string
-  loading?: boolean
-  disabled?: boolean
-  placeholder?: string
-  showAttach?: boolean
-  showVoice?: boolean
-  showCancel?: boolean
-  showKnowledgeBase?: boolean
-  enableKnowledgeBaseQuery?: boolean
-}>(), {
-  modelValue: '',
-  loading: false,
-  disabled: false,
-  placeholder: '',
-  showAttach: false,
-  showVoice: false,
-  showCancel: false,
-  showKnowledgeBase: false,
-  enableKnowledgeBaseQuery: false
-})
+const props = withDefaults(
+  defineProps<{
+    modelValue: string
+    loading?: boolean
+    disabled?: boolean
+    placeholder?: string
+    showAttach?: boolean
+    showVoice?: boolean
+    showCancel?: boolean
+    showKnowledgeBase?: boolean
+    enableKnowledgeBaseQuery?: boolean
+  }>(),
+  {
+    modelValue: '',
+    loading: false,
+    disabled: false,
+    placeholder: '',
+    showAttach: false,
+    showVoice: false,
+    showCancel: false,
+    showKnowledgeBase: false,
+    enableKnowledgeBaseQuery: false
+  }
+)
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
@@ -172,13 +182,12 @@ const scrollbarWrapStyle = computed(() => ({
   overflowY: 'auto'
 }))
 
-
 const multilineThreshold = 6
 const autoResize = () => {
   if (!textareaRef.value) return
   const el = textareaRef.value
   const content = el.value || props.modelValue || ''
-  
+
   // 先计算单行高度（如果还没有计算）
   if (!singleLineHeight.value) {
     // 临时设置内容为空，计算单行高度
@@ -193,7 +202,7 @@ const autoResize = () => {
     // 恢复原始值
     el.value = originalValue
   }
-  
+
   // 如果内容为空，强制设置为单行模式
   if (!content.trim()) {
     el.style.height = 'auto'
@@ -206,7 +215,7 @@ const autoResize = () => {
     })
     return
   }
-  
+
   el.style.height = 'auto'
   el.style.height = `${el.scrollHeight}px`
   if (singleLineHeight.value) {
@@ -259,7 +268,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 }
 
 const sendModeLabel = computed(() =>
-  sendOnEnter.value ? t('aiChat.enterToSend') : t('aiChat.ctrlEnterToSend'),
+  sendOnEnter.value ? t('aiChat.enterToSend') : t('aiChat.ctrlEnterToSend')
 )
 
 const toggleSendMode = () => {
@@ -280,18 +289,18 @@ async function pathToFile(filePath: string): Promise<File> {
       ipcRenderer = localIpcRenderer
     }
   }
-  
+
   if (!ipcRenderer) {
     throw new Error('IPC渲染器不可用')
   }
-  
+
   // 通过 IPC 调用主进程读取文件
-  const result = await ipcRenderer.invoke('read-file-for-upload', filePath) as {
+  const result = (await ipcRenderer.invoke('read-file-for-upload', filePath)) as {
     name: string
     data: string
     mimeType: string
   }
-  
+
   // 将 base64 转换为 Blob
   const binaryString = atob(result.data)
   const bytes = new Uint8Array(binaryString.length)
@@ -299,7 +308,7 @@ async function pathToFile(filePath: string): Promise<File> {
     bytes[i] = binaryString.charCodeAt(i)
   }
   const blob = new Blob([bytes], { type: result.mimeType })
-  
+
   return new File([blob], result.name, { type: result.mimeType })
 }
 
@@ -308,15 +317,15 @@ async function pathToFile(filePath: string): Promise<File> {
  */
 const handleSelectFiles = async () => {
   if (props.disabled) return
-  
+
   try {
     // 使用主进程文件选择服务
     const filePaths = await selectReferenceFiles('all', true, t('aiChat.attachTooltip'))
-    
+
     if (filePaths.length === 0) {
       return // 用户取消了选择
     }
-    
+
     // 将文件路径转换为 File 对象
     const files: File[] = []
     for (const filePath of filePaths) {
@@ -327,7 +336,7 @@ const handleSelectFiles = async () => {
         console.error(`无法读取文件 ${filePath}:`, error)
       }
     }
-    
+
     if (files.length > 0) {
       // 发送所有文件（单个文件发送 File，多个文件发送数组）
       emit('attach', files.length === 1 ? files[0] : files)
@@ -337,13 +346,19 @@ const handleSelectFiles = async () => {
   }
 }
 
-watch(() => props.modelValue, () => {
-  nextTick(autoResize)
-})
+watch(
+  () => props.modelValue,
+  () => {
+    nextTick(autoResize)
+  }
+)
 
-watch(() => props.enableKnowledgeBaseQuery, (value) => {
-  enableKnowledgeBaseQuery.value = value
-})
+watch(
+  () => props.enableKnowledgeBaseQuery,
+  (value) => {
+    enableKnowledgeBaseQuery.value = value
+  }
+)
 
 watch(sendOnEnter, (value) => {
   if (typeof window === 'undefined') return
@@ -353,7 +368,7 @@ watch(sendOnEnter, (value) => {
 // 检查知识库总开关状态
 const checkKnowledgeBaseEnabled = async () => {
   const { getSetting } = await import('../../utils/settings.js')
-  knowledgeBaseEnabled.value = await getSetting('enableKnowledgeBase') || false
+  knowledgeBaseEnabled.value = (await getSetting('enableKnowledgeBase')) || false
   // 如果总开关关闭，确保查询开关也关闭
   if (!knowledgeBaseEnabled.value) {
     enableKnowledgeBaseQuery.value = false
@@ -391,7 +406,7 @@ onMounted(async () => {
     }
   }
   await checkKnowledgeBaseEnabled()
-  
+
   // 监听知识库总开关变化
   const eventBus = (await import('../../utils/event-bus.js')).default
   eventBus.on('knowledge-base-toggle', () => {
@@ -427,7 +442,10 @@ onBeforeUnmount(() => {
   gap: 12px;
   padding: 16px;
   align-items: flex-end;
-  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    border-color 0.2s;
   overflow: hidden;
   position: relative;
   z-index: 10;
@@ -539,7 +557,9 @@ onBeforeUnmount(() => {
   background: rgba(0, 0, 0, 0.04);
   border: none;
   color: inherit;
-  transition: transform 0.15s ease, background 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease;
 }
 
 .composer-btn:hover:not(:disabled) {
@@ -573,4 +593,3 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 </style>
-

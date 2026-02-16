@@ -18,19 +18,16 @@ meta-doc/src/main/utils/
 #### 主要函数
 
 1. **convertMarkdownToDocxBuffer** (行 1262-1439)
-
    - 将 Markdown/HTML 转换为 DOCX Buffer
    - 调用 `convertFormulaToMathML` 替换公式为占位符
    - 使用 `html-to-docx` 生成 DOCX
 
 2. **convertFormulaToMathML** (行 833-1024)
-
    - 在 HTML 中查找公式元素
    - 替换为占位符（`MATH_PLACEHOLDER_0`, ...）
    - 存储到 `formulaPlaceholders` Map
 
 3. **convertLatexToPlaceholder** (行 1038-1051)
-
    - 创建占位符 HTML
    - 更新 `formulaPlaceholders` Map
 
@@ -51,7 +48,6 @@ let formulaPlaceholderIndex = 0
 #### 核心类
 
 1. **DocxProcessingManager** (行 62-189)
-
    - 管理多个处理器
    - 按顺序执行处理器链
    - 更新 ZIP 文件
@@ -92,7 +88,6 @@ class OMMLInsertionProcessor {
 #### 主要函数
 
 1. **convertLatexToMathML** (行 44-113)
-
    - 使用 `mathjax-node` 转换 LaTeX 为 MathML
    - 初始化 MathJax（单例模式）
 
@@ -240,22 +235,18 @@ class OMMLInsertionProcessor {
 ### 外部库
 
 1. **html-to-docx**
-
    - 将 HTML 转换为 DOCX
    - 生成初始 document.xml
 
 2. **mathjax-node**
-
    - LaTeX → MathML 转换
    - 通过 `mathml-converter.ts` 封装
 
 3. **mathml2omml**
-
    - MathML → OMML 转换
    - 在 `OMMLInsertionProcessor` 中使用
 
 4. **@xmldom/xmldom**
-
    - XML 解析和序列化
    - DOMParser, XMLSerializer
 
@@ -345,7 +336,6 @@ const conversionCache = new Map<string, { wrappedContent: string; ommlContent: s
 ### 单元测试
 
 1. **mathml-converter.ts**
-
    - LaTeX → MathML 转换
    - 边界情况（空公式、特殊字符等）
 

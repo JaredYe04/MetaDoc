@@ -20,7 +20,6 @@
    这些配置用于应用程序运行时检查更新。
 
    **重要提示**：
-
    - `.env` 文件会被打包到应用程序中，用户可以看到
    - **推荐使用公开的 Releases 仓库**，这样不需要 Token，也不存在安全问题
    - `UPDATE_GITHUB_TOKEN` 不应写在 `.env` 文件中（会暴露给用户）
@@ -28,7 +27,6 @@
    **详细说明请参考**：[环境变量配置指南](./ENV_CONFIG.md)
 
 2. **创建 GitHub Personal Access Token**
-
    - 访问 GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
    - 点击 "Generate new token (classic)"
    - 设置名称（例如：MetaDoc Release Token）
@@ -37,7 +35,6 @@
    - 生成 Token 并复制保存（只会显示一次）
 
 3. **配置 GitHub Secrets**
-
    - 在源仓库（MetaDoc）中，访问 Settings → Secrets and variables → Actions
    - 点击 "New repository secret"
    - 添加以下 Secret：
@@ -46,7 +43,6 @@
    - 点击 "Add secret" 保存
 
 4. **确认 Releases 仓库存在**
-
    - 确保 `MetaDoc-Releases` 仓库已创建
    - Token 需要有访问该仓库的权限（如果是私有仓库，需要 Token 有访问权限）
 
@@ -82,7 +78,6 @@ npm run release:dev
 工作流会在以下情况自动触发：
 
 1. **推送标签触发**（主要方式）
-
    - 当推送符合以下格式的标签时，会自动触发发布：
    - `v*` - 正式版（例如：`v0.13.1`）
    - `dev-*` - 开发版（例如：`dev-0.13.1`）
@@ -90,7 +85,6 @@ npm run release:dev
 2. **手动触发**（workflow_dispatch，备选方案）
 
    可以手动在 GitHub 上触发工作流：
-
    1. 访问仓库的 Actions 页面
    2. 选择 "发布到 Releases 仓库" 工作流
    3. 点击 "Run workflow"
@@ -109,12 +103,10 @@ npm run release:dev
 3. **安装依赖**：运行 `npm ci` 安装依赖
 
 4. **读取版本信息**：
-
    - 如果手动输入了版本号，使用输入的版本
    - 否则从 `version.json` 读取当前版本
 
 5. **确定发布类型**：
-
    - 手动触发：使用输入的发布类型
    - 标签触发：根据标签格式自动判断（`v*` = prod，`dev-*` = dev）
 
@@ -123,12 +115,10 @@ npm run release:dev
 7. **打包 Windows 版本**：运行 `npm run build:win`
 
 8. **生成发布日志**：
-
    - 从 git commits 自动生成发布说明
    - 按类型分类（新功能、Bug修复、性能优化等）
 
 9. **发布到 Releases 仓库**：
-
    - 上传构建产物（`.exe`、`.yml` 等文件）
    - 使用生成的发布日志作为 Release 说明
    - 根据发布类型设置是否为预发布版本
@@ -242,25 +232,21 @@ node scripts/release-rollback.js v0.13.1 --confirm
 ## 最佳实践
 
 1. **版本管理**：
-
    - 使用 Conventional Commits 规范提交代码
    - 版本号会自动根据 commits 更新
    - 发布前确认版本号正确
 
 2. **标签管理**：
-
    - 使用清晰的标签格式（`vX.Y.Z` 或 `dev-X.Y.Z`）
    - 标签一旦推送就会触发发布，请谨慎操作
    - 如需修改标签，先删除本地和远程标签，再重新创建
 
 3. **发布前检查**：
-
    - 在本地测试构建和打包
    - 确认代码已提交
    - 检查版本号是否正确
 
 4. **发布后验证**：
-
    - 检查 GitHub Releases 页面，确认文件已上传
    - 验证发布说明是否正确
    - 在应用中测试更新功能

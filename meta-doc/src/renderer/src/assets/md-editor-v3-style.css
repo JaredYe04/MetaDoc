@@ -2118,12 +2118,14 @@ div.mk-cute-theme blockquote table tr {
 
 .md-editor div.mk-cute-theme {
   --md-theme-color: #36ace1;
-  background-image: linear-gradient(90deg, rgba(50, 58, 66, 0.25) 3%, rgba(0, 0, 0, 0) 3%),
+  background-image:
+    linear-gradient(90deg, rgba(50, 58, 66, 0.25) 3%, rgba(0, 0, 0, 0) 3%),
     linear-gradient(360deg, rgba(50, 58, 66, 0.25) 3%, rgba(0, 0, 0, 0) 3%);
 }
 
 .md-editor-dark div.mk-cute-theme {
-  background-image: linear-gradient(90deg, rgba(217, 234, 251, 0.25) 3%, rgba(0, 0, 0, 0) 3%),
+  background-image:
+    linear-gradient(90deg, rgba(217, 234, 251, 0.25) 3%, rgba(0, 0, 0, 0) 3%),
     linear-gradient(360deg, rgba(217, 234, 251, 0.25) 3%, rgba(0, 0, 0, 0) 3%);
   --md-theme-bg-color-scrollbar-thumb: #4d4d4d;
 }
@@ -2333,7 +2335,8 @@ div.smart-blue-theme blockquote table tbody tr:nth-child(n) {
 }
 
 .md-editor .smart-blue-theme {
-  background-image: linear-gradient(90deg, rgba(60, 10, 30, 0.04) 3%, rgba(0, 0, 0, 0) 3%),
+  background-image:
+    linear-gradient(90deg, rgba(60, 10, 30, 0.04) 3%, rgba(0, 0, 0, 0) 3%),
     linear-gradient(360deg, rgba(60, 10, 30, 0.04) 3%, rgba(0, 0, 0, 0) 3%);
 }
 
@@ -2342,7 +2345,8 @@ div.smart-blue-theme blockquote table tbody tr:nth-child(n) {
 }
 
 .md-editor-dark .smart-blue-theme {
-  background-image: linear-gradient(90deg, rgba(207, 207, 207, 0.04) 3%, rgba(255, 255, 255, 0) 3%),
+  background-image:
+    linear-gradient(90deg, rgba(207, 207, 207, 0.04) 3%, rgba(255, 255, 255, 0) 3%),
     linear-gradient(360deg, rgba(207, 207, 207, 0.04) 3%, rgba(255, 255, 255, 0) 3%);
 }
 
@@ -2437,7 +2441,8 @@ div.smart-blue-theme hr {
 .md-editor-modal {
   display: block;
   background-color: var(--md-bk-color);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif,
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
   border-radius: 3px;
   border: 1px solid var(--md-border-color);
@@ -3141,8 +3146,9 @@ div.smart-blue-theme hr {
   --md-scrollbar-thumb-hover-color: #00000059;
   --md-scrollbar-thumb-active-color: #00000061;
   color: var(--md-color);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', system-ui,
-    ui-sans-serif, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', system-ui, ui-sans-serif,
+    Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   /* 浏览器滚动条 */
   width: 100%;
   height: 500px;
@@ -3240,8 +3246,9 @@ svg.md-editor-icon {
   --md-scrollbar-thumb-hover-color: #00000059;
   --md-scrollbar-thumb-active-color: #00000061;
   color: var(--md-color);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', system-ui,
-    ui-sans-serif, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', system-ui, ui-sans-serif,
+    Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   /* 浏览器滚动条 */
 }
 

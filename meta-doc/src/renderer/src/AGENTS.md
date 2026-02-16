@@ -54,19 +54,19 @@ renderer/src/
 
 ## WHERE TO LOOK
 
-| Task                  | Location                               | Notes                                                      |
-| --------------------- | -------------------------------------- | ---------------------------------------------------------- |
-| Add new view/page     | `views/` + `router/router.js`          | Also register in `pages` map if auxiliary window           |
-| Add new component     | `components/`                          | PascalCase .vue, single-word names OK                      |
-| Modify document state | `stores/workspace.ts`                  | Core store — 1847 lines, complex                           |
-| Tab drag & drop       | `composables/useTabDrag.ts`            | 跨窗口拖拽标签页、排序、视觉反馈、与主进程 drag-manager 配合 |
-| Tab operations        | `composables/useTabOperations.ts`      | 关闭标签页、移动到新窗口、右键菜单                          |
-| Tab switcher (Ctrl+Tab) | `composables/useTabSwitcher.ts` + `components/TabSwitcherOverlay.vue` | 键盘快捷切换标签页 |
-| Add LLM provider      | `utils/llm-adapters/`                  | Extend `base-adapter.ts`, register in `adapter-factory.ts` |
-| Add editor feature    | `editor/`                              | Both adapters share `text-editor-types.ts` interface       |
-| Modify AI behavior    | `utils/prompts.ts` + `locale_prompts/` | Prompt templates are first-class config                    |
-| Add workspace FS op   | `utils/workspace/`                     | Uses planner→executor pattern                              |
-| Theme/styling         | `utils/themes.js` + `assets/`          | `themeState` provided globally                             |
+| Task                    | Location                                                              | Notes                                                        |
+| ----------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Add new view/page       | `views/` + `router/router.js`                                         | Also register in `pages` map if auxiliary window             |
+| Add new component       | `components/`                                                         | PascalCase .vue, single-word names OK                        |
+| Modify document state   | `stores/workspace.ts`                                                 | Core store — 1847 lines, complex                             |
+| Tab drag & drop         | `composables/useTabDrag.ts`                                           | 跨窗口拖拽标签页、排序、视觉反馈、与主进程 drag-manager 配合 |
+| Tab operations          | `composables/useTabOperations.ts`                                     | 关闭标签页、移动到新窗口、右键菜单                           |
+| Tab switcher (Ctrl+Tab) | `composables/useTabSwitcher.ts` + `components/TabSwitcherOverlay.vue` | 键盘快捷切换标签页                                           |
+| Add LLM provider        | `utils/llm-adapters/`                                                 | Extend `base-adapter.ts`, register in `adapter-factory.ts`   |
+| Add editor feature      | `editor/`                                                             | Both adapters share `text-editor-types.ts` interface         |
+| Modify AI behavior      | `utils/prompts.ts` + `locale_prompts/`                                | Prompt templates are first-class config                      |
+| Add workspace FS op     | `utils/workspace/`                                                    | Uses planner→executor pattern                                |
+| Theme/styling           | `utils/themes.js` + `assets/`                                         | `themeState` provided globally                               |
 
 ## CONVENTIONS
 

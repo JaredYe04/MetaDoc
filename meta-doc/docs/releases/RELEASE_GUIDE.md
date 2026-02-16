@@ -24,7 +24,6 @@
    ```
 
    **重要提示**：
-
    - `.env` 文件会被复制到 `resources/` 目录，并包含在打包后的应用中
    - 这些配置用于应用程序运行时检查更新
    - **推荐使用公开的 Releases 仓库**，这样不需要 Token，也不存在安全问题
@@ -33,7 +32,6 @@
    **b) GitHub Actions 发布（GitHub Secrets）**
 
    在 GitHub 仓库的 Settings → Secrets and variables → Actions 中添加：
-
    - **Name**: `GH_TOKEN`
    - **Value**: 一个具有 `repo` 权限的 GitHub Personal Access Token
 
@@ -62,7 +60,6 @@
 1. **设置 GitHub Token**
 
    在源仓库的 Settings → Secrets and variables → Actions 中添加：
-
    - Name: `GH_TOKEN`
    - Value: 一个具有 `repo` 权限的 GitHub Personal Access Token
    - 该 Token 需要有访问目标 Releases 仓库（MetaDoc-Releases）的权限
